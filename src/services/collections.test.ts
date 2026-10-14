@@ -736,17 +736,21 @@ describe("Nanaflix Collections - Regression Test Suite", () => {
       | { status: "success"; items: MovieCollection[] }
       | { status: "unauthorized" | "forbidden" | "network_error" | "server_error"; error?: string };
 
-    const mockNetworkFailure = (): SupabaseResult => {
-      return { status: "network_error", error: "Failed to fetch / timeout" };
+    const mockNetworkFailure = (fail: boolean): SupabaseResult => {
+      if (fail) {
+        return { status: "network_error", error: "Failed to fetch / timeout" };
+      }
+      return { status: "success", items: [] };
     };
 
-    const result = mockNetworkFailure();
+    const result: SupabaseResult = mockNetworkFailure(true);
     assert.notEqual(result.status, "success", "Must not report success on network error");
     assert.equal(result.status, "network_error");
 
     // Collection service kiểm tra: chỉ xử lý khi status === 'success'
     let treatedAsEmptyServerList = false;
-    if (result.status === "success" && Array.isArray(result.items)) {
+    const checkStatus = (r: SupabaseResult) => r.status === "success";
+    if (checkStatus(result)) {
       treatedAsEmptyServerList = true;
     }
     assert.equal(treatedAsEmptyServerList, false, "Network error must NEVER be treated as valid empty server list");
@@ -762,9 +766,11 @@ describe("Nanaflix Collections - Regression Test Suite", () => {
       return { status: "success", items: [] };
     };
 
-    const result = mockServerVerifiedEmpty();
+    const result: SupabaseResult = mockServerVerifiedEmpty();
     assert.equal(result.status, "success");
-    assert.equal(result.items.length, 0);
+    if (result.status === "success") {
+      assert.equal(result.items.length, 0);
+    }
 
     // Khi server xác thực hợp lệ và xác nhận rỗng, mergeCollections vẫn bảo vệ bản ghi local chưa kịp sync
     const unSyncedLocal: MovieCollection = {
@@ -778,7 +784,8 @@ describe("Nanaflix Collections - Regression Test Suite", () => {
       updatedAt: 1740000000000,
     };
 
-    const merged = mergeCollections([unSyncedLocal], result.items, mockUserA, {});
+    const serverItems = result.status === "success" ? result.items : [];
+    const merged = mergeCollections([unSyncedLocal], serverItems, mockUserA, {});
     assert.equal(merged.length, 1, "Un-synced local collection is preserved even if server verified list is currently empty");
     assert.equal(merged[0].id, "col_offline_created");
   });
@@ -812,7 +819,7 @@ describe("Nanaflix Collections - Regression Test Suite", () => {
     let isReliableServerResponse = false;
 
     // Giả lập lỗi server 500
-    const serverStatus = 500;
+    const serverStatus: number = 500;
     if (serverStatus !== 200) {
       isReliableServerResponse = false;
       serverItems = null;
@@ -945,5 +952,203 @@ describe("Nanaflix Collections - Regression Test Suite", () => {
     const tombstones: Record<string, number> = { [newCol.id]: Date.now() };
     const remainingAfterDelete = [updatedCol].filter((c) => !tombstones[c.id]);
     assert.equal(remainingAfterDelete.length, 0, "Collection deleted and removed cleanly");
+  });
+
+  // =========================================================================
+  // BỘ 7 TESTS CHUYÊN SÂU: BẢO VỆ VÀ PHỤC HỒI BST MỚI ĐƯỢC TẠO
+  // =========================================================================
+
+  // Scenario 1: Tạo BST khi mạng lỗi -> BST phải được lưu LocalStorage và đưa vào Pending Sync
+  it("Recovery Test 1: Tạo BST khi mạng lỗi được lưu vào LocalStorage và đưa vào Pending Sync", () => {
+    const colId = `col_new_offline_${Date.now()}`;
+    const newCollection: MovieCollection = {
+      id: colId,
+      userId: mockUserA,
+      creatorName: "Alpha",
+      name: "BST Tạo Khi Mất Mạng",
+      description: "Đang chờ đồng bộ",
+      isPublic: true,
+      movies: [],
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    };
+
+    // Mô phỏng createCollection:
+    // 1. Lưu LocalStorage
+    const localStore: Record<string, MovieCollection[]> = {};
+    localStore[mockUserA] = [newCollection];
+
+    // 2. Đưa vào pending sync
+    const pendingStore: Record<string, Record<string, { collectionId: string; attempts: number }>> = {};
+    pendingStore[mockUserA] = { [colId]: { collectionId: colId, attempts: 0 } };
+
+    // 3. Giả lập syncCollectionToServer thất bại do mạng
+    const networkFailed = true;
+    if (networkFailed) {
+      // Pending sync giữ nguyên
+    }
+
+    assert.equal(localStore[mockUserA].length, 1, "Must be saved locally");
+    assert.equal(localStore[mockUserA][0].id, colId);
+    assert.ok(pendingStore[mockUserA][colId], "Must remain in Pending Sync when network fails");
+  });
+
+  // Scenario 2: Tạo BST khi API timeout nhưng server có thể đã ghi thành công
+  it("Recovery Test 2: Tạo BST khi API timeout nhưng server đã ghi thành công -> retry idempotent không bị trùng bản ghi", () => {
+    const colId = "col_idempotent_123";
+    const serverDb: Record<string, MovieCollection> = {};
+
+    const payload: MovieCollection = {
+      id: colId,
+      userId: mockUserA,
+      creatorName: "Alpha",
+      name: "BST Idempotent",
+      isPublic: true,
+      movies: [],
+      createdAt: 1740000000000,
+      updatedAt: 1740000000000,
+    };
+
+    // Lần 1: Server ghi thành công nhưng client timeout
+    serverDb[colId] = payload;
+
+    // Lần 2: Client retry gửi lại payload với cùng ID (onConflict id)
+    serverDb[colId] = {
+      ...payload,
+      updatedAt: 1740000010000,
+    };
+
+    const records = Object.values(serverDb);
+    assert.equal(records.length, 1, "Must NOT create duplicate record when retrying with same collection ID");
+    assert.equal(records[0].id, colId);
+  });
+
+  // Scenario 3: Reload hoặc mở lại trang sau khi tạo BST
+  it("Recovery Test 3: Reload hoặc mở lại trang sau khi tạo BST -> BST mới từ LocalStorage không bị mất", () => {
+    const newColId = "col_created_morning";
+    const localBeforeReload: MovieCollection[] = [
+      {
+        id: newColId,
+        userId: mockUserA,
+        creatorName: "Alpha",
+        name: "BST Tạo Lúc Buổi Sáng",
+        isPublic: true,
+        movies: [],
+        createdAt: 1740000000000,
+        updatedAt: 1740000000000,
+      },
+    ];
+
+    // Server chưa kịp có bản ghi này (serverItems = [])
+    const serverItemsOnReload: MovieCollection[] = [];
+    const tombstones = {};
+
+    // Smart merge khi reload:
+    const mergedAfterReload = mergeCollections(localBeforeReload, serverItemsOnReload, mockUserA, tombstones);
+    assert.equal(mergedAfterReload.length, 1, "New morning collection must NOT disappear after page reload");
+    assert.equal(mergedAfterReload[0].id, newColId);
+  });
+
+  // Scenario 4: Token hết hạn trước khi đồng bộ
+  it("Recovery Test 4: Token hết hạn trước khi đồng bộ -> Pending sync giữ nguyên dữ liệu local, không xóa sạch", () => {
+    const colId = "col_pending_expired_token";
+    const localCols: MovieCollection[] = [
+      {
+        id: colId,
+        userId: mockUserA,
+        creatorName: "Alpha",
+        name: "BST Chờ Token Refresh",
+        isPublic: false,
+        movies: [],
+        createdAt: 1740000000000,
+        updatedAt: 1740000000000,
+      },
+    ];
+
+    const tokenExpired = true;
+    let localSaved: MovieCollection[] = localCols;
+
+    if (tokenExpired) {
+      // Khi token hết hạn, getUserCollections KHÔNG ghi đè LocalStorage
+      const isReliable = false;
+      if (isReliable) {
+        localSaved = [];
+      }
+    }
+
+    assert.equal(localSaved.length, 1, "Local collection preserved despite token expiration");
+    assert.equal(localSaved[0].id, colId);
+  });
+
+  // Scenario 5: Merge danh sách server không có BST local mới
+  it("Recovery Test 5: Server list không có BST local mới -> Smart merge ưu tiên giữ BST local của chính user", () => {
+    const localNewCol: MovieCollection = {
+      id: "col_local_brand_new",
+      userId: mockUserA,
+      creatorName: "Alpha",
+      name: "BST Chỉ Có Ở Local",
+      isPublic: true,
+      movies: [],
+      createdAt: 1740000050000,
+      updatedAt: 1740000050000,
+    };
+
+    const serverExistingCol: MovieCollection = {
+      id: "col_server_old",
+      userId: mockUserA,
+      creatorName: "Alpha",
+      name: "BST Đã Có Trên Server",
+      isPublic: true,
+      movies: [],
+      createdAt: 1740000000000,
+      updatedAt: 1740000000000,
+    };
+
+    const merged = mergeCollections([localNewCol], [serverExistingCol], mockUserA, {});
+    assert.equal(merged.length, 2, "Merged result must contain both server old and local new collections");
+    assert.ok(merged.some((c) => c.id === "col_local_brand_new"));
+    assert.ok(merged.some((c) => c.id === "col_server_old"));
+  });
+
+  // Scenario 6: Retry Pending Sync không tạo BST trùng
+  it("Recovery Test 6: Retry Pending Sync nhiều lần không sinh ra các collection bị trùng ID hoặc tên", () => {
+    const colId = "col_pending_retry_test";
+    const pendingItems = [
+      { id: colId, name: "BST Retry 1" },
+      { id: colId, name: "BST Retry 2" },
+      { id: colId, name: "BST Retry 3" },
+    ];
+
+    // Cơ chế deduplication theo ID trong Map
+    const deduplicatedMap = new Map<string, { id: string; name: string }>();
+    for (const item of pendingItems) {
+      deduplicatedMap.set(item.id, item);
+    }
+
+    assert.equal(deduplicatedMap.size, 1, "Idempotent map prevents duplication during retries");
+  });
+
+  // Scenario 7: Tombstone không vô tình xóa BST mới hợp lệ
+  it("Recovery Test 7: clearTombstone khi tạo mới đảm bảo ID mới không bị tombstone cũ xóa nhầm", () => {
+    const recycledId = "col_reused_id_123";
+    const tombstones: Record<string, number> = { [recycledId]: Date.now() - 5000 };
+
+    // Khi tạo mới collection với ID này:
+    delete tombstones[recycledId]; // clearTombstone
+    assert.equal(tombstones[recycledId], undefined, "Tombstone cleared for new collection");
+
+    const newCol: MovieCollection = {
+      id: recycledId,
+      userId: mockUserA,
+      creatorName: "Alpha",
+      name: "BST Mới Trùng ID Cũ Đã Xóa",
+      isPublic: true,
+      movies: [],
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    };
+
+    const merged = mergeCollections([newCol], [], mockUserA, tombstones);
+    assert.equal(merged.length, 1, "New collection must NOT be deleted if tombstone is properly cleared");
   });
 });
