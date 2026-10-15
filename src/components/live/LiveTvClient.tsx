@@ -484,7 +484,7 @@ export function LiveTvClient({
         const topOffset =
           playerRef.current.getBoundingClientRect().top +
           window.scrollY -
-          80;
+          70;
         window.scrollTo({ top: Math.max(0, topOffset), behavior: "smooth" });
       }
     },
@@ -1568,72 +1568,81 @@ export function LiveTvClient({
   ) : null;
 
   return (
-    <div className="space-y-6">
-      {/* 1. KHUNG TRÌNH PHÁT TRUYỀN HÌNH TRỰC TIẾP */}
+    <div className="space-y-3 sm:space-y-4">
+      {/* 1. KHUNG TRÌNH PHÁT TRUYỀN HÌNH TRỰC TIẾP (TV CINEMA MODE) */}
       {selectedTvChannel ? (
-            <div ref={playerRef} className="scroll-mt-24 space-y-4 w-full min-w-0">
-          {/* HEADER KÊNH ĐANG PHÁT */}
-          <div className="keep-dark-cinema relative rounded-2xl sm:rounded-3xl border border-white/15 bg-gradient-to-b from-zinc-900/95 via-zinc-950/98 to-black p-3.5 sm:p-4 shadow-2xl space-y-3 backdrop-blur-xl">
-            {/* HÀNG 1: LOGO + TÊN KÊNH + CÁC HUY HIỆU + CỤM NÚT THAO TÁC */}
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2.5 sm:gap-3.5 min-w-0 flex-1">
-                {/* LOGO KÊNH */}
-                <div className="w-12 h-9 sm:w-16 sm:h-11 md:w-20 md:h-13 rounded-xl bg-zinc-900/90 border-2 border-white/20 p-1 sm:p-1.5 flex items-center justify-center shadow-xl flex-shrink-0 overflow-hidden">
-                  <TvChannelLogo
-                    logo={selectedTvChannel.logo}
-                    name={selectedTvChannel.name}
-                  />
-                </div>
-
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-1 sm:gap-1.5 mb-1 flex-wrap">
-                    <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-netflix-red/20 border border-netflix-red/40 text-netflix-red text-[9.5px] sm:text-[10px] font-black animate-pulse whitespace-nowrap">
-                      <Radio className="w-2.5 h-2.5" />
-                      <span>Trực tiếp</span>
-                    </span>
-                    <span className="px-2 py-0.5 rounded-full bg-white/10 border border-white/15 text-gray-300 text-[9.5px] sm:text-[10px] font-bold whitespace-nowrap">
-                      {selectedTvChannel.category}
-                    </span>
-                    <span className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 text-[9px] sm:text-[9.5px] font-black uppercase whitespace-nowrap">
-                      <Zap className="w-2.5 h-2.5 fill-emerald-400" />
-                      <span>{selectedTvChannel.quality}</span>
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2 min-w-0">
-                    <h2
-                      className="text-base sm:text-lg md:text-xl font-black text-white keep-white truncate"
-                      style={{ color: "#ffffff" }}
-                      title={selectedTvChannel.name}
-                    >
-                      {selectedTvChannel.name}
-                    </h2>
-                    {isPlaying && <PlayingEqualizer />}
-                  </div>
-                </div>
+        <div ref={playerRef} className="scroll-mt-20 space-y-2 sm:space-y-2.5 w-full min-w-0">
+          {/* HEADER KÊNH ĐANG PHÁT - SLIM CINEMA HEADER */}
+          <div className="keep-dark-cinema relative rounded-xl sm:rounded-2xl border border-white/15 bg-gradient-to-r from-zinc-900/95 via-zinc-950/98 to-zinc-900/95 px-2.5 py-1.5 sm:px-4 sm:py-2 shadow-xl backdrop-blur-xl flex items-center justify-between gap-2 sm:gap-3">
+            <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+              {/* LOGO KÊNH COMPACT */}
+              <div className="w-8 h-6 sm:w-9 sm:h-7 rounded-lg bg-zinc-900/90 border border-white/20 p-0.5 flex items-center justify-center shadow-md flex-shrink-0 overflow-hidden">
+                <TvChannelLogo
+                  logo={selectedTvChannel.logo}
+                  name={selectedTvChannel.name}
+                  size="sm"
+                />
               </div>
 
-              {/* NÚT SAO CHÉP */}
-              <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
-                <button
-                  type="button"
-                  onClick={handleCopy}
-                  title="Sao chép link stream HLS"
-                  className="p-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-gray-300 hover:text-white transition border border-white/10 cursor-pointer"
+              {/* TÊN KÊNH & EQUALIZER */}
+              <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+                <h2
+                  className="text-xs sm:text-sm font-black text-white keep-white truncate"
+                  style={{ color: "#ffffff" }}
+                  title={selectedTvChannel.name}
                 >
-                  {copied ? (
-                    <Check className="w-3.5 h-3.5 text-emerald-400" />
-                  ) : (
-                    <Copy className="w-3.5 h-3.5" />
-                  )}
-                </button>
+                  {selectedTvChannel.name}
+                </h2>
+                {isPlaying && <PlayingEqualizer />}
+              </div>
+
+              {/* HUY HIỆU GỌN GÀNG (Trực tiếp, Danh mục, Chất lượng) */}
+              <div className="hidden sm:flex items-center gap-1.5 shrink-0">
+                <span className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-netflix-red/20 border border-netflix-red/40 text-netflix-red text-[9px] font-black animate-pulse whitespace-nowrap">
+                  <Radio className="w-2.5 h-2.5" />
+                  <span>Trực tiếp</span>
+                </span>
+                <span className="px-1.5 py-0.5 rounded-md bg-white/10 border border-white/15 text-gray-300 text-[9px] font-bold whitespace-nowrap">
+                  {selectedTvChannel.category}
+                </span>
+                <span className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 text-[9px] font-black uppercase whitespace-nowrap">
+                  <Zap className="w-2 h-2 fill-emerald-400" />
+                  <span>{selectedTvChannel.quality}</span>
+                </span>
               </div>
             </div>
 
-            <p className="text-[11px] sm:text-xs text-gray-400">Tín hiệu truyền hình trực tuyến độ nét cao</p>
+            {/* CỤM NÚT THAO TÁC: MỞ DANH SÁCH KÊNH + SAO CHÉP */}
+            <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
+              <button
+                type="button"
+                onClick={() => setShowChannelRail((prev) => !prev)}
+                title={showChannelRail ? "Đóng danh sách kênh (C)" : "Mở danh sách kênh (C)"}
+                className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[10.5px] sm:text-xs font-bold border transition cursor-pointer ${
+                  showChannelRail
+                    ? "bg-sky-600 text-white border-sky-400 shadow-md shadow-sky-950/50"
+                    : "bg-white/10 hover:bg-white/20 text-gray-300 hover:text-white border-white/10"
+                }`}
+              >
+                <Tv className="w-3 h-3 text-sky-300" />
+                <span className="hidden sm:inline">Danh sách kênh</span>
+              </button>
+              <button
+                type="button"
+                onClick={handleCopy}
+                title="Sao chép link stream HLS"
+                className="p-1 sm:p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-gray-300 hover:text-white transition border border-white/10 cursor-pointer"
+              >
+                {copied ? (
+                  <Check className="w-3.5 h-3.5 text-emerald-400" />
+                ) : (
+                  <Copy className="w-3.5 h-3.5" />
+                )}
+              </button>
+            </div>
           </div>
 
-
-          {/* KHUNG PHÁT VIDEO PLAYER */}
+          {/* KHUNG PHÁT VIDEO PLAYER (TỶ LỆ 16:9 THEO VIEWPORT THỰC TẾ) */}
           <div
             ref={containerRef}
             tabIndex={0}
@@ -1656,7 +1665,7 @@ export function LiveTvClient({
             className={`relative w-full mx-auto bg-black transition-all duration-300 group select-none ring-1 ring-white/10 outline-none focus:outline-none focus-visible:outline-none contain-paint isolate ${
               isFullscreen
                 ? "fixed inset-0 z-50 w-full h-full max-w-none max-h-none rounded-none aspect-auto border-none shadow-none p-0 m-0 overflow-hidden flex flex-col justify-center"
-                : "aspect-video lg:max-h-[calc(100vh-210px)] lg:max-w-[calc((100vh-210px)*16/9)] rounded-2xl sm:rounded-3xl overflow-hidden border border-white/15 shadow-2xl"
+                : "aspect-video lg:max-h-[calc(100vh-172px)] lg:max-w-[calc((100vh-172px)*16/9)] rounded-2xl sm:rounded-3xl overflow-hidden border border-white/15 shadow-2xl"
             } ${showControls ? "cursor-default" : "cursor-none"}`}
           >
             <video
