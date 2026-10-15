@@ -366,7 +366,7 @@ export const Footer: React.FC = () => {
         </div>
 
         {/* ============================================================ */}
-        {/* 4. BRANDING & CREATOR CARD (DT) */}
+        {/* 4. BRANDING & CREATOR CARD (DŨNG TRẦN) */}
         {/* ============================================================ */}
         <div className="border-t border-white/[0.08] pt-6 sm:pt-8 flex flex-col md:flex-row items-center justify-between gap-4 sm:gap-6">
           <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4 text-center sm:text-left">
@@ -423,7 +423,7 @@ export const Footer: React.FC = () => {
               <span className="text-xs text-gray-300 font-medium">
                 Designed & Developed by{" "}
                 <strong className="text-white font-bold group-hover:text-netflix-red transition-colors">
-                  DT
+                  Dũng Trần
                 </strong>
               </span>
               <span className="text-[11px] sm:text-xs text-zinc-400 font-mono">

@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useMemo, useEffect } from "react";
-import { createPortal } from "react-dom";
 import {
   Shield,
   Users,
@@ -529,6 +528,139 @@ export function PhotoToken({
   );
 }
 
+/**
+ * Card chi tiết cầu thủ hiển thị inline ngay dưới sân cỏ, không mở modal che video
+ */
+export function InlinePlayerDetailCard({
+  player,
+  isHome,
+  onClose,
+  hasValidPhoto,
+  onImageError,
+  matchStatus,
+}: {
+  player: MatchRosterPlayer;
+  isHome: boolean;
+  onClose: () => void;
+  hasValidPhoto: boolean;
+  onImageError: (id: string) => void;
+  matchStatus?: "live" | "finished" | "scheduled" | string;
+}) {
+  const isMatchScheduled = matchStatus === "scheduled";
+
+  return (
+    <div className="relative rounded-2xl bg-zinc-900/95 border border-white/15 p-3.5 sm:p-4 shadow-xl backdrop-blur-md animate-in fade-in duration-150">
+      {/* Nút đóng */}
+      <button
+        type="button"
+        onClick={onClose}
+        aria-label="Đóng thông tin cầu thủ"
+        className="absolute top-3.5 right-3.5 p-1.5 rounded-full bg-white/10 hover:bg-white/20 text-zinc-300 hover:text-white transition cursor-pointer"
+      >
+        <X className="w-4 h-4" />
+      </button>
+
+      {/* Header cầu thủ */}
+      <div className="flex items-center gap-3 pr-8">
+        <div
+          className={`w-12 h-12 rounded-xl bg-zinc-800 border-2 overflow-hidden flex items-center justify-center font-mono font-black text-base shrink-0 shadow-inner ${
+            isHome ? "border-netflix-red/60" : "border-sky-400/60"
+          }`}
+        >
+          {player.photoUrl && hasValidPhoto ? (
+            /* eslint-disable-next-line @next/next/no-img-element */
+            <img
+              src={player.photoUrl}
+              alt={player.displayName}
+              onError={() => onImageError(player.id)}
+              className="w-full h-full object-cover object-top"
+            />
+          ) : (
+            <div
+              className={`w-full h-full flex items-center justify-center text-white ${
+                isHome
+                  ? "bg-gradient-to-b from-red-600 to-red-900"
+                  : "bg-gradient-to-b from-sky-500 to-sky-800"
+              }`}
+            >
+              <span>#{player.jersey || "?"}</span>
+            </div>
+          )}
+        </div>
+
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <h4 className="text-sm sm:text-base font-black text-white truncate">
+              {player.displayName}
+            </h4>
+            <span className="font-mono text-xs font-bold text-amber-300 bg-amber-400/10 border border-amber-400/30 px-1.5 py-0.2 rounded shrink-0">
+              #{player.jersey || "-"}
+            </span>
+          </div>
+          <p className="text-xs text-zinc-300 font-medium mt-0.5 truncate">
+            {translatePosition(player.position)}
+          </p>
+          <div className="flex items-center gap-2 mt-1">
+            <span
+              className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                player.starter
+                  ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                  : "bg-zinc-800 text-zinc-300 border border-white/10"
+              }`}
+            >
+              {player.starter ? "Đá chính" : "Dự bị"}
+            </span>
+
+            {!isMatchScheduled && player.subbedIn && (
+              <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/15 border border-emerald-500/30 px-1.5 py-0.5 rounded flex items-center gap-1">
+                <ArrowUpRight className="w-3 h-3" />
+                <span>Vào sân {player.subClock ? `(${player.subClock})` : ""}</span>
+              </span>
+            )}
+            {!isMatchScheduled && player.subbedOut && (
+              <span className="text-[10px] font-bold text-red-400 bg-red-500/15 border border-red-500/30 px-1.5 py-0.5 rounded flex items-center gap-1">
+                <ArrowDownLeft className="w-3 h-3" />
+                <span>Ra sân {player.subClock ? `(${player.subClock})` : ""}</span>
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Thống kê thực tế trong trận */}
+      {player.stats && player.stats.length > 0 ? (
+        <div className="mt-3 pt-2.5 border-t border-white/10 space-y-1.5">
+          <div className="flex items-center gap-1.5 text-[11px] font-bold text-zinc-400">
+            <Trophy className="w-3 h-3 text-amber-400" />
+            <span>Thống kê thực tế trong trận</span>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
+            {player.stats.map((st, idx) => (
+              <div
+                key={idx}
+                className="p-1.5 px-2 rounded-lg bg-black/40 border border-white/5 flex items-center justify-between"
+              >
+                <span className="text-[10.5px] text-zinc-400 truncate pr-1">
+                  {translateStatName(st.displayName)}
+                </span>
+                <span className="font-mono text-xs font-bold text-white shrink-0">
+                  {st.value}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <div className="mt-2.5 pt-2 border-t border-white/5 text-[11px] text-zinc-400 italic">
+          {isMatchScheduled
+            ? "Trận đấu chưa bắt đầu, thông số cá nhân sẽ cập nhật khi có bóng lăn"
+            : "Chưa có thêm thống kê sự kiện của cầu thủ này"}
+        </div>
+      )}
+    </div>
+  );
+}
+
 interface TeamPitchColumnProps {
   team: {
     id: string;
@@ -546,6 +678,8 @@ interface TeamPitchColumnProps {
   imageErrors: Record<string, boolean>;
   onImageError: (id: string) => void;
   onSelectPlayer: (player: MatchRosterPlayer) => void;
+  selectedPlayer?: MatchRosterPlayer | null;
+  onCloseSelectedPlayer?: () => void;
   showHeader?: boolean;
   matchStatus?: "live" | "finished" | "scheduled" | string;
 }
@@ -558,6 +692,8 @@ function TeamPitchColumn({
   imageErrors,
   onImageError,
   onSelectPlayer,
+  selectedPlayer,
+  onCloseSelectedPlayer,
   showHeader = true,
   matchStatus,
 }: TeamPitchColumnProps) {
@@ -638,7 +774,7 @@ function TeamPitchColumn({
                 y1="65"
                 x2="98"
                 y2="65"
-                stroke="rgba(255,255,255,0.22)"
+                stroke="rgba(255,255,225,0.22)"
                 strokeWidth="0.8"
               />
               {/* Center circle & spot */}
@@ -721,6 +857,7 @@ function TeamPitchColumn({
                 roleAbbr === "GK" ||
                 Boolean(player.position && /goalkeeper|gk|thủ môn/i.test(player.position)) ||
                 player.formationPlace === 1;
+              const isSelected = selectedPlayer?.id === player.id;
 
               return (
                 <button
@@ -734,10 +871,18 @@ function TeamPitchColumn({
                   }}
                   className={`absolute -translate-x-1/2 ${
                     isGK ? "-translate-y-[88%]" : "-translate-y-1/2"
-                  } group flex flex-col items-center cursor-pointer transition-all hover:scale-115 active:scale-95 focus:outline-none z-20`}
+                  } group flex flex-col items-center cursor-pointer transition-all hover:scale-115 active:scale-95 focus:outline-none z-20 ${
+                    isSelected ? "scale-115 z-30" : ""
+                  }`}
                 >
                   {/* Token cầu thủ trên sân */}
-                  <div className="relative">
+                  <div
+                    className={`relative rounded-full transition-all ${
+                      isSelected
+                        ? "ring-2 ring-amber-400 ring-offset-2 ring-offset-zinc-950 shadow-lg shadow-amber-400/50"
+                        : ""
+                    }`}
+                  >
                     {tokenDisplayMode === "jersey" ? (
                       <VectorJerseyToken
                         number={player.jersey}
@@ -802,6 +947,18 @@ function TeamPitchColumn({
         )}
       </div>
 
+      {/* CARD CHI TIẾT CẦU THỦ ĐƯỢC CHỌN (HIỂN THỊ GỌN NGAY DƯỚI SÂN CỎ, KHÔNG CHE VIDEO) */}
+      {selectedPlayer && (
+        <InlinePlayerDetailCard
+          player={selectedPlayer}
+          isHome={isHome}
+          onClose={onCloseSelectedPlayer || (() => {})}
+          hasValidPhoto={Boolean(selectedPlayer.photoUrl && !imageErrors[selectedPlayer.id])}
+          onImageError={onImageError}
+          matchStatus={matchStatus}
+        />
+      )}
+
       {/* CẦU THỦ DỰ BỊ */}
       {roster.bench.length > 0 && (
         <div className="rounded-2xl bg-zinc-900/60 border border-white/10 p-3 sm:p-4 space-y-3">
@@ -818,13 +975,18 @@ function TeamPitchColumn({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-[380px] overflow-y-auto pr-1 scrollbar-thin">
             {roster.bench.map((player) => {
               const hasValidPhoto = Boolean(player.photoUrl && !imageErrors[player.id]);
+              const isSelected = selectedPlayer?.id === player.id;
 
               return (
                 <button
                   key={player.id}
                   type="button"
                   onClick={() => onSelectPlayer(player)}
-                  className="flex items-center justify-between gap-2.5 p-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 hover:border-white/20 transition-all text-left cursor-pointer group"
+                  className={`flex items-center justify-between gap-2.5 p-2.5 rounded-xl transition-all text-left cursor-pointer group ${
+                    isSelected
+                      ? "bg-white/[0.12] border-amber-400/70 ring-1 ring-amber-400/40 shadow-sm"
+                      : "bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 hover:border-white/20"
+                  }`}
                 >
                   <div className="flex items-center gap-2.5 min-w-0 flex-1">
                     <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-zinc-800 border border-white/20 overflow-hidden shrink-0 flex items-center justify-center font-mono text-xs sm:text-[13px] font-bold text-zinc-200 shadow-sm">
@@ -891,6 +1053,10 @@ interface TeamListColumnProps {
   };
   isHome: boolean;
   onSelectPlayer: (player: MatchRosterPlayer) => void;
+  selectedPlayer?: MatchRosterPlayer | null;
+  onCloseSelectedPlayer?: () => void;
+  imageErrors?: Record<string, boolean>;
+  onImageError?: (id: string) => void;
   matchStatus?: "live" | "finished" | "scheduled" | string;
 }
 
@@ -899,6 +1065,10 @@ function TeamListColumn({
   roster,
   isHome,
   onSelectPlayer,
+  selectedPlayer,
+  onCloseSelectedPlayer,
+  imageErrors = {},
+  onImageError = () => {},
   matchStatus,
 }: TeamListColumnProps) {
   const isMatchScheduled = matchStatus === "scheduled";
@@ -922,37 +1092,56 @@ function TeamListColumn({
         )}
       </div>
 
+      {/* Card chi tiết cầu thủ nếu được chọn */}
+      {selectedPlayer && (
+        <InlinePlayerDetailCard
+          player={selectedPlayer}
+          isHome={isHome}
+          onClose={onCloseSelectedPlayer || (() => {})}
+          hasValidPhoto={Boolean(selectedPlayer.photoUrl && !imageErrors[selectedPlayer.id])}
+          onImageError={onImageError}
+          matchStatus={matchStatus}
+        />
+      )}
+
       <div className="space-y-1.5">
         <p className="text-xs sm:text-[13px] font-extrabold text-gray-300 uppercase tracking-wider">
           Ra sân chính thức ({roster.starters.length})
         </p>
-        {roster.starters.map((p, i) => (
-          <div
-            key={p.id || i}
-            onClick={() => onSelectPlayer(p)}
-            className="flex items-center justify-between gap-2.5 py-2 px-3 rounded-xl bg-white/[0.03] hover:bg-white/[0.08] border border-white/5 cursor-pointer text-xs sm:text-sm transition"
-          >
-            <div className="flex items-center gap-2.5 min-w-0 flex-1">
-              <span className="font-mono text-zinc-400 min-w-[24px] font-bold text-xs sm:text-sm">
-                #{p.jersey || i + 1}
-              </span>
-              <span className="text-zinc-100 font-semibold truncate text-xs sm:text-sm">{p.displayName || p.name}</span>
-            </div>
-            <div className="flex items-center gap-2 shrink-0">
-              {!isMatchScheduled && p.subbedOut && (
-                <span className="text-xs text-red-400 font-bold flex items-center gap-1 bg-red-500/10 px-1.5 py-0.5 rounded border border-red-500/20">
-                  <ArrowDownLeft className="w-3 h-3" />
-                  <span>{p.subClock || "Ra sân"}</span>
+        {roster.starters.map((p, i) => {
+          const isSelected = selectedPlayer?.id === p.id;
+          return (
+            <div
+              key={p.id || i}
+              onClick={() => onSelectPlayer(p)}
+              className={`flex items-center justify-between gap-2.5 py-2 px-3 rounded-xl cursor-pointer text-xs sm:text-sm transition ${
+                isSelected
+                  ? "bg-white/[0.12] border border-amber-400/60 ring-1 ring-amber-400/30"
+                  : "bg-white/[0.03] hover:bg-white/[0.08] border border-white/5"
+              }`}
+            >
+              <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                <span className="font-mono text-zinc-400 min-w-[24px] font-bold text-xs sm:text-sm">
+                  #{p.jersey || i + 1}
                 </span>
-              )}
-              {p.position && (
-                <span className="text-xs text-zinc-400 font-medium">
-                  {translatePosition(p.position)}
-                </span>
-              )}
+                <span className="text-zinc-100 font-semibold truncate text-xs sm:text-sm">{p.displayName || p.name}</span>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                {!isMatchScheduled && p.subbedOut && (
+                  <span className="text-xs text-red-400 font-bold flex items-center gap-1 bg-red-500/10 px-1.5 py-0.5 rounded border border-red-500/20">
+                    <ArrowDownLeft className="w-3 h-3" />
+                    <span>{p.subClock || "Ra sân"}</span>
+                  </span>
+                )}
+                {p.position && (
+                  <span className="text-xs text-zinc-400 font-medium">
+                    {translatePosition(p.position)}
+                  </span>
+                )}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {roster.bench.length > 0 && (
@@ -961,28 +1150,35 @@ function TeamListColumn({
             Dự bị ({roster.bench.length})
           </p>
           <div className="max-h-[260px] overflow-y-auto pr-0.5 scrollbar-thin space-y-1">
-            {roster.bench.map((p, i) => (
-              <div
-                key={p.id || i}
-                onClick={() => onSelectPlayer(p)}
-                className="flex items-center justify-between gap-2.5 py-2 px-3 rounded-xl text-xs sm:text-sm hover:bg-white/[0.05] border border-transparent hover:border-white/5 cursor-pointer"
-              >
-                <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                  <span className="font-mono text-zinc-500 min-w-[24px] font-semibold text-xs sm:text-sm">#{p.jersey || "-"}</span>
-                  <span className="text-zinc-300 truncate text-xs sm:text-sm">{p.displayName || p.name}</span>
+            {roster.bench.map((p, i) => {
+              const isSelected = selectedPlayer?.id === p.id;
+              return (
+                <div
+                  key={p.id || i}
+                  onClick={() => onSelectPlayer(p)}
+                  className={`flex items-center justify-between gap-2.5 py-2 px-3 rounded-xl text-xs sm:text-sm cursor-pointer transition ${
+                    isSelected
+                      ? "bg-white/[0.12] border border-amber-400/60 ring-1 ring-amber-400/30"
+                      : "hover:bg-white/[0.05] border border-transparent hover:border-white/5"
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                    <span className="font-mono text-zinc-500 min-w-[24px] font-semibold text-xs sm:text-sm">#{p.jersey || "-"}</span>
+                    <span className="text-zinc-300 truncate text-xs sm:text-sm">{p.displayName || p.name}</span>
+                  </div>
+                  {!isMatchScheduled && p.subbedIn ? (
+                    <span className="text-xs text-emerald-400 font-bold flex items-center gap-1 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">
+                      <ArrowUpRight className="w-3.5 h-3.5" />
+                      <span>{p.subClock || "Vào sân"}</span>
+                    </span>
+                  ) : (
+                    <span className="text-xs text-zinc-500">
+                      {translatePosition(p.position)}
+                    </span>
+                  )}
                 </div>
-                {!isMatchScheduled && p.subbedIn ? (
-                  <span className="text-xs text-emerald-400 font-bold flex items-center gap-1 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">
-                    <ArrowUpRight className="w-3.5 h-3.5" />
-                    <span>{p.subClock || "Vào sân"}</span>
-                  </span>
-                ) : (
-                  <span className="text-xs text-zinc-500">
-                    {translatePosition(p.position)}
-                  </span>
-                )}
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
@@ -1000,39 +1196,34 @@ export function TacticalLineup({
   const [teamFilter, setTeamFilter] = useState<"home" | "away">("home");
   const [viewMode, setViewMode] = useState<"pitch" | "list">("pitch");
   const [tokenDisplayMode, setTokenDisplayMode] = useState<TokenDisplayMode>("jersey");
-  const [activePlayerModal, setActivePlayerModal] = useState<MatchRosterPlayer | null>(null);
+  const [selectedPlayer, setSelectedPlayer] = useState<MatchRosterPlayer | null>(null);
   const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
-  const [isMounted, setIsMounted] = useState(false);
 
+  // Lắng nghe phím Escape để hủy chọn cầu thủ
   useEffect(() => {
-    setIsMounted(true);
-  }, []);
-
-  // Bảo toàn vị trí cuộn trang và lắng nghe phím Escape khi mở modal thông tin cầu thủ
-  useEffect(() => {
-    if (!activePlayerModal) return;
-    const initialScrollY = typeof window !== "undefined" ? window.scrollY : 0;
+    if (!selectedPlayer) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
-        setActivePlayerModal(null);
+        setSelectedPlayer(null);
       }
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
-      // Đảm bảo không bị nhảy trang về đầu khi đóng modal
-      if (typeof window !== "undefined" && window.scrollY !== initialScrollY) {
-        window.scrollTo({ top: initialScrollY, behavior: "instant" });
-      }
     };
-  }, [activePlayerModal]);
+  }, [selectedPlayer]);
 
   const hasLineupData = homeRoster.starters.length > 0 || awayRoster.starters.length > 0;
 
   const handleImageError = (id: string) => {
     setImageErrors((prev) => ({ ...prev, [id]: true }));
+  };
+
+  const handleTeamChange = (team: "home" | "away") => {
+    setTeamFilter(team);
+    setSelectedPlayer(null);
   };
 
   return (
@@ -1041,7 +1232,7 @@ export function TacticalLineup({
       <div className="grid grid-cols-2 gap-1.5 p-1 rounded-2xl bg-zinc-900/80 border border-white/10 backdrop-blur-md">
         <button
           type="button"
-          onClick={() => setTeamFilter("home")}
+          onClick={() => handleTeamChange("home")}
           title={`${homeTeam.displayName} (${homeRoster.formation || "Chưa rõ sơ đồ"})`}
           className={`flex items-center justify-center gap-1.5 sm:gap-2 py-2 px-2 sm:px-3 rounded-xl text-xs font-bold transition-all cursor-pointer select-none truncate ${
             teamFilter === "home"
@@ -1066,7 +1257,7 @@ export function TacticalLineup({
 
         <button
           type="button"
-          onClick={() => setTeamFilter("away")}
+          onClick={() => handleTeamChange("away")}
           title={`${awayTeam.displayName} (${awayRoster.formation || "Chưa rõ sơ đồ"})`}
           className={`flex items-center justify-center gap-1.5 sm:gap-2 py-2 px-2 sm:px-3 rounded-xl text-xs font-bold transition-all cursor-pointer select-none truncate ${
             teamFilter === "away"
@@ -1182,7 +1373,9 @@ export function TacticalLineup({
             tokenDisplayMode={tokenDisplayMode}
             imageErrors={imageErrors}
             onImageError={handleImageError}
-            onSelectPlayer={setActivePlayerModal}
+            onSelectPlayer={setSelectedPlayer}
+            selectedPlayer={selectedPlayer}
+            onCloseSelectedPlayer={() => setSelectedPlayer(null)}
             showHeader={false}
             matchStatus={matchStatus}
           />
@@ -1194,125 +1387,15 @@ export function TacticalLineup({
             team={teamFilter === "home" ? homeTeam : awayTeam}
             roster={teamFilter === "home" ? homeRoster : awayRoster}
             isHome={teamFilter === "home"}
-            onSelectPlayer={setActivePlayerModal}
+            onSelectPlayer={setSelectedPlayer}
+            selectedPlayer={selectedPlayer}
+            onCloseSelectedPlayer={() => setSelectedPlayer(null)}
+            imageErrors={imageErrors}
+            onImageError={handleImageError}
             matchStatus={matchStatus}
           />
         </div>
       )}
-
-      {/* 4. MODAL CHI TIẾT CẦU THỦ & THỐNG KÊ TRONG TRẬN (SỬ DỤNG CREATEPORTAL VÀ CĂN GIỮA VIEWPORT) */}
-      {isMounted &&
-        activePlayerModal &&
-        createPortal(
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="player-modal-title"
-            onClick={() => setActivePlayerModal(null)}
-            className="fixed inset-0 z-[9999] flex items-center justify-center p-3.5 sm:p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200"
-          >
-            <div
-              onClick={(e) => e.stopPropagation()}
-              className="w-full max-w-sm sm:max-w-md rounded-3xl bg-zinc-900 border border-white/15 shadow-2xl relative flex flex-col max-h-[85vh] sm:max-h-[90vh] overflow-hidden"
-            >
-              {/* Nút đóng */}
-              <button
-                type="button"
-                onClick={() => setActivePlayerModal(null)}
-                aria-label="Đóng"
-                className="absolute top-4 right-4 z-20 p-2 rounded-full bg-white/10 hover:bg-white/20 text-zinc-300 hover:text-white transition cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
-
-              {/* Vùng cuộn riêng cho nội dung modal */}
-              <div className="p-5 space-y-4 overflow-y-auto overscroll-contain scrollbar-thin scrollbar-thumb-white/20">
-                {/* Header cầu thủ */}
-                <div className="flex items-center gap-3.5 pr-8">
-                  <div className="w-14 h-14 rounded-2xl bg-zinc-800 border-2 border-white/20 overflow-hidden flex items-center justify-center font-mono font-black text-lg text-white shrink-0 shadow-inner">
-                    {activePlayerModal.photoUrl && !imageErrors[activePlayerModal.id] ? (
-                      /* eslint-disable-next-line @next/next/no-img-element */
-                      <img
-                        src={activePlayerModal.photoUrl}
-                        alt={activePlayerModal.displayName}
-                        className="w-full h-full object-cover object-top"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-zinc-700 to-zinc-900 text-white font-mono font-black text-lg">
-                        <span>#{activePlayerModal.jersey || "?"}</span>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="min-w-0">
-                    <h4 id="player-modal-title" className="text-base font-black text-white truncate">
-                      {activePlayerModal.displayName}
-                    </h4>
-                    <p className="text-xs text-zinc-400 font-medium mt-0.5">
-                      {translatePosition(activePlayerModal.position)}
-                    </p>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className="text-[10px] font-mono font-black px-1.5 py-0.5 rounded bg-white/10 text-white">
-                        Số áo: #{activePlayerModal.jersey || "Chưa rõ"}
-                      </span>
-                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400">
-                        {activePlayerModal.starter ? "Đá chính" : "Dự bị"}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Thông tin thay người nếu có (chỉ hiển thị khi trận đang đá hoặc đã kết thúc) */}
-                {matchStatus !== "scheduled" && (activePlayerModal.subbedIn || activePlayerModal.subbedOut) && (
-                  <div className="p-3 rounded-xl bg-white/[0.04] border border-white/10 text-xs sm:text-sm space-y-1.5">
-                    {activePlayerModal.subbedIn && (
-                      <p className="text-emerald-400 flex items-center gap-1.5 font-bold">
-                        <ArrowUpRight className="w-4 h-4" />
-                        <span>Vào sân thay người: phút {activePlayerModal.subClock || "trong trận"}</span>
-                      </p>
-                    )}
-                    {activePlayerModal.subbedOut && (
-                      <p className="text-red-400 flex items-center gap-1.5 font-bold">
-                        <ArrowDownLeft className="w-4 h-4" />
-                        <span>Rời sân thay người: phút {activePlayerModal.subClock || "trong trận"}</span>
-                      </p>
-                    )}
-                  </div>
-                )}
-
-                {/* Chỉ số cá nhân thực tế trong trận (Real match stats) */}
-                {activePlayerModal.stats && activePlayerModal.stats.length > 0 ? (
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-1.5 text-xs font-bold text-zinc-300">
-                      <Trophy className="w-3.5 h-3.5 text-amber-400" />
-                      <span>Thống kê thực tế trong trận</span>
-                    </div>
-                    <div className="grid grid-cols-2 gap-1.5">
-                      {activePlayerModal.stats.map((st, idx) => (
-                        <div
-                          key={idx}
-                          className="p-2 rounded-xl bg-black/40 border border-white/5 flex items-center justify-between"
-                        >
-                          <span className="text-[11px] text-zinc-400 truncate pr-1">
-                            {translateStatName(st.displayName)}
-                          </span>
-                          <span className="font-mono text-xs font-black text-white">
-                            {st.value}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="p-3 rounded-xl bg-white/[0.02] border border-white/5 text-center text-xs text-zinc-500">
-                    Chưa có dữ liệu thống kê sự kiện chi tiết của cầu thủ này
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>,
-          document.body
-        )}
     </div>
   );
 }

@@ -339,7 +339,9 @@ function MatchCardInner({ match, isSelected, onSelect, score, compact }: MatchCa
           <div className="flex items-center gap-1.5 shrink-0 font-mono">
             {/* Giờ đá luôn hiện rõ nét */}
             {kickoffTime && (
-              <span className="text-zinc-200 font-bold bg-white/5 px-1 rounded">{kickoffTime}</span>
+              <span className="font-mono text-xs sm:text-[12.5px] font-bold text-amber-300 bg-white/10 px-1.5 py-0.5 rounded border border-white/15 shadow-sm leading-none">
+                {kickoffTime}
+              </span>
             )}
             {isConfirmedLive ? (
               <span className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded-full text-[9px] font-black uppercase tracking-wider bg-rose-500/20 text-rose-400">
@@ -435,19 +437,21 @@ function MatchCardInner({ match, isSelected, onSelect, score, compact }: MatchCa
         )}
 
         {/* DÒNG 3: FOOTER MINI (BLV & SỐ NGUỒN) */}
-        <div className="flex items-center justify-between text-[10px] text-zinc-400 pt-1 border-t border-white/[0.04]">
-          <span className="truncate flex items-center gap-1 min-w-0 flex-1">
-            <Mic className="w-2.5 h-2.5 text-zinc-500 shrink-0" />
-            <span className="truncate">
+        <div className="flex items-center justify-between text-xs text-zinc-400 pt-1.5 border-t border-white/[0.06]">
+          <span className="truncate flex items-center gap-1.5 min-w-0 flex-1">
+            <Mic className="w-3 h-3 text-zinc-500 shrink-0" />
+            <span className="truncate text-[11px] sm:text-xs">
               {match.blv
                 ? `BLV ${match.blv.split(",")[0].trim().replace(/^(?:blv|bình luận viên)\s+/i, "")}`
                 : primaryGroup || "Trực tiếp"}
             </span>
           </span>
-          <div className="flex items-center gap-1 shrink-0">
-            <span>{match.servers.length} nguồn</span>
+          <div className="flex items-center gap-1.5 shrink-0">
+            <span className="text-xs font-bold text-zinc-300 bg-white/5 px-2 py-0.5 rounded border border-white/10">
+              {match.servers.length} nguồn
+            </span>
             {isSelected && (
-              <span className="text-red-400 font-bold text-[9px] ml-1">Đang xem</span>
+              <span className="text-netflix-red font-black text-xs ml-1">Đang xem</span>
             )}
           </div>
         </div>
@@ -612,7 +616,7 @@ function MatchCardInner({ match, isSelected, onSelect, score, compact }: MatchCa
                         {currentScore.team1Score} - {currentScore.team2Score}
                       </div>
                       {kickoffTime && (
-                        <span className="font-mono text-[10.5px] font-bold text-zinc-300 bg-white/[0.06] px-1.5 py-0.5 rounded border border-white/10 tabular-nums leading-none">
+                        <span className="font-mono text-xs sm:text-[13px] font-extrabold text-amber-300 bg-black/60 px-2 py-0.5 rounded-md border border-amber-400/30 tabular-nums leading-none shadow-sm mt-0.5">
                           {kickoffTime}
                         </span>
                       )}
@@ -620,7 +624,7 @@ function MatchCardInner({ match, isSelected, onSelect, score, compact }: MatchCa
                   ) : (
                     <>
                       <span
-                        className={`text-[10px] font-black tracking-widest px-2 py-0.5 rounded ${
+                        className={`text-xs font-black tracking-widest px-2.5 py-0.5 rounded ${
                           featured.isFeatured
                             ? "text-rose-200 bg-rose-500/20 border border-rose-500/35 shadow-sm"
                             : "text-zinc-400 bg-white/[0.06] border border-white/10"
@@ -629,7 +633,7 @@ function MatchCardInner({ match, isSelected, onSelect, score, compact }: MatchCa
                         VS
                       </span>
                       {kickoffTime && (
-                        <span className="font-mono text-[11px] font-bold text-zinc-200 bg-black/40 px-1.5 py-0.5 rounded border border-white/10 tabular-nums leading-none">
+                        <span className="font-mono text-xs sm:text-[13px] font-extrabold text-amber-300 bg-black/60 px-2 py-0.5 rounded-md border border-white/20 tabular-nums leading-none shadow-sm">
                           {kickoffTime}
                         </span>
                       )}
@@ -647,7 +651,7 @@ function MatchCardInner({ match, isSelected, onSelect, score, compact }: MatchCa
                     </div>
                   ) : null}
                   {kickoffTime && (
-                    <span className="font-mono text-[10px] text-zinc-400 tabular-nums mt-0.5">
+                    <span className="font-mono text-xs font-bold text-zinc-300 tabular-nums mt-0.5">
                       {kickoffTime}
                     </span>
                   )}
@@ -658,7 +662,7 @@ function MatchCardInner({ match, isSelected, onSelect, score, compact }: MatchCa
                     {specialStatusLabel}
                   </span>
                   {kickoffTime && (
-                    <span className="font-mono text-[10.5px] font-bold text-zinc-300 tabular-nums mt-0.5">
+                    <span className="font-mono text-xs font-bold text-amber-300 tabular-nums mt-0.5">
                       {kickoffTime}
                     </span>
                   )}
@@ -667,7 +671,7 @@ function MatchCardInner({ match, isSelected, onSelect, score, compact }: MatchCa
                 /* Trận sắp diễn ra: Chữ VS ở trên, Giờ đá ở dưới */
                 <>
                   <span
-                    className={`text-[10px] font-black tracking-widest px-2 py-0.5 rounded ${
+                    className={`text-xs font-black tracking-widest px-2.5 py-0.5 rounded ${
                       featured.isFeatured
                         ? "text-rose-200 bg-rose-500/20 border border-rose-500/30"
                         : "text-zinc-400 bg-white/[0.05] border border-white/[0.08]"
@@ -676,7 +680,7 @@ function MatchCardInner({ match, isSelected, onSelect, score, compact }: MatchCa
                     VS
                   </span>
                   {kickoffTime && (
-                    <span className="font-mono text-[11px] font-bold text-zinc-200 bg-black/40 px-1.5 py-0.5 rounded border border-white/10 tabular-nums leading-none">
+                    <span className="font-mono text-xs sm:text-[13px] font-extrabold text-amber-300 bg-black/60 px-2 py-0.5 rounded-md border border-white/20 tabular-nums leading-none shadow-sm">
                       {kickoffTime}
                     </span>
                   )}
@@ -750,7 +754,7 @@ function MatchCardInner({ match, isSelected, onSelect, score, compact }: MatchCa
             </div>
 
             {kickoffTime && (
-              <span className="font-mono text-xs font-bold text-zinc-300 px-2 py-0.5 rounded bg-white/[0.06] border border-white/10 shrink-0">
+              <span className="font-mono text-xs sm:text-[13px] font-extrabold text-amber-300 px-2 py-0.5 rounded-md bg-black/60 border border-white/20 shrink-0 shadow-sm">
                 {kickoffTime}
               </span>
             )}
@@ -788,16 +792,16 @@ function MatchCardInner({ match, isSelected, onSelect, score, compact }: MatchCa
 
           {/* Số nguồn & Hành động */}
           <div className="flex items-center gap-2 shrink-0">
-            <span className="text-zinc-400 text-[10px]">
+            <span className="text-xs sm:text-[12.5px] font-bold text-zinc-200 bg-white/[0.08] hover:bg-white/[0.12] border border-white/15 px-2 py-0.5 rounded-md shadow-sm transition-colors">
               {match.servers.length} nguồn
             </span>
 
             {isSelected ? (
-              <span className="text-red-400 font-bold text-[10px] tracking-wide">
+              <span className="text-netflix-red font-black text-xs tracking-wide">
                 Đang xem
               </span>
             ) : (
-              <Play className="w-2.5 h-2.5 text-zinc-500 group-hover:text-zinc-300 fill-current transition-colors" />
+              <Play className="w-3 h-3 text-zinc-400 group-hover:text-zinc-200 fill-current transition-colors" />
             )}
           </div>
         </div>

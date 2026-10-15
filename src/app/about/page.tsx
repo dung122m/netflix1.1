@@ -242,17 +242,18 @@ export default function AboutPage() {
               {/* Creator Card Column */}
               <div className="lg:col-span-4 flex justify-center">
                 <div className="w-full max-w-sm p-6 rounded-2xl bg-black/60 border border-white/[0.1] space-y-4 text-center backdrop-blur-xl relative group hover:border-white/20 transition-all">
-                  <div className="w-20 h-20 sm:w-24 sm:h-24 mx-auto rounded-full overflow-hidden border-2 border-netflix-red/70 shadow-2xl relative">
+                  <div className="w-20 h-20 sm:w-24 sm:h-24 mx-auto rounded-full overflow-hidden border-2 border-netflix-red/70 shadow-2xl relative bg-[#da251d] shadow-red-950/60 ring-2 ring-netflix-red/30">
                     <Image
-                      src="/images/nana-footer.jpg"
-                      alt="DT"
+                      src="/images/vietnam-flag.svg"
+                      alt="Cờ đỏ sao vàng Việt Nam"
                       width={96}
                       height={96}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      unoptimized
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
                     />
                   </div>
                   <div>
-                    <h3 className="text-lg font-black text-white">DT</h3>
+                    <h3 className="text-lg font-black text-white">Dũng Trần</h3>
                     <p className="text-xs font-medium text-gray-400 mt-0.5">Creator & Full-stack Engineer</p>
                   </div>
                   <div className="text-[11px] text-gray-400 leading-normal border-t border-white/[0.06] pt-3">

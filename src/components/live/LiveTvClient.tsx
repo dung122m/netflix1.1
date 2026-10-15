@@ -218,6 +218,7 @@ export function LiveTvClient({
   const userPausedRef = useRef<boolean>(false);
   const lastLoadedUrlRef = useRef<string>("");
   const loadTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const playbackSessionIdRef = useRef<number>(0);
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
@@ -564,18 +565,14 @@ export function LiveTvClient({
     };
   }, []);
 
-  // Khởi tạo luồng phát HLS với Proxy + Auto-Fallback + Low Latency Engine + Auto ABR
+  // Khởi tạo luồng phát HLS với Resilient Fallback Engine + Session ID Guard + Clean Teardown
   useEffect(() => {
     const video = videoRef.current;
     if (!video || !selectedTvChannel?.url || !isActive) return;
 
-    const primaryUrl = getStreamUrl(selectedTvChannel.url);
+    // Tăng session ID để vô hiệu hóa mọi callback / async handler của kênh cũ
+    const sessionId = ++playbackSessionIdRef.current;
 
-    if (primaryUrl === lastLoadedUrlRef.current && hlsRef.current) {
-      return;
-    }
-
-    lastLoadedUrlRef.current = primaryUrl;
     setIsLoading(true);
     setHasError(false);
     setErrorMessage("");
@@ -586,26 +583,87 @@ export function LiveTvClient({
     };
     const fallbackUrl =
       channelWithFallback.fallback_url || channelWithFallback.fallbackUrl;
-    let hasTriedFallback = false;
 
-    const startHls = (sourceUrl: string) => {
-      if (!videoRef.current) return;
+    // Xây dựng danh sách ứng viên (candidate URLs) theo thứ tự ưu tiên
+    const candidateUrls: string[] = [];
+    const directPrimary = getStreamUrl(selectedTvChannel.url);
+    if (directPrimary) candidateUrls.push(directPrimary);
 
+    // Nếu nguồn chính là direct HTTPS nhưng nghi ngờ CORS (ví dụ vnns.net), chuẩn bị proxy
+    if (
+      directPrimary.startsWith("https://") &&
+      !directPrimary.includes("/api/live-tv/proxy") &&
+      /vnns\.net/i.test(directPrimary)
+    ) {
+      candidateUrls.push(`/api/live-tv/proxy?url=${encodeURIComponent(selectedTvChannel.url)}`);
+    }
+
+    // Nguồn dự phòng nếu có
+    if (fallbackUrl && fallbackUrl !== selectedTvChannel.url) {
+      const directFallback = getStreamUrl(fallbackUrl);
+      if (directFallback && !candidateUrls.includes(directFallback)) {
+        candidateUrls.push(directFallback);
+      }
+      // Nếu fallback là vnns.net hoặc domain cần proxy
+      if (
+        directFallback.startsWith("https://") &&
+        !directFallback.includes("/api/live-tv/proxy") &&
+        /vnns\.net/i.test(directFallback)
+      ) {
+        const proxyFallback = `/api/live-tv/proxy?url=${encodeURIComponent(fallbackUrl)}`;
+        if (!candidateUrls.includes(proxyFallback)) {
+          candidateUrls.push(proxyFallback);
+        }
+      }
+    }
+
+    let candidateIndex = 0;
+
+    const stopAndTeardown = () => {
       if (loadTimeoutRef.current) {
         clearTimeout(loadTimeoutRef.current);
         loadTimeoutRef.current = null;
       }
-
       if (hlsRef.current) {
-        hlsRef.current.destroy();
+        try {
+          hlsRef.current.stopLoad();
+          hlsRef.current.detachMedia();
+          hlsRef.current.destroy();
+        } catch {}
         hlsRef.current = null;
       }
-
       if (videoRef.current) {
-        videoRef.current.pause();
-        videoRef.current.removeAttribute("src");
-        videoRef.current.load();
+        try {
+          videoRef.current.pause();
+          videoRef.current.removeAttribute("src");
+          videoRef.current.load();
+        } catch {}
       }
+    };
+
+    const tryNextCandidate = (reason: string) => {
+      if (playbackSessionIdRef.current !== sessionId) return;
+
+      candidateIndex += 1;
+      if (candidateIndex < candidateUrls.length) {
+        console.warn(`[LiveTvClient] Switching to candidate source #${candidateIndex + 1} (${reason})`);
+        startHls(candidateUrls[candidateIndex]);
+      } else {
+        // Hết toàn bộ nguồn phát khả dụng
+        stopAndTeardown();
+        setIsLoading(false);
+        setHasError(true);
+        setErrorMessage(
+          "Kênh tạm thời gián đoạn hoặc tất cả nguồn phát đang bảo trì. Vui lòng bấm thử lại hoặc chọn kênh khác.",
+        );
+      }
+    };
+
+    const startHls = (sourceUrl: string) => {
+      if (!videoRef.current || playbackSessionIdRef.current !== sessionId) return;
+
+      stopAndTeardown();
+      lastLoadedUrlRef.current = sourceUrl;
 
       if (Hls.isSupported()) {
         const hls = new Hls({
@@ -637,47 +695,41 @@ export function LiveTvClient({
         hlsRef.current = hls;
         hls.loadSource(sourceUrl);
         hls.attachMedia(video);
+
+        // Đặt timeout 7 giây cho mỗi lần thử nguồn
         loadTimeoutRef.current = setTimeout(() => {
-          if (hlsRef.current !== hls) return;
-          if (!hasTriedFallback && fallbackUrl && fallbackUrl !== sourceUrl) {
-            hasTriedFallback = true;
-            startHls(getStreamUrl(fallbackUrl));
-            return;
-          }
-          hls.destroy();
-          hlsRef.current = null;
-          setIsLoading(false);
-          setHasError(true);
-          setErrorMessage(
-            "Kênh chưa phát hoặc không phản hồi sau 12 giây. Hãy thử đổi kênh khác.",
-          );
-        }, 12000);
+          if (playbackSessionIdRef.current !== sessionId || hlsRef.current !== hls) return;
+          tryNextCandidate("Timeout 7s without manifest/playback");
+        }, 7000);
 
         hls.on(Hls.Events.MANIFEST_PARSED, () => {
+          if (playbackSessionIdRef.current !== sessionId) return;
           if (loadTimeoutRef.current) clearTimeout(loadTimeoutRef.current);
-          // Cho phép hls.js tự chọn chất lượng ABR thích ứng, không khóa cứng level cao nhất
+
           hls.currentLevel = -1;
           hls.loadLevel = -1;
           hls.nextLevel = -1;
           setIsLoading(false);
           setHasError(false);
           video.volume = volumeRef.current || 0.9;
-          const shouldBeMuted = userMutedRef.current;
-          video.muted = shouldBeMuted;
+          video.muted = userMutedRef.current;
 
           if (isActive && !userPausedRef.current) {
             video
               .play()
               .then(() => {
+                if (playbackSessionIdRef.current !== sessionId) return;
                 setIsPlaying(true);
                 setIsMuted(video.muted || video.volume === 0);
               })
               .catch(() => {
+                if (playbackSessionIdRef.current !== sessionId) return;
                 video.muted = true;
                 setIsMuted(true);
                 video
                   .play()
                   .then(() => {
+                    if (playbackSessionIdRef.current !== sessionId) return;
                     setIsPlaying(true);
                     setIsMuted(true);
                   })
@@ -686,75 +738,51 @@ export function LiveTvClient({
           }
         });
 
-        let hasTriedProxy = sourceUrl.includes("/api/live-tv/proxy");
-        let networkRetryCount = 0;
-
+        // Theo dõi segment error liên tục
+        let consecutiveFragErrors = 0;
         hls.on(Hls.Events.ERROR, (_, data) => {
+          if (playbackSessionIdRef.current !== sessionId) return;
+
+          // Bắt lỗi non-fatal segment liên tục (ví dụ: master 200 nhưng segment trả về 403)
+          if (data.details === Hls.ErrorDetails.FRAG_LOAD_ERROR) {
+            const status = (data.response as { code?: number })?.code;
+            if (status === 403 || status === 404 || status === 410) {
+              consecutiveFragErrors += 1;
+              if (consecutiveFragErrors >= 2) {
+                tryNextCandidate(`Segment returned HTTP ${status}`);
+                return;
+              }
+            }
+          }
+
           if (data.fatal) {
             if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
-              // Chỉ tự động recover về live edge khi vị trí phát thực sự rơi ra ngoài seekable window hoặc trễ quá sâu (>38s)
-              const isOutsideSeekable =
-                videoRef.current &&
-                videoRef.current.seekable &&
-                videoRef.current.seekable.length > 0 &&
-                videoRef.current.currentTime < videoRef.current.seekable.start(0);
-              const isCriticallyBehind =
-                videoRef.current &&
-                hls.liveSyncPosition &&
-                Number.isFinite(hls.liveSyncPosition) &&
-                hls.liveSyncPosition - videoRef.current.currentTime > 38;
+              const status = (data.response as { code?: number })?.code;
+              // Nếu upstream trả 401/403/404 rõ ràng hoặc hết retry -> chuyển sang candidate tiếp theo ngay
+              if (status === 401 || status === 403 || status === 404) {
+                tryNextCandidate(`Fatal network HTTP ${status}`);
+                return;
+              }
 
+              // Nếu là transient network error thông thường: thử proxy nếu chưa thử
               if (
-                videoRef.current &&
-                hls.liveSyncPosition &&
-                Number.isFinite(hls.liveSyncPosition) &&
-                (isOutsideSeekable || isCriticallyBehind)
+                !sourceUrl.includes("/api/live-tv/proxy") &&
+                sourceUrl.startsWith("https://")
               ) {
-                videoRef.current.currentTime = hls.liveSyncPosition;
-                setIsAtLiveEdge(true);
-                setLiveLatency(0);
-                hls.startLoad();
-                return;
+                const proxyUrl = `/api/live-tv/proxy?url=${encodeURIComponent(sourceUrl)}`;
+                if (!candidateUrls.includes(proxyUrl)) {
+                  candidateUrls.splice(candidateIndex + 1, 0, proxyUrl);
+                }
               }
-
-              networkRetryCount += 1;
-              if (networkRetryCount <= 2) {
-                hls.startLoad();
-                return;
-              }
-
-              if (!hasTriedProxy && sourceUrl.startsWith("https://")) {
-                hasTriedProxy = true;
-                startHls(`/api/live-tv/proxy?url=${encodeURIComponent(sourceUrl)}`);
-                return;
-              }
-              if (
-                !hasTriedFallback &&
-                fallbackUrl &&
-                fallbackUrl !== sourceUrl
-              ) {
-                hasTriedFallback = true;
-                startHls(getStreamUrl(fallbackUrl));
-                return;
-              }
-              hls.startLoad();
+              tryNextCandidate("Fatal network error");
             } else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
-              hls.recoverMediaError();
-            } else {
-              if (
-                !hasTriedFallback &&
-                fallbackUrl &&
-                fallbackUrl !== sourceUrl
-              ) {
-                hasTriedFallback = true;
-                startHls(getStreamUrl(fallbackUrl));
-                return;
+              try {
+                hls.recoverMediaError();
+              } catch {
+                tryNextCandidate("Media decode recovery failed");
               }
-              setIsLoading(false);
-              setHasError(true);
-              setErrorMessage(
-                "Luồng truyền hình đang gián đoạn. Hãy thử đổi kênh khác.",
-              );
+            } else {
+              tryNextCandidate("Fatal HLS error");
             }
           }
         });
@@ -764,46 +792,39 @@ export function LiveTvClient({
         video.muted = isMutedRef.current;
 
         video.addEventListener("loadedmetadata", () => {
+          if (playbackSessionIdRef.current !== sessionId) return;
           setIsLoading(false);
           setHasError(false);
           if (isActive && !userPausedRef.current) {
             video
               .play()
-              .then(() => setIsPlaying(true))
+              .then(() => {
+                if (playbackSessionIdRef.current !== sessionId) return;
+                setIsPlaying(true);
+              })
               .catch(() => {});
           }
         });
+
         video.addEventListener("error", () => {
-          if (!hasTriedFallback && fallbackUrl && fallbackUrl !== sourceUrl) {
-            hasTriedFallback = true;
-            video.src = getStreamUrl(fallbackUrl);
-            return;
-          }
-          setIsLoading(false);
-          setHasError(true);
-          setErrorMessage(
-            "Không thể tải luồng trên trình duyệt này. Hãy thử đổi kênh khác.",
-          );
+          if (playbackSessionIdRef.current !== sessionId) return;
+          tryNextCandidate("Native HLS video error");
         });
       }
     };
 
-    startHls(primaryUrl);
+    if (candidateUrls.length > 0) {
+      startHls(candidateUrls[0]);
+    } else {
+      setIsLoading(false);
+      setHasError(true);
+      setErrorMessage("Không tìm thấy đường truyền hợp lệ cho kênh này.");
+    }
 
     return () => {
-      if (loadTimeoutRef.current) {
-        clearTimeout(loadTimeoutRef.current);
-        loadTimeoutRef.current = null;
-      }
-      if (hlsRef.current) {
-        hlsRef.current.destroy();
-        hlsRef.current = null;
-      }
-      if (video) {
-        video.pause();
-        video.removeAttribute("src");
-        video.load();
-      }
+      // Tăng session ID để mọi async callback đang chạy bị bỏ qua ngay lập tức
+      playbackSessionIdRef.current += 1;
+      stopAndTeardown();
     };
   }, [selectedTvChannel, isActive]);
 
