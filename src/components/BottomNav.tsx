@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Tv, Sparkles, Bookmark, User } from "lucide-react";
+import { Home, Tv, Bookmark, User } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { subscribeUserProfile } from "@/services/userService";
 import { UserProfile } from "@/types/user";
@@ -48,12 +48,6 @@ export function BottomNav() {
   const isLive = pathname?.startsWith("/live");
   const isMyList = pathname?.startsWith("/my-list");
 
-  const handleOpenAi = () => {
-    if (typeof window !== "undefined") {
-      window.dispatchEvent(new CustomEvent("open-ai-concierge"));
-    }
-  };
-
   const handleOpenProfile = () => {
     if (typeof window !== "undefined") {
       if (user) {
@@ -71,7 +65,7 @@ export function BottomNav() {
       aria-label="Mobile Bottom Navigation"
       className="fixed bottom-0 left-0 right-0 z-50 lg:hidden bg-zinc-950 border-t border-white/10 shadow-[0_-8px_30px_rgba(0,0,0,0.8)] pb-[env(safe-area-inset-bottom,0px)]"
     >
-      <div className="grid grid-cols-5 h-14 items-center px-1">
+      <div className="grid grid-cols-4 h-14 items-center px-1">
         {/* 1. TRANG CHỦ */}
         <Link
           href="/"
@@ -105,22 +99,7 @@ export function BottomNav() {
           <span className="text-[10px] mt-0.5 tracking-tight">Trực tiếp</span>
         </Link>
 
-        {/* 3. NANA AI (Nút trung tâm nổi bật) */}
-        <button
-          type="button"
-          onClick={handleOpenAi}
-          className="flex flex-col items-center justify-center h-full transition-all duration-200 active:scale-90 cursor-pointer group"
-          aria-label="Hỏi Nana AI"
-        >
-          <div className="w-9 h-9 -mt-3 rounded-full bg-gradient-to-tr from-purple-600 via-pink-600 to-amber-500 flex items-center justify-center text-white shadow-[0_0_16px_rgba(168,85,247,0.5)] group-hover:scale-105 transition-transform border-2 border-zinc-950">
-            <Sparkles size={18} className="animate-pulse" />
-          </div>
-          <span className="text-[10px] font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-amber-300 tracking-tight">
-            Hỏi Nana
-          </span>
-        </button>
-
-        {/* 4. DANH SÁCH & LỊCH SỬ */}
+        {/* 3. DANH SÁCH & LỊCH SỬ */}
         <Link
           href="/my-list"
           className={`flex flex-col items-center justify-center h-full transition-all duration-200 active:scale-95 cursor-pointer ${

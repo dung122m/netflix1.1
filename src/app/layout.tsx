@@ -10,8 +10,7 @@ import { DesktopReplyPopup } from "@/components/Notifications/DesktopReplyPopup"
 import { BottomNav } from "@/components/BottomNav";
 import { AuthProvider } from "@/context/AuthContext";
 import { NavigationProgressBar } from "@/components/NavigationProgressBar";
-import { GlobalVisitorTracker } from "@/components/GlobalVisitorTracker";
-import { SecurityWarningListener } from "@/components/Notifications/SecurityWarningListener";
+
 
 const inter = Inter({
   variable: "--font-sans",
@@ -197,6 +196,10 @@ export default function RootLayout({
                       });
                     });
                     observer.observe(document.documentElement, { attributes: true, subtree: true, attributeFilter: extAttrs });
+                    // Tự động ngắt kết nối sau khi React hoàn tất hydrate (3.5s) để giải phóng tài nguyên CPU/RAM
+                    setTimeout(function() {
+                      observer.disconnect();
+                    }, 3500);
                   }
                 } catch(e) {}
 
@@ -234,11 +237,6 @@ export default function RootLayout({
         suppressHydrationWarning
       >
         <AuthProvider>
-          {/* Global site visit tracker — fires once per browser tab session */}
-          <GlobalVisitorTracker />
-
-          {/* Client security warning listener for non-intrusive alerts */}
-          <SecurityWarningListener />
 
           {/* Thanh chỉ báo tải trang toàn cục mượt mà (Top Progress Bar) */}
           <NavigationProgressBar />

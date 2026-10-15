@@ -18,6 +18,8 @@ export function LiveHubClient({ footballData, tvData }: LiveHubClientProps) {
   const initialTabParam = searchParams.get("tab");
   const initialTab: "sports" | "tv" = initialTabParam === "tv" ? "tv" : "sports";
   const [activeTab, setActiveTab] = useState<"sports" | "tv">(initialTab);
+  const [hasMountedSports, setHasMountedSports] = useState<boolean>(initialTab === "sports");
+  const [hasMountedTv, setHasMountedTv] = useState<boolean>(initialTab === "tv");
 
   const initialValidCount = useMemo(() => {
     const now = Date.now();
@@ -35,8 +37,10 @@ export function LiveHubClient({ footballData, tvData }: LiveHubClientProps) {
   useEffect(() => {
     const tabParam = searchParams.get("tab");
     if (tabParam === "tv") {
+      setHasMountedTv(true);
       if (activeTab !== "tv") setActiveTab("tv");
     } else {
+      setHasMountedSports(true);
       if (activeTab !== "sports") setActiveTab("sports");
     }
   }, [searchParams]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -47,6 +51,7 @@ export function LiveHubClient({ footballData, tvData }: LiveHubClientProps) {
         const url = new URL(window.location.href);
 
         if (tab === "tv") {
+          setHasMountedTv(true);
           setActiveTab("tv");
           url.searchParams.set("tab", "tv");
           url.searchParams.delete("sport");
@@ -60,6 +65,7 @@ export function LiveHubClient({ footballData, tvData }: LiveHubClientProps) {
             url.searchParams.set("channel", savedTvChannelId);
           }
         } else {
+          setHasMountedSports(true);
           setActiveTab("sports");
           url.searchParams.set("tab", "sports");
           url.searchParams.delete("channel");
@@ -192,22 +198,26 @@ export function LiveHubClient({ footballData, tvData }: LiveHubClientProps) {
         </header>
       ) : null}
 
-      {/* 2. NỘI DUNG THEO TAB - Giữ cả hai component trong DOM để bảo toàn kênh/trận và không remount Player khi đổi tab */}
-      <div className={activeTab === "sports" ? "block" : "hidden"}>
-        <LiveFootballClient
-          initialData={footballData}
-          hideHeader
-          isActive={activeTab === "sports"}
-          onMatchesCountChange={setSportsMatchesCount}
-          onMatchSelectedChange={setHasActiveMatch}
-        />
-      </div>
-      <div className={activeTab === "tv" ? "block" : "hidden"}>
-        <LiveTvClient
-          initialData={tvData}
-          isActive={activeTab === "tv"}
-        />
-      </div>
+      {/* 2. NỘI DUNG THEO TAB - Trì hoãn mount tab chưa mở để triệt tiêu SSR payload & hydration dư thừa, giữ nguyên trong DOM sau khi mở */}
+      {hasMountedSports && (
+        <div className={activeTab === "sports" ? "block" : "hidden"}>
+          <LiveFootballClient
+            initialData={footballData}
+            hideHeader
+            isActive={activeTab === "sports"}
+            onMatchesCountChange={setSportsMatchesCount}
+            onMatchSelectedChange={setHasActiveMatch}
+          />
+        </div>
+      )}
+      {hasMountedTv && (
+        <div className={activeTab === "tv" ? "block" : "hidden"}>
+          <LiveTvClient
+            initialData={tvData}
+            isActive={activeTab === "tv"}
+          />
+        </div>
+      )}
     </div>
   );
 }

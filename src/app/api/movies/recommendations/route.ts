@@ -2,91 +2,106 @@ import { NextRequest, NextResponse } from "next/server";
 import { movieApi, DEFAULT_GENRES, DEFAULT_COUNTRIES } from "@/services/movieApi";
 import { matchesActorAlias } from "@/lib/actorAlias";
 import { getTmdbMovieRecommendations } from "@/services/tmdbService";
+import { cacheService } from "@/lib/cache";
 
 export const maxDuration = 15;
 
-export async function POST(req: NextRequest) {
+interface RecommendationCacheEntry {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  data: any;
+  expireAt: number;
+  staleUntil: number;
+}
+
+// Module-level L1 memory cache (SWR: 30 phút tươi, 4 giờ stale)
+const recommendationsL1Cache = new Map<string, RecommendationCacheEntry>();
+
+// Module-level in-flight Promise map: Khử trùng lặp request đang chạy trên server
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const serverInFlightRecs = new Map<string, Promise<any>>();
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function computeMovieRecommendations(body: any) {
   try {
-    const body = await req.json();
     const {
-      currentMovieSlug,
-      currentMovieTitle,
-      categories = [],
-      countries = [],
-      primaryActor,
-      primaryDirector,
-      year,
-      type,
-      tmdbId,
-      tmdbType,
-      contentText = "",
-    } = body || {};
+    currentMovieSlug,
+    currentMovieTitle,
+    categories = [],
+    countries = [],
+    primaryActor,
+    primaryDirector,
+    year,
+    type,
+    tmdbId,
+    tmdbType,
+    contentText = "",
+  } = body || {};
 
-    // 1. Lấy danh sách thể loại & quốc gia hợp lệ để truy vấn song song
-    const targetCategories = (categories as Array<{ name: string; slug?: string }>)
-      .filter((c) => Boolean(c?.name || c?.slug))
-      .map((c) => ({
-        name: c.name,
-        slug:
-          c.slug ||
-          DEFAULT_GENRES.find((g) => g.name.toLowerCase() === c.name.toLowerCase())?.slug ||
-          "",
-      }))
-      .filter((c) => Boolean(c.slug))
-      .slice(0, 3); // Lấy tối đa 3 thể loại đặc trưng để query
+  // 1. Lấy danh sách thể loại & quốc gia hợp lệ để truy vấn song song (tối ưu top 2 thể loại đặc trưng)
+  const targetCategories = (categories as Array<{ name: string; slug?: string }>)
+    .filter((c) => Boolean(c?.name || c?.slug))
+    .map((c) => ({
+      name: c.name,
+      slug:
+        c.slug ||
+        DEFAULT_GENRES.find((g) => g.name.toLowerCase() === c.name.toLowerCase())?.slug ||
+        "",
+    }))
+    .filter((c) => Boolean(c.slug))
+    .slice(0, 2);
 
-    const targetCountries = (countries as Array<{ name: string; slug?: string }>)
-      .filter((c) => Boolean(c?.name || c?.slug))
-      .map((c) => ({
-        name: c.name,
-        slug:
-          c.slug ||
-          DEFAULT_COUNTRIES.find((d) => d.name.toLowerCase() === c.name.toLowerCase())?.slug ||
-          "",
-      }))
-      .filter((c) => Boolean(c.slug))
-      .slice(0, 2); // Lấy tối đa 2 quốc gia để query
+  const targetCountries = (countries as Array<{ name: string; slug?: string }>)
+    .filter((c) => Boolean(c?.name || c?.slug))
+    .map((c) => ({
+      name: c.name,
+      slug:
+        c.slug ||
+        DEFAULT_COUNTRIES.find((d) => d.name.toLowerCase() === c.name.toLowerCase())?.slug ||
+        "",
+    }))
+    .filter((c) => Boolean(c.slug))
+    .slice(0, 2);
 
-    // 2. Phát hiện tín hiệu võ thuật từ nội dung phim nguồn (KHÔNG dùng genre hanh-dong làm tiêu chí)
-    const plainContent = (contentText || "").replace(/<[^>]+>/g, " ");
-    const srcHasMartialArts = /võ thuật|kung fu|martial|quyền|kiếm hiệp/i.test(plainContent);
+  // 2. Phát hiện tín hiệu võ thuật từ nội dung phim nguồn (KHÔNG dùng genre hanh-dong làm tiêu chí)
+  const plainContent = (contentText || "").replace(/<[^>]+>/g, " ");
+  const srcHasMartialArts = /võ thuật|kung fu|martial|quyền|kiếm hiệp/i.test(plainContent);
 
-    // 3. Truy vấn song song các nguồn phim: TMDB Recommendations, thể loại, quốc gia, diễn viên, và võ thuật
-    const [tmdbRecs, genreResults, countryResults, actorResult, martialArtsResult] = await Promise.all([
-      tmdbId
-        ? getTmdbMovieRecommendations(tmdbId, tmdbType || type, currentMovieSlug).catch(() => [])
-        : Promise.resolve([]),
-      Promise.all(
-        targetCategories.map((c) =>
-          movieApi.getMovies({ category: c.slug, page: 1, limit: 16 }).catch(() => null)
-        )
-      ),
-      Promise.all(
-        targetCountries.map((c) =>
-          movieApi.getMovies({ country: c.slug, page: 1, limit: 16 }).catch(() => null)
-        )
-      ),
-      primaryActor
-        ? movieApi
-            .getMovies({ keyword: primaryActor, page: 1, limit: 12, skipKvCache: true })
-            .catch(() => null)
-        : Promise.resolve(null),
-      // Chỉ thêm pool võ thuật khi phim nguồn thực sự có tín hiệu võ thuật trong nội dung
-      srcHasMartialArts
-        ? movieApi.getMovies({ category: "vo-thuat", page: 1, limit: 16 }).catch(() => null)
-        : Promise.resolve(null),
-    ]);
+  // 3. Truy vấn song song các nguồn phim: TMDB Recommendations, thể loại, quốc gia, diễn viên, và võ thuật
+  const [tmdbRecs, genreResults, countryResults, actorResult, martialArtsResult] = await Promise.all([
+    tmdbId
+      ? getTmdbMovieRecommendations(tmdbId, tmdbType || type, currentMovieSlug).catch(() => [])
+      : Promise.resolve([]),
+    Promise.all(
+      targetCategories.map((c) =>
+        movieApi.getMovies({ category: c.slug, page: 1, limit: 16 }).catch(() => null)
+      )
+    ),
+    Promise.all(
+      targetCountries.map((c) =>
+        movieApi.getMovies({ country: c.slug, page: 1, limit: 16 }).catch(() => null)
+      )
+    ),
+    primaryActor
+      ? movieApi
+          .getMovies({ keyword: primaryActor, page: 1, limit: 12 })
+          .catch(() => null)
+      : Promise.resolve(null),
+    // Chỉ thêm pool võ thuật khi phim nguồn thực sự có tín hiệu võ thuật trong nội dung
+    srcHasMartialArts
+      ? movieApi.getMovies({ category: "vo-thuat", page: 1, limit: 16 }).catch(() => null)
+      : Promise.resolve(null),
+  ]);
 
-    // 4. Khử trùng lặp và loại bỏ phim hiện tại
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const dedupedMap = new Map<string, any>();
+  // 4. Khử trùng lặp và loại bỏ phim hiện tại
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const dedupedMap = new Map<string, any>();
 
-    // 4.1 Ưu tiên nạp đề xuất TMDB đã đối chiếu catalog trước
-    for (const item of tmdbRecs || []) {
-      if (item?.slug && item.slug !== currentMovieSlug && !dedupedMap.has(item.slug)) {
-        dedupedMap.set(item.slug, { ...item, _isTmdbRec: true });
-      }
+  // 4.1 Ưu tiên nạp đề xuất TMDB đã đối chiếu catalog trước
+  for (const item of tmdbRecs || []) {
+    if (item?.slug && item.slug !== currentMovieSlug && !dedupedMap.has(item.slug)) {
+      dedupedMap.set(item.slug, { ...item, _isTmdbRec: true });
     }
+  }
 
     for (const res of genreResults) {
       for (const item of res?.items || []) {
@@ -291,7 +306,7 @@ export async function POST(req: NextRequest) {
     const mainGenreName = (categories as Array<{ name?: string }>)[0]?.name || "Thể loại";
     const mainCountryName = (countries as Array<{ name?: string }>)[0]?.name || "Quốc gia";
 
-    return NextResponse.json({
+    return {
       success: true,
       currentMovieTitle,
       genreName: mainGenreName,
@@ -301,7 +316,85 @@ export async function POST(req: NextRequest) {
       countryMovies: countryMovies.length > 0 ? countryMovies : allMovies,
       actorMovies,
       allMovies,
+    };
+  } catch (err) {
+    console.error("[movie recommendations compute] Lỗi:", err);
+    return {
+      success: false,
+      genreMovies: [],
+      countryMovies: [],
+      actorMovies: [],
+      allMovies: [],
+    };
+  }
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function executeAndCacheRecommendations(cacheKey: string, body: any) {
+  const kvKey = `movie:recommendations:v2:${cacheKey}`;
+  const data = await cacheService.fetchOrSet(
+    kvKey,
+    () => computeMovieRecommendations(body),
+    12 * 3600 // 12 giờ trên Upstash KV
+  );
+
+  const now = Date.now();
+  if (data && data.success && Array.isArray(data.allMovies) && data.allMovies.length > 0) {
+    recommendationsL1Cache.set(cacheKey, {
+      data,
+      expireAt: now + 30 * 60 * 1000, // 30 phút tươi
+      staleUntil: now + 4 * 3600 * 1000, // 4 giờ stale
     });
+  }
+
+  return data;
+}
+
+export async function POST(req: NextRequest) {
+  try {
+    const body = await req.json();
+    const { currentMovieSlug, tmdbId } = body || {};
+
+    if (!currentMovieSlug) {
+      return NextResponse.json(
+        {
+          success: false,
+          genreMovies: [],
+          countryMovies: [],
+          actorMovies: [],
+          allMovies: [],
+        },
+        { status: 400 }
+      );
+    }
+
+    const cacheKey = `${currentMovieSlug}_${tmdbId || ""}`;
+    const now = Date.now();
+
+    // 1. Kiểm tra L1 In-memory cache (SWR: Stale-While-Revalidate)
+    if (recommendationsL1Cache.has(cacheKey)) {
+      const entry = recommendationsL1Cache.get(cacheKey)!;
+      if (entry.expireAt > now) {
+        return NextResponse.json(entry.data);
+      }
+      if (entry.staleUntil > now) {
+        // Revalidate ngầm không block người dùng
+        executeAndCacheRecommendations(cacheKey, body).catch(() => {});
+        return NextResponse.json(entry.data);
+      }
+    }
+
+    // 2. Module-level in-flight deduplication trên server
+    let serverPromise = serverInFlightRecs.get(cacheKey);
+    if (!serverPromise) {
+      serverPromise = executeAndCacheRecommendations(cacheKey, body).finally(() => {
+        serverInFlightRecs.delete(cacheKey);
+      });
+      serverInFlightRecs.set(cacheKey, serverPromise);
+    }
+
+    const result = await serverPromise;
+    return NextResponse.json(result);
   } catch (err) {
     console.error("[movie recommendations API] Lỗi:", err);
     return NextResponse.json(
@@ -316,3 +409,4 @@ export async function POST(req: NextRequest) {
     );
   }
 }
+

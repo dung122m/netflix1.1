@@ -31,7 +31,6 @@ import { incrementUserWatchTime, getPlayerSettings, PlayerSettings } from "@/ser
 import { PlayerNativeControls, SeekBack10Icon, SeekForward10Icon, VideoFit } from "./player/PlayerNativeControls";
 import { PlayerActionButtons } from "./player/PlayerActionButtons";
 import { PlayerShortcutModal } from "./player/PlayerShortcutModal";
-import { trackWatchStart, trackWatchProgress, trackWatchEnd } from "@/lib/analyticsClient";
 
 interface EpisodeItem {
   name?: string;
@@ -273,8 +272,6 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const hlsRef = useRef<Hls | null>(null);
   const lastProgressSaveRef = useRef<number>(0);
-  const hasTrackedWatchStartRef = useRef<string | null>(null);
-  const lastAnalyticsProgressRef = useRef<number>(0);
   const hasStartedInitialPlaybackRef = useRef(false);
   const isStalledRef = useRef(false);
   const initialBufferTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -1204,17 +1201,6 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
       hasStartedInitialPlaybackRef.current = true;
       setIsPlaying(true);
       resetControlsTimeout();
-      const epKey = `${movieSlug || "movie"}:${activeEpisodeSlug || "ep"}`;
-      if (movieSlug && hasTrackedWatchStartRef.current !== epKey) {
-        hasTrackedWatchStartRef.current = epKey;
-        trackWatchStart({
-          movieSlug,
-          movieTitle: title,
-          episodeSlug: activeEpisodeSlug,
-          episodeName: activeEpisodeName,
-          userId: user?.uid,
-        });
-      }
     };
     const handlePause = () => {
       setIsPlaying(false);
@@ -1249,17 +1235,6 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
           currentTime: video.currentTime,
           duration: currentEffectiveDuration,
           posterUrl,
-        });
-      }
-      if (movieSlug && video.currentTime > 5) {
-        trackWatchProgress({
-          movieSlug,
-          movieTitle: title,
-          episodeSlug: activeEpisodeSlug,
-          episodeName: activeEpisodeName,
-          userId: user?.uid,
-          progressSeconds: video.currentTime,
-          durationSeconds: currentEffectiveDuration,
         });
       }
     };
@@ -1315,20 +1290,6 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
           posterUrl,
         });
       }
-      // Throttled watch progress analytics (every 45-60s)
-      if (movieSlug && now - lastAnalyticsProgressRef.current > 45000 && video.currentTime > 5) {
-        lastAnalyticsProgressRef.current = now;
-        const currentEffectiveDuration = getEffectiveDuration();
-        trackWatchProgress({
-          movieSlug,
-          movieTitle: title,
-          episodeSlug: activeEpisodeSlug,
-          episodeName: activeEpisodeName,
-          userId: user?.uid,
-          progressSeconds: video.currentTime,
-          durationSeconds: currentEffectiveDuration,
-        });
-      }
       // Tự động đánh dấu đã xem khi xem được >= 85% hoặc cách đoạn kết tối đa 90 giây
       if (movieSlug && activeEpisodeSlug) {
         const currentEffectiveDuration = getEffectiveDuration();
@@ -1370,17 +1331,6 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
           },
           true // forceSync khi kết thúc video
         );
-      }
-      if (movieSlug) {
-        trackWatchEnd({
-          movieSlug,
-          movieTitle: title,
-          episodeSlug: activeEpisodeSlug,
-          episodeName: activeEpisodeName,
-          userId: user?.uid,
-          progressSeconds: video.currentTime,
-          durationSeconds: currentEffectiveDuration,
-        });
       }
       if (playerSettings.autoNextEpisode !== false && effectiveNextEpisode?.slug && switchEpisode && !isNextEpDismissedRef.current) {
         switchEpisode(effectiveNextEpisode.slug);

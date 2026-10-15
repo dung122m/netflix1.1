@@ -97,6 +97,33 @@ export interface PlayerMatchStat {
   displayName: string;
   value: string | number;
 }
+export interface AthleteProfileProvenance {
+  source: "espn-core" | "espn-wikidata-hybrid" | "wikidata" | "espn-summary";
+  updatedAt: string;
+  fields?: {
+    bio?: string;
+    photo?: string;
+  };
+}
+
+export interface AthleteProfile {
+  id: string;
+  displayName: string;
+  citizenship?: string;
+  flagUrl?: string;
+  dateOfBirth?: string;
+  age?: number;
+  height?: string;
+  weight?: string;
+  birthPlace?: string;
+  photoUrl?: string;
+  photoSource?: "espn" | "wikimedia";
+  photoLicense?: string;
+  photoLicenseUrl?: string;
+  photoAttribution?: string;
+  provenance?: AthleteProfileProvenance;
+  updatedAt: string;
+}
 
 export interface MatchRosterPlayer {
   id: string;

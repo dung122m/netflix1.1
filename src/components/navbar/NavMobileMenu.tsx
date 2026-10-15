@@ -8,7 +8,6 @@ import {
   ShieldCheck,
   LogOut,
   Smartphone,
-  Sparkles,
   Dices,
   History,
   ChevronRight,
@@ -20,7 +19,6 @@ import { isUserAdmin } from "@/lib/adminConfig";
 import { subscribeUserProfile } from "@/services/userService";
 import { UserProfile } from "@/types/user";
 import { UserAvatar } from "@/components/ui/UserAvatar";
-import { getVietnamTodayEvent } from "@/lib/vietnamCalendar";
 import { useBodyScrollLock } from "@/lib/scrollLock";
 import {
   ACCENT_PRESETS,
@@ -88,14 +86,8 @@ export const NavMobileMenu: React.FC<NavMobileMenuProps> = React.memo(function N
     };
   }, []);
 
-  const hasHistoricalToday = React.useMemo(() => {
-    try {
-      const today = getVietnamTodayEvent();
-      return Boolean(today.historicalEventsToday && today.historicalEventsToday.length > 0);
-    } catch {
-      return false;
-    }
-  }, []);
+  // Lịch sử Việt Nam có các mốc son ghi nhận cho toàn bộ 365 ngày trong năm
+  const hasHistoricalToday = true;
 
   if (!isOpen) return null;
 
@@ -213,33 +205,9 @@ export const NavMobileMenu: React.FC<NavMobileMenuProps> = React.memo(function N
           )}
         </div>
 
-        {/* QUICK FEATURE APPS 2x2 GRID */}
+        {/* QUICK FEATURE APPS GRID */}
         <div className="grid grid-cols-2 gap-2.5 my-1">
-          {/* CARD 1: CHAT TÌM PHIM AI */}
-          <button
-            type="button"
-            onClick={() => {
-              onClose();
-              if (typeof window !== "undefined") {
-                window.dispatchEvent(
-                  new CustomEvent("open-nana-ai-studio", {
-                    detail: { tab: "concierge" },
-                  })
-                );
-              }
-            }}
-            className="flex items-center gap-2.5 p-2.5 rounded-2xl bg-gradient-to-r from-purple-600/20 via-pink-600/25 to-rose-600/20 border border-pink-500/40 hover:border-pink-400/70 text-white transition-all text-left active:scale-[0.98] cursor-pointer shadow-[0_0_12px_rgba(236,72,153,0.2)]"
-          >
-            <div className="w-9 h-9 rounded-xl bg-pink-500/25 text-pink-200 flex items-center justify-center shrink-0 border border-pink-400/40 shadow-inner">
-              <Sparkles size={18} className="text-pink-300 animate-pulse" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="text-xs font-black text-pink-200 truncate tracking-tight">Hỏi Nana</div>
-              <div className="text-[10px] text-pink-300/80 font-medium truncate">Trợ lý AI</div>
-            </div>
-          </button>
-
-          {/* CARD 2: BỐC QUẺ PHIM ĐỊNH MỆNH */}
+          {/* CARD: BỐC QUẺ PHIM ĐỊNH MỆNH */}
           <button
             type="button"
             onClick={() => {
@@ -252,7 +220,7 @@ export const NavMobileMenu: React.FC<NavMobileMenuProps> = React.memo(function N
                 );
               }
             }}
-            className="flex items-center gap-2.5 p-2.5 rounded-2xl bg-gradient-to-r from-amber-500/20 via-orange-500/25 to-rose-500/20 border border-amber-500/40 hover:border-amber-400/70 text-white transition-all text-left active:scale-[0.98] cursor-pointer shadow-[0_0_12px_rgba(245,158,11,0.2)]"
+            className="col-span-2 flex items-center gap-2.5 p-2.5 rounded-2xl bg-gradient-to-r from-amber-500/20 via-orange-500/25 to-rose-500/20 border border-amber-500/40 hover:border-amber-400/70 text-white transition-all text-left active:scale-[0.98] cursor-pointer shadow-[0_0_12px_rgba(245,158,11,0.2)]"
           >
             <div className="w-9 h-9 rounded-xl bg-amber-500/25 text-amber-200 flex items-center justify-center shrink-0 border border-amber-400/40 shadow-inner">
               <Dices size={18} className="text-amber-300" />

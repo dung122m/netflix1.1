@@ -8,7 +8,7 @@ import { Search, Loader2, X, History, ArrowLeft } from "lucide-react";
 import { useDebounce } from "@/hooks/useDebounce";
 import { toOptimizedPhimimgUrl } from "@/lib/movieMedia";
 import { useAuth } from "@/context/AuthContext";
-import { trackSearchKeyword } from "@/lib/analyticsClient";
+
 
 export interface SearchSuggestion {
   slug: string;
@@ -47,22 +47,10 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
   const mobileInputRef = useRef<HTMLInputElement>(null);
   const searchContainerRef = useRef<HTMLDivElement>(null);
   const mobileSearchRef = useRef<HTMLDivElement>(null);
-  const lastTrackedKeywordRef = useRef<{ kw: string; timestamp: number }>({ kw: "", timestamp: 0 });
   const abortControllerRef = useRef<AbortController | null>(null);
-
-  const trackSearchOnce = useCallback((kw: string) => {
-    const clean = kw.trim();
-    if (!clean || clean.length < 2) return;
-    const now = Date.now();
-    if (
-      lastTrackedKeywordRef.current.kw.toLowerCase() === clean.toLowerCase() &&
-      now - lastTrackedKeywordRef.current.timestamp < 3000
-    ) {
-      return; // Deduplicate within 3 seconds for the same keyword
-    }
-    lastTrackedKeywordRef.current = { kw: clean, timestamp: now };
-    trackSearchKeyword(clean, user?.uid);
-  }, [user?.uid]);
+  const trackSearchOnce = useCallback((_kw: string) => {
+    // No-op: search analytics tracking eliminated
+  }, []);
 
   const isSearchOpen = isSearchExpanded;
   const hasSearchText = hasText;

@@ -13,7 +13,6 @@ import {
   Search,
   RefreshCw,
   TrendingUp,
-  Activity,
   Globe,
   Compass,
   Star,
@@ -77,11 +76,6 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
   const [dailyVisitors, setDailyVisitors] = useState<DailyVisitorsResponse | null>(null);
   const [loadingDaily, setLoadingDaily] = useState(true);
   const [isRefreshingDaily, setIsRefreshingDaily] = useState(false);
-
-  const filteredRecentActivity = useMemo(() => {
-    const allowedTypes = new Set(["site_visit", "movie_view", "watch_start", "watch_end", "search"]);
-    return (stats?.recentActivity || []).filter((ev) => allowedTypes.has(ev.eventType));
-  }, [stats?.recentActivity]);
 
   const fetchStats = useCallback(async (tf: "today" | "7d" | "30d" | "all", showToast = false) => {
     try {
@@ -170,23 +164,6 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
       second: "2-digit",
       timeZone: "Asia/Ho_Chi_Minh",
     });
-  };
-
-  const getEventBadge = (type: string) => {
-    switch (type) {
-      case "site_visit":
-        return <span className="px-2 py-0.5 rounded-full bg-violet-500/20 border border-violet-500/30 text-violet-300 text-[10px] font-bold">Truy cập website</span>;
-      case "movie_view":
-        return <span className="px-2 py-0.5 rounded-full bg-blue-500/20 border border-blue-500/30 text-blue-300 text-[10px] font-bold">Mở trang phim</span>;
-      case "watch_start":
-        return <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 text-[10px] font-bold">Bắt đầu xem</span>;
-      case "watch_end":
-        return <span className="px-2 py-0.5 rounded-full bg-purple-500/20 border border-purple-500/30 text-purple-300 text-[10px] font-bold">Xem xong tập</span>;
-      case "search":
-        return <span className="px-2 py-0.5 rounded-full bg-rose-500/20 border border-rose-500/30 text-rose-300 text-[10px] font-bold">Tìm kiếm</span>;
-      default:
-        return <span className="px-2 py-0.5 rounded-full bg-zinc-700 text-gray-300 text-[10px]">{type}</span>;
-    }
   };
 
   return (
@@ -1196,76 +1173,6 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
                 ))}
               </tbody>
             </table>
-          </div>
-        )}
-      </div>
-
-      {/* RECENT ACTIVITY FEED */}
-      <div className="p-4 sm:p-6 rounded-2xl bg-zinc-900/60 border border-white/10 backdrop-blur-sm space-y-4">
-        <div className="flex items-center justify-between flex-wrap gap-2">
-          <h3 className="text-xs sm:text-sm font-bold text-white flex items-center gap-2">
-            <Activity size={16} className="text-amber-400 flex-shrink-0" />
-            <span>Nhật Ký Hoạt Động Gần Đây</span>
-          </h3>
-          <span className="text-[11px] sm:text-xs text-gray-400">{filteredRecentActivity.length} sự kiện</span>
-        </div>
-
-        {filteredRecentActivity.length === 0 ? (
-          <div className="p-8 sm:p-10 text-center rounded-xl bg-black/40 border border-white/5 text-gray-400 text-xs">
-            Chưa có sự kiện nào gần đây. Hãy mở xem phim hoặc tìm kiếm để thử nghiệm!
-          </div>
-        ) : (
-          <div className="divide-y divide-white/5 overflow-hidden">
-            {filteredRecentActivity.map((ev) => (
-              <div
-                key={ev.id}
-                className="py-3 px-1 sm:px-2 flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-4 text-xs hover:bg-white/[0.02] transition rounded-lg"
-              >
-                <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
-                  <div className="flex-shrink-0">{getEventBadge(ev.eventType)}</div>
-                  <div className="truncate min-w-0">
-                    <span className="font-bold text-white text-xs truncate">
-                      {ev.eventType === "site_visit"
-                        ? "Nanaflix"
-                        : ev.movieTitle || ev.keyword || ev.movieSlug || "Nanaflix"}
-                    </span>
-                    {ev.episodeName && (
-                      <span className="text-gray-400 ml-1.5 text-[11px]">({ev.episodeName})</span>
-                    )}
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2 sm:gap-3 text-[10px] sm:text-[11px] text-gray-400 flex-wrap sm:flex-nowrap sm:flex-shrink-0 pl-1 sm:pl-0">
-                  {ev.userId ? (
-                    <span
-                      title={`UID: ${ev.userId}`}
-                      className="text-emerald-400 font-semibold truncate max-w-[140px] sm:max-w-none cursor-default"
-                    >
-                      {ev.userName ? `Người dùng: ${ev.userName}` : `User: ${ev.userId.slice(0, 8)}...`}
-                    </span>
-                  ) : (
-                    <span className="text-gray-400 font-mono">
-                      Guest ({ev.anonymousId?.slice(5, 11)})
-                    </span>
-                  )}
-                  <span>•</span>
-                  <span className="truncate">{ev.deviceType} / {ev.os}</span>
-                  {(ev.city || ev.country) && (
-                    <>
-                      <span>•</span>
-                      <span className="text-teal-300 font-medium flex items-center gap-1 truncate max-w-[140px] sm:max-w-none">
-                        <MapPin size={10} className="text-teal-400 flex-shrink-0" />
-                        <span>
-                          {ev.city ? `${ev.city}, ${ev.countryCode || ev.country}` : ev.country}
-                        </span>
-                      </span>
-                    </>
-                  )}
-                  <span>•</span>
-                  <span className="text-gray-500 font-mono flex-shrink-0">{formatTime(ev.createdAt)}</span>
-                </div>
-              </div>
-            ))}
           </div>
         )}
       </div>

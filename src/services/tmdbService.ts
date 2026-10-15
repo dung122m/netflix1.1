@@ -505,7 +505,7 @@ export async function getTmdbMovieRecommendations(
             media_type: item.media_type || (item.first_air_date ? "tv" : "movie"),
           });
 
-          if (candidateCredits.length >= 20) break;
+          if (candidateCredits.length >= 14) break;
         }
 
         if (candidateCredits.length === 0) return [];

@@ -23,7 +23,7 @@ import { ShareButton } from "@/components/ShareButton";
 import { Navbar } from "@/components/Navbar";
 import { ActorChipClient } from "@/components/ActorChipClient";
 import { Footer } from "@/components/Footer";
-import TrackHistoryClient from "@/components/TrackHistoryClient";
+
 import { WatchPlayerHost } from "@/components/WatchPlayerHost";
 import { EpisodeList } from "@/components/EpisodeList";
 import { ResumeEpisodeBanner } from "@/components/ResumeEpisodeBanner";
@@ -468,20 +468,7 @@ export default async function MovieDetail({
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
       <Navbar />
-      <TrackHistoryClient
-        slug={movie.slug}
-        title={title}
-        poster={pickBestMoviePoster(movie, "/default-poster.jpg")}
-        thumb={pickBestMovieThumb(movie, "/default-hero.jpg")}
-        episodeName={activeEpisode?.name}
-        episodeSlug={activeEpisode?.slug}
-        year={movie.year}
-        quality={movie.quality}
-        category={categoryList.map((c) => c.name).filter(Boolean).join(", ") || (movie.category?.[0]?.name ?? "")}
-        country={countryList.map((c) => c.name).filter(Boolean).join(", ") || (movie.country?.[0]?.name ?? "")}
-        type={movie.type}
-        actor={actorList.slice(0, 10)}
-      />
+
 
       <WatchController
         movieSlug={movie.slug}

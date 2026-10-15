@@ -3,13 +3,13 @@
 import React, { useMemo, useState } from "react";
 import { VietnamTodayCard, getEventTabBadge, getCleanEventTitle } from "./VietnamTodayCard";
 import { VietnamFlagIcon } from "./VietnamFlagIcon";
-import { getVietnamTodayEvent, VietnamTodayInfo } from "@/lib/vietnamCalendar";
+import { getVietnamHolidayToday, type VietnamTodayInfo } from "@/lib/vietnamCalendarCore";
 import { ScrollFadeContainer } from "@/components/ui/ScrollFadeContainer";
 
 export function VietnamTodaySection() {
-  // Aggregate today's events from GitHub History, Hardcoded Events, and Actor Birthdays
+  // Hiển thị sự kiện văn hóa hôm nay từ VIETNAM_EVENTS (tải siêu tốc, 0 bundle thừa)
   const info: VietnamTodayInfo = useMemo(() => {
-    return getVietnamTodayEvent();
+    return getVietnamHolidayToday();
   }, []);
 
   const events = useMemo(() => {

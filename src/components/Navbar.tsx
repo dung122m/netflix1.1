@@ -188,28 +188,9 @@ const NavbarInner: React.FC = () => {
         {/* RIGHT ACTIONS */}
         <div className="flex items-center gap-1.5 sm:gap-2.5 flex-shrink-0 text-white">
 
-          {/* CỤM 2 TABS NANA AI TRÊN NAVBAR (Chỉ hiển thị trên màn hình md+ để giữ header mobile thoáng đãng) */}
+          {/* NÚT BỐC QUẺ ĐỊNH MỆNH TRÊN NAVBAR (Chỉ hiển thị trên màn hình md+ để giữ header mobile thoáng đãng) */}
           <div className="hidden md:flex items-center gap-1.5 sm:gap-2">
-            {/* 1. NÚT CHAT & TÌM PHIM NANA AI */}
-            <button
-              type="button"
-              onClick={() => {
-                if (typeof window !== "undefined") {
-                  window.dispatchEvent(
-                    new CustomEvent("open-nana-ai-studio", {
-                      detail: { tab: "concierge" },
-                    })
-                  );
-                }
-              }}
-              title="Hỏi Nana AI (Chat & Tìm Phim Thông Minh)"
-              className="group inline-flex items-center justify-center gap-1 sm:gap-1.5 w-8 h-8 sm:w-auto sm:h-auto sm:px-3 sm:py-1.5 rounded-full text-xs font-bold bg-gradient-to-r from-purple-600/30 via-pink-600/35 to-rose-600/30 hover:from-purple-500/45 hover:via-pink-500/50 hover:to-rose-500/45 text-pink-200 hover:text-white border border-pink-500/45 hover:border-pink-300/80 transition-all duration-300 cursor-pointer shadow-[0_0_12px_rgba(236,72,153,0.25)] hover:shadow-[0_0_18px_rgba(236,72,153,0.5)] hover:scale-105 active:scale-95 flex-shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-pink-500 focus-visible:ring-offset-2 focus-visible:ring-offset-black backdrop-blur-sm"
-            >
-              <Sparkles className="w-4 h-4 sm:w-3.5 sm:h-3.5 text-pink-300 animate-pulse flex-shrink-0 group-hover:rotate-12 transition-transform duration-300" />
-              <span className="hidden sm:inline tracking-tight font-extrabold">Hỏi Nana</span>
-            </button>
-
-            {/* 2. NÚT BỐC QUẺ ĐỊNH MỆNH */}
+            {/* NÚT BỐC QUẺ ĐỊNH MỆNH */}
             <button
               type="button"
               onClick={() => {

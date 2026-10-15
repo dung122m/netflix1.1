@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { getVietnamTodayEvent } from "@/lib/vietnamCalendar";
+import { getVietnamHolidayToday } from "@/lib/vietnamCalendarCore";
 import {
   LionDanceHead,
   StarLantern,
@@ -1245,7 +1245,7 @@ function HolidaySceneRenderer({ id }: { id: HolidayNavbarThemeId }) {
 
 function getActiveHolidayTheme(): HolidayNavbarTheme | null {
   try {
-    const todayInfo = getVietnamTodayEvent();
+    const todayInfo = getVietnamHolidayToday();
     if (todayInfo.isToday && todayInfo.event) {
       return getHolidayNavbarTheme(todayInfo.event);
     }

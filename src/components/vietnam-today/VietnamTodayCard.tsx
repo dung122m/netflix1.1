@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { ArrowRight, Sparkles, Play } from "lucide-react";
-import { VietnamTodayInfo } from "@/lib/vietnamCalendar";
+import type { VietnamTodayInfo } from "@/lib/vietnamCalendarCore";
 import { VietnamEvent } from "@/data/events/types";
 import { VietnamEventEffect } from "./VietnamEventEffect";
 import { VietnamFlagIcon } from "./VietnamFlagIcon";

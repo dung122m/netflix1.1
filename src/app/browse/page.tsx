@@ -16,7 +16,7 @@ import {
   cleanActorQuery,
 } from "@/services/aiActorService";
 import { searchMoviesBySemantic } from "@/services/aiVectorService";
-import { evaluateConceptEvidence, resolveConcepts } from "@/app/api/ai-concierge/conceptRegistry";
+import { evaluateConceptEvidence, resolveConcepts } from "@/services/conceptRegistry";
 import { BrowseAiSearchBanner } from "@/components/BrowseAiSearchBanner";
 import { PaginationControl } from "@/components/PaginationControl";
 

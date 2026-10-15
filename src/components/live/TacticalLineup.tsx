@@ -11,8 +11,13 @@ import {
   LayoutGrid,
   Trophy,
   Hash,
+  Calendar,
+  Globe,
+  Ruler,
+  MapPin,
+  Sparkles,
 } from "lucide-react";
-import { MatchRosterPlayer } from "@/services/live/football-score/types";
+import { MatchRosterPlayer, AthleteProfile } from "@/services/live/football-score/types";
 
 export interface TacticalLineupProps {
   homeTeam: {
@@ -68,9 +73,21 @@ export function getPositionAbbreviation(pos: string): string {
   if (p.includes("left midfielder") || /\blm\b/.test(p)) return "LM";
   if (p.includes("right midfielder") || /\brm\b/.test(p)) return "RM";
   if (p.includes("center midfielder") || p.includes("midfielder") || /\bcm\b/.test(p)) return "CM";
-  if (p.includes("left forward") || p.includes("left wing") || /\b(lf|lw)\b/.test(p)) return "LW";
-  if (p.includes("right forward") || p.includes("right wing") || /\b(rf|rw)\b/.test(p)) return "RW";
-  if (p.includes("center forward") || p.includes("striker") || /\b(cf|st)\b/.test(p)) return "ST";
+  // Tiền đạo trung tâm / Tiền đạo cắm (ưu tiên kiểm tra trước tiền đạo cánh để tránh các biến thể Center Left/Right Forward bị khớp nhầm vào Left/Right Forward)
+  if (
+    p.includes("center left forward") ||
+    p.includes("center right forward") ||
+    p.includes("center forward") ||
+    p.includes("striker") ||
+    /\b(cf-l|cf-r|st-l|st-r|cf|st)\b/.test(p)
+  ) {
+    return "ST";
+  }
+
+  // Tiền đạo cánh
+  if (p.includes("left wing") || p.includes("left winger") || /\blw\b/.test(p) || p.includes("left forward") || /\blf\b/.test(p)) return "LW";
+  if (p.includes("right wing") || p.includes("right winger") || /\brw\b/.test(p) || p.includes("right forward") || /\brf\b/.test(p)) return "RW";
+
   if (p.includes("forward") || /\bf\b/.test(p)) return "FW";
   return "PL";
 }
@@ -110,12 +127,14 @@ export function translatePosition(pos?: string): string {
 
   // Tiền đạo
   if (p.includes("second striker") || /\bss\b/.test(p)) return "Hộ công";
+  if (p.includes("center left forward") || /\b(cf-l|st-l)\b/.test(p)) return "Tiền đạo trung tâm";
+  if (p.includes("center right forward") || /\b(cf-r|st-r)\b/.test(p)) return "Tiền đạo trung tâm";
   if (p.includes("center forward") || /\bcf\b/.test(p)) return "Tiền đạo trung tâm";
   if (p.includes("striker") || /\bst\b/.test(p)) return "Tiền đạo cắm";
-  if (p.includes("left forward") || /\blf\b/.test(p)) return "Tiền đạo lệch trái";
-  if (p.includes("right forward") || /\brf\b/.test(p)) return "Tiền đạo lệch phải";
   if (p.includes("left wing") || p.includes("left winger") || /\blw\b/.test(p)) return "Tiền đạo cánh trái";
   if (p.includes("right wing") || p.includes("right winger") || /\brw\b/.test(p)) return "Tiền đạo cánh phải";
+  if (p.includes("left forward") || /\blf\b/.test(p)) return "Tiền đạo cánh trái";
+  if (p.includes("right forward") || /\brf\b/.test(p)) return "Tiền đạo cánh phải";
   if (p.includes("forward") || /\bfw|f\b/.test(p)) return "Tiền đạo";
 
   return pos;
@@ -483,6 +502,53 @@ export function CircularBadgeToken({
 /**
  * Avatar ảnh chụp khuôn mặt cầu thủ (fallback sang số áo nếu không có ảnh)
  */
+/**
+ * Bộ nhớ đệm phía client để tránh fetch lại hồ sơ cầu thủ khi đóng/mở thẻ hoặc re-render
+ */
+const clientAthleteCache = new Map<string, AthleteProfile>();
+const clientAthletePromises = new Map<string, Promise<AthleteProfile | null>>();
+
+async function fetchAthleteProfileClient(id: string, name?: string): Promise<AthleteProfile | null> {
+  const cached = clientAthleteCache.get(id);
+  if (cached) return cached;
+  const inFlight = clientAthletePromises.get(id);
+  if (inFlight) return inFlight;
+
+  const promise = (async () => {
+    try {
+      const url = `/api/live-football/athlete?id=${encodeURIComponent(id)}${name ? `&name=${encodeURIComponent(name)}` : ""}`;
+      const res = await fetch(url);
+      const json = await res.json();
+      const profileData = json?.data || json;
+      if (profileData && profileData.id) {
+        clientAthleteCache.set(id, profileData);
+        return profileData as AthleteProfile;
+      }
+      return null;
+    } catch {
+      return null;
+    } finally {
+      clientAthletePromises.delete(id);
+    }
+  })();
+
+  clientAthletePromises.set(id, promise);
+  return promise;
+}
+
+function formatBirthDate(isoDate?: string): string | null {
+  if (!isoDate) return null;
+  const match = isoDate.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (match) {
+    const [, y, m, d] = match;
+    return `${d}/${m}/${y}`;
+  }
+  return isoDate;
+}
+
+/**
+ * Avatar ảnh chụp khuôn mặt cầu thủ (fallback sang số áo nếu không có ảnh)
+ */
 export function PhotoToken({
   player,
   isHome,
@@ -496,6 +562,9 @@ export function PhotoToken({
   roleAbbr: string;
   onImageError: (id: string) => void;
 }) {
+  const cachedPhoto = !player.photoUrl ? clientAthleteCache.get(player.id)?.photoUrl : null;
+  const displayPhoto = hasValidPhoto && player.photoUrl ? player.photoUrl : cachedPhoto;
+
   return (
     <div
       className={`w-[28px] h-[28px] sm:w-[32px] sm:h-[32px] md:w-[34px] md:h-[34px] rounded-full flex items-center justify-center overflow-hidden transition-all shadow-md ${
@@ -504,10 +573,10 @@ export function PhotoToken({
           : "bg-zinc-900 border-[1.5px] border-sky-400 shadow-sky-950/60 ring-1 ring-sky-400/30 group-hover:border-white group-hover:ring-white/50"
       }`}
     >
-      {hasValidPhoto ? (
+      {displayPhoto ? (
         /* eslint-disable-next-line @next/next/no-img-element */
         <img
-          src={player.photoUrl}
+          src={displayPhoto}
           alt={player.displayName}
           loading="lazy"
           onError={() => onImageError(player.id)}
@@ -547,6 +616,49 @@ export function InlinePlayerDetailCard({
   matchStatus?: "live" | "finished" | "scheduled" | string;
 }) {
   const isMatchScheduled = matchStatus === "scheduled";
+  const [profile, setProfile] = useState<AthleteProfile | null>(() => clientAthleteCache.get(player.id) || null);
+  const [loadingProfile, setLoadingProfile] = useState<boolean>(() => !clientAthleteCache.has(player.id));
+  const [fallbackPhotoFailed, setFallbackPhotoFailed] = useState<boolean>(false);
+
+  // Guard chống rò rỉ state giữa các cầu thủ: nếu profile chưa khớp ID hiện tại thì dùng cache hoặc null ngay lập tức
+  const currentProfile = profile?.id === player.id ? profile : (clientAthleteCache.get(player.id) || null);
+
+  useEffect(() => {
+    let active = true;
+    const cached = clientAthleteCache.get(player.id);
+    setProfile(cached || null);
+    setLoadingProfile(!cached);
+    setFallbackPhotoFailed(false);
+
+    if (cached) return;
+
+    fetchAthleteProfileClient(player.id, player.displayName).then((p) => {
+      if (active && p?.id === player.id) {
+        setProfile(p);
+        setLoadingProfile(false);
+      }
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [player.id, player.displayName]);
+
+  const espnPhotoValid = Boolean(player.photoUrl && hasValidPhoto);
+  const fallbackPhotoUrl =
+    !espnPhotoValid && currentProfile?.photoUrl && !fallbackPhotoFailed ? currentProfile.photoUrl : null;
+  const activePhotoSrc = espnPhotoValid ? player.photoUrl : fallbackPhotoUrl;
+  const isCommonsPhoto = !espnPhotoValid && currentProfile?.photoSource === "wikimedia";
+
+  const hasBio = Boolean(
+    currentProfile &&
+      (currentProfile.citizenship ||
+        currentProfile.dateOfBirth ||
+        currentProfile.age ||
+        currentProfile.height ||
+        currentProfile.weight ||
+        currentProfile.birthPlace)
+  );
 
   return (
     <div className="relative rounded-2xl bg-zinc-900/95 border border-white/15 p-3.5 sm:p-4 shadow-xl backdrop-blur-md animate-in fade-in duration-150">
@@ -567,12 +679,19 @@ export function InlinePlayerDetailCard({
             isHome ? "border-netflix-red/60" : "border-sky-400/60"
           }`}
         >
-          {player.photoUrl && hasValidPhoto ? (
+          {activePhotoSrc ? (
             /* eslint-disable-next-line @next/next/no-img-element */
             <img
-              src={player.photoUrl}
+              key={`${player.id}-${activePhotoSrc}`}
+              src={activePhotoSrc}
               alt={player.displayName}
-              onError={() => onImageError(player.id)}
+              onError={() => {
+                if (espnPhotoValid) {
+                  onImageError(player.id);
+                } else {
+                  setFallbackPhotoFailed(true);
+                }
+              }}
               className="w-full h-full object-cover object-top"
             />
           ) : (
@@ -600,7 +719,7 @@ export function InlinePlayerDetailCard({
           <p className="text-xs text-zinc-300 font-medium mt-0.5 truncate">
             {translatePosition(player.position)}
           </p>
-          <div className="flex items-center gap-2 mt-1">
+          <div className="flex items-center flex-wrap gap-2 mt-1">
             <span
               className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
                 player.starter
@@ -623,9 +742,102 @@ export function InlinePlayerDetailCard({
                 <span>Ra sân {player.subClock ? `(${player.subClock})` : ""}</span>
               </span>
             )}
+
+            {isCommonsPhoto && currentProfile?.photoLicense && (
+              <span
+                className="text-[9.5px] font-medium text-zinc-400 bg-white/5 border border-white/10 px-1.5 py-0.5 rounded flex items-center gap-1"
+                title={currentProfile.photoLicenseUrl || `Giấy phép: ${currentProfile.photoLicense}`}
+              >
+                <span>Ảnh: Commons ({currentProfile.photoLicense})</span>
+              </span>
+            )}
           </div>
         </div>
       </div>
+
+      {/* Hồ sơ & Tiểu sử cầu thủ (Enriched từ ESPN Core + Wikidata) */}
+      {loadingProfile ? (
+        <div className="mt-3 pt-2.5 border-t border-white/10 animate-pulse space-y-1.5">
+          <div className="h-3 w-28 bg-white/10 rounded" />
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
+            <div className="h-10 bg-white/5 rounded-lg border border-white/5" />
+            <div className="h-10 bg-white/5 rounded-lg border border-white/5" />
+          </div>
+        </div>
+      ) : hasBio && currentProfile ? (
+        <div className="mt-3 pt-2.5 border-t border-white/10 space-y-2">
+          <div className="flex items-center justify-between text-[11px] font-bold text-zinc-400">
+            <div className="flex items-center gap-1.5">
+              <Users className="w-3.5 h-3.5 text-sky-400" />
+              <span>Hồ sơ cầu thủ</span>
+            </div>
+            <span className="text-[9.5px] font-mono text-zinc-400/80">
+              {currentProfile.provenance?.source === "espn-wikidata-hybrid"
+                ? "Nguồn: ESPN + Wikidata"
+                : currentProfile.provenance?.source === "wikidata"
+                ? "Nguồn: Wikidata"
+                : "Nguồn: ESPN Core"}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
+            {currentProfile.citizenship && (
+              <div className="p-1.5 px-2 rounded-lg bg-black/40 border border-white/5 flex items-center gap-2">
+                {currentProfile.flagUrl ? (
+                  /* eslint-disable-next-line @next/next/no-img-element */
+                  <img
+                    src={currentProfile.flagUrl}
+                    alt={currentProfile.citizenship}
+                    className="w-4 h-3 object-cover rounded-xs shrink-0"
+                  />
+                ) : (
+                  <Globe className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
+                )}
+                <div className="min-w-0">
+                  <p className="text-[9.5px] text-zinc-400 leading-none">Quốc tịch</p>
+                  <p className="text-[11px] font-bold text-white truncate mt-0.5">{currentProfile.citizenship}</p>
+                </div>
+              </div>
+            )}
+
+            {currentProfile.dateOfBirth && (
+              <div className="p-1.5 px-2 rounded-lg bg-black/40 border border-white/5 flex items-center gap-2">
+                <Calendar className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-[9.5px] text-zinc-400 leading-none">Ngày sinh</p>
+                  <p className="text-[11px] font-bold text-white truncate mt-0.5">
+                    {formatBirthDate(currentProfile.dateOfBirth)}
+                    {currentProfile.age ? ` (${currentProfile.age}t)` : ""}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {(currentProfile.height || currentProfile.weight) && (
+              <div className="p-1.5 px-2 rounded-lg bg-black/40 border border-white/5 flex items-center gap-2">
+                <Ruler className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-[9.5px] text-zinc-400 leading-none">Thể hình</p>
+                  <p className="text-[11px] font-bold text-white truncate mt-0.5">
+                    {currentProfile.height || "-"}
+                    {currentProfile.weight ? ` • ${currentProfile.weight}` : ""}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {currentProfile.birthPlace && (
+              <div className="p-1.5 px-2 rounded-lg bg-black/40 border border-white/5 flex items-center gap-2 col-span-2 sm:col-span-1">
+                <MapPin className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-[9.5px] text-zinc-400 leading-none">Nơi sinh</p>
+                  <p className="text-[11px] font-bold text-white truncate mt-0.5">{currentProfile.birthPlace}</p>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      ) : null}
 
       {/* Thống kê thực tế trong trận */}
       {player.stats && player.stats.length > 0 ? (
@@ -950,6 +1162,7 @@ function TeamPitchColumn({
       {/* CARD CHI TIẾT CẦU THỦ ĐƯỢC CHỌN (HIỂN THỊ GỌN NGAY DƯỚI SÂN CỎ, KHÔNG CHE VIDEO) */}
       {selectedPlayer && (
         <InlinePlayerDetailCard
+          key={selectedPlayer.id}
           player={selectedPlayer}
           isHome={isHome}
           onClose={onCloseSelectedPlayer || (() => {})}
@@ -1095,6 +1308,7 @@ function TeamListColumn({
       {/* Card chi tiết cầu thủ nếu được chọn */}
       {selectedPlayer && (
         <InlinePlayerDetailCard
+          key={selectedPlayer.id}
           player={selectedPlayer}
           isHome={isHome}
           onClose={onCloseSelectedPlayer || (() => {})}

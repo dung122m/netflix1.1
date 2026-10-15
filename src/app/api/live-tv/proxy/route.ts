@@ -6,24 +6,32 @@ export const dynamic = "force-dynamic";
 
 // Danh sách các domain cần giả lập Referer riêng để bypass CDN protection
 const REFERER_MAP: Record<string, string> = {
-  "fptplay53.net": "https://fptplay.vn/",
-  "fptplay.net": "https://fptplay.vn/",
+  "ntv1.akamaized.net": "https://www.nasa.gov/",
+  "rbmn-live.akamaized.net": "https://www.redbull.com/",
+  "akamaized.net": "https://www.nhk.or.jp/",
   "vips-livecdn.fptplay.net": "https://fptplay.vn/",
   "live-a.fptplay53.net": "https://fptplay.vn/",
+  "fptplay53.net": "https://fptplay.vn/",
+  "fptplay.net": "https://fptplay.vn/",
   "vnns.net": "https://thvl.vn/",
   "qpvn.vn": "https://qpvn.vn/",
   "vtvprime.vn": "https://vtvgo.vn/",
-  "akamaized.net": "https://www.nhk.or.jp/",
-  "ntv1.akamaized.net": "https://www.nasa.gov/",
-  "rbmn-live.akamaized.net": "https://www.redbull.com/",
 };
 
 function getReferer(url: string): string {
   try {
     const parsed = new URL(url);
     const hostname = parsed.hostname;
-    for (const [key, referer] of Object.entries(REFERER_MAP)) {
-      if (hostname.includes(key) || hostname === key) {
+    // Sắp xếp theo độ dài giảm dần để match domain con cụ thể trước domain cha (ví dụ ntv1.akamaized.net trước akamaized.net)
+    const sortedEntries = Object.entries(REFERER_MAP).sort(
+      (a, b) => b[0].length - a[0].length,
+    );
+    for (const [key, referer] of sortedEntries) {
+      if (
+        hostname === key ||
+        hostname.endsWith("." + key) ||
+        hostname.includes(key)
+      ) {
         return referer;
       }
     }

@@ -73,6 +73,8 @@ export function RecommendationSkeleton({ variant = "grid" }: { variant?: "grid" 
 
 // Module-level in-flight request singleton map để khử trùng lặp hoàn toàn khi Mobile + Desktop cùng mount
 const inFlightRecommendations = new Map<string, Promise<RecommendationsData | null>>();
+// Module-level in-memory cache chia sẻ tức thì giữa desktop và mobile components trong cùng trang
+const clientMemoryRecommendationsCache = new Map<string, RecommendationsData>();
 
 function fetchRecommendationsDeduplicated(
   cacheKey: string,
@@ -92,6 +94,7 @@ function fetchRecommendationsDeduplicated(
     .then((res) => (res.ok ? res.json() : null))
     .then((recData) => {
       if (recData && Array.isArray(recData.allMovies) && recData.allMovies.length > 0) {
+        clientMemoryRecommendationsCache.set(cacheKey, recData);
         try {
           sessionStorage.setItem(cacheKey, JSON.stringify(recData));
         } catch {}
@@ -133,12 +136,20 @@ export function MovieRecommendationsClient({
     let isMounted = true;
     const cacheKey = `nanaflix_rec_${currentMovieSlug}_${tmdbId || ""}`;
 
-    // 1. Kiểm tra cache trong sessionStorage (0ms response)
+    // 1. Kiểm tra cache trong RAM trước (0ms response, chia sẻ giữa desktop và mobile)
+    if (clientMemoryRecommendationsCache.has(cacheKey)) {
+      setData(clientMemoryRecommendationsCache.get(cacheKey)!);
+      setLoading(false);
+      return;
+    }
+
+    // 2. Kiểm tra cache trong sessionStorage (0ms response)
     try {
       const cached = sessionStorage.getItem(cacheKey);
       if (cached) {
         const parsed = JSON.parse(cached);
         if (parsed && Array.isArray(parsed.allMovies) && parsed.allMovies.length > 0) {
+          clientMemoryRecommendationsCache.set(cacheKey, parsed);
           setData(parsed);
           setLoading(false);
           return;

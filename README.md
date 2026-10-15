@@ -109,7 +109,7 @@ Raw Image URL
 
 ### 3. System Security & Anti-Exploit Guard
 - **Anti-SSRF URL Guard**: Blocks requests targeting private IP subnets (`127.0.0.0/8`, `10.0.0.0/8`, `192.168.0.0/16`, link-local metadata) and non-standard ports.
-- **Sliding Window Rate Limiter**: IP-based rate limiting on sensitive API routes (`/api/comments`, `/api/ai-concierge`, `/api/reports`) to mitigate spam and automated abuse.
+- **Sliding Window Rate Limiter**: IP-based rate limiting on sensitive API routes (`/api/comments`, `/api/ai-roulette`, `/api/reports`) to mitigate spam and automated abuse.
 - **Input Sanitization & Anti-XSS**: Multi-pass string sanitizer that neutralizes script injections, event handlers, and malicious URI schemes before database ingestion.
 - **Row-Level Security (RLS)**: Fine-grained Supabase database access policies ensuring users can only read and mutate their own profile, history, and collection data.
 

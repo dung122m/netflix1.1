@@ -20,7 +20,7 @@ import { HISTORICAL_PERIODS, getHistoricalPeriodById } from "@/data/history/peri
 import { resolveHistoricalFigure } from "@/data/history/figures";
 import { getEventImage, getPeriodImage } from "@/data/history/images";
 import { HistoricalEvent, HistoricalPrecision } from "@/data/history/types";
-import { getVietnamNow } from "@/lib/vietnamCalendar";
+import { getVietnamNow } from "@/lib/vietnamCalendarCore";
 
 const ALL_EVENTS = allHistoryData as HistoricalEvent[];
 const PAGE_SIZE = 40;

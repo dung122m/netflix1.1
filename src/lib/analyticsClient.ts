@@ -3,7 +3,7 @@
  * Minimal, lightweight, privacy-focused, zero-dependency.
  * Supports anonymous guest cookies and logged-in user priority.
  */
-import { auth } from "@/lib/firebase";
+
 
 export interface DeviceInfo {
   deviceType: "desktop" | "mobile" | "tablet";
@@ -179,103 +179,47 @@ export function getMinimalDeviceInfo(): DeviceInfo {
 }
 
 /**
- * Non-blocking, fail-safe analytics event dispatcher
+ * Non-blocking, fail-safe analytics event dispatcher (No-op: Tracking removed per Nanaflix optimization policy)
  */
 export async function trackAnalyticsEvent(
-  payload: Omit<AnalyticsEventPayload, "anonymousId" | "deviceInfo" | "timestamp"> & {
+  _payload: Omit<AnalyticsEventPayload, "anonymousId" | "deviceInfo" | "timestamp"> & {
     anonymousId?: string;
     deviceInfo?: DeviceInfo;
     timestamp?: number;
   }
 ): Promise<void> {
-  if (typeof window === "undefined") return;
-
-  try {
-    const anonymousId = payload.anonymousId || getOrCreateAnonymousId();
-    const deviceInfo = payload.deviceInfo || getMinimalDeviceInfo();
-    const timestamp = payload.timestamp || Date.now();
-
-    let activeUserId = payload.userId;
-    const headers: Record<string, string> = {
-      "Content-Type": "application/json",
-    };
-    if (auth) {
-      if (!auth.currentUser && typeof auth.authStateReady === "function") {
-        await Promise.race([
-          auth.authStateReady(),
-          new Promise((resolve) => setTimeout(resolve, 4000)),
-        ]).catch(() => {});
-      }
-      if (auth.currentUser) {
-        activeUserId = activeUserId || auth.currentUser.uid;
-        const idToken = await auth.currentUser.getIdToken().catch(() => null);
-        if (idToken) {
-          headers["Authorization"] = `Bearer ${idToken}`;
-        }
-      }
-    }
-
-    const fullPayload: AnalyticsEventPayload = {
-      ...payload,
-      userId: activeUserId,
-      anonymousId,
-      deviceInfo,
-      timestamp,
-    };
-
-    const bodyString = JSON.stringify(fullPayload);
-
-    await fetch("/api/analytics/track", {
-      method: "POST",
-      headers,
-      body: bodyString,
-      keepalive: true,
-    });
-  } catch {
-    // Fail silently: Analytics failures MUST NEVER disrupt user experience or playback
-  }
+  // Zero-cost no-op: analytics event sending eliminated
+  return;
 }
 
 /**
- * Track movie view (subject to 30-minute deduplication on server)
+ * Track movie view (No-op)
  */
-export function trackMovieView(movie: {
+export function trackMovieView(_movie: {
   movieSlug: string;
   movieTitle?: string;
   userId?: string;
 }): void {
-  trackAnalyticsEvent({
-    eventType: "movie_view",
-    movieSlug: movie.movieSlug,
-    movieTitle: movie.movieTitle,
-    userId: movie.userId,
-  });
+  // No-op
 }
 
 /**
- * Track watch start
+ * Track watch start (No-op)
  */
-export function trackWatchStart(watch: {
+export function trackWatchStart(_watch: {
   movieSlug: string;
   movieTitle?: string;
   episodeSlug?: string;
   episodeName?: string;
   userId?: string;
 }): void {
-  trackAnalyticsEvent({
-    eventType: "watch_start",
-    movieSlug: watch.movieSlug,
-    movieTitle: watch.movieTitle,
-    episodeSlug: watch.episodeSlug,
-    episodeName: watch.episodeName,
-    userId: watch.userId,
-  });
+  // No-op
 }
 
 /**
- * Track watch progress (periodically throttled, e.g. 45-60s or pause)
+ * Track watch progress (No-op)
  */
-export function trackWatchProgress(watch: {
+export function trackWatchProgress(_watch: {
   movieSlug: string;
   movieTitle?: string;
   episodeSlug?: string;
@@ -284,22 +228,13 @@ export function trackWatchProgress(watch: {
   progressSeconds: number;
   durationSeconds?: number;
 }): void {
-  trackAnalyticsEvent({
-    eventType: "watch_progress",
-    movieSlug: watch.movieSlug,
-    movieTitle: watch.movieTitle,
-    episodeSlug: watch.episodeSlug,
-    episodeName: watch.episodeName,
-    userId: watch.userId,
-    progressSeconds: Math.round(watch.progressSeconds),
-    durationSeconds: Math.round(watch.durationSeconds || 0),
-  });
+  // No-op
 }
 
 /**
- * Track watch end (when completed or leaving player)
+ * Track watch end (No-op)
  */
-export function trackWatchEnd(watch: {
+export function trackWatchEnd(_watch: {
   movieSlug: string;
   movieTitle?: string;
   episodeSlug?: string;
@@ -308,44 +243,22 @@ export function trackWatchEnd(watch: {
   progressSeconds: number;
   durationSeconds?: number;
 }): void {
-  trackAnalyticsEvent({
-    eventType: "watch_end",
-    movieSlug: watch.movieSlug,
-    movieTitle: watch.movieTitle,
-    episodeSlug: watch.episodeSlug,
-    episodeName: watch.episodeName,
-    userId: watch.userId,
-    progressSeconds: Math.round(watch.progressSeconds),
-    durationSeconds: Math.round(watch.durationSeconds || 0),
-  });
+  // No-op
 }
 
 /**
- * Track site visit — once per browser tab session (sessionStorage guard).
- * Call this from GlobalVisitorTracker only.
+ * Track site visit (No-op)
  */
 export const SITE_VISIT_SESSION_KEY = "nanaflix_session_visited";
 
 export function trackSiteVisit(): void {
-  if (typeof window === "undefined" || typeof sessionStorage === "undefined") return;
-  if (sessionStorage.getItem(SITE_VISIT_SESSION_KEY)) return;
-  sessionStorage.setItem(SITE_VISIT_SESSION_KEY, "1");
-  trackAnalyticsEvent({ eventType: "site_visit" });
+  // No-op
 }
 
 /**
- * Track search keyword query
+ * Track search keyword query (No-op)
  */
-export function trackSearchKeyword(keyword: string, userId?: string): void {
-  const clean = (keyword || "").trim();
-  if (!clean || clean.length < 2) return;
-
-  // Filter out potential sensitive contents (passwords, emails, tokens)
-  if (/@|token=|bearer |password/i.test(clean)) return;
-
-  trackAnalyticsEvent({
-    eventType: "search",
-    keyword: clean.slice(0, 100),
-    userId,
-  });
+export function trackSearchKeyword(_keyword: string, _userId?: string): void {
+  // No-op
 }
+

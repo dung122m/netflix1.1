@@ -303,7 +303,12 @@ export function LiveTvClient({
       cleanUrl = cleanUrl.replace(/^http:\/\//i, "https://");
     }
 
-    // Nếu là HTTPS -> phát trực tiếp từ trình duyệt để tối ưu độ trễ và tránh bị Vercel Proxy 403 (do CDN FPT chặn IP datacenter AWS/Vercel)
+    // Nếu là domain không hỗ trợ CORS cho trình duyệt (như vnns.net) -> ưu tiên bọc qua proxy luôn để phát mượt mà không bị lỗi CORS
+    if (cleanUrl.startsWith("https://") && /vnns\.net/i.test(cleanUrl)) {
+      return `/api/live-tv/proxy?url=${encodeURIComponent(cleanUrl)}`;
+    }
+
+    // Nếu là HTTPS -> phát trực tiếp từ trình duyệt để tối ưu độ trễ
     if (cleanUrl.startsWith("https://")) {
       return cleanUrl;
     }
@@ -758,13 +763,8 @@ export function LiveTvClient({
           if (data.fatal) {
             if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
               const status = (data.response as { code?: number })?.code;
-              // Nếu upstream trả 401/403/404 rõ ràng hoặc hết retry -> chuyển sang candidate tiếp theo ngay
-              if (status === 401 || status === 403 || status === 404) {
-                tryNextCandidate(`Fatal network HTTP ${status}`);
-                return;
-              }
 
-              // Nếu là transient network error thông thường: thử proxy nếu chưa thử
+              // Nếu là fatal network error (kể cả HTTP 401/403/404 hoặc CORS): thử proxy trước khi bỏ cuộc
               if (
                 !sourceUrl.includes("/api/live-tv/proxy") &&
                 sourceUrl.startsWith("https://")
@@ -774,7 +774,7 @@ export function LiveTvClient({
                   candidateUrls.splice(candidateIndex + 1, 0, proxyUrl);
                 }
               }
-              tryNextCandidate("Fatal network error");
+              tryNextCandidate(status ? `Fatal network HTTP ${status}` : "Fatal network error");
             } else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
               try {
                 hls.recoverMediaError();

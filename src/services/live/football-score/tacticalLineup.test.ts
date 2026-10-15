@@ -312,4 +312,59 @@ describe("Tactical Lineup & Pitch Coordinate System", () => {
     assert.strictEqual(summary.homeRoster.bench[0].subbedIn, false, "Cầu thủ dự bị trận chưa đá không thể có subbedIn = true");
     assert.strictEqual(summary.homeRoster.bench[0].subbedOut, false);
   });
+
+  it("12. getPositionAbbreviation & calculateTacticalCoordinates: chuẩn hóa tiền đạo trung tâm (Center Left/Right Forward -> ST, không bị nhầm thành LW/RW)", () => {
+    // 1. Kiểm tra getPositionAbbreviation các biến thể tiền đạo trung tâm
+    assert.strictEqual(getPositionAbbreviation("Center Left Forward"), "ST");
+    assert.strictEqual(getPositionAbbreviation("Center Right Forward"), "ST");
+    assert.strictEqual(getPositionAbbreviation("CF-L"), "ST");
+    assert.strictEqual(getPositionAbbreviation("CF-R"), "ST");
+    assert.strictEqual(getPositionAbbreviation("ST-L"), "ST");
+    assert.strictEqual(getPositionAbbreviation("ST-R"), "ST");
+    assert.strictEqual(getPositionAbbreviation("Center Forward"), "ST");
+    assert.strictEqual(getPositionAbbreviation("Striker"), "ST");
+    assert.strictEqual(getPositionAbbreviation("CF"), "ST");
+    assert.strictEqual(getPositionAbbreviation("ST"), "ST");
+
+    // 2. Kiểm tra getPositionAbbreviation các vị trí tiền đạo cánh (vẫn giữ nguyên LW/RW)
+    assert.strictEqual(getPositionAbbreviation("Left Wing"), "LW");
+    assert.strictEqual(getPositionAbbreviation("Left Winger"), "LW");
+    assert.strictEqual(getPositionAbbreviation("LW"), "LW");
+    assert.strictEqual(getPositionAbbreviation("Right Wing"), "RW");
+    assert.strictEqual(getPositionAbbreviation("Right Winger"), "RW");
+    assert.strictEqual(getPositionAbbreviation("RW"), "RW");
+
+    // 3. Sơ đồ 4-4-2 thực tế (Chicago Fire FC): 2 tiền đạo cắm giữ nhãn ST, cánh LM/RM giữ nguyên
+    const starters442: MatchRosterPlayer[] = [
+      createMockPlayer("1", "C. Brady", "Goalkeeper", "1", true, 1),
+      createMockPlayer("2", "N. Allen", "Left Back", "32", true, 3),
+      createMockPlayer("3", "M. Mbokazi", "Center Left Defender", "4", true, 6),
+      createMockPlayer("4", "J. Elliott", "Center Right Defender", "3", true, 5),
+      createMockPlayer("5", "J. Dean", "Right Back", "24", true, 2),
+      createMockPlayer("6", "J. Bamba", "Left Midfielder", "19", true, 11),
+      createMockPlayer("7", "M. Pineda", "Center Left Midfielder", "22", true, 8),
+      createMockPlayer("8", "A. Saletros", "Center Right Midfielder", "6", true, 4),
+      createMockPlayer("9", "J. Gómez", "Right Midfielder", "18", true, 7),
+      createMockPlayer("10", "M. Haile-Selassie", "Center Left Forward", "7", true, 9),
+      createMockPlayer("11", "R. Lewandowski", "Center Right Forward", "9", true, 10),
+    ];
+
+    const positioned = calculateTacticalCoordinates(starters442, "4-4-2");
+    assert.strictEqual(positioned.length, 11);
+
+    const fwd1 = positioned.find((p) => p.player.id === "10");
+    const fwd2 = positioned.find((p) => p.player.id === "11");
+    assert.ok(fwd1 && fwd2);
+    assert.strictEqual(fwd1.roleAbbr, "ST", "Center Left Forward phải hiển thị nhãn ST");
+    assert.strictEqual(fwd2.roleAbbr, "ST", "Center Right Forward phải hiển thị nhãn ST");
+    assert.strictEqual(fwd1.x, 34, "Tiền đạo lệch trái ở X = 34");
+    assert.strictEqual(fwd2.x, 66, "Tiền đạo lệch phải ở X = 66");
+    assert.strictEqual(fwd1.y, fwd2.y, "Hai tiền đạo cùng hàng ngang Y");
+
+    const lm = positioned.find((p) => p.player.id === "6");
+    const rm = positioned.find((p) => p.player.id === "9");
+    assert.ok(lm && rm);
+    assert.strictEqual(lm.roleAbbr, "LM", "Tiền vệ cánh trái giữ nguyên LM");
+    assert.strictEqual(rm.roleAbbr, "RM", "Tiền vệ cánh phải giữ nguyên RM");
+  });
 });

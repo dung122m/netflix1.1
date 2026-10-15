@@ -21,7 +21,7 @@ import {
   ArrowRight,
   Film,
 } from "lucide-react";
-import { VietnamTodayInfo } from "@/lib/vietnamCalendar";
+import type { VietnamTodayInfo } from "@/lib/vietnamCalendarCore";
 import { VietnamEventEffect } from "./VietnamEventEffect";
 import { VietnamFlagIcon } from "./VietnamFlagIcon";
 import { useBodyScrollLock } from "@/lib/scrollLock";

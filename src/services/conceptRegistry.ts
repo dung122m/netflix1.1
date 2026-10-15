@@ -1,5 +1,75 @@
-import { cleanNormalizedString, hasWordMatch } from "./taxonomy";
-import { toSafeActors, toSafeCategory, toSafeCategories } from "./movieFormatter";
+import { cleanNormalizedString } from "@/lib/stringUtils";
+
+/**
+ * Kiểm tra xem từ/cụm từ có xuất hiện trong chuỗi với ranh giới từ (word boundary) hay không
+ */
+export function hasWordMatch(text: string, word: string): boolean {
+  if (!text || !word) return false;
+  const cleanT = cleanNormalizedString(text);
+  const cleanW = cleanNormalizedString(word);
+  if (cleanT === cleanW) return true;
+  const escaped = cleanW.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const regex = new RegExp(`(?:^|\\s)${escaped}(?:$|\\s)`, "i");
+  return regex.test(cleanT);
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function toSafeActors(item: any): string[] {
+  const result: string[] = [];
+  if (Array.isArray(item?.actor)) {
+    result.push(...item.actor.map(String).map((s: string) => s.trim()).filter(Boolean));
+  } else if (typeof item?.actor === "string" && item.actor.trim()) {
+    result.push(...item.actor.split(",").map((s: string) => s.trim()).filter(Boolean));
+  }
+  if (Array.isArray(item?.actors)) {
+    result.push(...item.actors.map(String).map((s: string) => s.trim()).filter(Boolean));
+  } else if (typeof item?.actors === "string" && item.actors.trim()) {
+    result.push(...item.actors.split(",").map((s: string) => s.trim()).filter(Boolean));
+  }
+  if (Array.isArray(item?.director)) {
+    result.push(...item.director.map(String).map((s: string) => s.trim()).filter(Boolean));
+  } else if (typeof item?.director === "string" && item.director.trim()) {
+    result.push(...item.director.split(",").map((s: string) => s.trim()).filter(Boolean));
+  }
+  return Array.from(new Set(result));
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function toSafeCategory(item: any): string {
+  if (Array.isArray(item?.category) && item.category.length > 0) {
+    return item.category[0]?.name || item.category[0]?.slug || "Điện Ảnh";
+  }
+  if (typeof item?.category === "string" && item.category.trim()) return item.category.trim();
+  return "Điện Ảnh";
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function toSafeCategories(item: any): string[] {
+  const result: string[] = [];
+  if (Array.isArray(item?.category)) {
+    for (const c of item.category) {
+      if (typeof c === "string" && c.trim()) result.push(c.trim());
+      else if (c && typeof c === "object") {
+        if (typeof c.name === "string" && c.name.trim()) result.push(c.name.trim());
+        if (typeof c.slug === "string" && c.slug.trim()) result.push(c.slug.trim());
+      }
+    }
+  } else if (typeof item?.category === "string" && item.category.trim()) {
+    result.push(item.category.trim());
+  }
+  if (Array.isArray(item?.categories)) {
+    for (const c of item.categories) {
+      if (typeof c === "string" && c.trim()) result.push(c.trim());
+      else if (c && typeof c === "object") {
+        if (typeof c.name === "string" && c.name.trim()) result.push(c.name.trim());
+        if (typeof c.slug === "string" && c.slug.trim()) result.push(c.slug.trim());
+      }
+    }
+  } else if (typeof item?.categories === "string" && item.categories.trim()) {
+    result.push(...item.categories.split(",").map((s: string) => s.trim()).filter(Boolean));
+  }
+  return Array.from(new Set(result.filter(Boolean)));
+}
 
 export interface SemanticConcept {
   id: string;

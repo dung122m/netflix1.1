@@ -1,4 +1,4 @@
-import type { VietnamTodayInfo } from "@/lib/vietnamCalendar";
+import type { VietnamTodayInfo } from "@/lib/vietnamCalendarCore";
 import type { VietnamEvent } from "@/data/events/types";
 import type { VietnamHistoricalEvent } from "@/data/historicalEvents";
 
