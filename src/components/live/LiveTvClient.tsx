@@ -303,7 +303,15 @@ export function LiveTvClient({
       cleanUrl = cleanUrl.replace(/^http:\/\//i, "https://");
     }
 
-    // Nếu là HTTPS -> phát trực tiếp từ trình duyệt để tối ưu độ trễ và tránh bị Vercel Proxy 403
+    // Các domain FPT và VNNS yêu cầu giả lập header Referer/Origin để vượt tường lửa chống trộm link (Hotlink Protection)
+    try {
+      const hostname = new URL(cleanUrl).hostname.toLowerCase();
+      if (/(?:^|\.)(?:fptplay(?:53)?\.net|vnns\.net)$/.test(hostname)) {
+        return `/api/live-tv/proxy?url=${encodeURIComponent(cleanUrl)}`;
+      }
+    } catch {}
+
+    // Nếu là HTTPS công khai độc lập khác -> phát trực tiếp từ trình duyệt để tối ưu độ trễ
     if (cleanUrl.startsWith("https://")) {
       return cleanUrl;
     }
