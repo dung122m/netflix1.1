@@ -75,6 +75,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
   const lastHandoffSyncRef = useRef<number>(0);
 
   const title = watchContext?.movieTitle || propTitle;
+  const movieSlug = watchContext?.movieSlug || propMovieSlug;
   const isTrailerOnly = watchContext?.isTrailerOnly ?? propIsTrailerOnly;
   const episodes = useMemo(() => watchContext?.episodes || propEpisodes || [], [watchContext?.episodes, propEpisodes]);
   const activeEpisodeSlug = watchContext?.activeEpisodeSlug || propActiveEpisodeSlug;
@@ -280,6 +281,12 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
   const adBoundariesRef = useRef<AdBoundary[]>([]);
   const hasSkippedAdRef = useRef<Set<string>>(new Set());
   const lastAdSkipTimeRef = useRef<number>(0);
+  const automatedAdSkipRef = useRef<{
+    active: boolean;
+    targetSeek: number;
+    adDuration: number;
+    startTime: number;
+  } | null>(null);
 
   const getBufferAhead = useCallback((v: HTMLVideoElement | null): number => {
     if (!v || !v.buffered || v.buffered.length === 0) return 0;
@@ -505,6 +512,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
     adBoundariesRef.current = [];
     hasSkippedAdRef.current.clear();
     lastAdSkipTimeRef.current = 0;
+    automatedAdSkipRef.current = null;
     setUseIframeFallback(false);
     setIsBuffering(true);
     const effectiveInitialSlug = initialEpisodeSlug || initialLoadedEpisodeRef.current;
@@ -1133,6 +1141,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
       adBoundariesRef.current = [];
       hasSkippedAdRef.current.clear();
       lastAdSkipTimeRef.current = 0;
+      automatedAdSkipRef.current = null;
       video.pause();
       video.removeAttribute("src");
       video.load();
@@ -1182,9 +1191,34 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
         return;
       }
 
+      // Fast Resume riêng cho thao tác tự động bỏ qua quảng cáo (TC-AD-SKIP-06)
+      const adSkip = automatedAdSkipRef.current;
+      if (adSkip && adSkip.active) {
+        // Hết hạn ưu tiên sau 4s nếu mạng chậm để không cản trở fallback mặc định
+        if (Date.now() - adSkip.startTime > 4000) {
+          automatedAdSkipRef.current = null;
+        } else {
+          // Chỉ cần có dữ liệu giải mã an toàn (readyState >= 3: HAVE_FUTURE_DATA hoặc bufAhead >= 1.5s)
+          const hasDecodableData = v.readyState >= 3 || bufAhead >= 1.5 || isNearEnd;
+          if (hasDecodableData) {
+            isStalledRef.current = false;
+            if (stallRecoveryTimeoutRef.current) {
+              clearTimeout(stallRecoveryTimeoutRef.current);
+              stallRecoveryTimeoutRef.current = null;
+            }
+            setIsBuffering(false);
+            v.play().catch(() => {});
+            return;
+          }
+          // Nếu chưa có dữ liệu, tiếp tục chờ đệm bình thường
+          return;
+        }
+      }
+
       if (isStalledRef.current) {
-        // Khi bị stall (waiting), chỉ resume khi đã gom đủ ít nhất 8s buffer an toàn hoặc gần hết video
-        if (bufAhead >= 8 || isNearEnd) {
+        // Stall recovery cho video đã bắt đầu phát: phục hồi nhanh khi có dữ liệu giải mã an toàn (TC-PLAYBACK-REGRESSION-02)
+        const hasResumableData = v.readyState >= 3 || bufAhead >= 2.5 || isNearEnd;
+        if (hasResumableData) {
           isStalledRef.current = false;
           if (stallRecoveryTimeoutRef.current) {
             clearTimeout(stallRecoveryTimeoutRef.current);
@@ -1202,7 +1236,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
       if (stallRecoveryTimeoutRef.current) {
         clearTimeout(stallRecoveryTimeoutRef.current);
       }
-      // Fallback timeout 5s: nếu mạng cực chậm và không gom đủ 8s, vẫn cố gắng phát sau 5s thay vì kẹt vô hạn
+      // Fallback timeout 3s (TC-PLAYBACK-REGRESSION-02): nếu mạng cực chậm và chưa gom đủ buffer, cố gắng phát sau 3s thay vì kẹt 5s
       stallRecoveryTimeoutRef.current = setTimeout(() => {
         const v = videoRef.current;
         if (v && isStalledRef.current) {
@@ -1210,7 +1244,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
           setIsBuffering(false);
           v.play().catch(() => {});
         }
-      }, 5000);
+      }, 3000);
     };
 
     const handlePlaying = () => {
@@ -1219,8 +1253,20 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
       hasStartedInitialPlaybackRef.current = true;
       setIsPlaying(true);
       resetControlsTimeout();
+
+      // Dọn dẹp cờ ad skip và hiển thị Toast khi video ĐÃ THỰC SỰ PHÁT TIẾP
+      const adSkip = automatedAdSkipRef.current;
+      if (adSkip && adSkip.active) {
+        const durationText = adSkip.adDuration > 0 ? ` (${adSkip.adDuration}s)` : "";
+        automatedAdSkipRef.current = null;
+        showHud(
+          <Zap className="w-5 h-5 text-netflix-red" />,
+          `Đã tự động bỏ qua quảng cáo${durationText}`
+        );
+      }
     };
     const handlePause = () => {
+      automatedAdSkipRef.current = null;
       setIsPlaying(false);
       isStalledRef.current = false;
       setShowControls(true);
@@ -1290,16 +1336,14 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
               const targetSeek = ad.end;
               const adDuration = Math.round(ad.duration);
 
-              const onSeeked = () => {
-                video.removeEventListener("seeked", onSeeked);
-                if (Math.abs(video.currentTime - targetSeek) < 1.5) {
-                  showHud(
-                    <Zap className="w-5 h-5 text-netflix-red" />,
-                    `Đã tự động bỏ qua quảng cáo (${adDuration}s)`
-                  );
-                }
+              // Đặt cờ Fast Resume riêng cho ad skip
+              automatedAdSkipRef.current = {
+                active: true,
+                targetSeek,
+                adDuration,
+                startTime: now,
               };
-              video.addEventListener("seeked", onSeeked);
+
               video.currentTime = targetSeek;
               break;
             }
@@ -1413,6 +1457,14 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
     const handleSeeking = () => {
       setIsBuffering(true);
       isStalledRef.current = true;
+      // Nếu là seek thủ công (không phải ad skip tự động), hủy cờ ad skip
+      if (
+        automatedAdSkipRef.current &&
+        videoRef.current &&
+        Math.abs(videoRef.current.currentTime - automatedAdSkipRef.current.targetSeek) > 1.5
+      ) {
+        automatedAdSkipRef.current = null;
+      }
     };
     const handleSeeked = () => checkBufferRecovery();
     const handleLoadStart = () => setIsBuffering(true);

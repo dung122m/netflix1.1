@@ -119,7 +119,7 @@ const HeroFeaturedInner: React.FC<{ movies?: HeroMovie[] }> = ({
   const trailerUrlMapRef = useRef<Record<string, string>>({});
   const failedTrailerMapRef = useRef<Record<string, boolean>>({});
   const trailerTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const trailerReadyTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const trailerWatchdogTimerRef = useRef<NodeJS.Timeout | null>(null);
   const heroIframeRef = useRef<HTMLIFrameElement>(null);
   // Theo dõi trạng thái kiểm tra chất lượng: null = chưa check, true = đủ 1080p, false = không đủ
   const qualityCheckedRef = useRef<Record<string, boolean | null>>({});
@@ -322,9 +322,9 @@ const HeroFeaturedInner: React.FC<{ movies?: HeroMovie[] }> = ({
       clearTimeout(trailerTimerRef.current);
       trailerTimerRef.current = null;
     }
-    if (trailerReadyTimerRef.current) {
-      clearTimeout(trailerReadyTimerRef.current);
-      trailerReadyTimerRef.current = null;
+    if (trailerWatchdogTimerRef.current) {
+      clearTimeout(trailerWatchdogTimerRef.current);
+      trailerWatchdogTimerRef.current = null;
     }
     setActiveTrailerId(null);
     setIsTrailerReady(false);
@@ -374,9 +374,9 @@ const HeroFeaturedInner: React.FC<{ movies?: HeroMovie[] }> = ({
         clearTimeout(trailerTimerRef.current);
         trailerTimerRef.current = null;
       }
-      if (trailerReadyTimerRef.current) {
-        clearTimeout(trailerReadyTimerRef.current);
-        trailerReadyTimerRef.current = null;
+      if (trailerWatchdogTimerRef.current) {
+        clearTimeout(trailerWatchdogTimerRef.current);
+        trailerWatchdogTimerRef.current = null;
       }
     };
   }, [index, currentSlug, isDesktop, isHeroVisible, slides]);
@@ -385,7 +385,31 @@ const HeroFeaturedInner: React.FC<{ movies?: HeroMovie[] }> = ({
   useEffect(() => {
     if (!activeTrailerId) return;
 
+    // Watchdog 3.5s: Nếu sau 3.5s kể từ khi mount iframe mà YouTube không xác nhận trạng thái PLAYING
+    // (do geo-blocked tại VN, cấm nhúng, video die, hoặc lag), hủy iframe và giữ poster tĩnh an toàn
+    if (trailerWatchdogTimerRef.current) {
+      clearTimeout(trailerWatchdogTimerRef.current);
+    }
+    trailerWatchdogTimerRef.current = setTimeout(() => {
+      if (currentSlug) {
+        failedTrailerMapRef.current[currentSlug] = true;
+        setFailedTrailerMap((prev) => ({ ...prev, [currentSlug]: true }));
+      }
+      setActiveTrailerId(null);
+      setIsTrailerReady(false);
+      trailerWatchdogTimerRef.current = null;
+    }, 3500);
+
     const handleMessage = (e: MessageEvent) => {
+      // Xác thực nguồn message: chỉ chấp nhận message từ chính iframe của Hero banner
+      if (heroIframeRef.current?.contentWindow && e.source && e.source !== heroIframeRef.current.contentWindow) {
+        return;
+      }
+      const origin = e.origin || "";
+      if (origin && !origin.includes("youtube.com") && !origin.includes("youtube-nocookie.com")) {
+        return;
+      }
+
       // 0. Kiểm tra chất lượng video: chỉ cho phép phát nếu có hd1080 trở lên
       //    YouTube gửi availableQualityLevels qua infoDelivery trước khi video PLAYING
       const qualityLevels = isYoutubeQualityInfoMessage(e.data);
@@ -394,9 +418,9 @@ const HeroFeaturedInner: React.FC<{ movies?: HeroMovie[] }> = ({
         qualityCheckedRef.current[currentSlug] = isHD;
         if (!isHD) {
           // Chất lượng không đạt 1080p → fallback poster ngay lập tức, đánh dấu failed
-          if (trailerReadyTimerRef.current) {
-            clearTimeout(trailerReadyTimerRef.current);
-            trailerReadyTimerRef.current = null;
+          if (trailerWatchdogTimerRef.current) {
+            clearTimeout(trailerWatchdogTimerRef.current);
+            trailerWatchdogTimerRef.current = null;
           }
           failedTrailerMapRef.current[currentSlug] = true;
           setFailedTrailerMap((prev) => ({ ...prev, [currentSlug]: true }));
@@ -406,11 +430,11 @@ const HeroFeaturedInner: React.FC<{ movies?: HeroMovie[] }> = ({
         }
       }
 
-      // 1. Video thực sự PLAYING -> hủy timer chờ và fade-in trailer ngay lập tức
+      // 1. Video thực sự PLAYING -> hủy watchdog timer và fade-in trailer ngay lập tức
       if (isYoutubePlayingMessage(e.data)) {
-        if (trailerReadyTimerRef.current) {
-          clearTimeout(trailerReadyTimerRef.current);
-          trailerReadyTimerRef.current = null;
+        if (trailerWatchdogTimerRef.current) {
+          clearTimeout(trailerWatchdogTimerRef.current);
+          trailerWatchdogTimerRef.current = null;
         }
         try {
           heroIframeRef.current?.contentWindow?.postMessage(
@@ -428,9 +452,9 @@ const HeroFeaturedInner: React.FC<{ movies?: HeroMovie[] }> = ({
 
       // 2. Video gặp lỗi YouTube (100, 101, 150, 2, 5) -> Fallback poster ngay lập tức, không retry
       if (isYoutubeErrorMessage(e.data)) {
-        if (trailerReadyTimerRef.current) {
-          clearTimeout(trailerReadyTimerRef.current);
-          trailerReadyTimerRef.current = null;
+        if (trailerWatchdogTimerRef.current) {
+          clearTimeout(trailerWatchdogTimerRef.current);
+          trailerWatchdogTimerRef.current = null;
         }
         if (currentSlug) {
           failedTrailerMapRef.current[currentSlug] = true;
@@ -459,9 +483,9 @@ const HeroFeaturedInner: React.FC<{ movies?: HeroMovie[] }> = ({
     window.addEventListener("message", handleMessage);
     return () => {
       window.removeEventListener("message", handleMessage);
-      if (trailerReadyTimerRef.current) {
-        clearTimeout(trailerReadyTimerRef.current);
-        trailerReadyTimerRef.current = null;
+      if (trailerWatchdogTimerRef.current) {
+        clearTimeout(trailerWatchdogTimerRef.current);
+        trailerWatchdogTimerRef.current = null;
       }
     };
   }, [activeTrailerId, currentSlug]);
@@ -685,10 +709,8 @@ const HeroFeaturedInner: React.FC<{ movies?: HeroMovie[] }> = ({
                   "*"
                 );
               } catch {}
-              if (trailerReadyTimerRef.current) clearTimeout(trailerReadyTimerRef.current);
-              trailerReadyTimerRef.current = setTimeout(() => {
-                setIsTrailerReady(true);
-              }, 600);
+              // TUYỆT ĐỐI KHÔNG ép setIsTrailerReady(true) tại sự kiện onLoad!
+              // Trailer chỉ được phép hiển thị khi nhận được sự kiện PLAYING thực sự từ YouTube postMessage.
             }}
           />
         </div>
