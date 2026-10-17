@@ -607,6 +607,7 @@ export function InlinePlayerDetailCard({
   hasValidPhoto,
   onImageError,
   matchStatus,
+  variant = "inline",
 }: {
   player: MatchRosterPlayer;
   isHome: boolean;
@@ -614,6 +615,7 @@ export function InlinePlayerDetailCard({
   hasValidPhoto: boolean;
   onImageError: (id: string) => void;
   matchStatus?: "live" | "finished" | "scheduled" | string;
+  variant?: "inline" | "bottom-sheet";
 }) {
   const isMatchScheduled = matchStatus === "scheduled";
   const [profile, setProfile] = useState<AthleteProfile | null>(() => clientAthleteCache.get(player.id) || null);
@@ -661,19 +663,35 @@ export function InlinePlayerDetailCard({
   );
 
   return (
-    <div className="relative rounded-2xl bg-zinc-900/95 border border-white/15 p-3.5 sm:p-4 shadow-xl backdrop-blur-md animate-in fade-in duration-150">
+    <div
+      onClick={(e) => e.stopPropagation()}
+      className={
+        variant === "bottom-sheet"
+          ? "absolute inset-x-0 bottom-0 z-40 max-h-[52%] sm:max-h-[50%] flex flex-col rounded-t-2xl border-t border-x border-white/20 bg-zinc-950/95 backdrop-blur-xl shadow-2xl p-3 sm:p-3.5 overflow-hidden animate-in slide-in-from-bottom duration-200"
+          : "relative rounded-2xl bg-zinc-900/95 border border-white/15 p-3.5 sm:p-4 shadow-xl backdrop-blur-md animate-in fade-in duration-150"
+      }
+    >
       {/* Nút đóng */}
       <button
         type="button"
         onClick={onClose}
         aria-label="Đóng thông tin cầu thủ"
-        className="absolute top-3.5 right-3.5 p-1.5 rounded-full bg-white/10 hover:bg-white/20 text-zinc-300 hover:text-white transition cursor-pointer"
+        className={`absolute ${
+          variant === "bottom-sheet" ? "top-2.5 right-2.5 p-1.5" : "top-3.5 right-3.5 p-1.5"
+        } rounded-full bg-white/10 hover:bg-white/20 text-zinc-300 hover:text-white transition cursor-pointer z-10 touch-manipulation`}
       >
         <X className="w-4 h-4" />
       </button>
 
-      {/* Header cầu thủ */}
-      <div className="flex items-center gap-3 pr-8">
+      {/* Thanh grab handle nhỏ khi ở dạng Bottom Sheet */}
+      {variant === "bottom-sheet" && (
+        <div className="w-8 h-1 rounded-full bg-white/25 mx-auto mb-1.5 shrink-0 select-none" />
+      )}
+
+      {/* Khung nội dung: cuộn bên trong nếu là Bottom Sheet */}
+      <div className={variant === "bottom-sheet" ? "flex-1 min-h-0 overflow-y-auto overscroll-contain scrollbar-thin pr-0.5 space-y-2.5" : "space-y-3"}>
+        {/* Header cầu thủ */}
+        <div className="flex items-center gap-3 pr-8">
         <div
           className={`w-12 h-12 rounded-xl bg-zinc-800 border-2 overflow-hidden flex items-center justify-center font-mono font-black text-base shrink-0 shadow-inner ${
             isHome ? "border-netflix-red/60" : "border-sky-400/60"
@@ -839,36 +857,37 @@ export function InlinePlayerDetailCard({
         </div>
       ) : null}
 
-      {/* Thống kê thực tế trong trận */}
-      {player.stats && player.stats.length > 0 ? (
-        <div className="mt-3 pt-2.5 border-t border-white/10 space-y-1.5">
-          <div className="flex items-center gap-1.5 text-[11px] font-bold text-zinc-400">
-            <Trophy className="w-3 h-3 text-amber-400" />
-            <span>Thống kê thực tế trong trận</span>
+        {/* Thống kê thực tế trong trận */}
+        {player.stats && player.stats.length > 0 ? (
+          <div className="mt-3 pt-2.5 border-t border-white/10 space-y-1.5">
+            <div className="flex items-center gap-1.5 text-[11px] font-bold text-zinc-400">
+              <Trophy className="w-3 h-3 text-amber-400" />
+              <span>Thống kê thực tế trong trận</span>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
+              {player.stats.map((st, idx) => (
+                <div
+                  key={idx}
+                  className="p-1.5 px-2 rounded-lg bg-black/40 border border-white/5 flex items-center justify-between"
+                >
+                  <span className="text-[10.5px] text-zinc-400 truncate pr-1">
+                    {translateStatName(st.displayName)}
+                  </span>
+                  <span className="font-mono text-xs font-bold text-white shrink-0">
+                    {st.value}
+                  </span>
+                </div>
+              ))}
+            </div>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
-            {player.stats.map((st, idx) => (
-              <div
-                key={idx}
-                className="p-1.5 px-2 rounded-lg bg-black/40 border border-white/5 flex items-center justify-between"
-              >
-                <span className="text-[10.5px] text-zinc-400 truncate pr-1">
-                  {translateStatName(st.displayName)}
-                </span>
-                <span className="font-mono text-xs font-bold text-white shrink-0">
-                  {st.value}
-                </span>
-              </div>
-            ))}
+        ) : (
+          <div className="mt-2.5 pt-2 border-t border-white/5 text-[11px] text-zinc-400 italic">
+            {isMatchScheduled
+              ? "Trận đấu chưa bắt đầu, thông số cá nhân sẽ cập nhật khi có bóng lăn"
+              : "Chưa có thêm thống kê sự kiện của cầu thủ này"}
           </div>
-        </div>
-      ) : (
-        <div className="mt-2.5 pt-2 border-t border-white/5 text-[11px] text-zinc-400 italic">
-          {isMatchScheduled
-            ? "Trận đấu chưa bắt đầu, thông số cá nhân sẽ cập nhật khi có bóng lăn"
-            : "Chưa có thêm thống kê sự kiện của cầu thủ này"}
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }
@@ -953,7 +972,14 @@ function TeamPitchColumn({
             <p className="text-xs font-semibold text-zinc-400">Chưa có danh sách ra sân</p>
           </div>
         ) : (
-          <div className="relative w-full pb-[84%] select-none overflow-hidden bg-gradient-to-b from-[#0b1d12] via-[#0e2719] to-[#08170e]">
+          <div
+            onClick={(e) => {
+              if (e.target === e.currentTarget && selectedPlayer) {
+                onCloseSelectedPlayer?.();
+              }
+            }}
+            className="relative w-full pb-[88%] sm:pb-[90%] select-none overflow-hidden bg-gradient-to-b from-[#0b1d12] via-[#0e2719] to-[#08170e]"
+          >
             {/* Sọc cỏ cắt */}
             <div
               className="absolute inset-0 opacity-20 pointer-events-none"
@@ -1082,7 +1108,7 @@ function TeamPitchColumn({
                     top: `${y}%`,
                   }}
                   className={`absolute -translate-x-1/2 ${
-                    isGK ? "-translate-y-[88%]" : "-translate-y-1/2"
+                    isGK ? "-translate-y-[92%]" : "-translate-y-1/2"
                   } group flex flex-col items-center cursor-pointer transition-all hover:scale-115 active:scale-95 focus:outline-none z-20 ${
                     isSelected ? "scale-115 z-30" : ""
                   }`}
@@ -1155,22 +1181,21 @@ function TeamPitchColumn({
                 </button>
               );
             })}
+            {/* BOTTOM SHEET NỔI PHỦ ĐÁY SÂN CỎ KHI CHỌN CẦU THỦ */}
+            {selectedPlayer && (
+              <InlinePlayerDetailCard
+                player={selectedPlayer}
+                isHome={isHome}
+                onClose={onCloseSelectedPlayer || (() => {})}
+                hasValidPhoto={Boolean(selectedPlayer.photoUrl && !imageErrors[selectedPlayer.id])}
+                onImageError={onImageError}
+                matchStatus={matchStatus}
+                variant="bottom-sheet"
+              />
+            )}
           </div>
         )}
       </div>
-
-      {/* CARD CHI TIẾT CẦU THỦ ĐƯỢC CHỌN (HIỂN THỊ GỌN NGAY DƯỚI SÂN CỎ, KHÔNG CHE VIDEO) */}
-      {selectedPlayer && (
-        <InlinePlayerDetailCard
-          key={selectedPlayer.id}
-          player={selectedPlayer}
-          isHome={isHome}
-          onClose={onCloseSelectedPlayer || (() => {})}
-          hasValidPhoto={Boolean(selectedPlayer.photoUrl && !imageErrors[selectedPlayer.id])}
-          onImageError={onImageError}
-          matchStatus={matchStatus}
-        />
-      )}
 
       {/* CẦU THỦ DỰ BỊ */}
       {roster.bench.length > 0 && (
@@ -1305,16 +1330,16 @@ function TeamListColumn({
         )}
       </div>
 
-      {/* Card chi tiết cầu thủ nếu được chọn */}
+      {/* Card chi tiết cầu thủ nếu được chọn (trong chế độ danh sách) */}
       {selectedPlayer && (
         <InlinePlayerDetailCard
-          key={selectedPlayer.id}
           player={selectedPlayer}
           isHome={isHome}
           onClose={onCloseSelectedPlayer || (() => {})}
           hasValidPhoto={Boolean(selectedPlayer.photoUrl && !imageErrors[selectedPlayer.id])}
           onImageError={onImageError}
           matchStatus={matchStatus}
+          variant="inline"
         />
       )}
 
@@ -1441,14 +1466,14 @@ export function TacticalLineup({
   };
 
   return (
-    <div className="space-y-2.5">
+    <div className="space-y-2">
       {/* 1. THANH CHỌN ĐỘI BÓNG: 50% - 50% FULL-WIDTH CÂN ĐỐI HOÀN HẢO */}
-      <div className="grid grid-cols-2 gap-1.5 p-1 rounded-2xl bg-zinc-900/80 border border-white/10 backdrop-blur-md">
+      <div className="grid grid-cols-2 gap-1.5 p-1 rounded-xl bg-zinc-900/80 border border-white/10 backdrop-blur-md">
         <button
           type="button"
           onClick={() => handleTeamChange("home")}
           title={`${homeTeam.displayName} (${homeRoster.formation || "Chưa rõ sơ đồ"})`}
-          className={`flex items-center justify-center gap-1.5 sm:gap-2 py-2 px-2 sm:px-3 rounded-xl text-xs font-bold transition-all cursor-pointer select-none truncate ${
+          className={`flex items-center justify-center gap-1.5 sm:gap-2 py-1.5 px-2 sm:px-3 rounded-lg text-xs font-bold transition-all cursor-pointer select-none truncate ${
             teamFilter === "home"
               ? "bg-gradient-to-r from-red-600 to-red-700 text-white shadow-md shadow-red-950/60 border border-red-500/60 font-black"
               : "text-zinc-400 hover:text-white hover:bg-white/5 border border-transparent font-medium"
@@ -1473,7 +1498,7 @@ export function TacticalLineup({
           type="button"
           onClick={() => handleTeamChange("away")}
           title={`${awayTeam.displayName} (${awayRoster.formation || "Chưa rõ sơ đồ"})`}
-          className={`flex items-center justify-center gap-1.5 sm:gap-2 py-2 px-2 sm:px-3 rounded-xl text-xs font-bold transition-all cursor-pointer select-none truncate ${
+          className={`flex items-center justify-center gap-1.5 sm:gap-2 py-1.5 px-2 sm:px-3 rounded-lg text-xs font-bold transition-all cursor-pointer select-none truncate ${
             teamFilter === "away"
               ? "bg-gradient-to-r from-sky-600 to-sky-700 text-white shadow-md shadow-sky-950/60 border border-sky-400/60 font-black"
               : "text-zinc-400 hover:text-white hover:bg-white/5 border border-transparent font-medium"

@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { detectAdBoundaries, isVerifiedAdSegmentUri, FragmentLike } from "./adBoundaryDetector";
+import { detectAdBoundaries, isVerifiedAdSegmentUri, FragmentLike, evaluateAutoAdSkipDecision } from "./adBoundaryDetector";
 
 describe("adBoundaryDetector", () => {
   describe("isVerifiedAdSegmentUri", () => {
@@ -156,5 +156,182 @@ describe("adBoundaryDetector", () => {
       const detected = detectAdBoundaries(fragments);
       assert.deepEqual(detected, [], "Must reject when cc discontinuity is missing");
     });
+
+    it("rejects overlay sponsorship block with internal discontinuities (Conan Ep 26 sample at 176.68s)", () => {
+      // Mocked sequence matching Conan Episode 26 where 9 segments have fragmented cc (1, 3, 5, 7, 9...)
+      const fragments: FragmentLike[] = [
+        { relurl: "DROkHBL6.ts", cc: 0, start: 173.68, duration: 3.0 },
+        // Overlay sponsor banner block with internal discontinuities (spliced movie cuts)
+        { relurl: "convertv7/UkaQSjAn.ts", cc: 1, start: 176.68, duration: 3.8 },
+        { relurl: "convertv7/isjA2ev6.ts", cc: 3, start: 180.48, duration: 1.48 },
+        { relurl: "convertv7/kLiUPmPe.ts", cc: 5, start: 181.96, duration: 2.96 },
+        { relurl: "convertv7/hEo3UUFX.ts", cc: 7, start: 184.92, duration: 2.84 },
+        { relurl: "convertv7/srlqVEZR.ts", cc: 9, start: 187.76, duration: 3.56 },
+        { relurl: "convertv7/mqx9lBgM.ts", cc: 11, start: 191.32, duration: 2.24 },
+        { relurl: "convertv7/wqEdsuJo.ts", cc: 13, start: 193.56, duration: 2.4 },
+        { relurl: "convertv7/FFdzdhWZ.ts", cc: 15, start: 195.96, duration: 3.0 },
+        { relurl: "convertv7/LaUHakOE.ts", cc: 17, start: 198.96, duration: 2.96 },
+        // Movie resumes
+        { relurl: "qjZn4nDK.ts", cc: 18, start: 201.92, duration: 3.48 },
+      ];
+
+      const detected = detectAdBoundaries(fragments);
+      assert.deepEqual(detected, [], "Must reject overlay sponsorship blocks with internal discontinuities to preserve movie content");
+    });
+
+    it("detects verified standalone commercial block with uniform cc (Conan Ep 26 sample at 901.44s)", () => {
+      const fragments: FragmentLike[] = [
+        { relurl: "movie_before.ts", cc: 18, start: 898.0, duration: 3.44 },
+        // Standalone MD5 commercial clip with uniform cc=19
+        { relurl: "/v7/d61a03b1dabe537cc05ffe5c9c280f56/segment_0001.ts", cc: 19, start: 901.44, duration: 15.0 },
+        { relurl: "/v7/d61a03b1dabe537cc05ffe5c9c280f56/segment_0002.ts", cc: 19, start: 916.44, duration: 15.24 },
+        // Movie resumes
+        { relurl: "movie_after.ts", cc: 20, start: 931.68, duration: 3.0 },
+      ];
+
+      const detected = detectAdBoundaries(fragments);
+      assert.equal(detected.length, 1);
+      assert.equal(detected[0].start, 901.44);
+      assert.equal(detected[0].end, 931.68);
+      assert.equal(detected[0].duration, 30.24);
+    });
+  });
+
+  describe("evaluateAutoAdSkipDecision — Execution Pathway Protection", () => {
+    it("does NOT trigger auto-seek for Conan Ep 26 overlay sequence at 176.680s (preserves story content)", () => {
+      // Vì detectAdBoundaries loại bỏ khối overlay 176.68s, danh sách boundaries không chứa khối này
+      const verifiedBoundaries = [
+        { start: 901.44, end: 931.68, duration: 30.24, startIndex: 300, endIndex: 302 },
+      ];
+      const hasSkipped = new Set<string>();
+
+      // Khi playhead chạy qua mốc 176.680s đến 201.920s
+      for (const time of [176.68, 180.0, 190.5, 201.9]) {
+        const decision = evaluateAutoAdSkipDecision({
+          currentTime: time,
+          boundaries: verifiedBoundaries,
+          hasSkippedSet: hasSkipped,
+          lastSkipTime: 0,
+          now: 100000,
+        });
+
+        assert.strictEqual(decision, null, `Must NOT auto-seek at time ${time}s because it is movie footage`);
+      }
+    });
+
+    it("triggers auto-seek to ad.end for verified standalone commercial at 901.44s", () => {
+      const verifiedBoundaries = [
+        { start: 901.44, end: 931.68, duration: 30.24, startIndex: 300, endIndex: 302 },
+      ];
+      const hasSkipped = new Set<string>();
+
+      const decision = evaluateAutoAdSkipDecision({
+        currentTime: 901.44,
+        boundaries: verifiedBoundaries,
+        hasSkippedSet: hasSkipped,
+        lastSkipTime: 0,
+        now: 100000,
+      });
+
+      assert.notStrictEqual(decision, null);
+      assert.strictEqual(decision?.shouldSeek, true);
+      assert.strictEqual(decision?.targetSeek, 931.68);
+      assert.strictEqual(decision?.adDuration, 30);
+      assert.strictEqual(hasSkipped.has("901.44_931.68"), true, "Must mark adKey as skipped");
+    });
+
+    it("does not re-seek on subsequent timeupdates once skipped (prevents seek thrashing)", () => {
+      const verifiedBoundaries = [
+        { start: 901.44, end: 931.68, duration: 30.24, startIndex: 300, endIndex: 302 },
+      ];
+      const hasSkipped = new Set<string>(["901.44_931.68"]);
+
+      const decision = evaluateAutoAdSkipDecision({
+        currentTime: 915.0,
+        boundaries: verifiedBoundaries,
+        hasSkippedSet: hasSkipped,
+        lastSkipTime: 95000,
+        now: 100000,
+      });
+
+      assert.strictEqual(decision, null, "Should not seek again if already skipped");
+    });
+
+    it("resets skip state when user rewinds past ad.start - 2", () => {
+      const verifiedBoundaries = [
+        { start: 901.44, end: 931.68, duration: 30.24, startIndex: 300, endIndex: 302 },
+      ];
+      const hasSkipped = new Set<string>(["901.44_931.68"]);
+
+      const decision = evaluateAutoAdSkipDecision({
+        currentTime: 890.0, // Tua về trước 901.44 - 2 = 899.44s
+        boundaries: verifiedBoundaries,
+        hasSkippedSet: hasSkipped,
+        lastSkipTime: 95000,
+        now: 100000,
+      });
+
+      assert.strictEqual(decision, null);
+      assert.strictEqual(hasSkipped.has("901.44_931.68"), false, "Must clear adKey so future playback can auto-skip");
+    });
+
+    it("does NOT seek when video is seeking, paused, or ended", () => {
+      const verifiedBoundaries = [
+        { start: 901.44, end: 931.68, duration: 30.24, startIndex: 300, endIndex: 302 },
+      ];
+
+      assert.strictEqual(
+        evaluateAutoAdSkipDecision({
+          currentTime: 901.5,
+          boundaries: verifiedBoundaries,
+          hasSkippedSet: new Set(),
+          lastSkipTime: 0,
+          isSeeking: true,
+        }),
+        null,
+        "Must not seek during active seeking"
+      );
+
+      assert.strictEqual(
+        evaluateAutoAdSkipDecision({
+          currentTime: 901.5,
+          boundaries: verifiedBoundaries,
+          hasSkippedSet: new Set(),
+          lastSkipTime: 0,
+          isPaused: true,
+        }),
+        null,
+        "Must not seek when video is paused"
+      );
+
+      assert.strictEqual(
+        evaluateAutoAdSkipDecision({
+          currentTime: 901.5,
+          boundaries: verifiedBoundaries,
+          hasSkippedSet: new Set(),
+          lastSkipTime: 0,
+          isEnded: true,
+        }),
+        null,
+        "Must not seek when video is ended"
+      );
+    });
+
+    it("does NOT seek when throttled within 2000ms", () => {
+      const verifiedBoundaries = [
+        { start: 901.44, end: 931.68, duration: 30.24, startIndex: 300, endIndex: 302 },
+      ];
+
+      const decision = evaluateAutoAdSkipDecision({
+        currentTime: 901.5,
+        boundaries: verifiedBoundaries,
+        hasSkippedSet: new Set(),
+        lastSkipTime: 100000,
+        now: 101000, // Chỉ mới 1000ms trôi qua (< 2000ms)
+      });
+
+      assert.strictEqual(decision, null, "Must throttle repeat skip within 2s");
+    });
   });
 });
+

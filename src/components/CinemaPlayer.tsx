@@ -31,7 +31,13 @@ import { incrementUserWatchTime, getPlayerSettings, PlayerSettings } from "@/ser
 import { PlayerNativeControls, SeekBack10Icon, SeekForward10Icon, VideoFit } from "./player/PlayerNativeControls";
 import { PlayerActionButtons } from "./player/PlayerActionButtons";
 import { PlayerShortcutModal } from "./player/PlayerShortcutModal";
-import { detectAdBoundaries, AdBoundary } from "@/lib/adBoundaryDetector";
+import { detectAdBoundaries, AdBoundary, evaluateAutoAdSkipDecision } from "@/lib/adBoundaryDetector";
+import {
+  evaluateBufferProgress,
+  evaluateTimeUpdatePlayback,
+  evaluateHlsError,
+  evaluateStallRecoveryAttempt,
+} from "@/lib/playbackStallController";
 
 interface EpisodeItem {
   name?: string;
@@ -177,6 +183,10 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
   const [isPlaying, setIsPlaying] = useState(false);
   const [volume, setVolume] = useState(1);
   const [isBuffering, setIsBuffering] = useState(true);
+  const isBufferingRef = useRef(isBuffering);
+  useEffect(() => {
+    isBufferingRef.current = isBuffering;
+  }, [isBuffering]);
   const [useIframeFallback, setUseIframeFallback] = useState(false);
   const [showControls, setShowControls] = useState(true);
   const showControlsRef = useRef(showControls);
@@ -276,6 +286,9 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
   const lastProgressSaveRef = useRef<number>(0);
   const hasStartedInitialPlaybackRef = useRef(false);
   const isStalledRef = useRef(false);
+  const lastPlayheadTimeRef = useRef<number>(0);
+  const stallRecoveryCountRef = useRef<number>(0);
+  const lastPlayRequestTimeRef = useRef<number>(0);
   const initialBufferTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const stallRecoveryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const adBoundariesRef = useRef<AdBoundary[]>([]);
@@ -900,6 +913,12 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
         startLevel: -1,
         autoStartLoad: true,
         abrEwmaDefaultEstimate: 5000000,
+        fragLoadingTimeOut: 10000,
+        fragLoadingMaxRetry: 4,
+        fragLoadingRetryDelay: 500,
+        fragLoadingMaxRetryTimeout: 20000,
+        manifestLoadingTimeOut: 10000,
+        levelLoadingTimeOut: 10000,
       });
       hlsRef.current = hls;
       hls.loadSource(resolvedM3u8);
@@ -1021,28 +1040,48 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
       let retryCount = 0;
       let mediaRetryCount = 0;
       hls.on(Hls.Events.ERROR, (_event, data) => {
-        if (data.fatal) {
-          switch (data.type) {
-            case Hls.ErrorTypes.NETWORK_ERROR:
-              retryCount += 1;
-              if (retryCount <= 2) {
-                hls.startLoad();
-              } else {
-                fallbackToIframe();
+        const hlsErr = evaluateHlsError(data);
+        if (!hlsErr.isFatal) {
+          if (hlsErr.isBufferStalled) {
+            const v = videoRef.current;
+            if (v && !v.paused && !v.ended) {
+              setIsBuffering(true);
+              isStalledRef.current = true;
+              if (stallRecoveryTimeoutRef.current) {
+                clearTimeout(stallRecoveryTimeoutRef.current);
               }
-              break;
-            case Hls.ErrorTypes.MEDIA_ERROR:
-              mediaRetryCount += 1;
-              if (mediaRetryCount <= 1) {
-                hls.recoverMediaError();
-              } else {
-                fallbackToIframe();
-              }
-              break;
-            default:
-              fallbackToIframe();
-            break;
+              stallRecoveryTimeoutRef.current = setTimeout(() => {
+                const curV = videoRef.current;
+                if (curV && isStalledRef.current && !curV.paused && !curV.ended) {
+                  curV.play().catch(() => {});
+                }
+              }, 3500);
+            }
           }
+          // Bỏ qua các lỗi non-fatal khác để Hls.js tự retry theo cơ chế nội bộ
+          return;
+        }
+
+        switch (data.type) {
+          case Hls.ErrorTypes.NETWORK_ERROR:
+            retryCount += 1;
+            if (retryCount <= 2) {
+              hls.startLoad();
+            } else {
+              fallbackToIframe();
+            }
+            break;
+          case Hls.ErrorTypes.MEDIA_ERROR:
+            mediaRetryCount += 1;
+            if (mediaRetryCount <= 1) {
+              hls.recoverMediaError();
+            } else {
+              fallbackToIframe();
+            }
+            break;
+          default:
+            fallbackToIframe();
+            break;
         }
       });
     } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
@@ -1170,6 +1209,40 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
 
     const movieSlug = watchContext?.movieSlug || propMovieSlug;
 
+    const scheduleStallRecovery = () => {
+      if (stallRecoveryTimeoutRef.current) {
+        clearTimeout(stallRecoveryTimeoutRef.current);
+      }
+      stallRecoveryTimeoutRef.current = setTimeout(() => {
+        const v = videoRef.current;
+        if (!v || v.paused || v.ended) {
+          isStalledRef.current = false;
+          return;
+        }
+
+        if (isStalledRef.current) {
+          const bufAhead = getBufferAhead(v);
+          const recovery = evaluateStallRecoveryAttempt(stallRecoveryCountRef.current, bufAhead);
+          stallRecoveryCountRef.current += 1;
+          isBufferingRef.current = recovery.shouldKeepBuffering;
+          setIsBuffering(recovery.shouldKeepBuffering);
+
+          if (recovery.canRetry) {
+            if (recovery.shouldNudge) {
+              const dur = getEffectiveDuration();
+              v.currentTime = Math.min(v.currentTime + recovery.nudgeDelta, dur > 0 ? dur : v.currentTime + 1);
+            }
+            if (recovery.shouldRequestPlay) {
+              v.play().catch(() => {});
+            }
+            scheduleStallRecovery();
+          } else {
+            isStalledRef.current = false;
+          }
+        }
+      }, 3500);
+    };
+
     const checkBufferRecovery = () => {
       const v = videoRef.current;
       if (!v) return;
@@ -1185,6 +1258,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
             clearTimeout(initialBufferTimeoutRef.current);
             initialBufferTimeoutRef.current = null;
           }
+          isBufferingRef.current = false;
           setIsBuffering(false);
           v.play().catch(() => {});
         }
@@ -1206,6 +1280,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
               clearTimeout(stallRecoveryTimeoutRef.current);
               stallRecoveryTimeoutRef.current = null;
             }
+            isBufferingRef.current = false;
             setIsBuffering(false);
             v.play().catch(() => {});
             return;
@@ -1216,40 +1291,61 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
       }
 
       if (isStalledRef.current) {
-        // Stall recovery cho video đã bắt đầu phát: phục hồi nhanh khi có dữ liệu giải mã an toàn (TC-PLAYBACK-REGRESSION-02)
-        const hasResumableData = v.readyState >= 3 || bufAhead >= 2.5 || isNearEnd;
-        if (hasResumableData) {
-          isStalledRef.current = false;
-          if (stallRecoveryTimeoutRef.current) {
-            clearTimeout(stallRecoveryTimeoutRef.current);
-            stallRecoveryTimeoutRef.current = null;
+        // TC-PLAYBACK-STABILITY-03 Patch 1: evaluateBufferProgress đảm bảo KHÔNG tự tắt isBuffering (spinner)
+        // chỉ vì có buffer chunk tải về khi playhead vẫn đứng yên.
+        const decision = evaluateBufferProgress({
+          currentTime: v.currentTime,
+          lastPlayheadTime: lastPlayheadTimeRef.current,
+          isStalled: isStalledRef.current,
+          isBuffering: isBufferingRef.current,
+          bufAhead,
+          readyState: v.readyState,
+          isNearEnd,
+          isPaused: v.paused,
+          isEnded: v.ended,
+          hasStartedInitialPlayback: hasStartedInitialPlaybackRef.current,
+        });
+
+        if (decision.shouldRequestPlay) {
+          const now = Date.now();
+          if (now - lastPlayRequestTimeRef.current > 1000) {
+            lastPlayRequestTimeRef.current = now;
+            v.play().catch(() => {});
           }
-          setIsBuffering(false);
-          v.play().catch(() => {});
         }
       }
     };
 
     const handleWaiting = () => {
+      const v = videoRef.current;
+      if (!v || v.paused || v.ended) return;
+      isBufferingRef.current = true;
       setIsBuffering(true);
       isStalledRef.current = true;
-      if (stallRecoveryTimeoutRef.current) {
-        clearTimeout(stallRecoveryTimeoutRef.current);
-      }
-      // Fallback timeout 3s (TC-PLAYBACK-REGRESSION-02): nếu mạng cực chậm và chưa gom đủ buffer, cố gắng phát sau 3s thay vì kẹt 5s
-      stallRecoveryTimeoutRef.current = setTimeout(() => {
-        const v = videoRef.current;
-        if (v && isStalledRef.current) {
-          isStalledRef.current = false;
-          setIsBuffering(false);
-          v.play().catch(() => {});
-        }
-      }, 3000);
+      scheduleStallRecovery();
+    };
+
+    const handleStalled = () => {
+      const v = videoRef.current;
+      if (!v || v.paused || v.ended) return;
+      isBufferingRef.current = true;
+      setIsBuffering(true);
+      isStalledRef.current = true;
+      scheduleStallRecovery();
     };
 
     const handlePlaying = () => {
+      isBufferingRef.current = false;
       setIsBuffering(false);
       isStalledRef.current = false;
+      stallRecoveryCountRef.current = 0;
+      if (stallRecoveryTimeoutRef.current) {
+        clearTimeout(stallRecoveryTimeoutRef.current);
+        stallRecoveryTimeoutRef.current = null;
+      }
+      if (videoRef.current) {
+        lastPlayheadTimeRef.current = videoRef.current.currentTime;
+      }
       hasStartedInitialPlaybackRef.current = true;
       setIsPlaying(true);
       resetControlsTimeout();
@@ -1269,6 +1365,13 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
       automatedAdSkipRef.current = null;
       setIsPlaying(false);
       isStalledRef.current = false;
+      isBufferingRef.current = false;
+      setIsBuffering(false);
+      stallRecoveryCountRef.current = 0;
+      if (stallRecoveryTimeoutRef.current) {
+        clearTimeout(stallRecoveryTimeoutRef.current);
+        stallRecoveryTimeoutRef.current = null;
+      }
       setShowControls(true);
       if (controlsTimerRef.current) {
         clearTimeout(controlsTimerRef.current);
@@ -1304,50 +1407,65 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
     };
 
     const handleTimeUpdateThrottled = () => {
+      const v = videoRef.current;
+      if (v) {
+        const ct = v.currentTime;
+        const update = evaluateTimeUpdatePlayback({
+          currentTime: ct,
+          lastPlayheadTime: lastPlayheadTimeRef.current,
+          isStalled: isStalledRef.current,
+          isBuffering: isBufferingRef.current,
+          bufAhead: getBufferAhead(v),
+          readyState: v.readyState,
+          isNearEnd: false,
+          isPaused: v.paused,
+          isEnded: v.ended,
+          hasStartedInitialPlayback: hasStartedInitialPlaybackRef.current,
+        });
+
+        if (update.hasAdvanced) {
+          lastPlayheadTimeRef.current = update.newPlayheadTime;
+          if (isStalledRef.current || isBufferingRef.current) {
+            isStalledRef.current = false;
+            isBufferingRef.current = false;
+            setIsBuffering(false);
+            stallRecoveryCountRef.current = 0;
+            if (stallRecoveryTimeoutRef.current) {
+              clearTimeout(stallRecoveryTimeoutRef.current);
+              stallRecoveryTimeoutRef.current = null;
+            }
+          }
+        }
+      }
+
       checkBufferRecovery();
 
       // Tự động bỏ qua đoạn quảng cáo đã xác minh ranh giới (Verified Ad-Boundary Skip Controller)
       if (
         isNativeVideo &&
         watchContext?.activeProvider !== "vsmov" &&
-        !video.paused &&
-        !video.ended &&
-        !video.seeking &&
         pendingKeyboardSeekRef.current.timer === null
       ) {
-        const ct = video.currentTime;
-        const boundaries = adBoundariesRef.current;
-        if (boundaries.length > 0) {
-          const now = Date.now();
-          for (const ad of boundaries) {
-            const adKey = `${ad.start}_${ad.end}`;
-            if (ct < ad.start - 2) {
-              // Khôi phục quyền skip nếu người dùng tua lùi lại trước mốc quảng cáo
-              hasSkippedAdRef.current.delete(adKey);
-            } else if (
-              ct >= ad.start &&
-              ct < ad.end - 0.25 &&
-              !hasSkippedAdRef.current.has(adKey) &&
-              now - lastAdSkipTimeRef.current > 2000
-            ) {
-              lastAdSkipTimeRef.current = now;
-              hasSkippedAdRef.current.add(adKey);
+        const adDecision = evaluateAutoAdSkipDecision({
+          currentTime: video.currentTime,
+          boundaries: adBoundariesRef.current,
+          hasSkippedSet: hasSkippedAdRef.current,
+          lastSkipTime: lastAdSkipTimeRef.current,
+          now: Date.now(),
+          isPaused: video.paused,
+          isEnded: video.ended,
+          isSeeking: video.seeking,
+        });
 
-              const targetSeek = ad.end;
-              const adDuration = Math.round(ad.duration);
-
-              // Đặt cờ Fast Resume riêng cho ad skip
-              automatedAdSkipRef.current = {
-                active: true,
-                targetSeek,
-                adDuration,
-                startTime: now,
-              };
-
-              video.currentTime = targetSeek;
-              break;
-            }
-          }
+        if (adDecision && adDecision.shouldSeek) {
+          lastAdSkipTimeRef.current = Date.now();
+          automatedAdSkipRef.current = {
+            active: true,
+            targetSeek: adDecision.targetSeek,
+            adDuration: adDecision.adDuration,
+            startTime: Date.now(),
+          };
+          video.currentTime = adDecision.targetSeek;
         }
       }
 
@@ -1466,11 +1584,20 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
         automatedAdSkipRef.current = null;
       }
     };
-    const handleSeeked = () => checkBufferRecovery();
-    const handleLoadStart = () => setIsBuffering(true);
+    const handleSeeked = () => {
+      if (videoRef.current) {
+        lastPlayheadTimeRef.current = videoRef.current.currentTime;
+      }
+      checkBufferRecovery();
+    };
+    const handleLoadStart = () => {
+      isBufferingRef.current = true;
+      setIsBuffering(true);
+    };
     const handleLoadedData = () => checkBufferRecovery();
 
     video.addEventListener("waiting", handleWaiting, { passive: true });
+    video.addEventListener("stalled", handleStalled, { passive: true });
     video.addEventListener("playing", handlePlaying, { passive: true });
     video.addEventListener("pause", handlePause, { passive: true });
     video.addEventListener("timeupdate", handleTimeUpdateThrottled, { passive: true });
@@ -1484,6 +1611,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
 
     return () => {
       video.removeEventListener("waiting", handleWaiting);
+      video.removeEventListener("stalled", handleStalled);
       video.removeEventListener("playing", handlePlaying);
       video.removeEventListener("pause", handlePause);
       video.removeEventListener("timeupdate", handleTimeUpdateThrottled);

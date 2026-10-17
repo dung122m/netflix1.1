@@ -31,7 +31,7 @@ import {
   LayoutGrid,
 } from "lucide-react";
 import { FootballMatch, StreamServer } from "@/services/liveFootballService";
-import { LiveMatchScore, NormalizedMatchSummary } from "@/services/live/football-score/types";
+import { LiveMatchScore, NormalizedMatchSummary, MatchKeyEvent } from "@/services/live/football-score/types";
 import { getTeamAsset } from "@/data/live/teamAssets";
 import { toDarkModeLogoUrl } from "@/services/live/football-logo/service";
 import { resolveMatchDisplayStatus } from "@/services/live/football-score/liveStatus";
@@ -53,6 +53,141 @@ function getTeamInitials(teamName: string): string {
     return (words[0][0] + words[1][0]).toUpperCase();
   }
   return clean.slice(0, 2).toUpperCase();
+}
+
+export interface GroupedGoalScorer {
+  playerName: string;
+  times: string[];
+}
+
+/**
+ * Phân tích và nhóm các bàn thắng theo cầu thủ:
+ * - Lọc đúng đội nhà / đội khách (home / away).
+ * - Bỏ qua các bàn thắng bị hủy (VAR disallowed) hoặc sút hỏng penalty.
+ * - Nhóm các bàn thắng của cùng một cầu thủ (ví dụ: E. Haaland 12', 34' (P)).
+ * - Định dạng thời gian chuẩn xác, có ghi chú phạt đền (P) hoặc phản lưới nhà (OG).
+ */
+export function parseGoalScorers(
+  events: MatchKeyEvent[] | undefined,
+  side: "home" | "away",
+  teamName?: string,
+  teamDisplayName?: string,
+  oppositeTeamName?: string,
+  oppositeTeamDisplayName?: string,
+): GroupedGoalScorer[] {
+  if (!events || !Array.isArray(events)) return [];
+
+  const goalEvents = events.filter((ev) => {
+    if (ev.type !== "goal") return false;
+
+    // Bỏ qua các bàn thắng bị hủy hoặc sút hỏng penalty
+    const textLower = (ev.text || "").toLowerCase();
+    if (
+      textLower.includes("disallowed") ||
+      textLower.includes("overturned") ||
+      textLower.includes("missed penalty") ||
+      textLower.includes("penalty missed") ||
+      textLower.includes("penalty saved")
+    ) {
+      return false;
+    }
+
+    if (ev.homeAway === side) return true;
+
+    // Fallback nếu sự kiện chưa gán rõ homeAway
+    if (!ev.homeAway) {
+      const name = (teamName || "").toLowerCase().trim();
+      const dispName = (teamDisplayName || "").toLowerCase().trim();
+      const oppName = (oppositeTeamName || "").toLowerCase().trim();
+      const oppDispName = (oppositeTeamDisplayName || "").toLowerCase().trim();
+
+      // 1. Kiểm tra tên đội trong ngoặc đơn sau tên cầu thủ: ví dụ "Erling Haaland (Manchester City)"
+      const inParensCurrent =
+        (name && textLower.includes(`(${name})`)) ||
+        (dispName && textLower.includes(`(${dispName})`));
+      const inParensOpposite =
+        (oppName && textLower.includes(`(${oppName})`)) ||
+        (oppDispName && textLower.includes(`(${oppDispName})`));
+
+      if (inParensCurrent && !inParensOpposite) return true;
+      if (inParensOpposite && !inParensCurrent) return false;
+
+      // 2. Kiểm tra cú pháp "Goal! TeamName" hoặc "Goal - TeamName"
+      const goalForCurrent =
+        (name && (textLower.includes(`goal! ${name}`) || textLower.includes(`goal - ${name}`))) ||
+        (dispName && (textLower.includes(`goal! ${dispName}`) || textLower.includes(`goal - ${dispName}`)));
+      const goalForOpposite =
+        (oppName && (textLower.includes(`goal! ${oppName}`) || textLower.includes(`goal - ${oppName}`))) ||
+        (oppDispName && (textLower.includes(`goal! ${oppDispName}`) || textLower.includes(`goal - ${oppDispName}`)));
+
+      if (goalForCurrent && !goalForOpposite) return true;
+      if (goalForOpposite && !goalForCurrent) return false;
+
+      // 3. Fallback nếu chỉ một đội được nhắc đến trong văn bản
+      const mentionsCurrent =
+        (name && textLower.includes(name)) ||
+        (dispName && textLower.includes(dispName));
+      const mentionsOpposite =
+        (oppName && textLower.includes(oppName)) ||
+        (oppDispName && textLower.includes(oppDispName));
+
+      if (mentionsCurrent && !mentionsOpposite) return true;
+      if (mentionsOpposite && !mentionsCurrent) return false;
+    }
+
+    return false;
+  });
+
+  // Sắp xếp bàn thắng theo thứ tự thời gian tăng dần
+  const sortedGoals = [...goalEvents].sort(
+    (a, b) => (a.minute || 0) - (b.minute || 0),
+  );
+
+  // Gom nhóm các bàn thắng theo cầu thủ
+  const playerMap = new Map<string, string[]>();
+
+  for (const ev of sortedGoals) {
+    let name = (ev.playerName || "").trim();
+    if (!name) {
+      // Trích xuất tên từ mô tả text nếu thiếu playerName
+      const match = ev.text?.match(
+        /(?:Goal!|Goal\s*-)\s*.*?[0-9]+\s*,\s*.*?[0-9]+\.\s*([^(]+)/i,
+      );
+      if (match && match[1]) {
+        name = match[1].trim();
+      } else {
+        name = ev.text?.trim() || "Bàn thắng";
+      }
+    }
+
+    let clock = (ev.clock || (ev.minute ? `${ev.minute}` : "")).trim();
+    if (clock && !clock.endsWith("'")) {
+      clock = `${clock}'`;
+    }
+    if (!clock && ev.minute) {
+      clock = `${ev.minute}'`;
+    }
+
+    if (ev.isPenalty) {
+      clock = clock ? `${clock} (P)` : "(P)";
+    } else if (ev.isOwnGoal) {
+      clock = clock ? `${clock} (OG)` : "(OG)";
+    }
+
+    if (!playerMap.has(name)) {
+      playerMap.set(name, []);
+    }
+    const times = playerMap.get(name)!;
+    if (clock && !times.includes(clock)) {
+      times.push(clock);
+    }
+  }
+
+  const result: GroupedGoalScorer[] = [];
+  for (const [playerName, times] of playerMap.entries()) {
+    result.push({ playerName, times });
+  }
+  return result;
 }
 
 // Equalizer hoạt ảnh cho kênh đang phát sóng
@@ -530,6 +665,41 @@ function LivePlayerInner({
   const awayFormation = summary?.awayRoster?.formation;
   const venueName = summary?.gameInfo?.venue?.name;
   const refereeName = summary?.gameInfo?.referee;
+
+  const homeGoalScorers = useMemo(() => {
+    return parseGoalScorers(
+      summary?.events,
+      "home",
+      summary?.homeTeam?.name,
+      summary?.homeTeam?.displayName,
+      summary?.awayTeam?.name,
+      summary?.awayTeam?.displayName,
+    );
+  }, [
+    summary?.events,
+    summary?.homeTeam?.name,
+    summary?.homeTeam?.displayName,
+    summary?.awayTeam?.name,
+    summary?.awayTeam?.displayName,
+  ]);
+
+  const awayGoalScorers = useMemo(() => {
+    return parseGoalScorers(
+      summary?.events,
+      "away",
+      summary?.awayTeam?.name,
+      summary?.awayTeam?.displayName,
+      summary?.homeTeam?.name,
+      summary?.homeTeam?.displayName,
+    );
+  }, [
+    summary?.events,
+    summary?.awayTeam?.name,
+    summary?.awayTeam?.displayName,
+    summary?.homeTeam?.name,
+    summary?.homeTeam?.displayName,
+  ]);
+
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -2729,7 +2899,7 @@ function LivePlayerInner({
           </div>
 
           {/* 2. MATCH ARENA (SOFASCORE ARENA HERO - ĐỒNG BỘ 100% VỚI MATCH CENTER) */}
-          <div className="flex items-center justify-between gap-3 sm:gap-4 py-0.5 sm:py-1 w-full">
+          <div className="flex items-start justify-between gap-3 sm:gap-4 py-0.5 sm:py-1 w-full">
             {/* ĐỘI NHÀ */}
             <div className="flex-1 flex flex-col items-center sm:items-end text-center sm:text-right min-w-0">
               <div className="w-11 h-11 sm:w-13 sm:h-13 mb-1 sm:mb-1.5 rounded-xl sm:rounded-2xl bg-gradient-to-b from-zinc-700/80 via-zinc-800/95 to-zinc-900 border-2 border-white/20 p-1.5 sm:p-2 flex items-center justify-center shadow-lg relative overflow-hidden shrink-0 transition-all duration-300 hover:scale-105 hover:border-netflix-red/70">
@@ -2766,6 +2936,28 @@ function LivePlayerInner({
                   Đội nhà
                 </span>
               )}
+
+              {/* DANH SÁCH CẦU THỦ GHI BÀN ĐỘI NHÀ */}
+              {homeGoalScorers.length > 0 && (
+                <div className="mt-1.5 sm:mt-2 w-full pt-1 sm:pt-1.5 border-t border-white/[0.08] flex flex-col items-center sm:items-end gap-1 max-h-[64px] sm:max-h-[80px] overflow-y-auto overscroll-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden px-0.5">
+                  {homeGoalScorers.map((scorer, idx) => (
+                    <div
+                      key={`${scorer.playerName}-${idx}`}
+                      className="flex items-center justify-center sm:justify-end gap-1 sm:gap-1.5 text-[9.5px] sm:text-[11px] text-zinc-300 leading-tight w-full max-w-full min-w-0"
+                      title={`${scorer.playerName} ${scorer.times.join(", ")}`}
+                    >
+                      <span className="sm:hidden text-[9px] shrink-0 select-none">⚽</span>
+                      <span className="truncate min-w-0 max-w-[65px] sm:max-w-[120px] md:max-w-[150px] font-semibold text-zinc-200">
+                        {scorer.playerName}
+                      </span>
+                      <span className="font-mono text-[8.5px] sm:text-[10px] text-amber-400 font-bold shrink-0 truncate max-w-[55px] sm:max-w-none">
+                        {scorer.times.join(", ")}
+                      </span>
+                      <span className="hidden sm:inline text-[9px] shrink-0 select-none text-zinc-400">⚽</span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* TỶ SỐ TRUNG TÂM & ĐỒNG HỒ / HOẶC HUY HIỆU VS HIỆN ĐẠI */}
@@ -2784,7 +2976,7 @@ function LivePlayerInner({
                 match?.isLive === true;
 
               return (
-                <div className="flex flex-col items-center px-2 sm:px-4 py-0.5 shrink-0">
+                <div className="flex flex-col items-center px-2 sm:px-4 py-0.5 shrink-0 pt-0.5 sm:pt-1">
                   {hasScore ? (
                     <div className="flex items-center gap-2 sm:gap-3 font-mono text-2xl sm:text-4xl font-black text-white tracking-wider">
                       <span>{homeScoreVal}</span>
@@ -2879,6 +3071,27 @@ function LivePlayerInner({
                 <span className="text-[10px] text-gray-400 font-medium mt-0.5">
                   Đội khách
                 </span>
+              )}
+
+              {/* DANH SÁCH CẦU THỦ GHI BÀN ĐỘI KHÁCH */}
+              {awayGoalScorers.length > 0 && (
+                <div className="mt-1.5 sm:mt-2 w-full pt-1 sm:pt-1.5 border-t border-white/[0.08] flex flex-col items-center sm:items-start gap-1 max-h-[64px] sm:max-h-[80px] overflow-y-auto overscroll-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden px-0.5">
+                  {awayGoalScorers.map((scorer, idx) => (
+                    <div
+                      key={`${scorer.playerName}-${idx}`}
+                      className="flex items-center justify-center sm:justify-start gap-1 sm:gap-1.5 text-[9.5px] sm:text-[11px] text-zinc-300 leading-tight w-full max-w-full min-w-0"
+                      title={`${scorer.playerName} ${scorer.times.join(", ")}`}
+                    >
+                      <span className="text-[9px] shrink-0 select-none text-zinc-400">⚽</span>
+                      <span className="truncate min-w-0 max-w-[65px] sm:max-w-[120px] md:max-w-[150px] font-semibold text-zinc-200">
+                        {scorer.playerName}
+                      </span>
+                      <span className="font-mono text-[8.5px] sm:text-[10px] text-amber-400 font-bold shrink-0 truncate max-w-[55px] sm:max-w-none">
+                        {scorer.times.join(", ")}
+                      </span>
+                    </div>
+                  ))}
+                </div>
               )}
             </div>
           </div>

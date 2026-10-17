@@ -74,6 +74,8 @@ export function detectAdBoundaries(fragments: FragmentLike[]): AdBoundary[] {
       const startIndex = i;
       let endIndex = i;
       let totalDuration = 0;
+      let hasInternalDiscontinuity = false;
+      const baseCc = currentFrag.cc;
 
       // Gom toàn bộ các segment quảng cáo liên tiếp cùng khối
       while (endIndex < n) {
@@ -81,6 +83,9 @@ export function detectAdBoundaries(fragments: FragmentLike[]): AdBoundary[] {
         const candidateUri = candidate.relurl || candidate.url || "";
         if (!isVerifiedAdSegmentUri(candidateUri)) {
           break;
+        }
+        if (typeof candidate.cc === "number" && typeof baseCc === "number" && candidate.cc !== baseCc) {
+          hasInternalDiscontinuity = true;
         }
         const dur = typeof candidate.duration === "number" && isFinite(candidate.duration) && candidate.duration > 0
           ? candidate.duration
@@ -114,11 +119,17 @@ export function detectAdBoundaries(fragments: FragmentLike[]): AdBoundary[] {
       // 4. Tiêu chí 3: Giới hạn thời lượng khối quảng cáo (10.0s đến 65.0s)
       const isDurationValid = totalDuration >= 10.0 && totalDuration <= 65.0;
 
-      // Kiểm tra đầy đủ 4 tiêu chí
+      // Kiểm tra đầy đủ 5 tiêu chí:
+      // - Segment count > 0
+      // - Discontinuity rõ ràng ở cả 2 đầu
+      // - KHÔNG CÓ discontinuity nội bộ (bắt buộc: clip quảng cáo độc lập phải là 1 luồng đơn nhất, không được cắt vụn cc như phim in đè banner)
+      // - Segment liền kề không phải là ad
+      // - Thời lượng hợp lệ trong khoảng 10.0s đến 65.0s
       if (
         segmentCount > 0 &&
         hasStartDiscontinuity &&
         hasEndDiscontinuity &&
+        !hasInternalDiscontinuity &&
         !prevIsAd &&
         !nextIsAd &&
         isDurationValid
@@ -143,4 +154,69 @@ export function detectAdBoundaries(fragments: FragmentLike[]): AdBoundary[] {
   }
 
   return boundaries;
+}
+
+export interface AutoAdSkipDecision {
+  shouldSeek: boolean;
+  targetSeek: number;
+  adDuration: number;
+  adKey: string;
+}
+
+/**
+ * Đánh giá quyết định tự động seek qua khối quảng cáo đã xác minh ranh giới.
+ *
+ * NGUYÊN TẮC:
+ * 1. Chỉ seek khi currentTime chạm mốc [ad.start, ad.end - 0.25).
+ * 2. Không seek nếu video đang pause, ended, hoặc đang trong thao tác seek thủ công.
+ * 3. Nếu không có bằng chứng quảng cáo (boundaries rỗng) hoặc không thỏa mãn điều kiện,
+ *    trả về null để giữ nguyên playback tự nhiên, tuyệt đối không gián đoạn phim.
+ */
+export function evaluateAutoAdSkipDecision(params: {
+  currentTime: number;
+  boundaries: AdBoundary[];
+  hasSkippedSet: Set<string>;
+  lastSkipTime: number;
+  now?: number;
+  isPaused?: boolean;
+  isEnded?: boolean;
+  isSeeking?: boolean;
+}): AutoAdSkipDecision | null {
+  const {
+    currentTime: ct,
+    boundaries,
+    hasSkippedSet,
+    lastSkipTime,
+    now = Date.now(),
+    isPaused = false,
+    isEnded = false,
+    isSeeking = false,
+  } = params;
+
+  if (isPaused || isEnded || isSeeking || !Array.isArray(boundaries) || boundaries.length === 0) {
+    return null;
+  }
+
+  for (const ad of boundaries) {
+    const adKey = `${ad.start}_${ad.end}`;
+    if (ct < ad.start - 2) {
+      // Khôi phục quyền skip nếu người dùng tua lùi lại trước mốc quảng cáo
+      hasSkippedSet.delete(adKey);
+    } else if (
+      ct >= ad.start &&
+      ct < ad.end - 0.25 &&
+      !hasSkippedSet.has(adKey) &&
+      now - lastSkipTime > 2000
+    ) {
+      hasSkippedSet.add(adKey);
+      return {
+        shouldSeek: true,
+        targetSeek: ad.end,
+        adDuration: Math.round(ad.duration),
+        adKey,
+      };
+    }
+  }
+
+  return null;
 }
