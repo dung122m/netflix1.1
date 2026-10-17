@@ -367,4 +367,70 @@ describe("Tactical Lineup & Pitch Coordinate System", () => {
     assert.strictEqual(lm.roleAbbr, "LM", "Tiền vệ cánh trái giữ nguyên LM");
     assert.strictEqual(rm.roleAbbr, "RM", "Tiền vệ cánh phải giữ nguyên RM");
   });
+
+  it("13. Sửa dứt điểm lỗi sa bàn Barcelona 4-2-3-1: Hậu vệ chuẩn cánh, Yamal/Rodri đúng tuyến dù dữ liệu generic", () => {
+    const startersGeneric: MatchRosterPlayer[] = [
+      createMockPlayer("1", "Joan García", "Goalkeeper", "1", true, 1),
+      createMockPlayer("2", "Jules Koundé", "Defender", "23", true, 2),
+      createMockPlayer("3", "Xavi Espart", "Defender", "12", true, 3),
+      createMockPlayer("4", "Pau Cubarsí", "Defender", "5", true, 5),
+      createMockPlayer("5", "Gerard Martín", "Defender", "18", true, 6),
+      createMockPlayer("6", "Pedri", "Midfielder", "8", true, 4),
+      createMockPlayer("7", "Lamine Yamal", "Midfielder", "10", true, 7),
+      createMockPlayer("8", "Rodri", "Midfielder", "16", true, 8),
+      createMockPlayer("9", "Fermín López", "Midfielder", "7", true, 10),
+      createMockPlayer("10", "Karim Adeyemi", "Midfielder", "14", true, 11),
+      createMockPlayer("11", "Gabriel Jesus", "Forward", "9", true, 9),
+    ];
+
+    const pos = calculateTacticalCoordinates(startersGeneric, "4-2-3-1");
+    assert.strictEqual(pos.length, 11);
+
+    // 1. Hàng thủ: Koundé (RB) ở cánh phải x=84%, Espart (LB) ở cánh trái x=16%
+    const kounde = pos.find((p) => p.player.id === "2");
+    const espart = pos.find((p) => p.player.id === "3");
+    const cubarsi = pos.find((p) => p.player.id === "4");
+    const martin = pos.find((p) => p.player.id === "5");
+
+    assert.ok(kounde && espart && cubarsi && martin);
+    assert.strictEqual(espart.x, 16, "X. Espart (LB) phải ở cánh trái ngoài cùng (x=16)");
+    assert.strictEqual(martin.x, 38, "G. Martín (CB-L) phải ở trung vệ lệch trái (x=38)");
+    assert.strictEqual(cubarsi.x, 62, "P. Cubarsí (CB-R) phải ở trung vệ lệch phải (x=62)");
+    assert.strictEqual(kounde.x, 84, "J. Koundé (RB) phải ở cánh phải ngoài cùng (x=84)");
+
+    assert.strictEqual(espart.roleAbbr, "LB", "X. Espart phải mang nhãn LB");
+    assert.strictEqual(martin.roleAbbr, "CB-L", "G. Martín phải mang nhãn CB-L");
+    assert.strictEqual(cubarsi.roleAbbr, "CB-R", "P. Cubarsí phải mang nhãn CB-R");
+    assert.strictEqual(kounde.roleAbbr, "RB", "J. Koundé phải mang nhãn RB");
+
+    // 2. Tuyến 2 (Double Pivot - Y = 54%): Pedri & Rodri (không bị dồn Yamal xuống)
+    const pedri = pos.find((p) => p.player.id === "6");
+    const rodri = pos.find((p) => p.player.id === "8");
+    assert.ok(pedri && rodri);
+    assert.strictEqual(pedri.y, 54, "Pedri phải ở tuyến 2 tiền vệ lùi sâu");
+    assert.strictEqual(rodri.y, 54, "Rodri phải ở tuyến 2 tiền vệ lùi sâu");
+    assert.strictEqual(pedri.x, 34, "Pedri lệch trái ở x=34");
+    assert.strictEqual(rodri.x, 66, "Rodri lệch phải ở x=66");
+
+    // 3. Tuyến 3 (Tiền vệ tấn công / Hộ công - Y = 34%): Adeyemi (trái), Fermín (giữa), Yamal (phải)
+    const adeyemi = pos.find((p) => p.player.id === "10");
+    const fermin = pos.find((p) => p.player.id === "9");
+    const yamal = pos.find((p) => p.player.id === "7");
+    assert.ok(adeyemi && fermin && yamal);
+    assert.strictEqual(adeyemi.y, 34, "Adeyemi phải ở tuyến tiền vệ tấn công");
+    assert.strictEqual(fermin.y, 34, "Fermín López phải ở tuyến tiền vệ tấn công");
+    assert.strictEqual(yamal.y, 34, "Lamine Yamal phải ở tuyến tiền vệ tấn công");
+
+    assert.strictEqual(adeyemi.x, 22, "Adeyemi ở cánh trái x=22");
+    assert.strictEqual(fermin.x, 50, "Fermín ở trung lộ x=50");
+    assert.strictEqual(yamal.x, 78, "Yamal ở cánh phải x=78");
+
+    // 4. Tuyến 4 (Tiền đạo cắm - Y = 16%): Gabriel Jesus
+    const jesus = pos.find((p) => p.player.id === "11");
+    assert.ok(jesus);
+    assert.strictEqual(jesus.y, 16, "Gabriel Jesus phải ở tuyến cao nhất");
+    assert.strictEqual(jesus.x, 50, "Gabriel Jesus ở chính giữa");
+    assert.strictEqual(jesus.roleAbbr, "ST", "Gabriel Jesus đá cắm duy nhất mang nhãn ST");
+  });
 });
+

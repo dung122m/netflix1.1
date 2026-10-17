@@ -38,6 +38,14 @@ import {
   evaluateHlsError,
   evaluateStallRecoveryAttempt,
 } from "@/lib/playbackStallController";
+import {
+  AdTransitionState,
+  isWithinPreAdCaptureWindow,
+  startAdTransition,
+  endAdTransition,
+  updateUserMutePreferenceDuringTransition,
+  isAdTransitionTimedOut,
+} from "@/lib/adTransitionController";
 
 interface EpisodeItem {
   name?: string;
@@ -180,6 +188,10 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
 
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
+  const isMutedRef = useRef(isMuted);
+  useEffect(() => {
+    isMutedRef.current = isMuted;
+  }, [isMuted]);
   const [isPlaying, setIsPlaying] = useState(false);
   const [volume, setVolume] = useState(1);
   const [isBuffering, setIsBuffering] = useState(true);
@@ -291,15 +303,15 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
   const lastPlayRequestTimeRef = useRef<number>(0);
   const initialBufferTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const stallRecoveryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const hlsNetworkRetryCountRef = useRef<number>(0);
   const adBoundariesRef = useRef<AdBoundary[]>([]);
   const hasSkippedAdRef = useRef<Set<string>>(new Set());
   const lastAdSkipTimeRef = useRef<number>(0);
-  const automatedAdSkipRef = useRef<{
-    active: boolean;
-    targetSeek: number;
-    adDuration: number;
-    startTime: number;
-  } | null>(null);
+  const automatedAdSkipRef = useRef<AdTransitionState | null>(null);
+  const adTransitionCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const [isAdTransitioning, setIsAdTransitioning] = useState<boolean>(false);
+  const [hasPreAdFrame, setHasPreAdFrame] = useState<boolean>(false);
+  const hasPreAdFrameRef = useRef<boolean>(false);
 
   const getBufferAhead = useCallback((v: HTMLVideoElement | null): number => {
     if (!v || !v.buffered || v.buffered.length === 0) return 0;
@@ -525,7 +537,18 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
     adBoundariesRef.current = [];
     hasSkippedAdRef.current.clear();
     lastAdSkipTimeRef.current = 0;
-    automatedAdSkipRef.current = null;
+    if (automatedAdSkipRef.current) {
+      const { restoredMuted } = endAdTransition(automatedAdSkipRef.current);
+      automatedAdSkipRef.current = null;
+      setIsAdTransitioning(false);
+      setHasPreAdFrame(false);
+      hasPreAdFrameRef.current = false;
+      if (restoredMuted !== null && videoRef.current) {
+        videoRef.current.muted = restoredMuted;
+      }
+    } else {
+      automatedAdSkipRef.current = null;
+    }
     setUseIframeFallback(false);
     setIsBuffering(true);
     const effectiveInitialSlug = initialEpisodeSlug || initialLoadedEpisodeRef.current;
@@ -830,6 +853,12 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
       }
       const finalMuted = newVol === 0 ? true : nextMuted;
       setIsMuted(finalMuted);
+      if (automatedAdSkipRef.current && automatedAdSkipRef.current.active) {
+        automatedAdSkipRef.current = updateUserMutePreferenceDuringTransition(
+          automatedAdSkipRef.current,
+          finalMuted
+        );
+      }
       triggerVolumeOsd(newVol, finalMuted);
       return newVol;
     });
@@ -899,6 +928,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
     }
 
     const seekTimeouts: NodeJS.Timeout[] = [];
+    let networkRetryTimeout: NodeJS.Timeout | null = null;
 
     if (Hls.isSupported()) {
       const hls = new Hls({
@@ -912,10 +942,10 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
         startPosition: targetProgress > 0 ? targetProgress : -1,
         startLevel: -1,
         autoStartLoad: true,
-        abrEwmaDefaultEstimate: 5000000,
-        fragLoadingTimeOut: 10000,
+        abrEwmaDefaultEstimate: 1500000,
+        fragLoadingTimeOut: 15000,
         fragLoadingMaxRetry: 4,
-        fragLoadingRetryDelay: 500,
+        fragLoadingRetryDelay: 1000,
         fragLoadingMaxRetryTimeout: 20000,
         manifestLoadingTimeOut: 10000,
         levelLoadingTimeOut: 10000,
@@ -938,6 +968,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
           setQualityLevels([]);
         }
 
+        let initialTimeoutFired = false;
         const checkInitialBufferAndStart = () => {
           if (hasStartedInitialPlaybackRef.current) return;
           const v = videoRef.current;
@@ -948,8 +979,9 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
           const dur = (v as any).__hlsDuration || (v.duration && isFinite(v.duration) ? v.duration : 0);
           const isNearEnd = dur > 0 && (v.currentTime + bufAhead >= dur - 2);
 
-          // Bắt đầu playback an toàn khi buffer đạt >= 8s hoặc sắp hết phim
-          if (bufAhead >= 8 || isNearEnd) {
+          // Bắt đầu playback an toàn khi buffer đạt >= 5s hoặc sắp hết phim,
+          // hoặc sau khi timeout dự phòng đã kích hoạt và buffer có ít nhất 0.5s an toàn
+          if (bufAhead >= 5 || isNearEnd || (initialTimeoutFired && bufAhead >= 0.5)) {
             hasStartedInitialPlaybackRef.current = true;
             if (initialBufferTimeoutRef.current) {
               clearTimeout(initialBufferTimeoutRef.current);
@@ -973,28 +1005,43 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
 
         hls.on(Hls.Events.FRAG_BUFFERED, checkInitialBufferAndStart);
 
-        // Fallback timeout sau 5s đảm bảo không bị treo player nếu mạng yếu hoặc stream ngắn
+        // Fallback timeout sau 7s đảm bảo không bị treo player nếu mạng yếu hoặc stream ngắn
         initialBufferTimeoutRef.current = setTimeout(() => {
+          initialTimeoutFired = true;
           if (!hasStartedInitialPlaybackRef.current && videoRef.current) {
-            hasStartedInitialPlaybackRef.current = true;
-            setIsBuffering(false);
-            const playPromise = videoRef.current.play();
-            if (playPromise !== undefined) {
-              playPromise
-                .then(() => {
-                  setIsPlaying(true);
-                })
-                .catch(() => {
-                  if (videoRef.current) {
-                    videoRef.current.muted = true;
-                    setIsMuted(true);
-                    videoRef.current.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
-                  }
-                });
+            const v = videoRef.current;
+            const bufAhead = getBufferAhead(v);
+            // Bảo đảm timeout không ép phát nếu chưa có dữ liệu đủ để phát an toàn (cần >= 0.5s buffer)
+            if (bufAhead >= 0.5) {
+              hasStartedInitialPlaybackRef.current = true;
+              setIsBuffering(false);
+              const playPromise = v.play();
+              if (playPromise !== undefined) {
+                playPromise
+                  .then(() => {
+                    setIsPlaying(true);
+                  })
+                  .catch(() => {
+                    if (videoRef.current) {
+                      videoRef.current.muted = true;
+                      setIsMuted(true);
+                      videoRef.current.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
+                    }
+                  });
+              }
+            } else {
+              // Chưa có dữ liệu an toàn (< 0.5s): không ép play(), giữ spinner loading chờ FRAG_BUFFERED
+              initialBufferTimeoutRef.current = null;
             }
           }
-        }, 5000);
+        }, 7000);
       });
+
+      // Reset bộ đếm lỗi mạng khi có bằng chứng tải fragment thành công
+      const onFragLoaded = () => {
+        hlsNetworkRetryCountRef.current = 0;
+      };
+      hls.on(Hls.Events.FRAG_LOADED, onFragLoaded);
 
       const updateHlsDuration = (_event: unknown, data: { details?: { totalduration?: number; fragments?: any[] } }) => {
         if (data?.details?.totalduration && data.details.totalduration > 0 && isFinite(data.details.totalduration)) {
@@ -1033,11 +1080,14 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
       );
 
       const fallbackToIframe = () => {
+        if (networkRetryTimeout) {
+          clearTimeout(networkRetryTimeout);
+          networkRetryTimeout = null;
+        }
         hls.destroy();
         setUseIframeFallback(true);
       };
 
-      let retryCount = 0;
       let mediaRetryCount = 0;
       hls.on(Hls.Events.ERROR, (_event, data) => {
         const hlsErr = evaluateHlsError(data);
@@ -1064,14 +1114,23 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
 
         switch (data.type) {
           case Hls.ErrorTypes.NETWORK_ERROR:
-            retryCount += 1;
-            if (retryCount <= 2) {
-              hls.startLoad();
+            hlsNetworkRetryCountRef.current += 1;
+            // Nới số lần thử lại lỗi mạng có thể phục hồi từ 2 lên 4 lần với delay 1s chống dập tải
+            if (hlsNetworkRetryCountRef.current <= 4) {
+              if (networkRetryTimeout) {
+                clearTimeout(networkRetryTimeout);
+              }
+              networkRetryTimeout = setTimeout(() => {
+                if (hlsRef.current === hls) {
+                  hls.startLoad();
+                }
+              }, 1000);
             } else {
               fallbackToIframe();
             }
             break;
           case Hls.ErrorTypes.MEDIA_ERROR:
+            // Lỗi media: giữ nguyên tối đa 1 lần phục hồi, không nới số lần retry mạng cho lỗi media/fatal khác
             mediaRetryCount += 1;
             if (mediaRetryCount <= 1) {
               hls.recoverMediaError();
@@ -1087,13 +1146,14 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
     } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
       video.src = resolvedM3u8;
 
+      let initialNativeTimeoutFired = false;
       const checkNativeInitialBuffer = () => {
         if (hasStartedInitialPlaybackRef.current) return;
         const bufAhead = getBufferAhead(video);
         const dur = video.duration && isFinite(video.duration) ? video.duration : 0;
         const isNearEnd = dur > 0 && (video.currentTime + bufAhead >= dur - 2);
 
-        if (bufAhead >= 8 || isNearEnd) {
+        if (bufAhead >= 5 || isNearEnd || (initialNativeTimeoutFired && bufAhead >= 0.5)) {
           hasStartedInitialPlaybackRef.current = true;
           if (initialBufferTimeoutRef.current) {
             clearTimeout(initialBufferTimeoutRef.current);
@@ -1118,19 +1178,25 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
         checkNativeInitialBuffer();
 
         initialBufferTimeoutRef.current = setTimeout(() => {
+          initialNativeTimeoutFired = true;
           if (!hasStartedInitialPlaybackRef.current) {
-            hasStartedInitialPlaybackRef.current = true;
-            setIsBuffering(false);
-            video
-              .play()
-              .then(() => setIsPlaying(true))
-              .catch(() => {
-                video.muted = true;
-                setIsMuted(true);
-                video.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
-              });
+            const bufAhead = getBufferAhead(video);
+            if (bufAhead >= 0.5) {
+              hasStartedInitialPlaybackRef.current = true;
+              setIsBuffering(false);
+              video
+                .play()
+                .then(() => setIsPlaying(true))
+                .catch(() => {
+                  video.muted = true;
+                  setIsMuted(true);
+                  video.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
+                });
+            } else {
+              initialBufferTimeoutRef.current = null;
+            }
           }
-        }, 5000);
+        }, 7000);
       };
 
       const onNativeError = () => {
@@ -1160,6 +1226,10 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
           clearTimeout(initialBufferTimeoutRef.current);
           initialBufferTimeoutRef.current = null;
         }
+        if (networkRetryTimeout) {
+          clearTimeout(networkRetryTimeout);
+          networkRetryTimeout = null;
+        }
       };
     }
 
@@ -1173,6 +1243,10 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
         clearTimeout(stallRecoveryTimeoutRef.current);
         stallRecoveryTimeoutRef.current = null;
       }
+      if (networkRetryTimeout) {
+        clearTimeout(networkRetryTimeout);
+        networkRetryTimeout = null;
+      }
       if (hlsRef.current) {
         hlsRef.current.destroy();
         hlsRef.current = null;
@@ -1180,7 +1254,18 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
       adBoundariesRef.current = [];
       hasSkippedAdRef.current.clear();
       lastAdSkipTimeRef.current = 0;
-      automatedAdSkipRef.current = null;
+      if (automatedAdSkipRef.current) {
+        const { restoredMuted } = endAdTransition(automatedAdSkipRef.current);
+        automatedAdSkipRef.current = null;
+        setIsAdTransitioning(false);
+        setHasPreAdFrame(false);
+        hasPreAdFrameRef.current = false;
+        if (restoredMuted !== null && video) {
+          video.muted = restoredMuted;
+        }
+      } else {
+        automatedAdSkipRef.current = null;
+      }
       video.pause();
       video.removeAttribute("src");
       video.load();
@@ -1252,7 +1337,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
       const isNearEnd = dur > 0 && (v.currentTime + bufAhead >= dur - 2);
 
       if (!hasStartedInitialPlaybackRef.current) {
-        if (bufAhead >= 8 || isNearEnd) {
+        if (bufAhead >= 5 || isNearEnd) {
           hasStartedInitialPlaybackRef.current = true;
           if (initialBufferTimeoutRef.current) {
             clearTimeout(initialBufferTimeoutRef.current);
@@ -1269,8 +1354,15 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
       const adSkip = automatedAdSkipRef.current;
       if (adSkip && adSkip.active) {
         // Hết hạn ưu tiên sau 4s nếu mạng chậm để không cản trở fallback mặc định
-        if (Date.now() - adSkip.startTime > 4000) {
+        if (isAdTransitionTimedOut(adSkip)) {
+          const { restoredMuted } = endAdTransition(adSkip);
           automatedAdSkipRef.current = null;
+          setIsAdTransitioning(false);
+          setHasPreAdFrame(false);
+          hasPreAdFrameRef.current = false;
+          if (restoredMuted !== null && v) {
+            v.muted = restoredMuted;
+          }
         } else {
           // Chỉ cần có dữ liệu giải mã an toàn (readyState >= 3: HAVE_FUTURE_DATA hoặc bufAhead >= 1.5s)
           const hasDecodableData = v.readyState >= 3 || bufAhead >= 1.5 || isNearEnd;
@@ -1339,6 +1431,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
       setIsBuffering(false);
       isStalledRef.current = false;
       stallRecoveryCountRef.current = 0;
+      hlsNetworkRetryCountRef.current = 0;
       if (stallRecoveryTimeoutRef.current) {
         clearTimeout(stallRecoveryTimeoutRef.current);
         stallRecoveryTimeoutRef.current = null;
@@ -1350,11 +1443,18 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
       setIsPlaying(true);
       resetControlsTimeout();
 
-      // Dọn dẹp cờ ad skip và hiển thị Toast khi video ĐÃ THỰC SỰ PHÁT TIẾP
+      // Dọn dẹp cờ ad skip, khôi phục âm thanh và hiển thị Toast khi video ĐÃ THỰC SỰ PHÁT TIẾP
       const adSkip = automatedAdSkipRef.current;
       if (adSkip && adSkip.active) {
         const durationText = adSkip.adDuration > 0 ? ` (${adSkip.adDuration}s)` : "";
+        const { restoredMuted } = endAdTransition(adSkip);
         automatedAdSkipRef.current = null;
+        setIsAdTransitioning(false);
+        setHasPreAdFrame(false);
+        hasPreAdFrameRef.current = false;
+        if (restoredMuted !== null && videoRef.current) {
+          videoRef.current.muted = restoredMuted;
+        }
         showHud(
           <Zap className="w-5 h-5 text-netflix-red" />,
           `Đã tự động bỏ qua quảng cáo${durationText}`
@@ -1362,7 +1462,18 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
       }
     };
     const handlePause = () => {
-      automatedAdSkipRef.current = null;
+      if (automatedAdSkipRef.current) {
+        const { restoredMuted } = endAdTransition(automatedAdSkipRef.current);
+        automatedAdSkipRef.current = null;
+        setIsAdTransitioning(false);
+        setHasPreAdFrame(false);
+        hasPreAdFrameRef.current = false;
+        if (restoredMuted !== null && videoRef.current) {
+          videoRef.current.muted = restoredMuted;
+        }
+      } else {
+        automatedAdSkipRef.current = null;
+      }
       setIsPlaying(false);
       isStalledRef.current = false;
       isBufferingRef.current = false;
@@ -1446,6 +1557,31 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
         watchContext?.activeProvider !== "vsmov" &&
         pendingKeyboardSeekRef.current.timer === null
       ) {
+        // Chụp trước frame phim trước ranh giới quảng cáo (Pre-ad frame retention)
+        if (
+          !video.paused &&
+          !video.seeking &&
+          isWithinPreAdCaptureWindow(video.currentTime, adBoundariesRef.current, 1.5)
+        ) {
+          try {
+            const canvas = adTransitionCanvasRef.current;
+            if (canvas && video.videoWidth > 0 && video.videoHeight > 0) {
+              if (canvas.width !== video.videoWidth || canvas.height !== video.videoHeight) {
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+              }
+              const ctx = canvas.getContext("2d");
+              if (ctx) {
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                hasPreAdFrameRef.current = true;
+                setHasPreAdFrame(true);
+              }
+            }
+          } catch {
+            // An toàn bỏ qua nếu canvas không thể vẽ
+          }
+        }
+
         const adDecision = evaluateAutoAdSkipDecision({
           currentTime: video.currentTime,
           boundaries: adBoundariesRef.current,
@@ -1459,12 +1595,17 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
 
         if (adDecision && adDecision.shouldSeek) {
           lastAdSkipTimeRef.current = Date.now();
-          automatedAdSkipRef.current = {
-            active: true,
+          const { transitionState, shouldMuteElement } = startAdTransition({
             targetSeek: adDecision.targetSeek,
             adDuration: adDecision.adDuration,
-            startTime: Date.now(),
-          };
+            currentUserMuted: isMutedRef.current ?? video.muted,
+            hasCapturedFrame: hasPreAdFrameRef.current,
+          });
+          automatedAdSkipRef.current = transitionState;
+          if (shouldMuteElement) {
+            video.muted = true;
+          }
+          setIsAdTransitioning(true);
           video.currentTime = adDecision.targetSeek;
         }
       }
@@ -1575,13 +1716,20 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
     const handleSeeking = () => {
       setIsBuffering(true);
       isStalledRef.current = true;
-      // Nếu là seek thủ công (không phải ad skip tự động), hủy cờ ad skip
+      // Nếu là seek thủ công (không phải ad skip tự động), hủy cờ ad skip và khôi phục âm thanh
       if (
         automatedAdSkipRef.current &&
         videoRef.current &&
         Math.abs(videoRef.current.currentTime - automatedAdSkipRef.current.targetSeek) > 1.5
       ) {
+        const { restoredMuted } = endAdTransition(automatedAdSkipRef.current);
         automatedAdSkipRef.current = null;
+        setIsAdTransitioning(false);
+        setHasPreAdFrame(false);
+        hasPreAdFrameRef.current = false;
+        if (restoredMuted !== null) {
+          videoRef.current.muted = restoredMuted;
+        }
       }
     };
     const handleSeeked = () => {
@@ -1788,6 +1936,12 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
           const nextMuted = !videoRef.current.muted;
           videoRef.current.muted = nextMuted;
           setIsMuted(nextMuted);
+          if (automatedAdSkipRef.current && automatedAdSkipRef.current.active) {
+            automatedAdSkipRef.current = updateUserMutePreferenceDuringTransition(
+              automatedAdSkipRef.current,
+              nextMuted
+            );
+          }
           triggerVolumeOsd(volume, nextMuted);
         }
         return;
@@ -2158,6 +2312,27 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
                 preload="auto"
               />
 
+              {/* AUTO-SKIP SMOOTH TRANSITION OVERLAY (TC-AD-FLASH-02) */}
+              {isAdTransitioning && (
+                hasPreAdFrame ? (
+                  <canvas
+                    ref={adTransitionCanvasRef}
+                    className={`absolute inset-0 w-full h-full pointer-events-none transition-transform duration-200 z-[5] ${
+                      videoFit === "cover"
+                        ? "object-cover"
+                        : videoFit === "fill"
+                        ? "object-fill"
+                        : "object-contain"
+                    }`}
+                    style={{
+                      transform: videoFit === "zoom" ? "scale(1.18)" : "none",
+                    }}
+                  />
+                ) : (
+                  <div className="absolute inset-0 bg-black/60 backdrop-blur-md pointer-events-none z-[5] transition-opacity duration-200" />
+                )
+              )}
+
               {/* DOUBLE TAP RIPPLE EFFECT (YOUTUBE / NETFLIX STYLE) */}
               {doubleTapFeedback && doubleTapFeedback.side === "left" && (
                 <div className="absolute left-6 sm:left-12 top-1/2 -translate-y-1/2 pointer-events-none z-30 animate-in fade-in zoom-in-75 duration-200">
@@ -2305,6 +2480,12 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
                     const nextMuted = !videoRef.current.muted;
                     videoRef.current.muted = nextMuted;
                     setIsMuted(nextMuted);
+                    if (automatedAdSkipRef.current && automatedAdSkipRef.current.active) {
+                      automatedAdSkipRef.current = updateUserMutePreferenceDuringTransition(
+                        automatedAdSkipRef.current,
+                        nextMuted
+                      );
+                    }
                     triggerVolumeOsd(volume, nextMuted);
                   }
                   resetControlsTimeout();
@@ -2315,6 +2496,12 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
                     videoRef.current.volume = newVol;
                     videoRef.current.muted = newVol === 0;
                     setIsMuted(newVol === 0);
+                    if (automatedAdSkipRef.current && automatedAdSkipRef.current.active) {
+                      automatedAdSkipRef.current = updateUserMutePreferenceDuringTransition(
+                        automatedAdSkipRef.current,
+                        newVol === 0
+                      );
+                    }
                   }
                   triggerVolumeOsd(newVol, newVol === 0);
                   resetControlsTimeout();
