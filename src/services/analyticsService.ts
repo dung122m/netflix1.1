@@ -177,81 +177,82 @@ function getRedis(): Redis | null {
 const memoryEventsBuffer: StoredAnalyticsEvent[] = [];
 const memoryVisitorsMap = new Map<string, VisitorInfo>();
 
-const ALLOWED_CORE_EVENT_TYPES = new Set<string>([
-  "site_visit",
-  "movie_view",
-  "watch_start",
-  "watch_progress",
-  "watch_end",
-  "search",
-]);
+/**
+ * Format human-readable page group name
+ */
+export function formatPageGroupName(group?: string): string {
+  if (!group) return "Trang chủ (Home)";
+  const normalized = group.trim().toLowerCase();
+  switch (normalized) {
+    case "home":
+    case "root":
+    case "/":
+      return "Trang chủ (Home)";
+    case "browse":
+      return "Khám phá / Danh mục";
+    case "movie":
+      return "Chi tiết & Xem phim";
+    case "live":
+      return "Trực tiếp Thể thao";
+    case "live-tv":
+      return "Truyền hình Trực tuyến";
+    case "search":
+      return "Tìm kiếm";
+    default:
+      return group;
+  }
+}
 
 /**
- * Record an analytics event with 30-min movie_view deduplication
+ * Record a minimal site_visit analytics event with 30-sec same-page deduplication
  */
 export async function recordAnalyticsEvent(payload: AnalyticsEventPayload): Promise<{
   success: boolean;
   deduped?: boolean;
 }> {
-  if (!ALLOWED_CORE_EVENT_TYPES.has(payload.eventType)) {
+  // Exclusively record site_visit events
+  if (payload.eventType !== "site_visit") {
     return { success: true, deduped: false };
   }
 
   const now = payload.timestamp || Date.now();
   const userId = payload.userId?.trim() || undefined;
-  // Khi user đã đăng nhập, identity tuyệt đối là userId, không lưu song song Guest anonymousId
-  const anonymousId = userId ? "" : (payload.anonymousId?.trim() || "anon_unknown");
+  // Always guarantee a non-null anonymousId to satisfy PostgreSQL NOT NULL constraint
+  const anonymousId = payload.anonymousId?.trim() || (userId ? `user_${userId}` : "anon_unknown");
   const viewerKey = userId || anonymousId;
-  const movieSlug = payload.movieSlug?.trim() || undefined;
+  const pageGroup = payload.movieSlug?.trim() || "home";
+  const pagePath = payload.movieTitle?.trim() || "/";
 
-  // 1. Check 30-Minute Deduplication for movie_view
-  if (payload.eventType === "movie_view" && movieSlug) {
-    const dedupKey = `view_dedup:${movieSlug}:${viewerKey}`;
-    try {
-      const existing = await cacheService.get<number>(dedupKey);
+  // Check 30-Second Deduplication for rapid double-clicks / F5 on the same page
+  const visitDedupKey = `visit_dedup:${viewerKey}:${pageGroup}`;
+  try {
+    const redis = getRedis();
+    if (redis) {
+      const existing = await redis.get(visitDedupKey);
       if (existing) {
         return { success: true, deduped: true };
       }
-      // Lock for 30 minutes (1800 seconds)
-      await cacheService.set(dedupKey, now, 1800);
-    } catch {
-      // In case of cache error, proceed gracefully
+      // 30 seconds debounce window for same page
+      await redis.set(visitDedupKey, now, { ex: 30 });
     }
-  }
-
-  // 2. Check Deduplication for site_visit (30-minute window per viewerKey)
-  if (payload.eventType === "site_visit") {
-    const visitDedupKey = `visit_dedup:${viewerKey}`;
-    try {
-      const redis = getRedis();
-      if (redis) {
-        const existing = await redis.get(visitDedupKey);
-        if (existing) {
-          return { success: true, deduped: true };
-        }
-        await redis.set(visitDedupKey, now, { ex: 1800 });
-      }
-    } catch {
-      // Fail gracefully
-    }
+  } catch {
+    // Fail gracefully: proceed if Redis is temporarily unavailable
   }
 
   const eventRecord: StoredAnalyticsEvent = {
     id: `evt_${now}_${Math.random().toString(36).substring(2, 7)}`,
-    eventType: payload.eventType,
-    movieSlug,
-    movieTitle: payload.movieTitle?.trim() || movieSlug,
-    episodeSlug: payload.episodeSlug?.trim(),
-    episodeName: payload.episodeName?.trim(),
+    eventType: "site_visit",
+    movieSlug: pageGroup,
+    movieTitle: pagePath,
     userId,
     anonymousId,
     deviceType: payload.deviceInfo?.deviceType || "desktop",
     os: payload.deviceInfo?.os || "Other",
     browser: payload.deviceInfo?.browser || "Other",
-    screenRes: payload.deviceInfo?.screenRes || undefined,
-    durationSeconds: payload.durationSeconds || 0,
-    progressSeconds: payload.progressSeconds || 0,
-    keyword: payload.keyword?.trim(),
+    screenRes: undefined,
+    durationSeconds: 0,
+    progressSeconds: 0,
+    keyword: undefined,
     country: payload.country?.trim() || undefined,
     countryCode: payload.countryCode?.trim() || undefined,
     region: payload.region?.trim() || undefined,
@@ -261,14 +262,12 @@ export async function recordAnalyticsEvent(payload: AnalyticsEventPayload): Prom
 
   const redis = getRedis();
 
-  // 2. Persist to Upstash Redis (if configured)
+  // Persist to Upstash Redis (fail-safe)
   if (redis) {
     try {
-      // A. Store in recent events list (keep last 500)
       await redis.lpush("analytics:events", JSON.stringify(eventRecord));
       await redis.ltrim("analytics:events", 0, 500);
 
-      // B. Update visitor tracking
       const visitorKey = `analytics:visitor:${viewerKey}`;
       const existingVisitor = await redis.get<VisitorInfo>(visitorKey);
       const visitorData: VisitorInfo = {
@@ -279,55 +278,19 @@ export async function recordAnalyticsEvent(payload: AnalyticsEventPayload): Prom
         deviceType: eventRecord.deviceType || "desktop",
         os: eventRecord.os || "Other",
         browser: eventRecord.browser || "Other",
-        screenRes: eventRecord.screenRes || undefined,
+        screenRes: undefined,
         firstSeen: existingVisitor?.firstSeen || now,
         lastSeen: now,
       };
-      // Keep visitor record with 60 days TTL
       await redis.set(visitorKey, visitorData, { ex: 60 * 86400 });
       await redis.sadd("analytics:all_visitors", viewerKey);
 
-      // C. Update specific metrics
-      if (payload.eventType === "movie_view" && movieSlug) {
-        const weekKey = getWeekKeyVietnam(now);
-        await redis.incr("analytics:views:total");
-        await redis.zincrby("analytics:views:movies", 1, movieSlug);
-        await redis.zincrby(`analytics:views:week:${weekKey}`, 1, movieSlug);
-        await redis.expire(`analytics:views:week:${weekKey}`, 14 * 86400); // 14 days retention
-        if (payload.movieTitle) {
-          await redis.hset("analytics:movie_titles", { [movieSlug]: payload.movieTitle });
-        }
-        await redis.sadd("analytics:unique:total", viewerKey);
-        if (userId) {
-          await redis.sadd("analytics:unique:users", userId);
-        } else if (anonymousId) {
-          await redis.sadd("analytics:unique:guests", anonymousId);
-        }
-        await redis.sadd(`analytics:unique:movie:${movieSlug}`, viewerKey);
-      } else if (payload.eventType === "watch_progress" || payload.eventType === "watch_end") {
-        if (movieSlug) {
-          const currentProg = Math.max(0, payload.progressSeconds || 0);
-          const maxDuration = payload.durationSeconds && payload.durationSeconds > 0 ? payload.durationSeconds : Infinity;
-          const effectiveProg = Math.min(currentProg, maxDuration);
-
-          if (effectiveProg > 0) {
-            const sessionProgKey = `analytics:prog:${viewerKey}:${movieSlug}:${payload.episodeSlug || "full"}`;
-            const prevProg = (await redis.get<number>(sessionProgKey)) || 0;
-
-            if (effectiveProg > prevProg) {
-              const delta = Math.round(effectiveProg - prevProg);
-              // Cap single delta to max 300s to prevent giant manual seeks from blowing up total watch time
-              if (delta > 0 && delta <= 300) {
-                await redis.incrby("analytics:watch_time_sec", delta);
-              }
-              await redis.set(sessionProgKey, effectiveProg, { ex: 7 * 86400 });
-            }
-          }
-          await redis.zincrby("analytics:watching:movies", 1, movieSlug);
-        }
-      } else if (payload.eventType === "search" && payload.keyword) {
-        const kw = payload.keyword.toLowerCase().trim();
-        await redis.zincrby("analytics:search_counts", 1, kw);
+      await redis.incr("analytics:visits:total");
+      await redis.sadd("analytics:unique:total", viewerKey);
+      if (userId) {
+        await redis.sadd("analytics:unique:users", userId);
+      } else {
+        await redis.sadd("analytics:unique:guests", anonymousId);
       }
     } catch (redisErr) {
       console.warn("[Analytics] Redis storage error:", redisErr);
@@ -342,40 +305,44 @@ export async function recordAnalyticsEvent(payload: AnalyticsEventPayload): Prom
       id: viewerKey,
       isUser: Boolean(userId),
       userId,
-      anonymousId: userId ? "" : anonymousId,
+      anonymousId,
       deviceType: eventRecord.deviceType || "desktop",
       os: eventRecord.os || "Other",
       browser: eventRecord.browser || "Other",
-      screenRes: eventRecord.screenRes || undefined,
+      screenRes: undefined,
       firstSeen: existingMem?.firstSeen || now,
       lastSeen: now,
     });
   }
 
-  // 3. Persist to Supabase analytics_events table (fail-safe)
+  // Persist to Supabase analytics_events table (fail-safe)
   const client = isSupabaseAdminConfigured() ? getSupabaseAdmin() : supabase;
   if (client) {
     try {
       await client.from("analytics_events").insert({
         id: eventRecord.id,
-        event_type: eventRecord.eventType,
-        movie_slug: eventRecord.movieSlug || null,
-        movie_title: eventRecord.movieTitle || null,
-        episode_slug: eventRecord.episodeSlug || null,
-        episode_name: eventRecord.episodeName || null,
+        event_type: "site_visit",
+        movie_slug: eventRecord.movieSlug || "home",
+        movie_title: eventRecord.movieTitle || "/",
+        episode_slug: null,
+        episode_name: null,
         user_id: eventRecord.userId || null,
-        anonymous_id: eventRecord.userId ? null : (eventRecord.anonymousId || null),
+        anonymous_id: eventRecord.anonymousId, // Guaranteed non-null to satisfy NOT NULL constraint
         device_type: eventRecord.deviceType,
         os: eventRecord.os,
         browser: eventRecord.browser,
-        screen_res: null, // Discontinued screen_res for new events
-        duration_seconds: eventRecord.durationSeconds || 0,
-        progress_seconds: eventRecord.progressSeconds || 0,
-        keyword: eventRecord.keyword || null,
+        screen_res: null,
+        duration_seconds: 0,
+        progress_seconds: 0,
+        keyword: null,
+        country: eventRecord.country || null,
+        country_code: eventRecord.countryCode || null,
+        region: eventRecord.region || null,
+        city: eventRecord.city || null,
         created_at: eventRecord.createdAt,
       });
-    } catch {
-      // Table may not exist yet or connection blip: fail silently
+    } catch (dbErr) {
+      console.warn("[Analytics] Supabase analytics_events insert error:", dbErr);
     }
   }
 
@@ -564,86 +531,58 @@ export async function getAnalyticsDashboardStats(
 
   const redis = getRedis();
   let rawEvents: StoredAnalyticsEvent[] = [];
-  const titleMap = new Map<string, string>();
 
-  // 1. Fan-out: fetch Redis events, Redis title cache, Supabase analytics_events, and
-  //    Supabase device_handoff all in parallel — none of these depend on each other.
   const analyticsEventsColumns = [
-    "id", "event_type", "movie_slug", "movie_title", "episode_slug", "episode_name",
+    "id", "event_type", "movie_slug", "movie_title",
     "user_id", "anonymous_id", "device_type", "os", "browser",
-    "duration_seconds", "progress_seconds", "keyword", "created_at",
+    "country", "country_code", "region", "city", "created_at",
   ].join(",");
 
-  const [redisListData, redisTitleData, supabaseEventsResult, supabaseHandoffResult, supabaseDeviceProfilesResult] =
-    await Promise.all([
-      // B1: Redis recent events list
-      redis
-        ? redis.lrange<string | StoredAnalyticsEvent>("analytics:events", 0, 500).catch((e) => {
-            console.warn("[Analytics] Redis lrange error:", e);
-            return null;
-          })
-        : Promise.resolve(null),
+  // Parallel fetch: Redis events, Supabase analytics_events (only site_visit), Supabase device_handoff
+  // (device_profiles scan is completely removed to eliminate heavy obsolete queries)
+  const [redisListData, supabaseEventsResult, supabaseHandoffResult] = await Promise.all([
+    redis
+      ? redis.lrange<string | StoredAnalyticsEvent>("analytics:events", 0, 500).catch((e) => {
+          console.warn("[Analytics] Redis lrange error:", e);
+          return null;
+        })
+      : Promise.resolve(null),
 
-      // B2: Redis movie title map
-      redis
-        ? redis.hgetall<Record<string, string>>("analytics:movie_titles").catch(() => null)
-        : Promise.resolve(null),
-
-      // C: Supabase analytics_events (explicit columns only — no screen_res, no extras)
-      (async () => {
-        const client = isSupabaseAdminConfigured() ? getSupabaseAdmin() : supabase;
-        if (!client) return { data: null, error: null };
-        try {
-          let q = client
-            .from("analytics_events")
-            .select(analyticsEventsColumns)
-            .order("created_at", { ascending: false })
-            .limit(1000);
-          if (cutoffTimestamp > 0) {
-            q = q.gte("created_at", cutoffTimestamp);
-          }
-          return await q;
-        } catch {
-          return { data: null, error: new Error("supabase fetch failed") };
+    (async () => {
+      const client = isSupabaseAdminConfigured() ? getSupabaseAdmin() : supabase;
+      if (!client) return { data: null, error: null };
+      try {
+        let q = client
+          .from("analytics_events")
+          .select(analyticsEventsColumns)
+          .eq("event_type", "site_visit")
+          .order("created_at", { ascending: false })
+          .limit(2000);
+        if (cutoffTimestamp > 0) {
+          q = q.gte("created_at", cutoffTimestamp);
         }
-      })(),
+        return await q;
+      } catch {
+        return { data: null, error: new Error("supabase fetch failed") };
+      }
+    })(),
 
-      // D: Supabase device_handoff (independent of analytics_events)
-      (async () => {
-        const client = isSupabaseAdminConfigured() ? getSupabaseAdmin() : supabase;
-        if (!client) return { data: null, error: null };
-        try {
-          return await client
-            .from("device_handoff")
-            .select("*")
-            .order("updated_at", { ascending: false })
-            .limit(30);
-        } catch {
-          return { data: null, error: new Error("handoff fetch failed") };
-        }
-      })(),
+    (async () => {
+      const client = isSupabaseAdminConfigured() ? getSupabaseAdmin() : supabase;
+      if (!client) return { data: null, error: null };
+      try {
+        return await client
+          .from("device_handoff")
+          .select("*")
+          .order("updated_at", { ascending: false })
+          .limit(30);
+      } catch {
+        return { data: null, error: new Error("handoff fetch failed") };
+      }
+    })(),
+  ]);
 
-      // E: Supabase device_profiles (Unified Device Profile telemetry)
-      (async () => {
-        const client = isSupabaseAdminConfigured() ? getSupabaseAdmin() : supabase;
-        if (!client) return { data: null, error: null };
-        try {
-          let q = client
-            .from("device_profiles")
-            .select("*")
-            .order("last_seen", { ascending: false })
-            .limit(2000);
-          if (cutoffTimestamp > 0) {
-            q = q.gte("last_seen", cutoffTimestamp);
-          }
-          return await q;
-        } catch {
-          return { data: null, error: new Error("device_profiles fetch failed") };
-        }
-      })(),
-    ]);
-
-  // Process B1: Redis events
+  // Process Redis events
   if (redisListData && Array.isArray(redisListData)) {
     rawEvents = redisListData
       .map((item) => {
@@ -656,39 +595,36 @@ export async function getAnalyticsDashboardStats(
         }
         return item as StoredAnalyticsEvent;
       })
-      .filter((evt): evt is StoredAnalyticsEvent => Boolean(evt));
+      .filter((evt): evt is StoredAnalyticsEvent => Boolean(evt && evt.eventType === "site_visit"));
   }
 
-  // Process B2: Redis title map
-  if (redisTitleData) {
-    Object.entries(redisTitleData as Record<string, string>).forEach(([k, v]) => titleMap.set(k, v));
-  }
-
-  // Fallback or augment with memory buffer
+  // Memory buffer fallback
   if (rawEvents.length === 0 && memoryEventsBuffer.length > 0) {
-    rawEvents = [...memoryEventsBuffer];
+    rawEvents = memoryEventsBuffer.filter((e) => e.eventType === "site_visit");
   }
 
-  // Process C: Supabase analytics_events — merge into rawEvents
+  // Merge Supabase analytics_events
   const { data: eventsData, error: eventsError } = supabaseEventsResult ?? { data: null, error: null };
   if (!eventsError && eventsData && eventsData.length > 0) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const dbEvents: StoredAnalyticsEvent[] = (eventsData as any[]).map((d) => ({
       id: d.id,
-      eventType: d.event_type,
-      movieSlug: d.movie_slug,
-      movieTitle: d.movie_title,
-      episodeSlug: d.episode_slug,
-      episodeName: d.episode_name,
-      userId: d.user_id,
+      eventType: "site_visit",
+      movieSlug: d.movie_slug || "home",
+      movieTitle: d.movie_title || "/",
+      userId: d.user_id || undefined,
       anonymousId: d.anonymous_id,
       deviceType: d.device_type,
       os: d.os,
       browser: d.browser,
-      screenRes: undefined, // no longer fetched from DB; field kept for type compat
-      durationSeconds: d.duration_seconds,
-      progressSeconds: d.progress_seconds,
-      keyword: d.keyword,
+      screenRes: undefined,
+      durationSeconds: 0,
+      progressSeconds: 0,
+      keyword: undefined,
+      country: d.country || undefined,
+      countryCode: d.country_code || undefined,
+      region: d.region || undefined,
+      city: d.city || undefined,
       createdAt: Number(d.created_at),
     }));
 
@@ -704,32 +640,18 @@ export async function getAnalyticsDashboardStats(
   // Filter events by timeframe
   const filteredEvents = rawEvents.filter((ev) => ev.createdAt >= cutoffTimestamp);
 
-  // 2. Aggregate metrics
-  let totalViews = 0;
+  // Aggregate metrics
+  const totalVisits = filteredEvents.length;
   const uniqueAll = new Set<string>();
   const uniqueUsers = new Set<string>();
   const uniqueGuests = new Set<string>();
 
-  const movieViewsMap = new Map<string, { title: string; views: number; uniqueViewers: Set<string> }>();
-  
-  // Session-based progress tracking: Map<sessionKey, SessionProgress>
-  // sessionKey = `${viewerKey}:${movieSlug}:${episodeSlug || 'full'}`
-  interface SessionProgress {
-    viewerKey: string;
-    movieSlug: string;
-    movieTitle: string;
-    episodeName?: string;
-    episodeSlug?: string;
-    maxProgress: number;
-    duration: number;
-    eventCount: number;
-  }
-  const sessionProgressMap = new Map<string, SessionProgress>();
+  // Map page groups for distribution
+  const pageViewsMap = new Map<string, { title: string; views: number; uniqueViewers: Set<string> }>();
 
   const deviceCounts = { desktop: 0, mobile: 0, tablet: 0 };
   const osCounts = new Map<string, number>();
   const browserCounts = new Map<string, number>();
-  const searchMap = new Map<string, number>();
 
   // Unique device identity tracking: authenticated uses userId, guest uses anonymousId
   const seenDeviceIdentities = new Set<string>();
@@ -738,10 +660,16 @@ export async function getAnalyticsDashboardStats(
   const activeThreshold = now - 30 * 60 * 1000;
   const activeGuestSet = new Set<string>();
 
+  // Hourly visit activity in Asia/Ho_Chi_Minh (0-23h)
+  const hourlyBuckets = new Array(24).fill(0);
+
+  // Country and city distribution
+  const countryMap = new Map<string, { code: string; count: number }>();
+  const cityMap = new Map<string, { country: string; count: number }>();
+
   for (const ev of filteredEvents) {
     const viewerKey = ev.userId || ev.anonymousId;
 
-    // Track unique viewers
     uniqueAll.add(viewerKey);
     if (ev.userId) {
       uniqueUsers.add(ev.userId);
@@ -749,12 +677,11 @@ export async function getAnalyticsDashboardStats(
       uniqueGuests.add(ev.anonymousId);
     }
 
-    // Active guests in last 30 minutes
     if (!ev.userId && ev.anonymousId && ev.createdAt >= activeThreshold) {
       activeGuestSet.add(ev.anonymousId);
     }
 
-    // Devices & platforms (Unique Device Identity aggregation in timeframe)
+    // Devices & platforms
     const devType = (ev.deviceType || "desktop") as "desktop" | "mobile" | "tablet";
     const osName = ev.os || "Other";
     const browserName = ev.browser || "Other";
@@ -774,89 +701,50 @@ export async function getAnalyticsDashboardStats(
       browserCounts.set(browserName, (browserCounts.get(browserName) || 0) + 1);
     }
 
-    // Movie views
-    if (ev.eventType === "movie_view" && ev.movieSlug) {
-      totalViews++;
-      const currentTitle = ev.movieTitle || titleMap.get(ev.movieSlug) || ev.movieSlug;
-      const existing = movieViewsMap.get(ev.movieSlug) || {
-        title: currentTitle,
-        views: 0,
-        uniqueViewers: new Set<string>(),
-      };
-      existing.views++;
-      existing.uniqueViewers.add(viewerKey);
-      movieViewsMap.set(ev.movieSlug, existing);
+    // Page group distribution
+    const pageGroup = ev.movieSlug || "home";
+    const pageTitle = formatPageGroupName(pageGroup);
+    const existingPage = pageViewsMap.get(pageGroup) || {
+      title: pageTitle,
+      views: 0,
+      uniqueViewers: new Set<string>(),
+    };
+    existingPage.views++;
+    existingPage.uniqueViewers.add(viewerKey);
+    pageViewsMap.set(pageGroup, existingPage);
+
+    // Hourly visit activity in Vietnam (UTC+7)
+    const h = getHourVietnam(ev.createdAt);
+    if (h >= 0 && h < 24) {
+      hourlyBuckets[h]++;
     }
 
-    // Watch events: group by unique session (viewer + movie + episode)
-    if (
-      (ev.eventType === "watch_progress" || ev.eventType === "watch_end" || ev.eventType === "watch_start") &&
-      ev.movieSlug
-    ) {
-      const sessionKey = `${viewerKey}:${ev.movieSlug}:${ev.episodeSlug || "full"}`;
-      const title = ev.movieTitle || titleMap.get(ev.movieSlug) || ev.movieSlug;
-      const existing = sessionProgressMap.get(sessionKey) || {
-        viewerKey,
-        movieSlug: ev.movieSlug,
-        movieTitle: title,
-        episodeName: ev.episodeName,
-        episodeSlug: ev.episodeSlug,
-        maxProgress: 0,
-        duration: 0,
-        eventCount: 0,
-      };
-
-      existing.eventCount++;
-      if (ev.progressSeconds && ev.progressSeconds > 0) {
-        existing.maxProgress = Math.max(existing.maxProgress, ev.progressSeconds);
-      }
-      if (ev.durationSeconds && ev.durationSeconds > 0) {
-        existing.duration = Math.max(existing.duration, ev.durationSeconds);
-      }
-      if (ev.movieTitle) {
-        existing.movieTitle = ev.movieTitle;
-      }
-      if (ev.episodeName) {
-        existing.episodeName = ev.episodeName;
-      }
-      sessionProgressMap.set(sessionKey, existing);
+    // Location distribution
+    if (ev.country) {
+      const cCode = ev.countryCode || "";
+      const ex = countryMap.get(ev.country) || { code: cCode, count: 0 };
+      ex.count++;
+      countryMap.set(ev.country, ex);
     }
-
-    // Search events
-    if (ev.eventType === "search" && ev.keyword) {
-      const kw = ev.keyword.trim();
-      searchMap.set(kw, (searchMap.get(kw) || 0) + 1);
+    if (ev.city) {
+      const cCountry = ev.country || "Quốc tế";
+      const ex = cityMap.get(ev.city) || { country: cCountry, count: 0 };
+      ex.count++;
+      cityMap.set(ev.city, ex);
     }
   }
 
-  // Calculate actual totalWatchTimeSeconds from sessionProgressMap
-  let totalWatchTimeSeconds = 0;
-
-  for (const session of sessionProgressMap.values()) {
-    let sessionSec = session.maxProgress;
-    // Cap session watch time by video duration if valid
-    if (session.duration > 0 && sessionSec > session.duration) {
-      sessionSec = session.duration;
-    }
-    // Fallback: If only watch_start occurred (progress is 0), count minimal 30s
-    if (sessionSec === 0 && session.eventCount > 0) {
-      sessionSec = 30;
-    }
-
-    totalWatchTimeSeconds += sessionSec;
-  }
-
-  // Count unique visitors today (unique viewerKeys with site_visit events within today boundary)
+  // Count unique visitors today (Asia/Ho_Chi_Minh)
   const todayStartMs = getStartOfTodayVietnam(now);
   const todayVisitorSet = new Set<string>();
   for (const ev of rawEvents) {
-    if (ev.eventType === "site_visit" && ev.createdAt >= todayStartMs) {
+    if (ev.createdAt >= todayStartMs) {
       todayVisitorSet.add(ev.userId || ev.anonymousId);
     }
   }
 
-  // 3. Sort and structure results
-  const topMoviesByViews = Array.from(movieViewsMap.entries())
+  // Top page groups by views and unique visitors
+  const topMoviesByViews = Array.from(pageViewsMap.entries())
     .map(([slug, data]) => ({
       slug,
       title: data.title,
@@ -865,7 +753,7 @@ export async function getAnalyticsDashboardStats(
     .sort((a, b) => b.views - a.views)
     .slice(0, 10);
 
-  const topMoviesByUnique = Array.from(movieViewsMap.entries())
+  const topMoviesByUnique = Array.from(pageViewsMap.entries())
     .map(([slug, data]) => ({
       slug,
       title: data.title,
@@ -892,244 +780,79 @@ export async function getAnalyticsDashboardStats(
     }))
     .sort((a, b) => b.count - a.count);
 
-  // 3B. Compute Unified Device Profile stats from device_profiles table
-  const { data: deviceProfileRows } = supabaseDeviceProfilesResult ?? { data: null, error: null };
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const rawProfiles = Array.isArray(deviceProfileRows) ? (deviceProfileRows as any[]) : [];
-
-  let deviceProfileStats: DeviceProfileStats;
-
-  if (rawProfiles.length > 0) {
-    const totalP = rawProfiles.length;
-    let dDesktop = 0;
-    let dMobile = 0;
-    let dTablet = 0;
-
-    const bMap = new Map<string, number>();
-    const osMap = new Map<string, number>();
-    const netCounts = {
-      g4HighSpeed: 0,
-      g3Medium: 0,
-      g2Slow: 0,
-      slow2g: 0,
-      unknown: 0,
-      saveDataCount: 0,
-      saveDataPercent: 0,
-    };
-    const vpMap = new Map<string, { count: number; deviceType: string }>();
-    let av1Count = 0;
-    let hevcCount = 0;
-    let h264OnlyCount = 0;
-
-    const countryMap = new Map<string, { code: string; count: number }>();
-    const cityMap = new Map<string, { country: string; count: number }>();
-
-    for (const p of rawProfiles) {
-      // Device Type
-      const dt = String(p.device_type || "").toLowerCase();
-      if (dt === "mobile") dMobile++;
-      else if (dt === "tablet") dTablet++;
-      else dDesktop++;
-
-      // Browser & OS
-      const bName = p.browser || "Other";
-      const oName = p.os || "Other";
-      bMap.set(bName, (bMap.get(bName) || 0) + 1);
-      osMap.set(oName, (osMap.get(oName) || 0) + 1);
-
-      // Location (Approximate Country & City)
-      if (p.country) {
-        const cName = p.country;
-        const cCode = p.country_code || "";
-        const ex = countryMap.get(cName) || { code: cCode, count: 0 };
-        ex.count++;
-        countryMap.set(cName, ex);
-      }
-      if (p.city) {
-        const ctName = p.city;
-        const cName = p.country || "Quốc tế";
-        const ex = cityMap.get(ctName) || { country: cName, count: 0 };
-        ex.count++;
-        cityMap.set(ctName, ex);
-      }
-
-      // Network Quality (W3C Network Information API standard tiers)
-      const netType = String(p.network_effective_type || "").toLowerCase();
-      if (netType === "4g") netCounts.g4HighSpeed++;
-      else if (netType === "3g") netCounts.g3Medium++;
-      else if (netType === "2g") netCounts.g2Slow++;
-      else if (netType === "slow-2g") netCounts.slow2g++;
-      else netCounts.unknown++;
-
-      if (p.network_save_data) {
-        netCounts.saveDataCount++;
-      }
-
-      // Viewports
-      const w = Number(p.viewport_width) || Number(p.screen_width) || 0;
-      const h = Number(p.viewport_height) || Number(p.screen_height) || 0;
-      if (w > 0 && h > 0) {
-        const vpKey = `${w}×${h}`;
-        const existingVp = vpMap.get(vpKey) || { count: 0, deviceType: dt || "desktop" };
-        existingVp.count++;
-        vpMap.set(vpKey, existingVp);
-      }
-
-      // Codecs
-      const hasAv1 = Boolean(p.codec_av1);
-      const hasHevc = Boolean(p.codec_hevc);
-      const hasH264 = Boolean(p.codec_h264 ?? true);
-
-      if (hasAv1) av1Count++;
-      if (hasHevc) hevcCount++;
-      if (hasH264 && !hasHevc && !hasAv1) h264OnlyCount++;
-    }
-
-    netCounts.saveDataPercent = totalP > 0 ? Math.round((netCounts.saveDataCount / totalP) * 100) : 0;
-
-    const bList = Array.from(bMap.entries())
-      .map(([name, count]) => ({
-        name,
-        count,
-        percentage: Math.round((count / totalP) * 100),
-      }))
-      .sort((a, b) => b.count - a.count);
-
-    const osL = Array.from(osMap.entries())
-      .map(([name, count]) => ({
-        name,
-        count,
-        percentage: Math.round((count / totalP) * 100),
-      }))
-      .sort((a, b) => b.count - a.count);
-
-    const topVpList = Array.from(vpMap.entries())
-      .map(([res, item]) => ({
-        resolution: res,
-        count: item.count,
-        percentage: Math.round((item.count / totalP) * 100),
-        deviceType: item.deviceType,
-      }))
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 10);
-
-    const totalCountryCount = Array.from(countryMap.values()).reduce((sum, item) => sum + item.count, 0);
-    const countryList = Array.from(countryMap.entries())
-      .map(([name, item]) => ({
-        name,
-        code: item.code,
-        count: item.count,
-        percentage: totalCountryCount > 0 ? Math.round((item.count / totalCountryCount) * 100) : 0,
-      }))
-      .sort((a, b) => b.count - a.count);
-
-    const totalCityCount = Array.from(cityMap.values()).reduce((sum, item) => sum + item.count, 0);
-    const cityList = Array.from(cityMap.entries())
-      .map(([name, item]) => ({
-        name,
-        country: item.country,
-        count: item.count,
-        percentage: totalCityCount > 0 ? Math.round((item.count / totalCityCount) * 100) : 0,
-      }))
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 10);
-
-    deviceProfileStats = {
-      totalProfiles: totalP,
-      overview: {
-        desktop: dDesktop,
-        mobile: dMobile,
-        tablet: dTablet,
-        desktopPercent: Math.round((dDesktop / totalP) * 100),
-        mobilePercent: Math.round((dMobile / totalP) * 100),
-        tabletPercent: Math.round((dTablet / totalP) * 100),
-      },
-      browsers: bList,
-      operatingSystems: osL,
-      network: netCounts,
-      topViewports: topVpList,
-      codecs: {
-        av1Count,
-        av1Percent: Math.round((av1Count / totalP) * 100),
-        hevcCount,
-        hevcPercent: Math.round((hevcCount / totalP) * 100),
-        h264OnlyCount,
-        h264OnlyPercent: Math.round((h264OnlyCount / totalP) * 100),
-      },
-      locations: {
-        countries: countryList,
-        topCities: cityList,
-      },
-    };
-  } else {
-    // Graceful fallback from session events
-    const dDesktop = deviceCounts.desktop || 0;
-    const dMobile = deviceCounts.mobile || 0;
-    const dTablet = deviceCounts.tablet || 0;
-    const sumDev = dDesktop + dMobile + dTablet || 1;
-
-    deviceProfileStats = {
-      totalProfiles: totalUniqueDevices,
-      overview: {
-        desktop: dDesktop,
-        mobile: dMobile,
-        tablet: dTablet,
-        desktopPercent: Math.round((dDesktop / sumDev) * 100),
-        mobilePercent: Math.round((dMobile / sumDev) * 100),
-        tabletPercent: Math.round((dTablet / sumDev) * 100),
-      },
-      browsers: browserList,
-      operatingSystems: osList,
-      network: {
-        g4HighSpeed: totalUniqueDevices,
-        g3Medium: 0,
-        g2Slow: 0,
-        slow2g: 0,
-        unknown: 0,
-        saveDataCount: 0,
-        saveDataPercent: 0,
-      },
-      topViewports: [
-        { resolution: "1920×1080", count: dDesktop, percentage: Math.round((dDesktop / sumDev) * 100), deviceType: "desktop" },
-        { resolution: "390×844", count: dMobile, percentage: Math.round((dMobile / sumDev) * 100), deviceType: "mobile" },
-      ].filter((v) => v.count > 0),
-      codecs: {
-        av1Count: 0,
-        av1Percent: 0,
-        hevcCount: 0,
-        hevcPercent: 0,
-        h264OnlyCount: totalUniqueDevices,
-        h264OnlyPercent: 100,
-      },
-    };
-  }
-
-  const topSearches = Array.from(searchMap.entries())
-    .map(([keyword, count]) => ({ keyword, count }))
-    .sort((a, b) => b.count - a.count)
-    .slice(0, 10);
-
-  // 3. Hourly Watch Activity (0-23h) - only watching events
-  const watchEventTypes = new Set(["watch_start", "watch_progress", "watch_end", "movie_view"]);
-  const hourlyBuckets = new Array(24).fill(0);
-
-  for (const ev of filteredEvents) {
-    if (watchEventTypes.has(ev.eventType)) {
-      const h = getHourVietnam(ev.createdAt);
-      if (h >= 0 && h < 24) {
-        hourlyBuckets[h]++;
-      }
-    }
-  }
-
   const hourlyWatchActivity: HourlyWatchStat[] = hourlyBuckets.map((count, hour) => ({
     hour,
     label: `${hour.toString().padStart(2, "0")}:00`,
     count,
   }));
 
-  // 4. Live Watching sessions & Profile Enrichment — built from device_handoff and recent activity.
-  //    Profiles query runs in one single batch for all relevant user IDs.
+  // Build DeviceProfileStats directly from site_visit events
+  const dDesktop = deviceCounts.desktop || 0;
+  const dMobile = deviceCounts.mobile || 0;
+  const dTablet = deviceCounts.tablet || 0;
+  const sumDev = dDesktop + dMobile + dTablet || 1;
+
+  const totalCountryCount = Array.from(countryMap.values()).reduce((sum, item) => sum + item.count, 0) || 1;
+  const countryList = Array.from(countryMap.entries())
+    .map(([name, item]) => ({
+      name,
+      code: item.code,
+      count: item.count,
+      percentage: Math.round((item.count / totalCountryCount) * 100),
+    }))
+    .sort((a, b) => b.count - a.count);
+
+  const totalCityCount = Array.from(cityMap.values()).reduce((sum, item) => sum + item.count, 0) || 1;
+  const cityList = Array.from(cityMap.entries())
+    .map(([name, item]) => ({
+      name,
+      country: item.country,
+      count: item.count,
+      percentage: Math.round((item.count / totalCityCount) * 100),
+    }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 10);
+
+  const deviceProfileStats: DeviceProfileStats = {
+    totalProfiles: totalUniqueDevices,
+    overview: {
+      desktop: dDesktop,
+      mobile: dMobile,
+      tablet: dTablet,
+      desktopPercent: Math.round((dDesktop / sumDev) * 100),
+      mobilePercent: Math.round((dMobile / sumDev) * 100),
+      tabletPercent: Math.round((dTablet / sumDev) * 100),
+    },
+    browsers: browserList,
+    operatingSystems: osList,
+    network: {
+      g4HighSpeed: totalUniqueDevices,
+      g3Medium: 0,
+      g2Slow: 0,
+      slow2g: 0,
+      unknown: 0,
+      saveDataCount: 0,
+      saveDataPercent: 0,
+    },
+    topViewports: [
+      { resolution: "1920×1080", count: dDesktop, percentage: Math.round((dDesktop / sumDev) * 100), deviceType: "desktop" },
+      { resolution: "390×844", count: dMobile, percentage: Math.round((dMobile / sumDev) * 100), deviceType: "mobile" },
+    ].filter((v) => v.count > 0),
+    codecs: {
+      av1Count: 0,
+      av1Percent: 0,
+      hevcCount: 0,
+      hevcPercent: 0,
+      h264OnlyCount: totalUniqueDevices,
+      h264OnlyPercent: 100,
+    },
+    locations: {
+      countries: countryList,
+      topCities: cityList,
+    },
+  };
+
+  // Live Watching sessions from device_handoff
   const profileMap = new Map<string, { name: string; avatar?: string; email?: string }>();
   let liveWatching: LiveWatchingSession[] = [];
   try {
@@ -1228,102 +951,30 @@ export async function getAnalyticsDashboardStats(
     console.warn("[Analytics] Error processing live watching from handoff:", err);
   }
 
-  // 4B. Live Watching for Guests (scanned from recent watch_progress / watch_start in rawEvents)
-  const fiveMinutesAgo = now - 5 * 60 * 1000;
-  const latestGuestWatchMap = new Map<string, StoredAnalyticsEvent>();
-
-  for (const ev of rawEvents) {
-    if (
-      !ev.userId &&
-      ev.anonymousId &&
-      ev.movieSlug &&
-      (ev.eventType === "watch_progress" || ev.eventType === "watch_start" || ev.eventType === "watch_end")
-    ) {
-      const existing = latestGuestWatchMap.get(ev.anonymousId);
-      if (!existing || ev.createdAt > existing.createdAt) {
-        latestGuestWatchMap.set(ev.anonymousId, ev);
-      }
-    }
-  }
-
-  const guestLiveSessions: LiveWatchingSession[] = [];
-  for (const [anonId, ev] of latestGuestWatchMap.entries()) {
-    if (ev.createdAt >= fiveMinutesAgo && ev.eventType !== "watch_end" && ev.movieSlug) {
-      const rawDur = Number(ev.durationSeconds) || 0;
-      const dur = rawDur > 0 ? Math.floor(rawDur) : 0;
-      const rawProg = Number(ev.progressSeconds) || 0;
-      let prog = rawProg > 0 ? Math.floor(rawProg) : 0;
-      if (dur > 0) prog = Math.min(prog, dur);
-      prog = Math.max(0, prog);
-      const percent = dur > 0 ? Math.min(100, Math.max(0, Math.round((prog / dur) * 100))) : 0;
-
-      const currentTitle = ev.movieTitle || titleMap.get(ev.movieSlug) || ev.movieSlug;
-      const devTypeStr = ev.deviceType === "mobile" ? "Điện thoại" : ev.deviceType === "tablet" ? "Tablet" : "Máy tính";
-      const deviceLabel = `${devTypeStr} • ${ev.os || "Web"}`;
-
-      guestLiveSessions.push({
-        userId: anonId,
-        userName: `Guest (${anonId.slice(5, 11)})`,
-        isGuest: true,
-        movieSlug: ev.movieSlug,
-        movieTitle: currentTitle,
-        episodeSlug: ev.episodeSlug,
-        episodeName: ev.episodeName,
-        progressSeconds: prog,
-        durationSeconds: dur,
-        progressPercent: percent,
-        deviceName: deviceLabel,
-        updatedAt: ev.createdAt,
-        isLive: true,
-      });
-    }
-  }
-
-  // Combine User handoffs + Guest live sessions, ordered by most recent activity
-  liveWatching = [...liveWatching, ...guestLiveSessions].sort((a, b) => b.updatedAt - a.updatedAt);
-
-  // If filtered events are empty (e.g. fresh system), also query Redis totals if timeframe === 'all'
-  let finalTotalViews = totalViews;
+  // If timeframe === 'all' and redis is connected, check if Redis totals are higher
+  let finalTotalViews = totalVisits;
   let finalUniqueTotal = uniqueAll.size;
   let finalUniqueUsers = uniqueUsers.size;
   let finalUniqueGuests = uniqueGuests.size;
-  const finalWatchSec = totalWatchTimeSeconds;
 
   if (timeframe === "all" && redis) {
     try {
-      const [redisViews, redisUniqTotal, redisUniqUsers, redisUniqGuests] = await Promise.all([
-        redis.get<number>("analytics:views:total"),
+      const [redisVisits, redisUniqTotal, redisUniqUsers, redisUniqGuests] = await Promise.all([
+        redis.get<number>("analytics:visits:total"),
         redis.scard("analytics:unique:total"),
         redis.scard("analytics:unique:users"),
         redis.scard("analytics:unique:guests"),
       ]);
-      if (redisViews && redisViews > finalTotalViews) finalTotalViews = redisViews;
+      if (redisVisits && redisVisits > finalTotalViews) finalTotalViews = redisVisits;
       if (redisUniqTotal && redisUniqTotal > finalUniqueTotal) finalUniqueTotal = redisUniqTotal;
       if (redisUniqUsers && redisUniqUsers > finalUniqueUsers) finalUniqueUsers = redisUniqUsers;
       if (redisUniqGuests && redisUniqGuests > finalUniqueGuests) finalUniqueGuests = redisUniqGuests;
-
-      // Rebuild and synchronize Redis analytics:watch_time_sec with accurate analytics_events total
-      await redis.set("analytics:watch_time_sec", finalWatchSec);
     } catch (redisSyncErr) {
       console.warn("[Analytics] Redis sync error:", redisSyncErr);
     }
   }
 
-  // Map device profiles to location for enriching recentActivity
-  const profileLocationMap = new Map<string, { country?: string; countryCode?: string; region?: string; city?: string }>();
-  for (const p of rawProfiles) {
-    const loc = {
-      country: p.country || undefined,
-      countryCode: p.country_code || undefined,
-      region: p.region || undefined,
-      city: p.city || undefined,
-    };
-    if (p.guest_id) profileLocationMap.set(p.guest_id, loc);
-    if (p.user_id) profileLocationMap.set(p.user_id, loc);
-  }
-
   const enrichedRecentActivity: StoredAnalyticsEvent[] = filteredEvents.slice(0, 40).map((ev) => {
-    const fallbackLoc = (ev.userId ? profileLocationMap.get(ev.userId) : null) || profileLocationMap.get(ev.anonymousId);
     let resolvedUserName: string | undefined = undefined;
     if (ev.userId) {
       const prof = profileMap.get(ev.userId);
@@ -1339,10 +990,6 @@ export async function getAnalyticsDashboardStats(
     return {
       ...ev,
       userName: resolvedUserName,
-      country: ev.country || fallbackLoc?.country,
-      countryCode: ev.countryCode || fallbackLoc?.countryCode,
-      region: ev.region || fallbackLoc?.region,
-      city: ev.city || fallbackLoc?.city,
     };
   });
 
@@ -1354,7 +1001,7 @@ export async function getAnalyticsDashboardStats(
       loggedIn: finalUniqueUsers,
       guests: finalUniqueGuests,
     },
-    totalWatchTimeSeconds: finalWatchSec,
+    totalWatchTimeSeconds: 0,
     activeGuestsCount: activeGuestSet.size,
     topMoviesByViews,
     topMoviesByUnique,
@@ -1362,38 +1009,11 @@ export async function getAnalyticsDashboardStats(
     osList,
     browserList,
     recentActivity: enrichedRecentActivity,
-    topSearches,
+    topSearches: [],
     liveWatching,
     hourlyWatchActivity,
     todayVisitorsCount: todayVisitorSet.size,
     deviceProfileStats,
-  };
-}
-
-/**
- * Rebuild and synchronize Redis `analytics:watch_time_sec` counter from valid Supabase `analytics_events`.
- * Resets the corrupt value (e.g. 71h 28m) and restores exact session-based total watch time.
- */
-export async function rebuildWatchTimeCounter(): Promise<{ previousSeconds: number; newSeconds: number }> {
-  const redis = getRedis();
-  let prevSec = 0;
-  if (redis) {
-    try {
-      prevSec = (await redis.get<number>("analytics:watch_time_sec")) || 0;
-    } catch {}
-  }
-
-  const stats = await getAnalyticsDashboardStats("all");
-
-  if (redis) {
-    try {
-      await redis.set("analytics:watch_time_sec", stats.totalWatchTimeSeconds);
-    } catch {}
-  }
-
-  return {
-    previousSeconds: prevSec,
-    newSeconds: stats.totalWatchTimeSeconds,
   };
 }
 
@@ -1425,23 +1045,8 @@ export function getVietnamDayBoundaries(dateStr?: string): { date: string; start
 }
 
 function formatEventAction(ev: StoredAnalyticsEvent): string {
-  const title = ev.movieTitle || ev.movieSlug;
-  switch (ev.eventType) {
-    case "movie_view":
-      return title ? `Mở trang phim: ${title}` : "Mở trang phim";
-    case "watch_start":
-      return title ? `Bắt đầu xem: ${title}` : "Bắt đầu xem";
-    case "watch_progress":
-      return title ? `Đang xem: ${title}` : "Đang xem phim";
-    case "watch_end":
-      return title ? `Xem xong: ${title}` : "Xem xong";
-    case "site_visit":
-      return "Truy cập website";
-    case "search":
-      return ev.keyword ? `Tìm kiếm: "${ev.keyword}"` : "Tìm kiếm";
-    default:
-      return "Hoạt động";
-  }
+  const page = formatPageGroupName(ev.movieSlug);
+  return `Truy cập: ${page}`;
 }
 
 /**
@@ -1455,9 +1060,9 @@ export async function getDailyVisitorsStats(dateStr?: string): Promise<DailyVisi
   const redis = getRedis();
 
   const analyticsEventsColumns = [
-    "id", "event_type", "movie_slug", "movie_title", "episode_slug", "episode_name",
+    "id", "event_type", "movie_slug", "movie_title",
     "user_id", "anonymous_id", "device_type", "os", "browser",
-    "duration_seconds", "progress_seconds", "keyword", "created_at",
+    "country", "country_code", "region", "city", "created_at",
   ].join(",");
 
   const [supabaseEventsResult, redisListData] = await Promise.all([
@@ -1467,6 +1072,7 @@ export async function getDailyVisitorsStats(dateStr?: string): Promise<DailyVisi
         return await client
           .from("analytics_events")
           .select(analyticsEventsColumns)
+          .eq("event_type", "site_visit")
           .gte("created_at", startMs)
           .lte("created_at", endMs)
           .order("created_at", { ascending: false })
@@ -1495,19 +1101,20 @@ export async function getDailyVisitorsStats(dateStr?: string): Promise<DailyVisi
       const r = raw as any;
       const ev: StoredAnalyticsEvent = {
         id: r.id,
-        eventType: r.event_type,
+        eventType: r.event_type || "site_visit",
         movieSlug: r.movie_slug || undefined,
         movieTitle: r.movie_title || undefined,
-        episodeSlug: r.episode_slug || undefined,
-        episodeName: r.episode_name || undefined,
         userId: r.user_id || undefined,
         anonymousId: r.anonymous_id,
         deviceType: r.device_type,
         os: r.os,
         browser: r.browser,
-        durationSeconds: r.duration_seconds || 0,
-        progressSeconds: r.progress_seconds || 0,
-        keyword: r.keyword || undefined,
+        country: r.country || undefined,
+        countryCode: r.country_code || undefined,
+        region: r.region || undefined,
+        city: r.city || undefined,
+        durationSeconds: 0,
+        progressSeconds: 0,
         createdAt: Number(r.created_at),
       };
       if (ev.createdAt >= startMs && ev.createdAt <= endMs) {
@@ -1527,7 +1134,7 @@ export async function getDailyVisitorsStats(dateStr?: string): Promise<DailyVisi
       } else if (item && typeof item === "object") {
         ev = item as StoredAnalyticsEvent;
       }
-      if (ev && ev.id && ev.createdAt >= startMs && ev.createdAt <= endMs) {
+      if (ev && ev.id && ev.eventType === "site_visit" && ev.createdAt >= startMs && ev.createdAt <= endMs) {
         eventMap.set(ev.id, ev);
       }
     }
@@ -1536,7 +1143,7 @@ export async function getDailyVisitorsStats(dateStr?: string): Promise<DailyVisi
   // 3. Fallback to memoryEventsBuffer if no events found
   if (memoryEventsBuffer.length > 0) {
     for (const ev of memoryEventsBuffer) {
-      if (ev.createdAt >= startMs && ev.createdAt <= endMs) {
+      if (ev.eventType === "site_visit" && ev.createdAt >= startMs && ev.createdAt <= endMs) {
         eventMap.set(ev.id, ev);
       }
     }
@@ -1552,7 +1159,7 @@ export async function getDailyVisitorsStats(dateStr?: string): Promise<DailyVisi
     }
   }
 
-  // 5. Group by Unique Visitor Identity (seamlessly upgrading Guest events into the linked User group)
+  // 5. Group by Unique Visitor Identity
   interface VisitorGroup {
     type: "user" | "guest";
     userId?: string;
@@ -1581,120 +1188,41 @@ export async function getDailyVisitorsStats(dateStr?: string): Promise<DailyVisi
     group.events.push(ev);
   }
 
-  // 5. Batch fetch Profiles and Device Profiles for location
+  // 6. Batch fetch Profiles for logged-in Users (device_profiles queries eliminated)
   const userIdsToFetch = new Set<string>();
-  const guestIdsToFetch = new Set<string>();
-
   for (const group of visitorGroupMap.values()) {
     if (group.userId) userIdsToFetch.add(group.userId);
-    if (group.anonymousId) guestIdsToFetch.add(group.anonymousId);
   }
 
   const profileMap = new Map<string, { name: string; avatar?: string; email?: string }>();
-  const userLocationMap = new Map<string, { country?: string; countryCode?: string; region?: string; city?: string }>();
-  const guestLocationMap = new Map<string, { country?: string; countryCode?: string; region?: string; city?: string }>();
+  if (client && userIdsToFetch.size > 0) {
+    try {
+      const { data: profs } = await client
+        .from("profiles")
+        .select("id, display_name, photo_url, custom_avatar, email")
+        .in("id", Array.from(userIdsToFetch));
 
-  if (client) {
-    const fetchPromises: Promise<void>[] = [];
-
-    // A. Profiles lookup for logged-in Users
-    if (userIdsToFetch.size > 0) {
-      fetchPromises.push(
-        (async () => {
-          try {
-            const { data: profs } = await client
-              .from("profiles")
-              .select("id, display_name, photo_url, custom_avatar, email")
-              .in("id", Array.from(userIdsToFetch));
-
-            if (Array.isArray(profs)) {
-              for (const p of profs) {
-                profileMap.set(p.id, {
-                  name: p.display_name || "Thành viên",
-                  avatar: p.custom_avatar || p.photo_url || undefined,
-                  email: p.email || undefined,
-                });
-              }
-            }
-          } catch {}
-        })()
-      );
-    }
-
-    // B. Device Profiles lookup by User ID
-    if (userIdsToFetch.size > 0) {
-      fetchPromises.push(
-        (async () => {
-          try {
-            const { data: userDevs } = await client
-              .from("device_profiles")
-              .select("user_id, country, country_code, region, city")
-              .in("user_id", Array.from(userIdsToFetch))
-              .order("last_seen", { ascending: false });
-
-            if (Array.isArray(userDevs)) {
-              for (const d of userDevs) {
-                if (d.user_id && !userLocationMap.has(d.user_id)) {
-                  userLocationMap.set(d.user_id, {
-                    country: d.country || undefined,
-                    countryCode: d.country_code || undefined,
-                    region: d.region || undefined,
-                    city: d.city || undefined,
-                  });
-                }
-              }
-            }
-          } catch {}
-        })()
-      );
-    }
-
-    // C. Device Profiles lookup by Guest ID (anon_...)
-    if (guestIdsToFetch.size > 0) {
-      fetchPromises.push(
-        (async () => {
-          try {
-            const { data: guestDevs } = await client
-              .from("device_profiles")
-              .select("id, guest_id, country, country_code, region, city")
-              .in("id", Array.from(guestIdsToFetch).slice(0, 1000));
-
-            if (Array.isArray(guestDevs)) {
-              for (const d of guestDevs) {
-                const key = d.guest_id || d.id;
-                if (key && !guestLocationMap.has(key)) {
-                  guestLocationMap.set(key, {
-                    country: d.country || undefined,
-                    countryCode: d.country_code || undefined,
-                    region: d.region || undefined,
-                    city: d.city || undefined,
-                  });
-                }
-              }
-            }
-          } catch {}
-        })()
-      );
-    }
-
-    await Promise.all(fetchPromises);
+      if (Array.isArray(profs)) {
+        for (const p of profs) {
+          profileMap.set(p.id, {
+            name: p.display_name || "Thành viên",
+            avatar: p.custom_avatar || p.photo_url || undefined,
+            email: p.email || undefined,
+          });
+        }
+      }
+    } catch {}
   }
 
-  // 6. Build DailyVisitorItem list
+  // 7. Build DailyVisitorItem list
   const visitors: DailyVisitorItem[] = [];
   let userCount = 0;
   let guestCount = 0;
 
   for (const group of visitorGroupMap.values()) {
-    // Sort events chronological
     group.events.sort((a, b) => a.createdAt - b.createdAt);
     const firstEv = group.events[0];
     const lastEv = group.events[group.events.length - 1];
-
-    let loc = group.userId ? userLocationMap.get(group.userId) : undefined;
-    if (!loc) {
-      loc = guestLocationMap.get(group.anonymousId);
-    }
 
     if (group.type === "user") {
       userCount++;
@@ -1707,10 +1235,10 @@ export async function getDailyVisitorsStats(dateStr?: string): Promise<DailyVisi
         displayName,
         email: prof?.email,
         avatar: prof?.avatar,
-        country: loc?.country,
-        countryCode: loc?.countryCode,
-        region: loc?.region,
-        city: loc?.city,
+        country: lastEv.country,
+        countryCode: lastEv.countryCode,
+        region: lastEv.region,
+        city: lastEv.city,
         firstSeen: firstEv.createdAt,
         lastSeen: lastEv.createdAt,
         eventCount: group.events.length,
@@ -1730,10 +1258,10 @@ export async function getDailyVisitorsStats(dateStr?: string): Promise<DailyVisi
         visitorKey: group.anonymousId,
         type: "guest",
         displayName,
-        country: loc?.country,
-        countryCode: loc?.countryCode,
-        region: loc?.region,
-        city: loc?.city,
+        country: lastEv.country,
+        countryCode: lastEv.countryCode,
+        region: lastEv.region,
+        city: lastEv.city,
         firstSeen: firstEv.createdAt,
         lastSeen: lastEv.createdAt,
         eventCount: group.events.length,

@@ -253,7 +253,7 @@ export default function AboutPage() {
                     />
                   </div>
                   <div>
-                    <h3 className="text-lg font-black text-white">Dũng Trần</h3>
+                    <h3 className="text-lg font-black text-white">DT</h3>
                     <p className="text-xs font-medium text-gray-400 mt-0.5">Creator & Full-stack Engineer</p>
                   </div>
                   <div className="text-[11px] text-gray-400 leading-normal border-t border-white/[0.06] pt-3">

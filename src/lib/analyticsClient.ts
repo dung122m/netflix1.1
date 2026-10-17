@@ -246,13 +246,53 @@ export function trackWatchEnd(_watch: {
   // No-op
 }
 
-/**
- * Track site visit (No-op)
- */
+export interface TrackSiteVisitOptions {
+  pageGroup?: string;
+  pagePath?: string;
+  token?: string | null;
+}
+
 export const SITE_VISIT_SESSION_KEY = "nanaflix_session_visited";
 
-export function trackSiteVisit(): void {
-  // No-op
+/**
+ * Track site visit (Minimal, non-blocking visit beacon)
+ */
+export async function trackSiteVisit(options?: TrackSiteVisitOptions): Promise<void> {
+  if (typeof window === "undefined") return;
+
+  try {
+    const pageGroup = options?.pageGroup || "home";
+    const pagePath = options?.pagePath || window.location.pathname || "/";
+    const anonymousId = getOrCreateAnonymousId();
+    const deviceInfo = getMinimalDeviceInfo();
+
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+    };
+
+    if (options?.token) {
+      headers["Authorization"] = `Bearer ${options.token}`;
+    }
+
+    const payload = {
+      eventType: "site_visit",
+      movieSlug: pageGroup,
+      movieTitle: pagePath,
+      anonymousId,
+      deviceInfo,
+    };
+
+    await fetch("/api/analytics/track", {
+      method: "POST",
+      headers,
+      body: JSON.stringify(payload),
+      keepalive: true,
+    }).catch(() => {
+      // Non-blocking fail-safe: never throw or block UI
+    });
+  } catch {
+    // Non-blocking fail-safe
+  }
 }
 
 /**

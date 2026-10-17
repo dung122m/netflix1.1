@@ -423,7 +423,7 @@ export const Footer: React.FC = () => {
               <span className="text-xs text-gray-300 font-medium">
                 Designed & Developed by{" "}
                 <strong className="text-white font-bold group-hover:text-netflix-red transition-colors">
-                  Dũng Trần
+                  DT
                 </strong>
               </span>
               <span className="text-[11px] sm:text-xs text-zinc-400 font-mono">

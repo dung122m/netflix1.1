@@ -31,6 +31,7 @@ import { incrementUserWatchTime, getPlayerSettings, PlayerSettings } from "@/ser
 import { PlayerNativeControls, SeekBack10Icon, SeekForward10Icon, VideoFit } from "./player/PlayerNativeControls";
 import { PlayerActionButtons } from "./player/PlayerActionButtons";
 import { PlayerShortcutModal } from "./player/PlayerShortcutModal";
+import { detectAdBoundaries, AdBoundary } from "@/lib/adBoundaryDetector";
 
 interface EpisodeItem {
   name?: string;
@@ -276,6 +277,9 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
   const isStalledRef = useRef(false);
   const initialBufferTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const stallRecoveryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const adBoundariesRef = useRef<AdBoundary[]>([]);
+  const hasSkippedAdRef = useRef<Set<string>>(new Set());
+  const lastAdSkipTimeRef = useRef<number>(0);
 
   const getBufferAhead = useCallback((v: HTMLVideoElement | null): number => {
     if (!v || !v.buffered || v.buffered.length === 0) return 0;
@@ -498,6 +502,9 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
   const hasSeekedInitialRef = useRef<boolean>(false);
   useEffect(() => {
     hasSeekedInitialRef.current = false;
+    adBoundariesRef.current = [];
+    hasSkippedAdRef.current.clear();
+    lastAdSkipTimeRef.current = 0;
     setUseIframeFallback(false);
     setIsBuffering(true);
     const effectiveInitialSlug = initialEpisodeSlug || initialLoadedEpisodeRef.current;
@@ -962,7 +969,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
         }, 5000);
       });
 
-      const updateHlsDuration = (_event: unknown, data: { details?: { totalduration?: number } }) => {
+      const updateHlsDuration = (_event: unknown, data: { details?: { totalduration?: number; fragments?: any[] } }) => {
         if (data?.details?.totalduration && data.details.totalduration > 0 && isFinite(data.details.totalduration)) {
           const totalSecs = data.details.totalduration;
           setKnownDuration(totalSecs);
@@ -970,6 +977,14 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             (videoRef.current as any).__hlsDuration = totalSecs;
             videoRef.current.dispatchEvent(new Event("durationchange"));
+          }
+        }
+        if (data?.details?.fragments && Array.isArray(data.details.fragments)) {
+          const detected = detectAdBoundaries(data.details.fragments);
+          if (detected.length > 0) {
+            adBoundariesRef.current = detected;
+          } else if (adBoundariesRef.current.length === 0) {
+            adBoundariesRef.current = [];
           }
         }
       };
@@ -1115,6 +1130,9 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
         hlsRef.current.destroy();
         hlsRef.current = null;
       }
+      adBoundariesRef.current = [];
+      hasSkippedAdRef.current.clear();
+      lastAdSkipTimeRef.current = 0;
       video.pause();
       video.removeAttribute("src");
       video.load();
@@ -1241,6 +1259,53 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
 
     const handleTimeUpdateThrottled = () => {
       checkBufferRecovery();
+
+      // Tự động bỏ qua đoạn quảng cáo đã xác minh ranh giới (Verified Ad-Boundary Skip Controller)
+      if (
+        isNativeVideo &&
+        watchContext?.activeProvider !== "vsmov" &&
+        !video.paused &&
+        !video.ended &&
+        !video.seeking &&
+        pendingKeyboardSeekRef.current.timer === null
+      ) {
+        const ct = video.currentTime;
+        const boundaries = adBoundariesRef.current;
+        if (boundaries.length > 0) {
+          const now = Date.now();
+          for (const ad of boundaries) {
+            const adKey = `${ad.start}_${ad.end}`;
+            if (ct < ad.start - 2) {
+              // Khôi phục quyền skip nếu người dùng tua lùi lại trước mốc quảng cáo
+              hasSkippedAdRef.current.delete(adKey);
+            } else if (
+              ct >= ad.start &&
+              ct < ad.end - 0.25 &&
+              !hasSkippedAdRef.current.has(adKey) &&
+              now - lastAdSkipTimeRef.current > 2000
+            ) {
+              lastAdSkipTimeRef.current = now;
+              hasSkippedAdRef.current.add(adKey);
+
+              const targetSeek = ad.end;
+              const adDuration = Math.round(ad.duration);
+
+              const onSeeked = () => {
+                video.removeEventListener("seeked", onSeeked);
+                if (Math.abs(video.currentTime - targetSeek) < 1.5) {
+                  showHud(
+                    <Zap className="w-5 h-5 text-netflix-red" />,
+                    `Đã tự động bỏ qua quảng cáo (${adDuration}s)`
+                  );
+                }
+              };
+              video.addEventListener("seeked", onSeeked);
+              video.currentTime = targetSeek;
+              break;
+            }
+          }
+        }
+      }
 
       // Check countdown condition on timeupdate
       if (effectiveNextEpisode?.slug && !isNextEpDismissedRef.current && playerSettings.autoNextEpisode !== false) {

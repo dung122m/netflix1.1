@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import {
   Eye,
@@ -10,7 +10,6 @@ import {
   Smartphone,
   Monitor,
   Tablet,
-  Search,
   RefreshCw,
   TrendingUp,
   Globe,
@@ -166,6 +165,26 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
     });
   };
 
+  // Helper to resolve route URL from pageGroup slug
+  const getPageGroupUrl = (slug: string) => {
+    switch (slug) {
+      case "home":
+        return "/";
+      case "browse":
+        return "/browse";
+      case "live":
+      case "live-tv":
+        return "/live";
+      case "search":
+        return "/search";
+      case "movie":
+        return "/browse";
+      default:
+        if (slug.startsWith("/")) return slug;
+        return "/";
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* TIMEFRAME FILTER & REFRESH BAR */}
@@ -207,11 +226,11 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
       </div>
 
       {/* OVERVIEW STATS CARDS */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
-        {/* Total Views */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Total Visits */}
         <div className="p-5 rounded-2xl bg-zinc-900/60 border border-white/10 hover:border-white/20 transition backdrop-blur-sm relative overflow-hidden group">
           <div className="flex items-center justify-between text-gray-400 mb-2">
-            <span className="text-xs font-medium">Tổng Lượt Xem Phim</span>
+            <span className="text-xs font-medium">Tổng Lượt Truy Cập</span>
             <div className="p-2 rounded-xl bg-blue-500/10 text-blue-400">
               <Eye size={18} />
             </div>
@@ -220,22 +239,22 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
             {loading ? "..." : (stats?.totalViews || 0).toLocaleString("vi-VN")}
           </div>
           <p className="text-[11px] text-gray-400 mt-1 flex items-center gap-1.5">
-            <span className="text-blue-400 font-medium">Chống trùng lặp 30 phút:</span>
-            <span>1 người / 1 phim / 30m</span>
+            <span className="text-blue-400 font-medium">Chống trùng lặp 30s:</span>
+            <span>Tính theo phiên và nhóm trang</span>
           </p>
         </div>
 
-        {/* Unique Viewers */}
+        {/* Unique Visitors */}
         <div className="p-5 rounded-2xl bg-zinc-900/60 border border-white/10 hover:border-white/20 transition backdrop-blur-sm relative overflow-hidden group">
           <div className="flex items-center justify-between text-gray-400 mb-2">
-            <span className="text-xs font-medium">Khán Giả Độc Nhất</span>
+            <span className="text-xs font-medium">Khách Truy Cập Riêng Biệt</span>
             <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-400">
               <Users size={18} />
             </div>
           </div>
           <div className="text-3xl font-black text-emerald-400 flex items-baseline gap-2 group-hover:scale-105 transition-transform origin-left">
-            <span>{loading ? "..." : stats?.uniqueViewers.total || 0}</span>
-            <span className="text-xs font-normal text-gray-400">người</span>
+            <span>{loading ? "..." : (stats?.uniqueViewers.total || 0).toLocaleString("vi-VN")}</span>
+            <span className="text-xs font-normal text-gray-400">khách</span>
           </div>
           <div className="flex items-center gap-2 mt-2 text-[11px] text-gray-400">
             <span className="px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-300 font-semibold">
@@ -246,22 +265,6 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
               🎭 {stats?.uniqueViewers.guests || 0} Guest
             </span>
           </div>
-        </div>
-
-        {/* Total Watch Time */}
-        <div className="p-5 rounded-2xl bg-zinc-900/60 border border-white/10 hover:border-white/20 transition backdrop-blur-sm relative overflow-hidden group">
-          <div className="flex items-center justify-between text-gray-400 mb-2">
-            <span className="text-xs font-medium">Tổng Thời Gian Xem</span>
-            <div className="p-2 rounded-xl bg-amber-500/10 text-amber-400">
-              <Clock size={18} />
-            </div>
-          </div>
-          <div className="text-3xl font-black text-amber-400 group-hover:scale-105 transition-transform origin-left">
-            {loading ? "..." : formatDuration(stats?.totalWatchTimeSeconds || 0)}
-          </div>
-          <p className="text-[11px] text-gray-400 mt-1">
-            Ghi nhận tiến trình thực tế của khán giả
-          </p>
         </div>
 
         {/* Active Guests Online */}
@@ -280,29 +283,29 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
             </span>
           </div>
           <p className="text-[11px] text-gray-400 mt-1">
-            Khách vãng lai hoạt động gần đây
+            Khách vãng lai tương tác trong 30 phút gần nhất
           </p>
         </div>
 
         {/* Today Visitors */}
         <div className="p-5 rounded-2xl bg-zinc-900/60 border border-white/10 hover:border-white/20 transition backdrop-blur-sm relative overflow-hidden group">
           <div className="flex items-center justify-between text-gray-400 mb-2">
-            <span className="text-xs font-medium">Lượt Truy Cập Hôm Nay</span>
+            <span className="text-xs font-medium">Khách Truy Cập Hôm Nay</span>
             <div className="p-2 rounded-xl bg-violet-500/10 text-violet-400">
               <MapPin size={18} />
             </div>
           </div>
           <div className="text-3xl font-black text-violet-400 flex items-baseline gap-2 group-hover:scale-105 transition-transform origin-left">
-            <span>{loading ? "..." : stats?.todayVisitorsCount ?? 0}</span>
-            <span className="text-xs font-normal text-gray-400">lượt truy cập độc nhất</span>
+            <span>{loading ? "..." : (stats?.todayVisitorsCount ?? 0).toLocaleString("vi-VN")}</span>
+            <span className="text-xs font-normal text-gray-400">khách riêng biệt</span>
           </div>
           <p className="text-[11px] text-gray-400 mt-1">
-            Unique visitors hôm nay — User + Guest (site_visit)
+            User & Guest riêng biệt hôm nay (Asia/Ho_Chi_Minh)
           </p>
         </div>
       </div>
 
-      {/* SECTION: ĐANG XEM (LIVE WATCHING) */}
+      {/* SECTION: PHIÊN TIẾP TỤC XEM ĐA THIẾT BỊ (DEVICE HANDOFF) */}
       <div className="p-6 rounded-2xl bg-zinc-900/60 border border-white/10 backdrop-blur-sm space-y-4">
         <div className="flex items-center justify-between flex-wrap gap-2">
           <div className="flex items-center gap-2.5">
@@ -311,16 +314,16 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
             </div>
             <div>
               <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                <span>Đang Xem (Live Watching)</span>
+                <span>Phiên Tiếp Tục Xem Đa Thiết Bị (Device Handoff)</span>
                 {stats?.liveWatching && stats.liveWatching.filter((s) => s.isLive).length > 0 && (
                   <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] font-bold flex items-center gap-1">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
-                    {stats.liveWatching.filter((s) => s.isLive).length} trực tiếp
+                    {stats.liveWatching.filter((s) => s.isLive).length} đang phát
                   </span>
                 )}
               </h3>
               <p className="text-[11px] text-gray-400">
-                Phiên phát phim thời gian thực từ dữ liệu tiếp tục xem đa thiết bị
+                Tiến trình xem phim thời gian thực được đồng bộ giữa các thiết bị của thành viên (Continue Watching)
               </p>
             </div>
           </div>
@@ -331,7 +334,7 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
 
         {!stats?.liveWatching || stats.liveWatching.length === 0 ? (
           <div className="p-8 text-center rounded-xl bg-black/40 border border-white/5 text-gray-400 text-xs">
-            Hiện chưa có ai đang phát phim.
+            Hiện chưa có phiên tiếp tục xem nào được ghi nhận từ thiết bị của thành viên.
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -456,21 +459,21 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
         )}
       </div>
 
-      {/* ROW: TOP MOVIES & WATCHING */}
+      {/* ROW: TOP PAGES BY VISITS & UNIQUE VISITORS */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Top Movies by Views */}
+        {/* Top Pages by Visits */}
         <div className="p-6 rounded-2xl bg-zinc-900/60 border border-white/10 backdrop-blur-sm space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-bold text-white flex items-center gap-2">
               <TrendingUp size={16} className="text-netflix-red" />
-              <span>Top Phim Theo Lượt Xem</span>
+              <span>Top Trang Được Truy Cập</span>
             </h3>
-            <span className="text-xs text-gray-400">Xếp hạng cao nhất</span>
+            <span className="text-xs text-gray-400">Xếp theo tổng lượt truy cập</span>
           </div>
 
           {!stats?.topMoviesByViews || stats.topMoviesByViews.length === 0 ? (
             <div className="p-8 text-center rounded-xl bg-black/40 border border-white/5 text-gray-400 text-xs">
-              Chưa có lượt xem nào được ghi nhận trong khoảng thời gian này.
+              Chưa có lượt truy cập nào được ghi nhận trong khoảng thời gian này.
             </div>
           ) : (
             <div className="space-y-2.5">
@@ -494,7 +497,7 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
                       {idx + 1}
                     </span>
                     <Link
-                      href={`/movies/${m.slug}`}
+                      href={getPageGroupUrl(m.slug)}
                       target="_blank"
                       className="text-xs font-bold text-white hover:text-netflix-red truncate transition"
                     >
@@ -505,7 +508,7 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
                     <span className="text-xs font-black text-white font-mono">
                       {m.views.toLocaleString()}
                     </span>
-                    <span className="text-[10px] text-gray-400">views</span>
+                    <span className="text-[10px] text-gray-400">lượt truy cập</span>
                   </div>
                 </div>
               ))}
@@ -513,19 +516,19 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
           )}
         </div>
 
-        {/* Top Movies by Unique Viewers */}
+        {/* Top Pages by Unique Visitors */}
         <div className="p-6 rounded-2xl bg-zinc-900/60 border border-white/10 backdrop-blur-sm space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-bold text-white flex items-center gap-2">
               <Users size={16} className="text-emerald-400" />
-              <span>Top Phim Theo Khán Giả Độc Nhất</span>
+              <span>Top Trang Theo Khách Riêng Biệt</span>
             </h3>
-            <span className="text-xs text-gray-400">Unique Viewers</span>
+            <span className="text-xs text-gray-400">Khách truy cập riêng biệt</span>
           </div>
 
           {!stats?.topMoviesByUnique || stats.topMoviesByUnique.length === 0 ? (
             <div className="p-8 text-center rounded-xl bg-black/40 border border-white/5 text-gray-400 text-xs">
-              Chưa có dữ liệu người xem độc nhất.
+              Chưa có dữ liệu khách truy cập riêng biệt trong khoảng thời gian này.
             </div>
           ) : (
             <div className="space-y-2.5">
@@ -549,7 +552,7 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
                       {idx + 1}
                     </span>
                     <Link
-                      href={`/movies/${m.slug}`}
+                      href={getPageGroupUrl(m.slug)}
                       target="_blank"
                       className="text-xs font-bold text-white hover:text-emerald-400 truncate transition"
                     >
@@ -560,7 +563,7 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
                     <span className="text-xs font-black text-emerald-400 font-mono">
                       {m.uniqueViewers.toLocaleString()}
                     </span>
-                    <span className="text-[10px] text-gray-400">khán giả</span>
+                    <span className="text-[10px] text-gray-400">khách</span>
                   </div>
                 </div>
               ))}
@@ -569,16 +572,16 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
         </div>
       </div>
 
-      {/* 24-HOUR PEAK WATCHING HOURS */}
+      {/* 24-HOUR PEAK VISIT TRAFFIC HOURS */}
       <div className="p-6 rounded-2xl bg-zinc-900/60 border border-white/10 backdrop-blur-sm space-y-4">
         <div className="flex items-center justify-between flex-wrap gap-2">
           <div>
             <h3 className="text-sm font-bold text-white flex items-center gap-2">
               <BarChart2 size={16} className="text-amber-400" />
-              <span>Hoạt Động Xem Theo Giờ (24 Giờ)</span>
+              <span>Lưu Lượng Truy Cập Theo Giờ (24 Giờ)</span>
             </h3>
             <p className="text-[11px] text-gray-400 mt-0.5">
-              Phân bố số lượt sự kiện phát video theo từng khung giờ trong ngày (Chỉ tính các sự kiện mở phim và phát video)
+              Phân bố số lượt truy cập trang theo từng khung giờ trong ngày (Giờ Việt Nam UTC+7)
             </p>
           </div>
 
@@ -597,7 +600,7 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
                 <div className="px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs font-semibold flex items-center gap-1.5">
                   <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
                   <span>
-                    Khung giờ cao điểm: <strong>{peak.label} – {nextHour}</strong> ({peak.count} lượt hoạt động)
+                    Khung giờ cao điểm: <strong>{peak.label} – {nextHour}</strong> ({peak.count} lượt truy cập)
                   </span>
                 </div>
               );
@@ -631,7 +634,7 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
                       {/* Floating tooltip */}
                       <div className="absolute -top-10 z-20 hidden group-hover:flex flex-col items-center pointer-events-none transition-all">
                         <div className="px-2 py-1 rounded-lg bg-zinc-950 border border-white/20 text-white text-[10px] font-mono shadow-xl whitespace-nowrap">
-                          {h.label}: <strong>{h.count}</strong> lượt hoạt động ({percentageOfTotal}%)
+                          {h.label}: <strong>{h.count}</strong> lượt truy cập ({percentageOfTotal}%)
                         </div>
                         <div className="w-1.5 h-1.5 bg-zinc-950 border-r border-b border-white/20 rotate-45 -mt-1" />
                       </div>
@@ -667,7 +670,7 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
         })()}
       </div>
 
-      {/* SECTION: THIẾT BỊ & MÔI TRƯỜNG KHÁN GIẢ (UNIFIED DEVICE PROFILE DASHBOARD) */}
+      {/* SECTION: THIẾT BỊ & MÔI TRƯỜNG KHÁN GIẢ (PLATFORM & GEOIP) */}
       <div className="p-6 rounded-2xl bg-zinc-900/60 border border-white/10 backdrop-blur-sm space-y-6">
         <div className="flex items-center justify-between flex-wrap gap-2 pb-2 border-b border-white/10">
           <div className="flex items-center gap-2.5">
@@ -676,7 +679,7 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
             </div>
             <div>
               <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                <span>Hồ Sơ Thiết Bị & Vị Trí Ước Lượng (Device & Location Profiles)</span>
+                <span>Hồ Sơ Nền Tảng & Vị Trí Truy Cập (Platform & GeoIP)</span>
                 <span className="px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30 text-[10px] font-bold">
                   Guest + User
                 </span>
@@ -877,7 +880,7 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
               ) : (
                 <div className="p-4 text-center rounded-lg bg-zinc-900/40 border border-white/5">
                   <p className="text-xs text-gray-400">Chưa có dữ liệu quốc gia.</p>
-                  <p className="text-[10px] text-gray-500 mt-1">Dữ liệu sẽ tự động xuất hiện khi có lượt truy cập mới sau khi chạy migration.</p>
+                  <p className="text-[10px] text-gray-500 mt-1">Vị trí ước lượng sẽ tự động hiển thị khi có lượt truy cập từ môi trường mạng công cộng.</p>
                 </div>
               )}
             </div>
@@ -916,43 +919,12 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
               ) : (
                 <div className="p-4 text-center rounded-lg bg-zinc-900/40 border border-white/5">
                   <p className="text-xs text-gray-400">Chưa có dữ liệu tỉnh / thành phố.</p>
-                  <p className="text-[10px] text-gray-500 mt-1">Dữ liệu sẽ tự động xuất hiện khi có lượt truy cập mới sau khi chạy migration.</p>
+                  <p className="text-[10px] text-gray-500 mt-1">Vị trí ước lượng qua GeoIP sẽ tự động hiển thị khi có dữ liệu IP hợp lệ.</p>
                 </div>
               )}
             </div>
           </div>
         </div>
-      </div>
-
-      {/* TOP SEARCH QUERIES */}
-      <div className="p-6 rounded-2xl bg-zinc-900/60 border border-white/10 backdrop-blur-sm space-y-4">
-        <div className="flex items-center justify-between">
-          <h3 className="text-sm font-bold text-white flex items-center gap-2">
-            <Search size={16} className="text-rose-400" />
-            <span>Từ Khóa Tìm Kiếm Hot</span>
-          </h3>
-          <span className="text-xs text-gray-400">Search Queries</span>
-        </div>
-
-        {!stats?.topSearches || stats.topSearches.length === 0 ? (
-          <div className="p-8 text-center rounded-xl bg-black/40 border border-white/5 text-gray-400 text-xs">
-            Chưa có lượt tìm kiếm nào được ghi nhận.
-          </div>
-        ) : (
-          <div className="flex flex-wrap gap-2 pt-1">
-            {stats.topSearches.map((s) => (
-              <div
-                key={s.keyword}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-black/40 border border-white/10 text-xs"
-              >
-                <span className="text-gray-200 font-medium">{s.keyword}</span>
-                <span className="px-1.5 py-0.2 rounded-full bg-rose-500/20 text-rose-300 font-mono text-[10px] font-bold">
-                  {s.count}
-                </span>
-              </div>
-            ))}
-          </div>
-        )}
       </div>
 
       {/* SECTION: KHÁCH TRUY CẬP THEO NGÀY (DAILY VISITORS) */}
@@ -1034,9 +1006,9 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div className="p-3.5 rounded-xl bg-black/30 border border-white/5 flex items-center justify-between">
             <div>
-              <span className="text-[11px] text-gray-400 font-medium">Tổng Visitor Trong Ngày</span>
+              <span className="text-[11px] text-gray-400 font-medium">Tổng Khách Trong Ngày</span>
               <div className="text-xl font-black text-white mt-0.5">
-                {loadingDaily ? "..." : dailyVisitors?.summary.total ?? 0}
+                {loadingDaily ? "..." : (dailyVisitors?.summary.total ?? 0).toLocaleString("vi-VN")}
               </div>
             </div>
             <div className="p-2 rounded-lg bg-violet-500/10 text-violet-400">
@@ -1048,7 +1020,7 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
             <div>
               <span className="text-[11px] text-gray-400 font-medium">Thành Viên (User)</span>
               <div className="text-xl font-black text-emerald-400 mt-0.5">
-                {loadingDaily ? "..." : dailyVisitors?.summary.users ?? 0}
+                {loadingDaily ? "..." : (dailyVisitors?.summary.users ?? 0).toLocaleString("vi-VN")}
               </div>
             </div>
             <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-400">
@@ -1060,7 +1032,7 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
             <div>
               <span className="text-[11px] text-gray-400 font-medium">Khách Vãng Lai (Guest)</span>
               <div className="text-xl font-black text-gray-300 mt-0.5">
-                {loadingDaily ? "..." : dailyVisitors?.summary.guests ?? 0}
+                {loadingDaily ? "..." : (dailyVisitors?.summary.guests ?? 0).toLocaleString("vi-VN")}
               </div>
             </div>
             <div className="p-2 rounded-lg bg-zinc-800 text-gray-400">
@@ -1165,7 +1137,7 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
                           {v.lastAction}
                         </span>
                         <span className="px-1.5 py-0.2 rounded-full bg-white/10 text-gray-400 font-mono text-[10px] flex-shrink-0">
-                          {v.eventCount} sự kiện
+                          {v.eventCount} lượt truy cập
                         </span>
                       </div>
                     </td>

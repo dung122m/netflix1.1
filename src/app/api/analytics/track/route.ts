@@ -7,15 +7,6 @@ import { getGeoLocationFromRequest } from "@/lib/geoip";
 
 export const maxDuration = 10;
 
-// Các event cốt lõi phục vụ Admin Dashboard (lượt truy cập, xem phim, thời gian xem, tìm kiếm)
-const CORE_ANALYTICS_EVENT_TYPES = new Set<string>([
-  "site_visit",
-  "movie_view",
-  "watch_start",
-  "watch_progress",
-  "watch_end",
-  "search",
-]);
 
 export async function POST(req: NextRequest) {
   try {
@@ -46,8 +37,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: "Missing eventType" }, { status: 400 });
     }
 
-    // Bỏ qua các event vi mô/UI interaction không dùng để tiết kiệm quota DB & Redis
-    if (!CORE_ANALYTICS_EVENT_TYPES.has(body.eventType)) {
+    // Bỏ qua tất cả các event không phải site_visit để tiết kiệm quota DB & Redis
+    if (body.eventType !== "site_visit") {
       return NextResponse.json({ success: true, ignored: true });
     }
 
@@ -80,18 +71,16 @@ export async function POST(req: NextRequest) {
     const auth = await verifyServerAuth(req);
     const verifiedUserId = auth.isAuthenticated && auth.userId ? auth.userId : undefined;
 
-    // 4. Resolve Server-side Approximate GeoIP Location (Fast cache / edge headers)
+    // 4. Resolve Server-side Approximate GeoIP Location for regional distribution
     const location = await getGeoLocationFromRequest(req);
 
-    // 5. Construct sanitized payload
+    // 5. Construct sanitized site_visit payload
     const sanitizedPayload: AnalyticsEventPayload = {
-      eventType: body.eventType,
-      movieSlug: typeof body.movieSlug === "string" ? body.movieSlug.slice(0, 200) : undefined,
-      movieTitle: typeof body.movieTitle === "string" ? body.movieTitle.slice(0, 200) : undefined,
-      episodeSlug: typeof body.episodeSlug === "string" ? body.episodeSlug.slice(0, 100) : undefined,
-      episodeName: typeof body.episodeName === "string" ? body.episodeName.slice(0, 100) : undefined,
+      eventType: "site_visit",
+      movieSlug: typeof body.movieSlug === "string" ? body.movieSlug.trim().slice(0, 100) : "home",
+      movieTitle: typeof body.movieTitle === "string" ? body.movieTitle.trim().slice(0, 200) : "/",
       userId: verifiedUserId, // Only set if token is verified by server
-      anonymousId: verifiedUserId ? undefined : finalAnonymousId, // Strictly guest when unauthenticated
+      anonymousId: finalAnonymousId, // Always populated with valid anonId to satisfy PostgreSQL NOT NULL constraint
       deviceInfo: body.deviceInfo
         ? {
             deviceType: body.deviceInfo.deviceType || "desktop",
@@ -99,9 +88,8 @@ export async function POST(req: NextRequest) {
             browser: body.deviceInfo.browser || "Other",
           }
         : undefined,
-      durationSeconds: typeof body.durationSeconds === "number" ? Math.max(0, Math.min(body.durationSeconds, 86400)) : 0,
-      progressSeconds: typeof body.progressSeconds === "number" ? Math.max(0, Math.min(body.progressSeconds, 86400)) : 0,
-      keyword: typeof body.keyword === "string" ? body.keyword.slice(0, 100) : undefined,
+      durationSeconds: 0,
+      progressSeconds: 0,
       country: location.country || undefined,
       countryCode: location.countryCode || undefined,
       region: location.region || undefined,
