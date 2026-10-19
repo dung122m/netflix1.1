@@ -181,6 +181,7 @@ export function evaluateAutoAdSkipDecision(params: {
   isPaused?: boolean;
   isEnded?: boolean;
   isSeeking?: boolean;
+  leadTime?: number;
 }): AutoAdSkipDecision | null {
   const {
     currentTime: ct,
@@ -191,11 +192,15 @@ export function evaluateAutoAdSkipDecision(params: {
     isPaused = false,
     isEnded = false,
     isSeeking = false,
+    leadTime = 0,
   } = params;
 
   if (isPaused || isEnded || isSeeking || !Array.isArray(boundaries) || boundaries.length === 0) {
     return null;
   }
+
+  // leadTime tối đa an toàn không vượt quá 0.5s và không vượt quá khoảng cách tua lùi (2s)
+  const safeLeadTime = Math.max(0, Math.min(0.5, leadTime));
 
   for (const ad of boundaries) {
     const adKey = `${ad.start}_${ad.end}`;
@@ -203,7 +208,7 @@ export function evaluateAutoAdSkipDecision(params: {
       // Khôi phục quyền skip nếu người dùng tua lùi lại trước mốc quảng cáo
       hasSkippedSet.delete(adKey);
     } else if (
-      ct >= ad.start &&
+      ct >= ad.start - safeLeadTime &&
       ct < ad.end - 0.25 &&
       !hasSkippedSet.has(adKey) &&
       now - lastSkipTime > 2000
@@ -220,3 +225,50 @@ export function evaluateAutoAdSkipDecision(params: {
 
   return null;
 }
+
+export interface PreRollAdDecision {
+  shouldSkipPreRoll: boolean;
+  targetSeek: number;
+  adDuration: number;
+  adKey: string;
+}
+
+/**
+ * Đánh giá quyết định tự động bỏ qua khối quảng cáo pre-roll (quảng cáo ở đầu video)
+ * TRƯỚC KHI video bắt đầu phát lần đầu tiên (TC-AD-SKIP: P0).
+ *
+ * Chỉ kích hoạt khi:
+ * 1. Playback chưa bắt đầu (hasStartedInitialPlayback === false).
+ * 2. Người xem bắt đầu từ đầu tập (targetProgress === 0).
+ * 3. Khối quảng cáo đầu tiên bắt đầu tại mốc 0 hoặc cận 0 (start <= startThreshold, mặc định 0.5s).
+ */
+export function evaluatePreRollAdDecision(params: {
+  targetProgress: number;
+  hasStartedInitialPlayback: boolean;
+  boundaries: AdBoundary[];
+  startThreshold?: number;
+}): PreRollAdDecision | null {
+  const {
+    targetProgress,
+    hasStartedInitialPlayback,
+    boundaries,
+    startThreshold = 0.5,
+  } = params;
+
+  if (hasStartedInitialPlayback || targetProgress > 0 || !Array.isArray(boundaries) || boundaries.length === 0) {
+    return null;
+  }
+
+  const firstAd = boundaries[0];
+  if (firstAd && typeof firstAd.start === "number" && firstAd.start <= startThreshold && firstAd.end > firstAd.start) {
+    return {
+      shouldSkipPreRoll: true,
+      targetSeek: firstAd.end,
+      adDuration: Math.round(firstAd.duration),
+      adKey: `${firstAd.start}_${firstAd.end}`,
+    };
+  }
+
+  return null;
+}
+

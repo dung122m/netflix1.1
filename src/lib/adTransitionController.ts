@@ -60,7 +60,7 @@ export function startAdTransition(params: {
   targetSeek: number;
   adDuration: number;
   currentUserMuted: boolean;
-  hasCapturedFrame: boolean;
+  hasCapturedFrame?: boolean;
   now?: number;
 }): {
   transitionState: AdTransitionState;
@@ -74,7 +74,7 @@ export function startAdTransition(params: {
       adDuration: params.adDuration,
       startTime: now,
       savedUserMuted: params.currentUserMuted,
-      hasPreAdFrame: params.hasCapturedFrame,
+      hasPreAdFrame: params.hasCapturedFrame ?? false,
     },
     shouldMuteElement: true,
   };

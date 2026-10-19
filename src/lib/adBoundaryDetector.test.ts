@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { detectAdBoundaries, isVerifiedAdSegmentUri, FragmentLike, evaluateAutoAdSkipDecision } from "./adBoundaryDetector";
+import { detectAdBoundaries, isVerifiedAdSegmentUri, FragmentLike, evaluateAutoAdSkipDecision, evaluatePreRollAdDecision } from "./adBoundaryDetector";
 
 describe("adBoundaryDetector", () => {
   describe("isVerifiedAdSegmentUri", () => {
@@ -332,6 +332,111 @@ describe("adBoundaryDetector", () => {
 
       assert.strictEqual(decision, null, "Must throttle repeat skip within 2s");
     });
+
+    it("triggers early seek before ad.start when leadTime is specified (P1 - Zero-Flash early trigger)", () => {
+      const verifiedBoundaries = [
+        { start: 901.44, end: 931.68, duration: 30.24, startIndex: 300, endIndex: 302 },
+      ];
+      const hasSkipped = new Set<string>();
+
+      // Playhead ở 901.20s (trước ad.start 901.44s là 0.24s). Với leadTime = 0.25s, ngưỡng là 901.19s
+      const earlyDecision = evaluateAutoAdSkipDecision({
+        currentTime: 901.20,
+        boundaries: verifiedBoundaries,
+        hasSkippedSet: hasSkipped,
+        lastSkipTime: 0,
+        leadTime: 0.25,
+      });
+
+      assert.notStrictEqual(earlyDecision, null, "Must trigger early seek before ad.start");
+      assert.strictEqual(earlyDecision?.shouldSeek, true);
+      assert.strictEqual(earlyDecision?.targetSeek, 931.68);
+
+      // Nếu playhead ở 901.00s (cách 0.44s, vượt quá leadTime 0.25s), không được trigger
+      const notYetSkipped = new Set<string>();
+      const tooEarlyDecision = evaluateAutoAdSkipDecision({
+        currentTime: 901.00,
+        boundaries: verifiedBoundaries,
+        hasSkippedSet: notYetSkipped,
+        lastSkipTime: 0,
+        leadTime: 0.25,
+      });
+      assert.strictEqual(tooEarlyDecision, null, "Must NOT trigger when playhead is before leadTime window");
+    });
+  });
+
+  describe("evaluatePreRollAdDecision — P0 Zero-Flash Pre-roll Protection", () => {
+    const preRollBoundaries = [
+      { start: 0.0, end: 26.0, duration: 26.0, startIndex: 0, endIndex: 3 },
+      { start: 500.0, end: 530.0, duration: 30.0, startIndex: 100, endIndex: 103 },
+    ];
+
+    it("triggers pre-roll skip when starting fresh from beginning (targetProgress = 0)", () => {
+      const decision = evaluatePreRollAdDecision({
+        targetProgress: 0,
+        hasStartedInitialPlayback: false,
+        boundaries: preRollBoundaries,
+      });
+
+      assert.notStrictEqual(decision, null);
+      assert.strictEqual(decision?.shouldSkipPreRoll, true);
+      assert.strictEqual(decision?.targetSeek, 26.0);
+      assert.strictEqual(decision?.adDuration, 26);
+      assert.strictEqual(decision?.adKey, "0_26");
+    });
+
+    it("does NOT trigger pre-roll skip when user resumes from saved progress (targetProgress > 0)", () => {
+      const decision = evaluatePreRollAdDecision({
+        targetProgress: 350.0,
+        hasStartedInitialPlayback: false,
+        boundaries: preRollBoundaries,
+      });
+
+      assert.strictEqual(decision, null, "Must preserve user resume target");
+    });
+
+    it("does NOT trigger pre-roll skip if initial playback has already started", () => {
+      const decision = evaluatePreRollAdDecision({
+        targetProgress: 0,
+        hasStartedInitialPlayback: true,
+        boundaries: preRollBoundaries,
+      });
+
+      assert.strictEqual(decision, null, "Must not interfere with ongoing playback");
+    });
+
+    it("does NOT trigger pre-roll skip if first ad is not at start (mid-roll only)", () => {
+      const midRollOnly = [
+        { start: 120.0, end: 150.0, duration: 30.0, startIndex: 20, endIndex: 23 },
+      ];
+      const decision = evaluatePreRollAdDecision({
+        targetProgress: 0,
+        hasStartedInitialPlayback: false,
+        boundaries: midRollOnly,
+      });
+
+      assert.strictEqual(decision, null, "Must not skip when no pre-roll ad exists at 0:00");
+    });
+
+    it("handles empty or invalid boundaries safely", () => {
+      assert.strictEqual(
+        evaluatePreRollAdDecision({
+          targetProgress: 0,
+          hasStartedInitialPlayback: false,
+          boundaries: [],
+        }),
+        null
+      );
+      assert.strictEqual(
+        evaluatePreRollAdDecision({
+          targetProgress: 0,
+          hasStartedInitialPlayback: false,
+          boundaries: null as any,
+        }),
+        null
+      );
+    });
   });
 });
+
 

@@ -3360,12 +3360,12 @@ function LivePlayerInner({
                 type="button"
                 onClick={togglePlay}
                 title={isPlaying ? "Tạm dừng (Space)" : "Phát (Space)"}
-                className="w-8 h-8 sm:w-9.5 sm:h-9.5 rounded-full bg-white/20 hover:bg-white/30 shrink-0 flex items-center justify-center text-white transition hover:scale-105 active:scale-95 cursor-pointer backdrop-blur-md border border-white/20"
+                className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/20 hover:bg-white/30 shrink-0 flex items-center justify-center text-white transition hover:scale-105 active:scale-95 cursor-pointer backdrop-blur-md border border-white/20 touch-manipulation"
               >
                 {isPlaying ? (
-                  <Pause className="w-3.5 h-3.5 sm:w-4.5 sm:h-4.5 fill-current" />
+                  <Pause className="w-4 h-4 sm:w-4.5 sm:h-4.5 fill-current" />
                 ) : (
-                  <Play className="w-3.5 h-3.5 sm:w-4.5 sm:h-4.5 fill-current ml-0.5" />
+                  <Play className="w-4 h-4 sm:w-4.5 sm:h-4.5 fill-current ml-0.5" />
                 )}
               </button>
 
@@ -3374,10 +3374,10 @@ function LivePlayerInner({
                 type="button"
                 onClick={toggleMute}
                 title={isMuted ? "Bật âm thanh (M)" : "Tắt âm thanh (M)"}
-                className="w-8 h-8 sm:hidden rounded-full bg-black/60 border border-white/20 flex items-center justify-center text-white hover:text-rose-400 transition cursor-pointer shrink-0 backdrop-blur-md"
+                className="w-9 h-9 sm:hidden rounded-full bg-black/60 border border-white/20 flex items-center justify-center text-white hover:text-rose-400 transition cursor-pointer shrink-0 backdrop-blur-md touch-manipulation"
               >
                 <VolumeIcon
-                  className={`w-3.5 h-3.5 ${isMuted || volume === 0 ? "text-rose-400" : "text-white"
+                  className={`w-4 h-4 ${isMuted || volume === 0 ? "text-rose-400" : "text-white"
                     }`}
                 />
               </button>
@@ -3454,12 +3454,12 @@ function LivePlayerInner({
                 type="button"
                 onClick={toggleFullscreen}
                 title={isFullscreen ? "Thu nhỏ (F)" : "Toàn màn hình (F)"}
-                className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer backdrop-blur-md shrink-0 border border-white/15 outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+                className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer backdrop-blur-md shrink-0 border border-white/15 outline-none focus-visible:ring-2 focus-visible:ring-white/40 touch-manipulation"
               >
                 {isFullscreen ? (
-                  <Minimize className="w-3.5 h-3.5 sm:w-4.5 sm:h-4.5" />
+                  <Minimize className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
                 ) : (
-                  <Maximize className="w-3.5 h-3.5 sm:w-4.5 sm:h-4.5" />
+                  <Maximize className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
                 )}
               </button>
             </div>

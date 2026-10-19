@@ -561,14 +561,14 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
           {/* F. NỘI DUNG TỪNG TAB (CHỈ HIỂN THỊ KHI CÓ DỮ LIỆU SUMMARY) */}
           {summary && (
             <>
-              {/* B. THANH ĐIỀU HƯỚNG TAB CHỨC NĂNG */}
-              <div className="flex items-center gap-1 sm:gap-2 overflow-x-auto pb-1 scrollbar-none border-b border-white/10 touch-pan-x">
+              {/* B. THANH ĐIỀU HƯỚNG TAB CHỨC NĂNG (SEGMENTED TABS CHO MOBILE & DESKTOP) */}
+              <div className="grid grid-cols-5 gap-1 p-1 rounded-xl bg-zinc-900/90 border border-white/10 sm:flex sm:items-center sm:gap-1.5 sm:bg-transparent sm:border-0 sm:border-b sm:border-white/10 sm:rounded-none sm:p-0 sm:pb-1">
                 {[
-                  { id: "overview", label: "Tổng quan", icon: Clock },
-                  { id: "stats", label: "Thống kê", icon: BarChart2 },
-                  { id: "timeline", label: "Diễn biến", icon: Activity },
-                  { id: "lineups", label: "Đội hình", icon: Users },
-                  { id: "commentary", label: "Bình luận", icon: MessageSquare },
+                  { id: "overview", label: "Tổng quan", shortLabel: "Chung", icon: Clock },
+                  { id: "stats", label: "Thống kê", shortLabel: "Số liệu", icon: BarChart2 },
+                  { id: "timeline", label: "Diễn biến", shortLabel: "Sự kiện", icon: Activity },
+                  { id: "lineups", label: "Đội hình", shortLabel: "Đ.Hình", icon: Users },
+                  { id: "commentary", label: "Bình luận", shortLabel: "B.Luận", icon: MessageSquare },
                 ].map((tab) => {
                   const Icon = tab.icon;
                   const isActive = activeTab === tab.id;
@@ -577,14 +577,15 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
                       key={tab.id}
                       type="button"
                       onClick={() => setActiveTab(tab.id as TabType)}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+                      className={`flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-1.5 py-1.5 px-1 sm:px-3 sm:py-1.5 rounded-lg sm:rounded-xl text-[10px] sm:text-xs font-bold transition-all cursor-pointer min-w-0 ${
                         isActive
                           ? "bg-gradient-to-r from-netflix-red to-netflix-red/85 text-white shadow-md shadow-[var(--accent-glow,rgba(229,9,20,0.4))] scale-[1.02]"
                           : "text-gray-400 hover:text-white hover:bg-white/5"
                       }`}
                     >
-                      <Icon className="w-3.5 h-3.5" />
-                      <span>{tab.label}</span>
+                      <Icon className="w-3.5 h-3.5 shrink-0" />
+                      <span className="truncate sm:hidden">{tab.shortLabel}</span>
+                      <span className="hidden sm:inline truncate">{tab.label}</span>
                     </button>
                   );
                 })}
