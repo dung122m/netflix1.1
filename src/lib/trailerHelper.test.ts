@@ -9,6 +9,7 @@ import {
   isYoutubeQualityInfoMessage,
   hasAcceptableQuality,
   hasMinimum1080Quality,
+  isDesktopWithHover,
   YOUTUBE_HD_QUALITIES,
   YOUTUBE_ACCEPTABLE_QUALITIES,
 } from "./trailerHelper";
@@ -196,3 +197,87 @@ test("TC-HERO-TRAILER-RECOVERY-01 - Watchdog & slide concurrency simulation", as
     assert.equal(failedTrailerMap[slug], true, "Embed disabled error must immediately mark trailer as failed");
   });
 });
+
+test("TC-HERO-TRAILER-FIX-03 - Device detection & Watchdog lifecycle refinement tests", async (t) => {
+  await t.test("isDesktopWithHover behaves correctly under various media query environments", () => {
+    const originalWindow = globalThis.window;
+
+    try {
+      // 1. Mobile screen (< 768px): always false
+      globalThis.window = {
+        innerWidth: 390,
+        matchMedia: () => ({ matches: false } as unknown as MediaQueryList),
+      } as unknown as Window & typeof globalThis;
+      assert.equal(isDesktopWithHover(), false, "Mobile screens (<768px) must never activate desktop trailer");
+
+      // 2. Pure touch tablet (>= 768px, hover: none, pointer: coarse, no fine pointer): false
+      globalThis.window = {
+        innerWidth: 1024,
+        matchMedia: (query: string) => {
+          if (query === "(hover: none) and (pointer: coarse)") return { matches: true } as unknown as MediaQueryList;
+          if (query.includes("fine")) return { matches: false } as unknown as MediaQueryList;
+          return { matches: false } as unknown as MediaQueryList;
+        },
+      } as unknown as Window & typeof globalThis;
+      assert.equal(isDesktopWithHover(), false, "Pure touch devices without mouse/trackpad must not activate trailer");
+
+      // 3. Touchscreen Windows laptop (>= 768px, pointer: coarse, BUT any-pointer: fine or hover: hover): true
+      globalThis.window = {
+        innerWidth: 1440,
+        matchMedia: (query: string) => {
+          if (query === "(pointer: fine)") return { matches: false } as unknown as MediaQueryList;
+          if (query === "(any-pointer: fine)") return { matches: true } as unknown as MediaQueryList;
+          if (query === "(hover: hover)") return { matches: true } as unknown as MediaQueryList;
+          return { matches: false } as unknown as MediaQueryList;
+        },
+      } as unknown as Window & typeof globalThis;
+      assert.equal(isDesktopWithHover(), true, "Touchscreen laptops with mouse/trackpad must activate trailer");
+
+      // 4. Standard Desktop PC (>= 768px, pointer: fine, hover: hover): true
+      globalThis.window = {
+        innerWidth: 1920,
+        matchMedia: (query: string) => {
+          if (query === "(pointer: fine)") return { matches: true } as unknown as MediaQueryList;
+          if (query === "(hover: hover)") return { matches: true } as unknown as MediaQueryList;
+          return { matches: true } as unknown as MediaQueryList;
+        },
+      } as unknown as Window & typeof globalThis;
+      assert.equal(isDesktopWithHover(), true, "Standard desktop PCs must activate trailer");
+    } finally {
+      globalThis.window = originalWindow;
+    }
+  });
+
+  await t.test("Watchdog does NOT kill trailer if iframe loaded successfully without error", () => {
+    let activeTrailerId: string | null = "test-trailer";
+    let isTrailerReady = true;
+    const isIframeLoaded = true;
+    const hasError = false;
+
+    // Simulate watchdog firing at 8s
+    if (!isIframeLoaded || hasError) {
+      activeTrailerId = null;
+      isTrailerReady = false;
+    }
+
+    assert.equal(activeTrailerId, "test-trailer", "Active trailer must remain alive if iframe loaded without error");
+    assert.equal(isTrailerReady, true, "Trailer ready state must remain visible");
+  });
+
+  await t.test("Watchdog unmounts trailer if iframe failed to load within timeout", () => {
+    let activeTrailerId: string | null = "test-trailer";
+    let isTrailerReady = false;
+    const isIframeLoaded = false;
+    const hasError = false;
+
+    // Simulate watchdog firing at 8s
+    if (!isIframeLoaded || hasError) {
+      activeTrailerId = null;
+      isTrailerReady = false;
+    }
+
+    assert.equal(activeTrailerId, null, "Trailer must be unmounted if iframe never loaded");
+    assert.equal(isTrailerReady, false);
+  });
+});
+

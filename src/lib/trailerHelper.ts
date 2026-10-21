@@ -58,19 +58,31 @@ export function isDesktopWithHover(): boolean {
   try {
     // Màn hình di động nhỏ (< 768px) -> tuyệt đối không kích hoạt trailer iframe
     if (window.innerWidth < 768) return false;
-    // Thiết bị thuần cảm ứng (chỉ có touch, không có hover)
-    if (window.matchMedia("(hover: none) and (pointer: coarse)").matches) {
+
+    // Kiểm tra khả năng hover hoặc con trỏ chính xác (mouse/trackpad)
+    const hasFinePointer =
+      window.matchMedia("(pointer: fine)").matches ||
+      window.matchMedia("(any-pointer: fine)").matches;
+    const hasHoverCapability =
+      window.matchMedia("(hover: hover)").matches ||
+      window.matchMedia("(any-hover: hover)").matches;
+
+    // Thiết bị thuần cảm ứng (chỉ có touch, không có chuột, trackpad hay hover) -> không kích hoạt
+    const isPureTouch =
+      window.matchMedia("(hover: none) and (pointer: coarse)").matches &&
+      !hasFinePointer;
+
+    if (isPureTouch) {
       return false;
     }
-    // Chỉ kích hoạt khi thiết bị hỗ trợ hover và con trỏ fine (chuột/trackpad desktop)
-    if (!window.matchMedia("(hover: hover) and (pointer: fine)").matches) {
-      return false;
-    }
-    return true;
+
+    // Yêu cầu có ít nhất khả năng hover hoặc con trỏ fine (chuột/trackpad desktop/laptop)
+    return hasFinePointer || hasHoverCapability;
   } catch {
     return typeof window !== "undefined" && window.innerWidth >= 768;
   }
 }
+
 
 /**
  * Kiểm tra xem postMessage từ iframe có phải là thông báo lỗi phát của YouTube hay không

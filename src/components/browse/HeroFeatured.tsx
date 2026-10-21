@@ -124,6 +124,7 @@ const HeroFeaturedInner: React.FC<{ movies?: HeroMovie[] }> = ({
   const retryCountMapRef = useRef<Record<string, number>>({});
   const hasErrorRef = useRef(false);
   const isIframeLoadedRef = useRef(false);
+  const isVideoPlayingRef = useRef(false);
   // Ghi lại thời điểm slide bắt đầu để tính thời gian còn lại khi fallback
   const slideStartTimeRef = useRef<number>(Date.now());
 
@@ -340,6 +341,7 @@ const HeroFeaturedInner: React.FC<{ movies?: HeroMovie[] }> = ({
     setIsTrailerReady(false);
     hasErrorRef.current = false;
     isIframeLoadedRef.current = false;
+    isVideoPlayingRef.current = false;
 
     // Mobile / Touch hoặc Hero ra ngoài viewport -> Tuyệt đối không mount trailer
     if (!isDesktop || !isHeroVisible || !targetSlug) {
@@ -412,16 +414,20 @@ const HeroFeaturedInner: React.FC<{ movies?: HeroMovie[] }> = ({
 
     // Watchdog 8s (tăng từ 3.5s): Đủ thời gian cho mạng và handshake YouTube iframe
     // Không đánh dấu vĩnh viễn chỉ vì timeout, chỉ ghi nhận lần thử và unmount iframe để an toàn
+    // Watchdog không hủy iframe nếu iframe vẫn đang hoạt động (đã load xong) và chưa có lỗi xác nhận
     if (trailerWatchdogTimerRef.current) {
       clearTimeout(trailerWatchdogTimerRef.current);
     }
     trailerWatchdogTimerRef.current = setTimeout(() => {
       if (slideEpochRef.current !== currentEpoch) return;
-      if (targetSlug) {
-        retryCountMapRef.current[targetSlug] = (retryCountMapRef.current[targetSlug] || 0) + 1;
+      // Chỉ hủy khi iframe không tải được (chưa từng kích hoạt onLoad) hoặc có lỗi xác nhận
+      if (!isIframeLoadedRef.current || hasErrorRef.current) {
+        if (targetSlug) {
+          retryCountMapRef.current[targetSlug] = (retryCountMapRef.current[targetSlug] || 0) + 1;
+        }
+        setActiveTrailerId(null);
+        setIsTrailerReady(false);
       }
-      setActiveTrailerId(null);
-      setIsTrailerReady(false);
       trailerWatchdogTimerRef.current = null;
     }, 8000);
 
@@ -435,8 +441,9 @@ const HeroFeaturedInner: React.FC<{ movies?: HeroMovie[] }> = ({
         return;
       }
 
-      // 1. Video thực sự PLAYING -> hủy watchdog timer & fallback timer, fade-in trailer ngay lập tức
+      // 1. Video thực sự PLAYING -> xác nhận trạng thái phát, hủy watchdog timer & fallback timer, fade-in trailer ngay lập tức
       if (isYoutubePlayingMessage(e.data)) {
+        isVideoPlayingRef.current = true;
         if (trailerWatchdogTimerRef.current) {
           clearTimeout(trailerWatchdogTimerRef.current);
           trailerWatchdogTimerRef.current = null;

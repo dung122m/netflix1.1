@@ -1376,6 +1376,9 @@ export async function matchTmdbMoviesWithSources(
             },
             isActorFilmography: true,
             matchBy: matchType,
+            ...(typeof matchedCandidate.trailer_url === "string" && matchedCandidate.trailer_url.trim()
+              ? { trailer_url: matchedCandidate.trailer_url.trim() }
+              : {}),
           };
 
           // Lưu cache L1 RAM (TTL 60 phút)
