@@ -156,6 +156,96 @@ export function detectAdBoundaries(fragments: FragmentLike[]): AdBoundary[] {
   return boundaries;
 }
 
+/**
+ * Hằng số offset an toàn khi seek vượt qua khối quảng cáo (350ms).
+ * Đảm bảo playhead rơi dứt khoát vào segment phim đầu tiên, triệt tiêu 100%
+ * việc dính frame cuối hoặc I-frame của segment quảng cáo liền trước.
+ */
+export const SAFE_AD_SKIP_OFFSET = 0.35;
+
+/**
+ * Tính toán mốc seek an toàn vượt qua khối quảng cáo:
+ * - Cộng safeOffset (mặc định 0.35s) sau adEnd.
+ * - Kiểm tra giới hạn maxDuration: nếu thời lượng phim được cung cấp, không vượt quá (maxDuration - 0.5s).
+ * - Xử lý trường hợp có nhiều khối quảng cáo liên tiếp (chaining): nếu điểm rơi sau khi cộng offset
+ *   vẫn nằm trong một khối quảng cáo tiếp theo, tiếp tục nhảy qua khối đó.
+ */
+export function calculateSafeAdSkipTarget(
+  adEnd: number,
+  boundaries?: AdBoundary[],
+  maxDuration?: number,
+  safeOffset: number = SAFE_AD_SKIP_OFFSET
+): number {
+  if (!isFinite(adEnd) || adEnd < 0) return 0;
+  let target = Math.max(0, Math.round((adEnd + safeOffset) * 1000) / 1000);
+
+  // Kiểm tra chuỗi quảng cáo liên tiếp (ad chaining)
+  if (Array.isArray(boundaries) && boundaries.length > 0) {
+    let chained = true;
+    let iterations = 0;
+    while (chained && iterations < 5) {
+      iterations++;
+      const nextAd = boundaries.find(
+        (b) => target >= b.start && target <= b.end
+      );
+      if (nextAd) {
+        target = Math.max(0, Math.round((nextAd.end + safeOffset) * 1000) / 1000);
+      } else {
+        chained = false;
+      }
+    }
+  }
+
+  // Giới hạn an toàn không vượt quá thời lượng video
+  if (typeof maxDuration === "number" && isFinite(maxDuration) && maxDuration > 1) {
+    target = Math.min(target, Math.max(0, maxDuration - 0.5));
+  }
+
+  return target;
+}
+
+/**
+ * Đánh giá xem một mốc thời gian seek (do tua thủ công hoặc ScrubBar) có rơi vào giữa đoạn quảng cáo nào không.
+ * Nếu rơi vào [ad.start, ad.end], trả về mốc thời gian an toàn sau quảng cáo (đã cộng safeOffset và xử lý ad chaining).
+ * Nếu không nằm trong quảng cáo, trả về nguyên giá trị targetTime ban đầu.
+ */
+export function snapTimePastAdBoundaries(
+  targetTime: number,
+  boundaries?: AdBoundary[],
+  maxDuration?: number,
+  safeOffset: number = SAFE_AD_SKIP_OFFSET
+): {
+  snapped: boolean;
+  adjustedTime: number;
+  adKey: string | null;
+  adDuration: number;
+} {
+  if (
+    !Array.isArray(boundaries) ||
+    boundaries.length === 0 ||
+    !isFinite(targetTime) ||
+    targetTime < 0
+  ) {
+    return { snapped: false, adjustedTime: targetTime, adKey: null, adDuration: 0 };
+  }
+
+  const matchedAd = boundaries.find(
+    (b) => targetTime >= b.start && targetTime <= b.end
+  );
+
+  if (!matchedAd) {
+    return { snapped: false, adjustedTime: targetTime, adKey: null, adDuration: 0 };
+  }
+
+  const safeTarget = calculateSafeAdSkipTarget(matchedAd.end, boundaries, maxDuration, safeOffset);
+  return {
+    snapped: true,
+    adjustedTime: safeTarget,
+    adKey: `${matchedAd.start}_${matchedAd.end}`,
+    adDuration: Math.round(matchedAd.duration),
+  };
+}
+
 export interface AutoAdSkipDecision {
   shouldSeek: boolean;
   targetSeek: number;
@@ -167,7 +257,7 @@ export interface AutoAdSkipDecision {
  * Đánh giá quyết định tự động seek qua khối quảng cáo đã xác minh ranh giới.
  *
  * NGUYÊN TẮC:
- * 1. Chỉ seek khi currentTime chạm mốc [ad.start, ad.end - 0.25).
+ * 1. Chỉ seek khi currentTime chạm mốc [ad.start - safeLeadTime, ad.end).
  * 2. Không seek nếu video đang pause, ended, hoặc đang trong thao tác seek thủ công.
  * 3. Nếu không có bằng chứng quảng cáo (boundaries rỗng) hoặc không thỏa mãn điều kiện,
  *    trả về null để giữ nguyên playback tự nhiên, tuyệt đối không gián đoạn phim.
@@ -182,6 +272,8 @@ export function evaluateAutoAdSkipDecision(params: {
   isEnded?: boolean;
   isSeeking?: boolean;
   leadTime?: number;
+  safeOffset?: number;
+  maxDuration?: number;
 }): AutoAdSkipDecision | null {
   const {
     currentTime: ct,
@@ -193,6 +285,8 @@ export function evaluateAutoAdSkipDecision(params: {
     isEnded = false,
     isSeeking = false,
     leadTime = 0,
+    safeOffset = 0,
+    maxDuration,
   } = params;
 
   if (isPaused || isEnded || isSeeking || !Array.isArray(boundaries) || boundaries.length === 0) {
@@ -209,14 +303,18 @@ export function evaluateAutoAdSkipDecision(params: {
       hasSkippedSet.delete(adKey);
     } else if (
       ct >= ad.start - safeLeadTime &&
-      ct < ad.end - 0.25 &&
+      ct < ad.end &&
       !hasSkippedSet.has(adKey) &&
       now - lastSkipTime > 2000
     ) {
       hasSkippedSet.add(adKey);
+      const targetSeek = safeOffset > 0
+        ? calculateSafeAdSkipTarget(ad.end, boundaries, maxDuration, safeOffset)
+        : ad.end;
+
       return {
         shouldSeek: true,
-        targetSeek: ad.end,
+        targetSeek,
         adDuration: Math.round(ad.duration),
         adKey,
       };
@@ -247,12 +345,16 @@ export function evaluatePreRollAdDecision(params: {
   hasStartedInitialPlayback: boolean;
   boundaries: AdBoundary[];
   startThreshold?: number;
+  safeOffset?: number;
+  maxDuration?: number;
 }): PreRollAdDecision | null {
   const {
     targetProgress,
     hasStartedInitialPlayback,
     boundaries,
     startThreshold = 0.5,
+    safeOffset = 0,
+    maxDuration,
   } = params;
 
   if (hasStartedInitialPlayback || targetProgress > 0 || !Array.isArray(boundaries) || boundaries.length === 0) {
@@ -261,9 +363,13 @@ export function evaluatePreRollAdDecision(params: {
 
   const firstAd = boundaries[0];
   if (firstAd && typeof firstAd.start === "number" && firstAd.start <= startThreshold && firstAd.end > firstAd.start) {
+    const targetSeek = safeOffset > 0
+      ? calculateSafeAdSkipTarget(firstAd.end, boundaries, maxDuration, safeOffset)
+      : firstAd.end;
+
     return {
       shouldSkipPreRoll: true,
-      targetSeek: firstAd.end,
+      targetSeek,
       adDuration: Math.round(firstAd.duration),
       adKey: `${firstAd.start}_${firstAd.end}`,
     };
@@ -271,4 +377,5 @@ export function evaluatePreRollAdDecision(params: {
 
   return null;
 }
+
 

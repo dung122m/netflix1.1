@@ -1,3 +1,5 @@
+export type CollectionItemType = "movie" | "series" | "episode";
+
 export interface CollectionMovieItem {
   slug: string;
   title: string;
@@ -6,6 +8,12 @@ export interface CollectionMovieItem {
   quality?: string;
   category?: string;
   addedAt: number;
+  itemType?: CollectionItemType;
+  seriesSlug?: string;
+  seriesTitle?: string;
+  episodeSlug?: string;
+  episodeName?: string;
+  seasonName?: string;
 }
 
 export interface MovieCollection {

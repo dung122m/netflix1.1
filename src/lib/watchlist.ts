@@ -4,6 +4,8 @@ import {
   removeWatchlistItemFromCloud,
 } from "./cloudSync";
 
+export type WatchlistItemType = "movie" | "series" | "episode";
+
 export interface WatchlistItem {
   slug: string;
   title: string;
@@ -17,6 +19,12 @@ export interface WatchlistItem {
   country?: string;
   type_name?: string;
   addedAt: number;
+  itemType?: WatchlistItemType;
+  seriesSlug?: string;
+  seriesTitle?: string;
+  episodeSlug?: string;
+  episodeName?: string;
+  seasonName?: string;
 }
 
 const STORAGE_KEY = "nanaflix_watchlist_v1";
@@ -185,7 +193,13 @@ export async function autoHydrateWatchlist(): Promise<void> {
 
   isHydratingWatchlist = true;
   try {
-    const slugsToFetch = needHydration.map((i) => i.slug).join(",");
+    const slugsToFetch = Array.from(
+      new Set(
+        needHydration.map((i) =>
+          i.seriesSlug || (i.slug.includes("__ep__") ? i.slug.split("__ep__")[0] : i.slug)
+        )
+      )
+    ).join(",");
     const res = await fetch(`/api/movies/meta?slugs=${encodeURIComponent(slugsToFetch)}`);
     if (!res.ok) return;
 
@@ -195,14 +209,20 @@ export async function autoHydrateWatchlist(): Promise<void> {
     let hasChanges = false;
     const currentList = getWatchlist();
     const updatedList = currentList.map((item) => {
-      const meta = data.movies[item.slug];
+      const lookupKey = item.seriesSlug || (item.slug.includes("__ep__") ? item.slug.split("__ep__")[0] : item.slug);
+      const meta = data.movies[lookupKey] || data.movies[item.slug];
       if (!meta) return item;
 
       let changed = false;
       const updatedItem = { ...item };
 
-      if (meta.title && (!item.title || item.title === item.slug)) {
-        updatedItem.title = meta.title;
+      if (!item.title || item.title === item.slug) {
+        if (item.itemType === "episode" || item.episodeSlug || item.slug.includes("__ep__")) {
+          const epName = item.episodeName || (item.slug.includes("__ep__") ? item.slug.split("__ep__")[1] : "");
+          updatedItem.title = `${meta.title}${epName ? ` - ${epName}` : ""}`;
+        } else {
+          updatedItem.title = meta.title;
+        }
         changed = true;
       }
       const bestImg = meta.thumb || meta.poster;

@@ -111,7 +111,7 @@ function AdminDashboardContent() {
   const [comments, setComments] = useState<MovieComment[]>([]);
   const [collections, setCollections] = useState<MovieCollection[]>([]);
   const [rawUsers, setRawUsers] = useState<UserProfile[]>([]);
-  const [totalMemberCount, setTotalMemberCount] = useState(0);
+  const [totalMemberCount, setTotalMemberCount] = useState<number | null>(null);
   const [deviceHandoffs, setDeviceHandoffs] = useState<DeviceHandoffItem[]>([]);
   const [loadingData, setLoadingData] = useState(true);
 
@@ -251,16 +251,12 @@ function AdminDashboardContent() {
     };
   }, [isAdmin, activeTab]);
 
-  // 3. Members subscription & live watching: Chỉ kích hoạt khi ở tab "members"
+  // 3. Members subscription: Kích hoạt ngay khi Admin vào trang, độc lập với tab hiện tại
   useEffect(() => {
-    if (!isAdmin || activeTab !== "members") return;
+    if (!isAdmin) return;
 
     const unsubUsers = subscribeAllUsers(
       (items, dbTotalCount) => {
-        console.log("[AdminMembers] admin callback", {
-          usersLength: items.length,
-          totalCount: dbTotalCount,
-        });
         setRawUsers(items);
         setTotalMemberCount(dbTotalCount);
       },
@@ -269,11 +265,15 @@ function AdminDashboardContent() {
       }
     );
 
-    fetchAuthorizedHandoffs().catch(() => { });
-
     return () => {
       unsubUsers();
     };
+  }, [isAdmin]);
+
+  // 4. Live watching handoffs: Cập nhật khi ở tab "members"
+  useEffect(() => {
+    if (!isAdmin || activeTab !== "members") return;
+    fetchAuthorizedHandoffs().catch(() => { });
   }, [isAdmin, activeTab, fetchAuthorizedHandoffs]);
 
   // Derived: Enrich rawUsers (registered profiles only) with comment stats and device_handoffs
@@ -405,7 +405,7 @@ function AdminDashboardContent() {
         )
         : 0;
 
-    const uniqueUsers = totalMemberCount;
+    const uniqueUsers = totalMemberCount !== null ? totalMemberCount : 0;
     const uniqueMovies = new Set(comments.map((c) => c.movieSlug)).size;
     const spoilerCount = comments.filter((c) => c.isSpoiler).length;
     const flaggedCount = comments.filter((c) => c.isFlagged).length;
@@ -879,7 +879,11 @@ function AdminDashboardContent() {
               </div>
             </div>
             <div className="text-xl sm:text-2xl font-black text-white group-hover:scale-105 transition-transform origin-left">
-              {metrics.uniqueUsers}
+              {totalMemberCount === null ? (
+                <span className="text-gray-500 animate-pulse text-lg font-mono">—</span>
+              ) : (
+                metrics.uniqueUsers
+              )}
             </div>
             <p className="text-[10px] text-gray-400 mt-1 truncate">Thành viên ghi nhận</p>
           </div>
@@ -960,7 +964,7 @@ function AdminDashboardContent() {
             <Users size={14} />
             <span>Thành Viên</span>
             <span className="px-1.5 py-0.2 rounded-full bg-black/40 text-[10px] font-mono">
-              {totalMemberCount}
+              {totalMemberCount === null ? "—" : totalMemberCount}
             </span>
           </button>
 
@@ -1424,7 +1428,7 @@ function AdminDashboardContent() {
                     className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition cursor-pointer ${memberFilter === "all" ? "bg-white/15 text-white" : "text-gray-400 hover:text-white"
                       }`}
                   >
-                    Tất cả ({totalMemberCount})
+                    Tất cả ({totalMemberCount !== null ? totalMemberCount : "—"})
                   </button>
                   <button
                     type="button"
@@ -1468,7 +1472,7 @@ function AdminDashboardContent() {
             {/* COUNT HEADER */}
             <div className="flex items-center justify-between text-xs text-gray-400 px-1">
               <span>
-                Hiển thị <strong className="text-white">{filteredMembers.length}</strong> / {totalMemberCount} thành viên
+                Hiển thị <strong className="text-white">{filteredMembers.length}</strong> / {totalMemberCount !== null ? totalMemberCount : "—"} thành viên
               </span>
             </div>
 
@@ -1694,7 +1698,7 @@ function AdminDashboardContent() {
           <AdminAnalyticsTab
             metrics={metrics}
             adminEmail={user.email}
-            totalMembersCount={totalMemberCount}
+            totalMembersCount={totalMemberCount ?? 0}
           />
         )}
 

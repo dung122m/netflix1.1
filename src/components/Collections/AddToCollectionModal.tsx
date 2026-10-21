@@ -24,6 +24,12 @@ interface AddToCollectionModalProps {
     year?: string | number;
     quality?: string;
     category?: string;
+    itemType?: "movie" | "series" | "episode";
+    seriesSlug?: string;
+    seriesTitle?: string;
+    episodeSlug?: string;
+    episodeName?: string;
+    seasonName?: string;
   };
 }
 
@@ -105,6 +111,12 @@ export const AddToCollectionModal: React.FC<AddToCollectionModalProps> = ({
           year: movie.year,
           quality: movie.quality,
           category: movie.category,
+          itemType: movie.itemType,
+          seriesSlug: movie.seriesSlug,
+          seriesTitle: movie.seriesTitle,
+          episodeSlug: movie.episodeSlug,
+          episodeName: movie.episodeName,
+          seasonName: movie.seasonName,
         });
         setCollections((prev) =>
           prev.map((col) =>
@@ -120,6 +132,12 @@ export const AddToCollectionModal: React.FC<AddToCollectionModalProps> = ({
                       quality: movie.quality,
                       category: movie.category,
                       addedAt: Date.now(),
+                      itemType: movie.itemType,
+                      seriesSlug: movie.seriesSlug,
+                      seriesTitle: movie.seriesTitle,
+                      episodeSlug: movie.episodeSlug,
+                      episodeName: movie.episodeName,
+                      seasonName: movie.seasonName,
                     },
                     ...col.movies,
                   ],

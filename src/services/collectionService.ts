@@ -43,6 +43,19 @@ export function normalizeCollection(raw: unknown): MovieCollection | null {
         const slug = String(m.slug || "").trim();
         const title = String(m.title || "").trim();
         if (slug && title) {
+          const rawItemType = m.itemType && ["movie", "series", "episode"].includes(String(m.itemType))
+            ? (String(m.itemType) as "movie" | "series" | "episode")
+            : (slug.includes("__ep__") ? "episode" : undefined);
+          const rawSeriesSlug = m.seriesSlug
+            ? String(m.seriesSlug).trim()
+            : (slug.includes("__ep__") ? slug.split("__ep__")[0] : undefined);
+          const rawSeriesTitle = m.seriesTitle ? String(m.seriesTitle).trim() : undefined;
+          const rawEpisodeSlug = m.episodeSlug
+            ? String(m.episodeSlug).trim()
+            : (slug.includes("__ep__") ? slug.split("__ep__")[1] : undefined);
+          const rawEpisodeName = m.episodeName ? String(m.episodeName).trim() : undefined;
+          const rawSeasonName = m.seasonName ? String(m.seasonName).trim() : undefined;
+
           movies.push({
             slug,
             title,
@@ -51,6 +64,12 @@ export function normalizeCollection(raw: unknown): MovieCollection | null {
             quality: m.quality ? String(m.quality) : undefined,
             category: m.category ? String(m.category) : undefined,
             addedAt: Number(m.addedAt || m.added_at) || Date.now(),
+            itemType: rawItemType,
+            seriesSlug: rawSeriesSlug,
+            seriesTitle: rawSeriesTitle,
+            episodeSlug: rawEpisodeSlug,
+            episodeName: rawEpisodeName,
+            seasonName: rawSeasonName,
           });
         }
       }

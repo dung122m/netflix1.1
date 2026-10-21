@@ -9,6 +9,9 @@ import { useWatchController } from "./WatchController";
 import { ScrollablePillsRow } from "@/components/ui/ScrollablePillsRow";
 import { getMovieEpisodesProgress } from "@/lib/watchHistory";
 
+import WatchlistButton from "@/components/WatchlistButton";
+import AddToCollectionButton from "@/components/Collections/AddToCollectionButton";
+
 const CHUNK_SIZE = 25;
 
 interface EpisodeItem {
@@ -23,6 +26,11 @@ interface EpisodeListProps {
   episodes?: EpisodeItem[];
   activeEpisodeSlug?: string;
   onSelectEpisode?: (slug: string) => void;
+  movieTitle?: string;
+  moviePoster?: string;
+  movieYear?: number | string;
+  movieQuality?: string;
+  movieCategory?: string;
 }
 
 /**
@@ -53,11 +61,22 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(function Episo
   episodes: propEpisodes = [],
   activeEpisodeSlug: propActiveEpisodeSlug,
   onSelectEpisode,
+  movieTitle: propMovieTitle,
+  moviePoster: propMoviePoster,
+  movieYear: propMovieYear,
+  movieQuality: propMovieQuality,
+  movieCategory: propMovieCategory,
 }) {
   const watchContext = useWatchController();
   const episodes = watchContext?.episodes ?? propEpisodes;
   const activeEpisodeSlug = watchContext?.activeEpisodeSlug ?? propActiveEpisodeSlug;
   const switchEpisode = watchContext?.switchEpisode ?? onSelectEpisode;
+
+  const movieTitle = watchContext?.movieTitle || propMovieTitle || movieSlug;
+  const moviePoster = watchContext?.posterUrl || propMoviePoster || "/default-poster.jpg";
+  const movieYear = watchContext?.year || propMovieYear;
+  const movieQuality = watchContext?.quality || propMovieQuality;
+  const movieCategory = watchContext?.category || propMovieCategory;
 
   const [watchedList, setWatchedList] = useState<string[]>([]);
   const [episodesProgress, setEpisodesProgress] = useState<
@@ -69,6 +88,10 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(function Episo
   const activeEpisodeIndex = useMemo(() => {
     return episodes.findIndex((tap) => tap.slug === activeEpisodeSlug);
   }, [episodes, activeEpisodeSlug]);
+
+  const currentActiveEpisode = useMemo(() => {
+    return episodes.find((tap) => tap.slug === activeEpisodeSlug) || (activeEpisodeIndex >= 0 ? episodes[activeEpisodeIndex] : undefined);
+  }, [episodes, activeEpisodeSlug, activeEpisodeIndex]);
 
   const initialChunk = useMemo(() => {
     if (activeEpisodeIndex >= 0) {
@@ -234,6 +257,57 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(function Episo
               <X className="w-3.5 h-3.5" />
             </button>
           )}
+        </div>
+      )}
+
+      {/* THANH ĐIỀU KHIỂN LƯU TẬP PHIM ĐANG CHỌN */}
+      {currentActiveEpisode?.slug && episodes.length > 1 && (
+        <div className="flex items-center justify-between gap-2 px-3 py-2 rounded-xl bg-gradient-to-r from-zinc-900/90 to-zinc-950/90 border border-white/10 text-xs shadow-sm">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse flex-shrink-0" />
+            <span className="text-gray-300 truncate text-[11px] sm:text-xs">
+              Tập đang chọn: <span className="text-white font-semibold">{currentActiveEpisode.name || currentActiveEpisode.slug}</span>
+            </span>
+          </div>
+          <div className="flex items-center gap-1.5 flex-shrink-0">
+            <WatchlistButton
+              movie={{
+                slug: `${movieSlug}__ep__${currentActiveEpisode.slug}`,
+                title: `${movieTitle} - ${currentActiveEpisode.name || currentActiveEpisode.slug}`,
+                poster: moviePoster,
+                imageUrl: moviePoster,
+                year: movieYear,
+                quality: movieQuality,
+                category: movieCategory,
+                itemType: "episode",
+                seriesSlug: movieSlug,
+                seriesTitle: movieTitle,
+                episodeSlug: currentActiveEpisode.slug,
+                episodeName: currentActiveEpisode.name || currentActiveEpisode.slug,
+              }}
+              variant="player"
+              className="!px-2 !py-1 text-[11px]"
+              label="Lưu tập"
+            />
+            <AddToCollectionButton
+              movie={{
+                slug: `${movieSlug}__ep__${currentActiveEpisode.slug}`,
+                title: `${movieTitle} - ${currentActiveEpisode.name || currentActiveEpisode.slug}`,
+                poster: moviePoster,
+                year: movieYear,
+                quality: movieQuality,
+                category: movieCategory,
+                itemType: "episode",
+                seriesSlug: movieSlug,
+                seriesTitle: movieTitle,
+                episodeSlug: currentActiveEpisode.slug,
+                episodeName: currentActiveEpisode.name || currentActiveEpisode.slug,
+              }}
+              variant="player"
+              className="!px-2 !py-1 text-[11px]"
+              label="Bộ sưu tập"
+            />
+          </div>
         </div>
       )}
 

@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import { MediaCard } from "@/components/browse/MediaCard";
 import { getPublicCollection } from "@/services/collectionService";
-import { MovieCollection, CollectionMovieItem } from "@/types/collection";
+import { MovieCollection } from "@/types/collection";
 import { addToWatchlist } from "@/lib/watchlist";
 import { toast } from "@/components/Toast";
 import { UserAvatar } from "@/components/ui/UserAvatar";
@@ -86,8 +86,17 @@ export function CollectionClientView({
           slug: m.slug,
           title: m.title,
           imageUrl: m.poster,
+          poster: m.poster,
           genre: m.category,
+          category: m.category,
           year: m.year,
+          quality: m.quality,
+          itemType: m.itemType,
+          seriesSlug: m.seriesSlug,
+          seriesTitle: m.seriesTitle,
+          episodeSlug: m.episodeSlug,
+          episodeName: m.episodeName,
+          seasonName: m.seasonName,
         });
         count++;
       }
@@ -307,6 +316,12 @@ export function CollectionClientView({
                     year={item.year}
                     quality={item.quality}
                     priority={index < 4}
+                    itemType={item.itemType}
+                    seriesSlug={item.seriesSlug}
+                    seriesTitle={item.seriesTitle}
+                    episodeSlug={item.episodeSlug}
+                    episodeName={item.episodeName}
+                    seasonName={item.seasonName}
                   />
                 ))}
               </div>

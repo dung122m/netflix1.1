@@ -1,7 +1,6 @@
 import { Redis } from "@upstash/redis";
 import { supabase } from "@/lib/supabase";
 import { getSupabaseAdmin, isSupabaseAdminConfigured } from "@/lib/supabaseAdmin";
-import { cacheService } from "@/lib/cache";
 import { AnalyticsEventPayload } from "@/lib/analyticsClient";
 
 export interface StoredAnalyticsEvent {
@@ -509,6 +508,69 @@ export function getHourVietnam(timestampMs: number): number {
   return vnDate.getUTCHours();
 }
 
+export interface ResolvedVisitorIdentity {
+  isUser: boolean;
+  effectiveUserId?: string;
+  anonymousId?: string;
+  identityKey: string;
+}
+
+/**
+ * Builds an anonymousId -> userId mapping based on authenticated events.
+ * Events are sorted chronologically so the most recent authenticated session takes precedence.
+ */
+export function buildAnonymousToUserMap(
+  events: Array<{ userId?: string; anonymousId?: string; createdAt?: number }>
+): Map<string, string> {
+  const map = new Map<string, string>();
+  const sorted = [...events].sort((a, b) => (Number(a.createdAt) || 0) - (Number(b.createdAt) || 0));
+  for (const ev of sorted) {
+    const uid = ev.userId?.trim();
+    const aid = ev.anonymousId?.trim();
+    if (uid && aid) {
+      map.set(aid, uid);
+    }
+  }
+  return map;
+}
+
+/**
+ * Normalizes an event's identity according to unified analytics rules:
+ * 1. If ev.userId is present -> User (user:${userId}).
+ * 2. If ev.userId is missing, but ev.anonymousId is mapped to a known userId -> User (user:${mappedUserId}).
+ * 3. If ev.userId is missing, and ev.anonymousId is unmapped -> Guest (guest:${anonymousId}).
+ * 4. If both are missing or empty -> null (insufficient identity data, never merged).
+ */
+export function resolveVisitorIdentity(
+  ev: { userId?: string; anonymousId?: string },
+  anonToUserMap: Map<string, string>
+): ResolvedVisitorIdentity | null {
+  const rawUserId = ev.userId?.trim();
+  const rawAnonymousId = ev.anonymousId?.trim();
+
+  const mappedUserId = rawAnonymousId ? anonToUserMap.get(rawAnonymousId) : undefined;
+  const effectiveUserId = rawUserId || mappedUserId;
+
+  if (effectiveUserId) {
+    return {
+      isUser: true,
+      effectiveUserId,
+      anonymousId: rawAnonymousId || undefined,
+      identityKey: `user:${effectiveUserId}`,
+    };
+  }
+
+  if (rawAnonymousId) {
+    return {
+      isUser: false,
+      anonymousId: rawAnonymousId,
+      identityKey: `guest:${rawAnonymousId}`,
+    };
+  }
+
+  return null;
+}
+
 /**
  * Fetch and aggregate analytics dashboard statistics
  */
@@ -640,6 +702,9 @@ export async function getAnalyticsDashboardStats(
   // Filter events by timeframe
   const filteredEvents = rawEvents.filter((ev) => ev.createdAt >= cutoffTimestamp);
 
+  // Map anonymousId -> userId across all available events to reliably link anonymous sessions
+  const anonToUserMap = buildAnonymousToUserMap(rawEvents);
+
   // Aggregate metrics
   const totalVisits = filteredEvents.length;
   const uniqueAll = new Set<string>();
@@ -668,25 +733,26 @@ export async function getAnalyticsDashboardStats(
   const cityMap = new Map<string, { country: string; count: number }>();
 
   for (const ev of filteredEvents) {
-    const viewerKey = ev.userId || ev.anonymousId;
+    const resolved = resolveVisitorIdentity(ev, anonToUserMap);
+    if (!resolved) continue;
 
-    uniqueAll.add(viewerKey);
-    if (ev.userId) {
-      uniqueUsers.add(ev.userId);
-    } else if (ev.anonymousId) {
-      uniqueGuests.add(ev.anonymousId);
+    uniqueAll.add(resolved.identityKey);
+    if (resolved.isUser && resolved.effectiveUserId) {
+      uniqueUsers.add(resolved.effectiveUserId);
+    } else if (resolved.anonymousId) {
+      uniqueGuests.add(resolved.anonymousId);
     }
 
-    if (!ev.userId && ev.anonymousId && ev.createdAt >= activeThreshold) {
-      activeGuestSet.add(ev.anonymousId);
+    // Active guest: CHỈ tính nếu là guest thật (không liên kết với bất kỳ user nào) và có hoạt động trong 30 phút
+    if (!resolved.isUser && resolved.anonymousId && ev.createdAt >= activeThreshold) {
+      activeGuestSet.add(resolved.anonymousId);
     }
 
     // Devices & platforms
     const devType = (ev.deviceType || "desktop") as "desktop" | "mobile" | "tablet";
     const osName = ev.os || "Other";
     const browserName = ev.browser || "Other";
-    const identityPrefix = ev.userId ? `user:${ev.userId}` : `guest:${ev.anonymousId}`;
-    const deviceIdentityKey = `${identityPrefix}:${devType}:${osName}:${browserName}`;
+    const deviceIdentityKey = `${resolved.identityKey}:${devType}:${osName}:${browserName}`;
 
     if (!seenDeviceIdentities.has(deviceIdentityKey)) {
       seenDeviceIdentities.add(deviceIdentityKey);
@@ -710,7 +776,7 @@ export async function getAnalyticsDashboardStats(
       uniqueViewers: new Set<string>(),
     };
     existingPage.views++;
-    existingPage.uniqueViewers.add(viewerKey);
+    existingPage.uniqueViewers.add(resolved.identityKey);
     pageViewsMap.set(pageGroup, existingPage);
 
     // Hourly visit activity in Vietnam (UTC+7)
@@ -739,7 +805,10 @@ export async function getAnalyticsDashboardStats(
   const todayVisitorSet = new Set<string>();
   for (const ev of rawEvents) {
     if (ev.createdAt >= todayStartMs) {
-      todayVisitorSet.add(ev.userId || ev.anonymousId);
+      const resolved = resolveVisitorIdentity(ev, anonToUserMap);
+      if (resolved) {
+        todayVisitorSet.add(resolved.identityKey);
+      }
     }
   }
 
@@ -1151,13 +1220,8 @@ export async function getDailyVisitorsStats(dateStr?: string): Promise<DailyVisi
 
   const allEvents = Array.from(eventMap.values());
 
-  // 4. Map anonymousId -> userId for sessions in the same day that transitioned from Guest to Logged-in User
-  const anonToUserMap = new Map<string, string>();
-  for (const ev of allEvents) {
-    if (ev.userId && ev.userId.trim() && ev.anonymousId) {
-      anonToUserMap.set(ev.anonymousId, ev.userId.trim());
-    }
-  }
+  // 4. Map anonymousId -> userId for sessions using shared normalization rules
+  const anonToUserMap = buildAnonymousToUserMap(allEvents);
 
   // 5. Group by Unique Visitor Identity
   interface VisitorGroup {
@@ -1170,20 +1234,18 @@ export async function getDailyVisitorsStats(dateStr?: string): Promise<DailyVisi
   const visitorGroupMap = new Map<string, VisitorGroup>();
 
   for (const ev of allEvents) {
-    const rawUserId = ev.userId?.trim();
-    const effectiveUserId = rawUserId || (ev.anonymousId ? anonToUserMap.get(ev.anonymousId) : undefined);
-    const isUser = Boolean(effectiveUserId);
-    const groupKey = isUser ? `user:${effectiveUserId}` : `guest:${ev.anonymousId}`;
+    const resolved = resolveVisitorIdentity(ev, anonToUserMap);
+    if (!resolved) continue;
 
-    let group = visitorGroupMap.get(groupKey);
+    let group = visitorGroupMap.get(resolved.identityKey);
     if (!group) {
       group = {
-        type: isUser ? "user" : "guest",
-        userId: effectiveUserId,
-        anonymousId: ev.anonymousId,
+        type: resolved.isUser ? "user" : "guest",
+        userId: resolved.effectiveUserId,
+        anonymousId: resolved.anonymousId || ev.anonymousId,
         events: [],
       };
-      visitorGroupMap.set(groupKey, group);
+      visitorGroupMap.set(resolved.identityKey, group);
     }
     group.events.push(ev);
   }

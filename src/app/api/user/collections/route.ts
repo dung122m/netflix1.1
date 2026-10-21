@@ -13,13 +13,19 @@ export interface SanitizedMovieItem {
   quality?: string;
   category?: string;
   addedAt: number;
+  itemType?: "movie" | "series" | "episode";
+  seriesSlug?: string;
+  seriesTitle?: string;
+  episodeSlug?: string;
+  episodeName?: string;
+  seasonName?: string;
 }
 
 /**
  * Chuẩn hóa và loại bỏ phim trùng slug ở cấp độ Server API
  * - Chuẩn hóa slug (trim, case-insensitive khi kiểm tra trùng)
  * - Bảo tồn thứ tự phim xuất hiện ban đầu
- * - Giữ trọn vẹn metadata hợp lệ (poster, year, quality, category, addedAt)
+ * - Giữ trọn vẹn metadata hợp lệ (poster, year, quality, category, addedAt, itemType, seriesSlug, episodeSlug...)
  * - Loại bỏ các item rỗng hoặc thiếu slug/title
  */
 export function sanitizeAndDeduplicateMovies(rawMovies: unknown): SanitizedMovieItem[] {
@@ -48,6 +54,19 @@ export function sanitizeAndDeduplicateMovies(rawMovies: unknown): SanitizedMovie
     const category = m.category ? String(m.category).trim() : undefined;
     const addedAt = Number(m.addedAt ?? m.added_at) || Date.now();
 
+    const itemType = m.itemType && ["movie", "series", "episode"].includes(String(m.itemType))
+      ? (String(m.itemType) as "movie" | "series" | "episode")
+      : (slug.includes("__ep__") ? "episode" : undefined);
+    const seriesSlug = m.seriesSlug
+      ? String(m.seriesSlug).trim()
+      : (slug.includes("__ep__") ? slug.split("__ep__")[0] : undefined);
+    const seriesTitle = m.seriesTitle ? sanitizeSafeText(String(m.seriesTitle), 200) : undefined;
+    const episodeSlug = m.episodeSlug
+      ? String(m.episodeSlug).trim()
+      : (slug.includes("__ep__") ? slug.split("__ep__")[1] : undefined);
+    const episodeName = m.episodeName ? sanitizeSafeText(String(m.episodeName), 100) : undefined;
+    const seasonName = m.seasonName ? sanitizeSafeText(String(m.seasonName), 100) : undefined;
+
     sanitized.push({
       slug,
       title: sanitizeSafeText(title, 200),
@@ -56,6 +75,12 @@ export function sanitizeAndDeduplicateMovies(rawMovies: unknown): SanitizedMovie
       quality: quality || undefined,
       category: category || undefined,
       addedAt,
+      itemType,
+      seriesSlug,
+      seriesTitle,
+      episodeSlug,
+      episodeName,
+      seasonName,
     });
   }
 

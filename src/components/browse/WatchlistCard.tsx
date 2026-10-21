@@ -26,6 +26,12 @@ export interface WatchlistCardProps {
   country?: string;
   type_name?: string;
   priority?: boolean;
+  itemType?: "movie" | "series" | "episode";
+  seriesSlug?: string;
+  seriesTitle?: string;
+  episodeSlug?: string;
+  episodeName?: string;
+  seasonName?: string;
 }
 
 export const WatchlistCard: React.FC<WatchlistCardProps> = ({
@@ -38,7 +44,14 @@ export const WatchlistCard: React.FC<WatchlistCardProps> = ({
   quality,
   time,
   country,
+  type_name,
   priority = false,
+  itemType,
+  seriesSlug,
+  seriesTitle,
+  episodeSlug,
+  episodeName,
+  seasonName,
 }) => {
   const { user } = useAuth();
   const [showCollectionModal, setShowCollectionModal] = useState(false);
@@ -103,6 +116,27 @@ export const WatchlistCard: React.FC<WatchlistCardProps> = ({
   const displayYear = year ? String(year).trim() : "";
   const displayQuality = quality && !quality.includes("N/A") ? quality.trim().toUpperCase() : "";
 
+  const isEpisode = itemType === "episode" || Boolean(episodeSlug) || slug.includes("__ep__");
+  const isSeries = itemType === "series" || type_name === "series" || (genre && genre.toLowerCase().includes("series"));
+
+  const targetHref = React.useMemo(() => {
+    if (isEpisode) {
+      const sSlug = seriesSlug || (slug.includes("__ep__") ? slug.split("__ep__")[0] : slug);
+      const epSlug = episodeSlug || (slug.includes("__ep__") ? slug.split("__ep__")[1] : "");
+      return epSlug ? `/movies/${sSlug}?ep=${encodeURIComponent(epSlug)}` : `/movies/${sSlug}`;
+    }
+    return `/movies/${slug}`;
+  }, [isEpisode, seriesSlug, episodeSlug, slug]);
+
+  const episodeBadgeText = React.useMemo(() => {
+    if (!isEpisode) return null;
+    if (episodeName) return episodeName;
+    const epSlug = episodeSlug || (slug.includes("__ep__") ? slug.split("__ep__")[1] : "");
+    if (!epSlug) return "Tập phim";
+    const numMatch = epSlug.match(/(\d+)/);
+    return numMatch ? `Tập ${numMatch[1]}` : epSlug;
+  }, [isEpisode, episodeName, episodeSlug, slug]);
+
   if (isRemoving) {
     return null;
   }
@@ -112,7 +146,7 @@ export const WatchlistCard: React.FC<WatchlistCardProps> = ({
       {/* 1. KHỐI POSTER NGHỆ THUẬT (2:3 CANVASS) */}
       <div className="relative aspect-[2/3] w-full overflow-hidden bg-zinc-950">
         <Link
-          href={`/movies/${slug}`}
+          href={targetHref}
           className="block absolute inset-0 z-0 outline-none focus-visible:ring-2 focus-visible:ring-white"
           aria-label={`Xem phim ${title}`}
         >
@@ -178,7 +212,7 @@ export const WatchlistCard: React.FC<WatchlistCardProps> = ({
 
         {/* NÚT PLAY HERO Ở TRUNG TÂM KHI HOVER */}
         <Link
-          href={`/movies/${slug}`}
+          href={targetHref}
           tabIndex={-1}
           aria-hidden="true"
           className="absolute inset-0 flex items-center justify-center pointer-events-none"
@@ -187,6 +221,21 @@ export const WatchlistCard: React.FC<WatchlistCardProps> = ({
             <Play className="w-5 h-5 sm:w-6 sm:h-6 fill-white ml-0.5" />
           </div>
         </Link>
+
+        {/* HUY HIỆU TẬP / SERIES (GÓC DƯỚI TRÁI) */}
+        {isEpisode && episodeBadgeText ? (
+          <div className="absolute bottom-2.5 left-2.5 z-10 pointer-events-none">
+            <span className="inline-flex items-center px-2 py-0.5 rounded text-[9px] sm:text-[10px] font-bold uppercase tracking-wider bg-amber-500 text-black shadow-md border border-amber-300/40">
+              {episodeBadgeText}
+            </span>
+          </div>
+        ) : !isEpisode && isSeries ? (
+          <div className="absolute bottom-2.5 left-2.5 z-10 pointer-events-none">
+            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] sm:text-[10px] font-bold uppercase tracking-wider bg-purple-600/90 text-white shadow-md border border-purple-400/30">
+              Trọn bộ
+            </span>
+          </div>
+        ) : null}
 
         {/* HUY HIỆU ĐỊNH DẠNG / CHẤT LƯỢNG GÓC DƯỚI */}
         {displayQuality && (
@@ -202,7 +251,7 @@ export const WatchlistCard: React.FC<WatchlistCardProps> = ({
       <div className="p-3 sm:p-3.5 flex flex-col justify-between flex-1 gap-2.5 bg-gradient-to-b from-zinc-900/90 to-zinc-950">
         <div>
           <Link
-            href={`/movies/${slug}`}
+            href={targetHref}
             className="block text-white font-bold text-xs sm:text-sm line-clamp-1 group-hover:text-red-400 transition-colors"
             title={title}
           >
@@ -233,7 +282,7 @@ export const WatchlistCard: React.FC<WatchlistCardProps> = ({
 
         {/* Nút Xem phim trực tiếp */}
         <Link
-          href={`/movies/${slug}`}
+          href={targetHref}
           className="inline-flex items-center justify-center gap-1.5 w-full py-1.5 sm:py-2 rounded-xl bg-white/10 hover:bg-netflix-red text-white text-xs font-semibold border border-white/10 hover:border-netflix-red transition-all duration-200 shadow-sm active:scale-95"
         >
           <Play className="w-3.5 h-3.5 fill-current" />
@@ -253,6 +302,12 @@ export const WatchlistCard: React.FC<WatchlistCardProps> = ({
             year,
             quality,
             category: genre,
+            itemType,
+            seriesSlug,
+            seriesTitle,
+            episodeSlug,
+            episodeName,
+            seasonName,
           }}
         />
       )}

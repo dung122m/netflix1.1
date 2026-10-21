@@ -1,14 +1,17 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
+import { useWatchController } from "./WatchController";
 
 interface PlayerScrubBarProps {
   videoRef: React.RefObject<HTMLVideoElement | null>;
   isNativeVideo: boolean;
   knownDuration?: number;
+  posterUrl?: string;
   onSeekFeedback?: (text: string) => void;
   onScrubStart?: () => void;
   onScrubEnd?: () => void;
+  onSeek?: (time: number) => void;
 }
 
 export const formatTime = (secs: number) => {
@@ -86,16 +89,23 @@ export const PlayerScrubBar: React.FC<PlayerScrubBarProps> = ({
   videoRef,
   isNativeVideo,
   knownDuration,
+  posterUrl: propPosterUrl,
   onSeekFeedback,
   onScrubStart,
   onScrubEnd,
+  onSeek,
 }) => {
+  const watchContext = useWatchController();
+  const posterUrl = propPosterUrl || watchContext?.posterUrl;
+
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState<number>(() => knownDuration || 0);
   const [buffered, setBuffered] = useState(0);
   const [isScrubbing, setIsScrubbing] = useState(false);
   const [hoverTime, setHoverTime] = useState<number | null>(null);
   const [hoverPos, setHoverPos] = useState<number>(0);
+  const [clampedHoverPos, setClampedHoverPos] = useState<number>(0);
+  const [isTouchDevice, setIsTouchDevice] = useState(false);
 
   const barRef = useRef<HTMLDivElement>(null);
   const durationRef = useRef<number>(duration);
@@ -188,6 +198,9 @@ export const PlayerScrubBar: React.FC<PlayerScrubBarProps> = ({
 
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     if (e.button !== 0 && e.pointerType === "mouse") return;
+    if (e.pointerType === "touch") {
+      setIsTouchDevice(true);
+    }
     isScrubbingRef.current = true;
     setIsScrubbing(true);
     onScrubStart?.();
@@ -217,7 +230,11 @@ export const PlayerScrubBar: React.FC<PlayerScrubBarProps> = ({
 
       if (scrubTargetTimeRef.current !== null && videoRef.current) {
         const finalTime = scrubTargetTimeRef.current;
-        videoRef.current.currentTime = finalTime;
+        if (onSeek) {
+          onSeek(finalTime);
+        } else {
+          videoRef.current.currentTime = finalTime;
+        }
         setCurrentTime(finalTime);
         scrubTargetTimeRef.current = null;
       }
@@ -237,11 +254,25 @@ export const PlayerScrubBar: React.FC<PlayerScrubBarProps> = ({
   };
 
   const handlePointerMoveHover = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (!barRef.current || !duration) return;
+    if (e.pointerType === "touch") {
+      setIsTouchDevice(true);
+      return;
+    }
+    if (!barRef.current || !duration || duration <= 0 || !isFinite(duration)) return;
     const rect = barRef.current.getBoundingClientRect();
-    const pos = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-    setHoverPos(e.clientX - rect.left);
-    setHoverTime(pos * duration);
+    if (rect.width <= 0) return;
+
+    const rawPos = Math.max(0, Math.min(rect.width, e.clientX - rect.left));
+    const posRatio = rawPos / rect.width;
+
+    // Giới hạn an toàn để khung preview không bị tràn lề trái/phải màn hình
+    // Khung có độ rộng tối đa 176px (halfWidth = 88px) trên desktop, cộng lề an toàn 6px
+    const cardHalfWidth = 88;
+    const clampedPos = Math.max(cardHalfWidth + 6, Math.min(rect.width - cardHalfWidth - 6, rawPos));
+
+    setHoverPos(rawPos);
+    setClampedHoverPos(clampedPos);
+    setHoverTime(posRatio * duration);
   };
 
   const handleMouseLeave = () => {
@@ -288,13 +319,53 @@ export const PlayerScrubBar: React.FC<PlayerScrubBarProps> = ({
             />
           </div>
 
-          {/* Hover preview tooltip */}
-          {hoverTime !== null && (
+          {/* NÂNG CẤP TOOLTIP CONTAINER: UI FOUNDATION CHO PREVIEW TRONG TƯƠNG LAI */}
+          {hoverTime !== null && !isTouchDevice && (
             <div
-              className="absolute -top-7 -translate-x-1/2 px-1.5 py-0.5 rounded bg-zinc-950/95 text-[10px] font-mono font-bold text-white border border-white/20 shadow-xl backdrop-blur-sm"
-              style={{ left: `${hoverPos}px` }}
+              className="absolute bottom-full mb-3 -translate-x-1/2 flex flex-col items-center pointer-events-none z-30 transition-all duration-150 select-none"
+              style={{ left: `${clampedHoverPos}px` }}
             >
-              {formatTime(hoverTime)}
+              {/* Khung Preview chuẩn tỷ lệ 16:9, viền mờ cao cấp chuẩn Netflix/YouTube */}
+              <div className="w-36 sm:w-44 p-1 rounded-xl bg-zinc-950/95 border border-white/20 shadow-[0_10px_35px_rgba(0,0,0,0.9)] backdrop-blur-md overflow-hidden flex flex-col items-center">
+                <div className="relative w-full aspect-video rounded-lg overflow-hidden bg-gradient-to-tr from-zinc-900 via-zinc-800/80 to-zinc-950 border border-white/10 flex items-center justify-center">
+                  {posterUrl ? (
+                    <>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={posterUrl}
+                        alt=""
+                        className="w-full h-full object-cover opacity-80"
+                        loading="lazy"
+                        onError={(err) => {
+                          (err.currentTarget as HTMLElement).style.display = "none";
+                        }}
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent pointer-events-none" />
+                    </>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center gap-1 text-white/30">
+                      <div className="w-5 h-5 rounded-full border border-white/10 bg-white/5 flex items-center justify-center">
+                        <span className="text-[9px] font-bold">▶</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Huy hiệu thời gian tương phản cao đặt tại đáy khung xem trước */}
+                  <div className="absolute bottom-1 inset-x-1 flex justify-center pointer-events-none">
+                    <span className="px-2 py-0.5 rounded-md bg-black/85 text-[11px] sm:text-xs font-mono font-bold text-white border border-white/20 shadow-md tracking-wider">
+                      {formatTime(hoverTime)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Mũi tên định vị (Notch) chỉ chính xác vào tọa độ chuột trên thanh ScrubBar */}
+              <div
+                className="w-2.5 h-2.5 bg-zinc-950 border-r border-b border-white/20 rotate-45 -mt-1 shadow-sm"
+                style={{
+                  transform: `translateX(${Math.max(-75, Math.min(75, hoverPos - clampedHoverPos))}px) rotate(45deg)`,
+                }}
+              />
             </div>
           )}
         </div>

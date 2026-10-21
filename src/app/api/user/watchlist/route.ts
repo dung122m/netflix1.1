@@ -35,15 +35,30 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }
 
-    const items = (data || []).map((row) => ({
-      slug: row.slug,
-      title: row.title,
-      poster: row.poster,
-      year: row.year ? Number(row.year) : undefined,
-      quality: row.quality || "HD",
-      category: row.category || "Phim Hay",
-      addedAt: Number(row.added_at) || Date.now(),
-    }));
+    const items = (data || []).map((row) => {
+      const slug = String(row.slug || "");
+      const isEpisode = slug.includes("__ep__");
+      let seriesSlug: string | undefined = undefined;
+      let episodeSlug: string | undefined = undefined;
+      if (isEpisode) {
+        const parts = slug.split("__ep__");
+        seriesSlug = parts[0];
+        episodeSlug = parts[1];
+      }
+      return {
+        slug: row.slug,
+        title: row.title,
+        poster: row.poster,
+        imageUrl: row.poster || "/default-poster.jpg",
+        year: row.year ? Number(row.year) : undefined,
+        quality: row.quality || "HD",
+        category: row.category || "Phim Hay",
+        addedAt: Number(row.added_at) || Date.now(),
+        itemType: isEpisode ? ("episode" as const) : undefined,
+        seriesSlug,
+        episodeSlug,
+      };
+    });
 
     return NextResponse.json({ success: true, items });
   } catch (err) {
@@ -80,10 +95,10 @@ export async function POST(req: NextRequest) {
         user_id: userId,
         slug: String(item.slug),
         title: String(item.title || item.slug),
-        poster: item.poster ? String(item.poster) : null,
+        poster: item.poster ? String(item.poster) : (item.imageUrl ? String(item.imageUrl) : null),
         year: item.year ? Number(item.year) : null,
         quality: String(item.quality || "HD"),
-        category: String(item.category || "Phim Hay"),
+        category: String(item.category || item.genre || "Phim Hay"),
         added_at: item.addedAt ? Number(item.addedAt) : now,
       }));
 

@@ -132,10 +132,20 @@ export function isYoutubePlayingMessage(data: unknown): boolean {
 }
 
 /**
- * Các mức chất lượng YouTube được coi là đủ HD (≥ 1080p) để phát trailer banner.
- * YouTube trả về chuỗi như "hd1080", "hd1440", "hd2160".
+ * Các mức chất lượng YouTube được coi là hợp lệ để phát trailer banner.
+ * Chấp nhận 720p trở lên và các mức chất lượng video hợp lệ khác; không đòi hỏi cứng 1080p.
  */
-export const YOUTUBE_HD_QUALITIES = new Set(["hd1080", "hd1440", "hd2160", "highres"]);
+export const YOUTUBE_HD_QUALITIES = new Set(["hd720", "hd1080", "hd1440", "hd2160", "highres"]);
+export const YOUTUBE_ACCEPTABLE_QUALITIES = new Set([
+  "hd720",
+  "hd1080",
+  "hd1440",
+  "hd2160",
+  "highres",
+  "large",
+  "medium",
+  "default",
+]);
 
 /**
  * Kiểm tra xem postMessage có chứa thông tin availableQualityLevels từ YouTube không.
@@ -163,11 +173,19 @@ export function isYoutubeQualityInfoMessage(data: unknown): string[] | null {
 }
 
 /**
- * Kiểm tra xem danh sách chất lượng có bao gồm ít nhất hd1080 (1080p) trở lên không.
- * Trả về true nếu đủ chất lượng để phát trailer trên banner.
+ * Kiểm tra xem danh sách chất lượng có bao gồm chất lượng chấp nhận được (720p trở lên hoặc các mức hợp lệ).
+ * Nếu danh sách rỗng, thiếu hoặc chưa xác định, không đánh dấu thất bại (để YouTube tự chọn chất lượng).
+ */
+export function hasAcceptableQuality(qualityLevels?: string[] | null): boolean {
+  if (!qualityLevels || qualityLevels.length === 0) return true;
+  return qualityLevels.some((q) => YOUTUBE_ACCEPTABLE_QUALITIES.has(q) || YOUTUBE_HD_QUALITIES.has(q));
+}
+
+/**
+ * Tương thích ngược: chấp nhận 720p và các mức chất lượng hợp lệ khác.
  */
 export function hasMinimum1080Quality(qualityLevels: string[]): boolean {
-  return qualityLevels.some((q) => YOUTUBE_HD_QUALITIES.has(q));
+  return hasAcceptableQuality(qualityLevels);
 }
 
 /**

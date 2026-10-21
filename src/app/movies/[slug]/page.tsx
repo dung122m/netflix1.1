@@ -659,7 +659,11 @@ export default async function MovieDetail({
                             year: movie.year,
                             quality: movie.quality,
                             category: movie.category?.[0]?.name,
+                            itemType: isSeries ? "series" : "movie",
+                            seriesSlug: movie.slug,
+                            seriesTitle: title,
                           }}
+                          label={isSeries ? "Lưu trọn bộ" : undefined}
                         />
 
                         {/* Nút Thêm vào Bộ sưu tập */}
@@ -671,8 +675,51 @@ export default async function MovieDetail({
                             year: movie.year,
                             quality: movie.quality,
                             category: movie.category?.[0]?.name,
+                            itemType: isSeries ? "series" : "movie",
+                            seriesSlug: movie.slug,
+                            seriesTitle: title,
                           }}
+                          label={isSeries ? "Bộ sưu tập trọn bộ" : undefined}
                         />
+
+                        {/* Nút Lưu tập hiện tại cho Series */}
+                        {isSeries && activeEpisode && activeEpisode.slug && (
+                          <>
+                            <div className="h-6 w-px bg-white/10 mx-0.5 flex-shrink-0" />
+                            <WatchlistButton
+                              movie={{
+                                slug: `${movie.slug}__ep__${activeEpisode.slug}`,
+                                title: `${title} - ${activeEpisode.name || activeEpisode.slug}`,
+                                poster: pickBestMovieImage(movie, "/default-poster.jpg"),
+                                year: movie.year,
+                                quality: movie.quality,
+                                category: movie.category?.[0]?.name,
+                                itemType: "episode",
+                                seriesSlug: movie.slug,
+                                seriesTitle: title,
+                                episodeSlug: activeEpisode.slug,
+                                episodeName: activeEpisode.name || activeEpisode.slug,
+                              }}
+                              label={`Lưu ${activeEpisode.name || "tập"}`}
+                            />
+                            <AddToCollectionButton
+                              movie={{
+                                slug: `${movie.slug}__ep__${activeEpisode.slug}`,
+                                title: `${title} - ${activeEpisode.name || activeEpisode.slug}`,
+                                poster: pickBestMovieImage(movie, "/default-poster.jpg"),
+                                year: movie.year,
+                                quality: movie.quality,
+                                category: movie.category?.[0]?.name,
+                                itemType: "episode",
+                                seriesSlug: movie.slug,
+                                seriesTitle: title,
+                                episodeSlug: activeEpisode.slug,
+                                episodeName: activeEpisode.name || activeEpisode.slug,
+                              }}
+                              label={`Thêm ${activeEpisode.name || "tập"}`}
+                            />
+                          </>
+                        )}
 
                         {/* Divider đẩy cụm chia sẻ sang phải trên desktop */}
                         <div className="h-6 w-px bg-white/10 mx-0.5 flex-shrink-0 ml-auto hidden sm:block" />
@@ -932,6 +979,11 @@ export default async function MovieDetail({
                     <EpisodeList
                       movieSlug={movie.slug}
                       activeEpisodeSlug={activeEpisode?.slug}
+                      movieTitle={title}
+                      moviePoster={pickBestMovieImage(movie, "/default-poster.jpg")}
+                      movieYear={movie.year}
+                      movieQuality={movie.quality}
+                      movieCategory={movie.category?.[0]?.name}
                     />
                   }
                   recommendations={

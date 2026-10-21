@@ -123,6 +123,7 @@ interface PlayerNativeControlsProps {
   onToggleFullscreen: () => void;
   onSwitchEpisode?: (slug: string) => void;
   onUserInteraction?: () => void;
+  onSeek?: (targetTime: number) => void;
 }
 
 export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.memo(
@@ -159,6 +160,7 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
     onToggleFullscreen,
     onSwitchEpisode,
     onUserInteraction,
+    onSeek,
   }) {
     const [showSpeedMenu, setShowSpeedMenu] = useState(false);
     const [showQualityMenu, setShowQualityMenu] = useState(false);
@@ -258,7 +260,12 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
               onClick={(e) => {
                 e.stopPropagation();
                 if (videoRef.current) {
-                  videoRef.current.currentTime = Math.max(0, videoRef.current.currentTime - 10);
+                  const target = Math.max(0, (videoRef.current.currentTime || 0) - 10);
+                  if (onSeek) {
+                    onSeek(target);
+                  } else {
+                    videoRef.current.currentTime = target;
+                  }
                 }
                 onSeekFeedback("-10s");
                 onUserInteraction?.();
@@ -295,7 +302,12 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
               onClick={(e) => {
                 e.stopPropagation();
                 if (videoRef.current) {
-                  videoRef.current.currentTime = (videoRef.current.currentTime || 0) + 10;
+                  const target = (videoRef.current.currentTime || 0) + 10;
+                  if (onSeek) {
+                    onSeek(target);
+                  } else {
+                    videoRef.current.currentTime = target;
+                  }
                 }
                 onSeekFeedback("+10s");
                 onUserInteraction?.();
@@ -333,6 +345,7 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
             onSeekFeedback={onSeekFeedback}
             onScrubStart={onUserInteraction}
             onScrubEnd={onUserInteraction}
+            onSeek={onSeek}
           />
 
           {/* HÀNG CÁC NÚT ĐIỀU KHIỂN CHÍNH */}
@@ -361,7 +374,12 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
                 onClick={(e) => {
                   e.stopPropagation();
                   if (videoRef.current) {
-                    videoRef.current.currentTime = Math.max(0, videoRef.current.currentTime - 10);
+                    const target = Math.max(0, (videoRef.current.currentTime || 0) - 10);
+                    if (onSeek) {
+                      onSeek(target);
+                    } else {
+                      videoRef.current.currentTime = target;
+                    }
                   }
                   onSeekFeedback("-10s");
                   onUserInteraction?.();
@@ -379,7 +397,12 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
                 onClick={(e) => {
                   e.stopPropagation();
                   if (videoRef.current) {
-                    videoRef.current.currentTime = (videoRef.current.currentTime || 0) + 10;
+                    const target = (videoRef.current.currentTime || 0) + 10;
+                    if (onSeek) {
+                      onSeek(target);
+                    } else {
+                      videoRef.current.currentTime = target;
+                    }
                   }
                   onSeekFeedback("+10s");
                   onUserInteraction?.();

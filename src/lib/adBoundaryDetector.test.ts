@@ -1,6 +1,15 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { detectAdBoundaries, isVerifiedAdSegmentUri, FragmentLike, evaluateAutoAdSkipDecision, evaluatePreRollAdDecision } from "./adBoundaryDetector";
+import {
+  detectAdBoundaries,
+  isVerifiedAdSegmentUri,
+  FragmentLike,
+  evaluateAutoAdSkipDecision,
+  evaluatePreRollAdDecision,
+  SAFE_AD_SKIP_OFFSET,
+  calculateSafeAdSkipTarget,
+  snapTimePastAdBoundaries,
+} from "./adBoundaryDetector";
 
 describe("adBoundaryDetector", () => {
   describe("isVerifiedAdSegmentUri", () => {
@@ -437,6 +446,367 @@ describe("adBoundaryDetector", () => {
       );
     });
   });
+
+  describe("TC-AD-SKIP-BOUNDARY-01 — calculateSafeAdSkipTarget & SAFE_AD_SKIP_OFFSET", () => {
+    it("adds SAFE_AD_SKIP_OFFSET (0.35s) by default to ad.end", () => {
+      const target = calculateSafeAdSkipTarget(202.88);
+      assert.equal(target, 203.23);
+    });
+
+    it("clamps target to maxDuration - 0.5s if target would exceed video duration", () => {
+      // Ví dụ video kết thúc ở 100s, ad.end là 99.8s -> 99.8 + 0.35 = 100.15s (vượt quá video)
+      const clamped = calculateSafeAdSkipTarget(99.8, [], 100);
+      assert.equal(clamped, 99.5);
+    });
+
+    it("handles multiple consecutive ad blocks (chaining)", () => {
+      // 2 khối ad liền kề nhau:
+      // Block 1: 100s -> 115s
+      // Block 2: 115.2s -> 130s
+      const boundaries = [
+        { start: 100, end: 115, duration: 15, startIndex: 10, endIndex: 12 },
+        { start: 115.2, end: 130, duration: 14.8, startIndex: 13, endIndex: 15 },
+      ];
+      // Nếu nhảy qua Block 1 với offset: 115 + 0.35 = 115.35s (rơi vào Block 2)
+      // Hàm phải tự động phát hiện và nhảy qua tiếp Block 2 -> 130 + 0.35 = 130.35s
+      const chainedTarget = calculateSafeAdSkipTarget(115, boundaries, 1000);
+      assert.equal(chainedTarget, 130.35);
+    });
+
+    it("handles invalid or negative adEnd safely", () => {
+      assert.equal(calculateSafeAdSkipTarget(-5), 0);
+      assert.equal(calculateSafeAdSkipTarget(NaN), 0);
+    });
+  });
+
+  describe("TC-AD-SKIP-BOUNDARY-01 — snapTimePastAdBoundaries (Manual Seek Snapping)", () => {
+    const sampleBoundaries = [
+      { start: 100.0, end: 120.0, duration: 20.0, startIndex: 10, endIndex: 13 },
+      { start: 500.0, end: 525.0, duration: 25.0, startIndex: 50, endIndex: 54 },
+    ];
+
+    it("snaps manual seek inside ad [100, 120) to safe target after ad (120.35s)", () => {
+      // Người dùng tua tới 105s (giữa khối quảng cáo)
+      const snap = snapTimePastAdBoundaries(105.0, sampleBoundaries, 1000);
+      assert.strictEqual(snap.snapped, true);
+      assert.strictEqual(snap.adjustedTime, 120.35);
+      assert.strictEqual(snap.adKey, "100_120");
+      assert.strictEqual(snap.adDuration, 20);
+    });
+
+    it("does NOT snap when seek landing is outside ads", () => {
+      // Tua tới 50s (trước ad 1)
+      const snapBefore = snapTimePastAdBoundaries(50.0, sampleBoundaries, 1000);
+      assert.strictEqual(snapBefore.snapped, false);
+      assert.strictEqual(snapBefore.adjustedTime, 50.0);
+
+      // Tua tới 150s (giữa ad 1 và ad 2)
+      const snapBetween = snapTimePastAdBoundaries(150.0, sampleBoundaries, 1000);
+      assert.strictEqual(snapBetween.snapped, false);
+      assert.strictEqual(snapBetween.adjustedTime, 150.0);
+    });
+
+    it("handles boundary edge conditions safely (inclusive [ad.start, ad.end] vs past ad.end)", () => {
+      // Đúng tại ad.start (100.0s) -> snap
+      const snapAtStart = snapTimePastAdBoundaries(100.0, sampleBoundaries, 1000);
+      assert.strictEqual(snapAtStart.snapped, true);
+      assert.strictEqual(snapAtStart.adjustedTime, 120.35);
+
+      // Tại ad.end (120.0s) -> nằm trong [ad.start, ad.end], snap an toàn sang vị trí sau ad
+      const snapAtEnd = snapTimePastAdBoundaries(120.0, sampleBoundaries, 1000);
+      assert.strictEqual(snapAtEnd.snapped, true);
+      assert.strictEqual(snapAtEnd.adjustedTime, 120.35);
+
+      // Sau ad.end (120.5s) -> đã ngoài ad, không snap
+      const snapPastEnd = snapTimePastAdBoundaries(120.5, sampleBoundaries, 1000);
+      assert.strictEqual(snapPastEnd.snapped, false);
+      assert.strictEqual(snapPastEnd.adjustedTime, 120.5);
+    });
+
+    it("handles empty or invalid boundaries safely without throwing", () => {
+      assert.deepEqual(snapTimePastAdBoundaries(105, []), {
+        snapped: false,
+        adjustedTime: 105,
+        adKey: null,
+        adDuration: 0,
+      });
+      assert.deepEqual(snapTimePastAdBoundaries(105, undefined), {
+        snapped: false,
+        adjustedTime: 105,
+        adKey: null,
+        adDuration: 0,
+      });
+    });
+  });
+
+  describe("TC-AD-SKIP-BOUNDARY-01 — Auto Skip with safeOffset regression", () => {
+    const verifiedBoundaries = [
+      { start: 901.44, end: 931.68, duration: 30.24, startIndex: 300, endIndex: 302 },
+    ];
+
+    it("applies safeOffset when passed to evaluateAutoAdSkipDecision", () => {
+      const hasSkipped = new Set<string>();
+      const decision = evaluateAutoAdSkipDecision({
+        currentTime: 901.44,
+        boundaries: verifiedBoundaries,
+        hasSkippedSet: hasSkipped,
+        lastSkipTime: 0,
+        safeOffset: SAFE_AD_SKIP_OFFSET,
+        maxDuration: 2000,
+      });
+
+      assert.notStrictEqual(decision, null);
+      assert.strictEqual(decision?.shouldSeek, true);
+      // 931.68 + 0.35 = 932.03
+      assert.strictEqual(decision?.targetSeek, 932.03);
+    });
+
+    it("applies safeOffset when passed to evaluatePreRollAdDecision", () => {
+      const preRollBoundaries = [
+        { start: 0.0, end: 26.0, duration: 26.0, startIndex: 0, endIndex: 3 },
+      ];
+      const decision = evaluatePreRollAdDecision({
+        targetProgress: 0,
+        hasStartedInitialPlayback: false,
+        boundaries: preRollBoundaries,
+        safeOffset: SAFE_AD_SKIP_OFFSET,
+        maxDuration: 2000,
+      });
+
+      assert.notStrictEqual(decision, null);
+      assert.strictEqual(decision?.shouldSkipPreRoll, true);
+      // 26.0 + 0.35 = 26.35
+      assert.strictEqual(decision?.targetSeek, 26.35);
+    });
+  });
+
+  describe("TC-AD-SKIP-BOUNDARY-01 — Comprehensive Edge Cases & Async Seek Regression", () => {
+    const multiAdBoundaries = [
+      { start: 200.0, end: 230.0, duration: 30.0, startIndex: 20, endIndex: 25 },
+      { start: 230.2, end: 260.0, duration: 29.8, startIndex: 26, endIndex: 31 }, // Chained ad block
+      { start: 800.0, end: 840.0, duration: 40.0, startIndex: 80, endIndex: 88 },
+      { start: 990.0, end: 1000.0, duration: 10.0, startIndex: 95, endIndex: 99 }, // Near end of video
+    ];
+
+    it("snaps manual seek into the very end of an ad block (e.g. ad.end - 0.05s)", () => {
+      // 229.95s (trước đây bị sót do điều kiện < ad.end - 0.25)
+      const snap = snapTimePastAdBoundaries(229.95, multiAdBoundaries, 1000);
+      assert.strictEqual(snap.snapped, true);
+      // Khi snap qua khối 1 (230s + 0.35 = 230.35s), điểm rơi lại nằm trong khối 2 (230.2 -> 260s)
+      // Hàm phải tự động chain qua tiếp khối 2 -> 260 + 0.35 = 260.35s
+      assert.strictEqual(snap.adjustedTime, 260.35);
+    });
+
+    it("handles multiple consecutive ad blocks (chaining) during manual seek", () => {
+      // Người dùng tua tới 215s (giữa khối 1)
+      const snap = snapTimePastAdBoundaries(215.0, multiAdBoundaries, 1000);
+      assert.strictEqual(snap.snapped, true);
+      assert.strictEqual(snap.adjustedTime, 260.35);
+      assert.strictEqual(snap.adKey, "200_230");
+    });
+
+    it("prevents overshooting past end of video when ad is near maxDuration", () => {
+      // Video dài 1000s, ad kết thúc tại 1000s
+      // 1000 + 0.35 = 1000.35s -> Phải được clamp về max(0, maxDuration - 0.5) = 999.5s
+      const snapNearEnd = snapTimePastAdBoundaries(995.0, multiAdBoundaries, 1000);
+      assert.strictEqual(snapNearEnd.snapped, true);
+      assert.strictEqual(snapNearEnd.adjustedTime, 999.5);
+    });
+
+    it("handles seek failures and invalid inputs gracefully without throwing", () => {
+      assert.strictEqual(snapTimePastAdBoundaries(-10, multiAdBoundaries).snapped, false);
+      assert.strictEqual(snapTimePastAdBoundaries(NaN, multiAdBoundaries).snapped, false);
+      assert.strictEqual(snapTimePastAdBoundaries(Infinity, multiAdBoundaries).snapped, false);
+      assert.strictEqual(calculateSafeAdSkipTarget(-5, multiAdBoundaries, 100), 0);
+      assert.strictEqual(calculateSafeAdSkipTarget(0, multiAdBoundaries, 100), 0.35);
+    });
+
+    it("ensures evaluateAutoAdSkipDecision detects ads even at ad.end - 0.1s", () => {
+      const hasSkipped = new Set<string>();
+      const decision = evaluateAutoAdSkipDecision({
+        currentTime: 229.9,
+        boundaries: multiAdBoundaries,
+        hasSkippedSet: hasSkipped,
+        lastSkipTime: 0,
+        safeOffset: SAFE_AD_SKIP_OFFSET,
+        maxDuration: 1000,
+      });
+
+      assert.notStrictEqual(decision, null);
+      assert.strictEqual(decision?.shouldSeek, true);
+      // Phải chain qua cả khối 2 thành 260.35
+      assert.strictEqual(decision?.targetSeek, 260.35);
+    });
+
+    it("simulates async seek: seeking landing inside ad must always snap regardless of hasSkipped history", () => {
+      // Giả lập lịch sử đã từng skip ad này trước đó
+      const hasSkipped = new Set<string>(["200_230"]);
+
+      // Người dùng tua thủ công quay lại 210s (giữa ad 1)
+      const snap = snapTimePastAdBoundaries(210.0, multiAdBoundaries, 1000);
+      // snapTimePastAdBoundaries không phụ thuộc vào hasSkipped, luôn snap an toàn
+      assert.strictEqual(snap.snapped, true);
+      assert.strictEqual(snap.adjustedTime, 260.35);
+
+      // Trong player, manual seek flow không được chặn snap chỉ vì hasSkipped đã có key
+      const canSnapOnManualSeek = snap.snapped && snap.adKey !== null;
+      assert.strictEqual(canSnapOnManualSeek, true);
+    });
+  });
+
+  describe("TC-AD-SKIP-BOUNDARY-01 — Unified Seek & Boundary Rules Enforcement", () => {
+    const adList = [
+      { start: 100.0, end: 125.0, duration: 25.0, startIndex: 10, endIndex: 15 },
+      { start: 300.0, end: 320.0, duration: 20.0, startIndex: 30, endIndex: 34 },
+      { start: 320.2, end: 340.0, duration: 19.8, startIndex: 35, endIndex: 39 }, // Chained ad 2
+      { start: 340.1, end: 360.0, duration: 19.9, startIndex: 40, endIndex: 44 }, // Chained ad 3
+    ];
+
+    describe("1. Tua tiến (+10s hoặc forward seek)", () => {
+      it("tua tiến rơi vào giữa vùng [ad.start, ad.end] -> tự động chuyển đến vị trí an toàn sau quảng cáo", () => {
+        // Đang ở 95s, bấm +10s -> đích đến là 105s (nằm trong [100, 125])
+        const target = 105.0;
+        const result = snapTimePastAdBoundaries(target, adList, 1000);
+        assert.strictEqual(result.snapped, true);
+        assert.strictEqual(result.adjustedTime, 125.35); // 125 + 0.35s
+        assert.strictEqual(result.adKey, "100_125");
+      });
+
+      it("tua tiến rơi đúng mốc ranh giới [ad.start] hoặc [ad.end] -> luôn snap an toàn sau quảng cáo", () => {
+        // Đích đến đúng tại ad.start (100.0s)
+        const atStart = snapTimePastAdBoundaries(100.0, adList, 1000);
+        assert.strictEqual(atStart.snapped, true);
+        assert.strictEqual(atStart.adjustedTime, 125.35);
+
+        // Đích đến đúng tại ad.end (125.0s)
+        const atEnd = snapTimePastAdBoundaries(125.0, adList, 1000);
+        assert.strictEqual(atEnd.snapped, true);
+        assert.strictEqual(atEnd.adjustedTime, 125.35);
+      });
+
+      it("tua tiến đến nội dung phim hợp lệ ngoài quảng cáo -> giữ nguyên vị trí, không snap", () => {
+        // Đang ở 80s, bấm +10s -> 90s (trước ad.start 100s)
+        const result = snapTimePastAdBoundaries(90.0, adList, 1000);
+        assert.strictEqual(result.snapped, false);
+        assert.strictEqual(result.adjustedTime, 90.0);
+      });
+    });
+
+    describe("2. Tua lùi (-10s hoặc backward seek)", () => {
+      it("chỉ skip khi điểm đích thực sự nằm trong vùng quảng cáo [ad.start, ad.end]", () => {
+        // Đang ở 130s (sau quảng cáo), bấm -10s -> đích đến 120s (nằm trong [100, 125])
+        const targetInAd = 120.0;
+        const result = snapTimePastAdBoundaries(targetInAd, adList, 1000);
+        assert.strictEqual(result.snapped, true, "Phải snap vì điểm đích rơi vào vùng quảng cáo");
+        assert.strictEqual(result.adjustedTime, 125.35);
+      });
+
+      it("KHÔNG tự động đẩy người dùng tiến lên nếu họ tua về nội dung phim hợp lệ trước quảng cáo", () => {
+        // Đang ở 130s, tua lùi mạnh về 80s (nội dung phim trước quảng cáo 100s)
+        const targetBeforeAd = 80.0;
+        const result = snapTimePastAdBoundaries(targetBeforeAd, adList, 1000);
+        assert.strictEqual(result.snapped, false, "Tuyệt đối không đẩy tiến lên nếu điểm đích là nội dung hợp lệ trước quảng cáo");
+        assert.strictEqual(result.adjustedTime, 80.0, "Phải giữ nguyên 80s cho người dùng");
+      });
+
+      it("tua lùi về trước ad.start - 2 khôi phục trạng thái skip cho chu kỳ phát tiếp theo", () => {
+        const hasSkipped = new Set<string>(["100_125"]);
+        // Giả lập tua lùi về 85s (< 100 - 2 = 98s)
+        evaluateAutoAdSkipDecision({
+          currentTime: 85.0,
+          boundaries: adList,
+          hasSkippedSet: hasSkipped,
+          lastSkipTime: 100000,
+          now: 200000,
+        });
+
+        assert.strictEqual(hasSkipped.has("100_125"), false, "Phải xóa adKey để sẵn sàng auto-skip khi phim phát lại đến 100s");
+      });
+    });
+
+    describe("3. Kéo và thả thanh tiến trình (ScrubBar Scrubbing)", () => {
+      it("thả thanh tiến trình vào giữa quảng cáo [ad.start, ad.end] -> lập tức chuyển vị trí an toàn sau quảng cáo", () => {
+        const scrubbedTarget = 112.5;
+        const result = snapTimePastAdBoundaries(scrubbedTarget, adList, 1000);
+        assert.strictEqual(result.snapped, true);
+        assert.strictEqual(result.adjustedTime, 125.35);
+      });
+
+      it("thả thanh tiến trình vào bất kỳ vị trí nội dung phim hợp lệ -> giữ nguyên", () => {
+        for (const validTime of [50.0, 99.0, 126.0, 250.0]) {
+          const result = snapTimePastAdBoundaries(validTime, adList, 1000);
+          assert.strictEqual(result.snapped, false);
+          assert.strictEqual(result.adjustedTime, validTime);
+        }
+      });
+    });
+
+    describe("4. Quảng cáo liên tiếp (Consecutive / Chained Ad Blocks)", () => {
+      it("nhảy qua chuỗi 3 khối quảng cáo liên tiếp (300s -> 320s -> 340s -> 360s)", () => {
+        // Tua rơi vào khối 1 (305s). Sau khối 1 là 320.35s (rơi vào khối 2), sau khối 2 là 340.35s (rơi vào khối 3)
+        // Hệ thống phải tự động chain qua cả 3 khối và đáp an toàn ở 360.35s
+        const chainedResult = snapTimePastAdBoundaries(305.0, adList, 1000);
+        assert.strictEqual(chainedResult.snapped, true);
+        assert.strictEqual(chainedResult.adjustedTime, 360.35);
+      });
+
+      it("giới hạn vòng lặp (iterations < 5) ngăn chặn seek vô hạn ngay cả khi danh sách boundary bị vòng lặp dữ liệu", () => {
+        // Giả lập danh sách boundary dị thường lặp lại
+        const cyclicBoundaries = [
+          { start: 50.0, end: 50.2, duration: 15.0, startIndex: 1, endIndex: 2 },
+          { start: 50.4, end: 50.6, duration: 15.0, startIndex: 3, endIndex: 4 },
+        ];
+        // Không bị treo hoặc đơ CPU
+        const target = calculateSafeAdSkipTarget(50.0, cyclicBoundaries, 1000);
+        assert.ok(isFinite(target));
+        assert.ok(target > 50.0);
+      });
+
+      it("kẹp an toàn mốc thời gian không vượt quá maxDuration - 0.5s", () => {
+        const nearEndAds = [
+          { start: 980.0, end: 999.8, duration: 19.8, startIndex: 90, endIndex: 95 },
+        ];
+        // 999.8 + 0.35 = 1000.15s (vượt quá video 1000s) -> phải kẹp về 999.5s
+        const target = calculateSafeAdSkipTarget(999.8, nearEndAds, 1000.0);
+        assert.strictEqual(target, 999.5);
+      });
+    });
+
+    describe("5. Phân biệt Programmatic Seek vs User Seek", () => {
+      it("xác nhận cờ isProgrammaticAdSkip bảo vệ ad transition và ngăn chặn event collision", () => {
+        let isProgrammaticSeek = false;
+        let isUserSeek = false;
+
+        // Mô phỏng hàm seek thống nhất:
+        const performUnifiedSeek = (targetTime: number, programmatic: boolean) => {
+          const snap = snapTimePastAdBoundaries(targetTime, adList, 1000);
+          if (snap.snapped) {
+            // Khi phát hiện rơi vào quảng cáo, luôn coi là programmatic ad skip để bảo vệ transition
+            isProgrammaticSeek = true;
+            isUserSeek = false;
+            return snap.adjustedTime;
+          }
+          isProgrammaticSeek = programmatic;
+          isUserSeek = !programmatic;
+          return targetTime;
+        };
+
+        // User tua vào quảng cáo (110s) -> Phải tự động chuyển sang chế độ programmatic skip
+        const adjusted = performUnifiedSeek(110.0, false);
+        assert.strictEqual(adjusted, 125.35);
+        assert.strictEqual(isProgrammaticSeek, true);
+        assert.strictEqual(isUserSeek, false);
+
+        // User tua ra ngoài phim hợp lệ (80s) -> Ghi nhận đúng là user seek
+        const normalUserSeek = performUnifiedSeek(80.0, false);
+        assert.strictEqual(normalUserSeek, 80.0);
+        assert.strictEqual(isProgrammaticSeek, false);
+        assert.strictEqual(isUserSeek, true);
+      });
+    });
+  });
 });
+
+
 
 

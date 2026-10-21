@@ -31,7 +31,15 @@ import { incrementUserWatchTime, getPlayerSettings, PlayerSettings } from "@/ser
 import { PlayerNativeControls, SeekBack10Icon, SeekForward10Icon, VideoFit } from "./player/PlayerNativeControls";
 import { PlayerActionButtons } from "./player/PlayerActionButtons";
 import { PlayerShortcutModal } from "./player/PlayerShortcutModal";
-import { detectAdBoundaries, AdBoundary, evaluateAutoAdSkipDecision, evaluatePreRollAdDecision } from "@/lib/adBoundaryDetector";
+import {
+  detectAdBoundaries,
+  AdBoundary,
+  evaluateAutoAdSkipDecision,
+  evaluatePreRollAdDecision,
+  SAFE_AD_SKIP_OFFSET,
+  calculateSafeAdSkipTarget,
+  snapTimePastAdBoundaries,
+} from "@/lib/adBoundaryDetector";
 import {
   evaluateBufferProgress,
   evaluateTimeUpdatePlayback,
@@ -45,6 +53,13 @@ import {
   updateUserMutePreferenceDuringTransition,
   isAdTransitionTimedOut,
 } from "@/lib/adTransitionController";
+import {
+  calculateKeyboardSeek,
+  createInitialKeyboardSeekState,
+  KEYBOARD_SEEK_CYCLE_TIMEOUT_MS,
+  KEYBOARD_SEEK_DEBOUNCE_MS,
+  type KeyboardSeekState,
+} from "@/lib/keyboardSeekManager";
 
 interface EpisodeItem {
   name?: string;
@@ -307,6 +322,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
   const hasSkippedAdRef = useRef<Set<string>>(new Set());
   const lastAdSkipTimeRef = useRef<number>(0);
   const automatedAdSkipRef = useRef<AdTransitionState | null>(null);
+  const isProgrammaticAdSkipRef = useRef<boolean>(false);
   const [isAdTransitioning, setIsAdTransitioning] = useState<boolean>(false);
   const hasHandledPreRollRef = useRef<boolean>(false);
   const adPreTriggerRef = useRef<{ timer: NodeJS.Timeout | null; rVfcId: number | null }>({ timer: null, rVfcId: null });
@@ -324,16 +340,29 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
     return 0;
   }, []);
   const pendingKeyboardSeekRef = useRef<{
-    targetTime: number;
-    originTime: number;
-    totalDelta: number;
+    state: KeyboardSeekState;
     timer: NodeJS.Timeout | null;
+    resetTimer: NodeJS.Timeout | null;
   }>({
-    targetTime: 0,
-    originTime: 0,
-    totalDelta: 0,
+    state: createInitialKeyboardSeekState(),
     timer: null,
+    resetTimer: null,
   });
+
+  // Dedicated unmount teardown for keyboard seek timers to avoid cancelling in-flight seeks during normal re-renders
+  useEffect(() => {
+    return () => {
+      const s = pendingKeyboardSeekRef.current;
+      if (s.timer) {
+        clearTimeout(s.timer);
+        s.timer = null;
+      }
+      if (s.resetTimer) {
+        clearTimeout(s.resetTimer);
+        s.resetTimer = null;
+      }
+    };
+  }, []);
 
   const [isMobile, setIsMobile] = useState(false);
   const [isScrolledPast, setIsScrolledPast] = useState(false);
@@ -344,6 +373,19 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
     type: "play" | "pause" | "seek-left" | "seek-right";
     text?: string;
     seconds?: number;
+    id: number;
+  } | null>(null);
+
+  // Premium Volume OSD & General HUD (YouTube Top Pill Style)
+  const [volumeOsd, setVolumeOsd] = useState<{
+    volume: number;
+    isMuted: boolean;
+    visible: boolean;
+  } | null>(null);
+
+  const [hudNotification, setHudNotification] = useState<{
+    icon: React.ReactNode;
+    text: string;
     id: number;
   } | null>(null);
 
@@ -364,6 +406,17 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
         seconds,
         id: Date.now(),
       });
+
+      // Nếu chuyển sang play/pause feedback, kết thúc chu kỳ seek indicator ngay lập tức
+      if (type === "play" || type === "pause") {
+        const s = pendingKeyboardSeekRef.current;
+        if (s.resetTimer) {
+          clearTimeout(s.resetTimer);
+          s.resetTimer = null;
+        }
+        s.state = createInitialKeyboardSeekState();
+      }
+
       // Tua video: tự ẩn sau 800ms (chuẩn 700-900ms). Play/pause: 550ms.
       const timeoutMs = type === "seek-left" || type === "seek-right" ? 800 : 550;
       desktopFeedbackTimerRef.current = setTimeout(() => {
@@ -374,19 +427,6 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
     []
   );
 
-  // Premium Volume OSD & General HUD (YouTube Top Pill Style)
-  const [volumeOsd, setVolumeOsd] = useState<{
-    volume: number;
-    isMuted: boolean;
-    visible: boolean;
-  } | null>(null);
-
-  const [hudNotification, setHudNotification] = useState<{
-    icon: React.ReactNode;
-    text: string;
-    id: number;
-  } | null>(null);
-
   const triggerVolumeOsd = useCallback((newVol: number, muted: boolean) => {
     // Khi chỉnh âm lượng, ẩn feedback tua/play/pause để tránh chồng lấn
     if (desktopFeedbackTimerRef.current) {
@@ -394,6 +434,14 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
       desktopFeedbackTimerRef.current = null;
     }
     setDesktopFeedback(null);
+
+    // Reset chu kỳ seek indicator khi volume OSD hiển thị đè lên
+    const s = pendingKeyboardSeekRef.current;
+    if (s.resetTimer) {
+      clearTimeout(s.resetTimer);
+      s.resetTimer = null;
+    }
+    s.state = createInitialKeyboardSeekState();
 
     if (hudTimerRef.current) {
       clearTimeout(hudTimerRef.current);
@@ -583,6 +631,60 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return knownDuration || (v as any).__hlsDuration || (v.duration && isFinite(v.duration) ? v.duration : 0);
   }, [knownDuration]);
+
+  const cancelAdPreTrigger = useCallback(() => {
+    if (adPreTriggerRef.current.timer) {
+      clearTimeout(adPreTriggerRef.current.timer);
+      adPreTriggerRef.current.timer = null;
+    }
+    if (adPreTriggerRef.current.rVfcId !== null && videoRef.current && "cancelVideoFrameCallback" in videoRef.current) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (videoRef.current as any).cancelVideoFrameCallback(adPreTriggerRef.current.rVfcId);
+      adPreTriggerRef.current.rVfcId = null;
+    }
+  }, []);
+
+  const requestPlayerSeek = useCallback((targetTime: number, isProgrammatic: boolean = false) => {
+    const v = videoRef.current;
+    if (!v) return;
+
+    cancelAdPreTrigger();
+    const effectiveDur = getEffectiveDuration();
+    const boundedTime = Math.max(0, effectiveDur > 0 ? Math.min(effectiveDur, targetTime) : targetTime);
+
+    // 1. Phục hồi quyền skip nếu người dùng tua lùi về trước mốc quảng cáo
+    if (adBoundariesRef.current.length > 0) {
+      for (const ad of adBoundariesRef.current) {
+        if (boundedTime < ad.start - 2) {
+          hasSkippedAdRef.current.delete(`${ad.start}_${ad.end}`);
+        }
+      }
+
+      // 2. Kiểm tra nếu điểm đích nằm trong vùng [ad.start, ad.end]
+      const snap = snapTimePastAdBoundaries(boundedTime, adBoundariesRef.current, effectiveDur, SAFE_AD_SKIP_OFFSET);
+      if (snap.snapped && snap.adKey) {
+        hasSkippedAdRef.current.add(snap.adKey);
+        lastAdSkipTimeRef.current = Date.now();
+        isProgrammaticAdSkipRef.current = true;
+        const { transitionState, shouldMuteElement } = startAdTransition({
+          targetSeek: snap.adjustedTime,
+          adDuration: snap.adDuration,
+          currentUserMuted: isMutedRef.current ?? v.muted,
+        });
+        automatedAdSkipRef.current = transitionState;
+        if (shouldMuteElement) {
+          v.muted = true;
+        }
+        setIsAdTransitioning(true);
+        v.currentTime = snap.adjustedTime;
+        return;
+      }
+    }
+
+    // 3. Nếu là seek bình thường (ngoài quảng cáo)
+    isProgrammaticAdSkipRef.current = isProgrammatic;
+    v.currentTime = boundedTime;
+  }, [cancelAdPreTrigger, getEffectiveDuration]);
 
   // Watch time heartbeat
   useEffect(() => {
@@ -908,11 +1010,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
     const trySeekToTarget = () => {
       if (targetProgress <= 0 || hasSeekedInitialRef.current) return;
       hasSeekedInitialRef.current = true;
-      const v = videoRef.current;
-      if (!v) return;
-      try {
-        v.currentTime = targetProgress;
-      } catch {}
+      requestPlayerSeek(targetProgress, true);
     };
 
     if (targetProgress > 0) {
@@ -993,11 +1091,24 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
               targetProgress,
               hasStartedInitialPlayback: hasStartedInitialPlaybackRef.current,
               boundaries: adBoundariesRef.current,
+              safeOffset: SAFE_AD_SKIP_OFFSET,
+              maxDuration: dur,
             });
             if (preRollDecision && v.currentTime < preRollDecision.targetSeek - 0.5) {
               hasHandledPreRollRef.current = true;
               hasSeekedInitialRef.current = true;
               hasSkippedAdRef.current.add(preRollDecision.adKey);
+              isProgrammaticAdSkipRef.current = true;
+              const { transitionState, shouldMuteElement } = startAdTransition({
+                targetSeek: preRollDecision.targetSeek,
+                adDuration: preRollDecision.adDuration,
+                currentUserMuted: isMutedRef.current ?? v.muted,
+              });
+              automatedAdSkipRef.current = transitionState;
+              if (shouldMuteElement) {
+                v.muted = true;
+              }
+              setIsAdTransitioning(true);
               v.currentTime = preRollDecision.targetSeek;
             }
 
@@ -1036,11 +1147,24 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
                 targetProgress,
                 hasStartedInitialPlayback: hasStartedInitialPlaybackRef.current,
                 boundaries: adBoundariesRef.current,
+                safeOffset: SAFE_AD_SKIP_OFFSET,
+                maxDuration: getEffectiveDuration(),
               });
               if (preRollDecision && v.currentTime < preRollDecision.targetSeek - 0.5) {
                 hasHandledPreRollRef.current = true;
                 hasSeekedInitialRef.current = true;
                 hasSkippedAdRef.current.add(preRollDecision.adKey);
+                isProgrammaticAdSkipRef.current = true;
+                const { transitionState, shouldMuteElement } = startAdTransition({
+                  targetSeek: preRollDecision.targetSeek,
+                  adDuration: preRollDecision.adDuration,
+                  currentUserMuted: isMutedRef.current ?? v.muted,
+                });
+                automatedAdSkipRef.current = transitionState;
+                if (shouldMuteElement) {
+                  v.muted = true;
+                }
+                setIsAdTransitioning(true);
                 v.currentTime = preRollDecision.targetSeek;
               }
 
@@ -1093,6 +1217,8 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
               targetProgress,
               hasStartedInitialPlayback: hasStartedInitialPlaybackRef.current,
               boundaries: detected,
+              safeOffset: SAFE_AD_SKIP_OFFSET,
+              maxDuration: data?.details?.totalduration || getEffectiveDuration(),
             });
             if (preRollDecision && !hasHandledPreRollRef.current) {
               hasHandledPreRollRef.current = true;
@@ -1100,6 +1226,17 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
               hasSkippedAdRef.current.add(preRollDecision.adKey);
               if (videoRef.current) {
                 try {
+                  isProgrammaticAdSkipRef.current = true;
+                  const { transitionState, shouldMuteElement } = startAdTransition({
+                    targetSeek: preRollDecision.targetSeek,
+                    adDuration: preRollDecision.adDuration,
+                    currentUserMuted: isMutedRef.current ?? videoRef.current.muted,
+                  });
+                  automatedAdSkipRef.current = transitionState;
+                  if (shouldMuteElement) {
+                    videoRef.current.muted = true;
+                  }
+                  setIsAdTransitioning(true);
                   videoRef.current.currentTime = preRollDecision.targetSeek;
                 } catch {}
               }
@@ -1311,6 +1448,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
       adBoundariesRef.current = [];
       hasSkippedAdRef.current.clear();
       lastAdSkipTimeRef.current = 0;
+      isProgrammaticAdSkipRef.current = false;
       if (automatedAdSkipRef.current) {
         const { restoredMuted } = endAdTransition(automatedAdSkipRef.current);
         automatedAdSkipRef.current = null;
@@ -1347,18 +1485,6 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
     const video = videoRef.current;
     if (!video) return;
 
-    const cancelAdPreTrigger = () => {
-      if (adPreTriggerRef.current.timer) {
-        clearTimeout(adPreTriggerRef.current.timer);
-        adPreTriggerRef.current.timer = null;
-      }
-      if (adPreTriggerRef.current.rVfcId !== null && videoRef.current && "cancelVideoFrameCallback" in videoRef.current) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (videoRef.current as any).cancelVideoFrameCallback(adPreTriggerRef.current.rVfcId);
-        adPreTriggerRef.current.rVfcId = null;
-      }
-    };
-
     const triggerAdSkip = (targetSeek: number, adDuration: number, adKey: string) => {
       const v = videoRef.current;
       if (!v || v.paused || v.ended || v.seeking) return;
@@ -1373,11 +1499,42 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
         currentUserMuted: isMutedRef.current ?? v.muted,
       });
       automatedAdSkipRef.current = transitionState;
+      isProgrammaticAdSkipRef.current = true;
       if (shouldMuteElement) {
         v.muted = true;
       }
       setIsAdTransitioning(true);
       v.currentTime = targetSeek;
+    };
+
+    const checkAndCompleteAdTransition = () => {
+      const adSkip = automatedAdSkipRef.current;
+      if (!adSkip || !adSkip.active) return;
+      const v = videoRef.current;
+      if (!v) return;
+
+      const currentCt = v.currentTime;
+      const isStillInAd = adBoundariesRef.current.some(
+        (b) => currentCt >= b.start && currentCt < b.end
+      );
+      const isPastTarget = currentCt >= adSkip.targetSeek - 0.15;
+      const isTimedOut = isAdTransitionTimedOut(adSkip);
+
+      // Chỉ khôi phục âm thanh và tắt transition khi xác nhận playhead đã ra ngoài vùng quảng cáo và không còn seeking, hoặc timeout
+      if ((!isStillInAd && isPastTarget && !v.seeking) || isTimedOut) {
+        const durationText = adSkip.adDuration > 0 ? ` (${adSkip.adDuration}s)` : "";
+        const { restoredMuted } = endAdTransition(adSkip);
+        automatedAdSkipRef.current = null;
+        isProgrammaticAdSkipRef.current = false;
+        setIsAdTransitioning(false);
+        if (restoredMuted !== null && videoRef.current) {
+          videoRef.current.muted = restoredMuted;
+        }
+        showHud(
+          <Zap className="w-5 h-5 text-netflix-red" />,
+          `Đã tự động bỏ qua quảng cáo${durationText}`
+        );
+      }
     };
 
     const scheduleStallRecovery = () => {
@@ -1441,12 +1598,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
       if (adSkip && adSkip.active) {
         // Hết hạn ưu tiên sau 4s nếu mạng chậm để không cản trở fallback mặc định
         if (isAdTransitionTimedOut(adSkip)) {
-          const { restoredMuted } = endAdTransition(adSkip);
-          automatedAdSkipRef.current = null;
-          setIsAdTransitioning(false);
-          if (restoredMuted !== null && v) {
-            v.muted = restoredMuted;
-          }
+          checkAndCompleteAdTransition();
         } else {
           // Chỉ cần có dữ liệu giải mã an toàn (readyState >= 3: HAVE_FUTURE_DATA hoặc bufAhead >= 1.5s)
           const hasDecodableData = v.readyState >= 3 || bufAhead >= 1.5 || isNearEnd;
@@ -1527,24 +1679,12 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
       setIsPlaying(true);
       resetControlsTimeout();
 
-      // Dọn dẹp cờ ad skip, khôi phục âm thanh và hiển thị Toast khi video ĐÃ THỰC SỰ PHÁT TIẾP
-      const adSkip = automatedAdSkipRef.current;
-      if (adSkip && adSkip.active) {
-        const durationText = adSkip.adDuration > 0 ? ` (${adSkip.adDuration}s)` : "";
-        const { restoredMuted } = endAdTransition(adSkip);
-        automatedAdSkipRef.current = null;
-        setIsAdTransitioning(false);
-        if (restoredMuted !== null && videoRef.current) {
-          videoRef.current.muted = restoredMuted;
-        }
-        showHud(
-          <Zap className="w-5 h-5 text-netflix-red" />,
-          `Đã tự động bỏ qua quảng cáo${durationText}`
-        );
-      }
+      // Dọn dẹp cờ ad skip, khôi phục âm thanh và hiển thị Toast khi video ĐÃ THỰC SỰ PHÁT TIẾP và ra khỏi quảng cáo
+      checkAndCompleteAdTransition();
     };
     const handlePause = () => {
       cancelAdPreTrigger();
+      isProgrammaticAdSkipRef.current = false;
       if (automatedAdSkipRef.current) {
         const { restoredMuted } = endAdTransition(automatedAdSkipRef.current);
         automatedAdSkipRef.current = null;
@@ -1599,6 +1739,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
     };
 
     const handleTimeUpdateThrottled = () => {
+      checkAndCompleteAdTransition();
       const v = videoRef.current;
       if (v) {
         const ct = v.currentTime;
@@ -1638,7 +1779,9 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
         watchContext?.activeProvider !== "vsmov" &&
         pendingKeyboardSeekRef.current.timer === null
       ) {
-        // 1. Đánh giá skip với leadTime = 0.25s (kích hoạt sớm trước ranh giới)
+        const effectiveDur = getEffectiveDuration();
+
+        // 1. Đánh giá skip với leadTime = 0.35s và safeOffset (kích hoạt an toàn trước ranh giới)
         const adDecision = evaluateAutoAdSkipDecision({
           currentTime: video.currentTime,
           boundaries: adBoundariesRef.current,
@@ -1648,7 +1791,9 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
           isPaused: video.paused,
           isEnded: video.ended,
           isSeeking: video.seeking,
-          leadTime: 0.25,
+          leadTime: 0.35,
+          safeOffset: SAFE_AD_SKIP_OFFSET,
+          maxDuration: effectiveDur,
         });
 
         if (adDecision && adDecision.shouldSeek) {
@@ -1661,8 +1806,8 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
           );
 
           if (nextUpcomingAd && adPreTriggerRef.current.timer === null && adPreTriggerRef.current.rVfcId === null) {
-            const leadThreshold = 0.2; // 200ms trước ranh giới quảng cáo
-            const targetSeek = nextUpcomingAd.end;
+            const leadThreshold = 0.3; // 300ms trước ranh giới quảng cáo
+            const targetSeek = calculateSafeAdSkipTarget(nextUpcomingAd.end, adBoundariesRef.current, effectiveDur, SAFE_AD_SKIP_OFFSET);
             const adDuration = Math.round(nextUpcomingAd.duration);
             const adKey = `${nextUpcomingAd.start}_${nextUpcomingAd.end}`;
 
@@ -1815,17 +1960,62 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
       cancelAdPreTrigger();
       setIsBuffering(true);
       isStalledRef.current = true;
-      // Nếu là seek thủ công (không phải ad skip tự động), hủy cờ ad skip và khôi phục âm thanh
+
+      // 1. Nếu là lệnh seek do hệ thống chủ động bỏ qua quảng cáo (programmatic auto-skip), bảo vệ transition
+      if (isProgrammaticAdSkipRef.current) {
+        return;
+      }
+
+      // 2. Chống hủy transition nhầm: Nếu transition đang diễn ra trong khoảng 800ms đầu,
+      // browser có thể phát ra event seeking trong lúc cập nhật currentTime bất đồng bộ
+      const adSkip = automatedAdSkipRef.current;
+      if (adSkip && adSkip.active && Date.now() - adSkip.startTime < 800) {
+        return;
+      }
+
+      // 3. Nếu là thao tác tua thủ công (nút ±10s, bàn phím, double tap, hoặc ScrubBar):
+      // Kiểm tra nếu điểm rơi nằm trong khối quảng cáo thì snap qua luôn sau quảng cáo
+      const v = videoRef.current;
+      if (v && adBoundariesRef.current.length > 0) {
+        const ct = v.currentTime;
+        const dur = getEffectiveDuration();
+        const snap = snapTimePastAdBoundaries(ct, adBoundariesRef.current, dur, SAFE_AD_SKIP_OFFSET);
+        if (snap.snapped && snap.adKey) {
+          hasSkippedAdRef.current.add(snap.adKey);
+          lastAdSkipTimeRef.current = Date.now();
+          isProgrammaticAdSkipRef.current = true;
+          const { transitionState, shouldMuteElement } = startAdTransition({
+            targetSeek: snap.adjustedTime,
+            adDuration: snap.adDuration,
+            currentUserMuted: isMutedRef.current ?? v.muted,
+          });
+          automatedAdSkipRef.current = transitionState;
+          if (shouldMuteElement) {
+            v.muted = true;
+          }
+          setIsAdTransitioning(true);
+          v.currentTime = snap.adjustedTime;
+          return;
+        }
+      }
+
+      // 4. Nếu là manual seek bình thường ra ngoài vùng quảng cáo: dọn dẹp cờ transition cũ nếu có
       if (
-        automatedAdSkipRef.current &&
-        videoRef.current &&
-        Math.abs(videoRef.current.currentTime - automatedAdSkipRef.current.targetSeek) > 1.5
+        adSkip &&
+        adSkip.active &&
+        v &&
+        Math.abs(v.currentTime - adSkip.targetSeek) > 1.5
       ) {
-        const { restoredMuted } = endAdTransition(automatedAdSkipRef.current);
-        automatedAdSkipRef.current = null;
-        setIsAdTransitioning(false);
-        if (restoredMuted !== null) {
-          videoRef.current.muted = restoredMuted;
+        const isStillInAd = adBoundariesRef.current.some(
+          (b) => v.currentTime >= b.start && v.currentTime < b.end
+        );
+        if (!isStillInAd) {
+          const { restoredMuted } = endAdTransition(adSkip);
+          automatedAdSkipRef.current = null;
+          setIsAdTransitioning(false);
+          if (restoredMuted !== null) {
+            v.muted = restoredMuted;
+          }
         }
       }
     };
@@ -1833,7 +2023,9 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
       if (videoRef.current) {
         lastPlayheadTimeRef.current = videoRef.current.currentTime;
       }
+      isProgrammaticAdSkipRef.current = false;
       checkBufferRecovery();
+      checkAndCompleteAdTransition();
     };
     const handleLoadStart = () => {
       isBufferingRef.current = true;
@@ -1888,6 +2080,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
     playerSettings.autoNextEpisode,
     resetControlsTimeout,
     getBufferAhead,
+    cancelAdPreTrigger,
   ]);
 
   // Mobile touch & sticky detection
@@ -1922,8 +2115,6 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
 
   // Global Keyboard shortcuts & TV Player Focus Navigation (YouTube Style Direct Playback & 4-Tier Control Navigation)
   useEffect(() => {
-    const pendingSeek = pendingKeyboardSeekRef.current;
-
     const handleKeyDown = (e: KeyboardEvent) => {
       // 1. Bỏ qua nếu người dùng đang dùng tổ hợp phím hệ thống (Ctrl + C, Cmd + C, Ctrl + V, Alt + ...)
       if (e.ctrlKey || e.metaKey || e.altKey) {
@@ -2079,7 +2270,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
         return;
       }
 
-      // 9. PHÍM TUA VIDEO (← / →): Tua lùi / tiến 10s
+      // 9. PHÍM TUA VIDEO (← / →): Tua lùi / tiến 10s (Chu kỳ hiển thị chuẩn xác và đồng bộ OSD)
       if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
         if (active && active.tagName === "INPUT" && active.getAttribute("type") === "range") {
           return;
@@ -2089,49 +2280,50 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
         resetControlsTimeout();
 
         if (isNativeVideo && videoRef.current) {
-          const delta = e.key === "ArrowRight" ? 10 : -10;
           const v = videoRef.current;
           const effectiveDuration = getEffectiveDuration();
+          const s = pendingKeyboardSeekRef.current;
 
-          const isPending = pendingKeyboardSeekRef.current.timer !== null;
-          const originTime = isPending
-            ? pendingKeyboardSeekRef.current.originTime
-            : (v.currentTime || 0);
-
-          const baseTime = isPending
-            ? pendingKeyboardSeekRef.current.targetTime
-            : (v.currentTime || 0);
-
-          const rawTarget = baseTime + delta;
-          const newTarget = Math.max(
-            0,
-            effectiveDuration > 0 ? Math.min(effectiveDuration, rawTarget) : Math.max(0, rawTarget)
+          const result = calculateKeyboardSeek(
+            s.state,
+            e.key,
+            v.currentTime || 0,
+            effectiveDuration,
+            Date.now()
           );
 
-          const actualTotalDelta = Math.round(newTarget - originTime);
+          s.state = result.nextState;
 
-          pendingKeyboardSeekRef.current.targetTime = newTarget;
-          pendingKeyboardSeekRef.current.originTime = originTime;
-          pendingKeyboardSeekRef.current.totalDelta = actualTotalDelta;
-
-          if (actualTotalDelta >= 0) {
-            triggerDesktopFeedback("seek-right", `+${actualTotalDelta}s`, actualTotalDelta);
-          } else {
-            triggerDesktopFeedback("seek-left", `−${Math.abs(actualTotalDelta)}s`, actualTotalDelta);
-          }
-
-          if (pendingKeyboardSeekRef.current.timer) {
-            clearTimeout(pendingKeyboardSeekRef.current.timer);
-          }
-
-          pendingKeyboardSeekRef.current.timer = setTimeout(() => {
-            if (videoRef.current) {
-              videoRef.current.currentTime = pendingKeyboardSeekRef.current.targetTime;
+          // Nếu đổi hướng tua trong lúc seek trước đang debounce, flush ngay lệnh trước
+          if (result.shouldFlushPrevious && result.previousTargetToFlush !== undefined) {
+            if (s.timer) {
+              clearTimeout(s.timer);
+              s.timer = null;
             }
-            pendingKeyboardSeekRef.current.timer = null;
-            pendingKeyboardSeekRef.current.totalDelta = 0;
-            pendingKeyboardSeekRef.current.originTime = 0;
-          }, 250);
+            requestPlayerSeek(result.previousTargetToFlush, false);
+          }
+
+          // Cập nhật OSD phản hồi thị giác (RotateCw / RotateCcw)
+          triggerDesktopFeedback(result.feedbackType, result.feedbackText, result.feedbackSeconds);
+
+          // Debounce lệnh seek thực tế đến player (250ms)
+          if (s.timer) {
+            clearTimeout(s.timer);
+          }
+          s.timer = setTimeout(() => {
+            requestPlayerSeek(result.targetTime, false);
+            s.timer = null;
+            s.state.isDebouncePending = false;
+          }, KEYBOARD_SEEK_DEBOUNCE_MS);
+
+          // Reset chu kỳ sau khi indicator ẩn hoàn toàn (800ms)
+          if (s.resetTimer) {
+            clearTimeout(s.resetTimer);
+          }
+          s.resetTimer = setTimeout(() => {
+            s.state = createInitialKeyboardSeekState();
+            s.resetTimer = null;
+          }, KEYBOARD_SEEK_CYCLE_TIMEOUT_MS);
         }
         return;
       }
@@ -2151,9 +2343,8 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
 
     window.addEventListener("keydown", handleKeyDown);
     return () => {
-      if (pendingSeek.timer) {
-        clearTimeout(pendingSeek.timer);
-      }
+      // NOTE: Không hủy pendingKeyboardSeekRef timer ở đây vì cleanup này chạy mỗi khi dependencies
+      // (như volume, isFullscreen) thay đổi trong lúc player đang render. Unmount effect riêng sẽ dọn dẹp an toàn.
       if (singleTapTimerRef.current) {
         clearTimeout(singleTapTimerRef.current);
       }
@@ -2179,6 +2370,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
     resetControlsTimeout,
     triggerDesktopFeedback,
     setIsTheaterMode,
+    requestPlayerSeek,
   ]);
 
 
@@ -2324,7 +2516,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
                   if (xPct <= 0.38) {
                     // TUA LÙI 10 GIÂY
                     if (videoRef.current) {
-                      videoRef.current.currentTime = Math.max(0, videoRef.current.currentTime - 10);
+                      requestPlayerSeek(Math.max(0, (videoRef.current.currentTime || 0) - 10), false);
                     }
                     setDoubleTapFeedback({ side: "left", delta: -10 });
                     if (doubleTapFeedbackTimerRef.current) clearTimeout(doubleTapFeedbackTimerRef.current);
@@ -2334,11 +2526,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
                   } else if (xPct >= 0.62) {
                     // TUA TỚI 10 GIÂY
                     if (videoRef.current) {
-                      const effectiveDuration = getEffectiveDuration();
-                      videoRef.current.currentTime =
-                        effectiveDuration > 0
-                          ? Math.min(effectiveDuration, (videoRef.current.currentTime || 0) + 10)
-                          : (videoRef.current.currentTime || 0) + 10;
+                      requestPlayerSeek((videoRef.current.currentTime || 0) + 10, false);
                     }
                     setDoubleTapFeedback({ side: "right", delta: 10 });
                     if (doubleTapFeedbackTimerRef.current) clearTimeout(doubleTapFeedbackTimerRef.current);
@@ -2610,6 +2798,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
                   if (switchEpisode) switchEpisode(slug);
                 }}
                 onUserInteraction={resetControlsTimeout}
+                onSeek={requestPlayerSeek}
               />
 
               {/* NEXT EPISODE COUNTDOWN OVERLAY */}

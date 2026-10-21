@@ -16,15 +16,23 @@ interface WatchlistButtonProps {
     category?: string;
     genre?: string;
     time?: string;
+    itemType?: "movie" | "series" | "episode";
+    seriesSlug?: string;
+    seriesTitle?: string;
+    episodeSlug?: string;
+    episodeName?: string;
+    seasonName?: string;
   };
   variant?: "badge" | "button" | "icon" | "player";
   className?: string;
+  label?: string;
 }
 
 export const WatchlistButton: React.FC<WatchlistButtonProps> = ({
   movie,
   variant = "badge",
   className = "",
+  label,
 }) => {
   const [inList, setInList] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -51,9 +59,18 @@ export const WatchlistButton: React.FC<WatchlistButtonProps> = ({
       slug: movie.slug,
       title: movie.title,
       imageUrl: movie.imageUrl || movie.poster || "/default-poster.jpg",
+      poster: movie.poster || movie.imageUrl,
       year: movie.year,
       genre: movie.genre || movie.category,
+      category: movie.category || movie.genre,
+      quality: movie.quality,
       time: movie.time,
+      itemType: movie.itemType,
+      seriesSlug: movie.seriesSlug,
+      seriesTitle: movie.seriesTitle,
+      episodeSlug: movie.episodeSlug,
+      episodeName: movie.episodeName,
+      seasonName: movie.seasonName,
     });
 
     setInList(added);
@@ -73,7 +90,7 @@ export const WatchlistButton: React.FC<WatchlistButtonProps> = ({
         className={`inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-zinc-900/60 px-2.5 sm:px-3.5 py-1.5 text-xs sm:text-sm font-medium text-gray-500 opacity-60 flex-shrink-0 whitespace-nowrap ${className}`}
       >
         <Bookmark className="h-3.5 w-3.5 flex-shrink-0" />
-        <span className="whitespace-nowrap">Lưu</span>
+        <span className="whitespace-nowrap">{label || "Lưu"}</span>
       </button>
     );
   }
@@ -94,12 +111,12 @@ export const WatchlistButton: React.FC<WatchlistButtonProps> = ({
         {inList ? (
           <>
             <Check className="w-3.5 h-3.5 text-amber-400" />
-            <span>Đã lưu</span>
+            <span>{label ? `Đã lưu` : "Đã lưu"}</span>
           </>
         ) : (
           <>
             <Bookmark className="w-3.5 h-3.5 text-amber-400" />
-            <span>Lưu</span>
+            <span>{label || "Lưu"}</span>
           </>
         )}
       </button>
@@ -121,15 +138,23 @@ export const WatchlistButton: React.FC<WatchlistButtonProps> = ({
       {inList ? (
         <>
           <Check className="h-3.5 w-3.5 text-amber-400 flex-shrink-0" />
-          <span className="whitespace-nowrap">Đã lưu</span>
+          <span className="whitespace-nowrap">{label ? "Đã lưu" : "Đã lưu"}</span>
         </>
       ) : (
         <>
           <Bookmark className="h-3.5 w-3.5 text-amber-400 flex-shrink-0" />
-          <span className="whitespace-nowrap sm:hidden">Lưu</span>
-          <span className="whitespace-nowrap hidden sm:inline">Yêu thích</span>
+          {label ? (
+            <span className="whitespace-nowrap">{label}</span>
+          ) : (
+            <>
+              <span className="whitespace-nowrap sm:hidden">Lưu</span>
+              <span className="whitespace-nowrap hidden sm:inline">Yêu thích</span>
+            </>
+          )}
         </>
       )}
     </button>
   );
 };
+
+export default WatchlistButton;

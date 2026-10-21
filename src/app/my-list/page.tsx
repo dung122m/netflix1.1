@@ -556,6 +556,12 @@ function MyListContent() {
                   time={item.time}
                   country={item.country}
                   type_name={item.type_name}
+                  itemType={item.itemType}
+                  seriesSlug={item.seriesSlug}
+                  seriesTitle={item.seriesTitle}
+                  episodeSlug={item.episodeSlug}
+                  episodeName={item.episodeName}
+                  seasonName={item.seasonName}
                   priority={index < 4}
                 />
               ))}

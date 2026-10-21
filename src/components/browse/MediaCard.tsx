@@ -78,6 +78,12 @@ export interface MediaCardProps {
   isTrailerOnly?: boolean;
   matchSnippet?: string;
   matchType?: "title" | "actor" | "content";
+  itemType?: "movie" | "series" | "episode";
+  seriesSlug?: string;
+  seriesTitle?: string;
+  episodeSlug?: string;
+  episodeName?: string;
+  seasonName?: string;
 }
 
 const MediaCardInner: React.FC<MediaCardProps> = ({
@@ -102,6 +108,12 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
   trailer_url: initialTrailerUrl,
   isTrailerOnly = false,
   matchSnippet,
+  itemType,
+  seriesSlug,
+  seriesTitle,
+  episodeSlug,
+  episodeName,
+  seasonName,
 }) => {
   const router = useRouter();
   const { user } = useAuth();
@@ -283,6 +295,24 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
     return "";
   })();
 
+  const isEpisode = itemType === "episode" || Boolean(episodeSlug) || slug.includes("__ep__");
+  const sSlug = seriesSlug || (slug.includes("__ep__") ? slug.split("__ep__")[0] : slug);
+  const epSlug = episodeSlug || (slug.includes("__ep__") ? slug.split("__ep__")[1] : "");
+  const targetHref = React.useMemo(() => {
+    if (isEpisode && epSlug) {
+      return `/movies/${sSlug}?ep=${encodeURIComponent(epSlug)}`;
+    }
+    return `/movies/${slug}`;
+  }, [isEpisode, epSlug, sSlug, slug]);
+
+  const episodeBadgeText = React.useMemo(() => {
+    if (!isEpisode) return null;
+    if (episodeName) return episodeName;
+    if (!epSlug) return "Tập phim";
+    const numMatch = epSlug.match(/(\d+)/);
+    return numMatch ? `Tập ${numMatch[1]}` : epSlug;
+  }, [isEpisode, episodeName, epSlug]);
+
   // Bấm nút thêm/bỏ khỏi Watchlist
   const handleToggleList = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -296,6 +326,12 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
       time: displayTime,
       country: initialCountry,
       type_name: initialTypeName,
+      itemType,
+      seriesSlug,
+      seriesTitle,
+      episodeSlug,
+      episodeName,
+      seasonName,
     });
     setInList(nextState);
   };
@@ -319,7 +355,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
 
     if (navTimeoutRef.current) clearTimeout(navTimeoutRef.current);
     navTimeoutRef.current = setTimeout(() => {
-      router.push(`/movies/${slug}`);
+      router.push(targetHref);
     }, 180);
   };
 
@@ -373,9 +409,9 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
     <div
       className="group/card relative flex flex-col w-full select-none cursor-pointer group-hover/card:scale-[1.02] transition-transform duration-300 ease-out motion-reduce:transform-none"
       onMouseEnter={() => {
-        if (slug && !hasPrefetchedRef.current) {
+        if (targetHref && !hasPrefetchedRef.current) {
           hasPrefetchedRef.current = true;
-          router.prefetch(`/movies/${slug}`);
+          router.prefetch(targetHref);
         }
       }}
     >
@@ -386,7 +422,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
         {/* LIÊN KẾT CHÍNH PHỦ TOÀN BỘ POSTER (A11Y + KEYBOARD FOCUS + CLICK MỞ PHIM) */}
         <Link
           ref={baseCardRef}
-          href={`/movies/${slug}`}
+          href={targetHref}
           onClick={handleCardClick}
           tabIndex={0}
           aria-label={`Xem phim ${title}`}
@@ -433,6 +469,15 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
             />
           )}
         </Link>
+
+        {/* HUY HIỆU TẬP PHIM (NẾU LÀ EPISODE) */}
+        {isEpisode && episodeBadgeText && (
+          <div className="absolute top-2.5 right-2.5 z-20 pointer-events-none">
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500 text-black shadow-md border border-amber-300/40 select-none">
+              {episodeBadgeText}
+            </span>
+          </div>
+        )}
 
         {/* HUY HIỆU ĐẶC BIỆT GÓC TRÊN TRÁI (TỐI ĐA 1 BADGE: CHIẾU RẠP HOẶC ĐỘC QUYỀN) */}
         {(chieurap || sub_docquyen) && (
@@ -525,7 +570,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
 
         {/* TIÊU ĐỀ PHIM: TỐI ĐA 2 DÒNG, CHIỀU CAO ĐỒNG BỘ GIỮA CÁC THẺ TRONG HÀNG */}
         <Link
-          href={`/movies/${slug}`}
+          href={targetHref}
           onClick={handleCardClick}
           tabIndex={-1}
           aria-hidden="true"
@@ -588,6 +633,12 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
             year,
             quality,
             category: genre,
+            itemType,
+            seriesSlug,
+            seriesTitle,
+            episodeSlug,
+            episodeName,
+            seasonName,
           }}
         />
       )}
