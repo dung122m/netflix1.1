@@ -1515,7 +1515,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
 
       const currentCt = v.currentTime;
       const isStillInAd = adBoundariesRef.current.some(
-        (b) => currentCt >= b.start && currentCt < b.end
+        (b) => currentCt >= b.start && currentCt < (b.nextStart ?? b.end)
       );
       const isPastTarget = currentCt >= adSkip.targetSeek - 0.15;
       const isTimedOut = isAdTransitionTimedOut(adSkip);
@@ -1820,12 +1820,13 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
                   return;
                 }
                 const curCt = curV.currentTime;
-                if (curCt >= nextUpcomingAd.start - leadThreshold && curCt < nextUpcomingAd.end - 0.25) {
+                const nextAdEnd = nextUpcomingAd.nextStart ?? nextUpcomingAd.end;
+                if (curCt >= nextUpcomingAd.start - leadThreshold && curCt < nextAdEnd - 0.25) {
                   adPreTriggerRef.current.rVfcId = null;
                   triggerAdSkip(targetSeek, adDuration, adKey);
                   return;
                 }
-                if (curCt < nextUpcomingAd.start - 1.5 || curCt >= nextUpcomingAd.end) {
+                if (curCt < nextUpcomingAd.start - 1.5 || curCt >= nextAdEnd) {
                   adPreTriggerRef.current.rVfcId = null;
                   return;
                 }
@@ -1842,7 +1843,8 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
                 adPreTriggerRef.current.timer = null;
                 const curV = videoRef.current;
                 if (curV && !curV.paused && !curV.seeking && !curV.ended) {
-                  if (curV.currentTime >= nextUpcomingAd.start - 0.35 && curV.currentTime < nextUpcomingAd.end - 0.25) {
+                  const nextAdEnd = nextUpcomingAd.nextStart ?? nextUpcomingAd.end;
+                  if (curV.currentTime >= nextUpcomingAd.start - 0.35 && curV.currentTime < nextAdEnd - 0.25) {
                     triggerAdSkip(targetSeek, adDuration, adKey);
                   }
                 }
@@ -2007,7 +2009,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
         Math.abs(v.currentTime - adSkip.targetSeek) > 1.5
       ) {
         const isStillInAd = adBoundariesRef.current.some(
-          (b) => v.currentTime >= b.start && v.currentTime < b.end
+          (b) => v.currentTime >= b.start && v.currentTime < (b.nextStart ?? b.end)
         );
         if (!isStillInAd) {
           const { restoredMuted } = endAdTransition(adSkip);

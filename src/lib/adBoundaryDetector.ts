@@ -30,6 +30,7 @@ export interface AdBoundary {
   duration: number;
   startIndex: number;
   endIndex: number;
+  nextStart?: number;
 }
 
 /**
@@ -136,6 +137,9 @@ export function detectAdBoundaries(fragments: FragmentLike[]): AdBoundary[] {
       ) {
         const rawStart = typeof currentFrag.start === "number" && isFinite(currentFrag.start) ? currentFrag.start : 0;
         const calculatedEnd = rawStart + totalDuration;
+        const rawNextStart = nextFrag && typeof nextFrag.start === "number" && isFinite(nextFrag.start)
+          ? nextFrag.start
+          : undefined;
 
         boundaries.push({
           start: Math.max(0, Math.round(rawStart * 1000) / 1000),
@@ -143,6 +147,7 @@ export function detectAdBoundaries(fragments: FragmentLike[]): AdBoundary[] {
           duration: Math.max(0, Math.round(totalDuration * 1000) / 1000),
           startIndex,
           endIndex: lastAdFragIndex,
+          ...(rawNextStart !== undefined ? { nextStart: rawNextStart } : {}),
         });
       }
 
@@ -165,10 +170,13 @@ export const SAFE_AD_SKIP_OFFSET = 0.35;
 
 /**
  * Tính toán mốc seek an toàn vượt qua khối quảng cáo:
- * - Cộng safeOffset (mặc định 0.35s) sau adEnd.
+ * - Nếu khối quảng cáo có ranh giới `nextStart` (start timestamp chính xác của segment phim liền sau
+ *   từ HLS playlist), ưu tiên sử dụng trực tiếp ranh giới segment đã xác minh này (cộng 0.005s vi sai
+ *   để triệt tiêu hoàn toàn sai số số thực IEEE-754 giữa các segment và không bị dính ngược vào segment quảng cáo),
+ *   tuyệt đối không dùng offset cố định tùy tiện cắt vào nội dung hình/tiếng của phim.
+ * - Nếu không có `nextStart`, sử dụng safeOffset (mặc định 0.35s) trên adEnd.
  * - Kiểm tra giới hạn maxDuration: nếu thời lượng phim được cung cấp, không vượt quá (maxDuration - 0.5s).
- * - Xử lý trường hợp có nhiều khối quảng cáo liên tiếp (chaining): nếu điểm rơi sau khi cộng offset
- *   vẫn nằm trong một khối quảng cáo tiếp theo, tiếp tục nhảy qua khối đó.
+ * - Xử lý trường hợp có nhiều khối quảng cáo liên tiếp (chaining).
  */
 export function calculateSafeAdSkipTarget(
   adEnd: number,
@@ -177,7 +185,17 @@ export function calculateSafeAdSkipTarget(
   safeOffset: number = SAFE_AD_SKIP_OFFSET
 ): number {
   if (!isFinite(adEnd) || adEnd < 0) return 0;
-  let target = Math.max(0, Math.round((adEnd + safeOffset) * 1000) / 1000);
+
+  const matchedAd = Array.isArray(boundaries)
+    ? boundaries.find((b) => Math.abs(b.end - adEnd) < 0.05 || (adEnd >= b.start && adEnd <= (b.nextStart ?? b.end)))
+    : undefined;
+
+  let target: number;
+  if (matchedAd && typeof matchedAd.nextStart === "number" && isFinite(matchedAd.nextStart)) {
+    target = Math.max(matchedAd.nextStart, matchedAd.end) + 0.005;
+  } else {
+    target = Math.max(0, Math.round((adEnd + safeOffset) * 1000) / 1000);
+  }
 
   // Kiểm tra chuỗi quảng cáo liên tiếp (ad chaining)
   if (Array.isArray(boundaries) && boundaries.length > 0) {
@@ -186,10 +204,14 @@ export function calculateSafeAdSkipTarget(
     while (chained && iterations < 5) {
       iterations++;
       const nextAd = boundaries.find(
-        (b) => target >= b.start && target <= b.end
+        (b) => target >= b.start && target <= (b.nextStart ?? b.end)
       );
       if (nextAd) {
-        target = Math.max(0, Math.round((nextAd.end + safeOffset) * 1000) / 1000);
+        if (typeof nextAd.nextStart === "number" && isFinite(nextAd.nextStart)) {
+          target = Math.max(nextAd.nextStart, nextAd.end) + 0.005;
+        } else {
+          target = Math.max(0, Math.round((nextAd.end + safeOffset) * 1000) / 1000);
+        }
       } else {
         chained = false;
       }
@@ -201,7 +223,7 @@ export function calculateSafeAdSkipTarget(
     target = Math.min(target, Math.max(0, maxDuration - 0.5));
   }
 
-  return target;
+  return Math.round(target * 1000) / 1000;
 }
 
 /**
@@ -230,7 +252,7 @@ export function snapTimePastAdBoundaries(
   }
 
   const matchedAd = boundaries.find(
-    (b) => targetTime >= b.start && targetTime <= b.end
+    (b) => targetTime >= b.start && targetTime <= (b.nextStart ?? b.end)
   );
 
   if (!matchedAd) {
@@ -303,12 +325,12 @@ export function evaluateAutoAdSkipDecision(params: {
       hasSkippedSet.delete(adKey);
     } else if (
       ct >= ad.start - safeLeadTime &&
-      ct < ad.end &&
+      ct < (ad.nextStart ?? ad.end) &&
       !hasSkippedSet.has(adKey) &&
       now - lastSkipTime > 2000
     ) {
       hasSkippedSet.add(adKey);
-      const targetSeek = safeOffset > 0
+      const targetSeek = safeOffset > 0 || ad.nextStart !== undefined
         ? calculateSafeAdSkipTarget(ad.end, boundaries, maxDuration, safeOffset)
         : ad.end;
 
@@ -363,7 +385,7 @@ export function evaluatePreRollAdDecision(params: {
 
   const firstAd = boundaries[0];
   if (firstAd && typeof firstAd.start === "number" && firstAd.start <= startThreshold && firstAd.end > firstAd.start) {
-    const targetSeek = safeOffset > 0
+    const targetSeek = safeOffset > 0 || firstAd.nextStart !== undefined
       ? calculateSafeAdSkipTarget(firstAd.end, boundaries, maxDuration, safeOffset)
       : firstAd.end;
 

@@ -805,6 +805,97 @@ describe("adBoundaryDetector", () => {
       });
     });
   });
+
+  describe("TC-AD-SKIP-RESIDUAL-1S-01 — Elimination of 1s Residual Ad via Verified nextStart Segment Boundaries", () => {
+    it("populates nextStart in detectAdBoundaries when following movie fragment exists", () => {
+      const fragments = [
+        { url: "movie_01.ts", cc: 0, duration: 10, start: 0 },
+        { url: "movie_02.ts", cc: 0, duration: 10, start: 10 },
+        // Ad block (15s):
+        { url: "convertv7/ad_01.ts", cc: 1, duration: 5, start: 20 },
+        { url: "convertv7/ad_02.ts", cc: 1, duration: 5, start: 25 },
+        { url: "convertv7/ad_03.ts", cc: 1, duration: 5, start: 30 },
+        // Movie resumes at cc: 2, start: 35.0000000000005
+        { url: "movie_03.ts", cc: 2, duration: 10, start: 35.0000000000005 },
+        { url: "movie_04.ts", cc: 2, duration: 10, start: 45.0000000000005 },
+      ];
+
+      const detected = detectAdBoundaries(fragments);
+      assert.strictEqual(detected.length, 1);
+      assert.strictEqual(detected[0].start, 20);
+      assert.strictEqual(detected[0].end, 35);
+      assert.strictEqual(detected[0].duration, 15);
+      assert.strictEqual(detected[0].startIndex, 2);
+      assert.strictEqual(detected[0].endIndex, 4);
+      assert.strictEqual(detected[0].nextStart, 35.0000000000005);
+    });
+
+    it("calculates safe target using nextStart + 0.005 instead of arbitrary 0.35s fixed offset", () => {
+      const boundariesWithNextStart = [
+        {
+          start: 900.4,
+          end: 930.64,
+          duration: 30.24,
+          startIndex: 225,
+          endIndex: 235,
+          nextStart: 930.6400000000006,
+        },
+      ];
+
+      // Khi có nextStart, calculateSafeAdSkipTarget phải dùng ranh giới segment thực tế (930.645)
+      // thay vì cộng cố định 0.35s (930.99) gây cắt mất 350ms phim
+      const target = calculateSafeAdSkipTarget(930.64, boundariesWithNextStart, 2000);
+      assert.strictEqual(target, 930.645);
+      assert.strictEqual(target > 930.6400000000006, true, "Target must be strictly greater than nextStart");
+      assert.strictEqual(Math.round((target - 930.6400000000006) * 1000), 5, "Delta must be exactly 5ms");
+    });
+
+    it("reproduces and resolves Conan Episode 31 Server 1 scenario (minute 15 ad)", () => {
+      // Dữ liệu thực tế từ luồng HLS của Conan Tập 31 Server 1
+      const conan31Boundary = [
+        {
+          start: 900.4,
+          end: 930.64,
+          duration: 30.24,
+          startIndex: 225,
+          endIndex: 235,
+          nextStart: 930.6400000000006, // OwlqcdyT.ts start time
+        },
+      ];
+      const hasSkipped = new Set<string>();
+
+      // Khi phát hiện đến mốc phút 15 (900.4s)
+      const decision = evaluateAutoAdSkipDecision({
+        currentTime: 900.4,
+        boundaries: conan31Boundary,
+        hasSkippedSet: hasSkipped,
+        lastSkipTime: 0,
+        now: 100000,
+        leadTime: 0.35,
+        safeOffset: 0.35,
+        maxDuration: 1500,
+      });
+
+      assert.notStrictEqual(decision, null);
+      assert.strictEqual(decision?.shouldSeek, true);
+      // Quyết định tự động seek đúng ranh giới segment OwlqcdyT.ts
+      assert.strictEqual(decision?.targetSeek, 930.645);
+      assert.strictEqual(hasSkipped.has("900.4_930.64"), true);
+
+      // Tua thủ công vào giữa quảng cáo Conan 31 cũng snap chính xác sang OwlqcdyT.ts
+      const snap = snapTimePastAdBoundaries(915.0, conan31Boundary, 1500);
+      assert.strictEqual(snap.snapped, true);
+      assert.strictEqual(snap.adjustedTime, 930.645);
+    });
+
+    it("falls back safely to safeOffset when nextStart is not available (backwards compatibility)", () => {
+      const mockBoundaries = [
+        { start: 100, end: 120, duration: 20, startIndex: 10, endIndex: 12 },
+      ];
+      const target = calculateSafeAdSkipTarget(120, mockBoundaries, 500, 0.35);
+      assert.strictEqual(target, 120.35);
+    });
+  });
 });
 
 
