@@ -1,12 +1,10 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+ 
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 
 import {
   isSeriesMovie,
   matchesCriteria,
-  getMovieDurationMinutes,
-  matchesDurationRange,
   rankCandidatesBySurprise,
 } from "./route";
 
@@ -327,7 +325,7 @@ describe("Nanaflix Bốc Quẻ — Độ Chính Xác & Invariants Audit (Giai đ
       { movie: { slug: "slug-2", title: "Phim 2" } },
       { movie: { slug: "slug-3", title: "Phim 3" } },
     ];
-    let rolledSlugs = ["slug-1"];
+    const rolledSlugs = ["slug-1"];
     let apiCallCount = 0;
 
     const performReroll = (currentCriteriaKey: string, lastCriteriaKey: string) => {

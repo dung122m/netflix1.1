@@ -11,8 +11,7 @@ describe("Movie Recommendations API & Deduplication Unit Tests", () => {
       body: JSON.stringify({ currentMovieTitle: "No Slug Movie" }),
     });
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const res = await POST(req as any);
+    const res = await POST(req as unknown as import("next/server").NextRequest);
     assert.equal(res.status, 400);
     const json = await res.json();
     assert.equal(json.success, false);
@@ -70,12 +69,12 @@ describe("Movie Recommendations API & Deduplication Unit Tests", () => {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
-      }) as any),
+      }) as unknown as import("next/server").NextRequest),
       POST(new Request("http://localhost/api/movies/recommendations", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
-      }) as any),
+      }) as unknown as import("next/server").NextRequest),
     ]);
 
     assert.equal(res1.status, 200);

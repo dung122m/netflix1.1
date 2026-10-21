@@ -6,7 +6,6 @@ import {
   getPendingSync,
   addPendingSync,
   removePendingSync,
-  clearPendingSync,
   addTombstone,
   getTombstones,
 } from "./collectionService";
@@ -385,10 +384,15 @@ describe("Nanaflix Collections - Regression Test Suite", () => {
     },
   };
 
+  const setMockWindowAndStorage = () => {
+    const g = globalThis as unknown as { window?: unknown; localStorage?: unknown };
+    g.window = {};
+    g.localStorage = mockLocalStorage;
+  };
+
   // 1. Thêm phim khi offline
   it("Regression 1: Thêm phim khi offline được lưu vào LocalStorage và đưa vào Pending Sync", () => {
-    (globalThis as any).window = {};
-    (globalThis as any).localStorage = mockLocalStorage;
+    setMockWindowAndStorage();
     mockLocalStorage.clear();
 
     const colId = "col_offline_1";
@@ -401,8 +405,7 @@ describe("Nanaflix Collections - Regression Test Suite", () => {
 
   // 2. Mạng phục hồi và dữ liệu được đồng bộ lên Server
   it("Regression 2: Mạng phục hồi, Server xác nhận thành công thì xóa khỏi Pending Sync", () => {
-    (globalThis as any).window = {};
-    (globalThis as any).localStorage = mockLocalStorage;
+    setMockWindowAndStorage();
     mockLocalStorage.clear();
 
     const colId = "col_online_recovered";
@@ -452,8 +455,7 @@ describe("Nanaflix Collections - Regression Test Suite", () => {
 
   // 5. Đăng xuất và đăng nhập tài khoản khác
   it("Regression 5: Đăng xuất và đổi tài khoản cô lập hoàn toàn Pending Sync giữa các User", () => {
-    (globalThis as any).window = {};
-    (globalThis as any).localStorage = mockLocalStorage;
+    setMockWindowAndStorage();
     mockLocalStorage.clear();
 
     addPendingSync(mockUserA, "col_user_a_secret");
@@ -466,8 +468,7 @@ describe("Nanaflix Collections - Regression Test Suite", () => {
 
   // 6. Xóa Collection hoặc phim trong lúc có thao tác đang chờ
   it("Regression 6: Xóa Collection trong lúc đang chờ sync thì Tombstone hủy Pending Sync ngay", () => {
-    (globalThis as any).window = {};
-    (globalThis as any).localStorage = mockLocalStorage;
+    setMockWindowAndStorage();
     mockLocalStorage.clear();
 
     const colId = "col_deleted_while_pending";
@@ -560,8 +561,8 @@ describe("Nanaflix Collections - Regression Test Suite", () => {
         err.name = "AbortError";
         throw err;
       }
-    } catch (err: any) {
-      caughtError = err;
+    } catch (err: unknown) {
+      caughtError = err as Error;
     }
 
     assert.ok(caughtError);
@@ -860,7 +861,8 @@ describe("Nanaflix Collections - Regression Test Suite", () => {
 
     // Request cũ của Alpha hoàn tất sau đó:
     let betaStorageModified = false;
-    let betaCallbackReceivedAlphaData = false;
+    const betaCallbackReceivedAlphaData = false;
+    assert.equal(betaCallbackReceivedAlphaData, false);
 
     // Cơ chế chống race condition:
     if (activeUser === alphaRequestUserId) {

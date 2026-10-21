@@ -146,7 +146,20 @@ async function fetchCommonsImageInfo(fileName: string): Promise<{
     const pages = data.query?.pages;
     if (!pages) return null;
 
-    const page = Object.values(pages)[0] as any;
+    interface WikiPageInfo {
+      imageinfo?: Array<{
+        thumburl?: string;
+        url?: string;
+        extmetadata?: {
+          LicenseShortName?: { value?: string };
+          UsageTerms?: { value?: string };
+          LicenseUrl?: { value?: string };
+          Artist?: { value?: string };
+          Credit?: { value?: string };
+        };
+      }>;
+    }
+    const page = Object.values(pages)[0] as WikiPageInfo | undefined;
     const info = page?.imageinfo?.[0];
     const candidateUrl = info?.thumburl || info?.url;
     if (!candidateUrl) return null;
@@ -184,7 +197,7 @@ async function fetchWikidataPhotoFallback(
   athleteId: string,
   name?: string,
   verifiedDob?: string,
-  verifiedCountry?: string,
+  _verifiedCountry?: string,
 ): Promise<{
   photoUrl: string;
   photoSource: "wikimedia";
@@ -192,6 +205,7 @@ async function fetchWikidataPhotoFallback(
   photoLicenseUrl?: string;
   photoAttribution?: string;
 } | null> {
+  void _verifiedCountry;
   // 1. Ưu tiên cấp 1: Đối soát chính xác 100% bằng ESPN Player ID (P3681) trên Wikidata
   try {
     // Escape ký tự đặc biệt trong ID để tránh SPARQL injection

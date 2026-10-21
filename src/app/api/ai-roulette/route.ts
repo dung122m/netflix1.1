@@ -712,7 +712,7 @@ export function rankCandidatesBySurprise(
     // Điểm ưu tiên tinh tế theo người xem cùng (Companion Affinity Bonus)
     let companionBonus = 0;
     if (companion) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+       
       const catSlugs = Array.isArray(item.cand.movie?.category)
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         ? item.cand.movie.category.map((c: any) =>
@@ -1330,10 +1330,6 @@ export async function POST(req: NextRequest) {
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let foundMovie: any = null;
-    let finalPunchline = "";
-    let finalBadges: string[] = [];
-    let finalMatchScore = 98;
-    let provider = "Nana AI";
 
     const targetCategorySlug = moodMeta.categorySlug;
     const targetCountrySlug = country !== "all" ? (countryMeta.slug || country) : undefined;

@@ -8,7 +8,6 @@ import {
   getStartOfTodayVietnam,
   getHourVietnam,
   formatPageGroupName,
-  VIETNAM_TIMEZONE_OFFSET_MS,
   AnalyticsDashboardStats,
   DailyVisitorsResponse,
   StoredAnalyticsEvent,
@@ -46,7 +45,7 @@ test("TEST 1 — TIMEZONE & BOUNDARIES: Vietnam Day Boundaries (UTC+7, Asia/Ho_C
 test("TEST 2 — EVENT SCOPE: Only site_visit is processed into visit statistics", async () => {
   // 1. Non-site_visit event must not fail and should not be processed as a visit
   const watchEv: AnalyticsEventPayload = {
-    eventType: "watch_progress" as any,
+    eventType: "watch_progress",
     movieSlug: "arcane",
     progressSeconds: 120,
     timestamp: Date.now(),

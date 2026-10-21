@@ -34,6 +34,7 @@ import { PlayerShortcutModal } from "./player/PlayerShortcutModal";
 import {
   detectAdBoundaries,
   AdBoundary,
+  FragmentLike,
   evaluateAutoAdSkipDecision,
   evaluatePreRollAdDecision,
   SAFE_AD_SKIP_OFFSET,
@@ -543,17 +544,17 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
 
   const [initialEpisodeSlug] = useState<string | undefined>(activeEpisodeSlug);
   const [initialTimeUsed, setInitialTimeUsed] = useState<boolean>(false);
-  const initialLoadedEpisodeRef = useRef<string | null>(null);
+  const [initialLoadedEpisode, setInitialLoadedEpisode] = useState<string | undefined>(activeEpisodeSlug);
 
   useEffect(() => {
-    if (!initialLoadedEpisodeRef.current && activeEpisodeSlug) {
-      initialLoadedEpisodeRef.current = activeEpisodeSlug;
+    if (!initialLoadedEpisode && activeEpisodeSlug) {
+      setInitialLoadedEpisode(activeEpisodeSlug);
     }
-  }, [activeEpisodeSlug]);
+  }, [activeEpisodeSlug, initialLoadedEpisode]);
 
   const urlParamT = searchParams?.get("t");
   const targetProgress = useMemo(() => {
-    const effectiveInitialSlug = initialEpisodeSlug || initialLoadedEpisodeRef.current;
+    const effectiveInitialSlug = initialEpisodeSlug || initialLoadedEpisode;
     const isInitialEpisode = !effectiveInitialSlug || activeEpisodeSlug === effectiveInitialSlug;
     if (isInitialEpisode && !initialTimeUsed) {
       if (typeof initialTime === "number" && initialTime > 0) return initialTime;
@@ -575,7 +576,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
     const currentMovieSlug = watchContext?.movieSlug || propMovieSlug;
     const savedProgress = currentMovieSlug && activeEpisodeSlug ? getWatchProgress(currentMovieSlug, activeEpisodeSlug) : 0;
     return savedProgress > 3 ? savedProgress : 0;
-  }, [initialTime, urlParamT, watchContext?.movieSlug, propMovieSlug, activeEpisodeSlug, initialEpisodeSlug, initialTimeUsed]);
+  }, [initialTime, urlParamT, watchContext?.movieSlug, propMovieSlug, activeEpisodeSlug, initialEpisodeSlug, initialLoadedEpisode, initialTimeUsed]);
 
   const hasSeekedInitialRef = useRef<boolean>(false);
   useEffect(() => {
@@ -605,11 +606,11 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
     }
     setUseIframeFallback(false);
     setIsBuffering(true);
-    const effectiveInitialSlug = initialEpisodeSlug || initialLoadedEpisodeRef.current;
+    const effectiveInitialSlug = initialEpisodeSlug || initialLoadedEpisode;
     if (activeEpisodeSlug && effectiveInitialSlug && activeEpisodeSlug !== effectiveInitialSlug) {
       setInitialTimeUsed(true);
     }
-  }, [activeEpisodeSlug, resolvedM3u8, initialEpisodeSlug]);
+  }, [activeEpisodeSlug, resolvedM3u8, initialEpisodeSlug, initialLoadedEpisode]);
 
   const activeSrc = useMemo(() => {
     let src = videoLink ? embedSrc : trailerEmbedSrc;
@@ -1198,7 +1199,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
       };
       hls.on(Hls.Events.FRAG_LOADED, onFragLoaded);
 
-      const updateHlsDuration = (_event: unknown, data: { details?: { totalduration?: number; fragments?: any[] } }) => {
+      const updateHlsDuration = (_event: unknown, data: { details?: { totalduration?: number; fragments?: FragmentLike[] } }) => {
         if (data?.details?.totalduration && data.details.totalduration > 0 && isFinite(data.details.totalduration)) {
           const totalSecs = data.details.totalduration;
           setKnownDuration(totalSecs);

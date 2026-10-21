@@ -21,7 +21,6 @@ export interface FragmentLike {
   relurl?: string;
   sn?: number | string;
   cc?: number;
-  [key: string]: unknown;
 }
 
 export interface AdBoundary {

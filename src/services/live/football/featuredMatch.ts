@@ -261,7 +261,7 @@ for (const item of MARQUEE_RIVALRY_PAIRS) {
  * Chuẩn hóa URL nguồn phát và đếm số lượng URL duy nhất hợp lệ (loại bỏ proxy unwrap và query params trùng)
  */
 export function countUniqueServers(
-  servers?: Array<{ url?: string; [key: string]: any } | string | null | undefined> | null
+  servers?: Array<{ url?: string } | string | null | undefined> | null
 ): number {
   if (!servers || !Array.isArray(servers) || servers.length === 0) return 0;
   const uniqueUrls = new Set<string>();
@@ -305,7 +305,7 @@ export function isFeaturedMatch(params: {
   round?: string;
   score?: LiveMatchScore | null;
   validServersCount?: number;
-  servers?: Array<{ url?: string; [key: string]: any }>;
+  servers?: Array<{ url?: string }>;
 }): FeaturedMatchResult {
   const { title, tournament = "", team1 = "", team2 = "", sport, stage = "", round = "" } = params;
 
