@@ -440,7 +440,7 @@ describe("adBoundaryDetector", () => {
         evaluatePreRollAdDecision({
           targetProgress: 0,
           hasStartedInitialPlayback: false,
-          boundaries: null as any,
+          boundaries: null as unknown as import("./adBoundaryDetector").AdBoundary[],
         }),
         null
       );
@@ -641,6 +641,7 @@ describe("adBoundaryDetector", () => {
     it("simulates async seek: seeking landing inside ad must always snap regardless of hasSkipped history", () => {
       // Giả lập lịch sử đã từng skip ad này trước đó
       const hasSkipped = new Set<string>(["200_230"]);
+      assert.strictEqual(hasSkipped.size, 1);
 
       // Người dùng tua thủ công quay lại 210s (giữa ad 1)
       const snap = snapTimePastAdBoundaries(210.0, multiAdBoundaries, 1000);
