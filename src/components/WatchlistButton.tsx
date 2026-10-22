@@ -26,6 +26,7 @@ interface WatchlistButtonProps {
   variant?: "badge" | "button" | "icon" | "player";
   className?: string;
   label?: string;
+  savedLabel?: string;
 }
 
 export const WatchlistButton: React.FC<WatchlistButtonProps> = ({
@@ -33,6 +34,7 @@ export const WatchlistButton: React.FC<WatchlistButtonProps> = ({
   variant = "badge",
   className = "",
   label,
+  savedLabel,
 }) => {
   const [inList, setInList] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -111,7 +113,7 @@ export const WatchlistButton: React.FC<WatchlistButtonProps> = ({
         {inList ? (
           <>
             <Check className="w-3.5 h-3.5 text-amber-400" />
-            <span>{label ? `Đã lưu` : "Đã lưu"}</span>
+            <span>{savedLabel || (label ? `Đã lưu` : "Đã lưu")}</span>
           </>
         ) : (
           <>
@@ -138,7 +140,7 @@ export const WatchlistButton: React.FC<WatchlistButtonProps> = ({
       {inList ? (
         <>
           <Check className="h-3.5 w-3.5 text-amber-400 flex-shrink-0" />
-          <span className="whitespace-nowrap">{label ? "Đã lưu" : "Đã lưu"}</span>
+          <span className="whitespace-nowrap">{savedLabel || (label ? "Đã lưu" : "Đã lưu")}</span>
         </>
       ) : (
         <>

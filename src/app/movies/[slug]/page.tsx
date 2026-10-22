@@ -33,6 +33,7 @@ import { WatchSidebarTabs } from "@/components/WatchSidebarTabs";
 import { ServerSelector } from "@/components/ServerSelector";
 import { WatchlistButton } from "@/components/WatchlistButton";
 import { AddToCollectionButton } from "@/components/Collections/AddToCollectionButton";
+import { ActiveEpisodeActionButtons } from "@/components/ActiveEpisodeActionButtons";
 import { ActiveEpisodeBadge, EpisodeCountBadge } from "@/components/ActiveEpisodeBadge";
 import { findEpisodeMatch } from "@/lib/formatEpisode";
 
@@ -682,44 +683,18 @@ export default async function MovieDetail({
                           label={isSeries ? "Bộ sưu tập trọn bộ" : undefined}
                         />
 
-                        {/* Nút Lưu tập hiện tại cho Series */}
-                        {isSeries && activeEpisode && activeEpisode.slug && (
-                          <>
-                            <div className="h-6 w-px bg-white/10 mx-0.5 flex-shrink-0" />
-                            <WatchlistButton
-                              movie={{
-                                slug: `${movie.slug}__ep__${activeEpisode.slug}`,
-                                title: `${title} - ${activeEpisode.name || activeEpisode.slug}`,
-                                poster: pickBestMovieImage(movie, "/default-poster.jpg"),
-                                year: movie.year,
-                                quality: movie.quality,
-                                category: movie.category?.[0]?.name,
-                                itemType: "episode",
-                                seriesSlug: movie.slug,
-                                seriesTitle: title,
-                                episodeSlug: activeEpisode.slug,
-                                episodeName: activeEpisode.name || activeEpisode.slug,
-                              }}
-                              label={`Lưu ${activeEpisode.name || "tập"}`}
-                            />
-                            <AddToCollectionButton
-                              movie={{
-                                slug: `${movie.slug}__ep__${activeEpisode.slug}`,
-                                title: `${title} - ${activeEpisode.name || activeEpisode.slug}`,
-                                poster: pickBestMovieImage(movie, "/default-poster.jpg"),
-                                year: movie.year,
-                                quality: movie.quality,
-                                category: movie.category?.[0]?.name,
-                                itemType: "episode",
-                                seriesSlug: movie.slug,
-                                seriesTitle: title,
-                                episodeSlug: activeEpisode.slug,
-                                episodeName: activeEpisode.name || activeEpisode.slug,
-                              }}
-                              label={`Thêm ${activeEpisode.name || "tập"}`}
-                            />
-                          </>
-                        )}
+                        {/* Nút Lưu tập & Thêm BST tập hiện tại (Tự động cập nhật tức thì 0ms khi chuyển tập) */}
+                        <ActiveEpisodeActionButtons
+                          movieSlug={movie.slug}
+                          movieTitle={title}
+                          poster={pickBestMovieImage(movie, "/default-poster.jpg")}
+                          year={movie.year}
+                          quality={movie.quality}
+                          category={movie.category?.[0]?.name}
+                          isSeries={isSeries}
+                          initialEpisodeSlug={activeEpisode?.slug}
+                          initialEpisodeName={activeEpisode?.name}
+                        />
 
                         {/* Divider đẩy cụm chia sẻ sang phải trên desktop */}
                         <div className="h-6 w-px bg-white/10 mx-0.5 flex-shrink-0 ml-auto hidden sm:block" />

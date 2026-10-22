@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { MessageSquare, Globe } from "lucide-react";
 import { MovieCommentsSection } from "./MovieCommentsSection";
 import { TmdbAudienceReviews } from "@/components/TmdbAudienceReviews";
+import { useWatchController } from "@/components/WatchController";
 
 interface MovieReviewsContainerProps {
   movieSlug: string;
@@ -17,11 +18,15 @@ interface MovieReviewsContainerProps {
 export const MovieReviewsContainer: React.FC<MovieReviewsContainerProps> = ({
   movieSlug,
   movieTitle,
-  currentEpisodeSlug,
-  currentEpisodeName,
+  currentEpisodeSlug: propEpisodeSlug,
+  currentEpisodeName: propEpisodeName,
   tmdbId,
   tmdbType,
 }) => {
+  const watchContext = useWatchController();
+  const currentEpisodeSlug = watchContext?.activeEpisode?.slug || propEpisodeSlug;
+  const currentEpisodeName = watchContext?.activeEpisode?.name || propEpisodeName;
+
   const [activeTab, setActiveTab] = useState<"nanaflix" | "tmdb">("nanaflix");
 
   return (
