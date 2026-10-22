@@ -831,7 +831,7 @@ describe("adBoundaryDetector", () => {
       assert.strictEqual(detected[0].nextStart, 35.0000000000005);
     });
 
-    it("calculates safe target using nextStart + 0.005 instead of arbitrary 0.35s fixed offset", () => {
+    it("calculates safe target using nextStart + safeOffset (>= 0.45s) to eliminate residual ad audio", () => {
       const boundariesWithNextStart = [
         {
           start: 900.4,
@@ -843,12 +843,11 @@ describe("adBoundaryDetector", () => {
         },
       ];
 
-      // Khi có nextStart, calculateSafeAdSkipTarget phải dùng ranh giới segment thực tế (930.645)
-      // thay vì cộng cố định 0.35s (930.99) gây cắt mất 350ms phim
-      const target = calculateSafeAdSkipTarget(930.64, boundariesWithNextStart, 2000);
-      assert.strictEqual(target, 930.645);
+      // Khi có nextStart, calculateSafeAdSkipTarget phải nhảy qua điểm baseBoundary với offset an toàn (931.14s)
+      // để triệt tiêu hoàn toàn audio packet đuôi quảng cáo (ví dụ tiếng "9922.com")
+      const target = calculateSafeAdSkipTarget(930.64, boundariesWithNextStart, 2000, 0.5);
+      assert.strictEqual(target, 931.14);
       assert.strictEqual(target > 930.6400000000006, true, "Target must be strictly greater than nextStart");
-      assert.strictEqual(Math.round((target - 930.6400000000006) * 1000), 5, "Delta must be exactly 5ms");
     });
 
     it("reproduces and resolves Conan Episode 31 Server 1 scenario (minute 15 ad)", () => {
@@ -873,20 +872,20 @@ describe("adBoundaryDetector", () => {
         lastSkipTime: 0,
         now: 100000,
         leadTime: 0.35,
-        safeOffset: 0.35,
+        safeOffset: 0.5,
         maxDuration: 1500,
       });
 
       assert.notStrictEqual(decision, null);
       assert.strictEqual(decision?.shouldSeek, true);
-      // Quyết định tự động seek đúng ranh giới segment OwlqcdyT.ts
-      assert.strictEqual(decision?.targetSeek, 930.645);
+      // Quyết định tự động seek qua ranh giới an toàn của OwlqcdyT.ts
+      assert.strictEqual(decision?.targetSeek, 931.14);
       assert.strictEqual(hasSkipped.has("900.4_930.64"), true);
 
-      // Tua thủ công vào giữa quảng cáo Conan 31 cũng snap chính xác sang OwlqcdyT.ts
-      const snap = snapTimePastAdBoundaries(915.0, conan31Boundary, 1500);
+      // Tua thủ công vào giữa quảng cáo Conan 31 cũng snap chính xác sang OwlqcdyT.ts an toàn
+      const snap = snapTimePastAdBoundaries(915.0, conan31Boundary, 1500, 0.5);
       assert.strictEqual(snap.snapped, true);
-      assert.strictEqual(snap.adjustedTime, 930.645);
+      assert.strictEqual(snap.adjustedTime, 931.14);
     });
 
     it("falls back safely to safeOffset when nextStart is not available (backwards compatibility)", () => {

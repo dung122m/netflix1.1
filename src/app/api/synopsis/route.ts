@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { movieApi } from "@/services/movieApi";
 import { cleanHtmlText } from "@/lib/cleanHtml";
 import { pickHeroBackdropImage, pickBestMoviePoster, pickBestMovieThumb } from "@/lib/movieMedia";
-import { getTmdbBackdropUrl } from "@/services/tmdbService";
+import { getTmdbBackdropUrl, getTmdbTrailerUrl, searchTmdbTrailerByTitle } from "@/services/tmdbService";
 
 export interface SynopsisDetailPayload {
   content: string;
@@ -83,7 +83,23 @@ export async function GET(request: NextRequest) {
       const movie = data?.movie;
       const rawContent = movie?.content || movie?.description || "";
       const originName = movie?.origin_name || "";
-      const trailerUrl = movie?.trailer_url || "";
+      let trailerUrl = (movie?.trailer_url || "").trim();
+
+      // Nếu nguồn chính không có trailer, tự động tra cứu trailer chính thức từ TMDB
+      if (!trailerUrl && movie) {
+        const tmdbId = movie.tmdb?.id || movie.imdb?.id;
+        const tmdbType = movie.tmdb?.type || (movie.type === "series" ? "tv" : "movie");
+        if (tmdbId) {
+          try {
+            trailerUrl = (await getTmdbTrailerUrl(tmdbId, tmdbType)) || "";
+          } catch {}
+        }
+        if (!trailerUrl && (movie.origin_name || movie.name)) {
+          try {
+            trailerUrl = (await searchTmdbTrailerByTitle(movie.origin_name || movie.name, movie.year, tmdbType)) || "";
+          } catch {}
+        }
+      }
 
       // Làm sạch toàn bộ thẻ HTML và giải mã các thực thể HTML (&nbsp;, &amp;, &quot;...)
       const cleanContent = cleanHtmlText(rawContent);

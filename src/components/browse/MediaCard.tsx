@@ -45,12 +45,6 @@ import { fetchMovieSynopsisShared } from "@/services/synopsisService";
 export { fetchMovieSynopsisShared };
 export { extractYoutubeId };
 
-function getYoutubeModalUrl(url?: string | null): string | null {
-  const videoId = extractYoutubeId(url);
-  if (!videoId) return null;
-  return `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&mute=0&controls=1&rel=0`;
-}
-
 export interface MediaCardProps {
   slug: string;
   title: string;
@@ -383,11 +377,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
     setShowTrailerModal(true);
   };
 
-  const modalTrailerUrl = trailerUrl
-    ? getYoutubeModalUrl(trailerUrl)
-    : clientTrailerCache.has(slug)
-    ? getYoutubeModalUrl(clientTrailerCache.get(slug)!)
-    : null;
+  const modalTrailerUrl = trailerUrl || clientTrailerCache.get(slug) || null;
 
   const validRating = (() => {
     if (!rating || rating === "N/A") return 0;

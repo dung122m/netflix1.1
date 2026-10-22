@@ -161,21 +161,20 @@ export function detectAdBoundaries(fragments: FragmentLike[]): AdBoundary[] {
 }
 
 /**
- * Hằng số offset an toàn khi seek vượt qua khối quảng cáo (350ms).
- * Đảm bảo playhead rơi dứt khoát vào segment phim đầu tiên, triệt tiêu 100%
- * việc dính frame cuối hoặc I-frame của segment quảng cáo liền trước.
+ * Hằng số offset an toàn khi seek vượt qua khối quảng cáo (500ms).
+ * Đảm bảo playhead rơi dứt khoát vào segment phim sạch, triệt tiêu 100%
+ * việc dính audio packet dư thừa hoặc frame cuối của segment quảng cáo (ví dụ đuôi "9922.com").
  */
 export const SAFE_AD_SKIP_OFFSET = 0.35;
 
 /**
  * Tính toán mốc seek an toàn vượt qua khối quảng cáo:
- * - Nếu khối quảng cáo có ranh giới `nextStart` (start timestamp chính xác của segment phim liền sau
- *   từ HLS playlist), ưu tiên sử dụng trực tiếp ranh giới segment đã xác minh này (cộng 0.005s vi sai
- *   để triệt tiêu hoàn toàn sai số số thực IEEE-754 giữa các segment và không bị dính ngược vào segment quảng cáo),
- *   tuyệt đối không dùng offset cố định tùy tiện cắt vào nội dung hình/tiếng của phim.
- * - Nếu không có `nextStart`, sử dụng safeOffset (mặc định 0.35s) trên adEnd.
- * - Kiểm tra giới hạn maxDuration: nếu thời lượng phim được cung cấp, không vượt quá (maxDuration - 0.5s).
+ * - Điểm mốc ranh giới: nếu khối quảng cáo có `nextStart` (start timestamp chính xác của segment phim liền sau),
+ *   lấy `Math.max(matchedAd.nextStart, matchedAd.end)`. Ngược lại lấy `adEnd`.
+ * - Luôn cộng thêm `effectiveOffset` (mặc định SAFE_AD_SKIP_OFFSET = 0.35s) để playhead rơi an toàn vào luồng phim sạch,
+ *   triệt tiêu hoàn toàn sai số IEEE-754 và độ trễ PTS âm thanh / audio packet dư thừa của segment quảng cáo liền trước.
  * - Xử lý trường hợp có nhiều khối quảng cáo liên tiếp (chaining).
+ * - Giới hạn maxDuration: không vượt quá (maxDuration - 0.5s).
  */
 export function calculateSafeAdSkipTarget(
   adEnd: number,
@@ -189,12 +188,14 @@ export function calculateSafeAdSkipTarget(
     ? boundaries.find((b) => Math.abs(b.end - adEnd) < 0.05 || (adEnd >= b.start && adEnd <= (b.nextStart ?? b.end)))
     : undefined;
 
-  let target: number;
-  if (matchedAd && typeof matchedAd.nextStart === "number" && isFinite(matchedAd.nextStart)) {
-    target = Math.max(matchedAd.nextStart, matchedAd.end) + 0.005;
-  } else {
-    target = Math.max(0, Math.round((adEnd + safeOffset) * 1000) / 1000);
-  }
+  const effectiveOffset = typeof safeOffset === "number" && isFinite(safeOffset) && safeOffset > 0
+    ? safeOffset
+    : SAFE_AD_SKIP_OFFSET;
+  const baseBoundary = matchedAd && typeof matchedAd.nextStart === "number" && isFinite(matchedAd.nextStart)
+    ? Math.max(matchedAd.nextStart, matchedAd.end)
+    : adEnd;
+
+  let target = Math.max(0, Math.round((baseBoundary + effectiveOffset) * 1000) / 1000);
 
   // Kiểm tra chuỗi quảng cáo liên tiếp (ad chaining)
   if (Array.isArray(boundaries) && boundaries.length > 0) {
@@ -206,11 +207,10 @@ export function calculateSafeAdSkipTarget(
         (b) => target >= b.start && target <= (b.nextStart ?? b.end)
       );
       if (nextAd) {
-        if (typeof nextAd.nextStart === "number" && isFinite(nextAd.nextStart)) {
-          target = Math.max(nextAd.nextStart, nextAd.end) + 0.005;
-        } else {
-          target = Math.max(0, Math.round((nextAd.end + safeOffset) * 1000) / 1000);
-        }
+        const nextBase = typeof nextAd.nextStart === "number" && isFinite(nextAd.nextStart)
+          ? Math.max(nextAd.nextStart, nextAd.end)
+          : nextAd.end;
+        target = Math.max(0, Math.round((nextBase + effectiveOffset) * 1000) / 1000);
       } else {
         chained = false;
       }
@@ -227,7 +227,7 @@ export function calculateSafeAdSkipTarget(
 
 /**
  * Đánh giá xem một mốc thời gian seek (do tua thủ công hoặc ScrubBar) có rơi vào giữa đoạn quảng cáo nào không.
- * Nếu rơi vào [ad.start, ad.end], trả về mốc thời gian an toàn sau quảng cáo (đã cộng safeOffset và xử lý ad chaining).
+ * Nếu rơi vào [ad.start, ad.end + 0.35s], trả về mốc thời gian an toàn sau quảng cáo (đã cộng safeOffset và xử lý ad chaining).
  * Nếu không nằm trong quảng cáo, trả về nguyên giá trị targetTime ban đầu.
  */
 export function snapTimePastAdBoundaries(
@@ -250,8 +250,10 @@ export function snapTimePastAdBoundaries(
     return { snapped: false, adjustedTime: targetTime, adKey: null, adDuration: 0 };
   }
 
+  // Mở rộng thêm 0.35s sau ranh giới ad để nếu người dùng tua trúng vùng đuôi âm thanh còn sót
+  // của quảng cáo (residual audio tail) thì vẫn snap an toàn qua khỏi quảng cáo
   const matchedAd = boundaries.find(
-    (b) => targetTime >= b.start && targetTime <= (b.nextStart ?? b.end)
+    (b) => targetTime >= b.start && targetTime <= (b.nextStart ?? b.end) + 0.35
   );
 
   if (!matchedAd) {

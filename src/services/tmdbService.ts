@@ -245,6 +245,96 @@ export async function getTmdbMovieLogo(
   return logoUrl;
 }
 
+// 5.2 CACHE TRAILER CHÍNH THỨC TỪ TMDB (24h L1 RAM, 7 ngày L2 KV)
+const TMDB_TRAILER_CACHE = new Map<string, { url: string | null; expireAt: number }>();
+
+export async function getTmdbTrailerUrl(
+  tmdbId: string | number | undefined | null,
+  type: string = "movie"
+): Promise<string | null> {
+  if (!tmdbId) return null;
+  const cleanId = String(tmdbId).trim();
+  if (!cleanId || cleanId === "0" || cleanId === "null" || cleanId === "undefined") return null;
+
+  const cleanType =
+    type === "tv" || type === "series" || type === "phim-bo" || type === "tvshows" ? "tv" : "movie";
+  const cacheKey = `${cleanType}:${cleanId}`;
+
+  const now = Date.now();
+  const memoryHit = TMDB_TRAILER_CACHE.get(cacheKey);
+  if (memoryHit && memoryHit.expireAt > now) {
+    return memoryHit.url;
+  }
+
+  const kvKey = `tmdb:trailer:v1:${cleanType}:${cleanId}`;
+  const trailerUrl = await cacheService.fetchOrSet<string | null>(
+    kvKey,
+    async () => {
+      try {
+        let data = await fetchTmdbEndpoint(`/${cleanType}/${cleanId}/videos?include_video_language=vi,en,null`);
+        let videos = Array.isArray(data?.results) ? data.results : [];
+
+        if (videos.length === 0) {
+          // Thử loại hình thay thế nếu phim bị phân loại nhầm giữa tv/movie
+          const altType = cleanType === "tv" ? "movie" : "tv";
+          data = await fetchTmdbEndpoint(`/${altType}/${cleanId}/videos?include_video_language=vi,en,null`);
+          videos = Array.isArray(data?.results) ? data.results : [];
+        }
+
+        const ytVideos = videos.filter((v: any) => v.site === "YouTube" && v.key);
+        if (ytVideos.length === 0) return null;
+
+        // Ưu tiên Trailer Tiếng Việt chính thức -> Trailer Tiếng Anh chính thức -> Bất kỳ Trailer -> Teaser
+        const viOfficial = ytVideos.find((v: any) => v.type === "Trailer" && v.official && v.iso_639_1 === "vi");
+        const enOfficial = ytVideos.find((v: any) => v.type === "Trailer" && v.official);
+        const anyOfficial = ytVideos.find((v: any) => v.official);
+        const anyTrailer = ytVideos.find((v: any) => v.type === "Trailer");
+        const anyTeaser = ytVideos.find((v: any) => v.type === "Teaser");
+
+        const best = viOfficial || enOfficial || anyOfficial || anyTrailer || anyTeaser || ytVideos[0];
+        if (best?.key) {
+          return `https://www.youtube.com/watch?v=${best.key}`;
+        }
+        return null;
+      } catch (err) {
+        console.warn(`[TMDB] Error fetching trailer for ${cleanType}/${cleanId}:`, err);
+        return null;
+      }
+    },
+    7 * 86400 // 7 ngày trên Upstash KV
+  );
+
+  TMDB_TRAILER_CACHE.set(cacheKey, {
+    url: trailerUrl,
+    expireAt: now + (trailerUrl ? 24 * 3600 * 1000 : 3600 * 1000),
+  });
+
+  return trailerUrl;
+}
+
+export async function searchTmdbTrailerByTitle(
+  query: string,
+  year?: number | string,
+  type: string = "movie"
+): Promise<string | null> {
+  if (!query || typeof query !== "string") return null;
+  const cleanQuery = query.trim();
+  if (cleanQuery.length < 2) return null;
+
+  const cleanType =
+    type === "tv" || type === "series" || type === "phim-bo" || type === "tvshows" ? "tv" : "movie";
+  const searchYear = year ? `&year=${year}` : "";
+  const endpoint = `/search/${cleanType}?query=${encodeURIComponent(cleanQuery)}${searchYear}&language=vi-VN`;
+  try {
+    const data = await fetchTmdbEndpoint(endpoint);
+    const results = Array.isArray(data?.results) ? data.results : [];
+    if (results.length > 0 && results[0]?.id) {
+      return await getTmdbTrailerUrl(results[0].id, cleanType);
+    }
+  } catch {}
+  return null;
+}
+
 // 6. CACHE REVIEWS KHÁN GIẢ TMDB (24h L1 RAM, 14 ngày L2 Upstash)
 const TMDB_REVIEWS_CACHE = new Map<string, { data: TmdbReview[]; expireAt: number }>();
 

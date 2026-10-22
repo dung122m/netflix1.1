@@ -41,7 +41,7 @@ import { MovieReviewsContainer } from "@/components/MovieReviews/MovieReviewsCon
 import { TrailerModal } from "@/components/TrailerModal";
 import { MovieRecommendationsClient } from "@/components/MovieRecommendationsClient";
 import { MovieCastGallery } from "@/components/MovieCastGallery";
-import { getTmdbMovieCredits } from "@/services/tmdbService";
+import { getTmdbMovieCredits, getTmdbTrailerUrl, searchTmdbTrailerByTitle } from "@/services/tmdbService";
 import { MobileMovieNav } from "@/components/movies/MobileMovieNav";
 
 // =========================================================================
@@ -273,6 +273,21 @@ export default async function MovieDetail({
   // Thông tin TMDB phục vụ streaming bất đồng bộ
   const tmdbId = movie.tmdb?.id || movie.imdb?.id;
   const tmdbType = movie.tmdb?.type || (movie.type === "series" || movie.type === "phim-bo" ? "tv" : "movie");
+
+  // Tự động bù đắp Trailer chính thức từ TMDB nếu nguồn chính không có trailer
+  let effectiveTrailerUrl = (movie.trailer_url || "").trim();
+  if (!effectiveTrailerUrl) {
+    if (tmdbId) {
+      try {
+        effectiveTrailerUrl = (await getTmdbTrailerUrl(tmdbId, tmdbType)) || "";
+      } catch {}
+    }
+    if (!effectiveTrailerUrl && (movie.origin_name || movie.name)) {
+      try {
+        effectiveTrailerUrl = (await searchTmdbTrailerByTitle(movie.origin_name || movie.name, movie.year, tmdbType)) || "";
+      } catch {}
+    }
+  }
 
   const formatVotes = (v?: number): string => {
     if (!v || v <= 0) return "";
@@ -646,7 +661,7 @@ export default async function MovieDetail({
                     <div className="mt-3 sm:mt-4 pt-3 border-t border-white/10">
                       <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto scrollbar-none pb-0.5 -mx-1 px-1">
                         {/* Nút Xem Trailer */}
-                        <TrailerModal trailerUrl={movie.trailer_url} title={title} />
+                        <TrailerModal trailerUrl={effectiveTrailerUrl} title={title} />
 
                         {/* Divider */}
                         <div className="h-6 w-px bg-white/10 mx-0.5 flex-shrink-0" />

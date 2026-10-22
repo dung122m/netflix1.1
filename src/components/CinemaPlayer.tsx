@@ -1518,7 +1518,8 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
       const isStillInAd = adBoundariesRef.current.some(
         (b) => currentCt >= b.start && currentCt < (b.nextStart ?? b.end)
       );
-      const isPastTarget = currentCt >= adSkip.targetSeek - 0.15;
+      // Playhead phải thực sự đạt tới hoặc vượt qua targetSeek (không trừ 0.15s để triệt tiêu việc un-mute sớm dính audio quảng cáo)
+      const isPastTarget = currentCt >= adSkip.targetSeek;
       const isTimedOut = isAdTransitionTimedOut(adSkip);
 
       // Chỉ khôi phục âm thanh và tắt transition khi xác nhận playhead đã ra ngoài vùng quảng cáo và không còn seeking, hoặc timeout
@@ -2028,7 +2029,11 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
       }
       isProgrammaticAdSkipRef.current = false;
       checkBufferRecovery();
-      checkAndCompleteAdTransition();
+      // Nếu đang trong quá trình chuyển tiếp ad skip, không un-mute tại handleSeeked
+      // để tránh rò rỉ buffer âm thanh cũ của quảng cáo; chỉ un-mute khi video thực sự play lại (handlePlaying)
+      if (!automatedAdSkipRef.current?.active) {
+        checkAndCompleteAdTransition();
+      }
     };
     const handleLoadStart = () => {
       isBufferingRef.current = true;
