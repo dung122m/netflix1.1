@@ -537,7 +537,7 @@ export function VectorJerseyToken({
   return (
     <svg
       viewBox="0 0 36 38"
-      className="w-[28px] h-[28px] sm:w-[32px] sm:h-[32px] md:w-[34px] md:h-[34px] drop-shadow-[0_2px_4px_rgba(0,0,0,0.7)] transition-transform duration-200 group-hover:scale-110"
+      className="w-[24px] h-[24px] min-[360px]:w-[28px] min-[360px]:h-[28px] sm:w-[32px] sm:h-[32px] md:w-[34px] md:h-[34px] drop-shadow-[0_2px_4px_rgba(0,0,0,0.7)] transition-transform duration-200 group-hover:scale-110"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
     >
@@ -635,7 +635,7 @@ export function CircularBadgeToken({
 
   return (
     <div
-      className={`w-[28px] h-[28px] sm:w-[32px] sm:h-[32px] md:w-[34px] md:h-[34px] rounded-full flex items-center justify-center font-mono font-black text-[10px] sm:text-[11.5px] md:text-xs shadow-md transition-transform duration-200 group-hover:scale-110 border-[1.5px] ${
+      className={`w-[24px] h-[24px] min-[360px]:w-[28px] min-[360px]:h-[28px] sm:w-[32px] sm:h-[32px] md:w-[34px] md:h-[34px] rounded-full flex items-center justify-center font-mono font-black text-[9px] min-[360px]:text-[10px] sm:text-[11.5px] md:text-xs shadow-md transition-transform duration-200 group-hover:scale-110 border-[1.5px] ${
         isGK
           ? "bg-gradient-to-b from-amber-300 via-amber-400 to-amber-600 text-zinc-950 border-white/90 ring-1 ring-amber-400/50 shadow-amber-950/60"
           : isHome
@@ -1319,11 +1319,11 @@ function TeamPitchColumn({
                   </div>
 
                   {/* Tên & vị trí */}
-                  <div className="mt-1 flex flex-col items-center max-w-[68px] sm:max-w-[82px] md:max-w-[94px] pointer-events-none leading-none">
-                    <span className="text-[9px] sm:text-[10.5px] md:text-[11px] font-bold text-white truncate w-full text-center drop-shadow-[0_1.5px_4px_rgba(0,0,0,0.98)] tracking-normal">
+                  <div className="mt-0.5 min-[360px]:mt-1 flex flex-col items-center max-w-[56px] min-[380px]:max-w-[68px] sm:max-w-[82px] md:max-w-[94px] pointer-events-none leading-none">
+                    <span className="text-[8px] min-[380px]:text-[9px] sm:text-[10.5px] md:text-[11px] font-bold text-white truncate w-full text-center drop-shadow-[0_1.5px_4px_rgba(0,0,0,0.98)] tracking-normal">
                       {shortName}
                     </span>
-                    <span className="text-[7px] sm:text-[8px] md:text-[8.5px] font-extrabold tracking-wider text-zinc-200 uppercase px-1.5 py-0.5 rounded bg-black/85 border border-white/20 leading-none mt-0.5 shadow-sm">
+                    <span className="text-[6.5px] min-[380px]:text-[7px] sm:text-[8px] md:text-[8.5px] font-extrabold tracking-wider text-zinc-200 uppercase px-1 min-[380px]:px-1.5 py-0.5 rounded bg-black/85 border border-white/20 leading-none mt-0.5 shadow-sm">
                       {roleAbbr}
                     </span>
                   </div>

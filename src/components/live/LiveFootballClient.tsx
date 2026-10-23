@@ -1305,49 +1305,32 @@ export function LiveFootballClient({
                     </div>
 
                     {/* KHỐI MATCH CENTER TRÊN MOBILE: THÔNG TIN TRẬN ĐẤU & LUỒNG PHÁT CUỘN TỰ NHIÊN */}
-                    <div className="lg:hidden space-y-2 pt-1">
-                      <div className="flex items-center justify-between border-b border-white/10 pb-2 px-0.5 gap-2">
-                        <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 flex-1">
-                          {matchSummary ? (
-                            <Activity className="w-4 h-4 text-netflix-red shrink-0" />
-                          ) : (
-                            <Radio className="w-4 h-4 text-netflix-red animate-pulse shrink-0" />
-                          )}
-                          <h3 className="text-xs font-black uppercase tracking-wider text-white truncate">
-                            {matchSummary ? "Trung Tâm Trận Đấu & Diễn Biến" : "Thông Tin Trận Đấu & Luồng Phát"}
-                          </h3>
-                        </div>
-                        <span className="text-[10px] text-gray-400 font-medium shrink-0 whitespace-nowrap">
-                          {matchSummary ? "Tự động đồng bộ" : "Tiếp sóng trực tiếp"}
-                        </span>
-                      </div>
-
-                      <div className="rounded-2xl border border-white/10 bg-zinc-950/80 backdrop-blur-xl p-3 shadow-xl">
-                        <MatchCenter
-                          leagueSlug={
-                            (scoresMap[selectedMatch.id] || selectedMatch.score)?.leagueSlug
-                          }
-                          eventId={
-                            (scoresMap[selectedMatch.id] || selectedMatch.score)?.eventId
-                          }
-                          matchTitle={selectedMatch.title}
-                          tournament={selectedMatch.tournament}
-                          team1={selectedMatch.team1}
-                          team2={selectedMatch.team2}
-                          team1Logo={selectedMatch.homeLogo || selectedMatch.logo}
-                          team2Logo={selectedMatch.awayLogo}
-                          isLive={
-                            (scoresMap[selectedMatch.id] || selectedMatch.score)?.status === "live" ||
-                            selectedMatch.timeline === "live"
-                          }
-                          time={selectedMatch.time}
-                          blv={selectedMatch.blv}
-                          group={selectedMatch.group}
-                          serversCount={selectedMatch.servers?.length}
-                          quality={selectedMatch.quality}
-                          onSummaryChange={setMatchSummary}
-                        />
-                      </div>
+                    <div className="lg:hidden pt-1">
+                      <MatchCenter
+                        leagueSlug={
+                          (scoresMap[selectedMatch.id] || selectedMatch.score)?.leagueSlug
+                        }
+                        eventId={
+                          (scoresMap[selectedMatch.id] || selectedMatch.score)?.eventId
+                        }
+                        matchTitle={selectedMatch.title}
+                        tournament={selectedMatch.tournament}
+                        team1={selectedMatch.team1}
+                        team2={selectedMatch.team2}
+                        team1Logo={selectedMatch.homeLogo || selectedMatch.logo}
+                        team2Logo={selectedMatch.awayLogo}
+                        isLive={
+                          (scoresMap[selectedMatch.id] || selectedMatch.score)?.status === "live" ||
+                          selectedMatch.timeline === "live"
+                        }
+                        time={selectedMatch.time}
+                        blv={selectedMatch.blv}
+                        group={selectedMatch.group}
+                        serversCount={selectedMatch.servers?.length}
+                        quality={selectedMatch.quality}
+                        onSummaryChange={setMatchSummary}
+                        initialScore={scoresMap[selectedMatch.id] || selectedMatch.score}
+                      />
                     </div>
                   </div>
                 </div>
@@ -1355,8 +1338,8 @@ export function LiveFootballClient({
                 {/* CỘT PHẢI (COL 8-12 TRÊN DESKTOP): SIDE PANEL VỚI MATCH CENTER & ĐỔI TRẬN */}
                 <div
                   style={{
-                    height: sidePanelHeight ? `${sidePanelHeight}px` : "min(560px, calc(100vh - 210px))",
-                    maxHeight: sidePanelHeight ? `${sidePanelHeight}px` : "min(560px, calc(100vh - 210px))",
+                    height: sidePanelHeight ? `${Math.max(sidePanelHeight, 540)}px` : "min(580px, calc(100vh - 200px))",
+                    maxHeight: sidePanelHeight ? `${Math.max(sidePanelHeight, 640)}px` : "min(680px, calc(100vh - 160px))",
                   }}
                   className="hidden lg:flex lg:col-span-5 xl:col-span-4 min-w-0 flex-col rounded-2xl border border-white/10 bg-zinc-950/90 backdrop-blur-xl shadow-2xl p-3 space-y-2.5 overflow-hidden"
                 >
@@ -1418,6 +1401,7 @@ export function LiveFootballClient({
                           serversCount={selectedMatch.servers?.length}
                           quality={selectedMatch.quality}
                           onSummaryChange={setMatchSummary}
+                          initialScore={scoresMap[selectedMatch.id] || selectedMatch.score}
                         />
                       </div>
                     </div>

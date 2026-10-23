@@ -1035,6 +1035,12 @@ export const LeagueFixtures: React.FC<LeagueFixturesProps> = ({
                   team1Logo={activeModalFixture.homeTeam.logo}
                   team2Logo={activeModalFixture.awayTeam.logo}
                   isLive={activeModalFixture.status === "live"}
+                  initialScore={{
+                    homeScore: activeModalFixture.homeTeam.score,
+                    awayScore: activeModalFixture.awayTeam.score,
+                    status: activeModalFixture.status,
+                    displayClock: activeModalFixture.displayClock,
+                  }}
                 />
               </div>
             </div>

@@ -325,26 +325,28 @@ export function VietnamTodayModal({
 
             {/* Multi-event tab switcher if today has multiple holidays */}
             {holidayEvents.length > 1 && (
-              <div className="px-4 sm:px-6 pt-3 pb-1 border-b border-white/10 bg-zinc-950 flex items-center gap-2 overflow-x-auto scrollbar-none flex-shrink-0">
+              <div className="px-4 sm:px-6 pt-3 pb-2 border-b border-white/10 bg-zinc-950 flex flex-wrap items-center gap-2 flex-shrink-0">
                 <span className="text-xs text-zinc-400 font-medium whitespace-nowrap">
                   Sự kiện hôm nay:
                 </span>
-                {holidayEvents.map((ev) => (
-                  <button
-                    key={ev.id}
-                    onClick={() => {
-                      setImageError(false);
-                      setActiveId(ev.id);
-                    }}
-                    className={`px-2.5 py-1 rounded-lg text-xs font-medium whitespace-nowrap transition-all flex items-center gap-1.5 ${
-                      ev.id === currentEvent.id
-                        ? "bg-amber-500/25 text-amber-300 border border-amber-500/50 shadow-sm"
-                        : "text-zinc-400 hover:text-zinc-200 bg-white/5 border border-white/10"
-                    }`}
-                  >
-                    <span>{ev.title}</span>
-                  </button>
-                ))}
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {holidayEvents.map((ev) => (
+                    <button
+                      key={ev.id}
+                      onClick={() => {
+                        setImageError(false);
+                        setActiveId(ev.id);
+                      }}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-medium whitespace-nowrap transition-all flex items-center gap-1.5 cursor-pointer ${
+                        ev.id === currentEvent.id
+                          ? "bg-amber-500/25 text-amber-300 border border-amber-500/50 shadow-sm"
+                          : "text-zinc-400 hover:text-zinc-200 bg-white/5 border border-white/10 hover:border-white/20 hover:bg-white/10"
+                      }`}
+                    >
+                      <span>{ev.title}</span>
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
 
@@ -599,11 +601,12 @@ export function VietnamTodayModal({
 
             {/* MULTI-EVENT TIMELINE SWITCHER IF MORE THAN 1 HISTORICAL EVENT */}
             {historicalEvents.length > 1 && (
-              <div className="flex items-center gap-2 overflow-x-auto scrollbar-none [&::-webkit-scrollbar]:hidden py-1 px-0.5 -mx-0.5">
-                <span className="text-xs text-zinc-400 font-medium whitespace-nowrap flex-shrink-0">
-                  Mốc thời gian:
+              <div className="p-2 sm:p-2.5 rounded-xl bg-white/[0.03] border border-white/10 flex flex-wrap items-center gap-2">
+                <span className="text-xs text-zinc-400 font-semibold whitespace-nowrap flex items-center gap-1.5 shrink-0">
+                  <Calendar className="w-3.5 h-3.5 text-amber-400/90" />
+                  <span>Mốc thời gian:</span>
                 </span>
-                <div className="flex items-center gap-1.5 min-w-0 overflow-x-auto scrollbar-none [&::-webkit-scrollbar]:hidden py-0.5">
+                <div className="flex flex-wrap items-center gap-1.5 min-w-0">
                   {historicalEvents.map((h) => {
                     const isSelected = h.id === currentHist.id;
                     const pillTitle = h.title.endsWith("...") && h.summary ? h.summary.split(/[.:;]/)[0] : h.title;
@@ -612,17 +615,17 @@ export function VietnamTodayModal({
                         key={h.id}
                         type="button"
                         onClick={() => setSelectedHistId(h.id)}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all flex items-center gap-1.5 outline-none focus-visible:ring-2 focus-visible:ring-amber-500 cursor-pointer shrink-0 ${
+                        className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 outline-none focus-visible:ring-2 focus-visible:ring-amber-500 cursor-pointer ${
                           isSelected
-                            ? "bg-red-600/30 text-red-100 border border-red-500/60 shadow-sm"
-                            : "text-zinc-400 hover:text-zinc-200 bg-white/5 border border-white/10 hover:border-white/20"
+                            ? "bg-red-600/30 text-red-100 border border-red-500/60 shadow-sm ring-1 ring-red-500/30 font-semibold"
+                            : "text-zinc-400 hover:text-zinc-200 bg-white/5 border border-white/10 hover:border-white/20 hover:bg-white/10"
                         }`}
                       >
-                        <span className="font-bold">
+                        <span className="font-bold text-amber-300/90">
                           {h.year > 0 ? h.year : `${Math.abs(h.year)} TCN`}
                         </span>
-                        <span className="text-zinc-500">•</span>
-                        <span className="max-w-[160px] sm:max-w-[200px] truncate">{pillTitle}</span>
+                        <span className="text-zinc-600">•</span>
+                        <span className="max-w-[170px] sm:max-w-[220px] truncate">{pillTitle}</span>
                       </button>
                     );
                   })}
