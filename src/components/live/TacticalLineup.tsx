@@ -32,16 +32,16 @@ export interface TacticalLineupProps {
     displayName: string;
     logo?: string;
   };
-  homeRoster: {
+  homeRoster?: {
     formation?: string;
     starters: MatchRosterPlayer[];
     bench: MatchRosterPlayer[];
-  };
-  awayRoster: {
+  } | null;
+  awayRoster?: {
     formation?: string;
     starters: MatchRosterPlayer[];
     bench: MatchRosterPlayer[];
-  };
+  } | null;
   matchStatus?: "live" | "finished" | "scheduled" | string;
 }
 
@@ -1048,11 +1048,11 @@ interface TeamPitchColumnProps {
     displayName: string;
     logo?: string;
   };
-  roster: {
+  roster?: {
     formation?: string;
     starters: MatchRosterPlayer[];
     bench: MatchRosterPlayer[];
-  };
+  } | null;
   isHome: boolean;
   tokenDisplayMode: TokenDisplayMode;
   imageErrors: Record<string, boolean>;
@@ -1078,11 +1078,15 @@ function TeamPitchColumn({
   matchStatus,
 }: TeamPitchColumnProps) {
   const isMatchScheduled = matchStatus === "scheduled";
-  const positionedStarters = useMemo(() => {
-    return calculateTacticalCoordinates(roster.starters, roster.formation);
-  }, [roster.starters, roster.formation]);
+  const starters = roster?.starters || [];
+  const bench = roster?.bench || [];
+  const formation = roster?.formation;
 
-  const hasStarters = roster.starters.length > 0;
+  const positionedStarters = useMemo(() => {
+    return calculateTacticalCoordinates(starters, formation);
+  }, [starters, formation]);
+
+  const hasStarters = starters.length > 0;
 
   return (
     <div className="flex flex-col space-y-2.5 min-w-0">
@@ -1101,7 +1105,7 @@ function TeamPitchColumn({
                 ({isHome ? "Chủ nhà" : "Đội khách"})
               </span>
             </div>
-            {roster.formation && (
+            {formation && (
               <span
                 className={`text-xs font-mono font-bold px-2 py-0.5 rounded-md border shrink-0 whitespace-nowrap shadow-sm ${
                   isHome
@@ -1109,7 +1113,7 @@ function TeamPitchColumn({
                     : "bg-sky-500/15 text-sky-300 border-sky-500/30"
                 }`}
               >
-                {roster.formation}
+                {formation}
               </span>
             )}
           </div>
@@ -1347,20 +1351,20 @@ function TeamPitchColumn({
       </div>
 
       {/* CẦU THỦ DỰ BỊ */}
-      {roster.bench.length > 0 && (
+      {bench.length > 0 && (
         <div className="rounded-2xl bg-zinc-900/60 border border-white/10 p-3 sm:p-4 space-y-3">
           <div className="flex items-center justify-between pb-2.5 border-b border-white/10">
             <div className="flex items-center gap-2 min-w-0">
               <Users className="w-4 h-4 text-zinc-300 shrink-0" />
               <h5 className="text-xs sm:text-sm font-black text-white uppercase tracking-wider whitespace-nowrap truncate">
-                Cầu thủ dự bị ({roster.bench.length})
+                Cầu thủ dự bị ({bench.length})
               </h5>
             </div>
             <span className="text-[11px] sm:text-xs text-zinc-400 font-medium shrink-0 whitespace-nowrap">Bấm xem chỉ số</span>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-[380px] overflow-y-auto pr-1 scrollbar-thin">
-            {roster.bench.map((player) => {
+            {bench.map((player) => {
               const hasValidPhoto = Boolean(player.photoUrl && !imageErrors[player.id]);
               const isSelected = selectedPlayer?.id === player.id;
 
@@ -1433,11 +1437,11 @@ interface TeamListColumnProps {
     displayName: string;
     logo?: string;
   };
-  roster: {
+  roster?: {
     formation?: string;
     starters: MatchRosterPlayer[];
     bench: MatchRosterPlayer[];
-  };
+  } | null;
   isHome: boolean;
   onSelectPlayer: (player: MatchRosterPlayer) => void;
   selectedPlayer?: MatchRosterPlayer | null;
@@ -1459,6 +1463,9 @@ function TeamListColumn({
   matchStatus,
 }: TeamListColumnProps) {
   const isMatchScheduled = matchStatus === "scheduled";
+  const starters = roster?.starters || [];
+  const bench = roster?.bench || [];
+  const formation = roster?.formation;
 
   return (
     <div className="rounded-2xl bg-zinc-900/50 border border-white/10 p-4 space-y-3">
@@ -1472,9 +1479,9 @@ function TeamListColumn({
             ({isHome ? "Chủ nhà" : "Đội khách"})
           </span>
         </div>
-        {roster.formation && (
+        {formation && (
           <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-white/10 text-gray-300">
-            {roster.formation}
+            {formation}
           </span>
         )}
       </div>
@@ -1494,9 +1501,9 @@ function TeamListColumn({
 
       <div className="space-y-1.5">
         <p className="text-xs sm:text-[13px] font-extrabold text-gray-300 uppercase tracking-wider">
-          Ra sân chính thức ({roster.starters.length})
+          Ra sân chính thức ({starters.length})
         </p>
-        {roster.starters.map((p, i) => {
+        {starters.map((p, i) => {
           const isSelected = selectedPlayer?.id === p.id;
           return (
             <div
@@ -1532,13 +1539,13 @@ function TeamListColumn({
         })}
       </div>
 
-      {roster.bench.length > 0 && (
+      {bench.length > 0 && (
         <div className="space-y-1.5 pt-2 border-t border-white/5">
           <p className="text-xs sm:text-[13px] font-extrabold text-zinc-400 uppercase tracking-wider">
-            Dự bị ({roster.bench.length})
+            Dự bị ({bench.length})
           </p>
           <div className="max-h-[260px] overflow-y-auto pr-0.5 scrollbar-thin space-y-1">
-            {roster.bench.map((p, i) => {
+            {bench.map((p, i) => {
               const isSelected = selectedPlayer?.id === p.id;
               return (
                 <div
@@ -1603,7 +1610,10 @@ export function TacticalLineup({
     };
   }, [selectedPlayer]);
 
-  const hasLineupData = homeRoster.starters.length > 0 || awayRoster.starters.length > 0;
+  const hasLineupData = Boolean(
+    (homeRoster?.starters && homeRoster.starters.length > 0) ||
+    (awayRoster?.starters && awayRoster.starters.length > 0)
+  );
 
   const handleImageError = (id: string) => {
     setImageErrors((prev) => ({ ...prev, [id]: true }));
@@ -1614,6 +1624,20 @@ export function TacticalLineup({
     setSelectedPlayer(null);
   };
 
+  if (!hasLineupData) {
+    return (
+      <div className="rounded-3xl border border-white/10 bg-zinc-900/40 p-8 sm:p-12 text-center space-y-3">
+        <div className="w-12 h-12 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mx-auto text-zinc-500">
+          <Users className="w-6 h-6" />
+        </div>
+        <h4 className="text-sm font-bold text-white">Chưa có dữ liệu đội hình ra sân</h4>
+        <p className="text-xs text-zinc-400 max-w-sm mx-auto">
+          Ban tổ chức giải đấu sẽ công bố đội hình chính thức trước giờ bóng lăn khoảng 30 - 60 phút.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-2">
       {/* 1. THANH CHỌN ĐỘI BÓNG: 50% - 50% FULL-WIDTH CÂN ĐỐI HOÀN HẢO */}
@@ -1621,7 +1645,7 @@ export function TacticalLineup({
         <button
           type="button"
           onClick={() => handleTeamChange("home")}
-          title={`${homeTeam.displayName} (${homeRoster.formation || "Chưa rõ sơ đồ"})`}
+          title={`${homeTeam.displayName} (${homeRoster?.formation || "Chưa rõ sơ đồ"})`}
           className={`flex items-center justify-center gap-1.5 sm:gap-2 py-1.5 px-2 sm:px-3 rounded-lg text-xs font-bold transition-all cursor-pointer select-none truncate ${
             teamFilter === "home"
               ? "bg-gradient-to-r from-red-600 to-red-700 text-white shadow-md shadow-red-950/60 border border-red-500/60 font-black"
@@ -1630,7 +1654,7 @@ export function TacticalLineup({
         >
           <div className={`w-2 h-2 rounded-full shrink-0 ${teamFilter === "home" ? "bg-white" : "bg-red-500"}`} />
           <span className="truncate">{homeTeam.displayName}</span>
-          {homeRoster.formation && (
+          {homeRoster?.formation && (
             <span
               className={`text-[10px] font-mono font-bold px-1.5 py-0.2 rounded shrink-0 whitespace-nowrap ${
                 teamFilter === "home"
@@ -1646,7 +1670,7 @@ export function TacticalLineup({
         <button
           type="button"
           onClick={() => handleTeamChange("away")}
-          title={`${awayTeam.displayName} (${awayRoster.formation || "Chưa rõ sơ đồ"})`}
+          title={`${awayTeam.displayName} (${awayRoster?.formation || "Chưa rõ sơ đồ"})`}
           className={`flex items-center justify-center gap-1.5 sm:gap-2 py-1.5 px-2 sm:px-3 rounded-lg text-xs font-bold transition-all cursor-pointer select-none truncate ${
             teamFilter === "away"
               ? "bg-gradient-to-r from-sky-600 to-sky-700 text-white shadow-md shadow-sky-950/60 border border-sky-400/60 font-black"
@@ -1655,7 +1679,7 @@ export function TacticalLineup({
         >
           <div className={`w-2 h-2 rounded-full shrink-0 ${teamFilter === "away" ? "bg-white" : "bg-sky-400"}`} />
           <span className="truncate">{awayTeam.displayName}</span>
-          {awayRoster.formation && (
+          {awayRoster?.formation && (
             <span
               className={`text-[10px] font-mono font-bold px-1.5 py-0.2 rounded shrink-0 whitespace-nowrap ${
                 teamFilter === "away"
@@ -1741,17 +1765,7 @@ export function TacticalLineup({
       </div>
 
       {/* 3. KHU VỰC HIỂN THỊ CHÍNH (SÂN CỎ HOẶC DANH SÁCH) */}
-      {!hasLineupData ? (
-        <div className="rounded-3xl border border-white/10 bg-zinc-900/40 p-12 text-center space-y-3">
-          <div className="w-12 h-12 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mx-auto text-zinc-500">
-            <Users className="w-6 h-6" />
-          </div>
-          <h4 className="text-sm font-bold text-white">Chưa có dữ liệu đội hình ra sân</h4>
-          <p className="text-xs text-zinc-400 max-w-sm mx-auto">
-            Ban tổ chức giải đấu sẽ công bố đội hình chính thức trước giờ bóng lăn khoảng 30 - 60 phút.
-          </p>
-        </div>
-      ) : viewMode === "pitch" ? (
+      {viewMode === "pitch" ? (
         /* CHẾ ĐỘ 1: SÂN CỎ CHIẾN THUẬT (TACTICAL PITCH) */
         <div className="max-w-2xl mx-auto w-full">
           <TeamPitchColumn
