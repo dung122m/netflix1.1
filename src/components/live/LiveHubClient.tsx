@@ -98,13 +98,13 @@ export function LiveHubClient({ footballData, tvData }: LiveHubClientProps) {
       {/* 1. NANAFLIX LIVE STUDIO COMMAND BAR */}
       {/* Khi ở chế độ TV: Hiển thị thanh chuyển tab tinh gọn (Slim Command Bar) để tối đa diện tích xem cho TV Player */}
       {isTvCinema ? (
-        <header className="flex items-center justify-between gap-2 p-1.5 sm:p-2 px-2.5 sm:px-3 rounded-xl bg-zinc-950/80 border border-white/10 backdrop-blur-xl shadow-lg">
-          <div className="flex items-center gap-2 min-w-0">
+        <header className="flex items-center justify-between gap-1.5 sm:gap-2 p-1.5 sm:p-2 px-2 sm:px-3 rounded-xl bg-zinc-950/80 border border-white/10 backdrop-blur-xl shadow-lg">
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-gradient-to-br from-red-600 to-sky-600 flex items-center justify-center text-white shrink-0 shadow-md">
               <Radio className="w-3 h-3 sm:w-3.5 sm:h-3.5 animate-pulse" />
             </div>
             <div className="flex items-center gap-1.5 min-w-0">
-              <span className="text-[9.5px] sm:text-[10px] font-black uppercase tracking-wider text-sky-400 bg-sky-500/15 px-2 py-0.5 rounded-md border border-sky-500/30 shrink-0">
+              <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-wider text-sky-400 bg-sky-500/15 px-1.5 sm:px-2 py-0.5 rounded-md border border-sky-500/30 shrink-0">
                 LIVE TV
               </span>
               <span className="hidden md:inline-flex text-[10px] font-bold text-gray-400 truncate">
@@ -114,15 +114,15 @@ export function LiveHubClient({ footballData, tvData }: LiveHubClientProps) {
           </div>
 
           {/* CỤM CHUYỂN ĐỔI TAB (THỂ THAO / TRUYỀN HÌNH) */}
-          <div className="flex items-center gap-1 p-0.5 rounded-lg bg-zinc-900 border border-white/10 shrink-0">
+          <div className="flex items-center gap-0.5 sm:gap-1 p-0.5 rounded-lg bg-zinc-900 border border-white/10 shrink-0">
             <button
               type="button"
               onClick={() => handleTabChange("sports")}
-              className="flex items-center justify-center gap-1.5 px-2.5 sm:px-3.5 py-1 sm:py-1.5 rounded-md text-[11px] sm:text-xs font-black transition-all cursor-pointer outline-none shrink-0 text-gray-400 hover:text-white hover:bg-white/5"
+              className="flex items-center justify-center gap-1 sm:gap-1.5 px-2 sm:px-3.5 py-1 sm:py-1.5 rounded-md text-[10.5px] sm:text-xs font-black transition-all cursor-pointer outline-none shrink-0 text-gray-400 hover:text-white hover:bg-white/5"
             >
               <Trophy className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0" />
               <span>Thể Thao</span>
-              <span className="text-[9px] px-1 py-0.2 rounded-full font-black bg-black/40 text-gray-300">
+              <span className="hidden sm:inline-flex text-[9px] px-1 py-0.2 rounded-full font-black bg-black/40 text-gray-300">
                 {sportsMatchesCount}
               </span>
             </button>
@@ -130,11 +130,11 @@ export function LiveHubClient({ footballData, tvData }: LiveHubClientProps) {
             <button
               type="button"
               onClick={() => handleTabChange("tv")}
-              className="flex items-center justify-center gap-1.5 px-2.5 sm:px-3.5 py-1 sm:py-1.5 rounded-md text-[11px] sm:text-xs font-black transition-all cursor-pointer outline-none shrink-0 bg-gradient-to-r from-sky-600 to-blue-600 text-white shadow-md shadow-sky-950/50"
+              className="flex items-center justify-center gap-1 sm:gap-1.5 px-2 sm:px-3.5 py-1 sm:py-1.5 rounded-md text-[10.5px] sm:text-xs font-black transition-all cursor-pointer outline-none shrink-0 bg-gradient-to-r from-sky-600 to-blue-600 text-white shadow-md shadow-sky-950/50"
             >
               <Tv className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-sky-200" />
               <span>Truyền Hình</span>
-              <span className="text-[9px] px-1 py-0.2 rounded-full font-black bg-black/40 text-gray-300">
+              <span className="hidden sm:inline-flex text-[9px] px-1 py-0.2 rounded-full font-black bg-black/40 text-gray-300">
                 {tvData.channels.length}
               </span>
             </button>

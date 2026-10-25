@@ -480,7 +480,7 @@ function ForYouPersonalizedRowInner({ fallbackMovies }: ForYouPersonalizedRowPro
             type="button"
             onClick={() => handleScroll("left")}
             aria-label="Cuộn sang trái"
-            className="hidden sm:flex absolute left-0 top-0 bottom-4 z-30 w-12 md:w-14 bg-gradient-to-r from-black/90 via-black/60 to-transparent hover:from-black text-white items-center justify-start pl-1 opacity-0 group-hover/row:opacity-100 transition-all duration-300 cursor-pointer rounded-r-xl group/btn"
+            className="hidden sm:flex absolute left-0 top-4 bottom-4 z-30 w-12 md:w-14 bg-gradient-to-r from-black/90 via-black/60 to-transparent hover:from-black text-white items-center justify-start pl-1 opacity-0 group-hover/row:opacity-100 transition-all duration-300 cursor-pointer rounded-r-xl group/btn"
           >
             <div className="w-9 h-9 rounded-full bg-black/70 border border-white/20 flex items-center justify-center backdrop-blur-md group-hover/btn:scale-110 group-hover/btn:bg-white/20 transition-all shadow-xl">
               <ChevronLeft className="w-5 h-5 text-white" />
@@ -494,7 +494,7 @@ function ForYouPersonalizedRowInner({ fallbackMovies }: ForYouPersonalizedRowPro
             type="button"
             onClick={() => handleScroll("right")}
             aria-label="Cuộn sang phải"
-            className="hidden sm:flex absolute right-0 top-0 bottom-4 z-30 w-12 md:w-14 bg-gradient-to-l from-black/90 via-black/60 to-transparent hover:from-black text-white items-center justify-end pr-1 opacity-0 group-hover/row:opacity-100 transition-all duration-300 cursor-pointer rounded-l-xl group/btn"
+            className="hidden sm:flex absolute right-0 top-4 bottom-4 z-30 w-12 md:w-14 bg-gradient-to-l from-black/90 via-black/60 to-transparent hover:from-black text-white items-center justify-end pr-1 opacity-0 group-hover/row:opacity-100 transition-all duration-300 cursor-pointer rounded-l-xl group/btn"
           >
             <div className="w-9 h-9 rounded-full bg-black/70 border border-white/20 flex items-center justify-center backdrop-blur-md group-hover/btn:scale-110 group-hover/btn:bg-white/20 transition-all shadow-xl">
               <ChevronRight className="w-5 h-5 text-white" />
@@ -505,13 +505,13 @@ function ForYouPersonalizedRowInner({ fallbackMovies }: ForYouPersonalizedRowPro
         {/* MOBILE SUBTLE GRADIENT FADE AFFORDANCE */}
         {canScrollLeft && (
           <div
-            className="sm:hidden absolute left-0 top-0 bottom-4 w-6 bg-gradient-to-r from-black via-black/60 to-transparent pointer-events-none z-20 transition-opacity duration-200"
+            className="sm:hidden absolute left-0 top-4 bottom-4 w-6 bg-gradient-to-r from-black via-black/60 to-transparent pointer-events-none z-20 transition-opacity duration-200"
             aria-hidden="true"
           />
         )}
         {canScrollRight && (
           <div
-            className="sm:hidden absolute right-0 top-0 bottom-4 w-8 bg-gradient-to-l from-black via-black/60 to-transparent pointer-events-none z-20 transition-opacity duration-200"
+            className="sm:hidden absolute right-0 top-4 bottom-4 w-8 bg-gradient-to-l from-black via-black/60 to-transparent pointer-events-none z-20 transition-opacity duration-200"
             aria-hidden="true"
           />
         )}
@@ -520,7 +520,7 @@ function ForYouPersonalizedRowInner({ fallbackMovies }: ForYouPersonalizedRowPro
         <div
           ref={scrollContainerRef}
           onScroll={checkScroll}
-          className={`flex items-center gap-3.5 sm:gap-5 overflow-x-auto overflow-y-hidden pb-4 pt-2 scrollbar-none snap-x snap-mandatory scroll-smooth transition-opacity duration-500 ${
+          className={`flex items-center gap-3.5 sm:gap-5 overflow-x-auto overflow-y-hidden px-3 sm:px-4 py-3.5 sm:py-4 scrollbar-none snap-x snap-mandatory scroll-smooth transition-opacity duration-500 ${
             isUpdating ? "opacity-75" : "opacity-100"
           } [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]`}
         >

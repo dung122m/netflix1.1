@@ -174,7 +174,8 @@ describe("Tactical Lineup & Pitch Coordinate System", () => {
     assert.strictEqual(getPositionAbbreviation("Striker"), "ST");
   });
 
-  it("6. getShortDisplayName trích xuất tên ngắn gọn chuẩn", () => {
+  it("6. getShortDisplayName trích xuất tên ngắn gọn chuẩn FotMob/Sofascore", () => {
+    // 1. Tên viết tắt chuẩn ban đầu có chữ cái đầu -> Rút gọn còn họ thi đấu
     const p1: MatchRosterPlayer = {
       id: "1",
       name: "Mads Hermansen",
@@ -184,8 +185,9 @@ describe("Tactical Lineup & Pitch Coordinate System", () => {
       position: "Goalkeeper",
       starter: true,
     };
-    assert.strictEqual(getShortDisplayName(p1), "M. Hermansen");
+    assert.strictEqual(getShortDisplayName(p1), "Hermansen");
 
+    // 2. Tên đầy đủ không có shortName -> Lấy họ
     const p2: MatchRosterPlayer = {
       id: "2",
       name: "Jamie Vardy",
@@ -195,7 +197,80 @@ describe("Tactical Lineup & Pitch Coordinate System", () => {
       starter: true,
     };
     assert.strictEqual(getShortDisplayName(p2), "Vardy");
+
+    // 3. Các ca thử nghiệm tuyến tiền vệ Inter/Lens thực tế: Çalhanoğlu, Diouf, Mkhitaryan, Barella, Augusto, Thuram
+    assert.strictEqual(
+      getShortDisplayName({ id: "10", name: "Hakan Çalhanoğlu", displayName: "Hakan Çalhanoğlu", shortName: "H. Çalhanoğlu", jersey: "20", position: "Midfielder", starter: true }),
+      "Çalhanoğlu"
+    );
+    assert.strictEqual(
+      getShortDisplayName({ id: "11", name: "Andy Diouf", displayName: "Andy Diouf", shortName: "A. Diouf", jersey: "18", position: "Midfielder", starter: true }),
+      "Diouf"
+    );
+    assert.strictEqual(
+      getShortDisplayName({ id: "12", name: "Henrikh Mkhitaryan", displayName: "Henrikh Mkhitaryan", shortName: "H. Mkhitaryan", jersey: "22", position: "Midfielder", starter: true }),
+      "Mkhitaryan"
+    );
+    assert.strictEqual(
+      getShortDisplayName({ id: "13", name: "Nicolò Barella", displayName: "Nicolò Barella", shortName: "N. Barella", jersey: "23", position: "Midfielder", starter: true }),
+      "Barella"
+    );
+    assert.strictEqual(
+      getShortDisplayName({ id: "14", name: "Carlos Augusto", displayName: "Carlos Augusto", shortName: "C. Augusto", jersey: "30", position: "Midfielder", starter: true }),
+      "Augusto"
+    );
+    assert.strictEqual(
+      getShortDisplayName({ id: "15", name: "Marcus Thuram", displayName: "Marcus Thuram", shortName: "M. Thuram", jersey: "9", position: "Forward", starter: true }),
+      "Thuram"
+    );
+
+    // 4. Họ ghép châu Âu (van Dijk, De Bruyne)
+    assert.strictEqual(
+      getShortDisplayName({ id: "4", name: "Virgil van Dijk", displayName: "Virgil van Dijk", shortName: "V. van Dijk", jersey: "4", position: "Defender", starter: true }),
+      "van Dijk"
+    );
+    assert.strictEqual(
+      getShortDisplayName({ id: "17", name: "Kevin De Bruyne", displayName: "Kevin De Bruyne", shortName: "K. De Bruyne", jersey: "17", position: "Midfielder", starter: true }),
+      "De Bruyne"
+    );
+
+    // 5. Mononym / Tên đơn
+    assert.strictEqual(
+      getShortDisplayName({ id: "16", name: "Rodri", displayName: "Rodri", shortName: "Rodri", jersey: "16", position: "Midfielder", starter: true }),
+      "Rodri"
+    );
+    assert.strictEqual(
+      getShortDisplayName({ id: "8", name: "Pedri", displayName: "Pedri", jersey: "8", position: "Midfielder", starter: true }),
+      "Pedri"
+    );
+
+    // 6. Xử lý trùng họ an toàn khi truyền allPlayers
+    const pTimber1: MatchRosterPlayer = {
+      id: "t1",
+      name: "Jurriën Timber",
+      displayName: "Jurriën Timber",
+      shortName: "J. Timber",
+      jersey: "12",
+      position: "Defender",
+      starter: true,
+    };
+    const pTimber2: MatchRosterPlayer = {
+      id: "t2",
+      name: "Quinten Timber",
+      displayName: "Quinten Timber",
+      shortName: "Q. Timber",
+      jersey: "8",
+      position: "Midfielder",
+      starter: true,
+    };
+    const squadWithDuplicates = [pTimber1, pTimber2];
+    assert.strictEqual(getShortDisplayName(pTimber1, squadWithDuplicates), "J. Timber");
+    assert.strictEqual(getShortDisplayName(pTimber2, squadWithDuplicates), "Q. Timber");
+
+    // Nếu không có trùng lặp trong đội hình -> lấy họ gọn gàng
+    assert.strictEqual(getShortDisplayName(pTimber1, [pTimber1]), "Timber");
   });
+
 
   it("7. VectorJerseyToken & CircularBadgeToken render với số áo và fallback vị trí", () => {
     assert.strictEqual(typeof VectorJerseyToken, "function");

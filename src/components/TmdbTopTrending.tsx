@@ -402,7 +402,7 @@ function TmdbTopTrendingInner() {
             type="button"
             onClick={() => handleScroll("left")}
             aria-label="Cuộn sang trái"
-            className="hidden sm:flex absolute left-0 top-0 bottom-4 z-30 w-12 md:w-14 bg-gradient-to-r from-black/90 via-black/60 to-transparent hover:from-black text-white items-center justify-start pl-1 opacity-0 group-hover/row:opacity-100 transition-all duration-300 cursor-pointer rounded-r-xl group/btn"
+            className="hidden sm:flex absolute left-0 top-4 bottom-4 z-30 w-12 md:w-14 bg-gradient-to-r from-black/90 via-black/60 to-transparent hover:from-black text-white items-center justify-start pl-1 opacity-0 group-hover/row:opacity-100 transition-all duration-300 cursor-pointer rounded-r-xl group/btn"
           >
             <div className="w-9 h-9 rounded-full bg-black/70 border border-white/20 flex items-center justify-center backdrop-blur-md group-hover/btn:scale-110 group-hover/btn:bg-white/20 transition-all shadow-xl">
               <ChevronLeft className="w-5 h-5 text-white" />
@@ -416,7 +416,7 @@ function TmdbTopTrendingInner() {
             type="button"
             onClick={() => handleScroll("right")}
             aria-label="Cuộn sang phải"
-            className="hidden sm:flex absolute right-0 top-0 bottom-4 z-30 w-12 md:w-14 bg-gradient-to-l from-black/90 via-black/60 to-transparent hover:from-black text-white items-center justify-end pr-1 opacity-0 group-hover/row:opacity-100 transition-all duration-300 cursor-pointer rounded-l-xl group/btn"
+            className="hidden sm:flex absolute right-0 top-4 bottom-4 z-30 w-12 md:w-14 bg-gradient-to-l from-black/90 via-black/60 to-transparent hover:from-black text-white items-center justify-end pr-1 opacity-0 group-hover/row:opacity-100 transition-all duration-300 cursor-pointer rounded-l-xl group/btn"
           >
             <div className="w-9 h-9 rounded-full bg-black/70 border border-white/20 flex items-center justify-center backdrop-blur-md group-hover/btn:scale-110 group-hover/btn:bg-white/20 transition-all shadow-xl">
               <ChevronRight className="w-5 h-5 text-white" />
@@ -427,13 +427,13 @@ function TmdbTopTrendingInner() {
         {/* MOBILE SUBTLE GRADIENT FADE AFFORDANCE */}
         {canScrollLeft && (
           <div
-            className="sm:hidden absolute left-0 top-0 bottom-4 w-6 bg-gradient-to-r from-black via-black/60 to-transparent pointer-events-none z-20 transition-opacity duration-200"
+            className="sm:hidden absolute left-0 top-4 bottom-4 w-6 bg-gradient-to-r from-black via-black/60 to-transparent pointer-events-none z-20 transition-opacity duration-200"
             aria-hidden="true"
           />
         )}
         {canScrollRight && (
           <div
-            className="sm:hidden absolute right-0 top-0 bottom-4 w-8 bg-gradient-to-l from-black via-black/60 to-transparent pointer-events-none z-20 transition-opacity duration-200"
+            className="sm:hidden absolute right-0 top-4 bottom-4 w-8 bg-gradient-to-l from-black via-black/60 to-transparent pointer-events-none z-20 transition-opacity duration-200"
             aria-hidden="true"
           />
         )}
@@ -441,7 +441,7 @@ function TmdbTopTrendingInner() {
         <div
           ref={scrollContainerRef}
           onScroll={checkScroll}
-          className="flex items-center gap-3 sm:gap-6 overflow-x-auto overflow-y-hidden pb-4 pt-2 scrollbar-none snap-x snap-mandatory"
+          className="flex items-center gap-3 sm:gap-6 overflow-x-auto overflow-y-hidden px-3 sm:px-6 py-4 sm:py-5 scrollbar-none snap-x snap-mandatory"
           style={{
             scrollbarWidth: "none",
             msOverflowStyle: "none",
@@ -482,7 +482,7 @@ function TmdbTopTrendingInner() {
                 >
                   <Link
                     href={`/movies/${movieSlug}`}
-                    className="flex items-end relative block cursor-pointer group-hover:scale-[1.02] transition-transform duration-300 ease-out"
+                    className="flex items-end relative block cursor-pointer group-hover:scale-[1.04] group-hover:-translate-y-1 transition-all duration-300 ease-out"
                   >
                     {/* NETFLIX-STYLE GIANT 3D NUMBER BEHIND POSTER */}
                     <div className="relative -mr-5 sm:-mr-8 z-0 pointer-events-none select-none">
@@ -513,7 +513,7 @@ function TmdbTopTrendingInner() {
                     </div>
 
                     {/* MOVIE POSTER CARD */}
-                    <div className="relative z-10 w-[140px] sm:w-[175px] md:w-[190px] aspect-[2/3] rounded-xl overflow-hidden bg-zinc-950 bg-gradient-to-br from-zinc-800/70 via-zinc-900 to-zinc-950 ring-1 ring-white/10 group-hover:ring-amber-500/60 shadow-[0_12px_30px_rgba(0,0,0,0.8)] group-hover:shadow-[0_18px_40px_rgba(245,158,11,0.25)] transition-all duration-300">
+                    <div className="relative z-10 w-[140px] sm:w-[175px] md:w-[190px] aspect-[2/3] rounded-xl overflow-hidden bg-zinc-950 bg-gradient-to-br from-zinc-800/70 via-zinc-900 to-zinc-950 ring-1 ring-white/10 group-hover:ring-2 group-hover:ring-amber-400 group-hover:ring-inset group-hover:shadow-[0_16px_36px_rgba(245,158,11,0.35),0_0_20px_rgba(0,0,0,0.8)] transition-all duration-300">
                       {(() => {
                         const rawPoster = pickBestMoviePoster(
                           {

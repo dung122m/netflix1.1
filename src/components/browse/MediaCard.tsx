@@ -5,10 +5,10 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   Check,
-  Star,
   Film,
   Bookmark,
   FolderPlus,
+  Star,
 } from "lucide-react";
 import { isInWatchlist, toggleWatchlist, subscribeToWatchlist } from "@/lib/watchlist";
 import {
@@ -16,6 +16,7 @@ import {
   toOptimizedCardPosterUrl,
   sanitizeImageUrl,
   formatGenreName,
+  extractMovieCountry,
 } from "@/lib/movieMedia";
 import { TrailerModal } from "@/components/TrailerModal";
 import { extractYoutubeId } from "@/lib/trailerHelper";
@@ -41,6 +42,90 @@ export const clientSynopsisCache = new Map<string, string>();
 export const clientTrailerCache = new Map<string, string>();
 export const clientExtraInfoCache = new Map<string, MovieExtraInfo>();
 
+// Bảng ánh xạ mã quốc gia ISO và tên thông dụng sang tiếng Việt chuẩn
+export const COUNTRY_DISPLAY_MAP: Record<string, string> = {
+  us: "Mỹ",
+  usa: "Mỹ",
+  kr: "Hàn Quốc",
+  kor: "Hàn Quốc",
+  jp: "Nhật Bản",
+  jpn: "Nhật Bản",
+  cn: "Trung Quốc",
+  chn: "Trung Quốc",
+  vn: "Việt Nam",
+  vnm: "Việt Nam",
+  th: "Thái Lan",
+  tha: "Thái Lan",
+  tw: "Đài Loan",
+  twn: "Đài Loan",
+  hk: "Hồng Kông",
+  hkg: "Hồng Kông",
+  uk: "Anh",
+  gb: "Anh",
+  gbr: "Anh",
+  fr: "Pháp",
+  fra: "Pháp",
+  de: "Đức",
+  deu: "Đức",
+  es: "Tây Ban Nha",
+  esp: "Tây Ban Nha",
+  it: "Ý",
+  ita: "Ý",
+  ru: "Nga",
+  rus: "Nga",
+  in: "Ấn Độ",
+  ind: "Ấn Độ",
+  ca: "Canada",
+  can: "Canada",
+  au: "Úc",
+  aus: "Úc",
+  ph: "Philippines",
+  phl: "Philippines",
+  my: "Malaysia",
+  mys: "Malaysia",
+  sg: "Singapore",
+  sgp: "Singapore",
+  id: "Indonesia",
+  idn: "Indonesia",
+  "hoa kỳ": "Mỹ",
+  "hợp chúng quốc hoa kỳ": "Mỹ",
+  "united states": "Mỹ",
+  "vương quốc anh": "Anh",
+  "united kingdom": "Anh",
+  "great britain": "Anh",
+  "hàn quốc": "Hàn Quốc",
+  "south korea": "Hàn Quốc",
+  korea: "Hàn Quốc",
+  "trung quốc": "Trung Quốc",
+  china: "Trung Quốc",
+  "nhật bản": "Nhật Bản",
+  japan: "Nhật Bản",
+  "việt nam": "Việt Nam",
+  vietnam: "Việt Nam",
+  "thái lan": "Thái Lan",
+  thailand: "Thái Lan",
+  "đài loan": "Đài Loan",
+  taiwan: "Đài Loan",
+  "hồng kông": "Hồng Kông",
+  "hong kong": "Hồng Kông",
+  "ấn độ": "Ấn Độ",
+  india: "Ấn Độ",
+  "tây ban nha": "Tây Ban Nha",
+  spain: "Tây Ban Nha",
+  pháp: "Pháp",
+  france: "Pháp",
+  đức: "Đức",
+  germany: "Đức",
+  ý: "Ý",
+  italy: "Ý",
+  nga: "Nga",
+  russia: "Nga",
+  canada: "Canada",
+  úc: "Úc",
+  australia: "Úc",
+  "âu mỹ": "Âu Mỹ",
+};
+
 import { fetchMovieSynopsisShared } from "@/services/synopsisService";
 export { fetchMovieSynopsisShared };
 export { extractYoutubeId };
@@ -65,7 +150,8 @@ export interface MediaCardProps {
   sub_docquyen?: boolean;
   actor?: string[];
   director?: string[];
-  country?: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  country?: string | any;
   type_name?: string;
   hasTrailer?: boolean;
   trailer_url?: string;
@@ -78,6 +164,8 @@ export interface MediaCardProps {
   episodeSlug?: string;
   episodeName?: string;
   seasonName?: string;
+  isActive?: boolean;
+  selected?: boolean;
 }
 
 const MediaCardInner: React.FC<MediaCardProps> = ({
@@ -88,12 +176,12 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
   posterUrl,
   thumbUrl,
   genre,
+  description,
   priority = false,
   time,
   year,
   rating,
   quality,
-  lang,
   chieurap,
   sub_docquyen,
   country: initialCountry,
@@ -108,7 +196,10 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
   episodeSlug,
   episodeName,
   seasonName,
+  isActive = false,
+  selected = false,
 }) => {
+  const isCardActive = Boolean(isActive || selected);
   const router = useRouter();
   const { user } = useAuth();
   const [inList, setInList] = useState(false);
@@ -278,16 +369,98 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
     });
   })();
 
-  // Thẻ thông tin phụ: Luôn hiển thị thể loại chuẩn hoá tiếng Việt có dấu (ví dụ "Hành Động", không hiển thị slug "hanh-dong").
-  // Nếu dữ liệu thiếu thể loại, tự động dùng loại phim (Phim lẻ / Phim bộ / Hoạt hình)
-  // để toàn bộ hàng thẻ luôn đồng nhất cấu trúc [Năm · Thể loại · Rating], tuyệt đối không hiển thị
-  // thời lượng ("70p", "41p") vào vị trí thể loại làm hàng thẻ bị "lạc quẻ".
-  const displayTag = (() => {
-    const formatted = formatGenreName(genre);
-    if (formatted) return formatted;
-    if (displayType) return displayType;
+  // Thể loại chính (chỉ lấy 1 thể loại ngắn gọn, loại trừ các loại phim như Phim lẻ / Phim bộ)
+  const mainGenre = React.useMemo(() => {
+    if (!genre || typeof genre !== "string") return "";
+    const parts = genre
+      .split(/[,/]/)
+      .map((s) => s.trim())
+      .filter(Boolean);
+
+    for (const part of parts) {
+      const lower = part.toLowerCase();
+      if (
+        lower === "phim lẻ" ||
+        lower === "phim bộ" ||
+        lower === "phimle" ||
+        lower === "phimbo" ||
+        lower === "hoạt hình" ||
+        lower === "tv shows" ||
+        lower === "tvshows"
+      ) {
+        continue;
+      }
+      const formatted = formatGenreName(part);
+      if (formatted) return formatted;
+      if (part.length <= 15) return part;
+    }
     return "";
-  })();
+  }, [genre]);
+
+  // Quốc gia: Chuẩn hóa hiển thị ngắn gọn, thanh lịch (tuyệt đối không hiển thị loại phim hoặc mã thô)
+  const displayCountry = React.useMemo(() => {
+    let raw = typeof initialCountry === "string" ? initialCountry.trim() : "";
+    if (!raw && initialCountry && typeof initialCountry === "object") {
+      const record = initialCountry as Record<string, unknown>;
+      const list = Array.isArray(initialCountry) ? (initialCountry as unknown[]) : null;
+      const firstItem = list && list.length > 0 ? (list[0] as Record<string, unknown>) : null;
+      const maybeName = (record?.name as string | undefined) || (firstItem?.name as string | undefined);
+      if (typeof maybeName === "string") raw = maybeName.trim();
+    }
+
+    if (!raw) {
+      raw = extractMovieCountry({
+        origin_name,
+        title,
+        name: title,
+        category: genre,
+      }) || "";
+    }
+
+    if (!raw) return "";
+
+    // Lọc bỏ tuyệt đối nếu giá trị là loại phim (Phim lẻ, Phim bộ, Hoạt hình...) chứ không phải quốc gia sản xuất
+    const lowerRaw = raw.toLowerCase();
+    if (
+      lowerRaw === "phim lẻ" ||
+      lowerRaw === "phim bộ" ||
+      lowerRaw === "phimle" ||
+      lowerRaw === "phimbo" ||
+      lowerRaw === "phim rạp" ||
+      lowerRaw === "hoạt hình" ||
+      lowerRaw === "tv shows" ||
+      lowerRaw === "tvshows"
+    ) {
+      return "";
+    }
+
+    // Nếu chứa nhiều quốc gia (ngăn cách bởi dấu phẩy, gạch chéo...), lấy quốc gia đầu tiên
+    if (raw.includes(",") || raw.includes("/") || raw.includes(";")) {
+      raw = raw.split(/[,/;]/)[0].trim();
+    }
+
+    const key = raw.toLowerCase().trim();
+    if (COUNTRY_DISPLAY_MAP[key]) {
+      return COUNTRY_DISPLAY_MAP[key];
+    }
+
+    // Nếu là mã viết hoa không xác định (như 2-3 chữ cái KR, US, JP...), ẩn đi thay vì hiện mã thô xấu xí
+    if (/^[A-Z]{2,3}$/.test(raw)) {
+      return "";
+    }
+
+    // Rút gọn nếu tên quá dài
+    if (raw.length > 15) {
+      return raw.slice(0, 15) + "…";
+    }
+
+    return raw.charAt(0).toUpperCase() + raw.slice(1);
+  }, [initialCountry, origin_name, title, genre]);
+
+  // Gom cả 3 thông tin thành 1 chuỗi duy nhất: [Năm] • [Quốc gia] • [Thể loại]
+  const metaString = React.useMemo(() => {
+    return [displayYear, displayCountry, mainGenre].filter(Boolean).join(" • ");
+  }, [displayYear, displayCountry, mainGenre]);
 
   const isEpisode = itemType === "episode" || Boolean(episodeSlug) || slug.includes("__ep__");
   const sSlug = seriesSlug || (slug.includes("__ep__") ? slug.split("__ep__")[0] : slug);
@@ -385,30 +558,44 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
     return Number.isFinite(num) && num > 0 && num <= 10 ? num : 0;
   })();
 
-  // Chỉ hiển thị huy hiệu chất lượng cho các định dạng đặc biệt (4K, UHD, CAM).
-  // Tuyệt đối không hiển thị FHD/HD tràn lan trên mọi thẻ để tránh giao diện "web phim lậu".
-  const specialQualityBadge = (() => {
+  // Nhãn chất lượng bản phim (CAM, HD, FHD, 4K, Vietsub...) đưa lên góc trên bên trái poster
+  const displayQualityBadge = (() => {
+    if (chieurap) return "Rạp";
+    if (sub_docquyen) return "Độc Quyền";
     if (!quality || typeof quality !== "string") return "";
     const clean = quality.trim().toUpperCase();
     if (clean.includes("4K") || clean.includes("UHD")) return "4K";
     if (clean.includes("CAM")) return "CAM";
-    return "";
+    if (clean.includes("FHD") || clean.includes("1080")) return "FHD";
+    if (clean.includes("HD") || clean.includes("720")) return "HD";
+    if (clean.includes("VIETSUB")) return "Vietsub";
+    if (clean.includes("THUYET") || clean.includes("LỒNG TIẾNG")) return "T.Minh";
+    return quality.trim();
   })();
+
+  const handleMouseEnterCard = useCallback(() => {
+    if (targetHref && !hasPrefetchedRef.current) {
+      hasPrefetchedRef.current = true;
+      router.prefetch(targetHref);
+    }
+  }, [targetHref, router]);
 
   return (
     <div
-      className="group/card relative flex flex-col w-full select-none cursor-pointer group-hover/card:scale-[1.02] transition-transform duration-300 ease-out motion-reduce:transform-none"
-      onMouseEnter={() => {
-        if (targetHref && !hasPrefetchedRef.current) {
-          hasPrefetchedRef.current = true;
-          router.prefetch(targetHref);
-        }
-      }}
+      className="group/card relative flex flex-col w-full select-none cursor-pointer hover:scale-[1.03] hover:-translate-y-1 hover:z-20 transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:transform-none"
+      onMouseEnter={handleMouseEnterCard}
     >
       {/* ========================================================================= */}
       {/* 1. KHỐI POSTER NGHỆ THUẬT (2:3 POSTER ARTWORK CANVAS - CLEAN & ELEVATED)   */}
       {/* ========================================================================= */}
-      <div className="relative aspect-[2/3] w-full rounded-xl overflow-hidden bg-zinc-950 bg-gradient-to-br from-zinc-800/70 via-zinc-900 to-zinc-950 ring-1 ring-white/10 group-hover/card:ring-netflix-red/60 shadow-[0_10px_25px_rgba(0,0,0,0.7)] group-hover/card:shadow-[0_18px_40px_rgba(229,9,20,0.35)] transition-all duration-300 ease-out focus-within:ring-2 focus-within:ring-white">
+      <div
+        className={`relative aspect-[2/3] w-full rounded-xl overflow-hidden bg-zinc-950 bg-gradient-to-br from-zinc-800/70 via-zinc-900 to-zinc-950 transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] focus-within:ring-2 focus-within:ring-white ${
+          isCardActive
+            ? "ring-2 ring-emerald-500 ring-inset shadow-[inset_0_0_0_2px_#22c55e]"
+            : "ring-1 ring-white/10 ring-inset group-hover/card:ring-2 group-hover/card:ring-netflix-red group-hover/card:ring-inset group-hover/card:shadow-[0_12px_28px_rgba(229,9,20,0.35),0_0_16px_rgba(0,0,0,0.8)]"
+        }`}
+        data-card-active={isCardActive ? "true" : undefined}
+      >
         {/* LIÊN KẾT CHÍNH PHỦ TOÀN BỘ POSTER (A11Y + KEYBOARD FOCUS + CLICK MỞ PHIM) */}
         <Link
           ref={baseCardRef}
@@ -416,7 +603,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
           onClick={handleCardClick}
           tabIndex={0}
           aria-label={`Xem phim ${title}`}
-          className={`block absolute inset-0 z-0 outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-black rounded-xl ${
+          className={`block absolute inset-0 z-0 outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-inset rounded-xl ${
             isNavigating ? "movie-card-navigating" : ""
           }`}
         >
@@ -451,7 +638,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
               alt={title}
               loading={priority ? "eager" : "lazy"}
               decoding="async"
-              className={`w-full h-full object-cover object-center group-hover/card:scale-105 transition-transform duration-500 ease-out motion-reduce:transform-none ${
+              className={`w-full h-full object-cover object-center group-hover/card:scale-108 group-hover/card:brightness-105 transition-all duration-500 ease-out motion-reduce:transform-none ${
                 isImageLoaded ? "opacity-100" : "opacity-0"
               }`}
               onLoad={() => setIsImageLoaded(true)}
@@ -460,38 +647,39 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
           )}
         </Link>
 
+        {/* HUY HIỆU CHẤT LƯỢNG BẢN PHIM GÓC TRÊN TRÁI POSTER (CAM, HD, FHD, Vietsub...) */}
+        {displayQualityBadge && (
+          <div className="absolute top-2 left-2 z-10 pointer-events-none">
+            <span className="inline-flex items-center px-1.5 py-0.5 rounded-[4px] bg-black/60 backdrop-blur-md text-zinc-200 text-[10px] sm:text-[11px] font-bold uppercase tracking-wider shadow border border-white/10 select-none">
+              {displayQualityBadge}
+            </span>
+          </div>
+        )}
+
         {/* HUY HIỆU TẬP PHIM (NẾU LÀ EPISODE) */}
         {isEpisode && episodeBadgeText && (
-          <div className="absolute top-2.5 right-2.5 z-20 pointer-events-none">
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500 text-black shadow-md border border-amber-300/40 select-none">
+          <div className={`absolute ${displayQualityBadge ? "top-7.5 left-2" : "top-2 left-2"} z-10 pointer-events-none`}>
+            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-[4px] text-[10px] font-bold bg-amber-500 text-black shadow select-none">
               {episodeBadgeText}
             </span>
           </div>
         )}
 
-        {/* HUY HIỆU ĐẶC BIỆT GÓC TRÊN TRÁI (TỐI ĐA 1 BADGE: CHIẾU RẠP HOẶC ĐỘC QUYỀN) */}
-        {(chieurap || sub_docquyen) && (
-          <div className="absolute top-2.5 left-2.5 z-20 pointer-events-none">
-            {chieurap ? (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-black/75 backdrop-blur-md text-zinc-100 text-[10px] font-medium tracking-wide shadow-md border border-white/15 select-none">
-                <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
-                Chiếu Rạp
-              </span>
-            ) : (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-black/75 backdrop-blur-md text-zinc-100 text-[10px] font-medium tracking-wide shadow-md border border-white/15 select-none">
-                <span className="w-1.5 h-1.5 rounded-full bg-purple-400" />
-                Độc Quyền
-              </span>
-            )}
+        {/* ĐIỂM ĐÁNH GIÁ (★ RATING) GÓC TRÊN PHẢI POSTER */}
+        {validRating > 0 && (
+          <div className="absolute top-2 right-2 z-10 pointer-events-none group-hover/card:opacity-0 transition-opacity duration-200">
+            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-[4px] bg-black/60 backdrop-blur-md text-amber-300 text-[11px] font-semibold shadow border border-white/10 select-none tabular-nums">
+              <Star className="w-2.5 h-2.5 fill-amber-300 text-amber-300" />
+              <span>{validRating.toFixed(1)}</span>
+            </span>
           </div>
         )}
 
         {/* NÚT THÊM BỘ SƯU TẬP TRÊN MOBILE (KHÔNG PHỤ THUỘC HOVER) */}
-        <div className="absolute top-2 right-2 z-20 pointer-events-auto sm:hidden">
+        <div className="absolute bottom-2 right-2 z-20 pointer-events-auto sm:hidden">
           <button
             type="button"
             onClick={handleOpenCollectionModal}
-            title="Thêm vào bộ sưu tập"
             aria-label={`Thêm phim ${title} vào bộ sưu tập`}
             className="w-6 h-6 rounded-full flex items-center justify-center border border-white/20 bg-black/60 backdrop-blur-md text-amber-400 active:scale-90 transition cursor-pointer shadow-sm"
           >
@@ -499,33 +687,53 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
           </button>
         </div>
 
-        {/* CỤM NÚT HÀNH ĐỘNG KHI HOVER TRÊN DESKTOP */}
+        {/* CỤM NÚT HÀNH ĐỘNG KHI HOVER TRÊN DESKTOP (KÈM CUSTOM GLASS TOOLTIP) */}
         <div className="absolute top-2.5 right-2.5 z-20 pointer-events-auto opacity-0 group-hover/card:opacity-100 focus-within:opacity-100 transition-opacity duration-200 hidden sm:flex items-center gap-1.5">
           {/* Nút Bộ sưu tập */}
-          <button
-            type="button"
-            onClick={handleOpenCollectionModal}
-            title="Thêm vào bộ sưu tập"
-            aria-label={`Thêm phim ${title} vào bộ sưu tập`}
-            className="w-7 h-7 rounded-full flex items-center justify-center border transition-all duration-200 hover:scale-110 active:scale-95 cursor-pointer shadow-md backdrop-blur-md outline-none focus-visible:ring-2 focus-visible:ring-white bg-black/75 hover:bg-amber-400 hover:border-amber-400 hover:text-black border-white/20 text-white group/btn"
-          >
-            <FolderPlus className="w-3.5 h-3.5 text-amber-400 group-hover/btn:text-black transition-colors" />
-          </button>
+          <div className="relative flex items-center justify-center group/btn">
+            <button
+              type="button"
+              onClick={handleOpenCollectionModal}
+              aria-label={`Thêm phim ${title} vào bộ sưu tập`}
+              className="w-7 h-7 rounded-full flex items-center justify-center border transition-all duration-150 hover:scale-110 active:scale-95 cursor-pointer shadow-md backdrop-blur-md outline-none focus-visible:ring-2 focus-visible:ring-amber-400 bg-black/75 hover:bg-amber-400 hover:border-amber-400 hover:text-black hover:shadow-[0_0_12px_rgba(251,191,36,0.35)] border-white/20 text-white"
+            >
+              <FolderPlus className="w-3.5 h-3.5 text-amber-400 group-hover/btn:text-black transition-colors" />
+            </button>
+            {/* Custom Glass Tooltip */}
+            <div
+              role="tooltip"
+              aria-hidden="true"
+              className="pointer-events-none select-none absolute top-full mt-2 right-0 z-30 whitespace-nowrap px-2.5 py-1 rounded-lg bg-zinc-900/95 backdrop-blur-md text-zinc-100 text-[11px] font-medium tracking-normal border border-white/10 shadow-[0_8px_20px_rgba(0,0,0,0.8)] opacity-0 -translate-y-1 scale-95 group-hover/btn:opacity-100 group-hover/btn:translate-y-0 group-hover/btn:scale-100 group-focus-within/btn:opacity-100 group-focus-within/btn:translate-y-0 group-focus-within/btn:scale-100 transition-all duration-150 ease-out"
+            >
+              Thêm vào bộ sưu tập
+              <div className="absolute -top-1 right-2.5 w-2 h-2 rotate-45 bg-zinc-900 border-t border-l border-white/10" />
+            </div>
+          </div>
 
           {/* Nút Watchlist */}
-          <button
-            type="button"
-            onClick={handleToggleList}
-            title={inList ? "Bỏ lưu khỏi danh sách của tôi" : "Lưu vào danh sách của tôi"}
-            aria-label={inList ? `Bỏ lưu phim ${title}` : `Lưu phim ${title} vào danh sách`}
-            className={`w-7 h-7 rounded-full flex items-center justify-center border transition-all duration-200 hover:scale-110 active:scale-95 cursor-pointer shadow-md backdrop-blur-md outline-none focus-visible:ring-2 focus-visible:ring-white ${
-              inList
-                ? "bg-netflix-red border-netflix-red text-white"
-                : "bg-black/75 hover:bg-white hover:text-zinc-950 border-white/20 text-white"
-            }`}
-          >
-            {inList ? <Check className="w-3.5 h-3.5 stroke-[2.5]" /> : <Bookmark className="w-3.5 h-3.5" />}
-          </button>
+          <div className="relative flex items-center justify-center group/btn">
+            <button
+              type="button"
+              onClick={handleToggleList}
+              aria-label={inList ? `Bỏ lưu phim ${title}` : `Lưu phim ${title} vào danh sách`}
+              className={`w-7 h-7 rounded-full flex items-center justify-center border transition-all duration-150 hover:scale-110 active:scale-95 cursor-pointer shadow-md backdrop-blur-md outline-none focus-visible:ring-2 focus-visible:ring-red-500 ${
+                inList
+                  ? "bg-netflix-red border-netflix-red text-white shadow-[0_0_10px_rgba(229,9,20,0.5)] hover:bg-red-700 hover:border-red-700"
+                  : "bg-black/75 hover:bg-netflix-red hover:border-netflix-red hover:text-white hover:shadow-[0_0_12px_rgba(229,9,20,0.4)] border-white/20 text-white"
+              }`}
+            >
+              {inList ? <Check className="w-3.5 h-3.5 stroke-[2.5]" /> : <Bookmark className="w-3.5 h-3.5 transition-colors" />}
+            </button>
+            {/* Custom Glass Tooltip */}
+            <div
+              role="tooltip"
+              aria-hidden="true"
+              className="pointer-events-none select-none absolute top-full mt-2 right-0 z-30 whitespace-nowrap px-2.5 py-1 rounded-lg bg-zinc-900/95 backdrop-blur-md text-zinc-100 text-[11px] font-medium tracking-normal border border-white/10 shadow-[0_8px_20px_rgba(0,0,0,0.8)] opacity-0 -translate-y-1 scale-95 group-hover/btn:opacity-100 group-hover/btn:translate-y-0 group-hover/btn:scale-100 group-focus-within/btn:opacity-100 group-focus-within/btn:translate-y-0 group-focus-within/btn:scale-100 transition-all duration-150 ease-out"
+            >
+              {inList ? "Xóa khỏi danh sách" : "Lưu vào danh sách"}
+              <div className="absolute -top-1 right-2.5 w-2 h-2 rotate-45 bg-zinc-900 border-t border-l border-white/10" />
+            </div>
+          </div>
         </div>
 
         {/* NÚT TRAILER KÍNH MỜ GÓC DƯỚI TRÁI KHI HOVER (CHỈ HIỆN KHI CÓ TRAILER) */}
@@ -547,58 +755,42 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
       </div>
 
       {/* ========================================================================= */}
-      {/* 2. KHỐI METADATA TÁCH BIỆT BÊN DƯỚI (UNDER-POSTER INFO STACK)              */}
+      {/* 2. KHỐI THÔNG TIN DƯỚI POSTER: CHUẨN ĐÚNG 2 DÒNG CHỮ THẲNG HÀNG TĂM TẮP    */}
       {/* ========================================================================= */}
-      <div className="pt-2.5 sm:pt-3 px-0.5 flex flex-col gap-1 w-full">
+      <div className="pt-2 px-0.5 flex flex-col gap-0.5 w-full">
         {/* ĐOẠN KHỚP TÌM KIẾM (NẾU ĐƯỢC GỌI TỪ TRANG TÌM KIẾM) */}
         {matchSnippet && (
-          <div className="flex items-center gap-1 text-[11px] text-amber-300 font-medium line-clamp-1">
+          <div className="flex items-center gap-1 text-[11px] text-amber-300 font-medium line-clamp-1 mb-0.5">
             <span className="font-bold text-amber-300 shrink-0">Khớp:</span>
             <span className="italic text-amber-200/90 truncate">{matchSnippet}</span>
           </div>
         )}
 
-        {/* TIÊU ĐỀ PHIM: TỐI ĐA 2 DÒNG, CHIỀU CAO ĐỒNG BỘ GIỮA CÁC THẺ TRONG HÀNG */}
+        {/* DÒNG 1 — TÊN PHIM: 1 DÒNG DUY NHẤT (TRUNCATE), CHIỀU CAO CỐ ĐỊNH */}
         <Link
           href={targetHref}
           onClick={handleCardClick}
           tabIndex={-1}
           aria-hidden="true"
-          className="outline-none block"
+          className="outline-none block w-full"
         >
-          <div className="min-h-[2.4rem] sm:min-h-[2.6rem] flex flex-col justify-start">
-            <h4 className="text-zinc-200 group-hover/card:text-red-400 font-medium sm:font-semibold text-[13px] sm:text-[14px] leading-snug line-clamp-2 transition-colors">
+          <div className="h-5 sm:h-5.5 flex items-center w-full">
+            <h4
+              title={title}
+              className="text-zinc-100 group-hover/card:text-red-400 font-semibold text-[13px] sm:text-[14px] leading-none truncate w-full transition-colors"
+            >
               {title}
             </h4>
           </div>
         </Link>
 
-        {/* DẢI MICRO-METADATA: NĂM · THỂ LOẠI · RATING (CHUẨN APPLE TV+ / MUBI) */}
-        <div className="flex items-center gap-1.5 text-[11px] sm:text-[12px] text-zinc-400 font-normal leading-none overflow-hidden">
-          {displayYear && (
-            <span className="text-zinc-300 shrink-0">{displayYear}</span>
-          )}
-          {displayYear && displayTag && (
-            <span className="text-zinc-600 font-light select-none shrink-0">·</span>
-          )}
-          {displayTag && (
-            <span className="text-zinc-400 truncate">{displayTag}</span>
-          )}
-          {(displayYear || displayTag) && validRating > 0 && (
-            <span className="text-zinc-600 font-light select-none shrink-0">·</span>
-          )}
-          {validRating > 0 && (
-            <span className="inline-flex items-center gap-0.5 text-amber-400/90 font-medium shrink-0">
-              <Star className="w-2.5 h-2.5 sm:w-3 sm:h-3 fill-amber-400 text-amber-400" />
-              <span>{validRating.toFixed(1)}</span>
-            </span>
-          )}
-          {specialQualityBadge && (
-            <span className="ml-auto shrink-0 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-white/10 text-zinc-300 border border-white/15">
-              {specialQualityBadge}
-            </span>
-          )}
-        </div>
+        {/* DÒNG 2 — THÔNG TIN PHỤ: [Năm] • [Quốc gia] • [Thể loại] (1 THẺ <p> DUY NHẤT CÓ TRUNCATE) */}
+        <p
+          title={metaString}
+          className="text-xs text-neutral-400 mt-1 truncate w-full select-none leading-none h-4 sm:h-4.5 flex items-center"
+        >
+          {metaString || <span className="text-transparent pointer-events-none">·</span>}
+        </p>
       </div>
 
       {/* 3. MODAL TRAILER MÀN ẢNH RỘNG */}

@@ -10,12 +10,11 @@ import {
   ArrowDownLeft,
   LayoutGrid,
   Trophy,
-  Hash,
   Calendar,
   Globe,
   Ruler,
   MapPin,
-  Sparkles,
+  CircleDot,
 } from "lucide-react";
 import { MatchRosterPlayer, AthleteProfile } from "@/services/live/football-score/types";
 
@@ -50,6 +49,7 @@ interface PositionedPlayer {
   x: number; // Tọa độ X tính bằng % (0 - 100%)
   y: number; // Tọa độ Y tính bằng % (0 - 100%)
   roleAbbr: string;
+  totalInLine?: number;
 }
 
 /**
@@ -400,6 +400,7 @@ export function calculateTacticalCoordinates(
       x: 50,
       y: 89,
       roleAbbr: getPositionAbbreviation(gk.position),
+      totalInLine: 1,
     });
   }
 
@@ -496,6 +497,7 @@ export function calculateTacticalCoordinates(
         x,
         y,
         roleAbbr,
+        totalInLine: sortedLine.length,
       });
     });
   });
@@ -504,19 +506,89 @@ export function calculateTacticalCoordinates(
 }
 
 /**
- * Trích xuất tên ngắn gọn của cầu thủ (ví dụ: "M. Hermansen" hoặc "Vardy")
+ * Trích xuất họ / tên thi đấu gọn gàng theo chuẩn FotMob / Sofascore
+ * - Ưu tiên họ/tên thi đấu, loại bỏ tiền tố chữ cái đầu (ví dụ: "H. Çalhanoğlu" -> "Çalhanoğlu", "A. Diouf" -> "Diouf")
+ * - Giữ nguyên tên đơn / biệt danh ("Rodri", "Pedri", "Alisson", "Casemiro", "Neymar Jr")
+ * - Giữ nguyên họ ghép phổ biến ("van Dijk", "De Bruyne", "Alexander-Arnold")
+ * - Tự động bổ sung chữ cái đầu nếu phát hiện 2 cầu thủ trong danh sách trùng họ
  */
-export function getShortDisplayName(p: MatchRosterPlayer): string {
-  if (p.shortName) return p.shortName;
-  const parts = p.displayName.trim().split(/\s+/);
-  if (parts.length === 1) return parts[0];
-  return parts[parts.length - 1]; // Lấy họ cầu thủ
+export function getShortDisplayName(
+  p: MatchRosterPlayer,
+  allPlayers?: MatchRosterPlayer[]
+): string {
+  if (!p) return "";
+
+  const extractSurname = (rawName: string): string => {
+    const trimmed = (rawName || "").trim();
+    if (!trimmed) return "";
+
+    // 1. Kiểm tra tiền tố chữ cái tắt có dấu chấm: "H. Çalhanoğlu", "A. Diouf", "V. van Dijk"
+    const dotInitialMatch = trimmed.match(/^[A-Za-zÀ-ỹĐđ]\.\s*(.+)$/);
+    if (dotInitialMatch && dotInitialMatch[1]) {
+      return dotInitialMatch[1].trim();
+    }
+
+    // 2. Tách theo khoảng trắng
+    const parts = trimmed.split(/\s+/);
+    if (parts.length <= 1) return parts[0] || trimmed;
+
+    // 3. Xử lý các tiền tố họ ghép phổ biến (Dutch, Spanish, French, Italian, Portuguese)
+    if (parts.length >= 2) {
+      const secondLast = parts[parts.length - 2].toLowerCase();
+      const compoundPrefixes = new Set([
+        "van",
+        "de",
+        "der",
+        "den",
+        "von",
+        "di",
+        "da",
+        "dos",
+        "das",
+        "del",
+        "della",
+        "la",
+        "le",
+        "al",
+        "el",
+      ]);
+      if (compoundPrefixes.has(secondLast)) {
+        return `${parts[parts.length - 2]} ${parts[parts.length - 1]}`;
+      }
+    }
+
+    // 4. Mặc định lấy từ cuối cùng (họ)
+    return parts[parts.length - 1];
+  };
+
+  const candidate = p.shortName || p.displayName || p.name || "";
+  const surname = extractSurname(candidate) || extractSurname(p.displayName || "") || candidate;
+
+  // Nếu có danh sách toàn đội, kiểm tra xem có bị trùng họ với cầu thủ khác không
+  if (allPlayers && allPlayers.length > 1) {
+    const duplicateCount = allPlayers.filter((other) => {
+      if (other.id === p.id) return false;
+      const otherCandidate = other.shortName || other.displayName || other.name || "";
+      const otherSurname = extractSurname(otherCandidate) || extractSurname(other.displayName || "");
+      return otherSurname.toLowerCase() === surname.toLowerCase();
+    }).length;
+
+    if (duplicateCount > 0) {
+      if (p.shortName && /^[A-Za-zÀ-ỹĐđ]\.\s*/.test(p.shortName)) {
+        return p.shortName;
+      }
+      const initial = (p.displayName || p.name || "").trim().charAt(0).toUpperCase();
+      return initial ? `${initial}. ${surname}` : surname;
+    }
+  }
+
+  return surname;
 }
 
 export type TokenDisplayMode = "jersey" | "badge" | "photo";
 
 /**
- * Áo đấu Vector SVG kết hợp số áo tức thì (0ms mạng, sắc nét Retina)
+ * Áo đấu tối giản hiện đại (Minimalist Kit Node) phong cách Sofascore / FotMob
  */
 export function VectorJerseyToken({
   number,
@@ -531,93 +603,49 @@ export function VectorJerseyToken({
 }) {
   const rawNum = number && number.trim() ? number.trim() : "";
   const displayNumber = rawNum || roleAbbr;
-  const fontSize = displayNumber.length >= 3 ? "11.5" : displayNumber.length === 2 ? "13.5" : "15.5";
-  const gradId = isGK ? "jersey-grad-gk" : isHome ? "jersey-grad-home" : "jersey-grad-away";
+  const fillColor = isGK ? "#eab308" : isHome ? "#dc2626" : "#0284c7";
+  const textColor = isGK ? "#09090b" : "#ffffff";
 
   return (
-    <svg
-      viewBox="0 0 36 38"
-      className="w-[24px] h-[24px] min-[360px]:w-[28px] min-[360px]:h-[28px] sm:w-[32px] sm:h-[32px] md:w-[34px] md:h-[34px] drop-shadow-[0_2px_4px_rgba(0,0,0,0.7)] transition-transform duration-200 group-hover:scale-110"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      <defs>
-        {/* Áo sân nhà - Đỏ rực rỡ */}
-        <linearGradient id="jersey-grad-home" x1="0%" y1="0%" x2="0%" y2="100%">
-          <stop offset="0%" stopColor="#ef4444" />
-          <stop offset="55%" stopColor="#dc2626" />
-          <stop offset="100%" stopColor="#991b1b" />
-        </linearGradient>
-        {/* Áo sân khách - Xanh lam sáng */}
-        <linearGradient id="jersey-grad-away" x1="0%" y1="0%" x2="0%" y2="100%">
-          <stop offset="0%" stopColor="#38bdf8" />
-          <stop offset="55%" stopColor="#0284c7" />
-          <stop offset="100%" stopColor="#0369a1" />
-        </linearGradient>
-        {/* Áo thủ môn - Vàng hổ phách đặc trưng */}
-        <linearGradient id="jersey-grad-gk" x1="0%" y1="0%" x2="0%" y2="100%">
-          <stop offset="0%" stopColor="#fde047" />
-          <stop offset="55%" stopColor="#f59e0b" />
-          <stop offset="100%" stopColor="#b45309" />
-        </linearGradient>
-      </defs>
-
-      {/* Thân áo đấu bóng đá có tay áo và cổ áo */}
-      <path
-        d="M10 6 L14 9.5 C15.5 10.5 20.5 10.5 22 9.5 L26 6 L34.5 11 L31.5 17.5 L27 15.5 V34 C27 35 26 36 25 36 H11 C10 36 9 35 9 34 V15.5 L4.5 17.5 L1.5 11 L10 6 Z"
-        fill={`url(#${gradId})`}
-        stroke={isGK ? "rgba(254, 240, 138, 0.9)" : isHome ? "rgba(254, 202, 202, 0.7)" : "rgba(186, 230, 253, 0.7)"}
-        strokeWidth="1.2"
-        strokeLinejoin="round"
-      />
-
-      {/* Viền cổ áo */}
-      <path
-        d="M14 9.5 C15.5 11.5 20.5 11.5 22 9.5"
-        stroke={isGK ? "#000000" : "#ffffff"}
-        strokeWidth="1.4"
-        strokeLinecap="round"
-      />
-
-      {/* Bo tay áo trái & phải */}
-      <line
-        x1="1.8"
-        y1="11.2"
-        x2="4.3"
-        y2="17.2"
-        stroke={isGK ? "rgba(0,0,0,0.4)" : "rgba(255,255,255,0.7)"}
-        strokeWidth="1"
-        strokeLinecap="round"
-      />
-      <line
-        x1="34.2"
-        y1="11.2"
-        x2="31.7"
-        y2="17.2"
-        stroke={isGK ? "rgba(0,0,0,0.4)" : "rgba(255,255,255,0.7)"}
-        strokeWidth="1"
-        strokeLinecap="round"
-      />
-
-      {/* Số áo in chính giữa ngực/lưng */}
-      <text
-        x="18"
-        y="26"
-        textAnchor="middle"
-        fill={isGK ? "#18181b" : "#ffffff"}
-        fontSize={fontSize}
-        fontWeight="900"
-        fontFamily="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace"
-        letterSpacing="-0.5px"
+    <div className="relative w-[26px] h-[26px] min-[360px]:w-[28px] min-[360px]:h-[28px] sm:w-[32px] sm:h-[32px] flex items-center justify-center select-none">
+      <svg
+        viewBox="0 0 32 32"
+        className="w-full h-full drop-shadow-[0_2px_5px_rgba(0,0,0,0.35)]"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
       >
-        {displayNumber}
-      </text>
-    </svg>
+        <path
+          d="M9 5 L13 8 C14 8.8 18 8.8 19 8 L23 5 L29 9 L26.5 14 L23.5 12.5 V27 C23.5 28 22.5 28.5 21.5 28.5 H10.5 C9.5 28.5 8.5 28 8.5 27 V12.5 L5.5 14 L3 9 L9 5 Z"
+          fill={fillColor}
+          stroke="#ffffff"
+          strokeWidth="1.2"
+          strokeLinejoin="round"
+        />
+        <path
+          d="M13 8 C14 9.5 18 9.5 19 8"
+          stroke="#ffffff"
+          strokeWidth="1.2"
+          strokeLinecap="round"
+        />
+        <text
+          x="16"
+          y="21.5"
+          textAnchor="middle"
+          fill={textColor}
+          fontSize="10.5"
+          fontWeight="700"
+          fontFamily="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
+        >
+          {displayNumber}
+        </text>
+      </svg>
+    </div>
   );
 }
 
 /**
- * Huy hiệu số áo tròn phong cách Sofascore / FotMob
+ * Huy hiệu số áo tròn phong cách Sofascore / FotMob hiện đại
+ * Thiết kế Flat Matte tinh gọn, viền trắng mảnh 1.5px, số áo sans-serif sắc nét, không bóng kính Web 2.0
  */
 export function CircularBadgeToken({
   number,
@@ -635,18 +663,22 @@ export function CircularBadgeToken({
 
   return (
     <div
-      className={`w-[24px] h-[24px] min-[360px]:w-[28px] min-[360px]:h-[28px] sm:w-[32px] sm:h-[32px] md:w-[34px] md:h-[34px] rounded-full flex items-center justify-center font-mono font-black text-[9px] min-[360px]:text-[10px] sm:text-[11.5px] md:text-xs shadow-md transition-transform duration-200 group-hover:scale-110 border-[1.5px] ${
+      className={`relative w-[26px] h-[26px] min-[360px]:w-[28px] min-[360px]:h-[28px] sm:w-[32px] sm:h-[32px] rounded-full flex items-center justify-center font-sans font-bold text-[10px] min-[360px]:text-[11px] sm:text-xs select-none transition-shadow duration-150 ${
         isGK
-          ? "bg-gradient-to-b from-amber-300 via-amber-400 to-amber-600 text-zinc-950 border-white/90 ring-1 ring-amber-400/50 shadow-amber-950/60"
+          ? "bg-[#eab308] text-zinc-950 border-[1.5px] border-white/95 shadow-[0_2px_6px_rgba(0,0,0,0.35)]"
           : isHome
-          ? "bg-gradient-to-b from-red-500 via-red-600 to-red-800 text-white border-white/90 ring-1 ring-red-500/50 shadow-red-950/60"
-          : "bg-gradient-to-b from-sky-400 via-sky-500 to-sky-700 text-white border-white/90 ring-1 ring-sky-400/50 shadow-sky-950/60"
+          ? "bg-[#dc2626] text-white border-[1.5px] border-white/95 shadow-[0_2px_6px_rgba(0,0,0,0.35)]"
+          : "bg-[#0284c7] text-white border-[1.5px] border-white/95 shadow-[0_2px_6px_rgba(0,0,0,0.35)]"
       }`}
     >
-      <span className="leading-none drop-shadow-sm">{displayNumber}</span>
+      {/* Số áo in sắc nét ở trung tâm */}
+      <span className="relative z-10 leading-none tracking-tight">
+        {displayNumber}
+      </span>
     </div>
   );
 }
+
 
 /**
  * Avatar ảnh chụp khuôn mặt cầu thủ (fallback sang số áo nếu không có ảnh)
@@ -764,7 +796,7 @@ export function InlinePlayerDetailCard({
   hasValidPhoto: boolean;
   onImageError: (id: string) => void;
   matchStatus?: "live" | "finished" | "scheduled" | string;
-  variant?: "inline" | "bottom-sheet";
+  variant?: "inline" | "bottom-sheet" | "drawer";
 }) {
   const isMatchScheduled = matchStatus === "scheduled";
   const [profile, setProfile] = useState<AthleteProfile | null>(() => clientAthleteCache.get(player.id) || null);
@@ -811,36 +843,20 @@ export function InlinePlayerDetailCard({
         currentProfile.birthPlace)
   );
 
+  const isDrawer = variant === "drawer" || variant === "bottom-sheet";
+
   return (
     <div
       onClick={(e) => e.stopPropagation()}
       className={
-        variant === "bottom-sheet"
-          ? "absolute inset-x-0 bottom-0 z-40 max-h-[52%] sm:max-h-[50%] flex flex-col rounded-t-2xl border-t border-x border-white/20 bg-zinc-950/95 backdrop-blur-xl shadow-2xl p-3 sm:p-3.5 overflow-hidden animate-in slide-in-from-bottom duration-200"
+        isDrawer
+          ? "relative w-full max-h-full sm:max-h-[92%] flex flex-col rounded-2xl border border-white/20 bg-zinc-950/95 backdrop-blur-xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-150"
           : "relative rounded-2xl bg-zinc-900/95 border border-white/15 p-3.5 sm:p-4 shadow-xl backdrop-blur-md animate-in fade-in duration-150"
       }
     >
-      {/* Nút đóng */}
-      <button
-        type="button"
-        onClick={onClose}
-        aria-label="Đóng thông tin cầu thủ"
-        className={`absolute ${
-          variant === "bottom-sheet" ? "top-2.5 right-2.5 p-1.5" : "top-3.5 right-3.5 p-1.5"
-        } rounded-full bg-white/10 hover:bg-white/20 text-zinc-300 hover:text-white transition cursor-pointer z-10 touch-manipulation`}
-      >
-        <X className="w-4 h-4" />
-      </button>
-
-      {/* Thanh grab handle nhỏ khi ở dạng Bottom Sheet */}
-      {variant === "bottom-sheet" && (
-        <div className="w-8 h-1 rounded-full bg-white/25 mx-auto mb-1.5 shrink-0 select-none" />
-      )}
-
-      {/* Khung nội dung: cuộn bên trong nếu là Bottom Sheet */}
-      <div className={variant === "bottom-sheet" ? "flex-1 min-h-0 overflow-y-auto overscroll-contain scrollbar-thin pr-0.5 space-y-2.5" : "space-y-3"}>
-        {/* Header cầu thủ */}
-        <div className="flex items-center gap-3 pr-8">
+      {/* Header cố định với nút đóng to rõ */}
+      <div className={`flex items-center justify-between gap-3 p-3 sm:p-3.5 ${isDrawer ? "bg-zinc-900/95 border-b border-white/10 shrink-0" : ""}`}>
+        <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
         <div
           className={`w-12 h-12 rounded-xl bg-zinc-800 border-2 overflow-hidden flex items-center justify-center font-mono font-black text-base shrink-0 shadow-inner ${
             isHome ? "border-netflix-red/60" : "border-sky-400/60"
@@ -921,6 +937,20 @@ export function InlinePlayerDetailCard({
           </div>
         </div>
       </div>
+
+        {/* Nút đóng to rõ */}
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Đóng thông tin cầu thủ"
+          className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-zinc-300 hover:text-white flex items-center justify-center transition cursor-pointer shrink-0 touch-manipulation border border-white/10"
+        >
+          <X className="w-4 h-4" />
+        </button>
+      </div>
+
+      {/* Khung nội dung: cuộn bên trong độc lập */}
+      <div className={isDrawer ? "flex-1 min-h-0 overflow-y-auto overscroll-contain p-3 sm:p-3.5 space-y-3 scrollbar-thin" : "space-y-3"}>
 
       {/* Hồ sơ & Tiểu sử cầu thủ (Enriched từ ESPN Core + Wikidata) */}
       {loadingProfile ? (
@@ -1078,8 +1108,8 @@ function TeamPitchColumn({
   matchStatus,
 }: TeamPitchColumnProps) {
   const isMatchScheduled = matchStatus === "scheduled";
-  const starters = roster?.starters || [];
-  const bench = roster?.bench || [];
+  const starters = useMemo(() => roster?.starters || [], [roster?.starters]);
+  const bench = useMemo(() => roster?.bench || [], [roster?.bench]);
   const formation = roster?.formation;
 
   const positionedStarters = useMemo(() => {
@@ -1091,7 +1121,7 @@ function TeamPitchColumn({
   return (
     <div className="flex flex-col space-y-2.5 min-w-0">
       {/* KHỐI SÂN CỎ CHIẾN THUẬT */}
-      <div className="rounded-2xl overflow-hidden border border-white/10 bg-zinc-950 shadow-xl flex flex-col">
+      <div className="rounded-2xl overflow-hidden border border-white/10 bg-zinc-950 shadow-xl flex flex-col relative">
         {/* Header đội bóng & sơ đồ (chỉ hiển thị khi xem song song 2 đội) */}
         {showHeader && (
           <div className="flex items-center justify-between px-3.5 py-2 bg-zinc-900/90 border-b border-white/10 gap-2">
@@ -1121,7 +1151,7 @@ function TeamPitchColumn({
 
         {/* Khung sân cỏ */}
         {!hasStarters ? (
-          <div className="p-8 text-center space-y-2 bg-gradient-to-b from-[#0b1d12] to-[#08170e]">
+          <div className="p-8 text-center space-y-2 bg-gradient-to-b from-[#0a2315] to-[#071a10]">
             <p className="text-xs font-semibold text-zinc-400">Chưa có danh sách ra sân</p>
           </div>
         ) : (
@@ -1131,14 +1161,22 @@ function TeamPitchColumn({
                 onCloseSelectedPlayer?.();
               }
             }}
-            className="relative w-full pb-[88%] sm:pb-[90%] select-none overflow-hidden bg-gradient-to-b from-[#0b1d12] via-[#0e2719] to-[#08170e]"
+            style={{
+              background: "radial-gradient(ellipse 90% 70% at 50% 50%, #155e38 0%, #0f4528 55%, #0a2e1b 100%)",
+            }}
+            className="relative w-full pb-[88%] sm:pb-[90%] select-none overflow-hidden rounded-2xl shadow-[inset_0_0_35px_rgba(0,0,0,0.7)] border border-emerald-700/30"
           >
-            {/* Sọc cỏ cắt */}
+            {/* Đèn pha sân vận động (Stadium Spotlight Floods) */}
+            <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_50%_50%,rgba(52,211,153,0.13)_0%,transparent_60%)]" />
+            <div className="absolute top-0 inset-x-0 h-1/4 pointer-events-none bg-[radial-gradient(ellipse_at_50%_0%,rgba(16,185,129,0.09)_0%,transparent_70%)]" />
+            <div className="absolute bottom-0 inset-x-0 h-1/4 pointer-events-none bg-[radial-gradient(ellipse_at_50%_100%,rgba(16,185,129,0.09)_0%,transparent_70%)]" />
+
+            {/* Sọc cỏ cắt nhung xen kẽ */}
             <div
-              className="absolute inset-0 opacity-20 pointer-events-none"
+              className="absolute inset-0 opacity-40 pointer-events-none"
               style={{
                 backgroundImage:
-                  "repeating-linear-gradient(0deg, rgba(255,255,255,0.08) 0px, rgba(255,255,255,0.08) 28px, transparent 28px, transparent 56px)",
+                  "repeating-linear-gradient(0deg, rgba(255,255,255,0.03) 0px, rgba(255,255,255,0.03) 24px, transparent 24px, transparent 48px)",
               }}
             />
 
@@ -1155,8 +1193,8 @@ function TeamPitchColumn({
                 width="96"
                 height="126"
                 fill="none"
-                stroke="rgba(255,255,255,0.25)"
-                strokeWidth="0.8"
+                stroke="rgba(255,255,255,0.32)"
+                strokeWidth="0.75"
                 rx="2"
               />
               {/* Halfway line */}
@@ -1165,8 +1203,8 @@ function TeamPitchColumn({
                 y1="65"
                 x2="98"
                 y2="65"
-                stroke="rgba(255,255,225,0.22)"
-                strokeWidth="0.8"
+                stroke="rgba(255,255,255,0.32)"
+                strokeWidth="0.75"
               />
               {/* Center circle & spot */}
               <circle
@@ -1174,10 +1212,10 @@ function TeamPitchColumn({
                 cy="65"
                 r="13"
                 fill="none"
-                stroke="rgba(255,255,255,0.22)"
-                strokeWidth="0.8"
+                stroke="rgba(255,255,255,0.32)"
+                strokeWidth="0.75"
               />
-              <circle cx="50" cy="65" r="0.9" fill="rgba(255,255,255,0.5)" />
+              <circle cx="50" cy="65" r="1" fill="rgba(255,255,255,0.6)" />
 
               {/* Attacking Goal Area (Top) */}
               <rect
@@ -1186,8 +1224,8 @@ function TeamPitchColumn({
                 width="56"
                 height="22"
                 fill="none"
-                stroke="rgba(255,255,255,0.2)"
-                strokeWidth="0.8"
+                stroke="rgba(255,255,255,0.32)"
+                strokeWidth="0.75"
               />
               <rect
                 x="36"
@@ -1195,15 +1233,15 @@ function TeamPitchColumn({
                 width="28"
                 height="8"
                 fill="none"
-                stroke="rgba(255,255,255,0.2)"
-                strokeWidth="0.8"
+                stroke="rgba(255,255,255,0.32)"
+                strokeWidth="0.75"
               />
-              <circle cx="50" cy="15" r="0.8" fill="rgba(255,255,255,0.4)" />
+              <circle cx="50" cy="15" r="0.8" fill="rgba(255,255,255,0.5)" />
               <path
                 d="M 40 24 A 10 10 0 0 0 60 24"
                 fill="none"
-                stroke="rgba(255,255,255,0.2)"
-                strokeWidth="0.8"
+                stroke="rgba(255,255,255,0.32)"
+                strokeWidth="0.75"
               />
 
               {/* Defending Goal Area (Bottom) */}
@@ -1213,8 +1251,8 @@ function TeamPitchColumn({
                 width="56"
                 height="22"
                 fill="none"
-                stroke="rgba(255,255,255,0.2)"
-                strokeWidth="0.8"
+                stroke="rgba(255,255,255,0.32)"
+                strokeWidth="0.75"
               />
               <rect
                 x="36"
@@ -1222,33 +1260,35 @@ function TeamPitchColumn({
                 width="28"
                 height="8"
                 fill="none"
-                stroke="rgba(255,255,255,0.2)"
-                strokeWidth="0.8"
+                stroke="rgba(255,255,255,0.32)"
+                strokeWidth="0.75"
               />
-              <circle cx="50" cy="115" r="0.8" fill="rgba(255,255,255,0.4)" />
+              <circle cx="50" cy="115" r="0.8" fill="rgba(255,255,255,0.5)" />
               <path
                 d="M 40 106 A 10 10 0 0 1 60 106"
                 fill="none"
-                stroke="rgba(255,255,255,0.2)"
-                strokeWidth="0.8"
+                stroke="rgba(255,255,255,0.32)"
+                strokeWidth="0.75"
               />
 
               {/* 4 Corner arcs */}
-              <path d="M 2 6 A 4 4 0 0 0 6 2" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="0.8" />
-              <path d="M 94 2 A 4 4 0 0 0 98 6" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="0.8" />
-              <path d="M 2 124 A 4 4 0 0 1 6 128" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="0.8" />
-              <path d="M 94 128 A 4 4 0 0 1 98 124" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="0.8" />
+              <path d="M 2 6 A 4 4 0 0 0 6 2" fill="none" stroke="rgba(255,255,255,0.32)" strokeWidth="0.75" />
+              <path d="M 94 2 A 4 4 0 0 0 98 6" fill="none" stroke="rgba(255,255,255,0.32)" strokeWidth="0.75" />
+              <path d="M 2 124 A 4 4 0 0 1 6 128" fill="none" stroke="rgba(255,255,255,0.32)" strokeWidth="0.75" />
+              <path d="M 94 128 A 4 4 0 0 1 98 124" fill="none" stroke="rgba(255,255,255,0.32)" strokeWidth="0.75" />
             </svg>
 
             {/* 11 Cầu thủ trên sân */}
-            {positionedStarters.map(({ player, x, y, roleAbbr }) => {
+            {positionedStarters.map(({ player, x, y, roleAbbr, totalInLine }) => {
               const hasValidPhoto = Boolean(player.photoUrl && !imageErrors[player.id]);
-              const shortName = getShortDisplayName(player);
+              const shortName = getShortDisplayName(player, starters);
               const isGK =
                 roleAbbr === "GK" ||
                 Boolean(player.position && /goalkeeper|gk|thủ môn/i.test(player.position)) ||
                 player.formationPlace === 1;
               const isSelected = selectedPlayer?.id === player.id;
+              const isCrowdedLine = (totalInLine || 1) >= 5;
+              const isMediumLine = (totalInLine || 1) === 4;
 
               return (
                 <button
@@ -1258,19 +1298,31 @@ function TeamPitchColumn({
                   title={`${player.jersey ? `#${player.jersey} ` : ""}${player.displayName} (${player.position})`}
                   style={{
                     left: `${x}%`,
-                    top: `${y}%`,
+                    top: isGK ? "84.5%" : `${y}%`,
                   }}
-                  className={`absolute -translate-x-1/2 ${
-                    isGK ? "-translate-y-[92%]" : "-translate-y-1/2"
-                  } group flex flex-col items-center cursor-pointer transition-all hover:scale-115 active:scale-95 focus:outline-none z-20 ${
-                    isSelected ? "scale-115 z-30" : ""
+                  className={`absolute -translate-x-1/2 -translate-y-1/2 group flex flex-col items-center cursor-pointer active:scale-95 focus:outline-none z-20 ${
+                    isSelected ? "z-30" : "hover:z-30"
                   }`}
                 >
+                  {/* Tooltip nổi duy nhất khi hover hoặc chọn: e.g. #71 · Wiafe · CM */}
+                  <div
+                    className={`pointer-events-none absolute -top-7 sm:-top-8 left-1/2 -translate-x-1/2 whitespace-nowrap px-2.5 py-0.5 rounded-full bg-zinc-950/90 backdrop-blur-md text-[10px] min-[360px]:text-[10.5px] sm:text-[11px] font-sans font-medium tracking-tight border shadow-[0_4px_14px_rgba(0,0,0,0.85)] z-40 transition-all duration-150 ${
+                      isSelected
+                        ? "opacity-100 scale-100 text-amber-300 border-amber-400/50 shadow-amber-400/25"
+                        : "opacity-0 scale-95 group-hover:opacity-100 group-hover:scale-100 group-focus:opacity-100 group-focus:scale-100 text-zinc-100 border-white/20"
+                    }`}
+                  >
+                    <span>
+                      {player.jersey ? `#${player.jersey} · ` : ""}
+                      {shortName} · {roleAbbr}
+                    </span>
+                  </div>
+
                   {/* Token cầu thủ trên sân */}
                   <div
-                    className={`relative rounded-full transition-all ${
+                    className={`relative rounded-full transition-all duration-150 group-hover:ring-2 group-hover:ring-white group-hover:shadow-[0_0_10px_rgba(255,255,255,0.45)] ${
                       isSelected
-                        ? "ring-2 ring-amber-400 ring-offset-2 ring-offset-zinc-950 shadow-lg shadow-amber-400/50"
+                        ? "ring-[2.5px] ring-amber-400 ring-offset-2 ring-offset-zinc-950 shadow-[0_0_14px_rgba(251,191,36,0.55)]"
                         : ""
                     }`}
                   >
@@ -1311,41 +1363,68 @@ function TeamPitchColumn({
                       </span>
                     )}
 
-                    {/* Rời sân (chỉ hiển thị khi trận đang đá hoặc đã kết thúc) */}
+                    {/* Rời sân / Thay người (Micro-badge tinh tế góc trên phải không che số áo) */}
                     {!isMatchScheduled && player.subbedOut && (
                       <span
                         title={`Rời sân: ${player.subClock || ""}`}
-                        className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-600 text-white flex items-center justify-center text-[7.5px] shadow-md border border-white/50 z-30"
+                        className="absolute -top-0.5 -right-0.5 w-3 h-3 min-[360px]:w-3.5 min-[360px]:h-3.5 rounded-full bg-red-600 text-white flex items-center justify-center shadow-md border border-white/80 z-30"
                       >
-                        <ArrowDownLeft className="w-2.5 h-2.5" />
+                        <ArrowDownLeft className="w-2 h-2 min-[360px]:w-2.5 min-[360px]:h-2.5 stroke-[2.5]" />
+                      </span>
+                    )}
+                    {!isMatchScheduled && player.subbedIn && !player.subbedOut && (
+                      <span
+                        title={`Vào sân: ${player.subClock || ""}`}
+                        className="absolute -top-0.5 -right-0.5 w-3 h-3 min-[360px]:w-3.5 min-[360px]:h-3.5 rounded-full bg-emerald-600 text-white flex items-center justify-center shadow-md border border-white/80 z-30"
+                      >
+                        <ArrowUpRight className="w-2 h-2 min-[360px]:w-2.5 min-[360px]:h-2.5 stroke-[2.5]" />
                       </span>
                     )}
                   </div>
 
-                  {/* Tên & vị trí */}
-                  <div className="mt-0.5 min-[360px]:mt-1 flex flex-col items-center max-w-[56px] min-[380px]:max-w-[68px] sm:max-w-[82px] md:max-w-[94px] pointer-events-none leading-none">
-                    <span className="text-[8px] min-[380px]:text-[9px] sm:text-[10.5px] md:text-[11px] font-bold text-white truncate w-full text-center drop-shadow-[0_1.5px_4px_rgba(0,0,0,0.98)] tracking-normal">
+                  {/* Tên cầu thủ trực tiếp trên mặt cỏ: Sans-serif, ~11px, trắng nhẹ, font-semibold, shadow mềm */}
+                  <div className="mt-1 flex flex-col items-center justify-center pointer-events-none select-none">
+                    <span
+                      className={`font-sans font-semibold text-[10.5px] min-[360px]:text-[11px] sm:text-[11.5px] text-white/95 whitespace-nowrap text-center tracking-normal drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)] select-none overflow-hidden text-ellipsis transition-colors ${
+                        isCrowdedLine
+                          ? "max-w-[62px] min-[360px]:max-w-[70px] sm:max-w-[80px]"
+                          : isMediumLine
+                          ? "max-w-[70px] min-[360px]:max-w-[78px] sm:max-w-[88px]"
+                          : "max-w-[78px] min-[360px]:max-w-[86px] sm:max-w-[96px]"
+                      }`}
+                      title={player.displayName}
+                    >
                       {shortName}
-                    </span>
-                    <span className="text-[6.5px] min-[380px]:text-[7px] sm:text-[8px] md:text-[8.5px] font-extrabold tracking-wider text-zinc-200 uppercase px-1 min-[380px]:px-1.5 py-0.5 rounded bg-black/85 border border-white/20 leading-none mt-0.5 shadow-sm">
-                      {roleAbbr}
                     </span>
                   </div>
                 </button>
               );
             })}
-            {/* BOTTOM SHEET NỔI PHỦ ĐÁY SÂN CỎ KHI CHỌN CẦU THỦ */}
-            {selectedPlayer && (
-              <InlinePlayerDetailCard
-                player={selectedPlayer}
-                isHome={isHome}
-                onClose={onCloseSelectedPlayer || (() => {})}
-                hasValidPhoto={Boolean(selectedPlayer.photoUrl && !imageErrors[selectedPlayer.id])}
-                onImageError={onImageError}
-                matchStatus={matchStatus}
-                variant="bottom-sheet"
-              />
-            )}
+          </div>
+        )}
+
+        {/* OVERLAY PANEL THÔNG TIN CẦU THỦ NỔI TRÊN SÂN CỎ */}
+        {selectedPlayer && (
+          <div
+            onClick={(e) => {
+              if (e.target === e.currentTarget) {
+                onCloseSelectedPlayer?.();
+              }
+            }}
+            className="absolute inset-0 z-40 bg-black/60 backdrop-blur-md flex flex-col justify-end sm:justify-center p-2 sm:p-3 animate-in fade-in duration-150"
+            role="dialog"
+            aria-modal="true"
+            aria-label={`Thông tin cầu thủ ${selectedPlayer.displayName}`}
+          >
+            <InlinePlayerDetailCard
+              player={selectedPlayer}
+              isHome={isHome}
+              onClose={onCloseSelectedPlayer || (() => {})}
+              hasValidPhoto={Boolean(selectedPlayer.photoUrl && !imageErrors[selectedPlayer.id])}
+              onImageError={onImageError}
+              matchStatus={matchStatus}
+              variant="drawer"
+            />
           </div>
         )}
       </div>
@@ -1590,7 +1669,7 @@ export function TacticalLineup({
 }: TacticalLineupProps) {
   const [teamFilter, setTeamFilter] = useState<"home" | "away">("home");
   const [viewMode, setViewMode] = useState<"pitch" | "list">("pitch");
-  const [tokenDisplayMode, setTokenDisplayMode] = useState<TokenDisplayMode>("jersey");
+  const [tokenDisplayMode, setTokenDisplayMode] = useState<TokenDisplayMode>("badge");
   const [selectedPlayer, setSelectedPlayer] = useState<MatchRosterPlayer | null>(null);
   const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
 
@@ -1639,26 +1718,28 @@ export function TacticalLineup({
   }
 
   return (
-    <div className="space-y-2">
-      {/* 1. THANH CHỌN ĐỘI BÓNG: 50% - 50% FULL-WIDTH CÂN ĐỐI HOÀN HẢO */}
-      <div className="grid grid-cols-2 gap-1.5 p-1 rounded-xl bg-zinc-900/80 border border-white/10 backdrop-blur-md">
+    <div className="space-y-1.5">
+      {/* 1. THANH CHỌN ĐỘI BÓNG: MATCHDAY DUEL BANNER ĐỐI XỨNG */}
+      <div className="grid grid-cols-2 gap-1.5 p-1 rounded-xl bg-zinc-900/90 border border-white/10 backdrop-blur-md">
         <button
           type="button"
           onClick={() => handleTeamChange("home")}
           title={`${homeTeam.displayName} (${homeRoster?.formation || "Chưa rõ sơ đồ"})`}
-          className={`flex items-center justify-center gap-1.5 sm:gap-2 py-1.5 px-2 sm:px-3 rounded-lg text-xs font-bold transition-all cursor-pointer select-none truncate ${
+          className={`flex items-center justify-between py-1.5 px-2.5 rounded-lg text-xs font-bold transition-all cursor-pointer select-none truncate ${
             teamFilter === "home"
-              ? "bg-gradient-to-r from-red-600 to-red-700 text-white shadow-md shadow-red-950/60 border border-red-500/60 font-black"
-              : "text-zinc-400 hover:text-white hover:bg-white/5 border border-transparent font-medium"
+              ? "bg-gradient-to-r from-red-600/90 to-red-800/90 text-white shadow-md shadow-red-950/60 border border-red-400/40 font-black"
+              : "bg-white/[0.03] text-zinc-400 hover:text-white hover:bg-white/[0.08] border border-transparent font-medium"
           }`}
         >
-          <div className={`w-2 h-2 rounded-full shrink-0 ${teamFilter === "home" ? "bg-white" : "bg-red-500"}`} />
-          <span className="truncate">{homeTeam.displayName}</span>
+          <div className="flex items-center gap-1.5 min-w-0 truncate">
+            <div className={`w-2 h-2 rounded-full shrink-0 ${teamFilter === "home" ? "bg-white ring-2 ring-red-400/50" : "bg-red-500"}`} />
+            <span className="truncate">{homeTeam.displayName}</span>
+          </div>
           {homeRoster?.formation && (
             <span
-              className={`text-[10px] font-mono font-bold px-1.5 py-0.2 rounded shrink-0 whitespace-nowrap ${
+              className={`text-[9.5px] font-mono font-black px-1.5 py-0.2 rounded-md shrink-0 whitespace-nowrap ml-1 ${
                 teamFilter === "home"
-                  ? "bg-black/40 text-red-100 border border-white/15"
+                  ? "bg-black/50 text-white border border-white/20 shadow-sm"
                   : "bg-white/5 text-zinc-400"
               }`}
             >
@@ -1671,19 +1752,21 @@ export function TacticalLineup({
           type="button"
           onClick={() => handleTeamChange("away")}
           title={`${awayTeam.displayName} (${awayRoster?.formation || "Chưa rõ sơ đồ"})`}
-          className={`flex items-center justify-center gap-1.5 sm:gap-2 py-1.5 px-2 sm:px-3 rounded-lg text-xs font-bold transition-all cursor-pointer select-none truncate ${
+          className={`flex items-center justify-between py-1.5 px-2.5 rounded-lg text-xs font-bold transition-all cursor-pointer select-none truncate ${
             teamFilter === "away"
-              ? "bg-gradient-to-r from-sky-600 to-sky-700 text-white shadow-md shadow-sky-950/60 border border-sky-400/60 font-black"
-              : "text-zinc-400 hover:text-white hover:bg-white/5 border border-transparent font-medium"
+              ? "bg-gradient-to-r from-sky-600/90 to-sky-800/90 text-white shadow-md shadow-sky-950/60 border border-sky-400/40 font-black"
+              : "bg-white/[0.03] text-zinc-400 hover:text-white hover:bg-white/[0.08] border border-transparent font-medium"
           }`}
         >
-          <div className={`w-2 h-2 rounded-full shrink-0 ${teamFilter === "away" ? "bg-white" : "bg-sky-400"}`} />
-          <span className="truncate">{awayTeam.displayName}</span>
+          <div className="flex items-center gap-1.5 min-w-0 truncate">
+            <div className={`w-2 h-2 rounded-full shrink-0 ${teamFilter === "away" ? "bg-white ring-2 ring-sky-400/50" : "bg-sky-400"}`} />
+            <span className="truncate">{awayTeam.displayName}</span>
+          </div>
           {awayRoster?.formation && (
             <span
-              className={`text-[10px] font-mono font-bold px-1.5 py-0.2 rounded shrink-0 whitespace-nowrap ${
+              className={`text-[9.5px] font-mono font-black px-1.5 py-0.2 rounded-md shrink-0 whitespace-nowrap ml-1 ${
                 teamFilter === "away"
-                  ? "bg-black/40 text-sky-100 border border-white/15"
+                  ? "bg-black/50 text-white border border-white/20 shadow-sm"
                   : "bg-white/5 text-zinc-400"
               }`}
             >
@@ -1693,45 +1776,10 @@ export function TacticalLineup({
         </button>
       </div>
 
-      {/* 2. CỤM ĐIỀU KHIỂN CHẾ ĐỘ XEM & KIỂU SỐ (ĐỐI XỨNG 2 BÊN) */}
-      <div className="flex items-center justify-between gap-2 px-0.5">
-        {/* Bên trái: Toggle Số áo / Số tròn (chỉ khi xem Sân cỏ) */}
-        {viewMode === "pitch" ? (
-          <div className="flex items-center gap-1 p-0.5 rounded-xl bg-zinc-900/70 border border-white/10" role="group" aria-label="Kiểu hiển thị số áo trên sân">
-            <button
-              type="button"
-              onClick={() => setTokenDisplayMode("jersey")}
-              title="Hiện áo đấu vector & số áo"
-              aria-label="Hiện áo đấu vector & số áo"
-              className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                tokenDisplayMode === "jersey"
-                  ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 shadow-sm"
-                  : "text-zinc-400 hover:text-white"
-              }`}
-            >
-              <Shirt className="w-3.5 h-3.5" />
-              <span>Số áo</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setTokenDisplayMode("badge")}
-              title="Hiện huy hiệu số tròn"
-              aria-label="Hiện huy hiệu số tròn"
-              className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                tokenDisplayMode === "badge"
-                  ? "bg-sky-500/20 text-sky-300 border border-sky-500/30 shadow-sm"
-                  : "text-zinc-400 hover:text-white"
-              }`}
-            >
-              <Hash className="w-3.5 h-3.5" />
-              <span>Số tròn</span>
-            </button>
-          </div>
-        ) : <div />}
-
-        {/* Bên phải: Toggle Sân cỏ / Danh sách */}
-        <div className="flex items-center gap-1 p-0.5 rounded-xl bg-zinc-900/70 border border-white/10 ml-auto" role="group" aria-label="Chế độ hiển thị đội hình">
+      {/* 2. CỤM ĐIỀU KHIỂN CHẾ ĐỘ XEM THỐNG NHẤT (UNIFIED CONTROL BAR) */}
+      <div className="flex items-center justify-between gap-1.5 px-0.5">
+        {/* Segmented Control chính: Sân cỏ / Danh sách */}
+        <div className="flex items-center gap-0.5 p-0.5 rounded-xl bg-zinc-900/80 border border-white/10" role="group" aria-label="Chế độ hiển thị đội hình">
           <button
             type="button"
             onClick={() => setViewMode("pitch")}
@@ -1762,6 +1810,41 @@ export function TacticalLineup({
             <span>Danh sách</span>
           </button>
         </div>
+
+        {/* Micro Toggle: Số tròn / Áo đấu (chỉ hiện khi xem Sân cỏ) */}
+        {viewMode === "pitch" ? (
+          <div className="flex items-center gap-0.5 p-0.5 rounded-xl bg-zinc-900/80 border border-white/10" role="group" aria-label="Kiểu hiển thị trên sân">
+            <button
+              type="button"
+              onClick={() => setTokenDisplayMode("badge")}
+              title="Hiện số áo tròn Flat Matte"
+              aria-label="Hiện số áo tròn Flat Matte"
+              className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                tokenDisplayMode === "badge"
+                  ? "bg-white/20 text-white shadow-sm border border-white/20 font-black"
+                  : "text-zinc-400 hover:text-white border border-transparent font-medium"
+              }`}
+            >
+              <CircleDot className="w-3.5 h-3.5" />
+              <span>Số tròn</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setTokenDisplayMode("jersey")}
+              title="Hiện áo đấu vector"
+              aria-label="Hiện áo đấu vector"
+              className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                tokenDisplayMode === "jersey"
+                  ? "bg-white/20 text-white shadow-sm border border-white/20 font-black"
+                  : "text-zinc-400 hover:text-white border border-transparent font-medium"
+              }`}
+            >
+              <Shirt className="w-3.5 h-3.5" />
+              <span>Áo đấu</span>
+            </button>
+          </div>
+        ) : null}
       </div>
 
       {/* 3. KHU VỰC HIỂN THỊ CHÍNH (SÂN CỎ HOẶC DANH SÁCH) */}
