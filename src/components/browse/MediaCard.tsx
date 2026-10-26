@@ -761,18 +761,18 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
       </div>
 
       {/* ========================================================================= */}
-      {/* 2. KHỐI THÔNG TIN DƯỚI POSTER: CHUẨN ĐÚNG 2 DÒNG CHỮ THẲNG HÀNG TĂM TẮP    */}
+      {/* 2. KHỐI THÔNG TIN DƯỚI POSTER: CHUẨN 1 DÒNG DUY NHẤT NETFLIX / DISNEY+   */}
       {/* ========================================================================= */}
-      <div className="pt-2 px-0.5 flex flex-col gap-0.5 w-full min-w-0">
+      <div className="pt-2 px-0.5 flex flex-col w-full min-w-0">
         {/* ĐOẠN KHỚP TÌM KIẾM (NẾU ĐƯỢC GỌI TỪ TRANG TÌM KIẾM) */}
         {matchSnippet && (
-          <div className="flex items-center gap-1 text-[11px] text-amber-300 font-medium line-clamp-1 mb-0.5">
+          <div className="flex items-center gap-1 text-[11px] text-amber-300 font-medium line-clamp-1 mb-1">
             <span className="font-bold text-amber-300 shrink-0">Khớp:</span>
             <span className="italic text-amber-200/90 truncate">{matchSnippet}</span>
           </div>
         )}
 
-        {/* DÒNG 1 — TÊN PHIM: TỐI ĐA 2 DÒNG TRÊN MOBILE (LINE-CLAMP-2), 1 DÒNG TRÊN DESKTOP (LINE-CLAMP-1), CHIỀU CAO ĐỒNG BỘ */}
+        {/* DÒNG 1 — TÊN PHIM: CHUẨN 1 DÒNG TRUNCATE DUY NHẤT, CÂN ĐỐI 100%, KHÔNG KHOẢNG TRỐNG THỪA */}
         <Link
           href={targetHref}
           onClick={handleCardClick}
@@ -780,20 +780,20 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
           aria-hidden="true"
           className="outline-none block w-full min-w-0"
         >
-          <div className="h-[38px] sm:h-5.5 flex items-start sm:items-center w-full min-w-0">
+          <div className="h-5 sm:h-5.5 flex items-center w-full min-w-0">
             <h4
               title={title}
-              className="text-zinc-100 group-hover/card:text-red-400 font-semibold text-[13px] sm:text-[14px] leading-[1.35] sm:leading-none line-clamp-2 sm:line-clamp-1 w-full transition-colors"
+              className="text-zinc-100 group-hover/card:text-red-400 font-semibold text-[13px] sm:text-[14px] leading-tight truncate w-full transition-colors"
             >
               {title}
             </h4>
           </div>
         </Link>
 
-        {/* DÒNG 2 — THÔNG TIN PHỤ: MOBILE HIỆN [NĂM] • [THỂ LOẠI], TABLET/DESKTOP HIỆN CẢ QUỐC GIA (BLOCK TRUNCATE CHUẨN CSS) */}
+        {/* DÒNG 2 — THÔNG TIN PHỤ: KHOẢNG CÁCH 6PX CHUẨN MỰC, BÁM SÁT TIÊU ĐỀ, METADATA THẲNG TĂM TẮP */}
         <p
           title={desktopMetaString}
-          className="text-xs text-neutral-400 mt-1 block truncate w-full min-w-0 select-none leading-none h-4 sm:h-4.5"
+          className="text-[11px] sm:text-xs text-zinc-400/90 sm:text-neutral-400 mt-1.5 block truncate w-full min-w-0 select-none leading-none h-4"
         >
           <span className="sm:hidden">{mobileMetaString || <span className="text-transparent pointer-events-none">·</span>}</span>
           <span className="hidden sm:inline">{desktopMetaString || <span className="text-transparent pointer-events-none">·</span>}</span>

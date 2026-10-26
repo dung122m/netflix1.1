@@ -585,14 +585,17 @@ const RecommendedMovieCard = React.memo(function RecommendedMovieCard({
         </div>
 
         {/* 2. THÔNG TIN PHIM BÊN DƯỚI (Ngăn nắp, thoáng đãng, không bị đè lên hình) */}
-        <div className="p-3 sm:p-3.5 flex-1 flex flex-col justify-between">
-          <h4 className="text-white text-xs sm:text-sm font-semibold truncate group-hover:text-red-500 transition-colors leading-snug">
+        <div className="p-3 sm:p-3.5 flex-1 flex flex-col justify-between min-w-0">
+          <h4
+            title={title}
+            className="text-white text-xs sm:text-sm font-semibold line-clamp-2 sm:line-clamp-1 min-h-[32px] sm:min-h-0 group-hover:text-red-500 transition-colors leading-snug"
+          >
             {title}
           </h4>
-          <div className="flex items-center justify-between text-[11px] sm:text-xs text-zinc-400 mt-2 gap-1">
-            <div className="flex items-center gap-1.5 truncate">
-              {year && <span>{year}</span>}
-              {time && <span className="text-zinc-500 truncate">• {time}</span>}
+          <div className="flex items-center justify-between text-[11px] sm:text-xs text-zinc-400 mt-2 gap-1 min-w-0">
+            <div className="flex items-center gap-1.5 min-w-0">
+              {year && <span className="shrink-0">{year}</span>}
+              {time && <span className="text-zinc-500 truncate min-w-0">• {time}</span>}
             </div>
             {categoryName && (
               <span className="text-[10px] sm:text-[11px] font-medium text-zinc-400 bg-white/5 px-2 py-0.5 rounded border border-white/5 truncate max-w-[85px] sm:max-w-[110px] shrink-0">

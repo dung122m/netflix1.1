@@ -288,46 +288,28 @@ export const CuratedMovieSection: React.FC<CuratedMovieSectionProps> = ({
 
       {/* HORIZONTAL CAROUSEL */}
       <div className="relative group/row">
-        {/* NÚT CUỘN TRÁI (DESKTOP HOVER) */}
+        {/* NÚT CUỘN TRÁI: FLOATING GLASS PILL (KHÔNG CÒN GRADIENT ĐEN CHE POSTER/TEXT) */}
         {canScrollLeft && (
           <button
             type="button"
             onClick={() => handleScroll("left")}
             aria-label="Cuộn sang trái"
-            className="hidden sm:flex absolute left-0 top-3.5 bottom-3.5 z-30 w-12 md:w-14 bg-gradient-to-r from-black/90 via-black/60 to-transparent hover:from-black text-white items-center justify-start pl-1 opacity-0 group-hover/row:opacity-100 transition-all duration-300 cursor-pointer rounded-r-xl group/btn"
+            className="hidden sm:flex absolute left-2 sm:left-3 top-[38%] -translate-y-1/2 z-30 w-10 h-10 rounded-full bg-zinc-950/75 hover:bg-zinc-900/95 text-white items-center justify-center border border-white/20 backdrop-blur-md shadow-2xl opacity-0 group-hover/row:opacity-100 focus-visible:opacity-100 transition-all duration-200 hover:scale-110 active:scale-95 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-white motion-reduce:transform-none"
           >
-            <div className="w-9 h-9 rounded-full bg-black/70 border border-white/20 flex items-center justify-center backdrop-blur-md group-hover/btn:scale-110 group-hover/btn:bg-white/20 transition-all shadow-xl">
-              <ChevronLeft className="w-5 h-5 text-white" />
-            </div>
+            <ChevronLeft className="w-5 h-5 text-white" />
           </button>
         )}
 
-        {/* NÚT CUỘN PHẢI (DESKTOP HOVER) */}
+        {/* NÚT CUỘN PHẢI: FLOATING GLASS PILL (KHÔNG CÒN GRADIENT ĐEN CHE POSTER/TEXT) */}
         {canScrollRight && (
           <button
             type="button"
             onClick={() => handleScroll("right")}
             aria-label="Cuộn sang phải"
-            className="hidden sm:flex absolute right-0 top-3.5 bottom-3.5 z-30 w-12 md:w-14 bg-gradient-to-l from-black/90 via-black/60 to-transparent hover:from-black text-white items-center justify-end pr-1 opacity-0 group-hover/row:opacity-100 transition-all duration-300 cursor-pointer rounded-l-xl group/btn"
+            className="hidden sm:flex absolute right-2 sm:right-3 top-[38%] -translate-y-1/2 z-30 w-10 h-10 rounded-full bg-zinc-950/75 hover:bg-zinc-900/95 text-white items-center justify-center border border-white/20 backdrop-blur-md shadow-2xl opacity-0 group-hover/row:opacity-100 focus-visible:opacity-100 transition-all duration-200 hover:scale-110 active:scale-95 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-white motion-reduce:transform-none"
           >
-            <div className="w-9 h-9 rounded-full bg-black/70 border border-white/20 flex items-center justify-center backdrop-blur-md group-hover/btn:scale-110 group-hover/btn:bg-white/20 transition-all shadow-xl">
-              <ChevronRight className="w-5 h-5 text-white" />
-            </div>
+            <ChevronRight className="w-5 h-5 text-white" />
           </button>
-        )}
-
-        {/* MOBILE SUBTLE GRADIENT FADE AFFORDANCE */}
-        {canScrollLeft && (
-          <div
-            className="sm:hidden absolute left-0 top-3.5 bottom-3.5 w-6 bg-gradient-to-r from-black via-black/60 to-transparent pointer-events-none z-20 transition-opacity duration-200"
-            aria-hidden="true"
-          />
-        )}
-        {canScrollRight && (
-          <div
-            className="sm:hidden absolute right-0 top-3.5 bottom-3.5 w-8 bg-gradient-to-l from-black via-black/60 to-transparent pointer-events-none z-20 transition-opacity duration-200"
-            aria-hidden="true"
-          />
         )}
 
         {/* TRACK CUỘN NGANG HOẶC SKELETON LOADING (CÓ KHOẢNG ĐỆM TRÊN/DƯỚI/TRÁI/PHẢI CHỐNG OVERFLOW CLIPPING) */}
@@ -344,7 +326,7 @@ export const CuratedMovieSection: React.FC<CuratedMovieSectionProps> = ({
           <div
             ref={scrollContainerRef}
             onScroll={checkScroll}
-            className="flex items-center gap-3 sm:gap-4 md:gap-5 overflow-x-auto overflow-y-hidden px-3 sm:px-4 py-3.5 sm:py-4 scrollbar-none snap-x snap-mandatory scroll-smooth [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+            className="flex items-start gap-3 sm:gap-4 md:gap-5 overflow-x-auto overflow-y-hidden px-3 sm:px-4 py-3.5 sm:py-4 scrollbar-none snap-x snap-mandatory scroll-smooth [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
           >
             {normalizedMovies.map(({ norm, bestThumb }, idx) => (
               <div

@@ -579,15 +579,18 @@ function TmdbTopTrendingInner() {
                       })()}
 
                       {/* FOOTER INFO BADGE */}
-                      <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent p-2.5 sm:p-3 pt-7 sm:pt-8">
-                        <p className="text-white text-xs sm:text-[13px] font-bold line-clamp-1 truncate group-hover:text-amber-300 transition-colors drop-shadow">
+                      <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent p-2.5 sm:p-3 pt-7 sm:pt-8 min-w-0">
+                        <p
+                          title={movieTitle}
+                          className="text-white text-xs sm:text-[13px] font-bold truncate block group-hover:text-amber-300 transition-colors drop-shadow"
+                        >
                           {movieTitle}
                         </p>
-                        <div className="flex items-center gap-1.5 text-[10px] sm:text-[11px] text-zinc-400 mt-0.5 font-medium">
-                          <span>{movie.year || "Mới"}</span>
-                          {categoryText && <span className="text-zinc-600">•</span>}
+                        <div className="flex items-center gap-1.5 text-[10px] sm:text-[11px] text-zinc-400 mt-0.5 font-medium min-w-0">
+                          <span className="shrink-0">{movie.year || "Mới"}</span>
+                          {categoryText && <span className="text-zinc-600 shrink-0">•</span>}
                           {categoryText && (
-                            <span className="text-zinc-300 truncate">{categoryText}</span>
+                            <span className="text-zinc-300 truncate min-w-0">{categoryText}</span>
                           )}
                         </div>
                       </div>
