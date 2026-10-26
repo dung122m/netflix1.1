@@ -11,8 +11,10 @@ import {
   Zap,
   Crown,
   Globe,
+  Star,
 } from "lucide-react";
-import { pickBestMoviePoster, toOptimizedPhimimgUrl, formatGenreName } from "@/lib/movieMedia";
+import { pickBestMoviePoster, toOptimizedPhimimgUrl, formatGenreName, formatCountryName } from "@/lib/movieMedia";
+import { CarouselNavButton } from "@/components/ui/CarouselNavButton";
 
 export interface TmdbTrendingCategoryItem {
   id?: string;
@@ -36,6 +38,11 @@ export interface TmdbTrendingMovieItem {
   lang?: string;
   category?: TmdbTrendingCategoryItem[] | string[] | string;
   country?: TmdbTrendingCategoryItem[] | string[] | string;
+  tmdb?: {
+    vote_average?: number | string;
+    vote_count?: number | string;
+  };
+  score?: number | string;
 }
 
 type TmdbTab = "week" | "month" | "top_rated";
@@ -340,24 +347,24 @@ function TmdbTopTrendingInner() {
               <span>{currentConfig.badge}</span>
             </span>
           </div>
-          <h2 className="text-xl sm:text-2xl lg:text-3xl font-black text-white tracking-tight flex items-center gap-2 flex-wrap sm:flex-nowrap">
+          <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-white tracking-tight flex items-center gap-2 flex-wrap sm:flex-nowrap">
             <span>{currentConfig.title}</span>
-            {activeTab === "week" && <Flame className="w-5 h-5 sm:w-6 sm:h-6 text-netflix-red shrink-0" />}
-            {activeTab === "month" && <Zap className="w-5 h-5 sm:w-6 sm:h-6 text-amber-400 shrink-0" />}
-            {activeTab === "top_rated" && <Crown className="w-5 h-5 sm:w-6 sm:h-6 text-yellow-400 shrink-0" />}
+            {activeTab === "week" && <Flame className="w-5 h-5 text-netflix-red shrink-0" />}
+            {activeTab === "month" && <Zap className="w-5 h-5 text-amber-400 shrink-0" />}
+            {activeTab === "top_rated" && <Crown className="w-5 h-5 text-yellow-400 shrink-0" />}
           </h2>
-          <p className="text-xs sm:text-sm text-gray-400 mt-0.5 line-clamp-2">
+          <p className="text-xs sm:text-sm text-zinc-400 mt-0.5 line-clamp-2">
             {currentConfig.subtitle}
           </p>
         </div>
 
         {/* 3 TABS & CAROUSEL CONTROLS */}
         <div className="flex items-center justify-between lg:justify-end gap-3 w-full lg:w-auto shrink-0">
-          <div className="flex items-center gap-1 p-1 rounded-xl bg-zinc-900/90 border border-white/10 text-xs font-semibold backdrop-blur-md overflow-x-auto no-scrollbar max-w-full w-full sm:w-auto justify-between sm:justify-start">
+          <div className="flex items-center gap-1 p-1 rounded-xl bg-zinc-900/90 border border-white/10 text-xs font-semibold backdrop-blur-md overflow-x-auto scrollbar-none max-w-full w-full sm:w-auto justify-start">
             <button
               type="button"
               onClick={() => switchTab("week")}
-              className={`px-2.5 sm:px-3.5 py-1.5 rounded-lg transition-all duration-200 cursor-pointer flex items-center justify-center gap-1.5 whitespace-nowrap flex-1 sm:flex-initial text-[11px] sm:text-xs ${
+              className={`px-3 sm:px-3.5 py-1.5 rounded-lg transition-all duration-200 cursor-pointer flex items-center justify-center gap-1.5 whitespace-nowrap shrink-0 text-[11px] sm:text-xs ${
                 activeTab === "week"
                   ? "bg-netflix-red text-white font-bold shadow-md shadow-red-950/40 scale-100"
                   : "text-gray-400 hover:text-white hover:bg-white/5 active:scale-95"
@@ -369,7 +376,7 @@ function TmdbTopTrendingInner() {
             <button
               type="button"
               onClick={() => switchTab("month")}
-              className={`px-2.5 sm:px-3.5 py-1.5 rounded-lg transition-all duration-200 cursor-pointer flex items-center justify-center gap-1.5 whitespace-nowrap flex-1 sm:flex-initial text-[11px] sm:text-xs ${
+              className={`px-3 sm:px-3.5 py-1.5 rounded-lg transition-all duration-200 cursor-pointer flex items-center justify-center gap-1.5 whitespace-nowrap shrink-0 text-[11px] sm:text-xs ${
                 activeTab === "month"
                   ? "bg-netflix-red text-white font-bold shadow-md shadow-red-950/40 scale-100"
                   : "text-gray-400 hover:text-white hover:bg-white/5 active:scale-95"
@@ -381,7 +388,7 @@ function TmdbTopTrendingInner() {
             <button
               type="button"
               onClick={() => switchTab("top_rated")}
-              className={`px-2.5 sm:px-3.5 py-1.5 rounded-lg transition-all duration-200 cursor-pointer flex items-center justify-center gap-1.5 whitespace-nowrap flex-1 sm:flex-initial text-[11px] sm:text-xs ${
+              className={`px-3 sm:px-3.5 py-1.5 rounded-lg transition-all duration-200 cursor-pointer flex items-center justify-center gap-1.5 whitespace-nowrap shrink-0 text-[11px] sm:text-xs ${
                 activeTab === "top_rated"
                   ? "bg-netflix-red text-white font-bold shadow-md shadow-red-950/40 scale-100"
                   : "text-gray-400 hover:text-white hover:bg-white/5 active:scale-95"
@@ -396,32 +403,23 @@ function TmdbTopTrendingInner() {
 
       {/* HORIZONTAL SCROLL CAROUSEL */}
       <div className="relative group/row">
-        {/* NÚT CUỘN TRÁI (HOVER NỔI MÉP TRÁI) */}
+        {/* NÚT CUỘN TRÁI / PHẢI: FLOATING GLASS PILL CHUẨN */}
         {canScrollLeft && (
-          <button
-            type="button"
+          <CarouselNavButton
+            direction="left"
             onClick={() => handleScroll("left")}
-            aria-label="Cuộn sang trái"
-            className="hidden sm:flex absolute left-0 top-4 bottom-4 z-30 w-12 md:w-14 bg-gradient-to-r from-black/90 via-black/60 to-transparent hover:from-black text-white items-center justify-start pl-1 opacity-0 group-hover/row:opacity-100 transition-all duration-300 cursor-pointer rounded-r-xl group/btn"
-          >
-            <div className="w-9 h-9 rounded-full bg-black/70 border border-white/20 flex items-center justify-center backdrop-blur-md group-hover/btn:scale-110 group-hover/btn:bg-white/20 transition-all shadow-xl">
-              <ChevronLeft className="w-5 h-5 text-white" />
-            </div>
-          </button>
+            ariaLabel="Cuộn bảng xếp hạng sang trái"
+            topOffsetClass="top-[40%]"
+          />
         )}
 
-        {/* NÚT CUỘN PHẢI (HOVER NỔI MÉP PHẢI) */}
         {canScrollRight && (
-          <button
-            type="button"
+          <CarouselNavButton
+            direction="right"
             onClick={() => handleScroll("right")}
-            aria-label="Cuộn sang phải"
-            className="hidden sm:flex absolute right-0 top-4 bottom-4 z-30 w-12 md:w-14 bg-gradient-to-l from-black/90 via-black/60 to-transparent hover:from-black text-white items-center justify-end pr-1 opacity-0 group-hover/row:opacity-100 transition-all duration-300 cursor-pointer rounded-l-xl group/btn"
-          >
-            <div className="w-9 h-9 rounded-full bg-black/70 border border-white/20 flex items-center justify-center backdrop-blur-md group-hover/btn:scale-110 group-hover/btn:bg-white/20 transition-all shadow-xl">
-              <ChevronRight className="w-5 h-5 text-white" />
-            </div>
-          </button>
+            ariaLabel="Cuộn bảng xếp hạng sang phải"
+            topOffsetClass="top-[40%]"
+          />
         )}
 
         {/* MOBILE SUBTLE GRADIENT FADE AFFORDANCE */}
@@ -453,8 +451,15 @@ function TmdbTopTrendingInner() {
             Array.from({ length: 6 }).map((_, idx) => (
               <div
                 key={idx}
-                className="flex-none w-[200px] sm:w-[240px] md:w-[260px] h-[280px] sm:h-[320px] rounded-xl bg-zinc-900/80 animate-pulse border border-white/5"
-              />
+                className="flex-none flex items-start"
+              >
+                <div className="w-[45px] sm:w-[65px] md:w-[75px] h-[210px] sm:h-[262px] md:h-[285px] -mr-5 sm:-mr-8" />
+                <div className="w-[140px] sm:w-[175px] md:w-[190px] flex flex-col gap-2">
+                  <div className="aspect-[2/3] rounded-xl bg-zinc-900/80 animate-pulse border border-white/5" />
+                  <div className="h-4 bg-zinc-900/80 rounded animate-pulse w-3/4" />
+                  <div className="h-3 bg-zinc-900/60 rounded animate-pulse w-1/2" />
+                </div>
+              </div>
             ))
           ) : items.length === 0 ? (
             <div className="w-full py-12 flex flex-col items-center justify-center text-center px-4">
@@ -468,12 +473,23 @@ function TmdbTopTrendingInner() {
               const rank = index + 1;
               const movieSlug = movie.slug;
               const movieTitle = movie.name || movie.origin_name || "Phim";
+              const voteScore = Number(movie.tmdb?.vote_average || movie.score || 0);
+
+              const rawCountry = Array.isArray(movie.country)
+                ? (typeof movie.country[0] === "object" ? movie.country[0]?.name || movie.country[0]?.slug : movie.country[0]) || ""
+                : typeof movie.country === "string"
+                ? movie.country
+                : "";
+              const countryText = formatCountryName(rawCountry);
+
               const rawCategory = Array.isArray(movie.category)
                 ? (typeof movie.category[0] === "object" ? movie.category[0]?.name : movie.category[0]) || ""
                 : typeof movie.category === "string"
                 ? movie.category
                 : "";
               const categoryText = formatGenreName(rawCategory);
+
+              const secondaryTag = countryText || categoryText;
 
               return (
                 <div
@@ -482,21 +498,15 @@ function TmdbTopTrendingInner() {
                 >
                   <Link
                     href={`/movies/${movieSlug}`}
-                    className="flex items-end relative block cursor-pointer group-hover:scale-[1.04] group-hover:-translate-y-1 transition-all duration-300 ease-out"
+                    className="flex items-start relative block cursor-pointer group-hover:scale-[1.025] group-hover:-translate-y-1 transition-all duration-300 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 rounded-xl"
                   >
                     {/* NETFLIX-STYLE GIANT 3D NUMBER BEHIND POSTER */}
-                    <div className="relative -mr-5 sm:-mr-8 z-0 pointer-events-none select-none">
+                    <div className="flex items-end h-[210px] sm:h-[262px] md:h-[285px] relative -mr-5 sm:-mr-8 z-0 pointer-events-none select-none shrink-0">
                       <span
                         className="text-[90px] sm:text-[130px] md:text-[150px] font-black leading-none tracking-tighter"
                         style={{
                           WebkitTextStroke: rank <= 3 ? "2px rgba(245, 158, 11, 0.85)" : "2px rgba(255, 255, 255, 0.22)",
-                          color: rank === 1
-                            ? "transparent"
-                            : rank === 2
-                            ? "transparent"
-                            : rank === 3
-                            ? "transparent"
-                            : "rgba(0, 0, 0, 0.6)",
+                          color: rank <= 3 ? "transparent" : "rgba(0, 0, 0, 0.6)",
                           backgroundImage: rank === 1
                             ? "linear-gradient(180deg, #fbbf24 0%, #d97706 100%)"
                             : rank === 2
@@ -512,85 +522,95 @@ function TmdbTopTrendingInner() {
                       </span>
                     </div>
 
-                    {/* MOVIE POSTER CARD */}
-                    <div className="relative z-10 w-[140px] sm:w-[175px] md:w-[190px] aspect-[2/3] rounded-xl overflow-hidden bg-zinc-950 bg-gradient-to-br from-zinc-800/70 via-zinc-900 to-zinc-950 ring-1 ring-white/10 group-hover:ring-2 group-hover:ring-amber-400 group-hover:ring-inset group-hover:shadow-[0_16px_36px_rgba(245,158,11,0.35),0_0_20px_rgba(0,0,0,0.8)] transition-all duration-300">
-                      {(() => {
-                        const rawPoster = pickBestMoviePoster(
-                          {
-                            poster_url: movie.poster_url,
-                            thumb_url: movie.thumb_url,
-                            name: movieTitle,
-                            slug: movieSlug,
-                          },
-                          "/default-poster.jpg"
-                        );
-                        const posterSrc = toOptimizedPhimimgUrl(rawPoster, 320);
+                    {/* CỘT POSTER + METADATA DƯỚI POSTER */}
+                    <div className="relative z-10 w-[140px] sm:w-[175px] md:w-[190px] flex flex-col shrink-0 min-w-0">
+                      {/* MOVIE POSTER CONTAINER (ARTWORK THUẦN KHIẾT) */}
+                      <div className="relative w-full aspect-[2/3] rounded-xl overflow-hidden bg-zinc-950 bg-gradient-to-br from-zinc-800/70 via-zinc-900 to-zinc-950 ring-1 ring-white/10 group-hover:ring-2 group-hover:ring-amber-400 group-hover:ring-inset group-hover:shadow-[0_14px_32px_rgba(245,158,11,0.3),0_0_20px_rgba(0,0,0,0.8)] transition-all duration-300">
+                        {(() => {
+                          const rawPoster = pickBestMoviePoster(
+                            {
+                              poster_url: movie.poster_url,
+                              thumb_url: movie.thumb_url,
+                              name: movieTitle,
+                              slug: movieSlug,
+                            },
+                            "/default-poster.jpg"
+                          );
+                          const posterSrc = toOptimizedPhimimgUrl(rawPoster, 320);
 
-                        return (
-                          <Image
-                            src={posterSrc}
-                            alt={movieTitle}
-                            fill
-                            unoptimized
-                            priority={index < 3}
-                            sizes="(max-width: 640px) 160px, (max-width: 768px) 200px, 240px"
-                            className="object-cover group-hover:scale-105 transition-transform duration-500"
-                            loading={index < 3 ? "eager" : "lazy"}
-                            quality={85}
-                            onError={(e) => {
-                              const target = e.currentTarget as HTMLImageElement;
-                              if (target) {
-                                if (
-                                  movie.thumb_url &&
-                                  typeof movie.thumb_url === "string" &&
-                                  movie.thumb_url.includes("-thumb.webp") &&
-                                  target.src !== movie.thumb_url
-                                ) {
-                                  target.src = movie.thumb_url;
-                                } else if (!target.src.includes("/default-poster.jpg")) {
-                                  target.srcset = "";
-                                  target.src = "/default-poster.jpg";
+                          return (
+                            <Image
+                              src={posterSrc}
+                              alt={movieTitle}
+                              fill
+                              unoptimized
+                              priority={index < 3}
+                              sizes="(max-width: 640px) 160px, (max-width: 768px) 200px, 240px"
+                              className="object-cover group-hover:scale-105 transition-transform duration-500"
+                              loading={index < 3 ? "eager" : "lazy"}
+                              quality={85}
+                              onError={(e) => {
+                                const target = e.currentTarget as HTMLImageElement;
+                                if (target) {
+                                  if (
+                                    movie.thumb_url &&
+                                    typeof movie.thumb_url === "string" &&
+                                    movie.thumb_url.includes("-thumb.webp") &&
+                                    target.src !== movie.thumb_url
+                                  ) {
+                                    target.src = movie.thumb_url;
+                                  } else if (!target.src.includes("/default-poster.jpg")) {
+                                    target.srcset = "";
+                                    target.src = "/default-poster.jpg";
+                                  }
                                 }
-                              }
-                            }}
-                          />
-                        );
-                      })()}
+                              }}
+                            />
+                          );
+                        })()}
 
-                      {/* CHỈ GIỮ BADGE ĐẶC BIỆT (CAM HOẶC 4K), LOẠI BỎ BADGE FHD/HD PHỔ THÔNG */}
-                      {(() => {
-                        const q = movie.quality?.toUpperCase() || "";
-                        const isCam = q.includes("CAM");
-                        const is4k = q.includes("4K") || q.includes("UHD");
-                        if (!isCam && !is4k) return null;
-                        return (
-                          <div className="absolute top-2 right-2 pointer-events-none z-10">
-                            <span
-                              className={`px-1.5 py-0.5 rounded text-[10px] font-bold backdrop-blur-md border ${
-                                isCam
-                                  ? "bg-amber-950/90 text-amber-300 border-amber-500/40"
-                                  : "bg-black/75 text-zinc-100 border-white/20"
-                              }`}
-                            >
-                              {isCam ? "CAM" : "4K"}
-                            </span>
-                          </div>
-                        );
-                      })()}
+                        {/* CHỈ GIỮ BADGE ĐẶC BIỆT (CAM HOẶC 4K), LOẠI BỎ BADGE FHD/HD PHỔ THÔNG */}
+                        {(() => {
+                          const q = movie.quality?.toUpperCase() || "";
+                          const isCam = q.includes("CAM");
+                          const is4k = q.includes("4K") || q.includes("UHD");
+                          if (!isCam && !is4k) return null;
+                          return (
+                            <div className="absolute top-2 right-2 pointer-events-none z-10">
+                              <span
+                                className={`px-1.5 py-0.5 rounded text-[10px] font-bold backdrop-blur-md border ${
+                                  isCam
+                                    ? "bg-amber-950/90 text-amber-300 border-amber-500/40"
+                                    : "bg-black/75 text-zinc-100 border-white/20"
+                                }`}
+                              >
+                                {isCam ? "CAM" : "4K"}
+                              </span>
+                            </div>
+                          );
+                        })()}
+                      </div>
 
-                      {/* FOOTER INFO BADGE */}
-                      <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent p-2.5 sm:p-3 pt-7 sm:pt-8 min-w-0">
-                        <p
+                      {/* THÔNG TIN PHIM DƯỚI POSTER: RÕ RÀNG, KHÔNG XUNG ĐỘT ARTWORK, CĂN ĐỀU BASELINE */}
+                      <div className="pt-2 sm:pt-2.5 min-w-0 flex flex-col">
+                        <h3
                           title={movieTitle}
-                          className="text-white text-xs sm:text-[13px] font-bold truncate block group-hover:text-amber-300 transition-colors drop-shadow"
+                          className="text-white text-xs sm:text-[13px] font-semibold truncate group-hover:text-amber-300 transition-colors"
                         >
                           {movieTitle}
-                        </p>
-                        <div className="flex items-center gap-1.5 text-[10px] sm:text-[11px] text-zinc-400 mt-0.5 font-medium min-w-0">
+                        </h3>
+                        <div className="flex items-center gap-1.5 text-[10px] sm:text-[11px] text-zinc-400 mt-1 font-medium min-w-0">
+                          {voteScore > 0 && (
+                            <span className="inline-flex items-center gap-0.5 text-amber-400 font-bold shrink-0">
+                              <Star className="w-2.5 h-2.5 sm:w-3 sm:h-3 fill-amber-400 text-amber-400" />
+                              <span>{voteScore.toFixed(1)}</span>
+                            </span>
+                          )}
+                          {voteScore > 0 && <span className="text-zinc-600 shrink-0">•</span>}
                           <span className="shrink-0">{movie.year || "Mới"}</span>
-                          {categoryText && <span className="text-zinc-600 shrink-0">•</span>}
-                          {categoryText && (
-                            <span className="text-zinc-300 truncate min-w-0">{categoryText}</span>
+                          {secondaryTag && <span className="text-zinc-600 shrink-0">•</span>}
+                          {secondaryTag && (
+                            <span className="text-zinc-400 truncate min-w-0">{secondaryTag}</span>
                           )}
                         </div>
                       </div>

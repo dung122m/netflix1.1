@@ -6,6 +6,7 @@ import {
   pickBestMovieImage,
   pickBestMoviePoster,
   pickBestMovieThumb,
+  formatCountryName,
 } from "@/lib/movieMedia";
 import { cleanHtmlText } from "@/lib/cleanHtml";
 
@@ -244,7 +245,10 @@ export default async function MovieDetail({
   // Danh sách quốc gia (hỗ trợ mảng, group object NguonC, string country)
   const countryList: Array<{ name: string; slug?: string }> = (() => {
     if (Array.isArray(movie.country)) {
-      return (movie.country as Array<{ name: string; slug?: string }>);
+      return (movie.country as Array<{ name: string; slug?: string }>).map((c) => ({
+        name: formatCountryName(c?.name || c?.slug) || c?.name || "",
+        slug: c?.slug || c?.name,
+      }));
     }
     if (movie.category && typeof movie.category === "object") {
       const extracted: Array<{ name: string; slug?: string }> = [];
@@ -252,14 +256,14 @@ export default async function MovieDetail({
         const gName = (grp?.group?.name || "").toLowerCase();
         if (gName.includes("quốc gia") || gName.includes("quoc gia")) {
           for (const item of grp.list || []) {
-            if (item?.name) extracted.push({ name: item.name, slug: item.slug || item.id });
+            if (item?.name) extracted.push({ name: formatCountryName(item.name || item.slug || item.id) || item.name, slug: item.slug || item.id });
           }
         }
       }
       if (extracted.length > 0) return extracted;
     }
     if (typeof movie.country === "string" && movie.country) {
-      return movie.country.split(",").map((c: string) => ({ name: c.trim(), slug: undefined }));
+      return movie.country.split(",").map((c: string) => ({ name: formatCountryName(c) || c.trim(), slug: undefined }));
     }
     return [];
   })().filter((c: { name?: string; slug?: string }) => c?.name && !c.name.toLowerCase().includes("cập nhật"));
@@ -438,7 +442,8 @@ export default async function MovieDetail({
     || (activeEpisode as Record<string, string | undefined>)?.m3u8
     || (activeEpisode as Record<string, string | undefined>)?.file;
 
-  const primaryGenreSlug = movie.category?.[0]?.slug;
+  const primaryGenreSlug = categoryList[0]?.slug || movie.category?.[0]?.slug;
+  const primaryGenreName = categoryList[0]?.name || movie.category?.[0]?.name || "Thể loại";
 
   // JSON-LD Structured Data for Google Search Rich Results (SEO)
   const isSeries =
@@ -477,6 +482,19 @@ export default async function MovieDetail({
       : {}),
   };
 
+  const isVsmovOnly = Boolean(
+    movie.source === "vsmov" ||
+    (Array.isArray(movie.sources) && movie.sources.length === 1 && movie.sources[0] === "vsmov") ||
+    (videoLink && (videoLink.includes("vsmov") || videoLink.includes("streamvsmov"))) ||
+    (embedSrc && (embedSrc.includes("vsmov") || embedSrc.includes("streamvsmov"))) ||
+    (episodeServers.length > 0 && episodeServers.every((s: { server_name?: string }) => (s.server_name || "").toLowerCase().includes("vsmov")))
+  );
+
+  const hasNanaflixSource = !isVsmovOnly && Boolean(
+    movie.source !== "vsmov" &&
+    episodeServers.some((s: { server_name?: string }) => !(s.server_name || "").toLowerCase().includes("vsmov"))
+  );
+
   return (
     <div className="page-cinema-container min-h-screen pb-[calc(5rem+env(safe-area-inset-bottom,0px))] lg:pb-12">
       <script
@@ -500,6 +518,9 @@ export default async function MovieDetail({
         initialServers={episodeServers}
         initialServerIndex={currentServerIndex}
         initialEpisodeSlug={activeEpisode?.slug || serverData[0]?.slug}
+        initialProvider={isVsmovOnly ? "vsmov" : "nanaflix"}
+        isVsmovOnly={isVsmovOnly}
+        hasNanaflixSource={hasNanaflixSource}
         tmdbId={tmdbId}
         isSeries={isSeries}
         isTrailerOnly={isTrailerOnly}
@@ -514,10 +535,10 @@ export default async function MovieDetail({
             {primaryGenreSlug && (
               <>
                 <Link
-                  href={`/?category=${primaryGenreSlug}`}
+                  href={`/browse?category=${encodeURIComponent(primaryGenreSlug)}`}
                   className="hover:text-zinc-300 transition"
                 >
-                  {movie.category?.[0]?.name || "Thể loại"}
+                  {primaryGenreName}
                 </Link>
                 <span className="text-zinc-700 select-none">/</span>
               </>

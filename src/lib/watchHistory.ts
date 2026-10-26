@@ -27,7 +27,8 @@ export interface WatchHistoryItem {
 
 const HISTORY_KEY = "nanaflix_watch_history";
 const EPISODES_PROGRESS_KEY = "nanaflix_episodes_progress";
-const MAX_HISTORY_ITEMS = 20;
+export const MAX_HISTORY_STORAGE_ITEMS = 150;
+export const MAX_HISTORY_ITEMS = MAX_HISTORY_STORAGE_ITEMS;
 
 // Client-side debounce map to prevent rapid duplicate record-view calls on component re-renders
 const clientViewThrottleMap = new Map<string, number>();
@@ -50,7 +51,7 @@ export function invalidateMemoryWatchHistory(): void {
 
 export function setWatchHistoryFromSync(items: WatchHistoryItem[]): void {
   if (typeof window === "undefined") return;
-  const sorted = sortWatchHistory(items).slice(0, MAX_HISTORY_ITEMS);
+  const sorted = sortWatchHistory(items).slice(0, MAX_HISTORY_STORAGE_ITEMS);
   updateMemoryWatchHistory(sorted);
   try {
     localStorage.setItem(HISTORY_KEY, JSON.stringify(sorted));
@@ -216,7 +217,7 @@ export const saveWatchHistory = (
       updatedAt: item.updatedAt || Date.now(),
     };
 
-    const updated = [newItem, ...filtered].slice(0, MAX_HISTORY_ITEMS);
+    const updated = [newItem, ...filtered].slice(0, MAX_HISTORY_STORAGE_ITEMS);
     updateMemoryWatchHistory(updated);
     localStorage.setItem(HISTORY_KEY, JSON.stringify(updated));
     window.dispatchEvent(new CustomEvent("watch-history-updated"));
@@ -353,7 +354,7 @@ export const saveWatchProgress = (
 
     // Đưa phim vừa xem lên đầu danh sách
     const filtered = list.filter((i) => i.slug !== slug);
-    const updated = [targetItem, ...filtered].slice(0, MAX_HISTORY_ITEMS);
+    const updated = [targetItem, ...filtered].slice(0, MAX_HISTORY_STORAGE_ITEMS);
     updateMemoryWatchHistory(updated);
     localStorage.setItem(HISTORY_KEY, JSON.stringify(updated));
 

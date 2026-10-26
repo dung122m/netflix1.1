@@ -17,6 +17,7 @@ import { MediaCard } from "@/components/browse/MediaCard";
 import { normalizeMovie } from "@/lib/movieMedia";
 import { movieApi } from "@/services/movieApi";
 import { ScrollFadeContainer } from "@/components/ui/ScrollFadeContainer";
+import { CarouselNavButton } from "@/components/ui/CarouselNavButton";
 
 export type CuratedTabKey = "trending" | "rating" | "theaters" | "latest";
 
@@ -243,10 +244,10 @@ export const CuratedMovieSection: React.FC<CuratedMovieSectionProps> = ({
             )}
           </div>
 
-          <h2 className="text-xl sm:text-2xl md:text-3xl font-black tracking-tight text-white flex items-center gap-3">
+          <h2 className="text-lg sm:text-xl md:text-2xl font-bold tracking-tight text-white flex items-center gap-2.5">
             <span>Tuyển Tập Phim Đặc Sắc</span>
           </h2>
-          <p className="mt-1 text-xs sm:text-sm text-gray-400 max-w-2xl leading-relaxed">
+          <p className="mt-0.5 text-xs sm:text-sm text-zinc-400 max-w-2xl leading-relaxed">
             {currentTabConfig.subtitle}
           </p>
         </div>
@@ -288,28 +289,23 @@ export const CuratedMovieSection: React.FC<CuratedMovieSectionProps> = ({
 
       {/* HORIZONTAL CAROUSEL */}
       <div className="relative group/row">
-        {/* NÚT CUỘN TRÁI: FLOATING GLASS PILL (KHÔNG CÒN GRADIENT ĐEN CHE POSTER/TEXT) */}
+        {/* NÚT CUỘN TRÁI / PHẢI: FLOATING GLASS PILL CHUẨN */}
         {canScrollLeft && (
-          <button
-            type="button"
+          <CarouselNavButton
+            direction="left"
             onClick={() => handleScroll("left")}
-            aria-label="Cuộn sang trái"
-            className="hidden sm:flex absolute left-2 sm:left-3 top-[38%] -translate-y-1/2 z-30 w-10 h-10 rounded-full bg-zinc-950/75 hover:bg-zinc-900/95 text-white items-center justify-center border border-white/20 backdrop-blur-md shadow-2xl opacity-0 group-hover/row:opacity-100 focus-visible:opacity-100 transition-all duration-200 hover:scale-110 active:scale-95 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-white motion-reduce:transform-none"
-          >
-            <ChevronLeft className="w-5 h-5 text-white" />
-          </button>
+            ariaLabel="Cuộn sang trái"
+            topOffsetClass="top-[38%]"
+          />
         )}
 
-        {/* NÚT CUỘN PHẢI: FLOATING GLASS PILL (KHÔNG CÒN GRADIENT ĐEN CHE POSTER/TEXT) */}
         {canScrollRight && (
-          <button
-            type="button"
+          <CarouselNavButton
+            direction="right"
             onClick={() => handleScroll("right")}
-            aria-label="Cuộn sang phải"
-            className="hidden sm:flex absolute right-2 sm:right-3 top-[38%] -translate-y-1/2 z-30 w-10 h-10 rounded-full bg-zinc-950/75 hover:bg-zinc-900/95 text-white items-center justify-center border border-white/20 backdrop-blur-md shadow-2xl opacity-0 group-hover/row:opacity-100 focus-visible:opacity-100 transition-all duration-200 hover:scale-110 active:scale-95 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-white motion-reduce:transform-none"
-          >
-            <ChevronRight className="w-5 h-5 text-white" />
-          </button>
+            ariaLabel="Cuộn sang phải"
+            topOffsetClass="top-[38%]"
+          />
         )}
 
         {/* TRACK CUỘN NGANG HOẶC SKELETON LOADING (CÓ KHOẢNG ĐỆM TRÊN/DƯỚI/TRÁI/PHẢI CHỐNG OVERFLOW CLIPPING) */}

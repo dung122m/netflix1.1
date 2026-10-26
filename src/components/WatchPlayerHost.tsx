@@ -24,18 +24,25 @@ export const WatchPlayerHost: React.FC<WatchPlayerHostProps> = (props) => {
   const watchContext = useWatchController();
   const currentEpSlug = watchContext?.activeEpisodeSlug || activeEpisodeSlug;
 
-  const [localProvider, setLocalProvider] = useState<PlaybackProviderType>("nanaflix");
+  const isVsmovSource = Boolean(
+    (props.embedSrc && (props.embedSrc.includes("vsmov") || props.embedSrc.includes("streamvsmov"))) ||
+    (props.videoLink && (props.videoLink.includes("vsmov") || props.videoLink.includes("streamvsmov"))) ||
+    watchContext?.isVsmovOnly
+  );
+  const hasNanaflixSource = watchContext?.hasNanaflixSource ?? !isVsmovSource;
+
+  const [localProvider, setLocalProvider] = useState<PlaybackProviderType>(
+    isVsmovSource ? "vsmov" : "nanaflix"
+  );
   const activeProvider = watchContext?.activeProvider ?? localProvider;
   const setActiveProvider = watchContext?.setActiveProvider ?? setLocalProvider;
 
-  const isVsmovSource = Boolean(
-    props.embedSrc &&
-    (props.embedSrc.includes("vsmov") || props.embedSrc.includes("streamvsmov"))
-  );
+  const initialVsmovUrl =
+    (isVsmovSource && props.embedSrc) || (isVsmovSource && props.videoLink)
+      ? props.embedSrc || props.videoLink || null
+      : null;
 
-  const [vsmovUrl, setVsmovUrl] = useState<string | null>(
-    isVsmovSource && props.embedSrc ? props.embedSrc : null
-  );
+  const [vsmovUrl, setVsmovUrl] = useState<string | null>(initialVsmovUrl);
   const [vsmovLoading, setVsmovLoading] = useState<boolean>(false);
   const [vsmovError, setVsmovError] = useState<string | null>(null);
   const lastFetchedKeyRef = React.useRef<string | null>(null);
@@ -102,21 +109,23 @@ export const WatchPlayerHost: React.FC<WatchPlayerHostProps> = (props) => {
                 <p className="text-xs text-gray-400 max-w-sm mb-4">
                   {vsmovError}
                 </p>
-                <button
-                  onClick={() => setActiveProvider("nanaflix")}
-                  className="px-4 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-xs font-semibold text-white transition"
-                >
-                  Chuyển về Server Nanaflix
-                </button>
+                {hasNanaflixSource && (
+                  <button
+                    onClick={() => setActiveProvider("nanaflix")}
+                    className="px-4 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-xs font-semibold text-white transition cursor-pointer"
+                  >
+                    Chuyển về Server Nanaflix
+                  </button>
+                )}
               </div>
             )}
             {!vsmovLoading && !vsmovError && vsmovUrl && (
               <IframePlayer
                 src={vsmovUrl}
                 title={title || "Movie"}
-                serverName="Server VSMOV"
+                serverName="Máy chủ VSMOV"
                 posterUrl={posterUrl}
-                onFallbackToNanaflix={() => setActiveProvider("nanaflix")}
+                onFallbackToNanaflix={hasNanaflixSource ? () => setActiveProvider("nanaflix") : undefined}
               />
             )}
           </>

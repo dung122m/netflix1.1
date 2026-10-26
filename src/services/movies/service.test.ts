@@ -1,6 +1,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { movieApi, deduplicateServerEpisodes, buildMovieCacheKey } from "./service";
+import { formatCountryName, extractMovieCountry } from "@/lib/movieMedia";
 
 describe("Nanaflix Movie Browse Pagination & Filter Service", () => {
   // A. /browse?category=hai-huoc&page=1
@@ -327,6 +328,39 @@ describe("Nanaflix Movie Browse Pagination & Filter Service", () => {
     assert.equal(parsed.year, "2024");
     assert.equal(parsed.page, 2);
     assert.equal(parsed.sort, "rating");
+  });
+
+  // X. Country name normalization and slug formatting
+  it("X. formatCountryName maps raw slug strings and ISO codes to proper Vietnamese names", () => {
+    assert.equal(formatCountryName("viet-nam"), "Việt Nam");
+    assert.equal(formatCountryName("Viet-nam"), "Việt Nam");
+    assert.equal(formatCountryName("trung-quoc"), "Trung Quốc");
+    assert.equal(formatCountryName("Trung-quoc"), "Trung Quốc");
+    assert.equal(formatCountryName("han-quoc"), "Hàn Quốc");
+    assert.equal(formatCountryName("nhat-ban"), "Nhật Bản");
+    assert.equal(formatCountryName("thai-lan"), "Thái Lan");
+    assert.equal(formatCountryName("au-my"), "Âu Mỹ");
+    assert.equal(formatCountryName("dai-loan"), "Đài Loan");
+    assert.equal(formatCountryName("hong-kong"), "Hồng Kông");
+    assert.equal(formatCountryName("an-do"), "Ấn Độ");
+    assert.equal(formatCountryName("phap"), "Pháp");
+    assert.equal(formatCountryName("duc"), "Đức");
+    assert.equal(formatCountryName("y"), "Ý");
+    assert.equal(formatCountryName("uc"), "Úc");
+    assert.equal(formatCountryName("my"), "Mỹ");
+    assert.equal(formatCountryName("tay-ban-nha"), "Tây Ban Nha");
+    assert.equal(formatCountryName("tho-nhi-ky"), "Thổ Nhĩ Kỳ");
+    assert.equal(formatCountryName("philippines"), "Philippines");
+
+    // Object and array inputs
+    assert.equal(formatCountryName({ name: "viet-nam", slug: "viet-nam" }), "Việt Nam");
+    assert.equal(formatCountryName({ slug: "trung-quoc" }), "Trung Quốc");
+
+    // extractMovieCountry integration
+    assert.equal(extractMovieCountry({ country: [{ name: "viet-nam" }] }), "Việt Nam");
+    assert.equal(extractMovieCountry({ country: [{ name: "trung-quoc", slug: "trung-quoc" }] }), "Trung Quốc");
+    assert.equal(extractMovieCountry({ country_name: "Viet-nam" }), "Việt Nam");
+    assert.equal(extractMovieCountry({ countries: ["han-quoc"] }), "Hàn Quốc");
   });
 });
 

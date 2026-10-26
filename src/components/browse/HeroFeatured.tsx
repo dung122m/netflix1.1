@@ -24,6 +24,7 @@ import {
 import {
   pickHeroBackdropImage,
   toHighResBackdropUrl,
+  formatCountryName,
 } from "@/lib/movieMedia";
 import { cleanHtmlText } from "@/lib/cleanHtml";
 import { clientSynopsisCache } from "./MediaCard";
@@ -577,7 +578,10 @@ const HeroFeaturedInner: React.FC<{ movies?: HeroMovie[] }> = ({
   );
   const displaySynopsis = hasRealSynopsis ? (heroSynopsis || descriptionClean) : "";
 
-  const heroCountry = featuredMovie?.country?.[0]?.name;
+  const firstCountry = featuredMovie?.country?.[0] as { name?: string; slug?: string } | undefined;
+  const heroCountry = formatCountryName(
+    firstCountry?.name || firstCountry?.slug || (featuredMovie?.country as unknown)
+  );
   const isSeries = Boolean(
     (featuredMovie?.episode_current && String(featuredMovie.episode_current).toLowerCase().includes("tập")) ||
     (featuredMovie?.time && String(featuredMovie.time).toLowerCase().includes("tập")) ||
@@ -799,37 +803,37 @@ const HeroFeaturedInner: React.FC<{ movies?: HeroMovie[] }> = ({
               </h1>
 
               {/* 3.3 HÀNG THÔNG TIN TINH GỌN (1 DÒNG DUY NHẤT CHUẨN NETFLIX) */}
-              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-x-2.5 gap-y-1 text-xs sm:text-sm font-medium text-zinc-300">
+              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-x-2.5 gap-y-1 text-xs sm:text-sm font-medium text-zinc-300 leading-normal">
                 {voteText && (
-                  <span className="inline-flex items-center gap-1 text-amber-400 font-bold">
-                    <Star size={12} className="fill-amber-400 text-amber-400" />
+                  <span className="inline-flex items-center gap-1 text-amber-400/90 font-semibold">
+                    <Star size={12} className="fill-amber-400/90 text-amber-400/90" />
                     <span>{voteText}</span>
                   </span>
                 )}
 
                 {featuredMovie?.year && (
                   <>
-                    <span className="text-zinc-400">•</span>
-                    <span className="text-zinc-200">{featuredMovie.year}</span>
+                    <span className="text-zinc-500 select-none">•</span>
+                    <span className="text-zinc-300">{featuredMovie.year}</span>
                   </>
                 )}
 
                 {isEpisodeUseful ? (
                   <>
-                    <span className="text-zinc-400">•</span>
-                    <span className="text-emerald-400 font-semibold">{rawEpisode}</span>
+                    <span className="text-zinc-500 select-none">•</span>
+                    <span className="text-emerald-400/95 font-medium">{rawEpisode}</span>
                   </>
                 ) : cleanDuration ? (
                   <>
-                    <span className="text-zinc-400">•</span>
+                    <span className="text-zinc-500 select-none">•</span>
                     <span className="text-zinc-300">{cleanDuration}</span>
                   </>
                 ) : null}
 
                 {featuredMovie?.quality && (
                   <>
-                    <span className="text-zinc-400">•</span>
-                    <span className="px-2 py-0.5 rounded-md border border-white/25 bg-white/10 text-xs font-bold text-white uppercase tracking-wider backdrop-blur-sm">
+                    <span className="text-zinc-500 select-none">•</span>
+                    <span className="px-1.5 py-0.5 rounded-[4px] border border-white/20 bg-white/5 text-[11px] font-bold text-zinc-200 uppercase tracking-wider backdrop-blur-sm">
                       {featuredMovie.quality}
                     </span>
                   </>
@@ -837,14 +841,14 @@ const HeroFeaturedInner: React.FC<{ movies?: HeroMovie[] }> = ({
 
                 {featuredMovie?.lang && (
                   <>
-                    <span className="text-zinc-400">•</span>
-                    <span className="text-rose-200 font-semibold">{featuredMovie.lang}</span>
+                    <span className="text-zinc-500 select-none">•</span>
+                    <span className="text-zinc-300 font-medium">{featuredMovie.lang}</span>
                   </>
                 )}
 
                 {heroCountry && (
                   <span className="hidden sm:inline-flex items-center gap-x-2">
-                    <span className="text-zinc-400">•</span>
+                    <span className="text-zinc-500 select-none">•</span>
                     <span className="text-zinc-300">{heroCountry}</span>
                   </span>
                 )}

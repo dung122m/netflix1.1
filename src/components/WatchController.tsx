@@ -47,6 +47,8 @@ export interface WatchContextValue {
   switchServer: (serverIndex: number) => void;
   activeProvider: PlaybackProviderType;
   setActiveProvider: (provider: PlaybackProviderType) => void;
+  isVsmovOnly?: boolean;
+  hasNanaflixSource?: boolean;
   tmdbId?: string | number | null;
   isSeries?: boolean;
   isTheaterMode: boolean;
@@ -79,6 +81,8 @@ interface WatchControllerProps {
   initialServerIndex?: number;
   initialEpisodeSlug?: string;
   initialProvider?: PlaybackProviderType;
+  isVsmovOnly?: boolean;
+  hasNanaflixSource?: boolean;
   tmdbId?: string | number | null;
   isSeries?: boolean;
   isTrailerOnly?: boolean;
@@ -99,14 +103,17 @@ export function WatchController({
   initialServers,
   initialServerIndex = 0,
   initialEpisodeSlug,
-  initialProvider = "nanaflix",
+  initialProvider,
+  isVsmovOnly = false,
+  hasNanaflixSource = true,
   tmdbId,
   isSeries,
   isTrailerOnly = false,
   children,
 }: WatchControllerProps) {
   const [currentServerIndex, setCurrentServerIndex] = useState(initialServerIndex);
-  const [activeProvider, setActiveProvider] = useState<PlaybackProviderType>(initialProvider);
+  const resolvedInitialProvider: PlaybackProviderType = initialProvider ?? (isVsmovOnly ? "vsmov" : "nanaflix");
+  const [activeProvider, setActiveProvider] = useState<PlaybackProviderType>(resolvedInitialProvider);
   const [isTheaterMode, setIsTheaterMode] = useState<boolean>(false);
   const [isLightsOff, setIsLightsOff] = useState<boolean>(false);
 
@@ -334,6 +341,8 @@ export function WatchController({
       switchServer,
       activeProvider,
       setActiveProvider,
+      isVsmovOnly,
+      hasNanaflixSource,
       tmdbId,
       isSeries,
       isTheaterMode,
@@ -363,6 +372,8 @@ export function WatchController({
     switchServer,
     activeProvider,
     setActiveProvider,
+    isVsmovOnly,
+    hasNanaflixSource,
     tmdbId,
     isSeries,
     isTheaterMode,

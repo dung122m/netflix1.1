@@ -2154,7 +2154,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
 
       // 4. Nếu showShortcutModal của player đang mở:
       if (showShortcutModal) {
-        if (e.key === "Escape") {
+        if (e.key === "Escape" || e.key === "?" || (e.key === "/" && !e.shiftKey)) {
           e.preventDefault();
           setShowShortcutModal(false);
         }
@@ -3000,6 +3000,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
       <PlayerShortcutModal
         isOpen={showShortcutModal}
         onClose={() => setShowShortcutModal(false)}
+        container={containerRef.current}
       />
     </>
   );

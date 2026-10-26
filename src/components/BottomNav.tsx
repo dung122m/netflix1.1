@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Tv, Bookmark, User } from "lucide-react";
+import { Home, Compass, Tv, Bookmark, User } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { subscribeUserProfile } from "@/services/userService";
 import { UserProfile } from "@/types/user";
@@ -45,6 +45,7 @@ export function BottomNav() {
   }
 
   const isHome = pathname === "/";
+  const isBrowse = pathname?.startsWith("/browse");
   const isLive = pathname?.startsWith("/live");
   const isMyList = pathname?.startsWith("/my-list");
 
@@ -63,13 +64,13 @@ export function BottomNav() {
   return (
     <nav
       aria-label="Mobile Bottom Navigation"
-      className="fixed bottom-0 left-0 right-0 z-50 lg:hidden bg-zinc-950 border-t border-white/10 shadow-[0_-8px_30px_rgba(0,0,0,0.8)] pb-[env(safe-area-inset-bottom,0px)]"
+      className="fixed bottom-0 left-0 right-0 z-50 lg:hidden bg-zinc-950/95 backdrop-blur-lg border-t border-white/10 shadow-[0_-8px_30px_rgba(0,0,0,0.8)] pb-[env(safe-area-inset-bottom,0px)]"
     >
-      <div className="grid grid-cols-4 h-14 items-center px-1">
+      <div className="grid grid-cols-5 h-14 items-center px-1">
         {/* 1. TRANG CHỦ */}
         <Link
           href="/"
-          className={`flex flex-col items-center justify-center h-full transition-all duration-200 active:scale-95 cursor-pointer ${
+          className={`flex flex-col items-center justify-center h-full transition-all duration-200 active:scale-95 cursor-pointer outline-none focus-visible:text-white rounded-lg ${
             isHome ? "text-netflix-red font-bold" : "text-zinc-400 hover:text-zinc-200 font-medium"
           }`}
         >
@@ -79,13 +80,29 @@ export function BottomNav() {
               <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-netflix-red rounded-full shadow-[0_0_8px_#E50914]" />
             )}
           </div>
-          <span className="text-[10px] mt-0.5 tracking-tight">Trang chủ</span>
+          <span className="text-[10px] mt-0.5 tracking-tight truncate max-w-[56px]">Trang chủ</span>
         </Link>
 
-        {/* 2. TRỰC TIẾP LIVE */}
+        {/* 2. KHÁM PHÁ BROWSE */}
+        <Link
+          href="/browse"
+          className={`flex flex-col items-center justify-center h-full transition-all duration-200 active:scale-95 cursor-pointer outline-none focus-visible:text-white rounded-lg ${
+            isBrowse ? "text-netflix-red font-bold" : "text-zinc-400 hover:text-zinc-200 font-medium"
+          }`}
+        >
+          <div className="relative">
+            <Compass size={19} strokeWidth={isBrowse ? 2.5 : 2} />
+            {isBrowse && (
+              <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-netflix-red rounded-full shadow-[0_0_8px_#E50914]" />
+            )}
+          </div>
+          <span className="text-[10px] mt-0.5 tracking-tight truncate max-w-[56px]">Khám phá</span>
+        </Link>
+
+        {/* 3. TRỰC TIẾP LIVE */}
         <Link
           href="/live"
-          className={`flex flex-col items-center justify-center h-full transition-all duration-200 active:scale-95 cursor-pointer ${
+          className={`flex flex-col items-center justify-center h-full transition-all duration-200 active:scale-95 cursor-pointer outline-none focus-visible:text-white rounded-lg ${
             isLive ? "text-rose-500 font-bold" : "text-zinc-400 hover:text-zinc-200 font-medium"
           }`}
         >
@@ -96,13 +113,13 @@ export function BottomNav() {
               <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500" />
             </span>
           </div>
-          <span className="text-[10px] mt-0.5 tracking-tight">Trực tiếp</span>
+          <span className="text-[10px] mt-0.5 tracking-tight truncate max-w-[56px]">Trực tiếp</span>
         </Link>
 
-        {/* 3. DANH SÁCH & LỊCH SỬ */}
+        {/* 4. DANH SÁCH & LỊCH SỬ */}
         <Link
           href="/my-list"
-          className={`flex flex-col items-center justify-center h-full transition-all duration-200 active:scale-95 cursor-pointer ${
+          className={`flex flex-col items-center justify-center h-full transition-all duration-200 active:scale-95 cursor-pointer outline-none focus-visible:text-white rounded-lg ${
             isMyList ? "text-netflix-red font-bold" : "text-zinc-400 hover:text-zinc-200 font-medium"
           }`}
         >
@@ -112,14 +129,14 @@ export function BottomNav() {
               <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-netflix-red rounded-full shadow-[0_0_8px_#E50914]" />
             )}
           </div>
-          <span className="text-[10px] mt-0.5 tracking-tight">Danh sách</span>
+          <span className="text-[10px] mt-0.5 tracking-tight truncate max-w-[56px]">Danh sách</span>
         </Link>
 
         {/* 5. HỒ SƠ / TÀI KHOẢN */}
         <button
           type="button"
           onClick={handleOpenProfile}
-          className="flex flex-col items-center justify-center h-full text-zinc-400 hover:text-zinc-200 font-medium transition-all duration-200 active:scale-95 cursor-pointer"
+          className="flex flex-col items-center justify-center h-full text-zinc-400 hover:text-zinc-200 font-medium transition-all duration-200 active:scale-95 cursor-pointer outline-none focus-visible:text-white rounded-lg"
           aria-label="Tài khoản"
         >
           {user ? (

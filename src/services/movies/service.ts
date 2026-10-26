@@ -9,7 +9,7 @@ import {
   performVsmovCatalogIngestion,
 } from "@/services/providers/vsmov";
 import { normalizeForMatch } from "@/lib/stringUtils";
-import { formatGenreName } from "@/lib/movieMedia";
+import { formatGenreName, formatCountryName } from "@/lib/movieMedia";
 
 const API_NGUONC = process.env.NEXT_PUBLIC_API_URL || "https://phim.nguonc.com/api";
 const API_PHIMAPI = process.env.NEXT_PUBLIC_API_URL_2 || "https://phimapi.com";
@@ -879,7 +879,7 @@ async function fetchSourceData(
         ...(Array.isArray(item.country) && item.country.length > 0
           ? { country: item.country }
           : params.country
-          ? { country: [{ name: params.country, slug: params.country }] }
+          ? { country: [{ name: formatCountryName(params.country) || params.country, slug: params.country }] }
           : {}),
         ...(itemType ? { type: itemType } : {}),
         ...(chieurap !== undefined ? { chieurap } : {}),
@@ -969,10 +969,10 @@ async function fetchVsmovSourceData(
         const adapted = adaptVsmovMovieItem(item);
         if (!adapted) return null;
         if (params.category && (!adapted.category || adapted.category.length === 0)) {
-          adapted.category = [{ name: params.category, slug: params.category }];
+          adapted.category = [{ name: formatGenreName(params.category) || params.category, slug: params.category }];
         }
         if (params.country && (!adapted.country || adapted.country.length === 0)) {
-          adapted.country = [{ name: params.country, slug: params.country }];
+          adapted.country = [{ name: formatCountryName(params.country) || params.country, slug: params.country }];
         }
         return adapted;
       })

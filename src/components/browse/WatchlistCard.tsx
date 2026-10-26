@@ -8,6 +8,7 @@ import {
   toOptimizedCardPosterUrl,
   sanitizeImageUrl,
   formatGenreName,
+  formatCountryName,
 } from "@/lib/movieMedia";
 import { useAuth } from "@/context/AuthContext";
 import { AddToCollectionModal } from "@/components/Collections/AddToCollectionModal";
@@ -112,7 +113,7 @@ export const WatchlistCard: React.FC<WatchlistCardProps> = ({
     [user]
   );
 
-  const displayTag = formatGenreName(genre) || country || "";
+  const displayTag = formatGenreName(genre) || formatCountryName(country) || "";
   const displayYear = year ? String(year).trim() : "";
   const displayQuality = quality && !quality.includes("N/A") ? quality.trim().toUpperCase() : "";
 

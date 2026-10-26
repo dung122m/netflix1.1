@@ -109,7 +109,15 @@ function MyListContent() {
   const [showCreateCollectionModal, setShowCreateCollectionModal] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
+  const HISTORY_PAGE_SIZE = 20;
+  const [visibleHistoryCount, setVisibleHistoryCount] = useState<number>(HISTORY_PAGE_SIZE);
+
   const { user, loading, isSyncing, syncNow } = useAuth();
+
+  // Reset phân trang lịch sử xem khi chuyển tab hoặc đổi tài khoản
+  useEffect(() => {
+    setVisibleHistoryCount(HISTORY_PAGE_SIZE);
+  }, [user?.uid, activeTab]);
 
   useEffect(() => {
     setWatchlist(getWatchlist());
@@ -223,6 +231,7 @@ function MyListContent() {
     if (confirmed) {
       clearWatchHistory();
       setHistory([]);
+      setVisibleHistoryCount(HISTORY_PAGE_SIZE);
       toast.info("Đã xóa toàn bộ lịch sử xem phim.");
     }
   };
@@ -591,7 +600,7 @@ function MyListContent() {
         ) : (
           <div className="rounded-2xl border border-white/10 bg-gradient-to-b from-zinc-900/45 to-zinc-950/45 p-3 sm:p-4 md:p-5">
             <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 md:gap-5">
-              {history.map((item) => {
+              {history.slice(0, visibleHistoryCount).map((item) => {
                 const href = item.episodeSlug
                   ? `/movies/${item.slug}?ep=${item.episodeSlug}`
                   : `/movies/${item.slug}`;
@@ -687,6 +696,17 @@ function MyListContent() {
                 );
               })}
             </div>
+            {history.length > visibleHistoryCount && (
+              <div className="flex justify-center mt-6 sm:mt-8 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setVisibleHistoryCount((prev) => prev + HISTORY_PAGE_SIZE)}
+                  className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-zinc-900/90 hover:bg-zinc-800 border border-white/10 hover:border-white/20 text-xs sm:text-sm font-semibold text-white transition-all shadow-md active:scale-95 cursor-pointer"
+                >
+                  <span>Xem thêm 20 phim</span>
+                </button>
+              </div>
+            )}
           </div>
         )
       ) : activeTab === "collections" ? (

@@ -1,7 +1,6 @@
 const BLOCKED_STREAM_HOSTS = new Set([
   "fmvttv.dpdns.org",
   "live05.msdht.app",
-  "freem3u.xyz",
   "pro2cdnlive.com",
 ]);
 const healthCache = new Map<string, { ok: boolean; expiresAt: number }>();

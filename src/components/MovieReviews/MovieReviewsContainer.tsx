@@ -48,29 +48,30 @@ export const MovieReviewsContainer: React.FC<MovieReviewsContainerProps> = ({
         </div>
 
         {/* Tab Switcher */}
-        <div className="inline-flex p-1 rounded-xl bg-zinc-900 border border-white/10 self-start sm:self-auto shadow-inner">
+        <div className="inline-flex p-1 rounded-xl bg-zinc-900/90 border border-white/10 self-start sm:self-auto shadow-inner gap-1">
           <button
             type="button"
             onClick={() => setActiveTab("nanaflix")}
-            className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+            className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
               activeTab === "nanaflix"
-                ? "bg-netflix-red text-white shadow-md shadow-netflix-red/30"
-                : "text-zinc-400 hover:text-white"
+                ? "bg-netflix-red text-white shadow-sm shadow-netflix-red/30 font-bold"
+                : "text-zinc-400 hover:text-white hover:bg-white/5"
             }`}
           >
-            <span>💬 Bình luận Nanaflix</span>
+            <MessageSquare className="w-3.5 h-3.5" />
+            <span>Bình luận Nanaflix</span>
           </button>
           <button
             type="button"
             onClick={() => setActiveTab("tmdb")}
-            className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+            className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
               activeTab === "tmdb"
-                ? "bg-amber-500 text-black shadow-md shadow-amber-500/30"
-                : "text-zinc-400 hover:text-white"
+                ? "bg-zinc-800 text-amber-300 border border-amber-500/30 shadow-sm font-bold"
+                : "text-zinc-400 hover:text-white hover:bg-white/5"
             }`}
           >
-            <Globe className="w-3.5 h-3.5" />
-            <span>🌍 TMDb Quốc Tế</span>
+            <Globe className="w-3.5 h-3.5 text-amber-400" />
+            <span>TMDb Quốc Tế</span>
           </button>
         </div>
       </div>

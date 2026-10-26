@@ -6,39 +6,66 @@ export const runtime = "nodejs";
 const TRANSLATION_CACHE_TTL = 30 * 86400; // 30 ngày (2,592,000s)
 
 /**
- * Dịch văn bản sang tiếng Việt trực tiếp sử dụng Google NMT Translation Endpoint (Hoàn toàn miễn phí, không cần API Key)
+ * Dịch văn bản sang tiếng Việt trực tiếp sử dụng Google NMT Translation Endpoint (Hoàn toàn miễn phí, không bị chặn Captcha)
  */
 async function translateWithGoogleNMT(text: string): Promise<string> {
+  // Phương thức 1: Endpoint Google Clients5 Chrome Extension (POST - Không giới hạn độ dài URL, không bị captcha chặn)
   try {
-    const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=vi&dt=t&q=${encodeURIComponent(
-      text
-    )}`;
-
-    const res = await fetch(url, {
-      method: "GET",
+    const res = await fetch("https://clients5.google.com/translate_a/t?client=dict-chrome-ex&sl=auto&tl=vi", {
+      method: "POST",
       headers: {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+        "Content-Type": "application/x-www-form-urlencoded",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
       },
+      body: `q=${encodeURIComponent(text)}`,
+      signal: AbortSignal.timeout(8000),
     });
 
-    if (!res.ok) {
-      throw new Error(`Google Translate responded with status ${res.status}`);
-    }
-
-    const data = await res.json();
-    if (Array.isArray(data) && Array.isArray(data[0])) {
-      const translated = data[0]
-        .map((segment: unknown) => (Array.isArray(segment) ? segment[0] : ""))
-        .join("");
-      if (translated && translated.trim()) {
-        return translated.trim();
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data)) {
+        if (Array.isArray(data[0]) && typeof data[0][0] === "string") {
+          const joined = data
+            .map((seg: unknown) => (Array.isArray(seg) && typeof seg[0] === "string" ? seg[0] : ""))
+            .join("");
+          if (joined.trim()) return joined.trim();
+        }
+        if (typeof data[0] === "string" && data[0].trim()) {
+          return data[0].trim();
+        }
       }
     }
-    throw new Error("Invalid response format from Google Translate");
   } catch (err) {
-    console.error("[TMDB Translation API] Error fetching translation:", err);
-    throw err;
+    console.warn("[TMDB Translation API] Primary clients5 POST failed, attempting GET fallback:", err);
   }
+
+  // Phương thức 2: Dự phòng GET clients5
+  try {
+    const getUrl = `https://clients5.google.com/translate_a/t?client=dict-chrome-ex&sl=auto&tl=vi&q=${encodeURIComponent(
+      text.slice(0, 2000)
+    )}`;
+    const res = await fetch(getUrl, {
+      method: "GET",
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+      },
+      signal: AbortSignal.timeout(6000),
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data) && Array.isArray(data[0]) && typeof data[0][0] === "string") {
+        const joined = data
+          .map((seg: unknown) => (Array.isArray(seg) && typeof seg[0] === "string" ? seg[0] : ""))
+          .join("");
+        if (joined.trim()) return joined.trim();
+      }
+    }
+  } catch (err) {
+    console.warn("[TMDB Translation API] Secondary clients5 GET failed:", err);
+  }
+
+  throw new Error("Không thể kết nối đến máy chủ dịch thuật lúc này");
 }
 
 export async function POST(req: NextRequest) {

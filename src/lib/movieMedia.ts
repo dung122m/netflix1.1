@@ -598,6 +598,377 @@ const KNOWN_COUNTRIES = [
   "Brazil",
 ];
 
+// Bảng ánh xạ toàn diện mã quốc gia ISO, slug API (viet-nam, trung-quoc...) và tên thông dụng sang tiếng Việt chuẩn có dấu
+export const COUNTRY_DISPLAY_MAP: Record<string, string> = {
+  // Việt Nam
+  "viet-nam": "Việt Nam",
+  "vietnam": "Việt Nam",
+  "viet nam": "Việt Nam",
+  "việt nam": "Việt Nam",
+  vn: "Việt Nam",
+  vnm: "Việt Nam",
+
+  // Trung Quốc
+  "trung-quoc": "Trung Quốc",
+  "trung quoc": "Trung Quốc",
+  "trung quốc": "Trung Quốc",
+  china: "Trung Quốc",
+  cn: "Trung Quốc",
+  chn: "Trung Quốc",
+
+  // Hàn Quốc
+  "han-quoc": "Hàn Quốc",
+  "han quoc": "Hàn Quốc",
+  "hàn quốc": "Hàn Quốc",
+  korea: "Hàn Quốc",
+  "south korea": "Hàn Quốc",
+  "south-korea": "Hàn Quốc",
+  kr: "Hàn Quốc",
+  kor: "Hàn Quốc",
+
+  // Nhật Bản
+  "nhat-ban": "Nhật Bản",
+  "nhat ban": "Nhật Bản",
+  "nhật bản": "Nhật Bản",
+  japan: "Nhật Bản",
+  jp: "Nhật Bản",
+  jpn: "Nhật Bản",
+
+  // Mỹ / Hoa Kỳ
+  my: "Mỹ",
+  mỹ: "Mỹ",
+  "hoa-ky": "Mỹ",
+  "hoa ky": "Mỹ",
+  "hoa kỳ": "Mỹ",
+  "hợp chúng quốc hoa kỳ": "Mỹ",
+  "united states": "Mỹ",
+  "united-states": "Mỹ",
+  us: "Mỹ",
+  usa: "Mỹ",
+
+  // Âu Mỹ
+  "au-my": "Âu Mỹ",
+  "au my": "Âu Mỹ",
+  "âu mỹ": "Âu Mỹ",
+
+  // Thái Lan
+  "thai-lan": "Thái Lan",
+  "thai lan": "Thái Lan",
+  "thái lan": "Thái Lan",
+  thailand: "Thái Lan",
+  th: "Thái Lan",
+  tha: "Thái Lan",
+
+  // Đài Loan
+  "dai-loan": "Đài Loan",
+  "dai loan": "Đài Loan",
+  "đài loan": "Đài Loan",
+  taiwan: "Đài Loan",
+  tw: "Đài Loan",
+  twn: "Đài Loan",
+
+  // Hồng Kông
+  "hong-kong": "Hồng Kông",
+  "hong kong": "Hồng Kông",
+  hongkong: "Hồng Kông",
+  "hồng kông": "Hồng Kông",
+  hk: "Hồng Kông",
+  hkg: "Hồng Kông",
+
+  // Ấn Độ
+  "an-do": "Ấn Độ",
+  "an do": "Ấn Độ",
+  "ấn độ": "Ấn Độ",
+  india: "Ấn Độ",
+  in: "Ấn Độ",
+  ind: "Ấn Độ",
+
+  // Anh / Vương quốc Anh
+  anh: "Anh",
+  "vuong-quoc-anh": "Anh",
+  "vuong quoc anh": "Anh",
+  "vương quốc anh": "Anh",
+  "united kingdom": "Anh",
+  "united-kingdom": "Anh",
+  "great britain": "Anh",
+  uk: "Anh",
+  gb: "Anh",
+  gbr: "Anh",
+
+  // Pháp
+  phap: "Pháp",
+  pháp: "Pháp",
+  france: "Pháp",
+  fr: "Pháp",
+  fra: "Pháp",
+
+  // Canada
+  canada: "Canada",
+  ca: "Canada",
+  can: "Canada",
+
+  // Đức
+  duc: "Đức",
+  đức: "Đức",
+  germany: "Đức",
+  de: "Đức",
+  deu: "Đức",
+
+  // Tây Ban Nha
+  "tay-ban-nha": "Tây Ban Nha",
+  "tay ban nha": "Tây Ban Nha",
+  "tây ban nha": "Tây Ban Nha",
+  spain: "Tây Ban Nha",
+  es: "Tây Ban Nha",
+  esp: "Tây Ban Nha",
+
+  // Thổ Nhĩ Kỳ
+  "tho-nhi-ky": "Thổ Nhĩ Kỳ",
+  "tho nhi ky": "Thổ Nhĩ Kỳ",
+  "thổ nhĩ kỳ": "Thổ Nhĩ Kỳ",
+  turkey: "Thổ Nhĩ Kỳ",
+  tr: "Thổ Nhĩ Kỳ",
+  tur: "Thổ Nhĩ Kỳ",
+
+  // Nga
+  nga: "Nga",
+  russia: "Nga",
+  ru: "Nga",
+  rus: "Nga",
+
+  // Úc
+  uc: "Úc",
+  úc: "Úc",
+  australia: "Úc",
+  au: "Úc",
+  aus: "Úc",
+
+  // Philippines
+  philippines: "Philippines",
+  ph: "Philippines",
+  phl: "Philippines",
+
+  // Singapore
+  singapore: "Singapore",
+  sg: "Singapore",
+  sgp: "Singapore",
+
+  // Malaysia
+  malaysia: "Malaysia",
+  mys: "Malaysia",
+
+  // Indonesia
+  indonesia: "Indonesia",
+  id: "Indonesia",
+  idn: "Indonesia",
+
+  // Ý / Italia
+  y: "Ý",
+  ý: "Ý",
+  "y-quoc": "Ý",
+  "y quoc": "Ý",
+  "ý quốc": "Ý",
+  italia: "Ý",
+  italy: "Ý",
+  it: "Ý",
+  ita: "Ý",
+
+  // Mexico
+  mexico: "Mexico",
+  mx: "Mexico",
+  mex: "Mexico",
+
+  // Brazil
+  brazil: "Brazil",
+  br: "Brazil",
+  bra: "Brazil",
+
+  // Hà Lan
+  "ha-lan": "Hà Lan",
+  "ha lan": "Hà Lan",
+  "hà lan": "Hà Lan",
+  netherlands: "Hà Lan",
+  nl: "Hà Lan",
+  nld: "Hà Lan",
+
+  // Thụy Điển
+  "thuy-dien": "Thụy Điển",
+  "thuy dien": "Thụy Điển",
+  "thụy điển": "Thụy Điển",
+  sweden: "Thụy Điển",
+  se: "Thụy Điển",
+  swe: "Thụy Điển",
+
+  // Na Uy
+  "na-uy": "Na Uy",
+  "na uy": "Na Uy",
+  norway: "Na Uy",
+  no: "Na Uy",
+  nor: "Na Uy",
+
+  // Đan Mạch
+  "dan-mach": "Đan Mạch",
+  "dan mach": "Đan Mạch",
+  "đan mạch": "Đan Mạch",
+  denmark: "Đan Mạch",
+  dk: "Đan Mạch",
+  dnk: "Đan Mạch",
+
+  // Ba Lan
+  "ba-lan": "Ba Lan",
+  "ba lan": "Ba Lan",
+  poland: "Ba Lan",
+  pl: "Ba Lan",
+  pol: "Ba Lan",
+
+  // Bỉ
+  bi: "Bỉ",
+  bỉ: "Bỉ",
+  belgium: "Bỉ",
+  be: "Bỉ",
+  bel: "Bỉ",
+
+  // Thụy Sĩ
+  "thuy-si": "Thụy Sĩ",
+  "thuy si": "Thụy Sĩ",
+  "thụy sĩ": "Thụy Sĩ",
+  switzerland: "Thụy Sĩ",
+  ch: "Thụy Sĩ",
+  che: "Thụy Sĩ",
+
+  // Bồ Đào Nha
+  "bo-dao-nha": "Bồ Đào Nha",
+  "bo dao nha": "Bồ Đào Nha",
+  "bồ đào nha": "Bồ Đào Nha",
+  portugal: "Bồ Đào Nha",
+  pt: "Bồ Đào Nha",
+  prt: "Bồ Đào Nha",
+
+  // Hy Lạp
+  "hy-lap": "Hy Lạp",
+  "hy lap": "Hy Lạp",
+  "hy lạp": "Hy Lạp",
+  greece: "Hy Lạp",
+  gr: "Hy Lạp",
+  grc: "Hy Lạp",
+
+  // Argentina
+  argentina: "Argentina",
+  ar: "Argentina",
+  arg: "Argentina",
+
+  // Colombia
+  colombia: "Colombia",
+  co: "Colombia",
+  col: "Colombia",
+
+  // Chile
+  chile: "Chile",
+  cl: "Chile",
+  chl: "Chile",
+
+  // New Zealand
+  "new-zealand": "New Zealand",
+  "new zealand": "New Zealand",
+  nz: "New Zealand",
+  nzl: "New Zealand",
+
+  // Ukraine
+  ukraine: "Ukraine",
+  ua: "Ukraine",
+  ukr: "Ukraine",
+
+  // Triều Tiên
+  "trieu-tien": "Triều Tiên",
+  "trieu tien": "Triều Tiên",
+  "triều tiên": "Triều Tiên",
+  "north korea": "Triều Tiên",
+  kp: "Triều Tiên",
+  prk: "Triều Tiên",
+
+  // Nam Phi
+  "nam-phi": "Nam Phi",
+  "nam phi": "Nam Phi",
+  "south africa": "Nam Phi",
+  za: "Nam Phi",
+  zaf: "Nam Phi",
+
+  // Quốc tế
+  "quoc-te": "Quốc Tế",
+  "quốc tế": "Quốc Tế",
+  international: "Quốc Tế",
+};
+
+/**
+ * Chuẩn hóa tên quốc gia từ slug (viet-nam, trung-quoc...), mã ISO hoặc tên thô sang tiếng Việt chuẩn có dấu.
+ */
+export function formatCountryName(raw?: unknown): string {
+  if (!raw) return "";
+  let clean = "";
+  if (typeof raw === "string") {
+    clean = raw.trim();
+  } else if (typeof raw === "object") {
+    const obj = raw as Record<string, unknown>;
+    clean = String(obj.name || obj.slug || obj.id || "").trim();
+  }
+  if (!clean || clean === "N/A" || clean === "Đang cập nhật") return "";
+
+  // Lọc bỏ nếu là loại phim
+  const lower = clean.toLowerCase();
+  if (
+    lower === "phim lẻ" ||
+    lower === "phim bộ" ||
+    lower === "phimle" ||
+    lower === "phimbo" ||
+    lower === "phim rạp" ||
+    lower === "hoạt hình" ||
+    lower === "tv shows" ||
+    lower === "tvshows"
+  ) {
+    return "";
+  }
+
+  // Khử các ký tự phân tách nếu truyền chuỗi kép
+  if (clean.includes(",") || clean.includes("/") || clean.includes(";")) {
+    clean = clean.split(/[,/;]/)[0].trim();
+  }
+
+  const lookupKey = clean.toLowerCase().replace(/_/g, "-");
+  if (COUNTRY_DISPLAY_MAP[lookupKey]) {
+    return COUNTRY_DISPLAY_MAP[lookupKey];
+  }
+
+  // Tra cứu theo key thay gạch nối bằng khoảng trắng và ngược lại
+  const spaceKey = lookupKey.replace(/-/g, " ");
+  if (COUNTRY_DISPLAY_MAP[spaceKey]) {
+    return COUNTRY_DISPLAY_MAP[spaceKey];
+  }
+  const hyphenKey = lookupKey.replace(/\s+/g, "-");
+  if (COUNTRY_DISPLAY_MAP[hyphenKey]) {
+    return COUNTRY_DISPLAY_MAP[hyphenKey];
+  }
+
+  // Ẩn nếu là mã ISO 2-3 chữ cái viết hoa không xác định
+  if (/^[A-Z]{2,3}$/.test(clean)) {
+    return "";
+  }
+
+  // Nếu là slug có dấu gạch nối (vd: "trieu-tien"), chuyển thành từ viết hoa có khoảng trắng
+  if (lookupKey.includes("-")) {
+    return lookupKey
+      .split("-")
+      .filter(Boolean)
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+      .join(" ");
+  }
+
+  if (clean.length > 20) {
+    return clean.slice(0, 20) + "…";
+  }
+
+  return clean.charAt(0).toUpperCase() + clean.slice(1);
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function extractMovieCountry(m: any): string | undefined {
   if (!m) return undefined;
@@ -606,22 +977,37 @@ export function extractMovieCountry(m: any): string | undefined {
   const countryList = m.country || m.countries;
   if (Array.isArray(countryList) && countryList.length > 0) {
     const first = countryList[0];
-    if (typeof first === "string" && first.trim()) return first.trim();
-    if (first && typeof first === "object" && first.name) return String(first.name).trim();
+    if (typeof first === "string" && first.trim()) {
+      const formatted = formatCountryName(first);
+      if (formatted) return formatted;
+    }
+    if (first && typeof first === "object") {
+      const formatted = formatCountryName(first.name || first.slug || first.id);
+      if (formatted) return formatted;
+    }
   }
   if (typeof countryList === "string" && countryList.trim()) {
-    return countryList.trim();
+    const formatted = formatCountryName(countryList);
+    if (formatted) return formatted;
   }
 
   // 2. Direct string fields
-  if (m.country_name && typeof m.country_name === "string") return m.country_name.trim();
-  if (m.countryName && typeof m.countryName === "string") return m.countryName.trim();
+  if (m.country_name && typeof m.country_name === "string") {
+    const formatted = formatCountryName(m.country_name);
+    if (formatted) return formatted;
+  }
+  if (m.countryName && typeof m.countryName === "string") {
+    const formatted = formatCountryName(m.countryName);
+    if (formatted) return formatted;
+  }
 
   // 3. Check categories for country tags
   const catList = m.category || m.categories;
   if (Array.isArray(catList)) {
     for (const cat of catList) {
-      const catName = (typeof cat === "string" ? cat : cat?.name || "").trim();
+      const catName = (typeof cat === "string" ? cat : cat?.name || cat?.slug || "").trim();
+      const formatted = formatCountryName(catName);
+      if (formatted) return formatted;
       for (const kc of KNOWN_COUNTRIES) {
         if (catName.toLowerCase().includes(kc.toLowerCase())) {
           return kc;
@@ -741,6 +1127,29 @@ export const GENRE_DISPLAY_MAP: Record<string, string> = {
   "chien-tranh": "Chiến Tranh",
   "chien tranh": "Chiến Tranh",
   "war": "Chiến Tranh",
+  "war & politics": "Chiến Tranh",
+  "war-politics": "Chiến Tranh",
+  "war and politics": "Chiến Tranh",
+  "action & adventure": "Hành Động",
+  "action-adventure": "Hành Động",
+  "action and adventure": "Hành Động",
+  "sci-fi & fantasy": "Viễn Tưởng",
+  "sci-fi-fantasy": "Viễn Tưởng",
+  "sci-fi and fantasy": "Viễn Tưởng",
+  "history": "Lịch Sử",
+  "historical": "Lịch Sử",
+  "lich-su": "Lịch Sử",
+  "lich su": "Lịch Sử",
+  "politics": "Chính Trị",
+  "chinh-tri": "Chính Trị",
+  "western": "Miền Tây",
+  "mien-tay": "Miền Tây",
+  "kids": "Thiếu Nhi",
+  "thieu-nhi": "Thiếu Nhi",
+  "reality": "Thực Tế",
+  "talk": "Talk Show",
+  "news": "Thời Sự",
+  "thoi-su": "Thời Sự",
   "phieu-luu": "Phiêu Lưu",
   "phieu luu": "Phiêu Lưu",
   "adventure": "Phiêu Lưu",

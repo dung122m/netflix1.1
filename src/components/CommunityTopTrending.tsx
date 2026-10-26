@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { MovieViewStatItem } from "@/services/supabaseService";
 import { pickBestMoviePoster, toOptimizedPhimimgUrl, formatGenreName } from "@/lib/movieMedia";
+import { CarouselNavButton } from "@/components/ui/CarouselNavButton";
 
 const TRENDING_CACHE_KEY = "nanaflix_trending_community_cache_v4";
 
@@ -218,11 +219,11 @@ function CommunityTopTrendingInner() {
               Cộng Đồng Nanaflix
             </span>
           </div>
-          <h2 className="text-xl sm:text-2xl md:text-3xl font-black text-white tracking-tight flex items-center gap-2">
+          <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-white tracking-tight flex items-center gap-2">
             <span>Khán Giả Xem Nhiều Nhất</span>
-            <Flame className="w-5 h-5 sm:w-6 sm:h-6 text-netflix-red" />
+            <Flame className="w-5 h-5 text-netflix-red shrink-0" />
           </h2>
-          <p className="text-xs sm:text-sm text-gray-400 mt-0.5">
+          <p className="text-xs sm:text-sm text-zinc-400 mt-0.5">
             Bảng xếp hạng phim thịnh hành được cộng đồng khán giả xem nhiều nhất
           </p>
         </div>
@@ -258,32 +259,23 @@ function CommunityTopTrendingInner() {
 
       {/* HORIZONTAL SCROLL CAROUSEL */}
       <div className="relative group/row">
-        {/* NÚT CUỘN TRÁI (HOVER NỔI MÉP TRÁI) */}
+        {/* NÚT CUỘN TRÁI / PHẢI: FLOATING GLASS PILL CHUẨN (KHÔNG CÒN GRADIENT ĐEN CHE POSTER/RANK) */}
         {canScrollLeft && (
-          <button
-            type="button"
+          <CarouselNavButton
+            direction="left"
             onClick={() => handleScroll("left")}
-            aria-label="Cuộn sang trái"
-            className="hidden sm:flex absolute left-0 top-4 bottom-4 z-30 w-12 md:w-14 bg-gradient-to-r from-black/90 via-black/60 to-transparent hover:from-black text-white items-center justify-start pl-1 opacity-0 group-hover/row:opacity-100 transition-all duration-300 cursor-pointer rounded-r-xl group/btn"
-          >
-            <div className="w-9 h-9 rounded-full bg-black/70 border border-white/20 flex items-center justify-center backdrop-blur-md group-hover/btn:scale-110 group-hover/btn:bg-white/20 transition-all shadow-xl">
-              <ChevronLeft className="w-5 h-5 text-white" />
-            </div>
-          </button>
+            ariaLabel="Cuộn bảng xếp hạng cộng đồng sang trái"
+            topOffsetClass="top-[40%]"
+          />
         )}
 
-        {/* NÚT CUỘN PHẢI (HOVER NỔI MÉP PHẢI) */}
         {canScrollRight && (
-          <button
-            type="button"
+          <CarouselNavButton
+            direction="right"
             onClick={() => handleScroll("right")}
-            aria-label="Cuộn sang phải"
-            className="hidden sm:flex absolute right-0 top-4 bottom-4 z-30 w-12 md:w-14 bg-gradient-to-l from-black/90 via-black/60 to-transparent hover:from-black text-white items-center justify-end pr-1 opacity-0 group-hover/row:opacity-100 transition-all duration-300 cursor-pointer rounded-l-xl group/btn"
-          >
-            <div className="w-9 h-9 rounded-full bg-black/70 border border-white/20 flex items-center justify-center backdrop-blur-md group-hover/btn:scale-110 group-hover/btn:bg-white/20 transition-all shadow-xl">
-              <ChevronRight className="w-5 h-5 text-white" />
-            </div>
-          </button>
+            ariaLabel="Cuộn bảng xếp hạng cộng đồng sang phải"
+            topOffsetClass="top-[40%]"
+          />
         )}
 
         {/* MOBILE SUBTLE GRADIENT FADE AFFORDANCE */}
@@ -315,8 +307,15 @@ function CommunityTopTrendingInner() {
             Array.from({ length: 6 }).map((_, idx) => (
               <div
                 key={idx}
-                className="flex-none w-[200px] sm:w-[240px] md:w-[260px] h-[280px] sm:h-[320px] rounded-xl bg-zinc-900/80 animate-pulse border border-white/5"
-              />
+                className="flex-none flex items-start"
+              >
+                <div className="w-[45px] sm:w-[65px] md:w-[75px] h-[210px] sm:h-[262px] md:h-[285px] -mr-5 sm:-mr-8" />
+                <div className="w-[140px] sm:w-[175px] md:w-[190px] flex flex-col gap-2">
+                  <div className="aspect-[2/3] rounded-xl bg-zinc-900/80 animate-pulse border border-white/5" />
+                  <div className="h-4 bg-zinc-900/80 rounded animate-pulse w-3/4" />
+                  <div className="h-3 bg-zinc-900/60 rounded animate-pulse w-1/2" />
+                </div>
+              </div>
             ))
           ) : items.length === 0 ? (
             <div className="w-full py-12 flex flex-col items-center justify-center text-center px-4">
@@ -332,47 +331,50 @@ function CommunityTopTrendingInner() {
             </div>
           ) : (
             items.map((movie, index) => {
-                const rank = index + 1;
+              const rank = index + 1;
+              const categoryText = movie.category ? formatGenreName(movie.category) : "";
 
-                return (
-                  <div
-                    key={movie.movieSlug}
-                    className="flex-none relative snap-start group select-none"
+              return (
+                <div
+                  key={movie.movieSlug}
+                  className="flex-none relative snap-start group select-none"
+                >
+                  <Link
+                    href={`/movies/${movie.movieSlug}`}
+                    className="flex items-start relative block cursor-pointer group-hover:scale-[1.025] group-hover:-translate-y-1 transition-all duration-300 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-netflix-red rounded-xl"
                   >
-                    <Link
-                      href={`/movies/${movie.movieSlug}`}
-                      className="flex items-end relative block cursor-pointer group-hover:scale-[1.04] group-hover:-translate-y-1 transition-all duration-300 ease-out"
-                    >
-                      {/* NETFLIX-STYLE GIANT 3D NUMBER */}
-                      <div className="relative -mr-5 sm:-mr-8 z-0 pointer-events-none select-none">
-                        <span
-                          className="text-[90px] sm:text-[130px] md:text-[150px] font-black leading-none tracking-tighter"
-                          style={{
-                            WebkitTextStroke: rank <= 3 ? "2px rgba(239, 68, 68, 0.9)" : "2px rgba(255, 255, 255, 0.22)",
-                            color: rank === 1
-                              ? "transparent"
-                              : rank === 2
-                              ? "transparent"
-                              : rank === 3
-                              ? "transparent"
-                              : "rgba(0, 0, 0, 0.6)",
-                            backgroundImage: rank === 1
-                              ? "linear-gradient(180deg, #f59e0b 0%, #dc2626 100%)"
-                              : rank === 2
-                              ? "linear-gradient(180deg, #e2e8f0 0%, #64748b 100%)"
-                              : rank === 3
-                              ? "linear-gradient(180deg, #d97706 0%, #78350f 100%)"
-                              : undefined,
-                            WebkitBackgroundClip: rank <= 3 ? "text" : undefined,
-                            filter: rank <= 3 ? "drop-shadow(0 10px 15px rgba(220, 38, 38, 0.4))" : undefined,
-                          }}
-                        >
-                          {rank}
-                        </span>
-                      </div>
+                    {/* NETFLIX-STYLE GIANT 3D NUMBER BEHIND POSTER */}
+                    <div className="flex items-end h-[210px] sm:h-[262px] md:h-[285px] relative -mr-5 sm:-mr-8 z-0 pointer-events-none select-none shrink-0">
+                      <span
+                        className="text-[90px] sm:text-[130px] md:text-[150px] font-black leading-none tracking-tighter"
+                        style={{
+                          WebkitTextStroke: rank <= 3 ? "2px rgba(239, 68, 68, 0.9)" : "2px rgba(255, 255, 255, 0.22)",
+                          color: rank === 1
+                            ? "transparent"
+                            : rank === 2
+                            ? "transparent"
+                            : rank === 3
+                            ? "transparent"
+                            : "rgba(0, 0, 0, 0.6)",
+                          backgroundImage: rank === 1
+                            ? "linear-gradient(180deg, #f59e0b 0%, #dc2626 100%)"
+                            : rank === 2
+                            ? "linear-gradient(180deg, #e2e8f0 0%, #64748b 100%)"
+                            : rank === 3
+                            ? "linear-gradient(180deg, #d97706 0%, #78350f 100%)"
+                            : undefined,
+                          WebkitBackgroundClip: rank <= 3 ? "text" : undefined,
+                          filter: rank <= 3 ? "drop-shadow(0 10px 15px rgba(220, 38, 38, 0.4))" : undefined,
+                        }}
+                      >
+                        {rank}
+                      </span>
+                    </div>
 
-                      {/* MOVIE POSTER CARD */}
-                      <div className="relative z-10 w-[140px] sm:w-[175px] md:w-[190px] aspect-[2/3] rounded-xl overflow-hidden bg-zinc-950 bg-gradient-to-br from-zinc-800/70 via-zinc-900 to-zinc-950 ring-1 ring-white/10 group-hover:ring-2 group-hover:ring-netflix-red group-hover:ring-inset group-hover:shadow-[0_16px_36px_rgba(229,9,20,0.4),0_0_20px_rgba(0,0,0,0.8)] transition-all duration-300">
+                    {/* CỘT POSTER + METADATA DƯỚI POSTER */}
+                    <div className="relative z-10 w-[140px] sm:w-[175px] md:w-[190px] flex flex-col shrink-0 min-w-0">
+                      {/* MOVIE POSTER CONTAINER (ARTWORK THUẦN KHIẾT) */}
+                      <div className="relative w-full aspect-[2/3] rounded-xl overflow-hidden bg-zinc-950 bg-gradient-to-br from-zinc-800/70 via-zinc-900 to-zinc-950 ring-1 ring-white/10 group-hover:ring-2 group-hover:ring-netflix-red group-hover:ring-inset group-hover:shadow-[0_14px_32px_rgba(229,9,20,0.35),0_0_20px_rgba(0,0,0,0.8)] transition-all duration-300">
                         {(() => {
                           const rawPoster = pickBestMoviePoster(
                             {
@@ -392,7 +394,7 @@ function CommunityTopTrendingInner() {
                               fill
                               unoptimized
                               priority={index < 3}
-                              sizes="(max-width: 640px) 180px, (max-width: 768px) 240px, 280px"
+                              sizes="(max-width: 640px) 160px, (max-width: 768px) 200px, 240px"
                               className="object-cover group-hover:scale-105 transition-transform duration-500"
                               loading={index < 3 ? "eager" : "lazy"}
                               quality={85}
@@ -431,28 +433,30 @@ function CommunityTopTrendingInner() {
                             </div>
                           );
                         })()}
+                      </div>
 
-                        {/* FOOTER INFO BADGE */}
-                        <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent p-2.5 sm:p-3 pt-7 sm:pt-8 min-w-0">
-                          <p
-                            title={movie.movieTitle}
-                            className="text-white text-xs sm:text-[13px] font-bold truncate block group-hover:text-red-400 transition-colors drop-shadow"
-                          >
-                            {movie.movieTitle}
-                          </p>
-                          <div className="flex items-center gap-1.5 text-[10px] sm:text-[11px] text-zinc-400 mt-0.5 font-medium min-w-0">
-                            <span className="shrink-0">{movie.year || "Mới"}</span>
-                            {movie.category && formatGenreName(movie.category) && <span className="text-zinc-600 shrink-0">•</span>}
-                            {movie.category && formatGenreName(movie.category) && (
-                              <span className="text-zinc-300 truncate min-w-0">{formatGenreName(movie.category)}</span>
-                            )}
-                          </div>
+                      {/* THÔNG TIN PHIM DƯỚI POSTER: 1 DÒNG DUY NHẤT, CĂN ĐỀU BASELINE */}
+                      <div className="pt-2 sm:pt-2.5 min-w-0 flex flex-col">
+                        <h3
+                          title={movie.movieTitle}
+                          className="text-white text-xs sm:text-[13px] font-semibold truncate group-hover:text-netflix-red transition-colors"
+                        >
+                          {movie.movieTitle}
+                        </h3>
+                        <div className="flex items-center gap-1.5 text-[10px] sm:text-[11px] text-zinc-400 mt-1 font-medium min-w-0">
+                          <span className="shrink-0">{movie.year || "Mới"}</span>
+                          {categoryText && <span className="text-zinc-600 shrink-0">•</span>}
+                          {categoryText && (
+                            <span className="text-zinc-400 truncate min-w-0">{categoryText}</span>
+                          )}
                         </div>
                       </div>
-                    </Link>
-                  </div>
-                );
-              }))}
+                    </div>
+                  </Link>
+                </div>
+              );
+            })
+          )}
         </div>
       </div>
     </section>

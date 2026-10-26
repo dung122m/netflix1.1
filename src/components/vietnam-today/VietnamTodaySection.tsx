@@ -61,7 +61,7 @@ export function VietnamTodaySection() {
         {/* TẦNG 1: Tiêu đề & Ngày tháng song hành (hiển thị cả mobile lẫn desktop không rớt dòng) */}
         <div className="flex items-center justify-between gap-2">
           {/* Bên trái: 🇻🇳 Hôm Nay Có Gì Đặc Biệt */}
-          <h2 className="text-base sm:text-lg font-bold text-white tracking-tight flex items-center gap-2 shrink-0">
+          <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-white tracking-tight flex items-center gap-2 shrink-0">
             <VietnamFlagIcon className="w-5 h-3.5 shadow shrink-0" />
             <span className="truncate">Hôm Nay Có Gì Đặc Biệt</span>
           </h2>

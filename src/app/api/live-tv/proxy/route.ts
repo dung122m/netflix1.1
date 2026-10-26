@@ -16,6 +16,8 @@ const REFERER_MAP: Record<string, string> = {
   "vnns.net": "https://thvl.vn/",
   "qpvn.vn": "https://qpvn.vn/",
   "vtvprime.vn": "https://vtvgo.vn/",
+  "vtvdigital.vn": "https://vtvgo.vn/",
+  "dethich.pw": "https://dethich.pw/",
 };
 
 function getReferer(url: string): string {
@@ -42,9 +44,9 @@ function getReferer(url: string): string {
 }
 
 export async function GET(request: NextRequest) {
-  // 1. Rate Limit Protection (Max 300 segments per minute per IP)
+  // 1. Rate Limit Protection (Max 600 segments per minute per IP for HLS multi-track)
   const clientIp = getClientIp(request);
-  const rateLimit = checkRateLimit(`livetv_proxy_${clientIp}`, 300, 60);
+  const rateLimit = checkRateLimit(`livetv_proxy_${clientIp}`, 600, 60);
   if (!rateLimit.allowed) {
     return new NextResponse("Too many proxy requests. Rate limit exceeded.", {
       status: 429,
@@ -88,7 +90,7 @@ export async function GET(request: NextRequest) {
         "Accept-Encoding": "gzip, deflate, br",
         Connection: "keep-alive",
       },
-      signal: AbortSignal.timeout(12000),
+      signal: AbortSignal.timeout(9000),
     });
 
     if (!response.ok) {

@@ -30,7 +30,7 @@ export async function GET(req: NextRequest) {
       .select("*")
       .eq("user_id", targetUserId)
       .order("updated_at", { ascending: false })
-      .limit(100);
+      .limit(150);
 
     if (error) {
       return NextResponse.json({ success: false, error: error.message }, { status: 500 });

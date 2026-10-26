@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef } from "react";
+import React, { useRef, useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { Compass, ChevronRight, ChevronLeft } from "lucide-react";
 
@@ -31,6 +31,28 @@ const FEATURED_GENRE_CHIPS: GenreChipItem[] = [
 
 export function HomeGenreExploreBar() {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+
+  const checkScroll = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const { scrollLeft, scrollWidth, clientWidth } = el;
+    setCanScrollRight(scrollLeft + clientWidth < scrollWidth - 4);
+  }, []);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    checkScroll();
+
+    el.addEventListener("scroll", checkScroll, { passive: true });
+    window.addEventListener("resize", checkScroll, { passive: true });
+
+    return () => {
+      el.removeEventListener("scroll", checkScroll);
+      window.removeEventListener("resize", checkScroll);
+    };
+  }, [checkScroll]);
 
   const handleScroll = (direction: "left" | "right") => {
     if (!scrollRef.current) return;
@@ -86,23 +108,33 @@ export function HomeGenreExploreBar() {
       </div>
 
       {/* 2. Dải Pill thể loại YouTube / Netflix style */}
-      <div
-        ref={scrollRef}
-        className="flex items-center gap-2 overflow-x-auto scrollbar-none pb-1 pt-0.5 -mx-1 px-1 touch-pan-x"
-      >
-        {FEATURED_GENRE_CHIPS.map((chip) => (
-          <Link
-            key={chip.href}
-            href={chip.href}
-            className={`inline-flex items-center px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap flex-shrink-0 cursor-pointer transition-all duration-200 active:scale-95 ${
-              chip.isAll
-                ? "bg-white text-black font-bold shadow-sm hover:bg-zinc-200"
-                : "bg-white/[0.06] hover:bg-white/[0.14] text-zinc-300 hover:text-white border border-white/10 hover:border-white/25"
-            }`}
-          >
-            {chip.label}
-          </Link>
-        ))}
+      <div className="relative">
+        <div
+          ref={scrollRef}
+          className="flex items-center gap-2 overflow-x-auto scrollbar-none pb-1 pt-0.5 -mx-1 px-1 touch-pan-x"
+        >
+          {FEATURED_GENRE_CHIPS.map((chip) => (
+            <Link
+              key={chip.href}
+              href={chip.href}
+              className={`inline-flex items-center px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap flex-shrink-0 cursor-pointer transition-all duration-200 active:scale-95 ${
+                chip.isAll
+                  ? "bg-white text-black font-bold shadow-sm hover:bg-zinc-200"
+                  : "bg-white/[0.06] hover:bg-white/[0.14] text-zinc-300 hover:text-white border border-white/10 hover:border-white/25"
+              }`}
+            >
+              {chip.label}
+            </Link>
+          ))}
+        </div>
+
+        {/* Fade mép phải gợi mở nội dung cuộn */}
+        <div
+          aria-hidden="true"
+          className={`pointer-events-none absolute top-0 bottom-1 right-0 w-12 sm:w-16 bg-gradient-to-l from-black via-black/75 to-transparent transition-opacity duration-300 z-10 ${
+            canScrollRight ? "opacity-100" : "opacity-0"
+          }`}
+        />
       </div>
     </section>
   );

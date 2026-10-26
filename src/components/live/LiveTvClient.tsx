@@ -303,8 +303,8 @@ export function LiveTvClient({
       cleanUrl = cleanUrl.replace(/^http:\/\//i, "https://");
     }
 
-    // Nếu là domain không hỗ trợ CORS cho trình duyệt (như vnns.net) -> ưu tiên bọc qua proxy luôn để phát mượt mà không bị lỗi CORS
-    if (cleanUrl.startsWith("https://") && /vnns\.net/i.test(cleanUrl)) {
+    // Nếu là domain không hỗ trợ CORS cho trình duyệt (như vnns.net, dethich.pw) -> ưu tiên bọc qua proxy luôn để phát mượt mà không bị lỗi CORS
+    if (cleanUrl.startsWith("https://") && /vnns\.net|dethich\.pw/i.test(cleanUrl)) {
       return `/api/live-tv/proxy?url=${encodeURIComponent(cleanUrl)}`;
     }
 
@@ -594,11 +594,11 @@ export function LiveTvClient({
     const directPrimary = getStreamUrl(selectedTvChannel.url);
     if (directPrimary) candidateUrls.push(directPrimary);
 
-    // Nếu nguồn chính là direct HTTPS nhưng nghi ngờ CORS (ví dụ vnns.net), chuẩn bị proxy
+    // Nếu nguồn chính là direct HTTPS nhưng nghi ngờ CORS (ví dụ vnns.net, dethich.pw), chuẩn bị proxy
     if (
       directPrimary.startsWith("https://") &&
       !directPrimary.includes("/api/live-tv/proxy") &&
-      /vnns\.net/i.test(directPrimary)
+      /vnns\.net|dethich\.pw/i.test(directPrimary)
     ) {
       candidateUrls.push(`/api/live-tv/proxy?url=${encodeURIComponent(selectedTvChannel.url)}`);
     }
@@ -609,11 +609,11 @@ export function LiveTvClient({
       if (directFallback && !candidateUrls.includes(directFallback)) {
         candidateUrls.push(directFallback);
       }
-      // Nếu fallback là vnns.net hoặc domain cần proxy
+      // Nếu fallback là vnns.net, dethich.pw hoặc domain cần proxy
       if (
         directFallback.startsWith("https://") &&
         !directFallback.includes("/api/live-tv/proxy") &&
-        /vnns\.net/i.test(directFallback)
+        /vnns\.net|dethich\.pw/i.test(directFallback)
       ) {
         const proxyFallback = `/api/live-tv/proxy?url=${encodeURIComponent(fallbackUrl)}`;
         if (!candidateUrls.includes(proxyFallback)) {

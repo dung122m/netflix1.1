@@ -12,7 +12,11 @@ import {
 } from "@/lib/watchHistory";
 import { pickBestMovieThumb, toOptimizedPhimimgUrl } from "@/lib/movieMedia";
 import { formatEpisodeName } from "@/lib/formatEpisode";
-function isContinueWatchingItem(item: WatchHistoryItem): boolean {
+import { CarouselNavButton } from "@/components/ui/CarouselNavButton";
+
+export const MAX_CONTINUE_WATCHING_DISPLAY = 15;
+
+export function isContinueWatchingItem(item: WatchHistoryItem): boolean {
   if (item.durationSeconds && item.durationSeconds > 0 && typeof item.progressSeconds === "number") {
     const percent = (item.progressSeconds / item.durationSeconds) * 100;
     return percent < 95;
@@ -115,32 +119,23 @@ function ContinueWatchingRowInner() {
 
       {/* KHUNG CAROUSEL CÓ NÚT ĐIỀU HƯỚNG TRÁI/PHẢI CHUẨN NETFLIX */}
       <div className="relative group/row">
-        {/* NÚT CUỘN TRÁI */}
+        {/* NÚT CUỘN TRÁI / PHẢI: FLOATING GLASS PILL CHUẨN */}
         {canScrollLeft && (
-          <button
-            type="button"
+          <CarouselNavButton
+            direction="left"
             onClick={() => handleScroll("left")}
-            aria-label="Cuộn sang trái"
-            className="hidden sm:flex absolute left-0 top-3 bottom-3 z-30 w-12 md:w-14 bg-gradient-to-r from-black/90 via-black/60 to-transparent hover:from-black text-white items-center justify-start pl-1 opacity-0 group-hover/row:opacity-100 transition-all duration-300 cursor-pointer rounded-r-xl group/btn"
-          >
-            <div className="w-9 h-9 rounded-full bg-black/70 border border-white/20 flex items-center justify-center backdrop-blur-md group-hover/btn:scale-110 group-hover/btn:bg-white/20 transition-all shadow-xl">
-              <ChevronLeft className="w-5 h-5 text-white" />
-            </div>
-          </button>
+            ariaLabel="Cuộn danh sách đang xem sang trái"
+            topOffsetClass="top-[50%]"
+          />
         )}
 
-        {/* NÚT CUỘN PHẢI */}
         {canScrollRight && (
-          <button
-            type="button"
+          <CarouselNavButton
+            direction="right"
             onClick={() => handleScroll("right")}
-            aria-label="Cuộn sang phải"
-            className="hidden sm:flex absolute right-0 top-3 bottom-3 z-30 w-12 md:w-14 bg-gradient-to-l from-black/90 via-black/60 to-transparent hover:from-black text-white items-center justify-end pr-1 opacity-0 group-hover/row:opacity-100 transition-all duration-300 cursor-pointer rounded-l-xl group/btn"
-          >
-            <div className="w-9 h-9 rounded-full bg-black/70 border border-white/20 flex items-center justify-center backdrop-blur-md group-hover/btn:scale-110 group-hover/btn:bg-white/20 transition-all shadow-xl">
-              <ChevronRight className="w-5 h-5 text-white" />
-            </div>
-          </button>
+            ariaLabel="Cuộn danh sách đang xem sang phải"
+            topOffsetClass="top-[50%]"
+          />
         )}
 
         {/* MOBILE SUBTLE GRADIENT FADE AFFORDANCE */}
@@ -162,7 +157,7 @@ function ContinueWatchingRowInner() {
           ref={rowRef}
           className="flex gap-3 sm:gap-4 overflow-x-auto px-3 sm:px-4 py-3 sm:py-3.5 scrollbar-none [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
         >
-          {items.slice(0, 15).map((item) => {
+          {items.slice(0, MAX_CONTINUE_WATCHING_DISPLAY).map((item) => {
             const href = item.episodeSlug
               ? `/movies/${item.slug}?ep=${item.episodeSlug}`
               : `/movies/${item.slug}`;

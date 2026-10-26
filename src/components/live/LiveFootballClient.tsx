@@ -30,6 +30,7 @@ import {
   Check,
   RotateCcw,
   ArrowLeft,
+  ChevronDown,
 } from "lucide-react";
 
 interface LiveFootballClientProps {
@@ -423,6 +424,9 @@ export function LiveFootballClient({
     () => searchParams.get("fhd") === "1",
   );
   const [showMatchRail, setShowMatchRail] = useState(false);
+  const [isTournamentDropdownOpen, setIsTournamentDropdownOpen] = useState(false);
+  const [tournamentSearch, setTournamentSearch] = useState("");
+  const tournamentDropdownRef = useRef<HTMLDivElement>(null);
 
   const playerRef = useRef<HTMLDivElement>(null);
   const railContainerRef = useRef<HTMLDivElement>(null);
@@ -836,6 +840,32 @@ export function LiveFootballClient({
     }
   }, [availableTournaments, selectedTournament]);
 
+  const filteredTournaments = useMemo(() => {
+    if (!tournamentSearch.trim()) return availableTournaments;
+    const q = tournamentSearch.toLowerCase().trim();
+    return availableTournaments.filter((t) => t.name.toLowerCase().includes(q));
+  }, [availableTournaments, tournamentSearch]);
+
+  useEffect(() => {
+    if (!isTournamentDropdownOpen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (tournamentDropdownRef.current && !tournamentDropdownRef.current.contains(e.target as Node)) {
+        setIsTournamentDropdownOpen(false);
+      }
+    };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setIsTournamentDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isTournamentDropdownOpen]);
+
   const filteredMatches = useMemo(() => {
     return validMatches.filter((m) => {
       // 0. Lọc theo bộ môn thể thao chính xác (không gán ngầm non-basketball thành football)
@@ -1106,6 +1136,8 @@ export function LiveFootballClient({
     setSearchQuery("");
     setOnlyFhd(false);
     setSportFilter("all");
+    setIsTournamentDropdownOpen(false);
+    setTournamentSearch("");
     onSportChange?.("all");
     updateUrl({
       group: null,
@@ -1654,204 +1686,326 @@ export function LiveFootballClient({
             /* TRƯỜNG HỢP 2: KHI VỪA VÀO TRANG (MATCH DISCOVERY FIRST)      */
             /* ============================================================ */
             <div className="space-y-4 sm:space-y-6">
-              {/* THANH BỘ LỌC TÌM KIẾM TOÀN DIỆN & TIỆN LỢI */}
-              <div className="rounded-2xl border border-white/10 bg-zinc-950/80 backdrop-blur-xl p-2.5 sm:p-4 space-y-2.5 sm:space-y-3.5 shadow-2xl">
-                {/* Hàng 1: Ô tìm kiếm & Bộ lọc trạng thái */}
+              {/* THANH BỘ LỌC TÌM KIẾM TOÀN DIỆN & TINH GỌN (TỐI ĐA 2 HÀNG) */}
+              <div className="relative z-30 rounded-2xl border border-white/10 bg-zinc-950/80 backdrop-blur-xl p-2.5 sm:p-4 space-y-2.5 sm:space-y-3 shadow-2xl">
+                {/* HÀNG 1: Ô TÌM KIẾM, BỘ LỌC TRẠNG THÁI & CÔNG TẮC PHÁT (TOGGLES) */}
                 <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-2.5 sm:gap-3">
                   {/* Ô tìm kiếm thông minh */}
-                  <div className="relative w-full lg:max-w-md">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 sm:w-4 sm:h-4 text-zinc-400" />
+                  <div className="relative w-full lg:w-72 xl:w-80 shrink-0">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 sm:w-4 sm:h-4 text-zinc-400 pointer-events-none" />
                     <input
                       type="text"
                       value={searchQuery}
                       onChange={(e) => handleSearchChange(e.target.value)}
-                      placeholder="Tìm trận đấu, giải đấu, bình luận viên..."
-                      className="w-full pl-9 pr-14 py-2 sm:py-2.5 rounded-xl bg-zinc-900 border border-white/15 text-xs sm:text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-netflix-red focus:ring-1 focus:ring-netflix-red/50 transition shadow-inner font-medium"
+                      placeholder="Tìm trận, giải đấu, bình luận viên..."
+                      className="w-full pl-9 pr-9 py-2 sm:py-2.5 rounded-xl bg-zinc-900/90 border border-white/15 text-xs sm:text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-netflix-red focus:ring-1 focus:ring-netflix-red/50 transition font-medium shadow-inner"
                     />
-                    <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1 sm:gap-1.5">
-                      {searchQuery && (
-                        <button
-                          type="button"
-                          onClick={() => handleSearchChange("")}
-                          title="Xóa tìm kiếm"
-                          className="text-zinc-400 hover:text-white p-0.5 cursor-pointer rounded-full hover:bg-white/10"
-                        >
-                          <X className="w-3.5 h-3.5" />
-                        </button>
-                      )}
-                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-white/10 text-zinc-300">
-                        {filteredMatches.length}
-                      </span>
-                    </div>
+                    {searchQuery && (
+                      <button
+                        type="button"
+                        onClick={() => handleSearchChange("")}
+                        title="Xóa tìm kiếm"
+                        aria-label="Xóa tìm kiếm"
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-white p-0.5 cursor-pointer rounded-full hover:bg-white/10 transition"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    )}
                   </div>
 
-                  {/* Cụm nút lọc trạng thái trận đấu */}
-                  <div className="flex items-center gap-1 sm:gap-1.5 overflow-x-auto scrollbar-none py-0.5 touch-pan-x">
-                    <button
-                      type="button"
-                      onClick={() => handleStatusChange("all")}
-                      className={`px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl text-[11px] sm:text-xs font-bold whitespace-nowrap transition border shrink-0 cursor-pointer ${
-                        selectedStatus === "all"
-                          ? "bg-white text-black border-white shadow-sm font-extrabold"
-                          : "bg-zinc-900 text-zinc-400 border-white/10 hover:text-white"
-                      }`}
-                    >
-                      Tất cả ({counts.total})
-                    </button>
-                    {counts.live > 0 && (
+                  {/* Cụm điều khiển bên phải: Trạng thái trận (Single-select) & Khối Toggles độc lập */}
+                  <div className="flex items-center gap-2 sm:gap-3 overflow-x-auto scrollbar-none py-0.5 touch-pan-x min-w-0">
+                    {/* NHÓM TRẠNG THÁI TRẬN ĐẤU (SINGLE-SELECT) */}
+                    <div className="flex items-center gap-1 p-0.5 rounded-xl bg-zinc-900/80 border border-white/10 shrink-0">
                       <button
                         type="button"
-                        onClick={() => handleStatusChange("live")}
-                        className={`flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl text-[11px] sm:text-xs font-bold whitespace-nowrap transition border shrink-0 cursor-pointer ${
-                          selectedStatus === "live"
-                            ? "bg-red-600 text-white border-red-500 shadow-md shadow-red-950/50"
-                            : "bg-zinc-900 text-rose-300 border-red-500/20 hover:text-white"
+                        onClick={() => handleStatusChange("all")}
+                        className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition cursor-pointer min-h-[36px] sm:min-h-[38px] ${
+                          selectedStatus === "all"
+                            ? "bg-white text-zinc-950 font-bold shadow-sm"
+                            : "text-zinc-400 hover:text-white hover:bg-white/5"
                         }`}
                       >
-                        <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-red-500 animate-pulse" />
-                        <span>Đang diễn ra ({counts.live})</span>
+                        <span>Tất cả</span>
+                        <span className="text-[11px] font-mono opacity-60 font-normal">
+                          ({counts.total})
+                        </span>
                       </button>
-                    )}
-                    {counts.upcoming > 0 && (
+
+                      {counts.live > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => handleStatusChange("live")}
+                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition cursor-pointer min-h-[36px] sm:min-h-[38px] ${
+                            selectedStatus === "live"
+                              ? "bg-red-600 text-white font-bold shadow-md shadow-red-950/50"
+                              : "text-rose-300/90 hover:text-white hover:bg-white/5"
+                          }`}
+                        >
+                          <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse shrink-0" />
+                          <span>Đang diễn ra</span>
+                          <span className="text-[11px] font-mono opacity-80 font-normal">
+                            ({counts.live})
+                          </span>
+                        </button>
+                      )}
+
+                      {counts.upcoming > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => handleStatusChange("upcoming")}
+                          className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition cursor-pointer min-h-[36px] sm:min-h-[38px] ${
+                            selectedStatus === "upcoming"
+                              ? "bg-white text-zinc-950 font-bold shadow-sm"
+                              : "text-zinc-400 hover:text-white hover:bg-white/5"
+                          }`}
+                        >
+                          <Clock className="w-3.5 h-3.5 shrink-0 text-sky-400" />
+                          <span>Sắp diễn ra</span>
+                          <span className="text-[11px] font-mono opacity-60 font-normal">
+                            ({counts.upcoming})
+                          </span>
+                        </button>
+                      )}
+
+                      {counts.finished > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => handleStatusChange("finished")}
+                          className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition cursor-pointer min-h-[36px] sm:min-h-[38px] ${
+                            selectedStatus === "finished"
+                              ? "bg-white text-zinc-950 font-bold shadow-sm"
+                              : "text-zinc-400 hover:text-white hover:bg-white/5"
+                          }`}
+                        >
+                          <Check className="w-3.5 h-3.5 shrink-0" />
+                          <span>Đã kết thúc</span>
+                          <span className="text-[11px] font-mono opacity-60 font-normal">
+                            ({counts.finished})
+                          </span>
+                        </button>
+                      )}
+                    </div>
+
+                    {/* NHÓM TOGGLE ĐỘC LẬP: CÓ NGUỒN & FHD (TÁCH BIỆT BẰNG KHỐI RIÊNG BIỆT) */}
+                    <div className="flex items-center gap-1 p-0.5 rounded-xl bg-zinc-900/80 border border-white/10 shrink-0">
                       <button
                         type="button"
-                        onClick={() => handleStatusChange("upcoming")}
-                        className={`flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl text-[11px] sm:text-xs font-bold whitespace-nowrap transition border shrink-0 cursor-pointer ${
-                          selectedStatus === "upcoming"
-                            ? "bg-sky-600 text-white border-sky-500 shadow-sm"
-                            : "bg-zinc-900 text-sky-300 border-white/10 hover:text-white"
+                        onClick={handleStreamToggle}
+                        aria-pressed={onlyWithStream}
+                        title="Chỉ hiện các trận có nguồn phát trực tiếp"
+                        className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition cursor-pointer min-h-[36px] sm:min-h-[38px] border ${
+                          onlyWithStream
+                            ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/40 shadow-sm shadow-emerald-950/40 font-bold"
+                            : "text-zinc-400 border-transparent hover:text-zinc-200 hover:bg-white/5"
                         }`}
                       >
-                        <Clock className="w-3 h-3" />
-                        <span>Sắp diễn ra ({counts.upcoming})</span>
+                        <span className="text-xs">📶</span>
+                        <span>Có nguồn</span>
                       </button>
-                    )}
-                    {counts.finished > 0 && (
+
                       <button
                         type="button"
-                        onClick={() => handleStatusChange("finished")}
-                        className={`flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl text-[11px] sm:text-xs font-bold whitespace-nowrap transition border shrink-0 cursor-pointer ${
-                          selectedStatus === "finished"
-                            ? "bg-zinc-700 text-white border-zinc-600 shadow-sm"
-                            : "bg-zinc-900 text-zinc-400 border-white/10 hover:text-white"
+                        onClick={handleFhdToggle}
+                        aria-pressed={onlyFhd}
+                        title="Chỉ hiện các trận phát độ phân giải FHD 1080p"
+                        className={`flex items-center gap-1 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition cursor-pointer min-h-[36px] sm:min-h-[38px] border ${
+                          onlyFhd
+                            ? "bg-amber-500/20 text-amber-300 border-amber-500/40 shadow-sm shadow-amber-950/40 font-bold"
+                            : "text-zinc-400 border-transparent hover:text-zinc-200 hover:bg-white/5"
                         }`}
                       >
-                        <Check className="w-3 h-3" />
-                        <span>Đã kết thúc ({counts.finished})</span>
+                        <Zap className={`w-3.5 h-3.5 ${onlyFhd ? "fill-amber-400 text-amber-400" : "text-zinc-400"}`} />
+                        <span>FHD</span>
                       </button>
-                    )}
-
-                    <div className="h-3.5 sm:h-4 w-px bg-white/15 shrink-0 mx-0.5" />
-
-                    <button
-                      type="button"
-                      onClick={handleStreamToggle}
-                      className={`flex items-center gap-1 px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-xl text-[11px] sm:text-xs font-bold whitespace-nowrap transition border shrink-0 cursor-pointer ${
-                        onlyWithStream
-                          ? "bg-emerald-600 text-white border-emerald-500 shadow-sm"
-                          : "bg-zinc-900 text-emerald-400/90 border-white/10 hover:text-emerald-300"
-                      }`}
-                    >
-                      <span>📶 Có nguồn ({counts.withStream})</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={handleFhdToggle}
-                      className={`flex items-center gap-1 px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-xl text-[11px] sm:text-xs font-bold whitespace-nowrap transition border shrink-0 cursor-pointer ${
-                        onlyFhd
-                          ? "bg-emerald-600 text-white border-emerald-500 shadow-sm"
-                          : "bg-zinc-900 text-zinc-400 border-white/10 hover:text-white"
-                      }`}
-                    >
-                      <span>⚡ FHD</span>
-                    </button>
+                    </div>
                   </div>
                 </div>
 
-                {/* Hàng 2: Bộ lọc các môn thể thao dạng cuộn ngang */}
-                <ScrollablePillsRow innerClassName="flex items-center gap-1 sm:gap-1.5 py-0.5">
-                  <button
-                    type="button"
-                    onClick={() => handleSportChange("all")}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition border cursor-pointer shrink-0 ${
-                      sportFilter === "all"
-                        ? "bg-white text-black border-white shadow-sm font-extrabold"
-                        : "bg-zinc-900/90 text-zinc-400 border-white/10 hover:text-white"
-                    }`}
-                  >
-                    <span>Tất cả</span>
-                    <span
-                      className={`text-[10px] font-mono px-1.5 py-0.2 rounded-full ${
-                        sportFilter === "all"
-                          ? "bg-black/20 text-black font-black"
-                          : "bg-white/10 text-zinc-400"
-                      }`}
-                    >
-                      {validMatches.length}
-                    </span>
-                  </button>
-
-                  {availableSports.map((sp) => {
-                    const isSelected = sportFilter === sp.key;
-                    return (
+                {/* HÀNG 2: BỘ LỌC MÔN THỂ THAO (TRÁI) & CONTROL CHỌN GIẢI ĐẤU (PHẢI) */}
+                <div className="flex items-center justify-between gap-2 sm:gap-3 pt-0.5">
+                  {/* BÊN TRÁI: CÁC MÔN THỂ THAO CUỘN NGANG */}
+                  <div className="min-w-0 flex-1">
+                    <ScrollablePillsRow innerClassName="flex items-center gap-1 sm:gap-1.5 py-0.5">
                       <button
-                        key={sp.key}
                         type="button"
-                        onClick={() => handleSportChange(sp.key)}
-                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition border cursor-pointer shrink-0 ${
-                          isSelected
-                            ? "bg-gradient-to-r from-netflix-red to-netflix-red/85 text-white border-netflix-red shadow-md shadow-[var(--accent-glow,rgba(229,9,20,0.4))] scale-[1.02]"
-                            : "bg-zinc-900/90 text-zinc-300 border-white/10 hover:text-white hover:bg-white/5"
+                        onClick={() => handleSportChange("all")}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition border cursor-pointer shrink-0 min-h-[36px] sm:min-h-[38px] ${
+                          sportFilter === "all"
+                            ? "bg-white text-zinc-950 border-white shadow-sm font-bold"
+                            : "bg-zinc-900/90 text-zinc-400 border-white/10 hover:text-white hover:border-white/20"
                         }`}
                       >
-                        <span>{sp.icon}</span>
-                        <span>{sp.label}</span>
-                        <span
-                          className={`text-[10px] font-mono px-1.5 py-0.2 rounded-full ${
-                            isSelected
-                              ? "bg-black/40 text-white font-black"
-                              : "bg-white/10 text-zinc-400"
-                          }`}
-                        >
-                          {sp.count}
+                        <span>Tất cả môn</span>
+                        <span className="text-[11px] font-mono opacity-60 font-normal">
+                          ({validMatches.length})
                         </span>
                       </button>
-                    );
-                  })}
-                </ScrollablePillsRow>
 
-                {/* Hàng 3: Bộ lọc các giải đấu nổi bật dạng cuộn ngang */}
-                {availableTournaments.length > 0 && (
-                  <ScrollablePillsRow innerClassName="flex items-center gap-1 sm:gap-1.5 py-0.5">
-                    <button
-                      type="button"
-                      onClick={() => handleTournamentChange("all")}
-                      className={`px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl text-[11px] sm:text-xs font-bold whitespace-nowrap transition border cursor-pointer shrink-0 ${
-                        selectedTournament === "all"
-                          ? "bg-white/20 text-white border-white/30"
-                          : "bg-zinc-900/80 text-zinc-400 border-white/5 hover:text-white"
-                      }`}
-                    >
-                      Tất cả giải ({sportFilter === "all" ? validMatches.length : (availableSports.find((s) => s.key === sportFilter)?.count || 0)})
-                    </button>
-                    {availableTournaments.map((t) => (
+                      {availableSports.map((sp) => {
+                        const isSelected = sportFilter === sp.key;
+                        return (
+                          <button
+                            key={sp.key}
+                            type="button"
+                            onClick={() => handleSportChange(sp.key)}
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition border cursor-pointer shrink-0 min-h-[36px] sm:min-h-[38px] ${
+                              isSelected
+                                ? "bg-white text-zinc-950 border-white shadow-sm font-bold"
+                                : "bg-zinc-900/90 text-zinc-400 border-white/10 hover:text-white hover:border-white/20"
+                            }`}
+                          >
+                            <span>{sp.icon}</span>
+                            <span>{sp.label}</span>
+                            <span className="text-[11px] font-mono opacity-60 font-normal">
+                              ({sp.count})
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </ScrollablePillsRow>
+                  </div>
+
+                  {/* BÊN PHẢI: CONTROL CHỌN GIẢI ĐẤU DẠNG DROPDOWN/POPOVER NỔI */}
+                  {availableTournaments.length > 0 && (
+                    <div className="relative z-40 shrink-0 flex items-center justify-end" ref={tournamentDropdownRef}>
                       <button
-                        key={t.name}
                         type="button"
-                        onClick={() => handleTournamentChange(t.name)}
-                        className={`px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl text-[11px] sm:text-xs font-bold whitespace-nowrap transition border cursor-pointer shrink-0 ${
-                          selectedTournament === t.name
-                            ? "bg-netflix-red text-white border-netflix-red shadow-sm"
-                            : "bg-zinc-900/80 text-zinc-400 border-white/5 hover:text-white"
+                        onClick={() => setIsTournamentDropdownOpen((prev) => !prev)}
+                        aria-expanded={isTournamentDropdownOpen}
+                        aria-haspopup="listbox"
+                        className={`inline-flex items-center gap-1.5 sm:gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition border cursor-pointer shrink-0 min-h-[36px] sm:min-h-[38px] max-w-full ${
+                          selectedTournament !== "all"
+                            ? "bg-netflix-red/15 text-rose-300 border-netflix-red/40 ring-1 ring-netflix-red/30 shadow-sm font-bold"
+                            : isTournamentDropdownOpen
+                            ? "bg-zinc-800 text-white border-white/30"
+                            : "bg-zinc-900/90 text-zinc-300 border-white/10 hover:border-white/25 hover:text-white"
                         }`}
                       >
-                        <span>{t.name}</span>
-                        <span className="ml-1 opacity-70 text-[9.5px] sm:text-[10px]">({t.count})</span>
+                        <Trophy className={`w-3.5 h-3.5 shrink-0 ${selectedTournament !== "all" ? "text-amber-400" : "text-zinc-400"}`} />
+                        <span className="truncate max-w-[130px] sm:max-w-[170px]">
+                          {selectedTournament === "all" ? "Tất cả giải đấu" : selectedTournament}
+                        </span>
+                        <span className="text-[11px] font-mono opacity-60 font-normal shrink-0">
+                          ({selectedTournament === "all"
+                            ? (sportFilter === "all"
+                                ? validMatches.length
+                                : (availableSports.find((s) => s.key === sportFilter)?.count || validMatches.length))
+                            : (availableTournaments.find((t) => t.name === selectedTournament)?.count || 0)})
+                        </span>
+                        {selectedTournament !== "all" ? (
+                          <span
+                            role="button"
+                            tabIndex={0}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleTournamentChange("all");
+                            }}
+                            title="Bỏ chọn giải đấu"
+                            className="p-0.5 rounded-full hover:bg-white/20 text-rose-300 hover:text-white transition ml-0.5"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </span>
+                        ) : (
+                          <ChevronDown
+                            className={`w-3.5 h-3.5 shrink-0 transition-transform duration-200 ${
+                              isTournamentDropdownOpen ? "rotate-180 text-white" : "text-zinc-400"
+                            }`}
+                          />
+                        )}
                       </button>
-                    ))}
-                  </ScrollablePillsRow>
-                )}
+
+                      {/* POPOVER DROPDOWN GIẢI ĐẤU (Z-50, KHÔNG TRÀN MÉP VIEWPORT) */}
+                      {isTournamentDropdownOpen && (
+                        <div className="absolute right-0 top-full mt-2 w-72 max-w-[calc(100vw-24px)] rounded-2xl bg-zinc-950 border border-white/20 shadow-[0_20px_50px_rgba(0,0,0,0.95)] p-2 z-50 animate-in fade-in zoom-in-95 duration-150 flex flex-col">
+                          <div className="flex items-center justify-between px-2 py-1 border-b border-white/10 mb-1.5">
+                            <div className="flex items-center gap-1.5 text-[11px] font-bold text-zinc-300 uppercase tracking-wider">
+                              <Trophy className="w-3.5 h-3.5 text-amber-400" />
+                              <span>Giải đấu nổi bật</span>
+                            </div>
+                            <span className="text-[10px] text-zinc-500 font-mono">
+                              {availableTournaments.length} giải
+                            </span>
+                          </div>
+
+                          {availableTournaments.length > 5 && (
+                            <div className="relative px-1 mb-1.5">
+                              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3 h-3 text-zinc-400" />
+                              <input
+                                type="text"
+                                value={tournamentSearch}
+                                onChange={(e) => setTournamentSearch(e.target.value)}
+                                placeholder="Tìm tên giải đấu..."
+                                className="w-full pl-8 pr-7 py-1.5 rounded-lg bg-zinc-900 border border-white/10 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-netflix-red"
+                              />
+                              {tournamentSearch && (
+                                <button
+                                  type="button"
+                                  onClick={() => setTournamentSearch("")}
+                                  className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-white"
+                                >
+                                  <X className="w-3 h-3" />
+                                </button>
+                              )}
+                            </div>
+                          )}
+
+                          <div className="overflow-y-auto max-h-60 scrollbar-thin space-y-0.5">
+                            {/* Tùy chọn: Tất cả giải đấu */}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                handleTournamentChange("all");
+                                setIsTournamentDropdownOpen(false);
+                              }}
+                              className={`w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-semibold transition text-left cursor-pointer ${
+                                selectedTournament === "all"
+                                  ? "bg-white text-zinc-950 font-bold shadow-sm"
+                                  : "text-zinc-300 hover:bg-zinc-800/80 hover:text-white"
+                              }`}
+                            >
+                              <span>Tất cả giải đấu</span>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-[10px] font-mono opacity-70">
+                                  ({sportFilter === "all"
+                                    ? validMatches.length
+                                    : (availableSports.find((s) => s.key === sportFilter)?.count || validMatches.length)})
+                                </span>
+                                {selectedTournament === "all" && <Check className="w-3.5 h-3.5 text-zinc-950 stroke-[3]" />}
+                              </div>
+                            </button>
+
+                            {/* Danh sách từng giải */}
+                            {filteredTournaments.map((t) => {
+                              const isSelected = selectedTournament === t.name;
+                              return (
+                                <button
+                                  key={t.name}
+                                  type="button"
+                                  onClick={() => {
+                                    handleTournamentChange(t.name);
+                                    setIsTournamentDropdownOpen(false);
+                                  }}
+                                  className={`w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-semibold transition text-left cursor-pointer ${
+                                    isSelected
+                                      ? "bg-netflix-red text-white font-bold shadow-md shadow-red-950/50"
+                                      : "text-zinc-300 hover:bg-zinc-800/80 hover:text-white"
+                                  }`}
+                                >
+                                  <span className="truncate pr-2">{t.name}</span>
+                                  <div className="flex items-center gap-1.5 shrink-0">
+                                    <span className="text-[10px] font-mono opacity-70">({t.count})</span>
+                                    {isSelected && <Check className="w-3.5 h-3.5 text-white stroke-[2.5]" />}
+                                  </div>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
 
                 {/* Thanh Reset filter khi có áp dụng */}
                 {hasActiveFilters && (
