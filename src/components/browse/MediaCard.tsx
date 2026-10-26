@@ -457,8 +457,14 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
     return raw.charAt(0).toUpperCase() + raw.slice(1);
   }, [initialCountry, origin_name, title, genre]);
 
-  // Gom cả 3 thông tin thành 1 chuỗi duy nhất: [Năm] • [Quốc gia] • [Thể loại]
-  const metaString = React.useMemo(() => {
+  // Chuỗi thông tin phụ:
+  // - Mobile: Ưu tiên [Năm] • [Thể loại] (hoặc Quốc gia nếu không có thể loại) để vừa vặn card 140px, không bị tràn hay cắt cụt chữ
+  // - Tablet/Desktop: Giữ nguyên [Năm] • [Quốc gia] • [Thể loại]
+  const mobileMetaString = React.useMemo(() => {
+    return [displayYear, mainGenre || displayCountry].filter(Boolean).join(" • ");
+  }, [displayYear, mainGenre, displayCountry]);
+
+  const desktopMetaString = React.useMemo(() => {
     return [displayYear, displayCountry, mainGenre].filter(Boolean).join(" • ");
   }, [displayYear, displayCountry, mainGenre]);
 
@@ -757,7 +763,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
       {/* ========================================================================= */}
       {/* 2. KHỐI THÔNG TIN DƯỚI POSTER: CHUẨN ĐÚNG 2 DÒNG CHỮ THẲNG HÀNG TĂM TẮP    */}
       {/* ========================================================================= */}
-      <div className="pt-2 px-0.5 flex flex-col gap-0.5 w-full">
+      <div className="pt-2 px-0.5 flex flex-col gap-0.5 w-full min-w-0">
         {/* ĐOẠN KHỚP TÌM KIẾM (NẾU ĐƯỢC GỌI TỪ TRANG TÌM KIẾM) */}
         {matchSnippet && (
           <div className="flex items-center gap-1 text-[11px] text-amber-300 font-medium line-clamp-1 mb-0.5">
@@ -766,30 +772,31 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
           </div>
         )}
 
-        {/* DÒNG 1 — TÊN PHIM: 1 DÒNG DUY NHẤT (TRUNCATE), CHIỀU CAO CỐ ĐỊNH */}
+        {/* DÒNG 1 — TÊN PHIM: TỐI ĐA 2 DÒNG TRÊN MOBILE (LINE-CLAMP-2), 1 DÒNG TRÊN DESKTOP (LINE-CLAMP-1), CHIỀU CAO ĐỒNG BỘ */}
         <Link
           href={targetHref}
           onClick={handleCardClick}
           tabIndex={-1}
           aria-hidden="true"
-          className="outline-none block w-full"
+          className="outline-none block w-full min-w-0"
         >
-          <div className="h-5 sm:h-5.5 flex items-center w-full">
+          <div className="h-[38px] sm:h-5.5 flex items-start sm:items-center w-full min-w-0">
             <h4
               title={title}
-              className="text-zinc-100 group-hover/card:text-red-400 font-semibold text-[13px] sm:text-[14px] leading-none truncate w-full transition-colors"
+              className="text-zinc-100 group-hover/card:text-red-400 font-semibold text-[13px] sm:text-[14px] leading-[1.35] sm:leading-none line-clamp-2 sm:line-clamp-1 w-full transition-colors"
             >
               {title}
             </h4>
           </div>
         </Link>
 
-        {/* DÒNG 2 — THÔNG TIN PHỤ: [Năm] • [Quốc gia] • [Thể loại] (1 THẺ <p> DUY NHẤT CÓ TRUNCATE) */}
+        {/* DÒNG 2 — THÔNG TIN PHỤ: MOBILE HIỆN [NĂM] • [THỂ LOẠI], TABLET/DESKTOP HIỆN CẢ QUỐC GIA (BLOCK TRUNCATE CHUẨN CSS) */}
         <p
-          title={metaString}
-          className="text-xs text-neutral-400 mt-1 truncate w-full select-none leading-none h-4 sm:h-4.5 flex items-center"
+          title={desktopMetaString}
+          className="text-xs text-neutral-400 mt-1 block truncate w-full min-w-0 select-none leading-none h-4 sm:h-4.5"
         >
-          {metaString || <span className="text-transparent pointer-events-none">·</span>}
+          <span className="sm:hidden">{mobileMetaString || <span className="text-transparent pointer-events-none">·</span>}</span>
+          <span className="hidden sm:inline">{desktopMetaString || <span className="text-transparent pointer-events-none">·</span>}</span>
         </p>
       </div>
 
