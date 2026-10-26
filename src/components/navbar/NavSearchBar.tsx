@@ -7,7 +7,6 @@ import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { Search, Loader2, X, History, ArrowLeft } from "lucide-react";
 import { useDebounce } from "@/hooks/useDebounce";
 import { toOptimizedPhimimgUrl } from "@/lib/movieMedia";
-import { useAuth } from "@/context/AuthContext";
 
 
 export interface SearchSuggestion {
@@ -34,7 +33,6 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const urlKeyword = searchParams.get("keyword") || "";
-  const { user } = useAuth();
 
   const [hasText, setHasText] = useState(false);
   const [suggestions, setSuggestions] = useState<SearchSuggestion[]>([]);

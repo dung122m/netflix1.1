@@ -2,12 +2,13 @@
 
 import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { Keyboard, X, Play, Monitor, Volume2, HelpCircle } from "lucide-react";
+import { Keyboard, X, Play, Monitor } from "lucide-react";
 import { useBodyScrollLock } from "@/lib/scrollLock";
 
 interface PlayerShortcutModalProps {
   isOpen: boolean;
   onClose: () => void;
+  containerRef?: React.RefObject<HTMLElement | null>;
   container?: HTMLElement | null;
 }
 
@@ -50,7 +51,7 @@ const SHORTCUT_GROUPS: ShortcutGroup[] = [
 ];
 
 export const PlayerShortcutModal: React.FC<PlayerShortcutModalProps> = React.memo(
-  function PlayerShortcutModal({ isOpen, onClose, container }) {
+  function PlayerShortcutModal({ isOpen, onClose, containerRef, container }) {
     const [mounted, setMounted] = useState(false);
     const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
 
@@ -71,10 +72,12 @@ export const PlayerShortcutModal: React.FC<PlayerShortcutModalProps> = React.mem
           doc.mozFullScreenElement ||
           doc.msFullscreenElement) as HTMLElement | null;
 
+        const targetEl = containerRef ? containerRef.current : container;
+
         if (fsElem) {
           setPortalTarget(fsElem);
-        } else if (container && container.isConnected) {
-          setPortalTarget(container);
+        } else if (targetEl && targetEl.isConnected) {
+          setPortalTarget(targetEl);
         } else {
           setPortalTarget(document.body);
         }
@@ -93,7 +96,7 @@ export const PlayerShortcutModal: React.FC<PlayerShortcutModalProps> = React.mem
         document.removeEventListener("mozfullscreenchange", resolveTarget);
         document.removeEventListener("MSFullscreenChange", resolveTarget);
       };
-    }, [container, isOpen]);
+    }, [containerRef, container, isOpen]);
 
     useEffect(() => {
       if (!isOpen) return;

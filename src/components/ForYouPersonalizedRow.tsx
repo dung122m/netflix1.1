@@ -3,8 +3,6 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import {
   Sparkles,
-  ChevronLeft,
-  ChevronRight,
   RefreshCw,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";

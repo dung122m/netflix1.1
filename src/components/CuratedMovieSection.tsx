@@ -9,7 +9,6 @@ import {
   Clock,
   Sparkles,
   ChevronRight,
-  ChevronLeft,
   Film,
   Loader2,
 } from "lucide-react";

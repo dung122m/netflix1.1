@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Play, X, Clock, ChevronLeft, ChevronRight } from "lucide-react";
+import { Play, X, Clock } from "lucide-react";
 import {
   getWatchHistory,
   removeWatchHistoryItem,

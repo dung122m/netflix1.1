@@ -232,3 +232,40 @@ Mọi AI Agent khi thực hiện tác vụ sửa đổi giao diện trên Nanafl
 2. Kiểm tra regression: đảm bảo không làm thay đổi logic dữ liệu, tương tác, hoặc làm vỡ bố cục các trang khác.
 3. Chạy kiểm tra kỹ thuật của dự án: `npm run typecheck`, unit test liên quan.
 4. Báo cáo trung thực những gì đã kiểm chứng và giới hạn kiểm thử (nếu có).
+
+---
+
+## 7. Engineering Quality Gate: Lint, TypeScript & Regression Rules
+
+Bộ quy chuẩn kỹ thuật bắt buộc nhằm triệt tiêu lỗi ESLint, TypeScript, React Hooks và ngăn ngừa hồi quy logic trong mọi phiên làm việc:
+
+### A. Bắt Buộc Kiểm Tra Trước Khi Kết Thúc
+- **Script lint chính thức:** Bắt buộc chạy `npm run lint` trước khi hoàn tất công việc.
+- **Typecheck nghiêm ngặt:** Bắt buộc chạy `npm run typecheck` (`tsc --noEmit`).
+- **Unit & Regression Test:** Chạy các test liên quan trực tiếp đến khu vực vừa sửa đổi (ví dụ: `npm run test:history`, `npm run test:live`, `npm run test:movies`, v.v.).
+- **Build & Verification:** Chạy build (`npm run build`) hoặc regression/browser test khi mức độ thay đổi cấu trúc/trang yêu cầu.
+- **Tính trung thực:** Tuyệt đối không tuyên bố PASS nếu lệnh chưa thực sự chạy thành công hoặc bị lỗi/timeout.
+- **Đề xuất hợp lý:** Nếu dự án chưa có lệnh lint, đề xuất cách bổ sung phù hợp với cấu hình hiện tại; không tự ý cài thêm package hoặc thay đổi lớn cấu hình ngoài phạm vi.
+
+### B. Quy Tắc Code & Ngăn Ngừa Lỗi React
+- **Không để lại lỗi mới:** Không để lại bất kỳ lỗi lint mới, lỗi TypeScript compiler hoặc vi phạm quy tắc React Hooks (`react-hooks/rules-of-hooks`, `react-hooks/exhaustive-deps`, `react-hooks/refs`).
+- **Dependencies của Hooks:** Tuyệt đối không bỏ qua dependency của `useEffect`, `useMemo`, `useCallback` chỉ để làm lint im lặng mà không có phân tích kỹ thuật.
+- **Cấm che giấu lỗi:** Không tùy tiện sử dụng `eslint-disable`, `@ts-ignore`, `@ts-nocheck` hoặc ép kiểu `any` để che lỗi nếu chưa có lý do kỹ thuật rõ ràng và được giải thích minh bạch.
+- **Vệ sinh mã nguồn:** Loại bỏ triệt để unused imports, unused variables, unreachable code, biến bị khai báo lại và các biểu thức điều kiện luôn đúng/sai.
+- **Xử lý bất đồng bộ & Vòng đời:** Xử lý đầy đủ Promise rejection, async error; dọn dẹp sạch sẽ (cleanup) mọi event listener, interval, timeout theo đúng vòng đời component để tránh rò rỉ bộ nhớ.
+- **Player, Seek, Cache & Ad Transition:** Đặc biệt cẩn trọng với trình phát: triệt tiêu race condition, stale closure, timer bị bỏ quên, và các chuyển đổi trạng thái (state transition) không có điểm kết thúc an toàn.
+- **Không hạ chuẩn lỏng lẻo:** Không thêm suppression toàn file (`/* eslint-disable */`) hoặc hạ thấp mức nghiêm trọng của quy tắc trong file cấu hình chỉ để vượt qua kiểm tra.
+
+### C. Giới Hạn Phạm Vi Sửa Đổi
+- **Tập trung & tối thiểu:** Không tự tiện format lại toàn bộ file hoặc sửa hàng loạt các file không liên quan đến mục tiêu yêu cầu.
+- **Bảo toàn nghiệp vụ:** Tuyệt đối không thay đổi business logic chỉ nhằm mục đích làm lint pass.
+- **Giữ nguyên cấu hình:** Không nâng cấp dependency, không thay đổi cấu hình ESLint toàn cục hoặc can thiệp lockfile nếu không có yêu cầu rõ ràng.
+- **Bóc tách baseline:** Nếu baseline tồn tại lỗi cũ từ trước, ghi rõ nội dung lỗi, vị trí và trạng thái trước/sau; không nhận lỗi cũ là lỗi do patch mới và ngược lại.
+- **Chỉ xử lý phạm vi được giao:** Chỉ sửa các lỗi mới do thay đổi hiện tại gây ra, trừ khi được người dùng phê duyệt sửa mở rộng.
+
+### D. Quy Trình Kiểm Tra Sau Mỗi Patch
+1. **Linting:** Chạy `npm run lint` trên phạm vi file sửa đổi hoặc toàn dự án.
+2. **Typecheck:** Chạy `npm run typecheck` để đảm bảo hệ thống kiểu dữ liệu không bị gãy vỡ.
+3. **Targeted Test:** Chạy các unit/regression test liên quan đến module vừa can thiệp.
+4. **Diff Inspection:** Soát kỹ `git diff` để phát hiện sửa sót ngoài phạm vi, phát hiện suppression mới và ngăn ngừa thay đổi cấu hình ngoài ý muốn.
+5. **Browser Regression:** Với các thay đổi liên quan đến UI/Player/Animation, kiểm tra hành vi thực tế hoặc chạy kịch bản browser regression phù hợp.

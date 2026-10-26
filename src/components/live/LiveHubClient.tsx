@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
-import { Tv, Radio, Zap, Trophy, Activity } from "lucide-react";
+import { Tv, Radio, Zap, Trophy } from "lucide-react";
 import { LiveFootballData } from "@/services/liveFootballService";
 import { LiveTvData } from "@/services/liveTvService";
 import { LiveFootballClient } from "./LiveFootballClient";
@@ -83,7 +83,6 @@ export function LiveHubClient({ footballData, tvData }: LiveHubClientProps) {
 
   const isSportsCinema = hasActiveMatch && activeTab === "sports";
   const isTvCinema = activeTab === "tv";
-  const isCinemaMode = isSportsCinema || isTvCinema;
 
   return (
     <div

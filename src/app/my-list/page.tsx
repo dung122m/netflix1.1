@@ -33,7 +33,6 @@ import { useAuth } from "@/context/AuthContext";
 import { AuthModal } from "@/components/AuthModal";
 import { UserAvatar } from "@/components/ui/UserAvatar";
 import { Footer } from "@/components/Footer";
-import { MediaCard } from "@/components/browse/MediaCard";
 import { WatchlistCard } from "@/components/browse/WatchlistCard";
 import { getWatchlist, autoHydrateWatchlist, WatchlistItem } from "@/lib/watchlist";
 import {

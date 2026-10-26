@@ -17,11 +17,9 @@ import {
   Check,
   AlertCircle,
   Radio,
-  ChevronDown,
   ChevronUp,
   Sparkles,
   PictureInPicture2,
-  Zap,
   X,
   RotateCcw,
   RotateCw,
@@ -621,7 +619,6 @@ function LivePlayerInner({
   servers,
   blv = match?.blv,
   time = match?.time,
-  group = match?.group,
   team1 = match?.team1,
   team2 = match?.team2,
   isEvent = match?.isEvent,
@@ -793,7 +790,6 @@ function LivePlayerInner({
   const useProxyFallbackRef = useRef<boolean>(false);
   const [copied, setCopied] = useState(false);
   const [showControls, setShowControls] = useState(false);
-  const [showAllServers, setShowAllServers] = useState(false);
   const [isGridView, setIsGridView] = useState(true);
   const chipsContainerRef = useRef<HTMLDivElement | null>(null);
   const activeChipRef = useRef<HTMLButtonElement | null>(null);
@@ -979,27 +975,12 @@ function LivePlayerInner({
     return null;
   }, [servers, selectedServerIndex, currentMatchFailedUrls, availableServers]);
 
-  const INITIAL_SERVER_LIMIT = 8;
-  const hasMoreServers = availableServers.length > INITIAL_SERVER_LIMIT;
-
   const currentAvailableIdx = useMemo(() => {
     return availableServers.findIndex(
       (s) =>
         toCanonicalSourceUrl(s.url) === toCanonicalSourceUrl(currentServer?.url),
     );
   }, [availableServers, currentServer?.url]);
-
-  useEffect(() => {
-    if (currentAvailableIdx >= INITIAL_SERVER_LIMIT) {
-      setShowAllServers(true);
-    }
-  }, [currentAvailableIdx]);
-
-  const displayedServers =
-    showAllServers || !hasMoreServers
-      ? availableServers
-      : availableServers.slice(0, INITIAL_SERVER_LIMIT);
-
   const [homeTriedAsset, setHomeTriedAsset] = useState(false);
   const [homeFailed, setHomeFailed] = useState(false);
   const [awayTriedAsset, setAwayTriedAsset] = useState(false);

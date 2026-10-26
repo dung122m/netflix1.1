@@ -212,7 +212,7 @@ export const MovieRouletteModal: React.FC<MovieRouletteModalProps> = ({
     });
   };
 
-  const handleClose = () => {
+  const handleClose = useCallback(() => {
     if (spinTimerRef.current) {
       clearTimeout(spinTimerRef.current);
       spinTimerRef.current = null;
@@ -220,7 +220,7 @@ export const MovieRouletteModal: React.FC<MovieRouletteModalProps> = ({
     requestSeqRef.current++;
     setIsOpen(false);
     onClose?.();
-  };
+  }, [onClose]);
 
   useEffect(() => {
     const handleOpenStudio = (e?: CustomEvent<{ tab?: string }>) => {
@@ -258,7 +258,7 @@ export const MovieRouletteModal: React.FC<MovieRouletteModalProps> = ({
       window.removeEventListener("open-ai-roulette" as unknown as keyof WindowEventMap, handleOpenRoulette as EventListener);
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [isOpen, onClose]);
+  }, [isOpen, onClose, handleClose]);
 
   useEffect(() => {
     setIsOpen(initialOpen);

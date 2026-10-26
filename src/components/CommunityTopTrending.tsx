@@ -5,8 +5,6 @@ import Link from "next/link";
 import Image from "next/image";
 import {
   Flame,
-  ChevronLeft,
-  ChevronRight,
   TrendingUp,
 } from "lucide-react";
 import { MovieViewStatItem } from "@/services/supabaseService";

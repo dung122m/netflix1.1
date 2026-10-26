@@ -28,7 +28,7 @@ import { formatEpisodeName } from "@/lib/formatEpisode";
 import { useAuth } from "@/context/AuthContext";
 import { updateActivePlaybackSession } from "@/services/handoffService";
 import { incrementUserWatchTime, getPlayerSettings, PlayerSettings } from "@/services/userService";
-import { PlayerNativeControls, SeekBack10Icon, SeekForward10Icon, VideoFit } from "./player/PlayerNativeControls";
+import { PlayerNativeControls, VideoFit } from "./player/PlayerNativeControls";
 import { PlayerActionButtons } from "./player/PlayerActionButtons";
 import { PlayerShortcutModal } from "./player/PlayerShortcutModal";
 import {
@@ -352,8 +352,8 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
 
   // Dedicated unmount teardown for keyboard seek timers to avoid cancelling in-flight seeks during normal re-renders
   useEffect(() => {
+    const s = pendingKeyboardSeekRef.current;
     return () => {
-      const s = pendingKeyboardSeekRef.current;
       if (s.timer) {
         clearTimeout(s.timer);
         s.timer = null;
@@ -976,6 +976,8 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
   // HLS lifecycle
   useEffect(() => {
     const video = videoRef.current;
+    const adPreTrigger = adPreTriggerRef.current;
+    const hasSkippedAd = hasSkippedAdRef.current;
     if (!video || !resolvedM3u8 || useIframeFallback) {
       if (hlsRef.current) {
         hlsRef.current.destroy();
@@ -1437,17 +1439,17 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
         hlsRef.current = null;
       }
       hasHandledPreRollRef.current = false;
-      if (adPreTriggerRef.current.timer) {
-        clearTimeout(adPreTriggerRef.current.timer);
-        adPreTriggerRef.current.timer = null;
+      if (adPreTrigger.timer) {
+        clearTimeout(adPreTrigger.timer);
+        adPreTrigger.timer = null;
       }
-      if (adPreTriggerRef.current.rVfcId !== null && videoRef.current && "cancelVideoFrameCallback" in videoRef.current) {
+      if (adPreTrigger.rVfcId !== null && video && "cancelVideoFrameCallback" in video) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (videoRef.current as any).cancelVideoFrameCallback(adPreTriggerRef.current.rVfcId);
-        adPreTriggerRef.current.rVfcId = null;
+        (video as any).cancelVideoFrameCallback(adPreTrigger.rVfcId);
+        adPreTrigger.rVfcId = null;
       }
       adBoundariesRef.current = [];
-      hasSkippedAdRef.current.clear();
+      hasSkippedAd.clear();
       lastAdSkipTimeRef.current = 0;
       isProgrammaticAdSkipRef.current = false;
       if (automatedAdSkipRef.current) {
@@ -1464,6 +1466,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
       video.removeAttribute("src");
       video.load();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     resolvedM3u8,
     useIframeFallback,
@@ -2056,6 +2059,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
         stallRecoveryTimeoutRef.current = null;
       }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     effectiveNextEpisode,
     switchEpisode,
@@ -2983,7 +2987,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
       <PlayerShortcutModal
         isOpen={showShortcutModal}
         onClose={() => setShowShortcutModal(false)}
-        container={containerRef.current}
+        containerRef={containerRef}
       />
     </>
   );

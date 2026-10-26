@@ -47,7 +47,6 @@ import {
   saveWatchHistory,
   saveWatchProgress,
   getWatchHistory,
-  clearWatchHistory,
   setWatchHistoryFromSync,
   getEpisodeProgress,
   getAllEpisodeProgress,

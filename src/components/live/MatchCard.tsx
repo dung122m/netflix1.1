@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useMemo, useEffect, useCallback } from "react";
-import { Play, Clock, Flame, Mic, Trophy, Sparkles } from "lucide-react";
+import { Play, Flame, Mic } from "lucide-react";
 import { FootballMatch } from "@/services/liveFootballService";
 import { LiveMatchScore } from "@/services/live/football-score/types";
 import {
@@ -153,10 +153,6 @@ function MatchCardInner({ match, isSelected, onSelect, score, compact }: MatchCa
     currentScore?.kickoffTime ||
     displayStatus.kickoffTime ||
     (match.time && match.time !== "Trực tiếp" && match.time !== "24/7" ? match.time : null);
-  const liveBadgeLabel =
-    displayStatus.isConfirmedLive && displayStatus.badgeLabel && !displayStatus.badgeLabel.includes(":")
-      ? displayStatus.badgeLabel
-      : (match.time && !match.time.includes(":") ? `${match.time}'` : "Trực tiếp");
 
   const [homeTriedAsset, setHomeTriedAsset] = useState(false);
   const [homeFailed, setHomeFailed] = useState(false);

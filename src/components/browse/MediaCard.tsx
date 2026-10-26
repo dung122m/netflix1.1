@@ -11,7 +11,6 @@ import {
 } from "lucide-react";
 import { isInWatchlist, toggleWatchlist, subscribeToWatchlist } from "@/lib/watchlist";
 import {
-  detectMovieTypeName,
   toOptimizedCardPosterUrl,
   sanitizeImageUrl,
   formatGenreName,
@@ -96,7 +95,6 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
   posterUrl,
   thumbUrl,
   genre,
-  description,
   priority = false,
   time,
   year,
@@ -269,24 +267,6 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
   })();
 
   const displayTime = time && typeof time === "string" && time.trim() && time.trim() !== "Đang cập nhật" && time.trim() !== "N/A" ? time.trim() : "";
-
-  // Loại phim: Phim lẻ / Phim bộ / Hoạt hình / Phim rạp
-  const displayType = (() => {
-    if (initialTypeName && initialTypeName !== "Phim lẻ") {
-      return initialTypeName;
-    }
-    return detectMovieTypeName({
-      name: title,
-      title,
-      slug,
-      origin_name,
-      category: genre,
-      time,
-      chieurap,
-      sub_docquyen,
-      type: initialTypeName,
-    });
-  })();
 
   // Thể loại chính (chỉ lấy 1 thể loại ngắn gọn, loại trừ các loại phim như Phim lẻ / Phim bộ)
   const mainGenre = React.useMemo(() => {

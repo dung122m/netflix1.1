@@ -112,6 +112,8 @@ export const ClientModals = React.memo(function ClientModals() {
 
   const vietnamTodayOpenRef = useRef(false);
   const loadRequestIdRef = useRef(0);
+  const todayInfoRef = useRef<VietnamTodayInfo | null>(null);
+  todayInfoRef.current = todayInfo;
 
   useEffect(() => {
     // 1. Movie Roulette Modal (Bốc Quẻ Phim Độc Lập)
@@ -172,7 +174,7 @@ export const ClientModals = React.memo(function ClientModals() {
       setVietnamTodayError(null);
 
       // Nếu đã có sẵn dữ liệu và không yêu cầu targetId khác, giữ nguyên
-      if (todayInfo && (!targetId || todayInfo.event?.id === targetId)) {
+      if (todayInfoRef.current && (!targetId || todayInfoRef.current.event?.id === targetId)) {
         return;
       }
 
