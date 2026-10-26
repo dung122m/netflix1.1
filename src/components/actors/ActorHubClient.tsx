@@ -88,6 +88,7 @@ export const ActorHubClient: React.FC<ActorHubClientProps> = ({ initialActors })
 
   const filteredActors = useMemo(() => {
     const qNorm = normalizeForMatch(searchQuery);
+    const qNoSpace = qNorm.replace(/\s+/g, "");
 
     return initialActors.filter((actor) => {
       // 1. Lọc theo quốc gia
@@ -98,17 +99,20 @@ export const ActorHubClient: React.FC<ActorHubClientProps> = ({ initialActors })
       // 2. Lọc theo từ khóa tìm kiếm
       if (!qNorm) return true;
 
-      const nameNorm = normalizeForMatch(actor.name);
-      const engNorm = normalizeForMatch(actor.englishName || "");
-      const rolesNorm = normalizeForMatch(actor.roles || "");
-      const aliasNorm = (actor.aliases || []).some((a) => normalizeForMatch(a).includes(qNorm));
+      const checkField = (field?: string | null) => {
+        if (!field) return false;
+        const norm = normalizeForMatch(field);
+        if (norm.includes(qNorm)) return true;
+        if (qNoSpace && norm.replace(/\s+/g, "").includes(qNoSpace)) return true;
+        return false;
+      };
 
-      return (
-        nameNorm.includes(qNorm) ||
-        engNorm.includes(qNorm) ||
-        rolesNorm.includes(qNorm) ||
-        aliasNorm
-      );
+      const nameMatch = checkField(actor.name);
+      const engMatch = checkField(actor.englishName);
+      const rolesMatch = checkField(actor.roles);
+      const aliasMatch = (actor.aliases || []).some((a) => checkField(a));
+
+      return nameMatch || engMatch || rolesMatch || aliasMatch;
     });
   }, [initialActors, searchQuery, activeCountry]);
 

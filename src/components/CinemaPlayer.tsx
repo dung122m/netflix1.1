@@ -656,7 +656,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
     // 1. Phục hồi quyền skip nếu người dùng tua lùi về trước mốc quảng cáo
     if (adBoundariesRef.current.length > 0) {
       for (const ad of adBoundariesRef.current) {
-        if (boundedTime < ad.start - 2) {
+        if (boundedTime < ad.start) {
           hasSkippedAdRef.current.delete(`${ad.start}_${ad.end}`);
         }
       }
@@ -1778,8 +1778,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
       // Tự động bỏ qua đoạn quảng cáo đã xác minh ranh giới (Verified Ad-Boundary Skip Controller — Zero-Flash)
       if (
         isNativeVideo &&
-        watchContext?.activeProvider !== "vsmov" &&
-        pendingKeyboardSeekRef.current.timer === null
+        watchContext?.activeProvider !== "vsmov"
       ) {
         const effectiveDur = getEffectiveDuration();
 
@@ -1799,6 +1798,11 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
         });
 
         if (adDecision && adDecision.shouldSeek) {
+          if (pendingKeyboardSeekRef.current.timer) {
+            clearTimeout(pendingKeyboardSeekRef.current.timer);
+            pendingKeyboardSeekRef.current.timer = null;
+            pendingKeyboardSeekRef.current.state.isDebouncePending = false;
+          }
           triggerAdSkip(adDecision.targetSeek, adDecision.adDuration, adDecision.adKey);
         } else if (!video.paused && !video.seeking && !video.ended && adBoundariesRef.current.length > 0) {
           // 2. Pre-emptive monitoring: Nếu playhead đang tiến sát ranh giới quảng cáo kế tiếp (trong 1.5s)
@@ -1970,15 +1974,14 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
         return;
       }
 
-      // 2. Chống hủy transition nhầm: Nếu transition đang diễn ra trong khoảng 800ms đầu,
-      // browser có thể phát ra event seeking trong lúc cập nhật currentTime bất đồng bộ
+      // 2. Bảo vệ quá trình chuyển tiếp quảng cáo: không can thiệp hay phát lệnh seek trùng lặp khi đang transition
       const adSkip = automatedAdSkipRef.current;
-      if (adSkip && adSkip.active && Date.now() - adSkip.startTime < 800) {
+      if (adSkip && adSkip.active) {
         return;
       }
 
-      // 3. Nếu là thao tác tua thủ công (nút ±10s, bàn phím, double tap, hoặc ScrubBar):
-      // Kiểm tra nếu điểm rơi nằm trong khối quảng cáo thì snap qua luôn sau quảng cáo
+      // 3. Fallback bảo vệ cho seek phát sinh ngoài requestPlayerSeek (native browser controls / Picture-in-Picture):
+      // Nếu điểm rơi nằm trong khối quảng cáo thì snap an toàn sang vị trí sau quảng cáo
       const v = videoRef.current;
       if (v && adBoundariesRef.current.length > 0) {
         const ct = v.currentTime;
@@ -2000,26 +2003,6 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
           setIsAdTransitioning(true);
           v.currentTime = snap.adjustedTime;
           return;
-        }
-      }
-
-      // 4. Nếu là manual seek bình thường ra ngoài vùng quảng cáo: dọn dẹp cờ transition cũ nếu có
-      if (
-        adSkip &&
-        adSkip.active &&
-        v &&
-        Math.abs(v.currentTime - adSkip.targetSeek) > 1.5
-      ) {
-        const isStillInAd = adBoundariesRef.current.some(
-          (b) => v.currentTime >= b.start && v.currentTime < (b.nextStart ?? b.end)
-        );
-        if (!isStillInAd) {
-          const { restoredMuted } = endAdTransition(adSkip);
-          automatedAdSkipRef.current = null;
-          setIsAdTransitioning(false);
-          if (restoredMuted !== null) {
-            v.muted = restoredMuted;
-          }
         }
       }
     };

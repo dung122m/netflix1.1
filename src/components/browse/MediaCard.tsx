@@ -8,7 +8,6 @@ import {
   Film,
   Bookmark,
   FolderPlus,
-  Star,
 } from "lucide-react";
 import { isInWatchlist, toggleWatchlist, subscribeToWatchlist } from "@/lib/watchlist";
 import {
@@ -101,7 +100,6 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
   priority = false,
   time,
   year,
-  rating,
   quality,
   chieurap,
   sub_docquyen,
@@ -455,11 +453,6 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
 
   const modalTrailerUrl = trailerUrl || clientTrailerCache.get(slug) || null;
 
-  const validRating = (() => {
-    if (!rating || rating === "N/A") return 0;
-    const num = typeof rating === "number" ? rating : parseFloat(String(rating));
-    return Number.isFinite(num) && num > 0 && num <= 10 ? num : 0;
-  })();
 
   // Nhãn chất lượng bản phim (CAM, HD, FHD, 4K, Vietsub...) đưa lên góc trên bên trái poster
   const displayQualityBadge = (() => {
@@ -568,15 +561,6 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
           </div>
         )}
 
-        {/* ĐIỂM ĐÁNH GIÁ (★ RATING) GÓC TRÊN PHẢI POSTER (LUÔN HIỂN THỊ RÕ RÀNG CẢ KHI HOVER) */}
-        {validRating > 0 && (
-          <div className="absolute top-2 right-2 z-10 pointer-events-none transition-opacity duration-200">
-            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-[4px] bg-black/60 backdrop-blur-md text-amber-300 text-[11px] font-semibold shadow border border-white/10 select-none tabular-nums">
-              <Star className="w-2.5 h-2.5 fill-amber-300 text-amber-300" />
-              <span>{validRating.toFixed(1)}</span>
-            </span>
-          </div>
-        )}
 
         {/* NÚT THÊM BỘ SƯU TẬP TRÊN MOBILE (KHÔNG PHỤ THUỘC HOVER, HITBOX 44PX CHUẨN TOUCH HIG/WCAG) */}
         <div className="absolute bottom-2 right-2 z-20 pointer-events-auto sm:hidden">

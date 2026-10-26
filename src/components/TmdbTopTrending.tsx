@@ -11,7 +11,6 @@ import {
   Zap,
   Crown,
   Globe,
-  Star,
 } from "lucide-react";
 import { pickBestMoviePoster, toOptimizedPhimimgUrl, formatGenreName, formatCountryName } from "@/lib/movieMedia";
 import { CarouselNavButton } from "@/components/ui/CarouselNavButton";
@@ -473,7 +472,6 @@ function TmdbTopTrendingInner() {
               const rank = index + 1;
               const movieSlug = movie.slug;
               const movieTitle = movie.name || movie.origin_name || "Phim";
-              const voteScore = Number(movie.tmdb?.vote_average || movie.score || 0);
 
               const rawCountry = Array.isArray(movie.country)
                 ? (typeof movie.country[0] === "object" ? movie.country[0]?.name || movie.country[0]?.slug : movie.country[0]) || ""
@@ -600,13 +598,6 @@ function TmdbTopTrendingInner() {
                           {movieTitle}
                         </h3>
                         <div className="flex items-center gap-1.5 text-[10px] sm:text-[11px] text-zinc-400 mt-1 font-medium min-w-0">
-                          {voteScore > 0 && (
-                            <span className="inline-flex items-center gap-0.5 text-amber-400 font-bold shrink-0">
-                              <Star className="w-2.5 h-2.5 sm:w-3 sm:h-3 fill-amber-400 text-amber-400" />
-                              <span>{voteScore.toFixed(1)}</span>
-                            </span>
-                          )}
-                          {voteScore > 0 && <span className="text-zinc-600 shrink-0">•</span>}
                           <span className="shrink-0">{movie.year || "Mới"}</span>
                           {secondaryTag && <span className="text-zinc-600 shrink-0">•</span>}
                           {secondaryTag && (

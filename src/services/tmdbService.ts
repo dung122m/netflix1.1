@@ -1522,13 +1522,13 @@ export async function getActorFilmographyFromTmdb(
   tmdbPersonId?: number
 ): Promise<any[]> {
   const cleanKey = cleanStringForMatch(actorQuery) || cleanStringForMatch(canonicalName);
-  if (!cleanKey) return [];
+  if (!cleanKey && !tmdbPersonId) return [];
 
-  const cacheKey = `TMDB_ACTOR_FLOW_V6:${cleanKey}`;
+  const cacheKey = `TMDB_ACTOR_FLOW_V7:${tmdbPersonId || cleanKey}`;
   const now = Date.now();
   const cached = TMDB_ACTOR_MOVIES_CACHE.get(cacheKey);
 
-  if (cached) {
+  if (cached && cached.data && cached.data.length > 0) {
     if (cached.expireAt > now) {
       return cached.data.slice(0, maxMovies);
     }
@@ -1541,7 +1541,7 @@ export async function getActorFilmographyFromTmdb(
     }
   }
 
-  const kvKey = `tmdb:actor_flow_v6:${cleanKey}:${maxMovies}`;
+  const kvKey = `tmdb:actor_flow_v7:${tmdbPersonId || cleanKey}:${maxMovies}`;
   return await cacheService.fetchOrSet(
     kvKey,
     () => executeTmdbActorFlow(actorQuery, canonicalName, aliases, cacheKey, maxMovies, concurrency, tmdbPersonId),

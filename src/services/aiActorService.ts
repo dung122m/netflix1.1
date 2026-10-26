@@ -1308,12 +1308,12 @@ export async function queryMoviesByActor(
   );
 
   const normalizedVariants = Array.from(new Set(allVariants.map(normalizeForMatch).filter(Boolean)));
-  const cacheKey = `ACTOR_QUERY_V9:${matchedSlug || normalizedVariants.sort().join("|")}`;
+  const cacheKey = `ACTOR_QUERY_V10:${matchedSlug || normalizedVariants.sort().join("|")}`;
 
   // 2. Cơ chế SWR Cache (Stale-While-Revalidate - Phản hồi 0ms tức thì)
   const cached = ACTOR_FILM_CACHE.get(cacheKey);
   const now = Date.now();
-  if (cached) {
+  if (cached && cached.items.length > 0) {
     if (cached.expireAt > now) {
       // Dữ liệu tươi mới -> trả về tức thì 0ms
       return cached.items.slice(0, maxMovies);
@@ -1326,12 +1326,13 @@ export async function queryMoviesByActor(
     }
   }
 
-  const kvKey = `actor:filmography_v9:${matchedSlug || actorName}:${maxMovies}`;
-  return await cacheService.fetchOrSet(
+  const kvKey = `actor:filmography_v10:${matchedSlug || actorName}:${maxMovies}`;
+  const res = await cacheService.fetchOrSet(
     kvKey,
     () => executeActorFilmQuery(actorName, allVariants, matchedSlug, synonymRes, maxMovies, cacheKey),
     14 * 86400 // 14 ngày
   );
+  return res || [];
 }
 
 async function executeActorFilmQuery(

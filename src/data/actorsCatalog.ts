@@ -1052,13 +1052,16 @@ export const ACTORS_CATALOG: ActorCatalogItem[] = [
       "Chính kịch"
     ],
     "roles": "Nữ Hoàng Nước Mắt • Hậu Duệ Mặt Trời",
-    "avatarUrl": "https://image.tmdb.org/t/p/w500/iU12o2aevDwBuRprF2nuJSVT5zB.jpg",
-    "tmdbPersonId": 3880409,
-    "birthday": "2009-01-01",
+    "avatarUrl": "https://image.tmdb.org/t/p/w500/lX7W1j9kg4jV6XNn5XEE3rKsd3x.jpg",
+    "tmdbPersonId": 582130,
+    "birthday": "1992-10-19",
+    "placeOfBirth": "Seoul, South Korea",
     "bio": "Kim Ji-won là một nữ diễn viên người Hàn Quốc. Cô trở nên nổi tiếng thông qua những vai diễn trong các bộ phim truyền hình Người thừa kế (2013), Hậu duệ mặt trời (2016), Thanh xuân vật vã (2017), Biên niên sử Arthdal (2019), Tình yêu chốn đô thị (2020–2021), Nhật ký tự do của tôi (2022) và Nữ hoàng nước mắt (2024). Sự thành công từ các bộ phim truyền hình của Kim Ji-won trên khắp châu Á đã giúp cô trở thành một ngôi sao được săn đón Hallyu.",
     "aliases": [
       "kim ji-won",
-      "kim ji won"
+      "kim ji won",
+      "kim jiwon",
+      "김지원"
     ],
     "featured": true
   },
@@ -5482,8 +5485,17 @@ export const ACTORS_CATALOG: ActorCatalogItem[] = [
 export function getActorBySlug(slug?: string): ActorCatalogItem | undefined {
   if (!slug) return undefined;
   const clean = slug.toLowerCase().trim();
+  const cleanNoDash = clean.replace(/-/g, " ");
+  const cleanNoSpace = clean.replace(/[\s-]/g, "");
   return ACTORS_CATALOG.find(
-    (a) => a.slug === clean || (a.aliases && a.aliases.some((al) => al.toLowerCase().trim() === clean))
+    (a) =>
+      a.slug === clean ||
+      a.slug.replace(/-/g, "") === cleanNoSpace ||
+      (a.aliases &&
+        a.aliases.some((al) => {
+          const alClean = al.toLowerCase().trim();
+          return alClean === clean || alClean === cleanNoDash || alClean.replace(/[\s-]/g, "") === cleanNoSpace;
+        }))
   );
 }
 
@@ -5495,13 +5507,18 @@ export function findCatalogActor(nameOrQuery?: string): ActorCatalogItem | undef
   if (!nameOrQuery) return undefined;
   const clean = nameOrQuery.toLowerCase().trim();
   const cleanNoDash = clean.replace(/-/g, " ");
+  const cleanNoSpace = clean.replace(/[\s-]/g, "");
   return ACTORS_CATALOG.find((a) => {
-    if (a.name.toLowerCase().trim() === clean || a.name.toLowerCase().trim() === cleanNoDash) return true;
-    if (a.englishName && (a.englishName.toLowerCase().trim() === clean || a.englishName.toLowerCase().trim() === cleanNoDash)) return true;
-    if (a.slug === clean) return true;
+    const aName = a.name.toLowerCase().trim();
+    if (aName === clean || aName === cleanNoDash || aName.replace(/[\s-]/g, "") === cleanNoSpace) return true;
+    if (a.englishName) {
+      const aEng = a.englishName.toLowerCase().trim();
+      if (aEng === clean || aEng === cleanNoDash || aEng.replace(/[\s-]/g, "") === cleanNoSpace) return true;
+    }
+    if (a.slug === clean || a.slug.replace(/-/g, "") === cleanNoSpace) return true;
     if (a.aliases && a.aliases.some((al) => {
       const aClean = al.toLowerCase().trim();
-      return aClean === clean || aClean === cleanNoDash;
+      return aClean === clean || aClean === cleanNoDash || aClean.replace(/[\s-]/g, "") === cleanNoSpace;
     })) return true;
     return false;
   });
