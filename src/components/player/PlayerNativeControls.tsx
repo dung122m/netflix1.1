@@ -16,6 +16,7 @@ import {
   Minimize2,
   SkipForward,
   Keyboard,
+  Film,
 } from "lucide-react";
 import { PlayerScrubBar, PlayerTimeDisplay } from "../PlayerScrubBar";
 import { Tooltip } from "@/components/ui/Tooltip";
@@ -224,7 +225,9 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
         >
           {/* Left: Movie Title & Episode Name */}
           <div className="flex items-center gap-2 min-w-0 pr-2">
-            <div className="w-1.5 h-4 rounded-full bg-netflix-red flex-shrink-0" />
+            <span className="flex items-center justify-center w-5 h-5 rounded-md bg-white/10 text-rose-400 border border-white/15 shrink-0">
+              <Film className="w-3 h-3" />
+            </span>
             <span className="text-white font-bold text-xs sm:text-sm truncate drop-shadow-md">
               {title || "Đang phát"}
             </span>

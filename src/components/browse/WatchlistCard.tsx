@@ -143,7 +143,7 @@ export const WatchlistCard: React.FC<WatchlistCardProps> = ({
   }
 
   return (
-    <div className="group relative flex flex-col w-full rounded-2xl bg-zinc-900/60 border border-white/10 hover:border-red-500/50 shadow-[0_8px_25px_rgba(0,0,0,0.7)] hover:shadow-[0_16px_40px_rgba(229,9,20,0.3)] transition-all duration-300 hover:-translate-y-1.5 overflow-hidden select-none">
+    <div className="group relative flex flex-col w-full rounded-2xl bg-zinc-950 border border-white/10 hover:border-red-500/50 shadow-[0_8px_25px_rgba(0,0,0,0.7)] hover:shadow-[0_16px_40px_rgba(229,9,20,0.3)] transition-all duration-300 hover:-translate-y-1.5 overflow-hidden select-none">
       {/* 1. KHỐI POSTER NGHỆ THUẬT (2:3 CANVASS) */}
       <div className="relative aspect-[2/3] w-full overflow-hidden bg-zinc-950">
         <Link
@@ -249,7 +249,7 @@ export const WatchlistCard: React.FC<WatchlistCardProps> = ({
       </div>
 
       {/* 2. KHỐI THÔNG TIN VÀ NÚT HÀNH ĐỘNG DƯỚI POSTER */}
-      <div className="p-3 sm:p-3.5 flex flex-col justify-between flex-1 gap-2.5 bg-gradient-to-b from-zinc-900/90 to-zinc-950">
+      <div className="p-3 sm:p-3.5 flex flex-col justify-between flex-1 gap-2.5 bg-gradient-to-b from-zinc-900 to-zinc-950 -mt-px relative z-10">
         <div>
           <Link
             href={targetHref}

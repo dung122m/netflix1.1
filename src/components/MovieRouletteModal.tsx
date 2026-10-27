@@ -824,7 +824,7 @@ export const MovieRouletteModal: React.FC<MovieRouletteModalProps> = ({
 
                   {/* UNIFIED TAROT VERDICT & SYNOPSIS BOX */}
                   <div className="space-y-2 p-3 sm:p-3.5 rounded-2xl bg-zinc-950/80 border border-amber-500/30 text-left shadow-inner">
-                    <p className="text-xs sm:text-[13px] text-amber-200 font-medium italic leading-relaxed border-l-2 border-amber-400 pl-2.5">
+                    <p className="text-xs sm:text-[13px] text-amber-200 font-medium italic leading-relaxed px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/20">
                       ✨ {rouletteResult.punchline}
                     </p>
 

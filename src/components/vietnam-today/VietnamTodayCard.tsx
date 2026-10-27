@@ -304,12 +304,12 @@ export function VietnamTodayCard({ info, selectedEventId, onOpenModal }: Vietnam
       {/* SPECIAL HOLIDAY EFFECT (Active only when event has effect) */}
       {event.effect && <VietnamEventEffect effect={event.effect} />}
 
-      {/* 2. LEFT DECORATIVE ACCENT STRIPE */}
+      {/* 2. AMBIENT BORDER HIGHLIGHT */}
       <div
-        className={`absolute left-0 top-0 bottom-0 w-1 sm:w-1.5 z-10 transition-opacity duration-300 ${
+        className={`pointer-events-none absolute inset-0 rounded-2xl sm:rounded-3xl border transition-colors duration-300 z-10 ${
           isToday
-            ? "bg-gradient-to-b from-red-500 via-amber-500 to-yellow-500 opacity-90 group-hover:opacity-100"
-            : "bg-gradient-to-b from-amber-500/60 to-zinc-600 opacity-60 group-hover:opacity-100"
+            ? "border-red-500/30 group-hover:border-red-500/60"
+            : "border-white/10 group-hover:border-white/25"
         }`}
       />
 
