@@ -563,9 +563,9 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
               type="button"
               onClick={handleOpenCollectionModal}
               aria-label={`Thêm phim ${title} vào bộ sưu tập`}
-              className="w-7 h-7 rounded-full flex items-center justify-center border transition-all duration-150 hover:scale-110 active:scale-95 cursor-pointer shadow-md shadow-black/50 backdrop-blur-md outline-none focus-visible:ring-2 focus-visible:ring-amber-400 bg-black/75 hover:bg-amber-400 hover:border-amber-400 hover:text-black border-white/20 text-white"
+              className="w-7 h-7 rounded-full flex items-center justify-center border transition-all duration-150 hover:scale-110 active:scale-95 cursor-pointer shadow-md shadow-black/50 backdrop-blur-md outline-none focus-visible:ring-2 focus-visible:ring-amber-400 bg-black/75 hover:bg-amber-400 hover:border-amber-400 text-amber-400 hover:text-black border-white/20"
             >
-              <FolderPlus className="w-3.5 h-3.5 text-amber-400 group-hover:text-black transition-colors" />
+              <FolderPlus className="w-3.5 h-3.5 transition-colors" />
             </button>
           </Tooltip>
 
