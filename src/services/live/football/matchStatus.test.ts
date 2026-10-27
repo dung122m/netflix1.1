@@ -2437,3 +2437,160 @@ describe("Nanaflix Hotfix: Điều chỉnh phạm vi trận bóng đá trên /li
   });
 });
 
+describe("Nanaflix Hotfix: Live Event Lifecycle & Ballon d'Or Regression Tests", () => {
+  const baseNow = new Date("2026-10-28T03:30:00+07:00").getTime();
+
+  // 1. Trận bóng thông thường ở phút 139 vẫn theo logic cũ
+  it("1. Trận bóng thông thường ở phút 139 vẫn là 'live' và hiển thị trên /live", () => {
+    const kickoff139mAgo = baseNow - 139 * 60 * 1000;
+    const tl = getMatchTimeline(kickoff139mAgo, "unknown", "alive", baseNow, false);
+    assert.equal(tl, "live", "Standard football match at 139m elapsed must be 'live'");
+    assert.equal(isMatchInLiveWindow(tl, kickoff139mAgo, baseNow), true, "Standard football match at 139m must be in live window");
+  });
+
+  // 2. Trận bóng thông thường vượt 140 phút vẫn kết thúc theo logic cũ
+  it("2. Trận bóng thông thường vượt 140 phút (phút 141) chuyển sang 'finished' và bị ẩn", () => {
+    const kickoff141mAgo = baseNow - 141 * 60 * 1000;
+    const tl = getMatchTimeline(kickoff141mAgo, "unknown", "alive", baseNow, false);
+    assert.equal(tl, "finished", "Standard football match at 141m elapsed must be 'finished'");
+    assert.equal(isMatchInLiveWindow(tl, kickoff141mAgo, baseNow), false, "Finished match must NOT be in live window");
+  });
+
+  // 3. Sự kiện trực tiếp vượt 140 phút vẫn được hiển thị khi stream xác nhận 'alive', nhưng kết thúc nếu 'unknown' hoặc 'dead'
+  it("3. Sự kiện trực tiếp vượt 140 phút (200m, 240m) chỉ là 'live' khi stream xác nhận 'alive', ẩn nếu 'unknown' hoặc 'dead'", () => {
+    const kickoff200mAgo = baseNow - 200 * 60 * 1000; // 3 giờ 20 phút trước
+    const tl200Alive = getMatchTimeline(kickoff200mAgo, "unknown", "alive", baseNow, true);
+    assert.equal(tl200Alive, "live", "Live event at 200m elapsed with alive stream must remain 'live'");
+    assert.equal(isMatchInLiveWindow(tl200Alive, kickoff200mAgo, baseNow), true, "Live event at 200m with alive stream must be in live window");
+
+    const kickoff240mAgo = baseNow - 240 * 60 * 1000; // 4 giờ trước
+    const tl240Unknown = getMatchTimeline(kickoff240mAgo, "unknown", "unknown", baseNow, true);
+    assert.equal(tl240Unknown, "finished", "Overdue event (>140m) with unknown stream health must NOT be assumed live (prevents zombie cards)");
+    assert.equal(isMatchInLiveWindow(tl240Unknown, kickoff240mAgo, baseNow), false, "Overdue event with unknown stream must NOT be in live window");
+
+    const tl240Dead = getMatchTimeline(kickoff240mAgo, "unknown", "dead", baseNow, true);
+    assert.equal(tl240Dead, "finished", "Overdue event with dead stream must be finished");
+    assert.equal(isMatchInLiveWindow(tl240Dead, kickoff240mAgo, baseNow), false, "Overdue dead event must NOT be in live window");
+
+    // Quá 8 giờ (490m): Hard stop bắt buộc kết thúc dù stream còn báo alive
+    const kickoff490mAgo = baseNow - 490 * 60 * 1000;
+    const tl490 = getMatchTimeline(kickoff490mAgo, "unknown", "alive", baseNow, true);
+    assert.equal(tl490, "finished", "Event past 8 hours must hard stop as finished");
+  });
+
+  // 4. Sự kiện có trạng thái kết thúc rõ ràng không tiếp tục hiển thị chỉ vì được đánh dấu isEvent
+  it("4. Sự kiện có trạng thái kết thúc rõ ràng (sourceStatus = 'finished') phải kết thúc ngay", () => {
+    const kickoff60mAgo = baseNow - 60 * 60 * 1000;
+    const tl = getMatchTimeline(kickoff60mAgo, "finished", "alive", baseNow, true);
+    assert.equal(tl, "finished", "Event with sourceStatus = 'finished' must be finished");
+    assert.equal(isMatchInLiveWindow(tl, kickoff60mAgo, baseNow), false, "Finished event must NOT be in live window");
+  });
+
+  // 5. Sự kiện có tất cả stream chết vẫn được xử lý theo quy tắc hiện tại
+  it("5. Sự kiện có streamHealth = 'dead' phải chuyển sang 'finished' và bị ẩn", () => {
+    const kickoff60mAgo = baseNow - 60 * 60 * 1000;
+    const tl = getMatchTimeline(kickoff60mAgo, "unknown", "dead", baseNow, true);
+    assert.equal(tl, "finished", "Event with streamHealth = 'dead' must be finished");
+    assert.equal(isMatchInLiveWindow(tl, kickoff60mAgo, baseNow), false, "Dead stream event must NOT be in live window");
+  });
+
+  // 6. Trận / sự kiện sắp diễn ra ngoài cửa sổ 2 giờ vẫn bị loại như trước
+  it("6. Trận và sự kiện sắp diễn ra ngoài cửa sổ 2 giờ (>120m) đều không xuất hiện trên /live", () => {
+    const kickoffIn150m = baseNow + 150 * 60 * 1000; // 2 giờ 30 phút tới
+
+    // Trận bóng
+    const tlMatch = getMatchTimeline(kickoffIn150m, "unknown", "unknown", baseNow, false);
+    assert.equal(tlMatch, "upcoming");
+    assert.equal(isMatchInLiveWindow(tlMatch, kickoffIn150m, baseNow), false, "Match > 2h must NOT be in live window");
+
+    // Sự kiện trực tiếp
+    const tlEvent = getMatchTimeline(kickoffIn150m, "unknown", "unknown", baseNow, true);
+    assert.equal(tlEvent, "upcoming");
+    assert.equal(isMatchInLiveWindow(tlEvent, kickoffIn150m, baseNow), false, "Event > 2h must NOT be in live window");
+  });
+
+  // 7. Sự kiện Ballon d'Or được phân loại và hiển thị đúng khi tiêu đề thực tế khớp quy tắc nhận diện
+  it("7. Sự kiện Ballon d'Or được nhận diện đúng sport = 'football' và isEvent = true", () => {
+    const title1 = "01:00 Lễ trao giải Quả Bóng Vàng - Ballon d'Or 2024";
+    const res1 = extractSportAndGender(title1, "Trực Tiếp Thể Thao");
+    assert.equal(res1.sport, "football", "Ballon d'Or must be classified as football");
+
+    const title2 = "01:00 Gala Quả Bóng Vàng 2024 (BLV Batman)";
+    const res2 = extractSportAndGender(title2, "VMT TV");
+    assert.equal(res2.sport, "football", "Quả Bóng Vàng must be classified as football");
+
+    // normalizeAndMergeStreams phân loại thành isEvent = true
+    const { matches } = normalizeAndMergeStreams(
+      [
+        {
+          rawTitle: "01:00 Lễ trao giải Quả Bóng Vàng 2024 (BLV Batman)",
+          group: "Trực Tiếp Thể Thao",
+          rawLogo: "",
+          url: "https://example.com/ballondor.m3u8",
+          effectiveUrl: "https://example.com/ballondor.m3u8",
+        },
+      ],
+      baseNow,
+    );
+
+    assert.equal(matches.length, 1);
+    assert.equal(matches[0].isEvent, true, "Ballon d'Or gala must have isEvent = true");
+    assert.equal(matches[0].sport, "football", "Ballon d'Or must have sport = 'football'");
+    assert.equal(matches[0].team1, "", "Event must have empty team1");
+    assert.equal(matches[0].team2, "", "Event must have empty team2");
+  });
+
+  // 8. Bản ghi thông thường không bị nhận nhầm thành sự kiện trực tiếp
+  it("8. Trận bóng đá hai đội đối kháng bình thường phải có isEvent = false", () => {
+    const { matches } = normalizeAndMergeStreams(
+      [
+        {
+          rawTitle: "20:00 Arsenal vs Chelsea (BLV Anh Quân)",
+          group: "K+ Sport 1",
+          rawLogo: "",
+          url: "https://example.com/ars-che.m3u8",
+          effectiveUrl: "https://example.com/ars-che.m3u8",
+        },
+      ],
+      baseNow,
+    );
+
+    assert.equal(matches.length, 1);
+    assert.equal(matches[0].isEvent, false, "Two-team fixture must have isEvent = false");
+    assert.equal(matches[0].team1, "Arsenal");
+    assert.equal(matches[0].team2, "Chelsea");
+    assert.equal(matches[0].sport, "football");
+  });
+
+  // 9. Tiêu đề lễ trao giải có chữ 'vs' không bị phân tách thành 2 đội bóng
+  it("9. Tiêu đề 'Trực Tiếp vs Lễ trao giải Quả bóng Vàng 2026' phải là isEvent = true, không parse thành team1/team2", () => {
+    const { matches } = normalizeAndMergeStreams(
+      [
+        {
+          rawTitle: "Trực Tiếp vs Lễ trao giải Quả bóng Vàng 2026",
+          group: "Trực Tiếp Thể Thao",
+          rawLogo: "",
+          url: "https://example.com/qbv2.m3u8",
+          effectiveUrl: "https://example.com/qbv2.m3u8",
+        },
+      ],
+      baseNow,
+    );
+
+    assert.equal(matches.length, 1);
+    assert.equal(matches[0].isEvent, true, "Ceremony title with 'vs' must remain an event");
+    assert.equal(matches[0].team1, "", "Ceremony must have empty team1");
+    assert.equal(matches[0].team2, "", "Ceremony must have empty team2");
+  });
+
+  // 10. isValidFootballTeamName loại trừ các cụm từ giải thưởng/lễ trao giải/gala
+  it("10. isValidFootballTeamName trả về false cho tên sự kiện, lễ trao giải, quả bóng vàng", () => {
+    assert.equal(isValidFootballTeamName("Lễ trao giải"), false);
+    assert.equal(isValidFootballTeamName("Quả bóng Vàng 2026"), false);
+    assert.equal(isValidFootballTeamName("Gala Quả Bóng Vàng"), false);
+    assert.equal(isValidFootballTeamName("Ballon d'Or 2026"), false);
+    assert.equal(isValidFootballTeamName("Arsenal"), true);
+    assert.equal(isValidFootballTeamName("Real Madrid"), true);
+  });
+});
+

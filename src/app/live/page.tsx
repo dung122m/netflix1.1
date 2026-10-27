@@ -47,7 +47,7 @@ export default async function LivePage() {
   ]);
 
   return (
-    <div className="page-cinema-container min-h-screen">
+    <div className="page-cinema-container min-h-screen w-full max-w-full overflow-x-clip">
       <Navbar />
       <Suspense fallback={<div className="min-h-[60vh] flex items-center justify-center text-white">Đang tải...</div>}>
         <LiveHubClient footballData={footballData} tvData={tvData} />

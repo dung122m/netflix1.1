@@ -182,7 +182,7 @@ export const ActorDetailClient: React.FC<ActorDetailClientProps> = ({
             <div className="space-y-4 sm:space-y-5 text-zinc-300 text-xs sm:text-sm leading-relaxed font-normal">
               {/* LEAD INTRO PARAGRAPH */}
               {leadParagraph && (
-                <div className="relative p-4 sm:p-5 rounded-xl sm:rounded-2xl bg-gradient-to-r from-red-950/25 via-zinc-900/40 to-transparent border-l-4 border-red-600/80 border-y border-r border-white/[0.06] shadow-sm">
+                <div className="relative p-4 sm:p-5 rounded-xl sm:rounded-2xl bg-zinc-900/60 border border-white/10 backdrop-blur-md shadow-sm">
                   <p className="text-zinc-200 text-sm sm:text-[14.5px] leading-relaxed font-normal">
                     {leadParagraph}
                   </p>

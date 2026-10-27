@@ -160,11 +160,16 @@ function CommunityTopTrendingInner() {
     rafRef.current = requestAnimationFrame(() => {
       rafRef.current = null;
       if (!scrollContainerRef.current) return;
-      const { scrollLeft, scrollWidth, clientWidth } = scrollContainerRef.current;
-      const nextLeft = scrollLeft > 20;
-      const nextRight = scrollLeft < scrollWidth - clientWidth - 20;
-      setCanScrollLeft((prev) => (prev !== nextLeft ? nextLeft : prev));
-      setCanScrollRight((prev) => (prev !== nextRight ? nextRight : prev));
+      const el = scrollContainerRef.current;
+      const { scrollLeft, scrollWidth, clientWidth } = el;
+      const firstCard = el.querySelector<HTMLElement>(".snap-start");
+      const isAtStart =
+        scrollLeft <= 8 ||
+        (firstCard ? firstCard.getBoundingClientRect().left >= el.getBoundingClientRect().left - 2 : scrollLeft <= 8);
+      const isAtEnd = scrollLeft >= scrollWidth - clientWidth - 8;
+
+      setCanScrollLeft(!isAtStart);
+      setCanScrollRight(!isAtEnd);
     });
   }, []);
 
@@ -177,12 +182,20 @@ function CommunityTopTrendingInner() {
   }, [timeframe, items, checkScroll]);
 
   useEffect(() => {
+    const el = scrollContainerRef.current;
+    if (!el) return;
+    const onScrollEnd = () => checkScroll();
+    el.addEventListener("scrollend", onScrollEnd, { passive: true });
+    window.addEventListener("resize", checkScroll, { passive: true });
+
     return () => {
       if (rafRef.current !== null) {
         cancelAnimationFrame(rafRef.current);
       }
+      el.removeEventListener("scrollend", onScrollEnd);
+      window.removeEventListener("resize", checkScroll);
     };
-  }, []);
+  }, [checkScroll]);
 
   const handleScroll = (direction: "left" | "right") => {
     if (scrollContainerRef.current) {
@@ -194,7 +207,8 @@ function CommunityTopTrendingInner() {
         left: direction === "left" ? -step : step,
         behavior: "smooth",
       });
-      checkScroll();
+      setTimeout(checkScroll, 150);
+      setTimeout(checkScroll, 400);
     }
   };
 
@@ -257,24 +271,22 @@ function CommunityTopTrendingInner() {
 
       {/* HORIZONTAL SCROLL CAROUSEL */}
       <div className="relative group/row">
-        {/* NÚT CUỘN TRÁI / PHẢI: FLOATING GLASS PILL CHUẨN (KHÔNG CÒN GRADIENT ĐEN CHE POSTER/RANK) */}
-        {canScrollLeft && (
-          <CarouselNavButton
-            direction="left"
-            onClick={() => handleScroll("left")}
-            ariaLabel="Cuộn bảng xếp hạng cộng đồng sang trái"
-            topOffsetClass="top-[40%]"
-          />
-        )}
+        {/* NÚT CUỘN TRÁI / PHẢI: FLOATING GLASS CHUẨN ĐỒNG BỘ */}
+        <CarouselNavButton
+          direction="left"
+          onClick={() => handleScroll("left")}
+          visible={canScrollLeft}
+          ariaLabel="Cuộn bảng xếp hạng cộng đồng sang trái"
+          topOffsetClass="top-[40%]"
+        />
 
-        {canScrollRight && (
-          <CarouselNavButton
-            direction="right"
-            onClick={() => handleScroll("right")}
-            ariaLabel="Cuộn bảng xếp hạng cộng đồng sang phải"
-            topOffsetClass="top-[40%]"
-          />
-        )}
+        <CarouselNavButton
+          direction="right"
+          onClick={() => handleScroll("right")}
+          visible={canScrollRight}
+          ariaLabel="Cuộn bảng xếp hạng cộng đồng sang phải"
+          topOffsetClass="top-[40%]"
+        />
 
         {/* MOBILE SUBTLE GRADIENT FADE AFFORDANCE */}
         {canScrollLeft && (
@@ -293,7 +305,7 @@ function CommunityTopTrendingInner() {
         <div
           ref={scrollContainerRef}
           onScroll={checkScroll}
-          className="flex items-center gap-3 sm:gap-6 overflow-x-auto overflow-y-hidden px-3 sm:px-6 py-4 sm:py-5 scrollbar-none snap-x snap-mandatory"
+          className="flex items-center gap-3 sm:gap-6 overflow-x-auto overflow-y-hidden px-3 sm:px-6 scroll-pl-3 sm:scroll-pl-6 py-4 sm:py-5 scrollbar-none snap-x snap-mandatory"
           style={{
             scrollbarWidth: "none",
             msOverflowStyle: "none",

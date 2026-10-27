@@ -136,9 +136,15 @@ export const CuratedMovieSection: React.FC<CuratedMovieSectionProps> = ({
 
   const checkScroll = useCallback(() => {
     if (scrollContainerRef.current) {
-      const { scrollLeft, scrollWidth, clientWidth } = scrollContainerRef.current;
-      setCanScrollLeft(scrollLeft > 15);
-      setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 15);
+      const el = scrollContainerRef.current;
+      const { scrollLeft, scrollWidth, clientWidth } = el;
+      const firstCard = el.querySelector<HTMLElement>(".snap-start");
+      const isAtStart =
+        scrollLeft <= 8 ||
+        (firstCard ? firstCard.getBoundingClientRect().left >= el.getBoundingClientRect().left - 2 : scrollLeft <= 8);
+      const isAtEnd = scrollLeft >= scrollWidth - clientWidth - 8;
+      setCanScrollLeft(!isAtStart);
+      setCanScrollRight(!isAtEnd);
     }
   }, []);
 
@@ -152,7 +158,8 @@ export const CuratedMovieSection: React.FC<CuratedMovieSectionProps> = ({
         left: direction === "left" ? -step : step,
         behavior: "smooth",
       });
-      setTimeout(checkScroll, 350);
+      setTimeout(checkScroll, 150);
+      setTimeout(checkScroll, 400);
     }
   };
 
@@ -164,11 +171,18 @@ export const CuratedMovieSection: React.FC<CuratedMovieSectionProps> = ({
     checkScroll();
   }, [activeTab, currentMovies, checkScroll]);
 
-  // Lắng nghe thay đổi kích thước cửa sổ
+  // Lắng nghe thay đổi kích thước cửa sổ và kết thúc cuộn
   useEffect(() => {
+    const el = scrollContainerRef.current;
+    if (!el) return;
     checkScroll();
-    window.addEventListener("resize", checkScroll);
-    return () => window.removeEventListener("resize", checkScroll);
+    const onScrollEnd = () => checkScroll();
+    el.addEventListener("scrollend", onScrollEnd, { passive: true });
+    window.addEventListener("resize", checkScroll, { passive: true });
+    return () => {
+      el.removeEventListener("scrollend", onScrollEnd);
+      window.removeEventListener("resize", checkScroll);
+    };
   }, [checkScroll]);
 
   const handleSelectTab = useCallback(
@@ -288,24 +302,22 @@ export const CuratedMovieSection: React.FC<CuratedMovieSectionProps> = ({
 
       {/* HORIZONTAL CAROUSEL */}
       <div className="relative group/row">
-        {/* NÚT CUỘN TRÁI / PHẢI: FLOATING GLASS PILL CHUẨN */}
-        {canScrollLeft && (
-          <CarouselNavButton
-            direction="left"
-            onClick={() => handleScroll("left")}
-            ariaLabel="Cuộn sang trái"
-            topOffsetClass="top-[38%]"
-          />
-        )}
+        {/* NÚT CUỘN TRÁI / PHẢI: FLOATING GLASS CHUẨN ĐỒNG BỘ */}
+        <CarouselNavButton
+          direction="left"
+          onClick={() => handleScroll("left")}
+          visible={canScrollLeft}
+          ariaLabel="Cuộn sang trái"
+          topOffsetClass="top-[38%]"
+        />
 
-        {canScrollRight && (
-          <CarouselNavButton
-            direction="right"
-            onClick={() => handleScroll("right")}
-            ariaLabel="Cuộn sang phải"
-            topOffsetClass="top-[38%]"
-          />
-        )}
+        <CarouselNavButton
+          direction="right"
+          onClick={() => handleScroll("right")}
+          visible={canScrollRight}
+          ariaLabel="Cuộn sang phải"
+          topOffsetClass="top-[38%]"
+        />
 
         {/* TRACK CUỘN NGANG HOẶC SKELETON LOADING (CÓ KHOẢNG ĐỆM TRÊN/DƯỚI/TRÁI/PHẢI CHỐNG OVERFLOW CLIPPING) */}
         {loading ? (
@@ -321,7 +333,7 @@ export const CuratedMovieSection: React.FC<CuratedMovieSectionProps> = ({
           <div
             ref={scrollContainerRef}
             onScroll={checkScroll}
-            className="flex items-start gap-3 sm:gap-4 md:gap-5 overflow-x-auto overflow-y-hidden px-3 sm:px-4 py-3.5 sm:py-4 scrollbar-none snap-x snap-mandatory scroll-smooth [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+            className="flex items-start gap-3 sm:gap-4 md:gap-5 overflow-x-auto overflow-y-hidden px-3 sm:px-4 scroll-pl-3 sm:scroll-pl-4 py-3.5 sm:py-4 scrollbar-none snap-x snap-mandatory scroll-smooth [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
           >
             {normalizedMovies.map(({ norm, bestThumb }, idx) => (
               <div

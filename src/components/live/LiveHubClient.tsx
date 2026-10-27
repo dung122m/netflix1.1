@@ -25,7 +25,8 @@ export function LiveHubClient({ footballData, tvData }: LiveHubClientProps) {
     const now = Date.now();
     return footballData.matches.filter((m) => {
       if (m.timeline === "finished" || m.realStatus === "finished" || m.sourceStatus === "finished") return false;
-      if (m.timestamp && now > m.timestamp + 140 * 60 * 1000) return false;
+      if (!m.isEvent && m.timestamp && now > m.timestamp + 140 * 60 * 1000) return false;
+      if (m.isEvent && m.timestamp && now > m.timestamp + 140 * 60 * 1000 && m.timeline !== "live") return false;
       return true;
     }).length;
   }, [footballData.matches]);
@@ -103,10 +104,10 @@ export function LiveHubClient({ footballData, tvData }: LiveHubClientProps) {
               <Radio className="w-3 h-3 sm:w-3.5 sm:h-3.5 animate-pulse" />
             </div>
             <div className="flex items-center gap-1.5 min-w-0">
-              <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-wider text-sky-400 bg-sky-500/15 px-1.5 sm:px-2 py-0.5 rounded-md border border-sky-500/30 shrink-0">
+              <span className="text-[11px] font-black uppercase tracking-wider text-sky-400 bg-sky-500/15 px-2 py-0.5 rounded-md border border-sky-500/30 shrink-0">
                 LIVE TV
               </span>
-              <span className="hidden md:inline-flex text-[10px] font-bold text-gray-400 truncate">
+              <span className="hidden md:inline-flex text-[11px] font-bold text-gray-400 truncate">
                 {tvData.channels.length} kênh truyền hình HD
               </span>
             </div>
@@ -117,11 +118,11 @@ export function LiveHubClient({ footballData, tvData }: LiveHubClientProps) {
             <button
               type="button"
               onClick={() => handleTabChange("sports")}
-              className="flex items-center justify-center gap-1 sm:gap-1.5 px-2 sm:px-3.5 py-1 sm:py-1.5 rounded-md text-[10.5px] sm:text-xs font-black transition-all cursor-pointer outline-none shrink-0 text-gray-400 hover:text-white hover:bg-white/5"
+              className="flex items-center justify-center gap-1 sm:gap-1.5 px-2 sm:px-3.5 py-1 sm:py-1.5 rounded-md text-[11px] sm:text-xs font-black transition-all cursor-pointer outline-none shrink-0 text-gray-400 hover:text-white hover:bg-white/5"
             >
               <Trophy className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0" />
               <span>Thể Thao</span>
-              <span className="hidden sm:inline-flex text-[9px] px-1 py-0.2 rounded-full font-black bg-black/40 text-gray-300">
+              <span className="hidden sm:inline-flex text-[11px] px-1.5 py-0.2 rounded-full font-black bg-black/40 text-gray-300">
                 {sportsMatchesCount}
               </span>
             </button>
@@ -129,55 +130,55 @@ export function LiveHubClient({ footballData, tvData }: LiveHubClientProps) {
             <button
               type="button"
               onClick={() => handleTabChange("tv")}
-              className="flex items-center justify-center gap-1 sm:gap-1.5 px-2 sm:px-3.5 py-1 sm:py-1.5 rounded-md text-[10.5px] sm:text-xs font-black transition-all cursor-pointer outline-none shrink-0 bg-gradient-to-r from-sky-600 to-blue-600 text-white shadow-md shadow-sky-950/50"
+              className="flex items-center justify-center gap-1 sm:gap-1.5 px-2 sm:px-3.5 py-1 sm:py-1.5 rounded-md text-[11px] sm:text-xs font-black transition-all cursor-pointer outline-none shrink-0 bg-gradient-to-r from-sky-600 to-blue-600 text-white shadow-md shadow-black/40"
             >
               <Tv className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-sky-200" />
               <span>Truyền Hình</span>
-              <span className="hidden sm:inline-flex text-[9px] px-1 py-0.2 rounded-full font-black bg-black/40 text-gray-300">
+              <span className="hidden sm:inline-flex text-[11px] px-1.5 py-0.2 rounded-full font-black bg-black/40 text-gray-300">
                 {tvData.channels.length}
               </span>
             </button>
           </div>
         </header>
       ) : !isSportsCinema ? (
-        /* Khi ở chế độ Khám phá Thể thao (chưa chọn trận): Hiển thị header Discovery đầy đủ */
-        <header className="flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4 p-2.5 sm:p-4 rounded-2xl bg-zinc-950/80 border border-white/10 backdrop-blur-2xl shadow-2xl">
-          <div className="flex items-center gap-2.5 sm:gap-3.5 min-w-0">
-            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-red-600 via-rose-600 to-amber-600 flex items-center justify-center text-white shadow-lg shadow-red-950/50 shrink-0">
-              <Radio className="w-4 h-4 sm:w-5 sm:h-5 animate-pulse" />
+        /* Khi ở chế độ Khám phá Thể thao (chưa chọn trận): Hiển thị header Discovery gọn trên mobile, đầy đủ trên desktop */
+        <header className="flex flex-row items-center justify-between gap-1.5 sm:gap-2 p-1.5 sm:p-2.5 md:p-4 rounded-xl sm:rounded-2xl bg-zinc-950/80 border border-white/10 backdrop-blur-2xl shadow-xl md:shadow-2xl">
+          <div className="flex items-center gap-1.5 sm:gap-3.5 min-w-0 shrink-0">
+            <div className="w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 rounded-lg sm:rounded-xl bg-gradient-to-br from-red-600 via-rose-600 to-amber-600 flex items-center justify-center text-white shadow-md shadow-black/40 shrink-0">
+              <Radio className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 animate-pulse" />
             </div>
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
-                <span className="text-[9.5px] sm:text-[10px] font-black uppercase tracking-wider text-netflix-red bg-netflix-red/15 px-2 py-0.5 rounded-md border border-netflix-red/30 shrink-0">
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5 sm:gap-2 flex-nowrap">
+                <span className="text-[11px] font-black uppercase tracking-wider text-rose-300 bg-netflix-red/20 px-1.5 sm:px-2 py-0.5 rounded border border-netflix-red/40 shrink-0">
                   LIVE HUB
                 </span>
-                <span className="hidden sm:inline-flex text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20 items-center gap-1 shrink-0">
+                <span className="hidden sm:inline-flex text-[11px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20 items-center gap-1 shrink-0">
                   <Zap className="w-2.5 h-2.5 fill-current" />
                   <span>1080p Ultra-Low Latency</span>
                 </span>
                 {liveSportsCount > 0 && (
-                  <span className="text-[9.5px] sm:text-[10px] font-bold text-rose-400 bg-red-500/15 px-2 py-0.5 rounded-md border border-red-500/30 flex items-center gap-1.5 animate-pulse shrink-0">
-                    <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
-                    <span>{liveSportsCount} trực tiếp</span>
+                  <span className="hidden xs:inline-flex sm:inline-flex text-[11px] font-bold text-rose-400 bg-red-500/15 px-1.5 sm:px-2 py-0.5 rounded border border-red-500/30 items-center gap-1 shrink-0">
+                    <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+                    <span>{liveSportsCount} live</span>
                   </span>
                 )}
               </div>
-              <h1 className="text-sm sm:text-xl font-black text-white tracking-tight mt-0.5 truncate">
+              <h1 className="hidden sm:block text-sm sm:text-xl font-black text-white tracking-tight mt-0.5 truncate">
                 Trung Tâm Trực Tiếp Thể Thao
               </h1>
             </div>
           </div>
 
           {/* CỤM CHUYỂN ĐỔI DANH MỤC (THỂ THAO, TRUYỀN HÌNH) */}
-          <div className="grid grid-cols-2 gap-1 w-full md:flex md:w-auto p-1 rounded-xl bg-zinc-900 border border-white/10 shadow-inner">
+          <div className="flex items-center gap-0.5 sm:gap-1 p-0.5 sm:p-1 rounded-lg sm:rounded-xl bg-zinc-900 border border-white/10 shrink-0 shadow-inner">
             <button
               type="button"
               onClick={() => handleTabChange("sports")}
-              className="flex items-center justify-center gap-1.5 px-3 sm:px-5 py-2 rounded-lg text-xs font-black transition-all cursor-pointer outline-none shrink-0 focus-visible:ring-2 focus-visible:ring-netflix-red bg-gradient-to-r from-netflix-red to-netflix-red/85 text-white shadow-lg shadow-[var(--accent-glow,rgba(229,9,20,0.4))] scale-[1.01]"
+              className="flex items-center justify-center gap-1 sm:gap-1.5 px-1.5 sm:px-4 md:px-5 py-1 sm:py-2 rounded-md sm:rounded-lg text-[11px] sm:text-xs font-black transition-all cursor-pointer outline-none shrink-0 focus-visible:ring-2 focus-visible:ring-netflix-red bg-gradient-to-r from-netflix-red to-netflix-red/85 text-white shadow-md shadow-black/40"
             >
-              <Trophy className="w-3.5 h-3.5 shrink-0" />
+              <Trophy className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0" />
               <span>Thể Thao</span>
-              <span className="text-[9.5px] px-1.5 py-0.2 rounded-full font-black bg-black/50 text-white">
+              <span className="hidden xs:inline-flex text-[11px] px-1.5 py-0.5 rounded-full font-black bg-black/40 text-gray-200">
                 {sportsMatchesCount}
               </span>
             </button>
@@ -185,11 +186,11 @@ export function LiveHubClient({ footballData, tvData }: LiveHubClientProps) {
             <button
               type="button"
               onClick={() => handleTabChange("tv")}
-              className="flex items-center justify-center gap-1.5 px-3 sm:px-5 py-2 rounded-lg text-xs font-black transition-all cursor-pointer outline-none shrink-0 focus-visible:ring-2 focus-visible:ring-sky-500 text-gray-400 hover:text-white hover:bg-white/5"
+              className="flex items-center justify-center gap-1 sm:gap-1.5 px-1.5 sm:px-4 md:px-5 py-1 sm:py-2 rounded-md sm:rounded-lg text-[11px] sm:text-xs font-black transition-all cursor-pointer outline-none shrink-0 focus-visible:ring-2 focus-visible:ring-sky-500 text-gray-400 hover:text-white hover:bg-white/5"
             >
-              <Tv className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 text-gray-400" />
+              <Tv className="w-3 h-3 sm:w-3.5 sm:h-4 shrink-0 text-gray-400" />
               <span>Truyền Hình</span>
-              <span className="text-[9.5px] px-1.5 py-0.2 rounded-full font-black bg-white/10 text-gray-400">
+              <span className="hidden xs:inline-flex text-[11px] px-1.5 py-0.5 rounded-full font-black bg-white/10 text-gray-400">
                 {tvData.channels.length}
               </span>
             </button>

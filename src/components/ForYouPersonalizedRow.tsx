@@ -403,13 +403,32 @@ function ForYouPersonalizedRowInner({ fallbackMovies }: ForYouPersonalizedRowPro
     fetchRecommendations(true, next);
   };
 
-  const checkScroll = () => {
+  const checkScroll = useCallback(() => {
     if (scrollContainerRef.current) {
-      const { scrollLeft, scrollWidth, clientWidth } = scrollContainerRef.current;
-      setCanScrollLeft(scrollLeft > 20);
-      setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 20);
+      const el = scrollContainerRef.current;
+      const { scrollLeft, scrollWidth, clientWidth } = el;
+      const firstCard = el.querySelector<HTMLElement>(".snap-start");
+      const isAtStart =
+        scrollLeft <= 8 ||
+        (firstCard ? firstCard.getBoundingClientRect().left >= el.getBoundingClientRect().left - 2 : scrollLeft <= 8);
+      const isAtEnd = scrollLeft >= scrollWidth - clientWidth - 8;
+      setCanScrollLeft(!isAtStart);
+      setCanScrollRight(!isAtEnd);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    const el = scrollContainerRef.current;
+    if (!el) return;
+    checkScroll();
+    const onScrollEnd = () => checkScroll();
+    el.addEventListener("scrollend", onScrollEnd, { passive: true });
+    window.addEventListener("resize", checkScroll, { passive: true });
+    return () => {
+      el.removeEventListener("scrollend", onScrollEnd);
+      window.removeEventListener("resize", checkScroll);
+    };
+  }, [checkScroll, movies]);
 
   const handleScroll = (direction: "left" | "right") => {
     if (scrollContainerRef.current) {
@@ -421,6 +440,8 @@ function ForYouPersonalizedRowInner({ fallbackMovies }: ForYouPersonalizedRowPro
         left: direction === "left" ? -step : step,
         behavior: "smooth",
       });
+      setTimeout(checkScroll, 150);
+      setTimeout(checkScroll, 400);
     }
   };
 
@@ -491,7 +512,7 @@ function ForYouPersonalizedRowInner({ fallbackMovies }: ForYouPersonalizedRowPro
         <div
           ref={scrollContainerRef}
           onScroll={checkScroll}
-          className={`flex items-start gap-3.5 sm:gap-5 overflow-x-auto overflow-y-hidden px-3 sm:px-4 py-3.5 sm:py-4 scrollbar-none snap-x snap-mandatory scroll-smooth transition-opacity duration-500 ${
+          className={`flex items-start gap-3.5 sm:gap-5 overflow-x-auto overflow-y-hidden px-3 sm:px-4 scroll-pl-3 sm:scroll-pl-4 py-3.5 sm:py-4 scrollbar-none snap-x snap-mandatory scroll-smooth transition-opacity duration-500 ${
             isUpdating ? "opacity-75" : "opacity-100"
           } [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]`}
         >

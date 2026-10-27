@@ -23,6 +23,7 @@ import { NavSearchBar } from "./navbar/NavSearchBar";
 import { NavNotifications } from "./navbar/NavNotifications";
 import { NavUserMenu } from "./navbar/NavUserMenu";
 import { AccentStudio } from "./navbar/AccentStudio";
+import { Tooltip } from "@/components/ui/Tooltip";
 import { NavMobileMenu } from "./navbar/NavMobileMenu";
 import { NavHotkeyModal } from "./navbar/NavHotkeyModal";
 import { useAuth } from "@/context/AuthContext";
@@ -131,7 +132,7 @@ const NavbarInner: React.FC = () => {
     <nav
       className={`nanaflix-navbar fixed top-0 left-0 right-0 w-full z-50 transition-[background-color,border-color,box-shadow,padding-top,padding-bottom] duration-300 ${
         showBackground || isMobileMenuOpen
-          ? "bg-black/95 backdrop-blur-sm border-b border-white/10 shadow-lg py-1.5 sm:py-2"
+          ? "bg-zinc-950 border-b border-white/10 shadow-md shadow-black/50 py-1.5 sm:py-2"
           : "bg-black/80 backdrop-blur-md border-b border-white/10 sm:border-transparent sm:bg-gradient-to-b sm:from-black/90 sm:via-black/50 sm:to-transparent py-1.5 sm:py-2.5"
       }`}
     >
@@ -191,23 +192,25 @@ const NavbarInner: React.FC = () => {
           {/* NÚT BỐC QUẺ ĐỊNH MỆNH TRÊN NAVBAR (Chỉ hiển thị trên màn hình md+ để giữ header mobile thoáng đãng) */}
           <div className="hidden md:flex items-center gap-1.5 sm:gap-2">
             {/* NÚT BỐC QUẺ ĐỊNH MỆNH */}
-            <button
-              type="button"
-              onClick={() => {
-                if (typeof window !== "undefined") {
-                  window.dispatchEvent(
-                    new CustomEvent("open-nana-ai-studio", {
-                      detail: { tab: "roulette" },
-                    })
-                  );
-                }
-              }}
-              title="Bốc Quẻ Phim Định Mệnh"
-              className="group inline-flex items-center justify-center gap-1 sm:gap-1.5 w-8 h-8 sm:w-auto sm:h-auto sm:px-3 sm:py-1.5 rounded-full text-xs font-bold bg-gradient-to-r from-amber-500/30 via-orange-500/35 to-amber-600/30 hover:from-amber-400/45 hover:via-orange-400/50 hover:to-amber-500/45 text-amber-200 hover:text-white border border-amber-500/45 hover:border-amber-300/80 transition-all duration-300 cursor-pointer shadow-[0_0_12px_rgba(245,158,11,0.25)] hover:shadow-[0_0_18px_rgba(245,158,11,0.5)] hover:scale-105 active:scale-95 flex-shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2 focus-visible:ring-offset-black backdrop-blur-sm"
-            >
-              <Dices className="w-4 h-4 sm:w-3.5 sm:h-3.5 text-amber-300 flex-shrink-0 group-hover:rotate-45 transition-transform duration-300" />
-              <span className="hidden sm:inline tracking-tight font-extrabold">Bốc quẻ</span>
-            </button>
+            <Tooltip content="Bốc Quẻ Phim Định Mệnh" side="bottom">
+              <button
+                type="button"
+                onClick={() => {
+                  if (typeof window !== "undefined") {
+                    window.dispatchEvent(
+                      new CustomEvent("open-nana-ai-studio", {
+                        detail: { tab: "roulette" },
+                      })
+                    );
+                  }
+                }}
+                aria-label="Bốc Quẻ Phim Định Mệnh"
+                className="group inline-flex items-center justify-center gap-1 sm:gap-1.5 w-8 h-8 sm:w-auto sm:h-auto sm:px-3 sm:py-1.5 rounded-full text-xs font-bold bg-gradient-to-r from-amber-500/30 via-orange-500/35 to-amber-600/30 hover:from-amber-400/45 hover:via-orange-400/50 hover:to-amber-500/45 text-amber-200 hover:text-white border border-amber-500/45 hover:border-amber-300/80 transition-all duration-300 cursor-pointer shadow-[0_0_12px_rgba(245,158,11,0.25)] hover:shadow-[0_0_18px_rgba(245,158,11,0.5)] hover:scale-105 active:scale-95 flex-shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2 focus-visible:ring-offset-black backdrop-blur-sm"
+              >
+                <Dices className="w-4 h-4 sm:w-3.5 sm:h-3.5 text-amber-300 flex-shrink-0 group-hover:rotate-45 transition-transform duration-300" />
+                <span className="hidden sm:inline tracking-tight font-extrabold">Bốc quẻ</span>
+              </button>
+            </Tooltip>
           </div>
 
           {/* ISOLATED SEARCH BAR COMPONENT */}

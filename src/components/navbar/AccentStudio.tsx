@@ -8,6 +8,7 @@ import {
   getActiveAccent,
   applyAccent,
 } from "@/lib/accentStudio";
+import { Tooltip } from "@/components/ui/Tooltip";
 
 interface AccentStudioProps {
   className?: string;
@@ -76,25 +77,26 @@ export const AccentStudio: React.FC<AccentStudioProps> = ({ className = "" }) =>
   return (
     <div ref={containerRef} className={`relative inline-block ${className}`}>
       {/* TRIGGER BUTTON (PALETTE WITH SMART GLOW DOT) */}
-      <button
-        type="button"
-        onClick={() => setIsOpen(!isOpen)}
-        title="Đổi màu giao diện (Accent Studio)"
-        aria-label="Đổi màu giao diện (Accent Studio)"
-        aria-expanded={isOpen}
-        className="relative flex items-center justify-center h-8 w-8 sm:h-9 sm:w-9 rounded-full bg-zinc-900/90 border border-white/15 hover:border-white/30 text-gray-300 hover:text-white transition-all duration-200 cursor-pointer active:scale-95 shadow-sm group outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black"
-      >
-        <Palette className="w-4 h-4 transition-transform group-hover:rotate-45 duration-300" />
+      <Tooltip content="Đổi màu giao diện" side="bottom">
+        <button
+          type="button"
+          onClick={() => setIsOpen(!isOpen)}
+          aria-label="Đổi màu giao diện (Accent Studio)"
+          aria-expanded={isOpen}
+          className="relative flex items-center justify-center h-8 w-8 sm:h-9 sm:w-9 rounded-full bg-zinc-900/90 border border-white/15 hover:border-white/30 text-gray-300 hover:text-white transition-all duration-200 cursor-pointer active:scale-95 shadow-sm group outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black"
+        >
+          <Palette className="w-4 h-4 transition-transform group-hover:rotate-45 duration-300" />
 
-        {/* Glow indicator dot of current accent */}
-        <span
-          className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full ring-2 ring-black transition-all duration-300"
-          style={{
-            backgroundColor: currentAccent.color,
-            boxShadow: `0 0 10px ${currentAccent.glow}`,
-          }}
-        />
-      </button>
+          {/* Glow indicator dot of current accent */}
+          <span
+            className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full ring-2 ring-black transition-all duration-300"
+            style={{
+              backgroundColor: currentAccent.color,
+              boxShadow: `0 0 10px ${currentAccent.glow}`,
+            }}
+          />
+        </button>
+      </Tooltip>
 
       {/* BACKDROP OVERLAY TRÊN MÀN HÌNH NHỎ */}
       {isOpen && (

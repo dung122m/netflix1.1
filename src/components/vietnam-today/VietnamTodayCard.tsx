@@ -89,6 +89,18 @@ export function getCleanEventTitle(rawTitle: string): string {
   return rawTitle.replace(/\s*\(\d{1,2}\/\d{1,2}(?:\/\d{4})?\)/g, "").trim();
 }
 
+export function parseEventTitleParts(rawTitle: string): { main: string; secondary: string | null } {
+  const clean = getCleanEventTitle(rawTitle);
+  const match = clean.match(/^(.*?)\s*\(([^)]+)\)$/);
+  if (match) {
+    return {
+      main: match[1].trim(),
+      secondary: match[2].trim(),
+    };
+  }
+  return { main: clean, secondary: null };
+}
+
 export function getEventTabBadge(event: VietnamEvent): { label: string; emoji: string } {
   const id = event.id.toLowerCase();
   const title = event.title.toLowerCase();
@@ -230,7 +242,8 @@ export function VietnamTodayCard({ info, selectedEventId, onOpenModal }: Vietnam
     }
   })();
 
-  const cleanTitle = React.useMemo(() => getCleanEventTitle(event.title), [event.title]);
+  const parsedTitle = parseEventTitleParts(event.title);
+  const cleanTitle = parsedTitle.main;
   const currentBadge = React.useMemo(() => getEventTabBadge(event), [event]);
   const quoteMessage = React.useMemo(() => getEventQuoteOrMessage(event), [event]);
 
@@ -324,8 +337,13 @@ export function VietnamTodayCard({ info, selectedEventId, onOpenModal }: Vietnam
 
             {/* EVENT TITLE & RICH BANNER DESCRIPTION */}
             <div className="space-y-1.5 my-1.5">
-              <h3 className="text-lg sm:text-2xl md:text-[24px] font-black text-white tracking-tight group-hover:text-amber-300 transition-colors drop-shadow-md line-clamp-2 leading-snug">
-                {cleanTitle}
+              <h3 className="text-base sm:text-2xl md:text-[24px] font-black text-white tracking-tight group-hover:text-amber-300 transition-colors drop-shadow-md line-clamp-2 leading-snug">
+                <span>{parsedTitle.main}</span>
+                {parsedTitle.secondary && (
+                  <span className="hidden sm:inline font-bold text-zinc-400 text-sm sm:text-lg md:text-[20px]">
+                    {" "}({parsedTitle.secondary})
+                  </span>
+                )}
               </h3>
               <p className="text-xs sm:text-sm md:text-[13.5px] lg:text-[14px] text-zinc-300/95 line-clamp-3 sm:line-clamp-4 md:line-clamp-4 leading-relaxed font-normal">
                 {event.bannerDescription || event.shortDescription}

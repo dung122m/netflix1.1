@@ -291,11 +291,11 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
         <div className="p-5 rounded-2xl bg-zinc-900/60 border border-white/10 hover:border-white/20 transition backdrop-blur-sm relative overflow-hidden group">
           <div className="flex items-center justify-between text-gray-400 mb-2">
             <span className="text-xs font-medium">Khách Truy Cập Hôm Nay</span>
-            <div className="p-2 rounded-xl bg-violet-500/10 text-violet-400">
+            <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-400">
               <MapPin size={18} />
             </div>
           </div>
-          <div className="text-3xl font-black text-violet-400 flex items-baseline gap-2 group-hover:scale-105 transition-transform origin-left">
+          <div className="text-3xl font-black text-emerald-400 flex items-baseline gap-2 group-hover:scale-105 transition-transform origin-left">
             <span>{loading ? "..." : (stats?.todayVisitorsCount ?? 0).toLocaleString("vi-VN")}</span>
             <span className="text-xs font-normal text-gray-400">khách riêng biệt</span>
           </div>

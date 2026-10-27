@@ -18,6 +18,7 @@ import {
   Keyboard,
 } from "lucide-react";
 import { PlayerScrubBar, PlayerTimeDisplay } from "../PlayerScrubBar";
+import { Tooltip } from "@/components/ui/Tooltip";
 
 export type VideoFit = "contain" | "cover" | "fill" | "zoom";
 
@@ -270,30 +271,32 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
                 onSeekFeedback("-10s");
                 onUserInteraction?.();
               }}
-              title="Tua lùi 10 giây (←)"
+              aria-label="Tua lùi 10 giây"
               className="pointer-events-auto w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-black/45 hover:bg-black/70 active:scale-90 hover:scale-105 border border-white/15 text-white/90 hover:text-white flex items-center justify-center shadow-lg backdrop-blur-md transition-all cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-white/40"
             >
               <SeekBack10Icon className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
             </button>
 
             {/* Big Center Play / Pause */}
-            <button
-              type="button"
-              data-player-control="true"
-              onClick={(e) => {
-                e.stopPropagation();
-                onTogglePlayPause();
-                onUserInteraction?.();
-              }}
-              title={isPlaying ? "Tạm dừng (Space)" : "Phát (Space)"}
-              className="pointer-events-auto w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-netflix-red/90 hover:bg-netflix-red active:scale-90 hover:scale-105 border border-white/25 text-white flex items-center justify-center shadow-[0_0_20px_rgba(229,9,20,0.5)] backdrop-blur-md transition-all cursor-pointer outline-none focus-visible:ring-4 focus-visible:ring-white/50"
-            >
-              {isPlaying ? (
-                <Pause className="w-5 h-5 sm:w-6 sm:h-6 fill-white" />
-              ) : (
-                <Play className="w-5 h-5 sm:w-6 sm:h-6 fill-white ml-0.5" />
-              )}
-            </button>
+            <Tooltip content={isPlaying ? "Tạm dừng" : "Phát"} shortcut="Space" side="top">
+              <button
+                type="button"
+                data-player-control="true"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onTogglePlayPause();
+                  onUserInteraction?.();
+                }}
+                aria-label={isPlaying ? "Tạm dừng" : "Phát"}
+                className="pointer-events-auto w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-netflix-red/90 hover:bg-netflix-red active:scale-90 hover:scale-105 border border-white/25 text-white flex items-center justify-center shadow-[0_0_20px_rgba(229,9,20,0.5)] backdrop-blur-md transition-all cursor-pointer outline-none focus-visible:ring-4 focus-visible:ring-white/50"
+              >
+                {isPlaying ? (
+                  <Pause className="w-5 h-5 sm:w-6 sm:h-6 fill-white" />
+                ) : (
+                  <Play className="w-5 h-5 sm:w-6 sm:h-6 fill-white ml-0.5" />
+                )}
+              </button>
+            </Tooltip>
 
             {/* Tua tới 10s */}
             <button
@@ -312,7 +315,7 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
                 onSeekFeedback("+10s");
                 onUserInteraction?.();
               }}
-              title="Tua tới 10 giây (→)"
+              aria-label="Tua tới 10 giây"
               className="pointer-events-auto w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-black/45 hover:bg-black/70 active:scale-90 hover:scale-105 border border-white/15 text-white/90 hover:text-white flex items-center justify-center shadow-lg backdrop-blur-md transition-all cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-white/40"
             >
               <SeekForward10Icon className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
@@ -353,83 +356,91 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
             {/* Cụm Trái: Play/Pause phụ, Âm lượng, Hiển thị thời gian inline */}
             <div className="flex items-center gap-1.5 sm:gap-2.5">
               {/* Play / Pause Nút chính góc trái */}
-              <button
-                type="button"
-                data-player-control="true"
-                onClick={onTogglePlayPause}
-                title={isPlaying ? "Tạm dừng (Space)" : "Phát (Space)"}
-                className="p-1.5 sm:p-2 rounded-full hover:bg-white/20 text-white transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-white/40"
-              >
-                {isPlaying ? (
-                  <Pause className="w-4 h-4 sm:w-5 sm:h-5 fill-white" />
-                ) : (
-                  <Play className="w-4 h-4 sm:w-5 sm:h-5 fill-white ml-0.5" />
-                )}
-              </button>
-
-              {/* Tua lùi 10s (Ẩn trên mobile để giao diện thanh điều khiển dưới gọn gàng, rộng rãi) */}
-              <button
-                type="button"
-                data-player-control="true"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (videoRef.current) {
-                    const target = Math.max(0, (videoRef.current.currentTime || 0) - 10);
-                    if (onSeek) {
-                      onSeek(target);
-                    } else {
-                      videoRef.current.currentTime = target;
-                    }
-                  }
-                  onSeekFeedback("-10s");
-                  onUserInteraction?.();
-                }}
-                title="Tua lùi 10 giây (← / J)"
-                className="hidden sm:inline-flex p-1.5 sm:p-2 rounded-full hover:bg-white/20 text-gray-200 hover:text-white transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-white/40"
-              >
-                <SeekBack10Icon className="w-4 h-4 sm:w-5 sm:h-5" />
-              </button>
-
-              {/* Tua tới 10s (Ẩn trên mobile để giao diện thanh điều khiển dưới gọn gàng, rộng rãi) */}
-              <button
-                type="button"
-                data-player-control="true"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (videoRef.current) {
-                    const target = (videoRef.current.currentTime || 0) + 10;
-                    if (onSeek) {
-                      onSeek(target);
-                    } else {
-                      videoRef.current.currentTime = target;
-                    }
-                  }
-                  onSeekFeedback("+10s");
-                  onUserInteraction?.();
-                }}
-                title="Tua tới 10 giây (→ / L)"
-                className="hidden sm:inline-flex p-1.5 sm:p-2 rounded-full hover:bg-white/20 text-gray-200 hover:text-white transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-white/40"
-              >
-                <SeekForward10Icon className="w-4 h-4 sm:w-5 sm:h-5" />
-              </button>
-
-              {/* Âm lượng */}
-              <div className="flex items-center gap-1 group/vol">
+              <Tooltip content={isPlaying ? "Tạm dừng" : "Phát"} shortcut="Space" side="top">
                 <button
                   type="button"
                   data-player-control="true"
-                  onClick={onToggleMute}
-                  title={isMuted ? "Bật tiếng (M)" : "Tắt tiếng (M)"}
-                  className="p-1.5 sm:p-2 rounded-full hover:bg-white/20 text-white/80 hover:text-white transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+                  onClick={onTogglePlayPause}
+                  aria-label={isPlaying ? "Tạm dừng" : "Phát"}
+                  className="p-1.5 sm:p-2 rounded-full hover:bg-white/20 text-white transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-white/40"
                 >
-                  {isMuted || volume === 0 ? (
-                    <VolumeX className="w-4 h-4 text-rose-400" />
-                  ) : volume < 0.5 ? (
-                    <Volume1 className="w-4 h-4 text-white/90" />
+                  {isPlaying ? (
+                    <Pause className="w-4 h-4 sm:w-5 sm:h-5 fill-white" />
                   ) : (
-                    <Volume2 className="w-4 h-4 text-white/90" />
+                    <Play className="w-4 h-4 sm:w-5 sm:h-5 fill-white ml-0.5" />
                   )}
                 </button>
+              </Tooltip>
+
+              {/* Tua lùi 10s (Ẩn trên mobile để giao diện thanh điều khiển dưới gọn gàng, rộng rãi) */}
+              <Tooltip content="Tua lùi 10 giây" shortcut="←" side="top">
+                <button
+                  type="button"
+                  data-player-control="true"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (videoRef.current) {
+                      const target = Math.max(0, (videoRef.current.currentTime || 0) - 10);
+                      if (onSeek) {
+                        onSeek(target);
+                      } else {
+                        videoRef.current.currentTime = target;
+                      }
+                    }
+                    onSeekFeedback("-10s");
+                    onUserInteraction?.();
+                  }}
+                  aria-label="Tua lùi 10 giây"
+                  className="hidden sm:inline-flex p-1.5 sm:p-2 rounded-full hover:bg-white/20 text-gray-200 hover:text-white transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+                >
+                  <SeekBack10Icon className="w-4 h-4 sm:w-5 sm:h-5" />
+                </button>
+              </Tooltip>
+
+              {/* Tua tới 10s (Ẩn trên mobile để giao diện thanh điều khiển dưới gọn gàng, rộng rãi) */}
+              <Tooltip content="Tua tới 10 giây" shortcut="→" side="top">
+                <button
+                  type="button"
+                  data-player-control="true"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (videoRef.current) {
+                      const target = (videoRef.current.currentTime || 0) + 10;
+                      if (onSeek) {
+                        onSeek(target);
+                      } else {
+                        videoRef.current.currentTime = target;
+                      }
+                    }
+                    onSeekFeedback("+10s");
+                    onUserInteraction?.();
+                  }}
+                  aria-label="Tua tới 10 giây"
+                  className="hidden sm:inline-flex p-1.5 sm:p-2 rounded-full hover:bg-white/20 text-gray-200 hover:text-white transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+                >
+                  <SeekForward10Icon className="w-4 h-4 sm:w-5 sm:h-5" />
+                </button>
+              </Tooltip>
+
+              {/* Âm lượng */}
+              <div className="flex items-center gap-1 group/vol">
+                <Tooltip content={isMuted ? "Bật tiếng" : "Tắt tiếng"} shortcut="M" side="top">
+                  <button
+                    type="button"
+                    data-player-control="true"
+                    onClick={onToggleMute}
+                    aria-label={isMuted ? "Bật tiếng" : "Tắt tiếng"}
+                    className="p-1.5 sm:p-2 rounded-full hover:bg-white/20 text-white/80 hover:text-white transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+                  >
+                    {isMuted || volume === 0 ? (
+                      <VolumeX className="w-4 h-4 text-rose-400" />
+                    ) : volume < 0.5 ? (
+                      <Volume1 className="w-4 h-4 text-white/90" />
+                    ) : (
+                      <Volume2 className="w-4 h-4 text-white/90" />
+                    )}
+                  </button>
+                </Tooltip>
                 <input
                   type="range"
                   min="0"
@@ -454,34 +465,38 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
             <div className="flex items-center gap-1 sm:gap-1.5 relative">
               {/* Nút Tập tiếp theo nhanh */}
               {nextEpisode?.slug && onSwitchEpisode && (
-                <button
-                  type="button"
-                  data-player-control="true"
-                  onClick={() => onSwitchEpisode(nextEpisode.slug!)}
-                  title={`Tập tiếp: ${nextEpisode.name || ""}`}
-                  className="hidden sm:inline-flex items-center gap-1 px-2 py-1 rounded-md bg-white/10 hover:bg-white/20 text-white text-xs font-semibold transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-white/40"
-                >
-                  <SkipForward className="w-3.5 h-3.5 fill-white" />
-                  <span className="hidden md:inline">Tập tiếp</span>
-                </button>
+                <Tooltip content={`Tập tiếp: ${nextEpisode.name || ""}`} side="top">
+                  <button
+                    type="button"
+                    data-player-control="true"
+                    onClick={() => onSwitchEpisode(nextEpisode.slug!)}
+                    aria-label={`Tập tiếp: ${nextEpisode.name || ""}`}
+                    className="hidden sm:inline-flex items-center gap-1 px-2 py-1 rounded-md bg-white/10 hover:bg-white/20 text-white text-xs font-semibold transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+                  >
+                    <SkipForward className="w-3.5 h-3.5 fill-white" />
+                    <span className="hidden md:inline">Tập tiếp</span>
+                  </button>
+                </Tooltip>
               )}
 
               {/* TỐC ĐỘ PHÁT */}
               <div className="relative">
-                <button
-                  ref={speedBtnRef}
-                  type="button"
-                  data-player-control="true"
-                  onClick={() => {
-                    setShowSpeedMenu(!showSpeedMenu);
-                    setShowQualityMenu(false);
-                    setShowFitMenu(false);
-                  }}
-                  title="Tốc độ phát"
-                  className="px-2 py-1 rounded-md hover:bg-white/20 text-gray-200 hover:text-white text-xs font-semibold transition cursor-pointer flex items-center gap-1 outline-none focus-visible:ring-2 focus-visible:ring-white/40"
-                >
-                  <span>{playbackSpeed}x</span>
-                </button>
+                <Tooltip content="Tốc độ phát" side="top">
+                  <button
+                    ref={speedBtnRef}
+                    type="button"
+                    data-player-control="true"
+                    onClick={() => {
+                      setShowSpeedMenu(!showSpeedMenu);
+                      setShowQualityMenu(false);
+                      setShowFitMenu(false);
+                    }}
+                    aria-label="Tốc độ phát"
+                    className="px-2 py-1 rounded-md hover:bg-white/20 text-gray-200 hover:text-white text-xs font-semibold transition cursor-pointer flex items-center gap-1 outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+                  >
+                    <span>{playbackSpeed}x</span>
+                  </button>
+                </Tooltip>
                 {showSpeedMenu && (
                   <div
                     className="pointer-events-auto absolute bottom-full right-0 mb-2 py-1.5 w-24 bg-zinc-900/95 border border-white/15 rounded-xl shadow-2xl backdrop-blur-md z-50 text-xs flex flex-col"
@@ -511,20 +526,22 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
               {/* CHẤT LƯỢNG VIDEO */}
               {qualityLevels.length > 0 && (
                 <div className="relative">
-                  <button
-                    ref={qualityBtnRef}
-                    type="button"
-                    data-player-control="true"
-                    onClick={() => {
-                      setShowQualityMenu(!showQualityMenu);
-                      setShowSpeedMenu(false);
-                      setShowFitMenu(false);
-                    }}
-                    title="Chất lượng video"
-                    className="p-1.5 sm:p-2 rounded-full hover:bg-white/20 text-gray-200 hover:text-white transition cursor-pointer flex items-center outline-none focus-visible:ring-2 focus-visible:ring-white/40"
-                  >
-                    <Settings className="w-4 h-4" />
-                  </button>
+                  <Tooltip content="Chất lượng video" side="top">
+                    <button
+                      ref={qualityBtnRef}
+                      type="button"
+                      data-player-control="true"
+                      onClick={() => {
+                        setShowQualityMenu(!showQualityMenu);
+                        setShowSpeedMenu(false);
+                        setShowFitMenu(false);
+                      }}
+                      aria-label="Chất lượng video"
+                      className="p-1.5 sm:p-2 rounded-full hover:bg-white/20 text-gray-200 hover:text-white transition cursor-pointer flex items-center outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+                    >
+                      <Settings className="w-4 h-4" />
+                    </button>
+                  </Tooltip>
                   {showQualityMenu && (
                     <div
                       className="pointer-events-auto absolute bottom-full right-0 mb-2 py-1.5 w-28 bg-zinc-900/95 border border-white/15 rounded-xl shadow-2xl backdrop-blur-md z-50 text-xs flex flex-col"
@@ -570,20 +587,22 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
               {/* TỶ LỆ KHUNG HÌNH (SCREEN FIT) */}
               {isNativeVideo && (
                 <div className="relative">
-                  <button
-                    ref={fitBtnRef}
-                    type="button"
-                    data-player-control="true"
-                    onClick={() => {
-                      setShowFitMenu(!showFitMenu);
-                      setShowSpeedMenu(false);
-                      setShowQualityMenu(false);
-                    }}
-                    title="Tỷ lệ màn hình"
-                    className="p-1.5 sm:p-2 rounded-full hover:bg-white/20 text-gray-200 hover:text-white transition cursor-pointer flex items-center outline-none focus-visible:ring-2 focus-visible:ring-white/40"
-                  >
-                    <Scaling className="w-4 h-4" />
-                  </button>
+                  <Tooltip content="Tỷ lệ màn hình" side="top">
+                    <button
+                      ref={fitBtnRef}
+                      type="button"
+                      data-player-control="true"
+                      onClick={() => {
+                        setShowFitMenu(!showFitMenu);
+                        setShowSpeedMenu(false);
+                        setShowQualityMenu(false);
+                      }}
+                      aria-label="Tỷ lệ màn hình"
+                      className="p-1.5 sm:p-2 rounded-full hover:bg-white/20 text-gray-200 hover:text-white transition cursor-pointer flex items-center outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+                    >
+                      <Scaling className="w-4 h-4" />
+                    </button>
+                  </Tooltip>
                   {showFitMenu && (
                     <div
                       className="pointer-events-auto absolute bottom-full right-0 mb-2 py-1.5 w-32 bg-zinc-900/95 border border-white/15 rounded-xl shadow-2xl backdrop-blur-md z-50 text-xs flex flex-col"
@@ -612,72 +631,82 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
               )}
 
               {/* PiP */}
-              <button
-                type="button"
-                data-player-control="true"
-                onClick={onTogglePiP}
-                title="Hình trong hình (PiP)"
-                className="hidden sm:inline-flex p-1.5 sm:p-2 rounded-full hover:bg-white/20 text-gray-200 hover:text-white transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-white/40"
-              >
-                <PictureInPicture className="w-4 h-4" />
-              </button>
-
-              {/* Nguồn phát dự phòng */}
-              {embedSrc && (
+              <Tooltip content="Hình trong hình (PiP)" side="top">
                 <button
                   type="button"
                   data-player-control="true"
-                  onClick={onUseIframeFallback}
-                  title="Chuyển sang nguồn phát dự phòng"
-                  className="hidden md:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/10 hover:bg-white/20 text-white/85 hover:text-white text-xs font-medium backdrop-blur-md border border-white/10 transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+                  onClick={onTogglePiP}
+                  aria-label="Hình trong hình (PiP)"
+                  className="hidden sm:inline-flex p-1.5 sm:p-2 rounded-full hover:bg-white/20 text-gray-200 hover:text-white transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-white/40"
                 >
-                  <Tv className="w-3.5 h-3.5 text-white/80" />
-                  <span>Dự phòng</span>
+                  <PictureInPicture className="w-4 h-4" />
                 </button>
+              </Tooltip>
+
+              {/* Nguồn phát dự phòng */}
+              {embedSrc && (
+                <Tooltip content="Chuyển sang nguồn phát dự phòng" side="top">
+                  <button
+                    type="button"
+                    data-player-control="true"
+                    onClick={onUseIframeFallback}
+                    aria-label="Chuyển sang nguồn phát dự phòng"
+                    className="hidden md:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/10 hover:bg-white/20 text-white/85 hover:text-white text-xs font-medium backdrop-blur-md border border-white/10 transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+                  >
+                    <Tv className="w-3.5 h-3.5 text-white/80" />
+                    <span>Dự phòng</span>
+                  </button>
+                </Tooltip>
               )}
 
               {/* Chế độ Rạp phim (T) */}
               {onToggleTheaterMode && !isFullscreen && (
-                <button
-                  type="button"
-                  data-player-control="true"
-                  onClick={onToggleTheaterMode}
-                  title={isTheaterMode ? "Thu nhỏ chế độ rạp phim (T)" : "Chế độ rạp phim (T)"}
-                  className={`hidden sm:inline-flex p-1.5 sm:p-2 rounded-full hover:bg-white/20 transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-white/40 ${
-                    isTheaterMode ? "text-netflix-red" : "text-gray-200 hover:text-white"
-                  }`}
-                >
-                  {isTheaterMode ? <Minimize2 className="w-4 h-4" /> : <Tv className="w-4 h-4" />}
-                </button>
+                <Tooltip content={isTheaterMode ? "Thu nhỏ chế độ rạp phim" : "Chế độ rạp phim"} shortcut="T" side="top">
+                  <button
+                    type="button"
+                    data-player-control="true"
+                    onClick={onToggleTheaterMode}
+                    aria-label={isTheaterMode ? "Thu nhỏ chế độ rạp phim" : "Chế độ rạp phim"}
+                    className={`hidden sm:inline-flex p-1.5 sm:p-2 rounded-full hover:bg-white/20 transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-white/40 ${
+                      isTheaterMode ? "text-netflix-red" : "text-gray-200 hover:text-white"
+                    }`}
+                  >
+                    {isTheaterMode ? <Minimize2 className="w-4 h-4" /> : <Tv className="w-4 h-4" />}
+                  </button>
+                </Tooltip>
               )}
 
               {/* Danh sách phím tắt (?) */}
               {onOpenShortcuts && (
-                <button
-                  type="button"
-                  data-player-control="true"
-                  onClick={onOpenShortcuts}
-                  title="Danh sách phím tắt (?)"
-                  className="hidden md:inline-flex p-1.5 sm:p-2 rounded-full hover:bg-white/20 text-gray-200 hover:text-white transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-white/40"
-                >
-                  <Keyboard className="w-4 h-4" />
-                </button>
+                <Tooltip content="Danh sách phím tắt" shortcut="?" side="top">
+                  <button
+                    type="button"
+                    data-player-control="true"
+                    onClick={onOpenShortcuts}
+                    aria-label="Danh sách phím tắt"
+                    className="hidden md:inline-flex p-1.5 sm:p-2 rounded-full hover:bg-white/20 text-gray-200 hover:text-white transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+                  >
+                    <Keyboard className="w-4 h-4" />
+                  </button>
+                </Tooltip>
               )}
 
               {/* Fullscreen */}
-              <button
-                type="button"
-                data-player-control="true"
-                onClick={onToggleFullscreen}
-                title={isFullscreen ? "Thoát toàn màn hình (F)" : "Toàn màn hình (F)"}
-                className="p-1.5 sm:p-2 rounded-full hover:bg-white/20 text-gray-200 hover:text-white transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-white/40"
-              >
-                {isFullscreen ? (
-                  <Minimize2 className="w-4 h-4 sm:w-5 sm:h-5" />
-                ) : (
-                  <Maximize2 className="w-4 h-4 sm:w-5 sm:h-5" />
-                )}
-              </button>
+              <Tooltip content={isFullscreen ? "Thoát toàn màn hình" : "Toàn màn hình"} shortcut="F" side="top">
+                <button
+                  type="button"
+                  data-player-control="true"
+                  onClick={onToggleFullscreen}
+                  aria-label={isFullscreen ? "Thoát toàn màn hình" : "Toàn màn hình"}
+                  className="p-1.5 sm:p-2 rounded-full hover:bg-white/20 text-gray-200 hover:text-white transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+                >
+                  {isFullscreen ? (
+                    <Minimize2 className="w-4 h-4 sm:w-5 sm:h-5" />
+                  ) : (
+                    <Maximize2 className="w-4 h-4 sm:w-5 sm:h-5" />
+                  )}
+                </button>
+              </Tooltip>
             </div>
           </div>
         </div>

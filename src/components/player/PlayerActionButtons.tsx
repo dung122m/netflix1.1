@@ -9,6 +9,7 @@ import {
   SkipBack,
   SkipForward,
 } from "lucide-react";
+import { Tooltip } from "@/components/ui/Tooltip";
 
 interface EpisodeItem {
   name?: string;
@@ -83,84 +84,92 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = React.mem
           </button>
 
           {/* 2. Nút Toàn màn hình */}
-          <button
-            type="button"
-            data-player-control="true"
-            onClick={onToggleFullscreen}
-            title="Phóng to toàn màn hình (Phím F)"
-            className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-zinc-900/60 hover:bg-zinc-800/80 text-zinc-300 hover:text-white border border-white/10 backdrop-blur-md transition cursor-pointer text-xs outline-none focus-visible:ring-2 focus-visible:ring-white/40"
-          >
-            {isFullscreen ? (
-              <>
-                <Minimize2 className="w-3.5 h-3.5" />
-                <span>Thoát</span>
-                <span className="text-white/60">(F)</span>
-              </>
-            ) : (
-              <>
-                <Maximize2 className="w-3.5 h-3.5" />
-                <span>Toàn màn hình</span>
-                <span className="text-white/60">(F)</span>
-              </>
-            )}
-          </button>
+          <Tooltip content={isFullscreen ? "Thoát toàn màn hình" : "Phóng to toàn màn hình"} shortcut="F" side="top">
+            <button
+              type="button"
+              data-player-control="true"
+              onClick={onToggleFullscreen}
+              aria-label={isFullscreen ? "Thoát toàn màn hình" : "Phóng to toàn màn hình"}
+              className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-zinc-900/60 hover:bg-zinc-800/80 text-zinc-300 hover:text-white border border-white/10 backdrop-blur-md transition cursor-pointer text-xs outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+            >
+              {isFullscreen ? (
+                <>
+                  <Minimize2 className="w-3.5 h-3.5" />
+                  <span>Thoát</span>
+                  <span className="text-white/60">(F)</span>
+                </>
+              ) : (
+                <>
+                  <Maximize2 className="w-3.5 h-3.5" />
+                  <span>Toàn màn hình</span>
+                  <span className="text-white/60">(F)</span>
+                </>
+              )}
+            </button>
+          </Tooltip>
 
           {/* 3. Nút Danh sách Phím tắt */}
-          <button
-            type="button"
-            data-player-control="true"
-            onClick={onOpenShortcuts}
-            title="Xem danh sách phím tắt (?)"
-            className="hidden sm:inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-zinc-900/60 hover:bg-zinc-800/80 text-zinc-400 hover:text-white border border-white/10 backdrop-blur-md transition cursor-pointer text-xs outline-none focus-visible:ring-2 focus-visible:ring-white/40"
-          >
-            <Keyboard className="w-3.5 h-3.5" />
-            <span>Phím tắt</span>
-          </button>
+          <Tooltip content="Xem danh sách phím tắt" shortcut="?" side="top">
+            <button
+              type="button"
+              data-player-control="true"
+              onClick={onOpenShortcuts}
+              aria-label="Xem danh sách phím tắt"
+              className="hidden sm:inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-zinc-900/60 hover:bg-zinc-800/80 text-zinc-400 hover:text-white border border-white/10 backdrop-blur-md transition cursor-pointer text-xs outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+            >
+              <Keyboard className="w-3.5 h-3.5" />
+              <span>Phím tắt</span>
+            </button>
+          </Tooltip>
         </div>
 
         {/* CỤM NÚT ĐIỀU HƯỚNG TẬP: TRƯỚC / SAU */}
         <div className={`flex items-center gap-1.5 ${isSticky ? "w-full justify-between md:w-auto md:justify-start ml-auto md:ml-0" : "ml-auto sm:ml-0"}`}>
           {prevEpisode && (
-            <Link
-              href={`?ep=${prevEpisode.slug}`}
-              scroll={false}
-              data-player-control="true"
-              onClick={(e) => {
-                if (onSwitchEpisode && prevEpisode.slug) {
-                  e.preventDefault();
-                  onSwitchEpisode(prevEpisode.slug);
-                }
-              }}
-              title={`Tập trước: ${prevEpisode.name} (Phím P)`}
-              className={`inline-flex items-center gap-1 rounded-full bg-zinc-900/60 hover:bg-zinc-800 text-zinc-300 hover:text-white transition font-medium border border-white/10 text-xs outline-none focus-visible:ring-2 focus-visible:ring-white/40 ${
-                isSticky ? "px-2.5 py-1 text-[11px] md:px-3 md:py-1 md:text-xs" : "px-3 py-1"
-              }`}
-            >
-              <SkipBack className="w-3.5 h-3.5" />
-              <span>Tập trước</span>
-              <span className="hidden md:inline text-zinc-400"> ({prevEpisode.name})</span>
-            </Link>
+            <Tooltip content={`Tập trước: ${prevEpisode.name || ""}`} shortcut="P" side="top">
+              <Link
+                href={`?ep=${prevEpisode.slug}`}
+                scroll={false}
+                data-player-control="true"
+                onClick={(e) => {
+                  if (onSwitchEpisode && prevEpisode.slug) {
+                    e.preventDefault();
+                    onSwitchEpisode(prevEpisode.slug);
+                  }
+                }}
+                aria-label={`Tập trước: ${prevEpisode.name || ""}`}
+                className={`inline-flex items-center gap-1 rounded-full bg-zinc-900/60 hover:bg-zinc-800 text-zinc-300 hover:text-white transition font-medium border border-white/10 text-xs outline-none focus-visible:ring-2 focus-visible:ring-white/40 ${
+                  isSticky ? "px-2.5 py-1 text-[11px] md:px-3 md:py-1 md:text-xs" : "px-3 py-1"
+                }`}
+              >
+                <SkipBack className="w-3.5 h-3.5" />
+                <span>Tập trước</span>
+                <span className="hidden md:inline text-zinc-400"> ({prevEpisode.name})</span>
+              </Link>
+            </Tooltip>
           )}
           {nextEpisode && (
-            <Link
-              href={`?ep=${nextEpisode.slug}`}
-              scroll={false}
-              data-player-control="true"
-              onClick={(e) => {
-                if (onSwitchEpisode && nextEpisode.slug) {
-                  e.preventDefault();
-                  onSwitchEpisode(nextEpisode.slug);
-                }
-              }}
-              title={`Tập tiếp theo: ${nextEpisode.name} (Phím N)`}
-              className={`inline-flex items-center gap-1.5 rounded-full bg-zinc-900/80 hover:bg-netflix-red text-white transition font-semibold border border-white/15 hover:border-netflix-red shadow-sm text-xs outline-none focus-visible:ring-2 focus-visible:ring-white/40 ${
-                isSticky ? "px-3 py-1 text-[11px] md:px-3.5 md:py-1 md:text-xs" : "px-3.5 py-1"
-              }`}
-            >
-              <span>Tập tiếp</span>
-              <span className="hidden md:inline text-zinc-300"> ({nextEpisode.name})</span>
-              <SkipForward className="w-3.5 h-3.5 fill-white" />
-            </Link>
+            <Tooltip content={`Tập tiếp theo: ${nextEpisode.name || ""}`} shortcut="N" side="top">
+              <Link
+                href={`?ep=${nextEpisode.slug}`}
+                scroll={false}
+                data-player-control="true"
+                onClick={(e) => {
+                  if (onSwitchEpisode && nextEpisode.slug) {
+                    e.preventDefault();
+                    onSwitchEpisode(nextEpisode.slug);
+                  }
+                }}
+                aria-label={`Tập tiếp theo: ${nextEpisode.name || ""}`}
+                className={`inline-flex items-center gap-1.5 rounded-full bg-zinc-900/80 hover:bg-netflix-red text-white transition font-semibold border border-white/15 hover:border-netflix-red shadow-sm text-xs outline-none focus-visible:ring-2 focus-visible:ring-white/40 ${
+                  isSticky ? "px-3 py-1 text-[11px] md:px-3.5 md:py-1 md:text-xs" : "px-3.5 py-1"
+                }`}
+              >
+                <span>Tập tiếp</span>
+                <span className="hidden md:inline text-zinc-300"> ({nextEpisode.name})</span>
+                <SkipForward className="w-3.5 h-3.5 fill-white" />
+              </Link>
+            </Tooltip>
           )}
         </div>
       </div>

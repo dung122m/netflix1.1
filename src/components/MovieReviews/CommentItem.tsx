@@ -33,6 +33,7 @@ import { checkContentModeration, detectSpoiler } from "@/lib/contentModeration";
 import { toast } from "@/components/Toast";
 import { showConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { UserAvatar } from "@/components/ui/UserAvatar";
+import { Tooltip } from "@/components/ui/Tooltip";
 
 interface CommentItemProps {
   comment: MovieComment;
@@ -460,7 +461,7 @@ export const CommentItem: React.FC<CommentItemProps> = ({
       {/* BADGE BÌNH LUẬN ĐÃ GHIM BỞI ADMIN */}
       {comment.isPinned && (
         <div className="mb-2.5 flex items-center gap-1.5 text-[11px] sm:text-xs font-bold text-amber-300 bg-amber-500/15 px-2.5 py-1 rounded-xl border border-amber-500/40 w-fit shadow-md">
-          <Pin className="w-3.5 h-3.5 text-amber-400 fill-amber-400 animate-bounce" />
+          <Pin className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
           <span>📌 Bình luận quan trọng được ghim bởi Quản trị viên</span>
         </div>
       )}
@@ -574,23 +575,27 @@ export const CommentItem: React.FC<CommentItemProps> = ({
         {isAuthor && (
           <div className="flex items-center gap-0.5 sm:gap-1 opacity-90 sm:opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
             {!isReply && onEdit && (
+              <Tooltip content="Chỉnh sửa đánh giá" side="top">
+                <button
+                  type="button"
+                  onClick={() => onEdit(comment)}
+                  aria-label="Chỉnh sửa đánh giá của bạn"
+                  className="text-zinc-400 hover:text-amber-400 transition-all p-1 sm:p-1.5 rounded-lg hover:bg-white/5 cursor-pointer"
+                >
+                  <Pencil className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                </button>
+              </Tooltip>
+            )}
+            <Tooltip content="Xóa" side="top">
               <button
                 type="button"
-                onClick={() => onEdit(comment)}
-                className="text-zinc-400 hover:text-amber-400 transition-all p-1 sm:p-1.5 rounded-lg hover:bg-white/5 cursor-pointer"
-                title="Chỉnh sửa đánh giá của bạn"
+                onClick={() => (isReply ? handleDeleteReply(comment.id) : onDelete(comment.id))}
+                aria-label="Xóa"
+                className="text-zinc-400 hover:text-red-400 transition-all p-1 sm:p-1.5 rounded-lg hover:bg-white/5 cursor-pointer"
               >
-                <Pencil className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               </button>
-            )}
-            <button
-              type="button"
-              onClick={() => (isReply ? handleDeleteReply(comment.id) : onDelete(comment.id))}
-              className="text-zinc-400 hover:text-red-400 transition-all p-1 sm:p-1.5 rounded-lg hover:bg-white/5 cursor-pointer"
-              title="Xóa"
-            >
-              <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-            </button>
+            </Tooltip>
           </div>
         )}
       </div>
@@ -660,20 +665,22 @@ export const CommentItem: React.FC<CommentItemProps> = ({
 
           {/* Admin Pin Button */}
           {isAdmin && !isReply && (
-            <button
-              type="button"
-              disabled={isPinning}
-              onClick={handleTogglePin}
-              className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full border transition-all cursor-pointer active:scale-95 ${
-                comment.isPinned
-                  ? "bg-amber-500/20 text-amber-300 border-amber-500/40 hover:bg-amber-500/30"
-                  : "bg-white/5 text-zinc-400 hover:text-amber-300 border-white/10 hover:border-amber-500/30"
-              }`}
-              title={comment.isPinned ? "Bỏ ghim bình luận này" : "Ghim bình luận quan trọng lên đầu"}
-            >
-              <Pin className={`w-3.5 h-3.5 ${comment.isPinned ? "fill-amber-300 text-amber-300" : ""}`} />
-              <span>{comment.isPinned ? "Bỏ ghim" : "Ghim"}</span>
-            </button>
+            <Tooltip content={comment.isPinned ? "Bỏ ghim bình luận này" : "Ghim bình luận quan trọng lên đầu"} side="top">
+              <button
+                type="button"
+                disabled={isPinning}
+                onClick={handleTogglePin}
+                aria-label={comment.isPinned ? "Bỏ ghim bình luận này" : "Ghim bình luận quan trọng lên đầu"}
+                className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full border transition-all cursor-pointer active:scale-95 ${
+                  comment.isPinned
+                    ? "bg-amber-500/20 text-amber-300 border-amber-500/40 hover:bg-amber-500/30"
+                    : "bg-white/5 text-zinc-400 hover:text-amber-300 border-white/10 hover:border-amber-500/30"
+                }`}
+              >
+                <Pin className={`w-3.5 h-3.5 ${comment.isPinned ? "fill-amber-300 text-amber-300" : ""}`} />
+                <span>{comment.isPinned ? "Bỏ ghim" : "Ghim"}</span>
+              </button>
+            </Tooltip>
           )}
 
           {/* Toggle view replies button (chỉ hiển thị ở root comment) */}

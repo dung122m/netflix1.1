@@ -278,7 +278,7 @@ function MyListContent() {
   };
 
   return (
-    <main className="max-w-[1800px] mx-auto px-4 md:px-8 pt-24 sm:pt-28 pb-16">
+    <main className="max-w-[1800px] mx-auto px-4 md:px-8 pt-24 sm:pt-28 pb-16 w-full min-w-0 overflow-x-clip">
       {/* HEADER & BREADCRUMB */}
       <div className="flex flex-wrap items-center justify-between gap-4 mb-6 border-b border-white/10 pb-5">
         <div>
@@ -464,7 +464,7 @@ function MyListContent() {
       </div>
 
       {/* TAB SELECTOR: Segmented Control thiết kế phẳng trượt mượt trên mobile */}
-      <div className="-mx-4 px-4 sm:mx-0 sm:px-0 flex items-center gap-2 mb-6 overflow-x-auto scrollbar-none pb-1 no-scrollbar">
+      <div className="w-full min-w-0 max-w-full overflow-x-auto scrollbar-none pb-1 no-scrollbar flex items-center gap-2 mb-6 touch-pan-x">
         <button
           type="button"
           onClick={() => handleTabChange("watchlist")}
@@ -1054,7 +1054,7 @@ function MyListContent() {
 
 export default function MyListPage() {
   return (
-    <div className="page-cinema-container min-h-screen flex flex-col justify-between pb-[calc(5rem+env(safe-area-inset-bottom,0px))] lg:pb-0">
+    <div className="page-cinema-container min-h-screen flex flex-col justify-between pb-[calc(5rem+env(safe-area-inset-bottom,0px))] lg:pb-0 w-full max-w-full overflow-x-clip">
       <div>
         <Suspense fallback={<div className="h-16 bg-black" />}>
           <Navbar />

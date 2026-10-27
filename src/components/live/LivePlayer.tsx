@@ -190,9 +190,9 @@ export function parseGoalScorers(
 function PlayingEqualizer() {
   return (
     <div className="flex items-end gap-0.5 h-3 px-1">
-      <span className="w-0.5 bg-emerald-400 rounded-full animate-bounce [animation-delay:-0.3s] h-3" />
-      <span className="w-0.5 bg-emerald-400 rounded-full animate-bounce [animation-delay:-0.15s] h-2" />
-      <span className="w-0.5 bg-emerald-400 rounded-full animate-bounce h-3" />
+      <span className="w-0.5 bg-emerald-400 rounded-full animate-pulse [animation-duration:1.2s] h-3" />
+      <span className="w-0.5 bg-emerald-400 rounded-full animate-pulse [animation-duration:0.8s] h-2" />
+      <span className="w-0.5 bg-emerald-400 rounded-full animate-pulse [animation-duration:1s] h-3" />
     </div>
   );
 }

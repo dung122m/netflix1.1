@@ -24,7 +24,7 @@ export const metadata: Metadata = {
 
 export default function HistoryPage() {
   return (
-    <div className="min-h-screen bg-[#050505] text-gray-100 flex flex-col selection:bg-amber-500 selection:text-black font-sans antialiased overflow-x-hidden">
+    <div className="min-h-screen bg-[#050505] text-zinc-100 flex flex-col selection:bg-netflix-red selection:text-white font-sans antialiased overflow-x-hidden">
       <Navbar />
       <div className="flex-1 pt-16 sm:pt-20">
         <HistoryClient />

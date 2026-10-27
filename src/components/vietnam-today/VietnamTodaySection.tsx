@@ -59,18 +59,21 @@ export function VietnamTodaySection() {
       {/* SECTION HEADER: Chuẩn Netflix/Apple style với 2 tầng rõ ràng */}
       <div className="space-y-2 mb-2.5 sm:mb-3 px-0.5">
         {/* TẦNG 1: Tiêu đề & Ngày tháng song hành (hiển thị cả mobile lẫn desktop không rớt dòng) */}
-        <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center justify-between gap-1.5 sm:gap-2 min-w-0">
           {/* Bên trái: 🇻🇳 Hôm Nay Có Gì Đặc Biệt */}
-          <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-white tracking-tight flex items-center gap-2 shrink-0">
-            <VietnamFlagIcon className="w-5 h-3.5 shadow shrink-0" />
+          <h2 className="text-base sm:text-xl md:text-2xl font-bold text-white tracking-tight flex items-center gap-1.5 sm:gap-2 min-w-0 truncate">
+            <VietnamFlagIcon className="w-4 h-3 sm:w-5 sm:h-3.5 shadow shrink-0" />
             <span className="truncate">Hôm Nay Có Gì Đặc Biệt</span>
           </h2>
 
           {/* Bên phải: 12/10 • 02/09 Âm lịch (font nhỏ gọn, tinh tế màu vàng nhạt/xám bạc) */}
-          <div className="flex items-center gap-1.5 text-[11px] sm:text-xs font-medium shrink-0 ml-auto whitespace-nowrap">
+          <div className="flex items-center gap-1 sm:gap-1.5 text-[10px] sm:text-xs font-medium shrink-0 ml-auto whitespace-nowrap">
             <span className="text-zinc-400 font-medium">{solarCompact}</span>
             <span className="text-zinc-600">•</span>
-            <span className="text-amber-300/90 font-semibold">{lunarCompact}</span>
+            <span className="text-amber-300/90 font-semibold">
+              <span className="hidden xs:inline">{lunarCompact}</span>
+              <span className="xs:hidden">{info.todayLunar ? `${String(info.todayLunar.lunarDay).padStart(2, "0")}/${String(info.todayLunar.lunarMonth).padStart(2, "0")} ÂL` : ""}</span>
+            </span>
           </div>
         </div>
 

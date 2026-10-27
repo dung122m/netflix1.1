@@ -23,6 +23,7 @@ import { MovieCollection } from "@/types/collection";
 import { toast } from "@/components/Toast";
 import { UserAvatar } from "@/components/ui/UserAvatar";
 import { useBodyScrollLock } from "@/lib/scrollLock";
+import { Tooltip } from "@/components/ui/Tooltip";
 import Link from "next/link";
 
 export interface PublicProfileDetail {
@@ -159,22 +160,26 @@ export function PublicUserProfileModal({ initialDetail }: PublicUserProfileModal
 
         {/* NÚT ĐÓNG & CHIA SẺ */}
         <div className="absolute top-3 right-3 sm:top-4 sm:right-4 flex items-center gap-1.5 z-20">
-          <button
-            type="button"
-            onClick={handleCopyProfile}
-            title="Sao chép link hồ sơ"
-            className="p-1.5 sm:p-2 rounded-full bg-white/10 hover:bg-white/20 text-gray-300 hover:text-white transition cursor-pointer flex-shrink-0"
-          >
-            {copiedLink ? <Check className="w-4 h-4 text-emerald-400" /> : <Share2 className="w-4 h-4" />}
-          </button>
-          <button
-            type="button"
-            onClick={() => setIsOpen(false)}
-            title="Đóng"
-            className="p-1.5 sm:p-2 rounded-full bg-white/10 hover:bg-white/20 text-gray-300 hover:text-white transition cursor-pointer flex-shrink-0"
-          >
-            <X className="w-4 h-4" />
-          </button>
+          <Tooltip content="Sao chép link hồ sơ" side="bottom">
+            <button
+              type="button"
+              onClick={handleCopyProfile}
+              aria-label="Sao chép link hồ sơ"
+              className="p-1.5 sm:p-2 rounded-full bg-white/10 hover:bg-white/20 text-gray-300 hover:text-white transition cursor-pointer flex-shrink-0"
+            >
+              {copiedLink ? <Check className="w-4 h-4 text-emerald-400" /> : <Share2 className="w-4 h-4" />}
+            </button>
+          </Tooltip>
+          <Tooltip content="Đóng" side="bottom">
+            <button
+              type="button"
+              onClick={() => setIsOpen(false)}
+              aria-label="Đóng"
+              className="p-1.5 sm:p-2 rounded-full bg-white/10 hover:bg-white/20 text-gray-300 hover:text-white transition cursor-pointer flex-shrink-0"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </Tooltip>
         </div>
 
         {/* PROFILE HEADER BANNER */}

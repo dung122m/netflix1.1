@@ -177,7 +177,6 @@ export const PaginationControl: React.FC<PaginationControlProps> = ({
           onClick={() => setIsJumpOpen((prev) => !prev)}
           className="px-3.5 py-2 min-h-[40px] text-xs font-bold text-white bg-netflix-red rounded-xl shadow-md active:scale-95 hover:bg-red-700 transition-all flex items-center justify-center gap-1 touch-target border border-red-500/30 outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-105 cursor-pointer"
           aria-label="Đi tới trang"
-          title="Đi tới trang"
         >
           <span>{currentPage} / {totalPages}</span>
         </button>

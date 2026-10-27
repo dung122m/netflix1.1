@@ -158,9 +158,9 @@ export default function AboutPage() {
 
           {/* Main Title */}
           <div className="space-y-5 max-w-3xl mx-auto">
-            <h1 className="text-4xl sm:text-6xl md:text-7xl font-black tracking-tight text-white leading-[1.08]">
+            <h1 className="text-4xl sm:text-6xl md:text-7xl font-black tracking-tight text-white leading-[1.08] text-balance">
               Xem phim theo cách bạn{" "}
-              <span className="bg-gradient-to-r from-red-500 via-rose-400 to-amber-300 bg-clip-text text-transparent">
+              <span className="text-netflix-red">
                 xứng đáng
               </span>{" "}
               thưởng thức.

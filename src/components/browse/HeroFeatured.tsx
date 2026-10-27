@@ -84,7 +84,7 @@ const HeroFeaturedInner: React.FC<{ movies?: HeroMovie[] }> = ({
   const currentSlug = slides[index]?.slug;
   const [isHeroImageLoaded, setIsHeroImageLoaded] = useState(false);
   const isInitialSlideRef = useRef(true);
-  const [heroSynopsis, setHeroSynopsis] = useState<string>("");
+  const [synopsisMap, setSynopsisMap] = useState<Record<string, string>>({});
   const [failedHeroImages, setFailedHeroImages] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
@@ -282,42 +282,42 @@ const HeroFeaturedInner: React.FC<{ movies?: HeroMovie[] }> = ({
   }, [index, slides.length, paused, isHeroVisible, isDesktop, currentSlug, failedTrailerMap]);
 
 
-  // Fetch synopsis tóm tắt nội dung khi slide dừng
+  // Fetch synopsis tóm tắt nội dung ngay khi slide active, không trì hoãn nhân tạo
   useEffect(() => {
     if (!currentSlug) return;
 
+    // 1. Kiểm tra cache client trước
     if (clientSynopsisCache.has(currentSlug)) {
-      setHeroSynopsis(clientSynopsisCache.get(currentSlug)!);
       return;
     }
 
-    setHeroSynopsis("");
-
-    if (!paused && !isUserActionRef.current) {
+    // 2. Nếu phim hiện tại đã có sẵn content / description hợp lệ từ SSR, nạp vào cache
+    const currentMovie = slides[index];
+    const initialDesc = currentMovie?.content || currentMovie?.description || "";
+    if (initialDesc && initialDesc.trim().length > 10 && !initialDesc.startsWith("Tên gốc:")) {
+      clientSynopsisCache.set(currentSlug, initialDesc);
       return;
     }
 
+    // 3. Nếu chưa có, kích hoạt fetch ngay lập tức (không chờ timer hay điều kiện pause)
     let isCancelled = false;
-    const timer = setTimeout(() => {
-      fetchMovieSynopsisShared(currentSlug)
-        .then((data) => {
-          if (isCancelled) return;
-          if (data?.content) {
-            clientSynopsisCache.set(currentSlug, data.content);
-            setHeroSynopsis(data.content);
-          }
-          if (data?.trailer_url) {
-            trailerUrlMapRef.current[currentSlug] = data.trailer_url;
-          }
-        })
-        .catch(() => {});
-    }, 2000);
+    fetchMovieSynopsisShared(currentSlug)
+      .then((data) => {
+        if (isCancelled) return;
+        if (data?.content) {
+          clientSynopsisCache.set(currentSlug, data.content);
+          setSynopsisMap((prev) => ({ ...prev, [currentSlug]: data.content }));
+        }
+        if (data?.trailer_url) {
+          trailerUrlMapRef.current[currentSlug] = data.trailer_url;
+        }
+      })
+      .catch(() => {});
 
     return () => {
       isCancelled = true;
-      clearTimeout(timer);
     };
-  }, [currentSlug, paused]);
+  }, [currentSlug, index, slides]);
 
   // QUẢN LÝ TRAILER NỀN: Desktop only, trễ 2s sau khi slide ổn định, cleanup khi đổi slide
   useEffect(() => {
@@ -571,12 +571,17 @@ const HeroFeaturedInner: React.FC<{ movies?: HeroMovie[] }> = ({
     return `${raw} phút`;
   })();
 
-  // Clean Synopsis: only display if it is genuine story description
+  // Lấy synopsis đồng bộ theo đúng currentSlug của slide hiện tại (không hiển thị nhầm phim trước)
+  const activeHeroSynopsis = currentSlug
+    ? synopsisMap[currentSlug] || clientSynopsisCache.get(currentSlug) || ""
+    : "";
+
+  // Clean Synopsis: chỉ hiển thị nếu là mô tả cốt truyện hợp lệ
   const hasRealSynopsis = Boolean(
-    (heroSynopsis && !heroSynopsis.startsWith("Tên gốc:") && heroSynopsis.trim().length > 10) ||
+    (activeHeroSynopsis && !activeHeroSynopsis.startsWith("Tên gốc:") && activeHeroSynopsis.trim().length > 10) ||
     (descriptionClean && !descriptionClean.startsWith("Tên gốc:") && descriptionClean.trim().length > 10)
   );
-  const displaySynopsis = hasRealSynopsis ? (heroSynopsis || descriptionClean) : "";
+  const displaySynopsis = hasRealSynopsis ? (activeHeroSynopsis || descriptionClean) : "";
 
   const firstCountry = featuredMovie?.country?.[0] as { name?: string; slug?: string } | undefined;
   const heroCountry = formatCountryName(
@@ -647,7 +652,7 @@ const HeroFeaturedInner: React.FC<{ movies?: HeroMovie[] }> = ({
   return (
     <section
       ref={heroRef}
-      className="hero-cinema-section keep-dark-cinema relative h-[68vh] sm:h-[75vh] md:h-[82vh] min-h-[500px] sm:min-h-[540px] max-h-[850px] w-full overflow-hidden bg-black select-none"
+      className="hero-cinema-section keep-dark-cinema relative h-[68vh] sm:h-[75vh] md:h-[82vh] min-h-[500px] sm:min-h-[540px] max-h-[850px] w-full overflow-hidden bg-black select-none group/hero"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
       onTouchStart={handleTouchStart}
@@ -797,7 +802,7 @@ const HeroFeaturedInner: React.FC<{ movies?: HeroMovie[] }> = ({
               {/* 3.2 TIÊU ĐỀ PHIM */}
               <h1
                 style={{ color: "#ffffff" }}
-                className="hero-cinema-title text-2xl sm:text-5xl md:text-6xl lg:text-7xl font-black leading-tight text-white line-clamp-2 tracking-tight drop-shadow-[0_4px_24px_rgba(0,0,0,0.95)]"
+                className="hero-cinema-title text-2xl sm:text-5xl md:text-6xl lg:text-7xl font-black leading-tight text-white line-clamp-2 tracking-tight drop-shadow-[0_4px_24px_rgba(0,0,0,0.95)] text-balance"
               >
                 {title}
               </h1>
@@ -865,7 +870,7 @@ const HeroFeaturedInner: React.FC<{ movies?: HeroMovie[] }> = ({
               {displaySynopsis ? (
                 <p
                   style={{ color: "#d1d5db" }}
-                  className="hero-cinema-desc hidden sm:block max-w-lg sm:max-w-xl md:max-w-2xl text-xs sm:text-sm leading-relaxed text-zinc-300 line-clamp-2 md:line-clamp-3 drop-shadow-[0_2px_10px_rgba(0,0,0,0.95)]"
+                  className="hero-cinema-desc hidden sm:block max-w-lg sm:max-w-xl md:max-w-2xl max-w-[70ch] text-xs sm:text-sm leading-relaxed text-zinc-300 line-clamp-2 md:line-clamp-3 drop-shadow-[0_2px_10px_rgba(0,0,0,0.95)]"
                 >
                   {displaySynopsis}
                 </p>
@@ -894,7 +899,7 @@ const HeroFeaturedInner: React.FC<{ movies?: HeroMovie[] }> = ({
                 {featuredMovie?.slug && (
                   <Link
                     href={`/movies/${featuredMovie.slug}`}
-                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-white hover:bg-zinc-200 text-black px-7 py-2.5 text-sm font-black transition-all active:scale-95 shadow-[0_4px_20px_rgba(255,255,255,0.25)] cursor-pointer"
+                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-white hover:bg-zinc-200 text-black px-7 py-2.5 text-sm font-black transition-all active:scale-95 shadow-lg shadow-black/40 cursor-pointer"
                   >
                     <Play size={18} fill="black" className="ml-0.5" />
                     <span>{isTrailerOnly ? "Trailer" : "Phát"}</span>
@@ -918,7 +923,7 @@ const HeroFeaturedInner: React.FC<{ movies?: HeroMovie[] }> = ({
                 {featuredMovie?.slug && (
                   <Link
                     href={`/movies/${featuredMovie.slug}`}
-                    className="inline-flex items-center gap-2.5 rounded-2xl bg-netflix-red hover:brightness-110 text-white px-7 sm:px-9 py-3.5 sm:py-4 text-xs sm:text-sm md:text-base font-black transition-all duration-300 hover:scale-105 active:scale-95 shadow-[0_10px_30px_-5px_var(--accent-glow,rgba(229,9,20,0.7))] hover:shadow-[0_15px_35px_-5px_var(--accent-glow,rgba(229,9,20,0.9))] cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-105"
+                    className="inline-flex items-center gap-2.5 rounded-2xl bg-netflix-red hover:brightness-110 text-white px-7 sm:px-9 py-3.5 sm:py-4 text-xs sm:text-sm md:text-base font-black transition-all duration-300 hover:scale-105 active:scale-95 shadow-xl shadow-black/50 hover:shadow-2xl cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-105"
                   >
                     <Play size={19} fill="white" className="ml-0.5" />
                     <span>{isTrailerOnly ? "Xem Trailer" : "Xem Ngay"}</span>
@@ -987,7 +992,7 @@ const HeroFeaturedInner: React.FC<{ movies?: HeroMovie[] }> = ({
             type="button"
             onClick={goPrev}
             aria-label="Banner trước"
-            className="hidden sm:flex absolute left-4 md:left-8 top-1/2 z-20 -translate-y-1/2 rounded-full border border-white/20 bg-black/60 hover:bg-netflix-red hover:border-netflix-red p-3.5 text-white backdrop-blur-xl transition-all duration-300 shadow-2xl hover:scale-110 active:scale-95 items-center justify-center cursor-pointer focus-visible:ring-2 focus-visible:ring-white focus-visible:outline-none"
+            className="hidden sm:flex absolute left-4 md:left-8 top-1/2 z-20 -translate-y-1/2 rounded-full border border-white/20 bg-black/60 hover:bg-netflix-red hover:border-netflix-red p-3.5 text-white backdrop-blur-xl transition-all duration-300 shadow-2xl hover:scale-110 active:scale-95 items-center justify-center cursor-pointer focus-visible:ring-2 focus-visible:ring-white focus-visible:outline-none opacity-0 group-hover/hero:opacity-100"
           >
             <ChevronLeft size={22} />
           </button>
@@ -995,7 +1000,7 @@ const HeroFeaturedInner: React.FC<{ movies?: HeroMovie[] }> = ({
             type="button"
             onClick={goNext}
             aria-label="Banner tiếp theo"
-            className="hidden sm:flex absolute right-4 md:right-8 top-1/2 z-20 -translate-y-1/2 rounded-full border border-white/20 bg-black/60 hover:bg-netflix-red hover:border-netflix-red p-3.5 text-white backdrop-blur-xl transition-all duration-300 shadow-2xl hover:scale-110 active:scale-95 items-center justify-center cursor-pointer focus-visible:ring-2 focus-visible:ring-white focus-visible:outline-none"
+            className="hidden sm:flex absolute right-4 md:right-8 top-1/2 z-20 -translate-y-1/2 rounded-full border border-white/20 bg-black/60 hover:bg-netflix-red hover:border-netflix-red p-3.5 text-white backdrop-blur-xl transition-all duration-300 shadow-2xl hover:scale-110 active:scale-95 items-center justify-center cursor-pointer focus-visible:ring-2 focus-visible:ring-white focus-visible:outline-none opacity-0 group-hover/hero:opacity-100"
           >
             <ChevronRight size={22} />
           </button>
@@ -1017,7 +1022,7 @@ const HeroFeaturedInner: React.FC<{ movies?: HeroMovie[] }> = ({
                 <span
                   className={`h-1 sm:h-1.5 rounded-full transition-all duration-300 block ${
                     i === index
-                      ? "w-6 sm:w-8 bg-netflix-red shadow-[0_0_10px_var(--accent-glow,rgba(229,9,20,0.8))]"
+                      ? "w-6 sm:w-8 bg-netflix-red shadow-sm shadow-black/50"
                       : "w-1.5 sm:w-2 bg-white/30 hover:bg-white/70"
                   }`}
                 />

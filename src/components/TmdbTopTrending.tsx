@@ -279,11 +279,16 @@ function TmdbTopTrendingInner() {
     rafRef.current = requestAnimationFrame(() => {
       rafRef.current = null;
       if (!scrollContainerRef.current) return;
-      const { scrollLeft, scrollWidth, clientWidth } = scrollContainerRef.current;
-      const nextLeft = scrollLeft > 20;
-      const nextRight = scrollLeft < scrollWidth - clientWidth - 20;
-      setCanScrollLeft((prev) => (prev !== nextLeft ? nextLeft : prev));
-      setCanScrollRight((prev) => (prev !== nextRight ? nextRight : prev));
+      const el = scrollContainerRef.current;
+      const { scrollLeft, scrollWidth, clientWidth } = el;
+      const firstCard = el.querySelector<HTMLElement>(".snap-start");
+      const isAtStart =
+        scrollLeft <= 8 ||
+        (firstCard ? firstCard.getBoundingClientRect().left >= el.getBoundingClientRect().left - 2 : scrollLeft <= 8);
+      const isAtEnd = scrollLeft >= scrollWidth - clientWidth - 8;
+
+      setCanScrollLeft(!isAtStart);
+      setCanScrollRight(!isAtEnd);
     });
   }, []);
 
@@ -296,12 +301,20 @@ function TmdbTopTrendingInner() {
   }, [activeTab, items, checkScroll]);
 
   useEffect(() => {
+    const el = scrollContainerRef.current;
+    if (!el) return;
+    const onScrollEnd = () => checkScroll();
+    el.addEventListener("scrollend", onScrollEnd, { passive: true });
+    window.addEventListener("resize", checkScroll, { passive: true });
+
     return () => {
       if (rafRef.current !== null) {
         cancelAnimationFrame(rafRef.current);
       }
+      el.removeEventListener("scrollend", onScrollEnd);
+      window.removeEventListener("resize", checkScroll);
     };
-  }, []);
+  }, [checkScroll]);
 
   const handleScroll = (direction: "left" | "right") => {
     if (scrollContainerRef.current) {
@@ -313,7 +326,8 @@ function TmdbTopTrendingInner() {
         left: direction === "left" ? -step : step,
         behavior: "smooth",
       });
-      checkScroll();
+      setTimeout(checkScroll, 150);
+      setTimeout(checkScroll, 400);
     }
   };
 
@@ -338,7 +352,7 @@ function TmdbTopTrendingInner() {
               <IconComponent className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
             </span>
             <span
-              className={`text-[10px] sm:text-[11px] font-extrabold uppercase tracking-wider px-2 sm:px-2.5 py-0.5 rounded-full border flex items-center gap-1 shrink-0 ${currentConfig.badgeClass}`}
+              className={`text-[11px] font-extrabold uppercase tracking-wider px-2 sm:px-2.5 py-0.5 rounded-full border flex items-center gap-1 shrink-0 ${currentConfig.badgeClass}`}
             >
               <Globe className="w-3 h-3 shrink-0" />
               <span>{currentConfig.badge}</span>
@@ -400,24 +414,22 @@ function TmdbTopTrendingInner() {
 
       {/* HORIZONTAL SCROLL CAROUSEL */}
       <div className="relative group/row">
-        {/* NÚT CUỘN TRÁI / PHẢI: FLOATING GLASS PILL CHUẨN */}
-        {canScrollLeft && (
-          <CarouselNavButton
-            direction="left"
-            onClick={() => handleScroll("left")}
-            ariaLabel="Cuộn bảng xếp hạng sang trái"
-            topOffsetClass="top-[40%]"
-          />
-        )}
+        {/* NÚT CUỘN TRÁI / PHẢI: FLOATING GLASS CHUẨN ĐỒNG BỘ */}
+        <CarouselNavButton
+          direction="left"
+          onClick={() => handleScroll("left")}
+          visible={canScrollLeft}
+          ariaLabel="Cuộn bảng xếp hạng sang trái"
+          topOffsetClass="top-[40%]"
+        />
 
-        {canScrollRight && (
-          <CarouselNavButton
-            direction="right"
-            onClick={() => handleScroll("right")}
-            ariaLabel="Cuộn bảng xếp hạng sang phải"
-            topOffsetClass="top-[40%]"
-          />
-        )}
+        <CarouselNavButton
+          direction="right"
+          onClick={() => handleScroll("right")}
+          visible={canScrollRight}
+          ariaLabel="Cuộn bảng xếp hạng sang phải"
+          topOffsetClass="top-[40%]"
+        />
 
         {/* MOBILE SUBTLE GRADIENT FADE AFFORDANCE */}
         {canScrollLeft && (
@@ -436,7 +448,7 @@ function TmdbTopTrendingInner() {
         <div
           ref={scrollContainerRef}
           onScroll={checkScroll}
-          className="flex items-center gap-3 sm:gap-6 overflow-x-auto overflow-y-hidden px-3 sm:px-6 py-4 sm:py-5 scrollbar-none snap-x snap-mandatory"
+          className="flex items-center gap-3 sm:gap-6 overflow-x-auto overflow-y-hidden px-3 sm:px-6 scroll-pl-3 sm:scroll-pl-6 py-4 sm:py-5 scrollbar-none snap-x snap-mandatory"
           style={{
             scrollbarWidth: "none",
             msOverflowStyle: "none",
@@ -574,7 +586,7 @@ function TmdbTopTrendingInner() {
                           return (
                             <div className="absolute top-2 right-2 pointer-events-none z-10">
                               <span
-                                className={`px-1.5 py-0.5 rounded text-[10px] font-bold backdrop-blur-md border ${
+                                className={`px-1.5 py-0.5 rounded text-[11px] font-bold backdrop-blur-md border ${
                                   isCam
                                     ? "bg-amber-950/90 text-amber-300 border-amber-500/40"
                                     : "bg-black/75 text-zinc-100 border-white/20"
@@ -595,7 +607,7 @@ function TmdbTopTrendingInner() {
                         >
                           {movieTitle}
                         </h3>
-                        <div className="flex items-center gap-1.5 text-[10px] sm:text-[11px] text-zinc-400 mt-1 font-medium min-w-0">
+                        <div className="flex items-center gap-1.5 text-[11px] text-zinc-400 mt-1 font-medium min-w-0">
                           <span className="shrink-0">{movie.year || "Mới"}</span>
                           {secondaryTag && <span className="text-zinc-600 shrink-0">•</span>}
                           {secondaryTag && (

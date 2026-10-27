@@ -8,6 +8,7 @@ import React, {
   ReactNode,
 } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { Tooltip } from "./Tooltip";
 
 export interface ScrollablePillsRowProps {
   children: ReactNode;
@@ -125,15 +126,16 @@ export function ScrollablePillsRow({
       {/* Nút cuộn trái (chỉ hiện khi hover vào hàng pills trên desktop) */}
       {canScrollLeft && (
         <div className="absolute left-0 top-0 bottom-0 z-10 hidden sm:flex items-center pl-0.5 pr-6 bg-gradient-to-r from-zinc-950 via-zinc-950/90 to-transparent pointer-events-none opacity-0 group-hover/scroll:opacity-100 transition-opacity duration-200">
-          <button
-            type="button"
-            onClick={() => handleScrollBy(-scrollAmount)}
-            className="w-7 h-7 rounded-full bg-zinc-900/95 hover:bg-zinc-800 text-white border border-white/25 shadow-xl flex items-center justify-center transition-all duration-200 hover:scale-110 active:scale-95 cursor-pointer pointer-events-auto backdrop-blur-md"
-            title="Cuộn sang trái"
-            aria-label="Cuộn sang trái"
-          >
-            <ChevronLeft className="w-4 h-4 text-zinc-200" />
-          </button>
+          <Tooltip content="Cuộn sang trái" side="right">
+            <button
+              type="button"
+              onClick={() => handleScrollBy(-scrollAmount)}
+              className="w-7 h-7 rounded-full bg-zinc-900/95 hover:bg-zinc-800 text-white border border-white/25 shadow-xl flex items-center justify-center transition-all duration-200 hover:scale-110 active:scale-95 cursor-pointer pointer-events-auto backdrop-blur-md"
+              aria-label="Cuộn sang trái"
+            >
+              <ChevronLeft className="w-4 h-4 text-zinc-200" />
+            </button>
+          </Tooltip>
         </div>
       )}
 
@@ -147,7 +149,7 @@ export function ScrollablePillsRow({
         onMouseUp={handleMouseUpOrLeave}
         onMouseLeave={handleMouseUpOrLeave}
         onClickCapture={handleClickCapture}
-        className={`w-full overflow-x-auto scrollbar-none [&::-webkit-scrollbar]:hidden shrink-0 select-none cursor-grab active:cursor-grabbing touch-pan-x ${innerClassName}`}
+        className={`w-full min-w-0 overflow-x-auto scrollbar-none [&::-webkit-scrollbar]:hidden select-none cursor-grab active:cursor-grabbing touch-pan-x ${innerClassName}`}
       >
         {children}
       </div>
@@ -155,15 +157,16 @@ export function ScrollablePillsRow({
       {/* Nút cuộn phải (chỉ hiện khi hover vào hàng pills trên desktop) */}
       {canScrollRight && (
         <div className="absolute right-0 top-0 bottom-0 z-10 hidden sm:flex items-center pr-0.5 pl-6 bg-gradient-to-l from-zinc-950 via-zinc-950/90 to-transparent pointer-events-none opacity-0 group-hover/scroll:opacity-100 transition-opacity duration-200">
-          <button
-            type="button"
-            onClick={() => handleScrollBy(scrollAmount)}
-            className="w-7 h-7 rounded-full bg-zinc-900/95 hover:bg-zinc-800 text-white border border-white/25 shadow-xl flex items-center justify-center transition-all duration-200 hover:scale-110 active:scale-95 cursor-pointer pointer-events-auto backdrop-blur-md"
-            title="Cuộn sang phải"
-            aria-label="Cuộn sang phải"
-          >
-            <ChevronRight className="w-4 h-4 text-zinc-200" />
-          </button>
+          <Tooltip content="Cuộn sang phải" side="left">
+            <button
+              type="button"
+              onClick={() => handleScrollBy(scrollAmount)}
+              className="w-7 h-7 rounded-full bg-zinc-900/95 hover:bg-zinc-800 text-white border border-white/25 shadow-xl flex items-center justify-center transition-all duration-200 hover:scale-110 active:scale-95 cursor-pointer pointer-events-auto backdrop-blur-md"
+              aria-label="Cuộn sang phải"
+            >
+              <ChevronRight className="w-4 h-4 text-zinc-200" />
+            </button>
+          </Tooltip>
         </div>
       )}
     </div>

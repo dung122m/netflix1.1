@@ -1,0 +1,142 @@
+[
+  {
+    "viewport": "mobile-320",
+    "width": 320,
+    "scrollWidth": 320,
+    "clientWidth": 320,
+    "hasHorizontalOverflow": false,
+    "sportsPills": [
+      {
+        "text": "Tất cảTất cả môn(13)",
+        "width": 80.96875,
+        "height": 32
+      },
+      {
+        "text": "⚽Bóng đá(4)",
+        "width": 105.125,
+        "height": 32
+      },
+      {
+        "text": "🏀Bóng rổ(6)",
+        "width": 103.015625,
+        "height": 32
+      }
+    ],
+    "whiteButtons": [
+      "Đăng nhập"
+    ],
+    "screenshot": "E:\\Project\\Netflix\\netflix1.1\\artifacts\\mobile-redesign-verification\\mobile-320.png"
+  },
+  {
+    "viewport": "mobile-360",
+    "width": 360,
+    "scrollWidth": 360,
+    "clientWidth": 360,
+    "hasHorizontalOverflow": false,
+    "sportsPills": [
+      {
+        "text": "Tất cảTất cả môn(13)",
+        "width": 80.96875,
+        "height": 32
+      },
+      {
+        "text": "⚽Bóng đá(4)",
+        "width": 105.125,
+        "height": 32
+      },
+      {
+        "text": "🏀Bóng rổ(6)",
+        "width": 103.015625,
+        "height": 32
+      }
+    ],
+    "whiteButtons": [
+      "Đăng nhập"
+    ],
+    "screenshot": "E:\\Project\\Netflix\\netflix1.1\\artifacts\\mobile-redesign-verification\\mobile-360.png"
+  },
+  {
+    "viewport": "mobile-390",
+    "width": 390,
+    "scrollWidth": 390,
+    "clientWidth": 390,
+    "hasHorizontalOverflow": false,
+    "sportsPills": [
+      {
+        "text": "Tất cảTất cả môn(13)",
+        "width": 80.96875,
+        "height": 32
+      },
+      {
+        "text": "⚽Bóng đá(4)",
+        "width": 105.125,
+        "height": 32
+      },
+      {
+        "text": "🏀Bóng rổ(6)",
+        "width": 103.015625,
+        "height": 32
+      }
+    ],
+    "whiteButtons": [
+      "Đăng nhập"
+    ],
+    "screenshot": "E:\\Project\\Netflix\\netflix1.1\\artifacts\\mobile-redesign-verification\\mobile-390.png"
+  },
+  {
+    "viewport": "mobile-430",
+    "width": 430,
+    "scrollWidth": 430,
+    "clientWidth": 430,
+    "hasHorizontalOverflow": false,
+    "sportsPills": [
+      {
+        "text": "Tất cảTất cả môn(13)",
+        "width": 80.96875,
+        "height": 32
+      },
+      {
+        "text": "⚽Bóng đá(4)",
+        "width": 105.125,
+        "height": 32
+      },
+      {
+        "text": "🏀Bóng rổ(6)",
+        "width": 103.015625,
+        "height": 32
+      }
+    ],
+    "whiteButtons": [
+      "Đăng nhập"
+    ],
+    "screenshot": "E:\\Project\\Netflix\\netflix1.1\\artifacts\\mobile-redesign-verification\\mobile-430.png"
+  },
+  {
+    "viewport": "desktop-1440",
+    "width": 1440,
+    "scrollWidth": 1432,
+    "clientWidth": 1440,
+    "hasHorizontalOverflow": false,
+    "sportsPills": [
+      {
+        "text": "Tất cảTất cả môn(12)",
+        "width": 92.1875,
+        "height": 38
+      },
+      {
+        "text": "⚽Bóng đá(4)",
+        "width": 120.140625,
+        "height": 38
+      },
+      {
+        "text": "🏀Bóng rổ(5)",
+        "width": 117.84375,
+        "height": 38
+      }
+    ],
+    "whiteButtons": [
+      "Đăng nhập"
+    ],
+    "screenshot": "E:\\Project\\Netflix\\netflix1.1\\artifacts\\mobile-redesign-verification\\desktop-1440.png"
+  }
+]

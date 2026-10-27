@@ -132,9 +132,9 @@ function TvChannelLogo({
 function PlayingEqualizer() {
   return (
     <div className="flex items-end gap-0.5 h-3 px-1">
-      <span className="w-0.5 bg-emerald-400 rounded-full animate-bounce [animation-delay:-0.3s] h-3" />
-      <span className="w-0.5 bg-emerald-400 rounded-full animate-bounce [animation-delay:-0.15s] h-2" />
-      <span className="w-0.5 bg-emerald-400 rounded-full animate-bounce h-3" />
+      <span className="w-0.5 bg-emerald-400 rounded-full animate-pulse [animation-duration:1.2s] h-3" />
+      <span className="w-0.5 bg-emerald-400 rounded-full animate-pulse [animation-duration:0.8s] h-2" />
+      <span className="w-0.5 bg-emerald-400 rounded-full animate-pulse [animation-duration:1s] h-3" />
     </div>
   );
 }
@@ -1696,7 +1696,7 @@ export function LiveTvClient({
                     goToLiveEdge();
                   }}
                   title="Đang phát trực tiếp (Bấm để đồng bộ)"
-                  className="group flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-full bg-gradient-to-r from-red-600 via-rose-600 to-red-600 text-white text-[10px] sm:text-[11px] font-bold tracking-wider shadow-[0_2px_12px_rgba(229,9,20,0.5)] border border-red-400/40 backdrop-blur-md transition hover:scale-105 active:scale-95 cursor-pointer select-none"
+                  className="group flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-full bg-gradient-to-r from-red-600 via-rose-600 to-red-600 text-white text-[11px] font-bold tracking-wider shadow-md shadow-black/50 border border-red-400/40 backdrop-blur-md transition hover:scale-105 active:scale-95 cursor-pointer select-none"
                 >
                   <span className="relative flex h-2 w-2">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75" />
@@ -1716,7 +1716,7 @@ export function LiveTvClient({
                       ? `Đang trễ ~${liveLatency}s so với trực tiếp. Bấm để quay về Live Edge`
                       : "Bấm để quay về Live Edge"
                   }
-                  className="group flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black text-[10px] sm:text-[11px] font-bold tracking-wider shadow-[0_2px_12px_rgba(245,158,11,0.5)] border border-amber-300/60 backdrop-blur-md transition hover:scale-105 active:scale-95 cursor-pointer animate-pulse select-none"
+                  className="group flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black text-[11px] font-bold tracking-wider shadow-md shadow-black/50 border border-amber-300/60 backdrop-blur-md transition hover:scale-105 active:scale-95 cursor-pointer animate-pulse select-none"
                 >
                   <RotateCcw className="w-3 h-3 group-hover:-rotate-90 transition-transform duration-300" />
                   <span>
@@ -1742,7 +1742,7 @@ export function LiveTvClient({
                     e.stopPropagation();
                     unmuteSound();
                   }}
-                  className="flex items-center gap-1.5 px-3 py-1.5 sm:px-4 sm:py-2 rounded-full bg-gradient-to-r from-red-600 via-rose-600 to-orange-600 hover:from-red-500 hover:to-orange-500 text-white text-[11px] sm:text-xs font-black shadow-2xl border border-white/40 backdrop-blur-md transition-transform hover:scale-105 active:scale-95 cursor-pointer animate-bounce"
+                  className="flex items-center gap-1.5 px-3 py-1.5 sm:px-4 sm:py-2 rounded-full bg-gradient-to-r from-red-600 via-rose-600 to-orange-600 hover:from-red-500 hover:to-orange-500 text-white text-[11px] sm:text-xs font-black shadow-2xl border border-white/40 backdrop-blur-md transition-transform hover:scale-105 active:scale-95 cursor-pointer shadow-black/60"
                 >
                   <Volume2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 animate-pulse" />
                   <span>Bật tiếng</span>

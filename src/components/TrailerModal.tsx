@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { Film, X, ExternalLink, Loader2 } from "lucide-react";
 import { extractYoutubeId } from "@/lib/trailerHelper";
 import { useBodyScrollLock } from "@/lib/scrollLock";
+import { Tooltip } from "@/components/ui/Tooltip";
 
 export interface TrailerModalProps {
   title: string;
@@ -99,7 +100,7 @@ export const TrailerModal: React.FC<TrailerModalProps> = React.memo(
             onClick={() => setInternalIsOpen(true)}
             className={
               triggerClassName ||
-              "inline-flex items-center gap-1.5 rounded-lg bg-netflix-red hover:bg-red-700 text-white px-2.5 sm:px-3.5 py-1.5 text-xs sm:text-sm font-semibold shadow transition-all active:scale-95 cursor-pointer flex-shrink-0 whitespace-nowrap outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-black"
+              "inline-flex items-center gap-1 sm:gap-1.5 rounded-lg bg-netflix-red hover:bg-red-700 text-white px-1.5 xs:px-2 sm:px-3.5 py-1.5 text-xs sm:text-sm font-semibold shadow transition-all active:scale-95 cursor-pointer flex-shrink-0 whitespace-nowrap outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-black"
             }
           >
             <Film className="w-3.5 h-3.5 text-white flex-shrink-0" />
@@ -135,25 +136,28 @@ export const TrailerModal: React.FC<TrailerModalProps> = React.memo(
 
                   <div className="flex items-center gap-2 flex-shrink-0">
                     {parsed.videoId && (
-                      <a
-                        href={`https://www.youtube.com/watch?v=${parsed.videoId}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium text-zinc-300 hover:text-white bg-white/10 hover:bg-white/20 rounded-lg transition-colors border border-white/10"
-                        title="Mở xem trực tiếp trên ứng dụng hoặc web YouTube"
-                      >
-                        <ExternalLink className="w-3.5 h-3.5" />
-                        <span>Mở YouTube</span>
-                      </a>
+                      <Tooltip content="Mở xem trực tiếp trên YouTube" side="bottom">
+                        <a
+                          href={`https://www.youtube.com/watch?v=${parsed.videoId}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium text-zinc-300 hover:text-white bg-white/10 hover:bg-white/20 rounded-lg transition-colors border border-white/10"
+                        >
+                          <ExternalLink className="w-3.5 h-3.5" />
+                          <span>Mở YouTube</span>
+                        </a>
+                      </Tooltip>
                     )}
-                    <button
-                      type="button"
-                      onClick={handleClose}
-                      className="p-1.5 rounded-full text-gray-400 hover:text-white hover:bg-white/10 transition cursor-pointer flex-shrink-0"
-                      aria-label="Đóng trailer"
-                    >
-                      <X className="w-5 h-5" />
-                    </button>
+                    <Tooltip content="Đóng trailer" shortcut="Esc" side="bottom">
+                      <button
+                        type="button"
+                        onClick={handleClose}
+                        className="p-1.5 rounded-full text-gray-400 hover:text-white hover:bg-white/10 transition cursor-pointer flex-shrink-0"
+                        aria-label="Đóng trailer"
+                      >
+                        <X className="w-5 h-5" />
+                      </button>
+                    </Tooltip>
                   </div>
                 </div>
 

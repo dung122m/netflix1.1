@@ -1783,7 +1783,6 @@ export function TacticalLineup({
           <button
             type="button"
             onClick={() => setViewMode("pitch")}
-            title="Xem sơ đồ sân cỏ"
             aria-label="Xem sơ đồ sân cỏ"
             className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
               viewMode === "pitch"
@@ -1798,7 +1797,6 @@ export function TacticalLineup({
           <button
             type="button"
             onClick={() => setViewMode("list")}
-            title="Xem danh sách bảng"
             aria-label="Xem danh sách bảng"
             className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
               viewMode === "list"
@@ -1817,7 +1815,6 @@ export function TacticalLineup({
             <button
               type="button"
               onClick={() => setTokenDisplayMode("badge")}
-              title="Hiện số áo tròn Flat Matte"
               aria-label="Hiện số áo tròn Flat Matte"
               className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                 tokenDisplayMode === "badge"
@@ -1832,7 +1829,6 @@ export function TacticalLineup({
             <button
               type="button"
               onClick={() => setTokenDisplayMode("jersey")}
-              title="Hiện áo đấu vector"
               aria-label="Hiện áo đấu vector"
               className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                 tokenDisplayMode === "jersey"

@@ -4,13 +4,13 @@
 
 const AVATAR_GRADIENTS = [
   "from-red-600 to-rose-700",
-  "from-indigo-600 to-purple-700",
+  "from-zinc-700 to-zinc-900",
   "from-amber-500 to-orange-600",
   "from-emerald-600 to-teal-700",
-  "from-blue-600 to-cyan-700",
-  "from-fuchsia-600 to-pink-700",
-  "from-violet-600 to-indigo-800",
-  "from-rose-500 to-amber-600",
+  "from-sky-600 to-blue-700",
+  "from-rose-600 to-red-800",
+  "from-zinc-800 to-black",
+  "from-orange-600 to-amber-700",
 ];
 
 /**

@@ -499,8 +499,8 @@ function UserProfileModalInner({
           <Link
             href="/my-list?tab=history"
             onClick={() => setIsOpen(false)}
+            aria-label="Xem lịch sử xem phim"
             className="p-1.5 sm:p-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-center flex flex-col items-center justify-center transition group min-w-0 overflow-hidden cursor-pointer"
-            title="Xem lịch sử xem phim"
           >
             <Film className="w-3.5 h-3.5 text-rose-400 mb-0.5 sm:mb-1 group-hover:scale-110 transition flex-shrink-0" />
             <span className="text-xs sm:text-sm font-black text-white truncate max-w-full">{watchHistoryCount}</span>

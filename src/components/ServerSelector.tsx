@@ -3,6 +3,7 @@
 import React from "react";
 import { Radio, Zap, Sparkles, ShieldCheck, ArrowLeft } from "lucide-react";
 import { useWatchController, EpisodeServer, PlaybackProviderType } from "./WatchController";
+import { Tooltip } from "@/components/ui/Tooltip";
 
 export interface ServerSelectorItem {
   server_name?: string;
@@ -59,22 +60,27 @@ export const ServerSelector: React.FC<ServerSelectorProps> = ({
             </div>
 
             <div className="flex items-center gap-1 bg-zinc-900/90 p-0.5 rounded-full border border-white/10">
-              <button
-                type="button"
-                disabled={!hasNanaflixSource}
-                onClick={() => hasNanaflixSource && setActiveProvider?.("nanaflix" as PlaybackProviderType)}
-                title={!hasNanaflixSource ? "Phim này hiện chỉ có nguồn phát độc quyền từ máy chủ VSMOV" : "Chuyển sang nguồn Nanaflix VIP"}
-                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold transition ${
-                  !hasNanaflixSource
-                    ? "text-zinc-500 opacity-40 cursor-not-allowed"
-                    : activeProvider === "nanaflix"
-                    ? "bg-zinc-100 text-black shadow-sm cursor-pointer"
-                    : "text-zinc-400 hover:text-white cursor-pointer"
-                }`}
+              <Tooltip
+                content={!hasNanaflixSource ? "Phim này hiện chỉ có nguồn phát độc quyền từ máy chủ VSMOV" : "Chuyển sang nguồn Nanaflix VIP"}
+                side="top"
               >
-                <span className={`w-1.5 h-1.5 rounded-full ${activeProvider === "nanaflix" && hasNanaflixSource ? "bg-red-600 animate-pulse" : "bg-zinc-500"}`} />
-                <span>Nanaflix VIP</span>
-              </button>
+                <button
+                  type="button"
+                  disabled={!hasNanaflixSource}
+                  onClick={() => hasNanaflixSource && setActiveProvider?.("nanaflix" as PlaybackProviderType)}
+                  aria-label={!hasNanaflixSource ? "Phim này hiện chỉ có nguồn phát độc quyền từ máy chủ VSMOV" : "Chuyển sang nguồn Nanaflix VIP"}
+                  className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold transition ${
+                    !hasNanaflixSource
+                      ? "text-zinc-500 opacity-40 cursor-not-allowed"
+                      : activeProvider === "nanaflix"
+                      ? "bg-zinc-100 text-black shadow-sm cursor-pointer"
+                      : "text-zinc-400 hover:text-white cursor-pointer"
+                  }`}
+                >
+                  <span className={`w-1.5 h-1.5 rounded-full ${activeProvider === "nanaflix" && hasNanaflixSource ? "bg-red-600 animate-pulse" : "bg-zinc-500"}`} />
+                  <span>Nanaflix VIP</span>
+                </button>
+              </Tooltip>
               <button
                 type="button"
                 onClick={() => setActiveProvider?.("vsmov" as PlaybackProviderType)}
@@ -118,22 +124,27 @@ export const ServerSelector: React.FC<ServerSelectorProps> = ({
                 <span>Nguồn phát</span>
               </h3>
               <div className="flex items-center gap-1 bg-zinc-900/90 p-0.5 rounded-full border border-white/10">
-                <button
-                  type="button"
-                  disabled={!hasNanaflixSource}
-                  onClick={() => hasNanaflixSource && setActiveProvider?.("nanaflix" as PlaybackProviderType)}
-                  title={!hasNanaflixSource ? "Phim này hiện chỉ có nguồn phát độc quyền từ máy chủ VSMOV" : "Chuyển sang nguồn Nanaflix VIP"}
-                  className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-semibold transition ${
-                    !hasNanaflixSource
-                      ? "text-zinc-500 opacity-40 cursor-not-allowed"
-                      : activeProvider === "nanaflix"
-                      ? "bg-zinc-100 text-black shadow-sm cursor-pointer"
-                      : "text-zinc-400 hover:text-white cursor-pointer"
-                  }`}
+                <Tooltip
+                  content={!hasNanaflixSource ? "Phim này hiện chỉ có nguồn phát độc quyền từ máy chủ VSMOV" : "Chuyển sang nguồn Nanaflix VIP"}
+                  side="top"
                 >
-                  <span className={`w-1.5 h-1.5 rounded-full ${activeProvider === "nanaflix" && hasNanaflixSource ? "bg-red-600 animate-pulse" : "bg-zinc-500"}`} />
-                  <span>Nanaflix VIP</span>
-                </button>
+                  <button
+                    type="button"
+                    disabled={!hasNanaflixSource}
+                    onClick={() => hasNanaflixSource && setActiveProvider?.("nanaflix" as PlaybackProviderType)}
+                    aria-label={!hasNanaflixSource ? "Phim này hiện chỉ có nguồn phát độc quyền từ máy chủ VSMOV" : "Chuyển sang nguồn Nanaflix VIP"}
+                    className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-semibold transition ${
+                      !hasNanaflixSource
+                        ? "text-zinc-500 opacity-40 cursor-not-allowed"
+                        : activeProvider === "nanaflix"
+                        ? "bg-zinc-100 text-black shadow-sm cursor-pointer"
+                        : "text-zinc-400 hover:text-white cursor-pointer"
+                    }`}
+                  >
+                    <span className={`w-1.5 h-1.5 rounded-full ${activeProvider === "nanaflix" && hasNanaflixSource ? "bg-red-600 animate-pulse" : "bg-zinc-500"}`} />
+                    <span>Nanaflix VIP</span>
+                  </button>
+                </Tooltip>
                 <button
                   type="button"
                   onClick={() => setActiveProvider?.("vsmov" as PlaybackProviderType)}

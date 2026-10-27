@@ -6,6 +6,7 @@ import { Play, RotateCcw, X } from "lucide-react";
 import { getWatchHistory } from "@/lib/watchHistory";
 import { formatEpisodeName } from "@/lib/formatEpisode";
 import { useWatchController } from "./WatchController";
+import { Tooltip } from "@/components/ui/Tooltip";
 
 interface ResumeEpisodeBannerProps {
   movieSlug: string;
@@ -84,14 +85,16 @@ export const ResumeEpisodeBanner: React.FC<ResumeEpisodeBannerProps> = ({
             <span>Tiếp tục xem ngay</span>
           </Link>
 
-          <button
-            type="button"
-            onClick={() => setDismissed(true)}
-            title="Đóng thông báo"
-            className="p-2 sm:p-1 text-gray-400 hover:text-white rounded-md hover:bg-white/10 transition flex items-center justify-center min-w-[40px] min-h-[40px] sm:min-w-0 sm:min-h-0"
-          >
-            <X className="w-3.5 h-3.5" />
-          </button>
+          <Tooltip content="Đóng thông báo" side="top">
+            <button
+              type="button"
+              onClick={() => setDismissed(true)}
+              aria-label="Đóng thông báo"
+              className="p-2 sm:p-1 text-gray-400 hover:text-white rounded-md hover:bg-white/10 transition flex items-center justify-center min-w-[40px] min-h-[40px] sm:min-w-0 sm:min-h-0"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </Tooltip>
         </div>
       </div>
     </div>

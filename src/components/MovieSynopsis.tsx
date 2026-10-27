@@ -36,7 +36,7 @@ export function MovieSynopsis({ synopsis: rawSynopsis, originName }: MovieSynops
 
       <div className="relative">
         <p
-          className={`text-zinc-200 text-sm sm:text-base leading-relaxed transition-all duration-300 font-normal ${
+          className={`text-zinc-200 text-sm sm:text-base leading-relaxed transition-all duration-300 font-normal max-w-[75ch] ${
             !expanded && isLong ? "line-clamp-3 sm:line-clamp-4" : ""
           }`}
         >

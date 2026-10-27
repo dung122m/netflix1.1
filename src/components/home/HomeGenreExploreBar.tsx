@@ -31,13 +31,15 @@ const FEATURED_GENRE_CHIPS: GenreChipItem[] = [
 
 export function HomeGenreExploreBar() {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
 
   const checkScroll = useCallback(() => {
     const el = scrollRef.current;
     if (!el) return;
     const { scrollLeft, scrollWidth, clientWidth } = el;
-    setCanScrollRight(scrollLeft + clientWidth < scrollWidth - 4);
+    setCanScrollLeft(scrollLeft > 8);
+    setCanScrollRight(scrollLeft + clientWidth < scrollWidth - 8);
   }, []);
 
   useEffect(() => {
@@ -46,10 +48,12 @@ export function HomeGenreExploreBar() {
     checkScroll();
 
     el.addEventListener("scroll", checkScroll, { passive: true });
+    el.addEventListener("scrollend", checkScroll, { passive: true });
     window.addEventListener("resize", checkScroll, { passive: true });
 
     return () => {
       el.removeEventListener("scroll", checkScroll);
+      el.removeEventListener("scrollend", checkScroll);
       window.removeEventListener("resize", checkScroll);
     };
   }, [checkScroll]);
@@ -58,10 +62,12 @@ export function HomeGenreExploreBar() {
     if (!scrollRef.current) return;
     const offset = direction === "left" ? -280 : 280;
     scrollRef.current.scrollBy({ left: offset, behavior: "smooth" });
+    setTimeout(checkScroll, 150);
+    setTimeout(checkScroll, 400);
   };
 
   return (
-    <section aria-label="Khám phá theo thể loại" className="space-y-3">
+    <section aria-label="Khám phá theo thể loại" className="space-y-3 w-full min-w-0 max-w-full overflow-hidden">
       {/* 1. Header có phân cấp rõ ràng */}
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2.5">
@@ -83,16 +89,26 @@ export function HomeGenreExploreBar() {
           <button
             type="button"
             onClick={() => handleScroll("left")}
+            disabled={!canScrollLeft}
             aria-label="Cuộn thể loại sang trái"
-            className="hidden sm:flex w-7 h-7 rounded-lg bg-zinc-900 border border-white/10 hover:border-white/25 hover:bg-zinc-800 text-zinc-300 hover:text-white items-center justify-center transition cursor-pointer"
+            className={`hidden sm:flex w-7 h-7 rounded-lg items-center justify-center transition-all duration-200 outline-none select-none ${
+              canScrollLeft
+                ? "bg-zinc-900/90 border border-white/15 hover:border-white/35 hover:bg-zinc-800 text-zinc-200 hover:text-white shadow-sm hover:scale-105 active:scale-95 cursor-pointer"
+                : "opacity-25 pointer-events-none bg-zinc-950/50 border border-white/5 text-zinc-600 cursor-default"
+            }`}
           >
             <ChevronLeft size={15} />
           </button>
           <button
             type="button"
             onClick={() => handleScroll("right")}
+            disabled={!canScrollRight}
             aria-label="Cuộn thể loại sang phải"
-            className="hidden sm:flex w-7 h-7 rounded-lg bg-zinc-900 border border-white/10 hover:border-white/25 hover:bg-zinc-800 text-zinc-300 hover:text-white items-center justify-center transition cursor-pointer"
+            className={`hidden sm:flex w-7 h-7 rounded-lg items-center justify-center transition-all duration-200 outline-none select-none ${
+              canScrollRight
+                ? "bg-zinc-900/90 border border-white/15 hover:border-white/35 hover:bg-zinc-800 text-zinc-200 hover:text-white shadow-sm hover:scale-105 active:scale-95 cursor-pointer"
+                : "opacity-25 pointer-events-none bg-zinc-950/50 border border-white/5 text-zinc-600 cursor-default"
+            }`}
           >
             <ChevronRight size={15} />
           </button>
@@ -108,10 +124,10 @@ export function HomeGenreExploreBar() {
       </div>
 
       {/* 2. Dải Pill thể loại YouTube / Netflix style */}
-      <div className="relative">
+      <div className="relative w-full min-w-0 max-w-full overflow-hidden">
         <div
           ref={scrollRef}
-          className="flex items-center gap-2 overflow-x-auto scrollbar-none pb-1 pt-0.5 -mx-1 px-1 touch-pan-x"
+          className="flex items-center gap-2 overflow-x-auto scrollbar-none pb-1 pt-0.5 px-0.5 touch-pan-x w-full min-w-0"
         >
           {FEATURED_GENRE_CHIPS.map((chip) => (
             <Link
@@ -131,7 +147,7 @@ export function HomeGenreExploreBar() {
         {/* Fade mép phải gợi mở nội dung cuộn */}
         <div
           aria-hidden="true"
-          className={`pointer-events-none absolute top-0 bottom-1 right-0 w-12 sm:w-16 bg-gradient-to-l from-black via-black/75 to-transparent transition-opacity duration-300 z-10 ${
+          className={`pointer-events-none absolute top-0 bottom-1 right-0 w-8 sm:w-12 bg-gradient-to-l from-black/85 via-black/35 to-transparent transition-opacity duration-300 z-10 ${
             canScrollRight ? "opacity-100" : "opacity-0"
           }`}
         />

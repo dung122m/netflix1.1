@@ -1252,6 +1252,10 @@ export async function matchTmdbMoviesWithSources(
     const memEntry = TMDB_SINGLE_MOVIE_MATCH_CACHE.get(credit.id);
     if (memEntry && memEntry.expireAt > now) {
       if (memEntry.movie) {
+        if (!memEntry.movie.content && !memEntry.movie.description) {
+          memEntry.movie.content = credit.overview || "";
+          memEntry.movie.description = credit.overview || "";
+        }
         if (!seenSlugs.has(memEntry.movie.slug)) {
           seenSlugs.add(memEntry.movie.slug);
           matchedMovies.push(memEntry.movie);
@@ -1274,6 +1278,10 @@ export async function matchTmdbMoviesWithSources(
           const l2Entry = await cacheService.get<{ movie: any | null; _isNegative?: boolean }>(kvKey);
           if (l2Entry !== null && l2Entry !== undefined) {
             if (l2Entry.movie) {
+              if (!l2Entry.movie.content && !l2Entry.movie.description) {
+                l2Entry.movie.content = credit.overview || "";
+                l2Entry.movie.description = credit.overview || "";
+              }
               // Positive hit từ L2 -> lưu lại vào L1 (TTL 60 phút)
               TMDB_SINGLE_MOVIE_MATCH_CACHE.set(credit.id, {
                 movie: l2Entry.movie,
@@ -1446,6 +1454,8 @@ export async function matchTmdbMoviesWithSources(
             name: matchedCandidate.name || credit.title,
             slug: matchedCandidate.slug,
             origin_name: matchedCandidate.origin_name || credit.original_title || matchedCandidate.name,
+            content: matchedCandidate.content || matchedCandidate.description || credit.overview || "",
+            description: matchedCandidate.description || matchedCandidate.content || credit.overview || "",
             poster_url: posterImg,
             thumb_url: thumbImg,
             backdrop_url: tmdbBackdrop || matchedCandidate.backdrop_url || matchedCandidate.backdropUrl || undefined,
@@ -1641,7 +1651,7 @@ export async function getTmdbRankedMovies(
   limit = 20,
   concurrency = 8
 ): Promise<any[]> {
-  const cacheKey = `TMDB_RANKED_${type}_V5`;
+  const cacheKey = `TMDB_RANKED_${type}_V6`;
   const now = Date.now();
   const cached = TMDB_TRENDING_MOVIES_CACHE.get(cacheKey);
 
@@ -1661,7 +1671,7 @@ export async function getTmdbRankedMovies(
     }
   }
 
-  const kvKey = `tmdb:ranked_movies:${type}:${limit}:v5`;
+  const kvKey = `tmdb:ranked_movies:${type}:${limit}:v6`;
   const ttlSeconds = type === "top_rated" ? 24 * 3600 : 12 * 3600;
 
   return await cacheService.fetchOrSet(

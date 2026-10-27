@@ -496,7 +496,7 @@ export default async function MovieDetail({
   );
 
   return (
-    <div className="page-cinema-container min-h-screen pb-[calc(5rem+env(safe-area-inset-bottom,0px))] lg:pb-12">
+    <div className="page-cinema-container min-h-screen pb-[calc(5rem+env(safe-area-inset-bottom,0px))] lg:pb-12 w-full max-w-full overflow-x-clip">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
@@ -628,7 +628,7 @@ export default async function MovieDetail({
                         <>
                           <span className="text-gray-600">•</span>
                           <span className="inline-flex items-center gap-1 font-bold text-emerald-400">
-                            <span className="bg-emerald-600/25 border border-emerald-500/40 text-emerald-300 px-1 py-0.2 rounded text-[10px] font-black leading-tight">
+                            <span className="bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 px-1.5 py-0.5 rounded text-[10px] font-extrabold leading-none">
                               TMDB
                             </span>
                             <span>{tmdbScore.toFixed(1)}</span>
@@ -642,7 +642,7 @@ export default async function MovieDetail({
                         <>
                           <span className="text-gray-600">•</span>
                           <span className="inline-flex items-center gap-1 font-bold text-amber-400">
-                            <span className="bg-[#f5c518] text-black px-1 py-0.2 rounded text-[10px] font-black leading-tight">
+                            <span className="bg-amber-500/15 border border-amber-500/30 text-amber-400 px-1.5 py-0.5 rounded text-[10px] font-extrabold leading-none">
                               IMDb
                             </span>
                             <span>{imdbScore.toFixed(1)}</span>
@@ -679,13 +679,13 @@ export default async function MovieDetail({
                     </div>
 
                     {/* THANH NÚT TÁC VỤ (ACTION TOOLBAR) */}
-                    <div className="mt-3 sm:mt-4 pt-3 border-t border-white/10">
-                      <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto scrollbar-none pb-0.5 -mx-1 px-1">
+                    <div className="mt-3 sm:mt-4 pt-3 border-t border-white/10 w-full min-w-0">
+                      <div className="flex items-center gap-1 sm:gap-2 overflow-x-auto scrollbar-none pb-0.5 w-full min-w-0">
                         {/* Nút Xem Trailer */}
                         <TrailerModal trailerUrl={effectiveTrailerUrl} title={title} />
 
                         {/* Divider */}
-                        <div className="h-6 w-px bg-white/10 mx-0.5 flex-shrink-0" />
+                        <div className="h-6 w-px bg-white/10 mx-0.5 flex-shrink-0 hidden sm:block" />
 
                         {/* Nút Danh sách yêu thích */}
                         <WatchlistButton
@@ -792,7 +792,7 @@ export default async function MovieDetail({
                   {/* 3. MOBILE-FIRST NGUỒN PHÁT & DANH SÁCH TẬP PHIM (< 1024px) - Vị trí ưu tiên ngay dưới player & header */}
                   <div
                     id="section-episodes"
-                    className="scroll-mt-[105px] sm:scroll-mt-[115px] lg:hidden rounded-2xl border border-white/15 bg-gradient-to-b from-zinc-900/80 via-zinc-950/85 to-black/90 p-4 shadow-xl backdrop-blur-xl space-y-3"
+                    className="scroll-mt-[116px] sm:scroll-mt-[124px] lg:hidden rounded-2xl border border-white/15 bg-gradient-to-b from-zinc-900/80 via-zinc-950/85 to-black/90 p-4 shadow-xl backdrop-blur-xl space-y-3"
                   >
                     <ServerSelector
                       servers={serverSummaries}
@@ -820,7 +820,7 @@ export default async function MovieDetail({
                   {/* 4. TÓM TẮT CỐT TRUYỆN, DIỄN VIÊN & THÔNG TIN CHI TIẾT */}
                   <div
                     id="section-info"
-                    className="scroll-mt-[105px] sm:scroll-mt-[115px] rounded-2xl sm:rounded-3xl border border-white/15 bg-gradient-to-b from-zinc-900/80 via-zinc-950/85 to-black/90 p-4 sm:p-6 backdrop-blur-xl shadow-2xl space-y-4"
+                    className="scroll-mt-[116px] sm:scroll-mt-[124px] rounded-2xl sm:rounded-3xl border border-white/15 bg-gradient-to-b from-zinc-900/80 via-zinc-950/85 to-black/90 p-4 sm:p-6 backdrop-blur-xl shadow-2xl space-y-4"
                   >
                     <MovieSynopsis
                       synopsis={description}
@@ -940,7 +940,7 @@ export default async function MovieDetail({
                   {/* 5. BÌNH LUẬN & ĐÁNH GIÁ (NẰM Ở CUỐI CỘT TRÁI THEO FLOW YOUTUBE CHUẨN) */}
                   <div
                     id="section-reviews"
-                    className="scroll-mt-[105px] sm:scroll-mt-[115px] pt-2"
+                    className="scroll-mt-[116px] sm:scroll-mt-[124px] pt-2"
                   >
                     <MovieReviewsContainer
                       movieSlug={movie.slug}
@@ -955,7 +955,7 @@ export default async function MovieDetail({
                   {/* 6. MOBILE-ONLY RECOMMENDATIONS (< 1024px) */}
                   <div
                     id="section-recommendations"
-                    className="scroll-mt-[105px] sm:scroll-mt-[115px] lg:hidden mt-6"
+                    className="scroll-mt-[116px] sm:scroll-mt-[124px] lg:hidden mt-6"
                   >
                     <MovieRecommendationsClient
                       currentMovieSlug={movie.slug}

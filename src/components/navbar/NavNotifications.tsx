@@ -16,6 +16,7 @@ import {
 } from "@/services/notificationService";
 import { UserNotification } from "@/types/notification";
 import { UserAvatar } from "@/components/ui/UserAvatar";
+import { Tooltip } from "@/components/ui/Tooltip";
 
 export const NavNotifications: React.FC = React.memo(function NavNotifications() {
   const router = useRouter();
@@ -149,23 +150,24 @@ export const NavNotifications: React.FC = React.memo(function NavNotifications()
 
   return (
     <div ref={notificationRef} className="relative flex-shrink-0">
-      <button
-        type="button"
-        onClick={() => {
-          setShowNotifications((prev) => !prev);
-        }}
-        title="Thông báo tương tác"
-        aria-label="Thông báo"
-        className="relative flex items-center justify-center h-8 w-8 sm:h-9 sm:w-9 rounded-full bg-white/10 hover:bg-white/20 text-gray-200 hover:text-white border border-white/10 transition cursor-pointer flex-shrink-0 active:scale-95"
-      >
-        <Bell size={16} className="sm:hidden" />
-        <Bell size={18} className="hidden sm:block" />
-        {userUnreadCount > 0 && (
-          <span className="absolute -top-1 -right-1 px-1 min-w-[16px] h-[16px] rounded-full bg-netflix-red text-white text-[9px] sm:text-[10px] font-black flex items-center justify-center shadow-lg border border-black animate-pulse">
-            {userUnreadCount > 9 ? "9+" : userUnreadCount}
-          </span>
-        )}
-      </button>
+      <Tooltip content="Thông báo" side="bottom">
+        <button
+          type="button"
+          onClick={() => {
+            setShowNotifications((prev) => !prev);
+          }}
+          aria-label="Thông báo"
+          className="relative flex items-center justify-center h-8 w-8 sm:h-9 sm:w-9 rounded-full bg-white/10 hover:bg-white/20 text-gray-200 hover:text-white border border-white/10 transition cursor-pointer flex-shrink-0 active:scale-95"
+        >
+          <Bell size={16} className="sm:hidden" />
+          <Bell size={18} className="hidden sm:block" />
+          {userUnreadCount > 0 && (
+            <span className="absolute -top-1 -right-1 px-1 min-w-[16px] h-[16px] rounded-full bg-netflix-red text-white text-[9px] sm:text-[10px] font-black flex items-center justify-center shadow-lg border border-black animate-pulse">
+              {userUnreadCount > 9 ? "9+" : userUnreadCount}
+            </span>
+          )}
+        </button>
+      </Tooltip>
 
       {/* NOTIFICATION POPUP DROPDOWN */}
       {showNotifications && (
@@ -183,24 +185,25 @@ export const NavNotifications: React.FC = React.memo(function NavNotifications()
             </div>
             <div className="flex items-center gap-2">
               {user && (
-                <button
-                  type="button"
-                  onClick={async () => {
-                    setUserNotifications((prev) =>
-                      prev.map((item) => ({ ...item, isRead: true }))
-                    );
-                    await markAllNotificationsAsRead(user.uid);
-                  }}
-                  className={`text-[11px] flex items-center gap-1 transition cursor-pointer hover:underline ${
-                    userUnreadCount > 0
-                      ? "text-gray-300 hover:text-emerald-400 font-semibold"
-                      : "text-gray-500 hover:text-gray-400"
-                  }`}
-                  title="Đánh dấu tất cả đã đọc"
-                >
-                  <CheckCheck size={13} className={userUnreadCount > 0 ? "text-emerald-400" : "text-gray-500"} />
-                  <span>Đã đọc hết</span>
-                </button>
+                <Tooltip content="Đánh dấu tất cả đã đọc" side="top">
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      setUserNotifications((prev) =>
+                        prev.map((item) => ({ ...item, isRead: true }))
+                      );
+                      await markAllNotificationsAsRead(user.uid);
+                    }}
+                    className={`text-[11px] flex items-center gap-1 transition cursor-pointer hover:underline ${
+                      userUnreadCount > 0
+                        ? "text-gray-300 hover:text-emerald-400 font-semibold"
+                        : "text-gray-500 hover:text-gray-400"
+                    }`}
+                  >
+                    <CheckCheck size={13} className={userUnreadCount > 0 ? "text-emerald-400" : "text-gray-500"} />
+                    <span>Đã đọc hết</span>
+                  </button>
+                </Tooltip>
               )}
             </div>
           </div>

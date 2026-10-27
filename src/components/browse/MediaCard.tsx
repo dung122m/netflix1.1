@@ -23,6 +23,7 @@ import { extractYoutubeId } from "@/lib/trailerHelper";
 import { useAuth } from "@/context/AuthContext";
 import { AddToCollectionModal } from "@/components/Collections/AddToCollectionModal";
 import { AuthModal } from "@/components/AuthModal";
+import { Tooltip } from "@/components/ui/Tooltip";
 
 export interface MovieExtraInfo {
   actor?: string[];
@@ -526,7 +527,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
         {/* HUY HIỆU CHẤT LƯỢNG BẢN PHIM GÓC TRÊN TRÁI POSTER (CAM, HD, FHD, Vietsub...) */}
         {displayQualityBadge && (
           <div className="absolute top-2 left-2 z-10 pointer-events-none">
-            <span className="inline-flex items-center px-1.5 py-0.5 rounded-[4px] bg-black/60 backdrop-blur-md text-zinc-200 text-[10px] sm:text-[11px] font-bold uppercase tracking-wider shadow border border-white/10 select-none">
+            <span className="inline-flex items-center px-1.5 py-0.5 rounded-[4px] bg-black/75 backdrop-blur-md text-zinc-200 text-[11px] font-bold uppercase tracking-wider shadow border border-white/10 select-none">
               {displayQualityBadge}
             </span>
           </div>
@@ -535,7 +536,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
         {/* HUY HIỆU TẬP PHIM (NẾU LÀ EPISODE) */}
         {isEpisode && episodeBadgeText && (
           <div className={`absolute ${displayQualityBadge ? "top-7.5 left-2" : "top-2 left-2"} z-10 pointer-events-none`}>
-            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-[4px] text-[10px] font-bold bg-amber-500 text-black shadow select-none">
+            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-[4px] text-[11px] font-bold bg-amber-500 text-black shadow select-none">
               {episodeBadgeText}
             </span>
           </div>
@@ -557,50 +558,32 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
         {/* CỤM NÚT HÀNH ĐỘNG KHI HOVER TRÊN DESKTOP (GÓC DƯỚI PHẢI, KÈM CUSTOM GLASS TOOLTIP HƯỚNG LÊN) */}
         <div className="absolute bottom-2.5 right-2.5 z-20 pointer-events-auto opacity-0 group-hover/card:opacity-100 focus-within:opacity-100 transition-opacity duration-200 hidden sm:flex items-center gap-1.5">
           {/* Nút Bộ sưu tập */}
-          <div className="relative flex items-center justify-center group/btn">
+          <Tooltip content="Thêm vào bộ sưu tập" side="top" align="end">
             <button
               type="button"
               onClick={handleOpenCollectionModal}
               aria-label={`Thêm phim ${title} vào bộ sưu tập`}
-              className="w-7 h-7 rounded-full flex items-center justify-center border transition-all duration-150 hover:scale-110 active:scale-95 cursor-pointer shadow-md backdrop-blur-md outline-none focus-visible:ring-2 focus-visible:ring-amber-400 bg-black/75 hover:bg-amber-400 hover:border-amber-400 hover:text-black hover:shadow-[0_0_12px_rgba(251,191,36,0.35)] border-white/20 text-white"
+              className="w-7 h-7 rounded-full flex items-center justify-center border transition-all duration-150 hover:scale-110 active:scale-95 cursor-pointer shadow-md shadow-black/50 backdrop-blur-md outline-none focus-visible:ring-2 focus-visible:ring-amber-400 bg-black/75 hover:bg-amber-400 hover:border-amber-400 hover:text-black border-white/20 text-white"
             >
-              <FolderPlus className="w-3.5 h-3.5 text-amber-400 group-hover/btn:text-black transition-colors" />
+              <FolderPlus className="w-3.5 h-3.5 text-amber-400 group-hover:text-black transition-colors" />
             </button>
-            {/* Custom Glass Tooltip */}
-            <div
-              role="tooltip"
-              aria-hidden="true"
-              className="pointer-events-none select-none absolute bottom-full mb-2 right-0 z-30 whitespace-nowrap px-2.5 py-1 rounded-lg bg-zinc-900/95 backdrop-blur-md text-zinc-100 text-[11px] font-medium tracking-normal border border-white/10 shadow-[0_8px_20px_rgba(0,0,0,0.8)] opacity-0 translate-y-1 scale-95 group-hover/btn:opacity-100 group-hover/btn:translate-y-0 group-hover/btn:scale-100 group-focus-within/btn:opacity-100 group-focus-within/btn:translate-y-0 group-focus-within/btn:scale-100 transition-all duration-150 ease-out"
-            >
-              Thêm vào bộ sưu tập
-              <div className="absolute -bottom-1 right-2.5 w-2 h-2 rotate-45 bg-zinc-900 border-b border-r border-white/10" />
-            </div>
-          </div>
+          </Tooltip>
 
           {/* Nút Watchlist */}
-          <div className="relative flex items-center justify-center group/btn">
+          <Tooltip content={inList ? "Xóa khỏi danh sách" : "Lưu vào danh sách"} side="top" align="end">
             <button
               type="button"
               onClick={handleToggleList}
               aria-label={inList ? `Bỏ lưu phim ${title}` : `Lưu phim ${title} vào danh sách`}
-              className={`w-7 h-7 rounded-full flex items-center justify-center border transition-all duration-150 hover:scale-110 active:scale-95 cursor-pointer shadow-md backdrop-blur-md outline-none focus-visible:ring-2 focus-visible:ring-red-500 ${
+              className={`w-7 h-7 rounded-full flex items-center justify-center border transition-all duration-150 hover:scale-110 active:scale-95 cursor-pointer shadow-md shadow-black/50 backdrop-blur-md outline-none focus-visible:ring-2 focus-visible:ring-red-500 ${
                 inList
-                  ? "bg-netflix-red border-netflix-red text-white shadow-[0_0_10px_rgba(229,9,20,0.5)] hover:bg-red-700 hover:border-red-700"
-                  : "bg-black/75 hover:bg-netflix-red hover:border-netflix-red hover:text-white hover:shadow-[0_0_12px_rgba(229,9,20,0.4)] border-white/20 text-white"
+                  ? "bg-netflix-red border-netflix-red text-white hover:bg-red-700 hover:border-red-700"
+                  : "bg-black/75 hover:bg-netflix-red hover:border-netflix-red hover:text-white border-white/20 text-white"
               }`}
             >
               {inList ? <Check className="w-3.5 h-3.5 stroke-[2.5]" /> : <Bookmark className="w-3.5 h-3.5 transition-colors" />}
             </button>
-            {/* Custom Glass Tooltip */}
-            <div
-              role="tooltip"
-              aria-hidden="true"
-              className="pointer-events-none select-none absolute bottom-full mb-2 right-0 z-30 whitespace-nowrap px-2.5 py-1 rounded-lg bg-zinc-900/95 backdrop-blur-md text-zinc-100 text-[11px] font-medium tracking-normal border border-white/10 shadow-[0_8px_20px_rgba(0,0,0,0.8)] opacity-0 translate-y-1 scale-95 group-hover/btn:opacity-100 group-hover/btn:translate-y-0 group-hover/btn:scale-100 group-focus-within/btn:opacity-100 group-focus-within/btn:translate-y-0 group-focus-within/btn:scale-100 transition-all duration-150 ease-out"
-            >
-              {inList ? "Xóa khỏi danh sách" : "Lưu vào danh sách"}
-              <div className="absolute -bottom-1 right-2.5 w-2 h-2 rotate-45 bg-zinc-900 border-b border-r border-white/10" />
-            </div>
-          </div>
+          </Tooltip>
         </div>
 
         {/* NÚT TRAILER KÍNH MỜ GÓC DƯỚI TRÁI KHI HOVER (CHỈ HIỆN KHI CÓ TRAILER) */}
@@ -612,7 +595,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
               disabled={isLoadingTrailer}
               title="Xem Trailer chính thức"
               aria-label={`Xem Trailer phim ${title}`}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-white/20 bg-black/75 hover:bg-white hover:text-zinc-950 text-white text-[10.5px] font-medium transition-all hover:scale-105 active:scale-95 cursor-pointer shadow-md backdrop-blur-md outline-none focus-visible:ring-2 focus-visible:ring-white"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-white/20 bg-black/75 hover:bg-white hover:text-zinc-950 text-white text-[11px] font-bold transition-all hover:scale-105 active:scale-95 cursor-pointer shadow-md shadow-black/50 backdrop-blur-md outline-none focus-visible:ring-2 focus-visible:ring-white"
             >
               <Film className="w-3 h-3 text-current" />
               <span>{isLoadingTrailer ? "..." : "Trailer"}</span>
@@ -642,12 +625,12 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
           className="outline-none block w-full min-w-0"
         >
           <div className="h-5 sm:h-5.5 flex items-center w-full min-w-0">
-            <h4
+            <h3
               title={title}
               className="text-zinc-100 group-hover/card:text-red-400 font-semibold text-[13px] sm:text-[14px] leading-tight truncate w-full transition-colors"
             >
               {title}
-            </h4>
+            </h3>
           </div>
         </Link>
 

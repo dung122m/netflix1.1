@@ -199,7 +199,7 @@ export const InstallPwaModal: React.FC<InstallPwaModalProps> = ({
         ) : installSuccess ? (
           /* State: Install Just Accepted */
           <div className="bg-emerald-950/40 border border-emerald-500/30 rounded-2xl p-6 text-center animate-fadeIn">
-            <CheckCircle2 className="w-12 h-12 text-emerald-400 mx-auto mb-3 animate-bounce" />
+            <CheckCircle2 className="w-12 h-12 text-emerald-400 mx-auto mb-3 animate-in zoom-in-95 duration-200" />
             <div className="font-bold text-white text-base">
               Cài đặt ứng dụng thành công!
             </div>

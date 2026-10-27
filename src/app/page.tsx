@@ -298,28 +298,28 @@ export default async function HomePage({
   );
 
   return (
-    <div className="page-cinema-container min-h-screen pb-20">
+    <div className="page-cinema-container min-h-screen pb-20 w-full max-w-full overflow-x-clip">
       <Navbar />
 
       {/* 1. HERO SPOTLIGHT BANNER */}
       <HeroFeatured movies={heroMovies} />
 
       {/* 2. TIẾP TỤC XEM: Hiển thị ngay sau Hero khi có lịch sử */}
-      <div className="px-4 md:px-8 my-4 relative z-30">
+      <div className="px-4 md:px-8 my-5 sm:my-7 relative z-30">
         <ContinueWatchingRow />
       </div>
 
       {/* 3. KHÁM PHÁ THEO THỂ LOẠI (Điều hướng chủ đích sang Browse) */}
-      <div className="px-4 md:px-8 my-3 sm:my-4 relative z-30">
+      <div className="px-4 md:px-8 mb-6 sm:mb-8 relative z-30 w-full min-w-0 max-w-full overflow-hidden">
         <HomeGenreExploreBar />
       </div>
 
       {/* 4. 🇻🇳 HÔM NAY TẠI VIỆT NAM (FEATURE SPOTLIGHT BANNER) */}
-      <div className="px-4 md:px-8 mt-2 sm:mt-4 relative z-20">
+      <div className="px-4 md:px-8 mb-8 sm:mb-12 relative z-20">
         <VietnamTodaySection />
       </div>
 
-      <div className="px-4 md:px-8 relative z-10 pt-2 sm:pt-4">
+      <div className="px-4 md:px-8 relative z-10 space-y-10 sm:space-y-14">
         {/* 5. HÀNG PHIM DÀNH RIÊNG CHO BẠN (AI PERSONALIZED RECOMMENDATIONS) */}
         <ForYouPersonalizedRow fallbackMovies={movies} />
 

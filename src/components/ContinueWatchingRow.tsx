@@ -39,11 +39,15 @@ function ContinueWatchingRowInner() {
     }
     rafRef.current = requestAnimationFrame(() => {
       if (!rowRef.current) return;
-      const { scrollLeft, scrollWidth, clientWidth } = rowRef.current;
-      const nextLeft = scrollLeft > 10;
-      const nextRight = scrollLeft + clientWidth < scrollWidth - 10;
-      setCanScrollLeft((prev) => (prev !== nextLeft ? nextLeft : prev));
-      setCanScrollRight((prev) => (prev !== nextRight ? nextRight : prev));
+      const el = rowRef.current;
+      const { scrollLeft, scrollWidth, clientWidth } = el;
+      const firstCard = el.querySelector<HTMLElement>(".group");
+      const isAtStart =
+        scrollLeft <= 8 ||
+        (firstCard ? firstCard.getBoundingClientRect().left >= el.getBoundingClientRect().left - 2 : scrollLeft <= 8);
+      const isAtEnd = scrollLeft >= scrollWidth - clientWidth - 8;
+      setCanScrollLeft(!isAtStart);
+      setCanScrollRight(!isAtEnd);
     });
   }, []);
 
@@ -66,6 +70,7 @@ function ContinueWatchingRowInner() {
     const currentRef = rowRef.current;
     if (currentRef) {
       currentRef.addEventListener("scroll", checkScroll, { passive: true });
+      currentRef.addEventListener("scrollend", checkScroll, { passive: true });
     }
     window.addEventListener("resize", checkScroll);
     return () => {
@@ -74,6 +79,7 @@ function ContinueWatchingRowInner() {
       }
       if (currentRef) {
         currentRef.removeEventListener("scroll", checkScroll);
+        currentRef.removeEventListener("scrollend", checkScroll);
       }
       window.removeEventListener("resize", checkScroll);
     };
@@ -91,7 +97,8 @@ function ContinueWatchingRowInner() {
       left: direction === "left" ? -step : step,
       behavior: "smooth",
     });
-    checkScroll();
+    setTimeout(checkScroll, 150);
+    setTimeout(checkScroll, 400);
   };
 
   const handleRemove = (e: React.MouseEvent, slug: string) => {
@@ -119,24 +126,22 @@ function ContinueWatchingRowInner() {
 
       {/* KHUNG CAROUSEL CÓ NÚT ĐIỀU HƯỚNG TRÁI/PHẢI CHUẨN NETFLIX */}
       <div className="relative group/row">
-        {/* NÚT CUỘN TRÁI / PHẢI: FLOATING GLASS PILL CHUẨN */}
-        {canScrollLeft && (
-          <CarouselNavButton
-            direction="left"
-            onClick={() => handleScroll("left")}
-            ariaLabel="Cuộn danh sách đang xem sang trái"
-            topOffsetClass="top-[50%]"
-          />
-        )}
+        {/* NÚT CUỘN TRÁI / PHẢI: FLOATING GLASS CHUẨN ĐỒNG BỘ */}
+        <CarouselNavButton
+          direction="left"
+          onClick={() => handleScroll("left")}
+          visible={canScrollLeft}
+          ariaLabel="Cuộn danh sách đang xem sang trái"
+          topOffsetClass="top-[50%]"
+        />
 
-        {canScrollRight && (
-          <CarouselNavButton
-            direction="right"
-            onClick={() => handleScroll("right")}
-            ariaLabel="Cuộn danh sách đang xem sang phải"
-            topOffsetClass="top-[50%]"
-          />
-        )}
+        <CarouselNavButton
+          direction="right"
+          onClick={() => handleScroll("right")}
+          visible={canScrollRight}
+          ariaLabel="Cuộn danh sách đang xem sang phải"
+          topOffsetClass="top-[50%]"
+        />
 
         {/* MOBILE SUBTLE GRADIENT FADE AFFORDANCE */}
         {canScrollLeft && (
@@ -155,7 +160,7 @@ function ContinueWatchingRowInner() {
         {/* DANH SÁCH THẺ PHIM ĐÃ XEM */}
         <div
           ref={rowRef}
-          className="flex gap-3 sm:gap-4 overflow-x-auto px-3 sm:px-4 py-3 sm:py-3.5 scrollbar-none [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+          className="flex gap-3 sm:gap-4 overflow-x-auto px-3 sm:px-4 scroll-pl-3 sm:scroll-pl-4 py-3 sm:py-3.5 scrollbar-none [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
         >
           {items.slice(0, MAX_CONTINUE_WATCHING_DISPLAY).map((item) => {
             const href = item.episodeSlug

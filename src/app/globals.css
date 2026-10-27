@@ -140,6 +140,15 @@
     overflow-x: clip;
     scrollbar-gutter: stable;
   }
+
+  ::selection {
+    background: rgba(229, 9, 20, 0.4);
+    color: #ffffff;
+  }
+
+  input, textarea {
+    caret-color: #e50914;
+  }
 }
 
 /* Tối ưu hiệu năng render GPU & Cuộn 60/120fps */

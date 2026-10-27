@@ -53,9 +53,9 @@ export default function ActorsHubPage() {
             <span>Thư viện nghệ sĩ • Cast Directory</span>
           </div>
 
-          <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-white tracking-tight leading-[1.15]">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-white tracking-tight leading-[1.15] text-balance">
             Khám Phá{" "}
-            <span className="bg-gradient-to-r from-netflix-red via-white to-zinc-300 bg-clip-text text-transparent">
+            <span className="text-netflix-red">
               Diễn Viên & Nghệ Sĩ
             </span>
           </h1>

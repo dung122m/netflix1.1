@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { Bookmark, Check } from "lucide-react";
 import { isInWatchlist, toggleWatchlist } from "@/lib/watchlist";
 import { toast } from "@/components/Toast";
+import { Tooltip } from "@/components/ui/Tooltip";
 
 interface WatchlistButtonProps {
   movie: {
@@ -100,62 +101,66 @@ export const WatchlistButton: React.FC<WatchlistButtonProps> = ({
   // Variant dành riêng cho thanh công cụ dưới Player
   if (variant === "player") {
     return (
-      <button
-        type="button"
-        onClick={handleToggle}
-        title={inList ? "Bỏ lưu khỏi Danh sách yêu thích" : "Lưu vào Danh sách yêu thích"}
-        className={`inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg border transition cursor-pointer text-xs active:scale-95 whitespace-nowrap ${
-          inList
-            ? "bg-amber-500/20 text-amber-300 border-amber-500/50 font-semibold shadow-sm"
-            : "bg-zinc-900/80 hover:bg-zinc-800 text-gray-300 hover:text-white border-white/10"
-        } ${className}`}
-      >
-        {inList ? (
-          <>
-            <Check className="w-3.5 h-3.5 text-amber-400" />
-            <span>{savedLabel || (label ? `Đã lưu` : "Đã lưu")}</span>
-          </>
-        ) : (
-          <>
-            <Bookmark className="w-3.5 h-3.5 text-amber-400" />
-            <span>{label || "Lưu"}</span>
-          </>
-        )}
-      </button>
+      <Tooltip content={inList ? "Bỏ lưu khỏi danh sách yêu thích" : "Lưu vào danh sách yêu thích"} side="top">
+        <button
+          type="button"
+          onClick={handleToggle}
+          aria-label={inList ? "Bỏ lưu khỏi danh sách yêu thích" : "Lưu vào danh sách yêu thích"}
+          className={`inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg border transition cursor-pointer text-xs active:scale-95 whitespace-nowrap ${
+            inList
+              ? "bg-amber-500/20 text-amber-300 border-amber-500/50 font-semibold shadow-sm"
+              : "bg-zinc-900/80 hover:bg-zinc-800 text-gray-300 hover:text-white border-white/10"
+          } ${className}`}
+        >
+          {inList ? (
+            <>
+              <Check className="w-3.5 h-3.5 text-amber-400" />
+              <span>{savedLabel || (label ? `Đã lưu` : "Đã lưu")}</span>
+            </>
+          ) : (
+            <>
+              <Bookmark className="w-3.5 h-3.5 text-amber-400" />
+              <span>{label || "Lưu"}</span>
+            </>
+          )}
+        </button>
+      </Tooltip>
     );
   }
 
   // Variant nút bấm chính (Badge / Action Toolbar trên trang chi tiết phim)
   return (
-    <button
-      type="button"
-      onClick={handleToggle}
-      title={inList ? "Đã lưu vào danh sách yêu thích" : "Thêm vào danh sách yêu thích"}
-      className={`inline-flex items-center gap-1.5 rounded-lg border transition-all cursor-pointer active:scale-95 px-2.5 sm:px-3.5 py-1.5 text-xs sm:text-sm font-medium shadow-sm flex-shrink-0 whitespace-nowrap ${
-        inList
-          ? "bg-amber-500/20 border-amber-500/40 text-amber-300 hover:bg-amber-500/30"
-          : "border-white/15 bg-zinc-900/80 text-gray-200 hover:bg-white/10 hover:text-white"
-      } ${className}`}
-    >
-      {inList ? (
-        <>
-          <Check className="h-3.5 w-3.5 text-amber-400 flex-shrink-0" />
-          <span className="whitespace-nowrap">{savedLabel || (label ? "Đã lưu" : "Đã lưu")}</span>
-        </>
-      ) : (
-        <>
-          <Bookmark className="h-3.5 w-3.5 text-amber-400 flex-shrink-0" />
-          {label ? (
-            <span className="whitespace-nowrap">{label}</span>
-          ) : (
-            <>
-              <span className="whitespace-nowrap sm:hidden">Lưu</span>
-              <span className="whitespace-nowrap hidden sm:inline">Yêu thích</span>
-            </>
-          )}
-        </>
-      )}
-    </button>
+    <Tooltip content={inList ? "Đã lưu vào danh sách yêu thích" : "Thêm vào danh sách yêu thích"} side="top">
+      <button
+        type="button"
+        onClick={handleToggle}
+        aria-label={inList ? "Đã lưu vào danh sách yêu thích" : "Thêm vào danh sách yêu thích"}
+        className={`inline-flex items-center gap-1 sm:gap-1.5 rounded-lg border transition-all cursor-pointer active:scale-95 px-1.5 xs:px-2 sm:px-3.5 py-1.5 text-xs sm:text-sm font-medium shadow-sm flex-shrink-0 whitespace-nowrap ${
+          inList
+            ? "bg-amber-500/20 border-amber-500/40 text-amber-300 hover:bg-amber-500/30"
+            : "border-white/15 bg-zinc-900/80 text-gray-200 hover:bg-white/10 hover:text-white"
+        } ${className}`}
+      >
+        {inList ? (
+          <>
+            <Check className="h-3.5 w-3.5 text-amber-400 flex-shrink-0" />
+            <span className="whitespace-nowrap">{savedLabel || (label ? "Đã lưu" : "Đã lưu")}</span>
+          </>
+        ) : (
+          <>
+            <Bookmark className="h-3.5 w-3.5 text-amber-400 flex-shrink-0" />
+            {label ? (
+              <span className="whitespace-nowrap">{label}</span>
+            ) : (
+              <>
+                <span className="whitespace-nowrap sm:hidden">Lưu</span>
+                <span className="whitespace-nowrap hidden sm:inline">Yêu thích</span>
+              </>
+            )}
+          </>
+        )}
+      </button>
+    </Tooltip>
   );
 };
 

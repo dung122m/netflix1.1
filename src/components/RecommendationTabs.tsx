@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { pickBestMovieThumb, toOptimizedPhimimgUrl, extractMovieRatingScore } from "@/lib/movieMedia";
 import { toast } from "./Toast";
+import { Tooltip } from "@/components/ui/Tooltip";
 
 interface MovieItem {
   slug: string;
@@ -378,19 +379,20 @@ export function RecommendationTabs({
           {/* CÁC NÚT ĐIỀU KHIỂN BÊN PHẢI (NÚT SHUFFLE ĐỘC LẬP) */}
           <div className="flex items-center gap-1 flex-shrink-0">
             {/* NÚT ĐỔI PHIM (SHUFFLE) */}
-            <button
-              type="button"
-              onClick={handleShuffle}
-              title="Đổi phim khác"
-              aria-label="Đổi phim khác"
-              className="flex items-center justify-center h-7 w-7 rounded-xl text-xs font-bold text-gray-200 hover:text-white bg-zinc-900/90 hover:bg-zinc-800 border border-white/15 hover:border-white/30 transition shadow-sm cursor-pointer active:scale-95 shrink-0"
-            >
-              <Shuffle
-                className={`w-3.5 h-3.5 text-amber-400 transition-transform ${
-                  isShuffling ? "rotate-180 scale-110" : ""
-                }`}
-              />
-            </button>
+            <Tooltip content="Đổi phim khác" side="top">
+              <button
+                type="button"
+                onClick={handleShuffle}
+                aria-label="Đổi phim khác"
+                className="flex items-center justify-center h-7 w-7 rounded-xl text-xs font-bold text-gray-200 hover:text-white bg-zinc-900/90 hover:bg-zinc-800 border border-white/15 hover:border-white/30 transition shadow-sm cursor-pointer active:scale-95 shrink-0"
+              >
+                <Shuffle
+                  className={`w-3.5 h-3.5 text-amber-400 transition-transform ${
+                    isShuffling ? "rotate-180 scale-110" : ""
+                  }`}
+                />
+              </button>
+            </Tooltip>
           </div>
         </div>
       </div>
@@ -555,7 +557,7 @@ const RecommendedMovieCard = React.memo(function RecommendedMovieCard({
           {quality && (
             <div className="absolute top-2 right-2 z-10 pointer-events-none">
               <span
-                className={`px-1.5 py-0.5 rounded text-[10px] font-bold backdrop-blur-md border ${
+                className={`px-1.5 py-0.5 rounded text-[11px] font-bold backdrop-blur-md border ${
                   quality.toUpperCase().includes("CAM")
                     ? "bg-amber-950/80 text-amber-300 border-amber-500/40"
                     : "bg-black/75 text-zinc-300 border-white/10"
@@ -588,7 +590,7 @@ const RecommendedMovieCard = React.memo(function RecommendedMovieCard({
               {time && <span className="text-zinc-500 truncate min-w-0">• {time}</span>}
             </div>
             {categoryName && (
-              <span className="text-[10px] sm:text-[11px] font-medium text-zinc-400 bg-white/5 px-2 py-0.5 rounded border border-white/5 truncate max-w-[85px] sm:max-w-[110px] shrink-0">
+              <span className="text-[11px] font-medium text-zinc-400 bg-white/5 px-2 py-0.5 rounded border border-white/5 truncate max-w-[85px] sm:max-w-[110px] shrink-0">
                 {categoryName}
               </span>
             )}
@@ -652,16 +654,16 @@ const RecommendedSidebarCard = React.memo(function RecommendedSidebarCard({
 
       {/* 2. THÔNG TIN PHIM */}
       <div className="flex-1 min-w-0 flex flex-col justify-center">
-        <h4 className="text-white text-xs sm:text-[13px] font-bold line-clamp-2 leading-tight group-hover:text-red-500 transition-colors">
+        <h3 className="text-white text-xs sm:text-[13px] font-bold line-clamp-2 leading-tight group-hover:text-red-500 transition-colors">
           {title}
-        </h4>
+        </h3>
         <div className="flex items-center gap-1.5 text-[11px] text-zinc-400 mt-1">
           {year && <span>{year}</span>}
           {time && <span className="text-zinc-500 truncate">• {time}</span>}
         </div>
         <div className="flex items-center gap-1.5 mt-1.5">
           {categoryName && (
-            <span className="text-[10px] font-medium text-zinc-300 bg-white/10 px-1.5 py-0.2 rounded border border-white/10 truncate max-w-[90px]">
+            <span className="text-[11px] font-medium text-zinc-300 bg-white/10 px-1.5 py-0.5 rounded border border-white/10 truncate max-w-[90px]">
               {categoryName}
             </span>
           )}

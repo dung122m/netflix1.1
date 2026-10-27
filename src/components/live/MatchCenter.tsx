@@ -27,6 +27,7 @@ import { getTeamAsset } from "@/data/live/teamAssets";
 import { toDarkModeLogoUrl } from "@/services/live/football-logo/service";
 import { TacticalLineup } from "./TacticalLineup";
 import { CountryFlag } from "./CountryFlag";
+import { Tooltip } from "@/components/ui/Tooltip";
 
 function getTeamInitials(teamName: string): string {
   if (!teamName) return "⚽";
@@ -493,23 +494,24 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
 
         <div className="flex items-center gap-1.5 shrink-0">
           {isOpen && (
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                fetchSummary(true, false);
-              }}
-              disabled={loading || isRefreshing}
-              title="Làm mới dữ liệu"
-              aria-label="Làm mới dữ liệu trận đấu"
-              className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 hover:text-white transition disabled:opacity-50 cursor-pointer"
-            >
-              <RefreshCw
-                className={`w-3.5 h-3.5 ${
-                  loading || isRefreshing ? "animate-spin text-netflix-red" : ""
-                }`}
-              />
-            </button>
+            <Tooltip content="Làm mới dữ liệu" side="top">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  fetchSummary(true, false);
+                }}
+                disabled={loading || isRefreshing}
+                aria-label="Làm mới dữ liệu trận đấu"
+                className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 hover:text-white transition disabled:opacity-50 cursor-pointer"
+              >
+                <RefreshCw
+                  className={`w-3.5 h-3.5 ${
+                    loading || isRefreshing ? "animate-spin text-netflix-red" : ""
+                  }`}
+                />
+              </button>
+            </Tooltip>
           )}
 
           <div className="p-1.5 rounded-lg bg-white/5 text-gray-400 border border-white/10">

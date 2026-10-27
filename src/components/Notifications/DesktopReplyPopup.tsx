@@ -7,6 +7,7 @@ import { MessageSquare, X, ArrowRight, Sparkles } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { subscribeUserNotifications, markNotificationAsRead } from "@/services/notificationService";
 import { UserNotification } from "@/types/notification";
+import { Tooltip } from "@/components/ui/Tooltip";
 
 /**
  * Phát âm thanh thông báo nhẹ nhàng chuẩn Facebook bằng Web Audio API
@@ -218,14 +219,16 @@ export const DesktopReplyPopup: React.FC = () => {
         </div>
 
         {/* Close button */}
-        <button
-          type="button"
-          onClick={handleDismiss}
-          className="text-zinc-400 hover:text-white p-1 rounded-lg hover:bg-white/10 transition cursor-pointer flex-shrink-0"
-          title="Đóng thông báo"
-        >
-          <X className="w-4 h-4" />
-        </button>
+        <Tooltip content="Đóng thông báo" side="bottom">
+          <button
+            type="button"
+            onClick={handleDismiss}
+            aria-label="Đóng thông báo"
+            className="text-zinc-400 hover:text-white p-1 rounded-lg hover:bg-white/10 transition cursor-pointer flex-shrink-0"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </Tooltip>
       </div>
 
       {/* BODY: MESSAGE SNIPPET */}

@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { Share2, Check } from "lucide-react";
+import { Tooltip } from "@/components/ui/Tooltip";
 
 interface ShareButtonProps {
   title: string;
@@ -40,13 +41,13 @@ export function ShareButton({ title }: ShareButtonProps) {
   };
 
   return (
-    <button
-      type="button"
-      onClick={handleShare}
-      title="Chia sẻ phim này"
-      aria-label="Chia sẻ phim"
-      className="inline-flex items-center gap-1.5 rounded-lg border border-white/15 bg-zinc-900/80 px-2.5 sm:px-3.5 py-1.5 text-xs sm:text-sm font-medium text-gray-300 hover:bg-white/10 hover:text-white transition-all cursor-pointer active:scale-95 flex-shrink-0 whitespace-nowrap"
-    >
+    <Tooltip content="Sao chép liên kết chia sẻ" side="top">
+      <button
+        type="button"
+        onClick={handleShare}
+        aria-label="Chia sẻ phim"
+        className="inline-flex items-center gap-1 sm:gap-1.5 rounded-lg border border-white/15 bg-zinc-900/80 px-1.5 xs:px-2 sm:px-3.5 py-1.5 text-xs sm:text-sm font-medium text-gray-300 hover:bg-white/10 hover:text-white transition-all cursor-pointer active:scale-95 flex-shrink-0 whitespace-nowrap"
+      >
       {copied ? (
         <>
           <Check className="h-3.5 w-3.5 text-emerald-400 flex-shrink-0" />
@@ -58,7 +59,8 @@ export function ShareButton({ title }: ShareButtonProps) {
           <span className="whitespace-nowrap">Chia sẻ</span>
         </>
       )}
-    </button>
+      </button>
+    </Tooltip>
   );
 }
 

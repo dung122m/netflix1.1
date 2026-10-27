@@ -883,7 +883,7 @@ export const MovieRouletteModal: React.FC<MovieRouletteModalProps> = ({
                 <div className="p-4 sm:p-5 rounded-3xl bg-gradient-to-br from-amber-500/20 via-orange-500/15 to-purple-500/20 border-2 border-amber-400/50 shadow-2xl space-y-3.5 animate-in zoom-in-95 duration-150">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <span className="text-2xl animate-bounce">🎴</span>
+                      <span className="text-2xl drop-shadow-md">🎴</span>
                       <div>
                         <h4 className="text-sm sm:text-base font-black text-amber-300 tracking-wider">
                           Quẻ hôm nay của bạn

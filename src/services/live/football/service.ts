@@ -237,6 +237,7 @@ export function mergeSourceStatus(
 }
 
 export const MAX_MATCH_DURATION_MS = 140 * 60 * 1000; // 140 phút
+export const MAX_EVENT_DURATION_MS = 8 * 60 * 60 * 1000; // 8 giờ (an toàn tối đa cho sự kiện trực tiếp kéo dài)
 export const UPCOMING_DISPLAY_WINDOW_MS = 2 * 60 * 60 * 1000; // 2 giờ (120 phút)
 
 export function getMatchTimeline(
@@ -244,6 +245,7 @@ export function getMatchTimeline(
   sourceStatusOrLiveMarker: SourceMatchStatus | boolean = "unknown",
   streamHealth: "alive" | "dead" | "unknown" = "unknown",
   now: number = Date.now(),
+  isEvent: boolean = false,
 ): "live" | "upcoming" | "finished" {
   let normalizedStatus: SourceMatchStatus = "unknown";
   if (typeof sourceStatusOrLiveMarker === "boolean") {
@@ -252,39 +254,48 @@ export function getMatchTimeline(
     normalizedStatus = sourceStatusOrLiveMarker;
   }
 
+  // 1. Luồng stream đã xác nhận chết hoặc nguồn phát báo kết thúc -> Luôn ẩn (finished)
+  if (normalizedStatus === "finished" || streamHealth === "dead") {
+    return "finished";
+  }
+
   const hasValidTimestamp =
     timestamp !== undefined &&
     timestamp !== null &&
     timestamp > 0 &&
     timestamp !== Number.MAX_SAFE_INTEGER;
 
-  // 1. Explicit FINISHED source status hoặc stream DEAD: Luôn là finished (Ẩn)
-  if (normalizedStatus === "finished" || streamHealth === "dead") {
-    return "finished";
-  }
-
-  // 2. HARD DURATION GUARD: Sau 140 phút kể từ kickoff bắt buộc là FINISHED
-  // Phải kiểm tra TRƯỚC bất kỳ rule nào có thể ép live (kể cả [LIVE], 🟢, HTTP 200 alive)
-  if (hasValidTimestamp && now > timestamp + MAX_MATCH_DURATION_MS) {
-    return "finished";
-  }
-
-  // 3. XỬ LÝ TRẬN CÓ KICKOFF TIMESTAMP HỢP LỆ
+  // 2. Xử lý khi có mốc thời gian bắt đầu (kickoff)
   if (hasValidTimestamp) {
-    // 3A. TRẬN CHƯA KICKOFF (now < timestamp)
-    // Vòng đời trận chưa bắt đầu luôn là UPCOMING (tuyệt đối không gán nhãn finished cho trận chưa đá)
+    // 2A. Chưa đến giờ bắt đầu -> Sắp diễn ra
     if (now < timestamp) {
       return "upcoming";
     }
 
-    // 3B. TRẬN TRONG KHUNG 140 PHÚT (kickoff <= now <= kickoff + 140 phút)
-    // Miễn là streamHealth !== "dead", trả về "live"
-    // KHÔNG yêu cầu [LIVE]/🟢 trong sourceStatus (unknown không được tự động biến trận vừa kickoff thành finished)
+    // 2B. Kiểm tra thời lượng tối đa:
+    // - Trận bóng đá thông thường: Sau 140 phút bắt buộc kết thúc
+    if (!isEvent && now > timestamp + MAX_MATCH_DURATION_MS) {
+      return "finished";
+    }
+
+    // - Sự kiện trực tiếp kéo dài (gala, trao giải):
+    //   + Quá 8 giờ: Hard stop (ngắt stream zombie)
+    //   + Quá 140 phút: Chỉ duy trì 'live' nếu stream đã xác nhận còn hoạt động ('alive')
+    if (isEvent) {
+      if (now > timestamp + MAX_EVENT_DURATION_MS) {
+        return "finished";
+      }
+      if (now > timestamp + MAX_MATCH_DURATION_MS && streamHealth !== "alive") {
+        return "finished";
+      }
+    }
+
+    // Đang trong khung giờ phát sóng
     return "live";
   }
 
-  // 4. XỬ LÝ TRẬN KHÔNG CÓ KICKOFF TIMESTAMP (Giữ nguyên behavior an toàn)
-  if (normalizedStatus === "live") {
+  // 3. Xử lý khi không có mốc thời gian bắt đầu: Chỉ live khi nguồn báo live và stream còn sống
+  if (normalizedStatus === "live" && (!isEvent || streamHealth === "alive")) {
     return "live";
   }
 
@@ -725,6 +736,7 @@ export function areMatchTimesCompatible(
   t2: { timestamp: number; time: string; isLive: boolean },
   now: number = Date.now(),
   toleranceMs: number = 90 * 60 * 1000,
+  maxDurationMs: number = MAX_MATCH_DURATION_MS,
 ): boolean {
   const isLive1 = t1.isLive || t1.time === "Trực tiếp";
   const isLive2 = t2.isLive || t2.time === "Trực tiếp";
@@ -742,7 +754,7 @@ export function areMatchTimesCompatible(
     // Nếu 1 bên có timestamp thực tế (scheduled), còn 1 bên chỉ có timestamp = now (do live marker):
     const scheduledTs = isLive1 && !isLive2 ? t2.timestamp : !isLive1 && isLive2 ? t1.timestamp : null;
     if (scheduledTs !== null) {
-      return now >= scheduledTs - 60 * 60 * 1000 && now <= scheduledTs + MAX_MATCH_DURATION_MS;
+      return now >= scheduledTs - 60 * 60 * 1000 && now <= scheduledTs + maxDurationMs;
     }
 
     return false;
@@ -756,7 +768,7 @@ export function areMatchTimesCompatible(
   // Case 3: Một bên Live và một bên Scheduled có timestamp
   if ((isLive1 && hasTs2) || (isLive2 && hasTs1)) {
     const scheduledTs = hasTs1 ? t1.timestamp : t2.timestamp;
-    return now >= scheduledTs - 60 * 60 * 1000 && now <= scheduledTs + MAX_MATCH_DURATION_MS;
+    return now >= scheduledTs - 60 * 60 * 1000 && now <= scheduledTs + maxDurationMs;
   }
 
   // Case 4: Text time matching ("21:00" === "21:00")
@@ -1642,7 +1654,8 @@ export const GENERIC_SPORT_NON_TEAM_KEYWORDS = [
   "quan vot", "tennis", "cau long", "badminton", "bong ban", "table tennis", "bida", "billiards",
   "boxing", "mma", "ufc", "dua xe", "f1", "esports", "game", "su kien", "event", "live", "truc tiep",
   "re-live", "full match", "highlight", "ban ket", "chung ket", "tu ket", "vong loai", "playoff", "tieng viet",
-  "ngay thi dau", "ngay", "luong", "stream", "session", "matchday", "round", "vong", "bang"
+  "ngay thi dau", "ngay", "luong", "stream", "session", "matchday", "round", "vong", "bang",
+  "le trao giai", "trao giai", "gala", "qua bong vang", "ballon d'or", "ballon d or", "ballon dor", "qbv", "khai mac", "be mac", "boc tham", "hop bao"
 ];
 
 export function isValidFootballTeamName(name: string): boolean {
@@ -1698,7 +1711,7 @@ export function isValidFootballTeamName(name: string): boolean {
       return false;
     }
   }
-  if (/^(?:truc tiep|re live|highlight|full match|ban ket|chung ket|tu ket|vong loai|ngay thi dau|session)\b/i.test(norm)) {
+  if (/^(?:truc tiep|re live|highlight|full match|ban ket|chung ket|tu ket|vong loai|ngay thi dau|session|le trao giai|trao giai|gala|qua bong vang|ballon\s*d\s*or|ballon\s*d'?or|qbv|khai mac|be mac|boc tham|hop bao)\b/i.test(norm)) {
     return false;
   }
 
@@ -1750,7 +1763,7 @@ export function isGenericTvChannel(
 
   // 4. Giải đấu / Kênh / Sự kiện thể thao quốc tế -> THỂ THAO -> GIỮ
   const isSportsTournamentOrEvent =
-    /(?:asian\s*games|asiad|sea\s*games|olympic|world\s*cup|euro|copa|champions\s*league|cup\s*c1|cup\s*c2|cup\s*c3|europa\s*league|premier\s*league|ngoai\s*hang\s*anh|la\s*liga|serie\s*a|bundesliga|ligue\s*1|v[-_ ]?league|vleague|afc|concacaf|conmebol|fa\s*cup|carabao|nba|cba|pba|vba|basketball|bong\s*ro|bong\s*chuyen|volleyball|tennis|quan\s*vot|roland\s*garros|wimbledon|us\s*open|atp|wta|f1|formula|motogp|ufc|mma|one\s*championship|boxing|quyen\s*anh|billiards|bida|snooker|esports|esport|lck|lpl|vcs|dota|cs2|valorant|bein\s*sports|astro\s*supersport|true\s*sport|fox\s*sports|sky\s*sports|bt\s*sport|tnt\s*sports|eurosport|nba\s*tv|mutv|chelsea\s*tv|manchester|real\s*madrid|barcelona|arsenal|chelsea|liverpool|juventus|bayern|psg|inter|milan|dortmund|tottenham)\b/i.test(
+    /(?:asian\s*games|asiad|sea\s*games|olympic|world\s*cup|euro|copa|champions\s*league|cup\s*c1|cup\s*c2|cup\s*c3|europa\s*league|premier\s*league|ngoai\s*hang\s*anh|la\s*liga|serie\s*a|bundesliga|ligue\s*1|v[-_ ]?league|vleague|afc|concacaf|conmebol|fa\s*cup|carabao|nba|cba|pba|vba|basketball|bong\s*ro|bong\s*chuyen|volleyball|tennis|quan\s*vot|roland\s*garros|wimbledon|us\s*open|atp|wta|f1|formula|motogp|ufc|mma|one\s*championship|boxing|quyen\s*anh|billiards|bida|snooker|esports|esport|lck|lpl|vcs|dota|cs2|valorant|bein\s*sports|astro\s*supersport|true\s*sport|fox\s*sports|sky\s*sports|bt\s*sport|tnt\s*sports|eurosport|nba\s*tv|mutv|chelsea\s*tv|manchester|real\s*madrid|barcelona|arsenal|chelsea|liverpool|juventus|bayern|psg|inter|milan|dortmund|tottenham|ballon\s*d'?or|qua\s*bong\s*vang)\b/i.test(
       normFull,
     ) ||
     /[⚽🏀🎾🏐🏸🏒🥊🏎🏁🎱🎮]/u.test(fullText);
@@ -1869,7 +1882,7 @@ export function extractSportAndGender(
     sport = "badminton";
   } else if (
     fullText.includes("⚽") ||
-    /(?:^|\s|[([_:\-/])(?:football|soccer|bong da|vleague|premier league|ngoai hang anh|laliga|serie a|bundesliga|ligue 1|cúp c1|cup c1|cúp c2|cup c2|uecl|cup c3|champions league|europa league)(?:$|\s|[)\]_:\-/])/i.test(norm)
+    /(?:^|\s|[([_:\-/])(?:football|soccer|bong da|vleague|premier league|ngoai hang anh|laliga|serie a|bundesliga|ligue 1|cúp c1|cup c1|cúp c2|cup c2|uecl|cup c3|champions league|europa league|ballon d'?or|qua bong vang|the best fifa)(?:$|\s|[)\]_:\-/])/i.test(norm)
   ) {
     sport = "football";
   } else {
@@ -2647,6 +2660,8 @@ export function normalizeAndMergeStreams(
               { timestamp: item.timestamp, time: item.time, isLive: item.isLiveMarker },
               { timestamp: existing.timestamp, time: existing.time, isLive: existing.sourceStatus === "live" },
               now,
+              90 * 60 * 1000,
+              MAX_EVENT_DURATION_MS,
             );
             if (timeOk) {
               foundMatch = existing;
@@ -2710,6 +2725,8 @@ export function normalizeAndMergeStreams(
               { timestamp: item.timestamp, time: item.time, isLive: item.isLiveMarker },
               { timestamp: existing.timestamp, time: existing.time, isLive: existing.sourceStatus === "live" },
               now,
+              90 * 60 * 1000,
+              MAX_EVENT_DURATION_MS,
             );
             if (timeOk) {
               foundMatch = existing;
@@ -2824,6 +2841,7 @@ export function normalizeAndMergeStreams(
         foundMatch.sourceStatus,
         "unknown",
         now,
+        foundMatch.isEvent,
       );
 
       if (!foundMatch.homeLogo && item.rawLogo && !item.rawLogo.includes("tinhlagi.pro/logo.jpg")) {
@@ -2850,6 +2868,7 @@ export function normalizeAndMergeStreams(
         item.sourceStatus,
         "unknown",
         now,
+        item.isEvent,
       );
 
       let effectiveLogo = item.rawLogo;
@@ -3292,6 +3311,24 @@ export const liveFootballService = {
         channelsSet.add(ch);
       }
 
+      // 4B. FAST PRE-FLIGHT CHECK CHO SỰ KIỆN TRỰC TIẾP (PREVENT STALE EVENT ZOMBIE)
+      // Kiểm tra nhanh stream của các sự kiện trực tiếp đã/đang diễn ra (chỉ 1-3 URLs)
+      // để nếu stream chết (404/timeout), loại bỏ ngay từ lần render đầu tiên (không đợi 30s background check)
+      const eventUrlsToCheck: string[] = [];
+      for (const m of mergedMatches) {
+        if (m.isEvent && (!m.timestamp || m.timestamp === Number.MAX_SAFE_INTEGER || now >= m.timestamp)) {
+          for (const s of m.servers) {
+            if (s.url && !isBlockedStreamUrl(s.url) && getStreamHealthStatus(s.url) === "unknown") {
+              eventUrlsToCheck.push(s.url);
+            }
+          }
+        }
+      }
+      if (eventUrlsToCheck.length > 0) {
+        const uniqueEventUrls = Array.from(new Set(eventUrlsToCheck)).slice(0, 10);
+        await Promise.allSettled(uniqueEventUrls.map((u) => isStreamPlayable(u, 800)));
+      }
+
       // 5. LỌC VÀ SẮP XẾP CÁC MÁY CHỦ THEO HEALTH CACHE (0ms, KHÔNG BLOCK CRITICAL PATH)
       const availableMatches: FootballMatch[] = [];
 
@@ -3318,6 +3355,7 @@ export const liveFootballService = {
           m.sourceStatus,
           streamHealth,
           now,
+          m.isEvent,
         );
 
         if (!isMatchInLiveWindow(m.timeline, m.timestamp, now)) {
