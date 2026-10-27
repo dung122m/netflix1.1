@@ -1,11 +1,18 @@
 import { auth } from "./firebase";
-import {
-  saveWatchItemToCloudDebounced,
-  saveWatchItemsBatchToCloud,
-  removeWatchItemFromCloud,
-  clearAllWatchHistoryFromCloud,
-} from "./cloudSync";
 import { getOrCreateAnonymousId } from "./analyticsClient";
+
+export type WatchHistorySyncHandler = {
+  saveItem: (uid: string, item: WatchHistoryItem, delayMs?: number, options?: { force?: boolean }) => void;
+  saveItemsBatch: (uid: string, items: WatchHistoryItem[]) => void;
+  removeItem: (uid: string, slug: string) => void;
+  clearAll: (uid: string) => void;
+};
+
+let syncHandler: WatchHistorySyncHandler | null = null;
+
+export function registerWatchHistorySyncHandler(handler: WatchHistorySyncHandler | null): void {
+  syncHandler = handler;
+}
 
 export interface WatchHistoryItem {
   slug: string;
@@ -224,7 +231,7 @@ export const saveWatchHistory = (
 
     // Tự động đẩy lên Cloud nếu người dùng đã đăng nhập Google
     if (auth?.currentUser) {
-      saveWatchItemToCloudDebounced(auth.currentUser.uid, newItem, 2000, { force: true });
+      syncHandler?.saveItem(auth.currentUser.uid, newItem, 2000, { force: true });
     }
 
     // Ghi nhận lịch sử xem vào Supabase watch_history (throttled 30s per movie trên client)
@@ -373,7 +380,7 @@ export const saveWatchProgress = (
 
     // Tự động đồng bộ số phút lên Cloud nếu đã đăng nhập Google (debounce 15s + dirty check)
     if (auth?.currentUser) {
-      saveWatchItemToCloudDebounced(auth.currentUser.uid, targetItem, 15000, { force: forceSync });
+      syncHandler?.saveItem(auth.currentUser.uid, targetItem, 15000, { force: forceSync });
     }
   } catch (error) {
     console.error("Lỗi lưu tiến trình xem:", error);
@@ -484,7 +491,7 @@ export async function autoHydrateWatchHistory(): Promise<void> {
 
       // Đẩy metadata cập nhật lên Cloud trong 1 batch duy nhất nếu có auth
       if (auth?.currentUser && changedItems.length > 0) {
-        saveWatchItemsBatchToCloud(auth.currentUser.uid, changedItems);
+        syncHandler?.saveItemsBatch(auth.currentUser.uid, changedItems);
       }
     }
   } catch (err) {
@@ -527,7 +534,7 @@ export const removeWatchHistoryItem = (slug: string): void => {
     window.dispatchEvent(new CustomEvent("watch-history-updated"));
 
     if (auth?.currentUser) {
-      removeWatchItemFromCloud(auth.currentUser.uid, slug);
+      syncHandler?.removeItem(auth.currentUser.uid, slug);
     }
   } catch (error) {
     console.error("Lỗi xoá mục lịch sử:", error);
@@ -553,7 +560,7 @@ export const clearWatchHistory = (): void => {
     window.dispatchEvent(new CustomEvent("watch-history-updated"));
 
     if (auth?.currentUser) {
-      clearAllWatchHistoryFromCloud(auth.currentUser.uid);
+      syncHandler?.clearAll(auth.currentUser.uid);
     }
   } catch (error) {
     console.error("Lỗi xoá toàn bộ lịch sử:", error);

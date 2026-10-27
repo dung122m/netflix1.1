@@ -1,8 +1,15 @@
 import { auth } from "./firebase";
-import {
-  saveWatchlistItemToCloud,
-  removeWatchlistItemFromCloud,
-} from "./cloudSync";
+
+export type WatchlistSyncHandler = {
+  saveItem: (uid: string, item: WatchlistItem) => void;
+  removeItem: (uid: string, slug: string) => void;
+};
+
+let watchlistSyncHandler: WatchlistSyncHandler | null = null;
+
+export function registerWatchlistSyncHandler(handler: WatchlistSyncHandler | null): void {
+  watchlistSyncHandler = handler;
+}
 
 export type WatchlistItemType = "movie" | "series" | "episode";
 
@@ -123,7 +130,7 @@ export function addToWatchlist(item: Omit<WatchlistItem, "addedAt">): void {
 
     // Tự động lưu lên Supabase Cloud nếu đang đăng nhập
     if (auth?.currentUser) {
-      saveWatchlistItemToCloud(auth.currentUser.uid, itemWithAddedAt);
+      watchlistSyncHandler?.saveItem(auth.currentUser.uid, itemWithAddedAt);
     }
   } catch (e) {
     console.error("Lỗi lưu danh sách:", e);
@@ -141,7 +148,7 @@ export function removeFromWatchlist(slug: string): void {
 
     // Tự động xóa khỏi Supabase Cloud nếu đang đăng nhập
     if (auth?.currentUser) {
-      removeWatchlistItemFromCloud(auth.currentUser.uid, slug);
+      watchlistSyncHandler?.removeItem(auth.currentUser.uid, slug);
     }
   } catch (e) {
     console.error("Lỗi xóa khỏi danh sách:", e);
@@ -251,7 +258,7 @@ export async function autoHydrateWatchlist(): Promise<void> {
         hasChanges = true;
         // Đẩy metadata cập nhật lên Cloud nếu có auth
         if (auth?.currentUser) {
-          saveWatchlistItemToCloud(auth.currentUser.uid, updatedItem);
+          watchlistSyncHandler?.saveItem(auth.currentUser.uid, updatedItem);
         }
       }
 

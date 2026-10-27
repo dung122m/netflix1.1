@@ -1,10 +1,12 @@
 import {
   getWatchHistory,
   setWatchHistoryFromSync,
+  registerWatchHistorySyncHandler,
   WatchHistoryItem,
 } from "./watchHistory";
 import {
   getWatchlist,
+  registerWatchlistSyncHandler,
   WatchlistItem,
 } from "./watchlist";
 
@@ -367,5 +369,18 @@ export async function clearAllWatchlistFromCloud(
     console.warn("Lỗi clearAllWatchlistFromCloud:", err);
   }
 }
+
+// Tự động liên kết các hàm đồng bộ Cloud với Local Stores (phá vỡ Circular Dependencies)
+registerWatchHistorySyncHandler({
+  saveItem: saveWatchItemToCloudDebounced,
+  saveItemsBatch: saveWatchItemsBatchToCloud,
+  removeItem: removeWatchItemFromCloud,
+  clearAll: clearAllWatchHistoryFromCloud,
+});
+
+registerWatchlistSyncHandler({
+  saveItem: saveWatchlistItemToCloud,
+  removeItem: removeWatchlistItemFromCloud,
+});
 
 

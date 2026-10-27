@@ -59,7 +59,7 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
   return (
     <div
       onClick={onClick}
-      title={title || name || "Avatar"}
+      title={title}
       className={`relative inline-flex items-center justify-center select-none overflow-hidden flex-shrink-0 bg-gradient-to-br ${gradient} font-bold text-white uppercase tracking-wider ${roundedClasses} ${sizeClassName} ${className}`}
     >
       {/* Chữ cái viết hoa mặc định luôn nằm dưới hoặc hiển thị khi không có ảnh */}

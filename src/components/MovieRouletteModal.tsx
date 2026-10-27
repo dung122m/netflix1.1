@@ -167,6 +167,7 @@ export const MovieRouletteModal: React.FC<MovieRouletteModalProps> = ({
   const [posterLoaded, setPosterLoaded] = useState(false);
   const [posterError, setPosterError] = useState(false);
   const [spinCount, setSpinCount] = useState(0);
+  const [diceValues, setDiceValues] = useState<[number, number]>([5, 6]);
   const requestSeqRef = useRef(0);
   const catalogPageRef = useRef(1);
   const isPrefetchingRef = useRef(false);
@@ -356,6 +357,12 @@ export const MovieRouletteModal: React.FC<MovieRouletteModalProps> = ({
 
     const currentKey = `${moodToUse}|${countryToUse}|${companionToUse}|${durationToUse}|${surpriseToUse}`;
     const currentSeq = ++requestSeqRef.current;
+    // Sinh giá trị 2 viên xúc xắc [1..6] cho phiên bốc quẻ này
+    const nextDiceValues: [number, number] = [
+      Math.floor(Math.random() * 6) + 1,
+      Math.floor(Math.random() * 6) + 1,
+    ];
+    setDiceValues(nextDiceValues);
     setSpinCount((prev) => prev + 1);
     const spinStartTime = Date.now();
 
@@ -583,7 +590,7 @@ export const MovieRouletteModal: React.FC<MovieRouletteModalProps> = ({
           {/* STATE 1: 3D DICE SPINNING ANIMATION (Shown when spinning before first result) */}
           {isSpinning && !rouletteResult ? (
             <div className="flex-1 min-h-[360px] sm:min-h-[400px] flex items-center justify-center animate-in zoom-in-95 duration-200">
-              <MovieRouletteDice3D key={spinCount} />
+              <MovieRouletteDice3D key={spinCount} targetValues={diceValues} />
             </div>
           ) : rouletteResult && !showCriteriaPicker ? (
             /* STATE 2: SPOTLIGHT RESULT SHOWCASE */
@@ -591,7 +598,7 @@ export const MovieRouletteModal: React.FC<MovieRouletteModalProps> = ({
               {/* RE-ROLL 3D DICE OVERLAY: Preserves card dimensions, prevents layout collapse */}
               {isSpinning && (
                 <div className="absolute inset-0 z-40 bg-zinc-950/85 backdrop-blur-md rounded-3xl flex items-center justify-center p-4 border border-amber-500/40 shadow-2xl animate-in fade-in duration-150">
-                  <MovieRouletteDice3D key={spinCount} compact />
+                  <MovieRouletteDice3D key={spinCount} compact targetValues={diceValues} />
                 </div>
               )}
 
@@ -601,6 +608,11 @@ export const MovieRouletteModal: React.FC<MovieRouletteModalProps> = ({
                   <span className="text-amber-400 font-bold flex-none flex items-center gap-1">
                     <Sparkles className="w-3.5 h-3.5" />
                     <span className="hidden sm:inline">Quẻ:</span>
+                  </span>
+                  <span className="px-2 py-0.5 rounded-lg bg-amber-500/20 text-amber-200 border border-amber-500/30 text-[11px] font-semibold whitespace-nowrap flex items-center gap-1">
+                    <span>🎲</span>
+                    <span>{diceValues[0]} + {diceValues[1]}</span>
+                    <span className="text-[10px] text-amber-300/80 font-normal">({diceValues[0] + diceValues[1]}đ)</span>
                   </span>
                   <span className="px-2 py-0.5 rounded-lg bg-amber-500/20 text-amber-200 border border-amber-500/30 text-[11px] font-semibold whitespace-nowrap">
                     {ROULETTE_MOODS.find((m) => m.id === selectedMood)?.emoji}{" "}
@@ -738,7 +750,12 @@ export const MovieRouletteModal: React.FC<MovieRouletteModalProps> = ({
                         <Star className="w-3.5 h-3.5 fill-amber-300 text-amber-300" />
                         <span>Hợp Định Mệnh</span>
                       </span>
-                      <span className="font-black text-amber-200 text-sm">{rouletteResult.matchScore}%</span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-amber-500/20 text-amber-200 border border-amber-500/30 font-semibold">
+                          Quẻ {diceValues[0] + diceValues[1]} điểm
+                        </span>
+                        <span className="font-black text-amber-200 text-sm">{rouletteResult.matchScore}%</span>
+                      </div>
                     </div>
                     {rouletteResult.movie.rating && rouletteResult.movie.rating > 0 && (
                       <div className="flex items-center justify-between px-3 py-1.5 rounded-xl bg-yellow-500/10 border border-yellow-500/20 text-yellow-300 text-xs font-semibold">

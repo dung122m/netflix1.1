@@ -4,9 +4,10 @@ import React from "react";
 
 export interface MovieRouletteDice3DProps {
   compact?: boolean;
+  targetValues?: [number, number]; // Giá trị mục tiêu [viên 1, viên 2], từ 1 đến 6
 }
 
-// 3x3 pip coordinates:
+// 3x3 grid pip coordinates:
 // 0 1 2
 // 3 4 5
 // 6 7 8
@@ -19,226 +20,125 @@ const PIP_CONFIGS: Record<number, number[]> = {
   6: [0, 2, 3, 5, 6, 8],
 };
 
-const DICE_STYLES = `
-/* ============================================================================
-   CINEMATIC 3D TUMBLING & BOUNCE PHYSICS KEYFRAMES
-   Pacing: Lift (0-15%) -> Peak Tumbling (25-55%) -> Deceleration & Bounce (70-90%) -> Settle (90-100%)
-   ============================================================================ */
+interface DieFaceAssignment {
+  top: number;
+  bottom: number;
+  front: number;
+  back: number;
+  left: number;
+  right: number;
+}
 
-@keyframes diceTumbleOne {
-  0% {
-    transform: translate3d(-24px, 0px, 0px) rotateX(15deg) rotateY(20deg) rotateZ(0deg);
-  }
-  14% {
-    transform: translate3d(-20px, -16px, 12px) rotateX(75deg) rotateY(90deg) rotateZ(20deg);
-  }
-  34% {
-    transform: translate3d(-30px, -46px, 28px) rotateX(210deg) rotateY(260deg) rotateZ(85deg);
-  }
-  54% {
-    transform: translate3d(-16px, -36px, -12px) rotateX(390deg) rotateY(440deg) rotateZ(165deg);
-  }
-  72% {
-    transform: translate3d(-26px, 3px, 14px) rotateX(540deg) rotateY(580deg) rotateZ(250deg);
-  }
-  84% {
-    transform: translate3d(-22px, -8px, 6px) rotateX(630deg) rotateY(650deg) rotateZ(305deg);
-  }
-  94% {
-    transform: translate3d(-24px, 1px, -1px) rotateX(700deg) rotateY(710deg) rotateZ(345deg);
-  }
-  100% {
-    transform: translate3d(-24px, 0px, 0px) rotateX(735deg) rotateY(740deg) rotateZ(360deg);
+/**
+ * Phân bổ sáu mặt xúc xắc chuẩn xác:
+ * - Mặt TRÊN (Top Face) = target
+ * - Mặt DƯỚI (Bottom Face) = 7 - target
+ * - Các cặp mặt đối diện (Front/Back, Left/Right) đều có tổng bằng 7
+ */
+function getDieFacesForTarget(target: number): DieFaceAssignment {
+  const t = Math.min(6, Math.max(1, Math.round(target || 6)));
+  switch (t) {
+    case 1:
+      return { top: 1, bottom: 6, front: 2, back: 5, right: 3, left: 4 };
+    case 2:
+      return { top: 2, bottom: 5, front: 1, back: 6, right: 3, left: 4 };
+    case 3:
+      return { top: 3, bottom: 4, front: 1, back: 6, right: 2, left: 5 };
+    case 4:
+      return { top: 4, bottom: 3, front: 1, back: 6, right: 2, left: 5 };
+    case 5:
+      return { top: 5, bottom: 2, front: 1, back: 6, right: 3, left: 4 };
+    case 6:
+    default:
+      return { top: 6, bottom: 1, front: 2, back: 5, right: 3, left: 4 };
   }
 }
 
-@keyframes diceTumbleTwo {
-  0% {
-    transform: translate3d(24px, 0px, 0px) rotateX(-20deg) rotateY(-25deg) rotateZ(0deg);
-  }
-  12% {
-    transform: translate3d(26px, -12px, -8px) rotateX(-65deg) rotateY(-80deg) rotateZ(-15deg);
-  }
-  32% {
-    transform: translate3d(20px, -42px, -22px) rotateX(-210deg) rotateY(-240deg) rotateZ(-75deg);
-  }
-  52% {
-    transform: translate3d(32px, -48px, 22px) rotateX(-390deg) rotateY(-430deg) rotateZ(-170deg);
-  }
-  70% {
-    transform: translate3d(22px, 3px, -10px) rotateX(-540deg) rotateY(-570deg) rotateZ(-260deg);
-  }
-  82% {
-    transform: translate3d(26px, -7px, 6px) rotateX(-625deg) rotateY(-640deg) rotateZ(-310deg);
-  }
-  92% {
-    transform: translate3d(24px, 1px, 2px) rotateX(-705deg) rotateY(-710deg) rotateZ(-348deg);
-  }
-  100% {
-    transform: translate3d(24px, 0px, 0px) rotateX(-740deg) rotateY(-745deg) rotateZ(-360deg);
-  }
-}
-
-@keyframes diceShadowOne {
-  0%, 100% {
-    transform: translate3d(-24px, 0, 0) scale(1);
-    opacity: 0.65;
-  }
-  14% {
-    transform: translate3d(-20px, 0, 0) scale(0.75);
-    opacity: 0.45;
-  }
-  34% {
-    transform: translate3d(-30px, 0, 0) scale(0.42);
-    opacity: 0.18;
-  }
-  54% {
-    transform: translate3d(-16px, 0, 0) scale(0.5);
-    opacity: 0.25;
-  }
-  72% {
-    transform: translate3d(-26px, 0, 0) scale(1.15);
-    opacity: 0.85;
-  }
-  84% {
-    transform: translate3d(-22px, 0, 0) scale(0.85);
-    opacity: 0.55;
-  }
-  94% {
-    transform: translate3d(-24px, 0, 0) scale(1.05);
-    opacity: 0.75;
-  }
-}
-
-@keyframes diceShadowTwo {
-  0%, 100% {
-    transform: translate3d(24px, 0, 0) scale(1);
-    opacity: 0.65;
-  }
-  12% {
-    transform: translate3d(26px, 0, 0) scale(0.8);
-    opacity: 0.5;
-  }
-  32% {
-    transform: translate3d(20px, 0, 0) scale(0.45);
-    opacity: 0.2;
-  }
-  52% {
-    transform: translate3d(32px, 0, 0) scale(0.4);
-    opacity: 0.16;
-  }
-  70% {
-    transform: translate3d(22px, 0, 0) scale(1.15);
-    opacity: 0.85;
-  }
-  82% {
-    transform: translate3d(26px, 0, 0) scale(0.85);
-    opacity: 0.55;
-  }
-  92% {
-    transform: translate3d(24px, 0, 0) scale(1.05);
-    opacity: 0.75;
-  }
-}
-
-/* Reduced motion fallback: Gentle floating drift instead of tumbling */
-@keyframes diceFloatOneReduced {
-  0%, 100% {
-    transform: translate3d(-24px, 0px, 0px) rotateX(15deg) rotateY(20deg);
-  }
-  50% {
-    transform: translate3d(-24px, -8px, 6px) rotateX(25deg) rotateY(30deg);
-  }
-}
-
-@keyframes diceFloatTwoReduced {
-  0%, 100% {
-    transform: translate3d(24px, 0px, 0px) rotateX(-20deg) rotateY(-25deg);
-  }
-  50% {
-    transform: translate3d(24px, -8px, -6px) rotateX(-10deg) rotateY(-15deg);
-  }
-}
-
-.dice-active-1 {
-  animation: diceTumbleOne 1.62s cubic-bezier(0.35, 0.05, 0.45, 0.98) infinite !important;
-  will-change: transform;
-}
-
-.dice-active-2 {
-  animation: diceTumbleTwo 1.72s cubic-bezier(0.35, 0.05, 0.45, 0.98) infinite !important;
-  will-change: transform;
-}
-
-.dice-shadow-active-1 {
-  animation: diceShadowOne 1.62s cubic-bezier(0.35, 0.05, 0.45, 0.98) infinite !important;
-  will-change: transform, opacity;
-}
-
-.dice-shadow-active-2 {
-  animation: diceShadowTwo 1.72s cubic-bezier(0.35, 0.05, 0.45, 0.98) infinite !important;
-  will-change: transform, opacity;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .dice-active-1 {
-    animation: diceFloatOneReduced 3s ease-in-out infinite !important;
-  }
-  .dice-active-2 {
-    animation: diceFloatTwoReduced 3.2s ease-in-out infinite !important;
-  }
-}
-`;
-
-interface DieProps {
-  theme: "ruby" | "amber";
+interface PorcelainDieProps {
   size: number;
+  target: number;
   className?: string;
 }
 
-const Die: React.FC<DieProps> = ({ theme, size, className }) => {
+const PorcelainDie: React.FC<PorcelainDieProps> = ({ size, target, className }) => {
   const half = Math.round(size / 2);
-  const isRuby = theme === "ruby";
+  const isCompact = size < 48;
+  const faces = getDieFacesForTarget(target);
 
-  const faceThemes = isRuby
-    ? "bg-gradient-to-br from-red-600 via-rose-700 to-zinc-950 border-2 border-amber-400/60 shadow-[inset_0_0_12px_rgba(255,255,255,0.35)]"
-    : "bg-gradient-to-br from-amber-400 via-amber-600 to-zinc-950 border-2 border-yellow-300/60 shadow-[inset_0_0_12px_rgba(255,255,255,0.4)]";
-
-  const pipStyle = isRuby
-    ? "bg-amber-300 shadow-[0_0_6px_rgba(251,191,36,0.95)]"
-    : "bg-zinc-950 border border-amber-200/60 shadow-[0_0_4px_rgba(0,0,0,0.9)]";
-
-  const renderFace = (faceNumber: number, transformStyle: string) => {
+  // Render từng mặt xúc xắc với phân tầng ánh sáng tự nhiên (Top sáng nhất, Front trung tính, Side có bóng)
+  const renderFace = (
+    faceNumber: number,
+    transformStyle: string,
+    lightRole: "top" | "front" | "side" | "bottom"
+  ) => {
     const activePips = PIP_CONFIGS[faceNumber] || [];
+    const isAce = faceNumber === 1;
+
+    // Phân cấp màu nền và viền theo vai trò ánh sáng để cạnh 3D sắc nét tuyệt đối
+    let bgStyle = "";
+    let borderStyle = "";
+    let shadowStyle = "";
+
+    if (lightRole === "top") {
+      bgStyle = "linear-gradient(145deg, #ffffff 0%, #fbf8f3 40%, #f2ebd9 100%)";
+      borderStyle = "1px solid rgba(215, 205, 190, 0.9)";
+      shadowStyle =
+        "inset 0 1.5px 2px rgba(255, 255, 255, 0.95), inset 0 -1.5px 2px rgba(0,0,0,0.04)";
+    } else if (lightRole === "front") {
+      bgStyle = "linear-gradient(145deg, #eee7db 0%, #e4dcce 50%, #d8cec0 100%)";
+      borderStyle = "1px solid rgba(195, 185, 170, 0.9)";
+      shadowStyle =
+        "inset 0 1px 2px rgba(255, 255, 255, 0.45), inset 0 -1px 3px rgba(0,0,0,0.08)";
+    } else if (lightRole === "side") {
+      bgStyle = "linear-gradient(145deg, #ded5c5 0%, #d3c9b9 50%, #c6bcaa 100%)";
+      borderStyle = "1px solid rgba(180, 170, 155, 0.95)";
+      shadowStyle =
+        "inset 0 1px 2px rgba(255, 255, 255, 0.3), inset 0 -2px 4px rgba(0,0,0,0.12)";
+    } else {
+      bgStyle = "#bfb4a2";
+      borderStyle = "1px solid rgba(160, 150, 135, 0.95)";
+      shadowStyle = "inset 0 0 6px rgba(0,0,0,0.2)";
+    }
+
     return (
       <div
-        className={`absolute inset-0 rounded-xl sm:rounded-2xl p-1.5 grid grid-cols-3 grid-rows-3 items-center justify-items-center select-none ${faceThemes}`}
+        className="absolute inset-0 grid grid-cols-3 grid-rows-3 items-center justify-items-center select-none box-border"
         style={{
           width: `${size}px`,
           height: `${size}px`,
           backfaceVisibility: "hidden",
           WebkitBackfaceVisibility: "hidden",
           transform: transformStyle,
+          borderRadius: isCompact ? "9px" : "11px",
+          padding: isCompact ? "4px" : "5.5px",
+          background: bgStyle,
+          border: borderStyle,
+          boxShadow: shadowStyle,
         }}
       >
         {[0, 1, 2, 3, 4, 5, 6, 7, 8].map((idx) => {
           const hasPip = activePips.includes(idx);
           if (!hasPip) {
-            return <span key={idx} className="w-1.5 h-1.5" />;
+            return <span key={idx} className="w-1 h-1 pointer-events-none" />;
           }
 
-          const isAceCenter = isRuby && faceNumber === 1 && idx === 4;
+          // Mặt 1 (Ace): Chấm đỏ truyền thống chu sa (Cinnabar Lacquer) chạm nổi
+          const isAceCenter = isAce && idx === 4;
 
           return (
             <span
               key={idx}
-              className={`rounded-full ${
-                isAceCenter
-                  ? "w-3 h-3 bg-amber-200 shadow-[0_0_8px_rgba(251,191,36,1)] ring-1 ring-amber-400"
-                  : size < 44
-                  ? "w-1.5 h-1.5"
-                  : "w-2 h-2"
-              } ${pipStyle}`}
+              className="rounded-full pointer-events-none"
+              style={{
+                width: isAceCenter ? (isCompact ? "11px" : "13px") : isCompact ? "7.5px" : "9px",
+                height: isAceCenter ? (isCompact ? "11px" : "13px") : isCompact ? "7.5px" : "9px",
+                background: isAceCenter
+                  ? "radial-gradient(circle at 35% 30%, #ef4444 0%, #dc2626 55%, #991b1b 100%)"
+                  : "radial-gradient(circle at 35% 30%, #27272a 0%, #18181b 65%, #09090b 100%)",
+                boxShadow: isAceCenter
+                  ? "inset 0 1.5px 2px rgba(0, 0, 0, 0.65), inset 0 -0.8px 0.8px rgba(255, 255, 255, 0.35), 0 0.5px 1px rgba(255, 255, 255, 0.45)"
+                  : "inset 0 1.5px 2px rgba(0, 0, 0, 0.85), inset 0 -0.5px 0.5px rgba(255, 255, 255, 0.2), 0 0.5px 1px rgba(255, 255, 255, 0.45)",
+              }}
             />
           );
         })}
@@ -256,97 +156,118 @@ const Die: React.FC<DieProps> = ({ theme, size, className }) => {
         WebkitTransformStyle: "preserve-3d",
       }}
     >
-      {/* SOLID INNER CORE BOX TO PREVENT 3D GAPS */}
+      {/* KHỐI LÕI ĐỆM NỘI TẠI (INNER BONE CORE) LOẠI BỎ TRIỆT ĐỂ KHE HỞ GÓC 3D */}
       <div
-        className="absolute inset-1 rounded-lg bg-zinc-950"
+        className="absolute inset-[1px] rounded-lg pointer-events-none"
         style={{
+          background: "#ded5c6",
           transform: "translateZ(0px)",
         }}
       />
 
-      {/* 6 authentic 3D faces (opposites sum to 7: 1+6, 2+5, 3+4) */}
-      {renderFace(1, `translateZ(${half}px)`)}
-      {renderFace(6, `rotateY(180deg) translateZ(${half}px)`)}
-      {renderFace(2, `rotateX(-90deg) translateZ(${half}px)`)}
-      {renderFace(5, `rotateX(90deg) translateZ(${half}px)`)}
-      {renderFace(3, `rotateY(90deg) translateZ(${half}px)`)}
-      {renderFace(4, `rotateY(-90deg) translateZ(${half}px)`)}
+      {/* 6 MẶT ĐƯỢC ĐỊNH HƯỚNG CHUẨN XÁC: MẶT TRÊN LUÔN HIỂN THỊ TARGET VALUE */}
+      {renderFace(faces.top, `rotateX(90deg) translateZ(${half}px)`, "top")}
+      {renderFace(faces.front, `translateZ(${half}px)`, "front")}
+      {renderFace(faces.left, `rotateY(-90deg) translateZ(${half}px)`, "side")}
+      {renderFace(faces.right, `rotateY(90deg) translateZ(${half}px)`, "side")}
+      {renderFace(faces.back, `rotateY(180deg) translateZ(${half}px)`, "front")}
+      {renderFace(faces.bottom, `rotateX(-90deg) translateZ(${half}px)`, "bottom")}
     </div>
   );
 };
 
 export const MovieRouletteDice3D: React.FC<MovieRouletteDice3DProps> = ({
   compact = false,
+  targetValues = [5, 6],
 }) => {
-  const dieSize = compact ? 44 : 50;
+  // Lấy giá trị mục tiêu hợp lệ [1..6]
+  const t1 = Math.min(6, Math.max(1, Math.round(targetValues[0] || 5)));
+  const t2 = Math.min(6, Math.max(1, Math.round(targetValues[1] || 6)));
+
+  const dieSize = compact ? 42 : 52;
 
   return (
     <div
       className={`relative w-full flex items-center justify-center select-none ${
-        compact ? "py-6" : "py-12 min-h-[360px]"
+        compact ? "py-3" : "py-8 min-h-[320px]"
       }`}
     >
-      {/* NATIVE STYLE TAG FOR RELIABLE 3D KEYFRAME ANIMATIONS */}
-      <style dangerouslySetInnerHTML={{ __html: DICE_STYLES }} />
-
-      {/* CINEMATIC STAGE ATMOSPHERE */}
+      {/* SÂN KHẤU NỈ ĐEN & VÙNG SÁNG HỔ PHÁCH TINH TẾ */}
       <div className="relative flex items-center justify-center">
-        {/* DUAL SPOTLIGHT GLOW (Ruby on Left, Warm Amber on Right) */}
-        <div className="absolute -left-12 -top-12 w-44 h-44 rounded-full bg-gradient-to-tr from-rose-600/20 via-red-500/10 to-transparent blur-3xl pointer-events-none" />
-        <div className="absolute -right-12 -top-12 w-44 h-44 rounded-full bg-gradient-to-tl from-amber-500/20 via-yellow-600/10 to-transparent blur-3xl pointer-events-none" />
-
-        {/* DARK CINEMA PEDESTAL STAGE (Subtle reflective stage floor) */}
+        {/* VÙNG SÁNG DỊU HỔ PHÁCH */}
         <div
-          className="absolute -bottom-5 w-48 sm:w-56 h-10 rounded-[100%] pointer-events-none border-t border-amber-500/20 shadow-[0_12px_40px_rgba(0,0,0,0.9)]"
+          className="absolute -top-8 w-52 sm:w-64 h-36 rounded-full pointer-events-none blur-3xl"
           style={{
             background:
-              "radial-gradient(ellipse 65% 50% at 50% 40%, rgba(30, 20, 25, 0.8) 0%, rgba(10, 10, 12, 0.95) 70%, transparent 100%)",
+              "radial-gradient(ellipse at 50% 40%, rgba(245, 158, 11, 0.08) 0%, rgba(217, 119, 6, 0.03) 50%, transparent 80%)",
           }}
         />
 
-        {/* 3D ARENA CONTAINER (STRICT PRESERVE-3D, NO 2D FLATTENING) */}
+        {/* MẶT BÀN GỖ MUN / NỈ ĐEN TRÒN */}
         <div
-          className="relative flex items-center justify-center"
+          className="absolute -bottom-4 w-48 sm:w-56 h-10 rounded-[100%] pointer-events-none border border-white/5 shadow-[0_16px_36px_rgba(0,0,0,0.85)]"
           style={{
-            perspective: "700px",
-            perspectiveOrigin: "50% 50%",
-            width: "160px",
-            height: `${dieSize + 54}px`,
-            transformStyle: "preserve-3d",
-            WebkitTransformStyle: "preserve-3d",
+            background:
+              "radial-gradient(ellipse 65% 50% at 50% 35%, rgba(30, 30, 36, 0.85) 0%, rgba(12, 12, 15, 0.98) 70%, transparent 100%)",
           }}
-        >
-          {/* GROUND SHADOWS */}
-          <div
-            className="absolute bottom-1 w-full flex items-center justify-center pointer-events-none"
-            style={{ height: "14px" }}
-          >
-            <div className="w-11 h-3.5 rounded-full bg-amber-950/80 blur-[3px] dice-shadow-active-1" />
-            <div className="w-11 h-3.5 rounded-full bg-black/90 blur-[3px] dice-shadow-active-2" />
-          </div>
+        />
 
-          {/* 3D TUMBLING DICE PAIR */}
+        {/* 3D ARENA: TỪNG VIÊN CÓ DIRECT PERSPECTIVE WRAPPER RIÊNG BIỆT (CHỐNG FLATTEN 2D TRÊN CHROMIUM) */}
+        <div className="relative flex items-center justify-center gap-10 sm:gap-14">
+          {/* DIE 1 ISOLATED 3D STAGE */}
           <div
-            className="relative flex items-center justify-center"
             style={{
-              transformStyle: "preserve-3d",
-              WebkitTransformStyle: "preserve-3d",
+              perspective: "850px",
+              perspectiveOrigin: "50% 50%",
+              width: `${dieSize}px`,
+              height: `${dieSize + 40}px`,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
             }}
           >
-            {/* DIE 1: CINEMA RUBY (RED & GOLD) */}
-            <Die
-              theme="ruby"
+            <PorcelainDie
               size={dieSize}
+              target={t1}
               className="dice-active-1"
             />
+          </div>
 
-            {/* DIE 2: MYSTIC AMBER (GOLD & OBSIDIAN) */}
-            <Die
-              theme="amber"
+          {/* DIE 2 ISOLATED 3D STAGE */}
+          <div
+            style={{
+              perspective: "850px",
+              perspectiveOrigin: "50% 50%",
+              width: `${dieSize}px`,
+              height: `${dieSize + 40}px`,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <PorcelainDie
               size={dieSize}
+              target={t2}
               className="dice-active-2"
             />
           </div>
+        </div>
+
+        {/* BÓNG ĐỔ TIẾP ĐỊA ĐỘNG (NẰM DƯỚI ĐÁY BÀN) */}
+        <div
+          className="absolute bottom-0 w-full flex items-center justify-center gap-10 sm:gap-14 pointer-events-none"
+          style={{ height: "14px" }}
+        >
+          {/* Bóng đổ viên 1 (Trái) */}
+          <div
+            className="w-12 h-3.5 rounded-full blur-[3px] bg-black/85 dice-shadow-active-1"
+            style={{ width: `${dieSize}px` }}
+          />
+          {/* Bóng đổ viên 2 (Phải) */}
+          <div
+            className="w-12 h-3.5 rounded-full blur-[3px] bg-black/85 dice-shadow-active-2"
+            style={{ width: `${dieSize}px` }}
+          />
         </div>
       </div>
     </div>

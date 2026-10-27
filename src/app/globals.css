@@ -697,5 +697,144 @@
   border-radius: 0.75rem !important; /* rounded-xl (12px) */
 }
 
+/* ============================================================================
+   NANAFLIX BỐC QUẺ — 3D PORCELAIN DICE TUMBLING & PHYSICS ANIMATIONS
+   ============================================================================ */
+@keyframes diceTumbleOne {
+  0% {
+    transform: translateY(0px) rotateX(15deg) rotateY(20deg) rotateZ(0deg);
+  }
+  15% {
+    transform: translateY(-28px) rotateX(85deg) rotateY(110deg) rotateZ(35deg);
+  }
+  35% {
+    transform: translateY(-58px) rotateX(230deg) rotateY(290deg) rotateZ(110deg);
+  }
+  55% {
+    transform: translateY(-40px) rotateX(420deg) rotateY(480deg) rotateZ(195deg);
+  }
+  72% {
+    transform: translateY(2px) rotateX(560deg) rotateY(610deg) rotateZ(280deg);
+  }
+  84% {
+    transform: translateY(-12px) rotateX(640deg) rotateY(660deg) rotateZ(320deg);
+  }
+  94% {
+    transform: translateY(-1px) rotateX(700deg) rotateY(710deg) rotateZ(350deg);
+  }
+  100% {
+    transform: translateY(0px) rotateX(735deg) rotateY(740deg) rotateZ(360deg);
+  }
+}
+
+@keyframes diceTumbleTwo {
+  0% {
+    transform: translateY(0px) rotateX(-20deg) rotateY(-25deg) rotateZ(0deg);
+  }
+  14% {
+    transform: translateY(-24px) rotateX(-75deg) rotateY(-95deg) rotateZ(-25deg);
+  }
+  33% {
+    transform: translateY(-54px) rotateX(-220deg) rotateY(-260deg) rotateZ(-95deg);
+  }
+  53% {
+    transform: translateY(-38px) rotateX(-410deg) rotateY(-460deg) rotateZ(-185deg);
+  }
+  70% {
+    transform: translateY(2px) rotateX(-555deg) rotateY(-595deg) rotateZ(-275deg);
+  }
+  82% {
+    transform: translateY(-10px) rotateX(-635deg) rotateY(-650deg) rotateZ(-315deg);
+  }
+  92% {
+    transform: translateY(-1px) rotateX(-695deg) rotateY(-705deg) rotateZ(-348deg);
+  }
+  100% {
+    transform: translateY(0px) rotateX(-740deg) rotateY(-745deg) rotateZ(-360deg);
+  }
+}
+
+@keyframes diceShadowOne {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.75;
+  }
+  15% {
+    transform: scale(0.78);
+    opacity: 0.45;
+  }
+  35% {
+    transform: scale(0.42);
+    opacity: 0.18;
+  }
+  55% {
+    transform: scale(0.5);
+    opacity: 0.28;
+  }
+  72% {
+    transform: scale(1.15);
+    opacity: 0.88;
+  }
+  84% {
+    transform: scale(0.85);
+    opacity: 0.55;
+  }
+  94% {
+    transform: scale(1.03);
+    opacity: 0.78;
+  }
+}
+
+@keyframes diceShadowTwo {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.75;
+  }
+  14% {
+    transform: scale(0.8);
+    opacity: 0.48;
+  }
+  33% {
+    transform: scale(0.44);
+    opacity: 0.2;
+  }
+  53% {
+    transform: scale(0.52);
+    opacity: 0.3;
+  }
+  70% {
+    transform: scale(1.15);
+    opacity: 0.88;
+  }
+  82% {
+    transform: scale(0.86);
+    opacity: 0.58;
+  }
+  92% {
+    transform: scale(1.02);
+    opacity: 0.78;
+  }
+}
+
+.dice-active-1 {
+  animation: diceTumbleOne 1.4s cubic-bezier(0.35, 0.05, 0.45, 0.98) infinite !important;
+  will-change: transform;
+}
+
+.dice-active-2 {
+  animation: diceTumbleTwo 1.55s cubic-bezier(0.35, 0.05, 0.45, 0.98) infinite !important;
+  will-change: transform;
+}
+
+.dice-shadow-active-1 {
+  animation: diceShadowOne 1.4s cubic-bezier(0.35, 0.05, 0.45, 0.98) infinite !important;
+  will-change: transform, opacity;
+}
+
+.dice-shadow-active-2 {
+  animation: diceShadowTwo 1.55s cubic-bezier(0.35, 0.05, 0.45, 0.98) infinite !important;
+  will-change: transform, opacity;
+}
+
 
 
