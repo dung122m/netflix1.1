@@ -319,24 +319,42 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
         origin_name,
         title,
         name: title,
-        category: genre,
       }) || "";
     }
 
     if (!raw) return "";
 
-    return formatCountryName(raw);
-  }, [initialCountry, origin_name, title, genre]);
+    const formatted = formatCountryName(raw);
+    if (!formatted) return "";
+    // Nếu quốc gia trùng với thể loại chính, loại bỏ để tránh in trùng 2 lần
+    if (mainGenre && formatted.toLowerCase() === mainGenre.toLowerCase()) {
+      return "";
+    }
+    return formatted;
+  }, [initialCountry, origin_name, title, mainGenre]);
 
   // Chuỗi thông tin phụ:
   // - Mobile: Ưu tiên [Năm] • [Thể loại] (hoặc Quốc gia nếu không có thể loại) để vừa vặn card 140px, không bị tràn hay cắt cụt chữ
   // - Tablet/Desktop: Giữ nguyên [Năm] • [Quốc gia] • [Thể loại]
   const mobileMetaString = React.useMemo(() => {
-    return [displayYear, mainGenre || displayCountry].filter(Boolean).join(" • ");
+    const secondTag =
+      mainGenre && displayCountry && mainGenre.toLowerCase() === displayCountry.toLowerCase()
+        ? mainGenre
+        : mainGenre || displayCountry;
+    return [displayYear, secondTag].filter(Boolean).join(" • ");
   }, [displayYear, mainGenre, displayCountry]);
 
   const desktopMetaString = React.useMemo(() => {
-    const full = [displayYear, displayCountry, mainGenre].filter(Boolean).join(" • ");
+    // Thu thập các thành phần không trùng lặp (ví dụ: không in '2026 • Hành Động • Hành Động')
+    const parts: string[] = [];
+    if (displayYear) parts.push(displayYear);
+    if (displayCountry && !parts.some((p) => p.toLowerCase() === displayCountry.toLowerCase())) {
+      parts.push(displayCountry);
+    }
+    if (mainGenre && !parts.some((p) => p.toLowerCase() === mainGenre.toLowerCase())) {
+      parts.push(mainGenre);
+    }
+    const full = parts.join(" • ");
     // Nếu cả 3 thành phần quá dài (> 31 ký tự), ưu tiên [Năm] • [Thể loại] để hiển thị trọn vẹn, không bị xén dở chữ
     if (full.length > 31 && displayYear && mainGenre) {
       return [displayYear, mainGenre].filter(Boolean).join(" • ");

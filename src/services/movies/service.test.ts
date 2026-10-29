@@ -426,14 +426,25 @@ describe("Nanaflix Movie Browse Pagination & Filter Service", () => {
           origin_name: norm.origin_name,
           title: norm.title,
           name: norm.title,
-          category: norm.genre,
         }) || "";
       }
       if (!raw) return "";
-      return formatCountryName(raw);
+      const formatted = formatCountryName(raw);
+      if (mainGenre && formatted.toLowerCase() === mainGenre.toLowerCase()) {
+        return "";
+      }
+      return formatted;
     })();
 
-    return [displayYear, displayCountry, mainGenre].filter(Boolean).join(" • ");
+    const parts: string[] = [];
+    if (displayYear) parts.push(displayYear);
+    if (displayCountry && !parts.some((p) => p.toLowerCase() === displayCountry.toLowerCase())) {
+      parts.push(displayCountry);
+    }
+    if (mainGenre && !parts.some((p) => p.toLowerCase() === mainGenre.toLowerCase())) {
+      parts.push(mainGenre);
+    }
+    return parts.join(" • ");
   }
 
   // 1. Phim có đầy đủ năm, quốc gia và thể loại
@@ -552,6 +563,20 @@ describe("Nanaflix Movie Browse Pagination & Filter Service", () => {
     };
     const meta = computeMediaCardMeta(bareMovie);
     assert.equal(meta, "1995", "Phim không có metadata chỉ hiển thị năm, không có dấu chấm thừa hay nhãn chung chung");
+  });
+
+  // 10. Phim chỉ có thể loại và không có quốc gia: không bị lặp thể loại 2 lần (ví dụ: Chiến Binh Ánh Sáng TEO)
+  it("Y10. Phim chỉ có thể loại và không có quốc gia không bị lặp thể loại 2 lần", () => {
+    const movie = {
+      name: "Chiến Binh Ánh Sáng TEO",
+      year: 2026,
+      category: [{ name: "Hành Động", slug: "hanh-dong" }],
+    };
+    const norm = normalizeMovie(movie);
+    assert.equal(norm.genre, "Hành Động");
+    assert.equal(norm.country, undefined, "Thể loại 'Hành Động' không được coi là quốc gia");
+    const meta = computeMediaCardMeta(movie);
+    assert.equal(meta, "2026 • Hành Động", "Không được in lặp '2026 • Hành Động • Hành Động'");
   });
 });
 

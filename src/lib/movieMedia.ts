@@ -899,6 +899,160 @@ export const COUNTRY_DISPLAY_MAP: Record<string, string> = {
   international: "Quốc Tế",
 };
 
+// Bảng ánh xạ slug thể loại sang tiếng Việt có dấu chuẩn giao diện điện ảnh cao cấp
+export const GENRE_DISPLAY_MAP: Record<string, string> = {
+  "hanh-dong": "Hành Động",
+  "hanh dong": "Hành Động",
+  "action": "Hành Động",
+  "tinh-cam": "Tình Cảm",
+  "tinh cam": "Tình Cảm",
+  "romance": "Tình Cảm",
+  "kinh-di": "Kinh Dị",
+  "kinh di": "Kinh Dị",
+  "horror": "Kinh Dị",
+  "hai-huoc": "Hài Hước",
+  "hai huoc": "Hài Hước",
+  "comedy": "Hài Hước",
+  "vien-tuong": "Viễn Tưởng",
+  "vien tuong": "Viễn Tưởng",
+  "sci-fi": "Viễn Tưởng",
+  "co-trang": "Cổ Trang",
+  "co trang": "Cổ Trang",
+  "tam-ly": "Tâm Lý",
+  "tam ly": "Tâm Lý",
+  "drama": "Tâm Lý",
+  "vo-thuat": "Võ Thuật",
+  "vo thuat": "Võ Thuật",
+  "martial-arts": "Võ Thuật",
+  "trinh-tham": "Trinh Thám",
+  "trinh tham": "Trinh Thám",
+  "detective": "Trinh Thám",
+  "chien-tranh": "Chiến Tranh",
+  "chien tranh": "Chiến Tranh",
+  "war": "Chiến Tranh",
+  "war & politics": "Chiến Tranh",
+  "war-politics": "Chiến Tranh",
+  "war and politics": "Chiến Tranh",
+  "action & adventure": "Hành Động",
+  "action-adventure": "Hành Động",
+  "action and adventure": "Hành Động",
+  "sci-fi & fantasy": "Viễn Tưởng",
+  "sci-fi-fantasy": "Viễn Tưởng",
+  "sci-fi and fantasy": "Viễn Tưởng",
+  "history": "Lịch Sử",
+  "historical": "Lịch Sử",
+  "lich-su": "Lịch Sử",
+  "lich su": "Lịch Sử",
+  "politics": "Chính Trị",
+  "chinh-tri": "Chính Trị",
+  "western": "Miền Tây",
+  "mien-tay": "Miền Tây",
+  "kids": "Thiếu Nhi",
+  "thieu-nhi": "Thiếu Nhi",
+  "reality": "Thực Tế",
+  "talk": "Talk Show",
+  "news": "Thời Sự",
+  "thoi-su": "Thời Sự",
+  "phieu-luu": "Phiêu Lưu",
+  "phieu luu": "Phiêu Lưu",
+  "adventure": "Phiêu Lưu",
+  "am-nhac": "Âm Nhạc",
+  "am nhac": "Âm Nhạc",
+  "music": "Âm Nhạc",
+  "the-thao": "Thể Thao",
+  "the thao": "Thể Thao",
+  "sport": "Thể Thao",
+  "sports": "Thể Thao",
+  "tai-lieu": "Tài Liệu",
+  "tai lieu": "Tài Liệu",
+  "documentary": "Tài Liệu",
+  "bi-an": "Bí Ẩn",
+  "bi an": "Bí Ẩn",
+  "mystery": "Bí Ẩn",
+  "hoc-duong": "Học Đường",
+  "hoc duong": "Học Đường",
+  "school": "Học Đường",
+  "gia-dinh": "Gia Đình",
+  "gia dinh": "Gia Đình",
+  "family": "Gia Đình",
+  "khoa-hoc": "Khoa Học",
+  "khoa hoc": "Khoa Học",
+  "science": "Khoa Học",
+  "than-thoai": "Thần Thoại",
+  "than thoai": "Thần Thoại",
+  "mythology": "Thần Thoại",
+  "fantasy": "Thần Thoại",
+  "hoat-hinh": "Hoạt Hình",
+  "hoat hinh": "Hoạt Hình",
+  "animation": "Hoạt Hình",
+  "anime": "Hoạt Hình",
+  "hinh-su": "Hình Sự",
+  "hinh su": "Hình Sự",
+  "crime": "Hình Sự",
+  "chieu-rap": "Chiếu Rạp",
+  "chieu rap": "Chiếu Rạp",
+  "phim-chieu-rap": "Chiếu Rạp",
+  "chinh-kich": "Chính Kịch",
+  "chinh kich": "Chính Kịch",
+  "lang-man": "Lãng Mạn",
+  "lang man": "Lãng Mạn",
+  "giat-gan": "Giật Gân",
+  "giat gan": "Giật Gân",
+  "thriller": "Giật Gân",
+  "gay-can": "Gây Cấn",
+  "gay can": "Gây Cấn",
+  "phim-bo": "Phim Bộ",
+  "phim bo": "Phim Bộ",
+  "series": "Phim Bộ",
+  "phim-le": "Phim Lẻ",
+  "phim le": "Phim Lẻ",
+  "single": "Phim Lẻ",
+  "tv-shows": "TV Shows",
+  "tv shows": "TV Shows",
+};
+
+// Tập hợp tất cả slug và tên thể loại (viết thường) để loại trừ tuyệt đối không nhầm sang quốc gia
+export const KNOWN_GENRE_SET = new Set<string>([
+  ...Object.keys(GENRE_DISPLAY_MAP).map((k) => k.toLowerCase()),
+  ...Object.values(GENRE_DISPLAY_MAP).map((v) => v.toLowerCase()),
+  ...Object.values(GENRE_DISPLAY_MAP).map((v) => v.toLowerCase().replace(/\s+/g, "-")),
+  "hanh dong",
+  "tinh cam",
+  "kinh di",
+  "hai huoc",
+  "vien tuong",
+  "co trang",
+  "tam ly",
+  "vo thuat",
+  "trinh tham",
+  "chien tranh",
+  "lich su",
+  "chinh tri",
+  "mien tay",
+  "thieu nhi",
+  "thuc te",
+  "thoi su",
+  "phieu luu",
+  "am nhac",
+  "the thao",
+  "tai lieu",
+  "bi an",
+  "hoc duong",
+  "gia dinh",
+  "khoa hoc",
+  "than thoai",
+  "hoat hinh",
+  "hinh su",
+  "chieu rap",
+  "chinh kich",
+  "lang man",
+  "giat gan",
+  "gay can",
+  "phim bo",
+  "phim le",
+  "tv shows",
+]);
+
 /**
  * Chuẩn hóa tên quốc gia từ slug (viet-nam, trung-quoc...), mã ISO hoặc tên thô sang tiếng Việt chuẩn có dấu.
  */
@@ -913,8 +1067,9 @@ export function formatCountryName(raw?: unknown): string {
   }
   if (!clean || clean === "N/A" || clean === "Đang cập nhật") return "";
 
-  // Lọc bỏ nếu là loại phim
+  // 1. Lọc bỏ nếu là loại phim hoặc thể loại phim (tuyệt đối không nhầm thể loại thành quốc gia)
   const lower = clean.toLowerCase();
+  const lookupKey = lower.replace(/_/g, "-");
   if (
     lower === "phim lẻ" ||
     lower === "phim bộ" ||
@@ -923,7 +1078,10 @@ export function formatCountryName(raw?: unknown): string {
     lower === "phim rạp" ||
     lower === "hoạt hình" ||
     lower === "tv shows" ||
-    lower === "tvshows"
+    lower === "tvshows" ||
+    KNOWN_GENRE_SET.has(lower) ||
+    KNOWN_GENRE_SET.has(lookupKey) ||
+    KNOWN_GENRE_SET.has(lower.replace(/\s+/g, "-"))
   ) {
     return "";
   }
@@ -933,17 +1091,17 @@ export function formatCountryName(raw?: unknown): string {
     clean = clean.split(/[,/;]/)[0].trim();
   }
 
-  const lookupKey = clean.toLowerCase().replace(/_/g, "-");
-  if (COUNTRY_DISPLAY_MAP[lookupKey]) {
-    return COUNTRY_DISPLAY_MAP[lookupKey];
+  const cleanLookupKey = clean.toLowerCase().replace(/_/g, "-");
+  if (COUNTRY_DISPLAY_MAP[cleanLookupKey]) {
+    return COUNTRY_DISPLAY_MAP[cleanLookupKey];
   }
 
   // Tra cứu theo key thay gạch nối bằng khoảng trắng và ngược lại
-  const spaceKey = lookupKey.replace(/-/g, " ");
+  const spaceKey = cleanLookupKey.replace(/-/g, " ");
   if (COUNTRY_DISPLAY_MAP[spaceKey]) {
     return COUNTRY_DISPLAY_MAP[spaceKey];
   }
-  const hyphenKey = lookupKey.replace(/\s+/g, "-");
+  const hyphenKey = cleanLookupKey.replace(/\s+/g, "-");
   if (COUNTRY_DISPLAY_MAP[hyphenKey]) {
     return COUNTRY_DISPLAY_MAP[hyphenKey];
   }
@@ -954,8 +1112,8 @@ export function formatCountryName(raw?: unknown): string {
   }
 
   // Nếu là slug có dấu gạch nối (vd: "trieu-tien"), chuyển thành từ viết hoa có khoảng trắng
-  if (lookupKey.includes("-")) {
-    return lookupKey
+  if (cleanLookupKey.includes("-")) {
+    return cleanLookupKey
       .split("-")
       .filter(Boolean)
       .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
@@ -1108,10 +1266,26 @@ export function extractMovieCountry(m: any): string | undefined {
   if (Array.isArray(catList)) {
     for (const cat of catList) {
       const catName = (typeof cat === "string" ? cat : cat?.name || cat?.slug || "").trim();
-      const formatted = formatCountryName(catName);
-      if (formatted) return formatted;
+      const catSlug = typeof cat === "object" && cat?.slug ? String(cat.slug).trim() : "";
+
+      // TUYỆT ĐỐI bỏ qua nếu là thể loại phim rõ ràng (Hành Động, Kinh Dị, Hài Hước...)
+      const lowerName = catName.toLowerCase();
+      const lowerSlug = catSlug.toLowerCase();
+      if (
+        KNOWN_GENRE_SET.has(lowerName) ||
+        KNOWN_GENRE_SET.has(lowerName.replace(/\s+/g, "-")) ||
+        KNOWN_GENRE_SET.has(lowerSlug)
+      ) {
+        continue;
+      }
+
+      // CHỈ chấp nhận nếu thực sự khớp một quốc gia đã biết (trong COUNTRY_DISPLAY_MAP hoặc KNOWN_COUNTRIES)
+      const formatted = catSlug ? formatCountryName(catSlug) : formatCountryName(catName);
+      if (formatted && !KNOWN_GENRE_SET.has(formatted.toLowerCase())) {
+        return formatted;
+      }
       for (const kc of KNOWN_COUNTRIES) {
-        if (catName.toLowerCase().includes(kc.toLowerCase())) {
+        if (catName.toLowerCase() === kc.toLowerCase() || catName.toLowerCase().includes(kc.toLowerCase())) {
           return kc;
         }
       }
@@ -1203,118 +1377,6 @@ export function detectMovieTypeName(m: any): string {
 
   return "Phim lẻ";
 }
-
-// Bảng ánh xạ slug thể loại sang tiếng Việt có dấu chuẩn giao diện điện ảnh cao cấp
-export const GENRE_DISPLAY_MAP: Record<string, string> = {
-  "hanh-dong": "Hành Động",
-  "hanh dong": "Hành Động",
-  "action": "Hành Động",
-  "tinh-cam": "Tình Cảm",
-  "tinh cam": "Tình Cảm",
-  "romance": "Tình Cảm",
-  "kinh-di": "Kinh Dị",
-  "kinh di": "Kinh Dị",
-  "horror": "Kinh Dị",
-  "hai-huoc": "Hài Hước",
-  "hai huoc": "Hài Hước",
-  "comedy": "Hài Hước",
-  "vien-tuong": "Viễn Tưởng",
-  "vien tuong": "Viễn Tưởng",
-  "sci-fi": "Viễn Tưởng",
-  "co-trang": "Cổ Trang",
-  "co trang": "Cổ Trang",
-  "tam-ly": "Tâm Lý",
-  "tam ly": "Tâm Lý",
-  "drama": "Tâm Lý",
-  "vo-thuat": "Võ Thuật",
-  "vo thuat": "Võ Thuật",
-  "martial-arts": "Võ Thuật",
-  "trinh-tham": "Trinh Thám",
-  "trinh tham": "Trinh Thám",
-  "detective": "Trinh Thám",
-  "chien-tranh": "Chiến Tranh",
-  "chien tranh": "Chiến Tranh",
-  "war": "Chiến Tranh",
-  "war & politics": "Chiến Tranh",
-  "war-politics": "Chiến Tranh",
-  "war and politics": "Chiến Tranh",
-  "action & adventure": "Hành Động",
-  "action-adventure": "Hành Động",
-  "action and adventure": "Hành Động",
-  "sci-fi & fantasy": "Viễn Tưởng",
-  "sci-fi-fantasy": "Viễn Tưởng",
-  "sci-fi and fantasy": "Viễn Tưởng",
-  "history": "Lịch Sử",
-  "historical": "Lịch Sử",
-  "lich-su": "Lịch Sử",
-  "lich su": "Lịch Sử",
-  "politics": "Chính Trị",
-  "chinh-tri": "Chính Trị",
-  "western": "Miền Tây",
-  "mien-tay": "Miền Tây",
-  "kids": "Thiếu Nhi",
-  "thieu-nhi": "Thiếu Nhi",
-  "reality": "Thực Tế",
-  "talk": "Talk Show",
-  "news": "Thời Sự",
-  "thoi-su": "Thời Sự",
-  "phieu-luu": "Phiêu Lưu",
-  "phieu luu": "Phiêu Lưu",
-  "adventure": "Phiêu Lưu",
-  "am-nhac": "Âm Nhạc",
-  "am nhac": "Âm Nhạc",
-  "music": "Âm Nhạc",
-  "the-thao": "Thể Thao",
-  "the thao": "Thể Thao",
-  "sport": "Thể Thao",
-  "sports": "Thể Thao",
-  "tai-lieu": "Tài Liệu",
-  "tai lieu": "Tài Liệu",
-  "documentary": "Tài Liệu",
-  "bi-an": "Bí Ẩn",
-  "bi an": "Bí Ẩn",
-  "mystery": "Bí Ẩn",
-  "hoc-duong": "Học Đường",
-  "hoc duong": "Học Đường",
-  "school": "Học Đường",
-  "gia-dinh": "Gia Đình",
-  "gia dinh": "Gia Đình",
-  "family": "Gia Đình",
-  "khoa-hoc": "Khoa Học",
-  "khoa hoc": "Khoa Học",
-  "science": "Khoa Học",
-  "than-thoai": "Thần Thoại",
-  "than thoai": "Thần Thoại",
-  "mythology": "Thần Thoại",
-  "fantasy": "Thần Thoại",
-  "hoat-hinh": "Hoạt Hình",
-  "hoat hinh": "Hoạt Hình",
-  "animation": "Hoạt Hình",
-  "anime": "Hoạt Hình",
-  "hinh-su": "Hình Sự",
-  "hinh su": "Hình Sự",
-  "crime": "Hình Sự",
-  "chieu-rap": "Chiếu Rạp",
-  "chieu rap": "Chiếu Rạp",
-  "phim-chieu-rap": "Chiếu Rạp",
-  "chinh-kich": "Chính Kịch",
-  "chinh kich": "Chính Kịch",
-  "lang-man": "Lãng Mạn",
-  "lang man": "Lãng Mạn",
-  "giat-gan": "Giật Gân",
-  "giat gan": "Giật Gân",
-  "thriller": "Giật Gân",
-  "gay-can": "Gây Cấn",
-  "gay can": "Gây Cấn",
-  "phim-bo": "Phim Bộ",
-  "phim bo": "Phim Bộ",
-  "series": "Phim Bộ",
-  "phim-le": "Phim Lẻ",
-  "phim le": "Phim Lẻ",
-  "single": "Phim Lẻ",
-  "tv-shows": "TV Shows",
-  "tv shows": "TV Shows",
-};
 
 /**
  * Chuẩn hóa tên thể loại từ slug hoặc chuỗi thô sang tiếng Việt có dấu, viết hoa đẹp mắt.
