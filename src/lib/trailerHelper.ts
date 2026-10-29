@@ -115,6 +115,34 @@ export function isYoutubeErrorMessage(data: unknown): boolean {
 }
 
 /**
+ * Phân biệt lỗi vĩnh viễn không thể phát của YouTube:
+ * 100 = video deleted/private, 101/150 = embedding disabled by owner.
+ * Lỗi mã 2 (invalid param) hoặc 5 (HTML5 error) không mặc định coi là vĩnh viễn.
+ */
+export function isYoutubePermanentErrorMessage(data: unknown): boolean {
+  if (!data) return false;
+  try {
+    const parsed = typeof data === "string" ? JSON.parse(data) : data;
+    if (parsed && typeof parsed === "object") {
+      const code =
+        typeof parsed.info === "number"
+          ? parsed.info
+          : typeof parsed.data === "number"
+          ? parsed.data
+          : typeof parsed.info?.errorCode === "number"
+          ? parsed.info.errorCode
+          : null;
+      if (code !== null) {
+        return code === 100 || code === 101 || code === 150;
+      }
+    }
+  } catch {
+    // Không phải JSON hợp lệ
+  }
+  return false;
+}
+
+/**
  * Kiểm tra xem video YouTube đã thực sự PLAYING (state === 1) hay chưa
  * Chỉ khi nhận được tín hiệu này mới fade-in trailer, tránh hiển thị ô đen hoặc màn hình lỗi.
  */

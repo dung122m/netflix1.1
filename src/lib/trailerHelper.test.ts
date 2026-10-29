@@ -4,6 +4,7 @@ import {
   extractYoutubeId,
   getYoutubeTrailerEmbedUrl,
   isYoutubeErrorMessage,
+  isYoutubePermanentErrorMessage,
   isYoutubePlayingMessage,
   isYoutubeEndedMessage,
   isYoutubeQualityInfoMessage,
@@ -117,6 +118,27 @@ test("TC-HERO-TRAILER-RECOVERY-01 - YouTube postMessage parsing tests", async (t
     assert.equal(isYoutubeErrorMessage(null), false);
   });
 
+  await t.test("isYoutubePermanentErrorMessage classifies permanent vs temporary YouTube errors correctly", () => {
+    // Permanent errors (codes 100, 101, 150)
+    assert.equal(isYoutubePermanentErrorMessage({ event: "onError", info: 100 }), true, "Code 100 (deleted/private) is permanent");
+    assert.equal(isYoutubePermanentErrorMessage({ event: "onError", info: 101 }), true, "Code 101 (embedding disabled) is permanent");
+    assert.equal(isYoutubePermanentErrorMessage({ event: "onError", info: 150 }), true, "Code 150 (embedding disabled) is permanent");
+    assert.equal(isYoutubePermanentErrorMessage(JSON.stringify({ event: "onError", info: 150 })), true);
+    assert.equal(isYoutubePermanentErrorMessage({ info: 101 }), true);
+    assert.equal(isYoutubePermanentErrorMessage({ data: 150 }), true);
+    assert.equal(isYoutubePermanentErrorMessage({ event: "infoDelivery", info: { errorCode: 150 } }), true);
+
+    // Temporary errors (codes 2, 5) MUST NOT be classified as permanent
+    assert.equal(isYoutubePermanentErrorMessage({ event: "onError", info: 2 }), false, "Code 2 (invalid param/network) must not be permanent");
+    assert.equal(isYoutubePermanentErrorMessage({ event: "onError", info: 5 }), false, "Code 5 (HTML5 player error) must not be permanent");
+    assert.equal(isYoutubePermanentErrorMessage(JSON.stringify({ event: "onError", info: 2 })), false);
+
+    // Non-error packets
+    assert.equal(isYoutubePermanentErrorMessage({ event: "onStateChange", info: 1 }), false);
+    assert.equal(isYoutubePermanentErrorMessage(null), false);
+    assert.equal(isYoutubePermanentErrorMessage("not-json"), false);
+  });
+
   await t.test("isYoutubeEndedMessage detects ENDED state", () => {
     assert.equal(isYoutubeEndedMessage({ event: "onStateChange", info: 0 }), true);
     assert.equal(isYoutubeEndedMessage({ event: "infoDelivery", info: { playerState: 0 } }), true);
@@ -165,6 +187,40 @@ test("TC-HERO-TRAILER-RECOVERY-01 - Watchdog & slide concurrency simulation", as
     assert.equal(activeTrailerId, "trailer-2");
   });
 
+  await t.test("Active trailer session isolation rejects callbacks from previous slide or unmounted trailer", () => {
+    type Session = { epoch: number; slug: string; trailerId: string };
+    let currentSession: Session | null = { epoch: 1, slug: "movie-a", trailerId: "trailer-a" };
+    let activeTrailerId: string | null = "trailer-a";
+    let isTrailerReady = true;
+    const failedTrailerMap: Record<string, boolean> = {};
+
+    // User navigates to Slide B (epoch 2)
+    currentSession = { epoch: 2, slug: "movie-b", trailerId: "trailer-b" };
+    activeTrailerId = "trailer-b";
+
+    // Callback arrives late from Slide A's unmounting iframe:
+    const staleCallbackSession: Session = { epoch: 1, slug: "movie-a", trailerId: "trailer-a" };
+    const staleErrorEvent = { event: "onError", info: 150 };
+
+    // Handler verifies session match
+    const isValidSession =
+      currentSession &&
+      currentSession.epoch === staleCallbackSession.epoch &&
+      currentSession.trailerId === staleCallbackSession.trailerId &&
+      currentSession.slug === staleCallbackSession.slug;
+
+    if (isValidSession && isYoutubeErrorMessage(staleErrorEvent)) {
+      failedTrailerMap[staleCallbackSession.slug] = true;
+      activeTrailerId = null;
+      isTrailerReady = false;
+    }
+
+    assert.equal(isValidSession, false, "Stale callback must be rejected");
+    assert.equal(failedTrailerMap["movie-a"], undefined, "Stale error must not mark Slide A or Slide B as failed");
+    assert.equal(activeTrailerId, "trailer-b", "Slide B activeTrailerId must remain untouched");
+    assert.equal(isTrailerReady, true, "Slide B trailer readiness must remain untouched");
+  });
+
   await t.test("Timeout does not permanently blacklist trailer unless max retries exceeded", () => {
     const failedTrailerMap: Record<string, boolean> = {};
     const retryCountMap: Record<string, number> = {};
@@ -185,16 +241,48 @@ test("TC-HERO-TRAILER-RECOVERY-01 - Watchdog & slide concurrency simulation", as
     assert.equal(canAttempt, false, "Should pause attempts after 2 timeouts to prevent infinite loops");
   });
 
-  await t.test("Explicit YouTube error immediately marks trailer as permanently failed", () => {
+  await t.test("YouTube permanent error immediately marks trailer as permanently failed, but temporary error does not", () => {
     const failedTrailerMap: Record<string, boolean> = {};
-    const slug = "broken-movie";
+    const retryCountMap: Record<string, number> = {};
+    const slugPerm = "broken-movie";
+    const slugTemp = "temp-glitch-movie";
 
-    const errorEvent = { event: "onError", info: 150 };
-    if (isYoutubeErrorMessage(errorEvent)) {
+    // 1. Permanent error (code 150)
+    const permErrorEvent = { event: "onError", info: 150 };
+    if (isYoutubeErrorMessage(permErrorEvent)) {
+      if (isYoutubePermanentErrorMessage(permErrorEvent)) {
+        failedTrailerMap[slugPerm] = true;
+      } else {
+        retryCountMap[slugPerm] = (retryCountMap[slugPerm] || 0) + 1;
+      }
+    }
+    assert.equal(failedTrailerMap[slugPerm], true, "Embed disabled error must immediately mark trailer as failed");
+
+    // 2. Temporary error (code 2)
+    const tempErrorEvent = { event: "onError", info: 2 };
+    if (isYoutubeErrorMessage(tempErrorEvent)) {
+      if (isYoutubePermanentErrorMessage(tempErrorEvent)) {
+        failedTrailerMap[slugTemp] = true;
+      } else {
+        retryCountMap[slugTemp] = (retryCountMap[slugTemp] || 0) + 1;
+      }
+    }
+    assert.equal(failedTrailerMap[slugTemp], undefined, "Code 2 must NOT be marked in failedTrailerMap");
+    assert.equal(retryCountMap[slugTemp], 1, "Code 2 should increment retryCount");
+  });
+
+  await t.test("Missing synopsis or trailer URL does NOT blacklist slug", () => {
+    const failedTrailerMap: Record<string, boolean> = {};
+    const slug = "movie-without-trailer";
+
+    const rawTrailer = undefined; // Synopsis returned no trailer_url
+    const ytId = rawTrailer ? extractYoutubeId(rawTrailer) : null;
+
+    if (rawTrailer && !ytId) {
       failedTrailerMap[slug] = true;
     }
 
-    assert.equal(failedTrailerMap[slug], true, "Embed disabled error must immediately mark trailer as failed");
+    assert.equal(failedTrailerMap[slug], undefined, "Missing trailer must NOT be permanently blacklisted");
   });
 });
 
@@ -248,36 +336,39 @@ test("TC-HERO-TRAILER-FIX-03 - Device detection & Watchdog lifecycle refinement 
     }
   });
 
-  await t.test("Watchdog does NOT kill trailer if iframe loaded successfully without error", () => {
+  await t.test("Watchdog preserves trailer if video is PLAYING", () => {
     let activeTrailerId: string | null = "test-trailer";
     let isTrailerReady = true;
-    const isIframeLoaded = true;
-    const hasError = false;
+    const isVideoPlaying = true;
 
     // Simulate watchdog firing at 8s
-    if (!isIframeLoaded || hasError) {
+    if (!isVideoPlaying) {
       activeTrailerId = null;
       isTrailerReady = false;
     }
 
-    assert.equal(activeTrailerId, "test-trailer", "Active trailer must remain alive if iframe loaded without error");
+    assert.equal(activeTrailerId, "test-trailer", "Active trailer must remain alive if video is playing");
     assert.equal(isTrailerReady, true, "Trailer ready state must remain visible");
   });
 
-  await t.test("Watchdog unmounts trailer if iframe failed to load within timeout", () => {
+  await t.test("Watchdog unmounts trailer and reverts to poster if video is NOT playing after 8s (even if iframe loaded)", () => {
     let activeTrailerId: string | null = "test-trailer";
     let isTrailerReady = false;
-    const isIframeLoaded = false;
-    const hasError = false;
+    const _isIframeLoaded = true; // Iframe did load DOM
+    const isVideoPlaying = false; // BUT video never played (stuck buffering or autoplay blocked)
+    const retryCountMap: Record<string, number> = {};
+    const slug = "stuck-trailer-movie";
 
     // Simulate watchdog firing at 8s
-    if (!isIframeLoaded || hasError) {
+    if (!isVideoPlaying) {
+      retryCountMap[slug] = (retryCountMap[slug] || 0) + 1;
       activeTrailerId = null;
       isTrailerReady = false;
     }
 
-    assert.equal(activeTrailerId, null, "Trailer must be unmounted if iframe never loaded");
-    assert.equal(isTrailerReady, false);
+    assert.equal(activeTrailerId, null, "Trailer must be unmounted if video never reached PLAYING");
+    assert.equal(isTrailerReady, false, "Reverts to poster");
+    assert.equal(retryCountMap[slug], 1, "Increments retry count");
   });
 });
 

@@ -969,12 +969,103 @@ export function formatCountryName(raw?: unknown): string {
   return clean.charAt(0).toUpperCase() + clean.slice(1);
 }
 
+// ==========================================
+// TMDB GENRE ID MAP (MAPPING ID CHÍNH THỨC SANG TIẾNG VIỆT)
+// ==========================================
+export const TMDB_GENRE_ID_MAP: Record<number, string> = {
+  28: "Hành Động",
+  12: "Phiêu Lưu",
+  16: "Hoạt Hình",
+  35: "Hài Hước",
+  80: "Hình Sự",
+  99: "Tài Liệu",
+  18: "Tâm Lý",
+  10751: "Gia Đình",
+  14: "Thần Thoại",
+  36: "Lịch Sử",
+  27: "Kinh Dị",
+  10402: "Âm Nhạc",
+  9648: "Bí Ẩn",
+  10749: "Tình Cảm",
+  878: "Viễn Tưởng",
+  10770: "Phim Điện Ảnh",
+  53: "Bí Ẩn",
+  10752: "Chiến Tranh",
+  37: "Miền Tây",
+  // TMDB TV Series Genres
+  10759: "Hành Động", // Action & Adventure
+  10762: "Thiếu Nhi", // Kids
+  10763: "Thời Sự",   // News
+  10764: "Thực Tế",   // Reality
+  10765: "Viễn Tưởng", // Sci-Fi & Fantasy
+  10766: "Tâm Lý",    // Soap
+  10767: "Talk Show",
+  10768: "Chiến Tranh", // War & Politics
+};
+
+// ==========================================
+// TMDB SAFE LANGUAGE -> COUNTRY MAP
+// Chỉ ánh xạ các ngôn ngữ 1-to-1 đặc trưng, có độ tin cậy cao.
+// TUYỆT ĐỐI KHÔNG ánh xạ 'en' -> 'Âu Mỹ' để tránh gán nhãn sai lệch không có căn cứ.
+// ==========================================
+export const TMDB_SAFE_LANGUAGE_COUNTRY_MAP: Record<string, string> = {
+  ko: "Hàn Quốc",
+  kor: "Hàn Quốc",
+  ja: "Nhật Bản",
+  jpn: "Nhật Bản",
+  zh: "Trung Quốc",
+  zho: "Trung Quốc",
+  chi: "Trung Quốc",
+  cn: "Trung Quốc",
+  th: "Thái Lan",
+  tha: "Thái Lan",
+  vi: "Việt Nam",
+  vie: "Việt Nam",
+  fr: "Pháp",
+  fra: "Pháp",
+  fre: "Pháp",
+  de: "Đức",
+  deu: "Đức",
+  ger: "Đức",
+  it: "Ý",
+  ita: "Ý",
+  es: "Tây Ban Nha",
+  spa: "Tây Ban Nha",
+  ru: "Nga",
+  rus: "Nga",
+  hi: "Ấn Độ",
+  hin: "Ấn Độ",
+  tr: "Thổ Nhĩ Kỳ",
+  tur: "Thổ Nhĩ Kỳ",
+  pl: "Ba Lan",
+  pol: "Ba Lan",
+  nl: "Hà Lan",
+  nld: "Hà Lan",
+  dut: "Hà Lan",
+  sv: "Thụy Điển",
+  swe: "Thụy Điển",
+  no: "Na Uy",
+  nor: "Na Uy",
+  da: "Đan Mạch",
+  dan: "Đan Mạch",
+  fi: "Phần Lan",
+  fin: "Phần Lan",
+  el: "Hy Lạp",
+  ell: "Hy Lạp",
+  gre: "Hy Lạp",
+  id: "Indonesia",
+  ind: "Indonesia",
+  tl: "Philippines",
+  tgl: "Philippines",
+  fil: "Philippines",
+};
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function extractMovieCountry(m: any): string | undefined {
   if (!m) return undefined;
 
-  // 1. Array of objects or strings: m.country or m.countries
-  const countryList = m.country || m.countries;
+  // 1. Array of objects or strings: m.country, m.countries hoặc m.movie?.country (Ưu tiên cao nhất từ nguồn phim)
+  const countryList = m.country || m.countries || m.movie?.country;
   if (Array.isArray(countryList) && countryList.length > 0) {
     const first = countryList[0];
     if (typeof first === "string" && first.trim()) {
@@ -991,7 +1082,7 @@ export function extractMovieCountry(m: any): string | undefined {
     if (formatted) return formatted;
   }
 
-  // 2. Direct string fields
+  // 2. Direct string fields (country_name, countryName)
   if (m.country_name && typeof m.country_name === "string") {
     const formatted = formatCountryName(m.country_name);
     if (formatted) return formatted;
@@ -1001,7 +1092,18 @@ export function extractMovieCountry(m: any): string | undefined {
     if (formatted) return formatted;
   }
 
-  // 3. Check categories for country tags
+  // 3. TMDB production_countries (Quốc gia sản xuất từ TMDB)
+  const prodCountries = m.production_countries || m.tmdb?.production_countries;
+  if (Array.isArray(prodCountries) && prodCountries.length > 0) {
+    for (const pc of prodCountries) {
+      if (!pc) continue;
+      const isoOrName = typeof pc === "string" ? pc : pc.iso_3166_1 || pc.name;
+      const formatted = formatCountryName(isoOrName);
+      if (formatted) return formatted;
+    }
+  }
+
+  // 4. Check categories for country tags (nếu nguồn nhét quốc gia vào danh mục thể loại)
   const catList = m.category || m.categories;
   if (Array.isArray(catList)) {
     for (const cat of catList) {
@@ -1016,7 +1118,13 @@ export function extractMovieCountry(m: any): string | undefined {
     }
   }
 
-  // 4. Check origin_name or title for language/script clues
+  // 5. TMDB original_language: Chỉ áp dụng khi có ánh xạ an toàn, xác thực 1-to-1 không gây hiểu nhầm
+  const rawLang = String(m.original_language || m.tmdb?.original_language || "").trim().toLowerCase();
+  if (rawLang && TMDB_SAFE_LANGUAGE_COUNTRY_MAP[rawLang]) {
+    return TMDB_SAFE_LANGUAGE_COUNTRY_MAP[rawLang];
+  }
+
+  // 6. Check origin_name for language/script clues (Hangul cho Hàn Quốc, Kana cho Nhật Bản)
   const origin = String(m.origin_name || "");
   if (/[\uac00-\ud7a3]/.test(origin)) return "Hàn Quốc";
   if (/[\u3040-\u30ff]/.test(origin)) return "Nhật Bản";
@@ -1289,6 +1397,15 @@ export function normalizeMovie(m: any): NormalizedMovie {
     : Array.isArray(m?.categories)
     ? m.categories
     : [];
+
+  const genreIds: number[] = Array.isArray(m?.genre_ids)
+    ? m.genre_ids
+    : Array.isArray(m?.tmdb?.genre_ids)
+    ? m.tmdb.genre_ids
+    : Array.isArray(m?.movie?.genre_ids)
+    ? m.movie.genre_ids
+    : [];
+
   const categories: Array<{ name: string; slug?: string }> = rawCats
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     .map((c: any) => {
@@ -1301,6 +1418,16 @@ export function normalizeMovie(m: any): NormalizedMovie {
       };
     })
     .filter((c: { name: string }) => Boolean(c.name));
+
+  // Nếu không có thể loại từ nguồn phim nhưng có genre_ids từ TMDB, ánh xạ sang tiếng Việt chuẩn
+  if (categories.length === 0 && genreIds.length > 0) {
+    for (const id of genreIds) {
+      const name = TMDB_GENRE_ID_MAP[Number(id)];
+      if (name && !categories.some((c) => c.name === name)) {
+        categories.push({ name, slug: "" });
+      }
+    }
+  }
 
   const rawGenre =
     m?.category?.[0]?.name ||

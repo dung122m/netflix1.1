@@ -1,7 +1,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { movieApi, deduplicateServerEpisodes, buildMovieCacheKey } from "./service";
-import { formatCountryName, extractMovieCountry } from "@/lib/movieMedia";
+import { movieApi, deduplicateServerEpisodes, buildMovieCacheKey, deduplicateMovieItems } from "./service";
+import { formatCountryName, extractMovieCountry, normalizeMovie } from "@/lib/movieMedia";
 
 describe("Nanaflix Movie Browse Pagination & Filter Service", () => {
   // A. /browse?category=hai-huoc&page=1
@@ -361,6 +361,197 @@ describe("Nanaflix Movie Browse Pagination & Filter Service", () => {
     assert.equal(extractMovieCountry({ country: [{ name: "trung-quoc", slug: "trung-quoc" }] }), "Trung Quốc");
     assert.equal(extractMovieCountry({ country_name: "Viet-nam" }), "Việt Nam");
     assert.equal(extractMovieCountry({ countries: ["han-quoc"] }), "Hàn Quốc");
+  });
+
+  // =========================================================================
+  // GIAI ĐOẠN C — KIỂM THỬ HỒI QUY METADATA MEDIACARD (9 TRƯỜNG HỢP)
+  // =========================================================================
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  function computeMediaCardMeta(rawMovie: any) {
+    const norm = normalizeMovie(rawMovie);
+
+    const displayYear = (() => {
+      if (!norm.year) return "";
+      const parsed = typeof norm.year === "number" ? norm.year : parseInt(String(norm.year).trim(), 10);
+      const maxYear = new Date().getFullYear() + 2;
+      if (Number.isFinite(parsed) && parsed >= 1920 && parsed <= maxYear) {
+        return String(parsed);
+      }
+      return "";
+    })();
+
+    const mainGenre = (() => {
+      if (!norm.genre || typeof norm.genre !== "string") return "";
+      const parts = norm.genre
+        .split(/[,/]/)
+        .map((s) => s.trim())
+        .filter(Boolean);
+
+      for (const part of parts) {
+        const lower = part.toLowerCase();
+        if (
+          lower === "phim lẻ" ||
+          lower === "phim bộ" ||
+          lower === "phimle" ||
+          lower === "phimbo" ||
+          lower === "hoạt hình" ||
+          lower === "tv shows" ||
+          lower === "tvshows"
+        ) {
+          continue;
+        }
+        return part;
+      }
+      return "";
+    })();
+
+    const displayCountry = (() => {
+      let raw = "";
+      if (typeof norm.country === "string" && norm.country.trim()) {
+        raw = formatCountryName(norm.country);
+      } else if (norm.country && typeof norm.country === "object") {
+        const record = norm.country as Record<string, unknown>;
+        const list = Array.isArray(norm.country) ? (norm.country as unknown[]) : null;
+        const firstItem = list && list.length > 0 ? (list[0] as Record<string, unknown>) : null;
+        const maybeName =
+          (record?.name as string | undefined) ||
+          (record?.slug as string | undefined) ||
+          (firstItem?.name as string | undefined) ||
+          (firstItem?.slug as string | undefined);
+        if (typeof maybeName === "string") raw = formatCountryName(maybeName);
+      }
+
+      if (!raw) {
+        raw = extractMovieCountry({
+          origin_name: norm.origin_name,
+          title: norm.title,
+          name: norm.title,
+          category: norm.genre,
+        }) || "";
+      }
+      if (!raw) return "";
+      return formatCountryName(raw);
+    })();
+
+    return [displayYear, displayCountry, mainGenre].filter(Boolean).join(" • ");
+  }
+
+  // 1. Phim có đầy đủ năm, quốc gia và thể loại
+  it("Y1. Phim có đầy đủ năm, quốc gia và thể loại hiển thị đầy đủ", () => {
+    const movie = {
+      name: "Matchbox: Phim Điện Ảnh",
+      year: 2026,
+      country: [{ name: "Âu Mỹ", slug: "au-my" }],
+      category: [{ name: "Hành Động", slug: "hanh-dong" }],
+    };
+    const meta = computeMediaCardMeta(movie);
+    assert.equal(meta, "2026 • Âu Mỹ • Hành Động");
+  });
+
+  // 2. Phim chỉ có năm, không có quốc gia hoặc thể loại
+  it("Y2. Phim chỉ có năm, không có quốc gia hoặc thể loại chỉ hiển thị năm", () => {
+    const movie = {
+      name: "Unknown Old Film",
+      year: 2015,
+    };
+    const meta = computeMediaCardMeta(movie);
+    assert.equal(meta, "2015");
+  });
+
+  // 3. Phim TMDB có genre_ids nhưng chưa có tên thể loại
+  it("Y3. Phim TMDB có genre_ids được ánh xạ sang tên thể loại tiếng Việt chuẩn", () => {
+    const movie = {
+      name: "Straight Outta Compton",
+      year: 2015,
+      genre_ids: [18, 10402, 36], // Tâm Lý, Âm Nhạc, Lịch Sử
+      category: [],
+    };
+    const norm = normalizeMovie(movie);
+    assert.equal(norm.genre, "Tâm Lý");
+    assert.ok(norm.categories?.some((c) => c.name === "Tâm Lý"));
+    assert.ok(norm.categories?.some((c) => c.name === "Âm Nhạc"));
+    assert.ok(norm.categories?.some((c) => c.name === "Lịch Sử"));
+    const meta = computeMediaCardMeta(movie);
+    assert.equal(meta, "2015 • Tâm Lý");
+  });
+
+  // 4. Phim có category: [] từ một nguồn nhưng nguồn khác có thể loại hợp lệ
+  it("Y4. Phim có category: [] không ghi đè thể loại hợp lệ từ nguồn khác", () => {
+    const items = [
+      { slug: "film-a", name: "Film A", year: 2023, category: [], source: "nguonc" },
+      { slug: "film-a", name: "Film A", year: 2023, category: [{ name: "Hành Động", slug: "hanh-dong" }], source: "phimapi" },
+    ];
+    const deduplicated = deduplicateMovieItems(items);
+    assert.equal(deduplicated.length, 1);
+    assert.ok(Array.isArray(deduplicated[0].category) && deduplicated[0].category.length > 0);
+    assert.equal(deduplicated[0].category[0].name, "Hành Động");
+  });
+
+  // 5. Phim có country: [] nhưng nguồn khác có quốc gia hợp lệ
+  it("Y5. Phim có country: [] không ghi đè quốc gia hợp lệ từ nguồn khác", () => {
+    const items = [
+      { slug: "film-b", name: "Film B", year: 2022, country: [], source: "nguonc" },
+      { slug: "film-b", name: "Film B", year: 2022, country: [{ name: "Hàn Quốc", slug: "han-quoc" }], source: "phimapi" },
+    ];
+    const deduplicated = deduplicateMovieItems(items);
+    assert.equal(deduplicated.length, 1);
+    assert.ok(Array.isArray(deduplicated[0].country) && deduplicated[0].country.length > 0);
+    assert.equal(deduplicated[0].country[0].name, "Hàn Quốc");
+  });
+
+  // 6. Phim tiếng Anh nhưng quốc gia chưa xác định
+  it("Y6. Phim có original_language = en không suy diễn thành Âu Mỹ nếu thiếu bằng chứng", () => {
+    const movie = {
+      name: "Random English Title",
+      year: 2020,
+      original_language: "en",
+      genre_ids: [28],
+    };
+    const country = extractMovieCountry(movie);
+    assert.equal(country, undefined, "English original_language must NOT map to Âu Mỹ or any country");
+    const meta = computeMediaCardMeta(movie);
+    assert.equal(meta, "2020 • Hành Động");
+  });
+
+  // 7. Phim Hàn Quốc hoặc Nhật Bản có metadata hợp lệ
+  it("Y7. Phim Hàn Quốc hoặc Nhật Bản có metadata ngôn ngữ/chữ viết hợp lệ", () => {
+    assert.equal(extractMovieCountry({ original_language: "ko" }), "Hàn Quốc");
+    assert.equal(extractMovieCountry({ original_language: "ja" }), "Nhật Bản");
+    assert.equal(extractMovieCountry({ origin_name: "기생충 (Parasite)" }), "Hàn Quốc");
+    assert.equal(extractMovieCountry({ origin_name: "千と千尋の神隠し" }), "Nhật Bản");
+
+    const krMovie = {
+      name: "Ký Sinh Trùng",
+      origin_name: "기생충",
+      year: 2019,
+      genre_ids: [18, 53],
+    };
+    assert.equal(computeMediaCardMeta(krMovie), "2019 • Hàn Quốc • Tâm Lý");
+  });
+
+  // 8. Phim có nhiều thể loại và nhiều quốc gia
+  it("Y8. Phim có nhiều thể loại và nhiều quốc gia bảo toàn danh sách và chọn đại diện thanh lịch", () => {
+    const multiMovie = {
+      name: "Multi Metadata Film",
+      year: 2024,
+      country: [{ name: "Hàn Quốc", slug: "han-quoc" }, { name: "Mỹ", slug: "my" }],
+      category: [{ name: "Hành Động", slug: "hanh-dong" }, { name: "Phiêu Lưu", slug: "phieu-luu" }],
+    };
+    const norm = normalizeMovie(multiMovie);
+    assert.equal(norm.categories?.length, 2);
+    assert.equal(norm.country, "Hàn Quốc");
+    assert.equal(computeMediaCardMeta(multiMovie), "2024 • Hàn Quốc • Hành Động");
+  });
+
+  // 9. Phim không có metadata và không đủ căn cứ để fallback
+  it("Y9. Phim không có metadata và không đủ căn cứ fallback chỉ hiển thị năm", () => {
+    const bareMovie = {
+      name: "Mystery Project",
+      origin_name: "Mystery Project",
+      year: 1995,
+    };
+    const meta = computeMediaCardMeta(bareMovie);
+    assert.equal(meta, "1995", "Phim không có metadata chỉ hiển thị năm, không có dấu chấm thừa hay nhãn chung chung");
   });
 });
 

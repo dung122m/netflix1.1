@@ -391,8 +391,8 @@ async function fetchAndCacheMovieDetail(slug: string, source?: "nguonc" | "ophim
           if ((!pm.actor || (Array.isArray(pm.actor) && pm.actor.length === 0)) && sm.actor) pm.actor = sm.actor;
           if ((!pm.casts || (Array.isArray(pm.casts) && pm.casts.length === 0)) && sm.casts) pm.casts = sm.casts;
           if ((!pm.director || (Array.isArray(pm.director) && pm.director.length === 0)) && sm.director) pm.director = sm.director;
-          if ((!pm.category || (Array.isArray(pm.category) && pm.category.length === 0)) && sm.category) pm.category = sm.category;
-          if ((!pm.country || (Array.isArray(pm.country) && pm.country.length === 0)) && sm.country) pm.country = sm.country;
+          if ((!pm.category || (Array.isArray(pm.category) && pm.category.length === 0)) && sm.category && (!Array.isArray(sm.category) || sm.category.length > 0)) pm.category = sm.category;
+          if ((!pm.country || (Array.isArray(pm.country) && pm.country.length === 0)) && sm.country && (!Array.isArray(sm.country) || sm.country.length > 0)) pm.country = sm.country;
           if ((!pm.alternative_names || (Array.isArray(pm.alternative_names) && pm.alternative_names.length === 0)) && sm.alternative_names) pm.alternative_names = sm.alternative_names;
           if (!pm.tmdb && sm.tmdb) pm.tmdb = sm.tmdb;
           if (!pm.imdb && sm.imdb) pm.imdb = sm.imdb;
@@ -1033,17 +1033,24 @@ export function deduplicateMovieItems(items: any[]): any[] {
       existing.sources = mergedSources;
 
       // Merge missing metadata nếu existing bị khuyết
+      if (!existing.origin_name && item.origin_name) existing.origin_name = item.origin_name;
       if (!existing.poster_url && item.poster_url) existing.poster_url = item.poster_url;
       if (!existing.thumb_url && item.thumb_url) existing.thumb_url = item.thumb_url;
       if (!existing.year && item.year) existing.year = item.year;
       if (!existing.quality && item.quality) existing.quality = item.quality;
       if (!existing.lang && item.lang) existing.lang = item.lang;
       if (!existing.time && item.time) existing.time = item.time;
-      if ((!existing.category || (Array.isArray(existing.category) && existing.category.length === 0)) && item.category) {
+      if ((!existing.category || (Array.isArray(existing.category) && existing.category.length === 0)) && item.category && (!Array.isArray(item.category) || item.category.length > 0)) {
         existing.category = item.category;
       }
-      if ((!existing.country || (Array.isArray(existing.country) && existing.country.length === 0)) && item.country) {
+      if ((!existing.country || (Array.isArray(existing.country) && existing.country.length === 0)) && item.country && (!Array.isArray(item.country) || item.country.length > 0)) {
         existing.country = item.country;
+      }
+      if ((!existing.genre_ids || (Array.isArray(existing.genre_ids) && existing.genre_ids.length === 0)) && item.genre_ids) {
+        existing.genre_ids = item.genre_ids;
+      }
+      if (!existing.original_language && item.original_language) {
+        existing.original_language = item.original_language;
       }
       if (!existing.tmdb && item.tmdb) {
         existing.tmdb = item.tmdb;

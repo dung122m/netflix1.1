@@ -5,6 +5,7 @@ import { cacheService } from "@/lib/cache";
 import { normalizeForMatch as cleanStringForMatch } from "@/lib/stringUtils";
 import { IMDB_TOP_250_SNAPSHOT } from "@/data/imdb/imdbTop250";
 import { getActorBySlug } from "@/data/actorsCatalog";
+import { TMDB_GENRE_ID_MAP, TMDB_SAFE_LANGUAGE_COUNTRY_MAP } from "@/lib/movieMedia";
 
 // =========================================================================
 // CẤU HÌNH TMDB API (LẤY TỪ BIẾN MÔI TRƯỜNG, BẢO MẬT PHÍA SERVER)
@@ -53,6 +54,8 @@ export interface TmdbMovieCredit {
   job?: string;
   imdb_id?: string;
   media_type?: string;
+  genre_ids?: number[];
+  original_language?: string;
 }
 
 // =========================================================================
@@ -593,6 +596,8 @@ export async function getTmdbMovieRecommendations(
             backdrop_path: item.backdrop_path || null,
             overview: item.overview || "",
             media_type: item.media_type || (item.first_air_date ? "tv" : "movie"),
+            genre_ids: Array.isArray(item.genre_ids) ? item.genre_ids : undefined,
+            original_language: item.original_language || undefined,
           });
 
           if (candidateCredits.length >= 14) break;
@@ -1008,6 +1013,8 @@ export async function getTmdbPersonMovieCredits(personId: number): Promise<TmdbM
       department: m.department || "",
       job: m.job || "",
       media_type: m.media_type || (m.first_air_date ? "tv" : "movie"),
+      genre_ids: Array.isArray(m.genre_ids) ? m.genre_ids : (genreIds.length > 0 ? genreIds : undefined),
+      original_language: m.original_language || undefined,
     });
   }
 
@@ -1467,12 +1474,29 @@ export async function matchTmdbMoviesWithSources(
             episode_total: matchedCandidate.episode_total || matchedCandidate.total_episodes || "",
             quality: matchedCandidate.quality || "HD",
             lang: matchedCandidate.lang || matchedCandidate.language || "Vietsub",
-            category: matchedCandidate.category || [],
-            country: matchedCandidate.country || [],
+            category:
+              Array.isArray(matchedCandidate.category) && matchedCandidate.category.length > 0
+                ? matchedCandidate.category
+                : Array.isArray(credit.genre_ids) && credit.genre_ids.length > 0
+                ? credit.genre_ids
+                    .map((id) => TMDB_GENRE_ID_MAP[Number(id)])
+                    .filter(Boolean)
+                    .map((name) => ({ id: "", name, slug: "" }))
+                : [],
+            country:
+              Array.isArray(matchedCandidate.country) && matchedCandidate.country.length > 0
+                ? matchedCandidate.country
+                : credit.original_language && TMDB_SAFE_LANGUAGE_COUNTRY_MAP[credit.original_language.toLowerCase().trim()]
+                ? [{ id: "", name: TMDB_SAFE_LANGUAGE_COUNTRY_MAP[credit.original_language.toLowerCase().trim()], slug: "" }]
+                : [],
+            genre_ids: credit.genre_ids || matchedCandidate.genre_ids || undefined,
+            original_language: credit.original_language || matchedCandidate.original_language || undefined,
             tmdb: {
               id: tmdbIdStr,
               vote_average: credit.vote_average || matchedCandidate.tmdb?.vote_average || 0,
               vote_count: credit.vote_count || matchedCandidate.tmdb?.vote_count || 0,
+              genre_ids: credit.genre_ids || matchedCandidate.tmdb?.genre_ids,
+              original_language: credit.original_language || matchedCandidate.tmdb?.original_language,
             },
             isActorFilmography: true,
             matchBy: matchType,
@@ -1740,6 +1764,8 @@ async function executeTmdbRankingQuery(
       backdrop_path: m.backdrop_path || null,
       overview: m.overview || "",
       media_type: m.media_type || "movie",
+      genre_ids: Array.isArray(m.genre_ids) ? m.genre_ids : undefined,
+      original_language: m.original_language || undefined,
     }));
 
     const matchedMovies = await matchTmdbMoviesWithSources(credits, 40, concurrency);
@@ -1811,6 +1837,8 @@ async function executeImdbTop250Query(
           backdrop_path: movie.backdrop_path || null,
           overview: movie.overview || "",
           media_type: "movie",
+          genre_ids: Array.isArray(movie.genre_ids) ? movie.genre_ids : undefined,
+          original_language: movie.original_language || undefined,
         };
         return credit;
       });
@@ -2018,6 +2046,8 @@ export async function discoverTmdbConceptMovies(
               backdrop_path: m.backdrop_path || null,
               overview: m.overview || "",
               media_type: m.media_type,
+              genre_ids: Array.isArray(m.genre_ids) ? m.genre_ids : undefined,
+              original_language: m.original_language || undefined,
             });
 
             if (credits.length >= 20) break;
