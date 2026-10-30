@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
-import { Play, X, Clock, Film } from "lucide-react";
+import { X, Clock, Film } from "lucide-react";
 import {
   getWatchHistory,
   removeWatchHistoryItem,
@@ -230,12 +230,7 @@ function ContinueWatchingCard({ item, index = 0, onRemove }: ContinueWatchingCar
             <X className="w-3 h-3" />
           </button>
 
-          {/* NÚT PLAY TRÒN NỔI BẬT KHI HOVER */}
-          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none">
-            <div className="w-11 h-11 rounded-full bg-white/95 text-black flex items-center justify-center shadow-2xl backdrop-blur-md transform group-hover:scale-110 transition-all duration-300 group-hover:bg-red-600 group-hover:text-white">
-              <Play className="w-4 h-4 fill-current ml-0.5" />
-            </div>
-          </div>
+
 
           {/* THANH TIẾN ĐỘ GRADIENT ĐỎ SANG TRỌNG Ở ĐÁY POSTER */}
           <div className="absolute bottom-0 left-0 right-0 h-[3px] bg-white/20 backdrop-blur-sm z-10 overflow-hidden">
