@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { X, Sparkles, ExternalLink, Film, Loader2, BookOpen, Calendar, MapPin, Globe, Tag, UserCheck } from "lucide-react";
 import { useBodyScrollLock } from "@/lib/scrollLock";
@@ -28,17 +28,28 @@ export const ActorBioModal: React.FC<ActorBioModalProps> = ({
   const [profile, setProfile] = useState<EnhancedActorProfile | null>(null);
 
   useBodyScrollLock(isOpen);
+  const activeActorRef = useRef<string>(actorName);
+
+  const handleClose = () => {
+    activeActorRef.current = "";
+    setIsOpen(false);
+    setProfile(null);
+    setInitialAvatar(undefined);
+    setInitialChar(undefined);
+  };
 
   const loadActor = (name: string, fallbackAvatar?: string | null, fallbackCharacter?: string) => {
+    activeActorRef.current = name;
     setActorName(name);
-    if (fallbackAvatar) setInitialAvatar(fallbackAvatar);
-    if (fallbackCharacter) setInitialChar(fallbackCharacter);
+    setInitialAvatar(fallbackAvatar || undefined);
+    setInitialChar(fallbackCharacter || undefined);
     setLoading(true);
     setProfile(null);
 
     fetch(`/api/actor-bio?name=${encodeURIComponent(name)}`)
       .then((res) => res.json())
       .then((data: EnhancedActorProfile) => {
+        if (activeActorRef.current !== name) return;
         if (data && !data.notFound) {
           setProfile(data);
         } else {
@@ -53,6 +64,7 @@ export const ActorBioModal: React.FC<ActorBioModalProps> = ({
         }
       })
       .catch(() => {
+        if (activeActorRef.current !== name) return;
         setProfile({
           name,
           title: name,
@@ -63,7 +75,9 @@ export const ActorBioModal: React.FC<ActorBioModalProps> = ({
         });
       })
       .finally(() => {
-        setLoading(false);
+        if (activeActorRef.current === name) {
+          setLoading(false);
+        }
       });
   };
 
@@ -91,7 +105,7 @@ export const ActorBioModal: React.FC<ActorBioModalProps> = ({
   useEffect(() => {
     if (!isOpen) return;
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setIsOpen(false);
+      if (e.key === "Escape") handleClose();
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
@@ -117,7 +131,7 @@ export const ActorBioModal: React.FC<ActorBioModalProps> = ({
 
   return (
     <div
-      onClick={() => setIsOpen(false)}
+      onClick={handleClose}
       className="fixed inset-0 z-[120] bg-black/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-200 overflow-y-auto"
     >
       <div
@@ -137,7 +151,7 @@ export const ActorBioModal: React.FC<ActorBioModalProps> = ({
           </div>
           <button
             type="button"
-            onClick={() => setIsOpen(false)}
+            onClick={handleClose}
             className="p-1.5 rounded-full text-zinc-400 hover:text-white hover:bg-white/10 transition cursor-pointer shrink-0"
             aria-label="Đóng"
           >
