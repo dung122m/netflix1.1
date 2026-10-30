@@ -7,7 +7,6 @@ import {
   Star,
   Clapperboard,
   Clock,
-  Sparkles,
   ChevronRight,
   Film,
   Loader2,

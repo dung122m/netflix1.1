@@ -3,11 +3,9 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import {
   Film,
-  Sparkles,
   ChevronRight,
   ChevronLeft,
   Check,
-  RotateCcw,
   Sliders,
   Scaling,
   Tv,

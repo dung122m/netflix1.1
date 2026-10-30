@@ -66,7 +66,7 @@ async function queryTmdbPoster(query: string, year?: string): Promise<{ posterUr
       });
       if (res.ok) {
         const data = await res.json();
-        const first = data.results?.find((item: any) => item?.poster_path || item?.backdrop_path) || data.results?.[0];
+        const first = data.results?.find((item: { poster_path?: string; backdrop_path?: string }) => item?.poster_path || item?.backdrop_path) || data.results?.[0];
         if (first?.poster_path || first?.backdrop_path) {
           return {
             posterUrl: first.poster_path ? `https://image.tmdb.org/t/p/w500${first.poster_path}` : null,

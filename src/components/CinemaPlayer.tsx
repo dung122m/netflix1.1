@@ -10,15 +10,10 @@ import {
   SkipBack,
   SkipForward,
   Play,
-  Pause,
   ArrowUpRight,
   PictureInPicture,
   RotateCcw,
-  RotateCw,
   Zap,
-  VolumeX,
-  Volume1,
-  Volume2,
   X,
 } from "lucide-react";
 import { useWatchController } from "./WatchController";

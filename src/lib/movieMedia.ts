@@ -322,7 +322,7 @@ export function toOptimizedCardBackdropUrl(url: string, targetWidth: number = 32
  * - TMDb: Dùng TMDb w500 chuẩn tỷ lệ poster 2:3 sắc nét.
  * - Phimimg: Tự động đổi -thumb.webp thành -poster.webp (chuẩn tỷ lệ 2:3).
  */
-export function toOptimizedCardPosterUrl(url: string, targetWidth: number = 320): string {
+export function toOptimizedCardPosterUrl(url: string, _targetWidth: number = 320): string {
   if (!url || typeof url !== "string") return "";
   let clean = sanitizeImageUrl(url);
   if (!clean) return "";

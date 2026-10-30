@@ -726,6 +726,7 @@ export default async function BrowsePage({
 
     // Thay thế ngay từ đầu trên Server: Ưu tiên tuyệt đối nguồn TMDb siêu tốc image.tmdb.org
     await Promise.allSettled(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       movies.map(async (item: any) => {
         if (item.tmdb?.id) {
           try {

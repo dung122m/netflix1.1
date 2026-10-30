@@ -8,7 +8,6 @@ import {
   Sparkles,
   Zap,
   Crown,
-  Globe,
 } from "lucide-react";
 import { pickBestMoviePoster, toOptimizedPhimimgUrl, formatGenreName, formatCountryName } from "@/lib/movieMedia";
 import { CarouselNavButton } from "@/components/ui/CarouselNavButton";

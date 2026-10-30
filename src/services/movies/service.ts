@@ -1375,6 +1375,7 @@ async function executeGetMovies(params: MovieFilterParams, cacheKey: string) {
   // 1. Phim có tmdb.id: Luôn nâng cấp sang poster TMDb chính hãng (50ms, chuẩn tỉ lệ 2:3, không bao giờ bị nghẽn)
   // 2. Phim bị mất ảnh/hỏng ảnh/upload/vod: Tra cứu TMDb theo tên để đắp ảnh thay thế
   await Promise.allSettled(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     finalItems.map(async (item: any) => {
       // 1. Ưu tiên tuyệt đối: Nếu có TMDB ID, luôn lấy poster chuẩn sắc nét, siêu nhanh từ TMDb CDN
       if (item.tmdb?.id) {
