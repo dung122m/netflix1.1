@@ -226,18 +226,39 @@ function extractTitleVariants(text: string): string[] {
   return res;
 }
 
-const KNOWN_FULL_BLEED_POSTER_OVERRIDES: Record<string, { posterUrl: string; backdropUrl?: string }> = {
-  // Mulan (1998) - Poster teaser mặc định trên TMDb (/jAbexAtB0aSfP5Ay4TpWHARyVnG.jpg) có 2 dải đen 40px hai bên (pillarbox).
-  // Thay thế bằng poster Disney chính thức sắc nét, full-bleed tràn viền 100%:
-  "hoa moc lan|1998": {
-    posterUrl: "https://image.tmdb.org/t/p/w500/bj3iSjLlkwHtJrPmvHXa8P7edI9.jpg",
-    backdropUrl: "https://image.tmdb.org/t/p/w1280/ne7AwCHXG76SGPSvHexG5fDzxht.jpg",
-  },
-  "mulan|1998": {
-    posterUrl: "https://image.tmdb.org/t/p/w500/bj3iSjLlkwHtJrPmvHXa8P7edI9.jpg",
-    backdropUrl: "https://image.tmdb.org/t/p/w1280/ne7AwCHXG76SGPSvHexG5fDzxht.jpg",
-  },
-};
+function pickBestTmdbCandidate(results: any[], targetType: string, targetYear?: number | string): any | null {
+  if (!Array.isArray(results) || results.length === 0) return null;
+
+  const valid = results.filter((r) => r && (r.poster_path || r.backdrop_path));
+  if (valid.length === 0) return results[0] || null;
+
+  const parsedYear = targetYear ? parseInt(String(targetYear).trim(), 10) : null;
+
+  const scored = valid.map((r) => {
+    let score = 0;
+    const itemType = r.media_type || (r.first_air_date ? "tv" : "movie");
+    if (itemType === targetType) score += 60;
+
+    const relDate = r.release_date || r.first_air_date || "";
+    if (parsedYear && relDate) {
+      const itemYear = parseInt(relDate.slice(0, 4), 10);
+      if (!isNaN(itemYear)) {
+        const diff = Math.abs(itemYear - parsedYear);
+        if (diff === 0) score += 80;
+        else if (diff === 1) score += 40;
+      }
+    }
+
+    if (r.poster_path) score += 30;
+    score += Math.min(40, Math.log10((r.vote_count || 0) + 1) * 10);
+    score += Math.min(20, (r.popularity || 0) / 10);
+
+    return { item: r, score };
+  });
+
+  scored.sort((a, b) => b.score - a.score);
+  return scored[0]?.item || valid[0];
+}
 
 export async function searchTmdbPosterByTitle(
   query: string,
@@ -247,12 +268,6 @@ export async function searchTmdbPosterByTitle(
   if (!query || typeof query !== "string") return { posterUrl: null, backdropUrl: null };
   const cleanQuery = query.trim();
   if (cleanQuery.length < 2) return { posterUrl: null, backdropUrl: null };
-
-  const normOverrideKey = `${cleanStringForMatch(cleanQuery)}|${year ? String(year).trim() : ""}`;
-  if (KNOWN_FULL_BLEED_POSTER_OVERRIDES[normOverrideKey]) {
-    const override = KNOWN_FULL_BLEED_POSTER_OVERRIDES[normOverrideKey];
-    return { posterUrl: override.posterUrl, backdropUrl: override.backdropUrl || null };
-  }
 
   const cacheKey = `${cleanQuery}|${year || ""}|${type}`.toLowerCase();
   const now = Date.now();
@@ -271,15 +286,15 @@ export async function searchTmdbPosterByTitle(
       const variants = extractTitleVariants(cleanQuery);
 
       for (const v of variants) {
-        // 1. Thử search/multi trước (hỗ trợ cả movie và tv series, anime, không phụ thuộc năm để tránh lệch)
+        // 1. Thử search/multi trước (hỗ trợ cả movie và tv series, anime, chấm điểm theo type, năm phát hành, độ phổ biến)
         try {
           const endpointMulti = `/search/multi?query=${encodeURIComponent(v)}&include_adult=false`;
           const dataMulti = await fetchTmdbEndpoint(endpointMulti);
-          const firstMulti = dataMulti?.results?.find((item: any) => item?.poster_path || item?.backdrop_path) || dataMulti?.results?.[0];
-          if (firstMulti?.poster_path) {
+          const bestMulti = pickBestTmdbCandidate(dataMulti?.results, cleanType, year);
+          if (bestMulti?.poster_path) {
             return {
-              posterUrl: `https://image.tmdb.org/t/p/w500${firstMulti.poster_path}`,
-              backdropUrl: firstMulti.backdrop_path ? `https://image.tmdb.org/t/p/w1280${firstMulti.backdrop_path}` : null,
+              posterUrl: `https://image.tmdb.org/t/p/w500${bestMulti.poster_path}`,
+              backdropUrl: bestMulti.backdrop_path ? `https://image.tmdb.org/t/p/w1280${bestMulti.backdrop_path}` : null,
             };
           }
         } catch {}
@@ -288,11 +303,11 @@ export async function searchTmdbPosterByTitle(
         try {
           const endpointType = `/search/${cleanType}?query=${encodeURIComponent(v)}${searchYear}&language=vi-VN`;
           const dataType = await fetchTmdbEndpoint(endpointType);
-          const firstType = dataType?.results?.[0];
-          if (firstType?.poster_path) {
+          const bestType = pickBestTmdbCandidate(dataType?.results, cleanType, year);
+          if (bestType?.poster_path) {
             return {
-              posterUrl: `https://image.tmdb.org/t/p/w500${firstType.poster_path}`,
-              backdropUrl: firstType.backdrop_path ? `https://image.tmdb.org/t/p/w1280${firstType.backdrop_path}` : null,
+              posterUrl: `https://image.tmdb.org/t/p/w500${bestType.poster_path}`,
+              backdropUrl: bestType.backdrop_path ? `https://image.tmdb.org/t/p/w1280${bestType.backdrop_path}` : null,
             };
           }
         } catch {}
@@ -301,11 +316,11 @@ export async function searchTmdbPosterByTitle(
         try {
           const endpointTv = `/search/tv?query=${encodeURIComponent(v)}`;
           const dataTv = await fetchTmdbEndpoint(endpointTv);
-          const firstTv = dataTv?.results?.[0];
-          if (firstTv?.poster_path) {
+          const bestTv = pickBestTmdbCandidate(dataTv?.results, "tv", year);
+          if (bestTv?.poster_path) {
             return {
-              posterUrl: `https://image.tmdb.org/t/p/w500${firstTv.poster_path}`,
-              backdropUrl: firstTv.backdrop_path ? `https://image.tmdb.org/t/p/w1280${firstTv.backdrop_path}` : null,
+              posterUrl: `https://image.tmdb.org/t/p/w500${bestTv.poster_path}`,
+              backdropUrl: bestTv.backdrop_path ? `https://image.tmdb.org/t/p/w1280${bestTv.backdrop_path}` : null,
             };
           }
         } catch {}

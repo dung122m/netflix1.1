@@ -52,6 +52,37 @@ function getSearchVariants(text: string): string[] {
   return res;
 }
 
+function pickBestTmdbCandidate(results: any[], targetYear?: string): any | null {
+  if (!Array.isArray(results) || results.length === 0) return null;
+
+  const valid = results.filter((r) => r && (r.poster_path || r.backdrop_path));
+  if (valid.length === 0) return results[0] || null;
+
+  const parsedYear = targetYear ? parseInt(String(targetYear).trim(), 10) : null;
+
+  const scored = valid.map((r) => {
+    let score = 0;
+    const relDate = r.release_date || r.first_air_date || "";
+    if (parsedYear && relDate) {
+      const itemYear = parseInt(relDate.slice(0, 4), 10);
+      if (!isNaN(itemYear)) {
+        const diff = Math.abs(itemYear - parsedYear);
+        if (diff === 0) score += 80;
+        else if (diff === 1) score += 40;
+      }
+    }
+
+    if (r.poster_path) score += 30;
+    score += Math.min(40, Math.log10((r.vote_count || 0) + 1) * 10);
+    score += Math.min(20, (r.popularity || 0) / 10);
+
+    return { item: r, score };
+  });
+
+  scored.sort((a, b) => b.score - a.score);
+  return scored[0]?.item || valid[0];
+}
+
 async function queryTmdbPoster(query: string, year?: string): Promise<{ posterUrl: string | null; backdropUrl: string | null }> {
   if (!query || query.trim().length < 2) {
     return { posterUrl: null, backdropUrl: null };
@@ -61,7 +92,7 @@ async function queryTmdbPoster(query: string, year?: string): Promise<{ posterUr
   const yearParam = year && /^\d{4}$/.test(year.trim()) ? `&year=${year.trim()}` : "";
 
   for (const v of variants) {
-    // 1. Thử search/multi trước (hỗ trợ cả movie và tv series, anime)
+    // 1. Thử search/multi trước (hỗ trợ cả movie và tv series, anime, chấm điểm theo năm và độ phổ biến)
     try {
       const urlMulti = `https://api.themoviedb.org/3/search/multi?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(v)}${yearParam}`;
       const res = await fetch(urlMulti, {
@@ -70,11 +101,11 @@ async function queryTmdbPoster(query: string, year?: string): Promise<{ posterUr
       });
       if (res.ok) {
         const data = await res.json();
-        const first = data.results?.find((item: { poster_path?: string; backdrop_path?: string }) => item?.poster_path || item?.backdrop_path) || data.results?.[0];
-        if (first?.poster_path || first?.backdrop_path) {
+        const best = pickBestTmdbCandidate(data.results, year);
+        if (best?.poster_path || best?.backdrop_path) {
           return {
-            posterUrl: first.poster_path ? `https://image.tmdb.org/t/p/w500${first.poster_path}` : null,
-            backdropUrl: first.backdrop_path ? `https://image.tmdb.org/t/p/w1280${first.backdrop_path}` : null,
+            posterUrl: best.poster_path ? `https://image.tmdb.org/t/p/w500${best.poster_path}` : null,
+            backdropUrl: best.backdrop_path ? `https://image.tmdb.org/t/p/w1280${best.backdrop_path}` : null,
           };
         }
       }
@@ -89,11 +120,11 @@ async function queryTmdbPoster(query: string, year?: string): Promise<{ posterUr
       });
       if (resTv.ok) {
         const dataTv = await resTv.json();
-        const first = dataTv.results?.[0];
-        if (first?.poster_path || first?.backdrop_path) {
+        const bestTv = pickBestTmdbCandidate(dataTv.results, year);
+        if (bestTv?.poster_path || bestTv?.backdrop_path) {
           return {
-            posterUrl: first.poster_path ? `https://image.tmdb.org/t/p/w500${first.poster_path}` : null,
-            backdropUrl: first.backdrop_path ? `https://image.tmdb.org/t/p/w1280${first.backdrop_path}` : null,
+            posterUrl: bestTv.poster_path ? `https://image.tmdb.org/t/p/w500${bestTv.poster_path}` : null,
+            backdropUrl: bestTv.backdrop_path ? `https://image.tmdb.org/t/p/w1280${bestTv.backdrop_path}` : null,
           };
         }
       }

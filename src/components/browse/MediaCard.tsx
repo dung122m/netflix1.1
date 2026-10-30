@@ -619,6 +619,15 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
         }`}
         data-card-active={isCardActive ? "true" : undefined}
       >
+        {/* VIỀN KHUNG THẺ NỔI TRÊN ẢNH (ĐẢM BẢO KHUNG 2:3 LUÔN ĐỒNG NHẤT, RÕ RÀNG TRÊN MỌI BÌA PHIM) */}
+        <div
+          className={`pointer-events-none absolute inset-0 z-[3] rounded-xl transition-all duration-300 ${
+            isCardActive
+              ? "ring-2 ring-emerald-500 ring-inset"
+              : "ring-1 ring-white/[0.12] ring-inset group-hover/card:ring-2 group-hover/card:ring-netflix-red"
+          }`}
+          aria-hidden="true"
+        />
         {/* LIÊN KẾT CHÍNH PHỦ TOÀN BỘ POSTER (A11Y + KEYBOARD FOCUS + CLICK MỞ PHIM) */}
         <Link
           ref={baseCardRef}
