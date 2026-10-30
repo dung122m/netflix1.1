@@ -836,5 +836,44 @@
   will-change: transform, opacity;
 }
 
+/* ========================================================================= */
+/* POSTER CARD PLACEHOLDER SHIMMER & AMBIENT LOGO GLOW                      */
+/* ========================================================================= */
+@keyframes cardShimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
 
+@keyframes cardPulseGlow {
+  0%, 100% {
+    opacity: 0.82;
+    transform: scale(0.97);
+    filter: drop-shadow(0 0 8px rgba(234, 29, 36, 0.25));
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.02);
+    filter: drop-shadow(0 0 18px rgba(234, 29, 36, 0.5));
+  }
+}
 
+.poster-placeholder-shimmer {
+  animation: cardShimmer 2.2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  will-change: transform;
+}
+
+.poster-placeholder-logo {
+  animation: cardPulseGlow 2.6s ease-in-out infinite;
+  will-change: transform, opacity, filter;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .poster-placeholder-shimmer,
+  .poster-placeholder-logo {
+    animation: none !important;
+  }
+}
