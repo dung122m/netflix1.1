@@ -15,6 +15,8 @@ import {
   RotateCcw,
   Zap,
   X,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { useWatchController } from "./WatchController";
 import { getWatchProgress, saveWatchProgress } from "@/lib/watchHistory";
@@ -2717,26 +2719,27 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
                 <div className="absolute inset-0 bg-black pointer-events-none z-20" />
               )}
 
-              {/* DOUBLE TAP RIPPLE EFFECT (YOUTUBE ELEGANT HALF-SCREEN CURVED RIPPLE) */}
+              {/* DOUBLE TAP RIPPLE EFFECT (MINIMALIST YOUTUBE STYLE: < -10 HOẶC +10 >) */}
               {doubleTapFeedback && (
                 <div
                   className={`absolute top-0 bottom-0 ${
                     doubleTapFeedback.side === "left"
-                      ? "left-0 rounded-r-[120px] sm:rounded-r-[160px] pl-4 sm:pl-8"
-                      : "right-0 rounded-l-[120px] sm:rounded-l-[160px] pr-4 sm:pr-8"
-                  } w-[40%] bg-white/10 backdrop-blur-[2px] flex items-center justify-center pointer-events-none z-30 animate-in fade-in duration-150`}
+                      ? "left-0 rounded-r-[120px] sm:rounded-r-[160px] pl-6 sm:pl-10"
+                      : "right-0 rounded-l-[120px] sm:rounded-l-[160px] pr-6 sm:pr-10"
+                  } w-[42%] bg-white/[0.08] backdrop-blur-[1px] flex items-center justify-center pointer-events-none z-30 animate-in fade-in duration-150`}
                 >
-                  <div className="flex flex-col items-center gap-1.5 text-white">
-                    <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-black/45 backdrop-blur-md border border-white/15 flex items-center justify-center shadow-lg">
-                      {doubleTapFeedback.side === "left" ? (
-                        <YouTubeSeek10BackIcon className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
-                      ) : (
-                        <YouTubeSeek10ForwardIcon className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
-                      )}
-                    </div>
-                    <span className="text-[11px] sm:text-xs font-bold tracking-tight tabular-nums text-white drop-shadow-md">
-                      {doubleTapFeedback.side === "left" ? "◀◀ 10 giây" : "10 giây ▶▶"}
-                    </span>
+                  <div className="flex items-center gap-1.5 text-white font-extrabold text-2xl sm:text-3xl tracking-tight select-none drop-shadow-[0_2px_12px_rgba(0,0,0,0.95)]">
+                    {doubleTapFeedback.side === "left" ? (
+                      <>
+                        <ChevronLeft className="w-8 h-8 sm:w-9 sm:h-9 stroke-[3.5]" />
+                        <span>−{Math.abs(doubleTapFeedback.delta)}</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>+{Math.abs(doubleTapFeedback.delta)}</span>
+                        <ChevronRight className="w-8 h-8 sm:w-9 sm:h-9 stroke-[3.5]" />
+                      </>
+                    )}
                   </div>
                 </div>
               )}
@@ -2757,19 +2760,17 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
                 </div>
               )}
 
-              {/* DESKTOP / KEYBOARD SEEK FEEDBACK (LEFT / RIGHT) */}
+              {/* SEEK FEEDBACK (MINIMALIST YOUTUBE STYLE: < -10 HOẶC +10 >) */}
               {desktopFeedback && desktopFeedback.type === "seek-left" && (
                 <div
                   key={desktopFeedback.id}
                   role="status"
                   aria-live="polite"
-                  className="absolute left-8 sm:left-16 top-1/2 -translate-y-1/2 pointer-events-none z-25 animate-in fade-in zoom-in-95 slide-in-from-right-2 duration-150 motion-reduce:animate-none"
+                  className="absolute left-8 sm:left-16 top-1/2 -translate-y-1/2 pointer-events-none z-30 animate-in fade-in zoom-in-90 slide-in-from-right-3 duration-150 motion-reduce:animate-none"
                 >
-                  <div className="px-4 py-2 sm:px-4.5 sm:py-2.5 rounded-full bg-zinc-950/85 backdrop-blur-2xl border border-white/20 text-white flex items-center gap-2.5 shadow-[0_12px_36px_rgba(0,0,0,0.85)] ring-1 ring-white/10">
-                    <YouTubeSeek10BackIcon className="w-5 h-5 text-white shrink-0" />
-                    <span className="text-xs sm:text-sm font-semibold tracking-tight text-white tabular-nums">
-                      {desktopFeedback.seconds ? `${desktopFeedback.seconds} giây` : desktopFeedback.text || "10 giây"}
-                    </span>
+                  <div className="flex items-center gap-1.5 text-white font-extrabold text-2xl sm:text-3xl tracking-tight select-none drop-shadow-[0_2px_12px_rgba(0,0,0,0.95)]">
+                    <ChevronLeft className="w-8 h-8 sm:w-9 sm:h-9 stroke-[3.5]" />
+                    <span>−{desktopFeedback.seconds || 10}</span>
                   </div>
                 </div>
               )}
@@ -2779,13 +2780,11 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
                   key={desktopFeedback.id}
                   role="status"
                   aria-live="polite"
-                  className="absolute right-8 sm:right-16 top-1/2 -translate-y-1/2 pointer-events-none z-25 animate-in fade-in zoom-in-95 slide-in-from-left-2 duration-150 motion-reduce:animate-none"
+                  className="absolute right-8 sm:right-16 top-1/2 -translate-y-1/2 pointer-events-none z-30 animate-in fade-in zoom-in-90 slide-in-from-left-3 duration-150 motion-reduce:animate-none"
                 >
-                  <div className="px-4 py-2 sm:px-4.5 sm:py-2.5 rounded-full bg-zinc-950/85 backdrop-blur-2xl border border-white/20 text-white flex items-center gap-2.5 shadow-[0_12px_36px_rgba(0,0,0,0.85)] ring-1 ring-white/10">
-                    <span className="text-xs sm:text-sm font-semibold tracking-tight text-white tabular-nums">
-                      {desktopFeedback.seconds ? `${desktopFeedback.seconds} giây` : desktopFeedback.text || "10 giây"}
-                    </span>
-                    <YouTubeSeek10ForwardIcon className="w-5 h-5 text-white shrink-0" />
+                  <div className="flex items-center gap-1.5 text-white font-extrabold text-2xl sm:text-3xl tracking-tight select-none drop-shadow-[0_2px_12px_rgba(0,0,0,0.95)]">
+                    <span>+{desktopFeedback.seconds || 10}</span>
+                    <ChevronRight className="w-8 h-8 sm:w-9 sm:h-9 stroke-[3.5]" />
                   </div>
                 </div>
               )}
