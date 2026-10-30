@@ -3,6 +3,7 @@ import { cacheService } from "@/lib/cache";
 import { movieApi } from "@/services/movies/service";
 import { pickBestMoviePoster, pickBestMovieThumb } from "@/lib/movieMedia";
 import { getTmdbPosterUrl, searchTmdbPosterByTitle } from "@/services/tmdbService";
+import { searchAniListPoster } from "@/services/aniListService";
 
 export const runtime = "nodejs";
 
@@ -218,6 +219,16 @@ export async function GET(req: NextRequest) {
                 backdropUrl: t || p || null,
               };
             }
+          }
+        } catch {}
+      }
+
+      // TẦNG 2: Dự phòng cho Hoạt hình / Anime / Donghua qua AniList GraphQL
+      if (title || origin_name) {
+        try {
+          const aniRes = await searchAniListPoster(title, origin_name);
+          if (aniRes?.posterUrl || aniRes?.backdropUrl) {
+            return aniRes;
           }
         } catch {}
       }

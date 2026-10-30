@@ -21,6 +21,7 @@ import { BrowseAiSearchBanner } from "@/components/BrowseAiSearchBanner";
 import { PaginationControl } from "@/components/PaginationControl";
 import { isBrokenImageUrl, formatGenreName, formatCountryName } from "@/lib/movieMedia";
 import { getTmdbPosterUrl, searchTmdbPosterByTitle } from "@/services/tmdbService";
+import { searchAniListPoster } from "@/services/aniListService";
 
 // ==========================================
 // METADATA
@@ -556,7 +557,8 @@ async function enrichMoviesWithTmdbPosters(movieList: any[]) {
           item.slug ? item.slug.replace(/-/g, " ") : null,
         ].filter(Boolean) as string[];
 
-        let foundTmdb = false;
+        // TẦNG 1 (Chính): TMDb Multi Search (Bao quát 90% mọi thể loại từ phim bộ, phim lẻ đến hoạt hình)
+        let foundPoster = false;
         for (const query of queryCandidates) {
           try {
             const res = await searchTmdbPosterByTitle(query, item.year, item.type);
@@ -565,15 +567,41 @@ async function enrichMoviesWithTmdbPosters(movieList: any[]) {
               if (isBrokenImageUrl(item.thumb_url) || !item.thumb_url?.includes("image.tmdb.org")) {
                 item.thumb_url = res.backdropUrl || res.posterUrl;
               }
-              foundTmdb = true;
+              foundPoster = true;
               break;
             }
           } catch {}
         }
 
-        // Nếu TMDB vẫn chưa có và ảnh hiện tại là phimimg (bị nhà mạng chặn):
-        // Tuyệt đối không để link phimimg trần xuống client, thay bằng thumb an toàn hoặc default-poster
-        if (!foundTmdb && item.poster_url?.includes("phimimg.com")) {
+        // TẦNG 2 (Dự phòng cho Hoạt hình): AniList GraphQL (Miễn phí, không cần key, chuyên trị 10% anime/donghua còn lại)
+        if (!foundPoster) {
+          const isAnimeOrAnimation =
+            item.type === "hoathinh" ||
+            item.type === "hoat-hinh" ||
+            item.category?.some(
+              (c: any) => c.slug === "hoat-hinh" || c.name?.toLowerCase().includes("hoạt hình")
+            );
+
+          if (isAnimeOrAnimation) {
+            try {
+              const aniRes = await searchAniListPoster(
+                item.name,
+                item.origin_name,
+                item.alternative_names
+              );
+              if (aniRes?.posterUrl) {
+                item.poster_url = aniRes.posterUrl;
+                if (isBrokenImageUrl(item.thumb_url) || !item.thumb_url?.includes("anilist.co")) {
+                  item.thumb_url = aniRes.backdropUrl || aniRes.posterUrl;
+                }
+                foundPoster = true;
+              }
+            } catch {}
+          }
+        }
+
+        // TẦNG 3 (Dự phòng giao diện): Poster Nanaflix nếu cả 2 nguồn đều không có (0ms, không bao giờ bị đen)
+        if (!foundPoster && item.poster_url?.includes("phimimg.com")) {
           if (item.thumb_url && !item.thumb_url.includes("phimimg.com") && !isBrokenImageUrl(item.thumb_url)) {
             item.poster_url = item.thumb_url;
           } else {

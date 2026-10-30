@@ -138,6 +138,13 @@ export function pickBestMoviePoster(movie: MovieLike, fallback = "/default-poste
     }
   }
 
+  // 1.1 Ưu tiên AniList CDN chính hãng cho Anime/Hoạt hình (s4.anilist.co)
+  for (const c of candidates) {
+    if (c.includes("anilist.co")) {
+      return c;
+    }
+  }
+
   // 2. Ưu tiên bất kỳ CDN / nguồn ảnh nào KHÔNG PHẢI phimimg.com (như VSMOV, NguonC, Amazon, v.v.)
   for (const c of candidates) {
     if (!c.includes("phimimg.com")) {
