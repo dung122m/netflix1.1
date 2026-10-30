@@ -134,7 +134,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
     setShowCollectionModal(true);
   }, [user]);
 
-  // Danh sách ảnh ứng viên cho Poster đứng 2:3 theo thứ tự ưu tiên: TMDb CDN -> KKPhim / nhà đài -> Cross fallback
+  // Danh sách ảnh ứng viên cho Poster đứng 2:3 theo thứ tự ưu tiên: TMDb CDN -> Poster dọc -> Thumb gốc
   const imageCandidates = React.useMemo(() => {
     const list: string[] = [];
     const addUrl = (u?: string) => {
@@ -160,21 +160,41 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
         list.push(raw);
       }
     };
+
+    // 1. Thêm posterUrl và phái sinh nếu có
     addUrl(posterUrl);
+    if (posterUrl && posterUrl.includes("-thumb.webp")) {
+      addUrl(posterUrl.replace("-thumb.webp", "-poster.webp"));
+    }
+
+    // 2. Thêm imageUrl và thumbUrl
     addUrl(imageUrl);
     addUrl(thumbUrl);
+    if (thumbUrl && thumbUrl.includes("-thumb.webp")) {
+      addUrl(thumbUrl.replace("-thumb.webp", "-poster.webp"));
+    }
 
-    // Ưu tiên TMDb CDN (image.tmdb.org) lên đầu tiên
+    // Sắp xếp ưu tiên:
+    // 1. image.tmdb.org lên đầu tiên (30ms)
+    // 2. Poster dọc (-poster.webp / poster_)
+    // 3. Thumb ngang (-thumb.webp / backdrop)
     return list.sort((a, b) => {
       const aTmdb = a.includes("image.tmdb.org");
       const bTmdb = b.includes("image.tmdb.org");
       if (aTmdb && !bTmdb) return -1;
       if (!aTmdb && bTmdb) return 1;
+
+      const aPoster = a.includes("-poster") || a.includes("poster_") || a.includes("/w500");
+      const bPoster = b.includes("-poster") || b.includes("poster_") || b.includes("/w500");
+      if (aPoster && !bPoster) return -1;
+      if (!aPoster && bPoster) return 1;
+
       return 0;
     });
   }, [posterUrl, imageUrl, thumbUrl]);
 
-  const attemptIndexRef = useRef(0);
+  const triedUrlsRef = useRef<Set<string>>(new Set());
+  const fallbackAttemptedRef = useRef(false);
   const imgRef = useRef<HTMLImageElement | null>(null);
   const [currentSrc, setCurrentSrc] = useState<string>(() => imageCandidates[0] || "");
   const [isImageLoaded, setIsImageLoaded] = useState(false);
@@ -188,7 +208,8 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
   }, []);
 
   useEffect(() => {
-    attemptIndexRef.current = 0;
+    triedUrlsRef.current.clear();
+    fallbackAttemptedRef.current = false;
     const initial = imageCandidates[0] || "";
 
     if (!initial) {
@@ -207,9 +228,10 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
         fetch(`/api/movie-poster-fallback?${params.toString()}`)
           .then((res) => (res.ok ? res.json() : null))
           .then((data) => {
-            if (data?.posterUrl) {
+            const resolved = data?.posterUrl || data?.backdropUrl;
+            if (resolved && !triedUrlsRef.current.has(resolved)) {
               setHasError(false);
-              setCurrentSrc(data.posterUrl);
+              setCurrentSrc(resolved);
               setIsImageLoaded(false);
             }
           })
@@ -226,23 +248,20 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
     }
   }, [imageCandidates, title, origin_name, year, slug]);
 
-  const fallbackAttemptedRef = useRef(false);
-
-  useEffect(() => {
-    fallbackAttemptedRef.current = false;
-  }, [slug, title]);
-
   const handleImageError = useCallback(() => {
-    attemptIndexRef.current += 1;
-    const nextIdx = attemptIndexRef.current;
+    if (currentSrc) {
+      triedUrlsRef.current.add(currentSrc);
+    }
 
-    if (nextIdx < imageCandidates.length) {
-      setCurrentSrc(imageCandidates[nextIdx]);
+    // 1. Thử ứng viên kế tiếp chưa từng bị lỗi
+    const nextCandidate = imageCandidates.find((url) => !triedUrlsRef.current.has(url));
+    if (nextCandidate) {
+      setCurrentSrc(nextCandidate);
       setIsImageLoaded(false);
       return;
     }
 
-    // Nếu chưa thử fallback TMDb, thử gọi TMDb poster trước khi báo lỗi
+    // 2. Nếu đã thử hết candidates, gọi API fallback tìm ảnh TMDB / chi tiết phim
     if (!fallbackAttemptedRef.current && (title || origin_name || slug)) {
       fallbackAttemptedRef.current = true;
       const params = new URLSearchParams();
@@ -254,11 +273,15 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
       fetch(`/api/movie-poster-fallback?${params.toString()}`)
         .then((res) => (res.ok ? res.json() : null))
         .then((data) => {
-          if (data?.posterUrl) {
+          const fallbackOptions = [data?.posterUrl, data?.backdropUrl].filter(
+            (u): u is string => Boolean(u) && !triedUrlsRef.current.has(u)
+          );
+          if (fallbackOptions.length > 0) {
             setHasError(false);
-            setCurrentSrc(data.posterUrl);
+            setCurrentSrc(fallbackOptions[0]);
             setIsImageLoaded(false);
           } else {
+            // Không tìm được ảnh thay thế mới
             setHasError(true);
             setCurrentSrc("");
             setIsImageLoaded(true);
@@ -272,11 +295,10 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
       return;
     }
 
-    // Tất cả ứng viên đều lỗi -> Chuyển sang fallback
     setHasError(true);
     setCurrentSrc("");
     setIsImageLoaded(true);
-  }, [imageCandidates, title, origin_name, year, slug]);
+  }, [currentSrc, imageCandidates, title, origin_name, year, slug]);
 
   // Bounded timeout 10000ms: Chỉ chuyển fallback nếu sau 10 giây CDN hoàn toàn không phản hồi
   useEffect(() => {

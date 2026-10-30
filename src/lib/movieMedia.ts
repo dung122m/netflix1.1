@@ -154,13 +154,6 @@ export function pickBestMoviePoster(movie: MovieLike, fallback = "/default-poste
     }
   }
 
-  // 2. Nếu candidate có dạng -thumb.webp từ phimimg, tự động phái sinh sang -poster.webp (chuẩn tỷ lệ 2:3)
-  for (const c of candidates) {
-    if (c.includes("-thumb.webp")) {
-      return c.replace("-thumb.webp", "-poster.webp");
-    }
-  }
-
   // 3. Loại trừ các candidate là thumbnail/backdrop ngang rõ ràng nếu còn candidate khác
   for (const c of candidates) {
     const l = c.toLowerCase();
@@ -350,10 +343,6 @@ export function toOptimizedCardPosterUrl(url: string, _targetWidth: number = 320
   }
 
   if (clean.includes("phimimg.com")) {
-    // Nếu có dạng -thumb.webp, chuyển sang -poster.webp để lấy poster dọc 2:3 chuẩn
-    if (clean.includes("-thumb.webp")) {
-      clean = clean.replace("-thumb.webp", "-poster.webp");
-    }
     return clean;
   }
 

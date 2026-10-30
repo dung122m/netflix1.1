@@ -61,11 +61,13 @@ function getInitialPoster(item: WatchHistoryItem): string {
 
 function ContinueWatchingCard({ item, index = 0, onRemove }: ContinueWatchingCardProps) {
   const [imgSrc, setImgSrc] = useState<string>(() => getInitialPoster(item));
+  const [isLoaded, setIsLoaded] = useState(false);
   const fallbackTriedRef = useRef(false);
 
-  // Chỉ gọi API fallback nếu item hoàn toàn thiếu ảnh (không có poster lẫn thumb)
+  // Tự động nâng cấp ảnh lên TMDb CDN siêu nhanh (30ms) nếu ảnh hiện tại là nguồn ngoài (phimimg) hoặc rỗng
   useEffect(() => {
-    if (!imgSrc && !fallbackTriedRef.current) {
+    const isFastTmdb = imgSrc && imgSrc.includes("image.tmdb.org");
+    if (!isFastTmdb && !fallbackTriedRef.current) {
       fallbackTriedRef.current = true;
       const params = new URLSearchParams();
       if (item.title) params.set("title", item.title);
@@ -97,10 +99,11 @@ function ContinueWatchingCard({ item, index = 0, onRemove }: ContinueWatchingCar
   }, [imgSrc, item.title, item.slug, item.year]);
 
   const handleImgError = useCallback(() => {
-    // Bước 1: Nếu link poster dọc bị lỗi (ví dụ 404), thử dùng thumb ngang
+    // Bước 1: Nếu link poster dọc bị lỗi, thử dùng thumb ngang
     const rawThumb = item.thumb ? toOptimizedCardPosterUrl(item.thumb) : "";
     if (rawThumb && rawThumb !== imgSrc) {
       setImgSrc(rawThumb);
+      setIsLoaded(false);
       return;
     }
 
@@ -116,10 +119,11 @@ function ContinueWatchingCard({ item, index = 0, onRemove }: ContinueWatchingCar
         .then((res) => (res.ok ? res.json() : null))
         .then((data) => {
           const resolved = data?.posterUrl || data?.backdropUrl;
-          if (resolved) {
+          if (resolved && resolved !== imgSrc) {
             const opt = toOptimizedCardPosterUrl(resolved);
             continueWatchingThumbCache.set(item.slug, opt);
             setImgSrc(opt);
+            setIsLoaded(false);
             if (typeof window !== "undefined") {
               try {
                 const list = getWatchHistory();
@@ -132,13 +136,16 @@ function ContinueWatchingCard({ item, index = 0, onRemove }: ContinueWatchingCar
             }
           } else {
             setImgSrc("");
+            setIsLoaded(true);
           }
         })
         .catch(() => {
           setImgSrc("");
+          setIsLoaded(true);
         });
     } else {
       setImgSrc("");
+      setIsLoaded(true);
     }
   }, [imgSrc, item.title, item.slug, item.year, item.thumb]);
 
@@ -163,14 +170,29 @@ function ContinueWatchingCard({ item, index = 0, onRemove }: ContinueWatchingCar
       <Link href={href} className="block flex-1 flex flex-col">
         {/* ẢNH POSTER DỌC (TỈ LỆ 2:3 CHUẨN ĐIỆN ẢNH) */}
         <div className="relative aspect-[2/3] w-full bg-zinc-900 overflow-hidden">
+          {/* SKELETON SHIMMER KHI ẢNH ĐANG TẢI */}
+          {!isLoaded && (
+            <div className="absolute inset-0 bg-gradient-to-br from-zinc-850 via-zinc-900 to-zinc-950 flex flex-col items-center justify-center p-3 text-center z-0 animate-pulse pointer-events-none">
+              <div className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mb-1.5 shadow-inner">
+                <Film className="w-5 h-5 text-rose-500/70" />
+              </div>
+              <span className="text-[11px] font-semibold text-zinc-400 line-clamp-2 max-w-[90%] leading-tight">
+                {item.title}
+              </span>
+            </div>
+          )}
+
           {imgSrc && !imgSrc.includes("/default-") ? (
             /* eslint-disable-next-line @next/next/no-img-element */
             <img
               src={imgSrc}
               alt={item.title}
-              className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
+              className={`w-full h-full object-cover transition-all duration-500 ease-out group-hover:scale-105 ${
+                isLoaded ? "opacity-100" : "opacity-0"
+              }`}
               decoding="async"
               loading={index < 8 ? "eager" : "lazy"}
+              onLoad={() => setIsLoaded(true)}
               onError={handleImgError}
             />
           ) : (
