@@ -639,12 +639,15 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
             <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-red-600/25 via-transparent to-black pointer-events-none" />
             <div className="absolute -top-10 -right-10 w-28 h-28 bg-red-600/15 rounded-full blur-2xl pointer-events-none" />
 
-            {/* Header: NANAFLIX BRANDING & NĂM */}
+            {/* Header: NANAFLIX HCM BRANDING & NĂM */}
             <div className="relative z-10 flex items-center justify-between">
-              <span className="flex items-center gap-1.5 text-[9px] sm:text-[10px] font-black tracking-widest text-red-500 uppercase">
-                <span className="w-1.5 h-1.5 rounded-full bg-red-600 animate-pulse" />
-                NANAFLIX
-              </span>
+              <div className="inline-flex items-center gap-1.5 select-none">
+                <div className="w-4.5 h-3.5 rounded-[4px] bg-[#EA1D24] flex items-center justify-center shadow-sm">
+                  <span className="text-[8px] text-[#FFF200] leading-none">★</span>
+                </div>
+                <span className="text-white font-black text-[11px] tracking-tight">Nanaflix</span>
+                <span className="text-[8px] font-bold text-slate-400">HCM</span>
+              </div>
               {displayYear && (
                 <span className="text-[9px] sm:text-[10px] font-bold text-zinc-400 bg-white/10 backdrop-blur-md px-1.5 py-0.5 rounded border border-white/10">
                   {displayYear}
@@ -653,15 +656,12 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
             </div>
 
             {/* Center: Movie Title & Original Title Typography */}
-            <div className="relative z-10 flex flex-col items-center text-center my-auto px-1">
-              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-red-600/15 border border-red-500/30 flex items-center justify-center mb-2 shadow-inner">
-                <Film className="w-4 h-4 sm:w-5 sm:h-5 text-red-400" />
-              </div>
+            <div className="relative z-10 flex flex-col items-center text-center my-auto px-2">
               <h3 className="font-extrabold text-white text-xs sm:text-sm tracking-wide line-clamp-3 leading-snug drop-shadow-md">
                 {title}
               </h3>
               {origin_name && origin_name !== title && (
-                <p className="text-[10px] text-zinc-400 font-medium italic line-clamp-1 mt-1">
+                <p className="text-[10px] text-zinc-400 font-medium italic line-clamp-1 mt-1.5">
                   {origin_name}
                 </p>
               )}

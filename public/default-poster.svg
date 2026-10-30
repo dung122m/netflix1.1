@@ -1,105 +1,197 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 900" width="600" height="900">
   <defs>
-    <!-- Background Gradient -->
-    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#18181c"/>
-      <stop offset="40%" stop-color="#0f1015"/>
-      <stop offset="100%" stop-color="#070709"/>
+    <!-- Background Gradient: Deep cinematic dark slate -->
+    <linearGradient id="bg" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#0e1015"/>
+      <stop offset="45%" stop-color="#08090c"/>
+      <stop offset="100%" stop-color="#020304"/>
     </linearGradient>
 
-    <!-- Deep Crimson Cinema Glow -->
-    <radialGradient id="centerGlow" cx="50%" cy="45%" r="55%">
-      <stop offset="0%" stop-color="#e50914" stop-opacity="0.32"/>
-      <stop offset="50%" stop-color="#831010" stop-opacity="0.10"/>
+    <!-- Top Spotlight / Cinema Ambient Glow -->
+    <radialGradient id="topSpotlight" cx="50%" cy="0%" r="75%">
+      <stop offset="0%" stop-color="#ea1d24" stop-opacity="0.22"/>
+      <stop offset="40%" stop-color="#da251d" stop-opacity="0.08"/>
       <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
     </radialGradient>
 
-    <!-- Top Ambient Highlight -->
-    <linearGradient id="topGlow" x1="50%" y1="0%" x2="50%" y2="100%">
-      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.08"/>
-      <stop offset="30%" stop-color="#ffffff" stop-opacity="0"/>
+    <!-- Center Warm Ambient Glow -->
+    <radialGradient id="centerGlow" cx="50%" cy="48%" r="45%">
+      <stop offset="0%" stop-color="#ea1d24" stop-opacity="0.18"/>
+      <stop offset="60%" stop-color="#ffde00" stop-opacity="0.04"/>
+      <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Vietnam Flag Pill Red Gradient -->
+    <linearGradient id="flagRed" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FF2E36"/>
+      <stop offset="100%" stop-color="#D6181F"/>
     </linearGradient>
 
-    <!-- Red Ribbon Gradient -->
-    <linearGradient id="redN1" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#e50914"/>
-      <stop offset="100%" stop-color="#b81d24"/>
-    </linearGradient>
-    <linearGradient id="redN2" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="#ff2e35"/>
-      <stop offset="100%" stop-color="#991217"/>
+    <!-- Vietnam Star Gold Gradient -->
+    <linearGradient id="starGold" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFF44F"/>
+      <stop offset="100%" stop-color="#FFD700"/>
     </linearGradient>
 
-    <!-- Card Border Gradient -->
-    <linearGradient id="borderGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.2"/>
-      <stop offset="50%" stop-color="#e50914" stop-opacity="0.3"/>
-      <stop offset="100%" stop-color="#ffffff" stop-opacity="0.05"/>
+    <!-- Glass Card Gradient -->
+    <linearGradient id="glassBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.06"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0.01"/>
     </linearGradient>
 
-    <filter id="shadowFilter" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="#000000" flood-opacity="0.7"/>
+    <!-- Sleek Border Gradient -->
+    <linearGradient id="glassBorder" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.25"/>
+      <stop offset="50%" stop-color="#ea1d24" stop-opacity="0.4"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0.08"/>
+    </linearGradient>
+
+    <!-- Soft Drop Shadow Filter -->
+    <filter id="cardShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="16" stdDeviation="24" flood-color="#000000" flood-opacity="0.85"/>
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#ea1d24" flood-opacity="0.18"/>
+    </filter>
+
+    <filter id="glowFilter" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="8" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
     </filter>
   </defs>
 
-  <!-- Base Canvas -->
-  <rect width="600" height="900" fill="url(#bgGrad)"/>
+  <!-- 1. Background Layers -->
+  <rect width="600" height="900" fill="url(#bg)"/>
+  <rect width="600" height="900" fill="url(#topSpotlight)"/>
   <rect width="600" height="900" fill="url(#centerGlow)"/>
-  <rect width="600" height="900" fill="url(#topGlow)"/>
 
-  <!-- Cinema Frame Borders -->
-  <rect x="24" y="24" width="552" height="852" rx="16" fill="none" stroke="url(#borderGrad)" stroke-width="1.5"/>
+  <!-- Subtle Minimal Frame -->
+  <rect x="28" y="28" width="544" height="844" rx="20" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="1.5"/>
 
-  <!-- Subtle Film Perforations / Pattern -->
-  <g opacity="0.12" fill="#ffffff">
-    <rect x="36" y="44" width="8" height="12" rx="2"/>
-    <rect x="36" y="68" width="8" height="12" rx="2"/>
-    <rect x="36" y="92" width="8" height="12" rx="2"/>
-    <rect x="36" y="796" width="8" height="12" rx="2"/>
-    <rect x="36" y="820" width="8" height="12" rx="2"/>
-    <rect x="36" y="844" width="8" height="12" rx="2"/>
+  <!-- 2. Central Premium Glass Card -->
+  <g transform="translate(75, 230)" filter="url(#cardShadow)">
+    <!-- Glass Background with Border -->
+    <rect width="450" height="420" rx="24" fill="url(#glassBg)"/>
+    <rect width="450" height="420" rx="24" fill="none" stroke="url(#glassBorder)" stroke-width="1.5"/>
 
-    <rect x="556" y="44" width="8" height="12" rx="2"/>
-    <rect x="556" y="68" width="8" height="12" rx="2"/>
-    <rect x="556" y="92" width="8" height="12" rx="2"/>
-    <rect x="556" y="796" width="8" height="12" rx="2"/>
-    <rect x="556" y="820" width="8" height="12" rx="2"/>
-    <rect x="556" y="844" width="8" height="12" rx="2"/>
-  </g>
+    <!-- Inner Ambient Subtle Glow -->
+    <circle cx="225" cy="130" r="120" fill="#ea1d24" fill-opacity="0.12" filter="url(#glowFilter)"/>
 
-  <!-- Center Glassmorphism Badge -->
-  <g transform="translate(300, 390)" filter="url(#shadowFilter)">
-    <!-- Outer Glow Circle -->
-    <circle cx="0" cy="0" r="92" fill="#000000" fill-opacity="0.45" stroke="rgba(255,255,255,0.1)" stroke-width="1.5"/>
-    <circle cx="0" cy="0" r="76" fill="#14151b" fill-opacity="0.8" stroke="rgba(229,9,20,0.35)" stroke-width="1.5"/>
+    <!-- ============================================================== -->
+    <!-- 🇻🇳 3. CHÍNH XÁC LOGO NANAFLIX HCM CHUẨN NHẬN DIỆN THƯƠNG HIỆU -->
+    <!-- ============================================================== -->
+    <g transform="translate(68, 95)">
+      <!-- 🇻🇳 Nút Cờ Đỏ Việt Nam (Pill tròn chuẩn YouTube) -->
+      <g filter="url(#glowFilter)">
+        <rect x="0" y="0" width="76" height="54" rx="16" fill="url(#flagRed)"/>
+        <!-- Ngôi sao vàng 5 cánh Việt Nam đặt chính giữa tâm nút -->
+        <polygon points="
+          38,12
+          41.8,23.8
+          54.2,23.8
+          44.2,31.2
+          48,43
+          38,35.6
+          28,43
+          31.8,31.2
+          21.8,23.8
+          34.2,23.8
+        " fill="url(#starGold)"/>
+      </g>
 
-    <!-- Iconic Red 'N' Ribbon Motif -->
-    <g transform="translate(-32, -48)">
-      <!-- Left leg -->
-      <path d="M 0 0 L 18 0 L 18 96 L 0 96 Z" fill="url(#redN1)"/>
-      <!-- Right leg -->
-      <path d="M 46 0 L 64 0 L 64 96 L 46 96 Z" fill="url(#redN1)"/>
-      <!-- Diagonal banner crossing -->
-      <path d="M 0 0 L 22 0 L 64 96 L 42 96 Z" fill="url(#redN2)" filter="url(#shadowFilter)"/>
+      <!-- ✍️ Chữ "Nanaflix" Bold Sans Trắng Tuyết Chuẩn Nhận Diện -->
+      <text
+        x="92"
+        y="42"
+        fill="#FFFFFF"
+        font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Inter', 'Helvetica Neue', Arial, sans-serif"
+        font-weight="900"
+        font-size="44"
+        letter-spacing="-1.2px"
+      >
+        Nanaflix
+      </text>
+
+      <!-- 📍 Ký hiệu "HCM" Superscript Xám Kim Loại -->
+      <text
+        x="276"
+        y="18"
+        fill="#94A3B8"
+        font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Inter', sans-serif"
+        font-weight="700"
+        font-size="16"
+        letter-spacing="0.5px"
+      >
+        HCM
+      </text>
+    </g>
+
+    <!-- ============================================================== -->
+    <!-- 4. SUBTITLE & THÔNG TIN DƯỚI LOGO TRONG GLASS CARD             -->
+    <!-- ============================================================== -->
+    <!-- Đường kẻ phân cách ánh sáng -->
+    <line x1="80" y1="210" x2="370" y2="210" stroke="rgba(255,255,255,0.12)" stroke-width="1"/>
+    <circle cx="225" cy="210" r="3" fill="#ea1d24"/>
+
+    <!-- Tagline Tiếng Việt -->
+    <text
+      x="225"
+      y="255"
+      fill="#FFFFFF"
+      font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
+      font-weight="700"
+      font-size="17"
+      letter-spacing="2.5px"
+      text-anchor="middle"
+    >
+      RẠP PHIM TRỰC TUYẾN
+    </text>
+
+    <!-- Sub-tagline -->
+    <text
+      x="225"
+      y="288"
+      fill="#94A3B8"
+      font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
+      font-weight="500"
+      font-size="13"
+      letter-spacing="1px"
+      text-anchor="middle"
+    >
+      Full HD • Vietsub • Thuyết Minh
+    </text>
+
+    <!-- Quality Badges Pill -->
+    <g transform="translate(135, 328)">
+      <rect width="180" height="34" rx="17" fill="rgba(234,29,36,0.12)" stroke="rgba(234,29,36,0.35)" stroke-width="1.2"/>
+      <text
+        x="90"
+        y="22"
+        fill="#FF4D52"
+        font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
+        font-weight="700"
+        font-size="12"
+        letter-spacing="2px"
+        text-anchor="middle"
+      >
+        CHẤT LƯỢNG CAO
+      </text>
     </g>
   </g>
 
-  <!-- Title & Typography Section -->
-  <g transform="translate(300, 545)" text-anchor="middle">
-    <!-- Brand Name -->
-    <text y="0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-weight="900" font-size="34" fill="#ffffff" letter-spacing="6">NANAFLIX</text>
+  <!-- 5. Bottom Brand Footnote -->
+  <g transform="translate(300, 780)" text-anchor="middle">
+    <!-- Icon Film strip nhẹ -->
+    <circle cx="0" cy="0" r="18" fill="rgba(255,255,255,0.03)" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+    <polygon points="-4,-6 6,0 -4,6" fill="#ea1d24"/>
 
-    <!-- Subtitle / Tagline -->
-    <text y="32" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-weight="700" font-size="12" fill="#e50914" letter-spacing="4">OFFICIAL SELECTION</text>
-
-    <!-- Pill Tag -->
-    <g transform="translate(-75, 58)">
-      <rect width="150" height="26" rx="13" fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.12)" stroke-width="1"/>
-      <text x="75" y="17" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-weight="600" font-size="11" fill="rgba(255,255,255,0.6)" letter-spacing="2" text-anchor="middle">CINEMA ARTWORK</text>
-    </g>
+    <text
+      y="38"
+      fill="rgba(255,255,255,0.35)"
+      font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
+      font-weight="500"
+      font-size="11"
+      letter-spacing="3px"
+    >
+      NANAFLIX ENTERTAINMENT
+    </text>
   </g>
-
-  <!-- Bottom Details Accent -->
-  <line x1="160" y1="740" x2="440" y2="740" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
-  <text x="300" y="765" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-weight="500" font-size="11" fill="rgba(255,255,255,0.3)" letter-spacing="3" text-anchor="middle">PREMIUM STREAMING</text>
 </svg>
