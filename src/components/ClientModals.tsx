@@ -132,8 +132,12 @@ export const ClientModals = React.memo(function ClientModals() {
     const handleActorBioTrigger = (e: Event) => {
       if (mountedActorBioRef.current) return;
       mountedActorBioRef.current = true;
-      const customEvent = e as CustomEvent<{ name: string }>;
-      setActorBioProps({ initialActorName: customEvent.detail?.name });
+      const customEvent = e as CustomEvent<{ name: string; avatarUrl?: string; character?: string }>;
+      setActorBioProps({
+        initialActorName: customEvent.detail?.name,
+        initialAvatarUrl: customEvent.detail?.avatarUrl,
+        initialCharacter: customEvent.detail?.character,
+      });
       setMountActorBio(true);
     };
 

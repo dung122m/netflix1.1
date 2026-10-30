@@ -98,6 +98,83 @@ function isPersonSignal(desc = "", extract = ""): boolean {
 /**
  * Lấy nội dung chi tiết mở rộng (Tiểu sử, Cuộc đời & Sự nghiệp) từ MediaWiki API khi đoạn tóm tắt quá ngắn
  */
+/**
+ * Làm sạch hoàn toàn các tàn dư mã wiki, đề mục rỗng, danh sách phim dang dở và ký hiệu chú thích
+ */
+export function cleanBioExtract(raw: string): string {
+  if (!raw) return "";
+
+  let text = raw;
+
+  // 1. Cắt bỏ các phần danh sách phim, giải thưởng, liên kết ngoài...
+  const cutKeywords = [
+    "== Danh sách phim",
+    "== Phim đã tham gia",
+    "== Các phim tham gia",
+    "== Các tác phẩm",
+    "== Danh sách tác phẩm",
+    "== Sự nghiệp điện ảnh",
+    "== Danh sách chương trình",
+    "== Chương trình truyền hình",
+    "== Chương trình tham gia",
+    "== Gameshow",
+    "== Giải thưởng",
+    "== Thành tựu",
+    "== Đề cử",
+    "== Danh sách đĩa",
+    "== Đĩa nhạc",
+    "== Video âm nhạc",
+    "== Ghi chú",
+    "== Chú thích",
+    "== Vinh danh",
+    "== Xem thêm",
+    "== Sự cố",
+    "== Tranh cãi",
+    "== Tham khảo",
+    "== Liên kết ngoài",
+    "== Hoạt động khác",
+    "== Thống kê",
+    "== Awards",
+    "== References",
+    "== External links",
+    "== Filmography",
+  ];
+
+  let minCutIndex = -1;
+  for (const kw of cutKeywords) {
+    const idx = text.indexOf(kw);
+    if (idx !== -1 && (minCutIndex === -1 || idx < minCutIndex)) {
+      minCutIndex = idx;
+    }
+  }
+  if (minCutIndex !== -1 && minCutIndex > 200) {
+    text = text.slice(0, minCutIndex);
+  }
+
+  // 2. Chuyển tiêu đề wiki == Tiêu đề == thành Tiêu đề:
+  text = text.replace(/==+\s*([^=]+?)\s*==+/g, "\n\n$1:\n");
+
+  // 3. Xóa các chú thích kiểu [1], [2], [cần dẫn nguồn], [ghi chú 1]
+  text = text.replace(/\[(?:\d+|cần dẫn nguồn|note \d+|ghi chú \d+|[a-z])\]/gi, "");
+
+  // 4. Xóa các tiêu đề rỗng nằm kề nhau (ví dụ: Danh sách phim:\nTruyền hình:\nĐiện ảnh:)
+  text = text.replace(/\n\s*([^\n:]{2,40}):\s*(?=\n\s*[^\n:]{2,40}:|\n*$)/gi, "\n");
+
+  // 5. Xóa triệt để các đề mục treo lơ lửng ở cuối văn bản
+  text = text.replace(/(?:\n\s*(?:danh sách phim|truyền hình|điện ảnh|web drama|phim đã đóng|tác phẩm|chương trình|giải thưởng|tham khảo|liên kết ngoài|video|gameshow|hoạt động khác|sự nghiệp|đầu đời|tiểu sử)\s*[:：]?\s*)+$/gi, "");
+
+  // 6. Xóa các dòng chỉ chứa dấu gạch đầu dòng hoặc dấu hoa thị trơ trọi
+  text = text.replace(/^\s*[-*•]\s*$/gm, "");
+
+  // 7. Chuẩn hóa khoảng trắng và dòng trống
+  text = text.replace(/\n{3,}/g, "\n\n").trim();
+
+  return text;
+}
+
+/**
+ * Lấy nội dung chi tiết mở rộng (Tiểu sử, Cuộc đời & Sự nghiệp) từ MediaWiki API khi đoạn tóm tắt quá ngắn
+ */
 async function fetchExtendedWikiExtract(
   pageTitle: string,
   lang: "vi" | "en" = "vi"
@@ -117,42 +194,9 @@ async function fetchExtendedWikiExtract(
     if (!pages) return null;
     const page = Object.values(pages)[0] as { extract?: string };
     if (!page || !page.extract || page.extract.length < 150) return null;
-    let text = page.extract as string;
 
-    const cutKeywords = [
-      "== Giải thưởng",
-      "== Tham khảo",
-      "== Liên kết ngoài",
-      "== Danh sách đĩa",
-      "== Đĩa nhạc",
-      "== Chương trình truyền hình",
-      "== Chương trình tham gia",
-      "== Ghi chú",
-      "== Vinh danh",
-      "== Xem thêm",
-      "== Sự cố",
-      "== Tranh cãi",
-      "== Awards",
-      "== References",
-      "== External links",
-      "== Filmography",
-    ];
-    let minCutIndex = -1;
-    for (const kw of cutKeywords) {
-      const idx = text.indexOf(kw);
-      if (idx !== -1 && (minCutIndex === -1 || idx < minCutIndex)) {
-        minCutIndex = idx;
-      }
-    }
-    if (minCutIndex !== -1 && minCutIndex > 300) {
-      text = text.slice(0, minCutIndex);
-    }
-    text = text
-      .replace(/==+\s*([^=]+?)\s*==+/g, "\n\n$1:\n")
-      .replace(/\n{3,}/g, "\n\n")
-      .trim();
-
-    return text.length >= 250 ? text : null;
+    const cleaned = cleanBioExtract(page.extract);
+    return cleaned.length >= 200 ? cleaned : null;
   } catch {
     return null;
   }
@@ -176,7 +220,7 @@ async function fetchSummary(
     if (data.type === "disambiguation" || data.title === "Not found.") return null;
 
     const desc = data.description || "";
-    let extract = data.extract || "";
+    let extract = data.extract ? cleanBioExtract(data.extract) : "";
 
     if (isNonPersonEntity(desc, extract) && !isPersonSignal(desc, extract)) {
       return null;
@@ -208,7 +252,10 @@ async function fetchSummary(
   }
 }
 
-export async function fetchActorProfile(actorName: string): Promise<ActorProfile | null> {
+export async function fetchActorProfile(
+  actorName: string,
+  aliases: string[] = []
+): Promise<ActorProfile | null> {
   const cleanName = actorName.trim();
   if (!cleanName) return null;
 
@@ -216,39 +263,45 @@ export async function fetchActorProfile(actorName: string): Promise<ActorProfile
     return wikiCache.get(cleanName) || null;
   }
 
-  try {
-    // 1. GIAI ĐOẠN 1: Quét song song tên chính trên cả Wikipedia Tiếng Việt và Tiếng Anh (~150-300ms)
-    const [summaryVi, summaryEn] = await Promise.all([
-      fetchSummary(cleanName, "vi"),
-      fetchSummary(cleanName, "en"),
-    ]);
+  const queriesToTry = Array.from(
+    new Set([cleanName, ...aliases].map((q) => q.trim()).filter((q) => q.length >= 2))
+  );
 
-    if (summaryVi) {
-      wikiCache.set(cleanName, summaryVi);
-      return summaryVi;
+  for (const q of queriesToTry) {
+    try {
+      // 1. Quét song song trên cả Wikipedia Tiếng Việt và Tiếng Anh (~150-300ms)
+      const [summaryVi, summaryEn] = await Promise.all([
+        fetchSummary(q, "vi"),
+        fetchSummary(q, "en"),
+      ]);
+
+      if (summaryVi) {
+        wikiCache.set(cleanName, summaryVi);
+        return summaryVi;
+      }
+      if (summaryEn) {
+        wikiCache.set(cleanName, summaryEn);
+        return summaryEn;
+      }
+
+      // 2. Thử các danh xưng định hướng (vd: Trường Giang (nghệ sĩ))
+      const disambiguationCandidates = [
+        fetchSummary(`${q} (diễn viên)`, "vi"),
+        fetchSummary(`${q} (nghệ sĩ)`, "vi"),
+        fetchSummary(`${q} (actor)`, "en"),
+        fetchSummary(`${q} (actress)`, "en"),
+      ];
+
+      const disambiguationResults = await Promise.all(disambiguationCandidates);
+      const validDisambiguation = disambiguationResults.find(Boolean);
+
+      if (validDisambiguation) {
+        wikiCache.set(cleanName, validDisambiguation);
+        return validDisambiguation;
+      }
+    } catch (err) {
+      console.error("Lỗi lấy thông tin diễn viên từ Wikipedia:", err);
     }
-    if (summaryEn) {
-      wikiCache.set(cleanName, summaryEn);
-      return summaryEn;
-    }
-
-    // 2. GIAI ĐOẠN 2: Thử đồng thời các danh xưng nếu tên bị trùng lặp địa danh/định hướng (vd: Trường Giang (nghệ sĩ))
-    const disambiguationCandidates = [
-      fetchSummary(`${cleanName} (diễn viên)`, "vi"),
-      fetchSummary(`${cleanName} (nghệ sĩ)`, "vi"),
-      fetchSummary(`${cleanName} (actor)`, "en"),
-      fetchSummary(`${cleanName} (actress)`, "en"),
-    ];
-
-    const disambiguationResults = await Promise.all(disambiguationCandidates);
-    const validDisambiguation = disambiguationResults.find(Boolean);
-
-    if (validDisambiguation) {
-      wikiCache.set(cleanName, validDisambiguation);
-      return validDisambiguation;
-    }
-  } catch (err) {
-    console.error("Lỗi lấy thông tin diễn viên từ Wikipedia:", err);
   }
 
   wikiCache.set(cleanName, null);

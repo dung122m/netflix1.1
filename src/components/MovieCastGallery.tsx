@@ -26,11 +26,11 @@ export const MovieCastGallery: React.FC<MovieCastGalleryProps> = ({
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
 
-  const handleActorClick = (name: string) => {
+  const handleActorClick = (name: string, avatarUrl?: string | null, character?: string) => {
     if (typeof window !== "undefined") {
       window.dispatchEvent(
         new CustomEvent("open-actor-bio", {
-          detail: { name },
+          detail: { name, avatarUrl, character },
         })
       );
     }
@@ -174,7 +174,7 @@ export const MovieCastGallery: React.FC<MovieCastGalleryProps> = ({
             <button
               key={actor.id}
               type="button"
-              onClick={() => handleActorClick(actor.name)}
+              onClick={() => handleActorClick(actor.name, actor.avatarUrl, actor.character)}
               onMouseEnter={() => {
                 fetch(`/api/actor-bio?name=${encodeURIComponent(actor.name)}`).catch(() => {});
               }}
