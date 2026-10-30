@@ -630,48 +630,16 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
             isNavigating ? "movie-card-navigating" : ""
           }`}
         >
-          {/* LỚP POSTER NGHỆ THUẬT NỀN LUÔN HIỂN THỊ (ALWAYS VISIBLE CANVAS - KHÔNG BAO GIỜ BỊ ĐEN XÌ) */}
+          {/* LỚP PLACEHOLDER TỐI GIẢN KHI ĐANG TẢI ẢNH */}
           <div
-            className="absolute inset-0 z-0 flex flex-col justify-between p-3.5 bg-gradient-to-b from-zinc-800/90 via-zinc-900 to-black select-none overflow-hidden"
+            className="absolute inset-0 z-0 flex items-center justify-center p-3 bg-zinc-900 select-none overflow-hidden"
             aria-hidden="true"
           >
-            {/* Ambient Cinema Crimson Glow */}
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-red-600/25 via-transparent to-black pointer-events-none" />
-            <div className="absolute -top-10 -right-10 w-28 h-28 bg-red-600/15 rounded-full blur-2xl pointer-events-none" />
-
-            {/* Header: NANAFLIX HCM BRANDING & NĂM */}
-            <div className="relative z-10 flex items-center justify-between">
-              <div className="inline-flex items-center gap-1.5 select-none">
-                <div className="w-4.5 h-3.5 rounded-[4px] bg-[#EA1D24] flex items-center justify-center shadow-sm">
-                  <span className="text-[8px] text-[#FFF200] leading-none">★</span>
-                </div>
-                <span className="text-white font-black text-[11px] tracking-tight">Nanaflix</span>
-                <span className="text-[8px] font-bold text-slate-400">HCM</span>
+            <div className="inline-flex items-center gap-2 select-none opacity-75">
+              <div className="w-5.5 h-4 rounded-[4px] bg-[#EA1D24] flex items-center justify-center shadow-sm">
+                <span className="text-[8px] text-[#FFF200] leading-none">★</span>
               </div>
-              {displayYear && (
-                <span className="text-[9px] sm:text-[10px] font-bold text-zinc-400 bg-white/10 backdrop-blur-md px-1.5 py-0.5 rounded border border-white/10">
-                  {displayYear}
-                </span>
-              )}
-            </div>
-
-            {/* Center: Movie Title & Original Title Typography */}
-            <div className="relative z-10 flex flex-col items-center text-center my-auto px-2">
-              <h3 className="font-extrabold text-white text-xs sm:text-sm tracking-wide line-clamp-3 leading-snug drop-shadow-md">
-                {title}
-              </h3>
-              {origin_name && origin_name !== title && (
-                <p className="text-[10px] text-zinc-400 font-medium italic line-clamp-1 mt-1.5">
-                  {origin_name}
-                </p>
-              )}
-            </div>
-
-            {/* Footer: Thể loại & Khám phá */}
-            <div className="relative z-10 flex items-center justify-center gap-1.5 pt-1.5 border-t border-white/10">
-              <span className="text-[9px] sm:text-[10px] font-semibold text-zinc-300 uppercase tracking-wider truncate max-w-[130px]">
-                {genre || initialTypeName || "Phim Điện Ảnh"}
-              </span>
+              <span className="text-white font-extrabold text-xs sm:text-sm tracking-tight">Nanaflix</span>
             </div>
           </div>
 

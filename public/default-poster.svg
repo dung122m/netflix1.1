@@ -1,197 +1,58 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 900" width="600" height="900">
   <defs>
-    <!-- Background Gradient: Deep cinematic dark slate -->
+    <!-- Background Gradient: Clean, deep, subtle dark cinema -->
     <linearGradient id="bg" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="#0e1015"/>
-      <stop offset="45%" stop-color="#08090c"/>
-      <stop offset="100%" stop-color="#020304"/>
+      <stop offset="0%" stop-color="#14151a"/>
+      <stop offset="50%" stop-color="#0d0e12"/>
+      <stop offset="100%" stop-color="#08080a"/>
     </linearGradient>
 
-    <!-- Top Spotlight / Cinema Ambient Glow -->
-    <radialGradient id="topSpotlight" cx="50%" cy="0%" r="75%">
-      <stop offset="0%" stop-color="#ea1d24" stop-opacity="0.22"/>
-      <stop offset="40%" stop-color="#da251d" stop-opacity="0.08"/>
-      <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
-    </radialGradient>
-
-    <!-- Center Warm Ambient Glow -->
-    <radialGradient id="centerGlow" cx="50%" cy="48%" r="45%">
-      <stop offset="0%" stop-color="#ea1d24" stop-opacity="0.18"/>
-      <stop offset="60%" stop-color="#ffde00" stop-opacity="0.04"/>
-      <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
-    </radialGradient>
-
     <!-- Vietnam Flag Pill Red Gradient -->
-    <linearGradient id="flagRed" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#FF2E36"/>
-      <stop offset="100%" stop-color="#D6181F"/>
+    <linearGradient id="flagRed" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#EA1D24"/>
+      <stop offset="100%" stop-color="#DA251D"/>
     </linearGradient>
 
     <!-- Vietnam Star Gold Gradient -->
     <linearGradient id="starGold" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="#FFF44F"/>
-      <stop offset="100%" stop-color="#FFD700"/>
+      <stop offset="0%" stop-color="#FFF200"/>
+      <stop offset="100%" stop-color="#FFDE00"/>
     </linearGradient>
-
-    <!-- Glass Card Gradient -->
-    <linearGradient id="glassBg" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.06"/>
-      <stop offset="100%" stop-color="#ffffff" stop-opacity="0.01"/>
-    </linearGradient>
-
-    <!-- Sleek Border Gradient -->
-    <linearGradient id="glassBorder" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.25"/>
-      <stop offset="50%" stop-color="#ea1d24" stop-opacity="0.4"/>
-      <stop offset="100%" stop-color="#ffffff" stop-opacity="0.08"/>
-    </linearGradient>
-
-    <!-- Soft Drop Shadow Filter -->
-    <filter id="cardShadow" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="0" dy="16" stdDeviation="24" flood-color="#000000" flood-opacity="0.85"/>
-      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#ea1d24" flood-opacity="0.18"/>
-    </filter>
-
-    <filter id="glowFilter" x="-30%" y="-30%" width="160%" height="160%">
-      <feGaussianBlur stdDeviation="8" result="blur"/>
-      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
-    </filter>
   </defs>
 
-  <!-- 1. Background Layers -->
+  <!-- Clean Minimal Dark Background -->
   <rect width="600" height="900" fill="url(#bg)"/>
-  <rect width="600" height="900" fill="url(#topSpotlight)"/>
-  <rect width="600" height="900" fill="url(#centerGlow)"/>
 
-  <!-- Subtle Minimal Frame -->
-  <rect x="28" y="28" width="544" height="844" rx="20" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="1.5"/>
+  <!-- Center Minimal Nanaflix Brand Logo -->
+  <g transform="translate(165, 425)">
+    <!-- Nút đỏ bo góc chuẩn cờ Việt Nam (64x46, rx=13) -->
+    <rect x="0" y="0" width="64" height="46" rx="13" fill="url(#flagRed)"/>
+    
+    <!-- Ngôi sao vàng 5 cánh ở chính giữa -->
+    <polygon points="
+      32,10
+      35.5,20.5
+      46.5,20.5
+      37.5,27
+      41,37.5
+      32,31
+      23,37.5
+      26.5,27
+      17.5,20.5
+      28.5,20.5
+    " fill="url(#starGold)"/>
 
-  <!-- 2. Central Premium Glass Card -->
-  <g transform="translate(75, 230)" filter="url(#cardShadow)">
-    <!-- Glass Background with Border -->
-    <rect width="450" height="420" rx="24" fill="url(#glassBg)"/>
-    <rect width="450" height="420" rx="24" fill="none" stroke="url(#glassBorder)" stroke-width="1.5"/>
-
-    <!-- Inner Ambient Subtle Glow -->
-    <circle cx="225" cy="130" r="120" fill="#ea1d24" fill-opacity="0.12" filter="url(#glowFilter)"/>
-
-    <!-- ============================================================== -->
-    <!-- 🇻🇳 3. CHÍNH XÁC LOGO NANAFLIX HCM CHUẨN NHẬN DIỆN THƯƠNG HIỆU -->
-    <!-- ============================================================== -->
-    <g transform="translate(68, 95)">
-      <!-- 🇻🇳 Nút Cờ Đỏ Việt Nam (Pill tròn chuẩn YouTube) -->
-      <g filter="url(#glowFilter)">
-        <rect x="0" y="0" width="76" height="54" rx="16" fill="url(#flagRed)"/>
-        <!-- Ngôi sao vàng 5 cánh Việt Nam đặt chính giữa tâm nút -->
-        <polygon points="
-          38,12
-          41.8,23.8
-          54.2,23.8
-          44.2,31.2
-          48,43
-          38,35.6
-          28,43
-          31.8,31.2
-          21.8,23.8
-          34.2,23.8
-        " fill="url(#starGold)"/>
-      </g>
-
-      <!-- ✍️ Chữ "Nanaflix" Bold Sans Trắng Tuyết Chuẩn Nhận Diện -->
-      <text
-        x="92"
-        y="42"
-        fill="#FFFFFF"
-        font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Inter', 'Helvetica Neue', Arial, sans-serif"
-        font-weight="900"
-        font-size="44"
-        letter-spacing="-1.2px"
-      >
-        Nanaflix
-      </text>
-
-      <!-- 📍 Ký hiệu "HCM" Superscript Xám Kim Loại -->
-      <text
-        x="276"
-        y="18"
-        fill="#94A3B8"
-        font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Inter', sans-serif"
-        font-weight="700"
-        font-size="16"
-        letter-spacing="0.5px"
-      >
-        HCM
-      </text>
-    </g>
-
-    <!-- ============================================================== -->
-    <!-- 4. SUBTITLE & THÔNG TIN DƯỚI LOGO TRONG GLASS CARD             -->
-    <!-- ============================================================== -->
-    <!-- Đường kẻ phân cách ánh sáng -->
-    <line x1="80" y1="210" x2="370" y2="210" stroke="rgba(255,255,255,0.12)" stroke-width="1"/>
-    <circle cx="225" cy="210" r="3" fill="#ea1d24"/>
-
-    <!-- Tagline Tiếng Việt -->
+    <!-- Chữ Nanaflix Bold Sans Trắng Tuyết Tối Giản -->
     <text
-      x="225"
-      y="255"
+      x="80"
+      y="35"
       fill="#FFFFFF"
-      font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
-      font-weight="700"
-      font-size="17"
-      letter-spacing="2.5px"
-      text-anchor="middle"
+      font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Inter', 'Helvetica Neue', Arial, sans-serif"
+      font-weight="800"
+      font-size="42"
+      letter-spacing="-1px"
     >
-      RẠP PHIM TRỰC TUYẾN
-    </text>
-
-    <!-- Sub-tagline -->
-    <text
-      x="225"
-      y="288"
-      fill="#94A3B8"
-      font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
-      font-weight="500"
-      font-size="13"
-      letter-spacing="1px"
-      text-anchor="middle"
-    >
-      Full HD • Vietsub • Thuyết Minh
-    </text>
-
-    <!-- Quality Badges Pill -->
-    <g transform="translate(135, 328)">
-      <rect width="180" height="34" rx="17" fill="rgba(234,29,36,0.12)" stroke="rgba(234,29,36,0.35)" stroke-width="1.2"/>
-      <text
-        x="90"
-        y="22"
-        fill="#FF4D52"
-        font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
-        font-weight="700"
-        font-size="12"
-        letter-spacing="2px"
-        text-anchor="middle"
-      >
-        CHẤT LƯỢNG CAO
-      </text>
-    </g>
-  </g>
-
-  <!-- 5. Bottom Brand Footnote -->
-  <g transform="translate(300, 780)" text-anchor="middle">
-    <!-- Icon Film strip nhẹ -->
-    <circle cx="0" cy="0" r="18" fill="rgba(255,255,255,0.03)" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
-    <polygon points="-4,-6 6,0 -4,6" fill="#ea1d24"/>
-
-    <text
-      y="38"
-      fill="rgba(255,255,255,0.35)"
-      font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
-      font-weight="500"
-      font-size="11"
-      letter-spacing="3px"
-    >
-      NANAFLIX ENTERTAINMENT
+      Nanaflix
     </text>
   </g>
 </svg>
