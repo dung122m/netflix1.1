@@ -630,24 +630,28 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
             isNavigating ? "movie-card-navigating" : ""
           }`}
         >
-          {/* LỚP PLACEHOLDER TỐI GIẢN KÈM HIỆU ỨNG SANG TRỌNG KHI ĐANG TẢI ẢNH */}
+          {/* LỚP NỀN POSTER: SKELETON KHI CHỜ LOAD ẢNH VÀ DEFAULT LOGO KHI KHÔNG CÓ ẢNH */}
           <div
             className="absolute inset-0 z-0 flex flex-col items-center justify-center p-3 bg-gradient-to-br from-zinc-900 via-zinc-950 to-black select-none overflow-hidden"
             aria-hidden="true"
           >
-            {/* Hiệu ứng tia sáng lướt nhẹ qua (Shimmer sheen) */}
-            <div
-              className="absolute inset-0 -translate-x-full poster-placeholder-shimmer bg-gradient-to-r from-transparent via-white/[0.08] to-transparent pointer-events-none"
-              aria-hidden="true"
-            />
+            {/* Hiệu ứng tia sáng quét nhẹ (Shimmer sheen) khi đang chờ tải ảnh (không hiện logo) */}
+            {!isImageLoaded && !hasError && (
+              <div
+                className="absolute inset-0 -translate-x-full poster-placeholder-shimmer bg-gradient-to-r from-transparent via-white/[0.06] to-transparent pointer-events-none"
+                aria-hidden="true"
+              />
+            )}
 
-            {/* Logo Nanaflix tối giản với hiệu ứng thở êm dịu (Soft ambient pulse) */}
-            <div className="relative z-[1] inline-flex items-center gap-2 select-none poster-placeholder-logo">
-              <div className="w-5.5 h-4 rounded-[4px] bg-[#EA1D24] flex items-center justify-center shadow-md">
-                <span className="text-[8px] text-[#FFF200] leading-none">★</span>
+            {/* CHỈ HIỆN LOGO NANAFLIX KHI PHIM HOÀN TOÀN KHÔNG CÓ ẢNH HOẶC LỖI TẢI (hasError hoặc !currentSrc) */}
+            {(hasError || !currentSrc) && (
+              <div className="relative z-[1] inline-flex items-center gap-2 select-none poster-placeholder-logo">
+                <div className="w-5.5 h-4 rounded-[4px] bg-[#EA1D24] flex items-center justify-center shadow-md">
+                  <span className="text-[8px] text-[#FFF200] leading-none">★</span>
+                </div>
+                <span className="text-white font-extrabold text-xs sm:text-sm tracking-tight drop-shadow-sm">Nanaflix</span>
               </div>
-              <span className="text-white font-extrabold text-xs sm:text-sm tracking-tight drop-shadow-sm">Nanaflix</span>
-            </div>
+            )}
           </div>
 
           {/* THẺ ẢNH CHÍNH PHỦ LÊN TRÊN CANVAS NỀN */}

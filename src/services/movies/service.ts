@@ -509,7 +509,17 @@ export function isMovieOfType(item: Record<string, unknown>, type: string): bool
   const isTvShows =
     rawType === "tvshows" ||
     rawType === "tv-shows" ||
-    catSlugs.some((c) => c.includes("tv-shows") || c.includes("tv shows") || c.includes("show"));
+    (rawType !== "single" &&
+      item.type !== "single" &&
+      (item.tmdb as { type?: string })?.type !== "movie" &&
+      catSlugs.some(
+        (c) =>
+          c === "tv-shows" ||
+          c === "tv shows" ||
+          c === "chuong-trinh-truyen-hinh" ||
+          c.includes("gameshow") ||
+          c.includes("talkshow")
+      ));
 
   const isChieuRap = Boolean(
     item.chieurap === true ||
@@ -1359,6 +1369,27 @@ async function executeGetMovies(params: MovieFilterParams, cacheKey: string) {
   const requestedPage = params.page || 1;
   let finalItems = (maxTotalPages > 0 && requestedPage > maxTotalPages) ? [] : candidates.slice(0, limit);
 
+  // Tự động bù đắp (top-up) nếu sau khi lọc/dedupe trang bị khuyết dưới target limit
+  if (finalItems.length < limit && requestedPage < maxTotalPages && !isSearch) {
+    try {
+      const topUpRes = await fetchSourceData(API_PHIMAPI, params, isSearch, requestedPage + 1);
+      if (topUpRes?.items && topUpRes.items.length > 0) {
+        const existingSlugs = new Set(candidates.map((c) => c.slug));
+        const filteredTopUp = applyMovieFilters(
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          topUpRes.items.filter((item: any) => item?.slug && !existingSlugs.has(item.slug)),
+          params
+        );
+        for (const item of filteredTopUp) {
+          if (finalItems.length >= limit) break;
+          existingSlugs.add(item.slug);
+          candidates.push(item);
+          finalItems.push(item);
+        }
+      }
+    } catch {}
+  }
+
   // Bảo đảm an toàn tuyệt đối cho trang cuối: không bao giờ trả về [] nếu totalItemsCount > 0
   if (requestedPage === maxTotalPages && finalItems.length === 0 && totalItemsCount > 0) {
     if (candidates.length > 0) {
@@ -1502,7 +1533,7 @@ function buildQueryMetaKey(params: MovieFilterParams): string {
 
 export function buildMovieCacheKey(params: MovieFilterParams): string {
   return JSON.stringify({
-    v: 14,
+    v: 15,
     category: params.category || "",
     country: params.country || "",
     year: params.year || "",
