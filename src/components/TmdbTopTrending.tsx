@@ -486,7 +486,7 @@ function TmdbTopTrendingInner() {
                 : "";
               const categoryText = formatGenreName(rawCategory);
 
-              const secondaryTag = countryText || categoryText;
+              const secondaryTag = categoryText || countryText;
 
               return (
                 <div
