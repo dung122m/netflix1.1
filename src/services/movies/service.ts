@@ -1384,8 +1384,8 @@ async function executeGetMovies(params: MovieFilterParams, cacheKey: string) {
         } catch {}
       }
 
-      // 2. Tra cứu TMDb theo tên nếu chưa có poster TMDb
-      const needsTmdbPoster = !item.poster_url || isBrokenImageUrl(item.poster_url) || !item.poster_url.includes("image.tmdb.org");
+      // 2. Chỉ tra cứu TMDb theo tên nếu phim bị khuyết ảnh hoặc link hỏng
+      const needsTmdbPoster = !item.poster_url || isBrokenImageUrl(item.poster_url);
       if (needsTmdbPoster) {
         const queryCandidates = [
           item.origin_name && item.origin_name !== item.name ? item.origin_name : null,

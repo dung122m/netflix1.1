@@ -147,7 +147,6 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
       if (
         clean &&
         !list.includes(clean) &&
-        !GLOBAL_FAILED_IMAGES.has(clean) &&
         !clean.includes("/undefined") &&
         !clean.includes("/null") &&
         !clean.startsWith("/default-")
@@ -158,7 +157,6 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
       if (
         raw &&
         !list.includes(raw) &&
-        !GLOBAL_FAILED_IMAGES.has(raw) &&
         !raw.includes("/undefined") &&
         !raw.includes("/null") &&
         !raw.startsWith("/default-")
@@ -167,21 +165,21 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
       }
     };
 
-    // 1. Thêm posterUrl và phái sinh nếu có
-    addUrl(posterUrl);
+    // 1. Ưu tiên poster dọc chuẩn: nếu có -thumb.webp, suy ra -poster.webp trước
     if (posterUrl && posterUrl.includes("-thumb.webp")) {
       addUrl(posterUrl.replace("-thumb.webp", "-poster.webp"));
     }
+    addUrl(posterUrl);
     if (posterUrl && posterUrl.includes("-poster.webp")) {
       addUrl(posterUrl.replace("-poster.webp", "-thumb.webp"));
     }
 
-    // 2. Thêm imageUrl và thumbUrl
-    addUrl(imageUrl);
-    addUrl(thumbUrl);
+    // 2. Thêm imageUrl và thumbUrl làm phương án dự phòng
     if (thumbUrl && thumbUrl.includes("-thumb.webp")) {
       addUrl(thumbUrl.replace("-thumb.webp", "-poster.webp"));
     }
+    addUrl(imageUrl);
+    addUrl(thumbUrl);
     if (thumbUrl && thumbUrl.includes("-poster.webp")) {
       addUrl(thumbUrl.replace("-poster.webp", "-thumb.webp"));
     }
@@ -189,9 +187,8 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
     // Sắp xếp ưu tiên:
     // 0. Ảnh đã từng nạp thành công trong phiên (0ms cache hit)
     // 1. TMDb CDN chính chủ siêu nhẹ & cực nhanh (30ms CDN)
-    // 2. Các nguồn CDN ngoài khác không phải phimimg.com
-    // 3. ĐẨY PHIMIMG.COM XUỐNG TẦNG DƯỚI CÙNG (Last Resort)
-    //    Nếu bắt buộc phải dùng phimimg.com, ưu tiên -thumb.webp (60KB) trước -poster.webp (1.1MB)
+    // 2. Poster dọc (-poster.webp, poster_, /w500)
+    // 3. Thumb ngang (-thumb.webp) làm fallback
     return list.sort((a, b) => {
       const aLoaded = GLOBAL_LOADED_IMAGES.has(a);
       const bLoaded = GLOBAL_LOADED_IMAGES.has(b);
@@ -203,24 +200,10 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
       if (aTmdb && !bTmdb) return -1;
       if (!aTmdb && bTmdb) return 1;
 
-      // Đẩy phimimg.com xuống tầng dưới cùng
-      const aPhimimg = a.includes("phimimg.com");
-      const bPhimimg = b.includes("phimimg.com");
-      if (!aPhimimg && bPhimimg) return -1;
-      if (aPhimimg && !bPhimimg) return 1;
-
-      if (aPhimimg && bPhimimg) {
-        // Cả 2 đều là phimimg.com: Ưu tiên file thumb nhẹ ~60KB trước file poster nặng 1.1MB
-        const aThumb = a.includes("-thumb.webp");
-        const bThumb = b.includes("-thumb.webp");
-        if (aThumb && !bThumb) return -1;
-        if (!aThumb && bThumb) return 1;
-      } else {
-        const aPoster = a.includes("-poster") || a.includes("poster_") || a.includes("/w500");
-        const bPoster = b.includes("-poster") || b.includes("poster_") || b.includes("/w500");
-        if (aPoster && !bPoster) return -1;
-        if (!aPoster && bPoster) return 1;
-      }
+      const aPoster = a.includes("-poster") || a.includes("poster_") || a.includes("/w500");
+      const bPoster = b.includes("-poster") || b.includes("poster_") || b.includes("/w500");
+      if (aPoster && !bPoster) return -1;
+      if (!aPoster && bPoster) return 1;
 
       return 0;
     });
@@ -230,9 +213,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
   const fallbackAttemptedRef = useRef(false);
   const imgRef = useRef<HTMLImageElement | null>(null);
 
-  const initialCandidate = imageCandidates.find(
-    (u) => !triedUrlsRef.current.has(u) && !GLOBAL_FAILED_IMAGES.has(u)
-  ) || imageCandidates[0] || "";
+  const initialCandidate = imageCandidates[0] || "";
 
   const [currentSrc, setCurrentSrc] = useState<string>(() => initialCandidate);
   const [isImageLoaded, setIsImageLoaded] = useState<boolean>(() => {
@@ -247,78 +228,72 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
 
   const checkImageComplete = useCallback((node: HTMLImageElement | null) => {
     imgRef.current = node;
-    if (node && (node.complete || (node.naturalWidth > 0 && node.naturalHeight > 0))) {
-      const actualSrc = node.currentSrc || node.src;
+    if (node && node.complete && node.naturalWidth > 0) {
+      const actualSrc = node.currentSrc || node.src || currentSrc;
       if (actualSrc) {
         GLOBAL_LOADED_IMAGES.add(actualSrc);
-      }
-      if (currentSrc) {
-        GLOBAL_LOADED_IMAGES.add(currentSrc);
       }
       setIsImageLoaded(true);
     }
   }, [currentSrc]);
 
+  // Đồng bộ khi card được tái sử dụng cho phim khác hoặc khi danh sách ứng viên thay đổi
   useEffect(() => {
-    const validCandidate = imageCandidates.find(
-      (u) => !triedUrlsRef.current.has(u) && !GLOBAL_FAILED_IMAGES.has(u)
-    ) || "";
-
-    if (!validCandidate) {
-      if (!fallbackAttemptedRef.current && (title || origin_name || slug)) {
-        fallbackAttemptedRef.current = true;
-        const params = new URLSearchParams();
-        if (title) params.set("title", title);
-        if (origin_name) params.set("origin_name", origin_name);
-        if (year) params.set("year", String(year));
-        if (slug) params.set("slug", slug);
-
-        fetch(`/api/movie-poster-fallback?${params.toString()}`)
-          .then((res) => (res.ok ? res.json() : null))
-          .then((data) => {
-            const fallbackOptions = [data?.posterUrl, data?.backdropUrl].filter(
-              (u): u is string => Boolean(u) && !triedUrlsRef.current.has(u) && !GLOBAL_FAILED_IMAGES.has(u)
-            );
-            if (fallbackOptions.length > 0) {
-              setHasError(false);
-              setCurrentSrc(fallbackOptions[0]);
-              setIsImageLoaded(GLOBAL_LOADED_IMAGES.has(fallbackOptions[0]));
-            } else {
-              setHasError(true);
-              setCurrentSrc("");
-              setIsImageLoaded(true);
-            }
-          })
-          .catch(() => {
-            setHasError(true);
-            setCurrentSrc("");
-            setIsImageLoaded(true);
-          });
-      } else {
-        setHasError(true);
-        setCurrentSrc("");
-        setIsImageLoaded(true);
-      }
-    } else {
+    triedUrlsRef.current.clear();
+    fallbackAttemptedRef.current = false;
+    const initial = imageCandidates.find((u) => !triedUrlsRef.current.has(u)) || imageCandidates[0] || "";
+    if (initial) {
       setHasError(false);
-      setCurrentSrc(validCandidate);
-      const isAlreadyLoaded =
-        GLOBAL_LOADED_IMAGES.has(validCandidate) ||
-        Boolean(imgRef.current && imgRef.current.complete && imgRef.current.naturalWidth > 0);
-      setIsImageLoaded(isAlreadyLoaded);
+      setCurrentSrc(initial);
+      setIsImageLoaded(GLOBAL_LOADED_IMAGES.has(initial));
+    } else {
+      setCurrentSrc("");
+      setHasError(false);
+      setIsImageLoaded(false);
     }
-  }, [imageCandidates, title, origin_name, year, slug]);
+  }, [slug, imageCandidates]);
+
+  // Chỉ khi phim hoàn toàn không có bất kỳ nguồn ảnh nào từ upstream, mới chủ động gọi fallback
+  useEffect(() => {
+    if (!currentSrc && !fallbackAttemptedRef.current && (title || origin_name || slug)) {
+      fallbackAttemptedRef.current = true;
+      const params = new URLSearchParams();
+      if (title) params.set("title", title);
+      if (origin_name) params.set("origin_name", origin_name);
+      if (year) params.set("year", String(year));
+      if (slug) params.set("slug", slug);
+
+      fetch(`/api/movie-poster-fallback?${params.toString()}`)
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data) => {
+          const fallbackOptions = [data?.posterUrl, data?.backdropUrl].filter(
+            (u): u is string => Boolean(u) && !triedUrlsRef.current.has(u)
+          );
+          if (fallbackOptions.length > 0) {
+            setHasError(false);
+            setCurrentSrc(fallbackOptions[0]);
+            setIsImageLoaded(GLOBAL_LOADED_IMAGES.has(fallbackOptions[0]));
+          } else {
+            setHasError(true);
+            setIsImageLoaded(true);
+          }
+        })
+        .catch(() => {
+          setHasError(true);
+          setIsImageLoaded(true);
+        });
+    }
+  }, [currentSrc, title, origin_name, year, slug]);
 
   const handleImageError = useCallback(() => {
     if (currentSrc) {
       triedUrlsRef.current.add(currentSrc);
-      GLOBAL_FAILED_IMAGES.add(currentSrc);
       GLOBAL_LOADED_IMAGES.delete(currentSrc);
     }
 
-    // 1. Thử ứng viên kế tiếp chưa từng bị lỗi
+    // 1. Thử ứng viên kế tiếp trong danh sách candidates
     const nextCandidate = imageCandidates.find(
-      (url) => !triedUrlsRef.current.has(url) && !GLOBAL_FAILED_IMAGES.has(url)
+      (url) => !triedUrlsRef.current.has(url)
     );
     if (nextCandidate) {
       setCurrentSrc(nextCandidate);
@@ -326,7 +301,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
       return;
     }
 
-    // 2. Nếu đã thử hết candidates, gọi API fallback tìm ảnh TMDB / chi tiết phim
+    // 2. Nếu đã thử hết candidates nội tại mà vẫn lỗi, gọi API fallback tìm ảnh TMDB / chi tiết phim
     if (!fallbackAttemptedRef.current && (title || origin_name || slug)) {
       fallbackAttemptedRef.current = true;
       const params = new URLSearchParams();
@@ -339,70 +314,28 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
         .then((res) => (res.ok ? res.json() : null))
         .then((data) => {
           const fallbackOptions = [data?.posterUrl, data?.backdropUrl].filter(
-            (u): u is string => Boolean(u) && !triedUrlsRef.current.has(u) && !GLOBAL_FAILED_IMAGES.has(u)
+            (u): u is string => Boolean(u) && !triedUrlsRef.current.has(u)
           );
           if (fallbackOptions.length > 0) {
             setHasError(false);
             setCurrentSrc(fallbackOptions[0]);
             setIsImageLoaded(GLOBAL_LOADED_IMAGES.has(fallbackOptions[0]));
           } else {
-            // Không tìm được ảnh thay thế mới
             setHasError(true);
-            setCurrentSrc("");
             setIsImageLoaded(true);
           }
         })
         .catch(() => {
           setHasError(true);
-          setCurrentSrc("");
           setIsImageLoaded(true);
         });
       return;
     }
 
+    // 3. Toàn bộ candidates và fallback đều thất bại
     setHasError(true);
-    setCurrentSrc("");
     setIsImageLoaded(true);
   }, [currentSrc, imageCandidates, title, origin_name, year, slug]);
-
-  // Bounded timeout: Nếu sau 3.5s (priority) hoặc 4.5s (thường) CDN bị treo/nghẽn không tải xong, tự động chuyển sang ứng viên kế tiếp
-  useEffect(() => {
-    if (!currentSrc || isImageLoaded || hasError) return;
-
-    const timeoutMs = priority ? 3500 : 4500;
-    const timer = setTimeout(() => {
-      if (!imgRef.current || !imgRef.current.complete || imgRef.current.naturalWidth === 0) {
-        handleImageError();
-      }
-    }, timeoutMs);
-
-    return () => clearTimeout(timer);
-  }, [currentSrc, isImageLoaded, hasError, handleImageError, priority]);
-
-  // NGUỒN THAY THẾ DỰ PHÒNG THÔNG MINH (TMDB OFFICIAL CDN):
-  // Khi phim không có ảnh hợp lệ, hoặc đang dính ảnh từ phimimg.com (tầng dưới cùng), chủ động tìm poster chuẩn từ TMDb ngay
-  useEffect(() => {
-    const isOnlyPhimimg = !currentSrc || currentSrc.includes("phimimg.com");
-    if ((isOnlyPhimimg || hasError) && !fallbackAttemptedRef.current && (title || origin_name || slug)) {
-      fallbackAttemptedRef.current = true;
-      const params = new URLSearchParams();
-      if (title) params.set("title", title);
-      if (origin_name) params.set("origin_name", origin_name);
-      if (year) params.set("year", String(year));
-      if (slug) params.set("slug", slug);
-
-      fetch(`/api/movie-poster-fallback?${params.toString()}`)
-        .then((res) => (res.ok ? res.json() : null))
-        .then((data) => {
-          if (data?.posterUrl && !GLOBAL_FAILED_IMAGES.has(data.posterUrl)) {
-            setHasError(false);
-            setCurrentSrc(data.posterUrl);
-            setIsImageLoaded(GLOBAL_LOADED_IMAGES.has(data.posterUrl));
-          }
-        })
-        .catch(() => {});
-    }
-  }, [currentSrc, hasError, title, origin_name, year, slug]);
 
   // Trạng thái Trailer & Modal Trailer (Chỉ kích hoạt khi bấm nút xem Trailer)
   const [trailerUrl, setTrailerUrl] = useState<string>(

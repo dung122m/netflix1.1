@@ -138,33 +138,32 @@ export function pickBestMoviePoster(movie: MovieLike, fallback = "/default-poste
     }
   }
 
-  // 2. Ưu tiên bất kỳ CDN / nguồn ảnh nào KHÔNG PHẢI phimimg.com (như VSMOV, NguonC, Amazon, v.v.)
+  // 2. Ưu tiên poster dọc chuẩn (-poster.webp, poster_, /post/, /w500)
   for (const c of candidates) {
-    if (!c.includes("phimimg.com")) {
-      const l = c.toLowerCase();
-      if (
-        l.includes("poster_") ||
-        l.includes("/poster") ||
-        l.includes("-poster") ||
-        l.includes("/w500") ||
-        l.includes("/w300") ||
-        l.includes("/post/") ||
-        l.includes("_ux")
-      ) {
-        return c;
-      }
-    }
-  }
-  for (const c of candidates) {
-    if (!c.includes("phimimg.com")) {
+    const l = c.toLowerCase();
+    if (
+      l.includes("-poster") ||
+      l.includes("poster_") ||
+      l.includes("/poster") ||
+      l.includes("/post/") ||
+      l.includes("/w500") ||
+      l.includes("/w300") ||
+      l.includes("_ux")
+    ) {
       return c;
     }
   }
 
-  // 3. TẦNG DƯỚI CÙNG (Last Resort): Nếu bắt buộc phải dùng phimimg.com:
-  // File -thumb.webp (~60KB) nhẹ hơn gấp 18 lần file -poster.webp (1.1MB), giúp tránh nghẽn mạng
+  // 3. Ưu tiên các ảnh không phải là explicit thumb nếu còn lựa chọn khác
   for (const c of candidates) {
-    if (c.includes("-thumb.webp")) {
+    const l = c.toLowerCase();
+    const isExplicitThumb =
+      l.includes("thumb_") ||
+      l.includes("/thumb") ||
+      l.includes("-thumb") ||
+      l.includes("backdrop") ||
+      l.includes("banner");
+    if (!isExplicitThumb) {
       return c;
     }
   }

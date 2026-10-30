@@ -542,11 +542,8 @@ async function enrichMoviesWithTmdbPosters(movieList: any[]) {
           }
         } catch {}
       }
-      // Nếu poster hiện tại không phải TMDb CDN (chẳng hạn link phimimg dễ bị nghẽn) hoặc bị hỏng:
-      const needsTmdbPoster =
-        !item.poster_url ||
-        isBrokenImageUrl(item.poster_url) ||
-        !item.poster_url.includes("image.tmdb.org");
+      // Chỉ khi phim thực sự thiếu ảnh hoặc link ảnh bị hỏng, mới cần tra cứu TMDB theo tên
+      const needsTmdbPoster = !item.poster_url || isBrokenImageUrl(item.poster_url);
 
       if (needsTmdbPoster) {
         const queryCandidates = [
