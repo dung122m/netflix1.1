@@ -70,7 +70,7 @@ const NGUONC_GENRE_MAP: Record<string, string> = {
   "than-thoai": "gia-tuong",
   "hoc-duong": "tam-ly",
   "the-thao": "tam-ly",
-  "khoa-hoc": "tai-lieu",
+  "khoa-hoc": "khoa-hoc-vien-tuong",
 };
 
 function getNguonCGenreSlug(slug?: string): string {
@@ -1148,13 +1148,8 @@ export function applyMovieFilters(items: any[], params: MovieFilterParams): any[
   // 3. Lọc theo Thể Loại: Khi có filter category cụ thể, KHÔNG được coi unknown/empty là match
   if (params.category) {
     const targetCat = params.category.toLowerCase().trim();
-    const isExplicitHoatHinh = params.category === "hoat-hinh" || params.type === "hoat-hinh";
 
     filtered = filtered.filter((item) => {
-      if (!isExplicitHoatHinh && isMovieOfType(item, "hoat-hinh")) {
-        return false;
-      }
-
       if (!item.category || (Array.isArray(item.category) && item.category.length === 0)) {
         return false;
       }
@@ -1463,7 +1458,7 @@ function buildQueryMetaKey(params: MovieFilterParams): string {
 
 export function buildMovieCacheKey(params: MovieFilterParams): string {
   return JSON.stringify({
-    v: 13,
+    v: 14,
     category: params.category || "",
     country: params.country || "",
     year: params.year || "",

@@ -19,7 +19,7 @@ import { searchMoviesBySemantic } from "@/services/aiVectorService";
 import { evaluateConceptEvidence, resolveConcepts } from "@/services/conceptRegistry";
 import { BrowseAiSearchBanner } from "@/components/BrowseAiSearchBanner";
 import { PaginationControl } from "@/components/PaginationControl";
-import { isBrokenImageUrl } from "@/lib/movieMedia";
+import { isBrokenImageUrl, formatGenreName, formatCountryName } from "@/lib/movieMedia";
 import { getTmdbPosterUrl, searchTmdbPosterByTitle } from "@/services/tmdbService";
 
 // ==========================================
@@ -63,6 +63,17 @@ export async function generateMetadata({
   } else if (params.type && TYPE_TITLES[params.type]) {
     title = TYPE_TITLES[params.type].replace(/^[^\w\s\u00C0-\u1EF9]*\s*/u, "");
     description = `Khám phá danh sách ${title} hay nhất, chất lượng Full HD Vietsub & Thuyết minh trên Nanaflix.`;
+  } else if (params.category) {
+    const catName = formatGenreName(params.category) || params.category;
+    title = `Phim ${catName}`;
+    description = `Khám phá danh sách phim ${catName} hay nhất, chất lượng Full HD Vietsub & Thuyết minh trên Nanaflix.`;
+  } else if (params.country) {
+    const ctryName = formatCountryName(params.country) || params.country;
+    title = `Phim ${ctryName}`;
+    description = `Khám phá danh sách phim ${ctryName} hay nhất, chất lượng Full HD Vietsub & Thuyết minh trên Nanaflix.`;
+  } else if (params.year) {
+    title = `Phim Năm ${params.year}`;
+    description = `Khám phá danh sách phim phát hành năm ${params.year} hay nhất trên Nanaflix.`;
   } else if (params.category || params.country || params.year || params.type) {
     title = "Bộ Lọc Phim Nâng Cao";
     description = "Tìm kiếm và lọc phim theo thể loại, quốc gia, năm phát hành chất lượng cao trên Nanaflix.";
@@ -482,6 +493,19 @@ const GENRE_NAMES: Record<string, string> = {
   "am-nhac": "Âm Nhạc",
   "the-thao": "Thể Thao",
   "tai-lieu": "Tài Liệu",
+  "khoa-hoc": "Khoa Học",
+  "hoat-hinh": "Hoạt Hình",
+  "hinh-su": "Hình Sự",
+  "bi-an": "Bí Ẩn",
+  "hoc-duong": "Học Đường",
+  "gia-dinh": "Gia Đình",
+  "than-thoai": "Thần Thoại",
+  "lich-su": "Lịch Sử",
+  "chinh-kich": "Chính Kịch",
+  "giat-gan": "Giật Gân",
+  "gay-can": "Gây Cấn",
+  "lang-man": "Lãng Mạn",
+  "chieu-rap": "Chiếu Rạp",
 };
 
 const COUNTRY_NAMES: Record<string, string> = {
@@ -845,18 +869,18 @@ export default async function BrowsePage({
     title = "🕒 Phim Mới Cập Nhật";
   } else if (type && category) {
     const typeLabel = TYPE_TITLES[type] || type;
-    const catLabel = GENRE_NAMES[category] || category;
+    const catLabel = formatGenreName(category) || GENRE_NAMES[category] || category;
     title = `${typeLabel} • ${catLabel}`;
   } else if (type && country) {
     const typeLabel = TYPE_TITLES[type] || type;
-    const ctryLabel = COUNTRY_NAMES[country] || country;
+    const ctryLabel = formatCountryName(country) || COUNTRY_NAMES[country] || country;
     title = `${typeLabel} • ${ctryLabel}`;
   } else if (type && TYPE_TITLES[type]) {
     title = TYPE_TITLES[type];
   } else if (category) {
-    title = `🎬 Phim ${GENRE_NAMES[category] || category}`;
+    title = `🎬 Phim ${formatGenreName(category) || GENRE_NAMES[category] || category}`;
   } else if (country) {
-    title = `🌐 Phim ${COUNTRY_NAMES[country] || country}`;
+    title = `🌐 Phim ${formatCountryName(country) || COUNTRY_NAMES[country] || country}`;
   } else if (year) {
     title = `📅 Phim Năm ${year}`;
   } else if (category || country || year || type) {
