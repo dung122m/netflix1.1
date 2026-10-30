@@ -51,11 +51,19 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
     // No-op: search analytics tracking eliminated
   }, []);
 
+  const triggerNavigationLoading = useCallback(() => {
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new Event("app:loading-start"));
+    }
+  }, []);
+
   const isSearchOpen = isSearchExpanded;
   const hasSearchText = hasText;
-  const hasDropdownContent = (!hasSearchText && recentSearches.length > 0) || (hasSearchText && suggestions.length > 0);
+  const hasDropdownContent =
+    (!hasSearchText && recentSearches.length > 0) ||
+    hasSearchText;
 
-  // Debounced search fetcher (500ms để giảm tải Cloudflare KV writes)
+  // Debounced search fetcher (350ms phản hồi mượt mà)
   const [debouncedFetchSuggestions, cancelDebouncedFetch] = useDebounce(
     async (val: string) => {
       // Abort previous in-flight request to prevent race condition
@@ -99,7 +107,7 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
         }
       }
     },
-    500
+    350
   );
 
   useEffect(() => {
@@ -238,6 +246,7 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
     }
     saveRecentSearch(kw);
     trackSearchOnce(kw);
+    triggerNavigationLoading();
     router.push(`/browse?keyword=${encodeURIComponent(kw)}`);
   };
 
@@ -306,18 +315,20 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
       params.delete("keyword");
       params.delete("page");
       const query = params.toString();
+      triggerNavigationLoading();
       router.push(query ? `/browse?${query}` : "/browse");
     }
   };
 
   const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
-    const hasVal = val.length > 0;
-    setHasText(hasVal);
+    const trimmed = val.trim();
+    setHasText(trimmed.length > 0);
 
-    if (val.trim().length >= 3) {
+    if (trimmed.length >= 2) {
       setIsSearching(true);
-      debouncedFetchSuggestions(val);
+      setShowDropdown(true);
+      debouncedFetchSuggestions(trimmed);
     } else {
       cancelDebouncedFetch();
       if (abortControllerRef.current) {
@@ -365,6 +376,7 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
         setIsSearchExpanded(false);
         inputRef.current?.blur();
         mobileInputRef.current?.blur();
+        triggerNavigationLoading();
         router.push(
           selected.slug.startsWith("browse?")
             ? `/browse?${selected.slug.slice(7)}`
@@ -439,6 +451,7 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
 
     saveRecentSearch(currentKeyword);
     trackSearchOnce(currentKeyword);
+    triggerNavigationLoading();
     router.push(`/browse?keyword=${encodeURIComponent(currentKeyword)}`);
   };
 
@@ -557,10 +570,50 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
                     ))}
                   </div>
                 </div>
+              ) : isSearching && suggestions.length === 0 ? (
+                <div className="p-1 space-y-2">
+                  <div className="flex items-center gap-2 text-xs font-semibold text-zinc-400 px-2 py-1">
+                    <Loader2 size={13} className="animate-spin text-netflix-red flex-none" />
+                    <span>Đang tìm kiếm gợi ý phim...</span>
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    {Array.from({ length: 3 }).map((_, idx) => (
+                      <div
+                        key={idx}
+                        className="flex items-center gap-3 p-2 rounded-lg bg-white/[0.03] border border-white/5 animate-pulse"
+                      >
+                        <div className="w-10 h-14 bg-zinc-800 rounded flex-none border border-white/10" />
+                        <div className="flex-1 min-w-0 space-y-2">
+                          <div className="h-3.5 bg-zinc-700/60 rounded w-3/4" />
+                          <div className="flex items-center gap-2">
+                            <div className="h-2.5 bg-zinc-800 rounded w-12" />
+                            <div className="h-2.5 bg-zinc-800/80 rounded w-16" />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="border-t border-white/10 mt-2 pt-2">
+                    <button
+                      type="button"
+                      onClick={handleSearchSubmit}
+                      className="w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg bg-zinc-850 hover:bg-netflix-red text-zinc-200 hover:text-white font-medium text-xs transition shadow-md cursor-pointer active:scale-98"
+                    >
+                      <Search size={13} />
+                      <span>Tìm kiếm ngay cho &quot;{mobileInputRef.current?.value || inputRef.current?.value}&quot;</span>
+                    </button>
+                  </div>
+                </div>
               ) : suggestions.length > 0 ? (
                 <>
-                  <div className="text-[11px] font-semibold text-zinc-400 px-2.5 py-1 uppercase tracking-wider">
-                    Gợi ý phim
+                  <div className="flex items-center justify-between text-[11px] font-semibold text-zinc-400 px-2.5 py-1 uppercase tracking-wider">
+                    <span>Gợi ý phim</span>
+                    {isSearching && (
+                      <span className="flex items-center gap-1.5 text-netflix-red normal-case font-medium text-xs">
+                        <Loader2 size={12} className="animate-spin flex-none" />
+                        <span>Đang cập nhật...</span>
+                      </span>
+                    )}
                   </div>
                   <div className="flex flex-col gap-1 mt-1">
                     {suggestions.map((item, idx) => (
@@ -589,6 +642,7 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
                           setIsSearchExpanded(false);
                           inputRef.current?.blur();
                           mobileInputRef.current?.blur();
+                          triggerNavigationLoading();
                         }}
                         className={`flex items-center gap-3 p-2 rounded-lg transition group ${
                           selectedSuggestionIndex === idx
@@ -639,6 +693,24 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
                     </button>
                   </div>
                 </>
+              ) : hasSearchText ? (
+                <div className="py-4 px-2 text-center space-y-2">
+                  <p className="text-xs text-zinc-400">
+                    {(mobileInputRef.current?.value || inputRef.current?.value || "").trim().length >= 2
+                      ? "Không có gợi ý nhanh phù hợp"
+                      : "Nhập từ 2 ký tự trở lên để xem gợi ý phim..."}
+                  </p>
+                  {(mobileInputRef.current?.value || inputRef.current?.value || "").trim().length >= 2 && (
+                    <button
+                      type="button"
+                      onClick={handleSearchSubmit}
+                      className="w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg bg-netflix-red hover:bg-red-700 text-white font-bold text-xs transition shadow-md cursor-pointer active:scale-98"
+                    >
+                      <Search size={13} />
+                      <span>Tìm kiếm toàn bộ kho phim cho &quot;{mobileInputRef.current?.value || inputRef.current?.value}&quot;</span>
+                    </button>
+                  )}
+                </div>
               ) : null}
             </div>
           )}
@@ -765,10 +837,50 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
                   ))}
                 </div>
               </div>
+            ) : isSearching && suggestions.length === 0 ? (
+              <div className="p-1 space-y-2">
+                <div className="flex items-center gap-2 text-xs font-semibold text-zinc-400 px-2 py-1">
+                  <Loader2 size={13} className="animate-spin text-netflix-red flex-none" />
+                  <span>Đang tìm kiếm gợi ý phim...</span>
+                </div>
+                <div className="flex flex-col gap-1">
+                  {Array.from({ length: 3 }).map((_, idx) => (
+                    <div
+                      key={idx}
+                      className="flex items-center gap-3 p-2 rounded-lg bg-white/[0.03] border border-white/5 animate-pulse"
+                    >
+                      <div className="w-10 h-14 bg-zinc-800 rounded flex-none border border-white/10" />
+                      <div className="flex-1 min-w-0 space-y-2">
+                        <div className="h-3.5 bg-zinc-700/60 rounded w-3/4" />
+                        <div className="flex items-center gap-2">
+                          <div className="h-2.5 bg-zinc-800 rounded w-12" />
+                          <div className="h-2.5 bg-zinc-800/80 rounded w-16" />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="border-t border-white/10 mt-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={handleSearchSubmit}
+                    className="w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg bg-zinc-850 hover:bg-netflix-red text-zinc-200 hover:text-white font-medium text-xs transition shadow-md cursor-pointer active:scale-98"
+                  >
+                    <Search size={13} />
+                    <span>Tìm kiếm ngay cho &quot;{inputRef.current?.value}&quot;</span>
+                  </button>
+                </div>
+              </div>
             ) : suggestions.length > 0 ? (
               <>
-                <div className="text-[11px] font-semibold text-zinc-400 px-2.5 py-1 uppercase tracking-wider">
-                  Gợi ý phim
+                <div className="flex items-center justify-between text-[11px] font-semibold text-zinc-400 px-2.5 py-1 uppercase tracking-wider">
+                  <span>Gợi ý phim</span>
+                  {isSearching && (
+                    <span className="flex items-center gap-1.5 text-netflix-red normal-case font-medium text-xs">
+                      <Loader2 size={12} className="animate-spin flex-none" />
+                      <span>Đang cập nhật...</span>
+                    </span>
+                  )}
                 </div>
                 <div className="flex flex-col gap-1 mt-1">
                   {suggestions.map((item, idx) => (
@@ -796,6 +908,7 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
                         setShowDropdown(false);
                         inputRef.current?.blur();
                         mobileInputRef.current?.blur();
+                        triggerNavigationLoading();
                       }}
                       className={`flex items-center gap-3 p-2 rounded-lg transition group ${
                         selectedSuggestionIndex === idx
@@ -846,6 +959,24 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
                   </button>
                 </div>
               </>
+            ) : hasSearchText ? (
+              <div className="py-4 px-2 text-center space-y-2">
+                <p className="text-xs text-zinc-400">
+                  {(inputRef.current?.value || mobileInputRef.current?.value || "").trim().length >= 2
+                    ? "Không có gợi ý nhanh phù hợp"
+                    : "Nhập từ 2 ký tự trở lên để xem gợi ý phim..."}
+                </p>
+                {(inputRef.current?.value || mobileInputRef.current?.value || "").trim().length >= 2 && (
+                  <button
+                    type="button"
+                    onClick={handleSearchSubmit}
+                    className="w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg bg-netflix-red hover:bg-red-700 text-white font-bold text-xs transition shadow-md cursor-pointer active:scale-98"
+                  >
+                    <Search size={13} />
+                    <span>Tìm kiếm toàn bộ kho phim cho &quot;{inputRef.current?.value || mobileInputRef.current?.value}&quot;</span>
+                  </button>
+                )}
+              </div>
             ) : null}
           </div>
         )}
