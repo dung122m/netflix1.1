@@ -264,11 +264,6 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
   const lastTapRef = useRef<{ time: number; x: number; y: number } | null>(null);
   const lastControlsShownTimeRef = useRef<number>(0);
   const singleTapTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const [doubleTapFeedback, setDoubleTapFeedback] = useState<{
-    side: "left" | "right";
-    delta: number;
-  } | null>(null);
-  const doubleTapFeedbackTimerRef = useRef<NodeJS.Timeout | null>(null);
   const desktopFeedbackTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
@@ -389,6 +384,10 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
     seconds?: number;
     id: number;
   } | null>(null);
+  const desktopFeedbackRef = useRef(desktopFeedback);
+  useEffect(() => {
+    desktopFeedbackRef.current = desktopFeedback;
+  }, [desktopFeedback]);
 
   // Premium Volume OSD & General HUD (YouTube Top Pill Style)
   const [volumeOsd, setVolumeOsd] = useState<{
@@ -2464,9 +2463,6 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
       if (singleTapTimerRef.current) {
         clearTimeout(singleTapTimerRef.current);
       }
-      if (doubleTapFeedbackTimerRef.current) {
-        clearTimeout(doubleTapFeedbackTimerRef.current);
-      }
       window.removeEventListener("keydown", handleKeyDown);
     };
   }, [
@@ -2630,29 +2626,23 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
                   lastTapRef.current = null;
 
                   if (xPct <= 0.38) {
-                    // TUA LÙI 5 GIÂY (Có cộng dồn nếu chạm đúp liên tiếp)
+                    // TUA LÙI (Đồng bộ Minimalist: cộng dồn nếu chạm đúp liên tiếp)
                     if (videoRef.current) {
                       requestPlayerSeek(Math.max(0, (videoRef.current.currentTime || 0) - 5), false);
                     }
-                    const prevDelta = doubleTapFeedback && doubleTapFeedback.side === "left" ? doubleTapFeedback.delta : 0;
-                    const nextDelta = prevDelta <= 0 && prevDelta !== 0 ? prevDelta - 5 : -5;
-                    setDoubleTapFeedback({ side: "left", delta: nextDelta });
-                    if (doubleTapFeedbackTimerRef.current) clearTimeout(doubleTapFeedbackTimerRef.current);
-                    doubleTapFeedbackTimerRef.current = setTimeout(() => {
-                      setDoubleTapFeedback(null);
-                    }, 650);
+                    const cur = desktopFeedbackRef.current;
+                    const prevSec = cur && cur.type === "seek-left" ? (cur.seconds || 0) : 0;
+                    const nextSec = prevSec + 5;
+                    triggerDesktopFeedback("seek-left", `−${nextSec}s`, nextSec);
                   } else if (xPct >= 0.62) {
-                    // TUA TỚI 5 GIÂY (Có cộng dồn nếu chạm đúp liên tiếp)
+                    // TUA TỚI (Đồng bộ Minimalist: cộng dồn nếu chạm đúp liên tiếp)
                     if (videoRef.current) {
                       requestPlayerSeek((videoRef.current.currentTime || 0) + 5, false);
                     }
-                    const prevDelta = doubleTapFeedback && doubleTapFeedback.side === "right" ? doubleTapFeedback.delta : 0;
-                    const nextDelta = prevDelta >= 0 && prevDelta !== 0 ? prevDelta + 5 : 5;
-                    setDoubleTapFeedback({ side: "right", delta: nextDelta });
-                    if (doubleTapFeedbackTimerRef.current) clearTimeout(doubleTapFeedbackTimerRef.current);
-                    doubleTapFeedbackTimerRef.current = setTimeout(() => {
-                      setDoubleTapFeedback(null);
-                    }, 650);
+                    const cur = desktopFeedbackRef.current;
+                    const prevSec = cur && cur.type === "seek-right" ? (cur.seconds || 0) : 0;
+                    const nextSec = prevSec + 5;
+                    triggerDesktopFeedback("seek-right", `+${nextSec}s`, nextSec);
                   } else {
                     // Chạm đúp ở giữa (center) -> Toggle fullscreen
                     toggleFullscreen();
@@ -2723,30 +2713,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
                 <div className="absolute inset-0 bg-black pointer-events-none z-20" />
               )}
 
-              {/* DOUBLE TAP RIPPLE EFFECT (MINIMALIST YOUTUBE STYLE: < -5s HOẶC +5s >) */}
-              {doubleTapFeedback && (
-                <div
-                  className={`absolute top-0 bottom-0 ${
-                    doubleTapFeedback.side === "left"
-                      ? "left-0 rounded-r-[100px] sm:rounded-r-[140px] pl-4 sm:pl-8"
-                      : "right-0 rounded-l-[100px] sm:rounded-l-[140px] pr-4 sm:pr-8"
-                  } w-[34%] bg-white/[0.06] backdrop-blur-[1px] flex items-center justify-center pointer-events-none z-30 animate-in fade-in duration-150`}
-                >
-                  <div className="flex items-center gap-1 text-white font-bold text-xs sm:text-sm md:text-base tracking-tight select-none drop-shadow-[0_2px_8px_rgba(0,0,0,0.95)]">
-                    {doubleTapFeedback.side === "left" ? (
-                      <>
-                        <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2.5]" />
-                        <span>−{Math.abs(doubleTapFeedback.delta)}s</span>
-                      </>
-                    ) : (
-                      <>
-                        <span>+{Math.abs(doubleTapFeedback.delta)}s</span>
-                        <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2.5]" />
-                      </>
-                    )}
-                  </div>
-                </div>
-              )}
+
 
               {/* DESKTOP PLAYBACK FEEDBACK ICONS (PAUSE / PLAY) - Chỉ hiện trên desktop, tránh chồng lấn nút center trên mobile */}
               {desktopFeedback && (desktopFeedback.type === "play" || desktopFeedback.type === "pause") && (
