@@ -30,8 +30,6 @@ import {
   VideoFit,
   YouTubePlayIcon,
   YouTubePauseIcon,
-  YouTubeSeek10BackIcon,
-  YouTubeSeek10ForwardIcon,
   YouTubeVolumeHighIcon,
   YouTubeVolumeLowIcon,
   YouTubeVolumeMuteIcon,

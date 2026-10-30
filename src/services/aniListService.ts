@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { cacheService } from "@/lib/cache";
 
 const ANILIST_GRAPHQL_ENDPOINT = "https://graphql.anilist.co";

@@ -94,7 +94,7 @@ function ContinueWatchingCard({ item, index = 0, onRemove }: ContinueWatchingCar
         })
         .catch(() => {});
     }
-  }, [item.title, item.slug, item.year]);
+  }, [item.title, item.slug, item.year, imgSrc]);
 
   const handleImgError = useCallback(() => {
     // Bước 1: Nếu link poster dọc bị lỗi, thử dùng thumb ngang nếu có và khác link đang lỗi

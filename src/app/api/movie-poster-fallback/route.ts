@@ -52,7 +52,16 @@ function getSearchVariants(text: string): string[] {
   return res;
 }
 
-function pickBestTmdbCandidate(results: any[], targetYear?: string): any | null {
+interface TmdbCandidate {
+  poster_path?: string;
+  backdrop_path?: string;
+  release_date?: string;
+  first_air_date?: string;
+  vote_count?: number;
+  [key: string]: unknown;
+}
+
+function pickBestTmdbCandidate(results: TmdbCandidate[], targetYear?: string): TmdbCandidate | null {
   if (!Array.isArray(results) || results.length === 0) return null;
 
   const valid = results.filter((r) => r && (r.poster_path || r.backdrop_path));

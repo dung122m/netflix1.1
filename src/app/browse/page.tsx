@@ -588,7 +588,7 @@ async function enrichMoviesWithTmdbPosters(movieList: any[]) {
             item.type === "hoathinh" ||
             item.type === "hoat-hinh" ||
             item.category?.some(
-              (c: any) => c.slug === "hoat-hinh" || c.name?.toLowerCase().includes("hoạt hình")
+              (c: { slug?: string; name?: string }) => c.slug === "hoat-hinh" || c.name?.toLowerCase().includes("hoạt hình")
             );
 
           if (isAnimeOrAnimation) {
