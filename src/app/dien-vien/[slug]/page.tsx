@@ -154,10 +154,16 @@ export default async function ActorDetailPage({ params }: PageProps) {
     queryMoviesByActor(canonicalName, actorAliases, country, 150),
   ]);
 
+  const formatProfileUrl = (path?: string | null) => {
+    if (!path) return undefined;
+    if (path.startsWith("http")) return path;
+    return `https://image.tmdb.org/t/p/w500${path.startsWith("/") ? "" : "/"}${path}`;
+  };
+
   // 3. Xác định avatar chất lượng tốt nhất
   const bestAvatar =
     catalogItem?.avatarUrl ||
-    (tmdbDetail?.profile_path ? `https://image.tmdb.org/t/p/w500${tmdbDetail.profile_path}` : undefined) ||
+    formatProfileUrl(tmdbDetail?.profile_path) ||
     wikiProfile?.thumbnail;
 
   // 4. Xác định tiểu sử tốt nhất

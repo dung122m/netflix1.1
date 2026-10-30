@@ -129,7 +129,7 @@ export const ActorAvatar: React.FC<ActorAvatarProps> = ({
         unoptimized={unoptimized}
         sizes={sizes}
         referrerPolicy="no-referrer"
-        className={`object-cover object-top transition-transform duration-500 ${imageClassName}`}
+        className={`object-cover ${imageClassName.includes("object-") ? "" : "object-center"} transition-transform duration-500 ${imageClassName}`}
         onError={() => setImgError(true)}
       />
     );

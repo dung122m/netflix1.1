@@ -64,7 +64,7 @@ export async function GET(request: NextRequest) {
 
   const cleanName = name.trim();
   const normKey = normalizeForMatch(cleanName);
-  const cacheKey = `actor:bio:v4:${normKey}`;
+  const cacheKey = `actor:bio:v5:${normKey}`;
 
   // 1. Kiểm tra L1 / L2 Cache
   try {
@@ -110,9 +110,15 @@ export async function GET(request: NextRequest) {
     ]);
 
     // 5. Xác định ảnh đại diện sắc nét nhất
+    const formatProfileUrl = (path?: string | null) => {
+      if (!path) return undefined;
+      if (path.startsWith("http")) return path;
+      return `https://image.tmdb.org/t/p/w500${path.startsWith("/") ? "" : "/"}${path}`;
+    };
+
     const bestThumbnail =
       catalogItem?.avatarUrl ||
-      (tmdbDetail?.profile_path ? `https://image.tmdb.org/t/p/w500${tmdbDetail.profile_path}` : undefined) ||
+      formatProfileUrl(tmdbDetail?.profile_path) ||
       wikiProfile?.thumbnail;
 
     // 6. Trích xuất và làm sạch tiểu sử tốt nhất

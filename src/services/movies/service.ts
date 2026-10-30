@@ -1472,9 +1472,9 @@ async function executeGetMovies(params: MovieFilterParams, cacheKey: string) {
           }
         }
 
-        // TẦNG 3 (Dự phòng giao diện): Poster Nanaflix nếu cả 2 nguồn đều không có (0ms, không bao giờ bị đen)
-        if (!foundPoster && item.poster_url?.includes("phimimg.com")) {
-          if (item.thumb_url && !item.thumb_url.includes("phimimg.com") && !isBrokenImageUrl(item.thumb_url)) {
+        // TẦNG 3: Nếu TMDb và AniList không có, giữ nguyên ảnh gốc hợp lệ của phim; chỉ fallback khi link hoàn toàn rỗng hoặc hỏng
+        if (!foundPoster && (!item.poster_url || isBrokenImageUrl(item.poster_url))) {
+          if (item.thumb_url && !isBrokenImageUrl(item.thumb_url)) {
             item.poster_url = item.thumb_url;
           } else {
             item.poster_url = "/default-poster.jpg";

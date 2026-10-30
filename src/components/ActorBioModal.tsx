@@ -156,14 +156,15 @@ export const ActorBioModal: React.FC<ActorBioModalProps> = ({
             <>
               {/* ACTOR HERO WITH LARGE AVATAR & METADATA */}
               <div className="flex items-start gap-4 sm:gap-5">
-                <div className="relative w-24 h-24 sm:w-28 sm:h-28 rounded-2xl overflow-hidden bg-zinc-900 border border-white/20 flex-none shadow-2xl ring-2 ring-white/10 group">
+                <div className="relative aspect-[3/4] w-24 sm:w-28 rounded-2xl overflow-hidden bg-zinc-900 border border-white/20 flex-none shadow-2xl ring-2 ring-white/10 group">
                   <ActorAvatar
                     name={displayTitle}
                     avatarUrl={displayAvatar}
-                    shape="rounded"
+                    shape="card"
                     sizes="140px"
-                    imageClassName="object-cover group-hover:scale-105 transition-transform duration-300"
+                    imageClassName="object-cover object-center group-hover:scale-105 transition-transform duration-300"
                   />
+                  <div className="absolute inset-0 ring-1 ring-inset ring-white/10 rounded-2xl pointer-events-none" />
                 </div>
 
                 <div className="min-w-0 flex-1 space-y-1.5 pt-0.5">
