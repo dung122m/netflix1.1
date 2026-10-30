@@ -45,6 +45,8 @@ import {
   SAFE_AD_SKIP_OFFSET,
   calculateSafeAdSkipTarget,
   snapTimePastAdBoundaries,
+  calculateRewindTargetPastAd,
+  parseM3u8PlaylistFragments,
 } from "@/lib/adBoundaryDetector";
 import {
   evaluateBufferProgress,
@@ -334,6 +336,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
   const automatedAdSkipRef = useRef<AdTransitionState | null>(null);
   const isProgrammaticAdSkipRef = useRef<boolean>(false);
   const [isAdTransitioning, setIsAdTransitioning] = useState<boolean>(false);
+  const [activeAdSegment, setActiveAdSegment] = useState<AdBoundary | null>(null);
   const hasHandledPreRollRef = useRef<boolean>(false);
   const adPreTriggerRef = useRef<{ timer: NodeJS.Timeout | null; rVfcId: number | null }>({ timer: null, rVfcId: null });
 
@@ -661,6 +664,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
     cancelAdPreTrigger();
     const effectiveDur = getEffectiveDuration();
     const boundedTime = Math.max(0, effectiveDur > 0 ? Math.min(effectiveDur, targetTime) : targetTime);
+    const currentPlayhead = v.currentTime;
 
     // 1. Phục hồi quyền skip nếu người dùng tua lùi về trước mốc quảng cáo
     if (adBoundariesRef.current.length > 0) {
@@ -670,7 +674,22 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
         }
       }
 
-      // 2. Kiểm tra nếu điểm đích nằm trong vùng [ad.start, ad.end]
+      // Xử lý tua lùi (backward seek): nếu điểm đích rơi vào vùng quảng cáo, tua lùi an toàn vượt qua quảng cáo về nội dung trước đó (ví dụ từ 15p30 tua 10s về 14p50)
+      if (boundedTime < currentPlayhead) {
+        const rewindSnap = calculateRewindTargetPastAd(boundedTime, currentPlayhead, adBoundariesRef.current);
+        if (rewindSnap.jumpedPastAd) {
+          if (rewindSnap.adKey) {
+            hasSkippedAdRef.current.delete(rewindSnap.adKey);
+          }
+          isProgrammaticAdSkipRef.current = false;
+          v.currentTime = rewindSnap.adjustedTime;
+          lastPlayheadTimeRef.current = rewindSnap.adjustedTime;
+          setActiveAdSegment(null);
+          return;
+        }
+      }
+
+      // 2. Kiểm tra nếu điểm đích nằm trong vùng [ad.start, ad.end] (cho tua tiến hoặc scrub tới)
       const snap = snapTimePastAdBoundaries(boundedTime, adBoundariesRef.current, effectiveDur, SAFE_AD_SKIP_OFFSET);
       if (snap.snapped && snap.adKey) {
         hasSkippedAdRef.current.add(snap.adKey);
@@ -687,6 +706,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
         }
         setIsAdTransitioning(true);
         v.currentTime = snap.adjustedTime;
+        lastPlayheadTimeRef.current = snap.adjustedTime;
         return;
       }
     }
@@ -694,6 +714,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
     // 3. Nếu là seek bình thường (ngoài quảng cáo)
     isProgrammaticAdSkipRef.current = isProgrammatic;
     v.currentTime = boundedTime;
+    lastPlayheadTimeRef.current = boundedTime;
   }, [cancelAdPreTrigger, getEffectiveDuration]);
 
   // Watch time heartbeat
@@ -1343,6 +1364,72 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
     } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
       video.src = resolvedM3u8;
 
+      // Phân tích playlist m3u8 để phát hiện ranh giới quảng cáo trên trình duyệt Native Safari / iOS
+      if (
+        resolvedM3u8 &&
+        (resolvedM3u8.startsWith("http://") || resolvedM3u8.startsWith("https://") || resolvedM3u8.startsWith("/"))
+      ) {
+        fetch(resolvedM3u8)
+          .then((res) => {
+            if (res.ok) return res.text();
+            throw new Error(`m3u8 fetch failed: ${res.status}`);
+          })
+          .then(async (m3u8Text) => {
+            let text = m3u8Text;
+            if (text.includes("#EXT-X-STREAM-INF")) {
+              const lines = text.split(/\r?\n/);
+              let variantUri = "";
+              for (let i = 0; i < lines.length; i++) {
+                const line = lines[i].trim();
+                if (line.startsWith("#EXT-X-STREAM-INF") && i + 1 < lines.length) {
+                  const nextLine = lines[i + 1].trim();
+                  if (nextLine && !nextLine.startsWith("#")) {
+                    variantUri = nextLine;
+                    break;
+                  }
+                }
+              }
+              if (variantUri) {
+                const absoluteVariantUrl = new URL(variantUri, resolvedM3u8).toString();
+                const variantRes = await fetch(absoluteVariantUrl);
+                if (variantRes.ok) {
+                  text = await variantRes.text();
+                }
+              }
+            }
+            const fragments = parseM3u8PlaylistFragments(text);
+            if (fragments.length > 0) {
+              const detected = detectAdBoundaries(fragments);
+              if (detected.length > 0) {
+                adBoundariesRef.current = detected;
+                const preRollDecision = evaluatePreRollAdDecision({
+                  targetProgress,
+                  hasStartedInitialPlayback: hasStartedInitialPlaybackRef.current,
+                  boundaries: detected,
+                  safeOffset: SAFE_AD_SKIP_OFFSET,
+                  maxDuration:
+                    videoRef.current?.duration && isFinite(videoRef.current.duration)
+                      ? videoRef.current.duration
+                      : getEffectiveDuration(),
+                });
+                if (preRollDecision && !hasHandledPreRollRef.current) {
+                  hasHandledPreRollRef.current = true;
+                  hasSeekedInitialRef.current = true;
+                  hasSkippedAdRef.current.add(preRollDecision.adKey);
+                  if (videoRef.current) {
+                    try {
+                      videoRef.current.currentTime = preRollDecision.targetSeek;
+                    } catch {}
+                  }
+                }
+              }
+            }
+          })
+          .catch(() => {
+            // Không làm gián đoạn phát video nếu việc fetch playlist phụ trợ gặp sự cố
+          });
+      }
+
       let initialNativeTimeoutFired = false;
       const checkNativeInitialBuffer = () => {
         if (hasStartedInitialPlaybackRef.current) return;
@@ -1466,6 +1553,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
         const { restoredMuted } = endAdTransition(automatedAdSkipRef.current);
         automatedAdSkipRef.current = null;
         setIsAdTransitioning(false);
+        setActiveAdSegment(null);
         if (restoredMuted !== null && video) {
           video.muted = restoredMuted;
         }
@@ -1795,6 +1883,21 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
         watchContext?.activeProvider !== "vsmov"
       ) {
         const effectiveDur = getEffectiveDuration();
+        const ct = video.currentTime;
+
+        if (!video.seeking) {
+          lastPlayheadTimeRef.current = ct;
+        }
+
+        // Cập nhật trạng thái quảng cáo đang phát (để hiển thị nút Bỏ qua quảng cáo)
+        if (adBoundariesRef.current.length > 0 && !video.seeking) {
+          const currentAd = adBoundariesRef.current.find(
+            (b) => ct >= b.start && ct < (b.nextStart ?? b.end)
+          );
+          setActiveAdSegment(currentAd || null);
+        } else {
+          setActiveAdSegment(null);
+        }
 
         // 1. Đánh giá skip với leadTime = 0.35s và safeOffset (kích hoạt an toàn trước ranh giới)
         const adDecision = evaluateAutoAdSkipDecision({
@@ -1997,11 +2100,27 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
       }
 
       // 3. Fallback bảo vệ cho seek phát sinh ngoài requestPlayerSeek (native browser controls / Picture-in-Picture):
-      // Nếu điểm rơi nằm trong khối quảng cáo thì snap an toàn sang vị trí sau quảng cáo
       const v = videoRef.current;
       if (v && adBoundariesRef.current.length > 0) {
         const ct = v.currentTime;
+        const prevCt = lastPlayheadTimeRef.current;
         const dur = getEffectiveDuration();
+
+        // Nếu là tua lùi rơi vào vùng quảng cáo -> tua lùi an toàn qua quảng cáo
+        if (ct < prevCt) {
+          const rewindSnap = calculateRewindTargetPastAd(ct, prevCt, adBoundariesRef.current);
+          if (rewindSnap.jumpedPastAd) {
+            if (rewindSnap.adKey) {
+              hasSkippedAdRef.current.delete(rewindSnap.adKey);
+            }
+            isProgrammaticAdSkipRef.current = false;
+            v.currentTime = rewindSnap.adjustedTime;
+            lastPlayheadTimeRef.current = rewindSnap.adjustedTime;
+            setActiveAdSegment(null);
+            return;
+          }
+        }
+
         const snap = snapTimePastAdBoundaries(ct, adBoundariesRef.current, dur, SAFE_AD_SKIP_OFFSET);
         if (snap.snapped && snap.adKey) {
           hasSkippedAdRef.current.add(snap.adKey);
@@ -2018,6 +2137,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
           }
           setIsAdTransitioning(true);
           v.currentTime = snap.adjustedTime;
+          lastPlayheadTimeRef.current = snap.adjustedTime;
           return;
         }
       }
@@ -2815,6 +2935,37 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
                 onUserInteraction={resetControlsTimeout}
                 onSeek={requestPlayerSeek}
               />
+
+              {/* NÚT BỎ QUA QUẢNG CÁO NỔI TRÊN MÀN HÌNH (CHO DI ĐỘNG & DESKTOP) */}
+              {activeAdSegment && (
+                <div
+                  data-player-control="true"
+                  className={`absolute right-3.5 sm:right-6 ${
+                    showControls ? "bottom-20 sm:bottom-24" : "bottom-6 sm:bottom-8"
+                  } z-40 transition-all duration-200 pointer-events-auto`}
+                >
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const target = calculateSafeAdSkipTarget(
+                        activeAdSegment.end,
+                        adBoundariesRef.current,
+                        getEffectiveDuration(),
+                        SAFE_AD_SKIP_OFFSET
+                      );
+                      requestPlayerSeek(target, true);
+                      setActiveAdSegment(null);
+                    }}
+                    className="flex items-center gap-2 px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-full bg-netflix-red hover:bg-netflix-red/90 text-white font-bold text-xs sm:text-sm shadow-[0_6px_24px_rgba(229,9,20,0.6)] border border-white/25 backdrop-blur-md active:scale-95 transition-all cursor-pointer animate-in fade-in slide-in-from-right-4 duration-300"
+                    aria-label="Bỏ qua quảng cáo"
+                  >
+                    <Zap className="w-4 h-4 fill-white text-white" />
+                    <span>Bỏ qua quảng cáo</span>
+                    <SkipForward className="w-4 h-4 fill-white text-white" />
+                  </button>
+                </div>
+              )}
 
               {/* NEXT EPISODE COUNTDOWN OVERLAY */}
               {showNextEpCountdown && effectiveNextEpisode?.slug && (

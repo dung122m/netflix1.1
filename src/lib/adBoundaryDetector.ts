@@ -21,6 +21,7 @@ export interface FragmentLike {
   relurl?: string;
   sn?: number | string;
   cc?: number;
+  tagList?: string[][];
 }
 
 export interface AdBoundary {
@@ -399,6 +400,86 @@ export function evaluatePreRollAdDecision(params: {
   }
 
   return null;
+}
+
+/**
+ * When the user rewinds (seeks backward) and the target lands inside an ad segment (or right at its tail),
+ * snapping forward back to the end of the ad traps the user in an infinite loop!
+ * Instead, calculate the rewind target past the ad:
+ * e.g., if user was at 15:30 (ad ends at 15:30, starts at 15:00) and rewinds 10s to 15:20:
+ * overshoot = (ad.nextStart ?? ad.end) - targetTime = 15:30 - 15:20 = 10s.
+ * New target = Math.max(0, ad.start - overshoot) = 15:00 - 10s = 14:50.
+ */
+export function calculateRewindTargetPastAd(
+  targetTime: number,
+  currentTime: number,
+  boundaries: AdBoundary[]
+): { adjustedTime: number; adKey: string; jumpedPastAd: boolean } {
+  if (!Array.isArray(boundaries) || boundaries.length === 0 || targetTime >= currentTime) {
+    return { adjustedTime: targetTime, adKey: "", jumpedPastAd: false };
+  }
+
+  for (const ad of boundaries) {
+    const effectiveEnd = Math.max(ad.end, ad.nextStart ?? ad.end);
+    // If target lands inside [ad.start - 0.2s, effectiveEnd + 0.35s]
+    if (targetTime >= Math.max(0, ad.start - 0.2) && targetTime <= effectiveEnd + 0.35) {
+      const overshoot = Math.max(0.5, effectiveEnd - targetTime);
+      const rewindTarget = Math.max(0, ad.start - overshoot);
+      const adKey = `${ad.start.toFixed(2)}_${ad.end.toFixed(2)}`;
+      return {
+        adjustedTime: Number(rewindTarget.toFixed(2)),
+        adKey,
+        jumpedPastAd: true,
+      };
+    }
+  }
+
+  return { adjustedTime: targetTime, adKey: "", jumpedPastAd: false };
+}
+
+/**
+ * Parses m3u8 playlist text into minimal fragment representations so detectAdBoundaries can work on native HLS (e.g. iOS Safari).
+ */
+export function parseM3u8PlaylistFragments(m3u8Text: string): FragmentLike[] {
+  const lines = m3u8Text.split(/\r?\n/);
+  const fragments: FragmentLike[] = [];
+
+  let currentTime = 0;
+  let currentCc = 0;
+  let currentTags: string[][] = [];
+  let pendingDuration: number | null = null;
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+
+    if (trimmed.startsWith("#EXT-X-DISCONTINUITY")) {
+      currentCc++;
+      currentTags.push(["DISCONTINUITY"]);
+    } else if (trimmed.startsWith("#EXTINF:")) {
+      const match = trimmed.match(/^#EXTINF:([0-9.]+)/);
+      if (match && match[1]) {
+        pendingDuration = parseFloat(match[1]);
+      }
+    } else if (!trimmed.startsWith("#")) {
+      // Media URI line -> fragment completed
+      if (pendingDuration !== null) {
+        fragments.push({
+          url: trimmed,
+          relurl: trimmed,
+          cc: currentCc,
+          start: currentTime,
+          duration: pendingDuration,
+          tagList: currentTags.length > 0 ? [...currentTags] : undefined,
+        });
+        currentTime += pendingDuration;
+        pendingDuration = null;
+        currentTags = [];
+      }
+    }
+  }
+
+  return fragments;
 }
 
 

@@ -9,6 +9,8 @@ import {
   SAFE_AD_SKIP_OFFSET,
   calculateSafeAdSkipTarget,
   snapTimePastAdBoundaries,
+  calculateRewindTargetPastAd,
+  parseM3u8PlaylistFragments,
 } from "./adBoundaryDetector";
 
 describe("adBoundaryDetector", () => {
@@ -894,6 +896,80 @@ describe("adBoundaryDetector", () => {
       ];
       const target = calculateSafeAdSkipTarget(120, mockBoundaries, 500, 0.35);
       assert.strictEqual(target, 120.35);
+    });
+  });
+
+  describe("calculateRewindTargetPastAd — Fix Rewind / Tua Lùi Bị Mắc Kẹt Ở Quảng Cáo", () => {
+    const boundaries = [
+      { start: 900.4, end: 930.64, nextStart: 930.64, duration: 30.24, startIndex: 100, endIndex: 105 },
+    ];
+
+    it("rewinds past the ad when seeking backward from 15:30 (930.64s) by 10s to 15:20 (920.64s) -> lands at 14:50 (890.4s)", () => {
+      const currentTime = 930.64; // 15p30.64
+      const targetTime = 920.64;  // tua về 10s -> 15p20.64 (nằm trong ad 900.4s - 930.64s)
+
+      const result = calculateRewindTargetPastAd(targetTime, currentTime, boundaries);
+      assert.strictEqual(result.jumpedPastAd, true);
+      // overshoot = 930.64 - 920.64 = 10s
+      // adjustedTime = 900.4 - 10 = 890.4s (~14:50!)
+      assert.strictEqual(result.adjustedTime, 890.4);
+      assert.strictEqual(result.adKey, "900.40_930.64");
+    });
+
+    it("does not adjust target when seeking backward to valid content outside the ad", () => {
+      const currentTime = 930.64;
+      const targetTime = 850.0; // Tua về 850s (nội dung hợp lệ trước ad 900.4s)
+
+      const result = calculateRewindTargetPastAd(targetTime, currentTime, boundaries);
+      assert.strictEqual(result.jumpedPastAd, false);
+      assert.strictEqual(result.adjustedTime, 850.0);
+    });
+
+    it("does not adjust target when seeking forward (forward seek is handled by snapTimePastAdBoundaries)", () => {
+      const currentTime = 800.0;
+      const targetTime = 910.0; // Forward seek
+
+      const result = calculateRewindTargetPastAd(targetTime, currentTime, boundaries);
+      assert.strictEqual(result.jumpedPastAd, false);
+      assert.strictEqual(result.adjustedTime, 910.0);
+    });
+  });
+
+  describe("parseM3u8PlaylistFragments — HLS Ad Detection for iOS Safari", () => {
+    it("parses m3u8 playlist text into fragments with discontinuity tags", () => {
+      const sampleM3u8 = `#EXTM3U
+#EXT-X-VERSION:3
+#EXT-X-TARGETDURATION:10
+#EXTINF:4.000,
+movie_001.ts
+#EXTINF:4.000,
+movie_002.ts
+#EXT-X-DISCONTINUITY
+#EXTINF:15.000,
+convertv7/ad_001.ts
+#EXTINF:15.000,
+convertv7/ad_002.ts
+#EXT-X-DISCONTINUITY
+#EXTINF:4.000,
+movie_003.ts
+#EXT-X-ENDLIST`;
+
+      const fragments = parseM3u8PlaylistFragments(sampleM3u8);
+      assert.strictEqual(fragments.length, 5);
+      assert.strictEqual(fragments[0].start, 0);
+      assert.strictEqual(fragments[0].duration, 4);
+
+      // Ad fragments
+      assert.strictEqual(fragments[2].start, 8);
+      assert.strictEqual(fragments[2].duration, 15);
+      assert.ok(fragments[2].tagList?.some(t => t[0] === "DISCONTINUITY"));
+
+      // Direct call to detectAdBoundaries using parsed fragments
+      const detected = detectAdBoundaries(fragments);
+      assert.strictEqual(detected.length, 1);
+      assert.strictEqual(detected[0].start, 8);
+      assert.strictEqual(detected[0].end, 38);
+      assert.strictEqual(detected[0].duration, 30);
     });
   });
 });
