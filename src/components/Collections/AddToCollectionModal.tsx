@@ -13,6 +13,7 @@ import { MovieCollection } from "@/types/collection";
 import { CreateCollectionModal } from "./CreateCollectionModal";
 import { toast } from "@/components/Toast";
 import { useBodyScrollLock } from "@/lib/scrollLock";
+import { toOptimizedCardPosterUrl } from "@/lib/movieMedia";
 
 interface AddToCollectionModalProps {
   isOpen: boolean;
@@ -182,7 +183,7 @@ export const AddToCollectionModal: React.FC<AddToCollectionModalProps> = ({
             <div className="relative w-11 h-14 rounded-lg overflow-hidden bg-zinc-800 flex-shrink-0 border border-white/15">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={movie.poster || "/default-poster.jpg"}
+                src={toOptimizedCardPosterUrl(movie.poster, 192) || "/default-poster.jpg"}
                 alt={movie.title}
                 className="w-full h-full object-cover"
               />

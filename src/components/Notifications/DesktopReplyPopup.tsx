@@ -8,6 +8,7 @@ import { useAuth } from "@/context/AuthContext";
 import { subscribeUserNotifications, markNotificationAsRead } from "@/services/notificationService";
 import { UserNotification } from "@/types/notification";
 import { Tooltip } from "@/components/ui/Tooltip";
+import { toOptimizedPhimimgUrl } from "@/lib/movieMedia";
 
 /**
  * Phát âm thanh thông báo nhẹ nhàng chuẩn Facebook bằng Web Audio API
@@ -168,7 +169,7 @@ export const DesktopReplyPopup: React.FC = () => {
           <div className="relative w-10 h-10 rounded-full overflow-hidden bg-gradient-to-br from-red-600 to-amber-600 flex items-center justify-center font-bold text-white text-sm shrink-0 border border-white/10 shadow-md">
             {activeNotification.replierAvatar || activeNotification.image ? (
               <Image
-                src={activeNotification.replierAvatar || activeNotification.image || "/default-poster.jpg"}
+                src={toOptimizedPhimimgUrl(activeNotification.replierAvatar || activeNotification.image || "/default-poster.jpg", 192)}
                 alt={activeNotification.replierName || activeNotification.title}
                 fill
                 unoptimized

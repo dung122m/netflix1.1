@@ -66,6 +66,7 @@ import {
   KEYBOARD_SEEK_DEBOUNCE_MS,
   type KeyboardSeekState,
 } from "@/lib/keyboardSeekManager";
+import { toOptimizedCardPosterUrl, toOptimizedCardBackdropUrl } from "@/lib/movieMedia";
 
 interface EpisodeItem {
   name?: string;
@@ -2827,7 +2828,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
                   {posterUrl && (
                     <div className="relative w-14 h-14 sm:w-16 sm:h-16 rounded-xl overflow-hidden shrink-0 bg-zinc-900 border border-white/10">
                       <Image
-                        src={posterUrl}
+                        src={toOptimizedCardPosterUrl(posterUrl, 192) || posterUrl}
                         alt={effectiveNextEpisode.name || "Tập tiếp theo"}
                         fill
                         unoptimized
@@ -2917,7 +2918,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
           ) : (
             <div className="w-full h-full flex flex-col items-center justify-center border border-white/10 relative">
               <Image
-                src={posterUrl}
+                src={toOptimizedCardBackdropUrl(posterUrl, 640) || posterUrl}
                 alt={title}
                 fill
                 unoptimized

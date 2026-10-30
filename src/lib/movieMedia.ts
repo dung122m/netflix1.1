@@ -387,6 +387,15 @@ export function toHighResBackdropUrl(url: string, targetWidth: "w780" | "w1280" 
   // 4. Nếu là ảnh TMDb, chuyển về targetWidth (w1280 cho desktop, w780 cho mobile) thay vì original để tránh làm nghẽn LCP
   if (clean.includes("image.tmdb.org/t/p/")) {
     clean = clean.replace(/\/t\/p\/(w\d+|original)\//, `/t/p/${targetWidth}/`);
+    return clean;
+  }
+
+  // 5. Nếu là ảnh từ phimimg.com: nếu chưa phải là thumbnail WebP, tối ưu qua proxy w1280
+  if (clean.includes("phimimg.com")) {
+    if (clean.includes("-thumb.webp")) {
+      return clean;
+    }
+    return `/api/img-thumb?url=${encodeURIComponent(clean)}&w=1280`;
   }
 
   return clean;

@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import { useBodyScrollLock } from "@/lib/scrollLock";
 import { MovieRouletteDice3D } from "./MovieRouletteDice3D";
+import { toOptimizedCardPosterUrl } from "@/lib/movieMedia";
 
 // Giữ animation khoảng 1.5–2 giây (1.6s) để tạo cảm giác hồi hộp, cao trào cinematic
 const MIN_SPIN_DURATION_MS = 1600;
@@ -673,9 +674,10 @@ export const MovieRouletteModal: React.FC<MovieRouletteModalProps> = ({
                       </div>
                     ) : (
                       <Image
-                        src={rouletteResult.movie.poster}
+                        src={toOptimizedCardPosterUrl(rouletteResult.movie.poster, 320) || "/default-poster.jpg"}
                         alt={rouletteResult.movie.title}
                         fill
+                        unoptimized
                         className={`object-cover transition-all duration-500 group-hover:scale-105 ${
                           posterLoaded ? "opacity-100" : "opacity-0"
                         }`}

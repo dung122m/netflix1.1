@@ -42,7 +42,7 @@ import {
   autoHydrateWatchHistory,
   WatchHistoryItem,
 } from "@/lib/watchHistory";
-import { pickBestMovieThumb, toOptimizedPhimimgUrl } from "@/lib/movieMedia";
+import { pickBestMovieThumb, toOptimizedPhimimgUrl, toOptimizedCardPosterUrl } from "@/lib/movieMedia";
 import { formatEpisodeName } from "@/lib/formatEpisode";
 import { clearAllWatchlistFromCloud } from "@/lib/cloudSync";
 import {
@@ -794,7 +794,7 @@ function MyListContent() {
                                 <div key={idx} className="relative h-full w-full bg-zinc-800 overflow-hidden">
                                   {/* eslint-disable-next-line @next/next/no-img-element */}
                                   <img
-                                    src={m.poster || "/default-poster.jpg"}
+                                    src={toOptimizedCardPosterUrl(m.poster, 192) || "/default-poster.jpg"}
                                     alt={m.title}
                                     className="w-full h-full object-cover group-hover:scale-105 transition-transform"
                                   />
@@ -805,7 +805,7 @@ function MyListContent() {
                             <div className="relative h-full w-full bg-zinc-800">
                               {/* eslint-disable-next-line @next/next/no-img-element */}
                               <img
-                                src={previewPosters[0].poster || "/default-poster.jpg"}
+                                src={toOptimizedCardPosterUrl(previewPosters[0].poster, 320) || "/default-poster.jpg"}
                                 alt={col.name}
                                 className="w-full h-full object-cover group-hover:scale-105 transition-transform"
                               />

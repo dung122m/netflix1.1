@@ -73,11 +73,19 @@ export const WatchlistCard: React.FC<WatchlistCardProps> = ({
     };
     addUrl(poster);
     addUrl(imageUrl);
-    return list;
+
+    // Ưu tiên TMDb CDN (image.tmdb.org) lên đầu tiên
+    return list.sort((a, b) => {
+      const aTmdb = a.includes("image.tmdb.org");
+      const bTmdb = b.includes("image.tmdb.org");
+      if (aTmdb && !bTmdb) return -1;
+      if (!aTmdb && bTmdb) return 1;
+      return 0;
+    });
   }, [poster, imageUrl]);
 
   const [currentImgIndex, setCurrentImgIndex] = useState(0);
-  const currentSrc = candidateImages[currentImgIndex] || imageUrl;
+  const currentSrc = candidateImages[currentImgIndex] || toOptimizedCardPosterUrl(imageUrl);
 
   const handleImageError = () => {
     if (currentImgIndex < candidateImages.length - 1) {
