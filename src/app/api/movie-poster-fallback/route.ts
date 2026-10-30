@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cacheService } from "@/lib/cache";
+import { movieApi } from "@/services/movies/service";
+import { pickBestMoviePoster, pickBestMovieThumb } from "@/lib/movieMedia";
 
 export const runtime = "nodejs";
 
@@ -132,20 +134,54 @@ export async function GET(req: NextRequest) {
       // Ưu tiên tìm theo tên gốc tiếng Anh/quốc tế trước (tỷ lệ match TMDB chuẩn xác 98%)
       if (origin_name && origin_name !== title) {
         const res = await queryTmdbPoster(origin_name, year);
-        if (res.posterUrl) return res;
+        if (res.posterUrl || res.backdropUrl) return res;
       }
 
       // Thử tìm theo tên tiếng Việt
       if (title) {
         const res = await queryTmdbPoster(title, year);
-        if (res.posterUrl) return res;
+        if (res.posterUrl || res.backdropUrl) return res;
       }
 
       // Thử tìm theo slug được chuẩn hóa thành từ khóa
       if (slug) {
         const slugQuery = slug.replace(/-/g, " ");
         const res = await queryTmdbPoster(slugQuery, year);
-        if (res.posterUrl) return res;
+        if (res.posterUrl || res.backdropUrl) return res;
+      }
+
+      // 4. Fallback nguồn phát nội bộ (KKPhim/NguonC): Cứu cánh 100% cho phim Việt Nam, sự kiện âm nhạc
+      if (slug) {
+        try {
+          const detail = await movieApi.getMovieDetail(slug);
+          if (detail?.movie) {
+            const p = pickBestMoviePoster(detail.movie, "");
+            const t = pickBestMovieThumb(detail.movie, "");
+            if (p || t) {
+              return {
+                posterUrl: p || t || null,
+                backdropUrl: t || p || null,
+              };
+            }
+          }
+        } catch {}
+      }
+
+      if (title) {
+        try {
+          const searchRes = await movieApi.searchMovies(title, 2);
+          const first = searchRes?.items?.[0];
+          if (first) {
+            const p = pickBestMoviePoster(first, "");
+            const t = pickBestMovieThumb(first, "");
+            if (p || t) {
+              return {
+                posterUrl: p || t || null,
+                backdropUrl: t || p || null,
+              };
+            }
+          }
+        } catch {}
       }
 
       return { posterUrl: null, backdropUrl: null };

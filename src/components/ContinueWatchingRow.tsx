@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
-import { Play, X, Clock } from "lucide-react";
+import { Play, X, Clock, Film } from "lucide-react";
 import {
   getWatchHistory,
   removeWatchHistoryItem,
@@ -108,14 +108,14 @@ function ContinueWatchingCard({ item, index = 0, onRemove }: ContinueWatchingCar
               } catch {}
             }
           } else {
-            setImgSrc("/default-hero.jpg");
+            setImgSrc("");
           }
         })
         .catch(() => {
-          setImgSrc("/default-hero.jpg");
+          setImgSrc("");
         });
     } else {
-      setImgSrc("/default-hero.jpg");
+      setImgSrc("");
     }
   }, [item.title, item.slug, item.year]);
 
@@ -134,16 +134,26 @@ function ContinueWatchingCard({ item, index = 0, onRemove }: ContinueWatchingCar
     >
       <Link href={href} className="block">
         {/* ẢNH THUMBNAIL (16:9, ưu tiên thumb ngang / TMDb backdrop) */}
-        <div className="relative aspect-video w-full bg-zinc-950 overflow-hidden">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={imgSrc || "/default-hero.jpg"}
-            alt={item.title}
-            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-            decoding="async"
-            loading={index < 4 ? "eager" : "lazy"}
-            onError={handleImgError}
-          />
+        <div className="relative aspect-video w-full bg-zinc-900 overflow-hidden">
+          {imgSrc && !imgSrc.includes("/default-") ? (
+            /* eslint-disable-next-line @next/next/no-img-element */
+            <img
+              src={imgSrc}
+              alt={item.title}
+              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+              decoding="async"
+              loading={index < 4 ? "eager" : "lazy"}
+              onError={handleImgError}
+            />
+          ) : (
+            <div className="w-full h-full bg-gradient-to-br from-zinc-900 via-rose-950/25 to-zinc-950 flex flex-col items-center justify-center p-3 text-center relative overflow-hidden">
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_40%,rgba(229,9,20,0.22),transparent_70%)]" />
+              <Film className="w-7 h-7 text-rose-500/60 mb-1.5 relative z-10 animate-pulse" />
+              <span className="text-[11px] font-bold text-zinc-300 line-clamp-2 max-w-[90%] relative z-10 leading-tight">
+                {item.title}
+              </span>
+            </div>
+          )}
           <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent pointer-events-none" />
 
           {/* NÚT PLAY Ở GIỮA */}
