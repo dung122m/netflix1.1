@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect, useCallback } from "react";
+import { createPortal } from "react-dom";
 import {
   Film,
   ChevronRight,
@@ -12,6 +13,7 @@ import {
   Keyboard,
   Gauge,
   Repeat,
+  X,
 } from "lucide-react";
 import { PlayerScrubBar, PlayerTimeDisplay } from "../PlayerScrubBar";
 import { Tooltip } from "@/components/ui/Tooltip";
@@ -202,9 +204,48 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
     const [showSettings, setShowSettings] = useState(false);
     const [settingsView, setSettingsView] = useState<SettingsView>("main");
     const [loopVideo, setLoopVideo] = useState(false);
+    const [mounted, setMounted] = useState(false);
+    const [isMobileScreen, setIsMobileScreen] = useState(false);
+    const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
 
     const settingsBtnRef = useRef<HTMLButtonElement>(null);
     const settingsPanelRef = useRef<HTMLDivElement>(null);
+
+    // Nhận diện màn hình di động/cảm ứng để chuyển sang Bottom Sheet thay vì popup bị tràn
+    useEffect(() => {
+      setMounted(true);
+      const checkMobile = () => {
+        setIsMobileScreen(
+          typeof window !== "undefined" &&
+          (window.innerWidth < 640 ||
+            (Boolean(window.matchMedia && window.matchMedia("(pointer: coarse)").matches) && window.innerWidth < 1024))
+        );
+      };
+      checkMobile();
+      window.addEventListener("resize", checkMobile);
+      return () => window.removeEventListener("resize", checkMobile);
+    }, []);
+
+    // Nhận diện mục tiêu render Portal (document.fullscreenElement nếu đang toàn màn hình hoặc document.body)
+    useEffect(() => {
+      if (typeof document === "undefined") return;
+      const resolveTarget = () => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const doc = document as any;
+        const fsElem = (doc.fullscreenElement ||
+          doc.webkitFullscreenElement ||
+          doc.mozFullScreenElement ||
+          doc.msFullscreenElement) as HTMLElement | null;
+        setPortalTarget(fsElem || document.body);
+      };
+      resolveTarget();
+      document.addEventListener("fullscreenchange", resolveTarget);
+      document.addEventListener("webkitfullscreenchange", resolveTarget);
+      return () => {
+        document.removeEventListener("fullscreenchange", resolveTarget);
+        document.removeEventListener("webkitfullscreenchange", resolveTarget);
+      };
+    }, []);
 
     // Kích hoạt lặp lại video
     useEffect(() => {
@@ -218,6 +259,7 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
       if (!showSettings) return;
 
       const handleClickOutside = (e: MouseEvent) => {
+        if (isMobileScreen) return;
         if (
           settingsPanelRef.current &&
           !settingsPanelRef.current.contains(e.target as Node) &&
@@ -247,7 +289,7 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
         window.removeEventListener("mousedown", handleClickOutside);
         window.removeEventListener("keydown", handleEscape, { capture: true });
       };
-    }, [showSettings, settingsView]);
+    }, [showSettings, settingsView, isMobileScreen]);
 
     // Controls hiển thị khi showControls=true hoặc khi đang mở bảng cài đặt
     const isOverlayVisible = showControls || showSettings;
@@ -291,6 +333,326 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
     // Nhãn tỷ lệ màn hình hiện tại
     const currentFitLabel =
       FIT_OPTIONS.find((f) => f.id === videoFit)?.label || "Vừa khung (16:9)";
+
+    const renderSettingsInner = (isMobileLayout: boolean) => (
+      <>
+        {/* VIEW: MAIN MENU */}
+        {settingsView === "main" && (
+          <div className="py-1 flex flex-col">
+            {!isMobileLayout && (
+              <div className="px-4 py-2 border-b border-white/10 flex items-center justify-between text-xs font-semibold text-zinc-400">
+                <span>Cài đặt trình phát</span>
+                <span className="text-[10px] font-mono uppercase bg-white/10 px-1.5 py-0.5 rounded text-zinc-300">
+                  Nanaflix
+                </span>
+              </div>
+            )}
+
+            {/* Mục: Tốc độ phát */}
+            <button
+              type="button"
+              onClick={() => setSettingsView("speed")}
+              className={`flex items-center justify-between hover:bg-white/10 transition cursor-pointer text-left group ${
+                isMobileLayout ? "px-4 py-3 text-sm rounded-xl" : "px-3.5 py-2.5 text-xs sm:text-sm"
+              }`}
+            >
+              <div className="flex items-center gap-3 text-zinc-200 group-hover:text-white">
+                <Gauge className={`${isMobileLayout ? "w-5 h-5" : "w-4 h-4"} text-zinc-400 group-hover:text-white`} />
+                <span className="font-medium">Tốc độ phát</span>
+              </div>
+              <div className="flex items-center gap-1.5 text-zinc-400 group-hover:text-zinc-200 text-xs sm:text-sm">
+                <span>{playbackSpeed === 1 ? "Chuẩn" : `${playbackSpeed}x`}</span>
+                <ChevronRight className="w-4 h-4 text-zinc-500" />
+              </div>
+            </button>
+
+            {/* Mục: Chất lượng video */}
+            {qualityLevels.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setSettingsView("quality")}
+                className={`flex items-center justify-between hover:bg-white/10 transition cursor-pointer text-left group ${
+                  isMobileLayout ? "px-4 py-3 text-sm rounded-xl" : "px-3.5 py-2.5 text-xs sm:text-sm"
+                }`}
+              >
+                <div className="flex items-center gap-3 text-zinc-200 group-hover:text-white">
+                  <Sliders className={`${isMobileLayout ? "w-5 h-5" : "w-4 h-4"} text-zinc-400 group-hover:text-white`} />
+                  <span className="font-medium">Chất lượng</span>
+                </div>
+                <div className="flex items-center gap-1.5 text-zinc-400 group-hover:text-zinc-200 text-xs sm:text-sm">
+                  <span>{currentQualityLabel}</span>
+                  <ChevronRight className="w-4 h-4 text-zinc-500" />
+                </div>
+              </button>
+            )}
+
+            {/* Mục: Tỉ lệ màn hình */}
+            {isNativeVideo && (
+              <button
+                type="button"
+                onClick={() => setSettingsView("fit")}
+                className={`flex items-center justify-between hover:bg-white/10 transition cursor-pointer text-left group ${
+                  isMobileLayout ? "px-4 py-3 text-sm rounded-xl" : "px-3.5 py-2.5 text-xs sm:text-sm"
+                }`}
+              >
+                <div className="flex items-center gap-3 text-zinc-200 group-hover:text-white">
+                  <Scaling className={`${isMobileLayout ? "w-5 h-5" : "w-4 h-4"} text-zinc-400 group-hover:text-white`} />
+                  <span className="font-medium">Tỉ lệ màn hình</span>
+                </div>
+                <div className="flex items-center gap-1.5 text-zinc-400 group-hover:text-zinc-200 text-xs sm:text-sm">
+                  <span className="truncate max-w-[120px]">{currentFitLabel.split(" ")[0]}</span>
+                  <ChevronRight className="w-4 h-4 text-zinc-500" />
+                </div>
+              </button>
+            )}
+
+            {/* Mục: Nguồn phát */}
+            {embedSrc && (
+              <button
+                type="button"
+                onClick={() => setSettingsView("server")}
+                className={`flex items-center justify-between hover:bg-white/10 transition cursor-pointer text-left group ${
+                  isMobileLayout ? "px-4 py-3 text-sm rounded-xl" : "px-3.5 py-2.5 text-xs sm:text-sm"
+                }`}
+              >
+                <div className="flex items-center gap-3 text-zinc-200 group-hover:text-white">
+                  <Tv className={`${isMobileLayout ? "w-5 h-5" : "w-4 h-4"} text-zinc-400 group-hover:text-white`} />
+                  <span className="font-medium">Nguồn phát</span>
+                </div>
+                <div className="flex items-center gap-1.5 text-zinc-400 group-hover:text-zinc-200 text-xs sm:text-sm">
+                  <span>Chính (HLS)</span>
+                  <ChevronRight className="w-4 h-4 text-zinc-500" />
+                </div>
+              </button>
+            )}
+
+            {/* Mục: Lặp lại video */}
+            <button
+              type="button"
+              onClick={() => setLoopVideo(!loopVideo)}
+              className={`flex items-center justify-between hover:bg-white/10 transition cursor-pointer text-left group ${
+                isMobileLayout ? "px-4 py-3 text-sm rounded-xl" : "px-3.5 py-2.5 text-xs sm:text-sm"
+              }`}
+            >
+              <div className="flex items-center gap-3 text-zinc-200 group-hover:text-white">
+                <Repeat className={`${isMobileLayout ? "w-5 h-5" : "w-4 h-4"} text-zinc-400 group-hover:text-white`} />
+                <span className="font-medium">Lặp lại video</span>
+              </div>
+              <div
+                className={`w-9 h-5 rounded-full p-0.5 transition-colors duration-200 flex items-center ${
+                  loopVideo ? "bg-netflix-red justify-end" : "bg-white/20 justify-start"
+                }`}
+              >
+                <div className="w-4 h-4 rounded-full bg-white shadow-sm" />
+              </div>
+            </button>
+
+            {/* Mục: Phím tắt điều khiển (Chỉ hiện trên desktop) */}
+            {!isMobileLayout && onOpenShortcuts && (
+              <button
+                type="button"
+                onClick={() => {
+                  setShowSettings(false);
+                  onOpenShortcuts();
+                }}
+                className="flex items-center justify-between px-3.5 py-2.5 hover:bg-white/10 transition cursor-pointer text-xs sm:text-sm text-left group border-t border-white/10 mt-1"
+              >
+                <div className="flex items-center gap-2.5 text-zinc-200 group-hover:text-white">
+                  <Keyboard className="w-4 h-4 text-zinc-400 group-hover:text-white" />
+                  <span>Phím tắt điều khiển</span>
+                </div>
+                <span className="text-[10px] font-mono text-zinc-400 bg-white/10 px-1.5 py-0.5 rounded">
+                  ?
+                </span>
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* VIEW: SPEED SUBMENU */}
+        {settingsView === "speed" && (
+          <div className="py-1 flex flex-col">
+            {!isMobileLayout && (
+              <button
+                type="button"
+                onClick={() => setSettingsView("main")}
+                className="flex items-center gap-2 px-3 py-2 border-b border-white/10 text-xs font-semibold text-white hover:bg-white/10 transition cursor-pointer"
+              >
+                <ChevronLeft className="w-4 h-4 text-zinc-400" />
+                <span>Tốc độ phát</span>
+              </button>
+            )}
+            <div className={`${isMobileLayout ? "max-h-[60vh]" : "max-h-56"} overflow-y-auto py-1`}>
+              {SPEED_OPTIONS.map((spd) => {
+                const isSelected = playbackSpeed === spd;
+                return (
+                  <button
+                    key={spd}
+                    type="button"
+                    onClick={() => {
+                      onSpeedChange(spd);
+                      setShowSettings(false);
+                      setSettingsView("main");
+                    }}
+                    className={`w-full flex items-center justify-between hover:bg-white/10 transition cursor-pointer ${
+                      isMobileLayout ? "px-4 py-3 text-sm rounded-xl" : "px-4 py-2 text-xs sm:text-[13px]"
+                    } ${isSelected ? "text-netflix-red font-bold" : "text-zinc-200"}`}
+                  >
+                    <span>{spd === 1 ? "Chuẩn (1x)" : `${spd}x`}</span>
+                    {isSelected && <Check className="w-4 h-4 text-netflix-red" />}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* VIEW: QUALITY SUBMENU */}
+        {settingsView === "quality" && (
+          <div className="py-1 flex flex-col">
+            {!isMobileLayout && (
+              <button
+                type="button"
+                onClick={() => setSettingsView("main")}
+                className="flex items-center gap-2 px-3 py-2 border-b border-white/10 text-xs font-semibold text-white hover:bg-white/10 transition cursor-pointer"
+              >
+                <ChevronLeft className="w-4 h-4 text-zinc-400" />
+                <span>Chất lượng video</span>
+              </button>
+            )}
+            <div className={`${isMobileLayout ? "max-h-[60vh]" : "max-h-56"} overflow-y-auto py-1`}>
+              <button
+                type="button"
+                onClick={() => {
+                  onQualityChange(-1);
+                  setShowSettings(false);
+                  setSettingsView("main");
+                }}
+                className={`w-full flex items-center justify-between hover:bg-white/10 transition cursor-pointer ${
+                  isMobileLayout ? "px-4 py-3 text-sm rounded-xl" : "px-4 py-2 text-xs sm:text-[13px]"
+                } ${currentQualityIndex === -1 ? "text-netflix-red font-bold" : "text-zinc-200"}`}
+              >
+                <div className="flex flex-col text-left">
+                  <span>Tự động</span>
+                  <span className="text-[10px] text-zinc-400 font-normal">Tối ưu theo đường truyền</span>
+                </div>
+                {currentQualityIndex === -1 && <Check className="w-4 h-4 text-netflix-red" />}
+              </button>
+              {qualityLevels.map((lvl) => {
+                const isSelected = currentQualityIndex === lvl.id;
+                return (
+                  <button
+                    key={lvl.id}
+                    type="button"
+                    onClick={() => {
+                      onQualityChange(lvl.id);
+                      setShowSettings(false);
+                      setSettingsView("main");
+                    }}
+                    className={`w-full flex items-center justify-between hover:bg-white/10 transition cursor-pointer ${
+                      isMobileLayout ? "px-4 py-3 text-sm rounded-xl" : "px-4 py-2 text-xs sm:text-[13px]"
+                    } ${isSelected ? "text-netflix-red font-bold" : "text-zinc-200"}`}
+                  >
+                    <span>{lvl.label}</span>
+                    {isSelected && <Check className="w-4 h-4 text-netflix-red" />}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* VIEW: FIT SUBMENU */}
+        {settingsView === "fit" && (
+          <div className="py-1 flex flex-col">
+            {!isMobileLayout && (
+              <button
+                type="button"
+                onClick={() => setSettingsView("main")}
+                className="flex items-center gap-2 px-3 py-2 border-b border-white/10 text-xs font-semibold text-white hover:bg-white/10 transition cursor-pointer"
+              >
+                <ChevronLeft className="w-4 h-4 text-zinc-400" />
+                <span>Tỉ lệ màn hình</span>
+              </button>
+            )}
+            <div className="py-1">
+              {FIT_OPTIONS.map((opt) => {
+                const isSelected = videoFit === opt.id;
+                return (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    onClick={() => {
+                      onVideoFitChange?.(opt.id);
+                      setShowSettings(false);
+                      setSettingsView("main");
+                    }}
+                    className={`w-full flex items-center justify-between hover:bg-white/10 transition cursor-pointer ${
+                      isMobileLayout ? "px-4 py-3 text-sm rounded-xl" : "px-4 py-2 text-xs sm:text-[13px]"
+                    } ${isSelected ? "text-netflix-red font-bold" : "text-zinc-200"}`}
+                  >
+                    <span>{opt.label}</span>
+                    {isSelected && <Check className="w-4 h-4 text-netflix-red" />}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* VIEW: SERVER SUBMENU */}
+        {settingsView === "server" && (
+          <div className="py-1 flex flex-col">
+            {!isMobileLayout && (
+              <button
+                type="button"
+                onClick={() => setSettingsView("main")}
+                className="flex items-center gap-2 px-3 py-2 border-b border-white/10 text-xs font-semibold text-white hover:bg-white/10 transition cursor-pointer"
+              >
+                <ChevronLeft className="w-4 h-4 text-zinc-400" />
+                <span>Nguồn phát / Máy chủ</span>
+              </button>
+            )}
+            <div className="py-1">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowSettings(false);
+                  setSettingsView("main");
+                }}
+                className={`w-full flex items-center justify-between text-netflix-red font-bold hover:bg-white/10 transition cursor-pointer ${
+                  isMobileLayout ? "px-4 py-3 text-sm rounded-xl" : "px-4 py-2 text-xs sm:text-[13px]"
+                }`}
+              >
+                <div className="flex flex-col text-left">
+                  <span>Nguồn HLS (Chính)</span>
+                  <span className="text-[10px] text-zinc-400 font-normal">Tốc độ cao, mượt mà</span>
+                </div>
+                <Check className="w-4 h-4 text-netflix-red" />
+              </button>
+              {embedSrc && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowSettings(false);
+                    setSettingsView("main");
+                    onUseIframeFallback();
+                  }}
+                  className={`w-full flex items-center justify-between text-zinc-200 hover:bg-white/10 transition cursor-pointer ${
+                    isMobileLayout ? "px-4 py-3 text-sm rounded-xl" : "px-4 py-2 text-xs sm:text-[13px]"
+                  }`}
+                >
+                  <div className="flex flex-col text-left">
+                    <span>Nguồn dự phòng (Embed)</span>
+                    <span className="text-[10px] text-zinc-400 font-normal">Dùng khi server chính gặp sự cố</span>
+                  </div>
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+      </>
+    );
 
     return (
       <div
@@ -549,303 +911,15 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
                   </button>
                 </Tooltip>
 
-                {/* YOUTUBE SETTINGS FLYOUT MENU */}
-                {showSettings && (
+                {/* DESKTOP SETTINGS FLYOUT MENU */}
+                {showSettings && !isMobileScreen && (
                   <div
                     ref={settingsPanelRef}
                     role="dialog"
                     aria-label="Cài đặt trình phát"
-                    className="pointer-events-auto absolute bottom-full right-0 mb-3 w-[270px] sm:w-[290px] max-h-[min(340px,calc(100vh-80px))] bg-zinc-950/95 border border-white/15 rounded-2xl shadow-2xl backdrop-blur-2xl text-white overflow-y-auto z-50 animate-in fade-in zoom-in-95 duration-150"
+                    className="pointer-events-auto absolute bottom-full right-0 mb-3 w-[270px] sm:w-[290px] max-h-[min(380px,calc(100vh-100px))] bg-zinc-950/98 border border-white/15 rounded-2xl shadow-2xl backdrop-blur-2xl text-white overflow-y-auto z-50 animate-in fade-in zoom-in-95 duration-150"
                   >
-                    {/* VIEW: MAIN MENU */}
-                    {settingsView === "main" && (
-                      <div className="py-1 flex flex-col">
-                        <div className="px-4 py-2 border-b border-white/10 flex items-center justify-between text-xs font-semibold text-zinc-400">
-                          <span>Cài đặt trình phát</span>
-                          <span className="text-[10px] font-mono uppercase bg-white/10 px-1.5 py-0.5 rounded text-zinc-300">Nanaflix </span>
-                        </div>
-
-                        {/* Mục: Tốc độ phát */}
-                        <button
-                          type="button"
-                          onClick={() => setSettingsView("speed")}
-                          className="flex items-center justify-between px-3.5 py-2.5 hover:bg-white/10 transition cursor-pointer text-xs sm:text-sm text-left group"
-                        >
-                          <div className="flex items-center gap-2.5 text-zinc-200 group-hover:text-white">
-                            <Gauge className="w-4 h-4 text-zinc-400 group-hover:text-white" />
-                            <span>Tốc độ phát</span>
-                          </div>
-                          <div className="flex items-center gap-1 text-zinc-400 group-hover:text-zinc-200 text-xs">
-                            <span>{playbackSpeed === 1 ? "Chuẩn" : `${playbackSpeed}x`}</span>
-                            <ChevronRight className="w-3.5 h-3.5 text-zinc-500" />
-                          </div>
-                        </button>
-
-                        {/* Mục: Chất lượng video (nếu có hls levels) */}
-                        {qualityLevels.length > 0 && (
-                          <button
-                            type="button"
-                            onClick={() => setSettingsView("quality")}
-                            className="flex items-center justify-between px-3.5 py-2.5 hover:bg-white/10 transition cursor-pointer text-xs sm:text-sm text-left group"
-                          >
-                            <div className="flex items-center gap-2.5 text-zinc-200 group-hover:text-white">
-                              <Sliders className="w-4 h-4 text-zinc-400 group-hover:text-white" />
-                              <span>Chất lượng</span>
-                            </div>
-                            <div className="flex items-center gap-1 text-zinc-400 group-hover:text-zinc-200 text-xs">
-                              <span>{currentQualityLabel}</span>
-                              <ChevronRight className="w-3.5 h-3.5 text-zinc-500" />
-                            </div>
-                          </button>
-                        )}
-
-                        {/* Mục: Tỉ lệ màn hình */}
-                        {isNativeVideo && (
-                          <button
-                            type="button"
-                            onClick={() => setSettingsView("fit")}
-                            className="flex items-center justify-between px-3.5 py-2.5 hover:bg-white/10 transition cursor-pointer text-xs sm:text-sm text-left group"
-                          >
-                            <div className="flex items-center gap-2.5 text-zinc-200 group-hover:text-white">
-                              <Scaling className="w-4 h-4 text-zinc-400 group-hover:text-white" />
-                              <span>Tỉ lệ màn hình</span>
-                            </div>
-                            <div className="flex items-center gap-1 text-zinc-400 group-hover:text-zinc-200 text-xs">
-                              <span className="truncate max-w-[90px]">{currentFitLabel.split(" ")[0]}</span>
-                              <ChevronRight className="w-3.5 h-3.5 text-zinc-500" />
-                            </div>
-                          </button>
-                        )}
-
-                        {/* Mục: Nguồn phát / Server dự phòng */}
-                        {embedSrc && (
-                          <button
-                            type="button"
-                            onClick={() => setSettingsView("server")}
-                            className="flex items-center justify-between px-3.5 py-2.5 hover:bg-white/10 transition cursor-pointer text-xs sm:text-sm text-left group"
-                          >
-                            <div className="flex items-center gap-2.5 text-zinc-200 group-hover:text-white">
-                              <Tv className="w-4 h-4 text-zinc-400 group-hover:text-white" />
-                              <span>Nguồn phát</span>
-                            </div>
-                            <div className="flex items-center gap-1 text-zinc-400 group-hover:text-zinc-200 text-xs">
-                              <span>Chính (HLS)</span>
-                              <ChevronRight className="w-3.5 h-3.5 text-zinc-500" />
-                            </div>
-                          </button>
-                        )}
-
-                        {/* Mục: Lặp lại video */}
-                        <button
-                          type="button"
-                          onClick={() => setLoopVideo(!loopVideo)}
-                          className="flex items-center justify-between px-3.5 py-2.5 hover:bg-white/10 transition cursor-pointer text-xs sm:text-sm text-left group"
-                        >
-                          <div className="flex items-center gap-2.5 text-zinc-200 group-hover:text-white">
-                            <Repeat className="w-4 h-4 text-zinc-400 group-hover:text-white" />
-                            <span>Lặp lại video</span>
-                          </div>
-                          <div
-                            className={`w-8 h-4.5 rounded-full p-0.5 transition-colors duration-200 flex items-center ${
-                              loopVideo ? "bg-netflix-red justify-end" : "bg-white/20 justify-start"
-                            }`}
-                          >
-                            <div className="w-3.5 h-3.5 rounded-full bg-white shadow-sm" />
-                          </div>
-                        </button>
-
-                        {/* Mục: Phím tắt điều khiển */}
-                        {onOpenShortcuts && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setShowSettings(false);
-                              onOpenShortcuts();
-                            }}
-                            className="flex items-center justify-between px-3.5 py-2.5 hover:bg-white/10 transition cursor-pointer text-xs sm:text-sm text-left group border-t border-white/10 mt-1"
-                          >
-                            <div className="flex items-center gap-2.5 text-zinc-200 group-hover:text-white">
-                              <Keyboard className="w-4 h-4 text-zinc-400 group-hover:text-white" />
-                              <span>Phím tắt điều khiển</span>
-                            </div>
-                            <span className="text-[10px] font-mono text-zinc-400 bg-white/10 px-1.5 py-0.5 rounded">
-                              ?
-                            </span>
-                          </button>
-                        )}
-                      </div>
-                    )}
-
-                    {/* VIEW: SPEED SUBMENU */}
-                    {settingsView === "speed" && (
-                      <div className="py-1 flex flex-col">
-                        <button
-                          type="button"
-                          onClick={() => setSettingsView("main")}
-                          className="flex items-center gap-2 px-3 py-2 border-b border-white/10 text-xs font-semibold text-white hover:bg-white/10 transition cursor-pointer"
-                        >
-                          <ChevronLeft className="w-4 h-4 text-zinc-400" />
-                          <span>Tốc độ phát</span>
-                        </button>
-                        <div className="max-h-56 overflow-y-auto py-1">
-                          {SPEED_OPTIONS.map((spd) => {
-                            const isSelected = playbackSpeed === spd;
-                            return (
-                              <button
-                                key={spd}
-                                type="button"
-                                onClick={() => {
-                                  onSpeedChange(spd);
-                                  setShowSettings(false);
-                                  setSettingsView("main");
-                                }}
-                                className={`w-full flex items-center justify-between px-4 py-2 text-xs sm:text-[13px] hover:bg-white/10 transition cursor-pointer ${
-                                  isSelected ? "text-netflix-red font-bold" : "text-zinc-200"
-                                }`}
-                              >
-                                <span>{spd === 1 ? "Chuẩn (1x)" : `${spd}x`}</span>
-                                {isSelected && <Check className="w-4 h-4 text-netflix-red" />}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* VIEW: QUALITY SUBMENU */}
-                    {settingsView === "quality" && (
-                      <div className="py-1 flex flex-col">
-                        <button
-                          type="button"
-                          onClick={() => setSettingsView("main")}
-                          className="flex items-center gap-2 px-3 py-2 border-b border-white/10 text-xs font-semibold text-white hover:bg-white/10 transition cursor-pointer"
-                        >
-                          <ChevronLeft className="w-4 h-4 text-zinc-400" />
-                          <span>Chất lượng video</span>
-                        </button>
-                        <div className="max-h-56 overflow-y-auto py-1">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              onQualityChange(-1);
-                              setShowSettings(false);
-                              setSettingsView("main");
-                            }}
-                            className={`w-full flex items-center justify-between px-4 py-2 text-xs sm:text-[13px] hover:bg-white/10 transition cursor-pointer ${
-                              currentQualityIndex === -1 ? "text-netflix-red font-bold" : "text-zinc-200"
-                            }`}
-                          >
-                            <div className="flex flex-col text-left">
-                              <span>Tự động</span>
-                              <span className="text-[10px] text-zinc-400 font-normal">Tối ưu theo đường truyền</span>
-                            </div>
-                            {currentQualityIndex === -1 && <Check className="w-4 h-4 text-netflix-red" />}
-                          </button>
-                          {qualityLevels.map((lvl) => {
-                            const isSelected = currentQualityIndex === lvl.id;
-                            return (
-                              <button
-                                key={lvl.id}
-                                type="button"
-                                onClick={() => {
-                                  onQualityChange(lvl.id);
-                                  setShowSettings(false);
-                                  setSettingsView("main");
-                                }}
-                                className={`w-full flex items-center justify-between px-4 py-2 text-xs sm:text-[13px] hover:bg-white/10 transition cursor-pointer ${
-                                  isSelected ? "text-netflix-red font-bold" : "text-zinc-200"
-                                }`}
-                              >
-                                <span>{lvl.label}</span>
-                                {isSelected && <Check className="w-4 h-4 text-netflix-red" />}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* VIEW: FIT SUBMENU */}
-                    {settingsView === "fit" && (
-                      <div className="py-1 flex flex-col">
-                        <button
-                          type="button"
-                          onClick={() => setSettingsView("main")}
-                          className="flex items-center gap-2 px-3 py-2 border-b border-white/10 text-xs font-semibold text-white hover:bg-white/10 transition cursor-pointer"
-                        >
-                          <ChevronLeft className="w-4 h-4 text-zinc-400" />
-                          <span>Tỉ lệ màn hình</span>
-                        </button>
-                        <div className="py-1">
-                          {FIT_OPTIONS.map((opt) => {
-                            const isSelected = videoFit === opt.id;
-                            return (
-                              <button
-                                key={opt.id}
-                                type="button"
-                                onClick={() => {
-                                  onVideoFitChange?.(opt.id);
-                                  setShowSettings(false);
-                                  setSettingsView("main");
-                                }}
-                                className={`w-full flex items-center justify-between px-4 py-2 text-xs sm:text-[13px] hover:bg-white/10 transition cursor-pointer ${
-                                  isSelected ? "text-netflix-red font-bold" : "text-zinc-200"
-                                }`}
-                              >
-                                <span>{opt.label}</span>
-                                {isSelected && <Check className="w-4 h-4 text-netflix-red" />}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* VIEW: SERVER SUBMENU */}
-                    {settingsView === "server" && (
-                      <div className="py-1 flex flex-col">
-                        <button
-                          type="button"
-                          onClick={() => setSettingsView("main")}
-                          className="flex items-center gap-2 px-3 py-2 border-b border-white/10 text-xs font-semibold text-white hover:bg-white/10 transition cursor-pointer"
-                        >
-                          <ChevronLeft className="w-4 h-4 text-zinc-400" />
-                          <span>Nguồn phát / Máy chủ</span>
-                        </button>
-                        <div className="py-1">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setShowSettings(false);
-                              setSettingsView("main");
-                            }}
-                            className="w-full flex items-center justify-between px-4 py-2 text-xs sm:text-[13px] text-netflix-red font-bold hover:bg-white/10 transition cursor-pointer"
-                          >
-                            <div className="flex flex-col text-left">
-                              <span>Nguồn  HLS (Chính)</span>
-                              <span className="text-[10px] text-zinc-400 font-normal">Tốc độ cao, mượt mà</span>
-                            </div>
-                            <Check className="w-4 h-4 text-netflix-red" />
-                          </button>
-                          {embedSrc && (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setShowSettings(false);
-                                setSettingsView("main");
-                                onUseIframeFallback();
-                              }}
-                              className="w-full flex items-center justify-between px-4 py-2 text-xs sm:text-[13px] text-zinc-200 hover:bg-white/10 transition cursor-pointer"
-                            >
-                              <div className="flex flex-col text-left">
-                                <span>Nguồn dự phòng (Embed)</span>
-                                <span className="text-[10px] text-zinc-400 font-normal">Dùng khi server chính gặp sự cố</span>
-                              </div>
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    )}
+                    {renderSettingsInner(false)}
                   </div>
                 )}
               </div>
@@ -899,6 +973,79 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
             </div>
           </div>
         </div>
+
+        {/* MOBILE BOTTOM SHEET PORTAL */}
+        {showSettings && isMobileScreen && mounted && portalTarget && createPortal(
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label="Cài đặt trình phát"
+            className="fixed inset-0 z-[9999999] pointer-events-auto flex flex-col justify-end select-none"
+            onClick={() => {
+              setShowSettings(false);
+              setSettingsView("main");
+            }}
+          >
+            {/* Backdrop */}
+            <div className="absolute inset-0 bg-black/70 backdrop-blur-xs animate-in fade-in duration-200" />
+
+            {/* Bottom Sheet Drawer */}
+            <div
+              ref={settingsPanelRef}
+              onClick={(e) => e.stopPropagation()}
+              className="relative w-full max-w-lg mx-auto bg-zinc-950/98 border-t border-white/20 rounded-t-3xl shadow-[0_-15px_45px_rgba(0,0,0,0.95)] backdrop-blur-2xl text-white p-4 pb-8 max-h-[82vh] overflow-y-auto animate-in slide-in-from-bottom duration-250 transform-gpu will-change-transform"
+            >
+              {/* Drag Pill Indicator */}
+              <div className="w-10 h-1 bg-white/25 rounded-full mx-auto mb-3" />
+
+              {/* Header with back or title & close button */}
+              <div className="flex items-center justify-between pb-3 mb-2 border-b border-white/10">
+                <div className="flex items-center gap-2">
+                  {settingsView !== "main" ? (
+                    <button
+                      type="button"
+                      onClick={() => setSettingsView("main")}
+                      className="flex items-center gap-1.5 text-xs sm:text-sm font-bold text-zinc-200 hover:text-white p-1 -ml-1 rounded-lg active:bg-white/10"
+                    >
+                      <ChevronLeft className="w-5 h-5 text-amber-400" />
+                      <span>
+                        {settingsView === "speed"
+                          ? "Tốc độ phát"
+                          : settingsView === "quality"
+                          ? "Chất lượng video"
+                          : settingsView === "fit"
+                          ? "Tỉ lệ màn hình"
+                          : "Nguồn phát"}
+                      </span>
+                    </button>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-bold text-white">Cài đặt trình phát</span>
+                      <span className="text-[10px] font-mono uppercase bg-netflix-red/20 border border-netflix-red/30 px-1.5 py-0.5 rounded text-rose-300 font-semibold">
+                        Nanaflix
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowSettings(false);
+                    setSettingsView("main");
+                  }}
+                  className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-zinc-400 hover:text-white transition active:scale-90"
+                  aria-label="Đóng cài đặt"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {renderSettingsInner(true)}
+            </div>
+          </div>,
+          portalTarget
+        )}
       </div>
     );
   }
