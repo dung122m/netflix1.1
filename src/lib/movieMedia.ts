@@ -138,37 +138,35 @@ export function pickBestMoviePoster(movie: MovieLike, fallback = "/default-poste
     }
   }
 
-  // 2. Ưu tiên poster dọc chuẩn (-poster.webp, poster_, /post/, /w500)
+  // 2. Ưu tiên bất kỳ CDN / nguồn ảnh nào KHÔNG PHẢI phimimg.com (như VSMOV, NguonC, Amazon, v.v.)
   for (const c of candidates) {
-    const l = c.toLowerCase();
-    if (
-      l.includes("-poster") ||
-      l.includes("poster_") ||
-      l.includes("/poster") ||
-      l.includes("/post/") ||
-      l.includes("/w500") ||
-      l.includes("/w300") ||
-      l.includes("_ux")
-    ) {
+    if (!c.includes("phimimg.com")) {
+      const l = c.toLowerCase();
+      if (
+        l.includes("-poster") ||
+        l.includes("poster_") ||
+        l.includes("/poster") ||
+        l.includes("/post/") ||
+        l.includes("/w500") ||
+        l.includes("/w300") ||
+        l.includes("_ux")
+      ) {
+        return c;
+      }
+    }
+  }
+  for (const c of candidates) {
+    if (!c.includes("phimimg.com")) {
       return c;
     }
   }
 
-  // 3. Ưu tiên các ảnh không phải là explicit thumb nếu còn lựa chọn khác
-  for (const c of candidates) {
-    const l = c.toLowerCase();
-    const isExplicitThumb =
-      l.includes("thumb_") ||
-      l.includes("/thumb") ||
-      l.includes("-thumb") ||
-      l.includes("backdrop") ||
-      l.includes("banner");
-    if (!isExplicitThumb) {
-      return c;
-    }
-  }
+  // 3. Nếu chỉ còn nguồn duy nhất là phimimg.com (dễ bị chặn tại VN):
+  // Ưu tiên fallback an toàn nếu có, tránh để client kết nối trực tiếp vào phimimg
+  const nonPhimimg = candidates.find((c) => !c.includes("phimimg.com"));
+  if (nonPhimimg) return nonPhimimg;
 
-  return candidates[0];
+  return fallback || "/default-poster.jpg";
 }
 
 export function pickBestMovieThumb(movie: MovieLike, fallback = "/default-hero.svg"): string {

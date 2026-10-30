@@ -189,6 +189,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
     // 1. TMDb CDN chính chủ siêu nhẹ & cực nhanh (30ms CDN)
     // 2. Poster dọc (-poster.webp, poster_, /w500)
     // 3. Thumb ngang (-thumb.webp) làm fallback
+    // 4. Tuyệt đối đẩy phimimg.com xuống tầng dưới cùng
     return list.sort((a, b) => {
       const aLoaded = GLOBAL_LOADED_IMAGES.has(a);
       const bLoaded = GLOBAL_LOADED_IMAGES.has(b);
@@ -199,6 +200,11 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
       const bTmdb = b.includes("image.tmdb.org");
       if (aTmdb && !bTmdb) return -1;
       if (!aTmdb && bTmdb) return 1;
+
+      const aPhimimg = a.includes("phimimg.com");
+      const bPhimimg = b.includes("phimimg.com");
+      if (aPhimimg && !bPhimimg) return 1;
+      if (!aPhimimg && bPhimimg) return -1;
 
       const aPoster = a.includes("-poster") || a.includes("poster_") || a.includes("/w500");
       const bPoster = b.includes("-poster") || b.includes("poster_") || b.includes("/w500");
@@ -253,9 +259,10 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
     }
   }, [slug, imageCandidates]);
 
-  // Chỉ khi phim hoàn toàn không có bất kỳ nguồn ảnh nào từ upstream, mới chủ động gọi fallback
+  // Khi card không có ảnh hoặc chỉ có link phimimg.com (bị nhà mạng chặn), chủ động gọi fallback TMDB ngay
   useEffect(() => {
-    if (!currentSrc && !fallbackAttemptedRef.current && (title || origin_name || slug)) {
+    const isOnlyPhimimg = !currentSrc || currentSrc.includes("phimimg.com");
+    if (isOnlyPhimimg && !fallbackAttemptedRef.current && (title || origin_name || slug)) {
       fallbackAttemptedRef.current = true;
       const params = new URLSearchParams();
       if (title) params.set("title", title);
@@ -267,7 +274,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
         .then((res) => (res.ok ? res.json() : null))
         .then((data) => {
           const fallbackOptions = [data?.posterUrl, data?.backdropUrl].filter(
-            (u): u is string => Boolean(u) && !triedUrlsRef.current.has(u)
+            (u): u is string => Boolean(u) && !u.includes("phimimg.com") && !triedUrlsRef.current.has(u)
           );
           if (fallbackOptions.length > 0) {
             setHasError(false);
@@ -291,9 +298,9 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
       GLOBAL_LOADED_IMAGES.delete(currentSrc);
     }
 
-    // 1. Thử ứng viên kế tiếp trong danh sách candidates
+    // 1. Thử ứng viên kế tiếp trong danh sách candidates (bỏ qua phimimg nếu đã lỗi)
     const nextCandidate = imageCandidates.find(
-      (url) => !triedUrlsRef.current.has(url)
+      (url) => !triedUrlsRef.current.has(url) && !url.includes("phimimg.com")
     );
     if (nextCandidate) {
       setCurrentSrc(nextCandidate);
@@ -314,7 +321,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
         .then((res) => (res.ok ? res.json() : null))
         .then((data) => {
           const fallbackOptions = [data?.posterUrl, data?.backdropUrl].filter(
-            (u): u is string => Boolean(u) && !triedUrlsRef.current.has(u)
+            (u): u is string => Boolean(u) && !u.includes("phimimg.com") && !triedUrlsRef.current.has(u)
           );
           if (fallbackOptions.length > 0) {
             setHasError(false);
@@ -332,7 +339,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
       return;
     }
 
-    // 3. Toàn bộ candidates và fallback đều thất bại
+    // 3. Toàn bộ candidates và fallback đều thất bại -> Hiện Poster Canvas nghệ thuật sắc nét
     setHasError(true);
     setIsImageLoaded(true);
   }, [currentSrc, imageCandidates, title, origin_name, year, slug]);
@@ -623,30 +630,53 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
             isNavigating ? "movie-card-navigating" : ""
           }`}
         >
-          {/* Placeholder skeleton khi ảnh đang tải */}
-          {!hasError && !isImageLoaded && (
-            <div
-              className="absolute inset-0 bg-zinc-900 flex items-center justify-center pointer-events-none z-0 animate-pulse"
-              aria-hidden="true"
-            >
-              <div className="absolute inset-0 bg-gradient-to-br from-zinc-800/60 via-zinc-900 to-zinc-950" />
-              <Film className="w-8 h-8 text-zinc-700/50" />
-            </div>
-          )}
+          {/* LỚP POSTER NGHỆ THUẬT NỀN LUÔN HIỂN THỊ (ALWAYS VISIBLE CANVAS - KHÔNG BAO GIỜ BỊ ĐEN XÌ) */}
+          <div
+            className="absolute inset-0 z-0 flex flex-col justify-between p-3.5 bg-gradient-to-b from-zinc-800/90 via-zinc-900 to-black select-none overflow-hidden"
+            aria-hidden="true"
+          >
+            {/* Ambient Cinema Crimson Glow */}
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-red-600/25 via-transparent to-black pointer-events-none" />
+            <div className="absolute -top-10 -right-10 w-28 h-28 bg-red-600/15 rounded-full blur-2xl pointer-events-none" />
 
-          {hasError || !currentSrc ? (
-            <div
-              className="absolute inset-0 bg-gradient-to-br from-zinc-800/90 via-zinc-900 to-zinc-950 flex flex-col items-center justify-center p-3 select-none pointer-events-none"
-              aria-hidden="true"
-            >
-              <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mb-1.5 shadow-inner">
-                <Film className="w-5 h-5 sm:w-5.5 sm:h-5.5 text-zinc-400" />
-              </div>
-              <span className="text-[10px] sm:text-[11px] font-black tracking-widest text-white/40 uppercase">
+            {/* Header: NANAFLIX BRANDING & NĂM */}
+            <div className="relative z-10 flex items-center justify-between">
+              <span className="flex items-center gap-1.5 text-[9px] sm:text-[10px] font-black tracking-widest text-red-500 uppercase">
+                <span className="w-1.5 h-1.5 rounded-full bg-red-600 animate-pulse" />
                 NANAFLIX
               </span>
+              {displayYear && (
+                <span className="text-[9px] sm:text-[10px] font-bold text-zinc-400 bg-white/10 backdrop-blur-md px-1.5 py-0.5 rounded border border-white/10">
+                  {displayYear}
+                </span>
+              )}
             </div>
-          ) : (
+
+            {/* Center: Movie Title & Original Title Typography */}
+            <div className="relative z-10 flex flex-col items-center text-center my-auto px-1">
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-red-600/15 border border-red-500/30 flex items-center justify-center mb-2 shadow-inner">
+                <Film className="w-4 h-4 sm:w-5 sm:h-5 text-red-400" />
+              </div>
+              <h3 className="font-extrabold text-white text-xs sm:text-sm tracking-wide line-clamp-3 leading-snug drop-shadow-md">
+                {title}
+              </h3>
+              {origin_name && origin_name !== title && (
+                <p className="text-[10px] text-zinc-400 font-medium italic line-clamp-1 mt-1">
+                  {origin_name}
+                </p>
+              )}
+            </div>
+
+            {/* Footer: Thể loại & Khám phá */}
+            <div className="relative z-10 flex items-center justify-center gap-1.5 pt-1.5 border-t border-white/10">
+              <span className="text-[9px] sm:text-[10px] font-semibold text-zinc-300 uppercase tracking-wider truncate max-w-[130px]">
+                {genre || initialTypeName || "Phim Điện Ảnh"}
+              </span>
+            </div>
+          </div>
+
+          {/* THẺ ẢNH CHÍNH PHỦ LÊN TRÊN CANVAS NỀN */}
+          {currentSrc && !hasError && (
             /* eslint-disable-next-line @next/next/no-img-element */
             <img
               ref={checkImageComplete}
@@ -657,7 +687,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
               // @ts-expect-error - fetchpriority is supported in modern browsers
               fetchpriority={priority ? "high" : "auto"}
               referrerPolicy="no-referrer"
-              className={`relative z-[1] w-full h-full object-cover object-center group-hover/card:scale-105 group-hover/card:brightness-105 transition-transform duration-300 ease-out motion-reduce:transform-none ${
+              className={`relative z-[1] w-full h-full object-cover object-center group-hover/card:scale-105 group-hover/card:brightness-105 transition-all duration-300 ease-out motion-reduce:transform-none ${
                 isImageLoaded ? "opacity-100" : "opacity-0"
               }`}
               onLoad={(e) => {

@@ -542,8 +542,12 @@ async function enrichMoviesWithTmdbPosters(movieList: any[]) {
           }
         } catch {}
       }
-      // Chỉ khi phim thực sự thiếu ảnh hoặc link ảnh bị hỏng, mới cần tra cứu TMDB theo tên
-      const needsTmdbPoster = !item.poster_url || isBrokenImageUrl(item.poster_url);
+      // Bất kỳ phim nào chưa có ảnh TMDB chuẩn (đặc biệt là link phimimg dễ bị nhà mạng VN chặn): BẮT BUỘC tra cứu TMDB
+      const isNonTmdb =
+        !item.poster_url ||
+        !item.poster_url.includes("image.tmdb.org") ||
+        item.poster_url.includes("phimimg.com");
+      const needsTmdbPoster = isNonTmdb || isBrokenImageUrl(item.poster_url);
 
       if (needsTmdbPoster) {
         const queryCandidates = [
@@ -552,6 +556,7 @@ async function enrichMoviesWithTmdbPosters(movieList: any[]) {
           item.slug ? item.slug.replace(/-/g, " ") : null,
         ].filter(Boolean) as string[];
 
+        let foundTmdb = false;
         for (const query of queryCandidates) {
           try {
             const res = await searchTmdbPosterByTitle(query, item.year, item.type);
@@ -560,9 +565,20 @@ async function enrichMoviesWithTmdbPosters(movieList: any[]) {
               if (isBrokenImageUrl(item.thumb_url) || !item.thumb_url?.includes("image.tmdb.org")) {
                 item.thumb_url = res.backdropUrl || res.posterUrl;
               }
+              foundTmdb = true;
               break;
             }
           } catch {}
+        }
+
+        // Nếu TMDB vẫn chưa có và ảnh hiện tại là phimimg (bị nhà mạng chặn):
+        // Tuyệt đối không để link phimimg trần xuống client, thay bằng thumb an toàn hoặc default-poster
+        if (!foundTmdb && item.poster_url?.includes("phimimg.com")) {
+          if (item.thumb_url && !item.thumb_url.includes("phimimg.com") && !isBrokenImageUrl(item.thumb_url)) {
+            item.poster_url = item.thumb_url;
+          } else {
+            item.poster_url = "/default-poster.jpg";
+          }
         }
       }
     })

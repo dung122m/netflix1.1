@@ -1384,8 +1384,12 @@ async function executeGetMovies(params: MovieFilterParams, cacheKey: string) {
         } catch {}
       }
 
-      // 2. Chỉ tra cứu TMDb theo tên nếu phim bị khuyết ảnh hoặc link hỏng
-      const needsTmdbPoster = !item.poster_url || isBrokenImageUrl(item.poster_url);
+      // 2. Bắt buộc tra cứu TMDb nếu chưa có poster TMDb (đặc biệt là link phimimg dễ bị nhà mạng VN chặn)
+      const isNonTmdb =
+        !item.poster_url ||
+        !item.poster_url.includes("image.tmdb.org") ||
+        item.poster_url.includes("phimimg.com");
+      const needsTmdbPoster = isNonTmdb || isBrokenImageUrl(item.poster_url);
       if (needsTmdbPoster) {
         const queryCandidates = [
           item.origin_name && item.origin_name !== item.name ? item.origin_name : null,
@@ -1393,6 +1397,7 @@ async function executeGetMovies(params: MovieFilterParams, cacheKey: string) {
           item.slug ? item.slug.replace(/-/g, " ") : null,
         ].filter(Boolean);
 
+        let foundTmdb = false;
         for (const query of queryCandidates) {
           try {
             const res = await searchTmdbPosterByTitle(query as string, item.year, item.type);
@@ -1401,9 +1406,20 @@ async function executeGetMovies(params: MovieFilterParams, cacheKey: string) {
               if (isBrokenImageUrl(item.thumb_url) || !item.thumb_url?.includes("image.tmdb.org")) {
                 item.thumb_url = res.backdropUrl || res.posterUrl;
               }
+              foundTmdb = true;
               break;
             }
           } catch {}
+        }
+
+        // Nếu TMDB vẫn chưa có và ảnh hiện tại là phimimg (bị nhà mạng chặn):
+        // Tuyệt đối không để link phimimg trần xuống client, thay bằng thumb an toàn hoặc default-poster
+        if (!foundTmdb && item.poster_url?.includes("phimimg.com")) {
+          if (item.thumb_url && !item.thumb_url.includes("phimimg.com") && !isBrokenImageUrl(item.thumb_url)) {
+            item.poster_url = item.thumb_url;
+          } else {
+            item.poster_url = "/default-poster.jpg";
+          }
         }
       }
     })

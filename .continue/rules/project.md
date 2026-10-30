@@ -73,6 +73,11 @@ scripts/            # Asset download scripts
 - After editing `AGENTS.md`, run `bash scripts/sync-agent-rules.sh` to regenerate platform-specific instruction files.
 - After editing `.claude/skills/clone-website/SKILL.md`, run `node scripts/sync-skills.mjs` to regenerate the skill for all platforms.
 
+## Media & Image CDN Rules (STRICT INVARIANT)
+- **NO DIRECT `phimimg.com` ON CLIENT:** The domain `phimimg.com` is actively blocked / dropped by ISPs in Vietnam (VNPT, Viettel, FPT). NEVER pass raw `phimimg.com` URLs directly to client `<img>` tags.
+- Always proactively upgrade movie posters to official TMDb CDN (`image.tmdb.org`) or non-phimimg sources.
+- In `MediaCard` and all card components, never render empty black skeleton holes. Always keep the underlying Dynamic Typography Poster Canvas rendered so cards display the movie title, year, and genre even if an image is loading or fails.
+
 # Website Inspection Guide
 
 ## How to Reverse-Engineer Any Website

@@ -252,9 +252,9 @@ export async function searchTmdbPosterByTitle(
       const variants = extractTitleVariants(cleanQuery);
 
       for (const v of variants) {
-        // 1. Thử search/multi trước (hỗ trợ cả movie và tv series, anime)
+        // 1. Thử search/multi trước (hỗ trợ cả movie và tv series, anime, không phụ thuộc năm để tránh lệch)
         try {
-          const endpointMulti = `/search/multi?query=${encodeURIComponent(v)}${searchYear}`;
+          const endpointMulti = `/search/multi?query=${encodeURIComponent(v)}&include_adult=false`;
           const dataMulti = await fetchTmdbEndpoint(endpointMulti);
           const firstMulti = dataMulti?.results?.find((item: any) => item?.poster_path || item?.backdrop_path) || dataMulti?.results?.[0];
           if (firstMulti?.poster_path) {
@@ -265,7 +265,7 @@ export async function searchTmdbPosterByTitle(
           }
         } catch {}
 
-        // 2. Thử theo type chính thức
+        // 2. Thử theo type chính thức (kèm năm nếu có)
         try {
           const endpointType = `/search/${cleanType}?query=${encodeURIComponent(v)}${searchYear}&language=vi-VN`;
           const dataType = await fetchTmdbEndpoint(endpointType);
@@ -278,20 +278,18 @@ export async function searchTmdbPosterByTitle(
           }
         } catch {}
 
-        // 3. Thử tv nếu ban đầu là movie
-        if (cleanType === "movie") {
-          try {
-            const endpointTv = `/search/tv?query=${encodeURIComponent(v)}`;
-            const dataTv = await fetchTmdbEndpoint(endpointTv);
-            const firstTv = dataTv?.results?.[0];
-            if (firstTv?.poster_path) {
-              return {
-                posterUrl: `https://image.tmdb.org/t/p/w500${firstTv.poster_path}`,
-                backdropUrl: firstTv.backdrop_path ? `https://image.tmdb.org/t/p/w1280${firstTv.backdrop_path}` : null,
-              };
-            }
-          } catch {}
-        }
+        // 3. Thử tv riêng biệt không năm (nhiều phim bộ / anime năm bị lệch giữa upstream và TMDB)
+        try {
+          const endpointTv = `/search/tv?query=${encodeURIComponent(v)}`;
+          const dataTv = await fetchTmdbEndpoint(endpointTv);
+          const firstTv = dataTv?.results?.[0];
+          if (firstTv?.poster_path) {
+            return {
+              posterUrl: `https://image.tmdb.org/t/p/w500${firstTv.poster_path}`,
+              backdropUrl: firstTv.backdrop_path ? `https://image.tmdb.org/t/p/w1280${firstTv.backdrop_path}` : null,
+            };
+          }
+        } catch {}
       }
 
       return { posterUrl: null, backdropUrl: null };
