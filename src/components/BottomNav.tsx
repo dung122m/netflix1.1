@@ -49,8 +49,15 @@ export function BottomNav() {
   const isLive = pathname?.startsWith("/live");
   const isMyList = pathname?.startsWith("/my-list");
 
+  const handleNavClick = () => {
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("close-all-modals"));
+    }
+  };
+
   const handleOpenProfile = () => {
     if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("close-all-modals"));
       if (user) {
         window.dispatchEvent(new CustomEvent("open-user-profile-modal"));
         window.dispatchEvent(new CustomEvent("open-user-profile"));
@@ -64,12 +71,13 @@ export function BottomNav() {
   return (
     <nav
       aria-label="Mobile Bottom Navigation"
-      className="fixed bottom-0 left-0 right-0 z-50 lg:hidden bg-zinc-950/95 backdrop-blur-lg border-t border-white/10 shadow-[0_-8px_30px_rgba(0,0,0,0.8)] pb-[env(safe-area-inset-bottom,0px)]"
+      className="fixed bottom-0 left-0 right-0 z-[100000] lg:hidden bg-zinc-950/95 backdrop-blur-lg border-t border-white/10 shadow-[0_-8px_30px_rgba(0,0,0,0.8)] pb-[env(safe-area-inset-bottom,0px)]"
     >
       <div className="grid grid-cols-5 h-14 items-center px-1">
         {/* 1. TRANG CHỦ */}
         <Link
           href="/"
+          onClick={handleNavClick}
           aria-current={isHome ? "page" : undefined}
           className={`flex flex-col items-center justify-center h-full transition-all duration-200 active:scale-95 cursor-pointer outline-none focus-visible:text-white rounded-lg ${
             isHome ? "text-netflix-red font-bold" : "text-zinc-400 hover:text-zinc-200 font-medium"
@@ -87,6 +95,7 @@ export function BottomNav() {
         {/* 2. KHÁM PHÁ BROWSE */}
         <Link
           href="/browse"
+          onClick={handleNavClick}
           aria-current={isBrowse ? "page" : undefined}
           className={`flex flex-col items-center justify-center h-full transition-all duration-200 active:scale-95 cursor-pointer outline-none focus-visible:text-white rounded-lg ${
             isBrowse ? "text-netflix-red font-bold" : "text-zinc-400 hover:text-zinc-200 font-medium"
@@ -104,6 +113,7 @@ export function BottomNav() {
         {/* 3. TRỰC TIẾP LIVE */}
         <Link
           href="/live"
+          onClick={handleNavClick}
           aria-current={isLive ? "page" : undefined}
           className={`flex flex-col items-center justify-center h-full transition-all duration-200 active:scale-95 cursor-pointer outline-none focus-visible:text-white rounded-lg ${
             isLive ? "text-rose-500 font-bold" : "text-zinc-400 hover:text-zinc-200 font-medium"
@@ -122,6 +132,7 @@ export function BottomNav() {
         {/* 4. DANH SÁCH & LỊCH SỬ */}
         <Link
           href="/my-list"
+          onClick={handleNavClick}
           aria-current={isMyList ? "page" : undefined}
           className={`flex flex-col items-center justify-center h-full transition-all duration-200 active:scale-95 cursor-pointer outline-none focus-visible:text-white rounded-lg ${
             isMyList ? "text-netflix-red font-bold" : "text-zinc-400 hover:text-zinc-200 font-medium"

@@ -134,7 +134,7 @@ export function VietnamTodayModal({
 
   useBodyScrollLock(isOpen);
 
-  // Handle ESC key when open
+  // Handle ESC key and close-all-modals when open
   useEffect(() => {
     if (!isOpen) return;
 
@@ -144,10 +144,16 @@ export function VietnamTodayModal({
       }
     };
 
+    const handleCloseAll = () => {
+      onClose();
+    };
+
     window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("close-all-modals", handleCloseAll);
 
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("close-all-modals", handleCloseAll);
     };
   }, [isOpen, onClose]);
 
@@ -166,14 +172,14 @@ export function VietnamTodayModal({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[99999] flex items-center justify-center p-3 sm:p-6 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150 overscroll-none touch-none"
+      className="fixed inset-0 z-[99999] flex items-center justify-center p-3 sm:p-6 pb-[calc(4.5rem+env(safe-area-inset-bottom,0px))] sm:pb-6 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150 overscroll-none touch-none"
       onClick={onClose}
       role="dialog"
       aria-modal="true"
       aria-labelledby="vietnam-event-title"
     >
       <div
-        className="relative w-full max-w-2xl max-h-[92vh] bg-zinc-950 border border-white/10 rounded-2xl shadow-2xl shadow-black/80 overflow-hidden flex flex-col my-auto transform-gpu will-change-[transform,opacity] animate-in zoom-in-95 duration-150 overscroll-contain"
+        className="relative w-full max-w-2xl max-h-[calc(100vh-5.5rem-env(safe-area-inset-bottom,0px))] sm:max-h-[92vh] bg-zinc-950 border border-white/10 rounded-2xl shadow-2xl shadow-black/80 overflow-hidden flex flex-col my-auto transform-gpu will-change-[transform,opacity] animate-in zoom-in-95 duration-150 overscroll-contain"
         onClick={(e) => e.stopPropagation()}
       >
         {/* TOP TAB SWITCHER (Rendered when both Holiday & History are available) */}

@@ -199,6 +199,14 @@ export const ClientModals = React.memo(function ClientModals() {
     window.addEventListener("open-nana-ai-studio", handleStudioTrigger);
     window.addEventListener("open-ai-roulette", handleStudioTrigger);
 
+    const handleCloseAllModals = () => {
+      vietnamTodayOpenRef.current = false;
+      setVietnamTodayOpen(false);
+      setRouletteOpen(false);
+      setShowAuthModal(false);
+    };
+
+    window.addEventListener("close-all-modals", handleCloseAllModals);
     window.addEventListener("open-actor-bio", handleActorBioTrigger);
     window.addEventListener("open-user-profile-modal", handleUserProfileTrigger);
     window.addEventListener("open-user-profile", handleUserProfileTrigger);
@@ -210,6 +218,7 @@ export const ClientModals = React.memo(function ClientModals() {
       window.removeEventListener("open-nana-ai-studio", handleStudioTrigger);
       window.removeEventListener("open-ai-roulette", handleStudioTrigger);
 
+      window.removeEventListener("close-all-modals", handleCloseAllModals);
       window.removeEventListener("open-actor-bio", handleActorBioTrigger);
       window.removeEventListener("open-user-profile-modal", handleUserProfileTrigger);
       window.removeEventListener("open-user-profile", handleUserProfileTrigger);
@@ -231,8 +240,8 @@ export const ClientModals = React.memo(function ClientModals() {
       {mountUserProfile && <UserProfileModal {...userProfileProps} />}
       {mountPublicProfile && <PublicUserProfileModal {...publicProfileProps} />}
       {mountVietnamToday && (vietnamTodayLoading && !todayInfo ? (
-        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-3 sm:p-6 bg-black/80 backdrop-blur-sm pointer-events-none animate-in fade-in duration-100">
-          <div className="w-full max-w-2xl h-[520px] bg-zinc-950/90 border border-white/10 rounded-2xl flex items-center justify-center shadow-2xl">
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-3 sm:p-6 pb-[calc(4.5rem+env(safe-area-inset-bottom,0px))] sm:pb-6 bg-black/80 backdrop-blur-sm pointer-events-none animate-in fade-in duration-100">
+          <div className="w-full max-w-2xl h-[520px] max-h-[calc(100vh-5.5rem-env(safe-area-inset-bottom,0px))] sm:max-h-[92vh] bg-zinc-950/90 border border-white/10 rounded-2xl flex items-center justify-center shadow-2xl">
             <div className="flex flex-col items-center gap-2.5">
               <div className="w-7 h-7 rounded-full border-2 border-amber-500/30 border-t-amber-500 animate-spin" />
               <span className="text-xs text-zinc-400 font-medium">Đang mở sự kiện lịch sử...</span>
@@ -240,7 +249,7 @@ export const ClientModals = React.memo(function ClientModals() {
           </div>
         </div>
       ) : vietnamTodayError && !todayInfo ? (
-        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-3 sm:p-6 bg-black/80 backdrop-blur-sm animate-in fade-in duration-100">
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-3 sm:p-6 pb-[calc(4.5rem+env(safe-area-inset-bottom,0px))] sm:pb-6 bg-black/80 backdrop-blur-sm animate-in fade-in duration-100">
           <div className="w-full max-w-md p-6 bg-zinc-950 border border-red-500/30 rounded-2xl flex flex-col items-center text-center gap-3 shadow-2xl">
             <div className="w-10 h-10 rounded-full bg-red-500/10 border border-red-500/30 flex items-center justify-center text-red-400 text-lg">⚠️</div>
             <div className="text-sm font-semibold text-white">Không thể tải dữ liệu lịch sử</div>
