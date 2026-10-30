@@ -151,47 +151,54 @@ function ContinueWatchingCard({ item, index = 0, onRemove }: ContinueWatchingCar
       ? Math.min(100, Math.max(0, Math.round((item.progressSeconds / item.durationSeconds) * 100)))
       : 0;
 
+  const remainingMinutes =
+    item.durationSeconds && item.durationSeconds > 0 && typeof item.progressSeconds === "number"
+      ? Math.max(1, Math.round((item.durationSeconds - item.progressSeconds) / 60))
+      : null;
+
   return (
     <div
-      className="group relative flex-none w-[125px] xs:w-[135px] sm:w-[155px] md:w-[175px] bg-zinc-950 rounded-xl overflow-hidden border border-white/10 hover:border-white/30 transition-all duration-300 hover:scale-[1.03] shadow-md hover:shadow-xl transform-gpu will-change-transform flex flex-col"
+      className="group relative flex-none w-[130px] xs:w-[140px] sm:w-[155px] md:w-[172px] bg-zinc-950/90 rounded-2xl overflow-hidden border border-white/[0.08] hover:border-red-500/40 transition-all duration-300 hover:scale-[1.03] shadow-lg hover:shadow-[0_12px_28px_rgba(229,9,20,0.18)] transform-gpu will-change-transform flex flex-col"
     >
       <Link href={href} className="block flex-1 flex flex-col">
-        {/* ẢNH POSTER DỌC (TỈ LỆ 2:3 CHUẨN ĐẸP, TẢI TỨC THÌ) */}
+        {/* ẢNH POSTER DỌC (TỈ LỆ 2:3 CHUẨN ĐIỆN ẢNH) */}
         <div className="relative aspect-[2/3] w-full bg-zinc-900 overflow-hidden">
           {imgSrc && !imgSrc.includes("/default-") ? (
             /* eslint-disable-next-line @next/next/no-img-element */
             <img
               src={imgSrc}
               alt={item.title}
-              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+              className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
               decoding="async"
               loading={index < 8 ? "eager" : "lazy"}
               onError={handleImgError}
             />
           ) : (
-            <div className="w-full h-full bg-gradient-to-br from-zinc-900 via-rose-950/25 to-zinc-950 flex flex-col items-center justify-center p-3 text-center relative overflow-hidden">
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_40%,rgba(229,9,20,0.22),transparent_70%)]" />
+            <div className="w-full h-full bg-gradient-to-br from-zinc-900 via-rose-950/20 to-zinc-950 flex flex-col items-center justify-center p-3 text-center relative overflow-hidden">
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_40%,rgba(229,9,20,0.18),transparent_70%)]" />
               <Film className="w-8 h-8 text-rose-500/60 mb-2 relative z-10 animate-pulse" />
-              <span className="text-[11px] font-bold text-zinc-300 line-clamp-3 max-w-[95%] relative z-10 leading-tight">
+              <span className="text-[11px] font-semibold text-zinc-300 line-clamp-3 max-w-[95%] relative z-10 leading-tight">
                 {item.title}
               </span>
             </div>
           )}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent pointer-events-none" />
+
+          {/* GRADIENT OVERLAY BÓNG ĐỔ ĐÁY */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/10 to-transparent pointer-events-none" />
 
           {/* HUY HIỆU TẬP PHIM / CHẤT LƯỢNG */}
-          <div className="absolute top-1.5 left-1.5 z-10 flex flex-col gap-1 pointer-events-none max-w-[85%]">
+          <div className="absolute top-2 left-2 z-10 flex flex-col gap-1 pointer-events-none max-w-[80%]">
             {item.episodeName && (
-              <span className="px-1.5 py-0.5 rounded-md text-[9.5px] sm:text-[10px] font-bold bg-black/80 backdrop-blur-md text-amber-300 border border-amber-400/30 truncate shadow-md">
+              <span className="px-2 py-0.5 rounded-full text-[9.5px] sm:text-[10px] font-bold bg-black/75 backdrop-blur-md text-amber-300 border border-amber-400/30 truncate shadow-md">
                 {formatEpisodeName(item.episodeName)}
               </span>
             )}
             {item.quality && !item.episodeName && (
               <span
-                className={`px-1.5 py-0.5 rounded-md text-[9.5px] sm:text-[10px] font-bold backdrop-blur-md border shadow-md w-fit ${
+                className={`px-2 py-0.5 rounded-full text-[9.5px] sm:text-[10px] font-bold backdrop-blur-md border shadow-md w-fit ${
                   item.quality.toUpperCase().includes("CAM")
                     ? "bg-amber-950/90 text-amber-300 border-amber-500/40"
-                    : "bg-black/80 border-white/20 text-zinc-100"
+                    : "bg-black/75 border-white/20 text-zinc-100"
                 }`}
               >
                 {item.quality}
@@ -199,45 +206,50 @@ function ContinueWatchingCard({ item, index = 0, onRemove }: ContinueWatchingCar
             )}
           </div>
 
-          {/* NÚT XOÁ KHỎI TIẾP TỤC XEM (Nút X góc trên phải) */}
+          {/* NÚT XOÁ KHỎI TIẾP TỤC XEM */}
           <button
             type="button"
             onClick={(e) => onRemove(e, item.slug)}
             aria-label="Xoá khỏi danh sách tiếp tục xem"
-            className="absolute top-1.5 right-1.5 p-1 rounded-full bg-black/70 text-zinc-300 hover:text-white hover:bg-black/90 backdrop-blur-md transition-all z-20 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 cursor-pointer active:scale-90 shadow-md"
+            className="absolute top-2 right-2 p-1.5 rounded-full bg-black/60 text-zinc-400 hover:text-white hover:bg-red-600/90 backdrop-blur-md transition-all duration-200 z-20 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 cursor-pointer active:scale-90 shadow-md"
           >
-            <X className="w-3.5 h-3.5" />
+            <X className="w-3 h-3" />
           </button>
 
-          {/* NÚT PLAY Ở GIỮA KHI HOVER */}
-          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
-            <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-netflix-red text-white flex items-center justify-center shadow-xl transform group-hover:scale-110 transition-transform">
-              <Play className="w-4 h-4 sm:w-4.5 sm:h-4.5 fill-white ml-0.5" />
+          {/* NÚT PLAY TRÒN NỔI BẬT KHI HOVER */}
+          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none">
+            <div className="w-11 h-11 rounded-full bg-white/95 text-black flex items-center justify-center shadow-2xl backdrop-blur-md transform group-hover:scale-110 transition-all duration-300 group-hover:bg-red-600 group-hover:text-white">
+              <Play className="w-4 h-4 fill-current ml-0.5" />
             </div>
           </div>
 
-          {/* THANH TIẾN ĐỘ THỰC TẾ ĐANG XEM DỞ */}
-          <div className="absolute bottom-0 left-0 right-0 h-1 bg-black/80 z-10 overflow-hidden">
+          {/* THANH TIẾN ĐỘ GRADIENT ĐỎ SANG TRỌNG Ở ĐÁY POSTER */}
+          <div className="absolute bottom-0 left-0 right-0 h-[3px] bg-white/20 backdrop-blur-sm z-10 overflow-hidden">
             <div
-              className="h-full bg-netflix-red rounded-r-full transition-all duration-300 shadow-[0_0_8px_#E50914]"
+              className="h-full bg-gradient-to-r from-red-600 via-rose-500 to-red-500 rounded-r-full transition-all duration-500 shadow-[0_0_8px_rgba(229,9,20,0.9)]"
               style={{ width: `${progressPercent}%` }}
             />
           </div>
         </div>
 
         {/* THÔNG TIN PHIM */}
-        <div className="p-2 sm:p-2.5 bg-zinc-950 flex-1 flex flex-col justify-between">
-          <h3 className="text-white text-xs sm:text-[13px] font-semibold truncate group-hover:text-rose-400 transition-colors leading-snug">
+        <div className="p-2.5 sm:p-3 bg-zinc-950/95 flex-1 flex flex-col justify-between gap-1.5">
+          <h3 className="text-zinc-100 text-xs sm:text-[13px] font-semibold truncate group-hover:text-rose-400 transition-colors leading-snug">
             {item.title}
           </h3>
-          <div className="flex items-center justify-between text-[10.5px] sm:text-[11px] text-zinc-400 mt-1">
-            <span className="text-rose-400 font-medium flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
-              <span className="truncate">{item.episodeName ? "Xem tiếp" : "Đang xem"}</span>
-            </span>
-            <span className="text-zinc-500 font-mono text-[10px]">
-              {progressPercent}%
-            </span>
+
+          <div className="flex items-center justify-between text-[11px] text-zinc-400">
+            <div className="flex items-center gap-1.5 min-w-0">
+              <span className="w-1.5 h-1.5 rounded-full bg-red-500 flex-shrink-0 animate-pulse shadow-[0_0_6px_#EF4444]" />
+              <span className="text-zinc-300 font-medium truncate">
+                {item.episodeName ? formatEpisodeName(item.episodeName) : "Xem tiếp"}
+              </span>
+            </div>
+            {remainingMinutes && remainingMinutes > 0 && (
+              <span className="text-[10px] text-zinc-500 font-medium flex-shrink-0 ml-1.5">
+                còn {remainingMinutes}p
+              </span>
+            )}
           </div>
         </div>
       </Link>
