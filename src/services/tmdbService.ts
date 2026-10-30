@@ -226,6 +226,19 @@ function extractTitleVariants(text: string): string[] {
   return res;
 }
 
+const KNOWN_FULL_BLEED_POSTER_OVERRIDES: Record<string, { posterUrl: string; backdropUrl?: string }> = {
+  // Mulan (1998) - Poster teaser mặc định trên TMDb (/jAbexAtB0aSfP5Ay4TpWHARyVnG.jpg) có 2 dải đen 40px hai bên (pillarbox).
+  // Thay thế bằng poster Disney chính thức sắc nét, full-bleed tràn viền 100%:
+  "hoa moc lan|1998": {
+    posterUrl: "https://image.tmdb.org/t/p/w500/bj3iSjLlkwHtJrPmvHXa8P7edI9.jpg",
+    backdropUrl: "https://image.tmdb.org/t/p/w1280/ne7AwCHXG76SGPSvHexG5fDzxht.jpg",
+  },
+  "mulan|1998": {
+    posterUrl: "https://image.tmdb.org/t/p/w500/bj3iSjLlkwHtJrPmvHXa8P7edI9.jpg",
+    backdropUrl: "https://image.tmdb.org/t/p/w1280/ne7AwCHXG76SGPSvHexG5fDzxht.jpg",
+  },
+};
+
 export async function searchTmdbPosterByTitle(
   query: string,
   year?: number | string,
@@ -234,6 +247,12 @@ export async function searchTmdbPosterByTitle(
   if (!query || typeof query !== "string") return { posterUrl: null, backdropUrl: null };
   const cleanQuery = query.trim();
   if (cleanQuery.length < 2) return { posterUrl: null, backdropUrl: null };
+
+  const normOverrideKey = `${cleanStringForMatch(cleanQuery)}|${year ? String(year).trim() : ""}`;
+  if (KNOWN_FULL_BLEED_POSTER_OVERRIDES[normOverrideKey]) {
+    const override = KNOWN_FULL_BLEED_POSTER_OVERRIDES[normOverrideKey];
+    return { posterUrl: override.posterUrl, backdropUrl: override.backdropUrl || null };
+  }
 
   const cacheKey = `${cleanQuery}|${year || ""}|${type}`.toLowerCase();
   const now = Date.now();
