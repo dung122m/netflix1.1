@@ -43,6 +43,10 @@ export const clientSynopsisCache = new Map<string, string>();
 export const clientTrailerCache = new Map<string, string>();
 export const clientExtraInfoCache = new Map<string, MovieExtraInfo>();
 
+// Bộ nhớ đệm toàn cục lưu các ảnh đã tải thành công và ảnh bị lỗi trong phiên (persists across unmount/remount)
+export const GLOBAL_LOADED_IMAGES = new Set<string>();
+export const GLOBAL_FAILED_IMAGES = new Set<string>();
+
 // Re-export bảng ánh xạ quốc gia và hàm chuẩn hóa
 export { COUNTRY_DISPLAY_MAP, formatCountryName };
 
@@ -143,6 +147,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
       if (
         clean &&
         !list.includes(clean) &&
+        !GLOBAL_FAILED_IMAGES.has(clean) &&
         !clean.includes("/undefined") &&
         !clean.includes("/null") &&
         !clean.startsWith("/default-")
@@ -153,6 +158,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
       if (
         raw &&
         !list.includes(raw) &&
+        !GLOBAL_FAILED_IMAGES.has(raw) &&
         !raw.includes("/undefined") &&
         !raw.includes("/null") &&
         !raw.startsWith("/default-")
@@ -166,6 +172,9 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
     if (posterUrl && posterUrl.includes("-thumb.webp")) {
       addUrl(posterUrl.replace("-thumb.webp", "-poster.webp"));
     }
+    if (posterUrl && posterUrl.includes("-poster.webp")) {
+      addUrl(posterUrl.replace("-poster.webp", "-thumb.webp"));
+    }
 
     // 2. Thêm imageUrl và thumbUrl
     addUrl(imageUrl);
@@ -173,12 +182,21 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
     if (thumbUrl && thumbUrl.includes("-thumb.webp")) {
       addUrl(thumbUrl.replace("-thumb.webp", "-poster.webp"));
     }
+    if (thumbUrl && thumbUrl.includes("-poster.webp")) {
+      addUrl(thumbUrl.replace("-poster.webp", "-thumb.webp"));
+    }
 
     // Sắp xếp ưu tiên:
-    // 1. image.tmdb.org lên đầu tiên (30ms)
-    // 2. Poster dọc (-poster.webp / poster_)
+    // 0. Ảnh đã từng nạp thành công trong phiên (0ms cache hit)
+    // 1. image.tmdb.org lên đầu tiên (30ms CDN)
+    // 2. Poster dọc (-poster.webp / poster_ / /w500)
     // 3. Thumb ngang (-thumb.webp / backdrop)
     return list.sort((a, b) => {
+      const aLoaded = GLOBAL_LOADED_IMAGES.has(a);
+      const bLoaded = GLOBAL_LOADED_IMAGES.has(b);
+      if (aLoaded && !bLoaded) return -1;
+      if (!aLoaded && bLoaded) return 1;
+
       const aTmdb = a.includes("image.tmdb.org");
       const bTmdb = b.includes("image.tmdb.org");
       if (aTmdb && !bTmdb) return -1;
@@ -196,27 +214,42 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
   const triedUrlsRef = useRef<Set<string>>(new Set());
   const fallbackAttemptedRef = useRef(false);
   const imgRef = useRef<HTMLImageElement | null>(null);
-  const [currentSrc, setCurrentSrc] = useState<string>(() => imageCandidates[0] || "");
-  const [isImageLoaded, setIsImageLoaded] = useState(false);
-  const [hasError, setHasError] = useState(() => imageCandidates.length === 0);
+
+  const initialCandidate = imageCandidates.find(
+    (u) => !triedUrlsRef.current.has(u) && !GLOBAL_FAILED_IMAGES.has(u)
+  ) || imageCandidates[0] || "";
+
+  const [currentSrc, setCurrentSrc] = useState<string>(() => initialCandidate);
+  const [isImageLoaded, setIsImageLoaded] = useState<boolean>(() => {
+    return Boolean(
+      (initialCandidate && GLOBAL_LOADED_IMAGES.has(initialCandidate)) ||
+      (posterUrl && GLOBAL_LOADED_IMAGES.has(posterUrl)) ||
+      (imageUrl && GLOBAL_LOADED_IMAGES.has(imageUrl)) ||
+      (thumbUrl && GLOBAL_LOADED_IMAGES.has(thumbUrl))
+    );
+  });
+  const [hasError, setHasError] = useState(() => !initialCandidate && imageCandidates.length === 0);
 
   const checkImageComplete = useCallback((node: HTMLImageElement | null) => {
     imgRef.current = node;
-    if (node && node.complete && node.naturalWidth > 0) {
+    if (node && (node.complete || (node.naturalWidth > 0 && node.naturalHeight > 0))) {
+      const actualSrc = node.currentSrc || node.src;
+      if (actualSrc) {
+        GLOBAL_LOADED_IMAGES.add(actualSrc);
+      }
+      if (currentSrc) {
+        GLOBAL_LOADED_IMAGES.add(currentSrc);
+      }
       setIsImageLoaded(true);
     }
-  }, []);
+  }, [currentSrc]);
 
   useEffect(() => {
-    triedUrlsRef.current.clear();
-    fallbackAttemptedRef.current = false;
-    const initial = imageCandidates[0] || "";
+    const validCandidate = imageCandidates.find(
+      (u) => !triedUrlsRef.current.has(u) && !GLOBAL_FAILED_IMAGES.has(u)
+    ) || "";
 
-    if (!initial) {
-      setHasError(true);
-      setCurrentSrc("");
-      setIsImageLoaded(false);
-
+    if (!validCandidate) {
       if (!fallbackAttemptedRef.current && (title || origin_name || slug)) {
         fallbackAttemptedRef.current = true;
         const params = new URLSearchParams();
@@ -228,36 +261,53 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
         fetch(`/api/movie-poster-fallback?${params.toString()}`)
           .then((res) => (res.ok ? res.json() : null))
           .then((data) => {
-            const resolved = data?.posterUrl || data?.backdropUrl;
-            if (resolved && !triedUrlsRef.current.has(resolved)) {
+            const fallbackOptions = [data?.posterUrl, data?.backdropUrl].filter(
+              (u): u is string => Boolean(u) && !triedUrlsRef.current.has(u) && !GLOBAL_FAILED_IMAGES.has(u)
+            );
+            if (fallbackOptions.length > 0) {
               setHasError(false);
-              setCurrentSrc(resolved);
-              setIsImageLoaded(false);
+              setCurrentSrc(fallbackOptions[0]);
+              setIsImageLoaded(GLOBAL_LOADED_IMAGES.has(fallbackOptions[0]));
+            } else {
+              setHasError(true);
+              setCurrentSrc("");
+              setIsImageLoaded(true);
             }
           })
-          .catch(() => {});
+          .catch(() => {
+            setHasError(true);
+            setCurrentSrc("");
+            setIsImageLoaded(true);
+          });
+      } else {
+        setHasError(true);
+        setCurrentSrc("");
+        setIsImageLoaded(true);
       }
     } else {
       setHasError(false);
-      setCurrentSrc(initial);
-      if (imgRef.current && imgRef.current.complete && imgRef.current.naturalWidth > 0) {
-        setIsImageLoaded(true);
-      } else {
-        setIsImageLoaded(false);
-      }
+      setCurrentSrc(validCandidate);
+      const isAlreadyLoaded =
+        GLOBAL_LOADED_IMAGES.has(validCandidate) ||
+        Boolean(imgRef.current && imgRef.current.complete && imgRef.current.naturalWidth > 0);
+      setIsImageLoaded(isAlreadyLoaded);
     }
   }, [imageCandidates, title, origin_name, year, slug]);
 
   const handleImageError = useCallback(() => {
     if (currentSrc) {
       triedUrlsRef.current.add(currentSrc);
+      GLOBAL_FAILED_IMAGES.add(currentSrc);
+      GLOBAL_LOADED_IMAGES.delete(currentSrc);
     }
 
     // 1. Thử ứng viên kế tiếp chưa từng bị lỗi
-    const nextCandidate = imageCandidates.find((url) => !triedUrlsRef.current.has(url));
+    const nextCandidate = imageCandidates.find(
+      (url) => !triedUrlsRef.current.has(url) && !GLOBAL_FAILED_IMAGES.has(url)
+    );
     if (nextCandidate) {
       setCurrentSrc(nextCandidate);
-      setIsImageLoaded(false);
+      setIsImageLoaded(GLOBAL_LOADED_IMAGES.has(nextCandidate));
       return;
     }
 
@@ -274,12 +324,12 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
         .then((res) => (res.ok ? res.json() : null))
         .then((data) => {
           const fallbackOptions = [data?.posterUrl, data?.backdropUrl].filter(
-            (u): u is string => Boolean(u) && !triedUrlsRef.current.has(u)
+            (u): u is string => Boolean(u) && !triedUrlsRef.current.has(u) && !GLOBAL_FAILED_IMAGES.has(u)
           );
           if (fallbackOptions.length > 0) {
             setHasError(false);
             setCurrentSrc(fallbackOptions[0]);
-            setIsImageLoaded(false);
+            setIsImageLoaded(GLOBAL_LOADED_IMAGES.has(fallbackOptions[0]));
           } else {
             // Không tìm được ảnh thay thế mới
             setHasError(true);
@@ -300,18 +350,19 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
     setIsImageLoaded(true);
   }, [currentSrc, imageCandidates, title, origin_name, year, slug]);
 
-  // Bounded timeout 10000ms: Chỉ chuyển fallback nếu sau 10 giây CDN hoàn toàn không phản hồi
+  // Bounded timeout: Nếu sau 3.5s (priority) hoặc 4.5s (thường) CDN bị treo/nghẽn không tải xong, tự động chuyển sang ứng viên kế tiếp
   useEffect(() => {
     if (!currentSrc || isImageLoaded || hasError) return;
 
+    const timeoutMs = priority ? 3500 : 4500;
     const timer = setTimeout(() => {
       if (!imgRef.current || !imgRef.current.complete || imgRef.current.naturalWidth === 0) {
         handleImageError();
       }
-    }, 10000);
+    }, timeoutMs);
 
     return () => clearTimeout(timer);
-  }, [currentSrc, isImageLoaded, hasError, handleImageError]);
+  }, [currentSrc, isImageLoaded, hasError, handleImageError, priority]);
 
   // NGUỒN THAY THẾ DỰ PHÒNG THÔNG MINH (TMDB OFFICIAL CDN):
   // Khi phim không có ảnh hợp lệ, tự động truy vấn poster chuẩn từ TMDB
@@ -653,12 +704,24 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
               src={currentSrc}
               alt={title}
               loading={priority ? "eager" : "lazy"}
-              decoding="async"
+              decoding={priority ? "sync" : "async"}
+              // @ts-expect-error - fetchpriority is supported in modern browsers
+              fetchpriority={priority ? "high" : "auto"}
               referrerPolicy="no-referrer"
-              className={`w-full h-full object-cover object-center group-hover/card:scale-105 group-hover/card:brightness-105 transition-all duration-500 ease-out motion-reduce:transform-none ${
+              className={`relative z-[1] w-full h-full object-cover object-center group-hover/card:scale-105 group-hover/card:brightness-105 transition-transform duration-300 ease-out motion-reduce:transform-none ${
                 isImageLoaded ? "opacity-100" : "opacity-0"
               }`}
-              onLoad={() => setIsImageLoaded(true)}
+              onLoad={(e) => {
+                const target = e.currentTarget;
+                const loadedSrc = target.currentSrc || target.src || currentSrc;
+                if (loadedSrc) {
+                  GLOBAL_LOADED_IMAGES.add(loadedSrc);
+                }
+                if (currentSrc) {
+                  GLOBAL_LOADED_IMAGES.add(currentSrc);
+                }
+                setIsImageLoaded(true);
+              }}
               onError={handleImageError}
             />
           )}
