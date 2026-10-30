@@ -336,7 +336,6 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
   const automatedAdSkipRef = useRef<AdTransitionState | null>(null);
   const isProgrammaticAdSkipRef = useRef<boolean>(false);
   const [isAdTransitioning, setIsAdTransitioning] = useState<boolean>(false);
-  const [activeAdSegment, setActiveAdSegment] = useState<AdBoundary | null>(null);
   const hasHandledPreRollRef = useRef<boolean>(false);
   const adPreTriggerRef = useRef<{ timer: NodeJS.Timeout | null; rVfcId: number | null }>({ timer: null, rVfcId: null });
 
@@ -684,7 +683,6 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
           isProgrammaticAdSkipRef.current = false;
           v.currentTime = rewindSnap.adjustedTime;
           lastPlayheadTimeRef.current = rewindSnap.adjustedTime;
-          setActiveAdSegment(null);
           return;
         }
       }
@@ -1553,7 +1551,6 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
         const { restoredMuted } = endAdTransition(automatedAdSkipRef.current);
         automatedAdSkipRef.current = null;
         setIsAdTransitioning(false);
-        setActiveAdSegment(null);
         if (restoredMuted !== null && video) {
           video.muted = restoredMuted;
         }
@@ -1889,16 +1886,6 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
           lastPlayheadTimeRef.current = ct;
         }
 
-        // Cập nhật trạng thái quảng cáo đang phát (để hiển thị nút Bỏ qua quảng cáo)
-        if (adBoundariesRef.current.length > 0 && !video.seeking) {
-          const currentAd = adBoundariesRef.current.find(
-            (b) => ct >= b.start && ct < (b.nextStart ?? b.end)
-          );
-          setActiveAdSegment(currentAd || null);
-        } else {
-          setActiveAdSegment(null);
-        }
-
         // 1. Đánh giá skip với leadTime = 0.35s và safeOffset (kích hoạt an toàn trước ranh giới)
         const adDecision = evaluateAutoAdSkipDecision({
           currentTime: video.currentTime,
@@ -2116,7 +2103,6 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
             isProgrammaticAdSkipRef.current = false;
             v.currentTime = rewindSnap.adjustedTime;
             lastPlayheadTimeRef.current = rewindSnap.adjustedTime;
-            setActiveAdSegment(null);
             return;
           }
         }
@@ -2935,37 +2921,6 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
                 onUserInteraction={resetControlsTimeout}
                 onSeek={requestPlayerSeek}
               />
-
-              {/* NÚT BỎ QUA QUẢNG CÁO NỔI TRÊN MÀN HÌNH (CHO DI ĐỘNG & DESKTOP) */}
-              {activeAdSegment && (
-                <div
-                  data-player-control="true"
-                  className={`absolute right-3.5 sm:right-6 ${
-                    showControls ? "bottom-20 sm:bottom-24" : "bottom-6 sm:bottom-8"
-                  } z-40 transition-all duration-200 pointer-events-auto`}
-                >
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      const target = calculateSafeAdSkipTarget(
-                        activeAdSegment.end,
-                        adBoundariesRef.current,
-                        getEffectiveDuration(),
-                        SAFE_AD_SKIP_OFFSET
-                      );
-                      requestPlayerSeek(target, true);
-                      setActiveAdSegment(null);
-                    }}
-                    className="flex items-center gap-2 px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-full bg-netflix-red hover:bg-netflix-red/90 text-white font-bold text-xs sm:text-sm shadow-[0_6px_24px_rgba(229,9,20,0.6)] border border-white/25 backdrop-blur-md active:scale-95 transition-all cursor-pointer animate-in fade-in slide-in-from-right-4 duration-300"
-                    aria-label="Bỏ qua quảng cáo"
-                  >
-                    <Zap className="w-4 h-4 fill-white text-white" />
-                    <span>Bỏ qua quảng cáo</span>
-                    <SkipForward className="w-4 h-4 fill-white text-white" />
-                  </button>
-                </div>
-              )}
 
               {/* NEXT EPISODE COUNTDOWN OVERLAY */}
               {showNextEpCountdown && effectiveNextEpisode?.slug && (
