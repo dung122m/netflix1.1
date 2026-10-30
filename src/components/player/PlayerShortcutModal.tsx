@@ -30,8 +30,8 @@ const SHORTCUT_GROUPS: ShortcutGroup[] = [
     icon: <Play className="w-3.5 h-3.5 text-netflix-red" />,
     items: [
       { label: "Phát / Tạm dừng", keys: ["Space", "K"] },
-      { label: "Tua tới 10 giây", keys: ["→"] },
-      { label: "Tua lùi 10 giây", keys: ["←"] },
+      { label: "Tua tới 5 giây", keys: ["→"] },
+      { label: "Tua lùi 5 giây", keys: ["←"] },
       { label: "Tập kế tiếp", keys: ["N"] },
       { label: "Tập trước", keys: ["P"] },
     ],

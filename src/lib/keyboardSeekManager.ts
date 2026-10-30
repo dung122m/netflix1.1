@@ -3,8 +3,8 @@
  * 
  * Manages cycle-aware keyboard seeking (ArrowLeft / ArrowRight) for CinemaPlayer:
  * 1. Synchronized cycle tracking with the 800ms desktop feedback indicator.
- * 2. Rapid repeated taps or key-repeat within 800ms accumulate (+10s, +20s, +30s / −10s, −20s, −30s).
- * 3. Once indicator hides (after 800ms of inactivity), the cycle expires and next seek starts fresh (+10s).
+ * 2. Rapid repeated taps or key-repeat within 800ms accumulate (+5s, +10s, +15s / −5s, −10s, −15s).
+ * 3. Once indicator hides (after 800ms of inactivity), the cycle expires and next seek starts fresh (+5s).
  * 4. Switching direction (Right -> Left or Left -> Right) immediately starts a fresh cycle in the new direction.
  * 5. Debounce (250ms) separates UI indicator updates from heavy video.currentTime updates.
  */
@@ -53,7 +53,7 @@ export function calculateKeyboardSeek(
   now: number = Date.now()
 ): KeyboardSeekResult {
   const dir: "seek-left" | "seek-right" = key === "ArrowRight" ? "seek-right" : "seek-left";
-  const stepDelta = key === "ArrowRight" ? 10 : -10;
+  const stepDelta = key === "ArrowRight" ? 5 : -5;
 
   // A press belongs to the active cycle IF:
   // 1. Same direction

@@ -2630,21 +2630,25 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
                   lastTapRef.current = null;
 
                   if (xPct <= 0.38) {
-                    // TUA LÙI 10 GIÂY
+                    // TUA LÙI 5 GIÂY (Có cộng dồn nếu chạm đúp liên tiếp)
                     if (videoRef.current) {
-                      requestPlayerSeek(Math.max(0, (videoRef.current.currentTime || 0) - 10), false);
+                      requestPlayerSeek(Math.max(0, (videoRef.current.currentTime || 0) - 5), false);
                     }
-                    setDoubleTapFeedback({ side: "left", delta: -10 });
+                    const prevDelta = doubleTapFeedback && doubleTapFeedback.side === "left" ? doubleTapFeedback.delta : 0;
+                    const nextDelta = prevDelta <= 0 && prevDelta !== 0 ? prevDelta - 5 : -5;
+                    setDoubleTapFeedback({ side: "left", delta: nextDelta });
                     if (doubleTapFeedbackTimerRef.current) clearTimeout(doubleTapFeedbackTimerRef.current);
                     doubleTapFeedbackTimerRef.current = setTimeout(() => {
                       setDoubleTapFeedback(null);
                     }, 650);
                   } else if (xPct >= 0.62) {
-                    // TUA TỚI 10 GIÂY
+                    // TUA TỚI 5 GIÂY (Có cộng dồn nếu chạm đúp liên tiếp)
                     if (videoRef.current) {
-                      requestPlayerSeek((videoRef.current.currentTime || 0) + 10, false);
+                      requestPlayerSeek((videoRef.current.currentTime || 0) + 5, false);
                     }
-                    setDoubleTapFeedback({ side: "right", delta: 10 });
+                    const prevDelta = doubleTapFeedback && doubleTapFeedback.side === "right" ? doubleTapFeedback.delta : 0;
+                    const nextDelta = prevDelta >= 0 && prevDelta !== 0 ? prevDelta + 5 : 5;
+                    setDoubleTapFeedback({ side: "right", delta: nextDelta });
                     if (doubleTapFeedbackTimerRef.current) clearTimeout(doubleTapFeedbackTimerRef.current);
                     doubleTapFeedbackTimerRef.current = setTimeout(() => {
                       setDoubleTapFeedback(null);
@@ -2719,25 +2723,25 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
                 <div className="absolute inset-0 bg-black pointer-events-none z-20" />
               )}
 
-              {/* DOUBLE TAP RIPPLE EFFECT (MINIMALIST YOUTUBE STYLE: < -10 HOẶC +10 >) */}
+              {/* DOUBLE TAP RIPPLE EFFECT (MINIMALIST YOUTUBE STYLE: < -5s HOẶC +5s >) */}
               {doubleTapFeedback && (
                 <div
                   className={`absolute top-0 bottom-0 ${
                     doubleTapFeedback.side === "left"
-                      ? "left-0 rounded-r-[120px] sm:rounded-r-[160px] pl-6 sm:pl-10"
-                      : "right-0 rounded-l-[120px] sm:rounded-l-[160px] pr-6 sm:pr-10"
-                  } w-[42%] bg-white/[0.08] backdrop-blur-[1px] flex items-center justify-center pointer-events-none z-30 animate-in fade-in duration-150`}
+                      ? "left-0 rounded-r-[100px] sm:rounded-r-[140px] pl-4 sm:pl-8"
+                      : "right-0 rounded-l-[100px] sm:rounded-l-[140px] pr-4 sm:pr-8"
+                  } w-[34%] bg-white/[0.06] backdrop-blur-[1px] flex items-center justify-center pointer-events-none z-30 animate-in fade-in duration-150`}
                 >
-                  <div className="flex items-center gap-1.5 text-white font-extrabold text-2xl sm:text-3xl tracking-tight select-none drop-shadow-[0_2px_12px_rgba(0,0,0,0.95)]">
+                  <div className="flex items-center gap-1 text-white font-bold text-xs sm:text-sm md:text-base tracking-tight select-none drop-shadow-[0_2px_8px_rgba(0,0,0,0.95)]">
                     {doubleTapFeedback.side === "left" ? (
                       <>
-                        <ChevronLeft className="w-8 h-8 sm:w-9 sm:h-9 stroke-[3.5]" />
-                        <span>−{Math.abs(doubleTapFeedback.delta)}</span>
+                        <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2.5]" />
+                        <span>−{Math.abs(doubleTapFeedback.delta)}s</span>
                       </>
                     ) : (
                       <>
-                        <span>+{Math.abs(doubleTapFeedback.delta)}</span>
-                        <ChevronRight className="w-8 h-8 sm:w-9 sm:h-9 stroke-[3.5]" />
+                        <span>+{Math.abs(doubleTapFeedback.delta)}s</span>
+                        <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2.5]" />
                       </>
                     )}
                   </div>
@@ -2760,17 +2764,17 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
                 </div>
               )}
 
-              {/* SEEK FEEDBACK (MINIMALIST YOUTUBE STYLE: < -10 HOẶC +10 >) */}
+              {/* SEEK FEEDBACK (MINIMALIST YOUTUBE STYLE: < -5s HOẶC +5s >) */}
               {desktopFeedback && desktopFeedback.type === "seek-left" && (
                 <div
                   key={desktopFeedback.id}
                   role="status"
                   aria-live="polite"
-                  className="absolute left-8 sm:left-16 top-1/2 -translate-y-1/2 pointer-events-none z-30 animate-in fade-in zoom-in-90 slide-in-from-right-3 duration-150 motion-reduce:animate-none"
+                  className="absolute left-6 sm:left-12 top-1/2 -translate-y-1/2 pointer-events-none z-30 animate-in fade-in zoom-in-95 slide-in-from-right-2 duration-150 motion-reduce:animate-none"
                 >
-                  <div className="flex items-center gap-1.5 text-white font-extrabold text-2xl sm:text-3xl tracking-tight select-none drop-shadow-[0_2px_12px_rgba(0,0,0,0.95)]">
-                    <ChevronLeft className="w-8 h-8 sm:w-9 sm:h-9 stroke-[3.5]" />
-                    <span>−{desktopFeedback.seconds || 10}</span>
+                  <div className="flex items-center gap-1 text-white font-bold text-xs sm:text-sm md:text-base tracking-tight select-none drop-shadow-[0_2px_8px_rgba(0,0,0,0.95)]">
+                    <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2.5]" />
+                    <span>−{desktopFeedback.seconds || 5}s</span>
                   </div>
                 </div>
               )}
@@ -2780,11 +2784,11 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
                   key={desktopFeedback.id}
                   role="status"
                   aria-live="polite"
-                  className="absolute right-8 sm:right-16 top-1/2 -translate-y-1/2 pointer-events-none z-30 animate-in fade-in zoom-in-90 slide-in-from-left-3 duration-150 motion-reduce:animate-none"
+                  className="absolute right-6 sm:right-12 top-1/2 -translate-y-1/2 pointer-events-none z-30 animate-in fade-in zoom-in-95 slide-in-from-left-2 duration-150 motion-reduce:animate-none"
                 >
-                  <div className="flex items-center gap-1.5 text-white font-extrabold text-2xl sm:text-3xl tracking-tight select-none drop-shadow-[0_2px_12px_rgba(0,0,0,0.95)]">
-                    <span>+{desktopFeedback.seconds || 10}</span>
-                    <ChevronRight className="w-8 h-8 sm:w-9 sm:h-9 stroke-[3.5]" />
+                  <div className="flex items-center gap-1 text-white font-bold text-xs sm:text-sm md:text-base tracking-tight select-none drop-shadow-[0_2px_8px_rgba(0,0,0,0.95)]">
+                    <span>+{desktopFeedback.seconds || 5}s</span>
+                    <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2.5]" />
                   </div>
                 </div>
               )}
@@ -2858,7 +2862,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
                 onSeekFeedback={(txt) => {
                   resetControlsTimeout();
                   const clean = txt.replace(/[^0-9]/g, "");
-                  const num = clean ? parseInt(clean, 10) : 10;
+                  const num = clean ? parseInt(clean, 10) : 5;
                   if (txt.includes("-")) {
                     triggerDesktopFeedback("seek-left", `−${num}s`, num);
                   } else if (txt.includes("+")) {

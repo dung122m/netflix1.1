@@ -99,17 +99,23 @@ export const YouTubeExitFullscreenIcon: React.FC<{ className?: string }> = ({ cl
   </svg>
 );
 
-export const YouTubeSeek10BackIcon: React.FC<{ className?: string }> = ({ className = "w-5 h-5" }) => (
+export const YouTubeSeek5BackIcon: React.FC<{ className?: string }> = ({ className = "w-5 h-5" }) => (
   <svg className={className} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-    <path d="M11.99 5V1l-5 5 5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6s-6-2.69-6-6h-2c0 4.42 3.58 8 8 8s8-3.58 8-8s-3.58-8-8-8zm-1.1 11h-.85v-3.26l-1.01.31v-.69l1.77-.63h.09V16zm4.28-1.76c0 .32-.03.6-.1.82s-.17.42-.29.57-.28.26-.45.33-.37.1-.59.1-.41-.03-.59-.1-.33-.18-.46-.33-.22-.35-.29-.57-.1-.5-.1-.82v-1.45c0-.32.03-.6.1-.82s.17-.42.29-.57.28-.26.45-.33.37-.1.59-.1.41.03.59.1.33.18.46.33.22.35.29.57.1.5.1.82v1.45zm-.85-1.57c0-.28-.04-.48-.11-.6s-.19-.18-.34-.18-.26.06-.34.18-.11.32-.11.6v1.69c0 .28.04.48.11.6s.19.18.34.18.26-.06.34-.18.11-.32.11-.6v-1.69z" />
+    <path d="M11.99 5V1l-5 5 5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6s-6-2.69-6-6h-2c0 4.42 3.58 8 8 8s8-3.58 8-8s-3.58-8-8-8z" />
+    <text x="12" y="15.5" textAnchor="middle" fontSize="8.5" fontWeight="bold" fontFamily="system-ui, -apple-system, sans-serif">5</text>
   </svg>
 );
 
-export const YouTubeSeek10ForwardIcon: React.FC<{ className?: string }> = ({ className = "w-5 h-5" }) => (
+export const YouTubeSeek5ForwardIcon: React.FC<{ className?: string }> = ({ className = "w-5 h-5" }) => (
   <svg className={className} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-    <path d="M18 13c0 3.31-2.69 6-6 6s-6-2.69-6-6 2.69-6 6-6v4l5-5-5-5v4c-4.42 0-8 3.58-8 8s3.58 8 8 8 8-3.58 8-8h-2zm-7.1 3h-.85v-3.26l-1.01.31v-.69l1.77-.63h.09V16zm4.28-1.76c0 .32-.03.6-.1.82s-.17.42-.29.57-.28.26-.45.33-.37.1-.59.1-.41-.03-.59-.1-.33-.18-.46-.33-.22-.35-.29-.57-.1-.5-.1-.82v-1.45c0-.32.03-.6.1-.82s.17-.42.29-.57.28-.26.45-.33.37-.1.59-.1.41.03.59.1.33.18.46.33.22.35.29.57.1.5.1.82v1.45zm-.85-1.57c0-.28-.04-.48-.11-.6s-.19-.18-.34-.18-.26.06-.34.18-.11.32-.11.6v1.69c0 .28.04.48.11.6s.19.18.34.18.26-.06.34-.18.11-.32.11-.6v-1.69z" />
+    <path d="M18 13c0 3.31-2.69 6-6 6s-6-2.69-6-6 2.69-6 6-6v4l5-5-5-5v4c-4.42 0-8 3.58-8 8s3.58 8 8 8 8-3.58 8-8h-2z" />
+    <text x="12" y="15.5" textAnchor="middle" fontSize="8.5" fontWeight="bold" fontFamily="system-ui, -apple-system, sans-serif">5</text>
   </svg>
 );
+
+// Backward compatibility aliases
+export const YouTubeSeek10BackIcon = YouTubeSeek5BackIcon;
+export const YouTubeSeek10ForwardIcon = YouTubeSeek5ForwardIcon;
 
 
 // ============================================================================
@@ -294,31 +300,31 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
     // Controls hiển thị khi showControls=true hoặc khi đang mở bảng cài đặt
     const isOverlayVisible = showControls || showSettings;
 
-    // Tua lùi 10s
+    // Tua lùi 5s
     const handleSeekBack = useCallback(
       (e: React.MouseEvent) => {
         e.stopPropagation();
         if (videoRef.current) {
-          const target = Math.max(0, (videoRef.current.currentTime || 0) - 10);
+          const target = Math.max(0, (videoRef.current.currentTime || 0) - 5);
           if (onSeek) onSeek(target);
           else videoRef.current.currentTime = target;
         }
-        onSeekFeedback("-10s");
+        onSeekFeedback("-5s");
         onUserInteraction?.();
       },
       [videoRef, onSeek, onSeekFeedback, onUserInteraction]
     );
 
-    // Tua tới 10s
+    // Tua tới 5s
     const handleSeekForward = useCallback(
       (e: React.MouseEvent) => {
         e.stopPropagation();
         if (videoRef.current) {
-          const target = (videoRef.current.currentTime || 0) + 10;
+          const target = (videoRef.current.currentTime || 0) + 5;
           if (onSeek) onSeek(target);
           else videoRef.current.currentTime = target;
         }
-        onSeekFeedback("+10s");
+        onSeekFeedback("+5s");
         onUserInteraction?.();
       },
       [videoRef, onSeek, onSeekFeedback, onUserInteraction]
@@ -712,15 +718,15 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
           </div>
         ) : (
           <div className="md:hidden absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center justify-center gap-6 sm:gap-10 pointer-events-none z-10">
-            {/* Tua lùi 10s */}
+            {/* Tua lùi 5s */}
             <button
               type="button"
               data-player-control="true"
               onClick={handleSeekBack}
-              aria-label="Tua lùi 10 giây"
+              aria-label="Tua lùi 5 giây"
               className="pointer-events-auto w-11 h-11 rounded-full bg-black/45 hover:bg-black/65 active:scale-90 border border-white/10 text-white/95 flex items-center justify-center shadow-lg backdrop-blur-md transition-all cursor-pointer outline-none"
             >
-              <YouTubeSeek10BackIcon className="w-5 h-5" />
+              <YouTubeSeek5BackIcon className="w-5 h-5" />
             </button>
 
             {/* Play/Pause chính giữa - phong cách YouTube: viền mờ tinh tế, không chói đỏ */}
@@ -742,15 +748,15 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
               )}
             </button>
 
-            {/* Tua tới 10s */}
+            {/* Tua tới 5s */}
             <button
               type="button"
               data-player-control="true"
               onClick={handleSeekForward}
-              aria-label="Tua tới 10 giây"
+              aria-label="Tua tới 5 giây"
               className="pointer-events-auto w-11 h-11 rounded-full bg-black/45 hover:bg-black/65 active:scale-90 border border-white/10 text-white/95 flex items-center justify-center shadow-lg backdrop-blur-md transition-all cursor-pointer outline-none"
             >
-              <YouTubeSeek10ForwardIcon className="w-5 h-5" />
+              <YouTubeSeek5ForwardIcon className="w-5 h-5" />
             </button>
           </div>
         )}
@@ -821,29 +827,29 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
                 </Tooltip>
               )}
 
-              {/* Tua lùi 10s (Ẩn trên mobile để thanh dưới thoáng rộng) */}
-              <Tooltip content="Tua lùi 10 giây" shortcut="J / ←" side="top">
+              {/* Tua lùi 5s (Ẩn trên mobile để thanh dưới thoáng rộng) */}
+              <Tooltip content="Tua lùi 5 giây" shortcut="J / ←" side="top">
                 <button
                   type="button"
                   data-player-control="true"
                   onClick={handleSeekBack}
-                  aria-label="Tua lùi 10 giây"
+                  aria-label="Tua lùi 5 giây"
                   className="hidden sm:inline-flex w-9 h-9 sm:w-10 sm:h-10 rounded-full hover:bg-white/15 active:scale-90 text-zinc-300 hover:text-white items-center justify-center transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-white/40"
                 >
-                  <YouTubeSeek10BackIcon className="w-4.5 h-4.5" />
+                  <YouTubeSeek5BackIcon className="w-4.5 h-4.5" />
                 </button>
               </Tooltip>
 
-              {/* Tua tới 10s (Ẩn trên mobile) */}
-              <Tooltip content="Tua tới 10 giây" shortcut="L / →" side="top">
+              {/* Tua tới 5s (Ẩn trên mobile) */}
+              <Tooltip content="Tua tới 5 giây" shortcut="L / →" side="top">
                 <button
                   type="button"
                   data-player-control="true"
                   onClick={handleSeekForward}
-                  aria-label="Tua tới 10 giây"
+                  aria-label="Tua tới 5 giây"
                   className="hidden sm:inline-flex w-9 h-9 sm:w-10 sm:h-10 rounded-full hover:bg-white/15 active:scale-90 text-zinc-300 hover:text-white items-center justify-center transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-white/40"
                 >
-                  <YouTubeSeek10ForwardIcon className="w-4.5 h-4.5" />
+                  <YouTubeSeek5ForwardIcon className="w-4.5 h-4.5" />
                 </button>
               </Tooltip>
 
