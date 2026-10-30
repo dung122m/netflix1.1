@@ -58,6 +58,7 @@ interface TmdbCandidate {
   release_date?: string;
   first_air_date?: string;
   vote_count?: number;
+  popularity?: number;
   [key: string]: unknown;
 }
 
@@ -83,7 +84,7 @@ function pickBestTmdbCandidate(results: TmdbCandidate[], targetYear?: string): T
 
     if (r.poster_path) score += 30;
     score += Math.min(40, Math.log10((r.vote_count || 0) + 1) * 10);
-    score += Math.min(20, (r.popularity || 0) / 10);
+    score += Math.min(20, (Number(r.popularity) || 0) / 10);
 
     return { item: r, score };
   });
