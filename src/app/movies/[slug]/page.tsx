@@ -7,6 +7,8 @@ import {
   pickBestMoviePoster,
   pickBestMovieThumb,
   formatCountryName,
+  getCanonicalGenreSlug,
+  getCanonicalCountrySlug,
 } from "@/lib/movieMedia";
 import { cleanHtmlText } from "@/lib/cleanHtml";
 
@@ -221,7 +223,10 @@ export default async function MovieDetail({
   // Danh sách thể loại (hỗ trợ mảng, group object NguonC, string genre)
   const categoryList: Array<{ name: string; slug?: string }> = (() => {
     if (Array.isArray(movie.category)) {
-      return (movie.category as Array<{ name: string; slug?: string }>);
+      return (movie.category as Array<{ name: string; slug?: string }>).map((c) => ({
+        name: c.name,
+        slug: getCanonicalGenreSlug(c.name, c.slug),
+      }));
     }
     if (movie.category && typeof movie.category === "object") {
       const extracted: Array<{ name: string; slug?: string }> = [];
@@ -229,14 +234,22 @@ export default async function MovieDetail({
         const gName = (grp?.group?.name || "").toLowerCase();
         if (gName.includes("thể loại") || gName.includes("the loai")) {
           for (const item of grp.list || []) {
-            if (item?.name) extracted.push({ name: item.name, slug: item.slug || item.id });
+            if (item?.name) {
+              extracted.push({
+                name: item.name,
+                slug: getCanonicalGenreSlug(item.name, item.slug || item.id),
+              });
+            }
           }
         }
       }
       if (extracted.length > 0) return extracted;
     }
     if (typeof movie.genre === "string" && movie.genre) {
-      return movie.genre.split(",").map((g: string) => ({ name: g.trim(), slug: undefined }));
+      return movie.genre.split(",").map((g: string) => ({
+        name: g.trim(),
+        slug: getCanonicalGenreSlug(g.trim()),
+      }));
     }
     return [];
   })().filter((c: { name?: string; slug?: string }) => c?.name && !c.name.toLowerCase().includes("cập nhật"));
@@ -246,7 +259,7 @@ export default async function MovieDetail({
     if (Array.isArray(movie.country)) {
       return (movie.country as Array<{ name: string; slug?: string }>).map((c) => ({
         name: formatCountryName(c?.name || c?.slug) || c?.name || "",
-        slug: c?.slug || c?.name,
+        slug: getCanonicalCountrySlug(c?.name, c?.slug),
       }));
     }
     if (movie.category && typeof movie.category === "object") {
@@ -255,14 +268,22 @@ export default async function MovieDetail({
         const gName = (grp?.group?.name || "").toLowerCase();
         if (gName.includes("quốc gia") || gName.includes("quoc gia")) {
           for (const item of grp.list || []) {
-            if (item?.name) extracted.push({ name: formatCountryName(item.name || item.slug || item.id) || item.name, slug: item.slug || item.id });
+            if (item?.name) {
+              extracted.push({
+                name: formatCountryName(item.name || item.slug || item.id) || item.name,
+                slug: getCanonicalCountrySlug(item.name, item.slug || item.id),
+              });
+            }
           }
         }
       }
       if (extracted.length > 0) return extracted;
     }
     if (typeof movie.country === "string" && movie.country) {
-      return movie.country.split(",").map((c: string) => ({ name: formatCountryName(c) || c.trim(), slug: undefined }));
+      return movie.country.split(",").map((c: string) => ({
+        name: formatCountryName(c) || c.trim(),
+        slug: getCanonicalCountrySlug(c.trim()),
+      }));
     }
     return [];
   })().filter((c: { name?: string; slug?: string }) => c?.name && !c.name.toLowerCase().includes("cập nhật"));
@@ -465,7 +486,7 @@ export default async function MovieDetail({
     || (activeEpisode as Record<string, string | undefined>)?.m3u8
     || (activeEpisode as Record<string, string | undefined>)?.file;
 
-  const primaryGenreSlug = categoryList[0]?.slug || movie.category?.[0]?.slug;
+  const primaryGenreSlug = getCanonicalGenreSlug(categoryList[0]?.name, categoryList[0]?.slug) || getCanonicalGenreSlug(movie.category?.[0]?.name, movie.category?.[0]?.slug);
   const primaryGenreName = categoryList[0]?.name || movie.category?.[0]?.name || "Thể loại";
 
   // JSON-LD Structured Data for Google Search Rich Results (SEO)

@@ -1,4 +1,5 @@
 import { cleanHtmlText } from "@/lib/cleanHtml";
+import { normalizeForMatch } from "@/lib/stringUtils";
 
 export type MovieLike = {
   poster_url?: unknown;
@@ -1452,6 +1453,134 @@ export function formatGenreName(raw?: unknown): string {
 
   // Nếu đã viết hoa đẹp hoặc từ tiếng Việt chuẩn
   return clean.charAt(0).toUpperCase() + clean.slice(1);
+}
+
+export function isRawId(str?: string | null): boolean {
+  if (!str) return false;
+  const trimmed = str.trim();
+  return /^[0-9a-fA-F]{24,32}$/.test(trimmed) || /^\d+$/.test(trimmed);
+}
+
+// Bảng giải mã các ID MD5 của NguonC sang slug chuẩn Nanaflix
+export const NGUONC_HASH_MAP: Record<string, { type: "genre" | "country"; slug: string }> = {
+  "8f14e45fceea167a5a36dedd4bea2543": { type: "genre", slug: "hanh-dong" },
+  "1f0e3dad99908345f7439f8ffabdffc4": { type: "genre", slug: "bi-an" },
+  "3c59dc048e8850243be8079a5c74d079": { type: "genre", slug: "vien-tuong" },
+  "6512bd43d9caa6e02c990b0a82652dca": { type: "genre", slug: "hinh-su" },
+  "c51ce410c124a10e0db5e4b97fc2af39": { type: "genre", slug: "chinh-kich" },
+  "70efdf2ec9b086079795c442636b55fb": { type: "genre", slug: "kinh-di" },
+  "a8baa56554f96369ab93e4f3bb068c22": { type: "genre", slug: "co-trang" },
+  "2a79ea27c279e471f4d180b08d62b00a": { type: "genre", slug: "tinh-cam" },
+  "b6d767d2f8ed5d21a44b0e5886680cb9": { type: "genre", slug: "gay-can" },
+  "c74d97b01eae257e44aa9d5bade97baf": { type: "genre", slug: "lich-su" },
+  "c9f0f895fb98ab9159f51fd0297e236d": { type: "genre", slug: "phieu-luu" },
+  "45c48cce2e2d7fbdea1afc51c7c6ad26": { type: "genre", slug: "hoat-hinh" },
+  "aab3238922bcc25a6f606eb525ffdc56": { type: "genre", slug: "gia-dinh" },
+  "903ce9225fca3e988c2af215d4e544d3": { type: "genre", slug: "tam-ly" },
+  "9bf31c7ff062936a96d3c8bd1f8f2ff3": { type: "genre", slug: "vien-tuong" },
+  "32bb90e8976aab5298d5da10fe66f21d": { type: "country", slug: "han-quoc" },
+  "9a1158154dfa42caddbd0694a4e9bdc8": { type: "country", slug: "viet-nam" },
+  "26657d5ff9020d2abefe558796b99584": { type: "country", slug: "an-do" },
+  "c0c7c76d30bd3dcaefc96f40275bdc0a": { type: "country", slug: "trung-quoc" },
+  "d2ddea18f00665ce8623e36bd4e3c7c5": { type: "country", slug: "nhat-ban" },
+  "e2c420d928d4bf8ce0ff2ec19b371514": { type: "country", slug: "hong-kong" },
+};
+
+export function getCanonicalGenreSlug(name?: string | null, rawSlug?: string | null): string {
+  // 1. Nếu rawSlug là NguonC MD5 hash
+  if (rawSlug && NGUONC_HASH_MAP[rawSlug.trim()]) {
+    return NGUONC_HASH_MAP[rawSlug.trim()].slug;
+  }
+
+  // 2. Nếu rawSlug là slug hợp lệ và không phải ID thô
+  if (rawSlug && typeof rawSlug === "string") {
+    const trimmed = rawSlug.trim().toLowerCase().replace(/_/g, "-");
+    if (!isRawId(trimmed) && trimmed.length >= 2) {
+      if (trimmed === "khoa-hoc-vien-tuong" || trimmed === "gia-tuong") return "vien-tuong";
+      if (trimmed === "phim-hai") return "hai-huoc";
+      if (trimmed === "phim-nhac") return "am-nhac";
+      return trimmed;
+    }
+  }
+
+  // 3. Chuyển đổi tên sang slug chuẩn
+  if (name && typeof name === "string") {
+    const norm = normalizeForMatch(name).replace(/\s+/g, "-");
+    if (!norm) return "";
+    if (norm === "hanh-dong" || norm === "action") return "hanh-dong";
+    if (norm === "tinh-cam" || norm === "romance") return "tinh-cam";
+    if (norm === "kinh-di" || norm === "horror") return "kinh-di";
+    if (norm === "hai-huoc" || norm === "comedy" || norm === "phim-hai") return "hai-huoc";
+    if (norm.includes("vien-tuong") || norm.includes("sci-fi") || norm === "gia-tuong") return "vien-tuong";
+    if (norm === "co-trang") return "co-trang";
+    if (norm === "tam-ly" || norm === "drama") return "tam-ly";
+    if (norm === "vo-thuat" || norm === "martial-arts") return "vo-thuat";
+    if (norm === "trinh-tham" || norm === "detective") return "trinh-tham";
+    if (norm === "chien-tranh" || norm === "war") return "chien-tranh";
+    if (norm === "phieu-luu" || norm === "adventure") return "phieu-luu";
+    if (norm === "am-nhac" || norm === "music" || norm === "phim-nhac") return "am-nhac";
+    if (norm === "the-thao" || norm === "sports" || norm === "sport") return "the-thao";
+    if (norm === "tai-lieu" || norm === "documentary") return "tai-lieu";
+    if (norm === "khoa-hoc" || norm === "science") return "khoa-hoc";
+    if (norm === "hoat-hinh" || norm === "animation" || norm === "anime") return "hoat-hinh";
+    if (norm === "hinh-su" || norm === "crime") return "hinh-su";
+    if (norm === "bi-an" || norm === "mystery") return "bi-an";
+    if (norm === "hoc-duong" || norm === "school") return "hoc-duong";
+    if (norm === "gia-dinh" || norm === "family") return "gia-dinh";
+    if (norm === "than-thoai" || norm === "mythology" || norm === "fantasy") return "than-thoai";
+    if (norm === "lich-su" || norm === "history") return "lich-su";
+    if (norm === "chinh-kich") return "chinh-kich";
+    if (norm === "giat-gan" || norm === "thriller") return "giat-gan";
+    if (norm === "gay-can") return "gay-can";
+    if (norm === "lang-man") return "lang-man";
+    if (norm === "chieu-rap") return "chieu-rap";
+    return norm;
+  }
+
+  return "";
+}
+
+export function getCanonicalCountrySlug(name?: string | null, rawSlug?: string | null): string {
+  if (rawSlug && NGUONC_HASH_MAP[rawSlug.trim()]) {
+    return NGUONC_HASH_MAP[rawSlug.trim()].slug;
+  }
+
+  if (rawSlug && typeof rawSlug === "string") {
+    const trimmed = rawSlug.trim().toLowerCase().replace(/_/g, "-");
+    if (!isRawId(trimmed) && trimmed.length >= 2) {
+      if (trimmed === "korea" || trimmed === "south-korea") return "han-quoc";
+      if (trimmed === "china") return "trung-quoc";
+      if (trimmed === "japan") return "nhat-ban";
+      if (trimmed === "us" || trimmed === "usa" || trimmed === "united-states") return "au-my";
+      if (trimmed === "thailand") return "thai-lan";
+      if (trimmed === "vietnam") return "viet-nam";
+      if (trimmed === "hongkong") return "hong-kong";
+      if (trimmed === "taiwan") return "dai-loan";
+      if (trimmed === "india") return "an-do";
+      if (trimmed === "uk") return "anh";
+      if (trimmed === "france") return "phap";
+      return trimmed;
+    }
+  }
+
+  if (name && typeof name === "string") {
+    const norm = normalizeForMatch(name).replace(/\s+/g, "-");
+    if (!norm) return "";
+    if (norm.includes("han-quoc") || norm.includes("korea")) return "han-quoc";
+    if (norm.includes("trung-quoc") || norm.includes("china")) return "trung-quoc";
+    if (norm.includes("nhat-ban") || norm.includes("japan")) return "nhat-ban";
+    if (norm.includes("au-my") || norm.includes("my") || norm.includes("usa") || norm.includes("hoa-ky") || norm.includes("canada") || norm.includes("duc") || norm.includes("tay-ban-nha") || norm.includes("uc")) return "au-my";
+    if (norm.includes("thai-lan") || norm.includes("thailand")) return "thai-lan";
+    if (norm.includes("viet-nam") || norm.includes("vietnam")) return "viet-nam";
+    if (norm.includes("hong-kong") || norm.includes("hongkong")) return "hong-kong";
+    if (norm.includes("dai-loan") || norm.includes("taiwan")) return "dai-loan";
+    if (norm.includes("an-do") || norm.includes("india")) return "an-do";
+    if (norm.includes("anh") || norm.includes("uk")) return "anh";
+    if (norm.includes("phap") || norm.includes("france")) return "phap";
+    return norm;
+  }
+
+  return "";
 }
 
 // Cache ổn định tham chiếu array diễn viên / đạo diễn theo từng movie object

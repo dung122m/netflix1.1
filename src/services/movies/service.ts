@@ -9,7 +9,7 @@ import {
   performVsmovCatalogIngestion,
 } from "@/services/providers/vsmov";
 import { normalizeForMatch } from "@/lib/stringUtils";
-import { formatGenreName, formatCountryName } from "@/lib/movieMedia";
+import { formatGenreName, formatCountryName, getCanonicalGenreSlug, getCanonicalCountrySlug } from "@/lib/movieMedia";
 import { getTmdbPosterUrl, searchTmdbPosterByTitle } from "@/services/tmdbService";
 import { searchAniListPoster } from "@/services/aniListService";
 
@@ -127,9 +127,9 @@ function normalizeNguonCMovieDetail(raw: any) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const list = (grp?.list || []) as any[];
       if (grpName.includes("quốc gia") || grpName.includes("quoc gia")) {
-        countries.push(...list.map((c) => ({ id: c.id, name: c.name, slug: c.id })));
+        countries.push(...list.map((c) => ({ id: c.id, name: c.name, slug: getCanonicalCountrySlug(c.name, c.slug) })));
       } else if (grpName.includes("thể loại") || grpName.includes("the loai")) {
-        categories.push(...list.map((c) => ({ id: c.id, name: c.name, slug: c.id })));
+        categories.push(...list.map((c) => ({ id: c.id, name: c.name, slug: getCanonicalGenreSlug(c.name, c.slug) })));
       }
     }
   }

@@ -4,6 +4,7 @@ import React, { useEffect, useState, useRef, useCallback, useTransition } from "
 import { createPortal } from "react-dom";
 import { useRouter, useSearchParams } from "next/navigation";
 import { movieApi, DEFAULT_GENRES, DEFAULT_COUNTRIES } from "@/services/movieApi";
+import { getCanonicalGenreSlug, getCanonicalCountrySlug, isRawId } from "@/lib/movieMedia";
 import {
   Film,
   Sparkles,
@@ -127,8 +128,11 @@ export const FilterBar: React.FC = () => {
 
   // Current active values with optimistic instant feedback
   const currentType = optimisticParams.type !== undefined ? optimisticParams.type : (searchParams.get("type") || "");
-  const currentCategory = optimisticParams.category !== undefined ? optimisticParams.category : (searchParams.get("category") || "");
-  const currentCountry = optimisticParams.country !== undefined ? optimisticParams.country : (searchParams.get("country") || "");
+  const rawCat = optimisticParams.category !== undefined ? optimisticParams.category : (searchParams.get("category") || "");
+  const currentCategory = (rawCat ? getCanonicalGenreSlug(null, rawCat) : "") || (rawCat && !isRawId(rawCat) ? rawCat : "");
+
+  const rawCtry = optimisticParams.country !== undefined ? optimisticParams.country : (searchParams.get("country") || "");
+  const currentCountry = (rawCtry ? getCanonicalCountrySlug(null, rawCtry) : "") || (rawCtry && !isRawId(rawCtry) ? rawCtry : "");
   const currentYear = optimisticParams.year !== undefined ? optimisticParams.year : (searchParams.get("year") || "");
   const currentSort = optimisticParams.sort !== undefined ? optimisticParams.sort : (searchParams.get("sort") || "rating");
   const currentActor = searchParams.get("actor") || "";

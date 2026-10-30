@@ -19,7 +19,14 @@ import { searchMoviesBySemantic } from "@/services/aiVectorService";
 import { evaluateConceptEvidence, resolveConcepts } from "@/services/conceptRegistry";
 import { BrowseAiSearchBanner } from "@/components/BrowseAiSearchBanner";
 import { PaginationControl } from "@/components/PaginationControl";
-import { isBrokenImageUrl, formatGenreName, formatCountryName } from "@/lib/movieMedia";
+import {
+  isBrokenImageUrl,
+  formatGenreName,
+  formatCountryName,
+  getCanonicalGenreSlug,
+  getCanonicalCountrySlug,
+  isRawId,
+} from "@/lib/movieMedia";
 import { getTmdbPosterUrl, searchTmdbPosterByTitle } from "@/services/tmdbService";
 import { searchAniListPoster } from "@/services/aniListService";
 
@@ -65,11 +72,13 @@ export async function generateMetadata({
     title = TYPE_TITLES[params.type].replace(/^[^\w\s\u00C0-\u1EF9]*\s*/u, "");
     description = `Khám phá danh sách ${title} hay nhất, chất lượng Full HD Vietsub & Thuyết minh trên Nanaflix.`;
   } else if (params.category) {
-    const catName = formatGenreName(params.category) || params.category;
+    const resolvedCat = getCanonicalGenreSlug(null, params.category) || (isRawId(params.category) ? "" : params.category);
+    const catName = formatGenreName(resolvedCat) || resolvedCat || "Tổng Hợp";
     title = `Phim ${catName}`;
     description = `Khám phá danh sách phim ${catName} hay nhất, chất lượng Full HD Vietsub & Thuyết minh trên Nanaflix.`;
   } else if (params.country) {
-    const ctryName = formatCountryName(params.country) || params.country;
+    const resolvedCtry = getCanonicalCountrySlug(null, params.country) || (isRawId(params.country) ? "" : params.country);
+    const ctryName = formatCountryName(resolvedCtry) || resolvedCtry || "Quốc Tế";
     title = `Phim ${ctryName}`;
     description = `Khám phá danh sách phim ${ctryName} hay nhất, chất lượng Full HD Vietsub & Thuyết minh trên Nanaflix.`;
   } else if (params.year) {
@@ -630,8 +639,11 @@ export default async function BrowsePage({
 }) {
   const params = await searchParams;
 
-  const category = params.category || undefined;
-  const country = params.country || undefined;
+  const rawCategory = params.category?.trim() || undefined;
+  const rawCountry = params.country?.trim() || undefined;
+
+  const category = (rawCategory ? getCanonicalGenreSlug(null, rawCategory) : undefined) || (rawCategory && !isRawId(rawCategory) ? rawCategory : undefined);
+  const country = (rawCountry ? getCanonicalCountrySlug(null, rawCountry) : undefined) || (rawCountry && !isRawId(rawCountry) ? rawCountry : undefined);
   const year = params.year || undefined;
   const keyword = params.keyword || undefined;
   const actorParam = params.actor || undefined;
