@@ -96,7 +96,7 @@ export function LiveShortcutPopover({ mode = "football" }: LiveShortcutPopoverPr
                 e.stopPropagation();
                 setIsOpen(false);
               }}
-              className="p-1 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition cursor-pointer"
+              className="p-1 rounded-lg hover:bg-white/10 text-zinc-400 hover:text-white transition cursor-pointer"
               title="Đóng (Esc)"
             >
               <X className="w-3.5 h-3.5" />
@@ -107,53 +107,53 @@ export function LiveShortcutPopover({ mode = "football" }: LiveShortcutPopoverPr
           <div className="space-y-2.5">
             {/* Nhóm 1: Phát & Hiển thị */}
             <div>
-              <div className="text-[10px] uppercase font-bold text-gray-400 tracking-wider mb-1.5">
+              <div className="text-[10px] uppercase font-bold text-zinc-400 tracking-wider mb-1.5">
                 Phát &amp; Hiển thị
               </div>
               <div className="grid grid-cols-2 gap-1.5">
                 <div className="flex items-center justify-between bg-white/5 hover:bg-white/10 px-2 py-1 rounded-lg border border-white/5 transition">
-                  <span className="text-gray-300 text-[11px]">Dừng / Phát</span>
+                  <span className="text-zinc-300 text-[11px]">Dừng / Phát</span>
                   <kbd className="px-1.5 py-0.5 rounded bg-zinc-800 text-[10px] font-mono text-amber-300 border border-white/10 font-bold shadow-sm">Space</kbd>
                 </div>
                 <div className="flex items-center justify-between bg-white/5 hover:bg-white/10 px-2 py-1 rounded-lg border border-white/5 transition">
-                  <span className="text-gray-300 text-[11px]">Bật / Tắt tiếng</span>
-                  <kbd className="px-1.5 py-0.5 rounded bg-zinc-800 text-[10px] font-mono text-gray-200 border border-white/10 font-bold shadow-sm">M</kbd>
+                  <span className="text-zinc-300 text-[11px]">Bật / Tắt tiếng</span>
+                  <kbd className="px-1.5 py-0.5 rounded bg-zinc-800 text-[10px] font-mono text-zinc-200 border border-white/10 font-bold shadow-sm">M</kbd>
                 </div>
                 <div className="flex items-center justify-between bg-white/5 hover:bg-white/10 px-2 py-1 rounded-lg border border-white/5 transition">
-                  <span className="text-gray-300 text-[11px]">Toàn màn hình</span>
-                  <kbd className="px-1.5 py-0.5 rounded bg-zinc-800 text-[10px] font-mono text-gray-200 border border-white/10 font-bold shadow-sm">F</kbd>
+                  <span className="text-zinc-300 text-[11px]">Toàn màn hình</span>
+                  <kbd className="px-1.5 py-0.5 rounded bg-zinc-800 text-[10px] font-mono text-zinc-200 border border-white/10 font-bold shadow-sm">F</kbd>
                 </div>
                 <div className="flex items-center justify-between bg-white/5 hover:bg-white/10 px-2 py-1 rounded-lg border border-white/5 transition">
-                  <span className="text-gray-300 text-[11px]">Thu nhỏ PiP</span>
-                  <kbd className="px-1.5 py-0.5 rounded bg-zinc-800 text-[10px] font-mono text-gray-200 border border-white/10 font-bold shadow-sm">I</kbd>
+                  <span className="text-zinc-300 text-[11px]">Thu nhỏ PiP</span>
+                  <kbd className="px-1.5 py-0.5 rounded bg-zinc-800 text-[10px] font-mono text-zinc-200 border border-white/10 font-bold shadow-sm">I</kbd>
                 </div>
               </div>
             </div>
 
             {/* Nhóm 2: Điều khiển & Kênh */}
             <div>
-              <div className="text-[10px] uppercase font-bold text-gray-400 tracking-wider mb-1.5">
+              <div className="text-[10px] uppercase font-bold text-zinc-400 tracking-wider mb-1.5">
                 Điều khiển &amp; Danh sách
               </div>
               <div className="grid grid-cols-2 gap-1.5">
                 <div className="flex items-center justify-between bg-white/5 hover:bg-white/10 px-2 py-1 rounded-lg border border-white/5 transition">
-                  <span className="text-gray-300 text-[11px]">Tua 10 giây</span>
+                  <span className="text-zinc-300 text-[11px]">Tua 10 giây</span>
                   <kbd className="px-1.5 py-0.5 rounded bg-zinc-800 text-[10px] font-mono text-sky-300 border border-white/10 font-bold shadow-sm">← →</kbd>
                 </div>
                 <div className="flex items-center justify-between bg-white/5 hover:bg-white/10 px-2 py-1 rounded-lg border border-white/5 transition">
-                  <span className="text-gray-300 text-[11px]">Âm lượng</span>
+                  <span className="text-zinc-300 text-[11px]">Âm lượng</span>
                   <kbd className="px-1.5 py-0.5 rounded bg-zinc-800 text-[10px] font-mono text-emerald-300 border border-white/10 font-bold shadow-sm">↑ ↓</kbd>
                 </div>
                 <div className="flex items-center justify-between bg-white/5 hover:bg-white/10 px-2 py-1 rounded-lg border border-white/5 transition">
-                  <span className="text-gray-300 text-[11px] truncate max-w-[90px]">{switchLabel}</span>
+                  <span className="text-zinc-300 text-[11px] truncate max-w-[90px]">{switchLabel}</span>
                   <kbd className="px-1.5 py-0.5 rounded bg-zinc-800 text-[10px] font-mono text-purple-300 border border-white/10 font-bold shadow-sm">N / P</kbd>
                 </div>
                 <div className="flex items-center justify-between bg-white/5 hover:bg-white/10 px-2 py-1 rounded-lg border border-white/5 transition">
-                  <span className="text-gray-300 text-[11px]">Về trực tiếp</span>
+                  <span className="text-zinc-300 text-[11px]">Về trực tiếp</span>
                   <kbd className="px-1.5 py-0.5 rounded bg-zinc-800 text-[10px] font-mono text-rose-300 border border-white/10 font-bold shadow-sm">L</kbd>
                 </div>
                 <div className="flex items-center justify-between bg-white/5 hover:bg-white/10 px-2 py-1 rounded-lg border border-white/5 transition col-span-2">
-                  <span className="text-gray-300 text-[11px]">{railLabel}</span>
+                  <span className="text-zinc-300 text-[11px]">{railLabel}</span>
                   <kbd className="px-1.5 py-0.5 rounded bg-zinc-800 text-[10px] font-mono text-cyan-300 border border-white/10 font-bold shadow-sm">C</kbd>
                 </div>
               </div>

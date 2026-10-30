@@ -213,7 +213,7 @@ export const TmdbAudienceReviews: React.FC<TmdbAudienceReviewsProps> = React.mem
                       </div>
                       <div className="min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-sm sm:text-base font-bold text-gray-100 truncate">
+                          <span className="text-sm sm:text-base font-bold text-zinc-100 truncate">
                             {rev.author}
                           </span>
                           <span className="text-[10.5px] px-1.5 py-0.2 rounded bg-white/10 text-zinc-400 font-medium">

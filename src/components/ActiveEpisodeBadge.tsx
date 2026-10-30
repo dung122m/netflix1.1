@@ -19,7 +19,7 @@ export const ActiveEpisodeBadge: React.FC<ActiveEpisodeBadgeProps> = ({
   const epName = activeEpisode?.name || initialEpisodeName;
 
   return (
-    <span className="inline-flex items-center px-2.5 py-1 rounded-lg bg-netflix-red/20 border border-netflix-red/40 text-rose-300 font-extrabold text-xs sm:text-sm shadow-sm flex-shrink-0">
+    <span className="inline-flex items-center px-2.5 py-1 rounded-lg bg-netflix-red/15 border border-netflix-red/30 text-rose-200 font-bold text-xs sm:text-sm shadow-sm flex-shrink-0">
       {isTrailerOnly ? "Trailer" : formatEpisodeName(epName, "Tập 1")}
     </span>
   );
@@ -34,7 +34,7 @@ export const EpisodeCountBadge: React.FC<{ initialCount?: number; isTrailerOnly?
   const count = watchContext?.episodes?.length ?? initialCount;
 
   return (
-    <span className="text-xs px-3 py-1 rounded-full bg-zinc-800/90 border border-white/10 text-gray-300 font-bold shadow-sm backdrop-blur-md transition-all">
+    <span className="text-xs px-3 py-1 rounded-full bg-zinc-800/90 border border-white/10 text-zinc-300 font-bold shadow-sm backdrop-blur-md transition-all">
       {isTrailerOnly || count === 0 ? "Trailer" : `${count} tập`}
     </span>
   );

@@ -425,8 +425,8 @@ function NationalDayScene() {
       </div>
 
       {/* Tiny gold particles */}
-      <div className="absolute top-2 left-[30%] w-1 h-1 rounded-full bg-yellow-400/70 shadow-[0_0_4px_#FDE047] opacity-50 cinema-anim" style={{ animation: "cinemaDrift 18s ease-in-out infinite" }} />
-      <div className="absolute top-3 left-[68%] w-1 h-1 rounded-full bg-amber-400/70 shadow-[0_0_4px_#F59E0B] opacity-50 cinema-anim" style={{ animation: "cinemaTwinkle 4.5s ease-in-out infinite 1.2s" }} />
+      <div className="absolute top-2 left-[30%] w-1 h-1 rounded-full bg-yellow-400/70 opacity-60 cinema-anim" style={{ animation: "cinemaDrift 18s ease-in-out infinite" }} />
+      <div className="absolute top-3 left-[68%] w-1 h-1 rounded-full bg-amber-400/70 opacity-60 cinema-anim" style={{ animation: "cinemaTwinkle 4.5s ease-in-out infinite 1.2s" }} />
     </>
   );
 }
@@ -481,7 +481,7 @@ function HungKingsScene() {
         className="absolute top-2 left-[25%] pointer-events-none cinema-anim"
         style={{ animation: "cinemaRise 13s ease-in-out infinite" }}
       >
-        <div className="w-1 h-1 rounded-full bg-amber-500/70 shadow-[0_0_5px_#F59E0B] opacity-55" />
+        <div className="w-1 h-1 rounded-full bg-amber-500/70 opacity-60" />
       </div>
       <div className="absolute top-2 left-[48%] hidden md:flex w-1.5 h-1.5 rounded-full bg-amber-500/80 shadow-[0_0_6px_#D97706] cinema-anim opacity-60" style={{ animation: "cinemaFlicker 3.8s ease-in-out infinite" }} />
       <div className="absolute top-4 left-[65%] w-1 h-1 rounded-full bg-yellow-400/60 shadow-[0_0_4px_#FBBF24] opacity-50 cinema-anim" style={{ animation: "cinemaDrift 18s ease-in-out infinite 1s" }} />
@@ -829,8 +829,8 @@ function EducationScene() {
         <FloralRosette className="w-5 h-5 sm:w-6 sm:h-6 opacity-75 filter drop-shadow-[0_0_6px_rgba(245,158,11,0.4)]" />
       </div>
 
-      <div className="absolute top-2 left-[30%] w-1 h-1 rounded-full bg-amber-300/60 shadow-[0_0_3px_#F59E0B] opacity-45 cinema-anim" style={{ animation: "cinemaDrift 20s ease-in-out infinite" }} />
-      <div className="absolute top-3 left-[62%] w-1 h-1 rounded-full bg-yellow-300/50 shadow-[0_0_3px_#FEF08A] opacity-40 cinema-anim" style={{ animation: "cinemaDrift 24s ease-in-out infinite 2s" }} />
+      <div className="absolute top-2 left-[30%] w-1 h-1 rounded-full bg-amber-300/60 opacity-60 cinema-anim" style={{ animation: "cinemaDrift 20s ease-in-out infinite" }} />
+      <div className="absolute top-3 left-[62%] w-1 h-1 rounded-full bg-yellow-300/50 opacity-60 cinema-anim" style={{ animation: "cinemaDrift 24s ease-in-out infinite 2s" }} />
     </>
   );
 }
@@ -874,8 +874,8 @@ function MilitaryScene() {
           </svg>
         </div>
       </div>
-      <div className="absolute top-2 left-[28%] w-1 h-1 rounded-full bg-amber-400/60 shadow-[0_0_3px_#CA8A04] opacity-45 cinema-anim" style={{ animation: "cinemaDrift 22s ease-in-out infinite" }} />
-      <div className="absolute top-4 left-[64%] w-1 h-1 rounded-full bg-yellow-300/50 shadow-[0_0_3px_#F59E0B] opacity-40 cinema-anim" style={{ animation: "cinemaDrift 26s ease-in-out infinite 3s" }} />
+      <div className="absolute top-2 left-[28%] w-1 h-1 rounded-full bg-amber-400/60 opacity-60 cinema-anim" style={{ animation: "cinemaDrift 22s ease-in-out infinite" }} />
+      <div className="absolute top-4 left-[64%] w-1 h-1 rounded-full bg-yellow-300/50 opacity-60 cinema-anim" style={{ animation: "cinemaDrift 26s ease-in-out infinite 3s" }} />
     </>
   );
 }

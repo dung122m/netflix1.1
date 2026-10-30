@@ -222,21 +222,21 @@ export const AddMovieToCollectionModal: React.FC<AddMovieToCollectionModalProps>
           type="button"
           onClick={handleClose}
           disabled={Boolean(addingSlug)}
-          className="absolute top-4 right-4 p-1.5 rounded-full text-gray-400 hover:text-white hover:bg-white/10 transition cursor-pointer z-10 disabled:opacity-50"
+          className="absolute top-4 right-4 p-1.5 rounded-full text-zinc-400 hover:text-white hover:bg-white/10 transition cursor-pointer z-10 disabled:opacity-50"
         >
           <X className="w-4 h-4" />
         </button>
 
         {/* Header Modal */}
         <div className="flex items-center gap-3 mb-4 pr-8">
-          <div className="w-10 h-10 rounded-2xl bg-netflix-red/20 text-netflix-red flex items-center justify-center border border-netflix-red/30 shadow-md flex-shrink-0">
+          <div className="w-10 h-10 rounded-2xl bg-netflix-red/20 text-netflix-red flex items-center justify-center border border-netflix-red/30 shadow-md shadow-black/40 flex-shrink-0">
             <Film className="w-5 h-5" />
           </div>
           <div className="min-w-0">
             <h3 className="text-base sm:text-lg font-bold text-white truncate">
               Thêm Phim Vào Bộ Sưu Tập
             </h3>
-            <p className="text-xs text-gray-400 truncate mt-0.5">
+            <p className="text-xs text-zinc-400 truncate mt-0.5">
               Đang thêm vào: <span className="text-rose-300 font-medium">{collectionName}</span>
             </p>
           </div>
@@ -244,14 +244,14 @@ export const AddMovieToCollectionModal: React.FC<AddMovieToCollectionModalProps>
 
         {/* Thanh tìm kiếm */}
         <div className="relative mb-3 flex-shrink-0">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 pointer-events-none" />
           <input
             ref={inputRef}
             type="text"
             placeholder="Tìm theo tên phim (VD: Mai, Dune, Avatar...)"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full bg-zinc-900 border border-white/15 rounded-2xl pl-10 pr-9 py-2.5 text-xs sm:text-sm text-white placeholder:text-gray-500 focus:outline-none focus:border-netflix-red focus:ring-1 focus:ring-netflix-red transition"
+            className="w-full bg-zinc-900 border border-white/15 rounded-2xl pl-10 pr-9 py-2.5 text-xs sm:text-sm text-white placeholder:text-zinc-500 focus:outline-none focus:border-netflix-red focus:ring-1 focus:ring-netflix-red transition"
           />
           {searchTerm && (
             <button
@@ -261,7 +261,7 @@ export const AddMovieToCollectionModal: React.FC<AddMovieToCollectionModalProps>
                 setResults([]);
                 inputRef.current?.focus();
               }}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white p-0.5 rounded cursor-pointer"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-white p-0.5 rounded cursor-pointer"
             >
               <X className="w-3.5 h-3.5" />
             </button>
@@ -271,14 +271,14 @@ export const AddMovieToCollectionModal: React.FC<AddMovieToCollectionModalProps>
         {/* Khu vực danh sách kết quả */}
         <div className="flex-1 overflow-y-auto space-y-2 py-1 pr-1 scrollbar-none min-h-[220px]">
           {isSearching ? (
-            <div className="py-14 flex flex-col items-center justify-center gap-2 text-gray-400 text-xs">
+            <div className="py-14 flex flex-col items-center justify-center gap-2 text-zinc-400 text-xs">
               <Loader2 className="w-6 h-6 animate-spin text-netflix-red" />
               <span>Đang tìm kiếm phim...</span>
             </div>
           ) : searchError ? (
             <div className="py-12 flex flex-col items-center justify-center text-center px-4">
               <AlertCircle className="w-8 h-8 text-amber-400 mb-2" />
-              <p className="text-xs text-gray-300 mb-3">{searchError}</p>
+              <p className="text-xs text-zinc-300 mb-3">{searchError}</p>
               <button
                 type="button"
                 onClick={() => performSearch(searchTerm)}
@@ -289,10 +289,10 @@ export const AddMovieToCollectionModal: React.FC<AddMovieToCollectionModalProps>
               </button>
             </div>
           ) : searchTerm.trim().length >= 2 && results.length === 0 ? (
-            <div className="py-12 text-center text-gray-400 px-4">
+            <div className="py-12 text-center text-zinc-400 px-4">
               <Film className="w-8 h-8 text-zinc-600 mx-auto mb-2" />
               <p className="text-sm font-semibold text-white">Không tìm thấy bộ phim phù hợp</p>
-              <p className="text-xs text-gray-400 mt-1">
+              <p className="text-xs text-zinc-400 mt-1">
                 Thử tìm với từ khóa khác hoặc viết không dấu
               </p>
             </div>
@@ -321,11 +321,11 @@ export const AddMovieToCollectionModal: React.FC<AddMovieToCollectionModalProps>
                       <p className="text-xs sm:text-sm font-bold text-white truncate" title={movie.title}>
                         {movie.title}
                       </p>
-                      <div className="flex items-center gap-1.5 text-[11px] text-gray-400 mt-0.5 flex-wrap">
+                      <div className="flex items-center gap-1.5 text-[11px] text-zinc-400 mt-0.5 flex-wrap">
                         {movie.year && <span>{movie.year}</span>}
                         {movie.year && movie.quality && <span>•</span>}
                         {movie.quality && (
-                          <span className="px-1.5 py-0.2 rounded bg-white/10 text-gray-200 text-[10px]">
+                          <span className="px-1.5 py-0.2 rounded bg-white/10 text-zinc-200 text-[10px]">
                             {movie.quality}
                           </span>
                         )}
@@ -349,7 +349,7 @@ export const AddMovieToCollectionModal: React.FC<AddMovieToCollectionModalProps>
                       <button
                         type="button"
                         onClick={() => handleAddMovie(movie)}
-                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-netflix-red hover:bg-rose-700 active:scale-95 text-white text-xs font-bold transition shadow-md shadow-rose-950/40 cursor-pointer"
+                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-netflix-red hover:bg-rose-700 active:scale-95 text-white text-xs font-bold transition shadow-md shadow-black/50 cursor-pointer"
                       >
                         <Plus className="w-3.5 h-3.5" />
                         <span>Thêm</span>
@@ -360,12 +360,12 @@ export const AddMovieToCollectionModal: React.FC<AddMovieToCollectionModalProps>
               );
             })
           ) : (
-            <div className="py-12 text-center text-gray-400 px-4">
+            <div className="py-12 text-center text-zinc-400 px-4">
               <Search className="w-8 h-8 text-zinc-600 mx-auto mb-2" />
-              <p className="text-xs sm:text-sm font-medium text-gray-300">
+              <p className="text-xs sm:text-sm font-medium text-zinc-300">
                 Nhập tên phim vào thanh tìm kiếm phía trên
               </p>
-              <p className="text-[11px] text-gray-500 mt-1">
+              <p className="text-[11px] text-zinc-500 mt-1">
                 Hàng ngàn bộ phim bom tấn đang sẵn sàng để bạn thêm vào bộ sưu tập
               </p>
             </div>
@@ -374,7 +374,7 @@ export const AddMovieToCollectionModal: React.FC<AddMovieToCollectionModalProps>
 
         {/* Footer */}
         <div className="pt-3 mt-2 border-t border-white/10 flex items-center justify-between">
-          <span className="text-[11px] text-gray-400">
+          <span className="text-[11px] text-zinc-400">
             {results.length > 0 ? `Tìm thấy ${results.length} kết quả` : ""}
           </span>
           <button

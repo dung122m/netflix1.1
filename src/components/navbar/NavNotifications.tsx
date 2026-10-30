@@ -157,7 +157,7 @@ export const NavNotifications: React.FC = React.memo(function NavNotifications()
             setShowNotifications((prev) => !prev);
           }}
           aria-label="Thông báo"
-          className="relative flex items-center justify-center h-8 w-8 sm:h-9 sm:w-9 rounded-full bg-white/10 hover:bg-white/20 text-gray-200 hover:text-white border border-white/10 transition cursor-pointer flex-shrink-0 active:scale-95"
+          className="relative flex items-center justify-center h-8 w-8 sm:h-9 sm:w-9 rounded-full bg-white/10 hover:bg-white/20 text-zinc-200 hover:text-white border border-white/10 transition cursor-pointer flex-shrink-0 active:scale-95"
         >
           <Bell size={16} className="sm:hidden" />
           <Bell size={18} className="hidden sm:block" />
@@ -196,11 +196,11 @@ export const NavNotifications: React.FC = React.memo(function NavNotifications()
                     }}
                     className={`text-[11px] flex items-center gap-1 transition cursor-pointer hover:underline ${
                       userUnreadCount > 0
-                        ? "text-gray-300 hover:text-emerald-400 font-semibold"
-                        : "text-gray-500 hover:text-gray-400"
+                        ? "text-zinc-300 hover:text-emerald-400 font-semibold"
+                        : "text-zinc-500 hover:text-zinc-400"
                     }`}
                   >
-                    <CheckCheck size={13} className={userUnreadCount > 0 ? "text-emerald-400" : "text-gray-500"} />
+                    <CheckCheck size={13} className={userUnreadCount > 0 ? "text-emerald-400" : "text-zinc-500"} />
                     <span>Đã đọc hết</span>
                   </button>
                 </Tooltip>
@@ -324,8 +324,8 @@ export const NavNotifications: React.FC = React.memo(function NavNotifications()
             ))}
 
             {dedupedUserNotifications.length === 0 && (
-              <div className="py-8 text-center text-gray-400 text-xs flex flex-col items-center justify-center gap-1.5">
-                <Bell size={24} className="text-gray-600 mb-1" />
+              <div className="py-8 text-center text-zinc-400 text-xs flex flex-col items-center justify-center gap-1.5">
+                <Bell size={24} className="text-zinc-600 mb-1" />
                 <span>Chưa có thông báo bình luận hoặc cảm xúc mới nào</span>
               </div>
             )}

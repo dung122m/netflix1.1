@@ -127,7 +127,7 @@ const PRIVACY_ARTICLES = [
 
 export default function PrivacyPage() {
   return (
-    <div className="min-h-screen bg-[#050505] text-gray-100 flex flex-col selection:bg-netflix-red selection:text-white font-sans antialiased overflow-x-hidden">
+    <div className="min-h-screen bg-[#050505] text-zinc-100 flex flex-col selection:bg-netflix-red selection:text-white font-sans antialiased overflow-x-hidden">
       <Navbar />
 
       {/* AMBIENT GLOW */}
@@ -146,15 +146,15 @@ export default function PrivacyPage() {
             <h1 className="text-3xl sm:text-5xl md:text-6xl font-black tracking-tight text-white leading-tight">
               Bảo Mật & <span className="text-emerald-400">Quyền Riêng Tư</span>
             </h1>
-            <p className="text-base sm:text-lg text-gray-400 font-normal leading-relaxed max-w-2xl mx-auto">
+            <p className="text-base sm:text-lg text-zinc-400 font-normal leading-relaxed max-w-2xl mx-auto">
               Tại Nanaflix, sự riêng tư và an toàn dữ liệu của bạn được đặt lên hàng đầu. Dưới đây là văn bản cam kết rõ ràng, chi tiết và minh bạch về cách chúng tôi bảo vệ thông tin của bạn.
             </p>
           </div>
 
-          <div className="flex items-center justify-center gap-4 text-xs text-gray-500 font-mono">
-            <span>Phiên bản hiệu lực: <strong className="text-gray-300 font-semibold">2.6</strong></span>
+          <div className="flex items-center justify-center gap-4 text-xs text-zinc-500 font-mono">
+            <span>Phiên bản hiệu lực: <strong className="text-zinc-300 font-semibold">2.6</strong></span>
             <span>•</span>
-            <span>Cập nhật lần cuối: <strong className="text-gray-300 font-semibold">Tháng 09/2026</strong></span>
+            <span>Cập nhật lần cuối: <strong className="text-zinc-300 font-semibold">Tháng 09/2026</strong></span>
           </div>
         </section>
 
@@ -177,7 +177,7 @@ export default function PrivacyPage() {
                   >
                     <Icon size={22} />
                   </div>
-                  <span className="text-xs font-bold px-3 py-1 rounded-full bg-white/[0.04] border border-white/[0.08] text-gray-300 font-mono">
+                  <span className="text-xs font-bold px-3 py-1 rounded-full bg-white/[0.04] border border-white/[0.08] text-zinc-300 font-mono">
                     {p.badge}
                   </span>
                 </div>
@@ -186,7 +186,7 @@ export default function PrivacyPage() {
                   {p.title}
                 </h3>
 
-                <p className="text-xs sm:text-sm text-gray-400 leading-relaxed font-normal">
+                <p className="text-xs sm:text-sm text-zinc-400 leading-relaxed font-normal">
                   {p.desc}
                 </p>
               </div>
@@ -202,7 +202,7 @@ export default function PrivacyPage() {
             </div>
             <div>
               <h2 className="text-xl font-bold text-white">Chúng Tôi Thu Thập Dữ Liệu Nào & Sử Dụng Ra Sao?</h2>
-              <p className="text-xs text-gray-400 mt-0.5">Mọi dữ liệu đều được phân loại mục đích rõ ràng và quản lý vòng đời nghiêm ngặt.</p>
+              <p className="text-xs text-zinc-400 mt-0.5">Mọi dữ liệu đều được phân loại mục đích rõ ràng và quản lý vòng đời nghiêm ngặt.</p>
             </div>
           </div>
 
@@ -219,20 +219,20 @@ export default function PrivacyPage() {
                 
                 <div className="space-y-2 text-xs">
                   <div>
-                    <span className="text-gray-400 font-semibold">Dữ liệu: </span>
-                    <span className="text-gray-300">{item.what}</span>
+                    <span className="text-zinc-400 font-semibold">Dữ liệu: </span>
+                    <span className="text-zinc-300">{item.what}</span>
                   </div>
                   <div>
-                    <span className="text-gray-400 font-semibold">Mục đích: </span>
-                    <span className="text-gray-300">{item.why}</span>
+                    <span className="text-zinc-400 font-semibold">Mục đích: </span>
+                    <span className="text-zinc-300">{item.why}</span>
                   </div>
                   <div>
-                    <span className="text-gray-400 font-semibold">Nơi lưu trữ: </span>
+                    <span className="text-zinc-400 font-semibold">Nơi lưu trữ: </span>
                     <span className="text-emerald-400 font-mono text-[11px]">{item.storage}</span>
                   </div>
                   <div>
-                    <span className="text-gray-400 font-semibold">Thời gian lưu: </span>
-                    <span className="text-gray-400">{item.retention}</span>
+                    <span className="text-zinc-400 font-semibold">Thời gian lưu: </span>
+                    <span className="text-zinc-400">{item.retention}</span>
                   </div>
                 </div>
               </div>
@@ -247,7 +247,7 @@ export default function PrivacyPage() {
               <FileText size={18} className="text-emerald-400" />
               <span>Các Điều Khoản Bảo Mật Chi Tiết</span>
             </h2>
-            <p className="text-xs text-gray-400">Quy định cụ thể về trách nhiệm và quyền lợi của người dùng trên hệ thống.</p>
+            <p className="text-xs text-zinc-400">Quy định cụ thể về trách nhiệm và quyền lợi của người dùng trên hệ thống.</p>
           </div>
 
           <div className="space-y-4">
@@ -260,10 +260,10 @@ export default function PrivacyPage() {
                   <span className="text-xs font-mono font-bold text-emerald-400 uppercase tracking-wider">
                     {art.number}
                   </span>
-                  <span className="text-gray-600">•</span>
+                  <span className="text-zinc-600">•</span>
                   <h3 className="text-sm sm:text-base font-bold text-white">{art.title}</h3>
                 </div>
-                <p className="text-xs sm:text-sm text-gray-400 leading-relaxed pl-0 sm:pl-2">
+                <p className="text-xs sm:text-sm text-zinc-400 leading-relaxed pl-0 sm:pl-2">
                   {art.content}
                 </p>
               </div>
@@ -275,13 +275,13 @@ export default function PrivacyPage() {
         <section className="flex flex-col sm:flex-row items-center justify-between gap-4 p-6 sm:p-8 rounded-3xl bg-gradient-to-r from-zinc-900/80 to-black border border-white/10">
           <div className="space-y-1 text-center sm:text-left">
             <h4 className="text-base font-bold text-white">Bạn có thắc mắc hoặc cần hỗ trợ về bảo mật tài khoản?</h4>
-            <p className="text-xs text-gray-400">Xem thêm các điều khoản dịch vụ hoặc liên hệ bộ phận hỗ trợ kỹ thuật.</p>
+            <p className="text-xs text-zinc-400">Xem thêm các điều khoản dịch vụ hoặc liên hệ bộ phận hỗ trợ kỹ thuật.</p>
           </div>
 
           <div className="flex items-center gap-3 flex-wrap justify-center">
             <Link
               href="/terms"
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white/[0.08] hover:bg-white/[0.15] border border-white/10 text-xs font-semibold text-gray-200 transition"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white/[0.08] hover:bg-white/[0.15] border border-white/10 text-xs font-semibold text-zinc-200 transition"
             >
               <Scale size={14} />
               <span>Điều Khoản Dịch Vụ</span>

@@ -97,7 +97,7 @@ export const WatchPlayerHost: React.FC<WatchPlayerHostProps> = (props) => {
             {vsmovLoading && (
               <div className="w-full aspect-video bg-zinc-950 rounded-xl sm:rounded-2xl flex flex-col items-center justify-center border border-white/10">
                 <div className="w-10 h-10 border-2 border-red-600/30 border-t-red-600 rounded-full animate-spin mb-2" />
-                <p className="text-xs text-gray-400">Đang đồng bộ liên kết từ VSMOV...</p>
+                <p className="text-xs text-zinc-400">Đang đồng bộ liên kết từ VSMOV...</p>
               </div>
             )}
             {vsmovError && !vsmovLoading && (
@@ -106,7 +106,7 @@ export const WatchPlayerHost: React.FC<WatchPlayerHostProps> = (props) => {
                 <h4 className="text-sm font-bold text-white mb-1">
                   Chưa tìm thấy tập phim trên Server VSMOV
                 </h4>
-                <p className="text-xs text-gray-400 max-w-sm mb-4">
+                <p className="text-xs text-zinc-400 max-w-sm mb-4">
                   {vsmovError}
                 </p>
                 {hasNanaflixSource && (

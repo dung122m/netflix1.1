@@ -152,7 +152,7 @@ export const TrailerModal: React.FC<TrailerModalProps> = React.memo(
                       <button
                         type="button"
                         onClick={handleClose}
-                        className="p-1.5 rounded-full text-gray-400 hover:text-white hover:bg-white/10 transition cursor-pointer flex-shrink-0"
+                        className="p-1.5 rounded-full text-zinc-400 hover:text-white hover:bg-white/10 transition cursor-pointer flex-shrink-0"
                         aria-label="Đóng trailer"
                       >
                         <X className="w-5 h-5" />

@@ -18,7 +18,7 @@ export default function Loading() {
           <div className="h-full w-full bg-gradient-to-r from-red-600 via-rose-500 to-amber-400 rounded-full animate-[progress_1.2s_ease-in-out_infinite]" />
         </div>
 
-        <p className="text-xs sm:text-sm font-bold text-gray-400 tracking-wider uppercase animate-pulse">
+        <p className="text-xs sm:text-sm font-bold text-zinc-400 tracking-wider uppercase animate-pulse">
           Nana đang chuẩn bị phòng chiếu...
         </p>
       </div>

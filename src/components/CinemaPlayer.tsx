@@ -28,7 +28,17 @@ import { formatEpisodeName } from "@/lib/formatEpisode";
 import { useAuth } from "@/context/AuthContext";
 import { updateActivePlaybackSession } from "@/services/handoffService";
 import { incrementUserWatchTime, getPlayerSettings, PlayerSettings } from "@/services/userService";
-import { PlayerNativeControls, VideoFit } from "./player/PlayerNativeControls";
+import {
+  PlayerNativeControls,
+  VideoFit,
+  YouTubePlayIcon,
+  YouTubePauseIcon,
+  YouTubeSeek10BackIcon,
+  YouTubeSeek10ForwardIcon,
+  YouTubeVolumeHighIcon,
+  YouTubeVolumeLowIcon,
+  YouTubeVolumeMuteIcon,
+} from "./player/PlayerNativeControls";
 import { PlayerActionButtons } from "./player/PlayerActionButtons";
 import { PlayerShortcutModal } from "./player/PlayerShortcutModal";
 import {
@@ -777,7 +787,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
       }
       setIsFullscreen(false);
       unlockOrientation();
-      showHud(<Minimize2 className="w-5 h-5 text-gray-300" />, "Thoát toàn màn hình");
+      showHud(<Minimize2 className="w-5 h-5 text-zinc-300" />, "Thoát toàn màn hình");
     } else {
       if (elem.requestFullscreen) {
         elem
@@ -868,7 +878,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
     try {
       if (document.pictureInPictureElement) {
         await document.exitPictureInPicture();
-        showHud(<PictureInPicture className="w-5 h-5 text-gray-400" />, "Thoát cửa sổ nổi");
+        showHud(<PictureInPicture className="w-5 h-5 text-zinc-400" />, "Thoát cửa sổ nổi");
       } else if (document.pictureInPictureEnabled) {
         await video.requestPictureInPicture();
         showHud(<PictureInPicture className="w-5 h-5 text-netflix-red" />, "Cửa sổ nổi (PiP)");
@@ -2453,7 +2463,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
             <button
               type="button"
               onClick={scrollToPlayer}
-              className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-white/10 text-gray-200 hover:text-white text-[10px] font-semibold transition cursor-pointer"
+              className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-white/10 text-zinc-200 hover:text-white text-[10px] font-semibold transition cursor-pointer"
             >
               <ArrowUpRight className="w-3 h-3" />
               <span>Lên đầu</span>
@@ -2471,7 +2481,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
               ? "aspect-video rounded-none max-h-[38vh] shadow-2xl"
               : isTheaterMode
               ? "aspect-video w-full rounded-xl sm:rounded-2xl md:rounded-3xl border border-white/20 shadow-[0_30px_90px_rgba(0,0,0,0.85)] max-h-[calc(100vh-185px)]"
-              : "aspect-video rounded-xl sm:rounded-2xl md:rounded-3xl border border-white/15 shadow-[0_25px_70px_rgba(0,0,0,0.55)]"
+              : "aspect-video rounded-xl sm:rounded-2xl md:rounded-3xl border border-white/15 shadow-[0_25px_70px_rgba(0,0,0,0.55)] max-md:landscape:rounded-none max-md:landscape:border-none"
           }`}
         >
           {isNativeVideo ? (
@@ -2598,51 +2608,58 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
                 <div className="absolute inset-0 bg-black pointer-events-none z-20" />
               )}
 
-              {/* DOUBLE TAP RIPPLE EFFECT (YOUTUBE / NETFLIX STYLE) */}
-              {doubleTapFeedback && doubleTapFeedback.side === "left" && (
-                <div className="absolute left-6 sm:left-12 top-1/2 -translate-y-1/2 pointer-events-none z-30 animate-in fade-in zoom-in-75 duration-200">
-                  <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-black/75 backdrop-blur-md border border-white/15 text-white shadow-2xl flex flex-col items-center justify-center">
-                    <RotateCcw className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
-                    <span className="text-[10px] sm:text-[11px] font-bold font-mono text-white mt-0.5">−10s</span>
-                  </div>
-                </div>
-              )}
-              {doubleTapFeedback && doubleTapFeedback.side === "right" && (
-                <div className="absolute right-6 sm:right-12 top-1/2 -translate-y-1/2 pointer-events-none z-30 animate-in fade-in zoom-in-75 duration-200">
-                  <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-black/75 backdrop-blur-md border border-white/15 text-white shadow-2xl flex flex-col items-center justify-center">
-                    <RotateCw className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
-                    <span className="text-[10px] sm:text-[11px] font-bold font-mono text-white mt-0.5">+10s</span>
+              {/* DOUBLE TAP RIPPLE EFFECT (YOUTUBE ELEGANT HALF-SCREEN CURVED RIPPLE) */}
+              {doubleTapFeedback && (
+                <div
+                  className={`absolute top-0 bottom-0 ${
+                    doubleTapFeedback.side === "left"
+                      ? "left-0 rounded-r-[120px] sm:rounded-r-[160px] pl-4 sm:pl-8"
+                      : "right-0 rounded-l-[120px] sm:rounded-l-[160px] pr-4 sm:pr-8"
+                  } w-[40%] bg-white/10 backdrop-blur-[2px] flex items-center justify-center pointer-events-none z-30 animate-in fade-in duration-150`}
+                >
+                  <div className="flex flex-col items-center gap-1.5 text-white">
+                    <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-black/45 backdrop-blur-md border border-white/15 flex items-center justify-center shadow-lg">
+                      {doubleTapFeedback.side === "left" ? (
+                        <YouTubeSeek10BackIcon className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
+                      ) : (
+                        <YouTubeSeek10ForwardIcon className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
+                      )}
+                    </div>
+                    <span className="text-[11px] sm:text-xs font-bold tracking-tight tabular-nums text-white drop-shadow-md">
+                      {doubleTapFeedback.side === "left" ? "◀◀ 10 giây" : "10 giây ▶▶"}
+                    </span>
                   </div>
                 </div>
               )}
 
-              {/* DESKTOP PLAYBACK FEEDBACK ICONS (PAUSE / PLAY / REWIND / FAST-FORWARD) */}
+              {/* DESKTOP PLAYBACK FEEDBACK ICONS (PAUSE / PLAY) - Chỉ hiện trên desktop, tránh chồng lấn nút center trên mobile */}
               {desktopFeedback && (desktopFeedback.type === "play" || desktopFeedback.type === "pause") && (
                 <div
                   key={desktopFeedback.id}
-                  className="absolute inset-0 flex items-center justify-center pointer-events-none z-20"
+                  className="hidden md:flex absolute inset-0 items-center justify-center pointer-events-none z-20"
                 >
-                  <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-black/60 backdrop-blur-sm border border-white/20 text-white flex items-center justify-center shadow-2xl animate-in fade-in zoom-in-75 duration-200">
+                  <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-black/60 backdrop-blur-xl border border-white/15 text-white flex items-center justify-center shadow-2xl animate-in fade-in zoom-in-75 duration-150">
                     {desktopFeedback.type === "play" ? (
-                      <Play className="w-7 h-7 sm:w-8 sm:h-8 fill-white text-white ml-1" />
+                      <YouTubePlayIcon className="w-8 h-8 sm:w-10 sm:h-10 text-white ml-0.5" />
                     ) : (
-                      <Pause className="w-7 h-7 sm:w-8 sm:h-8 fill-white text-white" />
+                      <YouTubePauseIcon className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
                     )}
                   </div>
                 </div>
               )}
+
               {/* DESKTOP / KEYBOARD SEEK FEEDBACK (LEFT / RIGHT) */}
               {desktopFeedback && desktopFeedback.type === "seek-left" && (
                 <div
                   key={desktopFeedback.id}
                   role="status"
                   aria-live="polite"
-                  className="absolute left-6 sm:left-12 top-1/2 -translate-y-1/2 pointer-events-none z-25 animate-in fade-in zoom-in-95 duration-150 motion-reduce:animate-none"
+                  className="absolute left-8 sm:left-16 top-1/2 -translate-y-1/2 pointer-events-none z-25 animate-in fade-in zoom-in-95 slide-in-from-right-2 duration-150 motion-reduce:animate-none"
                 >
-                  <div className="px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-full bg-black/80 backdrop-blur-md border border-white/15 text-white flex items-center gap-2 shadow-2xl">
-                    <RotateCcw className="w-4 h-4 sm:w-5 sm:h-5 text-white shrink-0" />
-                    <span className="text-xs sm:text-sm font-bold font-mono tracking-tight text-white tabular-nums">
-                      {desktopFeedback.text || "−10s"}
+                  <div className="px-4 py-2 sm:px-4.5 sm:py-2.5 rounded-full bg-zinc-950/85 backdrop-blur-2xl border border-white/20 text-white flex items-center gap-2.5 shadow-[0_12px_36px_rgba(0,0,0,0.85)] ring-1 ring-white/10">
+                    <YouTubeSeek10BackIcon className="w-5 h-5 text-white shrink-0" />
+                    <span className="text-xs sm:text-sm font-semibold tracking-tight text-white tabular-nums">
+                      {desktopFeedback.seconds ? `${desktopFeedback.seconds} giây` : desktopFeedback.text || "10 giây"}
                     </span>
                   </div>
                 </div>
@@ -2653,13 +2670,13 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
                   key={desktopFeedback.id}
                   role="status"
                   aria-live="polite"
-                  className="absolute right-6 sm:right-12 top-1/2 -translate-y-1/2 pointer-events-none z-25 animate-in fade-in zoom-in-95 duration-150 motion-reduce:animate-none"
+                  className="absolute right-8 sm:right-16 top-1/2 -translate-y-1/2 pointer-events-none z-25 animate-in fade-in zoom-in-95 slide-in-from-left-2 duration-150 motion-reduce:animate-none"
                 >
-                  <div className="px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-full bg-black/80 backdrop-blur-md border border-white/15 text-white flex items-center gap-2 shadow-2xl">
-                    <span className="text-xs sm:text-sm font-bold font-mono tracking-tight text-white tabular-nums">
-                      {desktopFeedback.text || "+10s"}
+                  <div className="px-4 py-2 sm:px-4.5 sm:py-2.5 rounded-full bg-zinc-950/85 backdrop-blur-2xl border border-white/20 text-white flex items-center gap-2.5 shadow-[0_12px_36px_rgba(0,0,0,0.85)] ring-1 ring-white/10">
+                    <span className="text-xs sm:text-sm font-semibold tracking-tight text-white tabular-nums">
+                      {desktopFeedback.seconds ? `${desktopFeedback.seconds} giây` : desktopFeedback.text || "10 giây"}
                     </span>
-                    <RotateCw className="w-4 h-4 sm:w-5 sm:h-5 text-white shrink-0" />
+                    <YouTubeSeek10ForwardIcon className="w-5 h-5 text-white shrink-0" />
                   </div>
                 </div>
               )}
@@ -2669,27 +2686,27 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
                 <div
                   role="status"
                   aria-live="polite"
-                  className="absolute top-4 sm:top-6 left-1/2 -translate-x-1/2 z-30 pointer-events-none max-w-[calc(100%-32px)] animate-in fade-in slide-in-from-top-2 duration-200 motion-reduce:animate-none"
+                  className="absolute top-5 sm:top-7 left-1/2 -translate-x-1/2 z-30 pointer-events-none max-w-[calc(100%-32px)] animate-in fade-in slide-in-from-top-3 duration-200 motion-reduce:animate-none"
                 >
-                  <div className="flex items-center gap-2.5 sm:gap-3 px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-full bg-black/80 backdrop-blur-md border border-white/15 text-white shadow-2xl">
+                  <div className="flex items-center gap-3 px-4 py-2 sm:px-4.5 sm:py-2.5 rounded-full bg-zinc-950/90 backdrop-blur-2xl border border-white/20 text-white shadow-[0_12px_36px_rgba(0,0,0,0.85)] ring-1 ring-white/10">
                     {volumeOsd.isMuted || volumeOsd.volume === 0 ? (
-                      <VolumeX className="w-4 h-4 sm:w-5 sm:h-5 text-rose-400 shrink-0" />
+                      <YouTubeVolumeMuteIcon className="w-5 h-5 text-netflix-red shrink-0" />
                     ) : volumeOsd.volume < 0.5 ? (
-                      <Volume1 className="w-4 h-4 sm:w-5 sm:h-5 text-white/90 shrink-0" />
+                      <YouTubeVolumeLowIcon className="w-5 h-5 text-white/90 shrink-0" />
                     ) : (
-                      <Volume2 className="w-4 h-4 sm:w-5 sm:h-5 text-white/90 shrink-0" />
+                      <YouTubeVolumeHighIcon className="w-5 h-5 text-white/90 shrink-0" />
                     )}
 
-                    <div className="w-16 sm:w-20 h-1.5 sm:h-2 rounded-full bg-white/20 overflow-hidden shrink-0">
+                    <div className="w-24 sm:w-28 h-1.5 rounded-full bg-white/20 overflow-hidden shrink-0">
                       <div
-                        className="h-full bg-white rounded-full transition-all duration-150 ease-out"
+                        className="h-full bg-gradient-to-r from-white to-zinc-200 rounded-full transition-all duration-150 ease-out"
                         style={{
                           width: `${volumeOsd.isMuted ? 0 : Math.round(volumeOsd.volume * 100)}%`,
                         }}
                       />
                     </div>
 
-                    <span className="text-xs sm:text-sm font-bold font-mono tracking-tight tabular-nums text-white min-w-[32px] text-right">
+                    <span className="text-xs sm:text-[13px] font-semibold tracking-tight tabular-nums text-white min-w-[34px] text-right">
                       {volumeOsd.isMuted ? "Tắt tiếng" : `${Math.round(volumeOsd.volume * 100)}%`}
                     </span>
                   </div>
@@ -2701,9 +2718,9 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
                 <div
                   role="status"
                   aria-live="polite"
-                  className="absolute top-4 sm:top-6 left-1/2 -translate-x-1/2 z-30 pointer-events-none max-w-[calc(100%-32px)] animate-in fade-in slide-in-from-top-2 duration-200 motion-reduce:animate-none"
+                  className="absolute top-5 sm:top-7 left-1/2 -translate-x-1/2 z-30 pointer-events-none max-w-[calc(100%-32px)] animate-in fade-in slide-in-from-top-3 duration-200 motion-reduce:animate-none"
                 >
-                  <div className="flex items-center gap-2 px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-full bg-black/80 backdrop-blur-md border border-white/15 text-white text-xs sm:text-sm font-semibold shadow-2xl">
+                  <div className="flex items-center gap-2.5 px-4 py-2 rounded-full bg-zinc-950/90 backdrop-blur-2xl border border-white/20 text-white text-xs sm:text-[13px] font-semibold tracking-tight shadow-[0_12px_36px_rgba(0,0,0,0.85)] ring-1 ring-white/10">
                     {hudNotification.icon}
                     <span>{hudNotification.text}</span>
                   </div>
@@ -2839,7 +2856,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
                           switchEpisode(effectiveNextEpisode.slug);
                         }
                       }}
-                      className="px-3 py-1.5 rounded-xl bg-netflix-red hover:bg-red-700 active:scale-95 text-white text-xs sm:text-sm font-bold shadow-lg shadow-red-950/50 transition cursor-pointer flex items-center gap-1.5"
+                      className="px-3 py-1.5 rounded-xl bg-netflix-red hover:bg-red-700 active:scale-95 text-white text-xs sm:text-sm font-bold shadow-md shadow-black/50 transition cursor-pointer flex items-center gap-1.5"
                     >
                       <Play className="w-3.5 h-3.5 fill-white" />
                       <span>Xem ngay</span>
@@ -2852,7 +2869,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
                       }}
                       title="Hủy tự chuyển tập"
                       aria-label="Hủy tự chuyển tập"
-                      className="p-1.5 rounded-full hover:bg-white/20 text-gray-400 hover:text-white transition cursor-pointer"
+                      className="p-1.5 rounded-full hover:bg-white/20 text-zinc-400 hover:text-white transition cursor-pointer"
                     >
                       <X className="w-4 h-4" />
                     </button>
@@ -2913,7 +2930,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
                     ? "Phim đang ở trạng thái trailer/sắp chiếu"
                     : "Nguồn phát đang được Nanaflix cập nhật"}
                 </p>
-                <p className="text-gray-300 mt-2 text-sm md:text-base">
+                <p className="text-zinc-300 mt-2 text-sm md:text-base">
                   {isTrailerOnly
                     ? "Hiện chưa có tập phát chính thức. Vui lòng quay lại sau."
                     : "Bạn vui lòng quay lại sau ít phút nhé!"}

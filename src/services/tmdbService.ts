@@ -1,6 +1,4 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import dns from "dns";
-import https from "https";
 import { cacheService } from "@/lib/cache";
 import { normalizeForMatch as cleanStringForMatch } from "@/lib/stringUtils";
 import { IMDB_TOP_250_SNAPSHOT } from "@/data/imdb/imdbTop250";
@@ -142,6 +140,172 @@ export async function getTmdbBackdropUrl(
   });
 
   return backdropUrl;
+}
+
+// 5.0 CACHE POSTER TMDB CHUẨN ĐỨNG 2:3 CHO THẺ PHIM (24h L1 RAM, 30 ngày L2 Upstash)
+const TMDB_POSTER_CACHE = new Map<string, { url: string | null; expireAt: number }>();
+
+export async function getTmdbPosterUrl(
+  tmdbId: string | number | undefined | null,
+  type: string = "movie"
+): Promise<string | null> {
+  if (!tmdbId) return null;
+  const cleanId = String(tmdbId).trim();
+  if (!cleanId || cleanId === "0" || cleanId === "null" || cleanId === "undefined") return null;
+
+  const cleanType = type === "tv" || type === "series" ? "tv" : "movie";
+  const cacheKey = `${cleanType}:${cleanId}`;
+
+  const now = Date.now();
+  const memoryHit = TMDB_POSTER_CACHE.get(cacheKey);
+  if (memoryHit && memoryHit.expireAt > now) {
+    return memoryHit.url;
+  }
+
+  const kvKey = `tmdb:poster:v1:${cleanType}:${cleanId}`;
+  const posterUrl = await cacheService.fetchOrSet(
+    kvKey,
+    async () => {
+      try {
+        let data = await fetchTmdbEndpoint(`/${cleanType}/${cleanId}`);
+        if (!data?.poster_path && !data?.id) {
+          const altType = cleanType === "tv" ? "movie" : "tv";
+          data = await fetchTmdbEndpoint(`/${altType}/${cleanId}`);
+        }
+        if (data?.poster_path) {
+          return `https://image.tmdb.org/t/p/w500${data.poster_path}`;
+        }
+        return null;
+      } catch (err) {
+        console.warn(`[TMDB] Error fetching poster for ${cleanType}/${cleanId}:`, err);
+        return null;
+      }
+    },
+    30 * 86400
+  );
+
+  TMDB_POSTER_CACHE.set(cacheKey, {
+    url: posterUrl,
+    expireAt: now + (posterUrl ? 24 * 3600 * 1000 : 3600 * 1000),
+  });
+
+  return posterUrl;
+}
+
+const TMDB_TITLE_POSTER_CACHE = new Map<string, { posterUrl: string | null; backdropUrl: string | null; expireAt: number }>();
+
+function extractTitleVariants(text: string): string[] {
+  if (!text) return [];
+  const res: string[] = [];
+  const add = (s: string) => {
+    const trimmed = (s || "").trim();
+    if (trimmed.length >= 2 && !res.includes(trimmed)) res.push(trimmed);
+  };
+  add(text);
+
+  const noSeason = text
+    .replace(/\((?:Phần|Season|SS|Part)\s*\d+[^)]*\)/gi, "")
+    .replace(/(?:Phần|Season|SS|Part)\s*\d+/gi, "")
+    .replace(/\[[^\]]*\]/g, "")
+    .trim();
+  add(noSeason);
+
+  const matches = text.match(/\(([^)]+)\)/g);
+  if (matches) {
+    for (const m of matches) {
+      const inside = m.slice(1, -1).trim();
+      if (!/^(Phần|Season|SS|Part)\s*\d+/i.test(inside)) {
+        add(inside);
+      }
+    }
+  }
+
+  const noParens = text.replace(/\([^)]*\)/g, "").trim();
+  add(noParens);
+
+  return res;
+}
+
+export async function searchTmdbPosterByTitle(
+  query: string,
+  year?: number | string,
+  type: string = "movie"
+): Promise<{ posterUrl: string | null; backdropUrl: string | null }> {
+  if (!query || typeof query !== "string") return { posterUrl: null, backdropUrl: null };
+  const cleanQuery = query.trim();
+  if (cleanQuery.length < 2) return { posterUrl: null, backdropUrl: null };
+
+  const cacheKey = `${cleanQuery}|${year || ""}|${type}`.toLowerCase();
+  const now = Date.now();
+  const memHit = TMDB_TITLE_POSTER_CACHE.get(cacheKey);
+  if (memHit && memHit.expireAt > now) {
+    return { posterUrl: memHit.posterUrl, backdropUrl: memHit.backdropUrl };
+  }
+
+  const kvKey = `tmdb:title_poster:v2:${cacheKey}`;
+  const result = await cacheService.fetchOrSet(
+    kvKey,
+    async () => {
+      const cleanType =
+        type === "tv" || type === "series" || type === "phim-bo" || type === "tvshows" ? "tv" : "movie";
+      const searchYear = year && /^\d{4}$/.test(String(year).trim()) ? `&year=${String(year).trim()}` : "";
+      const variants = extractTitleVariants(cleanQuery);
+
+      for (const v of variants) {
+        // 1. Thử search/multi trước (hỗ trợ cả movie và tv series, anime)
+        try {
+          const endpointMulti = `/search/multi?query=${encodeURIComponent(v)}${searchYear}`;
+          const dataMulti = await fetchTmdbEndpoint(endpointMulti);
+          const firstMulti = dataMulti?.results?.find((item: any) => item?.poster_path || item?.backdrop_path) || dataMulti?.results?.[0];
+          if (firstMulti?.poster_path) {
+            return {
+              posterUrl: `https://image.tmdb.org/t/p/w500${firstMulti.poster_path}`,
+              backdropUrl: firstMulti.backdrop_path ? `https://image.tmdb.org/t/p/w1280${firstMulti.backdrop_path}` : null,
+            };
+          }
+        } catch {}
+
+        // 2. Thử theo type chính thức
+        try {
+          const endpointType = `/search/${cleanType}?query=${encodeURIComponent(v)}${searchYear}&language=vi-VN`;
+          const dataType = await fetchTmdbEndpoint(endpointType);
+          const firstType = dataType?.results?.[0];
+          if (firstType?.poster_path) {
+            return {
+              posterUrl: `https://image.tmdb.org/t/p/w500${firstType.poster_path}`,
+              backdropUrl: firstType.backdrop_path ? `https://image.tmdb.org/t/p/w1280${firstType.backdrop_path}` : null,
+            };
+          }
+        } catch {}
+
+        // 3. Thử tv nếu ban đầu là movie
+        if (cleanType === "movie") {
+          try {
+            const endpointTv = `/search/tv?query=${encodeURIComponent(v)}`;
+            const dataTv = await fetchTmdbEndpoint(endpointTv);
+            const firstTv = dataTv?.results?.[0];
+            if (firstTv?.poster_path) {
+              return {
+                posterUrl: `https://image.tmdb.org/t/p/w500${firstTv.poster_path}`,
+                backdropUrl: firstTv.backdrop_path ? `https://image.tmdb.org/t/p/w1280${firstTv.backdrop_path}` : null,
+              };
+            }
+          } catch {}
+        }
+      }
+
+      return { posterUrl: null, backdropUrl: null };
+    },
+    30 * 86400
+  );
+
+  TMDB_TITLE_POSTER_CACHE.set(cacheKey, {
+    posterUrl: result?.posterUrl || null,
+    backdropUrl: result?.backdropUrl || null,
+    expireAt: now + (result?.posterUrl ? 24 * 3600 * 1000 : 3600 * 1000),
+  });
+
+  return result || { posterUrl: null, backdropUrl: null };
 }
 
 // 5.1 CACHE CLEARLOGO TRONG SUỐT CHO MOVIE DETAIL (24h L1 RAM, 30 ngày L2 Upstash)
@@ -635,16 +799,19 @@ async function resolveTmdbIp(): Promise<string> {
   if (cachedTmdbIp && now - lastIpResolveTime < 3600000) {
     return cachedTmdbIp;
   }
-  try {
-    const resolver = new dns.promises.Resolver();
-    resolver.setServers(["8.8.8.8", "1.1.1.1"]);
-    const ips = await resolver.resolve4("api.themoviedb.org");
-    if (ips && ips.length > 0) {
-      cachedTmdbIp = ips[0];
-      lastIpResolveTime = now;
-      return cachedTmdbIp;
-    }
-  } catch {}
+  if (typeof window === "undefined") {
+    try {
+      const dnsModule = await import("dns");
+      const resolver = new dnsModule.promises.Resolver();
+      resolver.setServers(["8.8.8.8", "1.1.1.1"]);
+      const ips = await resolver.resolve4("api.themoviedb.org");
+      if (ips && ips.length > 0) {
+        cachedTmdbIp = ips[0];
+        lastIpResolveTime = now;
+        return cachedTmdbIp;
+      }
+    } catch {}
+  }
   return "api.themoviedb.org";
 }
 
@@ -685,56 +852,58 @@ export async function fetchTmdbEndpoint(endpointPath: string, revalidateSeconds 
   }
 
   // 2. Fallback sang https qua Resolved IP với Google/Cloudflare DNS
-  try {
-    const ip = await resolveTmdbIp();
-    return await new Promise((resolve, reject) => {
-      const reqHeaders: Record<string, string> = {
-        Host: "api.themoviedb.org",
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Nanaflix/1.0",
-        Accept: "application/json",
-        Connection: "close",
-      };
-      if (TMDB_API_KEY && TMDB_API_KEY.startsWith("eyJ")) {
-        reqHeaders["Authorization"] = `Bearer ${TMDB_API_KEY}`;
-      }
-
-      const req = https.request(
-        {
-          host: ip,
-          path: `/3${fullRelativePath}`,
-          headers: reqHeaders,
-          servername: "api.themoviedb.org",
-          method: "GET",
-          agent: false,
-        },
-        (res) => {
-          let body = "";
-          res.on("data", (chunk) => (body += chunk));
-          res.on("end", () => {
-            try {
-              if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) {
-                resolve(JSON.parse(body));
-              } else {
-                reject(new Error(`TMDB responded with status ${res.statusCode}`));
-              }
-            } catch (parseErr) {
-              reject(parseErr);
-            }
-          });
+  if (typeof window === "undefined") {
+    try {
+      const httpsModule = await import("https");
+      const ip = await resolveTmdbIp();
+      return await new Promise((resolve, reject) => {
+        const reqHeaders: Record<string, string> = {
+          Host: "api.themoviedb.org",
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Nanaflix/1.0",
+          Accept: "application/json",
+          Connection: "close",
+        };
+        if (TMDB_API_KEY && TMDB_API_KEY.startsWith("eyJ")) {
+          reqHeaders["Authorization"] = `Bearer ${TMDB_API_KEY}`;
         }
-      );
 
-      req.on("error", reject);
-      req.setTimeout(4500, () => {
-        req.destroy();
-        reject(new Error("TMDB fallback request timeout"));
+        const req = httpsModule.request(
+          {
+            host: ip,
+            path: `/3${fullRelativePath}`,
+            headers: reqHeaders,
+            servername: "api.themoviedb.org",
+            method: "GET",
+            agent: false,
+          },
+          (res: any) => {
+            let body = "";
+            res.on("data", (chunk: any) => (body += chunk));
+            res.on("end", () => {
+              try {
+                if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) {
+                  resolve(JSON.parse(body));
+                } else {
+                  reject(new Error(`TMDB responded with status ${res.statusCode}`));
+                }
+              } catch (parseErr) {
+                reject(parseErr);
+              }
+            });
+          }
+        );
+
+        req.on("error", (err: any) => reject(err));
+        req.setTimeout(5000, () => {
+          req.destroy();
+          reject(new Error("TMDB HTTPS request timeout"));
+        });
+        req.end();
       });
-      req.end();
-    });
-  } catch (fallbackErr) {
-    console.warn("[TMDB] Fallback fetch error:", fallbackErr);
-    return null;
+    } catch {}
   }
+
+  return null;
 }
 
 /**

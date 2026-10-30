@@ -28,7 +28,7 @@ export default function ActorsHubPage() {
   const allActors = getAllCatalogActors();
 
   return (
-    <div className="min-h-screen bg-[#050505] text-gray-100 flex flex-col selection:bg-netflix-red selection:text-white font-sans antialiased overflow-x-hidden">
+    <div className="min-h-screen bg-[#050505] text-zinc-100 flex flex-col selection:bg-netflix-red selection:text-white font-sans antialiased overflow-x-hidden">
       <Navbar />
 
       {/* AMBIENT GLOW */}
@@ -42,7 +42,7 @@ export default function ActorsHubPage() {
         <section className="space-y-4 text-center max-w-3xl mx-auto pt-2 sm:pt-4">
           <Link
             href="/"
-            className="inline-flex items-center gap-2 text-xs font-semibold text-gray-400 hover:text-white transition-colors bg-white/[0.04] hover:bg-white/[0.08] px-3.5 py-1.5 rounded-full border border-white/[0.08] mb-2 backdrop-blur-md"
+            className="inline-flex items-center gap-2 text-xs font-semibold text-zinc-400 hover:text-white transition-colors bg-white/[0.04] hover:bg-white/[0.08] px-3.5 py-1.5 rounded-full border border-white/[0.08] mb-2 backdrop-blur-md"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
             <span>Quay lại Trang chủ</span>
@@ -60,7 +60,7 @@ export default function ActorsHubPage() {
             </span>
           </h1>
 
-          <p className="text-xs sm:text-sm md:text-base text-gray-400 leading-relaxed font-normal max-w-2xl mx-auto">
+          <p className="text-xs sm:text-sm md:text-base text-zinc-400 leading-relaxed font-normal max-w-2xl mx-auto">
             Hồ sơ tiểu sử, vai diễn để đời và trọn bộ tuyển tập phim của những ngôi sao màn bạc hàng đầu Việt Nam, Châu Á và thế giới.
           </p>
         </section>
@@ -79,7 +79,7 @@ export default function ActorsHubPage() {
               <Sparkles className="w-4 h-4 text-amber-400" />
               <span>Tìm kiếm phim theo diễn viên chưa có trong danh mục?</span>
             </h3>
-            <p className="text-xs sm:text-sm text-gray-400">
+            <p className="text-xs sm:text-sm text-zinc-400">
               Nhập trực tiếp tên bất kỳ diễn viên nào vào thanh tìm kiếm trên thanh điều hướng để xem toàn bộ phim tương ứng.
             </p>
           </div>

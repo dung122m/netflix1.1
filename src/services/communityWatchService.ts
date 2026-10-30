@@ -1,7 +1,8 @@
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { getTopMovieSlugsFromAnalytics, getStartOfWeekVietnam } from "@/services/analyticsService";
 import { movieApi } from "@/services/movies/service";
-import { pickBestMoviePoster, pickBestMovieThumb } from "@/lib/movieMedia";
+import { pickBestMoviePoster, pickBestMovieThumb, isBrokenImageUrl } from "@/lib/movieMedia";
+import { getTmdbPosterUrl, searchTmdbPosterByTitle } from "@/services/tmdbService";
 
 export interface MovieViewStatItem {
   movieSlug: string;
@@ -79,10 +80,38 @@ export async function getTopTrendingCommunitySupabase(
             const m = detail.movie;
 
             const title = m.name || m.title || slug;
-            const poster = pickBestMoviePoster(m, "/default-poster.jpg");
-            const thumb = pickBestMovieThumb(m, "/default-hero.jpg");
             const year = m.year ? Number(m.year) : undefined;
             const quality = m.quality || "HD";
+
+            let poster = pickBestMoviePoster(m, "");
+            let thumb = pickBestMovieThumb(m, "");
+
+            // Thay thế ngay từ đầu trên Server: Tra cứu poster chính thức từ TMDb nếu nguồn cũ bị thiếu/hỏng
+            if (!poster || isBrokenImageUrl(poster) || poster.includes("/default-")) {
+              if (m.tmdb?.id) {
+                try {
+                  const tmdbP = await getTmdbPosterUrl(m.tmdb.id, m.type);
+                  if (tmdbP) poster = tmdbP;
+                } catch {}
+              }
+              if (!poster || isBrokenImageUrl(poster) || poster.includes("/default-")) {
+                const candidates = [title, m.origin_name, slug.replace(/-/g, " ")].filter(Boolean);
+                for (const query of candidates) {
+                  try {
+                    const tmdbRes = await searchTmdbPosterByTitle(query, year, m.type);
+                    if (tmdbRes?.posterUrl) {
+                      poster = tmdbRes.posterUrl;
+                      if (!thumb || isBrokenImageUrl(thumb) || thumb.includes("/default-")) {
+                        thumb = tmdbRes.backdropUrl || tmdbRes.posterUrl;
+                      }
+                      break;
+                    }
+                  } catch {}
+                }
+              }
+            }
+            if (!poster) poster = "/default-poster.jpg";
+            if (!thumb) thumb = poster || "/default-hero.jpg";
 
             const rawCats = Array.isArray(m.category)
               ? m.category

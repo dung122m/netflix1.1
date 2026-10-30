@@ -750,8 +750,8 @@ export function PhotoToken({
     <div
       className={`w-[28px] h-[28px] sm:w-[32px] sm:h-[32px] md:w-[34px] md:h-[34px] rounded-full flex items-center justify-center overflow-hidden transition-all shadow-md ${
         isHome
-          ? "bg-zinc-900 border-[1.5px] border-netflix-red shadow-red-950/60 ring-1 ring-netflix-red/30 group-hover:border-white group-hover:ring-white/50"
-          : "bg-zinc-900 border-[1.5px] border-sky-400 shadow-sky-950/60 ring-1 ring-sky-400/30 group-hover:border-white group-hover:ring-white/50"
+          ? "bg-zinc-900 border-[1.5px] border-netflix-red shadow-black/50 ring-1 ring-netflix-red/30 group-hover:border-white group-hover:ring-white/50"
+          : "bg-zinc-900 border-[1.5px] border-sky-400 shadow-black/50 ring-1 ring-sky-400/30 group-hover:border-white group-hover:ring-white/50"
       }`}
     >
       {displayPhoto ? (
@@ -943,7 +943,7 @@ export function InlinePlayerDetailCard({
           type="button"
           onClick={onClose}
           aria-label="Đóng thông tin cầu thủ"
-          className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-zinc-300 hover:text-white flex items-center justify-center transition cursor-pointer shrink-0 touch-manipulation border border-white/10"
+          className="w-9 h-9 min-w-[36px] min-h-[36px] rounded-full bg-white/10 hover:bg-white/20 text-zinc-300 hover:text-white flex items-center justify-center transition cursor-pointer shrink-0 touch-manipulation border border-white/10"
         >
           <X className="w-4 h-4" />
         </button>
@@ -1559,7 +1559,7 @@ function TeamListColumn({
           </span>
         </div>
         {formation && (
-          <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-white/10 text-gray-300">
+          <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-white/10 text-zinc-300">
             {formation}
           </span>
         )}
@@ -1579,7 +1579,7 @@ function TeamListColumn({
       )}
 
       <div className="space-y-1.5">
-        <p className="text-xs sm:text-[13px] font-extrabold text-gray-300 uppercase tracking-wider">
+        <p className="text-xs sm:text-[13px] font-extrabold text-zinc-300 uppercase tracking-wider">
           Ra sân chính thức ({starters.length})
         </p>
         {starters.map((p, i) => {
@@ -1727,7 +1727,7 @@ export function TacticalLineup({
           title={`${homeTeam.displayName} (${homeRoster?.formation || "Chưa rõ sơ đồ"})`}
           className={`flex items-center justify-between py-1.5 px-2.5 rounded-lg text-xs font-bold transition-all cursor-pointer select-none truncate ${
             teamFilter === "home"
-              ? "bg-gradient-to-r from-red-600/90 to-red-800/90 text-white shadow-md shadow-red-950/60 border border-red-400/40 font-black"
+              ? "bg-gradient-to-r from-red-600/90 to-red-800/90 text-white shadow-md shadow-black/50 border border-red-400/40 font-black"
               : "bg-white/[0.03] text-zinc-400 hover:text-white hover:bg-white/[0.08] border border-transparent font-medium"
           }`}
         >
@@ -1754,7 +1754,7 @@ export function TacticalLineup({
           title={`${awayTeam.displayName} (${awayRoster?.formation || "Chưa rõ sơ đồ"})`}
           className={`flex items-center justify-between py-1.5 px-2.5 rounded-lg text-xs font-bold transition-all cursor-pointer select-none truncate ${
             teamFilter === "away"
-              ? "bg-gradient-to-r from-sky-600/90 to-sky-800/90 text-white shadow-md shadow-sky-950/60 border border-sky-400/40 font-black"
+              ? "bg-gradient-to-r from-sky-600/90 to-sky-800/90 text-white shadow-md shadow-black/50 border border-sky-400/40 font-black"
               : "bg-white/[0.03] text-zinc-400 hover:text-white hover:bg-white/[0.08] border border-transparent font-medium"
           }`}
         >

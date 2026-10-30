@@ -83,7 +83,7 @@ export const AccentStudio: React.FC<AccentStudioProps> = ({ className = "" }) =>
           onClick={() => setIsOpen(!isOpen)}
           aria-label="Đổi màu giao diện (Accent Studio)"
           aria-expanded={isOpen}
-          className="relative flex items-center justify-center h-8 w-8 sm:h-9 sm:w-9 rounded-full bg-zinc-900/90 border border-white/15 hover:border-white/30 text-gray-300 hover:text-white transition-all duration-200 cursor-pointer active:scale-95 shadow-sm group outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black"
+          className="relative flex items-center justify-center h-8 w-8 sm:h-9 sm:w-9 rounded-full bg-zinc-900/90 border border-white/15 hover:border-white/30 text-zinc-300 hover:text-white transition-all duration-200 cursor-pointer active:scale-95 shadow-sm group outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black"
         >
           <Palette className="w-4 h-4 transition-transform group-hover:rotate-45 duration-300" />
 
@@ -131,11 +131,11 @@ export const AccentStudio: React.FC<AccentStudioProps> = ({ className = "" }) =>
               <div>
                 <h3 className="text-white font-black text-sm tracking-tight flex items-center gap-1.5">
                   <span>Accent Studio</span>
-                  <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-white/10 text-gray-300 border border-white/10 font-medium">
+                  <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-white/10 text-zinc-300 border border-white/10 font-medium">
                     6 Presets
                   </span>
                 </h3>
-                <p className="text-[11px] text-gray-400">Tùy biến màu sắc rạp chiếu</p>
+                <p className="text-[11px] text-zinc-400">Tùy biến màu sắc rạp chiếu</p>
               </div>
             </div>
 
@@ -143,7 +143,7 @@ export const AccentStudio: React.FC<AccentStudioProps> = ({ className = "" }) =>
               type="button"
               onClick={() => setIsOpen(false)}
               aria-label="Đóng"
-              className="text-gray-400 hover:text-white p-1.5 rounded-full hover:bg-white/10 transition cursor-pointer"
+              className="text-zinc-400 hover:text-white p-1.5 rounded-full hover:bg-white/10 transition cursor-pointer"
             >
               <X className="w-4 h-4" />
             </button>
@@ -151,8 +151,8 @@ export const AccentStudio: React.FC<AccentStudioProps> = ({ className = "" }) =>
 
           {/* REALTIME LIVE MINI PREVIEW */}
           <div className="mb-3.5 p-3 rounded-2xl bg-zinc-900/80 border border-white/10 space-y-2 shadow-inner">
-            <div className="flex items-center justify-between text-[11px] text-gray-400">
-              <span className="font-semibold text-gray-300">Live Preview:</span>
+            <div className="flex items-center justify-between text-[11px] text-zinc-400">
+              <span className="font-semibold text-zinc-300">Live Preview:</span>
               <span className="text-xs font-bold text-white flex items-center gap-1">
                 <span>{currentAccent.icon}</span>
                 <span>{currentAccent.name}</span>
@@ -172,8 +172,8 @@ export const AccentStudio: React.FC<AccentStudioProps> = ({ className = "" }) =>
                 <span>Xem Ngay</span>
               </div>
 
-              <div className="inline-flex items-center gap-1 py-1.5 px-2.5 rounded-xl bg-white/10 border border-white/15 text-xs font-medium text-gray-200 cursor-default">
-                <Plus className="w-3 h-3 text-gray-300" />
+              <div className="inline-flex items-center gap-1 py-1.5 px-2.5 rounded-xl bg-white/10 border border-white/15 text-xs font-medium text-zinc-200 cursor-default">
+                <Plus className="w-3 h-3 text-zinc-300" />
                 <span>Lưu</span>
               </div>
             </div>
@@ -191,7 +191,7 @@ export const AccentStudio: React.FC<AccentStudioProps> = ({ className = "" }) =>
             </div>
           </div>
 
-          <div className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2 px-1 flex items-center justify-between">
+          <div className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider mb-2 px-1 flex items-center justify-between">
             <span>Chọn màu giao diện</span>
             <span className="text-[10px] text-zinc-500 lowercase">bấm đổi tức thì</span>
           </div>
@@ -248,7 +248,7 @@ export const AccentStudio: React.FC<AccentStudioProps> = ({ className = "" }) =>
                         className={`text-xs font-black leading-tight ${
                           isSelected
                             ? "text-white"
-                            : "text-gray-200 group-hover:text-white"
+                            : "text-zinc-200 group-hover:text-white"
                         }`}
                       >
                         {preset.badgeText}
@@ -257,7 +257,7 @@ export const AccentStudio: React.FC<AccentStudioProps> = ({ className = "" }) =>
                         <span className="text-[10px] text-emerald-400 font-bold flex-shrink-0">✓</span>
                       )}
                     </div>
-                    <p className="text-[10px] text-gray-400 leading-tight mt-0.5 break-words">
+                    <p className="text-[10px] text-zinc-400 leading-tight mt-0.5 break-words">
                       {cleanSubtitle}
                     </p>
                   </div>
@@ -267,7 +267,7 @@ export const AccentStudio: React.FC<AccentStudioProps> = ({ className = "" }) =>
           </div>
 
           {/* FOOTER NOTE */}
-          <div className="mt-3 pt-2.5 border-t border-white/10 flex items-center justify-between text-[10.5px] text-gray-400 px-1">
+          <div className="mt-3 pt-2.5 border-t border-white/10 flex items-center justify-between text-[10.5px] text-zinc-400 px-1">
             <span>
               Đang dùng: <strong className="text-white">{currentAccent.icon} {currentAccent.badgeText}</strong>
             </span>

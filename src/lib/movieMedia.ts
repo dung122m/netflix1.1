@@ -32,16 +32,25 @@ export function extractMovieRatingScore(m: any): { rating: number; voteCount: nu
   return { rating, voteCount };
 }
 
+export function isBrokenImageUrl(url?: unknown): boolean {
+  if (!url || typeof url !== "string") return true;
+  const s = url.trim();
+  if (
+    !s ||
+    s === "null" ||
+    s === "undefined" ||
+    s.endsWith("/null") ||
+    s.endsWith("/undefined")
+  ) {
+    return true;
+  }
+  return false;
+}
+
 export function sanitizeImageUrl(url: string): string {
   if (!url || typeof url !== "string") return "";
   let clean = url.trim();
-  if (
-    !clean ||
-    clean === "null" ||
-    clean === "undefined" ||
-    clean.endsWith("/null") ||
-    clean.endsWith("/undefined")
-  ) {
+  if (isBrokenImageUrl(clean)) {
     return "";
   }
   if (!clean.startsWith("http://") && !clean.startsWith("https://") && !clean.startsWith("/")) {
@@ -50,12 +59,12 @@ export function sanitizeImageUrl(url: string): string {
   // Sửa lỗi url có 2 dấu gạch chéo // sau tên miền (gây redirect chậm)
   clean = clean.replace(/(https?:\/\/)([^/]+)\/\/+/g, "$1$2/");
 
-  // Tối ưu ảnh VSMOV / NguonC: Chỉ chuyển sang TMDb CDN nếu filename là mã hash TMDb hợp lệ (chuỗi alphanumeric 22-35 ký tự, KHÔNG chứa dấu gạch nối hoặc từ ngữ tùy chỉnh)
-  const vsmovMatch = clean.match(
-    /https?:\/\/(?:vsmov\.com\/storage\/images|phim\.nguonc\.com\/public\/images\/Film)\/([a-zA-Z0-9]{22,35}\.(?:jpg|jpeg|png|webp))$/i
+  // Tối ưu ảnh VSMOV / NguonC: Nhận diện mã hash TMDb (kể cả có subfolder /movie-slug/ và tiền tố poster_/backdrop_)
+  const tmdbHashMatch = clean.match(
+    /https?:\/\/(?:vsmov\.com\/storage\/images|phim\.nguonc\.com\/public\/images\/Film)(?:\/[^/]+)*\/(?:poster_|backdrop_)?([a-zA-Z0-9]{22,35}\.(?:jpg|jpeg|png|webp))$/i
   );
-  if (vsmovMatch && !vsmovMatch[1].includes("-") && !vsmovMatch[1].includes("_")) {
-    clean = `https://image.tmdb.org/t/p/w500/${vsmovMatch[1]}`;
+  if (tmdbHashMatch && !tmdbHashMatch[1].includes("-")) {
+    clean = `https://image.tmdb.org/t/p/w500/${tmdbHashMatch[1]}`;
   }
 
   // Tối ưu ảnh TMDB: Dùng w780 (chuẩn HD cho màn hình Retina 2x & màn hình lớn), giữ nguyên độ nét mà nén chỉ ~45KB
@@ -113,7 +122,14 @@ export function pickBestMoviePoster(movie: MovieLike, fallback = "/default-poste
 
   if (candidates.length === 0) return fallback;
 
-  // 1. Ưu tiên tuyệt đối ảnh poster dọc rõ ràng (keyword poster, NguonC /Post/, hoặc TMDB w500/w300)
+  // 1. Ưu tiên tuyệt đối TMDb CDN chính hãng (image.tmdb.org)
+  for (const c of candidates) {
+    if (c.includes("image.tmdb.org")) {
+      return c;
+    }
+  }
+
+  // 2. Ưu tiên ảnh poster dọc rõ ràng (keyword poster, NguonC /Post/, hoặc TMDB w500/w300)
   for (const c of candidates) {
     const l = c.toLowerCase();
     if (
@@ -175,7 +191,14 @@ export function pickBestMovieThumb(movie: MovieLike, fallback = "/default-hero.s
 
   if (candidates.length === 0) return fallback;
 
-  // 1. Ưu tiên tuyệt đối ảnh thumb ngang / backdrop (chứa keyword thumb, backdrop, banner, w780, w1280)
+  // 1. Ưu tiên tuyệt đối TMDb CDN backdrop chính hãng (image.tmdb.org)
+  for (const c of candidates) {
+    if (c.includes("image.tmdb.org")) {
+      return c;
+    }
+  }
+
+  // 2. Ưu tiên ảnh thumb ngang / backdrop (chứa keyword thumb, backdrop, banner, w780, w1280)
   for (const c of candidates) {
     const l = c.toLowerCase();
     if (
@@ -322,11 +345,7 @@ export function toOptimizedCardPosterUrl(url: string, targetWidth: number = 320)
     if (clean.includes("-thumb.webp")) {
       clean = clean.replace("-thumb.webp", "-poster.webp");
     }
-    if (clean.includes("-poster.webp")) {
-      return clean;
-    }
-    const w = targetWidth <= 192 ? 192 : targetWidth <= 320 ? 320 : targetWidth <= 480 ? 480 : 640;
-    return `/api/img-thumb?url=${encodeURIComponent(clean)}&w=${w}`;
+    return clean;
   }
 
   return clean;
@@ -351,9 +370,9 @@ export function toHighResBackdropUrl(url: string, targetWidth: "w780" | "w1280" 
 
   // 1. Nhận diện trực tiếp mã hash TMDb từ VSMOV hoặc NguonC -> Chuyển sang TMDb targetWidth (mặc định w1280, mobile w780)
   const tmdbHashMatch = clean.match(
-    /https?:\/\/(?:vsmov\.com\/storage\/images|phim\.nguonc\.com\/public\/images\/Film)\/([a-zA-Z0-9]{22,35}\.(?:jpg|jpeg|png|webp))$/i
+    /https?:\/\/(?:vsmov\.com\/storage\/images|phim\.nguonc\.com\/public\/images\/Film)(?:\/[^/]+)*\/(?:poster_|backdrop_)?([a-zA-Z0-9]{22,35}\.(?:jpg|jpeg|png|webp))$/i
   );
-  if (tmdbHashMatch && !tmdbHashMatch[1].includes("-") && !tmdbHashMatch[1].includes("_")) {
+  if (tmdbHashMatch && !tmdbHashMatch[1].includes("-")) {
     return `https://image.tmdb.org/t/p/${targetWidth}/${tmdbHashMatch[1]}`;
   }
 

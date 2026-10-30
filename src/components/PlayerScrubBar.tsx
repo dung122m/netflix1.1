@@ -75,10 +75,10 @@ export const PlayerTimeDisplay: React.FC<{
   }, [videoRef, isNativeVideo, knownDuration, duration]);
 
   return (
-    <div className="flex items-center gap-1 text-[11px] sm:text-xs font-mono text-gray-300 select-none whitespace-nowrap">
-      <span className="text-white font-medium">{formatTime(currentTime)}</span>
+    <div className="flex items-center gap-1.5 text-xs sm:text-[13px] font-medium tracking-tight tabular-nums select-none whitespace-nowrap px-1">
+      <span className="text-white/95 font-semibold">{formatTime(currentTime)}</span>
       <span className="text-white/40 font-normal">/</span>
-      <span className="text-gray-400">{formatTime(duration)}</span>
+      <span className="text-zinc-300/80">{formatTime(duration)}</span>
     </div>
   );
 });
@@ -288,8 +288,8 @@ export const PlayerScrubBar: React.FC<PlayerScrubBarProps> = ({
             style={{ width: `${playedPercent}%` }}
           >
             <div
-              className={`w-3.5 h-3.5 rounded-full bg-netflix-red border-2 border-white shadow-[0_0_8px_rgba(229,9,20,0.9)] transition-transform ${
-                isScrubbing ? "scale-100" : "scale-0 group-hover/bar:scale-100"
+              className={`w-3.5 h-3.5 rounded-full bg-netflix-red border-2 border-white shadow-md shadow-black/80 transition-transform ${
+                isScrubbing ? "scale-100" : "scale-100 sm:scale-0 sm:group-hover/bar:scale-100"
               }`}
             />
           </div>
@@ -297,7 +297,7 @@ export const PlayerScrubBar: React.FC<PlayerScrubBarProps> = ({
           {/* Hover preview tooltip */}
           {hoverTime !== null && (
             <div
-              className="absolute -top-7 -translate-x-1/2 px-1.5 py-0.5 rounded bg-zinc-950/95 text-[10px] font-mono font-bold text-white border border-white/20 shadow-xl backdrop-blur-sm"
+              className="absolute -top-7 -translate-x-1/2 px-2 py-0.5 rounded-md bg-zinc-950/95 text-[11px] font-semibold tabular-nums text-white border border-white/20 shadow-xl backdrop-blur-md"
               style={{ left: `${hoverPos}px` }}
             >
               {formatTime(hoverTime)}

@@ -105,7 +105,7 @@ export const ActorBioModal: React.FC<ActorBioModalProps> = ({ initialActorName }
           <button
             type="button"
             onClick={() => setIsOpen(false)}
-            className="p-1.5 rounded-full text-gray-400 hover:text-white hover:bg-white/10 transition cursor-pointer shrink-0"
+            className="p-1.5 rounded-full text-zinc-400 hover:text-white hover:bg-white/10 transition cursor-pointer shrink-0"
             aria-label="Đóng"
           >
             <X className="w-5 h-5" />
@@ -115,7 +115,7 @@ export const ActorBioModal: React.FC<ActorBioModalProps> = ({ initialActorName }
         {/* CONTENT BODY */}
         <div className="p-5 sm:p-6 space-y-5 max-h-[80vh] overflow-y-auto custom-scrollbar">
           {loading ? (
-            <div className="py-12 flex flex-col items-center justify-center gap-3 text-gray-400">
+            <div className="py-12 flex flex-col items-center justify-center gap-3 text-zinc-400">
               <Loader2 className="w-8 h-8 animate-spin text-netflix-red" />
               <p className="text-xs font-medium">Đang tra cứu dữ liệu Wikipedia về {actorName}...</p>
             </div>

@@ -94,20 +94,20 @@ export async function generateMetadata({
     const image = pickBestMovieImage(movie, "/default-poster.jpg");
 
     return {
-      title: `${rawTitle}${originName}${year} | Nanaflix VIP`,
+      title: `${rawTitle}${originName}${year} | Nanaflix `,
       description: description.slice(0, 160),
       alternates: {
         canonical: `${siteUrl}/movies/${slug}`,
       },
       openGraph: {
-        title: `${rawTitle}${originName} | Nanaflix VIP`,
+        title: `${rawTitle}${originName} | Nanaflix `,
         description: description.slice(0, 160),
         images: image ? [{ url: image, alt: rawTitle }] : [],
         type: "video.movie",
       },
       twitter: {
         card: "summary_large_image",
-        title: `${rawTitle}${originName} | Nanaflix VIP`,
+        title: `${rawTitle}${originName} | Nanaflix `,
         description: description.slice(0, 160),
         images: image ? [image] : [],
       },
@@ -140,20 +140,20 @@ export default async function MovieDetail({
         <main className="flex-1 flex items-center justify-center px-4 py-20">
           <div className="max-w-md w-full text-center space-y-6 animate-in fade-in zoom-in-95 duration-300">
             {/* Glow Icon */}
-            <div className="relative mx-auto w-20 h-20 rounded-3xl bg-netflix-red/10 border border-netflix-red/30 flex items-center justify-center text-rose-500 shadow-2xl shadow-rose-950/50">
+            <div className="relative mx-auto w-20 h-20 rounded-3xl bg-netflix-red/10 border border-netflix-red/30 flex items-center justify-center text-rose-500 shadow-xl shadow-black/80">
               <div className="absolute inset-0 bg-rose-500/20 rounded-3xl blur-xl" />
               <Film className="w-10 h-10 relative z-10" />
             </div>
 
             <div className="space-y-2">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs font-bold text-gray-400">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs font-bold text-zinc-400">
                 <AlertCircle className="w-3.5 h-3.5 text-rose-400" />
                 <span>Không tìm thấy phim</span>
               </span>
               <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
                 Nội dung tạm thời chưa khả dụng
               </h1>
-              <p className="text-xs sm:text-sm text-gray-400 leading-relaxed max-w-sm mx-auto">
+              <p className="text-xs sm:text-sm text-zinc-400 leading-relaxed max-w-sm mx-auto">
                 Bộ phim bạn đang tìm kiếm có thể đã được đổi tên hoặc đang trong quá trình cập nhật nguồn phát mới.
               </p>
             </div>
@@ -162,7 +162,7 @@ export default async function MovieDetail({
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
               <Link
                 href="/"
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-netflix-red hover:bg-rose-700 text-white font-bold text-xs transition shadow-lg shadow-rose-950/60 active:scale-95 cursor-pointer"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-netflix-red hover:bg-rose-700 text-white font-bold text-xs transition shadow-md shadow-black/50 active:scale-95 cursor-pointer"
               >
                 <Home className="w-4 h-4" />
                 <span>Về Trang Chủ</span>
@@ -597,63 +597,63 @@ export default async function MovieDetail({
                       {movie.origin_name &&
                         movie.origin_name.trim().toLowerCase() !==
                           title.trim().toLowerCase() && (
-                          <p className="text-xs sm:text-sm text-gray-400 font-medium italic">
+                          <p className="text-xs sm:text-sm text-zinc-400 font-medium italic">
                             {movie.origin_name}
                           </p>
                         )}
                     </div>
 
                     {/* THÔNG TIN PHIM TINH GỌN (METADATA LINE) */}
-                    <div className="flex flex-wrap items-center gap-2 sm:gap-2.5 text-xs text-gray-300 font-medium">
+                    <div className="flex flex-wrap items-center gap-2 sm:gap-2.5 text-xs text-zinc-300 font-medium">
                       <span className="rounded border border-white/40 px-1.5 py-0.5 text-[11px] font-bold text-white uppercase tracking-wider">
                         {movie.quality || "HD"}
                       </span>
                       {movie.year && (
-                        <span className="text-gray-200">{movie.year}</span>
+                        <span className="text-zinc-200">{movie.year}</span>
                       )}
                       {cleanDuration && (
                         <>
-                          <span className="text-gray-600">•</span>
-                          <span className="text-gray-200">{cleanDuration}</span>
+                          <span className="text-zinc-600">•</span>
+                          <span className="text-zinc-200">{cleanDuration}</span>
                         </>
                       )}
                       {movie.lang && (
                         <>
-                          <span className="text-gray-600">•</span>
-                          <span className="text-gray-300">{movie.lang}</span>
+                          <span className="text-zinc-600">•</span>
+                          <span className="text-zinc-300">{movie.lang}</span>
                         </>
                       )}
                       {tmdbScore && tmdbScore > 0 ? (
                         <>
-                          <span className="text-gray-600">•</span>
+                          <span className="text-zinc-600">•</span>
                           <span className="inline-flex items-center gap-1 font-bold text-emerald-400">
                             <span className="bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 px-1.5 py-0.5 rounded text-[10px] font-extrabold leading-none">
                               TMDB
                             </span>
                             <span>{tmdbScore.toFixed(1)}</span>
                             {tmdbVotesText && (
-                              <span className="text-gray-400 text-[10px] font-normal">({tmdbVotesText})</span>
+                              <span className="text-zinc-400 text-[10px] font-normal">({tmdbVotesText})</span>
                             )}
                           </span>
                         </>
                       ) : null}
                       {imdbScore && imdbScore > 0 ? (
                         <>
-                          <span className="text-gray-600">•</span>
+                          <span className="text-zinc-600">•</span>
                           <span className="inline-flex items-center gap-1 font-bold text-amber-400">
                             <span className="bg-amber-500/15 border border-amber-500/30 text-amber-400 px-1.5 py-0.5 rounded text-[10px] font-extrabold leading-none">
                               IMDb
                             </span>
                             <span>{imdbScore.toFixed(1)}</span>
                             {imdbVotesText && (
-                              <span className="text-gray-400 text-[10px] font-normal">({imdbVotesText})</span>
+                              <span className="text-zinc-400 text-[10px] font-normal">({imdbVotesText})</span>
                             )}
                           </span>
                         </>
                       ) : null}
                       {isChieuRap && (
                         <>
-                          <span className="text-gray-600">•</span>
+                          <span className="text-zinc-600">•</span>
                           <span className="text-amber-300 font-semibold">
                             Chiếu Rạp
                           </span>
@@ -661,7 +661,7 @@ export default async function MovieDetail({
                       )}
                       {isCompleted && (
                         <>
-                          <span className="text-gray-600">•</span>
+                          <span className="text-zinc-600">•</span>
                           <span className="text-emerald-400 font-semibold">
                             Trọn bộ
                           </span>
@@ -669,8 +669,8 @@ export default async function MovieDetail({
                       )}
                       {viewCount !== undefined && viewCount > 500 && (
                         <>
-                          <span className="text-gray-600">•</span>
-                          <span className="text-gray-400 text-[11px]">
+                          <span className="text-zinc-600">•</span>
+                          <span className="text-zinc-400 text-[11px]">
                             {viewCount >= 1000 ? `${(viewCount / 1000).toFixed(1)}k` : viewCount} lượt xem
                           </span>
                         </>
@@ -730,7 +730,7 @@ export default async function MovieDetail({
                     {hasProgress && (
                       <div className="mt-3 rounded-2xl border border-white/10 bg-zinc-900/60 p-3.5 backdrop-blur-md">
                         <div className="flex items-center justify-between text-xs sm:text-sm mb-2">
-                          <span className="text-gray-300 font-medium">
+                          <span className="text-zinc-300 font-medium">
                             {isCompleted ? "Trọn bộ phát hành:" : "Tiến độ phát sóng:"}
                           </span>
                           <span className="text-white font-bold">
@@ -815,14 +815,14 @@ export default async function MovieDetail({
 
                     {/* TÊN GỌI KHÁC */}
                     {altNames.length > 0 && (
-                      <div className="mt-4 pt-3.5 border-t border-white/10 flex flex-wrap items-center gap-2 text-xs text-gray-400">
-                        <span className="text-gray-500 font-semibold uppercase tracking-wider text-[11px] flex-shrink-0">
+                      <div className="mt-4 pt-3.5 border-t border-white/10 flex flex-wrap items-center gap-2 text-xs text-zinc-400">
+                        <span className="text-zinc-500 font-semibold uppercase tracking-wider text-[11px] flex-shrink-0">
                           Tên gọi khác:
                         </span>
-                        <span className="text-gray-300 font-medium leading-relaxed">
+                        <span className="text-zinc-300 font-medium leading-relaxed">
                           {altNames.slice(0, 3).join(" • ")}
                           {altNames.length > 3 && (
-                            <span className="text-gray-500 text-[11px] ml-1.5 font-normal">
+                            <span className="text-zinc-500 text-[11px] ml-1.5 font-normal">
                               (+{altNames.length - 3} tên khác)
                             </span>
                           )}
@@ -832,8 +832,8 @@ export default async function MovieDetail({
 
                     {/* THỜI GIAN CẬP NHẬT GẦN NHẤT */}
                     {formattedModified && (
-                      <div className="mt-2 text-xs text-gray-400 flex items-center gap-1.5">
-                        <Clock className="w-3.5 h-3.5 text-gray-500" />
+                      <div className="mt-2 text-xs text-zinc-400 flex items-center gap-1.5">
+                        <Clock className="w-3.5 h-3.5 text-zinc-500" />
                         <span>Cập nhật gần nhất: {formattedModified}</span>
                       </div>
                     )}
@@ -844,7 +844,7 @@ export default async function MovieDetail({
                         {/* THỂ LOẠI */}
                         {categoryList.length > 0 && (
                           <div className="flex flex-wrap items-baseline gap-2">
-                            <span className="text-gray-400 font-medium min-w-[75px] flex-shrink-0 text-xs uppercase tracking-wider">
+                            <span className="text-zinc-400 font-medium min-w-[75px] flex-shrink-0 text-xs uppercase tracking-wider">
                               Thể loại:
                             </span>
                             <div className="flex flex-wrap gap-1.5">
@@ -856,7 +856,7 @@ export default async function MovieDetail({
                                       ? `/browse?category=${cat.slug}`
                                       : `/browse?keyword=${encodeURIComponent(cat.name)}`
                                   }
-                                  className="inline-flex items-center px-2.5 py-1 rounded-full bg-white/5 hover:bg-white/15 text-gray-200 hover:text-white text-xs transition border border-white/10 hover:border-white/25"
+                                  className="inline-flex items-center px-2.5 py-1 rounded-full bg-white/5 hover:bg-white/15 text-zinc-200 hover:text-white text-xs transition border border-white/10 hover:border-white/25"
                                 >
                                   {cat.name}
                                 </Link>
@@ -868,7 +868,7 @@ export default async function MovieDetail({
                         {/* QUỐC GIA */}
                         {countryList.length > 0 && (
                           <div className="flex flex-wrap items-baseline gap-2">
-                            <span className="text-gray-400 font-medium min-w-[75px] flex-shrink-0 text-xs uppercase tracking-wider">
+                            <span className="text-zinc-400 font-medium min-w-[75px] flex-shrink-0 text-xs uppercase tracking-wider">
                               Quốc gia:
                             </span>
                             <div className="flex flex-wrap gap-1.5">
@@ -880,7 +880,7 @@ export default async function MovieDetail({
                                       ? `/browse?country=${cnt.slug}`
                                       : `/browse?keyword=${encodeURIComponent(cnt.name)}`
                                   }
-                                  className="inline-flex items-center px-2.5 py-1 rounded-full bg-white/5 hover:bg-white/15 text-gray-200 hover:text-white text-xs transition border border-white/10 hover:border-white/25"
+                                  className="inline-flex items-center px-2.5 py-1 rounded-full bg-white/5 hover:bg-white/15 text-zinc-200 hover:text-white text-xs transition border border-white/10 hover:border-white/25"
                                 >
                                   {cnt.name}
                                 </Link>
@@ -892,7 +892,7 @@ export default async function MovieDetail({
                         {/* ĐẠO DIỄN */}
                         {directorList.length > 0 && (
                           <div className="flex flex-wrap items-baseline gap-2">
-                            <span className="text-gray-400 font-medium min-w-[75px] flex-shrink-0 text-xs uppercase tracking-wider">
+                            <span className="text-zinc-400 font-medium min-w-[75px] flex-shrink-0 text-xs uppercase tracking-wider">
                               Đạo diễn:
                             </span>
                             <div className="flex flex-wrap gap-1.5">

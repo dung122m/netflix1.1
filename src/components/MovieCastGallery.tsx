@@ -112,11 +112,11 @@ export const MovieCastGallery: React.FC<MovieCastGalleryProps> = ({
           <span className="flex items-center justify-center w-5 h-5 rounded-md bg-rose-500/10 text-rose-400 border border-rose-500/20">
             <Users className="w-3.5 h-3.5" />
           </span>
-          <h3 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-gray-200">
+          <h3 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-zinc-200">
             Diễn viên & Vai diễn
           </h3>
         </div>
-        <span className="text-[11px] text-gray-400 font-medium">
+        <span className="text-[11px] text-zinc-400 font-medium">
           {displayItems.length} diễn viên
         </span>
       </div>

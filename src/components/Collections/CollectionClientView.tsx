@@ -113,7 +113,7 @@ export function CollectionClientView({
   return (
     <main className="max-w-[1800px] mx-auto px-4 md:px-8 pt-24 sm:pt-28 pb-16">
       {/* BREADCRUMB */}
-      <div className="flex items-center gap-2.5 text-xs text-gray-400 mb-4">
+      <div className="flex items-center gap-2.5 text-xs text-zinc-400 mb-4">
         <Link
           href="/"
           className="hover:text-white transition flex items-center gap-1"
@@ -126,30 +126,30 @@ export function CollectionClientView({
           Bộ sưu tập
         </Link>
         <span>/</span>
-        <span className="text-gray-200 truncate max-w-[200px] sm:max-w-none">
+        <span className="text-zinc-200 truncate max-w-[200px] sm:max-w-none">
           {collection?.name || "Chi tiết bộ sưu tập"}
         </span>
       </div>
 
       {loading ? (
-        <div className="py-28 flex flex-col items-center justify-center gap-3 text-gray-400 text-sm">
+        <div className="py-28 flex flex-col items-center justify-center gap-3 text-zinc-400 text-sm">
           <Loader2 className="w-8 h-8 animate-spin text-netflix-red" />
           <span>Đang tải bộ sưu tập phim...</span>
         </div>
       ) : !collection ? (
         <div className="py-24 text-center max-w-md mx-auto">
-          <div className="w-16 h-16 rounded-full bg-zinc-900 border border-white/10 flex items-center justify-center text-gray-500 mx-auto mb-4">
+          <div className="w-16 h-16 rounded-full bg-zinc-900 border border-white/10 flex items-center justify-center text-zinc-500 mx-auto mb-4">
             <Lock className="w-7 h-7" />
           </div>
           <h2 className="text-xl font-bold text-white mb-2">
             Không tìm thấy bộ sưu tập
           </h2>
-          <p className="text-xs sm:text-sm text-gray-400 mb-6">
+          <p className="text-xs sm:text-sm text-zinc-400 mb-6">
             Bộ sưu tập này có thể đã bị xóa hoặc người tạo đã chuyển sang chế độ riêng tư.
           </p>
           <Link
             href="/"
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-netflix-red hover:bg-rose-700 text-white text-xs font-bold transition shadow-lg"
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-netflix-red hover:bg-rose-700 text-white text-xs font-bold transition shadow-md shadow-black/50"
           >
             Khám phá phim khác
           </Link>
@@ -157,7 +157,7 @@ export function CollectionClientView({
       ) : (
         <>
           {/* HEADER BỘ SƯU TẬP */}
-          <div className="relative rounded-3xl bg-gradient-to-r from-zinc-950 via-zinc-900/90 to-zinc-950 border border-white/15 p-6 sm:p-8 mb-8 shadow-2xl overflow-hidden">
+          <div className="relative rounded-3xl bg-gradient-to-r from-zinc-950 via-zinc-900/90 to-zinc-950 border border-white/15 p-6 sm:p-8 mb-8 shadow-2xl shadow-black/80 overflow-hidden">
             <div className="absolute top-0 right-0 w-96 h-96 bg-netflix-red/10 rounded-full blur-3xl pointer-events-none" />
 
             <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
@@ -183,13 +183,13 @@ export function CollectionClientView({
                 </h1>
 
                 {collection.description && (
-                  <p className="text-sm text-gray-300 leading-relaxed mb-4">
+                  <p className="text-sm text-zinc-300 leading-relaxed mb-4">
                     {collection.description}
                   </p>
                 )}
 
                 {/* NGƯỜI TẠO & SỐ LƯỢNG PHIM */}
-                <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-xs text-gray-400">
+                <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-xs text-zinc-400">
                   <button
                     type="button"
                     onClick={() => {
@@ -215,7 +215,7 @@ export function CollectionClientView({
                       sizeClassName="w-6 h-6 text-[10px] font-bold"
                       className="ring-1 ring-white/20"
                     />
-                    <span className="text-gray-200 hover:text-amber-300 font-semibold">
+                    <span className="text-zinc-200 hover:text-amber-300 font-semibold">
                       {collection.creatorName}
                     </span>
                   </button>
@@ -232,7 +232,7 @@ export function CollectionClientView({
                   <button
                     type="button"
                     onClick={() => setShowAddMovieModal(true)}
-                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-netflix-red hover:bg-rose-700 text-white text-xs sm:text-sm font-bold transition cursor-pointer active:scale-95 shadow-lg shadow-rose-950/50"
+                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-netflix-red hover:bg-rose-700 text-white text-xs sm:text-sm font-bold transition cursor-pointer active:scale-95 shadow-md shadow-black/50"
                   >
                     <Plus className="w-4 h-4" />
                     <span>Thêm phim</span>
@@ -242,7 +242,7 @@ export function CollectionClientView({
                 <button
                   type="button"
                   onClick={handleShare}
-                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/15 text-white text-xs sm:text-sm font-bold transition cursor-pointer active:scale-95 shadow-md"
+                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/15 text-white text-xs sm:text-sm font-bold transition cursor-pointer active:scale-95 shadow-md shadow-black/40"
                 >
                   {copied ? (
                     <>
@@ -262,7 +262,7 @@ export function CollectionClientView({
                     type="button"
                     onClick={handleSaveAllToWatchlist}
                     disabled={isAddingAll}
-                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/15 text-white text-xs sm:text-sm font-bold transition cursor-pointer active:scale-95 shadow-md disabled:opacity-50"
+                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/15 text-white text-xs sm:text-sm font-bold transition cursor-pointer active:scale-95 shadow-md shadow-black/40 disabled:opacity-50"
                   >
                     {isAddingAll ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
@@ -278,27 +278,27 @@ export function CollectionClientView({
 
           {/* LƯỚI PHIM TRONG BỘ SƯU TẬP */}
           {collection.movies?.length === 0 ? (
-            <div className="py-20 text-center text-gray-400 max-w-md mx-auto">
-              <Film className="w-12 h-12 mx-auto text-gray-600 mb-3" />
+            <div className="py-20 text-center text-zinc-400 max-w-md mx-auto">
+              <Film className="w-12 h-12 mx-auto text-zinc-600 mb-3" />
               <p className="text-base font-semibold text-white">
                 Bộ sưu tập chưa có phim nào
               </p>
               {isOwner ? (
                 <>
-                  <p className="text-xs text-gray-400 mt-1 mb-5">
+                  <p className="text-xs text-zinc-400 mt-1 mb-5">
                     Bộ sưu tập của bạn đang trống. Hãy tìm kiếm và thêm các bộ phim yêu thích vào đây ngay.
                   </p>
                   <button
                     type="button"
                     onClick={() => setShowAddMovieModal(true)}
-                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-netflix-red hover:bg-rose-700 text-white text-xs sm:text-sm font-bold transition shadow-lg shadow-rose-950/50 cursor-pointer active:scale-95"
+                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-netflix-red hover:bg-rose-700 text-white text-xs sm:text-sm font-bold transition shadow-md shadow-black/50 cursor-pointer active:scale-95"
                   >
                     <Plus className="w-4 h-4" />
                     <span>Tìm & thêm phim ngay</span>
                   </button>
                 </>
               ) : (
-                <p className="text-xs text-gray-400 mt-1">
+                <p className="text-xs text-zinc-400 mt-1">
                   Người tạo chưa thêm bộ phim nào vào bộ sưu tập này.
                 </p>
               )}

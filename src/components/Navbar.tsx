@@ -162,23 +162,24 @@ const NavbarInner: React.FC = () => {
                   key={link.name}
                   href={link.href}
                   prefetch={false}
+                  aria-current={active ? "page" : undefined}
                   onMouseEnter={() => router.prefetch(link.href)}
                   onFocus={() => router.prefetch(link.href)}
                   className={`transition-all relative py-1 flex items-center gap-1.5 whitespace-nowrap flex-shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black rounded-md ${
                     active
                       ? "text-white font-bold light-nav-active"
-                      : "text-gray-300 hover:text-white"
+                      : "text-zinc-300 hover:text-white"
                   }`}
                 >
                   <span className="whitespace-nowrap">{link.name}</span>
                   {link.isLive && (
                     <span className="relative flex h-2 w-2 flex-shrink-0 ml-0.5">
                       <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75" />
-                      <span className="relative inline-flex rounded-full h-2 w-2 bg-netflix-red shadow-[0_0_8px_#E50914]" />
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-netflix-red" />
                     </span>
                   )}
                   {active && (
-                    <span className="absolute bottom-0 left-0 w-full h-0.5 bg-netflix-red rounded-full shadow-[0_0_8px_rgba(229,9,20,0.8)]" />
+                    <span className="absolute bottom-0 left-0 w-full h-0.5 bg-netflix-red rounded-full" />
                   )}
                 </Link>
               );
@@ -205,9 +206,9 @@ const NavbarInner: React.FC = () => {
                   }
                 }}
                 aria-label="Bốc Quẻ Phim Định Mệnh"
-                className="group inline-flex items-center justify-center gap-1 sm:gap-1.5 w-8 h-8 sm:w-auto sm:h-auto sm:px-3 sm:py-1.5 rounded-full text-xs font-bold bg-gradient-to-r from-amber-500/30 via-orange-500/35 to-amber-600/30 hover:from-amber-400/45 hover:via-orange-400/50 hover:to-amber-500/45 text-amber-200 hover:text-white border border-amber-500/45 hover:border-amber-300/80 transition-all duration-300 cursor-pointer shadow-[0_0_12px_rgba(245,158,11,0.25)] hover:shadow-[0_0_18px_rgba(245,158,11,0.5)] hover:scale-105 active:scale-95 flex-shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2 focus-visible:ring-offset-black backdrop-blur-sm"
+                className="group inline-flex items-center justify-center gap-1 sm:gap-1.5 w-8 h-8 sm:w-auto sm:h-auto sm:px-3 sm:py-1.5 min-h-[36px] rounded-full text-xs font-bold bg-gradient-to-r from-amber-500/30 via-orange-500/35 to-amber-600/30 hover:from-amber-400/45 hover:via-orange-400/50 hover:to-amber-500/45 text-amber-200 hover:text-white border border-amber-500/45 hover:border-amber-300/80 transition-all duration-300 cursor-pointer shadow-sm shadow-black/50 hover:shadow-md hover:shadow-black/60 hover:scale-[1.02] active:scale-[0.98] flex-shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2 focus-visible:ring-offset-black backdrop-blur-sm"
               >
-                <Dices className="w-4 h-4 sm:w-3.5 sm:h-3.5 text-amber-300 flex-shrink-0 group-hover:rotate-45 transition-transform duration-300" />
+                <Dices className="w-4 h-4 sm:w-3.5 sm:h-3.5 text-amber-300 flex-shrink-0 group-hover:rotate-45 transition-transform duration-300" aria-hidden="true" />
                 <span className="hidden sm:inline tracking-tight font-extrabold">Bốc quẻ</span>
               </button>
             </Tooltip>
@@ -233,13 +234,14 @@ const NavbarInner: React.FC = () => {
           <button
             type="button"
             onClick={handleToggleMobileMenu}
-            aria-label="Menu"
-            className="lg:hidden flex items-center justify-center h-8 w-8 sm:h-9 sm:w-9 rounded-xl bg-white/10 hover:bg-white/20 text-white border border-white/20 transition cursor-pointer flex-shrink-0 active:scale-95 shadow-sm ml-0.5"
+            aria-expanded={isMobileMenuOpen}
+            aria-label={isMobileMenuOpen ? "Đóng menu điều hướng" : "Mở menu điều hướng"}
+            className="lg:hidden flex items-center justify-center h-9 w-9 min-h-[36px] min-w-[36px] rounded-xl bg-white/10 hover:bg-white/20 text-white border border-white/20 transition cursor-pointer flex-shrink-0 active:scale-95 shadow-sm ml-0.5"
           >
             {isMobileMenuOpen ? (
-              <X size={20} className="text-netflix-red" />
+              <X size={20} className="text-netflix-red" aria-hidden="true" />
             ) : (
-              <Menu size={20} />
+              <Menu size={20} aria-hidden="true" />
             )}
           </button>
         </div>

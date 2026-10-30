@@ -91,10 +91,10 @@ export function Tooltip({
   if (side === "top") {
     if (align === "start") {
       positionClass = "bottom-full mb-2 left-0";
-      arrowClass = "-bottom-1 left-3";
+      arrowClass = "-bottom-1 left-[18px] -translate-x-1/2";
     } else if (align === "end") {
       positionClass = "bottom-full mb-2 right-0";
-      arrowClass = "-bottom-1 right-3";
+      arrowClass = "-bottom-1 right-[18px] translate-x-1/2";
     } else {
       positionClass = "bottom-full mb-2 left-1/2 -translate-x-1/2";
       arrowClass = "-bottom-1 left-1/2 -translate-x-1/2";
@@ -103,10 +103,10 @@ export function Tooltip({
   } else if (side === "bottom") {
     if (align === "start") {
       positionClass = "top-full mt-2 left-0";
-      arrowClass = "-top-1 left-3";
+      arrowClass = "-top-1 left-[18px] -translate-x-1/2";
     } else if (align === "end") {
       positionClass = "top-full mt-2 right-0";
-      arrowClass = "-top-1 right-3";
+      arrowClass = "-top-1 right-[18px] translate-x-1/2";
     } else {
       positionClass = "top-full mt-2 left-1/2 -translate-x-1/2";
       arrowClass = "-top-1 left-1/2 -translate-x-1/2";

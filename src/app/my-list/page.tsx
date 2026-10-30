@@ -282,13 +282,13 @@ function MyListContent() {
       {/* HEADER & BREADCRUMB */}
       <div className="flex flex-wrap items-center justify-between gap-4 mb-6 border-b border-white/10 pb-5">
         <div>
-          <div className="flex items-center gap-2.5 text-xs text-gray-400 mb-2">
+          <div className="flex items-center gap-2.5 text-xs text-zinc-400 mb-2">
             <Link href="/" className="hover:text-white transition flex items-center gap-1">
               <ArrowLeft className="h-3.5 w-3.5" />
               Trang chủ
             </Link>
             <span>/</span>
-            <span className="text-gray-200">
+            <span className="text-zinc-200">
               {activeTab === "watchlist"
                 ? "Danh sách của tôi"
                 : activeTab === "history"
@@ -321,7 +321,7 @@ function MyListContent() {
               </>
             )}
           </h1>
-          <p className="text-sm text-gray-400 mt-1">
+          <p className="text-sm text-zinc-400 mt-1">
             {activeTab === "watchlist"
               ? "Các bộ phim bạn đã đánh dấu để xem lại bất cứ khi nào."
               : activeTab === "history"
@@ -337,15 +337,16 @@ function MyListContent() {
           <div>
             {activeTab === "watchlist" && watchlist.length > 0 && (
               <div className="flex items-center gap-3">
-                <span className="text-xs sm:text-sm text-gray-300 bg-zinc-900 border border-white/15 px-3 py-1.5 rounded-lg">
+                <span className="text-xs sm:text-sm text-zinc-300 bg-zinc-900 border border-white/15 px-3 py-1.5 rounded-lg">
                   {watchlist.length} phim đã lưu
                 </span>
                 <button
                   type="button"
                   onClick={handleClearWatchlist}
-                  className="inline-flex items-center gap-1.5 text-xs sm:text-sm text-gray-400 hover:text-red-400 border border-white/10 hover:border-red-500/30 bg-zinc-900/60 px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
+                  aria-label="Xóa tất cả phim đã lưu trong danh sách yêu thích"
+                  className="inline-flex items-center gap-1.5 text-xs sm:text-sm text-zinc-400 hover:text-red-400 border border-white/10 hover:border-red-500/30 bg-zinc-900/60 px-3 py-1.5 min-h-[36px] rounded-lg transition-colors cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-red-500/50"
                 >
-                  <Trash2 className="h-3.5 w-3.5" />
+                  <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
                   <span>Xóa tất cả</span>
                 </button>
               </div>
@@ -353,15 +354,16 @@ function MyListContent() {
 
             {activeTab === "history" && history.length > 0 && (
               <div className="flex items-center gap-3">
-                <span className="text-xs sm:text-sm text-gray-300 bg-zinc-900 border border-white/15 px-3 py-1.5 rounded-lg">
+                <span className="text-xs sm:text-sm text-zinc-300 bg-zinc-900 border border-white/15 px-3 py-1.5 rounded-lg">
                   {history.length} phim đã xem
                 </span>
                 <button
                   type="button"
                   onClick={handleClearHistory}
-                  className="inline-flex items-center gap-1.5 text-xs sm:text-sm text-gray-400 hover:text-red-400 border border-white/10 hover:border-red-500/30 bg-zinc-900/60 px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
+                  aria-label="Xóa toàn bộ lịch sử xem phim"
+                  className="inline-flex items-center gap-1.5 text-xs sm:text-sm text-zinc-400 hover:text-red-400 border border-white/10 hover:border-red-500/30 bg-zinc-900/60 px-3 py-1.5 min-h-[36px] rounded-lg transition-colors cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-red-500/50"
                 >
-                  <Trash2 className="h-3.5 w-3.5" />
+                  <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
                   <span>Xóa lịch sử</span>
                 </button>
               </div>
@@ -377,7 +379,7 @@ function MyListContent() {
                     setShowCreateCollectionModal(true);
                   }
                 }}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-netflix-red hover:bg-rose-700 text-white text-xs sm:text-sm font-bold shadow-lg shadow-rose-950/50 transition cursor-pointer active:scale-95"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-netflix-red hover:bg-rose-700 text-white text-xs sm:text-sm font-bold shadow-md shadow-black/50 transition cursor-pointer active:scale-95"
               >
                 <Plus className="w-4 h-4" />
                 <span>Tạo bộ sưu tập</span>
@@ -403,21 +405,21 @@ function MyListContent() {
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse flex-shrink-0" />
                 <span className="truncate">Đang đồng bộ Google Cloud: {user.displayName || user.email}</span>
               </p>
-              <p className="text-[11px] text-gray-400 leading-relaxed break-words line-clamp-2 sm:line-clamp-1">
+              <p className="text-[11px] text-zinc-400 leading-relaxed break-words line-clamp-2 sm:line-clamp-1">
                 Danh sách yêu thích, lịch sử xem và các bộ sưu tập được đồng bộ bảo mật tức thì.
               </p>
             </div>
           </div>
         ) : (
           <div className="flex items-center gap-3 min-w-0 flex-1">
-            <div className="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center text-gray-300 flex-shrink-0">
+            <div className="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center text-zinc-300 flex-shrink-0">
               <FolderHeart className="w-4 h-4 text-netflix-red" />
             </div>
             <div className="min-w-0 flex-1">
               <p className="text-xs font-bold text-white truncate">
                 Đồng bộ số phút, lịch sử & bộ sưu tập lên Đám mây
               </p>
-              <p className="text-[11px] text-gray-400 leading-relaxed break-words line-clamp-2 sm:line-clamp-1">
+              <p className="text-[11px] text-zinc-400 leading-relaxed break-words line-clamp-2 sm:line-clamp-1">
                 Đăng nhập tài khoản Google miễn phí để quản lý bộ sưu tập và xem tiếp đúng phút trên mọi thiết bị.
               </p>
             </div>
@@ -444,7 +446,7 @@ function MyListContent() {
                 type="button"
                 disabled={isSyncing}
                 onClick={syncNow}
-                className="flex-1 sm:flex-none justify-center inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-xs font-semibold text-gray-200 hover:text-white transition cursor-pointer disabled:opacity-50"
+                className="flex-1 sm:flex-none justify-center inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-xs font-semibold text-zinc-200 hover:text-white transition cursor-pointer disabled:opacity-50"
               >
                 <RefreshCw className={`w-3.5 h-3.5 text-emerald-400 flex-shrink-0 ${isSyncing ? "animate-spin" : ""}`} />
                 <span>{isSyncing ? "Đang đồng bộ..." : "Đồng bộ lại"}</span>
@@ -454,7 +456,7 @@ function MyListContent() {
             <button
               type="button"
               onClick={() => setShowAuthModal(true)}
-              className="w-full sm:w-auto justify-center inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white hover:bg-gray-100 text-xs font-bold text-gray-950 transition cursor-pointer shadow-sm"
+              className="w-full sm:w-auto justify-center inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white hover:bg-zinc-100 text-xs font-bold text-zinc-950 transition cursor-pointer shadow-sm"
             >
               <LogIn className="w-3.5 h-3.5 text-netflix-red flex-shrink-0" />
               <span>Đăng nhập Google</span>
@@ -470,7 +472,7 @@ function MyListContent() {
           onClick={() => handleTabChange("watchlist")}
           className={`flex-none shrink-0 flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer whitespace-nowrap active:scale-95 ${
             activeTab === "watchlist"
-              ? "bg-netflix-red text-white shadow-lg shadow-red-950/50"
+              ? "bg-netflix-red text-white shadow-md shadow-black/50"
               : "bg-white/[0.04] text-zinc-400 hover:text-white hover:bg-white/10 border border-white/5"
           }`}
         >
@@ -483,7 +485,7 @@ function MyListContent() {
           onClick={() => handleTabChange("history")}
           className={`flex-none shrink-0 flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer whitespace-nowrap active:scale-95 ${
             activeTab === "history"
-              ? "bg-netflix-red text-white shadow-lg shadow-red-950/50"
+              ? "bg-netflix-red text-white shadow-md shadow-black/50"
               : "bg-white/[0.04] text-zinc-400 hover:text-white hover:bg-white/10 border border-white/5"
           }`}
         >
@@ -496,7 +498,7 @@ function MyListContent() {
           onClick={() => handleTabChange("collections")}
           className={`flex-none shrink-0 flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer whitespace-nowrap active:scale-95 ${
             activeTab === "collections"
-              ? "bg-netflix-red text-white shadow-lg shadow-red-950/50"
+              ? "bg-netflix-red text-white shadow-md shadow-black/50"
               : "bg-white/[0.04] text-zinc-400 hover:text-white hover:bg-white/10 border border-white/5"
           }`}
         >
@@ -509,7 +511,7 @@ function MyListContent() {
           onClick={() => handleTabChange("comments")}
           className={`flex-none shrink-0 flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer whitespace-nowrap active:scale-95 ${
             activeTab === "comments"
-              ? "bg-netflix-red text-white shadow-lg shadow-red-950/50"
+              ? "bg-netflix-red text-white shadow-md shadow-black/50"
               : "bg-white/[0.04] text-zinc-400 hover:text-white hover:bg-white/10 border border-white/5"
           }`}
         >
@@ -532,13 +534,13 @@ function MyListContent() {
         /* TAB 1: WATCHLIST */
         watchlist.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 px-4 text-center max-w-lg mx-auto">
-            <div className="h-20 w-20 rounded-full bg-zinc-900 border border-white/10 flex items-center justify-center mb-5 text-gray-400">
-              <Film className="h-9 w-9 text-gray-500" />
+            <div className="h-20 w-20 rounded-full bg-zinc-900 border border-white/10 flex items-center justify-center mb-5 text-zinc-400">
+              <Film className="h-9 w-9 text-zinc-500" />
             </div>
             <h2 className="text-xl sm:text-2xl font-bold mb-2">
               Danh sách của bạn chưa có phim nào
             </h2>
-            <p className="text-gray-400 text-sm leading-relaxed mb-6">
+            <p className="text-zinc-400 text-sm leading-relaxed mb-6">
               Khi lướt phim trên Nanaflix, hãy bấm vào nút dấu cộng (<span className="text-white font-bold">+</span>) trên các bộ phim bạn thích để lưu vào danh sách xem sau.
             </p>
             <Link
@@ -580,13 +582,13 @@ function MyListContent() {
         /* TAB 2: WATCH HISTORY */
         history.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 px-4 text-center max-w-lg mx-auto">
-            <div className="h-20 w-20 rounded-full bg-zinc-900 border border-white/10 flex items-center justify-center mb-5 text-gray-400">
-              <Clock className="h-9 w-9 text-gray-500" />
+            <div className="h-20 w-20 rounded-full bg-zinc-900 border border-white/10 flex items-center justify-center mb-5 text-zinc-400">
+              <Clock className="h-9 w-9 text-zinc-500" />
             </div>
             <h2 className="text-xl sm:text-2xl font-bold mb-2">
               Chưa có lịch sử xem phim
             </h2>
-            <p className="text-gray-400 text-sm leading-relaxed mb-6">
+            <p className="text-zinc-400 text-sm leading-relaxed mb-6">
               Các bộ phim và tập phim bạn thưởng thức sẽ tự động xuất hiện tại đây để bạn có thể dễ dàng xem tiếp bất cứ lúc nào.
             </p>
             <Link
@@ -659,7 +661,7 @@ function MyListContent() {
                             removeWatchHistoryItem(item.slug);
                           }}
                           aria-label="Xoá khỏi lịch sử"
-                          className="absolute top-2 right-2 p-1.5 rounded-full bg-black/70 text-gray-300 hover:text-white hover:bg-black/90 backdrop-blur-sm transition z-10 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 cursor-pointer shadow-md"
+                          className="absolute top-2 right-2 p-1.5 rounded-full bg-black/70 text-zinc-300 hover:text-white hover:bg-black/90 backdrop-blur-sm transition z-10 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 cursor-pointer shadow-md"
                         >
                           <X className="w-3.5 h-3.5" />
                         </button>
@@ -679,7 +681,7 @@ function MyListContent() {
                         <h3 className="text-white font-semibold text-xs sm:text-sm line-clamp-2 group-hover:text-netflix-red transition-colors">
                           {item.title}
                         </h3>
-                        <div className="flex items-center justify-between text-[10px] sm:text-xs text-gray-400 mt-2">
+                        <div className="flex items-center justify-between text-[10px] sm:text-xs text-zinc-400 mt-2">
                           <span className="text-red-400 font-semibold truncate max-w-[120px]">
                             {item.episodeName ? formatEpisodeName(item.episodeName) : "Đã xem"}
                           </span>
@@ -729,13 +731,13 @@ function MyListContent() {
             </div>
           ) : !user ? (
             <div className="flex flex-col items-center justify-center py-12 px-4 text-center max-w-lg mx-auto bg-zinc-900/30 rounded-2xl border border-white/5">
-              <div className="h-16 w-16 rounded-full bg-zinc-900 border border-white/10 flex items-center justify-center mb-4 text-gray-400">
+              <div className="h-16 w-16 rounded-full bg-zinc-900 border border-white/10 flex items-center justify-center mb-4 text-zinc-400">
                 <FolderHeart className="h-8 w-8 text-netflix-red" />
               </div>
               <h2 className="text-lg sm:text-xl font-bold mb-2">
                 Bộ sưu tập phim cá nhân
               </h2>
-              <p className="text-gray-400 text-xs sm:text-sm leading-relaxed mb-5">
+              <p className="text-zinc-400 text-xs sm:text-sm leading-relaxed mb-5">
                 Đăng nhập tài khoản Google để tạo playlist phim theo gu riêng, gom nhóm các tác phẩm yêu thích và chia sẻ liên kết công khai.
               </p>
               <button
@@ -749,13 +751,13 @@ function MyListContent() {
             </div>
           ) : collections.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 px-4 text-center max-w-lg mx-auto bg-zinc-900/30 rounded-2xl border border-white/5">
-              <div className="h-16 w-16 rounded-full bg-zinc-900 border border-white/10 flex items-center justify-center mb-4 text-gray-400">
-                <FolderPlus className="h-8 w-8 text-gray-500" />
+              <div className="h-16 w-16 rounded-full bg-zinc-900 border border-white/10 flex items-center justify-center mb-4 text-zinc-400">
+                <FolderPlus className="h-8 w-8 text-zinc-500" />
               </div>
               <h2 className="text-lg sm:text-xl font-bold mb-2">
                 Bạn chưa có bộ sưu tập riêng
               </h2>
-              <p className="text-gray-400 text-xs sm:text-sm leading-relaxed mb-5">
+              <p className="text-zinc-400 text-xs sm:text-sm leading-relaxed mb-5">
                 Bắt đầu tạo bộ sưu tập đầu tiên (ví dụ: &quot;Anime cày đêm&quot;, &quot;Phim kinh dị đỉnh cao&quot;) và thêm các phim yêu thích vào danh sách.
               </p>
               <button
@@ -809,8 +811,8 @@ function MyListContent() {
                               />
                             </div>
                           ) : (
-                            <div className="flex flex-col items-center justify-center h-full text-gray-500 border border-dashed border-white/15 rounded-lg m-2 bg-zinc-900/30">
-                              <Film className="w-7 h-7 mb-1.5 opacity-40 group-hover:opacity-75 group-hover:scale-105 transition-all text-gray-400" />
+                            <div className="flex flex-col items-center justify-center h-full text-zinc-500 border border-dashed border-white/15 rounded-lg m-2 bg-zinc-900/30">
+                              <Film className="w-7 h-7 mb-1.5 opacity-40 group-hover:opacity-75 group-hover:scale-105 transition-all text-zinc-400" />
                               <span className="text-[11px] text-zinc-400 group-hover:text-zinc-200 transition-colors">Chưa có phim • Bấm để thêm</span>
                             </div>
                           )}
@@ -822,7 +824,7 @@ function MyListContent() {
                                 <Globe className="w-3 h-3" /> Công khai
                               </span>
                             ) : (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-zinc-900/90 border border-white/20 text-gray-300 text-[10px] font-bold backdrop-blur-md shadow-md">
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-zinc-900/90 border border-white/20 text-zinc-300 text-[10px] font-bold backdrop-blur-md shadow-md">
                                 <Lock className="w-3 h-3" /> Riêng tư
                               </span>
                             )}
@@ -832,7 +834,7 @@ function MyListContent() {
                         <h3 className="text-white font-bold text-base sm:text-[17px] tracking-tight truncate group-hover:text-netflix-red transition-colors">
                           {col.name}
                         </h3>
-                        <p className="text-xs text-gray-400 line-clamp-1 mt-1">
+                        <p className="text-xs text-zinc-400 line-clamp-1 mt-1">
                           {col.description || `${col.movies?.length || 0} bộ phim được chọn lọc`}
                         </p>
                         <div className="text-[11px] text-rose-300 font-semibold mt-2">
@@ -845,7 +847,7 @@ function MyListContent() {
                         <button
                           type="button"
                           onClick={() => handleShareCollection(col.id)}
-                          className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-white/10 transition flex items-center gap-1.5 cursor-pointer"
+                          className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-white/10 transition flex items-center gap-1.5 cursor-pointer"
                           title="Sao chép liên kết chia sẻ"
                         >
                           {copiedId === col.id ? (
@@ -864,7 +866,7 @@ function MyListContent() {
                         <button
                           type="button"
                           onClick={() => handleTogglePrivacy(col)}
-                          className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-white/10 transition flex items-center gap-1 cursor-pointer"
+                          className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-white/10 transition flex items-center gap-1 cursor-pointer"
                           title={col.isPublic ? "Chuyển sang riêng tư" : "Chuyển sang công khai"}
                         >
                           {col.isPublic ? (
@@ -880,7 +882,7 @@ function MyListContent() {
                         <button
                           type="button"
                           onClick={() => handleDeleteCollection(col)}
-                          className="p-1.5 px-2 rounded-lg text-gray-400 hover:text-red-400 hover:bg-red-500/15 focus-visible:ring-1 focus-visible:ring-red-400 transition-all cursor-pointer"
+                          className="p-1.5 px-2 rounded-lg text-zinc-400 hover:text-red-400 hover:bg-red-500/15 focus-visible:ring-1 focus-visible:ring-red-400 transition-all cursor-pointer"
                           title="Xóa bộ sưu tập"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
@@ -900,7 +902,7 @@ function MyListContent() {
                 <h2 className="text-lg sm:text-xl font-bold text-white flex items-center gap-2">
                   <span>✨ Tuyển Tập Đề Xuất (Smart Collections)</span>
                 </h2>
-                <p className="text-xs text-gray-400 mt-0.5">
+                <p className="text-xs text-zinc-400 mt-0.5">
                   Bộ sưu tập tự động phân loại theo chủ đề hấp dẫn từ kho phim Nanaflix
                 </p>
               </div>
@@ -922,7 +924,7 @@ function MyListContent() {
                     <h3 className="text-white font-bold text-sm group-hover:text-netflix-red transition-colors line-clamp-1">
                       {smart.name}
                     </h3>
-                    <p className="text-xs text-gray-400 line-clamp-2 mt-1.5 leading-relaxed">
+                    <p className="text-xs text-zinc-400 line-clamp-2 mt-1.5 leading-relaxed">
                       {smart.description}
                     </p>
                   </div>
@@ -939,13 +941,13 @@ function MyListContent() {
         /* TAB 4: LỊCH SỬ BÌNH LUẬN */
         userComments.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 px-4 text-center max-w-lg mx-auto">
-            <div className="h-20 w-20 rounded-full bg-zinc-900 border border-white/10 flex items-center justify-center mb-5 text-gray-400">
+            <div className="h-20 w-20 rounded-full bg-zinc-900 border border-white/10 flex items-center justify-center mb-5 text-zinc-400">
               <MessageSquare className="h-9 w-9 text-rose-500" />
             </div>
             <h2 className="text-xl sm:text-2xl font-bold mb-2">
               Bạn chưa viết bình luận nào
             </h2>
-            <p className="text-gray-400 text-sm leading-relaxed mb-6">
+            <p className="text-zinc-400 text-sm leading-relaxed mb-6">
               Mỗi đánh giá và nhận xét của bạn giúp cộng đồng Nanaflix tìm được bộ phim hay nhất!
             </p>
             <Link
@@ -995,17 +997,17 @@ function MyListContent() {
                     )}
                   </div>
 
-                  <p className="text-xs sm:text-sm text-gray-200 leading-relaxed bg-black/50 p-2.5 sm:p-3 rounded-xl border border-white/5 whitespace-pre-line">
+                  <p className="text-xs sm:text-sm text-zinc-200 leading-relaxed bg-black/50 p-2.5 sm:p-3 rounded-xl border border-white/5 whitespace-pre-line">
                     {c.content}
                   </p>
 
-                  <div className="flex items-center justify-between text-xs text-gray-400 pt-0.5">
+                  <div className="flex items-center justify-between text-xs text-zinc-400 pt-0.5">
                     <div className="flex items-center gap-3">
                       <span
-                        className="flex items-center gap-1 text-gray-400"
+                        className="flex items-center gap-1 text-zinc-400"
                         title={new Date(c.createdAt).toLocaleString("vi-VN")}
                       >
-                        <Clock className="w-3.5 h-3.5 text-gray-500" />
+                        <Clock className="w-3.5 h-3.5 text-zinc-500" />
                         <span>{formatCommentDate(c.createdAt)}</span>
                       </span>
                       {c.likes > 0 && (
@@ -1060,7 +1062,7 @@ export default function MyListPage() {
           <Navbar />
         </Suspense>
 
-        <Suspense fallback={<div className="min-h-[400px] flex items-center justify-center text-gray-400">Đang tải...</div>}>
+        <Suspense fallback={<div className="min-h-[400px] flex items-center justify-center text-zinc-400">Đang tải...</div>}>
           <MyListContent />
         </Suspense>
       </div>

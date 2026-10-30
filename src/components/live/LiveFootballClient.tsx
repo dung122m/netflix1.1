@@ -1315,7 +1315,7 @@ export function LiveFootballClient({
                       <div className="flex items-center gap-2 min-w-0 flex-1">
                         <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
                         <div className="min-w-0 flex-1">
-                          <span className="text-gray-300 truncate text-[11px] sm:text-xs block">
+                          <span className="text-zinc-300 truncate text-[11px] sm:text-xs block">
                             Đang phát: <strong className="text-white font-black">{selectedMatch.title}</strong>
                           </span>
                         </div>
@@ -1326,7 +1326,7 @@ export function LiveFootballClient({
                         type="button"
                         onClick={() => setIsMobileSheetOpen(true)}
                         aria-label={`Đổi trận đấu (${filteredMatches.length} trận khả dụng)`}
-                        className="lg:hidden flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-netflix-red hover:bg-red-700 text-white font-black text-xs shadow-md shadow-red-950/50 transition cursor-pointer active:scale-95 shrink-0"
+                        className="lg:hidden flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-netflix-red hover:bg-red-700 text-white font-black text-xs shadow-md shadow-black/50 transition cursor-pointer active:scale-95 shrink-0"
                       >
                         <Clock className="w-3.5 h-3.5 shrink-0" />
                         <span>Đổi trận</span>
@@ -1386,8 +1386,8 @@ export function LiveFootballClient({
                       onClick={() => setSidePanelTab("match-center")}
                       className={`flex items-center justify-center gap-1.5 py-2 text-xs font-black rounded-lg transition text-center cursor-pointer ${
                         sidePanelTab === "match-center"
-                          ? "bg-netflix-red text-white shadow-md shadow-red-950/50"
-                          : "text-gray-400 hover:text-white hover:bg-white/5"
+                          ? "bg-netflix-red text-white shadow-md shadow-black/50"
+                          : "text-zinc-400 hover:text-white hover:bg-white/5"
                       }`}
                     >
                       <Activity className="w-3.5 h-3.5" />
@@ -1398,8 +1398,8 @@ export function LiveFootballClient({
                       onClick={() => setSidePanelTab("matches")}
                       className={`flex items-center justify-center gap-1.5 py-2 text-xs font-black rounded-lg transition text-center cursor-pointer ${
                         sidePanelTab === "matches"
-                          ? "bg-netflix-red text-white shadow-md shadow-red-950/50"
-                          : "text-gray-400 hover:text-white hover:bg-white/5"
+                          ? "bg-netflix-red text-white shadow-md shadow-black/50"
+                          : "text-zinc-400 hover:text-white hover:bg-white/5"
                       }`}
                     >
                       <Clock className="w-3.5 h-3.5" />
@@ -1448,7 +1448,7 @@ export function LiveFootballClient({
                     <div className="flex-1 min-h-0 flex flex-col space-y-2.5 overflow-hidden">
                       {/* Ô tìm kiếm nhanh trong side panel */}
                       <div className="relative w-full shrink-0">
-                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-400" />
                         <input
                           type="text"
                           value={searchQuery}
@@ -1462,12 +1462,12 @@ export function LiveFootballClient({
                               type="button"
                               onClick={() => handleSearchChange("")}
                               title="Xóa tìm kiếm"
-                              className="text-gray-400 hover:text-white p-0.5 cursor-pointer rounded-full hover:bg-white/10"
+                              className="text-zinc-400 hover:text-white p-0.5 cursor-pointer rounded-full hover:bg-white/10"
                             >
                               <X className="w-3 h-3" />
                             </button>
                           )}
-                          <span className="text-[9.5px] font-bold px-1.5 py-0.2 rounded bg-white/10 text-gray-300">
+                          <span className="text-[9.5px] font-bold px-1.5 py-0.2 rounded bg-white/10 text-zinc-300">
                             {filteredMatches.length}
                           </span>
                         </div>
@@ -1525,7 +1525,7 @@ export function LiveFootballClient({
                 <button
                   type="button"
                   onClick={() => setIsMobileSheetOpen(true)}
-                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-netflix-red hover:bg-red-700 text-white font-black text-xs shadow-md shadow-red-950/50 transition cursor-pointer active:scale-95 shrink-0"
+                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-netflix-red hover:bg-red-700 text-white font-black text-xs shadow-md shadow-black/50 transition cursor-pointer active:scale-95 shrink-0"
                 >
                   <Clock className="w-3.5 h-3.5" />
                   <span>Đổi trận</span>
@@ -1793,7 +1793,7 @@ export function LiveFootballClient({
                           onClick={() => handleStatusChange("live")}
                           className={`flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-[11px] sm:text-xs font-semibold whitespace-nowrap transition cursor-pointer min-h-[32px] sm:min-h-[38px] ${
                             selectedStatus === "live"
-                              ? "bg-red-600/90 text-white font-bold border border-red-500/50 shadow-md shadow-red-950/40"
+                              ? "bg-red-600/90 text-white font-bold border border-red-500/50 shadow-md shadow-black/50"
                               : "text-rose-300/90 hover:text-white hover:bg-white/5 border border-transparent"
                           }`}
                         >
@@ -1854,7 +1854,7 @@ export function LiveFootballClient({
                         title="Chỉ hiện các trận có nguồn phát trực tiếp"
                         className={`flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-[11px] sm:text-xs font-semibold whitespace-nowrap transition cursor-pointer min-h-[32px] sm:min-h-[38px] border ${
                           onlyWithStream
-                            ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/40 shadow-sm shadow-emerald-950/40 font-bold"
+                            ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/40 shadow-sm shadow-black/40 font-bold"
                             : "text-zinc-400 border-transparent hover:text-zinc-200 hover:bg-white/5"
                         }`}
                       >
@@ -1869,7 +1869,7 @@ export function LiveFootballClient({
                         title="Chỉ hiện các trận phát độ phân giải FHD 1080p"
                         className={`flex items-center gap-1 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-[11px] sm:text-xs font-semibold whitespace-nowrap transition cursor-pointer min-h-[32px] sm:min-h-[38px] border ${
                           onlyFhd
-                            ? "bg-amber-500/20 text-amber-300 border-amber-500/40 shadow-sm shadow-amber-950/40 font-bold"
+                            ? "bg-amber-500/20 text-amber-300 border-amber-500/40 shadow-sm shadow-black/40 font-bold"
                             : "text-zinc-400 border-transparent hover:text-zinc-200 hover:bg-white/5"
                         }`}
                       >
@@ -2054,7 +2054,7 @@ export function LiveFootballClient({
                                   }}
                                   className={`w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-semibold transition text-left cursor-pointer ${
                                     isSelected
-                                      ? "bg-netflix-red text-white font-bold shadow-md shadow-red-950/50"
+                                      ? "bg-netflix-red text-white font-bold shadow-md shadow-black/50"
                                       : "text-zinc-300 hover:bg-zinc-800/80 hover:text-white"
                                   }`}
                                 >

@@ -181,7 +181,7 @@ export function HistoryClient() {
         <div className="relative z-10 max-w-3xl space-y-3 sm:space-y-4">
           <Link
             href="/browse"
-            className="inline-flex items-center gap-2 text-xs font-semibold text-gray-300 hover:text-white transition-colors bg-white/[0.06] hover:bg-white/[0.12] px-3.5 py-1.5 rounded-full border border-white/[0.1] mb-2 backdrop-blur-md cursor-pointer w-fit"
+            className="inline-flex items-center gap-2 text-xs font-semibold text-zinc-300 hover:text-white transition-colors bg-white/[0.06] hover:bg-white/[0.12] px-3.5 py-1.5 rounded-full border border-white/[0.1] mb-2 backdrop-blur-md cursor-pointer w-fit"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
             <span>Quay lại xem phim</span>
@@ -581,7 +581,7 @@ export function HistoryClient() {
                   />
 
                   {/* Event Card */}
-                  <div className="rounded-2xl bg-zinc-900/90 hover:bg-zinc-900 border border-white/10 hover:border-amber-400/40 p-4 sm:p-6 transition-all duration-300 shadow-md hover:shadow-xl hover:shadow-amber-950/20 backdrop-blur-md">
+                  <div className="rounded-2xl bg-zinc-900/90 hover:bg-zinc-900 border border-white/10 hover:border-amber-400/40 p-4 sm:p-6 transition-all duration-300 shadow-md hover:shadow-xl hover:shadow-black/60 backdrop-blur-md">
                     {/* Top Meta Bar */}
                     <div className="flex flex-wrap items-center justify-between gap-2 pb-2.5 mb-2 border-b border-white/5">
                       <div className="flex flex-wrap items-center gap-2">
@@ -759,7 +759,7 @@ export function HistoryClient() {
         <div className="mt-12 text-center space-y-3">
           <button
             onClick={handleLoadMore}
-            className="inline-flex items-center gap-2 px-6 py-3 rounded-full text-sm font-bold bg-gradient-to-r from-red-600 to-amber-600 hover:from-red-500 hover:to-amber-500 text-white shadow-lg shadow-red-950/50 transition-all hover:scale-[1.02] active:scale-95 cursor-pointer"
+            className="inline-flex items-center gap-2 px-6 py-3 rounded-full text-sm font-bold bg-gradient-to-r from-red-600 to-amber-600 hover:from-red-500 hover:to-amber-500 text-white shadow-md shadow-black/50 transition-all hover:scale-[1.02] active:scale-95 cursor-pointer"
           >
             <ChevronDown className="w-4 h-4" />
             <span>

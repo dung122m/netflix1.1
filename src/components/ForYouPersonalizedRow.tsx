@@ -43,8 +43,8 @@ const DEFAULT_CATALOG_FALLBACK: ForYouMovieItem[] = [
     name: "Avatar",
     title: "Avatar",
     origin_name: "Avatar",
-    poster_url: "https://phimimg.com/upload/vod/20231201-1/b9bfbda8d01150cce89aee8ecf16751c.jpg",
-    thumb_url: "https://phimimg.com/upload/vod/20231201-1/b9bfbda8d01150cce89aee8ecf16751c.jpg",
+    poster_url: "https://image.tmdb.org/t/p/w500/kyeqWdyUXW608qlYkRqosgbbJyK.jpg",
+    thumb_url: "https://image.tmdb.org/t/p/w780/vL5LR6WdxWPquIkzgSt2Y4WWWaq.jpg",
     year: 2009,
     quality: "4K UHD",
     category: [{ name: "Viễn Tưởng" }],
@@ -56,8 +56,8 @@ const DEFAULT_CATALOG_FALLBACK: ForYouMovieItem[] = [
     name: "Hố Đen Tử Thần",
     title: "Hố Đen Tử Thần",
     origin_name: "Interstellar",
-    poster_url: "https://phimimg.com/upload/vod/20231201-1/cbb61be4949efbb532551a141cf5e1e6.jpg",
-    thumb_url: "https://phimimg.com/upload/vod/20231201-1/cbb61be4949efbb532551a141cf5e1e6.jpg",
+    poster_url: "https://image.tmdb.org/t/p/w500/gEU2QniE6E77NI6lCU6MxlNBvIx.jpg",
+    thumb_url: "https://image.tmdb.org/t/p/w780/xJHokMbljvjADYdit5fK5VQsXEG.jpg",
     year: 2014,
     quality: "4K UHD",
     category: [{ name: "Khoa Học" }],
@@ -69,8 +69,8 @@ const DEFAULT_CATALOG_FALLBACK: ForYouMovieItem[] = [
     name: "Ký Sinh Trùng",
     title: "Ký Sinh Trùng",
     origin_name: "Parasite",
-    poster_url: "https://phimimg.com/upload/vod/20231201-1/e5a40b9918fb5ff61d90f23d8c1cfaeb.jpg",
-    thumb_url: "https://phimimg.com/upload/vod/20231201-1/e5a40b9918fb5ff61d90f23d8c1cfaeb.jpg",
+    poster_url: "https://image.tmdb.org/t/p/w500/7IiTTgloJzvGI1TAYymCfbfl3vT.jpg",
+    thumb_url: "https://image.tmdb.org/t/p/w780/hiKmpnnSantftGFKdEgGdYzXmUC.jpg",
     year: 2019,
     quality: "Full HD",
     category: [{ name: "Tâm Lý" }],
@@ -82,8 +82,8 @@ const DEFAULT_CATALOG_FALLBACK: ForYouMovieItem[] = [
     name: "Chuyến Tàu Sinh Tử",
     title: "Chuyến Tàu Sinh Tử",
     origin_name: "Train to Busan",
-    poster_url: "https://phimimg.com/upload/vod/20231201-1/5e929f452818c644ef061db9395f13b1.jpg",
-    thumb_url: "https://phimimg.com/upload/vod/20231201-1/5e929f452818c644ef061db9395f13b1.jpg",
+    poster_url: "https://image.tmdb.org/t/p/w500/vVdVfP9Q3wSkn9p8qZ6fC6Wz8iV.jpg",
+    thumb_url: "https://image.tmdb.org/t/p/w780/77SQqLpW399v3yQ9J6q4yJ6vA0B.jpg",
     year: 2016,
     quality: "Full HD",
     category: [{ name: "Kinh Dị" }],
@@ -95,8 +95,8 @@ const DEFAULT_CATALOG_FALLBACK: ForYouMovieItem[] = [
     name: "Diệp Vấn",
     title: "Diệp Vấn",
     origin_name: "Ip Man",
-    poster_url: "https://phimimg.com/upload/vod/20231201-1/6a0a0cfb2e697faef6a26084041b65e9.jpg",
-    thumb_url: "https://phimimg.com/upload/vod/20231201-1/6a0a0cfb2e697faef6a26084041b65e9.jpg",
+    poster_url: "https://image.tmdb.org/t/p/w500/f2178ad87d967d7199587a82ec1396a8.jpg",
+    thumb_url: "https://image.tmdb.org/t/p/w780/f2178ad87d967d7199587a82ec1396a8.jpg",
     year: 2008,
     quality: "Full HD",
     category: [{ name: "Võ Thuật" }],
@@ -108,8 +108,8 @@ const DEFAULT_CATALOG_FALLBACK: ForYouMovieItem[] = [
     name: "Kỵ Sĩ Bóng Đêm",
     title: "Kỵ Sĩ Bóng Đêm",
     origin_name: "The Dark Knight",
-    poster_url: "https://phimimg.com/upload/vod/20231201-1/7e15bf9273c52a0a2df3d8544d673523.jpg",
-    thumb_url: "https://phimimg.com/upload/vod/20231201-1/7e15bf9273c52a0a2df3d8544d673523.jpg",
+    poster_url: "https://image.tmdb.org/t/p/w500/qJ2tW6WMUDux911r6m7haRef0WH.jpg",
+    thumb_url: "https://image.tmdb.org/t/p/w780/nMKdUUepR0i5zn0y1T4CsSB5chy.jpg",
     year: 2008,
     quality: "4K UHD",
     category: [{ name: "Hành Động" }],
@@ -121,8 +121,8 @@ const DEFAULT_CATALOG_FALLBACK: ForYouMovieItem[] = [
     name: "Vùng Đất Linh Hồn",
     title: "Vùng Đất Linh Hồn",
     origin_name: "Spirited Away",
-    poster_url: "https://phimimg.com/upload/vod/20231201-1/8d689626e2a2292f7c65c2ca16ad909e.jpg",
-    thumb_url: "https://phimimg.com/upload/vod/20231201-1/8d689626e2a2292f7c65c2ca16ad909e.jpg",
+    poster_url: "https://image.tmdb.org/t/p/w500/393DYSB09pSj4pk9z06pfsu4Pqu.jpg",
+    thumb_url: "https://image.tmdb.org/t/p/w780/Ab8mkHmkYADjU7wQiOkia9BzGvS.jpg",
     year: 2001,
     quality: "Full HD",
     category: [{ name: "Hoạt Hình" }],
@@ -134,8 +134,8 @@ const DEFAULT_CATALOG_FALLBACK: ForYouMovieItem[] = [
     name: "Tuyệt Đỉnh Kungfu",
     title: "Tuyệt Đỉnh Kungfu",
     origin_name: "Kung Fu Hustle",
-    poster_url: "https://phimimg.com/upload/vod/20231201-1/2fba9ad1be84e5659779df52c15f4039.jpg",
-    thumb_url: "https://phimimg.com/upload/vod/20231201-1/2fba9ad1be84e5659779df52c15f4039.jpg",
+    poster_url: "https://image.tmdb.org/t/p/w500/wUzkb4097fM0V69w1jP3qV2G3oK.jpg",
+    thumb_url: "https://image.tmdb.org/t/p/w780/1kDYF4295gS9R279F89k8pP4z2m.jpg",
     year: 2004,
     quality: "Full HD",
     category: [{ name: "Hài Hước" }],
@@ -460,19 +460,13 @@ function ForYouPersonalizedRowInner({ fallbackMovies }: ForYouPersonalizedRowPro
       {/* HEADER SECTION */}
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 mb-5 px-1">
         <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="flex items-center justify-center w-7 h-7 rounded-lg bg-gradient-to-tr from-purple-600 via-pink-600 to-red-600 text-white shadow-lg shadow-purple-950/40">
-              <Sparkles className="w-4 h-4 text-amber-300" />
+          <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-white tracking-tight flex items-center gap-2.5">
+            <span className="flex items-center justify-center w-7 h-7 rounded-lg bg-netflix-red text-white shadow-md shadow-black/50 shrink-0">
+              <Sparkles className="w-4 h-4 text-white" />
             </span>
-            <span className="text-[11px] font-extrabold uppercase tracking-wider text-pink-400 bg-pink-500/10 px-2.5 py-0.5 rounded-full border border-pink-500/20">
-              Cá Nhân Hoá AI
-            </span>
-          </div>
-          <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-white tracking-tight flex items-center gap-2">
             <span>Dành Riêng Cho {user ? displayName : "Bạn"}</span>
-            <Sparkles className="w-5 h-5 text-amber-400" />
           </h2>
-          <p className="text-xs sm:text-sm text-zinc-400 mt-0.5">
+          <p className="text-xs sm:text-sm text-zinc-400 mt-1 max-w-[65ch] leading-relaxed">
             {contextText}
           </p>
         </div>
@@ -484,7 +478,7 @@ function ForYouPersonalizedRowInner({ fallbackMovies }: ForYouPersonalizedRowPro
             onClick={handleRefreshClick}
             disabled={isUpdating}
             title="Làm mới danh sách gợi ý"
-            className="px-3.5 py-1.5 rounded-xl bg-zinc-900/90 hover:bg-zinc-800 border border-white/10 text-gray-300 hover:text-white text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer active:scale-95 shadow-md disabled:opacity-75"
+            className="px-3.5 py-1.5 rounded-xl bg-zinc-900/90 hover:bg-zinc-800 border border-white/10 text-zinc-300 hover:text-white text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer active:scale-95 shadow-md disabled:opacity-75"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${loading || isUpdating ? "animate-spin text-netflix-red" : ""}`} />
             <span>{isUpdating ? "Đang Cập Nhật..." : "Đổi Gợi Ý"}</span>

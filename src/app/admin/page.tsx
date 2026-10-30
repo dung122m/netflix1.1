@@ -708,7 +708,7 @@ function AdminDashboardContent() {
     return (
       <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center p-4">
         <div className="w-12 h-12 rounded-full border-4 border-netflix-red border-t-transparent animate-spin mb-4" />
-        <p className="text-sm font-medium text-gray-400">Đang xác thực quyền Quản trị viên...</p>
+        <p className="text-sm font-medium text-zinc-400">Đang xác thực quyền Quản trị viên...</p>
       </div>
     );
   }
@@ -720,23 +720,23 @@ function AdminDashboardContent() {
         <div className="max-w-md w-full p-8 rounded-3xl bg-white/[0.03] border border-white/10 shadow-2xl backdrop-blur-xl text-center relative overflow-hidden">
           <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-48 h-48 bg-netflix-red/20 rounded-full blur-3xl pointer-events-none" />
 
-          <div className="w-16 h-16 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-500 flex items-center justify-center mx-auto mb-5 shadow-lg shadow-red-950/50">
+          <div className="w-16 h-16 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-500 flex items-center justify-center mx-auto mb-5 shadow-md shadow-black/50">
             <Lock size={32} />
           </div>
 
           <h1 className="text-xl font-bold text-white mb-2">Khu Vực Quản Trị Viên (Admin)</h1>
-          <p className="text-xs text-gray-400 leading-relaxed mb-6">
+          <p className="text-xs text-zinc-400 leading-relaxed mb-6">
             Trang này chỉ dành riêng cho Quản Trị Viên hệ thống Nanaflix. Tài khoản của bạn hiện tại chưa được cấp quyền truy cập vào trung tâm dữ liệu này.
           </p>
 
           <div className="p-3.5 rounded-2xl bg-black/60 border border-white/10 mb-6 text-left space-y-1.5">
-            <div className="text-[11px] text-gray-400 flex items-center justify-between">
+            <div className="text-[11px] text-zinc-400 flex items-center justify-between">
               <span>Tài khoản hiện tại:</span>
               <span className="text-white font-semibold truncate max-w-[200px]">
                 {user ? user.email : "Chưa đăng nhập"}
               </span>
             </div>
-            <div className="text-[11px] text-gray-400 flex items-center justify-between">
+            <div className="text-[11px] text-zinc-400 flex items-center justify-between">
               <span>Trạng thái:</span>
               <span className="text-red-400 font-semibold">Không có quyền truy cập</span>
             </div>
@@ -748,7 +748,7 @@ function AdminDashboardContent() {
               <button
                 type="button"
                 onClick={() => setShowAuthModal(true)}
-                className="w-full py-3 px-4 rounded-xl bg-netflix-red hover:bg-netflix-red-hover text-white font-bold text-xs shadow-lg shadow-red-950/60 transition cursor-pointer flex items-center justify-center gap-2"
+                className="w-full py-3 px-4 rounded-xl bg-netflix-red hover:bg-netflix-red-hover text-white font-bold text-xs shadow-md shadow-black/50 transition cursor-pointer flex items-center justify-center gap-2"
               >
                 <ShieldCheck size={16} />
                 <span>Đăng nhập tài khoản Admin</span>
@@ -766,7 +766,7 @@ function AdminDashboardContent() {
 
             <Link
               href="/"
-              className="w-full py-3 px-4 rounded-xl bg-transparent hover:bg-white/5 text-gray-400 hover:text-white font-semibold text-xs transition flex items-center justify-center gap-2"
+              className="w-full py-3 px-4 rounded-xl bg-transparent hover:bg-white/5 text-zinc-400 hover:text-white font-semibold text-xs transition flex items-center justify-center gap-2"
             >
               <Home size={14} />
               <span>Quay về Trang Chủ Nanaflix</span>
@@ -797,7 +797,7 @@ function AdminDashboardContent() {
                 </span>
               </h1>
             </div>
-            <p className="text-xs text-gray-400 flex items-center gap-2 flex-wrap">
+            <p className="text-xs text-zinc-400 flex items-center gap-2 flex-wrap">
               <span className="truncate max-w-[260px] sm:max-w-none">
                 Đăng nhập: <strong className="text-white">{user.email}</strong>
               </span>
@@ -843,7 +843,7 @@ function AdminDashboardContent() {
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 sm:gap-4">
           {/* Card 1: Total Comments */}
           <div className="p-3.5 sm:p-4 rounded-2xl bg-zinc-900/60 border border-white/10 hover:border-white/20 transition backdrop-blur-sm relative overflow-hidden group">
-            <div className="flex items-center justify-between text-gray-400 mb-1.5 sm:mb-2">
+            <div className="flex items-center justify-between text-zinc-400 mb-1.5 sm:mb-2">
               <span className="text-[11px] sm:text-xs font-medium truncate">Tổng Bình Luận</span>
               <div className="p-1 sm:p-1.5 rounded-lg bg-blue-500/10 text-blue-400 flex-shrink-0">
                 <MessageSquare size={14} className="sm:w-4 sm:h-4" />
@@ -852,12 +852,12 @@ function AdminDashboardContent() {
             <div className="text-xl sm:text-2xl font-black text-white group-hover:scale-105 transition-transform origin-left">
               {metrics.totalComments}
             </div>
-            <p className="text-[10px] text-gray-400 mt-1 truncate">Bình luận & phản hồi</p>
+            <p className="text-[10px] text-zinc-400 mt-1 truncate">Bình luận & phản hồi</p>
           </div>
 
           {/* Card 2: Average Score */}
           <div className="p-3.5 sm:p-4 rounded-2xl bg-zinc-900/60 border border-white/10 hover:border-white/20 transition backdrop-blur-sm relative overflow-hidden group">
-            <div className="flex items-center justify-between text-gray-400 mb-1.5 sm:mb-2">
+            <div className="flex items-center justify-between text-zinc-400 mb-1.5 sm:mb-2">
               <span className="text-[11px] sm:text-xs font-medium truncate">Điểm Đánh Giá</span>
               <div className="p-1 sm:p-1.5 rounded-lg bg-amber-500/10 text-amber-400 flex-shrink-0">
                 <Star size={14} className="sm:w-4 sm:h-4 fill-amber-400" />
@@ -865,14 +865,14 @@ function AdminDashboardContent() {
             </div>
             <div className="text-xl sm:text-2xl font-black text-amber-400 flex items-baseline gap-1 group-hover:scale-105 transition-transform origin-left">
               <span>{metrics.avgScore}</span>
-              <span className="text-[11px] sm:text-xs font-normal text-gray-400">/ 5.0</span>
+              <span className="text-[11px] sm:text-xs font-normal text-zinc-400">/ 5.0</span>
             </div>
-            <p className="text-[10px] text-gray-400 mt-1 truncate">{metrics.totalRatingReviews} lượt chấm sao</p>
+            <p className="text-[10px] text-zinc-400 mt-1 truncate">{metrics.totalRatingReviews} lượt chấm sao</p>
           </div>
 
           {/* Card 3: Unique Users / Members */}
           <div className="p-3.5 sm:p-4 rounded-2xl bg-zinc-900/60 border border-white/10 hover:border-white/20 transition backdrop-blur-sm relative overflow-hidden group">
-            <div className="flex items-center justify-between text-gray-400 mb-1.5 sm:mb-2">
+            <div className="flex items-center justify-between text-zinc-400 mb-1.5 sm:mb-2">
               <span className="text-[11px] sm:text-xs font-medium truncate">Thành Viên</span>
               <div className="p-1 sm:p-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 flex-shrink-0">
                 <Users size={14} className="sm:w-4 sm:h-4" />
@@ -880,17 +880,17 @@ function AdminDashboardContent() {
             </div>
             <div className="text-xl sm:text-2xl font-black text-white group-hover:scale-105 transition-transform origin-left">
               {totalMemberCount === null ? (
-                <span className="text-gray-500 animate-pulse text-lg font-mono">—</span>
+                <span className="text-zinc-500 animate-pulse text-lg font-mono">—</span>
               ) : (
                 metrics.uniqueUsers
               )}
             </div>
-            <p className="text-[10px] text-gray-400 mt-1 truncate">Thành viên ghi nhận</p>
+            <p className="text-[10px] text-zinc-400 mt-1 truncate">Thành viên ghi nhận</p>
           </div>
 
           {/* Card 4: Unique Movies */}
           <div className="p-3.5 sm:p-4 rounded-2xl bg-zinc-900/60 border border-white/10 hover:border-white/20 transition backdrop-blur-sm relative overflow-hidden group">
-            <div className="flex items-center justify-between text-gray-400 mb-1.5 sm:mb-2">
+            <div className="flex items-center justify-between text-zinc-400 mb-1.5 sm:mb-2">
               <span className="text-[11px] sm:text-xs font-medium truncate">Phim Đánh Giá</span>
               <div className="p-1 sm:p-1.5 rounded-lg bg-purple-500/10 text-purple-400 flex-shrink-0">
                 <Film size={14} className="sm:w-4 sm:h-4" />
@@ -899,26 +899,26 @@ function AdminDashboardContent() {
             <div className="text-xl sm:text-2xl font-black text-white group-hover:scale-105 transition-transform origin-left">
               {metrics.uniqueMovies}
             </div>
-            <p className="text-[10px] text-gray-400 mt-1 truncate">Phim có bình luận</p>
+            <p className="text-[10px] text-zinc-400 mt-1 truncate">Phim có bình luận</p>
           </div>
 
           {/* Card 5: Flagged & Moderation */}
           <div className="p-3.5 sm:p-4 rounded-2xl bg-zinc-900/60 border border-white/10 hover:border-white/20 transition backdrop-blur-sm relative overflow-hidden group">
-            <div className="flex items-center justify-between text-gray-400 mb-1.5 sm:mb-2">
+            <div className="flex items-center justify-between text-zinc-400 mb-1.5 sm:mb-2">
               <span className="text-[11px] sm:text-xs font-medium truncate">Vi Phạm / Cờ</span>
-              <div className={`p-1 sm:p-1.5 rounded-lg flex-shrink-0 ${metrics.flaggedCount > 0 ? "bg-red-500/20 text-red-400" : "bg-zinc-800 text-gray-400"}`}>
+              <div className={`p-1 sm:p-1.5 rounded-lg flex-shrink-0 ${metrics.flaggedCount > 0 ? "bg-red-500/20 text-red-400" : "bg-zinc-800 text-zinc-400"}`}>
                 <Flag size={14} className={`sm:w-4 sm:h-4 ${metrics.flaggedCount > 0 ? "text-red-400 animate-pulse" : ""}`} />
               </div>
             </div>
             <div className={`text-xl sm:text-2xl font-black ${metrics.flaggedCount > 0 ? "text-red-400" : "text-white"} group-hover:scale-105 transition-transform origin-left`}>
               {metrics.flaggedCount}
             </div>
-            <p className="text-[10px] text-gray-400 mt-1 truncate">Cần Admin xét duyệt</p>
+            <p className="text-[10px] text-zinc-400 mt-1 truncate">Cần Admin xét duyệt</p>
           </div>
 
           {/* Card 6: Spoilers */}
           <div className="p-3.5 sm:p-4 rounded-2xl bg-zinc-900/60 border border-white/10 hover:border-white/20 transition backdrop-blur-sm relative overflow-hidden group">
-            <div className="flex items-center justify-between text-gray-400 mb-1.5 sm:mb-2">
+            <div className="flex items-center justify-between text-zinc-400 mb-1.5 sm:mb-2">
               <span className="text-[11px] sm:text-xs font-medium truncate">Cảnh Báo Spoil</span>
               <div className="p-1 sm:p-1.5 rounded-lg bg-rose-500/10 text-rose-400 flex-shrink-0">
                 <AlertTriangle size={14} className="sm:w-4 sm:h-4" />
@@ -927,7 +927,7 @@ function AdminDashboardContent() {
             <div className="text-xl sm:text-2xl font-black text-rose-400 group-hover:scale-105 transition-transform origin-left">
               {metrics.spoilerCount}
             </div>
-            <p className="text-[10px] text-gray-400 mt-1 truncate">Cảnh báo nội dung</p>
+            <p className="text-[10px] text-zinc-400 mt-1 truncate">Cảnh báo nội dung</p>
           </div>
         </div>
 
@@ -937,8 +937,8 @@ function AdminDashboardContent() {
             type="button"
             onClick={() => handleTabChange("comments")}
             className={`flex items-center gap-1.5 sm:gap-2 px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs font-bold transition cursor-pointer flex-shrink-0 ${activeTab === "comments"
-                ? "bg-netflix-red text-white shadow-lg shadow-red-950/60"
-                : "bg-white/5 text-gray-400 hover:text-white hover:bg-white/10"
+                ? "bg-netflix-red text-white shadow-md shadow-black/50"
+                : "bg-white/5 text-zinc-400 hover:text-white hover:bg-white/10"
               }`}
           >
             <MessageSquare size={14} />
@@ -957,8 +957,8 @@ function AdminDashboardContent() {
             type="button"
             onClick={() => handleTabChange("members")}
             className={`flex items-center gap-1.5 sm:gap-2 px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs font-bold transition cursor-pointer flex-shrink-0 ${activeTab === "members"
-                ? "bg-netflix-red text-white shadow-lg shadow-red-950/60"
-                : "bg-white/5 text-gray-400 hover:text-white hover:bg-white/10"
+                ? "bg-netflix-red text-white shadow-md shadow-black/50"
+                : "bg-white/5 text-zinc-400 hover:text-white hover:bg-white/10"
               }`}
           >
             <Users size={14} />
@@ -972,8 +972,8 @@ function AdminDashboardContent() {
             type="button"
             onClick={() => handleTabChange("collections")}
             className={`flex items-center gap-1.5 sm:gap-2 px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs font-bold transition cursor-pointer flex-shrink-0 ${activeTab === "collections"
-                ? "bg-netflix-red text-white shadow-lg shadow-red-950/60"
-                : "bg-white/5 text-gray-400 hover:text-white hover:bg-white/10"
+                ? "bg-netflix-red text-white shadow-md shadow-black/50"
+                : "bg-white/5 text-zinc-400 hover:text-white hover:bg-white/10"
               }`}
           >
             <FolderHeart size={14} />
@@ -987,8 +987,8 @@ function AdminDashboardContent() {
             type="button"
             onClick={() => handleTabChange("analytics")}
             className={`flex items-center gap-1.5 sm:gap-2 px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs font-bold transition cursor-pointer flex-shrink-0 ${activeTab === "analytics"
-                ? "bg-netflix-red text-white shadow-lg shadow-red-950/60"
-                : "bg-white/5 text-gray-400 hover:text-white hover:bg-white/10"
+                ? "bg-netflix-red text-white shadow-md shadow-black/50"
+                : "bg-white/5 text-zinc-400 hover:text-white hover:bg-white/10"
               }`}
           >
             <Sparkles size={14} />
@@ -1015,7 +1015,7 @@ function AdminDashboardContent() {
                       Auto-Shield
                     </span>
                   </div>
-                  <p className="text-[11px] sm:text-xs text-gray-400 mt-0.5">
+                  <p className="text-[11px] sm:text-xs text-zinc-400 mt-0.5">
                     Tự động nhận diện và xóa vĩnh viễn ngôn từ xúc phạm, 18+, cờ bạc, scam và spam.
                   </p>
                 </div>
@@ -1026,7 +1026,7 @@ function AdminDashboardContent() {
                   type="button"
                   onClick={handleAutoCleanComments}
                   disabled={isCleaning}
-                  className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-gradient-to-r from-red-600 to-amber-600 hover:from-red-500 hover:to-amber-500 text-white text-xs font-bold transition cursor-pointer flex items-center justify-center gap-2 shadow-lg shadow-red-950/40 active:scale-95 disabled:opacity-50"
+                  className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-gradient-to-r from-red-600 to-amber-600 hover:from-red-500 hover:to-amber-500 text-white text-xs font-bold transition cursor-pointer flex items-center justify-center gap-2 shadow-md shadow-black/50 active:scale-95 disabled:opacity-50"
                 >
                   <Sparkles size={14} className={isCleaning ? "animate-spin" : ""} />
                   <span>{isCleaning ? "Đang quét..." : "Quét & Xóa Rác Tự Động"}</span>
@@ -1048,19 +1048,19 @@ function AdminDashboardContent() {
             {/* TOOLBAR */}
             <div className="p-3.5 sm:p-4 rounded-2xl bg-zinc-900/60 border border-white/10 backdrop-blur-sm space-y-3">
               <div className="relative w-full">
-                <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400" />
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Tìm theo tên người dùng, email, phim, nội dung..."
-                  className="w-full bg-black/60 border border-white/10 rounded-xl pl-9 pr-8 py-2 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-netflix-red transition"
+                  className="w-full bg-black/60 border border-white/10 rounded-xl pl-9 pr-8 py-2 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-netflix-red transition"
                 />
                 {searchQuery && (
                   <button
                     type="button"
                     onClick={() => setSearchQuery("")}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white text-xs"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-white text-xs"
                   >
                     ✕
                   </button>
@@ -1074,7 +1074,7 @@ function AdminDashboardContent() {
                   <button
                     type="button"
                     onClick={() => setFlaggedFilter("all")}
-                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition cursor-pointer ${flaggedFilter === "all" ? "bg-white/15 text-white" : "text-gray-400 hover:text-white"
+                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition cursor-pointer ${flaggedFilter === "all" ? "bg-white/15 text-white" : "text-zinc-400 hover:text-white"
                       }`}
                   >
                     Tất cả
@@ -1084,7 +1084,7 @@ function AdminDashboardContent() {
                     onClick={() => setFlaggedFilter("flagged")}
                     className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center gap-1 ${flaggedFilter === "flagged"
                         ? "bg-red-500/25 text-red-400 border border-red-500/40 font-bold shadow-sm"
-                        : "text-gray-400 hover:text-white"
+                        : "text-zinc-400 hover:text-white"
                       }`}
                   >
                     <Flag size={11} className={metrics.flaggedCount > 0 ? "text-red-400" : ""} />
@@ -1099,7 +1099,7 @@ function AdminDashboardContent() {
 
                 {/* Star Filter */}
                 <div className="flex items-center gap-1 bg-black/50 p-1 rounded-xl border border-white/10 text-xs flex-shrink-0">
-                  <span className="text-[11px] text-gray-400 px-1.5 flex items-center gap-1">
+                  <span className="text-[11px] text-zinc-400 px-1.5 flex items-center gap-1">
                     <Star size={11} className="text-amber-400 fill-amber-400" />
                     <span>Sao:</span>
                   </span>
@@ -1110,7 +1110,7 @@ function AdminDashboardContent() {
                       onClick={() => setStarFilter(star)}
                       className={`px-2 py-1 rounded-lg text-xs font-semibold transition cursor-pointer ${starFilter === star
                           ? "bg-amber-500 text-black font-bold shadow-sm"
-                          : "text-gray-400 hover:text-white"
+                          : "text-zinc-400 hover:text-white"
                         }`}
                     >
                       {star === "all" ? "Tất cả" : `${star}★`}
@@ -1123,7 +1123,7 @@ function AdminDashboardContent() {
                   <button
                     type="button"
                     onClick={() => setSpoilerFilter("all")}
-                    className={`px-2 py-1 rounded-lg text-xs font-semibold transition cursor-pointer ${spoilerFilter === "all" ? "bg-white/15 text-white" : "text-gray-400 hover:text-white"
+                    className={`px-2 py-1 rounded-lg text-xs font-semibold transition cursor-pointer ${spoilerFilter === "all" ? "bg-white/15 text-white" : "text-zinc-400 hover:text-white"
                       }`}
                   >
                     Tất cả
@@ -1133,7 +1133,7 @@ function AdminDashboardContent() {
                     onClick={() => setSpoilerFilter("spoiler")}
                     className={`px-2 py-1 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center gap-1 ${spoilerFilter === "spoiler"
                         ? "bg-rose-500/20 text-rose-400 border border-rose-500/30 font-bold"
-                        : "text-gray-400 hover:text-white"
+                        : "text-zinc-400 hover:text-white"
                       }`}
                   >
                     <AlertTriangle size={11} />
@@ -1142,7 +1142,7 @@ function AdminDashboardContent() {
                   <button
                     type="button"
                     onClick={() => setSpoilerFilter("no_spoiler")}
-                    className={`px-2 py-1 rounded-lg text-xs font-semibold transition cursor-pointer ${spoilerFilter === "no_spoiler" ? "bg-white/15 text-white" : "text-gray-400 hover:text-white"
+                    className={`px-2 py-1 rounded-lg text-xs font-semibold transition cursor-pointer ${spoilerFilter === "no_spoiler" ? "bg-white/15 text-white" : "text-zinc-400 hover:text-white"
                       }`}
                   >
                     Không Spoil
@@ -1151,11 +1151,11 @@ function AdminDashboardContent() {
 
                 {/* Sort Option */}
                 <div className="flex items-center gap-1 bg-black/50 px-2.5 py-1.5 rounded-xl border border-white/10 text-xs flex-shrink-0">
-                  <ArrowUpDown size={11} className="text-gray-400" />
+                  <ArrowUpDown size={11} className="text-zinc-400" />
                   <select
                     value={sortBy}
                     onChange={(e) => setSortBy(e.target.value as SortOption)}
-                    className="bg-transparent text-gray-300 text-xs focus:outline-none cursor-pointer"
+                    className="bg-transparent text-zinc-300 text-xs focus:outline-none cursor-pointer"
                   >
                     <option value="newest" className="bg-zinc-900 text-white">Mới nhất</option>
                     <option value="oldest" className="bg-zinc-900 text-white">Cũ nhất</option>
@@ -1168,7 +1168,7 @@ function AdminDashboardContent() {
             </div>
 
             {/* COUNT HEADER */}
-            <div className="flex items-center justify-between text-xs text-gray-400 px-1">
+            <div className="flex items-center justify-between text-xs text-zinc-400 px-1">
               <span>
                 Hiển thị <strong className="text-white">{filteredComments.length}</strong> / {comments.length} bình luận
               </span>
@@ -1192,13 +1192,13 @@ function AdminDashboardContent() {
             {loadingData ? (
               <div className="p-12 text-center rounded-2xl bg-zinc-900/40 border border-white/10">
                 <div className="w-8 h-8 rounded-full border-2 border-netflix-red border-t-transparent animate-spin mx-auto mb-2" />
-                <p className="text-xs text-gray-400">Đang đồng bộ danh sách bình luận...</p>
+                <p className="text-xs text-zinc-400">Đang đồng bộ danh sách bình luận...</p>
               </div>
             ) : filteredComments.length === 0 ? (
               <div className="p-12 text-center rounded-2xl bg-zinc-900/40 border border-white/10">
-                <MessageSquare size={36} className="text-gray-600 mx-auto mb-2" />
-                <p className="text-sm font-semibold text-gray-300">Không tìm thấy bình luận nào phù hợp</p>
-                <p className="text-xs text-gray-500 mt-1">Hãy thử thay đổi từ khóa hoặc bộ lọc tìm kiếm.</p>
+                <MessageSquare size={36} className="text-zinc-600 mx-auto mb-2" />
+                <p className="text-sm font-semibold text-zinc-300">Không tìm thấy bình luận nào phù hợp</p>
+                <p className="text-xs text-zinc-500 mt-1">Hãy thử thay đổi từ khóa hoặc bộ lọc tìm kiếm.</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 gap-3">
@@ -1210,7 +1210,7 @@ function AdminDashboardContent() {
                     <div
                       key={item.id}
                       className={`p-3.5 sm:p-5 rounded-2xl transition backdrop-blur-sm flex flex-col sm:flex-row sm:items-start justify-between gap-3 sm:gap-4 group ${item.isFlagged
-                          ? "bg-red-950/20 border-2 border-red-500/40 shadow-lg shadow-red-950/30 hover:border-red-500/60"
+                          ? "bg-red-950/20 border-2 border-red-500/40 shadow-md shadow-black/50 hover:border-red-500/60"
                           : "bg-zinc-900/60 border border-white/10 hover:border-white/20"
                         }`}
                     >
@@ -1229,7 +1229,7 @@ function AdminDashboardContent() {
                             <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
                               <span className="text-xs font-bold text-white truncate">{item.userName}</span>
                               {item.userEmail && (
-                                <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-gray-400 font-mono truncate max-w-[160px] sm:max-w-[200px]">
+                                <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-zinc-400 font-mono truncate max-w-[160px] sm:max-w-[200px]">
                                   {item.userEmail}
                                 </span>
                               )}
@@ -1239,7 +1239,7 @@ function AdminDashboardContent() {
                                   <span>Bị cấm cmt</span>
                                 </span>
                               )}
-                              <span className="text-[10px] text-gray-500 flex items-center gap-1 flex-shrink-0">
+                              <span className="text-[10px] text-zinc-500 flex items-center gap-1 flex-shrink-0">
                                 <Clock size={11} />
                                 {formatDate(item.createdAt)}
                               </span>
@@ -1255,7 +1255,7 @@ function AdminDashboardContent() {
 
                         {/* Movie tag & Episode info */}
                         <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap text-xs">
-                          <span className="text-gray-400 text-[11px]">Phim:</span>
+                          <span className="text-zinc-400 text-[11px]">Phim:</span>
                           <Link
                             href={`/movies/${item.movieSlug}`}
                             target="_blank"
@@ -1268,7 +1268,7 @@ function AdminDashboardContent() {
                           </Link>
 
                           {item.episodeName && (
-                            <span className="px-2 py-0.5 rounded-md bg-white/5 border border-white/10 text-[11px] text-gray-300">
+                            <span className="px-2 py-0.5 rounded-md bg-white/5 border border-white/10 text-[11px] text-zinc-300">
                               {item.episodeName}
                             </span>
                           )}
@@ -1332,7 +1332,7 @@ function AdminDashboardContent() {
                         )}
 
                         {/* Content */}
-                        <div className="text-xs text-gray-200 leading-relaxed bg-black/40 p-3 rounded-xl border border-white/5 whitespace-pre-wrap font-sans break-words">
+                        <div className="text-xs text-zinc-200 leading-relaxed bg-black/40 p-3 rounded-xl border border-white/5 whitespace-pre-wrap font-sans break-words">
                           &ldquo;{item.content}&rdquo;
                         </div>
                       </div>
@@ -1343,7 +1343,7 @@ function AdminDashboardContent() {
                           href={`/movies/${item.movieSlug}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="px-3 py-2 sm:py-1.5 rounded-xl bg-white/10 hover:bg-white/15 text-gray-200 hover:text-white text-xs font-medium transition flex items-center justify-center gap-1.5"
+                          className="px-3 py-2 sm:py-1.5 rounded-xl bg-white/10 hover:bg-white/15 text-zinc-200 hover:text-white text-xs font-medium transition flex items-center justify-center gap-1.5"
                         >
                           <ExternalLink size={13} />
                           <span>Xem phim</span>
@@ -1400,19 +1400,19 @@ function AdminDashboardContent() {
             {/* Toolbar for members */}
             <div className="p-3.5 sm:p-4 rounded-2xl bg-zinc-900/60 border border-white/10 backdrop-blur-sm space-y-3">
               <div className="relative w-full">
-                <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400" />
                 <input
                   type="text"
                   value={memberSearchQuery}
                   onChange={(e) => setMemberSearchQuery(e.target.value)}
                   placeholder="Tìm thành viên theo tên, email hoặc UID..."
-                  className="w-full bg-black/60 border border-white/10 rounded-xl pl-9 pr-8 py-2 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-netflix-red transition"
+                  className="w-full bg-black/60 border border-white/10 rounded-xl pl-9 pr-8 py-2 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-netflix-red transition"
                 />
                 {memberSearchQuery && (
                   <button
                     type="button"
                     onClick={() => setMemberSearchQuery("")}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white text-xs"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-white text-xs"
                   >
                     ✕
                   </button>
@@ -1425,7 +1425,7 @@ function AdminDashboardContent() {
                   <button
                     type="button"
                     onClick={() => setMemberFilter("all")}
-                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition cursor-pointer ${memberFilter === "all" ? "bg-white/15 text-white" : "text-gray-400 hover:text-white"
+                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition cursor-pointer ${memberFilter === "all" ? "bg-white/15 text-white" : "text-zinc-400 hover:text-white"
                       }`}
                   >
                     Tất cả ({totalMemberCount !== null ? totalMemberCount : "—"})
@@ -1435,7 +1435,7 @@ function AdminDashboardContent() {
                     onClick={() => setMemberFilter("admin")}
                     className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition cursor-pointer ${memberFilter === "admin"
                         ? "bg-amber-500/20 text-amber-300 border border-amber-500/30 font-bold"
-                        : "text-gray-400 hover:text-white"
+                        : "text-zinc-400 hover:text-white"
                       }`}
                   >
                     👑 Admin
@@ -1445,7 +1445,7 @@ function AdminDashboardContent() {
                     onClick={() => setMemberFilter("has_comments")}
                     className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition cursor-pointer ${memberFilter === "has_comments"
                         ? "bg-blue-500/20 text-blue-300 border border-blue-500/30 font-bold"
-                        : "text-gray-400 hover:text-white"
+                        : "text-zinc-400 hover:text-white"
                       }`}
                   >
                     Đã bình luận
@@ -1454,11 +1454,11 @@ function AdminDashboardContent() {
 
                 {/* Sort members */}
                 <div className="flex items-center gap-1 bg-black/50 px-2.5 py-1.5 rounded-xl border border-white/10 text-xs flex-shrink-0">
-                  <ArrowUpDown size={11} className="text-gray-400" />
+                  <ArrowUpDown size={11} className="text-zinc-400" />
                   <select
                     value={memberSortBy}
                     onChange={(e) => setMemberSortBy(e.target.value as "recent" | "watch_time" | "comments" | "name")}
-                    className="bg-transparent text-gray-300 text-xs focus:outline-none cursor-pointer"
+                    className="bg-transparent text-zinc-300 text-xs focus:outline-none cursor-pointer"
                   >
                     <option value="recent" className="bg-zinc-900 text-white">Hoạt động mới nhất</option>
                     <option value="watch_time" className="bg-zinc-900 text-white">Cày phim nhiều nhất</option>
@@ -1470,7 +1470,7 @@ function AdminDashboardContent() {
             </div>
 
             {/* COUNT HEADER */}
-            <div className="flex items-center justify-between text-xs text-gray-400 px-1">
+            <div className="flex items-center justify-between text-xs text-zinc-400 px-1">
               <span>
                 Hiển thị <strong className="text-white">{filteredMembers.length}</strong> / {totalMemberCount !== null ? totalMemberCount : "—"} thành viên
               </span>
@@ -1479,9 +1479,9 @@ function AdminDashboardContent() {
             {/* MEMBERS GRID */}
             {filteredMembers.length === 0 ? (
               <div className="p-12 text-center rounded-2xl bg-zinc-900/40 border border-white/10">
-                <Users size={36} className="text-gray-600 mx-auto mb-2" />
-                <p className="text-sm font-semibold text-gray-300">Không tìm thấy thành viên nào phù hợp</p>
-                <p className="text-xs text-gray-500 mt-1">Hãy thử từ khóa tìm kiếm khác.</p>
+                <Users size={36} className="text-zinc-600 mx-auto mb-2" />
+                <p className="text-sm font-semibold text-zinc-300">Không tìm thấy thành viên nào phù hợp</p>
+                <p className="text-xs text-zinc-500 mt-1">Hãy thử từ khóa tìm kiếm khác.</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
@@ -1529,12 +1529,12 @@ function AdminDashboardContent() {
                                   Vừa online
                                 </span>
                               ) : (
-                                <span className="text-[9px] sm:text-[10px] px-1.5 sm:px-2 py-0.5 rounded-full bg-zinc-800 border border-white/5 text-gray-400 flex-shrink-0">
+                                <span className="text-[9px] sm:text-[10px] px-1.5 sm:px-2 py-0.5 rounded-full bg-zinc-800 border border-white/5 text-zinc-400 flex-shrink-0">
                                   Ngoại tuyến
                                 </span>
                               )}
                             </div>
-                            <p className="text-[11px] sm:text-xs text-gray-400 truncate mt-0.5">
+                            <p className="text-[11px] sm:text-xs text-zinc-400 truncate mt-0.5">
                               {m.email || "Chưa có email"}
                             </p>
                           </div>
@@ -1542,13 +1542,13 @@ function AdminDashboardContent() {
 
                         {/* UID badge */}
                         <div className="flex items-center justify-between p-2 rounded-xl bg-black/50 border border-white/5 text-[11px] mb-2.5 sm:mb-3">
-                          <span className="text-gray-500 font-mono truncate max-w-[160px] sm:max-w-[190px]">
+                          <span className="text-zinc-500 font-mono truncate max-w-[160px] sm:max-w-[190px]">
                             UID: {m.uid}
                           </span>
                           <button
                             type="button"
                             onClick={() => copyToClipboard(m.uid, m.uid)}
-                            className="text-gray-400 hover:text-white p-1 rounded transition cursor-pointer flex-shrink-0"
+                            className="text-zinc-400 hover:text-white p-1 rounded transition cursor-pointer flex-shrink-0"
                             title="Sao chép UID"
                           >
                             {copiedUid === m.uid ? (
@@ -1570,7 +1570,7 @@ function AdminDashboardContent() {
                         {/* Member stats chips */}
                         <div className="grid grid-cols-3 gap-1.5 sm:gap-2 text-xs">
                           <div className="p-2 rounded-xl bg-white/[0.03] border border-white/5 min-w-0">
-                            <span className="text-[10px] text-gray-400 block truncate">Bình luận</span>
+                            <span className="text-[10px] text-zinc-400 block truncate">Bình luận</span>
                             <span className="font-bold text-white flex items-center gap-1 mt-0.5 text-[11px] sm:text-xs truncate">
                               <MessageSquare size={12} className="text-blue-400 flex-shrink-0" />
                               <span className="truncate">{m.commentsCount} bài</span>
@@ -1578,7 +1578,7 @@ function AdminDashboardContent() {
                           </div>
 
                           <div className="p-2 rounded-xl bg-white/[0.03] border border-white/5 min-w-0">
-                            <span className="text-[10px] text-gray-400 block truncate">Đánh giá</span>
+                            <span className="text-[10px] text-zinc-400 block truncate">Đánh giá</span>
                             <span className="font-bold text-amber-400 flex items-center gap-1 mt-0.5 text-[11px] sm:text-xs truncate">
                               <Star size={12} className="fill-amber-400 flex-shrink-0" />
                               <span className="truncate">{m.avgRatingGiven > 0 ? `${m.avgRatingGiven}★` : "0★"}</span>
@@ -1586,7 +1586,7 @@ function AdminDashboardContent() {
                           </div>
 
                           <div className="p-2 rounded-xl bg-white/[0.03] border border-white/5 min-w-0">
-                            <span className="text-[10px] text-gray-400 block truncate">Cày phim</span>
+                            <span className="text-[10px] text-zinc-400 block truncate">Cày phim</span>
                             <span className="font-bold text-emerald-400 flex items-center gap-1 mt-0.5 text-[11px] sm:text-xs truncate">
                               <Clock size={12} className="text-emerald-400 flex-shrink-0" />
                               <span className="truncate">{formatWatchMinutes(m.watchTimeMinutes)}</span>
@@ -1596,27 +1596,27 @@ function AdminDashboardContent() {
 
                         {/* Live Watching Preview if active */}
                         {m.isWatchingNow && m.currentWatching && (
-                          <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-xs text-gray-300 space-y-1 mt-2.5">
+                          <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-xs text-zinc-300 space-y-1 mt-2.5">
                             <div className="flex items-center justify-between text-[11px]">
                               <span className="text-emerald-300 font-semibold truncate flex items-center gap-1 min-w-0">
                                 <Film size={12} className="text-emerald-400 flex-shrink-0" />
                                 <span className="truncate">{m.currentWatching.movieTitle}</span>
                                 {m.currentWatching.episodeName && (
-                                  <span className="text-gray-400 truncate">({m.currentWatching.episodeName})</span>
+                                  <span className="text-zinc-400 truncate">({m.currentWatching.episodeName})</span>
                                 )}
                               </span>
                               <span className="text-emerald-400 font-mono text-[10px] font-bold flex-shrink-0 ml-1">
                                 {m.currentWatching.progressPercent}%
                               </span>
                             </div>
-                            <div className="text-[10px] text-gray-400 flex items-center justify-between">
+                            <div className="text-[10px] text-zinc-400 flex items-center justify-between">
                               <span className="truncate max-w-[140px]">{m.currentWatching.deviceName || "Thiết bị"}</span>
                               <span className="font-mono text-emerald-400/80 flex-shrink-0">Đang phát</span>
                             </div>
                           </div>
                         )}
 
-                        <div className="flex items-center justify-between mt-2.5 text-[10px] text-gray-500 flex-wrap gap-1.5">
+                        <div className="flex items-center justify-between mt-2.5 text-[10px] text-zinc-500 flex-wrap gap-1.5">
                           <span className="flex items-center gap-1">
                             <Clock size={11} />
                             <span>Lần cuối: {formatDate(m.lastActiveAt || m.lastLoginAt)}</span>
@@ -1732,7 +1732,7 @@ export default function AdminDashboardPage() {
       fallback={
         <div className="min-h-screen bg-[#0a0a0c] text-white flex flex-col items-center justify-center p-4">
           <div className="w-12 h-12 rounded-full border-4 border-netflix-red border-t-transparent animate-spin mb-4" />
-          <p className="text-sm font-medium text-gray-400">Đang tải bảng điều khiển Quản trị viên...</p>
+          <p className="text-sm font-medium text-zinc-400">Đang tải bảng điều khiển Quản trị viên...</p>
         </div>
       }
     >

@@ -217,28 +217,28 @@ export function VietnamTodayCard({ info, selectedEventId, onOpenModal }: Vietnam
 
   const holidayBorderClass = (() => {
     if (event.id.startsWith("ev-actor-birthday") || event.actorSlug) {
-      return "border-pink-500/40 hover:border-pink-400/70 bg-zinc-950 shadow-[0_0_24px_rgba(236,72,153,0.18)] hover:shadow-[0_0_32px_rgba(236,72,153,0.28)]";
+      return "border-pink-500/40 hover:border-pink-400/70 bg-zinc-950 shadow-xl shadow-black/60";
     }
     if (!event.effect) {
       return isToday
-        ? "border-red-500/30 hover:border-amber-500/60 bg-zinc-950 shadow-red-950/20 hover:shadow-amber-950/30"
-        : "border-white/10 hover:border-white/25 bg-zinc-950/90 shadow-black/40 hover:shadow-amber-500/10";
+        ? "border-red-500/30 hover:border-red-500/50 bg-zinc-950 shadow-xl shadow-black/60"
+        : "border-white/10 hover:border-white/20 bg-zinc-950/90 shadow-lg shadow-black/50";
     }
     switch (event.effect) {
       case "mid-autumn":
-        return "border-amber-500/50 hover:border-amber-400/80 bg-zinc-950 shadow-[0_0_28px_rgba(245,158,11,0.22)] hover:shadow-[0_0_35px_rgba(245,158,11,0.35)]";
+        return "border-amber-500/30 hover:border-amber-400/60 bg-zinc-950 shadow-xl shadow-black/60";
       case "tet":
-        return "border-red-500/50 hover:border-amber-400/80 bg-zinc-950 shadow-[0_0_28px_rgba(239,68,68,0.22)] hover:shadow-[0_0_35px_rgba(239,68,68,0.35)]";
+        return "border-red-500/30 hover:border-red-400/60 bg-zinc-950 shadow-xl shadow-black/60";
       case "national-day":
-        return "border-yellow-500/50 hover:border-yellow-400/80 bg-zinc-950 shadow-[0_0_28px_rgba(234,179,8,0.25)] hover:shadow-[0_0_35px_rgba(234,179,8,0.4)]";
+        return "border-yellow-500/30 hover:border-yellow-400/60 bg-zinc-950 shadow-xl shadow-black/60";
       case "christmas":
-        return "border-sky-400/50 hover:border-sky-300/80 bg-zinc-950 shadow-[0_0_28px_rgba(56,189,248,0.22)] hover:shadow-[0_0_35px_rgba(56,189,248,0.35)]";
+        return "border-sky-400/30 hover:border-sky-300/60 bg-zinc-950 shadow-xl shadow-black/60";
       case "halloween":
-        return "border-orange-500/50 hover:border-purple-400/80 bg-zinc-950 shadow-[0_0_28px_rgba(249,115,22,0.22)] hover:shadow-[0_0_35px_rgba(249,115,22,0.35)]";
+        return "border-orange-500/30 hover:border-orange-400/60 bg-zinc-950 shadow-xl shadow-black/60";
       case "nana-birthday":
-        return "border-pink-500/50 hover:border-pink-400/80 bg-zinc-950 shadow-[0_0_28px_rgba(236,72,153,0.22)] hover:shadow-[0_0_35px_rgba(236,72,153,0.35)]";
+        return "border-pink-500/30 hover:border-pink-400/60 bg-zinc-950 shadow-xl shadow-black/60";
       default:
-        return "border-red-500/30 hover:border-amber-500/60 bg-zinc-950 shadow-red-950/20";
+        return "border-red-500/25 hover:border-red-500/40 bg-zinc-950 shadow-xl shadow-black/60";
     }
   })();
 
@@ -315,11 +315,11 @@ export function VietnamTodayCard({ info, selectedEventId, onOpenModal }: Vietnam
 
       {/* 3. CARD CONTENT */}
       <div className="relative z-10 h-full w-full px-4 sm:px-6 md:px-8 py-4 sm:py-5 md:py-6 flex flex-col justify-between">
-        {/* RESPONSIVE LAYOUT WRAPPER (Desktop 2-column: Left ~60%, Right ~40%; Mobile 1-column) */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between md:gap-8 flex-1">
-          {/* LEFT COLUMN: PRIMARY EVENT INFO (~60% on Desktop) */}
-          <div className="flex-1 min-w-0 md:max-w-[62%] flex flex-col justify-between">
-            {/* TOP ROW: ONLY 1 STATUS BADGE (Không xếp chồng nhiều tầng pill) */}
+        {/* RESPONSIVE 12-COLUMN GRID (Balanced on wide displays, eliminates central gap) */}
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-5 md:gap-7 lg:gap-8 items-center flex-1 w-full">
+          {/* LEFT COLUMN: PRIMARY EVENT INFO (7 of 12 columns on Desktop) */}
+          <div className="md:col-span-7 lg:col-span-7 xl:col-span-7 flex flex-col justify-between min-w-0">
+            {/* TOP ROW: ONLY 1 STATUS BADGE */}
             <div className="flex items-center gap-2 mb-2">
               <span
                 className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] sm:text-xs font-semibold backdrop-blur-md shadow-sm border transition-colors ${
@@ -337,7 +337,7 @@ export function VietnamTodayCard({ info, selectedEventId, onOpenModal }: Vietnam
 
             {/* EVENT TITLE & RICH BANNER DESCRIPTION */}
             <div className="space-y-1.5 my-1.5">
-              <h3 className="text-base sm:text-2xl md:text-[24px] font-black text-white tracking-tight group-hover:text-amber-300 transition-colors drop-shadow-md line-clamp-2 leading-snug">
+              <h3 className="text-base sm:text-2xl md:text-[23px] lg:text-[25px] font-black text-white tracking-tight group-hover:text-amber-300 transition-colors drop-shadow-md line-clamp-2 leading-snug">
                 <span>{parsedTitle.main}</span>
                 {parsedTitle.secondary && (
                   <span className="hidden sm:inline font-bold text-zinc-400 text-sm sm:text-lg md:text-[20px]">
@@ -345,7 +345,7 @@ export function VietnamTodayCard({ info, selectedEventId, onOpenModal }: Vietnam
                   </span>
                 )}
               </h3>
-              <p className="text-xs sm:text-sm md:text-[13.5px] lg:text-[14px] text-zinc-300/95 line-clamp-3 sm:line-clamp-4 md:line-clamp-4 leading-relaxed font-normal">
+              <p className="text-xs sm:text-sm md:text-[13.5px] lg:text-[14.5px] text-zinc-200/95 max-w-[70ch] line-clamp-3 sm:line-clamp-4 leading-relaxed font-normal">
                 {event.bannerDescription || event.shortDescription}
               </p>
             </div>
@@ -357,57 +357,52 @@ export function VietnamTodayCard({ info, selectedEventId, onOpenModal }: Vietnam
                   href={event.relatedLink}
                   onClick={(e) => e.stopPropagation()}
                   aria-label={getEventActionLabel(event)}
-                  className="inline-flex items-center gap-2 px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-bold bg-gradient-to-r from-red-600 via-red-600 to-amber-600 hover:from-red-500 hover:to-amber-500 text-white border border-amber-400/40 shadow-lg shadow-red-950/40 backdrop-blur-md transition-all duration-300 hover:scale-[1.03] active:scale-95 cursor-pointer z-10"
+                  className="inline-flex items-center gap-2 px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-bold bg-gradient-to-r from-red-600 via-red-600 to-amber-600 hover:from-red-500 hover:to-amber-500 text-white border border-amber-400/40 shadow-md shadow-black/50 backdrop-blur-md transition-all duration-300 hover:scale-[1.02] active:scale-95 cursor-pointer z-10"
                 >
                   <Play className="w-3.5 h-3.5 fill-white text-white" />
                   <span>{getEventActionLabel(event)}</span>
                   <ArrowRight className="w-3.5 h-3.5 transition-transform duration-300 group-hover:translate-x-1" />
                 </Link>
               ) : (
-                <span className="inline-flex items-center gap-2 px-3.5 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-semibold bg-amber-500/15 group-hover:bg-amber-500/25 border border-amber-500/30 group-hover:border-amber-400/60 text-amber-300 group-hover:text-amber-200 backdrop-blur-md shadow-sm transition-all duration-300 group-hover:shadow-[0_0_16px_rgba(245,158,11,0.25)]">
+                <span className="inline-flex items-center gap-2 px-3.5 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-semibold bg-amber-500/15 group-hover:bg-amber-500/25 border border-amber-500/30 group-hover:border-amber-400/60 text-amber-300 group-hover:text-amber-200 backdrop-blur-md shadow-sm transition-all duration-300">
                   <span>{getEventActionLabel(event)}</span>
                   <ArrowRight className="w-3.5 h-3.5 transition-transform duration-300 group-hover:translate-x-1" />
                 </span>
               )}
             </div>
 
-            {/* MOBILE THEMATIC COMPACT VISUAL / QUOTE (< 768px - Placed below CTA) */}
-            <div className="md:hidden mt-3 p-2.5 rounded-xl bg-white/[0.04] border border-white/10 backdrop-blur-md flex items-center gap-2.5">
-              <span className="text-base flex-shrink-0">{currentBadge.emoji}</span>
-              <p className="text-[11px] text-zinc-300/90 italic line-clamp-2 leading-snug font-normal">
+            {/* MOBILE THEMATIC COMPACT VISUAL / QUOTE (< 768px) */}
+            <div className="md:hidden mt-2.5 flex items-center gap-2 text-zinc-300/90 border-l-2 border-amber-400/40 pl-2 py-0.5">
+              <span className="text-sm flex-shrink-0">{currentBadge.emoji}</span>
+              <p className="text-[11px] italic line-clamp-2 leading-snug font-normal max-w-[55ch]">
                 &ldquo;{quoteMessage}&rdquo;
               </p>
             </div>
           </div>
 
-          {/* RIGHT COLUMN: THEMATIC EMBLEM / QUOTE CARD (~40% on Desktop ≥ 768px) */}
-          <div className="hidden md:flex md:w-[38%] lg:w-[36%] flex-shrink-0 items-center justify-center">
-            <div className="w-full rounded-2xl bg-white/[0.04] hover:bg-white/[0.07] border border-white/10 hover:border-white/20 p-4 lg:p-5 backdrop-blur-md transition-all duration-300 shadow-lg relative overflow-hidden group/emblem">
-              {/* Subtle ambient glow */}
-              <div className="absolute -top-8 -right-8 w-24 h-24 bg-amber-500/10 rounded-full blur-xl pointer-events-none" />
-              
-              <div className="flex items-start gap-3.5">
-                <div className="flex-shrink-0 w-11 h-11 rounded-xl bg-amber-500/15 border border-amber-400/30 flex items-center justify-center text-2xl shadow-inner overflow-hidden">
-                  {event.imageUrl && (event.actorSlug || event.id.startsWith("ev-actor-birthday")) ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={event.imageUrl}
-                      alt={event.actorName || cleanTitle}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    currentBadge.emoji
-                  )}
+          {/* RIGHT COLUMN: THEMATIC SPOTLIGHT CALLOUT PANEL (5 of 12 columns on Desktop) */}
+          <div className="hidden md:flex md:col-span-5 lg:col-span-5 xl:col-span-5 h-full items-center">
+            <div className="w-full border-l-2 border-amber-500/40 bg-gradient-to-r from-amber-500/[0.08] via-amber-500/[0.03] to-transparent pl-4 sm:pl-5 pr-3 py-3 rounded-r-2xl flex items-start gap-3.5 group/emblem">
+              <div className="flex-shrink-0 w-11 h-11 rounded-xl bg-amber-500/15 border border-amber-400/30 flex items-center justify-center text-2xl shadow-inner overflow-hidden">
+                {event.imageUrl && (event.actorSlug || event.id.startsWith("ev-actor-birthday")) ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={event.imageUrl}
+                    alt={event.actorName || cleanTitle}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  currentBadge.emoji
+                )}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-[11px] tracking-wider font-bold text-amber-400 mb-1 flex items-center gap-1.5 uppercase">
+                  <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Ý nghĩa & Thông điệp</span>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <div className="text-[11px] tracking-wider font-bold text-amber-400/90 mb-1 flex items-center gap-1.5">
-                    <Sparkles className="w-3 h-3" />
-                    <span>Ý nghĩa & Thông điệp</span>
-                  </div>
-                  <p className="text-xs lg:text-[13px] text-zinc-200/90 leading-relaxed italic line-clamp-3 font-normal">
-                    &ldquo;{quoteMessage}&rdquo;
-                  </p>
-                </div>
+                <p className="text-xs lg:text-[13.5px] text-zinc-200 leading-relaxed italic line-clamp-3 font-normal">
+                  &ldquo;{quoteMessage}&rdquo;
+                </p>
               </div>
             </div>
           </div>

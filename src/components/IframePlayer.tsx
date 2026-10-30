@@ -50,7 +50,7 @@ export const IframePlayer: React.FC<IframePlayerProps> = ({
     <div className="relative w-full aspect-video bg-black rounded-xl sm:rounded-2xl overflow-hidden shadow-2xl border border-white/10 group">
       {/* 1. TOP STATUS BADGE */}
       <div className="absolute top-2.5 left-2.5 sm:top-3.5 sm:left-3.5 z-20 flex items-center gap-2 pointer-events-none">
-        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-black/70 backdrop-blur-md border border-white/15 text-[11px] sm:text-xs font-semibold text-gray-200 shadow-lg">
+        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-black/70 backdrop-blur-md border border-white/15 text-[11px] sm:text-xs font-semibold text-zinc-200 shadow-lg">
           <Server className="w-3 h-3 text-red-500" />
           <span>{serverName}</span>
         </div>
@@ -63,10 +63,10 @@ export const IframePlayer: React.FC<IframePlayerProps> = ({
             <div className="w-12 h-12 rounded-full border-2 border-red-600/30 border-t-red-600 animate-spin" />
             <Play className="w-4 h-4 text-white/80 absolute fill-white/80" />
           </div>
-          <p className="text-sm font-medium text-gray-300">
+          <p className="text-sm font-medium text-zinc-300">
             Đang tải luồng phát từ <span className="text-white font-bold">{serverName}</span>...
           </p>
-          <p className="text-xs text-gray-500 mt-1">Vui lòng chờ trong giây lát</p>
+          <p className="text-xs text-zinc-500 mt-1">Vui lòng chờ trong giây lát</p>
         </div>
       )}
 
@@ -79,7 +79,7 @@ export const IframePlayer: React.FC<IframePlayerProps> = ({
           <h4 className="text-base font-bold text-white mb-1">
             Không thể tải luồng phát từ {serverName}
           </h4>
-          <p className="text-xs sm:text-sm text-gray-400 max-w-md mb-4">
+          <p className="text-xs sm:text-sm text-zinc-400 max-w-md mb-4">
             Máy chủ bên thứ ba có thể đang bảo trì hoặc tạm thời từ chối kết nối.
           </p>
           <div className="flex flex-wrap items-center justify-center gap-2.5">
@@ -93,7 +93,7 @@ export const IframePlayer: React.FC<IframePlayerProps> = ({
             {onFallbackToNanaflix && (
               <button
                 onClick={onFallbackToNanaflix}
-                className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-xs font-semibold text-white transition shadow-lg shadow-red-950/50"
+                className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-xs font-semibold text-white transition shadow-md shadow-black/50 cursor-pointer"
               >
                 <ArrowLeft className="w-3.5 h-3.5" />
                 <span>Quay lại Server Nanaflix</span>

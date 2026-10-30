@@ -42,7 +42,7 @@ export function getAvatarInitial(nameOrEmail?: string | null): string {
 }
 
 /**
- * Danh sách Avatar VIP mẫu cho hệ thống Nanaflix
+ * Danh sách Avatar  mẫu cho hệ thống Nanaflix
  */
 export const PRESET_AVATARS = [
   { id: "netflix-red", name: "🍿 Bắp Rạp", url: "https://api.dicebear.com/9.x/bottts/svg?seed=Nanaflix1" },

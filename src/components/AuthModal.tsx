@@ -69,9 +69,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, customTit
         <button
           type="button"
           onClick={onClose}
-          className="absolute top-4 right-4 p-2 rounded-full text-gray-400 hover:text-white hover:bg-white/10 transition cursor-pointer z-10"
+          aria-label="Đóng cửa sổ đăng nhập"
+          className="absolute top-4 right-4 p-2.5 min-w-[38px] min-h-[38px] flex items-center justify-center rounded-full text-zinc-400 hover:text-white hover:bg-white/10 transition cursor-pointer z-10 outline-none focus-visible:ring-2 focus-visible:ring-white/40 active:scale-95"
         >
-          <X size={18} />
+          <X size={18} aria-hidden="true" />
         </button>
 
         {user ? (
@@ -93,14 +94,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, customTit
               <h3 className="text-xl font-bold text-white">
                 {user.displayName || "Nanaflix User"}
               </h3>
-              <p className="text-xs text-gray-400 mt-0.5">{user.email}</p>
+              <p className="text-xs text-zinc-400 mt-0.5">{user.email}</p>
             </div>
 
             <div className="flex gap-3 pt-2">
               <button
                 type="button"
                 onClick={onClose}
-                className="flex-1 py-2.5 px-4 rounded-xl bg-netflix-red hover:bg-rose-700 text-white text-xs font-bold transition cursor-pointer shadow-md shadow-red-950/50"
+                className="flex-1 py-2.5 px-4 rounded-xl bg-netflix-red hover:bg-rose-700 text-white text-xs font-bold transition cursor-pointer shadow-md shadow-black/50"
               >
                 Tiếp tục xem phim
               </button>
@@ -110,7 +111,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, customTit
                   await logout();
                   onClose();
                 }}
-                className="py-2.5 px-4 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white border border-white/10 text-xs font-semibold transition cursor-pointer flex items-center gap-1.5"
+                className="py-2.5 px-4 rounded-xl bg-white/5 hover:bg-white/10 text-zinc-300 hover:text-white border border-white/10 text-xs font-semibold transition cursor-pointer flex items-center gap-1.5"
               >
                 <LogOut size={14} />
                 <span>Đăng xuất</span>
@@ -127,7 +128,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, customTit
               <h3 className="text-2xl font-black text-white tracking-tight">
                 {customTitle || "Đăng nhập Nanaflix"}
               </h3>
-              <p className="text-xs text-gray-400 max-w-xs mx-auto leading-relaxed">
+              <p className="text-xs text-zinc-400 max-w-xs mx-auto leading-relaxed">
                 {customSubtitle || "Đăng nhập để đồng bộ lịch sử xem phim và danh sách yêu thích trên mọi thiết bị."}
               </p>
             </div>
@@ -158,11 +159,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, customTit
               type="button"
               disabled={loading}
               onClick={handleGoogleLogin}
-              className="w-full py-3.5 px-5 rounded-xl bg-white hover:bg-gray-100 active:scale-[0.98] text-gray-900 font-bold text-sm flex items-center justify-center gap-3 transition shadow-md cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+              className="w-full py-3.5 px-5 rounded-xl bg-white hover:bg-zinc-100 active:scale-[0.98] text-zinc-900 font-bold text-sm flex items-center justify-center gap-3 transition shadow-md cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {loading ? (
                 <>
-                  <Loader2 className="w-5 h-5 animate-spin text-gray-800" />
+                  <Loader2 className="w-5 h-5 animate-spin text-zinc-800" />
                   <span>Google...</span>
                 </>
               ) : (
@@ -190,7 +191,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, customTit
               )}
             </button>
 
-            <p className="text-[11px] text-center text-gray-500 leading-relaxed">
+            <p className="text-[11px] text-center text-zinc-500 leading-relaxed">
               Bằng việc đăng nhập, bạn đồng ý với Điều khoản dịch vụ và Chính sách riêng tư của Nanaflix.
             </p>
           </div>

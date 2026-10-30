@@ -879,10 +879,7 @@ const HeroFeaturedInner: React.FC<{ movies?: HeroMovie[] }> = ({
 
               {/* 3.5 TÓM TẮT NỘI DUNG (ẨN TRÊN MOBILE NHỎ ĐỂ GIAO DIỆN THOÁNG CHUẨN NETFLIX APP) */}
               {displaySynopsis ? (
-                <p
-                  style={{ color: "#d1d5db" }}
-                  className="hero-cinema-desc hidden sm:block max-w-lg sm:max-w-xl md:max-w-2xl max-w-[70ch] text-xs sm:text-sm leading-relaxed text-zinc-300 line-clamp-2 md:line-clamp-3 drop-shadow-[0_2px_10px_rgba(0,0,0,0.95)]"
-                >
+                <p className="hero-cinema-desc hidden sm:block max-w-[50ch] text-xs sm:text-sm md:text-[15px] leading-relaxed text-zinc-300 line-clamp-2 md:line-clamp-3 drop-shadow-[0_2px_10px_rgba(0,0,0,0.95)]">
                   {displaySynopsis}
                 </p>
               ) : null}
@@ -934,7 +931,7 @@ const HeroFeaturedInner: React.FC<{ movies?: HeroMovie[] }> = ({
                 {featuredMovie?.slug && (
                   <Link
                     href={`/movies/${featuredMovie.slug}`}
-                    className="inline-flex items-center gap-2.5 rounded-2xl bg-netflix-red hover:brightness-110 text-white px-7 sm:px-9 py-3.5 sm:py-4 text-xs sm:text-sm md:text-base font-black transition-all duration-300 hover:scale-105 active:scale-95 shadow-xl shadow-black/50 hover:shadow-2xl cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-105"
+                    className="inline-flex items-center gap-2.5 rounded-2xl bg-netflix-red hover:brightness-110 text-white px-7 sm:px-9 py-3.5 sm:py-4 text-xs sm:text-sm md:text-base font-black transition-all duration-200 hover:scale-[1.02] hover:-translate-y-0.5 active:scale-95 shadow-xl shadow-black/60 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-black"
                   >
                     <Play size={19} fill="white" className="ml-0.5" />
                     <span>{isTrailerOnly ? "Xem Trailer" : "Xem Ngay"}</span>
@@ -944,7 +941,7 @@ const HeroFeaturedInner: React.FC<{ movies?: HeroMovie[] }> = ({
                 <button
                   type="button"
                   onClick={handleToggleWatchlist}
-                  className="inline-flex items-center gap-2 rounded-2xl border border-white/20 bg-white/10 hover:bg-white/20 text-white px-5 py-3.5 sm:py-4 text-xs sm:text-sm font-bold backdrop-blur-md transition-all hover:scale-105 active:scale-95 cursor-pointer"
+                  className="inline-flex items-center gap-2 rounded-2xl border border-white/15 bg-white/10 hover:bg-white/20 text-white px-5 py-3.5 sm:py-4 text-xs sm:text-sm font-bold backdrop-blur-md transition-all duration-200 hover:scale-[1.02] hover:-translate-y-0.5 active:scale-95 cursor-pointer shadow-md shadow-black/40"
                 >
                   {inWatchlist ? (
                     <>
@@ -1051,7 +1048,7 @@ const HeroFeaturedInner: React.FC<{ movies?: HeroMovie[] }> = ({
             >
               {isHeroMuted ? (
                 <>
-                  <VolumeX size={15} className="text-gray-300" />
+                  <VolumeX size={15} className="text-zinc-300" />
                   <span>Bật tiếng</span>
                 </>
               ) : (

@@ -165,7 +165,7 @@ export function PublicUserProfileModal({ initialDetail }: PublicUserProfileModal
               type="button"
               onClick={handleCopyProfile}
               aria-label="Sao chép link hồ sơ"
-              className="p-1.5 sm:p-2 rounded-full bg-white/10 hover:bg-white/20 text-gray-300 hover:text-white transition cursor-pointer flex-shrink-0"
+              className="p-1.5 sm:p-2 rounded-full bg-white/10 hover:bg-white/20 text-zinc-300 hover:text-white transition cursor-pointer flex-shrink-0"
             >
               {copiedLink ? <Check className="w-4 h-4 text-emerald-400" /> : <Share2 className="w-4 h-4" />}
             </button>
@@ -175,7 +175,7 @@ export function PublicUserProfileModal({ initialDetail }: PublicUserProfileModal
               type="button"
               onClick={() => setIsOpen(false)}
               aria-label="Đóng"
-              className="p-1.5 sm:p-2 rounded-full bg-white/10 hover:bg-white/20 text-gray-300 hover:text-white transition cursor-pointer flex-shrink-0"
+              className="p-1.5 sm:p-2 rounded-full bg-white/10 hover:bg-white/20 text-zinc-300 hover:text-white transition cursor-pointer flex-shrink-0"
             >
               <X className="w-4 h-4" />
             </button>
@@ -185,7 +185,7 @@ export function PublicUserProfileModal({ initialDetail }: PublicUserProfileModal
         {/* PROFILE HEADER BANNER */}
         <div className="relative pt-1 sm:pt-0">
           <div className="flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left gap-3 sm:gap-5 px-1 sm:px-0 pr-12 sm:pr-0">
-            {/* AVATAR TRÒN CÓ VIỀN CẤP ĐỘ VIP */}
+            {/* AVATAR TRÒN CÓ VIỀN CẤP ĐỘ  */}
             <div className="relative flex-shrink-0 mx-auto sm:mx-0">
               <div className="w-16 h-16 sm:w-22 sm:h-22 rounded-full overflow-hidden bg-gradient-to-br from-indigo-600 via-purple-600 to-rose-600 p-0.5 shadow-xl ring-2 ring-white/20">
                 <UserAvatar
@@ -297,7 +297,7 @@ export function PublicUserProfileModal({ initialDetail }: PublicUserProfileModal
             type="button"
             onClick={() => setActiveTab("overview")}
             className={`flex-1 py-2 px-2 sm:px-3 rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5 whitespace-nowrap ${activeTab === "overview"
-              ? "bg-netflix-red text-white shadow-lg shadow-rose-950/40"
+              ? "bg-netflix-red text-white shadow-md shadow-black/50"
               : "text-zinc-400 hover:text-white hover:bg-white/5"
               }`}
           >
@@ -308,7 +308,7 @@ export function PublicUserProfileModal({ initialDetail }: PublicUserProfileModal
             type="button"
             onClick={() => setActiveTab("collections")}
             className={`flex-1 py-2 px-2 sm:px-3 rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5 whitespace-nowrap ${activeTab === "collections"
-              ? "bg-netflix-red text-white shadow-lg shadow-rose-950/40"
+              ? "bg-netflix-red text-white shadow-md shadow-black/50"
               : "text-zinc-400 hover:text-white hover:bg-white/5"
               }`}
           >

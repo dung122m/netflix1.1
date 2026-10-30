@@ -139,7 +139,7 @@ const ROADMAP_STEPS = [
 
 export default function AboutPage() {
   return (
-    <div className="min-h-screen bg-[#050505] text-gray-100 flex flex-col selection:bg-netflix-red selection:text-white font-sans antialiased overflow-x-hidden">
+    <div className="min-h-screen bg-[#050505] text-zinc-100 flex flex-col selection:bg-netflix-red selection:text-white font-sans antialiased overflow-x-hidden">
       <Navbar />
 
       {/* AMBIENT GLOW EFFECTS */}
@@ -151,7 +151,7 @@ export default function AboutPage() {
         {/* ================= 1. HERO SECTION ================= */}
         <section className="text-center space-y-8 relative">
           {/* Top Pill */}
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/[0.04] border border-white/[0.08] backdrop-blur-xl text-xs font-semibold text-gray-300 shadow-2xl hover:border-white/20 transition">
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/[0.04] border border-white/[0.08] backdrop-blur-xl text-xs font-semibold text-zinc-300 shadow-2xl hover:border-white/20 transition">
             <span className="w-2 h-2 rounded-full bg-netflix-red animate-pulse" />
             <span>Nền Tảng Điện Ảnh Phi Thương Mại Cá Nhân Hóa</span>
           </div>
@@ -165,7 +165,7 @@ export default function AboutPage() {
               </span>{" "}
               thưởng thức.
             </h1>
-            <p className="text-base sm:text-lg md:text-xl text-gray-400 font-normal leading-relaxed max-w-2xl mx-auto">
+            <p className="text-base sm:text-lg md:text-xl text-zinc-400 font-normal leading-relaxed max-w-2xl mx-auto">
               Một không gian điện ảnh trực tuyến thuần khiết: 100% không quảng cáo rác, tốc độ phản hồi tính bằng mili-giây và tự động ghi nhớ chính xác từng giây bạn đã xem dở.
             </p>
           </div>
@@ -174,19 +174,19 @@ export default function AboutPage() {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 max-w-3xl mx-auto pt-2">
             <div className="p-3.5 rounded-2xl bg-zinc-950/60 border border-white/[0.08] backdrop-blur-md text-center space-y-0.5">
               <div className="text-xl sm:text-2xl font-black text-white">0 Giây</div>
-              <div className="text-[11px] text-gray-400 font-medium">Quảng cáo phiền phức</div>
+              <div className="text-[11px] text-zinc-400 font-medium">Quảng cáo phiền phức</div>
             </div>
             <div className="p-3.5 rounded-2xl bg-zinc-950/60 border border-white/[0.08] backdrop-blur-md text-center space-y-0.5">
               <div className="text-xl sm:text-2xl font-black text-red-400">Adaptive</div>
-              <div className="text-[11px] text-gray-400 font-medium">Tự động Full HD / 4K</div>
+              <div className="text-[11px] text-zinc-400 font-medium">Tự động Full HD / 4K</div>
             </div>
             <div className="p-3.5 rounded-2xl bg-zinc-950/60 border border-white/[0.08] backdrop-blur-md text-center space-y-0.5">
               <div className="text-xl sm:text-2xl font-black text-amber-400">Realtime</div>
-              <div className="text-[11px] text-gray-400 font-medium">Đồng bộ đa thiết bị</div>
+              <div className="text-[11px] text-zinc-400 font-medium">Đồng bộ đa thiết bị</div>
             </div>
             <div className="p-3.5 rounded-2xl bg-zinc-950/60 border border-white/[0.08] backdrop-blur-md text-center space-y-0.5">
               <div className="text-xl sm:text-2xl font-black text-emerald-400">100% Free</div>
-              <div className="text-[11px] text-gray-400 font-medium">Phi lợi nhuận vì đam mê</div>
+              <div className="text-[11px] text-zinc-400 font-medium">Phi lợi nhuận vì đam mê</div>
             </div>
           </div>
 
@@ -194,14 +194,14 @@ export default function AboutPage() {
           <div className="flex items-center justify-center gap-4 pt-4 flex-wrap">
             <Link
               href="/"
-              className="inline-flex items-center gap-2 px-7 py-3.5 rounded-xl bg-netflix-red hover:bg-red-700 text-white font-bold text-sm transition-all shadow-xl shadow-red-950/50 hover:shadow-red-600/30 hover:scale-[1.02] active:scale-95"
+              className="inline-flex items-center gap-2 px-7 py-3.5 rounded-xl bg-netflix-red hover:bg-red-700 text-white font-bold text-sm transition-all shadow-md shadow-black/50 hover:shadow-black/70 hover:scale-[1.02] active:scale-95"
             >
               <Play size={16} className="fill-current" />
               <span>Khám Phá Phim Ngay</span>
             </Link>
             <a
               href="#contact"
-              className="inline-flex items-center gap-2 px-6 py-3.5 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] border border-white/[0.12] text-gray-200 font-semibold text-sm transition-all backdrop-blur-md hover:border-white/20 active:scale-95"
+              className="inline-flex items-center gap-2 px-6 py-3.5 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] border border-white/[0.12] text-zinc-200 font-semibold text-sm transition-all backdrop-blur-md hover:border-white/20 active:scale-95"
             >
               <MessageSquare size={16} />
               <span>Trợ Giúp & Báo Lỗi</span>
@@ -218,13 +218,13 @@ export default function AboutPage() {
                 <Flame size={16} />
                 <span>Câu Chuyện Phía Sau Màn Ảnh</span>
               </div>
-              <span className="text-xs text-gray-500 font-mono">Nanaflix Project • Est. 2026</span>
+              <span className="text-xs text-zinc-500 font-mono">Nanaflix Project • Est. 2026</span>
             </div>
 
             {/* Note Content Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
               {/* Text Column */}
-              <div className="lg:col-span-8 space-y-4 text-sm sm:text-base text-gray-300 leading-relaxed font-normal">
+              <div className="lg:col-span-8 space-y-4 text-sm sm:text-base text-zinc-300 leading-relaxed font-normal">
                 <p className="text-lg sm:text-xl text-white font-medium leading-snug">
                   Nanaflix được bắt đầu rất giản dị: Từ mong muốn có một không gian xem phim <span className="text-netflix-red font-semibold">thực sự trọn vẹn và tĩnh lặng</span> sau mỗi ngày làm việc căng thẳng.
                 </p>
@@ -234,7 +234,7 @@ export default function AboutPage() {
                 <p>
                   Đó là lý do Nanaflix ra đời — một nền tảng được đẽo gọt tỉ mỉ kết hợp giữa công nghệ streaming HLS hiện đại, kiến trúc đám mây thông minh và triết lý thiết kế hướng đến người dùng. Ở đây, bạn chỉ cần bấm Play là phim chạy mượt mà, ghi nhớ chuẩn xác từng phút từng giây bạn dừng lại trên mọi thiết bị và hoàn toàn không có bất kỳ phiền toái nào chen ngang.
                 </p>
-                <div className="pt-2 flex items-center gap-2 text-xs text-gray-400 font-mono">
+                <div className="pt-2 flex items-center gap-2 text-xs text-zinc-400 font-mono">
                   <span className="text-emerald-400 font-bold">●</span> Xây dựng với tình yêu điện ảnh và tinh thần mã nguồn mở vì cộng đồng.
                 </div>
               </div>
@@ -242,7 +242,7 @@ export default function AboutPage() {
               {/* Creator Card Column */}
               <div className="lg:col-span-4 flex justify-center">
                 <div className="w-full max-w-sm p-6 rounded-2xl bg-black/60 border border-white/[0.1] space-y-4 text-center backdrop-blur-xl relative group hover:border-white/20 transition-all">
-                  <div className="w-20 h-20 sm:w-24 sm:h-24 mx-auto rounded-full overflow-hidden border-2 border-netflix-red/70 shadow-2xl relative bg-[#da251d] shadow-red-950/60 ring-2 ring-netflix-red/30">
+                  <div className="w-20 h-20 sm:w-24 sm:h-24 mx-auto rounded-full overflow-hidden border-2 border-netflix-red/70 shadow-2xl relative bg-[#da251d] shadow-black/60 ring-2 ring-netflix-red/30">
                     <Image
                       src="/images/vietnam-flag.svg"
                       alt="Cờ đỏ sao vàng Việt Nam"
@@ -254,9 +254,9 @@ export default function AboutPage() {
                   </div>
                   <div>
                     <h3 className="text-lg font-black text-white">DT</h3>
-                    <p className="text-xs font-medium text-gray-400 mt-0.5">Creator & Full-stack Engineer</p>
+                    <p className="text-xs font-medium text-zinc-400 mt-0.5">Creator & Full-stack Engineer</p>
                   </div>
-                  <div className="text-[11px] text-gray-400 leading-normal border-t border-white/[0.06] pt-3">
+                  <div className="text-[11px] text-zinc-400 leading-normal border-t border-white/[0.06] pt-3">
                     &ldquo;Sự hài lòng và những phút giây thư giãn của bạn là nguồn động lực lớn nhất để dự án không ngừng hoàn thiện mỗi ngày.&rdquo;
                   </div>
                 </div>
@@ -275,7 +275,7 @@ export default function AboutPage() {
             <h2 className="text-2xl sm:text-4xl font-black text-white tracking-tight">
               4 Giá Trị Cốt Lõi Tạo Nên Sự Khác Biệt
             </h2>
-            <p className="text-xs sm:text-sm text-gray-400">
+            <p className="text-xs sm:text-sm text-zinc-400">
               Từng dòng code và quyết định thiết kế đều hướng tới mục tiêu tối đa hóa trải nghiệm giải trí của bạn.
             </p>
           </div>
@@ -299,24 +299,24 @@ export default function AboutPage() {
                       >
                         <Icon size={22} />
                       </div>
-                      <span className="text-xs font-bold px-3 py-1 rounded-full bg-white/[0.04] border border-white/[0.08] text-gray-300 font-mono">
+                      <span className="text-xs font-bold px-3 py-1 rounded-full bg-white/[0.04] border border-white/[0.08] text-zinc-300 font-mono">
                         {p.badge}
                       </span>
                     </div>
 
                     <div>
-                      <div className="text-xs font-mono text-gray-500 uppercase tracking-widest">{p.subtitle}</div>
+                      <div className="text-xs font-mono text-zinc-500 uppercase tracking-widest">{p.subtitle}</div>
                       <h3 className="text-xl font-bold text-white mt-1 group-hover:text-red-400 transition-colors">
                         {p.title}
                       </h3>
                     </div>
 
-                    <p className="text-xs sm:text-sm text-gray-400 leading-relaxed">{p.description}</p>
+                    <p className="text-xs sm:text-sm text-zinc-400 leading-relaxed">{p.description}</p>
                   </div>
 
-                  <div className="pt-2 border-t border-white/[0.06] flex items-center justify-between text-xs text-gray-500 font-mono">
+                  <div className="pt-2 border-t border-white/[0.06] flex items-center justify-between text-xs text-zinc-500 font-mono">
                     <span>Đặc trưng #{p.number}</span>
-                    <span className="text-gray-400">Nanaflix Experience</span>
+                    <span className="text-zinc-400">Nanaflix Experience</span>
                   </div>
                 </div>
               );
@@ -334,7 +334,7 @@ export default function AboutPage() {
             <h2 className="text-2xl sm:text-4xl font-black text-white tracking-tight">
               Công Nghệ & Kiến Trúc Hệ Thống
             </h2>
-            <p className="text-xs sm:text-sm text-gray-400">
+            <p className="text-xs sm:text-sm text-zinc-400">
               Ứng dụng các công nghệ web hiện đại nhất hiện nay nhằm mang lại tốc độ phản hồi sub-millisecond.
             </p>
           </div>
@@ -357,11 +357,11 @@ export default function AboutPage() {
                   <div className="space-y-4">
                     {spec.items.map((item, i) => (
                       <div key={i} className="space-y-1">
-                        <div className="text-xs font-bold text-gray-200 flex items-center gap-1.5">
+                        <div className="text-xs font-bold text-zinc-200 flex items-center gap-1.5">
                           <CheckCircle size={12} className="text-netflix-red shrink-0" />
                           <span>{item.name}</span>
                         </div>
-                        <div className="text-[11px] text-gray-400 pl-4 leading-relaxed">{item.desc}</div>
+                        <div className="text-[11px] text-zinc-400 pl-4 leading-relaxed">{item.desc}</div>
                       </div>
                     ))}
                   </div>
@@ -381,7 +381,7 @@ export default function AboutPage() {
             <h2 className="text-2xl sm:text-4xl font-black text-white tracking-tight">
               Lộ Trình & Tầm Nhìn Dự Án
             </h2>
-            <p className="text-xs sm:text-sm text-gray-400">
+            <p className="text-xs sm:text-sm text-zinc-400">
               Nanaflix liên tục được tinh chỉnh và nâng cấp tính năng định kỳ hàng tuần.
             </p>
           </div>
@@ -393,7 +393,7 @@ export default function AboutPage() {
                 className="p-6 rounded-3xl bg-zinc-950/60 border border-white/[0.08] space-y-3 backdrop-blur-md relative overflow-hidden"
               >
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-mono font-bold text-gray-400">{step.phase}</span>
+                  <span className="text-xs font-mono font-bold text-zinc-400">{step.phase}</span>
                   <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full ${
                     step.status === "Đã hoàn thành" 
                       ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
@@ -403,7 +403,7 @@ export default function AboutPage() {
                   </span>
                 </div>
                 <h3 className="text-base font-bold text-white">{step.title}</h3>
-                <p className="text-xs text-gray-400 leading-relaxed">{step.desc}</p>
+                <p className="text-xs text-zinc-400 leading-relaxed">{step.desc}</p>
               </div>
             ))}
           </div>
@@ -420,7 +420,7 @@ export default function AboutPage() {
               <h2 className="text-2xl sm:text-4xl font-black text-white tracking-tight">
                 Bạn Gặp Sự Cố Hoặc Cần Hỗ Trợ?
               </h2>
-              <p className="text-xs sm:text-sm text-gray-400 leading-relaxed">
+              <p className="text-xs sm:text-sm text-zinc-400 leading-relaxed">
                 Chúng tôi luôn lắng nghe mọi đóng góp, phản hồi về chất lượng đường truyền video, lỗi hiển thị hoặc yêu cầu bổ sung phim mới từ bạn.
               </p>
             </div>
@@ -434,7 +434,7 @@ export default function AboutPage() {
                 </div>
                 <div className="space-y-1">
                   <h3 className="text-sm font-bold text-white">Báo Lỗi Phim & Máy Chủ</h3>
-                  <p className="text-xs text-gray-400 leading-relaxed">
+                  <p className="text-xs text-zinc-400 leading-relaxed">
                     Phim bị đứng hình, link phát hỏng, mất tiếng hoặc lệch phụ đề? Gửi thông tin tên phim và tập phim bị ảnh hưởng.
                   </p>
                 </div>
@@ -454,7 +454,7 @@ export default function AboutPage() {
                 </div>
                 <div className="space-y-1">
                   <h3 className="text-sm font-bold text-white">Yêu Cầu Phim & Tính Năng</h3>
-                  <p className="text-xs text-gray-400 leading-relaxed">
+                  <p className="text-xs text-zinc-400 leading-relaxed">
                     Mong muốn bổ sung bộ phim bạn yêu thích hoặc có sáng kiến cải tiến giao diện Nanaflix ngày một hoàn thiện hơn.
                   </p>
                 </div>
@@ -474,7 +474,7 @@ export default function AboutPage() {
                 </div>
                 <div className="space-y-1">
                   <h3 className="text-sm font-bold text-white">Tài Khoản & Bản Quyền DMCA</h3>
-                  <p className="text-xs text-gray-400 leading-relaxed">
+                  <p className="text-xs text-zinc-400 leading-relaxed">
                     Thắc mắc về bảo mật dữ liệu, yêu cầu xóa tài khoản hoặc khiếu nại bản quyền tác giả theo tiêu chuẩn DMCA.
                   </p>
                 </div>
@@ -495,7 +495,7 @@ export default function AboutPage() {
                   <Clock size={14} className="text-amber-400" />
                   <span>Thời gian phản hồi thông thường: 1 - 24 giờ làm việc</span>
                 </div>
-                <div className="text-[11px] text-gray-400">
+                <div className="text-[11px] text-zinc-400">
                   Hộp thư trực tiếp: <span className="font-mono text-zinc-300 font-semibold">contact@nanaflix.id.vn</span> hoặc liên hệ qua trang cá nhân.
                 </div>
               </div>
@@ -520,7 +520,7 @@ export default function AboutPage() {
             >
               <div className="text-xs font-mono text-amber-400 font-bold uppercase">Câu hỏi & Hướng dẫn</div>
               <div className="text-sm font-bold text-white group-hover:text-amber-300 transition mt-1">Trang Hỏi & Đáp (FAQ)</div>
-              <div className="text-xs text-gray-400 mt-1">Bí kíp cài app PWA, cast TV và phím tắt nhanh.</div>
+              <div className="text-xs text-zinc-400 mt-1">Bí kíp cài app PWA, cast TV và phím tắt nhanh.</div>
             </Link>
 
             <Link
@@ -529,7 +529,7 @@ export default function AboutPage() {
             >
               <div className="text-xs font-mono text-emerald-400 font-bold uppercase">An toàn dữ liệu</div>
               <div className="text-sm font-bold text-white group-hover:text-emerald-300 transition mt-1">Chính Sách Bảo Mật</div>
-              <div className="text-xs text-gray-400 mt-1">Không lưu Raw IP, mã hóa RLS và tự chủ dữ liệu.</div>
+              <div className="text-xs text-zinc-400 mt-1">Không lưu Raw IP, mã hóa RLS và tự chủ dữ liệu.</div>
             </Link>
 
             <Link
@@ -538,7 +538,7 @@ export default function AboutPage() {
             >
               <div className="text-xs font-mono text-blue-400 font-bold uppercase">Quy định & DMCA</div>
               <div className="text-sm font-bold text-white group-hover:text-blue-300 transition mt-1">Điều Khoản Dịch Vụ</div>
-              <div className="text-xs text-gray-400 mt-1">Tuyên bố miễn trừ lưu trữ và tiếp nhận bản quyền.</div>
+              <div className="text-xs text-zinc-400 mt-1">Tuyên bố miễn trừ lưu trữ và tiếp nhận bản quyền.</div>
             </Link>
           </div>
         </section>

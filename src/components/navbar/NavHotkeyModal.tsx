@@ -54,13 +54,13 @@ export const NavHotkeyModal: React.FC<NavHotkeyModalProps> = React.memo(function
           <button
             type="button"
             onClick={onClose}
-            className="p-1 rounded-full text-gray-400 hover:text-white hover:bg-white/10 transition cursor-pointer"
+            className="p-1 rounded-full text-zinc-400 hover:text-white hover:bg-white/10 transition cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        <div className="space-y-2.5 text-xs text-gray-300">
+        <div className="space-y-2.5 text-xs text-zinc-300">
           <div className="flex items-center justify-between py-1.5 border-b border-white/5">
             <span>Tìm kiếm phim nhanh</span>
             <span className="bg-zinc-800 px-2 py-0.5 rounded border border-white/15 font-mono text-white font-semibold">

@@ -134,7 +134,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
     setShowCollectionModal(true);
   }, [user]);
 
-  // Danh sách ảnh ứng viên cho Poster đứng 2:3: Ưu tiên posterUrl (ảnh dọc 2:3 chuẩn) -> imageUrl -> thumbUrl
+  // Danh sách ảnh ứng viên cho Poster đứng 2:3 theo thứ tự ưu tiên: TMDb CDN -> KKPhim / nhà đài -> Cross fallback
   const imageCandidates = React.useMemo(() => {
     const list: string[] = [];
     const addUrl = (u?: string) => {
@@ -157,15 +157,21 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
         !raw.includes("/null") &&
         !raw.startsWith("/default-")
       ) {
-        if (!raw.includes("/upload/vod/")) {
-          list.push(raw);
-        }
+        list.push(raw);
       }
     };
     addUrl(posterUrl);
     addUrl(imageUrl);
     addUrl(thumbUrl);
-    return list;
+
+    // Ưu tiên TMDb CDN (image.tmdb.org) lên đầu tiên
+    return list.sort((a, b) => {
+      const aTmdb = a.includes("image.tmdb.org");
+      const bTmdb = b.includes("image.tmdb.org");
+      if (aTmdb && !bTmdb) return -1;
+      if (!aTmdb && bTmdb) return 1;
+      return 0;
+    });
   }, [posterUrl, imageUrl, thumbUrl]);
 
   const attemptIndexRef = useRef(0);
@@ -189,6 +195,26 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
       setHasError(true);
       setCurrentSrc("");
       setIsImageLoaded(false);
+
+      if (!fallbackAttemptedRef.current && (title || origin_name || slug)) {
+        fallbackAttemptedRef.current = true;
+        const params = new URLSearchParams();
+        if (title) params.set("title", title);
+        if (origin_name) params.set("origin_name", origin_name);
+        if (year) params.set("year", String(year));
+        if (slug) params.set("slug", slug);
+
+        fetch(`/api/movie-poster-fallback?${params.toString()}`)
+          .then((res) => (res.ok ? res.json() : null))
+          .then((data) => {
+            if (data?.posterUrl) {
+              setHasError(false);
+              setCurrentSrc(data.posterUrl);
+              setIsImageLoaded(false);
+            }
+          })
+          .catch(() => {});
+      }
     } else {
       setHasError(false);
       setCurrentSrc(initial);
@@ -198,9 +224,15 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
         setIsImageLoaded(false);
       }
     }
-  }, [imageCandidates]);
+  }, [imageCandidates, title, origin_name, year, slug]);
 
-  const handleImageError = () => {
+  const fallbackAttemptedRef = useRef(false);
+
+  useEffect(() => {
+    fallbackAttemptedRef.current = false;
+  }, [slug, title]);
+
+  const handleImageError = useCallback(() => {
     attemptIndexRef.current += 1;
     const nextIdx = attemptIndexRef.current;
 
@@ -210,11 +242,78 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
       return;
     }
 
+    // Nếu chưa thử fallback TMDb, thử gọi TMDb poster trước khi báo lỗi
+    if (!fallbackAttemptedRef.current && (title || origin_name || slug)) {
+      fallbackAttemptedRef.current = true;
+      const params = new URLSearchParams();
+      if (title) params.set("title", title);
+      if (origin_name) params.set("origin_name", origin_name);
+      if (year) params.set("year", String(year));
+      if (slug) params.set("slug", slug);
+
+      fetch(`/api/movie-poster-fallback?${params.toString()}`)
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data) => {
+          if (data?.posterUrl) {
+            setHasError(false);
+            setCurrentSrc(data.posterUrl);
+            setIsImageLoaded(false);
+          } else {
+            setHasError(true);
+            setCurrentSrc("");
+            setIsImageLoaded(true);
+          }
+        })
+        .catch(() => {
+          setHasError(true);
+          setCurrentSrc("");
+          setIsImageLoaded(true);
+        });
+      return;
+    }
+
     // Tất cả ứng viên đều lỗi -> Chuyển sang fallback
     setHasError(true);
     setCurrentSrc("");
     setIsImageLoaded(true);
-  };
+  }, [imageCandidates, title, origin_name, year, slug]);
+
+  // Bounded timeout 10000ms: Chỉ chuyển fallback nếu sau 10 giây CDN hoàn toàn không phản hồi
+  useEffect(() => {
+    if (!currentSrc || isImageLoaded || hasError) return;
+
+    const timer = setTimeout(() => {
+      if (!imgRef.current || !imgRef.current.complete || imgRef.current.naturalWidth === 0) {
+        handleImageError();
+      }
+    }, 10000);
+
+    return () => clearTimeout(timer);
+  }, [currentSrc, isImageLoaded, hasError, handleImageError]);
+
+  // NGUỒN THAY THẾ DỰ PHÒNG THÔNG MINH (TMDB OFFICIAL CDN):
+  // Khi phim không có ảnh hợp lệ, tự động truy vấn poster chuẩn từ TMDB
+  useEffect(() => {
+    if ((!currentSrc || hasError) && !fallbackAttemptedRef.current && (title || origin_name || slug)) {
+      fallbackAttemptedRef.current = true;
+      const params = new URLSearchParams();
+      if (title) params.set("title", title);
+      if (origin_name) params.set("origin_name", origin_name);
+      if (year) params.set("year", String(year));
+      if (slug) params.set("slug", slug);
+
+      fetch(`/api/movie-poster-fallback?${params.toString()}`)
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data) => {
+          if (data?.posterUrl) {
+            setHasError(false);
+            setCurrentSrc(data.posterUrl);
+            setIsImageLoaded(false);
+          }
+        })
+        .catch(() => {});
+    }
+  }, [currentSrc, hasError, title, origin_name, year, slug]);
 
   // Trạng thái Trailer & Modal Trailer (Chỉ kích hoạt khi bấm nút xem Trailer)
   const [trailerUrl, setTrailerUrl] = useState<string>(
@@ -477,7 +576,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
 
   return (
     <div
-      className="group/card relative flex flex-col w-full select-none cursor-pointer hover:scale-[1.03] hover:-translate-y-1 hover:z-20 transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:transform-none"
+      className="group/card relative flex flex-col w-full select-none cursor-pointer hover:scale-[1.02] hover:-translate-y-0.5 hover:z-20 transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:transform-none"
       onMouseEnter={handleMouseEnterCard}
     >
       {/* ========================================================================= */}
@@ -533,7 +632,8 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
               alt={title}
               loading={priority ? "eager" : "lazy"}
               decoding="async"
-              className={`w-full h-full object-cover object-center group-hover/card:scale-108 group-hover/card:brightness-105 transition-all duration-500 ease-out motion-reduce:transform-none ${
+              referrerPolicy="no-referrer"
+              className={`w-full h-full object-cover object-center group-hover/card:scale-105 group-hover/card:brightness-105 transition-all duration-500 ease-out motion-reduce:transform-none ${
                 isImageLoaded ? "opacity-100" : "opacity-0"
               }`}
               onLoad={() => setIsImageLoaded(true)}
@@ -645,7 +745,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
           <div className="h-5 sm:h-5.5 flex items-center w-full min-w-0">
             <h3
               title={title}
-              className="text-zinc-100 group-hover/card:text-red-400 font-semibold text-[13px] sm:text-[14px] leading-tight truncate w-full transition-colors"
+              className="text-zinc-100 group-hover/card:text-rose-400 font-semibold text-[13px] sm:text-[14px] leading-tight truncate w-full transition-colors"
             >
               {title}
             </h3>
@@ -655,7 +755,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
         {/* DÒNG 2 — THÔNG TIN PHỤ: KHOẢNG CÁCH 6PX CHUẨN MỰC, BÁM SÁT TIÊU ĐỀ, METADATA THẲNG TĂM TẮP */}
         <p
           title={desktopMetaString}
-          className="text-[11px] sm:text-xs text-zinc-400/90 sm:text-neutral-400 mt-1.5 block truncate w-full min-w-0 select-none leading-none h-4"
+          className="text-[11px] sm:text-xs text-zinc-400 mt-1.5 block truncate w-full min-w-0 select-none leading-none h-4"
         >
           <span className="sm:hidden">{mobileMetaString || <span className="text-transparent pointer-events-none">·</span>}</span>
           <span className="hidden sm:inline">{desktopMetaString || <span className="text-transparent pointer-events-none">·</span>}</span>

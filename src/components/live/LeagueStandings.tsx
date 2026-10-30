@@ -205,11 +205,11 @@ export const LeagueStandings: React.FC<LeagueStandingsProps> = ({
           <div>
             <h3 className="text-sm sm:text-base font-bold text-white tracking-wide flex items-center gap-2">
               Bảng Xếp Hạng Bóng Đá
-              <span className="text-[10px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-white/10 text-gray-300 border border-white/10">
+              <span className="text-[10px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-white/10 text-zinc-300 border border-white/10">
                 P3 • Standings
               </span>
             </h3>
-            <p className="text-[11px] text-gray-400 truncate max-w-[220px] sm:max-w-md">
+            <p className="text-[11px] text-zinc-400 truncate max-w-[220px] sm:max-w-md">
               {currentLeagueMeta ? `${currentLeagueMeta.flag} ${currentLeagueMeta.name}` : "Cập nhật từ ban tổ chức"}
               {standings ? ` • Mùa giải ${standings.season}` : ""}
             </p>
@@ -223,7 +223,7 @@ export const LeagueStandings: React.FC<LeagueStandingsProps> = ({
               onClick={() => fetchStandings(selectedLeague, true)}
               disabled={loading}
               title="Làm mới bảng xếp hạng"
-              className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-white/10 transition-colors disabled:opacity-40 cursor-pointer"
+              className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-white/10 transition-colors disabled:opacity-40 cursor-pointer"
             >
               <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin text-amber-400" : ""}`} />
             </button>
@@ -232,7 +232,7 @@ export const LeagueStandings: React.FC<LeagueStandingsProps> = ({
           <button
             type="button"
             onClick={() => setIsOpen((prev) => !prev)}
-            className="flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-gray-300 hover:text-white bg-white/5 hover:bg-white/10 rounded-lg border border-white/10 transition-all cursor-pointer"
+            className="flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-zinc-300 hover:text-white bg-white/5 hover:bg-white/10 rounded-lg border border-white/10 transition-all cursor-pointer"
           >
             {isOpen ? (
               <>
@@ -258,7 +258,7 @@ export const LeagueStandings: React.FC<LeagueStandingsProps> = ({
               <button
                 type="button"
                 onClick={() => scrollLeagues("left")}
-                className="absolute left-0 top-1/2 -translate-y-1/2 z-20 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-zinc-900/95 hover:bg-white text-gray-200 hover:text-black border border-white/20 shadow-xl flex items-center justify-center transition-all cursor-pointer backdrop-blur-md"
+                className="absolute left-0 top-1/2 -translate-y-1/2 z-20 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-zinc-900/95 hover:bg-white text-zinc-200 hover:text-black border border-white/20 shadow-xl flex items-center justify-center transition-all cursor-pointer backdrop-blur-md"
                 title="Cuộn sang trái"
               >
                 <ChevronLeft className="w-4 h-4" />
@@ -294,7 +294,7 @@ export const LeagueStandings: React.FC<LeagueStandingsProps> = ({
                     className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all border cursor-pointer shrink-0 ${
                       isSelected
                         ? "bg-amber-500/20 text-amber-300 border-amber-400/50 shadow-sm font-bold scale-[1.02]"
-                        : "bg-black/30 text-gray-400 border-white/5 hover:bg-white/5 hover:text-gray-200"
+                        : "bg-black/30 text-zinc-400 border-white/5 hover:bg-white/5 hover:text-zinc-200"
                     }`}
                   >
                     <CountryFlag emoji={l.flag} className="w-4 h-4 object-contain inline-block shrink-0" />
@@ -314,7 +314,7 @@ export const LeagueStandings: React.FC<LeagueStandingsProps> = ({
               <button
                 type="button"
                 onClick={() => scrollLeagues("right")}
-                className="absolute right-0 top-1/2 -translate-y-1/2 z-20 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-zinc-900/95 hover:bg-white text-gray-200 hover:text-black border border-white/20 shadow-xl flex items-center justify-center transition-all cursor-pointer backdrop-blur-md"
+                className="absolute right-0 top-1/2 -translate-y-1/2 z-20 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-zinc-900/95 hover:bg-white text-zinc-200 hover:text-black border border-white/20 shadow-xl flex items-center justify-center transition-all cursor-pointer backdrop-blur-md"
                 title="Cuộn sang phải"
               >
                 <ChevronRight className="w-4 h-4" />
@@ -325,7 +325,7 @@ export const LeagueStandings: React.FC<LeagueStandingsProps> = ({
           {/* TAB CHUYỂN BẢNG ĐẤU NẾU GIẢI CÓ NHIỀU BẢNG (VÍ DỤ MLS CÓ 2 CONFERENCE) */}
           {standings && standings.groups.length > 1 && (
             <div className="flex items-center gap-2">
-              <span className="text-xs text-gray-400 font-medium">Bảng đấu:</span>
+              <span className="text-xs text-zinc-400 font-medium">Bảng đấu:</span>
               <div className="flex items-center gap-1.5 overflow-x-auto">
                 {standings.groups.map((group, idx) => (
                   <button
@@ -335,7 +335,7 @@ export const LeagueStandings: React.FC<LeagueStandingsProps> = ({
                     className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                       activeGroupIndex === idx
                         ? "bg-white/20 text-white border border-white/20"
-                        : "bg-white/5 text-gray-400 hover:text-gray-200"
+                        : "bg-white/5 text-zinc-400 hover:text-zinc-200"
                     }`}
                   >
                     {group.name}
@@ -347,7 +347,7 @@ export const LeagueStandings: React.FC<LeagueStandingsProps> = ({
 
           {/* TRẠNG THÁI LOADING */}
           {loading && !standings && !isCupTournament && (
-            <div className="py-12 flex flex-col items-center justify-center gap-3 text-gray-400">
+            <div className="py-12 flex flex-col items-center justify-center gap-3 text-zinc-400">
               <RefreshCw className="w-6 h-6 animate-spin text-amber-400" />
               <p className="text-xs sm:text-sm">Đang tải bảng xếp hạng chính thức...</p>
             </div>
@@ -373,13 +373,13 @@ export const LeagueStandings: React.FC<LeagueStandingsProps> = ({
           {isCupTournament && (
             <div className="py-8 flex flex-col items-center justify-center text-center gap-2 bg-zinc-950/40 rounded-xl border border-white/5 p-6">
               <ShieldAlert className="w-8 h-8 text-amber-400/80 mb-1" />
-              <h4 className="text-sm font-bold text-gray-200">
+              <h4 className="text-sm font-bold text-zinc-200">
                 {currentLeagueMeta?.name} là giải đấu cúp
               </h4>
-              <p className="text-xs text-gray-400 max-w-md leading-relaxed">
+              <p className="text-xs text-zinc-400 max-w-md leading-relaxed">
                 {cupMessage}
               </p>
-              <span className="mt-2 text-[11px] text-gray-400 bg-white/5 px-2.5 py-1 rounded-full border border-white/5">
+              <span className="mt-2 text-[11px] text-zinc-400 bg-white/5 px-2.5 py-1 rounded-full border border-white/5">
                 Các trận đấu trực tiếp của giải sẽ hiển thị tại danh sách trận bên trên
               </span>
             </div>
@@ -389,10 +389,10 @@ export const LeagueStandings: React.FC<LeagueStandingsProps> = ({
           {standings && (!currentGroup || currentGroup.entries.length === 0) && (
             <div className="py-8 flex flex-col items-center justify-center text-center gap-2 bg-zinc-950/40 rounded-xl border border-white/5 p-6">
               <AlertCircle className="w-8 h-8 text-amber-400/80 mb-1" />
-              <h4 className="text-sm font-bold text-gray-200">
+              <h4 className="text-sm font-bold text-zinc-200">
                 Chưa có dữ liệu bảng xếp hạng
               </h4>
-              <p className="text-xs text-gray-400 max-w-md leading-relaxed">
+              <p className="text-xs text-zinc-400 max-w-md leading-relaxed">
                 Dữ liệu bảng xếp hạng cho {currentLeagueMeta?.name} đang được hệ thống cập nhật từ ban tổ chức.
               </p>
             </div>
@@ -401,11 +401,11 @@ export const LeagueStandings: React.FC<LeagueStandingsProps> = ({
           {/* TRẠNG THÁI CHƯA CÓ DỮ LIỆU BAN ĐẦU */}
           {!loading && !error && !standings && !isCupTournament && (
             <div className="py-8 flex flex-col items-center justify-center text-center gap-2 bg-zinc-950/40 rounded-xl border border-white/5 p-6">
-              <AlertCircle className="w-8 h-8 text-gray-400/80 mb-1" />
-              <h4 className="text-sm font-bold text-gray-200">
+              <AlertCircle className="w-8 h-8 text-zinc-400/80 mb-1" />
+              <h4 className="text-sm font-bold text-zinc-200">
                 Chưa có dữ liệu giải đấu
               </h4>
-              <p className="text-xs text-gray-400 max-w-md leading-relaxed">
+              <p className="text-xs text-zinc-400 max-w-md leading-relaxed">
                 Vui lòng chọn một giải đấu ở thanh tab phía trên để xem bảng xếp hạng chi tiết.
               </p>
               <button
@@ -425,19 +425,19 @@ export const LeagueStandings: React.FC<LeagueStandingsProps> = ({
               <div className="overflow-x-auto rounded-2xl border border-white/10 bg-zinc-950/90 shadow-xl scrollbar-thin">
                 <table className="w-full text-left border-collapse text-xs sm:text-sm">
                   <thead>
-                    <tr className="border-b border-white/10 bg-white/[0.03] text-[10px] sm:text-xs text-gray-400 uppercase tracking-wider font-extrabold">
+                    <tr className="border-b border-white/10 bg-white/[0.03] text-[10px] sm:text-xs text-zinc-400 uppercase tracking-wider font-extrabold">
                       <th className="py-3 px-2 sm:px-3 text-center w-9 sm:w-12 sticky left-0 bg-zinc-950 z-20">#</th>
                       <th className="py-3 px-3 sm:px-4 min-w-[150px] sm:min-w-[220px] sticky left-9 sm:left-12 bg-zinc-950 z-20 shadow-[2px_0_5px_rgba(0,0,0,0.5)]">Câu lạc bộ</th>
                       <th className="py-3 px-2 text-center w-10 sm:w-12 font-bold" title="Số trận đã đá">Trận</th>
                       <th className="py-3 px-2 text-center w-10 sm:w-12 text-emerald-400 font-bold" title="Thắng">T</th>
-                      <th className="py-3 px-2 text-center w-10 sm:w-12 text-gray-300 font-bold" title="Hòa">H</th>
+                      <th className="py-3 px-2 text-center w-10 sm:w-12 text-zinc-300 font-bold" title="Hòa">H</th>
                       <th className="py-3 px-2 text-center w-10 sm:w-12 text-rose-400 font-bold" title="Thua">B</th>
                       <th className="py-3 px-2 text-center w-16 sm:w-20 hidden md:table-cell font-mono" title="Bàn thắng - Bàn thua">BT-BB</th>
                       <th className="py-3 px-2 text-center w-12 sm:w-14 font-semibold font-mono" title="Hiệu số">HS</th>
                       <th className="py-3 px-3 text-center w-12 sm:w-16 font-black text-amber-400 bg-amber-500/10 font-mono" title="Điểm số">Điểm</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-white/5 text-gray-300">
+                  <tbody className="divide-y divide-white/5 text-zinc-300">
                     {currentGroup.entries.map((entry, idx) => {
                       const totalEntries = currentGroup.entries.length;
                       // Determine European or standard qualification zones
@@ -454,7 +454,7 @@ export const LeagueStandings: React.FC<LeagueStandingsProps> = ({
                           className="hover:bg-white/[0.04] transition-colors group/row"
                         >
                           {/* THỨ HẠNG VÀ CHỈ BÁO VỊ TRÍ (STICKY MOBILE) */}
-                          <td className="py-2.5 px-2 sm:px-3 text-center font-bold text-gray-400 sticky left-0 bg-zinc-950 z-10">
+                          <td className="py-2.5 px-2 sm:px-3 text-center font-bold text-zinc-400 sticky left-0 bg-zinc-950 z-10">
                             <div className="flex items-center justify-center gap-1.5">
                               {zoneColor ? (
                                 <span
@@ -486,7 +486,7 @@ export const LeagueStandings: React.FC<LeagueStandingsProps> = ({
                                   />
                                 </div>
                               ) : (
-                                <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-lg bg-white/10 flex items-center justify-center text-[10px] font-bold text-gray-300 shrink-0">
+                                <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-lg bg-white/10 flex items-center justify-center text-[10px] font-bold text-zinc-300 shrink-0">
                                   {entry.team.abbreviation || entry.team.name.slice(0, 2)}
                                 </div>
                               )}
@@ -495,7 +495,7 @@ export const LeagueStandings: React.FC<LeagueStandingsProps> = ({
                                   {entry.team.displayName}
                                 </span>
                                 {entry.note?.description && (
-                                  <span className="text-[10px] text-gray-400 hidden sm:block truncate">
+                                  <span className="text-[10px] text-zinc-400 hidden sm:block truncate">
                                     {entry.note.description}
                                   </span>
                                 )}
@@ -504,7 +504,7 @@ export const LeagueStandings: React.FC<LeagueStandingsProps> = ({
                           </td>
 
                           {/* SỐ TRẬN */}
-                          <td className="py-2.5 px-2 text-center font-mono font-bold text-gray-300">
+                          <td className="py-2.5 px-2 text-center font-mono font-bold text-zinc-300">
                             {entry.gamesPlayed}
                           </td>
 
@@ -514,7 +514,7 @@ export const LeagueStandings: React.FC<LeagueStandingsProps> = ({
                           </td>
 
                           {/* HÒA */}
-                          <td className="py-2.5 px-2 text-center font-mono text-gray-400 font-medium">
+                          <td className="py-2.5 px-2 text-center font-mono text-zinc-400 font-medium">
                             {entry.ties}
                           </td>
 
@@ -524,7 +524,7 @@ export const LeagueStandings: React.FC<LeagueStandingsProps> = ({
                           </td>
 
                           {/* BÀN THẮNG - BÀN THUA (Ẩn trên mobile) */}
-                          <td className="py-2.5 px-2 text-center font-mono text-gray-400 text-xs hidden md:table-cell">
+                          <td className="py-2.5 px-2 text-center font-mono text-zinc-400 text-xs hidden md:table-cell">
                             {entry.pointsFor}-{entry.pointsAgainst}
                           </td>
 
@@ -534,7 +534,7 @@ export const LeagueStandings: React.FC<LeagueStandingsProps> = ({
                               ? "text-emerald-400"
                               : entry.pointDifferential < 0
                               ? "text-rose-400"
-                              : "text-gray-400"
+                              : "text-zinc-400"
                           }`}>
                             {entry.pointDifferential > 0 ? `+${entry.pointDifferential}` : entry.pointDifferential}
                           </td>
@@ -551,8 +551,8 @@ export const LeagueStandings: React.FC<LeagueStandingsProps> = ({
               </div>
 
               {/* CHÚ THÍCH CÁC VỊ TRÍ XẾP HẠNG (NẾU CÓ) */}
-              <div className="flex flex-wrap items-center gap-3 pt-1 text-[11px] text-gray-400 px-1">
-                <span className="font-semibold text-gray-300">Ghi chú:</span>
+              <div className="flex flex-wrap items-center gap-3 pt-1 text-[11px] text-zinc-400 px-1">
+                <span className="font-semibold text-zinc-300">Ghi chú:</span>
                 <div className="flex items-center gap-1.5">
                   <span className="w-2 h-2 rounded-full bg-[#81D6AC]" />
                   <span>Vòng bảng Cúp C1 (Champions League)</span>

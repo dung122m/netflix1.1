@@ -191,8 +191,14 @@ export async function GET(req: NextRequest) {
   } catch (err: unknown) {
     clearTimeout(timeoutId);
     console.warn(`[api/img-thumb] Upstream fetch timeout/fail (${Date.now() - t0}ms) for ${rawUrl}:`, (err as Error)?.message || err);
-    // Graceful fallback: Redirect trực tiếp sang ảnh gốc, không bao giờ để serverless bị treo 20-30s
-    return NextResponse.redirect(rawUrl, { status: 307 });
+    // Không redirect sang URL lỗi để tránh làm treo kết nối client browser; trả về 404 để client kích hoạt fallback tức thì
+    return new NextResponse("Upstream image unavailable", {
+      status: 404,
+      headers: {
+        "Content-Type": "text/plain; charset=utf-8",
+        "Cache-Control": "public, max-age=300",
+      },
+    });
   }
 
   // Xử lý nén & resize bằng Sharp (effort: 2 để xử lý siêu tốc ~10ms, tiết kiệm CPU)

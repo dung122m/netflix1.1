@@ -11,7 +11,107 @@ import { MovieViewStatItem } from "@/services/supabaseService";
 import { pickBestMoviePoster, toOptimizedPhimimgUrl, formatGenreName } from "@/lib/movieMedia";
 import { CarouselNavButton } from "@/components/ui/CarouselNavButton";
 
-const TRENDING_CACHE_KEY = "nanaflix_trending_community_cache_v4";
+const TRENDING_CACHE_KEY = "nanaflix_trending_community_cache_v5";
+
+interface CommunityTrendingPosterProps {
+  movieTitle: string;
+  movieSlug: string;
+  poster?: string;
+  thumb?: string;
+  priority?: boolean;
+}
+
+function CommunityTrendingPoster({
+  movieTitle,
+  movieSlug,
+  poster,
+  thumb,
+  priority = false,
+}: CommunityTrendingPosterProps) {
+  const initialPoster = pickBestMoviePoster(
+    {
+      poster_url: poster,
+      thumb_url: thumb,
+      name: movieTitle,
+      slug: movieSlug,
+    },
+    ""
+  );
+
+  const [imgSrc, setImgSrc] = useState<string>(() => {
+    if (initialPoster && !initialPoster.includes("/default-")) {
+      return toOptimizedPhimimgUrl(initialPoster, 320);
+    }
+    return "";
+  });
+
+  const fallbackTriedRef = useRef(false);
+
+  useEffect(() => {
+    if (!imgSrc && !fallbackTriedRef.current) {
+      fallbackTriedRef.current = true;
+      fetch(`/api/movie-poster-fallback?title=${encodeURIComponent(movieTitle)}&slug=${encodeURIComponent(movieSlug)}`)
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data) => {
+          if (data?.posterUrl) {
+            setImgSrc(data.posterUrl);
+          } else if (data?.backdropUrl) {
+            setImgSrc(data.backdropUrl);
+          } else {
+            setImgSrc("/default-poster.jpg");
+          }
+        })
+        .catch(() => {
+          setImgSrc("/default-poster.jpg");
+        });
+    }
+  }, [imgSrc, movieTitle, movieSlug]);
+
+  const handleError = useCallback(() => {
+    if (!fallbackTriedRef.current) {
+      fallbackTriedRef.current = true;
+      fetch(`/api/movie-poster-fallback?title=${encodeURIComponent(movieTitle)}&slug=${encodeURIComponent(movieSlug)}`)
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data) => {
+          if (data?.posterUrl) {
+            setImgSrc(data.posterUrl);
+          } else if (data?.backdropUrl) {
+            setImgSrc(data.backdropUrl);
+          } else {
+            setImgSrc("/default-poster.jpg");
+          }
+        })
+        .catch(() => {
+          setImgSrc("/default-poster.jpg");
+        });
+    } else {
+      setImgSrc("/default-poster.jpg");
+    }
+  }, [movieTitle, movieSlug]);
+
+  if (!imgSrc) {
+    return (
+      <div className="w-full h-full bg-zinc-900/80 animate-pulse flex items-center justify-center">
+        <div className="w-8 h-8 rounded-full border border-white/10 bg-white/5" />
+      </div>
+    );
+  }
+
+  return (
+    <Image
+      src={imgSrc}
+      alt={movieTitle}
+      fill
+      unoptimized
+      priority={priority}
+      sizes="(max-width: 640px) 160px, (max-width: 768px) 200px, 240px"
+      className="object-cover group-hover:scale-105 transition-transform duration-500"
+      loading={priority ? "eager" : "lazy"}
+      quality={85}
+      onError={handleError}
+    />
+  );
+}
 
 function CommunityTopTrendingInner() {
   const [items, setItems] = useState<MovieViewStatItem[]>([]);
@@ -32,8 +132,9 @@ function CommunityTopTrendingInner() {
 
     // Đọc cache localStorage ngay khi mount nếu dữ liệu còn hợp lệ (trong 12 giờ)
     try {
-      // Dọn dẹp cache v3 cũ
+      // Dọn dẹp cache v3, v4 cũ
       localStorage.removeItem("nanaflix_trending_community_cache_v3");
+      localStorage.removeItem("nanaflix_trending_community_cache_v4");
 
       const raw = localStorage.getItem(TRENDING_CACHE_KEY);
       if (raw) {
@@ -223,19 +324,14 @@ function CommunityTopTrendingInner() {
       {/* HEADER SECTION */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-3 mb-5 px-1">
         <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="flex items-center justify-center w-7 h-7 rounded-lg bg-gradient-to-tr from-amber-500 to-red-600 text-white shadow-lg shadow-red-950/40">
+          <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-white tracking-tight flex items-center gap-2.5">
+            <span className="flex items-center justify-center w-7 h-7 rounded-lg bg-netflix-red text-white shadow-md shadow-black/50 shrink-0">
               <TrendingUp className="w-4 h-4" />
             </span>
-            <span className="text-[11px] font-extrabold uppercase tracking-wider text-amber-400 bg-amber-500/10 px-2.5 py-0.5 rounded-full border border-amber-500/20">
-              Cộng Đồng Nanaflix
-            </span>
-          </div>
-          <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-white tracking-tight flex items-center gap-2">
             <span>Khán Giả Xem Nhiều Nhất</span>
             <Flame className="w-5 h-5 text-netflix-red shrink-0" />
           </h2>
-          <p className="text-xs sm:text-sm text-zinc-400 mt-0.5">
+          <p className="text-xs sm:text-sm text-zinc-400 mt-1 max-w-[65ch] leading-relaxed">
             Bảng xếp hạng phim thịnh hành được cộng đồng khán giả xem nhiều nhất
           </p>
         </div>
@@ -248,8 +344,8 @@ function CommunityTopTrendingInner() {
               onClick={() => switchTab("total")}
               className={`px-3 py-1.5 rounded-lg transition-all duration-200 cursor-pointer ${
                 timeframe === "total"
-                  ? "bg-netflix-red text-white font-bold shadow-md shadow-red-950/40 scale-100"
-                  : "text-gray-400 hover:text-white hover:bg-white/5 active:scale-95"
+                  ? "bg-netflix-red text-white font-bold shadow-md shadow-black/50 scale-100"
+                  : "text-zinc-400 hover:text-white hover:bg-white/5 active:scale-95"
               }`}
             >
               Toàn Thời Gian
@@ -259,8 +355,8 @@ function CommunityTopTrendingInner() {
               onClick={() => switchTab("week")}
               className={`px-3 py-1.5 rounded-lg transition-all duration-200 cursor-pointer ${
                 timeframe === "week"
-                  ? "bg-netflix-red text-white font-bold shadow-md shadow-red-950/40 scale-100"
-                  : "text-gray-400 hover:text-white hover:bg-white/5 active:scale-95"
+                  ? "bg-netflix-red text-white font-bold shadow-md shadow-black/50 scale-100"
+                  : "text-zinc-400 hover:text-white hover:bg-white/5 active:scale-95"
               }`}
             >
               Trong Tuần
@@ -353,28 +449,18 @@ function CommunityTopTrendingInner() {
                     href={`/movies/${movie.movieSlug}`}
                     className="flex items-start relative block cursor-pointer group-hover:scale-[1.025] group-hover:-translate-y-1 transition-all duration-300 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-netflix-red rounded-xl"
                   >
-                    {/* NETFLIX-STYLE GIANT 3D NUMBER BEHIND POSTER */}
-                    <div className="flex items-end h-[210px] sm:h-[262px] md:h-[285px] relative -mr-5 sm:-mr-8 z-0 pointer-events-none select-none shrink-0">
+                    <div aria-hidden="true" className="flex items-end h-[210px] sm:h-[262px] md:h-[285px] relative -mr-5 sm:-mr-8 z-0 pointer-events-none select-none shrink-0">
                       <span
-                        className="text-[90px] sm:text-[130px] md:text-[150px] font-black leading-none tracking-tighter"
+                        className="text-[90px] sm:text-[130px] md:text-[150px] font-black leading-none tracking-tighter text-transparent"
                         style={{
-                          WebkitTextStroke: rank <= 3 ? "2px rgba(239, 68, 68, 0.9)" : "2px rgba(255, 255, 255, 0.22)",
-                          color: rank === 1
-                            ? "transparent"
-                            : rank === 2
-                            ? "transparent"
-                            : rank === 3
-                            ? "transparent"
-                            : "rgba(0, 0, 0, 0.6)",
-                          backgroundImage: rank === 1
-                            ? "linear-gradient(180deg, #f59e0b 0%, #dc2626 100%)"
-                            : rank === 2
-                            ? "linear-gradient(180deg, #e2e8f0 0%, #64748b 100%)"
-                            : rank === 3
-                            ? "linear-gradient(180deg, #d97706 0%, #78350f 100%)"
-                            : undefined,
-                          WebkitBackgroundClip: rank <= 3 ? "text" : undefined,
-                          filter: rank <= 3 ? "drop-shadow(0 10px 15px rgba(220, 38, 38, 0.4))" : undefined,
+                          WebkitTextStroke:
+                            rank === 1
+                              ? "3px #e50914"
+                              : rank === 2
+                              ? "3px #d4d4d8"
+                              : rank === 3
+                              ? "3px #a1a1aa"
+                              : "2px rgba(255, 255, 255, 0.2)",
                         }}
                       >
                         {rank}
@@ -385,43 +471,13 @@ function CommunityTopTrendingInner() {
                     <div className="relative z-10 w-[140px] sm:w-[175px] md:w-[190px] flex flex-col shrink-0 min-w-0">
                       {/* MOVIE POSTER CONTAINER (ARTWORK THUẦN KHIẾT) */}
                       <div className="relative w-full aspect-[2/3] rounded-xl overflow-hidden bg-zinc-950 bg-gradient-to-br from-zinc-800/70 via-zinc-900 to-zinc-950 ring-1 ring-white/10 group-hover:ring-2 group-hover:ring-netflix-red group-hover:ring-inset group-hover:shadow-[0_14px_32px_rgba(229,9,20,0.35),0_0_20px_rgba(0,0,0,0.8)] transition-all duration-300">
-                        {(() => {
-                          const rawPoster = pickBestMoviePoster(
-                            {
-                              poster_url: movie.poster,
-                              thumb_url: movie.thumb,
-                              name: movie.movieTitle,
-                              slug: movie.movieSlug,
-                            },
-                            "/default-poster.jpg"
-                          );
-                          const posterSrc = toOptimizedPhimimgUrl(rawPoster, 320);
-
-                          return (
-                            <Image
-                              src={posterSrc}
-                              alt={movie.movieTitle}
-                              fill
-                              unoptimized
-                              priority={index < 3}
-                              sizes="(max-width: 640px) 160px, (max-width: 768px) 200px, 240px"
-                              className="object-cover group-hover:scale-105 transition-transform duration-500"
-                              loading={index < 3 ? "eager" : "lazy"}
-                              quality={85}
-                              onError={(e) => {
-                                const target = e.currentTarget as HTMLImageElement;
-                                if (target) {
-                                  if (movie.thumb && typeof movie.thumb === "string" && movie.thumb.includes("-thumb.webp") && target.src !== movie.thumb) {
-                                    target.src = movie.thumb;
-                                  } else if (!target.src.includes("/default-poster.jpg")) {
-                                    target.srcset = "";
-                                    target.src = "/default-poster.jpg";
-                                  }
-                                }
-                              }}
-                            />
-                          );
-                        })()}
+                        <CommunityTrendingPoster
+                          movieTitle={movie.movieTitle}
+                          movieSlug={movie.movieSlug}
+                          poster={movie.poster}
+                          thumb={movie.thumb}
+                          priority={index < 3}
+                        />
 
                         {/* CHỈ GIỮ BADGE ĐẶC BIỆT (CAM HOẶC 4K), LOẠI BỎ BADGE FHD/HD PHỔ THÔNG */}
                         {(() => {

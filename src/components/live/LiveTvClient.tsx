@@ -1470,19 +1470,19 @@ export function LiveTvClient({
 
         {/* Ô TÌM KIẾM KÊNH TRONG DRAWER */}
         <div className="relative mb-2.5 shrink-0">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Tìm kênh theo tên, đài, danh mục..."
-            className="w-full pl-9 pr-8 py-2 sm:py-1.5 rounded-xl bg-white/10 border border-white/15 text-xs text-white placeholder-gray-400 focus:outline-none focus:border-sky-400 transition"
+            className="w-full pl-9 pr-8 py-2 sm:py-1.5 rounded-xl bg-white/10 border border-white/15 text-xs text-white placeholder-zinc-400 focus:outline-none focus:border-sky-400 transition"
           />
           {searchQuery && (
             <button
               type="button"
               onClick={() => setSearchQuery("")}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white p-1 cursor-pointer"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-white p-1 cursor-pointer"
             >
               <X className="w-3.5 h-3.5" />
             </button>
@@ -1495,7 +1495,7 @@ export function LiveTvClient({
           className="flex-1 overflow-y-auto space-y-2 pr-0.5 scrollbar-thin overscroll-contain"
         >
           {filteredChannels.length === 0 ? (
-            <div className="py-12 text-center text-xs text-gray-400">
+            <div className="py-12 text-center text-xs text-zinc-400">
               Không tìm thấy kênh phù hợp với tìm kiếm.
             </div>
           ) : (
@@ -1509,8 +1509,8 @@ export function LiveTvClient({
                   onClick={() => handleSelectChannel(channel, false)}
                   className={`flex w-full items-center gap-3 rounded-2xl border p-2.5 sm:p-2 text-left transition min-h-[56px] active:scale-[0.98] cursor-pointer touch-manipulation ${
                     active
-                      ? "border-sky-400/90 bg-sky-500/20 text-white shadow-lg shadow-sky-950/50 ring-1 ring-sky-400/50"
-                      : "border-white/10 bg-white/[0.04] text-gray-200 hover:border-white/30 hover:bg-white/[0.1] active:bg-white/[0.15]"
+                      ? "border-sky-400/90 bg-sky-500/20 text-white shadow-md shadow-black/50 ring-1 ring-sky-400/50"
+                      : "border-white/10 bg-white/[0.04] text-zinc-200 hover:border-white/30 hover:bg-white/[0.1] active:bg-white/[0.15]"
                   }`}
                 >
                   <span className="flex h-11 w-14 sm:h-10 sm:w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-zinc-900/90 border border-white/15 p-1 shadow-inner">
@@ -1528,7 +1528,7 @@ export function LiveTvClient({
                       {active && <PlayingEqualizer />}
                     </span>
                     <span className="flex items-center gap-1.5 mt-0.5">
-                      <span className="truncate text-[11px] sm:text-[10px] text-gray-400">
+                      <span className="truncate text-[11px] sm:text-[10px] text-zinc-400">
                         {channel.category}
                       </span>
                       <span className="text-[9px] px-1.5 py-0.2 rounded bg-white/10 text-emerald-400 font-bold uppercase">
@@ -1594,7 +1594,7 @@ export function LiveTvClient({
                   <Radio className="w-2.5 h-2.5" />
                   <span>Trực tiếp</span>
                 </span>
-                <span className="px-1.5 py-0.5 rounded-md bg-white/10 border border-white/15 text-gray-300 text-[9px] font-bold whitespace-nowrap">
+                <span className="px-1.5 py-0.5 rounded-md bg-white/10 border border-white/15 text-zinc-300 text-[9px] font-bold whitespace-nowrap">
                   {selectedTvChannel.category}
                 </span>
                 <span className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 text-[9px] font-black uppercase whitespace-nowrap">
@@ -1612,8 +1612,8 @@ export function LiveTvClient({
                 title={showChannelRail ? "Đóng danh sách kênh (C)" : "Mở danh sách kênh (C)"}
                 className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[10.5px] sm:text-xs font-bold border transition cursor-pointer ${
                   showChannelRail
-                    ? "bg-sky-600 text-white border-sky-400 shadow-md shadow-sky-950/50"
-                    : "bg-white/10 hover:bg-white/20 text-gray-300 hover:text-white border-white/10"
+                    ? "bg-sky-600 text-white border-sky-400 shadow-md shadow-black/50"
+                    : "bg-white/10 hover:bg-white/20 text-zinc-300 hover:text-white border-white/10"
                 }`}
               >
                 <Tv className="w-3 h-3 text-sky-300" />
@@ -1623,7 +1623,7 @@ export function LiveTvClient({
                 type="button"
                 onClick={handleCopy}
                 title="Sao chép link stream HLS"
-                className="p-1 sm:p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-gray-300 hover:text-white transition border border-white/10 cursor-pointer"
+                className="p-1 sm:p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-zinc-300 hover:text-white transition border border-white/10 cursor-pointer"
               >
                 {copied ? (
                   <Check className="w-3.5 h-3.5 text-emerald-400" />
@@ -1811,7 +1811,7 @@ export function LiveTvClient({
             {isLoading && !hasError && (
               <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 backdrop-blur-sm z-20 pointer-events-none">
                 <div className="w-12 h-12 rounded-full border-4 border-netflix-red border-t-transparent animate-spin mb-3 shadow-lg" />
-                <p className="text-xs sm:text-sm font-bold text-gray-200">
+                <p className="text-xs sm:text-sm font-bold text-zinc-200">
                   Đang kết nối tín hiệu truyền hình {selectedTvChannel.name}...
                 </p>
               </div>
@@ -1829,7 +1829,7 @@ export function LiveTvClient({
                 <h4 className="text-base sm:text-lg font-bold text-white mb-1">
                   Kênh tạm thời gián đoạn tín hiệu
                 </h4>
-                <p className="text-xs sm:text-sm text-gray-400 max-w-md mb-5 leading-relaxed">
+                <p className="text-xs sm:text-sm text-zinc-400 max-w-md mb-5 leading-relaxed">
                   {errorMessage ||
                     "Luồng phát của đài truyền hình có thể đang bảo trì hoặc chuyển đổi đường truyền. Hãy thử bấm tải lại hoặc đổi kênh khác."}
                 </p>
@@ -1922,7 +1922,7 @@ export function LiveTvClient({
                     className="w-16 sm:w-24 h-1.5 bg-zinc-700 accent-netflix-red rounded-lg appearance-none cursor-pointer"
                   />
 
-                  <span className="text-[10px] sm:text-[11px] font-mono font-bold text-gray-200 min-w-[36px]">
+                  <span className="text-[10px] sm:text-[11px] font-mono font-bold text-zinc-200 min-w-[36px]">
                     {isMuted ? "Tắt tiếng" : `${Math.round(volume * 100)}%`}
                   </span>
                 </div>
@@ -1996,11 +1996,11 @@ export function LiveTvClient({
       {/* 2. DẢI "⭐ KÊNH PHỔ BIẾN / XEM NHIỀU NHẤT" (QUICK ACCESS ROW) */}
       <div className="space-y-2 pt-2">
         <div className="flex items-center justify-between">
-          <span className="text-xs font-extrabold text-gray-300 flex items-center gap-1.5 uppercase tracking-wider">
+          <span className="text-xs font-extrabold text-zinc-300 flex items-center gap-1.5 uppercase tracking-wider">
             <Sparkles className="w-3.5 h-3.5 text-amber-400" />
             <span>Kênh Phổ Biến (Xem nhiều)</span>
           </span>
-          <span className="text-[11px] text-gray-500">
+          <span className="text-[11px] text-zinc-500">
             1-chạm để chuyển kênh
           </span>
         </div>
@@ -2009,7 +2009,7 @@ export function LiveTvClient({
           <button
             type="button"
             onClick={() => scrollPopular("left")}
-            className="absolute -left-2 top-1/2 -translate-y-1/2 z-20 w-7 h-7 rounded-full bg-zinc-900/95 hover:bg-white text-gray-300 hover:text-black border border-white/20 shadow-lg flex items-center justify-center transition-all opacity-80 hover:opacity-100 backdrop-blur-md cursor-pointer"
+            className="absolute -left-2 top-1/2 -translate-y-1/2 z-20 w-7 h-7 rounded-full bg-zinc-900/95 hover:bg-white text-zinc-300 hover:text-black border border-white/20 shadow-lg flex items-center justify-center transition-all opacity-80 hover:opacity-100 backdrop-blur-md cursor-pointer"
             title="Cuộn trái"
           >
             <ChevronLeft className="w-3.5 h-3.5" />
@@ -2028,8 +2028,8 @@ export function LiveTvClient({
                   onClick={() => handleSelectChannel(ch)}
                   className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all flex-none cursor-pointer focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:outline-none ${
                     isSelected
-                      ? "bg-netflix-red text-white border-netflix-red shadow-lg shadow-red-950/60 scale-102 font-bold"
-                      : "bg-zinc-900/90 text-gray-300 border-white/10 hover:border-white/25 hover:text-white hover:bg-zinc-800"
+                      ? "bg-netflix-red text-white border-netflix-red shadow-md shadow-black/50 scale-102 font-bold"
+                      : "bg-zinc-900/90 text-zinc-300 border-white/10 hover:border-white/25 hover:text-white hover:bg-zinc-800"
                   }`}
                 >
                   <div className="w-7 h-5 sm:w-8 sm:h-6 rounded-md bg-zinc-950/90 border border-white/10 p-0.5 flex items-center justify-center overflow-hidden flex-shrink-0">
@@ -2056,7 +2056,7 @@ export function LiveTvClient({
           <button
             type="button"
             onClick={() => scrollPopular("right")}
-            className="absolute -right-2 top-1/2 -translate-y-1/2 z-20 w-7 h-7 rounded-full bg-zinc-900/95 hover:bg-white text-gray-300 hover:text-black border border-white/20 shadow-lg flex items-center justify-center transition-all opacity-80 hover:opacity-100 backdrop-blur-md cursor-pointer"
+            className="absolute -right-2 top-1/2 -translate-y-1/2 z-20 w-7 h-7 rounded-full bg-zinc-900/95 hover:bg-white text-zinc-300 hover:text-black border border-white/20 shadow-lg flex items-center justify-center transition-all opacity-80 hover:opacity-100 backdrop-blur-md cursor-pointer"
             title="Cuộn phải"
           >
             <ChevronRight className="w-3.5 h-3.5" />
@@ -2071,7 +2071,7 @@ export function LiveTvClient({
           <div className="flex items-center justify-between gap-2">
             <h2 className="text-sm sm:text-base font-bold text-white flex items-center gap-1.5 min-w-0 shrink">
               <span className="whitespace-nowrap">Đài truyền hình</span>
-              <span className="text-[11px] sm:text-xs px-2 py-0.5 rounded-full bg-white/10 text-gray-300 font-semibold whitespace-nowrap shrink-0">
+              <span className="text-[11px] sm:text-xs px-2 py-0.5 rounded-full bg-white/10 text-zinc-300 font-semibold whitespace-nowrap shrink-0">
                 {filteredChannels.length} kênh
               </span>
             </h2>
@@ -2083,7 +2083,7 @@ export function LiveTvClient({
                 className={`flex items-center gap-1 px-2.5 py-1 sm:py-1.5 rounded-xl text-[11px] sm:text-xs font-bold transition border cursor-pointer whitespace-nowrap ${
                   onlyFhd
                     ? "bg-emerald-600 text-white border-emerald-400"
-                    : "bg-zinc-900 text-gray-300 border-white/10 hover:text-white"
+                    : "bg-zinc-900 text-zinc-300 border-white/10 hover:text-white"
                 }`}
               >
                 <Zap className="w-3 h-3 fill-current" />
@@ -2097,7 +2097,7 @@ export function LiveTvClient({
                   className={`p-1.5 rounded-lg transition ${
                     viewMode === "grid"
                       ? "bg-white text-black shadow-sm"
-                      : "text-gray-400"
+                      : "text-zinc-400"
                   }`}
                 >
                   <LayoutGrid className="w-3.5 h-3.5" />
@@ -2108,7 +2108,7 @@ export function LiveTvClient({
                   className={`p-1.5 rounded-lg transition ${
                     viewMode === "list"
                       ? "bg-white text-black shadow-sm"
-                      : "text-gray-400"
+                      : "text-zinc-400"
                   }`}
                 >
                   <List className="w-3.5 h-3.5" />
@@ -2119,19 +2119,19 @@ export function LiveTvClient({
 
           {/* Ô tìm kiếm mobile */}
           <div className="relative w-full">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Tìm tên kênh (VTV3, HTV7, THVL...)"
-              className="w-full pl-9 pr-8 py-2 rounded-xl bg-zinc-900 border border-white/10 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-sky-400"
+              className="w-full pl-9 pr-8 py-2 rounded-xl bg-zinc-900 border border-white/10 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-sky-400"
             />
             {searchQuery && (
               <button
                 type="button"
                 onClick={() => setSearchQuery("")}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white p-0.5 cursor-pointer"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-white p-0.5 cursor-pointer"
               >
                 <X className="w-3.5 h-3.5" />
               </button>
@@ -2143,7 +2143,7 @@ export function LiveTvClient({
             <button
               type="button"
               onClick={() => scrollCategories("left")}
-              className="absolute -left-2 top-1/2 -translate-y-1/2 z-20 w-7 h-7 rounded-full bg-zinc-900/95 hover:bg-white text-gray-300 hover:text-black border border-white/20 shadow-lg flex items-center justify-center transition-all opacity-80 backdrop-blur-md cursor-pointer"
+              className="absolute -left-2 top-1/2 -translate-y-1/2 z-20 w-7 h-7 rounded-full bg-zinc-900/95 hover:bg-white text-zinc-300 hover:text-black border border-white/20 shadow-lg flex items-center justify-center transition-all opacity-80 backdrop-blur-md cursor-pointer"
             >
               <ChevronLeft className="w-3.5 h-3.5" />
             </button>
@@ -2158,7 +2158,7 @@ export function LiveTvClient({
                 className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1 border cursor-pointer ${
                   selectedCategory === "all"
                     ? "bg-white text-black border-white shadow-md font-extrabold"
-                    : "bg-zinc-900/90 text-gray-300 border-white/10 hover:text-white"
+                    : "bg-zinc-900/90 text-zinc-300 border-white/10 hover:text-white"
                 }`}
               >
                 <span>📺 Tất cả</span>
@@ -2178,8 +2178,8 @@ export function LiveTvClient({
                     onClick={() => setSelectedCategory(cat)}
                     className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1 border cursor-pointer ${
                       isSelected
-                        ? "bg-sky-600 text-white border-sky-500 shadow-md shadow-sky-950/50"
-                        : "bg-zinc-900/90 text-gray-300 border-white/10 hover:text-white"
+                        ? "bg-sky-600 text-white border-sky-500 shadow-md shadow-black/50"
+                        : "bg-zinc-900/90 text-zinc-300 border-white/10 hover:text-white"
                     }`}
                   >
                     <span>{emoji}</span>
@@ -2195,7 +2195,7 @@ export function LiveTvClient({
             <button
               type="button"
               onClick={() => scrollCategories("right")}
-              className="absolute -right-2 top-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-zinc-900/95 hover:bg-white text-gray-300 hover:text-black border border-white/20 shadow-lg flex items-center justify-center transition-all opacity-80 backdrop-blur-md cursor-pointer"
+              className="absolute -right-2 top-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-zinc-900/95 hover:bg-white text-zinc-300 hover:text-black border border-white/20 shadow-lg flex items-center justify-center transition-all opacity-80 backdrop-blur-md cursor-pointer"
             >
               <ChevronRight className="w-3.5 h-3.5" />
             </button>
@@ -2213,26 +2213,26 @@ export function LiveTvClient({
                   Danh mục đài TV
                 </h3>
               </div>
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/10 text-gray-300 font-bold">
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/10 text-zinc-300 font-bold">
                 {channels.length} kênh
               </span>
             </div>
 
             {/* Ô tìm kiếm trong sidebar */}
             <div className="relative w-full">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-400" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Tìm kênh theo tên..."
-                className="w-full pl-8 pr-7 py-1.5 rounded-xl bg-zinc-900/90 border border-white/10 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-sky-400 transition"
+                className="w-full pl-8 pr-7 py-1.5 rounded-xl bg-zinc-900/90 border border-white/10 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-sky-400 transition"
               />
               {searchQuery && (
                 <button
                   type="button"
                   onClick={() => setSearchQuery("")}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white p-0.5 cursor-pointer"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-white p-0.5 cursor-pointer"
                 >
                   <X className="w-3 h-3" />
                 </button>
@@ -2246,8 +2246,8 @@ export function LiveTvClient({
                 onClick={() => setSelectedCategory("all")}
                 className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold transition-all border text-left cursor-pointer ${
                   selectedCategory === "all"
-                    ? "bg-sky-600 text-white border-sky-500 shadow-lg shadow-sky-950/50"
-                    : "border-transparent text-gray-300 hover:bg-white/5 hover:text-white"
+                    ? "bg-sky-600 text-white border-sky-500 shadow-md shadow-black/50"
+                    : "border-transparent text-zinc-300 hover:bg-white/5 hover:text-white"
                 }`}
               >
                 <div className="flex items-center gap-2">
@@ -2258,7 +2258,7 @@ export function LiveTvClient({
                   className={`text-[10px] px-2 py-0.5 rounded-full font-black ${
                     selectedCategory === "all"
                       ? "bg-black/30 text-white"
-                      : "bg-white/10 text-gray-400"
+                      : "bg-white/10 text-zinc-400"
                   }`}
                 >
                   {channels.length}
@@ -2276,8 +2276,8 @@ export function LiveTvClient({
                     onClick={() => setSelectedCategory(cat)}
                     className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold transition-all border text-left cursor-pointer ${
                       isSelected
-                        ? "bg-sky-600 text-white border-sky-500 shadow-lg shadow-sky-950/50"
-                        : "border-transparent text-gray-300 hover:bg-white/5 hover:text-white"
+                        ? "bg-sky-600 text-white border-sky-500 shadow-md shadow-black/50"
+                        : "border-transparent text-zinc-300 hover:bg-white/5 hover:text-white"
                     }`}
                   >
                     <div className="flex items-center gap-2 truncate pr-2">
@@ -2288,7 +2288,7 @@ export function LiveTvClient({
                       className={`text-[10px] px-2 py-0.5 rounded-full font-black flex-shrink-0 ${
                         isSelected
                           ? "bg-black/30 text-white"
-                          : "bg-white/10 text-gray-400"
+                          : "bg-white/10 text-zinc-400"
                       }`}
                     >
                       {count}
@@ -2315,7 +2315,7 @@ export function LiveTvClient({
                   {filteredChannels.length} kênh
                 </span>
                 {totalPages > 1 && (
-                  <span className="text-xs text-gray-400 font-medium">
+                  <span className="text-xs text-zinc-400 font-medium">
                     (Trang {safePage}/{totalPages})
                   </span>
                 )}
@@ -2328,8 +2328,8 @@ export function LiveTvClient({
                   onClick={() => setOnlyFhd((prev) => !prev)}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition border shadow-sm cursor-pointer whitespace-nowrap focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:outline-none ${
                     onlyFhd
-                      ? "bg-emerald-600 text-white border-emerald-400 shadow-emerald-950/50"
-                      : "bg-zinc-900/90 text-gray-300 border-white/10 hover:border-white/20 hover:text-white"
+                      ? "bg-emerald-600 text-white border-emerald-400 shadow-md shadow-black/50"
+                      : "bg-zinc-900/90 text-zinc-300 border-white/10 hover:border-white/20 hover:text-white"
                   }`}
                 >
                   <Zap className="w-3 h-3 fill-current" />
@@ -2345,7 +2345,7 @@ export function LiveTvClient({
                     className={`p-1.5 rounded-lg transition cursor-pointer ${
                       viewMode === "grid"
                         ? "bg-white text-black shadow-sm"
-                        : "text-gray-400 hover:text-white"
+                        : "text-zinc-400 hover:text-white"
                     }`}
                   >
                     <LayoutGrid className="w-3.5 h-3.5" />
@@ -2357,7 +2357,7 @@ export function LiveTvClient({
                     className={`p-1.5 rounded-lg transition cursor-pointer ${
                       viewMode === "list"
                         ? "bg-white text-black shadow-sm"
-                        : "text-gray-400 hover:text-white"
+                        : "text-zinc-400 hover:text-white"
                     }`}
                   >
                     <List className="w-3.5 h-3.5" />
@@ -2392,7 +2392,7 @@ export function LiveTvClient({
                         >
                           {/* HUY HIỆU GÓC TRÊN */}
                           <div className="w-full flex items-center justify-between gap-1 mb-1 sm:mb-2">
-                            <span className="text-[9px] sm:text-[10px] font-bold text-gray-400 truncate max-w-[55px] sm:max-w-[80px]">
+                            <span className="text-[9px] sm:text-[10px] font-bold text-zinc-400 truncate max-w-[55px] sm:max-w-[80px]">
                               {ch.category.replace("Kênh ", "")}
                             </span>
                             <div className="flex items-center gap-1 flex-shrink-0">
@@ -2456,7 +2456,7 @@ export function LiveTvClient({
                                 </h4>
                                 {isSelected && isPlaying && <PlayingEqualizer />}
                               </div>
-                              <div className="flex items-center gap-1.5 text-[9.5px] sm:text-[10px] text-gray-400 truncate">
+                              <div className="flex items-center gap-1.5 text-[9.5px] sm:text-[10px] text-zinc-400 truncate">
                                 <span>{ch.category.replace("Kênh ", "")}</span>
                               </div>
                             </div>
@@ -2480,7 +2480,7 @@ export function LiveTvClient({
                 {/* THANH ĐIỀU HƯỚNG PHÂN TRANG THEO SỐ TRANG (NUMBERED PAGINATION) */}
                 {totalPages > 1 && (
                   <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 pb-2 border-t border-white/10 mt-6">
-                    <div className="text-xs text-gray-400 text-center sm:text-left">
+                    <div className="text-xs text-zinc-400 text-center sm:text-left">
                       Hiển thị <span className="text-white font-bold">{(safePage - 1) * INITIAL_PAGE_SIZE + 1}</span> -{" "}
                       <span className="text-white font-bold">
                         {Math.min(safePage * INITIAL_PAGE_SIZE, filteredChannels.length)}
@@ -2496,7 +2496,7 @@ export function LiveTvClient({
                         onClick={() => handlePageChange(safePage - 1)}
                         className={`flex items-center gap-1 px-2.5 sm:px-3 py-1.5 rounded-xl text-[11px] sm:text-xs font-bold border transition shrink-0 ${
                           safePage <= 1
-                            ? "opacity-35 cursor-not-allowed border-white/5 bg-white/[0.02] text-gray-500"
+                            ? "opacity-35 cursor-not-allowed border-white/5 bg-white/[0.02] text-zinc-500"
                             : "border-white/10 bg-zinc-900 hover:bg-zinc-800 text-white hover:border-white/25 cursor-pointer shadow-sm active:scale-95"
                         }`}
                       >
@@ -2509,7 +2509,7 @@ export function LiveTvClient({
                         {getPageNumbers(safePage, totalPages).map((p, idx) => {
                           if (p === "...") {
                             return (
-                              <span key={`dots-${idx}`} className="px-1 py-1 text-xs text-gray-500 font-bold">
+                              <span key={`dots-${idx}`} className="px-1 py-1 text-xs text-zinc-500 font-bold">
                                 ...
                               </span>
                             );
@@ -2522,8 +2522,8 @@ export function LiveTvClient({
                               onClick={() => handlePageChange(Number(p))}
                               className={`min-w-[30px] sm:min-w-[32px] h-7 sm:h-8 px-1.5 sm:px-2 rounded-xl text-[11px] sm:text-xs font-bold transition border cursor-pointer shrink-0 ${
                                 isCurrent
-                                  ? "bg-sky-600 text-white border-sky-400 shadow-md shadow-sky-950/50 font-black scale-105"
-                                  : "border-white/10 bg-zinc-900/90 text-gray-300 hover:text-white hover:bg-zinc-800 hover:border-white/20"
+                                  ? "bg-sky-600 text-white border-sky-400 shadow-md shadow-black/50 font-black scale-105"
+                                  : "border-white/10 bg-zinc-900/90 text-zinc-300 hover:text-white hover:bg-zinc-800 hover:border-white/20"
                               }`}
                             >
                               {p}
@@ -2539,7 +2539,7 @@ export function LiveTvClient({
                         onClick={() => handlePageChange(safePage + 1)}
                         className={`flex items-center gap-1 px-2.5 sm:px-3 py-1.5 rounded-xl text-[11px] sm:text-xs font-bold border transition shrink-0 ${
                           safePage >= totalPages
-                            ? "opacity-35 cursor-not-allowed border-white/5 bg-white/[0.02] text-gray-500"
+                            ? "opacity-35 cursor-not-allowed border-white/5 bg-white/[0.02] text-zinc-500"
                             : "border-white/10 bg-zinc-900 hover:bg-zinc-800 text-white hover:border-white/25 cursor-pointer shadow-sm active:scale-95"
                         }`}
                       >
@@ -2551,18 +2551,18 @@ export function LiveTvClient({
                 )}
               </div>
             ) : (
-              <div className="rounded-3xl border border-white/10 bg-zinc-900/50 p-12 text-center text-gray-400 space-y-3">
-                <div className="w-12 h-12 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mx-auto text-gray-400">
+              <div className="rounded-3xl border border-white/10 bg-zinc-900/50 p-12 text-center text-zinc-400 space-y-3">
+                <div className="w-12 h-12 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mx-auto text-zinc-400">
                   <Search className="w-6 h-6" />
                 </div>
-                <p className="text-sm font-semibold text-gray-300">
+                <p className="text-sm font-semibold text-zinc-300">
                   Không tìm thấy kênh truyền hình nào phù hợp với bộ lọc.
                 </p>
                 {hasActiveFilters && (
                   <button
                     type="button"
                     onClick={handleResetFilters}
-                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold transition shadow-lg shadow-sky-950/50 cursor-pointer"
+                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold transition shadow-md shadow-black/50 cursor-pointer"
                   >
                     <RotateCcw className="w-3.5 h-3.5" />
                     <span>Đặt lại bộ lọc</span>

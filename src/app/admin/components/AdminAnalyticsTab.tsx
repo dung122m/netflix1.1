@@ -190,7 +190,7 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
       {/* TIMEFRAME FILTER & REFRESH BAR */}
       <div className="p-4 rounded-2xl bg-zinc-900/60 border border-white/10 backdrop-blur-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-xs text-gray-400 font-semibold mr-1">Khoảng thời gian:</span>
+          <span className="text-xs text-zinc-400 font-semibold mr-1">Khoảng thời gian:</span>
           {(
             [
               { id: "today", label: "Hôm nay (Today)" },
@@ -205,8 +205,8 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
               onClick={() => setTimeframe(t.id)}
               className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
                 timeframe === t.id
-                  ? "bg-netflix-red text-white shadow-md shadow-red-950/50"
-                  : "bg-white/5 text-gray-400 hover:text-white hover:bg-white/10"
+                  ? "bg-netflix-red text-white shadow-md shadow-black/50"
+                  : "bg-white/5 text-zinc-400 hover:text-white hover:bg-white/10"
               }`}
             >
               {t.label}
@@ -229,7 +229,7 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Total Visits */}
         <div className="p-5 rounded-2xl bg-zinc-900/60 border border-white/10 hover:border-white/20 transition backdrop-blur-sm relative overflow-hidden group">
-          <div className="flex items-center justify-between text-gray-400 mb-2">
+          <div className="flex items-center justify-between text-zinc-400 mb-2">
             <span className="text-xs font-medium">Tổng Lượt Truy Cập</span>
             <div className="p-2 rounded-xl bg-blue-500/10 text-blue-400">
               <Eye size={18} />
@@ -238,7 +238,7 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
           <div className="text-3xl font-black text-white group-hover:scale-105 transition-transform origin-left">
             {loading ? "..." : (stats?.totalViews || 0).toLocaleString("vi-VN")}
           </div>
-          <p className="text-[11px] text-gray-400 mt-1 flex items-center gap-1.5">
+          <p className="text-[11px] text-zinc-400 mt-1 flex items-center gap-1.5">
             <span className="text-blue-400 font-medium">Chống trùng lặp 30s:</span>
             <span>Tính theo phiên và nhóm trang</span>
           </p>
@@ -246,7 +246,7 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
 
         {/* Unique Visitors */}
         <div className="p-5 rounded-2xl bg-zinc-900/60 border border-white/10 hover:border-white/20 transition backdrop-blur-sm relative overflow-hidden group">
-          <div className="flex items-center justify-between text-gray-400 mb-2">
+          <div className="flex items-center justify-between text-zinc-400 mb-2">
             <span className="text-xs font-medium">Khách Truy Cập Riêng Biệt</span>
             <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-400">
               <Users size={18} />
@@ -254,14 +254,14 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
           </div>
           <div className="text-3xl font-black text-emerald-400 flex items-baseline gap-2 group-hover:scale-105 transition-transform origin-left">
             <span>{loading ? "..." : (stats?.uniqueViewers.total || 0).toLocaleString("vi-VN")}</span>
-            <span className="text-xs font-normal text-gray-400">khách</span>
+            <span className="text-xs font-normal text-zinc-400">khách</span>
           </div>
-          <div className="flex items-center gap-2 mt-2 text-[11px] text-gray-400">
+          <div className="flex items-center gap-2 mt-2 text-[11px] text-zinc-400">
             <span className="px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-300 font-semibold">
               👤 {stats?.uniqueViewers.loggedIn || 0} User
             </span>
             <span>•</span>
-            <span className="px-1.5 py-0.5 rounded bg-zinc-800 text-gray-300 font-semibold">
+            <span className="px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-300 font-semibold">
               🎭 {stats?.uniqueViewers.guests || 0} Guest
             </span>
           </div>
@@ -269,7 +269,7 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
 
         {/* Active Guests Online */}
         <div className="p-5 rounded-2xl bg-zinc-900/60 border border-white/10 hover:border-white/20 transition backdrop-blur-sm relative overflow-hidden group">
-          <div className="flex items-center justify-between text-gray-400 mb-2">
+          <div className="flex items-center justify-between text-zinc-400 mb-2">
             <span className="text-xs font-medium">Khách Đang Trực Tuyến</span>
             <div className="p-2 rounded-xl bg-rose-500/10 text-rose-400">
               <Radio size={18} className="animate-pulse" />
@@ -282,14 +282,14 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
               Khách (30 phút qua)
             </span>
           </div>
-          <p className="text-[11px] text-gray-400 mt-1">
+          <p className="text-[11px] text-zinc-400 mt-1">
             Khách vãng lai tương tác trong 30 phút gần nhất
           </p>
         </div>
 
         {/* Today Visitors */}
         <div className="p-5 rounded-2xl bg-zinc-900/60 border border-white/10 hover:border-white/20 transition backdrop-blur-sm relative overflow-hidden group">
-          <div className="flex items-center justify-between text-gray-400 mb-2">
+          <div className="flex items-center justify-between text-zinc-400 mb-2">
             <span className="text-xs font-medium">Khách Truy Cập Hôm Nay</span>
             <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-400">
               <MapPin size={18} />
@@ -297,9 +297,9 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
           </div>
           <div className="text-3xl font-black text-emerald-400 flex items-baseline gap-2 group-hover:scale-105 transition-transform origin-left">
             <span>{loading ? "..." : (stats?.todayVisitorsCount ?? 0).toLocaleString("vi-VN")}</span>
-            <span className="text-xs font-normal text-gray-400">khách riêng biệt</span>
+            <span className="text-xs font-normal text-zinc-400">khách riêng biệt</span>
           </div>
-          <p className="text-[11px] text-gray-400 mt-1">
+          <p className="text-[11px] text-zinc-400 mt-1">
             User & Guest riêng biệt hôm nay (Asia/Ho_Chi_Minh)
           </p>
         </div>
@@ -322,18 +322,18 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
                   </span>
                 )}
               </h3>
-              <p className="text-[11px] text-gray-400">
+              <p className="text-[11px] text-zinc-400">
                 Tiến trình xem phim thời gian thực được đồng bộ giữa các thiết bị của thành viên (Continue Watching)
               </p>
             </div>
           </div>
-          <span className="text-xs text-gray-400">
+          <span className="text-xs text-zinc-400">
             {stats?.liveWatching?.length || 0} phiên ghi nhận
           </span>
         </div>
 
         {!stats?.liveWatching || stats.liveWatching.length === 0 ? (
-          <div className="p-8 text-center rounded-xl bg-black/40 border border-white/5 text-gray-400 text-xs">
+          <div className="p-8 text-center rounded-xl bg-black/40 border border-white/5 text-zinc-400 text-xs">
             Hiện chưa có phiên tiếp tục xem nào được ghi nhận từ thiết bị của thành viên.
           </div>
         ) : (
@@ -358,7 +358,7 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
                       <div className="text-xs font-bold text-white truncate flex items-center gap-1.5">
                         <span className="truncate">{session.userName}</span>
                         {session.isGuest ? (
-                          <span className="px-1.5 py-0.5 rounded bg-zinc-800 text-[10px] text-gray-300 font-semibold flex-shrink-0">
+                          <span className="px-1.5 py-0.5 rounded bg-zinc-800 text-[10px] text-zinc-300 font-semibold flex-shrink-0">
                             🎭 Guest
                           </span>
                         ) : (
@@ -367,7 +367,7 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
                           </span>
                         )}
                       </div>
-                      <div className="text-[10px] text-gray-500 truncate font-mono">
+                      <div className="text-[10px] text-zinc-500 truncate font-mono">
                         {session.isGuest
                           ? (session.deviceName || "Khách vãng lai")
                           : (session.userEmail || session.userId.slice(0, 10))}
@@ -381,7 +381,7 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
                       🟢 Đang xem
                     </span>
                   ) : (
-                    <span className="px-2 py-0.5 rounded-full bg-zinc-800 text-gray-400 border border-white/10 text-[10px] font-medium flex items-center gap-1 flex-shrink-0">
+                    <span className="px-2 py-0.5 rounded-full bg-zinc-800 text-zinc-400 border border-white/10 text-[10px] font-medium flex items-center gap-1 flex-shrink-0">
                       <Clock size={10} />
                       Tạm dừng
                     </span>
@@ -399,7 +399,7 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
                       {session.movieTitle}
                     </Link>
                     {session.episodeName && (
-                      <span className="text-[11px] text-gray-400 flex-shrink-0">
+                      <span className="text-[11px] text-zinc-400 flex-shrink-0">
                         {session.episodeName}
                       </span>
                     )}
@@ -417,7 +417,7 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
                     />
                   </div>
 
-                  <div className="flex items-center justify-between text-[10px] text-gray-400 font-mono">
+                  <div className="flex items-center justify-between text-[10px] text-zinc-400 font-mono">
                     <span>
                       {session.durationSeconds > 0 ? (
                         <>
@@ -432,7 +432,7 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
                 </div>
 
                 {/* Device & Timestamp Footer */}
-                <div className="pt-2 border-t border-white/5 flex items-center justify-between text-[10px] text-gray-500">
+                <div className="pt-2 border-t border-white/5 flex items-center justify-between text-[10px] text-zinc-500">
                   <span className="flex items-center gap-1">
                     {session.deviceName?.toLowerCase().includes("điện thoại") ||
                     session.deviceName?.toLowerCase().includes("mobile") ? (
@@ -468,11 +468,11 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
               <TrendingUp size={16} className="text-netflix-red" />
               <span>Top Trang Được Truy Cập</span>
             </h3>
-            <span className="text-xs text-gray-400">Xếp theo tổng lượt truy cập</span>
+            <span className="text-xs text-zinc-400">Xếp theo tổng lượt truy cập</span>
           </div>
 
           {!stats?.topMoviesByViews || stats.topMoviesByViews.length === 0 ? (
-            <div className="p-8 text-center rounded-xl bg-black/40 border border-white/5 text-gray-400 text-xs">
+            <div className="p-8 text-center rounded-xl bg-black/40 border border-white/5 text-zinc-400 text-xs">
               Chưa có lượt truy cập nào được ghi nhận trong khoảng thời gian này.
             </div>
           ) : (
@@ -491,7 +491,7 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
                           ? "bg-zinc-300 text-black font-bold"
                           : idx === 2
                           ? "bg-amber-700 text-white font-bold"
-                          : "bg-white/10 text-gray-300"
+                          : "bg-white/10 text-zinc-300"
                       }`}
                     >
                       {idx + 1}
@@ -508,7 +508,7 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
                     <span className="text-xs font-black text-white font-mono">
                       {m.views.toLocaleString()}
                     </span>
-                    <span className="text-[10px] text-gray-400">lượt truy cập</span>
+                    <span className="text-[10px] text-zinc-400">lượt truy cập</span>
                   </div>
                 </div>
               ))}
@@ -523,11 +523,11 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
               <Users size={16} className="text-emerald-400" />
               <span>Top Trang Theo Khách Riêng Biệt</span>
             </h3>
-            <span className="text-xs text-gray-400">Khách truy cập riêng biệt</span>
+            <span className="text-xs text-zinc-400">Khách truy cập riêng biệt</span>
           </div>
 
           {!stats?.topMoviesByUnique || stats.topMoviesByUnique.length === 0 ? (
-            <div className="p-8 text-center rounded-xl bg-black/40 border border-white/5 text-gray-400 text-xs">
+            <div className="p-8 text-center rounded-xl bg-black/40 border border-white/5 text-zinc-400 text-xs">
               Chưa có dữ liệu khách truy cập riêng biệt trong khoảng thời gian này.
             </div>
           ) : (
@@ -546,7 +546,7 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
                           ? "bg-teal-300 text-black font-bold"
                           : idx === 2
                           ? "bg-teal-700 text-white font-bold"
-                          : "bg-white/10 text-gray-300"
+                          : "bg-white/10 text-zinc-300"
                       }`}
                     >
                       {idx + 1}
@@ -563,7 +563,7 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
                     <span className="text-xs font-black text-emerald-400 font-mono">
                       {m.uniqueViewers.toLocaleString()}
                     </span>
-                    <span className="text-[10px] text-gray-400">khách</span>
+                    <span className="text-[10px] text-zinc-400">khách</span>
                   </div>
                 </div>
               ))}
@@ -580,7 +580,7 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
               <BarChart2 size={16} className="text-amber-400" />
               <span>Lưu Lượng Truy Cập Theo Giờ (24 Giờ)</span>
             </h3>
-            <p className="text-[11px] text-gray-400 mt-0.5">
+            <p className="text-[11px] text-zinc-400 mt-0.5">
               Phân bố số lượt truy cập trang theo từng khung giờ trong ngày (Giờ Việt Nam UTC+7)
             </p>
           </div>
@@ -606,7 +606,7 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
               );
             }
             return (
-              <span className="text-xs text-gray-500">Chưa đủ dữ liệu trong khoảng thời gian này</span>
+              <span className="text-xs text-zinc-500">Chưa đủ dữ liệu trong khoảng thời gian này</span>
             );
           })()}
         </div>
@@ -645,7 +645,7 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
                           h.count === 0
                             ? "bg-white/5"
                             : isPeak
-                            ? "bg-gradient-to-t from-netflix-red to-amber-400 shadow-md shadow-amber-950/40"
+                            ? "bg-gradient-to-t from-netflix-red to-amber-400 shadow-md shadow-black/50"
                             : "bg-gradient-to-t from-blue-600 to-cyan-400"
                         }`}
                         style={{ height: `${heightPercent}%` }}
@@ -656,7 +656,7 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
               </div>
 
               {/* Hour X-Axis Labels */}
-              <div className="flex justify-between text-[10px] text-gray-500 font-mono px-0.5">
+              <div className="flex justify-between text-[10px] text-zinc-500 font-mono px-0.5">
                 <span>00:00</span>
                 <span className="hidden sm:inline">04:00</span>
                 <span>08:00</span>
@@ -684,12 +684,12 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
                   Guest + User
                 </span>
               </h3>
-              <p className="text-[11px] text-gray-400">
+              <p className="text-[11px] text-zinc-400">
                 Phân tích nền tảng thiết bị, hệ điều hành, trình duyệt và phân bố địa lý ước lượng (GeoIP)
               </p>
             </div>
           </div>
-          <span className="text-xs text-gray-400 font-mono">
+          <span className="text-xs text-zinc-400 font-mono">
             {stats?.deviceProfileStats?.totalProfiles || stats?.devices ? (
               <>
                 <strong className="text-white">
@@ -707,7 +707,7 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {/* 1. Device Overview */}
           <div className="p-4 rounded-xl bg-black/40 border border-white/5 space-y-3">
-            <h4 className="text-xs font-bold text-gray-300 flex items-center gap-2">
+            <h4 className="text-xs font-bold text-zinc-300 flex items-center gap-2">
               <Monitor size={15} className="text-blue-400" />
               <span>Phân Loại Thiết Bị (Device Overview)</span>
             </h4>
@@ -716,7 +716,7 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
               {/* Desktop */}
               <div className="p-2.5 rounded-xl bg-zinc-900/80 border border-white/5 text-center">
                 <Monitor size={16} className="text-blue-400 mx-auto mb-1" />
-                <span className="text-[10px] text-gray-400 block">Desktop</span>
+                <span className="text-[10px] text-zinc-400 block">Desktop</span>
                 <span className="text-sm font-black text-white font-mono mt-0.5 block">
                   {stats?.deviceProfileStats?.overview.desktop ?? stats?.devices.desktop ?? 0}
                 </span>
@@ -728,7 +728,7 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
               {/* Mobile */}
               <div className="p-2.5 rounded-xl bg-zinc-900/80 border border-white/5 text-center">
                 <Smartphone size={16} className="text-emerald-400 mx-auto mb-1" />
-                <span className="text-[10px] text-gray-400 block">Mobile</span>
+                <span className="text-[10px] text-zinc-400 block">Mobile</span>
                 <span className="text-sm font-black text-white font-mono mt-0.5 block">
                   {stats?.deviceProfileStats?.overview.mobile ?? stats?.devices.mobile ?? 0}
                 </span>
@@ -740,7 +740,7 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
               {/* Tablet */}
               <div className="p-2.5 rounded-xl bg-zinc-900/80 border border-white/5 text-center">
                 <Tablet size={16} className="text-purple-400 mx-auto mb-1" />
-                <span className="text-[10px] text-gray-400 block">Tablet</span>
+                <span className="text-[10px] text-zinc-400 block">Tablet</span>
                 <span className="text-sm font-black text-white font-mono mt-0.5 block">
                   {stats?.deviceProfileStats?.overview.tablet ?? stats?.devices.tablet ?? 0}
                 </span>
@@ -772,7 +772,7 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
 
           {/* 2. Browser */}
           <div className="p-4 rounded-xl bg-black/40 border border-white/5 space-y-3">
-            <h4 className="text-xs font-bold text-gray-300 flex items-center gap-2">
+            <h4 className="text-xs font-bold text-zinc-300 flex items-center gap-2">
               <Globe size={15} className="text-cyan-400" />
               <span>Trình Duyệt (Browser)</span>
             </h4>
@@ -782,7 +782,7 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
                 {stats.deviceProfileStats.browsers.slice(0, 4).map((b) => (
                   <div key={b.name} className="space-y-1">
                     <div className="flex items-center justify-between text-xs">
-                      <span className="text-gray-300 flex items-center gap-1.5">
+                      <span className="text-zinc-300 flex items-center gap-1.5">
                         {b.name === "Safari" ? (
                           <Compass size={12} className="text-blue-400" />
                         ) : (
@@ -790,7 +790,7 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
                         )}
                         <span className="truncate max-w-[120px]">{b.name}</span>
                       </span>
-                      <span className="text-gray-400 font-mono text-[11px]">
+                      <span className="text-zinc-400 font-mono text-[11px]">
                         {b.count} ({b.percentage}%)
                       </span>
                     </div>
@@ -804,13 +804,13 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
                 ))}
               </div>
             ) : (
-              <p className="text-xs text-gray-500">Chưa có dữ liệu trình duyệt.</p>
+              <p className="text-xs text-zinc-500">Chưa có dữ liệu trình duyệt.</p>
             )}
           </div>
 
           {/* 3. Operating System */}
           <div className="p-4 rounded-xl bg-black/40 border border-white/5 space-y-3">
-            <h4 className="text-xs font-bold text-gray-300 flex items-center gap-2">
+            <h4 className="text-xs font-bold text-zinc-300 flex items-center gap-2">
               <Sparkles size={15} className="text-amber-400" />
               <span>Hệ Điều Hành (Operating System)</span>
             </h4>
@@ -820,8 +820,8 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
                 {stats.deviceProfileStats.operatingSystems.slice(0, 4).map((os) => (
                   <div key={os.name} className="space-y-1">
                     <div className="flex items-center justify-between text-xs">
-                      <span className="text-gray-300 truncate max-w-[130px]">{os.name}</span>
-                      <span className="text-gray-400 font-mono text-[11px]">
+                      <span className="text-zinc-300 truncate max-w-[130px]">{os.name}</span>
+                      <span className="text-zinc-400 font-mono text-[11px]">
                         {os.count} ({os.percentage}%)
                       </span>
                     </div>
@@ -835,7 +835,7 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
                 ))}
               </div>
             ) : (
-              <p className="text-xs text-gray-500">Chưa có dữ liệu hệ điều hành.</p>
+              <p className="text-xs text-zinc-500">Chưa có dữ liệu hệ điều hành.</p>
             )}
           </div>
         </div>
@@ -846,11 +846,11 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
             {/* 4. Top Countries */}
             <div className="p-4 rounded-xl bg-black/40 border border-white/5 space-y-3">
               <div className="flex items-center justify-between">
-                <h4 className="text-xs font-bold text-gray-300 flex items-center gap-2">
+                <h4 className="text-xs font-bold text-zinc-300 flex items-center gap-2">
                   <Globe size={15} className="text-teal-400" />
                   <span>Quốc Gia Ước Lượng (Approximate Country)</span>
                 </h4>
-                <span className="text-[10px] text-gray-500 font-medium">Edge GeoIP</span>
+                <span className="text-[10px] text-zinc-500 font-medium">Edge GeoIP</span>
               </div>
 
               {stats?.deviceProfileStats?.locations?.countries && stats.deviceProfileStats.locations.countries.length > 0 ? (
@@ -858,13 +858,13 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
                   {stats.deviceProfileStats.locations.countries.slice(0, 5).map((c) => (
                     <div key={c.name} className="space-y-1">
                       <div className="flex items-center justify-between text-xs">
-                        <span className="text-gray-300 flex items-center gap-1.5">
+                        <span className="text-zinc-300 flex items-center gap-1.5">
                           <span className="px-1.5 py-0.2 rounded bg-teal-500/20 text-teal-300 font-mono text-[10px] font-bold">
                             {c.code || "N/A"}
                           </span>
                           <span className="truncate max-w-[150px]">{c.name}</span>
                         </span>
-                        <span className="text-gray-400 font-mono text-[11px]">
+                        <span className="text-zinc-400 font-mono text-[11px]">
                           {c.count} ({c.percentage}%)
                         </span>
                       </div>
@@ -879,8 +879,8 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
                 </div>
               ) : (
                 <div className="p-4 text-center rounded-lg bg-zinc-900/40 border border-white/5">
-                  <p className="text-xs text-gray-400">Chưa có dữ liệu quốc gia.</p>
-                  <p className="text-[10px] text-gray-500 mt-1">Vị trí ước lượng sẽ tự động hiển thị khi có lượt truy cập từ môi trường mạng công cộng.</p>
+                  <p className="text-xs text-zinc-400">Chưa có dữ liệu quốc gia.</p>
+                  <p className="text-[10px] text-zinc-500 mt-1">Vị trí ước lượng sẽ tự động hiển thị khi có lượt truy cập từ môi trường mạng công cộng.</p>
                 </div>
               )}
             </div>
@@ -888,11 +888,11 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
             {/* 5. Top Cities */}
             <div className="p-4 rounded-xl bg-black/40 border border-white/5 space-y-3">
               <div className="flex items-center justify-between">
-                <h4 className="text-xs font-bold text-gray-300 flex items-center gap-2">
+                <h4 className="text-xs font-bold text-zinc-300 flex items-center gap-2">
                   <MapPin size={15} className="text-amber-400" />
                   <span>Tỉnh / Thành Phố Ước Lượng (Approximate City)</span>
                 </h4>
-                <span className="text-[10px] text-gray-500 font-medium">ISP Gateway Approx.</span>
+                <span className="text-[10px] text-zinc-500 font-medium">ISP Gateway Approx.</span>
               </div>
 
               {stats?.deviceProfileStats?.locations?.topCities && stats.deviceProfileStats.locations.topCities.length > 0 ? (
@@ -905,10 +905,10 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
                       <span className="font-medium text-white text-[11px] flex items-center gap-1.5">
                         <MapPin size={11} className="text-amber-400 flex-shrink-0" />
                         <span className="truncate max-w-[140px]">{ct.name}</span>
-                        <span className="text-[10px] text-gray-500">({ct.country})</span>
+                        <span className="text-[10px] text-zinc-500">({ct.country})</span>
                       </span>
                       <div className="flex items-center gap-2 font-mono text-[11px]">
-                        <span className="text-gray-400">{ct.count}</span>
+                        <span className="text-zinc-400">{ct.count}</span>
                         <span className="text-xs text-amber-300 font-bold w-9 text-right">
                           {ct.percentage}%
                         </span>
@@ -918,8 +918,8 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
                 </div>
               ) : (
                 <div className="p-4 text-center rounded-lg bg-zinc-900/40 border border-white/5">
-                  <p className="text-xs text-gray-400">Chưa có dữ liệu tỉnh / thành phố.</p>
-                  <p className="text-[10px] text-gray-500 mt-1">Vị trí ước lượng qua GeoIP sẽ tự động hiển thị khi có dữ liệu IP hợp lệ.</p>
+                  <p className="text-xs text-zinc-400">Chưa có dữ liệu tỉnh / thành phố.</p>
+                  <p className="text-[10px] text-zinc-500 mt-1">Vị trí ước lượng qua GeoIP sẽ tự động hiển thị khi có dữ liệu IP hợp lệ.</p>
                 </div>
               )}
             </div>
@@ -944,7 +944,7 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
                   </span>
                 )}
               </h3>
-              <p className="text-[11px] text-gray-400">
+              <p className="text-[11px] text-zinc-400">
                 Tổng hợp người dùng & khách vãng lai độc nhất theo từng ngày (Asia/Ho_Chi_Minh)
               </p>
             </div>
@@ -959,7 +959,7 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
                 className={`px-3 py-1.5 rounded-lg font-medium transition ${
                   selectedDate === getTodayVietnamStr()
                     ? "bg-violet-600 text-white shadow-sm"
-                    : "text-gray-400 hover:text-white"
+                    : "text-zinc-400 hover:text-white"
                 }`}
               >
                 Hôm nay
@@ -970,7 +970,7 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
                 className={`px-3 py-1.5 rounded-lg font-medium transition ${
                   selectedDate === getYesterdayVietnamStr()
                     ? "bg-violet-600 text-white shadow-sm"
-                    : "text-gray-400 hover:text-white"
+                    : "text-zinc-400 hover:text-white"
                 }`}
               >
                 Hôm qua
@@ -993,7 +993,7 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
                 type="button"
                 onClick={() => fetchDailyVisitors(selectedDate, true)}
                 disabled={isRefreshingDaily || loadingDaily}
-                className="p-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 transition disabled:opacity-50"
+                className="p-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-zinc-300 transition disabled:opacity-50"
                 title="Làm mới danh sách khách truy cập"
               >
                 <RefreshCw size={14} className={isRefreshingDaily ? "animate-spin text-violet-400" : ""} />
@@ -1006,7 +1006,7 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div className="p-3.5 rounded-xl bg-black/30 border border-white/5 flex items-center justify-between">
             <div>
-              <span className="text-[11px] text-gray-400 font-medium">Tổng Khách Trong Ngày</span>
+              <span className="text-[11px] text-zinc-400 font-medium">Tổng Khách Trong Ngày</span>
               <div className="text-xl font-black text-white mt-0.5">
                 {loadingDaily ? "..." : (dailyVisitors?.summary.total ?? 0).toLocaleString("vi-VN")}
               </div>
@@ -1018,7 +1018,7 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
 
           <div className="p-3.5 rounded-xl bg-black/30 border border-white/5 flex items-center justify-between">
             <div>
-              <span className="text-[11px] text-gray-400 font-medium">Thành Viên (User)</span>
+              <span className="text-[11px] text-zinc-400 font-medium">Thành Viên (User)</span>
               <div className="text-xl font-black text-emerald-400 mt-0.5">
                 {loadingDaily ? "..." : (dailyVisitors?.summary.users ?? 0).toLocaleString("vi-VN")}
               </div>
@@ -1030,12 +1030,12 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
 
           <div className="p-3.5 rounded-xl bg-black/30 border border-white/5 flex items-center justify-between">
             <div>
-              <span className="text-[11px] text-gray-400 font-medium">Khách Vãng Lai (Guest)</span>
-              <div className="text-xl font-black text-gray-300 mt-0.5">
+              <span className="text-[11px] text-zinc-400 font-medium">Khách Vãng Lai (Guest)</span>
+              <div className="text-xl font-black text-zinc-300 mt-0.5">
                 {loadingDaily ? "..." : (dailyVisitors?.summary.guests ?? 0).toLocaleString("vi-VN")}
               </div>
             </div>
-            <div className="p-2 rounded-lg bg-zinc-800 text-gray-400">
+            <div className="p-2 rounded-lg bg-zinc-800 text-zinc-400">
               <UserX size={16} />
             </div>
           </div>
@@ -1043,19 +1043,19 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
 
         {/* Visitors Table */}
         {loadingDaily ? (
-          <div className="p-8 text-center rounded-xl bg-black/40 border border-white/5 text-gray-400 text-xs">
+          <div className="p-8 text-center rounded-xl bg-black/40 border border-white/5 text-zinc-400 text-xs">
             <RefreshCw size={16} className="animate-spin mx-auto mb-2 text-violet-400" />
             Đang tải danh sách khách truy cập ngày {selectedDate}...
           </div>
         ) : !dailyVisitors || dailyVisitors.visitors.length === 0 ? (
-          <div className="p-8 text-center rounded-xl bg-black/40 border border-white/5 text-gray-400 text-xs">
+          <div className="p-8 text-center rounded-xl bg-black/40 border border-white/5 text-zinc-400 text-xs">
             Không có lượt truy cập nào được ghi nhận trong ngày {selectedDate}.
           </div>
         ) : (
           <div className="overflow-x-auto rounded-xl border border-white/5 bg-black/30">
             <table className="w-full text-left text-xs">
               <thead>
-                <tr className="border-b border-white/10 bg-white/[0.02] text-gray-400 text-[11px]">
+                <tr className="border-b border-white/10 bg-white/[0.02] text-zinc-400 text-[11px]">
                   <th className="py-3 px-4 font-semibold">Visitor</th>
                   <th className="py-3 px-3 font-semibold">Loại</th>
                   <th className="py-3 px-3 font-semibold">Vị trí (GeoIP)</th>
@@ -1079,7 +1079,7 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
                             className="border border-white/10"
                           />
                         ) : (
-                          <div className="w-8 h-8 rounded-xl bg-zinc-800 border border-white/10 flex items-center justify-center text-gray-400 flex-shrink-0 font-bold text-[11px]">
+                          <div className="w-8 h-8 rounded-xl bg-zinc-800 border border-white/10 flex items-center justify-center text-zinc-400 flex-shrink-0 font-bold text-[11px]">
                             🎭
                           </div>
                         )}
@@ -1087,7 +1087,7 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
                           <div className="font-bold text-white truncate text-xs flex items-center gap-1.5">
                             <span className="truncate">{v.displayName}</span>
                           </div>
-                          <div className="text-[10px] text-gray-400 truncate font-mono">
+                          <div className="text-[10px] text-zinc-400 truncate font-mono">
                             {v.type === "user"
                               ? (v.email || v.visitorKey.slice(0, 12) + "...")
                               : `${v.deviceType || "desktop"} • ${v.os || "Web"}`}
@@ -1104,8 +1104,8 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
                           User
                         </span>
                       ) : (
-                        <span className="px-2 py-0.5 rounded-full bg-zinc-800 border border-white/10 text-gray-300 font-semibold text-[10px] inline-flex items-center gap-1">
-                          <span className="w-1.5 h-1.5 rounded-full bg-gray-400" />
+                        <span className="px-2 py-0.5 rounded-full bg-zinc-800 border border-white/10 text-zinc-300 font-semibold text-[10px] inline-flex items-center gap-1">
+                          <span className="w-1.5 h-1.5 rounded-full bg-zinc-400" />
                           Guest
                         </span>
                       )}
@@ -1121,22 +1121,22 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
                           </span>
                         </span>
                       ) : (
-                        <span className="text-gray-500 italic">Không xác định</span>
+                        <span className="text-zinc-500 italic">Không xác định</span>
                       )}
                     </td>
 
                     {/* Last Seen (HH:mm:ss) */}
-                    <td className="py-3 px-3 whitespace-nowrap font-mono text-[11px] text-gray-300">
+                    <td className="py-3 px-3 whitespace-nowrap font-mono text-[11px] text-zinc-300">
                       {formatTimeOnly(v.lastSeen)}
                     </td>
 
                     {/* Last Action */}
                     <td className="py-3 px-4 min-w-[200px]">
                       <div className="flex items-center gap-2">
-                        <span className="text-gray-200 text-xs truncate max-w-[240px]" title={v.lastAction}>
+                        <span className="text-zinc-200 text-xs truncate max-w-[240px]" title={v.lastAction}>
                           {v.lastAction}
                         </span>
-                        <span className="px-1.5 py-0.2 rounded-full bg-white/10 text-gray-400 font-mono text-[10px] flex-shrink-0">
+                        <span className="px-1.5 py-0.2 rounded-full bg-white/10 text-zinc-400 font-mono text-[10px] flex-shrink-0">
                           {v.eventCount} lượt truy cập
                         </span>
                       </div>
@@ -1173,7 +1173,7 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
 
               return (
                 <div key={s} className="flex items-center gap-3 text-xs">
-                  <span className="w-12 text-gray-400 font-bold">{s} sao:</span>
+                  <span className="w-12 text-zinc-400 font-bold">{s} sao:</span>
                   <div className="flex-1 h-3 rounded-full bg-black/60 overflow-hidden border border-white/5">
                     <div
                       className={`h-full rounded-full transition-all duration-500 ${
@@ -1182,7 +1182,7 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
                       style={{ width: `${percent}%` }}
                     />
                   </div>
-                  <span className="w-14 text-right text-gray-300 font-mono">
+                  <span className="w-14 text-right text-zinc-300 font-mono">
                     {count} ({percent}%)
                   </span>
                 </div>
@@ -1200,26 +1200,26 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
 
           <div className="space-y-3 text-xs">
             <div className="flex items-center justify-between p-3 rounded-xl bg-black/40 border border-white/5">
-              <span className="text-gray-400">Tài khoản Quản trị viên:</span>
+              <span className="text-zinc-400">Tài khoản Quản trị viên:</span>
               <span className="font-mono font-bold text-white">{adminEmail || "Chưa rõ"}</span>
             </div>
             <div className="flex items-center justify-between p-3 rounded-xl bg-black/40 border border-white/5">
-              <span className="text-gray-400">Cơ sở dữ liệu Supabase:</span>
+              <span className="text-zinc-400">Cơ sở dữ liệu Supabase:</span>
               <span className="text-emerald-400 font-bold flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
                 Hoạt động bình thường
               </span>
             </div>
             <div className="flex items-center justify-between p-3 rounded-xl bg-black/40 border border-white/5">
-              <span className="text-gray-400">Bộ đệm Upstash Redis:</span>
+              <span className="text-zinc-400">Bộ đệm Upstash Redis:</span>
               <span className="text-emerald-400 font-bold flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
                 Đang kết nối (Dedup & Counters)
               </span>
             </div>
             <div className="flex items-center justify-between p-3 rounded-xl bg-black/40 border border-white/5">
-              <span className="text-gray-400">Tổng thành viên ghi nhận:</span>
-              <span className="text-gray-200 font-mono font-bold">{totalMembersCount} người</span>
+              <span className="text-zinc-400">Tổng thành viên ghi nhận:</span>
+              <span className="text-zinc-200 font-mono font-bold">{totalMembersCount} người</span>
             </div>
           </div>
         </div>

@@ -457,7 +457,7 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
               setShowDropdown(false);
             }}
             aria-label="Đóng tìm kiếm"
-            className="p-1.5 rounded-full text-gray-300 hover:text-white hover:bg-white/10 transition cursor-pointer flex-shrink-0"
+            className="p-1.5 rounded-full text-zinc-300 hover:text-white hover:bg-white/10 transition cursor-pointer flex-shrink-0"
           >
             <ArrowLeft size={20} />
           </button>
@@ -471,7 +471,7 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
               onClick={hasSearchText ? undefined : (e) => { e.preventDefault(); mobileInputRef.current?.focus(); }}
               aria-label="Tìm kiếm"
               title="Tìm kiếm ngay"
-              className="text-gray-300 hover:text-white mr-2 flex-shrink-0 cursor-pointer"
+              className="text-zinc-300 hover:text-white mr-2 flex-shrink-0 cursor-pointer"
             >
               <Search size={16} />
             </button>
@@ -488,7 +488,7 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
               onFocus={() => {
                 setShowDropdown(true);
               }}
-              className="w-full bg-transparent text-white text-xs sm:text-sm outline-none placeholder:text-gray-400 min-w-0"
+              className="w-full bg-transparent text-white text-xs sm:text-sm outline-none placeholder:text-zinc-400 min-w-0"
             />
 
             <div className="flex items-center gap-1 ml-1 flex-shrink-0">
@@ -500,7 +500,7 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
                   type="button"
                   onClick={clearSearch}
                   aria-label="Xóa nội dung tìm kiếm"
-                  className="p-1 text-gray-400 hover:text-white transition cursor-pointer rounded-full hover:bg-white/10"
+                  className="p-1 text-zinc-400 hover:text-white transition cursor-pointer rounded-full hover:bg-white/10"
                   title="Xóa nội dung"
                 >
                   <X size={16} />
@@ -514,7 +514,7 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
             <div className="fixed top-[52px] sm:top-[56px] inset-x-2 w-auto max-w-lg mx-auto bg-zinc-950/98 border border-white/20 backdrop-blur-md rounded-2xl p-3 shadow-2xl z-50 max-h-[calc(100dvh-64px)] sm:max-h-[calc(100dvh-72px)] overflow-y-auto overscroll-contain transform-gpu will-change-[transform,opacity]">
               {!hasSearchText && recentSearches.length > 0 ? (
                 <div>
-                  <div className="flex items-center justify-between text-[11px] font-semibold text-gray-400 px-2 py-1 mb-1 border-b border-white/10">
+                  <div className="flex items-center justify-between text-[11px] font-semibold text-zinc-400 px-2 py-1 mb-1 border-b border-white/10">
                     <span className="flex items-center gap-1.5 uppercase tracking-wider text-[11px]">
                       <History size={12} className="text-netflix-red" />
                       Tìm kiếm gần đây
@@ -522,7 +522,7 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
                     <button
                       type="button"
                       onClick={clearAllRecentSearches}
-                      className="text-[11px] text-gray-400 hover:text-white transition cursor-pointer"
+                      className="text-[11px] text-zinc-400 hover:text-white transition cursor-pointer"
                     >
                       Xóa tất cả
                     </button>
@@ -536,11 +536,11 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
                         className={`flex items-center justify-between px-2.5 py-1.5 rounded-lg transition cursor-pointer group ${
                           selectedSuggestionIndex === idx
                             ? "bg-zinc-800 text-white ring-1 ring-white/20"
-                            : "hover:bg-zinc-850 text-gray-300 hover:text-white"
+                            : "hover:bg-zinc-850 text-zinc-300 hover:text-white"
                         }`}
                       >
                         <div className="flex items-center gap-2.5 min-w-0">
-                          <History size={13} className="text-gray-500 group-hover:text-netflix-red transition flex-none" />
+                          <History size={13} className="text-zinc-500 group-hover:text-netflix-red transition flex-none" />
                           <span className="text-xs transition truncate">{kw}</span>
                         </div>
                         <Tooltip content="Xóa từ khóa này" side="left">
@@ -548,7 +548,7 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
                             type="button"
                             onClick={(e) => removeRecentSearch(kw, e)}
                             aria-label="Xóa từ khóa này"
-                            className="p-1 text-gray-500 hover:text-white rounded transition cursor-pointer hover:bg-white/10"
+                            className="p-1 text-zinc-500 hover:text-white rounded transition cursor-pointer hover:bg-white/10"
                           >
                             <X size={12} />
                           </button>
@@ -559,7 +559,7 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
                 </div>
               ) : suggestions.length > 0 ? (
                 <>
-                  <div className="text-[11px] font-semibold text-gray-400 px-2.5 py-1 uppercase tracking-wider">
+                  <div className="text-[11px] font-semibold text-zinc-400 px-2.5 py-1 uppercase tracking-wider">
                     Gợi ý phim
                   </div>
                   <div className="flex flex-col gap-1 mt-1">
@@ -610,7 +610,7 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
                           <h4 className="text-sm font-semibold text-white group-hover:text-netflix-red transition-colors truncate">
                             {item.title}
                           </h4>
-                          <div className="flex items-center gap-2 text-xs text-gray-400 mt-1">
+                          <div className="flex items-center gap-2 text-xs text-zinc-400 mt-1">
                             {item.year && <span>{item.year}</span>}
                             {item.category && (
                               <span className="text-amber-400 font-medium">
@@ -650,7 +650,7 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
         type="button"
         onClick={toggleSearch}
         aria-label="Tìm kiếm phim"
-        className="md:hidden flex items-center justify-center h-8 w-8 sm:h-9 sm:w-9 rounded-full bg-white/10 hover:bg-white/20 text-gray-200 hover:text-white border border-white/10 transition cursor-pointer flex-shrink-0 active:scale-95"
+        className="md:hidden flex items-center justify-center h-8 w-8 sm:h-9 sm:w-9 rounded-full bg-white/10 hover:bg-white/20 text-zinc-200 hover:text-white border border-white/10 transition cursor-pointer flex-shrink-0 active:scale-95"
       >
         <Search size={16} />
       </button>
@@ -674,7 +674,7 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
               type={isSearchOpen && hasSearchText ? "submit" : "button"}
               onClick={isSearchOpen && hasSearchText ? undefined : toggleSearch}
               aria-label={isSearchOpen && hasSearchText ? "Tìm kiếm phim" : "Mở thanh tìm kiếm"}
-              className="text-gray-300 hover:text-white transition flex-shrink-0 cursor-pointer p-1 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black"
+              className="text-zinc-300 hover:text-white transition flex-shrink-0 cursor-pointer p-1 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black"
             >
               <Search size={17} />
             </button>
@@ -691,7 +691,7 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
             }}
             className={`bg-transparent text-white text-sm outline-none transition-opacity duration-300 ${
               isSearchOpen
-                ? "flex-1 min-w-0 ml-2 pr-1 opacity-100 placeholder:text-gray-400"
+                ? "flex-1 min-w-0 ml-2 pr-1 opacity-100 placeholder:text-zinc-400"
                 : "w-0 opacity-0 pointer-events-none"
             }`}
           />
@@ -707,7 +707,7 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
                     type="button"
                     onClick={clearSearch}
                     aria-label="Xóa nội dung tìm kiếm"
-                    className="p-1 text-gray-400 hover:text-white transition flex-shrink-0 cursor-pointer rounded-full hover:bg-white/10"
+                    className="p-1 text-zinc-400 hover:text-white transition flex-shrink-0 cursor-pointer rounded-full hover:bg-white/10"
                   >
                     <X size={15} />
                   </button>
@@ -722,7 +722,7 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
           <div className="absolute top-full mt-2 right-0 w-[360px] bg-zinc-950/98 border border-white/15 backdrop-blur-md rounded-xl shadow-2xl p-2.5 z-50 animate-in fade-in zoom-in-95 duration-150 transform-gpu will-change-[transform,opacity]">
             {!hasSearchText && recentSearches.length > 0 ? (
               <div>
-                <div className="flex items-center justify-between text-[11px] font-semibold text-gray-400 px-2 py-1 mb-1 border-b border-white/10">
+                <div className="flex items-center justify-between text-[11px] font-semibold text-zinc-400 px-2 py-1 mb-1 border-b border-white/10">
                   <span className="flex items-center gap-1.5 uppercase tracking-wider text-[11px]">
                     <History size={12} className="text-netflix-red" />
                     Tìm kiếm gần đây
@@ -730,7 +730,7 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
                   <button
                     type="button"
                     onClick={clearAllRecentSearches}
-                    className="text-[11px] text-gray-400 hover:text-white transition cursor-pointer"
+                    className="text-[11px] text-zinc-400 hover:text-white transition cursor-pointer"
                   >
                     Xóa tất cả
                   </button>
@@ -744,11 +744,11 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
                       className={`flex items-center justify-between px-2.5 py-1.5 rounded-lg transition cursor-pointer group ${
                         selectedSuggestionIndex === idx
                           ? "bg-zinc-800 text-white ring-1 ring-white/20"
-                          : "hover:bg-zinc-850 text-gray-300 hover:text-white"
+                          : "hover:bg-zinc-850 text-zinc-300 hover:text-white"
                       }`}
                     >
                       <div className="flex items-center gap-2.5 min-w-0">
-                        <History size={13} className="text-gray-500 group-hover:text-netflix-red transition flex-none" />
+                        <History size={13} className="text-zinc-500 group-hover:text-netflix-red transition flex-none" />
                         <span className="text-xs transition truncate">{kw}</span>
                       </div>
                       <Tooltip content="Xóa từ khóa này" side="left">
@@ -756,7 +756,7 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
                           type="button"
                           onClick={(e) => removeRecentSearch(kw, e)}
                           aria-label="Xóa từ khóa này"
-                          className="p-1 text-gray-500 hover:text-white rounded transition cursor-pointer hover:bg-white/10"
+                          className="p-1 text-zinc-500 hover:text-white rounded transition cursor-pointer hover:bg-white/10"
                         >
                           <X size={12} />
                         </button>
@@ -767,7 +767,7 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
               </div>
             ) : suggestions.length > 0 ? (
               <>
-                <div className="text-[11px] font-semibold text-gray-400 px-2.5 py-1 uppercase tracking-wider">
+                <div className="text-[11px] font-semibold text-zinc-400 px-2.5 py-1 uppercase tracking-wider">
                   Gợi ý phim
                 </div>
                 <div className="flex flex-col gap-1 mt-1">
@@ -817,7 +817,7 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
                         <h4 className="text-sm font-semibold text-white group-hover:text-netflix-red transition-colors truncate">
                           {item.title}
                         </h4>
-                        <div className="flex items-center gap-2 text-xs text-gray-400 mt-1">
+                        <div className="flex items-center gap-2 text-xs text-zinc-400 mt-1">
                           {item.year && <span>{item.year}</span>}
                           {item.category && (
                             <span className="text-amber-400 font-medium">

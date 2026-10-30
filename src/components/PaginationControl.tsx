@@ -126,7 +126,7 @@ export const PaginationControl: React.FC<PaginationControlProps> = ({
         {pages.map((p, index) => {
           if (p === "...") {
             return (
-              <span key={index} className="px-1.5 sm:px-2 text-xs sm:text-sm text-gray-500">
+              <span key={index} className="px-1.5 sm:px-2 text-xs sm:text-sm text-zinc-500">
                 ...
               </span>
             );
@@ -143,7 +143,7 @@ export const PaginationControl: React.FC<PaginationControlProps> = ({
                 className={`w-9 h-9 sm:w-10 sm:h-10 text-xs sm:text-sm flex items-center justify-center rounded-lg font-semibold transition-all outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-110 cursor-pointer ${
                   isActive
                     ? "bg-netflix-red text-white shadow-sm font-bold"
-                    : "bg-zinc-800 text-gray-300 hover:bg-zinc-700 hover:text-white"
+                    : "bg-zinc-800 text-zinc-300 hover:bg-zinc-700 hover:text-white"
                 }`}
               >
                 {p}
@@ -159,7 +159,7 @@ export const PaginationControl: React.FC<PaginationControlProps> = ({
               className={`w-9 h-9 sm:w-10 sm:h-10 text-xs sm:text-sm flex items-center justify-center rounded-lg font-semibold transition-all outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-110 cursor-pointer ${
                 isActive
                   ? "bg-netflix-red text-white shadow-sm font-bold"
-                  : "bg-zinc-800 text-gray-300 hover:bg-zinc-700 hover:text-white"
+                  : "bg-zinc-800 text-zinc-300 hover:bg-zinc-700 hover:text-white"
               }`}
             >
               {p}
@@ -188,14 +188,14 @@ export const PaginationControl: React.FC<PaginationControlProps> = ({
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs font-bold text-white flex items-center gap-1.5">
                 <span>Đi tới trang</span>
-                <span className="text-[10px] text-gray-400 font-normal">
+                <span className="text-[10px] text-zinc-400 font-normal">
                   (1 - {totalPages})
                 </span>
               </span>
               <button
                 type="button"
                 onClick={() => setIsJumpOpen(false)}
-                className="p-1 text-gray-400 hover:text-white rounded-lg hover:bg-white/10 transition cursor-pointer"
+                className="p-1 text-zinc-400 hover:text-white rounded-lg hover:bg-white/10 transition cursor-pointer"
               >
                 <X className="w-3.5 h-3.5" />
               </button>

@@ -70,66 +70,70 @@ export function BottomNav() {
         {/* 1. TRANG CHỦ */}
         <Link
           href="/"
+          aria-current={isHome ? "page" : undefined}
           className={`flex flex-col items-center justify-center h-full transition-all duration-200 active:scale-95 cursor-pointer outline-none focus-visible:text-white rounded-lg ${
             isHome ? "text-netflix-red font-bold" : "text-zinc-400 hover:text-zinc-200 font-medium"
           }`}
         >
           <div className="relative">
-            <Home size={19} strokeWidth={isHome ? 2.5 : 2} />
+            <Home size={19} strokeWidth={isHome ? 2.5 : 2} aria-hidden="true" />
             {isHome && (
               <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-netflix-red rounded-full shadow-[0_0_8px_#E50914]" />
             )}
           </div>
-          <span className="text-[10px] mt-0.5 tracking-tight truncate max-w-[56px]">Trang chủ</span>
+          <span className="text-[11px] mt-0.5 tracking-tight truncate max-w-[56px] leading-tight">Trang chủ</span>
         </Link>
 
         {/* 2. KHÁM PHÁ BROWSE */}
         <Link
           href="/browse"
+          aria-current={isBrowse ? "page" : undefined}
           className={`flex flex-col items-center justify-center h-full transition-all duration-200 active:scale-95 cursor-pointer outline-none focus-visible:text-white rounded-lg ${
             isBrowse ? "text-netflix-red font-bold" : "text-zinc-400 hover:text-zinc-200 font-medium"
           }`}
         >
           <div className="relative">
-            <Compass size={19} strokeWidth={isBrowse ? 2.5 : 2} />
+            <Compass size={19} strokeWidth={isBrowse ? 2.5 : 2} aria-hidden="true" />
             {isBrowse && (
               <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-netflix-red rounded-full shadow-[0_0_8px_#E50914]" />
             )}
           </div>
-          <span className="text-[10px] mt-0.5 tracking-tight truncate max-w-[56px]">Khám phá</span>
+          <span className="text-[11px] mt-0.5 tracking-tight truncate max-w-[56px] leading-tight">Khám phá</span>
         </Link>
 
         {/* 3. TRỰC TIẾP LIVE */}
         <Link
           href="/live"
+          aria-current={isLive ? "page" : undefined}
           className={`flex flex-col items-center justify-center h-full transition-all duration-200 active:scale-95 cursor-pointer outline-none focus-visible:text-white rounded-lg ${
             isLive ? "text-rose-500 font-bold" : "text-zinc-400 hover:text-zinc-200 font-medium"
           }`}
         >
           <div className="relative">
-            <Tv size={19} strokeWidth={isLive ? 2.5 : 2} />
+            <Tv size={19} strokeWidth={isLive ? 2.5 : 2} aria-hidden="true" />
             <span className="absolute -top-1 -right-1.5 flex h-2 w-2">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75" />
               <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500" />
             </span>
           </div>
-          <span className="text-[10px] mt-0.5 tracking-tight truncate max-w-[56px]">Trực tiếp</span>
+          <span className="text-[11px] mt-0.5 tracking-tight truncate max-w-[56px] leading-tight">Trực tiếp</span>
         </Link>
 
         {/* 4. DANH SÁCH & LỊCH SỬ */}
         <Link
           href="/my-list"
+          aria-current={isMyList ? "page" : undefined}
           className={`flex flex-col items-center justify-center h-full transition-all duration-200 active:scale-95 cursor-pointer outline-none focus-visible:text-white rounded-lg ${
             isMyList ? "text-netflix-red font-bold" : "text-zinc-400 hover:text-zinc-200 font-medium"
           }`}
         >
           <div className="relative">
-            <Bookmark size={19} strokeWidth={isMyList ? 2.5 : 2} />
+            <Bookmark size={19} strokeWidth={isMyList ? 2.5 : 2} aria-hidden="true" />
             {isMyList && (
               <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-netflix-red rounded-full shadow-[0_0_8px_#E50914]" />
             )}
           </div>
-          <span className="text-[10px] mt-0.5 tracking-tight truncate max-w-[56px]">Danh sách</span>
+          <span className="text-[11px] mt-0.5 tracking-tight truncate max-w-[56px] leading-tight">Danh sách</span>
         </Link>
 
         {/* 5. HỒ SƠ / TÀI KHOẢN */}
@@ -137,7 +141,7 @@ export function BottomNav() {
           type="button"
           onClick={handleOpenProfile}
           className="flex flex-col items-center justify-center h-full text-zinc-400 hover:text-zinc-200 font-medium transition-all duration-200 active:scale-95 cursor-pointer outline-none focus-visible:text-white rounded-lg"
-          aria-label="Tài khoản"
+          aria-label="Tài khoản cá nhân"
         >
           {user ? (
             <UserAvatar

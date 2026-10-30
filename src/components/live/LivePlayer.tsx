@@ -2656,7 +2656,7 @@ function LivePlayerInner({
                 <p className="text-[11px] sm:text-xs font-black uppercase tracking-wider text-amber-400">
                   Nguồn phát trực tiếp
                 </p>
-                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-white/10 text-gray-300 font-bold">
+                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-white/10 text-zinc-300 font-bold">
                   {sortedAvailableServers.length}
                 </span>
               </div>
@@ -2684,7 +2684,7 @@ function LivePlayerInner({
             className="flex-1 overflow-y-auto space-y-1.5 pr-0.5 scrollbar-thin overscroll-contain"
           >
             {sortedAvailableServers.length === 0 ? (
-              <div className="py-12 px-4 text-center rounded-2xl bg-red-950/20 border border-red-900/30 text-gray-300 text-xs flex flex-col items-center justify-center gap-3">
+              <div className="py-12 px-4 text-center rounded-2xl bg-red-950/20 border border-red-900/30 text-zinc-300 text-xs flex flex-col items-center justify-center gap-3">
                 <AlertCircle className="w-6 h-6 text-red-400" />
                 <span>Tất cả nguồn phát đang gặp sự cố hoặc gián đoạn tín hiệu.</span>
                 <button
@@ -2731,10 +2731,11 @@ function LivePlayerInner({
                       closeRail();
                     }}
                     ref={isSelected ? activeOptionRef : undefined}
-                    className={`w-full rounded-xl border p-2.5 sm:p-3 text-left transition flex items-center gap-2.5 cursor-pointer min-h-[44px] active:scale-[0.99] touch-manipulation ${isSelected
-                        ? "border-red-500/80 bg-red-950/70 text-white shadow-md shadow-red-950/40 ring-1 ring-red-500/40"
-                        : "border-white/10 bg-white/[0.04] text-gray-200 hover:border-white/20 hover:bg-white/[0.08]"
-                      }`}
+                    className={`w-full rounded-xl border p-2.5 sm:p-3 text-left transition flex items-center gap-2.5 cursor-pointer min-h-[44px] active:scale-[0.99] touch-manipulation ${
+                      isSelected
+                        ? "border-red-500/80 bg-red-950/70 text-white shadow-md shadow-black/50 ring-1 ring-red-500/40"
+                        : "border-white/10 bg-white/[0.04] text-zinc-200 hover:border-white/20 hover:bg-white/[0.08]"
+                    }`}
                   >
                     {/* Biểu tượng Check nếu đang chọn */}
                     <div className="w-5 h-5 flex items-center justify-center shrink-0">
@@ -2758,7 +2759,7 @@ function LivePlayerInner({
                           <span>HD</span>
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold tracking-wider bg-white/10 text-gray-300 border border-white/15">
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold tracking-wider bg-white/10 text-zinc-300 border border-white/15">
                           <span>⚪</span>
                           <span>SD</span>
                         </span>
@@ -2766,10 +2767,10 @@ function LivePlayerInner({
                     </div>
 
                     {/* Dấu phân cách */}
-                    <span className="text-gray-500 text-xs shrink-0">·</span>
+                    <span className="text-zinc-500 text-xs shrink-0">·</span>
 
                     {/* Tên BLV / Tên nguồn đã làm sạch */}
-                    <span className="truncate text-xs sm:text-sm font-semibold text-gray-100 flex-1 min-w-0">
+                    <span className="truncate text-xs sm:text-sm font-semibold text-zinc-100 flex-1 min-w-0">
                       {displayLabel}
                     </span>
 
@@ -2816,7 +2817,7 @@ function LivePlayerInner({
               Kênh / Sự kiện
             </span>
             {time && time !== "Trực tiếp" && (
-              <span className="text-[10px] sm:text-xs font-bold text-gray-300 bg-white/10 px-2 py-0.5 rounded-full border border-white/10">
+              <span className="text-[10px] sm:text-xs font-bold text-zinc-300 bg-white/10 px-2 py-0.5 rounded-full border border-white/10">
                 ⏰ {time}
               </span>
             )}
@@ -2861,9 +2862,9 @@ function LivePlayerInner({
         return (
           <div className="relative z-10 flex flex-col gap-1 sm:gap-1.5 w-full min-w-0">
             {/* HÀNG TRÊN (MOBILE): GIẢI ĐẤU & BLV RÚT GỌN */}
-            <div className="flex sm:hidden items-center justify-between gap-2 border-b border-white/[0.08] pb-1">
+            <div className="flex sm:hidden items-center justify-between gap-2 border-b border-white/[0.08] pb-1 min-w-0">
               <span
-                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-white/5 border border-white/10 text-zinc-300 text-[10px] font-semibold truncate max-w-[170px]"
+                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-white/5 border border-white/10 text-zinc-300 text-[10px] font-semibold truncate max-w-[170px] min-w-0"
                 title={`${displayTournament}${venueName ? ` • Sân: ${venueName}` : ""}${refereeName ? ` • Trọng tài: ${refereeName}` : ""}`}
               >
                 <span className="shrink-0 text-[11px]">🏆</span>
@@ -2872,7 +2873,7 @@ function LivePlayerInner({
 
               {(blv || match?.blv) && (
                 <span
-                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-rose-500/10 border border-rose-500/20 text-rose-300 text-[9.5px] font-medium truncate max-w-[140px]"
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-rose-500/10 border border-rose-500/20 text-rose-300 text-[9.5px] font-medium truncate max-w-[140px] min-w-0"
                   title={`BLV: ${blv || match?.blv}`}
                 >
                   <span className="shrink-0 text-[10px]">🎙️</span>
@@ -2893,7 +2894,7 @@ function LivePlayerInner({
                   <span className="truncate">{displayTournament}</span>
                 </span>
                 {time && time !== "Trực tiếp" && (
-                  <span className="text-[10px] lg:text-[11px] font-bold text-gray-400 bg-white/5 px-2 py-1 rounded-lg border border-white/10 shrink-0 whitespace-nowrap">
+                  <span className="text-[10px] lg:text-[11px] font-bold text-zinc-400 bg-white/5 px-2 py-1 rounded-lg border border-white/10 shrink-0 whitespace-nowrap">
                     ⏰ {time}
                   </span>
                 )}
@@ -2948,7 +2949,7 @@ function LivePlayerInner({
                   {hasScore ? (
                     <div className="flex items-center gap-1 sm:gap-1.5 font-mono text-xl sm:text-2xl font-black text-white tracking-wider px-2 py-0.5 rounded-lg bg-black/40 border border-white/10 shadow-inner">
                       <span>{homeScoreVal}</span>
-                      <span className="text-gray-500 text-base font-light select-none">:</span>
+                      <span className="text-zinc-500 text-base font-light select-none">:</span>
                       <span>{awayScoreVal}</span>
                     </div>
                   ) : (
@@ -2965,7 +2966,7 @@ function LivePlayerInner({
                         isMatchLive
                           ? "bg-red-950/50 text-red-400 border-red-500/30 shadow-sm"
                           : isFinished
-                            ? "bg-zinc-800 text-gray-300 border-white/10"
+                            ? "bg-zinc-800 text-zinc-300 border-white/10"
                             : "bg-sky-500/20 text-sky-400 border-sky-500/30"
                       }`}
                     >
@@ -3245,7 +3246,7 @@ function LivePlayerInner({
           <div className="absolute top-4 right-4 z-20 pointer-events-none animate-in fade-in duration-200">
             <div className="flex items-center gap-2.5 px-3.5 py-2 rounded-xl bg-black/75 backdrop-blur-md border border-white/15 shadow-xl">
               <div className="w-4 h-4 rounded-full border-2 border-netflix-red border-t-transparent animate-spin flex-shrink-0 shadow-sm" />
-              <p className="text-xs sm:text-sm font-semibold text-gray-200 flex items-center gap-1.5 whitespace-nowrap">
+              <p className="text-xs sm:text-sm font-semibold text-zinc-200 flex items-center gap-1.5 whitespace-nowrap">
                 <Sparkles className="w-3.5 h-3.5 text-amber-400 animate-spin flex-shrink-0" />
                 <span>Đang kết nối luồng phát sóng trực tiếp...</span>
               </p>
@@ -3267,7 +3268,7 @@ function LivePlayerInner({
                 ? "Chưa có tín hiệu phát"
                 : "Chưa nhận được tín hiệu hình ảnh"}
             </h4>
-            <p className="text-xs sm:text-sm text-gray-400 max-w-md mb-5 leading-relaxed">
+            <p className="text-xs sm:text-sm text-zinc-400 max-w-md mb-5 leading-relaxed">
               {errorMessage && errorMessage !== "Chưa có tín hiệu phát"
                 ? errorMessage
                 : isPreKickoff
@@ -3288,7 +3289,7 @@ function LivePlayerInner({
                 <button
                   type="button"
                   onClick={() => handleSwitchServer("next")}
-                  className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-netflix-red hover:bg-red-700 text-xs font-bold text-white transition shadow-lg shadow-red-950/50 cursor-pointer"
+                  className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-netflix-red hover:bg-red-700 text-xs font-bold text-white transition shadow-md shadow-black/50 cursor-pointer"
                 >
                   <Sparkles className="w-3.5 h-3.5" />
                   <span>
@@ -3440,9 +3441,9 @@ function LivePlayerInner({
       <div className="keep-dark-cinema rounded-2xl sm:rounded-3xl border border-white/10 bg-zinc-900/95 p-3 sm:p-4 shadow-xl space-y-2.5 w-full min-w-0">
         <div className="flex items-center justify-between gap-3 border-b border-white/10 pb-2.5">
           <div className="flex items-center gap-2 min-w-0 flex-1">
-            <span className="flex items-center gap-1.5 text-gray-200 font-bold text-xs sm:text-sm">
+            <span className="flex items-center gap-1.5 text-zinc-200 font-bold text-xs sm:text-sm">
               <span>📡 Nguồn phát</span>
-              <span className="text-[10px] sm:text-xs px-2 py-0.5 rounded-full bg-white/10 text-gray-300 font-bold">
+              <span className="text-[10px] sm:text-xs px-2 py-0.5 rounded-full bg-white/10 text-zinc-300 font-bold">
                 {availableServers.length}
               </span>
             </span>
@@ -3453,7 +3454,7 @@ function LivePlayerInner({
               <button
                 type="button"
                 onClick={() => setIsGridView((prev) => !prev)}
-                className="flex items-center gap-1 text-[11px] font-bold text-gray-300 hover:text-white bg-white/5 hover:bg-white/10 px-2.5 py-1.5 rounded-xl border border-white/10 transition cursor-pointer"
+                className="flex items-center gap-1 text-[11px] font-bold text-zinc-300 hover:text-white bg-white/5 hover:bg-white/10 px-2.5 py-1.5 rounded-xl border border-white/10 transition cursor-pointer"
                 title={isGridView ? "Thu gọn dạng hàng" : "Mở rộng dạng lưới"}
               >
                 {isGridView ? (
@@ -3474,7 +3475,7 @@ function LivePlayerInner({
               type="button"
               onClick={handleCopyStream}
               title="Sao chép link stream trực tiếp"
-              className="px-2.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-gray-300 hover:text-white transition border border-white/10 cursor-pointer flex items-center gap-1.5 text-xs font-semibold"
+              className="px-2.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-zinc-300 hover:text-white transition border border-white/10 cursor-pointer flex items-center gap-1.5 text-xs font-semibold"
             >
               {copied ? (
                 <>
@@ -3493,7 +3494,7 @@ function LivePlayerInner({
 
         {/* NỘI DUNG NGUỒN PHÁT: MẶC ĐỊNH HÀNG CHIP CUỘN NGANG / KHI MỞ RỘNG LÀ LƯỚI */}
         {availableServers.length === 0 ? (
-          <div className="py-4 px-3 text-center rounded-xl bg-red-950/20 border border-red-900/30 text-gray-400 text-xs flex flex-col items-center justify-center gap-2">
+          <div className="py-4 px-3 text-center rounded-xl bg-red-950/20 border border-red-900/30 text-zinc-400 text-xs flex flex-col items-center justify-center gap-2">
             <AlertCircle className="w-5 h-5 text-red-500" />
             <span>Không có nguồn phát khả dụng</span>
           </div>
@@ -3529,8 +3530,8 @@ function LivePlayerInner({
                   }}
                   className={`px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl text-xs font-semibold transition-all flex items-center justify-between gap-2 cursor-pointer border text-left min-w-0 ${
                     isSelected
-                      ? "bg-red-950/80 text-white border-red-500/80 shadow-md shadow-red-950/60 ring-2 ring-red-500/60"
-                      : "bg-black/60 text-gray-300 border-white/10 hover:border-white/25 hover:text-white hover:bg-zinc-800/90"
+                      ? "bg-red-950/80 text-white border-red-500/80 shadow-md shadow-black/50 ring-2 ring-red-500/60"
+                      : "bg-black/60 text-zinc-300 border-white/10 hover:border-white/25 hover:text-white hover:bg-zinc-800/90"
                   }`}
                 >
                   <div className="flex items-center gap-2 min-w-0 flex-1 truncate">
@@ -3599,8 +3600,8 @@ function LivePlayerInner({
                   }}
                   className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap shrink-0 transition-all flex items-center gap-2 cursor-pointer border ${
                     isSelected
-                      ? "bg-red-950/80 text-white border-red-500/80 shadow-md shadow-red-950/60 ring-1 ring-red-500/60"
-                      : "bg-black/60 text-gray-300 border-white/10 hover:border-white/25 hover:text-white hover:bg-zinc-800/90"
+                      ? "bg-red-950/80 text-white border-red-500/80 shadow-md shadow-black/50 ring-1 ring-red-500/60"
+                      : "bg-black/60 text-zinc-300 border-white/10 hover:border-white/25 hover:text-white hover:bg-zinc-800/90"
                   }`}
                 >
                   <span

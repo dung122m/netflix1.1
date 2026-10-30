@@ -172,7 +172,7 @@ export const AddToCollectionModal: React.FC<AddToCollectionModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="absolute top-4 right-4 p-1.5 rounded-full text-gray-400 hover:text-white hover:bg-white/10 transition cursor-pointer z-10"
+            className="absolute top-4 right-4 p-1.5 rounded-full text-zinc-400 hover:text-white hover:bg-white/10 transition cursor-pointer z-10"
           >
             <X className="w-4 h-4" />
           </button>
@@ -194,26 +194,26 @@ export const AddToCollectionModal: React.FC<AddToCollectionModalProps> = ({
               <h3 className="text-sm font-bold text-white truncate mt-0.5">
                 {movie.title}
               </h3>
-              <p className="text-xs text-gray-400">Chọn danh sách để lưu phim</p>
+              <p className="text-xs text-zinc-400">Chọn danh sách để lưu phim</p>
             </div>
           </div>
 
           {/* Danh sách các bộ sưu tập của user */}
           <div className="flex-1 overflow-y-auto space-y-2 py-1 pr-1 scrollbar-none min-h-[160px]">
             {loading ? (
-              <div className="py-12 flex flex-col items-center justify-center gap-2 text-gray-400 text-xs">
+              <div className="py-12 flex flex-col items-center justify-center gap-2 text-zinc-400 text-xs">
                 <Loader2 className="w-6 h-6 animate-spin text-netflix-red" />
                 <span>Đang tải danh sách bộ sưu tập...</span>
               </div>
             ) : collections.length === 0 ? (
               <div className="py-8 text-center px-4">
-                <div className="w-12 h-12 rounded-2xl bg-zinc-900 border border-white/10 flex items-center justify-center text-gray-400 mx-auto mb-3">
+                <div className="w-12 h-12 rounded-2xl bg-zinc-900 border border-white/10 flex items-center justify-center text-zinc-400 mx-auto mb-3">
                   <Film className="w-6 h-6" />
                 </div>
                 <p className="text-sm font-semibold text-white">
                   Chưa có bộ sưu tập nào
                 </p>
-                <p className="text-xs text-gray-400 mt-1 mb-4">
+                <p className="text-xs text-zinc-400 mt-1 mb-4">
                   Tạo bộ sưu tập đầu tiên để gom nhóm các bộ phim bạn yêu thích
                 </p>
                 <button
@@ -245,7 +245,7 @@ export const AddToCollectionModal: React.FC<AddToCollectionModalProps> = ({
                         className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 transition ${
                           isSelected
                             ? "bg-netflix-red text-white"
-                            : "bg-zinc-800 text-gray-400 group-hover:text-white"
+                            : "bg-zinc-800 text-zinc-400 group-hover:text-white"
                         }`}
                       >
                         {col.isPublic ? (
@@ -258,7 +258,7 @@ export const AddToCollectionModal: React.FC<AddToCollectionModalProps> = ({
                         <p className="text-xs sm:text-sm font-bold text-white truncate group-hover:text-netflix-red transition-colors">
                           {col.name}
                         </p>
-                        <p className="text-[11px] text-gray-400 flex items-center gap-1.5 mt-0.5">
+                        <p className="text-[11px] text-zinc-400 flex items-center gap-1.5 mt-0.5">
                           <span>{col.movies?.length || 0} phim</span>
                           <span>•</span>
                           <span>{col.isPublic ? "Công khai" : "Riêng tư"}</span>
@@ -275,7 +275,7 @@ export const AddToCollectionModal: React.FC<AddToCollectionModalProps> = ({
                           <span>Đã thêm</span>
                         </div>
                       ) : (
-                        <div className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-gray-200 text-xs font-medium transition">
+                        <div className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-zinc-200 text-xs font-medium transition">
                           <Plus className="w-3.5 h-3.5" />
                           <span>Thêm</span>
                         </div>

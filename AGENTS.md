@@ -67,4 +67,7 @@ scripts/            # Asset download scripts
 - After editing `.claude/skills/clone-website/SKILL.md`, run `node scripts/sync-skills.mjs` to regenerate the skill for all platforms.
 
 @docs/research/INSPECTION_GUIDE.md
+@PRODUCT.md
+@DESIGN.md
 @.agents/rules/pixel-perfect-taste.md
+@.agents/skills/impeccable/reference/craft-floor.md

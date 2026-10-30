@@ -124,19 +124,19 @@ export const CreateCollectionModal: React.FC<CreateCollectionModalProps> = ({
         <button
           type="button"
           onClick={onClose}
-          className="absolute top-4 right-4 p-1.5 rounded-full text-gray-400 hover:text-white hover:bg-white/10 transition cursor-pointer z-10"
+          className="absolute top-4 right-4 p-1.5 rounded-full text-zinc-400 hover:text-white hover:bg-white/10 transition cursor-pointer z-10"
         >
           <X className="w-4 h-4" />
         </button>
 
         {/* Tiêu đề */}
         <div className="flex items-center gap-3 mb-5">
-          <div className="w-10 h-10 rounded-2xl bg-netflix-red/20 text-netflix-red flex items-center justify-center border border-netflix-red/30 shadow-md flex-shrink-0">
+          <div className="w-10 h-10 rounded-2xl bg-netflix-red/20 text-netflix-red flex items-center justify-center border border-netflix-red/30 shadow-md shadow-black/40 flex-shrink-0">
             <FolderPlus className="w-5 h-5" />
           </div>
           <div>
             <h3 className="text-lg font-bold text-white">Tạo Bộ Sưu Tập Mới</h3>
-            <p className="text-xs text-gray-400 mt-0.5">
+            <p className="text-xs text-zinc-400 mt-0.5">
               Tổ chức phim theo chủ đề yêu thích và chia sẻ bạn bè
             </p>
           </div>
@@ -144,7 +144,7 @@ export const CreateCollectionModal: React.FC<CreateCollectionModalProps> = ({
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-xs font-semibold text-gray-300 mb-1.5">
+            <label className="block text-xs font-semibold text-zinc-300 mb-1.5">
               Tên bộ sưu tập <span className="text-netflix-red">*</span>
             </label>
             <input
@@ -154,12 +154,12 @@ export const CreateCollectionModal: React.FC<CreateCollectionModalProps> = ({
               placeholder="VD: Phim Chiếu Rạp Đỉnh Cao, Anime Mùa Hè..."
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full bg-zinc-900/90 border border-white/15 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder:text-gray-500 focus:outline-none focus:border-netflix-red focus:ring-1 focus:ring-netflix-red transition"
+              className="w-full bg-zinc-900/90 border border-white/15 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder:text-zinc-500 focus:outline-none focus:border-netflix-red focus:ring-1 focus:ring-netflix-red transition"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-gray-300 mb-1.5">
+            <label className="block text-xs font-semibold text-zinc-300 mb-1.5">
               Mô tả ngắn gọn (tùy chọn)
             </label>
             <textarea
@@ -168,7 +168,7 @@ export const CreateCollectionModal: React.FC<CreateCollectionModalProps> = ({
               placeholder="Ghi chú về tuyển tập này..."
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className="w-full bg-zinc-900/90 border border-white/15 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder:text-gray-500 focus:outline-none focus:border-netflix-red focus:ring-1 focus:ring-netflix-red transition resize-none"
+              className="w-full bg-zinc-900/90 border border-white/15 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder:text-zinc-500 focus:outline-none focus:border-netflix-red focus:ring-1 focus:ring-netflix-red transition resize-none"
             />
           </div>
 
@@ -185,7 +185,7 @@ export const CreateCollectionModal: React.FC<CreateCollectionModalProps> = ({
                   <p className="text-xs font-bold text-white">
                     {isPublic ? "Bộ sưu tập Công Khai" : "Bộ sưu tập Riêng Tư"}
                   </p>
-                  <p className="text-[11px] text-gray-400 mt-0.5">
+                  <p className="text-[11px] text-zinc-400 mt-0.5">
                     {isPublic
                       ? "Bất kỳ ai có link đều có thể xem danh sách phim này"
                       : "Chỉ một mình bạn có thể nhìn thấy danh sách này"}
@@ -215,14 +215,14 @@ export const CreateCollectionModal: React.FC<CreateCollectionModalProps> = ({
               type="button"
               onClick={onClose}
               disabled={loading}
-              className="px-4 py-2 text-xs font-semibold text-gray-300 hover:text-white rounded-xl hover:bg-white/10 transition cursor-pointer"
+              className="px-4 py-2 text-xs font-semibold text-zinc-300 hover:text-white rounded-xl hover:bg-white/10 transition cursor-pointer"
             >
               Hủy
             </button>
             <button
               type="submit"
               disabled={loading || !name.trim()}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-netflix-red hover:bg-rose-700 disabled:opacity-50 text-white text-xs font-bold shadow-lg shadow-rose-950/50 transition cursor-pointer active:scale-95"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-netflix-red hover:bg-rose-700 disabled:opacity-50 text-white text-xs font-bold shadow-md shadow-black/50 transition cursor-pointer active:scale-95"
             >
               {loading && <Loader2 className="w-4 h-4 animate-spin" />}
               <span>{loading ? "Đang tạo..." : "Tạo bộ sưu tập"}</span>

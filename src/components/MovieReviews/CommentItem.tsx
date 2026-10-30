@@ -508,13 +508,13 @@ export const CommentItem: React.FC<CommentItemProps> = ({
 
               {/* HUY HIỆU QUẢN TRỊ VIÊN (ADMIN) */}
               {isCommentAuthorAdmin && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-bold bg-gradient-to-r from-rose-600/30 via-red-500/25 to-amber-500/30 text-rose-300 border border-rose-500/50 shadow-sm shadow-rose-950/50 whitespace-nowrap shrink-0 leading-none animate-in fade-in">
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-bold bg-gradient-to-r from-rose-600/30 via-red-500/25 to-amber-500/30 text-rose-300 border border-rose-500/50 shadow-sm shadow-black/40 whitespace-nowrap shrink-0 leading-none animate-in fade-in">
                   <ShieldCheck className="w-3 h-3 text-rose-400 shrink-0" />
                   <span className="leading-none">Admin</span>
                 </span>
               )}
 
-              {/* BỘ DANH HIỆU VIP SỞ HỮU HIỂN THỊ TRÊN BÌNH LUẬN */}
+              {/* BỘ DANH HIỆU  SỞ HỮU HIỂN THỊ TRÊN BÌNH LUẬN */}
               {(() => {
                 const badgesToRender =
                   comment.userBadges && comment.userBadges.length > 0
@@ -524,7 +524,7 @@ export const CommentItem: React.FC<CommentItemProps> = ({
                 return badgesToRender.slice(0, 2).map((badgeLabel, bIdx) => (
                   <span
                     key={bIdx}
-                    className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-bold bg-gradient-to-r from-amber-500/20 to-rose-500/20 text-amber-300 border border-amber-500/40 shadow-sm shadow-amber-950/40 whitespace-nowrap shrink-0 leading-none animate-in fade-in ${
+                    className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-bold bg-gradient-to-r from-amber-500/20 to-rose-500/20 text-amber-300 border border-amber-500/40 shadow-sm shadow-black/40 whitespace-nowrap shrink-0 leading-none animate-in fade-in ${
                       bIdx >= 1 ? "hidden sm:inline-flex" : ""
                     }`}
                   >

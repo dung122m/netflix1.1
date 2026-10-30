@@ -154,6 +154,191 @@ After inspection, create these files in `docs/research/`:
 4. `INTERACTION_PATTERNS.md` — Animations, transitions, hover states
 5. `TECH_STACK_ANALYSIS.md` — What the site uses and our chosen equivalents
 
+# Product
+
+<!-- impeccable:product-schema 1 -->
+
+## Platform
+
+web
+
+## Users
+
+Người dùng Việt Nam theo dõi phim điện ảnh, truyền hình, anime và các trận cầu thể thao trực tiếp chất lượng cao (Full HD / 1080p Ultra-Low Latency) trên đa thiết bị, đặc biệt ưu tiên trải nghiệm mượt mà, thao tác một tay trên điện thoại di động (mobile-first).
+
+## Product Purpose
+
+Nanaflix là nền tảng giải trí trực tuyến tổng hợp (Movies, TV Series, Anime, Live Football & Sports) mang lại trải nghiệm xem tức thì, không giật lag, giao diện chuẩn điện ảnh kết hợp phong cách Netflix × YouTube Premium UI.
+
+## Positioning
+
+Content-first & Zero CLS: Tải phim tức thì, loại bỏ hoàn toàn các rào cản tương tác hoặc trang trí thừa thãi. Trải nghiệm thể thao thông minh với Live Hub tự động nhận diện trận cầu trực tiếp, thời lượng bù giờ, sự kiện đặc biệt và phân loại giải đấu tự động.
+
+## Operating Context
+
+- Trình duyệt di động và máy tính để bàn (Chrome, Safari, Firefox, Edge).
+- Trải nghiệm xem ban đêm và điều kiện ánh sáng yếu với giao diện Dark-only.
+- Thao tác nhanh bằng một tay (thumb zone navigation) trên màn hình cảm ứng di động.
+
+## Capabilities and Constraints
+
+- Dark-only UI: Không hỗ trợ Light mode trên giao diện người dùng.
+- Chuẩn streaming video HLS/MP4 với trình phát đa năng tương thích phụ đề & đa luồng âm thanh.
+- Tự động fallback dữ liệu khi API nguồn có sự cố.
+- Tối ưu hóa phông chữ tiếng Việt có dấu (`leading-[1.4]`, chống xén cụt dấu mũ và dấu nặng).
+
+## Brand Commitments
+
+- **Tên sản phẩm:** Nanaflix
+- **Màu nhận diện chính:** Netflix Red (`#E50914`), Dark zinc canvas (`#09090B`), Accent Amber (`#F59E0B`), Live Red Pulse (`#EF4444`).
+- **Phong cách:** Hiện đại, tinh tế, mượt mà, đáng tin cậy.
+
+## Evidence on Hand
+
+- Toàn bộ source code frontend Next.js 16 + Tailwind CSS v4 tại `src/`.
+- Tài liệu quy chuẩn thiết kế tại [DESIGN.md](DESIGN.md) và [`.agents/rules/pixel-perfect-taste.md`](.agents/rules/pixel-perfect-taste.md).
+
+## Product Principles
+
+1. **Nội dung là trung tâm (Content-First):** Giao diện lùi lại phía sau để tôn vinh poster và video stream.
+2. **Kỷ luật Pixel-Perfect:** Thẳng hàng tuyệt đối, viền siêu mảnh hairline `border-white/10`, không giật khung hình (CLS).
+3. **An toàn Tiếng Việt:** Đảm bảo toàn bộ dấu thanh tiếng Việt hiển thị đầy đủ, không bị cắt xén trong flexbox hay vùng giới hạn chiều cao.
+4. **Mượt mà & Nhẹ nhàng:** Hiệu ứng chuyển cảnh tinh tế, tôn trọng `prefers-reduced-motion`.
+
+## Accessibility & Inclusion
+
+- Chuẩn tiếp cận WCAG AA về độ tương phản chữ trên nền tối (tối thiểu 4.5:1 cho text thông thường).
+- Touch target tối thiểu 36px (khuyên dùng 38–44px) cho toàn bộ nút bấm và icon trên mobile.
+
+---
+name: Nanaflix
+description: Dark-only cinematic streaming platform for movies, series, and live sports
+colors:
+  primary: "#E50914"
+  primary-hover: "#B8070F"
+  background: "#09090B"
+  surface: "#18181B"
+  surface-card: "rgba(24, 24, 27, 0.80)"
+  surface-overlay: "rgba(24, 24, 27, 0.95)"
+  accent-amber: "#F59E0B"
+  live-pulse: "#EF4444"
+  text-primary: "#FFFFFF"
+  text-secondary: "#D4D4D8"
+  text-muted: "#A1A1AA"
+  border-hairline: "rgba(255, 255, 255, 0.10)"
+  border-hover: "rgba(255, 255, 255, 0.25)"
+typography:
+  display:
+    fontFamily: "Inter, sans-serif"
+    fontWeight: 700
+    lineHeight: 1.2
+  heading:
+    fontFamily: "Inter, sans-serif"
+    fontWeight: 600
+    lineHeight: 1.4
+  body:
+    fontFamily: "Inter, sans-serif"
+    fontWeight: 400
+    lineHeight: 1.5
+rounded:
+  sm: "6px"
+  md: "10px"
+  lg: "16px"
+  full: "9999px"
+spacing:
+  xs: "4px"
+  sm: "8px"
+  md: "16px"
+  lg: "24px"
+  xl: "32px"
+components:
+  button-primary:
+    backgroundColor: "{colors.primary}"
+    textColor: "{colors.text-primary}"
+    rounded: "{rounded.sm}"
+    padding: "10px 20px"
+  button-primary-hover:
+    backgroundColor: "{colors.primary-hover}"
+  card-media:
+    backgroundColor: "{colors.surface-card}"
+    rounded: "{rounded.md}"
+---
+
+# Design System — Nanaflix
+
+## Overview
+
+Nanaflix áp dụng ngôn ngữ thiết kế Dark-only điện ảnh cao cấp kết hợp phong cách Netflix × YouTube Premium UI, tối ưu đặc biệt cho trải nghiệm thao tác một tay trên thiết bị di động (mobile-first) và bảo đảm triệt tiêu hoàn toàn hiện tượng giật khung hình (CLS - Cumulative Layout Shift).
+
+## Colors
+
+- **Base Canvas:** `bg-black` (`#000000`) và `bg-zinc-950` (`#09090B`).
+- **Surfaces & Cards:** `bg-zinc-900/80` (`#18181B` kết hợp độ trong suốt) hoặc gradient tinh tế `from-zinc-800/70 via-zinc-900 to-zinc-950`.
+- **Floating Overlays & Modals:** `bg-zinc-900/95` kết hợp `backdrop-blur-md`.
+- **Thương hiệu & Điểm nhấn:**
+  - Netflix Red: `#E50914` (`oklch(0.55 0.23 25)`) dùng cho nút hành động chính, active tab indicator, thanh tua video.
+  - Amber Gold: `#F59E0B` (`amber-400` / `amber-500`) dùng cho rating phim, cúp giải đấu, badge chất lượng cao.
+  - Live Red Pulse: `#EF4444` (`red-500` / `rose-500`) có hiệu ứng pulse nhấp nháy báo hiệu trận đấu / kênh TV đang phát trực tiếp.
+- **Phân cấp màu chữ (WCAG AA):**
+  - Tiêu đề & nội dung chính: Trắng sáng `text-white` (`#FFFFFF`).
+  - Thông tin phụ & metadata: Xám bạc `text-zinc-300` (`#D4D4D8`).
+  - Nhãn mác & phụ đề: Xám dịu `text-zinc-400` (`#A1A1AA`), không được giảm dưới ngưỡng tương phản đọc được.
+
+## Typography
+
+- **Phông chữ hệ thống:** `Inter`, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif.
+- **An toàn dấu Tiếng Việt (Diacritics Safety):**
+  - Mọi tiêu đề tiếng Việt nhiều dòng bắt buộc giữ `line-height` tối thiểu `leading-[1.4]` (hoặc `leading-snug`).
+  - Tuyệt đối không ép cứng `height` nhỏ hơn `(cỡ chữ × 1.4 × số dòng) + đệm dấu` để tránh `overflow: hidden` xén cụt dấu mũ (`ấ, ế, ố, ứ`) và dấu nặng/hỏi.
+- **Kỷ luật Flexbox & Cắt dòng (Truncation):**
+  - Mọi container flexbox/grid chứa nội dung text động bắt buộc phải có `min-w-0` để ngăn flex child bung vỡ layout trang.
+  - Tiêu đề phim dùng `line-clamp-2` (hoặc `line-clamp-1`), thông tin metadata dùng `truncate` đúng 1 dòng kèm `min-w-0`.
+
+## Layout
+
+- **Hệ thống khoảng cách:** Bội số 4px/8px (2px, 4px, 6px, 8px, 12px, 16px, 20px, 24px, 32px).
+- **Phòng chống Layout Shift (Zero CLS):**
+  - Thẻ phim chân dung (Movie Card): Bắt buộc tỷ lệ `aspect-[2/3]` với nền placeholder `bg-zinc-900`.
+  - Thẻ video thể thao / Live TV / Backdrop: Bắt buộc tỷ lệ `aspect-video` (16:9).
+- **Touch Targets:** Tối thiểu 36px (khuyên dùng 38–44px) cho toàn bộ các nút bấm và icon trên mobile.
+- **Mobile Responsive:** Chuyển đổi nhãn rút gọn thích ứng trên mobile hẹp (ví dụ: `Live` thay vì `Đang diễn ra`, `Tất cả` thay vì `Tất cả môn`).
+
+## Elevation & Depth
+
+- **Hairline Borders:** Sử dụng đường viền siêu mảnh `border border-white/10` (trạng thái hover: `border-white/25`) để phân tách không gian nhẹ nhàng mà không tạo cảm giác thô cứng.
+- **Bóng đổ & Chiều sâu:** Đổ bóng mềm nhiều tầng `shadow-xl shadow-black/50`, không dùng bóng viền thô cứng neobrutalist.
+- **Glassmorphism:** Sử dụng `backdrop-blur-md` kết hợp `bg-black/60` cho các badge nổi trên poster phim.
+
+## Shapes
+
+- **Bán kính bo góc (Border Radius):**
+  - Nút bấm nhỏ & Badge: `rounded-md` (6px - 8px).
+  - Thẻ phim & Thẻ thể thao: `rounded-xl` (12px - 14px).
+  - Modal & Dropdown: `rounded-2xl` (16px).
+  - Tag pill & Avatar: `rounded-full`.
+
+## Components
+
+- **MediaCard:** Thẻ poster dọc `aspect-[2/3]`, hiệu ứng hover phóng to nhẹ `scale-[1.02]`, viền hairline `border-white/10`, badge chất lượng góc trên mờ nền `backdrop-blur-md`.
+- **MatchCard:** Thẻ thể thao ngang `aspect-video` hoặc dạng danh sách gọn, hiển thị tỷ số trực tiếp, thời gian thực, huy hiệu giải đấu và nút xem nhanh.
+- **VideoPlayer:** Khung xem phim trung tâm, thanh điều khiển nổi tự động ẩn sau 3 giây, nút tua 10s, danh sách server và tập phim trượt ngang dễ chọn bằng ngón cái.
+- **Navbar & Navigation:** Cố định đỉnh màn hình với `backdrop-blur-lg bg-black/80`, viền đáy `border-b border-white/10`.
+
+## Do's and Don'ts
+
+### Do's
+- Luôn đặt `min-w-0` cho các flex item chứa tiêu đề hoặc văn bản dài.
+- Giữ tỷ lệ khung hình cố định (`aspect-[2/3]`, `aspect-video`) cho mọi thẻ hiển thị media.
+- Sử dụng `cubic-bezier(0.16, 1, 0.3, 1)` cho mọi hiệu ứng chuyển động và phóng to nhẹ khi hover (`scale-[1.02]`).
+- Luôn kiểm tra giao diện trên màn hình mobile 375px - 390px trước khi xuất xưởng.
+
+### Don'ts
+- Không bao giờ dùng chế độ sáng (Light mode) trên giao diện streaming.
+- Không dùng viền dày thô cứng hoặc viền lồng viền (nested borders).
+- Không để phát sinh thanh cuộn ngang ngoài ý muốn trên toàn trang (`overflow-x: hidden`).
+- Không xén cụt dấu tiếng Việt bằng các container có chiều cao cố định quá sát.
+- Không phóng to card quá mức khi hover (tối đa `scale-[1.03]`).
+
 # PIXEL-PERFECT & DESIGN TASTE FRAMEWORK — NANAFLIX
 
 Tài liệu này xác lập bộ tiêu chuẩn UI/UX và quy tắc kỹ thuật giao diện dùng lâu dài cho toàn bộ dự án Nanaflix, định hướng trải nghiệm streaming cao cấp (chuẩn Apple TV / Netflix).
@@ -273,3 +458,54 @@ Bộ quy chuẩn kỹ thuật bắt buộc nhằm triệt tiêu lỗi ESLint, Ty
 3. **Targeted Test:** Chạy các unit/regression test liên quan đến module vừa can thiệp.
 4. **Diff Inspection:** Soát kỹ `git diff` để phát hiện sửa sót ngoài phạm vi, phát hiện suppression mới và ngăn ngừa thay đổi cấu hình ngoài ý muốn.
 5. **Browser Regression:** Với các thay đổi liên quan đến UI/Player/Animation, kiểm tra hành vi thực tế hoặc chạy kịch bản browser regression phù hợp.
+
+# Craft floor
+
+Load this after the direction is settled, and build without announcing the checklist. A pinned brief or the committed visual world overrides anything here except a line marked as a ban; your own habit does not. When the design hook is active it already enforces the mechanical checks below as you edit: act on its findings instead of re-auditing each rule.
+
+## Verify
+
+Each of these is a check on the built result, not an intention. Run them together in each batched look at the render, not as separate screenshot trips; the checks share one render.
+
+- **Contrast:** body and placeholder text ≥4.5:1, large text ≥3:1. On colored surfaces tint secondary text from that hue or the foreground; never gray.
+- **Depth:** shadows carry an offset and a soft blur. A zero-offset colored halo is decoration.
+- **Spacing:** tight groups, generous separation, more space above a heading than below it. Read the computed values.
+- **Type:** body measure 65–75ch, display max 6rem, tracking floor -0.04em, balanced headings, obvious scale and weight steps. Run the real copy at every breakpoint and fix what overflows.
+- **Motion:** one authored moment, not scattered effects and not one identical entrance on every section. Exponential ease-out from an already-visible default. Reach past transform and opacity: blur, backdrop-filter, clip-path, mask, and shadow belong to the palette when they stay smooth.
+- **States:** hover, disabled, loading, error, empty. Plus real content, working controls, responsive composition, keyboard focus.
+- **Browser surfaces:** the parts you did not draw still carry the design. Text selection, the caret, custom scrollbars, focus rings, underline offset, and the numerals in tabular data all ship with browser defaults that belong to no design system. Theme them from the palette. This is the cheapest signal that a page was built rather than assembled, and the one models skip most reliably.
+- **Copy:** the product's own language. Controls name their action; errors name the problem and the recovery.
+- **Coverage:** every brief requirement present and findable within seconds.
+
+## Refuse
+
+These are the category's defaults, not bans: the brief's own words can earn any of them. Reaching for one when the axis is free means you were not deciding; recognizing that means rewriting the element, not softening it.
+
+Page scaffolds:
+
+- Same-size cards of icon plus heading plus text as the page structure. Cards are the lazy container; nested cards are always wrong.
+- The hero-metric template: big number, small label, supporting stats, accent.
+- A kicker or eyebrow above a heading. This one is a ban, not a default: no brief earns it back. The heading carries its own weight; delete the label and let the heading speak.
+- Section numbers (01 / 02 / 03) unless the sequence itself carries information the reader needs.
+- A modal for a task that needs neither interruption nor protected focus.
+
+Surface habits:
+
+- Gradient text. Emphasis comes from weight or size.
+- Glass and blur as decoration rather than as a specific effect.
+- A colored `border-left` or `border-right` above 1px on cards, list items, callouts, or alerts.
+- Hard offset shadows (`box-shadow: 4px 4px 0`) outside a world that is actually neobrutalist. The zero-blur block shadow is a costume, not a depth system; a world that did not choose it never earns it as a default.
+- Sparklines, progress rings, and soft-shadowed rounded rectangles standing in for content.
+- Monospace as a costume for "technical" rather than for code, data, or measurement.
+- A system display face (Impact, Arial Black, the platform sans) as the display voice of an own-world page. Source and self-host a face whose character matches the approved lettering; the closest installed font is a failure, not a fallback.
+- Unicode glyphs or emoji standing in for an icon system. Icons are drawn, from a real library or authored SVG, in one consistent stroke and weight.
+- Geometric masks standing in for organic contours. A circle, polygon, or radial-gradient cutout approximating a photographic subject's edge is the cheap version of the effect and reads worse than omitting it. Derive an alpha matte from the actual image, or produce a cut-out asset.
+- Light or dark picked by category. Pick it from the use scene: who, where, under what ambient light.
+
+- Tracking stops at -0.04em. -0.02 to -0.03em usually reads better.
+- Declare elevation once, border or shadow. A 1px border under a wide soft shadow is the ghost card. Card radii stay at 12–16px; pills are for small controls.
+- Real illustration or none. Sketch-style SVG scenes, `loose-sketch` / `doodle` class names, and `feTurbulence` grain read as amateur. This bans SVG imitating pictures, never SVG doing geometry: crisp vector shapes, diagrams, animated linework, and shader-driven effects remain first-class media. A shaded, perspectived, or figure-bearing illustration is a picture even in line-art style; geometry means shapes a session can specify exactly.
+- Backgrounds are surfaces, textured only from the subject's world. `repeating-linear-gradient` stripes and two-axis grid overlays need an actual canvas, map, blueprint, or measuring tool under them.
+- Claims and configuration come from supplied truth; label illustrative values honestly. Naming a concept and then ironizing it is not a claim.
+
+The floor holds the mechanics; it never picks the direction. With every check green, spend the page on the committed world, and when torn between refined and committed, commit.

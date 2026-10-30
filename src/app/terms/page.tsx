@@ -126,7 +126,7 @@ const DMCA_REQUIREMENTS = [
 
 export default function TermsPage() {
   return (
-    <div className="min-h-screen bg-[#050505] text-gray-100 flex flex-col selection:bg-netflix-red selection:text-white font-sans antialiased overflow-x-hidden">
+    <div className="min-h-screen bg-[#050505] text-zinc-100 flex flex-col selection:bg-netflix-red selection:text-white font-sans antialiased overflow-x-hidden">
       <Navbar />
 
       {/* AMBIENT GLOW */}
@@ -138,7 +138,7 @@ export default function TermsPage() {
         <section className="space-y-4 text-center max-w-3xl mx-auto">
           <Link
             href="/"
-            className="inline-flex items-center gap-2 text-xs font-semibold text-gray-400 hover:text-white transition-colors bg-white/[0.04] hover:bg-white/[0.08] px-3.5 py-1.5 rounded-full border border-white/[0.08] mb-2 backdrop-blur-md"
+            className="inline-flex items-center gap-2 text-xs font-semibold text-zinc-400 hover:text-white transition-colors bg-white/[0.04] hover:bg-white/[0.08] px-3.5 py-1.5 rounded-full border border-white/[0.08] mb-2 backdrop-blur-md"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
             <span>Quay lại Trang chủ</span>
@@ -156,7 +156,7 @@ export default function TermsPage() {
             </span>
           </h1>
 
-          <p className="text-sm sm:text-base text-gray-400 leading-relaxed font-normal">
+          <p className="text-sm sm:text-base text-zinc-400 leading-relaxed font-normal">
             Bản quy định chi tiết về quyền hạn, trách nhiệm và cam kết của Nanaflix đối với người dùng, 
             cùng tuyên bố miễn trừ bản quyền và cơ chế tiếp nhận khiếu nại sở hữu trí tuệ minh bạch.
           </p>
@@ -175,7 +175,7 @@ export default function TermsPage() {
               <FileText className="w-5 h-5 sm:w-6 sm:h-6 text-netflix-red" />
               <span>4 Nguyên Tắc Cốt Lõi Tại Nanaflix</span>
             </h2>
-            <p className="text-xs sm:text-sm text-gray-400 mt-1">
+            <p className="text-xs sm:text-sm text-zinc-400 mt-1">
               Khung quy chuẩn xác định cách thức vận hành và phạm vi trách nhiệm của hệ thống.
             </p>
           </div>
@@ -193,14 +193,14 @@ export default function TermsPage() {
                       <div className={`p-2.5 rounded-xl bg-white/[0.05] border border-white/[0.08] ${pillar.iconColor} group-hover:scale-110 transition-transform`}>
                         <Icon className="w-5 h-5" />
                       </div>
-                      <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-white/[0.06] text-gray-300 border border-white/[0.08]">
+                      <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-white/[0.06] text-zinc-300 border border-white/[0.08]">
                         {pillar.badge}
                       </span>
                     </div>
                     <h3 className="text-base sm:text-lg font-bold text-white tracking-tight">
                       {pillar.title}
                     </h3>
-                    <p className="text-xs sm:text-sm text-gray-400 leading-relaxed font-normal">
+                    <p className="text-xs sm:text-sm text-zinc-400 leading-relaxed font-normal">
                       {pillar.desc}
                     </p>
                   </div>
@@ -217,7 +217,7 @@ export default function TermsPage() {
               <ShieldCheck className="w-5 h-5 sm:w-6 sm:h-6 text-amber-400" />
               <span>Nội Dung Chi Tiết & Phạm Vi Miễn Trừ Pháp Lý</span>
             </h2>
-            <p className="text-xs sm:text-sm text-gray-400 mt-1">
+            <p className="text-xs sm:text-sm text-zinc-400 mt-1">
               Hiểu rõ quyền lợi và nghĩa vụ của bạn khi tham gia trải nghiệm trên hệ thống.
             </p>
           </div>
@@ -232,10 +232,10 @@ export default function TermsPage() {
                   <span className="text-xs font-mono font-bold text-netflix-red uppercase tracking-wider">
                     {sec.number}
                   </span>
-                  <span className="text-gray-600">•</span>
+                  <span className="text-zinc-600">•</span>
                   <h3 className="text-sm sm:text-base font-bold text-white">{sec.title}</h3>
                 </div>
-                <p className="text-xs sm:text-sm text-gray-400 leading-relaxed">
+                <p className="text-xs sm:text-sm text-zinc-400 leading-relaxed">
                   {sec.content}
                 </p>
               </div>
@@ -253,7 +253,7 @@ export default function TermsPage() {
             <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">
               Quy Trình Tiếp Nhận & Xử Lý Khiếu Nại Bản Quyền (DMCA Takedown)
             </h2>
-            <p className="text-xs sm:text-sm text-gray-400 mt-1">
+            <p className="text-xs sm:text-sm text-zinc-400 mt-1">
               Nếu bạn phát hiện nội dung liên kết nhúng vi phạm quyền sở hữu của mình, hãy gửi yêu cầu theo 4 bước sau:
             </p>
           </div>
@@ -269,7 +269,7 @@ export default function TermsPage() {
                 </span>
                 <div className="space-y-1">
                   <h3 className="text-sm font-bold text-white">{req.title}</h3>
-                  <p className="text-xs text-gray-400 leading-relaxed">{req.desc}</p>
+                  <p className="text-xs text-zinc-400 leading-relaxed">{req.desc}</p>
                 </div>
               </div>
             ))}
@@ -285,7 +285,7 @@ export default function TermsPage() {
               <h3 className="text-xl sm:text-2xl font-black text-white">
                 Gửi Thông Báo DMCA Tới Quản Trị Viên
               </h3>
-              <p className="text-xs sm:text-sm text-gray-300 max-w-xl">
+              <p className="text-xs sm:text-sm text-zinc-300 max-w-xl">
                 Chúng tôi sẽ xác thực và gỡ bỏ ngay lập tức đường dẫn nhúng nội dung bị ảnh hưởng trong vòng <strong>24 đến 48 giờ</strong> làm việc.
               </p>
             </div>
@@ -310,10 +310,10 @@ export default function TermsPage() {
               <ShieldCheck className="w-5 h-5 text-emerald-400" />
               <div className="text-left">
                 <div className="text-xs font-bold text-white group-hover:text-emerald-300 transition-colors">Chính sách bảo mật</div>
-                <div className="text-[11px] text-gray-400">Không lưu IP, mã hóa RLS</div>
+                <div className="text-[11px] text-zinc-400">Không lưu IP, mã hóa RLS</div>
               </div>
             </div>
-            <ExternalLink className="w-4 h-4 text-gray-500 group-hover:text-white transition-colors" />
+            <ExternalLink className="w-4 h-4 text-zinc-500 group-hover:text-white transition-colors" />
           </Link>
 
           <Link
@@ -324,10 +324,10 @@ export default function TermsPage() {
               <Sparkles className="w-5 h-5 text-netflix-red" />
               <div className="text-left">
                 <div className="text-xs font-bold text-white group-hover:text-red-300 transition-colors">Giới thiệu Nanaflix</div>
-                <div className="text-[11px] text-gray-400">Câu chuyện & Đội ngũ sáng lập</div>
+                <div className="text-[11px] text-zinc-400">Câu chuyện & Đội ngũ sáng lập</div>
               </div>
             </div>
-            <ExternalLink className="w-4 h-4 text-gray-500 group-hover:text-white transition-colors" />
+            <ExternalLink className="w-4 h-4 text-zinc-500 group-hover:text-white transition-colors" />
           </Link>
 
           <Link
@@ -338,10 +338,10 @@ export default function TermsPage() {
               <MessageSquare className="w-5 h-5 text-rose-400" />
               <div className="text-left">
                 <div className="text-xs font-bold text-white group-hover:text-rose-300 transition-colors">Trợ giúp & Báo lỗi</div>
-                <div className="text-[11px] text-gray-400">Báo lỗi link phim, góp ý</div>
+                <div className="text-[11px] text-zinc-400">Báo lỗi link phim, góp ý</div>
               </div>
             </div>
-            <ExternalLink className="w-4 h-4 text-gray-500 group-hover:text-white transition-colors" />
+            <ExternalLink className="w-4 h-4 text-zinc-500 group-hover:text-white transition-colors" />
           </Link>
         </section>
 

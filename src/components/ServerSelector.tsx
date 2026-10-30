@@ -44,32 +44,33 @@ export const ServerSelector: React.FC<ServerSelectorProps> = ({
   const isSingleSource = servers.length <= 1;
 
   return (
-    <div className="w-full space-y-2.5">
+    <nav className="w-full space-y-2.5" aria-label="Lựa chọn nguồn phát và bản phim">
       {/* 1. GIAO DIỆN CAPSULE GỌN GÀNG KHI CHỈ CÓ 1 BẢN/NGUỒN PHIM */}
       {isSingleSource ? (
         <div className="space-y-2">
-          <div className="flex items-center justify-between gap-2 flex-wrap">
-            <div className="flex items-center gap-2">
-              <Radio className="w-3.5 h-3.5 text-netflix-red shrink-0" />
-              <span className="text-xs font-bold text-white tracking-wide">Nguồn phát:</span>
-              <span className="text-[11px] font-medium text-zinc-300 bg-white/5 border border-white/10 px-2 py-0.5 rounded-full">
+          <div className="flex items-center justify-between gap-2 flex-wrap min-w-0">
+            <div className="flex items-center gap-2 min-w-0">
+              <Radio className="w-3.5 h-3.5 text-netflix-red shrink-0" aria-hidden="true" />
+              <span className="text-xs font-bold text-white tracking-wide shrink-0">Nguồn phát:</span>
+              <span className="text-xs font-medium text-zinc-300 bg-white/5 border border-white/10 px-2.5 py-1 rounded-full truncate">
                 {activeProvider === "vsmov"
                   ? (servers[0]?.server_name || "Máy chủ VSMOV")
                   : (servers[0]?.server_name || "Bản chuẩn HD")}
               </span>
             </div>
 
-            <div className="flex items-center gap-1 bg-zinc-900/90 p-0.5 rounded-full border border-white/10">
+            <div className="flex items-center gap-1 bg-zinc-900/90 p-1 rounded-full border border-white/10 shrink-0">
               <Tooltip
-                content={!hasNanaflixSource ? "Phim này hiện chỉ có nguồn phát độc quyền từ máy chủ VSMOV" : "Chuyển sang nguồn Nanaflix VIP"}
+                content={!hasNanaflixSource ? "Phim này hiện chỉ có nguồn phát độc quyền từ máy chủ VSMOV" : "Chuyển sang nguồn Nanaflix "}
                 side="top"
               >
                 <button
                   type="button"
                   disabled={!hasNanaflixSource}
                   onClick={() => hasNanaflixSource && setActiveProvider?.("nanaflix" as PlaybackProviderType)}
-                  aria-label={!hasNanaflixSource ? "Phim này hiện chỉ có nguồn phát độc quyền từ máy chủ VSMOV" : "Chuyển sang nguồn Nanaflix VIP"}
-                  className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold transition ${
+                  aria-pressed={activeProvider === "nanaflix"}
+                  aria-label={!hasNanaflixSource ? "Phim này hiện chỉ có nguồn phát độc quyền từ máy chủ VSMOV" : "Chuyển sang nguồn Nanaflix "}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1 min-h-[32px] rounded-full text-xs font-semibold transition ${
                     !hasNanaflixSource
                       ? "text-zinc-500 opacity-40 cursor-not-allowed"
                       : activeProvider === "nanaflix"
@@ -78,37 +79,46 @@ export const ServerSelector: React.FC<ServerSelectorProps> = ({
                   }`}
                 >
                   <span className={`w-1.5 h-1.5 rounded-full ${activeProvider === "nanaflix" && hasNanaflixSource ? "bg-red-600 animate-pulse" : "bg-zinc-500"}`} />
-                  <span>Nanaflix VIP</span>
+                  <span>Nanaflix </span>
                 </button>
               </Tooltip>
               <button
                 type="button"
                 onClick={() => setActiveProvider?.("vsmov" as PlaybackProviderType)}
-                className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold transition cursor-pointer ${
+                aria-pressed={activeProvider === "vsmov"}
+                className={`inline-flex items-center gap-1.5 px-3 py-1 min-h-[32px] rounded-full text-xs font-semibold transition cursor-pointer ${
                   activeProvider === "vsmov"
-                    ? "bg-cyan-500 text-black shadow-sm font-bold"
+                    ? "bg-sky-500 text-black shadow-sm font-bold"
                     : "text-zinc-400 hover:text-white"
                 }`}
               >
-                <ShieldCheck className="w-3 h-3" />
+                <ShieldCheck className="w-3.5 h-3.5" aria-hidden="true" />
                 <span>VSMOV</span>
               </button>
             </div>
           </div>
 
           {activeProvider === "vsmov" && (
-            <div className="flex flex-wrap items-center justify-between gap-2 p-2.5 rounded-xl bg-cyan-950/20 border border-cyan-500/25">
-              <div className="flex items-center gap-1.5 text-xs text-cyan-300 font-medium">
-                <ShieldCheck className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
-                <span>{isVsmovOnly ? "Phát từ máy chủ VSMOV (Tự động phụ đề)" : "Phát từ máy chủ dự phòng VSMOV (Tự động phụ đề)"}</span>
+            <div className="p-3 rounded-xl bg-sky-950/20 border border-sky-500/20 space-y-1.5">
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <span className="text-xs font-semibold text-sky-200">
+                  {isVsmovOnly ? "Máy chủ VSMOV độc quyền" : "Đang phát từ máy chủ đối tác VSMOV"}
+                </span>
+                <span className="text-[11px] font-medium text-sky-300 bg-sky-500/10 px-2.5 py-0.5 rounded-full border border-sky-500/20">
+                  Phụ đề chuẩn
+                </span>
               </div>
+              <p className="text-xs text-zinc-400 leading-relaxed">
+                Đang phát luồng video từ đối tác VSMOV. Tự động đồng bộ phụ đề đa ngôn ngữ và tốc độ tải cao.
+              </p>
               {hasNanaflixSource && (
                 <button
                   type="button"
                   onClick={() => setActiveProvider?.("nanaflix")}
-                  className="text-[11px] font-bold text-gray-300 hover:text-white underline cursor-pointer transition"
+                  className="mt-1 inline-flex items-center gap-1.5 px-3 py-1.5 min-h-[32px] rounded-lg text-xs font-semibold bg-white/10 hover:bg-white/20 text-white transition cursor-pointer active:scale-95"
                 >
-                  Chuyển về Nanaflix
+                  <ArrowLeft className="w-3.5 h-3.5" aria-hidden="true" />
+                  <span>Chuyển về Nanaflix </span>
                 </button>
               )}
             </div>
@@ -118,22 +128,23 @@ export const ServerSelector: React.FC<ServerSelectorProps> = ({
         /* 2. GIAO DIỆN ĐẦY ĐỦ KHI CÓ NHIỀU BẢN/PHÂN LOẠI PHIM */
         <div className="space-y-2.5">
           {showHeader && (
-            <div className="flex items-center justify-between pb-2 border-b border-white/10">
+            <div className="flex items-center justify-between pb-2 border-b border-white/10 min-w-0">
               <h3 className="text-xs sm:text-sm font-bold flex items-center gap-1.5 text-white">
-                <Radio className="w-3.5 h-3.5 text-netflix-red shrink-0" />
+                <Radio className="w-3.5 h-3.5 text-netflix-red shrink-0" aria-hidden="true" />
                 <span>Nguồn phát</span>
               </h3>
-              <div className="flex items-center gap-1 bg-zinc-900/90 p-0.5 rounded-full border border-white/10">
+              <div className="flex items-center gap-1 bg-zinc-900/90 p-1 rounded-full border border-white/10">
                 <Tooltip
-                  content={!hasNanaflixSource ? "Phim này hiện chỉ có nguồn phát độc quyền từ máy chủ VSMOV" : "Chuyển sang nguồn Nanaflix VIP"}
+                  content={!hasNanaflixSource ? "Phim này hiện chỉ có nguồn phát độc quyền từ máy chủ VSMOV" : "Chuyển sang nguồn Nanaflix "}
                   side="top"
                 >
                   <button
                     type="button"
                     disabled={!hasNanaflixSource}
                     onClick={() => hasNanaflixSource && setActiveProvider?.("nanaflix" as PlaybackProviderType)}
-                    aria-label={!hasNanaflixSource ? "Phim này hiện chỉ có nguồn phát độc quyền từ máy chủ VSMOV" : "Chuyển sang nguồn Nanaflix VIP"}
-                    className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-semibold transition ${
+                    aria-pressed={activeProvider === "nanaflix"}
+                    aria-label={!hasNanaflixSource ? "Phim này hiện chỉ có nguồn phát độc quyền từ máy chủ VSMOV" : "Chuyển sang nguồn Nanaflix "}
+                    className={`inline-flex items-center gap-1.5 px-3 py-1 min-h-[32px] rounded-full text-xs font-semibold transition ${
                       !hasNanaflixSource
                         ? "text-zinc-500 opacity-40 cursor-not-allowed"
                         : activeProvider === "nanaflix"
@@ -142,19 +153,20 @@ export const ServerSelector: React.FC<ServerSelectorProps> = ({
                     }`}
                   >
                     <span className={`w-1.5 h-1.5 rounded-full ${activeProvider === "nanaflix" && hasNanaflixSource ? "bg-red-600 animate-pulse" : "bg-zinc-500"}`} />
-                    <span>Nanaflix VIP</span>
+                    <span>Nanaflix </span>
                   </button>
                 </Tooltip>
                 <button
                   type="button"
                   onClick={() => setActiveProvider?.("vsmov" as PlaybackProviderType)}
-                  className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold transition cursor-pointer ${
+                  aria-pressed={activeProvider === "vsmov"}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1 min-h-[32px] rounded-full text-xs font-semibold transition cursor-pointer ${
                     activeProvider === "vsmov"
-                      ? "bg-cyan-500 text-black shadow-sm font-bold"
+                      ? "bg-sky-500 text-black shadow-sm font-bold"
                       : "text-zinc-400 hover:text-white"
                   }`}
                 >
-                  <ShieldCheck className="w-3 h-3" />
+                  <ShieldCheck className="w-3.5 h-3.5" aria-hidden="true" />
                   <span>VSMOV</span>
                 </button>
               </div>
@@ -164,12 +176,12 @@ export const ServerSelector: React.FC<ServerSelectorProps> = ({
           {/* CHỈ HIỂN THỊ DANH SÁCH BẢN PHIM CỦA NANAFLIX KHI ACTIVE PROVIDER LÀ NANAFLIX */}
           {activeProvider === "nanaflix" ? (
             <div className="space-y-1.5">
-              <span className="text-[10.5px] font-bold text-zinc-400 uppercase tracking-wider flex items-center gap-1.5">
-                <Zap className="w-3 h-3 text-amber-400" />
+              <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider flex items-center gap-1.5">
+                <Zap className="w-3 h-3 text-amber-400" aria-hidden="true" />
                 <span>Bản phim</span>
               </span>
 
-              <div className="flex flex-wrap items-center gap-1.5">
+              <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Danh sách các bản phát hành">
                 {servers.map((s, sIdx) => {
                   const isSelected = sIdx === currentServerIndex;
                   const count = "count" in s && s.count !== undefined ? s.count : s.server_data?.length;
@@ -179,21 +191,22 @@ export const ServerSelector: React.FC<ServerSelectorProps> = ({
                     <button
                       key={s.server_name || sIdx}
                       type="button"
+                      aria-pressed={isSelected}
                       onClick={(e) => {
                         e.preventDefault();
                         switchServer?.(sIdx);
                       }}
-                      className={`group relative inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold transition-all duration-150 cursor-pointer ${
+                      className={`group relative inline-flex items-center gap-1.5 px-3.5 py-1.5 min-h-[36px] rounded-full text-xs font-semibold transition-all duration-150 cursor-pointer ${
                         isSelected
-                          ? "bg-netflix-red text-white shadow-sm ring-1 ring-white/20"
+                          ? "bg-netflix-red text-white shadow-sm ring-1 ring-white/20 scale-[1.02]"
                           : "bg-zinc-900/80 text-zinc-300 hover:text-white hover:bg-zinc-800 border border-white/10"
                       }`}
                     >
-                      <Sparkles className={`w-3 h-3 ${isSelected ? "text-amber-300" : "text-zinc-400"}`} />
+                      <Sparkles className={`w-3.5 h-3.5 ${isSelected ? "text-amber-300" : "text-zinc-400"}`} aria-hidden="true" />
                       <span>{displayName}</span>
                       {count !== undefined && count > 0 && (
                         <span
-                          className={`text-[10px] px-1.5 py-0.2 rounded-full font-medium ${
+                          className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${
                             isSelected ? "bg-black/30 text-white" : "bg-white/10 text-zinc-400"
                           }`}
                         >
@@ -206,36 +219,36 @@ export const ServerSelector: React.FC<ServerSelectorProps> = ({
               </div>
             </div>
           ) : (
-            /* GIAO DIỆN TRẠNG THÁI KHI CHỌN MÁY CHỦ VSMOV (ẨN HOÀN TOÀN SERVER CỦA NANAFLIX) */
-            <div className="p-3 rounded-xl bg-cyan-950/20 border border-cyan-500/25 space-y-2">
+            /* GIAO DIỆN TRẠNG THÁI KHI CHỌN MÁY CHỦ VSMOV */
+            <div className="p-3.5 rounded-xl bg-sky-950/20 border border-sky-500/25 space-y-2">
               <div className="flex items-center justify-between gap-2 flex-wrap">
                 <div className="flex items-center gap-2">
-                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-cyan-500 text-black shadow-sm">
-                    <ShieldCheck className="w-3.5 h-3.5" />
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-sky-500 text-black shadow-sm">
+                    <ShieldCheck className="w-3.5 h-3.5" aria-hidden="true" />
                     <span>VSMOV Live</span>
                   </span>
-                  <span className="text-xs font-semibold text-cyan-200">
+                  <span className="text-xs font-semibold text-sky-200">
                     {isVsmovOnly ? "Máy chủ VSMOV" : "Máy chủ dự phòng VSMOV"}
                   </span>
                 </div>
-                <span className="text-[10px] font-medium text-cyan-400/90 bg-cyan-500/10 px-2 py-0.5 rounded-full border border-cyan-500/20">
+                <span className="text-[11px] font-medium text-sky-300 bg-sky-500/10 px-2.5 py-0.5 rounded-full border border-sky-500/20">
                   Tự động phụ đề
                 </span>
               </div>
-              <p className="text-[11px] text-zinc-400 leading-relaxed">
+              <p className="text-xs text-zinc-400 leading-relaxed">
                 {isVsmovOnly
                   ? "Đang phát luồng video chất lượng cao từ máy chủ đối tác VSMOV."
-                  : "Đang phát luồng video từ máy chủ đối tác VSMOV. Chuyển sang Nanaflix VIP để chọn các bản Vietsub hoặc Lồng Tiếng."}
+                  : "Đang phát luồng video từ máy chủ đối tác VSMOV. Chuyển sang Nanaflix  để chọn các bản Vietsub hoặc Lồng Tiếng."}
               </p>
               {hasNanaflixSource && (
                 <div className="pt-0.5 flex items-center justify-end">
                   <button
                     type="button"
                     onClick={() => setActiveProvider?.("nanaflix")}
-                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold bg-white/10 hover:bg-white/20 text-white transition cursor-pointer"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 min-h-[34px] rounded-lg text-xs font-semibold bg-white/10 hover:bg-white/20 text-white transition cursor-pointer active:scale-95"
                   >
-                    <ArrowLeft className="w-3 h-3" />
-                    <span>Quay lại Nanaflix VIP</span>
+                    <ArrowLeft className="w-3.5 h-3.5" aria-hidden="true" />
+                    <span>Quay lại Nanaflix </span>
                   </button>
                 </div>
               )}
@@ -243,7 +256,7 @@ export const ServerSelector: React.FC<ServerSelectorProps> = ({
           )}
         </div>
       )}
-    </div>
+    </nav>
   );
 };
 

@@ -90,7 +90,7 @@ export const WatchlistButton: React.FC<WatchlistButtonProps> = ({
       <button
         type="button"
         disabled
-        className={`inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-zinc-900/60 px-2.5 sm:px-3.5 py-1.5 text-xs sm:text-sm font-medium text-gray-500 opacity-60 flex-shrink-0 whitespace-nowrap ${className}`}
+        className={`inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-zinc-900/60 px-2.5 sm:px-3.5 py-1.5 text-xs sm:text-sm font-medium text-zinc-500 opacity-60 flex-shrink-0 whitespace-nowrap ${className}`}
       >
         <Bookmark className="h-3.5 w-3.5 flex-shrink-0" />
         <span className="whitespace-nowrap">{label || "Lưu"}</span>
@@ -109,7 +109,7 @@ export const WatchlistButton: React.FC<WatchlistButtonProps> = ({
           className={`inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg border transition cursor-pointer text-xs active:scale-95 whitespace-nowrap ${
             inList
               ? "bg-amber-500/20 text-amber-300 border-amber-500/50 font-semibold shadow-sm"
-              : "bg-zinc-900/80 hover:bg-zinc-800 text-gray-300 hover:text-white border-white/10"
+              : "bg-zinc-900/80 hover:bg-zinc-800 text-zinc-300 hover:text-white border-white/10"
           } ${className}`}
         >
           {inList ? (
@@ -138,7 +138,7 @@ export const WatchlistButton: React.FC<WatchlistButtonProps> = ({
         className={`inline-flex items-center gap-1 sm:gap-1.5 rounded-lg border transition-all cursor-pointer active:scale-95 px-1.5 xs:px-2 sm:px-3.5 py-1.5 text-xs sm:text-sm font-medium shadow-sm flex-shrink-0 whitespace-nowrap ${
           inList
             ? "bg-amber-500/20 border-amber-500/40 text-amber-300 hover:bg-amber-500/30"
-            : "border-white/15 bg-zinc-900/80 text-gray-200 hover:bg-white/10 hover:text-white"
+            : "border-white/15 bg-zinc-900/80 text-zinc-200 hover:bg-white/10 hover:text-white"
         } ${className}`}
       >
         {inList ? (

@@ -334,7 +334,7 @@ export default function FAQPage() {
   }, [selectedCategory, searchQuery]);
 
   return (
-    <div className="min-h-screen bg-[#050505] text-gray-100 flex flex-col selection:bg-netflix-red selection:text-white font-sans antialiased overflow-x-hidden">
+    <div className="min-h-screen bg-[#050505] text-zinc-100 flex flex-col selection:bg-netflix-red selection:text-white font-sans antialiased overflow-x-hidden">
       <Navbar />
 
       {/* AMBIENT GLOW */}
@@ -344,7 +344,7 @@ export default function FAQPage() {
         
         {/* ================= 1. HERO HEADER ================= */}
         <section className="text-center space-y-6">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/[0.04] border border-white/[0.08] text-xs font-semibold text-gray-300 backdrop-blur-xl shadow-sm">
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/[0.04] border border-white/[0.08] text-xs font-semibold text-zinc-300 backdrop-blur-xl shadow-sm">
             <HelpCircle size={14} className="text-netflix-red" />
             <span>Trung Tâm Trợ Giúp & Cẩm Nang Sử Dụng</span>
           </div>
@@ -353,7 +353,7 @@ export default function FAQPage() {
             <h1 className="text-3xl sm:text-5xl md:text-6xl font-black tracking-tight text-white leading-tight">
               Hướng Dẫn & <span className="text-netflix-red">Hỏi Đáp</span>
             </h1>
-            <p className="text-sm sm:text-base text-gray-400 font-normal leading-relaxed">
+            <p className="text-sm sm:text-base text-zinc-400 font-normal leading-relaxed">
               Tổng hợp bí kíp làm chủ các tính năng cao cấp, hướng dẫn cài đặt app, truyền phim lên Smart TV và giải đáp cặn kẽ mọi thắc mắc.
             </p>
           </div>
@@ -361,19 +361,19 @@ export default function FAQPage() {
           {/* Search Input Bar */}
           <div className="max-w-xl mx-auto relative pt-2">
             <div className="relative flex items-center">
-              <Search size={18} className="absolute left-4 text-gray-400 pointer-events-none" />
+              <Search size={18} className="absolute left-4 text-zinc-400 pointer-events-none" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Tìm kiếm hướng dẫn (ví dụ: cài app, xem trên TV, phím tắt, giật lag, phụ đề...)"
-                className="w-full pl-11 pr-4 py-3.5 rounded-2xl bg-zinc-950/80 border border-white/[0.1] focus:border-netflix-red/60 focus:bg-black text-sm text-white placeholder-gray-500 focus:outline-none transition-all shadow-2xl backdrop-blur-xl"
+                className="w-full pl-11 pr-4 py-3.5 rounded-2xl bg-zinc-950/80 border border-white/[0.1] focus:border-netflix-red/60 focus:bg-black text-sm text-white placeholder-zinc-500 focus:outline-none transition-all shadow-2xl backdrop-blur-xl"
               />
               {searchQuery && (
                 <button
                   type="button"
                   onClick={() => setSearchQuery("")}
-                  className="absolute right-3.5 px-2 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-xs text-gray-400 hover:text-white transition cursor-pointer"
+                  className="absolute right-3.5 px-2 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-xs text-zinc-400 hover:text-white transition cursor-pointer"
                 >
                   Xóa
                 </button>
@@ -390,7 +390,7 @@ export default function FAQPage() {
                 <BookOpen size={16} />
                 <span>Hướng Dẫn Thao Tác Nhanh</span>
               </div>
-              <span className="text-xs text-gray-500 font-mono">4 Cẩm Nang Thực Hành</span>
+              <span className="text-xs text-zinc-500 font-mono">4 Cẩm Nang Thực Hành</span>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
@@ -413,7 +413,7 @@ export default function FAQPage() {
                           <Icon size={20} />
                         </div>
                         <div>
-                          <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-white/[0.05] border border-white/[0.08] text-gray-300">
+                          <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-white/[0.05] border border-white/[0.08] text-zinc-300">
                             {guide.badge}
                           </span>
                           <h3 className="text-base font-bold text-white mt-1">{guide.title}</h3>
@@ -423,7 +423,7 @@ export default function FAQPage() {
                       <button
                         type="button"
                         onClick={() => setOpenGuideId(isExpanded ? null : guide.id)}
-                        className={`p-2 rounded-xl bg-white/[0.04] border border-white/[0.08] text-gray-400 hover:text-white transition-transform cursor-pointer ${
+                        className={`p-2 rounded-xl bg-white/[0.04] border border-white/[0.08] text-zinc-400 hover:text-white transition-transform cursor-pointer ${
                           isExpanded ? "rotate-180 bg-netflix-red/20 text-netflix-red border-red-500/30" : ""
                         }`}
                         title={isExpanded ? "Thu gọn" : "Xem chi tiết"}
@@ -432,7 +432,7 @@ export default function FAQPage() {
                       </button>
                     </div>
 
-                    <p className="text-xs text-gray-400 leading-relaxed">{guide.summary}</p>
+                    <p className="text-xs text-zinc-400 leading-relaxed">{guide.summary}</p>
 
                     {/* Expandable Steps or Shortcuts */}
                     {isExpanded && (
@@ -441,11 +441,11 @@ export default function FAQPage() {
                           <div className="space-y-2.5">
                             {guide.steps.map((s, idx) => (
                               <div key={idx} className="p-3.5 rounded-2xl bg-black/50 border border-white/[0.05] space-y-1">
-                                <div className="text-xs font-bold text-gray-200 flex items-center gap-1.5">
+                                <div className="text-xs font-bold text-zinc-200 flex items-center gap-1.5">
                                   <CheckCircle2 size={13} className="text-emerald-400 shrink-0" />
                                   <span>{s.device}</span>
                                 </div>
-                                <div className="text-[11px] text-gray-400 leading-relaxed pl-5">{s.desc}</div>
+                                <div className="text-[11px] text-zinc-400 leading-relaxed pl-5">{s.desc}</div>
                               </div>
                             ))}
                           </div>
@@ -458,7 +458,7 @@ export default function FAQPage() {
                                 key={idx}
                                 className="p-2.5 rounded-xl bg-black/50 border border-white/[0.05] flex items-center justify-between gap-2 text-xs"
                               >
-                                <span className="text-[11px] text-gray-400">{sc.desc}</span>
+                                <span className="text-[11px] text-zinc-400">{sc.desc}</span>
                                 <kbd className="px-2 py-0.5 rounded bg-zinc-800 border border-white/10 text-white font-mono text-[10px] font-bold shrink-0">
                                   {sc.key}
                                 </kbd>
@@ -488,8 +488,8 @@ export default function FAQPage() {
                   onClick={() => setSelectedCategory(cat.id)}
                   className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
                     active
-                      ? "bg-netflix-red text-white shadow-lg shadow-red-950/50 scale-[1.02]"
-                      : "bg-zinc-900/60 hover:bg-zinc-900 text-gray-400 hover:text-white border border-white/[0.06]"
+                      ? "bg-netflix-red text-white shadow-md shadow-black/50 scale-[1.02]"
+                      : "bg-zinc-900/60 hover:bg-zinc-900 text-zinc-400 hover:text-white border border-white/[0.06]"
                   }`}
                 >
                   <Icon size={14} />
@@ -502,8 +502,8 @@ export default function FAQPage() {
           {/* ================= 4. ACCORDION FAQ LIST ================= */}
           <div className="space-y-4">
             {filteredFAQs.length === 0 ? (
-              <div className="p-12 text-center rounded-3xl bg-zinc-950/60 border border-white/[0.08] text-gray-400 space-y-3">
-                <HelpCircle size={32} className="mx-auto text-gray-500 opacity-60" />
+              <div className="p-12 text-center rounded-3xl bg-zinc-950/60 border border-white/[0.08] text-zinc-400 space-y-3">
+                <HelpCircle size={32} className="mx-auto text-zinc-500 opacity-60" />
                 <p className="text-sm font-medium">Không tìm thấy câu hỏi phù hợp với từ khóa &ldquo;{searchQuery}&rdquo;.</p>
                 <button
                   type="button"
@@ -541,7 +541,7 @@ export default function FAQPage() {
                           </h3>
                         </div>
                         <div
-                          className={`p-2 rounded-xl bg-white/[0.04] border border-white/[0.08] text-gray-400 flex-shrink-0 transition-transform duration-300 ${
+                          className={`p-2 rounded-xl bg-white/[0.04] border border-white/[0.08] text-zinc-400 flex-shrink-0 transition-transform duration-300 ${
                             isOpen ? "rotate-180 bg-netflix-red/20 text-netflix-red border-red-500/30" : ""
                           }`}
                         >
@@ -550,7 +550,7 @@ export default function FAQPage() {
                       </button>
 
                       {isOpen && (
-                        <div className="px-5 sm:px-6 pb-6 pt-1 space-y-3 text-xs sm:text-sm text-gray-300 leading-relaxed border-t border-white/[0.05]">
+                        <div className="px-5 sm:px-6 pb-6 pt-1 space-y-3 text-xs sm:text-sm text-zinc-300 leading-relaxed border-t border-white/[0.05]">
                           <p>{faq.answer}</p>
                           {faq.tips && (
                             <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs flex items-start gap-2.5">
@@ -578,7 +578,7 @@ export default function FAQPage() {
             <h3 className="text-lg sm:text-xl font-bold text-white">
               Gửi thông tin sự cố trực tiếp tới đội ngũ kỹ thuật Nanaflix
             </h3>
-            <p className="text-xs text-gray-400">
+            <p className="text-xs text-zinc-400">
               Chúng tôi luôn sẵn sàng hỗ trợ kiểm tra đường truyền và khắc phục lỗi sớm nhất.
             </p>
           </div>
@@ -586,7 +586,7 @@ export default function FAQPage() {
           <div className="flex items-center gap-3 flex-wrap justify-center flex-shrink-0">
             <Link
               href="/about#contact"
-              className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-netflix-red hover:bg-red-700 text-xs font-bold text-white transition shadow-lg shadow-red-950/50"
+              className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-netflix-red hover:bg-red-700 text-xs font-bold text-white transition shadow-md shadow-black/50"
             >
               <MessageSquare size={14} />
               <span>Báo Lỗi & Trợ Giúp</span>

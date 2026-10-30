@@ -15,7 +15,7 @@ const MovieRouletteModal = dynamic(
     ssr: false,
     loading: () => (
       <div className="fixed inset-0 z-[120] bg-black/80 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 overflow-y-auto animate-in fade-in duration-100">
-        <div className="relative w-full max-w-3xl min-h-[560px] max-h-[92dvh] sm:max-h-[840px] bg-zinc-950 rounded-2xl sm:rounded-3xl border border-amber-500/35 shadow-2xl shadow-amber-950/40 flex flex-col overflow-hidden">
+        <div className="relative w-full max-w-3xl min-h-[560px] max-h-[92dvh] sm:max-h-[840px] bg-zinc-950 rounded-2xl sm:rounded-3xl border border-white/10 shadow-2xl shadow-black/80 flex flex-col overflow-hidden">
           {/* Glow ambient lights */}
           <div className="pointer-events-none absolute -top-24 -left-20 w-80 h-80 bg-amber-500/10 rounded-full blur-3xl opacity-40" />
           <div className="pointer-events-none absolute -bottom-24 -right-20 w-80 h-80 bg-orange-600/10 rounded-full blur-3xl opacity-40" />

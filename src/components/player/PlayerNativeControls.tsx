@@ -1,22 +1,19 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import {
-  Play,
-  Pause,
-  Volume2,
-  Volume1,
-  VolumeX,
-  Settings,
-  Scaling,
-  Check,
-  PictureInPicture,
-  Tv,
-  Maximize2,
-  Minimize2,
-  SkipForward,
-  Keyboard,
   Film,
+  Sparkles,
+  ChevronRight,
+  ChevronLeft,
+  Check,
+  RotateCcw,
+  Sliders,
+  Scaling,
+  Tv,
+  Keyboard,
+  Gauge,
+  Repeat,
 } from "lucide-react";
 import { PlayerScrubBar, PlayerTimeDisplay } from "../PlayerScrubBar";
 import { Tooltip } from "@/components/ui/Tooltip";
@@ -24,67 +21,100 @@ import { Tooltip } from "@/components/ui/Tooltip";
 export type VideoFit = "contain" | "cover" | "fill" | "zoom";
 
 const FIT_OPTIONS: Array<{ id: VideoFit; label: string }> = [
-  { id: "contain", label: "Vừa khung" },
-  { id: "cover", label: "Lấp đầy" },
-  { id: "fill", label: "Kéo dãn" },
-  { id: "zoom", label: "Zoom" },
+  { id: "contain", label: "Vừa khung (16:9)" },
+  { id: "cover", label: "Lấp đầy (Cover)" },
+  { id: "fill", label: "Kéo giãn (Fill)" },
+  { id: "zoom", label: "Phóng to (Zoom)" },
 ];
 
-export const SeekBack10Icon: React.FC<{ className?: string }> = ({ className = "w-4 h-4" }) => (
-  <svg
-    className={className}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    aria-hidden="true"
-  >
-    <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
-    <path d="M3 3v5h5" />
-    <text
-      x="12"
-      y="15.5"
-      textAnchor="middle"
-      fill="currentColor"
-      stroke="none"
-      fontSize="8.5"
-      fontWeight="900"
-      fontFamily="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
-    >
-      10
-    </text>
+const SPEED_OPTIONS = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
+
+// ============================================================================
+// BỘ BIỂU TƯỢNG VIDEO CHUYÊN DỤNG CHUẨN YOUTUBE STUDIO (HIGH-PRECISION SVGS)
+// ============================================================================
+
+export const YouTubePlayIcon: React.FC<{ className?: string }> = ({ className = "w-5 h-5" }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    <path d="M8 5v14l11-7z" />
   </svg>
 );
 
-export const SeekForward10Icon: React.FC<{ className?: string }> = ({ className = "w-4 h-4" }) => (
-  <svg
-    className={className}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    aria-hidden="true"
-  >
-    <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.85.99 6.57 2.6L21 8" />
-    <path d="M21 3v5h-5" />
-    <text
-      x="12"
-      y="15.5"
-      textAnchor="middle"
-      fill="currentColor"
-      stroke="none"
-      fontSize="8.5"
-      fontWeight="900"
-      fontFamily="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
-    >
-      10
-    </text>
+export const YouTubePauseIcon: React.FC<{ className?: string }> = ({ className = "w-5 h-5" }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
   </svg>
 );
+
+export const YouTubeNextIcon: React.FC<{ className?: string }> = ({ className = "w-5 h-5" }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    <path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z" />
+  </svg>
+);
+
+export const YouTubeVolumeHighIcon: React.FC<{ className?: string }> = ({ className = "w-5 h-5" }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z" />
+  </svg>
+);
+
+export const YouTubeVolumeLowIcon: React.FC<{ className?: string }> = ({ className = "w-5 h-5" }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    <path d="M7 9v6h4l5 5V4L7 9H3zm11.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z" />
+  </svg>
+);
+
+export const YouTubeVolumeMuteIcon: React.FC<{ className?: string }> = ({ className = "w-5 h-5" }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    <path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z" />
+  </svg>
+);
+
+export const YouTubeSettingsIcon: React.FC<{ className?: string }> = ({ className = "w-5 h-5" }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    <path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z" />
+  </svg>
+);
+
+export const YouTubeMiniplayerIcon: React.FC<{ className?: string }> = ({ className = "w-5 h-5" }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    <path d="M19 11h-8v6h8v-6zm4 8V4.98C23 3.88 22.1 3 21 3H3c-1.1 0-2 .88-2 1.98V19c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2zm-2 .02H3V4.97h18v14.05z" />
+  </svg>
+);
+
+export const YouTubeTheaterIcon: React.FC<{ className?: string }> = ({ className = "w-5 h-5" }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    <path d="M19 6H5c-1.1 0-2 .9-2 2v8c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm0 10H5V8h14v8z" />
+  </svg>
+);
+
+export const YouTubeFullscreenIcon: React.FC<{ className?: string }> = ({ className = "w-5 h-5" }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    <path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z" />
+  </svg>
+);
+
+export const YouTubeExitFullscreenIcon: React.FC<{ className?: string }> = ({ className = "w-5 h-5" }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    <path d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z" />
+  </svg>
+);
+
+export const YouTubeSeek10BackIcon: React.FC<{ className?: string }> = ({ className = "w-5 h-5" }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    <path d="M11.99 5V1l-5 5 5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6s-6-2.69-6-6h-2c0 4.42 3.58 8 8 8s8-3.58 8-8s-3.58-8-8-8zm-1.1 11h-.85v-3.26l-1.01.31v-.69l1.77-.63h.09V16zm4.28-1.76c0 .32-.03.6-.1.82s-.17.42-.29.57-.28.26-.45.33-.37.1-.59.1-.41-.03-.59-.1-.33-.18-.46-.33-.22-.35-.29-.57-.1-.5-.1-.82v-1.45c0-.32.03-.6.1-.82s.17-.42.29-.57.28-.26.45-.33.37-.1.59-.1.41.03.59.1.33.18.46.33.22.35.29.57.1.5.1.82v1.45zm-.85-1.57c0-.28-.04-.48-.11-.6s-.19-.18-.34-.18-.26.06-.34.18-.11.32-.11.6v1.69c0 .28.04.48.11.6s.19.18.34.18.26-.06.34-.18.11-.32.11-.6v-1.69z" />
+  </svg>
+);
+
+export const YouTubeSeek10ForwardIcon: React.FC<{ className?: string }> = ({ className = "w-5 h-5" }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    <path d="M18 13c0 3.31-2.69 6-6 6s-6-2.69-6-6 2.69-6 6-6v4l5-5-5-5v4c-4.42 0-8 3.58-8 8s3.58 8 8 8 8-3.58 8-8h-2zm-7.1 3h-.85v-3.26l-1.01.31v-.69l1.77-.63h.09V16zm4.28-1.76c0 .32-.03.6-.1.82s-.17.42-.29.57-.28.26-.45.33-.37.1-.59.1-.41-.03-.59-.1-.33-.18-.46-.33-.22-.35-.29-.57-.1-.5-.1-.82v-1.45c0-.32.03-.6.1-.82s.17-.42.29-.57.28-.26.45-.33.37-.1.59-.1.41.03.59.1.33.18.46.33.22.35.29.57.1.5.1.82v1.45zm-.85-1.57c0-.28-.04-.48-.11-.6s-.19-.18-.34-.18-.26.06-.34.18-.11.32-.11.6v1.69c0 .28.04.48.11.6s.19.18.34.18.26-.06.34-.18.11-.32.11-.6v-1.69z" />
+  </svg>
+);
+
+
+// ============================================================================
+// TYPES
+// ============================================================================
 
 interface QualityLevel {
   id: number;
@@ -128,6 +158,12 @@ interface PlayerNativeControlsProps {
   onSeek?: (targetTime: number) => void;
 }
 
+type SettingsView = "main" | "speed" | "quality" | "fit" | "server";
+
+// ============================================================================
+// MAIN COMPONENT
+// ============================================================================
+
 export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.memo(
   function PlayerNativeControls({
     showControls,
@@ -164,169 +200,204 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
     onUserInteraction,
     onSeek,
   }) {
-    const [showSpeedMenu, setShowSpeedMenu] = useState(false);
-    const [showQualityMenu, setShowQualityMenu] = useState(false);
-    const [showFitMenu, setShowFitMenu] = useState(false);
+    // Menu Cài đặt YouTube Flyout
+    const [showSettings, setShowSettings] = useState(false);
+    const [settingsView, setSettingsView] = useState<SettingsView>("main");
+    const [loopVideo, setLoopVideo] = useState(false);
 
-    const speedBtnRef = useRef<HTMLButtonElement>(null);
-    const qualityBtnRef = useRef<HTMLButtonElement>(null);
-    const fitBtnRef = useRef<HTMLButtonElement>(null);
+    const settingsBtnRef = useRef<HTMLButtonElement>(null);
+    const settingsPanelRef = useRef<HTMLDivElement>(null);
 
-    // Xử lý phím Escape / Backspace để đóng menu popup và trả focus chuẩn xác về nút trigger
+    // Kích hoạt lặp lại video
     useEffect(() => {
-      if (!showSpeedMenu && !showQualityMenu && !showFitMenu) return;
+      if (videoRef.current) {
+        videoRef.current.loop = loopVideo;
+      }
+    }, [loopVideo, videoRef]);
 
-      const handlePopupKeyDown = (e: KeyboardEvent) => {
+    // Xử lý đóng menu khi click ra ngoài
+    useEffect(() => {
+      if (!showSettings) return;
+
+      const handleClickOutside = (e: MouseEvent) => {
+        if (
+          settingsPanelRef.current &&
+          !settingsPanelRef.current.contains(e.target as Node) &&
+          settingsBtnRef.current &&
+          !settingsBtnRef.current.contains(e.target as Node)
+        ) {
+          setShowSettings(false);
+          setSettingsView("main");
+        }
+      };
+
+      const handleEscape = (e: KeyboardEvent) => {
         if (e.key === "Escape" || e.key === "Backspace") {
           e.preventDefault();
-          e.stopPropagation();
-          if (showSpeedMenu) {
-            setShowSpeedMenu(false);
-            speedBtnRef.current?.focus();
-          }
-          if (showQualityMenu) {
-            setShowQualityMenu(false);
-            qualityBtnRef.current?.focus();
-          }
-          if (showFitMenu) {
-            setShowFitMenu(false);
-            fitBtnRef.current?.focus();
+          if (settingsView !== "main") {
+            setSettingsView("main");
+          } else {
+            setShowSettings(false);
+            settingsBtnRef.current?.focus();
           }
         }
       };
 
-      window.addEventListener("keydown", handlePopupKeyDown, { capture: true });
+      window.addEventListener("mousedown", handleClickOutside);
+      window.addEventListener("keydown", handleEscape, { capture: true });
       return () => {
-        window.removeEventListener("keydown", handlePopupKeyDown, { capture: true });
+        window.removeEventListener("mousedown", handleClickOutside);
+        window.removeEventListener("keydown", handleEscape, { capture: true });
       };
-    }, [showSpeedMenu, showQualityMenu, showFitMenu]);
+    }, [showSettings, settingsView]);
 
-    const isOverlayVisible = showControls || !isPlaying || showSpeedMenu || showQualityMenu || showFitMenu;
+    // Controls hiển thị khi showControls=true hoặc khi đang mở bảng cài đặt
+    const isOverlayVisible = showControls || showSettings;
+
+    // Tua lùi 10s
+    const handleSeekBack = useCallback(
+      (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (videoRef.current) {
+          const target = Math.max(0, (videoRef.current.currentTime || 0) - 10);
+          if (onSeek) onSeek(target);
+          else videoRef.current.currentTime = target;
+        }
+        onSeekFeedback("-10s");
+        onUserInteraction?.();
+      },
+      [videoRef, onSeek, onSeekFeedback, onUserInteraction]
+    );
+
+    // Tua tới 10s
+    const handleSeekForward = useCallback(
+      (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (videoRef.current) {
+          const target = (videoRef.current.currentTime || 0) + 10;
+          if (onSeek) onSeek(target);
+          else videoRef.current.currentTime = target;
+        }
+        onSeekFeedback("+10s");
+        onUserInteraction?.();
+      },
+      [videoRef, onSeek, onSeekFeedback, onUserInteraction]
+    );
+
+    // Nhãn chất lượng hiện tại
+    const currentQualityLabel =
+      currentQualityIndex === -1
+        ? ""
+        : qualityLevels.find((q) => q.id === currentQualityIndex)?.label || "HD";
+
+    // Nhãn tỷ lệ màn hình hiện tại
+    const currentFitLabel =
+      FIT_OPTIONS.find((f) => f.id === videoFit)?.label || "Vừa khung (16:9)";
 
     return (
       <div
-        className={`cinema-player-controls-container absolute inset-0 transition-opacity duration-300 z-30 pointer-events-none ${
+        className={`cinema-player-controls-container absolute inset-0 transition-opacity duration-300 z-30 pointer-events-none select-none ${
           isOverlayVisible ? "opacity-100" : "opacity-0"
         }`}
       >
-        {/* 1. TOP HEADER OVERLAY (Netflix Style Title & Episode Info) */}
+        {/* =================================================================== */}
+        {/* 1. TOP HEADER OVERLAY (YOUTUBE CINEMA TITLE & BADGES)                */}
+        {/* =================================================================== */}
         <div
           data-player-control="true"
           onClick={(e) => {
             e.stopPropagation();
             onUserInteraction?.();
           }}
-          className="pointer-events-auto absolute top-0 inset-x-0 w-full bg-gradient-to-b from-black/85 via-black/40 to-transparent pt-3 pb-8 px-3 sm:px-5 flex items-center justify-between z-10"
+          className="pointer-events-auto absolute top-0 inset-x-0 w-full bg-gradient-to-b from-black/80 via-black/40 to-transparent pt-2.5 pb-8 px-3.5 sm:px-6 flex items-center justify-between z-10 transition-all"
           style={{
             paddingTop: "max(0.75rem, env(safe-area-inset-top, 0.75rem))",
-            paddingLeft: "max(0.75rem, env(safe-area-inset-left, 0.75rem))",
-            paddingRight: "max(0.75rem, env(safe-area-inset-right, 0.75rem))",
+            paddingLeft: "max(1rem, env(safe-area-inset-left, 1rem))",
+            paddingRight: "max(1rem, env(safe-area-inset-right, 1rem))",
           }}
         >
-          {/* Left: Movie Title & Episode Name */}
-          <div className="flex items-center gap-2 min-w-0 pr-2">
-            <span className="flex items-center justify-center w-5 h-5 rounded-md bg-white/10 text-rose-400 border border-white/15 shrink-0">
-              <Film className="w-3 h-3" />
+          {/* Tên phim & Tập phim (co giãn thông minh trên điện thoại đứng & ngang) */}
+          <div className="flex items-center gap-2 sm:gap-2.5 min-w-0 pr-3">
+            <span className="flex items-center justify-center w-6 h-6 rounded-lg bg-white/10 text-white/90 border border-white/10 shrink-0 shadow-sm">
+              <Film className="w-3.5 h-3.5" />
             </span>
-            <span className="text-white font-bold text-xs sm:text-sm truncate drop-shadow-md">
-              {title || "Đang phát"}
-            </span>
-            {activeEpisodeName && (
-              <span className="text-gray-300 text-[11px] sm:text-xs font-normal truncate drop-shadow-md">
-                • {activeEpisodeName}
-              </span>
-            )}
+            <div className="flex items-center gap-2 min-w-0">
+              <h2 className="text-white font-semibold text-xs sm:text-sm md:text-base tracking-tight truncate max-w-[170px] xs:max-w-[240px] sm:max-w-md drop-shadow-md">
+                {title || "Đang phát"}
+              </h2>
+              {activeEpisodeName && (
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-white/10 border border-white/15 text-zinc-200 text-[11px] sm:text-xs font-medium tracking-tight shrink-0 drop-shadow-sm">
+                  {activeEpisodeName}
+                </span>
+              )}
+            </div>
           </div>
 
-          {/* Right: Badges / Info */}
-          <div className="flex items-center gap-1.5 shrink-0">
-            {currentQualityIndex !== -1 && (
-              <span className="px-2 py-0.5 rounded-full bg-white/15 border border-white/10 text-white font-mono font-bold text-[10px] backdrop-blur-sm">
-                {qualityLevels.find((q) => q.id === currentQualityIndex)?.label || "HD"}
+          {/* Huy hiệu độ phân giải - ĐÃ LOẠI BỎ CHỮ "TỰ ĐỘNG", chỉ hiện khi người dùng chọn độ phân giải thủ công */}
+          {currentQualityIndex !== -1 && currentQualityLabel && (
+            <div className="flex items-center gap-2 shrink-0">
+              <span className="px-2 py-0.5 rounded-md bg-white/10 border border-white/15 text-white/90 font-bold text-[11px] tracking-wider uppercase backdrop-blur-md shadow-sm">
+                {currentQualityLabel}
               </span>
-            )}
-          </div>
+            </div>
+          )}
         </div>
 
-        {/* 2. CENTER PLAYBACK CONTROLS CLUSTER / BUFFERING SPINNER (Mobile-Only Center Controls, YouTube Desktop Style on PC) */}
+        {/* =================================================================== */}
+        {/* 2. CENTER PLAYBACK CONTROLS (CHUẨN YOUTUBE MOBILE TỐI GIẢN & ĐẸP)   */}
+        {/* =================================================================== */}
         {isBuffering ? (
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none select-none z-10 flex flex-col items-center justify-center">
-            <div className="w-10 h-10 sm:w-14 sm:h-14 border-3 sm:border-4 border-white/20 border-t-netflix-red rounded-full animate-spin shadow-2xl" />
+            <div className="w-12 h-12 sm:w-14 sm:h-14 border-[3px] border-white/20 border-t-white rounded-full animate-spin shadow-2xl" />
           </div>
         ) : (
-          <div
-            className="md:hidden absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center justify-center gap-4 sm:gap-6 pointer-events-none select-none z-10"
-          >
+          <div className="md:hidden absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center justify-center gap-6 sm:gap-10 pointer-events-none z-10">
             {/* Tua lùi 10s */}
+            <button
+              type="button"
+              data-player-control="true"
+              onClick={handleSeekBack}
+              aria-label="Tua lùi 10 giây"
+              className="pointer-events-auto w-11 h-11 rounded-full bg-black/45 hover:bg-black/65 active:scale-90 border border-white/10 text-white/95 flex items-center justify-center shadow-lg backdrop-blur-md transition-all cursor-pointer outline-none"
+            >
+              <YouTubeSeek10BackIcon className="w-5 h-5" />
+            </button>
+
+            {/* Play/Pause chính giữa - phong cách YouTube: viền mờ tinh tế, không chói đỏ */}
             <button
               type="button"
               data-player-control="true"
               onClick={(e) => {
                 e.stopPropagation();
-                if (videoRef.current) {
-                  const target = Math.max(0, (videoRef.current.currentTime || 0) - 10);
-                  if (onSeek) {
-                    onSeek(target);
-                  } else {
-                    videoRef.current.currentTime = target;
-                  }
-                }
-                onSeekFeedback("-10s");
+                onTogglePlayPause();
                 onUserInteraction?.();
               }}
-              aria-label="Tua lùi 10 giây"
-              className="pointer-events-auto w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-black/45 hover:bg-black/70 active:scale-90 hover:scale-105 border border-white/15 text-white/90 hover:text-white flex items-center justify-center shadow-lg backdrop-blur-md transition-all cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+              aria-label={isPlaying ? "Tạm dừng" : "Phát"}
+              className="pointer-events-auto w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-black/50 hover:bg-black/70 active:scale-95 text-white flex items-center justify-center shadow-2xl backdrop-blur-md border border-white/15 transition-transform duration-150 cursor-pointer outline-none"
             >
-              <SeekBack10Icon className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
+              {isPlaying ? (
+                <YouTubePauseIcon className="w-7 h-7 sm:w-8 sm:h-8" />
+              ) : (
+                <YouTubePlayIcon className="w-7 h-7 sm:w-8 sm:h-8 ml-0.5" />
+              )}
             </button>
-
-            {/* Big Center Play / Pause */}
-            <Tooltip content={isPlaying ? "Tạm dừng" : "Phát"} shortcut="Space" side="top">
-              <button
-                type="button"
-                data-player-control="true"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onTogglePlayPause();
-                  onUserInteraction?.();
-                }}
-                aria-label={isPlaying ? "Tạm dừng" : "Phát"}
-                className="pointer-events-auto w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-netflix-red/90 hover:bg-netflix-red active:scale-90 hover:scale-105 border border-white/25 text-white flex items-center justify-center shadow-[0_0_20px_rgba(229,9,20,0.5)] backdrop-blur-md transition-all cursor-pointer outline-none focus-visible:ring-4 focus-visible:ring-white/50"
-              >
-                {isPlaying ? (
-                  <Pause className="w-5 h-5 sm:w-6 sm:h-6 fill-white" />
-                ) : (
-                  <Play className="w-5 h-5 sm:w-6 sm:h-6 fill-white ml-0.5" />
-                )}
-              </button>
-            </Tooltip>
 
             {/* Tua tới 10s */}
             <button
               type="button"
               data-player-control="true"
-              onClick={(e) => {
-                e.stopPropagation();
-                if (videoRef.current) {
-                  const target = (videoRef.current.currentTime || 0) + 10;
-                  if (onSeek) {
-                    onSeek(target);
-                  } else {
-                    videoRef.current.currentTime = target;
-                  }
-                }
-                onSeekFeedback("+10s");
-                onUserInteraction?.();
-              }}
+              onClick={handleSeekForward}
               aria-label="Tua tới 10 giây"
-              className="pointer-events-auto w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-black/45 hover:bg-black/70 active:scale-90 hover:scale-105 border border-white/15 text-white/90 hover:text-white flex items-center justify-center shadow-lg backdrop-blur-md transition-all cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+              className="pointer-events-auto w-11 h-11 rounded-full bg-black/45 hover:bg-black/65 active:scale-90 border border-white/10 text-white/95 flex items-center justify-center shadow-lg backdrop-blur-md transition-all cursor-pointer outline-none"
             >
-              <SeekForward10Icon className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
+              <YouTubeSeek10ForwardIcon className="w-5 h-5" />
             </button>
           </div>
         )}
 
-        {/* 3. BOTTOM CONTROLS BAR (Sleek, Compact YouTube / Netflix Style) */}
+        {/* =================================================================== */}
+        {/* 3. BOTTOM CONTROLS BAR (CHUẨN YOUTUBE 1:1 VỚI BÁNH RĂNG CÀI ĐẶT ⚙️) */}
+        {/* =================================================================== */}
         <div
           data-player-control="true"
           onClick={(e) => {
@@ -336,14 +407,14 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
           onMouseMove={onUserInteraction}
           onPointerMove={onUserInteraction}
           onTouchStart={onUserInteraction}
-          className="pointer-events-auto cinema-player-controls absolute bottom-0 inset-x-0 w-full bg-gradient-to-t from-black/95 via-black/75 to-transparent pt-6 pb-2.5 sm:pb-3 px-3 sm:px-5 z-10"
+          className="pointer-events-auto cinema-player-controls absolute bottom-0 inset-x-0 w-full bg-gradient-to-t from-black/85 via-black/45 to-transparent pt-6 pb-2 sm:pb-3 px-3 sm:px-5 z-20 transition-all"
           style={{
-            paddingBottom: "max(0.75rem, env(safe-area-inset-bottom, 0.75rem))",
+            paddingBottom: "max(0.5rem, env(safe-area-inset-bottom, 0.5rem))",
             paddingLeft: "max(0.75rem, env(safe-area-inset-left, 0.75rem))",
             paddingRight: "max(0.75rem, env(safe-area-inset-right, 0.75rem))",
           }}
         >
-          {/* THANH TIẾN TRÌNH SLIM CÁCH LY RE-RENDER */}
+          {/* THANH TIẾN TRÌNH SLIM YOUTUBE STYLE */}
           <PlayerScrubBar
             videoRef={videoRef}
             isNativeVideo={isNativeVideo}
@@ -354,93 +425,84 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
             onSeek={onSeek}
           />
 
-          {/* HÀNG CÁC NÚT ĐIỀU KHIỂN CHÍNH */}
-          <div className="flex items-center justify-between text-white text-xs sm:text-sm">
-            {/* Cụm Trái: Play/Pause phụ, Âm lượng, Hiển thị thời gian inline */}
-            <div className="flex items-center gap-1.5 sm:gap-2.5">
-              {/* Play / Pause Nút chính góc trái */}
-              <Tooltip content={isPlaying ? "Tạm dừng" : "Phát"} shortcut="Space" side="top">
+          {/* HÀNG NÚT ĐIỀU KHIỂN CHÍNH */}
+          <div className="flex items-center justify-between text-white mt-1">
+            {/* CỤM TRÁI: PLAY/PAUSE, TẬP TIẾP, TUA 10S, ÂM LƯỢNG, THỜI GIAN TABULAR */}
+            <div className="flex items-center gap-1 sm:gap-2">
+              {/* Nút Play / Pause */}
+              <Tooltip content={isPlaying ? "Tạm dừng" : "Phát"} shortcut="Space" side="top" align="start">
                 <button
                   type="button"
                   data-player-control="true"
                   onClick={onTogglePlayPause}
                   aria-label={isPlaying ? "Tạm dừng" : "Phát"}
-                  className="p-1.5 sm:p-2 rounded-full hover:bg-white/20 text-white transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+                  className="w-9 h-9 sm:w-10 sm:h-10 rounded-full hover:bg-white/15 active:scale-90 text-white flex items-center justify-center transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-white/40"
                 >
                   {isPlaying ? (
-                    <Pause className="w-4 h-4 sm:w-5 sm:h-5 fill-white" />
+                    <YouTubePauseIcon className="w-5 h-5 sm:w-6 sm:h-6" />
                   ) : (
-                    <Play className="w-4 h-4 sm:w-5 sm:h-5 fill-white ml-0.5" />
+                    <YouTubePlayIcon className="w-5 h-5 sm:w-6 sm:h-6 ml-0.5" />
                   )}
                 </button>
               </Tooltip>
 
-              {/* Tua lùi 10s (Ẩn trên mobile để giao diện thanh điều khiển dưới gọn gàng, rộng rãi) */}
-              <Tooltip content="Tua lùi 10 giây" shortcut="←" side="top">
+              {/* Nút Tập Tiếp Theo (YouTube Skip Track Icon) */}
+              {nextEpisode?.slug && onSwitchEpisode && (
+                <Tooltip content={`Tập tiếp: ${nextEpisode.name || ""}`} shortcut="Shift+N" side="top">
+                  <button
+                    type="button"
+                    data-player-control="true"
+                    onClick={() => onSwitchEpisode(nextEpisode.slug!)}
+                    aria-label={`Tập tiếp: ${nextEpisode.name || ""}`}
+                    className="w-9 h-9 sm:w-10 sm:h-10 rounded-full hover:bg-white/15 active:scale-90 text-white/90 hover:text-white flex items-center justify-center transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+                  >
+                    <YouTubeNextIcon className="w-5 h-5" />
+                  </button>
+                </Tooltip>
+              )}
+
+              {/* Tua lùi 10s (Ẩn trên mobile để thanh dưới thoáng rộng) */}
+              <Tooltip content="Tua lùi 10 giây" shortcut="J / ←" side="top">
                 <button
                   type="button"
                   data-player-control="true"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (videoRef.current) {
-                      const target = Math.max(0, (videoRef.current.currentTime || 0) - 10);
-                      if (onSeek) {
-                        onSeek(target);
-                      } else {
-                        videoRef.current.currentTime = target;
-                      }
-                    }
-                    onSeekFeedback("-10s");
-                    onUserInteraction?.();
-                  }}
+                  onClick={handleSeekBack}
                   aria-label="Tua lùi 10 giây"
-                  className="hidden sm:inline-flex p-1.5 sm:p-2 rounded-full hover:bg-white/20 text-gray-200 hover:text-white transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+                  className="hidden sm:inline-flex w-9 h-9 sm:w-10 sm:h-10 rounded-full hover:bg-white/15 active:scale-90 text-zinc-300 hover:text-white items-center justify-center transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-white/40"
                 >
-                  <SeekBack10Icon className="w-4 h-4 sm:w-5 sm:h-5" />
+                  <YouTubeSeek10BackIcon className="w-4.5 h-4.5" />
                 </button>
               </Tooltip>
 
-              {/* Tua tới 10s (Ẩn trên mobile để giao diện thanh điều khiển dưới gọn gàng, rộng rãi) */}
-              <Tooltip content="Tua tới 10 giây" shortcut="→" side="top">
+              {/* Tua tới 10s (Ẩn trên mobile) */}
+              <Tooltip content="Tua tới 10 giây" shortcut="L / →" side="top">
                 <button
                   type="button"
                   data-player-control="true"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (videoRef.current) {
-                      const target = (videoRef.current.currentTime || 0) + 10;
-                      if (onSeek) {
-                        onSeek(target);
-                      } else {
-                        videoRef.current.currentTime = target;
-                      }
-                    }
-                    onSeekFeedback("+10s");
-                    onUserInteraction?.();
-                  }}
+                  onClick={handleSeekForward}
                   aria-label="Tua tới 10 giây"
-                  className="hidden sm:inline-flex p-1.5 sm:p-2 rounded-full hover:bg-white/20 text-gray-200 hover:text-white transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+                  className="hidden sm:inline-flex w-9 h-9 sm:w-10 sm:h-10 rounded-full hover:bg-white/15 active:scale-90 text-zinc-300 hover:text-white items-center justify-center transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-white/40"
                 >
-                  <SeekForward10Icon className="w-4 h-4 sm:w-5 sm:h-5" />
+                  <YouTubeSeek10ForwardIcon className="w-4.5 h-4.5" />
                 </button>
               </Tooltip>
 
-              {/* Âm lượng */}
-              <div className="flex items-center gap-1 group/vol">
+              {/* Cụm Âm Lượng YouTube (Hover nở thanh kéo trượt) */}
+              <div className="flex items-center group/vol">
                 <Tooltip content={isMuted ? "Bật tiếng" : "Tắt tiếng"} shortcut="M" side="top">
                   <button
                     type="button"
                     data-player-control="true"
                     onClick={onToggleMute}
                     aria-label={isMuted ? "Bật tiếng" : "Tắt tiếng"}
-                    className="p-1.5 sm:p-2 rounded-full hover:bg-white/20 text-white/80 hover:text-white transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+                    className="w-9 h-9 sm:w-10 sm:h-10 rounded-full hover:bg-white/15 active:scale-90 text-white/90 hover:text-white flex items-center justify-center transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-white/40"
                   >
                     {isMuted || volume === 0 ? (
-                      <VolumeX className="w-4 h-4 text-rose-400" />
+                      <YouTubeVolumeMuteIcon className="w-5 h-5 text-netflix-red" />
                     ) : volume < 0.5 ? (
-                      <Volume1 className="w-4 h-4 text-white/90" />
+                      <YouTubeVolumeLowIcon className="w-5 h-5" />
                     ) : (
-                      <Volume2 className="w-4 h-4 text-white/90" />
+                      <YouTubeVolumeHighIcon className="w-5 h-5" />
                     )}
                   </button>
                 </Tooltip>
@@ -452,11 +514,11 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
                   value={isMuted ? 0 : volume}
                   onChange={(e) => onVolumeChange(parseFloat(e.target.value))}
                   aria-label="Âm lượng"
-                  className="w-0 opacity-0 group-hover/vol:w-16 sm:group-hover/vol:w-20 group-hover/vol:opacity-100 group-focus-within/vol:w-16 sm:group-focus-within/vol:w-20 group-focus-within/vol:opacity-100 transition-all duration-200 ease-out accent-netflix-red h-1 bg-white/25 rounded-full cursor-pointer hidden sm:inline-block outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+                  className="w-0 opacity-0 group-hover/vol:w-16 sm:group-hover/vol:w-20 group-hover/vol:opacity-100 group-focus-within/vol:w-16 sm:group-focus-within/vol:w-20 group-focus-within/vol:opacity-100 transition-all duration-200 ease-out accent-netflix-red h-1 bg-white/25 rounded-full cursor-pointer hidden sm:inline-block outline-none"
                 />
               </div>
 
-              {/* Hiển thị thời gian inline YouTube Style */}
+              {/* Thời gian phát Tabular Nums chuẩn YouTube */}
               <PlayerTimeDisplay
                 videoRef={videoRef}
                 isNativeVideo={isNativeVideo}
@@ -464,205 +526,346 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
               />
             </div>
 
-            {/* Cụm Phải: Tập tiếp theo, Tốc độ, Chất lượng, Tỷ lệ khung hình, PiP, Toàn màn hình */}
-            <div className="flex items-center gap-1 sm:gap-1.5 relative">
-              {/* Nút Tập tiếp theo nhanh */}
-              {nextEpisode?.slug && onSwitchEpisode && (
-                <Tooltip content={`Tập tiếp: ${nextEpisode.name || ""}`} side="top">
-                  <button
-                    type="button"
-                    data-player-control="true"
-                    onClick={() => onSwitchEpisode(nextEpisode.slug!)}
-                    aria-label={`Tập tiếp: ${nextEpisode.name || ""}`}
-                    className="hidden sm:inline-flex items-center gap-1 px-2 py-1 rounded-md bg-white/10 hover:bg-white/20 text-white text-xs font-semibold transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-white/40"
-                  >
-                    <SkipForward className="w-3.5 h-3.5 fill-white" />
-                    <span className="hidden md:inline">Tập tiếp</span>
-                  </button>
-                </Tooltip>
-              )}
-
-              {/* TỐC ĐỘ PHÁT */}
+            {/* CỤM PHẢI: BÁNH RĂNG CÀI ĐẶT (SETTINGS), PIP, THEATER, FULLSCREEN */}
+            <div className="flex items-center gap-0.5 sm:gap-1.5 relative">
+              {/* ============================================================= */}
+              {/* BÁNH RĂNG CÀI ĐẶT ⚙️ (YOUTUBE SETTINGS COMMAND CENTER)         */}
+              {/* ============================================================= */}
               <div className="relative">
-                <Tooltip content="Tốc độ phát" side="top">
+                <Tooltip content="Cài đặt" side="top">
                   <button
-                    ref={speedBtnRef}
+                    ref={settingsBtnRef}
                     type="button"
                     data-player-control="true"
                     onClick={() => {
-                      setShowSpeedMenu(!showSpeedMenu);
-                      setShowQualityMenu(false);
-                      setShowFitMenu(false);
+                      setShowSettings(!showSettings);
+                      setSettingsView("main");
                     }}
-                    aria-label="Tốc độ phát"
-                    className="px-2 py-1 rounded-md hover:bg-white/20 text-gray-200 hover:text-white text-xs font-semibold transition cursor-pointer flex items-center gap-1 outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+                    aria-label="Cài đặt trình phát"
+                    aria-expanded={showSettings}
+                    className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full hover:bg-white/15 active:scale-90 flex items-center justify-center transition-all cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-white/40 ${
+                      showSettings ? "bg-white/20 text-white rotate-45" : "text-white/90 hover:text-white"
+                    }`}
                   >
-                    <span>{playbackSpeed}x</span>
+                    <YouTubeSettingsIcon className="w-5 h-5 transition-transform duration-300" />
                   </button>
                 </Tooltip>
-                {showSpeedMenu && (
+
+                {/* YOUTUBE SETTINGS FLYOUT MENU */}
+                {showSettings && (
                   <div
-                    className="pointer-events-auto absolute bottom-full right-0 mb-2 py-1.5 w-24 bg-zinc-900/95 border border-white/15 rounded-xl shadow-2xl backdrop-blur-md z-50 text-xs flex flex-col"
+                    ref={settingsPanelRef}
+                    role="dialog"
+                    aria-label="Cài đặt trình phát"
+                    className="pointer-events-auto absolute bottom-full right-0 mb-3 w-[270px] sm:w-[290px] max-h-[min(340px,calc(100vh-80px))] bg-zinc-950/95 border border-white/15 rounded-2xl shadow-2xl backdrop-blur-2xl text-white overflow-y-auto z-50 animate-in fade-in zoom-in-95 duration-150"
                   >
-                    {[0.5, 0.75, 1, 1.25, 1.5, 2].map((spd) => (
-                      <button
-                        key={spd}
-                        type="button"
-                        data-player-menu-item="true"
-                        tabIndex={0}
-                        onClick={() => {
-                          onSpeedChange(spd);
-                          setShowSpeedMenu(false);
-                        }}
-                        className={`px-3 py-1.5 text-left hover:bg-white/15 transition cursor-pointer flex items-center justify-between outline-none focus-visible:bg-white/20 focus-visible:text-white ${
-                          playbackSpeed === spd ? "text-netflix-red font-bold" : "text-gray-300"
-                        }`}
-                      >
-                        <span>{spd}x</span>
-                        {playbackSpeed === spd && <span className="w-1.5 h-1.5 rounded-full bg-netflix-red" />}
-                      </button>
-                    ))}
+                    {/* VIEW: MAIN MENU */}
+                    {settingsView === "main" && (
+                      <div className="py-1 flex flex-col">
+                        <div className="px-4 py-2 border-b border-white/10 flex items-center justify-between text-xs font-semibold text-zinc-400">
+                          <span>Cài đặt trình phát</span>
+                          <span className="text-[10px] font-mono uppercase bg-white/10 px-1.5 py-0.5 rounded text-zinc-300">Nanaflix </span>
+                        </div>
+
+                        {/* Mục: Tốc độ phát */}
+                        <button
+                          type="button"
+                          onClick={() => setSettingsView("speed")}
+                          className="flex items-center justify-between px-3.5 py-2.5 hover:bg-white/10 transition cursor-pointer text-xs sm:text-sm text-left group"
+                        >
+                          <div className="flex items-center gap-2.5 text-zinc-200 group-hover:text-white">
+                            <Gauge className="w-4 h-4 text-zinc-400 group-hover:text-white" />
+                            <span>Tốc độ phát</span>
+                          </div>
+                          <div className="flex items-center gap-1 text-zinc-400 group-hover:text-zinc-200 text-xs">
+                            <span>{playbackSpeed === 1 ? "Chuẩn" : `${playbackSpeed}x`}</span>
+                            <ChevronRight className="w-3.5 h-3.5 text-zinc-500" />
+                          </div>
+                        </button>
+
+                        {/* Mục: Chất lượng video (nếu có hls levels) */}
+                        {qualityLevels.length > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => setSettingsView("quality")}
+                            className="flex items-center justify-between px-3.5 py-2.5 hover:bg-white/10 transition cursor-pointer text-xs sm:text-sm text-left group"
+                          >
+                            <div className="flex items-center gap-2.5 text-zinc-200 group-hover:text-white">
+                              <Sliders className="w-4 h-4 text-zinc-400 group-hover:text-white" />
+                              <span>Chất lượng</span>
+                            </div>
+                            <div className="flex items-center gap-1 text-zinc-400 group-hover:text-zinc-200 text-xs">
+                              <span>{currentQualityLabel}</span>
+                              <ChevronRight className="w-3.5 h-3.5 text-zinc-500" />
+                            </div>
+                          </button>
+                        )}
+
+                        {/* Mục: Tỉ lệ màn hình */}
+                        {isNativeVideo && (
+                          <button
+                            type="button"
+                            onClick={() => setSettingsView("fit")}
+                            className="flex items-center justify-between px-3.5 py-2.5 hover:bg-white/10 transition cursor-pointer text-xs sm:text-sm text-left group"
+                          >
+                            <div className="flex items-center gap-2.5 text-zinc-200 group-hover:text-white">
+                              <Scaling className="w-4 h-4 text-zinc-400 group-hover:text-white" />
+                              <span>Tỉ lệ màn hình</span>
+                            </div>
+                            <div className="flex items-center gap-1 text-zinc-400 group-hover:text-zinc-200 text-xs">
+                              <span className="truncate max-w-[90px]">{currentFitLabel.split(" ")[0]}</span>
+                              <ChevronRight className="w-3.5 h-3.5 text-zinc-500" />
+                            </div>
+                          </button>
+                        )}
+
+                        {/* Mục: Nguồn phát / Server dự phòng */}
+                        {embedSrc && (
+                          <button
+                            type="button"
+                            onClick={() => setSettingsView("server")}
+                            className="flex items-center justify-between px-3.5 py-2.5 hover:bg-white/10 transition cursor-pointer text-xs sm:text-sm text-left group"
+                          >
+                            <div className="flex items-center gap-2.5 text-zinc-200 group-hover:text-white">
+                              <Tv className="w-4 h-4 text-zinc-400 group-hover:text-white" />
+                              <span>Nguồn phát</span>
+                            </div>
+                            <div className="flex items-center gap-1 text-zinc-400 group-hover:text-zinc-200 text-xs">
+                              <span>Chính (HLS)</span>
+                              <ChevronRight className="w-3.5 h-3.5 text-zinc-500" />
+                            </div>
+                          </button>
+                        )}
+
+                        {/* Mục: Lặp lại video */}
+                        <button
+                          type="button"
+                          onClick={() => setLoopVideo(!loopVideo)}
+                          className="flex items-center justify-between px-3.5 py-2.5 hover:bg-white/10 transition cursor-pointer text-xs sm:text-sm text-left group"
+                        >
+                          <div className="flex items-center gap-2.5 text-zinc-200 group-hover:text-white">
+                            <Repeat className="w-4 h-4 text-zinc-400 group-hover:text-white" />
+                            <span>Lặp lại video</span>
+                          </div>
+                          <div
+                            className={`w-8 h-4.5 rounded-full p-0.5 transition-colors duration-200 flex items-center ${
+                              loopVideo ? "bg-netflix-red justify-end" : "bg-white/20 justify-start"
+                            }`}
+                          >
+                            <div className="w-3.5 h-3.5 rounded-full bg-white shadow-sm" />
+                          </div>
+                        </button>
+
+                        {/* Mục: Phím tắt điều khiển */}
+                        {onOpenShortcuts && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setShowSettings(false);
+                              onOpenShortcuts();
+                            }}
+                            className="flex items-center justify-between px-3.5 py-2.5 hover:bg-white/10 transition cursor-pointer text-xs sm:text-sm text-left group border-t border-white/10 mt-1"
+                          >
+                            <div className="flex items-center gap-2.5 text-zinc-200 group-hover:text-white">
+                              <Keyboard className="w-4 h-4 text-zinc-400 group-hover:text-white" />
+                              <span>Phím tắt điều khiển</span>
+                            </div>
+                            <span className="text-[10px] font-mono text-zinc-400 bg-white/10 px-1.5 py-0.5 rounded">
+                              ?
+                            </span>
+                          </button>
+                        )}
+                      </div>
+                    )}
+
+                    {/* VIEW: SPEED SUBMENU */}
+                    {settingsView === "speed" && (
+                      <div className="py-1 flex flex-col">
+                        <button
+                          type="button"
+                          onClick={() => setSettingsView("main")}
+                          className="flex items-center gap-2 px-3 py-2 border-b border-white/10 text-xs font-semibold text-white hover:bg-white/10 transition cursor-pointer"
+                        >
+                          <ChevronLeft className="w-4 h-4 text-zinc-400" />
+                          <span>Tốc độ phát</span>
+                        </button>
+                        <div className="max-h-56 overflow-y-auto py-1">
+                          {SPEED_OPTIONS.map((spd) => {
+                            const isSelected = playbackSpeed === spd;
+                            return (
+                              <button
+                                key={spd}
+                                type="button"
+                                onClick={() => {
+                                  onSpeedChange(spd);
+                                  setShowSettings(false);
+                                  setSettingsView("main");
+                                }}
+                                className={`w-full flex items-center justify-between px-4 py-2 text-xs sm:text-[13px] hover:bg-white/10 transition cursor-pointer ${
+                                  isSelected ? "text-netflix-red font-bold" : "text-zinc-200"
+                                }`}
+                              >
+                                <span>{spd === 1 ? "Chuẩn (1x)" : `${spd}x`}</span>
+                                {isSelected && <Check className="w-4 h-4 text-netflix-red" />}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* VIEW: QUALITY SUBMENU */}
+                    {settingsView === "quality" && (
+                      <div className="py-1 flex flex-col">
+                        <button
+                          type="button"
+                          onClick={() => setSettingsView("main")}
+                          className="flex items-center gap-2 px-3 py-2 border-b border-white/10 text-xs font-semibold text-white hover:bg-white/10 transition cursor-pointer"
+                        >
+                          <ChevronLeft className="w-4 h-4 text-zinc-400" />
+                          <span>Chất lượng video</span>
+                        </button>
+                        <div className="max-h-56 overflow-y-auto py-1">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              onQualityChange(-1);
+                              setShowSettings(false);
+                              setSettingsView("main");
+                            }}
+                            className={`w-full flex items-center justify-between px-4 py-2 text-xs sm:text-[13px] hover:bg-white/10 transition cursor-pointer ${
+                              currentQualityIndex === -1 ? "text-netflix-red font-bold" : "text-zinc-200"
+                            }`}
+                          >
+                            <div className="flex flex-col text-left">
+                              <span>Tự động</span>
+                              <span className="text-[10px] text-zinc-400 font-normal">Tối ưu theo đường truyền</span>
+                            </div>
+                            {currentQualityIndex === -1 && <Check className="w-4 h-4 text-netflix-red" />}
+                          </button>
+                          {qualityLevels.map((lvl) => {
+                            const isSelected = currentQualityIndex === lvl.id;
+                            return (
+                              <button
+                                key={lvl.id}
+                                type="button"
+                                onClick={() => {
+                                  onQualityChange(lvl.id);
+                                  setShowSettings(false);
+                                  setSettingsView("main");
+                                }}
+                                className={`w-full flex items-center justify-between px-4 py-2 text-xs sm:text-[13px] hover:bg-white/10 transition cursor-pointer ${
+                                  isSelected ? "text-netflix-red font-bold" : "text-zinc-200"
+                                }`}
+                              >
+                                <span>{lvl.label}</span>
+                                {isSelected && <Check className="w-4 h-4 text-netflix-red" />}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* VIEW: FIT SUBMENU */}
+                    {settingsView === "fit" && (
+                      <div className="py-1 flex flex-col">
+                        <button
+                          type="button"
+                          onClick={() => setSettingsView("main")}
+                          className="flex items-center gap-2 px-3 py-2 border-b border-white/10 text-xs font-semibold text-white hover:bg-white/10 transition cursor-pointer"
+                        >
+                          <ChevronLeft className="w-4 h-4 text-zinc-400" />
+                          <span>Tỉ lệ màn hình</span>
+                        </button>
+                        <div className="py-1">
+                          {FIT_OPTIONS.map((opt) => {
+                            const isSelected = videoFit === opt.id;
+                            return (
+                              <button
+                                key={opt.id}
+                                type="button"
+                                onClick={() => {
+                                  onVideoFitChange?.(opt.id);
+                                  setShowSettings(false);
+                                  setSettingsView("main");
+                                }}
+                                className={`w-full flex items-center justify-between px-4 py-2 text-xs sm:text-[13px] hover:bg-white/10 transition cursor-pointer ${
+                                  isSelected ? "text-netflix-red font-bold" : "text-zinc-200"
+                                }`}
+                              >
+                                <span>{opt.label}</span>
+                                {isSelected && <Check className="w-4 h-4 text-netflix-red" />}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* VIEW: SERVER SUBMENU */}
+                    {settingsView === "server" && (
+                      <div className="py-1 flex flex-col">
+                        <button
+                          type="button"
+                          onClick={() => setSettingsView("main")}
+                          className="flex items-center gap-2 px-3 py-2 border-b border-white/10 text-xs font-semibold text-white hover:bg-white/10 transition cursor-pointer"
+                        >
+                          <ChevronLeft className="w-4 h-4 text-zinc-400" />
+                          <span>Nguồn phát / Máy chủ</span>
+                        </button>
+                        <div className="py-1">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setShowSettings(false);
+                              setSettingsView("main");
+                            }}
+                            className="w-full flex items-center justify-between px-4 py-2 text-xs sm:text-[13px] text-netflix-red font-bold hover:bg-white/10 transition cursor-pointer"
+                          >
+                            <div className="flex flex-col text-left">
+                              <span>Nguồn  HLS (Chính)</span>
+                              <span className="text-[10px] text-zinc-400 font-normal">Tốc độ cao, mượt mà</span>
+                            </div>
+                            <Check className="w-4 h-4 text-netflix-red" />
+                          </button>
+                          {embedSrc && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setShowSettings(false);
+                                setSettingsView("main");
+                                onUseIframeFallback();
+                              }}
+                              className="w-full flex items-center justify-between px-4 py-2 text-xs sm:text-[13px] text-zinc-200 hover:bg-white/10 transition cursor-pointer"
+                            >
+                              <div className="flex flex-col text-left">
+                                <span>Nguồn dự phòng (Embed)</span>
+                                <span className="text-[10px] text-zinc-400 font-normal">Dùng khi server chính gặp sự cố</span>
+                              </div>
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
 
-              {/* CHẤT LƯỢNG VIDEO */}
-              {qualityLevels.length > 0 && (
-                <div className="relative">
-                  <Tooltip content="Chất lượng video" side="top">
-                    <button
-                      ref={qualityBtnRef}
-                      type="button"
-                      data-player-control="true"
-                      onClick={() => {
-                        setShowQualityMenu(!showQualityMenu);
-                        setShowSpeedMenu(false);
-                        setShowFitMenu(false);
-                      }}
-                      aria-label="Chất lượng video"
-                      className="p-1.5 sm:p-2 rounded-full hover:bg-white/20 text-gray-200 hover:text-white transition cursor-pointer flex items-center outline-none focus-visible:ring-2 focus-visible:ring-white/40"
-                    >
-                      <Settings className="w-4 h-4" />
-                    </button>
-                  </Tooltip>
-                  {showQualityMenu && (
-                    <div
-                      className="pointer-events-auto absolute bottom-full right-0 mb-2 py-1.5 w-28 bg-zinc-900/95 border border-white/15 rounded-xl shadow-2xl backdrop-blur-md z-50 text-xs flex flex-col"
-                    >
-                      <button
-                        type="button"
-                        data-player-menu-item="true"
-                        tabIndex={0}
-                        onClick={() => {
-                          onQualityChange(-1);
-                          setShowQualityMenu(false);
-                        }}
-                        className={`px-3 py-1.5 text-left hover:bg-white/15 transition cursor-pointer flex items-center justify-between outline-none focus-visible:bg-white/20 focus-visible:text-white ${
-                          currentQualityIndex === -1 ? "text-netflix-red font-bold" : "text-gray-300"
-                        }`}
-                      >
-                        <span>Tự động</span>
-                        {currentQualityIndex === -1 && <span className="w-1.5 h-1.5 rounded-full bg-netflix-red" />}
-                      </button>
-                      {qualityLevels.map((lvl) => (
-                        <button
-                          key={lvl.id}
-                          type="button"
-                          data-player-menu-item="true"
-                          tabIndex={0}
-                          onClick={() => {
-                            onQualityChange(lvl.id);
-                            setShowQualityMenu(false);
-                          }}
-                          className={`px-3 py-1.5 text-left hover:bg-white/15 transition cursor-pointer flex items-center justify-between outline-none focus-visible:bg-white/20 focus-visible:text-white ${
-                            currentQualityIndex === lvl.id ? "text-netflix-red font-bold" : "text-gray-300"
-                          }`}
-                        >
-                          <span>{lvl.label}</span>
-                          {currentQualityIndex === lvl.id && <span className="w-1.5 h-1.5 rounded-full bg-netflix-red" />}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* TỶ LỆ KHUNG HÌNH (SCREEN FIT) */}
-              {isNativeVideo && (
-                <div className="relative">
-                  <Tooltip content="Tỷ lệ màn hình" side="top">
-                    <button
-                      ref={fitBtnRef}
-                      type="button"
-                      data-player-control="true"
-                      onClick={() => {
-                        setShowFitMenu(!showFitMenu);
-                        setShowSpeedMenu(false);
-                        setShowQualityMenu(false);
-                      }}
-                      aria-label="Tỷ lệ màn hình"
-                      className="p-1.5 sm:p-2 rounded-full hover:bg-white/20 text-gray-200 hover:text-white transition cursor-pointer flex items-center outline-none focus-visible:ring-2 focus-visible:ring-white/40"
-                    >
-                      <Scaling className="w-4 h-4" />
-                    </button>
-                  </Tooltip>
-                  {showFitMenu && (
-                    <div
-                      className="pointer-events-auto absolute bottom-full right-0 mb-2 py-1.5 w-32 bg-zinc-900/95 border border-white/15 rounded-xl shadow-2xl backdrop-blur-md z-50 text-xs flex flex-col"
-                    >
-                      {FIT_OPTIONS.map((opt) => (
-                        <button
-                          key={opt.id}
-                          type="button"
-                          data-player-menu-item="true"
-                          tabIndex={0}
-                          onClick={() => {
-                            onVideoFitChange?.(opt.id);
-                            setShowFitMenu(false);
-                          }}
-                          className={`px-3 py-1.5 text-left hover:bg-white/15 transition cursor-pointer flex items-center justify-between outline-none focus-visible:bg-white/20 focus-visible:text-white ${
-                            videoFit === opt.id ? "text-netflix-red font-bold" : "text-gray-300"
-                          }`}
-                        >
-                          <span>{opt.label}</span>
-                          {videoFit === opt.id && <Check className="w-3.5 h-3.5 text-netflix-red" />}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* PiP */}
-              <Tooltip content="Hình trong hình (PiP)" side="top">
+              {/* HÌNH TRONG HÌNH (MINIPLAYER / PIP) */}
+              <Tooltip content="Hình trong hình (PiP)" shortcut="P" side="top">
                 <button
                   type="button"
                   data-player-control="true"
                   onClick={onTogglePiP}
                   aria-label="Hình trong hình (PiP)"
-                  className="hidden sm:inline-flex p-1.5 sm:p-2 rounded-full hover:bg-white/20 text-gray-200 hover:text-white transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+                  className="hidden sm:inline-flex w-9 h-9 sm:w-10 sm:h-10 rounded-full hover:bg-white/15 active:scale-90 text-white/90 hover:text-white items-center justify-center transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-white/40"
                 >
-                  <PictureInPicture className="w-4 h-4" />
+                  <YouTubeMiniplayerIcon className="w-5 h-5" />
                 </button>
               </Tooltip>
 
-              {/* Nguồn phát dự phòng */}
-              {embedSrc && (
-                <Tooltip content="Chuyển sang nguồn phát dự phòng" side="top">
-                  <button
-                    type="button"
-                    data-player-control="true"
-                    onClick={onUseIframeFallback}
-                    aria-label="Chuyển sang nguồn phát dự phòng"
-                    className="hidden md:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/10 hover:bg-white/20 text-white/85 hover:text-white text-xs font-medium backdrop-blur-md border border-white/10 transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-white/40"
-                  >
-                    <Tv className="w-3.5 h-3.5 text-white/80" />
-                    <span>Dự phòng</span>
-                  </button>
-                </Tooltip>
-              )}
-
-              {/* Chế độ Rạp phim (T) */}
+              {/* CHẾ ĐỘ RẠP PHIM (THEATER MODE) */}
               {onToggleTheaterMode && !isFullscreen && (
                 <Tooltip content={isTheaterMode ? "Thu nhỏ chế độ rạp phim" : "Chế độ rạp phim"} shortcut="T" side="top">
                   <button
@@ -670,43 +873,28 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
                     data-player-control="true"
                     onClick={onToggleTheaterMode}
                     aria-label={isTheaterMode ? "Thu nhỏ chế độ rạp phim" : "Chế độ rạp phim"}
-                    className={`hidden sm:inline-flex p-1.5 sm:p-2 rounded-full hover:bg-white/20 transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-white/40 ${
-                      isTheaterMode ? "text-netflix-red" : "text-gray-200 hover:text-white"
+                    className={`hidden sm:inline-flex w-9 h-9 sm:w-10 sm:h-10 rounded-full hover:bg-white/15 active:scale-90 items-center justify-center transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-white/40 ${
+                      isTheaterMode ? "text-netflix-red" : "text-white/90 hover:text-white"
                     }`}
                   >
-                    {isTheaterMode ? <Minimize2 className="w-4 h-4" /> : <Tv className="w-4 h-4" />}
+                    <YouTubeTheaterIcon className="w-5 h-5" />
                   </button>
                 </Tooltip>
               )}
 
-              {/* Danh sách phím tắt (?) */}
-              {onOpenShortcuts && (
-                <Tooltip content="Danh sách phím tắt" shortcut="?" side="top">
-                  <button
-                    type="button"
-                    data-player-control="true"
-                    onClick={onOpenShortcuts}
-                    aria-label="Danh sách phím tắt"
-                    className="hidden md:inline-flex p-1.5 sm:p-2 rounded-full hover:bg-white/20 text-gray-200 hover:text-white transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-white/40"
-                  >
-                    <Keyboard className="w-4 h-4" />
-                  </button>
-                </Tooltip>
-              )}
-
-              {/* Fullscreen */}
-              <Tooltip content={isFullscreen ? "Thoát toàn màn hình" : "Toàn màn hình"} shortcut="F" side="top">
+              {/* TOÀN MÀN HÌNH (FULLSCREEN) */}
+              <Tooltip content={isFullscreen ? "Thoát toàn màn hình" : "Toàn màn hình"} shortcut="F" side="top" align="end">
                 <button
                   type="button"
                   data-player-control="true"
                   onClick={onToggleFullscreen}
                   aria-label={isFullscreen ? "Thoát toàn màn hình" : "Toàn màn hình"}
-                  className="p-1.5 sm:p-2 rounded-full hover:bg-white/20 text-gray-200 hover:text-white transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+                  className="w-9 h-9 sm:w-10 sm:h-10 rounded-full hover:bg-white/15 active:scale-90 text-white/90 hover:text-white flex items-center justify-center transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-white/40"
                 >
                   {isFullscreen ? (
-                    <Minimize2 className="w-4 h-4 sm:w-5 sm:h-5" />
+                    <YouTubeExitFullscreenIcon className="w-5 h-5" />
                   ) : (
-                    <Maximize2 className="w-4 h-4 sm:w-5 sm:h-5" />
+                    <YouTubeFullscreenIcon className="w-5 h-5" />
                   )}
                 </button>
               </Tooltip>
@@ -717,3 +905,5 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
     );
   }
 );
+
+export default PlayerNativeControls;

@@ -497,7 +497,7 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
       ) : stats.totalReviews > 0 ? (
         <div className="flex items-center justify-between pb-3 border-b border-white/5">
           <div className="flex items-center gap-2">
-            <span className="text-xs font-bold text-gray-300">Tổng quan đánh giá:</span>
+            <span className="text-xs font-bold text-zinc-300">Tổng quan đánh giá:</span>
             <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-red-500/10 text-red-400 border border-red-500/20">
               {sortedComments.length} bình luận
             </span>

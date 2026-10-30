@@ -91,7 +91,7 @@ export const AdminMemberDetailModal: React.FC<AdminMemberDetailModalProps> = Rea
                       Online
                     </span>
                   ) : (
-                    <span className="text-[9px] sm:text-[10px] px-1.5 sm:px-2 py-0.5 rounded-full bg-zinc-800 text-gray-400 border border-white/5 flex-shrink-0">
+                    <span className="text-[9px] sm:text-[10px] px-1.5 sm:px-2 py-0.5 rounded-full bg-zinc-800 text-zinc-400 border border-white/5 flex-shrink-0">
                       Ngoại tuyến
                     </span>
                   )}
@@ -107,8 +107,8 @@ export const AdminMemberDetailModal: React.FC<AdminMemberDetailModalProps> = Rea
                     </span>
                   ) : null}
                 </div>
-                <p className="text-[11px] sm:text-xs text-gray-400 truncate mt-0.5">{selectedMember.email || "Chưa có email"}</p>
-                <p className="text-[10px] sm:text-[11px] text-gray-500 font-mono mt-0.5 truncate max-w-[200px] sm:max-w-none">UID: {selectedMember.uid}</p>
+                <p className="text-[11px] sm:text-xs text-zinc-400 truncate mt-0.5">{selectedMember.email || "Chưa có email"}</p>
+                <p className="text-[10px] sm:text-[11px] text-zinc-500 font-mono mt-0.5 truncate max-w-[200px] sm:max-w-none">UID: {selectedMember.uid}</p>
                 {(selectedMember.approximateLocation?.country || selectedMember.deviceInfo?.deviceType) && (
                   <div className="flex items-center gap-1.5 flex-wrap mt-1.5 text-[10px] sm:text-[11px]">
                     {selectedMember.approximateLocation?.country && (
@@ -137,7 +137,7 @@ export const AdminMemberDetailModal: React.FC<AdminMemberDetailModalProps> = Rea
               <button
                 type="button"
                 onClick={onClose}
-                className="p-1.5 sm:hidden rounded-xl bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white transition cursor-pointer flex-shrink-0"
+                className="p-1.5 sm:hidden rounded-xl bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white transition cursor-pointer flex-shrink-0"
               >
                 <X size={16} />
               </button>
@@ -161,7 +161,7 @@ export const AdminMemberDetailModal: React.FC<AdminMemberDetailModalProps> = Rea
               <button
                 type="button"
                 onClick={onClose}
-                className="hidden sm:flex p-2 rounded-xl bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white transition cursor-pointer"
+                className="hidden sm:flex p-2 rounded-xl bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white transition cursor-pointer"
               >
                 <X size={18} />
               </button>
@@ -173,7 +173,7 @@ export const AdminMemberDetailModal: React.FC<AdminMemberDetailModalProps> = Rea
             <div className="flex items-center gap-2 min-w-0">
               <Clock size={14} className="text-emerald-400 flex-shrink-0" />
               <div className="min-w-0">
-                <span className="text-[10px] text-gray-400 block">Tổng cày phim</span>
+                <span className="text-[10px] text-zinc-400 block">Tổng cày phim</span>
                 <span className="font-bold text-white truncate block">
                   {selectedMember.watchTimeMinutes
                     ? selectedMember.watchTimeMinutes >= 60
@@ -187,8 +187,8 @@ export const AdminMemberDetailModal: React.FC<AdminMemberDetailModalProps> = Rea
             <div className="flex items-center gap-2 min-w-0">
               <MessageSquare size={14} className="text-blue-400 flex-shrink-0" />
               <div className="min-w-0">
-                <span className="text-[10px] text-gray-400 block">Lần cuối hoạt động</span>
-                <span className="font-semibold text-gray-300 truncate block">
+                <span className="text-[10px] text-zinc-400 block">Lần cuối hoạt động</span>
+                <span className="font-semibold text-zinc-300 truncate block">
                   {formatDate(selectedMember.lastActiveAt || selectedMember.lastLoginAt)}
                 </span>
               </div>
@@ -198,7 +198,7 @@ export const AdminMemberDetailModal: React.FC<AdminMemberDetailModalProps> = Rea
               <div className="flex items-center gap-2 min-w-0">
                 <Film size={14} className="text-amber-400 flex-shrink-0" />
                 <div className="min-w-0">
-                  <span className="text-[10px] text-gray-400 block">Đang xem</span>
+                  <span className="text-[10px] text-zinc-400 block">Đang xem</span>
                   <span className="font-bold text-amber-300 truncate block">
                     {selectedMember.currentWatching.movieTitle} ({selectedMember.currentWatching.progressPercent}%)
                   </span>
@@ -208,8 +208,8 @@ export const AdminMemberDetailModal: React.FC<AdminMemberDetailModalProps> = Rea
               <div className="flex items-center gap-2 min-w-0">
                 <Bookmark size={14} className="text-purple-400 flex-shrink-0" />
                 <div className="min-w-0">
-                  <span className="text-[10px] text-gray-400 block">Tham gia ngày</span>
-                  <span className="font-semibold text-gray-300 truncate block">
+                  <span className="text-[10px] text-zinc-400 block">Tham gia ngày</span>
+                  <span className="font-semibold text-zinc-300 truncate block">
                     {formatDate(selectedMember.createdAt)}
                   </span>
                 </div>
@@ -225,7 +225,7 @@ export const AdminMemberDetailModal: React.FC<AdminMemberDetailModalProps> = Rea
               className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 flex-shrink-0 ${
                 memberDetailTab === "comments"
                   ? "bg-netflix-red text-white"
-                  : "text-gray-400 hover:text-white"
+                  : "text-zinc-400 hover:text-white"
               }`}
             >
               <MessageSquare size={13} />
@@ -238,7 +238,7 @@ export const AdminMemberDetailModal: React.FC<AdminMemberDetailModalProps> = Rea
               className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 flex-shrink-0 ${
                 memberDetailTab === "history"
                   ? "bg-netflix-red text-white"
-                  : "text-gray-400 hover:text-white"
+                  : "text-zinc-400 hover:text-white"
               }`}
             >
               <History size={13} />
@@ -251,7 +251,7 @@ export const AdminMemberDetailModal: React.FC<AdminMemberDetailModalProps> = Rea
               className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 flex-shrink-0 ${
                 memberDetailTab === "watchlist"
                   ? "bg-netflix-red text-white"
-                  : "text-gray-400 hover:text-white"
+                  : "text-zinc-400 hover:text-white"
               }`}
             >
               <Bookmark size={13} />
@@ -264,14 +264,14 @@ export const AdminMemberDetailModal: React.FC<AdminMemberDetailModalProps> = Rea
             {loadingMemberDetails ? (
               <div className="p-8 text-center">
                 <div className="w-6 h-6 rounded-full border-2 border-netflix-red border-t-transparent animate-spin mx-auto mb-2" />
-                <p className="text-xs text-gray-400">Đang tải dữ liệu đám mây của thành viên...</p>
+                <p className="text-xs text-zinc-400">Đang tải dữ liệu đám mây của thành viên...</p>
               </div>
             ) : memberDetailTab === "comments" ? (
               (() => {
                 const userComms = comments.filter((c) => c.userId === selectedMember.uid);
                 if (userComms.length === 0) {
                   return (
-                    <div className="p-8 text-center text-xs text-gray-500">
+                    <div className="p-8 text-center text-xs text-zinc-500">
                       Thành viên này chưa để lại bình luận nào trên hệ thống.
                     </div>
                   );
@@ -294,7 +294,7 @@ export const AdminMemberDetailModal: React.FC<AdminMemberDetailModalProps> = Rea
                               <ExternalLink size={11} />
                             </Link>
                             {c.episodeName && (
-                              <span className="text-[10px] px-1.5 py-0.2 rounded bg-white/5 text-gray-400">
+                              <span className="text-[10px] px-1.5 py-0.2 rounded bg-white/5 text-zinc-400">
                                 {c.episodeName}
                               </span>
                             )}
@@ -304,7 +304,7 @@ export const AdminMemberDetailModal: React.FC<AdminMemberDetailModalProps> = Rea
                               </span>
                             )}
                           </div>
-                          <span className="text-[10px] text-gray-500">{formatDate(c.createdAt)}</span>
+                          <span className="text-[10px] text-zinc-500">{formatDate(c.createdAt)}</span>
                         </div>
 
                         {c.isFlagged && (
@@ -316,12 +316,12 @@ export const AdminMemberDetailModal: React.FC<AdminMemberDetailModalProps> = Rea
 
                         {c.rating > 0 && <StarRating value={c.rating} size="sm" readOnly />}
 
-                        <p className="text-gray-300 bg-black/40 p-2.5 rounded-lg border border-white/5">
+                        <p className="text-zinc-300 bg-black/40 p-2.5 rounded-lg border border-white/5">
                           &ldquo;{c.content}&rdquo;
                         </p>
 
                         <div className="flex items-center justify-between pt-1 flex-wrap gap-2">
-                          <span className="text-[10px] text-gray-500">
+                          <span className="text-[10px] text-zinc-500">
                             {c.likes > 0 ? `${c.likes} lượt thích` : "0 lượt thích"}
                           </span>
                           <div className="flex items-center gap-3">
@@ -352,7 +352,7 @@ export const AdminMemberDetailModal: React.FC<AdminMemberDetailModalProps> = Rea
               })()
             ) : memberDetailTab === "history" ? (
               memberHistory.length === 0 ? (
-                <div className="p-8 text-center text-xs text-gray-500">
+                <div className="p-8 text-center text-xs text-zinc-500">
                   Chưa có lịch sử xem phim đồng bộ trên Cloud.
                 </div>
               ) : (
@@ -364,7 +364,7 @@ export const AdminMemberDetailModal: React.FC<AdminMemberDetailModalProps> = Rea
                     >
                       <div className="min-w-0">
                         <p className="font-bold text-white truncate">{item.title || item.slug}</p>
-                        <p className="text-[10px] text-gray-400 mt-0.5">
+                        <p className="text-[10px] text-zinc-400 mt-0.5">
                           {item.episodeName ? `Đang xem: ${item.episodeName}` : "Đã xem"} •{" "}
                           {formatDate(item.updatedAt)}
                         </p>
@@ -383,7 +383,7 @@ export const AdminMemberDetailModal: React.FC<AdminMemberDetailModalProps> = Rea
               )
             ) : (
               memberWatchlist.length === 0 ? (
-                <div className="p-8 text-center text-xs text-gray-500">
+                <div className="p-8 text-center text-xs text-zinc-500">
                   Thành viên chưa lưu bộ phim nào vào danh sách yêu thích.
                 </div>
               ) : (
@@ -395,7 +395,7 @@ export const AdminMemberDetailModal: React.FC<AdminMemberDetailModalProps> = Rea
                     >
                       <div className="min-w-0">
                         <p className="font-bold text-white truncate">{item.title || item.slug}</p>
-                        <p className="text-[10px] text-gray-400 mt-0.5">
+                        <p className="text-[10px] text-zinc-400 mt-0.5">
                           Đã lưu vào danh sách • {formatDate(item.addedAt)}
                         </p>
                       </div>

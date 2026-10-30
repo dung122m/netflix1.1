@@ -99,7 +99,7 @@ export const NavUserMenu: React.FC<NavUserMenuProps> = React.memo(function NavUs
             type="button"
             onClick={onOpenAuthModal}
             aria-label="Đăng nhập tài khoản"
-            className="inline-flex items-center gap-1.5 h-8 sm:h-[34px] px-3 rounded-full bg-white hover:bg-zinc-100 active:scale-[0.98] hover:-translate-y-0.5 active:translate-y-0 text-gray-950 text-xs font-bold transition-all duration-200 shadow-md shadow-white/10 hover:shadow-lg hover:shadow-white/20 cursor-pointer flex-shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-black"
+            className="inline-flex items-center gap-1.5 h-8 sm:h-[34px] px-3 rounded-full bg-white hover:bg-zinc-100 active:scale-[0.98] hover:-translate-y-0.5 active:translate-y-0 text-zinc-950 text-xs font-bold transition-all duration-200 shadow-md shadow-white/10 hover:shadow-lg hover:shadow-white/20 cursor-pointer flex-shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-black"
           >
             <svg className="w-3.5 h-3.5 flex-shrink-0" viewBox="0 0 24 24" aria-hidden="true">
               <path
@@ -145,7 +145,7 @@ export const NavUserMenu: React.FC<NavUserMenuProps> = React.memo(function NavUs
             name={effectiveDisplayName || user.email}
             sizeClassName="w-7 h-7 text-xs font-bold"
           />
-          <ChevronDown size={13} className="text-gray-400" />
+          <ChevronDown size={13} className="text-zinc-400" />
         </button>
       </Tooltip>
 
@@ -155,7 +155,7 @@ export const NavUserMenu: React.FC<NavUserMenuProps> = React.memo(function NavUs
             <p className="text-xs font-bold text-white truncate">
               {effectiveDisplayName}
             </p>
-            <p className="text-[11px] text-gray-400 truncate mt-0.5">{user.email}</p>
+            <p className="text-[11px] text-zinc-400 truncate mt-0.5">{user.email}</p>
             <div className="mt-1.5 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[10px] text-emerald-400 font-medium">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
               <span>Cloud Sync</span>
@@ -195,7 +195,7 @@ export const NavUserMenu: React.FC<NavUserMenuProps> = React.memo(function NavUs
                 window.dispatchEvent(new CustomEvent("open-user-profile-modal", { detail: { tab: "player_settings" } }));
               }
             }}
-            className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-xs text-gray-300 hover:text-white hover:bg-white/10 transition cursor-pointer text-left font-medium"
+            className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-xs text-zinc-300 hover:text-white hover:bg-white/10 transition cursor-pointer text-left font-medium"
           >
             <Sliders size={14} className="text-amber-400" />
             <span>⚙️ Cài đặt phát lại Cloud</span>
@@ -204,7 +204,7 @@ export const NavUserMenu: React.FC<NavUserMenuProps> = React.memo(function NavUs
           <Link
             href="/my-list?tab=history"
             onClick={() => setShowUserDropdown(false)}
-            className="flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-xs text-gray-300 hover:text-white hover:bg-white/10 transition"
+            className="flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-xs text-zinc-300 hover:text-white hover:bg-white/10 transition"
           >
             <History size={14} className="text-netflix-red" />
             <span>Lịch sử xem phim</span>
@@ -213,7 +213,7 @@ export const NavUserMenu: React.FC<NavUserMenuProps> = React.memo(function NavUs
           <Link
             href="/my-list?tab=watchlist"
             onClick={() => setShowUserDropdown(false)}
-            className="flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-xs text-gray-300 hover:text-white hover:bg-white/10 transition"
+            className="flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-xs text-zinc-300 hover:text-white hover:bg-white/10 transition"
           >
             <Bookmark size={14} className="text-amber-400" />
             <span>Phim đã lưu</span>
@@ -222,7 +222,7 @@ export const NavUserMenu: React.FC<NavUserMenuProps> = React.memo(function NavUs
           <Link
             href="/my-list?tab=comments"
             onClick={() => setShowUserDropdown(false)}
-            className="flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-xs text-gray-300 hover:text-white hover:bg-white/10 transition"
+            className="flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-xs text-zinc-300 hover:text-white hover:bg-white/10 transition"
           >
             <MessageSquare size={14} className="text-emerald-400" />
             <span>Lịch sử bình luận</span>

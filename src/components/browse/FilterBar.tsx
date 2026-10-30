@@ -516,10 +516,10 @@ export const FilterBar: React.FC = () => {
               aria-label="Lọc theo loại phim"
               className={`h-10 px-3.5 sm:px-4 rounded-xl border text-xs sm:text-sm font-semibold transition-all duration-150 flex items-center gap-2 cursor-pointer shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black flex-none ${
                 currentType
-                  ? "bg-purple-950/70 border-purple-500/80 text-purple-200 ring-1 ring-purple-500/40 shadow-purple-950/50"
+                  ? "bg-purple-950/70 border-purple-500/60 text-purple-200 shadow-md shadow-black/50"
                   : activeDropdown === "type"
                   ? "bg-zinc-800 text-white border-zinc-500"
-                  : "bg-zinc-950/70 text-gray-200 border-white/10 hover:bg-zinc-800/80 hover:text-white hover:border-white/25"
+                  : "bg-zinc-950/70 text-zinc-200 border-white/10 hover:bg-zinc-800/80 hover:text-white hover:border-white/25"
               }`}
             >
               <Film className={`w-3.5 h-3.5 flex-none ${currentType ? "text-purple-400" : "text-purple-400/80"}`} />
@@ -530,7 +530,7 @@ export const FilterBar: React.FC = () => {
                 <Loader2 className="w-3.5 h-3.5 text-purple-400 animate-spin flex-none" />
               ) : (
                 <ChevronDown
-                  className={`w-3.5 h-3.5 text-gray-400 transition-transform duration-200 flex-none ${
+                  className={`w-3.5 h-3.5 text-zinc-400 transition-transform duration-200 flex-none ${
                     activeDropdown === "type" ? "rotate-180 text-white" : "rotate-0"
                   }`}
                 />
@@ -549,10 +549,10 @@ export const FilterBar: React.FC = () => {
               aria-label="Lọc theo thể loại phim"
               className={`h-10 px-3.5 sm:px-4 rounded-xl border text-xs sm:text-sm font-semibold transition-all duration-150 flex items-center gap-2 cursor-pointer shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black flex-none ${
                 currentCategory
-                  ? "bg-rose-950/70 border-rose-500/80 text-rose-200 ring-1 ring-rose-500/40 shadow-rose-950/50"
+                  ? "bg-rose-950/70 border-rose-500/60 text-rose-200 shadow-md shadow-black/50"
                   : activeDropdown === "genre"
                   ? "bg-zinc-800 text-white border-zinc-500"
-                  : "bg-zinc-950/70 text-gray-200 border-white/10 hover:bg-zinc-800/80 hover:text-white hover:border-white/25"
+                  : "bg-zinc-950/70 text-zinc-200 border-white/10 hover:bg-zinc-800/80 hover:text-white hover:border-white/25"
               }`}
             >
               <Sparkles className={`w-3.5 h-3.5 flex-none ${currentCategory ? "text-rose-400" : "text-amber-400/90"}`} />
@@ -563,7 +563,7 @@ export const FilterBar: React.FC = () => {
                 <Loader2 className="w-3.5 h-3.5 text-rose-400 animate-spin flex-none" />
               ) : (
                 <ChevronDown
-                  className={`w-3.5 h-3.5 text-gray-400 transition-transform duration-200 flex-none ${
+                  className={`w-3.5 h-3.5 text-zinc-400 transition-transform duration-200 flex-none ${
                     activeDropdown === "genre" ? "rotate-180 text-white" : "rotate-0"
                   }`}
                 />
@@ -582,10 +582,10 @@ export const FilterBar: React.FC = () => {
               aria-label="Lọc theo quốc gia sản xuất"
               className={`h-10 px-3.5 sm:px-4 rounded-xl border text-xs sm:text-sm font-semibold transition-all duration-150 flex items-center gap-2 cursor-pointer shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black flex-none ${
                 currentCountry
-                  ? "bg-sky-950/70 border-sky-500/80 text-sky-200 ring-1 ring-sky-500/40 shadow-sky-950/50"
+                  ? "bg-sky-950/70 border-sky-500/60 text-sky-200 shadow-md shadow-black/50"
                   : activeDropdown === "country"
                   ? "bg-zinc-800 text-white border-zinc-500"
-                  : "bg-zinc-950/70 text-gray-200 border-white/10 hover:bg-zinc-800/80 hover:text-white hover:border-white/25"
+                  : "bg-zinc-950/70 text-zinc-200 border-white/10 hover:bg-zinc-800/80 hover:text-white hover:border-white/25"
               }`}
             >
               <Globe2 className={`w-3.5 h-3.5 flex-none ${currentCountry ? "text-sky-400" : "text-sky-400/80"}`} />
@@ -596,7 +596,7 @@ export const FilterBar: React.FC = () => {
                 <Loader2 className="w-3.5 h-3.5 text-sky-400 animate-spin flex-none" />
               ) : (
                 <ChevronDown
-                  className={`w-3.5 h-3.5 text-gray-400 transition-transform duration-200 flex-none ${
+                  className={`w-3.5 h-3.5 text-zinc-400 transition-transform duration-200 flex-none ${
                     activeDropdown === "country" ? "rotate-180 text-white" : "rotate-0"
                   }`}
                 />
@@ -615,10 +615,10 @@ export const FilterBar: React.FC = () => {
               aria-label="Lọc theo năm phát hành"
               className={`h-10 px-3.5 sm:px-4 rounded-xl border text-xs sm:text-sm font-semibold transition-all duration-150 flex items-center gap-2 cursor-pointer shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black flex-none ${
                 currentYear
-                  ? "bg-emerald-950/70 border-emerald-500/80 text-emerald-200 ring-1 ring-emerald-500/40 shadow-emerald-950/50"
+                  ? "bg-emerald-950/70 border-emerald-500/60 text-emerald-200 shadow-md shadow-black/50"
                   : activeDropdown === "year"
                   ? "bg-zinc-800 text-white border-zinc-500"
-                  : "bg-zinc-950/70 text-gray-200 border-white/10 hover:bg-zinc-800/80 hover:text-white hover:border-white/25"
+                  : "bg-zinc-950/70 text-zinc-200 border-white/10 hover:bg-zinc-800/80 hover:text-white hover:border-white/25"
               }`}
             >
               <Calendar className={`w-3.5 h-3.5 flex-none ${currentYear ? "text-emerald-400" : "text-emerald-400/80"}`} />
@@ -629,7 +629,7 @@ export const FilterBar: React.FC = () => {
                 <Loader2 className="w-3.5 h-3.5 text-emerald-400 animate-spin flex-none" />
               ) : (
                 <ChevronDown
-                  className={`w-3.5 h-3.5 text-gray-400 transition-transform duration-200 flex-none ${
+                  className={`w-3.5 h-3.5 text-zinc-400 transition-transform duration-200 flex-none ${
                     activeDropdown === "year" ? "rotate-180 text-white" : "rotate-0"
                   }`}
                 />
@@ -683,7 +683,7 @@ export const FilterBar: React.FC = () => {
           {/* POPUP 1: LOẠI PHIM */}
           {activeDropdown === "type" && (
             <div className="w-56 sm:w-60 rounded-2xl bg-zinc-950/98 border border-zinc-700/80 p-2.5 shadow-2xl backdrop-blur-xl animate-in fade-in zoom-in-95 duration-150">
-              <div className="px-2 py-1 text-[11px] font-bold text-gray-400 uppercase tracking-wider border-b border-white/10 mb-2 flex items-center justify-between">
+              <div className="px-2 py-1 text-[11px] font-bold text-zinc-400 uppercase tracking-wider border-b border-white/10 mb-2 flex items-center justify-between">
                 <span>Chọn loại phim</span>
                 {currentType && (
                   <button
@@ -702,7 +702,7 @@ export const FilterBar: React.FC = () => {
                   className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs sm:text-sm font-medium transition cursor-pointer text-left ${
                     !currentType
                       ? "bg-white/10 text-white font-bold"
-                      : "text-gray-300 hover:bg-zinc-800/80 hover:text-white"
+                      : "text-zinc-300 hover:bg-zinc-800/80 hover:text-white"
                   }`}
                 >
                   <span>Tất cả loại phim</span>
@@ -717,8 +717,8 @@ export const FilterBar: React.FC = () => {
                       onClick={() => updateQueryParam("type", t.slug)}
                       className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs sm:text-sm font-medium transition cursor-pointer text-left ${
                         isSelected
-                          ? "bg-purple-600 text-white font-bold shadow-md shadow-purple-950/50"
-                          : "text-gray-300 hover:bg-zinc-800/80 hover:text-white"
+                          ? "bg-purple-600 text-white font-bold shadow-md shadow-black/50"
+                          : "text-zinc-300 hover:bg-zinc-800/80 hover:text-white"
                       }`}
                     >
                       <span>{t.name}</span>
@@ -733,7 +733,7 @@ export const FilterBar: React.FC = () => {
           {/* POPUP 2: THỂ LOẠI */}
           {activeDropdown === "genre" && (
             <div className="w-[calc(100vw-2rem)] sm:w-80 md:w-96 rounded-2xl bg-zinc-950/98 border border-zinc-700/80 p-3 shadow-2xl backdrop-blur-xl animate-in fade-in zoom-in-95 duration-150">
-              <div className="px-2 py-1 text-[11px] font-bold text-gray-400 uppercase tracking-wider border-b border-white/10 mb-2 flex items-center justify-between">
+              <div className="px-2 py-1 text-[11px] font-bold text-zinc-400 uppercase tracking-wider border-b border-white/10 mb-2 flex items-center justify-between">
                 <span>Chọn thể loại</span>
                 {currentCategory && (
                   <button
@@ -768,7 +768,7 @@ export const FilterBar: React.FC = () => {
                   className={`col-span-2 flex items-center justify-between px-3 py-2 rounded-xl text-xs sm:text-sm font-medium transition cursor-pointer text-left ${
                     !currentCategory
                       ? "bg-white/10 text-white font-bold"
-                      : "text-gray-300 hover:bg-zinc-800/80 hover:text-white"
+                      : "text-zinc-300 hover:bg-zinc-800/80 hover:text-white"
                   }`}
                 >
                   <span>Tất cả thể loại</span>
@@ -783,8 +783,8 @@ export const FilterBar: React.FC = () => {
                       onClick={() => updateQueryParam("category", g.slug)}
                       className={`flex items-center justify-between px-2.5 py-2 rounded-xl text-xs sm:text-sm font-medium transition cursor-pointer text-left truncate ${
                         isSelected
-                          ? "bg-rose-600 text-white font-bold shadow-md shadow-red-950/50"
-                          : "text-gray-300 hover:bg-zinc-800/80 hover:text-white bg-zinc-900/60"
+                          ? "bg-rose-600 text-white font-bold shadow-md shadow-black/50"
+                          : "text-zinc-300 hover:bg-zinc-800/80 hover:text-white bg-zinc-900/60"
                       }`}
                     >
                       <span className="truncate">{g.name}</span>
@@ -799,7 +799,7 @@ export const FilterBar: React.FC = () => {
           {/* POPUP 3: QUỐC GIA */}
           {activeDropdown === "country" && (
             <div className="w-[calc(100vw-2rem)] sm:w-80 rounded-2xl bg-zinc-950/98 border border-zinc-700/80 p-3 shadow-2xl backdrop-blur-xl animate-in fade-in zoom-in-95 duration-150">
-              <div className="px-2 py-1 text-[11px] font-bold text-gray-400 uppercase tracking-wider border-b border-white/10 mb-2 flex items-center justify-between">
+              <div className="px-2 py-1 text-[11px] font-bold text-zinc-400 uppercase tracking-wider border-b border-white/10 mb-2 flex items-center justify-between">
                 <span>Chọn quốc gia</span>
                 {currentCountry && (
                   <button
@@ -818,7 +818,7 @@ export const FilterBar: React.FC = () => {
                   className={`col-span-2 flex items-center justify-between px-3 py-2 rounded-xl text-xs sm:text-sm font-medium transition cursor-pointer text-left ${
                     !currentCountry
                       ? "bg-white/10 text-white font-bold"
-                      : "text-gray-300 hover:bg-zinc-800/80 hover:text-white"
+                      : "text-zinc-300 hover:bg-zinc-800/80 hover:text-white"
                   }`}
                 >
                   <span>Tất cả quốc gia</span>
@@ -833,8 +833,8 @@ export const FilterBar: React.FC = () => {
                       onClick={() => updateQueryParam("country", c.slug)}
                       className={`flex items-center justify-between px-2.5 py-2 rounded-xl text-xs sm:text-sm font-medium transition cursor-pointer text-left truncate ${
                         isSelected
-                          ? "bg-sky-600 text-white font-bold shadow-md shadow-sky-950/50"
-                          : "text-gray-300 hover:bg-zinc-800/80 hover:text-white bg-zinc-900/60"
+                          ? "bg-sky-600 text-white font-bold shadow-md shadow-black/50"
+                          : "text-zinc-300 hover:bg-zinc-800/80 hover:text-white bg-zinc-900/60"
                       }`}
                     >
                       <span className="truncate">{c.name}</span>
@@ -849,7 +849,7 @@ export const FilterBar: React.FC = () => {
           {/* POPUP 4: NĂM PHÁT HÀNH */}
           {activeDropdown === "year" && (
             <div className="w-[calc(100vw-2rem)] sm:w-80 rounded-2xl bg-zinc-950/98 border border-zinc-700/80 p-3 shadow-2xl backdrop-blur-xl animate-in fade-in zoom-in-95 duration-150">
-              <div className="px-2 py-1 text-[11px] font-bold text-gray-400 uppercase tracking-wider border-b border-white/10 mb-2 flex items-center justify-between">
+              <div className="px-2 py-1 text-[11px] font-bold text-zinc-400 uppercase tracking-wider border-b border-white/10 mb-2 flex items-center justify-between">
                 <span>Chọn năm phát hành</span>
                 {currentYear && (
                   <button
@@ -867,7 +867,7 @@ export const FilterBar: React.FC = () => {
                 className={`w-full mb-2 flex items-center justify-between px-3 py-2 rounded-xl text-xs sm:text-sm font-medium transition cursor-pointer text-left ${
                   !currentYear
                     ? "bg-white/10 text-white font-bold"
-                    : "text-gray-300 hover:bg-zinc-800/80 hover:text-white"
+                    : "text-zinc-300 hover:bg-zinc-800/80 hover:text-white"
                 }`}
               >
                 <span>Tất cả các năm</span>
@@ -883,8 +883,8 @@ export const FilterBar: React.FC = () => {
                       onClick={() => updateQueryParam("year", y)}
                       className={`py-2 px-1 text-center rounded-xl text-xs sm:text-sm font-medium transition cursor-pointer ${
                         isSelected
-                          ? "bg-emerald-600 text-white font-bold shadow-md shadow-emerald-950/50"
-                          : "text-gray-300 hover:bg-zinc-800 hover:text-white bg-zinc-900/60"
+                          ? "bg-emerald-600 text-white font-bold shadow-md shadow-black/50"
+                          : "text-zinc-300 hover:bg-zinc-800 hover:text-white bg-zinc-900/60"
                       }`}
                     >
                       {y}
@@ -1000,7 +1000,8 @@ export const FilterBar: React.FC = () => {
           <button
             type="button"
             onClick={handleClearAll}
-            className="flex-none ml-auto text-xs text-rose-400 hover:text-rose-300 hover:underline flex items-center gap-1 font-semibold px-2 py-0.5 transition cursor-pointer"
+            aria-label="Xóa tất cả các bộ lọc đang chọn"
+            className="flex-none ml-auto text-xs text-rose-400 hover:text-rose-300 hover:underline flex items-center gap-1 font-semibold px-2.5 py-1 min-h-[32px] transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-rose-500/50 rounded-md"
           >
             <span>[Xóa bộ lọc]</span>
           </button>
@@ -1250,7 +1251,7 @@ export const FilterBar: React.FC = () => {
                   onClick={() => setDraftYear("")}
                   className={`w-full py-2.5 px-3 rounded-xl border text-xs font-bold transition active:scale-[0.98] cursor-pointer flex items-center justify-between ${
                     !draftYear
-                      ? "bg-emerald-600 text-white border-emerald-400 shadow-md shadow-emerald-950/40"
+                      ? "bg-emerald-600 text-white border-emerald-400 shadow-md shadow-black/50"
                       : "bg-zinc-900/90 border-white/10 text-zinc-300 hover:bg-zinc-800"
                   }`}
                 >
@@ -1269,7 +1270,7 @@ export const FilterBar: React.FC = () => {
                         onClick={() => setDraftYear(isSelected ? "" : y)}
                         className={`py-2 px-1 text-center rounded-xl border text-xs sm:text-sm font-semibold transition active:scale-95 cursor-pointer ${
                           isSelected
-                            ? "bg-emerald-600 text-white font-bold border-emerald-400 shadow-md shadow-emerald-950/40"
+                            ? "bg-emerald-600 text-white font-bold border-emerald-400 shadow-md shadow-black/50"
                             : "bg-zinc-900/90 border-white/10 text-zinc-300 hover:bg-zinc-800"
                         }`}
                       >
@@ -1293,7 +1294,7 @@ export const FilterBar: React.FC = () => {
               <button
                 type="button"
                 onClick={handleApplyMobileDrawer}
-                className="flex-1 h-12 rounded-xl bg-netflix-red hover:bg-red-700 text-white font-bold text-sm shadow-lg shadow-red-950/60 flex items-center justify-center gap-2 active:scale-95 transition cursor-pointer"
+                className="flex-1 h-12 rounded-xl bg-netflix-red hover:bg-red-700 text-white font-bold text-sm shadow-md shadow-black/50 flex items-center justify-center gap-2 active:scale-95 transition cursor-pointer"
               >
                 <span>Áp dụng bộ lọc</span>
                 {draftActiveCount > 0 && (

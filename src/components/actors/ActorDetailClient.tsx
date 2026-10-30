@@ -264,7 +264,7 @@ export const ActorDetailClient: React.FC<ActorDetailClientProps> = ({
               <Film className="w-5 h-5 sm:w-6 sm:h-6 text-netflix-red" />
               <span>Tuyển Tập Phim Của {actorName}</span>
             </h2>
-            <p className="text-xs sm:text-sm text-gray-400">
+            <p className="text-xs sm:text-sm text-zinc-400">
               Tổng hợp {displayedMovies.length} tác phẩm {totalPages > 1 ? `(Trang ${currentPage} / ${totalPages})` : ""} đã được đối chiếu nguồn phát trên Nanaflix
             </p>
           </div>
@@ -278,7 +278,7 @@ export const ActorDetailClient: React.FC<ActorDetailClientProps> = ({
                 className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
                   activeTab === "all"
                     ? "bg-netflix-red text-white shadow-md"
-                    : "text-gray-400 hover:text-white"
+                    : "text-zinc-400 hover:text-white"
                 }`}
               >
                 <Layers className="w-3 h-3" />
@@ -292,7 +292,7 @@ export const ActorDetailClient: React.FC<ActorDetailClientProps> = ({
                   className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
                     activeTab === "single"
                       ? "bg-netflix-red text-white shadow-md"
-                      : "text-gray-400 hover:text-white"
+                      : "text-zinc-400 hover:text-white"
                   }`}
                 >
                   <Clapperboard className="w-3 h-3" />
@@ -307,7 +307,7 @@ export const ActorDetailClient: React.FC<ActorDetailClientProps> = ({
                   className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
                     activeTab === "series"
                       ? "bg-netflix-red text-white shadow-md"
-                      : "text-gray-400 hover:text-white"
+                      : "text-zinc-400 hover:text-white"
                   }`}
                 >
                   <Tv className="w-3 h-3" />
@@ -340,14 +340,14 @@ export const ActorDetailClient: React.FC<ActorDetailClientProps> = ({
               <h3 className="text-base font-bold text-white">
                 Đang cập nhật thêm nguồn phát cho {actorName}
               </h3>
-              <p className="text-xs text-gray-400 leading-relaxed">
+              <p className="text-xs text-zinc-400 leading-relaxed">
                 Hệ thống đang tiếp tục chỉ mục và bổ sung các tập phim chất lượng cao của nghệ sĩ vào thư viện.
               </p>
             </div>
             <div className="pt-2">
               <Link
                 href="/browse"
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-netflix-red hover:bg-red-700 text-white font-bold text-xs transition shadow-lg shadow-red-950/40 cursor-pointer"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-netflix-red hover:bg-red-700 text-white font-bold text-xs transition shadow-md shadow-black/50 cursor-pointer"
               >
                 <span>Khám phá các phim khác</span>
               </Link>

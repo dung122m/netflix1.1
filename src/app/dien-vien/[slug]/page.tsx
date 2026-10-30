@@ -191,7 +191,7 @@ export default async function ActorDetailPage({ params }: PageProps) {
   ).slice(0, 6);
 
   return (
-    <div className="min-h-screen bg-[#050505] text-gray-100 flex flex-col selection:bg-netflix-red selection:text-white font-sans antialiased overflow-x-hidden">
+    <div className="min-h-screen bg-[#050505] text-zinc-100 flex flex-col selection:bg-netflix-red selection:text-white font-sans antialiased overflow-x-hidden">
       <Navbar />
 
       {/* AMBIENT GLOW */}
@@ -202,7 +202,7 @@ export default async function ActorDetailPage({ params }: PageProps) {
         {/* ============================================================ */}
         {/* BREADCRUMB & BACK BUTTON */}
         {/* ============================================================ */}
-        <div className="flex items-center gap-2 text-xs font-semibold text-gray-400">
+        <div className="flex items-center gap-2 text-xs font-semibold text-zinc-400">
           <Link
             href="/dien-vien"
             className="inline-flex items-center gap-1.5 hover:text-white transition-colors bg-white/[0.04] hover:bg-white/[0.08] px-3 py-1.5 rounded-full border border-white/[0.08]"
@@ -242,7 +242,7 @@ export default async function ActorDetailPage({ params }: PageProps) {
                     {country}
                   </span>
                 )}
-                <span className="px-3 py-1 rounded-full bg-white/[0.06] border border-white/[0.1] text-gray-300 text-xs font-semibold">
+                <span className="px-3 py-1 rounded-full bg-white/[0.06] border border-white/[0.1] text-zinc-300 text-xs font-semibold">
                   {knownRole}
                 </span>
                 <span className="px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/25 text-amber-300 text-xs font-bold flex items-center gap-1">
@@ -265,8 +265,8 @@ export default async function ActorDetailPage({ params }: PageProps) {
                   {canonicalName}
                 </h1>
                 {englishName && englishName !== canonicalName && (
-                  <p className="text-sm sm:text-base text-gray-400 font-medium">
-                    Tên quốc tế: <span className="text-gray-200">{englishName}</span>
+                  <p className="text-sm sm:text-base text-zinc-400 font-medium">
+                    Tên quốc tế: <span className="text-zinc-200">{englishName}</span>
                   </p>
                 )}
               </div>
@@ -277,7 +277,7 @@ export default async function ActorDetailPage({ params }: PageProps) {
                   <div className="flex items-center gap-2.5 p-3 rounded-xl bg-white/[0.03] border border-white/[0.06]">
                     <Calendar className="w-4 h-4 text-amber-400 shrink-0" />
                     <div className="text-left text-xs">
-                      <div className="text-gray-400 text-[10px]">Ngày sinh</div>
+                      <div className="text-zinc-400 text-[10px]">Ngày sinh</div>
                       <div className="text-white font-bold">
                         {formattedBirthday} {age ? `(${age})` : ""}
                       </div>
@@ -289,7 +289,7 @@ export default async function ActorDetailPage({ params }: PageProps) {
                   <div className="flex items-center gap-2.5 p-3 rounded-xl bg-white/[0.03] border border-white/[0.06]">
                     <MapPin className="w-4 h-4 text-rose-400 shrink-0" />
                     <div className="text-left text-xs">
-                      <div className="text-gray-400 text-[10px]">Nơi sinh</div>
+                      <div className="text-zinc-400 text-[10px]">Nơi sinh</div>
                       <div className="text-white font-bold truncate max-w-[180px]">
                         {placeOfBirth}
                       </div>
@@ -300,7 +300,7 @@ export default async function ActorDetailPage({ params }: PageProps) {
                 <div className="flex items-center gap-2.5 p-3 rounded-xl bg-white/[0.03] border border-white/[0.06]">
                   <Sparkles className="w-4 h-4 text-emerald-400 shrink-0" />
                   <div className="text-left text-xs">
-                    <div className="text-gray-400 text-[10px]">Độ phổ biến</div>
+                    <div className="text-zinc-400 text-[10px]">Độ phổ biến</div>
                     <div className="text-white font-bold">
                       {tmdbDetail?.popularity ? `Top ${Math.round(tmdbDetail.popularity)} TMDB` : "Nghệ sĩ nổi tiếng"}
                     </div>
@@ -359,7 +359,7 @@ export default async function ActorDetailPage({ params }: PageProps) {
                     <h3 className="text-xs font-bold text-white group-hover:text-netflix-red transition-colors truncate">
                       {actor.name}
                     </h3>
-                    <p className="text-[10px] text-gray-400 truncate">{actor.country}</p>
+                    <p className="text-[10px] text-zinc-400 truncate">{actor.country}</p>
                   </div>
                 </Link>
               ))}

@@ -240,7 +240,7 @@ export function RecommendationTabs({
                   type="button"
                   onClick={() => scrollTabs("left")}
                   aria-label="Cuộn sang trái"
-                  className="relative z-10 pointer-events-auto h-6 w-6 rounded-full bg-zinc-900/95 hover:bg-zinc-800 text-gray-200 hover:text-white border border-white/20 shadow-md flex items-center justify-center transition active:scale-95 cursor-pointer backdrop-blur-md"
+                  className="relative z-10 pointer-events-auto h-6 w-6 rounded-full bg-zinc-900/95 hover:bg-zinc-800 text-zinc-200 hover:text-white border border-white/20 shadow-md flex items-center justify-center transition active:scale-95 cursor-pointer backdrop-blur-md"
                 >
                   <ChevronLeft className="w-3.5 h-3.5" />
                 </button>
@@ -255,7 +255,7 @@ export function RecommendationTabs({
                   type="button"
                   onClick={() => scrollTabs("right")}
                   aria-label="Cuộn sang phải"
-                  className="relative z-10 pointer-events-auto hidden md:flex h-6 w-6 rounded-full bg-zinc-900/95 hover:bg-zinc-800 text-gray-200 hover:text-white border border-white/20 shadow-md items-center justify-center transition active:scale-95 cursor-pointer backdrop-blur-md"
+                  className="relative z-10 pointer-events-auto hidden md:flex h-6 w-6 rounded-full bg-zinc-900/95 hover:bg-zinc-800 text-zinc-200 hover:text-white border border-white/20 shadow-md items-center justify-center transition active:scale-95 cursor-pointer backdrop-blur-md"
                 >
                   <ChevronRight className="w-3.5 h-3.5" />
                 </button>
@@ -384,7 +384,7 @@ export function RecommendationTabs({
                 type="button"
                 onClick={handleShuffle}
                 aria-label="Đổi phim khác"
-                className="flex items-center justify-center h-7 w-7 rounded-xl text-xs font-bold text-gray-200 hover:text-white bg-zinc-900/90 hover:bg-zinc-800 border border-white/15 hover:border-white/30 transition shadow-sm cursor-pointer active:scale-95 shrink-0"
+                className="flex items-center justify-center h-7 w-7 rounded-xl text-xs font-bold text-zinc-200 hover:text-white bg-zinc-900/90 hover:bg-zinc-800 border border-white/15 hover:border-white/30 transition shadow-sm cursor-pointer active:scale-95 shrink-0"
               >
                 <Shuffle
                   className={`w-3.5 h-3.5 text-amber-400 transition-transform ${
@@ -467,7 +467,7 @@ export function RecommendationTabs({
                   className="flex items-center gap-2 px-6 py-2.5 rounded-2xl bg-zinc-900 hover:bg-zinc-800 text-white font-bold text-xs sm:text-sm border border-white/15 hover:border-white/30 shadow-lg transition-all hover:scale-102 active:scale-98 cursor-pointer"
                 >
                   <span>Xem thêm gợi ý</span>
-                  <span className="px-2 py-0.5 rounded-full bg-white/15 text-[11px] text-gray-300">
+                  <span className="px-2 py-0.5 rounded-full bg-white/15 text-[11px] text-zinc-300">
                     +{Math.min(12, currentTabMovies.length - visibleLimit)}
                   </span>
                   <ChevronDown className="w-4 h-4 text-netflix-red" />
@@ -481,7 +481,7 @@ export function RecommendationTabs({
                 <button
                   type="button"
                   onClick={() => setVisibleLimit(12)}
-                  className="inline-flex items-center gap-1 text-xs text-gray-400 hover:text-white transition font-medium cursor-pointer"
+                  className="inline-flex items-center gap-1 text-xs text-zinc-400 hover:text-white transition font-medium cursor-pointer"
                 >
                   <span>Thu gọn</span>
                   <ChevronUp className="w-3.5 h-3.5" />
@@ -491,7 +491,7 @@ export function RecommendationTabs({
           </div>
         )
       ) : (
-        <div className="rounded-2xl border border-white/10 bg-zinc-900/50 p-6 text-center text-sm text-gray-400 space-y-3">
+        <div className="rounded-2xl border border-white/10 bg-zinc-900/50 p-6 text-center text-sm text-zinc-400 space-y-3">
           <p>Chưa có danh sách phim đề xuất phù hợp.</p>
           <button
             type="button"
@@ -570,7 +570,7 @@ const RecommendedMovieCard = React.memo(function RecommendedMovieCard({
 
           {/* Nút Play trung tâm khi hover */}
           <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
-            <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-red-600 text-white flex items-center justify-center shadow-xl shadow-red-950/70 transform group-hover:scale-110 transition-transform">
+            <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-red-600 text-white flex items-center justify-center shadow-xl shadow-black/80 transform group-hover:scale-110 transition-transform">
               <Play className="w-4 h-4 sm:w-5 sm:h-5 fill-white ml-0.5" />
             </div>
           </div>

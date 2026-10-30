@@ -125,8 +125,8 @@ export const ChannelSourceSwitcher: React.FC<ChannelSourceSwitcherProps> = ({
           isChannel ? "focus-visible:ring-sky-400" : "focus-visible:ring-white/40"
         } ${
           isPrevDisabled
-            ? "text-gray-500 opacity-40 cursor-not-allowed"
-            : "text-gray-300 hover:text-white hover:bg-white/15 active:bg-white/25 cursor-pointer active:scale-95"
+            ? "text-zinc-500 opacity-40 cursor-not-allowed"
+            : "text-zinc-300 hover:text-white hover:bg-white/15 active:bg-white/25 cursor-pointer active:scale-95"
         }`}
       >
         <ChevronLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
@@ -169,7 +169,7 @@ export const ChannelSourceSwitcher: React.FC<ChannelSourceSwitcherProps> = ({
 
         {/* Chỉ số thứ tự item/tổng: Mobile hiện gọn • 3/12, Desktop hiện • Kênh 3/12 hoặc • Nguồn 1/4 */}
         {totalCount > 0 && (
-          <span className="text-[10px] sm:text-[11px] font-mono text-gray-300 select-none whitespace-nowrap opacity-90 shrink-0">
+          <span className="text-[10px] sm:text-[11px] font-mono text-zinc-300 select-none whitespace-nowrap opacity-90 shrink-0">
             <span className="hidden md:inline">
               • {isChannel ? "Kênh " : "Nguồn "}
             </span>
@@ -183,7 +183,7 @@ export const ChannelSourceSwitcher: React.FC<ChannelSourceSwitcherProps> = ({
 
         {/* Mũi tên chỉ thị danh sách sổ xuống */}
         <ChevronDown
-          className={`w-3 h-3 sm:w-3.5 sm:h-3.5 text-gray-300 shrink-0 transition-transform duration-200 ${
+          className={`w-3 h-3 sm:w-3.5 sm:h-3.5 text-zinc-300 shrink-0 transition-transform duration-200 ${
             isListOpen ? "rotate-180 text-white" : ""
           }`}
         />
@@ -203,8 +203,8 @@ export const ChannelSourceSwitcher: React.FC<ChannelSourceSwitcherProps> = ({
           isChannel ? "focus-visible:ring-sky-400" : "focus-visible:ring-white/40"
         } ${
           isNextDisabled
-            ? "text-gray-500 opacity-40 cursor-not-allowed"
-            : "text-gray-300 hover:text-white hover:bg-white/15 active:bg-white/25 cursor-pointer active:scale-95"
+            ? "text-zinc-500 opacity-40 cursor-not-allowed"
+            : "text-zinc-300 hover:text-white hover:bg-white/15 active:bg-white/25 cursor-pointer active:scale-95"
         }`}
       >
         <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />

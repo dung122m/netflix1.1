@@ -160,7 +160,7 @@ export const GlobalConfirmDialog: React.FC = () => {
         <button
           type="button"
           onClick={() => handleClose(false)}
-          className="absolute top-4 right-4 p-1.5 rounded-full text-gray-400 hover:text-white hover:bg-white/10 transition cursor-pointer z-10"
+          className="absolute top-4 right-4 p-1.5 rounded-full text-zinc-400 hover:text-white hover:bg-white/10 transition cursor-pointer z-10"
         >
           <X className="w-4 h-4" />
         </button>
@@ -188,7 +188,7 @@ export const GlobalConfirmDialog: React.FC = () => {
             <h3 className="text-base sm:text-lg font-bold text-white leading-snug">
               {dialog.title || (variant === "danger" ? "Xác nhận xóa" : "Xác nhận hành động")}
             </h3>
-            <p className="text-xs sm:text-sm text-gray-300 mt-1.5 leading-relaxed break-words">
+            <p className="text-xs sm:text-sm text-zinc-300 mt-1.5 leading-relaxed break-words">
               {dialog.message}
             </p>
           </div>
@@ -199,7 +199,7 @@ export const GlobalConfirmDialog: React.FC = () => {
           <button
             type="button"
             onClick={() => handleClose(false)}
-            className="px-4 py-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-gray-300 hover:text-white border border-white/10 text-xs sm:text-sm font-semibold transition active:scale-95 cursor-pointer"
+            className="px-4 py-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-white border border-white/10 text-xs sm:text-sm font-semibold transition active:scale-95 cursor-pointer"
           >
             {dialog.cancelText || "Hủy bỏ"}
           </button>
@@ -208,10 +208,10 @@ export const GlobalConfirmDialog: React.FC = () => {
             onClick={() => handleClose(true)}
             className={`px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm shadow-lg transition active:scale-95 cursor-pointer ${
               variant === "danger"
-                ? "bg-netflix-red hover:bg-red-700 text-white shadow-red-950/50"
+                ? "bg-netflix-red hover:bg-red-700 text-white shadow-black/50"
                 : variant === "warning"
-                ? "bg-amber-500 hover:bg-amber-600 text-black shadow-amber-950/50"
-                : "bg-white hover:bg-gray-200 text-black shadow-white/10"
+                ? "bg-amber-500 hover:bg-amber-600 text-black shadow-black/50"
+                : "bg-white hover:bg-zinc-200 text-black shadow-black/50"
             }`}
           >
             {dialog.confirmText || (variant === "danger" ? "Xóa" : "Đồng ý")}

@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { Play, X, Clock } from "lucide-react";
 import {
   getWatchHistory,
@@ -10,7 +9,7 @@ import {
   autoHydrateWatchHistory,
   WatchHistoryItem,
 } from "@/lib/watchHistory";
-import { pickBestMovieThumb, toOptimizedPhimimgUrl } from "@/lib/movieMedia";
+import { pickBestMovieThumb } from "@/lib/movieMedia";
 import { formatEpisodeName } from "@/lib/formatEpisode";
 import { CarouselNavButton } from "@/components/ui/CarouselNavButton";
 
@@ -22,6 +21,150 @@ export function isContinueWatchingItem(item: WatchHistoryItem): boolean {
     return percent < 95;
   }
   return true;
+}
+
+interface ContinueWatchingCardProps {
+  item: WatchHistoryItem;
+  onRemove: (e: React.MouseEvent, slug: string) => void;
+}
+
+function ContinueWatchingCard({ item, onRemove }: ContinueWatchingCardProps) {
+  const [imgSrc, setImgSrc] = useState<string>(() => {
+    const best = pickBestMovieThumb({ poster_url: item.poster, thumb_url: item.thumb }, "");
+    if (best && !best.includes("/default-")) {
+      return best;
+    }
+    return "";
+  });
+  const fallbackTriedRef = useRef(false);
+
+  useEffect(() => {
+    if (!imgSrc && !fallbackTriedRef.current) {
+      fallbackTriedRef.current = true;
+      const params = new URLSearchParams();
+      if (item.title) params.set("title", item.title);
+      if (item.slug) params.set("slug", item.slug);
+      if (item.year) params.set("year", String(item.year));
+
+      fetch(`/api/movie-poster-fallback?${params.toString()}`)
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data) => {
+          if (data?.backdropUrl || data?.posterUrl) {
+            setImgSrc(data.backdropUrl || data.posterUrl);
+          } else {
+            setImgSrc("/default-hero.jpg");
+          }
+        })
+        .catch(() => {
+          setImgSrc("/default-hero.jpg");
+        });
+    }
+  }, [imgSrc, item.title, item.slug, item.year]);
+
+  const handleImgError = useCallback(() => {
+    if (!fallbackTriedRef.current) {
+      fallbackTriedRef.current = true;
+      const params = new URLSearchParams();
+      if (item.title) params.set("title", item.title);
+      if (item.slug) params.set("slug", item.slug);
+      if (item.year) params.set("year", String(item.year));
+
+      fetch(`/api/movie-poster-fallback?${params.toString()}`)
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data) => {
+          if (data?.backdropUrl || data?.posterUrl) {
+            setImgSrc(data.backdropUrl || data.posterUrl);
+          } else {
+            setImgSrc("/default-hero.jpg");
+          }
+        })
+        .catch(() => {
+          setImgSrc("/default-hero.jpg");
+        });
+    } else {
+      setImgSrc("/default-hero.jpg");
+    }
+  }, [item.title, item.slug, item.year]);
+
+  const href = item.episodeSlug
+    ? `/movies/${item.slug}?ep=${item.episodeSlug}`
+    : `/movies/${item.slug}`;
+
+  const progressPercent =
+    item.durationSeconds && item.durationSeconds > 0 && typeof item.progressSeconds === "number"
+      ? Math.min(100, Math.max(0, Math.round((item.progressSeconds / item.durationSeconds) * 100)))
+      : 0;
+
+  return (
+    <div
+      className="group relative flex-none w-[190px] sm:w-[240px] md:w-[270px] bg-zinc-950 rounded-xl overflow-hidden border border-white/10 hover:border-white/25 transition-all duration-300 hover:scale-[1.03] shadow-md hover:shadow-xl transform-gpu will-change-transform"
+    >
+      <Link href={href} className="block">
+        {/* ẢNH THUMBNAIL (16:9, ưu tiên thumb ngang / TMDb backdrop) */}
+        <div className="relative aspect-video w-full bg-zinc-950 overflow-hidden">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={imgSrc || "/default-hero.jpg"}
+            alt={item.title}
+            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+            decoding="async"
+            loading="lazy"
+            onError={handleImgError}
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent pointer-events-none" />
+
+          {/* NÚT PLAY Ở GIỮA */}
+          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
+            <div className="w-10 h-10 rounded-full bg-netflix-red text-white flex items-center justify-center shadow-lg transform group-hover:scale-110 transition-transform">
+              <Play className="w-4 h-4 fill-white ml-0.5" />
+            </div>
+          </div>
+
+          {/* THANH TIẾN ĐỘ THỰC TẾ ĐANG XEM DỞ */}
+          <div className="absolute bottom-0 left-0 right-0 h-[3.5px] bg-black/75 z-10 overflow-hidden">
+            <div
+              className="h-full bg-netflix-red rounded-r-full transition-all duration-300"
+              style={{ width: `${progressPercent}%` }}
+            />
+          </div>
+
+          {/* NÚT XOÁ KHỎI TIẾP TỤC XEM */}
+          <button
+            type="button"
+            onClick={(e) => onRemove(e, item.slug)}
+            aria-label="Xoá khỏi danh sách tiếp tục xem"
+            className="absolute top-2 right-2 p-1 rounded-full bg-black/60 text-zinc-300 hover:text-white hover:bg-black/90 backdrop-blur-sm transition z-10 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 cursor-pointer"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+
+        {/* THÔNG TIN PHIM */}
+        <div className="p-2.5 sm:p-3 bg-zinc-950 relative z-10 -mt-[1px]">
+          <h3 className="text-white text-xs sm:text-[13px] font-semibold truncate group-hover:text-rose-400 transition-colors">
+            {item.title}
+          </h3>
+          <div className="flex items-center justify-between text-[11px] sm:text-xs text-zinc-400 mt-1">
+            <span className="text-rose-400 font-medium flex items-center gap-1 text-[10.5px] sm:text-[11px]">
+              <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
+              <span>{item.episodeName ? formatEpisodeName(item.episodeName) : "Đang xem dở"}</span>
+            </span>
+            {item.quality && (
+              <span
+                className={`px-2 py-0.5 rounded-md text-[10.5px] font-bold backdrop-blur-md border ${
+                  item.quality.toUpperCase().includes("CAM")
+                    ? "bg-amber-950/90 text-amber-300 border-amber-500/40"
+                    : "bg-black/80 border-white/20 text-zinc-100"
+                }`}
+              >
+                {item.quality}
+              </span>
+            )}
+          </div>
+        </div>
+      </Link>
+    </div>
+  );
 }
 
 function ContinueWatchingRowInner() {
@@ -58,32 +201,40 @@ function ContinueWatchingRowInner() {
       setItems(historyItems);
     };
     loadItems();
-    autoHydrateWatchHistory();
 
-    window.addEventListener("watch-history-updated", loadItems);
-    return () =>
-      window.removeEventListener("watch-history-updated", loadItems);
+    autoHydrateWatchHistory().then(() => {
+      loadItems();
+    });
+
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === "nanaflix_watch_history") {
+        loadItems();
+      }
+    };
+    const handleCustomSync = () => {
+      loadItems();
+    };
+
+    window.addEventListener("storage", handleStorage);
+    window.addEventListener("watchHistoryUpdated", handleCustomSync);
+
+    return () => {
+      window.removeEventListener("storage", handleStorage);
+      window.removeEventListener("watchHistoryUpdated", handleCustomSync);
+    };
   }, []);
 
   useEffect(() => {
+    if (!isClient) return;
     checkScroll();
-    const currentRef = rowRef.current;
-    if (currentRef) {
-      currentRef.addEventListener("scroll", checkScroll, { passive: true });
-      currentRef.addEventListener("scrollend", checkScroll, { passive: true });
-    }
     window.addEventListener("resize", checkScroll);
     return () => {
+      window.removeEventListener("resize", checkScroll);
       if (rafRef.current !== null) {
         cancelAnimationFrame(rafRef.current);
       }
-      if (currentRef) {
-        currentRef.removeEventListener("scroll", checkScroll);
-        currentRef.removeEventListener("scrollend", checkScroll);
-      }
-      window.removeEventListener("resize", checkScroll);
     };
-  }, [items, checkScroll]);
+  }, [items, isClient, checkScroll]);
 
   if (!isClient || items.length === 0) {
     return null;
@@ -91,12 +242,9 @@ function ContinueWatchingRowInner() {
 
   const handleScroll = (direction: "left" | "right") => {
     if (!rowRef.current) return;
-    const cardEl = rowRef.current.querySelector<HTMLElement>(".group");
-    const step = cardEl ? (cardEl.offsetWidth + 16) * Math.max(1, Math.floor(rowRef.current.clientWidth / (cardEl.offsetWidth + 16))) : rowRef.current.clientWidth * 0.75;
-    rowRef.current.scrollBy({
-      left: direction === "left" ? -step : step,
-      behavior: "smooth",
-    });
+    const { clientWidth } = rowRef.current;
+    const scrollAmount = direction === "left" ? -clientWidth * 0.75 : clientWidth * 0.75;
+    rowRef.current.scrollBy({ left: scrollAmount, behavior: "smooth" });
     setTimeout(checkScroll, 150);
     setTimeout(checkScroll, 400);
   };
@@ -118,7 +266,7 @@ function ContinueWatchingRowInner() {
         </div>
         <Link
           href="/my-list?tab=history"
-          className="text-xs sm:text-sm text-gray-400 hover:text-white transition font-medium"
+          className="text-xs sm:text-sm text-zinc-400 hover:text-white transition font-medium"
         >
           Xem tất cả ({items.length})
         </Link>
@@ -162,104 +310,9 @@ function ContinueWatchingRowInner() {
           ref={rowRef}
           className="flex gap-3 sm:gap-4 overflow-x-auto px-3 sm:px-4 scroll-pl-3 sm:scroll-pl-4 py-3 sm:py-3.5 scrollbar-none [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
         >
-          {items.slice(0, MAX_CONTINUE_WATCHING_DISPLAY).map((item) => {
-            const href = item.episodeSlug
-              ? `/movies/${item.slug}?ep=${item.episodeSlug}`
-              : `/movies/${item.slug}`;
-
-            const progressPercent =
-              item.durationSeconds && item.durationSeconds > 0 && typeof item.progressSeconds === "number"
-                ? Math.min(100, Math.max(0, Math.round((item.progressSeconds / item.durationSeconds) * 100)))
-                : 0;
-
-            return (
-              <div
-                key={item.slug}
-                className="group relative flex-none w-[190px] sm:w-[240px] md:w-[270px] bg-zinc-950 rounded-xl overflow-hidden border border-white/10 hover:border-white/25 transition-all duration-300 hover:scale-[1.03] shadow-md hover:shadow-xl"
-              >
-                <Link href={href} className="block">
-                  {/* ẢNH THUMBNAIL (16:9, ưu tiên thumb ngang) */}
-                  <div className="relative aspect-video w-full bg-zinc-900 bg-gradient-to-br from-zinc-800/70 via-zinc-900 to-zinc-950 overflow-hidden">
-                    <Image
-                      src={toOptimizedPhimimgUrl(
-                        pickBestMovieThumb({ poster_url: item.poster, thumb_url: item.thumb }, "/default-hero.jpg"),
-                        320
-                      )}
-                      alt={item.title}
-                      fill
-                      unoptimized
-                      sizes="(max-width: 768px) 240px, (max-width: 1024px) 300px, 360px"
-                      className="object-cover transition-transform duration-300 group-hover:scale-105"
-                      decoding="async"
-                      loading="lazy"
-                      quality={85}
-                      onError={(e) => {
-                        const target = e.currentTarget as HTMLImageElement;
-                        if (!target) return;
-                        if (item.poster && !target.src.includes(item.poster) && !item.poster.includes("default-")) {
-                          target.srcset = "";
-                          target.src = item.poster;
-                        } else if (!target.src.includes("/default-hero.jpg")) {
-                          target.srcset = "";
-                          target.src = "/default-hero.jpg";
-                        }
-                      }}
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent" />
-
-                    {/* NÚT PLAY Ở GIỮA */}
-                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                      <div className="w-10 h-10 rounded-full bg-netflix-red text-white flex items-center justify-center shadow-lg transform group-hover:scale-110 transition-transform">
-                        <Play className="w-4 h-4 fill-white ml-0.5" />
-                      </div>
-                    </div>
-
-                    {/* THANH TIẾN ĐỘ THỰC TẾ ĐANG XEM DỞ */}
-                    <div className="absolute bottom-0 left-0 right-0 h-1 bg-zinc-800/90">
-                      <div
-                        className="h-full bg-gradient-to-r from-netflix-red to-netflix-red/80 rounded-r-full shadow-sm shadow-[var(--accent-glow,rgba(229,9,20,0.5))]"
-                        style={{ width: `${progressPercent}%` }}
-                      />
-                    </div>
-
-                    {/* NÚT XOÁ KHỎI TIẾP TỤC XEM */}
-                    <button
-                      type="button"
-                      onClick={(e) => handleRemove(e, item.slug)}
-                      aria-label="Xoá khỏi danh sách tiếp tục xem"
-                      className="absolute top-2 right-2 p-1 rounded-full bg-black/60 text-zinc-300 hover:text-white hover:bg-black/90 backdrop-blur-sm transition z-10 opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
-                    >
-                      <X className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-
-                  {/* THÔNG TIN PHIM */}
-                  <div className="p-2.5 sm:p-3">
-                    <h3 className="text-white text-xs sm:text-[13px] font-semibold truncate group-hover:text-rose-400 transition-colors">
-                      {item.title}
-                    </h3>
-                    <div className="flex items-center justify-between text-[11px] sm:text-xs text-zinc-400 mt-1">
-                      <span className="text-rose-400 font-medium flex items-center gap-1 text-[10.5px] sm:text-[11px]">
-                        <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
-                        <span>{item.episodeName ? formatEpisodeName(item.episodeName) : "Đang xem dở"}</span>
-                      </span>
-                      {item.quality && (
-                        <span
-                          className={`px-2 py-0.5 rounded-md text-[10.5px] font-bold backdrop-blur-md border ${
-                            item.quality.toUpperCase().includes("CAM")
-                              ? "bg-amber-950/90 text-amber-300 border-amber-500/40"
-                              : "bg-black/80 border-white/20 text-zinc-100"
-                          }`}
-                        >
-                          {item.quality}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </Link>
-              </div>
-            );
-          })}
+          {items.slice(0, MAX_CONTINUE_WATCHING_DISPLAY).map((item) => (
+            <ContinueWatchingCard key={item.slug} item={item} onRemove={handleRemove} />
+          ))}
         </div>
       </div>
     </section>

@@ -64,7 +64,7 @@ const TAB_CONFIG: Record<
     badge: "TMDB Quốc Tế • Thịnh Hành Tuần",
     icon: Flame,
     badgeClass: "text-rose-400 bg-rose-500/10 border-rose-500/20",
-    gradientClass: "from-rose-600 to-amber-500 shadow-red-950/40",
+    gradientClass: "from-rose-600 to-amber-500 shadow-black/50",
   },
   month: {
     title: "Phim Nổi Bật Trong Tháng",
@@ -72,7 +72,7 @@ const TAB_CONFIG: Record<
     badge: "TMDB Quốc Tế • Nổi Bật Tháng",
     icon: Zap,
     badgeClass: "text-amber-400 bg-amber-500/10 border-amber-500/20",
-    gradientClass: "from-amber-500 to-orange-600 shadow-orange-950/40",
+    gradientClass: "from-amber-500 to-orange-600 shadow-black/50",
   },
   top_rated: {
     title: "Top Phim Hay Nhất Mọi Thời Đại",
@@ -80,7 +80,7 @@ const TAB_CONFIG: Record<
     badge: "IMDb Top 250 • Kiệt Tác Điện Ảnh",
     icon: Crown,
     badgeClass: "text-yellow-400 bg-yellow-500/10 border-yellow-500/20",
-    gradientClass: "from-amber-400 to-yellow-600 shadow-yellow-950/40",
+    gradientClass: "from-amber-400 to-yellow-600 shadow-black/50",
   },
 };
 
@@ -345,26 +345,16 @@ function TmdbTopTrendingInner() {
       {/* HEADER SECTION */}
       <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-3.5 sm:gap-4 mb-4 sm:mb-5 px-1">
         <div className="min-w-0">
-          <div className="flex items-center gap-2 mb-1.5">
-            <span
-              className={`flex items-center justify-center w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-gradient-to-tr ${currentConfig.gradientClass} text-white shadow-lg shrink-0`}
-            >
+          <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-white tracking-tight flex items-center gap-2.5 flex-wrap sm:flex-nowrap">
+            <span className="flex items-center justify-center w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-netflix-red text-white shadow-md shadow-black/50 shrink-0">
               <IconComponent className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
             </span>
-            <span
-              className={`text-[11px] font-extrabold uppercase tracking-wider px-2 sm:px-2.5 py-0.5 rounded-full border flex items-center gap-1 shrink-0 ${currentConfig.badgeClass}`}
-            >
-              <Globe className="w-3 h-3 shrink-0" />
-              <span>{currentConfig.badge}</span>
-            </span>
-          </div>
-          <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-white tracking-tight flex items-center gap-2 flex-wrap sm:flex-nowrap">
             <span>{currentConfig.title}</span>
             {activeTab === "week" && <Flame className="w-5 h-5 text-netflix-red shrink-0" />}
             {activeTab === "month" && <Zap className="w-5 h-5 text-amber-400 shrink-0" />}
             {activeTab === "top_rated" && <Crown className="w-5 h-5 text-yellow-400 shrink-0" />}
           </h2>
-          <p className="text-xs sm:text-sm text-zinc-400 mt-0.5 line-clamp-2">
+          <p className="text-xs sm:text-sm text-zinc-400 mt-1 max-w-[65ch] leading-relaxed line-clamp-2">
             {currentConfig.subtitle}
           </p>
         </div>
@@ -377,8 +367,8 @@ function TmdbTopTrendingInner() {
               onClick={() => switchTab("week")}
               className={`px-3 sm:px-3.5 py-1.5 rounded-lg transition-all duration-200 cursor-pointer flex items-center justify-center gap-1.5 whitespace-nowrap shrink-0 text-[11px] sm:text-xs ${
                 activeTab === "week"
-                  ? "bg-netflix-red text-white font-bold shadow-md shadow-red-950/40 scale-100"
-                  : "text-gray-400 hover:text-white hover:bg-white/5 active:scale-95"
+                  ? "bg-netflix-red text-white font-bold shadow-md shadow-black/50 scale-100"
+                  : "text-zinc-400 hover:text-white hover:bg-white/5 active:scale-95"
               }`}
             >
               <Flame className="w-3.5 h-3.5 shrink-0" />
@@ -389,8 +379,8 @@ function TmdbTopTrendingInner() {
               onClick={() => switchTab("month")}
               className={`px-3 sm:px-3.5 py-1.5 rounded-lg transition-all duration-200 cursor-pointer flex items-center justify-center gap-1.5 whitespace-nowrap shrink-0 text-[11px] sm:text-xs ${
                 activeTab === "month"
-                  ? "bg-netflix-red text-white font-bold shadow-md shadow-red-950/40 scale-100"
-                  : "text-gray-400 hover:text-white hover:bg-white/5 active:scale-95"
+                  ? "bg-netflix-red text-white font-bold shadow-md shadow-black/50 scale-100"
+                  : "text-zinc-400 hover:text-white hover:bg-white/5 active:scale-95"
               }`}
             >
               <Zap className="w-3.5 h-3.5 shrink-0" />
@@ -401,8 +391,8 @@ function TmdbTopTrendingInner() {
               onClick={() => switchTab("top_rated")}
               className={`px-3 sm:px-3.5 py-1.5 rounded-lg transition-all duration-200 cursor-pointer flex items-center justify-center gap-1.5 whitespace-nowrap shrink-0 text-[11px] sm:text-xs ${
                 activeTab === "top_rated"
-                  ? "bg-netflix-red text-white font-bold shadow-md shadow-red-950/40 scale-100"
-                  : "text-gray-400 hover:text-white hover:bg-white/5 active:scale-95"
+                  ? "bg-netflix-red text-white font-bold shadow-md shadow-black/50 scale-100"
+                  : "text-zinc-400 hover:text-white hover:bg-white/5 active:scale-95"
               }`}
             >
               <Crown className="w-3.5 h-3.5 shrink-0" />
@@ -508,22 +498,18 @@ function TmdbTopTrendingInner() {
                     href={`/movies/${movieSlug}`}
                     className="flex items-start relative block cursor-pointer group-hover:scale-[1.025] group-hover:-translate-y-1 transition-all duration-300 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 rounded-xl"
                   >
-                    {/* NETFLIX-STYLE GIANT 3D NUMBER BEHIND POSTER */}
-                    <div className="flex items-end h-[210px] sm:h-[262px] md:h-[285px] relative -mr-5 sm:-mr-8 z-0 pointer-events-none select-none shrink-0">
+                    <div aria-hidden="true" className="flex items-end h-[210px] sm:h-[262px] md:h-[285px] relative -mr-5 sm:-mr-8 z-0 pointer-events-none select-none shrink-0">
                       <span
-                        className="text-[90px] sm:text-[130px] md:text-[150px] font-black leading-none tracking-tighter"
+                        className="text-[90px] sm:text-[130px] md:text-[150px] font-black leading-none tracking-tighter text-transparent"
                         style={{
-                          WebkitTextStroke: rank <= 3 ? "2px rgba(245, 158, 11, 0.85)" : "2px rgba(255, 255, 255, 0.22)",
-                          color: rank <= 3 ? "transparent" : "rgba(0, 0, 0, 0.6)",
-                          backgroundImage: rank === 1
-                            ? "linear-gradient(180deg, #fbbf24 0%, #d97706 100%)"
-                            : rank === 2
-                            ? "linear-gradient(180deg, #f1f5f9 0%, #64748b 100%)"
-                            : rank === 3
-                            ? "linear-gradient(180deg, #d97706 0%, #78350f 100%)"
-                            : undefined,
-                          WebkitBackgroundClip: rank <= 3 ? "text" : undefined,
-                          filter: rank <= 3 ? "drop-shadow(0 10px 15px rgba(245, 158, 11, 0.35))" : undefined,
+                          WebkitTextStroke:
+                            rank === 1
+                              ? "3px #e50914"
+                              : rank === 2
+                              ? "3px #d4d4d8"
+                              : rank === 3
+                              ? "3px #a1a1aa"
+                              : "2px rgba(255, 255, 255, 0.2)",
                         }}
                       >
                         {rank}
@@ -567,9 +553,25 @@ function TmdbTopTrendingInner() {
                                     target.src !== movie.thumb_url
                                   ) {
                                     target.src = movie.thumb_url;
-                                  } else if (!target.src.includes("/default-poster.jpg")) {
-                                    target.srcset = "";
-                                    target.src = "/default-poster.jpg";
+                                  } else {
+                                    fetch(
+                                      `/api/movie-poster-fallback?title=${encodeURIComponent(movieTitle)}&slug=${encodeURIComponent(movieSlug)}`
+                                    )
+                                      .then((r) => (r.ok ? r.json() : null))
+                                      .then((d) => {
+                                        if (d?.posterUrl) {
+                                          target.src = d.posterUrl;
+                                        } else if (!target.src.includes("/default-poster.jpg")) {
+                                          target.srcset = "";
+                                          target.src = "/default-poster.jpg";
+                                        }
+                                      })
+                                      .catch(() => {
+                                        if (!target.src.includes("/default-poster.jpg")) {
+                                          target.srcset = "";
+                                          target.src = "/default-poster.jpg";
+                                        }
+                                      });
                                   }
                                 }
                               }}

@@ -503,7 +503,7 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
                 }}
                 disabled={loading || isRefreshing}
                 aria-label="Làm mới dữ liệu trận đấu"
-                className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 hover:text-white transition disabled:opacity-50 cursor-pointer"
+                className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-zinc-300 hover:text-white transition disabled:opacity-50 cursor-pointer"
               >
                 <RefreshCw
                   className={`w-3.5 h-3.5 ${
@@ -514,7 +514,7 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
             </Tooltip>
           )}
 
-          <div className="p-1.5 rounded-lg bg-white/5 text-gray-400 border border-white/10">
+          <div className="p-1.5 rounded-lg bg-white/5 text-zinc-400 border border-white/10">
             {isOpen ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
           </div>
         </div>
@@ -525,7 +525,7 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
         <div className="p-3 sm:p-4 space-y-3 sm:space-y-3.5">
           {/* C. LOADING SKELETON */}
           {loading && !summary && (
-            <div className="py-12 flex flex-col items-center justify-center gap-3 text-gray-400">
+            <div className="py-12 flex flex-col items-center justify-center gap-3 text-zinc-400">
               <RefreshCw className="w-7 h-7 animate-spin text-netflix-red" />
               <p className="text-xs sm:text-sm font-semibold">Đang kết nối trung tâm dữ liệu trận đấu...</p>
             </div>
@@ -560,7 +560,7 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
                   <div className="grid grid-cols-2 gap-2 text-xs">
                     {/* Giải đấu */}
                     <div className="rounded-xl bg-white/[0.03] border border-white/10 p-2.5 sm:p-3 flex flex-col gap-1 min-w-0">
-                      <span className="text-[10px] uppercase font-bold text-gray-400 flex items-center gap-1">
+                      <span className="text-[10px] uppercase font-bold text-zinc-400 flex items-center gap-1">
                         <span>🏆</span>
                         <span>Giải đấu</span>
                       </span>
@@ -574,7 +574,7 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
 
                     {/* Bình luận viên */}
                     <div className="rounded-xl bg-white/[0.03] border border-white/10 p-2.5 sm:p-3 flex flex-col gap-1 min-w-0">
-                      <span className="text-[10px] uppercase font-bold text-gray-400 flex items-center gap-1">
+                      <span className="text-[10px] uppercase font-bold text-zinc-400 flex items-center gap-1">
                         <span>🎙️</span>
                         <span>Bình luận</span>
                       </span>
@@ -588,7 +588,7 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
 
                     {/* Kênh phát */}
                     <div className="rounded-xl bg-white/[0.03] border border-white/10 p-2.5 sm:p-3 flex flex-col gap-1 min-w-0">
-                      <span className="text-[10px] uppercase font-bold text-gray-400 flex items-center gap-1">
+                      <span className="text-[10px] uppercase font-bold text-zinc-400 flex items-center gap-1">
                         <span>📺</span>
                         <span>Kênh tiếp sóng</span>
                       </span>
@@ -602,7 +602,7 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
 
                     {/* Tín hiệu & Luồng */}
                     <div className="rounded-xl bg-white/[0.03] border border-white/10 p-2.5 sm:p-3 flex flex-col gap-1 min-w-0">
-                      <span className="text-[10px] uppercase font-bold text-gray-400 flex items-center gap-1">
+                      <span className="text-[10px] uppercase font-bold text-zinc-400 flex items-center gap-1">
                         <span>⚡</span>
                         <span>Chất lượng</span>
                       </span>
@@ -613,14 +613,14 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
                   </div>
 
                   {/* Thông báo tiếp sóng */}
-                  <div className="rounded-xl bg-zinc-900/60 border border-white/5 px-3 py-2.5 sm:p-3 flex items-center gap-2.5 text-xs text-gray-400">
-                    <div className="p-1.5 rounded-lg bg-white/5 text-gray-300 border border-white/10 shrink-0">
+                  <div className="rounded-xl bg-zinc-900/60 border border-white/5 px-3 py-2.5 sm:p-3 flex items-center gap-2.5 text-xs text-zinc-400">
+                    <div className="p-1.5 rounded-lg bg-white/5 text-zinc-300 border border-white/10 shrink-0">
                       <Radio className="w-3.5 h-3.5 text-netflix-red animate-pulse" />
                     </div>
-                    <div className="min-w-0 flex-1 text-[11px] sm:text-xs leading-relaxed text-gray-300">
+                    <div className="min-w-0 flex-1 text-[11px] sm:text-xs leading-relaxed text-zinc-300">
                       <span className="font-bold text-white">Đang tiếp sóng trực tiếp</span>
-                      <span className="text-gray-400 ml-1.5 hidden sm:inline">•</span>
-                      <span className="text-gray-400 block sm:inline mt-0.5 sm:mt-0 sm:ml-1.5">
+                      <span className="text-zinc-400 ml-1.5 hidden sm:inline">•</span>
+                      <span className="text-zinc-400 block sm:inline mt-0.5 sm:mt-0 sm:ml-1.5">
                         Trận đấu chưa có dữ liệu số liệu chuyên sâu từ ban tổ chức.
                       </span>
                     </div>
@@ -676,17 +676,17 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
                 <div className="space-y-4">
                   {/* Thông tin sân vận động & trọng tài */}
                   {summary.gameInfo && (summary.gameInfo.venue?.name || summary.gameInfo.referee) && (
-                    <div className="rounded-xl bg-white/[0.03] border border-white/10 p-3 flex flex-wrap items-center justify-center gap-4 sm:gap-6 text-xs text-gray-400">
+                    <div className="rounded-xl bg-white/[0.03] border border-white/10 p-3 flex flex-wrap items-center justify-center gap-4 sm:gap-6 text-xs text-zinc-400">
                       {summary.gameInfo.venue?.name && (
                         <div className="flex items-center gap-1.5">
                           <MapPin className="w-3.5 h-3.5 text-netflix-red shrink-0" />
-                          <span>Sân vận động: <strong className="text-gray-200">{summary.gameInfo.venue.name}</strong></span>
+                          <span>Sân vận động: <strong className="text-zinc-200">{summary.gameInfo.venue.name}</strong></span>
                         </div>
                       )}
                       {summary.gameInfo.referee && (
                         <div className="flex items-center gap-1.5">
                           <UserCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                          <span>Trọng tài: <strong className="text-gray-200">{summary.gameInfo.referee}</strong></span>
+                          <span>Trọng tài: <strong className="text-zinc-200">{summary.gameInfo.referee}</strong></span>
                         </div>
                       )}
                     </div>
@@ -695,7 +695,7 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
                   <div className="grid grid-cols-1 gap-4">
                   {/* Cột trái: Thống kê nổi bật */}
                   <div className="rounded-2xl bg-zinc-900/50 border border-white/10 p-4 space-y-3">
-                    <h5 className="text-xs font-extrabold uppercase tracking-wider text-gray-400 flex items-center gap-1.5">
+                    <h5 className="text-xs font-extrabold uppercase tracking-wider text-zinc-400 flex items-center gap-1.5">
                       <BarChart2 className="w-3.5 h-3.5 text-netflix-red" />
                       <span>Chỉ số trận đấu</span>
                     </h5>
@@ -710,7 +710,7 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
                             <div key={stat.name} className="space-y-1">
                               <div className="flex justify-between items-center text-xs">
                                 <span className="font-extrabold text-white">{stat.homeValue}</span>
-                                <span className="text-gray-400 text-[11px] font-semibold">{stat.label}</span>
+                                <span className="text-zinc-400 text-[11px] font-semibold">{stat.label}</span>
                                 <span className="font-extrabold text-white">{stat.awayValue}</span>
                               </div>
                               <div className="flex h-1.5 rounded-full overflow-hidden bg-white/5 gap-1">
@@ -728,13 +728,13 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
                         })}
                       </div>
                     ) : (
-                      <p className="text-xs text-gray-500 py-4 text-center">Chưa có số liệu thống kê trận đấu</p>
+                      <p className="text-xs text-zinc-500 py-4 text-center">Chưa có số liệu thống kê trận đấu</p>
                     )}
                   </div>
 
                   {/* Cột phải: Diễn biến quan trọng */}
                   <div className="rounded-2xl bg-zinc-900/50 border border-white/10 p-4 space-y-3">
-                    <h5 className="text-xs font-extrabold uppercase tracking-wider text-gray-400 flex items-center gap-1.5">
+                    <h5 className="text-xs font-extrabold uppercase tracking-wider text-zinc-400 flex items-center gap-1.5">
                       <Clock className="w-3.5 h-3.5 text-amber-400" />
                       <span>Sự kiện then chốt</span>
                     </h5>
@@ -771,7 +771,7 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
                                   (ev.subInPlayer ? `Vào: ${ev.subInPlayer}` : ev.text)}
                               </span>
                               {ev.subOutPlayer && (
-                                <span className="text-[10px] text-gray-400 ml-1.5">
+                                <span className="text-[10px] text-zinc-400 ml-1.5">
                                   (Ra: {ev.subOutPlayer})
                                 </span>
                               )}
@@ -780,7 +780,7 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
                         ))}
                       </div>
                     ) : (
-                      <p className="text-xs text-gray-500 py-4 text-center">Chưa có sự kiện nổi bật nào</p>
+                      <p className="text-xs text-zinc-500 py-4 text-center">Chưa có sự kiện nổi bật nào</p>
                     )}
                   </div>
                 </div>
@@ -792,7 +792,7 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
                 <div className="rounded-2xl bg-zinc-900/50 border border-white/10 p-4 sm:p-6 space-y-4">
                   <div className="flex items-center justify-between text-xs pb-3 border-b border-white/10">
                     <span className="font-extrabold text-netflix-red">{summary.homeTeam.displayName}</span>
-                    <span className="text-gray-400 font-bold tracking-wider text-[11px]">Chỉ số so sánh</span>
+                    <span className="text-zinc-400 font-bold tracking-wider text-[11px]">Chỉ số so sánh</span>
                     <span className="font-extrabold text-white">{summary.awayTeam.displayName}</span>
                   </div>
 
@@ -807,7 +807,7 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
                           <div key={stat.name} className="space-y-1.5">
                             <div className="flex justify-between items-center text-xs sm:text-sm">
                               <span className="font-mono font-black text-white">{stat.homeValue}</span>
-                              <span className="text-gray-400 text-xs font-semibold">{stat.label}</span>
+                              <span className="text-zinc-400 text-xs font-semibold">{stat.label}</span>
                               <span className="font-mono font-black text-white">{stat.awayValue}</span>
                             </div>
                             <div className="flex h-2 rounded-full overflow-hidden bg-white/5 gap-1 shadow-inner">
@@ -825,7 +825,7 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
                       })}
                     </div>
                   ) : (
-                    <p className="text-xs text-gray-500 py-8 text-center">Chưa có số liệu thống kê trận đấu</p>
+                    <p className="text-xs text-zinc-500 py-8 text-center">Chưa có số liệu thống kê trận đấu</p>
                   )}
                 </div>
               )}
@@ -833,7 +833,7 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
               {/* TAB 3: DIỄN BIẾN (TIMELINE) */}
               {activeTab === "timeline" && (
                 <div className="rounded-2xl bg-zinc-900/50 border border-white/10 p-4 sm:p-6 space-y-3">
-                  <h5 className="text-xs font-extrabold uppercase tracking-wider text-gray-400 mb-3">
+                  <h5 className="text-xs font-extrabold uppercase tracking-wider text-zinc-400 mb-3">
                     Dòng thời gian sự kiện trận đấu
                   </h5>
 
@@ -870,14 +870,14 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
                                 (ev.subInPlayer ? `Vào: ${ev.subInPlayer}` : ev.text)}
                             </p>
                             {ev.subOutPlayer && (
-                              <p className="text-[11px] text-gray-400">Ra: {ev.subOutPlayer}</p>
+                              <p className="text-[11px] text-zinc-400">Ra: {ev.subOutPlayer}</p>
                             )}
                           </div>
                         </div>
                       ))}
                     </div>
                   ) : (
-                    <p className="text-xs text-gray-500 py-8 text-center">Chưa có sự kiện nào trong trận</p>
+                    <p className="text-xs text-zinc-500 py-8 text-center">Chưa có sự kiện nào trong trận</p>
                   )}
                 </div>
               )}
@@ -897,7 +897,7 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
               {activeTab === "commentary" && (
                 <div className="rounded-2xl bg-zinc-900/50 border border-white/10 p-4 sm:p-6 space-y-3">
                   <div className="flex items-center justify-between pb-2 border-b border-white/10">
-                    <h5 className="text-xs font-extrabold uppercase tracking-wider text-gray-400 flex items-center gap-1.5">
+                    <h5 className="text-xs font-extrabold uppercase tracking-wider text-zinc-400 flex items-center gap-1.5">
                       <MessageSquare className="w-3.5 h-3.5 text-netflix-red" />
                       <span>Diễn biến trực tiếp từ sân cỏ</span>
                     </h5>
@@ -905,7 +905,7 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
                     <button
                       type="button"
                       onClick={() => setCommentaryOrder((prev) => (prev === "newest" ? "oldest" : "newest"))}
-                      className="inline-flex items-center gap-1 text-[11px] font-bold text-gray-300 hover:text-white px-2.5 py-1 rounded-lg bg-white/5 border border-white/10 cursor-pointer"
+                      className="inline-flex items-center gap-1 text-[11px] font-bold text-zinc-300 hover:text-white px-2.5 py-1 rounded-lg bg-white/5 border border-white/10 cursor-pointer"
                     >
                       <ArrowUpDown className="w-3 h-3" />
                       <span>{commentaryOrder === "newest" ? "Mới nhất trước" : "Cũ nhất trước"}</span>
@@ -925,12 +925,12 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
                           <span className="font-mono text-amber-400 font-extrabold shrink-0 min-w-[32px] pt-0.5">
                             {c.time ? `${c.time}'` : "•"}
                           </span>
-                          <p className="text-gray-200 leading-relaxed flex-1">{c.text}</p>
+                          <p className="text-zinc-200 leading-relaxed flex-1">{c.text}</p>
                         </div>
                       ))}
                     </div>
                   ) : (
-                    <p className="text-xs text-gray-500 py-8 text-center">Chưa có dòng bình luận trực tiếp nào</p>
+                    <p className="text-xs text-zinc-500 py-8 text-center">Chưa có dòng bình luận trực tiếp nào</p>
                   )}
                 </div>
               )}

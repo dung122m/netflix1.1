@@ -135,19 +135,19 @@ export const ActorHubClient: React.FC<ActorHubClientProps> = ({ initialActors })
         <div className="relative group">
           <div className="absolute -inset-0.5 bg-gradient-to-r from-red-600/30 to-amber-600/30 rounded-2xl blur opacity-30 group-hover:opacity-70 transition duration-300 pointer-events-none" />
           <div className="relative flex items-center bg-zinc-950/90 border border-white/[0.1] group-hover:border-white/20 rounded-2xl px-4 py-3 sm:py-3.5 shadow-2xl backdrop-blur-xl transition-all">
-            <Search className="w-5 h-5 text-gray-400 group-hover:text-white transition-colors shrink-0 mr-3" />
+            <Search className="w-5 h-5 text-zinc-400 group-hover:text-white transition-colors shrink-0 mr-3" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => handleSearchChange(e.target.value)}
               placeholder="Tìm kiếm diễn viên, nghệ danh (vd: Trấn Thành, Châu Tinh Trì, Tom Cruise)..."
-              className="w-full bg-transparent text-white placeholder-gray-500 text-xs sm:text-sm font-medium focus:outline-none"
+              className="w-full bg-transparent text-white placeholder-zinc-500 text-xs sm:text-sm font-medium focus:outline-none"
             />
             {searchQuery && (
               <button
                 type="button"
                 onClick={() => handleSearchChange("")}
-                className="p-1 rounded-full text-gray-400 hover:text-white hover:bg-white/10 transition cursor-pointer shrink-0 ml-2"
+                className="p-1 rounded-full text-zinc-400 hover:text-white hover:bg-white/10 transition cursor-pointer shrink-0 ml-2"
                 aria-label="Xóa tìm kiếm"
               >
                 <X className="w-4 h-4" />
@@ -167,8 +167,8 @@ export const ActorHubClient: React.FC<ActorHubClientProps> = ({ initialActors })
                 onClick={() => handleCountryChange(item.code)}
                 className={`flex items-center gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all duration-200 cursor-pointer ${
                   isActive
-                    ? "bg-netflix-red text-white shadow-lg shadow-red-950/50 scale-[1.02]"
-                    : "bg-zinc-900/90 hover:bg-zinc-800 text-gray-300 border border-white/[0.08] hover:border-white/20"
+                    ? "bg-netflix-red text-white shadow-md shadow-black/50 scale-[1.02]"
+                    : "bg-zinc-900/90 hover:bg-zinc-800 text-zinc-300 border border-white/[0.08] hover:border-white/20"
                 }`}
               >
                 {item.code === "all" && <Globe className="w-3.5 h-3.5" />}
@@ -183,14 +183,14 @@ export const ActorHubClient: React.FC<ActorHubClientProps> = ({ initialActors })
       {/* KẾT QUẢ / SỐ LƯỢNG */}
       {/* ============================================================ */}
       <div id="actor-catalog-heading" className="flex items-center justify-between border-b border-white/[0.08] pb-4 scroll-mt-24">
-        <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-400">
+        <div className="flex items-center gap-2 text-xs sm:text-sm text-zinc-400">
           <Sparkles className="w-4 h-4 text-amber-400" />
           <span>
             {filteredActors.length > 0 ? (
               <>
                 Hiển thị <strong className="text-white font-bold">{pagedActors.length}</strong> / <strong className="text-white font-bold">{filteredActors.length}</strong> nghệ sĩ
                 {totalPages > 1 && (
-                  <span className="text-gray-400 font-normal"> (Trang {currentPage}/{totalPages})</span>
+                  <span className="text-zinc-400 font-normal"> (Trang {currentPage}/{totalPages})</span>
                 )}
                 {activeCountry !== "all" && (
                   <> khu vực <strong className="text-amber-300">{COUNTRY_NAME_MAP[activeCountry] || activeCountry}</strong></>
@@ -246,7 +246,7 @@ export const ActorHubClient: React.FC<ActorHubClientProps> = ({ initialActors })
                     <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/20 to-transparent opacity-80 group-hover:opacity-60 transition-opacity" />
 
                     {/* COUNTRY BADGE GÓC TRÊN */}
-                    <div className="absolute top-2.5 left-2.5 px-2 py-0.5 rounded-lg bg-black/60 backdrop-blur-md border border-white/10 text-[10px] sm:text-[11px] font-semibold text-gray-200 flex items-center gap-1 shadow">
+                    <div className="absolute top-2.5 left-2.5 px-2 py-0.5 rounded-lg bg-black/60 backdrop-blur-md border border-white/10 text-[10px] sm:text-[11px] font-semibold text-zinc-200 flex items-center gap-1 shadow">
                       <span>{countryDisplay}</span>
                     </div>
 
@@ -265,7 +265,7 @@ export const ActorHubClient: React.FC<ActorHubClientProps> = ({ initialActors })
                         {actor.name}
                       </h3>
                       {actor.englishName && actor.englishName !== actor.name && (
-                        <p className="text-[10px] sm:text-[11px] text-gray-400 line-clamp-1">
+                        <p className="text-[10px] sm:text-[11px] text-zinc-400 line-clamp-1">
                           {actor.englishName}
                         </p>
                       )}
@@ -310,7 +310,7 @@ export const ActorHubClient: React.FC<ActorHubClientProps> = ({ initialActors })
             <h3 className="text-base font-bold text-white">
               Không tìm thấy diễn viên phù hợp trong danh mục
             </h3>
-            <p className="text-xs text-gray-400 leading-relaxed">
+            <p className="text-xs text-zinc-400 leading-relaxed">
               Bạn có thể tra cứu trực tiếp toàn bộ kho phim của nghệ sĩ <strong>&ldquo;{searchQuery}&rdquo;</strong> trên hệ thống tìm kiếm đa chiều Nanaflix.
             </p>
           </div>
@@ -318,7 +318,7 @@ export const ActorHubClient: React.FC<ActorHubClientProps> = ({ initialActors })
           <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
             <Link
               href={`/browse?actor=${encodeURIComponent(searchQuery)}`}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-netflix-red hover:bg-red-700 text-white font-bold text-xs transition shadow-lg shadow-red-950/40 cursor-pointer"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-netflix-red hover:bg-red-700 text-white font-bold text-xs transition shadow-md shadow-black/50 cursor-pointer"
             >
               <Film className="w-3.5 h-3.5" />
               <span>Tìm phim có &ldquo;{searchQuery}&rdquo;</span>
@@ -331,7 +331,7 @@ export const ActorHubClient: React.FC<ActorHubClientProps> = ({ initialActors })
                 setActiveCountry("all");
                 setCurrentPage(1);
               }}
-              className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-gray-200 text-xs font-semibold transition cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-zinc-200 text-xs font-semibold transition cursor-pointer"
             >
               <span>Xem tất cả nghệ sĩ</span>
             </button>

@@ -27,7 +27,7 @@ export async function generateMetadata({
 
   const movieCount = collection.movies?.length || 0;
   const posterImage = collection.movies?.[0]?.poster || "";
-  const title = `${collection.name} (${movieCount} phim) | Tuyển Tập Nanaflix VIP`;
+  const title = `${collection.name} (${movieCount} phim) | Tuyển Tập Nanaflix `;
   const description =
     collection.description ||
     `Khám phá bộ sưu tập phim "${collection.name}" tuyển chọn bởi ${collection.creatorName || "thành viên Nanaflix"}. Gồm ${movieCount} bộ phim hấp dẫn xem miễn phí chất lượng cao.`;
@@ -43,7 +43,7 @@ export async function generateMetadata({
     },
     twitter: {
       card: "summary_large_image",
-      title: `${collection.name} | Nanaflix VIP`,
+      title: `${collection.name} | Nanaflix `,
       description: description.slice(0, 160),
       images: posterImage ? [posterImage] : [],
     },

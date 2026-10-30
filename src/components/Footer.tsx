@@ -31,7 +31,7 @@ import { NanaflixBrandLogo } from "@/components/NetflixLogo";
 
 export const Footer: React.FC = () => {
   return (
-    <footer className="relative z-0 bg-gradient-to-b from-transparent via-[#080808] to-[#030303] text-gray-400 pt-8 sm:pt-12 pb-8 sm:pb-16 px-4 sm:px-8 md:px-16 mt-6 sm:mt-10 border-t border-white/[0.08] overflow-hidden cv-auto-footer">
+    <footer className="relative z-0 bg-gradient-to-b from-transparent via-[#080808] to-[#030303] text-zinc-400 pt-8 sm:pt-12 pb-8 sm:pb-16 px-4 sm:px-8 md:px-16 mt-6 sm:mt-10 border-t border-white/[0.08] overflow-hidden cv-auto-footer">
       {/* Hiệu ứng ánh sáng tinh tế phía trên footer */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-3/4 max-w-4xl h-[1px] bg-gradient-to-r from-transparent via-netflix-red/70 to-transparent" />
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-1/2 max-w-2xl h-16 sm:h-20 bg-netflix-red/10 blur-3xl pointer-events-none" />
@@ -95,7 +95,7 @@ export const Footer: React.FC = () => {
               </span>
               <span>Điện Ảnh</span>
             </h4>
-            <ul className="space-y-2.5 text-xs text-gray-300 font-normal">
+            <ul className="space-y-2.5 text-xs text-zinc-300 font-normal">
               <li>
                 <Link href="/" className="hover:text-white transition-colors flex items-center gap-2 group">
                   <span className="w-4 h-4 flex items-center justify-center shrink-0">
@@ -133,7 +133,7 @@ export const Footer: React.FC = () => {
                   <span className="w-4 h-4 flex items-center justify-center shrink-0">
                     <Users size={13} className="text-zinc-400 group-hover:text-netflix-red transition-colors" />
                   </span>
-                  <span className="truncate text-gray-200 font-medium">Diễn viên & Nghệ sĩ</span>
+                  <span className="truncate text-zinc-200 font-medium">Diễn viên & Nghệ sĩ</span>
                 </Link>
               </li>
             </ul>
@@ -147,13 +147,13 @@ export const Footer: React.FC = () => {
               </span>
               <span>Trực Tiếp</span>
             </h4>
-            <ul className="space-y-2.5 text-xs text-gray-300 font-normal">
+            <ul className="space-y-2.5 text-xs text-zinc-300 font-normal">
               <li>
                 <Link href="/live?tab=football" className="hover:text-white transition-colors flex items-center gap-2 group">
                   <span className="w-4 h-4 flex items-center justify-center shrink-0">
                     <Flame size={13} className="text-zinc-400 group-hover:text-netflix-red transition-colors" />
                   </span>
-                  <span className="truncate text-gray-200 font-medium">Bóng đá trực tiếp</span>
+                  <span className="truncate text-zinc-200 font-medium">Bóng đá trực tiếp</span>
                 </Link>
               </li>
               <li>
@@ -207,7 +207,7 @@ export const Footer: React.FC = () => {
               </span>
               <span>Khám Phá</span>
             </h4>
-            <ul className="space-y-2.5 text-xs text-gray-300 font-normal">
+            <ul className="space-y-2.5 text-xs text-zinc-300 font-normal">
               <li>
                 <button
                   type="button"
@@ -275,7 +275,7 @@ export const Footer: React.FC = () => {
               </span>
               <span>Thông Tin</span>
             </h4>
-            <ul className="space-y-2.5 text-xs text-gray-300 font-normal">
+            <ul className="space-y-2.5 text-xs text-zinc-300 font-normal">
               <li>
                 <Link
                   href="/about"
@@ -284,7 +284,7 @@ export const Footer: React.FC = () => {
                   <span className="w-4 h-4 flex items-center justify-center shrink-0">
                     <Sparkles size={13} className="text-zinc-400 group-hover:text-emerald-400 transition-colors" />
                   </span>
-                  <span className="truncate text-gray-200 font-medium">Giới thiệu Nanaflix</span>
+                  <span className="truncate text-zinc-200 font-medium">Giới thiệu Nanaflix</span>
                 </Link>
               </li>
               <li>
@@ -344,12 +344,12 @@ export const Footer: React.FC = () => {
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2 w-2 sm:h-2.5 sm:w-2.5 bg-emerald-500"></span>
             </span>
-            <span className="text-xs font-bold text-gray-200">
+            <span className="text-xs font-bold text-zinc-200">
               Hệ thống: <span className="text-emerald-400 font-mono">99.99% Uptime</span> • CDN Tốc độ cao
             </span>
           </div>
 
-          <div className="grid grid-cols-3 sm:flex items-center justify-center gap-2 sm:gap-5 text-xs text-gray-300 w-full sm:w-auto">
+          <div className="grid grid-cols-3 sm:flex items-center justify-center gap-2 sm:gap-5 text-xs text-zinc-300 w-full sm:w-auto">
             <span className="flex items-center justify-center gap-1.5 hover:text-white transition bg-white/5 sm:bg-transparent px-2 sm:px-2.5 py-1.5 sm:p-0 rounded-lg sm:rounded-none border border-white/5 sm:border-none whitespace-nowrap">
               <Monitor className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-blue-400 shrink-0" />
               <span>Smart TV</span>
@@ -384,7 +384,7 @@ export const Footer: React.FC = () => {
           >
             {/* Lá cờ Việt Nam */}
             <div
-              className="w-8 h-8 sm:w-9 sm:h-9 rounded-full overflow-hidden border-2 border-zinc-700 group-hover:border-netflix-red group-hover:scale-105 transition-all duration-300 shadow-md shrink-0 flex items-center justify-center bg-[#DA251D] relative shadow-[0_0_10px_rgba(218,37,29,0.35)]"
+              className="w-8 h-8 sm:w-9 sm:h-9 rounded-full overflow-hidden border-2 border-zinc-700 group-hover:border-netflix-red group-hover:scale-105 transition-all duration-300 shadow-md shrink-0 flex items-center justify-center bg-[#DA251D] relative shadow-black/60"
               title="Việt Nam"
               aria-label="Cờ Việt Nam"
             >
@@ -420,7 +420,7 @@ export const Footer: React.FC = () => {
               </svg>
             </div>
             <div className="flex flex-col text-left">
-              <span className="text-xs text-gray-300 font-medium">
+              <span className="text-xs text-zinc-300 font-medium">
                 Designed & Developed by{" "}
                 <strong className="text-white font-bold group-hover:text-netflix-red transition-colors">
                   DT

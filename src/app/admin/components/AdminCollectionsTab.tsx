@@ -25,25 +25,25 @@ export const AdminCollectionsTab: React.FC<AdminCollectionsTabProps> = React.mem
       <div className="space-y-4">
         <div className="p-4 rounded-2xl bg-zinc-900/60 border border-white/10 backdrop-blur-sm flex flex-col md:flex-row md:items-center justify-between gap-3">
           <div className="relative flex-1">
-            <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+            <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400" />
             <input
               type="text"
               value={colSearchQuery}
               onChange={(e) => setColSearchQuery(e.target.value)}
               placeholder="Tìm theo tên bộ sưu tập, người tạo..."
-              className="w-full bg-black/60 border border-white/10 rounded-xl pl-9 pr-4 py-2 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-netflix-red transition"
+              className="w-full bg-black/60 border border-white/10 rounded-xl pl-9 pr-4 py-2 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-netflix-red transition"
             />
           </div>
-          <div className="text-xs text-gray-400">
+          <div className="text-xs text-zinc-400">
             Tổng số: <strong className="text-white">{filteredCollections.length}</strong> bộ sưu tập công khai
           </div>
         </div>
 
         {filteredCollections.length === 0 ? (
           <div className="p-12 text-center rounded-2xl bg-zinc-900/40 border border-white/10">
-            <FolderHeart size={36} className="text-gray-600 mx-auto mb-2" />
-            <p className="text-sm font-semibold text-gray-300">Chưa có bộ sưu tập công khai nào</p>
-            <p className="text-xs text-gray-500 mt-1">Khi người dùng chia sẻ bộ sưu tập lên cộng đồng, chúng sẽ xuất hiện ở đây.</p>
+            <FolderHeart size={36} className="text-zinc-600 mx-auto mb-2" />
+            <p className="text-sm font-semibold text-zinc-300">Chưa có bộ sưu tập công khai nào</p>
+            <p className="text-xs text-zinc-500 mt-1">Khi người dùng chia sẻ bộ sưu tập lên cộng đồng, chúng sẽ xuất hiện ở đây.</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -57,16 +57,16 @@ export const AdminCollectionsTab: React.FC<AdminCollectionsTabProps> = React.mem
                     <span className="text-xs font-bold text-amber-400 px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20">
                       {col.movies?.length || 0} phim
                     </span>
-                    <span className="text-[10px] text-gray-500">{formatDate(col.updatedAt)}</span>
+                    <span className="text-[10px] text-zinc-500">{formatDate(col.updatedAt)}</span>
                   </div>
                   <h3 className="text-base font-bold text-white group-hover:text-netflix-red transition">
                     {col.name}
                   </h3>
                   {col.description && (
-                    <p className="text-xs text-gray-400 line-clamp-2 mt-1">{col.description}</p>
+                    <p className="text-xs text-zinc-400 line-clamp-2 mt-1">{col.description}</p>
                   )}
-                  <p className="text-[11px] text-gray-500 mt-2">
-                    Người tạo: <strong className="text-gray-300">{col.creatorName || col.userId}</strong>
+                  <p className="text-[11px] text-zinc-500 mt-2">
+                    Người tạo: <strong className="text-zinc-300">{col.creatorName || col.userId}</strong>
                   </p>
                 </div>
 

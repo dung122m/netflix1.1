@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Be_Vietnam_Pro } from "next/font/google";
 import "./globals.css";
 import SmoothScroll from "@/components/SmoothScroll";
 import { BackToTop } from "@/components/BackToTop";
@@ -12,8 +12,8 @@ import { AuthProvider } from "@/context/AuthContext";
 import { NavigationProgressBar } from "@/components/NavigationProgressBar";
 import { SiteVisitTracker } from "@/components/SiteVisitTracker";
 
-
-const inter = Inter({
+const beVietnamPro = Be_Vietnam_Pro({
+  weight: ["300", "400", "500", "600", "700", "800", "900"],
   variable: "--font-sans",
   subsets: ["latin", "vietnamese"],
   display: "swap",
@@ -109,7 +109,7 @@ export default function RootLayout({
     <html
       lang="vi"
       suppressHydrationWarning
-      className={`${inter.variable} font-sans antialiased bg-black text-white dark`}
+      className={`${beVietnamPro.variable} font-sans antialiased bg-black text-white dark`}
     >
       <head>
         {/* PWA & Mobile Web App */}

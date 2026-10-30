@@ -28,7 +28,7 @@ Analyze what makes the design feel too intense:
    - What's working? (Don't throw away good ideas)
    - What's the core message? (Preserve what matters)
 
-If any of these are unclear from the codebase, do not guess. Ask the user directly to clarify what you cannot infer.
+If any of these are unclear from the codebase, do not guess. Ask with Codex's structured user-input/question tool when available, or directly in chat if it is not, and wait for the answer before continuing.
 
 "Quieter" means refined and easier on the eyes, not generic. Generic quiet looks like gray text on white, one sans at a uniform weight, and a grid of identical cards; restraint still needs a point of view.
 
@@ -96,4 +96,4 @@ Ensure refinement maintains quality:
 - **Better reading**: Is text easier to read for extended periods?
 - **Restrained, not absent**: Does the POV survive the cuts?
 
-When the result feels right, hand off to `/impeccable polish` for the final pass.
+When the result feels right, hand off to `$impeccable polish` for the final pass.

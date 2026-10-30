@@ -104,7 +104,7 @@ export function VietnamTodaySection() {
                   aria-label={`Chọn sự kiện ${getCleanEventTitle(ev.title)}`}
                   className={`flex-none inline-flex items-center gap-1.5 px-3 py-1 sm:py-1.5 rounded-full text-xs font-medium transition-all duration-200 cursor-pointer outline-none focus:ring-2 focus:ring-amber-400 select-none whitespace-nowrap ${
                     isSelected
-                      ? "bg-zinc-800 text-amber-300 font-semibold border border-amber-400/40 shadow-sm shadow-amber-950/30 backdrop-blur-md"
+                      ? "bg-zinc-800 text-amber-300 font-semibold border border-amber-400/40 shadow-sm shadow-black/50 backdrop-blur-md"
                       : "bg-zinc-900/70 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/60 border border-white/10 backdrop-blur-sm"
                   }`}
                 >

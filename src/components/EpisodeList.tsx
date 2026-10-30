@@ -229,7 +229,7 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(function Episo
 
   if (!episodes || episodes.length === 0) {
     return (
-      <div className="rounded-2xl border border-white/10 bg-zinc-950/60 p-4 text-center text-sm text-gray-400">
+      <div className="rounded-2xl border border-white/10 bg-zinc-950/60 p-4 text-center text-sm text-zinc-400">
         Chưa có danh sách tập phim
       </div>
     );
@@ -240,21 +240,23 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(function Episo
       {/* Ô TÌM NHANH SỐ TẬP (Hiển thị khi phim có từ 12 tập trở lên) */}
       {episodes.length > 12 && (
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-400" aria-hidden="true" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Tìm nhanh số tập..."
-            className="w-full pl-9 pr-8 py-2 rounded-xl bg-zinc-900/90 border border-white/10 text-xs text-white placeholder-gray-400 focus:outline-none focus:border-red-500/60 transition"
+            aria-label="Tìm nhanh số tập"
+            className="w-full pl-9 pr-8 py-2 rounded-xl bg-zinc-900/90 border border-white/10 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-red-500/60 transition"
           />
           {searchQuery && (
             <button
               type="button"
               onClick={() => setSearchQuery("")}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white p-0.5"
+              aria-label="Xóa nội dung tìm kiếm"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-white p-1"
             >
-              <X className="w-3.5 h-3.5" />
+              <X className="w-3.5 h-3.5" aria-hidden="true" />
             </button>
           )}
         </div>
@@ -264,8 +266,8 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(function Episo
       {currentActiveEpisode?.slug && episodes.length > 1 && (
         <div className="flex items-center justify-between gap-2 px-3 py-2 rounded-xl bg-gradient-to-r from-zinc-900/90 to-zinc-950/90 border border-white/10 text-xs shadow-sm">
           <div className="flex items-center gap-1.5 min-w-0">
-            <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse flex-shrink-0" />
-            <span className="text-gray-300 truncate text-[11px] sm:text-xs">
+            <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse flex-shrink-0" aria-hidden="true" />
+            <span className="text-zinc-300 truncate text-[11px] sm:text-xs">
               Tập đang chọn: <span className="text-white font-semibold">{currentActiveEpisode.name || currentActiveEpisode.slug}</span>
             </span>
           </div>
@@ -320,11 +322,12 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(function Episo
               <button
                 key={chunk.index}
                 type="button"
+                aria-pressed={isSelected}
                 onClick={() => setActiveChunk(chunk.index)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition cursor-pointer border ${
+                className={`px-3 py-1.5 min-h-[32px] rounded-xl text-xs font-semibold whitespace-nowrap transition cursor-pointer border ${
                   isSelected
-                    ? "bg-white text-black border-white shadow-sm font-bold scale-102"
-                    : "bg-zinc-900/90 text-gray-400 hover:text-white hover:bg-zinc-800 border-white/10"
+                    ? "bg-white text-black border-white shadow-sm font-bold scale-[1.02]"
+                    : "bg-zinc-900/90 text-zinc-400 hover:text-white hover:bg-zinc-800 border-white/10"
                 }`}
               >
                 {chunk.label}
@@ -371,6 +374,7 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(function Episo
                 href={`?ep=${tapSlug}`}
                 scroll={false}
                 tabIndex={0}
+                aria-current={isActive ? "page" : undefined}
                 title={itemTitle}
                 onClick={(e) => {
                   if (switchEpisode && tap.slug) {
@@ -378,7 +382,7 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(function Episo
                     switchEpisode(tap.slug);
                   }
                 }}
-                className={`relative flex items-center justify-center text-center transition-all duration-200 group rounded-xl sm:rounded-2xl cursor-pointer select-none outline-none overflow-hidden focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950 focus-visible:scale-[1.04] focus-visible:z-20 ${
+                className={`relative flex items-center justify-center text-center transition-all duration-200 group rounded-xl sm:rounded-2xl cursor-pointer select-none outline-none overflow-hidden focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950 focus-visible:scale-[1.04] focus-visible:z-20 min-h-[38px] ${
                   episodes.length === 1
                     ? "py-3 px-4 text-xs sm:text-sm"
                     : isFewEpisodes
@@ -386,7 +390,7 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(function Episo
                     : "py-2 sm:py-2.5 px-1 text-xs"
                 } ${
                   isActive
-                    ? "bg-netflix-red text-white font-black shadow-[0_4px_18px_var(--accent-glow,rgba(229,9,20,0.45))] border border-white/40 scale-[1.01] z-10"
+                    ? "bg-netflix-red text-white font-black shadow-md shadow-black/60 border border-white/30 scale-[1.01] z-10"
                     : isWatched
                     ? "bg-zinc-950/60 hover:bg-zinc-900 text-zinc-400 hover:text-zinc-200 border border-white/5 hover:border-white/15"
                     : "bg-white/[0.06] hover:bg-white/[0.12] text-zinc-200 hover:text-white border border-white/10 hover:border-white/25 hover:scale-[1.02] active:scale-[0.98] shadow-sm"
@@ -441,7 +445,7 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(function Episo
           })}
         </div>
       ) : (
-        <div className="text-center py-6 text-xs text-gray-400">
+        <div className="text-center py-6 text-xs text-zinc-400">
           Không tìm thấy tập phim phù hợp
         </div>
       )}

@@ -10,6 +10,7 @@ import {
 } from "@/services/providers/vsmov";
 import { normalizeForMatch } from "@/lib/stringUtils";
 import { formatGenreName, formatCountryName } from "@/lib/movieMedia";
+import { getTmdbPosterUrl, searchTmdbPosterByTitle } from "@/services/tmdbService";
 
 const API_NGUONC = process.env.NEXT_PUBLIC_API_URL || "https://phim.nguonc.com/api";
 const API_PHIMAPI = process.env.NEXT_PUBLIC_API_URL_2 || "https://phimapi.com";
@@ -996,7 +997,7 @@ async function fetchVsmovSourceData(
 // ============================================================
 // CHUẨN HÓA ĐIỂM ĐÁNH GIÁ (TMDB / IMDB / INTERNAL SCORE)
 // ============================================================
-import { extractMovieRatingScore } from "@/lib/movieMedia";
+import { extractMovieRatingScore, isBrokenImageUrl } from "@/lib/movieMedia";
 export { extractMovieRatingScore };
 
 // ============================================================
@@ -1024,6 +1025,13 @@ export function deduplicateMovieItems(items: any[]): any[] {
     else if (imdbId && seenMap.has(`imdb:${imdbId}`)) existing = seenMap.get(`imdb:${imdbId}`);
     else if (slug && seenMap.has(`slug:${slug}`)) existing = seenMap.get(`slug:${slug}`);
     else if (titleYearKey && seenMap.has(`ty:${titleYearKey}`)) existing = seenMap.get(`ty:${titleYearKey}`);
+    else if (normName && seenMap.has(`name:${normName}`)) {
+      const candidate = seenMap.get(`name:${normName}`);
+      const candYear = candidate.year ? String(candidate.year).trim() : "";
+      if (!year || !candYear || year === candYear) {
+        existing = candidate;
+      }
+    }
 
     if (existing) {
       // Merge source provenance
@@ -1032,10 +1040,27 @@ export function deduplicateMovieItems(items: any[]): any[] {
       const mergedSources = Array.from(new Set([...existingSources, ...itemSources]));
       existing.sources = mergedSources;
 
-      // Merge missing metadata nếu existing bị khuyết
+      // Merge missing metadata hoặc nâng cấp ảnh nếu existing bị trỏ vào CDN lỗi (upload/vod)
       if (!existing.origin_name && item.origin_name) existing.origin_name = item.origin_name;
-      if (!existing.poster_url && item.poster_url) existing.poster_url = item.poster_url;
-      if (!existing.thumb_url && item.thumb_url) existing.thumb_url = item.thumb_url;
+      if (
+        (!existing.poster_url || isBrokenImageUrl(existing.poster_url)) &&
+        item.poster_url &&
+        !isBrokenImageUrl(item.poster_url)
+      ) {
+        existing.poster_url = item.poster_url;
+      } else if (!existing.poster_url && item.poster_url) {
+        existing.poster_url = item.poster_url;
+      }
+
+      if (
+        (!existing.thumb_url || isBrokenImageUrl(existing.thumb_url)) &&
+        item.thumb_url &&
+        !isBrokenImageUrl(item.thumb_url)
+      ) {
+        existing.thumb_url = item.thumb_url;
+      } else if (!existing.thumb_url && item.thumb_url) {
+        existing.thumb_url = item.thumb_url;
+      }
       if (!existing.year && item.year) existing.year = item.year;
       if (!existing.quality && item.quality) existing.quality = item.quality;
       if (!existing.lang && item.lang) existing.lang = item.lang;
@@ -1084,6 +1109,7 @@ export function deduplicateMovieItems(items: any[]): any[] {
     if (imdbId) seenMap.set(`imdb:${imdbId}`, item);
     if (slug) seenMap.set(`slug:${slug}`, item);
     if (titleYearKey) seenMap.set(`ty:${titleYearKey}`, item);
+    if (normName && !seenMap.has(`name:${normName}`)) seenMap.set(`name:${normName}`, item);
 
     uniqueItems.push(item);
   }
@@ -1344,6 +1370,49 @@ async function executeGetMovies(params: MovieFilterParams, cacheKey: string) {
     }
   }
 
+  // SERVER-SIDE POSTER ENRICHMENT (Ưu tiên tuyệt đối nguồn TMDb siêu tốc image.tmdb.org):
+  // Duyệt qua các phim trong trang trả về:
+  // 1. Phim có tmdb.id: Luôn nâng cấp sang poster TMDb chính hãng (50ms, chuẩn tỉ lệ 2:3, không bao giờ bị nghẽn)
+  // 2. Phim bị mất ảnh/hỏng ảnh/upload/vod: Tra cứu TMDb theo tên để đắp ảnh thay thế
+  await Promise.allSettled(
+    finalItems.map(async (item: any) => {
+      // 1. Ưu tiên tuyệt đối: Nếu có TMDB ID, luôn lấy poster chuẩn sắc nét, siêu nhanh từ TMDb CDN
+      if (item.tmdb?.id) {
+        try {
+          const p = await getTmdbPosterUrl(item.tmdb.id, item.type);
+          if (p) {
+            item.poster_url = p;
+            if (isBrokenImageUrl(item.thumb_url)) item.thumb_url = p;
+            return;
+          }
+        } catch {}
+      }
+
+      // 2. Tra cứu TMDb theo tên nếu chưa có poster TMDb
+      const needsTmdbPoster = !item.poster_url || isBrokenImageUrl(item.poster_url) || !item.poster_url.includes("image.tmdb.org");
+      if (needsTmdbPoster) {
+        const queryCandidates = [
+          item.origin_name && item.origin_name !== item.name ? item.origin_name : null,
+          item.name,
+          item.slug ? item.slug.replace(/-/g, " ") : null,
+        ].filter(Boolean);
+
+        for (const query of queryCandidates) {
+          try {
+            const res = await searchTmdbPosterByTitle(query as string, item.year, item.type);
+            if (res?.posterUrl) {
+              item.poster_url = res.posterUrl;
+              if (isBrokenImageUrl(item.thumb_url) || !item.thumb_url?.includes("image.tmdb.org")) {
+                item.thumb_url = res.backdropUrl || res.posterUrl;
+              }
+              break;
+            }
+          } catch {}
+        }
+      }
+    })
+  );
+
   const payload = {
     status: true,
     items: finalItems,
@@ -1393,7 +1462,7 @@ function buildQueryMetaKey(params: MovieFilterParams): string {
 
 export function buildMovieCacheKey(params: MovieFilterParams): string {
   return JSON.stringify({
-    v: 11,
+    v: 13,
     category: params.category || "",
     country: params.country || "",
     year: params.year || "",

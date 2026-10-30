@@ -244,23 +244,18 @@ export const CuratedMovieSection: React.FC<CuratedMovieSectionProps> = ({
       {/* HEADER SECTION */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-3 mb-5 px-1">
         <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-[11px] sm:text-xs font-semibold bg-netflix-red/15 text-zinc-200 border border-netflix-red/30">
-              <Sparkles className="w-3.5 h-3.5 text-netflix-red" />
-              <span>{currentTabConfig.tag}</span>
-            </span>
+          <div className="flex items-center gap-3">
+            <h2 className="text-lg sm:text-xl md:text-2xl font-bold tracking-tight text-white flex items-center gap-2.5">
+              <span>Tuyển Tập Phim Đặc Sắc</span>
+            </h2>
             {isPending && (
-              <span className="text-xs text-gray-400 flex items-center gap-1 animate-pulse">
-                <Loader2 className="w-3 animate-spin text-netflix-red" />
-                Đang chuyển...
+              <span className="text-xs text-zinc-400 flex items-center gap-1 animate-pulse">
+                <Loader2 className="w-3.5 h-3.5 animate-spin text-netflix-red" />
+                <span>Đang tải...</span>
               </span>
             )}
           </div>
-
-          <h2 className="text-lg sm:text-xl md:text-2xl font-bold tracking-tight text-white flex items-center gap-2.5">
-            <span>Tuyển Tập Phim Đặc Sắc</span>
-          </h2>
-          <p className="mt-0.5 text-xs sm:text-sm text-zinc-400 max-w-2xl leading-relaxed">
+          <p className="mt-1 text-xs sm:text-sm text-zinc-400 max-w-[65ch] leading-relaxed">
             {currentTabConfig.subtitle}
           </p>
         </div>
@@ -268,7 +263,7 @@ export const CuratedMovieSection: React.FC<CuratedMovieSectionProps> = ({
         {/* NÚT XEM TOÀN BỘ Ở HEADER */}
         <Link
           href={currentTabConfig.viewAllHref}
-          className="self-start md:self-auto inline-flex items-center gap-1.5 px-3.5 sm:px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs sm:text-sm font-semibold transition border border-white/10 active:scale-95 group shrink-0"
+          className="self-start md:self-auto inline-flex items-center gap-1.5 px-3.5 sm:px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs sm:text-sm font-semibold transition border border-white/10 hover:border-white/25 active:scale-95 group shrink-0"
         >
           <span>Xem tất cả {currentTabConfig.label}</span>
           <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform text-netflix-red" />
@@ -281,23 +276,27 @@ export const CuratedMovieSection: React.FC<CuratedMovieSectionProps> = ({
         scrollClassName="gap-2 sm:gap-3 py-1 pb-2"
         activeChildTrigger={activeTab}
       >
-        {CURATED_TABS.map((tab) => {
-          const isActive = activeTab === tab.id;
-          return (
-            <button
-              key={tab.id}
-              onClick={() => handleSelectTab(tab.id)}
-              className={`flex items-center gap-2 px-3.5 sm:px-5 py-2 sm:py-2.5 rounded-2xl text-xs sm:text-sm font-bold transition-all duration-200 cursor-pointer select-none shrink-0 border ${
-                isActive
-                  ? "bg-netflix-red text-white border-netflix-red shadow-lg shadow-[var(--accent-glow,rgba(229,9,20,0.4))] scale-[1.02]"
-                  : "bg-zinc-900/90 hover:bg-zinc-800 text-gray-300 hover:text-white border-white/10 hover:border-white/20"
-              }`}
-            >
-              {tab.icon}
-              <span>{tab.label}</span>
-            </button>
-          );
-        })}
+        <div role="tablist" aria-label="Danh mục tuyển tập phim" className="flex items-center gap-2 sm:gap-3">
+          {CURATED_TABS.map((tab) => {
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                role="tab"
+                aria-selected={isActive}
+                onClick={() => handleSelectTab(tab.id)}
+                className={`flex items-center gap-2 px-3.5 sm:px-5 py-2 sm:py-2.5 rounded-2xl text-xs sm:text-sm font-bold transition-all duration-200 cursor-pointer select-none shrink-0 border ${
+                  isActive
+                    ? "bg-netflix-red text-white border-netflix-red shadow-md shadow-black/60 scale-[1.02]"
+                    : "bg-zinc-900/90 hover:bg-zinc-800 text-zinc-300 hover:text-white border-white/10 hover:border-white/20"
+                }`}
+              >
+                {tab.icon}
+                <span>{tab.label}</span>
+              </button>
+            );
+          })}
+        </div>
       </ScrollFadeContainer>
 
       {/* HORIZONTAL CAROUSEL */}
@@ -374,7 +373,7 @@ export const CuratedMovieSection: React.FC<CuratedMovieSectionProps> = ({
         ) : (
           <div className="py-12 text-center rounded-2xl border border-white/10 bg-zinc-900/50 p-6">
             <Film className="w-10 h-10 text-zinc-600 mx-auto mb-2" />
-            <p className="text-gray-400 text-sm">
+            <p className="text-zinc-400 text-sm">
               Đang cập nhật danh sách phim {currentTabConfig.label}...
             </p>
           </div>

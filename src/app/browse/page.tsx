@@ -19,6 +19,8 @@ import { searchMoviesBySemantic } from "@/services/aiVectorService";
 import { evaluateConceptEvidence, resolveConcepts } from "@/services/conceptRegistry";
 import { BrowseAiSearchBanner } from "@/components/BrowseAiSearchBanner";
 import { PaginationControl } from "@/components/PaginationControl";
+import { isBrokenImageUrl } from "@/lib/movieMedia";
+import { getTmdbPosterUrl, searchTmdbPosterByTitle } from "@/services/tmdbService";
 
 // ==========================================
 // METADATA
@@ -177,7 +179,11 @@ function getTitleEvidence(movie: { name?: unknown; title?: unknown; origin_name?
   if (name === cleanQuery || original === cleanQuery || slug === cleanQuery || slug === slugQuery) {
     return { score: 100, matched: true };
   }
-  if (name.startsWith(cleanQuery) || original.startsWith(cleanQuery) || slug.startsWith(slugQuery)) {
+
+  const escapedCleanQuery = cleanQuery.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const startsWithWordRegex = new RegExp(`^${escapedCleanQuery}(?:$|\\s)`, "i");
+  const startsWithSlugRegex = new RegExp(`^${slugQuery.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?:$|-)`, "i");
+  if (startsWithWordRegex.test(name) || startsWithWordRegex.test(original) || startsWithSlugRegex.test(slug)) {
     return { score: 85, matched: true };
   }
 
@@ -189,6 +195,128 @@ function getTitleEvidence(movie: { name?: unknown; title?: unknown; origin_name?
   }
 
   return { score: 0, matched: false };
+}
+
+interface SearchRelevanceResult {
+  score: number;
+  matchType: "title" | "actor" | "content";
+  matchSnippet?: string;
+}
+
+/**
+ * Strict diacritic-aware & word-boundary relevance scorer for search queries.
+ * Prevents false positives where upstream APIs strip diacritics (e.g. 'mưa đỏ' matching 'mùa đông').
+ */
+function evaluateSearchRelevance(
+  movie: { name?: unknown; title?: unknown; origin_name?: unknown; slug?: unknown; content?: unknown; description?: unknown },
+  query: string
+): SearchRelevanceResult {
+  if (!query || !query.trim()) return { score: 100, matchType: "title" };
+  const rawKw = query.trim().toLowerCase();
+  const normKw = cleanNormalizedForMatch(query);
+  if (!normKw) return { score: 0, matchType: "title" };
+
+  const rawTitle = String(movie.name || movie.title || "").trim().toLowerCase();
+  const rawOrig = String(movie.origin_name || "").trim().toLowerCase();
+  const slug = String(movie.slug || "").trim().toLowerCase();
+
+  const normTitle = cleanNormalizedForMatch(rawTitle);
+  const normOrig = cleanNormalizedForMatch(rawOrig);
+  const normSlug = slug.replace(/-/g, " ");
+
+  const escapedNormKw = normKw.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const escapedRawKw = rawKw.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+  // 1. EXACT FULL MATCH
+  const slugKw = normKw.replace(/\s+/g, "-");
+  if (rawTitle === rawKw || rawOrig === rawKw || slug === slugKw) {
+    return { score: 100, matchType: "title" };
+  }
+  if (normTitle === normKw || normOrig === normKw || normSlug === normKw) {
+    return { score: 95, matchType: "title" };
+  }
+
+  // 2. STARTS WITH FULL PHRASE (Must have word boundary: followed by space or end of string)
+  const startsWithRawRegex = new RegExp(`^${escapedRawKw}(?:$|\\s)`, "i");
+  const startsWithNormRegex = new RegExp(`^${escapedNormKw}(?:$|\\s)`, "i");
+  if (startsWithRawRegex.test(rawTitle) || startsWithRawRegex.test(rawOrig)) {
+    return { score: 90, matchType: "title" };
+  }
+  if (startsWithNormRegex.test(normTitle) || startsWithNormRegex.test(normOrig) || startsWithNormRegex.test(normSlug)) {
+    return { score: 85, matchType: "title" };
+  }
+
+  // 3. CONTAINS FULL PHRASE (Must have word boundaries before and after phrase)
+  const containsRawRegex = new RegExp(`(?:^|\\s)${escapedRawKw}(?:$|\\s)`, "i");
+  const containsNormRegex = new RegExp(`(?:^|\\s)${escapedNormKw}(?:$|\\s)`, "i");
+  if (containsRawRegex.test(rawTitle) || containsRawRegex.test(rawOrig)) {
+    return { score: 85, matchType: "title" };
+  }
+  if (containsNormRegex.test(normTitle) || containsNormRegex.test(normOrig) || containsNormRegex.test(normSlug)) {
+    return { score: 80, matchType: "title" };
+  }
+
+  // 4. DIACRITIC-AWARE MULTI-WORD / SINGLE-WORD MATCHING
+  const userHasDiacritics = /[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/i.test(query);
+  const kwWords = rawKw.split(/\s+/).filter((w) => w.length > 0);
+
+  if (userHasDiacritics) {
+    if (kwWords.length > 1) {
+      const titleTokens = rawTitle.split(/[^\w\u00C0-\u1EF9]+/).filter(Boolean);
+      const origTokens = rawOrig.split(/[^\w\u00C0-\u1EF9]+/).filter(Boolean);
+      const allTokens = new Set([...titleTokens, ...origTokens]);
+
+      const allWordsPresent = kwWords.every((qw) => allTokens.has(qw));
+      if (allWordsPresent) return { score: 75, matchType: "title" };
+      return { score: 0, matchType: "title" };
+    }
+    const singleWordRegex = new RegExp(`(?:^|\\s)${escapedRawKw}(?:$|\\s)`, "i");
+    if (singleWordRegex.test(rawTitle) || singleWordRegex.test(rawOrig)) {
+      return { score: 75, matchType: "title" };
+    }
+    return { score: 0, matchType: "title" };
+  }
+
+  // 5. UNACCENTED TOKEN MATCH (For users typing without accents like "mua do")
+  const normKwTokens = normKw.split(/\s+/).filter((w) => w.length > 1);
+  if (normKwTokens.length > 1) {
+    const titleTokens = new Set(normTitle.split(/\s+/).filter(Boolean));
+    const origTokens = new Set(normOrig.split(/\s+/).filter(Boolean));
+    const slugTokens = new Set(normSlug.split(/\s+/).filter(Boolean));
+
+    const matchedTokensCount = normKwTokens.filter(
+      (tok) => titleTokens.has(tok) || origTokens.has(tok) || slugTokens.has(tok)
+    ).length;
+
+    if (matchedTokensCount === normKwTokens.length) {
+      return { score: 65, matchType: "title" };
+    }
+    if (matchedTokensCount / normKwTokens.length >= 0.75) {
+      return { score: 45, matchType: "title" };
+    }
+    return { score: 0, matchType: "title" };
+  }
+
+  // 6. SINGLE-WORD UNACCENTED SEARCH (e.g. "batman", "dune")
+  if (normKwTokens.length === 1) {
+    const singleWord = normKwTokens[0];
+    const wordRegex = new RegExp(`(?:^|\\s)${singleWord.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?:$|\\s)`, "i");
+    if (wordRegex.test(normTitle) || wordRegex.test(normOrig) || wordRegex.test(normSlug)) {
+      return { score: 70, matchType: "title" };
+    }
+  }
+
+  // 7. CONTENT / SYNOPSIS MATCH (fallback if no title match)
+  const desc = cleanNormalizedForMatch(String(movie.content || movie.description || ""));
+  if (desc && containsNormRegex.test(desc)) {
+    return {
+      score: 30,
+      matchType: "content",
+      matchSnippet: extractDescriptionSnippet(String(movie.content || movie.description || ""), query),
+    };
+  }
+
+  return { score: 0, matchType: "title" };
 }
 
 // Semantic search remains useful, but a nearest vector alone is not display evidence.
@@ -429,78 +557,100 @@ export default async function BrowsePage({
       totalItems = actorSearch.totalItems;
       totalPages = actorSearch.totalPages;
     }
-  } else {
-    // 2. TÌM KIẾM THƯỜNG THEO TIÊU ĐỀ PHIM HOẶC DUYỆT THEO DANH MỤC
-    const [response, semanticPicks] = await Promise.all([
-      movieApi.getMovies({
-        category,
-        country,
-        year,
-        keyword,
-        page: currentPage,
-        limit: PAGE_LIMIT,
-        type,
-        sort: effectiveSort,
-      }),
-      keyword && currentPage === 1 && keyword.trim().length >= 3
+  } else if (keyword) {
+    // 2A. TÌM KIẾM THEO TỪ KHÓA (KEYWORD SEARCH VỚI STRICT RELEVANCE & KHÔNG TRÙNG LẶP / KHUYẾT TRANG)
+    // Upstream search (PhimAPI/NguonC) thường bỏ dấu tiếng Việt dẫn đến nhiều false positives
+    // (ví dụ: tìm "mưa đỏ" ra "mùa đông", "mùa thu", "mùa hè").
+    // Để giải quyết triệt để vấn đề kết quả sai lệch, trang 2 bị khuyết và trang 3 bị trùng:
+    // 1. Nạp các trang ứng viên từ upstream (trang 1, 2 và các trang kế cận nếu cần).
+    // 2. Chấm điểm liên quan với ranh giới từ (word boundaries) và dấu tiếng Việt (diacritic-aware).
+    // 3. Khử trùng lặp slug tuyệt đối, sắp xếp theo độ phù hợp và phân trang chính xác trên tập kết quả thật.
+    const pagesToFetch = [1, 2, 3];
+    if (currentPage > 2) {
+      pagesToFetch.push(currentPage, currentPage + 1);
+    }
+    const uniquePagesToFetch = Array.from(new Set(pagesToFetch));
+
+    const [searchResponses, semanticPicks] = await Promise.all([
+      Promise.all(
+        uniquePagesToFetch.map((p) =>
+          movieApi.getMovies({
+            category,
+            country,
+            year,
+            keyword,
+            page: p,
+            limit: 48,
+            type,
+            sort: rawSort,
+          }).catch(() => null)
+        )
+      ),
+      currentPage === 1 && keyword.trim().length >= 3
         ? Promise.race([
-          searchMoviesBySemantic(keyword, 16, 0.42),
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          new Promise<any[]>((resolve) => setTimeout(() => resolve([]), 800)),
-        ]).catch(() => [])
+            searchMoviesBySemantic(keyword, 16, 0.42),
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            new Promise<any[]>((resolve) => setTimeout(() => resolve([]), 800)),
+          ]).catch(() => [])
         : Promise.resolve([]),
     ]);
 
-    upstreamMovies = response?.items || [];
-    movies = upstreamMovies;
-    totalPages = response?.pagination?.totalPages || 1;
-    totalItems = response?.pagination?.totalItems || movies.length;
+    const seenSlugs = new Set<string>();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const allCandidates: any[] = [];
 
-    // Hòa trộn Semantic Match cho trang 1 nếu có kết quả chất lượng cao
-    const semanticConcepts = keyword ? resolveConcepts(keyword) : [];
+    // Semantic picks (cho trang 1 nếu có concept hợp lệ)
+    const semanticConcepts = resolveConcepts(keyword);
     const relevantSemanticPicks = Array.isArray(semanticPicks)
       ? semanticPicks.filter((candidate) =>
-        isRelevantSemanticCandidate(candidate, keyword || "", semanticConcepts)
-      )
+          isRelevantSemanticCandidate(candidate, keyword, semanticConcepts)
+        )
       : [];
 
-    if (currentPage === 1 && relevantSemanticPicks.length > 0) {
-      const seenSlugs = new Set<string>();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const combined: any[] = [];
-      for (const sp of relevantSemanticPicks) {
-        if (sp?.id && !seenSlugs.has(sp.id)) {
-          seenSlugs.add(sp.id);
-          combined.push({
-            slug: sp.id,
-            name: sp.title,
-            origin_name: sp.originalName || "",
-            poster_url: sp.posterUrl,
-            thumb_url: sp.thumbUrl || sp.posterUrl,
-            year: sp.year,
-            quality: sp.quality || "HD",
-            category: sp.category ? [{ name: sp.category, slug: "" }] : [],
-            content: sp.description,
-            isSemanticMatch: true,
-            similarity: sp.similarity,
-          });
-        }
+    for (const sp of relevantSemanticPicks) {
+      if (sp?.id && !seenSlugs.has(sp.id)) {
+        seenSlugs.add(sp.id);
+        allCandidates.push({
+          slug: sp.id,
+          name: sp.title,
+          origin_name: sp.originalName || "",
+          poster_url: sp.posterUrl,
+          thumb_url: sp.thumbUrl || sp.posterUrl,
+          year: sp.year,
+          quality: sp.quality || "HD",
+          category: sp.category ? [{ name: sp.category, slug: "" }] : [],
+          content: sp.description,
+          isSemanticMatch: true,
+          similarity: sp.similarity,
+        });
       }
-      for (const m of movies) {
-        if (m?.slug && !seenSlugs.has(m.slug)) {
-          seenSlugs.add(m.slug);
-          combined.push(m);
-        }
-      }
-      movies = combined;
-      totalItems = Math.max(movies.length, response?.pagination?.totalItems || 0);
     }
 
-    // === CONCEPT DISCOVERY EXPANSION (trang 1, chỉ khi có concept kích hoạt) ===
-    // Dùng discoveryKeywords của concept để tìm thêm phim franchise liên quan
-    // (Iron Man, Spider-Man…) mà tên không chứa từ khóa gốc (vd: "Avengers").
-    // Tối đa 5 discovery queries, mỗi query lấy 6 phim, chạy song song.
-    if (currentPage === 1 && keyword && semanticConcepts.length > 0) {
+    // Upstream search candidates
+    for (const sRes of searchResponses) {
+      if (!sRes?.items) continue;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      for (const item of sRes.items as any[]) {
+        if (!item?.slug) continue;
+        if (!seenSlugs.has(item.slug)) {
+          seenSlugs.add(item.slug);
+          allCandidates.push(item);
+        } else {
+          const existing = allCandidates.find((c) => c.slug === item.slug);
+          if (existing) {
+            if (isBrokenImageUrl(existing.poster_url) && item.poster_url && !isBrokenImageUrl(item.poster_url)) {
+              existing.poster_url = item.poster_url;
+            }
+            if (isBrokenImageUrl(existing.thumb_url) && item.thumb_url && !isBrokenImageUrl(item.thumb_url)) {
+              existing.thumb_url = item.thumb_url;
+            }
+          }
+        }
+      }
+    }
+
+    // Concept discovery expansion (trang 1, chỉ khi có concept kích hoạt như MCU/Avengers)
+    if (currentPage === 1 && semanticConcepts.length > 0) {
       const allDiscoveryKws = Array.from(
         new Set(semanticConcepts.flatMap((c) => c.discoveryKeywords))
       )
@@ -513,186 +663,110 @@ export default async function BrowsePage({
             movieApi.getMovies({ keyword: dk, limit: 6 }).catch(() => null)
           )
         );
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const seenSlugs = new Set<string>(movies.map((m: any) => m?.slug).filter(Boolean));
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const discoveryExtras: any[] = [];
         for (const dRes of discoveryResponses) {
           if (!dRes?.items) continue;
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           for (const item of dRes.items as any[]) {
             if (item?.slug && !seenSlugs.has(item.slug)) {
               seenSlugs.add(item.slug);
-              discoveryExtras.push(item);
+              allCandidates.push(item);
             }
           }
-        }
-        if (discoveryExtras.length > 0) {
-          movies = [...movies, ...discoveryExtras];
         }
       }
     }
 
-    // Đánh giá độ phù hợp (Relevance Scoring) cho tìm kiếm theo tiêu đề phim
-    if (keyword && movies.length > 0) {
-      const normKw = cleanNormalizedForMatch(keyword);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const scoredMovies = movies.map((m: any) => {
-        const movieTitle = cleanNormalizedForMatch(m.name || m.title || "");
-        const orig = cleanNormalizedForMatch(m.origin_name || "");
-        const slug = cleanNormalizedForMatch(m.slug || "");
-        const desc = cleanNormalizedForMatch(m.content || m.description || "");
+    upstreamMovies = allCandidates;
 
-        let score = 0;
-        let matchType: "title" | "actor" | "content" = "title";
-        let matchSnippet: string | undefined = undefined;
+    // Chấm điểm độ phù hợp (Relevance Scoring)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const scoredCandidates = allCandidates.map((m: any) => {
+      const rel = evaluateSearchRelevance(m, keyword);
+      return {
+        ...m,
+        relevanceScore: rel.score,
+        matchType: rel.matchType,
+        matchSnippet: rel.matchSnippet,
+      };
+    });
 
-        if (movieTitle === normKw || orig === normKw || slug === normKw.replace(/\s+/g, "-")) {
-          score = 100;
-          matchType = "title";
-        } else if (movieTitle.startsWith(normKw) || orig.startsWith(normKw)) {
-          score = 85;
-          matchType = "title";
-        } else if (movieTitle.includes(normKw) || orig.includes(normKw)) {
-          score = 70;
-          matchType = "title";
-        } else if (desc && desc.includes(normKw)) {
-          score = 30;
-          matchType = "content";
-          matchSnippet = extractDescriptionSnippet(m.content || m.description || "", keyword);
-        } else {
-          const kwWords = normKw.split(" ").filter((w) => w.length > 1);
-          const titleWords = kwWords.filter((w) => movieTitle.includes(w) || orig.includes(w));
-          if (titleWords.length > 0) {
-            score = 40 + Math.round((titleWords.length / kwWords.length) * 20);
-            matchType = "title";
-          } else {
-            score = 15;
-            matchSnippet = extractDescriptionSnippet(m.content || m.description || "", keyword);
-          }
-        }
-
-        return {
-          ...m,
-          relevanceScore: score,
-          matchType,
-          matchSnippet,
-        };
-      });
-
-      if (effectiveSort !== "year") {
-        scoredMovies.sort((a, b) => b.relevanceScore - a.relevanceScore);
-      }
-      const hasStrongTitleMatch = scoredMovies.some((movie) => movie.relevanceScore >= 40);
+    const hasStrongTitleMatch = scoredCandidates.some((movie) => movie.relevanceScore >= 40);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const validSearchMovies = scoredCandidates.filter((movie: any) => {
       if (hasStrongTitleMatch) {
-        // Once the upstream title search has a real hit, discard broad/fuzzy
-        // upstream rows. Concept evidence may retain an intentional franchise
-        // expansion such as Iron Man for an Avengers query.
-        // Gate: concept candidate phải có title hoặc character evidence (score >= 80).
-        // Synopsis-only (score = 70) không đủ để giữ phim không liên quan vào kết quả.
-        movies = scoredMovies.filter((movie) =>
+        return (
           movie.relevanceScore >= 40 ||
           getTitleEvidence(movie, keyword).matched ||
           (semanticConcepts.length > 0 && evaluateConceptEvidence(movie, semanticConcepts).score >= 80)
         );
-      } else {
-        movies = scoredMovies;
       }
+      return movie.relevanceScore > 0;
+    });
 
-      // Refill candidate batch nếu relevance gate làm số lượng < PAGE_LIMIT (tối đa 2 trang tiếp theo)
-      const MAX_REFILL_PAGES = 2;
-      let refillPage = currentPage + 1;
-      while (
-        keyword &&
-        effectiveSort !== "year" &&
-        movies.length < PAGE_LIMIT &&
-        refillPage <= totalPages &&
-        refillPage <= currentPage + MAX_REFILL_PAGES
-      ) {
-        const nextRes = await movieApi.getMovies({
-          category,
-          country,
-          year,
-          keyword,
-          page: refillPage,
-          limit: PAGE_LIMIT,
-          type,
-          sort: effectiveSort,
-        }).catch(() => null);
-
-        if (!nextRes?.items || nextRes.items.length === 0) break;
-
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const seenSlugs = new Set<string>(movies.map((m: any) => m?.slug).filter(Boolean));
-        const nextScored = nextRes.items
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          .filter((m: any) => m?.slug && !seenSlugs.has(m.slug))
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          .map((m: any) => {
-            const movieTitle = cleanNormalizedForMatch(m.name || m.title || "");
-            const orig = cleanNormalizedForMatch(m.origin_name || "");
-            const slug = cleanNormalizedForMatch(m.slug || "");
-            const desc = cleanNormalizedForMatch(m.content || m.description || "");
-
-            let score = 0;
-            let matchType: "title" | "actor" | "content" = "title";
-            let matchSnippet: string | undefined = undefined;
-
-            if (movieTitle === normKw || orig === normKw || slug === normKw.replace(/\s+/g, "-")) {
-              score = 100;
-              matchType = "title";
-            } else if (movieTitle.startsWith(normKw) || orig.startsWith(normKw)) {
-              score = 85;
-              matchType = "title";
-            } else if (movieTitle.includes(normKw) || orig.includes(normKw)) {
-              score = 70;
-              matchType = "title";
-            } else if (desc && desc.includes(normKw)) {
-              score = 30;
-              matchType = "content";
-              matchSnippet = extractDescriptionSnippet(m.content || m.description || "", keyword);
-            } else {
-              const kwWords = normKw.split(" ").filter((w) => w.length > 1);
-              const titleWords = kwWords.filter((w) => movieTitle.includes(w) || orig.includes(w));
-              if (titleWords.length > 0) {
-                score = 40 + Math.round((titleWords.length / kwWords.length) * 20);
-                matchType = "title";
-              } else {
-                score = 15;
-                matchSnippet = extractDescriptionSnippet(m.content || m.description || "", keyword);
-              }
-            }
-
-            return { ...m, relevanceScore: score, matchType, matchSnippet };
-          })
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          .filter((m: any) => m.relevanceScore >= 40);
-
-        if (nextScored.length > 0) {
-          movies = [...movies, ...nextScored];
+    if (effectiveSort === "year") {
+      validSearchMovies.sort((a, b) => Number(b.year || 0) - Number(a.year || 0));
+    } else {
+      validSearchMovies.sort((a, b) => {
+        if (b.relevanceScore !== a.relevanceScore) {
+          return b.relevanceScore - a.relevanceScore;
         }
-        refillPage++;
-      }
-
-      if (effectiveSort === "year") {
-        movies.sort((a, b) => {
-          const yearA = Number(a.year || 0);
-          const yearB = Number(b.year || 0);
-          return yearB - yearA;
-        });
-      }
+        // Tie-break: Điểm đánh giá cao hơn xếp trước
+        const rateA = Number(a.vote_average || a.rating || 0);
+        const rateB = Number(b.vote_average || b.rating || 0);
+        if (rateB !== rateA) return rateB - rateA;
+        return Number(b.year || 0) - Number(a.year || 0);
+      });
     }
 
-    // === PAGINATION CAP (page 1) ===
-    // Discovery expansion và semantic merge có thể làm pool vượt PAGE_LIMIT.
-    // Sau khi toàn bộ filter xong, slice về đúng page limit.
-    // Page 2+ không bị ảnh hưởng vì discovery chỉ chạy ở page 1.
-    if (keyword && currentPage === 1 && movies.length > PAGE_LIMIT) {
-      // totalItems phản ánh kích thước thực của filtered pool (có thể lớn hơn upstream báo).
-      totalItems = Math.max(movies.length, totalItems);
-      totalPages = Math.max(1, Math.ceil(totalItems / PAGE_LIMIT));
-      movies = movies.slice(0, PAGE_LIMIT);
-    }
+    totalItems = validSearchMovies.length;
+    totalPages = Math.max(1, Math.ceil(totalItems / PAGE_LIMIT));
+
+    const startIndex = (currentPage - 1) * PAGE_LIMIT;
+    movies = validSearchMovies.slice(startIndex, startIndex + PAGE_LIMIT);
+
+    // Thay thế ngay từ đầu trên Server: Ưu tiên tuyệt đối nguồn TMDb siêu tốc image.tmdb.org
+    await Promise.allSettled(
+      movies.map(async (item: any) => {
+        if (item.tmdb?.id) {
+          try {
+            const p = await getTmdbPosterUrl(item.tmdb.id, item.type);
+            if (p) {
+              item.poster_url = p;
+              if (isBrokenImageUrl(item.thumb_url)) item.thumb_url = p;
+              return;
+            }
+          } catch {}
+        }
+        if (isBrokenImageUrl(item.poster_url)) {
+          const query = item.origin_name && item.origin_name !== item.name ? item.origin_name : (item.name || item.slug);
+          if (query) {
+            try {
+              const res = await searchTmdbPosterByTitle(query, item.year, item.type);
+              if (res?.posterUrl) {
+                item.poster_url = res.posterUrl;
+                if (isBrokenImageUrl(item.thumb_url)) item.thumb_url = res.backdropUrl || res.posterUrl;
+              }
+            } catch {}
+          }
+        }
+      })
+    );
+  } else {
+    // 2B. DUYỆT THEO DANH MỤC / QUỐC GIA / NĂM (CATALOG BROWSING)
+    const response = await movieApi.getMovies({
+      category,
+      country,
+      year,
+      page: currentPage,
+      limit: PAGE_LIMIT,
+      type,
+      sort: effectiveSort,
+    });
+
+    upstreamMovies = response?.items || [];
+    movies = upstreamMovies;
+    totalPages = response?.pagination?.totalPages || 1;
+    totalItems = response?.pagination?.totalItems || movies.length;
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -806,13 +880,13 @@ export default async function BrowsePage({
             <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight">
               {title}
             </h1>
-            <p className="mt-1 text-sm text-gray-400">
+            <p className="mt-1 text-sm text-zinc-400 max-w-[65ch] leading-relaxed">
               Khám phá bộ sưu tập phim chất lượng cao do Nana tuyển chọn, cập nhật liên tục.
             </p>
           </div>
           <div className="flex items-center gap-3 flex-wrap">
             <SortSelector />
-            <div className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/5 px-3 py-1.5 text-xs md:text-sm text-gray-200 backdrop-blur-sm shadow-sm">
+            <div className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/5 px-3 py-1.5 text-xs md:text-sm text-zinc-200 backdrop-blur-sm shadow-sm">
               <Film className="w-3.5 h-3.5 text-netflix-red" />
               <span>{totalItems.toLocaleString("vi-VN")} phim</span>
               <span className="text-white/40">•</span>
@@ -839,7 +913,7 @@ export default async function BrowsePage({
                     ✨ Nana AI Nhận Diện
                   </span>
                 </h4>
-                <p className="text-xs text-gray-300 mt-0.5">
+                <p className="text-xs text-zinc-300 mt-0.5">
                   Tự động tổng hợp các tác phẩm tiêu biểu & xuất sắc nhất của {detectedActor.name}
                 </p>
               </div>
@@ -878,7 +952,7 @@ export default async function BrowsePage({
               </h3>
               {detectedActor ? (
                 <>
-                  <p className="text-xs sm:text-sm text-gray-400 mt-2 leading-relaxed">
+                  <p className="text-xs sm:text-sm text-zinc-400 mt-2 leading-relaxed">
                     Hiện tại kho phim của Nanaflix chưa có sẵn các tác phẩm do <strong>{detectedActor.name}</strong> đóng chính hoặc làm đạo diễn. Hệ thống đang liên tục cập nhật thêm nhiều phim mới mỗi ngày!
                   </p>
                   <div className="flex flex-wrap items-center justify-center gap-3 mt-5">
@@ -886,14 +960,14 @@ export default async function BrowsePage({
                       href={`https://www.themoviedb.org/search/person?query=${encodeURIComponent(detectedActor.name)}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#01b4e4] hover:bg-[#01b4e4]/80 text-white text-xs font-bold transition shadow-lg shadow-sky-950/40"
+                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#01b4e4] hover:bg-[#01b4e4]/80 text-white text-xs font-bold transition shadow-md shadow-black/50"
                     >
                       <span>Tra cứu &quot;{detectedActor.name}&quot; trên TMDb</span>
                       <ExternalLink className="w-3.5 h-3.5" />
                     </a>
                     <Link
                       href="/browse"
-                      className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-gray-200 hover:text-white text-xs font-semibold transition"
+                      className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-zinc-200 hover:text-white text-xs font-semibold transition"
                     >
                       Khám phá tất cả phim
                     </Link>
@@ -901,7 +975,7 @@ export default async function BrowsePage({
                 </>
               ) : keyword ? (
                 <>
-                  <p className="text-xs sm:text-sm text-gray-400 mt-2 leading-relaxed">
+                  <p className="text-xs sm:text-sm text-zinc-400 mt-2 leading-relaxed">
                     Hệ thống nguồn phim tìm kiếm trực tiếp theo <strong>tiêu đề phim</strong>. Nếu đây là tên diễn viên hoặc đạo diễn, bạn có thể tra cứu hồ sơ và danh sách phim trên TMDb hoặc thưởng thức các phim đề xuất bên dưới:
                   </p>
                   <div className="flex flex-wrap items-center justify-center gap-3 mt-5">
@@ -909,14 +983,14 @@ export default async function BrowsePage({
                       href={`https://www.themoviedb.org/search?query=${encodeURIComponent(keyword)}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#01b4e4] hover:bg-[#01b4e4]/80 text-white text-xs font-bold transition shadow-lg shadow-sky-950/40"
+                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#01b4e4] hover:bg-[#01b4e4]/80 text-white text-xs font-bold transition shadow-md shadow-black/50"
                     >
                       <span>Tra cứu &quot;{keyword}&quot; trên TMDb</span>
                       <ExternalLink className="w-3.5 h-3.5" />
                     </a>
                     <Link
                       href="/browse"
-                      className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-gray-200 hover:text-white text-xs font-semibold transition"
+                      className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-zinc-200 hover:text-white text-xs font-semibold transition"
                     >
                       Khám phá tất cả phim
                     </Link>
