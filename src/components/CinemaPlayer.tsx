@@ -90,6 +90,7 @@ export interface CinemaPlayerProps {
   activeEpisodeSlug?: string;
   isTrailerOnly: boolean;
   posterUrl: string;
+  thumbUrl?: string;
   episodes?: EpisodeItem[];
   initialTime?: number;
 }
@@ -105,10 +106,12 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
   activeEpisodeSlug: propActiveEpisodeSlug,
   isTrailerOnly: propIsTrailerOnly,
   posterUrl,
+  thumbUrl: propThumbUrl,
   episodes: propEpisodes,
   initialTime,
 }) => {
   const watchContext = useWatchController();
+  const resolvedThumb = watchContext?.thumbUrl || propThumbUrl;
   const { user } = useAuth();
   const searchParams = useSearchParams();
   const lastHandoffSyncRef = useRef<number>(0);
@@ -1039,6 +1042,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
         saveWatchProgress(currentMovieSlug, targetProgress, video.duration || 0, activeEpisodeSlug, {
           title,
           poster: posterUrl,
+          thumb: resolvedThumb,
           episodeName: activeEpisodeName,
         });
       }
@@ -1734,6 +1738,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
           {
             title,
             poster: posterUrl,
+            thumb: resolvedThumb,
             episodeName: activeEpisodeName,
           },
           true // forceSync khi pause
@@ -1904,6 +1909,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
           saveWatchProgress(movieSlug, video.currentTime, currentEffectiveDuration, activeEpisodeSlug, {
             title,
             poster: posterUrl,
+            thumb: resolvedThumb,
             episodeName: activeEpisodeName,
           });
         }
@@ -1959,6 +1965,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
           {
             title,
             poster: posterUrl,
+            thumb: resolvedThumb,
             episodeName: activeEpisodeName,
           },
           true // forceSync khi kết thúc video

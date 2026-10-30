@@ -400,10 +400,14 @@ export async function autoHydrateWatchHistory(): Promise<void> {
   const needHydration = list.filter((item) => {
     if (hydratedHistorySlugsInSession.has(item.slug)) return false;
     const isMissingTitle = !item.title || item.title === item.slug;
-    const isMissingPoster = !item.poster || item.poster.includes("default-");
-    const isMissingThumb = !item.thumb;
-    const isMissingEpisodeName = !item.episodeName || item.episodeName.trim() === "";
-    return isMissingTitle || isMissingPoster || isMissingThumb || isMissingEpisodeName;
+    const hasValidImage =
+      (Boolean(item.poster) && !item.poster!.includes("default-")) ||
+      (Boolean(item.thumb) && !item.thumb!.includes("default-"));
+    const isMissingImage = !hasValidImage;
+    const isMissingEpisodeName =
+      (!item.episodeName || item.episodeName.trim() === "") &&
+      (item.type === "single" || item.type === "phim-le");
+    return isMissingTitle || isMissingImage || isMissingEpisodeName;
   });
 
   if (needHydration.length === 0) return;

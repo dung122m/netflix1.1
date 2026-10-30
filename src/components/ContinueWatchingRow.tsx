@@ -15,6 +15,8 @@ import { CarouselNavButton } from "@/components/ui/CarouselNavButton";
 
 export const MAX_CONTINUE_WATCHING_DISPLAY = 15;
 
+const continueWatchingThumbCache = new Map<string, string>();
+
 export function isContinueWatchingItem(item: WatchHistoryItem): boolean {
   if (item.durationSeconds && item.durationSeconds > 0 && typeof item.progressSeconds === "number") {
     const percent = (item.progressSeconds / item.durationSeconds) * 100;
@@ -25,14 +27,21 @@ export function isContinueWatchingItem(item: WatchHistoryItem): boolean {
 
 interface ContinueWatchingCardProps {
   item: WatchHistoryItem;
+  index?: number;
   onRemove: (e: React.MouseEvent, slug: string) => void;
 }
 
-function ContinueWatchingCard({ item, onRemove }: ContinueWatchingCardProps) {
+function ContinueWatchingCard({ item, index = 0, onRemove }: ContinueWatchingCardProps) {
   const [imgSrc, setImgSrc] = useState<string>(() => {
+    if (item.slug && continueWatchingThumbCache.has(item.slug)) {
+      return continueWatchingThumbCache.get(item.slug)!;
+    }
     const best = pickBestMovieThumb({ poster_url: item.poster, thumb_url: item.thumb }, "");
     if (best && !best.includes("/default-")) {
       return best;
+    }
+    if (item.poster && !item.poster.includes("/default-")) {
+      return item.poster;
     }
     return "";
   });
@@ -49,8 +58,20 @@ function ContinueWatchingCard({ item, onRemove }: ContinueWatchingCardProps) {
       fetch(`/api/movie-poster-fallback?${params.toString()}`)
         .then((res) => (res.ok ? res.json() : null))
         .then((data) => {
-          if (data?.backdropUrl || data?.posterUrl) {
-            setImgSrc(data.backdropUrl || data.posterUrl);
+          const resolved = data?.backdropUrl || data?.posterUrl;
+          if (resolved) {
+            continueWatchingThumbCache.set(item.slug, resolved);
+            setImgSrc(resolved);
+            if (typeof window !== "undefined") {
+              try {
+                const list = getWatchHistory();
+                const target = list.find((i) => i.slug === item.slug);
+                if (target && !target.thumb) {
+                  target.thumb = resolved;
+                  localStorage.setItem("nanaflix_watch_history", JSON.stringify(list));
+                }
+              } catch {}
+            }
           } else {
             setImgSrc("/default-hero.jpg");
           }
@@ -72,8 +93,20 @@ function ContinueWatchingCard({ item, onRemove }: ContinueWatchingCardProps) {
       fetch(`/api/movie-poster-fallback?${params.toString()}`)
         .then((res) => (res.ok ? res.json() : null))
         .then((data) => {
-          if (data?.backdropUrl || data?.posterUrl) {
-            setImgSrc(data.backdropUrl || data.posterUrl);
+          const resolved = data?.backdropUrl || data?.posterUrl;
+          if (resolved) {
+            continueWatchingThumbCache.set(item.slug, resolved);
+            setImgSrc(resolved);
+            if (typeof window !== "undefined") {
+              try {
+                const list = getWatchHistory();
+                const target = list.find((i) => i.slug === item.slug);
+                if (target) {
+                  target.thumb = resolved;
+                  localStorage.setItem("nanaflix_watch_history", JSON.stringify(list));
+                }
+              } catch {}
+            }
           } else {
             setImgSrc("/default-hero.jpg");
           }
@@ -108,7 +141,7 @@ function ContinueWatchingCard({ item, onRemove }: ContinueWatchingCardProps) {
             alt={item.title}
             className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
             decoding="async"
-            loading="lazy"
+            loading={index < 4 ? "eager" : "lazy"}
             onError={handleImgError}
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent pointer-events-none" />
@@ -202,9 +235,10 @@ function ContinueWatchingRowInner() {
     };
     loadItems();
 
-    autoHydrateWatchHistory().then(() => {
-      loadItems();
-    });
+    // Chạy bù đắp metadata ngầm sau khi trang đã render mượt mà (1.5s delay), không block tải trang
+    const timer = setTimeout(() => {
+      autoHydrateWatchHistory().catch(() => {});
+    }, 1500);
 
     const handleStorage = (e: StorageEvent) => {
       if (e.key === "nanaflix_watch_history") {
@@ -216,10 +250,13 @@ function ContinueWatchingRowInner() {
     };
 
     window.addEventListener("storage", handleStorage);
+    window.addEventListener("watch-history-updated", handleCustomSync);
     window.addEventListener("watchHistoryUpdated", handleCustomSync);
 
     return () => {
+      clearTimeout(timer);
       window.removeEventListener("storage", handleStorage);
+      window.removeEventListener("watch-history-updated", handleCustomSync);
       window.removeEventListener("watchHistoryUpdated", handleCustomSync);
     };
   }, []);
@@ -310,8 +347,8 @@ function ContinueWatchingRowInner() {
           ref={rowRef}
           className="flex gap-3 sm:gap-4 overflow-x-auto px-3 sm:px-4 scroll-pl-3 sm:scroll-pl-4 py-3 sm:py-3.5 scrollbar-none [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
         >
-          {items.slice(0, MAX_CONTINUE_WATCHING_DISPLAY).map((item) => (
-            <ContinueWatchingCard key={item.slug} item={item} onRemove={handleRemove} />
+          {items.slice(0, MAX_CONTINUE_WATCHING_DISPLAY).map((item, idx) => (
+            <ContinueWatchingCard key={item.slug} item={item} index={idx} onRemove={handleRemove} />
           ))}
         </div>
       </div>

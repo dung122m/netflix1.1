@@ -31,6 +31,7 @@ export interface WatchContextValue {
   movieSlug: string;
   movieTitle: string;
   posterUrl: string;
+  thumbUrl?: string;
   year?: number | string;
   quality?: string;
   category?: string;
@@ -325,6 +326,7 @@ export function WatchController({
       movieSlug,
       movieTitle,
       posterUrl,
+      thumbUrl,
       year,
       quality,
       category,
@@ -356,6 +358,7 @@ export function WatchController({
     movieSlug,
     movieTitle,
     posterUrl,
+    thumbUrl,
     year,
     quality,
     category,
