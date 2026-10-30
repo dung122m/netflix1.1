@@ -762,14 +762,24 @@ export default async function BrowsePage({
             }
           } catch {}
         }
-        if (isBrokenImageUrl(item.poster_url)) {
-          const query = item.origin_name && item.origin_name !== item.name ? item.origin_name : (item.name || item.slug);
-          if (query) {
+        // Nếu poster hiện tại không phải TMDb CDN (chẳng hạn link phimimg dễ bị nghẽn) hoặc bị hỏng:
+        const needsTmdbPoster = !item.poster_url || isBrokenImageUrl(item.poster_url) || !item.poster_url.includes("image.tmdb.org");
+        if (needsTmdbPoster) {
+          const queryCandidates = [
+            item.origin_name && item.origin_name !== item.name ? item.origin_name : null,
+            item.name,
+            item.slug ? item.slug.replace(/-/g, " ") : null,
+          ].filter(Boolean) as string[];
+
+          for (const query of queryCandidates) {
             try {
               const res = await searchTmdbPosterByTitle(query, item.year, item.type);
               if (res?.posterUrl) {
                 item.poster_url = res.posterUrl;
-                if (isBrokenImageUrl(item.thumb_url)) item.thumb_url = res.backdropUrl || res.posterUrl;
+                if (isBrokenImageUrl(item.thumb_url) || !item.thumb_url?.includes("image.tmdb.org")) {
+                  item.thumb_url = res.backdropUrl || res.posterUrl;
+                }
+                break;
               }
             } catch {}
           }
