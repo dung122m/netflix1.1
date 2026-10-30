@@ -1502,7 +1502,7 @@ export async function matchTmdbMoviesWithSources(
       const primarySearchKw = isLatinOriginal ? cleanOrigTitle : (cleanViTitle || cleanOrigTitle);
       const secondarySearchKw = isLatinOriginal ? cleanViTitle : cleanOrigTitle;
 
-      const kvKey = `tmdb:movie_source:v1:${credit.id}`;
+      const kvKey = `tmdb:movie_source:v2:${credit.id}`;
 
       if ((!primarySearchKw || primarySearchKw.length < 2) && (!secondarySearchKw || secondarySearchKw.length < 2)) {
         TMDB_SINGLE_MOVIE_MATCH_CACHE.set(credit.id, { movie: null, expireAt: now + 12 * 3600 * 1000 });
@@ -1608,12 +1608,16 @@ export async function matchTmdbMoviesWithSources(
         const matchedCandidate = matchResult?.candidate || null;
         const matchType = matchResult?.matchType || null;
 
-        // Format về định dạng Movie chuẩn
         if (matchedCandidate && matchedCandidate.slug) {
+          const tmdbPoster = credit.poster_path
+            ? `https://image.tmdb.org/t/p/w500${credit.poster_path}`
+            : "";
+
           const posterImg =
+            tmdbPoster ||
             matchedCandidate.poster_url ||
             matchedCandidate.thumb_url ||
-            (credit.poster_path ? `https://image.tmdb.org/t/p/w500${credit.poster_path}` : "");
+            "";
 
           const tmdbBackdrop = credit.backdrop_path
             ? `https://image.tmdb.org/t/p/w1280${credit.backdrop_path}`
@@ -1844,7 +1848,7 @@ export async function getTmdbRankedMovies(
   limit = 20,
   concurrency = 8
 ): Promise<any[]> {
-  const cacheKey = `TMDB_RANKED_${type}_V6`;
+  const cacheKey = `TMDB_RANKED_${type}_V7`;
   const now = Date.now();
   const cached = TMDB_TRENDING_MOVIES_CACHE.get(cacheKey);
 
@@ -1864,7 +1868,7 @@ export async function getTmdbRankedMovies(
     }
   }
 
-  const kvKey = `tmdb:ranked_movies:${type}:${limit}:v6`;
+  const kvKey = `tmdb:ranked_movies:${type}:${limit}:v7`;
   const ttlSeconds = type === "top_rated" ? 24 * 3600 : 12 * 3600;
 
   return await cacheService.fetchOrSet(

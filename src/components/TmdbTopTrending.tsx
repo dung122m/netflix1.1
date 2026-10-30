@@ -43,7 +43,7 @@ export interface TmdbTrendingMovieItem {
 
 type TmdbTab = "week" | "month" | "top_rated";
 
-const TMDB_RANKING_CACHE_KEY = "nanaflix_ranking_cache_v5";
+const TMDB_RANKING_CACHE_KEY = "nanaflix_ranking_cache_v7";
 const FRESH_REVALIDATE_TTL = 6 * 60 * 60 * 1000; // 6 giờ: Tránh fetch TMDB lặp lại khi tải trang chủ
 
 const TAB_CONFIG: Record<
@@ -585,9 +585,9 @@ function TmdbTopTrendingInner() {
                           const is4k = q.includes("4K") || q.includes("UHD");
                           if (!isCam && !is4k) return null;
                           return (
-                            <div className="absolute top-2 right-2 pointer-events-none z-10">
+                            <div className="absolute top-1.5 right-1.5 pointer-events-none z-10">
                               <span
-                                className={`px-1.5 py-0.5 rounded text-[11px] font-bold backdrop-blur-md border ${
+                                className={`px-1.5 py-0.5 rounded text-[10px] font-bold backdrop-blur-md border ${
                                   isCam
                                     ? "bg-amber-950/90 text-amber-300 border-amber-500/40"
                                     : "bg-black/75 text-zinc-100 border-white/20"

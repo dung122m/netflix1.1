@@ -165,11 +165,11 @@ function ContinueWatchingCard({ item, index = 0, onRemove }: ContinueWatchingCar
 
   return (
     <div
-      className="group relative flex-none w-[130px] xs:w-[140px] sm:w-[155px] md:w-[172px] bg-zinc-950/90 rounded-2xl overflow-hidden border border-white/[0.08] hover:border-red-500/40 transition-all duration-300 hover:scale-[1.03] shadow-lg hover:shadow-[0_12px_28px_rgba(229,9,20,0.18)] transform-gpu will-change-transform flex flex-col"
+      className="group relative flex-none w-[130px] xs:w-[140px] sm:w-[155px] md:w-[172px] bg-zinc-950/90 rounded-xl overflow-hidden border border-white/[0.08] hover:border-red-500/40 transition-all duration-300 hover:scale-[1.03] shadow-lg hover:shadow-[0_12px_28px_rgba(229,9,20,0.18)] transform-gpu will-change-transform flex flex-col"
     >
       <Link href={href} className="block flex-1 flex flex-col">
         {/* ẢNH POSTER DỌC (TỈ LỆ 2:3 CHUẨN ĐIỆN ẢNH) */}
-        <div className="relative aspect-[2/3] w-full bg-zinc-900 overflow-hidden">
+        <div className="relative aspect-[2/3] w-full bg-zinc-900 overflow-hidden rounded-t-xl">
           {/* SKELETON SHIMMER KHI ẢNH ĐANG TẢI */}
           {!isLoaded && (
             <div className="absolute inset-0 bg-gradient-to-br from-zinc-850 via-zinc-900 to-zinc-950 flex flex-col items-center justify-center p-3 text-center z-0 animate-pulse pointer-events-none">
@@ -205,22 +205,22 @@ function ContinueWatchingCard({ item, index = 0, onRemove }: ContinueWatchingCar
             </div>
           )}
 
-          {/* GRADIENT OVERLAY BÓNG ĐỔ ĐÁY */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/10 to-transparent pointer-events-none" />
+          {/* GRADIENT OVERLAY BÓNG ĐỔ ĐÁY TINH TẾ */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/5 to-transparent pointer-events-none" />
 
-          {/* HUY HIỆU TẬP PHIM / CHẤT LƯỢNG */}
-          <div className="absolute top-2 left-2 z-10 flex flex-col gap-1 pointer-events-none max-w-[80%]">
+          {/* HUY HIỆU TẬP PHIM / CHẤT LƯỢNG GỌN GÀNG TRÁNH CHE CHỮ POSTER */}
+          <div className="absolute top-1.5 left-1.5 z-10 flex flex-col gap-1 pointer-events-none max-w-[80%]">
             {item.episodeName && (
-              <span className="px-2 py-0.5 rounded-full text-[9.5px] sm:text-[10px] font-bold bg-black/75 backdrop-blur-md text-amber-300 border border-amber-400/30 truncate shadow-md">
+              <span className="px-1.5 py-0.5 rounded-md text-[9px] sm:text-[9.5px] font-bold bg-black/80 backdrop-blur-md text-amber-300 border border-amber-400/30 truncate shadow-md">
                 {formatEpisodeName(item.episodeName)}
               </span>
             )}
             {item.quality && !item.episodeName && (
               <span
-                className={`px-2 py-0.5 rounded-full text-[9.5px] sm:text-[10px] font-bold backdrop-blur-md border shadow-md w-fit ${
+                className={`px-1.5 py-0.5 rounded-md text-[9px] sm:text-[9.5px] font-bold backdrop-blur-md border shadow-md w-fit ${
                   item.quality.toUpperCase().includes("CAM")
                     ? "bg-amber-950/90 text-amber-300 border-amber-500/40"
-                    : "bg-black/75 border-white/20 text-zinc-100"
+                    : "bg-black/80 border-white/20 text-zinc-100"
                 }`}
               >
                 {item.quality}

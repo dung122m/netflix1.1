@@ -15,7 +15,7 @@ export async function GET(req: NextRequest) {
   const type: TmdbRankType =
     rawType === "month" || rawType === "top_rated" ? rawType : "week";
   const limit = Math.min(Number(searchParams.get("limit")) || 20, 20);
-  const cacheKey = `${type}_${limit}_v6`;
+  const cacheKey = `${type}_${limit}_v8`;
 
   // 1. Kiểm tra bộ nhớ cache trên RAM server (phản hồi tức thì ~0ms)
   const cached = SERVER_CACHE.get(cacheKey);
