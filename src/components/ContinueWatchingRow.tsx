@@ -62,13 +62,11 @@ function getInitialPoster(item: WatchHistoryItem): string {
 function ContinueWatchingCard({ item, index = 0, onRemove }: ContinueWatchingCardProps) {
   const [imgSrc, setImgSrc] = useState<string>(() => getInitialPoster(item));
   const [isLoaded, setIsLoaded] = useState(false);
-  const fallbackTriedRef = useRef(false);
 
   // Tự động nâng cấp ảnh lên TMDb CDN siêu nhanh (30ms) nếu ảnh hiện tại là nguồn ngoài (phimimg) hoặc rỗng
   useEffect(() => {
     const isFastTmdb = imgSrc && imgSrc.includes("image.tmdb.org");
-    if (!isFastTmdb && !fallbackTriedRef.current) {
-      fallbackTriedRef.current = true;
+    if (!isFastTmdb) {
       const params = new URLSearchParams();
       if (item.title) params.set("title", item.title);
       if (item.slug) params.set("slug", item.slug);
@@ -96,57 +94,51 @@ function ContinueWatchingCard({ item, index = 0, onRemove }: ContinueWatchingCar
         })
         .catch(() => {});
     }
-  }, [imgSrc, item.title, item.slug, item.year]);
+  }, [item.title, item.slug, item.year]);
 
   const handleImgError = useCallback(() => {
-    // Bước 1: Nếu link poster dọc bị lỗi, thử dùng thumb ngang
+    // Bước 1: Nếu link poster dọc bị lỗi, thử dùng thumb ngang nếu có và khác link đang lỗi
     const rawThumb = item.thumb ? toOptimizedCardPosterUrl(item.thumb) : "";
-    if (rawThumb && rawThumb !== imgSrc) {
+    if (rawThumb && rawThumb !== imgSrc && !rawThumb.includes("/default-")) {
       setImgSrc(rawThumb);
       setIsLoaded(false);
       return;
     }
 
-    // Bước 2: Gọi fallback API nếu chưa thử
-    if (!fallbackTriedRef.current) {
-      fallbackTriedRef.current = true;
-      const params = new URLSearchParams();
-      if (item.title) params.set("title", item.title);
-      if (item.slug) params.set("slug", item.slug);
-      if (item.year) params.set("year", String(item.year));
+    // Bước 2: Gọi fallback API lấy ảnh TMDb
+    const params = new URLSearchParams();
+    if (item.title) params.set("title", item.title);
+    if (item.slug) params.set("slug", item.slug);
+    if (item.year) params.set("year", String(item.year));
 
-      fetch(`/api/movie-poster-fallback?${params.toString()}`)
-        .then((res) => (res.ok ? res.json() : null))
-        .then((data) => {
-          const resolved = data?.posterUrl || data?.backdropUrl;
-          if (resolved && resolved !== imgSrc) {
-            const opt = toOptimizedCardPosterUrl(resolved);
-            continueWatchingThumbCache.set(item.slug, opt);
-            setImgSrc(opt);
-            setIsLoaded(false);
-            if (typeof window !== "undefined") {
-              try {
-                const list = getWatchHistory();
-                const target = list.find((i) => i.slug === item.slug);
-                if (target) {
-                  target.poster = opt;
-                  localStorage.setItem("nanaflix_watch_history", JSON.stringify(list));
-                }
-              } catch {}
-            }
-          } else {
-            setImgSrc("");
-            setIsLoaded(true);
+    fetch(`/api/movie-poster-fallback?${params.toString()}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        const resolved = data?.posterUrl || data?.backdropUrl;
+        if (resolved && resolved !== imgSrc) {
+          const opt = toOptimizedCardPosterUrl(resolved);
+          continueWatchingThumbCache.set(item.slug, opt);
+          setImgSrc(opt);
+          setIsLoaded(false);
+          if (typeof window !== "undefined") {
+            try {
+              const list = getWatchHistory();
+              const target = list.find((i) => i.slug === item.slug);
+              if (target) {
+                target.poster = opt;
+                localStorage.setItem("nanaflix_watch_history", JSON.stringify(list));
+              }
+            } catch {}
           }
-        })
-        .catch(() => {
+        } else {
           setImgSrc("");
           setIsLoaded(true);
-        });
-    } else {
-      setImgSrc("");
-      setIsLoaded(true);
-    }
+        }
+      })
+      .catch(() => {
+        setImgSrc("");
+        setIsLoaded(true);
+      });
   }, [imgSrc, item.title, item.slug, item.year, item.thumb]);
 
   const href = item.episodeSlug

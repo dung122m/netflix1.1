@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { cacheService } from "@/lib/cache";
 import { movieApi } from "@/services/movies/service";
 import { pickBestMoviePoster, pickBestMovieThumb } from "@/lib/movieMedia";
+import { getTmdbPosterUrl, searchTmdbPosterByTitle } from "@/services/tmdbService";
 
 export const runtime = "nodejs";
 
@@ -126,37 +127,59 @@ export async function GET(req: NextRequest) {
     });
   }
 
-  // 2. Kiểm tra L2 KV cache
-  const kvKey = `poster:fallback:${cacheKey}`;
+  // 2. Kiểm tra L2 KV cache (v3 để không dính cache phimimg cũ)
+  const kvKey = `poster:fallback:v3:${cacheKey}`;
   const result = await cacheService.fetchOrSet(
     kvKey,
     async () => {
-      // Ưu tiên tìm theo tên gốc tiếng Anh/quốc tế trước (tỷ lệ match TMDB chuẩn xác 98%)
+      // 1. Ưu tiên tìm theo tên gốc tiếng Anh/quốc tế trước (tỷ lệ match TMDB chuẩn xác 98%)
       if (origin_name && origin_name !== title) {
         const res = await queryTmdbPoster(origin_name, year);
         if (res.posterUrl || res.backdropUrl) return res;
       }
 
-      // Thử tìm theo tên tiếng Việt
+      // 2. Thử tìm theo tên tiếng Việt
       if (title) {
         const res = await queryTmdbPoster(title, year);
         if (res.posterUrl || res.backdropUrl) return res;
       }
 
-      // Thử tìm theo slug được chuẩn hóa thành từ khóa
+      // 3. Thử tìm theo slug được chuẩn hóa thành từ khóa
       if (slug) {
         const slugQuery = slug.replace(/-/g, " ");
         const res = await queryTmdbPoster(slugQuery, year);
         if (res.posterUrl || res.backdropUrl) return res;
       }
 
-      // 4. Fallback nguồn phát nội bộ (KKPhim/NguonC): Cứu cánh 100% cho phim Việt Nam, sự kiện âm nhạc
+      // 4. Fallback tra cứu chi tiết phim từ slug: Tận dụng tmdb.id và origin_name của phim
       if (slug) {
         try {
           const detail = await movieApi.getMovieDetail(slug);
           if (detail?.movie) {
-            const p = pickBestMoviePoster(detail.movie, "");
-            const t = pickBestMovieThumb(detail.movie, "");
+            const m = detail.movie;
+            // 4a. Nếu upstream có gắn tmdb.id, lấy trực tiếp ảnh TMDb chuẩn xác 100%
+            if (m.tmdb?.id) {
+              const tmdbPoster = await getTmdbPosterUrl(m.tmdb.id, m.type);
+              if (tmdbPoster) {
+                return {
+                  posterUrl: tmdbPoster,
+                  backdropUrl: tmdbPoster,
+                };
+              }
+            }
+
+            // 4b. Tìm theo tên gốc quốc tế của phim (vd: Otis, Ultraman Tiga, A Melody to Remember)
+            const altName = m.origin_name && m.origin_name !== m.name ? m.origin_name : (m.name || m.slug);
+            if (altName) {
+              const res = await searchTmdbPosterByTitle(altName, m.year || year, m.type);
+              if (res?.posterUrl || res?.backdropUrl) {
+                return res;
+              }
+            }
+
+            // 4c. Cuối cùng mới lấy poster/thumb gốc
+            const p = pickBestMoviePoster(m, "");
+            const t = pickBestMovieThumb(m, "");
             if (p || t) {
               return {
                 posterUrl: p || t || null,
@@ -172,6 +195,21 @@ export async function GET(req: NextRequest) {
           const searchRes = await movieApi.searchMovies(title, 2);
           const first = searchRes?.items?.[0];
           if (first) {
+            if (first.tmdb?.id) {
+              const tmdbPoster = await getTmdbPosterUrl(first.tmdb.id, first.type);
+              if (tmdbPoster) {
+                return {
+                  posterUrl: tmdbPoster,
+                  backdropUrl: tmdbPoster,
+                };
+              }
+            }
+            if (first.origin_name) {
+              const res = await searchTmdbPosterByTitle(first.origin_name, first.year || year, first.type);
+              if (res?.posterUrl || res?.backdropUrl) {
+                return res;
+              }
+            }
             const p = pickBestMoviePoster(first, "");
             const t = pickBestMovieThumb(first, "");
             if (p || t) {

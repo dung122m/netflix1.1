@@ -41,7 +41,7 @@ import { MovieReviewsContainer } from "@/components/MovieReviews/MovieReviewsCon
 import { TrailerModal } from "@/components/TrailerModal";
 import { MovieRecommendationsClient } from "@/components/MovieRecommendationsClient";
 import { MovieCastGallery } from "@/components/MovieCastGallery";
-import { getTmdbMovieCredits, getTmdbTrailerUrl, searchTmdbTrailerByTitle } from "@/services/tmdbService";
+import { getTmdbMovieCredits, getTmdbTrailerUrl, searchTmdbTrailerByTitle, getTmdbPosterUrl, searchTmdbPosterByTitle } from "@/services/tmdbService";
 import { MobileMovieNav } from "@/components/movies/MobileMovieNav";
 
 // =========================================================================
@@ -292,6 +292,30 @@ export default async function MovieDetail({
     }
   }
 
+  // Ưu tiên poster TMDb tốc độ cao chính hãng để ghi nhận vào lịch sử xem
+  let effectivePosterUrl = "";
+  let effectiveThumbUrl = "";
+  if (tmdbId) {
+    try {
+      effectivePosterUrl = (await getTmdbPosterUrl(tmdbId, tmdbType)) || "";
+    } catch {}
+  }
+  if (!effectivePosterUrl && (movie.origin_name || movie.name)) {
+    try {
+      const res = await searchTmdbPosterByTitle(movie.origin_name || movie.name, movie.year, tmdbType);
+      if (res?.posterUrl) {
+        effectivePosterUrl = res.posterUrl;
+        if (res.backdropUrl) effectiveThumbUrl = res.backdropUrl;
+      }
+    } catch {}
+  }
+  if (!effectivePosterUrl) {
+    effectivePosterUrl = pickBestMoviePoster(movie, "/default-poster.jpg");
+  }
+  if (!effectiveThumbUrl) {
+    effectiveThumbUrl = pickBestMovieThumb(movie, "/default-hero.jpg");
+  }
+
   const formatVotes = (v?: number): string => {
     if (!v || v <= 0) return "";
     if (v >= 1000000) return `${(v / 1000000).toFixed(1)}M`;
@@ -506,8 +530,8 @@ export default async function MovieDetail({
       <WatchController
         movieSlug={movie.slug}
         movieTitle={title}
-        posterUrl={pickBestMoviePoster(movie, "/default-poster.jpg")}
-        thumbUrl={pickBestMovieThumb(movie, "/default-hero.jpg")}
+        posterUrl={effectivePosterUrl}
+        thumbUrl={effectiveThumbUrl}
         year={movie.year}
         quality={movie.quality}
         category={categoryList.map((c) => c.name).filter(Boolean).join(", ") || (movie.category?.[0]?.name ?? "")}
