@@ -27,6 +27,15 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     "scratch/**",
     "scripts/**",
+    "artifacts/**",
+    ".agent/**",
+    ".agents/**",
+    ".claude/**",
+    ".github/**",
+    ".kiro/**",
+    ".cursor/**",
+    ".windsurf/**",
+    ".gemini/**",
   ]),
 ]);
 

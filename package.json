@@ -24,13 +24,13 @@
     "shadcn-ui"
   ],
   "engines": {
-    "node": ">=24"
+    "node": ">=20.9.0"
   },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint",
+    "lint": "eslint src",
     "typecheck": "tsc --noEmit",
     "test": "npx tsx --env-file=.env.local --test src/services/live/football/matchStatus.test.ts src/services/live/football-score/matcher.test.ts src/services/movies/service.test.ts src/services/notificationService.test.ts src/services/dataIsolation.test.ts src/lib/watchHistory.test.ts",
     "test:history": "npx tsx --env-file=.env.local --test src/lib/watchHistory.test.ts",
