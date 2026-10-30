@@ -188,9 +188,10 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
 
     // Sắp xếp ưu tiên:
     // 0. Ảnh đã từng nạp thành công trong phiên (0ms cache hit)
-    // 1. image.tmdb.org lên đầu tiên (30ms CDN)
-    // 2. Poster dọc (-poster.webp / poster_ / /w500)
-    // 3. Thumb ngang (-thumb.webp / backdrop)
+    // 1. TMDb CDN chính chủ siêu nhẹ & cực nhanh (30ms CDN)
+    // 2. Các nguồn CDN ngoài khác không phải phimimg.com
+    // 3. ĐẨY PHIMIMG.COM XUỐNG TẦNG DƯỚI CÙNG (Last Resort)
+    //    Nếu bắt buộc phải dùng phimimg.com, ưu tiên -thumb.webp (60KB) trước -poster.webp (1.1MB)
     return list.sort((a, b) => {
       const aLoaded = GLOBAL_LOADED_IMAGES.has(a);
       const bLoaded = GLOBAL_LOADED_IMAGES.has(b);
@@ -202,10 +203,24 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
       if (aTmdb && !bTmdb) return -1;
       if (!aTmdb && bTmdb) return 1;
 
-      const aPoster = a.includes("-poster") || a.includes("poster_") || a.includes("/w500");
-      const bPoster = b.includes("-poster") || b.includes("poster_") || b.includes("/w500");
-      if (aPoster && !bPoster) return -1;
-      if (!aPoster && bPoster) return 1;
+      // Đẩy phimimg.com xuống tầng dưới cùng
+      const aPhimimg = a.includes("phimimg.com");
+      const bPhimimg = b.includes("phimimg.com");
+      if (!aPhimimg && bPhimimg) return -1;
+      if (aPhimimg && !bPhimimg) return 1;
+
+      if (aPhimimg && bPhimimg) {
+        // Cả 2 đều là phimimg.com: Ưu tiên file thumb nhẹ ~60KB trước file poster nặng 1.1MB
+        const aThumb = a.includes("-thumb.webp");
+        const bThumb = b.includes("-thumb.webp");
+        if (aThumb && !bThumb) return -1;
+        if (!aThumb && bThumb) return 1;
+      } else {
+        const aPoster = a.includes("-poster") || a.includes("poster_") || a.includes("/w500");
+        const bPoster = b.includes("-poster") || b.includes("poster_") || b.includes("/w500");
+        if (aPoster && !bPoster) return -1;
+        if (!aPoster && bPoster) return 1;
+      }
 
       return 0;
     });
@@ -365,9 +380,10 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
   }, [currentSrc, isImageLoaded, hasError, handleImageError, priority]);
 
   // NGUỒN THAY THẾ DỰ PHÒNG THÔNG MINH (TMDB OFFICIAL CDN):
-  // Khi phim không có ảnh hợp lệ, tự động truy vấn poster chuẩn từ TMDB
+  // Khi phim không có ảnh hợp lệ, hoặc đang dính ảnh từ phimimg.com (tầng dưới cùng), chủ động tìm poster chuẩn từ TMDb ngay
   useEffect(() => {
-    if ((!currentSrc || hasError) && !fallbackAttemptedRef.current && (title || origin_name || slug)) {
+    const isOnlyPhimimg = !currentSrc || currentSrc.includes("phimimg.com");
+    if ((isOnlyPhimimg || hasError) && !fallbackAttemptedRef.current && (title || origin_name || slug)) {
       fallbackAttemptedRef.current = true;
       const params = new URLSearchParams();
       if (title) params.set("title", title);
@@ -378,10 +394,10 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
       fetch(`/api/movie-poster-fallback?${params.toString()}`)
         .then((res) => (res.ok ? res.json() : null))
         .then((data) => {
-          if (data?.posterUrl) {
+          if (data?.posterUrl && !GLOBAL_FAILED_IMAGES.has(data.posterUrl)) {
             setHasError(false);
             setCurrentSrc(data.posterUrl);
-            setIsImageLoaded(false);
+            setIsImageLoaded(GLOBAL_LOADED_IMAGES.has(data.posterUrl));
           }
         })
         .catch(() => {});

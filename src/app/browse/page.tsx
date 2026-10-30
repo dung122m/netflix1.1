@@ -522,6 +522,56 @@ const COUNTRY_NAMES: Record<string, string> = {
   "phap": "Pháp",
 };
 
+/**
+ * Tự động nâng cấp poster của danh sách phim sang TMDb CDN siêu nhanh (30ms Cloudflare Edge),
+ * đẩy nguồn phimimg.com xuống tầng dưới cùng dự phòng.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function enrichMoviesWithTmdbPosters(movieList: any[]) {
+  if (!movieList || movieList.length === 0) return;
+  await Promise.allSettled(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    movieList.map(async (item: any) => {
+      if (item.tmdb?.id) {
+        try {
+          const p = await getTmdbPosterUrl(item.tmdb.id, item.type);
+          if (p) {
+            item.poster_url = p;
+            if (isBrokenImageUrl(item.thumb_url)) item.thumb_url = p;
+            return;
+          }
+        } catch {}
+      }
+      // Nếu poster hiện tại không phải TMDb CDN (chẳng hạn link phimimg dễ bị nghẽn) hoặc bị hỏng:
+      const needsTmdbPoster =
+        !item.poster_url ||
+        isBrokenImageUrl(item.poster_url) ||
+        !item.poster_url.includes("image.tmdb.org");
+
+      if (needsTmdbPoster) {
+        const queryCandidates = [
+          item.origin_name && item.origin_name !== item.name ? item.origin_name : null,
+          item.name,
+          item.slug ? item.slug.replace(/-/g, " ") : null,
+        ].filter(Boolean) as string[];
+
+        for (const query of queryCandidates) {
+          try {
+            const res = await searchTmdbPosterByTitle(query, item.year, item.type);
+            if (res?.posterUrl) {
+              item.poster_url = res.posterUrl;
+              if (isBrokenImageUrl(item.thumb_url) || !item.thumb_url?.includes("image.tmdb.org")) {
+                item.thumb_url = res.backdropUrl || res.posterUrl;
+              }
+              break;
+            }
+          } catch {}
+        }
+      }
+    })
+  );
+}
+
 // ==========================================
 export default async function BrowsePage({
   searchParams,
@@ -748,44 +798,7 @@ export default async function BrowsePage({
     const startIndex = (currentPage - 1) * PAGE_LIMIT;
     movies = validSearchMovies.slice(startIndex, startIndex + PAGE_LIMIT);
 
-    // Thay thế ngay từ đầu trên Server: Ưu tiên tuyệt đối nguồn TMDb siêu tốc image.tmdb.org
-    await Promise.allSettled(
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      movies.map(async (item: any) => {
-        if (item.tmdb?.id) {
-          try {
-            const p = await getTmdbPosterUrl(item.tmdb.id, item.type);
-            if (p) {
-              item.poster_url = p;
-              if (isBrokenImageUrl(item.thumb_url)) item.thumb_url = p;
-              return;
-            }
-          } catch {}
-        }
-        // Nếu poster hiện tại không phải TMDb CDN (chẳng hạn link phimimg dễ bị nghẽn) hoặc bị hỏng:
-        const needsTmdbPoster = !item.poster_url || isBrokenImageUrl(item.poster_url) || !item.poster_url.includes("image.tmdb.org");
-        if (needsTmdbPoster) {
-          const queryCandidates = [
-            item.origin_name && item.origin_name !== item.name ? item.origin_name : null,
-            item.name,
-            item.slug ? item.slug.replace(/-/g, " ") : null,
-          ].filter(Boolean) as string[];
 
-          for (const query of queryCandidates) {
-            try {
-              const res = await searchTmdbPosterByTitle(query, item.year, item.type);
-              if (res?.posterUrl) {
-                item.poster_url = res.posterUrl;
-                if (isBrokenImageUrl(item.thumb_url) || !item.thumb_url?.includes("image.tmdb.org")) {
-                  item.thumb_url = res.backdropUrl || res.posterUrl;
-                }
-                break;
-              }
-            } catch {}
-          }
-        }
-      })
-    );
   } else {
     // 2B. DUYỆT THEO DANH MỤC / QUỐC GIA / NĂM (CATALOG BROWSING)
     const response = await movieApi.getMovies({
@@ -855,6 +868,14 @@ export default async function BrowsePage({
   if (movies.length === 0 && (keyword || actorParam)) {
     const fallbackRes = await movieApi.getMovies({ limit: 16, sort: "views" });
     fallbackMovies = fallbackRes?.items || [];
+  }
+
+  // NÂNG CẤP TOÀN BỘ POSTER SANG TMDB CDN SIÊU TỐC (ĐẨY PHIMIMG XUỐNG TẦNG DƯỚI CÙNG DỰ PHÒNG)
+  if (movies.length > 0) {
+    await enrichMoviesWithTmdbPosters(movies);
+  }
+  if (fallbackMovies.length > 0) {
+    await enrichMoviesWithTmdbPosters(fallbackMovies);
   }
 
   let title = "Khám Phá Kho Phim";
