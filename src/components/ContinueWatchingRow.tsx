@@ -36,20 +36,20 @@ function ContinueWatchingCard({ item, index = 0, onRemove }: ContinueWatchingCar
     if (item.slug && continueWatchingThumbCache.has(item.slug)) {
       return continueWatchingThumbCache.get(item.slug)!;
     }
-    // 1. Ưu tiên tuyệt đối ảnh TMDb CDN siêu nhanh (30ms) nếu đã có sẵn trong item
-    if (item.thumb && item.thumb.includes("image.tmdb.org")) {
-      return item.thumb;
-    }
+    // 1. Ưu tiên tuyệt đối ảnh Poster TMDb CDN siêu nhanh (30ms)
     if (item.poster && item.poster.includes("image.tmdb.org")) {
       return item.poster;
     }
-    // 2. Nếu có ảnh khác (phimimg), bọc qua toOptimizedPhimimgUrl để nạp bản WebP 20KB thay vì ảnh gốc JPEG 3MB
+    if (item.thumb && item.thumb.includes("image.tmdb.org")) {
+      return item.thumb;
+    }
+    // 2. Poster nguồn (phimimg) bọc qua proxy WebP tối ưu dung lượng (20KB)
+    if (item.poster && !item.poster.includes("/default-")) {
+      return toOptimizedPhimimgUrl(item.poster, 300);
+    }
     const best = pickBestMovieThumb({ poster_url: item.poster, thumb_url: item.thumb }, "");
     if (best && !best.includes("/default-")) {
-      return toOptimizedPhimimgUrl(best, 320);
-    }
-    if (item.poster && !item.poster.includes("/default-")) {
-      return toOptimizedPhimimgUrl(item.poster, 320);
+      return toOptimizedPhimimgUrl(best, 300);
     }
     return "";
   });
@@ -68,7 +68,8 @@ function ContinueWatchingCard({ item, index = 0, onRemove }: ContinueWatchingCar
       fetch(`/api/movie-poster-fallback?${params.toString()}`)
         .then((res) => (res.ok ? res.json() : null))
         .then((data) => {
-          const resolved = data?.backdropUrl || data?.posterUrl;
+          // Ưu tiên posterUrl dọc từ TMDb
+          const resolved = data?.posterUrl || data?.backdropUrl;
           if (resolved) {
             continueWatchingThumbCache.set(item.slug, resolved);
             setImgSrc(resolved);
@@ -78,9 +79,9 @@ function ContinueWatchingCard({ item, index = 0, onRemove }: ContinueWatchingCar
                 const list = getWatchHistory();
                 const target = list.find((i) => i.slug === item.slug);
                 if (target) {
-                  target.thumb = resolved;
-                  if (!target.poster || target.poster.includes("phimimg.com") || target.poster.includes("default-")) {
-                    target.poster = data?.posterUrl || resolved;
+                  target.poster = resolved;
+                  if (!target.thumb || target.thumb.includes("phimimg.com") || target.thumb.includes("default-")) {
+                    target.thumb = data?.backdropUrl || resolved;
                   }
                   localStorage.setItem("nanaflix_watch_history", JSON.stringify(list));
                 }
@@ -103,7 +104,7 @@ function ContinueWatchingCard({ item, index = 0, onRemove }: ContinueWatchingCar
       fetch(`/api/movie-poster-fallback?${params.toString()}`)
         .then((res) => (res.ok ? res.json() : null))
         .then((data) => {
-          const resolved = data?.backdropUrl || data?.posterUrl;
+          const resolved = data?.posterUrl || data?.backdropUrl;
           if (resolved) {
             continueWatchingThumbCache.set(item.slug, resolved);
             setImgSrc(resolved);
@@ -112,10 +113,7 @@ function ContinueWatchingCard({ item, index = 0, onRemove }: ContinueWatchingCar
                 const list = getWatchHistory();
                 const target = list.find((i) => i.slug === item.slug);
                 if (target) {
-                  target.thumb = resolved;
-                  if (!target.poster || target.poster.includes("phimimg.com") || target.poster.includes("default-")) {
-                    target.poster = data?.posterUrl || resolved;
-                  }
+                  target.poster = resolved;
                   localStorage.setItem("nanaflix_watch_history", JSON.stringify(list));
                 }
               } catch {}
@@ -143,11 +141,11 @@ function ContinueWatchingCard({ item, index = 0, onRemove }: ContinueWatchingCar
 
   return (
     <div
-      className="group relative flex-none w-[190px] sm:w-[240px] md:w-[270px] bg-zinc-950 rounded-xl overflow-hidden border border-white/10 hover:border-white/25 transition-all duration-300 hover:scale-[1.03] shadow-md hover:shadow-xl transform-gpu will-change-transform"
+      className="group relative flex-none w-[125px] xs:w-[135px] sm:w-[155px] md:w-[175px] bg-zinc-950 rounded-xl overflow-hidden border border-white/10 hover:border-white/30 transition-all duration-300 hover:scale-[1.03] shadow-md hover:shadow-xl transform-gpu will-change-transform flex flex-col"
     >
-      <Link href={href} className="block">
-        {/* ẢNH THUMBNAIL (16:9, ưu tiên thumb ngang / TMDb backdrop) */}
-        <div className="relative aspect-video w-full bg-zinc-900 overflow-hidden">
+      <Link href={href} className="block flex-1 flex flex-col">
+        {/* ẢNH POSTER DỌC (TỈ LỆ 2:3 CHUẨN ĐẸP, TẢI TỨC THÌ) */}
+        <div className="relative aspect-[2/3] w-full bg-zinc-900 overflow-hidden">
           {imgSrc && !imgSrc.includes("/default-") ? (
             /* eslint-disable-next-line @next/next/no-img-element */
             <img
@@ -155,59 +153,30 @@ function ContinueWatchingCard({ item, index = 0, onRemove }: ContinueWatchingCar
               alt={item.title}
               className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
               decoding="async"
-              loading={index < 4 ? "eager" : "lazy"}
+              loading={index < 5 ? "eager" : "lazy"}
               onError={handleImgError}
             />
           ) : (
             <div className="w-full h-full bg-gradient-to-br from-zinc-900 via-rose-950/25 to-zinc-950 flex flex-col items-center justify-center p-3 text-center relative overflow-hidden">
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_40%,rgba(229,9,20,0.22),transparent_70%)]" />
-              <Film className="w-7 h-7 text-rose-500/60 mb-1.5 relative z-10 animate-pulse" />
-              <span className="text-[11px] font-bold text-zinc-300 line-clamp-2 max-w-[90%] relative z-10 leading-tight">
+              <Film className="w-8 h-8 text-rose-500/60 mb-2 relative z-10 animate-pulse" />
+              <span className="text-[11px] font-bold text-zinc-300 line-clamp-3 max-w-[95%] relative z-10 leading-tight">
                 {item.title}
               </span>
             </div>
           )}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent pointer-events-none" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent pointer-events-none" />
 
-          {/* NÚT PLAY Ở GIỮA */}
-          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
-            <div className="w-10 h-10 rounded-full bg-netflix-red text-white flex items-center justify-center shadow-lg transform group-hover:scale-110 transition-transform">
-              <Play className="w-4 h-4 fill-white ml-0.5" />
-            </div>
-          </div>
-
-          {/* THANH TIẾN ĐỘ THỰC TẾ ĐANG XEM DỞ */}
-          <div className="absolute bottom-0 left-0 right-0 h-[3.5px] bg-black/75 z-10 overflow-hidden">
-            <div
-              className="h-full bg-netflix-red rounded-r-full transition-all duration-300"
-              style={{ width: `${progressPercent}%` }}
-            />
-          </div>
-
-          {/* NÚT XOÁ KHỎI TIẾP TỤC XEM */}
-          <button
-            type="button"
-            onClick={(e) => onRemove(e, item.slug)}
-            aria-label="Xoá khỏi danh sách tiếp tục xem"
-            className="absolute top-2 right-2 p-1 rounded-full bg-black/60 text-zinc-300 hover:text-white hover:bg-black/90 backdrop-blur-sm transition z-10 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 cursor-pointer"
-          >
-            <X className="w-3.5 h-3.5" />
-          </button>
-        </div>
-
-        {/* THÔNG TIN PHIM */}
-        <div className="p-2.5 sm:p-3 bg-zinc-950 relative z-10 -mt-[1px]">
-          <h3 className="text-white text-xs sm:text-[13px] font-semibold truncate group-hover:text-rose-400 transition-colors">
-            {item.title}
-          </h3>
-          <div className="flex items-center justify-between text-[11px] sm:text-xs text-zinc-400 mt-1">
-            <span className="text-rose-400 font-medium flex items-center gap-1 text-[10.5px] sm:text-[11px]">
-              <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
-              <span>{item.episodeName ? formatEpisodeName(item.episodeName) : "Đang xem dở"}</span>
-            </span>
-            {item.quality && (
+          {/* HUY HIỆU TẬP PHIM / CHẤT LƯỢNG */}
+          <div className="absolute top-1.5 left-1.5 z-10 flex flex-col gap-1 pointer-events-none max-w-[85%]">
+            {item.episodeName && (
+              <span className="px-1.5 py-0.5 rounded-md text-[9.5px] sm:text-[10px] font-bold bg-black/80 backdrop-blur-md text-amber-300 border border-amber-400/30 truncate shadow-md">
+                {formatEpisodeName(item.episodeName)}
+              </span>
+            )}
+            {item.quality && !item.episodeName && (
               <span
-                className={`px-2 py-0.5 rounded-md text-[10.5px] font-bold backdrop-blur-md border ${
+                className={`px-1.5 py-0.5 rounded-md text-[9.5px] sm:text-[10px] font-bold backdrop-blur-md border shadow-md w-fit ${
                   item.quality.toUpperCase().includes("CAM")
                     ? "bg-amber-950/90 text-amber-300 border-amber-500/40"
                     : "bg-black/80 border-white/20 text-zinc-100"
@@ -216,6 +185,47 @@ function ContinueWatchingCard({ item, index = 0, onRemove }: ContinueWatchingCar
                 {item.quality}
               </span>
             )}
+          </div>
+
+          {/* NÚT XOÁ KHỎI TIẾP TỤC XEM (Nút X góc trên phải) */}
+          <button
+            type="button"
+            onClick={(e) => onRemove(e, item.slug)}
+            aria-label="Xoá khỏi danh sách tiếp tục xem"
+            className="absolute top-1.5 right-1.5 p-1 rounded-full bg-black/70 text-zinc-300 hover:text-white hover:bg-black/90 backdrop-blur-md transition-all z-20 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 cursor-pointer active:scale-90 shadow-md"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+
+          {/* NÚT PLAY Ở GIỮA KHI HOVER */}
+          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
+            <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-netflix-red text-white flex items-center justify-center shadow-xl transform group-hover:scale-110 transition-transform">
+              <Play className="w-4 h-4 sm:w-4.5 sm:h-4.5 fill-white ml-0.5" />
+            </div>
+          </div>
+
+          {/* THANH TIẾN ĐỘ THỰC TẾ ĐANG XEM DỞ */}
+          <div className="absolute bottom-0 left-0 right-0 h-1 bg-black/80 z-10 overflow-hidden">
+            <div
+              className="h-full bg-netflix-red rounded-r-full transition-all duration-300 shadow-[0_0_8px_#E50914]"
+              style={{ width: `${progressPercent}%` }}
+            />
+          </div>
+        </div>
+
+        {/* THÔNG TIN PHIM */}
+        <div className="p-2 sm:p-2.5 bg-zinc-950 flex-1 flex flex-col justify-between">
+          <h3 className="text-white text-xs sm:text-[13px] font-semibold truncate group-hover:text-rose-400 transition-colors leading-snug">
+            {item.title}
+          </h3>
+          <div className="flex items-center justify-between text-[10.5px] sm:text-[11px] text-zinc-400 mt-1">
+            <span className="text-rose-400 font-medium flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
+              <span className="truncate">{item.episodeName ? "Xem tiếp" : "Đang xem"}</span>
+            </span>
+            <span className="text-zinc-500 font-mono text-[10px]">
+              {progressPercent}%
+            </span>
           </div>
         </div>
       </Link>
