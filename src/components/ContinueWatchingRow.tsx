@@ -9,7 +9,11 @@ import {
   autoHydrateWatchHistory,
   WatchHistoryItem,
 } from "@/lib/watchHistory";
-import { pickBestMovieThumb, toOptimizedPhimimgUrl } from "@/lib/movieMedia";
+import {
+  pickBestMoviePoster,
+  pickBestMovieThumb,
+  toOptimizedCardPosterUrl,
+} from "@/lib/movieMedia";
 import { formatEpisodeName } from "@/lib/formatEpisode";
 import { CarouselNavButton } from "@/components/ui/CarouselNavButton";
 
@@ -31,34 +35,37 @@ interface ContinueWatchingCardProps {
   onRemove: (e: React.MouseEvent, slug: string) => void;
 }
 
+function getInitialPoster(item: WatchHistoryItem): string {
+  if (item.slug && continueWatchingThumbCache.has(item.slug)) {
+    return continueWatchingThumbCache.get(item.slug)!;
+  }
+  // 1. Ưu tiên TMDb poster CDN nếu đã có sẵn
+  if (item.poster && item.poster.includes("image.tmdb.org")) {
+    return toOptimizedCardPosterUrl(item.poster);
+  }
+  if (item.thumb && item.thumb.includes("image.tmdb.org")) {
+    return toOptimizedCardPosterUrl(item.thumb);
+  }
+  // 2. Chọn poster dọc tối ưu nhất trực tiếp từ CDN (không bọc proxy /api/img-thumb)
+  const bestPoster = pickBestMoviePoster({ poster_url: item.poster, thumb_url: item.thumb }, "");
+  if (bestPoster && !bestPoster.includes("/default-")) {
+    return toOptimizedCardPosterUrl(bestPoster);
+  }
+  // 3. Dự phòng thumb ngang nếu chưa có poster
+  const bestThumb = pickBestMovieThumb({ poster_url: item.poster, thumb_url: item.thumb }, "");
+  if (bestThumb && !bestThumb.includes("/default-")) {
+    return toOptimizedCardPosterUrl(bestThumb);
+  }
+  return "";
+}
+
 function ContinueWatchingCard({ item, index = 0, onRemove }: ContinueWatchingCardProps) {
-  const [imgSrc, setImgSrc] = useState<string>(() => {
-    if (item.slug && continueWatchingThumbCache.has(item.slug)) {
-      return continueWatchingThumbCache.get(item.slug)!;
-    }
-    // 1. Ưu tiên tuyệt đối ảnh Poster TMDb CDN siêu nhanh (30ms)
-    if (item.poster && item.poster.includes("image.tmdb.org")) {
-      return item.poster;
-    }
-    if (item.thumb && item.thumb.includes("image.tmdb.org")) {
-      return item.thumb;
-    }
-    // 2. Poster nguồn (phimimg) bọc qua proxy WebP tối ưu dung lượng (20KB)
-    if (item.poster && !item.poster.includes("/default-")) {
-      return toOptimizedPhimimgUrl(item.poster, 300);
-    }
-    const best = pickBestMovieThumb({ poster_url: item.poster, thumb_url: item.thumb }, "");
-    if (best && !best.includes("/default-")) {
-      return toOptimizedPhimimgUrl(best, 300);
-    }
-    return "";
-  });
+  const [imgSrc, setImgSrc] = useState<string>(() => getInitialPoster(item));
   const fallbackTriedRef = useRef(false);
 
+  // Chỉ gọi API fallback nếu item hoàn toàn thiếu ảnh (không có poster lẫn thumb)
   useEffect(() => {
-    // Nếu ảnh hiện tại chưa phải là TMDb CDN siêu tốc (hoặc đang rỗng), tự động truy vấn TMDb để nâng cấp ảnh
-    const isFastTmdb = imgSrc.includes("image.tmdb.org");
-    if (!isFastTmdb && !fallbackTriedRef.current) {
+    if (!imgSrc && !fallbackTriedRef.current) {
       fallbackTriedRef.current = true;
       const params = new URLSearchParams();
       if (item.title) params.set("title", item.title);
@@ -68,21 +75,17 @@ function ContinueWatchingCard({ item, index = 0, onRemove }: ContinueWatchingCar
       fetch(`/api/movie-poster-fallback?${params.toString()}`)
         .then((res) => (res.ok ? res.json() : null))
         .then((data) => {
-          // Ưu tiên posterUrl dọc từ TMDb
           const resolved = data?.posterUrl || data?.backdropUrl;
           if (resolved) {
-            continueWatchingThumbCache.set(item.slug, resolved);
-            setImgSrc(resolved);
-            // Ghi đè vĩnh viễn ảnh TMDb CDN vào LocalStorage để lần sau vào lại trang load 0ms!
+            const opt = toOptimizedCardPosterUrl(resolved);
+            continueWatchingThumbCache.set(item.slug, opt);
+            setImgSrc(opt);
             if (typeof window !== "undefined") {
               try {
                 const list = getWatchHistory();
                 const target = list.find((i) => i.slug === item.slug);
                 if (target) {
-                  target.poster = resolved;
-                  if (!target.thumb || target.thumb.includes("phimimg.com") || target.thumb.includes("default-")) {
-                    target.thumb = data?.backdropUrl || resolved;
-                  }
+                  target.poster = opt;
                   localStorage.setItem("nanaflix_watch_history", JSON.stringify(list));
                 }
               } catch {}
@@ -94,6 +97,14 @@ function ContinueWatchingCard({ item, index = 0, onRemove }: ContinueWatchingCar
   }, [imgSrc, item.title, item.slug, item.year]);
 
   const handleImgError = useCallback(() => {
+    // Bước 1: Nếu link poster dọc bị lỗi (ví dụ 404), thử dùng thumb ngang
+    const rawThumb = item.thumb ? toOptimizedCardPosterUrl(item.thumb) : "";
+    if (rawThumb && rawThumb !== imgSrc) {
+      setImgSrc(rawThumb);
+      return;
+    }
+
+    // Bước 2: Gọi fallback API nếu chưa thử
     if (!fallbackTriedRef.current) {
       fallbackTriedRef.current = true;
       const params = new URLSearchParams();
@@ -106,14 +117,15 @@ function ContinueWatchingCard({ item, index = 0, onRemove }: ContinueWatchingCar
         .then((data) => {
           const resolved = data?.posterUrl || data?.backdropUrl;
           if (resolved) {
-            continueWatchingThumbCache.set(item.slug, resolved);
-            setImgSrc(resolved);
+            const opt = toOptimizedCardPosterUrl(resolved);
+            continueWatchingThumbCache.set(item.slug, opt);
+            setImgSrc(opt);
             if (typeof window !== "undefined") {
               try {
                 const list = getWatchHistory();
                 const target = list.find((i) => i.slug === item.slug);
                 if (target) {
-                  target.poster = resolved;
+                  target.poster = opt;
                   localStorage.setItem("nanaflix_watch_history", JSON.stringify(list));
                 }
               } catch {}
@@ -128,7 +140,7 @@ function ContinueWatchingCard({ item, index = 0, onRemove }: ContinueWatchingCar
     } else {
       setImgSrc("");
     }
-  }, [item.title, item.slug, item.year]);
+  }, [imgSrc, item.title, item.slug, item.year, item.thumb]);
 
   const href = item.episodeSlug
     ? `/movies/${item.slug}?ep=${item.episodeSlug}`
@@ -153,7 +165,7 @@ function ContinueWatchingCard({ item, index = 0, onRemove }: ContinueWatchingCar
               alt={item.title}
               className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
               decoding="async"
-              loading={index < 5 ? "eager" : "lazy"}
+              loading={index < 8 ? "eager" : "lazy"}
               onError={handleImgError}
             />
           ) : (

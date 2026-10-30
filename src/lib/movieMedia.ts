@@ -53,6 +53,15 @@ export function sanitizeImageUrl(url: string): string {
   if (isBrokenImageUrl(clean)) {
     return "";
   }
+  // Mở bọc nếu URL đang bị wrap qua proxy /api/img-thumb
+  if (clean.includes("/api/img-thumb?url=")) {
+    try {
+      const match = clean.match(/[?&]url=([^&]+)/);
+      if (match && match[1]) {
+        clean = decodeURIComponent(match[1]);
+      }
+    } catch {}
+  }
   if (!clean.startsWith("http://") && !clean.startsWith("https://") && !clean.startsWith("/")) {
     clean = `https://phimimg.com/${clean.replace(/^\/+/, "")}`;
   }
