@@ -9,7 +9,7 @@ import {
   autoHydrateWatchHistory,
   WatchHistoryItem,
 } from "@/lib/watchHistory";
-import { pickBestMovieThumb } from "@/lib/movieMedia";
+import { pickBestMovieThumb, toOptimizedPhimimgUrl } from "@/lib/movieMedia";
 import { formatEpisodeName } from "@/lib/formatEpisode";
 import { CarouselNavButton } from "@/components/ui/CarouselNavButton";
 
@@ -36,19 +36,29 @@ function ContinueWatchingCard({ item, index = 0, onRemove }: ContinueWatchingCar
     if (item.slug && continueWatchingThumbCache.has(item.slug)) {
       return continueWatchingThumbCache.get(item.slug)!;
     }
+    // 1. Ưu tiên tuyệt đối ảnh TMDb CDN siêu nhanh (30ms) nếu đã có sẵn trong item
+    if (item.thumb && item.thumb.includes("image.tmdb.org")) {
+      return item.thumb;
+    }
+    if (item.poster && item.poster.includes("image.tmdb.org")) {
+      return item.poster;
+    }
+    // 2. Nếu có ảnh khác (phimimg), bọc qua toOptimizedPhimimgUrl để nạp bản WebP 20KB thay vì ảnh gốc JPEG 3MB
     const best = pickBestMovieThumb({ poster_url: item.poster, thumb_url: item.thumb }, "");
     if (best && !best.includes("/default-")) {
-      return best;
+      return toOptimizedPhimimgUrl(best, 320);
     }
     if (item.poster && !item.poster.includes("/default-")) {
-      return item.poster;
+      return toOptimizedPhimimgUrl(item.poster, 320);
     }
     return "";
   });
   const fallbackTriedRef = useRef(false);
 
   useEffect(() => {
-    if (!imgSrc && !fallbackTriedRef.current) {
+    // Nếu ảnh hiện tại chưa phải là TMDb CDN siêu tốc (hoặc đang rỗng), tự động truy vấn TMDb để nâng cấp ảnh
+    const isFastTmdb = imgSrc.includes("image.tmdb.org");
+    if (!isFastTmdb && !fallbackTriedRef.current) {
       fallbackTriedRef.current = true;
       const params = new URLSearchParams();
       if (item.title) params.set("title", item.title);
@@ -62,23 +72,23 @@ function ContinueWatchingCard({ item, index = 0, onRemove }: ContinueWatchingCar
           if (resolved) {
             continueWatchingThumbCache.set(item.slug, resolved);
             setImgSrc(resolved);
+            // Ghi đè vĩnh viễn ảnh TMDb CDN vào LocalStorage để lần sau vào lại trang load 0ms!
             if (typeof window !== "undefined") {
               try {
                 const list = getWatchHistory();
                 const target = list.find((i) => i.slug === item.slug);
-                if (target && !target.thumb) {
+                if (target) {
                   target.thumb = resolved;
+                  if (!target.poster || target.poster.includes("phimimg.com") || target.poster.includes("default-")) {
+                    target.poster = data?.posterUrl || resolved;
+                  }
                   localStorage.setItem("nanaflix_watch_history", JSON.stringify(list));
                 }
               } catch {}
             }
-          } else {
-            setImgSrc("/default-hero.jpg");
           }
         })
-        .catch(() => {
-          setImgSrc("/default-hero.jpg");
-        });
+        .catch(() => {});
     }
   }, [imgSrc, item.title, item.slug, item.year]);
 
@@ -103,6 +113,9 @@ function ContinueWatchingCard({ item, index = 0, onRemove }: ContinueWatchingCar
                 const target = list.find((i) => i.slug === item.slug);
                 if (target) {
                   target.thumb = resolved;
+                  if (!target.poster || target.poster.includes("phimimg.com") || target.poster.includes("default-")) {
+                    target.poster = data?.posterUrl || resolved;
+                  }
                   localStorage.setItem("nanaflix_watch_history", JSON.stringify(list));
                 }
               } catch {}
