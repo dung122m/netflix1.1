@@ -3,9 +3,23 @@ import { checkContentModeration } from "@/lib/contentModeration";
 import { sanitizeSafeText } from "@/lib/security";
 import { verifyServerAuth } from "@/lib/serverAuth";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
-import { runSecurityGuard } from "@/lib/securityMiddleware";
 import { parseReactionsAndLikedBy } from "@/services/supabaseService";
 import { MovieComment } from "@/types/comment";
+import {
+  enforceRateLimit,
+  buildRateLimitResponse,
+  RATE_LIMIT_PRESETS,
+} from "@/lib/rateLimit";
+import {
+  safeParseJson,
+  validateHttpMethod,
+  validateContentType,
+  detectMaliciousPayload,
+  detectContentSpam,
+  isDuplicateContent,
+  recordRecentContent,
+} from "@/lib/securityValidation";
+import { logSecurityEvent } from "@/lib/securityLogger";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -16,6 +30,17 @@ export const fetchCache = "force-no-store";
  * Lấy bình luận an toàn qua Server Admin Client
  */
 export async function GET(req: NextRequest) {
+  // 1. Giới hạn tần suất phân tán (60 req / phút / IP)
+  const rateLimit = await enforceRateLimit(req, RATE_LIMIT_PRESETS.COMMENTS_READ);
+  if (!rateLimit.allowed) {
+    logSecurityEvent(req, {
+      event: "RATE_LIMIT_EXCEEDED",
+      status: 429,
+      reason: rateLimit.reason,
+    });
+    return buildRateLimitResponse(rateLimit);
+  }
+
   const { searchParams } = new URL(req.url);
   const movieSlug = searchParams.get("movieSlug");
   const parentId = searchParams.get("parentId");
@@ -28,9 +53,13 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ success: true, items: [] });
     }
 
+    // Kiểm tra quyền Admin (chỉ Admin mới được xem flag_reason và email người dùng)
+    const auth = await verifyServerAuth(req);
+    const isAdmin = Boolean(auth.isAuthenticated && auth.isAdmin);
+
     let query = supabaseAdmin.from("movie_comments").select("*");
 
-    if (all !== "true") {
+    if (all !== "true" || !isAdmin) {
       query = query.eq("is_flagged", false);
     }
     if (movieSlug) {
@@ -60,7 +89,7 @@ export async function GET(req: NextRequest) {
         userId: String(d.user_id || ""),
         userName: String(d.user_name || "Thành viên"),
         userAvatar: String(d.user_avatar || ""),
-        userEmail: d.user_email ? String(d.user_email) : undefined,
+        userEmail: isAdmin && d.user_email ? String(d.user_email) : undefined,
         rating: (() => {
           const num = Number(d.rating);
           return !isNaN(num) && num >= 1 && num <= 5 ? Math.round(num) : 0;
@@ -77,7 +106,7 @@ export async function GET(req: NextRequest) {
         likedBy,
         reactions,
         isFlagged: Boolean(d.is_flagged),
-        flagReason: d.flag_reason ? String(d.flag_reason) : undefined,
+        flagReason: isAdmin && d.flag_reason ? String(d.flag_reason) : undefined,
         isApproved: d.is_approved !== false,
         isPinned: Boolean(d.is_pinned),
         createdAt: Number(d.created_at) || Date.now(),
@@ -118,46 +147,117 @@ export async function GET(req: NextRequest) {
  */
 export async function POST(req: NextRequest) {
   try {
+    // 1. Kiểm tra phương thức HTTP & Content-Type
+    const methodErr = validateHttpMethod(req, ["POST"]);
+    if (methodErr) return methodErr;
+
+    const typeErr = validateContentType(req, ["application/json"]);
+    if (typeErr) return typeErr;
+
+    // 2. Xác thực danh tính bắt buộc qua Firebase Auth
     const auth = await verifyServerAuth(req);
     if (!auth.isAuthenticated || !auth.userId) {
+      logSecurityEvent(req, {
+        event: "AUTH_FAILURE",
+        status: 401,
+        reason: "Yêu cầu đăng nhập trước khi bình luận",
+      });
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-
-    const body = await req.json();
-    const {
-      movieSlug,
-      movieTitle,
-      rating,
-      content,
-      isSpoiler = false,
-      episodeSlug,
-      episodeName,
-      parentId,
-      parentOwnerId,
-      replyToUserId,
-      replyToUserName,
-    } = body;
 
     const userId = auth.userId;
     const userEmail = auth.email || "";
 
-    if (!movieSlug || !content) {
+    // 3. Giới hạn tần suất phân tán Fail-Closed (5 lần / 10 phút / user)
+    const rateLimit = await enforceRateLimit(req, RATE_LIMIT_PRESETS.COMMENT_CREATE, userId);
+    if (!rateLimit.allowed) {
+      logSecurityEvent(req, {
+        event: "RATE_LIMIT_EXCEEDED",
+        status: 429,
+        userId,
+        reason: rateLimit.reason || "Vượt quá giới hạn đăng bình luận",
+      });
+      return buildRateLimitResponse(
+        rateLimit,
+        "Bạn đang gửi bình luận quá nhanh. Vui lòng chờ ít phút trước khi đăng bình luận tiếp theo."
+      );
+    }
+
+    // 4. Đọc JSON an toàn với giới hạn kích thước tối đa 50KB
+    const parseRes = await safeParseJson<Record<string, unknown>>(req, 50 * 1024);
+    if (!parseRes.success) {
+      logSecurityEvent(req, {
+        event: "PAYLOAD_TOO_LARGE",
+        status: 400,
+        userId,
+        reason: "Payload bình luận vượt quá giới hạn 50KB",
+      });
+      return parseRes.response;
+    }
+
+    const body = parseRes.data;
+
+    // 5. Kiểm tra mã độc hoặc injection trong payload
+    const malCheck = detectMaliciousPayload(body);
+    if (malCheck.isMalicious) {
+      logSecurityEvent(req, {
+        event: "MALICIOUS_PAYLOAD",
+        status: 400,
+        userId,
+        reason: malCheck.reason,
+      });
+      return NextResponse.json(
+        { error: malCheck.reason || "Nội dung bình luận chứa định dạng không hợp lệ." },
+        { status: 400 }
+      );
+    }
+
+    const movieSlug = typeof body.movieSlug === "string" ? body.movieSlug.trim() : "";
+    const movieTitle = typeof body.movieTitle === "string" ? body.movieTitle.trim() : "";
+    const rating = typeof body.rating === "number" ? body.rating : undefined;
+    const rawContent = typeof body.content === "string" ? body.content.trim() : "";
+    const isSpoiler = Boolean(body.isSpoiler);
+    const episodeSlug = typeof body.episodeSlug === "string" ? body.episodeSlug.trim() : undefined;
+    const episodeName = typeof body.episodeName === "string" ? body.episodeName.trim() : undefined;
+    const parentId = typeof body.parentId === "string" ? body.parentId.trim() : undefined;
+    const parentOwnerId = typeof body.parentOwnerId === "string" ? body.parentOwnerId.trim() : undefined;
+    const replyToUserId = typeof body.replyToUserId === "string" ? body.replyToUserId.trim() : undefined;
+    const replyToUserName = typeof body.replyToUserName === "string" ? body.replyToUserName.trim() : undefined;
+
+    if (!movieSlug || !rawContent) {
       return NextResponse.json({ error: "Thiếu thông tin bắt buộc!" }, { status: 400 });
     }
 
-    // Security Guard: Check if entity is blocked, check injection payload, check comment flood
-    const secGuard = await runSecurityGuard(req, {
-      userId,
-      userEmail,
-      userDisplayName: auth.displayName || undefined,
-      payload: content,
-      actionKey: "post_comment",
-      maxRequests: 10,
-      windowSeconds: 60,
-    });
-    if (!secGuard.passed && secGuard.response) {
-      return secGuard.response;
+    // 6. Kiểm tra spam nội dung (link lặp lại, từ khóa rác)
+    const spamCheck = detectContentSpam(rawContent);
+    if (spamCheck.isSpam) {
+      logSecurityEvent(req, {
+        event: "SPAM_DETECTED",
+        status: 400,
+        userId,
+        reason: spamCheck.reason,
+      });
+      return NextResponse.json(
+        { error: spamCheck.reason || "Nội dung bình luận có dấu hiệu spam." },
+        { status: 400 }
+      );
     }
+
+    // 7. Kiểm tra spam bình luận trùng lặp gửi liên tục
+    if (isDuplicateContent(userId, rawContent, 60)) {
+      logSecurityEvent(req, {
+        event: "SPAM_DETECTED",
+        status: 400,
+        userId,
+        reason: "Phát hiện gửi bình luận có nội dung trùng lặp liên tục",
+      });
+      return NextResponse.json(
+        { error: "Bạn vừa gửi một bình luận có nội dung tương tự. Vui lòng không spam bình luận trùng lặp." },
+        { status: 400 }
+      );
+    }
+
+    const content = sanitizeSafeText(rawContent, 2000);
 
     const modCheck = checkContentModeration(content);
     if (!modCheck.isAllowed) {
@@ -195,11 +295,8 @@ export async function POST(req: NextRequest) {
     const now = Date.now();
 
     let safeRating = 0;
-    if (rating !== undefined && rating !== null && rating !== "") {
-      const parsed = Number(rating);
-      if (!isNaN(parsed) && parsed >= 1 && parsed <= 5) {
-        safeRating = Math.round(parsed);
-      }
+    if (rating !== undefined && !isNaN(rating) && rating >= 1 && rating <= 5) {
+      safeRating = Math.round(rating);
     }
 
     const payload = {
@@ -259,6 +356,9 @@ export async function POST(req: NextRequest) {
       } catch {}
     }
 
+    // Ghi nhận nội dung đã gửi vào bộ nhớ đệm chống trùng lặp
+    recordRecentContent(userId, rawContent);
+
     return NextResponse.json({ success: true, id: commentId });
   } catch (error) {
     console.error("Lỗi API post comment:", error);
@@ -272,13 +372,24 @@ export async function POST(req: NextRequest) {
  */
 export async function PATCH(req: NextRequest) {
   try {
-    const supabaseAdmin = getSupabaseAdmin();
-    if (!supabaseAdmin) {
-      return NextResponse.json({ error: "Supabase chưa được cấu hình" }, { status: 500 });
+    const rateLimit = await enforceRateLimit(req, RATE_LIMIT_PRESETS.COMMENT_MUTATION);
+    if (!rateLimit.allowed) {
+      logSecurityEvent(req, {
+        event: "RATE_LIMIT_EXCEEDED",
+        status: 429,
+        reason: rateLimit.reason || "Vượt quá giới hạn thao tác bình luận",
+      });
+      return buildRateLimitResponse(rateLimit);
     }
 
-    const body = await req.json();
-    const { commentId, isPinned, action, userId, reactionType, reason } = body;
+    const parseRes = await safeParseJson<Record<string, unknown>>(req, 20 * 1024);
+    if (!parseRes.success) {
+      return parseRes.response;
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const body = parseRes.data as Record<string, any>;
+    const { commentId, isPinned, action, reactionType, reason } = body;
     if (!commentId) {
       return NextResponse.json({ error: "Thiếu commentId!" }, { status: 400 });
     }
@@ -296,10 +407,20 @@ export async function PATCH(req: NextRequest) {
         );
       }
 
-      await supabaseAdmin
+      const supabaseAdmin = getSupabaseAdmin();
+      if (!supabaseAdmin) {
+        return NextResponse.json({ error: "Supabase chưa được cấu hình" }, { status: 500 });
+      }
+
+      const { error: pinErr } = await supabaseAdmin
         .from("movie_comments")
         .update({ is_pinned: Boolean(isPinned), updated_at: Date.now() })
         .eq("id", commentId);
+
+      if (pinErr) {
+        console.error("[Comments API] Lỗi ghim bình luận:", pinErr);
+        return NextResponse.json({ error: "Lỗi cơ sở dữ liệu khi ghim bình luận: " + pinErr.message }, { status: 500 });
+      }
 
       return NextResponse.json({ success: true });
     }
@@ -317,10 +438,20 @@ export async function PATCH(req: NextRequest) {
         );
       }
 
-      await supabaseAdmin
+      const supabaseAdmin = getSupabaseAdmin();
+      if (!supabaseAdmin) {
+        return NextResponse.json({ error: "Supabase chưa được cấu hình" }, { status: 500 });
+      }
+
+      const { error: unflagErr } = await supabaseAdmin
         .from("movie_comments")
         .update({ is_flagged: false, flag_reason: null, updated_at: Date.now() })
         .eq("id", commentId);
+
+      if (unflagErr) {
+        console.error("[Comments API] Lỗi gỡ cờ bình luận:", unflagErr);
+        return NextResponse.json({ error: "Lỗi cơ sở dữ liệu khi gỡ cờ: " + unflagErr.message }, { status: 500 });
+      }
 
       return NextResponse.json({ success: true });
     }
@@ -328,8 +459,23 @@ export async function PATCH(req: NextRequest) {
     // 3. THẢ CẢM XÚC (reaction)
     if (action === "reaction") {
       const auth = await verifyServerAuth(req);
-      const effectiveUserId = auth.isAuthenticated && auth.userId ? auth.userId : userId;
+      if (!auth.isAuthenticated || !auth.userId) {
+        return NextResponse.json({ error: "Unauthorized: Vui lòng đăng nhập để thả cảm xúc" }, { status: 401 });
+      }
+      const effectiveUserId = auth.userId;
+
+      // Rate limit thao tác reaction theo người dùng kết hợp IP (Dual-Key)
+      const reactRateLimit = await enforceRateLimit(req, RATE_LIMIT_PRESETS.COMMENT_MUTATION, effectiveUserId);
+      if (!reactRateLimit.allowed) {
+        return buildRateLimitResponse(reactRateLimit);
+      }
+
       if (effectiveUserId) {
+        const supabaseAdmin = getSupabaseAdmin();
+        if (!supabaseAdmin) {
+          return NextResponse.json({ error: "Supabase chưa được cấu hình" }, { status: 500 });
+        }
+
         const { data: cmtData } = await supabaseAdmin
           .from("movie_comments")
           .select("likes, liked_by, user_id, user_name, movie_slug, content")
@@ -349,7 +495,7 @@ export async function PATCH(req: NextRequest) {
           const newLikedBy = Object.keys(updatedReactions);
           const newLikes = newLikedBy.length;
 
-          await supabaseAdmin
+          const { error: reactionErr } = await supabaseAdmin
             .from("movie_comments")
             .update({
               likes: newLikes,
@@ -357,6 +503,11 @@ export async function PATCH(req: NextRequest) {
               updated_at: Date.now(),
             })
             .eq("id", commentId);
+
+          if (reactionErr) {
+            console.error("[Comments API] Lỗi cập nhật reaction:", reactionErr);
+            return NextResponse.json({ error: "Lỗi cơ sở dữ liệu khi cập nhật cảm xúc: " + reactionErr.message }, { status: 500 });
+          }
 
           // Tạo thông báo reaction an toàn (chỉ khi thêm reaction và người thả khác chủ bình luận)
           if (reactionType && cmtData.user_id && cmtData.user_id !== effectiveUserId) {
@@ -421,14 +572,187 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ success: true });
     }
 
-    // 4. BÁO CÁO VI PHẠM (flag)
-    if (action === "flag" && reason) {
-      await supabaseAdmin
-        .from("movie_comments")
-        .update({ is_flagged: true, flag_reason: sanitizeSafeText(reason, 200), updated_at: Date.now() })
-        .eq("id", commentId);
+    // 4. BÁO CÁO VI PHẠM (flag / report)
+    if (action === "flag") {
+      // 4.1 Bắt buộc xác thực danh tính qua Firebase Token
+      const auth = await verifyServerAuth(req);
+      if (!auth.isAuthenticated || !auth.userId) {
+        logSecurityEvent(req, {
+          event: "AUTH_FAILURE",
+          status: 401,
+          reason: "Yêu cầu đăng nhập để báo cáo hoặc kiểm duyệt bình luận",
+        });
+        return NextResponse.json(
+          { error: "Unauthorized: Vui lòng đăng nhập để thực hiện thao tác này." },
+          { status: 401 }
+        );
+      }
 
-      return NextResponse.json({ success: true });
+      // 4.2 Kiểm tra dữ liệu đầu vào (commentId và reason)
+      const cleanReason = typeof reason === "string" ? reason.trim() : "";
+      if (!cleanReason) {
+        return NextResponse.json(
+          { error: "Lý do báo cáo không được để trống!" },
+          { status: 400 }
+        );
+      }
+
+      // 4.3 Kiểm tra bình luận mục tiêu có tồn tại không
+      const supabaseAdmin = getSupabaseAdmin();
+      if (!supabaseAdmin) {
+        return NextResponse.json({ error: "Supabase chưa được cấu hình" }, { status: 500 });
+      }
+
+      const { data: targetComment, error: fetchErr } = await supabaseAdmin
+        .from("movie_comments")
+        .select("id, movie_slug, movie_title, user_id, content, is_flagged")
+        .eq("id", commentId)
+        .maybeSingle();
+
+      if (fetchErr || !targetComment) {
+        return NextResponse.json(
+          { error: "Không tìm thấy bình luận cần xử lý!" },
+          { status: 404 }
+        );
+      }
+
+      // 4.4 QUẢN TRỊ VIÊN (Admin-only): Có quyền trực tiếp ẩn/gắn cờ bình luận
+      if (auth.isAdmin) {
+        const sanitizedReason = sanitizeSafeText(cleanReason, 200);
+        const { error: updateErr } = await supabaseAdmin
+          .from("movie_comments")
+          .update({
+            is_flagged: true,
+            flag_reason: sanitizedReason,
+            updated_at: Date.now(),
+          })
+          .eq("id", commentId);
+
+        if (updateErr) {
+          console.error("[Comments API] Lỗi Admin flag comment:", updateErr);
+          return NextResponse.json(
+            { error: "Lỗi cơ sở dữ liệu khi gắn cờ bình luận: " + updateErr.message },
+            { status: 500 }
+          );
+        }
+
+        logSecurityEvent(req, {
+          event: "ADMIN_ACTION",
+          status: 200,
+          userId: auth.userId,
+          reason: `Admin ẩn bình luận ${commentId}: ${sanitizedReason}`,
+          metadata: { commentId, flagReason: sanitizedReason },
+        });
+
+        return NextResponse.json({
+          success: true,
+          action: "flagged_by_admin",
+          commentId,
+          isFlagged: true,
+        });
+      }
+
+      // 4.5 NGƯỜI DÙNG THƯỜNG: Không được phép tự động ẩn bình luận
+      // Áp dụng Rate Limit riêng chống spam report (Tối đa 5 lượt báo cáo / 10 phút / user)
+      const reportRateLimit = await enforceRateLimit(
+        req,
+        {
+          namespace: "comment-report",
+          maxRequests: 5,
+          windowSeconds: 600,
+          failClosed: true,
+        },
+        auth.userId
+      );
+      if (!reportRateLimit.allowed) {
+        logSecurityEvent(req, {
+          event: "RATE_LIMIT_EXCEEDED",
+          status: 429,
+          userId: auth.userId,
+          reason: "Vượt quá giới hạn tần suất gửi báo cáo vi phạm",
+        });
+        return buildRateLimitResponse(
+          reportRateLimit,
+          "Bạn đã gửi quá nhiều báo cáo trong thời gian ngắn. Vui lòng chờ 10 phút trước khi thử lại."
+        );
+      }
+
+      // Kiểm tra trùng lặp: Ngăn 1 user gửi báo cáo lặp vô hạn cho cùng 1 bình luận
+      const reportId = `rep_${commentId}_${auth.userId}`;
+      const { data: existingReport, error: checkErr } = await supabaseAdmin
+        .from("error_reports")
+        .select("id")
+        .eq("id", reportId)
+        .maybeSingle();
+
+      if (checkErr) {
+        console.error("[Comments API] Lỗi kiểm tra duplicate report:", checkErr);
+        return NextResponse.json(
+          { error: "Lỗi cơ sở dữ liệu khi kiểm tra báo cáo: " + checkErr.message },
+          { status: 500 }
+        );
+      }
+
+      if (existingReport) {
+        return NextResponse.json(
+          {
+            success: true,
+            message: "Bạn đã gửi báo cáo cho bình luận này rồi. Ban quản trị đang trong quá trình xem xét.",
+            alreadyReported: true,
+          },
+          { status: 200 }
+        );
+      }
+
+      // Ghi nhận báo cáo vào bảng error_reports (bình luận KHÔNG bị ẩn, is_flagged giữ nguyên)
+      const sanitizedReason = sanitizeSafeText(cleanReason, 300);
+      const movieTitleSafe = targetComment.movie_title || targetComment.movie_slug || "Phim";
+      const reporterContact = auth.email ? ` (Email: ${auth.email})` : "";
+      const { error: insertErr } = await supabaseAdmin.from("error_reports").insert({
+        id: reportId,
+        movie_slug: targetComment.movie_slug,
+        movie_title: movieTitleSafe,
+        issue_type: "comment_violation",
+        description: `Báo cáo bình luận [ID: ${commentId}] từ tác giả [UID: ${targetComment.user_id}]: "${sanitizedReason}". Người báo cáo: ${auth.displayName || "Thành viên"}${reporterContact}. Trích đoạn: "${(targetComment.content || "").slice(0, 150)}"`,
+        user_id: auth.userId,
+        user_name: auth.displayName || "Thành viên",
+        status: "pending",
+        created_at: Date.now(),
+      });
+
+      if (insertErr) {
+        // Phân biệt Postgres Unique Key Violation (code 23505) với lỗi DB thực sự
+        if (insertErr.code === "23505" || insertErr.message?.includes("duplicate key")) {
+          return NextResponse.json(
+            {
+              success: true,
+              message: "Bạn đã gửi báo cáo cho bình luận này rồi. Ban quản trị đang trong quá trình xem xét.",
+              alreadyReported: true,
+            },
+            { status: 200 }
+          );
+        }
+
+        console.error("[Comments API] Lỗi ghi nhận báo cáo vào error_reports:", insertErr);
+        return NextResponse.json(
+          { error: "Lỗi cơ sở dữ liệu khi lưu báo cáo vi phạm: " + insertErr.message },
+          { status: 500 }
+        );
+      }
+
+      logSecurityEvent(req, {
+        event: "SPAM_DETECTED",
+        status: 200,
+        userId: auth.userId,
+        reason: `Người dùng báo cáo vi phạm bình luận ${commentId}`,
+        metadata: { commentId, reason: sanitizedReason },
+      });
+
+      return NextResponse.json({
+        success: true,
+        message: "Cảm ơn bạn! Báo cáo vi phạm đã được gửi đến Ban quản trị để kiểm duyệt.",
+        reported: true,
+      });
     }
 
     return NextResponse.json({ success: true });
@@ -447,6 +771,16 @@ export async function PUT(req: NextRequest) {
     const auth = await verifyServerAuth(req);
     if (!auth.isAuthenticated || !auth.userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const rateLimit = await enforceRateLimit(req, {
+      namespace: "comments-update",
+      maxRequests: 20,
+      windowSeconds: 600,
+      failClosed: true,
+    }, auth.userId);
+    if (!rateLimit.allowed) {
+      return buildRateLimitResponse(rateLimit);
     }
 
     const body = await req.json();
@@ -534,6 +868,21 @@ export async function DELETE(req: NextRequest) {
     const auth = await verifyServerAuth(req);
     if (!auth.isAuthenticated || !auth.userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const rateLimit = await enforceRateLimit(
+      req,
+      RATE_LIMIT_PRESETS.COMMENT_DELETE,
+      auth.userId
+    );
+    if (!rateLimit.allowed) {
+      logSecurityEvent(req, {
+        event: "RATE_LIMIT_EXCEEDED",
+        status: 429,
+        userId: auth.userId,
+        reason: rateLimit.reason || "Vượt quá giới hạn xóa bình luận",
+      });
+      return buildRateLimitResponse(rateLimit);
     }
 
     const supabaseAdmin = getSupabaseAdmin();

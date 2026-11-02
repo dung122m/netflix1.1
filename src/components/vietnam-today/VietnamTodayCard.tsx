@@ -217,29 +217,14 @@ export function VietnamTodayCard({ info, selectedEventId, onOpenModal }: Vietnam
 
   const holidayBorderClass = (() => {
     if (event.id.startsWith("ev-actor-birthday") || event.actorSlug) {
-      return "border-pink-500/40 hover:border-pink-400/70 bg-zinc-950 shadow-xl shadow-black/60";
+      return "bg-zinc-950 shadow-xl shadow-black/60";
     }
     if (!event.effect) {
       return isToday
-        ? "border-red-500/30 hover:border-red-500/50 bg-zinc-950 shadow-xl shadow-black/60"
-        : "border-white/10 hover:border-white/20 bg-zinc-950/90 shadow-lg shadow-black/50";
+        ? "bg-zinc-950 shadow-xl shadow-black/60"
+        : "bg-zinc-950/90 shadow-lg shadow-black/50";
     }
-    switch (event.effect) {
-      case "mid-autumn":
-        return "border-amber-500/30 hover:border-amber-400/60 bg-zinc-950 shadow-xl shadow-black/60";
-      case "tet":
-        return "border-red-500/30 hover:border-red-400/60 bg-zinc-950 shadow-xl shadow-black/60";
-      case "national-day":
-        return "border-yellow-500/30 hover:border-yellow-400/60 bg-zinc-950 shadow-xl shadow-black/60";
-      case "christmas":
-        return "border-sky-400/30 hover:border-sky-300/60 bg-zinc-950 shadow-xl shadow-black/60";
-      case "halloween":
-        return "border-orange-500/30 hover:border-orange-400/60 bg-zinc-950 shadow-xl shadow-black/60";
-      case "nana-birthday":
-        return "border-pink-500/30 hover:border-pink-400/60 bg-zinc-950 shadow-xl shadow-black/60";
-      default:
-        return "border-red-500/25 hover:border-red-500/40 bg-zinc-950 shadow-xl shadow-black/60";
-    }
+    return "bg-zinc-950 shadow-xl shadow-black/60";
   })();
 
   const parsedTitle = parseEventTitleParts(event.title);
@@ -259,7 +244,7 @@ export function VietnamTodayCard({ info, selectedEventId, onOpenModal }: Vietnam
         }
       }}
       aria-label={`Sự kiện ${cleanTitle}, bấm để xem chi tiết`}
-      className={`group relative w-full min-h-[185px] sm:min-h-[200px] md:min-h-[220px] h-auto rounded-2xl sm:rounded-3xl overflow-hidden cursor-pointer select-none transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-amber-500/50 border ${holidayBorderClass}`}
+      className={`group relative w-full min-h-[185px] sm:min-h-[200px] md:min-h-[220px] h-auto rounded-2xl sm:rounded-3xl overflow-hidden cursor-pointer select-none transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-amber-500/50 ${holidayBorderClass}`}
     >
       {/* 1. BACKGROUND IMAGE OR THEMATIC GRADIENT */}
       <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
@@ -304,16 +289,7 @@ export function VietnamTodayCard({ info, selectedEventId, onOpenModal }: Vietnam
       {/* SPECIAL HOLIDAY EFFECT (Active only when event has effect) */}
       {event.effect && <VietnamEventEffect effect={event.effect} />}
 
-      {/* 2. AMBIENT BORDER HIGHLIGHT */}
-      <div
-        className={`pointer-events-none absolute inset-0 rounded-2xl sm:rounded-3xl border transition-colors duration-300 z-10 ${
-          isToday
-            ? "border-red-500/30 group-hover:border-red-500/60"
-            : "border-white/10 group-hover:border-white/25"
-        }`}
-      />
-
-      {/* 3. CARD CONTENT */}
+      {/* 2. CARD CONTENT */}
       <div className="relative z-10 h-full w-full px-4 sm:px-6 md:px-8 py-4 sm:py-5 md:py-6 flex flex-col justify-between">
         {/* RESPONSIVE 12-COLUMN GRID (Balanced on wide displays, eliminates central gap) */}
         <div className="grid grid-cols-1 md:grid-cols-12 gap-5 md:gap-7 lg:gap-8 items-center flex-1 w-full">
@@ -322,10 +298,10 @@ export function VietnamTodayCard({ info, selectedEventId, onOpenModal }: Vietnam
             {/* TOP ROW: ONLY 1 STATUS BADGE */}
             <div className="flex items-center gap-2 mb-2">
               <span
-                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] sm:text-xs font-semibold backdrop-blur-md shadow-sm border transition-colors ${
+                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] sm:text-xs font-semibold backdrop-blur-md shadow-sm transition-colors ${
                   isToday
-                    ? "bg-red-500/20 border-red-500/40 text-red-200 group-hover:bg-red-500/30"
-                    : "bg-white/10 border-white/15 text-zinc-300 group-hover:bg-white/15"
+                    ? "bg-red-500/25 text-red-200 group-hover:bg-red-500/35"
+                    : "bg-white/10 text-zinc-300 group-hover:bg-white/15"
                 }`}
               >
                 <VietnamFlagIcon className="w-3.5 h-2.5 sm:w-4 sm:h-2.8 rounded-[1px] shadow-sm" />
@@ -357,14 +333,14 @@ export function VietnamTodayCard({ info, selectedEventId, onOpenModal }: Vietnam
                   href={event.relatedLink}
                   onClick={(e) => e.stopPropagation()}
                   aria-label={getEventActionLabel(event)}
-                  className="inline-flex items-center gap-2 px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-bold bg-gradient-to-r from-red-600 via-red-600 to-amber-600 hover:from-red-500 hover:to-amber-500 text-white border border-amber-400/40 shadow-md shadow-black/50 backdrop-blur-md transition-all duration-300 hover:scale-[1.02] active:scale-95 cursor-pointer z-10"
+                  className="inline-flex items-center gap-2 px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-bold bg-gradient-to-r from-red-600 via-red-600 to-amber-600 hover:from-red-500 hover:to-amber-500 text-white shadow-md shadow-black/50 backdrop-blur-md transition-all duration-300 hover:scale-[1.02] active:scale-95 cursor-pointer z-10"
                 >
                   <Play className="w-3.5 h-3.5 fill-white text-white" />
                   <span>{getEventActionLabel(event)}</span>
                   <ArrowRight className="w-3.5 h-3.5 transition-transform duration-300 group-hover:translate-x-1" />
                 </Link>
               ) : (
-                <span className="inline-flex items-center gap-2 px-3.5 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-semibold bg-amber-500/15 group-hover:bg-amber-500/25 border border-amber-500/30 group-hover:border-amber-400/60 text-amber-300 group-hover:text-amber-200 backdrop-blur-md shadow-sm transition-all duration-300">
+                <span className="inline-flex items-center gap-2 px-3.5 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-semibold bg-amber-500/20 group-hover:bg-amber-500/30 text-amber-300 group-hover:text-amber-200 backdrop-blur-md shadow-sm transition-all duration-300">
                   <span>{getEventActionLabel(event)}</span>
                   <ArrowRight className="w-3.5 h-3.5 transition-transform duration-300 group-hover:translate-x-1" />
                 </span>
@@ -372,7 +348,7 @@ export function VietnamTodayCard({ info, selectedEventId, onOpenModal }: Vietnam
             </div>
 
             {/* MOBILE THEMATIC COMPACT VISUAL / QUOTE (< 768px) */}
-            <div className="md:hidden mt-2.5 flex items-center gap-2 text-zinc-300/90 border-l-2 border-amber-400/40 pl-2 py-0.5">
+            <div className="md:hidden mt-2.5 flex items-center gap-2 text-zinc-300/90 border-l-2 pl-2 py-0.5">
               <span className="text-sm flex-shrink-0">{currentBadge.emoji}</span>
               <p className="text-[11px] italic line-clamp-2 leading-snug font-normal max-w-[55ch]">
                 &ldquo;{quoteMessage}&rdquo;
@@ -382,8 +358,8 @@ export function VietnamTodayCard({ info, selectedEventId, onOpenModal }: Vietnam
 
           {/* RIGHT COLUMN: THEMATIC SPOTLIGHT CALLOUT PANEL (5 of 12 columns on Desktop) */}
           <div className="hidden md:flex md:col-span-5 lg:col-span-5 xl:col-span-5 h-full items-center">
-            <div className="w-full border-l-2 border-amber-500/40 bg-gradient-to-r from-amber-500/[0.08] via-amber-500/[0.03] to-transparent pl-4 sm:pl-5 pr-3 py-3 rounded-r-2xl flex items-start gap-3.5 group/emblem">
-              <div className="flex-shrink-0 w-11 h-11 rounded-xl bg-amber-500/15 border border-amber-400/30 flex items-center justify-center text-2xl shadow-inner overflow-hidden">
+            <div className="w-full border-l-2 bg-gradient-to-r from-amber-500/[0.08] via-amber-500/[0.03] to-transparent pl-4 sm:pl-5 pr-3 py-3 rounded-r-2xl flex items-start gap-3.5 group/emblem">
+              <div className="flex-shrink-0 w-11 h-11 rounded-xl bg-amber-500/15 flex items-center justify-center text-2xl shadow-inner overflow-hidden">
                 {event.imageUrl && (event.actorSlug || event.id.startsWith("ev-actor-birthday")) ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img

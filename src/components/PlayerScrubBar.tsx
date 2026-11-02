@@ -297,7 +297,7 @@ export const PlayerScrubBar: React.FC<PlayerScrubBarProps> = ({
           {/* Hover preview tooltip */}
           {hoverTime !== null && (
             <div
-              className="absolute -top-7 -translate-x-1/2 px-2 py-0.5 rounded-md bg-zinc-950/95 text-[11px] font-semibold tabular-nums text-white border border-white/20 shadow-xl backdrop-blur-md"
+              className="absolute -top-7 -translate-x-1/2 px-2 py-0.5 rounded-md bg-zinc-950/95 text-[11px] font-semibold tabular-nums text-white shadow-xl backdrop-blur-md"
               style={{ left: `${hoverPos}px` }}
             >
               {formatTime(hoverTime)}

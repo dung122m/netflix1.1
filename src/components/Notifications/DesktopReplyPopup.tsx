@@ -160,13 +160,13 @@ export const DesktopReplyPopup: React.FC = () => {
     <div
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
-      className="fixed bottom-16 right-4 sm:bottom-6 sm:right-6 md:bottom-4 md:right-4 z-[9999] max-w-[360px] sm:max-w-[390px] w-[calc(100vw-32px)] bg-zinc-950/98 border border-white/20 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.9)] backdrop-blur-2xl p-3.5 sm:p-4 animate-in fade-in slide-in-from-bottom-5 zoom-in-95 duration-300 select-none group"
+      className="fixed bottom-[calc(4.25rem+env(safe-area-inset-bottom,0px))] right-4 sm:bottom-6 sm:right-6 md:bottom-4 md:right-4 z-[9999] max-w-[360px] sm:max-w-[390px] w-[calc(100vw-32px)] bg-zinc-950/98 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.9)] backdrop-blur-2xl p-3.5 sm:p-4 animate-in fade-in slide-in-from-bottom-5 zoom-in-95 duration-300 select-none group"
     >
       {/* HEADER: AVATAR, TITLE & CLOSE BUTTON */}
       <div className="flex items-start justify-between gap-2.5">
         <div className="flex items-center gap-2.5 min-w-0 flex-1">
           {/* Avatar with reply/reaction badge */}
-          <div className="relative w-10 h-10 rounded-full overflow-hidden bg-gradient-to-br from-red-600 to-amber-600 flex items-center justify-center font-bold text-white text-sm shrink-0 border border-white/10 shadow-md">
+          <div className="relative w-10 h-10 rounded-full overflow-hidden bg-gradient-to-br from-red-600 to-amber-600 flex items-center justify-center font-bold text-white text-sm shrink-0 shadow-md">
             {activeNotification.replierAvatar || activeNotification.image ? (
               <Image
                 src={toOptimizedPhimimgUrl(activeNotification.replierAvatar || activeNotification.image || "/default-poster.jpg", 192)}
@@ -234,7 +234,7 @@ export const DesktopReplyPopup: React.FC = () => {
 
       {/* BODY: MESSAGE SNIPPET */}
       <div className="mt-2.5 pl-12 pr-1">
-        <p className="text-xs text-zinc-300 line-clamp-2 leading-relaxed bg-white/5 rounded-xl p-2 border border-white/5">
+        <p className="text-xs text-zinc-300 line-clamp-2 leading-relaxed bg-white/5 rounded-xl p-2">
           &quot;{activeNotification.message}&quot;
         </p>
 

@@ -5,6 +5,12 @@ import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { isUserAdmin } from "@/lib/adminConfig";
 import { getVsmovCatalogFeed } from "@/services/providers/vsmov";
 import { deduplicateMovieItems } from "@/services/movies/service";
+import {
+  enforceRateLimit,
+  buildRateLimitResponse,
+  RATE_LIMIT_PRESETS,
+} from "@/lib/rateLimit";
+import { logSecurityEvent } from "@/lib/securityLogger";
 
 export const maxDuration = 60;
 
@@ -13,7 +19,7 @@ export const maxDuration = 60;
  * - Cách 1: Header `x-admin-secret` hoặc `Authorization: Bearer <ADMIN_SYNC_SECRET>` khớp với biến môi trường server-side
  * - Cách 2: Header `Authorization: Bearer <Firebase_ID_Token>` từ tài khoản Quản trị viên đã đăng nhập
  */
-async function verifyAdminAuth(req: NextRequest): Promise<{ authorized: boolean; error?: string; status: number }> {
+async function verifyAdminAuth(req: NextRequest): Promise<{ authorized: boolean; error?: string; status: number; userEmail?: string }> {
   const secretHeader = req.headers.get("x-admin-secret")?.trim();
   const authHeader = req.headers.get("authorization")?.trim();
   const bearerToken = authHeader?.startsWith("Bearer ") ? authHeader.slice(7).trim() : null;
@@ -21,7 +27,7 @@ async function verifyAdminAuth(req: NextRequest): Promise<{ authorized: boolean;
   // 1. Kiểm tra Admin Secret server-side
   const envSecret = process.env.ADMIN_SYNC_SECRET?.trim();
   if (envSecret && (secretHeader === envSecret || bearerToken === envSecret)) {
-    return { authorized: true, status: 200 };
+    return { authorized: true, status: 200, userEmail: "admin_system" };
   }
 
   // 2. Kiểm tra Firebase ID Token từ người dùng đăng nhập tài khoản Admin
@@ -43,12 +49,13 @@ async function verifyAdminAuth(req: NextRequest): Promise<{ authorized: boolean;
           const verifyData = await verifyRes.json();
           const email = verifyData.users?.[0]?.email;
           if (email && isUserAdmin(email)) {
-            return { authorized: true, status: 200 };
+            return { authorized: true, status: 200, userEmail: email };
           }
           return {
             authorized: false,
             error: "Tài khoản không có quyền Quản trị viên (Admin)",
             status: 403,
+            userEmail: email,
           };
         }
       } catch (err) {
@@ -65,14 +72,38 @@ async function verifyAdminAuth(req: NextRequest): Promise<{ authorized: boolean;
 }
 
 export async function GET(req: NextRequest) {
-  // Xác thực quyền Admin trước khi thực hiện bất kỳ thao tác nào
+  // 1. Giới hạn tần suất thao tác Admin (30 req / 10 phút / admin)
+  const rateLimit = await enforceRateLimit(req, RATE_LIMIT_PRESETS.ADMIN_MUTATION);
+  if (!rateLimit.allowed) {
+    logSecurityEvent(req, {
+      event: "RATE_LIMIT_EXCEEDED",
+      status: 429,
+      reason: "Vượt quá giới hạn gọi Admin API",
+    });
+    return buildRateLimitResponse(rateLimit);
+  }
+
+  // 2. Xác thực quyền Admin trước khi thực hiện bất kỳ thao tác nào
   const authResult = await verifyAdminAuth(req);
   if (!authResult.authorized) {
+    logSecurityEvent(req, {
+      event: authResult.status === 403 ? "FORBIDDEN_ACCESS" : "AUTH_FAILURE",
+      status: authResult.status || 401,
+      reason: authResult.error || "Không có quyền Admin",
+    });
     return NextResponse.json(
       { success: false, error: authResult.error || "Unauthorized" },
       { status: authResult.status || 401 }
     );
   }
+
+  logSecurityEvent(req, {
+    event: "ADMIN_ACTION",
+    level: "INFO",
+    status: 200,
+    userId: authResult.userEmail,
+    reason: "Thực thi nạp embedding vector",
+  });
 
   const { searchParams } = new URL(req.url);
   const limit = Math.min(Number(searchParams.get("limit")) || 30, 100);

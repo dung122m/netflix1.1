@@ -4,7 +4,7 @@ export default function LiveLoading() {
   return (
     <div className="bg-black min-h-screen text-white pt-24 pb-16 px-4 md:px-8 max-w-7xl mx-auto space-y-8 animate-pulse">
       {/* HEADER SKELETON */}
-      <div className="space-y-3 border-b border-white/10 pb-6">
+      <div className="space-y-3 border-b pb-6">
         <div className="h-6 w-32 bg-red-600/20 rounded-full" />
         <div className="h-10 w-72 bg-white/15 rounded-xl" />
         <div className="h-4 w-96 bg-white/10 rounded-lg" />
@@ -15,7 +15,7 @@ export default function LiveLoading() {
         {Array.from({ length: 6 }).map((_, i) => (
           <div
             key={i}
-            className="h-44 rounded-2xl bg-zinc-900/80 border border-white/5 p-4 flex flex-col justify-between"
+            className="h-44 rounded-2xl bg-zinc-900/80 p-4 flex flex-col justify-between"
           >
             <div className="flex justify-between items-center">
               <div className="h-5 w-24 bg-white/10 rounded-full" />

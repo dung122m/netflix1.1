@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, Suspense } from "react";
+import React, { useState, useEffect, useMemo, Suspense } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
@@ -34,6 +34,7 @@ import { AuthModal } from "@/components/AuthModal";
 import { UserAvatar } from "@/components/ui/UserAvatar";
 import { Footer } from "@/components/Footer";
 import { WatchlistCard } from "@/components/browse/WatchlistCard";
+import { MediaCard } from "@/components/browse/MediaCard";
 import { getWatchlist, autoHydrateWatchlist, WatchlistItem } from "@/lib/watchlist";
 import {
   getWatchHistory,
@@ -42,7 +43,7 @@ import {
   autoHydrateWatchHistory,
   WatchHistoryItem,
 } from "@/lib/watchHistory";
-import { pickBestMovieThumb, toOptimizedPhimimgUrl, toOptimizedCardPosterUrl } from "@/lib/movieMedia";
+import { pickBestMoviePoster, pickBestMovieThumb, toOptimizedPhimimgUrl, toOptimizedCardPosterUrl, sanitizeImageUrl } from "@/lib/movieMedia";
 import { formatEpisodeName } from "@/lib/formatEpisode";
 import { clearAllWatchlistFromCloud } from "@/lib/cloudSync";
 import {
@@ -58,6 +59,21 @@ import { CreateCollectionModal } from "@/components/Collections/CreateCollection
 import { showConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { toast } from "@/components/Toast";
 
+import { useMoviePosterFallback } from "@/hooks/useMoviePosterFallback";
+
+function formatTimeAgo(timestamp?: number): string {
+  if (!timestamp) return "";
+  const diffSec = Math.floor((Date.now() - timestamp) / 1000);
+  if (diffSec < 60) return "Vừa xong";
+  const diffMin = Math.floor(diffSec / 60);
+  if (diffMin < 60) return `${diffMin}m trước`;
+  const diffHours = Math.floor(diffMin / 60);
+  if (diffHours < 24) return `${diffHours}h trước`;
+  const diffDays = Math.floor(diffHours / 24);
+  if (diffDays < 30) return `${diffDays}d trước`;
+  return `${Math.floor(diffDays / 30)} tháng trước`;
+}
+
 function formatCommentDate(timestamp: number | string): string {
   const d = new Date(timestamp);
   if (isNaN(d.getTime())) return "";
@@ -67,6 +83,102 @@ function formatCommentDate(timestamp: number | string): string {
   const hours = String(d.getHours()).padStart(2, "0");
   const minutes = String(d.getMinutes()).padStart(2, "0");
   return `${day}/${month}/${year} • ${hours}:${minutes}`;
+}
+
+function CollectionMosaicPoster({
+  poster,
+  title,
+  slug,
+  size = 192,
+}: {
+  poster?: string;
+  title?: string;
+  slug?: string;
+  size?: number;
+}) {
+  const baseSrc = toOptimizedCardPosterUrl(poster || "", size) || poster || "/default-poster.jpg";
+  const { displaySrc } = useMoviePosterFallback({
+    slug,
+    title,
+    initialSrc: baseSrc,
+  });
+
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={displaySrc}
+      alt={title || "Poster"}
+      className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+      onError={(e) => {
+        const target = e.currentTarget as HTMLImageElement;
+        if (target && !target.src.includes("/default-poster.jpg")) {
+          target.src = "/default-poster.jpg";
+        }
+      }}
+    />
+  );
+}
+
+function HistoryCardItem({
+  item,
+  onRemove,
+}: {
+  item: WatchHistoryItem;
+  onRemove: (slug: string) => void;
+}) {
+  const progressPercent =
+    item.progressSeconds && item.durationSeconds && item.durationSeconds > 0
+      ? Math.min(100, Math.round((item.progressSeconds / item.durationSeconds) * 100))
+      : 0;
+
+  // 1. Áp dụng chuẩn chọn ảnh tối ưu ban đầu đồng nhất với Home (ContinueWatchingRow)
+  const initialPoster = useMemo(() => {
+    if (item.poster && !item.poster.includes("phimimg.com") && !item.poster.includes("/default-")) {
+      return toOptimizedCardPosterUrl(item.poster);
+    }
+    const bestPoster = pickBestMoviePoster({ poster_url: item.poster, thumb_url: item.thumb }, "");
+    if (bestPoster && !bestPoster.includes("/default-")) {
+      return toOptimizedCardPosterUrl(bestPoster);
+    }
+    const bestThumb = pickBestMovieThumb({ poster_url: item.poster, thumb_url: item.thumb }, "");
+    if (bestThumb && !bestThumb.includes("/default-")) {
+      return toOptimizedCardPosterUrl(bestThumb);
+    }
+    return item.poster || item.thumb || "";
+  }, [item.poster, item.thumb]);
+
+  // 2. Dùng chung hook fallback chuẩn như Home (ContinueWatchingRow) và Watchlist
+  const { displaySrc } = useMoviePosterFallback({
+    slug: item.slug,
+    title: item.title,
+    year: item.year,
+    initialSrc: initialPoster,
+  });
+
+  return (
+    <MediaCard
+      slug={item.slug}
+      title={item.title}
+      imageUrl={displaySrc || initialPoster}
+      posterUrl={displaySrc || item.poster}
+      thumbUrl={item.thumb}
+      year={item.year}
+      genre={item.category || ""}
+      quality={item.quality}
+      country={item.country}
+      type_name={item.type}
+      episodeSlug={item.episodeSlug}
+      episodeName={item.episodeName}
+      progressPercent={progressPercent}
+      onRemove={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        onRemove(item.slug);
+      }}
+      removeTooltip="Xóa khỏi lịch sử xem"
+      updatedTimeAgo={item.updatedAt ? formatTimeAgo(item.updatedAt) : undefined}
+    />
+  );
 }
 
 function MyListContent() {
@@ -108,7 +220,7 @@ function MyListContent() {
   const [showCreateCollectionModal, setShowCreateCollectionModal] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
-  const HISTORY_PAGE_SIZE = 20;
+  const HISTORY_PAGE_SIZE = 24;
   const [visibleHistoryCount, setVisibleHistoryCount] = useState<number>(HISTORY_PAGE_SIZE);
 
   const { user, loading, isSyncing, syncNow } = useAuth();
@@ -280,7 +392,7 @@ function MyListContent() {
   return (
     <main className="max-w-[1800px] mx-auto px-4 md:px-8 pt-24 sm:pt-28 pb-16 w-full min-w-0 overflow-x-clip">
       {/* HEADER & BREADCRUMB */}
-      <div className="flex flex-wrap items-center justify-between gap-4 mb-6 border-b border-white/10 pb-5">
+      <div className="flex flex-wrap items-center justify-between gap-4 mb-6 pb-5">
         <div>
           <div className="flex items-center gap-2.5 text-xs text-zinc-400 mb-2">
             <Link href="/" className="hover:text-white transition flex items-center gap-1">
@@ -337,14 +449,14 @@ function MyListContent() {
           <div>
             {activeTab === "watchlist" && watchlist.length > 0 && (
               <div className="flex items-center gap-3">
-                <span className="text-xs sm:text-sm text-zinc-300 bg-zinc-900 border border-white/15 px-3 py-1.5 rounded-lg">
+                <span className="text-xs sm:text-sm text-zinc-300 bg-zinc-900/80 px-3 py-1.5 rounded-lg">
                   {watchlist.length} phim đã lưu
                 </span>
                 <button
                   type="button"
                   onClick={handleClearWatchlist}
                   aria-label="Xóa tất cả phim đã lưu trong danh sách yêu thích"
-                  className="inline-flex items-center gap-1.5 text-xs sm:text-sm text-zinc-400 hover:text-red-400 border border-white/10 hover:border-red-500/30 bg-zinc-900/60 px-3 py-1.5 min-h-[36px] rounded-lg transition-colors cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-red-500/50"
+                  className="inline-flex items-center gap-1.5 text-xs sm:text-sm text-zinc-400 hover:text-red-400 bg-zinc-900/60 hover:bg-zinc-800 px-3 py-1.5 min-h-[36px] rounded-lg transition-colors cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-red-500/50"
                 >
                   <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
                   <span>Xóa tất cả</span>
@@ -354,14 +466,14 @@ function MyListContent() {
 
             {activeTab === "history" && history.length > 0 && (
               <div className="flex items-center gap-3">
-                <span className="text-xs sm:text-sm text-zinc-300 bg-zinc-900 border border-white/15 px-3 py-1.5 rounded-lg">
+                <span className="text-xs sm:text-sm text-zinc-300 bg-zinc-900/80 px-3 py-1.5 rounded-lg">
                   {history.length} phim đã xem
                 </span>
                 <button
                   type="button"
                   onClick={handleClearHistory}
                   aria-label="Xóa toàn bộ lịch sử xem phim"
-                  className="inline-flex items-center gap-1.5 text-xs sm:text-sm text-zinc-400 hover:text-red-400 border border-white/10 hover:border-red-500/30 bg-zinc-900/60 px-3 py-1.5 min-h-[36px] rounded-lg transition-colors cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-red-500/50"
+                  className="inline-flex items-center gap-1.5 text-xs sm:text-sm text-zinc-400 hover:text-red-400 bg-zinc-900/60 hover:bg-zinc-800 px-3 py-1.5 min-h-[36px] rounded-lg transition-colors cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-red-500/50"
                 >
                   <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
                   <span>Xóa lịch sử</span>
@@ -390,7 +502,7 @@ function MyListContent() {
       </div>
 
       {/* BANNER ĐỒNG BỘ ĐÁM MÂY (CLOUD SYNC) */}
-      <div className="mb-6 p-3.5 sm:p-4 rounded-2xl bg-white/[0.03] border border-white/10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+      <div className="mb-6 p-3.5 sm:p-4 rounded-2xl bg-white/[0.03] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         {user ? (
           <div className="flex items-center gap-3 min-w-0 flex-1">
             <UserAvatar
@@ -398,7 +510,6 @@ function MyListContent() {
               name={user.displayName || user.email}
               seed={user.uid || user.displayName || user.email}
               sizeClassName="w-8 h-8 text-xs font-bold flex-shrink-0"
-              className="border border-white/20"
             />
             <div className="min-w-0 flex-1">
               <p className="text-xs font-bold text-white flex items-center gap-1.5 truncate">
@@ -436,7 +547,7 @@ function MyListContent() {
                     window.dispatchEvent(new CustomEvent("open-user-profile-modal"));
                   }
                 }}
-                className="flex-1 sm:flex-none justify-center inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-netflix-red/20 hover:bg-netflix-red/30 border border-netflix-red/40 text-xs font-bold text-white transition cursor-pointer active:scale-95"
+                className="flex-1 sm:flex-none justify-center inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-netflix-red/20 hover:bg-netflix-red/30 text-xs font-bold text-white transition cursor-pointer active:scale-95"
               >
                 <User className="w-3.5 h-3.5 text-current flex-shrink-0" />
                 <span>Sửa hồ sơ</span>
@@ -473,7 +584,7 @@ function MyListContent() {
           className={`flex-none shrink-0 flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer whitespace-nowrap active:scale-95 ${
             activeTab === "watchlist"
               ? "bg-netflix-red text-white shadow-md shadow-black/50"
-              : "bg-white/[0.04] text-zinc-400 hover:text-white hover:bg-white/10 border border-white/5"
+              : "bg-white/[0.04] text-zinc-400 hover:text-white hover:bg-white/10"
           }`}
         >
           <Bookmark className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-red-400" />
@@ -486,7 +597,7 @@ function MyListContent() {
           className={`flex-none shrink-0 flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer whitespace-nowrap active:scale-95 ${
             activeTab === "history"
               ? "bg-netflix-red text-white shadow-md shadow-black/50"
-              : "bg-white/[0.04] text-zinc-400 hover:text-white hover:bg-white/10 border border-white/5"
+              : "bg-white/[0.04] text-zinc-400 hover:text-white hover:bg-white/10"
           }`}
         >
           <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-400" />
@@ -499,7 +610,7 @@ function MyListContent() {
           className={`flex-none shrink-0 flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer whitespace-nowrap active:scale-95 ${
             activeTab === "collections"
               ? "bg-netflix-red text-white shadow-md shadow-black/50"
-              : "bg-white/[0.04] text-zinc-400 hover:text-white hover:bg-white/10 border border-white/5"
+              : "bg-white/[0.04] text-zinc-400 hover:text-white hover:bg-white/10"
           }`}
         >
           <FolderHeart className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-pink-400" />
@@ -512,7 +623,7 @@ function MyListContent() {
           className={`flex-none shrink-0 flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer whitespace-nowrap active:scale-95 ${
             activeTab === "comments"
               ? "bg-netflix-red text-white shadow-md shadow-black/50"
-              : "bg-white/[0.04] text-zinc-400 hover:text-white hover:bg-white/10 border border-white/5"
+              : "bg-white/[0.04] text-zinc-400 hover:text-white hover:bg-white/10"
           }`}
         >
           <MessageSquare className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-purple-400" />
@@ -526,7 +637,7 @@ function MyListContent() {
           {Array.from({ length: 4 }).map((_, i) => (
             <div
               key={i}
-              className="aspect-video w-full rounded-xl bg-zinc-900/60 animate-pulse border border-white/5"
+              className="aspect-video w-full rounded-xl bg-zinc-900/60 animate-pulse"
             />
           ))}
         </div>
@@ -534,7 +645,7 @@ function MyListContent() {
         /* TAB 1: WATCHLIST */
         watchlist.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 px-4 text-center max-w-lg mx-auto">
-            <div className="h-20 w-20 rounded-full bg-zinc-900 border border-white/10 flex items-center justify-center mb-5 text-zinc-400">
+            <div className="h-20 w-20 rounded-full bg-zinc-900 flex items-center justify-center mb-5 text-zinc-400">
               <Film className="h-9 w-9 text-zinc-500" />
             </div>
             <h2 className="text-xl sm:text-2xl font-bold mb-2">
@@ -551,7 +662,7 @@ function MyListContent() {
             </Link>
           </div>
         ) : (
-          <div className="rounded-2xl border border-white/10 bg-gradient-to-b from-zinc-900/45 to-zinc-950/45 p-3 sm:p-4 md:p-5 overflow-visible">
+          <div className="rounded-2xl bg-gradient-to-b from-zinc-900/40 to-transparent p-3 sm:p-4 md:p-5 overflow-visible">
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4 md:gap-4 lg:gap-5 xl:gap-6">
               {watchlist.map((item, index) => (
                 <WatchlistCard
@@ -582,7 +693,7 @@ function MyListContent() {
         /* TAB 2: WATCH HISTORY */
         history.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 px-4 text-center max-w-lg mx-auto">
-            <div className="h-20 w-20 rounded-full bg-zinc-900 border border-white/10 flex items-center justify-center mb-5 text-zinc-400">
+            <div className="h-20 w-20 rounded-full bg-zinc-900 flex items-center justify-center mb-5 text-zinc-400">
               <Clock className="h-9 w-9 text-zinc-500" />
             </div>
             <h2 className="text-xl sm:text-2xl font-bold mb-2">
@@ -599,112 +710,26 @@ function MyListContent() {
             </Link>
           </div>
         ) : (
-          <div className="rounded-2xl border border-white/10 bg-gradient-to-b from-zinc-900/45 to-zinc-950/45 p-3 sm:p-4 md:p-5">
-            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 md:gap-5">
-              {history.slice(0, visibleHistoryCount).map((item) => {
-                const href = item.episodeSlug
-                  ? `/movies/${item.slug}?ep=${item.episodeSlug}`
-                  : `/movies/${item.slug}`;
-
-                const progressPercent =
-                  item.progressSeconds && item.durationSeconds && item.durationSeconds > 0
-                    ? Math.min(100, Math.round((item.progressSeconds / item.durationSeconds) * 100))
-                    : 0;
-
-                return (
-                  <div
-                    key={item.slug}
-                    className="group relative rounded-xl bg-zinc-900 border border-white/10 overflow-hidden hover:border-white/30 transition-all duration-300 hover:scale-[1.02] shadow-lg flex flex-col"
-                  >
-                    <Link href={href} className="block flex-1 flex flex-col">
-                      <div className="relative aspect-video w-full bg-zinc-900 bg-gradient-to-br from-zinc-800/70 via-zinc-900 to-zinc-950 overflow-hidden">
-                        <Image
-                          src={toOptimizedPhimimgUrl(
-                            pickBestMovieThumb({ poster_url: item.poster, thumb_url: item.thumb }, "/default-hero.jpg"),
-                            320
-                          )}
-                          alt={item.title}
-                          fill
-                          unoptimized
-                          loading="lazy"
-                          decoding="async"
-                          quality={85}
-                          sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
-                          className="object-cover transition-transform duration-300 group-hover:scale-105"
-                          onError={(e) => {
-                            const target = e.currentTarget as HTMLImageElement;
-                            if (!target) return;
-                            if (item.poster && !target.src.includes(item.poster) && !item.poster.includes("default-")) {
-                              target.srcset = "";
-                              target.src = item.poster;
-                            } else if (!target.src.includes("/default-hero.jpg")) {
-                              target.srcset = "";
-                              target.src = "/default-hero.jpg";
-                            }
-                          }}
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent" />
-
-                        {/* PLAY BUTTON OVERLAY */}
-                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-netflix-red text-white flex items-center justify-center shadow-lg transform group-hover:scale-110 transition-transform">
-                            <Play className="w-5 h-5 sm:w-6 sm:h-6 fill-white ml-0.5" />
-                          </div>
-                        </div>
-
-                        {/* NÚT XOÁ */}
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            removeWatchHistoryItem(item.slug);
-                          }}
-                          aria-label="Xoá khỏi lịch sử"
-                          className="absolute top-2 right-2 p-1.5 rounded-full bg-black/70 text-zinc-300 hover:text-white hover:bg-black/90 backdrop-blur-sm transition z-10 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 cursor-pointer shadow-md"
-                        >
-                          <X className="w-3.5 h-3.5" />
-                        </button>
-
-                        {/* THANH TIẾN ĐỘ XEM (PROGRESS BAR) */}
-                        {progressPercent > 0 ? (
-                          <div className="absolute bottom-0 left-0 right-0 h-1 bg-zinc-800/80 z-10">
-                            <div
-                              className="h-full bg-netflix-red shadow-[0_0_8px_#E50914]"
-                              style={{ width: `${progressPercent}%` }}
-                            />
-                          </div>
-                        ) : null}
-                      </div>
-
-                      <div className="p-2.5 sm:p-3.5 flex-1 flex flex-col justify-between">
-                        <h3 className="text-white font-semibold text-xs sm:text-sm line-clamp-2 group-hover:text-netflix-red transition-colors">
-                          {item.title}
-                        </h3>
-                        <div className="flex items-center justify-between text-[10px] sm:text-xs text-zinc-400 mt-2">
-                          <span className="text-red-400 font-semibold truncate max-w-[120px]">
-                            {item.episodeName ? formatEpisodeName(item.episodeName) : "Đã xem"}
-                          </span>
-                          {progressPercent > 0 && (
-                            <span className="text-zinc-400 font-mono text-[10px]">
-                              {progressPercent}%
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </Link>
-                  </div>
-                );
-              })}
+          <div className="rounded-2xl bg-gradient-to-b from-zinc-900/40 to-transparent p-3 sm:p-4 md:p-5">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4 md:gap-5">
+              {history.slice(0, visibleHistoryCount).map((item, index) => (
+                <HistoryCardItem
+                  key={`${item.slug}_${item.episodeSlug || ""}_${index}`}
+                  item={item}
+                  onRemove={(slug) => removeWatchHistoryItem(slug)}
+                />
+              ))}
             </div>
             {history.length > visibleHistoryCount && (
               <div className="flex justify-center mt-6 sm:mt-8 pt-2">
                 <button
                   type="button"
                   onClick={() => setVisibleHistoryCount((prev) => prev + HISTORY_PAGE_SIZE)}
-                  className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-zinc-900/90 hover:bg-zinc-800 border border-white/10 hover:border-white/20 text-xs sm:text-sm font-semibold text-white transition-all shadow-md active:scale-95 cursor-pointer"
+                  className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-zinc-900/90 hover:bg-zinc-800 text-xs sm:text-sm font-semibold text-white transition-all shadow-md active:scale-95 cursor-pointer"
                 >
-                  <span>Xem thêm 20 phim</span>
+                  <span>
+                    Xem thêm {Math.min(HISTORY_PAGE_SIZE, history.length - visibleHistoryCount)} phim
+                  </span>
                 </button>
               </div>
             )}
@@ -717,21 +742,19 @@ function MyListContent() {
             /* SKELETON PLACEHOLDER KHI AUTH ĐANG KHÔI PHỤC PHIÊN */
             <div className="space-y-4">
               <div className="h-6 w-48 bg-zinc-800 rounded animate-pulse" />
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-                {[1, 2, 3, 4].map((i) => (
-                  <div key={i} className="h-64 rounded-2xl bg-zinc-900/60 border border-white/5 animate-pulse p-4 flex flex-col justify-between">
-                    <div className="aspect-[16/9] w-full bg-zinc-800 rounded-xl" />
-                    <div className="space-y-2 mt-3">
-                      <div className="h-4 w-3/4 bg-zinc-800 rounded" />
-                      <div className="h-3 w-1/2 bg-zinc-800/60 rounded" />
-                    </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4 md:gap-5">
+                {[1, 2, 3, 4, 5, 6].map((i) => (
+                  <div key={i} className="flex flex-col gap-2">
+                    <div className="aspect-[2/3] w-full rounded-xl bg-zinc-900 animate-pulse" />
+                    <div className="h-3.5 w-3/4 bg-zinc-800 rounded animate-pulse" />
+                    <div className="h-3 w-1/2 bg-zinc-800/60 rounded animate-pulse" />
                   </div>
                 ))}
               </div>
             </div>
           ) : !user ? (
-            <div className="flex flex-col items-center justify-center py-12 px-4 text-center max-w-lg mx-auto bg-zinc-900/30 rounded-2xl border border-white/5">
-              <div className="h-16 w-16 rounded-full bg-zinc-900 border border-white/10 flex items-center justify-center mb-4 text-zinc-400">
+            <div className="flex flex-col items-center justify-center py-12 px-4 text-center max-w-lg mx-auto bg-zinc-900/40 rounded-2xl">
+              <div className="h-16 w-16 rounded-full bg-zinc-900/80 flex items-center justify-center mb-4 text-zinc-400">
                 <FolderHeart className="h-8 w-8 text-netflix-red" />
               </div>
               <h2 className="text-lg sm:text-xl font-bold mb-2">
@@ -750,8 +773,8 @@ function MyListContent() {
               </button>
             </div>
           ) : collections.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 px-4 text-center max-w-lg mx-auto bg-zinc-900/30 rounded-2xl border border-white/5">
-              <div className="h-16 w-16 rounded-full bg-zinc-900 border border-white/10 flex items-center justify-center mb-4 text-zinc-400">
+            <div className="flex flex-col items-center justify-center py-12 px-4 text-center max-w-lg mx-auto bg-zinc-900/40 rounded-2xl">
+              <div className="h-16 w-16 rounded-full bg-zinc-900/80 flex items-center justify-center mb-4 text-zinc-400">
                 <FolderPlus className="h-8 w-8 text-zinc-500" />
               </div>
               <h2 className="text-lg sm:text-xl font-bold mb-2">
@@ -777,116 +800,140 @@ function MyListContent() {
                   <span>Bộ sưu tập của bạn ({collections.length})</span>
                 </h2>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4 md:gap-5">
                 {collections.map((col) => {
                   const previewPosters = (col.movies || []).slice(0, 4);
                   return (
                     <div
                       key={col.id}
-                      className="group relative rounded-2xl bg-zinc-950 border border-white/10 hover:border-white/25 overflow-hidden transition-all duration-300 hover:shadow-2xl hover:scale-[1.01] flex flex-col justify-between"
+                      className="group/card relative flex flex-col w-full select-none cursor-pointer hover:scale-[1.02] hover:-translate-y-0.5 hover:z-20 transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:transform-none"
                     >
-                      <Link href={`/collection/${col.id}`} className="block p-4 pb-2">
-                        {/* KHỐI ẢNH BÌA MOSAIC 4 POSTER HOẶC 1 POSTER */}
-                        <div className="relative aspect-[16/9] w-full rounded-xl bg-zinc-900 overflow-hidden border border-white/10 mb-3.5">
+                      {/* KHỐI POSTER DỌC 2:3 CHO BỘ SƯU TẬP (CHUẨN ĐỒNG BỘ TRANG CHỦ) */}
+                      <div className="relative aspect-[2/3] w-full rounded-xl overflow-hidden bg-zinc-950 bg-gradient-to-br from-zinc-800/70 via-zinc-900 to-zinc-950 group-hover/card: group-hover/card:ring-netflix-red group-hover/card:ring-inset group-hover/card:shadow-[0_12px_28px_rgba(229,9,20,0.35),0_0_16px_rgba(0,0,0,0.8)] transition-all duration-300">
+                        <Link
+                          href={`/collection/${col.id}`}
+                          className="block absolute inset-0 z-0 outline-none focus-visible:ring-2 focus-visible:ring-white rounded-xl"
+                          aria-label={`Xem bộ sưu tập ${col.name}`}
+                        >
                           {previewPosters.length >= 4 ? (
                             <div className="grid grid-cols-2 h-full w-full gap-0.5">
                               {previewPosters.map((m, idx) => (
                                 <div key={idx} className="relative h-full w-full bg-zinc-800 overflow-hidden">
-                                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                                  <img
-                                    src={toOptimizedCardPosterUrl(m.poster, 192) || "/default-poster.jpg"}
-                                    alt={m.title}
-                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                                  <CollectionMosaicPoster
+                                    poster={m.poster}
+                                    title={m.title}
+                                    slug={m.slug}
+                                    size={192}
                                   />
                                 </div>
                               ))}
                             </div>
                           ) : previewPosters.length > 0 ? (
                             <div className="relative h-full w-full bg-zinc-800">
-                              {/* eslint-disable-next-line @next/next/no-img-element */}
-                              <img
-                                src={toOptimizedCardPosterUrl(previewPosters[0].poster, 320) || "/default-poster.jpg"}
-                                alt={col.name}
-                                className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                              <CollectionMosaicPoster
+                                poster={previewPosters[0].poster}
+                                title={col.name || previewPosters[0].title}
+                                slug={previewPosters[0].slug}
+                                size={320}
                               />
                             </div>
                           ) : (
-                            <div className="flex flex-col items-center justify-center h-full text-zinc-500 border border-dashed border-white/15 rounded-lg m-2 bg-zinc-900/30">
-                              <Film className="w-7 h-7 mb-1.5 opacity-40 group-hover:opacity-75 group-hover:scale-105 transition-all text-zinc-400" />
-                              <span className="text-[11px] text-zinc-400 group-hover:text-zinc-200 transition-colors">Chưa có phim • Bấm để thêm</span>
+                            <div className="flex flex-col items-center justify-center h-full text-zinc-500 border border-dashed rounded-lg m-2 bg-zinc-900/30">
+                              <Film className="w-8 h-8 mb-1.5 opacity-40 group-hover/card:opacity-75 group-hover/card:scale-105 transition-all text-zinc-400" />
+                              <span className="text-[10px] text-zinc-400 group-hover/card:text-zinc-200 transition-colors text-center px-1">
+                                Chưa có phim
+                              </span>
                             </div>
                           )}
 
-                          {/* BADGE CÔNG KHAI / RIÊNG TƯ */}
-                          <div className="absolute top-2.5 left-2.5">
-                            {col.isPublic ? (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/90 text-white text-[10px] font-bold backdrop-blur-md shadow-md">
-                                <Globe className="w-3 h-3" /> Công khai
-                              </span>
-                            ) : (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-zinc-900/90 border border-white/20 text-zinc-300 text-[10px] font-bold backdrop-blur-md shadow-md">
-                                <Lock className="w-3 h-3" /> Riêng tư
-                              </span>
-                            )}
+                          {/* Lớp gradient điện ảnh che phủ */}
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-transparent to-transparent pointer-events-none" />
+                          <div className="absolute inset-0 bg-black/30 opacity-0 group-hover/card:opacity-100 transition-opacity duration-300 pointer-events-none" />
+                        </Link>
+
+                        {/* ICON TRUNG TÂM KHI HOVER */}
+                        <Link
+                          href={`/collection/${col.id}`}
+                          tabIndex={-1}
+                          aria-hidden="true"
+                          className="absolute inset-0 flex items-center justify-center pointer-events-none z-10"
+                        >
+                          <div className="w-10 h-10 rounded-full bg-netflix-red text-white flex items-center justify-center shadow-[0_0_20px_rgba(229,9,20,0.8)] opacity-0 group-hover/card:opacity-100 transform scale-75 group-hover/card:scale-100 transition-all duration-200 ease-out">
+                            <FolderHeart className="w-5 h-5 fill-white" />
+                          </div>
+                        </Link>
+
+                        {/* BADGE CÔNG KHAI / RIÊNG TƯ (GÓC TRÊN TRÁI) */}
+                        <div className="absolute top-2 left-2 z-10 pointer-events-none">
+                          {col.isPublic ? (
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-500/90 text-white backdrop-blur-md shadow-md">
+                              <Globe className="w-2.5 h-2.5" /> Công khai
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-zinc-900/90 text-zinc-300 backdrop-blur-md shadow-md">
+                              <Lock className="w-2.5 h-2.5" /> Riêng tư
+                            </span>
+                          )}
+                        </div>
+
+                        {/* SỐ LƯỢNG PHIM (GÓC DƯỚI PHẢI) */}
+                        <div className="absolute bottom-2 right-2 z-10 pointer-events-none">
+                          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-black/80 backdrop-blur-md text-amber-300 shadow-sm">
+                            {col.movies?.length || 0} phim
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* THÔNG TIN BỘ SƯU TẬP DƯỚI POSTER */}
+                      <div className="pt-2 sm:pt-2.5 pb-1 flex flex-col gap-0.5 sm:gap-1">
+                        <Link
+                          href={`/collection/${col.id}`}
+                          className="text-xs sm:text-[13px] md:text-sm font-semibold text-zinc-100 truncate group-hover/card:text-rose-400 transition-colors leading-snug"
+                          title={col.name}
+                        >
+                          {col.name}
+                        </Link>
+
+                        {/* Action icons row */}
+                        <div className="flex items-center justify-between text-[11px] text-zinc-400">
+                          <span className="text-zinc-500 text-[10px] truncate max-w-[50%]">
+                            {col.movies?.length || 0} phim
+                          </span>
+                          <div className="flex items-center gap-0.5">
+                            <button
+                              type="button"
+                              onClick={() => handleShareCollection(col.id)}
+                              className="p-1 rounded text-zinc-400 hover:text-white hover:bg-white/10 transition cursor-pointer"
+                              title="Chia sẻ link"
+                            >
+                              {copiedId === col.id ? (
+                                <Check className="w-3.5 h-3.5 text-emerald-400" />
+                              ) : (
+                                <Share2 className="w-3.5 h-3.5" />
+                              )}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleTogglePrivacy(col)}
+                              className="p-1 rounded text-zinc-400 hover:text-white hover:bg-white/10 transition cursor-pointer"
+                              title={col.isPublic ? "Chuyển sang riêng tư" : "Chuyển sang công khai"}
+                            >
+                              {col.isPublic ? (
+                                <Globe className="w-3.5 h-3.5 text-emerald-400" />
+                              ) : (
+                                <Lock className="w-3.5 h-3.5 text-amber-400" />
+                              )}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteCollection(col)}
+                              className="p-1 rounded text-zinc-400 hover:text-red-400 hover:bg-red-500/15 transition cursor-pointer"
+                              title="Xóa bộ sưu tập"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
                           </div>
                         </div>
-
-                        <h3 className="text-white font-bold text-base sm:text-[17px] tracking-tight truncate group-hover:text-netflix-red transition-colors">
-                          {col.name}
-                        </h3>
-                        <p className="text-xs text-zinc-400 line-clamp-1 mt-1">
-                          {col.description || `${col.movies?.length || 0} bộ phim được chọn lọc`}
-                        </p>
-                        <div className="text-[11px] text-rose-300 font-semibold mt-2">
-                          {col.movies?.length || 0} bộ phim
-                        </div>
-                      </Link>
-
-                      {/* CÁC NÚT TÁC VỤ DƯỚI CARD */}
-                      <div className="p-3 pt-2 border-t border-white/10 flex items-center justify-between gap-1 text-xs">
-                        <button
-                          type="button"
-                          onClick={() => handleShareCollection(col.id)}
-                          className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-white/10 transition flex items-center gap-1.5 cursor-pointer"
-                          title="Sao chép liên kết chia sẻ"
-                        >
-                          {copiedId === col.id ? (
-                            <>
-                              <Check className="w-3.5 h-3.5 text-emerald-400" />
-                              <span className="text-[11px] text-emerald-400">Đã chép</span>
-                            </>
-                          ) : (
-                            <>
-                              <Share2 className="w-3.5 h-3.5" />
-                              <span className="text-[11px]">Chia sẻ</span>
-                            </>
-                          )}
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => handleTogglePrivacy(col)}
-                          className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-white/10 transition flex items-center gap-1 cursor-pointer"
-                          title={col.isPublic ? "Chuyển sang riêng tư" : "Chuyển sang công khai"}
-                        >
-                          {col.isPublic ? (
-                            <Globe className="w-3.5 h-3.5 text-emerald-400" />
-                          ) : (
-                            <Lock className="w-3.5 h-3.5 text-amber-400" />
-                          )}
-                          <span className="text-[11px]">
-                            {col.isPublic ? "Công khai" : "Riêng tư"}
-                          </span>
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteCollection(col)}
-                          className="p-1.5 px-2 rounded-lg text-zinc-400 hover:text-red-400 hover:bg-red-500/15 focus-visible:ring-1 focus-visible:ring-red-400 transition-all cursor-pointer"
-                          title="Xóa bộ sưu tập"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
                       </div>
                     </div>
                   );
@@ -896,7 +943,7 @@ function MyListContent() {
           )}
 
           {/* TUYỂN TẬP THÔNG MINH (SMART COLLECTIONS) */}
-          <div className="pt-6 border-t border-white/10">
+          <div className="pt-6 border-t">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-5">
               <div>
                 <h2 className="text-lg sm:text-xl font-bold text-white flex items-center gap-2">
@@ -907,17 +954,17 @@ function MyListContent() {
                 </p>
               </div>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4 md:gap-5">
               {getSmartCollectionsList().map((smart) => (
                 <Link
                   key={smart.id}
                   href={`/collection/${smart.id}`}
-                  className="group p-4 rounded-2xl bg-zinc-900/60 border border-white/10 hover:border-red-500/40 hover:bg-zinc-800/80 transition-all duration-300 hover:scale-[1.02] flex flex-col justify-between shadow-lg"
+                  className="group p-4 rounded-2xl bg-zinc-900/60 hover:bg-zinc-800/80 transition-all duration-300 hover:scale-[1.02] flex flex-col justify-between shadow-lg"
                 >
                   <div>
                     <div className="flex items-center justify-between gap-2 mb-2.5">
                       <span className="text-2xl">{smart.emoji}</span>
-                      <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-netflix-red/20 text-red-300 border border-netflix-red/30">
+                      <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-netflix-red/20 text-red-300">
                         {smart.badge}
                       </span>
                     </div>
@@ -928,7 +975,7 @@ function MyListContent() {
                       {smart.description}
                     </p>
                   </div>
-                  <div className="mt-4 pt-2.5 border-t border-white/5 flex items-center justify-between text-[11px] text-zinc-400 font-medium">
+                  <div className="mt-4 pt-2.5 flex items-center justify-between text-[11px] text-zinc-400 font-medium">
                     <span>Khám phá danh sách</span>
                     <span className="text-netflix-red group-hover:translate-x-1 transition-transform">→</span>
                   </div>
@@ -941,7 +988,7 @@ function MyListContent() {
         /* TAB 4: LỊCH SỬ BÌNH LUẬN */
         userComments.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 px-4 text-center max-w-lg mx-auto">
-            <div className="h-20 w-20 rounded-full bg-zinc-900 border border-white/10 flex items-center justify-center mb-5 text-zinc-400">
+            <div className="h-20 w-20 rounded-full bg-zinc-900 flex items-center justify-center mb-5 text-zinc-400">
               <MessageSquare className="h-9 w-9 text-rose-500" />
             </div>
             <h2 className="text-xl sm:text-2xl font-bold mb-2">
@@ -958,8 +1005,8 @@ function MyListContent() {
             </Link>
           </div>
         ) : (
-          <div className="rounded-2xl border border-white/10 bg-gradient-to-b from-zinc-900/45 to-zinc-950/45 p-4 sm:p-6 space-y-4">
-            <div className="flex items-center justify-between border-b border-white/10 pb-3">
+          <div className="rounded-2xl bg-gradient-to-b from-zinc-900/40 to-transparent p-4 sm:p-6 space-y-4">
+            <div className="flex items-center justify-between pb-3">
               <h3 className="text-base font-bold text-white flex items-center gap-2">
                 <MessageSquare className="w-4 h-4 text-rose-400" />
                 <span>Tất cả nhận xét & đánh giá ({userComments.length})</span>
@@ -970,7 +1017,7 @@ function MyListContent() {
               {userComments.map((c) => (
                 <div
                   key={c.id}
-                  className="p-3.5 sm:p-4 rounded-2xl border border-white/10 bg-zinc-900/80 hover:bg-zinc-900 hover:border-white/25 transition space-y-2.5 sm:space-y-3"
+                  className="p-3.5 sm:p-4 rounded-2xl bg-zinc-900/80 hover:bg-zinc-900 transition space-y-2.5 sm:space-y-3"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div>
@@ -982,7 +1029,7 @@ function MyListContent() {
                         <ExternalLink className="w-3.5 h-3.5 text-zinc-500 group-hover:text-netflix-red group-hover:translate-x-0.5 transition-all shrink-0" />
                       </Link>
                       {c.episodeName && (
-                        <span className="text-[11px] text-rose-300 font-semibold bg-rose-500/10 px-2 py-0.5 rounded-md border border-rose-500/20 inline-block mt-1">
+                        <span className="text-[11px] text-rose-300 font-semibold bg-rose-500/10 px-2 py-0.5 rounded-md inline-block mt-1">
                           {c.episodeName}
                         </span>
                       )}
@@ -990,14 +1037,14 @@ function MyListContent() {
 
                     {/* STAR RATING */}
                     {c.rating > 0 && (
-                      <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs font-black">
+                      <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-500/15 text-amber-300 text-xs font-black">
                         <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
                         <span>{c.rating}/5</span>
                       </div>
                     )}
                   </div>
 
-                  <p className="text-xs sm:text-sm text-zinc-200 leading-relaxed bg-black/50 p-2.5 sm:p-3 rounded-xl border border-white/5 whitespace-pre-line">
+                  <p className="text-xs sm:text-sm text-zinc-200 leading-relaxed bg-black/50 p-2.5 sm:p-3 rounded-xl whitespace-pre-line">
                     {c.content}
                   </p>
 
@@ -1022,7 +1069,7 @@ function MyListContent() {
                       type="button"
                       disabled={deletingCommentId === c.id}
                       onClick={() => handleDeleteComment(c.id)}
-                      className="flex items-center gap-1 text-red-400 hover:text-red-300 hover:bg-red-500/15 px-3 py-1.5 rounded-xl transition text-xs font-bold cursor-pointer disabled:opacity-50 border border-transparent hover:border-red-500/30"
+                      className="flex items-center gap-1 text-red-400 hover:text-red-300 hover:bg-red-500/15 px-3 py-1.5 rounded-xl transition text-xs font-bold cursor-pointer disabled:opacity-50 border border-transparent hover:"
                     >
                       {deletingCommentId === c.id ? (
                         <Loader2 className="w-3.5 h-3.5 animate-spin" />

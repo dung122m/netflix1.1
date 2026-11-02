@@ -26,14 +26,14 @@ export function getActorInitials(name?: string | null): string {
 const GRADIENT_THEMES = [
   {
     bg: "from-rose-950/80 via-zinc-900 to-zinc-950",
-    badge: "bg-red-500/15 border-red-500/30 text-rose-300",
+    badge: "bg-red-500/15  text-rose-300",
     glow: "rgba(225, 29, 72, 0.2)",
     accent: "text-rose-400",
     ring: "ring-rose-500/20",
   },
   {
     bg: "from-amber-950/80 via-zinc-900 to-zinc-950",
-    badge: "bg-amber-500/15 border-amber-500/30 text-amber-300",
+    badge: "bg-amber-500/15  text-amber-300",
     glow: "rgba(245, 158, 11, 0.2)",
     accent: "text-amber-400",
     ring: "ring-amber-500/20",
@@ -47,7 +47,7 @@ const GRADIENT_THEMES = [
   },
   {
     bg: "from-emerald-950/80 via-zinc-900 to-zinc-950",
-    badge: "bg-emerald-500/15 border-emerald-500/30 text-emerald-300",
+    badge: "bg-emerald-500/15  text-emerald-300",
     glow: "rgba(16, 185, 129, 0.2)",
     accent: "text-emerald-400",
     ring: "ring-emerald-500/20",
@@ -141,7 +141,7 @@ export const ActorAvatar: React.FC<ActorAvatarProps> = ({
   if (shape === "circle") {
     return (
       <div
-        className={`w-full h-full rounded-full bg-gradient-to-br ${theme.bg} flex items-center justify-center p-1 border border-white/10 ${theme.ring} shadow-inner select-none ${className}`}
+        className={`w-full h-full rounded-full bg-gradient-to-br ${theme.bg} flex items-center justify-center p-1  ${theme.ring} shadow-inner select-none ${className}`}
       >
         <div className={`w-full h-full rounded-full ${theme.badge} border flex items-center justify-center font-black tracking-tight`}>
           <span className="text-xs sm:text-sm">{initials}</span>
@@ -154,7 +154,7 @@ export const ActorAvatar: React.FC<ActorAvatarProps> = ({
   if (shape === "rounded") {
     return (
       <div
-        className={`w-full h-full rounded-2xl bg-gradient-to-br ${theme.bg} flex flex-col items-center justify-center p-2 border border-white/10 select-none relative overflow-hidden ${className}`}
+        className={`w-full h-full rounded-2xl bg-gradient-to-br ${theme.bg} flex flex-col items-center justify-center p-2  select-none relative overflow-hidden ${className}`}
       >
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_40%,rgba(255,255,255,0.06),transparent_70%)]" />
         <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl ${theme.badge} border flex items-center justify-center font-black text-sm sm:text-base shadow-lg z-10`}>

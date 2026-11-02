@@ -242,7 +242,7 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(function Episo
 
   if (!episodes || episodes.length === 0) {
     return (
-      <div className="rounded-2xl border border-white/10 bg-zinc-950/60 p-4 text-center text-sm text-zinc-400">
+      <div className="rounded-2xl bg-zinc-950/60 p-4 text-center text-sm text-zinc-400">
         Chưa có danh sách tập phim
       </div>
     );
@@ -260,7 +260,7 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(function Episo
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Tìm nhanh số tập (vd: 1, 59, 199)..."
             aria-label="Tìm nhanh số tập"
-            className="w-full pl-9 pr-8 py-2 rounded-xl bg-zinc-900/90 border border-white/10 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-netflix-red/70 focus:bg-zinc-900/95 focus:ring-1 focus:ring-netflix-red/30 transition shadow-inner"
+            className="w-full pl-9 pr-8 py-2 rounded-xl bg-zinc-900/90 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-netflix-red/70 focus:bg-zinc-900/95 focus:ring-1 focus:ring-netflix-red/30 transition shadow-inner"
           />
           {searchQuery && (
             <button
@@ -277,7 +277,7 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(function Episo
 
       {/* THANH THÔNG BÁO KẾT QUẢ TÌM KIẾM */}
       {isSearching && (
-        <div className="flex items-center justify-between text-xs text-zinc-400 px-3 py-1.5 rounded-xl bg-white/[0.04] border border-white/10 animate-in fade-in duration-150">
+        <div className="flex items-center justify-between text-xs text-zinc-400 px-3 py-1.5 rounded-xl bg-white/[0.04] animate-in fade-in duration-150">
           <div className="flex items-center gap-1.5 min-w-0">
             <span className="w-2 h-2 rounded-full bg-netflix-red shrink-0" />
             <span className="truncate">
@@ -297,7 +297,7 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(function Episo
 
       {/* THANH ĐIỀU KHIỂN LƯU TẬP PHIM ĐANG CHỌN (Chỉ hiện khi không tìm kiếm để tránh rối mắt) */}
       {!isSearching && currentActiveEpisode?.slug && episodes.length > 1 && (
-        <div className="flex items-center justify-between gap-2 px-3 py-2 rounded-xl bg-gradient-to-r from-zinc-900/90 to-zinc-950/90 border border-white/10 text-xs shadow-sm">
+        <div className="flex items-center justify-between gap-2 px-3 py-2 rounded-xl bg-gradient-to-r from-zinc-900/90 to-zinc-950/90 text-xs shadow-sm">
           <div className="flex items-center gap-1.5 min-w-0">
             <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse flex-shrink-0" aria-hidden="true" />
             <span className="text-zinc-300 truncate text-[11px] sm:text-xs">
@@ -353,7 +353,7 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(function Episo
             <div className="flex items-center justify-between gap-2 px-1">
               <span className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider flex items-center gap-1.5">
                 <span>Dải tập</span>
-                <span className="text-[10px] text-zinc-500 font-mono">({chunks.length} dải)</span>
+                <span className="text-[10px] text-zinc-500 font-sans tabular-nums">({chunks.length} dải)</span>
               </span>
 
               {/* Menu nhảy nhanh đến dải tập (hữu ích cho phim 1000+ tập như Conan/One Piece) */}
@@ -362,7 +362,7 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(function Episo
                   value={activeChunk}
                   onChange={(e) => setActiveChunk(Number(e.target.value))}
                   aria-label="Nhảy nhanh đến dải tập"
-                  className="bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-white text-[11px] font-semibold rounded-lg px-2 py-1 pr-6 border border-white/15 outline-none focus:border-netflix-red cursor-pointer transition appearance-none"
+                  className="bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-white text-[11px] font-semibold rounded-lg px-2 py-1 pr-6 outline-none focus:border-netflix-red cursor-pointer transition appearance-none"
                 >
                   {chunks.map((c) => (
                     <option key={c.index} value={c.index} className="bg-zinc-950 text-white">
@@ -387,7 +387,7 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(function Episo
                   className={`px-3 py-1.5 min-h-[32px] rounded-xl text-xs font-bold whitespace-nowrap transition cursor-pointer select-none border ${
                     isSelected
                       ? "bg-white text-zinc-950 border-white shadow-md shadow-white/10 font-black scale-[1.02]"
-                      : "bg-zinc-900/90 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 border-white/10 hover:border-white/20"
+                      : "bg-zinc-900/90 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800  hover:"
                   }`}
                 >
                   {chunk.label}
@@ -410,14 +410,14 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(function Episo
         const chunkObj = chunkIdx >= 0 ? chunks[chunkIdx] : null;
 
         return (
-          <div className="p-3.5 rounded-2xl bg-gradient-to-br from-zinc-900/95 via-zinc-950 to-black border border-white/15 shadow-xl space-y-3 animate-in fade-in zoom-in-95 duration-200">
+          <div className="p-3.5 rounded-2xl bg-gradient-to-br from-zinc-900/95 via-zinc-950 to-black shadow-xl space-y-3 animate-in fade-in zoom-in-95 duration-200">
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-3 min-w-0">
                 <div
                   className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 font-bold text-sm ${
                     isActive
-                      ? "bg-gradient-to-br from-red-600 to-rose-600 text-white shadow-lg shadow-red-600/40 ring-1 ring-white/30"
-                      : "bg-white/10 text-white border border-white/15"
+                      ? "bg-gradient-to-br from-red-600 to-rose-600 text-white shadow-lg shadow-red-600/40 "
+                      : "bg-white/10 text-white "
                   }`}
                 >
                   {isActive ? (
@@ -440,7 +440,7 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(function Episo
                       </span>
                     )}
                     {!isActive && isWatched && (
-                      <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center gap-1 shrink-0">
+                      <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center gap-1 shrink-0">
                         <Check className="w-2.5 h-2.5" /> Đã xem
                       </span>
                     )}
@@ -463,7 +463,7 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(function Episo
                 }}
                 className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 ${
                   isActive
-                    ? "bg-zinc-800 text-zinc-300 border border-white/10 cursor-default"
+                    ? "bg-zinc-800 text-zinc-300  cursor-default"
                     : "bg-netflix-red hover:bg-red-600 text-white shadow-md shadow-red-600/30 active:scale-95 cursor-pointer"
                 }`}
               >
@@ -479,7 +479,7 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(function Episo
                   setActiveChunk(chunkIdx);
                   setSearchQuery("");
                 }}
-                className="w-full flex items-center justify-between px-3 py-2 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 hover:border-white/20 transition text-xs text-zinc-300 hover:text-white group cursor-pointer"
+                className="w-full flex items-center justify-between px-3 py-2 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] hover: transition text-xs text-zinc-300 hover:text-white group cursor-pointer"
               >
                 <span className="flex items-center gap-1.5 text-zinc-400 group-hover:text-zinc-200 truncate">
                   <span>Xem trong dải tập:</span>
@@ -551,10 +551,10 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(function Episo
                       : "py-2 px-1 text-xs sm:text-[13px] font-bold"
                   } ${
                     isActive
-                      ? "bg-gradient-to-br from-red-600 via-netflix-red to-rose-700 text-white font-black shadow-lg shadow-netflix-red/40 border border-white/30 scale-[1.03] z-10 ring-1 ring-white/20"
+                      ? "bg-gradient-to-br from-red-600 via-netflix-red to-rose-700 text-white font-black shadow-lg shadow-netflix-red/40  scale-[1.03] z-10 "
                       : isWatched
-                      ? "bg-zinc-950/70 hover:bg-zinc-900 text-zinc-400 hover:text-zinc-200 border border-white/5 hover:border-white/15"
-                      : "bg-white/[0.06] hover:bg-white/[0.12] text-zinc-200 hover:text-white border border-white/10 hover:border-white/25 hover:scale-[1.03] active:scale-[0.97] shadow-xs"
+                      ? "bg-zinc-950/70 hover:bg-zinc-900 text-zinc-400 hover:text-zinc-200  hover:"
+                      : "bg-white/[0.06] hover:bg-white/[0.12] text-zinc-200 hover:text-white  hover: hover:scale-[1.03] active:scale-[0.97] shadow-xs"
                   }`}
                 >
                   <div className="flex items-center justify-center gap-1 sm:gap-1.5 w-full min-w-0 px-1">
@@ -573,7 +573,7 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(function Episo
 
                     {/* Khi chỉ có 1 tập duy nhất và đang phát: hiển thị thêm tag Đang phát */}
                     {episodes.length === 1 && isActive && (
-                      <span className="text-[10px] sm:text-[11px] font-semibold text-white/90 shrink-0 ml-1 px-1.5 py-0.5 rounded-full bg-black/25 border border-white/20">
+                      <span className="text-[10px] sm:text-[11px] font-semibold text-white/90 shrink-0 ml-1 px-1.5 py-0.5 rounded-full bg-black/25">
                         Đang phát
                       </span>
                     )}
@@ -582,7 +582,7 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(function Episo
                     {!isActive && isWatched && (
                       <span
                         title="Đã xem"
-                        className="w-3.5 h-3.5 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center border border-emerald-500/30 shrink-0"
+                        className="w-3.5 h-3.5 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0"
                       >
                         <Check className="w-2.5 h-2.5 stroke-[2.5]" />
                       </span>
@@ -607,7 +607,7 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(function Episo
           </div>
         )
       ) : (
-        <div className="rounded-2xl border border-white/10 bg-zinc-950/60 p-6 text-center space-y-2 animate-in fade-in duration-150">
+        <div className="rounded-2xl bg-zinc-950/60 p-6 text-center space-y-2 animate-in fade-in duration-150">
           <p className="text-sm font-semibold text-zinc-300">Không tìm thấy tập &ldquo;{searchQuery}&rdquo;</p>
           <p className="text-xs text-zinc-500">Thử tìm theo số tập (ví dụ: 1, 59, 199) hoặc xóa bộ lọc.</p>
           <button

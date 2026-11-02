@@ -51,7 +51,7 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = React.mem
         className={`${
           isSticky
             ? hasEpisodes
-              ? "flex items-center justify-between gap-1.5 py-1 px-2 border-t border-white/10 bg-zinc-950/95 text-xs text-zinc-300 md:py-1.5 md:px-0 md:gap-2 md:flex-wrap md:bg-transparent md:border-t-0"
+              ? "flex items-center justify-between gap-1.5 py-1 px-2 border-t  bg-zinc-950/95 text-xs text-zinc-300 md:py-1.5 md:px-0 md:gap-2 md:flex-wrap md:bg-transparent md:border-t-0"
               : "hidden md:flex flex-wrap items-center justify-end gap-1.5 py-1 px-0 text-xs text-zinc-300"
             : "flex flex-wrap items-center justify-between gap-2 py-1.5 px-0 text-xs text-zinc-300"
         }`}
@@ -65,7 +65,7 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = React.mem
             className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border transition cursor-pointer text-xs outline-none focus-visible:ring-2 focus-visible:ring-white/40 ${
               isTheaterMode
                 ? "bg-netflix-red/90 text-white border-netflix-red font-medium shadow-sm"
-                : "bg-zinc-900/60 hover:bg-zinc-800/80 text-zinc-300 hover:text-white border-white/10 backdrop-blur-md"
+                : "bg-zinc-900/60 hover:bg-zinc-800/80 text-zinc-300 hover:text-white  backdrop-blur-md"
             }`}
           >
             {isTheaterMode ? (
@@ -90,7 +90,7 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = React.mem
               data-player-control="true"
               onClick={onToggleFullscreen}
               aria-label={isFullscreen ? "Thoát toàn màn hình" : "Phóng to toàn màn hình"}
-              className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-zinc-900/60 hover:bg-zinc-800/80 text-zinc-300 hover:text-white border border-white/10 backdrop-blur-md transition cursor-pointer text-xs outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+              className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-zinc-900/60 hover:bg-zinc-800/80 text-zinc-300 hover:text-white backdrop-blur-md transition cursor-pointer text-xs outline-none focus-visible:ring-2 focus-visible:ring-white/40"
             >
               {isFullscreen ? (
                 <>
@@ -115,7 +115,7 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = React.mem
               data-player-control="true"
               onClick={onOpenShortcuts}
               aria-label="Xem danh sách phím tắt"
-              className="hidden sm:inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-zinc-900/60 hover:bg-zinc-800/80 text-zinc-400 hover:text-white border border-white/10 backdrop-blur-md transition cursor-pointer text-xs outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+              className="hidden sm:inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-zinc-900/60 hover:bg-zinc-800/80 text-zinc-400 hover:text-white backdrop-blur-md transition cursor-pointer text-xs outline-none focus-visible:ring-2 focus-visible:ring-white/40"
             >
               <Keyboard className="w-3.5 h-3.5" />
               <span>Phím tắt</span>
@@ -138,7 +138,7 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = React.mem
                   }
                 }}
                 aria-label={`Tập trước: ${prevEpisode.name || ""}`}
-                className={`inline-flex items-center gap-1 rounded-full bg-zinc-900/60 hover:bg-zinc-800 text-zinc-300 hover:text-white transition font-medium border border-white/10 text-xs outline-none focus-visible:ring-2 focus-visible:ring-white/40 ${
+                className={`inline-flex items-center gap-1 rounded-full bg-zinc-900/60 hover:bg-zinc-800 text-zinc-300 hover:text-white transition font-medium  text-xs outline-none focus-visible:ring-2 focus-visible:ring-white/40 ${
                   isSticky ? "px-2.5 py-1 text-[11px] md:px-3 md:py-1 md:text-xs" : "px-3 py-1"
                 }`}
               >
@@ -161,7 +161,7 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = React.mem
                   }
                 }}
                 aria-label={`Tập tiếp theo: ${nextEpisode.name || ""}`}
-                className={`inline-flex items-center gap-1.5 rounded-full bg-zinc-900/80 hover:bg-netflix-red text-white transition font-semibold border border-white/15 hover:border-netflix-red shadow-sm text-xs outline-none focus-visible:ring-2 focus-visible:ring-white/40 ${
+                className={`inline-flex items-center gap-1.5 rounded-full bg-zinc-900/80 hover:bg-netflix-red text-white transition font-semibold  hover:border-netflix-red shadow-sm text-xs outline-none focus-visible:ring-2 focus-visible:ring-white/40 ${
                   isSticky ? "px-3 py-1 text-[11px] md:px-3.5 md:py-1 md:text-xs" : "px-3.5 py-1"
                 }`}
               >

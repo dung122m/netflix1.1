@@ -86,7 +86,7 @@ export default function ActorsHubPage() {
 
           <Link
             href="/browse"
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs sm:text-sm transition border border-white/10 shrink-0 cursor-pointer"
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs sm:text-sm transition shrink-0 cursor-pointer"
           >
             <Film className="w-4 h-4" />
             <span>Bộ lọc phim chi tiết</span>

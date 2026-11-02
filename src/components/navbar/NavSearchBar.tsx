@@ -25,6 +25,9 @@ interface NavSearchBarProps {
   onOpenMobileSearch?: () => void;
 }
 
+// In-memory cache cho kết quả gợi ý tìm kiếm phía Client (phản hồi 0ms khi gõ/xóa lại ký tự)
+const clientSuggestCache = new Map<string, SearchSuggestion[]>();
+
 export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function NavSearchBar({
   isSearchExpanded,
   setIsSearchExpanded,
@@ -66,6 +69,18 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
   // Debounced search fetcher (350ms phản hồi mượt mà)
   const [debouncedFetchSuggestions, cancelDebouncedFetch] = useDebounce(
     async (val: string) => {
+      const trimmed = val.trim();
+      const normKey = trimmed.toLowerCase();
+
+      // Kiểm tra cache hit tức thì (0ms)
+      if (clientSuggestCache.has(normKey)) {
+        const cachedItems = clientSuggestCache.get(normKey)!;
+        setSuggestions(cachedItems);
+        setShowDropdown(true);
+        setIsSearching(false);
+        return;
+      }
+
       // Abort previous in-flight request to prevent race condition
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
@@ -75,13 +90,15 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
 
       try {
         const res = await fetch(
-          `/api/search-suggest?keyword=${encodeURIComponent(val.trim())}`,
+          `/api/search-suggest?keyword=${encodeURIComponent(trimmed)}`,
           { signal: controller.signal }
         );
         if (!res.ok) {
           throw new Error(`HTTP error! status: ${res.status}`);
         }
         const data = await res.json();
+        const items = data.items || [];
+        clientSuggestCache.set(normKey, items);
 
         // Verify that input is still actively focused and matches the query
         const isFocused =
@@ -90,8 +107,8 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
             document.activeElement === mobileInputRef.current);
         const currentInputVal = (inputRef.current?.value || mobileInputRef.current?.value || "").trim();
 
-        if (isFocused && currentInputVal.toLowerCase() === val.trim().toLowerCase()) {
-          setSuggestions(data.items || []);
+        if (isFocused && currentInputVal.toLowerCase() === trimmed.toLowerCase()) {
+          setSuggestions(items);
           setShowDropdown(true);
         }
       } catch (err: unknown) {
@@ -461,7 +478,7 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
       {isSearchOpen && (
         <div
           ref={mobileSearchRef}
-          className="md:hidden absolute inset-0 bg-black/98 px-2.5 sm:px-4 py-2 flex items-center gap-2 z-50 animate-in fade-in duration-150 border-b border-white/20 shadow-2xl"
+          className="md:hidden absolute inset-0 bg-black/98 px-2.5 sm:px-4 py-2 flex items-center gap-2 z-50 animate-in fade-in duration-150 border-b shadow-2xl"
         >
           <button
             type="button"
@@ -477,7 +494,7 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
 
           <form
             onSubmit={handleSearchSubmit}
-            className="flex-1 flex items-center bg-zinc-900/90 border border-white/25 rounded-full px-3 py-1.5 shadow-inner min-w-0"
+            className="flex-1 flex items-center bg-zinc-900/90 rounded-full px-3 py-1.5 shadow-inner min-w-0"
           >
             <button
               type={hasSearchText ? "submit" : "button"}
@@ -524,10 +541,10 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
 
           {/* MOBILE SEARCH DROPDOWN */}
           {showDropdown && hasDropdownContent && (
-            <div className="fixed top-[52px] sm:top-[56px] inset-x-2 w-auto max-w-lg mx-auto bg-zinc-950/98 border border-white/20 backdrop-blur-md rounded-2xl p-3 shadow-2xl z-50 max-h-[calc(100dvh-64px)] sm:max-h-[calc(100dvh-72px)] overflow-y-auto overscroll-contain transform-gpu will-change-[transform,opacity]">
+            <div className="fixed top-[52px] sm:top-[56px] inset-x-2 w-auto max-w-lg mx-auto bg-zinc-950/98 backdrop-blur-xl rounded-2xl p-3 shadow-2xl z-50 max-h-[calc(100dvh-64px)] sm:max-h-[calc(100dvh-72px)] overflow-y-auto overscroll-contain transform-gpu will-change-[transform,opacity]">
               {!hasSearchText && recentSearches.length > 0 ? (
                 <div>
-                  <div className="flex items-center justify-between text-[11px] font-semibold text-zinc-400 px-2 py-1 mb-1 border-b border-white/10">
+                  <div className="flex items-center justify-between text-[11px] font-semibold text-zinc-400 px-2 py-1 mb-1 border-b">
                     <span className="flex items-center gap-1.5 uppercase tracking-wider text-[11px]">
                       <History size={12} className="text-netflix-red" />
                       Tìm kiếm gần đây
@@ -548,7 +565,7 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
                         onClick={() => handleRecentClick(kw)}
                         className={`flex items-center justify-between px-2.5 py-1.5 rounded-lg transition cursor-pointer group ${
                           selectedSuggestionIndex === idx
-                            ? "bg-zinc-800 text-white ring-1 ring-white/20"
+                            ? "bg-zinc-800 text-white "
                             : "hover:bg-zinc-850 text-zinc-300 hover:text-white"
                         }`}
                       >
@@ -580,9 +597,9 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
                     {Array.from({ length: 3 }).map((_, idx) => (
                       <div
                         key={idx}
-                        className="flex items-center gap-3 p-2 rounded-lg bg-white/[0.03] border border-white/5 animate-pulse"
+                        className="flex items-center gap-3 p-2 rounded-lg bg-white/[0.03] animate-pulse"
                       >
-                        <div className="w-10 h-14 bg-zinc-800 rounded flex-none border border-white/10" />
+                        <div className="w-10 h-14 bg-zinc-800 rounded flex-none" />
                         <div className="flex-1 min-w-0 space-y-2">
                           <div className="h-3.5 bg-zinc-700/60 rounded w-3/4" />
                           <div className="flex items-center gap-2">
@@ -593,7 +610,7 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
                       </div>
                     ))}
                   </div>
-                  <div className="border-t border-white/10 mt-2 pt-2">
+                  <div className="border-t mt-2 pt-2">
                     <button
                       type="button"
                       onClick={handleSearchSubmit}
@@ -646,11 +663,11 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
                         }}
                         className={`flex items-center gap-3 p-2 rounded-lg transition group ${
                           selectedSuggestionIndex === idx
-                            ? "bg-zinc-800 text-white ring-1 ring-netflix-red/60"
+                            ? "bg-zinc-800 text-white "
                             : "hover:bg-zinc-850"
                         }`}
                       >
-                        <div className="relative w-10 h-14 bg-zinc-800 rounded overflow-hidden flex-none border border-white/10">
+                        <div className="relative w-10 h-14 bg-zinc-800 rounded overflow-hidden flex-none">
                           <Image
                             src={toOptimizedPhimimgUrl(item.poster, 192)}
                             alt={item.title}
@@ -672,7 +689,7 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
                               </span>
                             )}
                             {item.quality && (
-                              <span className="border border-white/20 px-1 py-0.5 rounded text-[11px] font-bold">
+                              <span className="bg-white/10 px-1.5 py-0.5 rounded text-[11px] font-bold">
                                 {item.quality}
                               </span>
                             )}
@@ -682,7 +699,7 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
                     ))}
                   </div>
 
-                  <div className="border-t border-white/10 mt-2 pt-2">
+                  <div className="border-t mt-2 pt-2">
                     <button
                       type="button"
                       onClick={handleSearchSubmit}
@@ -722,7 +739,7 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
         type="button"
         onClick={toggleSearch}
         aria-label="Tìm kiếm phim"
-        className="md:hidden flex items-center justify-center h-8 w-8 sm:h-9 sm:w-9 rounded-full bg-white/10 hover:bg-white/20 text-zinc-200 hover:text-white border border-white/10 transition cursor-pointer flex-shrink-0 active:scale-95"
+        className="md:hidden flex items-center justify-center h-8 w-8 sm:h-9 sm:w-9 rounded-full bg-white/10 hover:bg-white/20 text-zinc-200 hover:text-white transition cursor-pointer flex-shrink-0 active:scale-95"
       >
         <Search size={16} />
       </button>
@@ -791,10 +808,10 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
 
         {/* DESKTOP SEARCH DROPDOWN */}
         {showDropdown && hasDropdownContent && (
-          <div className="absolute top-full mt-2 right-0 w-[360px] bg-zinc-950/98 border border-white/15 backdrop-blur-md rounded-xl shadow-2xl p-2.5 z-50 animate-in fade-in zoom-in-95 duration-150 transform-gpu will-change-[transform,opacity]">
+          <div className="absolute top-full mt-2 right-0 w-[360px] bg-zinc-950/98 backdrop-blur-xl rounded-xl shadow-2xl p-2.5 z-50 animate-in fade-in zoom-in-95 duration-150 transform-gpu will-change-[transform,opacity]">
             {!hasSearchText && recentSearches.length > 0 ? (
               <div>
-                <div className="flex items-center justify-between text-[11px] font-semibold text-zinc-400 px-2 py-1 mb-1 border-b border-white/10">
+                <div className="flex items-center justify-between text-[11px] font-semibold text-zinc-400 px-2 py-1 mb-1 border-b">
                   <span className="flex items-center gap-1.5 uppercase tracking-wider text-[11px]">
                     <History size={12} className="text-netflix-red" />
                     Tìm kiếm gần đây
@@ -815,7 +832,7 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
                       onClick={() => handleRecentClick(kw)}
                       className={`flex items-center justify-between px-2.5 py-1.5 rounded-lg transition cursor-pointer group ${
                         selectedSuggestionIndex === idx
-                          ? "bg-zinc-800 text-white ring-1 ring-white/20"
+                          ? "bg-zinc-800 text-white "
                           : "hover:bg-zinc-850 text-zinc-300 hover:text-white"
                       }`}
                     >
@@ -847,9 +864,9 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
                   {Array.from({ length: 3 }).map((_, idx) => (
                     <div
                       key={idx}
-                      className="flex items-center gap-3 p-2 rounded-lg bg-white/[0.03] border border-white/5 animate-pulse"
+                      className="flex items-center gap-3 p-2 rounded-lg bg-white/[0.03] animate-pulse"
                     >
-                      <div className="w-10 h-14 bg-zinc-800 rounded flex-none border border-white/10" />
+                      <div className="w-10 h-14 bg-zinc-800 rounded flex-none" />
                       <div className="flex-1 min-w-0 space-y-2">
                         <div className="h-3.5 bg-zinc-700/60 rounded w-3/4" />
                         <div className="flex items-center gap-2">
@@ -860,7 +877,7 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
                     </div>
                   ))}
                 </div>
-                <div className="border-t border-white/10 mt-2 pt-2">
+                <div className="border-t mt-2 pt-2">
                   <button
                     type="button"
                     onClick={handleSearchSubmit}
@@ -912,11 +929,11 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
                       }}
                       className={`flex items-center gap-3 p-2 rounded-lg transition group ${
                         selectedSuggestionIndex === idx
-                          ? "bg-zinc-800 text-white ring-1 ring-netflix-red/60"
+                          ? "bg-zinc-800 text-white "
                           : "hover:bg-zinc-850"
                       }`}
                     >
-                      <div className="relative w-10 h-14 bg-zinc-800 rounded overflow-hidden flex-none border border-white/10">
+                      <div className="relative w-10 h-14 bg-zinc-800 rounded overflow-hidden flex-none">
                         <Image
                           src={toOptimizedPhimimgUrl(item.poster, 192)}
                           alt={item.title}
@@ -938,7 +955,7 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
                             </span>
                           )}
                           {item.quality && (
-                            <span className="border border-white/20 px-1 py-0.5 rounded text-[11px] font-bold">
+                            <span className="bg-white/10 px-1.5 py-0.5 rounded text-[11px] font-bold">
                               {item.quality}
                             </span>
                           )}
@@ -948,7 +965,7 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
                   ))}
                 </div>
 
-                <div className="border-t border-white/10 mt-2 pt-2">
+                <div className="border-t mt-2 pt-2">
                   <button
                     type="button"
                     onClick={handleSearchSubmit}

@@ -11,6 +11,7 @@ import {
 import { toDarkModeLogoUrl } from "@/services/live/football-logo/service";
 import {
   resolveMatchDisplayStatus,
+  resolveMatchTimeInfo,
 } from "@/services/live/football-score/liveStatus";
 import { resolveCanonicalTournament } from "@/services/live/football-score/canonicalLeagues";
 import { isFeaturedMatch } from "@/services/live/football/featuredMatch";
@@ -71,7 +72,7 @@ function CountryFlag({ emoji, className = "" }: { emoji: string; className?: str
       <img
         src={twemojiUrl}
         alt={emoji}
-        className={`w-5 h-5 sm:w-6 sm:h-6 object-contain drop-shadow-sm select-none inline-block ${className}`}
+        className={`w-7 h-7 sm:w-8 sm:h-8 object-contain drop-shadow-md select-none inline-block ${className}`}
         onError={() => setImgError(true)}
         loading="lazy"
         crossOrigin="anonymous"
@@ -80,31 +81,18 @@ function CountryFlag({ emoji, className = "" }: { emoji: string; className?: str
   }
 
   return (
-    <span className={`text-lg sm:text-xl select-none leading-none drop-shadow-sm ${className}`}>
+    <span className={`text-xl sm:text-2xl select-none leading-none drop-shadow-sm ${className}`}>
       {emoji}
     </span>
   );
 }
 
-/** Fallback hiển thị chữ viết tắt của CLB / ĐTQG khi không có logo */
-function TeamLogoFallback({
-  initials,
-  color = "rose",
-}: {
-  initials: string;
-  color?: "rose" | "sky";
-}) {
-  const isSky = color === "sky";
-  const displayInitials = initials && initials.trim() ? initials.trim() : "⚽";
+/** Fallback hiển thị chữ viết tắt của CLB / ĐTQG: tròn trịa, tối giản, KHÔNG VIỀN cứng */
+function TeamLogoFallback({ initials }: { initials: string; color?: "rose" | "sky" }) {
+  const displayInitials = initials && initials.trim() ? initials.trim().slice(0, 3) : "⚽";
   return (
-    <div
-      className={`w-full h-full rounded-lg flex items-center justify-center font-extrabold select-none border transition-all ${
-        isSky
-          ? "bg-sky-950/70 border-sky-500/30 text-sky-300"
-          : "bg-rose-950/70 border-rose-500/30 text-rose-300"
-      }`}
-    >
-      <span className="text-[10px] sm:text-[11px] tracking-tight">
+    <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-full flex items-center justify-center font-bold select-none bg-zinc-800/80 text-zinc-300">
+      <span className="text-xs sm:text-sm tracking-tight font-semibold">
         {displayInitials}
       </span>
     </div>
@@ -116,25 +104,58 @@ function sanitizeDisplayName(name?: string): string {
   return name.toWellFormed().replace(/\uFFFD+/g, " ").trim();
 }
 
+/**
+ * Định dạng phút thi đấu chuẩn:
+ * - "26" hoặc "26'" -> "26′"
+ * - "90+3" hoặc "90'+3'" -> "90′+3"
+ * - "LIVE", "HT", "FT" giữ nguyên
+ */
+function formatDisplayMinute(rawBadge?: string | null): string {
+  if (!rawBadge) return "LIVE";
+  const trimmed = rawBadge.trim();
+  if (trimmed === "LIVE" || trimmed === "HT" || trimmed === "FT") {
+    return trimmed;
+  }
+  const stoppage = trimmed.match(/^(\d+)['′]?\s*\+\s*(\d+)['′]?$/);
+  if (stoppage) {
+    return `${stoppage[1]}′+${stoppage[2]}`;
+  }
+  const minute = trimmed.match(/^(\d+)['′]?$/);
+  if (minute) {
+    return `${minute[1]}′`;
+  }
+  return trimmed;
+}
+
 function MatchCardInner({ match, isSelected, onSelect, score, compact }: MatchCardProps) {
   const currentScore = score || match.score || null;
+  const matchTimestamp = currentScore?.kickoffTimestamp || match.timestamp;
+  const hasValidTimestamp =
+    matchTimestamp !== undefined &&
+    matchTimestamp !== null &&
+    matchTimestamp > 0 &&
+    matchTimestamp !== Number.MAX_SAFE_INTEGER;
+  const currentTime = Date.now();
+  const isKickoffInFuture = hasValidTimestamp && currentTime < matchTimestamp - 5 * 60 * 1000;
+
   const displayStatus = useMemo(
     () =>
       resolveMatchDisplayStatus({
-        timestamp: currentScore?.kickoffTimestamp || match.timestamp,
+        timestamp: matchTimestamp,
         score: currentScore,
         sourceStatus: match.sourceStatus,
+        now: currentTime,
       }),
-    [match.timestamp, currentScore, match.sourceStatus],
+    [matchTimestamp, currentScore, match.sourceStatus, currentTime],
   );
 
   const isConfirmedLive =
-    displayStatus.isConfirmedLive ||
-    match.timeline === "live" ||
-    match.realStatus === "live" ||
-    match.sourceStatus === "live" ||
-    match.isLive === true ||
-    (Boolean(match.group) && /trực tiếp/i.test(match.group) && Boolean(match.servers && match.servers.length > 0));
+    !isKickoffInFuture &&
+    (displayStatus.isConfirmedLive ||
+      match.realStatus === "live" ||
+      (match.timeline === "live" && (!hasValidTimestamp || currentTime >= matchTimestamp)) ||
+      (match.sourceStatus === "live" && (!hasValidTimestamp || currentTime >= matchTimestamp)) ||
+      (match.isLive === true && (!hasValidTimestamp || currentTime >= matchTimestamp)));
 
   const isFinished =
     displayStatus.statusType === "finished" ||
@@ -153,6 +174,35 @@ function MatchCardInner({ match, isSelected, onSelect, score, compact }: MatchCa
     currentScore?.kickoffTime ||
     displayStatus.kickoffTime ||
     (match.time && match.time !== "Trực tiếp" && match.time !== "24/7" ? match.time : null);
+
+  const timeInfo = useMemo(() => {
+    return resolveMatchTimeInfo({
+      score: currentScore,
+      displayStatus,
+      kickoffTime,
+      isConfirmedLive,
+      isFinished,
+      specialStatusLabel,
+    });
+  }, [
+    currentScore,
+    displayStatus,
+    kickoffTime,
+    isConfirmedLive,
+    isFinished,
+    specialStatusLabel,
+  ]);
+
+  const shouldShowScore = useMemo(() => {
+    return (
+      (timeInfo.state === "live" ||
+        timeInfo.state === "ht" ||
+        timeInfo.state === "ft" ||
+        isFinished) &&
+      currentScore?.team1Score !== undefined &&
+      currentScore?.team2Score !== undefined
+    );
+  }, [timeInfo.state, isFinished, currentScore?.team1Score, currentScore?.team2Score]);
 
   const [homeTriedAsset, setHomeTriedAsset] = useState(false);
   const [homeFailed, setHomeFailed] = useState(false);
@@ -259,9 +309,11 @@ function MatchCardInner({ match, isSelected, onSelect, score, compact }: MatchCa
       sport: match.sport,
       team1: match.team1,
       team2: match.team2,
+      category: match.category,
+      gender: match.gender,
       score: currentScore,
     });
-  }, [match.tournament, match.title, match.sport, match.team1, match.team2, currentScore]);
+  }, [match.tournament, match.title, match.sport, match.team1, match.team2, match.category, match.gender, currentScore]);
 
   const validUniqueServersCount = useMemo(() => {
     if (!match.servers || !Array.isArray(match.servers)) return 0;
@@ -284,6 +336,8 @@ function MatchCardInner({ match, isSelected, onSelect, score, compact }: MatchCa
       team1: displayTeam1,
       team2: displayTeam2,
       sport: match.sport,
+      category: match.category,
+      gender: match.gender,
       score: currentScore,
       validServersCount: validUniqueServersCount,
       servers: match.servers,
@@ -294,13 +348,14 @@ function MatchCardInner({ match, isSelected, onSelect, score, compact }: MatchCa
     displayTeam1,
     displayTeam2,
     match.sport,
+    match.category,
+    match.gender,
     currentScore,
     validUniqueServersCount,
     match.servers,
   ]);
 
   // GIAO DIỆN COMPACT: Dành riêng cho thanh bên (Sidebar / Rail) khi đang xem player
-  // Thiết kế dạng Scoreboard List tiện quét mắt tìm trận, thấy ngay giờ đá, tỉ số, đổi kênh tức thì
   if (compact) {
     return (
       <div
@@ -315,66 +370,106 @@ function MatchCardInner({ match, isSelected, onSelect, score, compact }: MatchCa
             onSelect(match);
           }
         }}
-        className={`group relative rounded-xl border cursor-pointer transition-all duration-150 p-2 sm:p-2.5 flex flex-col gap-1.5 overflow-hidden outline-none select-none ${
+        className={`group relative rounded-xl  cursor-pointer transition-all duration-150 p-2 sm:p-2.5 flex flex-col gap-1.5 overflow-hidden outline-none select-none ${
           isSelected
-            ? "bg-zinc-900/95 border-netflix-red ring-1 ring-netflix-red/40 shadow-md"
+            ? "bg-zinc-900/95   shadow-md"
             : featured.isFeatured
-            ? "bg-gradient-to-b from-rose-950/40 to-zinc-900/90 border-rose-500/50 hover:border-rose-500/70 shadow-md shadow-black/50 ring-1 ring-rose-500/20"
+            ? "bg-zinc-900/90 hover:bg-zinc-850/95  hover: shadow-md "
             : isConfirmedLive
-            ? "bg-zinc-900/70 hover:bg-zinc-850/90 border-white/[0.08] hover:border-white/20"
-            : "bg-zinc-900/50 hover:bg-zinc-850/80 border-white/[0.05] hover:border-white/15"
+            ? "bg-zinc-900/80 hover:bg-zinc-850/90 /[0.08] hover:"
+            : "bg-zinc-900/60 hover:bg-zinc-850/80 /[0.05] hover:"
         }`}
       >
-        {/* DÒNG 1: HEADER MINI (GIẢI ĐẤU, GIỜ ĐÁ & TRẠNG THÁI) */}
-        <div className="flex items-center justify-between text-[10.5px] text-zinc-400 gap-1.5 border-b border-white/[0.05] pb-1">
+        {/* DÒNG 1: HEADER MINI */}
+        <div className="flex items-center justify-between text-[10.5px] text-zinc-400 gap-1.5 /[0.05] pb-1">
           <span className="truncate font-medium flex items-center gap-1 min-w-0 flex-1">
             <span className="text-[11px] shrink-0">{getSportIcon(match.sport)}</span>
             <span className="truncate">{tournamentName}</span>
           </span>
 
-          <div className="flex items-center gap-1.5 shrink-0 font-mono">
-            {/* Giờ đá luôn hiện rõ nét */}
-            {kickoffTime && (
-              <span className="font-mono text-xs sm:text-[12.5px] font-bold text-amber-300 bg-white/10 px-1.5 py-0.5 rounded border border-white/15 shadow-sm leading-none">
-                {kickoffTime}
-              </span>
+          <div className="flex items-center gap-1.5 shrink-0 font-sans tabular-nums">
+            {timeInfo.state === "live" ? (
+              <>
+                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-400 leading-none">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+                  <span>{formatDisplayMinute(timeInfo.clockBadge)}</span>
+                </span>
+                {kickoffTime && (
+                  <span className="text-[10px] font-sans text-zinc-400 tabular-nums">
+                    {kickoffTime}
+                  </span>
+                )}
+              </>
+            ) : timeInfo.state === "ht" ? (
+              <>
+                <span className="text-[10px] font-bold text-amber-400 leading-none">
+                  HT
+                </span>
+                {kickoffTime && (
+                  <span className="text-[10px] font-sans text-zinc-400 tabular-nums">
+                    {kickoffTime}
+                  </span>
+                )}
+              </>
+            ) : timeInfo.state === "ft" ? (
+              <>
+                <span className="text-[10px] text-zinc-400 font-semibold leading-none">
+                  FT
+                </span>
+                {kickoffTime && (
+                  <span className="text-[10px] font-sans text-zinc-400 tabular-nums">
+                    {kickoffTime}
+                  </span>
+                )}
+              </>
+            ) : timeInfo.state === "special" ? (
+              <>
+                <span className="text-[10px] font-bold text-amber-400 leading-none">
+                  {timeInfo.clockBadge}
+                </span>
+                {kickoffTime && (
+                  <span className="text-[10px] font-sans text-zinc-400 tabular-nums">
+                    {kickoffTime}
+                  </span>
+                )}
+              </>
+            ) : (
+              /* Chưa bắt đầu (Upcoming) */
+              kickoffTime && (
+                <span className="font-sans text-xs font-semibold text-zinc-300 tabular-nums">
+                  {kickoffTime}
+                </span>
+              )
             )}
-            {isConfirmedLive ? (
-              <span className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded-full text-[9px] font-black uppercase tracking-wider bg-rose-500/20 text-rose-400">
-                <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
-                <span>LIVE</span>
-              </span>
-            ) : isFinished ? (
-              <span className="text-[9px] text-zinc-400 font-bold uppercase">FT</span>
-            ) : null}
             {featured.isFeatured && (
-              <span className="text-[9px] font-black text-white bg-gradient-to-r from-rose-600 to-red-600 px-1.5 py-0.2 rounded-full uppercase tracking-wider shadow-sm">
-                TÂM ĐIỂM
+              <span className="inline-flex items-center gap-0.5 text-[9px] font-bold text-rose-300 bg-rose-500/15 px-1.5 py-0.2 rounded-full uppercase tracking-wider">
+                <Flame size={9} className="text-rose-400 fill-rose-500/30" />
+                <span>Tâm điểm</span>
               </span>
             )}
           </div>
         </div>
 
-        {/* DÒNG 2: 2 ĐỘI BÓNG DẠNG SCOREBOARD MINI (DỄ QUÉT MẮT TÌM TRẬN NHẤT) */}
+        {/* DÒNG 2: 2 ĐỘI BÓNG DẠNG SCOREBOARD MINI */}
         {isTwoTeamMatch ? (
           <div className="space-y-1 py-0.5">
             {/* Đội Nhà */}
             <div className="flex items-center justify-between gap-1.5">
               <div className="flex items-center gap-1.5 min-w-0 flex-1">
-                <div className="w-4.5 h-4.5 rounded bg-zinc-800 p-0.5 flex items-center justify-center shrink-0 overflow-hidden">
+                <div className="w-5 h-5 flex items-center justify-center shrink-0">
                   {homeFlagEmoji ? (
-                    <CountryFlag emoji={homeFlagEmoji} className="w-3.5 h-3.5" />
+                    <CountryFlag emoji={homeFlagEmoji} className="w-4 h-4" />
                   ) : homeLogoSrc ? (
                     /* eslint-disable-next-line @next/next/no-img-element */
                     <img
                       src={homeLogoSrc}
                       alt=""
-                      className="w-full h-full object-contain"
+                      className="w-full h-full object-contain filter drop-shadow-sm"
                       onError={handleHomeImgError}
                       loading="lazy"
                     />
                   ) : (
-                    <TeamLogoFallback initials={getTeamInitials(displayTeam1)} color="rose" />
+                    <TeamLogoFallback initials={getTeamInitials(displayTeam1)} />
                   )}
                 </div>
                 <span
@@ -385,8 +480,8 @@ function MatchCardInner({ match, isSelected, onSelect, score, compact }: MatchCa
                   {displayTeam1}
                 </span>
               </div>
-              {currentScore?.team1Score !== undefined && (
-                <span className="font-mono text-xs font-bold text-zinc-200 tabular-nums shrink-0 px-1 rounded bg-white/5">
+              {shouldShowScore && currentScore?.team1Score !== undefined && (
+                <span className="font-sans text-xs font-bold text-white tabular-nums shrink-0 px-1">
                   {currentScore.team1Score}
                 </span>
               )}
@@ -395,20 +490,20 @@ function MatchCardInner({ match, isSelected, onSelect, score, compact }: MatchCa
             {/* Đội Khách */}
             <div className="flex items-center justify-between gap-1.5">
               <div className="flex items-center gap-1.5 min-w-0 flex-1">
-                <div className="w-4.5 h-4.5 rounded bg-zinc-800 p-0.5 flex items-center justify-center shrink-0 overflow-hidden">
+                <div className="w-5 h-5 flex items-center justify-center shrink-0">
                   {awayFlagEmoji ? (
-                    <CountryFlag emoji={awayFlagEmoji} className="w-3.5 h-3.5" />
+                    <CountryFlag emoji={awayFlagEmoji} className="w-4 h-4" />
                   ) : awayLogoSrc ? (
                     /* eslint-disable-next-line @next/next/no-img-element */
                     <img
                       src={awayLogoSrc}
                       alt=""
-                      className="w-full h-full object-contain"
+                      className="w-full h-full object-contain filter drop-shadow-sm"
                       onError={handleAwayImgError}
                       loading="lazy"
                     />
                   ) : (
-                    <TeamLogoFallback initials={getTeamInitials(displayTeam2)} color="sky" />
+                    <TeamLogoFallback initials={getTeamInitials(displayTeam2)} />
                   )}
                 </div>
                 <span
@@ -419,8 +514,8 @@ function MatchCardInner({ match, isSelected, onSelect, score, compact }: MatchCa
                   {displayTeam2}
                 </span>
               </div>
-              {currentScore?.team2Score !== undefined && (
-                <span className="font-mono text-xs font-bold text-zinc-200 tabular-nums shrink-0 px-1 rounded bg-white/5">
+              {shouldShowScore && currentScore?.team2Score !== undefined && (
+                <span className="font-sans text-xs font-bold text-white tabular-nums shrink-0 px-1">
                   {currentScore.team2Score}
                 </span>
               )}
@@ -433,7 +528,7 @@ function MatchCardInner({ match, isSelected, onSelect, score, compact }: MatchCa
         )}
 
         {/* DÒNG 3: FOOTER MINI (BLV & SỐ NGUỒN) */}
-        <div className="flex items-center justify-between text-xs text-zinc-400 pt-1.5 border-t border-white/[0.06]">
+        <div className="flex items-center justify-between text-xs text-zinc-400 pt-1.5 /[0.06]">
           <span className="truncate flex items-center gap-1.5 min-w-0 flex-1">
             <Mic className="w-3 h-3 text-zinc-500 shrink-0" />
             <span className="truncate text-[11px] sm:text-xs">
@@ -443,11 +538,11 @@ function MatchCardInner({ match, isSelected, onSelect, score, compact }: MatchCa
             </span>
           </span>
           <div className="flex items-center gap-1.5 shrink-0">
-            <span className="text-xs font-bold text-zinc-300 bg-white/5 px-2 py-0.5 rounded border border-white/10">
+            <span className="text-[11px] font-medium text-zinc-400 tabular-nums">
               {match.servers.length} nguồn
             </span>
             {isSelected && (
-              <span className="text-netflix-red font-black text-xs ml-1">Đang xem</span>
+              <span className="text-netflix-red font-bold text-xs ml-1">Đang xem</span>
             )}
           </div>
         </div>
@@ -469,44 +564,34 @@ function MatchCardInner({ match, isSelected, onSelect, score, compact }: MatchCa
           onSelect(match);
         }
       }}
-      className={`group relative rounded-xl border cursor-pointer transition-all duration-200 flex flex-col justify-between overflow-hidden outline-none select-none backdrop-blur-md ${
+      className={`group relative rounded-2xl  cursor-pointer transition-all duration-200 flex flex-col justify-between overflow-hidden outline-none select-none backdrop-blur-md ${
         isSelected
-          ? "bg-zinc-900/95 border-netflix-red/90 ring-1 ring-netflix-red/40 shadow-xl shadow-black/60"
+          ? "bg-zinc-900/95   shadow-xl shadow-black/60"
           : featured.isFeatured
-          ? "bg-gradient-to-b from-rose-950/40 via-zinc-900/90 to-zinc-950 border-rose-500/60 hover:border-rose-500/90 shadow-xl shadow-black/60 ring-1 ring-rose-500/30 hover:bg-zinc-850/90"
+          ? "bg-zinc-900/90 hover:bg-zinc-850/95  hover: shadow-lg shadow-black/40 "
           : isConfirmedLive
-          ? "bg-zinc-900/80 hover:bg-zinc-850/90 border-white/[0.08] hover:border-white/20 shadow-sm"
-          : "bg-zinc-900/60 hover:bg-zinc-850/80 border-white/[0.06] hover:border-white/15"
+          ? "bg-zinc-900/80 hover:bg-zinc-850/90 /[0.08] hover: shadow-md shadow-black/30"
+          : "bg-zinc-900/60 hover:bg-zinc-850/80 /[0.06] hover: shadow-sm"
       }`}
     >
-      {/* Dải sáng trên đỉnh thẻ (Top Crown Rim) cho trận Tâm điểm hoặc Đang chọn */}
+      {/* Top Crown Rim tinh tế */}
       <div
-        className={`absolute top-0 inset-x-0 h-[2px] pointer-events-none transition-opacity ${
+        className={`absolute top-0 inset-x-0 h-[1.5px] pointer-events-none transition-opacity ${
           isSelected
             ? "bg-gradient-to-r from-transparent via-netflix-red to-transparent opacity-100"
             : featured.isFeatured
-            ? "bg-gradient-to-r from-transparent via-rose-500 to-transparent opacity-100"
+            ? "bg-gradient-to-r from-transparent via-rose-500/60 to-transparent opacity-100"
             : "opacity-0"
         }`}
       />
 
-      {/* Ambient glow nhẹ tinh tế khi đang chọn xem */}
-      {isSelected && (
-        <div className="pointer-events-none absolute -top-8 -right-8 w-24 h-24 rounded-full blur-2xl transition-all bg-red-600/20" />
-      )}
-
-      {/* Ánh sáng ruby spotlight khuếch tán cho trận Tâm điểm */}
-      {featured.isFeatured && !isSelected && (
-        <div className="pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 w-48 h-20 bg-rose-500/25 blur-2xl transition-all" />
-      )}
-
-      <div className="p-3 sm:p-3.5 flex flex-col justify-between flex-1 gap-2.5 sm:gap-3">
-        {/* 1. HEADER: GIẢI ĐẤU & GIỜ ĐÁ + TRẠNG THÁI NỔI BẬT */}
-        <div className="flex items-center justify-between gap-1.5 pb-1.5 border-b border-white/[0.06] text-xs">
+      <div className="p-3 sm:p-3.5 flex flex-col justify-between flex-1 gap-2 sm:gap-2.5">
+        {/* 1. HEADER: GIẢI ĐẤU & HUY HIỆU TINH GỌN (KHÔNG VIỀN HỘP THÔ CỨNG) */}
+        <div className="flex items-center justify-between gap-1.5 pb-2 /[0.06] text-xs">
           {/* Tên giải đấu */}
           <div className="flex items-center gap-1.5 min-w-0 flex-1">
             <span
-              className={`transition-colors text-[11px] font-medium truncate flex items-center gap-1.5 ${
+              className={`transition-colors text-[11px] sm:text-xs font-medium truncate flex items-center gap-1.5 ${
                 featured.isFeatured ? "text-rose-200/90 font-semibold" : "text-zinc-400 group-hover:text-zinc-300"
               }`}
             >
@@ -515,233 +600,179 @@ function MatchCardInner({ match, isSelected, onSelect, score, compact }: MatchCa
             </span>
           </div>
 
-          {/* Góc phải Header: CÁC HUY HIỆU TRẠNG THÁI TINH GỌN */}
-          <div className="flex items-center gap-1.5 shrink-0">
-            {/* Trạng thái LIVE nếu đang đá */}
+          {/* Góc phải Header: Trạng thái & Huy hiệu (Typography thuần khiết) */}
+          <div className="flex items-center gap-2 shrink-0">
             {isConfirmedLive && (
-              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[11px] font-black uppercase tracking-wider bg-rose-500/20 border border-rose-500/35 text-rose-400">
-                <span className="relative flex h-1.5 w-1.5 shrink-0">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75" />
-                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-rose-500" />
-                </span>
+              <span className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-emerald-400">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
                 <span>LIVE</span>
               </span>
             )}
 
-            {/* Huy hiệu Tâm Điểm: Rực rỡ, cao cấp, nổi bật chuẩn Spotlight */}
             {featured.isFeatured && (
               <span
-                className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-bold tracking-wider bg-gradient-to-r from-rose-600 to-red-600 text-white shadow-md shadow-black/40 border border-rose-400/40 shrink-0"
+                className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold tracking-wider bg-rose-500/15 text-rose-300 shrink-0"
                 title={featured.badgeLabel || "Trận cầu tâm điểm"}
               >
-                <Flame size={11} className="text-amber-200 shrink-0 fill-amber-300" />
+                <Flame size={10} className="text-rose-400 shrink-0 fill-rose-500/30" />
                 <span>{featured.badgeLabel || "Tâm điểm"}</span>
               </span>
             )}
 
             {isFhd && (
-              <span className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400">
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500">
                 1080P
               </span>
             )}
           </div>
         </div>
 
-        {/* 2. BODY: BỐ CỤC ĐỐI XỨNG GỌN GÀNG (ĐỘI NHÀ — TRUNG TÂM — ĐỘI KHÁCH) */}
+        {/* 2. BODY: BỐ CỤC 3 CỘT CÂN ĐỐI TUYỆT ĐỐI (ROW-LOCK CHO LOGO VÀ TÊN ĐỘI) */}
         {isTwoTeamMatch ? (
-          <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-1.5 sm:gap-2 py-0.5">
+          <div className="grid grid-cols-[1fr_auto_1fr] items-start gap-2 sm:gap-3 py-1">
             {/* CỘT TRÁI: ĐỘI NHÀ */}
-            <div className="flex flex-col items-center text-center min-w-0 px-0.5">
-              {/* Logo Đội Nhà */}
-              <div
-                className={`w-10 h-10 sm:w-11 sm:h-11 md:w-12 md:h-12 rounded-xl p-1 flex items-center justify-center shrink-0 overflow-hidden transition-transform duration-200 group-hover:scale-105 ${
-                  featured.isFeatured
-                    ? "bg-rose-950/50 border border-rose-500/40 shadow-md shadow-black/40"
-                    : "bg-zinc-800/80 border border-white/10 shadow-sm"
-                }`}
-              >
-                {homeFlagEmoji ? (
-                  <CountryFlag emoji={homeFlagEmoji} className="w-5 h-5 sm:w-6 sm:h-6" />
-                ) : homeLogoSrc ? (
-                  /* eslint-disable-next-line @next/next/no-img-element */
-                  <img
-                    key={homeLogoSrc}
-                    src={homeLogoSrc}
-                    alt=""
-                    className="w-full h-full object-contain filter drop-shadow-sm"
-                    onError={handleHomeImgError}
-                    loading="lazy"
-                    referrerPolicy="no-referrer"
-                  />
+            <div className="flex flex-col items-center text-center min-w-0">
+              {/* Khu vực Logo cố định chiều cao h-12 (48px) để đồng trục 100% với Score và Logo Đội khách */}
+              <div className="h-12 w-full flex items-center justify-center">
+                <div className="w-11 h-11 sm:w-12 sm:h-12 flex items-center justify-center shrink-0 transition-transform duration-200 group-hover:scale-105">
+                  {homeFlagEmoji ? (
+                    <CountryFlag emoji={homeFlagEmoji} className="w-8 h-8 sm:w-9 sm:h-9" />
+                  ) : homeLogoSrc ? (
+                    /* eslint-disable-next-line @next/next/no-img-element */
+                    <img
+                      key={homeLogoSrc}
+                      src={homeLogoSrc}
+                      alt=""
+                      className="w-full h-full object-contain filter drop-shadow-md select-none"
+                      onError={handleHomeImgError}
+                      loading="lazy"
+                      referrerPolicy="no-referrer"
+                    />
+                  ) : (
+                    <TeamLogoFallback initials={getTeamInitials(displayTeam1)} />
+                  )}
+                </div>
+              </div>
+
+              {/* Khu vực Tên đội: cố định min-height 2 dòng để dù 1 dòng hay 2 dòng thì baseline vẫn thẳng tắp */}
+              <div className="min-h-[34px] sm:min-h-[36px] flex items-start justify-center mt-1.5 w-full">
+                <span
+                  className={`text-xs sm:text-[13px] font-semibold line-clamp-2 leading-tight transition-colors text-center max-w-[110px] sm:max-w-[130px] md:max-w-[150px] ${
+                    isSelected
+                      ? "text-white font-bold"
+                      : featured.isFeatured
+                      ? "text-white font-bold"
+                      : "text-zinc-200 group-hover:text-white"
+                  }`}
+                  title={displayTeam1}
+                >
+                  {displayTeam1}
+                </span>
+              </div>
+            </div>
+
+            {/* CỘT GIỮA: TRỌNG TÂM THỊ GIÁC (TỶ SỐ & THỜI GIAN THUẦN KHIẾT) */}
+            <div className="flex flex-col items-center min-w-[76px] sm:min-w-[88px] shrink-0 text-center select-none">
+              {/* Khu vực Tỷ số hoặc VS: cố định h-12 thẳng hàng ngang tuyệt đối với Logo 2 bên */}
+              <div className="h-12 flex items-center justify-center">
+                {shouldShowScore ? (
+                  <span className="font-sans text-2xl sm:text-3xl font-black tracking-wider tabular-nums text-white leading-none">
+                    {currentScore?.team1Score} - {currentScore?.team2Score}
+                  </span>
                 ) : (
-                  <TeamLogoFallback initials={getTeamInitials(displayTeam1)} color="rose" />
+                  <span className="font-sans tabular-nums text-xs sm:text-sm font-extrabold tracking-widest text-zinc-400 select-none">
+                    VS
+                  </span>
                 )}
               </div>
 
-              {/* Tên Đội Nhà */}
-              <span
-                className={`text-xs font-semibold line-clamp-2 leading-tight transition-colors mt-1.5 max-w-[110px] sm:max-w-[130px] md:max-w-[150px] text-center ${
-                  isSelected
-                    ? "text-white font-bold drop-shadow-sm"
-                    : featured.isFeatured
-                    ? "text-white font-bold drop-shadow-sm"
-                    : "text-zinc-200 group-hover:text-white"
-                }`}
-                title={displayTeam1}
-              >
-                {displayTeam1}
-              </span>
-            </div>
-
-            {/* CỘT GIỮA: TRỌNG TÂM THỊ GIÁC (CHỮ VS VÀ GIỜ ĐÁ / TỶ SỐ) */}
-            <div className="flex flex-col items-center justify-center gap-1 px-1 min-w-[64px] sm:min-w-[76px] shrink-0 text-center">
-              {isConfirmedLive ? (
-                <>
-                  {/* Tỷ số lớn (hoặc VS tinh tế nếu chưa có tỷ số) */}
-                  {currentScore?.team1Score !== undefined && currentScore?.team2Score !== undefined ? (
-                    <>
-                      <div
-                        className={`font-mono text-lg sm:text-xl font-black tracking-wider tabular-nums px-2.5 py-0.5 rounded-lg border ${
-                          isSelected
-                            ? "text-amber-300 bg-amber-500/15 border-amber-400/30"
-                            : featured.isFeatured
-                            ? "text-white bg-rose-500/15 border-rose-500/35 shadow-md shadow-black/40"
-                            : "text-white bg-white/[0.08] border-white/10"
-                        }`}
-                      >
-                        {currentScore.team1Score} - {currentScore.team2Score}
-                      </div>
-                      {kickoffTime && (
-                        <span className="font-mono text-xs sm:text-[13px] font-extrabold text-amber-300 bg-black/60 px-2 py-0.5 rounded-md border border-amber-400/30 tabular-nums leading-none shadow-sm mt-0.5">
-                          {kickoffTime}
-                        </span>
-                      )}
-                    </>
-                  ) : (
-                    <>
-                      <span
-                        className={`text-xs font-black tracking-widest px-2.5 py-0.5 rounded ${
-                          featured.isFeatured
-                            ? "text-rose-200 bg-rose-500/20 border border-rose-500/35 shadow-sm"
-                            : "text-zinc-400 bg-white/[0.06] border border-white/10"
-                        }`}
-                      >
-                        VS
-                      </span>
-                      {kickoffTime && (
-                        <span className="font-mono text-xs sm:text-[13px] font-extrabold text-amber-300 bg-black/60 px-2 py-0.5 rounded-md border border-white/20 tabular-nums leading-none shadow-sm">
-                          {kickoffTime}
-                        </span>
-                      )}
-                    </>
-                  )}
-                </>
-              ) : isFinished ? (
-                <>
-                  <span className="text-[11px] font-bold text-zinc-400 uppercase mb-0.5">
+              {/* Khu vực Thời gian bên dưới: cố định min-h, thẳng hàng với dòng tên đội bóng */}
+              <div className="min-h-[34px] sm:min-h-[36px] flex flex-col items-center justify-start mt-1.5 gap-1">
+                {/* Phút thi đấu hoặc trạng thái hiệp (chỉ hiển thị khi có phút cụ thể hoặc HT/FT) */}
+                {timeInfo.state === "live" && timeInfo.clockBadge && timeInfo.clockBadge !== "LIVE" ? (
+                  <span className="inline-flex items-center gap-1 font-sans tabular-nums text-[11px] sm:text-xs font-bold text-emerald-400 leading-none">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+                    <span>{formatDisplayMinute(timeInfo.clockBadge)}</span>
+                  </span>
+                ) : timeInfo.state === "ht" ? (
+                  <span className="font-sans tabular-nums text-[11px] sm:text-xs font-bold text-amber-400 leading-none">
+                    HT
+                  </span>
+                ) : timeInfo.state === "ft" ? (
+                  <span className="font-sans tabular-nums text-[11px] sm:text-xs font-semibold text-zinc-400 leading-none">
                     FT
                   </span>
-                  {currentScore?.team1Score !== undefined && currentScore?.team2Score !== undefined ? (
-                    <div className="font-mono text-base sm:text-lg font-bold text-zinc-300 tabular-nums px-2 py-0.5 rounded bg-white/[0.04]">
-                      {currentScore.team1Score} - {currentScore.team2Score}
-                    </div>
-                  ) : null}
-                  {kickoffTime && (
-                    <span className="font-mono text-xs font-bold text-zinc-300 tabular-nums mt-0.5">
-                      {kickoffTime}
-                    </span>
-                  )}
-                </>
-              ) : specialStatusLabel ? (
-                <>
-                  <span className="px-2 py-0.5 rounded-md bg-amber-500/15 border border-amber-500/30 text-amber-300 font-bold text-[11px] whitespace-nowrap">
-                    {specialStatusLabel}
+                ) : timeInfo.state === "special" ? (
+                  <span className="font-sans tabular-nums text-[11px] font-bold text-amber-400 leading-none">
+                    {timeInfo.clockBadge}
                   </span>
-                  {kickoffTime && (
-                    <span className="font-mono text-xs font-bold text-amber-300 tabular-nums mt-0.5">
-                      {kickoffTime}
-                    </span>
-                  )}
-                </>
-              ) : (
-                /* Trận sắp diễn ra: Chữ VS ở trên, Giờ đá ở dưới */
-                <>
-                  <span
-                    className={`text-xs font-black tracking-widest px-2.5 py-0.5 rounded ${
-                      featured.isFeatured
-                        ? "text-rose-200 bg-rose-500/20 border border-rose-500/30"
-                        : "text-zinc-400 bg-white/[0.05] border border-white/[0.08]"
-                    }`}
-                  >
-                    VS
+                ) : null}
+
+                {/* Giờ bắt đầu thuần túy (e.g. 21:30, 22:45) - không bao viền, màu trung tính */}
+                {kickoffTime && (
+                  <span className="font-sans text-[11px] sm:text-xs font-medium text-zinc-400 tabular-nums leading-none">
+                    {kickoffTime}
                   </span>
-                  {kickoffTime && (
-                    <span className="font-mono text-xs sm:text-[13px] font-extrabold text-amber-300 bg-black/60 px-2 py-0.5 rounded-md border border-white/20 tabular-nums leading-none shadow-sm">
-                      {kickoffTime}
-                    </span>
-                  )}
-                </>
-              )}
+                )}
+              </div>
             </div>
 
             {/* CỘT PHẢI: ĐỘI KHÁCH */}
-            <div className="flex flex-col items-center text-center min-w-0 px-0.5">
-              {/* Logo Đội Khách */}
-              <div
-                className={`w-10 h-10 sm:w-11 sm:h-11 md:w-12 md:h-12 rounded-xl p-1 flex items-center justify-center shrink-0 overflow-hidden transition-transform duration-200 group-hover:scale-105 ${
-                  featured.isFeatured
-                    ? "bg-rose-950/50 border border-rose-500/40 shadow-md shadow-black/40"
-                    : "bg-zinc-800/80 border border-white/10 shadow-sm"
-                }`}
-              >
-                {awayFlagEmoji ? (
-                  <CountryFlag emoji={awayFlagEmoji} className="w-5 h-5 sm:w-6 sm:h-6" />
-                ) : awayLogoSrc ? (
-                  /* eslint-disable-next-line @next/next/no-img-element */
-                  <img
-                    key={awayLogoSrc}
-                    src={awayLogoSrc}
-                    alt=""
-                    className="w-full h-full object-contain filter drop-shadow-sm"
-                    onError={handleAwayImgError}
-                    loading="lazy"
-                    referrerPolicy="no-referrer"
-                  />
-                ) : (
-                  <TeamLogoFallback initials={getTeamInitials(displayTeam2)} color="sky" />
-                )}
+            <div className="flex flex-col items-center text-center min-w-0">
+              {/* Khu vực Logo cố định chiều cao h-12 (48px) đồng trục tuyệt đối */}
+              <div className="h-12 w-full flex items-center justify-center">
+                <div className="w-11 h-11 sm:w-12 sm:h-12 flex items-center justify-center shrink-0 transition-transform duration-200 group-hover:scale-105">
+                  {awayFlagEmoji ? (
+                    <CountryFlag emoji={awayFlagEmoji} className="w-8 h-8 sm:w-9 sm:h-9" />
+                  ) : awayLogoSrc ? (
+                    /* eslint-disable-next-line @next/next/no-img-element */
+                    <img
+                      key={awayLogoSrc}
+                      src={awayLogoSrc}
+                      alt=""
+                      className="w-full h-full object-contain filter drop-shadow-md select-none"
+                      onError={handleAwayImgError}
+                      loading="lazy"
+                      referrerPolicy="no-referrer"
+                    />
+                  ) : (
+                    <TeamLogoFallback initials={getTeamInitials(displayTeam2)} />
+                  )}
+                </div>
               </div>
 
-              {/* Tên Đội Khách */}
-              <span
-                className={`text-xs font-semibold line-clamp-2 leading-tight transition-colors mt-1.5 max-w-[110px] sm:max-w-[130px] md:max-w-[150px] text-center ${
-                  isSelected
-                    ? "text-white font-bold drop-shadow-sm"
-                    : featured.isFeatured
-                    ? "text-white font-bold drop-shadow-sm"
-                    : "text-zinc-200 group-hover:text-white"
-                }`}
-                title={displayTeam2}
-              >
-                {displayTeam2}
-              </span>
+              {/* Khu vực Tên đội: cố định min-height 2 dòng */}
+              <div className="min-h-[34px] sm:min-h-[36px] flex items-start justify-center mt-1.5 w-full">
+                <span
+                  className={`text-xs sm:text-[13px] font-semibold line-clamp-2 leading-tight transition-colors text-center max-w-[110px] sm:max-w-[130px] md:max-w-[150px] ${
+                    isSelected
+                      ? "text-white font-bold"
+                      : featured.isFeatured
+                      ? "text-white font-bold"
+                      : "text-zinc-200 group-hover:text-white"
+                  }`}
+                  title={displayTeam2}
+                >
+                  {displayTeam2}
+                </span>
+              </div>
             </div>
           </div>
         ) : (
           /* KÈO SỰ KIỆN ĐƠN (HOẶC ĐUA XE / QUẦN VỢT / KÊNH 24/7) */
           <div className="flex items-center justify-between gap-2.5 py-1.5">
             <div className="flex items-center gap-2.5 min-w-0 flex-1">
-              <div className="w-8 h-8 rounded-lg bg-zinc-800 border border-white/15 flex items-center justify-center shrink-0 shadow-sm">
+              <div className="w-8 h-8 flex items-center justify-center shrink-0">
                 {match.logo && !logoError ? (
                   /* eslint-disable-next-line @next/next/no-img-element */
                   <img
                     src={toDarkModeLogoUrl(match.logo)}
                     alt=""
-                    className="w-5 h-5 object-contain"
+                    className="w-full h-full object-contain filter drop-shadow-md"
                     onError={() => setLogoError(true)}
                   />
                 ) : (
-                  <span className="text-sm">{getSportIcon(match.sport)}</span>
+                  <span className="text-base">{getSportIcon(match.sport)}</span>
                 )}
               </div>
               <strong className="text-xs sm:text-[13px] font-bold text-white line-clamp-2 flex-1 leading-tight">
@@ -750,54 +781,54 @@ function MatchCardInner({ match, isSelected, onSelect, score, compact }: MatchCa
             </div>
 
             {kickoffTime && (
-              <span className="font-mono text-xs sm:text-[13px] font-extrabold text-amber-300 px-2 py-0.5 rounded-md bg-black/60 border border-white/20 shrink-0 shadow-sm">
+              <span className="font-sans text-xs sm:text-[13px] font-semibold text-zinc-300 tabular-nums shrink-0">
                 {kickoffTime}
               </span>
             )}
           </div>
         )}
 
-        {/* 3. FOOTER: BLV & NGUỒN PHÁT (TINH GỌN, THANH MẢNH) */}
-        <div className="flex items-center justify-between gap-1.5 pt-1.5 border-t border-white/[0.06] text-[11px] text-zinc-400">
-          {/* Tên BLV */}
+        {/* 3. FOOTER: BLV & NGUỒN PHÁT + NÚT PLAY (KHÔNG VIỀN HỘP) */}
+        <div className="flex items-center justify-between gap-2 pt-2 /[0.06] text-[11px] text-zinc-400">
+          {/* Tên BLV / Nguồn phát bên trái */}
           <div className="flex items-center gap-1.5 min-w-0 flex-1 truncate">
             <Mic className="w-3 h-3 text-zinc-500 shrink-0" />
-            {match.blv ? (
-              <span className="text-zinc-400 group-hover:text-zinc-300 transition-colors font-medium truncate">
-                {(() => {
-                  const rawBlvs = match.blv
-                    .split(",")
-                    .map((b: string) => b.trim().replace(/^(?:blv|bình luận viên)\s+/i, ""))
-                    .filter((b: string) => Boolean(b) && !isOffensiveCommentatorName(b));
-                  if (rawBlvs.length === 0) {
-                    const isTrusted = /^(?:TV360|FPT Play|VTVcab|SCTV|K\+|HTV|VTV)\b/i.test(primaryGroup);
-                    return isTrusted ? primaryGroup : "BLV Trực Tiếp";
-                  }
-                  if (rawBlvs.length <= 2) return `BLV ${rawBlvs.join(", ")}`;
-                  return `BLV ${rawBlvs.slice(0, 2).join(", ")} (+${rawBlvs.length - 2})`;
-                })()}
-              </span>
-            ) : (
-              <span className="text-zinc-400 group-hover:text-zinc-300 transition-colors font-medium truncate">
-                {/^(?:TV360|FPT Play|VTVcab|SCTV|K\+|HTV|VTV)\b/i.test(primaryGroup)
-                  ? primaryGroup
-                  : "Bình luận trực tiếp"}
-              </span>
-            )}
+            <span className="text-zinc-400 group-hover:text-zinc-300 transition-colors font-medium truncate">
+              {(() => {
+                if (!match.blv) {
+                  return /^(?:TV360|FPT Play|VTVcab|SCTV|K\+|HTV|VTV)\b/i.test(primaryGroup)
+                    ? primaryGroup
+                    : "Bình luận trực tiếp";
+                }
+                const rawBlvs = match.blv
+                  .split(",")
+                  .map((b: string) => b.trim().replace(/^(?:blv|bình luận viên)\s+/i, ""))
+                  .filter((b: string) => Boolean(b) && !isOffensiveCommentatorName(b));
+                if (rawBlvs.length === 0) {
+                  return /^(?:TV360|FPT Play|VTVcab|SCTV|K\+|HTV|VTV)\b/i.test(primaryGroup)
+                    ? primaryGroup
+                    : "BLV Trực Tiếp";
+                }
+                if (rawBlvs.length <= 2) return `BLV ${rawBlvs.join(", ")}`;
+                return `BLV ${rawBlvs.slice(0, 2).join(", ")} (+${rawBlvs.length - 2})`;
+              })()}
+            </span>
           </div>
 
-          {/* Số nguồn & Hành động */}
+          {/* Số lượng nguồn phát & Nút Play bên phải */}
           <div className="flex items-center gap-2 shrink-0">
-            <span className="text-xs sm:text-[12.5px] font-bold text-zinc-200 bg-white/[0.08] hover:bg-white/[0.12] border border-white/15 px-2 py-0.5 rounded-md shadow-sm transition-colors">
+            <span className="text-[11px] font-medium text-zinc-400 tabular-nums">
               {match.servers.length} nguồn
             </span>
 
             {isSelected ? (
-              <span className="text-netflix-red font-black text-xs tracking-wide">
+              <span className="text-netflix-red font-bold text-xs tracking-wide">
                 Đang xem
               </span>
             ) : (
-              <Play className="w-3 h-3 text-zinc-400 group-hover:text-zinc-200 fill-current transition-colors" />
+              <div className="w-6 h-6 rounded-full bg-white/[0.06] group-hover:bg-netflix-red text-zinc-400 group-hover:text-white flex items-center justify-center transition-all shadow-sm">
+                <Play className="w-2.5 h-2.5 fill-current ml-0.5" />
+              </div>
             )}
           </div>
         </div>

@@ -109,7 +109,7 @@ export const MovieCastGallery: React.FC<MovieCastGalleryProps> = ({
       {/* SECTION HEADER */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="flex items-center justify-center w-5 h-5 rounded-md bg-rose-500/10 text-rose-400 border border-rose-500/20">
+          <span className="flex items-center justify-center w-5 h-5 rounded-md bg-rose-500/10 text-rose-400">
             <Users className="w-3.5 h-3.5" />
           </span>
           <h3 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-zinc-200">
@@ -131,7 +131,7 @@ export const MovieCastGallery: React.FC<MovieCastGalleryProps> = ({
             aria-label="Cuộn sang trái"
             className="hidden sm:flex absolute left-0 top-0 bottom-4 z-20 w-9 bg-gradient-to-r from-black/90 via-black/60 to-transparent items-center justify-start pl-1 text-white hover:text-rose-400 transition cursor-pointer group/btn"
           >
-            <div className="w-7 h-7 rounded-full bg-zinc-900/90 border border-white/20 flex items-center justify-center backdrop-blur-md shadow-lg group-hover/btn:scale-110 transition">
+            <div className="w-7 h-7 rounded-full bg-zinc-900/90 flex items-center justify-center backdrop-blur-md shadow-lg group-hover/btn:scale-110 transition">
               <ChevronLeft className="w-4 h-4" />
             </div>
           </button>
@@ -145,7 +145,7 @@ export const MovieCastGallery: React.FC<MovieCastGalleryProps> = ({
             aria-label="Cuộn sang phải"
             className="hidden sm:flex absolute right-0 top-0 bottom-4 z-20 w-9 bg-gradient-to-l from-black/90 via-black/60 to-transparent items-center justify-end pr-1 text-white hover:text-rose-400 transition cursor-pointer group/btn"
           >
-            <div className="w-7 h-7 rounded-full bg-zinc-900/90 border border-white/20 flex items-center justify-center backdrop-blur-md shadow-lg group-hover/btn:scale-110 transition">
+            <div className="w-7 h-7 rounded-full bg-zinc-900/90 flex items-center justify-center backdrop-blur-md shadow-lg group-hover/btn:scale-110 transition">
               <ChevronRight className="w-4 h-4" />
             </div>
           </button>
@@ -182,7 +182,7 @@ export const MovieCastGallery: React.FC<MovieCastGalleryProps> = ({
               className="group/card flex-none w-[100px] sm:w-[112px] md:w-[120px] transition-all duration-200 cursor-pointer flex flex-col text-left"
             >
               {/* ẢNH AVATAR CHÂN DUNG 3:4 VỚI FALLBACK CAO CẤP */}
-              <div className="relative aspect-[3/4] w-full rounded-xl bg-zinc-900 overflow-hidden border border-white/10 group-hover/card:border-white/30 shadow-md flex items-center justify-center group-hover/card:scale-[1.03] transition-transform duration-200">
+              <div className="relative aspect-[3/4] w-full rounded-xl bg-zinc-900 overflow-hidden group-hover/card: shadow-md flex items-center justify-center group-hover/card:scale-[1.03] transition-transform duration-200">
                 <ActorAvatar
                   name={actor.name}
                   avatarUrl={actor.avatarUrl}

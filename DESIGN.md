@@ -97,9 +97,8 @@ Nanaflix áp dụng ngôn ngữ thiết kế Dark-only điện ảnh cao cấp k
 
 ## Elevation & Depth
 
-- **Hairline Borders:** Sử dụng đường viền siêu mảnh `border border-white/10` (trạng thái hover: `border-white/25`) để phân tách không gian nhẹ nhàng mà không tạo cảm giác thô cứng.
-- **Bóng đổ & Chiều sâu:** Đổ bóng mềm nhiều tầng `shadow-xl shadow-black/50`, không dùng bóng viền thô cứng neobrutalist.
-- **Glassmorphism:** Sử dụng `backdrop-blur-md` kết hợp `bg-black/60` cho các badge nổi trên poster phim.
+- **Border is Exception, Not Default:** Mặc định không sử dụng border. Chỉ dùng khi có lý do UX rõ ràng (input, focus state, active state, divider cần thiết). Thay thế border trang trí bằng khoảng cách (spacing), sự tương phản nhẹ giữa các lớp nền tối (layered dark surfaces), bóng đổ cinematic mềm `shadow-xl shadow-black/60` và typography.
+- **Glassmorphism:** Sử dụng `backdrop-blur-md` kết hợp `bg-zinc-950/80` hoặc `bg-black/60` cho các badge nổi, popover và navigation, hòa nhập liền mạch vào nền phim ảnh.
 
 ## Shapes
 
@@ -111,10 +110,10 @@ Nanaflix áp dụng ngôn ngữ thiết kế Dark-only điện ảnh cao cấp k
 
 ## Components
 
-- **MediaCard:** Thẻ poster dọc `aspect-[2/3]`, hiệu ứng hover phóng to nhẹ `scale-[1.02]`, viền hairline `border-white/10`, badge chất lượng góc trên mờ nền `backdrop-blur-md`.
-- **MatchCard:** Thẻ thể thao ngang `aspect-video` hoặc dạng danh sách gọn, hiển thị tỷ số trực tiếp, thời gian thực, huy hiệu giải đấu và nút xem nhanh.
+- **MediaCard:** Thẻ poster dọc `aspect-[2/3]`, hiệu ứng hover phóng to nhẹ `scale-[1.02]`, hòa vào layout không cần viền đóng khung hộp (`border-0`), badge chất lượng góc trên mờ nền `backdrop-blur-md`.
+- **MatchCard:** Thẻ thể thao hiển thị tỷ số trực tiếp, thời gian thực, nền `bg-zinc-900/60` phân lớp với khoảng thở tự nhiên thay vì viền bao thô cứng.
 - **VideoPlayer:** Khung xem phim trung tâm, thanh điều khiển nổi tự động ẩn sau 3 giây, nút tua 10s, danh sách server và tập phim trượt ngang dễ chọn bằng ngón cái.
-- **Navbar & Navigation:** Cố định đỉnh màn hình với `backdrop-blur-lg bg-black/80`, viền đáy `border-b border-white/10`.
+- **Navbar & Navigation:** Cố định đỉnh màn hình với `backdrop-blur-lg bg-black/80`, loại bỏ viền đáy thô cứng hoặc dùng độ phân tầng tinh tế.
 
 ## Do's and Don'ts
 

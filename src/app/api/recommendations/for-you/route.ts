@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { normalizeMovie, formatGenreName } from "@/lib/movieMedia";
 import { movieApi } from "@/services/movieApi";
 import { cacheService } from "@/lib/cache";
+import {
+  enforceRateLimit,
+  buildRateLimitResponse,
+  RATE_LIMIT_PRESETS,
+} from "@/lib/rateLimit";
 
 export const maxDuration = 20;
 
@@ -503,6 +508,11 @@ const GUEST_THEMES = [
 
 export async function POST(req: NextRequest) {
   try {
+    const rateLimit = await enforceRateLimit(req, RATE_LIMIT_PRESETS.PUBLIC_READ);
+    if (!rateLimit.allowed) {
+      return buildRateLimitResponse(rateLimit);
+    }
+
     const body = await req.json();
     const {
       genres = [],

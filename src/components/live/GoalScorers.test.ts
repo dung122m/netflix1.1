@@ -179,4 +179,28 @@ describe("Goal Scorers Parsing & Layout Safeguard Tests", () => {
     assert.deepEqual(parseGoalScorers([], "home"), []);
     assert.deepEqual(parseGoalScorers(null as unknown as undefined, "away"), []);
   });
+
+  it("7. Correctly separates 2 sides for 2 teams (e.g. Atlanta United FC vs Toronto FC)", () => {
+    const events: MatchKeyEvent[] = [
+      { id: "1", type: "goal", typeText: "Goal", text: "Miguel Almirón goal", clock: "22", minute: 22, playerName: "Miguel Almirón", homeAway: "home" },
+      { id: "2", type: "goal", typeText: "Goal", text: "Cooper Sanchez goal", clock: "40", minute: 40, playerName: "Cooper Sanchez", homeAway: "home" },
+      { id: "3", type: "goal", typeText: "Goal", text: "Alexey Miranchuk goal", clock: "51", minute: 51, playerName: "Alexey Miranchuk", homeAway: "home" },
+      { id: "4", type: "goal", typeText: "Goal", text: "Lewis Morgan goal", clock: "79", minute: 79, playerName: "Lewis Morgan", homeAway: "away" },
+    ];
+
+    const homeScorers = parseGoalScorers(events, "home", "Atlanta United FC", "Atlanta United");
+    const awayScorers = parseGoalScorers(events, "away", "Toronto FC", "Toronto");
+
+    assert.equal(homeScorers.length, 3);
+    assert.deepEqual(homeScorers.map((s) => s.playerName), [
+      "Miguel Almirón",
+      "Cooper Sanchez",
+      "Alexey Miranchuk",
+    ]);
+
+    assert.equal(awayScorers.length, 1);
+    assert.equal(awayScorers[0].playerName, "Lewis Morgan");
+    assert.deepEqual(awayScorers[0].times, ["79'"]);
+  });
 });
+

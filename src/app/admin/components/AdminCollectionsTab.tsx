@@ -23,7 +23,7 @@ export const AdminCollectionsTab: React.FC<AdminCollectionsTabProps> = React.mem
   }) {
     return (
       <div className="space-y-4">
-        <div className="p-4 rounded-2xl bg-zinc-900/60 border border-white/10 backdrop-blur-sm flex flex-col md:flex-row md:items-center justify-between gap-3">
+        <div className="p-4 rounded-2xl bg-zinc-900/60 backdrop-blur-sm flex flex-col md:flex-row md:items-center justify-between gap-3">
           <div className="relative flex-1">
             <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400" />
             <input
@@ -31,7 +31,7 @@ export const AdminCollectionsTab: React.FC<AdminCollectionsTabProps> = React.mem
               value={colSearchQuery}
               onChange={(e) => setColSearchQuery(e.target.value)}
               placeholder="Tìm theo tên bộ sưu tập, người tạo..."
-              className="w-full bg-black/60 border border-white/10 rounded-xl pl-9 pr-4 py-2 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-netflix-red transition"
+              className="w-full bg-black/60 rounded-xl pl-9 pr-4 py-2 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-netflix-red transition"
             />
           </div>
           <div className="text-xs text-zinc-400">
@@ -40,7 +40,7 @@ export const AdminCollectionsTab: React.FC<AdminCollectionsTabProps> = React.mem
         </div>
 
         {filteredCollections.length === 0 ? (
-          <div className="p-12 text-center rounded-2xl bg-zinc-900/40 border border-white/10">
+          <div className="p-12 text-center rounded-2xl bg-zinc-900/40">
             <FolderHeart size={36} className="text-zinc-600 mx-auto mb-2" />
             <p className="text-sm font-semibold text-zinc-300">Chưa có bộ sưu tập công khai nào</p>
             <p className="text-xs text-zinc-500 mt-1">Khi người dùng chia sẻ bộ sưu tập lên cộng đồng, chúng sẽ xuất hiện ở đây.</p>
@@ -50,11 +50,11 @@ export const AdminCollectionsTab: React.FC<AdminCollectionsTabProps> = React.mem
             {filteredCollections.map((col) => (
               <div
                 key={col.id}
-                className="p-5 rounded-2xl bg-zinc-900/60 border border-white/10 hover:border-white/20 transition backdrop-blur-sm flex flex-col justify-between space-y-4 group"
+                className="p-5 rounded-2xl bg-zinc-900/60 hover: transition backdrop-blur-sm flex flex-col justify-between space-y-4 group"
               >
                 <div>
                   <div className="flex items-center justify-between gap-2 mb-2">
-                    <span className="text-xs font-bold text-amber-400 px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20">
+                    <span className="text-xs font-bold text-amber-400 px-2 py-0.5 rounded-full bg-amber-500/10">
                       {col.movies?.length || 0} phim
                     </span>
                     <span className="text-[10px] text-zinc-500">{formatDate(col.updatedAt)}</span>
@@ -70,7 +70,7 @@ export const AdminCollectionsTab: React.FC<AdminCollectionsTabProps> = React.mem
                   </p>
                 </div>
 
-                <div className="flex items-center gap-2 pt-3 border-t border-white/10">
+                <div className="flex items-center gap-2 pt-3 border-t">
                   <Link
                     href={`/collection/${col.id}`}
                     target="_blank"

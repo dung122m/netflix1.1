@@ -58,9 +58,9 @@ export const AdminMemberDetailModal: React.FC<AdminMemberDetailModalProps> = Rea
 
     return (
       <div className="fixed inset-0 z-[150] flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
-        <div className="max-w-2xl w-full bg-zinc-950 border border-white/15 rounded-3xl p-4 sm:p-6 shadow-2xl space-y-4 sm:space-y-5 max-h-[92vh] flex flex-col overflow-hidden">
+        <div className="max-w-2xl w-full bg-zinc-950 rounded-3xl p-4 sm:p-6 shadow-2xl space-y-4 sm:space-y-5 max-h-[92vh] flex flex-col overflow-hidden">
           {/* Header */}
-          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 pb-3 sm:pb-4 border-b border-white/10 flex-shrink-0">
+          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 pb-3 sm:pb-4 border-b flex-shrink-0">
             <div className="flex items-start justify-between sm:justify-start gap-3 min-w-0 w-full sm:w-auto">
               <UserAvatar
                 src={selectedMember.photoURL || undefined}
@@ -68,7 +68,7 @@ export const AdminMemberDetailModal: React.FC<AdminMemberDetailModalProps> = Rea
                 seed={selectedMember.uid || selectedMember.displayName}
                 sizeClassName="w-10 h-10 sm:w-12 sm:h-12 text-sm sm:text-base font-bold"
                 rounded="2xl"
-                className="border border-white/15 shadow-md"
+                className="shadow-md"
               />
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-1.5 flex-wrap">
@@ -76,43 +76,43 @@ export const AdminMemberDetailModal: React.FC<AdminMemberDetailModalProps> = Rea
                     {selectedMember.displayName}
                   </h2>
                   {selectedMember.role === "admin" && (
-                    <span className="text-[9px] sm:text-[10px] px-1.5 sm:px-2 py-0.2 rounded-full bg-amber-500/20 text-amber-300 font-bold border border-amber-500/30 flex-shrink-0">
+                    <span className="text-[9px] sm:text-[10px] px-1.5 sm:px-2 py-0.2 rounded-full bg-amber-500/20 text-amber-300 font-bold flex-shrink-0">
                       👑 Admin
                     </span>
                   )}
                   {selectedMember.isWatchingNow ? (
-                    <span className="text-[9px] sm:text-[10px] px-1.5 sm:px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30 flex items-center gap-1 flex-shrink-0">
+                    <span className="text-[9px] sm:text-[10px] px-1.5 sm:px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-bold flex items-center gap-1 flex-shrink-0">
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
                       Đang xem
                     </span>
                   ) : selectedMember.isOnline ? (
-                    <span className="text-[9px] sm:text-[10px] px-1.5 sm:px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30 flex items-center gap-1 flex-shrink-0">
+                    <span className="text-[9px] sm:text-[10px] px-1.5 sm:px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-bold flex items-center gap-1 flex-shrink-0">
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
                       Online
                     </span>
                   ) : (
-                    <span className="text-[9px] sm:text-[10px] px-1.5 sm:px-2 py-0.5 rounded-full bg-zinc-800 text-zinc-400 border border-white/5 flex-shrink-0">
+                    <span className="text-[9px] sm:text-[10px] px-1.5 sm:px-2 py-0.5 rounded-full bg-zinc-800 text-zinc-400 flex-shrink-0">
                       Ngoại tuyến
                     </span>
                   )}
                   {selectedMember.isCommentRestricted && (
-                    <span className="text-[9px] sm:text-[10px] px-1.5 sm:px-2 py-0.5 rounded-full bg-red-500/20 text-red-300 font-bold border border-red-500/30 flex items-center gap-1 flex-shrink-0">
+                    <span className="text-[9px] sm:text-[10px] px-1.5 sm:px-2 py-0.5 rounded-full bg-red-500/20 text-red-300 font-bold flex items-center gap-1 flex-shrink-0">
                       <Ban size={10} />
                       <span>Bị khóa cmt</span>
                     </span>
                   )}
                   {selectedMember.violationsCount && selectedMember.violationsCount > 0 ? (
-                    <span className="text-[9px] sm:text-[10px] px-1.5 sm:px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-semibold border border-amber-500/30 flex-shrink-0">
+                    <span className="text-[9px] sm:text-[10px] px-1.5 sm:px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-semibold flex-shrink-0">
                       ⚠️ {selectedMember.violationsCount} vi phạm
                     </span>
                   ) : null}
                 </div>
                 <p className="text-[11px] sm:text-xs text-zinc-400 truncate mt-0.5">{selectedMember.email || "Chưa có email"}</p>
-                <p className="text-[10px] sm:text-[11px] text-zinc-500 font-mono mt-0.5 truncate max-w-[200px] sm:max-w-none">UID: {selectedMember.uid}</p>
+                <p className="text-[10px] sm:text-[11px] text-zinc-500 font-sans tabular-nums mt-0.5 truncate max-w-[200px] sm:max-w-none">UID: {selectedMember.uid}</p>
                 {(selectedMember.approximateLocation?.country || selectedMember.deviceInfo?.deviceType) && (
                   <div className="flex items-center gap-1.5 flex-wrap mt-1.5 text-[10px] sm:text-[11px]">
                     {selectedMember.approximateLocation?.country && (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-teal-500/15 border border-teal-500/30 text-teal-300 font-medium">
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-teal-500/15 text-teal-300 font-medium">
                         <MapPin size={10} className="text-teal-400 flex-shrink-0" />
                         <span>
                           {selectedMember.approximateLocation.city
@@ -149,8 +149,8 @@ export const AdminMemberDetailModal: React.FC<AdminMemberDetailModalProps> = Rea
                 onClick={() => onToggleCommentBan(selectedMember)}
                 className={`flex-1 sm:flex-none px-3 py-1.5 rounded-xl border text-xs font-semibold transition cursor-pointer flex items-center justify-center gap-1.5 ${
                   selectedMember.isCommentRestricted
-                    ? "bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border-emerald-500/30"
-                    : "bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border-amber-500/30"
+                    ? "bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 "
+                    : "bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 "
                 }`}
               >
                 {selectedMember.isCommentRestricted ? <ShieldCheck size={14} /> : <Ban size={14} />}
@@ -169,7 +169,7 @@ export const AdminMemberDetailModal: React.FC<AdminMemberDetailModalProps> = Rea
           </div>
 
           {/* Quick Member Overview Bar */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 p-3 rounded-2xl bg-white/[0.03] border border-white/5 text-xs flex-shrink-0">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 p-3 rounded-2xl bg-white/[0.03] text-xs flex-shrink-0">
             <div className="flex items-center gap-2 min-w-0">
               <Clock size={14} className="text-emerald-400 flex-shrink-0" />
               <div className="min-w-0">
@@ -218,7 +218,7 @@ export const AdminMemberDetailModal: React.FC<AdminMemberDetailModalProps> = Rea
           </div>
 
           {/* Modal Tabs */}
-          <div className="flex items-center gap-1.5 sm:gap-2 border-b border-white/10 pb-2 flex-shrink-0 overflow-x-auto no-scrollbar scrollbar-none">
+          <div className="flex items-center gap-1.5 sm:gap-2 border-b pb-2 flex-shrink-0 overflow-x-auto no-scrollbar scrollbar-none">
             <button
               type="button"
               onClick={() => setMemberDetailTab("comments")}
@@ -281,7 +281,7 @@ export const AdminMemberDetailModal: React.FC<AdminMemberDetailModalProps> = Rea
                     {userComms.map((c) => (
                       <div
                         key={c.id}
-                        className="p-3.5 rounded-xl bg-white/[0.03] border border-white/5 space-y-2 text-xs"
+                        className="p-3.5 rounded-xl bg-white/[0.03] space-y-2 text-xs"
                       >
                         <div className="flex items-center justify-between gap-2">
                           <div className="flex items-center gap-2 flex-wrap">
@@ -308,7 +308,7 @@ export const AdminMemberDetailModal: React.FC<AdminMemberDetailModalProps> = Rea
                         </div>
 
                         {c.isFlagged && (
-                          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-300 text-[11px]">
+                          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/10 text-amber-300 text-[11px]">
                             <ShieldCheck size={13} className="flex-shrink-0 text-amber-400" />
                             <span>Bình luận này đã bị báo cáo vi phạm.</span>
                           </div>
@@ -316,7 +316,7 @@ export const AdminMemberDetailModal: React.FC<AdminMemberDetailModalProps> = Rea
 
                         {c.rating > 0 && <StarRating value={c.rating} size="sm" readOnly />}
 
-                        <p className="text-zinc-300 bg-black/40 p-2.5 rounded-lg border border-white/5">
+                        <p className="text-zinc-300 bg-black/40 p-2.5 rounded-lg">
                           &ldquo;{c.content}&rdquo;
                         </p>
 
@@ -360,7 +360,7 @@ export const AdminMemberDetailModal: React.FC<AdminMemberDetailModalProps> = Rea
                   {memberHistory.map((item, idx) => (
                     <div
                       key={item.slug || idx}
-                      className="p-3 rounded-xl bg-white/[0.03] border border-white/5 flex items-center justify-between gap-3 text-xs"
+                      className="p-3 rounded-xl bg-white/[0.03] flex items-center justify-between gap-3 text-xs"
                     >
                       <div className="min-w-0">
                         <p className="font-bold text-white truncate">{item.title || item.slug}</p>
@@ -391,7 +391,7 @@ export const AdminMemberDetailModal: React.FC<AdminMemberDetailModalProps> = Rea
                   {memberWatchlist.map((item, idx) => (
                     <div
                       key={item.slug || idx}
-                      className="p-3 rounded-xl bg-white/[0.03] border border-white/5 flex items-center justify-between gap-3 text-xs"
+                      className="p-3 rounded-xl bg-white/[0.03] flex items-center justify-between gap-3 text-xs"
                     >
                       <div className="min-w-0">
                         <p className="font-bold text-white truncate">{item.title || item.slug}</p>

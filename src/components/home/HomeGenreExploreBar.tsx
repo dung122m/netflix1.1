@@ -71,7 +71,7 @@ export function HomeGenreExploreBar() {
       {/* 1. Header có phân cấp rõ ràng */}
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl bg-netflix-red/15 border border-netflix-red/30 flex items-center justify-center text-netflix-red shadow-sm flex-shrink-0">
+          <div className="w-8 h-8 rounded-xl bg-netflix-red/15 flex items-center justify-center text-netflix-red shadow-sm flex-shrink-0">
             <Compass className="w-4 h-4" />
           </div>
           <div>
@@ -93,8 +93,8 @@ export function HomeGenreExploreBar() {
             aria-label="Cuộn thể loại sang trái"
             className={`hidden sm:flex w-7 h-7 rounded-lg items-center justify-center transition-all duration-200 outline-none select-none ${
               canScrollLeft
-                ? "bg-zinc-900/90 border border-white/15 hover:border-white/35 hover:bg-zinc-800 text-zinc-200 hover:text-white shadow-sm hover:scale-105 active:scale-95 cursor-pointer"
-                : "opacity-25 pointer-events-none bg-zinc-950/50 border border-white/5 text-zinc-600 cursor-default"
+                ? "bg-zinc-900/90 hover:bg-zinc-800 text-zinc-200 hover:text-white shadow-sm hover:scale-105 active:scale-95 cursor-pointer"
+                : "opacity-25 pointer-events-none bg-zinc-950/50 text-zinc-600 cursor-default"
             }`}
           >
             <ChevronLeft size={15} />
@@ -106,8 +106,8 @@ export function HomeGenreExploreBar() {
             aria-label="Cuộn thể loại sang phải"
             className={`hidden sm:flex w-7 h-7 rounded-lg items-center justify-center transition-all duration-200 outline-none select-none ${
               canScrollRight
-                ? "bg-zinc-900/90 border border-white/15 hover:border-white/35 hover:bg-zinc-800 text-zinc-200 hover:text-white shadow-sm hover:scale-105 active:scale-95 cursor-pointer"
-                : "opacity-25 pointer-events-none bg-zinc-950/50 border border-white/5 text-zinc-600 cursor-default"
+                ? "bg-zinc-900/90 hover:bg-zinc-800 text-zinc-200 hover:text-white shadow-sm hover:scale-105 active:scale-95 cursor-pointer"
+                : "opacity-25 pointer-events-none bg-zinc-950/50 text-zinc-600 cursor-default"
             }`}
           >
             <ChevronRight size={15} />
@@ -115,7 +115,7 @@ export function HomeGenreExploreBar() {
 
           <Link
             href="/browse"
-            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 text-xs font-semibold text-zinc-300 hover:text-white transition group"
+            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] text-xs font-semibold text-zinc-300 hover:text-white transition group"
           >
             <span>Kho phim</span>
             <ChevronRight className="w-3.5 h-3.5 text-netflix-red group-hover:translate-x-0.5 transition-transform" />
@@ -136,7 +136,7 @@ export function HomeGenreExploreBar() {
               className={`inline-flex items-center px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap flex-shrink-0 cursor-pointer transition-all duration-200 active:scale-95 ${
                 chip.isAll
                   ? "bg-white text-black font-bold shadow-sm hover:bg-zinc-200"
-                  : "bg-white/[0.06] hover:bg-white/[0.14] text-zinc-300 hover:text-white border border-white/10 hover:border-white/25"
+                  : "bg-white/[0.06] hover:bg-white/[0.14] text-zinc-300 hover:text-white"
               }`}
             >
               {chip.label}

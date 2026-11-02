@@ -1,10 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { movieApi } from "@/services/movies/service";
 import { pickBestMoviePoster, pickBestMovieThumb, detectMovieTypeName } from "@/lib/movieMedia";
+import {
+  enforceRateLimit,
+  buildRateLimitResponse,
+  RATE_LIMIT_PRESETS,
+} from "@/lib/rateLimit";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
+  const rateLimit = await enforceRateLimit(req, RATE_LIMIT_PRESETS.PUBLIC_READ);
+  if (!rateLimit.allowed) {
+    return buildRateLimitResponse(rateLimit);
+  }
+
   try {
     const { searchParams } = new URL(req.url);
     const slugsParam = searchParams.get("slugs") || searchParams.get("slug") || "";
@@ -67,7 +77,14 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    return NextResponse.json({ success: true, movies });
+    return NextResponse.json(
+      { success: true, movies },
+      {
+        headers: {
+          "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400",
+        },
+      }
+    );
   } catch (err) {
     console.error("[api/movies/meta] Lỗi lấy metadata phim:", err);
     return NextResponse.json({ success: false, error: "Internal error" }, { status: 500 });

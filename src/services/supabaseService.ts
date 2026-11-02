@@ -496,10 +496,17 @@ export async function deleteCommentSupabase(commentId: string): Promise<void> {
 export async function flagCommentSupabase(commentId: string, reason: string): Promise<void> {
   if (!commentId) return;
   try {
+    const { auth } = await import("@/lib/firebase");
+    const token = await auth?.currentUser?.getIdToken().catch(() => null);
+    if (!token) return;
+
     const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
     await fetch(`${baseUrl}/api/comments`, {
       method: "PATCH",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
       body: JSON.stringify({ commentId, reason, action: "flag" }),
     });
   } catch (err) {

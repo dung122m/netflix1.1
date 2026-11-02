@@ -104,15 +104,15 @@ export const NavMobileMenu: React.FC<NavMobileMenuProps> = React.memo(function N
       />
       <div
         data-mobile-menu
-        className="relative w-full z-50 lg:hidden border-t border-white/10 bg-black/98 backdrop-blur-2xl px-3.5 py-3 animate-in slide-in-from-top duration-200 overflow-y-auto shadow-2xl overscroll-contain max-h-[calc(100dvh-3.5rem-env(safe-area-inset-bottom,0px))] pb-20"
+        className="relative w-full z-50 lg:hidden bg-black/98 backdrop-blur-2xl px-3.5 py-3 animate-in slide-in-from-top duration-200 overflow-y-auto shadow-2xl overscroll-contain max-h-[calc(100dvh-3.5rem-env(safe-area-inset-bottom,0px))] pb-20"
         style={{ WebkitOverflowScrolling: "touch" }}
       >
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-2.5">
         {/* TÀI KHOẢN NGƯỜI DÙNG */}
-        <div className="p-3 rounded-2xl bg-white/[0.04] border border-white/10">
+        <div className="p-3 rounded-2xl bg-white/[0.04]">
           {loading ? (
             <div className="flex items-center gap-3 animate-pulse py-1">
-              <div className="w-10 h-10 rounded-full bg-white/10 border border-white/15 flex-shrink-0" />
+              <div className="w-10 h-10 rounded-full bg-white/10 flex-shrink-0" />
               <div className="flex-1 space-y-1.5 min-w-0">
                 <div className="h-4 w-28 bg-white/10 rounded" />
                 <div className="h-3 w-40 bg-white/5 rounded" />
@@ -125,7 +125,7 @@ export const NavMobileMenu: React.FC<NavMobileMenuProps> = React.memo(function N
                   src={effectiveAvatar || undefined}
                   name={effectiveDisplayName || user.email}
                   sizeClassName="w-10 h-10 text-sm font-bold"
-                  className="border-2 border-white/20 shadow-lg"
+                  className="shadow-lg"
                 />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-bold text-white truncate">
@@ -135,7 +135,7 @@ export const NavMobileMenu: React.FC<NavMobileMenuProps> = React.memo(function N
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-2 pt-2.5 border-t border-white/10">
+              <div className="grid grid-cols-2 gap-2 pt-2">
                 <button
                   type="button"
                   onClick={() => {
@@ -145,7 +145,7 @@ export const NavMobileMenu: React.FC<NavMobileMenuProps> = React.memo(function N
                       window.dispatchEvent(new CustomEvent("open-user-profile"));
                     }
                   }}
-                  className="flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-xl text-xs font-semibold text-zinc-200 bg-white/5 hover:bg-white/10 border border-white/10 transition active:scale-95 cursor-pointer shadow-sm"
+                  className="flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-xl text-xs font-semibold text-zinc-200 bg-white/5 hover:bg-white/10 transition active:scale-95 cursor-pointer shadow-sm"
                 >
                   <User size={13} className="text-red-400 shrink-0" />
                   <span className="truncate">Hồ sơ</span>
@@ -153,7 +153,7 @@ export const NavMobileMenu: React.FC<NavMobileMenuProps> = React.memo(function N
                 <Link
                   href="/my-list?tab=comments"
                   onClick={onClose}
-                  className="flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-xl text-xs font-semibold text-rose-300 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 transition active:scale-95 cursor-pointer shadow-sm"
+                  className="flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-xl text-xs font-semibold text-rose-300 bg-rose-500/15 hover:bg-rose-500/25 transition active:scale-95 cursor-pointer shadow-sm"
                 >
                   <MessageSquare size={13} className="text-rose-400 shrink-0" />
                   <span className="truncate">Bình luận</span>
@@ -162,7 +162,7 @@ export const NavMobileMenu: React.FC<NavMobileMenuProps> = React.memo(function N
                   <Link
                     href="/admin"
                     onClick={onClose}
-                    className="flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-xl text-xs font-bold text-amber-300 bg-amber-500/15 border border-amber-500/30 hover:bg-amber-500/25 transition active:scale-95 shadow-sm"
+                    className="flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-xl text-xs font-bold text-amber-300 bg-amber-500/20 hover:bg-amber-500/30 transition active:scale-95 shadow-sm"
                   >
                     <ShieldCheck size={13} className="text-amber-400 shrink-0" />
                     <span className="truncate">Admin</span>
@@ -174,7 +174,7 @@ export const NavMobileMenu: React.FC<NavMobileMenuProps> = React.memo(function N
                     onClose();
                     await logout();
                   }}
-                  className={`flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-xl text-xs font-semibold text-red-400 bg-red-500/10 border border-red-500/20 hover:bg-red-500/20 transition active:scale-95 cursor-pointer shadow-sm ${!isUserAdmin(user?.email) ? "col-span-2" : ""
+                  className={`flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-xl text-xs font-semibold text-red-400 bg-red-500/15 hover:bg-red-500/25 transition active:scale-95 cursor-pointer shadow-sm ${!isUserAdmin(user?.email) ? "col-span-2" : ""
                     }`}
                 >
                   <LogOut size={13} className="shrink-0" />
@@ -220,9 +220,9 @@ export const NavMobileMenu: React.FC<NavMobileMenuProps> = React.memo(function N
                 );
               }
             }}
-            className="col-span-2 flex items-center gap-2.5 p-2.5 rounded-2xl bg-gradient-to-r from-amber-500/20 via-orange-500/25 to-rose-500/20 border border-amber-500/40 hover:border-amber-400/70 text-white transition-all text-left active:scale-[0.98] cursor-pointer shadow-sm shadow-black/50"
+            className="col-span-2 flex items-center gap-2.5 p-2.5 rounded-2xl bg-gradient-to-r from-amber-500/20 via-orange-500/25 to-rose-500/20 text-white transition-all text-left active:scale-[0.98] cursor-pointer shadow-sm shadow-black/50"
           >
-            <div className="w-9 h-9 rounded-xl bg-amber-500/25 text-amber-200 flex items-center justify-center shrink-0 border border-amber-400/40 shadow-inner">
+            <div className="w-9 h-9 rounded-xl bg-amber-500/25 text-amber-200 flex items-center justify-center shrink-0 shadow-inner">
               <Dices size={18} className="text-amber-300" />
             </div>
             <div className="min-w-0 flex-1">
@@ -240,9 +240,9 @@ export const NavMobileMenu: React.FC<NavMobileMenuProps> = React.memo(function N
                 window.dispatchEvent(new CustomEvent("open-pwa-install"));
               }
             }}
-            className="flex items-center gap-2.5 p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/25 hover:bg-emerald-500/20 text-white transition text-left active:scale-[0.98] cursor-pointer"
+            className="flex items-center gap-2.5 p-2.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-white transition text-left active:scale-[0.98] cursor-pointer"
           >
-            <div className="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-500/30">
+            <div className="w-8 h-8 rounded-lg bg-emerald-500/25 text-emerald-400 flex items-center justify-center shrink-0">
               <Smartphone size={16} />
             </div>
             <div className="min-w-0 flex-1">
@@ -255,9 +255,9 @@ export const NavMobileMenu: React.FC<NavMobileMenuProps> = React.memo(function N
           <Link
             href="/my-list?tab=history"
             onClick={onClose}
-            className="flex items-center gap-2.5 p-2.5 rounded-xl bg-zinc-900 border border-white/10 hover:bg-white/5 text-white transition text-left active:scale-[0.98]"
+            className="flex items-center gap-2.5 p-2.5 rounded-xl bg-zinc-900/90 hover:bg-zinc-800 text-white transition text-left active:scale-[0.98]"
           >
-            <div className="w-8 h-8 rounded-lg bg-red-600/20 text-red-400 flex items-center justify-center shrink-0 border border-red-500/20">
+            <div className="w-8 h-8 rounded-lg bg-red-600/20 text-red-400 flex items-center justify-center shrink-0">
               <History size={16} />
             </div>
             <div className="min-w-0 flex-1">
@@ -281,7 +281,7 @@ export const NavMobileMenu: React.FC<NavMobileMenuProps> = React.memo(function N
                 );
               }
             }}
-            className="w-full text-xs font-semibold py-2 px-3 text-amber-200 hover:text-white flex items-center justify-between rounded-xl bg-gradient-to-r from-red-950/40 to-amber-950/30 hover:bg-red-900/30 border border-red-500/30 transition text-left cursor-pointer shadow-sm active:scale-[0.98]"
+            className="w-full text-xs font-semibold py-2 px-3 text-amber-200 hover:text-white flex items-center justify-between rounded-xl bg-gradient-to-r from-red-950/40 to-amber-950/30 hover:bg-red-900/30 transition text-left cursor-pointer shadow-sm active:scale-[0.98]"
           >
             <div className="flex items-center gap-2 min-w-0 flex-1">
               <span className="text-base leading-none shrink-0">📜</span>
@@ -292,7 +292,7 @@ export const NavMobileMenu: React.FC<NavMobileMenuProps> = React.memo(function N
         )}
 
         {/* DANH MỤC ĐIỀU HƯỚNG GRID 2 CỘT */}
-        <div className="grid grid-cols-2 gap-1.5 pt-1 border-t border-white/10">
+        <div className="grid grid-cols-2 gap-1.5 pt-1">
           {navLinks.map((link) => {
             const active = isLinkActive(link.type);
             const IconComp = link.icon;
@@ -304,8 +304,8 @@ export const NavMobileMenu: React.FC<NavMobileMenuProps> = React.memo(function N
                 prefetch={true}
                 onClick={onClose}
                 className={`text-xs font-semibold py-2.5 px-3 transition-all flex items-center gap-2 rounded-xl min-w-0 ${active
-                    ? "text-white font-bold bg-netflix-red/30 border border-netflix-red/40 shadow-sm"
-                    : "text-zinc-300 hover:text-white bg-white/[0.04] hover:bg-white/10 border border-white/5"
+                    ? "text-white font-bold bg-netflix-red/30 shadow-sm"
+                    : "text-zinc-300 hover:text-white bg-white/[0.04] hover:bg-white/10"
                   }`}
               >
                 <IconComp
@@ -330,7 +330,7 @@ export const NavMobileMenu: React.FC<NavMobileMenuProps> = React.memo(function N
         </div>
 
         {/* ACCENT STUDIO MOBILE SELECTOR */}
-        <div className="border-t border-white/10 pt-2 mt-1 p-2.5 rounded-2xl bg-white/[0.03] border border-white/5 space-y-2">
+        <div className="pt-2 mt-1 p-2.5 rounded-2xl bg-white/[0.03] space-y-2">
           <div className="flex items-center justify-between text-xs">
             <div className="flex items-center gap-1.5 font-bold text-zinc-200">
               <Palette size={14} className="text-pink-400" />
@@ -353,10 +353,10 @@ export const NavMobileMenu: React.FC<NavMobileMenuProps> = React.memo(function N
                     const updated = applyAccent(preset.id);
                     setCurrentAccent(updated);
                   }}
-                  className={`flex flex-col items-center justify-center p-1.5 rounded-xl border transition-all cursor-pointer ${
+                  className={`flex flex-col items-center justify-center p-1.5 rounded-xl transition-all cursor-pointer ${
                     isSelected
-                      ? "bg-white/15 scale-105"
-                      : "bg-black/40 hover:bg-white/10 border-white/10"
+                      ? "bg-white/15 scale-105 border"
+                      : "bg-black/40 hover:bg-white/10"
                   }`}
                   style={
                     isSelected
@@ -384,11 +384,11 @@ export const NavMobileMenu: React.FC<NavMobileMenuProps> = React.memo(function N
         </div>
 
         {/* ABOUT NANAFLIX */}
-        <div className="border-t border-white/10 pt-2 mt-1 flex flex-col gap-2">
+        <div className="pt-2 mt-1 flex flex-col gap-2">
           <Link
             href="/about"
             onClick={onClose}
-            className="text-xs font-semibold py-2 px-3 text-zinc-300 hover:text-white flex items-center justify-between rounded-xl bg-white/[0.03] hover:bg-white/10 border border-white/5 transition"
+            className="text-xs font-semibold py-2 px-3 text-zinc-300 hover:text-white flex items-center justify-between rounded-xl bg-white/[0.03] hover:bg-white/10 transition"
           >
             <div className="flex items-center gap-2.5">
               <Info size={14} className="text-cyan-400" />

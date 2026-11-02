@@ -139,7 +139,7 @@ export const ActorDetailClient: React.FC<ActorDetailClientProps> = ({
           {/* HEADER BAR */}
           <div className="relative z-10 flex flex-wrap items-center justify-between gap-3 border-b border-white/[0.08] pb-4 mb-5 sm:mb-6">
             <div className="flex items-center gap-2.5 sm:gap-3">
-              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-br from-amber-500/20 to-red-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 shadow-inner flex-shrink-0">
+              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-br from-amber-500/20 to-red-500/10 flex items-center justify-center text-amber-400 shadow-inner flex-shrink-0">
                 <BookOpen className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
               </div>
               <div>
@@ -182,7 +182,7 @@ export const ActorDetailClient: React.FC<ActorDetailClientProps> = ({
             <div className="space-y-4 sm:space-y-5 text-zinc-300 text-xs sm:text-sm leading-relaxed font-normal">
               {/* LEAD INTRO PARAGRAPH */}
               {leadParagraph && (
-                <div className="relative p-4 sm:p-5 rounded-xl sm:rounded-2xl bg-zinc-900/60 border border-white/10 backdrop-blur-md shadow-sm">
+                <div className="relative p-4 sm:p-5 rounded-xl sm:rounded-2xl bg-zinc-900/60 backdrop-blur-md shadow-sm">
                   <p className="text-zinc-200 text-sm sm:text-[14.5px] leading-relaxed font-normal">
                     {leadParagraph}
                   </p>
@@ -196,7 +196,7 @@ export const ActorDetailClient: React.FC<ActorDetailClientProps> = ({
                   <div key={sIdx} className="space-y-3">
                     {sec.heading && (
                       <div className="flex items-center gap-2 pt-3 sm:pt-4 border-t border-white/[0.06]">
-                        <span className="w-5 h-5 rounded-md bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center flex-shrink-0">
+                        <span className="w-5 h-5 rounded-md bg-amber-500/10 text-amber-400 flex items-center justify-center flex-shrink-0">
                           <SecIcon className="w-3 h-3" />
                         </span>
                         <h3 className="text-xs sm:text-sm uppercase tracking-wider font-bold text-amber-300/90">
@@ -223,7 +223,7 @@ export const ActorDetailClient: React.FC<ActorDetailClientProps> = ({
                 <button
                   type="button"
                   onClick={() => setIsBioExpanded(true)}
-                  className="pointer-events-auto inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-zinc-800/95 hover:bg-zinc-700/95 text-white text-xs font-bold border border-white/20 backdrop-blur-md shadow-xl hover:scale-[1.03] active:scale-95 transition-all duration-200 cursor-pointer"
+                  className="pointer-events-auto inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-zinc-800/95 hover:bg-zinc-700/95 text-white text-xs font-bold backdrop-blur-md shadow-xl hover:scale-[1.03] active:scale-95 transition-all duration-200 cursor-pointer"
                 >
                   <span>Xem toàn bộ tiểu sử (~{estimatedReadTime} phút đọc)</span>
                   <ChevronDown className="w-3.5 h-3.5 text-amber-400" />
@@ -244,7 +244,7 @@ export const ActorDetailClient: React.FC<ActorDetailClientProps> = ({
                     el.scrollIntoView({ behavior: "smooth", block: "start" });
                   }
                 }}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-white text-xs font-semibold border border-white/10 transition cursor-pointer"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-white text-xs font-semibold transition cursor-pointer"
               >
                 <span>Thu gọn tiểu sử</span>
                 <ChevronUp className="w-3.5 h-3.5 text-red-400" />
@@ -271,7 +271,7 @@ export const ActorDetailClient: React.FC<ActorDetailClientProps> = ({
 
           {/* TABS LỌC LOẠI PHIM (NẾU CÓ CẢ 2 LOẠI) */}
           {movies.length > 0 && (singleMovies.length > 0 || seriesMovies.length > 0) && (
-            <div className="flex items-center gap-1.5 p-1 rounded-xl bg-zinc-900 border border-white/10 self-start sm:self-auto">
+            <div className="flex items-center gap-1.5 p-1 rounded-xl bg-zinc-900 self-start sm:self-auto">
               <button
                 type="button"
                 onClick={() => handleTabChange("all")}
@@ -333,7 +333,7 @@ export const ActorDetailClient: React.FC<ActorDetailClientProps> = ({
           </>
         ) : (
           <div className="py-16 px-6 rounded-3xl bg-zinc-950/60 border border-white/[0.08] text-center max-w-xl mx-auto space-y-4">
-            <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center mx-auto">
+            <div className="w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-400 flex items-center justify-center mx-auto">
               <Sparkles className="w-6 h-6" />
             </div>
             <div className="space-y-1">

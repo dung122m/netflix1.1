@@ -262,7 +262,7 @@ export const CuratedMovieSection: React.FC<CuratedMovieSectionProps> = ({
         {/* NÚT XEM TOÀN BỘ Ở HEADER */}
         <Link
           href={currentTabConfig.viewAllHref}
-          className="self-start md:self-auto inline-flex items-center gap-1.5 px-3.5 sm:px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs sm:text-sm font-semibold transition border border-white/10 hover:border-white/25 active:scale-95 group shrink-0"
+          className="self-start md:self-auto inline-flex items-center gap-1.5 px-3.5 sm:px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs sm:text-sm font-semibold transition hover: active:scale-95 group shrink-0"
         >
           <span>Xem tất cả {currentTabConfig.label}</span>
           <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform text-netflix-red" />
@@ -287,7 +287,7 @@ export const CuratedMovieSection: React.FC<CuratedMovieSectionProps> = ({
                 className={`flex items-center gap-2 px-3.5 sm:px-5 py-2 sm:py-2.5 rounded-2xl text-xs sm:text-sm font-bold transition-all duration-200 cursor-pointer select-none shrink-0 border ${
                   isActive
                     ? "bg-netflix-red text-white border-netflix-red shadow-md shadow-black/60 scale-[1.02]"
-                    : "bg-zinc-900/90 hover:bg-zinc-800 text-zinc-300 hover:text-white border-white/10 hover:border-white/20"
+                    : "bg-zinc-900/90 hover:bg-zinc-800 text-zinc-300 hover:text-white  hover:"
                 }`}
               >
                 {tab.icon}
@@ -323,7 +323,7 @@ export const CuratedMovieSection: React.FC<CuratedMovieSectionProps> = ({
             {Array.from({ length: 7 }).map((_, idx) => (
               <div
                 key={idx}
-                className="flex-none w-[140px] sm:w-[175px] md:w-[190px] aspect-[2/3] rounded-xl sm:rounded-2xl bg-zinc-900/80 animate-pulse border border-white/5"
+                className="flex-none w-[140px] sm:w-[175px] md:w-[190px] aspect-[2/3] rounded-xl sm:rounded-2xl bg-zinc-900/80 animate-pulse"
               />
             ))}
           </div>
@@ -370,7 +370,7 @@ export const CuratedMovieSection: React.FC<CuratedMovieSectionProps> = ({
             ))}
           </div>
         ) : (
-          <div className="py-12 text-center rounded-2xl border border-white/10 bg-zinc-900/50 p-6">
+          <div className="py-12 text-center rounded-2xl bg-zinc-900/50 p-6">
             <Film className="w-10 h-10 text-zinc-600 mx-auto mb-2" />
             <p className="text-zinc-400 text-sm">
               Đang cập nhật danh sách phim {currentTabConfig.label}...

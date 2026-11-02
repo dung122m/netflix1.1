@@ -36,6 +36,8 @@ A reusable template for reverse-engineering any website into a clean, modern Nex
 
 ## Design Principles
 - **Pixel-perfect emulation** — match the target's spacing, colors, typography exactly
+- **Border is Exception, Not Default** — Never add decorative borders. Prefer spacing, layered dark surfaces, typography, and subtle shadows (Apple TV+ / Netflix cinematic aesthetic). Keep borders strictly for inputs, focus visibility, active states, and essential dividers. Never wrap icons (goals, cards, substitutions) in bordered boxes/badges. See `.agents/rules/pixel-perfect-taste.md`.
+- **Never Use `font-mono` on UI** — Strictly forbidden to use `font-mono` for match scores, player numbers, clocks, event minutes, or any UI text. Monospace fonts render horribly on Windows (Consolas) with spaced-out quotation marks and jagged glyphs. Use `font-sans tabular-nums` instead for all aligned numbers.
 - **No personal aesthetic changes during emulation phase** — match 1:1 first, customize later
 - **Real content** — use actual text and assets from the target site, not placeholders
 - **Beauty-first** — every pixel matters

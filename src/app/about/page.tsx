@@ -41,7 +41,7 @@ const PILLARS = [
       "Hệ thống phát video phân giải cao tự động cân bằng bitrate theo băng thông mạng. Hỗ trợ đầy đủ Theater Mode, tua phím tắt tốc độ cao, ghi nhớ âm lượng và tự động chuyển đổi máy chủ dự phòng khi gặp sự cố nghẽn mạng.",
     badge: "Mượt mà • 4K/FHD",
     gradient: "from-rose-500/20 via-red-500/10 to-transparent",
-    border: "border-red-500/20 hover:border-red-500/40",
+    border: " hover:",
     icon: Tv,
     iconColor: "text-red-400",
   },
@@ -53,7 +53,7 @@ const PILLARS = [
       "Xem dở bộ phim trên máy tính làm việc ban ngày, tối về mở điện thoại là tiếp tục đúng từng giây và tập phim đang dừng. Cơ chế đồng bộ đám mây Supabase tức thì giúp trải nghiệm liền mạch không ngắt quãng.",
     badge: "Tự động đồng bộ",
     gradient: "from-amber-500/20 via-orange-500/10 to-transparent",
-    border: "border-amber-500/20 hover:border-amber-500/40",
+    border: " hover:",
     icon: MonitorSmartphone,
     iconColor: "text-amber-400",
   },
@@ -77,7 +77,7 @@ const PILLARS = [
       "Tuyệt đối nói không với các loại banner cờ bạc, pop-up nhảy tab khó chịu hay quảng cáo chèn ngang cao trào phim. Mọi chi tiết giao diện được thiết kế tối giản, êm mắt để bạn tập trung trọn vẹn vào cảm xúc điện ảnh.",
     badge: "100% Giao diện sạch",
     gradient: "from-emerald-500/20 via-teal-500/10 to-transparent",
-    border: "border-emerald-500/20 hover:border-emerald-500/40",
+    border: " hover:",
     icon: ShieldCheck,
     iconColor: "text-emerald-400",
   },
@@ -151,7 +151,7 @@ export default function AboutPage() {
         {/* ================= 1. HERO SECTION ================= */}
         <section className="text-center space-y-8 relative">
           {/* Top Pill */}
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/[0.04] border border-white/[0.08] backdrop-blur-xl text-xs font-semibold text-zinc-300 shadow-2xl hover:border-white/20 transition">
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/[0.04] border border-white/[0.08] backdrop-blur-xl text-xs font-semibold text-zinc-300 shadow-2xl hover: transition">
             <span className="w-2 h-2 rounded-full bg-netflix-red animate-pulse" />
             <span>Nền Tảng Điện Ảnh Phi Thương Mại Cá Nhân Hóa</span>
           </div>
@@ -201,7 +201,7 @@ export default function AboutPage() {
             </Link>
             <a
               href="#contact"
-              className="inline-flex items-center gap-2 px-6 py-3.5 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] border border-white/[0.12] text-zinc-200 font-semibold text-sm transition-all backdrop-blur-md hover:border-white/20 active:scale-95"
+              className="inline-flex items-center gap-2 px-6 py-3.5 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] border border-white/[0.12] text-zinc-200 font-semibold text-sm transition-all backdrop-blur-md hover: active:scale-95"
             >
               <MessageSquare size={16} />
               <span>Trợ Giúp & Báo Lỗi</span>
@@ -218,7 +218,7 @@ export default function AboutPage() {
                 <Flame size={16} />
                 <span>Câu Chuyện Phía Sau Màn Ảnh</span>
               </div>
-              <span className="text-xs text-zinc-500 font-mono">Nanaflix Project • Est. 2026</span>
+              <span className="text-xs text-zinc-500 font-sans tabular-nums">Nanaflix Project • Est. 2026</span>
             </div>
 
             {/* Note Content Grid */}
@@ -234,15 +234,15 @@ export default function AboutPage() {
                 <p>
                   Đó là lý do Nanaflix ra đời — một nền tảng được đẽo gọt tỉ mỉ kết hợp giữa công nghệ streaming HLS hiện đại, kiến trúc đám mây thông minh và triết lý thiết kế hướng đến người dùng. Ở đây, bạn chỉ cần bấm Play là phim chạy mượt mà, ghi nhớ chuẩn xác từng phút từng giây bạn dừng lại trên mọi thiết bị và hoàn toàn không có bất kỳ phiền toái nào chen ngang.
                 </p>
-                <div className="pt-2 flex items-center gap-2 text-xs text-zinc-400 font-mono">
+                <div className="pt-2 flex items-center gap-2 text-xs text-zinc-400 font-sans tabular-nums">
                   <span className="text-emerald-400 font-bold">●</span> Xây dựng với tình yêu điện ảnh và tinh thần mã nguồn mở vì cộng đồng.
                 </div>
               </div>
 
               {/* Creator Card Column */}
               <div className="lg:col-span-4 flex justify-center">
-                <div className="w-full max-w-sm p-6 rounded-2xl bg-black/60 border border-white/[0.1] space-y-4 text-center backdrop-blur-xl relative group hover:border-white/20 transition-all">
-                  <div className="w-20 h-20 sm:w-24 sm:h-24 mx-auto rounded-full overflow-hidden border-2 border-netflix-red/70 shadow-2xl relative bg-[#da251d] shadow-black/60 ring-2 ring-netflix-red/30">
+                <div className="w-full max-w-sm p-6 rounded-2xl bg-black/60 border border-white/[0.1] space-y-4 text-center backdrop-blur-xl relative group hover: transition-all">
+                  <div className="w-20 h-20 sm:w-24 sm:h-24 mx-auto rounded-full overflow-hidden border-2 border-netflix-red/70 shadow-2xl relative bg-[#da251d] shadow-black/60">
                     <Image
                       src="/images/vietnam-flag.svg"
                       alt="Cờ đỏ sao vàng Việt Nam"
@@ -299,13 +299,13 @@ export default function AboutPage() {
                       >
                         <Icon size={22} />
                       </div>
-                      <span className="text-xs font-bold px-3 py-1 rounded-full bg-white/[0.04] border border-white/[0.08] text-zinc-300 font-mono">
+                      <span className="text-xs font-bold px-3 py-1 rounded-full bg-white/[0.04] border border-white/[0.08] text-zinc-300 font-sans tabular-nums">
                         {p.badge}
                       </span>
                     </div>
 
                     <div>
-                      <div className="text-xs font-mono text-zinc-500 uppercase tracking-widest">{p.subtitle}</div>
+                      <div className="text-xs font-sans tabular-nums text-zinc-500 uppercase tracking-widest">{p.subtitle}</div>
                       <h3 className="text-xl font-bold text-white mt-1 group-hover:text-red-400 transition-colors">
                         {p.title}
                       </h3>
@@ -314,7 +314,7 @@ export default function AboutPage() {
                     <p className="text-xs sm:text-sm text-zinc-400 leading-relaxed">{p.description}</p>
                   </div>
 
-                  <div className="pt-2 border-t border-white/[0.06] flex items-center justify-between text-xs text-zinc-500 font-mono">
+                  <div className="pt-2 border-t border-white/[0.06] flex items-center justify-between text-xs text-zinc-500 font-sans tabular-nums">
                     <span>Đặc trưng #{p.number}</span>
                     <span className="text-zinc-400">Nanaflix Experience</span>
                   </div>
@@ -345,7 +345,7 @@ export default function AboutPage() {
               return (
                 <div
                   key={idx}
-                  className="p-6 sm:p-7 rounded-3xl bg-zinc-950/70 border border-white/[0.08] hover:border-white/20 transition backdrop-blur-xl space-y-5"
+                  className="p-6 sm:p-7 rounded-3xl bg-zinc-950/70 border border-white/[0.08] hover: transition backdrop-blur-xl space-y-5"
                 >
                   <div className="flex items-center gap-3 pb-3 border-b border-white/[0.08]">
                     <div className="p-2 rounded-xl bg-netflix-red/10 text-netflix-red">
@@ -393,11 +393,11 @@ export default function AboutPage() {
                 className="p-6 rounded-3xl bg-zinc-950/60 border border-white/[0.08] space-y-3 backdrop-blur-md relative overflow-hidden"
               >
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-mono font-bold text-zinc-400">{step.phase}</span>
+                  <span className="text-xs font-sans tabular-nums font-bold text-zinc-400">{step.phase}</span>
                   <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full ${
                     step.status === "Đã hoàn thành" 
-                      ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
-                      : "bg-amber-500/10 text-amber-400 border border-amber-500/20"
+                      ? "bg-emerald-500/10 text-emerald-400 "
+                      : "bg-amber-500/10 text-amber-400 "
                   }`}>
                     {step.status}
                   </span>
@@ -413,7 +413,7 @@ export default function AboutPage() {
         <section id="contact" className="scroll-mt-28 space-y-8">
           <div className="p-8 sm:p-12 rounded-3xl bg-gradient-to-b from-zinc-900/90 via-zinc-950 to-black border border-white/[0.12] backdrop-blur-2xl shadow-2xl relative overflow-hidden space-y-8">
             <div className="text-center space-y-3 max-w-2xl mx-auto">
-              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs font-bold tracking-wider uppercase">
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-rose-500/10 text-rose-400 text-xs font-bold tracking-wider uppercase">
                 <MessageSquare size={14} />
                 <span>Trung Tâm Trợ Giúp & Báo Lỗi Kỹ Thuật</span>
               </div>
@@ -428,8 +428,8 @@ export default function AboutPage() {
             {/* 3 Channels Grid */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
               {/* Channel 1: Báo lỗi phim & phát video */}
-              <div className="p-6 rounded-2xl bg-black/50 border border-white/[0.08] hover:border-red-500/40 transition space-y-4">
-                <div className="w-10 h-10 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 flex items-center justify-center">
+              <div className="p-6 rounded-2xl bg-black/50 border border-white/[0.08] hover: transition space-y-4">
+                <div className="w-10 h-10 rounded-xl bg-red-500/10 text-red-400 flex items-center justify-center">
                   <AlertTriangle size={20} />
                 </div>
                 <div className="space-y-1">
@@ -468,8 +468,8 @@ export default function AboutPage() {
               </div>
 
               {/* Channel 3: Hỗ trợ tài khoản & Bản quyền */}
-              <div className="p-6 rounded-2xl bg-black/50 border border-white/[0.08] hover:border-emerald-500/40 transition space-y-4">
-                <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center">
+              <div className="p-6 rounded-2xl bg-black/50 border border-white/[0.08] hover: transition space-y-4">
+                <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center">
                   <ShieldCheck size={20} />
                 </div>
                 <div className="space-y-1">
@@ -496,7 +496,7 @@ export default function AboutPage() {
                   <span>Thời gian phản hồi thông thường: 1 - 24 giờ làm việc</span>
                 </div>
                 <div className="text-[11px] text-zinc-400">
-                  Hộp thư trực tiếp: <span className="font-mono text-zinc-300 font-semibold">contact@nanaflix.id.vn</span> hoặc liên hệ qua trang cá nhân.
+                  Hộp thư trực tiếp: <span className="font-sans tabular-nums text-zinc-300 font-semibold">contact@nanaflix.id.vn</span> hoặc liên hệ qua trang cá nhân.
                 </div>
               </div>
 
@@ -516,18 +516,18 @@ export default function AboutPage() {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <Link
               href="/faq"
-              className="p-5 rounded-2xl bg-zinc-950/60 hover:bg-zinc-900 border border-white/[0.08] hover:border-amber-500/40 transition text-left group"
+              className="p-5 rounded-2xl bg-zinc-950/60 hover:bg-zinc-900 border border-white/[0.08] hover: transition text-left group"
             >
-              <div className="text-xs font-mono text-amber-400 font-bold uppercase">Câu hỏi & Hướng dẫn</div>
+              <div className="text-xs font-sans tabular-nums text-amber-400 font-bold uppercase">Câu hỏi & Hướng dẫn</div>
               <div className="text-sm font-bold text-white group-hover:text-amber-300 transition mt-1">Trang Hỏi & Đáp (FAQ)</div>
               <div className="text-xs text-zinc-400 mt-1">Bí kíp cài app PWA, cast TV và phím tắt nhanh.</div>
             </Link>
 
             <Link
               href="/privacy"
-              className="p-5 rounded-2xl bg-zinc-950/60 hover:bg-zinc-900 border border-white/[0.08] hover:border-emerald-500/40 transition text-left group"
+              className="p-5 rounded-2xl bg-zinc-950/60 hover:bg-zinc-900 border border-white/[0.08] hover: transition text-left group"
             >
-              <div className="text-xs font-mono text-emerald-400 font-bold uppercase">An toàn dữ liệu</div>
+              <div className="text-xs font-sans tabular-nums text-emerald-400 font-bold uppercase">An toàn dữ liệu</div>
               <div className="text-sm font-bold text-white group-hover:text-emerald-300 transition mt-1">Chính Sách Bảo Mật</div>
               <div className="text-xs text-zinc-400 mt-1">Không lưu Raw IP, mã hóa RLS và tự chủ dữ liệu.</div>
             </Link>
@@ -536,7 +536,7 @@ export default function AboutPage() {
               href="/terms"
               className="p-5 rounded-2xl bg-zinc-950/60 hover:bg-zinc-900 border border-white/[0.08] hover:border-blue-500/40 transition text-left group"
             >
-              <div className="text-xs font-mono text-blue-400 font-bold uppercase">Quy định & DMCA</div>
+              <div className="text-xs font-sans tabular-nums text-blue-400 font-bold uppercase">Quy định & DMCA</div>
               <div className="text-sm font-bold text-white group-hover:text-blue-300 transition mt-1">Điều Khoản Dịch Vụ</div>
               <div className="text-xs text-zinc-400 mt-1">Tuyên bố miễn trừ lưu trữ và tiếp nhận bản quyền.</div>
             </Link>

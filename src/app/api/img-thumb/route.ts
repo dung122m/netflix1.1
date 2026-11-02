@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import sharp from "sharp";
+import { enforceRateLimit, buildRateLimitResponse } from "@/lib/rateLimit";
 
 export const runtime = "nodejs";
 
@@ -42,6 +43,16 @@ function imgCacheSet(key: string, buf: Buffer) {
 }
 
 export async function GET(req: NextRequest) {
+  const rateLimit = await enforceRateLimit(req, {
+    namespace: "img-thumb",
+    maxRequests: 120,
+    windowSeconds: 60,
+    failClosed: false,
+  });
+  if (!rateLimit.allowed) {
+    return buildRateLimitResponse(rateLimit);
+  }
+
   const t0 = Date.now();
   const { searchParams } = req.nextUrl;
   const rawUrl = searchParams.get("url");

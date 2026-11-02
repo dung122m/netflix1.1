@@ -475,14 +475,14 @@ export const LeagueFixtures: React.FC<LeagueFixturesProps> = ({
   };
 
   return (
-    <div className="w-full mt-4 rounded-3xl border border-white/10 bg-zinc-950/80 backdrop-blur-md shadow-2xl overflow-hidden">
+    <div className="w-full mt-4 rounded-3xl bg-zinc-950/80 backdrop-blur-md shadow-2xl overflow-hidden">
       {/* 1. HEADER KHU VỰC CHÍNH */}
       <div
         onClick={() => setIsOpen(!isOpen)}
         className="flex items-center justify-between p-4 sm:p-5 cursor-pointer hover:bg-white/[0.03] transition-colors select-none"
       >
         <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-2xl bg-gradient-to-br from-red-600/20 to-orange-600/10 border border-red-500/30 text-netflix-red shadow-inner">
+          <div className="p-2.5 rounded-2xl bg-gradient-to-br from-red-600/20 to-orange-600/10 text-netflix-red shadow-inner">
             <CalendarDays className="w-5 h-5" />
           </div>
           <div>
@@ -490,10 +490,10 @@ export const LeagueFixtures: React.FC<LeagueFixturesProps> = ({
               <h2 className="text-base sm:text-lg font-black text-white tracking-wide">
                 Lịch Thi Đấu & Kết Quả
               </h2>
-              <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-red-600/20 text-red-400 border border-red-500/30">
+              <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-red-600/20 text-red-400">
                 FotMob UX
               </span>
-              <span className="hidden sm:inline-block text-[11px] font-semibold text-zinc-400 px-2 py-0.5 rounded-full bg-white/5 border border-white/10">
+              <span className="hidden sm:inline-block text-[11px] font-semibold text-zinc-400 px-2 py-0.5 rounded-full bg-white/5">
                 Giờ VN (UTC+7)
               </span>
             </div>
@@ -513,13 +513,13 @@ export const LeagueFixtures: React.FC<LeagueFixturesProps> = ({
               }}
               disabled={loading}
               title="Làm mới dữ liệu"
-              className="p-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-zinc-300 hover:text-white transition disabled:opacity-50 cursor-pointer"
+              className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-zinc-300 hover:text-white transition disabled:opacity-50 cursor-pointer"
             >
               <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin text-netflix-red" : ""}`} />
             </button>
           )}
 
-          <div className="p-2 rounded-xl bg-white/5 text-zinc-400 border border-white/10">
+          <div className="p-2 rounded-xl bg-white/5 text-zinc-400">
             {isOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
           </div>
         </div>
@@ -527,9 +527,9 @@ export const LeagueFixtures: React.FC<LeagueFixturesProps> = ({
 
       {/* 2. NỘI DUNG KHU VỰC KHI MỞ */}
       {isOpen && (
-        <div className="px-3 pb-6 sm:px-6 sm:pb-8 pt-1 border-t border-white/5 space-y-4">
+        <div className="px-3 pb-6 sm:px-6 sm:pb-8 pt-1 space-y-4">
           {/* A. THANH CHỌN NGÀY NGANG CHUẨN FOTMOB (FOTMOB DATE STRIP) */}
-          <div className="flex items-center justify-between gap-1.5 sm:gap-2 bg-zinc-900/90 border border-white/10 rounded-2xl p-1.5 sm:p-2 shadow-lg backdrop-blur-md">
+          <div className="flex items-center justify-between gap-1.5 sm:gap-2 bg-zinc-900/90 rounded-2xl p-1.5 sm:p-2 shadow-lg backdrop-blur-md">
             {/* Nút Ngày trước */}
             <button
               type="button"
@@ -554,9 +554,9 @@ export const LeagueFixtures: React.FC<LeagueFixturesProps> = ({
                   onClick={() => setSelectedDate(item.dateStr)}
                   className={`flex flex-col items-center justify-center min-w-[54px] sm:min-w-[62px] px-2 py-1.5 rounded-xl transition cursor-pointer shrink-0 ${
                     item.isSelected
-                      ? "bg-gradient-to-b from-netflix-red to-netflix-red/85 text-white font-black shadow-md shadow-[var(--accent-glow,rgba(229,9,20,0.4))] scale-[1.03] ring-1 ring-netflix-red/50"
+                      ? "bg-gradient-to-b from-netflix-red to-netflix-red/85 text-white font-black shadow-md shadow-[var(--accent-glow,rgba(229,9,20,0.4))] scale-[1.03] "
                       : item.isToday
-                        ? "bg-white/10 text-white hover:bg-white/15 border border-netflix-red/40"
+                        ? "bg-white/10 text-white hover:bg-white/15 "
                         : "bg-white/[0.03] text-zinc-400 hover:text-white hover:bg-white/[0.08]"
                   }`}
                 >
@@ -595,8 +595,8 @@ export const LeagueFixtures: React.FC<LeagueFixturesProps> = ({
               onClick={goToToday}
               className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-2 rounded-xl text-xs font-bold transition cursor-pointer shrink-0 whitespace-nowrap ${
                 selectedDate === todayUtc7String
-                  ? "bg-red-500/20 text-red-300 border border-red-500/40 shadow-sm"
-                  : "bg-white/5 hover:bg-white/10 text-zinc-300 hover:text-white border border-white/10"
+                  ? "bg-red-500/20 text-red-300  shadow-sm"
+                  : "bg-white/5 hover:bg-white/10 text-zinc-300 hover:text-white "
               }`}
               title="Trở về hôm nay"
             >
@@ -606,26 +606,26 @@ export const LeagueFixtures: React.FC<LeagueFixturesProps> = ({
           </div>
 
           {/* B. THANH THÔNG TIN NGÀY & ĐIỀU HƯỚNG BỘ LỌC GỌN GÀNG */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 px-1 pt-1 border-b border-white/5 pb-2.5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 px-1 pt-1 pb-2.5">
             <div className="flex items-center gap-2">
               <span className="text-xs text-zinc-400">Lịch thi đấu:</span>
               <strong className="text-xs sm:text-sm text-white font-extrabold capitalize">
                 {formatFullDateUtc7(selectedDate)}
               </strong>
               {selectedDate === todayUtc7String && (
-                <span className="text-[10px] uppercase font-black px-2 py-0.2 rounded-full bg-red-500/20 text-red-300 border border-red-500/40">
+                <span className="text-[10px] uppercase font-black px-2 py-0.2 rounded-full bg-red-500/20 text-red-300">
                   Hôm nay
                 </span>
               )}
               {totalMatchesOnDate > 0 && (
-                <span className="text-[10px] font-bold px-2 py-0.2 rounded-full bg-white/10 text-emerald-400 border border-emerald-500/30">
+                <span className="text-[10px] font-bold px-2 py-0.2 rounded-full bg-white/10 text-emerald-400">
                   {totalMatchesOnDate} trận
                 </span>
               )}
             </div>
 
             {/* Tabs trạng thái: Tất cả | Sắp diễn ra | Kết quả */}
-            <div className="inline-flex p-1 rounded-xl bg-zinc-900/90 border border-white/10 self-start sm:self-auto">
+            <div className="inline-flex p-1 rounded-xl bg-zinc-900/90 self-start sm:self-auto">
               <button
                 type="button"
                 onClick={() => setActiveTab("all")}
@@ -670,7 +670,7 @@ export const LeagueFixtures: React.FC<LeagueFixturesProps> = ({
               <button
                 type="button"
                 onClick={() => scrollLeagues("left")}
-                className="hidden sm:flex absolute left-0 top-1/2 -translate-y-1/2 z-10 p-1.5 rounded-full bg-zinc-900/95 border border-white/20 text-white shadow-xl hover:bg-zinc-800 transition -ml-2 cursor-pointer"
+                className="hidden sm:flex absolute left-0 top-1/2 -translate-y-1/2 z-10 p-1.5 rounded-full bg-zinc-900/95 text-white shadow-xl hover:bg-zinc-800 transition -ml-2 cursor-pointer"
                 aria-label="Cuộn sang trái"
               >
                 <ChevronLeft className="w-4 h-4" />
@@ -688,10 +688,10 @@ export const LeagueFixtures: React.FC<LeagueFixturesProps> = ({
                     key={league.slug}
                     type="button"
                     onClick={() => setSelectedLeague(league.slug)}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all duration-200 border cursor-pointer shrink-0 ${
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all duration-200  cursor-pointer shrink-0 ${
                       isSelected
-                        ? "bg-netflix-red text-white border-netflix-red shadow-md shadow-netflix-red/30 scale-[1.02]"
-                        : "bg-white/[0.04] text-zinc-300 hover:text-white hover:bg-white/[0.08] border-white/10"
+                        ? "bg-netflix-red text-white  shadow-md shadow-netflix-red/30 scale-[1.02]"
+                        : "bg-white/[0.04] text-zinc-300 hover:text-white hover:bg-white/[0.08] "
                     }`}
                   >
                     <CountryFlag emoji={league.flag} className="w-3.5 h-3.5 shrink-0" />
@@ -705,7 +705,7 @@ export const LeagueFixtures: React.FC<LeagueFixturesProps> = ({
               <button
                 type="button"
                 onClick={() => scrollLeagues("right")}
-                className="hidden sm:flex absolute right-0 top-1/2 -translate-y-1/2 z-10 p-1.5 rounded-full bg-zinc-900/95 border border-white/20 text-white shadow-xl hover:bg-zinc-800 transition -mr-2 cursor-pointer"
+                className="hidden sm:flex absolute right-0 top-1/2 -translate-y-1/2 z-10 p-1.5 rounded-full bg-zinc-900/95 text-white shadow-xl hover:bg-zinc-800 transition -mr-2 cursor-pointer"
                 aria-label="Cuộn sang phải"
               >
                 <ChevronRight className="w-4 h-4" />
@@ -721,7 +721,7 @@ export const LeagueFixtures: React.FC<LeagueFixturesProps> = ({
                 {[1, 2, 3, 4].map((n) => (
                   <div
                     key={n}
-                    className="p-4 rounded-2xl bg-white/[0.02] border border-white/10 animate-pulse space-y-3"
+                    className="p-4 rounded-2xl bg-white/[0.02] animate-pulse space-y-3"
                   >
                     <div className="flex justify-between items-center">
                       <div className="h-4 w-20 bg-white/5 rounded" />
@@ -739,7 +739,7 @@ export const LeagueFixtures: React.FC<LeagueFixturesProps> = ({
 
           {!loading && error && (
             <div className="py-10 text-center space-y-3">
-              <div className="w-12 h-12 rounded-full bg-red-500/10 border border-red-500/20 text-red-400 flex items-center justify-center mx-auto">
+              <div className="w-12 h-12 rounded-full bg-red-500/10 text-red-400 flex items-center justify-center mx-auto">
                 <AlertCircle className="w-6 h-6" />
               </div>
               <p className="text-sm font-semibold text-zinc-300">{error}</p>
@@ -756,8 +756,8 @@ export const LeagueFixtures: React.FC<LeagueFixturesProps> = ({
 
           {/* E. TRẠNG THÁI RỖNG: KHÔNG CÓ TRẬN NÀO TRONG NGÀY ĐÃ CHỌN (KHÔNG PHẢI LỖI MẠNG) */}
           {!loading && !error && leagueGroups.length === 0 && (
-            <div className="rounded-2xl border border-white/10 bg-zinc-900/40 p-8 sm:p-12 text-center text-zinc-400 space-y-3">
-              <div className="w-12 h-12 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mx-auto text-zinc-400">
+            <div className="rounded-2xl bg-zinc-900/40 p-8 sm:p-12 text-center text-zinc-400 space-y-3">
+              <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center mx-auto text-zinc-400">
                 <Calendar className="w-6 h-6 text-zinc-400" />
               </div>
               <p className="text-base font-bold text-zinc-200">
@@ -796,12 +796,12 @@ export const LeagueFixtures: React.FC<LeagueFixturesProps> = ({
                 return (
                   <div
                     key={group.leagueSlug}
-                    className="rounded-2xl border border-white/10 bg-zinc-900/50 overflow-hidden shadow-md"
+                    className="rounded-2xl bg-zinc-900/50 overflow-hidden shadow-md"
                   >
                     {/* Header nhóm giải đấu (Có thể thu gọn / mở rộng) */}
                     <div
                       onClick={() => toggleLeagueCollapse(group.leagueSlug)}
-                      className="flex items-center justify-between p-3 sm:p-3.5 bg-white/[0.02] hover:bg-white/[0.04] transition cursor-pointer select-none border-b border-white/5"
+                      className="flex items-center justify-between p-3 sm:p-3.5 bg-white/[0.02] hover:bg-white/[0.04] transition cursor-pointer select-none"
                     >
                       <div className="flex items-center gap-2.5">
                         <CountryFlag emoji={group.flag} className="w-4 h-4 shrink-0" />
@@ -835,15 +835,15 @@ export const LeagueFixtures: React.FC<LeagueFixturesProps> = ({
                             <div
                               key={match.id}
                               onClick={() => setActiveModalFixture(match)}
-                              className={`p-3.5 rounded-2xl border transition-all duration-200 cursor-pointer group flex flex-col justify-between gap-3 ${
+                              className={`p-3.5 rounded-2xl  transition-all duration-200 cursor-pointer group flex flex-col justify-between gap-3 ${
                                 isLive
-                                  ? "bg-red-950/20 border-red-500/30 hover:border-red-500/60 shadow-md shadow-black/50"
-                                  : "bg-white/[0.02] border-white/10 hover:border-white/20 hover:bg-white/[0.04]"
+                                  ? "bg-red-950/20  hover: shadow-md shadow-black/50"
+                                  : "bg-white/[0.02]  hover: hover:bg-white/[0.04]"
                               }`}
                             >
                               {/* Dòng trạng thái & giờ đá */}
                               <div className="flex items-center justify-between text-xs">
-                                <span className="font-mono font-bold text-zinc-300 flex items-center gap-1.5">
+                                <span className="font-sans tabular-nums font-bold text-zinc-300 flex items-center gap-1.5">
                                   <Clock className="w-3.5 h-3.5 text-zinc-400" />
                                   <span>{match.kickoffTimeUtc7}</span>
                                   <span className="text-[10px] text-zinc-400 font-normal">VN</span>
@@ -852,28 +852,28 @@ export const LeagueFixtures: React.FC<LeagueFixturesProps> = ({
                                 {/* Badge trạng thái */}
                                 <div>
                                   {isLive && (
-                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-red-600/30 text-red-400 border border-red-500/40 animate-pulse">
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-red-600/30 text-red-400 animate-pulse">
                                       <span className="w-1.5 h-1.5 rounded-full bg-red-400" />
                                       <span>{match.statusText || "Trực tiếp"}</span>
                                     </span>
                                   )}
                                   {isFinished && (
-                                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-white/10 text-zinc-300 border border-white/15">
+                                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-white/10 text-zinc-300">
                                       {match.statusText || "FT"}
                                     </span>
                                   )}
                                   {isPostponed && (
-                                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-400">
                                       Hoãn
                                     </span>
                                   )}
                                   {isCanceled && (
-                                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-500/20 text-red-400 border border-red-500/30">
+                                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-500/20 text-red-400">
                                       Hủy
                                     </span>
                                   )}
                                   {!isLive && !isFinished && !isPostponed && !isCanceled && (
-                                    <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-white/5 text-zinc-400 border border-white/10">
+                                    <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-white/5 text-zinc-400">
                                       Sắp diễn ra
                                     </span>
                                   )}
@@ -913,7 +913,7 @@ export const LeagueFixtures: React.FC<LeagueFixturesProps> = ({
 
                                   {(isFinished || isLive) && match.homeTeam.score !== undefined && (
                                     <span
-                                      className={`font-mono text-sm sm:text-base px-2 py-0.5 rounded-lg ${
+                                      className={`font-sans tabular-nums text-sm sm:text-base px-2 py-0.5 rounded-lg ${
                                         match.homeTeam.winner
                                           ? "font-black text-white bg-white/10"
                                           : "font-bold text-zinc-400"
@@ -955,7 +955,7 @@ export const LeagueFixtures: React.FC<LeagueFixturesProps> = ({
 
                                   {(isFinished || isLive) && match.awayTeam.score !== undefined && (
                                     <span
-                                      className={`font-mono text-sm sm:text-base px-2 py-0.5 rounded-lg ${
+                                      className={`font-sans tabular-nums text-sm sm:text-base px-2 py-0.5 rounded-lg ${
                                         match.awayTeam.winner
                                           ? "font-black text-white bg-white/10"
                                           : "font-bold text-zinc-400"
@@ -968,7 +968,7 @@ export const LeagueFixtures: React.FC<LeagueFixturesProps> = ({
                               </div>
 
                               {/* Footer thẻ: Sân vận động & Chi tiết */}
-                              <div className="pt-2 border-t border-white/5 flex items-center justify-between text-[11px] text-zinc-400">
+                              <div className="pt-2 flex items-center justify-between text-[11px] text-zinc-400">
                                 <span className="truncate max-w-[200px]">
                                   {match.venue || "Chưa cập nhật sân"}
                                 </span>
@@ -993,15 +993,15 @@ export const LeagueFixtures: React.FC<LeagueFixturesProps> = ({
       {isMounted &&
         activeModalFixture &&
         createPortal(
-          <div className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-6 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
+          <div className="fixed inset-0 z-[100000] flex items-center justify-center p-3 sm:p-6 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
             <div
-              className="relative w-full max-w-4xl max-h-[90vh] bg-zinc-950 border border-white/15 rounded-3xl p-4 sm:p-6 shadow-2xl overflow-hidden flex flex-col gap-4"
+              className="relative w-full max-w-4xl max-h-[90vh] bg-zinc-950 rounded-3xl p-4 sm:p-6 shadow-2xl overflow-hidden flex flex-col gap-4"
               onClick={(e) => e.stopPropagation()}
             >
               {/* Header Modal */}
-              <div className="flex items-center justify-between border-b border-white/10 pb-3">
+              <div className="flex items-center justify-between pb-3">
                 <div className="flex items-center gap-2.5">
-                  <div className="p-2 rounded-xl bg-netflix-red/20 text-netflix-red border border-netflix-red/30">
+                  <div className="p-2 rounded-xl bg-netflix-red/20 text-netflix-red">
                     <Trophy className="w-4 h-4" />
                   </div>
                   <div>

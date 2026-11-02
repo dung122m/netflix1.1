@@ -151,7 +151,7 @@ export function VietnamEventEffect({ effect }: VietnamEventEffectProps) {
             style={{ animation: "vnLanternSway2 5s ease-in-out infinite 0.7s", transformOrigin: "top center" }}
           >
             <div className="w-[1.5px] h-3.5 bg-amber-500/80" />
-            <div className="w-4 h-6 sm:w-5 sm:h-7 rounded-md bg-gradient-to-b from-red-950 via-rose-900 to-amber-950 border border-amber-500/40 shadow-[0_0_12px_rgba(239,68,68,0.7)] flex items-center justify-center">
+            <div className="w-4 h-6 sm:w-5 sm:h-7 rounded-md bg-gradient-to-b from-red-950 via-rose-900 to-amber-950 shadow-[0_0_12px_rgba(239,68,68,0.7)] flex items-center justify-center">
               <div className="w-1.5 h-2 rounded-full bg-amber-200/90 shadow-[0_0_6px_rgba(245,158,11,0.8)]" />
             </div>
             <div className="w-[1px] h-2 bg-amber-600/60" />
@@ -203,7 +203,7 @@ export function VietnamEventEffect({ effect }: VietnamEventEffectProps) {
             style={{ animation: "vnLanternSway2 5.5s ease-in-out infinite 0.8s", transformOrigin: "top center" }}
           >
             <div className="w-[1.5px] h-3.5 bg-amber-500/80" />
-            <div className="w-5 h-7 rounded-md bg-gradient-to-b from-red-950 via-rose-900 to-amber-950 border border-amber-500/40 shadow-[0_0_14px_rgba(220,38,38,0.7)] flex items-center justify-center">
+            <div className="w-5 h-7 rounded-md bg-gradient-to-b from-red-950 via-rose-900 to-amber-950 shadow-[0_0_14px_rgba(220,38,38,0.7)] flex items-center justify-center">
               <span className="text-[9px] text-yellow-300 font-black">春</span>
             </div>
           </div>

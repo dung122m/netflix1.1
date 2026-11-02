@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cacheService } from "@/lib/cache";
+import {
+  enforceRateLimit,
+  buildRateLimitResponse,
+  RATE_LIMIT_PRESETS,
+} from "@/lib/rateLimit";
 
 export const runtime = "nodejs";
 
@@ -70,6 +75,10 @@ async function translateWithGoogleNMT(text: string): Promise<string> {
 
 export async function POST(req: NextRequest) {
   try {
+    const rateLimit = await enforceRateLimit(req, RATE_LIMIT_PRESETS.TRANSLATION);
+    if (!rateLimit.allowed) {
+      return buildRateLimitResponse(rateLimit);
+    }
     const body = await req.json().catch(() => null);
     if (!body || typeof body !== "object") {
       return NextResponse.json(

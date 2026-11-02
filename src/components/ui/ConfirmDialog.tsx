@@ -139,11 +139,11 @@ export const GlobalConfirmDialog: React.FC = () => {
   return (
     <div
       onClick={() => handleClose(false)}
-      className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150"
+      className="fixed inset-0 z-[100000] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150"
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="relative w-full max-w-sm sm:max-w-md bg-zinc-950 border border-white/20 rounded-3xl p-5 sm:p-7 shadow-[0_25px_70px_rgba(0,0,0,0.95)] text-white transform-gpu will-change-[transform,opacity] animate-in zoom-in-95 duration-150 overflow-hidden"
+        className="relative w-full max-w-sm sm:max-w-md bg-zinc-950 rounded-3xl p-5 sm:p-7 shadow-[0_25px_70px_rgba(0,0,0,0.95)] text-white transform-gpu will-change-[transform,opacity] animate-in zoom-in-95 duration-150 overflow-hidden"
       >
         {/* Glow hiệu ứng màu nền tinh tế */}
         {variant === "danger" && (
@@ -170,10 +170,10 @@ export const GlobalConfirmDialog: React.FC = () => {
           <div
             className={`w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-lg ${
               variant === "danger"
-                ? "bg-rose-500/20 text-rose-400 border border-rose-500/35"
+                ? "bg-rose-500/20 text-rose-400"
                 : variant === "warning"
-                ? "bg-amber-500/20 text-amber-400 border border-amber-500/35"
-                : "bg-sky-500/20 text-sky-400 border border-sky-500/35"
+                ? "bg-amber-500/20 text-amber-400"
+                : "bg-sky-500/20 text-sky-400"
             }`}
           >
             {variant === "danger" ? (
@@ -195,11 +195,11 @@ export const GlobalConfirmDialog: React.FC = () => {
         </div>
 
         {/* Nút tác vụ chân modal */}
-        <div className="flex items-center justify-end gap-2.5 mt-6 pt-4 border-t border-white/10">
+        <div className="flex items-center justify-end gap-2.5 mt-6 pt-4 border-t">
           <button
             type="button"
             onClick={() => handleClose(false)}
-            className="px-4 py-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-white border border-white/10 text-xs sm:text-sm font-semibold transition active:scale-95 cursor-pointer"
+            className="px-4 py-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-white text-xs sm:text-sm font-semibold transition active:scale-95 cursor-pointer"
           >
             {dialog.cancelText || "Hủy bỏ"}
           </button>

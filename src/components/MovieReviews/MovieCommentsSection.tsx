@@ -449,17 +449,17 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
       className={
         hideOuterCard
           ? "space-y-6"
-          : "mt-8 sm:mt-12 bg-zinc-950/80 rounded-2xl sm:rounded-3xl border border-white/5 p-4 sm:p-6 md:p-8 backdrop-blur-md shadow-2xl"
+          : "mt-8 sm:mt-12 bg-zinc-950/80 rounded-2xl sm:rounded-3xl  p-4 sm:p-6 md:p-8 backdrop-blur-md shadow-2xl"
       }
     >
       {/* Title & Section Header: Chỉ render khi dùng độc lập (!hideOuterCard) hoặc hiện widget điểm khi bọc trong MovieReviewsContainer */}
       {!hideOuterCard ? (
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 pb-5 sm:pb-6 border-b border-white/10">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 pb-5 sm:pb-6 border-b">
           <div>
             <h3 className="text-lg sm:text-xl md:text-2xl font-extrabold text-white flex items-center gap-2 sm:gap-2.5 flex-wrap">
               <MessageSquare className="w-5 h-5 sm:w-6 sm:h-6 text-red-500 flex-shrink-0" />
               <span>Đánh Giá &amp; Bình Luận Cộng Đồng</span>
-              <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-red-500/10 text-red-400 border border-red-500/20">
+              <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-red-500/10 text-red-400">
                 {sortedComments.length}
               </span>
             </h3>
@@ -470,7 +470,7 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
 
           {/* Aggregate Score Card */}
           {stats.totalReviews > 0 && (
-            <div className="flex items-center gap-3 sm:gap-4 bg-zinc-900/90 border border-white/10 rounded-xl sm:rounded-2xl px-3 sm:px-4 py-2 sm:py-2.5 shrink-0 self-start sm:self-auto">
+            <div className="flex items-center gap-3 sm:gap-4 bg-zinc-900/90 rounded-xl sm:rounded-2xl px-3 sm:px-4 py-2 sm:py-2.5 shrink-0 self-start sm:self-auto">
               <div className="text-center">
                 <div className="text-xl sm:text-2xl font-black text-amber-400 flex items-center justify-center gap-1">
                   <span>{stats.averageRating}</span>
@@ -495,15 +495,15 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
           )}
         </div>
       ) : stats.totalReviews > 0 ? (
-        <div className="flex items-center justify-between pb-3 border-b border-white/5">
+        <div className="flex items-center justify-between pb-3 border-b">
           <div className="flex items-center gap-2">
             <span className="text-xs font-bold text-zinc-300">Tổng quan đánh giá:</span>
-            <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-red-500/10 text-red-400 border border-red-500/20">
+            <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-red-500/10 text-red-400">
               {sortedComments.length} bình luận
             </span>
           </div>
 
-          <div className="flex items-center gap-2.5 bg-zinc-900/80 border border-white/10 rounded-xl px-3 py-1.5 shrink-0">
+          <div className="flex items-center gap-2.5 bg-zinc-900/80 rounded-xl px-3 py-1.5 shrink-0">
             <div className="flex items-center gap-1">
               <span className="text-base font-black text-amber-400">{stats.averageRating}</span>
               <span className="text-xs text-zinc-400">/5</span>
@@ -523,11 +523,11 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
           <form
             ref={formRef}
             onSubmit={handleSubmit}
-            className="bg-zinc-900/50 border border-white/10 rounded-2xl p-4 md:p-6 transition-all focus-within:border-red-500/40"
+            className="bg-zinc-900/50 rounded-2xl p-4 md:p-6 transition-all focus-within:"
           >
             {/* Existing Review Notice Banner */}
             {myExistingReview && (
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 bg-amber-500/10 border border-amber-500/20 rounded-xl px-4 py-2.5 mb-4 text-xs text-amber-300">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 bg-amber-500/10 rounded-xl px-4 py-2.5 mb-4 text-xs text-amber-300">
                 <div className="flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 text-amber-400 shrink-0" />
                   <span>
@@ -565,7 +565,7 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
               </div>
 
               {/* Star Rating Interactive */}
-              <div className="bg-black/40 px-3 py-1.5 rounded-xl border border-white/5 inline-flex items-center">
+              <div className="bg-black/40 px-3 py-1.5 rounded-xl inline-flex items-center">
                 <StarRating
                   value={rating}
                   onChange={setRating}
@@ -590,7 +590,7 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
                       prev ? `${prev} ${tag}` : tag,
                     )
                   }
-                  className="px-2.5 py-1 rounded-full text-xs bg-zinc-900/80 hover:bg-zinc-800 text-zinc-300 hover:text-white border border-white/10 hover:border-white/25 transition-colors cursor-pointer shrink-0 whitespace-nowrap"
+                  className="px-2.5 py-1 rounded-full text-xs bg-zinc-900/80 hover:bg-zinc-800 text-zinc-300 hover:text-white hover: transition-colors cursor-pointer shrink-0 whitespace-nowrap"
                 >
                   {tag}
                 </button>
@@ -610,7 +610,7 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
                 }}
                 placeholder="Chia sẻ cảm nghĩ của bạn về bộ phim... (Vui lòng không tiết lộ trước nội dung 🤫)"
                 rows={3}
-                className="w-full min-h-[88px] bg-black/60 border border-white/10 rounded-xl px-4 py-3 text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-red-500/60 focus:ring-1 focus:ring-red-500/30 resize-y transition-all"
+                className="w-full min-h-[88px] bg-black/60 rounded-xl px-4 py-3 text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus: focus:ring-1 focus:ring-red-500/30 resize-y transition-all"
                 maxLength={1000}
               />
               <div className="text-[11px] text-zinc-600 text-right mt-1">
@@ -619,11 +619,11 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
             </div>
 
             {/* Options Row: Episode scope, Spoil toggle, Submit button */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mt-3 pt-3 border-t border-white/5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mt-3 pt-3 border-t">
               <div className="flex items-center gap-3 sm:gap-4 flex-wrap w-full sm:w-auto">
                 {/* Episode scope toggle */}
                 {currentEpisodeName && (
-                  <div className="flex items-center gap-1 bg-black/40 p-1 rounded-lg border border-white/5 text-xs shrink-0">
+                  <div className="flex items-center gap-1 bg-black/40 p-1 rounded-lg text-xs shrink-0">
                     <button
                       type="button"
                       onClick={() => setScopeEpisode("all")}
@@ -696,9 +696,9 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
           </form>
         ) : (
           /* Login Banner */
-          <div className="relative overflow-hidden bg-gradient-to-r from-zinc-900/90 via-zinc-900/60 to-red-950/30 border border-white/10 rounded-xl sm:rounded-2xl p-4 sm:p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="relative overflow-hidden bg-gradient-to-r from-zinc-900/90 via-zinc-900/60 to-red-950/30 rounded-xl sm:rounded-2xl p-4 sm:p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-3 sm:gap-4 text-center sm:text-left w-full sm:w-auto">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-red-600/10 border border-red-500/20 flex items-center justify-center text-red-500 shrink-0">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-red-600/10 flex items-center justify-center text-red-500 shrink-0">
                 <LogIn className="w-5 h-5 sm:w-6 sm:h-6" />
               </div>
               <div className="flex-1 min-w-0">
@@ -725,12 +725,12 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
 
       {/* Filter Tabs & Comments List */}
       <div className="mt-8">
-        <div className="flex items-center justify-between gap-2 pb-3 border-b border-white/10 flex-wrap gap-y-2">
+        <div className="flex items-center justify-between gap-2 pb-3 border-b flex-wrap gap-y-2">
           <div className="text-sm font-semibold text-zinc-300">
             Tất cả bình luận ({sortedComments.length})
           </div>
 
-          <div className="flex items-center gap-0.5 sm:gap-1 bg-black/40 p-1 rounded-xl border border-white/5 text-xs">
+          <div className="flex items-center gap-0.5 sm:gap-1 bg-black/40 p-1 rounded-xl text-xs">
             <button
               type="button"
               onClick={() => setSortBy("newest")}
@@ -775,7 +775,7 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
               <span className="text-xs">Đang tải bình luận cộng đồng...</span>
             </div>
           ) : loadError ? (
-            <div className="py-8 text-center bg-red-950/20 border border-red-500/30 rounded-2xl p-4 text-xs text-red-400">
+            <div className="py-8 text-center bg-red-950/20 rounded-2xl p-4 text-xs text-red-400">
               <p className="font-semibold mb-1">Không thể tải bình luận máy chủ:</p>
               <p className="text-zinc-400">{loadError}</p>
             </div>
@@ -798,7 +798,7 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
               />
             ))
           ) : (
-            <div className="py-12 text-center bg-zinc-900/30 rounded-2xl border border-dashed border-white/10 p-6">
+            <div className="py-12 text-center bg-zinc-900/30 rounded-2xl border border-dashed p-6">
               <MessageSquare className="w-10 h-10 text-zinc-600 mx-auto mb-2" />
               <div className="font-semibold text-zinc-300 text-sm">
                 Chưa có bình luận nào cho bộ phim này

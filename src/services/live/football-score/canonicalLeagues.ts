@@ -26,35 +26,35 @@ export const LEAGUE_CANONICAL_MAP: Record<string, string> = {
 /**
  * Danh sách các pattern từ khóa giải đấu trong tiêu đề trận đấu hoặc tên giải thô
  */
-const TITLE_TOURNAMENT_PATTERNS: Array<{ regex: RegExp; name: string }> = [
-  { regex: /\b(?:uefa\s*youth\s*league|youth\s*league|c1\s*u\s*19|ucl\s*u\s*19)\b/i, name: "UEFA Youth League" },
-  { regex: /\b(?:champions\s*league|cúp\s*c1|cup\s*c1|\bucl\b)\b/i, name: "UEFA Champions League" },
-  { regex: /\b(?:europa\s*league|cúp\s*c2|cup\s*c2|\buel\b)\b/i, name: "UEFA Europa League" },
-  { regex: /\b(?:conference\s*league|cúp\s*c3|cup\s*c3|\buecl\b)\b/i, name: "UEFA Conference League" },
-  { regex: /\b(?:premier\s*league|ngoại\s*hạng\s*anh|\bepl\b)\b/i, name: "Ngoại Hạng Anh" },
-  { regex: /\b(?:la\s*liga|laliga)\b/i, name: "La Liga" },
-  { regex: /\b(?:serie\s*a|seriea)\b/i, name: "Serie A" },
-  { regex: /\b(?:bundesliga)\b/i, name: "Bundesliga" },
-  { regex: /\b(?:ligue\s*1|ligue1)\b/i, name: "Ligue 1" },
-  { regex: /\b(?:v[-_ ]?league|vleague)\b/i, name: "V-League" },
-  { regex: /\b(?:saudi\s*(?:pro\s*)?league|spl)\b/i, name: "Saudi Pro League" },
-  { regex: /\b(?:major\s*league\s*soccer|\bmls\b)\b/i, name: "Major League Soccer" },
-  { regex: /\b(?:world\s*cup)\b/i, name: "World Cup" },
-  { regex: /\b(?:euro\s*\d{4}|euro)\b/i, name: "Euro" },
-  { regex: /\b(?:copa\s*america)\b/i, name: "Copa America" },
-  { regex: /\b(?:asian\s*cup|aff\s*(?:cup|mitsubishi))\b/i, name: "Asian Cup / AFF" },
+const TITLE_TOURNAMENT_PATTERNS: Array<{ regex: RegExp; name: string; sport?: "football" | "basketball" }> = [
+  { regex: /\b(?:uefa\s*youth\s*league|youth\s*league|c1\s*u\s*19|ucl\s*u\s*19)\b/i, name: "UEFA Youth League", sport: "football" },
+  { regex: /\b(?:champions\s*league|cúp\s*c1|cup\s*c1|\bucl\b)\b/i, name: "UEFA Champions League", sport: "football" },
+  { regex: /\b(?:europa\s*league|cúp\s*c2|cup\s*c2|\buel\b)\b/i, name: "UEFA Europa League", sport: "football" },
+  { regex: /\b(?:conference\s*league|cúp\s*c3|cup\s*c3|\buecl\b)\b/i, name: "UEFA Conference League", sport: "football" },
+  { regex: /\b(?:premier\s*league|ngoại\s*hạng\s*anh|\bepl\b)\b/i, name: "Ngoại Hạng Anh", sport: "football" },
+  { regex: /\b(?:la\s*liga|laliga)\b/i, name: "La Liga", sport: "football" },
+  { regex: /\b(?:serie\s*a|seriea)\b/i, name: "Serie A", sport: "football" },
+  { regex: /\b(?:bundesliga)\b/i, name: "Bundesliga", sport: "football" },
+  { regex: /\b(?:ligue\s*1|ligue1)\b/i, name: "Ligue 1", sport: "football" },
+  { regex: /\b(?:v[-_ ]?league|vleague)\b/i, name: "V-League", sport: "football" },
+  { regex: /\b(?:saudi\s*(?:pro\s*)?league|spl)\b/i, name: "Saudi Pro League", sport: "football" },
+  { regex: /\b(?:major\s*league\s*soccer|\bmls\b)\b/i, name: "Major League Soccer", sport: "football" },
+  { regex: /\b(?:world\s*cup)\b/i, name: "World Cup", sport: "football" },
+  { regex: /\b(?:euro\s*\d{4}|euro)\b/i, name: "Euro", sport: "football" },
+  { regex: /\b(?:copa\s*america)\b/i, name: "Copa America", sport: "football" },
+  { regex: /\b(?:asian\s*cup|aff\s*(?:cup|mitsubishi))\b/i, name: "Asian Cup / AFF", sport: "football" },
   { regex: /\b(?:asian\s*games|asiad)\b/i, name: "Asian Games / ASIAD" },
-  { regex: /\b(?:fa\s*cup)\b/i, name: "FA Cup" },
-  { regex: /\b(?:carabao\s*cup)\b/i, name: "Carabao Cup" },
-  { regex: /\b(?:copa\s*del\s*rey)\b/i, name: "Copa del Rey" },
-  { regex: /\b(?:nba)\b/i, name: "Giải Bóng Rổ NBA" },
-  { regex: /\b(?:vba)\b/i, name: "Giải Bóng Rổ VBA" },
-  { regex: /\b(?:easl|east\s*asia\s*super\s*league)\b/i, name: "Giải Bóng Rổ EASL" },
-  { regex: /\b(?:pba|philippine\s*basketball)\b/i, name: "Giải Bóng Rổ PBA" },
-  { regex: /\b(?:kbl|korean\s*basketball)\b/i, name: "Giải Bóng Rổ KBL" },
-  { regex: /\b(?:mpbl)\b/i, name: "Giải Bóng Rổ MPBL" },
-  { regex: /\b(?:euroleague|euro\s*league)\b/i, name: "Giải Bóng Rổ EuroLeague" },
-  { regex: /\b(?:cba|chinese\s*basketball)\b/i, name: "Giải Bóng Rổ CBA" },
+  { regex: /\b(?:fa\s*cup)\b/i, name: "FA Cup", sport: "football" },
+  { regex: /\b(?:carabao\s*cup)\b/i, name: "Carabao Cup", sport: "football" },
+  { regex: /\b(?:copa\s*del\s*rey)\b/i, name: "Copa del Rey", sport: "football" },
+  { regex: /\b(?:nba)\b/i, name: "Giải Bóng Rổ NBA", sport: "basketball" },
+  { regex: /\b(?:vba)\b/i, name: "Giải Bóng Rổ VBA", sport: "basketball" },
+  { regex: /\b(?:easl|east\s*asia\s*super\s*league)\b/i, name: "Giải Bóng Rổ EASL", sport: "basketball" },
+  { regex: /\b(?:pba|philippine\s*basketball)\b/i, name: "Giải Bóng Rổ PBA", sport: "basketball" },
+  { regex: /\b(?:kbl|korean\s*basketball)\b/i, name: "Giải Bóng Rổ KBL", sport: "basketball" },
+  { regex: /\b(?:mpbl)\b/i, name: "Giải Bóng Rổ MPBL", sport: "basketball" },
+  { regex: /\b(?:euroleague|euro\s*league)\b/i, name: "Giải Bóng Rổ EuroLeague", sport: "basketball" },
+  { regex: /\b(?:cba|chinese\s*basketball)\b/i, name: "Giải Bóng Rổ CBA", sport: "basketball" },
 ];
 
 /**
@@ -166,14 +166,47 @@ export function resolveCanonicalTournament(params: {
   sport?: string;
   team1?: string;
   team2?: string;
+  category?: string;
+  gender?: string;
   score?: LiveMatchScore | null;
 }): string {
-  const { tournament, title, sport, score } = params;
+  const { tournament, title, sport, category, gender, score } = params;
   const searchCorpus = `${title || ""} ${tournament || ""}`;
   const teamsCorpus = `${params.team1 || ""} ${params.team2 || ""}`;
   const fullCorpus = `${searchCorpus} ${teamsCorpus}`.trim();
 
-  // Guard đặc biệt: Trận đấu trẻ (U17, U18, U19, U21) có yếu tố C1/UEFA -> luôn là UEFA Youth League
+  // Guard đặc biệt 1: Bóng đá Nữ (Women's Football / WSL / Liga F / Women's UCL)
+  const isWomenSoccer =
+    category === "senior_women" ||
+    gender === "women" ||
+    /\b(?:nữ|nu|women|woman|female|wsl|frauen|femenil)\b/i.test(`${fullCorpus} ${category || ""}`);
+
+  if (isWomenSoccer) {
+    if (/\b(?:premier\s*league|ngoại\s*hạng\s*anh|\bepl\b|wsl|fa\s*wsl)\b/i.test(fullCorpus)) {
+      return "Nữ Ngoại Hạng Anh";
+    }
+    if (/\b(?:champions\s*league|cúp\s*c1|ucl)\b/i.test(fullCorpus)) {
+      return "UEFA Women's Champions League";
+    }
+    if (/\b(?:la\s*liga|laliga|liga\s*f)\b/i.test(fullCorpus)) {
+      return "Nữ La Liga (Liga F)";
+    }
+    if (/\b(?:serie\s*a|seriea)\b/i.test(fullCorpus)) {
+      return "Nữ Serie A";
+    }
+    if (/\b(?:bundesliga|frauen)\b/i.test(fullCorpus)) {
+      return "Nữ Bundesliga";
+    }
+    if (/\b(?:world\s*cup)\b/i.test(fullCorpus)) {
+      return "World Cup Nữ";
+    }
+    if (tournament && !GENERIC_PLAYLIST_NAMES.has(tournament.toLowerCase())) {
+      return tournament.startsWith("Nữ ") ? tournament : `Nữ ${tournament}`;
+    }
+    return "Bóng Đá Nữ";
+  }
+
+  // Guard đặc biệt 2: Trận đấu trẻ (U17, U18, U19, U21) có yếu tố C1/UEFA -> luôn là UEFA Youth League
   const isYouthSoccer = /\b(?:u\s*(?:17|18|19|20|21)|youth|academy)\b/i.test(fullCorpus);
   if (
     isYouthSoccer &&
@@ -187,8 +220,15 @@ export function resolveCanonicalTournament(params: {
     return LEAGUE_CANONICAL_MAP[score.leagueSlug];
   }
 
+  const isLikelyFootball =
+    sport === "football" ||
+    (!sport && /\b(?:fc|cf|clb)\b/i.test(teamsCorpus));
+
   // 2. TẦNG 2: Nhận diện từ Title hoặc Tournament string có từ khóa giải đấu rõ ràng
   for (const pattern of TITLE_TOURNAMENT_PATTERNS) {
+    if (isLikelyFootball && pattern.sport && pattern.sport !== "football") {
+      continue;
+    }
     if (pattern.regex.test(searchCorpus)) {
       return pattern.name;
     }
@@ -212,13 +252,17 @@ export function resolveCanonicalTournament(params: {
       !/^(?:thuyết minh|lồng tiếng|tiếng việt|tiếng anh)\b/i.test(cleanRaw) &&
       !/(?:hd|fhd|sd|4k|link\s*\d+|phòng\s*\d+)$/i.test(cleanRaw)
     ) {
-      if (/la\s*liga/i.test(cleanRaw)) return "La Liga";
-      if (/serie\s*a/i.test(cleanRaw)) return "Serie A";
-      if (/premier\s*league|ngoại\s*hạng\s*anh/i.test(cleanRaw)) return "Ngoại Hạng Anh";
-      if (/bundesliga/i.test(cleanRaw)) return "Bundesliga";
-      if (/ligue\s*1/i.test(cleanRaw)) return "Ligue 1";
-      if (/v[-_ ]?league/i.test(cleanRaw)) return "V-League";
-      return cleanRaw;
+      if (isLikelyFootball && /bóng\s*rổ|basketball|\bnba\b|\bvba\b|\bpba\b|\bkbl\b/i.test(cleanRaw)) {
+        // Trận bóng đá không bao giờ nhận nhãn giải bóng rổ do lỗi metadata
+      } else {
+        if (/la\s*liga/i.test(cleanRaw)) return "La Liga";
+        if (/serie\s*a/i.test(cleanRaw)) return "Serie A";
+        if (/premier\s*league|ngoại\s*hạng\s*anh/i.test(cleanRaw)) return "Ngoại Hạng Anh";
+        if (/bundesliga/i.test(cleanRaw)) return "Bundesliga";
+        if (/ligue\s*1/i.test(cleanRaw)) return "Ligue 1";
+        if (/v[-_ ]?league/i.test(cleanRaw)) return "V-League";
+        return cleanRaw;
+      }
     }
   }
 

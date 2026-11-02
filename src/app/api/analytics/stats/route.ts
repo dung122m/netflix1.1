@@ -1,11 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAnalyticsDashboardStats } from "@/services/analyticsService";
 import { verifyServerAuth } from "@/lib/serverAuth";
+import {
+  enforceRateLimit,
+  buildRateLimitResponse,
+  RATE_LIMIT_PRESETS,
+} from "@/lib/rateLimit";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 15;
 
 export async function GET(req: NextRequest) {
+  const rateLimit = await enforceRateLimit(req, RATE_LIMIT_PRESETS.PUBLIC_READ);
+  if (!rateLimit.allowed) {
+    return buildRateLimitResponse(rateLimit);
+  }
+
   try {
     // 1. Enforce Admin Authentication
     const auth = await verifyServerAuth(req);

@@ -39,7 +39,7 @@ const TERMS_PILLARS = [
     desc: "Nanaflix KHÔNG lưu trữ (host), KHÔNG tải lên (upload) và KHÔNG sở hữu bất kỳ tệp video đa phương tiện nào trên máy chủ riêng. Tất cả luồng phát (HLS/m3u8, iframe) được tổng hợp, lập chỉ mục và nhúng từ các máy chủ lưu trữ công khai của bên thứ ba trên Internet.",
     badge: "Không lưu trữ video",
     accent: "from-amber-500/20 to-orange-500/5",
-    borderColor: "border-amber-500/20 hover:border-amber-500/40",
+    borderColor: " hover:",
     iconColor: "text-amber-400",
   },
   {
@@ -48,7 +48,7 @@ const TERMS_PILLARS = [
     desc: "Chúng tôi luôn tôn trọng quyền sở hữu trí tuệ hợp pháp của các hãng sản xuất, tác giả và nhà phân phối điện ảnh. Nếu bạn là chủ sở hữu bản quyền và muốn gỡ bỏ liên kết nhúng đối với nội dung thuộc quyền sở hữu của mình, chúng tôi sẽ xử lý ngay lập tức.",
     badge: "Phản hồi trong 24–48h",
     accent: "from-rose-500/20 to-red-500/5",
-    borderColor: "border-red-500/20 hover:border-red-500/40",
+    borderColor: " hover:",
     iconColor: "text-red-400",
   },
   {
@@ -57,7 +57,7 @@ const TERMS_PILLARS = [
     desc: "Người dùng có quyền tự do đóng góp ý kiến, đánh giá và thảo luận văn minh. Nghiêm cấm các hành vi phát ngôn thù hận, spam bot, cố tình khai thác lỗ hổng kỹ thuật hoặc sử dụng công cụ tự động (crawler/scraper) gây quá tải hạ tầng hệ thống.",
     badge: "Cộng đồng văn minh",
     accent: "from-emerald-500/20 to-teal-500/5",
-    borderColor: "border-emerald-500/20 hover:border-emerald-500/40",
+    borderColor: " hover:",
     iconColor: "text-emerald-400",
   },
 ];
@@ -144,7 +144,7 @@ export default function TermsPage() {
             <span>Quay lại Trang chủ</span>
           </Link>
 
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-semibold tracking-wide uppercase mx-auto block w-fit">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-500/10 text-red-400 text-xs font-semibold tracking-wide uppercase mx-auto block w-fit">
             <Scale className="w-3.5 h-3.5" />
             <span>Pháp Lý & Quy Chuẩn Hoạt Động</span>
           </div>
@@ -161,7 +161,7 @@ export default function TermsPage() {
             cùng tuyên bố miễn trừ bản quyền và cơ chế tiếp nhận khiếu nại sở hữu trí tuệ minh bạch.
           </p>
 
-          <div className="flex items-center justify-center gap-4 pt-2 text-xs text-zinc-500 font-mono">
+          <div className="flex items-center justify-center gap-4 pt-2 text-xs text-zinc-500 font-sans tabular-nums">
             <span>Phiên bản: <strong className="text-zinc-300">2.6</strong></span>
             <span>•</span>
             <span>Hiệu lực từ: <strong className="text-zinc-300">Tháng 09/2026</strong></span>
@@ -226,10 +226,10 @@ export default function TermsPage() {
             {DETAILED_SECTIONS.map((sec, idx) => (
               <div
                 key={idx}
-                className="p-5 sm:p-6 rounded-2xl bg-zinc-950/60 border border-white/[0.08] hover:border-white/15 transition space-y-2"
+                className="p-5 sm:p-6 rounded-2xl bg-zinc-950/60 border border-white/[0.08] hover: transition space-y-2"
               >
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-mono font-bold text-netflix-red uppercase tracking-wider">
+                  <span className="text-xs font-sans font-bold text-netflix-red uppercase tracking-wider">
                     {sec.number}
                   </span>
                   <span className="text-zinc-600">•</span>
@@ -246,7 +246,7 @@ export default function TermsPage() {
         {/* ================= 4. DMCA TAKEDOWN PROCEDURE ================= */}
         <section className="space-y-6">
           <div className="text-center sm:text-left">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs font-semibold uppercase mb-2">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-500/10 text-rose-400 text-xs font-semibold uppercase mb-2">
               <AlertTriangle className="w-3.5 h-3.5" />
               <span>Bảo vệ quyền sở hữu trí tuệ</span>
             </div>
@@ -262,9 +262,9 @@ export default function TermsPage() {
             {DMCA_REQUIREMENTS.map((req) => (
               <div
                 key={req.step}
-                className="p-5 rounded-2xl bg-zinc-950/70 border border-white/[0.08] flex items-start gap-4 hover:border-white/20 transition-colors"
+                className="p-5 rounded-2xl bg-zinc-950/70 border border-white/[0.08] flex items-start gap-4 hover: transition-colors"
               >
-                <span className="text-xl font-black font-mono text-netflix-red px-2.5 py-1 rounded-lg bg-red-500/10 border border-red-500/20 shrink-0">
+                <span className="text-xl font-black font-sans tabular-nums text-netflix-red px-2.5 py-1 rounded-lg bg-red-500/10 shrink-0">
                   {req.step}
                 </span>
                 <div className="space-y-1">
@@ -276,7 +276,7 @@ export default function TermsPage() {
           </div>
 
           {/* DMCA CONTACT BOX */}
-          <div className="p-6 sm:p-8 rounded-2xl sm:rounded-3xl bg-gradient-to-br from-red-950/40 via-zinc-950/90 to-zinc-950 border border-red-500/30 backdrop-blur-2xl shadow-2xl relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-6">
+          <div className="p-6 sm:p-8 rounded-2xl sm:rounded-3xl bg-gradient-to-br from-red-950/40 via-zinc-950/90 to-zinc-950 backdrop-blur-2xl shadow-2xl relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-6">
             <div className="space-y-2 text-center md:text-left">
               <div className="flex items-center justify-center md:justify-start gap-2 text-red-400 font-bold text-xs uppercase tracking-wider">
                 <Mail className="w-4 h-4" />
@@ -304,7 +304,7 @@ export default function TermsPage() {
         <section className="border-t border-white/[0.08] pt-10 grid grid-cols-1 sm:grid-cols-3 gap-4">
           <Link
             href="/privacy"
-            className="p-4 rounded-xl bg-zinc-950/50 hover:bg-zinc-900 border border-white/[0.06] hover:border-emerald-500/40 transition-all flex items-center justify-between group"
+            className="p-4 rounded-xl bg-zinc-950/50 hover:bg-zinc-900 border border-white/[0.06] hover: transition-all flex items-center justify-between group"
           >
             <div className="flex items-center gap-3">
               <ShieldCheck className="w-5 h-5 text-emerald-400" />
@@ -318,7 +318,7 @@ export default function TermsPage() {
 
           <Link
             href="/about"
-            className="p-4 rounded-xl bg-zinc-950/50 hover:bg-zinc-900 border border-white/[0.06] hover:border-red-500/40 transition-all flex items-center justify-between group"
+            className="p-4 rounded-xl bg-zinc-950/50 hover:bg-zinc-900 border border-white/[0.06] hover: transition-all flex items-center justify-between group"
           >
             <div className="flex items-center gap-3">
               <Sparkles className="w-5 h-5 text-netflix-red" />
@@ -332,7 +332,7 @@ export default function TermsPage() {
 
           <Link
             href="/about#contact"
-            className="p-4 rounded-xl bg-zinc-950/50 hover:bg-zinc-900 border border-white/[0.06] hover:border-rose-500/40 transition-all flex items-center justify-between group"
+            className="p-4 rounded-xl bg-zinc-950/50 hover:bg-zinc-900 border border-white/[0.06] hover: transition-all flex items-center justify-between group"
           >
             <div className="flex items-center gap-3">
               <MessageSquare className="w-5 h-5 text-rose-400" />

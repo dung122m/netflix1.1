@@ -75,11 +75,11 @@ const MovieGridInner = ({ movies, columnsClassName }: MovieGridProps) => {
   }, [normalizedMovies, visibleCount]);
 
   return (
-    <div className="relative movie-grid-container rounded-2xl sm:rounded-3xl border border-white/10 p-2 sm:p-4 md:p-5 lg:p-6 shadow-2xl space-y-6 overflow-visible">
+    <div className="relative movie-grid-container p-1 sm:p-2 md:p-3 space-y-6 overflow-visible">
       {/* FLOATING LOADING BADGE KHI ĐANG LỌC PHIM */}
       {isDimmed && (
         <div className="absolute inset-0 z-30 flex items-center justify-center pointer-events-none">
-          <div className="sticky top-1/2 -translate-y-1/2 flex items-center gap-2.5 px-4 py-2.5 rounded-full bg-zinc-950/95 border border-white/20 shadow-2xl backdrop-blur-xl text-white text-xs font-bold animate-in fade-in zoom-in-95 duration-150">
+          <div className="sticky top-1/2 -translate-y-1/2 flex items-center gap-2.5 px-4 py-2.5 rounded-full bg-zinc-950/95 shadow-2xl backdrop-blur-xl text-white text-xs font-bold animate-in fade-in zoom-in-95 duration-150">
             <Loader2 className="w-4 h-4 text-netflix-red animate-spin flex-none" />
             <span>Đang cập nhật danh sách phim...</span>
           </div>

@@ -138,7 +138,7 @@ export function CollectionClientView({
         </div>
       ) : !collection ? (
         <div className="py-24 text-center max-w-md mx-auto">
-          <div className="w-16 h-16 rounded-full bg-zinc-900 border border-white/10 flex items-center justify-center text-zinc-500 mx-auto mb-4">
+          <div className="w-16 h-16 rounded-full bg-zinc-900 flex items-center justify-center text-zinc-500 mx-auto mb-4">
             <Lock className="w-7 h-7" />
           </div>
           <h2 className="text-xl font-bold text-white mb-2">
@@ -157,22 +157,22 @@ export function CollectionClientView({
       ) : (
         <>
           {/* HEADER BỘ SƯU TẬP */}
-          <div className="relative rounded-3xl bg-gradient-to-r from-zinc-950 via-zinc-900/90 to-zinc-950 border border-white/15 p-6 sm:p-8 mb-8 shadow-2xl shadow-black/80 overflow-hidden">
+          <div className="relative rounded-3xl bg-gradient-to-r from-zinc-950 via-zinc-900/90 to-zinc-950 p-6 sm:p-8 mb-8 shadow-2xl shadow-black/80 overflow-hidden">
             <div className="absolute top-0 right-0 w-96 h-96 bg-netflix-red/10 rounded-full blur-3xl pointer-events-none" />
 
             <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
               <div className="max-w-2xl">
                 <div className="flex items-center gap-2.5 mb-2.5">
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-netflix-red/20 border border-netflix-red/40 text-netflix-red text-xs font-bold uppercase tracking-wider">
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-netflix-red/20 text-netflix-red text-xs font-bold uppercase tracking-wider">
                     <Sparkles className="w-3.5 h-3.5" />
                     Tuyển Tập Phim
                   </span>
                   {collection.isPublic ? (
-                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 text-xs font-semibold">
+                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-400 text-xs font-semibold">
                       <Globe className="w-3 h-3" /> Công khai
                     </span>
                   ) : (
-                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-400 text-xs font-semibold">
+                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-500/20 text-amber-400 text-xs font-semibold">
                       <Lock className="w-3 h-3" /> Riêng tư
                     </span>
                   )}
@@ -213,7 +213,7 @@ export function CollectionClientView({
                       name={collection.creatorName}
                       seed={collection.userId || collection.creatorName}
                       sizeClassName="w-6 h-6 text-[10px] font-bold"
-                      className="ring-1 ring-white/20"
+                      className=""
                     />
                     <span className="text-zinc-200 hover:text-amber-300 font-semibold">
                       {collection.creatorName}
@@ -242,7 +242,7 @@ export function CollectionClientView({
                 <button
                   type="button"
                   onClick={handleShare}
-                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/15 text-white text-xs sm:text-sm font-bold transition cursor-pointer active:scale-95 shadow-md shadow-black/40"
+                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs sm:text-sm font-bold transition cursor-pointer active:scale-95 shadow-md shadow-black/40"
                 >
                   {copied ? (
                     <>
@@ -262,7 +262,7 @@ export function CollectionClientView({
                     type="button"
                     onClick={handleSaveAllToWatchlist}
                     disabled={isAddingAll}
-                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/15 text-white text-xs sm:text-sm font-bold transition cursor-pointer active:scale-95 shadow-md shadow-black/40 disabled:opacity-50"
+                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs sm:text-sm font-bold transition cursor-pointer active:scale-95 shadow-md shadow-black/40 disabled:opacity-50"
                   >
                     {isAddingAll ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
@@ -304,7 +304,7 @@ export function CollectionClientView({
               )}
             </div>
           ) : (
-            <div className="rounded-2xl border border-white/10 bg-gradient-to-b from-zinc-900/40 to-zinc-950/40 p-2.5 sm:p-4 md:p-5 overflow-visible">
+            <div className="rounded-2xl bg-gradient-to-b from-zinc-900/40 to-transparent p-2.5 sm:p-4 md:p-5 overflow-visible">
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4 md:gap-4 lg:gap-5 xl:gap-6">
                 {collection.movies.map((item, index) => (
                   <MediaCard

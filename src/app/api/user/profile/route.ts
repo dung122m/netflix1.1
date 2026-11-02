@@ -3,6 +3,13 @@ import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { verifyServerAuth } from "@/lib/serverAuth";
 import { sanitizeSafeText } from "@/lib/security";
 import { isUserAdmin } from "@/lib/adminConfig";
+import {
+  enforceRateLimit,
+  buildRateLimitResponse,
+  RATE_LIMIT_PRESETS,
+} from "@/lib/rateLimit";
+import { safeParseJson, detectMaliciousPayload } from "@/lib/securityValidation";
+import { logSecurityEvent } from "@/lib/securityLogger";
 
 export const dynamic = "force-dynamic";
 
@@ -12,13 +19,19 @@ export const dynamic = "force-dynamic";
  * - Mặc định: Lấy hồ sơ của chính người dùng đã đăng nhập (verified qua Firebase Token)
  */
 export async function GET(req: NextRequest) {
+  const auth = await verifyServerAuth(req);
+  const rateLimitPreset = auth.userId ? RATE_LIMIT_PRESETS.USER_READ : RATE_LIMIT_PRESETS.PUBLIC_READ;
+  const rateLimit = await enforceRateLimit(req, rateLimitPreset, auth.userId || undefined);
+  if (!rateLimit.allowed) {
+    return buildRateLimitResponse(rateLimit);
+  }
+
   const supabase = getSupabaseAdmin();
   if (!supabase) {
     return NextResponse.json({ success: false, error: "Database not configured" }, { status: 500 });
   }
 
   const { searchParams } = new URL(req.url);
-  const auth = await verifyServerAuth(req);
 
   if (searchParams.get("all") === "true") {
     if (!auth.isAuthenticated || !auth.userId) {
@@ -101,7 +114,10 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  const targetUserId = searchParams.get("userId");
+  const targetUserId = searchParams.get("userId")?.trim();
+  if (targetUserId && !/^[A-Za-z0-9_.-]{1,128}$/.test(targetUserId)) {
+    return NextResponse.json({ error: "Định dạng userId không hợp lệ" }, { status: 400 });
+  }
 
   let uid = targetUserId;
   if (!uid) {
@@ -166,11 +182,41 @@ export async function POST(req: NextRequest) {
 
   const auth = await verifyServerAuth(req);
   if (!auth.isAuthenticated || !auth.userId) {
+    logSecurityEvent(req, {
+      event: "AUTH_FAILURE",
+      status: 401,
+      reason: "Missing or invalid token on profile update",
+    });
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const rateLimit = await enforceRateLimit(
+    req,
+    RATE_LIMIT_PRESETS.USER_MUTATION,
+    auth.userId
+  );
+  if (!rateLimit.allowed) {
+    logSecurityEvent(req, {
+      event: "RATE_LIMIT_EXCEEDED",
+      status: 429,
+      userId: auth.userId,
+      reason: rateLimit.reason,
+    });
+    return buildRateLimitResponse(rateLimit);
+  }
+
   try {
-    const body = await req.json();
+    const parseRes = await safeParseJson<Record<string, unknown>>(req, 30 * 1024);
+    if (!parseRes.success) {
+      return parseRes.response;
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const body = parseRes.data as Record<string, any>;
+    const malCheck = detectMaliciousPayload(body);
+    if (malCheck.isMalicious) {
+      return NextResponse.json({ error: malCheck.reason || "Nội dung không hợp lệ" }, { status: 400 });
+    }
     const userId = auth.userId;
     const now = Date.now();
 
@@ -249,9 +295,28 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const rateLimit = await enforceRateLimit(
+    req,
+    RATE_LIMIT_PRESETS.USER_MUTATION,
+    auth.userId
+  );
+  if (!rateLimit.allowed) {
+    return buildRateLimitResponse(rateLimit);
+  }
+
   try {
-    const body = await req.json();
-    const targetUserId = (auth.isAdmin && body.userId) ? body.userId : auth.userId;
+    const parseRes = await safeParseJson<Record<string, unknown>>(req, 30 * 1024);
+    if (!parseRes.success) {
+      return parseRes.response;
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const body = parseRes.data as Record<string, any>;
+    const malCheck = detectMaliciousPayload(body);
+    if (malCheck.isMalicious) {
+      return NextResponse.json({ error: malCheck.reason || "Nội dung không hợp lệ" }, { status: 400 });
+    }
+    const targetUserId = (auth.isAdmin && body.userId) ? String(body.userId) : auth.userId;
     const now = Date.now();
 
     const updates: Record<string, unknown> = {

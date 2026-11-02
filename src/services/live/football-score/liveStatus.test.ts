@@ -4,6 +4,8 @@ import {
   isValidKickoffTimestamp,
   formatKickoffTime,
   resolveMatchDisplayStatus,
+  formatMatchMinute,
+  resolveMatchTimeInfo,
 } from "./liveStatus";
 import { LiveMatchScore } from "./types";
 
@@ -247,5 +249,163 @@ describe("Nanaflix /live - Kiểm soát nhãn 'Đang phát trực tiếp'", () =
     assert.equal(resStreamOnly.isConfirmedLive, false);
     assert.equal(resStreamOnly.badgeLabel, null);
     assert.equal(resStreamOnly.kickoffTime, "20:00");
+  });
+
+  // 8. Nanaflix Match Time Display Polish: Kiểm tra quy tắc hiển thị giờ đá và phút thi đấu
+  describe("Quy tắc hiển thị đồng thời giờ đá và phút thi đấu (MatchCard & LivePlayer)", () => {
+    it("8A. formatMatchMinute chuẩn hóa chính xác các định dạng phút và bù giờ", () => {
+      assert.equal(formatMatchMinute("35"), "35'");
+      assert.equal(formatMatchMinute("35'"), "35'");
+      assert.equal(formatMatchMinute("90+3"), "90'+3'");
+      assert.equal(formatMatchMinute("90'+3'"), "90'+3'");
+      assert.equal(formatMatchMinute("45+2"), "45'+2'");
+      assert.equal(formatMatchMinute("HT"), "HT");
+      assert.equal(formatMatchMinute("ht"), "HT");
+      assert.equal(formatMatchMinute("halftime"), "HT");
+      assert.equal(formatMatchMinute("FT"), "FT");
+      assert.equal(formatMatchMinute("ft"), "FT");
+      assert.equal(formatMatchMinute(null), null);
+      assert.equal(formatMatchMinute(""), null);
+    });
+
+    it("8B. Chưa bắt đầu: hiển thị giờ đá 20:00", () => {
+      const res = resolveMatchTimeInfo({
+        kickoffTime: "20:00",
+        isConfirmedLive: false,
+        isFinished: false,
+      });
+      assert.equal(res.state, "upcoming");
+      assert.equal(res.clockBadge, null);
+      assert.equal(res.kickoffTime, "20:00");
+      assert.equal(res.kickoffDisplay, "20:00");
+      assert.equal(res.hasPulse, false);
+    });
+
+    it("8C. Đang thi đấu: hiển thị ● 35' + Giờ đá: 20:00", () => {
+      const score: LiveMatchScore = {
+        eventId: "e_live1",
+        leagueSlug: "eng.1",
+        team1Score: 1,
+        team2Score: 0,
+        homeScore: 1,
+        awayScore: 0,
+        isReversed: false,
+        status: "live",
+        displayClock: "35'",
+        kickoffTime: "20:00",
+        updatedAt: new Date().toISOString(),
+      };
+      const res = resolveMatchTimeInfo({
+        score,
+        isConfirmedLive: true,
+        kickoffTime: "20:00",
+      });
+      assert.equal(res.state, "live");
+      assert.equal(res.clockBadge, "35'");
+      assert.equal(res.kickoffTime, "20:00");
+      assert.equal(res.kickoffDisplay, "Giờ đá: 20:00");
+      assert.equal(res.hasPulse, true);
+    });
+
+    it("8D. Bù giờ: hiển thị ● 90'+3' + Giờ đá: 20:00", () => {
+      const score: LiveMatchScore = {
+        eventId: "e_live2",
+        leagueSlug: "eng.1",
+        team1Score: 2,
+        team2Score: 2,
+        homeScore: 2,
+        awayScore: 2,
+        isReversed: false,
+        status: "live",
+        displayClock: "90+3",
+        kickoffTime: "20:00",
+        updatedAt: new Date().toISOString(),
+      };
+      const res = resolveMatchTimeInfo({
+        score,
+        isConfirmedLive: true,
+        kickoffTime: "20:00",
+      });
+      assert.equal(res.state, "live");
+      assert.equal(res.clockBadge, "90'+3'");
+      assert.equal(res.kickoffTime, "20:00");
+      assert.equal(res.kickoffDisplay, "Giờ đá: 20:00");
+      assert.equal(res.hasPulse, true);
+    });
+
+    it("8E. Nghỉ giữa hiệp: hiển thị HT + Giờ đá: 20:00 (không pulse)", () => {
+      const score: LiveMatchScore = {
+        eventId: "e_ht",
+        leagueSlug: "eng.1",
+        team1Score: 0,
+        team2Score: 0,
+        homeScore: 0,
+        awayScore: 0,
+        isReversed: false,
+        status: "live",
+        displayClock: "HT",
+        statusDetail: "Halftime",
+        kickoffTime: "20:00",
+        updatedAt: new Date().toISOString(),
+      };
+      const res = resolveMatchTimeInfo({
+        score,
+        isConfirmedLive: true,
+        kickoffTime: "20:00",
+      });
+      assert.equal(res.state, "ht");
+      assert.equal(res.clockBadge, "HT");
+      assert.equal(res.kickoffTime, "20:00");
+      assert.equal(res.kickoffDisplay, "Giờ đá: 20:00");
+      assert.equal(res.hasPulse, false);
+    });
+
+    it("8F. Kết thúc: hiển thị FT + Giờ đá: 20:00", () => {
+      const score: LiveMatchScore = {
+        eventId: "e_ft",
+        leagueSlug: "eng.1",
+        team1Score: 3,
+        team2Score: 1,
+        homeScore: 3,
+        awayScore: 1,
+        isReversed: false,
+        status: "finished",
+        displayClock: "FT",
+        kickoffTime: "20:00",
+        updatedAt: new Date().toISOString(),
+      };
+      const res = resolveMatchTimeInfo({
+        score,
+        isFinished: true,
+        kickoffTime: "20:00",
+      });
+      assert.equal(res.state, "ft");
+      assert.equal(res.clockBadge, "FT");
+      assert.equal(res.kickoffTime, "20:00");
+      assert.equal(res.kickoffDisplay, "Giờ đá: 20:00");
+      assert.equal(res.hasPulse, false);
+    });
+
+    it("8G. Hoãn/hủy: hiển thị trạng thái tương ứng, không hiển thị phút giả", () => {
+      const resPostponed = resolveMatchTimeInfo({
+        specialStatusLabel: "Hoãn",
+        kickoffTime: "20:00",
+      });
+      assert.equal(resPostponed.state, "special");
+      assert.equal(resPostponed.clockBadge, "Hoãn");
+      assert.equal(resPostponed.kickoffTime, "20:00");
+      assert.equal(resPostponed.kickoffDisplay, "Giờ đá: 20:00");
+      assert.equal(resPostponed.hasPulse, false);
+
+      const resCanceled = resolveMatchTimeInfo({
+        specialStatusLabel: "Hủy",
+        kickoffTime: "20:00",
+      });
+      assert.equal(resCanceled.state, "special");
+      assert.equal(resCanceled.clockBadge, "Hủy");
+      assert.equal(resCanceled.kickoffTime, "20:00");
+      assert.equal(resCanceled.kickoffDisplay, "Giờ đá: 20:00");
+      assert.equal(resCanceled.hasPulse, false);
+    });
   });
 });

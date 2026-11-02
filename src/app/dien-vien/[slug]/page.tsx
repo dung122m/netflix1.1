@@ -227,7 +227,7 @@ export default async function ActorDetailPage({ params }: PageProps) {
           <div className="flex flex-col md:flex-row items-center md:items-start gap-6 sm:gap-8 md:gap-10">
             
             {/* PORTRAIT IMAGE */}
-            <div className="relative w-40 h-52 sm:w-48 sm:h-64 md:w-56 md:h-72 rounded-2xl overflow-hidden bg-zinc-900 border-2 border-white/20 shadow-2xl shrink-0 group ring-1 ring-white/10">
+            <div className="relative w-40 h-52 sm:w-48 sm:h-64 md:w-56 md:h-72 rounded-2xl overflow-hidden bg-zinc-900 border-2 shadow-2xl shrink-0 group">
               <ActorAvatar
                 name={canonicalName}
                 avatarUrl={bestAvatar}
@@ -244,14 +244,14 @@ export default async function ActorDetailPage({ params }: PageProps) {
               {/* COUNTRY & ROLES BADGES */}
               <div className="flex flex-wrap items-center justify-center md:justify-start gap-2">
                 {country && (
-                  <span className="px-3 py-1 rounded-full bg-red-500/10 border border-red-500/25 text-red-300 text-xs font-bold">
+                  <span className="px-3 py-1 rounded-full bg-red-500/10 text-red-300 text-xs font-bold">
                     {country}
                   </span>
                 )}
                 <span className="px-3 py-1 rounded-full bg-white/[0.06] border border-white/[0.1] text-zinc-300 text-xs font-semibold">
                   {knownRole}
                 </span>
-                <span className="px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/25 text-amber-300 text-xs font-bold flex items-center gap-1">
+                <span className="px-3 py-1 rounded-full bg-amber-500/10 text-amber-300 text-xs font-bold flex items-center gap-1">
                   <Clapperboard className="w-3 h-3" />
                   <span>{movies.length} Phim trên Nanaflix</span>
                 </span>
@@ -353,7 +353,7 @@ export default async function ActorDetailPage({ params }: PageProps) {
                   href={`/dien-vien/${actor.slug}`}
                   className="group p-3 rounded-2xl bg-zinc-950/70 hover:bg-zinc-900 border border-white/[0.06] hover:border-netflix-red/50 transition-all text-center space-y-2 shadow"
                 >
-                  <div className="w-16 h-16 rounded-full overflow-hidden bg-zinc-800 mx-auto border border-white/10 group-hover:border-netflix-red group-hover:scale-105 transition-all flex items-center justify-center relative">
+                  <div className="w-16 h-16 rounded-full overflow-hidden bg-zinc-800 mx-auto group-hover:border-netflix-red group-hover:scale-105 transition-all flex items-center justify-center relative">
                     <ActorAvatar
                       name={actor.name}
                       avatarUrl={actor.avatarUrl}

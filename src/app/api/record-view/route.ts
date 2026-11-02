@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { recordMovieViewSupabase } from "@/services/communityWatchService";
 import { invalidateTrendingCache } from "@/app/api/trending-community/route";
-import { checkDistributedRateLimit, getClientIp } from "@/lib/security";
+import {
+  enforceRateLimit,
+  buildRateLimitResponse,
+} from "@/lib/rateLimit";
 import { verifyServerAuth } from "@/lib/serverAuth";
 
 export const maxDuration = 10;
@@ -9,16 +12,14 @@ export const maxDuration = 10;
 export async function POST(req: NextRequest) {
   try {
     // 1. Giới hạn tần suất phân tán theo IP (30 requests / 60s) - ngăn chặn bot spam ghi dữ liệu
-    const clientIp = getClientIp(req);
-    const rateLimit = await checkDistributedRateLimit(`record_view_${clientIp}`, 30, 60);
+    const rateLimit = await enforceRateLimit(req, {
+      namespace: "record-view",
+      maxRequests: 30,
+      windowSeconds: 60,
+      failClosed: false,
+    });
     if (!rateLimit.allowed) {
-      return NextResponse.json(
-        { error: "Too many record view requests. Please try again later." },
-        {
-          status: 429,
-          headers: { "Retry-After": String(rateLimit.resetSeconds) },
-        }
-      );
+      return buildRateLimitResponse(rateLimit, "Too many record view requests. Please try again later.");
     }
 
     const body = await req.json();

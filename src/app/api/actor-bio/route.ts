@@ -5,6 +5,11 @@ import { fetchActorProfile, cleanBioExtract } from "@/services/wikipediaService"
 import { searchTmdbPerson, getTmdbPersonDetail } from "@/services/tmdbService";
 import { cacheService } from "@/lib/cache";
 import { normalizeForMatch } from "@/lib/stringUtils";
+import {
+  enforceRateLimit,
+  buildRateLimitResponse,
+  RATE_LIMIT_PRESETS,
+} from "@/lib/rateLimit";
 
 export interface EnhancedActorProfile {
   name: string;
@@ -55,6 +60,11 @@ function formatDate(dateStr?: string): string | null {
 }
 
 export async function GET(request: NextRequest) {
+  const rateLimit = await enforceRateLimit(request, RATE_LIMIT_PRESETS.PUBLIC_READ);
+  if (!rateLimit.allowed) {
+    return buildRateLimitResponse(rateLimit);
+  }
+
   const { searchParams } = new URL(request.url);
   const name = searchParams.get("name");
 

@@ -62,7 +62,7 @@ export const SortSelector: React.FC = () => {
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-zinc-900/90 border border-white/15 text-xs sm:text-sm font-medium text-zinc-200 hover:text-white hover:border-white/30 transition cursor-pointer shadow-sm"
+        className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-zinc-900/90 text-xs sm:text-sm font-medium text-zinc-200 hover:text-white hover: transition cursor-pointer shadow-sm"
         aria-expanded={isOpen}
       >
         <ActiveIcon className={`w-3.5 h-3.5 ${activeOption.iconColor}`} />
@@ -71,8 +71,8 @@ export const SortSelector: React.FC = () => {
       </button>
 
       {isOpen && (
-        <div className="absolute left-0 sm:left-auto sm:right-0 mt-2 w-60 rounded-2xl bg-zinc-950 border border-white/15 shadow-2xl p-2 backdrop-blur-xl animate-in fade-in zoom-in-95 duration-150 z-50">
-          <div className="flex items-center gap-1.5 text-[11px] font-semibold text-zinc-400 px-2.5 py-1 uppercase tracking-wider border-b border-white/10 mb-1">
+        <div className="absolute left-0 sm:left-auto sm:right-0 mt-2 w-60 rounded-2xl bg-zinc-950 shadow-2xl p-2 backdrop-blur-xl animate-in fade-in zoom-in-95 duration-150 z-50">
+          <div className="flex items-center gap-1.5 text-[11px] font-semibold text-zinc-400 px-2.5 py-1 uppercase tracking-wider border-b mb-1">
             <ArrowUpDown className="w-3 h-3 text-netflix-red" />
             <span>Tiêu chí sắp xếp</span>
           </div>

@@ -130,10 +130,10 @@ const NavbarInner: React.FC = () => {
 
   return (
     <nav
-      className={`nanaflix-navbar fixed top-0 left-0 right-0 w-full z-50 transition-[background-color,border-color,box-shadow,padding-top,padding-bottom] duration-300 ${
+      className={`nanaflix-navbar fixed top-0 left-0 right-0 w-full z-50 transition-[background-color,box-shadow,padding-top,padding-bottom] duration-300 ${
         showBackground || isMobileMenuOpen
-          ? "bg-zinc-950 border-b border-white/10 shadow-md shadow-black/50 py-1.5 sm:py-2"
-          : "bg-black/80 backdrop-blur-md border-b border-white/10 sm:border-transparent sm:bg-gradient-to-b sm:from-black/90 sm:via-black/50 sm:to-transparent py-1.5 sm:py-2.5"
+          ? "bg-zinc-950/95 backdrop-blur-md shadow-lg shadow-black/60 py-1.5 sm:py-2"
+          : "bg-black/80 backdrop-blur-md sm:bg-gradient-to-b sm:from-black/90 sm:via-black/50 sm:to-transparent py-1.5 sm:py-2.5"
       }`}
     >
       {/* CINEMATIC LIVING NAVBAR ATMOSPHERE (PHÍA SAU UI) */}
@@ -206,7 +206,7 @@ const NavbarInner: React.FC = () => {
                   }
                 }}
                 aria-label="Bốc Quẻ Phim Định Mệnh"
-                className="group inline-flex items-center justify-center gap-1 sm:gap-1.5 w-8 h-8 sm:w-auto sm:h-auto sm:px-3 sm:py-1.5 min-h-[36px] rounded-full text-xs font-bold bg-gradient-to-r from-amber-500/30 via-orange-500/35 to-amber-600/30 hover:from-amber-400/45 hover:via-orange-400/50 hover:to-amber-500/45 text-amber-200 hover:text-white border border-amber-500/45 hover:border-amber-300/80 transition-all duration-300 cursor-pointer shadow-sm shadow-black/50 hover:shadow-md hover:shadow-black/60 hover:scale-[1.02] active:scale-[0.98] flex-shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2 focus-visible:ring-offset-black backdrop-blur-sm"
+                className="group inline-flex items-center justify-center gap-1 sm:gap-1.5 w-8 h-8 sm:w-auto sm:h-auto sm:px-3 sm:py-1.5 min-h-[36px] rounded-full text-xs font-bold bg-gradient-to-r from-amber-500/25 via-orange-500/30 to-amber-600/25 hover:from-amber-400/40 hover:via-orange-400/45 hover:to-amber-500/40 text-amber-200 hover:text-white transition-all duration-300 cursor-pointer shadow-sm shadow-black/50 hover:shadow-md hover:shadow-black/60 hover:scale-[1.02] active:scale-[0.98] flex-shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2 focus-visible:ring-offset-black backdrop-blur-sm"
               >
                 <Dices className="w-4 h-4 sm:w-3.5 sm:h-3.5 text-amber-300 flex-shrink-0 group-hover:rotate-45 transition-transform duration-300" aria-hidden="true" />
                 <span className="hidden sm:inline tracking-tight font-extrabold">Bốc quẻ</span>
@@ -236,7 +236,7 @@ const NavbarInner: React.FC = () => {
             onClick={handleToggleMobileMenu}
             aria-expanded={isMobileMenuOpen}
             aria-label={isMobileMenuOpen ? "Đóng menu điều hướng" : "Mở menu điều hướng"}
-            className="lg:hidden flex items-center justify-center h-9 w-9 min-h-[36px] min-w-[36px] rounded-xl bg-white/10 hover:bg-white/20 text-white border border-white/20 transition cursor-pointer flex-shrink-0 active:scale-95 shadow-sm ml-0.5"
+            className="lg:hidden flex items-center justify-center h-9 w-9 min-h-[36px] min-w-[36px] rounded-xl bg-white/10 hover:bg-white/20 text-white transition cursor-pointer flex-shrink-0 active:scale-95 shadow-sm ml-0.5"
           >
             {isMobileMenuOpen ? (
               <X size={20} className="text-netflix-red" aria-hidden="true" />

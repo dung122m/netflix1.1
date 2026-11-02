@@ -4,6 +4,11 @@ import { movieApi } from "@/services/movies/service";
 import { pickBestMoviePoster, pickBestMovieThumb } from "@/lib/movieMedia";
 import { getTmdbPosterUrl, searchTmdbPosterByTitle } from "@/services/tmdbService";
 import { searchAniListPoster } from "@/services/aniListService";
+import {
+  enforceRateLimit,
+  buildRateLimitResponse,
+  RATE_LIMIT_PRESETS,
+} from "@/lib/rateLimit";
 
 export const runtime = "nodejs";
 
@@ -145,6 +150,11 @@ async function queryTmdbPoster(query: string, year?: string): Promise<{ posterUr
 }
 
 export async function GET(req: NextRequest) {
+  const rateLimit = await enforceRateLimit(req, RATE_LIMIT_PRESETS.POSTER_FALLBACK);
+  if (!rateLimit.allowed) {
+    return buildRateLimitResponse(rateLimit);
+  }
+
   const { searchParams } = req.nextUrl;
   const title = searchParams.get("title")?.trim() || "";
   const origin_name = searchParams.get("origin_name")?.trim() || "";

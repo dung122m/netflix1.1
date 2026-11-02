@@ -114,7 +114,7 @@ export const CreateCollectionModal: React.FC<CreateCollectionModalProps> = ({
       className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-200 overflow-y-auto overscroll-contain"
     >
       <div
-        className="relative w-full max-w-md my-auto bg-zinc-950 border border-white/20 rounded-3xl p-6 sm:p-7 shadow-[0_25px_70px_rgba(0,0,0,0.95)] text-white animate-in zoom-in-95 duration-200 overflow-hidden transform-gpu will-change-[transform,opacity]"
+        className="relative w-full max-w-md my-auto bg-zinc-950 rounded-3xl p-6 sm:p-7 shadow-[0_25px_70px_rgba(0,0,0,0.95)] text-white animate-in zoom-in-95 duration-200 overflow-hidden transform-gpu will-change-[transform,opacity]"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Glow hiệu ứng nền đỏ Netflix */}
@@ -131,7 +131,7 @@ export const CreateCollectionModal: React.FC<CreateCollectionModalProps> = ({
 
         {/* Tiêu đề */}
         <div className="flex items-center gap-3 mb-5">
-          <div className="w-10 h-10 rounded-2xl bg-netflix-red/20 text-netflix-red flex items-center justify-center border border-netflix-red/30 shadow-md shadow-black/40 flex-shrink-0">
+          <div className="w-10 h-10 rounded-2xl bg-netflix-red/20 text-netflix-red flex items-center justify-center shadow-md shadow-black/40 flex-shrink-0">
             <FolderPlus className="w-5 h-5" />
           </div>
           <div>
@@ -154,7 +154,7 @@ export const CreateCollectionModal: React.FC<CreateCollectionModalProps> = ({
               placeholder="VD: Phim Chiếu Rạp Đỉnh Cao, Anime Mùa Hè..."
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full bg-zinc-900/90 border border-white/15 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder:text-zinc-500 focus:outline-none focus:border-netflix-red focus:ring-1 focus:ring-netflix-red transition"
+              className="w-full bg-zinc-900/90 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder:text-zinc-500 focus:outline-none focus:border-netflix-red focus:ring-1 focus:ring-netflix-red transition"
             />
           </div>
 
@@ -168,12 +168,12 @@ export const CreateCollectionModal: React.FC<CreateCollectionModalProps> = ({
               placeholder="Ghi chú về tuyển tập này..."
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className="w-full bg-zinc-900/90 border border-white/15 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder:text-zinc-500 focus:outline-none focus:border-netflix-red focus:ring-1 focus:ring-netflix-red transition resize-none"
+              className="w-full bg-zinc-900/90 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder:text-zinc-500 focus:outline-none focus:border-netflix-red focus:ring-1 focus:ring-netflix-red transition resize-none"
             />
           </div>
 
           {/* Chế độ chia sẻ: Công khai / Riêng tư */}
-          <div className="rounded-2xl border border-white/15 bg-zinc-900/60 p-3.5">
+          <div className="rounded-2xl bg-zinc-900/60 p-3.5">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2.5">
                 {isPublic ? (

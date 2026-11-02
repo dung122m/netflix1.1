@@ -73,32 +73,19 @@ export function matchesActorAlias(
   const candidateNorms = candidateActors.map((a) => normalizeForMatch(String(a)));
   const candidateRaws = candidateActors.map((a) => String(a).toLowerCase().trim());
 
-  const normMovieName = movieName ? normalizeForMatch(String(movieName)) : "";
-  const rawMovieName = movieName ? String(movieName).toLowerCase() : "";
-  const rawOriginName = originName ? String(originName).toLowerCase() : "";
-
   for (const term of matchTerms) {
-    if (!term) continue;
+    if (!term || term.length < 2) continue;
 
-    // 1. Kiểm tra danh sách diễn viên
+    // 1. Kiểm tra danh sách diễn viên / nhân sự thực tế
     for (let i = 0; i < candidateRaws.length; i++) {
       const cRaw = candidateRaws[i];
       const cNorm = candidateNorms[i];
       if (
-        (cRaw && (cRaw.includes(term) || term.includes(cRaw))) ||
-        (cNorm && (cNorm.includes(term) || term.includes(cNorm)))
+        (cRaw && (cRaw === term || cRaw.includes(term) || (cRaw.length >= 4 && term.includes(cRaw)))) ||
+        (cNorm && (cNorm === term || cNorm.includes(term) || (cNorm.length >= 4 && term.includes(cNorm))))
       ) {
         return true;
       }
-    }
-
-    // 2. Kiểm tra tên phim / tên gốc (fallback, như logic cũ)
-    if (
-      (rawMovieName && rawMovieName.includes(term)) ||
-      (normMovieName && normMovieName.includes(term)) ||
-      (rawOriginName && rawOriginName.includes(term))
-    ) {
-      return true;
     }
   }
 

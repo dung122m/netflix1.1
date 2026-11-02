@@ -541,20 +541,20 @@ export const MovieRouletteModal: React.FC<MovieRouletteModalProps> = ({
   return (
     <div
       onClick={handleClose}
-      className="fixed inset-0 z-[120] bg-black/80 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 overflow-y-auto overscroll-none touch-none animate-in fade-in duration-150"
+      className="fixed inset-0 z-[100000] bg-black/80 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 overflow-y-auto overscroll-none touch-none animate-in fade-in duration-150"
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="relative w-full max-w-3xl max-h-[92dvh] sm:max-h-[840px] bg-zinc-950 rounded-2xl sm:rounded-3xl border border-amber-500/35 shadow-2xl shadow-black/80 flex flex-col overflow-hidden transform-gpu will-change-[transform,opacity] animate-in zoom-in-95 duration-150 overscroll-contain"
+        className="relative w-full max-w-3xl max-h-[92dvh] sm:max-h-[840px] bg-zinc-950 rounded-2xl sm:rounded-3xl shadow-2xl shadow-black/80 flex flex-col overflow-hidden transform-gpu will-change-[transform,opacity] animate-in zoom-in-95 duration-150 overscroll-contain"
       >
         {/* Glow ambient lights */}
         <div className="pointer-events-none absolute -top-24 -left-20 w-80 h-80 bg-amber-500/15 rounded-full blur-3xl opacity-50" />
         <div className="pointer-events-none absolute -bottom-24 -right-20 w-80 h-80 bg-orange-600/15 rounded-full blur-3xl opacity-50" />
 
         {/* PINNED HEADER FOR ROULETTE */}
-        <div className="relative z-30 flex items-center justify-between px-3 sm:px-4 py-2 sm:py-2.5 border-b border-white/10 bg-zinc-900 shrink-0 gap-2">
+        <div className="relative z-30 flex items-center justify-between px-3 sm:px-4 py-2 sm:py-2.5 border-b bg-zinc-900 shrink-0 gap-2">
           <div className="flex items-center gap-2 sm:gap-2.5 min-w-0 flex-1">
-            <div className="relative w-7 h-7 sm:w-8.5 sm:h-8.5 rounded-xl bg-gradient-to-br from-amber-400 via-orange-500 to-rose-600 flex items-center justify-center text-white shadow-md shadow-amber-500/30 shrink-0 ring-1 ring-amber-500/30">
+            <div className="relative w-7 h-7 sm:w-8.5 sm:h-8.5 rounded-xl bg-gradient-to-br from-amber-400 via-orange-500 to-rose-600 flex items-center justify-center text-white shadow-md shadow-amber-500/30 shrink-0">
               <Dices className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
               <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 sm:w-2.5 sm:h-2.5 bg-amber-400 rounded-full border border-zinc-900 animate-ping" />
             </div>
@@ -564,7 +564,7 @@ export const MovieRouletteModal: React.FC<MovieRouletteModalProps> = ({
                   <span className="sm:hidden">Bốc Quẻ Phim</span>
                   <span className="hidden sm:inline">Bốc Quẻ Định Mệnh</span>
                 </h2>
-                <span className="hidden sm:inline-flex text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 uppercase tracking-wider shrink-0">
+                <span className="hidden sm:inline-flex text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 uppercase tracking-wider shrink-0">
                   Cinema Tarot
                 </span>
               </div>
@@ -579,7 +579,7 @@ export const MovieRouletteModal: React.FC<MovieRouletteModalProps> = ({
               type="button"
               onClick={handleClose}
               aria-label="Đóng cửa sổ"
-              className="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-xl bg-white/10 hover:bg-white/20 active:bg-white/30 text-zinc-200 hover:text-white transition cursor-pointer shrink-0 active:scale-95 border border-white/15 shadow-sm"
+              className="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-xl bg-white/10 hover:bg-white/20 active:bg-white/30 text-zinc-200 hover:text-white transition cursor-pointer shrink-0 active:scale-95 shadow-sm"
             >
               <X className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
             </button>
@@ -598,32 +598,32 @@ export const MovieRouletteModal: React.FC<MovieRouletteModalProps> = ({
             <div className="relative w-full my-auto py-1 space-y-3 animate-in zoom-in-95 duration-200 transition-all duration-300">
               {/* RE-ROLL 3D DICE OVERLAY: Preserves card dimensions, prevents layout collapse */}
               {isSpinning && (
-                <div className="absolute inset-0 z-40 bg-zinc-950/85 backdrop-blur-md rounded-3xl flex items-center justify-center p-4 border border-amber-500/40 shadow-2xl animate-in fade-in duration-150">
+                <div className="absolute inset-0 z-40 bg-zinc-950/85 backdrop-blur-md rounded-3xl flex items-center justify-center p-4 shadow-2xl animate-in fade-in duration-150">
                   <MovieRouletteDice3D key={spinCount} compact targetValues={diceValues} />
                 </div>
               )}
 
               {/* COMPACT ACTIVE CRITERIA BAR */}
-              <div className="flex items-center justify-between px-3 py-2 rounded-2xl bg-zinc-900/95 border border-amber-500/30 shadow-md flex-none">
+              <div className="flex items-center justify-between px-3 py-2 rounded-2xl bg-zinc-900/95 shadow-md flex-none">
                 <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto text-xs min-w-0 scrollbar-none">
                   <span className="text-amber-400 font-bold flex-none flex items-center gap-1">
                     <Sparkles className="w-3.5 h-3.5" />
                     <span className="hidden sm:inline">Quẻ:</span>
                   </span>
-                  <span className="px-2 py-0.5 rounded-lg bg-amber-500/20 text-amber-200 border border-amber-500/30 text-[11px] font-semibold whitespace-nowrap flex items-center gap-1">
+                  <span className="px-2 py-0.5 rounded-lg bg-amber-500/20 text-amber-200 text-[11px] font-semibold whitespace-nowrap flex items-center gap-1">
                     <span>🎲</span>
                     <span>{diceValues[0]} + {diceValues[1]}</span>
                     <span className="text-[10px] text-amber-300/80 font-normal">({diceValues[0] + diceValues[1]}đ)</span>
                   </span>
-                  <span className="px-2 py-0.5 rounded-lg bg-amber-500/20 text-amber-200 border border-amber-500/30 text-[11px] font-semibold whitespace-nowrap">
+                  <span className="px-2 py-0.5 rounded-lg bg-amber-500/20 text-amber-200 text-[11px] font-semibold whitespace-nowrap">
                     {ROULETTE_MOODS.find((m) => m.id === selectedMood)?.emoji}{" "}
                     {ROULETTE_MOODS.find((m) => m.id === selectedMood)?.label}
                   </span>
-                  <span className="px-2 py-0.5 rounded-lg bg-sky-500/20 text-sky-200 border border-sky-500/30 text-[11px] font-semibold whitespace-nowrap">
+                  <span className="px-2 py-0.5 rounded-lg bg-sky-500/20 text-sky-200 text-[11px] font-semibold whitespace-nowrap">
                     {ROULETTE_COUNTRIES.find((c) => c.id === selectedCountry)?.flag}{" "}
                     {ROULETTE_COUNTRIES.find((c) => c.id === selectedCountry)?.label}
                   </span>
-                  <span className="px-2 py-0.5 rounded-lg bg-emerald-500/20 text-emerald-200 border border-emerald-500/30 text-[11px] font-semibold whitespace-nowrap">
+                  <span className="px-2 py-0.5 rounded-lg bg-emerald-500/20 text-emerald-200 text-[11px] font-semibold whitespace-nowrap">
                     {ROULETTE_COMPANIONS.find((cp) => cp.id === selectedCompanion)?.icon}{" "}
                     {ROULETTE_COMPANIONS.find((cp) => cp.id === selectedCompanion)?.label}
                   </span>
@@ -633,7 +633,7 @@ export const MovieRouletteModal: React.FC<MovieRouletteModalProps> = ({
                       {ROULETTE_DURATIONS.find((d) => d.id === selectedDuration)?.label}
                     </span>
                   )}
-                  <span className="px-2 py-0.5 rounded-lg bg-rose-500/20 text-rose-200 border border-rose-500/30 text-[11px] font-semibold whitespace-nowrap">
+                  <span className="px-2 py-0.5 rounded-lg bg-rose-500/20 text-rose-200 text-[11px] font-semibold whitespace-nowrap">
                     {ROULETTE_SURPRISES.find((s) => s.id === selectedSurprise)?.icon}{" "}
                     {ROULETTE_SURPRISES.find((s) => s.id === selectedSurprise)?.label}
                   </span>
@@ -642,18 +642,18 @@ export const MovieRouletteModal: React.FC<MovieRouletteModalProps> = ({
                 <button
                   type="button"
                   onClick={() => setShowCriteriaPicker(true)}
-                  className="ml-2 text-xs font-bold text-amber-300 hover:text-white px-2.5 py-1 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/30 transition cursor-pointer flex-none flex items-center gap-1 active:scale-95"
+                  className="ml-2 text-xs font-bold text-amber-300 hover:text-white px-2.5 py-1 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 transition cursor-pointer flex-none flex items-center gap-1 active:scale-95"
                 >
                   <span>Đổi gu</span>
                 </button>
               </div>
 
               {/* SPOTLIGHT MOVIE CARD */}
-              <div className="w-full p-3.5 sm:p-5 md:p-6 rounded-3xl bg-zinc-900/95 border-2 border-amber-500/40 shadow-2xl shadow-black/80 flex flex-col md:flex-row gap-3.5 sm:gap-5 items-stretch">
+              <div className="w-full p-3.5 sm:p-5 md:p-6 rounded-3xl bg-zinc-900/95 border-2 shadow-2xl shadow-black/80 flex flex-col md:flex-row gap-3.5 sm:gap-5 items-stretch">
                 {/* LEFT COLUMN (POSTER + DESKTOP MATCH BADGE) */}
                 <div className="flex md:flex-col items-center md:items-stretch gap-3 sm:gap-3.5 md:w-48 lg:w-56 shrink-0">
                   {/* Poster */}
-                  <div className="relative w-24 sm:w-28 md:w-full aspect-[2/3] rounded-2xl overflow-hidden bg-zinc-950 border-2 border-amber-400/40 shadow-2xl ring-2 ring-amber-400/20 shrink-0 group">
+                  <div className="relative w-24 sm:w-28 md:w-full aspect-[2/3] rounded-2xl overflow-hidden bg-zinc-950 border-2 shadow-2xl shrink-0 group">
                     {/* Skeleton shimmer while loading */}
                     {!posterLoaded && !posterError && (
                       <div className="absolute inset-0 z-10 bg-zinc-900 flex flex-col items-center justify-center p-2 text-center text-amber-500/40">
@@ -665,7 +665,7 @@ export const MovieRouletteModal: React.FC<MovieRouletteModalProps> = ({
 
                     {/* Error fallback card */}
                     {posterError || !rouletteResult.movie.poster ? (
-                      <div className="absolute inset-0 z-10 bg-gradient-to-br from-zinc-900 via-zinc-950 to-zinc-900 flex flex-col items-center justify-center p-3 text-center border border-amber-500/20">
+                      <div className="absolute inset-0 z-10 bg-gradient-to-br from-zinc-900 via-zinc-950 to-zinc-900 flex flex-col items-center justify-center p-3 text-center">
                         <Film className="w-8 h-8 text-amber-400/60 mb-2" />
                         <span className="text-[11px] font-bold text-white line-clamp-2 leading-tight">
                           {rouletteResult.movie.title}
@@ -692,7 +692,7 @@ export const MovieRouletteModal: React.FC<MovieRouletteModalProps> = ({
                       {rouletteResult.movie.quality || "FHD"}
                     </div>
                     {rouletteResult.movie.episodeCurrent && (
-                      <div className="absolute bottom-1.5 right-1.5 z-20 max-w-[85%] px-1.5 py-0.5 rounded-md bg-black/85 backdrop-blur-sm text-amber-300 text-[9px] font-bold border border-white/15 shadow-md truncate">
+                      <div className="absolute bottom-1.5 right-1.5 z-20 max-w-[85%] px-1.5 py-0.5 rounded-md bg-black/85 backdrop-blur-sm text-amber-300 text-[9px] font-bold shadow-md truncate">
                         {rouletteResult.movie.episodeCurrent}
                       </div>
                     )}
@@ -701,7 +701,7 @@ export const MovieRouletteModal: React.FC<MovieRouletteModalProps> = ({
                   {/* MOBILE TOP INFO (Beside Poster on < md) */}
                   <div className="md:hidden flex-1 min-w-0 space-y-1.5 text-left">
                     <div className="flex flex-wrap items-center gap-1">
-                      <span className="text-[10px] font-black uppercase text-amber-300 px-2 py-0.5 rounded-full bg-amber-500/20 border border-amber-500/40 inline-flex items-center gap-1">
+                      <span className="text-[10px] font-black uppercase text-amber-300 px-2 py-0.5 rounded-full bg-amber-500/20 inline-flex items-center gap-1">
                         <Star className="w-3 h-3 fill-amber-300 text-amber-300" />
                         <span>{rouletteResult.matchScore}% Hợp Định Mệnh</span>
                       </span>
@@ -723,7 +723,7 @@ export const MovieRouletteModal: React.FC<MovieRouletteModalProps> = ({
 
                     <div className="flex flex-wrap items-center gap-1 text-[10px]">
                       {rouletteResult.movie.category && (
-                        <span className="text-amber-200 px-1.5 py-0.5 rounded-md bg-amber-500/15 border border-amber-500/25 font-semibold">
+                        <span className="text-amber-200 px-1.5 py-0.5 rounded-md bg-amber-500/15 font-semibold">
                           {rouletteResult.movie.category}
                         </span>
                       )}
@@ -738,7 +738,7 @@ export const MovieRouletteModal: React.FC<MovieRouletteModalProps> = ({
                         </span>
                       )}
                       {rouletteResult.movie.country && (
-                        <span className="text-sky-300 px-1.5 py-0.5 rounded-md bg-sky-500/15 border border-sky-500/25 font-medium">
+                        <span className="text-sky-300 px-1.5 py-0.5 rounded-md bg-sky-500/15 font-medium">
                           🌐 {rouletteResult.movie.country}
                         </span>
                       )}
@@ -747,13 +747,13 @@ export const MovieRouletteModal: React.FC<MovieRouletteModalProps> = ({
 
                   {/* DESKTOP MATCH BADGES UNDER POSTER (Visible on md+) */}
                   <div className="hidden md:flex flex-col gap-1.5 w-full">
-                    <div className="flex items-center justify-between px-3 py-1.5 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs font-bold shadow-sm">
+                    <div className="flex items-center justify-between px-3 py-1.5 rounded-xl bg-amber-500/15 text-amber-300 text-xs font-bold shadow-sm">
                       <span className="inline-flex items-center gap-1.5">
                         <Star className="w-3.5 h-3.5 fill-amber-300 text-amber-300" />
                         <span>Hợp Định Mệnh</span>
                       </span>
                       <div className="flex items-center gap-1.5">
-                        <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-amber-500/20 text-amber-200 border border-amber-500/30 font-semibold">
+                        <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-amber-500/20 text-amber-200 font-semibold">
                           Quẻ {diceValues[0] + diceValues[1]} điểm
                         </span>
                         <span className="font-black text-amber-200 text-sm">{rouletteResult.matchScore}%</span>
@@ -783,7 +783,7 @@ export const MovieRouletteModal: React.FC<MovieRouletteModalProps> = ({
 
                     <div className="flex flex-wrap items-center gap-1.5 text-xs pt-1">
                       {rouletteResult.movie.category && (
-                        <span className="text-amber-200 px-2 py-0.5 rounded-md bg-amber-500/15 border border-amber-500/25 font-semibold">
+                        <span className="text-amber-200 px-2 py-0.5 rounded-md bg-amber-500/15 font-semibold">
                           {rouletteResult.movie.category}
                         </span>
                       )}
@@ -798,7 +798,7 @@ export const MovieRouletteModal: React.FC<MovieRouletteModalProps> = ({
                         </span>
                       )}
                       {rouletteResult.movie.country && (
-                        <span className="text-sky-300 px-2 py-0.5 rounded-md bg-sky-500/15 border border-sky-500/25 font-medium">
+                        <span className="text-sky-300 px-2 py-0.5 rounded-md bg-sky-500/15 font-medium">
                           🌐 {rouletteResult.movie.country}
                         </span>
                       )}
@@ -808,7 +808,7 @@ export const MovieRouletteModal: React.FC<MovieRouletteModalProps> = ({
                   {/* CAST & DIRECTOR */}
                   {((rouletteResult.movie.actors && rouletteResult.movie.actors.length > 0) ||
                     (rouletteResult.movie.director && rouletteResult.movie.director.length > 0)) && (
-                    <div className="text-[11px] sm:text-xs text-zinc-300 space-y-1 p-2 sm:p-2.5 rounded-xl bg-zinc-950/60 border border-white/5">
+                    <div className="text-[11px] sm:text-xs text-zinc-300 space-y-1 p-2 sm:p-2.5 rounded-xl bg-zinc-950/60">
                       {rouletteResult.movie.actors && rouletteResult.movie.actors.length > 0 && (
                         <div className="truncate">
                           <span className="text-amber-300 font-semibold">🎭 Diễn viên: </span>
@@ -825,12 +825,12 @@ export const MovieRouletteModal: React.FC<MovieRouletteModalProps> = ({
                   )}
 
                   {/* UNIFIED TAROT VERDICT & SYNOPSIS BOX */}
-                  <div className="space-y-2 p-3 sm:p-3.5 rounded-2xl bg-zinc-950/80 border border-amber-500/30 text-left shadow-inner">
-                    <p className="text-xs sm:text-[13px] text-amber-200 font-medium italic leading-relaxed px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/20">
+                  <div className="space-y-2 p-3 sm:p-3.5 rounded-2xl bg-zinc-950/80 text-left shadow-inner">
+                    <p className="text-xs sm:text-[13px] text-amber-200 font-medium italic leading-relaxed px-3 py-1.5 rounded-xl bg-amber-500/10">
                       ✨ {rouletteResult.punchline}
                     </p>
 
-                    <div className="pt-2 border-t border-white/10 space-y-1">
+                    <div className="pt-2 border-t space-y-1">
                       <div className="flex items-center gap-1.5 text-[11px] font-bold text-amber-300 uppercase tracking-wide">
                         <BookOpen className="w-3.5 h-3.5 text-amber-400" />
                         <span>Tóm tắt nội dung</span>
@@ -872,7 +872,7 @@ export const MovieRouletteModal: React.FC<MovieRouletteModalProps> = ({
             /* STATE 3: FULL CRITERIA PICKER */
             <div className="space-y-4 animate-in fade-in duration-200">
               {rouletteError && (
-                <div className="p-3.5 rounded-2xl bg-amber-500/15 border border-amber-500/30 text-amber-200 text-xs flex items-center justify-between gap-2.5 animate-in fade-in">
+                <div className="p-3.5 rounded-2xl bg-amber-500/15 text-amber-200 text-xs flex items-center justify-between gap-2.5 animate-in fade-in">
                   <div className="flex items-center gap-2">
                     <span className="text-base">🎴</span>
                     <span className="font-semibold">{rouletteError}</span>
@@ -882,7 +882,7 @@ export const MovieRouletteModal: React.FC<MovieRouletteModalProps> = ({
                       type="button"
                       onClick={() => spinRoulette()}
                       disabled={isSpinning}
-                      className="text-white text-xs font-bold px-2.5 py-1 rounded-lg bg-amber-500/30 hover:bg-amber-500/50 border border-amber-400/40 transition cursor-pointer"
+                      className="text-white text-xs font-bold px-2.5 py-1 rounded-lg bg-amber-500/30 hover:bg-amber-500/50 transition cursor-pointer"
                     >
                       🎲 Bốc lại
                     </button>
@@ -899,7 +899,7 @@ export const MovieRouletteModal: React.FC<MovieRouletteModalProps> = ({
 
               {/* QUẺ HÔM NAY PREVIEW CARD KHI DÙNG 'BỐC QUẺ NGẪU NHIÊN' */}
               {randomFortuneCard ? (
-                <div className="p-4 sm:p-5 rounded-3xl bg-gradient-to-br from-amber-500/20 via-orange-500/15 to-purple-500/20 border-2 border-amber-400/50 shadow-2xl space-y-3.5 animate-in zoom-in-95 duration-150">
+                <div className="p-4 sm:p-5 rounded-3xl bg-gradient-to-br from-amber-500/20 via-orange-500/15 to-purple-500/20 border-2 shadow-2xl space-y-3.5 animate-in zoom-in-95 duration-150">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <span className="text-2xl drop-shadow-md">🎴</span>
@@ -916,7 +916,7 @@ export const MovieRouletteModal: React.FC<MovieRouletteModalProps> = ({
                       type="button"
                       onClick={handleRandomFortune}
                       disabled={isRollingFortune || isSpinning}
-                      className="text-xs font-bold text-amber-300 hover:text-white px-3 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 transition cursor-pointer flex items-center gap-1.5 active:scale-95 disabled:opacity-50"
+                      className="text-xs font-bold text-amber-300 hover:text-white px-3 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 transition cursor-pointer flex items-center gap-1.5 active:scale-95 disabled:opacity-50"
                     >
                       <Dices className={`w-3.5 h-3.5 ${isRollingFortune ? "animate-spin" : ""}`} />
                       <span>Bốc quẻ khác</span>
@@ -924,15 +924,15 @@ export const MovieRouletteModal: React.FC<MovieRouletteModalProps> = ({
                   </div>
 
                   <div className="flex flex-wrap gap-2">
-                    <span className="px-3 py-1.5 rounded-xl bg-amber-500/25 text-amber-200 border border-amber-400/40 text-xs font-bold flex items-center gap-1.5 shadow-sm">
+                    <span className="px-3 py-1.5 rounded-xl bg-amber-500/25 text-amber-200 text-xs font-bold flex items-center gap-1.5 shadow-sm">
                       <span>{ROULETTE_MOODS.find((m) => m.id === randomFortuneCard.mood)?.emoji}</span>
                       <span>{ROULETTE_MOODS.find((m) => m.id === randomFortuneCard.mood)?.label}</span>
                     </span>
-                    <span className="px-3 py-1.5 rounded-xl bg-sky-500/25 text-sky-200 border border-sky-400/40 text-xs font-bold flex items-center gap-1.5 shadow-sm">
+                    <span className="px-3 py-1.5 rounded-xl bg-sky-500/25 text-sky-200 text-xs font-bold flex items-center gap-1.5 shadow-sm">
                       <span>{ROULETTE_COUNTRIES.find((c) => c.id === randomFortuneCard.country)?.flag}</span>
                       <span>{ROULETTE_COUNTRIES.find((c) => c.id === randomFortuneCard.country)?.label}</span>
                     </span>
-                    <span className="px-3 py-1.5 rounded-xl bg-emerald-500/25 text-emerald-200 border border-emerald-400/40 text-xs font-bold flex items-center gap-1.5 shadow-sm">
+                    <span className="px-3 py-1.5 rounded-xl bg-emerald-500/25 text-emerald-200 text-xs font-bold flex items-center gap-1.5 shadow-sm">
                       <span>{ROULETTE_COMPANIONS.find((cp) => cp.id === randomFortuneCard.companion)?.icon}</span>
                       <span>{ROULETTE_COMPANIONS.find((cp) => cp.id === randomFortuneCard.companion)?.label}</span>
                     </span>
@@ -940,7 +940,7 @@ export const MovieRouletteModal: React.FC<MovieRouletteModalProps> = ({
                       <span>{ROULETTE_DURATIONS.find((d) => d.id === randomFortuneCard.duration)?.icon}</span>
                       <span>{ROULETTE_DURATIONS.find((d) => d.id === randomFortuneCard.duration)?.label}</span>
                     </span>
-                    <span className="px-3 py-1.5 rounded-xl bg-rose-500/25 text-rose-200 border border-rose-400/40 text-xs font-bold flex items-center gap-1.5 shadow-sm">
+                    <span className="px-3 py-1.5 rounded-xl bg-rose-500/25 text-rose-200 text-xs font-bold flex items-center gap-1.5 shadow-sm">
                       <span>{ROULETTE_SURPRISES.find((s) => s.id === randomFortuneCard.surprise)?.icon}</span>
                       <span>{ROULETTE_SURPRISES.find((s) => s.id === randomFortuneCard.surprise)?.label}</span>
                     </span>
@@ -951,7 +951,7 @@ export const MovieRouletteModal: React.FC<MovieRouletteModalProps> = ({
                       type="button"
                       onClick={() => spinRoulette()}
                       disabled={isSpinning}
-                      className="flex-1 min-w-[200px] py-3 rounded-2xl bg-gradient-to-r from-amber-500 via-orange-600 to-rose-600 hover:from-amber-400 hover:to-rose-500 text-white font-black text-sm flex items-center justify-center gap-2 shadow-md shadow-black/50 active:scale-[0.99] transition cursor-pointer disabled:opacity-50 ring-2 ring-amber-400/40"
+                      className="flex-1 min-w-[200px] py-3 rounded-2xl bg-gradient-to-r from-amber-500 via-orange-600 to-rose-600 hover:from-amber-400 hover:to-rose-500 text-white font-black text-sm flex items-center justify-center gap-2 shadow-md shadow-black/50 active:scale-[0.99] transition cursor-pointer disabled:opacity-50"
                     >
                       <Sparkles className="w-4 h-4" />
                       <span>{isSpinning ? "Đang Khai Quẻ..." : "🔮 Bốc phim theo quẻ này"}</span>
@@ -959,7 +959,7 @@ export const MovieRouletteModal: React.FC<MovieRouletteModalProps> = ({
                     <button
                       type="button"
                       onClick={() => setRandomFortuneCard(null)}
-                      className="px-4 py-3 rounded-2xl bg-zinc-900/90 hover:bg-zinc-800 text-zinc-300 hover:text-white font-semibold text-xs border border-white/10 transition cursor-pointer flex items-center gap-1.5"
+                      className="px-4 py-3 rounded-2xl bg-zinc-900/90 hover:bg-zinc-800 text-zinc-300 hover:text-white font-semibold text-xs transition cursor-pointer flex items-center gap-1.5"
                     >
                       <span>⚙️ Tự chỉnh tiêu chí</span>
                     </button>
@@ -967,7 +967,7 @@ export const MovieRouletteModal: React.FC<MovieRouletteModalProps> = ({
                 </div>
               ) : (
                 /* BANNER BỐC QUẺ NGẪU NHIÊN KHI CHƯA MỞ CARD */
-                <div className="flex items-center justify-between p-3 sm:p-3.5 rounded-2xl bg-gradient-to-r from-amber-500/15 via-orange-500/15 to-purple-500/15 border border-amber-500/30">
+                <div className="flex items-center justify-between p-3 sm:p-3.5 rounded-2xl bg-gradient-to-r from-amber-500/15 via-orange-500/15 to-purple-500/15">
                   <div className="flex items-center gap-2.5 min-w-0">
                     <span className="text-2xl flex-none">🎴</span>
                     <div className="min-w-0">
@@ -1023,11 +1023,11 @@ export const MovieRouletteModal: React.FC<MovieRouletteModalProps> = ({
                         onClick={() => setSelectedMood(m.id)}
                         className={`p-2.5 rounded-2xl border text-left transition-all duration-150 flex items-center gap-2.5 cursor-pointer group shadow-sm ${
                           isSelected
-                            ? "bg-gradient-to-br from-amber-500/25 to-orange-500/25 border-amber-400 text-white ring-2 ring-amber-400/40 shadow-md shadow-black/50 font-bold scale-[1.02]"
-                            : "bg-zinc-900/80 border-white/10 text-zinc-300 hover:text-white hover:bg-zinc-800/80 hover:border-amber-500/30"
+                            ? "bg-gradient-to-br from-amber-500/25 to-orange-500/25 border-amber-400 text-white  shadow-md shadow-black/50 font-bold scale-[1.02]"
+                            : "bg-zinc-900/80  text-zinc-300 hover:text-white hover:bg-zinc-800/80 hover:"
                         }`}
                       >
-                        <span className="text-xl p-1 rounded-xl bg-black/40 border border-white/10 group-hover:scale-110 transition-transform">
+                        <span className="text-xl p-1 rounded-xl bg-black/40 group-hover:scale-110 transition-transform">
                           {m.emoji}
                         </span>
                         <div className="min-w-0 flex-1">
@@ -1058,8 +1058,8 @@ export const MovieRouletteModal: React.FC<MovieRouletteModalProps> = ({
                         onClick={() => setSelectedCountry(c.id)}
                         className={`px-3.5 py-2 rounded-xl border text-xs font-bold transition-all flex items-center gap-2 cursor-pointer shadow-sm ${
                           isSelected
-                            ? "bg-sky-500/25 border-sky-400 text-white ring-2 ring-sky-400/40 shadow-md shadow-black/50 scale-105"
-                            : "bg-zinc-900/80 border-white/10 text-zinc-300 hover:text-white hover:bg-zinc-800"
+                            ? "bg-sky-500/25 border-sky-400 text-white  shadow-md shadow-black/50 scale-105"
+                            : "bg-zinc-900/80  text-zinc-300 hover:text-white hover:bg-zinc-800"
                         }`}
                       >
                         <span>{c.flag}</span>
@@ -1086,11 +1086,11 @@ export const MovieRouletteModal: React.FC<MovieRouletteModalProps> = ({
                         onClick={() => setSelectedCompanion(cp.id)}
                         className={`p-2.5 rounded-2xl border text-left transition-all duration-150 flex items-center gap-2.5 cursor-pointer group shadow-sm ${
                           isSelected
-                            ? "bg-emerald-500/25 border-emerald-400 text-white ring-2 ring-emerald-400/40 shadow-md shadow-black/50 font-bold scale-[1.02]"
-                            : "bg-zinc-900/80 border-white/10 text-zinc-300 hover:text-white hover:bg-zinc-800"
+                            ? "bg-emerald-500/25 border-emerald-400 text-white  shadow-md shadow-black/50 font-bold scale-[1.02]"
+                            : "bg-zinc-900/80  text-zinc-300 hover:text-white hover:bg-zinc-800"
                         }`}
                       >
-                        <span className="text-xl p-1 rounded-xl bg-black/40 border border-white/10 group-hover:scale-110 transition-transform">
+                        <span className="text-xl p-1 rounded-xl bg-black/40 group-hover:scale-110 transition-transform">
                           {cp.icon}
                         </span>
                         <div className="min-w-0 flex-1">
@@ -1106,7 +1106,7 @@ export const MovieRouletteModal: React.FC<MovieRouletteModalProps> = ({
               </div>
 
               {/* 4. TÙY CHỌN THÊM (THỜI LƯỢNG & ĐỘ BẤT NGỜ) */}
-              <div className="border border-white/10 rounded-2xl bg-zinc-900/60 overflow-hidden shadow-md">
+              <div className="rounded-2xl bg-zinc-900/60 overflow-hidden shadow-md">
                 <button
                   type="button"
                   onClick={() => setShowAdvancedOptions(!showAdvancedOptions)}
@@ -1130,7 +1130,7 @@ export const MovieRouletteModal: React.FC<MovieRouletteModalProps> = ({
                 </button>
 
                 {showAdvancedOptions && (
-                  <div className="p-3.5 sm:p-4 pt-2 border-t border-white/5 space-y-4 animate-in fade-in duration-150">
+                  <div className="p-3.5 sm:p-4 pt-2 border-t space-y-4 animate-in fade-in duration-150">
                     {/* ⏱️ THỜI LƯỢNG */}
                     <div className="space-y-2">
                       <label className="text-xs font-bold text-purple-300 flex items-center gap-1.5 uppercase tracking-wider">
@@ -1147,11 +1147,11 @@ export const MovieRouletteModal: React.FC<MovieRouletteModalProps> = ({
                               onClick={() => setSelectedDuration(d.id)}
                               className={`p-2.5 rounded-2xl border text-left transition-all duration-150 flex items-center gap-2 cursor-pointer shadow-sm ${
                                 isSelected
-                                  ? "bg-purple-500/25 border-purple-400 text-white ring-2 ring-purple-400/40 shadow-md shadow-black/50 font-bold scale-[1.02]"
-                                  : "bg-zinc-900/80 border-white/10 text-zinc-300 hover:text-white hover:bg-zinc-800"
+                                  ? "bg-purple-500/25 border-purple-400 text-white  shadow-md shadow-black/50 font-bold scale-[1.02]"
+                                  : "bg-zinc-900/80  text-zinc-300 hover:text-white hover:bg-zinc-800"
                               }`}
                             >
-                              <span className="text-lg p-1 rounded-xl bg-black/40 border border-white/10">
+                              <span className="text-lg p-1 rounded-xl bg-black/40">
                                 {d.icon}
                               </span>
                               <div className="min-w-0 flex-1">
@@ -1180,11 +1180,11 @@ export const MovieRouletteModal: React.FC<MovieRouletteModalProps> = ({
                               onClick={() => setSelectedSurprise(s.id)}
                               className={`p-2.5 rounded-2xl border text-left transition-all duration-150 flex items-center gap-2 cursor-pointer shadow-sm ${
                                 isSelected
-                                  ? "bg-rose-500/25 border-rose-400 text-white ring-2 ring-rose-400/40 shadow-md shadow-black/50 font-bold scale-[1.02]"
-                                  : "bg-zinc-900/80 border-white/10 text-zinc-300 hover:text-white hover:bg-zinc-800"
+                                  ? "bg-rose-500/25 border-rose-400 text-white  shadow-md shadow-black/50 font-bold scale-[1.02]"
+                                  : "bg-zinc-900/80  text-zinc-300 hover:text-white hover:bg-zinc-800"
                               }`}
                             >
-                              <span className="text-lg p-1 rounded-xl bg-black/40 border border-white/10">
+                              <span className="text-lg p-1 rounded-xl bg-black/40">
                                 {s.icon}
                               </span>
                               <div className="min-w-0 flex-1">
@@ -1206,7 +1206,7 @@ export const MovieRouletteModal: React.FC<MovieRouletteModalProps> = ({
                   type="button"
                   onClick={() => spinRoulette()}
                   disabled={isSpinning}
-                  className="w-full py-4 rounded-2xl bg-gradient-to-r from-amber-500 via-orange-600 to-rose-600 text-white font-black text-sm sm:text-base flex items-center justify-center gap-2.5 shadow-xl shadow-black/70 hover:scale-[1.01] active:scale-[0.99] transition-all cursor-pointer disabled:opacity-50 ring-2 ring-amber-400/30"
+                  className="w-full py-4 rounded-2xl bg-gradient-to-r from-amber-500 via-orange-600 to-rose-600 text-white font-black text-sm sm:text-base flex items-center justify-center gap-2.5 shadow-xl shadow-black/70 hover:scale-[1.01] active:scale-[0.99] transition-all cursor-pointer disabled:opacity-50"
                 >
                   <Dices className={`w-5 h-5 ${isSpinning ? "animate-spin" : ""}`} />
                   <span>{isSpinning ? "Đang Bốc Quẻ Số Phận..." : "Bốc Quẻ Suất Chiếu Định Mệnh 🎲"}</span>

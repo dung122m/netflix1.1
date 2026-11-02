@@ -301,16 +301,30 @@ export function isFeaturedMatch(params: {
   team1?: string;
   team2?: string;
   sport?: string;
+  category?: string;
+  gender?: string;
   stage?: string;
   round?: string;
   score?: LiveMatchScore | null;
   validServersCount?: number;
   servers?: Array<{ url?: string }>;
 }): FeaturedMatchResult {
-  const { title, tournament = "", team1 = "", team2 = "", sport, stage = "", round = "" } = params;
+  const { title, tournament = "", team1 = "", team2 = "", sport, category, gender, stage = "", round = "" } = params;
 
   // 0. Sport Guard: Nếu môn thể thao không phải bóng đá (như basketball, volleyball, tennis, esports...)
   if (sport && sport !== "football" && sport !== "soccer") {
+    return {
+      isFeatured: false,
+    };
+  }
+
+  // 0B. Category Guard: Trận bóng đá Nữ không tự động kế thừa huy hiệu Tâm Điểm của giải Nam
+  const isWomenMatch =
+    category === "senior_women" ||
+    gender === "women" ||
+    /\b(?:nữ|nu|women|woman|female|wsl|frauen|femenil)\b/i.test(`${title} ${tournament} ${team1} ${team2} ${category || ""}`);
+
+  if (isWomenMatch) {
     return {
       isFeatured: false,
     };

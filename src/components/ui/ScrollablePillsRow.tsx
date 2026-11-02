@@ -130,7 +130,7 @@ export function ScrollablePillsRow({
             <button
               type="button"
               onClick={() => handleScrollBy(-scrollAmount)}
-              className="w-7 h-7 rounded-full bg-zinc-900/95 hover:bg-zinc-800 text-white border border-white/25 shadow-xl flex items-center justify-center transition-all duration-200 hover:scale-110 active:scale-95 cursor-pointer pointer-events-auto backdrop-blur-md"
+              className="w-7 h-7 rounded-full bg-zinc-900/95 hover:bg-zinc-800 text-white shadow-xl flex items-center justify-center transition-all duration-200 hover:scale-110 active:scale-95 cursor-pointer pointer-events-auto backdrop-blur-md"
               aria-label="Cuộn sang trái"
             >
               <ChevronLeft className="w-4 h-4 text-zinc-200" />
@@ -161,7 +161,7 @@ export function ScrollablePillsRow({
             <button
               type="button"
               onClick={() => handleScrollBy(scrollAmount)}
-              className="w-7 h-7 rounded-full bg-zinc-900/95 hover:bg-zinc-800 text-white border border-white/25 shadow-xl flex items-center justify-center transition-all duration-200 hover:scale-110 active:scale-95 cursor-pointer pointer-events-auto backdrop-blur-md"
+              className="w-7 h-7 rounded-full bg-zinc-900/95 hover:bg-zinc-800 text-white shadow-xl flex items-center justify-center transition-all duration-200 hover:scale-110 active:scale-95 cursor-pointer pointer-events-auto backdrop-blur-md"
               aria-label="Cuộn sang phải"
             >
               <ChevronRight className="w-4 h-4 text-zinc-200" />

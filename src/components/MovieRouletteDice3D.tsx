@@ -205,7 +205,7 @@ export const MovieRouletteDice3D: React.FC<MovieRouletteDice3DProps> = ({
 
         {/* MẶT BÀN GỖ MUN / NỈ ĐEN TRÒN */}
         <div
-          className="absolute -bottom-4 w-48 sm:w-56 h-10 rounded-[100%] pointer-events-none border border-white/5 shadow-[0_16px_36px_rgba(0,0,0,0.85)]"
+          className="absolute -bottom-4 w-48 sm:w-56 h-10 rounded-[100%] pointer-events-none shadow-[0_16px_36px_rgba(0,0,0,0.85)]"
           style={{
             background:
               "radial-gradient(ellipse 65% 50% at 50% 35%, rgba(30, 30, 36, 0.85) 0%, rgba(12, 12, 15, 0.98) 70%, transparent 100%)",

@@ -113,9 +113,19 @@ export const YouTubeSeek5ForwardIcon: React.FC<{ className?: string }> = ({ clas
   </svg>
 );
 
-// Backward compatibility aliases
-export const YouTubeSeek10BackIcon = YouTubeSeek5BackIcon;
-export const YouTubeSeek10ForwardIcon = YouTubeSeek5ForwardIcon;
+export const YouTubeSeek10BackIcon: React.FC<{ className?: string }> = ({ className = "w-5 h-5" }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    <path d="M11.99 5V1l-5 5 5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6s-6-2.69-6-6h-2c0 4.42 3.58 8 8 8s8-3.58 8-8s-3.58-8-8-8z" />
+    <text x="12" y="15.2" textAnchor="middle" fontSize="7" fontWeight="bold" fontFamily="system-ui, -apple-system, sans-serif">10</text>
+  </svg>
+);
+
+export const YouTubeSeek10ForwardIcon: React.FC<{ className?: string }> = ({ className = "w-5 h-5" }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    <path d="M18 13c0 3.31-2.69 6-6 6s-6-2.69-6-6 2.69-6 6-6v4l5-5-5-5v4c-4.42 0-8 3.58-8 8s3.58 8 8 8 8-3.58 8-8h-2z" />
+    <text x="12" y="15.2" textAnchor="middle" fontSize="7" fontWeight="bold" fontFamily="system-ui, -apple-system, sans-serif">10</text>
+  </svg>
+);
 
 
 // ============================================================================
@@ -346,9 +356,9 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
         {settingsView === "main" && (
           <div className="py-1 flex flex-col">
             {!isMobileLayout && (
-              <div className="px-4 py-2 border-b border-white/10 flex items-center justify-between text-xs font-semibold text-zinc-400">
+              <div className="px-4 py-2 border-b flex items-center justify-between text-xs font-semibold text-zinc-400">
                 <span>Cài đặt trình phát</span>
-                <span className="text-[10px] font-mono uppercase bg-white/10 px-1.5 py-0.5 rounded text-zinc-300">
+                <span className="text-[10px] font-sans tabular-nums uppercase bg-white/10 px-1.5 py-0.5 rounded text-zinc-300">
                   Nanaflix
                 </span>
               </div>
@@ -461,13 +471,13 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
                   setShowSettings(false);
                   onOpenShortcuts();
                 }}
-                className="flex items-center justify-between px-3.5 py-2.5 hover:bg-white/10 transition cursor-pointer text-xs sm:text-sm text-left group border-t border-white/10 mt-1"
+                className="flex items-center justify-between px-3.5 py-2.5 hover:bg-white/10 transition cursor-pointer text-xs sm:text-sm text-left group border-t mt-1"
               >
                 <div className="flex items-center gap-2.5 text-zinc-200 group-hover:text-white">
                   <Keyboard className="w-4 h-4 text-zinc-400 group-hover:text-white" />
                   <span>Phím tắt điều khiển</span>
                 </div>
-                <span className="text-[10px] font-mono text-zinc-400 bg-white/10 px-1.5 py-0.5 rounded">
+                <span className="text-[10px] font-sans tabular-nums text-zinc-400 bg-white/10 px-1.5 py-0.5 rounded">
                   ?
                 </span>
               </button>
@@ -482,7 +492,7 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
               <button
                 type="button"
                 onClick={() => setSettingsView("main")}
-                className="flex items-center gap-2 px-3 py-2 border-b border-white/10 text-xs font-semibold text-white hover:bg-white/10 transition cursor-pointer"
+                className="flex items-center gap-2 px-3 py-2 border-b text-xs font-semibold text-white hover:bg-white/10 transition cursor-pointer"
               >
                 <ChevronLeft className="w-4 h-4 text-zinc-400" />
                 <span>Tốc độ phát</span>
@@ -520,7 +530,7 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
               <button
                 type="button"
                 onClick={() => setSettingsView("main")}
-                className="flex items-center gap-2 px-3 py-2 border-b border-white/10 text-xs font-semibold text-white hover:bg-white/10 transition cursor-pointer"
+                className="flex items-center gap-2 px-3 py-2 border-b text-xs font-semibold text-white hover:bg-white/10 transition cursor-pointer"
               >
                 <ChevronLeft className="w-4 h-4 text-zinc-400" />
                 <span>Chất lượng video</span>
@@ -575,7 +585,7 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
               <button
                 type="button"
                 onClick={() => setSettingsView("main")}
-                className="flex items-center gap-2 px-3 py-2 border-b border-white/10 text-xs font-semibold text-white hover:bg-white/10 transition cursor-pointer"
+                className="flex items-center gap-2 px-3 py-2 border-b text-xs font-semibold text-white hover:bg-white/10 transition cursor-pointer"
               >
                 <ChevronLeft className="w-4 h-4 text-zinc-400" />
                 <span>Tỉ lệ màn hình</span>
@@ -613,7 +623,7 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
               <button
                 type="button"
                 onClick={() => setSettingsView("main")}
-                className="flex items-center gap-2 px-3 py-2 border-b border-white/10 text-xs font-semibold text-white hover:bg-white/10 transition cursor-pointer"
+                className="flex items-center gap-2 px-3 py-2 border-b text-xs font-semibold text-white hover:bg-white/10 transition cursor-pointer"
               >
                 <ChevronLeft className="w-4 h-4 text-zinc-400" />
                 <span>Nguồn phát / Máy chủ</span>
@@ -684,7 +694,7 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
         >
           {/* Tên phim & Tập phim (co giãn thông minh trên điện thoại đứng & ngang) */}
           <div className="flex items-center gap-2 sm:gap-2.5 min-w-0 pr-3">
-            <span className="flex items-center justify-center w-6 h-6 rounded-lg bg-white/10 text-white/90 border border-white/10 shrink-0 shadow-sm">
+            <span className="flex items-center justify-center w-6 h-6 rounded-lg bg-white/10 text-white/90 shrink-0 shadow-sm">
               <Film className="w-3.5 h-3.5" />
             </span>
             <div className="flex items-center gap-2 min-w-0">
@@ -692,7 +702,7 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
                 {title || "Đang phát"}
               </h2>
               {activeEpisodeName && (
-                <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-white/10 border border-white/15 text-zinc-200 text-[11px] sm:text-xs font-medium tracking-tight shrink-0 drop-shadow-sm">
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-white/10 text-zinc-200 text-[11px] sm:text-xs font-medium tracking-tight shrink-0 drop-shadow-sm">
                   {activeEpisodeName}
                 </span>
               )}
@@ -702,7 +712,7 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
           {/* Huy hiệu độ phân giải - ĐÃ LOẠI BỎ CHỮ "TỰ ĐỘNG", chỉ hiện khi người dùng chọn độ phân giải thủ công */}
           {currentQualityIndex !== -1 && currentQualityLabel && (
             <div className="flex items-center gap-2 shrink-0">
-              <span className="px-2 py-0.5 rounded-md bg-white/10 border border-white/15 text-white/90 font-bold text-[11px] tracking-wider uppercase backdrop-blur-md shadow-sm">
+              <span className="px-2 py-0.5 rounded-md bg-white/10 text-white/90 font-bold text-[11px] tracking-wider uppercase backdrop-blur-md shadow-sm">
                 {currentQualityLabel}
               </span>
             </div>
@@ -714,7 +724,7 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
         {/* =================================================================== */}
         {isBuffering ? (
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none select-none z-10 flex flex-col items-center justify-center">
-            <div className="w-12 h-12 sm:w-14 sm:h-14 border-[3px] border-white/20 border-t-white rounded-full animate-spin shadow-2xl" />
+            <div className="w-12 h-12 sm:w-14 sm:h-14 border-[3px] border-t-white rounded-full animate-spin shadow-2xl" />
           </div>
         ) : (
           <div className="md:hidden absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center justify-center gap-6 sm:gap-10 pointer-events-none z-10">
@@ -724,7 +734,7 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
               data-player-control="true"
               onClick={handleSeekBack}
               aria-label="Tua lùi 5 giây"
-              className="pointer-events-auto w-11 h-11 rounded-full bg-black/45 hover:bg-black/65 active:scale-90 border border-white/10 text-white/95 flex items-center justify-center shadow-lg backdrop-blur-md transition-all cursor-pointer outline-none"
+              className="pointer-events-auto w-11 h-11 rounded-full bg-black/45 hover:bg-black/65 active:scale-90 text-white/95 flex items-center justify-center shadow-lg backdrop-blur-md transition-all cursor-pointer outline-none"
             >
               <YouTubeSeek5BackIcon className="w-5 h-5" />
             </button>
@@ -739,7 +749,7 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
                 onUserInteraction?.();
               }}
               aria-label={isPlaying ? "Tạm dừng" : "Phát"}
-              className="pointer-events-auto w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-black/50 hover:bg-black/70 active:scale-95 text-white flex items-center justify-center shadow-2xl backdrop-blur-md border border-white/15 transition-transform duration-150 cursor-pointer outline-none"
+              className="pointer-events-auto w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-black/50 hover:bg-black/70 active:scale-95 text-white flex items-center justify-center shadow-2xl backdrop-blur-md transition-transform duration-150 cursor-pointer outline-none"
             >
               {isPlaying ? (
                 <YouTubePauseIcon className="w-7 h-7 sm:w-8 sm:h-8" />
@@ -754,7 +764,7 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
               data-player-control="true"
               onClick={handleSeekForward}
               aria-label="Tua tới 5 giây"
-              className="pointer-events-auto w-11 h-11 rounded-full bg-black/45 hover:bg-black/65 active:scale-90 border border-white/10 text-white/95 flex items-center justify-center shadow-lg backdrop-blur-md transition-all cursor-pointer outline-none"
+              className="pointer-events-auto w-11 h-11 rounded-full bg-black/45 hover:bg-black/65 active:scale-90 text-white/95 flex items-center justify-center shadow-lg backdrop-blur-md transition-all cursor-pointer outline-none"
             >
               <YouTubeSeek5ForwardIcon className="w-5 h-5" />
             </button>
@@ -923,7 +933,7 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
                     ref={settingsPanelRef}
                     role="dialog"
                     aria-label="Cài đặt trình phát"
-                    className="pointer-events-auto absolute bottom-full right-0 mb-3 w-[270px] sm:w-[290px] max-h-[min(380px,calc(100vh-100px))] bg-zinc-950/98 border border-white/15 rounded-2xl shadow-2xl backdrop-blur-2xl text-white overflow-y-auto z-50 animate-in fade-in zoom-in-95 duration-150"
+                    className="pointer-events-auto absolute bottom-full right-0 mb-3 w-[270px] sm:w-[290px] max-h-[min(380px,calc(100vh-100px))] bg-zinc-950/98 rounded-2xl shadow-2xl backdrop-blur-2xl text-white overflow-y-auto z-50 animate-in fade-in zoom-in-95 duration-150"
                   >
                     {renderSettingsInner(false)}
                   </div>
@@ -999,13 +1009,13 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
             <div
               ref={settingsPanelRef}
               onClick={(e) => e.stopPropagation()}
-              className="relative w-full max-w-lg mx-auto bg-zinc-950/98 border-t border-white/20 rounded-t-3xl shadow-[0_-15px_45px_rgba(0,0,0,0.95)] backdrop-blur-2xl text-white p-4 pb-8 max-h-[82vh] overflow-y-auto animate-in slide-in-from-bottom duration-250 transform-gpu will-change-transform"
+              className="relative w-full max-w-lg mx-auto bg-zinc-950/98 border-t rounded-t-3xl shadow-[0_-15px_45px_rgba(0,0,0,0.95)] backdrop-blur-2xl text-white p-4 pb-8 max-h-[82vh] overflow-y-auto animate-in slide-in-from-bottom duration-250 transform-gpu will-change-transform"
             >
               {/* Drag Pill Indicator */}
               <div className="w-10 h-1 bg-white/25 rounded-full mx-auto mb-3" />
 
               {/* Header with back or title & close button */}
-              <div className="flex items-center justify-between pb-3 mb-2 border-b border-white/10">
+              <div className="flex items-center justify-between pb-3 mb-2 border-b">
                 <div className="flex items-center gap-2">
                   {settingsView !== "main" ? (
                     <button
@@ -1027,7 +1037,7 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
                   ) : (
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-bold text-white">Cài đặt trình phát</span>
-                      <span className="text-[10px] font-mono uppercase bg-netflix-red/20 border border-netflix-red/30 px-1.5 py-0.5 rounded text-rose-300 font-semibold">
+                      <span className="text-[10px] font-sans tabular-nums uppercase bg-netflix-red/20 border border-netflix-red/30 px-1.5 py-0.5 rounded text-rose-300 font-semibold">
                         Nanaflix
                       </span>
                     </div>

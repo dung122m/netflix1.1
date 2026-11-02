@@ -39,6 +39,8 @@ A reusable template for reverse-engineering any website into a clean, modern Nex
 
 ## Design Principles
 - **Pixel-perfect emulation** — match the target's spacing, colors, typography exactly
+- **Border is Exception, Not Default** — Never add decorative borders. Prefer spacing, layered dark surfaces, typography, and subtle shadows (Apple TV+ / Netflix cinematic aesthetic). Keep borders strictly for inputs, focus visibility, active states, and essential dividers. Never wrap icons (goals, cards, substitutions) in bordered boxes/badges. See `.agents/rules/pixel-perfect-taste.md`.
+- **Never Use `font-mono` on UI** — Strictly forbidden to use `font-mono` for match scores, player numbers, clocks, event minutes, or any UI text. Monospace fonts render horribly on Windows (Consolas) with spaced-out quotation marks and jagged glyphs. Use `font-sans tabular-nums` instead for all aligned numbers.
 - **No personal aesthetic changes during emulation phase** — match 1:1 first, customize later
 - **Real content** — use actual text and assets from the target site, not placeholders
 - **Beauty-first** — every pixel matters
@@ -310,9 +312,8 @@ Nanaflix áp dụng ngôn ngữ thiết kế Dark-only điện ảnh cao cấp k
 
 ## Elevation & Depth
 
-- **Hairline Borders:** Sử dụng đường viền siêu mảnh `border border-white/10` (trạng thái hover: `border-white/25`) để phân tách không gian nhẹ nhàng mà không tạo cảm giác thô cứng.
-- **Bóng đổ & Chiều sâu:** Đổ bóng mềm nhiều tầng `shadow-xl shadow-black/50`, không dùng bóng viền thô cứng neobrutalist.
-- **Glassmorphism:** Sử dụng `backdrop-blur-md` kết hợp `bg-black/60` cho các badge nổi trên poster phim.
+- **Border is Exception, Not Default:** Mặc định không sử dụng border. Chỉ dùng khi có lý do UX rõ ràng (input, focus state, active state, divider cần thiết). Thay thế border trang trí bằng khoảng cách (spacing), sự tương phản nhẹ giữa các lớp nền tối (layered dark surfaces), bóng đổ cinematic mềm `shadow-xl shadow-black/60` và typography.
+- **Glassmorphism:** Sử dụng `backdrop-blur-md` kết hợp `bg-zinc-950/80` hoặc `bg-black/60` cho các badge nổi, popover và navigation, hòa nhập liền mạch vào nền phim ảnh.
 
 ## Shapes
 
@@ -324,10 +325,10 @@ Nanaflix áp dụng ngôn ngữ thiết kế Dark-only điện ảnh cao cấp k
 
 ## Components
 
-- **MediaCard:** Thẻ poster dọc `aspect-[2/3]`, hiệu ứng hover phóng to nhẹ `scale-[1.02]`, viền hairline `border-white/10`, badge chất lượng góc trên mờ nền `backdrop-blur-md`.
-- **MatchCard:** Thẻ thể thao ngang `aspect-video` hoặc dạng danh sách gọn, hiển thị tỷ số trực tiếp, thời gian thực, huy hiệu giải đấu và nút xem nhanh.
+- **MediaCard:** Thẻ poster dọc `aspect-[2/3]`, hiệu ứng hover phóng to nhẹ `scale-[1.02]`, hòa vào layout không cần viền đóng khung hộp (`border-0`), badge chất lượng góc trên mờ nền `backdrop-blur-md`.
+- **MatchCard:** Thẻ thể thao hiển thị tỷ số trực tiếp, thời gian thực, nền `bg-zinc-900/60` phân lớp với khoảng thở tự nhiên thay vì viền bao thô cứng.
 - **VideoPlayer:** Khung xem phim trung tâm, thanh điều khiển nổi tự động ẩn sau 3 giây, nút tua 10s, danh sách server và tập phim trượt ngang dễ chọn bằng ngón cái.
-- **Navbar & Navigation:** Cố định đỉnh màn hình với `backdrop-blur-lg bg-black/80`, viền đáy `border-b border-white/10`.
+- **Navbar & Navigation:** Cố định đỉnh màn hình với `backdrop-blur-lg bg-black/80`, loại bỏ viền đáy thô cứng hoặc dùng độ phân tầng tinh tế.
 
 ## Do's and Don'ts
 
@@ -353,6 +354,8 @@ Tài liệu này xác lập bộ tiêu chuẩn UI/UX và quy tắc kỹ thuật 
 ## 1. Pixel-Perfect Layout
 
 - **Alignment & Horizontal Baseline:** Các thành phần trong cùng một hàng hoặc cùng một lưới (Grid/Carousel) phải giữ căn thẳng hàng (alignment) tuyệt đối, không được xô lệch đáy hay so le tiêu đề.
+- **Căn thẳng hàng danh sách (Vertical Column & Icon Alignment):**
+  - Trong các danh sách theo hàng (timeline, sự kiện trận đấu, danh sách cầu thủ), cột mốc thời gian hoặc số thứ tự bắt buộc phải có chiều rộng cố định (`w-11` hoặc `w-12 shrink-0 text-right tabular-nums`) để vị trí icon và tên nội dung trên tất cả các dòng luôn thẳng tắp 100% theo một trục dọc. Tuyệt đối không để độ dài số phút (ví dụ phút bù giờ `45+5'`) làm xô lệch icon của dòng đó.
 - **Hệ thống khoảng cách (Spacing Grid):** Ưu tiên hệ spacing 4px/8px (các bước: 2px, 4px, 6px, 8px, 10px, 12px, 16px, 20px, 24px). Không ép buộc máy móc nếu thiết kế hoặc typography hiện tại có lý do hợp lý cần khoảng đệm đặc thù.
 - **Phòng chống Overflow & Layout Shift:**
   - Tuyệt đối không để phát sinh thanh cuộn ngang ngoài ý muốn trên toàn trang (`overflow-x: hidden` có chủ đích hoặc container co giãn an toàn).
@@ -364,6 +367,10 @@ Tài liệu này xác lập bộ tiêu chuẩn UI/UX và quy tắc kỹ thuật 
 
 ## 2. Typography & Xử Lý Chữ Tiếng Việt
 
+- **CẤM TUYỆT ĐỐI DÙNG `font-mono` CHO GIAO DIỆN (UI):**
+  - **KHÔNG BAO GIỜ** được sử dụng class `font-mono` cho số phút, tỉ số trận đấu, số áo cầu thủ, đồng hồ thi đấu, thời gian, số lượng phần tử hoặc bất kỳ văn bản hiển thị nào trên UI.
+  - Phông chữ monospace hiển thị trên hệ điều hành Windows bằng Consolas cực kỳ thô kệch, dấu nháy đơn/kép bị cách xa rời rạc (`45 ' '`), phá hủy hoàn toàn cảm giác cao cấp điện ảnh của Nanaflix.
+  - Luôn sử dụng phông chữ thương hiệu chuẩn của dự án (`font-sans` - Be Vietnam Pro). Khi cần các con số thẳng hàng nhau theo trục dọc trong bảng hay danh sách, **BẮT BUỘC** sử dụng `tabular-nums` đi cùng `font-sans` (ví dụ: `font-sans tabular-nums font-bold`), tuyệt đối không được dùng `font-mono`.
 - **Phân cấp thị giác rõ rệt (Typographic Hierarchy):**
   - Giữ khoảng cách chênh lệch tối thiểu 2–3px giữa các cấp chữ cạnh nhau (ví dụ: Tiêu đề 13–14px semibold sáng màu; Thông tin phụ 11px medium xám dịu).
   - Tránh để hai cấp chữ liền kề có kích cỡ xấp xỉ nhau (như 13px và 12px) gây cảm giác tranh chấp không gian và chật chội.
@@ -393,11 +400,30 @@ Tài liệu này xác lập bộ tiêu chuẩn UI/UX và quy tắc kỹ thuật 
 ## 4. Dark Theme & Vật Liệu Giao Diện
 
 - **Tôn trọng Design System:** Sử dụng bảng màu gốc của Nanaflix (nền đen điện ảnh, đỏ thương hiệu `netflix-red`, điểm nhấn vàng hổ phách `amber-400`).
-- **Chiều sâu bề mặt (Layered Dark Surfaces):**
-  - Tránh lạm dụng màu đen tuyền `#000000` cho mọi bề mặt card và modal.
-  - Ưu tiên cấu trúc phân lớp: Nền trang (`bg-zinc-950` / `bg-black`) ➔ Nền card (`bg-zinc-900/80` hoặc `from-zinc-800/70 via-zinc-900 to-zinc-950`) ➔ Lớp nổi / Dropdown (`bg-zinc-900/95 backdrop-blur-md`).
-- **Đường viền siêu mảnh (Hairline Borders):** Sử dụng `border border-white/10` (hover: `border-white/25`) để định hình ranh giới mà không gây thô cứng.
-- **Glassmorphism có chọn lọc:** Áp dụng `backdrop-blur-md` kết hợp `bg-black/60` cho các huy hiệu (badge chất lượng, rating, nút hành động nổi) để làm nổi bật thông tin trên nền poster ảnh động.
+- **Độ sâu bề mặt thay thế đường viền (Border is Exception, Not Default):**
+  - **Mặc định KHÔNG sử dụng border.** Chỉ sử dụng khi có lý do UX rõ ràng và không thể thay thế bằng 4 phương pháp ưu tiên:
+    1. *Spacing*: Khoảng thở và đệm giữa các thành phần.
+    2. *Background contrast*: Khác biệt tinh tế về màu nền (ví dụ `bg-zinc-900/60`, `bg-white/[0.03]`, gradient dark cinematic).
+    3. *Typography*: Kích thước, độ đậm (font-weight) và màu chữ.
+    4. *Shadow / subtle glow*: Tạo chiều sâu khi nổi lên hoặc khi hover.
+    5. *Border*: Chỉ dùng khi 4 phương pháp trên không đủ.
+  - **QUY TẮC BẮT BUỘC CHO AI:**
+    - **NEVER add decorative borders by default.**
+    - **NEVER add decorative borders around icons:** Tuyệt đối không bọc icon (bóng đá ⚽, thẻ phạt 🟨🟥, thay người 🔄, hay các icon lucide) trong các ô vuông/tròn có viền màu mè (`border border-*`). Icon phải hiển thị tự nhiên hoặc trên nền mờ tối giản (`bg-white/5` hoặc `bg-*/10`), không có `border`.
+    - **NEVER create nested bordered containers without a documented UX reason.** (Tuyệt đối không để xảy ra viền lồng viền: page -> panel border -> card border -> inner container border).
+    - **NEVER use borders as a substitute for spacing or visual hierarchy.**
+    - **Prefer background contrast, spacing and typography.**
+    - **Before introducing any new border, verify whether the component can work without it.**
+    - **Preserve borders only for functional, accessibility or meaningful state indication:**
+      + Input/Form fields cần nhận diện rõ vùng nhập liệu.
+      + Focus indicator (`focus-visible:ring-2`) phục vụ chuẩn tiếp cận (accessibility).
+      + Trạng thái active/selected của filter/tab/toggle cần phân biệt rõ ràng.
+      + Divider phân tách thực sự cần thiết trong danh sách dày đặc.
+      + Trạng thái cảnh báo, nguy hiểm, bảo mật đặc thù.
+    - **Do not introduce arbitrary `border`, `border-*`, `divide-*`, `ring-*` utilities merely for decoration.**
+    - **Existing components must follow the same design language.**
+    - **Any exception must have a clear UX justification.**
+- **Glassmorphism & Surface Tiers:** Áp dụng `backdrop-blur-md` kết hợp `bg-zinc-900/80` hoặc `bg-black/60` cho các thanh điều hướng nổi, modal, dropdown hoặc badge để hòa quyện vào layout điện ảnh (chuẩn Netflix / Apple TV+) thay vì đóng khung thô cứng.
 
 ---
 
@@ -514,3 +540,4 @@ Surface habits:
 - Claims and configuration come from supplied truth; label illustrative values honestly. Naming a concept and then ironizing it is not a claim.
 
 The floor holds the mechanics; it never picks the direction. With every check green, spend the page on the committed world, and when torn between refined and committed, commit.
+

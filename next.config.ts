@@ -92,8 +92,8 @@ const nextConfig: NextConfig = {
         ],
       },
       {
-        // Live sources change frequently; never serve stale stream URLs from the edge.
-        source: "/api/live-football/:path*",
+        // Live score polling endpoint updates dynamically
+        source: "/api/live-football/scores",
         headers: [
           {
             key: "Cache-Control",
@@ -102,22 +102,12 @@ const nextConfig: NextConfig = {
         ],
       },
       {
-        // Live sources change frequently; never serve stale stream URLs from the edge.
-        source: "/api/live-tv/:path*",
-        headers: [
-          {
-            key: "Cache-Control",
-            value: "no-store, max-age=0, must-revalidate",
-          },
-        ],
-      },
-      {
-        // Cache thông báo 2 phút
+        // Thông báo người dùng riêng tư: cấm tuyệt đối cache trên CDN/Edge
         source: "/api/notifications",
         headers: [
           {
             key: "Cache-Control",
-            value: "public, s-maxage=120, stale-while-revalidate=60",
+            value: "private, no-cache, no-store, max-age=0, must-revalidate",
           },
         ],
       },

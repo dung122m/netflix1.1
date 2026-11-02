@@ -16,6 +16,7 @@ import {
 } from "@/lib/movieMedia";
 import { formatEpisodeName } from "@/lib/formatEpisode";
 import { CarouselNavButton } from "@/components/ui/CarouselNavButton";
+import { useMoviePosterFallback } from "@/hooks/useMoviePosterFallback";
 
 export const MAX_CONTINUE_WATCHING_DISPLAY = 15;
 
@@ -60,86 +61,34 @@ function getInitialPoster(item: WatchHistoryItem): string {
 }
 
 function ContinueWatchingCard({ item, index = 0, onRemove }: ContinueWatchingCardProps) {
-  const [imgSrc, setImgSrc] = useState<string>(() => getInitialPoster(item));
+  const initialPoster = React.useMemo(() => getInitialPoster(item), [item]);
+  const { displaySrc } = useMoviePosterFallback({
+    slug: item.slug,
+    title: item.title,
+    year: item.year,
+    initialSrc: initialPoster,
+  });
+
+  const [imgSrc, setImgSrc] = useState<string>(displaySrc || initialPoster);
   const [isLoaded, setIsLoaded] = useState(false);
 
-  // Tự động nâng cấp ảnh lên TMDb CDN siêu nhanh (30ms) nếu ảnh hiện tại là nguồn ngoài (phimimg) hoặc rỗng
   useEffect(() => {
-    const isFastTmdb = imgSrc && imgSrc.includes("image.tmdb.org");
-    if (!isFastTmdb) {
-      const params = new URLSearchParams();
-      if (item.title) params.set("title", item.title);
-      if (item.slug) params.set("slug", item.slug);
-      if (item.year) params.set("year", String(item.year));
-
-      fetch(`/api/movie-poster-fallback?${params.toString()}`)
-        .then((res) => (res.ok ? res.json() : null))
-        .then((data) => {
-          const resolved = data?.posterUrl || data?.backdropUrl;
-          if (resolved) {
-            const opt = toOptimizedCardPosterUrl(resolved);
-            continueWatchingThumbCache.set(item.slug, opt);
-            setImgSrc(opt);
-            if (typeof window !== "undefined") {
-              try {
-                const list = getWatchHistory();
-                const target = list.find((i) => i.slug === item.slug);
-                if (target) {
-                  target.poster = opt;
-                  localStorage.setItem("nanaflix_watch_history", JSON.stringify(list));
-                }
-              } catch {}
-            }
-          }
-        })
-        .catch(() => {});
+    if (displaySrc) {
+      setImgSrc(displaySrc);
     }
-  }, [item.title, item.slug, item.year, imgSrc]);
+  }, [displaySrc]);
 
   const handleImgError = useCallback(() => {
-    // Bước 1: Nếu link poster dọc bị lỗi, thử dùng thumb ngang nếu có và khác link đang lỗi
+    // Nếu link hiện tại bị lỗi, thử dùng thumb ngang nếu có và khác link đang lỗi
     const rawThumb = item.thumb ? toOptimizedCardPosterUrl(item.thumb) : "";
     if (rawThumb && rawThumb !== imgSrc && !rawThumb.includes("/default-")) {
       setImgSrc(rawThumb);
       setIsLoaded(false);
       return;
     }
-
-    // Bước 2: Gọi fallback API lấy ảnh TMDb
-    const params = new URLSearchParams();
-    if (item.title) params.set("title", item.title);
-    if (item.slug) params.set("slug", item.slug);
-    if (item.year) params.set("year", String(item.year));
-
-    fetch(`/api/movie-poster-fallback?${params.toString()}`)
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
-        const resolved = data?.posterUrl || data?.backdropUrl;
-        if (resolved && resolved !== imgSrc) {
-          const opt = toOptimizedCardPosterUrl(resolved);
-          continueWatchingThumbCache.set(item.slug, opt);
-          setImgSrc(opt);
-          setIsLoaded(false);
-          if (typeof window !== "undefined") {
-            try {
-              const list = getWatchHistory();
-              const target = list.find((i) => i.slug === item.slug);
-              if (target) {
-                target.poster = opt;
-                localStorage.setItem("nanaflix_watch_history", JSON.stringify(list));
-              }
-            } catch {}
-          }
-        } else {
-          setImgSrc("");
-          setIsLoaded(true);
-        }
-      })
-      .catch(() => {
-        setImgSrc("");
-        setIsLoaded(true);
-      });
-  }, [imgSrc, item.title, item.slug, item.year, item.thumb]);
+    // Giữ nguyên ảnh hoặc hiển thị fallback title mà KHÔNG xóa ảnh trắng hoặc sửa dữ liệu người dùng
+    setIsLoaded(true);
+  }, [imgSrc, item.thumb]);
 
   const href = item.episodeSlug
     ? `/movies/${item.slug}?ep=${item.episodeSlug}`
@@ -157,7 +106,7 @@ function ContinueWatchingCard({ item, index = 0, onRemove }: ContinueWatchingCar
 
   return (
     <div
-      className="group relative flex-none w-[130px] xs:w-[140px] sm:w-[155px] md:w-[172px] bg-zinc-950/90 rounded-xl overflow-hidden border border-white/[0.08] hover:border-red-500/40 transition-all duration-300 hover:scale-[1.03] shadow-lg hover:shadow-[0_12px_28px_rgba(229,9,20,0.18)] transform-gpu will-change-transform flex flex-col"
+      className="group relative flex-none w-[130px] xs:w-[140px] sm:w-[155px] md:w-[172px] bg-zinc-950/90 rounded-xl overflow-hidden border border-white/[0.08] hover: transition-all duration-300 hover:scale-[1.03] shadow-lg hover:shadow-[0_12px_28px_rgba(229,9,20,0.18)] transform-gpu will-change-transform flex flex-col"
     >
       <Link href={href} className="block flex-1 flex flex-col">
         {/* ẢNH POSTER DỌC (TỈ LỆ 2:3 CHUẨN ĐIỆN ẢNH) */}
@@ -165,7 +114,7 @@ function ContinueWatchingCard({ item, index = 0, onRemove }: ContinueWatchingCar
           {/* SKELETON SHIMMER KHI ẢNH ĐANG TẢI */}
           {!isLoaded && (
             <div className="absolute inset-0 bg-gradient-to-br from-zinc-850 via-zinc-900 to-zinc-950 flex flex-col items-center justify-center p-3 text-center z-0 animate-pulse pointer-events-none">
-              <div className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mb-1.5 shadow-inner">
+              <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center mb-1.5 shadow-inner">
                 <Film className="w-5 h-5 text-rose-500/70" />
               </div>
               <span className="text-[11px] font-semibold text-zinc-400 line-clamp-2 max-w-[90%] leading-tight">
@@ -203,7 +152,7 @@ function ContinueWatchingCard({ item, index = 0, onRemove }: ContinueWatchingCar
           {/* HUY HIỆU TẬP PHIM / CHẤT LƯỢNG GỌN GÀNG TRÁNH CHE CHỮ POSTER */}
           <div className="absolute top-1.5 left-1.5 z-10 flex flex-col gap-1 pointer-events-none max-w-[80%]">
             {item.episodeName && (
-              <span className="px-1.5 py-0.5 rounded-md text-[9px] sm:text-[9.5px] font-bold bg-black/80 backdrop-blur-md text-amber-300 border border-amber-400/30 truncate shadow-md">
+              <span className="px-1.5 py-0.5 rounded-md text-[9px] sm:text-[9.5px] font-bold bg-black/80 backdrop-blur-md text-amber-300 truncate shadow-md">
                 {formatEpisodeName(item.episodeName)}
               </span>
             )}
@@ -211,8 +160,8 @@ function ContinueWatchingCard({ item, index = 0, onRemove }: ContinueWatchingCar
               <span
                 className={`px-1.5 py-0.5 rounded-md text-[9px] sm:text-[9.5px] font-bold backdrop-blur-md border shadow-md w-fit ${
                   item.quality.toUpperCase().includes("CAM")
-                    ? "bg-amber-950/90 text-amber-300 border-amber-500/40"
-                    : "bg-black/80 border-white/20 text-zinc-100"
+                    ? "bg-amber-950/90 text-amber-300 "
+                    : "bg-black/80  text-zinc-100"
                 }`}
               >
                 {item.quality}

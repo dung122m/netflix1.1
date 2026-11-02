@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { useRouter, useSearchParams } from "next/navigation";
 import { movieApi, DEFAULT_GENRES, DEFAULT_COUNTRIES } from "@/services/movieApi";
 import { getCanonicalGenreSlug, getCanonicalCountrySlug, isRawId } from "@/lib/movieMedia";
+import { useBodyScrollLock } from "@/lib/scrollLock";
 import {
   Film,
   Sparkles,
@@ -272,6 +273,7 @@ export const FilterBar: React.FC = () => {
 
   // Mobile Filter Drawer State & Draft (< 640px)
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
+  useBodyScrollLock(isMobileDrawerOpen);
   const [draftType, setDraftType] = useState(currentType);
   const [draftCategory, setDraftCategory] = useState(currentCategory);
   const [draftCountry, setDraftCountry] = useState(currentCountry);
@@ -349,43 +351,59 @@ export const FilterBar: React.FC = () => {
     }
   }, [isMobileDrawerOpen]);
 
-  const toggleDropdown = (group: FilterGroup) => {
-    setActiveDropdown((prev) => (prev === group ? null : group));
-  };
-
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const buttonRefs = useRef<{ [key in FilterGroup]?: HTMLButtonElement | null }>({});
-  const [dropdownOffset, setDropdownOffset] = useState<{ left?: number; right?: number }>({});
+  const [dropdownOffset, setDropdownOffset] = useState<{ left?: number; right?: number; top?: number }>({});
 
-  const updateDropdownPosition = useCallback(() => {
-    if (!activeDropdown || !containerRef.current) return;
-    const btn = buttonRefs.current[activeDropdown];
-    if (!btn) return;
+  const computePosition = useCallback((group: FilterGroup) => {
+    if (!containerRef.current) return null;
+    const btn = buttonRefs.current[group];
+    if (!btn) return null;
 
     const containerRect = containerRef.current.getBoundingClientRect();
     const btnRect = btn.getBoundingClientRect();
     const isMobile = window.innerWidth < 640;
+    // Neo mép trên popup chính xác cách mép dưới của nút bấm đúng 8px
+    const top = Math.round(btnRect.bottom - containerRect.top + 8);
 
     // On mobile, wide grid dropdowns (genre, country, year) align to container edge
-    if (isMobile && (activeDropdown === "genre" || activeDropdown === "country" || activeDropdown === "year")) {
-      setDropdownOffset({ left: 0, right: undefined });
-      return;
+    if (isMobile && (group === "genre" || group === "country" || group === "year")) {
+      return { left: 0, right: undefined, top };
     }
 
-    const left = btnRect.left - containerRect.left;
+    const left = Math.round(btnRect.left - containerRect.left);
 
-    if (activeDropdown === "sort") {
-      const right = containerRect.right - btnRect.right;
-      setDropdownOffset({ right: Math.max(0, right), left: undefined });
-    } else if (activeDropdown === "year" && left + 320 > containerRect.width) {
-      const right = containerRect.right - btnRect.right;
-      setDropdownOffset({ right: Math.max(0, right), left: undefined });
+    if (group === "sort") {
+      const right = Math.round(containerRect.right - btnRect.right);
+      return { right: Math.max(0, right), left: undefined, top };
+    } else if (group === "year" && left + 320 > containerRect.width) {
+      const right = Math.round(containerRect.right - btnRect.right);
+      return { right: Math.max(0, right), left: undefined, top };
     } else {
-      const maxDropdownWidth = (activeDropdown === "genre" || activeDropdown === "country") ? 384 : 240;
+      const maxDropdownWidth = (group === "genre" || group === "country") ? 384 : 240;
       const maxLeft = Math.max(0, containerRect.width - maxDropdownWidth);
-      setDropdownOffset({ left: Math.max(0, Math.min(left, maxLeft)), right: undefined });
+      return { left: Math.max(0, Math.min(left, maxLeft)), right: undefined, top };
     }
-  }, [activeDropdown]);
+  }, []);
+
+  const toggleDropdown = (group: FilterGroup) => {
+    setActiveDropdown((prev) => {
+      if (prev === group) return null;
+      const pos = computePosition(group);
+      if (pos) {
+        setDropdownOffset(pos);
+      }
+      return group;
+    });
+  };
+
+  const updateDropdownPosition = useCallback(() => {
+    if (!activeDropdown) return;
+    const pos = computePosition(activeDropdown);
+    if (pos) {
+      setDropdownOffset(pos);
+    }
+  }, [activeDropdown, computePosition]);
 
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
@@ -426,11 +444,11 @@ export const FilterBar: React.FC = () => {
       />
 
       {/* 1A. MOBILE COMPACT TRIGGER BAR (< 640px) */}
-      <div className="sm:hidden relative w-full rounded-2xl bg-zinc-900/90 backdrop-blur-xl border border-white/10 p-2 shadow-2xl shadow-black/80 flex items-center justify-between gap-2">
+      <div className="sm:hidden relative w-full rounded-2xl bg-zinc-900/90 backdrop-blur-xl p-2 shadow-2xl shadow-black/80 flex items-center justify-between gap-2">
         <button
           type="button"
           onClick={openMobileDrawer}
-          className="flex-1 h-10 px-3.5 rounded-xl bg-zinc-800/80 hover:bg-zinc-700/80 border border-white/15 text-white flex items-center justify-between gap-2 shadow-sm active:scale-[0.98] transition cursor-pointer"
+          className="flex-1 h-10 px-3.5 rounded-xl bg-zinc-800/80 hover:bg-zinc-700/80 text-white flex items-center justify-between gap-2 shadow-sm active:scale-[0.98] transition cursor-pointer"
         >
           <div className="flex items-center gap-2 min-w-0">
             <SlidersHorizontal className="w-4 h-4 text-netflix-red shrink-0" />
@@ -451,7 +469,7 @@ export const FilterBar: React.FC = () => {
               window.dispatchEvent(new CustomEvent("open-ai-roulette"));
             }
           }}
-          className="h-10 px-3 rounded-xl bg-zinc-900/90 hover:bg-zinc-800 text-white border border-red-500/40 text-xs font-semibold flex items-center gap-1.5 shrink-0 active:scale-95 transition cursor-pointer"
+          className="h-10 px-3 rounded-xl bg-zinc-900/90 hover:bg-zinc-800 text-white text-xs font-semibold flex items-center gap-1.5 shrink-0 active:scale-95 transition cursor-pointer"
           title="Bốc quẻ phim ngẫu nhiên"
         >
           <Dices className="w-3.5 h-3.5 text-netflix-red shrink-0" />
@@ -462,7 +480,7 @@ export const FilterBar: React.FC = () => {
           <button
             type="button"
             onClick={handleClearAll}
-            className="h-10 w-10 rounded-xl border border-dashed border-rose-500/50 text-rose-300 hover:bg-rose-950/40 flex items-center justify-center shrink-0 active:scale-95 transition cursor-pointer"
+            className="h-10 w-10 rounded-xl border border-dashed text-rose-300 hover:bg-rose-950/40 flex items-center justify-center shrink-0 active:scale-95 transition cursor-pointer"
             title="Xóa tất cả bộ lọc"
           >
             {isPending && pendingGroup === "all" ? (
@@ -475,9 +493,9 @@ export const FilterBar: React.FC = () => {
       </div>
 
       {/* 1B. CINEMATIC GLASSMORPHIC DOCK CONTAINER (DESKTOP >= 640px) */}
-      <div className="hidden sm:flex relative w-full rounded-2xl bg-zinc-900/80 backdrop-blur-xl border border-white/10 p-2 sm:p-2.5 shadow-2xl shadow-black/80 items-center gap-2 sm:gap-3">
+      <div className="hidden sm:flex relative w-full rounded-2xl bg-zinc-900/80 backdrop-blur-xl p-2 sm:p-2.5 shadow-2xl shadow-black/80 items-center gap-2 sm:gap-3">
         {/* LEFT LABEL: ICON + TEXT (DESKTOP / TABLET) */}
-        <div className="flex-none hidden sm:flex items-center gap-2 pl-2 pr-2.5 border-r border-white/10 text-white font-bold text-xs sm:text-sm tracking-tight">
+        <div className="flex-none hidden sm:flex items-center gap-2 pl-2 pr-2.5 border-r text-white font-bold text-xs sm:text-sm tracking-tight">
           <SlidersHorizontal className="w-4 h-4 text-netflix-red flex-none" />
           <span className="whitespace-nowrap">Bộ lọc nhanh</span>
         </div>
@@ -503,7 +521,7 @@ export const FilterBar: React.FC = () => {
             className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto sm:overflow-visible [scrollbar-width:none] [&::-webkit-scrollbar]:hidden py-0.5 flex-nowrap sm:flex-wrap"
           >
             {/* MOBILE ONLY COMPACT LABEL */}
-            <div className="sm:hidden flex-none flex items-center gap-1.5 pl-1 pr-2 border-r border-white/10 text-white font-bold text-xs">
+            <div className="sm:hidden flex-none flex items-center gap-1.5 pl-1 pr-2 border-r text-white font-bold text-xs">
               <SlidersHorizontal className="w-3.5 h-3.5 text-netflix-red flex-none" />
               <span className="whitespace-nowrap">Bộ lọc</span>
             </div>
@@ -523,7 +541,7 @@ export const FilterBar: React.FC = () => {
                   ? "bg-purple-950/70 border-purple-500/60 text-purple-200 shadow-md shadow-black/50"
                   : activeDropdown === "type"
                   ? "bg-zinc-800 text-white border-zinc-500"
-                  : "bg-zinc-950/70 text-zinc-200 border-white/10 hover:bg-zinc-800/80 hover:text-white hover:border-white/25"
+                  : "bg-zinc-950/70 text-zinc-200  hover:bg-zinc-800/80 hover:text-white hover:"
               }`}
             >
               <Film className={`w-3.5 h-3.5 flex-none ${currentType ? "text-purple-400" : "text-purple-400/80"}`} />
@@ -553,10 +571,10 @@ export const FilterBar: React.FC = () => {
               aria-label="Lọc theo thể loại phim"
               className={`h-10 px-3.5 sm:px-4 rounded-xl border text-xs sm:text-sm font-semibold transition-all duration-150 flex items-center gap-2 cursor-pointer shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black flex-none ${
                 currentCategory
-                  ? "bg-rose-950/70 border-rose-500/60 text-rose-200 shadow-md shadow-black/50"
+                  ? "bg-rose-950/70  text-rose-200 shadow-md shadow-black/50"
                   : activeDropdown === "genre"
                   ? "bg-zinc-800 text-white border-zinc-500"
-                  : "bg-zinc-950/70 text-zinc-200 border-white/10 hover:bg-zinc-800/80 hover:text-white hover:border-white/25"
+                  : "bg-zinc-950/70 text-zinc-200  hover:bg-zinc-800/80 hover:text-white hover:"
               }`}
             >
               <Sparkles className={`w-3.5 h-3.5 flex-none ${currentCategory ? "text-rose-400" : "text-amber-400/90"}`} />
@@ -586,10 +604,10 @@ export const FilterBar: React.FC = () => {
               aria-label="Lọc theo quốc gia sản xuất"
               className={`h-10 px-3.5 sm:px-4 rounded-xl border text-xs sm:text-sm font-semibold transition-all duration-150 flex items-center gap-2 cursor-pointer shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black flex-none ${
                 currentCountry
-                  ? "bg-sky-950/70 border-sky-500/60 text-sky-200 shadow-md shadow-black/50"
+                  ? "bg-sky-950/70  text-sky-200 shadow-md shadow-black/50"
                   : activeDropdown === "country"
                   ? "bg-zinc-800 text-white border-zinc-500"
-                  : "bg-zinc-950/70 text-zinc-200 border-white/10 hover:bg-zinc-800/80 hover:text-white hover:border-white/25"
+                  : "bg-zinc-950/70 text-zinc-200  hover:bg-zinc-800/80 hover:text-white hover:"
               }`}
             >
               <Globe2 className={`w-3.5 h-3.5 flex-none ${currentCountry ? "text-sky-400" : "text-sky-400/80"}`} />
@@ -619,10 +637,10 @@ export const FilterBar: React.FC = () => {
               aria-label="Lọc theo năm phát hành"
               className={`h-10 px-3.5 sm:px-4 rounded-xl border text-xs sm:text-sm font-semibold transition-all duration-150 flex items-center gap-2 cursor-pointer shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black flex-none ${
                 currentYear
-                  ? "bg-emerald-950/70 border-emerald-500/60 text-emerald-200 shadow-md shadow-black/50"
+                  ? "bg-emerald-950/70  text-emerald-200 shadow-md shadow-black/50"
                   : activeDropdown === "year"
                   ? "bg-zinc-800 text-white border-zinc-500"
-                  : "bg-zinc-950/70 text-zinc-200 border-white/10 hover:bg-zinc-800/80 hover:text-white hover:border-white/25"
+                  : "bg-zinc-950/70 text-zinc-200  hover:bg-zinc-800/80 hover:text-white hover:"
               }`}
             >
               <Calendar className={`w-3.5 h-3.5 flex-none ${currentYear ? "text-emerald-400" : "text-emerald-400/80"}`} />
@@ -648,7 +666,7 @@ export const FilterBar: React.FC = () => {
                   window.dispatchEvent(new CustomEvent("open-ai-roulette"));
                 }
               }}
-              className="h-10 px-3.5 sm:px-4 rounded-xl bg-zinc-900/90 hover:bg-zinc-800 text-white text-xs sm:text-sm font-semibold transition-all duration-150 flex items-center gap-1.5 cursor-pointer shadow-sm border border-red-500/40 hover:border-red-500/80 flex-none active:scale-95 outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black"
+              className="h-10 px-3.5 sm:px-4 rounded-xl bg-zinc-900/90 hover:bg-zinc-800 text-white text-xs sm:text-sm font-semibold transition-all duration-150 flex items-center gap-1.5 cursor-pointer shadow-sm hover: flex-none active:scale-95 outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black"
               title="Bốc quẻ phim ngẫu nhiên với AI"
             >
               <Dices className="w-4 h-4 text-netflix-red flex-none" />
@@ -660,7 +678,7 @@ export const FilterBar: React.FC = () => {
               <button
                 type="button"
                 onClick={handleClearAll}
-                className="h-10 px-3 sm:px-3.5 rounded-xl border border-dashed border-rose-500/40 hover:border-rose-500 text-rose-300 hover:text-white hover:bg-rose-950/40 text-xs sm:text-sm font-semibold transition-all duration-150 flex items-center gap-1.5 cursor-pointer shadow-sm flex-none outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black active:scale-95"
+                className="h-10 px-3 sm:px-3.5 rounded-xl border border-dashed hover:border-rose-500 text-rose-300 hover:text-white hover:bg-rose-950/40 text-xs sm:text-sm font-semibold transition-all duration-150 flex items-center gap-1.5 cursor-pointer shadow-sm flex-none outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black active:scale-95"
                 title="Xóa tất cả các bộ lọc hiện tại"
               >
                 {isPending && pendingGroup === "all" ? (
@@ -675,11 +693,12 @@ export const FilterBar: React.FC = () => {
         </div>
       </div>
 
-      {/* 2. ACTIVE DROPDOWN POPUP (Neo chính xác dưới từng nút bấm được chọn - CHỈ TRÊN DESKTOP) */}
+      {/* 2. ACTIVE DROPDOWN POPUP (Neo chính xác 8px dưới từng nút bấm được chọn - CHỈ TRÊN DESKTOP) */}
       {activeDropdown && (
         <div
-          className="hidden sm:block absolute top-full mt-2 z-50 transition-all duration-150"
+          className="hidden sm:block absolute z-50 transition-all duration-150"
           style={{
+            top: dropdownOffset.top !== undefined ? `${dropdownOffset.top}px` : undefined,
             left: dropdownOffset.left !== undefined ? `${dropdownOffset.left}px` : undefined,
             right: dropdownOffset.right !== undefined ? `${dropdownOffset.right}px` : undefined,
           }}
@@ -687,7 +706,7 @@ export const FilterBar: React.FC = () => {
           {/* POPUP 1: LOẠI PHIM */}
           {activeDropdown === "type" && (
             <div className="w-56 sm:w-60 rounded-2xl bg-zinc-950/98 border border-zinc-700/80 p-2.5 shadow-2xl backdrop-blur-xl animate-in fade-in zoom-in-95 duration-150">
-              <div className="px-2 py-1 text-[11px] font-bold text-zinc-400 uppercase tracking-wider border-b border-white/10 mb-2 flex items-center justify-between">
+              <div className="px-2 py-1 text-[11px] font-bold text-zinc-400 uppercase tracking-wider border-b mb-2 flex items-center justify-between">
                 <span>Chọn loại phim</span>
                 {currentType && (
                   <button
@@ -737,7 +756,7 @@ export const FilterBar: React.FC = () => {
           {/* POPUP 2: THỂ LOẠI */}
           {activeDropdown === "genre" && (
             <div className="w-[calc(100vw-2rem)] sm:w-80 md:w-96 rounded-2xl bg-zinc-950/98 border border-zinc-700/80 p-3 shadow-2xl backdrop-blur-xl animate-in fade-in zoom-in-95 duration-150">
-              <div className="px-2 py-1 text-[11px] font-bold text-zinc-400 uppercase tracking-wider border-b border-white/10 mb-2 flex items-center justify-between">
+              <div className="px-2 py-1 text-[11px] font-bold text-zinc-400 uppercase tracking-wider border-b mb-2 flex items-center justify-between">
                 <span>Chọn thể loại</span>
                 {currentCategory && (
                   <button
@@ -759,7 +778,7 @@ export const FilterBar: React.FC = () => {
                     window.dispatchEvent(new CustomEvent("open-ai-roulette"));
                   }
                 }}
-                className="w-full mb-2.5 px-3 py-2 rounded-xl text-xs font-bold transition bg-netflix-red hover:brightness-110 text-white flex items-center justify-center gap-2 shadow-md shadow-[var(--accent-glow,rgba(229,9,20,0.3))] cursor-pointer border border-white/20"
+                className="w-full mb-2.5 px-3 py-2 rounded-xl text-xs font-bold transition bg-netflix-red hover:brightness-110 text-white flex items-center justify-center gap-2 shadow-md shadow-[var(--accent-glow,rgba(229,9,20,0.3))] cursor-pointer"
               >
                 <Dices className="w-4 h-4 text-amber-300 animate-spin" style={{ animationDuration: "4s" }} />
                 <span>Bốc quẻ phim ngẫu nhiên</span>
@@ -803,7 +822,7 @@ export const FilterBar: React.FC = () => {
           {/* POPUP 3: QUỐC GIA */}
           {activeDropdown === "country" && (
             <div className="w-[calc(100vw-2rem)] sm:w-80 rounded-2xl bg-zinc-950/98 border border-zinc-700/80 p-3 shadow-2xl backdrop-blur-xl animate-in fade-in zoom-in-95 duration-150">
-              <div className="px-2 py-1 text-[11px] font-bold text-zinc-400 uppercase tracking-wider border-b border-white/10 mb-2 flex items-center justify-between">
+              <div className="px-2 py-1 text-[11px] font-bold text-zinc-400 uppercase tracking-wider border-b mb-2 flex items-center justify-between">
                 <span>Chọn quốc gia</span>
                 {currentCountry && (
                   <button
@@ -853,7 +872,7 @@ export const FilterBar: React.FC = () => {
           {/* POPUP 4: NĂM PHÁT HÀNH */}
           {activeDropdown === "year" && (
             <div className="w-[calc(100vw-2rem)] sm:w-80 rounded-2xl bg-zinc-950/98 border border-zinc-700/80 p-3 shadow-2xl backdrop-blur-xl animate-in fade-in zoom-in-95 duration-150">
-              <div className="px-2 py-1 text-[11px] font-bold text-zinc-400 uppercase tracking-wider border-b border-white/10 mb-2 flex items-center justify-between">
+              <div className="px-2 py-1 text-[11px] font-bold text-zinc-400 uppercase tracking-wider border-b mb-2 flex items-center justify-between">
                 <span>Chọn năm phát hành</span>
                 {currentYear && (
                   <button
@@ -903,8 +922,8 @@ export const FilterBar: React.FC = () => {
 
       {/* 2. ACTIVE FILTERS CHIP BAR (Chỉ hiển thị khi có ít nhất 1 filter active) */}
       {hasAnyFilter && (
-        <div className="mt-2.5 pt-2 border-t border-white/10 flex items-center gap-1.5 overflow-x-auto sm:flex-wrap [scrollbar-width:none] [&::-webkit-scrollbar]:hidden text-xs animate-in fade-in slide-in-from-top-1 duration-150">
-          <span className="flex-none flex items-center gap-1 text-zinc-400 font-semibold bg-white/5 px-2 py-0.5 rounded-full border border-white/10 whitespace-nowrap text-[11px]">
+        <div className="mt-2.5 pt-2 border-t flex items-center gap-1.5 overflow-x-auto sm:flex-wrap [scrollbar-width:none] [&::-webkit-scrollbar]:hidden text-xs animate-in fade-in slide-in-from-top-1 duration-150">
+          <span className="flex-none flex items-center gap-1 text-zinc-400 font-semibold bg-white/5 px-2 py-0.5 rounded-full whitespace-nowrap text-[11px]">
             <Filter className="w-3 h-3 text-netflix-red" />
             <span>Đang lọc:</span>
           </span>
@@ -914,7 +933,7 @@ export const FilterBar: React.FC = () => {
             <button
               type="button"
               onClick={() => handleClearKey("type")}
-              className="flex-none inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-zinc-900/90 border border-white/10 hover:border-white/25 text-zinc-300 hover:text-white transition cursor-pointer text-xs whitespace-nowrap group"
+              className="flex-none inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-zinc-900/90 hover: text-zinc-300 hover:text-white transition cursor-pointer text-xs whitespace-nowrap group"
               title="Nhấn để bỏ lọc loại phim này"
             >
               <span>{activeTypeName}</span>
@@ -927,7 +946,7 @@ export const FilterBar: React.FC = () => {
             <button
               type="button"
               onClick={() => handleClearKey("category")}
-              className="flex-none inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-zinc-900/90 border border-white/10 hover:border-white/25 text-zinc-300 hover:text-white transition cursor-pointer text-xs whitespace-nowrap group"
+              className="flex-none inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-zinc-900/90 hover: text-zinc-300 hover:text-white transition cursor-pointer text-xs whitespace-nowrap group"
               title="Nhấn để bỏ lọc thể loại này"
             >
               <span>{activeCategoryName}</span>
@@ -940,7 +959,7 @@ export const FilterBar: React.FC = () => {
             <button
               type="button"
               onClick={() => handleClearKey("country")}
-              className="flex-none inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-zinc-900/90 border border-white/10 hover:border-white/25 text-zinc-300 hover:text-white transition cursor-pointer text-xs whitespace-nowrap group"
+              className="flex-none inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-zinc-900/90 hover: text-zinc-300 hover:text-white transition cursor-pointer text-xs whitespace-nowrap group"
               title="Nhấn để bỏ lọc quốc gia này"
             >
               <span>{activeCountryName}</span>
@@ -953,7 +972,7 @@ export const FilterBar: React.FC = () => {
             <button
               type="button"
               onClick={() => handleClearKey("year")}
-              className="flex-none inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-zinc-900/90 border border-white/10 hover:border-white/25 text-zinc-300 hover:text-white transition cursor-pointer text-xs whitespace-nowrap group"
+              className="flex-none inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-zinc-900/90 hover: text-zinc-300 hover:text-white transition cursor-pointer text-xs whitespace-nowrap group"
               title="Nhấn để bỏ lọc năm này"
             >
               <span>Năm {currentYear}</span>
@@ -966,7 +985,7 @@ export const FilterBar: React.FC = () => {
             <button
               type="button"
               onClick={() => handleClearKey("sort")}
-              className="flex-none inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-zinc-900/90 border border-white/10 hover:border-white/25 text-zinc-300 hover:text-white transition cursor-pointer text-xs whitespace-nowrap group"
+              className="flex-none inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-zinc-900/90 hover: text-zinc-300 hover:text-white transition cursor-pointer text-xs whitespace-nowrap group"
               title="Nhấn để đưa về sắp xếp mặc định"
             >
               <span>{activeSortName}</span>
@@ -979,7 +998,7 @@ export const FilterBar: React.FC = () => {
             <button
               type="button"
               onClick={() => handleClearKey("actor")}
-              className="flex-none inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-zinc-900/90 border border-white/10 hover:border-white/25 text-zinc-300 hover:text-white transition cursor-pointer text-xs whitespace-nowrap group"
+              className="flex-none inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-zinc-900/90 hover: text-zinc-300 hover:text-white transition cursor-pointer text-xs whitespace-nowrap group"
               title="Nhấn để bỏ lọc diễn viên này"
             >
               <span>Diễn viên: {currentActor}</span>
@@ -992,7 +1011,7 @@ export const FilterBar: React.FC = () => {
             <button
               type="button"
               onClick={() => handleClearKey("keyword")}
-              className="flex-none inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-zinc-900/90 border border-white/10 hover:border-white/25 text-zinc-300 hover:text-white transition cursor-pointer text-xs whitespace-nowrap group"
+              className="flex-none inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-zinc-900/90 hover: text-zinc-300 hover:text-white transition cursor-pointer text-xs whitespace-nowrap group"
               title="Nhấn để bỏ lọc từ khóa này"
             >
               <span>Từ khóa: &quot;{currentKeyword}&quot;</span>
@@ -1014,7 +1033,7 @@ export const FilterBar: React.FC = () => {
 
       {/* 3. MOBILE FILTER DRAWER (BOTTOM SHEET - HIỂN THỊ TRÊN MOBILE < 640px) */}
       {isMobileDrawerOpen && isMounted && createPortal(
-        <div className="fixed inset-0 z-[9999] sm:hidden select-none">
+        <div className="fixed inset-0 z-[100000] sm:hidden select-none">
           {/* Lớp nền mờ tối (Backdrop Overlay) */}
           <div
             className="fixed inset-0 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200 cursor-pointer"
@@ -1027,13 +1046,13 @@ export const FilterBar: React.FC = () => {
             role="dialog"
             aria-modal="true"
             aria-label="Bảng điều khiển bộ lọc phim"
-            className="fixed inset-x-0 bottom-0 z-[10000] max-h-[85vh] flex flex-col rounded-t-3xl bg-zinc-950 border-t border-white/15 shadow-[0_-16px_50px_rgba(0,0,0,0.95)] animate-in slide-in-from-bottom duration-200"
+            className="fixed inset-x-0 bottom-0 z-[100001] max-h-[85vh] max-h-[85dvh] flex flex-col rounded-t-3xl bg-zinc-950 border-t shadow-[0_-16px_50px_rgba(0,0,0,0.95)] animate-in slide-in-from-bottom duration-200"
           >
             {/* Thanh nắm kéo (Grab Handle) */}
             <div className="w-12 h-1.5 rounded-full bg-zinc-700/80 mx-auto my-2.5 shrink-0" />
 
             {/* Tiêu đề Bottom Sheet */}
-            <div className="px-4 py-2 border-b border-white/10 flex items-center justify-between shrink-0">
+            <div className="px-4 py-2 border-b flex items-center justify-between shrink-0">
               <div className="flex items-center gap-2">
                 <SlidersHorizontal className="w-4 h-4 text-netflix-red shrink-0" />
                 <h3 className="text-base font-bold text-white">Bộ Lọc Phim</h3>
@@ -1072,8 +1091,8 @@ export const FilterBar: React.FC = () => {
                         onClick={() => setDraftSort(opt.value)}
                         className={`py-2 px-3 rounded-xl border text-xs font-semibold flex items-center gap-2 transition active:scale-95 cursor-pointer text-left ${
                           isSelected
-                            ? "bg-amber-950/70 border-amber-500/80 text-amber-200 ring-1 ring-amber-500/40"
-                            : "bg-zinc-900/90 border-white/10 text-zinc-300 hover:bg-zinc-800"
+                            ? "bg-amber-950/70  text-amber-200 "
+                            : "bg-zinc-900/90  text-zinc-300 hover:bg-zinc-800"
                         }`}
                       >
                         <Icon className={`w-3.5 h-3.5 shrink-0 ${opt.color}`} />
@@ -1108,7 +1127,7 @@ export const FilterBar: React.FC = () => {
                     className={`py-1.5 px-3 rounded-xl border text-xs font-semibold transition active:scale-95 cursor-pointer ${
                       !draftType
                         ? "bg-purple-600 text-white font-bold border-purple-400"
-                        : "bg-zinc-900/90 border-white/10 text-zinc-300"
+                        : "bg-zinc-900/90  text-zinc-300"
                     }`}
                   >
                     Tất cả
@@ -1123,7 +1142,7 @@ export const FilterBar: React.FC = () => {
                         className={`py-1.5 px-3 rounded-xl border text-xs font-semibold flex items-center gap-1.5 transition active:scale-95 cursor-pointer ${
                           isSelected
                             ? "bg-purple-600 text-white font-bold border-purple-400 shadow-sm"
-                            : "bg-zinc-900/90 border-white/10 text-zinc-300"
+                            : "bg-zinc-900/90  text-zinc-300"
                         }`}
                       >
                         <span>{t.name}</span>
@@ -1157,7 +1176,7 @@ export const FilterBar: React.FC = () => {
                     className={`py-1.5 px-3 rounded-xl border text-xs font-semibold transition active:scale-95 cursor-pointer ${
                       !draftCategory
                         ? "bg-rose-600 text-white font-bold border-rose-400"
-                        : "bg-zinc-900/90 border-white/10 text-zinc-300"
+                        : "bg-zinc-900/90  text-zinc-300"
                     }`}
                   >
                     Tất cả
@@ -1172,7 +1191,7 @@ export const FilterBar: React.FC = () => {
                         className={`py-1.5 px-3 rounded-xl border text-xs font-semibold transition active:scale-95 cursor-pointer ${
                           isSelected
                             ? "bg-rose-600 text-white font-bold border-rose-400 shadow-sm"
-                            : "bg-zinc-900/90 border-white/10 text-zinc-300"
+                            : "bg-zinc-900/90  text-zinc-300"
                         }`}
                       >
                         {g.name}
@@ -1206,7 +1225,7 @@ export const FilterBar: React.FC = () => {
                     className={`py-1.5 px-3 rounded-xl border text-xs font-semibold transition active:scale-95 cursor-pointer ${
                       !draftCountry
                         ? "bg-sky-600 text-white font-bold border-sky-400"
-                        : "bg-zinc-900/90 border-white/10 text-zinc-300"
+                        : "bg-zinc-900/90  text-zinc-300"
                     }`}
                   >
                     Tất cả
@@ -1221,7 +1240,7 @@ export const FilterBar: React.FC = () => {
                         className={`py-1.5 px-3 rounded-xl border text-xs font-semibold transition active:scale-95 cursor-pointer ${
                           isSelected
                             ? "bg-sky-600 text-white font-bold border-sky-400 shadow-sm"
-                            : "bg-zinc-900/90 border-white/10 text-zinc-300"
+                            : "bg-zinc-900/90  text-zinc-300"
                         }`}
                       >
                         {c.name}
@@ -1256,7 +1275,7 @@ export const FilterBar: React.FC = () => {
                   className={`w-full py-2.5 px-3 rounded-xl border text-xs font-bold transition active:scale-[0.98] cursor-pointer flex items-center justify-between ${
                     !draftYear
                       ? "bg-emerald-600 text-white border-emerald-400 shadow-md shadow-black/50"
-                      : "bg-zinc-900/90 border-white/10 text-zinc-300 hover:bg-zinc-800"
+                      : "bg-zinc-900/90  text-zinc-300 hover:bg-zinc-800"
                   }`}
                 >
                   <span>Tất cả các năm</span>
@@ -1275,7 +1294,7 @@ export const FilterBar: React.FC = () => {
                         className={`py-2 px-1 text-center rounded-xl border text-xs sm:text-sm font-semibold transition active:scale-95 cursor-pointer ${
                           isSelected
                             ? "bg-emerald-600 text-white font-bold border-emerald-400 shadow-md shadow-black/50"
-                            : "bg-zinc-900/90 border-white/10 text-zinc-300 hover:bg-zinc-800"
+                            : "bg-zinc-900/90  text-zinc-300 hover:bg-zinc-800"
                         }`}
                       >
                         {y}
@@ -1287,11 +1306,11 @@ export const FilterBar: React.FC = () => {
             </div>
 
             {/* Chân Bottom Sheet dính cố định (Sticky Footer - Không bao giờ bị che khuất) */}
-            <div className="px-4 py-3 border-t border-white/10 bg-zinc-950/98 backdrop-blur-md flex items-center gap-3 shrink-0 pb-[max(0.75rem,calc(env(safe-area-inset-bottom,0px)+12px))] shadow-[0_-8px_20px_rgba(0,0,0,0.6)]">
+            <div className="px-4 py-3 border-t bg-zinc-950/98 backdrop-blur-md flex items-center gap-3 shrink-0 pb-[max(0.75rem,calc(env(safe-area-inset-bottom,0px)+12px))] shadow-[0_-8px_20px_rgba(0,0,0,0.6)]">
               <button
                 type="button"
                 onClick={handleResetMobileDraft}
-                className="h-12 px-4 rounded-xl border border-white/15 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 font-bold text-xs active:scale-95 transition cursor-pointer"
+                className="h-12 px-4 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-300 font-bold text-xs active:scale-95 transition cursor-pointer"
               >
                 Đặt lại
               </button>

@@ -1,8 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createHash } from "node:crypto";
 import { movieApi, DEFAULT_GENRES, DEFAULT_COUNTRIES } from "@/services/movieApi";
 import { matchesActorAlias } from "@/lib/actorAlias";
+import { queryMoviesByActor } from "@/services/aiActorService";
 import { getTmdbMovieRecommendations } from "@/services/tmdbService";
 import { cacheService } from "@/lib/cache";
+import {
+  enforceRateLimit,
+  buildRateLimitResponse,
+  RATE_LIMIT_PRESETS,
+} from "@/lib/rateLimit";
 
 export const maxDuration = 15;
 
@@ -82,10 +89,8 @@ async function computeMovieRecommendations(body: any) {
       )
     ),
     primaryActor
-      ? movieApi
-          .getMovies({ keyword: primaryActor, page: 1, limit: 12 })
-          .catch(() => null)
-      : Promise.resolve(null),
+      ? queryMoviesByActor(primaryActor, [], undefined, 12).catch(() => [])
+      : Promise.resolve([]),
     // Chỉ thêm pool võ thuật khi phim nguồn thực sự có tín hiệu võ thuật trong nội dung
     srcHasMartialArts
       ? movieApi.getMovies({ category: "vo-thuat", page: 1, limit: 16 }).catch(() => null)
@@ -119,9 +124,15 @@ async function computeMovieRecommendations(body: any) {
       }
     }
 
-    for (const item of actorResult?.items || []) {
+    // Nạp danh sách phim theo diễn viên thực tế (từ queryMoviesByActor)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const actorItems: any[] = Array.isArray(actorResult)
+      ? actorResult
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      : (actorResult as any)?.items || [];
+    for (const item of actorItems) {
       if (item?.slug && item.slug !== currentMovieSlug && !dedupedMap.has(item.slug)) {
-        dedupedMap.set(item.slug, item);
+        dedupedMap.set(item.slug, { ...item, _isActorRec: true, isActorFilmography: true });
       }
     }
 
@@ -161,7 +172,7 @@ async function computeMovieRecommendations(body: any) {
         score += 25;
       }
 
-      // +8 nếu có cùng diễn viên chính (tín hiệu mạnh nhất — so khớp alias EN/VN/ZH)
+      // +8 nếu có cùng diễn viên chính (tín hiệu mạnh nhất — so khớp filmography hoặc alias EN/VN/ZH)
       let hasActorMatch = false;
       if (primaryActor) {
         const itemActors: string[] = Array.isArray(item.actor)
@@ -169,7 +180,18 @@ async function computeMovieRecommendations(body: any) {
           : typeof item.actor === "string"
           ? item.actor.split(",").map((s: string) => s.trim())
           : [];
-        if (matchesActorAlias(primaryActor, itemActors, item.name, item.origin_name)) {
+        const itemDirectors: string[] = Array.isArray(item.director)
+          ? item.director.map((d: unknown) => String(d))
+          : typeof item.director === "string"
+          ? item.director.split(",").map((s: string) => s.trim())
+          : [];
+        const allPersonnel = [...itemActors, ...itemDirectors];
+
+        if (
+          item.isActorFilmography ||
+          item._isActorRec ||
+          matchesActorAlias(primaryActor, allPersonnel, item.name, item.origin_name)
+        ) {
           hasActorMatch = true;
           score += 8;
         }
@@ -330,8 +352,52 @@ async function computeMovieRecommendations(body: any) {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function getCanonicalRecommendationsCacheKey(body: any): string {
+  const {
+    currentMovieSlug = "",
+    tmdbId = "",
+    tmdbType = "",
+    type = "",
+    categories = [],
+    countries = [],
+    primaryActor = "",
+    primaryDirector = "",
+    year = 0,
+    contentText = "",
+  } = body || {};
+
+  const normCategories = (Array.isArray(categories) ? categories : [])
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    .map((c: any) => (c?.slug || c?.name || "").toLowerCase().trim())
+    .filter(Boolean)
+    .sort();
+
+  const normCountries = (Array.isArray(countries) ? countries : [])
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    .map((c: any) => (c?.slug || c?.name || "").toLowerCase().trim())
+    .filter(Boolean)
+    .sort();
+
+  const canonicalObj = {
+    slug: String(currentMovieSlug).toLowerCase().trim(),
+    tmdbId: String(tmdbId || "").trim(),
+    tmdbType: String(tmdbType || "").toLowerCase().trim(),
+    type: String(type || "").toLowerCase().trim(),
+    categories: normCategories,
+    countries: normCountries,
+    actor: String(primaryActor || "").toLowerCase().trim(),
+    director: String(primaryDirector || "").toLowerCase().trim(),
+    year: Number(year) || 0,
+    content: String(contentText || "").toLowerCase().trim(),
+  };
+
+  const hash = createHash("sha256").update(JSON.stringify(canonicalObj)).digest("hex").slice(0, 32);
+  return `${canonicalObj.slug}_${hash}`;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function executeAndCacheRecommendations(cacheKey: string, body: any) {
-  const kvKey = `movie:recommendations:v2:${cacheKey}`;
+  const kvKey = `movie:recommendations:v4:${cacheKey}`;
   const data = await cacheService.fetchOrSet(
     kvKey,
     () => computeMovieRecommendations(body),
@@ -352,8 +418,13 @@ async function executeAndCacheRecommendations(cacheKey: string, body: any) {
 
 export async function POST(req: NextRequest) {
   try {
+    const rateLimit = await enforceRateLimit(req, RATE_LIMIT_PRESETS.RECOMMENDATIONS);
+    if (!rateLimit.allowed) {
+      return buildRateLimitResponse(rateLimit);
+    }
+
     const body = await req.json();
-    const { currentMovieSlug, tmdbId } = body || {};
+    const { currentMovieSlug } = body || {};
 
     if (!currentMovieSlug) {
       return NextResponse.json(
@@ -364,23 +435,38 @@ export async function POST(req: NextRequest) {
           actorMovies: [],
           allMovies: [],
         },
-        { status: 400 }
+        {
+          status: 400,
+          headers: {
+            "Cache-Control": "no-store, no-cache, must-revalidate",
+          },
+        }
       );
     }
 
-    const cacheKey = `${currentMovieSlug}_${tmdbId || ""}`;
+    const cacheKey = getCanonicalRecommendationsCacheKey(body);
     const now = Date.now();
 
     // 1. Kiểm tra L1 In-memory cache (SWR: Stale-While-Revalidate)
     if (recommendationsL1Cache.has(cacheKey)) {
       const entry = recommendationsL1Cache.get(cacheKey)!;
       if (entry.expireAt > now) {
-        return NextResponse.json(entry.data);
+        return NextResponse.json(entry.data, {
+          headers: {
+            "Cache-Control": "private, no-cache, no-store, max-age=0, must-revalidate",
+            "X-Cache": "HIT",
+          },
+        });
       }
       if (entry.staleUntil > now) {
         // Revalidate ngầm không block người dùng
         executeAndCacheRecommendations(cacheKey, body).catch(() => {});
-        return NextResponse.json(entry.data);
+        return NextResponse.json(entry.data, {
+          headers: {
+            "Cache-Control": "private, no-cache, no-store, max-age=0, must-revalidate",
+            "X-Cache": "STALE",
+          },
+        });
       }
     }
 
@@ -394,7 +480,12 @@ export async function POST(req: NextRequest) {
     }
 
     const result = await serverPromise;
-    return NextResponse.json(result);
+    return NextResponse.json(result, {
+      headers: {
+        "Cache-Control": "private, no-cache, no-store, max-age=0, must-revalidate",
+        "X-Cache": "MISS",
+      },
+    });
   } catch (err) {
     console.error("[movie recommendations API] Lỗi:", err);
     return NextResponse.json(
@@ -405,7 +496,12 @@ export async function POST(req: NextRequest) {
         actorMovies: [],
         allMovies: [],
       },
-      { status: 500 }
+      {
+        status: 500,
+        headers: {
+          "Cache-Control": "no-store, no-cache, must-revalidate",
+        },
+      }
     );
   }
 }

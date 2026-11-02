@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getTmdbRankedMovies, TmdbRankType } from "@/services/tmdbService";
+import {
+  enforceRateLimit,
+  buildRateLimitResponse,
+  RATE_LIMIT_PRESETS,
+} from "@/lib/rateLimit";
 
 export const revalidate = 21600; // Cache 6 giờ trên CDN
 export const maxDuration = 10;
@@ -7,9 +12,13 @@ export const maxDuration = 10;
 // In-memory cache trên server (6 giờ)
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const SERVER_CACHE = new Map<string, { data: any; expireAt: number }>();
-const CACHE_TTL = 6 * 60 * 60 * 1000;
+const CACHE_TTL = 60 * 60 * 1000;
 
 export async function GET(req: NextRequest) {
+  const rateLimit = await enforceRateLimit(req, RATE_LIMIT_PRESETS.PUBLIC_READ);
+  if (!rateLimit.allowed) {
+    return buildRateLimitResponse(rateLimit);
+  }
   const { searchParams } = new URL(req.url);
   const rawType = searchParams.get("timeframe") || searchParams.get("type") || "week";
   const type: TmdbRankType =
@@ -20,7 +29,11 @@ export async function GET(req: NextRequest) {
   // 1. Kiểm tra bộ nhớ cache trên RAM server (phản hồi tức thì ~0ms)
   const cached = SERVER_CACHE.get(cacheKey);
   if (cached && cached.expireAt > Date.now()) {
-    return NextResponse.json(cached.data);
+    return NextResponse.json(cached.data, {
+      headers: {
+        "Cache-Control": "public, s-maxage=21600, stale-while-revalidate=43200",
+      },
+    });
   }
 
   try {

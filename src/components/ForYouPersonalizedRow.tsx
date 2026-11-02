@@ -478,7 +478,7 @@ function ForYouPersonalizedRowInner({ fallbackMovies }: ForYouPersonalizedRowPro
             onClick={handleRefreshClick}
             disabled={isUpdating}
             title="Làm mới danh sách gợi ý"
-            className="px-3.5 py-1.5 rounded-xl bg-zinc-900/90 hover:bg-zinc-800 border border-white/10 text-zinc-300 hover:text-white text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer active:scale-95 shadow-md disabled:opacity-75"
+            className="px-3.5 py-1.5 rounded-xl bg-zinc-900/90 hover:bg-zinc-800 text-zinc-300 hover:text-white text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer active:scale-95 shadow-md disabled:opacity-75"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${loading || isUpdating ? "animate-spin text-netflix-red" : ""}`} />
             <span>{isUpdating ? "Đang Cập Nhật..." : "Đổi Gợi Ý"}</span>
@@ -514,7 +514,7 @@ function ForYouPersonalizedRowInner({ fallbackMovies }: ForYouPersonalizedRowPro
           ? Array.from({ length: 6 }).map((_, idx) => (
               <div
                 key={idx}
-                className="flex-none w-[140px] sm:w-[175px] md:w-[195px] aspect-[2/3] rounded-xl bg-zinc-900/80 animate-pulse border border-white/5"
+                className="flex-none w-[140px] sm:w-[175px] md:w-[195px] aspect-[2/3] rounded-xl bg-zinc-900/80 animate-pulse"
               />
             ))
           : normalizedMovies.map(({ norm, bestThumb }, idx) => (

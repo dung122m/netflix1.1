@@ -15,6 +15,7 @@ import {
   Ruler,
   MapPin,
   CircleDot,
+  User,
 } from "lucide-react";
 import { MatchRosterPlayer, AthleteProfile } from "@/services/live/football-score/types";
 
@@ -383,13 +384,43 @@ export function calculateTacticalCoordinates(
   if (!starters || starters.length === 0) return [];
 
   // 1. Tách thủ môn (Goalkeeper)
-  const gkIndex = starters.findIndex((p) => {
+  let gkIndex = starters.findIndex((p) => {
     const pos = (p.position || "").toLowerCase();
-    return pos.includes("goalkeeper") || pos === "g" || pos === "gk" || p.formationPlace === 1;
+    return (
+      pos.includes("goalkeeper") ||
+      pos === "gk" ||
+      pos === "g" ||
+      pos.includes("thủ môn") ||
+      p.formationPlace === 1
+    );
   });
 
-  const gk = gkIndex !== -1 ? starters[gkIndex] : starters[0];
-  const outfielders = starters.filter((_, idx) => idx !== (gkIndex !== -1 ? gkIndex : 0));
+  // Fallback 1: Tìm theo số áo 1, 13, 12 nếu không mang nhãn tiền đạo/tiền vệ
+  if (gkIndex === -1) {
+    gkIndex = starters.findIndex((p) => {
+      const j = String(p.jersey || "").trim();
+      const pos = (p.position || "").toLowerCase();
+      const isAttacker = /forward|striker|winger|tiền đạo|midfielder|tiền vệ/i.test(pos);
+      return (j === "1" || j === "13" || j === "12") && !isAttacker;
+    });
+  }
+
+  // Fallback 2: Tìm cầu thủ tuyến thấp nhất (hậu vệ thấp nhất), tuyệt đối không chọn tiền đạo làm thủ môn
+  if (gkIndex === -1) {
+    let minDepth = 999;
+    let bestIdx = 0;
+    starters.forEach((p, idx) => {
+      const depth = getVerticalDepthScore(p);
+      if (depth < minDepth) {
+        minDepth = depth;
+        bestIdx = idx;
+      }
+    });
+    gkIndex = bestIdx;
+  }
+
+  const gk = starters[gkIndex];
+  const outfielders = starters.filter((_, idx) => idx !== gkIndex);
 
   const positioned: PositionedPlayer[] = [];
 
@@ -665,10 +696,10 @@ export function CircularBadgeToken({
     <div
       className={`relative w-[26px] h-[26px] min-[360px]:w-[28px] min-[360px]:h-[28px] sm:w-[32px] sm:h-[32px] rounded-full flex items-center justify-center font-sans font-bold text-[10px] min-[360px]:text-[11px] sm:text-xs select-none transition-shadow duration-150 ${
         isGK
-          ? "bg-[#eab308] text-zinc-950 border-[1.5px] border-white/95 shadow-[0_2px_6px_rgba(0,0,0,0.35)]"
+          ? "bg-[#eab308] text-zinc-950  shadow-[0_2px_6px_rgba(0,0,0,0.35)]"
           : isHome
-          ? "bg-[#dc2626] text-white border-[1.5px] border-white/95 shadow-[0_2px_6px_rgba(0,0,0,0.35)]"
-          : "bg-[#0284c7] text-white border-[1.5px] border-white/95 shadow-[0_2px_6px_rgba(0,0,0,0.35)]"
+          ? "bg-[#dc2626] text-white  shadow-[0_2px_6px_rgba(0,0,0,0.35)]"
+          : "bg-[#0284c7] text-white  shadow-[0_2px_6px_rgba(0,0,0,0.35)]"
       }`}
     >
       {/* Số áo in sắc nét ở trung tâm */}
@@ -750,8 +781,8 @@ export function PhotoToken({
     <div
       className={`w-[28px] h-[28px] sm:w-[32px] sm:h-[32px] md:w-[34px] md:h-[34px] rounded-full flex items-center justify-center overflow-hidden transition-all shadow-md ${
         isHome
-          ? "bg-zinc-900 border-[1.5px] border-netflix-red shadow-black/50 ring-1 ring-netflix-red/30 group-hover:border-white group-hover:ring-white/50"
-          : "bg-zinc-900 border-[1.5px] border-sky-400 shadow-black/50 ring-1 ring-sky-400/30 group-hover:border-white group-hover:ring-white/50"
+          ? "bg-zinc-900  shadow-black/50   group-hover:ring-white/50"
+          : "bg-zinc-900  shadow-black/50   group-hover:ring-white/50"
       }`}
     >
       {displayPhoto ? (
@@ -765,7 +796,7 @@ export function PhotoToken({
         />
       ) : (
         <div
-          className={`w-full h-full flex items-center justify-center font-mono font-black text-[10px] sm:text-[11.5px] md:text-xs ${
+          className={`w-full h-full flex items-center justify-center font-sans tabular-nums font-black text-[10px] sm:text-[11.5px] md:text-xs ${
             isHome
               ? "bg-gradient-to-b from-red-600 to-red-900 text-white"
               : "bg-gradient-to-b from-sky-500 to-sky-800 text-white"
@@ -850,16 +881,16 @@ export function InlinePlayerDetailCard({
       onClick={(e) => e.stopPropagation()}
       className={
         isDrawer
-          ? "relative w-full max-h-full sm:max-h-[92%] flex flex-col rounded-2xl border border-white/20 bg-zinc-950/95 backdrop-blur-xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-150"
-          : "relative rounded-2xl bg-zinc-900/95 border border-white/15 p-3.5 sm:p-4 shadow-xl backdrop-blur-md animate-in fade-in duration-150"
+          ? "relative w-full max-h-full sm:max-h-[92%] flex flex-col rounded-2xl  bg-zinc-950/95 backdrop-blur-xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-150"
+          : "relative rounded-2xl bg-zinc-900/95  p-3.5 sm:p-4 shadow-xl backdrop-blur-md animate-in fade-in duration-150"
       }
     >
       {/* Header cố định với nút đóng to rõ */}
-      <div className={`flex items-center justify-between gap-3 p-3 sm:p-3.5 ${isDrawer ? "bg-zinc-900/95 border-b border-white/10 shrink-0" : ""}`}>
+      <div className={`flex items-center justify-between gap-3 p-3 sm:p-3.5 ${isDrawer ? "bg-zinc-900/95   shrink-0" : ""}`}>
         <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
         <div
-          className={`w-12 h-12 rounded-xl bg-zinc-800 border-2 overflow-hidden flex items-center justify-center font-mono font-black text-base shrink-0 shadow-inner ${
-            isHome ? "border-netflix-red/60" : "border-sky-400/60"
+          className={`w-12 h-12 rounded-xl bg-zinc-800  overflow-hidden flex items-center justify-center font-sans tabular-nums font-black text-base shrink-0 shadow-inner ${
+            isHome ? "" : ""
           }`}
         >
           {activePhotoSrc ? (
@@ -879,13 +910,13 @@ export function InlinePlayerDetailCard({
             />
           ) : (
             <div
-              className={`w-full h-full flex items-center justify-center text-white ${
+              className={`w-full h-full flex items-center justify-center text-white/80 ${
                 isHome
-                  ? "bg-gradient-to-b from-red-600 to-red-900"
-                  : "bg-gradient-to-b from-sky-500 to-sky-800"
+                  ? "bg-gradient-to-b from-red-600/40 to-red-950/80"
+                  : "bg-gradient-to-b from-sky-500/40 to-sky-950/80"
               }`}
             >
-              <span>#{player.jersey || "?"}</span>
+              <User className="w-6 h-6 text-white/70" />
             </div>
           )}
         </div>
@@ -895,7 +926,7 @@ export function InlinePlayerDetailCard({
             <h4 className="text-sm sm:text-base font-black text-white truncate">
               {player.displayName}
             </h4>
-            <span className="font-mono text-xs font-bold text-amber-300 bg-amber-400/10 border border-amber-400/30 px-1.5 py-0.2 rounded shrink-0">
+            <span className="font-sans tabular-nums text-xs font-bold text-amber-300 bg-amber-400/10 px-1.5 py-0.2 rounded shrink-0">
               #{player.jersey || "-"}
             </span>
           </div>
@@ -906,21 +937,21 @@ export function InlinePlayerDetailCard({
             <span
               className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
                 player.starter
-                  ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
-                  : "bg-zinc-800 text-zinc-300 border border-white/10"
+                  ? "bg-emerald-500/20 text-emerald-400 "
+                  : "bg-zinc-800 text-zinc-300 "
               }`}
             >
               {player.starter ? "Đá chính" : "Dự bị"}
             </span>
 
             {!isMatchScheduled && player.subbedIn && (
-              <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/15 border border-emerald-500/30 px-1.5 py-0.5 rounded flex items-center gap-1">
+              <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/15 px-1.5 py-0.5 rounded flex items-center gap-1">
                 <ArrowUpRight className="w-3 h-3" />
                 <span>Vào sân {player.subClock ? `(${player.subClock})` : ""}</span>
               </span>
             )}
             {!isMatchScheduled && player.subbedOut && (
-              <span className="text-[10px] font-bold text-red-400 bg-red-500/15 border border-red-500/30 px-1.5 py-0.5 rounded flex items-center gap-1">
+              <span className="text-[10px] font-bold text-red-400 bg-red-500/15 px-1.5 py-0.5 rounded flex items-center gap-1">
                 <ArrowDownLeft className="w-3 h-3" />
                 <span>Ra sân {player.subClock ? `(${player.subClock})` : ""}</span>
               </span>
@@ -928,7 +959,7 @@ export function InlinePlayerDetailCard({
 
             {isCommonsPhoto && currentProfile?.photoLicense && (
               <span
-                className="text-[9.5px] font-medium text-zinc-400 bg-white/5 border border-white/10 px-1.5 py-0.5 rounded flex items-center gap-1"
+                className="text-[9.5px] font-medium text-zinc-400 bg-white/5 px-1.5 py-0.5 rounded flex items-center gap-1"
                 title={currentProfile.photoLicenseUrl || `Giấy phép: ${currentProfile.photoLicense}`}
               >
                 <span>Ảnh: Commons ({currentProfile.photoLicense})</span>
@@ -943,7 +974,7 @@ export function InlinePlayerDetailCard({
           type="button"
           onClick={onClose}
           aria-label="Đóng thông tin cầu thủ"
-          className="w-9 h-9 min-w-[36px] min-h-[36px] rounded-full bg-white/10 hover:bg-white/20 text-zinc-300 hover:text-white flex items-center justify-center transition cursor-pointer shrink-0 touch-manipulation border border-white/10"
+          className="w-9 h-9 min-w-[36px] min-h-[36px] rounded-full bg-white/10 hover:bg-white/20 text-zinc-300 hover:text-white flex items-center justify-center transition cursor-pointer shrink-0 touch-manipulation"
         >
           <X className="w-4 h-4" />
         </button>
@@ -954,21 +985,21 @@ export function InlinePlayerDetailCard({
 
       {/* Hồ sơ & Tiểu sử cầu thủ (Enriched từ ESPN Core + Wikidata) */}
       {loadingProfile ? (
-        <div className="mt-3 pt-2.5 border-t border-white/10 animate-pulse space-y-1.5">
+        <div className="mt-3 pt-2.5 animate-pulse space-y-1.5">
           <div className="h-3 w-28 bg-white/10 rounded" />
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
-            <div className="h-10 bg-white/5 rounded-lg border border-white/5" />
-            <div className="h-10 bg-white/5 rounded-lg border border-white/5" />
+            <div className="h-10 bg-white/5 rounded-lg" />
+            <div className="h-10 bg-white/5 rounded-lg" />
           </div>
         </div>
       ) : hasBio && currentProfile ? (
-        <div className="mt-3 pt-2.5 border-t border-white/10 space-y-2">
+        <div className="mt-3 pt-2.5 space-y-2">
           <div className="flex items-center justify-between text-[11px] font-bold text-zinc-400">
             <div className="flex items-center gap-1.5">
               <Users className="w-3.5 h-3.5 text-sky-400" />
               <span>Hồ sơ cầu thủ</span>
             </div>
-            <span className="text-[9.5px] font-mono text-zinc-400/80">
+            <span className="text-[9.5px] font-sans tabular-nums text-zinc-400/80">
               {currentProfile.provenance?.source === "espn-wikidata-hybrid"
                 ? "Nguồn: ESPN + Wikidata"
                 : currentProfile.provenance?.source === "wikidata"
@@ -979,7 +1010,7 @@ export function InlinePlayerDetailCard({
 
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
             {currentProfile.citizenship && (
-              <div className="p-1.5 px-2 rounded-lg bg-black/40 border border-white/5 flex items-center gap-2">
+              <div className="p-1.5 px-2 rounded-lg bg-black/40 flex items-center gap-2">
                 {currentProfile.flagUrl ? (
                   /* eslint-disable-next-line @next/next/no-img-element */
                   <img
@@ -998,7 +1029,7 @@ export function InlinePlayerDetailCard({
             )}
 
             {currentProfile.dateOfBirth && (
-              <div className="p-1.5 px-2 rounded-lg bg-black/40 border border-white/5 flex items-center gap-2">
+              <div className="p-1.5 px-2 rounded-lg bg-black/40 flex items-center gap-2">
                 <Calendar className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
                 <div className="min-w-0">
                   <p className="text-[9.5px] text-zinc-400 leading-none">Ngày sinh</p>
@@ -1011,7 +1042,7 @@ export function InlinePlayerDetailCard({
             )}
 
             {(currentProfile.height || currentProfile.weight) && (
-              <div className="p-1.5 px-2 rounded-lg bg-black/40 border border-white/5 flex items-center gap-2">
+              <div className="p-1.5 px-2 rounded-lg bg-black/40 flex items-center gap-2">
                 <Ruler className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
                 <div className="min-w-0">
                   <p className="text-[9.5px] text-zinc-400 leading-none">Thể hình</p>
@@ -1024,7 +1055,7 @@ export function InlinePlayerDetailCard({
             )}
 
             {currentProfile.birthPlace && (
-              <div className="p-1.5 px-2 rounded-lg bg-black/40 border border-white/5 flex items-center gap-2 col-span-2 sm:col-span-1">
+              <div className="p-1.5 px-2 rounded-lg bg-black/40 flex items-center gap-2 col-span-2 sm:col-span-1">
                 <MapPin className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
                 <div className="min-w-0">
                   <p className="text-[9.5px] text-zinc-400 leading-none">Nơi sinh</p>
@@ -1038,7 +1069,7 @@ export function InlinePlayerDetailCard({
 
         {/* Thống kê thực tế trong trận */}
         {player.stats && player.stats.length > 0 ? (
-          <div className="mt-3 pt-2.5 border-t border-white/10 space-y-1.5">
+          <div className="mt-3 pt-2.5 space-y-1.5">
             <div className="flex items-center gap-1.5 text-[11px] font-bold text-zinc-400">
               <Trophy className="w-3 h-3 text-amber-400" />
               <span>Thống kê thực tế trong trận</span>
@@ -1047,12 +1078,12 @@ export function InlinePlayerDetailCard({
               {player.stats.map((st, idx) => (
                 <div
                   key={idx}
-                  className="p-1.5 px-2 rounded-lg bg-black/40 border border-white/5 flex items-center justify-between"
+                  className="p-1.5 px-2 rounded-lg bg-black/40 flex items-center justify-between"
                 >
                   <span className="text-[10.5px] text-zinc-400 truncate pr-1">
                     {translateStatName(st.displayName)}
                   </span>
-                  <span className="font-mono text-xs font-bold text-white shrink-0">
+                  <span className="font-sans tabular-nums text-xs font-bold text-white shrink-0">
                     {st.value}
                   </span>
                 </div>
@@ -1060,7 +1091,7 @@ export function InlinePlayerDetailCard({
             </div>
           </div>
         ) : (
-          <div className="mt-2.5 pt-2 border-t border-white/5 text-[11px] text-zinc-400 italic">
+          <div className="mt-2.5 pt-2 text-[11px] text-zinc-400 italic">
             {isMatchScheduled
               ? "Trận đấu chưa bắt đầu, thông số cá nhân sẽ cập nhật khi có bóng lăn"
               : "Chưa có thêm thống kê sự kiện của cầu thủ này"}
@@ -1121,10 +1152,10 @@ function TeamPitchColumn({
   return (
     <div className="flex flex-col space-y-2.5 min-w-0">
       {/* KHỐI SÂN CỎ CHIẾN THUẬT */}
-      <div className="rounded-2xl overflow-hidden border border-white/10 bg-zinc-950 shadow-xl flex flex-col relative">
+      <div className="rounded-2xl overflow-hidden bg-zinc-950 shadow-xl flex flex-col relative">
         {/* Header đội bóng & sơ đồ (chỉ hiển thị khi xem song song 2 đội) */}
         {showHeader && (
-          <div className="flex items-center justify-between px-3.5 py-2 bg-zinc-900/90 border-b border-white/10 gap-2">
+          <div className="flex items-center justify-between px-3.5 py-2 bg-zinc-900/90 gap-2">
             <div className="flex items-center gap-2 min-w-0">
               <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${isHome ? "bg-netflix-red shadow-sm shadow-red-500/50" : "bg-sky-400 shadow-sm shadow-sky-500/50"}`} />
               <Shield className={`w-4 h-4 shrink-0 ${isHome ? "text-netflix-red" : "text-sky-400"}`} />
@@ -1137,10 +1168,10 @@ function TeamPitchColumn({
             </div>
             {formation && (
               <span
-                className={`text-xs font-mono font-bold px-2 py-0.5 rounded-md border shrink-0 whitespace-nowrap shadow-sm ${
+                className={`text-xs font-sans tabular-nums font-bold px-2 py-0.5 rounded-md  shrink-0 whitespace-nowrap shadow-sm ${
                   isHome
-                    ? "bg-red-500/15 text-red-300 border-red-500/30"
-                    : "bg-sky-500/15 text-sky-300 border-sky-500/30"
+                    ? "bg-red-500/15 text-red-300 "
+                    : "bg-sky-500/15 text-sky-300 "
                 }`}
               >
                 {formation}
@@ -1162,14 +1193,14 @@ function TeamPitchColumn({
               }
             }}
             style={{
-              background: "radial-gradient(ellipse 90% 70% at 50% 50%, #155e38 0%, #0f4528 55%, #0a2e1b 100%)",
+              background: "linear-gradient(180deg, #0e271a 0%, #0a1e13 100%)",
             }}
-            className="relative w-full pb-[88%] sm:pb-[90%] select-none overflow-hidden rounded-2xl shadow-[inset_0_0_35px_rgba(0,0,0,0.7)] border border-emerald-700/30"
+            className="relative w-full pb-[88%] sm:pb-[90%] select-none overflow-hidden rounded-2xl shadow-[inset_0_0_35px_rgba(0,0,0,0.7)]"
           >
             {/* Đèn pha sân vận động (Stadium Spotlight Floods) */}
-            <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_50%_50%,rgba(52,211,153,0.13)_0%,transparent_60%)]" />
-            <div className="absolute top-0 inset-x-0 h-1/4 pointer-events-none bg-[radial-gradient(ellipse_at_50%_0%,rgba(16,185,129,0.09)_0%,transparent_70%)]" />
-            <div className="absolute bottom-0 inset-x-0 h-1/4 pointer-events-none bg-[radial-gradient(ellipse_at_50%_100%,rgba(16,185,129,0.09)_0%,transparent_70%)]" />
+            
+            
+            
 
             {/* Sọc cỏ cắt nhung xen kẽ */}
             <div
@@ -1195,7 +1226,6 @@ function TeamPitchColumn({
                 fill="none"
                 stroke="rgba(255,255,255,0.32)"
                 strokeWidth="0.75"
-                rx="2"
               />
               {/* Halfway line */}
               <line
@@ -1306,10 +1336,10 @@ function TeamPitchColumn({
                 >
                   {/* Tooltip nổi duy nhất khi hover hoặc chọn: e.g. #71 · Wiafe · CM */}
                   <div
-                    className={`pointer-events-none absolute -top-7 sm:-top-8 left-1/2 -translate-x-1/2 whitespace-nowrap px-2.5 py-0.5 rounded-full bg-zinc-950/90 backdrop-blur-md text-[10px] min-[360px]:text-[10.5px] sm:text-[11px] font-sans font-medium tracking-tight border shadow-[0_4px_14px_rgba(0,0,0,0.85)] z-40 transition-all duration-150 ${
+                    className={`pointer-events-none absolute -top-7 sm:-top-8 left-1/2 -translate-x-1/2 whitespace-nowrap px-2.5 py-0.5 rounded-full bg-zinc-950/90 backdrop-blur-md text-[10px] min-[360px]:text-[10.5px] sm:text-[11px] font-sans font-medium tracking-tight  shadow-[0_4px_14px_rgba(0,0,0,0.85)] z-40 transition-all duration-150 ${
                       isSelected
-                        ? "opacity-100 scale-100 text-amber-300 border-amber-400/50 shadow-amber-400/25"
-                        : "opacity-0 scale-95 group-hover:opacity-100 group-hover:scale-100 group-focus:opacity-100 group-focus:scale-100 text-zinc-100 border-white/20"
+                        ? "opacity-100 scale-100 text-amber-300  shadow-amber-400/25"
+                        : "opacity-0 scale-95 group-hover:opacity-100 group-hover:scale-100 group-focus:opacity-100 group-focus:scale-100 text-zinc-100 "
                     }`}
                   >
                     <span>
@@ -1320,7 +1350,7 @@ function TeamPitchColumn({
 
                   {/* Token cầu thủ trên sân */}
                   <div
-                    className={`relative rounded-full transition-all duration-150 group-hover:ring-2 group-hover:ring-white group-hover:shadow-[0_0_10px_rgba(255,255,255,0.45)] ${
+                    className={`relative rounded-full transition-all duration-150 group-hover: group-hover:ring-white group-hover:shadow-[0_0_10px_rgba(255,255,255,0.45)] ${
                       isSelected
                         ? "ring-[2.5px] ring-amber-400 ring-offset-2 ring-offset-zinc-950 shadow-[0_0_14px_rgba(251,191,36,0.55)]"
                         : ""
@@ -1353,10 +1383,10 @@ function TeamPitchColumn({
                     {/* Huy hiệu số áo góc dưới chỉ hiển thị khi ở chế độ xem ảnh mặt */}
                     {tokenDisplayMode === "photo" && player.jersey && (
                       <span
-                        className={`absolute -bottom-1 -right-1 font-mono text-[7.5px] sm:text-[8.5px] font-black px-1.5 py-0.2 rounded-full border shadow-sm leading-none ${
+                        className={`absolute -bottom-1 -right-1 font-sans tabular-nums text-[7.5px] sm:text-[8.5px] font-black px-1.5 py-0.2 rounded-full  shadow-sm leading-none ${
                           isHome
-                            ? "bg-black text-white border-netflix-red/80"
-                            : "bg-black text-white border-sky-400/80"
+                            ? "bg-black text-white "
+                            : "bg-black text-white "
                         }`}
                       >
                         {player.jersey}
@@ -1367,7 +1397,7 @@ function TeamPitchColumn({
                     {!isMatchScheduled && player.subbedOut && (
                       <span
                         title={`Rời sân: ${player.subClock || ""}`}
-                        className="absolute -top-0.5 -right-0.5 w-3 h-3 min-[360px]:w-3.5 min-[360px]:h-3.5 rounded-full bg-red-600 text-white flex items-center justify-center shadow-md border border-white/80 z-30"
+                        className="absolute -top-0.5 -right-0.5 w-3 h-3 min-[360px]:w-3.5 min-[360px]:h-3.5 rounded-full bg-red-600 text-white flex items-center justify-center shadow-md z-30"
                       >
                         <ArrowDownLeft className="w-2 h-2 min-[360px]:w-2.5 min-[360px]:h-2.5 stroke-[2.5]" />
                       </span>
@@ -1375,7 +1405,7 @@ function TeamPitchColumn({
                     {!isMatchScheduled && player.subbedIn && !player.subbedOut && (
                       <span
                         title={`Vào sân: ${player.subClock || ""}`}
-                        className="absolute -top-0.5 -right-0.5 w-3 h-3 min-[360px]:w-3.5 min-[360px]:h-3.5 rounded-full bg-emerald-600 text-white flex items-center justify-center shadow-md border border-white/80 z-30"
+                        className="absolute -top-0.5 -right-0.5 w-3 h-3 min-[360px]:w-3.5 min-[360px]:h-3.5 rounded-full bg-emerald-600 text-white flex items-center justify-center shadow-md z-30"
                       >
                         <ArrowUpRight className="w-2 h-2 min-[360px]:w-2.5 min-[360px]:h-2.5 stroke-[2.5]" />
                       </span>
@@ -1431,8 +1461,8 @@ function TeamPitchColumn({
 
       {/* CẦU THỦ DỰ BỊ */}
       {bench.length > 0 && (
-        <div className="rounded-2xl bg-zinc-900/60 border border-white/10 p-3 sm:p-4 space-y-3">
-          <div className="flex items-center justify-between pb-2.5 border-b border-white/10">
+        <div className="rounded-2xl bg-zinc-900/60 p-3 sm:p-4 space-y-3">
+          <div className="flex items-center justify-between pb-2.5">
             <div className="flex items-center gap-2 min-w-0">
               <Users className="w-4 h-4 text-zinc-300 shrink-0" />
               <h5 className="text-xs sm:text-sm font-black text-white uppercase tracking-wider whitespace-nowrap truncate">
@@ -1454,12 +1484,12 @@ function TeamPitchColumn({
                   onClick={() => onSelectPlayer(player)}
                   className={`flex items-center justify-between gap-2.5 p-2.5 rounded-xl transition-all text-left cursor-pointer group ${
                     isSelected
-                      ? "bg-white/[0.12] border-amber-400/70 ring-1 ring-amber-400/40 shadow-sm"
-                      : "bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 hover:border-white/20"
+                      ? "bg-white/[0.12]   shadow-sm"
+                      : "bg-white/[0.04] hover:bg-white/[0.08]  hover:"
                   }`}
                 >
                   <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                    <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-zinc-800 border border-white/20 overflow-hidden shrink-0 flex items-center justify-center font-mono text-xs sm:text-[13px] font-bold text-zinc-200 shadow-sm">
+                    <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-zinc-800 overflow-hidden shrink-0 flex items-center justify-center font-sans tabular-nums text-xs sm:text-[13px] font-bold text-zinc-200 shadow-sm">
                       {tokenDisplayMode === "photo" && hasValidPhoto ? (
                         /* eslint-disable-next-line @next/next/no-img-element */
                         <img
@@ -1489,16 +1519,16 @@ function TeamPitchColumn({
                   {!isMatchScheduled && player.subbedIn ? (
                     <span
                       title={`Vào sân thay người: ${player.subClock || ""}`}
-                      className="flex items-center gap-1 text-[10.5px] sm:text-xs font-bold text-emerald-400 bg-emerald-500/15 border border-emerald-500/30 px-2 py-0.5 rounded-md shrink-0"
+                      className="flex items-center gap-1 text-[10.5px] sm:text-xs font-bold text-emerald-400 bg-emerald-500/15 px-2 py-0.5 rounded-md shrink-0"
                     >
                       <ArrowUpRight className="w-3.5 h-3.5" />
                       <span>{player.subClock || "Vào sân"}</span>
                     </span>
-                  ) : (
-                    <span className="font-mono text-xs font-bold text-zinc-400 bg-white/5 border border-white/5 rounded-md px-1.5 py-0.5 shrink-0">
+                  ) : tokenDisplayMode === "photo" && hasValidPhoto ? (
+                    <span className="font-sans tabular-nums text-xs font-bold text-zinc-400 bg-white/5 rounded-md px-1.5 py-0.5 shrink-0">
                       #{player.jersey || "-"}
                     </span>
-                  )}
+                  ) : null}
                 </button>
               );
             })}
@@ -1547,8 +1577,8 @@ function TeamListColumn({
   const formation = roster?.formation;
 
   return (
-    <div className="rounded-2xl bg-zinc-900/50 border border-white/10 p-4 space-y-3">
-      <div className="flex items-center justify-between pb-2 border-b border-white/10">
+    <div className="rounded-2xl bg-zinc-900/50 p-4 space-y-3">
+      <div className="flex items-center justify-between pb-2">
         <div className="flex items-center gap-2">
           <Shield className={`w-4 h-4 ${isHome ? "text-netflix-red" : "text-sky-400"}`} />
           <h5 className="text-xs sm:text-sm font-black text-white truncate">
@@ -1590,19 +1620,19 @@ function TeamListColumn({
               onClick={() => onSelectPlayer(p)}
               className={`flex items-center justify-between gap-2.5 py-2 px-3 rounded-xl cursor-pointer text-xs sm:text-sm transition ${
                 isSelected
-                  ? "bg-white/[0.12] border border-amber-400/60 ring-1 ring-amber-400/30"
-                  : "bg-white/[0.03] hover:bg-white/[0.08] border border-white/5"
+                  ? "bg-white/[0.12]  "
+                  : "bg-white/[0.03] hover:bg-white/[0.08] "
               }`}
             >
               <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                <span className="font-mono text-zinc-400 min-w-[24px] font-bold text-xs sm:text-sm">
+                <span className="font-sans tabular-nums text-zinc-400 min-w-[24px] font-bold text-xs sm:text-sm">
                   #{p.jersey || i + 1}
                 </span>
                 <span className="text-zinc-100 font-semibold truncate text-xs sm:text-sm">{p.displayName || p.name}</span>
               </div>
               <div className="flex items-center gap-2 shrink-0">
                 {!isMatchScheduled && p.subbedOut && (
-                  <span className="text-xs text-red-400 font-bold flex items-center gap-1 bg-red-500/10 px-1.5 py-0.5 rounded border border-red-500/20">
+                  <span className="text-xs text-red-400 font-bold flex items-center gap-1 bg-red-500/10 px-1.5 py-0.5 rounded">
                     <ArrowDownLeft className="w-3 h-3" />
                     <span>{p.subClock || "Ra sân"}</span>
                   </span>
@@ -1619,7 +1649,7 @@ function TeamListColumn({
       </div>
 
       {bench.length > 0 && (
-        <div className="space-y-1.5 pt-2 border-t border-white/5">
+        <div className="space-y-1.5 pt-2">
           <p className="text-xs sm:text-[13px] font-extrabold text-zinc-400 uppercase tracking-wider">
             Dự bị ({bench.length})
           </p>
@@ -1632,16 +1662,16 @@ function TeamListColumn({
                   onClick={() => onSelectPlayer(p)}
                   className={`flex items-center justify-between gap-2.5 py-2 px-3 rounded-xl text-xs sm:text-sm cursor-pointer transition ${
                     isSelected
-                      ? "bg-white/[0.12] border border-amber-400/60 ring-1 ring-amber-400/30"
-                      : "hover:bg-white/[0.05] border border-transparent hover:border-white/5"
+                      ? "bg-white/[0.12]  "
+                      : "hover:bg-white/[0.05]  hover:"
                   }`}
                 >
                   <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                    <span className="font-mono text-zinc-500 min-w-[24px] font-semibold text-xs sm:text-sm">#{p.jersey || "-"}</span>
+                    <span className="font-sans tabular-nums text-zinc-500 min-w-[24px] font-semibold text-xs sm:text-sm">#{p.jersey || "-"}</span>
                     <span className="text-zinc-300 truncate text-xs sm:text-sm">{p.displayName || p.name}</span>
                   </div>
                   {!isMatchScheduled && p.subbedIn ? (
-                    <span className="text-xs text-emerald-400 font-bold flex items-center gap-1 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">
+                    <span className="text-xs text-emerald-400 font-bold flex items-center gap-1 bg-emerald-500/10 px-1.5 py-0.5 rounded">
                       <ArrowUpRight className="w-3.5 h-3.5" />
                       <span>{p.subClock || "Vào sân"}</span>
                     </span>
@@ -1705,8 +1735,8 @@ export function TacticalLineup({
 
   if (!hasLineupData) {
     return (
-      <div className="rounded-3xl border border-white/10 bg-zinc-900/40 p-8 sm:p-12 text-center space-y-3">
-        <div className="w-12 h-12 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mx-auto text-zinc-500">
+      <div className="rounded-3xl bg-zinc-900/40 p-8 sm:p-12 text-center space-y-3">
+        <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center mx-auto text-zinc-500">
           <Users className="w-6 h-6" />
         </div>
         <h4 className="text-sm font-bold text-white">Chưa có dữ liệu đội hình ra sân</h4>
@@ -1720,26 +1750,26 @@ export function TacticalLineup({
   return (
     <div className="space-y-1.5">
       {/* 1. THANH CHỌN ĐỘI BÓNG: MATCHDAY DUEL BANNER ĐỐI XỨNG */}
-      <div className="grid grid-cols-2 gap-1.5 p-1 rounded-xl bg-zinc-900/90 border border-white/10 backdrop-blur-md">
+      <div className="grid grid-cols-2 gap-1.5 p-1 rounded-xl bg-zinc-900/90 backdrop-blur-md">
         <button
           type="button"
           onClick={() => handleTeamChange("home")}
           title={`${homeTeam.displayName} (${homeRoster?.formation || "Chưa rõ sơ đồ"})`}
           className={`flex items-center justify-between py-1.5 px-2.5 rounded-lg text-xs font-bold transition-all cursor-pointer select-none truncate ${
             teamFilter === "home"
-              ? "bg-gradient-to-r from-red-600/90 to-red-800/90 text-white shadow-md shadow-black/50 border border-red-400/40 font-black"
-              : "bg-white/[0.03] text-zinc-400 hover:text-white hover:bg-white/[0.08] border border-transparent font-medium"
+              ? "bg-gradient-to-r from-red-600/90 to-red-800/90 text-white shadow-md shadow-black/50  font-black"
+              : "bg-white/[0.03] text-zinc-400 hover:text-white hover:bg-white/[0.08]  font-medium"
           }`}
         >
           <div className="flex items-center gap-1.5 min-w-0 truncate">
-            <div className={`w-2 h-2 rounded-full shrink-0 ${teamFilter === "home" ? "bg-white ring-2 ring-red-400/50" : "bg-red-500"}`} />
+            <div className={`w-2 h-2 rounded-full shrink-0 ${teamFilter === "home" ? "bg-white " : "bg-red-500"}`} />
             <span className="truncate">{homeTeam.displayName}</span>
           </div>
           {homeRoster?.formation && (
             <span
-              className={`text-[9.5px] font-mono font-black px-1.5 py-0.2 rounded-md shrink-0 whitespace-nowrap ml-1 ${
+              className={`text-[9.5px] font-sans tabular-nums font-black px-1.5 py-0.2 rounded-md shrink-0 whitespace-nowrap ml-1 ${
                 teamFilter === "home"
-                  ? "bg-black/50 text-white border border-white/20 shadow-sm"
+                  ? "bg-black/50 text-white  shadow-sm"
                   : "bg-white/5 text-zinc-400"
               }`}
             >
@@ -1754,19 +1784,19 @@ export function TacticalLineup({
           title={`${awayTeam.displayName} (${awayRoster?.formation || "Chưa rõ sơ đồ"})`}
           className={`flex items-center justify-between py-1.5 px-2.5 rounded-lg text-xs font-bold transition-all cursor-pointer select-none truncate ${
             teamFilter === "away"
-              ? "bg-gradient-to-r from-sky-600/90 to-sky-800/90 text-white shadow-md shadow-black/50 border border-sky-400/40 font-black"
-              : "bg-white/[0.03] text-zinc-400 hover:text-white hover:bg-white/[0.08] border border-transparent font-medium"
+              ? "bg-gradient-to-r from-sky-600/90 to-sky-800/90 text-white shadow-md shadow-black/50  font-black"
+              : "bg-white/[0.03] text-zinc-400 hover:text-white hover:bg-white/[0.08]  font-medium"
           }`}
         >
           <div className="flex items-center gap-1.5 min-w-0 truncate">
-            <div className={`w-2 h-2 rounded-full shrink-0 ${teamFilter === "away" ? "bg-white ring-2 ring-sky-400/50" : "bg-sky-400"}`} />
+            <div className={`w-2 h-2 rounded-full shrink-0 ${teamFilter === "away" ? "bg-white " : "bg-sky-400"}`} />
             <span className="truncate">{awayTeam.displayName}</span>
           </div>
           {awayRoster?.formation && (
             <span
-              className={`text-[9.5px] font-mono font-black px-1.5 py-0.2 rounded-md shrink-0 whitespace-nowrap ml-1 ${
+              className={`text-[9.5px] font-sans tabular-nums font-black px-1.5 py-0.2 rounded-md shrink-0 whitespace-nowrap ml-1 ${
                 teamFilter === "away"
-                  ? "bg-black/50 text-white border border-white/20 shadow-sm"
+                  ? "bg-black/50 text-white  shadow-sm"
                   : "bg-white/5 text-zinc-400"
               }`}
             >
@@ -1779,7 +1809,7 @@ export function TacticalLineup({
       {/* 2. CỤM ĐIỀU KHIỂN CHẾ ĐỘ XEM THỐNG NHẤT (UNIFIED CONTROL BAR) */}
       <div className="flex items-center justify-between gap-1.5 px-0.5">
         {/* Segmented Control chính: Sân cỏ / Danh sách */}
-        <div className="flex items-center gap-0.5 p-0.5 rounded-xl bg-zinc-900/80 border border-white/10" role="group" aria-label="Chế độ hiển thị đội hình">
+        <div className="flex items-center gap-0.5 p-0.5 rounded-xl bg-zinc-900/80" role="group" aria-label="Chế độ hiển thị đội hình">
           <button
             type="button"
             onClick={() => setViewMode("pitch")}
@@ -1811,15 +1841,15 @@ export function TacticalLineup({
 
         {/* Micro Toggle: Số tròn / Áo đấu (chỉ hiện khi xem Sân cỏ) */}
         {viewMode === "pitch" ? (
-          <div className="flex items-center gap-0.5 p-0.5 rounded-xl bg-zinc-900/80 border border-white/10" role="group" aria-label="Kiểu hiển thị trên sân">
+          <div className="flex items-center gap-0.5 p-0.5 rounded-xl bg-zinc-900/80" role="group" aria-label="Kiểu hiển thị trên sân">
             <button
               type="button"
               onClick={() => setTokenDisplayMode("badge")}
               aria-label="Hiện số áo tròn Flat Matte"
               className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                 tokenDisplayMode === "badge"
-                  ? "bg-white/20 text-white shadow-sm border border-white/20 font-black"
-                  : "text-zinc-400 hover:text-white border border-transparent font-medium"
+                  ? "bg-white/20 text-white shadow-sm  font-black"
+                  : "text-zinc-400 hover:text-white  font-medium"
               }`}
             >
               <CircleDot className="w-3.5 h-3.5" />
@@ -1832,8 +1862,8 @@ export function TacticalLineup({
               aria-label="Hiện áo đấu vector"
               className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                 tokenDisplayMode === "jersey"
-                  ? "bg-white/20 text-white shadow-sm border border-white/20 font-black"
-                  : "text-zinc-400 hover:text-white border border-transparent font-medium"
+                  ? "bg-white/20 text-white shadow-sm  font-black"
+                  : "text-zinc-400 hover:text-white  font-medium"
               }`}
             >
               <Shirt className="w-3.5 h-3.5" />

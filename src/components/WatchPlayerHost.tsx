@@ -95,13 +95,13 @@ export const WatchPlayerHost: React.FC<WatchPlayerHostProps> = (props) => {
         {activeProvider === "vsmov" && (
           <>
             {vsmovLoading && (
-              <div className="w-full aspect-video bg-zinc-950 rounded-xl sm:rounded-2xl flex flex-col items-center justify-center border border-white/10">
-                <div className="w-10 h-10 border-2 border-red-600/30 border-t-red-600 rounded-full animate-spin mb-2" />
+              <div className="w-full aspect-video bg-zinc-950 rounded-xl sm:rounded-2xl flex flex-col items-center justify-center">
+                <div className="w-10 h-10 border-2 border-t-red-600 rounded-full animate-spin mb-2" />
                 <p className="text-xs text-zinc-400">Đang đồng bộ liên kết từ VSMOV...</p>
               </div>
             )}
             {vsmovError && !vsmovLoading && (
-              <div className="w-full aspect-video bg-zinc-950 rounded-xl sm:rounded-2xl p-6 flex flex-col items-center justify-center text-center border border-white/10">
+              <div className="w-full aspect-video bg-zinc-950 rounded-xl sm:rounded-2xl p-6 flex flex-col items-center justify-center text-center">
                 <AlertCircle className="w-10 h-10 text-amber-400 mb-2" />
                 <h4 className="text-sm font-bold text-white mb-1">
                   Chưa tìm thấy tập phim trên Server VSMOV

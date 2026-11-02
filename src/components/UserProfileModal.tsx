@@ -453,7 +453,7 @@ function UserProfileModalInner({
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="relative w-full max-w-3xl max-h-[92vh] sm:max-h-[90vh] overflow-y-auto overscroll-contain rounded-2xl sm:rounded-3xl border border-white/15 bg-gradient-to-b from-zinc-900 via-zinc-950 to-black p-3.5 sm:p-6 shadow-2xl space-y-3.5 sm:space-y-5 scrollbar-thin text-white transform-gpu will-change-[transform,opacity] animate-in zoom-in-95 duration-150"
+        className="relative w-full max-w-3xl max-h-[92vh] sm:max-h-[90vh] overflow-y-auto overscroll-contain rounded-2xl sm:rounded-3xl bg-gradient-to-b from-zinc-900 via-zinc-950 to-black p-3.5 sm:p-6 shadow-2xl space-y-3.5 sm:space-y-5 scrollbar-thin text-white transform-gpu will-change-[transform,opacity] animate-in zoom-in-95 duration-150"
       >
         {/* NÚT ĐÓNG */}
         <button
@@ -465,7 +465,7 @@ function UserProfileModalInner({
         </button>
 
         {/* PROFILE HEADER & SUMMARY */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-white/10 pb-3 sm:pb-4 pr-7 sm:pr-0">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b pb-3 sm:pb-4 pr-7 sm:pr-0">
           <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 w-full sm:w-auto">
             <div className="relative flex-shrink-0">
               <UserAvatar
@@ -473,7 +473,7 @@ function UserProfileModalInner({
                 name={displayName || user.displayName || user.email}
                 sizeClassName="w-11 h-11 sm:w-14 sm:h-14 text-base sm:text-xl font-black"
                 rounded="2xl"
-                className="border border-rose-500/40 shadow-md"
+                className="shadow-md"
               />
               <span className="absolute -bottom-1 -right-1 text-xs">{levelInfo.badgeIcon}</span>
             </div>
@@ -483,7 +483,7 @@ function UserProfileModalInner({
                 <h3 className="text-sm sm:text-lg font-black text-white truncate max-w-[180px] sm:max-w-none">
                   {displayName || user.displayName || "Thành viên Nanaflix"}
                 </h3>
-                <span className="px-1.5 sm:px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/30 text-[9.5px] sm:text-[10px] font-bold whitespace-nowrap">
+                <span className="px-1.5 sm:px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 text-[9.5px] sm:text-[10px] font-bold whitespace-nowrap">
                   {levelInfo.levelName}
                 </span>
               </div>
@@ -500,14 +500,14 @@ function UserProfileModalInner({
             href="/my-list?tab=history"
             onClick={() => setIsOpen(false)}
             aria-label="Xem lịch sử xem phim"
-            className="p-1.5 sm:p-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-center flex flex-col items-center justify-center transition group min-w-0 overflow-hidden cursor-pointer"
+            className="p-1.5 sm:p-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] text-center flex flex-col items-center justify-center transition group min-w-0 overflow-hidden cursor-pointer"
           >
             <Film className="w-3.5 h-3.5 text-rose-400 mb-0.5 sm:mb-1 group-hover:scale-110 transition flex-shrink-0" />
             <span className="text-xs sm:text-sm font-black text-white truncate max-w-full">{watchHistoryCount}</span>
             <span className="text-[9.5px] sm:text-[10px] text-zinc-400 truncate max-w-full px-0.5">Lịch sử xem</span>
           </Link>
 
-          <div className="p-1.5 sm:p-2.5 rounded-xl bg-white/[0.04] border border-white/10 text-center flex flex-col items-center justify-center min-w-0 overflow-hidden">
+          <div className="p-1.5 sm:p-2.5 rounded-xl bg-white/[0.04] text-center flex flex-col items-center justify-center min-w-0 overflow-hidden">
             <Flame className="w-3.5 h-3.5 text-amber-400 mb-0.5 sm:mb-1 flex-shrink-0" />
             <span className="text-xs sm:text-sm font-black text-amber-300 truncate max-w-full">{watchHours}h</span>
             <span className="text-[9.5px] sm:text-[10px] text-zinc-400 truncate max-w-full px-0.5">Thời gian cày</span>
@@ -516,7 +516,7 @@ function UserProfileModalInner({
           <Link
             href="/my-list?tab=watchlist"
             onClick={() => setIsOpen(false)}
-            className="p-1.5 sm:p-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-center flex flex-col items-center justify-center transition group min-w-0 overflow-hidden"
+            className="p-1.5 sm:p-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] text-center flex flex-col items-center justify-center transition group min-w-0 overflow-hidden"
           >
             <Bookmark className="w-3.5 h-3.5 text-amber-400 mb-0.5 sm:mb-1 group-hover:scale-110 transition flex-shrink-0" />
             <span className="text-xs sm:text-sm font-black text-white truncate max-w-full">{watchlistCount}</span>
@@ -526,7 +526,7 @@ function UserProfileModalInner({
           <Link
             href="/my-list?tab=collections"
             onClick={() => setIsOpen(false)}
-            className="p-1.5 sm:p-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-center flex flex-col items-center justify-center transition group min-w-0 overflow-hidden"
+            className="p-1.5 sm:p-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] text-center flex flex-col items-center justify-center transition group min-w-0 overflow-hidden"
           >
             <FolderHeart className="w-3.5 h-3.5 text-sky-400 mb-0.5 sm:mb-1 group-hover:scale-110 transition flex-shrink-0" />
             <span className="text-xs sm:text-sm font-black text-white truncate max-w-full">{collectionsCount}</span>
@@ -536,9 +536,9 @@ function UserProfileModalInner({
           <button
             type="button"
             onClick={() => setActiveTab("comments")}
-            className={`p-1.5 sm:p-2.5 rounded-xl border text-center flex flex-col items-center justify-center transition cursor-pointer min-w-0 overflow-hidden ${activeTab === "comments"
-              ? "bg-rose-500/15 border-rose-500/40 text-rose-300"
-              : "bg-white/[0.04] hover:bg-white/[0.08] border-white/10 text-white"
+            className={`p-1.5 sm:p-2.5 rounded-xl text-center flex flex-col items-center justify-center transition cursor-pointer min-w-0 overflow-hidden ${activeTab === "comments"
+              ? "bg-rose-500/20 text-rose-300"
+              : "bg-white/[0.04] hover:bg-white/[0.08] text-white"
               }`}
           >
             <MessageSquare className="w-3.5 h-3.5 text-emerald-400 mb-0.5 sm:mb-1 flex-shrink-0" />
@@ -548,7 +548,7 @@ function UserProfileModalInner({
         </div>
 
         {/* TAB CHUYỂN ĐỔI DASHBOARD (3 TABS) */}
-        <div className="grid grid-cols-3 gap-1 sm:gap-1.5 bg-white/5 p-1 rounded-2xl border border-white/10 text-[11px] sm:text-xs font-bold">
+        <div className="grid grid-cols-3 gap-1 sm:gap-1.5 bg-white/5 p-1 rounded-2xl text-[11px] sm:text-xs font-bold">
           <button
             type="button"
             onClick={() => setActiveTab("profile")}
@@ -599,12 +599,12 @@ function UserProfileModalInner({
         {activeTab === "profile" && (
           <div className="space-y-3.5 sm:space-y-4">
             {/* WATCH LEVEL CARD */}
-            <div className="p-3 sm:p-4 rounded-2xl border border-white/10 bg-white/5 space-y-2">
+            <div className="p-3 sm:p-4 rounded-2xl bg-white/5 space-y-2">
               <div className="flex items-center justify-between text-xs sm:text-sm gap-1.5 sm:gap-2 flex-wrap">
                 <div className="flex items-center gap-1.5 sm:gap-2">
                   <span className="text-base sm:text-lg">{levelInfo.badgeIcon}</span>
                   <span className="font-extrabold text-white">{levelInfo.levelName}</span>
-                  <span className="px-1.5 sm:px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[9.5px] sm:text-[10px] font-bold whitespace-nowrap">
+                  <span className="px-1.5 sm:px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-[9.5px] sm:text-[10px] font-bold whitespace-nowrap">
                     Cấp Độ
                   </span>
                 </div>
@@ -618,7 +618,7 @@ function UserProfileModalInner({
                 <div className="space-y-1 pt-1">
                   <div className="flex justify-between text-[10.5px] sm:text-[11px] text-zinc-400">
                     <span>Tiến độ lên {levelInfo.nextLevelName}:</span>
-                    <span className="font-mono">
+                    <span className="font-sans">
                       {watchMins} / {levelInfo.nextMinMinutes} phút
                     </span>
                   </div>
@@ -647,7 +647,7 @@ function UserProfileModalInner({
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
-                    className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-full bg-netflix-red/20 border border-netflix-red/40 text-rose-300 hover:bg-netflix-red hover:text-white text-[11px] sm:text-xs font-bold transition cursor-pointer flex-shrink-0"
+                    className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-full bg-netflix-red/20 text-rose-300 hover:bg-netflix-red hover:text-white text-[11px] sm:text-xs font-bold transition cursor-pointer flex-shrink-0"
                   >
                     <Upload className="w-3.5 h-3.5 flex-shrink-0" />
                     <span>Tải ảnh từ máy</span>
@@ -674,8 +674,8 @@ function UserProfileModalInner({
                         }}
                         title={av.name}
                         className={`relative aspect-square rounded-xl sm:rounded-2xl border overflow-hidden p-1 transition-all cursor-pointer ${isSelected
-                          ? "border-netflix-red bg-netflix-red/20 ring-2 ring-netflix-red scale-105"
-                          : "border-white/10 bg-white/5 hover:border-white/30 hover:bg-white/10"
+                          ? "border-netflix-red bg-netflix-red/20  scale-105"
+                          : " bg-white/5 hover: hover:bg-white/10"
                           }`}
                       >
                         <UserAvatar
@@ -715,10 +715,10 @@ function UserProfileModalInner({
                         setSelectedAvatar(e.target.value);
                       }}
                       placeholder="Dán link ảnh URL của bạn (https://...)"
-                      className="w-full min-w-0 flex-1 px-3 py-2 rounded-xl bg-zinc-900 border border-white/15 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-netflix-red transition"
+                      className="w-full min-w-0 flex-1 px-3 py-2 rounded-xl bg-zinc-900 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-netflix-red transition"
                     />
                     {customAvatarUrl && (
-                      <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full border border-white/20 overflow-hidden flex-shrink-0">
+                      <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full overflow-hidden flex-shrink-0">
                         <UserAvatar
                           src={customAvatarUrl}
                           name={displayName || "Custom"}
@@ -745,7 +745,7 @@ function UserProfileModalInner({
                     value={displayName}
                     onChange={(e) => setDisplayName(e.target.value)}
                     placeholder="Nhập tên hiển thị..."
-                    className="w-full min-w-0 px-3 sm:px-3.5 py-2 rounded-xl bg-zinc-900 border border-white/15 text-xs sm:text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-netflix-red transition font-semibold"
+                    className="w-full min-w-0 px-3 sm:px-3.5 py-2 rounded-xl bg-zinc-900 text-xs sm:text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-netflix-red transition font-semibold"
                   />
                 </div>
 
@@ -762,7 +762,7 @@ function UserProfileModalInner({
                     value={bio}
                     onChange={(e) => setBio(e.target.value)}
                     placeholder="Mê phim Marvel, cày phim bộ ban đêm 🍿..."
-                    className="w-full min-w-0 px-3 sm:px-3.5 py-2 rounded-xl bg-zinc-900 border border-white/15 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-netflix-red transition resize-none leading-relaxed"
+                    className="w-full min-w-0 px-3 sm:px-3.5 py-2 rounded-xl bg-zinc-900 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-netflix-red transition resize-none leading-relaxed"
                   />
                 </div>
               </div>
@@ -789,10 +789,10 @@ function UserProfileModalInner({
                         onClick={() => toggleBadge(b)}
                         title={isUnlocked ? b.label : `Đang khóa - Cần ${b.reqText}`}
                         className={`px-2.5 sm:px-3 py-1.5 rounded-xl text-[11px] sm:text-xs font-bold transition-all cursor-pointer border flex items-center gap-1 sm:gap-1.5 max-w-full ${!isUnlocked
-                          ? "bg-zinc-900/40 text-zinc-500 border-white/5 opacity-55 hover:opacity-80"
+                          ? "bg-zinc-900/40 text-zinc-500  opacity-55 hover:opacity-80"
                           : active
-                            ? "bg-amber-500/20 text-amber-300 border-amber-500/50 shadow-md shadow-black/50 scale-102"
-                            : "bg-zinc-900 text-zinc-300 border-white/10 hover:border-white/25 hover:text-white"
+                            ? "bg-amber-500/20 text-amber-300  shadow-md shadow-black/50 scale-102"
+                            : "bg-zinc-900 text-zinc-300  hover: hover:text-white"
                           }`}
                       >
                         {!isUnlocked ? (
@@ -805,7 +805,7 @@ function UserProfileModalInner({
                   })}
                 </div>
                 {badgeHint && (
-                  <div className="p-2 rounded-xl bg-amber-500/10 border border-amber-500/30 text-[11px] sm:text-[11.5px] text-amber-300 font-semibold flex items-center gap-2">
+                  <div className="p-2 rounded-xl bg-amber-500/10 text-[11px] sm:text-[11.5px] text-amber-300 font-semibold flex items-center gap-2">
                     <Lock className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />
                     <span>{badgeHint}</span>
                   </div>
@@ -826,8 +826,8 @@ function UserProfileModalInner({
                         type="button"
                         onClick={() => toggleGenre(genre)}
                         className={`px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full text-[11px] sm:text-xs font-semibold transition-all cursor-pointer ${active
-                          ? "bg-netflix-red text-white shadow-md border border-rose-500 font-bold"
-                          : "bg-zinc-900 text-zinc-400 hover:text-white border border-white/10 hover:border-white/25"
+                          ? "bg-netflix-red text-white shadow-md  font-bold"
+                          : "bg-zinc-900 text-zinc-400 hover:text-white  hover:"
                           }`}
                       >
                         {genre}
@@ -838,7 +838,7 @@ function UserProfileModalInner({
               </div>
 
               {/* NÚT LƯU PROFILE */}
-              <div className="pt-3 border-t border-white/10 flex items-center justify-end gap-2 sm:gap-3">
+              <div className="pt-3 border-t flex items-center justify-end gap-2 sm:gap-3">
                 <button
                   type="button"
                   onClick={() => setIsOpen(false)}
@@ -871,7 +871,7 @@ function UserProfileModalInner({
         {/* TAB 2: CÀI ĐẶT TRÌNH PHÁT CLOUD */}
         {activeTab === "player_settings" && (
           <form onSubmit={handleSavePlayerSettings} className="space-y-3 sm:space-y-4 py-1">
-            <div className="p-3 sm:p-3.5 rounded-2xl bg-white/[0.03] border border-white/10 space-y-1">
+            <div className="p-3 sm:p-3.5 rounded-2xl bg-white/[0.03] space-y-1">
               <h4 className="text-xs sm:text-sm font-bold text-white flex items-center gap-2">
                 <Sliders className="w-4 h-4 text-rose-400 flex-shrink-0" />
                 <span>Đồng bộ tùy chọn trình phát Cloud</span>
@@ -883,7 +883,7 @@ function UserProfileModalInner({
 
             <div className="space-y-2.5 sm:space-y-3">
               {/* TỰ ĐỘNG CHUYỂN TẬP */}
-              <div className="flex items-start sm:items-center justify-between p-3 sm:p-3.5 rounded-2xl bg-zinc-900/60 border border-white/10 hover:border-white/20 transition gap-2.5 sm:gap-3">
+              <div className="flex items-start sm:items-center justify-between p-3 sm:p-3.5 rounded-2xl bg-zinc-900/60 hover:bg-zinc-900/80 transition gap-2.5 sm:gap-3">
                 <div className="space-y-0.5 min-w-0 flex-1 pr-1 sm:pr-3">
                   <div className="text-xs sm:text-sm font-bold text-white flex items-center gap-1.5">
                     <Play className="w-3.5 h-3.5 text-rose-400 flex-shrink-0" />
@@ -907,7 +907,7 @@ function UserProfileModalInner({
               </div>
 
               {/* MẶC ĐỊNH MỞ RẠP PHIM (THEATER MODE) */}
-              <div className="flex items-start sm:items-center justify-between p-3 sm:p-3.5 rounded-2xl bg-zinc-900/60 border border-white/10 hover:border-white/20 transition gap-2.5 sm:gap-3">
+              <div className="flex items-start sm:items-center justify-between p-3 sm:p-3.5 rounded-2xl bg-zinc-900/60 hover:bg-zinc-900/80 transition gap-2.5 sm:gap-3">
                 <div className="space-y-0.5 min-w-0 flex-1 pr-1 sm:pr-3">
                   <div className="text-xs sm:text-sm font-bold text-white flex items-center gap-1.5">
                     <Tv className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />
@@ -931,7 +931,7 @@ function UserProfileModalInner({
               </div>
 
               {/* MẶC ĐỊNH TẮT ĐÈN (LIGHTS OFF) */}
-              <div className="flex items-start sm:items-center justify-between p-3 sm:p-3.5 rounded-2xl bg-zinc-900/60 border border-white/10 hover:border-white/20 transition gap-2.5 sm:gap-3">
+              <div className="flex items-start sm:items-center justify-between p-3 sm:p-3.5 rounded-2xl bg-zinc-900/60 hover:bg-zinc-900/80 transition gap-2.5 sm:gap-3">
                 <div className="space-y-0.5 min-w-0 flex-1 pr-1 sm:pr-3">
                   <div className="text-xs sm:text-sm font-bold text-white flex items-center gap-1.5">
                     <Moon className="w-3.5 h-3.5 text-sky-400 flex-shrink-0" />
@@ -955,7 +955,7 @@ function UserProfileModalInner({
               </div>
 
               {/* TỰ ĐỘNG BẬT PHỤ ĐỀ */}
-              <div className="flex items-start sm:items-center justify-between p-3 sm:p-3.5 rounded-2xl bg-zinc-900/60 border border-white/10 hover:border-white/20 transition gap-2.5 sm:gap-3">
+              <div className="flex items-start sm:items-center justify-between p-3 sm:p-3.5 rounded-2xl bg-zinc-900/60 hover:bg-zinc-900/80 transition gap-2.5 sm:gap-3">
                 <div className="space-y-0.5 min-w-0 flex-1 pr-1 sm:pr-3">
                   <div className="text-xs sm:text-sm font-bold text-white flex items-center gap-1.5">
                     <Subtitles className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
@@ -979,7 +979,7 @@ function UserProfileModalInner({
               </div>
 
               {/* TỐC ĐỘ PHÁT MẶC ĐỊNH */}
-              <div className="p-3 sm:p-3.5 rounded-2xl bg-zinc-900/60 border border-white/10 space-y-2">
+              <div className="p-3 sm:p-3.5 rounded-2xl bg-zinc-900/60 space-y-2">
                 <div className="flex items-center justify-between">
                   <label className="text-xs sm:text-sm font-bold text-white flex items-center gap-1.5">
                     <Zap className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />
@@ -997,9 +997,9 @@ function UserProfileModalInner({
                       onClick={() =>
                         setPlayerSettingsState({ ...playerSettings, playbackSpeed: speed })
                       }
-                      className={`py-1.5 sm:py-2 px-0.5 sm:px-1 rounded-xl text-[10.5px] sm:text-xs font-black transition cursor-pointer border text-center truncate ${playerSettings.playbackSpeed === speed
-                        ? "bg-amber-500 text-black border-amber-400 shadow-md shadow-black/50"
-                        : "bg-white/5 text-zinc-300 border-white/10 hover:border-white/25 hover:text-white"
+                      className={`py-1.5 sm:py-2 px-0.5 sm:px-1 rounded-xl text-[10.5px] sm:text-xs font-black transition cursor-pointer text-center truncate ${playerSettings.playbackSpeed === speed
+                        ? "bg-amber-500 text-black shadow-md shadow-black/50"
+                        : "bg-white/5 text-zinc-300 hover:bg-white/10 hover:text-white"
                         }`}
                     >
                       {speed === 1 ? (
@@ -1014,7 +1014,7 @@ function UserProfileModalInner({
             </div>
 
             {/* NÚT LƯU PLAYBACK SETTINGS */}
-            <div className="pt-3 border-t border-white/10 flex items-center justify-end gap-2 sm:gap-3">
+            <div className="pt-3 border-t flex items-center justify-end gap-2 sm:gap-3">
               <button
                 type="button"
                 onClick={() => setPlayerSettingsState(getPlayerSettings(user?.uid))}
@@ -1047,7 +1047,7 @@ function UserProfileModalInner({
         {activeTab === "comments" && (
           <div className="space-y-3 sm:space-y-4 py-1">
             {userComments.length === 0 ? (
-              <div className="py-10 sm:py-12 px-4 text-center border border-dashed border-white/10 rounded-2xl bg-white/[0.02]">
+              <div className="py-10 sm:py-12 px-4 text-center rounded-2xl bg-white/[0.02]">
                 <MessageSquare className="w-9 h-9 sm:w-10 sm:h-10 text-zinc-500 mx-auto mb-2.5 opacity-60" />
                 <h4 className="text-sm sm:text-base font-bold text-white mb-1">
                   Bạn chưa đăng bình luận nào
@@ -1061,7 +1061,7 @@ function UserProfileModalInner({
                 {userComments.map((c) => (
                   <div
                     key={c.id}
-                    className="p-3 sm:p-4 rounded-2xl border border-white/10 bg-white/[0.03] hover:bg-white/[0.06] transition space-y-2 sm:space-y-2.5"
+                    className="p-3 sm:p-4 rounded-2xl bg-white/[0.03] hover:bg-white/[0.06] transition space-y-2 sm:space-y-2.5"
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0 flex-1">
@@ -1074,7 +1074,7 @@ function UserProfileModalInner({
                           <ExternalLink className="w-3.5 h-3.5 text-zinc-500 group-hover:text-rose-400 transition flex-shrink-0" />
                         </Link>
                         {c.episodeName && (
-                          <span className="text-[10px] sm:text-[11px] text-rose-300 font-semibold bg-rose-500/10 px-2 py-0.5 rounded-md border border-rose-500/20 inline-block mt-1">
+                          <span className="text-[10px] sm:text-[11px] text-rose-300 font-semibold bg-rose-500/10 px-2 py-0.5 rounded-md inline-block mt-1">
                             {c.episodeName}
                           </span>
                         )}
@@ -1082,14 +1082,14 @@ function UserProfileModalInner({
 
                       {/* STAR RATING */}
                       {c.rating > 0 && (
-                        <div className="flex items-center gap-1 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 text-[11px] sm:text-xs font-black flex-shrink-0">
+                        <div className="flex items-center gap-1 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full bg-amber-500/15 text-amber-300 text-[11px] sm:text-xs font-black flex-shrink-0">
                           <Star className="w-3 h-3 sm:w-3.5 sm:h-3.5 fill-amber-400 text-amber-400" />
                           <span>{c.rating}/5</span>
                         </div>
                       )}
                     </div>
 
-                    <p className="text-[11.5px] sm:text-xs text-zinc-200 leading-relaxed bg-black/40 p-2.5 sm:p-3 rounded-xl border border-white/5 whitespace-pre-line break-words">
+                    <p className="text-[11.5px] sm:text-xs text-zinc-200 leading-relaxed bg-black/40 p-2.5 sm:p-3 rounded-xl whitespace-pre-line break-words">
                       {c.content}
                     </p>
 

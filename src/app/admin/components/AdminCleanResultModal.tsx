@@ -15,11 +15,11 @@ export const AdminCleanResultModal: React.FC<AdminCleanResultModalProps> = React
 
     return (
       <div className="fixed inset-0 z-[160] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
-        <div className="max-w-2xl w-full bg-zinc-950 border border-red-500/30 rounded-3xl p-6 shadow-2xl space-y-5 max-h-[85vh] flex flex-col overflow-hidden">
+        <div className="max-w-2xl w-full bg-zinc-950 rounded-3xl p-6 shadow-2xl space-y-5 max-h-[85vh] flex flex-col overflow-hidden">
           {/* Header */}
-          <div className="flex items-start justify-between gap-4 pb-4 border-b border-white/10 flex-shrink-0">
+          <div className="flex items-start justify-between gap-4 pb-4 border-b flex-shrink-0">
             <div className="flex items-center gap-3">
-              <div className="p-3 rounded-2xl bg-red-500/20 text-red-400 border border-red-500/30">
+              <div className="p-3 rounded-2xl bg-red-500/20 text-red-400">
                 <ShieldAlert size={22} />
               </div>
               <div>
@@ -51,21 +51,21 @@ export const AdminCleanResultModal: React.FC<AdminCleanResultModalProps> = React
               {cleanResult.deletedItems.map((item, idx) => (
                 <div
                   key={item.id || idx}
-                  className="p-3.5 rounded-2xl bg-red-950/20 border border-red-500/20 text-xs space-y-2"
+                  className="p-3.5 rounded-2xl bg-red-950/20 text-xs space-y-2"
                 >
                   <div className="flex items-center justify-between gap-2 flex-wrap">
                     <div className="flex items-center gap-2">
                       <span className="font-bold text-white">{item.userName}</span>
-                      <span className="text-[10px] px-2 py-0.2 rounded-full bg-red-500/20 text-red-300 font-semibold border border-red-500/30">
+                      <span className="text-[10px] px-2 py-0.2 rounded-full bg-red-500/20 text-red-300 font-semibold">
                         {item.reason}
                       </span>
                     </div>
-                    <span className="text-[11px] text-zinc-400 font-mono">
+                    <span className="text-[11px] text-zinc-400 font-sans tabular-nums">
                       Phim: {item.movieSlug}
                     </span>
                   </div>
 
-                  <div className="p-2.5 rounded-xl bg-black/50 border border-white/5 text-zinc-200 font-sans">
+                  <div className="p-2.5 rounded-xl bg-black/50 text-zinc-200 font-sans">
                     &ldquo;{item.content}&rdquo;
                   </div>
 
@@ -75,7 +75,7 @@ export const AdminCleanResultModal: React.FC<AdminCleanResultModalProps> = React
                       {item.violations.map((kw, i) => (
                         <span
                           key={i}
-                          className="px-1.5 py-0.2 rounded bg-red-900/60 border border-red-500/30 text-red-200 text-[10px] font-mono"
+                          className="px-1.5 py-0.2 rounded bg-red-900/60 text-red-200 text-[10px] font-sans tabular-nums"
                         >
                           {kw}
                         </span>
@@ -88,7 +88,7 @@ export const AdminCleanResultModal: React.FC<AdminCleanResultModalProps> = React
           </div>
 
           {/* Footer */}
-          <div className="pt-3 border-t border-white/10 flex items-center justify-end flex-shrink-0">
+          <div className="pt-3 border-t flex items-center justify-end flex-shrink-0">
             <button
               type="button"
               onClick={onClose}

@@ -126,16 +126,16 @@ export const PlayerShortcutModal: React.FC<PlayerShortcutModalProps> = React.mem
       >
         <div
           onClick={(e) => e.stopPropagation()}
-          className="relative w-full max-w-lg my-auto rounded-2xl border border-white/10 bg-zinc-950/95 backdrop-blur-2xl p-5 sm:p-6 shadow-[0_30px_90px_rgba(0,0,0,0.95)] animate-in zoom-in-95 duration-200 overflow-hidden transform-gpu will-change-[transform,opacity]"
+          className="relative w-full max-w-lg my-auto rounded-2xl bg-zinc-950/95 backdrop-blur-2xl p-5 sm:p-6 shadow-[0_30px_90px_rgba(0,0,0,0.95)] animate-in zoom-in-95 duration-200 overflow-hidden transform-gpu will-change-[transform,opacity]"
         >
           {/* Subtle Ambient Glow */}
           <div className="absolute -top-24 -left-24 w-52 h-52 bg-netflix-red/15 rounded-full blur-3xl pointer-events-none" />
           <div className="absolute -bottom-24 -right-24 w-52 h-52 bg-white/5 rounded-full blur-3xl pointer-events-none" />
 
           {/* Modal Header */}
-          <div className="relative flex items-start justify-between pb-4 mb-4 border-b border-white/10">
+          <div className="relative flex items-start justify-between pb-4 mb-4 border-b">
             <div className="space-y-1">
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/5 border border-white/10 text-[11px] font-semibold text-zinc-300">
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/5 text-[11px] font-semibold text-zinc-300">
                 <Keyboard className="w-3.5 h-3.5 text-netflix-red shrink-0" />
                 <span>Phím tắt điều khiển</span>
               </div>
@@ -168,14 +168,14 @@ export const PlayerShortcutModal: React.FC<PlayerShortcutModalProps> = React.mem
                   {group.items.map((item) => (
                     <div
                       key={item.label}
-                      className="flex items-center justify-between px-2.5 py-1.5 rounded-xl bg-zinc-900/60 hover:bg-zinc-900/90 border border-white/5 transition-colors"
+                      className="flex items-center justify-between px-2.5 py-1.5 rounded-xl bg-zinc-900/60 hover:bg-zinc-900/90 transition-colors"
                     >
                       <span className="text-xs text-zinc-300">{item.label}</span>
                       <div className="flex items-center gap-1">
                         {item.keys.map((k) => (
                           <kbd
                             key={k}
-                            className="inline-flex items-center justify-center min-w-[26px] h-6 px-1.5 rounded-[6px] bg-zinc-800 border border-zinc-700/80 shadow-[0_2px_0_1px_rgba(0,0,0,0.6),inset_0_1px_0_rgba(255,255,255,0.12)] text-[11px] font-mono font-semibold text-zinc-100 select-none tracking-tight"
+                            className="inline-flex items-center justify-center min-w-[26px] h-6 px-1.5 rounded-[6px] bg-zinc-800 border border-zinc-700/80 shadow-[0_2px_0_1px_rgba(0,0,0,0.6),inset_0_1px_0_rgba(255,255,255,0.12)] text-[11px] font-sans tabular-nums font-semibold text-zinc-100 select-none tracking-tight"
                           >
                             {k}
                           </kbd>
@@ -189,16 +189,16 @@ export const PlayerShortcutModal: React.FC<PlayerShortcutModalProps> = React.mem
           </div>
 
           {/* Footer Action */}
-          <div className="relative mt-5 pt-3.5 border-t border-white/10 space-y-2 text-center">
+          <div className="relative mt-5 pt-3.5 border-t space-y-2 text-center">
             <button
               type="button"
               onClick={onClose}
-              className="w-full py-2.5 rounded-xl bg-white/10 hover:bg-white/15 active:scale-[0.99] text-white text-xs sm:text-sm font-semibold tracking-wide border border-white/15 transition cursor-pointer shadow-lg"
+              className="w-full py-2.5 rounded-xl bg-white/10 hover:bg-white/15 active:scale-[0.99] text-white text-xs sm:text-sm font-semibold tracking-wide transition cursor-pointer shadow-lg"
             >
               Đã hiểu
             </button>
             <p className="text-[11px] text-zinc-500">
-              Mẹo: Nhấn <kbd className="px-1 py-0.5 rounded bg-zinc-800 text-zinc-300 font-mono text-[10px]">?</kbd> hoặc <kbd className="px-1 py-0.5 rounded bg-zinc-800 text-zinc-300 font-mono text-[10px]">Esc</kbd> để đóng bảng bất kỳ lúc nào
+              Mẹo: Nhấn <kbd className="px-1 py-0.5 rounded bg-zinc-800 text-zinc-300 font-sans tabular-nums text-[10px]">?</kbd> hoặc <kbd className="px-1 py-0.5 rounded bg-zinc-800 text-zinc-300 font-sans tabular-nums text-[10px]">Esc</kbd> để đóng bảng bất kỳ lúc nào
             </p>
           </div>
         </div>

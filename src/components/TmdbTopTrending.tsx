@@ -62,7 +62,7 @@ const TAB_CONFIG: Record<
     subtitle: "Top 20 phim thịnh hành toàn cầu trên TMDB đã có bản xem tại Nanaflix",
     badge: "TMDB Quốc Tế • Thịnh Hành Tuần",
     icon: Flame,
-    badgeClass: "text-rose-400 bg-rose-500/10 border-rose-500/20",
+    badgeClass: "text-rose-400 bg-rose-500/10 ",
     gradientClass: "from-rose-600 to-amber-500 shadow-black/50",
   },
   month: {
@@ -70,7 +70,7 @@ const TAB_CONFIG: Record<
     subtitle: "Top 20 tác phẩm được đông đảo khán giả quốc tế quan tâm nhất trong tháng",
     badge: "TMDB Quốc Tế • Nổi Bật Tháng",
     icon: Zap,
-    badgeClass: "text-amber-400 bg-amber-500/10 border-amber-500/20",
+    badgeClass: "text-amber-400 bg-amber-500/10 ",
     gradientClass: "from-amber-500 to-orange-600 shadow-black/50",
   },
   top_rated: {
@@ -360,7 +360,7 @@ function TmdbTopTrendingInner() {
 
         {/* 3 TABS & CAROUSEL CONTROLS */}
         <div className="flex items-center justify-between lg:justify-end gap-3 w-full lg:w-auto shrink-0">
-          <div className="flex items-center gap-1 p-1 rounded-xl bg-zinc-900/90 border border-white/10 text-xs font-semibold backdrop-blur-md overflow-x-auto scrollbar-none max-w-full w-full sm:w-auto justify-start">
+          <div className="flex items-center gap-1 p-1 rounded-xl bg-zinc-900/90 text-xs font-semibold backdrop-blur-md overflow-x-auto scrollbar-none max-w-full w-full sm:w-auto justify-start">
             <button
               type="button"
               onClick={() => switchTab("week")}
@@ -453,7 +453,7 @@ function TmdbTopTrendingInner() {
               >
                 <div className="w-[45px] sm:w-[65px] md:w-[75px] h-[210px] sm:h-[262px] md:h-[285px] -mr-5 sm:-mr-8" />
                 <div className="w-[140px] sm:w-[175px] md:w-[190px] flex flex-col gap-2">
-                  <div className="aspect-[2/3] rounded-xl bg-zinc-900/80 animate-pulse border border-white/5" />
+                  <div className="aspect-[2/3] rounded-xl bg-zinc-900/80 animate-pulse" />
                   <div className="h-4 bg-zinc-900/80 rounded animate-pulse w-3/4" />
                   <div className="h-3 bg-zinc-900/60 rounded animate-pulse w-1/2" />
                 </div>
@@ -518,7 +518,7 @@ function TmdbTopTrendingInner() {
                     {/* CỘT POSTER + METADATA DƯỚI POSTER */}
                     <div className="relative z-10 w-[140px] sm:w-[175px] md:w-[190px] flex flex-col shrink-0 min-w-0">
                       {/* MOVIE POSTER CONTAINER (ARTWORK THUẦN KHIẾT) */}
-                      <div className="relative w-full aspect-[2/3] rounded-xl overflow-hidden bg-zinc-950 bg-gradient-to-br from-zinc-800/70 via-zinc-900 to-zinc-950 ring-1 ring-white/10 group-hover:ring-2 group-hover:ring-amber-400 group-hover:ring-inset group-hover:shadow-[0_14px_32px_rgba(245,158,11,0.3),0_0_20px_rgba(0,0,0,0.8)] transition-all duration-300">
+                      <div className="relative w-full aspect-[2/3] rounded-xl overflow-hidden bg-zinc-950 bg-gradient-to-br from-zinc-800/70 via-zinc-900 to-zinc-950 group-hover: group-hover:ring-amber-400 group-hover:ring-inset group-hover:shadow-[0_14px_32px_rgba(245,158,11,0.3),0_0_20px_rgba(0,0,0,0.8)] transition-all duration-300">
                         {(() => {
                           const rawPoster = pickBestMoviePoster(
                             {
@@ -589,8 +589,8 @@ function TmdbTopTrendingInner() {
                               <span
                                 className={`px-1.5 py-0.5 rounded text-[10px] font-bold backdrop-blur-md border ${
                                   isCam
-                                    ? "bg-amber-950/90 text-amber-300 border-amber-500/40"
-                                    : "bg-black/75 text-zinc-100 border-white/20"
+                                    ? "bg-amber-950/90 text-amber-300 "
+                                    : "bg-black/75 text-zinc-100 "
                                 }`}
                               >
                                 {isCam ? "CAM" : "4K"}

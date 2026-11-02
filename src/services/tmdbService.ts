@@ -154,7 +154,7 @@ export async function getTmdbPosterUrl(
   if (!cleanId || cleanId === "0" || cleanId === "null" || cleanId === "undefined") return null;
 
   const cleanType = type === "tv" || type === "series" ? "tv" : "movie";
-  const cacheKey = `${cleanType}:${cleanId}`;
+  const cacheKey = `v2:${cleanType}:${cleanId}`;
 
   const now = Date.now();
   const memoryHit = TMDB_POSTER_CACHE.get(cacheKey);
@@ -162,16 +162,28 @@ export async function getTmdbPosterUrl(
     return memoryHit.url;
   }
 
-  const kvKey = `tmdb:poster:v1:${cleanType}:${cleanId}`;
+  const kvKey = `tmdb:poster:v2:${cleanType}:${cleanId}`;
   const posterUrl = await cacheService.fetchOrSet(
     kvKey,
     async () => {
       try {
-        let data = await fetchTmdbEndpoint(`/${cleanType}/${cleanId}`);
+        // 1. Thử lấy poster tiếng Việt theo cleanType
+        let data = await fetchTmdbEndpoint(`/${cleanType}/${cleanId}?language=vi-VN`);
+
+        // 2. Nếu có phim nhưng chưa có poster tiếng Việt, lấy poster mặc định quốc tế
+        if (!data?.poster_path && data?.id) {
+          data = await fetchTmdbEndpoint(`/${cleanType}/${cleanId}`);
+        }
+
+        // 3. Fallback sang loại media khác (movie <-> tv) nếu không tìm thấy phim
         if (!data?.poster_path && !data?.id) {
           const altType = cleanType === "tv" ? "movie" : "tv";
-          data = await fetchTmdbEndpoint(`/${altType}/${cleanId}`);
+          data = await fetchTmdbEndpoint(`/${altType}/${cleanId}?language=vi-VN`);
+          if (!data?.poster_path && data?.id) {
+            data = await fetchTmdbEndpoint(`/${altType}/${cleanId}`);
+          }
         }
+
         if (data?.poster_path) {
           return `https://image.tmdb.org/t/p/w500${data.poster_path}`;
         }

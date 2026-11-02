@@ -31,7 +31,7 @@ export const REACTIONS_CONFIG: Record<CommentReactionType, ReactionConfig> = {
     color: "#f43f5e",
     textColor: "text-rose-400 font-semibold",
     bgColor: "bg-rose-500/15",
-    borderColor: "border-rose-500/30",
+    borderColor: "",
   },
   haha: {
     type: "haha",
@@ -40,7 +40,7 @@ export const REACTIONS_CONFIG: Record<CommentReactionType, ReactionConfig> = {
     color: "#eab308",
     textColor: "text-amber-400 font-semibold",
     bgColor: "bg-amber-500/15",
-    borderColor: "border-amber-500/30",
+    borderColor: "",
   },
   wow: {
     type: "wow",
@@ -49,7 +49,7 @@ export const REACTIONS_CONFIG: Record<CommentReactionType, ReactionConfig> = {
     color: "#f59e0b",
     textColor: "text-amber-300 font-semibold",
     bgColor: "bg-amber-500/15",
-    borderColor: "border-amber-500/30",
+    borderColor: "",
   },
   sad: {
     type: "sad",
@@ -67,7 +67,7 @@ export const REACTIONS_CONFIG: Record<CommentReactionType, ReactionConfig> = {
     color: "#ef4444",
     textColor: "text-red-400 font-semibold",
     bgColor: "bg-red-500/15",
-    borderColor: "border-red-500/30",
+    borderColor: "",
   },
 };
 
@@ -239,7 +239,7 @@ export const ReactionPicker: React.FC<ReactionPickerProps> = ({
       {/* FLOATING FACEBOOK REACTION BAR */}
       {showPicker && (
         <div
-          className={`absolute bottom-full mb-2.5 left-0 z-40 flex items-center gap-1 px-2 py-1.5 bg-zinc-950/95 border border-white/20 rounded-full shadow-[0_10px_30px_rgba(0,0,0,0.85)] backdrop-blur-xl animate-in fade-in zoom-in-90 slide-in-from-bottom-2 duration-150 ${
+          className={`absolute bottom-full mb-2.5 left-0 z-40 flex items-center gap-1 px-2 py-1.5 bg-zinc-950/95  rounded-full shadow-[0_10px_30px_rgba(0,0,0,0.85)] backdrop-blur-xl animate-in fade-in zoom-in-90 slide-in-from-bottom-2 duration-150 ${
             isCompact ? "scale-90 origin-bottom-left" : ""
           }`}
         >
@@ -257,13 +257,13 @@ export const ReactionPicker: React.FC<ReactionPickerProps> = ({
                 onMouseEnter={() => setHoveredReaction(type)}
                 onMouseLeave={() => setHoveredReaction(null)}
                 className={`group/emoji relative flex flex-col items-center justify-center p-1.5 sm:p-2 rounded-full cursor-pointer transition-all duration-150 ${
-                  isSelected ? "bg-white/15 ring-1 ring-white/30 scale-110" : "hover:bg-white/10"
+                  isSelected ? "bg-white/15  scale-110" : "hover:bg-white/10"
                 }`}
                 aria-label={config.label}
               >
                 {/* TOOLTIP LABEL BAY LÊN TRÊN EMOJI */}
                 {isHovered && (
-                  <span className="absolute -top-7 px-2 py-0.5 rounded-full bg-zinc-900/95 border border-white/15 text-[10px] font-bold text-white whitespace-nowrap shadow-md pointer-events-none animate-in fade-in slide-in-from-bottom-1 duration-100">
+                  <span className="absolute -top-7 px-2 py-0.5 rounded-full bg-zinc-900/95 text-[10px] font-bold text-white whitespace-nowrap shadow-md pointer-events-none animate-in fade-in slide-in-from-bottom-1 duration-100">
                     {config.label}
                   </span>
                 )}

@@ -38,7 +38,7 @@ const QUICK_GUIDES = [
     id: "guide-pwa",
     icon: Smartphone,
     color: "text-rose-400",
-    bgColor: "bg-rose-500/10 border-rose-500/20",
+    bgColor: "bg-rose-500/10 ",
     badge: "iOS & Android",
     title: "Cài Đặt App Lên Màn Hình Chính (PWA)",
     summary: "Xem phim toàn màn hình không viền trình duyệt, khởi động tức thì từ màn hình chính như một ứng dụng Native cao cấp.",
@@ -61,7 +61,7 @@ const QUICK_GUIDES = [
     id: "guide-tv",
     icon: Cast,
     color: "text-amber-400",
-    bgColor: "bg-amber-500/10 border-amber-500/20",
+    bgColor: "bg-amber-500/10 ",
     badge: "Smart TV & AirPlay",
     title: "Truyền Phim Lên Màn Hình Lớn (Smart TV)",
     summary: "Thưởng thức chất lượng hình ảnh điện ảnh cùng âm thanh sống động trên TV phòng khách cùng gia đình và bạn bè.",
@@ -105,7 +105,7 @@ const QUICK_GUIDES = [
     id: "guide-sync",
     icon: RefreshCw,
     color: "text-emerald-400",
-    bgColor: "bg-emerald-500/10 border-emerald-500/20",
+    bgColor: "bg-emerald-500/10 ",
     badge: "Cloud Handoff",
     title: "Đồng Bộ Tiến Trình Đa Thiết Bị (Handoff)",
     summary: "Đang xem dở một tập phim trên máy tính, tối về mở điện thoại là tiếp tục đúng từng giây đang dừng.",
@@ -390,7 +390,7 @@ export default function FAQPage() {
                 <BookOpen size={16} />
                 <span>Hướng Dẫn Thao Tác Nhanh</span>
               </div>
-              <span className="text-xs text-zinc-500 font-mono">4 Cẩm Nang Thực Hành</span>
+              <span className="text-xs text-zinc-500 font-sans tabular-nums">4 Cẩm Nang Thực Hành</span>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
@@ -403,8 +403,8 @@ export default function FAQPage() {
                     key={guide.id}
                     className={`p-6 sm:p-7 rounded-3xl bg-zinc-950/80 border transition-all duration-300 backdrop-blur-xl space-y-4 ${
                       isExpanded
-                        ? "border-white/25 shadow-2xl bg-zinc-900/40"
-                        : "border-white/[0.08] hover:border-white/15"
+                        ? " shadow-2xl bg-zinc-900/40"
+                        : "border-white/[0.08] hover:"
                     }`}
                   >
                     <div className="flex items-start justify-between gap-4">
@@ -413,7 +413,7 @@ export default function FAQPage() {
                           <Icon size={20} />
                         </div>
                         <div>
-                          <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-white/[0.05] border border-white/[0.08] text-zinc-300">
+                          <span className="text-[10px] font-sans tabular-nums font-bold px-2 py-0.5 rounded-full bg-white/[0.05] border border-white/[0.08] text-zinc-300">
                             {guide.badge}
                           </span>
                           <h3 className="text-base font-bold text-white mt-1">{guide.title}</h3>
@@ -424,7 +424,7 @@ export default function FAQPage() {
                         type="button"
                         onClick={() => setOpenGuideId(isExpanded ? null : guide.id)}
                         className={`p-2 rounded-xl bg-white/[0.04] border border-white/[0.08] text-zinc-400 hover:text-white transition-transform cursor-pointer ${
-                          isExpanded ? "rotate-180 bg-netflix-red/20 text-netflix-red border-red-500/30" : ""
+                          isExpanded ? "rotate-180 bg-netflix-red/20 text-netflix-red " : ""
                         }`}
                         title={isExpanded ? "Thu gọn" : "Xem chi tiết"}
                       >
@@ -459,7 +459,7 @@ export default function FAQPage() {
                                 className="p-2.5 rounded-xl bg-black/50 border border-white/[0.05] flex items-center justify-between gap-2 text-xs"
                               >
                                 <span className="text-[11px] text-zinc-400">{sc.desc}</span>
-                                <kbd className="px-2 py-0.5 rounded bg-zinc-800 border border-white/10 text-white font-mono text-[10px] font-bold shrink-0">
+                                <kbd className="px-2 py-0.5 rounded bg-zinc-800 text-white font-sans tabular-nums text-[10px] font-bold shrink-0">
                                   {sc.key}
                                 </kbd>
                               </div>
@@ -524,7 +524,7 @@ export default function FAQPage() {
                     <div
                       key={faq.id}
                       className={`rounded-2xl bg-zinc-950/80 border transition-all duration-300 overflow-hidden backdrop-blur-xl ${
-                        isOpen ? "border-white/20 shadow-xl bg-zinc-900/40" : "border-white/[0.08] hover:border-white/15"
+                        isOpen ? " shadow-xl bg-zinc-900/40" : "border-white/[0.08] hover:"
                       }`}
                     >
                       <button
@@ -533,7 +533,7 @@ export default function FAQPage() {
                         className="w-full p-5 sm:p-6 text-left flex items-start justify-between gap-4 cursor-pointer select-none"
                       >
                         <div className="space-y-1 min-w-0">
-                          <span className="text-[10px] font-mono text-netflix-red font-bold uppercase tracking-wider">
+                          <span className="text-[10px] font-sans tabular-nums text-netflix-red font-bold uppercase tracking-wider">
                             {faq.categoryLabel}
                           </span>
                           <h3 className="text-sm sm:text-base font-bold text-white leading-snug">
@@ -542,7 +542,7 @@ export default function FAQPage() {
                         </div>
                         <div
                           className={`p-2 rounded-xl bg-white/[0.04] border border-white/[0.08] text-zinc-400 flex-shrink-0 transition-transform duration-300 ${
-                            isOpen ? "rotate-180 bg-netflix-red/20 text-netflix-red border-red-500/30" : ""
+                            isOpen ? "rotate-180 bg-netflix-red/20 text-netflix-red " : ""
                           }`}
                         >
                           <ChevronDown size={16} />
@@ -553,7 +553,7 @@ export default function FAQPage() {
                         <div className="px-5 sm:px-6 pb-6 pt-1 space-y-3 text-xs sm:text-sm text-zinc-300 leading-relaxed border-t border-white/[0.05]">
                           <p>{faq.answer}</p>
                           {faq.tips && (
-                            <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs flex items-start gap-2.5">
+                            <div className="p-3.5 rounded-xl bg-amber-500/10 text-amber-300 text-xs flex items-start gap-2.5">
                               <Sparkles size={14} className="text-amber-400 flex-shrink-0 mt-0.5" />
                               <span>{faq.tips}</span>
                             </div>
@@ -593,7 +593,7 @@ export default function FAQPage() {
             </Link>
             <Link
               href="/about"
-              className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-white/[0.08] hover:bg-white/[0.15] border border-white/10 text-xs font-bold text-white transition backdrop-blur-md"
+              className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-white/[0.08] hover:bg-white/[0.15] text-xs font-bold text-white transition backdrop-blur-md"
             >
               <Film size={14} />
               <span>Giới Thiệu Dự Án</span>

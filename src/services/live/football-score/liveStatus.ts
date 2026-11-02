@@ -197,3 +197,201 @@ export function resolveMatchDisplayStatus(params: {
     kickoffTime: null,
   };
 }
+
+export type MatchTimeState = "upcoming" | "live" | "ht" | "ft" | "special";
+
+export interface MatchTimeInfo {
+  state: MatchTimeState;
+  /**
+   * Phút thi đấu hoặc nhãn trạng thái chính:
+   * - "35'" (live)
+   * - "90'+3'" (stoppage)
+   * - "HT" (halftime)
+   * - "FT" (fulltime)
+   * - "Hoãn" / "Hủy" / "Tạm hoãn" (special)
+   * - null (upcoming - chỉ hiển thị giờ đá)
+   */
+  clockBadge: string | null;
+  /**
+   * Giờ bắt đầu trận đấu dạng "20:00"
+   */
+  kickoffTime: string | null;
+  /**
+   * Chuỗi giờ đá đầy đủ: "Giờ đá: 20:00" nếu có kickoffTime
+   */
+  kickoffDisplay: string | null;
+  /**
+   * Có cần hiển thị pulse dot hay không (chỉ dùng cho live minute / stoppage / live)
+   */
+  hasPulse: boolean;
+}
+
+/**
+ * Chuẩn hóa phút thi đấu từ displayClock:
+ * - "35" -> "35'"
+ * - "35'" -> "35'"
+ * - "45+2" -> "45'+2'"
+ * - "90'+3'" -> "90'+3'"
+ * - "HT" -> "HT"
+ * - "FT" -> "FT"
+ */
+export function formatMatchMinute(rawClock?: string | null): string | null {
+  if (!rawClock) return null;
+  const trimmed = rawClock.trim();
+  if (!trimmed) return null;
+
+  if (/^ht$/i.test(trimmed) || /^halftime$/i.test(trimmed)) {
+    return "HT";
+  }
+  if (/^ft$/i.test(trimmed) || /^fulltime$/i.test(trimmed)) {
+    return "FT";
+  }
+
+  // Bù giờ: 45'+2', 45+2, 90'+3, 90+3', 105+1
+  const stoppageMatch = trimmed.match(/^(\d+)'?\s*\+\s*(\d+)'?$/);
+  if (stoppageMatch) {
+    return `${stoppageMatch[1]}'+${stoppageMatch[2]}'`;
+  }
+
+  // Phút thông thường: 35', 35
+  const minuteMatch = trimmed.match(/^(\d+)'?$/);
+  if (minuteMatch) {
+    return `${minuteMatch[1]}'`;
+  }
+
+  return trimmed;
+}
+
+/**
+ * Phân giải thông tin hiển thị thời gian đồng bộ cho MatchCard & Football Live Player:
+ * - Chưa bắt đầu: kickoffTime ("20:00")
+ * - Đang thi đấu: ● 35' + Giờ đá: 20:00
+ * - Bù giờ: ● 90'+3' + Giờ đá: 20:00
+ * - Nghỉ giữa hiệp: HT + Giờ đá: 20:00
+ * - Kết thúc: FT + Giờ đá: 20:00
+ * - Hoãn / Hủy: Trạng thái tương ứng + Giờ đá: 20:00 (nếu có), không hiển thị phút giả
+ */
+export function resolveMatchTimeInfo(params: {
+  score?: LiveMatchScore | null;
+  displayStatus?: MatchDisplayStatusResult | null;
+  kickoffTime?: string | null;
+  isConfirmedLive?: boolean;
+  isFinished?: boolean;
+  specialStatusLabel?: string | null;
+  summaryClock?: string | null;
+}): MatchTimeInfo {
+  const {
+    score,
+    displayStatus,
+    kickoffTime = score?.kickoffTime || displayStatus?.kickoffTime || null,
+    isConfirmedLive = false,
+    isFinished = false,
+    specialStatusLabel = null,
+    summaryClock = null,
+  } = params;
+
+  const kickoffDisplay = kickoffTime ? `Giờ đá: ${kickoffTime}` : null;
+
+  // 1. Trạng thái hoãn / hủy / tạm hoãn: hiển thị đúng trạng thái nguồn, không hiển thị phút giả
+  const specialBadge =
+    specialStatusLabel ||
+    (displayStatus?.statusType === "postponed" ||
+    displayStatus?.statusType === "canceled" ||
+    displayStatus?.statusType === "suspended"
+      ? displayStatus.badgeLabel
+      : null);
+
+  if (specialBadge) {
+    return {
+      state: "special",
+      clockBadge: specialBadge,
+      kickoffTime,
+      kickoffDisplay,
+      hasPulse: false,
+    };
+  }
+
+  // 2. Trạng thái kết thúc (FT)
+  const isMatchFinished =
+    isFinished ||
+    score?.status === "finished" ||
+    displayStatus?.statusType === "finished";
+
+  if (isMatchFinished) {
+    return {
+      state: "ft",
+      clockBadge: "FT",
+      kickoffTime,
+      kickoffDisplay,
+      hasPulse: false,
+    };
+  }
+
+  // 3. Trạng thái đang thi đấu (LIVE)
+  const isLive =
+    isConfirmedLive ||
+    score?.status === "live" ||
+    displayStatus?.isConfirmedLive === true;
+
+  if (isLive) {
+    const rawClock = score?.displayClock || displayStatus?.displayClock || summaryClock || null;
+    const detail = (score?.statusDetail || displayStatus?.statusDetail || "").toLowerCase();
+    const formattedClock = formatMatchMinute(rawClock);
+
+    // 3A. Nghỉ giữa hiệp (HT)
+    if (
+      formattedClock === "HT" ||
+      detail.includes("halftime") ||
+      detail.includes("nghỉ giữa hiệp")
+    ) {
+      return {
+        state: "ht",
+        clockBadge: "HT",
+        kickoffTime,
+        kickoffDisplay,
+        hasPulse: false,
+      };
+    }
+
+    // 3B. Kết thúc nếu clock báo FT
+    if (formattedClock === "FT" || detail.includes("full time")) {
+      return {
+        state: "ft",
+        clockBadge: "FT",
+        kickoffTime,
+        kickoffDisplay,
+        hasPulse: false,
+      };
+    }
+
+    // 3C. Đang đá (có số phút hoặc bù giờ)
+    if (formattedClock) {
+      return {
+        state: "live",
+        clockBadge: formattedClock,
+        kickoffTime,
+        kickoffDisplay,
+        hasPulse: true,
+      };
+    }
+
+    // 3D. Đang đá nhưng chưa có phút từ backend -> hiển thị "LIVE" an toàn, không tự tính phút giả
+    return {
+      state: "live",
+      clockBadge: "LIVE",
+      kickoffTime,
+      kickoffDisplay,
+      hasPulse: true,
+    };
+  }
+
+  // 4. Chưa bắt đầu (Upcoming)
+  return {
+    state: "upcoming",
+    clockBadge: null,
+    kickoffTime,
+    kickoffDisplay: kickoffTime,
+    hasPulse: false,
+  };
+}
+

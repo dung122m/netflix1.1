@@ -31,10 +31,10 @@ export function WatchSidebarTabs({
   if (isSingleEpisode) {
     return (
       <div className="space-y-3.5">
-        <div className="rounded-2xl border border-white/10 bg-zinc-950/70 p-3 sm:p-3.5 shadow-xl backdrop-blur-xl">
+        <div className="rounded-2xl bg-zinc-950/70 p-3 sm:p-3.5 shadow-xl backdrop-blur-xl">
           {serverSelector}
         </div>
-        <div className="rounded-2xl sm:rounded-3xl border border-white/10 bg-gradient-to-b from-zinc-900/80 via-zinc-950/85 to-black/90 p-3.5 sm:p-4 shadow-2xl backdrop-blur-xl max-h-[calc(100vh-180px)] overflow-y-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-zinc-700 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-zinc-500 pr-1">
+        <div className="rounded-2xl sm:rounded-3xl bg-gradient-to-b from-zinc-900/80 via-zinc-950/85 to-black/90 p-3.5 sm:p-4 shadow-2xl backdrop-blur-xl max-h-[calc(100vh-180px)] overflow-y-auto overflow-x-hidden [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-zinc-700 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-zinc-500 [&::-webkit-scrollbar-corner]:bg-transparent pr-1">
           {recommendations}
         </div>
       </div>
@@ -43,9 +43,9 @@ export function WatchSidebarTabs({
 
   // VỚI PHIM BỘ: 2 tab dùng chung 1 khung duy nhất, khóa chiều cao vừa vặn màn hình
   return (
-    <div className="rounded-2xl sm:rounded-3xl border border-white/15 bg-gradient-to-b from-zinc-900/85 via-zinc-950/90 to-black/95 p-3 sm:p-4 shadow-2xl backdrop-blur-xl flex flex-col max-h-[calc(100vh-92px)] overflow-hidden">
+    <div className="rounded-2xl sm:rounded-3xl bg-gradient-to-b from-zinc-900/85 via-zinc-950/90 to-black/95 p-3 sm:p-4 shadow-2xl backdrop-blur-xl flex flex-col max-h-[calc(100vh-92px)] overflow-hidden">
       {/* 1. THANH CHUYỂN ĐỔI HAI TAB SIDEBAR (TẬP PHIM / PHIM TƯƠNG TỰ) */}
-      <div className="flex items-center gap-1.5 p-1 bg-zinc-950/90 rounded-2xl border border-white/10 mb-3 flex-shrink-0">
+      <div className="flex items-center gap-1.5 p-1 bg-zinc-950/90 rounded-2xl mb-3 flex-shrink-0">
         <button
           type="button"
           onClick={() => setActiveTab("episodes")}
@@ -83,12 +83,12 @@ export function WatchSidebarTabs({
         }`}
       >
         {/* Nguồn phát (Server Selector) */}
-        <div className="mb-2.5 flex-shrink-0 pb-2.5 border-b border-white/10">
+        <div className="mb-2.5 flex-shrink-0 pb-2.5 border-b">
           {serverSelector}
         </div>
 
         {/* Danh sách tập phim (cuộn mượt mà trong không gian còn lại của khung) */}
-        <div className="flex-1 min-h-0 overflow-y-auto pr-1 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-zinc-700 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-zinc-500">
+        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden pr-1 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-zinc-700 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-zinc-500 [&::-webkit-scrollbar-corner]:bg-transparent">
           {episodeList}
         </div>
       </div>
@@ -99,7 +99,7 @@ export function WatchSidebarTabs({
           activeTab === "recommendations" ? "flex" : "hidden"
         }`}
       >
-        <div className="flex-1 min-h-0 overflow-y-auto pr-1 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-zinc-700 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-zinc-500">
+        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden pr-1 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-zinc-700 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-zinc-500 [&::-webkit-scrollbar-corner]:bg-transparent">
           {recommendations}
         </div>
       </div>

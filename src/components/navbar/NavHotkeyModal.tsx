@@ -40,13 +40,13 @@ export const NavHotkeyModal: React.FC<NavHotkeyModalProps> = React.memo(function
   return (
     <div
       onClick={onClose}
-      className="fixed inset-0 z-[110] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200"
+      className="fixed inset-0 z-[100000] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200"
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-md bg-zinc-950 rounded-2xl border border-white/20 shadow-2xl p-5 space-y-4 animate-in zoom-in-95 duration-200"
+        className="w-full max-w-md bg-zinc-950 rounded-2xl shadow-2xl p-5 space-y-4 animate-in zoom-in-95 duration-200"
       >
-        <div className="flex items-center justify-between pb-3 border-b border-white/10">
+        <div className="flex items-center justify-between pb-3 border-b">
           <div className="flex items-center gap-2">
             <Keyboard className="w-5 h-5 text-netflix-red" />
             <h3 className="text-white font-bold text-base">Phím Tắt Rạp Chiếu</h3>
@@ -61,39 +61,39 @@ export const NavHotkeyModal: React.FC<NavHotkeyModalProps> = React.memo(function
         </div>
 
         <div className="space-y-2.5 text-xs text-zinc-300">
-          <div className="flex items-center justify-between py-1.5 border-b border-white/5">
+          <div className="flex items-center justify-between py-1.5 border-b">
             <span>Tìm kiếm phim nhanh</span>
-            <span className="bg-zinc-800 px-2 py-0.5 rounded border border-white/15 font-mono text-white font-semibold">
+            <span className="bg-zinc-800 px-2 py-0.5 rounded font-sans tabular-nums text-white font-semibold shadow-sm">
               Ctrl + K hoặc /
             </span>
           </div>
-          <div className="flex items-center justify-between py-1.5 border-b border-white/5">
+          <div className="flex items-center justify-between py-1.5 border-b">
             <span>Chế độ Rạp phim (Theater Mode)</span>
-            <span className="bg-zinc-800 px-2 py-0.5 rounded border border-white/15 font-mono text-white font-semibold">
+            <span className="bg-zinc-800 px-2 py-0.5 rounded font-sans tabular-nums text-white font-semibold shadow-sm">
               T
             </span>
           </div>
-          <div className="flex items-center justify-between py-1.5 border-b border-white/5">
+          <div className="flex items-center justify-between py-1.5 border-b">
             <span>Bật / Tắt đèn phòng chiếu</span>
-            <span className="bg-zinc-800 px-2 py-0.5 rounded border border-white/15 font-mono text-white font-semibold">
+            <span className="bg-zinc-800 px-2 py-0.5 rounded font-sans tabular-nums text-white font-semibold shadow-sm">
               L
             </span>
           </div>
-          <div className="flex items-center justify-between py-1.5 border-b border-white/5">
+          <div className="flex items-center justify-between py-1.5 border-b">
             <span>Tập phim tiếp theo</span>
-            <span className="bg-zinc-800 px-2 py-0.5 rounded border border-white/15 font-mono text-white font-semibold">
+            <span className="bg-zinc-800 px-2 py-0.5 rounded font-sans tabular-nums text-white font-semibold shadow-sm">
               N
             </span>
           </div>
-          <div className="flex items-center justify-between py-1.5 border-b border-white/5">
+          <div className="flex items-center justify-between py-1.5 border-b">
             <span>Bảng phím tắt này</span>
-            <span className="bg-zinc-800 px-2 py-0.5 rounded border border-white/15 font-mono text-white font-semibold">
+            <span className="bg-zinc-800 px-2 py-0.5 rounded font-sans tabular-nums text-white font-semibold shadow-sm">
               ?
             </span>
           </div>
           <div className="flex items-center justify-between py-1.5">
             <span>Đóng cửa sổ / modal</span>
-            <span className="bg-zinc-800 px-2 py-0.5 rounded border border-white/15 font-mono text-white font-semibold">
+            <span className="bg-zinc-800 px-2 py-0.5 rounded font-sans tabular-nums text-white font-semibold shadow-sm">
               Esc
             </span>
           </div>

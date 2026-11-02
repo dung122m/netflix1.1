@@ -157,11 +157,11 @@ export function HistoryClient() {
   const getPrecisionBadge = (precision: HistoricalPrecision) => {
     switch (precision) {
       case "exact_day":
-        return { label: "Ngày chính xác", bg: "bg-emerald-500/15 text-emerald-300 border-emerald-500/30" };
+        return { label: "Ngày chính xác", bg: "bg-emerald-500/15 text-emerald-300 " };
       case "month_year":
         return { label: "Theo tháng", bg: "bg-blue-500/15 text-blue-300 border-blue-500/30" };
       case "year_only":
-        return { label: "Theo năm", bg: "bg-amber-500/15 text-amber-300 border-amber-500/30" };
+        return { label: "Theo năm", bg: "bg-amber-500/15 text-amber-300 " };
       case "era_approx":
       default:
         return { label: "Thời tiền sử / Niên đại", bg: "bg-purple-500/15 text-purple-300 border-purple-500/30" };
@@ -173,7 +173,7 @@ export function HistoryClient() {
       {/* ========================================================================= */}
       {/* 1. HERO HEADER BANNER                                                     */}
       {/* ========================================================================= */}
-      <div className="relative rounded-3xl overflow-hidden bg-gradient-to-b from-zinc-900 via-zinc-900/90 to-zinc-950 border border-white/10 p-6 sm:p-10 mb-8 shadow-2xl">
+      <div className="relative rounded-3xl overflow-hidden bg-gradient-to-b from-zinc-900 via-zinc-900/90 to-zinc-950 p-6 sm:p-10 mb-8 shadow-2xl">
         {/* Subtle Ambient Red/Gold Glow */}
         <div className="absolute -top-24 -left-24 w-96 h-96 bg-red-600/15 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute -bottom-24 -right-24 w-96 h-96 bg-amber-500/15 rounded-full blur-3xl pointer-events-none" />
@@ -187,7 +187,7 @@ export function HistoryClient() {
             <span>Quay lại xem phim</span>
           </Link>
 
-          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full text-xs sm:text-sm font-bold bg-gradient-to-r from-red-600/20 to-amber-600/20 border border-amber-500/30 text-amber-300 shadow-sm backdrop-blur-md">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full text-xs sm:text-sm font-bold bg-gradient-to-r from-red-600/20 to-amber-600/20 text-amber-300 shadow-sm backdrop-blur-md">
             <Landmark className="w-4 h-4 text-amber-400" />
             <span>Biên niên sử Việt Nam</span>
           </div>
@@ -202,15 +202,15 @@ export function HistoryClient() {
 
           {/* Quick Metrics Chips */}
           <div className="flex flex-wrap items-center gap-2.5 pt-2 text-xs font-semibold text-zinc-300">
-            <span className="px-3 py-1 rounded-lg bg-white/[0.06] border border-white/10 flex items-center gap-1.5">
+            <span className="px-3 py-1 rounded-lg bg-white/[0.06] flex items-center gap-1.5">
               <Sparkles className="w-3.5 h-3.5 text-amber-400" />
               <span>3.388 Mốc sự kiện</span>
             </span>
-            <span className="px-3 py-1 rounded-lg bg-white/[0.06] border border-white/10 flex items-center gap-1.5">
+            <span className="px-3 py-1 rounded-lg bg-white/[0.06] flex items-center gap-1.5">
               <Landmark className="w-3.5 h-3.5 text-red-400" />
               <span>11 Thời kỳ lịch sử</span>
             </span>
-            <span className="px-3 py-1 rounded-lg bg-white/[0.06] border border-white/10 flex items-center gap-1.5">
+            <span className="px-3 py-1 rounded-lg bg-white/[0.06] flex items-center gap-1.5">
               <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
               <span>Hơn 4.000 năm văn hiến</span>
             </span>
@@ -222,8 +222,8 @@ export function HistoryClient() {
       {/* 2. "HÔM NAY TRONG LỊCH SỬ" SPOTLIGHT                                      */}
       {/* ========================================================================= */}
       {todayHighlight.primary && (
-        <div className="mb-10 rounded-2xl bg-gradient-to-r from-red-950/30 via-zinc-900 to-amber-950/30 border border-amber-500/30 p-5 sm:p-7 shadow-xl backdrop-blur-md relative overflow-hidden">
-          <div className="flex items-center justify-between gap-3 pb-3 border-b border-white/10">
+        <div className="mb-10 rounded-2xl bg-gradient-to-r from-red-950/30 via-zinc-900 to-amber-950/30 p-5 sm:p-7 shadow-xl backdrop-blur-md relative overflow-hidden">
+          <div className="flex items-center justify-between gap-3 pb-3 border-b">
             <div className="flex items-center gap-2.5">
               <span className="text-2xl">📜</span>
               <div>
@@ -237,7 +237,7 @@ export function HistoryClient() {
             </div>
 
             {todayHighlight.primary.year && (
-              <span className="px-3 py-1 rounded-full text-xs font-bold bg-red-600/30 text-red-200 border border-red-500/40">
+              <span className="px-3 py-1 rounded-full text-xs font-bold bg-red-600/30 text-red-200">
                 Năm {todayHighlight.primary.year}
                 {todayHighlight.primary.year > 0 && todayHighlight.currentYear && (
                   <span className="ml-1 text-amber-300 font-normal">
@@ -266,7 +266,7 @@ export function HistoryClient() {
               const captionText = todayImg.imageCaption || parts[0] || "Tư liệu lịch sử";
 
               return (
-                <div className="my-4 rounded-2xl overflow-hidden border border-white/10 bg-zinc-950/80 shadow-xl group/todayimg">
+                <div className="my-4 rounded-2xl overflow-hidden bg-zinc-950/80 shadow-xl group/todayimg">
                   <div className="flex items-center justify-center p-3 sm:p-4 bg-black/40">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
@@ -283,7 +283,7 @@ export function HistoryClient() {
                   </div>
                   <div className="px-4 py-2.5 bg-black/75 border-t border-white/[0.08] text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                     <div className="flex items-start sm:items-center gap-2 flex-1 min-w-0">
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-500/15 border border-amber-500/30 text-[10px] font-bold text-amber-300 shrink-0">
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-500/15 text-[10px] font-bold text-amber-300 shrink-0">
                         Tư liệu
                       </span>
                       <span className="text-zinc-200 text-xs font-medium leading-relaxed line-clamp-2">
@@ -318,7 +318,7 @@ export function HistoryClient() {
                 {todayHighlight.primary.figures.map((fig) => (
                   <span
                     key={fig}
-                    className="px-2 py-0.5 rounded-md bg-amber-500/15 border border-amber-500/30 text-[11px] font-medium text-amber-300"
+                    className="px-2 py-0.5 rounded-md bg-amber-500/15 text-[11px] font-medium text-amber-300"
                   >
                     {fig}
                   </span>
@@ -332,7 +332,7 @@ export function HistoryClient() {
       {/* ========================================================================= */}
       {/* 3. SEARCH & FILTER CONTROLS                                               */}
       {/* ========================================================================= */}
-      <div className="space-y-4 mb-8 bg-zinc-900/80 border border-white/10 rounded-2xl p-4 sm:p-6 backdrop-blur-md">
+      <div className="space-y-4 mb-8 bg-zinc-900/80 rounded-2xl p-4 sm:p-6 backdrop-blur-md">
         {/* Search Input and Year Filter Row */}
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1">
@@ -342,7 +342,7 @@ export function HistoryClient() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Tìm kiếm sự kiện, nhân vật, chiến dịch, năm..."
-              className="w-full pl-10 pr-10 py-2.5 rounded-xl bg-zinc-950 border border-white/15 focus:border-amber-400 focus:outline-none text-sm text-white placeholder-zinc-500 transition-colors"
+              className="w-full pl-10 pr-10 py-2.5 rounded-xl bg-zinc-950 focus:border-amber-400 focus:outline-none text-sm text-white placeholder-zinc-500 transition-colors"
             />
             {searchQuery && (
               <button
@@ -366,7 +366,7 @@ export function HistoryClient() {
                   setYearFilter(val);
                 }}
                 placeholder="Lọc năm (vd: 1945)"
-                className="w-full pl-3.5 pr-8 py-2.5 rounded-xl bg-zinc-950 border border-white/15 focus:border-amber-400 focus:outline-none text-sm text-white placeholder-zinc-500 transition-colors text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                className="w-full pl-3.5 pr-8 py-2.5 rounded-xl bg-zinc-950 focus:border-amber-400 focus:outline-none text-sm text-white placeholder-zinc-500 transition-colors text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
               />
               {yearFilter && (
                 <button
@@ -382,7 +382,7 @@ export function HistoryClient() {
             {hasActiveFilters && (
               <button
                 onClick={resetFilters}
-                className="inline-flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-xs sm:text-sm font-semibold bg-red-600/20 hover:bg-red-600/30 text-red-300 border border-red-500/40 transition-colors whitespace-nowrap cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-xs sm:text-sm font-semibold bg-red-600/20 hover:bg-red-600/30 text-red-300 transition-colors whitespace-nowrap cursor-pointer"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
                 <span>Đặt lại</span>
@@ -405,7 +405,7 @@ export function HistoryClient() {
               className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
                 selectedPeriod === "all"
                   ? "bg-amber-500 text-zinc-950 shadow-md shadow-amber-500/30 font-bold"
-                  : "bg-zinc-950/80 text-zinc-300 hover:bg-zinc-800 border border-white/10"
+                  : "bg-zinc-950/80 text-zinc-300 hover:bg-zinc-800 "
               }`}
             >
               Tất cả thời kỳ ({ALL_EVENTS.length})
@@ -420,8 +420,8 @@ export function HistoryClient() {
                   onClick={() => setSelectedPeriod(isSelected ? "all" : period.id)}
                   className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors cursor-pointer flex items-center gap-1.5 border ${
                     isSelected
-                      ? "text-white border-amber-300 ring-1 ring-amber-300/60 shadow-md font-bold"
-                      : "bg-zinc-950/80 text-zinc-300 hover:bg-zinc-800 border-white/10"
+                      ? "text-white border-amber-300  shadow-md font-bold"
+                      : "bg-zinc-950/80 text-zinc-300 hover:bg-zinc-800 "
                   }`}
                   style={{
                     backgroundColor: isSelected ? period.colorToken : undefined,
@@ -440,7 +440,7 @@ export function HistoryClient() {
         </div>
 
         {/* Precision Selector Filter Pills */}
-        <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-white/10 text-xs">
+        <div className="flex flex-wrap items-center gap-2 pt-2 border-t text-xs">
           <span className="text-zinc-400 font-medium">Độ chính xác ngày:</span>
           {[
             { id: "all", label: "Tất cả" },
@@ -455,7 +455,7 @@ export function HistoryClient() {
               className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
                 selectedPrecision === prec.id
                   ? "bg-zinc-200 text-zinc-950 font-bold"
-                  : "bg-zinc-950 text-zinc-400 hover:text-zinc-200 border border-white/10"
+                  : "bg-zinc-950 text-zinc-400 hover:text-zinc-200 "
               }`}
             >
               {prec.label}
@@ -467,7 +467,7 @@ export function HistoryClient() {
       {/* ========================================================================= */}
       {/* 4. RESULTS STATS & ACTIVE PERIOD INFO                                     */}
       {/* ========================================================================= */}
-      <div className="space-y-3 pb-4 mb-4 border-b border-white/10">
+      <div className="space-y-3 pb-4 mb-4 border-b">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div className="text-sm text-zinc-400">
             Hiển thị <span className="text-white font-bold">{visibleEvents.length}</span> /{" "}
@@ -486,13 +486,13 @@ export function HistoryClient() {
 
         {/* Prominent Period Header Banner when a period is filtered */}
         {selectedPeriod !== "all" && (
-          <div className="p-4 sm:p-5 rounded-2xl bg-zinc-950/80 border border-amber-500/30 backdrop-blur-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-lg">
+          <div className="p-4 sm:p-5 rounded-2xl bg-zinc-950/80 backdrop-blur-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-lg">
             <div className="flex items-center gap-3.5">
               {(() => {
                 const pImg = getPeriodImage(selectedPeriod);
                 const periodMeta = getHistoricalPeriodById(selectedPeriod);
                 return (
-                  <div className="relative w-12 h-12 sm:w-14 sm:h-14 rounded-xl overflow-hidden border border-amber-500/40 shrink-0 shadow-md bg-zinc-900 flex items-center justify-center">
+                  <div className="relative w-12 h-12 sm:w-14 sm:h-14 rounded-xl overflow-hidden shrink-0 shadow-md bg-zinc-900 flex items-center justify-center">
                     {pImg ? (
                       /* eslint-disable-next-line @next/next/no-img-element */
                       <img
@@ -529,7 +529,7 @@ export function HistoryClient() {
                 </p>
               </div>
             </div>
-            <span className="px-3 py-1 rounded-full text-xs font-bold bg-amber-500/15 border border-amber-500/30 text-amber-300 shrink-0">
+            <span className="px-3 py-1 rounded-full text-xs font-bold bg-amber-500/15 text-amber-300 shrink-0">
               {filteredEvents.length} sự kiện lịch sử
             </span>
           </div>
@@ -567,7 +567,7 @@ export function HistoryClient() {
                         </span>
                       </div>
                     </div>
-                    <span className="text-[11px] font-semibold text-amber-300 px-2.5 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 shrink-0">
+                    <span className="text-[11px] font-semibold text-amber-300 px-2.5 py-0.5 rounded-full bg-amber-500/15 shrink-0">
                       {periodCountInFiltered} sự kiện lịch sử
                     </span>
                   </div>
@@ -581,12 +581,12 @@ export function HistoryClient() {
                   />
 
                   {/* Event Card */}
-                  <div className="rounded-2xl bg-zinc-900/90 hover:bg-zinc-900 border border-white/10 hover:border-amber-400/40 p-4 sm:p-6 transition-all duration-300 shadow-md hover:shadow-xl hover:shadow-black/60 backdrop-blur-md">
+                  <div className="rounded-2xl bg-zinc-900/90 hover:bg-zinc-900 hover: p-4 sm:p-6 transition-all duration-300 shadow-md hover:shadow-xl hover:shadow-black/60 backdrop-blur-md">
                     {/* Top Meta Bar */}
-                    <div className="flex flex-wrap items-center justify-between gap-2 pb-2.5 mb-2 border-b border-white/5">
+                    <div className="flex flex-wrap items-center justify-between gap-2 pb-2.5 mb-2 border-b">
                       <div className="flex flex-wrap items-center gap-2">
                         {/* Date Badge */}
-                        <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-xs font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30">
+                        <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-xs font-bold bg-amber-500/15 text-amber-300">
                           <Calendar className="w-3.5 h-3.5 text-amber-400" />
                           <span>{event.displayDate}</span>
                         </span>
@@ -650,7 +650,7 @@ export function HistoryClient() {
                       const captionText = eventImage.imageCaption || parts[0] || "Tư liệu lịch sử";
 
                       return (
-                        <div className="my-4 rounded-2xl overflow-hidden border border-white/10 bg-zinc-950/80 shadow-xl group/img">
+                        <div className="my-4 rounded-2xl overflow-hidden bg-zinc-950/80 shadow-xl group/img">
                           <div className="flex items-center justify-center p-3 sm:p-4 bg-black/40">
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img
@@ -667,7 +667,7 @@ export function HistoryClient() {
                           </div>
                           <div className="p-3 sm:p-4 bg-black/85 border-t border-white/[0.08] text-xs flex flex-col gap-2">
                             <div className="flex items-start gap-2 w-full min-w-0">
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-500/15 border border-amber-500/30 text-[10px] font-bold text-amber-300 shrink-0 mt-0.5">
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-500/15 text-[10px] font-bold text-amber-300 shrink-0 mt-0.5">
                                 Tư liệu
                               </span>
                               <span className="text-zinc-200 text-xs sm:text-sm font-medium leading-relaxed break-words flex-1">
@@ -699,7 +699,7 @@ export function HistoryClient() {
 
                     {/* Bottom Figures & Significance Meta if available */}
                     {event.figures && event.figures.length > 0 && (
-                      <div className="flex flex-wrap items-center gap-1.5 pt-3 mt-3 border-t border-white/5">
+                      <div className="flex flex-wrap items-center gap-1.5 pt-3 mt-3 border-t">
                         <span className="text-[11px] text-zinc-400">Nhân vật:</span>
                         {event.figures.map((fig) => {
                           const figureObj = resolveHistoricalFigure(fig);
@@ -709,7 +709,7 @@ export function HistoryClient() {
                               key={fig}
                               onClick={() => setSearchQuery(displayName)}
                               title={figureObj?.title || displayName}
-                              className="px-2 py-0.5 rounded-md bg-white/[0.05] hover:bg-amber-500/20 text-zinc-300 hover:text-amber-300 border border-white/10 hover:border-amber-400/40 text-[11px] transition-colors cursor-pointer"
+                              className="px-2 py-0.5 rounded-md bg-white/[0.05] hover:bg-amber-500/20 text-zinc-300 hover:text-amber-300 hover: text-[11px] transition-colors cursor-pointer"
                             >
                               {displayName}
                             </button>
@@ -720,7 +720,7 @@ export function HistoryClient() {
 
                     {/* Sources Attribution */}
                     {event.sources && event.sources.length > 0 && (
-                      <div className="flex flex-wrap items-center gap-1.5 pt-2.5 mt-2.5 border-t border-white/5 text-[11px] text-zinc-500 font-normal">
+                      <div className="flex flex-wrap items-center gap-1.5 pt-2.5 mt-2.5 border-t text-[11px] text-zinc-500 font-normal">
                         <span className="text-zinc-400 font-medium flex items-center gap-1">
                           <BookOpen className="w-3 h-3 text-zinc-500" />
                           <span>Nguồn sự kiện:</span>
@@ -736,7 +736,7 @@ export function HistoryClient() {
         </div>
       ) : (
         /* Empty State */
-        <div className="text-center py-16 px-4 rounded-3xl bg-zinc-900/40 border border-white/10 space-y-4">
+        <div className="text-center py-16 px-4 rounded-3xl bg-zinc-900/40 space-y-4">
           <HistoryIcon className="w-12 h-12 text-zinc-600 mx-auto" />
           <h3 className="text-lg font-bold text-white">Không tìm thấy sự kiện lịch sử phù hợp</h3>
           <p className="text-sm text-zinc-400 max-w-md mx-auto">

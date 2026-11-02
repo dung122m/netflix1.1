@@ -22,13 +22,13 @@ export default function GlobalError({
       <Navbar />
       <main className="flex-1 flex items-center justify-center px-4 py-24">
         <div className="max-w-md w-full text-center space-y-6 animate-in fade-in zoom-in-95 duration-300">
-          <div className="relative mx-auto w-24 h-24 rounded-3xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-500 shadow-xl shadow-black/80">
+          <div className="relative mx-auto w-24 h-24 rounded-3xl bg-amber-500/10 flex items-center justify-center text-amber-500 shadow-xl shadow-black/80">
             <div className="absolute inset-0 bg-amber-500/20 rounded-3xl blur-xl" />
             <AlertTriangle className="w-12 h-12 relative z-10" />
           </div>
 
           <div className="space-y-2">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs font-bold text-zinc-400">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 text-xs font-bold text-zinc-400">
               <span>Đã xảy ra sự cố</span>
             </span>
             <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
@@ -50,7 +50,7 @@ export default function GlobalError({
             </button>
             <Link
               href="/"
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/15 text-white font-bold text-xs transition active:scale-95 cursor-pointer"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs transition active:scale-95 cursor-pointer"
             >
               <Home className="w-4 h-4" />
               <span>Về Trang Chủ</span>

@@ -690,7 +690,7 @@ export function getWatchLevelInfo(totalMinutes: number = 0): WatchLevelInfo {
       levelName: "Thánh Phim Nanaflix",
       badgeIcon: "👑",
       minMinutes: 12000,
-      colorClass: "from-amber-500 via-rose-500 to-amber-300 text-amber-200 border-amber-400/60",
+      colorClass: "from-amber-500 via-rose-500 to-amber-300 text-amber-200 ",
       badges: ["🍿 Mọt Phim Đêm", "🎬 Đạo Diễn Tương Lai", "👑 Top Fan Nanaflix", "⚡ Cày Phim Siêu Cấp", "💎 Cương Thi Đêm"],
     };
   }
@@ -710,7 +710,7 @@ export function getWatchLevelInfo(totalMinutes: number = 0): WatchLevelInfo {
       levelName: "Thành Viên Vàng",
       badgeIcon: "🌟",
       minMinutes: 600,
-      colorClass: "from-amber-500 to-yellow-400 text-amber-300 border-amber-400/50",
+      colorClass: "from-amber-500 to-yellow-400 text-amber-300 ",
       nextLevelName: "Kim Cương Cày Phim",
       nextMinMinutes: 3000,
       badges: ["🍿 Mọt Phim Đêm", "🎬 Đạo Diễn Tương Lai", "⚡ Cày Phim Siêu Cấp"],

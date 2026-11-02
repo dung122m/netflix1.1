@@ -179,6 +179,10 @@
   background: #e50914;
 }
 
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
 /* Glassmorphism & Cinema Glow Effects */
 .glass-panel {
   background: rgba(18, 18, 22, 0.75);

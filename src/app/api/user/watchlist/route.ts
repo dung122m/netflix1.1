@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { verifyServerAuth } from "@/lib/serverAuth";
+import {
+  enforceRateLimit,
+  buildRateLimitResponse,
+  RATE_LIMIT_PRESETS,
+} from "@/lib/rateLimit";
+import { safeParseJson } from "@/lib/securityValidation";
 
 export const dynamic = "force-dynamic";
 
@@ -17,6 +23,11 @@ export async function GET(req: NextRequest) {
   const auth = await verifyServerAuth(req);
   if (!auth.isAuthenticated || !auth.userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const rateLimit = await enforceRateLimit(req, RATE_LIMIT_PRESETS.PUBLIC_READ, auth.userId);
+  if (!rateLimit.allowed) {
+    return buildRateLimitResponse(rateLimit);
   }
 
   try {
@@ -82,9 +93,29 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const rateLimit = await enforceRateLimit(
+    req,
+    {
+      namespace: "user-watchlist-post",
+      maxRequests: 60,
+      windowSeconds: 60,
+      failClosed: true,
+    },
+    auth.userId
+  );
+  if (!rateLimit.allowed) {
+    return buildRateLimitResponse(rateLimit);
+  }
+
   try {
-    const body = await req.json();
-    const items = Array.isArray(body.items) ? body.items : [body];
+    const parseRes = await safeParseJson<Record<string, unknown>>(req, 100 * 1024);
+    if (!parseRes.success) {
+      return parseRes.response;
+    }
+
+    const body = parseRes.data;
+    const rawItems = Array.isArray(body.items) ? body.items : [body];
+    const items = rawItems.slice(0, 100);
     const userId = auth.userId;
     const now = Date.now();
 
@@ -131,6 +162,20 @@ export async function DELETE(req: NextRequest) {
   const auth = await verifyServerAuth(req);
   if (!auth.isAuthenticated || !auth.userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const rateLimit = await enforceRateLimit(
+    req,
+    {
+      namespace: "user-watchlist-delete",
+      maxRequests: 30,
+      windowSeconds: 60,
+      failClosed: true,
+    },
+    auth.userId
+  );
+  if (!rateLimit.allowed) {
+    return buildRateLimitResponse(rateLimit);
   }
 
   try {

@@ -225,9 +225,9 @@ export function RecommendationTabs({
   };
 
   return (
-    <div className={variant === "sidebar" ? "space-y-3" : "space-y-6"}>
+    <div className={`w-full max-w-full min-w-0 overflow-hidden ${variant === "sidebar" ? "space-y-3" : "space-y-6"}`}>
       {/* 1. THANH TABS ĐỀ XUẤT THÔNG MINH (KÉO CHUỘT / LĂN CHUỘT / NÚT MŨI TÊN TRÁI PHẢI HOVER) */}
-      <div className="relative border-b border-white/10 pb-2 w-full min-w-0 group/rec-tabs">
+      <div className="relative border-b pb-2 w-full min-w-0 group/rec-tabs">
         <div className="flex items-center gap-1.5 w-full min-w-0">
 
           {/* DẢI TABS CUỘN NGANG VỚI KÉO CHUỘT + LĂN CHUỘT VÀ MŨI TÊN OVERLAY CHỈ HIỆN KHI HOVER */}
@@ -240,7 +240,7 @@ export function RecommendationTabs({
                   type="button"
                   onClick={() => scrollTabs("left")}
                   aria-label="Cuộn sang trái"
-                  className="relative z-10 pointer-events-auto h-6 w-6 rounded-full bg-zinc-900/95 hover:bg-zinc-800 text-zinc-200 hover:text-white border border-white/20 shadow-md flex items-center justify-center transition active:scale-95 cursor-pointer backdrop-blur-md"
+                  className="relative z-10 pointer-events-auto h-6 w-6 rounded-full bg-zinc-900/95 hover:bg-zinc-800 text-zinc-200 hover:text-white shadow-md flex items-center justify-center transition active:scale-95 cursor-pointer backdrop-blur-md"
                 >
                   <ChevronLeft className="w-3.5 h-3.5" />
                 </button>
@@ -255,7 +255,7 @@ export function RecommendationTabs({
                   type="button"
                   onClick={() => scrollTabs("right")}
                   aria-label="Cuộn sang phải"
-                  className="relative z-10 pointer-events-auto hidden md:flex h-6 w-6 rounded-full bg-zinc-900/95 hover:bg-zinc-800 text-zinc-200 hover:text-white border border-white/20 shadow-md items-center justify-center transition active:scale-95 cursor-pointer backdrop-blur-md"
+                  className="relative z-10 pointer-events-auto hidden md:flex h-6 w-6 rounded-full bg-zinc-900/95 hover:bg-zinc-800 text-zinc-200 hover:text-white shadow-md items-center justify-center transition active:scale-95 cursor-pointer backdrop-blur-md"
                 >
                   <ChevronRight className="w-3.5 h-3.5" />
                 </button>
@@ -283,7 +283,7 @@ export function RecommendationTabs({
                 } font-bold transition-all whitespace-nowrap cursor-pointer border shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-netflix-red shrink-0 ${
                   activeTab === "best"
                     ? "bg-netflix-red text-white border-netflix-red shadow-sm"
-                    : "bg-zinc-900/90 text-zinc-300 border-white/10 hover:border-white/25 hover:text-white hover:bg-zinc-800"
+                    : "bg-zinc-900/90 text-zinc-300  hover: hover:text-white hover:bg-zinc-800"
                 }`}
               >
                 <Sparkles className="w-3 h-3 text-amber-300 animate-pulse" />
@@ -303,7 +303,7 @@ export function RecommendationTabs({
                   } font-bold transition-all whitespace-nowrap cursor-pointer border shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-purple-500 shrink-0 ${
                     activeTab === "actor"
                       ? "bg-purple-600 text-white border-purple-400 shadow-sm"
-                      : "bg-zinc-900/90 text-zinc-300 border-white/10 hover:border-white/25 hover:text-white hover:bg-zinc-800"
+                      : "bg-zinc-900/90 text-zinc-300  hover: hover:text-white hover:bg-zinc-800"
                   }`}
                 >
                   <Users className="w-3 h-3 text-purple-300" />
@@ -324,7 +324,7 @@ export function RecommendationTabs({
                   } font-bold transition-all whitespace-nowrap cursor-pointer border shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-rose-500 shrink-0 ${
                     activeTab === "genre"
                       ? "bg-netflix-red text-white border-netflix-red shadow-sm"
-                      : "bg-zinc-900/90 text-zinc-300 border-white/10 hover:border-white/25 hover:text-white hover:bg-zinc-800"
+                      : "bg-zinc-900/90 text-zinc-300  hover: hover:text-white hover:bg-zinc-800"
                   }`}
                 >
                   <Clapperboard className="w-3 h-3 text-rose-300" />
@@ -345,7 +345,7 @@ export function RecommendationTabs({
                   } font-bold transition-all whitespace-nowrap cursor-pointer border shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-sky-500 shrink-0 ${
                     activeTab === "country"
                       ? "bg-sky-600 text-white border-sky-400 shadow-sm"
-                      : "bg-zinc-900/90 text-zinc-300 border-white/10 hover:border-white/25 hover:text-white hover:bg-zinc-800"
+                      : "bg-zinc-900/90 text-zinc-300  hover: hover:text-white hover:bg-zinc-800"
                   }`}
                 >
                   <Globe2 className="w-3 h-3 text-sky-300" />
@@ -366,7 +366,7 @@ export function RecommendationTabs({
                   } font-bold transition-all whitespace-nowrap cursor-pointer border shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-amber-500 shrink-0 ${
                     activeTab === "top"
                       ? "bg-amber-600 text-white border-amber-400 shadow-sm"
-                      : "bg-zinc-900/90 text-zinc-300 border-white/10 hover:border-white/25 hover:text-white hover:bg-zinc-800"
+                      : "bg-zinc-900/90 text-zinc-300  hover: hover:text-white hover:bg-zinc-800"
                   }`}
                 >
                   <Star className="w-3 h-3 text-amber-300 fill-current" />
@@ -384,7 +384,7 @@ export function RecommendationTabs({
                 type="button"
                 onClick={handleShuffle}
                 aria-label="Đổi phim khác"
-                className="flex items-center justify-center h-7 w-7 rounded-xl text-xs font-bold text-zinc-200 hover:text-white bg-zinc-900/90 hover:bg-zinc-800 border border-white/15 hover:border-white/30 transition shadow-sm cursor-pointer active:scale-95 shrink-0"
+                className="flex items-center justify-center h-7 w-7 rounded-xl text-xs font-bold text-zinc-200 hover:text-white bg-zinc-900/90 hover:bg-zinc-800 hover: transition shadow-sm cursor-pointer active:scale-95 shrink-0"
               >
                 <Shuffle
                   className={`w-3.5 h-3.5 text-amber-400 transition-transform ${
@@ -421,11 +421,11 @@ export function RecommendationTabs({
 
             {/* NÚT XEM THÊM TRONG SIDEBAR */}
             {currentTabMovies.length > visibleLimit && (
-              <div className="flex justify-center pt-1 border-t border-white/5">
+              <div className="flex justify-center pt-1 border-t">
                 <button
                   type="button"
                   onClick={() => setVisibleLimit((prev) => prev + 8)}
-                  className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-white font-bold text-xs border border-white/10 hover:border-white/20 transition-all cursor-pointer"
+                  className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-white font-bold text-xs hover: transition-all cursor-pointer"
                 >
                   <span>Xem thêm</span>
                   <ChevronDown className="w-3.5 h-3.5 text-netflix-red" />
@@ -464,7 +464,7 @@ export function RecommendationTabs({
                 <button
                   type="button"
                   onClick={() => setVisibleLimit((prev) => prev + 12)}
-                  className="flex items-center gap-2 px-6 py-2.5 rounded-2xl bg-zinc-900 hover:bg-zinc-800 text-white font-bold text-xs sm:text-sm border border-white/15 hover:border-white/30 shadow-lg transition-all hover:scale-102 active:scale-98 cursor-pointer"
+                  className="flex items-center gap-2 px-6 py-2.5 rounded-2xl bg-zinc-900 hover:bg-zinc-800 text-white font-bold text-xs sm:text-sm hover: shadow-lg transition-all hover:scale-102 active:scale-98 cursor-pointer"
                 >
                   <span>Xem thêm gợi ý</span>
                   <span className="px-2 py-0.5 rounded-full bg-white/15 text-[11px] text-zinc-300">
@@ -491,7 +491,7 @@ export function RecommendationTabs({
           </div>
         )
       ) : (
-        <div className="rounded-2xl border border-white/10 bg-zinc-900/50 p-6 text-center text-sm text-zinc-400 space-y-3">
+        <div className="rounded-2xl bg-zinc-900/50 p-6 text-center text-sm text-zinc-400 space-y-3">
           <p>Chưa có danh sách phim đề xuất phù hợp.</p>
           <button
             type="button"
@@ -524,7 +524,7 @@ const RecommendedMovieCard = React.memo(function RecommendedMovieCard({
   const quality = item.quality || "FHD";
 
   return (
-    <div className="group relative bg-zinc-900 rounded-2xl overflow-hidden border border-white/10 hover:border-white/25 transition-all duration-300 hover:scale-[1.02] shadow-md hover:shadow-2xl flex flex-col">
+    <div className="group relative bg-zinc-900 rounded-2xl overflow-hidden hover: transition-all duration-300 hover:scale-[1.02] shadow-md hover:shadow-2xl flex flex-col">
       <Link
         href={`/movies/${item.slug}`}
         tabIndex={0}
@@ -559,8 +559,8 @@ const RecommendedMovieCard = React.memo(function RecommendedMovieCard({
               <span
                 className={`px-1.5 py-0.5 rounded text-[11px] font-bold backdrop-blur-md border ${
                   quality.toUpperCase().includes("CAM")
-                    ? "bg-amber-950/80 text-amber-300 border-amber-500/40"
-                    : "bg-black/75 text-zinc-300 border-white/10"
+                    ? "bg-amber-950/80 text-amber-300 "
+                    : "bg-black/75 text-zinc-300 "
                 }`}
               >
                 {quality}
@@ -590,7 +590,7 @@ const RecommendedMovieCard = React.memo(function RecommendedMovieCard({
               {time && <span className="text-zinc-500 truncate min-w-0">• {time}</span>}
             </div>
             {categoryName && (
-              <span className="text-[11px] font-medium text-zinc-400 bg-white/5 px-2 py-0.5 rounded border border-white/5 truncate max-w-[85px] sm:max-w-[110px] shrink-0">
+              <span className="text-[11px] font-medium text-zinc-400 bg-white/5 px-2 py-0.5 rounded truncate max-w-[85px] sm:max-w-[110px] shrink-0">
                 {categoryName}
               </span>
             )}
@@ -623,10 +623,10 @@ const RecommendedSidebarCard = React.memo(function RecommendedSidebarCard({
       href={`/movies/${item.slug}`}
       tabIndex={0}
       title={title}
-      className="group flex items-center gap-3 p-2 rounded-xl hover:bg-white/[0.07] border border-transparent hover:border-white/10 transition-all duration-200 outline-none focus-visible:ring-2 focus-visible:ring-white cursor-pointer"
+      className="group flex items-center gap-3 p-2 rounded-xl hover:bg-white/[0.07] border border-transparent hover: transition-all duration-200 outline-none focus-visible:ring-2 focus-visible:ring-white cursor-pointer w-full max-w-full min-w-0"
     >
       {/* 1. THUMBNAIL (16:9) */}
-      <div className="relative aspect-video w-[115px] sm:w-[130px] rounded-lg overflow-hidden bg-zinc-800 shrink-0 border border-white/10 group-hover:border-white/25 shadow-sm">
+      <div className="relative aspect-video w-[115px] sm:w-[130px] rounded-lg overflow-hidden bg-zinc-800 shrink-0 group-hover: shadow-sm">
         <Image
           src={thumbUrl}
           alt={title}
@@ -646,7 +646,7 @@ const RecommendedSidebarCard = React.memo(function RecommendedSidebarCard({
           }}
         />
         {quality && (
-          <span className="absolute bottom-1 right-1 px-1 py-0.2 rounded text-[9px] font-bold bg-black/80 text-zinc-300 backdrop-blur-sm border border-white/10 pointer-events-none">
+          <span className="absolute bottom-1 right-1 px-1 py-0.2 rounded text-[9px] font-bold bg-black/80 text-zinc-300 backdrop-blur-sm pointer-events-none">
             {quality}
           </span>
         )}
@@ -663,7 +663,7 @@ const RecommendedSidebarCard = React.memo(function RecommendedSidebarCard({
         </div>
         <div className="flex items-center gap-1.5 mt-1.5">
           {categoryName && (
-            <span className="text-[11px] font-medium text-zinc-300 bg-white/10 px-1.5 py-0.5 rounded border border-white/10 truncate max-w-[90px]">
+            <span className="text-[11px] font-medium text-zinc-300 bg-white/10 px-1.5 py-0.5 rounded truncate max-w-[90px]">
               {categoryName}
             </span>
           )}

@@ -42,8 +42,8 @@ export const Footer: React.FC = () => {
         {/* 1. 4 PILLS TÍNH NĂNG ĐẲNG CẤP (2x2 trên mobile, 4 col trên desktop) */}
         {/* ============================================================ */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-4">
-          <div className="flex items-center gap-2.5 sm:gap-3 p-2.5 sm:p-3.5 rounded-xl sm:rounded-2xl bg-zinc-950/60 border border-white/[0.06] sm:border-white/[0.08] backdrop-blur-xl shadow-md hover:border-white/20 transition-all group min-h-[52px] sm:min-h-[60px]">
-            <div className="p-1.5 sm:p-2 rounded-lg sm:rounded-xl bg-red-600/15 text-netflix-red border border-red-500/25 group-hover:scale-105 transition-transform flex-shrink-0">
+          <div className="flex items-center gap-2.5 sm:gap-3 p-2.5 sm:p-3.5 rounded-xl sm:rounded-2xl bg-zinc-950/60 backdrop-blur-xl shadow-md hover:bg-zinc-900/70 transition-all group min-h-[52px] sm:min-h-[60px]">
+            <div className="p-1.5 sm:p-2 rounded-lg sm:rounded-xl bg-red-600/15 text-netflix-red group-hover:scale-105 transition-transform flex-shrink-0">
               <Zap className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </div>
             <div className="min-w-0">
@@ -52,8 +52,8 @@ export const Footer: React.FC = () => {
             </div>
           </div>
 
-          <div className="flex items-center gap-2.5 sm:gap-3 p-2.5 sm:p-3.5 rounded-xl sm:rounded-2xl bg-zinc-950/60 border border-white/[0.06] sm:border-white/[0.08] backdrop-blur-xl shadow-md hover:border-white/20 transition-all group min-h-[52px] sm:min-h-[60px]">
-            <div className="p-1.5 sm:p-2 rounded-lg sm:rounded-xl bg-amber-500/15 text-amber-400 border border-amber-500/25 group-hover:scale-105 transition-transform flex-shrink-0">
+          <div className="flex items-center gap-2.5 sm:gap-3 p-2.5 sm:p-3.5 rounded-xl sm:rounded-2xl bg-zinc-950/60 backdrop-blur-xl shadow-md hover:bg-zinc-900/70 transition-all group min-h-[52px] sm:min-h-[60px]">
+            <div className="p-1.5 sm:p-2 rounded-lg sm:rounded-xl bg-amber-500/15 text-amber-400 group-hover:scale-105 transition-transform flex-shrink-0">
               <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </div>
             <div className="min-w-0">
@@ -62,8 +62,8 @@ export const Footer: React.FC = () => {
             </div>
           </div>
 
-          <div className="flex items-center gap-2.5 sm:gap-3 p-2.5 sm:p-3.5 rounded-xl sm:rounded-2xl bg-zinc-950/60 border border-white/[0.06] sm:border-white/[0.08] backdrop-blur-xl shadow-md hover:border-white/20 transition-all group min-h-[52px] sm:min-h-[60px]">
-            <div className="p-1.5 sm:p-2 rounded-lg sm:rounded-xl bg-emerald-500/15 text-emerald-400 border border-emerald-500/25 group-hover:scale-105 transition-transform flex-shrink-0">
+          <div className="flex items-center gap-2.5 sm:gap-3 p-2.5 sm:p-3.5 rounded-xl sm:rounded-2xl bg-zinc-950/60 backdrop-blur-xl shadow-md hover:bg-zinc-900/70 transition-all group min-h-[52px] sm:min-h-[60px]">
+            <div className="p-1.5 sm:p-2 rounded-lg sm:rounded-xl bg-emerald-500/15 text-emerald-400 group-hover:scale-105 transition-transform flex-shrink-0">
               <ShieldCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </div>
             <div className="min-w-0">
@@ -72,8 +72,8 @@ export const Footer: React.FC = () => {
             </div>
           </div>
 
-          <div className="flex items-center gap-2.5 sm:gap-3 p-2.5 sm:p-3.5 rounded-xl sm:rounded-2xl bg-zinc-950/60 border border-white/[0.06] sm:border-white/[0.08] backdrop-blur-xl shadow-md hover:border-white/20 transition-all group min-h-[52px] sm:min-h-[60px]">
-            <div className="p-1.5 sm:p-2 rounded-lg sm:rounded-xl bg-blue-500/15 text-blue-400 border border-blue-500/25 group-hover:scale-105 transition-transform flex-shrink-0">
+          <div className="flex items-center gap-2.5 sm:gap-3 p-2.5 sm:p-3.5 rounded-xl sm:rounded-2xl bg-zinc-950/60 backdrop-blur-xl shadow-md hover:bg-zinc-900/70 transition-all group min-h-[52px] sm:min-h-[60px]">
+            <div className="p-1.5 sm:p-2 rounded-lg sm:rounded-xl bg-blue-500/15 text-blue-400 group-hover:scale-105 transition-transform flex-shrink-0">
               <Cpu className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </div>
             <div className="min-w-0">
@@ -345,20 +345,20 @@ export const Footer: React.FC = () => {
               <span className="relative inline-flex rounded-full h-2 w-2 sm:h-2.5 sm:w-2.5 bg-emerald-500"></span>
             </span>
             <span className="text-xs font-bold text-zinc-200">
-              Hệ thống: <span className="text-emerald-400 font-mono">99.99% Uptime</span> • CDN Tốc độ cao
+              Hệ thống: <span className="text-emerald-400 font-sans tabular-nums">99.99% Uptime</span> • CDN Tốc độ cao
             </span>
           </div>
 
           <div className="grid grid-cols-3 sm:flex items-center justify-center gap-2 sm:gap-5 text-xs text-zinc-300 w-full sm:w-auto">
-            <span className="flex items-center justify-center gap-1.5 hover:text-white transition bg-white/5 sm:bg-transparent px-2 sm:px-2.5 py-1.5 sm:p-0 rounded-lg sm:rounded-none border border-white/5 sm:border-none whitespace-nowrap">
+            <span className="flex items-center justify-center gap-1.5 hover:text-white transition bg-white/5 sm:bg-transparent px-2 sm:px-2.5 py-1.5 sm:p-0 rounded-lg sm:rounded-none sm:border-none whitespace-nowrap">
               <Monitor className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-blue-400 shrink-0" />
               <span>Smart TV</span>
             </span>
-            <span className="flex items-center justify-center gap-1.5 hover:text-white transition bg-white/5 sm:bg-transparent px-2 sm:px-2.5 py-1.5 sm:p-0 rounded-lg sm:rounded-none border border-white/5 sm:border-none whitespace-nowrap">
+            <span className="flex items-center justify-center gap-1.5 hover:text-white transition bg-white/5 sm:bg-transparent px-2 sm:px-2.5 py-1.5 sm:p-0 rounded-lg sm:rounded-none sm:border-none whitespace-nowrap">
               <Cast className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-400 shrink-0" />
               <span>Cast / AirPlay</span>
             </span>
-            <span className="flex items-center justify-center gap-1.5 hover:text-white transition bg-white/5 sm:bg-transparent px-2 sm:px-2.5 py-1.5 sm:p-0 rounded-lg sm:rounded-none border border-white/5 sm:border-none whitespace-nowrap">
+            <span className="flex items-center justify-center gap-1.5 hover:text-white transition bg-white/5 sm:bg-transparent px-2 sm:px-2.5 py-1.5 sm:p-0 rounded-lg sm:rounded-none sm:border-none whitespace-nowrap">
               <Smartphone className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-rose-400 shrink-0" />
               <span>Mobile App</span>
             </span>
@@ -373,7 +373,7 @@ export const Footer: React.FC = () => {
             <Link href="/" className="hover:opacity-90 transition inline-flex items-center">
               <NanaflixBrandLogo />
             </Link>
-            <span className="text-xs text-zinc-400 sm:border-l sm:border-white/15 sm:pl-3">
+            <span className="text-xs text-zinc-400 sm:border-l sm: sm:pl-3">
               Không gian điện ảnh cá nhân hóa • Không quảng cáo rác
             </span>
           </div>
@@ -426,7 +426,7 @@ export const Footer: React.FC = () => {
                   DT
                 </strong>
               </span>
-              <span className="text-[11px] sm:text-xs text-zinc-400 font-mono">
+              <span className="text-[11px] sm:text-xs text-zinc-400 font-sans tabular-nums">
                 © {new Date().getFullYear()} Nanaflix • Made with passion
               </span>
             </div>

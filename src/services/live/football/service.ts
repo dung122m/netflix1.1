@@ -60,6 +60,7 @@ export interface FootballMatch {
   score?: LiveMatchScore;
   realStatus?: "live" | "upcoming" | "finished";
   isLive?: boolean;
+  isFeatured?: boolean;
 }
 
 export interface LiveFootballData {
@@ -1349,34 +1350,29 @@ function detectTournament(title: string, team1: string, team2: string): string {
   // 1. Kiểm tra các bộ môn thể thao khác
   if (
     normTitle.includes("🏀") ||
-    normTitle.includes("wnba") ||
-    normTitle.includes("nba") ||
-    normTitle.includes("vba") ||
+    /\b(?:wnba|nba|vba)\b/i.test(normTitle) ||
     normTitle.includes("basketball") ||
     normTitle.includes("bong ro") ||
-    normTitle.includes("wildcats") ||
-    normTitle.includes("36ers") ||
-    normTitle.includes("liberty") ||
-    normTitle.includes("dream") ||
-    normT1.includes("heat") ||
-    normT2.includes("heat") ||
-    normT1.includes("buffalo") ||
-    normT2.includes("buffalo") ||
-    normT1.includes("dolphins") ||
-    normT2.includes("dolphins")
+    /\b(?:wildcats|36ers|liberty|dream)\b/i.test(normTitle) ||
+    /\bheat\b/i.test(normT1) ||
+    /\bheat\b/i.test(normT2) ||
+    /\bbuffalo(?:es)?\b/i.test(normT1) ||
+    /\bbuffalo(?:es)?\b/i.test(normT2) ||
+    /\bdolphins?\b/i.test(normT1) ||
+    /\bdolphins?\b/i.test(normT2)
   ) {
     if (
-      normTitle.includes("vba") ||
-      normT1.includes("heat") ||
-      normT2.includes("heat") ||
-      normT1.includes("buffalo") ||
-      normT2.includes("buffalo") ||
-      normT1.includes("dolphins") ||
-      normT2.includes("dolphins")
+      /\bvba\b/i.test(normTitle) ||
+      /\bheat\b/i.test(normT1) ||
+      /\bheat\b/i.test(normT2) ||
+      /\bbuffalo(?:es)?\b/i.test(normT1) ||
+      /\bbuffalo(?:es)?\b/i.test(normT2) ||
+      /\bdolphins?\b/i.test(normT1) ||
+      /\bdolphins?\b/i.test(normT2)
     ) {
       return "🏀 🇻🇳 Giải Bóng Rổ VBA";
     }
-    if (normTitle.includes("nba") || normTitle.includes("wnba")) {
+    if (/\b(?:nba|wnba)\b/i.test(normTitle)) {
       return "🏀 🇺🇸 Giải Bóng Rổ NBA";
     }
     return "🏀 Bóng Rổ Trực Tiếp";
@@ -1391,14 +1387,16 @@ function detectTournament(title: string, team1: string, team2: string): string {
     normTitle.includes("🏎") ||
     normTitle.includes("🏎️") ||
     normTitle.includes("🏁") ||
-    normTitle.includes("f1") ||
-    normTitle.includes("formula 1") ||
-    normTitle.includes("motogp") ||
-    normTitle.includes("dua xe")
+    /\b(?:f1|formula\s*1|motogp|dua\s*xe)\b/i.test(normTitle)
   ) {
     return "🏎️ F1 / Đua Xe Trực Tiếp";
   }
-  if (normTitle.includes("🥊") || normTitle.includes("boxing") || normTitle.includes("quyen anh") || normTitle.includes("ufc") || normTitle.includes("mma")) {
+  if (
+    normTitle.includes("🥊") ||
+    normTitle.includes("boxing") ||
+    normTitle.includes("quyen anh") ||
+    /\b(?:ufc|mma|one\s*championship)\b/i.test(normTitle)
+  ) {
     return "🥊 Quyền Anh Trực Tiếp";
   }
   if (
@@ -1410,7 +1408,12 @@ function detectTournament(title: string, team1: string, team2: string): string {
   ) {
     return "🎱 Bida / Billiards Trực Tiếp";
   }
-  if (normTitle.includes("🎮") || normTitle.includes("esports") || normTitle.includes("esport") || normTitle.includes("lck") || normTitle.includes("lpl") || normTitle.includes("vcs")) {
+  if (
+    normTitle.includes("🎮") ||
+    normTitle.includes("esports") ||
+    normTitle.includes("esport") ||
+    /\b(?:lck|lpl|vcs|cs2|csgo|dota|valorant)\b/i.test(normTitle)
+  ) {
     return "🎮 Esports Trực Tiếp";
   }
   if (normTitle.includes("🏸") || normTitle.includes("badminton") || normTitle.includes("cau long")) {
@@ -1882,7 +1885,8 @@ export function extractSportAndGender(
     sport = "badminton";
   } else if (
     fullText.includes("⚽") ||
-    /(?:^|\s|[([_:\-/])(?:football|soccer|bong da|vleague|premier league|ngoai hang anh|laliga|serie a|bundesliga|ligue 1|cúp c1|cup c1|cúp c2|cup c2|uecl|cup c3|champions league|europa league|ballon d'?or|qua bong vang|the best fifa)(?:$|\s|[)\]_:\-/])/i.test(norm)
+    /(?:^|\s|[([_:\-/])(?:football|soccer|bong da|vleague|premier league|ngoai hang anh|laliga|serie a|bundesliga|ligue 1|cúp c1|cup c1|cúp c2|cup c2|uecl|cup c3|champions league|europa league|ballon d'?or|qua bong vang|the best fifa)(?:$|\s|[)\]_:\-/])/i.test(norm) ||
+    /\b(?:fc|cf|clb)\b/i.test(cleanTitle)
   ) {
     sport = "football";
   } else {
@@ -2563,6 +2567,8 @@ export function normalizeAndMergeStreams(
             sport,
             team1,
             team2,
+            category,
+            gender,
           });
 
     const normT1 = !isEvent && team1 ? normalizeClubKey(team1) : "";

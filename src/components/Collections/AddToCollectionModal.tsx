@@ -163,7 +163,7 @@ export const AddToCollectionModal: React.FC<AddToCollectionModalProps> = ({
         className="fixed inset-0 z-[99998] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-200 overflow-y-auto overscroll-contain"
       >
         <div
-          className="relative w-full max-w-md my-auto bg-zinc-950 border border-white/20 rounded-3xl p-6 shadow-[0_25px_70px_rgba(0,0,0,0.95)] text-white animate-in zoom-in-95 duration-200 flex flex-col max-h-[85vh] overflow-hidden transform-gpu will-change-[transform,opacity]"
+          className="relative w-full max-w-md my-auto bg-zinc-950 rounded-3xl p-6 shadow-[0_25px_70px_rgba(0,0,0,0.95)] text-white animate-in zoom-in-95 duration-200 flex flex-col max-h-[85vh] overflow-hidden transform-gpu will-change-[transform,opacity]"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Ambient Glow */}
@@ -179,8 +179,8 @@ export const AddToCollectionModal: React.FC<AddToCollectionModalProps> = ({
           </button>
 
           {/* Tiêu đề & Thông tin phim */}
-          <div className="flex items-center gap-3 mb-4 pb-4 border-b border-white/10">
-            <div className="relative w-11 h-14 rounded-lg overflow-hidden bg-zinc-800 flex-shrink-0 border border-white/15">
+          <div className="flex items-center gap-3 mb-4 pb-4 border-b">
+            <div className="relative w-11 h-14 rounded-lg overflow-hidden bg-zinc-800 flex-shrink-0">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={toOptimizedCardPosterUrl(movie.poster, 192) || "/default-poster.jpg"}
@@ -208,7 +208,7 @@ export const AddToCollectionModal: React.FC<AddToCollectionModalProps> = ({
               </div>
             ) : collections.length === 0 ? (
               <div className="py-8 text-center px-4">
-                <div className="w-12 h-12 rounded-2xl bg-zinc-900 border border-white/10 flex items-center justify-center text-zinc-400 mx-auto mb-3">
+                <div className="w-12 h-12 rounded-2xl bg-zinc-900 flex items-center justify-center text-zinc-400 mx-auto mb-3">
                   <Film className="w-6 h-6" />
                 </div>
                 <p className="text-sm font-semibold text-white">
@@ -235,10 +235,10 @@ export const AddToCollectionModal: React.FC<AddToCollectionModalProps> = ({
                   <div
                     key={col.id}
                     onClick={() => !isLoadingThis && handleToggle(col)}
-                    className={`flex items-center justify-between p-3 rounded-2xl border transition cursor-pointer group ${
+                    className={`flex items-center justify-between p-3 rounded-2xl transition cursor-pointer group ${
                       isSelected
-                        ? "bg-rose-950/20 border-rose-500/40 hover:bg-rose-950/30"
-                        : "bg-zinc-900/60 border-white/10 hover:border-white/20 hover:bg-zinc-900"
+                        ? "bg-rose-950/20  hover:bg-rose-950/30"
+                        : "bg-zinc-900/60 hover:bg-zinc-900"
                     }`}
                   >
                     <div className="flex items-center gap-3 min-w-0">
@@ -271,7 +271,7 @@ export const AddToCollectionModal: React.FC<AddToCollectionModalProps> = ({
                       {isLoadingThis ? (
                         <Loader2 className="w-4 h-4 animate-spin text-netflix-red" />
                       ) : isSelected ? (
-                        <div className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 text-xs font-semibold">
+                        <div className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-500/20 text-emerald-400 text-xs font-semibold">
                           <Check className="w-3.5 h-3.5" />
                           <span>Đã thêm</span>
                         </div>
@@ -290,7 +290,7 @@ export const AddToCollectionModal: React.FC<AddToCollectionModalProps> = ({
 
           {/* Footer: Nút tạo thêm bộ sưu tập */}
           {collections.length > 0 && (
-            <div className="pt-4 mt-2 border-t border-white/10 flex items-center justify-between">
+            <div className="pt-4 mt-2 border-t flex items-center justify-between">
               <button
                 type="button"
                 onClick={() => setShowCreateModal(true)}

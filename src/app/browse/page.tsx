@@ -995,7 +995,7 @@ export default async function BrowsePage({
           </div>
           <div className="flex items-center gap-3 flex-wrap">
             <SortSelector />
-            <div className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/5 px-3 py-1.5 text-xs md:text-sm text-zinc-200 backdrop-blur-sm shadow-sm">
+            <div className="inline-flex items-center gap-2 rounded-xl bg-white/5 px-3 py-1.5 text-xs md:text-sm text-zinc-200 backdrop-blur-sm shadow-sm">
               <Film className="w-3.5 h-3.5 text-netflix-red" />
               <span>{totalItems.toLocaleString("vi-VN")} phim</span>
               <span className="text-white/40">•</span>
@@ -1007,14 +1007,14 @@ export default async function BrowsePage({
         {detectedActor && (
           <div className="mb-6 p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-zinc-900/90 via-zinc-900 to-zinc-900 border border-netflix-red/30 flex items-center justify-between gap-3 shadow-xl animate-in fade-in duration-300">
             <div className="flex items-center gap-3.5">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-netflix-red text-white flex items-center justify-center flex-none shadow-md border border-white/20">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-netflix-red text-white flex items-center justify-center flex-none shadow-md">
                 <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 text-amber-300" />
               </div>
               <div>
                 <h4 className="text-sm sm:text-base font-black text-white flex items-center gap-2 flex-wrap">
                   <span>Tuyển Tập Tác Phẩm Của {detectedActor.name}</span>
                   {detectedActor.country && (
-                    <span className="text-xs text-white font-bold px-2.5 py-0.5 rounded-full bg-white/10 border border-white/10">
+                    <span className="text-xs text-white font-bold px-2.5 py-0.5 rounded-full bg-white/10">
                       {detectedActor.country}
                     </span>
                   )}
@@ -1050,7 +1050,7 @@ export default async function BrowsePage({
           </>
         ) : (
           <div className="py-12 space-y-10">
-            <div className="max-w-xl mx-auto rounded-2xl border border-white/10 bg-zinc-900/80 p-6 md:p-8 text-center backdrop-blur-md shadow-2xl">
+            <div className="max-w-xl mx-auto rounded-2xl bg-zinc-900/80 p-6 md:p-8 text-center backdrop-blur-md shadow-2xl">
               <Film className="w-12 h-12 text-zinc-500 mx-auto mb-3" />
               <h3 className="text-lg md:text-xl font-bold text-white">
                 {detectedActor

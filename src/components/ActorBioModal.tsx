@@ -136,13 +136,13 @@ export const ActorBioModal: React.FC<ActorBioModalProps> = ({
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="relative w-full max-w-xl md:max-w-2xl bg-zinc-950/98 rounded-3xl border border-white/20 shadow-2xl shadow-black/90 overflow-hidden transform-gpu will-change-[transform,opacity] animate-in zoom-in-95 duration-200 my-auto"
+        className="relative w-full max-w-xl md:max-w-2xl bg-zinc-950/98 rounded-3xl shadow-2xl shadow-black/90 overflow-hidden transform-gpu will-change-[transform,opacity] animate-in zoom-in-95 duration-200 my-auto"
       >
         {/* TOP ACCENT GRADIENT */}
         <div className="h-1.5 w-full bg-gradient-to-r from-transparent via-netflix-red to-transparent opacity-90 shadow-sm shadow-netflix-red/50" />
 
         {/* HEADER BAR */}
-        <div className="flex items-center justify-between px-4 sm:px-6 py-3.5 border-b border-white/10 bg-zinc-900/90 gap-2">
+        <div className="flex items-center justify-between px-4 sm:px-6 py-3.5 border-b bg-zinc-900/90 gap-2">
           <div className="flex items-center gap-2 text-rose-400 min-w-0 flex-1">
             <Sparkles className="w-4 h-4 text-amber-300 animate-pulse shrink-0" />
             <span className="text-[11px] sm:text-xs font-black uppercase tracking-wider text-white truncate">
@@ -170,7 +170,7 @@ export const ActorBioModal: React.FC<ActorBioModalProps> = ({
             <>
               {/* ACTOR HERO WITH LARGE AVATAR & METADATA */}
               <div className="flex items-start gap-4 sm:gap-5">
-                <div className="relative aspect-[3/4] w-24 sm:w-28 rounded-2xl overflow-hidden bg-zinc-900 border border-white/20 flex-none shadow-2xl ring-2 ring-white/10 group">
+                <div className="relative aspect-[3/4] w-24 sm:w-28 rounded-2xl overflow-hidden bg-zinc-900 flex-none shadow-2xl group">
                   <ActorAvatar
                     name={displayTitle}
                     avatarUrl={displayAvatar}
@@ -178,7 +178,7 @@ export const ActorBioModal: React.FC<ActorBioModalProps> = ({
                     sizes="140px"
                     imageClassName="object-cover object-center group-hover:scale-105 transition-transform duration-300"
                   />
-                  <div className="absolute inset-0 ring-1 ring-inset ring-white/10 rounded-2xl pointer-events-none" />
+                  <div className="absolute inset-0 ring-white/10 rounded-2xl pointer-events-none" />
                 </div>
 
                 <div className="min-w-0 flex-1 space-y-1.5 pt-0.5">
@@ -187,7 +187,7 @@ export const ActorBioModal: React.FC<ActorBioModalProps> = ({
                       {displayTitle}
                     </h3>
                     {profile?.country && (
-                      <span className="text-xs px-2 py-0.5 rounded-full bg-white/10 border border-white/15 text-zinc-200 font-semibold flex-none">
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-white/10 text-zinc-200 font-semibold flex-none">
                         {profile.country}
                       </span>
                     )}
@@ -213,7 +213,7 @@ export const ActorBioModal: React.FC<ActorBioModalProps> = ({
 
               {/* QUICK STATS CHIPS BAR */}
               {(profile?.formattedBirthday || profile?.placeOfBirth || (profile?.tags && profile.tags.length > 0)) && (
-                <div className="flex items-center gap-2 flex-wrap p-2.5 rounded-xl bg-zinc-900/60 border border-white/10 text-xs">
+                <div className="flex items-center gap-2 flex-wrap p-2.5 rounded-xl bg-zinc-900/60 text-xs">
                   {profile.formattedBirthday && (
                     <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/5 text-zinc-200 font-medium">
                       <Calendar className="w-3.5 h-3.5 text-rose-400 flex-none" />
@@ -238,7 +238,7 @@ export const ActorBioModal: React.FC<ActorBioModalProps> = ({
               )}
 
               {/* CLEANED BIO EXTRACT */}
-              <div className="p-4 sm:p-5 rounded-2xl bg-zinc-900/70 border border-white/10 text-xs sm:text-sm text-zinc-200 leading-relaxed max-h-60 sm:max-h-72 overflow-y-auto pr-3 custom-scrollbar">
+              <div className="p-4 sm:p-5 rounded-2xl bg-zinc-900/70 text-xs sm:text-sm text-zinc-200 leading-relaxed max-h-60 sm:max-h-72 overflow-y-auto pr-3 custom-scrollbar">
                 {paragraphs.length > 0 ? (
                   <div className="space-y-3">
                     {paragraphs.map((para, pIdx) => (
@@ -267,7 +267,7 @@ export const ActorBioModal: React.FC<ActorBioModalProps> = ({
                   <Link
                     href={`/dien-vien/${profile.slug}`}
                     onClick={() => setIsOpen(false)}
-                    className="min-h-[46px] h-11 px-4 rounded-xl bg-white/10 hover:bg-white/15 text-zinc-200 hover:text-white font-semibold text-xs flex items-center justify-center gap-1.5 transition border border-white/15 cursor-pointer whitespace-nowrap w-full sm:w-auto shrink-0"
+                    className="min-h-[46px] h-11 px-4 rounded-xl bg-white/10 hover:bg-white/15 text-zinc-200 hover:text-white font-semibold text-xs flex items-center justify-center gap-1.5 transition cursor-pointer whitespace-nowrap w-full sm:w-auto shrink-0"
                   >
                     <span>Trang nghệ sĩ</span>
                     <Globe className="w-3.5 h-3.5 text-zinc-400" />
@@ -279,7 +279,7 @@ export const ActorBioModal: React.FC<ActorBioModalProps> = ({
                     href={profile.wikiUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="min-h-[46px] h-11 px-4 rounded-xl bg-white/10 hover:bg-white/15 text-zinc-200 hover:text-white font-semibold text-xs flex items-center justify-center gap-1.5 transition border border-white/15 cursor-pointer whitespace-nowrap w-full sm:w-auto shrink-0"
+                    className="min-h-[46px] h-11 px-4 rounded-xl bg-white/10 hover:bg-white/15 text-zinc-200 hover:text-white font-semibold text-xs flex items-center justify-center gap-1.5 transition cursor-pointer whitespace-nowrap w-full sm:w-auto shrink-0"
                   >
                     <span>Wikipedia</span>
                     <ExternalLink className="w-3.5 h-3.5 text-zinc-400" />

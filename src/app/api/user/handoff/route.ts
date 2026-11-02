@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { verifyServerAuth } from "@/lib/serverAuth";
+import {
+  enforceRateLimit,
+  buildRateLimitResponse,
+  RATE_LIMIT_PRESETS,
+} from "@/lib/rateLimit";
+import { safeParseJson } from "@/lib/securityValidation";
 
 export const dynamic = "force-dynamic";
 
@@ -17,6 +23,11 @@ export async function GET(req: NextRequest) {
   const auth = await verifyServerAuth(req);
   if (!auth.isAuthenticated || !auth.userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const rateLimit = await enforceRateLimit(req, RATE_LIMIT_PRESETS.PUBLIC_READ, auth.userId);
+  if (!rateLimit.allowed) {
+    return buildRateLimitResponse(rateLimit);
   }
 
   const { searchParams } = new URL(req.url);
@@ -111,12 +122,26 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const rateLimit = await enforceRateLimit(
+    req,
+    { namespace: "handoff-post", maxRequests: 60, windowSeconds: 60, failClosed: true },
+    auth.userId
+  );
+  if (!rateLimit.allowed) {
+    return buildRateLimitResponse(rateLimit);
+  }
+
   try {
-    const body = await req.json();
+    const parseRes = await safeParseJson<Record<string, unknown>>(req, 30 * 1024);
+    if (!parseRes.success) {
+      return parseRes.response;
+    }
+
+    const body = parseRes.data;
     const { movieSlug, movieTitle, poster, episodeSlug, episodeName, progressSeconds, durationSeconds, deviceName } = body;
 
-    if (!movieSlug) {
-      return NextResponse.json({ error: "Missing movieSlug" }, { status: 400 });
+    if (!movieSlug || typeof movieSlug !== "string") {
+      return NextResponse.json({ error: "Missing or invalid movieSlug" }, { status: 400 });
     }
 
     const serverDedupKey = `${auth.userId}:${movieSlug}`;
@@ -174,6 +199,15 @@ export async function DELETE(req: NextRequest) {
   const auth = await verifyServerAuth(req);
   if (!auth.isAuthenticated || !auth.userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const rateLimit = await enforceRateLimit(
+    req,
+    { namespace: "handoff-delete", maxRequests: 30, windowSeconds: 60, failClosed: true },
+    auth.userId
+  );
+  if (!rateLimit.allowed) {
+    return buildRateLimitResponse(rateLimit);
   }
 
   try {

@@ -109,7 +109,7 @@ export const ChannelSourceSwitcher: React.FC<ChannelSourceSwitcherProps> = ({
       role="group"
       aria-label={isChannel ? "Bộ chọn kênh truyền hình" : "Bộ chọn nguồn phát"}
       onKeyDown={handleKeyDown}
-      className={`h-8 sm:h-9.5 inline-flex items-center bg-black/60 hover:bg-black/75 rounded-full border border-white/15 p-0.5 sm:p-1 backdrop-blur-md min-w-0 shrink max-w-full transition-all duration-200 select-none shadow-sm ${className}`}
+      className={`h-8 sm:h-9.5 inline-flex items-center bg-black/60 hover:bg-black/75 rounded-full  p-0.5 sm:p-1 backdrop-blur-md min-w-0 shrink max-w-full transition-all duration-200 select-none shadow-sm ${className}`}
     >
       {/* NÚT ‹ CHUYỂN TRƯỚC */}
       <button
@@ -151,8 +151,8 @@ export const ChannelSourceSwitcher: React.FC<ChannelSourceSwitcherProps> = ({
         } ${
           isListOpen
             ? isChannel
-              ? "bg-sky-500/20 text-sky-200 border border-sky-400/30 shadow-sm"
-              : "bg-white/20 text-white border border-white/25 shadow-sm"
+              ? "bg-sky-500/20 text-sky-200  shadow-sm"
+              : "bg-white/20 text-white  shadow-sm"
             : "text-white/90 hover:text-white hover:bg-white/10 active:bg-white/15"
         } ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
       >
@@ -169,7 +169,7 @@ export const ChannelSourceSwitcher: React.FC<ChannelSourceSwitcherProps> = ({
 
         {/* Chỉ số thứ tự item/tổng: Mobile hiện gọn • 3/12, Desktop hiện • Kênh 3/12 hoặc • Nguồn 1/4 */}
         {totalCount > 0 && (
-          <span className="text-[10px] sm:text-[11px] font-mono text-zinc-300 select-none whitespace-nowrap opacity-90 shrink-0">
+          <span className="text-[10px] sm:text-[11px] font-sans tabular-nums text-zinc-300 select-none whitespace-nowrap opacity-90 shrink-0">
             <span className="hidden md:inline">
               • {isChannel ? "Kênh " : "Nguồn "}
             </span>

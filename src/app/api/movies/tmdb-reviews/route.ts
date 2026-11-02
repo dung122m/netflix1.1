@@ -1,9 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getTmdbReviews } from "@/services/tmdbService";
+import {
+  enforceRateLimit,
+  buildRateLimitResponse,
+  RATE_LIMIT_PRESETS,
+} from "@/lib/rateLimit";
 
 export const runtime = "nodejs";
 
 export async function GET(req: NextRequest) {
+  const rateLimit = await enforceRateLimit(req, RATE_LIMIT_PRESETS.PUBLIC_READ);
+  if (!rateLimit.allowed) {
+    return buildRateLimitResponse(rateLimit);
+  }
+
   try {
     const { searchParams } = new URL(req.url);
     const tmdbId = searchParams.get("tmdbId");

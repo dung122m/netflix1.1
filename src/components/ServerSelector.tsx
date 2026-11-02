@@ -52,14 +52,14 @@ export const ServerSelector: React.FC<ServerSelectorProps> = ({
             <div className="flex items-center gap-2 min-w-0">
               <Radio className="w-3.5 h-3.5 text-netflix-red shrink-0" aria-hidden="true" />
               <span className="text-xs font-bold text-white tracking-wide shrink-0">Nguồn phát:</span>
-              <span className="text-xs font-medium text-zinc-300 bg-white/5 border border-white/10 px-2.5 py-1 rounded-full truncate">
+              <span className="text-xs font-medium text-zinc-300 bg-white/5 px-2.5 py-1 rounded-full truncate">
                 {activeProvider === "vsmov"
                   ? (servers[0]?.server_name || "Máy chủ VSMOV")
                   : (servers[0]?.server_name || "Bản chuẩn HD")}
               </span>
             </div>
 
-            <div className="flex items-center gap-1 bg-zinc-900/90 p-1 rounded-full border border-white/10 shrink-0">
+            <div className="flex items-center gap-1 bg-zinc-900/90 p-1 rounded-full shrink-0">
               <Tooltip
                 content={!hasNanaflixSource ? "Phim này hiện chỉ có nguồn phát độc quyền từ máy chủ VSMOV" : "Chuyển sang nguồn Nanaflix "}
                 side="top"
@@ -99,12 +99,12 @@ export const ServerSelector: React.FC<ServerSelectorProps> = ({
           </div>
 
           {activeProvider === "vsmov" && (
-            <div className="p-3 rounded-xl bg-sky-950/20 border border-sky-500/20 space-y-1.5">
+            <div className="p-3 rounded-xl bg-sky-950/20 space-y-1.5">
               <div className="flex items-center justify-between gap-2 flex-wrap">
                 <span className="text-xs font-semibold text-sky-200">
                   {isVsmovOnly ? "Máy chủ VSMOV độc quyền" : "Đang phát từ máy chủ đối tác VSMOV"}
                 </span>
-                <span className="text-[11px] font-medium text-sky-300 bg-sky-500/10 px-2.5 py-0.5 rounded-full border border-sky-500/20">
+                <span className="text-[11px] font-medium text-sky-300 bg-sky-500/10 px-2.5 py-0.5 rounded-full">
                   Phụ đề chuẩn
                 </span>
               </div>
@@ -128,12 +128,12 @@ export const ServerSelector: React.FC<ServerSelectorProps> = ({
         /* 2. GIAO DIỆN ĐẦY ĐỦ KHI CÓ NHIỀU BẢN/PHÂN LOẠI PHIM */
         <div className="space-y-2.5">
           {showHeader && (
-            <div className="flex items-center justify-between pb-2 border-b border-white/10 min-w-0">
+            <div className="flex items-center justify-between pb-2 border-b min-w-0">
               <h3 className="text-xs sm:text-sm font-bold flex items-center gap-1.5 text-white">
                 <Radio className="w-3.5 h-3.5 text-netflix-red shrink-0" aria-hidden="true" />
                 <span>Nguồn phát</span>
               </h3>
-              <div className="flex items-center gap-1 bg-zinc-900/90 p-1 rounded-full border border-white/10">
+              <div className="flex items-center gap-1 bg-zinc-900/90 p-1 rounded-full">
                 <Tooltip
                   content={!hasNanaflixSource ? "Phim này hiện chỉ có nguồn phát độc quyền từ máy chủ VSMOV" : "Chuyển sang nguồn Nanaflix "}
                   side="top"
@@ -198,8 +198,8 @@ export const ServerSelector: React.FC<ServerSelectorProps> = ({
                       }}
                       className={`group relative inline-flex items-center gap-1.5 px-3.5 py-1.5 min-h-[36px] rounded-full text-xs font-semibold transition-all duration-150 cursor-pointer ${
                         isSelected
-                          ? "bg-netflix-red text-white shadow-sm ring-1 ring-white/20 scale-[1.02]"
-                          : "bg-zinc-900/80 text-zinc-300 hover:text-white hover:bg-zinc-800 border border-white/10"
+                          ? "bg-netflix-red text-white shadow-sm  scale-[1.02]"
+                          : "bg-zinc-900/80 text-zinc-300 hover:text-white hover:bg-zinc-800"
                       }`}
                     >
                       <Sparkles className={`w-3.5 h-3.5 ${isSelected ? "text-amber-300" : "text-zinc-400"}`} aria-hidden="true" />
@@ -220,7 +220,7 @@ export const ServerSelector: React.FC<ServerSelectorProps> = ({
             </div>
           ) : (
             /* GIAO DIỆN TRẠNG THÁI KHI CHỌN MÁY CHỦ VSMOV */
-            <div className="p-3.5 rounded-xl bg-sky-950/20 border border-sky-500/25 space-y-2">
+            <div className="p-3.5 rounded-xl bg-sky-950/20 space-y-2">
               <div className="flex items-center justify-between gap-2 flex-wrap">
                 <div className="flex items-center gap-2">
                   <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-sky-500 text-black shadow-sm">
@@ -231,7 +231,7 @@ export const ServerSelector: React.FC<ServerSelectorProps> = ({
                     {isVsmovOnly ? "Máy chủ VSMOV" : "Máy chủ dự phòng VSMOV"}
                   </span>
                 </div>
-                <span className="text-[11px] font-medium text-sky-300 bg-sky-500/10 px-2.5 py-0.5 rounded-full border border-sky-500/20">
+                <span className="text-[11px] font-medium text-sky-300 bg-sky-500/10 px-2.5 py-0.5 rounded-full">
                   Tự động phụ đề
                 </span>
               </div>

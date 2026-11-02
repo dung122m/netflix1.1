@@ -136,7 +136,7 @@ export function Tooltip({
         id={tooltipId}
         role="tooltip"
         aria-hidden={!isOpen}
-        className={`pointer-events-none select-none absolute z-50 whitespace-nowrap px-2.5 py-1 rounded-lg bg-zinc-900/95 backdrop-blur-md text-zinc-100 text-[11px] font-medium tracking-normal border border-white/15 shadow-[0_8px_20px_rgba(0,0,0,0.85)] transition-all duration-150 ease-out hidden sm:flex items-center gap-1.5 ${positionClass} ${
+        className={`pointer-events-none select-none absolute z-50 whitespace-nowrap px-2.5 py-1 rounded-lg bg-zinc-900/95 backdrop-blur-md text-zinc-100 text-[11px] font-medium tracking-normal  shadow-[0_8px_20px_rgba(0,0,0,0.85)] transition-all duration-150 ease-out hidden sm:flex items-center gap-1.5 ${positionClass} ${
           isOpen
             ? "opacity-100 scale-100 translate-y-0"
             : "opacity-0 scale-95 pointer-events-none " +
@@ -145,13 +145,13 @@ export function Tooltip({
       >
         <span>{content}</span>
         {shortcut && (
-          <kbd className="px-1.5 py-0.5 rounded bg-white/10 text-[9px] font-mono text-zinc-300 border border-white/10 leading-none">
+          <kbd className="px-1.5 py-0.5 rounded bg-white/10 text-[9px] font-sans tabular-nums text-zinc-300 leading-none">
             {shortcut}
           </kbd>
         )}
         {/* Micro Arrow */}
         <div
-          className={`absolute w-2 h-2 rotate-45 bg-zinc-900 ${arrowClass} border-white/15`}
+          className={`absolute w-2 h-2 rotate-45 bg-zinc-900 ${arrowClass} `}
           aria-hidden="true"
         />
       </div>

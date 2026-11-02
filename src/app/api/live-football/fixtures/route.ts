@@ -5,11 +5,21 @@ import {
   LeagueSlug,
   filterFixturesByDate,
 } from "@/services/live/football-score/service";
+import {
+  enforceRateLimit,
+  buildRateLimitResponse,
+  RATE_LIMIT_PRESETS,
+} from "@/lib/rateLimit";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 export async function GET(request: NextRequest) {
+  const rateLimit = await enforceRateLimit(request, RATE_LIMIT_PRESETS.PUBLIC_READ);
+  if (!rateLimit.allowed) {
+    return buildRateLimitResponse(rateLimit);
+  }
+
   try {
     const { searchParams } = new URL(request.url);
     const league = searchParams.get("league")?.trim() || "";

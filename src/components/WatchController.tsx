@@ -215,12 +215,19 @@ export function WatchController({
         } else if (targetEpisodes.length > 0) {
           setActiveEpisodeSlug(targetEpisodes[0]?.slug || "");
         }
+
+        const provParam = urlParams.get("provider");
+        if (provParam === "vsmov") {
+          setActiveProvider("vsmov");
+        } else if (provParam === "nanaflix" || (provParam === null && !isVsmovOnly)) {
+          setActiveProvider("nanaflix");
+        }
       } catch {}
     };
 
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
-  }, [initialServers, initialServerIndex]);
+  }, [initialServers, initialServerIndex, isVsmovOnly]);
 
   const activeEpisode = useMemo(() => {
     return episodes.find((ep) => ep.slug === activeEpisodeSlug) || episodes[0];
@@ -240,8 +247,8 @@ export function WatchController({
       : null;
   }, [currentIndex, episodes]);
 
-  // Cập nhật URL sạch trên thanh địa chỉ không làm reload trang
-  const updateUrlQuietly = useCallback((epSlug: string, sIndex: number) => {
+  // Cập nhật URL sạch trên thanh địa chỉ không làm reload trang, giữ đúng provider đã chọn
+  const updateUrlQuietly = useCallback((epSlug: string, sIndex: number, prov?: PlaybackProviderType) => {
     if (typeof window === "undefined") return;
     try {
       const url = new URL(window.location.href);
@@ -255,18 +262,33 @@ export function WatchController({
       } else {
         url.searchParams.delete("server");
       }
+      const targetProv = prov !== undefined ? prov : activeProvider;
+      if (targetProv === "vsmov") {
+        url.searchParams.set("provider", "vsmov");
+      } else {
+        url.searchParams.delete("provider");
+      }
       // Xóa mốc thời gian cũ khỏi thanh địa chỉ để tập mới luôn phát từ đầu (0:00)
       url.searchParams.delete("t");
       window.history.pushState(null, "", url.pathname + url.search);
     } catch {}
-  }, []);
+  }, [activeProvider]);
+
+  // Chuyển nguồn phát (Nanaflix <-> VSMOV) và đồng bộ ngay vào URL
+  const switchProvider = useCallback(
+    (newProvider: PlaybackProviderType) => {
+      setActiveProvider(newProvider);
+      updateUrlQuietly(activeEpisodeSlug, currentServerIndex, newProvider);
+    },
+    [activeEpisodeSlug, currentServerIndex, updateUrlQuietly]
+  );
 
   // Chuyển tập tức thì trong 0ms
   const switchEpisode = useCallback(
     (newSlug: string) => {
       if (!newSlug || newSlug === activeEpisodeSlug) return;
       setActiveEpisodeSlug(newSlug);
-      updateUrlQuietly(newSlug, currentServerIndex);
+      updateUrlQuietly(newSlug, currentServerIndex, activeProvider);
 
       const targetEp = episodes.find((ep) => ep.slug === newSlug);
       if (targetEp) {
@@ -290,6 +312,7 @@ export function WatchController({
       activeEpisodeSlug,
       episodes,
       currentServerIndex,
+      activeProvider,
       movieSlug,
       movieTitle,
       posterUrl,
@@ -316,9 +339,9 @@ export function WatchController({
         (activeEpisode?.name ? findEpisodeMatch(newEpisodes, activeEpisode.name) : undefined);
       const currentTargetSlug = foundMatch?.slug || newEpisodes[0]?.slug || "";
       setActiveEpisodeSlug(currentTargetSlug);
-      updateUrlQuietly(currentTargetSlug, safeIndex);
+      updateUrlQuietly(currentTargetSlug, safeIndex, activeProvider);
     },
-    [initialServers, activeEpisodeSlug, activeEpisode, updateUrlQuietly]
+    [initialServers, activeEpisodeSlug, activeEpisode, activeProvider, updateUrlQuietly]
   );
 
   const value = useMemo<WatchContextValue>(() => {
@@ -342,7 +365,7 @@ export function WatchController({
       switchEpisode,
       switchServer,
       activeProvider,
-      setActiveProvider,
+      setActiveProvider: switchProvider,
       isVsmovOnly,
       hasNanaflixSource,
       tmdbId,
@@ -374,7 +397,7 @@ export function WatchController({
     switchEpisode,
     switchServer,
     activeProvider,
-    setActiveProvider,
+    switchProvider,
     isVsmovOnly,
     hasNanaflixSource,
     tmdbId,

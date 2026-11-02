@@ -4,49 +4,45 @@ import { resolveActorMovies, isAmbiguousShortActorKeyword, hasExplicitActorPrefi
 import { pickBestMoviePoster, MovieLike } from "@/lib/movieMedia";
 import { normalizeForMatch } from "@/lib/stringUtils";
 import { cacheService } from "@/lib/cache";
-import { evaluateRateLimit, hashClientIp } from "@/services/securityRiskService";
+import {
+  enforceRateLimit,
+  buildRateLimitResponse,
+  RATE_LIMIT_PRESETS,
+} from "@/lib/rateLimit";
+import { validateHttpMethod } from "@/lib/securityValidation";
+import { logSecurityEvent } from "@/lib/securityLogger";
 
 // TTL cho Search Suggest: 1 giờ (3600s), theo convention của Nanaflix
 const SUGGEST_CACHE_TTL_SECONDS = 3600;
 
 export async function GET(req: NextRequest) {
   try {
+    // 1. Kiểm tra phương thức HTTP
+    const methodErr = validateHttpMethod(req, ["GET"]);
+    if (methodErr) return methodErr;
+
+    // 2. Giới hạn tần suất phân tán (30 requests / phút / IP)
+    const rateLimit = await enforceRateLimit(req, RATE_LIMIT_PRESETS.SEARCH);
+    if (!rateLimit.allowed) {
+      logSecurityEvent(req, {
+        event: "RATE_LIMIT_EXCEEDED",
+        status: 429,
+        reason: "Vượt quá giới hạn tìm kiếm",
+      });
+      return buildRateLimitResponse(
+        rateLimit,
+        "Bạn đang gửi yêu cầu tìm kiếm quá nhanh. Vui lòng chờ giây lát."
+      );
+    }
+
     const { searchParams } = new URL(req.url);
-    const keyword = searchParams.get("keyword")?.trim() || "";
+    const rawKeyword = searchParams.get("keyword")?.trim() || "";
+    // Giới hạn độ dài keyword tối đa 100 ký tự (chống chuỗi quá dài gây treo CPU)
+    const keyword = rawKeyword.slice(0, 100);
 
     // Không tạo cache riêng cho search < 2 ký tự
     if (!keyword || keyword.length < 2) {
       return NextResponse.json({ items: [] });
-    }
-
-    // Rate Limit check via Upstash Redis (60 requests / 60s)
-    const anonymousId =
-      req.headers.get("x-anonymous-id") ||
-      searchParams.get("anonymousId") ||
-      undefined;
-    const forwarded = req.headers.get("x-forwarded-for");
-    const rawIp = forwarded ? forwarded.split(",")[0].trim() : "127.0.0.1";
-    const ipHash = hashClientIp(rawIp);
-
-    const rateLimit = await evaluateRateLimit({
-      anonymousId,
-      ipHash,
-      actionKey: "search_suggest",
-      maxRequests: 60,
-      windowSeconds: 60,
-    });
-
-    if (!rateLimit.allowed) {
-      return NextResponse.json(
-        {
-          error: "Bạn đang gửi yêu cầu tìm kiếm quá nhanh. Vui lòng chờ giây lát.",
-          items: [],
-        },
-        {
-          status: 429,
-          headers: { "Retry-After": "10" },
-        }
-      );
     }
 
     const normKw = normalizeForMatch(keyword);
@@ -66,15 +62,20 @@ export async function GET(req: NextRequest) {
       hasExplicitActorPrefix(keyword) ||
       (!isAmbiguousShortActorKeyword(keyword) && keyword.trim().split(/\s+/).length >= 2);
 
-    // Chạy song song tìm kiếm phim và phân giải diễn viên với timeout cực ngắn
+    // Chạy song song tìm kiếm phim và phân giải diễn viên với timeout tối đa 1800ms
     // skipKvCache: true đảm bảo các truy vấn gợi ý dở dang (limit 8) không ghi rác lên Cloudflare KV
     const [res, actorRes] = await Promise.all([
-      movieApi.getMovies({
-        keyword,
-        page: 1,
-        limit: 8,
-        skipKvCache: true,
-      }),
+      Promise.race([
+        movieApi.getMovies({
+          keyword,
+          page: 1,
+          limit: 8,
+          skipKvCache: true,
+        }),
+        new Promise<{ items: SuggestMovieItem[]; pagination?: unknown }>((resolve) =>
+          setTimeout(() => resolve({ items: [] }), 1800)
+        ),
+      ]).catch(() => ({ items: [] })),
       shouldCheckActor
         ? Promise.race([
             resolveActorMovies(keyword),

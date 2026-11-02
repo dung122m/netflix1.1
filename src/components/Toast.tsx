@@ -46,9 +46,9 @@ const ICONS: Record<ToastType, React.ReactNode> = {
 };
 
 const COLORS: Record<ToastType, string> = {
-  success: "border-emerald-500/30 bg-emerald-950/60",
-  error: "border-rose-500/30 bg-rose-950/60",
-  info: "border-sky-500/30 bg-sky-950/60",
+  success: " bg-emerald-950/60",
+  error: " bg-rose-950/60",
+  info: " bg-sky-950/60",
 };
 
 function ToastBubble({
@@ -121,7 +121,7 @@ export function ToastContainer() {
   return (
     <div
       aria-label="Thông báo"
-      className="fixed bottom-20 left-1/2 -translate-x-1/2 z-[100000] flex flex-col-reverse gap-2 items-center pointer-events-none w-full px-4 sm:bottom-8 sm:left-auto sm:right-6 sm:translate-x-0 sm:items-end sm:px-0 sm:max-w-sm"
+      className="fixed bottom-[calc(4.75rem+env(safe-area-inset-bottom,0px))] left-1/2 -translate-x-1/2 z-[100000] flex flex-col-reverse gap-2 items-center pointer-events-none w-full px-4 sm:bottom-8 sm:left-auto sm:right-6 sm:translate-x-0 sm:items-end sm:px-0 sm:max-w-sm"
     >
       {toasts.map((item) => (
         <div key={item.id} className="pointer-events-auto w-full sm:w-auto">

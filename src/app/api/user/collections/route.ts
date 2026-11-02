@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { verifyServerAuth } from "@/lib/serverAuth";
 import { sanitizeSafeText } from "@/lib/security";
+import {
+  enforceRateLimit,
+  buildRateLimitResponse,
+  RATE_LIMIT_PRESETS,
+} from "@/lib/rateLimit";
 
 export const dynamic = "force-dynamic";
 
@@ -123,6 +128,13 @@ function formatCollectionResponse(row: Record<string, unknown>) {
  * - Mặc định: Lấy danh sách bộ sưu tập của chính user đã đăng nhập
  */
 export async function GET(req: NextRequest) {
+  const auth = await verifyServerAuth(req);
+  const rateLimitPreset = auth.userId ? RATE_LIMIT_PRESETS.USER_READ : RATE_LIMIT_PRESETS.PUBLIC_READ;
+  const rateLimit = await enforceRateLimit(req, rateLimitPreset, auth.userId || undefined);
+  if (!rateLimit.allowed) {
+    return buildRateLimitResponse(rateLimit);
+  }
+
   const supabase = getSupabaseAdmin();
   if (!supabase) {
     return NextResponse.json({ success: true, items: [] });
@@ -130,7 +142,6 @@ export async function GET(req: NextRequest) {
 
   const { searchParams } = new URL(req.url);
   const collectionId = searchParams.get("id");
-  const auth = await verifyServerAuth(req);
 
   try {
     if (collectionId) {
@@ -241,6 +252,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const rateLimit = await enforceRateLimit(
+    req,
+    { namespace: "collections-post", maxRequests: 20, windowSeconds: 600, failClosed: true },
+    auth.userId
+  );
+  if (!rateLimit.allowed) {
+    return buildRateLimitResponse(rateLimit);
+  }
+
   try {
     const body = await req.json();
     const id = body.id;
@@ -324,6 +344,15 @@ export async function DELETE(req: NextRequest) {
   const auth = await verifyServerAuth(req);
   if (!auth.isAuthenticated || !auth.userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const rateLimit = await enforceRateLimit(
+    req,
+    { namespace: "collections-delete", maxRequests: 20, windowSeconds: 600, failClosed: true },
+    auth.userId
+  );
+  if (!rateLimit.allowed) {
+    return buildRateLimitResponse(rateLimit);
   }
 
   try {

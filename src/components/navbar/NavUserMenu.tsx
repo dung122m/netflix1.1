@@ -76,7 +76,7 @@ export const NavUserMenu: React.FC<NavUserMenuProps> = React.memo(function NavUs
   if (loading) {
     return (
       <div
-        className="hidden sm:inline-flex items-center w-[96px] h-8 sm:h-[34px] rounded-full bg-white/5 border border-white/10 animate-pulse flex-shrink-0"
+        className="hidden sm:inline-flex items-center w-[96px] h-8 sm:h-[34px] rounded-full bg-white/5 animate-pulse flex-shrink-0"
         aria-hidden="true"
       />
     );
@@ -138,7 +138,7 @@ export const NavUserMenu: React.FC<NavUserMenuProps> = React.memo(function NavUs
           type="button"
           onClick={() => setShowUserDropdown(!showUserDropdown)}
           aria-label={effectiveDisplayName || user.email || "Tài khoản"}
-          className="flex items-center gap-1.5 p-1 pr-2 rounded-full bg-zinc-800/80 hover:bg-zinc-700/80 border border-white/20 transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black"
+          className="flex items-center gap-1.5 p-1 pr-2 rounded-full bg-zinc-800/80 hover:bg-zinc-700/80 transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black"
         >
           <UserAvatar
             src={effectiveAvatar || undefined}
@@ -150,13 +150,13 @@ export const NavUserMenu: React.FC<NavUserMenuProps> = React.memo(function NavUs
       </Tooltip>
 
       {showUserDropdown && (
-        <div className="absolute right-0 mt-2 w-56 bg-zinc-950/95 border border-white/15 rounded-2xl shadow-2xl p-1.5 z-[100] backdrop-blur-md animate-in fade-in zoom-in-95 duration-150 space-y-0.5">
-          <div className="px-2.5 py-2 border-b border-white/10 mb-1">
+        <div className="absolute right-0 mt-2 w-56 bg-zinc-950/98 rounded-2xl shadow-2xl p-1.5 z-[100] backdrop-blur-xl animate-in fade-in zoom-in-95 duration-150 space-y-0.5">
+          <div className="px-2.5 py-2 mb-1">
             <p className="text-xs font-bold text-white truncate">
               {effectiveDisplayName}
             </p>
             <p className="text-[11px] text-zinc-400 truncate mt-0.5">{user.email}</p>
-            <div className="mt-1.5 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[10px] text-emerald-400 font-medium">
+            <div className="mt-1.5 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/15 text-[10px] text-emerald-400 font-medium">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
               <span>Cloud Sync</span>
             </div>
@@ -166,7 +166,7 @@ export const NavUserMenu: React.FC<NavUserMenuProps> = React.memo(function NavUs
             <Link
               href="/admin"
               onClick={() => setShowUserDropdown(false)}
-              className="flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-xs font-bold text-amber-400 bg-amber-500/15 border border-amber-500/30 hover:bg-amber-500/25 hover:text-amber-300 transition my-0.5 shadow-sm"
+              className="flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-xs font-bold text-amber-400 bg-amber-500/15 hover:bg-amber-500/25 hover:text-amber-300 transition my-0.5 shadow-sm"
             >
               <ShieldCheck size={14} className="text-amber-400" />
               <span>👑 Admin Panel</span>
@@ -242,7 +242,7 @@ export const NavUserMenu: React.FC<NavUserMenuProps> = React.memo(function NavUs
             <span>PWA App</span>
           </button>
 
-          <div className="border-t border-white/10 mt-1 pt-1">
+          <div className="border-t mt-1 pt-1">
             <button
               type="button"
               onClick={async () => {

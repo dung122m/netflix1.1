@@ -134,7 +134,7 @@ export const ActorHubClient: React.FC<ActorHubClientProps> = ({ initialActors })
         {/* INPUT TÌM KIẾM */}
         <div className="relative group">
           <div className="absolute -inset-0.5 bg-gradient-to-r from-red-600/30 to-amber-600/30 rounded-2xl blur opacity-30 group-hover:opacity-70 transition duration-300 pointer-events-none" />
-          <div className="relative flex items-center bg-zinc-950/90 border border-white/[0.1] group-hover:border-white/20 rounded-2xl px-4 py-3 sm:py-3.5 shadow-2xl backdrop-blur-xl transition-all">
+          <div className="relative flex items-center bg-zinc-950/90 border border-white/[0.1] group-hover: rounded-2xl px-4 py-3 sm:py-3.5 shadow-2xl backdrop-blur-xl transition-all">
             <Search className="w-5 h-5 text-zinc-400 group-hover:text-white transition-colors shrink-0 mr-3" />
             <input
               type="text"
@@ -168,7 +168,7 @@ export const ActorHubClient: React.FC<ActorHubClientProps> = ({ initialActors })
                 className={`flex items-center gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all duration-200 cursor-pointer ${
                   isActive
                     ? "bg-netflix-red text-white shadow-md shadow-black/50 scale-[1.02]"
-                    : "bg-zinc-900/90 hover:bg-zinc-800 text-zinc-300 border border-white/[0.08] hover:border-white/20"
+                    : "bg-zinc-900/90 hover:bg-zinc-800 text-zinc-300 border border-white/[0.08] hover:"
                 }`}
               >
                 {item.code === "all" && <Globe className="w-3.5 h-3.5" />}
@@ -246,13 +246,13 @@ export const ActorHubClient: React.FC<ActorHubClientProps> = ({ initialActors })
                     <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/20 to-transparent opacity-80 group-hover:opacity-60 transition-opacity" />
 
                     {/* COUNTRY BADGE GÓC TRÊN */}
-                    <div className="absolute top-2.5 left-2.5 px-2 py-0.5 rounded-lg bg-black/60 backdrop-blur-md border border-white/10 text-[10px] sm:text-[11px] font-semibold text-zinc-200 flex items-center gap-1 shadow">
+                    <div className="absolute top-2.5 left-2.5 px-2 py-0.5 rounded-lg bg-black/60 backdrop-blur-md text-[10px] sm:text-[11px] font-semibold text-zinc-200 flex items-center gap-1 shadow">
                       <span>{countryDisplay}</span>
                     </div>
 
                     {/* FEATURED BADGE */}
                     {actor.featured && (
-                      <div className="absolute top-2.5 right-2.5 p-1 rounded-lg bg-amber-500/20 backdrop-blur-md border border-amber-500/30 text-amber-300 shadow">
+                      <div className="absolute top-2.5 right-2.5 p-1 rounded-lg bg-amber-500/20 backdrop-blur-md text-amber-300 shadow">
                         <Flame className="w-3.5 h-3.5 animate-pulse" />
                       </div>
                     )}
@@ -302,7 +302,7 @@ export const ActorHubClient: React.FC<ActorHubClientProps> = ({ initialActors })
       ) : (
         /* EMPTY STATE / EXTENDED SEARCH */
         <div className="py-12 px-6 rounded-3xl bg-zinc-950/60 border border-white/[0.08] text-center max-w-xl mx-auto space-y-4">
-          <div className="w-12 h-12 rounded-2xl bg-red-500/10 border border-red-500/20 text-netflix-red flex items-center justify-center mx-auto">
+          <div className="w-12 h-12 rounded-2xl bg-red-500/10 text-netflix-red flex items-center justify-center mx-auto">
             <Search className="w-6 h-6" />
           </div>
 

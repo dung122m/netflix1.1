@@ -147,7 +147,7 @@ export const InstallPwaModal: React.FC<InstallPwaModalProps> = ({
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="relative w-full max-w-md bg-zinc-950 border border-white/15 rounded-3xl p-5 sm:p-6 md:p-8 shadow-[0_25px_70px_rgba(0,0,0,0.95)] overflow-hidden"
+        className="relative w-full max-w-md bg-zinc-950 rounded-3xl p-5 sm:p-6 md:p-8 shadow-[0_25px_70px_rgba(0,0,0,0.95)] overflow-hidden"
       >
         {/* Glowing Ambient */}
         <div className="absolute -top-20 -right-20 w-48 h-48 bg-netflix-red/20 rounded-full blur-3xl pointer-events-none" />
@@ -187,7 +187,7 @@ export const InstallPwaModal: React.FC<InstallPwaModalProps> = ({
 
         {/* State: Already Installed */}
         {isStandalone ? (
-          <div className="bg-emerald-950/40 border border-emerald-500/30 rounded-2xl p-5 text-center">
+          <div className="bg-emerald-950/40 rounded-2xl p-5 text-center">
             <CheckCircle2 className="w-10 h-10 text-emerald-400 mx-auto mb-2" />
             <div className="font-bold text-emerald-200 text-sm">
               Bạn đang dùng ứng dụng Nanaflix!
@@ -198,7 +198,7 @@ export const InstallPwaModal: React.FC<InstallPwaModalProps> = ({
           </div>
         ) : installSuccess ? (
           /* State: Install Just Accepted */
-          <div className="bg-emerald-950/40 border border-emerald-500/30 rounded-2xl p-6 text-center animate-fadeIn">
+          <div className="bg-emerald-950/40 rounded-2xl p-6 text-center animate-fadeIn">
             <CheckCircle2 className="w-12 h-12 text-emerald-400 mx-auto mb-3 animate-in zoom-in-95 duration-200" />
             <div className="font-bold text-white text-base">
               Cài đặt ứng dụng thành công!
@@ -210,7 +210,7 @@ export const InstallPwaModal: React.FC<InstallPwaModalProps> = ({
         ) : isIOS ? (
           /* iOS Safari Guide */
           <div className="space-y-4">
-            <div className="bg-zinc-900/70 border border-white/10 rounded-2xl p-4 space-y-3 text-xs">
+            <div className="bg-zinc-900/70 rounded-2xl p-4 space-y-3 text-xs">
               <div className="font-semibold text-zinc-200 flex items-center gap-2 text-sm">
                 <Smartphone className="w-4 h-4 text-netflix-red" />
                 Hướng dẫn cài trên iPhone / iPad (Safari):
@@ -222,7 +222,7 @@ export const InstallPwaModal: React.FC<InstallPwaModalProps> = ({
                 </div>
                 <div className="text-zinc-300">
                   Nhấn vào nút{" "}
-                  <span className="inline-flex items-center gap-1 font-semibold text-white bg-white/10 px-1.5 py-0.5 rounded border border-white/10">
+                  <span className="inline-flex items-center gap-1 font-semibold text-white bg-white/10 px-1.5 py-0.5 rounded">
                     <Share2 className="w-3.5 h-3.5 text-blue-400 inline" /> Chia sẻ (Share)
                   </span>{" "}
                   ở thanh công cụ bên dưới Safari.
@@ -235,7 +235,7 @@ export const InstallPwaModal: React.FC<InstallPwaModalProps> = ({
                 </div>
                 <div className="text-zinc-300">
                   Cuộn danh sách xuống và chọn{" "}
-                  <span className="inline-flex items-center gap-1 font-semibold text-white bg-white/10 px-1.5 py-0.5 rounded border border-white/10">
+                  <span className="inline-flex items-center gap-1 font-semibold text-white bg-white/10 px-1.5 py-0.5 rounded">
                     <PlusSquare className="w-3.5 h-3.5 text-amber-400 inline" /> Thêm vào MH chính (Add to Home Screen)
                   </span>
                   .
@@ -275,7 +275,7 @@ export const InstallPwaModal: React.FC<InstallPwaModalProps> = ({
 
             {/* Device-Specific Visual Guide */}
             {(showManualGuide || !deferredPrompt) && (
-              <div className="bg-zinc-900/80 border border-white/10 rounded-2xl p-4 text-xs space-y-2.5 animate-fadeIn">
+              <div className="bg-zinc-900/80 rounded-2xl p-4 text-xs space-y-2.5 animate-fadeIn">
                 {isMobile ? (
                   /* Android Mobile Chrome / Mobile Browser Guide */
                   <>
@@ -284,7 +284,7 @@ export const InstallPwaModal: React.FC<InstallPwaModalProps> = ({
                       <span>Hướng dẫn thêm vào màn hình trên Android:</span>
                     </div>
 
-                    <div className="bg-black/50 p-2.5 rounded-xl border border-white/5 flex items-start gap-2.5">
+                    <div className="bg-black/50 p-2.5 rounded-xl flex items-start gap-2.5">
                       <div className="w-6 h-6 rounded-lg bg-netflix-red/20 text-white flex items-center justify-center font-bold text-xs shrink-0 border border-netflix-red/30 mt-0.5">
                         1
                       </div>
@@ -293,7 +293,7 @@ export const InstallPwaModal: React.FC<InstallPwaModalProps> = ({
                       </p>
                     </div>
 
-                    <div className="bg-black/50 p-2.5 rounded-xl border border-white/5 flex items-start gap-2.5">
+                    <div className="bg-black/50 p-2.5 rounded-xl flex items-start gap-2.5">
                       <div className="w-6 h-6 rounded-lg bg-netflix-red/20 text-white flex items-center justify-center font-bold text-xs shrink-0 border border-netflix-red/30 mt-0.5">
                         2
                       </div>
@@ -310,7 +310,7 @@ export const InstallPwaModal: React.FC<InstallPwaModalProps> = ({
                       <span>Hướng dẫn cài trên Chrome / Edge Máy tính:</span>
                     </div>
 
-                    <div className="bg-black/50 p-2.5 rounded-xl border border-white/5 flex items-start gap-2.5">
+                    <div className="bg-black/50 p-2.5 rounded-xl flex items-start gap-2.5">
                       <div className="w-6 h-6 rounded-lg bg-netflix-red/20 text-white flex items-center justify-center font-bold text-xs shrink-0 border border-netflix-red/30 mt-0.5">
                         1
                       </div>
@@ -319,7 +319,7 @@ export const InstallPwaModal: React.FC<InstallPwaModalProps> = ({
                       </p>
                     </div>
 
-                    <div className="bg-black/50 p-2.5 rounded-xl border border-white/5 flex items-start gap-2.5">
+                    <div className="bg-black/50 p-2.5 rounded-xl flex items-start gap-2.5">
                       <div className="w-6 h-6 rounded-lg bg-netflix-red/20 text-white flex items-center justify-center font-bold text-xs shrink-0 border border-netflix-red/30 mt-0.5">
                         2
                       </div>
@@ -334,11 +334,11 @@ export const InstallPwaModal: React.FC<InstallPwaModalProps> = ({
 
             {/* Feature Perks */}
             <div className="grid grid-cols-2 gap-2 text-xs">
-              <div className="p-2.5 rounded-xl bg-white/5 border border-white/5 text-zinc-300">
+              <div className="p-2.5 rounded-xl bg-white/5 text-zinc-300">
                 🚀 <span className="font-semibold text-white">Mở nhanh 1-chạm</span>
                 <p className="text-[11px] text-zinc-500 mt-0.5">Không tốn bộ nhớ máy</p>
               </div>
-              <div className="p-2.5 rounded-xl bg-white/5 border border-white/5 text-zinc-300">
+              <div className="p-2.5 rounded-xl bg-white/5 text-zinc-300">
                 🎬 <span className="font-semibold text-white">Toàn màn hình</span>
                 <p className="text-[11px] text-zinc-500 mt-0.5">Trải nghiệm như ứng dụng gốc</p>
               </div>

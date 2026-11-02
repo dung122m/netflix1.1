@@ -446,12 +446,12 @@ export const CommentItem: React.FC<CommentItemProps> = ({
       id={`comment-${comment.id}`}
       className={`group relative ${
         isHighlighted
-          ? "ring-2 ring-red-500 shadow-[0_0_35px_rgba(229,9,20,0.65)] bg-red-950/40 border-red-500/80"
+          ? " shadow-[0_0_35px_rgba(229,9,20,0.65)] bg-red-950/40 "
           : comment.isPinned
-          ? "bg-gradient-to-r from-amber-950/30 via-zinc-900/90 to-zinc-950/90 border-amber-500/50 shadow-[0_0_20px_rgba(245,158,11,0.15)] ring-1 ring-amber-500/30"
+          ? "bg-gradient-to-r from-amber-950/30 via-zinc-900/90 to-zinc-950/90  shadow-[0_0_20px_rgba(245,158,11,0.15)] "
           : isReply
-          ? "bg-zinc-900/40 hover:bg-zinc-900/60 border-white/5"
-          : "bg-zinc-900/60 hover:bg-zinc-900/90 border-white/5 hover:border-white/10"
+          ? "bg-zinc-900/40 hover:bg-zinc-900/60 "
+          : "bg-zinc-900/60 hover:bg-zinc-900/90  hover:"
       } ${
         isReply
           ? "p-2.5 sm:p-3.5 rounded-xl border"
@@ -460,7 +460,7 @@ export const CommentItem: React.FC<CommentItemProps> = ({
     >
       {/* BADGE BÌNH LUẬN ĐÃ GHIM BỞI ADMIN */}
       {comment.isPinned && (
-        <div className="mb-2.5 flex items-center gap-1.5 text-[11px] sm:text-xs font-bold text-amber-300 bg-amber-500/15 px-2.5 py-1 rounded-xl border border-amber-500/40 w-fit shadow-md">
+        <div className="mb-2.5 flex items-center gap-1.5 text-[11px] sm:text-xs font-bold text-amber-300 bg-amber-500/15 px-2.5 py-1 rounded-xl w-fit shadow-md">
           <Pin className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
           <span>📌 Bình luận quan trọng được ghim bởi Quản trị viên</span>
         </div>
@@ -468,7 +468,7 @@ export const CommentItem: React.FC<CommentItemProps> = ({
 
       {/* BADGE THÔNG BÁO KHI ĐƯỢC CHỌN TỪ POPUP / THÔNG BÁO */}
       {isHighlighted && (
-        <div className="mb-2.5 flex items-center gap-1.5 text-[11px] font-bold text-red-300 bg-red-500/15 px-2.5 py-1 rounded-lg border border-red-500/30 w-fit animate-pulse">
+        <div className="mb-2.5 flex items-center gap-1.5 text-[11px] font-bold text-red-300 bg-red-500/15 px-2.5 py-1 rounded-lg w-fit animate-pulse">
           <Sparkles className="w-3.5 h-3.5 text-amber-400" />
           <span>Bình luận bạn vừa chọn từ thông báo</span>
         </div>
@@ -482,14 +482,14 @@ export const CommentItem: React.FC<CommentItemProps> = ({
             type="button"
             onClick={handleOpenProfile}
             title={isAuthor ? "Xem & chỉnh sửa hồ sơ của bạn" : `Xem trang cá nhân của ${comment.userName}`}
-            className="cursor-pointer hover:ring-2 hover:ring-amber-400/60 hover:scale-105 transition-all rounded-full shrink-0"
+            className="cursor-pointer hover: hover:ring-amber-400/60 hover:scale-105 transition-all rounded-full shrink-0"
           >
             <UserAvatar
               src={comment.userAvatar || undefined}
               name={comment.userName}
               seed={comment.userId || comment.userName}
               sizeClassName={isReply ? "w-7 h-7 sm:w-8 sm:h-8 text-xs" : "w-8 h-8 sm:w-10 sm:h-10 text-sm"}
-              className="border border-white/10 shadow-sm"
+              className="shadow-sm"
             />
           </button>
 
@@ -508,7 +508,7 @@ export const CommentItem: React.FC<CommentItemProps> = ({
 
               {/* HUY HIỆU QUẢN TRỊ VIÊN (ADMIN) */}
               {isCommentAuthorAdmin && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-bold bg-gradient-to-r from-rose-600/30 via-red-500/25 to-amber-500/30 text-rose-300 border border-rose-500/50 shadow-sm shadow-black/40 whitespace-nowrap shrink-0 leading-none animate-in fade-in">
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-bold bg-gradient-to-r from-rose-600/30 via-red-500/25 to-amber-500/30 text-rose-300 shadow-sm shadow-black/40 whitespace-nowrap shrink-0 leading-none animate-in fade-in">
                   <ShieldCheck className="w-3 h-3 text-rose-400 shrink-0" />
                   <span className="leading-none">Admin</span>
                 </span>
@@ -524,7 +524,7 @@ export const CommentItem: React.FC<CommentItemProps> = ({
                 return badgesToRender.slice(0, 2).map((badgeLabel, bIdx) => (
                   <span
                     key={bIdx}
-                    className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-bold bg-gradient-to-r from-amber-500/20 to-rose-500/20 text-amber-300 border border-amber-500/40 shadow-sm shadow-black/40 whitespace-nowrap shrink-0 leading-none animate-in fade-in ${
+                    className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-bold bg-gradient-to-r from-amber-500/20 to-rose-500/20 text-amber-300  shadow-sm shadow-black/40 whitespace-nowrap shrink-0 leading-none animate-in fade-in ${
                       bIdx >= 1 ? "hidden sm:inline-flex" : ""
                     }`}
                   >
@@ -534,7 +534,7 @@ export const CommentItem: React.FC<CommentItemProps> = ({
               })()}
 
               {isAuthor && !isReply && (
-                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30 whitespace-nowrap shrink-0 leading-none">
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-bold bg-amber-500/15 text-amber-300 whitespace-nowrap shrink-0 leading-none">
                   <span className="leading-none">Đánh giá của bạn</span>
                 </span>
               )}
@@ -546,13 +546,13 @@ export const CommentItem: React.FC<CommentItemProps> = ({
               )}
 
               {comment.episodeName && (
-                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-medium bg-red-500/10 text-red-400 border border-red-500/20 whitespace-nowrap shrink-0 leading-none">
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-medium bg-red-500/10 text-red-400 whitespace-nowrap shrink-0 leading-none">
                   <span className="leading-none">{comment.episodeName}</span>
                 </span>
               )}
 
               {comment.isSpoiler && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-medium bg-amber-500/10 text-amber-400 border border-amber-500/20 whitespace-nowrap shrink-0 leading-none">
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-medium bg-amber-500/10 text-amber-400 whitespace-nowrap shrink-0 leading-none">
                   <AlertTriangle className="w-3 h-3 text-amber-400 shrink-0" />
                   <span className="leading-none">Spoil</span>
                 </span>
@@ -603,7 +603,7 @@ export const CommentItem: React.FC<CommentItemProps> = ({
       {/* CONTENT: FULL WIDTH ON MOBILE (NO EXCESSIVE PL-13) */}
       <div className={`mt-2 sm:mt-2.5 ${isReply ? "sm:pl-10" : "sm:pl-12"}`}>
         {comment.isSpoiler && !showSpoiler ? (
-          <div className="relative rounded-xl overflow-hidden bg-black/40 border border-amber-500/20 p-3 sm:p-4">
+          <div className="relative rounded-xl overflow-hidden bg-black/40 p-3 sm:p-4">
             <p className="filter blur-md select-none text-zinc-400 text-xs sm:text-sm line-clamp-2">
               {comment.content}
             </p>
@@ -611,7 +611,7 @@ export const CommentItem: React.FC<CommentItemProps> = ({
               <button
                 type="button"
                 onClick={() => setShowSpoiler(true)}
-                className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full text-[11px] sm:text-xs font-semibold bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 transition-colors shadow-lg"
+                className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full text-[11px] sm:text-xs font-semibold bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 transition-colors shadow-lg"
               >
                 <Eye className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0" />
                 <span>Nội dung có tiết lộ tình tiết. Bấm xem</span>
@@ -673,8 +673,8 @@ export const CommentItem: React.FC<CommentItemProps> = ({
                 aria-label={comment.isPinned ? "Bỏ ghim bình luận này" : "Ghim bình luận quan trọng lên đầu"}
                 className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full border transition-all cursor-pointer active:scale-95 ${
                   comment.isPinned
-                    ? "bg-amber-500/20 text-amber-300 border-amber-500/40 hover:bg-amber-500/30"
-                    : "bg-white/5 text-zinc-400 hover:text-amber-300 border-white/10 hover:border-amber-500/30"
+                    ? "bg-amber-500/20 text-amber-300  hover:bg-amber-500/30"
+                    : "bg-white/5 text-zinc-400 hover:text-amber-300  hover:"
                 }`}
               >
                 <Pin className={`w-3.5 h-3.5 ${comment.isPinned ? "fill-amber-300 text-amber-300" : ""}`} />
@@ -702,7 +702,7 @@ export const CommentItem: React.FC<CommentItemProps> = ({
 
         {/* REPLY FORM: OPTIMIZED RESPONSIVE LAYOUT */}
         {showReplyForm && !isReply && (
-          <div className="mt-3 p-2.5 sm:p-3.5 bg-zinc-950/80 border border-white/10 rounded-xl sm:rounded-2xl animate-in fade-in zoom-in-98 duration-150">
+          <div className="mt-3 p-2.5 sm:p-3.5 bg-zinc-950/80 rounded-xl sm:rounded-2xl animate-in fade-in zoom-in-98 duration-150">
             {replyTargetUser && (
               <div className="flex items-center justify-between mb-2 px-1 text-xs text-blue-400 font-medium">
                 <span className="flex items-center gap-1 truncate">
@@ -730,7 +730,7 @@ export const CommentItem: React.FC<CommentItemProps> = ({
                 name={currentUserName}
                 seed={currentUserId || currentUserName}
                 sizeClassName="w-6 h-6 sm:w-7 sm:h-7 text-[10px] sm:text-xs"
-                className="border border-white/10 mt-0.5"
+                className="mt-0.5"
               />
 
               <div className="flex-1 min-w-0">
@@ -751,7 +751,7 @@ export const CommentItem: React.FC<CommentItemProps> = ({
                       handleSubmitReply();
                     }
                   }}
-                  className="w-full bg-black/80 border border-white/10 rounded-xl px-3 py-2 text-xs sm:text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-blue-500/60 focus:ring-1 focus:ring-blue-500/30 resize-none transition-all"
+                  className="w-full bg-black/80 rounded-xl px-3 py-2 text-xs sm:text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-blue-500/60 focus:ring-1 focus:ring-blue-500/30 resize-none transition-all"
                 />
                 <div className="flex items-center justify-between mt-1.5 gap-2 flex-wrap">
                   <span className="text-[10px] text-zinc-500">
@@ -791,7 +791,7 @@ export const CommentItem: React.FC<CommentItemProps> = ({
 
         {/* REPLIES LIST: COMPACT RESPONSIVE NESTING */}
         {showReplies && !isReply && (
-          <div className="mt-3 space-y-2 border-l-2 border-white/10 ml-1 sm:ml-2 pl-2 sm:pl-3.5">
+          <div className="mt-3 space-y-2 border-l-2 ml-1 sm:ml-2 pl-2 sm:pl-3.5">
             <div className="flex items-center gap-1.5 text-[11px] text-zinc-400 mb-2">
               <CornerDownRight className="w-3 h-3 text-blue-400" />
               <span>{replies.length} phản hồi</span>

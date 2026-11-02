@@ -8,6 +8,7 @@ import {
   Film,
   Bookmark,
   FolderPlus,
+  X,
 } from "lucide-react";
 import { isInWatchlist, toggleWatchlist, subscribeToWatchlist } from "@/lib/watchlist";
 import {
@@ -24,6 +25,7 @@ import { useAuth } from "@/context/AuthContext";
 import { AddToCollectionModal } from "@/components/Collections/AddToCollectionModal";
 import { AuthModal } from "@/components/AuthModal";
 import { Tooltip } from "@/components/ui/Tooltip";
+import { useMoviePosterFallback } from "@/hooks/useMoviePosterFallback";
 
 export interface MovieExtraInfo {
   actor?: string[];
@@ -61,7 +63,7 @@ export interface MediaCardProps {
   imageUrl: string;
   posterUrl?: string;
   thumbUrl?: string;
-  genre: string;
+  genre?: string;
   description?: string;
   priority?: boolean;
   time?: string;
@@ -90,6 +92,10 @@ export interface MediaCardProps {
   seasonName?: string;
   isActive?: boolean;
   selected?: boolean;
+  progressPercent?: number;
+  onRemove?: (e: React.MouseEvent) => void;
+  removeTooltip?: string;
+  updatedTimeAgo?: string;
 }
 
 const MediaCardInner: React.FC<MediaCardProps> = ({
@@ -120,6 +126,10 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
   seasonName,
   isActive = false,
   selected = false,
+  progressPercent,
+  onRemove,
+  removeTooltip,
+  updatedTimeAgo,
 }) => {
   const isCardActive = Boolean(isActive || selected);
   const router = useRouter();
@@ -216,10 +226,18 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
   }, [posterUrl, imageUrl, thumbUrl]);
 
   const triedUrlsRef = useRef<Set<string>>(new Set());
-  const fallbackAttemptedRef = useRef(false);
   const imgRef = useRef<HTMLImageElement | null>(null);
 
   const initialCandidate = imageCandidates[0] || "";
+
+  // Chuẩn hóa và tự động tra cứu fallback TMDb dùng chung kiến trúc với Home (ContinueWatchingRow) & Watchlist
+  const { displaySrc: tmdbFallbackSrc, isLoading: isFallbackLoading } = useMoviePosterFallback({
+    slug,
+    title,
+    origin_name,
+    year,
+    initialSrc: initialCandidate,
+  });
 
   const [currentSrc, setCurrentSrc] = useState<string>(() => initialCandidate);
   const [isImageLoaded, setIsImageLoaded] = useState<boolean>(() => {
@@ -246,7 +264,6 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
   // Đồng bộ khi card được tái sử dụng cho phim khác hoặc khi danh sách ứng viên thay đổi
   useEffect(() => {
     triedUrlsRef.current.clear();
-    fallbackAttemptedRef.current = false;
     const initial = imageCandidates.find((u) => !triedUrlsRef.current.has(u)) || imageCandidates[0] || "";
     if (initial) {
       setHasError(false);
@@ -259,38 +276,14 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
     }
   }, [slug, imageCandidates]);
 
-  // Khi card không có ảnh hoặc chỉ có link phimimg.com (bị nhà mạng chặn), chủ động gọi fallback TMDB ngay
+  // Khi hook useMoviePosterFallback nâng cấp thành công ảnh TMDb (đã preload)
   useEffect(() => {
-    const isOnlyPhimimg = !currentSrc || currentSrc.includes("phimimg.com");
-    if (isOnlyPhimimg && !fallbackAttemptedRef.current && (title || origin_name || slug)) {
-      fallbackAttemptedRef.current = true;
-      const params = new URLSearchParams();
-      if (title) params.set("title", title);
-      if (origin_name) params.set("origin_name", origin_name);
-      if (year) params.set("year", String(year));
-      if (slug) params.set("slug", slug);
-
-      fetch(`/api/movie-poster-fallback?${params.toString()}`)
-        .then((res) => (res.ok ? res.json() : null))
-        .then((data) => {
-          const fallbackOptions = [data?.posterUrl, data?.backdropUrl].filter(
-            (u): u is string => Boolean(u) && !u.includes("phimimg.com") && !triedUrlsRef.current.has(u)
-          );
-          if (fallbackOptions.length > 0) {
-            setHasError(false);
-            setCurrentSrc(fallbackOptions[0]);
-            setIsImageLoaded(GLOBAL_LOADED_IMAGES.has(fallbackOptions[0]));
-          } else {
-            setHasError(true);
-            setIsImageLoaded(true);
-          }
-        })
-        .catch(() => {
-          setHasError(true);
-          setIsImageLoaded(true);
-        });
+    if (tmdbFallbackSrc && tmdbFallbackSrc !== currentSrc && !triedUrlsRef.current.has(tmdbFallbackSrc)) {
+      setHasError(false);
+      setCurrentSrc(tmdbFallbackSrc);
+      setIsImageLoaded(GLOBAL_LOADED_IMAGES.has(tmdbFallbackSrc));
     }
-  }, [currentSrc, title, origin_name, year, slug]);
+  }, [tmdbFallbackSrc, currentSrc]);
 
   const handleImageError = useCallback(() => {
     if (currentSrc) {
@@ -298,9 +291,9 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
       GLOBAL_LOADED_IMAGES.delete(currentSrc);
     }
 
-    // 1. Thử ứng viên kế tiếp trong danh sách candidates (bỏ qua phimimg nếu đã lỗi)
+    // 1. Thử ứng viên kế tiếp trong danh sách candidates (bỏ qua url đã lỗi và link phimimg nếu vừa lỗi)
     const nextCandidate = imageCandidates.find(
-      (url) => !triedUrlsRef.current.has(url) && !url.includes("phimimg.com")
+      (url) => !triedUrlsRef.current.has(url) && (!url.includes("phimimg.com") || url !== currentSrc)
     );
     if (nextCandidate) {
       setCurrentSrc(nextCandidate);
@@ -308,41 +301,26 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
       return;
     }
 
-    // 2. Nếu đã thử hết candidates nội tại mà vẫn lỗi, gọi API fallback tìm ảnh TMDB / chi tiết phim
-    if (!fallbackAttemptedRef.current && (title || origin_name || slug)) {
-      fallbackAttemptedRef.current = true;
-      const params = new URLSearchParams();
-      if (title) params.set("title", title);
-      if (origin_name) params.set("origin_name", origin_name);
-      if (year) params.set("year", String(year));
-      if (slug) params.set("slug", slug);
-
-      fetch(`/api/movie-poster-fallback?${params.toString()}`)
-        .then((res) => (res.ok ? res.json() : null))
-        .then((data) => {
-          const fallbackOptions = [data?.posterUrl, data?.backdropUrl].filter(
-            (u): u is string => Boolean(u) && !u.includes("phimimg.com") && !triedUrlsRef.current.has(u)
-          );
-          if (fallbackOptions.length > 0) {
-            setHasError(false);
-            setCurrentSrc(fallbackOptions[0]);
-            setIsImageLoaded(GLOBAL_LOADED_IMAGES.has(fallbackOptions[0]));
-          } else {
-            setHasError(true);
-            setIsImageLoaded(true);
-          }
-        })
-        .catch(() => {
-          setHasError(true);
-          setIsImageLoaded(true);
-        });
+    // 2. Nếu fallback TMDb đã có sẵn (hoặc khác currentSrc vừa lỗi) -> dùng TMDb ngay
+    if (tmdbFallbackSrc && tmdbFallbackSrc !== currentSrc && !triedUrlsRef.current.has(tmdbFallbackSrc)) {
+      setCurrentSrc(tmdbFallbackSrc);
+      setIsImageLoaded(GLOBAL_LOADED_IMAGES.has(tmdbFallbackSrc));
+      setHasError(false);
       return;
     }
 
-    // 3. Toàn bộ candidates và fallback đều thất bại -> Hiện Poster Canvas nghệ thuật sắc nét
+    // 3. Nếu fallback TMDb đang được tải ngầm (isFallbackLoading) -> KHÔNG hiển thị ảnh mặc định/lỗi ngay lập tức!
+    // Giữ skeleton shimmer chờ TMDb tải xong
+    if (isFallbackLoading) {
+      setIsImageLoaded(false);
+      setHasError(false);
+      return;
+    }
+
+    // 4. Toàn bộ candidates và fallback TMDb đều thất bại -> Hiện Poster Canvas nghệ thuật
     setHasError(true);
     setIsImageLoaded(true);
-  }, [currentSrc, imageCandidates, title, origin_name, year, slug]);
+  }, [currentSrc, imageCandidates, tmdbFallbackSrc, isFallbackLoading]);
 
   // Trạng thái Trailer & Modal Trailer (Chỉ kích hoạt khi bấm nút xem Trailer)
   const [trailerUrl, setTrailerUrl] = useState<string>(
@@ -502,10 +480,14 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
 
   const episodeBadgeText = React.useMemo(() => {
     if (!isEpisode) return null;
-    if (episodeName) return episodeName;
-    if (!epSlug) return "Tập phim";
+    if (episodeName) {
+      const trimmed = episodeName.trim();
+      if (/^(full|bản full|tap-full)$/i.test(trimmed)) return null;
+      return trimmed;
+    }
+    if (!epSlug || /^(full|tap-full)$/i.test(epSlug.trim())) return null;
     const numMatch = epSlug.match(/(\d+)/);
-    return numMatch ? `Tập ${numMatch[1]}` : epSlug;
+    return numMatch ? `Tập ${numMatch[1]}` : null;
   }, [isEpisode, episodeName, epSlug]);
 
   // Bấm nút thêm/bỏ khỏi Watchlist
@@ -581,7 +563,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
   const modalTrailerUrl = trailerUrl || clientTrailerCache.get(slug) || null;
 
 
-  // Nhãn chất lượng bản phim (CAM, HD, FHD, 4K, Vietsub...) đưa lên góc trên bên trái poster
+  // Nhãn chất lượng bản phim (loại bỏ hẳn HD, FHD, FULL HD để poster luôn gọn gàng, tinh tế)
   const displayQualityBadge = (() => {
     if (chieurap) return "Rạp";
     if (sub_docquyen) return "Độc Quyền";
@@ -589,11 +571,19 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
     const clean = quality.trim().toUpperCase();
     if (clean.includes("4K") || clean.includes("UHD")) return "4K";
     if (clean.includes("CAM")) return "CAM";
-    if (clean.includes("FHD") || clean.includes("1080")) return "FHD";
-    if (clean.includes("HD") || clean.includes("720")) return "HD";
+    // Bỏ hoàn toàn nhãn HD, FHD, FULL HD, 1080P, 720P theo yêu cầu
+    if (
+      clean.includes("FHD") ||
+      clean.includes("1080") ||
+      clean.includes("HD") ||
+      clean.includes("720") ||
+      clean === "FULL"
+    ) {
+      return "";
+    }
     if (clean.includes("VIETSUB")) return "Vietsub";
     if (clean.includes("THUYET") || clean.includes("LỒNG TIẾNG")) return "T.Minh";
-    return quality.trim();
+    return "";
   })();
 
   const handleMouseEnterCard = useCallback(() => {
@@ -614,8 +604,8 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
       <div
         className={`relative aspect-[2/3] w-full rounded-xl overflow-hidden bg-zinc-950 bg-gradient-to-br from-zinc-800/70 via-zinc-900 to-zinc-950 transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] focus-within:ring-2 focus-within:ring-white ${
           isCardActive
-            ? "ring-2 ring-emerald-500 ring-inset shadow-[inset_0_0_0_2px_#22c55e]"
-            : "ring-1 ring-white/10 ring-inset group-hover/card:ring-2 group-hover/card:ring-netflix-red group-hover/card:ring-inset group-hover/card:shadow-[0_12px_28px_rgba(229,9,20,0.35),0_0_16px_rgba(0,0,0,0.8)]"
+            ? " shadow-[inset_0_0_0_2px_#22c55e]"
+            : " group-hover/card: group-hover/card:ring-netflix-red group-hover/card:ring-inset group-hover/card:shadow-[0_12px_28px_rgba(229,9,20,0.35),0_0_16px_rgba(0,0,0,0.8)]"
         }`}
         data-card-active={isCardActive ? "true" : undefined}
       >
@@ -623,8 +613,8 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
         <div
           className={`pointer-events-none absolute inset-0 z-[3] rounded-xl transition-all duration-300 ${
             isCardActive
-              ? "ring-2 ring-emerald-500 ring-inset"
-              : "ring-1 ring-white/[0.12] ring-inset group-hover/card:ring-2 group-hover/card:ring-netflix-red"
+              ? ""
+              : ".12] ring-inset group-hover/card: group-hover/card:ring-netflix-red"
           }`}
           aria-hidden="true"
         />
@@ -697,7 +687,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
         {/* HUY HIỆU CHẤT LƯỢNG BẢN PHIM GÓC TRÊN TRÁI POSTER (CAM, HD, FHD, Vietsub...) */}
         {displayQualityBadge && (
           <div className="absolute top-2 left-2 z-10 pointer-events-none">
-            <span className="inline-flex items-center px-1.5 py-0.5 rounded-[4px] bg-black/75 backdrop-blur-md text-zinc-200 text-[11px] font-bold uppercase tracking-wider shadow border border-white/10 select-none">
+            <span className="inline-flex items-center px-1.5 py-0.5 rounded-[4px] bg-black/75 backdrop-blur-md text-zinc-200 text-[11px] font-bold uppercase tracking-wider shadow select-none">
               {displayQualityBadge}
             </span>
           </div>
@@ -713,13 +703,38 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
         )}
 
 
+        {/* NÚT XOÁ (NẾU ĐƯỢC TRUYỀN onRemove) */}
+        {onRemove && (
+          <div className="absolute top-2 right-2 z-20 pointer-events-auto">
+            <button
+              type="button"
+              onClick={onRemove}
+              title={removeTooltip || "Xóa"}
+              aria-label={removeTooltip || `Xóa ${title}`}
+              className="w-7 h-7 rounded-full bg-black/75 hover:bg-netflix-red hover:border-netflix-red hover:text-white text-zinc-300 backdrop-blur-md flex items-center justify-center shadow-lg transition-all duration-200 hover:scale-110 active:scale-90 cursor-pointer"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
+
+        {/* THANH TIẾN ĐỘ XEM ĐỎ DƯỚI ĐÁY POSTER */}
+        {typeof progressPercent === "number" && progressPercent >= 0 && (
+          <div className="absolute bottom-0 left-0 right-0 h-[3.5px] bg-white/20 backdrop-blur-sm z-10 overflow-hidden">
+            <div
+              className="h-full bg-gradient-to-r from-red-600 via-rose-500 to-red-500 rounded-r-full transition-all duration-500 shadow-[0_0_8px_rgba(229,9,20,0.9)]"
+              style={{ width: `${Math.min(100, Math.max(0, progressPercent))}%` }}
+            />
+          </div>
+        )}
+
         {/* NÚT THÊM BỘ SƯU TẬP TRÊN MOBILE (KHÔNG PHỤ THUỘC HOVER, HITBOX 44PX CHUẨN TOUCH HIG/WCAG) */}
         <div className="absolute bottom-2 right-2 z-20 pointer-events-auto sm:hidden">
           <button
             type="button"
             onClick={handleOpenCollectionModal}
             aria-label={`Thêm phim ${title} vào bộ sưu tập`}
-            className="w-7 h-7 rounded-full flex items-center justify-center border border-white/25 bg-black/75 backdrop-blur-md text-amber-400 active:scale-90 transition cursor-pointer shadow-md touch-manipulation relative before:absolute before:-inset-2 before:content-['']"
+            className="w-7 h-7 rounded-full flex items-center justify-center bg-black/75 backdrop-blur-md text-amber-400 active:scale-90 transition cursor-pointer shadow-md touch-manipulation relative before:absolute before:-inset-2 before:content-['']"
           >
             <FolderPlus className="w-3.5 h-3.5" />
           </button>
@@ -733,7 +748,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
               type="button"
               onClick={handleOpenCollectionModal}
               aria-label={`Thêm phim ${title} vào bộ sưu tập`}
-              className="w-7 h-7 rounded-full flex items-center justify-center border transition-all duration-150 hover:scale-110 active:scale-95 cursor-pointer shadow-md shadow-black/50 backdrop-blur-md outline-none focus-visible:ring-2 focus-visible:ring-amber-400 bg-black/75 hover:bg-amber-400 hover:border-amber-400 text-amber-400 hover:text-black border-white/20"
+              className="w-7 h-7 rounded-full flex items-center justify-center border transition-all duration-150 hover:scale-110 active:scale-95 cursor-pointer shadow-md shadow-black/50 backdrop-blur-md outline-none focus-visible:ring-2 focus-visible:ring-amber-400 bg-black/75 hover:bg-amber-400 hover:border-amber-400 text-amber-400 hover:text-black"
             >
               <FolderPlus className="w-3.5 h-3.5 transition-colors" />
             </button>
@@ -748,7 +763,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
               className={`w-7 h-7 rounded-full flex items-center justify-center border transition-all duration-150 hover:scale-110 active:scale-95 cursor-pointer shadow-md shadow-black/50 backdrop-blur-md outline-none focus-visible:ring-2 focus-visible:ring-red-500 ${
                 inList
                   ? "bg-netflix-red border-netflix-red text-white hover:bg-red-700 hover:border-red-700"
-                  : "bg-black/75 hover:bg-netflix-red hover:border-netflix-red hover:text-white border-white/20 text-white"
+                  : "bg-black/75 hover:bg-netflix-red hover:border-netflix-red hover:text-white  text-white"
               }`}
             >
               {inList ? <Check className="w-3.5 h-3.5 stroke-[2.5]" /> : <Bookmark className="w-3.5 h-3.5 transition-colors" />}
@@ -765,7 +780,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
               disabled={isLoadingTrailer}
               title="Xem Trailer chính thức"
               aria-label={`Xem Trailer phim ${title}`}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-white/20 bg-black/75 hover:bg-white hover:text-zinc-950 text-white text-[11px] font-bold transition-all hover:scale-105 active:scale-95 cursor-pointer shadow-md shadow-black/50 backdrop-blur-md outline-none focus-visible:ring-2 focus-visible:ring-white"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-black/75 hover:bg-white hover:text-zinc-950 text-white text-[11px] font-bold transition-all hover:scale-105 active:scale-95 cursor-pointer shadow-md shadow-black/50 backdrop-blur-md outline-none focus-visible:ring-2 focus-visible:ring-white"
             >
               <Film className="w-3 h-3 text-current" />
               <span>{isLoadingTrailer ? "..." : "Trailer"}</span>
@@ -805,13 +820,24 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
         </Link>
 
         {/* DÒNG 2 — THÔNG TIN PHỤ: KHOẢNG CÁCH 6PX CHUẨN MỰC, BÁM SÁT TIÊU ĐỀ, METADATA THẲNG TĂM TẮP */}
-        <p
-          title={desktopMetaString}
-          className="text-[11px] sm:text-xs text-zinc-400 mt-1.5 block truncate w-full min-w-0 select-none leading-none h-4"
-        >
-          <span className="sm:hidden">{mobileMetaString || <span className="text-transparent pointer-events-none">·</span>}</span>
-          <span className="hidden sm:inline">{desktopMetaString || <span className="text-transparent pointer-events-none">·</span>}</span>
-        </p>
+        {typeof progressPercent === "number" ? (
+          <div className="flex items-center justify-between text-[11px] sm:text-xs text-zinc-400 mt-1 select-none leading-none h-4">
+            <span className="text-rose-400 font-semibold">
+              {progressPercent > 0 ? `Đã xem ${progressPercent}%` : "Chưa xem"}
+            </span>
+            {updatedTimeAgo ? (
+              <span className="text-zinc-500 text-[10px]">{updatedTimeAgo}</span>
+            ) : null}
+          </div>
+        ) : (
+          <p
+            title={desktopMetaString}
+            className="text-[11px] sm:text-xs text-zinc-400 mt-1.5 block truncate w-full min-w-0 select-none leading-none h-4"
+          >
+            <span className="sm:hidden">{mobileMetaString || <span className="text-transparent pointer-events-none">·</span>}</span>
+            <span className="hidden sm:inline">{desktopMetaString || <span className="text-transparent pointer-events-none">·</span>}</span>
+          </p>
+        )}
       </div>
 
       {/* 3. MODAL TRAILER MÀN ẢNH RỘNG */}

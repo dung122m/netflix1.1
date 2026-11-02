@@ -2553,12 +2553,12 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
           isFullscreen
             ? "fixed inset-0 z-[80] w-full h-full max-w-none p-0 m-0 bg-black flex flex-col justify-center overflow-hidden"
             : isMobileStickyActive
-            ? "fixed top-[51px] sm:top-[55px] left-0 right-0 z-40 shadow-2xl border-b border-white/25 md:relative md:top-auto"
+            ? "fixed top-[51px] sm:top-[55px] left-0 right-0 z-40 shadow-2xl border-b  md:relative md:top-auto"
             : "relative z-30"
         } ${isTheaterMode && !isFullscreen ? "max-w-none px-0 sm:px-0" : isFullscreen ? "" : "max-w-7xl"}`}
       >
         {isMobileStickyActive && (
-          <div className="md:hidden bg-gradient-to-r from-zinc-950 via-zinc-900 to-black px-3 h-8 flex items-center justify-between border-b border-white/10 text-xs">
+          <div className="md:hidden bg-gradient-to-r from-zinc-950 via-zinc-900 to-black px-3 h-8 flex items-center justify-between border-b text-xs">
             <div className="flex items-center gap-1.5 min-w-0 pr-2">
               <span className="w-2 h-2 rounded-full bg-netflix-red animate-pulse flex-shrink-0" />
               <span className="text-white font-bold text-[11px] truncate">
@@ -2585,8 +2585,8 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
               : isMobileStickyActive
               ? "aspect-video rounded-none max-h-[38vh] shadow-2xl"
               : isTheaterMode
-              ? "aspect-video w-full rounded-xl sm:rounded-2xl md:rounded-3xl border border-white/20 shadow-[0_30px_90px_rgba(0,0,0,0.85)] max-h-[calc(100vh-185px)]"
-              : "aspect-video rounded-xl sm:rounded-2xl md:rounded-3xl border border-white/15 shadow-[0_25px_70px_rgba(0,0,0,0.55)] max-md:landscape:rounded-none max-md:landscape:border-none"
+              ? "aspect-video w-full rounded-xl sm:rounded-2xl md:rounded-3xl  shadow-[0_30px_90px_rgba(0,0,0,0.85)] max-h-[calc(100vh-185px)]"
+              : "aspect-video rounded-xl sm:rounded-2xl md:rounded-3xl  shadow-[0_25px_70px_rgba(0,0,0,0.55)] max-md:landscape:rounded-none max-md:landscape:border-none"
           }`}
         >
           {isNativeVideo ? (
@@ -2719,7 +2719,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
                   key={desktopFeedback.id}
                   className="hidden md:flex absolute inset-0 items-center justify-center pointer-events-none z-20"
                 >
-                  <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-black/60 backdrop-blur-xl border border-white/15 text-white flex items-center justify-center shadow-2xl animate-in fade-in zoom-in-75 duration-150">
+                  <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-black/60 backdrop-blur-xl text-white flex items-center justify-center shadow-2xl animate-in fade-in zoom-in-75 duration-150">
                     {desktopFeedback.type === "play" ? (
                       <YouTubePlayIcon className="w-8 h-8 sm:w-10 sm:h-10 text-white ml-0.5" />
                     ) : (
@@ -2765,7 +2765,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
                   aria-live="polite"
                   className="absolute top-5 sm:top-7 left-1/2 -translate-x-1/2 z-30 pointer-events-none max-w-[calc(100%-32px)] animate-in fade-in slide-in-from-top-3 duration-200 motion-reduce:animate-none"
                 >
-                  <div className="flex items-center gap-3 px-4 py-2 sm:px-4.5 sm:py-2.5 rounded-full bg-zinc-950/90 backdrop-blur-2xl border border-white/20 text-white shadow-[0_12px_36px_rgba(0,0,0,0.85)] ring-1 ring-white/10">
+                  <div className="flex items-center gap-3 px-4 py-2 sm:px-4.5 sm:py-2.5 rounded-full bg-zinc-950/90 backdrop-blur-2xl text-white shadow-[0_12px_36px_rgba(0,0,0,0.85)]">
                     {volumeOsd.isMuted || volumeOsd.volume === 0 ? (
                       <YouTubeVolumeMuteIcon className="w-5 h-5 text-netflix-red shrink-0" />
                     ) : volumeOsd.volume < 0.5 ? (
@@ -2797,7 +2797,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
                   aria-live="polite"
                   className="absolute top-5 sm:top-7 left-1/2 -translate-x-1/2 z-30 pointer-events-none max-w-[calc(100%-32px)] animate-in fade-in slide-in-from-top-3 duration-200 motion-reduce:animate-none"
                 >
-                  <div className="flex items-center gap-2.5 px-4 py-2 rounded-full bg-zinc-950/90 backdrop-blur-2xl border border-white/20 text-white text-xs sm:text-[13px] font-semibold tracking-tight shadow-[0_12px_36px_rgba(0,0,0,0.85)] ring-1 ring-white/10">
+                  <div className="flex items-center gap-2.5 px-4 py-2 rounded-full bg-zinc-950/90 backdrop-blur-2xl text-white text-xs sm:text-[13px] font-semibold tracking-tight shadow-[0_12px_36px_rgba(0,0,0,0.85)]">
                     {hudNotification.icon}
                     <span>{hudNotification.text}</span>
                   </div>
@@ -2895,12 +2895,12 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
                 <div
                   className={`absolute right-3 sm:right-6 ${
                     showControls ? "bottom-20 sm:bottom-24" : "bottom-5 sm:bottom-6"
-                  } z-40 max-w-[calc(100vw-24px)] sm:max-w-sm w-full bg-zinc-950/90 hover:bg-zinc-950/95 border border-white/20 backdrop-blur-xl rounded-2xl p-3 sm:p-3.5 shadow-2xl flex items-center gap-3 animate-in fade-in slide-in-from-bottom-3 duration-300 text-white transition-all`}
+                  } z-40 max-w-[calc(100vw-24px)] sm:max-w-sm w-full bg-zinc-950/90 hover:bg-zinc-950/95  backdrop-blur-xl rounded-2xl p-3 sm:p-3.5 shadow-2xl flex items-center gap-3 animate-in fade-in slide-in-from-bottom-3 duration-300 text-white transition-all`}
                   role="dialog"
                   aria-label="Tập tiếp theo"
                 >
                   {posterUrl && (
-                    <div className="relative w-14 h-14 sm:w-16 sm:h-16 rounded-xl overflow-hidden shrink-0 bg-zinc-900 border border-white/10">
+                    <div className="relative w-14 h-14 sm:w-16 sm:h-16 rounded-xl overflow-hidden shrink-0 bg-zinc-900">
                       <Image
                         src={toOptimizedCardPosterUrl(posterUrl, 192) || posterUrl}
                         alt={effectiveNextEpisode.name || "Tập tiếp theo"}
@@ -2990,7 +2990,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
               )}
             </>
           ) : (
-            <div className="w-full h-full flex flex-col items-center justify-center border border-white/10 relative">
+            <div className="w-full h-full flex flex-col items-center justify-center relative">
               <Image
                 src={toOptimizedCardBackdropUrl(posterUrl, 640) || posterUrl}
                 alt={title}

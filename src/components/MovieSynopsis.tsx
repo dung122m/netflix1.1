@@ -30,7 +30,7 @@ export function MovieSynopsis({ synopsis: rawSynopsis, originName }: MovieSynops
         </div>
 
         {originName && (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/5 border border-white/10 text-xs text-zinc-400 font-medium shrink-0 max-w-full">
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/5 text-xs text-zinc-400 font-medium shrink-0 max-w-full">
             <span className="text-zinc-500 font-normal">Tên gốc:</span>
             <span className="text-zinc-300 italic truncate max-w-[200px] sm:max-w-xs">{originName}</span>
           </span>
@@ -61,7 +61,7 @@ export function MovieSynopsis({ synopsis: rawSynopsis, originName }: MovieSynops
           onClick={() => setExpanded(!expanded)}
           aria-expanded={expanded}
           aria-controls="movie-synopsis-text"
-          className="mt-3 inline-flex items-center justify-center gap-1.5 px-3.5 py-1.5 min-h-[36px] sm:min-h-[38px] rounded-full bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/25 text-xs sm:text-sm font-medium text-zinc-300 hover:text-white transition-all cursor-pointer active:scale-95 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-netflix-red/60"
+          className="mt-3 inline-flex items-center justify-center gap-1.5 px-3.5 py-1.5 min-h-[36px] sm:min-h-[38px] rounded-full bg-white/5 hover:bg-white/10 hover: text-xs sm:text-sm font-medium text-zinc-300 hover:text-white transition-all cursor-pointer active:scale-95 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-netflix-red/60"
         >
           <span>{expanded ? "Thu gọn" : "Xem thêm"}</span>
           {expanded ? (

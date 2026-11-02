@@ -212,7 +212,7 @@ export const AddMovieToCollectionModal: React.FC<AddMovieToCollectionModalProps>
       className="fixed inset-0 z-[99999] flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-200 overflow-y-auto overscroll-contain"
     >
       <div
-        className="relative w-full max-w-lg my-auto bg-zinc-950 border border-white/20 rounded-3xl p-5 sm:p-6 shadow-[0_25px_70px_rgba(0,0,0,0.95)] text-white animate-in zoom-in-95 duration-200 flex flex-col max-h-[85vh] overflow-hidden transform-gpu will-change-[transform,opacity]"
+        className="relative w-full max-w-lg my-auto bg-zinc-950 rounded-3xl p-5 sm:p-6 shadow-[0_25px_70px_rgba(0,0,0,0.95)] text-white animate-in zoom-in-95 duration-200 flex flex-col max-h-[85vh] overflow-hidden transform-gpu will-change-[transform,opacity]"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Glow hiệu ứng */}
@@ -252,7 +252,7 @@ export const AddMovieToCollectionModal: React.FC<AddMovieToCollectionModalProps>
             placeholder="Tìm theo tên phim (VD: Mai, Dune, Avatar...)"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full bg-zinc-900 border border-white/15 rounded-2xl pl-10 pr-9 py-2.5 text-xs sm:text-sm text-white placeholder:text-zinc-500 focus:outline-none focus:border-netflix-red focus:ring-1 focus:ring-netflix-red transition"
+            className="w-full bg-zinc-900 rounded-2xl pl-10 pr-9 py-2.5 text-xs sm:text-sm text-white placeholder:text-zinc-500 focus:outline-none focus:border-netflix-red focus:ring-1 focus:ring-netflix-red transition"
           />
           {searchTerm && (
             <button
@@ -305,11 +305,11 @@ export const AddMovieToCollectionModal: React.FC<AddMovieToCollectionModalProps>
               return (
                 <div
                   key={movie.slug}
-                  className="flex items-center justify-between p-2.5 rounded-2xl border border-white/10 bg-zinc-900/60 hover:bg-zinc-900 hover:border-white/20 transition gap-3"
+                  className="flex items-center justify-between p-2.5 rounded-2xl bg-zinc-900/60 hover:bg-zinc-900 hover: transition gap-3"
                 >
                   {/* Poster & Tên phim */}
                   <div className="flex items-center gap-3 min-w-0 flex-1">
-                    <div className="relative w-11 h-15 rounded-xl overflow-hidden bg-zinc-800 flex-shrink-0 border border-white/10">
+                    <div className="relative w-11 h-15 rounded-xl overflow-hidden bg-zinc-800 flex-shrink-0">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={toOptimizedCardPosterUrl(movie.poster, 192) || "/default-poster.jpg"}
@@ -342,7 +342,7 @@ export const AddMovieToCollectionModal: React.FC<AddMovieToCollectionModalProps>
                         <Loader2 className="w-4 h-4 animate-spin text-netflix-red" />
                       </div>
                     ) : isAlreadyAdded ? (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 text-xs font-semibold">
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-emerald-500/20 text-emerald-400 text-xs font-semibold">
                         <Check className="w-3.5 h-3.5" />
                         <span>Đã có</span>
                       </span>
@@ -374,7 +374,7 @@ export const AddMovieToCollectionModal: React.FC<AddMovieToCollectionModalProps>
         </div>
 
         {/* Footer */}
-        <div className="pt-3 mt-2 border-t border-white/10 flex items-center justify-between">
+        <div className="pt-3 mt-2 border-t flex items-center justify-between">
           <span className="text-[11px] text-zinc-400">
             {results.length > 0 ? `Tìm thấy ${results.length} kết quả` : ""}
           </span>

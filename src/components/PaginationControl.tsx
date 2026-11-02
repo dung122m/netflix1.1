@@ -175,7 +175,7 @@ export const PaginationControl: React.FC<PaginationControlProps> = ({
         <button
           type="button"
           onClick={() => setIsJumpOpen((prev) => !prev)}
-          className="px-3.5 py-2 min-h-[40px] text-xs font-bold text-white bg-netflix-red rounded-xl shadow-md active:scale-95 hover:bg-red-700 transition-all flex items-center justify-center gap-1 touch-target border border-red-500/30 outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-105 cursor-pointer"
+          className="px-3.5 py-2 min-h-[40px] text-xs font-bold text-white bg-netflix-red rounded-xl shadow-md active:scale-95 hover:bg-red-700 transition-all flex items-center justify-center gap-1 touch-target outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-105 cursor-pointer"
           aria-label="Đi tới trang"
         >
           <span>{currentPage} / {totalPages}</span>
@@ -183,7 +183,7 @@ export const PaginationControl: React.FC<PaginationControlProps> = ({
 
         {/* POPOVER NHẬP SỐ TRANG TRÊN MOBILE */}
         {isJumpOpen && (
-          <div className="absolute bottom-full mb-2.5 left-1/2 -translate-x-1/2 z-50 w-64 bg-zinc-900/95 backdrop-blur-xl border border-white/20 rounded-2xl p-3.5 shadow-[0_12px_32px_rgba(0,0,0,0.85)] animate-in fade-in zoom-in-95 duration-200">
+          <div className="absolute bottom-full mb-2.5 left-1/2 -translate-x-1/2 z-50 w-64 bg-zinc-900/95 backdrop-blur-xl rounded-2xl p-3.5 shadow-[0_12px_32px_rgba(0,0,0,0.85)] animate-in fade-in zoom-in-95 duration-200">
             {/* Header Popover */}
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs font-bold text-white flex items-center gap-1.5">
@@ -211,7 +211,7 @@ export const PaginationControl: React.FC<PaginationControlProps> = ({
                 value={targetPageInput}
                 onChange={(e) => setTargetPageInput(e.target.value)}
                 placeholder={`1 - ${totalPages}`}
-                className="w-full bg-zinc-950 text-white font-bold text-center text-sm px-3 py-2 rounded-xl border border-white/15 focus:border-red-500 focus:outline-none focus:ring-1 focus:ring-red-500/50"
+                className="w-full bg-zinc-950 text-white font-bold text-center text-sm px-3 py-2 rounded-xl focus:border-red-500 focus:outline-none focus:ring-1 focus:ring-red-500/50"
               />
               <button
                 type="submit"

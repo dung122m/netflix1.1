@@ -34,7 +34,7 @@ const HistoricalVisual = dynamic(
     ssr: false,
     loading: () => (
       <div className="w-full h-full flex items-center justify-center bg-zinc-900/60 rounded-xl">
-        <div className="w-6 h-6 rounded-full border-2 border-red-500/30 border-t-red-500 animate-spin" />
+        <div className="w-6 h-6 rounded-full border-2 border-t-red-500 animate-spin" />
       </div>
     ),
   }
@@ -172,19 +172,19 @@ export function VietnamTodayModal({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[99999] flex items-center justify-center p-3 sm:p-6 pb-[calc(4.5rem+env(safe-area-inset-bottom,0px))] sm:pb-6 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150 overscroll-none touch-none"
+      className="fixed inset-0 z-[100000] flex items-center justify-center p-3 sm:p-6 pb-[max(1rem,env(safe-area-inset-bottom,0px))] sm:pb-6 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150 overscroll-none touch-none"
       onClick={onClose}
       role="dialog"
       aria-modal="true"
       aria-labelledby="vietnam-event-title"
     >
       <div
-        className="relative w-full max-w-2xl max-h-[calc(100vh-5.5rem-env(safe-area-inset-bottom,0px))] sm:max-h-[92vh] bg-zinc-950 border border-white/10 rounded-2xl shadow-2xl shadow-black/80 overflow-hidden flex flex-col my-auto transform-gpu will-change-[transform,opacity] animate-in zoom-in-95 duration-150 overscroll-contain"
+        className="relative w-full max-w-2xl max-h-[92dvh] sm:max-h-[92vh] bg-zinc-950 rounded-2xl shadow-2xl shadow-black/80 overflow-hidden flex flex-col my-auto transform-gpu will-change-[transform,opacity] animate-in zoom-in-95 duration-150 overscroll-contain"
         onClick={(e) => e.stopPropagation()}
       >
         {/* TOP TAB SWITCHER (Rendered when both Holiday & History are available) */}
         {showTabSwitcher && (
-          <div className="bg-zinc-900/90 border-b border-white/10 px-3 sm:px-4 py-2 flex items-center justify-between gap-2 flex-shrink-0 z-30">
+          <div className="bg-zinc-900/90 px-3 sm:px-4 py-2 flex items-center justify-between gap-2 flex-shrink-0 z-30">
             <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar scrollbar-none min-w-0 flex-1 pr-1">
               {/* TAB 1: Holiday / Special Day */}
               <button
@@ -195,7 +195,7 @@ export function VietnamTodayModal({
                 }}
                 className={`px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all outline-none focus-visible:ring-2 focus-visible:ring-amber-500 flex-shrink-0 whitespace-nowrap ${
                   activeTab === "holiday"
-                    ? "bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-sm"
+                    ? "bg-amber-500/20 text-amber-300 shadow-sm"
                     : "text-zinc-400 hover:text-zinc-200 hover:bg-white/5"
                 }`}
               >
@@ -212,13 +212,13 @@ export function VietnamTodayModal({
                 }}
                 className={`px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all outline-none focus-visible:ring-2 focus-visible:ring-red-500 flex-shrink-0 whitespace-nowrap ${
                   activeTab === "history"
-                    ? "bg-red-500/20 text-red-200 border border-red-500/40 shadow-sm"
+                    ? "bg-red-500/20 text-red-200 shadow-sm"
                     : "text-zinc-400 hover:text-zinc-200 hover:bg-white/5"
                 }`}
               >
                 <History className="w-3.5 h-3.5 text-red-400 flex-shrink-0" />
                 <span>Ngày này trong lịch sử</span>
-                <span className="ml-0.5 px-1.5 py-0.2 rounded-full text-[10px] bg-red-500/30 text-red-200 border border-red-500/40 flex-shrink-0">
+                <span className="ml-0.5 px-1.5 py-0.2 rounded-full text-[10px] bg-red-500/30 text-red-200 flex-shrink-0">
                   {historicalEvents.length}
                 </span>
               </button>
@@ -272,7 +272,7 @@ export function VietnamTodayModal({
                 <button
                   onClick={onClose}
                   aria-label="Đóng"
-                  className="absolute top-3.5 right-3.5 z-20 p-2 rounded-full bg-black/70 hover:bg-white/20 text-zinc-300 hover:text-white border border-white/15 transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+                  className="absolute top-3.5 right-3.5 z-20 p-2 rounded-full bg-black/70 hover:bg-white/20 text-zinc-300 hover:text-white transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-amber-500/50"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -280,7 +280,7 @@ export function VietnamTodayModal({
 
               {/* Top badging */}
               <div className="absolute top-4 left-4 z-10 flex flex-wrap items-center gap-2">
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold shadow-sm border border-red-500/40 bg-red-600/40 text-red-200">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold shadow-sm bg-red-600/40 text-red-200">
                   <VietnamFlagIcon className="w-4 h-2.8 rounded-[1px] shadow-sm" />
                   <span>
                     {isToday
@@ -292,13 +292,13 @@ export function VietnamTodayModal({
                 </span>
 
                 {/* Nature label */}
-                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-black/60 text-zinc-200 border border-white/15">
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-black/60 text-zinc-200">
                   <Sparkles className="w-3 h-3 text-amber-400" />
                   {currentEvent.natureLabel || currentEvent.categoryLabel}
                 </span>
 
                 {currentEvent.tag && (
-                  <span className="hidden sm:inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-amber-500/25 text-amber-200 border border-amber-500/35">
+                  <span className="hidden sm:inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-amber-500/25 text-amber-200">
                     {currentEvent.tag}
                   </span>
                 )}
@@ -331,7 +331,7 @@ export function VietnamTodayModal({
 
             {/* Multi-event tab switcher if today has multiple holidays */}
             {holidayEvents.length > 1 && (
-              <div className="px-4 sm:px-6 pt-3 pb-2 border-b border-white/10 bg-zinc-950 flex flex-wrap items-center gap-2 flex-shrink-0">
+              <div className="px-4 sm:px-6 pt-3 pb-2 bg-zinc-950 flex flex-wrap items-center gap-2 flex-shrink-0">
                 <span className="text-xs text-zinc-400 font-medium whitespace-nowrap">
                   Sự kiện hôm nay:
                 </span>
@@ -345,8 +345,8 @@ export function VietnamTodayModal({
                       }}
                       className={`px-2.5 py-1 rounded-lg text-xs font-medium whitespace-nowrap transition-all flex items-center gap-1.5 cursor-pointer ${
                         ev.id === currentEvent.id
-                          ? "bg-amber-500/25 text-amber-300 border border-amber-500/50 shadow-sm"
-                          : "text-zinc-400 hover:text-zinc-200 bg-white/5 border border-white/10 hover:border-white/20 hover:bg-white/10"
+                          ? "bg-amber-500/25 text-amber-300 shadow-sm"
+                          : "text-zinc-400 hover:text-zinc-200 bg-white/5 hover:bg-white/10"
                       }`}
                     >
                       <span>{ev.title}</span>
@@ -366,8 +366,8 @@ export function VietnamTodayModal({
               {currentEvent.category === "entertainment" && currentEvent.actorSlug ? (
                 <div className="space-y-4">
                   {/* Actor Profile Highlight Card */}
-                  <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-amber-500/10 via-zinc-900/80 to-zinc-900/60 border border-amber-500/30 shadow-lg">
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-white/10">
+                  <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-amber-500/10 via-zinc-900/80 to-zinc-900/60 shadow-lg">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4">
                       <div>
                         <div className="flex items-center gap-2 text-amber-400 text-xs font-bold tracking-wider mb-1">
                           <Sparkles className="w-3.5 h-3.5" />
@@ -402,7 +402,7 @@ export function VietnamTodayModal({
 
                   {/* Birthday Wish */}
                   {currentEvent.quote && (
-                    <div className="p-3.5 rounded-xl bg-white/[0.04] border border-white/10 flex items-start gap-2.5 italic text-xs sm:text-sm text-amber-200/90">
+                    <div className="p-3.5 rounded-xl bg-white/[0.04] flex items-start gap-2.5 italic text-xs sm:text-sm text-amber-200/90">
                       <Quote className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
                       <span>{currentEvent.quote}</span>
                     </div>
@@ -412,7 +412,7 @@ export function VietnamTodayModal({
                 /* STANDARD HOLIDAY / EVENT VIEW */
                 <>
                   {/* Quick summary */}
-                  <div className="p-3.5 rounded-xl bg-white/[0.04] border border-white/10 text-zinc-200 font-medium text-xs sm:text-sm">
+                  <div className="p-3.5 rounded-xl bg-white/[0.04] text-zinc-200 font-medium text-xs sm:text-sm">
                     {currentEvent.shortDescription}
                   </div>
 
@@ -421,7 +421,7 @@ export function VietnamTodayModal({
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
                       {/* 📖 Nguồn gốc */}
                       {currentEvent.origin && (
-                        <div className="p-4 rounded-xl bg-zinc-900/60 border border-white/10 hover:border-white/15 transition-colors">
+                        <div className="p-4 rounded-xl bg-zinc-900/60 transition-colors">
                           <div className="flex items-center gap-2 text-amber-400 font-semibold mb-2">
                             <BookOpen className="w-4 h-4 text-amber-400" />
                             <span>Nguồn gốc</span>
@@ -434,7 +434,7 @@ export function VietnamTodayModal({
 
                       {/* 🎯 Ý nghĩa */}
                       {(currentEvent.meaning || currentEvent.significance) && (
-                        <div className="p-4 rounded-xl bg-zinc-900/60 border border-white/10 hover:border-white/15 transition-colors">
+                        <div className="p-4 rounded-xl bg-zinc-900/60 transition-colors">
                           <div className="flex items-center gap-2 text-rose-400 font-semibold mb-2">
                             <Target className="w-4 h-4 text-rose-400" />
                             <span>Ý nghĩa</span>
@@ -449,7 +449,7 @@ export function VietnamTodayModal({
 
                   {/* 🏮 Phong tục & Nét đẹp tiêu biểu */}
                   {currentEvent.traditions && currentEvent.traditions.length > 0 && (
-                    <div className="p-4 rounded-xl bg-gradient-to-br from-amber-950/20 via-zinc-900/70 to-zinc-900/50 border border-amber-500/25">
+                    <div className="p-4 rounded-xl bg-gradient-to-br from-amber-950/20 via-zinc-900/70 to-zinc-900/50">
                       <div className="flex items-center gap-2 text-amber-300 font-semibold mb-2.5">
                         <Sparkles className="w-4 h-4 text-amber-400" />
                         <span>Phong tục & Nét đẹp tiêu biểu</span>
@@ -470,7 +470,7 @@ export function VietnamTodayModal({
 
                   {/* 🍜 Ẩm thực đặc trưng */}
                   {currentEvent.cuisine && (
-                    <div className="p-3.5 rounded-xl bg-orange-950/20 border border-orange-500/25 flex items-start gap-3">
+                    <div className="p-3.5 rounded-xl bg-orange-950/20 flex items-start gap-3">
                       <Utensils className="w-4 h-4 text-orange-400 flex-shrink-0 mt-0.5" />
                       <div className="text-xs sm:text-sm">
                         <span className="font-semibold text-orange-300 mr-2">
@@ -483,7 +483,7 @@ export function VietnamTodayModal({
 
                   {/* 💡 Bạn có biết? (Gọn gàng, súc tích) */}
                   {currentEvent.didYouKnow && currentEvent.didYouKnow !== currentEvent.shortDescription && (
-                    <div className="p-4 rounded-xl bg-amber-950/20 border border-amber-500/25 relative overflow-hidden">
+                    <div className="p-4 rounded-xl bg-amber-950/20 relative overflow-hidden">
                       <div className="flex items-center gap-2 text-amber-300 font-semibold mb-1.5">
                         <Lightbulb className="w-4 h-4 text-amber-400 animate-pulse" />
                         <span>Bạn có biết?</span>
@@ -496,7 +496,7 @@ export function VietnamTodayModal({
 
                   {/* 📅 Các mốc lịch sử / Dòng thời gian */}
                   {currentEvent.milestones && currentEvent.milestones.length > 0 && (
-                    <div className="p-4 rounded-xl bg-zinc-900/60 border border-white/10">
+                    <div className="p-4 rounded-xl bg-zinc-900/60">
                       <div className="flex items-center gap-2 text-sky-400 font-semibold mb-2.5">
                         <Calendar className="w-4 h-4 text-sky-400" />
                         <span>
@@ -524,7 +524,7 @@ export function VietnamTodayModal({
 
                   {/* 💬 Trích dẫn / Thông điệp gửi gắm */}
                   {(currentEvent.message || currentEvent.quote) && (
-                    <div className="p-3.5 rounded-xl bg-zinc-900/40 border border-white/5 flex items-start gap-3 italic text-xs sm:text-sm text-zinc-300">
+                    <div className="p-3.5 rounded-xl bg-zinc-900/40 flex items-start gap-3 italic text-xs sm:text-sm text-zinc-300">
                       <Quote className="w-4 h-4 text-amber-400/80 flex-shrink-0 mt-0.5" />
                       <span>&ldquo;{currentEvent.message || currentEvent.quote}&rdquo;</span>
                     </div>
@@ -534,7 +534,7 @@ export function VietnamTodayModal({
 
               {/* 📜 LINK TO HISTORICAL EVENTS IF AVAILABLE TODAY */}
               {hasHistory && (
-                <div className="p-4 rounded-2xl bg-gradient-to-r from-zinc-900 via-zinc-900/90 to-zinc-900/80 border border-netflix-red/30 flex items-center justify-between gap-3 shadow-md">
+                <div className="p-4 rounded-2xl bg-gradient-to-r from-zinc-900 via-zinc-900/90 to-zinc-900/80 flex items-center justify-between gap-3 shadow-md">
                   <div className="space-y-1">
                     <div className="flex items-center gap-2 text-xs font-bold text-netflix-red tracking-wide">
                       <History className="w-3.5 h-3.5 text-netflix-red" />
@@ -550,7 +550,7 @@ export function VietnamTodayModal({
                       setActiveTab("history");
                       if (contentScrollRef.current) contentScrollRef.current.scrollTop = 0;
                     }}
-                    className="px-3 py-1.5 rounded-lg bg-netflix-red hover:brightness-110 text-white border border-white/10 text-xs font-semibold whitespace-nowrap flex items-center gap-1.5 transition-all cursor-pointer shrink-0"
+                    className="px-3 py-1.5 rounded-lg bg-netflix-red hover:brightness-110 text-white text-xs font-semibold whitespace-nowrap flex items-center gap-1.5 transition-all cursor-pointer shrink-0"
                   >
                     <span>Khám phá</span>
                     <ArrowRight className="w-3.5 h-3.5" />
@@ -559,7 +559,7 @@ export function VietnamTodayModal({
               )}
 
               {/* Today's Context Footer */}
-              <div className="pt-2 border-t border-white/10 flex flex-wrap items-center justify-between gap-2 text-xs text-zinc-400">
+              <div className="pt-2 flex flex-wrap items-center justify-between gap-2 text-xs text-zinc-400">
                 <div className="flex items-center gap-2">
                   <span>Hôm nay: {solarDateFormatted}</span>
                   <span className="text-zinc-600">•</span>
@@ -585,7 +585,7 @@ export function VietnamTodayModal({
             className="p-4 sm:p-6 overflow-y-auto space-y-4 sm:space-y-5 text-zinc-300 text-sm leading-relaxed custom-scrollbar flex-1 overscroll-contain"
           >
             {/* HISTORICAL HEADER BANNER */}
-            <div className="flex items-center justify-between gap-3 pb-2 border-b border-white/10">
+            <div className="flex items-center justify-between gap-3 pb-2">
               <div className="flex items-center gap-2 min-w-0">
                 <span className="text-lg flex-shrink-0">📜</span>
                 <div className="min-w-0">
@@ -596,7 +596,7 @@ export function VietnamTodayModal({
               </div>
 
               <div className="flex-shrink-0">
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-red-600/25 text-red-200 border border-red-500/30 whitespace-nowrap shadow-sm">
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-red-600/25 text-red-200 whitespace-nowrap shadow-sm">
                   <VietnamFlagIcon className="w-3.5 h-2.5 flex-shrink-0" />
                   <span>
                     {currentHist.year > 0 ? `Năm ${currentHist.year}` : `${Math.abs(currentHist.year)} TCN`}
@@ -607,7 +607,7 @@ export function VietnamTodayModal({
 
             {/* MULTI-EVENT TIMELINE SWITCHER IF MORE THAN 1 HISTORICAL EVENT */}
             {historicalEvents.length > 1 && (
-              <div className="p-2 sm:p-2.5 rounded-xl bg-white/[0.03] border border-white/10 flex flex-wrap items-center gap-2">
+              <div className="p-2 sm:p-2.5 rounded-xl bg-white/[0.03] flex flex-wrap items-center gap-2">
                 <span className="text-xs text-zinc-400 font-semibold whitespace-nowrap flex items-center gap-1.5 shrink-0">
                   <Calendar className="w-3.5 h-3.5 text-amber-400/90" />
                   <span>Mốc thời gian:</span>
@@ -623,8 +623,8 @@ export function VietnamTodayModal({
                         onClick={() => setSelectedHistId(h.id)}
                         className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 outline-none focus-visible:ring-2 focus-visible:ring-amber-500 cursor-pointer ${
                           isSelected
-                            ? "bg-red-600/30 text-red-100 border border-red-500/60 shadow-sm ring-1 ring-red-500/30 font-semibold"
-                            : "text-zinc-400 hover:text-zinc-200 bg-white/5 border border-white/10 hover:border-white/20 hover:bg-white/10"
+                            ? "bg-red-600/30 text-red-100 shadow-sm font-semibold"
+                            : "text-zinc-400 hover:text-zinc-200 bg-white/5 hover:bg-white/10"
                         }`}
                       >
                         <span className="font-bold text-amber-300/90">
@@ -640,7 +640,7 @@ export function VietnamTodayModal({
             )}
 
             {/* HISTORICAL VECTOR SVG VISUAL SCENE */}
-            <div className="relative w-full h-40 sm:h-52 rounded-2xl overflow-hidden bg-zinc-900/90 border border-white/10 shadow-lg group">
+            <div className="relative w-full h-40 sm:h-52 rounded-2xl overflow-hidden bg-zinc-900/90 shadow-lg group">
               <HistoricalVisual
                 theme={currentHist.visualTheme}
                 className="w-full h-full object-cover"
@@ -673,7 +673,7 @@ export function VietnamTodayModal({
             </div>
 
             {/* 1. ĐIỀU GÌ XẢY RA (SUMMARY) */}
-            <div className="p-4 rounded-xl bg-white/[0.04] border border-white/10 space-y-1.5">
+            <div className="p-4 rounded-xl bg-white/[0.04] space-y-1.5">
               <div className="flex items-center gap-2 text-xs font-bold text-amber-400 tracking-wide">
                 <BookOpen className="w-3.5 h-3.5 text-amber-400" />
                 <span>Diễn biến sự kiện</span>
@@ -693,7 +693,7 @@ export function VietnamTodayModal({
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
                   {/* Bối cảnh (chỉ hiện khi có nội dung thực sự và không trùng lặp với diễn biến) */}
                   {hasDistinctContext && (
-                    <div className="p-4 rounded-xl bg-zinc-900/60 border border-white/10 space-y-1.5">
+                    <div className="p-4 rounded-xl bg-zinc-900/60 space-y-1.5">
                       <div className="flex items-center gap-2 text-xs font-bold text-sky-400 tracking-wide">
                         <Compass className="w-3.5 h-3.5 text-sky-400" />
                         <span>Bối cảnh lịch sử</span>
@@ -706,7 +706,7 @@ export function VietnamTodayModal({
 
                   {/* Ý nghĩa lịch sử */}
                   <div
-                    className={`p-4 rounded-xl bg-zinc-900/60 border border-white/10 space-y-1.5 ${
+                    className={`p-4 rounded-xl bg-zinc-900/60 space-y-1.5 ${
                       !hasDistinctContext ? "md:col-span-2" : ""
                     }`}
                   >
@@ -724,7 +724,7 @@ export function VietnamTodayModal({
 
             {/* 3. DỮ KIỆN & CON SỐ ĐÁNG CHÚ Ý */}
             {currentHist.keyFacts && currentHist.keyFacts.length > 0 && (
-              <div className="p-4 rounded-xl bg-zinc-900/60 border border-white/10 space-y-2.5">
+              <div className="p-4 rounded-xl bg-zinc-900/60 space-y-2.5">
                 <div className="flex items-center gap-2 text-xs font-bold text-amber-300 tracking-wide">
                   <CheckCircle2 className="w-3.5 h-3.5 text-amber-400" />
                   <span>Dữ kiện & Con số đáng nhớ</span>
@@ -745,7 +745,7 @@ export function VietnamTodayModal({
 
             {/* 4. NHÂN VẬT LIÊN QUAN */}
             {currentHist.figures && currentHist.figures.length > 0 && (
-              <div className="p-3.5 rounded-xl bg-zinc-900/40 border border-white/10 flex flex-wrap items-center gap-2">
+              <div className="p-3.5 rounded-xl bg-zinc-900/40 flex flex-wrap items-center gap-2">
                 <div className="flex items-center gap-1.5 text-xs font-semibold text-zinc-400 mr-1">
                   <Users className="w-3.5 h-3.5 text-zinc-400" />
                   <span>Nhân vật:</span>
@@ -753,7 +753,7 @@ export function VietnamTodayModal({
                 {currentHist.figures.map((fig, idx) => (
                   <span
                     key={idx}
-                    className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-white/5 border border-white/10 text-zinc-200"
+                    className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-white/5 text-zinc-200"
                   >
                     {fig}
                   </span>
@@ -763,7 +763,7 @@ export function VietnamTodayModal({
 
             {/* 5. BẠN CÓ BIẾT? (DID YOU KNOW) */}
             {currentHist.didYouKnow && (
-              <div className="p-4 rounded-xl bg-amber-950/20 border border-amber-500/25 relative overflow-hidden">
+              <div className="p-4 rounded-xl bg-amber-950/20 relative overflow-hidden">
                 <div className="flex items-center gap-2 text-amber-300 font-semibold mb-1.5">
                   <Lightbulb className="w-4 h-4 text-amber-400 animate-pulse" />
                   <span>Bạn có biết?</span>
@@ -776,14 +776,14 @@ export function VietnamTodayModal({
 
             {/* 6. NGUỒN TƯ LIỆU KIỂM CHỨNG */}
             {currentHist.sources && currentHist.sources.length > 0 && (
-              <div className="p-3 rounded-xl bg-black/40 border border-white/5 text-[11px] text-zinc-500 space-y-1">
+              <div className="p-3 rounded-xl bg-black/40 text-[11px] text-zinc-500 space-y-1">
                 <span className="font-semibold text-zinc-400">Nguồn tư liệu kiểm chứng:</span>
                 <p className="text-zinc-400">{currentHist.sources.join(" • ")}</p>
               </div>
             )}
 
             {/* FOOTER */}
-            <div className="pt-2 border-t border-white/10 flex flex-wrap items-center justify-between gap-2 text-xs text-zinc-400">
+            <div className="pt-2 flex flex-wrap items-center justify-between gap-2 text-xs text-zinc-400">
               <div className="flex items-center gap-2">
                 <span>{solarDateFormatted}</span>
                 <span className="text-zinc-600">•</span>

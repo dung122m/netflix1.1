@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getTopTrendingCommunitySupabase } from "@/services/communityWatchService";
+import {
+  enforceRateLimit,
+  buildRateLimitResponse,
+  RATE_LIMIT_PRESETS,
+} from "@/lib/rateLimit";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 10;
@@ -14,6 +19,10 @@ export function invalidateTrendingCache(): void {
 }
 
 export async function GET(req: NextRequest) {
+  const rateLimit = await enforceRateLimit(req, RATE_LIMIT_PRESETS.PUBLIC_READ);
+  if (!rateLimit.allowed) {
+    return buildRateLimitResponse(rateLimit);
+  }
   const { searchParams } = new URL(req.url);
   const timeframe = (searchParams.get("timeframe") === "week" ? "week" : "total") as "total" | "week";
   const limit = Math.min(Number(searchParams.get("limit")) || 10, 20);
@@ -22,7 +31,11 @@ export async function GET(req: NextRequest) {
   // 1. Kiểm tra bộ nhớ cache trên RAM server (phản hồi tức thì ~1ms)
   const cached = SERVER_CACHE.get(cacheKey);
   if (cached && cached.expireAt > Date.now()) {
-    return NextResponse.json(cached.data);
+    return NextResponse.json(cached.data, {
+      headers: {
+        "Cache-Control": "public, s-maxage=60, stale-while-revalidate=120",
+      },
+    });
   }
 
   try {
@@ -46,7 +59,11 @@ export async function GET(req: NextRequest) {
 
     // 3. Fallback: Nếu không có dữ liệu mới nhưng có cache cũ, trả về cache cũ
     if (cached && cached.data) {
-      return NextResponse.json(cached.data);
+      return NextResponse.json(cached.data, {
+        headers: {
+          "Cache-Control": "public, s-maxage=60, stale-while-revalidate=120",
+        },
+      });
     }
 
     // 4. Nếu chưa có dữ liệu nào, trả về danh sách rỗng (không tạo số liệu ảo)

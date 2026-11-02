@@ -717,10 +717,10 @@ function AdminDashboardContent() {
   if (!user || !isAdmin) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-zinc-950 via-black to-zinc-950 text-white flex flex-col items-center justify-center p-4">
-        <div className="max-w-md w-full p-8 rounded-3xl bg-white/[0.03] border border-white/10 shadow-2xl backdrop-blur-xl text-center relative overflow-hidden">
+        <div className="max-w-md w-full p-8 rounded-3xl bg-white/[0.03] shadow-2xl backdrop-blur-xl text-center relative overflow-hidden">
           <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-48 h-48 bg-netflix-red/20 rounded-full blur-3xl pointer-events-none" />
 
-          <div className="w-16 h-16 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-500 flex items-center justify-center mx-auto mb-5 shadow-md shadow-black/50">
+          <div className="w-16 h-16 rounded-2xl bg-red-500/10 text-red-500 flex items-center justify-center mx-auto mb-5 shadow-md shadow-black/50">
             <Lock size={32} />
           </div>
 
@@ -729,7 +729,7 @@ function AdminDashboardContent() {
             Trang này chỉ dành riêng cho Quản Trị Viên hệ thống Nanaflix. Tài khoản của bạn hiện tại chưa được cấp quyền truy cập vào trung tâm dữ liệu này.
           </p>
 
-          <div className="p-3.5 rounded-2xl bg-black/60 border border-white/10 mb-6 text-left space-y-1.5">
+          <div className="p-3.5 rounded-2xl bg-black/60 mb-6 text-left space-y-1.5">
             <div className="text-[11px] text-zinc-400 flex items-center justify-between">
               <span>Tài khoản hiện tại:</span>
               <span className="text-white font-semibold truncate max-w-[200px]">
@@ -784,15 +784,15 @@ function AdminDashboardContent() {
     <div className="min-h-screen bg-[#0a0a0c] text-white pt-6 sm:pt-16 md:pt-20 pb-20 sm:pb-24 px-3 sm:px-6 lg:px-10">
       <div className="max-w-7xl mx-auto space-y-6 sm:space-y-8">
         {/* TOP HEADER */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 pb-5 sm:pb-6 border-b border-white/10">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 pb-5 sm:pb-6 border-b">
           <div className="min-w-0">
             <div className="flex items-center gap-2.5 mb-1.5">
-              <div className="p-2 rounded-xl bg-gradient-to-br from-amber-500/20 to-red-500/20 border border-amber-500/30 text-amber-400 shadow-md flex-shrink-0">
+              <div className="p-2 rounded-xl bg-gradient-to-br from-amber-500/20 to-red-500/20 text-amber-400 shadow-md flex-shrink-0">
                 <ShieldCheck size={20} className="sm:w-[22px] sm:h-[22px]" />
               </div>
               <h1 className="text-xl sm:text-2xl md:text-3xl font-black tracking-tight text-white flex items-center gap-2 flex-wrap min-w-0">
                 <span className="truncate">Nanaflix Admin</span>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-gradient-to-r from-amber-500/30 to-red-500/30 border border-amber-500/40 text-amber-300 font-bold uppercase tracking-wider flex-shrink-0">
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-gradient-to-r from-amber-500/30 to-red-500/30 text-amber-300 font-bold uppercase tracking-wider flex-shrink-0">
                   Super Admin
                 </span>
               </h1>
@@ -831,7 +831,7 @@ function AdminDashboardContent() {
             </button>
             <Link
               href="/"
-              className="col-span-2 sm:col-span-1 inline-flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-white text-xs font-semibold transition border border-white/10"
+              className="col-span-2 sm:col-span-1 inline-flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-white text-xs font-semibold transition"
             >
               <Home size={13} />
               <span>Về Trang Chủ</span>
@@ -842,7 +842,7 @@ function AdminDashboardContent() {
         {/* METRICS SUMMARY CARDS */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 sm:gap-4">
           {/* Card 1: Total Comments */}
-          <div className="p-3.5 sm:p-4 rounded-2xl bg-zinc-900/60 border border-white/10 hover:border-white/20 transition backdrop-blur-sm relative overflow-hidden group">
+          <div className="p-3.5 sm:p-4 rounded-2xl bg-zinc-900/60 hover: transition backdrop-blur-sm relative overflow-hidden group">
             <div className="flex items-center justify-between text-zinc-400 mb-1.5 sm:mb-2">
               <span className="text-[11px] sm:text-xs font-medium truncate">Tổng Bình Luận</span>
               <div className="p-1 sm:p-1.5 rounded-lg bg-blue-500/10 text-blue-400 flex-shrink-0">
@@ -856,7 +856,7 @@ function AdminDashboardContent() {
           </div>
 
           {/* Card 2: Average Score */}
-          <div className="p-3.5 sm:p-4 rounded-2xl bg-zinc-900/60 border border-white/10 hover:border-white/20 transition backdrop-blur-sm relative overflow-hidden group">
+          <div className="p-3.5 sm:p-4 rounded-2xl bg-zinc-900/60 hover: transition backdrop-blur-sm relative overflow-hidden group">
             <div className="flex items-center justify-between text-zinc-400 mb-1.5 sm:mb-2">
               <span className="text-[11px] sm:text-xs font-medium truncate">Điểm Đánh Giá</span>
               <div className="p-1 sm:p-1.5 rounded-lg bg-amber-500/10 text-amber-400 flex-shrink-0">
@@ -871,7 +871,7 @@ function AdminDashboardContent() {
           </div>
 
           {/* Card 3: Unique Users / Members */}
-          <div className="p-3.5 sm:p-4 rounded-2xl bg-zinc-900/60 border border-white/10 hover:border-white/20 transition backdrop-blur-sm relative overflow-hidden group">
+          <div className="p-3.5 sm:p-4 rounded-2xl bg-zinc-900/60 hover: transition backdrop-blur-sm relative overflow-hidden group">
             <div className="flex items-center justify-between text-zinc-400 mb-1.5 sm:mb-2">
               <span className="text-[11px] sm:text-xs font-medium truncate">Thành Viên</span>
               <div className="p-1 sm:p-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 flex-shrink-0">
@@ -880,7 +880,7 @@ function AdminDashboardContent() {
             </div>
             <div className="text-xl sm:text-2xl font-black text-white group-hover:scale-105 transition-transform origin-left">
               {totalMemberCount === null ? (
-                <span className="text-zinc-500 animate-pulse text-lg font-mono">—</span>
+                <span className="text-zinc-500 animate-pulse text-lg font-sans tabular-nums">—</span>
               ) : (
                 metrics.uniqueUsers
               )}
@@ -889,7 +889,7 @@ function AdminDashboardContent() {
           </div>
 
           {/* Card 4: Unique Movies */}
-          <div className="p-3.5 sm:p-4 rounded-2xl bg-zinc-900/60 border border-white/10 hover:border-white/20 transition backdrop-blur-sm relative overflow-hidden group">
+          <div className="p-3.5 sm:p-4 rounded-2xl bg-zinc-900/60 hover: transition backdrop-blur-sm relative overflow-hidden group">
             <div className="flex items-center justify-between text-zinc-400 mb-1.5 sm:mb-2">
               <span className="text-[11px] sm:text-xs font-medium truncate">Phim Đánh Giá</span>
               <div className="p-1 sm:p-1.5 rounded-lg bg-purple-500/10 text-purple-400 flex-shrink-0">
@@ -903,7 +903,7 @@ function AdminDashboardContent() {
           </div>
 
           {/* Card 5: Flagged & Moderation */}
-          <div className="p-3.5 sm:p-4 rounded-2xl bg-zinc-900/60 border border-white/10 hover:border-white/20 transition backdrop-blur-sm relative overflow-hidden group">
+          <div className="p-3.5 sm:p-4 rounded-2xl bg-zinc-900/60 hover: transition backdrop-blur-sm relative overflow-hidden group">
             <div className="flex items-center justify-between text-zinc-400 mb-1.5 sm:mb-2">
               <span className="text-[11px] sm:text-xs font-medium truncate">Vi Phạm / Cờ</span>
               <div className={`p-1 sm:p-1.5 rounded-lg flex-shrink-0 ${metrics.flaggedCount > 0 ? "bg-red-500/20 text-red-400" : "bg-zinc-800 text-zinc-400"}`}>
@@ -917,7 +917,7 @@ function AdminDashboardContent() {
           </div>
 
           {/* Card 6: Spoilers */}
-          <div className="p-3.5 sm:p-4 rounded-2xl bg-zinc-900/60 border border-white/10 hover:border-white/20 transition backdrop-blur-sm relative overflow-hidden group">
+          <div className="p-3.5 sm:p-4 rounded-2xl bg-zinc-900/60 hover: transition backdrop-blur-sm relative overflow-hidden group">
             <div className="flex items-center justify-between text-zinc-400 mb-1.5 sm:mb-2">
               <span className="text-[11px] sm:text-xs font-medium truncate">Cảnh Báo Spoil</span>
               <div className="p-1 sm:p-1.5 rounded-lg bg-rose-500/10 text-rose-400 flex-shrink-0">
@@ -932,7 +932,7 @@ function AdminDashboardContent() {
         </div>
 
         {/* TABS NAVIGATION */}
-        <div className="flex items-center gap-1.5 sm:gap-2 border-b border-white/10 pb-3 overflow-x-auto no-scrollbar scrollbar-none -mx-3 px-3 sm:mx-0 sm:px-0">
+        <div className="flex items-center gap-1.5 sm:gap-2 border-b pb-3 overflow-x-auto no-scrollbar scrollbar-none -mx-3 px-3 sm:mx-0 sm:px-0">
           <button
             type="button"
             onClick={() => handleTabChange("comments")}
@@ -943,7 +943,7 @@ function AdminDashboardContent() {
           >
             <MessageSquare size={14} />
             <span>Bình Luận</span>
-            <span className="px-1.5 py-0.2 rounded-full bg-black/40 text-[10px] font-mono">
+            <span className="px-1.5 py-0.2 rounded-full bg-black/40 text-[10px] font-sans tabular-nums">
               {comments.length}
             </span>
             {metrics.flaggedCount > 0 && (
@@ -963,7 +963,7 @@ function AdminDashboardContent() {
           >
             <Users size={14} />
             <span>Thành Viên</span>
-            <span className="px-1.5 py-0.2 rounded-full bg-black/40 text-[10px] font-mono">
+            <span className="px-1.5 py-0.2 rounded-full bg-black/40 text-[10px] font-sans tabular-nums">
               {totalMemberCount === null ? "—" : totalMemberCount}
             </span>
           </button>
@@ -978,7 +978,7 @@ function AdminDashboardContent() {
           >
             <FolderHeart size={14} />
             <span>Bộ Sưu Tập</span>
-            <span className="px-1.5 py-0.2 rounded-full bg-black/40 text-[10px] font-mono">
+            <span className="px-1.5 py-0.2 rounded-full bg-black/40 text-[10px] font-sans tabular-nums">
               {collections.length}
             </span>
           </button>
@@ -1000,9 +1000,9 @@ function AdminDashboardContent() {
         {activeTab === "comments" && (
           <div className="space-y-4">
             {/* AUTO CLEAN & PURGE CONTROL BAR */}
-            <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-red-950/40 via-zinc-900/60 to-amber-950/30 border border-red-500/20 backdrop-blur-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-lg">
+            <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-red-950/40 via-zinc-900/60 to-amber-950/30 backdrop-blur-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-lg">
               <div className="flex items-start sm:items-center gap-3">
-                <div className="p-2 sm:p-2.5 rounded-xl bg-red-500/15 border border-red-500/30 text-red-400 shadow-inner flex-shrink-0 mt-0.5 sm:mt-0">
+                <div className="p-2 sm:p-2.5 rounded-xl bg-red-500/15 text-red-400 shadow-inner flex-shrink-0 mt-0.5 sm:mt-0">
                   <ShieldAlert size={18} className="sm:w-5 sm:h-5 animate-pulse" />
                 </div>
                 <div>
@@ -1010,7 +1010,7 @@ function AdminDashboardContent() {
                     <h3 className="text-xs sm:text-sm font-bold text-white">
                       Hệ Thống Quét & Xóa Bình Luận Rác
                     </h3>
-                    <span className="text-[9px] sm:text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 font-bold uppercase tracking-wider flex items-center gap-1">
+                    <span className="text-[9px] sm:text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-bold uppercase tracking-wider flex items-center gap-1">
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
                       Auto-Shield
                     </span>
@@ -1036,7 +1036,7 @@ function AdminDashboardContent() {
                   <button
                     type="button"
                     onClick={handlePurgeAllFlagged}
-                    className="w-full sm:w-auto px-3.5 py-2.5 rounded-xl bg-red-500/15 hover:bg-red-500/25 text-red-300 border border-red-500/30 text-xs font-bold transition cursor-pointer flex items-center justify-center gap-1.5 active:scale-95"
+                    className="w-full sm:w-auto px-3.5 py-2.5 rounded-xl bg-red-500/15 hover:bg-red-500/25 text-red-300 text-xs font-bold transition cursor-pointer flex items-center justify-center gap-1.5 active:scale-95"
                   >
                     <Trash2 size={13} />
                     <span>Xóa Sạch Cờ ({metrics.flaggedCount})</span>
@@ -1046,7 +1046,7 @@ function AdminDashboardContent() {
             </div>
 
             {/* TOOLBAR */}
-            <div className="p-3.5 sm:p-4 rounded-2xl bg-zinc-900/60 border border-white/10 backdrop-blur-sm space-y-3">
+            <div className="p-3.5 sm:p-4 rounded-2xl bg-zinc-900/60 backdrop-blur-sm space-y-3">
               <div className="relative w-full">
                 <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400" />
                 <input
@@ -1054,7 +1054,7 @@ function AdminDashboardContent() {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Tìm theo tên người dùng, email, phim, nội dung..."
-                  className="w-full bg-black/60 border border-white/10 rounded-xl pl-9 pr-8 py-2 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-netflix-red transition"
+                  className="w-full bg-black/60 rounded-xl pl-9 pr-8 py-2 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-netflix-red transition"
                 />
                 {searchQuery && (
                   <button
@@ -1070,7 +1070,7 @@ function AdminDashboardContent() {
               {/* Filter Chips - Scrollable on mobile to avoid overlapping */}
               <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar scrollbar-none -mx-1 px-1 flex-nowrap">
                 {/* Moderation / Flagged Filter */}
-                <div className="flex items-center gap-1 bg-black/50 p-1 rounded-xl border border-white/10 text-xs flex-shrink-0">
+                <div className="flex items-center gap-1 bg-black/50 p-1 rounded-xl text-xs flex-shrink-0">
                   <button
                     type="button"
                     onClick={() => setFlaggedFilter("all")}
@@ -1083,7 +1083,7 @@ function AdminDashboardContent() {
                     type="button"
                     onClick={() => setFlaggedFilter("flagged")}
                     className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center gap-1 ${flaggedFilter === "flagged"
-                        ? "bg-red-500/25 text-red-400 border border-red-500/40 font-bold shadow-sm"
+                        ? "bg-red-500/25 text-red-400  font-bold shadow-sm"
                         : "text-zinc-400 hover:text-white"
                       }`}
                   >
@@ -1098,7 +1098,7 @@ function AdminDashboardContent() {
                 </div>
 
                 {/* Star Filter */}
-                <div className="flex items-center gap-1 bg-black/50 p-1 rounded-xl border border-white/10 text-xs flex-shrink-0">
+                <div className="flex items-center gap-1 bg-black/50 p-1 rounded-xl text-xs flex-shrink-0">
                   <span className="text-[11px] text-zinc-400 px-1.5 flex items-center gap-1">
                     <Star size={11} className="text-amber-400 fill-amber-400" />
                     <span>Sao:</span>
@@ -1119,7 +1119,7 @@ function AdminDashboardContent() {
                 </div>
 
                 {/* Spoiler Filter */}
-                <div className="flex items-center gap-1 bg-black/50 p-1 rounded-xl border border-white/10 text-xs flex-shrink-0">
+                <div className="flex items-center gap-1 bg-black/50 p-1 rounded-xl text-xs flex-shrink-0">
                   <button
                     type="button"
                     onClick={() => setSpoilerFilter("all")}
@@ -1132,7 +1132,7 @@ function AdminDashboardContent() {
                     type="button"
                     onClick={() => setSpoilerFilter("spoiler")}
                     className={`px-2 py-1 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center gap-1 ${spoilerFilter === "spoiler"
-                        ? "bg-rose-500/20 text-rose-400 border border-rose-500/30 font-bold"
+                        ? "bg-rose-500/20 text-rose-400  font-bold"
                         : "text-zinc-400 hover:text-white"
                       }`}
                   >
@@ -1150,7 +1150,7 @@ function AdminDashboardContent() {
                 </div>
 
                 {/* Sort Option */}
-                <div className="flex items-center gap-1 bg-black/50 px-2.5 py-1.5 rounded-xl border border-white/10 text-xs flex-shrink-0">
+                <div className="flex items-center gap-1 bg-black/50 px-2.5 py-1.5 rounded-xl text-xs flex-shrink-0">
                   <ArrowUpDown size={11} className="text-zinc-400" />
                   <select
                     value={sortBy}
@@ -1190,12 +1190,12 @@ function AdminDashboardContent() {
 
             {/* COMMENTS LIST */}
             {loadingData ? (
-              <div className="p-12 text-center rounded-2xl bg-zinc-900/40 border border-white/10">
+              <div className="p-12 text-center rounded-2xl bg-zinc-900/40">
                 <div className="w-8 h-8 rounded-full border-2 border-netflix-red border-t-transparent animate-spin mx-auto mb-2" />
                 <p className="text-xs text-zinc-400">Đang đồng bộ danh sách bình luận...</p>
               </div>
             ) : filteredComments.length === 0 ? (
-              <div className="p-12 text-center rounded-2xl bg-zinc-900/40 border border-white/10">
+              <div className="p-12 text-center rounded-2xl bg-zinc-900/40">
                 <MessageSquare size={36} className="text-zinc-600 mx-auto mb-2" />
                 <p className="text-sm font-semibold text-zinc-300">Không tìm thấy bình luận nào phù hợp</p>
                 <p className="text-xs text-zinc-500 mt-1">Hãy thử thay đổi từ khóa hoặc bộ lọc tìm kiếm.</p>
@@ -1210,8 +1210,8 @@ function AdminDashboardContent() {
                     <div
                       key={item.id}
                       className={`p-3.5 sm:p-5 rounded-2xl transition backdrop-blur-sm flex flex-col sm:flex-row sm:items-start justify-between gap-3 sm:gap-4 group ${item.isFlagged
-                          ? "bg-red-950/20 border-2 border-red-500/40 shadow-md shadow-black/50 hover:border-red-500/60"
-                          : "bg-zinc-900/60 border border-white/10 hover:border-white/20"
+                          ? "bg-red-950/20 border-2  shadow-md shadow-black/50 hover:"
+                          : "bg-zinc-900/60  hover:"
                         }`}
                     >
                       {/* Left: User & Content */}
@@ -1222,19 +1222,19 @@ function AdminDashboardContent() {
                             name={item.userName}
                             seed={item.userId || item.userName}
                             sizeClassName="w-8 h-8 text-xs font-bold"
-                            className="border border-white/15"
+                            className=""
                           />
 
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
                               <span className="text-xs font-bold text-white truncate">{item.userName}</span>
                               {item.userEmail && (
-                                <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-zinc-400 font-mono truncate max-w-[160px] sm:max-w-[200px]">
+                                <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/5 text-zinc-400 font-sans tabular-nums truncate max-w-[160px] sm:max-w-[200px]">
                                   {item.userEmail}
                                 </span>
                               )}
                               {isUserRestricted && (
-                                <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-red-500/20 border border-red-500/30 text-red-300 font-bold flex items-center gap-1 flex-shrink-0">
+                                <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-red-500/20 text-red-300 font-bold flex items-center gap-1 flex-shrink-0">
                                   <Ban size={10} />
                                   <span>Bị cấm cmt</span>
                                 </span>
@@ -1268,20 +1268,20 @@ function AdminDashboardContent() {
                           </Link>
 
                           {item.episodeName && (
-                            <span className="px-2 py-0.5 rounded-md bg-white/5 border border-white/10 text-[11px] text-zinc-300">
+                            <span className="px-2 py-0.5 rounded-md bg-white/5 text-[11px] text-zinc-300">
                               {item.episodeName}
                             </span>
                           )}
 
                           {item.isFlagged && (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-red-600/30 border border-red-500/50 text-[10px] text-red-300 font-bold animate-pulse">
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-red-600/30 text-[10px] text-red-300 font-bold animate-pulse">
                               <Flag size={11} className="fill-red-400 text-red-400" />
                               <span>Vi phạm</span>
                             </span>
                           )}
 
                           {item.isSpoiler && (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-rose-500/20 border border-rose-500/30 text-[10px] text-rose-400 font-bold">
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-rose-500/20 text-[10px] text-rose-400 font-bold">
                               <AlertTriangle size={11} />
                               <span>Spoil</span>
                             </span>
@@ -1292,7 +1292,7 @@ function AdminDashboardContent() {
                               💬 Trả lời
                             </span>
                           ) : (
-                            <span className="px-2 py-0.5 rounded-md bg-amber-500/20 border border-amber-500/30 text-[10px] text-amber-300 font-medium">
+                            <span className="px-2 py-0.5 rounded-md bg-amber-500/20 text-[10px] text-amber-300 font-medium">
                               ⭐ Đánh giá
                             </span>
                           )}
@@ -1307,7 +1307,7 @@ function AdminDashboardContent() {
 
                         {/* Moderation Warning Banner */}
                         {item.isFlagged && (
-                          <div className="p-3 rounded-xl bg-red-950/40 border border-red-500/40 text-xs space-y-1.5">
+                          <div className="p-3 rounded-xl bg-red-950/40 text-xs space-y-1.5">
                             <div className="flex items-center gap-1.5 text-red-400 font-bold">
                               <ShieldAlert size={14} className="text-red-400 flex-shrink-0" />
                               <span className="text-[11px] sm:text-xs">Phát hiện nội dung nhạy cảm / không đúng thuần phong mỹ tục</span>
@@ -1321,7 +1321,7 @@ function AdminDashboardContent() {
                                 {item.flaggedKeywords.map((kw, i) => (
                                   <span
                                     key={i}
-                                    className="px-1.5 py-0.2 rounded bg-red-900/80 border border-red-500/40 text-red-100 text-[10px] font-mono font-bold"
+                                    className="px-1.5 py-0.2 rounded bg-red-900/80 text-red-100 text-[10px] font-sans tabular-nums font-bold"
                                   >
                                     {kw}
                                   </span>
@@ -1332,13 +1332,13 @@ function AdminDashboardContent() {
                         )}
 
                         {/* Content */}
-                        <div className="text-xs text-zinc-200 leading-relaxed bg-black/40 p-3 rounded-xl border border-white/5 whitespace-pre-wrap font-sans break-words">
+                        <div className="text-xs text-zinc-200 leading-relaxed bg-black/40 p-3 rounded-xl whitespace-pre-wrap font-sans break-words">
                           &ldquo;{item.content}&rdquo;
                         </div>
                       </div>
 
                       {/* Actions - Responsive Grid on Mobile to prevent overlapping */}
-                      <div className="grid grid-cols-2 sm:flex sm:flex-col items-stretch sm:items-end gap-2 pt-3 sm:pt-0 border-t sm:border-t-0 border-white/10 flex-shrink-0 w-full sm:w-auto">
+                      <div className="grid grid-cols-2 sm:flex sm:flex-col items-stretch sm:items-end gap-2 pt-3 sm:pt-0 border-t sm:border-t-0 flex-shrink-0 w-full sm:w-auto">
                         <Link
                           href={`/movies/${item.movieSlug}`}
                           target="_blank"
@@ -1353,7 +1353,7 @@ function AdminDashboardContent() {
                           <button
                             type="button"
                             onClick={() => handleUnflagComment(item)}
-                            className="px-3 py-2 sm:py-1.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/30 transition cursor-pointer text-xs font-semibold flex items-center justify-center gap-1.5 shadow-sm active:scale-95"
+                            className="px-3 py-2 sm:py-1.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 transition cursor-pointer text-xs font-semibold flex items-center justify-center gap-1.5 shadow-sm active:scale-95"
                             title="Gỡ cờ & duyệt bình luận này hợp lệ"
                           >
                             <ShieldCheck size={13} />
@@ -1366,8 +1366,8 @@ function AdminDashboardContent() {
                             type="button"
                             onClick={() => handleToggleUserCommentBan(itemUser)}
                             className={`px-3 py-2 sm:py-1.5 rounded-xl border transition cursor-pointer text-xs font-semibold flex items-center justify-center gap-1.5 shadow-sm active:scale-95 ${isUserRestricted
-                                ? "bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border-emerald-500/30"
-                                : "bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border-amber-500/30"
+                                ? "bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 "
+                                : "bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 "
                               }`}
                             title={isUserRestricted ? "Mở lại quyền bình luận" : "Khóa quyền bình luận thành viên"}
                           >
@@ -1379,7 +1379,7 @@ function AdminDashboardContent() {
                         <button
                           type="button"
                           onClick={() => handleDeleteComment(item)}
-                          className={`px-3 py-2 sm:py-1.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 border border-red-500/20 transition cursor-pointer text-xs font-medium flex items-center justify-center gap-1.5 shadow-sm active:scale-95 ${!item.isFlagged && !itemUser ? "col-span-2 sm:col-span-1" : ""
+                          className={`px-3 py-2 sm:py-1.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300  transition cursor-pointer text-xs font-medium flex items-center justify-center gap-1.5 shadow-sm active:scale-95 ${!item.isFlagged && !itemUser ? "col-span-2 sm:col-span-1" : ""
                             }`}
                         >
                           <Trash2 size={13} />
@@ -1398,7 +1398,7 @@ function AdminDashboardContent() {
         {activeTab === "members" && (
           <div className="space-y-4">
             {/* Toolbar for members */}
-            <div className="p-3.5 sm:p-4 rounded-2xl bg-zinc-900/60 border border-white/10 backdrop-blur-sm space-y-3">
+            <div className="p-3.5 sm:p-4 rounded-2xl bg-zinc-900/60 backdrop-blur-sm space-y-3">
               <div className="relative w-full">
                 <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400" />
                 <input
@@ -1406,7 +1406,7 @@ function AdminDashboardContent() {
                   value={memberSearchQuery}
                   onChange={(e) => setMemberSearchQuery(e.target.value)}
                   placeholder="Tìm thành viên theo tên, email hoặc UID..."
-                  className="w-full bg-black/60 border border-white/10 rounded-xl pl-9 pr-8 py-2 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-netflix-red transition"
+                  className="w-full bg-black/60 rounded-xl pl-9 pr-8 py-2 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-netflix-red transition"
                 />
                 {memberSearchQuery && (
                   <button
@@ -1421,7 +1421,7 @@ function AdminDashboardContent() {
 
               <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar scrollbar-none -mx-1 px-1 flex-nowrap">
                 {/* Filter role */}
-                <div className="flex items-center gap-1 bg-black/50 p-1 rounded-xl border border-white/10 text-xs flex-shrink-0">
+                <div className="flex items-center gap-1 bg-black/50 p-1 rounded-xl text-xs flex-shrink-0">
                   <button
                     type="button"
                     onClick={() => setMemberFilter("all")}
@@ -1434,7 +1434,7 @@ function AdminDashboardContent() {
                     type="button"
                     onClick={() => setMemberFilter("admin")}
                     className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition cursor-pointer ${memberFilter === "admin"
-                        ? "bg-amber-500/20 text-amber-300 border border-amber-500/30 font-bold"
+                        ? "bg-amber-500/20 text-amber-300  font-bold"
                         : "text-zinc-400 hover:text-white"
                       }`}
                   >
@@ -1453,7 +1453,7 @@ function AdminDashboardContent() {
                 </div>
 
                 {/* Sort members */}
-                <div className="flex items-center gap-1 bg-black/50 px-2.5 py-1.5 rounded-xl border border-white/10 text-xs flex-shrink-0">
+                <div className="flex items-center gap-1 bg-black/50 px-2.5 py-1.5 rounded-xl text-xs flex-shrink-0">
                   <ArrowUpDown size={11} className="text-zinc-400" />
                   <select
                     value={memberSortBy}
@@ -1478,7 +1478,7 @@ function AdminDashboardContent() {
 
             {/* MEMBERS GRID */}
             {filteredMembers.length === 0 ? (
-              <div className="p-12 text-center rounded-2xl bg-zinc-900/40 border border-white/10">
+              <div className="p-12 text-center rounded-2xl bg-zinc-900/40">
                 <Users size={36} className="text-zinc-600 mx-auto mb-2" />
                 <p className="text-sm font-semibold text-zinc-300">Không tìm thấy thành viên nào phù hợp</p>
                 <p className="text-xs text-zinc-500 mt-1">Hãy thử từ khóa tìm kiếm khác.</p>
@@ -1490,7 +1490,7 @@ function AdminDashboardContent() {
                   return (
                     <div
                       key={m.uid}
-                      className="p-4 sm:p-5 rounded-2xl bg-zinc-900/60 border border-white/10 hover:border-white/20 transition backdrop-blur-sm flex flex-col justify-between space-y-3 sm:space-y-4 group"
+                      className="p-4 sm:p-5 rounded-2xl bg-zinc-900/60 hover: transition backdrop-blur-sm flex flex-col justify-between space-y-3 sm:space-y-4 group"
                     >
                       <div>
                         {/* Member Header */}
@@ -1501,7 +1501,7 @@ function AdminDashboardContent() {
                             seed={m.uid || m.displayName}
                             sizeClassName="w-10 h-10 sm:w-11 sm:h-11 text-sm font-bold"
                             rounded="2xl"
-                            className="border border-white/15 shadow-md"
+                            className="shadow-md"
                           />
 
                           <div className="flex-1 min-w-0">
@@ -1510,26 +1510,26 @@ function AdminDashboardContent() {
                                 {m.displayName}
                               </h3>
                               {isSuperAdmin && (
-                                <span className="text-[9px] sm:text-[10px] px-1.5 sm:px-2 py-0.2 rounded-full bg-gradient-to-r from-amber-500/20 to-red-500/20 border border-amber-500/30 text-amber-300 font-bold flex-shrink-0">
+                                <span className="text-[9px] sm:text-[10px] px-1.5 sm:px-2 py-0.2 rounded-full bg-gradient-to-r from-amber-500/20 to-red-500/20 text-amber-300 font-bold flex-shrink-0">
                                   👑 Admin
                                 </span>
                               )}
                               {m.isWatchingNow ? (
-                                <span className="text-[9px] sm:text-[10px] px-1.5 sm:px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-bold flex items-center gap-1 flex-shrink-0">
+                                <span className="text-[9px] sm:text-[10px] px-1.5 sm:px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-bold flex items-center gap-1 flex-shrink-0">
                                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
                                   Đang xem
                                 </span>
                               ) : m.isOnline ? (
-                                <span className="text-[9px] sm:text-[10px] px-1.5 sm:px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-bold flex items-center gap-1 flex-shrink-0">
+                                <span className="text-[9px] sm:text-[10px] px-1.5 sm:px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-bold flex items-center gap-1 flex-shrink-0">
                                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
                                   Online
                                 </span>
                               ) : m.lastActiveAt && Date.now() - m.lastActiveAt <= 15 * 60 * 1000 ? (
-                                <span className="text-[9px] sm:text-[10px] px-1.5 sm:px-2 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 font-medium flex-shrink-0">
+                                <span className="text-[9px] sm:text-[10px] px-1.5 sm:px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 font-medium flex-shrink-0">
                                   Vừa online
                                 </span>
                               ) : (
-                                <span className="text-[9px] sm:text-[10px] px-1.5 sm:px-2 py-0.5 rounded-full bg-zinc-800 border border-white/5 text-zinc-400 flex-shrink-0">
+                                <span className="text-[9px] sm:text-[10px] px-1.5 sm:px-2 py-0.5 rounded-full bg-zinc-800 text-zinc-400 flex-shrink-0">
                                   Ngoại tuyến
                                 </span>
                               )}
@@ -1541,8 +1541,8 @@ function AdminDashboardContent() {
                         </div>
 
                         {/* UID badge */}
-                        <div className="flex items-center justify-between p-2 rounded-xl bg-black/50 border border-white/5 text-[11px] mb-2.5 sm:mb-3">
-                          <span className="text-zinc-500 font-mono truncate max-w-[160px] sm:max-w-[190px]">
+                        <div className="flex items-center justify-between p-2 rounded-xl bg-black/50 text-[11px] mb-2.5 sm:mb-3">
+                          <span className="text-zinc-500 font-sans tabular-nums truncate max-w-[160px] sm:max-w-[190px]">
                             UID: {m.uid}
                           </span>
                           <button
@@ -1561,7 +1561,7 @@ function AdminDashboardContent() {
 
                         {/* Member restriction status */}
                         {m.isCommentRestricted && (
-                          <div className="p-2 rounded-xl bg-red-500/15 border border-red-500/30 text-[11px] text-red-300 flex items-center gap-1.5 font-medium mb-2.5 sm:mb-3">
+                          <div className="p-2 rounded-xl bg-red-500/15 text-[11px] text-red-300 flex items-center gap-1.5 font-medium mb-2.5 sm:mb-3">
                             <Ban size={13} className="text-red-400 flex-shrink-0" />
                             <span className="truncate">Đang bị khóa quyền bình luận</span>
                           </div>
@@ -1569,7 +1569,7 @@ function AdminDashboardContent() {
 
                         {/* Member stats chips */}
                         <div className="grid grid-cols-3 gap-1.5 sm:gap-2 text-xs">
-                          <div className="p-2 rounded-xl bg-white/[0.03] border border-white/5 min-w-0">
+                          <div className="p-2 rounded-xl bg-white/[0.03] min-w-0">
                             <span className="text-[10px] text-zinc-400 block truncate">Bình luận</span>
                             <span className="font-bold text-white flex items-center gap-1 mt-0.5 text-[11px] sm:text-xs truncate">
                               <MessageSquare size={12} className="text-blue-400 flex-shrink-0" />
@@ -1577,7 +1577,7 @@ function AdminDashboardContent() {
                             </span>
                           </div>
 
-                          <div className="p-2 rounded-xl bg-white/[0.03] border border-white/5 min-w-0">
+                          <div className="p-2 rounded-xl bg-white/[0.03] min-w-0">
                             <span className="text-[10px] text-zinc-400 block truncate">Đánh giá</span>
                             <span className="font-bold text-amber-400 flex items-center gap-1 mt-0.5 text-[11px] sm:text-xs truncate">
                               <Star size={12} className="fill-amber-400 flex-shrink-0" />
@@ -1585,7 +1585,7 @@ function AdminDashboardContent() {
                             </span>
                           </div>
 
-                          <div className="p-2 rounded-xl bg-white/[0.03] border border-white/5 min-w-0">
+                          <div className="p-2 rounded-xl bg-white/[0.03] min-w-0">
                             <span className="text-[10px] text-zinc-400 block truncate">Cày phim</span>
                             <span className="font-bold text-emerald-400 flex items-center gap-1 mt-0.5 text-[11px] sm:text-xs truncate">
                               <Clock size={12} className="text-emerald-400 flex-shrink-0" />
@@ -1596,7 +1596,7 @@ function AdminDashboardContent() {
 
                         {/* Live Watching Preview if active */}
                         {m.isWatchingNow && m.currentWatching && (
-                          <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-xs text-zinc-300 space-y-1 mt-2.5">
+                          <div className="p-2.5 rounded-xl bg-emerald-500/10 text-xs text-zinc-300 space-y-1 mt-2.5">
                             <div className="flex items-center justify-between text-[11px]">
                               <span className="text-emerald-300 font-semibold truncate flex items-center gap-1 min-w-0">
                                 <Film size={12} className="text-emerald-400 flex-shrink-0" />
@@ -1605,13 +1605,13 @@ function AdminDashboardContent() {
                                   <span className="text-zinc-400 truncate">({m.currentWatching.episodeName})</span>
                                 )}
                               </span>
-                              <span className="text-emerald-400 font-mono text-[10px] font-bold flex-shrink-0 ml-1">
+                              <span className="text-emerald-400 font-sans tabular-nums text-[10px] font-bold flex-shrink-0 ml-1">
                                 {m.currentWatching.progressPercent}%
                               </span>
                             </div>
                             <div className="text-[10px] text-zinc-400 flex items-center justify-between">
                               <span className="truncate max-w-[140px]">{m.currentWatching.deviceName || "Thiết bị"}</span>
-                              <span className="font-mono text-emerald-400/80 flex-shrink-0">Đang phát</span>
+                              <span className="font-sans tabular-nums text-emerald-400/80 flex-shrink-0">Đang phát</span>
                             </div>
                           </div>
                         )}
@@ -1641,7 +1641,7 @@ function AdminDashboardContent() {
                       </div>
 
                       {/* Action buttons */}
-                      <div className="pt-3 border-t border-white/10 flex items-center gap-2">
+                      <div className="pt-3 border-t flex items-center gap-2">
                         <button
                           type="button"
                           onClick={() => handleOpenMemberDetails(m)}
@@ -1655,8 +1655,8 @@ function AdminDashboardContent() {
                           type="button"
                           onClick={() => handleToggleUserCommentBan(m)}
                           className={`p-2 rounded-xl border transition cursor-pointer flex items-center justify-center flex-shrink-0 ${m.isCommentRestricted
-                              ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/30 hover:bg-emerald-500/25"
-                              : "bg-amber-500/10 text-amber-300 border-amber-500/20 hover:bg-amber-500/20"
+                              ? "bg-emerald-500/15 text-emerald-300  hover:bg-emerald-500/25"
+                              : "bg-amber-500/10 text-amber-300  hover:bg-amber-500/20"
                             }`}
                           title={m.isCommentRestricted ? "Mở khóa quyền bình luận" : "Khóa quyền bình luận thành viên"}
                         >

@@ -83,13 +83,13 @@ export const AccentStudio: React.FC<AccentStudioProps> = ({ className = "" }) =>
           onClick={() => setIsOpen(!isOpen)}
           aria-label="Đổi màu giao diện (Accent Studio)"
           aria-expanded={isOpen}
-          className="relative flex items-center justify-center h-8 w-8 sm:h-9 sm:w-9 rounded-full bg-zinc-900/90 border border-white/15 hover:border-white/30 text-zinc-300 hover:text-white transition-all duration-200 cursor-pointer active:scale-95 shadow-sm group outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black"
+          className="relative flex items-center justify-center h-8 w-8 sm:h-9 sm:w-9 rounded-full bg-zinc-900/90 hover: text-zinc-300 hover:text-white transition-all duration-200 cursor-pointer active:scale-95 shadow-sm group outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black"
         >
           <Palette className="w-4 h-4 transition-transform group-hover:rotate-45 duration-300" />
 
           {/* Glow indicator dot of current accent */}
           <span
-            className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full ring-2 ring-black transition-all duration-300"
+            className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full transition-all duration-300"
             style={{
               backgroundColor: currentAccent.color,
               boxShadow: `0 0 10px ${currentAccent.glow}`,
@@ -114,10 +114,10 @@ export const AccentStudio: React.FC<AccentStudioProps> = ({ className = "" }) =>
           role="dialog"
           aria-modal="true"
           aria-label="Tùy biến Accent Studio"
-          className="fixed top-[48px] inset-x-2 sm:inset-x-auto sm:right-0 sm:left-auto sm:absolute sm:top-full sm:mt-2 w-auto sm:w-[360px] max-w-sm sm:max-w-none mx-auto sm:mx-0 rounded-2xl sm:rounded-3xl border border-white/20 bg-zinc-950/98 backdrop-blur-2xl p-3.5 sm:p-4 shadow-[0_25px_70px_rgba(0,0,0,0.95)] z-[110] animate-in fade-in slide-in-from-top-1 duration-150 max-h-[calc(100vh-60px)] overflow-y-auto"
+          className="fixed top-[48px] inset-x-2 sm:inset-x-auto sm:right-0 sm:left-auto sm:absolute sm:top-full sm:mt-2 w-auto sm:w-[360px] max-w-sm sm:max-w-none mx-auto sm:mx-0 rounded-2xl sm:rounded-3xl bg-zinc-950/98 backdrop-blur-2xl p-3.5 sm:p-4 shadow-[0_25px_70px_rgba(0,0,0,0.95)] z-[110] animate-in fade-in slide-in-from-top-1 duration-150 max-h-[calc(100vh-60px)] overflow-y-auto"
         >
           {/* HEADER */}
-          <div className="flex items-center justify-between pb-3 mb-3 border-b border-white/10">
+          <div className="flex items-center justify-between pb-3 mb-3 border-b">
             <div className="flex items-center gap-2.5">
               <div
                 className="w-7 h-7 rounded-xl flex items-center justify-center text-white shadow-md transition-all duration-300 flex-shrink-0"
@@ -131,7 +131,7 @@ export const AccentStudio: React.FC<AccentStudioProps> = ({ className = "" }) =>
               <div>
                 <h3 className="text-white font-black text-sm tracking-tight flex items-center gap-1.5">
                   <span>Accent Studio</span>
-                  <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-white/10 text-zinc-300 border border-white/10 font-medium">
+                  <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-white/10 text-zinc-300 font-medium">
                     6 Presets
                   </span>
                 </h3>
@@ -150,7 +150,7 @@ export const AccentStudio: React.FC<AccentStudioProps> = ({ className = "" }) =>
           </div>
 
           {/* REALTIME LIVE MINI PREVIEW */}
-          <div className="mb-3.5 p-3 rounded-2xl bg-zinc-900/80 border border-white/10 space-y-2 shadow-inner">
+          <div className="mb-3.5 p-3 rounded-2xl bg-zinc-900/80 space-y-2 shadow-inner">
             <div className="flex items-center justify-between text-[11px] text-zinc-400">
               <span className="font-semibold text-zinc-300">Live Preview:</span>
               <span className="text-xs font-bold text-white flex items-center gap-1">
@@ -172,7 +172,7 @@ export const AccentStudio: React.FC<AccentStudioProps> = ({ className = "" }) =>
                 <span>Xem Ngay</span>
               </div>
 
-              <div className="inline-flex items-center gap-1 py-1.5 px-2.5 rounded-xl bg-white/10 border border-white/15 text-xs font-medium text-zinc-200 cursor-default">
+              <div className="inline-flex items-center gap-1 py-1.5 px-2.5 rounded-xl bg-white/10 text-xs font-medium text-zinc-200 cursor-default">
                 <Plus className="w-3 h-3 text-zinc-300" />
                 <span>Lưu</span>
               </div>
@@ -213,7 +213,7 @@ export const AccentStudio: React.FC<AccentStudioProps> = ({ className = "" }) =>
                   className={`flex items-center gap-2.5 p-2.5 rounded-2xl border transition-all text-left cursor-pointer group outline-none focus-visible:ring-2 focus-visible:ring-white ${
                     isSelected
                       ? "bg-white/15 border-white/40 shadow-lg scale-[1.01]"
-                      : "bg-zinc-900/70 hover:bg-zinc-800/90 border-white/10 hover:border-white/25"
+                      : "bg-zinc-900/70 hover:bg-zinc-800/90  hover:"
                   }`}
                   style={
                     isSelected
@@ -267,7 +267,7 @@ export const AccentStudio: React.FC<AccentStudioProps> = ({ className = "" }) =>
           </div>
 
           {/* FOOTER NOTE */}
-          <div className="mt-3 pt-2.5 border-t border-white/10 flex items-center justify-between text-[10.5px] text-zinc-400 px-1">
+          <div className="mt-3 pt-2.5 border-t flex items-center justify-between text-[10.5px] text-zinc-400 px-1">
             <span>
               Đang dùng: <strong className="text-white">{currentAccent.icon} {currentAccent.badgeText}</strong>
             </span>

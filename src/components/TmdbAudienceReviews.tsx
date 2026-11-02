@@ -146,17 +146,17 @@ export const TmdbAudienceReviews: React.FC<TmdbAudienceReviewsProps> = React.mem
         className={
           hideOuterCard
             ? "space-y-6"
-            : "mt-8 sm:mt-12 bg-zinc-950/80 rounded-2xl sm:rounded-3xl border border-white/5 p-4 sm:p-6 md:p-8 backdrop-blur-md shadow-2xl"
+            : "mt-8 sm:mt-12 bg-zinc-950/80 rounded-2xl sm:rounded-3xl  p-4 sm:p-6 md:p-8 backdrop-blur-md shadow-2xl"
         }
       >
         {/* Header Bar: Chỉ render khi dùng độc lập (!hideOuterCard) */}
         {!hideOuterCard && (
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 pb-5 sm:pb-6 border-b border-white/10">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 pb-5 sm:pb-6 border-b">
             <div>
               <h3 className="text-lg sm:text-xl md:text-2xl font-extrabold text-white flex items-center gap-2 sm:gap-2.5 flex-wrap">
                 <MessageSquareQuote className="w-5 h-5 sm:w-6 sm:h-6 text-amber-400 flex-shrink-0" />
                 <span>Khán giả quốc tế nói gì?</span>
-                <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400">
                   {displayReviews.length}
                 </span>
               </h3>
@@ -192,13 +192,13 @@ export const TmdbAudienceReviews: React.FC<TmdbAudienceReviewsProps> = React.mem
             return (
               <div
                 key={rev.id}
-                className="w-full rounded-xl sm:rounded-2xl border border-white/5 bg-zinc-900/60 hover:bg-zinc-900/80 p-4 sm:p-5 transition flex flex-col justify-between overflow-hidden shadow-sm backdrop-blur-sm"
+                className="w-full rounded-xl sm:rounded-2xl bg-zinc-900/60 hover:bg-zinc-900/80 p-4 sm:p-5 transition flex flex-col justify-between overflow-hidden shadow-sm backdrop-blur-sm"
               >
                 <div className="space-y-3">
                   {/* Author Header */}
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
                     <div className="flex items-center gap-3 min-w-0">
-                      <div className="relative w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-zinc-800 border border-white/10 overflow-hidden flex items-center justify-center shrink-0">
+                      <div className="relative w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-zinc-800 overflow-hidden flex items-center justify-center shrink-0">
                         {rev.author_avatar ? (
                           <Image
                             src={rev.author_avatar}
@@ -231,7 +231,7 @@ export const TmdbAudienceReviews: React.FC<TmdbAudienceReviewsProps> = React.mem
                     {/* Rating if available */}
                     {rev.rating !== null && rev.rating !== undefined && rev.rating > 0 && (
                       <div className="self-start sm:self-center shrink-0">
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs font-black">
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-amber-500/15 text-amber-300 text-xs font-black">
                           <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
                           <span>{rev.rating}/10</span>
                         </span>
@@ -289,7 +289,7 @@ export const TmdbAudienceReviews: React.FC<TmdbAudienceReviewsProps> = React.mem
                 </div>
 
                 {/* Footer Bar: Expand Button & View on TMDB Link */}
-                <div className="pt-3 mt-3 border-t border-white/5 flex items-center justify-between gap-3 text-xs text-zinc-400">
+                <div className="pt-3 mt-3 border-t flex items-center justify-between gap-3 text-xs text-zinc-400">
                   {isLong ? (
                     <button
                       type="button"

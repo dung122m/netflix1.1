@@ -29,7 +29,7 @@ const PRIVACY_PILLARS = [
     desc: "Nanaflix là dự án phi thương mại. Chúng tôi tuyệt đối không kinh doanh, cho thuê, trao đổi hay chia sẻ dữ liệu cá nhân cũng như lịch sử xem phim của bạn cho bất kỳ mạng lưới quảng cáo, đối tác tiếp thị hay bên thứ ba nào.",
     badge: "Minh bạch tuyệt đối",
     accent: "from-rose-500/20 to-red-500/5",
-    borderColor: "border-red-500/20 hover:border-red-500/40",
+    borderColor: " hover:",
     iconColor: "text-red-400",
   },
   {
@@ -38,7 +38,7 @@ const PRIVACY_PILLARS = [
     desc: "Để bảo vệ quyền riêng tư kỹ thuật số, Nanaflix không bao giờ lưu trữ địa chỉ IP thực của bạn trong cơ sở dữ liệu. Mọi dữ liệu phân tích truy cập chỉ lấy thông tin xấp xỉ cấp Tỉnh/Thành phố nhằm phục vụ tối ưu hóa đường truyền CDN và thống kê ẩn danh.",
     badge: "Ẩn danh 100%",
     accent: "from-emerald-500/20 to-teal-500/5",
-    borderColor: "border-emerald-500/20 hover:border-emerald-500/40",
+    borderColor: " hover:",
     iconColor: "text-emerald-400",
   },
   {
@@ -56,7 +56,7 @@ const PRIVACY_PILLARS = [
     desc: "Tuân thủ tiêu chuẩn bảo vệ quyền riêng tư GDPR, bạn có toàn quyền xóa lịch sử xem dở, làm trống danh sách phim yêu thích, đăng xuất khỏi mọi thiết bị từ xa hoặc yêu cầu xóa vĩnh viễn tài khoản chỉ bằng 1 thao tác trong trang cá nhân.",
     badge: "Tự chủ người dùng",
     accent: "from-amber-500/20 to-yellow-500/5",
-    borderColor: "border-amber-500/20 hover:border-amber-500/40",
+    borderColor: " hover:",
     iconColor: "text-amber-400",
   },
 ];
@@ -137,7 +137,7 @@ export default function PrivacyPage() {
         
         {/* ================= 1. HEADER SECTION ================= */}
         <section className="text-center space-y-6">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-xs font-semibold text-emerald-300 backdrop-blur-xl shadow-sm">
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-500/10 text-xs font-semibold text-emerald-300 backdrop-blur-xl shadow-sm">
             <ShieldCheck size={14} className="text-emerald-400" />
             <span>Cam Kết Minh Bạch & An Toàn Tuyệt Đối</span>
           </div>
@@ -151,7 +151,7 @@ export default function PrivacyPage() {
             </p>
           </div>
 
-          <div className="flex items-center justify-center gap-4 text-xs text-zinc-500 font-mono">
+          <div className="flex items-center justify-center gap-4 text-xs text-zinc-500 font-sans tabular-nums">
             <span>Phiên bản hiệu lực: <strong className="text-zinc-300 font-semibold">2.6</strong></span>
             <span>•</span>
             <span>Cập nhật lần cuối: <strong className="text-zinc-300 font-semibold">Tháng 09/2026</strong></span>
@@ -177,7 +177,7 @@ export default function PrivacyPage() {
                   >
                     <Icon size={22} />
                   </div>
-                  <span className="text-xs font-bold px-3 py-1 rounded-full bg-white/[0.04] border border-white/[0.08] text-zinc-300 font-mono">
+                  <span className="text-xs font-bold px-3 py-1 rounded-full bg-white/[0.04] border border-white/[0.08] text-zinc-300 font-sans tabular-nums">
                     {p.badge}
                   </span>
                 </div>
@@ -210,7 +210,7 @@ export default function PrivacyPage() {
             {DATA_COLLECTION_DETAILS.map((item, idx) => (
               <div
                 key={idx}
-                className="p-5 rounded-2xl bg-black/40 border border-white/[0.06] hover:border-white/15 transition space-y-3"
+                className="p-5 rounded-2xl bg-black/40 border border-white/[0.06] hover: transition space-y-3"
               >
                 <div className="text-sm font-bold text-white flex items-center gap-2">
                   <CheckCircle2 size={16} className="text-emerald-400 flex-shrink-0" />
@@ -228,7 +228,7 @@ export default function PrivacyPage() {
                   </div>
                   <div>
                     <span className="text-zinc-400 font-semibold">Nơi lưu trữ: </span>
-                    <span className="text-emerald-400 font-mono text-[11px]">{item.storage}</span>
+                    <span className="text-emerald-400 font-sans tabular-nums text-[11px]">{item.storage}</span>
                   </div>
                   <div>
                     <span className="text-zinc-400 font-semibold">Thời gian lưu: </span>
@@ -254,10 +254,10 @@ export default function PrivacyPage() {
             {PRIVACY_ARTICLES.map((art, idx) => (
               <div
                 key={idx}
-                className="p-6 rounded-2xl bg-zinc-950/60 border border-white/[0.08] hover:border-white/15 transition space-y-2"
+                className="p-6 rounded-2xl bg-zinc-950/60 border border-white/[0.08] hover: transition space-y-2"
               >
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-mono font-bold text-emerald-400 uppercase tracking-wider">
+                  <span className="text-xs font-sans tabular-nums font-bold text-emerald-400 uppercase tracking-wider">
                     {art.number}
                   </span>
                   <span className="text-zinc-600">•</span>
@@ -272,7 +272,7 @@ export default function PrivacyPage() {
         </section>
 
         {/* ================= 5. CROSS ACTIONS ================= */}
-        <section className="flex flex-col sm:flex-row items-center justify-between gap-4 p-6 sm:p-8 rounded-3xl bg-gradient-to-r from-zinc-900/80 to-black border border-white/10">
+        <section className="flex flex-col sm:flex-row items-center justify-between gap-4 p-6 sm:p-8 rounded-3xl bg-gradient-to-r from-zinc-900/80 to-black">
           <div className="space-y-1 text-center sm:text-left">
             <h4 className="text-base font-bold text-white">Bạn có thắc mắc hoặc cần hỗ trợ về bảo mật tài khoản?</h4>
             <p className="text-xs text-zinc-400">Xem thêm các điều khoản dịch vụ hoặc liên hệ bộ phận hỗ trợ kỹ thuật.</p>
@@ -281,7 +281,7 @@ export default function PrivacyPage() {
           <div className="flex items-center gap-3 flex-wrap justify-center">
             <Link
               href="/terms"
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white/[0.08] hover:bg-white/[0.15] border border-white/10 text-xs font-semibold text-zinc-200 transition"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white/[0.08] hover:bg-white/[0.15] text-xs font-semibold text-zinc-200 transition"
             >
               <Scale size={14} />
               <span>Điều Khoản Dịch Vụ</span>

@@ -60,7 +60,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, customTit
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-sm sm:max-w-md bg-zinc-950 border border-white/10 rounded-2xl p-6 sm:p-8 shadow-2xl relative overflow-hidden space-y-6 transform-gpu will-change-[transform,opacity] animate-in zoom-in-95 duration-150 my-auto overscroll-contain"
+        className="w-full max-w-sm sm:max-w-md bg-zinc-950 rounded-2xl p-6 sm:p-8 shadow-2xl relative overflow-hidden space-y-6 transform-gpu will-change-[transform,opacity] animate-in zoom-in-95 duration-150 my-auto overscroll-contain"
       >
         {/* Glow đỏ nhẹ background */}
         <div className="absolute -top-20 -left-20 w-40 h-40 bg-netflix-red/15 rounded-full blur-3xl pointer-events-none" />
@@ -83,11 +83,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, customTit
               name={user.displayName || user.email}
               seed={user.uid || user.displayName || user.email}
               sizeClassName="w-20 h-20 text-2xl font-black"
-              className="mx-auto ring-2 ring-netflix-red/50 shadow-xl"
+              className="mx-auto shadow-xl"
             />
 
             <div>
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold mb-2">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 text-xs font-semibold mb-2">
                 <CheckCircle2 size={13} />
                 <span>Cloud Synced</span>
               </div>
@@ -111,7 +111,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, customTit
                   await logout();
                   onClose();
                 }}
-                className="py-2.5 px-4 rounded-xl bg-white/5 hover:bg-white/10 text-zinc-300 hover:text-white border border-white/10 text-xs font-semibold transition cursor-pointer flex items-center gap-1.5"
+                className="py-2.5 px-4 rounded-xl bg-white/5 hover:bg-white/10 text-zinc-300 hover:text-white text-xs font-semibold transition cursor-pointer flex items-center gap-1.5"
               >
                 <LogOut size={14} />
                 <span>Đăng xuất</span>
@@ -135,7 +135,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, customTit
 
             {/* BÁO LỖI NẾU CÓ */}
             {errorMessage && (
-              <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-300 text-xs flex items-start gap-2">
+              <div className="p-3 rounded-xl bg-red-500/10 text-red-300 text-xs flex items-start gap-2">
                 <AlertCircle size={15} className="flex-shrink-0 mt-0.5 text-red-400" />
                 <span>{errorMessage}</span>
               </div>
@@ -143,13 +143,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, customTit
 
             {/* HƯỚNG DẪN NẾU CHƯA CẤU HÌNH ENV FIREBASE */}
             {!isConfigured && (
-              <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-200 text-xs space-y-1.5">
+              <div className="p-3.5 rounded-xl bg-amber-500/10 text-amber-200 text-xs space-y-1.5">
                 <div className="flex items-center gap-2 font-bold text-amber-300">
                   <AlertCircle size={15} />
                   <span>Firebase API Missing</span>
                 </div>
                 <p className="text-[11px] text-amber-200/80 leading-relaxed">
-                  Configure Firebase keys in <code className="bg-black/40 px-1 py-0.5 rounded font-mono text-white">.env.local</code>.
+                  Configure Firebase keys in <code className="bg-black/40 px-1 py-0.5 rounded font-sans tabular-nums text-white">.env.local</code>.
                 </p>
               </div>
             )}

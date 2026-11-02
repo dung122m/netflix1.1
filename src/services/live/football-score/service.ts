@@ -2,6 +2,7 @@ import {
   LiveScoreboardEvent,
   ScoreboardCache,
   NormalizedMatchSummary,
+  MatchSummaryTeam,
   MatchStatItem,
   MatchKeyEvent,
   MatchRosterPlayer,
@@ -727,7 +728,7 @@ export function parseRawSummary(
       return "";
     };
 
-    const homeTeam = {
+    const homeTeam: MatchSummaryTeam = {
       id: String(homeComp.id || homeComp.team?.id || ""),
       name: homeComp.team?.displayName || homeComp.team?.name || "Đội nhà",
       displayName: homeComp.team?.displayName || homeComp.team?.name || "Đội nhà",
@@ -739,7 +740,7 @@ export function parseRawSummary(
       form: homeComp.form || "",
     };
 
-    const awayTeam = {
+    const awayTeam: MatchSummaryTeam = {
       id: String(awayComp.id || awayComp.team?.id || ""),
       name: awayComp.team?.displayName || awayComp.team?.name || "Đội khách",
       displayName: awayComp.team?.displayName || awayComp.team?.name || "Đội khách",
@@ -827,22 +828,42 @@ export function parseRawSummary(
           eventType = "substitution";
         }
 
-        // Bỏ qua kickoff/halftime/end period để timeline sạch và tập trung vào diễn biến thực tế
-        if (eventType === "other" && ["kickoff", "halftime", "end-of-half", "fulltime"].some(k => typeRaw.toLowerCase().includes(k))) {
-          continue;
-        }
-
-        const clockDisplay = ev.clock?.displayValue || "";
-        const minuteMatch = clockDisplay.match(/(\d+)/);
-        const minute = minuteMatch ? parseInt(minuteMatch[1], 10) : (ev.period?.number ? ev.period.number * 45 : 0);
-
-        const isPenalty = ev.text?.toLowerCase().includes("penalty") || ev.type?.text?.toLowerCase().includes("penalty");
-        const isOwnGoal = ev.text?.toLowerCase().includes("own goal");
-
         // Xác định cầu thủ & cầu thủ thay người
         const participants = ev.participants || [];
         const mainPlayer = participants[0]?.athlete?.displayName || "";
         const subOutPlayer = participants[1]?.athlete?.displayName || "";
+
+        // Bỏ qua các sự kiện kỹ thuật/hành chính (kickoff, halftime, delay, start delay...) không mang giá trị diễn biến trận
+        if (eventType === "other") {
+          const isIgnored = [
+            "kickoff",
+            "halftime",
+            "end-of-half",
+            "fulltime",
+            "delay",
+            "start",
+            "stop",
+            "period",
+            "whistle",
+          ].some((k) => typeRaw.toLowerCase().includes(k));
+          if (isIgnored || (!mainPlayer && (!ev.text || !ev.text.trim()))) {
+            continue;
+          }
+        }
+
+        // Bỏ qua sự kiện rỗng không có thông tin cầu thủ lẫn nội dung miêu tả
+        if (!mainPlayer && (!ev.text || !ev.text.trim())) {
+          continue;
+        }
+
+        const rawClock = ev.clock?.displayValue || "";
+        const cleanClock = rawClock.replace(/['’\s]/g, "");
+        const minuteMatch = cleanClock.match(/(\d+)/);
+        const minute = minuteMatch ? parseInt(minuteMatch[1], 10) : (ev.period?.number ? ev.period.number * 45 : 0);
+        const clockDisplay = cleanClock ? `${cleanClock}'` : (minute ? `${minute}'` : "");
+
+        const isPenalty = ev.text?.toLowerCase().includes("penalty") || ev.type?.text?.toLowerCase().includes("penalty");
+        const isOwnGoal = ev.text?.toLowerCase().includes("own goal");
 
         // Xác định teamId nếu có
         let teamId: string | undefined = undefined;
@@ -882,6 +903,11 @@ export function parseRawSummary(
     const rosters: any[] = raw.rosters || [];
     const homeRosterRaw = rosters.find((r: any) => String(r.team?.id) === homeTeam.id || r.homeAway === "home") || rosters[0];
     const awayRosterRaw = rosters.find((r: any) => String(r.team?.id) === awayTeam.id || r.homeAway === "away") || rosters[1];
+
+    const homeCoach = homeRosterRaw?.coaches?.[0]?.athlete?.displayName || homeRosterRaw?.coaches?.[0]?.displayName;
+    const awayCoach = awayRosterRaw?.coaches?.[0]?.athlete?.displayName || awayRosterRaw?.coaches?.[0]?.displayName;
+    if (homeCoach) homeTeam.coach = String(homeCoach);
+    if (awayCoach) awayTeam.coach = String(awayCoach);
 
     const parseRosterPlayers = (rosterList: any[] = []) => {
       const starters: MatchRosterPlayer[] = [];
@@ -954,6 +980,7 @@ export function parseRawSummary(
           subClock,
           photoUrl,
           jerseyImageUrl,
+          captain: Boolean(p.captain || p.athlete?.captain || p.role === "captain" || p.isCaptain),
           stats: stats && stats.length > 0 ? stats : undefined,
         };
 

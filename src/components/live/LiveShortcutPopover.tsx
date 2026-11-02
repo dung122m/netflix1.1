@@ -68,10 +68,10 @@ export function LiveShortcutPopover({ mode = "football" }: LiveShortcutPopoverPr
           }}
           title="Xem hướng dẫn phím tắt (Hotkeys)"
           aria-label="Phím tắt điều khiển"
-          className={`w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-full border transition-all duration-200 backdrop-blur-md cursor-pointer select-none flex-shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-white/40 ${
+          className={`w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-full  transition-all duration-200 backdrop-blur-md cursor-pointer select-none flex-shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-white/40 ${
             isOpen
-              ? "bg-white/25 text-white border-white/40 shadow-lg shadow-black/40"
-              : "bg-white/10 hover:bg-white/20 text-white/80 hover:text-white border-white/15"
+              ? "bg-white/25 text-white  shadow-lg shadow-black/40"
+              : "bg-white/10 hover:bg-white/20 text-white/80 hover:text-white "
           }`}
         >
           <Keyboard className="w-4 h-4 text-white/90 shrink-0" />
@@ -82,10 +82,10 @@ export function LiveShortcutPopover({ mode = "football" }: LiveShortcutPopoverPr
         <div
           ref={popoverRef}
           onClick={(e) => e.stopPropagation()}
-          className="absolute bottom-full right-0 mb-2 w-72 sm:w-80 rounded-2xl bg-zinc-950/95 border border-white/15 p-3.5 shadow-2xl backdrop-blur-xl z-50 text-left animate-in fade-in zoom-in-95 duration-150"
+          className="absolute bottom-full right-0 mb-2 w-72 sm:w-80 rounded-2xl bg-zinc-950/95 p-3.5 shadow-2xl backdrop-blur-xl z-50 text-left animate-in fade-in zoom-in-95 duration-150"
         >
           {/* Header */}
-          <div className="flex items-center justify-between pb-2 border-b border-white/10 mb-2.5">
+          <div className="flex items-center justify-between pb-2 mb-2.5">
             <div className="flex items-center gap-1.5 text-xs font-bold text-white">
               <Keyboard className="w-4 h-4 text-red-400" />
               <span>Phím tắt điều khiển</span>
@@ -111,21 +111,21 @@ export function LiveShortcutPopover({ mode = "football" }: LiveShortcutPopoverPr
                 Phát &amp; Hiển thị
               </div>
               <div className="grid grid-cols-2 gap-1.5">
-                <div className="flex items-center justify-between bg-white/5 hover:bg-white/10 px-2 py-1 rounded-lg border border-white/5 transition">
+                <div className="flex items-center justify-between bg-white/5 hover:bg-white/10 px-2 py-1 rounded-lg transition">
                   <span className="text-zinc-300 text-[11px]">Dừng / Phát</span>
-                  <kbd className="px-1.5 py-0.5 rounded bg-zinc-800 text-[10px] font-mono text-amber-300 border border-white/10 font-bold shadow-sm">Space</kbd>
+                  <kbd className="px-1.5 py-0.5 rounded bg-zinc-800 text-[10px] font-sans tabular-nums text-amber-300 font-bold shadow-sm">Space</kbd>
                 </div>
-                <div className="flex items-center justify-between bg-white/5 hover:bg-white/10 px-2 py-1 rounded-lg border border-white/5 transition">
+                <div className="flex items-center justify-between bg-white/5 hover:bg-white/10 px-2 py-1 rounded-lg transition">
                   <span className="text-zinc-300 text-[11px]">Bật / Tắt tiếng</span>
-                  <kbd className="px-1.5 py-0.5 rounded bg-zinc-800 text-[10px] font-mono text-zinc-200 border border-white/10 font-bold shadow-sm">M</kbd>
+                  <kbd className="px-1.5 py-0.5 rounded bg-zinc-800 text-[10px] font-sans tabular-nums text-zinc-200 font-bold shadow-sm">M</kbd>
                 </div>
-                <div className="flex items-center justify-between bg-white/5 hover:bg-white/10 px-2 py-1 rounded-lg border border-white/5 transition">
+                <div className="flex items-center justify-between bg-white/5 hover:bg-white/10 px-2 py-1 rounded-lg transition">
                   <span className="text-zinc-300 text-[11px]">Toàn màn hình</span>
-                  <kbd className="px-1.5 py-0.5 rounded bg-zinc-800 text-[10px] font-mono text-zinc-200 border border-white/10 font-bold shadow-sm">F</kbd>
+                  <kbd className="px-1.5 py-0.5 rounded bg-zinc-800 text-[10px] font-sans tabular-nums text-zinc-200 font-bold shadow-sm">F</kbd>
                 </div>
-                <div className="flex items-center justify-between bg-white/5 hover:bg-white/10 px-2 py-1 rounded-lg border border-white/5 transition">
+                <div className="flex items-center justify-between bg-white/5 hover:bg-white/10 px-2 py-1 rounded-lg transition">
                   <span className="text-zinc-300 text-[11px]">Thu nhỏ PiP</span>
-                  <kbd className="px-1.5 py-0.5 rounded bg-zinc-800 text-[10px] font-mono text-zinc-200 border border-white/10 font-bold shadow-sm">I</kbd>
+                  <kbd className="px-1.5 py-0.5 rounded bg-zinc-800 text-[10px] font-sans tabular-nums text-zinc-200 font-bold shadow-sm">I</kbd>
                 </div>
               </div>
             </div>
@@ -136,25 +136,25 @@ export function LiveShortcutPopover({ mode = "football" }: LiveShortcutPopoverPr
                 Điều khiển &amp; Danh sách
               </div>
               <div className="grid grid-cols-2 gap-1.5">
-                <div className="flex items-center justify-between bg-white/5 hover:bg-white/10 px-2 py-1 rounded-lg border border-white/5 transition">
+                <div className="flex items-center justify-between bg-white/5 hover:bg-white/10 px-2 py-1 rounded-lg transition">
                   <span className="text-zinc-300 text-[11px]">Tua 10 giây</span>
-                  <kbd className="px-1.5 py-0.5 rounded bg-zinc-800 text-[10px] font-mono text-sky-300 border border-white/10 font-bold shadow-sm">← →</kbd>
+                  <kbd className="px-1.5 py-0.5 rounded bg-zinc-800 text-[10px] font-sans tabular-nums text-sky-300 font-bold shadow-sm">← →</kbd>
                 </div>
-                <div className="flex items-center justify-between bg-white/5 hover:bg-white/10 px-2 py-1 rounded-lg border border-white/5 transition">
+                <div className="flex items-center justify-between bg-white/5 hover:bg-white/10 px-2 py-1 rounded-lg transition">
                   <span className="text-zinc-300 text-[11px]">Âm lượng</span>
-                  <kbd className="px-1.5 py-0.5 rounded bg-zinc-800 text-[10px] font-mono text-emerald-300 border border-white/10 font-bold shadow-sm">↑ ↓</kbd>
+                  <kbd className="px-1.5 py-0.5 rounded bg-zinc-800 text-[10px] font-sans tabular-nums text-emerald-300 font-bold shadow-sm">↑ ↓</kbd>
                 </div>
-                <div className="flex items-center justify-between bg-white/5 hover:bg-white/10 px-2 py-1 rounded-lg border border-white/5 transition">
+                <div className="flex items-center justify-between bg-white/5 hover:bg-white/10 px-2 py-1 rounded-lg transition">
                   <span className="text-zinc-300 text-[11px] truncate max-w-[90px]">{switchLabel}</span>
-                  <kbd className="px-1.5 py-0.5 rounded bg-zinc-800 text-[10px] font-mono text-purple-300 border border-white/10 font-bold shadow-sm">N / P</kbd>
+                  <kbd className="px-1.5 py-0.5 rounded bg-zinc-800 text-[10px] font-sans tabular-nums text-purple-300 font-bold shadow-sm">N / P</kbd>
                 </div>
-                <div className="flex items-center justify-between bg-white/5 hover:bg-white/10 px-2 py-1 rounded-lg border border-white/5 transition">
+                <div className="flex items-center justify-between bg-white/5 hover:bg-white/10 px-2 py-1 rounded-lg transition">
                   <span className="text-zinc-300 text-[11px]">Về trực tiếp</span>
-                  <kbd className="px-1.5 py-0.5 rounded bg-zinc-800 text-[10px] font-mono text-rose-300 border border-white/10 font-bold shadow-sm">L</kbd>
+                  <kbd className="px-1.5 py-0.5 rounded bg-zinc-800 text-[10px] font-sans tabular-nums text-rose-300 font-bold shadow-sm">L</kbd>
                 </div>
-                <div className="flex items-center justify-between bg-white/5 hover:bg-white/10 px-2 py-1 rounded-lg border border-white/5 transition col-span-2">
+                <div className="flex items-center justify-between bg-white/5 hover:bg-white/10 px-2 py-1 rounded-lg transition col-span-2">
                   <span className="text-zinc-300 text-[11px]">{railLabel}</span>
-                  <kbd className="px-1.5 py-0.5 rounded bg-zinc-800 text-[10px] font-mono text-cyan-300 border border-white/10 font-bold shadow-sm">C</kbd>
+                  <kbd className="px-1.5 py-0.5 rounded bg-zinc-800 text-[10px] font-sans tabular-nums text-cyan-300 font-bold shadow-sm">C</kbd>
                 </div>
               </div>
             </div>

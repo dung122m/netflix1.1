@@ -28,7 +28,7 @@ export const ActorChipClient: React.FC<ActorChipProps> = ({ name, isDirector = f
         fetch(`/api/actor-bio?name=${encodeURIComponent(name)}`).catch(() => {});
       }}
       title={`Xem hồ sơ tiểu sử Wikipedia & phim của ${name}`}
-      className="group inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs border border-white/10 hover:border-white/25 bg-white/5 hover:bg-white/10 text-zinc-300 hover:text-white backdrop-blur-md transition cursor-pointer active:scale-95"
+      className="group inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs hover: bg-white/5 hover:bg-white/10 text-zinc-300 hover:text-white backdrop-blur-md transition cursor-pointer active:scale-95"
     >
       {isDirector ? (
         <span className="text-[10px] text-zinc-400 group-hover:scale-110 transition-transform">🎬</span>

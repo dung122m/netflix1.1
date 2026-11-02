@@ -124,7 +124,7 @@ function MidAutumnScene() {
       >
         <div className="w-[1px] h-2 bg-amber-500/40" />
         <div className="w-2.5 h-0.5 bg-amber-600/50 rounded-[1px]" />
-        <div className="w-3.5 h-4.5 rounded-md bg-gradient-to-b from-red-950 via-rose-900 to-amber-950 shadow-[0_0_8px_rgba(185,28,28,0.35)] flex items-center justify-center border border-amber-600/30">
+        <div className="w-3.5 h-4.5 rounded-md bg-gradient-to-b from-red-950 via-rose-900 to-amber-950 shadow-[0_0_8px_rgba(185,28,28,0.35)] flex items-center justify-center">
           <div className="w-1 h-1.5 rounded-full bg-amber-200/90 shadow-[0_0_5px_rgba(245,158,11,0.5)] cinema-anim" style={{ animation: "cinemaCandleFlicker 3s ease-in-out infinite" }} />
         </div>
         <div className="w-2 h-0.5 bg-amber-600/40 rounded-[1px]" />
@@ -138,7 +138,7 @@ function MidAutumnScene() {
       >
         <div className="w-[1px] h-1.5 bg-amber-500/40" />
         <div className="w-2 h-0.5 bg-amber-600/50 rounded-[1px]" />
-        <div className="w-3 h-4 rounded-md bg-gradient-to-b from-red-950 via-amber-950 to-amber-900 shadow-[0_0_6px_rgba(217,119,6,0.3)] flex items-center justify-center border border-amber-600/30">
+        <div className="w-3 h-4 rounded-md bg-gradient-to-b from-red-950 via-amber-950 to-amber-900 shadow-[0_0_6px_rgba(217,119,6,0.3)] flex items-center justify-center">
           <div className="w-1 h-1.5 rounded-full bg-amber-200/85 shadow-[0_0_4px_rgba(245,158,11,0.4)] cinema-anim" style={{ animation: "cinemaCandleFlicker 3s ease-in-out infinite 0.4s" }} />
         </div>
         <div className="w-1.5 h-0.5 bg-amber-600/40 rounded-[1px]" />
@@ -152,7 +152,7 @@ function MidAutumnScene() {
       >
         <div className="w-[1px] h-2 bg-amber-500/40" />
         <div className="w-2.5 h-0.5 bg-amber-600/50 rounded-[1px]" />
-        <div className="w-3.5 h-4.5 rounded-md bg-gradient-to-b from-red-950 via-rose-900 to-amber-950 shadow-[0_0_8px_rgba(185,28,28,0.35)] flex items-center justify-center border border-amber-600/30">
+        <div className="w-3.5 h-4.5 rounded-md bg-gradient-to-b from-red-950 via-rose-900 to-amber-950 shadow-[0_0_8px_rgba(185,28,28,0.35)] flex items-center justify-center">
           <div className="w-1 h-1.5 rounded-full bg-amber-200/90 shadow-[0_0_5px_rgba(245,158,11,0.5)] cinema-anim" style={{ animation: "cinemaCandleFlicker 3s ease-in-out infinite 0.2s" }} />
         </div>
         <div className="w-2 h-0.5 bg-amber-600/40 rounded-[1px]" />
@@ -270,7 +270,7 @@ function TetScene() {
         style={{ animation: "cinemaLanternSway 5.8s ease-in-out infinite", transformOrigin: "top center" }}
       >
         <div className="w-[1px] h-2.5 bg-amber-600/60" />
-        <div className="w-3.5 h-4.5 rounded-md bg-gradient-to-b from-red-950 via-rose-950 to-amber-950 shadow-[0_0_8px_rgba(159,18,57,0.4)] flex items-center justify-center border border-amber-600/30">
+        <div className="w-3.5 h-4.5 rounded-md bg-gradient-to-b from-red-950 via-rose-950 to-amber-950 shadow-[0_0_8px_rgba(159,18,57,0.4)] flex items-center justify-center">
           <span className="inline-block text-[7.5px] text-yellow-300/85 font-bold cinema-anim" style={{ animation: "cinemaCandleFlicker 3s ease-in-out infinite" }}>福</span>
         </div>
         <div className="w-[1px] h-2 bg-amber-600/50" />
@@ -281,7 +281,7 @@ function TetScene() {
         style={{ animation: "cinemaLanternSway 7.2s ease-in-out infinite 0.8s", transformOrigin: "top center" }}
       >
         <div className="w-[1px] h-2.5 bg-amber-600/60" />
-        <div className="w-3.5 h-4.5 rounded-md bg-gradient-to-b from-red-950 via-rose-950 to-amber-950 shadow-[0_0_8px_rgba(159,18,57,0.4)] flex items-center justify-center border border-amber-600/30">
+        <div className="w-3.5 h-4.5 rounded-md bg-gradient-to-b from-red-950 via-rose-950 to-amber-950 shadow-[0_0_8px_rgba(159,18,57,0.4)] flex items-center justify-center">
           <span className="inline-block text-[7.5px] text-yellow-300/85 font-bold cinema-anim" style={{ animation: "cinemaCandleFlicker 3s ease-in-out infinite 0.4s" }}>春</span>
         </div>
         <div className="w-[1px] h-2 bg-amber-600/50" />
@@ -952,8 +952,8 @@ function YouthScene() {
       </div>
 
       {/* Translucent soap bubbles - subtle and low-opacity */}
-      <div className="absolute top-2 left-[24%] w-2.5 h-2.5 rounded-full border border-sky-400/30 bg-sky-500/5 shadow-[0_0_4px_rgba(56,189,248,0.25)] cinema-anim opacity-50" style={{ animation: "cinemaFloat 14s ease-in-out infinite" }} />
-      <div className="absolute top-3 left-[60%] w-2 h-2 rounded-full border border-sky-400/25 bg-sky-500/5 shadow-[0_0_4px_rgba(56,189,248,0.2)] cinema-anim opacity-45" style={{ animation: "cinemaFloat 17s ease-in-out infinite 2.5s" }} />
+      <div className="absolute top-2 left-[24%] w-2.5 h-2.5 rounded-full bg-sky-500/5 shadow-[0_0_4px_rgba(56,189,248,0.25)] cinema-anim opacity-50" style={{ animation: "cinemaFloat 14s ease-in-out infinite" }} />
+      <div className="absolute top-3 left-[60%] w-2 h-2 rounded-full bg-sky-500/5 shadow-[0_0_4px_rgba(56,189,248,0.2)] cinema-anim opacity-45" style={{ animation: "cinemaFloat 17s ease-in-out infinite 2.5s" }} />
       <div className="absolute top-2 left-[44%] w-1 h-1 rounded-full bg-sky-300/50 shadow-[0_0_3px_#38BDF8] opacity-40 cinema-anim" style={{ animation: "cinemaDrift 18s ease-in-out infinite" }} />
     </>
   );
@@ -1031,7 +1031,7 @@ function SpiritualScene() {
         style={{ animation: "cinemaSway 9s ease-in-out infinite", transformOrigin: "top center" }}
       >
         <div className="w-[1px] h-2 bg-amber-700/60" />
-        <div className="w-2.5 h-3 rounded-sm bg-gradient-to-b from-amber-900 to-amber-950 shadow-[0_0_6px_rgba(180,83,9,0.3)] border border-amber-700/30" />
+        <div className="w-2.5 h-3 rounded-sm bg-gradient-to-b from-amber-900 to-amber-950 shadow-[0_0_6px_rgba(180,83,9,0.3)]" />
         <div className="w-[1px] h-2 bg-amber-700/50" />
       </div>
 

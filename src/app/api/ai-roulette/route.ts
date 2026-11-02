@@ -3,7 +3,15 @@ import { movieApi } from "@/services/movieApi";
 import { sanitizeImageUrl } from "@/lib/movieMedia";
 import { searchMoviesBySemantic } from "@/services/aiVectorService";
 import { generateFastAiChat } from "@/services/aiProviderService";
-import { checkDistributedRateLimit, getClientIp } from "@/lib/security";
+import { enforceRateLimit, buildRateLimitResponse, RATE_LIMIT_PRESETS } from "@/lib/rateLimit";
+import { verifyServerAuth } from "@/lib/serverAuth";
+import {
+  safeParseJson,
+  validateHttpMethod,
+  validateContentType,
+  detectMaliciousPayload,
+} from "@/lib/securityValidation";
+import { logSecurityEvent } from "@/lib/securityLogger";
 import { cacheService } from "@/lib/cache";
 
 export const maxDuration = 15;
@@ -1271,32 +1279,101 @@ function formatCandidatePayload(
 
 export async function POST(req: NextRequest) {
   try {
-    // 1. Giới hạn tần suất phân tán theo IP (60 requests / 60s) qua Upstash Redis - bảo vệ quota AI & tránh spam
-    const clientIp = getClientIp(req);
-    const rateLimit = await checkDistributedRateLimit(`ai_roulette_${clientIp}`, 60, 60);
+    // 1. Kiểm tra phương thức HTTP & Content-Type
+    const methodErr = validateHttpMethod(req, ["POST"]);
+    if (methodErr) return methodErr;
+
+    const typeErr = validateContentType(req, ["application/json"]);
+    if (typeErr) return typeErr;
+
+    // 2. Xác thực danh tính người dùng (nếu có)
+    const auth = await verifyServerAuth(req);
+    const verifiedUserId = auth.isAuthenticated && auth.userId ? auth.userId : null;
+
+    // 3. Giới hạn tần suất phân tán Fail-Closed (10 requests / 10 phút / user hoặc IP)
+    const rateLimit = await enforceRateLimit(req, RATE_LIMIT_PRESETS.AI_REQUEST, verifiedUserId);
     if (!rateLimit.allowed) {
-      return NextResponse.json(
-        {
-          error: "Bạn đang quay quẻ quá nhanh. Vui lòng chờ 30 giây rồi thử lại để bảo vệ hệ thống.",
-        },
-        {
-          status: 429,
-          headers: { "Retry-After": String(rateLimit.resetSeconds) },
-        }
+      logSecurityEvent(req, {
+        event: "RATE_LIMIT_EXCEEDED",
+        status: 429,
+        userId: verifiedUserId,
+        reason: rateLimit.reason || "Vượt quá tần suất yêu cầu AI",
+      });
+      return buildRateLimitResponse(
+        rateLimit,
+        "Bạn đang quay quẻ quá nhanh. Vui lòng chờ vài phút trước khi tiếp tục để bảo vệ tài nguyên AI."
       );
     }
 
-    const body = await req.json().catch(() => ({}));
-    const mood: string = body.mood || "xa-stress";
-    const country: string = body.country || "all";
-    const companion: string = body.companion || "mot-minh";
-    const duration: string = body.duration || "all";
-    const surprise: string = body.surprise || "can-bang";
-    const excludeSlugs: string[] = Array.isArray(body.excludeSlugs) ? body.excludeSlugs : [];
-    const excludeTitles: string[] = Array.isArray(body.excludeTitles) ? body.excludeTitles : [];
-    const userApiKey: string = body.apiKey || "";
+    // 4. Đọc JSON an toàn với giới hạn kích thước tối đa 20KB (chống OOM / Buffer flood / Abuse)
+    const parseRes = await safeParseJson<Record<string, unknown>>(req, 20 * 1024);
+    if (!parseRes.success) {
+      logSecurityEvent(req, {
+        event: "PAYLOAD_TOO_LARGE",
+        status: 400,
+        userId: verifiedUserId,
+        reason: "Payload JSON không hợp lệ hoặc vượt quá 20KB",
+      });
+      return parseRes.response;
+    }
+
+    const body = parseRes.data;
+
+    // 5. Kiểm tra mã độc hoặc injection trong payload
+    const malCheck = detectMaliciousPayload(body);
+    if (malCheck.isMalicious) {
+      logSecurityEvent(req, {
+        event: "MALICIOUS_PAYLOAD",
+        status: 400,
+        userId: verifiedUserId,
+        reason: malCheck.reason,
+      });
+      return NextResponse.json(
+        { error: malCheck.reason || "Nội dung yêu cầu chứa định dạng không hợp lệ." },
+        { status: 400 }
+      );
+    }
+
+    // 6. Strict validation cho các trường enum và phân trang (Anti-Abuse)
+    const rawMood = typeof body.mood === "string" ? body.mood.trim().toLowerCase() : "xa-stress";
+    const mood =
+      MOOD_META[rawMood] || Object.values(MOOD_META).some((m) => m.categorySlug === rawMood) || rawMood === "all" || rawMood === "bat-ky"
+        ? rawMood
+        : "xa-stress";
+
+    const rawCountry = typeof body.country === "string" ? body.country.trim().toLowerCase() : "all";
+    const country = COUNTRY_META[rawCountry] ? rawCountry : "all";
+
+    const rawCompanion = typeof body.companion === "string" ? body.companion.trim().toLowerCase() : "mot-minh";
+    const companion = COMPANION_META[rawCompanion] ? rawCompanion : "mot-minh";
+
+    const rawDuration = typeof body.duration === "string" ? body.duration.trim().toLowerCase() : "all";
+    const duration =
+      DURATION_META[rawDuration] || ["duoi-90", "<90", "under-90", "90-120", "120-150", "all", "bat-ky"].includes(rawDuration)
+        ? rawDuration
+        : "all";
+
+    const rawSurprise = typeof body.surprise === "string" ? body.surprise.trim().toLowerCase() : "can-bang";
+    const surprise = ["lieu", "can-bang", "an-toan"].includes(rawSurprise) ? rawSurprise : "can-bang";
+
+    const excludeSlugs: string[] = Array.isArray(body.excludeSlugs)
+      ? body.excludeSlugs
+          .filter((s): s is string => typeof s === "string")
+          .map((s) => s.slice(0, 80))
+          .slice(0, 50)
+      : [];
+    const excludeTitles: string[] = Array.isArray(body.excludeTitles)
+      ? body.excludeTitles
+          .filter((s): s is string => typeof s === "string")
+          .map((s) => s.slice(0, 80))
+          .slice(0, 50)
+      : [];
+
+    const userApiKey: string = typeof body.apiKey === "string" ? body.apiKey.trim().slice(0, 100) : "";
     const requestedPage: number | undefined =
-      typeof body.page === "number" && body.page > 0 ? Math.floor(body.page) : undefined;
+      typeof body.page === "number" && !isNaN(body.page) && body.page > 0
+        ? Math.min(50, Math.max(1, Math.floor(body.page)))
+        : undefined;
 
     const moodMeta =
       MOOD_META[mood] ||

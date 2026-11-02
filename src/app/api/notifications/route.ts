@@ -2,6 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { sanitizeSafeText } from "@/lib/security";
 import { verifyServerAuth } from "@/lib/serverAuth";
+import {
+  enforceRateLimit,
+  buildRateLimitResponse,
+  RATE_LIMIT_PRESETS,
+} from "@/lib/rateLimit";
+import { safeParseJson } from "@/lib/securityValidation";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -25,6 +31,11 @@ export async function GET(req: NextRequest) {
   const auth = await verifyServerAuth(req);
   if (!auth.isAuthenticated || !auth.userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const rateLimit = await enforceRateLimit(req, RATE_LIMIT_PRESETS.PUBLIC_READ, auth.userId);
+  if (!rateLimit.allowed) {
+    return buildRateLimitResponse(rateLimit);
   }
 
   try {
@@ -88,7 +99,19 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const body = await req.json();
+    const rateLimit = await enforceRateLimit(
+      req,
+      { namespace: "notif-patch", maxRequests: 30, windowSeconds: 60, failClosed: true },
+      auth.userId
+    );
+    if (!rateLimit.allowed) return buildRateLimitResponse(rateLimit);
+
+    const parseRes = await safeParseJson<Record<string, unknown>>(req, 30 * 1024);
+    if (!parseRes.success) {
+      return parseRes.response;
+    }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const body = parseRes.data as Record<string, any>;
     const { notifId, all } = body;
 
     const supabase = getSupabaseAdmin();
@@ -129,11 +152,23 @@ export async function PATCH(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const auth = await verifyServerAuth(req);
-    if (!auth.isAuthenticated) {
+    if (!auth.isAuthenticated || !auth.userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const body = await req.json();
+    const rateLimit = await enforceRateLimit(
+      req,
+      { namespace: "notif-post", maxRequests: 20, windowSeconds: 60, failClosed: true },
+      auth.userId
+    );
+    if (!rateLimit.allowed) return buildRateLimitResponse(rateLimit);
+
+    const parseRes = await safeParseJson<Record<string, unknown>>(req, 30 * 1024);
+    if (!parseRes.success) {
+      return parseRes.response;
+    }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const body = parseRes.data as Record<string, any>;
     const { userId, notifId, type, title, message, link, movieSlug, commentId, replierName, replierAvatar } = body;
 
     if (!userId || !title) {
@@ -198,6 +233,13 @@ export async function DELETE(req: NextRequest) {
     if (!auth.isAuthenticated || !auth.userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    const rateLimit = await enforceRateLimit(
+      req,
+      { namespace: "notif-delete", maxRequests: 30, windowSeconds: 60, failClosed: true },
+      auth.userId
+    );
+    if (!rateLimit.allowed) return buildRateLimitResponse(rateLimit);
 
     const { searchParams } = new URL(req.url);
     const notifId = searchParams.get("notifId");

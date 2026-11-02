@@ -8,7 +8,7 @@ export default function MyListLoading() {
       <Navbar />
       <main className="max-w-[1800px] mx-auto px-4 md:px-8 pt-24 sm:pt-28 pb-16 animate-pulse">
         {/* HEADER SKELETON */}
-        <div className="flex flex-wrap items-center justify-between gap-4 mb-6 border-b border-white/10 pb-5">
+        <div className="flex flex-wrap items-center justify-between gap-4 mb-6 border-b pb-5">
           <div className="space-y-2">
             <div className="h-4 w-32 bg-white/10 rounded" />
             <div className="h-8 sm:h-10 w-64 bg-white/20 rounded-xl" />
@@ -28,7 +28,7 @@ export default function MyListLoading() {
           {Array.from({ length: 8 }).map((_, i) => (
             <div
               key={i}
-              className="aspect-[2/3] rounded-2xl bg-zinc-900/80 border border-white/5 relative overflow-hidden"
+              className="aspect-[2/3] rounded-2xl bg-zinc-900/80 relative overflow-hidden"
             >
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
               <div className="absolute bottom-3 left-3 right-3 space-y-2">

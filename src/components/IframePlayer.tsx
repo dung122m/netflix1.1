@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Server, AlertCircle, RefreshCw, ArrowLeft, Play } from "lucide-react";
 
 export interface IframePlayerProps {
@@ -20,12 +20,25 @@ export const IframePlayer: React.FC<IframePlayerProps> = ({
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const [key, setKey] = useState(0);
+  const [showBadge, setShowBadge] = useState(true);
+  const hideTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Reset loading state when src changes
+  // Hiển thị badge tạm thời khi đổi server hoặc mới load, sau 3s tự động ẩn mượt mà
   useEffect(() => {
     setIsLoading(true);
     setHasError(false);
-  }, [src]);
+    setShowBadge(true);
+
+    if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+    hideTimerRef.current = setTimeout(() => {
+      setShowBadge(false);
+      hideTimerRef.current = null;
+    }, 3000);
+
+    return () => {
+      if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+    };
+  }, [src, serverName]);
 
   // Timeout guard: if iframe doesn't load within 12s, show error/retry banner
   useEffect(() => {
@@ -40,17 +53,39 @@ export const IframePlayer: React.FC<IframePlayerProps> = ({
     return () => clearTimeout(timer);
   }, [isLoading, key, src]);
 
+  // Hiện lại badge khi người dùng rê chuột / chạm vào player, rồi tự ẩn sau 2.5s
+  const handleUserActivity = () => {
+    setShowBadge(true);
+    if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+    hideTimerRef.current = setTimeout(() => {
+      setShowBadge(false);
+      hideTimerRef.current = null;
+    }, 2500);
+  };
+
   const handleRetry = () => {
     setIsLoading(true);
     setHasError(false);
+    setShowBadge(true);
     setKey((prev) => prev + 1);
   };
 
   return (
-    <div className="relative w-full aspect-video bg-black rounded-xl sm:rounded-2xl overflow-hidden shadow-2xl border border-white/10 group">
-      {/* 1. TOP STATUS BADGE */}
-      <div className="absolute top-2.5 left-2.5 sm:top-3.5 sm:left-3.5 z-20 flex items-center gap-2 pointer-events-none">
-        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-black/70 backdrop-blur-md border border-white/15 text-[11px] sm:text-xs font-semibold text-zinc-200 shadow-lg">
+    <div
+      onMouseMove={handleUserActivity}
+      onMouseEnter={handleUserActivity}
+      onTouchStart={handleUserActivity}
+      className="relative w-full aspect-video bg-black rounded-xl sm:rounded-2xl overflow-hidden shadow-2xl group"
+    >
+      {/* 1. TOP STATUS BADGE (Tự động ẩn sau 3s khi xem phim để không che khuất khung hình) */}
+      <div
+        className={`absolute top-2.5 left-2.5 sm:top-3.5 sm:left-3.5 z-20 flex items-center gap-2 pointer-events-none transition-all duration-300 ${
+          showBadge || isLoading || hasError
+            ? "opacity-100 translate-y-0"
+            : "opacity-0 -translate-y-1.5 pointer-events-none"
+        }`}
+      >
+        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-black/70 backdrop-blur-md text-[11px] sm:text-xs font-semibold text-zinc-200 shadow-lg">
           <Server className="w-3 h-3 text-red-500" />
           <span>{serverName}</span>
         </div>
@@ -60,7 +95,7 @@ export const IframePlayer: React.FC<IframePlayerProps> = ({
       {isLoading && (
         <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-zinc-950/90 backdrop-blur-sm transition-opacity duration-300">
           <div className="relative flex items-center justify-center mb-3">
-            <div className="w-12 h-12 rounded-full border-2 border-red-600/30 border-t-red-600 animate-spin" />
+            <div className="w-12 h-12 rounded-full border-2 border-t-red-600 animate-spin" />
             <Play className="w-4 h-4 text-white/80 absolute fill-white/80" />
           </div>
           <p className="text-sm font-medium text-zinc-300">
@@ -73,7 +108,7 @@ export const IframePlayer: React.FC<IframePlayerProps> = ({
       {/* 3. ERROR FALLBACK STATE */}
       {hasError && (
         <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-zinc-950/95 p-4 text-center">
-          <div className="w-12 h-12 rounded-full bg-red-950/50 border border-red-800/50 flex items-center justify-center text-red-400 mb-3 shadow-lg">
+          <div className="w-12 h-12 rounded-full bg-red-950/50 flex items-center justify-center text-red-400 mb-3 shadow-lg">
             <AlertCircle className="w-6 h-6" />
           </div>
           <h4 className="text-base font-bold text-white mb-1">
@@ -85,7 +120,7 @@ export const IframePlayer: React.FC<IframePlayerProps> = ({
           <div className="flex flex-wrap items-center justify-center gap-2.5">
             <button
               onClick={handleRetry}
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-xs font-semibold text-white transition border border-white/10"
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-xs font-semibold text-white transition"
             >
               <RefreshCw className="w-3.5 h-3.5" />
               <span>Thử lại</span>

@@ -849,7 +849,7 @@ const HeroFeaturedInner: React.FC<{ movies?: HeroMovie[] }> = ({
                 {featuredMovie?.quality && (
                   <>
                     <span className="text-zinc-500 select-none">•</span>
-                    <span className="px-1.5 py-0.5 rounded-[4px] border border-white/20 bg-white/5 text-[11px] font-bold text-zinc-200 uppercase tracking-wider backdrop-blur-sm">
+                    <span className="px-1.5 py-0.5 rounded-[4px] bg-white/5 text-[11px] font-bold text-zinc-200 uppercase tracking-wider backdrop-blur-sm">
                       {featuredMovie.quality}
                     </span>
                   </>
@@ -941,7 +941,7 @@ const HeroFeaturedInner: React.FC<{ movies?: HeroMovie[] }> = ({
                 <button
                   type="button"
                   onClick={handleToggleWatchlist}
-                  className="inline-flex items-center gap-2 rounded-2xl border border-white/15 bg-white/10 hover:bg-white/20 text-white px-5 py-3.5 sm:py-4 text-xs sm:text-sm font-bold backdrop-blur-md transition-all duration-200 hover:scale-[1.02] hover:-translate-y-0.5 active:scale-95 cursor-pointer shadow-md shadow-black/40"
+                  className="inline-flex items-center gap-2 rounded-2xl bg-white/10 hover:bg-white/20 text-white px-5 py-3.5 sm:py-4 text-xs sm:text-sm font-bold backdrop-blur-md transition-all duration-200 hover:scale-[1.02] hover:-translate-y-0.5 active:scale-95 cursor-pointer shadow-md shadow-black/40"
                 >
                   {inWatchlist ? (
                     <>
@@ -1000,7 +1000,7 @@ const HeroFeaturedInner: React.FC<{ movies?: HeroMovie[] }> = ({
             type="button"
             onClick={goPrev}
             aria-label="Banner trước"
-            className="hidden sm:flex absolute left-4 md:left-8 top-1/2 z-20 -translate-y-1/2 rounded-full border border-white/20 bg-black/60 hover:bg-netflix-red hover:border-netflix-red p-3.5 text-white backdrop-blur-xl transition-all duration-300 shadow-2xl hover:scale-110 active:scale-95 items-center justify-center cursor-pointer focus-visible:ring-2 focus-visible:ring-white focus-visible:outline-none opacity-0 group-hover/hero:opacity-100"
+            className="hidden sm:flex absolute left-4 md:left-8 top-1/2 z-20 -translate-y-1/2 rounded-full bg-black/60 hover:bg-netflix-red hover:border-netflix-red p-3.5 text-white backdrop-blur-xl transition-all duration-300 shadow-2xl hover:scale-110 active:scale-95 items-center justify-center cursor-pointer focus-visible:ring-2 focus-visible:ring-white focus-visible:outline-none opacity-0 group-hover/hero:opacity-100"
           >
             <ChevronLeft size={22} />
           </button>
@@ -1008,7 +1008,7 @@ const HeroFeaturedInner: React.FC<{ movies?: HeroMovie[] }> = ({
             type="button"
             onClick={goNext}
             aria-label="Banner tiếp theo"
-            className="hidden sm:flex absolute right-4 md:right-8 top-1/2 z-20 -translate-y-1/2 rounded-full border border-white/20 bg-black/60 hover:bg-netflix-red hover:border-netflix-red p-3.5 text-white backdrop-blur-xl transition-all duration-300 shadow-2xl hover:scale-110 active:scale-95 items-center justify-center cursor-pointer focus-visible:ring-2 focus-visible:ring-white focus-visible:outline-none opacity-0 group-hover/hero:opacity-100"
+            className="hidden sm:flex absolute right-4 md:right-8 top-1/2 z-20 -translate-y-1/2 rounded-full bg-black/60 hover:bg-netflix-red hover:border-netflix-red p-3.5 text-white backdrop-blur-xl transition-all duration-300 shadow-2xl hover:scale-110 active:scale-95 items-center justify-center cursor-pointer focus-visible:ring-2 focus-visible:ring-white focus-visible:outline-none opacity-0 group-hover/hero:opacity-100"
           >
             <ChevronRight size={22} />
           </button>
@@ -1044,7 +1044,7 @@ const HeroFeaturedInner: React.FC<{ movies?: HeroMovie[] }> = ({
               type="button"
               onClick={handleToggleHeroMute}
               aria-label={isHeroMuted ? "Bật âm thanh trailer" : "Tắt âm thanh trailer"}
-              className="absolute bottom-6 right-6 sm:bottom-8 sm:right-8 z-20 hidden lg:flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-white/20 bg-black/75 hover:bg-black text-white text-xs font-bold backdrop-blur-xl transition-all shadow-2xl hover:scale-105 active:scale-95 cursor-pointer"
+              className="absolute bottom-6 right-6 sm:bottom-8 sm:right-8 z-20 hidden lg:flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-black/75 hover:bg-black text-white text-xs font-bold backdrop-blur-xl transition-all shadow-2xl hover:scale-105 active:scale-95 cursor-pointer"
             >
               {isHeroMuted ? (
                 <>

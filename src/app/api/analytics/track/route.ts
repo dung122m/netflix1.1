@@ -2,25 +2,21 @@ import { NextRequest, NextResponse } from "next/server";
 import { recordAnalyticsEvent } from "@/services/analyticsService";
 import { AnalyticsEventPayload } from "@/lib/analyticsClient";
 import { verifyServerAuth } from "@/lib/serverAuth";
-import { checkDistributedRateLimit, getClientIp } from "@/lib/security";
+import {
+  enforceRateLimit,
+  buildRateLimitResponse,
+  RATE_LIMIT_PRESETS,
+} from "@/lib/rateLimit";
 import { getGeoLocationFromRequest } from "@/lib/geoip";
 
 export const maxDuration = 10;
 
-
 export async function POST(req: NextRequest) {
   try {
-    // 1. Giới hạn tần suất phân tán theo IP (120 requests / 60s) qua Upstash Redis
-    const clientIp = getClientIp(req);
-    const rateLimit = await checkDistributedRateLimit(`analytics_${clientIp}`, 120, 60, 200);
+    // 1. Giới hạn tần suất phân tán theo IP (60 requests / 60s)
+    const rateLimit = await enforceRateLimit(req, RATE_LIMIT_PRESETS.ANALYTICS_TRACK);
     if (!rateLimit.allowed) {
-      return NextResponse.json(
-        { error: "Too many analytics requests. Please try again later." },
-        {
-          status: 429,
-          headers: { "Retry-After": String(rateLimit.resetSeconds) },
-        }
-      );
+      return buildRateLimitResponse(rateLimit, "Too many analytics requests. Please try again later.");
     }
 
     let body: Partial<AnalyticsEventPayload> = {};

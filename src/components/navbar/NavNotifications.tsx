@@ -157,7 +157,7 @@ export const NavNotifications: React.FC = React.memo(function NavNotifications()
             setShowNotifications((prev) => !prev);
           }}
           aria-label="Thông báo"
-          className="relative flex items-center justify-center h-8 w-8 sm:h-9 sm:w-9 rounded-full bg-white/10 hover:bg-white/20 text-zinc-200 hover:text-white border border-white/10 transition cursor-pointer flex-shrink-0 active:scale-95"
+          className="relative flex items-center justify-center h-8 w-8 sm:h-9 sm:w-9 rounded-full bg-white/10 hover:bg-white/20 text-zinc-200 hover:text-white transition cursor-pointer flex-shrink-0 active:scale-95"
         >
           <Bell size={16} className="sm:hidden" />
           <Bell size={18} className="hidden sm:block" />
@@ -171,9 +171,9 @@ export const NavNotifications: React.FC = React.memo(function NavNotifications()
 
       {/* NOTIFICATION POPUP DROPDOWN */}
       {showNotifications && (
-        <div className="fixed sm:absolute top-[52px] sm:top-full mt-0 sm:mt-2 left-2 right-2 sm:left-auto sm:right-0 w-auto sm:w-[420px] max-w-sm sm:max-w-none mx-auto sm:mx-0 bg-zinc-950/98 border border-white/15 backdrop-blur-2xl rounded-2xl shadow-[0_25px_60px_rgba(0,0,0,0.95)] p-3.5 z-50 animate-in fade-in zoom-in-95 duration-150">
+        <div className="fixed sm:absolute top-[52px] sm:top-full mt-0 sm:mt-2 left-2 right-2 sm:left-auto sm:right-0 w-auto sm:w-[420px] max-w-sm sm:max-w-none mx-auto sm:mx-0 bg-zinc-950/98 backdrop-blur-2xl rounded-2xl shadow-[0_25px_60px_rgba(0,0,0,0.95)] p-3.5 z-50 animate-in fade-in zoom-in-95 duration-150">
           {/* HEADER */}
-          <div className="flex items-center justify-between pb-2.5 mb-2 border-b border-white/10">
+          <div className="flex items-center justify-between pb-2.5 mb-2 border-b">
             <div className="flex items-center gap-2">
               <Bell size={16} className="text-netflix-red" />
               <h4 className="text-white font-bold text-sm">Thông Báo</h4>
@@ -250,12 +250,12 @@ export const NavNotifications: React.FC = React.memo(function NavNotifications()
                             : "/");
                         router.push(targetLink);
                       }}
-                      className={`flex items-start gap-3 p-3 rounded-2xl transition border cursor-pointer group ${
+                      className={`flex items-start gap-3 p-3 rounded-2xl transition cursor-pointer group ${
                         !item.isRead
                           ? isReply
-                            ? "bg-blue-950/30 border-blue-500/30 hover:bg-blue-950/45"
-                            : "bg-rose-950/30 border-rose-500/30 hover:bg-rose-950/45"
-                          : "bg-zinc-900/40 hover:bg-zinc-800/60 border-white/5 hover:border-white/10"
+                            ? "bg-blue-950/40 hover:bg-blue-950/60"
+                            : "bg-rose-950/40 hover:bg-rose-950/60"
+                          : "bg-zinc-900/40 hover:bg-zinc-800/60"
                       }`}
                     >
                       {/* AVATAR */}
@@ -264,7 +264,7 @@ export const NavNotifications: React.FC = React.memo(function NavNotifications()
                           src={itemAvatar || undefined}
                           name={item.replierName || item.title}
                           sizeClassName="w-10 h-10 text-sm font-black"
-                          className="shadow-md ring-1 ring-white/15"
+                          className="shadow-md"
                         />
                         {renderNotificationIcon(item)}
                       </div>
@@ -302,7 +302,7 @@ export const NavNotifications: React.FC = React.memo(function NavNotifications()
                           </span>
                         </p>
 
-                        <div className="text-xs text-zinc-200 line-clamp-2 mt-1.5 bg-white/[0.06] rounded-xl px-2.5 py-1.5 border border-white/5 leading-relaxed">
+                        <div className="text-xs text-zinc-200 line-clamp-2 mt-1.5 bg-white/[0.06] rounded-xl px-2.5 py-1.5 leading-relaxed">
                           {item.message}
                         </div>
                       </div>
@@ -310,7 +310,7 @@ export const NavNotifications: React.FC = React.memo(function NavNotifications()
                       {/* UNREAD INDICATOR */}
                       {!item.isRead && (
                         <span
-                          className={`w-2 h-2 rounded-full flex-shrink-0 mt-1.5 ring-2 ${
+                          className={`w-2 h-2 rounded-full flex-shrink-0 mt-1.5  ${
                             isReply
                               ? "bg-blue-500 ring-blue-950/50"
                               : "bg-rose-500 ring-rose-950/50"

@@ -15,8 +15,32 @@ interface CachedToken {
   expiry: number;
 }
 
-// In-memory micro-cache (TTL 5 minutes) to prevent redundant Google Identity Toolkit calls
+// In-memory micro-cache (TTL 5 minutes for valid, 1 minute for invalid) to prevent redundant Google Identity Toolkit calls
 const tokenCache = new Map<string, CachedToken>();
+const MAX_TOKEN_CACHE_ENTRIES = 1000;
+
+function setCachedToken(token: string, entry: CachedToken): void {
+  if (tokenCache.size >= MAX_TOKEN_CACHE_ENTRIES) {
+    const now = Date.now();
+    for (const [key, val] of tokenCache.entries()) {
+      if (val.expiry <= now) {
+        tokenCache.delete(key);
+      }
+    }
+    if (tokenCache.size >= MAX_TOKEN_CACHE_ENTRIES) {
+      const oldestKey = tokenCache.keys().next().value;
+      if (oldestKey) tokenCache.delete(oldestKey);
+    }
+  }
+  Map.prototype.set.call(tokenCache, token, entry);
+}
+
+export function _resetTokenCacheForTesting(): void {
+  tokenCache.clear();
+}
+
+// Firebase ID tokens are standard JWTs (3 segments separated by '.')
+const FIREBASE_JWT_REGEX = /^[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}$/;
 
 export async function verifyServerAuth(req: NextRequest): Promise<ServerAuthResult> {
   const secretHeader = req.headers.get("x-admin-secret")?.trim();
@@ -42,6 +66,13 @@ export async function verifyServerAuth(req: NextRequest): Promise<ServerAuthResu
     const cached = tokenCache.get(bearerToken);
     if (cached && cached.expiry > now) {
       return cached.result;
+    }
+
+    // Pre-flight check: Reject malformed tokens without calling Google Identity Toolkit
+    if (!FIREBASE_JWT_REGEX.test(bearerToken)) {
+      const negativeResult: ServerAuthResult = { isAuthenticated: false, isAdmin: false };
+      setCachedToken(bearerToken, { result: negativeResult, expiry: now + 60 * 1000 });
+      return negativeResult;
     }
 
     const apiKey = process.env.NEXT_PUBLIC_FIREBASE_API_KEY || process.env.FIREBASE_API_KEY;
@@ -77,9 +108,15 @@ export async function verifyServerAuth(req: NextRequest): Promise<ServerAuthResu
             };
 
             // Cache token result for 5 minutes
-            tokenCache.set(bearerToken, { result, expiry: now + 5 * 60 * 1000 });
+            setCachedToken(bearerToken, { result, expiry: now + 5 * 60 * 1000 });
             return result;
           }
+        } else {
+          // Negative cache for invalid/expired tokens (1 minute) to throttle repeated attacker calls
+          setCachedToken(bearerToken, {
+            result: { isAuthenticated: false, isAdmin: false },
+            expiry: now + 60 * 1000,
+          });
         }
       } catch (err) {
         console.warn("[serverAuth] Failed to verify Firebase token:", err);

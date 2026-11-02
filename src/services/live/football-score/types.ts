@@ -64,6 +64,7 @@ export interface MatchSummaryTeam {
   abbreviation?: string;
   winner?: boolean;
   form?: string;
+  coach?: string;
 }
 
 export interface MatchStatItem {
@@ -139,6 +140,7 @@ export interface MatchRosterPlayer {
   subClock?: string;
   photoUrl?: string;
   jerseyImageUrl?: string;
+  captain?: boolean;
   stats?: PlayerMatchStat[];
 }
 

@@ -362,6 +362,9 @@ describe("Nanaflix Live Match Status & Timeline System", () => {
     const b3 = extractSportAndGender("Rytas Vilnius vs Shanghai Sharks", "Basketball");
     assert.equal(b3.sport, "basketball");
     assert.equal(getSportLabel(b3.sport), "🏀 Bóng Rổ Trực Tiếp");
+
+    const ulaanbaatar = extractSportAndGender("Hunters FC vs FC Ulaanbaatar", "Xôi Lạc TV");
+    assert.equal(ulaanbaatar.sport, "football", "Hunters FC vs FC Ulaanbaatar phải là football, không phải basketball");
   });
 
   // 20. F1 / Motorsport → F1 label

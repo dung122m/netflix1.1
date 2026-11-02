@@ -129,10 +129,10 @@ export default async function MovieDetail({
   searchParams,
 }: {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ ep?: string; server?: string; t?: string }>;
+  searchParams: Promise<{ ep?: string; server?: string; t?: string; provider?: string }>;
 }) {
   const { slug } = await params;
-  const { ep, server, t } = await searchParams;
+  const { ep, server, t, provider } = await searchParams;
 
   const data = await movieApi.getMovieDetail(slug);
   if (!data || !data.movie) {
@@ -148,7 +148,7 @@ export default async function MovieDetail({
             </div>
 
             <div className="space-y-2">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs font-bold text-zinc-400">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 text-xs font-bold text-zinc-400">
                 <AlertCircle className="w-3.5 h-3.5 text-rose-400" />
                 <span>Không tìm thấy phim</span>
               </span>
@@ -171,7 +171,7 @@ export default async function MovieDetail({
               </Link>
               <Link
                 href="/"
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/15 text-white font-bold text-xs transition active:scale-95 cursor-pointer"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs transition active:scale-95 cursor-pointer"
               >
                 <Compass className="w-4 h-4" />
                 <span>Khám Phá Phim Mới</span>
@@ -562,7 +562,7 @@ export default async function MovieDetail({
         initialServers={episodeServers}
         initialServerIndex={currentServerIndex}
         initialEpisodeSlug={activeEpisode?.slug || serverData[0]?.slug}
-        initialProvider={isVsmovOnly ? "vsmov" : "nanaflix"}
+        initialProvider={provider === "vsmov" || isVsmovOnly ? "vsmov" : "nanaflix"}
         isVsmovOnly={isVsmovOnly}
         hasNanaflixSource={hasNanaflixSource}
         tmdbId={tmdbId}
@@ -626,7 +626,7 @@ export default async function MovieDetail({
               mainContent={
                 <>
                   {/* 2. MOVIE HEADER & ACTION TOOLBAR */}
-                  <div className="rounded-2xl sm:rounded-3xl border border-white/15 bg-gradient-to-b from-zinc-900/80 via-zinc-950/85 to-black/90 p-4 sm:p-6 backdrop-blur-xl shadow-2xl space-y-3.5 sm:space-y-4">
+                  <div className="rounded-2xl sm:rounded-3xl bg-gradient-to-b from-zinc-900/80 via-zinc-950/85 to-black/90 p-4 sm:p-6 backdrop-blur-xl shadow-2xl space-y-3.5 sm:space-y-4">
                     {/* TIÊU ĐỀ PHIM & HUY HIỆU TẬP (RENDER TỨC THÌ 0MS, CHUẨN NETFLIX) */}
                     <div className="space-y-1">
                       <div className="flex flex-wrap items-center gap-2.5 sm:gap-3">
@@ -650,7 +650,7 @@ export default async function MovieDetail({
 
                     {/* THÔNG TIN PHIM TINH GỌN (METADATA LINE) */}
                     <div className="flex flex-wrap items-center gap-2 sm:gap-2.5 text-xs text-zinc-300 font-medium">
-                      <span className="rounded border border-white/40 px-1.5 py-0.5 text-[11px] font-bold text-white uppercase tracking-wider">
+                      <span className="rounded bg-white/10 px-1.5 py-0.5 text-[11px] font-bold text-white uppercase tracking-wider">
                         {movie.quality || "HD"}
                       </span>
                       {movie.year && (
@@ -672,7 +672,7 @@ export default async function MovieDetail({
                         <>
                           <span className="text-zinc-600">•</span>
                           <span className="inline-flex items-center gap-1 font-bold text-emerald-400">
-                            <span className="bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 px-1.5 py-0.5 rounded text-[10px] font-extrabold leading-none">
+                            <span className="bg-emerald-500/15 text-emerald-400 px-1.5 py-0.5 rounded text-[10px] font-extrabold leading-none">
                               TMDB
                             </span>
                             <span>{tmdbScore.toFixed(1)}</span>
@@ -686,7 +686,7 @@ export default async function MovieDetail({
                         <>
                           <span className="text-zinc-600">•</span>
                           <span className="inline-flex items-center gap-1 font-bold text-amber-400">
-                            <span className="bg-amber-500/15 border border-amber-500/30 text-amber-400 px-1.5 py-0.5 rounded text-[10px] font-extrabold leading-none">
+                            <span className="bg-amber-500/15 text-amber-400 px-1.5 py-0.5 rounded text-[10px] font-extrabold leading-none">
                               IMDb
                             </span>
                             <span>{imdbScore.toFixed(1)}</span>
@@ -723,7 +723,7 @@ export default async function MovieDetail({
                     </div>
 
                     {/* THANH NÚT TÁC VỤ (ACTION TOOLBAR) */}
-                    <div className="mt-3 sm:mt-4 pt-3 border-t border-white/10 w-full min-w-0">
+                    <div className="mt-3 sm:mt-4 pt-3 border-t w-full min-w-0">
                       <div className="flex items-center gap-1 sm:gap-2 overflow-x-auto scrollbar-none pb-0.5 w-full min-w-0">
                         {/* Nút Xem Trailer */}
                         <TrailerModal trailerUrl={effectiveTrailerUrl} title={title} />
@@ -773,7 +773,7 @@ export default async function MovieDetail({
 
                     {/* TIẾN ĐỘ PHÁT SÓNG (DÀNH CHO PHIM BỘ) */}
                     {hasProgress && (
-                      <div className="mt-3 rounded-2xl border border-white/10 bg-zinc-900/60 p-3.5 backdrop-blur-md">
+                      <div className="mt-3 rounded-2xl bg-zinc-900/60 p-3.5 backdrop-blur-md">
                         <div className="flex items-center justify-between text-xs sm:text-sm mb-2">
                           <span className="text-zinc-300 font-medium">
                             {isCompleted ? "Trọn bộ phát hành:" : "Tiến độ phát sóng:"}
@@ -796,7 +796,7 @@ export default async function MovieDetail({
                     {(movie.showtimes || movie.notify) && (
                       <div className="mt-3 space-y-2">
                         {movie.showtimes && (
-                          <div className="flex items-center gap-2.5 rounded-xl border border-sky-500/30 bg-sky-950/30 px-3.5 py-2 text-xs sm:text-sm text-sky-200">
+                          <div className="flex items-center gap-2.5 rounded-xl bg-sky-950/30 px-3.5 py-2 text-xs sm:text-sm text-sky-200">
                             <Calendar className="w-4 h-4 text-sky-400 flex-shrink-0" />
                             <span>
                               <strong className="text-sky-300">Lịch phát sóng:</strong>{" "}
@@ -805,7 +805,7 @@ export default async function MovieDetail({
                           </div>
                         )}
                         {movie.notify && (
-                          <div className="flex items-center gap-2.5 rounded-xl border border-amber-500/30 bg-amber-950/30 px-3.5 py-2 text-xs sm:text-sm text-amber-200">
+                          <div className="flex items-center gap-2.5 rounded-xl bg-amber-950/30 px-3.5 py-2 text-xs sm:text-sm text-amber-200">
                             <BellRing className="w-4 h-4 text-amber-400 flex-shrink-0" />
                             <span>
                               <strong className="text-amber-300">Thông báo:</strong>{" "}
@@ -823,7 +823,7 @@ export default async function MovieDetail({
                   {/* 3. MOBILE-FIRST NGUỒN PHÁT & DANH SÁCH TẬP PHIM (< 1024px) - Vị trí ưu tiên ngay dưới player & header */}
                   <div
                     id="section-episodes"
-                    className="scroll-mt-[116px] sm:scroll-mt-[124px] lg:hidden rounded-2xl border border-white/15 bg-gradient-to-b from-zinc-900/80 via-zinc-950/85 to-black/90 p-4 shadow-xl backdrop-blur-xl space-y-3"
+                    className="scroll-mt-[116px] sm:scroll-mt-[124px] lg:hidden rounded-2xl bg-gradient-to-b from-zinc-900/80 via-zinc-950/85 to-black/90 p-4 shadow-xl backdrop-blur-xl space-y-3"
                   >
                     <ServerSelector
                       servers={serverSummaries}
@@ -831,7 +831,7 @@ export default async function MovieDetail({
                     />
 
                     {!isSingleEpisode && (
-                      <div className="pt-3 border-t border-white/10 space-y-3">
+                      <div className="pt-3 border-t space-y-3">
                         <div className="flex items-center justify-between pb-1">
                           <h3 className="text-base font-bold flex items-center gap-2 text-white">
                             <Film className="w-4 h-4 text-red-500 shrink-0" />
@@ -851,7 +851,7 @@ export default async function MovieDetail({
                   {/* 4. TÓM TẮT CỐT TRUYỆN, DIỄN VIÊN & THÔNG TIN CHI TIẾT */}
                   <div
                     id="section-info"
-                    className="scroll-mt-[116px] sm:scroll-mt-[124px] rounded-2xl sm:rounded-3xl border border-white/15 bg-gradient-to-b from-zinc-900/80 via-zinc-950/85 to-black/90 p-4 sm:p-6 backdrop-blur-xl shadow-2xl space-y-4"
+                    className="scroll-mt-[116px] sm:scroll-mt-[124px] rounded-2xl sm:rounded-3xl bg-gradient-to-b from-zinc-900/80 via-zinc-950/85 to-black/90 p-4 sm:p-6 backdrop-blur-xl shadow-2xl space-y-4"
                   >
                     <MovieSynopsis
                       synopsis={description}
@@ -860,7 +860,7 @@ export default async function MovieDetail({
 
                     {/* TÊN GỌI KHÁC */}
                     {altNames.length > 0 && (
-                      <div className="mt-4 pt-3.5 border-t border-white/10 flex flex-wrap items-center gap-2 text-xs text-zinc-400">
+                      <div className="mt-4 pt-3.5 border-t flex flex-wrap items-center gap-2 text-xs text-zinc-400">
                         <span className="text-zinc-500 font-semibold uppercase tracking-wider text-[11px] flex-shrink-0">
                           Tên gọi khác:
                         </span>
@@ -885,7 +885,7 @@ export default async function MovieDetail({
 
                     {/* BẢNG THÔNG TIN CHI TIẾT */}
                     {(categoryList.length > 0 || countryList.length > 0 || directorList.length > 0 || actorList.length > 0) && (
-                      <div className="mt-5 pt-4 border-t border-white/10 space-y-3 text-xs sm:text-sm">
+                      <div className="mt-5 pt-4 border-t space-y-3 text-xs sm:text-sm">
                         {/* THỂ LOẠI */}
                         {categoryList.length > 0 && (
                           <div className="flex flex-wrap items-baseline gap-2">
@@ -901,7 +901,7 @@ export default async function MovieDetail({
                                       ? `/browse?category=${cat.slug}`
                                       : `/browse?keyword=${encodeURIComponent(cat.name)}`
                                   }
-                                  className="inline-flex items-center px-2.5 py-1 rounded-full bg-white/5 hover:bg-white/15 text-zinc-200 hover:text-white text-xs transition border border-white/10 hover:border-white/25"
+                                  className="inline-flex items-center px-2.5 py-1 rounded-full bg-white/5 hover:bg-white/15 text-zinc-200 hover:text-white text-xs transition"
                                 >
                                   {cat.name}
                                 </Link>
@@ -925,7 +925,7 @@ export default async function MovieDetail({
                                       ? `/browse?country=${cnt.slug}`
                                       : `/browse?keyword=${encodeURIComponent(cnt.name)}`
                                   }
-                                  className="inline-flex items-center px-2.5 py-1 rounded-full bg-white/5 hover:bg-white/15 text-zinc-200 hover:text-white text-xs transition border border-white/10 hover:border-white/25"
+                                  className="inline-flex items-center px-2.5 py-1 rounded-full bg-white/5 hover:bg-white/15 text-zinc-200 hover:text-white text-xs transition"
                                 >
                                   {cnt.name}
                                 </Link>
@@ -950,7 +950,7 @@ export default async function MovieDetail({
 
                         {/* DIỄN VIÊN & VAI DIỄN (STREAMED VIA SUSPENSE) */}
                         {actorList.length > 0 || tmdbId ? (
-                          <div className="pt-3 border-t border-white/10">
+                          <div className="pt-3 border-t">
                             <Suspense
                               fallback={
                                 <MovieCastGallery cast={[]} fallbackActors={actorList} />

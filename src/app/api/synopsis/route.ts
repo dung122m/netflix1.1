@@ -3,6 +3,12 @@ import { movieApi } from "@/services/movieApi";
 import { cleanHtmlText } from "@/lib/cleanHtml";
 import { pickHeroBackdropImage, pickBestMoviePoster, pickBestMovieThumb } from "@/lib/movieMedia";
 import { getTmdbBackdropUrl, getTmdbTrailerUrl, searchTmdbTrailerByTitle } from "@/services/tmdbService";
+import {
+  enforceRateLimit,
+  buildRateLimitResponse,
+  RATE_LIMIT_PRESETS,
+} from "@/lib/rateLimit";
+import { validateHttpMethod } from "@/lib/securityValidation";
 
 export interface SynopsisDetailPayload {
   content: string;
@@ -36,8 +42,16 @@ function setBoundedSynopsisCache(slug: string, payload: SynopsisDetailPayload) {
 }
 
 export async function GET(request: NextRequest) {
+  const methodErr = validateHttpMethod(request, ["GET"]);
+  if (methodErr) return methodErr;
+
+  const rateLimit = await enforceRateLimit(request, RATE_LIMIT_PRESETS.PUBLIC_READ);
+  if (!rateLimit.allowed) {
+    return buildRateLimitResponse(rateLimit);
+  }
+
   const { searchParams } = new URL(request.url);
-  const slug = searchParams.get("slug");
+  const slug = searchParams.get("slug")?.trim()?.slice(0, 100);
 
   if (!slug) {
     return NextResponse.json(

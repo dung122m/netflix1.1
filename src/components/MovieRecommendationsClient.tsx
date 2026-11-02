@@ -36,7 +36,7 @@ export function RecommendationSkeleton({ variant = "grid" }: { variant?: "grid" 
   if (variant === "sidebar") {
     return (
       <div className="space-y-3 animate-pulse">
-        <div className="flex gap-2 pb-2 border-b border-white/10">
+        <div className="flex gap-2 pb-2 border-b">
           <div className="h-7 w-24 bg-zinc-800 rounded-xl" />
           <div className="h-7 w-20 bg-zinc-900 rounded-xl" />
         </div>
@@ -64,7 +64,7 @@ export function RecommendationSkeleton({ variant = "grid" }: { variant?: "grid" 
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5">
         {Array.from({ length: 8 }).map((_, i) => (
-          <div key={i} className="aspect-video bg-zinc-900/80 rounded-2xl border border-white/5" />
+          <div key={i} className="aspect-video bg-zinc-900/80 rounded-2xl" />
         ))}
       </div>
     </div>
@@ -134,7 +134,7 @@ export function MovieRecommendationsClient({
 
   useEffect(() => {
     let isMounted = true;
-    const cacheKey = `nanaflix_rec_${currentMovieSlug}_${tmdbId || ""}`;
+    const cacheKey = `nanaflix_rec_v3_${currentMovieSlug}_${tmdbId || ""}`;
 
     // 1. Kiểm tra cache trong RAM trước (0ms response, chia sẻ giữa desktop và mobile)
     if (clientMemoryRecommendationsCache.has(cacheKey)) {

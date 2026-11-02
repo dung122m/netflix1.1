@@ -139,7 +139,7 @@ function NavigationProgressBarInner() {
 
       {/* 2. SPINNER PHÁT QUANG GÓC TRÊN PHẢI (MOBILE & PC) */}
       <div
-        className="fixed top-3 sm:top-4 right-3 sm:right-4 z-[999999] pointer-events-none transition-all duration-300 flex items-center gap-2 bg-black/85 backdrop-blur-md px-2.5 py-1.5 rounded-full border border-white/20 shadow-2xl"
+        className="fixed top-3 sm:top-4 right-3 sm:right-4 z-[999999] pointer-events-none transition-all duration-300 flex items-center gap-2 bg-black/85 backdrop-blur-md px-2.5 py-1.5 rounded-full shadow-2xl"
         style={{
           opacity: loading ? 1 : 0,
           transform: loading ? "scale(1) translateY(0)" : "scale(0.8) translateY(-6px)",
