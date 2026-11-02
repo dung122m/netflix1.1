@@ -1,6 +1,10 @@
 <!-- AUTO-GENERATED from AGENTS.md — do not edit directly.
      Run `bash scripts/sync-agent-rules.sh` to regenerate. -->
 
+---
+description: Project conventions for AI Website Clone Template
+alwaysApply: true
+---
 <!-- BEGIN:nextjs-agent-rules -->
 
 # This is NOT the Next.js you know
@@ -540,4 +544,3 @@ Surface habits:
 - Claims and configuration come from supplied truth; label illustrative values honestly. Naming a concept and then ironizing it is not a claim.
 
 The floor holds the mechanics; it never picks the direction. With every check green, spend the page on the committed world, and when torn between refined and committed, commit.
-
