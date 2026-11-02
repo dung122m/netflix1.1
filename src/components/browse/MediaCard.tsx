@@ -230,13 +230,17 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
 
   const initialCandidate = imageCandidates[0] || "";
 
-  // Chuẩn hóa và tự động tra cứu fallback TMDb dùng chung kiến trúc với Home (ContinueWatchingRow) & Watchlist
+  // Chỉ kích hoạt fallback khi không có candidate ban đầu hoặc khi candidates đều tải lỗi
+  const [needsFallback, setNeedsFallback] = useState<boolean>(() => !initialCandidate);
+
+  // Chuẩn hóa và tra cứu fallback TMDb dùng chung khi cần
   const { displaySrc: tmdbFallbackSrc, isLoading: isFallbackLoading } = useMoviePosterFallback({
     slug,
     title,
     origin_name,
     year,
     initialSrc: initialCandidate,
+    enabled: needsFallback,
   });
 
   const [currentSrc, setCurrentSrc] = useState<string>(() => initialCandidate);
@@ -276,14 +280,20 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
     }
   }, [slug, imageCandidates]);
 
-  // Khi hook useMoviePosterFallback nâng cấp thành công ảnh TMDb (đã preload)
+  // Khi hook useMoviePosterFallback tìm thấy ảnh TMDb:
+  // CHỈ thay thế nếu ảnh hiện tại chưa tải thành công hoặc đang là ảnh mặc định (tránh giật/đổi ảnh khi đang xem)
   useEffect(() => {
-    if (tmdbFallbackSrc && tmdbFallbackSrc !== currentSrc && !triedUrlsRef.current.has(tmdbFallbackSrc)) {
+    if (
+      tmdbFallbackSrc &&
+      tmdbFallbackSrc !== currentSrc &&
+      !triedUrlsRef.current.has(tmdbFallbackSrc) &&
+      (!isImageLoaded || !currentSrc || currentSrc.startsWith("/default-"))
+    ) {
       setHasError(false);
       setCurrentSrc(tmdbFallbackSrc);
       setIsImageLoaded(GLOBAL_LOADED_IMAGES.has(tmdbFallbackSrc));
     }
-  }, [tmdbFallbackSrc, currentSrc]);
+  }, [tmdbFallbackSrc, currentSrc, isImageLoaded]);
 
   const handleImageError = useCallback(() => {
     if (currentSrc) {
@@ -309,18 +319,25 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
       return;
     }
 
-    // 3. Nếu fallback TMDb đang được tải ngầm (isFallbackLoading) -> KHÔNG hiển thị ảnh mặc định/lỗi ngay lập tức!
-    // Giữ skeleton shimmer chờ TMDb tải xong
+    // 3. Kích hoạt gọi fallback nếu chưa kích hoạt
+    if (!needsFallback) {
+      setNeedsFallback(true);
+      setIsImageLoaded(false);
+      setHasError(false);
+      return;
+    }
+
+    // 4. Nếu fallback TMDb đang được tải ngầm (isFallbackLoading) -> Giữ skeleton shimmer chờ TMDb tải xong
     if (isFallbackLoading) {
       setIsImageLoaded(false);
       setHasError(false);
       return;
     }
 
-    // 4. Toàn bộ candidates và fallback TMDb đều thất bại -> Hiện Poster Canvas nghệ thuật
+    // 5. Toàn bộ candidates và fallback TMDb đều thất bại -> Hiện Poster Canvas nghệ thuật
     setHasError(true);
     setIsImageLoaded(true);
-  }, [currentSrc, imageCandidates, tmdbFallbackSrc, isFallbackLoading]);
+  }, [currentSrc, imageCandidates, tmdbFallbackSrc, isFallbackLoading, needsFallback]);
 
   // Trạng thái Trailer & Modal Trailer (Chỉ kích hoạt khi bấm nút xem Trailer)
   const [trailerUrl, setTrailerUrl] = useState<string>(

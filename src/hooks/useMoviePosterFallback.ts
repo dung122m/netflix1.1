@@ -55,11 +55,12 @@ export function isPhimimgOrEmpty(url?: string | null): boolean {
   if (!url || typeof url !== "string") return true;
   const clean = url.trim();
   if (!clean || clean === "null" || clean === "undefined") return true;
+  // Placeholder mặc định cũng được coi là rỗng để tiếp tục fallback tìm ảnh poster thật từ CDN
+  if (clean.startsWith("/default-")) return true;
   // Nếu đã là TMDb, AniList, local hoặc CDN nhanh khác -> KHÔNG cần fallback
   if (
     clean.includes("image.tmdb.org") ||
     clean.includes("anilist.co") ||
-    clean.startsWith("/default-") ||
     clean.startsWith("/images/") ||
     clean.includes("nguonc.com") ||
     clean.includes("vsmov.com") ||
@@ -67,8 +68,8 @@ export function isPhimimgOrEmpty(url?: string | null): boolean {
   ) {
     return false;
   }
-  // Chỉ gọi fallback khi link thực sự là nguồn phimimg.com
-  return clean.includes("phimimg.com");
+  // Link phimimg.com bị coi là không hợp lệ (cần thay thế bằng TMDb/AniList)
+  return clean.includes("phimimg.com") || clean.includes("/api/img-thumb");
 }
 
 export interface UseMoviePosterFallbackOptions {
@@ -78,6 +79,7 @@ export interface UseMoviePosterFallbackOptions {
   year?: string | number;
   initialSrc?: string;
   preferBackdrop?: boolean;
+  enabled?: boolean;
 }
 
 /**
@@ -94,6 +96,7 @@ export function useMoviePosterFallback({
   year,
   initialSrc,
   preferBackdrop = false,
+  enabled = true,
 }: UseMoviePosterFallbackOptions): {
   displaySrc: string;
   isUpgraded: boolean;
@@ -120,6 +123,7 @@ export function useMoviePosterFallback({
   const [isLoading, setIsLoading] = useState<boolean>(() => {
     const isCached = Boolean(cacheKey && GLOBAL_POSTER_CACHE.has(cacheKey));
     return (
+      enabled &&
       !isCached &&
       isPhimimgOrEmpty(safeInitial) &&
       Boolean(slug || title) &&
@@ -145,15 +149,22 @@ export function useMoviePosterFallback({
       } else {
         setDisplaySrc(safeInitial);
         const shouldLoad =
+          enabled &&
           isPhimimgOrEmpty(safeInitial) &&
           Boolean(slug || title) &&
           !GLOBAL_TRIED_FAILURES.has(cacheKey);
         setIsLoading(shouldLoad);
       }
     }
-  }, [safeInitial, cacheKey, isUpgraded, displaySrc, slug, title]);
+  }, [safeInitial, cacheKey, isUpgraded, displaySrc, slug, title, enabled]);
 
   useEffect(() => {
+    // Nếu hook bị disable, không gọi network fallback
+    if (!enabled) {
+      setIsLoading(false);
+      return;
+    }
+
     // Nếu không có thông tin tìm kiếm hoặc đã là TMDb/AniList thì bỏ qua
     if (!cacheKey || (!slug && !title)) {
       setIsLoading(false);
@@ -215,7 +226,7 @@ export function useMoviePosterFallback({
         : (data?.posterUrl || data?.backdropUrl);
 
       // Nếu không tìm thấy ảnh thay thế hoặc ảnh vẫn là phimimg -> GIỮ NGUYÊN ẢNH GỐC
-      if (!resolvedRaw || typeof resolvedRaw !== "string" || resolvedRaw.includes("phimimg.com")) {
+      if (!resolvedRaw || typeof resolvedRaw !== "string" || resolvedRaw.includes("phimimg.com") || resolvedRaw.includes("/api/img-thumb")) {
         GLOBAL_TRIED_FAILURES.add(cacheKey);
         setIsLoading(false);
         return;
@@ -246,7 +257,7 @@ export function useMoviePosterFallback({
         setIsLoading(false);
       }
     });
-  }, [cacheKey, slug, title, origin_name, year, displaySrc, preferBackdrop]);
+  }, [cacheKey, slug, title, origin_name, year, displaySrc, preferBackdrop, enabled]);
 
   return { displaySrc, isUpgraded, isLoading };
 }

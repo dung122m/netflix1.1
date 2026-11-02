@@ -14,8 +14,8 @@ import {
   Sparkles,
   Dices,
   Bookmark,
+  Compass,
   X,
-  Users,
 } from "lucide-react";
 import { NanaflixBrandLogo } from "@/components/NetflixLogo";
 import { HolidayNavbarAtmosphere } from "./navbar/HolidayNavbarAtmosphere";
@@ -34,13 +34,15 @@ const AuthModal = dynamic(
   { ssr: false }
 );
 
+const SPECIFIC_BROWSE_TYPES = ["phim-bo", "phim-le", "phim-chieu-rap", "hoat-hinh"];
+
 const NAV_LINKS = [
   { name: "Trang chủ", href: "/", type: null, icon: Home, isLive: false },
   { name: "Phim bộ", href: "/browse?type=phim-bo", type: "phim-bo", icon: Tv, isLive: false },
   { name: "Phim lẻ", href: "/browse?type=phim-le", type: "phim-le", icon: Film, isLive: false },
   { name: "Chiếu rạp", href: "/browse?type=phim-chieu-rap", type: "phim-chieu-rap", icon: Clapperboard, isLive: false },
   { name: "Hoạt hình", href: "/browse?type=hoat-hinh", type: "hoat-hinh", icon: Sparkles, isLive: false },
-  { name: "Diễn viên", href: "/dien-vien", type: "dien-vien", icon: Users, isLive: false },
+  { name: "Kho phim", href: "/browse", type: "kho-phim", icon: Compass, isLive: false },
   { name: "Trực tiếp", href: "/live", type: "live", icon: Flame, isLive: true },
   { name: "Danh sách của tôi", href: "/my-list", type: "my-list", icon: Bookmark, isLive: false },
 ];
@@ -117,12 +119,17 @@ const NavbarInner: React.FC = () => {
 
   const isLinkActive = useCallback(
     (type: string | null) => {
-      if (type === "dien-vien") return pathname?.startsWith("/dien-vien");
       if (type === "live") return pathname === "/live";
       if (type === "my-list") return pathname === "/my-list";
       if (pathname !== "/" && pathname !== "/browse") return false;
-      if (urlKeyword) return false;
-      if (type === null) return pathname === "/" && !currentType;
+      if (urlKeyword && type !== "kho-phim") return false;
+      if (type === null) return pathname === "/" && !currentType && !urlKeyword;
+      if (type === "kho-phim") {
+        return (
+          pathname === "/browse" &&
+          (!currentType || !SPECIFIC_BROWSE_TYPES.includes(currentType))
+        );
+      }
       return pathname === "/browse" && currentType === type;
     },
     [pathname, currentType, urlKeyword]
@@ -154,7 +161,7 @@ const NavbarInner: React.FC = () => {
           </Link>
 
           {/* DESKTOP NAV LINKS */}
-          <div className="hidden lg:flex items-center gap-3.5 xl:gap-5 text-xs xl:text-sm font-semibold flex-shrink-0">
+          <div className="hidden lg:flex items-center gap-3 xl:gap-4.5 text-xs xl:text-sm font-semibold flex-shrink-0">
             {NAV_LINKS.map((link) => {
               const active = isLinkActive(link.type);
               return (

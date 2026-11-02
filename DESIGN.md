@@ -21,15 +21,15 @@ colors:
   border-hover: "rgba(255, 255, 255, 0.25)"
 typography:
   display:
-    fontFamily: "Inter, sans-serif"
+    fontFamily: "Be Vietnam Pro, var(--font-sans), sans-serif"
     fontWeight: 700
     lineHeight: 1.2
   heading:
-    fontFamily: "Inter, sans-serif"
+    fontFamily: "Be Vietnam Pro, var(--font-sans), sans-serif"
     fontWeight: 600
     lineHeight: 1.4
   body:
-    fontFamily: "Inter, sans-serif"
+    fontFamily: "Be Vietnam Pro, var(--font-sans), sans-serif"
     fontWeight: 400
     lineHeight: 1.5
 rounded:
@@ -78,7 +78,7 @@ Nanaflix áp dụng ngôn ngữ thiết kế Dark-only điện ảnh cao cấp k
 
 ## Typography
 
-- **Phông chữ hệ thống:** `Inter`, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif.
+- **Phông chữ hệ thống:** `Be Vietnam Pro` (var(--font-sans)), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif.
 - **An toàn dấu Tiếng Việt (Diacritics Safety):**
   - Mọi tiêu đề tiếng Việt nhiều dòng bắt buộc giữ `line-height` tối thiểu `leading-[1.4]` (hoặc `leading-snug`).
   - Tuyệt đối không ép cứng `height` nhỏ hơn `(cỡ chữ × 1.4 × số dòng) + đệm dấu` để tránh `overflow: hidden` xén cụt dấu mũ (`ấ, ế, ố, ứ`) và dấu nặng/hỏi.

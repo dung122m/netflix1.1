@@ -55,6 +55,7 @@ export interface MovieFilterParams {
   sort?: "latest" | "rating" | "views" | "year";
   skipKvCache?: boolean;
   vsmovTimeoutMs?: number;
+  skipVsmov?: boolean;
 }
 
 export interface AiCandidateOptions {
@@ -648,9 +649,9 @@ async function fetchSourceData(
         const json = await res.json();
 
         const imageDomain =
-          json.data?.APP_DOMAIN_CDN_IMAGE ||
-          json.data?.APP_DOMAIN_FRONTEND ||
-          "https://phimimg.com/";
+          (json.data?.APP_DOMAIN_CDN_IMAGE && !json.data.APP_DOMAIN_CDN_IMAGE.includes("phimimg.com") ? json.data.APP_DOMAIN_CDN_IMAGE : "") ||
+          (json.data?.APP_DOMAIN_FRONTEND && !json.data.APP_DOMAIN_FRONTEND.includes("phimimg.com") ? json.data.APP_DOMAIN_FRONTEND : "") ||
+          "";
         const items = json.data?.items || json.items || [];
 
         const mappedItems = items.map(
@@ -678,9 +679,12 @@ async function fetchSourceData(
             const cdnClean = imageDomain.replace(/\/+$/, "");
 
             const formatImg = (path: string) => {
-              if (!path) return "";
+              if (!path || path.includes("phimimg.com") || path.includes("/api/img-thumb")) return "";
               if (path.startsWith("http://") || path.startsWith("https://")) return path;
-              return `${cdnClean}/${path.replace(/^\/+/, "")}`;
+              if (cdnClean && !cdnClean.includes("phimimg.com")) {
+                return `${cdnClean}/${path.replace(/^\/+/, "")}`;
+              }
+              return "";
             };
 
             const formattedThumb = formatImg(rawThumb);
@@ -1252,7 +1256,7 @@ async function executeGetMovies(params: MovieFilterParams, cacheKey: string) {
   const [resPhimApi, resNguonC, resVsmov] = await Promise.all([
     fetchSourceData(API_PHIMAPI, params, isSearch),
     fetchSourceData(API_NGUONC,   params, isSearch),
-    fetchVsmovSourceData(params, isSearch),
+    params.skipVsmov ? Promise.resolve(null) : fetchVsmovSourceData(params, isSearch),
   ]);
 
   const pItems = resPhimApi?.items || [];
@@ -1480,6 +1484,14 @@ async function executeGetMovies(params: MovieFilterParams, cacheKey: string) {
             item.poster_url = "/default-poster.jpg";
           }
         }
+
+        // Purged: Loại bỏ hoàn toàn nguồn phimimg.com
+        if (item.poster_url && (item.poster_url.includes("phimimg.com") || item.poster_url.includes("/api/img-thumb"))) {
+          item.poster_url = "";
+        }
+        if (item.thumb_url && (item.thumb_url.includes("phimimg.com") || item.thumb_url.includes("/api/img-thumb"))) {
+          item.thumb_url = "";
+        }
       }
     })
   );
@@ -1521,6 +1533,7 @@ const queryMetadataCache = new Map<string, QueryPaginationMeta>();
 
 function buildQueryMetaKey(params: MovieFilterParams): string {
   return JSON.stringify({
+    skipVsmov: Boolean(params.skipVsmov),
     category: params.category || "",
     country: params.country || "",
     year: params.year || "",
@@ -1646,6 +1659,35 @@ export const DEFAULT_COUNTRIES = [
   { name: "Úc", slug: "uc" },
 ];
 
+
+function sanitizeMovieImages<T>(data: T): T {
+  if (!data || typeof data !== "object") return data;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const anyData = data as any;
+  if (Array.isArray(anyData.items)) {
+    for (const item of anyData.items) {
+      if (item && typeof item === "object") {
+        if (typeof item.poster_url === "string" && (item.poster_url.includes("phimimg.com") || item.poster_url.includes("/api/img-thumb"))) {
+          item.poster_url = "";
+        }
+        if (typeof item.thumb_url === "string" && (item.thumb_url.includes("phimimg.com") || item.thumb_url.includes("/api/img-thumb"))) {
+          item.thumb_url = "";
+        }
+      }
+    }
+  }
+  const m = anyData.movie || (anyData.slug ? anyData : null);
+  if (m && typeof m === "object") {
+    if (typeof m.poster_url === "string" && (m.poster_url.includes("phimimg.com") || m.poster_url.includes("/api/img-thumb"))) {
+      m.poster_url = "";
+    }
+    if (typeof m.thumb_url === "string" && (m.thumb_url.includes("phimimg.com") || m.thumb_url.includes("/api/img-thumb"))) {
+      m.thumb_url = "";
+    }
+  }
+  return data;
+}
+
 export const movieApi = {
   // ==========================================
   // 1. LẤY DANH SÁCH PHIM (STALE-WHILE-REVALIDATE 0MS)
@@ -1663,27 +1705,29 @@ export const movieApi = {
       const entry = moviesMemoryCache.get(cacheKey)!;
       // Trả về dữ liệu ngay lập tức nếu cache còn tươi
       if (entry.expireAt > now) {
-        return entry.data;
+        return sanitizeMovieImages(entry.data);
       }
       // Nếu hết hạn tươi nhưng vẫn trong hạn stale -> trả về ngay lập tức (0ms) và revalidate ngầm!
       if (entry.staleUntil > now) {
         executeGetMovies(params, cacheKey).catch(() => {});
-        return entry.data;
+        return sanitizeMovieImages(entry.data);
       }
     }
 
     // Nếu yêu cầu bỏ qua KV (như search suggestions limit: 8), chỉ thực thi fetcher & cache vào RAM
     if (params.skipKvCache) {
-      return await executeGetMovies(params, cacheKey);
+      const res = await executeGetMovies(params, cacheKey);
+      return sanitizeMovieImages(res);
     }
 
     const kvKey = `movie:list:${cacheKey}`;
     const ttlSeconds = params.keyword ? 86400 : 7200; // 1 ngày cho search, 2 giờ cho list
-    return await cacheService.fetchOrSet(
+    const res = await cacheService.fetchOrSet(
       kvKey,
       () => executeGetMovies(params, cacheKey),
       ttlSeconds
     );
+    return sanitizeMovieImages(res);
   },
 
   // ==========================================
@@ -1712,7 +1756,10 @@ export const movieApi = {
   // ==========================================
   // 3. CHI TIẾT PHIM (ĐÃ ĐƯỢC CACHE REACT & MEMORY)
   // ==========================================
-  getMovieDetail: cachedGetMovieDetail,
+  getMovieDetail: async (...args: Parameters<typeof cachedGetMovieDetail>) => {
+    const res = await cachedGetMovieDetail(...args);
+    return sanitizeMovieImages(res);
+  },
 
   // ==========================================
   // 4. TÌM KIẾM PHIM THEO TỪ KHÓA

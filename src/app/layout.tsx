@@ -133,8 +133,6 @@ export default function RootLayout({
         />
 
         {/* Preconnect tối ưu duy nhất cho ảnh direct CDN phimimg (không có crossOrigin để khớp với thẻ <img>) */}
-        <link rel="preconnect" href="https://phimimg.com" />
-        <link rel="dns-prefetch" href="https://phimimg.com" />
         <link rel="dns-prefetch" href="https://image.tmdb.org" />
         <link rel="dns-prefetch" href="https://img.phimapi.com" />
         <link rel="dns-prefetch" href="https://phim.nguonc.com" />

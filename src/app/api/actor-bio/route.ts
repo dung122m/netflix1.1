@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { findCatalogActor } from "@/data/actorsCatalog";
+import { findHistoricalArtist } from "@/data/history/historicalArtistsBirthdays";
 import { getActorMatchTerms } from "@/lib/actorAlias";
 import { fetchActorProfile, cleanBioExtract } from "@/services/wikipediaService";
 import { searchTmdbPerson, getTmdbPersonDetail } from "@/services/tmdbService";
@@ -89,8 +89,8 @@ export async function GET(request: NextRequest) {
   } catch {}
 
   try {
-    // 2. Tra cứu danh mục diễn viên nội bộ (Actors Catalog)
-    const catalogItem = findCatalogActor(cleanName);
+    // 2. Tra cứu dữ liệu nghệ sĩ lịch sử (nếu có sẵn)
+    const catalogItem = findHistoricalArtist(cleanName);
 
     // 3. Tập hợp các từ khóa alias để đối chiếu đa nguồn
     const aliasTerms = Array.from(

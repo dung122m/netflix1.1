@@ -1,17 +1,16 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
-  ACTORS_CATALOG,
-  getActorBySlug,
-  findCatalogActor,
-  getAllCatalogActors,
-} from "../data/actorsCatalog";
+  HISTORICAL_ARTISTS_BIRTHDAYS,
+  getHistoricalArtistBySlug,
+  findHistoricalArtist,
+} from "../data/history/historicalArtistsBirthdays";
 import { normalizeForMatch } from "../lib/stringUtils";
 
-test("Actor Catalog & Flexible Search Matching — Invariant Tests", async (t) => {
-  await t.test("1. Kim Ji-won catalog entry verification", () => {
-    const kim = getActorBySlug("kim-ji-won");
-    assert.ok(kim, "Kim Ji-won must exist in catalog");
+test("Historical Artist Birthdays Dataset & Flexible Matching — Invariant Tests", async (t) => {
+  await t.test("1. Kim Ji-won entry verification in historical birthdays", () => {
+    const kim = getHistoricalArtistBySlug("kim-ji-won");
+    assert.ok(kim, "Kim Ji-won must exist in historical birthdays");
     assert.equal(kim.tmdbPersonId, 582130, "Kim Ji-won must have correct TMDB Person ID 582130");
     assert.equal(kim.birthday, "1992-10-19", "Kim Ji-won birthday must be 1992-10-19");
     assert.ok(
@@ -22,10 +21,10 @@ test("Actor Catalog & Flexible Search Matching — Invariant Tests", async (t) =
     assert.ok(kim.aliases.includes("kim jiwon"), "Aliases must include kim jiwon");
   });
 
-  await t.test("2. getActorBySlug handles hyphen and no-hyphen slug variations", () => {
-    const bySlug = getActorBySlug("kim-ji-won");
-    const byNoDash = getActorBySlug("kim ji won");
-    const byNoSpace = getActorBySlug("kimjiwon");
+  await t.test("2. getHistoricalArtistBySlug handles hyphen and no-hyphen slug variations", () => {
+    const bySlug = getHistoricalArtistBySlug("kim-ji-won");
+    const byNoDash = getHistoricalArtistBySlug("kim ji won");
+    const byNoSpace = getHistoricalArtistBySlug("kimjiwon");
 
     assert.ok(bySlug, "Must find by standard slug");
     assert.ok(byNoDash, "Must find by spaced slug");
@@ -35,11 +34,11 @@ test("Actor Catalog & Flexible Search Matching — Invariant Tests", async (t) =
     assert.equal(byNoSpace.slug, "kim-ji-won");
   });
 
-  await t.test("3. findCatalogActor handles various space and hyphen queries", () => {
-    const q1 = findCatalogActor("Kim Ji-won");
-    const q2 = findCatalogActor("Kim Ji Won");
-    const q3 = findCatalogActor("kim jiwon");
-    const q4 = findCatalogActor("kimjiwon");
+  await t.test("3. findHistoricalArtist handles various space and hyphen queries", () => {
+    const q1 = findHistoricalArtist("Kim Ji-won");
+    const q2 = findHistoricalArtist("Kim Ji Won");
+    const q3 = findHistoricalArtist("kim jiwon");
+    const q4 = findHistoricalArtist("kimjiwon");
 
     assert.ok(q1 && q1.slug === "kim-ji-won", "Must match 'Kim Ji-won'");
     assert.ok(q2 && q2.slug === "kim-ji-won", "Must match 'Kim Ji Won'");
@@ -47,10 +46,10 @@ test("Actor Catalog & Flexible Search Matching — Invariant Tests", async (t) =
     assert.ok(q4 && q4.slug === "kim-ji-won", "Must match 'kimjiwon'");
   });
 
-  await t.test("4. ActorHub search filtering logic matches space/hyphen variations for all actors", () => {
-    const actors = getAllCatalogActors();
+  await t.test("4. Flexible matching logic matches space/hyphen variations for historical artists", () => {
+    const artists = HISTORICAL_ARTISTS_BIRTHDAYS;
 
-    function matchActor(actor: typeof actors[0], query: string): boolean {
+    function matchArtist(artist: typeof artists[0], query: string): boolean {
       const qNorm = normalizeForMatch(query);
       const qNoSpace = qNorm.replace(/\s+/g, "");
       if (!qNorm) return true;
@@ -64,17 +63,17 @@ test("Actor Catalog & Flexible Search Matching — Invariant Tests", async (t) =
       };
 
       return (
-        checkField(actor.name) ||
-        checkField(actor.englishName) ||
-        checkField(actor.roles) ||
-        (actor.aliases || []).some(checkField)
+        checkField(artist.name) ||
+        checkField(artist.englishName) ||
+        checkField(artist.roles) ||
+        (artist.aliases || []).some(checkField)
       );
     }
 
     // Kim Ji-won variations
     const kimQueries = ["Kim Ji-won", "Kim Ji Won", "kim jiwon", "kimjiwon", "ji-won", "jiwon"];
     for (const q of kimQueries) {
-      const results = actors.filter((a) => matchActor(a, q));
+      const results = artists.filter((a) => matchArtist(a, q));
       assert.ok(
         results.some((a) => a.slug === "kim-ji-won"),
         `Query '${q}' must find Kim Ji-won`
@@ -90,19 +89,19 @@ test("Actor Catalog & Flexible Search Matching — Invariant Tests", async (t) =
 
     for (const [queries, expectedSlug] of testCases) {
       for (const q of queries) {
-        const results = actors.filter((a) => matchActor(a, q));
+        const results = artists.filter((a) => matchArtist(a, q));
         assert.ok(
           results.some((a) => a.slug === expectedSlug),
-          `Query '${q}' must find actor with slug '${expectedSlug}'`
+          `Query '${q}' must find artist with slug '${expectedSlug}'`
         );
       }
     }
   });
 
-  await t.test("5. Catalog integrity: 208 curated actors preserved with unique slugs", () => {
-    assert.equal(ACTORS_CATALOG.length, 208, "Must maintain exactly 208 curated actors");
-    const slugs = ACTORS_CATALOG.map((a) => a.slug);
+  await t.test("5. Dataset integrity: 208 historical artists preserved with unique slugs", () => {
+    assert.equal(HISTORICAL_ARTISTS_BIRTHDAYS.length, 208, "Must maintain exactly 208 historical artists");
+    const slugs = HISTORICAL_ARTISTS_BIRTHDAYS.map((a) => a.slug);
     const uniqueSlugs = new Set(slugs);
-    assert.equal(uniqueSlugs.size, ACTORS_CATALOG.length, "All actor slugs must be unique");
+    assert.equal(uniqueSlugs.size, HISTORICAL_ARTISTS_BIRTHDAYS.length, "All artist slugs must be unique");
   });
 });

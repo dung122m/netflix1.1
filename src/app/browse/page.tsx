@@ -26,7 +26,7 @@ import {
   getCanonicalGenreSlug,
   getCanonicalCountrySlug,
   isRawId,
-} from "@/lib/movieMedia";
+  } from "@/lib/movieMedia";
 import { getTmdbPosterUrl, searchTmdbPosterByTitle } from "@/services/tmdbService";
 import { searchAniListPoster } from "@/services/aniListService";
 
@@ -616,6 +616,14 @@ async function enrichMoviesWithTmdbPosters(movieList: any[]) {
           } else {
             item.poster_url = "/default-poster.jpg";
           }
+        }
+
+        // Purged: Loại bỏ hoàn toàn nguồn phimimg.com
+        if (item.poster_url && (item.poster_url.includes("phimimg.com") || item.poster_url.includes("/api/img-thumb"))) {
+          item.poster_url = "";
+        }
+        if (item.thumb_url && (item.thumb_url.includes("phimimg.com") || item.thumb_url.includes("/api/img-thumb"))) {
+          item.thumb_url = "";
         }
       }
     })

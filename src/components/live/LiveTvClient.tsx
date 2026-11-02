@@ -13,13 +13,7 @@ import {
   Search,
   Tv,
   Radio,
-  Play,
-  Pause,
   Volume2,
-  Volume1,
-  VolumeX,
-  Maximize,
-  Minimize,
   RefreshCw,
   Copy,
   Check,
@@ -30,9 +24,7 @@ import {
   LayoutGrid,
   List,
   RotateCcw,
-  RotateCw,
   Sparkles,
-  PictureInPicture2,
   Zap,
 } from "lucide-react";
 import { LiveTvData, TvChannel } from "@/services/liveTvService";
@@ -1436,9 +1428,7 @@ export function LiveTvClient({
   const hasActiveFilters =
     selectedCategory !== "all" || searchQuery.trim() !== "" || onlyFhd;
 
-  const VolumeIcon =
-    isMuted || volume === 0 ? VolumeX : volume < 0.5 ? Volume1 : Volume2;
-
+  
   const channelDrawerMarkup = selectedTvChannel ? (
     <>
       {/* BACKDROP KHI MỞ DRAWER KÊNH TRÊN MOBILE & DESKTOP */}

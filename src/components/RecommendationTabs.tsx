@@ -8,6 +8,7 @@ import {
   Clapperboard,
   Globe2,
   Users,
+  Video,
   Star,
   Shuffle,
   ChevronDown,
@@ -40,11 +41,36 @@ interface RecommendationTabsProps {
   genreName?: string;
   countryName?: string;
   actorName?: string;
+  directorName?: string;
   genreMovies: MovieItem[];
   countryMovies: MovieItem[];
   actorMovies?: MovieItem[];
+  directorMovies?: MovieItem[];
   allMovies: MovieItem[];
   variant?: "grid" | "sidebar";
+}
+
+/**
+ * Helper xác định nhãn thể loại tối ưu theo ngữ cảnh:
+ * - Khi đang ở tab Thể loại (ví dụ "Kinh Dị") và phim có chứa thể loại đó -> ƯU TIÊN hiển thị đúng thể loại của tab.
+ * - Khi ở các tab khác hoặc phim không có thể loại đó -> Hiển thị thể loại đầu tiên thực tế của phim.
+ */
+function resolveDisplayCategory(
+  item: MovieItem,
+  activeTab: string,
+  targetGenreName?: string
+): string | undefined {
+  if (!item.category || item.category.length === 0) return undefined;
+
+  if (activeTab === "genre" && targetGenreName) {
+    const normTarget = targetGenreName.toLowerCase().trim();
+    const matched = item.category.find(
+      (c) => c?.name && c.name.toLowerCase().trim() === normTarget
+    );
+    if (matched?.name) return matched.name;
+  }
+
+  return item.category[0]?.name;
 }
 
 export function RecommendationTabs({
@@ -52,14 +78,16 @@ export function RecommendationTabs({
   genreName,
   countryName,
   actorName,
+  directorName,
   genreMovies = [],
   countryMovies = [],
   actorMovies = [],
+  directorMovies = [],
   allMovies = [],
   variant = "grid",
 }: RecommendationTabsProps) {
   const [activeTab, setActiveTab] = useState<
-    "best" | "genre" | "country" | "actor" | "top"
+    "best" | "genre" | "country" | "actor" | "director" | "top"
   >("best");
   const [isShuffling, setIsShuffling] = useState(false);
   const [shuffleSeed, setShuffleSeed] = useState(0);
@@ -72,6 +100,13 @@ export function RecommendationTabs({
       (m) => m && m.name !== currentMovieTitle
     );
   }, [actorMovies, currentMovieTitle]);
+
+  // Lọc phim theo đạo diễn loại bỏ phim hiện tại
+  const validDirectorMovies = useMemo(() => {
+    return (directorMovies || []).filter(
+      (m) => m && m.name !== currentMovieTitle
+    );
+  }, [directorMovies, currentMovieTitle]);
 
   // Danh sách phim đánh giá cao (sắp xếp theo điểm rating / năm)
   const topRatedMovies = useMemo(() => {
@@ -102,17 +137,45 @@ export function RecommendationTabs({
     return list;
   }, [allMovies, shuffleSeed]);
 
+  // Tự động chuyển về tab "best" nếu tab đang chọn không có phim
+  useEffect(() => {
+    if (activeTab === "genre" && (!genreName || genreMovies.length === 0)) {
+      setActiveTab("best");
+    } else if (activeTab === "country" && (!countryName || countryMovies.length === 0)) {
+      setActiveTab("best");
+    } else if (activeTab === "actor" && (!actorName || validActorMovies.length === 0)) {
+      setActiveTab("best");
+    } else if (activeTab === "director" && (!directorName || validDirectorMovies.length === 0)) {
+      setActiveTab("best");
+    } else if (activeTab === "top" && topRatedMovies.length === 0) {
+      setActiveTab("best");
+    }
+  }, [
+    activeTab,
+    genreName,
+    genreMovies.length,
+    countryName,
+    countryMovies.length,
+    actorName,
+    validActorMovies.length,
+    directorName,
+    validDirectorMovies.length,
+    topRatedMovies.length,
+  ]);
+
   // Danh sách phim đang được chọn theo tab
   const currentTabMovies = useMemo(() => {
     switch (activeTab) {
       case "genre":
-        return genreMovies.length > 0 ? genreMovies : allMovies;
+        return genreMovies;
       case "country":
-        return countryMovies.length > 0 ? countryMovies : allMovies;
+        return countryMovies;
       case "actor":
-        return validActorMovies.length > 0 ? validActorMovies : allMovies;
+        return validActorMovies;
+      case "director":
+        return validDirectorMovies;
       case "top":
-        return topRatedMovies.length > 0 ? topRatedMovies : allMovies;
+        return topRatedMovies;
       case "best":
       default:
         return bestMatchMovies;
@@ -122,9 +185,9 @@ export function RecommendationTabs({
     genreMovies,
     countryMovies,
     validActorMovies,
+    validDirectorMovies,
     topRatedMovies,
     bestMatchMovies,
-    allMovies,
   ]);
 
   const displayedMovies = useMemo(() => {
@@ -311,6 +374,27 @@ export function RecommendationTabs({
                 </button>
               )}
 
+              {/* Tab: Cùng đạo diễn (nếu có) */}
+              {directorName && validDirectorMovies.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveTab("director");
+                    setVisibleLimit(12);
+                  }}
+                  className={`flex items-center gap-1.5 ${
+                    variant === "sidebar" ? "px-2.5 py-1 rounded-full text-[11px]" : "px-3 py-1.5 rounded-xl text-xs"
+                  } font-bold transition-all whitespace-nowrap cursor-pointer border shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 shrink-0 ${
+                    activeTab === "director"
+                      ? "bg-emerald-600 text-white border-emerald-400 shadow-sm"
+                      : "bg-zinc-900/90 text-zinc-300 hover:text-white hover:bg-zinc-800"
+                  }`}
+                >
+                  <Video className="w-3 h-3 text-emerald-300" />
+                  <span>{variant === "sidebar" ? directorName : `Đạo diễn: ${directorName}`} ({validDirectorMovies.length})</span>
+                </button>
+              )}
+
               {/* Tab 3: Cùng thể loại */}
               {genreName && genreMovies.length > 0 && (
                 <button
@@ -413,6 +497,7 @@ export function RecommendationTabs({
                     key={item.slug}
                     item={item}
                     matchPercent={matchPercent}
+                    displayCategory={resolveDisplayCategory(item, activeTab, genreName)}
                   />
                 );
               })}
@@ -448,6 +533,7 @@ export function RecommendationTabs({
                     key={item.slug}
                     item={item}
                     matchPercent={matchPercent}
+                    displayCategory={resolveDisplayCategory(item, activeTab, genreName)}
                   />
                 );
               })}
@@ -511,14 +597,16 @@ export function RecommendationTabs({
  */
 const RecommendedMovieCard = React.memo(function RecommendedMovieCard({
   item,
+  displayCategory,
 }: {
   item: MovieItem;
   matchPercent?: number;
+  displayCategory?: string;
 }) {
   const rawThumb = pickBestMovieThumb(item, "/default-hero.jpg");
   const thumbUrl = toOptimizedPhimimgUrl(rawThumb, 320);
   const title = item.name || item.title || "Phim";
-  const categoryName = item.category?.[0]?.name;
+  const categoryName = displayCategory || item.category?.[0]?.name;
   const year = item.year;
   const time = item.time;
   const quality = item.quality || "FHD";
@@ -606,14 +694,16 @@ const RecommendedMovieCard = React.memo(function RecommendedMovieCard({
  */
 const RecommendedSidebarCard = React.memo(function RecommendedSidebarCard({
   item,
+  displayCategory,
 }: {
   item: MovieItem;
   matchPercent?: number;
+  displayCategory?: string;
 }) {
   const rawThumb = pickBestMovieThumb(item, "/default-hero.jpg");
   const thumbUrl = toOptimizedPhimimgUrl(rawThumb, 240);
   const title = item.name || item.title || "Phim";
-  const categoryName = item.category?.[0]?.name;
+  const categoryName = displayCategory || item.category?.[0]?.name;
   const year = item.year;
   const time = item.time;
   const quality = item.quality || "HD";

@@ -5,13 +5,6 @@ import { createPortal } from "react-dom";
 import Hls from "hls.js";
 import { useBodyScrollLock } from "@/lib/scrollLock";
 import {
-  Play,
-  Pause,
-  Volume2,
-  Volume1,
-  VolumeX,
-  Maximize,
-  Minimize,
   RefreshCw,
   Copy,
   Check,
@@ -21,10 +14,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Sparkles,
-  PictureInPicture2,
   X,
   RotateCcw,
-  RotateCw,
   Mic,
   LayoutGrid,
 } from "lucide-react";
@@ -2677,9 +2668,7 @@ function LivePlayerInner({
     }
   };
 
-  const VolumeIcon =
-    isMuted || volume === 0 ? VolumeX : volume < 0.5 ? Volume1 : Volume2;
-
+  
   useBodyScrollLock(Boolean(isRailVisible && useMobilePortal));
 
   const sourceDrawerMarkup =

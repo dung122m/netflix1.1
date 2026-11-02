@@ -8,28 +8,68 @@ import {
   MapPin,
   Clapperboard,
   Sparkles,
-  Users,
 } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
-import { getActorBySlug, ACTORS_CATALOG } from "@/data/actorsCatalog";
 import {
   getActorSynonyms,
   resolveActorMovies,
   queryMoviesByActor,
+  toVietnameseTitleCase,
   GOLDEN_ACTOR_INDEX,
 } from "@/services/aiActorService";
+import { getHistoricalArtistBySlug } from "@/data/history/historicalArtistsBirthdays";
 import { normalizeForMatch } from "@/lib/stringUtils";
 import {
   searchTmdbPerson,
   getTmdbPersonDetail,
 } from "@/services/tmdbService";
 import { fetchActorProfile } from "@/services/wikipediaService";
+import { selectBestBiography } from "@/lib/bioFormatter";
 import { ActorDetailClient } from "@/components/actors/ActorDetailClient";
 import { ActorAvatar } from "@/components/actors/ActorAvatar";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
+  searchParams?: Promise<{ id?: string }>;
+}
+
+/**
+ * Phân tích slug và query params để trích xuất TMDb Person ID (nếu có) và tên diễn viên.
+ * Hỗ trợ các định dạng:
+ * 1. /dien-vien/sydney-sweeney?id=115440
+ * 2. /dien-vien/115440-sydney-sweeney
+ * 3. /dien-vien/115440
+ * 4. /dien-vien/sydney-sweeney
+ */
+function parseActorIdentifier(slug: string, queryId?: string): {
+  personId?: number;
+  rawName: string;
+} {
+  let personId: number | undefined = undefined;
+  if (queryId && /^\d+$/.test(queryId.trim())) {
+    personId = parseInt(queryId.trim(), 10);
+  }
+
+  let cleanSlug = (slug || "").trim();
+  const prefixMatch = cleanSlug.match(/^(\d+)(?:-(.*))?$/);
+  if (prefixMatch) {
+    if (!personId) {
+      personId = parseInt(prefixMatch[1], 10);
+    }
+    cleanSlug = prefixMatch[2] || "";
+  } else {
+    const suffixMatch = cleanSlug.match(/^(.*?)-(\d+)$/);
+    if (suffixMatch) {
+      if (!personId) {
+        personId = parseInt(suffixMatch[2], 10);
+      }
+      cleanSlug = suffixMatch[1];
+    }
+  }
+
+  const rawName = cleanSlug.replace(/-/g, " ").trim();
+  return { personId, rawName };
 }
 
 /**
@@ -65,12 +105,40 @@ function formatDate(dateStr?: string): string | null {
   return dateStr;
 }
 
-export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+export async function generateMetadata({ params, searchParams }: PageProps): Promise<Metadata> {
   const { slug } = await params;
-  const catalogItem = getActorBySlug(slug);
-  const rawQuery = slug.replace(/-/g, " ");
-  const synonymRes = getActorSynonyms(rawQuery) || getActorSynonyms(slug);
-  const actorName = catalogItem?.name || synonymRes?.canonicalName || rawQuery;
+  const query = searchParams ? await searchParams : undefined;
+  const { personId, rawName } = parseActorIdentifier(slug, query?.id);
+
+  let actorName = "";
+
+  if (personId) {
+    try {
+      const tmdb = await getTmdbPersonDetail(personId);
+      if (tmdb?.name) {
+        actorName = tmdb.name;
+      }
+    } catch {
+      // Fallback below
+    }
+  }
+
+  if (!actorName && rawName) {
+    try {
+      const person = await searchTmdbPerson(rawName, rawName);
+      if (person?.name) {
+        actorName = person.name;
+      }
+    } catch {
+      // Fallback below
+    }
+  }
+
+  if (!actorName) {
+    const historicalItem = getHistoricalArtistBySlug(slug) || (rawName ? getHistoricalArtistBySlug(rawName) : undefined);
+    const synonymRes = getActorSynonyms(rawName) || getActorSynonyms(slug);
+    actorName = historicalItem?.name || (synonymRes?.isMatched ? synonymRes.canonicalName : "") || toVietnameseTitleCase(rawName);
+  }
 
   return {
     title: `Phim của ${actorName} - Tiểu sử & Danh sách phim | Nanaflix`,
@@ -82,13 +150,16 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   };
 }
 
-export default async function ActorDetailPage({ params }: PageProps) {
+export default async function ActorDetailPage({ params, searchParams }: PageProps) {
   const { slug } = await params;
-  const rawQuery = slug.replace(/-/g, " ");
+  const query = searchParams ? await searchParams : undefined;
+  const { personId: explicitPersonId, rawName } = parseActorIdentifier(slug, query?.id);
 
-  // 1. Phân giải danh tính nghệ sĩ (Chuẩn hóa 100% khớp với flow của /browse)
-  const catalogItem = getActorBySlug(slug);
-  const actorSynonyms = getActorSynonyms(rawQuery) || getActorSynonyms(slug);
+  // 1. Phân giải danh tính nghệ sĩ On-Demand
+  const historicalItem = getHistoricalArtistBySlug(slug) || (rawName ? getHistoricalArtistBySlug(rawName) : undefined);
+  const actorSynonyms = getActorSynonyms(rawName) || getActorSynonyms(slug);
+
+  let tmdbPersonId = explicitPersonId || historicalItem?.tmdbPersonId;
 
   const actorRes = actorSynonyms?.isMatched
     ? {
@@ -98,19 +169,21 @@ export default async function ActorDetailPage({ params }: PageProps) {
         isActor: true,
         source: "preset" as const,
       }
-    : await resolveActorMovies(rawQuery);
+    : rawName
+    ? await resolveActorMovies(rawName)
+    : null;
 
-  const canonicalName =
-    catalogItem?.name ||
-    (actorRes?.isActor ? actorRes.actorName : (actorSynonyms?.canonicalName || rawQuery));
+  let canonicalName =
+    historicalItem?.name ||
+    (actorRes?.isActor ? actorRes.actorName : (actorSynonyms?.canonicalName || (rawName ? toVietnameseTitleCase(rawName) : "")));
 
   const actorAliases = Array.from(
     new Set([
       canonicalName,
-      ...(catalogItem?.aliases || []),
+      ...(historicalItem?.aliases || []),
       ...(actorSynonyms?.variants || []),
       ...(actorRes?.aliases || []),
-      rawQuery,
+      rawName,
     ])
   ).filter(Boolean);
 
@@ -121,38 +194,52 @@ export default async function ActorDetailPage({ params }: PageProps) {
     actorAliases.push(...matchedPreset.aliases);
   }
 
+  // 2. Tra cứu chi tiết diễn viên từ TMDb Person API theo ID hoặc Search có ngưỡng khớp chặt chẽ
+  let tmdbDetail = null;
+  if (tmdbPersonId) {
+    try {
+      tmdbDetail = await getTmdbPersonDetail(tmdbPersonId);
+      if (tmdbDetail?.name) {
+        canonicalName = tmdbDetail.name;
+      }
+    } catch {
+      // Ignored
+    }
+  } else if (canonicalName) {
+    try {
+      const matchedPerson = await searchTmdbPerson(canonicalName, canonicalName, actorAliases);
+      if (matchedPerson?.id) {
+        tmdbPersonId = matchedPerson.id;
+        tmdbDetail = await getTmdbPersonDetail(matchedPerson.id);
+        if (tmdbDetail?.name) {
+          canonicalName = tmdbDetail.name;
+        }
+      }
+    } catch {
+      // Ignored
+    }
+  }
+
+  // 3. Tra cứu thông tin bổ trợ từ Wikipedia
+  const wikiProfilePromise = canonicalName ? fetchActorProfile(canonicalName) : Promise.resolve(null);
+  const moviesPromise = canonicalName
+    ? queryMoviesByActor(canonicalName, actorAliases, historicalItem?.country || actorRes?.country || actorSynonyms?.country || "", 150)
+    : Promise.resolve([]);
+
+  const [wikiProfile, movies] = await Promise.all([wikiProfilePromise, moviesPromise]);
+
+  // Nếu không tìm thấy thông tin trên TMDb, Wikipedia và cũng không có phim nào trên hệ thống -> 404 Not Found
+  if (!tmdbDetail && !wikiProfile && (!movies || movies.length === 0)) {
+    notFound();
+  }
+
   const country =
-    catalogItem?.country ||
+    historicalItem?.country ||
     actorRes?.country ||
     actorSynonyms?.country ||
     matchedPreset?.country ||
     "";
-  const englishName = catalogItem?.englishName || actorSynonyms?.englishName;
-
-  if (!canonicalName || !canonicalName.trim()) {
-    notFound();
-  }
-
-  // 2. Tối ưu: Sử dụng trực tiếp metadata hardcoded, chỉ gọi API phụ khi thiếu dữ liệu
-  const hasLocalMetadata = Boolean(catalogItem?.avatarUrl && catalogItem?.bio);
-
-  const tmdbDetailPromise = hasLocalMetadata
-    ? Promise.resolve(null)
-    : catalogItem?.tmdbPersonId
-    ? getTmdbPersonDetail(catalogItem.tmdbPersonId)
-    : searchTmdbPerson(canonicalName, canonicalName, actorAliases).then((p) =>
-        p?.id ? getTmdbPersonDetail(p.id) : null
-      );
-
-  const wikiProfilePromise = hasLocalMetadata
-    ? Promise.resolve(null)
-    : fetchActorProfile(canonicalName);
-
-  const [tmdbDetail, wikiProfile, movies] = await Promise.all([
-    tmdbDetailPromise,
-    wikiProfilePromise,
-    queryMoviesByActor(canonicalName, actorAliases, country, 150),
-  ]);
+  const englishName = historicalItem?.englishName || actorSynonyms?.englishName || tmdbDetail?.name;
 
   const formatProfileUrl = (path?: string | null) => {
     if (!path) return undefined;
@@ -160,41 +247,34 @@ export default async function ActorDetailPage({ params }: PageProps) {
     return `https://image.tmdb.org/t/p/w500${path.startsWith("/") ? "" : "/"}${path}`;
   };
 
-  // 3. Xác định avatar chất lượng tốt nhất
+  // 4. Xác định avatar chất lượng tốt nhất
   const bestAvatar =
-    catalogItem?.avatarUrl ||
+    historicalItem?.avatarUrl ||
     formatProfileUrl(tmdbDetail?.profile_path) ||
     wikiProfile?.thumbnail;
 
-  // 4. Xác định tiểu sử tốt nhất
-  const bestBio =
-    catalogItem?.bio ||
-    wikiProfile?.extract ||
-    tmdbDetail?.biography ||
-    wikiProfile?.description;
+  // 5. Đánh giá chất lượng đa nguồn & xác định tiểu sử hoàn thiện nhất
+  const bestBio = selectBestBiography({
+    historicalBio: historicalItem?.bio,
+    wikiExtract: wikiProfile?.extract,
+    tmdbBio: tmdbDetail?.biography,
+    wikiDescription: wikiProfile?.description,
+  });
 
-  // 5. Trích xuất thông tin cá nhân thực tế (chỉ hiển thị khi có dữ liệu)
-  const birthday = catalogItem?.birthday || tmdbDetail?.birthday;
-  const deathday = catalogItem?.deathday || tmdbDetail?.deathday;
+  // 6. Trích xuất thông tin cá nhân thực tế (chỉ hiển thị khi có dữ liệu)
+  const birthday = historicalItem?.birthday || tmdbDetail?.birthday;
+  const deathday = historicalItem?.deathday || tmdbDetail?.deathday;
   const formattedBirthday = formatDate(birthday);
   const age = calculateAge(birthday, deathday);
-  const placeOfBirth = catalogItem?.placeOfBirth || tmdbDetail?.place_of_birth;
+  const placeOfBirth = historicalItem?.placeOfBirth || tmdbDetail?.place_of_birth;
   const knownRole =
-    catalogItem?.roles ||
+    historicalItem?.roles ||
     (tmdbDetail?.known_for_department === "Acting"
       ? "Diễn viên điện ảnh"
       : tmdbDetail?.known_for_department === "Directing"
       ? "Đạo diễn điện ảnh"
       : "Nghệ sĩ điện ảnh");
-  const wikiUrl = catalogItem?.wikiUrl || wikiProfile?.wikiUrl;
-
-  // 6. Diễn viên cùng khu vực (Discovery)
-  const relatedActors = ACTORS_CATALOG.filter(
-    (a) =>
-      a.slug !== slug &&
-      catalogItem?.countryCode &&
-      a.countryCode === catalogItem.countryCode
-  ).slice(0, 6);
+  const wikiUrl = historicalItem?.wikiUrl || wikiProfile?.wikiUrl;
 
   return (
     <div className="min-h-screen bg-[#050505] text-zinc-100 flex flex-col selection:bg-netflix-red selection:text-white font-sans antialiased overflow-x-hidden">
@@ -210,11 +290,11 @@ export default async function ActorDetailPage({ params }: PageProps) {
         {/* ============================================================ */}
         <div className="flex items-center gap-2 text-xs font-semibold text-zinc-400">
           <Link
-            href="/dien-vien"
+            href="/browse"
             className="inline-flex items-center gap-1.5 hover:text-white transition-colors bg-white/[0.04] hover:bg-white/[0.08] px-3 py-1.5 rounded-full border border-white/[0.08]"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
-            <span>Tất cả diễn viên</span>
+            <span>Khám phá phim</span>
           </Link>
           <span className="text-zinc-600">•</span>
           <span className="text-zinc-300 truncate">{canonicalName}</span>
@@ -255,7 +335,7 @@ export default async function ActorDetailPage({ params }: PageProps) {
                   <Clapperboard className="w-3 h-3" />
                   <span>{movies.length} Phim trên Nanaflix</span>
                 </span>
-                {catalogItem?.tags?.map((tag) => (
+                {historicalItem?.tags?.map((tag) => (
                   <span
                     key={tag}
                     className="px-2.5 py-1 rounded-full bg-zinc-800/80 border border-zinc-700/60 text-zinc-300 text-xs font-medium"
@@ -327,51 +407,6 @@ export default async function ActorDetailPage({ params }: PageProps) {
           wikiUrl={wikiUrl}
           actorName={canonicalName}
         />
-
-        {/* ============================================================ */}
-        {/* RELATED ACTORS (DISCOVERY) */}
-        {/* ============================================================ */}
-        {relatedActors.length > 0 && (
-          <section className="pt-10 border-t border-white/[0.08] space-y-6">
-            <div className="flex items-center justify-between">
-              <h2 className="text-base sm:text-xl font-bold text-white flex items-center gap-2">
-                <Users className="w-5 h-5 text-netflix-red" />
-                <span>Nghệ Sĩ Nổi Bật Cùng Khu Vực</span>
-              </h2>
-              <Link
-                href="/dien-vien"
-                className="text-xs text-netflix-red hover:underline font-semibold"
-              >
-                Xem tất cả
-              </Link>
-            </div>
-
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3 sm:gap-4">
-              {relatedActors.map((actor) => (
-                <Link
-                  key={`rel-${actor.slug}`}
-                  href={`/dien-vien/${actor.slug}`}
-                  className="group p-3 rounded-2xl bg-zinc-950/70 hover:bg-zinc-900 border border-white/[0.06] hover:border-netflix-red/50 transition-all text-center space-y-2 shadow"
-                >
-                  <div className="w-16 h-16 rounded-full overflow-hidden bg-zinc-800 mx-auto group-hover:border-netflix-red group-hover:scale-105 transition-all flex items-center justify-center relative">
-                    <ActorAvatar
-                      name={actor.name}
-                      avatarUrl={actor.avatarUrl}
-                      shape="circle"
-                      sizes="64px"
-                    />
-                  </div>
-                  <div>
-                    <h3 className="text-xs font-bold text-white group-hover:text-netflix-red transition-colors truncate">
-                      {actor.name}
-                    </h3>
-                    <p className="text-[10px] text-zinc-400 truncate">{actor.country}</p>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          </section>
-        )}
 
       </main>
 

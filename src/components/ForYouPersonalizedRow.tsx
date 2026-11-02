@@ -514,13 +514,13 @@ function ForYouPersonalizedRowInner({ fallbackMovies }: ForYouPersonalizedRowPro
           ? Array.from({ length: 6 }).map((_, idx) => (
               <div
                 key={idx}
-                className="flex-none w-[140px] sm:w-[175px] md:w-[195px] aspect-[2/3] rounded-xl bg-zinc-900/80 animate-pulse"
+                className="flex-none w-[140px] sm:w-[175px] md:w-[190px] aspect-[2/3] rounded-xl bg-zinc-900/80 animate-pulse"
               />
             ))
           : normalizedMovies.map(({ norm, bestThumb }, idx) => (
               <div
                 key={norm.slug || idx}
-                className="flex-none w-[140px] sm:w-[175px] md:w-[195px] snap-start select-none"
+                className="flex-none w-[140px] sm:w-[175px] md:w-[190px] snap-start select-none"
               >
                 <MediaCard
                   slug={norm.slug}

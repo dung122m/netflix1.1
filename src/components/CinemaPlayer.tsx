@@ -1585,8 +1585,11 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
 
     const triggerAdSkip = (targetSeek: number, adDuration: number, adKey: string) => {
       const v = videoRef.current;
-      if (!v || v.paused || v.ended || v.seeking) return;
-      if (hasSkippedAdRef.current.has(adKey)) return;
+      if (!v || v.ended || v.seeking) return;
+      // Tránh re-trigger nếu đang chuyển tiếp tới cùng mốc target
+      if (automatedAdSkipRef.current?.active && Math.abs(automatedAdSkipRef.current.targetSeek - targetSeek) < 0.25) {
+        return;
+      }
       hasSkippedAdRef.current.add(adKey);
       lastAdSkipTimeRef.current = Date.now();
       cancelAdPreTrigger();
@@ -1907,57 +1910,72 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
             pendingKeyboardSeekRef.current.state.isDebouncePending = false;
           }
           triggerAdSkip(adDecision.targetSeek, adDecision.adDuration, adDecision.adKey);
-        } else if (!video.paused && !video.seeking && !video.ended && adBoundariesRef.current.length > 0) {
-          // 2. Pre-emptive monitoring: Nếu playhead đang tiến sát ranh giới quảng cáo kế tiếp (trong 1.5s)
-          const ct = video.currentTime;
-          const nextUpcomingAd = adBoundariesRef.current.find(
-            (b) => b.start > ct && b.start - ct <= 1.5 && !hasSkippedAdRef.current.has(`${b.start}_${b.end}`)
+        } else if (!automatedAdSkipRef.current?.active && !video.seeking) {
+          // Fallback an toàn: Nếu playhead đang nằm bên trong một ad boundary mà chưa thoát ra ngoài
+          const inAd = adBoundariesRef.current.find(
+            (b) => ct >= b.start && ct < (b.nextStart ?? b.end) - 0.25
           );
+          if (inAd) {
+            const adKey = `${inAd.start}_${inAd.end}`;
+            const targetSeek = calculateSafeAdSkipTarget(
+              inAd.end,
+              adBoundariesRef.current,
+              effectiveDur,
+              SAFE_AD_SKIP_OFFSET
+            );
+            triggerAdSkip(targetSeek, Math.round(inAd.duration), adKey);
+          } else if (!video.paused && !video.ended && adBoundariesRef.current.length > 0) {
+            // 2. Pre-emptive monitoring: Nếu playhead đang tiến sát ranh giới quảng cáo kế tiếp (trong 1.5s)
+            const ct = video.currentTime;
+            const nextUpcomingAd = adBoundariesRef.current.find(
+              (b) => b.start > ct && b.start - ct <= 1.5 && !hasSkippedAdRef.current.has(`${b.start}_${b.end}`)
+            );
 
-          if (nextUpcomingAd && adPreTriggerRef.current.timer === null && adPreTriggerRef.current.rVfcId === null) {
-            const leadThreshold = 0.3; // 300ms trước ranh giới quảng cáo
-            const targetSeek = calculateSafeAdSkipTarget(nextUpcomingAd.end, adBoundariesRef.current, effectiveDur, SAFE_AD_SKIP_OFFSET);
-            const adDuration = Math.round(nextUpcomingAd.duration);
-            const adKey = `${nextUpcomingAd.start}_${nextUpcomingAd.end}`;
+            if (nextUpcomingAd && adPreTriggerRef.current.timer === null && adPreTriggerRef.current.rVfcId === null) {
+              const leadThreshold = 0.3; // 300ms trước ranh giới quảng cáo
+              const targetSeek = calculateSafeAdSkipTarget(nextUpcomingAd.end, adBoundariesRef.current, effectiveDur, SAFE_AD_SKIP_OFFSET);
+              const adDuration = Math.round(nextUpcomingAd.duration);
+              const adKey = `${nextUpcomingAd.start}_${nextUpcomingAd.end}`;
 
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            if (typeof (video as any).requestVideoFrameCallback === "function") {
-              const onFrame = () => {
-                const curV = videoRef.current;
-                if (!curV || curV.paused || curV.seeking || curV.ended) {
-                  adPreTriggerRef.current.rVfcId = null;
-                  return;
-                }
-                const curCt = curV.currentTime;
-                const nextAdEnd = nextUpcomingAd.nextStart ?? nextUpcomingAd.end;
-                if (curCt >= nextUpcomingAd.start - leadThreshold && curCt < nextAdEnd - 0.25) {
-                  adPreTriggerRef.current.rVfcId = null;
-                  triggerAdSkip(targetSeek, adDuration, adKey);
-                  return;
-                }
-                if (curCt < nextUpcomingAd.start - 1.5 || curCt >= nextAdEnd) {
-                  adPreTriggerRef.current.rVfcId = null;
-                  return;
-                }
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                adPreTriggerRef.current.rVfcId = (curV as any).requestVideoFrameCallback(onFrame);
-              };
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              adPreTriggerRef.current.rVfcId = (video as any).requestVideoFrameCallback(onFrame);
-            } else {
-              // Fallback one-shot timer cho trình duyệt không hỗ trợ rVFC
-              const rate = video.playbackRate && video.playbackRate > 0 ? video.playbackRate : 1;
-              const delayMs = Math.max(10, Math.round(((nextUpcomingAd.start - leadThreshold - ct) / rate) * 1000));
-              adPreTriggerRef.current.timer = setTimeout(() => {
-                adPreTriggerRef.current.timer = null;
-                const curV = videoRef.current;
-                if (curV && !curV.paused && !curV.seeking && !curV.ended) {
-                  const nextAdEnd = nextUpcomingAd.nextStart ?? nextUpcomingAd.end;
-                  if (curV.currentTime >= nextUpcomingAd.start - 0.35 && curV.currentTime < nextAdEnd - 0.25) {
-                    triggerAdSkip(targetSeek, adDuration, adKey);
+              if (typeof (video as any).requestVideoFrameCallback === "function") {
+                const onFrame = () => {
+                  const curV = videoRef.current;
+                  if (!curV || curV.paused || curV.seeking || curV.ended) {
+                    adPreTriggerRef.current.rVfcId = null;
+                    return;
                   }
-                }
-              }, delayMs);
+                  const curCt = curV.currentTime;
+                  const nextAdEnd = nextUpcomingAd.nextStart ?? nextUpcomingAd.end;
+                  if (curCt >= nextUpcomingAd.start - leadThreshold && curCt < nextAdEnd - 0.25) {
+                    adPreTriggerRef.current.rVfcId = null;
+                    triggerAdSkip(targetSeek, adDuration, adKey);
+                    return;
+                  }
+                  if (curCt < nextUpcomingAd.start - 1.5 || curCt >= nextAdEnd) {
+                    adPreTriggerRef.current.rVfcId = null;
+                    return;
+                  }
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  adPreTriggerRef.current.rVfcId = (curV as any).requestVideoFrameCallback(onFrame);
+                };
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                adPreTriggerRef.current.rVfcId = (video as any).requestVideoFrameCallback(onFrame);
+              } else {
+                // Fallback one-shot timer cho trình duyệt không hỗ trợ rVFC
+                const rate = video.playbackRate && video.playbackRate > 0 ? video.playbackRate : 1;
+                const delayMs = Math.max(10, Math.round(((nextUpcomingAd.start - leadThreshold - ct) / rate) * 1000));
+                adPreTriggerRef.current.timer = setTimeout(() => {
+                  adPreTriggerRef.current.timer = null;
+                  const curV = videoRef.current;
+                  if (curV && !curV.paused && !curV.seeking && !curV.ended) {
+                    const nextAdEnd = nextUpcomingAd.nextStart ?? nextUpcomingAd.end;
+                    if (curV.currentTime >= nextUpcomingAd.start - 0.35 && curV.currentTime < nextAdEnd - 0.25) {
+                      triggerAdSkip(targetSeek, adDuration, adKey);
+                    }
+                  }
+                }, delayMs);
+              }
             }
           }
         }

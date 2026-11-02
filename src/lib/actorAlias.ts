@@ -61,8 +61,8 @@ export function getActorMatchTerms(actorName?: string): string[] {
 export function matchesActorAlias(
   primaryActor: string | undefined,
   candidateActors: string[],
-  movieName?: string,
-  originName?: string
+  _movieName?: string,
+  _originName?: string
 ): boolean {
   if (!primaryActor) return false;
 

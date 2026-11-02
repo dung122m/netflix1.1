@@ -2,7 +2,7 @@ import { VIETNAM_EVENTS, VietnamEvent } from "@/data/vietnamEvents";
 import { getHistoricalEventsForDate, VietnamHistoricalEvent } from "@/data/historicalEvents";
 import { FEATURED_HISTORICAL_EVENTS } from "@/data/history/featuredHistory";
 import { CURATED_NANAFLIX_MILESTONES } from "@/data/history/curatedSeed";
-import { ACTORS_CATALOG } from "@/data/actorsCatalog";
+import { HISTORICAL_ARTISTS_BIRTHDAYS } from "@/data/history/historicalArtistsBirthdays";
 
 import {
   computeJulianDayFromDate,
@@ -52,14 +52,14 @@ export function getDayOfYear(date: Date): number {
 
 
 /**
- * Tìm các diễn viên có ngày sinh nhật trùng với ngày được chọn (dữ liệu xác thực từ ACTORS_CATALOG)
+ * Tìm các diễn viên có ngày sinh nhật trùng với ngày được chọn (dữ liệu xác thực từ HISTORICAL_ARTISTS_BIRTHDAYS)
  */
 export function getActorBirthdaysForDate(month: number, day: number, currentYear: number): VietnamEvent[] {
   const matches: VietnamEvent[] = [];
   const dayStr = String(day).padStart(2, "0");
   const monthStr = String(month).padStart(2, "0");
 
-  for (const actor of ACTORS_CATALOG) {
+  for (const actor of HISTORICAL_ARTISTS_BIRTHDAYS) {
     if (!actor.birthday) continue;
     const parts = actor.birthday.split("-");
     if (parts.length >= 3) {
@@ -115,7 +115,7 @@ export function getActorBirthdaysForDate(month: number, day: number, currentYear
 /**
  * Evaluates whether an actor birthday event qualifies as a "Featured Person" (Hero candidate).
  * Strict criteria:
- * 1. Actor must exist in ACTORS_CATALOG
+ * 1. Actor must exist in HISTORICAL_ARTISTS_BIRTHDAYS
  * 2. Actor must be marked as featured (actor.featured === true) or have high priority (>= 90)
  * 3. Complete and valid data: non-empty name, valid non-placeholder avatarUrl, valid slug
  */
@@ -125,7 +125,7 @@ export function isFeaturedActor(event: VietnamEvent): boolean {
   if (!isActorEvent) return false;
 
   const slug = event.actorSlug || event.id.replace("ev-actor-birthday-", "");
-  const actor = ACTORS_CATALOG.find((a) => a.slug === slug);
+  const actor = HISTORICAL_ARTISTS_BIRTHDAYS.find((a) => a.slug === slug);
   if (!actor) return false;
 
   // Complete data check

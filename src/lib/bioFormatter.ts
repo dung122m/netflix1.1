@@ -173,7 +173,247 @@ export const TOPIC_TRANSITION_REGEX = new RegExp(
 
 // Standard biography section headings
 export const HEADING_REGEX =
-  /^(tiểu sử và sự nghiệp|tiểu sử|cuộc đời và sự nghiệp|cuộc đời|sự nghiệp|sự nghiệp âm nhạc|sự nghiệp điện ảnh|sự nghiệp diễn xuất|đời tư|hoạt động nghệ thuật|những năm gần đây|thời thơ ấu|thành tựu|giải thưởng|phong cách nghệ thuật|đánh giá|early life|career|personal life|filmography|awards):?$/i;
+  /^(tiểu sử và sự nghiệp|tiểu sử|cuộc đời và sự nghiệp|cuộc đời|sự nghiệp|sự nghiệp âm nhạc|sự nghiệp điện ảnh|sự nghiệp diễn xuất|đời tư|hoạt động nghệ thuật|những năm gần đây|thời thơ ấu|thời niên thiếu|thành tựu|giải thưởng|phong cách nghệ thuật|đánh giá|early life|career|personal life|filmography|awards):?$/i;
+
+// Heading keywords for dangling detection
+export const DANGLING_HEADING_KEYWORDS = [
+  "sự nghiệp",
+  "tiểu sử",
+  "thời thơ ấu",
+  "thời niên thiếu",
+  "đầu đời",
+  "tuổi thơ",
+  "cuộc đời",
+  "cuộc sống",
+  "thân thế",
+  "gia đình",
+  "đời tư",
+  "tác phẩm",
+  "kịch",
+  "phim",
+  "phim ảnh",
+  "điện ảnh",
+  "truyền hình",
+  "diễn xuất",
+  "danh sách phim",
+  "danh sách phim tham gia",
+  "các phim đã đóng",
+  "các phim đã tham gia",
+  "giải thưởng",
+  "thành tựu",
+  "đề cử",
+  "chú thích",
+  "ghi chú",
+  "liên kết ngoài",
+  "nhân cách",
+  "âm nhạc",
+  "khởi đầu sự nghiệp",
+  "khởi đầu và đột phá",
+  "khởi đầu",
+  "trò chơi",
+  "video game",
+  "video",
+  "gameshow",
+  "hoạt động khác",
+  "hoạt động",
+  "thống kê",
+  "vinh danh",
+  "xem thêm",
+  "sự cố",
+  "tranh cãi",
+  "tham khảo",
+  "thời gian đầu",
+  "danh sách tác phẩm",
+  "chương trình",
+  "chương trình tham gia",
+  "chương trình truyền hình",
+  "early life",
+  "career",
+  "personal life",
+  "filmography",
+  "awards",
+  "references",
+  "external links",
+  "breakthrough and continued success",
+];
+
+/**
+ * Checks whether a single line is a dangling heading or empty year range with no following text.
+ */
+export function isTrailingDanglingHeading(line: string): boolean {
+  const clean = line.trim();
+  if (!clean) return false;
+
+  // 1. Year range alone or with colon/heading at end of text:
+  // e.g. "1979 - 1991:", "1991–2003:", "1998:", "2006–2017: Thành công tại TVB:"
+  if (
+    /^(\d{4}\s*[-–—]\s*(?:\d{4}|nay|present)?|\d{4})\s*[:：]?\s*(?:[A-ZÀ-Ỹa-zà-ỹ0-9\s,&"']{0,60}[:：])?$/i.test(
+      clean
+    )
+  ) {
+    return true;
+  }
+
+  // 2. Headings ending with colon or without content:
+  // e.g. "Sự nghiệp:", "Tác phẩm:", "Khởi đầu sự nghiệp:", "Thời niên thiếu:", "Đầu đời và tổ tiên:", "Trò chơi:"
+  if (/^(?:==+.*==+|[#]+.*|[A-ZÀ-Ỹa-zà-ỹ0-9\s,&"']{2,60}[:：]?)$/i.test(clean)) {
+    const withoutColon = clean.replace(/[:：]$/, "").trim().toLowerCase();
+    if (
+      DANGLING_HEADING_KEYWORDS.some(
+        (hw) => withoutColon === hw || withoutColon.includes(hw)
+      )
+    ) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+/**
+ * Strips dangling headings or unpopulated year ranges from the very end of biography text.
+ * Leaves valid in-paragraph year ranges and complete paragraphs untouched.
+ */
+export function stripTrailingDanglingHeadings(text: string): string {
+  if (!text) return "";
+  let result = text.replace(/\r\n/g, "\n").trim();
+
+  let changed = true;
+  while (changed) {
+    changed = false;
+    const blocks = result.split(/\n\s*\n+/);
+    if (blocks.length === 0) break;
+
+    const lastBlock = blocks[blocks.length - 1].trim();
+    const lines = lastBlock.split("\n").map((l) => l.trim()).filter(Boolean);
+
+    // If the entire last block is a single dangling heading line
+    if (lines.length === 1 && isTrailingDanglingHeading(lines[0])) {
+      blocks.pop();
+      result = blocks.join("\n\n").trim();
+      changed = true;
+      continue;
+    }
+
+    // If the last block has multiple lines and the last line is a dangling heading
+    if (lines.length > 1 && isTrailingDanglingHeading(lines[lines.length - 1])) {
+      lines.pop();
+      blocks[blocks.length - 1] = lines.join("\n");
+      result = blocks.join("\n\n").trim();
+      changed = true;
+      continue;
+    }
+  }
+
+  return result;
+}
+
+/**
+ * Evaluates biography text quality to pick the best source.
+ */
+export function evaluateBioQuality(bio?: string | null): number {
+  if (!bio || !bio.trim()) return 0;
+  const clean = bio.trim();
+  if (clean.length < 50) return 1;
+
+  let score = 10;
+
+  // Length points (up to 30)
+  if (clean.length >= 1200) score += 30;
+  else if (clean.length >= 500) score += 20;
+  else if (clean.length >= 180) score += 10;
+
+  // Penalty if it ends with a dangling heading or colon
+  const lastLine = clean.split("\n").pop() || "";
+  if (isTrailingDanglingHeading(lastLine)) {
+    score -= 30;
+  } else if (/[:：]\s*$/i.test(clean)) {
+    score -= 20;
+  }
+
+  // Bonus for structured Vietnamese content (has paragraphs or headings)
+  if (clean.includes("\n\n")) score += 10;
+
+  // Bonus if it ends cleanly with a sentence punctuation mark (. ! ” ")
+  if (/[.!”"]\s*$/.test(clean)) score += 15;
+
+  return Math.max(0, score);
+}
+
+/**
+ * Selects the highest quality, most complete biography candidate among historical, Wikipedia, and TMDb sources.
+ */
+export function selectBestBiography(options: {
+  historicalBio?: string | null;
+  wikiExtract?: string | null;
+  tmdbBio?: string | null;
+  wikiDescription?: string | null;
+}): string | undefined {
+  const { historicalBio, wikiExtract, tmdbBio, wikiDescription } = options;
+
+  interface Candidate {
+    text: string;
+    source: "historical" | "wikipedia" | "tmdb";
+    quality: number;
+  }
+
+  const candidates: Candidate[] = [];
+
+  if (historicalBio) {
+    const cleaned = stripTrailingDanglingHeadings(historicalBio);
+    if (cleaned.length >= 50) {
+      candidates.push({
+        text: cleaned,
+        source: "historical",
+        quality: evaluateBioQuality(cleaned),
+      });
+    }
+  }
+
+  if (wikiExtract) {
+    const cleaned = stripTrailingDanglingHeadings(wikiExtract);
+    if (cleaned.length >= 50) {
+      candidates.push({
+        text: cleaned,
+        source: "wikipedia",
+        quality: evaluateBioQuality(cleaned),
+      });
+    }
+  }
+
+  if (tmdbBio) {
+    const cleaned = stripTrailingDanglingHeadings(tmdbBio);
+    if (cleaned.length >= 50) {
+      candidates.push({
+        text: cleaned,
+        source: "tmdb",
+        quality: evaluateBioQuality(cleaned),
+      });
+    }
+  }
+
+  if (candidates.length === 0) {
+    return wikiDescription ? stripTrailingDanglingHeadings(wikiDescription) : undefined;
+  }
+
+  const histCand = candidates.find((c) => c.source === "historical");
+  const wikiCand = candidates.find((c) => c.source === "wikipedia");
+
+  // If Wikipedia has a significantly higher quality and complete article (> 1500 chars)
+  // while historical bio was truncated or very brief
+  if (wikiCand && histCand) {
+    if (wikiCand.quality > histCand.quality + 20) {
+      return wikiCand.text;
+    }
+    if (histCand.quality >= 35) {
+      return histCand.text;
+    }
+  }
+
+  // Sort candidates by quality descending
+  candidates.sort((a, b) => b.quality - a.quality);
+  return candidates[0].text;
+}
 
 /**
  * Splits a text block into natural paragraphs based on topic transitions and optimal reading length.
@@ -243,14 +483,17 @@ export function parseBioContent(rawText?: string): ParsedBio {
     return { sections: [] };
   }
 
-  // Strip trailing bibliography/source appendix headers from Wikipedia
-  const cleanedText = rawText
+  // 1. Strip trailing bibliography/source appendix headers from Wikipedia
+  let cleanedText = rawText
     .replace(/\r\n/g, "\n")
     .replace(
       /\n\s*(phim đã đóng|chú thích|đọc thêm|tài liệu tham khảo|liên kết ngoài|xem thêm|references|external links):[\s\S]*$/i,
       ""
     )
     .trim();
+
+  // 2. Strip any dangling headings or year ranges left hanging at the end
+  cleanedText = stripTrailingDanglingHeadings(cleanedText);
 
   // Split into raw double-newline blocks
   const rawBlocks = cleanedText.split(/\n\s*\n+/).map((b) => b.trim()).filter(Boolean);
@@ -264,10 +507,18 @@ export function parseBioContent(rawText?: string): ParsedBio {
   let currentSection: BioSection = { paragraphs: [] };
 
   const pushCurrentSection = () => {
-    if (currentSection.paragraphs.length > 0 || currentSection.heading) {
-      sections.push(currentSection);
-      currentSection = { paragraphs: [] };
+    // Only push if there are actual paragraphs with real content
+    const validParas = currentSection.paragraphs
+      .map((p) => p.trim())
+      .filter((p) => p && !isTrailingDanglingHeading(p));
+
+    if (validParas.length > 0) {
+      sections.push({
+        heading: currentSection.heading,
+        paragraphs: validParas,
+      });
     }
+    currentSection = { paragraphs: [] };
   };
 
   // Case: Continuous single text block (e.g., from TMDB or continuous unformatted extract)

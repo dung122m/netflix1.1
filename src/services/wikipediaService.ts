@@ -1,3 +1,5 @@
+import { stripTrailingDanglingHeadings } from "@/lib/bioFormatter";
+
 export interface ActorProfile {
   name: string;
   title: string;
@@ -169,7 +171,8 @@ export function cleanBioExtract(raw: string): string {
   // 7. Chuẩn hóa khoảng trắng và dòng trống
   text = text.replace(/\n{3,}/g, "\n\n").trim();
 
-  return text;
+  // 8. Khử triệt để đề mục treo lơ lửng và mốc năm cụt ở cuối văn bản
+  return stripTrailingDanglingHeadings(text);
 }
 
 /**

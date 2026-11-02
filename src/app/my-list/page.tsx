@@ -1,8 +1,7 @@
 "use client";
 
-import React, { useState, useEffect, useMemo, Suspense } from "react";
+import React, { useState, useEffect, useCallback, Suspense } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import {
   Bookmark,
@@ -10,8 +9,6 @@ import {
   Trash2,
   ArrowLeft,
   Clock,
-  Play,
-  X,
   RefreshCw,
   LogIn,
   FolderHeart,
@@ -33,9 +30,14 @@ import { useAuth } from "@/context/AuthContext";
 import { AuthModal } from "@/components/AuthModal";
 import { UserAvatar } from "@/components/ui/UserAvatar";
 import { Footer } from "@/components/Footer";
-import { WatchlistCard } from "@/components/browse/WatchlistCard";
 import { MediaCard } from "@/components/browse/MediaCard";
-import { getWatchlist, autoHydrateWatchlist, WatchlistItem } from "@/lib/watchlist";
+import { EmptyState } from "@/components/ui/EmptyState";
+import {
+  getWatchlist,
+  autoHydrateWatchlist,
+  removeFromWatchlist,
+  WatchlistItem,
+} from "@/lib/watchlist";
 import {
   getWatchHistory,
   removeWatchHistoryItem,
@@ -43,8 +45,7 @@ import {
   autoHydrateWatchHistory,
   WatchHistoryItem,
 } from "@/lib/watchHistory";
-import { pickBestMoviePoster, pickBestMovieThumb, toOptimizedPhimimgUrl, toOptimizedCardPosterUrl, sanitizeImageUrl } from "@/lib/movieMedia";
-import { formatEpisodeName } from "@/lib/formatEpisode";
+import { toOptimizedCardPosterUrl } from "@/lib/movieMedia";
 import { clearAllWatchlistFromCloud } from "@/lib/cloudSync";
 import {
   subscribeUserCollections,
@@ -131,36 +132,12 @@ function HistoryCardItem({
       ? Math.min(100, Math.round((item.progressSeconds / item.durationSeconds) * 100))
       : 0;
 
-  // 1. Áp dụng chuẩn chọn ảnh tối ưu ban đầu đồng nhất với Home (ContinueWatchingRow)
-  const initialPoster = useMemo(() => {
-    if (item.poster && !item.poster.includes("phimimg.com") && !item.poster.includes("/default-")) {
-      return toOptimizedCardPosterUrl(item.poster);
-    }
-    const bestPoster = pickBestMoviePoster({ poster_url: item.poster, thumb_url: item.thumb }, "");
-    if (bestPoster && !bestPoster.includes("/default-")) {
-      return toOptimizedCardPosterUrl(bestPoster);
-    }
-    const bestThumb = pickBestMovieThumb({ poster_url: item.poster, thumb_url: item.thumb }, "");
-    if (bestThumb && !bestThumb.includes("/default-")) {
-      return toOptimizedCardPosterUrl(bestThumb);
-    }
-    return item.poster || item.thumb || "";
-  }, [item.poster, item.thumb]);
-
-  // 2. Dùng chung hook fallback chuẩn như Home (ContinueWatchingRow) và Watchlist
-  const { displaySrc } = useMoviePosterFallback({
-    slug: item.slug,
-    title: item.title,
-    year: item.year,
-    initialSrc: initialPoster,
-  });
-
   return (
     <MediaCard
       slug={item.slug}
       title={item.title}
-      imageUrl={displaySrc || initialPoster}
-      posterUrl={displaySrc || item.poster}
+      imageUrl={item.poster || item.thumb || ""}
+      posterUrl={item.poster}
       thumbUrl={item.thumb}
       year={item.year}
       genre={item.category || ""}
@@ -309,6 +286,16 @@ function MyListContent() {
       setDeletingCommentId(null);
     }
   };
+
+  const handleRemoveWatchlistItem = useCallback(
+    (e: React.MouseEvent, slug: string, title: string) => {
+      e.preventDefault();
+      e.stopPropagation();
+      removeFromWatchlist(slug);
+      toast.info(`Đã xóa "${title}" khỏi danh sách yêu thích.`);
+    },
+    []
+  );
 
   const handleClearWatchlist = async () => {
     const confirmed = await showConfirmDialog({
@@ -633,7 +620,7 @@ function MyListContent() {
 
       {/* NỘI DUNG THEO TAB */}
       {!mounted ? (
-        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 md:gap-5">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4 md:gap-4 lg:gap-5 xl:gap-6">
           {Array.from({ length: 4 }).map((_, i) => (
             <div
               key={i}
@@ -644,33 +631,33 @@ function MyListContent() {
       ) : activeTab === "watchlist" ? (
         /* TAB 1: WATCHLIST */
         watchlist.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 px-4 text-center max-w-lg mx-auto">
-            <div className="h-20 w-20 rounded-full bg-zinc-900 flex items-center justify-center mb-5 text-zinc-400">
-              <Film className="h-9 w-9 text-zinc-500" />
-            </div>
-            <h2 className="text-xl sm:text-2xl font-bold mb-2">
-              Danh sách của bạn chưa có phim nào
-            </h2>
-            <p className="text-zinc-400 text-sm leading-relaxed mb-6">
-              Khi lướt phim trên Nanaflix, hãy bấm vào nút dấu cộng (<span className="text-white font-bold">+</span>) trên các bộ phim bạn thích để lưu vào danh sách xem sau.
-            </p>
-            <Link
-              href="/"
-              className="inline-flex items-center gap-2 rounded-lg bg-netflix-red px-6 py-3 text-sm sm:text-base font-bold text-white transition hover:bg-red-700 shadow-lg"
-            >
-              Khám phá phim ngay
-            </Link>
-          </div>
+          <EmptyState
+            icon={<Film className="h-9 w-9 text-zinc-500" />}
+            title="Danh sách của bạn chưa có phim nào"
+            description={
+              <p>
+                Khi lướt phim trên Nanaflix, hãy bấm vào nút dấu cộng (<span className="text-white font-bold">+</span>) trên các bộ phim bạn thích để lưu vào danh sách xem sau.
+              </p>
+            }
+            action={
+              <Link
+                href="/"
+                className="inline-flex items-center gap-2 rounded-lg bg-netflix-red px-6 py-3 text-sm sm:text-base font-bold text-white transition hover:bg-red-700 shadow-lg"
+              >
+                Khám phá phim ngay
+              </Link>
+            }
+          />
         ) : (
           <div className="rounded-2xl bg-gradient-to-b from-zinc-900/40 to-transparent p-3 sm:p-4 md:p-5 overflow-visible">
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4 md:gap-4 lg:gap-5 xl:gap-6">
               {watchlist.map((item, index) => (
-                <WatchlistCard
+                <MediaCard
                   key={item.slug}
                   slug={item.slug}
                   title={item.title}
                   imageUrl={item.imageUrl}
-                  poster={item.poster}
+                  posterUrl={item.poster}
                   genre={item.genre || item.category || ""}
                   year={item.year}
                   quality={item.quality}
@@ -684,6 +671,8 @@ function MyListContent() {
                   episodeName={item.episodeName}
                   seasonName={item.seasonName}
                   priority={index < 4}
+                  onRemove={(e) => handleRemoveWatchlistItem(e, item.slug, item.title)}
+                  removeTooltip="Xóa khỏi danh sách yêu thích"
                 />
               ))}
             </div>
@@ -692,23 +681,19 @@ function MyListContent() {
       ) : activeTab === "history" ? (
         /* TAB 2: WATCH HISTORY */
         history.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 px-4 text-center max-w-lg mx-auto">
-            <div className="h-20 w-20 rounded-full bg-zinc-900 flex items-center justify-center mb-5 text-zinc-400">
-              <Clock className="h-9 w-9 text-zinc-500" />
-            </div>
-            <h2 className="text-xl sm:text-2xl font-bold mb-2">
-              Chưa có lịch sử xem phim
-            </h2>
-            <p className="text-zinc-400 text-sm leading-relaxed mb-6">
-              Các bộ phim và tập phim bạn thưởng thức sẽ tự động xuất hiện tại đây để bạn có thể dễ dàng xem tiếp bất cứ lúc nào.
-            </p>
-            <Link
-              href="/"
-              className="inline-flex items-center gap-2 rounded-lg bg-netflix-red px-6 py-3 text-sm sm:text-base font-bold text-white transition hover:bg-red-700 shadow-lg"
-            >
-              Xem phim ngay
-            </Link>
-          </div>
+          <EmptyState
+            icon={<Clock className="h-9 w-9 text-zinc-500" />}
+            title="Chưa có lịch sử xem phim"
+            description="Các bộ phim và tập phim bạn thưởng thức sẽ tự động xuất hiện tại đây để bạn có thể dễ dàng xem tiếp bất cứ lúc nào."
+            action={
+              <Link
+                href="/"
+                className="inline-flex items-center gap-2 rounded-lg bg-netflix-red px-6 py-3 text-sm sm:text-base font-bold text-white transition hover:bg-red-700 shadow-lg"
+              >
+                Xem phim ngay
+              </Link>
+            }
+          />
         ) : (
           <div className="rounded-2xl bg-gradient-to-b from-zinc-900/40 to-transparent p-3 sm:p-4 md:p-5">
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4 md:gap-5">
@@ -753,45 +738,39 @@ function MyListContent() {
               </div>
             </div>
           ) : !user ? (
-            <div className="flex flex-col items-center justify-center py-12 px-4 text-center max-w-lg mx-auto bg-zinc-900/40 rounded-2xl">
-              <div className="h-16 w-16 rounded-full bg-zinc-900/80 flex items-center justify-center mb-4 text-zinc-400">
-                <FolderHeart className="h-8 w-8 text-netflix-red" />
-              </div>
-              <h2 className="text-lg sm:text-xl font-bold mb-2">
-                Bộ sưu tập phim cá nhân
-              </h2>
-              <p className="text-zinc-400 text-xs sm:text-sm leading-relaxed mb-5">
-                Đăng nhập tài khoản Google để tạo playlist phim theo gu riêng, gom nhóm các tác phẩm yêu thích và chia sẻ liên kết công khai.
-              </p>
-              <button
-                type="button"
-                onClick={() => setShowAuthModal(true)}
-                className="inline-flex items-center gap-2 rounded-xl bg-netflix-red px-5 py-2.5 text-xs sm:text-sm font-bold text-white transition hover:bg-red-700 shadow-lg cursor-pointer active:scale-95"
-              >
-                <LogIn className="w-4 h-4" />
-                <span>Đăng nhập ngay</span>
-              </button>
-            </div>
+            <EmptyState
+              variant="card"
+              icon={<FolderHeart className="h-8 w-8 text-netflix-red" />}
+              title="Bộ sưu tập phim cá nhân"
+              description="Đăng nhập tài khoản Google để tạo playlist phim theo gu riêng, gom nhóm các tác phẩm yêu thích và chia sẻ liên kết công khai."
+              action={
+                <button
+                  type="button"
+                  onClick={() => setShowAuthModal(true)}
+                  className="inline-flex items-center gap-2 rounded-xl bg-netflix-red px-5 py-2.5 text-xs sm:text-sm font-bold text-white transition hover:bg-red-700 shadow-lg cursor-pointer active:scale-95"
+                >
+                  <LogIn className="w-4 h-4" />
+                  <span>Đăng nhập ngay</span>
+                </button>
+              }
+            />
           ) : collections.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 px-4 text-center max-w-lg mx-auto bg-zinc-900/40 rounded-2xl">
-              <div className="h-16 w-16 rounded-full bg-zinc-900/80 flex items-center justify-center mb-4 text-zinc-400">
-                <FolderPlus className="h-8 w-8 text-zinc-500" />
-              </div>
-              <h2 className="text-lg sm:text-xl font-bold mb-2">
-                Bạn chưa có bộ sưu tập riêng
-              </h2>
-              <p className="text-zinc-400 text-xs sm:text-sm leading-relaxed mb-5">
-                Bắt đầu tạo bộ sưu tập đầu tiên (ví dụ: &quot;Anime cày đêm&quot;, &quot;Phim kinh dị đỉnh cao&quot;) và thêm các phim yêu thích vào danh sách.
-              </p>
-              <button
-                type="button"
-                onClick={() => setShowCreateCollectionModal(true)}
-                className="inline-flex items-center gap-2 rounded-xl bg-netflix-red px-5 py-2.5 text-xs sm:text-sm font-bold text-white transition hover:bg-red-700 shadow-lg cursor-pointer active:scale-95"
-              >
-                <Plus className="w-4 h-4" />
-                <span>Tạo bộ sưu tập đầu tiên</span>
-              </button>
-            </div>
+            <EmptyState
+              variant="card"
+              icon={<FolderPlus className="h-8 w-8 text-zinc-500" />}
+              title="Bạn chưa có bộ sưu tập riêng"
+              description="Bắt đầu tạo bộ sưu tập đầu tiên (ví dụ: &quot;Anime cày đêm&quot;, &quot;Phim kinh dị đỉnh cao&quot;) và thêm các phim yêu thích vào danh sách."
+              action={
+                <button
+                  type="button"
+                  onClick={() => setShowCreateCollectionModal(true)}
+                  className="inline-flex items-center gap-2 rounded-xl bg-netflix-red px-5 py-2.5 text-xs sm:text-sm font-bold text-white transition hover:bg-red-700 shadow-lg cursor-pointer active:scale-95"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Tạo bộ sưu tập đầu tiên</span>
+                </button>
+              }
+            />
           ) : (
             <div>
               <div className="flex items-center justify-between mb-4">
@@ -849,18 +828,6 @@ function MyListContent() {
                           {/* Lớp gradient điện ảnh che phủ */}
                           <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-transparent to-transparent pointer-events-none" />
                           <div className="absolute inset-0 bg-black/30 opacity-0 group-hover/card:opacity-100 transition-opacity duration-300 pointer-events-none" />
-                        </Link>
-
-                        {/* ICON TRUNG TÂM KHI HOVER */}
-                        <Link
-                          href={`/collection/${col.id}`}
-                          tabIndex={-1}
-                          aria-hidden="true"
-                          className="absolute inset-0 flex items-center justify-center pointer-events-none z-10"
-                        >
-                          <div className="w-10 h-10 rounded-full bg-netflix-red text-white flex items-center justify-center shadow-[0_0_20px_rgba(229,9,20,0.8)] opacity-0 group-hover/card:opacity-100 transform scale-75 group-hover/card:scale-100 transition-all duration-200 ease-out">
-                            <FolderHeart className="w-5 h-5 fill-white" />
-                          </div>
                         </Link>
 
                         {/* BADGE CÔNG KHAI / RIÊNG TƯ (GÓC TRÊN TRÁI) */}
@@ -987,23 +954,19 @@ function MyListContent() {
       ) : activeTab === "comments" ? (
         /* TAB 4: LỊCH SỬ BÌNH LUẬN */
         userComments.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 px-4 text-center max-w-lg mx-auto">
-            <div className="h-20 w-20 rounded-full bg-zinc-900 flex items-center justify-center mb-5 text-zinc-400">
-              <MessageSquare className="h-9 w-9 text-rose-500" />
-            </div>
-            <h2 className="text-xl sm:text-2xl font-bold mb-2">
-              Bạn chưa viết bình luận nào
-            </h2>
-            <p className="text-zinc-400 text-sm leading-relaxed mb-6">
-              Mỗi đánh giá và nhận xét của bạn giúp cộng đồng Nanaflix tìm được bộ phim hay nhất!
-            </p>
-            <Link
-              href="/"
-              className="inline-flex items-center gap-2 rounded-lg bg-netflix-red px-6 py-3 text-sm sm:text-base font-bold text-white transition hover:bg-red-700 shadow-lg"
-            >
-              Xem phim & Đánh giá ngay
-            </Link>
-          </div>
+          <EmptyState
+            icon={<MessageSquare className="h-9 w-9 text-rose-500" />}
+            title="Bạn chưa viết bình luận nào"
+            description="Mỗi đánh giá và nhận xét của bạn giúp cộng đồng Nanaflix tìm được bộ phim hay nhất!"
+            action={
+              <Link
+                href="/"
+                className="inline-flex items-center gap-2 rounded-lg bg-netflix-red px-6 py-3 text-sm sm:text-base font-bold text-white transition hover:bg-red-700 shadow-lg"
+              >
+                Xem phim & Đánh giá ngay
+              </Link>
+            }
+          />
         ) : (
           <div className="rounded-2xl bg-gradient-to-b from-zinc-900/40 to-transparent p-4 sm:p-6 space-y-4">
             <div className="flex items-center justify-between pb-3">

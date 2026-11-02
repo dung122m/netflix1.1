@@ -1,117 +1,16 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import Link from "next/link";
-import Image from "next/image";
 import {
   Flame,
   TrendingUp,
 } from "lucide-react";
 import { MovieViewStatItem } from "@/services/supabaseService";
-import { pickBestMoviePoster, toOptimizedPhimimgUrl, formatGenreName } from "@/lib/movieMedia";
+import { formatGenreName } from "@/lib/movieMedia";
 import { CarouselNavButton } from "@/components/ui/CarouselNavButton";
+import { NumberedRankCard } from "@/components/browse/NumberedRankCard";
 
 const TRENDING_CACHE_KEY = "nanaflix_trending_community_cache_v5";
-
-interface CommunityTrendingPosterProps {
-  movieTitle: string;
-  movieSlug: string;
-  poster?: string;
-  thumb?: string;
-  priority?: boolean;
-}
-
-function CommunityTrendingPoster({
-  movieTitle,
-  movieSlug,
-  poster,
-  thumb,
-  priority = false,
-}: CommunityTrendingPosterProps) {
-  const initialPoster = pickBestMoviePoster(
-    {
-      poster_url: poster,
-      thumb_url: thumb,
-      name: movieTitle,
-      slug: movieSlug,
-    },
-    ""
-  );
-
-  const [imgSrc, setImgSrc] = useState<string>(() => {
-    if (initialPoster && !initialPoster.includes("/default-")) {
-      return toOptimizedPhimimgUrl(initialPoster, 320);
-    }
-    return "";
-  });
-
-  const fallbackTriedRef = useRef(false);
-
-  useEffect(() => {
-    if (!imgSrc && !fallbackTriedRef.current) {
-      fallbackTriedRef.current = true;
-      fetch(`/api/movie-poster-fallback?title=${encodeURIComponent(movieTitle)}&slug=${encodeURIComponent(movieSlug)}`)
-        .then((res) => (res.ok ? res.json() : null))
-        .then((data) => {
-          if (data?.posterUrl) {
-            setImgSrc(data.posterUrl);
-          } else if (data?.backdropUrl) {
-            setImgSrc(data.backdropUrl);
-          } else {
-            setImgSrc("/default-poster.jpg");
-          }
-        })
-        .catch(() => {
-          setImgSrc("/default-poster.jpg");
-        });
-    }
-  }, [imgSrc, movieTitle, movieSlug]);
-
-  const handleError = useCallback(() => {
-    if (!fallbackTriedRef.current) {
-      fallbackTriedRef.current = true;
-      fetch(`/api/movie-poster-fallback?title=${encodeURIComponent(movieTitle)}&slug=${encodeURIComponent(movieSlug)}`)
-        .then((res) => (res.ok ? res.json() : null))
-        .then((data) => {
-          if (data?.posterUrl) {
-            setImgSrc(data.posterUrl);
-          } else if (data?.backdropUrl) {
-            setImgSrc(data.backdropUrl);
-          } else {
-            setImgSrc("/default-poster.jpg");
-          }
-        })
-        .catch(() => {
-          setImgSrc("/default-poster.jpg");
-        });
-    } else {
-      setImgSrc("/default-poster.jpg");
-    }
-  }, [movieTitle, movieSlug]);
-
-  if (!imgSrc) {
-    return (
-      <div className="w-full h-full bg-zinc-900/80 animate-pulse flex items-center justify-center">
-        <div className="w-8 h-8 rounded-full bg-white/5" />
-      </div>
-    );
-  }
-
-  return (
-    <Image
-      src={imgSrc}
-      alt={movieTitle}
-      fill
-      unoptimized
-      priority={priority}
-      sizes="(max-width: 640px) 160px, (max-width: 768px) 200px, 240px"
-      className="object-cover group-hover:scale-105 transition-transform duration-500"
-      loading={priority ? "eager" : "lazy"}
-      quality={85}
-      onError={handleError}
-    />
-  );
-}
 
 function CommunityTopTrendingInner() {
   const [items, setItems] = useState<MovieViewStatItem[]>([]);
@@ -440,86 +339,23 @@ function CommunityTopTrendingInner() {
               const rank = index + 1;
               const categoryText = movie.category ? formatGenreName(movie.category) : "";
 
+              const safePoster = movie.poster && !movie.poster.includes("phimimg.com") && !movie.poster.includes("/api/img-thumb") ? movie.poster : undefined;
+              const safeThumb = movie.thumb && !movie.thumb.includes("phimimg.com") && !movie.thumb.includes("/api/img-thumb") ? movie.thumb : undefined;
+
               return (
-                <div
+                <NumberedRankCard
                   key={movie.movieSlug}
-                  className="flex-none relative snap-start group select-none"
-                >
-                  <Link
-                    href={`/movies/${movie.movieSlug}`}
-                    className="flex items-start relative block cursor-pointer group-hover:scale-[1.025] group-hover:-translate-y-1 transition-all duration-300 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-netflix-red rounded-xl"
-                  >
-                    <div aria-hidden="true" className="flex items-end h-[210px] sm:h-[262px] md:h-[285px] relative -mr-5 sm:-mr-8 z-0 pointer-events-none select-none shrink-0">
-                      <span
-                        className="text-[90px] sm:text-[130px] md:text-[150px] font-black leading-none tracking-tighter text-transparent"
-                        style={{
-                          WebkitTextStroke:
-                            rank === 1
-                              ? "3px #e50914"
-                              : rank === 2
-                              ? "3px #d4d4d8"
-                              : rank === 3
-                              ? "3px #a1a1aa"
-                              : "2px rgba(255, 255, 255, 0.2)",
-                        }}
-                      >
-                        {rank}
-                      </span>
-                    </div>
-
-                    {/* CỘT POSTER + METADATA DƯỚI POSTER */}
-                    <div className="relative z-10 w-[140px] sm:w-[175px] md:w-[190px] flex flex-col shrink-0 min-w-0">
-                      {/* MOVIE POSTER CONTAINER (ARTWORK THUẦN KHIẾT) */}
-                      <div className="relative w-full aspect-[2/3] rounded-xl overflow-hidden bg-zinc-950 bg-gradient-to-br from-zinc-800/70 via-zinc-900 to-zinc-950 group-hover: group-hover:ring-netflix-red group-hover:ring-inset group-hover:shadow-[0_14px_32px_rgba(229,9,20,0.35),0_0_20px_rgba(0,0,0,0.8)] transition-all duration-300">
-                        <CommunityTrendingPoster
-                          movieTitle={movie.movieTitle}
-                          movieSlug={movie.movieSlug}
-                          poster={movie.poster}
-                          thumb={movie.thumb}
-                          priority={index < 3}
-                        />
-
-                        {/* CHỈ GIỮ BADGE ĐẶC BIỆT (CAM HOẶC 4K), LOẠI BỎ BADGE FHD/HD PHỔ THÔNG */}
-                        {(() => {
-                          const q = movie.quality?.toUpperCase() || "";
-                          const isCam = q.includes("CAM");
-                          const is4k = q.includes("4K") || q.includes("UHD");
-                          if (!isCam && !is4k) return null;
-                          return (
-                            <div className="absolute top-2 right-2 pointer-events-none z-10">
-                              <span
-                                className={`px-1.5 py-0.5 rounded text-[10px] font-bold backdrop-blur-md border ${
-                                  isCam
-                                    ? "bg-amber-950/90 text-amber-300 "
-                                    : "bg-black/75 text-zinc-100 "
-                                }`}
-                              >
-                                {isCam ? "CAM" : "4K"}
-                              </span>
-                            </div>
-                          );
-                        })()}
-                      </div>
-
-                      {/* THÔNG TIN PHIM DƯỚI POSTER: 1 DÒNG DUY NHẤT, CĂN ĐỀU BASELINE */}
-                      <div className="pt-2 sm:pt-2.5 min-w-0 flex flex-col">
-                        <h3
-                          title={movie.movieTitle}
-                          className="text-white text-xs sm:text-[13px] font-semibold truncate group-hover:text-netflix-red transition-colors"
-                        >
-                          {movie.movieTitle}
-                        </h3>
-                        <div className="flex items-center gap-1.5 text-[10px] sm:text-[11px] text-zinc-400 mt-1 font-medium min-w-0">
-                          <span className="shrink-0">{movie.year || "Mới"}</span>
-                          {categoryText && <span className="text-zinc-600 shrink-0">•</span>}
-                          {categoryText && (
-                            <span className="text-zinc-400 truncate min-w-0">{categoryText}</span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </Link>
-                </div>
+                  rank={rank}
+                  slug={movie.movieSlug}
+                  title={movie.movieTitle}
+                  poster_url={safePoster}
+                  thumb_url={safeThumb}
+                  year={movie.year}
+                  quality={movie.quality}
+                  secondaryTag={categoryText}
+                  priority={index < 3}
+                  theme="red"
+                />
               );
             })
           )}

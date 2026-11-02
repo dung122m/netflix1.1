@@ -63,8 +63,11 @@ export function sanitizeImageUrl(url: string): string {
       }
     } catch {}
   }
+  if (clean.includes("phimimg.com") || clean.includes("/api/img-thumb")) {
+    return "";
+  }
   if (!clean.startsWith("http://") && !clean.startsWith("https://") && !clean.startsWith("/")) {
-    clean = `https://phimimg.com/${clean.replace(/^\/+/, "")}`;
+    return "";
   }
   // Sửa lỗi url có 2 dấu gạch chéo // sau tên miền (gây redirect chậm)
   clean = clean.replace(/(https?:\/\/)([^/]+)\/\/+/g, "$1$2/");
@@ -169,12 +172,12 @@ export function pickBestMoviePoster(movie: MovieLike, fallback = "/default-poste
     }
   }
 
-  // 3. Nếu chỉ còn nguồn duy nhất là phimimg.com (dễ bị chặn tại VN):
-  // Ưu tiên fallback an toàn nếu có, tránh để client kết nối trực tiếp vào phimimg
-  const nonPhimimg = candidates.find((c) => !c.includes("phimimg.com"));
-  if (nonPhimimg) return nonPhimimg;
+  // 3. Tuyệt đối không sử dụng nguồn phimimg.com:
+  // Nếu không còn ứng viên nào hợp lệ từ TMDb/AniList/CDN sạch, trả về fallback (hoặc rỗng để Card render Canvas)
+  const validCandidate = candidates.find((c) => !c.includes("phimimg.com") && !c.includes("/api/img-thumb"));
+  if (validCandidate) return validCandidate;
 
-  return fallback || "/default-poster.jpg";
+  return fallback || "";
 }
 
 export function pickBestMovieThumb(movie: MovieLike, fallback = "/default-hero.svg"): string {
@@ -219,18 +222,22 @@ export function pickBestMovieThumb(movie: MovieLike, fallback = "/default-hero.s
       l.includes("w1280") ||
       l.includes("w500")
     ) {
+      if (c.includes("phimimg.com") || c.includes("/api/img-thumb")) {
+        continue;
+      }
       return c;
     }
   }
 
-  // 2. Trả về candidate hợp lệ sẵn có (poster dọc 2:3 với object-cover vẫn hiển thị đẹp hơn là tự chế link thumb bị 404)
+  // 2. Trả về candidate hợp lệ sẵn có không chứa phimimg
   for (const c of candidates) {
-    if (!c.includes("/default-") && !c.includes("null") && !c.includes("undefined")) {
+    if (!c.includes("/default-") && !c.includes("null") && !c.includes("undefined") && !c.includes("phimimg.com") && !c.includes("/api/img-thumb")) {
       return c;
     }
   }
 
-  return candidates[0] || fallback;
+  const defaultChoice = candidates.find((c) => !c.includes("phimimg.com") && !c.includes("/api/img-thumb")) || fallback;
+  return defaultChoice || "";
 }
 
 export const ALLOWED_PROXY_WIDTHS = [192, 320, 480, 640, 1280] as const;
@@ -249,7 +256,7 @@ export type OptimizedProxyWidth = (typeof ALLOWED_PROXY_WIDTHS)[number];
  */
 export function toOptimizedPhimimgUrl(
   url: string,
-  targetWidth: number | OptimizedProxyWidth = 320
+  _targetWidth: number | OptimizedProxyWidth = 320
 ): string {
   if (!url || typeof url !== "string") return "";
   const clean = sanitizeImageUrl(url);
@@ -266,24 +273,9 @@ export function toOptimizedPhimimgUrl(
     return clean;
   }
 
-  if (clean.includes("phimimg.com")) {
-    // 0. Ảnh đã là thumbnail WebP tối ưu sẵn của phimimg.com (~25-45KB): Dùng trực tiếp từ CDN
-    if (clean.includes("-thumb.webp")) {
-      return clean;
-    }
-
-    const w = typeof targetWidth === "number" && targetWidth <= 192
-      ? 192
-      : typeof targetWidth === "number" && targetWidth <= 320
-      ? 320
-      : typeof targetWidth === "number" && targetWidth <= 480
-      ? 480
-      : typeof targetWidth === "number" && targetWidth <= 640
-      ? 640
-      : 320;
-
-    // Route qua proxy để nén và resize chuẩn xác an toàn
-    return `/api/img-thumb?url=${encodeURIComponent(clean)}&w=${w}`;
+  if (clean.includes("phimimg.com") || clean.includes("/api/img-thumb")) {
+    // Purged: Tuyệt đối không proxy hoặc tải bất kỳ ảnh nào từ nguồn phimimg.com
+    return "";
   }
 
   return clean;
@@ -294,7 +286,7 @@ export function toOptimizedPhimimgUrl(
  * - TMDb: Dùng TMDb w780 (~45KB) cho độ sắc nét Retina 2x/4K, tải siêu nhanh và không bị mờ.
  * - Phimimg: Dùng proxy an toàn nén thành WebP nhẹ và chuẩn kích thước.
  */
-export function toOptimizedCardBackdropUrl(url: string, targetWidth: number = 320): string {
+export function toOptimizedCardBackdropUrl(url: string, _targetWidth: number = 320): string {
   if (!url || typeof url !== "string") return "";
   let clean = sanitizeImageUrl(url);
   if (!clean) return "";
@@ -313,13 +305,8 @@ export function toOptimizedCardBackdropUrl(url: string, targetWidth: number = 32
     return clean;
   }
 
-  if (clean.includes("phimimg.com")) {
-    // 1. Nếu đã là -thumb.webp: Dùng trực tiếp an toàn từ CDN
-    if (clean.includes("-thumb.webp")) {
-      return clean;
-    }
-    const w = targetWidth <= 192 ? 192 : targetWidth <= 320 ? 320 : targetWidth <= 480 ? 480 : 640;
-    return `/api/img-thumb?url=${encodeURIComponent(clean)}&w=${w}`;
+  if (clean.includes("phimimg.com") || clean.includes("/api/img-thumb")) {
+    return "";
   }
 
   return clean;
@@ -348,8 +335,8 @@ export function toOptimizedCardPosterUrl(url: string, _targetWidth: number = 320
     return clean;
   }
 
-  if (clean.includes("phimimg.com")) {
-    return clean;
+  if (clean.includes("phimimg.com") || clean.includes("/api/img-thumb")) {
+    return "";
   }
 
   return clean;
@@ -394,12 +381,8 @@ export function toHighResBackdropUrl(url: string, targetWidth: "w780" | "w1280" 
     return clean;
   }
 
-  // 5. Nếu là ảnh từ phimimg.com: nếu chưa phải là thumbnail WebP, tối ưu qua proxy w1280
-  if (clean.includes("phimimg.com")) {
-    if (clean.includes("-thumb.webp")) {
-      return clean;
-    }
-    return `/api/img-thumb?url=${encodeURIComponent(clean)}&w=1280`;
+  if (clean.includes("phimimg.com") || clean.includes("/api/img-thumb")) {
+    return "";
   }
 
   return clean;

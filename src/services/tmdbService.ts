@@ -2,8 +2,8 @@
 import { cacheService } from "@/lib/cache";
 import { normalizeForMatch as cleanStringForMatch } from "@/lib/stringUtils";
 import { IMDB_TOP_250_SNAPSHOT } from "@/data/imdb/imdbTop250";
-import { getActorBySlug } from "@/data/actorsCatalog";
-import { TMDB_GENRE_ID_MAP, TMDB_SAFE_LANGUAGE_COUNTRY_MAP } from "@/lib/movieMedia";
+import { getHistoricalArtistBySlug } from "@/data/history/historicalArtistsBirthdays";
+import { TMDB_GENRE_ID_MAP } from "@/lib/movieMedia";
 
 // =========================================================================
 // CẤU HÌNH TMDB API (LẤY TỪ BIẾN MÔI TRƯỜNG, BẢO MẬT PHÍA SERVER)
@@ -1408,10 +1408,15 @@ export function checkCandidateTitleMatch(
  * Priority 2: IMDB ID (so khớp imdb.id)
  * Priority 3: Title + Year (tiêu đề khớp + năm trong khoảng ±1)
  */
+export interface MatchTmdbOptions {
+  isActorFilmography?: boolean;
+}
+
 export async function matchTmdbMoviesWithSources(
   credits: TmdbMovieCredit[],
   maxCheckCount = 80,
-  concurrency = 16
+  concurrency = 16,
+  options?: MatchTmdbOptions
 ): Promise<any[]> {
   if (!credits || credits.length === 0) return [];
 
@@ -1493,7 +1498,7 @@ export async function matchTmdbMoviesWithSources(
   if (missedL1.length > 0) {
     await Promise.all(
       missedL1.map(async (credit) => {
-        const kvKey = `tmdb:movie_source:v1:${credit.id}`;
+        const kvKey = `tmdb:movie_source:v2:${credit.id}`;
         try {
           const l2Entry = await cacheService.get<{ movie: any | null; _isNegative?: boolean }>(kvKey);
           if (l2Entry !== null && l2Entry !== undefined) {
@@ -1653,12 +1658,31 @@ export async function matchTmdbMoviesWithSources(
         const matchType = matchResult?.matchType || null;
 
         if (matchedCandidate && matchedCandidate.slug) {
-          const tmdbPoster = credit.poster_path
+          let synchronizedPoster = credit.poster_path
             ? `https://image.tmdb.org/t/p/w500${credit.poster_path}`
             : "";
 
+          if (!synchronizedPoster && credit.id) {
+            try {
+              const fetched = await getTmdbPosterUrl(credit.id, credit.media_type || "movie");
+              if (fetched) {
+                synchronizedPoster = fetched;
+              }
+            } catch {
+              // Bỏ qua lỗi mạng an toàn
+            }
+          }
+
+          if (synchronizedPoster && credit.id) {
+            const cleanType = credit.media_type === "tv" || credit.media_type === "series" ? "tv" : "movie";
+            TMDB_POSTER_CACHE.set(`v2:${cleanType}:${credit.id}`, {
+              url: synchronizedPoster,
+              expireAt: now + 24 * 3600 * 1000,
+            });
+          }
+
           const posterImg =
-            tmdbPoster ||
+            synchronizedPoster ||
             matchedCandidate.poster_url ||
             matchedCandidate.thumb_url ||
             "";
@@ -1703,9 +1727,9 @@ export async function matchTmdbMoviesWithSources(
             country:
               Array.isArray(matchedCandidate.country) && matchedCandidate.country.length > 0
                 ? matchedCandidate.country
-                : credit.original_language && TMDB_SAFE_LANGUAGE_COUNTRY_MAP[credit.original_language.toLowerCase().trim()]
-                ? [{ id: "", name: TMDB_SAFE_LANGUAGE_COUNTRY_MAP[credit.original_language.toLowerCase().trim()], slug: "" }]
                 : [],
+            actor: Array.isArray(matchedCandidate.actor) ? matchedCandidate.actor : [],
+            director: Array.isArray(matchedCandidate.director) ? matchedCandidate.director : [],
             genre_ids: credit.genre_ids || matchedCandidate.genre_ids || undefined,
             original_language: credit.original_language || matchedCandidate.original_language || undefined,
             tmdb: {
@@ -1715,7 +1739,7 @@ export async function matchTmdbMoviesWithSources(
               genre_ids: credit.genre_ids || matchedCandidate.tmdb?.genre_ids,
               original_language: credit.original_language || matchedCandidate.tmdb?.original_language,
             },
-            isActorFilmography: true,
+            isActorFilmography: options?.isActorFilmography === true,
             matchBy: matchType,
             ...(typeof matchedCandidate.trailer_url === "string" && matchedCandidate.trailer_url.trim()
               ? { trailer_url: matchedCandidate.trailer_url.trim() }
@@ -1756,7 +1780,11 @@ export async function matchTmdbMoviesWithSources(
     `[TMDB Perf] Matched ${matchedMovies.length}/${candidateCredits.length} movies in ${(tEnd - tStart).toFixed(0)}ms (L1/L2 Hits: ${candidateCredits.length - creditsToFetch.length}, Probes: ${creditsToFetch.length})`
   );
 
-  return matchedMovies;
+  const isFilmography = options?.isActorFilmography === true;
+  return matchedMovies.map((m) => ({
+    ...m,
+    isActorFilmography: isFilmography,
+  }));
 }
 
 /**
@@ -1814,12 +1842,12 @@ async function executeTmdbActorFlow(
     let personId = tmdbPersonId;
     let personName = canonicalName || actorQuery;
 
-    // Nếu chưa có tmdbPersonId truyền vào, thử tra cứu từ actorsCatalog
+    // Nếu chưa có tmdbPersonId truyền vào, thử tra cứu nhanh từ historical data (nếu có)
     if (!personId) {
-      const catalogItem = getActorBySlug(actorQuery) || (canonicalName ? getActorBySlug(canonicalName) : undefined);
-      if (catalogItem?.tmdbPersonId) {
-        personId = catalogItem.tmdbPersonId;
-        personName = catalogItem.name;
+      const historicalArtist = getHistoricalArtistBySlug(actorQuery) || (canonicalName ? getHistoricalArtistBySlug(canonicalName) : undefined);
+      if (historicalArtist?.tmdbPersonId) {
+        personId = historicalArtist.tmdbPersonId;
+        personName = historicalArtist.name;
       }
     }
 
@@ -1853,8 +1881,16 @@ async function executeTmdbActorFlow(
       credits.length,
       Math.min(Math.max(maxMovies * 2.5, 50), 160)
     );
-    const matchedMovies = await matchTmdbMoviesWithSources(credits, checkLimit, concurrency);
+    const matchedMovies = await matchTmdbMoviesWithSources(credits, checkLimit, concurrency, {
+      isActorFilmography: true,
+    });
     const tMatchEnd = performance.now();
+
+    const filmographyMovies = matchedMovies.map((m) => ({
+      ...m,
+      isActorFilmography: true,
+      actor: Array.isArray(m.actor) && m.actor.length > 0 ? m.actor : [],
+    }));
 
     const tTotalEnd = performance.now();
     const personTiming = tPersonEnd > 0 ? `${(tPersonEnd - tPersonStart).toFixed(0)}ms` : "0ms (bypassed)";
@@ -1865,12 +1901,12 @@ async function executeTmdbActorFlow(
     // Lưu cache 2 giờ tươi, 24 giờ stale
     const now = Date.now();
     TMDB_ACTOR_MOVIES_CACHE.set(cacheKey, {
-      data: matchedMovies,
+      data: filmographyMovies,
       expireAt: now + 2 * 3600 * 1000,
       staleUntil: now + 24 * 3600 * 1000,
     });
 
-    return matchedMovies.slice(0, maxMovies);
+    return filmographyMovies.slice(0, maxMovies);
   } catch (err) {
     console.error("[TMDB Actor Flow] Execution error:", err);
     return [];
@@ -1892,7 +1928,7 @@ export async function getTmdbRankedMovies(
   limit = 20,
   concurrency = 8
 ): Promise<any[]> {
-  const cacheKey = `TMDB_RANKED_${type}_V7`;
+  const cacheKey = `TMDB_RANKED_${type}_V8`;
   const now = Date.now();
   const cached = TMDB_TRENDING_MOVIES_CACHE.get(cacheKey);
 
@@ -1912,7 +1948,7 @@ export async function getTmdbRankedMovies(
     }
   }
 
-  const kvKey = `tmdb:ranked_movies:${type}:${limit}:v7`;
+  const kvKey = `tmdb:ranked_movies:${type}:${limit}:v8`;
   const ttlSeconds = type === "top_rated" ? 24 * 3600 : 12 * 3600;
 
   return await cacheService.fetchOrSet(
@@ -2294,3 +2330,115 @@ export async function discoverTmdbConceptMovies(
 }
 
 
+
+
+/**
+ * LẤY DANH SÁCH PHIM CỦA ĐẠO DIỄN TỪ TMDB ĐÃ ĐỐI CHIẾU NGUỒN PHÁT
+ */
+export async function getDirectorFilmographyFromTmdb(
+  directorQuery: string,
+  maxMovies = 250,
+  concurrency = 16,
+  tmdbPersonId?: number
+): Promise<any[]> {
+  const cleanKey = cleanStringForMatch(directorQuery);
+  if (!cleanKey && !tmdbPersonId) return [];
+
+  const cacheKey = `TMDB_DIR_FLOW_V2:${tmdbPersonId || cleanKey}`;
+  const now = Date.now();
+  const cached = TMDB_ACTOR_MOVIES_CACHE.get(cacheKey);
+
+  if (cached && cached.data && cached.data.length > 0) {
+    if (cached.expireAt > now) {
+      return cached.data.slice(0, maxMovies);
+    }
+  }
+
+  const kvKey = `tmdb:dir_flow_v2:${tmdbPersonId || cleanKey}:${maxMovies}`;
+  return await cacheService.fetchOrSet(
+    kvKey,
+    async () => {
+      try {
+        let personId = tmdbPersonId;
+        let personName = directorQuery;
+
+        if (!personId) {
+          const historicalArtist = getHistoricalArtistBySlug(directorQuery);
+          if (historicalArtist?.tmdbPersonId) {
+            personId = historicalArtist.tmdbPersonId;
+            personName = historicalArtist.name;
+          }
+        }
+
+        if (!personId) {
+          const person = await searchTmdbPerson(directorQuery);
+          if (!person || !person.id) return [];
+          personId = person.id;
+          personName = person.name;
+        }
+
+        const data = await fetchTmdbEndpoint(`/person/${personId}/combined_credits?language=vi-VN`);
+        const rawCrew = Array.isArray(data?.crew) ? data.crew : [];
+        // Lọc credit đạo diễn: job === 'Director' hoặc department === 'Directing'
+        const directorCrew = rawCrew.filter((c: any) =>
+          (c.job && c.job.toLowerCase() === "director") ||
+          (c.department && c.department.toLowerCase() === "directing" && !c.job)
+        );
+
+        if (directorCrew.length === 0) return [];
+
+        const currentYear = new Date().getFullYear();
+        const seenTmdbIds = new Set<number>();
+        const credits: TmdbMovieCredit[] = [];
+
+        for (const m of directorCrew) {
+          if (!m?.id || seenTmdbIds.has(m.id)) continue;
+          seenTmdbIds.add(m.id);
+
+          const releaseDate = m.release_date || m.first_air_date || "";
+          if (releaseDate) {
+            const year = parseInt(releaseDate.slice(0, 4), 10);
+            if (year > currentYear + 1) continue;
+          }
+
+          credits.push({
+            id: m.id,
+            title: m.title || m.name || "",
+            original_title: m.original_title || m.original_name || "",
+            release_date: releaseDate,
+            vote_average: Number(m.vote_average || 0),
+            vote_count: Number(m.vote_count || 0),
+            popularity: Number(m.popularity || 0),
+            poster_path: m.poster_path || null,
+            backdrop_path: m.backdrop_path || null,
+            overview: m.overview || "",
+            media_type: m.media_type || "movie",
+            genre_ids: Array.isArray(m.genre_ids) ? m.genre_ids : undefined,
+            original_language: m.original_language || undefined,
+            department: "Directing",
+            job: "Director",
+          });
+        }
+
+        const matchedMovies = await matchTmdbMoviesWithSources(credits, 80, concurrency);
+        const filmographyMovies = matchedMovies.map((m) => ({
+          ...m,
+          _isDirectorRec: true,
+          director: Array.isArray(m.director) && m.director.length > 0 ? m.director : [personName],
+        }));
+
+        TMDB_ACTOR_MOVIES_CACHE.set(cacheKey, {
+          data: filmographyMovies,
+          expireAt: now + 2 * 3600 * 1000,
+          staleUntil: now + 24 * 3600 * 1000,
+        });
+
+        return filmographyMovies.slice(0, maxMovies);
+      } catch (err) {
+        console.error("[TMDB Director Flow] Execution error:", err);
+        return [];
+      }
+    },
+    14 * 86400
+  );
+}

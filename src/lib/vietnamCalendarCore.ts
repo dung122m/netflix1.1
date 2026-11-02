@@ -514,7 +514,7 @@ export function getEventPriorityScore(event: VietnamEvent, currentYear: number =
 /**
  * LIGHTWEIGHT CULTURAL HOLIDAY RESOLVER (0 heavy data)
  * Finds the cultural holiday for today strictly from VIETNAM_EVENTS (366 solar days + lunar holidays).
- * Used by Homepage banner, Navbar, and Mobile Menu for instantaneous loading without bundling allHistory.json or actorsCatalog.
+ * Used by Homepage banner, Navbar, and Mobile Menu for instantaneous loading without bundling allHistory.json or historicalArtistsBirthdays.
  */
 export function getVietnamHolidayToday(customDate?: Date): VietnamTodayInfo {
   const now = getVietnamNow(customDate);

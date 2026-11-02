@@ -454,6 +454,15 @@
   scrollbar-color: rgba(255, 255, 255, 0.2) rgba(255, 255, 255, 0.03);
 }
 
+/* Universal scrollbar-none utility for smooth scrollable containers without visual bar */
+.scrollbar-none {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
 /* ========================================================
    HOLIDAY NAVBAR CINEMATIC MOTION SYSTEM (GPU-FRIENDLY)
    ======================================================== */

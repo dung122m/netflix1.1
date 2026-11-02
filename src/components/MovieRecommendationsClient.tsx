@@ -28,6 +28,9 @@ interface RecommendationsData {
   countryMovies: any[];
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   actorMovies?: any[];
+  directorName?: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  directorMovies?: any[];
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   allMovies: any[];
 }
@@ -134,7 +137,7 @@ export function MovieRecommendationsClient({
 
   useEffect(() => {
     let isMounted = true;
-    const cacheKey = `nanaflix_rec_v3_${currentMovieSlug}_${tmdbId || ""}`;
+    const cacheKey = `nanaflix_rec_v4_${currentMovieSlug}_${tmdbId || ""}`;
 
     // 1. Kiểm tra cache trong RAM trước (0ms response, chia sẻ giữa desktop và mobile)
     if (clientMemoryRecommendationsCache.has(cacheKey)) {
@@ -203,9 +206,11 @@ export function MovieRecommendationsClient({
       genreName={data.genreName}
       countryName={data.countryName}
       actorName={data.actorName || primaryActor}
+      directorName={data.directorName || primaryDirector}
       genreMovies={data.genreMovies}
       countryMovies={data.countryMovies}
       actorMovies={data.actorMovies}
+      directorMovies={data.directorMovies}
       allMovies={data.allMovies}
       variant={variant}
     />

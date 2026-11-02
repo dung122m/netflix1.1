@@ -3,7 +3,7 @@ import { generateFastAiChat } from "@/services/aiProviderService";
 import { getActorFilmographyFromTmdb, searchTmdbPerson } from "@/services/tmdbService";
 import { cacheService } from "@/lib/cache";
 import { normalizeForMatch } from "@/lib/stringUtils";
-import { getActorBySlug } from "@/data/actorsCatalog";
+import { getHistoricalArtistBySlug } from "@/data/history/historicalArtistsBirthdays";
 
 export interface ActorProfile {
   name: string;
@@ -1353,8 +1353,8 @@ async function executeActorFilmQuery(
   // 4. Merge về format Movie chuẩn của dự án và hiển thị trên MovieGrid
   // =========================================================================
   try {
-    const catalogActor = getActorBySlug(matchedSlug) || getActorBySlug(actorName);
-    const tmdbPersonId = catalogActor?.tmdbPersonId;
+    const historicalActor = getHistoricalArtistBySlug(matchedSlug) || getHistoricalArtistBySlug(actorName);
+    const tmdbPersonId = historicalActor?.tmdbPersonId;
 
     const tmdbMovies = await getActorFilmographyFromTmdb(
       actorName,
@@ -1367,9 +1367,7 @@ async function executeActorFilmQuery(
     if (tmdbMovies && tmdbMovies.length > 0) {
       const enrichedMovies = tmdbMovies.map((m) => ({
         ...m,
-        actor: Array.isArray(m.actor) && m.actor.length > 0
-          ? m.actor
-          : [synonymRes.canonicalName || actorName],
+        actor: Array.isArray(m.actor) ? m.actor : [],
       }));
       ACTOR_FILM_CACHE.set(cacheKey, {
         items: enrichedMovies,

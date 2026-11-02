@@ -6,9 +6,10 @@ import { Tooltip } from "@/components/ui/Tooltip";
 
 interface ShareButtonProps {
   title: string;
+  align?: "center" | "start" | "end";
 }
 
-export function ShareButton({ title }: ShareButtonProps) {
+export function ShareButton({ title, align = "end" }: ShareButtonProps) {
   const [copied, setCopied] = useState(false);
 
   const handleShare = async () => {
@@ -41,7 +42,7 @@ export function ShareButton({ title }: ShareButtonProps) {
   };
 
   return (
-    <Tooltip content="Sao chép liên kết chia sẻ" side="top">
+    <Tooltip content="Sao chép liên kết chia sẻ" side="top" align={align}>
       <button
         type="button"
         onClick={handleShare}

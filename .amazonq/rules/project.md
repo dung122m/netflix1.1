@@ -72,7 +72,7 @@ scripts/            # Asset download scripts
 - After editing `.claude/skills/clone-website/SKILL.md`, run `node scripts/sync-skills.mjs` to regenerate the skill for all platforms.
 
 ## Media & Image CDN Rules (STRICT INVARIANT)
-- **NO DIRECT `phimimg.com` ON CLIENT:** The domain `phimimg.com` is actively blocked / dropped by ISPs in Vietnam (VNPT, Viettel, FPT). NEVER pass raw `phimimg.com` URLs directly to client `<img>` tags.
+- **NO DIRECT `phimimg.com` ON CLIENT:** The domain `phimimg.com` is actively blocked / dropped by ISPs in Vietnam (VNPT, Viettel, FPT). NEVER pass raw `phimimg.com` URLs directly to client `<img>` tags, including `-thumb.webp`. If TMDb/AniList is not available, all phimimg URLs MUST be routed through the internal proxy `/api/img-thumb?url=...`.
 - Always proactively upgrade movie posters to official TMDb CDN (`image.tmdb.org`) or non-phimimg sources.
 - In `MediaCard` and all card components, never render empty black skeleton holes. Always keep the underlying Dynamic Typography Poster Canvas rendered so cards display the movie title, year, and genre even if an image is loading or fails.
 
@@ -204,7 +204,7 @@ Content-first & Zero CLS: Tải phim tức thì, loại bỏ hoàn toàn các r�
 ## Product Principles
 
 1. **Nội dung là trung tâm (Content-First):** Giao diện lùi lại phía sau để tôn vinh poster và video stream.
-2. **Kỷ luật Pixel-Perfect:** Thẳng hàng tuyệt đối, viền siêu mảnh hairline `border-white/10`, không giật khung hình (CLS).
+2. **Kỷ luật Pixel-Perfect:** Thẳng hàng tuyệt đối, độ sâu điện ảnh với bề mặt tối phân lớp không viền trang trí (Border is Exception, Not Default), không giật khung hình (CLS).
 3. **An toàn Tiếng Việt:** Đảm bảo toàn bộ dấu thanh tiếng Việt hiển thị đầy đủ, không bị cắt xén trong flexbox hay vùng giới hạn chiều cao.
 4. **Mượt mà & Nhẹ nhàng:** Hiệu ứng chuyển cảnh tinh tế, tôn trọng `prefers-reduced-motion`.
 
@@ -236,15 +236,15 @@ colors:
   border-hover: "rgba(255, 255, 255, 0.25)"
 typography:
   display:
-    fontFamily: "Inter, sans-serif"
+    fontFamily: "Be Vietnam Pro, var(--font-sans), sans-serif"
     fontWeight: 700
     lineHeight: 1.2
   heading:
-    fontFamily: "Inter, sans-serif"
+    fontFamily: "Be Vietnam Pro, var(--font-sans), sans-serif"
     fontWeight: 600
     lineHeight: 1.4
   body:
-    fontFamily: "Inter, sans-serif"
+    fontFamily: "Be Vietnam Pro, var(--font-sans), sans-serif"
     fontWeight: 400
     lineHeight: 1.5
 rounded:
@@ -293,7 +293,7 @@ Nanaflix áp dụng ngôn ngữ thiết kế Dark-only điện ảnh cao cấp k
 
 ## Typography
 
-- **Phông chữ hệ thống:** `Inter`, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif.
+- **Phông chữ hệ thống:** `Be Vietnam Pro` (var(--font-sans)), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif.
 - **An toàn dấu Tiếng Việt (Diacritics Safety):**
   - Mọi tiêu đề tiếng Việt nhiều dòng bắt buộc giữ `line-height` tối thiểu `leading-[1.4]` (hoặc `leading-snug`).
   - Tuyệt đối không ép cứng `height` nhỏ hơn `(cỡ chữ × 1.4 × số dòng) + đệm dấu` để tránh `overflow: hidden` xén cụt dấu mũ (`ấ, ế, ố, ứ`) và dấu nặng/hỏi.

@@ -13,7 +13,7 @@ import { MatchCard } from "./MatchCard";
 import { MatchCenter } from "./MatchCenter";
 import { MatchTimelineSidebar } from "./MatchTimelineSidebar";
 import { LeagueStandings } from "./LeagueStandings";
-import { ScrollablePillsRow } from "./ScrollablePillsRow";
+import { ScrollablePillsRow } from "@/components/ui/ScrollablePillsRow";
 import { LiveMatchScore, NormalizedMatchSummary } from "@/services/live/football-score/types";
 import { shouldRefreshOnTabFocus } from "@/services/live/football-score/matchCenterRealtime";
 import {

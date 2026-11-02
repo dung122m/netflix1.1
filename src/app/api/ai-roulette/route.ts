@@ -1063,11 +1063,13 @@ async function queryPhimApiDirect(keyword: string, originalKeyword?: string): Pr
       const best = findBestMatchMovie(items, keyword, originalKeyword);
       if (!best) return null;
 
-      const imageDomain = (json.data?.APP_DOMAIN_CDN_IMAGE || "https://phimimg.com/").replace(/\/+$/, "");
+      const rawDomain = json.data?.APP_DOMAIN_CDN_IMAGE || "";
+      const imageDomain = (rawDomain.includes("phimimg.com") ? "" : rawDomain).replace(/\/+$/, "");
       const formatImg = (p?: string) => {
-        if (!p) return "";
+        if (!p || p.includes("phimimg.com") || p.includes("/api/img-thumb")) return "";
         if (p.startsWith("http://") || p.startsWith("https://")) return p;
-        return `${imageDomain}/${p.replace(/^\/+/, "")}`;
+        if (imageDomain) return `${imageDomain}/${p.replace(/^\/+/, "")}`;
+        return "";
       };
       return {
         ...best,

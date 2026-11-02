@@ -45,7 +45,7 @@ Content-first & Zero CLS: Tải phim tức thì, loại bỏ hoàn toàn các r�
 ## Product Principles
 
 1. **Nội dung là trung tâm (Content-First):** Giao diện lùi lại phía sau để tôn vinh poster và video stream.
-2. **Kỷ luật Pixel-Perfect:** Thẳng hàng tuyệt đối, viền siêu mảnh hairline `border-white/10`, không giật khung hình (CLS).
+2. **Kỷ luật Pixel-Perfect:** Thẳng hàng tuyệt đối, độ sâu điện ảnh với bề mặt tối phân lớp không viền trang trí (Border is Exception, Not Default), không giật khung hình (CLS).
 3. **An toàn Tiếng Việt:** Đảm bảo toàn bộ dấu thanh tiếng Việt hiển thị đầy đủ, không bị cắt xén trong flexbox hay vùng giới hạn chiều cao.
 4. **Mượt mà & Nhẹ nhàng:** Hiệu ứng chuyển cảnh tinh tế, tôn trọng `prefers-reduced-motion`.
 

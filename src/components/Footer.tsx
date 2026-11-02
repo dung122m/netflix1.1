@@ -128,14 +128,6 @@ export const Footer: React.FC = () => {
                   <span className="truncate">Phim chiếu rạp</span>
                 </Link>
               </li>
-              <li>
-                <Link href="/dien-vien" className="hover:text-white transition-colors flex items-center gap-2 group">
-                  <span className="w-4 h-4 flex items-center justify-center shrink-0">
-                    <Users size={13} className="text-zinc-400 group-hover:text-netflix-red transition-colors" />
-                  </span>
-                  <span className="truncate text-zinc-200 font-medium">Diễn viên & Nghệ sĩ</span>
-                </Link>
-              </li>
             </ul>
           </div>
 

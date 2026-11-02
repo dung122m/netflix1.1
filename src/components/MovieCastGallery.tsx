@@ -1,10 +1,11 @@
 "use client";
 
 import React, { useRef, useState, useCallback, useEffect, useMemo } from "react";
+import Link from "next/link";
 import { ChevronLeft, ChevronRight, Users } from "lucide-react";
 import { TmdbCastMember } from "@/services/tmdbService";
 import { ActorAvatar } from "@/components/actors/ActorAvatar";
-import { findCatalogActor } from "@/data/actorsCatalog";
+import { normalizeForMatch } from "@/lib/stringUtils";
 
 export interface MovieCastGalleryProps {
   cast?: TmdbCastMember[];
@@ -16,6 +17,11 @@ interface ProcessedCastItem {
   name: string;
   character?: string;
   avatarUrl?: string | null;
+  href: string;
+}
+
+function toActorSlug(name: string): string {
+  return normalizeForMatch(name).replace(/\s+/g, "-");
 }
 
 export const MovieCastGallery: React.FC<MovieCastGalleryProps> = ({
@@ -26,27 +32,18 @@ export const MovieCastGallery: React.FC<MovieCastGalleryProps> = ({
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
 
-  const handleActorClick = (name: string, avatarUrl?: string | null, character?: string) => {
-    if (typeof window !== "undefined") {
-      window.dispatchEvent(
-        new CustomEvent("open-actor-bio", {
-          detail: { name, avatarUrl, character },
-        })
-      );
-    }
-  };
-
-  // Chuẩn hóa danh sách diễn viên hiển thị: ưu tiên cast TMDB, nếu không có thì dùng fallbackActors
+  // Chuẩn hóa danh sách diễn viên hiển thị: ưu tiên cast TMDB (có ID), nếu không có thì dùng fallbackActors (chỉ có tên)
   const displayItems = useMemo<ProcessedCastItem[]>(() => {
     if (cast && cast.length > 0) {
       return cast.map((c) => {
-        // Nếu TMDB không có profile_path, tra cứu thử trong danh mục actorsCatalog của hệ thống
-        const catalogAvatar = !c.profile_path ? findCatalogActor(c.name)?.avatarUrl : undefined;
+        const slug = toActorSlug(c.name);
+        const href = typeof c.id === "number" ? `/dien-vien/${slug}?id=${c.id}` : `/dien-vien/${slug}`;
         return {
           id: c.id,
           name: c.name,
           character: c.character || undefined,
-          avatarUrl: c.profile_path || catalogAvatar || null,
+          avatarUrl: c.profile_path || null,
+          href,
         };
       });
     }
@@ -57,12 +54,12 @@ export const MovieCastGallery: React.FC<MovieCastGalleryProps> = ({
         .filter(Boolean)
         .slice(0, 16)
         .map((name, idx) => {
-          const catalogItem = findCatalogActor(name);
+          const slug = toActorSlug(name);
           return {
             id: `fb-${idx}-${name}`,
             name,
-            character: catalogItem?.roles ? catalogItem.roles.split("•")[0]?.trim() : undefined,
-            avatarUrl: catalogItem?.avatarUrl || null,
+            avatarUrl: null,
+            href: `/dien-vien/${slug}`,
           };
         });
     }
@@ -171,18 +168,14 @@ export const MovieCastGallery: React.FC<MovieCastGalleryProps> = ({
           className="flex gap-2.5 sm:gap-3 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden py-1 pb-2"
         >
           {displayItems.map((actor) => (
-            <button
+            <Link
               key={actor.id}
-              type="button"
-              onClick={() => handleActorClick(actor.name, actor.avatarUrl, actor.character)}
-              onMouseEnter={() => {
-                fetch(`/api/actor-bio?name=${encodeURIComponent(actor.name)}`).catch(() => {});
-              }}
+              href={actor.href}
               title={`Xem hồ sơ & phim của ${actor.name}${actor.character ? ` (Vai: ${actor.character})` : ""}`}
               className="group/card flex-none w-[100px] sm:w-[112px] md:w-[120px] transition-all duration-200 cursor-pointer flex flex-col text-left"
             >
               {/* ẢNH AVATAR CHÂN DUNG 3:4 VỚI FALLBACK CAO CẤP */}
-              <div className="relative aspect-[3/4] w-full rounded-xl bg-zinc-900 overflow-hidden group-hover/card: shadow-md flex items-center justify-center group-hover/card:scale-[1.03] transition-transform duration-200">
+              <div className="relative aspect-[3/4] w-full rounded-xl bg-zinc-900 overflow-hidden group-hover/card:shadow-md flex items-center justify-center group-hover/card:scale-[1.03] transition-transform duration-200">
                 <ActorAvatar
                   name={actor.name}
                   avatarUrl={actor.avatarUrl}
@@ -208,7 +201,7 @@ export const MovieCastGallery: React.FC<MovieCastGalleryProps> = ({
                   </p>
                 )}
               </div>
-            </button>
+            </Link>
           ))}
         </div>
       </div>
