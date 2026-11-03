@@ -1086,14 +1086,14 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
         enableWorker: true,
         lowLatencyMode: false,
         capLevelToPlayerSize: true,
-        maxBufferSize: 30 * 1000 * 1000,
-        maxBufferLength: 30,
-        maxMaxBufferLength: 60,
-        backBufferLength: 30,
+        maxBufferSize: 25 * 1000 * 1000,
+        maxBufferLength: 20,
+        maxMaxBufferLength: 40,
+        backBufferLength: 20,
         startPosition: targetProgress > 0 ? targetProgress : -1,
         startLevel: -1,
         autoStartLoad: true,
-        abrEwmaDefaultEstimate: 1500000,
+        abrEwmaDefaultEstimate: 1000000,
         fragLoadingTimeOut: 15000,
         fragLoadingMaxRetry: 4,
         fragLoadingRetryDelay: 1000,
@@ -1396,6 +1396,8 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
     } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
       video.src = resolvedM3u8;
 
+      const nativeFetchAbortController = new AbortController();
+
       // Phân tích playlist m3u8 để phát hiện ranh giới quảng cáo trên trình duyệt Native Safari / iOS
       if (
         resolvedM3u8 &&
@@ -1405,7 +1407,11 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
           if (m3u8ManifestCache.has(url)) {
             return m3u8ManifestCache.get(url)!;
           }
-          const res = await fetch(url);
+          const timeoutSignal = AbortSignal.timeout(4000);
+          const combinedSignal = (typeof AbortSignal !== "undefined" && "any" in AbortSignal)
+            ? (AbortSignal as unknown as { any: (signals: AbortSignal[]) => AbortSignal }).any([nativeFetchAbortController.signal, timeoutSignal])
+            : nativeFetchAbortController.signal;
+          const res = await fetch(url, { signal: combinedSignal });
           if (!res.ok) throw new Error(`m3u8 fetch failed: ${res.status}`);
           const text = await res.text();
           if (m3u8ManifestCache.size > 20) m3u8ManifestCache.clear();
@@ -1547,6 +1553,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
       );
 
       return () => {
+        nativeFetchAbortController.abort();
         loadedSourceKeyRef.current = null;
         video.removeEventListener("loadedmetadata", onLoaded);
         video.removeEventListener("canplay", checkNativeInitialBuffer);

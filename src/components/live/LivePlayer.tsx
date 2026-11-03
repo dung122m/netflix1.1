@@ -1682,30 +1682,58 @@ function LivePlayerInner({
       return;
     }
 
-    // Khởi động Playback Watchdog: Tối đa 12 giây nếu không phát được hình ảnh thật sẽ tự động chuyển server
+    // Khởi động Playback Watchdog có thích ứng tiến độ tải:
+    // Theo dõi tiến trình tải media thực tế để phân biệt mạng chậm với request thực sự bị treo
     const currentAttemptId = ++attemptIdRef.current;
     if (watchdogTimerRef.current) {
       clearTimeout(watchdogTimerRef.current);
       watchdogTimerRef.current = null;
     }
 
-    watchdogTimerRef.current = setTimeout(() => {
-      if (currentAttemptId !== attemptIdRef.current) return;
-      if (isStoppedRef.current) return;
-      const v = videoRef.current;
-      const isActuallyPlaying =
-        v && !v.paused && (v.currentTime > 0.05 || v.readyState >= 3);
-      if (isActuallyPlaying) {
-        if (watchdogTimerRef.current) {
-          clearTimeout(watchdogTimerRef.current);
-          watchdogTimerRef.current = null;
-        }
-        setIsLoading(false);
-        return;
+    let lastMediaProgressTime = Date.now();
+    const watchdogStartTime = Date.now();
+
+    const recordMediaProgress = () => {
+      lastMediaProgressTime = Date.now();
+    };
+
+    const scheduleWatchdogCheck = (delayMs: number) => {
+      if (watchdogTimerRef.current) {
+        clearTimeout(watchdogTimerRef.current);
+        watchdogTimerRef.current = null;
       }
 
-      executeServerFallbackRef.current("không phản hồi");
-    }, 12000);
+      watchdogTimerRef.current = setTimeout(() => {
+        if (currentAttemptId !== attemptIdRef.current) return;
+        if (isStoppedRef.current) return;
+        const v = videoRef.current;
+        const isActuallyPlaying =
+          v && !v.paused && (v.currentTime > 0.05 || v.readyState >= 3);
+        if (isActuallyPlaying) {
+          if (watchdogTimerRef.current) {
+            clearTimeout(watchdogTimerRef.current);
+            watchdogTimerRef.current = null;
+          }
+          setIsLoading(false);
+          return;
+        }
+
+        const now = Date.now();
+        const timeSinceProgress = now - lastMediaProgressTime;
+        const totalElapsed = now - watchdogStartTime;
+
+        // Nếu segment/fragment vẫn đang tích cực tải/buffer trong 5 giây gần nhất và chưa vượt trần 24s:
+        // Tiếp tục chờ thay vì hủy HLS instance giữa chừng
+        if (timeSinceProgress < 5000 && totalElapsed < 24000) {
+          scheduleWatchdogCheck(4000);
+          return;
+        }
+
+        executeServerFallbackRef.current("không phản hồi");
+      }, delayMs);
+    };
+
+    scheduleWatchdogCheck(12000);
 
     // Xác nhận luồng phát thực sự chạy mượt mà (chỉ gỡ watchdog khi video đã chạy thật)
     const onPlaybackConfirmed = () => {
@@ -1731,6 +1759,7 @@ function LivePlayerInner({
 
     video.addEventListener("playing", onPlaybackConfirmed);
     video.addEventListener("timeupdate", onTimeUpdateCheck);
+    video.addEventListener("progress", recordMediaProgress);
 
     let cleanupDiagnosticListeners = () => { };
     let onNativeLoadedMetadata: (() => void) | null = null;
@@ -1744,16 +1773,16 @@ function LivePlayerInner({
         liveSyncDurationCount: 3,
         liveMaxLatencyDurationCount: Infinity,
         maxLiveSyncPlaybackRate: 1.0,
-        backBufferLength: 90,
-        maxBufferLength: 30,
-        maxMaxBufferLength: 60,
-        maxBufferSize: 60 * 1000 * 1000,
+        backBufferLength: 60,
+        maxBufferLength: 12,
+        maxMaxBufferLength: 20,
+        maxBufferSize: 20 * 1000 * 1000,
         maxBufferHole: 0.5,
         highBufferWatchdogPeriod: 2,
         nudgeOffset: 0.1,
         nudgeMaxRetry: 5,
-        abrEwmaDefaultEstimate: 3_000_000,
-        capLevelToPlayerSize: false,
+        abrEwmaDefaultEstimate: 1_000_000,
+        capLevelToPlayerSize: true,
         startLevel: -1,
         manifestLoadingTimeOut: 8000,
         manifestLoadingMaxRetry: 3,
@@ -1761,7 +1790,7 @@ function LivePlayerInner({
         levelLoadingTimeOut: 8000,
         levelLoadingMaxRetry: 3,
         levelLoadingRetryDelay: 1000,
-        fragLoadingTimeOut: 12000,
+        fragLoadingTimeOut: 14000,
         fragLoadingMaxRetry: 4,
         fragLoadingRetryDelay: 1000,
       });
@@ -1769,6 +1798,11 @@ function LivePlayerInner({
       hlsRef.current = hls;
       hls.loadSource(activeUrl);
       hls.attachMedia(video);
+
+      hls.on(Hls.Events.FRAG_LOADING, recordMediaProgress);
+      hls.on(Hls.Events.FRAG_LOADED, recordMediaProgress);
+      hls.on(Hls.Events.FRAG_BUFFERED, recordMediaProgress);
+      hls.on(Hls.Events.LEVEL_LOADED, recordMediaProgress);
 
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
         // Lưu ý: KHÔNG hủy watchdog ở đây vì manifest parsed chưa đảm bảo video segment có thể tải được
@@ -2034,6 +2068,7 @@ function LivePlayerInner({
       destroyHlsInstance();
       video.removeEventListener("playing", onPlaybackConfirmed);
       video.removeEventListener("timeupdate", onTimeUpdateCheck);
+      video.removeEventListener("progress", recordMediaProgress);
       if (onNativeLoadedMetadata) {
         video.removeEventListener("loadedmetadata", onNativeLoadedMetadata);
       }

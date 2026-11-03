@@ -179,19 +179,30 @@ export async function GET(request: NextRequest) {
       new URL(targetUrl).hostname,
     );
 
+    const clientRange = request.headers.get("range");
+    const reqHeaders: Record<string, string> = {
+      "User-Agent": isFptStream
+        ? "Mozilla/5.0 (SMART-TV; LINUX; Tizen 10.0) AppleWebKit/537.36 (KHTML, like Gecko) 130.0.6723.116/10.0 TV Safari/537.36"
+        : "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
+      Referer: referer,
+      Origin: new URL(referer).origin,
+      Accept: "*/*",
+      "Accept-Language": "vi-VN,vi;q=0.9,en-US;q=0.8,en;q=0.7",
+      "Accept-Encoding": "gzip, deflate, br",
+      Connection: "keep-alive",
+    };
+    if (clientRange) {
+      reqHeaders["Range"] = clientRange;
+    }
+
+    const timeoutSignal = AbortSignal.timeout(9000);
+    const combinedSignal = request.signal
+      ? AbortSignal.any([request.signal, timeoutSignal])
+      : timeoutSignal;
+
     const response = await fetch(targetUrl, {
-      headers: {
-        "User-Agent": isFptStream
-          ? "Mozilla/5.0 (SMART-TV; LINUX; Tizen 10.0) AppleWebKit/537.36 (KHTML, like Gecko) 130.0.6723.116/10.0 TV Safari/537.36"
-          : "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
-        Referer: referer,
-        Origin: new URL(referer).origin,
-        Accept: "*/*",
-        "Accept-Language": "vi-VN,vi;q=0.9,en-US;q=0.8,en;q=0.7",
-        "Accept-Encoding": "gzip, deflate, br",
-        Connection: "keep-alive",
-      },
-      signal: AbortSignal.timeout(9000),
+      headers: reqHeaders,
+      signal: combinedSignal,
     });
 
     if (!response.ok) {
@@ -241,19 +252,39 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Xử lý media chunk binary (.ts, .m4s, .key, etc.)
-    const arrayBuffer = await response.arrayBuffer();
+    // Xử lý media chunk binary (.ts, .m4s, .key, etc.) qua Web Streams trực tiếp (0ms buffer overhead)
     const isSafe = isSafePublicSegment(request, targetUrl, contentType, response);
 
-    return new NextResponse(arrayBuffer, {
-      headers: {
-        "Content-Type": contentType || "video/mp2t",
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "GET, OPTIONS",
-        "Cache-Control": isSafe
-          ? "public, max-age=120, s-maxage=300, stale-while-revalidate=600"
-          : "private, no-cache, no-store, max-age=0, must-revalidate",
-      },
+    const responseHeaders = new Headers();
+    responseHeaders.set("Content-Type", contentType || "video/mp2t");
+    responseHeaders.set("Access-Control-Allow-Origin", "*");
+    responseHeaders.set("Access-Control-Allow-Methods", "GET, OPTIONS");
+    responseHeaders.set(
+      "Cache-Control",
+      isSafe
+        ? "public, max-age=120, s-maxage=300, stale-while-revalidate=600"
+        : "private, no-cache, no-store, max-age=0, must-revalidate"
+    );
+
+    const contentLength = response.headers.get("content-length");
+    if (contentLength) responseHeaders.set("Content-Length", contentLength);
+
+    const contentRange = response.headers.get("content-range");
+    if (contentRange) responseHeaders.set("Content-Range", contentRange);
+
+    const acceptRanges = response.headers.get("accept-ranges");
+    if (acceptRanges) responseHeaders.set("Accept-Ranges", acceptRanges);
+
+    if (response.body) {
+      return new NextResponse(response.body, {
+        status: response.status,
+        headers: responseHeaders,
+      });
+    }
+
+    return new NextResponse(null, {
+      status: response.status,
+      headers: responseHeaders,
     });
   } catch (error) {
     return new NextResponse(`Proxy error: ${(error as Error).message}`, {

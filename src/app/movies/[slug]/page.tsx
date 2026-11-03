@@ -298,43 +298,67 @@ export default async function MovieDetail({
   const tmdbId = movie.tmdb?.id || movie.imdb?.id;
   const tmdbType = movie.tmdb?.type || (movie.type === "series" || movie.type === "phim-bo" ? "tv" : "movie");
 
-  // Tự động bù đắp Trailer chính thức từ TMDB nếu nguồn chính không có trailer
+  // Khởi tạo poster, thumbnail và trailer mặc định từ dữ liệu phim gốc (0ms blocking)
+  let effectivePosterUrl = pickBestMoviePoster(movie, "/default-poster.jpg");
+  let effectiveThumbUrl = pickBestMovieThumb(movie, "/default-hero.jpg");
   let effectiveTrailerUrl = (movie.trailer_url || "").trim();
-  if (!effectiveTrailerUrl) {
-    if (tmdbId) {
-      try {
-        effectiveTrailerUrl = (await getTmdbTrailerUrl(tmdbId, tmdbType)) || "";
-      } catch {}
-    }
-    if (!effectiveTrailerUrl && (movie.origin_name || movie.name)) {
-      try {
-        effectiveTrailerUrl = (await searchTmdbTrailerByTitle(movie.origin_name || movie.name, movie.year, tmdbType)) || "";
-      } catch {}
-    }
-  }
 
-  // Ưu tiên poster TMDb tốc độ cao chính hãng để ghi nhận vào lịch sử xem
-  let effectivePosterUrl = "";
-  let effectiveThumbUrl = "";
-  if (tmdbId) {
+  // Bổ sung dữ liệu TMDb phụ trợ với thời hạn tối đa 600ms (Non-blocking SSR)
+  // Nếu TMDb phản hồi chậm hoặc timeout trên mạng yếu, lập tức dùng dữ liệu gốc, không bao giờ chặn HTML render
+  if (tmdbId || movie.origin_name || movie.name) {
+    const tmdbTasks = Promise.allSettled([
+      // 1. Trailer lookup (chỉ gọi khi nguồn chính chưa có trailer)
+      !effectiveTrailerUrl
+        ? (async () => {
+            let tr = "";
+            if (tmdbId) {
+              tr = (await getTmdbTrailerUrl(tmdbId, tmdbType).catch(() => "")) || "";
+            }
+            if (!tr && (movie.origin_name || movie.name)) {
+              tr = (await searchTmdbTrailerByTitle(movie.origin_name || movie.name, movie.year, tmdbType).catch(() => "")) || "";
+            }
+            return tr;
+          })()
+        : Promise.resolve(effectiveTrailerUrl),
+
+      // 2. Poster & Backdrop lookup
+      (async () => {
+        let pUrl = "";
+        let tUrl = "";
+        if (tmdbId) {
+          pUrl = (await getTmdbPosterUrl(tmdbId, tmdbType).catch(() => "")) || "";
+        }
+        if (!pUrl && (movie.origin_name || movie.name)) {
+          const res = await searchTmdbPosterByTitle(movie.origin_name || movie.name, movie.year, tmdbType).catch(() => null);
+          if (res?.posterUrl) {
+            pUrl = res.posterUrl;
+            if (res.backdropUrl) tUrl = res.backdropUrl;
+          }
+        }
+        return { posterUrl: pUrl, thumbUrl: tUrl };
+      })(),
+    ]);
+
     try {
-      effectivePosterUrl = (await getTmdbPosterUrl(tmdbId, tmdbType)) || "";
-    } catch {}
-  }
-  if (!effectivePosterUrl && (movie.origin_name || movie.name)) {
-    try {
-      const res = await searchTmdbPosterByTitle(movie.origin_name || movie.name, movie.year, tmdbType);
-      if (res?.posterUrl) {
-        effectivePosterUrl = res.posterUrl;
-        if (res.backdropUrl) effectiveThumbUrl = res.backdropUrl;
+      const tmdbTimeout = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("TMDB SSR Timeout")), 600)
+      );
+      const [trailerRes, posterRes] = await Promise.race([tmdbTasks, tmdbTimeout]);
+
+      if (trailerRes.status === "fulfilled" && trailerRes.value) {
+        effectiveTrailerUrl = trailerRes.value;
       }
-    } catch {}
-  }
-  if (!effectivePosterUrl) {
-    effectivePosterUrl = pickBestMoviePoster(movie, "/default-poster.jpg");
-  }
-  if (!effectiveThumbUrl) {
-    effectiveThumbUrl = pickBestMovieThumb(movie, "/default-hero.jpg");
+      if (posterRes.status === "fulfilled" && posterRes.value) {
+        if (posterRes.value.posterUrl) {
+          effectivePosterUrl = posterRes.value.posterUrl;
+        }
+        if (posterRes.value.thumbUrl) {
+          effectiveThumbUrl = posterRes.value.thumbUrl;
+        }
+      }
+    } catch {
+      // Timeout hoặc lỗi mạng: dữ liệu phim gốc đã được gán sẵn, không tạo layout shift
+    }
   }
 
   const formatVotes = (v?: number): string => {

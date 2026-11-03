@@ -113,7 +113,9 @@ export interface SafeFetchResult {
 export async function fetchWithSafeRedirects(
   initialUrl: string,
   timeoutMs: number = 10000,
-  maxRedirects: number = MAX_SAFE_REDIRECTS
+  maxRedirects: number = MAX_SAFE_REDIRECTS,
+  clientHeaders?: Headers,
+  clientSignal?: AbortSignal
 ): Promise<SafeFetchResult> {
   let currentUrl = initialUrl;
   const visitedUrls = new Set<string>();
@@ -150,11 +152,21 @@ export async function fetchWithSafeRedirects(
       Origin: origin,
     };
 
+    const clientRange = clientHeaders?.get("range");
+    if (clientRange) {
+      stepHeaders["Range"] = clientRange;
+    }
+
+    const timeoutSignal = AbortSignal.timeout(timeoutMs);
+    const signal = clientSignal
+      ? AbortSignal.any([clientSignal, timeoutSignal])
+      : timeoutSignal;
+
     const response = await fetch(currentUrl, {
       method: "GET",
       headers: stepHeaders,
       redirect: "manual",
-      signal: AbortSignal.timeout(timeoutMs),
+      signal,
     });
 
     const isRedirect = [301, 302, 303, 307, 308].includes(response.status);
@@ -300,7 +312,13 @@ export async function GET(request: NextRequest) {
   try {
     let fetchResult: SafeFetchResult;
     try {
-      fetchResult = await fetchWithSafeRedirects(targetUrl);
+      fetchResult = await fetchWithSafeRedirects(
+        targetUrl,
+        10000,
+        MAX_SAFE_REDIRECTS,
+        request.headers,
+        request.signal
+      );
     } catch (fetchErr: unknown) {
       const msg = fetchErr instanceof Error ? fetchErr.message : "Fetch error";
       const isSecurityBlock = msg.includes("SSRF guard blocked") || msg.includes("Stream source is blocked");
@@ -384,19 +402,39 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Xử lý media chunk binary (.ts, .m4s, .key, etc.)
-    const arrayBuffer = await response.arrayBuffer();
+    // Xử lý media chunk binary (.ts, .m4s, .key, etc.) qua Web Streams trực tiếp (0ms buffer overhead)
     const isSafe = isSafePublicSegment(request, finalUrl || targetUrl, contentType, response);
 
-    return new NextResponse(arrayBuffer, {
-      headers: {
-        "Content-Type": contentType || "video/mp2t",
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "GET, OPTIONS",
-        "Cache-Control": isSafe
-          ? "public, max-age=120, s-maxage=300, stale-while-revalidate=600"
-          : "private, no-cache, no-store, max-age=0, must-revalidate",
-      },
+    const responseHeaders = new Headers();
+    responseHeaders.set("Content-Type", contentType || "video/mp2t");
+    responseHeaders.set("Access-Control-Allow-Origin", "*");
+    responseHeaders.set("Access-Control-Allow-Methods", "GET, OPTIONS");
+    responseHeaders.set(
+      "Cache-Control",
+      isSafe
+        ? "public, max-age=120, s-maxage=300, stale-while-revalidate=600"
+        : "private, no-cache, no-store, max-age=0, must-revalidate"
+    );
+
+    const contentLength = response.headers.get("content-length");
+    if (contentLength) responseHeaders.set("Content-Length", contentLength);
+
+    const contentRange = response.headers.get("content-range");
+    if (contentRange) responseHeaders.set("Content-Range", contentRange);
+
+    const acceptRanges = response.headers.get("accept-ranges");
+    if (acceptRanges) responseHeaders.set("Accept-Ranges", acceptRanges);
+
+    if (response.body) {
+      return new NextResponse(response.body, {
+        status: response.status,
+        headers: responseHeaders,
+      });
+    }
+
+    return new NextResponse(null, {
+      status: response.status,
+      headers: responseHeaders,
     });
   } catch (error) {
     return new NextResponse(`Proxy error: ${(error as Error).message}`, {
