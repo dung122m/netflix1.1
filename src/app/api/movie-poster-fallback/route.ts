@@ -171,12 +171,22 @@ export async function GET(req: NextRequest) {
   // 1. Kiểm tra L1 RAM cache
   const cached = posterMemoryCache.get(cacheKey);
   if (cached && cached.expireAt > now) {
-    return NextResponse.json({
-      status: true,
-      posterUrl: cached.posterUrl,
-      backdropUrl: cached.backdropUrl,
-      source: "l1-cache",
-    });
+    const hasPoster = Boolean(cached.posterUrl || cached.backdropUrl);
+    return NextResponse.json(
+      {
+        status: true,
+        posterUrl: cached.posterUrl,
+        backdropUrl: cached.backdropUrl,
+        source: "l1-cache",
+      },
+      {
+        headers: {
+          "Cache-Control": hasPoster
+            ? "public, max-age=86400, s-maxage=604800, stale-while-revalidate=86400"
+            : "public, max-age=3600, s-maxage=86400",
+        },
+      }
+    );
   }
 
   // 2. Kiểm tra L2 KV cache (v3 để không dính cache phimimg cũ)
@@ -296,10 +306,20 @@ export async function GET(req: NextRequest) {
     expireAt: now + MEMORY_TTL,
   });
 
-  return NextResponse.json({
-    status: true,
-    posterUrl: result?.posterUrl || null,
-    backdropUrl: result?.backdropUrl || null,
-    source: "tmdb",
-  });
+  const hasPoster = Boolean(result?.posterUrl || result?.backdropUrl);
+  return NextResponse.json(
+    {
+      status: true,
+      posterUrl: result?.posterUrl || null,
+      backdropUrl: result?.backdropUrl || null,
+      source: "tmdb",
+    },
+    {
+      headers: {
+        "Cache-Control": hasPoster
+          ? "public, max-age=86400, s-maxage=604800, stale-while-revalidate=86400"
+          : "public, max-age=3600, s-maxage=86400",
+      },
+    }
+  );
 }

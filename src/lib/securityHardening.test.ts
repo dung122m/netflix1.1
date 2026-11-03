@@ -47,6 +47,8 @@ import {
   _resetTokenCacheForTesting,
 } from "./serverAuth";
 
+import { generateStreamToken } from "./streamToken";
+
 import {
   getRequestId,
   logSecurityEvent,
@@ -1875,6 +1877,17 @@ describe("Remediation Acceptance Suite (B1, B2, B3, B4)", () => {
   // B2 & B3: Media Cache Classification & Error Responses on Stream Proxies
   // --------------------------------------------------------------------------
   describe("B2 & B3: Media Cache Classification & Upstream Error Caching", () => {
+    const makeSignedUrl = (baseProxyPath: string, targetUrl: string) => {
+      const token = generateStreamToken({ targetUrl });
+      const u = new URL(baseProxyPath, "http://localhost");
+      u.searchParams.set("url", targetUrl);
+      u.searchParams.set("st", token.token);
+      u.searchParams.set("exp", String(token.exp));
+      u.searchParams.set("sid", token.sid);
+      u.searchParams.set("v", "1");
+      return u.toString();
+    };
+
     it("B2.1 & B3.1: Missing url parameter returns 400 with no-store, no-cache, must-revalidate", async () => {
       const { GET } = await import("@/app/api/live-football/proxy/route");
       const req = new NextRequest("http://localhost/api/live-football/proxy");
@@ -1903,7 +1916,8 @@ describe("Remediation Acceptance Suite (B1, B2, B3, B4)", () => {
           });
 
         const { GET } = await import("@/app/api/live-football/proxy/route");
-        const req = new NextRequest("http://localhost/api/live-football/proxy?url=https://cdn.example.com/live/segment-999.ts");
+        const signedUrl = makeSignedUrl("/api/live-football/proxy", "https://cdn.example.com/live/segment-999.ts");
+        const req = new NextRequest(signedUrl);
         const res = await GET(req);
 
         assert.strictEqual(res.status, 404);
@@ -1923,7 +1937,8 @@ describe("Remediation Acceptance Suite (B1, B2, B3, B4)", () => {
           });
 
         const { GET } = await import("@/app/api/live-football/proxy/route");
-        const req = new NextRequest("http://localhost/api/live-football/proxy?url=https://cdn.example.com/live/segment-1024.ts");
+        const signedUrl = makeSignedUrl("/api/live-football/proxy", "https://cdn.example.com/live/segment-1024.ts");
+        const req = new NextRequest(signedUrl);
         const res = await GET(req);
 
         assert.strictEqual(res.status, 200);
@@ -1946,7 +1961,8 @@ describe("Remediation Acceptance Suite (B1, B2, B3, B4)", () => {
           });
 
         const { GET } = await import("@/app/api/live-football/proxy/route");
-        const req = new NextRequest("http://localhost/api/live-football/proxy?url=https://cdn.example.com/live/enc.key");
+        const signedUrl = makeSignedUrl("/api/live-football/proxy", "https://cdn.example.com/live/enc.key");
+        const req = new NextRequest(signedUrl);
         const res = await GET(req);
 
         assert.strictEqual(res.status, 200);
@@ -1969,7 +1985,8 @@ describe("Remediation Acceptance Suite (B1, B2, B3, B4)", () => {
           });
 
         const { GET } = await import("@/app/api/live-tv/proxy/route");
-        const req = new NextRequest("http://localhost/api/live-tv/proxy?url=https://cdn.example.com/live/payload.unknown");
+        const signedUrl = makeSignedUrl("/api/live-tv/proxy", "https://cdn.example.com/live/payload.unknown");
+        const req = new NextRequest(signedUrl);
         const res = await GET(req);
 
         assert.strictEqual(res.status, 200);
@@ -1995,7 +2012,8 @@ describe("Remediation Acceptance Suite (B1, B2, B3, B4)", () => {
           });
 
         const { GET } = await import("@/app/api/live-football/proxy/route");
-        const req = new NextRequest("http://localhost/api/live-football/proxy?url=https://cdn.example.com/live/seg.ts");
+        const signedUrl = makeSignedUrl("/api/live-football/proxy", "https://cdn.example.com/live/seg.ts");
+        const req = new NextRequest(signedUrl);
         const res = await GET(req);
 
         assert.strictEqual(res.status, 200);
@@ -2036,7 +2054,8 @@ describe("Remediation Acceptance Suite (B1, B2, B3, B4)", () => {
         };
 
         const { GET } = await import("@/app/api/live-tv/proxy/route");
-        const req = new NextRequest("http://localhost/api/live-tv/proxy?url=https://cdn.example.com/live/stream.ts");
+        const signedUrl = makeSignedUrl("/api/live-tv/proxy", "https://cdn.example.com/live/stream.ts");
+        const req = new NextRequest(signedUrl);
         const res = await GET(req);
 
         assert.strictEqual(res.status, 502);

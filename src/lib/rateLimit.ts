@@ -155,6 +155,7 @@ export interface RateLimitConfig {
   failClosed?: boolean; // True for mutations/AI/upload/admin: reject if Redis fails
   timeoutMs?: number;
   fallbackMaxRequests?: number;
+  strategy?: "sliding-window" | "fixed-window";
 }
 
 export interface RateLimitResult {
@@ -174,126 +175,147 @@ export const RATE_LIMIT_PRESETS = {
     maxRequests: 120,
     windowSeconds: 60,
     failClosed: false,
+    strategy: "fixed-window",
   },
   POSTER_FALLBACK: {
     namespace: "poster-fallback",
     maxRequests: 300,
     windowSeconds: 60,
     failClosed: false,
+    strategy: "fixed-window",
   },
   USER_READ: {
     namespace: "user-read",
     maxRequests: 180,
     windowSeconds: 60,
     failClosed: false,
+    strategy: "fixed-window",
   },
   SEARCH: {
     namespace: "search",
     maxRequests: 30,
     windowSeconds: 60,
     failClosed: false,
+    strategy: "fixed-window",
   },
   COMMENTS_READ: {
     namespace: "comments-read",
     maxRequests: 60,
     windowSeconds: 60,
     failClosed: false,
+    strategy: "fixed-window",
   },
   COMMENT_CREATE: {
     namespace: "comment-create",
     maxRequests: 5,
     windowSeconds: 600, // 5 requests / 10 mins / user
     failClosed: true,
+    strategy: "sliding-window",
   },
   COMMENT_MUTATION: {
     namespace: "comments-mutation",
     maxRequests: 30,
     windowSeconds: 60, // 30 requests / 1 min / user
     failClosed: true,
+    strategy: "sliding-window",
   },
   COMMENT_DELETE: {
     namespace: "comments-delete",
     maxRequests: 20,
     windowSeconds: 600, // 20 requests / 10 mins / user
     failClosed: true,
+    strategy: "sliding-window",
   },
   AI_REQUEST: {
     namespace: "ai-request",
     maxRequests: 10,
     windowSeconds: 600, // 10 requests / 10 mins / user
     failClosed: true,
+    strategy: "sliding-window",
   },
   UPLOAD: {
     namespace: "upload",
     maxRequests: 10,
     windowSeconds: 600, // 10 requests / 10 mins / user
     failClosed: true,
+    strategy: "sliding-window",
   },
   USER_MUTATION: {
     namespace: "user-mutation",
     maxRequests: 30,
     windowSeconds: 600, // 30 requests / 10 mins / user
     failClosed: true,
+    strategy: "sliding-window",
   },
   AUTH_SENSITIVE: {
     namespace: "auth-sensitive",
     maxRequests: 10,
     windowSeconds: 900, // 10 requests / 15 mins / IP
     failClosed: true,
+    strategy: "sliding-window",
   },
   AUTH_ACCOUNT: {
     namespace: "auth-account",
     maxRequests: 5,
     windowSeconds: 300, // 5 requests / 5 mins / target account
     failClosed: true,
+    strategy: "sliding-window",
   },
   AUTH_VERIFY: {
     namespace: "auth-verify",
     maxRequests: 60,
     windowSeconds: 60, // 60 token verifications / 1 min / IP
     failClosed: true,
+    strategy: "sliding-window",
   },
   ADMIN_MUTATION: {
     namespace: "admin-mutation",
     maxRequests: 30,
     windowSeconds: 600, // 30 requests / 10 mins / admin
     failClosed: true,
+    strategy: "sliding-window",
   },
   HLS_PLAYLIST: {
     namespace: "stream-playlist",
     maxRequests: 180,
     windowSeconds: 60, // 180 requests / 60s per IP (allows manifest polling & adaptive bitrate switching)
     failClosed: false,
+    strategy: "fixed-window",
   },
   HLS_SEGMENT: {
     namespace: "stream-segment",
     maxRequests: 1200,
     windowSeconds: 60, // 1200 requests / 60s per IP (high throughput for 1080p/4K segments + burst buffer)
     failClosed: false,
+    strategy: "fixed-window",
   },
   STREAM_PROXY: {
     namespace: "stream-proxy",
     maxRequests: 300,
     windowSeconds: 60, // 300 requests / 60s per IP (fallback media proxy)
     failClosed: false,
+    strategy: "fixed-window",
   },
   RECOMMENDATIONS: {
     namespace: "recommendations",
     maxRequests: 30,
     windowSeconds: 60, // 30 requests / 60s per IP (heavy parallel compute)
     failClosed: false,
+    strategy: "fixed-window",
   },
   TRANSLATION: {
     namespace: "translation",
     maxRequests: 30,
     windowSeconds: 60, // 30 requests / 60s per IP (outbound translation API)
     failClosed: false,
+    strategy: "fixed-window",
   },
   ANALYTICS_TRACK: {
     namespace: "analytics-track",
     maxRequests: 60,
     windowSeconds: 60,
     failClosed: false,
+    strategy: "fixed-window",
   },
 } as const;
 
@@ -660,6 +682,159 @@ export async function checkRateLimit(
     return evaluateMemoryFallback(key, target, config, now, windowMs);
   }
 
+  // Determine rate limiting strategy:
+  // - Strict Sliding Window (ZSET, 4 commands): Required for sensitive actions (Auth, Mutations, AI, Upload, Admin)
+  //   to prevent reset-boundary attacks (2x burst across window edges).
+  // - Fixed Window Counter (Atomic Lua EVAL / INCR, 1-2 commands): Optimized for high-throughput public read, search,
+  //   metadata, and live polling endpoints, reducing Redis command consumption by 50-75%.
+  const isSensitive =
+    Boolean(config.failClosed) ||
+    config.namespace.includes("auth") ||
+    config.namespace.includes("admin") ||
+    config.namespace.includes("mutation") ||
+    config.namespace.includes("comment-create") ||
+    config.namespace.includes("comment-delete") ||
+    config.namespace.includes("ai-request") ||
+    config.namespace.includes("upload");
+
+  const strategy = config.strategy ?? (isSensitive ? "sliding-window" : "fixed-window");
+
+  // ==========================================================================
+  // STRATEGY A: FIXED WINDOW COUNTER (1-2 REDIS COMMANDS VIA LUA EVAL)
+  // ==========================================================================
+  if (strategy === "fixed-window") {
+    const bucket = Math.floor(now / windowMs);
+    const fixedKey = `${key}:${bucket}`;
+    const bucketEnd = (bucket + 1) * windowMs;
+    const resetSeconds = Math.max(1, Math.ceil((bucketEnd - now) / 1000));
+
+    // L1 Ephemeral Blocked Cache check for this bucket
+    const fixedBlockedUntil = localBlockedCache.get(fixedKey);
+    if (fixedBlockedUntil && fixedBlockedUntil > now) {
+      const waitSec = Math.max(1, Math.ceil((fixedBlockedUntil - now) / 1000));
+      return {
+        allowed: false,
+        limit: config.maxRequests,
+        remaining: 0,
+        resetSeconds: waitSec,
+        target,
+        reason: "Tần suất yêu cầu vượt quá giới hạn cho phép.",
+        headers: {
+          "X-RateLimit-Limit": String(config.maxRequests),
+          "X-RateLimit-Remaining": "0",
+          "X-RateLimit-Reset": String(waitSec),
+          "Retry-After": String(waitSec),
+        },
+      };
+    }
+
+    const redis = getRedisInstance();
+    if (redis) {
+      let timeoutTimer: NodeJS.Timeout | undefined;
+      const controller = new AbortController();
+      try {
+        const timeoutPromise = new Promise<never>((_, reject) => {
+          timeoutTimer = setTimeout(() => {
+            controller.abort(new Error("Redis rate limit timeout"));
+            reject(new Error("Redis rate limit timeout"));
+          }, timeoutMs);
+        });
+
+        const fixedWindowPromise = redisRequestSignalStorage.run(controller.signal, async () => {
+          const ttlSeconds = config.windowSeconds + 10;
+          const p = redis.pipeline();
+          p.incr(fixedKey);
+          p.expire(fixedKey, ttlSeconds, "NX");
+          const results = await p.exec<[number, 0 | 1]>();
+
+          if (!results || results.length < 2) {
+            throw new Error("Redis rate limit pipeline returned invalid result structure");
+          }
+
+          const incrResult = results[0];
+          const expireResult = results[1];
+
+          if (typeof incrResult !== "number" || isNaN(incrResult)) {
+            throw new Error("Redis INCR returned invalid non-numeric result");
+          }
+
+          // EXPIRE with NX returns 1 when timeout was set, 0 when key already has timeout (both valid)
+          if (expireResult !== 0 && expireResult !== 1) {
+            throw new Error("Redis EXPIRE NX returned invalid status");
+          }
+
+          return incrResult;
+        });
+
+        const currentCount = await Promise.race([fixedWindowPromise, timeoutPromise]);
+        clearTimeout(timeoutTimer);
+        recordRedisSuccess();
+
+        const totalCount = typeof currentCount === "number" && !isNaN(currentCount) ? currentCount : 1;
+
+        if (totalCount > config.maxRequests) {
+          localBlockedCache.set(fixedKey, now + resetSeconds * 1000);
+          return {
+            allowed: false,
+            limit: config.maxRequests,
+            remaining: 0,
+            resetSeconds,
+            target,
+            reason: "Tần suất yêu cầu vượt quá giới hạn cho phép.",
+            headers: {
+              "X-RateLimit-Limit": String(config.maxRequests),
+              "X-RateLimit-Remaining": "0",
+              "X-RateLimit-Reset": String(resetSeconds),
+              "Retry-After": String(resetSeconds),
+            },
+          };
+        }
+
+        const remaining = Math.max(0, config.maxRequests - totalCount);
+        return {
+          allowed: true,
+          limit: config.maxRequests,
+          remaining,
+          resetSeconds,
+          target,
+          headers: {
+            "X-RateLimit-Limit": String(config.maxRequests),
+            "X-RateLimit-Remaining": String(remaining),
+            "X-RateLimit-Reset": String(resetSeconds),
+          },
+        };
+      } catch (err) {
+        clearTimeout(timeoutTimer);
+        controller.abort();
+        const { kind, message } = classifyRedisError(err);
+        recordRedisFailure(kind, now);
+
+        const safeTarget = target.startsWith("ip:iph_")
+          ? target
+          : target.replace(/^ip:(.+)$/, "ip:sanitized");
+
+        if (kind === "timeout") {
+          console.warn(
+            `[RateLimit:Timeout] Redis timeout on ${config.namespace}:${safeTarget} (threshold ${timeoutMs}ms): ${message}`
+          );
+        } else if (kind === "connection") {
+          console.warn(
+            `[RateLimit:ConnectionError] Redis connection failure on ${config.namespace}:${safeTarget}: ${message}`
+          );
+        } else {
+          console.warn(
+            `[RateLimit:CommandError] Redis command error on ${config.namespace}:${safeTarget}: ${message}`
+          );
+        }
+      }
+    }
+
+    return evaluateMemoryFallback(fixedKey, target, config, now, windowMs);
+  }
+
+  // ==========================================================================
+  // STRATEGY B: SLIDING WINDOW LOG (ZSET, 4 COMMANDS, STRICT ANTI-BURST)
+  // ==========================================================================
   const redis = getRedisInstance();
 
   // 2. Distributed Sliding Window via Upstash Redis ZSET Pipeline

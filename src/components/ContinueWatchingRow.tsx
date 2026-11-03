@@ -64,21 +64,22 @@ function getInitialPoster(item: WatchHistoryItem): string {
 
 function ContinueWatchingCard({ item, index = 0, onRemove }: ContinueWatchingCardProps) {
   const initialPoster = React.useMemo(() => getInitialPoster(item), [item]);
-  const { displaySrc } = useMoviePosterFallback({
+  const { displaySrc, triggerFallback } = useMoviePosterFallback({
     slug: item.slug,
     title: item.title,
     year: item.year,
     initialSrc: initialPoster,
+    enabled: false, // Không gọi đón đầu hàng loạt khi mount
   });
 
   const [imgSrc, setImgSrc] = useState<string>(displaySrc || initialPoster);
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
-    if (displaySrc) {
+    if (displaySrc && displaySrc !== initialPoster) {
       setImgSrc(displaySrc);
     }
-  }, [displaySrc]);
+  }, [displaySrc, initialPoster]);
 
   const handleImgError = useCallback(() => {
     // Nếu link hiện tại bị lỗi, thử dùng thumb ngang nếu có và khác link đang lỗi
@@ -88,9 +89,11 @@ function ContinueWatchingCard({ item, index = 0, onRemove }: ContinueWatchingCar
       setIsLoaded(false);
       return;
     }
+    // Kích hoạt fallback TMDb khi ảnh thực sự lỗi
+    triggerFallback();
     // Giữ nguyên ảnh hoặc hiển thị fallback title mà KHÔNG xóa ảnh trắng hoặc sửa dữ liệu người dùng
     setIsLoaded(true);
-  }, [imgSrc, item.thumb]);
+  }, [imgSrc, item.thumb, triggerFallback]);
 
   const href = item.episodeSlug
     ? `/movies/${item.slug}?ep=${item.episodeSlug}`

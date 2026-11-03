@@ -2,21 +2,40 @@ import { NextRequest, NextResponse } from "next/server";
 import { recordAnalyticsEvent } from "@/services/analyticsService";
 import { AnalyticsEventPayload } from "@/lib/analyticsClient";
 import { verifyServerAuth } from "@/lib/serverAuth";
-import {
-  enforceRateLimit,
-  buildRateLimitResponse,
-  RATE_LIMIT_PRESETS,
-} from "@/lib/rateLimit";
+
 import { getGeoLocationFromRequest } from "@/lib/geoip";
+import { getClientIp } from "@/lib/clientIp";
 
 export const maxDuration = 10;
 
+// Bộ nhớ đệm giới hạn tần suất local (30 req / 10s per IP) chống bot flood mà không tốn Redis commands
+const localTrackRateMap = new Map<string, number[]>();
+
+function checkLocalTrackRateLimit(ip: string): boolean {
+  const now = Date.now();
+  let timestamps = localTrackRateMap.get(ip);
+  if (!timestamps) {
+    timestamps = [];
+    localTrackRateMap.set(ip, timestamps);
+  }
+  timestamps = timestamps.filter((t) => now - t < 10000);
+  if (timestamps.length >= 30) {
+    return false;
+  }
+  timestamps.push(now);
+  localTrackRateMap.set(ip, timestamps);
+  return true;
+}
+
 export async function POST(req: NextRequest) {
   try {
-    // 1. Giới hạn tần suất phân tán theo IP (60 requests / 60s)
-    const rateLimit = await enforceRateLimit(req, RATE_LIMIT_PRESETS.ANALYTICS_TRACK);
-    if (!rateLimit.allowed) {
-      return buildRateLimitResponse(rateLimit, "Too many analytics requests. Please try again later.");
+    // 1. Kiểm tra tần suất in-memory (0ms, 0 Redis commands; bảo vệ endpoint mà không phát sinh Redis ZSET)
+    const clientIp = getClientIp(req);
+    if (!checkLocalTrackRateLimit(clientIp)) {
+      return NextResponse.json(
+        { success: false, error: "Too many analytics requests. Please try again later." },
+        { status: 429, headers: { "Retry-After": "10" } }
+      );
     }
 
     let body: Partial<AnalyticsEventPayload> = {};

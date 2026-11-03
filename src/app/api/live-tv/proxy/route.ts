@@ -6,6 +6,14 @@ import {
   buildRateLimitResponse,
   resolveStreamingRateLimitPreset,
 } from "@/lib/rateLimit";
+import {
+  generateStreamToken,
+  verifyStreamToken,
+  computeStreamId,
+  DEFAULT_STREAM_TOKEN_TTL_SECONDS,
+} from "@/lib/streamToken";
+import { evaluatePlaylistRefreshGate } from "@/services/live/shared/proxyGate";
+import { getClientIp } from "@/lib/clientIp";
 
 export const dynamic = "force-dynamic";
 
@@ -134,6 +142,10 @@ function getReferer(url: string): string {
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const targetUrl = searchParams.get("url");
+  const st = searchParams.get("st");
+  const exp = searchParams.get("exp");
+  const sid = searchParams.get("sid");
+  const v = searchParams.get("v");
 
   if (!targetUrl) {
     return new NextResponse("Missing url parameter", {
@@ -145,14 +157,7 @@ export async function GET(request: NextRequest) {
     });
   }
 
-  // 1. Differentiated HLS Streaming Rate Limit (Playlist: 180 req/min vs Segment: 1200 req/min)
-  const streamPreset = resolveStreamingRateLimitPreset(targetUrl);
-  const rateLimit = await enforceRateLimit(request, streamPreset);
-  if (!rateLimit.allowed) {
-    return buildRateLimitResponse(rateLimit, "Too many proxy requests. Rate limit exceeded.");
-  }
-
-  // 2. Anti-SSRF URL Validation (Chống tấn công nội mạng & proxy abuse)
+  // 1. Anti-SSRF URL Validation (Chống tấn công nội mạng & proxy abuse)
   if (!isSafePublicUrl(targetUrl)) {
     return new NextResponse("Forbidden target URL", {
       status: 403,
@@ -171,6 +176,109 @@ export async function GET(request: NextRequest) {
         "Access-Control-Allow-Origin": "*",
       },
     });
+  }
+
+  // 2. Two-Tier Gate Evaluation
+  const cleanTargetLower = targetUrl.split("?")[0].toLowerCase();
+  const hasMediaExt =
+    cleanTargetLower.endsWith(".ts") ||
+    cleanTargetLower.endsWith(".m4s") ||
+    cleanTargetLower.endsWith(".mp4") ||
+    cleanTargetLower.endsWith(".m4a") ||
+    cleanTargetLower.endsWith(".aac") ||
+    cleanTargetLower.endsWith(".vtt") ||
+    cleanTargetLower.endsWith(".key") ||
+    cleanTargetLower.endsWith(".key.bin");
+
+  const isPlaylist =
+    !hasMediaExt && (
+      cleanTargetLower.endsWith(".m3u8") ||
+      cleanTargetLower.endsWith("/playlist") ||
+      cleanTargetLower.endsWith("/manifest") ||
+      cleanTargetLower.endsWith(".mpd") ||
+      cleanTargetLower.includes(".m3u8")
+    );
+
+  let shouldBypassRedis = false;
+
+  if (!isPlaylist) {
+    // Data Plane: Every media resource MUST present a valid Signed Stream Token
+    if (!st || !exp || !sid) {
+      return new NextResponse("Missing required stream token parameters", {
+        status: 403,
+        headers: {
+          "Cache-Control": "no-store, no-cache, must-revalidate",
+          "Access-Control-Allow-Origin": "*",
+        },
+      });
+    }
+
+    const verifyResult = verifyStreamToken({
+      token: st,
+      exp,
+      sid,
+      version: v,
+      targetUrl,
+    });
+
+    if (verifyResult.valid) {
+      // Token is 100% authentic and active: Bypass Upstash Redis (0ms latency, 0 Redis queries)
+      shouldBypassRedis = true;
+    } else if (verifyResult.status === "EXPIRED_GRACE") {
+      // Graceful Redis Fallback during token renewal
+      const streamPreset = resolveStreamingRateLimitPreset(targetUrl);
+      const rateLimit = await enforceRateLimit(request, streamPreset);
+      if (!rateLimit.allowed) {
+        return buildRateLimitResponse(rateLimit, "Rate limit exceeded during token renewal grace period.");
+      }
+      shouldBypassRedis = true;
+    } else {
+      return new NextResponse("Invalid or expired stream token", {
+        status: 403,
+        headers: {
+          "Cache-Control": "no-store, no-cache, must-revalidate",
+          "Access-Control-Allow-Origin": "*",
+        },
+      });
+    }
+  } else if (st && exp && sid) {
+    // Authenticated Playlist Refresh
+    const verifyResult = verifyStreamToken({
+      token: st,
+      exp,
+      sid,
+      version: v,
+      targetUrl,
+    });
+    if (verifyResult.valid) {
+      const clientKey = `${getClientIp(request)}:${sid}`;
+      const gateDecision = evaluatePlaylistRefreshGate({
+        clientKey,
+        hasValidToken: true,
+      });
+      if (!gateDecision.allowed) {
+        return new NextResponse(gateDecision.reason || "Rate limit exceeded", {
+          status: 429,
+          headers: {
+            "Cache-Control": "no-store, no-cache, must-revalidate",
+            "Access-Control-Allow-Origin": "*",
+            "Retry-After": "3",
+          },
+        });
+      }
+      if (!gateDecision.syncToRedis) {
+        shouldBypassRedis = true;
+      }
+    }
+  }
+
+  if (!shouldBypassRedis) {
+    // Control Plane (Playlist) OR direct/fallback segment: Enforce distributed Redis rate limit
+    const streamPreset = resolveStreamingRateLimitPreset(targetUrl);
+    const rateLimit = await enforceRateLimit(request, streamPreset);
+    if (!rateLimit.allowed) {
+      return buildRateLimitResponse(rateLimit, "Too many proxy requests. Rate limit exceeded.");
+    }
   }
 
   try {
@@ -217,12 +325,7 @@ export async function GET(request: NextRequest) {
 
     const contentType = response.headers.get("content-type") || "";
 
-    const toProxyUrl = (value: string) => {
-      const absoluteUrl = new URL(value, targetUrl).toString();
-      return `/api/live-tv/proxy?url=${encodeURIComponent(absoluteUrl)}`;
-    };
-
-    // Nếu là file playlist m3u8 → viết lại URL segment để đi qua proxy này
+    // Nếu là file playlist m3u8 → viết lại URL segment kèm Signed Stream Token để đi qua proxy này
     if (
       targetUrl.includes(".m3u8") ||
       contentType.includes("mpegurl") ||
@@ -230,6 +333,17 @@ export async function GET(request: NextRequest) {
     ) {
       const text = await response.text();
       const lines = text.split("\n");
+      const playlistStreamId = computeStreamId(targetUrl);
+
+      const toProxyUrl = (value: string) => {
+        const absoluteUrl = new URL(value, targetUrl).toString();
+        const signed = generateStreamToken({
+          targetUrl: absoluteUrl,
+          streamId: playlistStreamId,
+          ttlSeconds: DEFAULT_STREAM_TOKEN_TTL_SECONDS,
+        });
+        return `/api/live-tv/proxy?url=${encodeURIComponent(absoluteUrl)}&st=${encodeURIComponent(signed.token)}&exp=${signed.exp}&sid=${encodeURIComponent(signed.sid)}&v=${signed.v}`;
+      };
       const rewrittenLines = lines.map((line) => {
         const trimmed = line.trim();
         if (!trimmed || trimmed.startsWith("#")) {

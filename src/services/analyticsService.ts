@@ -202,6 +202,23 @@ export function formatPageGroupName(group?: string): string {
   }
 }
 
+// In-Memory L1 Deduplication & Visitor caches (reduces Redis commands for rapid clicks and repeated page views)
+const localVisitDedupCache = new Map<string, number>();
+const localKnownVisitors = new Set<string>();
+
+if (typeof setInterval !== "undefined") {
+  const dedupTimer = setInterval(() => {
+    const nowTime = Date.now();
+    for (const [key, exp] of localVisitDedupCache.entries()) {
+      if (nowTime - exp > 60000) localVisitDedupCache.delete(key);
+    }
+    if (localKnownVisitors.size > 10000) {
+      localKnownVisitors.clear();
+    }
+  }, 5 * 60 * 1000);
+  dedupTimer.unref?.();
+}
+
 /**
  * Record a minimal site_visit analytics event with 30-sec same-page deduplication
  */
@@ -224,15 +241,21 @@ export async function recordAnalyticsEvent(payload: AnalyticsEventPayload): Prom
 
   // Check 30-Second Deduplication for rapid double-clicks / F5 on the same page
   const visitDedupKey = `visit_dedup:${viewerKey}:${pageGroup}`;
+  const localDedup = localVisitDedupCache.get(visitDedupKey);
+  if (localDedup && now - localDedup < 30000) {
+    return { success: true, deduped: true };
+  }
+
   try {
     const redis = getRedis();
     if (redis) {
-      const existing = await redis.get(visitDedupKey);
-      if (existing) {
+      // SET ... NX EX 30: Single atomic command replaces separate GET + SET (saves 1 roundtrip and 1 Redis command)
+      const acquired = await redis.set(visitDedupKey, now, { nx: true, ex: 30 });
+      if (!acquired) {
+        localVisitDedupCache.set(visitDedupKey, now);
         return { success: true, deduped: true };
       }
-      // 30 seconds debounce window for same page
-      await redis.set(visitDedupKey, now, { ex: 30 });
+      localVisitDedupCache.set(visitDedupKey, now);
     }
   } catch {
     // Fail gracefully: proceed if Redis is temporarily unavailable
@@ -261,14 +284,13 @@ export async function recordAnalyticsEvent(payload: AnalyticsEventPayload): Prom
 
   const redis = getRedis();
 
-  // Persist to Upstash Redis (fail-safe)
+  // Persist to Upstash Redis via single pipeline (fail-safe)
   if (redis) {
     try {
-      await redis.lpush("analytics:events", JSON.stringify(eventRecord));
-      await redis.ltrim("analytics:events", 0, 500);
+      const isKnown = localKnownVisitors.has(viewerKey);
+      localKnownVisitors.add(viewerKey);
 
       const visitorKey = `analytics:visitor:${viewerKey}`;
-      const existingVisitor = await redis.get<VisitorInfo>(visitorKey);
       const visitorData: VisitorInfo = {
         id: viewerKey,
         isUser: Boolean(userId),
@@ -278,19 +300,26 @@ export async function recordAnalyticsEvent(payload: AnalyticsEventPayload): Prom
         os: eventRecord.os || "Other",
         browser: eventRecord.browser || "Other",
         screenRes: undefined,
-        firstSeen: existingVisitor?.firstSeen || now,
+        firstSeen: now,
         lastSeen: now,
       };
-      await redis.set(visitorKey, visitorData, { ex: 60 * 86400 });
-      await redis.sadd("analytics:all_visitors", viewerKey);
 
-      await redis.incr("analytics:visits:total");
-      await redis.sadd("analytics:unique:total", viewerKey);
-      if (userId) {
-        await redis.sadd("analytics:unique:users", userId);
-      } else {
-        await redis.sadd("analytics:unique:guests", anonymousId);
+      const pipe = redis.pipeline();
+      pipe.lpush("analytics:events", JSON.stringify(eventRecord));
+      pipe.ltrim("analytics:events", 0, 500);
+      pipe.incr("analytics:visits:total");
+
+      if (!isKnown) {
+        pipe.set(visitorKey, visitorData, { ex: 60 * 86400 });
+        pipe.sadd("analytics:unique:total", viewerKey);
+        if (userId) {
+          pipe.sadd("analytics:unique:users", userId);
+        } else {
+          pipe.sadd("analytics:unique:guests", anonymousId);
+        }
       }
+
+      await pipe.exec();
     } catch (redisErr) {
       console.warn("[Analytics] Redis storage error:", redisErr);
     }

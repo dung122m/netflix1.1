@@ -12,6 +12,8 @@ import {
   computeStreamId,
   DEFAULT_STREAM_TOKEN_TTL_SECONDS,
 } from "@/lib/streamToken";
+import { evaluatePlaylistRefreshGate } from "@/services/live/shared/proxyGate";
+import { getClientIp } from "@/lib/clientIp";
 
 export const dynamic = "force-dynamic";
 
@@ -298,6 +300,35 @@ export async function GET(request: NextRequest) {
         },
       });
     }
+  } else if (st && exp && sid) {
+    // Authenticated Playlist Refresh
+    const verifyResult = verifyStreamToken({
+      token: st,
+      exp,
+      sid,
+      version: v,
+      targetUrl,
+    });
+    if (verifyResult.valid) {
+      const clientKey = `${getClientIp(request)}:${sid}`;
+      const gateDecision = evaluatePlaylistRefreshGate({
+        clientKey,
+        hasValidToken: true,
+      });
+      if (!gateDecision.allowed) {
+        return new NextResponse(gateDecision.reason || "Rate limit exceeded", {
+          status: 429,
+          headers: {
+            "Cache-Control": "no-store, no-cache, must-revalidate",
+            "Access-Control-Allow-Origin": "*",
+            "Retry-After": "3",
+          },
+        });
+      }
+      if (!gateDecision.syncToRedis) {
+        shouldBypassRedis = true;
+      }
+    }
   }
 
   if (!shouldBypassRedis) {
@@ -366,8 +397,13 @@ export async function GET(request: NextRequest) {
           cleanAbs.includes("manifest");
 
         if (isChildPlaylist) {
-          // Variant/sub-playlist: routes through proxy control plane
-          return `/api/live-football/proxy?url=${encodeURIComponent(absoluteUrl)}`;
+          // Variant/sub-playlist: attach Signed Stream Token to enable optimized 2-tier refresh
+          const signed = generateStreamToken({
+            targetUrl: absoluteUrl,
+            streamId: playlistStreamId,
+            ttlSeconds: DEFAULT_STREAM_TOKEN_TTL_SECONDS,
+          });
+          return `/api/live-football/proxy?url=${encodeURIComponent(absoluteUrl)}&st=${encodeURIComponent(signed.token)}&exp=${signed.exp}&sid=${encodeURIComponent(signed.sid)}&v=${signed.v}`;
         }
 
         // Media segment, key, init mp4, or subtitle chunk: generate Signed Stream Token
