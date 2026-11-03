@@ -8,6 +8,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Redis } from "@upstash/redis";
 import crypto from "crypto";
+import { AsyncLocalStorage } from "node:async_hooks";
+
+/**
+ * Request-scoped AbortSignal storage for real underlying HTTP cancellation on timeout.
+ * Allows persistent Redis singleton connection reuse while ensuring each individual
+ * request pipeline has an isolated AbortSignal wired into @upstash/redis fetch.
+ */
+export const redisRequestSignalStorage = new AsyncLocalStorage<AbortSignal>();
 
 // ============================================================================
 // 1. IP RESOLUTION & PSEUDONYMIZATION (ZERO RAW IP STORAGE)
@@ -124,6 +132,7 @@ export function getRedisInstance(): Redis | null {
       token,
       keepAlive: true,
       retry: false, // Don't block serverless execution
+      signal: () => redisRequestSignalStorage.getStore() ?? new AbortController().signal,
     });
     cachedRedisSignature = signature;
     return cachedRedisClient;
@@ -656,16 +665,18 @@ export async function checkRateLimit(
   // 2. Distributed Sliding Window via Upstash Redis ZSET Pipeline
   if (redis) {
     let timeoutTimer: NodeJS.Timeout | undefined;
+    const controller = new AbortController();
     try {
       const timeoutPromise = new Promise<never>((_, reject) => {
         timeoutTimer = setTimeout(() => {
+          controller.abort(new Error("Redis rate limit timeout"));
           reject(new Error("Redis rate limit timeout"));
         }, timeoutMs);
       });
 
       const uniqueMember = `${now}:${Math.random().toString(36).slice(2, 9)}`;
 
-      const pipelinePromise = (async () => {
+      const pipelinePromise = redisRequestSignalStorage.run(controller.signal, async () => {
         const p = redis.pipeline();
         p.zremrangebyscore(key, 0, windowStart);
         p.zcard(key);
@@ -673,7 +684,7 @@ export async function checkRateLimit(
         p.expire(key, config.windowSeconds + 15);
         const results = await p.exec<[number, number, number, number]>();
         return results[1]; // Result of zcard before adding new request
-      })();
+      });
 
       const currentCount = await Promise.race([pipelinePromise, timeoutPromise]);
       clearTimeout(timeoutTimer);
@@ -715,6 +726,7 @@ export async function checkRateLimit(
       };
     } catch (err) {
       clearTimeout(timeoutTimer);
+      controller.abort();
       const { kind, message } = classifyRedisError(err);
       recordRedisFailure(kind, now);
 

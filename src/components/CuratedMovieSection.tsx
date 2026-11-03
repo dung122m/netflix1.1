@@ -13,9 +13,11 @@ import {
 } from "lucide-react";
 import { MediaCard } from "@/components/browse/MediaCard";
 import { normalizeMovie } from "@/lib/movieMedia";
-import { movieApi } from "@/services/movieApi";
+import { movieApi } from "@/services/movies/service";
 import { ScrollFadeContainer } from "@/components/ui/ScrollFadeContainer";
 import { CarouselNavButton } from "@/components/ui/CarouselNavButton";
+import { useCarouselScroll } from "@/components/ui/useCarouselScroll";
+import { SectionHeader } from "@/components/ui/SectionHeader";
 
 export type CuratedTabKey = "trending" | "rating" | "theaters" | "latest";
 
@@ -113,10 +115,6 @@ export const CuratedMovieSection: React.FC<CuratedMovieSectionProps> = ({
     trending: initialBatch,
   });
 
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const [canScrollLeft, setCanScrollLeft] = useState(false);
-  const [canScrollRight, setCanScrollRight] = useState(true);
-
   const currentTabConfig =
     CURATED_TABS.find((t) => t.id === activeTab) || CURATED_TABS[0];
   const currentMovies = useMemo(
@@ -133,56 +131,17 @@ export const CuratedMovieSection: React.FC<CuratedMovieSectionProps> = ({
     });
   }, [currentMovies]);
 
-  const checkScroll = useCallback(() => {
-    if (scrollContainerRef.current) {
-      const el = scrollContainerRef.current;
-      const { scrollLeft, scrollWidth, clientWidth } = el;
-      const firstCard = el.querySelector<HTMLElement>(".snap-start");
-      const isAtStart =
-        scrollLeft <= 8 ||
-        (firstCard ? firstCard.getBoundingClientRect().left >= el.getBoundingClientRect().left - 2 : scrollLeft <= 8);
-      const isAtEnd = scrollLeft >= scrollWidth - clientWidth - 8;
-      setCanScrollLeft(!isAtStart);
-      setCanScrollRight(!isAtEnd);
-    }
-  }, []);
-
-  const handleScroll = (direction: "left" | "right") => {
-    if (scrollContainerRef.current) {
-      const cardEl = scrollContainerRef.current.querySelector<HTMLElement>(".snap-start");
-      const step = cardEl
-        ? (cardEl.offsetWidth + 16) * Math.max(1, Math.floor(scrollContainerRef.current.clientWidth / (cardEl.offsetWidth + 16)))
-        : scrollContainerRef.current.clientWidth * 0.75;
-      scrollContainerRef.current.scrollBy({
-        left: direction === "left" ? -step : step,
-        behavior: "smooth",
-      });
-      setTimeout(checkScroll, 150);
-      setTimeout(checkScroll, 400);
-    }
-  };
-
-  // Reset cuộn về đầu hàng khi đổi tab
-  useEffect(() => {
-    if (scrollContainerRef.current) {
-      scrollContainerRef.current.scrollLeft = 0;
-    }
-    checkScroll();
-  }, [activeTab, currentMovies, checkScroll]);
-
-  // Lắng nghe thay đổi kích thước cửa sổ và kết thúc cuộn
-  useEffect(() => {
-    const el = scrollContainerRef.current;
-    if (!el) return;
-    checkScroll();
-    const onScrollEnd = () => checkScroll();
-    el.addEventListener("scrollend", onScrollEnd, { passive: true });
-    window.addEventListener("resize", checkScroll, { passive: true });
-    return () => {
-      el.removeEventListener("scrollend", onScrollEnd);
-      window.removeEventListener("resize", checkScroll);
-    };
-  }, [checkScroll]);
+  const {
+    scrollRef: scrollContainerRef,
+    canScrollLeft,
+    canScrollRight,
+    checkScroll,
+    handleScroll,
+  } = useCarouselScroll<HTMLDivElement>({
+    resetTrigger: activeTab,
+    cardSelector: ".snap-start",
+    boundaryThreshold: 8,
+  });
 
   const handleSelectTab = useCallback(
     async (tabId: CuratedTabKey) => {
@@ -241,33 +200,27 @@ export const CuratedMovieSection: React.FC<CuratedMovieSectionProps> = ({
       }}
     >
       {/* HEADER SECTION */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-3 mb-5 px-1">
-        <div>
-          <div className="flex items-center gap-3">
-            <h2 className="text-lg sm:text-xl md:text-2xl font-bold tracking-tight text-white flex items-center gap-2.5">
-              <span>Tuyển Tập Phim Đặc Sắc</span>
-            </h2>
-            {isPending && (
-              <span className="text-xs text-zinc-400 flex items-center gap-1 animate-pulse">
-                <Loader2 className="w-3.5 h-3.5 animate-spin text-netflix-red" />
-                <span>Đang tải...</span>
-              </span>
-            )}
-          </div>
-          <p className="mt-1 text-xs sm:text-sm text-zinc-400 max-w-[65ch] leading-relaxed">
-            {currentTabConfig.subtitle}
-          </p>
-        </div>
-
-        {/* NÚT XEM TOÀN BỘ Ở HEADER */}
-        <Link
-          href={currentTabConfig.viewAllHref}
-          className="self-start md:self-auto inline-flex items-center gap-1.5 px-3.5 sm:px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs sm:text-sm font-semibold transition hover: active:scale-95 group shrink-0"
-        >
-          <span>Xem tất cả {currentTabConfig.label}</span>
-          <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform text-netflix-red" />
-        </Link>
-      </div>
+      <SectionHeader
+        title="Tuyển Tập Phim Đặc Sắc"
+        trailingBadge={
+          isPending ? (
+            <span className="text-xs text-zinc-400 flex items-center gap-1 animate-pulse">
+              <Loader2 className="w-3.5 h-3.5 animate-spin text-netflix-red" />
+              <span>Đang tải...</span>
+            </span>
+          ) : undefined
+        }
+        subtitle={currentTabConfig.subtitle}
+        actions={
+          <Link
+            href={currentTabConfig.viewAllHref}
+            className="self-start md:self-auto inline-flex items-center gap-1.5 px-3.5 sm:px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs sm:text-sm font-semibold transition hover: active:scale-95 group shrink-0"
+          >
+            <span>Xem tất cả {currentTabConfig.label}</span>
+            <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform text-netflix-red" />
+          </Link>
+        }
+      />
 
       {/* THANH TAB TUYỂN CHỌN ĐA NĂNG */}
       <ScrollFadeContainer

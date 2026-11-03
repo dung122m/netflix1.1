@@ -15,7 +15,7 @@ import {
   Repeat,
   X,
 } from "lucide-react";
-import { PlayerScrubBar, PlayerTimeDisplay } from "../PlayerScrubBar";
+import { PlayerScrubBar, PlayerTimeDisplay } from "./PlayerScrubBar";
 import { Tooltip } from "@/components/ui/Tooltip";
 
 export type VideoFit = "contain" | "cover" | "fill" | "zoom";

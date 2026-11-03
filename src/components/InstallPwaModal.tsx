@@ -267,7 +267,7 @@ export const InstallPwaModal: React.FC<InstallPwaModalProps> = ({
             <button
               type="button"
               onClick={handleInstallClick}
-              className="w-full py-3.5 rounded-2xl font-bold text-base bg-netflix-red hover:brightness-110 text-white shadow-xl shadow-[var(--accent-glow,rgba(229,9,20,0.4))] flex items-center justify-center gap-2 transition-all active:scale-95 cursor-pointer"
+              className="w-full py-3.5 rounded-2xl font-bold text-base bg-netflix-red hover:brightness-110 text-white shadow-xl shadow-[var(--accent-glow)] flex items-center justify-center gap-2 transition-all active:scale-95 cursor-pointer"
             >
               <Download className="w-5 h-5" />
               <span>Cài Đặt App Ngay</span>

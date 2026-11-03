@@ -5,7 +5,7 @@ import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { SortSelector } from "@/components/SortSelector";
 import { Film, ExternalLink, Sparkles } from "lucide-react";
-import { movieApi } from "@/services/movieApi";
+import { movieApi } from "@/services/movies/service";
 import {
   resolveActorMovies,
   queryMoviesByActor,
@@ -1013,10 +1013,10 @@ export default async function BrowsePage({
         </div>
 
         {detectedActor && (
-          <div className="mb-6 p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-zinc-900/90 via-zinc-900 to-zinc-900 border border-netflix-red/30 flex items-center justify-between gap-3 shadow-xl animate-in fade-in duration-300">
+          <div className="mb-6 p-4 sm:p-5 rounded-2xl bg-zinc-900/60 border border-white/[0.08] flex items-center justify-between gap-3 shadow-lg animate-in fade-in duration-300">
             <div className="flex items-center gap-3.5">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-netflix-red text-white flex items-center justify-center flex-none shadow-md">
-                <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 text-amber-300" />
+              <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-netflix-red/15 border border-netflix-red/25 text-netflix-red flex items-center justify-center flex-none">
+                <Sparkles className="w-5 h-5 text-netflix-red" />
               </div>
               <div>
                 <h4 className="text-sm sm:text-base font-black text-white flex items-center gap-2 flex-wrap">
@@ -1026,8 +1026,8 @@ export default async function BrowsePage({
                       {detectedActor.country}
                     </span>
                   )}
-                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-netflix-red/20 text-white font-bold border border-netflix-red/40">
-                    ✨ Nana AI Nhận Diện
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/10 text-zinc-300 font-semibold border border-white/10">
+                    Diễn viên
                   </span>
                 </h4>
                 <p className="text-xs text-zinc-300 mt-0.5">
@@ -1117,7 +1117,7 @@ export default async function BrowsePage({
                 <div className="mt-5">
                   <Link
                     href="/browse"
-                    className="px-4 py-2 rounded-xl bg-netflix-red hover:bg-red-700 text-white text-xs font-semibold transition"
+                    className="px-4 py-2 rounded-xl bg-netflix-red hover:brightness-110 active:brightness-95 text-white text-xs font-semibold transition"
                   >
                     Xem tất cả phim
                   </Link>

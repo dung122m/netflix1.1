@@ -252,9 +252,7 @@ export const NavNotifications: React.FC = React.memo(function NavNotifications()
                       }}
                       className={`flex items-start gap-3 p-3 rounded-2xl transition cursor-pointer group ${
                         !item.isRead
-                          ? isReply
-                            ? "bg-blue-950/40 hover:bg-blue-950/60"
-                            : "bg-rose-950/40 hover:bg-rose-950/60"
+                          ? "bg-netflix-red/10 hover:bg-netflix-red/15 border-l-2 border-l-netflix-red"
                           : "bg-zinc-900/40 hover:bg-zinc-800/60"
                       }`}
                     >
@@ -309,13 +307,7 @@ export const NavNotifications: React.FC = React.memo(function NavNotifications()
 
                       {/* UNREAD INDICATOR */}
                       {!item.isRead && (
-                        <span
-                          className={`w-2 h-2 rounded-full flex-shrink-0 mt-1.5  ${
-                            isReply
-                              ? "bg-blue-500 ring-blue-950/50"
-                              : "bg-rose-500 ring-rose-950/50"
-                          }`}
-                        />
+                        <span className="w-2 h-2 rounded-full flex-shrink-0 mt-1.5 bg-netflix-red ring-2 ring-netflix-red/30" />
                       )}
                     </div>
                   );

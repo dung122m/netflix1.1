@@ -122,7 +122,7 @@ export const ChannelSourceSwitcher: React.FC<ChannelSourceSwitcherProps> = ({
         title={prevTitle}
         aria-label={prevTitle}
         className={`w-7 h-7 sm:w-8 sm:h-8 flex-shrink-0 flex items-center justify-center rounded-full transition-all duration-150 touch-manipulation focus-visible:outline-none focus-visible:ring-2 ${
-          isChannel ? "focus-visible:ring-sky-400" : "focus-visible:ring-white/40"
+          isChannel ? "focus-visible:ring-netflix-red" : "focus-visible:ring-white/40"
         } ${
           isPrevDisabled
             ? "text-zinc-500 opacity-40 cursor-not-allowed"
@@ -146,18 +146,18 @@ export const ChannelSourceSwitcher: React.FC<ChannelSourceSwitcherProps> = ({
         aria-haspopup="listbox"
         className={`h-full flex items-center gap-1 sm:gap-1.5 px-2 min-[360px]:px-2.5 sm:px-3 rounded-full text-[11px] sm:text-xs font-semibold transition-all duration-150 touch-manipulation focus-visible:outline-none focus-visible:ring-2 cursor-pointer min-w-0 flex-1 overflow-hidden ${
           isChannel
-            ? "focus-visible:ring-sky-400"
+            ? "focus-visible:ring-netflix-red"
             : "focus-visible:ring-white/40"
         } ${
           isListOpen
             ? isChannel
-              ? "bg-sky-500/20 text-sky-200  shadow-sm"
+              ? "bg-netflix-red/20 text-netflix-red shadow-sm"
               : "bg-white/20 text-white  shadow-sm"
             : "text-white/90 hover:text-white hover:bg-white/10 active:bg-white/15"
         } ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
       >
         {isChannel ? (
-          <Tv className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-sky-400 shrink-0" />
+          <Tv className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-netflix-red shrink-0" />
         ) : (
           <Mic className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-white/80 shrink-0" />
         )}
@@ -174,7 +174,7 @@ export const ChannelSourceSwitcher: React.FC<ChannelSourceSwitcherProps> = ({
               • {isChannel ? "Kênh " : "Nguồn "}
             </span>
             <span className="md:hidden">• </span>
-            <span className={isChannel ? "text-sky-300" : "text-white font-bold"}>
+            <span className={isChannel ? "text-netflix-red font-bold" : "text-white font-bold"}>
               {displayIndex}
             </span>
             /{displayTotal}
@@ -200,7 +200,7 @@ export const ChannelSourceSwitcher: React.FC<ChannelSourceSwitcherProps> = ({
         title={nextTitle}
         aria-label={nextTitle}
         className={`w-7 h-7 sm:w-8 sm:h-8 flex-shrink-0 flex items-center justify-center rounded-full transition-all duration-150 touch-manipulation focus-visible:outline-none focus-visible:ring-2 ${
-          isChannel ? "focus-visible:ring-sky-400" : "focus-visible:ring-white/40"
+          isChannel ? "focus-visible:ring-netflix-red" : "focus-visible:ring-white/40"
         } ${
           isNextDisabled
             ? "text-zinc-500 opacity-40 cursor-not-allowed"

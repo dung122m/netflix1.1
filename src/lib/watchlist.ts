@@ -1,8 +1,8 @@
 import { auth } from "./firebase";
 
 export type WatchlistSyncHandler = {
-  saveItem: (uid: string, item: WatchlistItem) => void;
-  removeItem: (uid: string, slug: string) => void;
+  saveItem: (uid: string, item: WatchlistItem) => Promise<boolean> | boolean | void;
+  removeItem: (uid: string, slug: string) => Promise<boolean> | boolean | void;
 };
 
 let watchlistSyncHandler: WatchlistSyncHandler | null = null;
@@ -117,6 +117,56 @@ export function isInWatchlist(slug: string): boolean {
   return memoryWatchlistSlugs?.has(slug) ?? false;
 }
 
+/**
+ * Hợp nhất danh sách yêu thích giữa Cloud và Local:
+ * - Bảo tồn các mục cục bộ vừa mới được thêm (chưa kịp xác nhận lên cloud)
+ * - Đối với các mục cùng slug, ưu tiên mục có addedAt lớn hơn
+ */
+export function mergeWatchlists(
+  localList: WatchlistItem[],
+  cloudList: WatchlistItem[],
+  unconfirmedThresholdMs: number = 2 * 60 * 1000
+): WatchlistItem[] {
+  const mergedMap = new Map<string, WatchlistItem>();
+  const now = Date.now();
+
+  for (const item of cloudList) {
+    if (item && item.slug) {
+      mergedMap.set(item.slug, item);
+    }
+  }
+
+  for (const localItem of localList) {
+    if (localItem && localItem.slug) {
+      if (!mergedMap.has(localItem.slug)) {
+        if (now - (localItem.addedAt || 0) < unconfirmedThresholdMs) {
+          mergedMap.set(localItem.slug, localItem);
+        }
+      } else {
+        const cloudItem = mergedMap.get(localItem.slug)!;
+        if ((localItem.addedAt || 0) > (cloudItem.addedAt || 0)) {
+          mergedMap.set(localItem.slug, localItem);
+        }
+      }
+    }
+  }
+
+  return Array.from(mergedMap.values()).sort((a, b) => (b.addedAt || 0) - (a.addedAt || 0));
+}
+
+let customAuthUserProvider: (() => { uid: string } | null) | null = null;
+export function setAuthUserProviderForTest(provider: (() => { uid: string } | null) | null): void {
+  customAuthUserProvider = provider;
+}
+
+function getCurrentAuthUser(): { uid: string } | null {
+  if (customAuthUserProvider) return customAuthUserProvider();
+  return auth?.currentUser || null;
+}
+
+let mutationSeq = 0;
+const inFlightMutations = new Map<string, number>();
+
 export function addToWatchlist(item: Omit<WatchlistItem, "addedAt">): void {
   if (typeof window === "undefined" || !item.slug) return;
   try {
@@ -128,9 +178,41 @@ export function addToWatchlist(item: Omit<WatchlistItem, "addedAt">): void {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
     window.dispatchEvent(new CustomEvent("watchlist-updated", { detail: { slug: item.slug } }));
 
-    // Tự động lưu lên Supabase Cloud nếu đang đăng nhập
-    if (auth?.currentUser) {
-      watchlistSyncHandler?.saveItem(auth.currentUser.uid, itemWithAddedAt);
+    const currentSeq = ++mutationSeq;
+    inFlightMutations.set(item.slug, currentSeq);
+
+    // Tự động lưu lên Supabase Cloud nếu đang đăng nhập (kèm snapshot rollback nếu lỗi)
+    const currentUser = getCurrentAuthUser();
+    if (currentUser && watchlistSyncHandler) {
+      Promise.resolve(watchlistSyncHandler.saveItem(currentUser.uid, itemWithAddedAt))
+        .then((ok) => {
+          if (ok === false) {
+            if (inFlightMutations.get(item.slug) === currentSeq) {
+              inFlightMutations.delete(item.slug);
+              const currentNow = getWatchlist();
+              const rolledBack = currentNow.filter((i) => i.slug !== item.slug);
+              updateMemoryCache(rolledBack);
+              localStorage.setItem(STORAGE_KEY, JSON.stringify(rolledBack));
+              window.dispatchEvent(new CustomEvent("watchlist-updated", { detail: { slug: item.slug } }));
+              console.warn(`[Watchlist] Cloud save failed for ${item.slug}. Rolled back.`);
+            }
+          } else {
+            if (inFlightMutations.get(item.slug) === currentSeq) {
+              inFlightMutations.delete(item.slug);
+            }
+          }
+        })
+        .catch((err) => {
+          console.warn(`[Watchlist] Error saving to cloud for ${item.slug}:`, err);
+          if (inFlightMutations.get(item.slug) === currentSeq) {
+            inFlightMutations.delete(item.slug);
+            const currentNow = getWatchlist();
+            const rolledBack = currentNow.filter((i) => i.slug !== item.slug);
+            updateMemoryCache(rolledBack);
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(rolledBack));
+            window.dispatchEvent(new CustomEvent("watchlist-updated", { detail: { slug: item.slug } }));
+          }
+        });
     }
   } catch (e) {
     console.error("Lỗi lưu danh sách:", e);
@@ -141,14 +223,52 @@ export function removeFromWatchlist(slug: string): void {
   if (typeof window === "undefined" || !slug) return;
   try {
     const list = getWatchlist();
+    const removedItem = list.find((i) => i.slug === slug);
+    if (!removedItem) return;
     const updated = list.filter((i) => i.slug !== slug);
     updateMemoryCache(updated);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
     window.dispatchEvent(new CustomEvent("watchlist-updated", { detail: { slug } }));
 
-    // Tự động xóa khỏi Supabase Cloud nếu đang đăng nhập
-    if (auth?.currentUser) {
-      watchlistSyncHandler?.removeItem(auth.currentUser.uid, slug);
+    const currentSeq = ++mutationSeq;
+    inFlightMutations.set(slug, currentSeq);
+
+    // Tự động xóa khỏi Supabase Cloud nếu đang đăng nhập (kèm snapshot rollback nếu lỗi)
+    const currentUser = getCurrentAuthUser();
+    if (currentUser && watchlistSyncHandler) {
+      Promise.resolve(watchlistSyncHandler.removeItem(currentUser.uid, slug))
+        .then((ok) => {
+          if (ok === false) {
+            if (inFlightMutations.get(slug) === currentSeq) {
+              inFlightMutations.delete(slug);
+              const currentNow = getWatchlist();
+              if (!currentNow.some((i) => i.slug === slug)) {
+                const restored = [removedItem, ...currentNow];
+                updateMemoryCache(restored);
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(restored));
+                window.dispatchEvent(new CustomEvent("watchlist-updated", { detail: { slug } }));
+                console.warn(`[Watchlist] Cloud remove failed for ${slug}. Rolled back.`);
+              }
+            }
+          } else {
+            if (inFlightMutations.get(slug) === currentSeq) {
+              inFlightMutations.delete(slug);
+            }
+          }
+        })
+        .catch((err) => {
+          console.warn(`[Watchlist] Error removing from cloud for ${slug}:`, err);
+          if (inFlightMutations.get(slug) === currentSeq) {
+            inFlightMutations.delete(slug);
+            const currentNow = getWatchlist();
+            if (!currentNow.some((i) => i.slug === slug)) {
+              const restored = [removedItem, ...currentNow];
+              updateMemoryCache(restored);
+              localStorage.setItem(STORAGE_KEY, JSON.stringify(restored));
+              window.dispatchEvent(new CustomEvent("watchlist-updated", { detail: { slug } }));
+            }
+          }
+        });
     }
   } catch (e) {
     console.error("Lỗi xóa khỏi danh sách:", e);

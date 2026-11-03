@@ -1,3 +1,4 @@
+import { sanitizeSafeText } from "@/lib/security";
 import { MovieCollection, CollectionMovieItem } from "@/types/collection";
 import {
   getUserCollectionsSupabase,
@@ -5,7 +6,7 @@ import {
 } from "./supabaseService";
 import { isSupabaseConfigured } from "@/lib/supabase";
 import { auth } from "@/lib/firebase";
-import { movieApi } from "./movieApi";
+import { movieApi } from "./movies/service";
 import { normalizeMovie } from "@/lib/movieMedia";
 
 const LOCAL_COLLECTIONS_KEY_PREFIX = "nanaflix_collections_";
@@ -425,7 +426,7 @@ async function deleteCollectionFromServer(collectionId: string): Promise<boolean
       method: "DELETE",
       headers,
     });
-    return res.ok;
+    return res.ok || res.status === 404;
   } catch (err) {
     console.warn("Lỗi xóa collection qua API:", err);
     return false;
@@ -633,24 +634,32 @@ export async function deleteCollection(
 ): Promise<boolean> {
   if (!userId || !collectionId) return false;
 
+  const currentLocal = getLocalCollections(userId);
+  const snapshot = currentLocal.find((c) => c.id === collectionId);
+  const updatedLocal = currentLocal.filter((c) => c.id !== collectionId);
+
+  // 1. Optimistic update: Xóa khỏi LocalStorage và hủy pending sync
+  saveLocalCollections(userId, updatedLocal);
+  removePendingSync(userId, collectionId);
+
   try {
-    // 1. Đánh dấu tombstone để tránh server response cũ làm hồi sinh
+    // 2. Xóa qua Server API
+    const serverOk = await deleteCollectionFromServer(collectionId);
+    if (!serverOk) {
+      throw new Error("Server xóa thất bại hoặc lỗi mạng");
+    }
+
+    // 3. Server xác nhận thành công -> Lưu tombstone để tránh server cache cũ làm hồi sinh
     addTombstone(userId, collectionId);
-
-    // 2. Hủy các yêu cầu pending sync của collection này
-    removePendingSync(userId, collectionId);
-
-    // 3. Xóa khỏi LocalStorage
-    const currentLocal = getLocalCollections(userId);
-    const updatedLocal = currentLocal.filter((c) => c.id !== collectionId);
-    saveLocalCollections(userId, updatedLocal);
-
-    // 4. Xóa qua Server API
-    deleteCollectionFromServer(collectionId).catch(() => {});
-
     return true;
   } catch (err) {
-    console.warn("Lỗi xóa bộ sưu tập:", err);
+    console.warn("Lỗi xóa bộ sưu tập, tiến hành rollback:", err);
+    // 4. Rollback: Khôi phục lại bản ghi cục bộ và xóa tombstone
+    clearTombstone(userId, collectionId);
+    if (snapshot) {
+      const restored = [snapshot, ...getLocalCollections(userId).filter((c) => c.id !== collectionId)];
+      saveLocalCollections(userId, restored);
+    }
     return false;
   }
 }
@@ -1036,4 +1045,86 @@ export async function deletePublicCollectionAdmin(collectionId: string): Promise
     console.error("Lỗi xóa public_collection:", err);
     return false;
   }
+}
+
+export interface SanitizedMovieItem {
+  slug: string;
+  title: string;
+  poster: string;
+  year?: string;
+  quality?: string;
+  category?: string;
+  addedAt: number;
+  itemType?: "movie" | "series" | "episode";
+  seriesSlug?: string;
+  seriesTitle?: string;
+  episodeSlug?: string;
+  episodeName?: string;
+  seasonName?: string;
+}
+
+/**
+ * Chuẩn hóa và loại bỏ phim trùng slug ở cấp độ Server / Service
+ * - Chuẩn hóa slug (trim, case-insensitive khi kiểm tra trùng)
+ * - Bảo tồn thứ tự phim xuất hiện ban đầu
+ * - Giữ trọn vẹn metadata hợp lệ (poster, year, quality, category, addedAt, itemType, seriesSlug, episodeSlug...)
+ * - Loại bỏ các item rỗng hoặc thiếu slug/title
+ */
+export function sanitizeAndDeduplicateMovies(rawMovies: unknown): SanitizedMovieItem[] {
+  if (!Array.isArray(rawMovies)) return [];
+
+  const seenSlugs = new Set<string>();
+  const sanitized: SanitizedMovieItem[] = [];
+
+  for (const item of rawMovies) {
+    if (!item || typeof item !== "object") continue;
+    const m = item as Record<string, unknown>;
+
+    const slug = String(m.slug || "").trim();
+    const title = String(m.title || "").trim();
+    if (!slug || !title) continue;
+
+    const normalizedKey = slug.toLowerCase();
+    if (seenSlugs.has(normalizedKey)) {
+      continue; // Đã có trong danh sách, bỏ qua để chống trùng
+    }
+    seenSlugs.add(normalizedKey);
+
+    const poster = String(m.poster || m.posterUrl || m.poster_url || m.thumb_url || "/default-poster.jpg").trim();
+    const year = m.year !== undefined && m.year !== null ? String(m.year).trim() : undefined;
+    const quality = m.quality ? String(m.quality).trim() : undefined;
+    const category = m.category ? String(m.category).trim() : undefined;
+    const addedAt = Number(m.addedAt ?? m.added_at) || Date.now();
+
+    const itemType = m.itemType && ["movie", "series", "episode"].includes(String(m.itemType))
+      ? (String(m.itemType) as "movie" | "series" | "episode")
+      : (slug.includes("__ep__") ? "episode" : undefined);
+    const seriesSlug = m.seriesSlug
+      ? String(m.seriesSlug).trim()
+      : (slug.includes("__ep__") ? slug.split("__ep__")[0] : undefined);
+    const seriesTitle = m.seriesTitle ? sanitizeSafeText(String(m.seriesTitle), 200) : undefined;
+    const episodeSlug = m.episodeSlug
+      ? String(m.episodeSlug).trim()
+      : (slug.includes("__ep__") ? slug.split("__ep__")[1] : undefined);
+    const episodeName = m.episodeName ? sanitizeSafeText(String(m.episodeName), 100) : undefined;
+    const seasonName = m.seasonName ? sanitizeSafeText(String(m.seasonName), 100) : undefined;
+
+    sanitized.push({
+      slug,
+      title: sanitizeSafeText(title, 200),
+      poster,
+      year: year || undefined,
+      quality: quality || undefined,
+      category: category || undefined,
+      addedAt,
+      itemType,
+      seriesSlug,
+      seriesTitle,
+      episodeSlug,
+      episodeName,
+      seasonName,
+    });
+  }
+
+  return sanitized;
 }

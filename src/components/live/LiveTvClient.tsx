@@ -27,7 +27,11 @@ import {
   Sparkles,
   Zap,
 } from "lucide-react";
-import { LiveTvData, TvChannel } from "@/services/liveTvService";
+import { LiveTvData, TvChannel } from "@/services/live/tv/service";
+import { PlayingEqualizer } from "./PlayingEqualizer";
+import { useMediaFullscreen } from "./hooks/useMediaFullscreen";
+import { useMediaVolume } from "./hooks/useMediaVolume";
+import { VolumeOsdPill } from "./VolumeOsdPill";
 import { useSearchParams } from "next/navigation";
 import {
   YouTubePlayIcon,
@@ -42,6 +46,7 @@ import {
   YouTubeMiniplayerIcon,
 } from "@/components/player/PlayerNativeControls";
 import { LiveShortcutPopover } from "./LiveShortcutPopover";
+import { Tooltip } from "@/components/ui/Tooltip";
 import { ChannelSourceSwitcher } from "./ChannelSourceSwitcher";
 
 interface LiveTvClientProps {
@@ -132,16 +137,6 @@ function TvChannelLogo({
   );
 }
 
-// Bouncing equalizer bars for live channel
-function PlayingEqualizer() {
-  return (
-    <div className="flex items-end gap-0.5 h-3 px-1">
-      <span className="w-0.5 bg-emerald-400 rounded-full animate-pulse [animation-duration:1.2s] h-3" />
-      <span className="w-0.5 bg-emerald-400 rounded-full animate-pulse [animation-duration:0.8s] h-2" />
-      <span className="w-0.5 bg-emerald-400 rounded-full animate-pulse [animation-duration:1s] h-3" />
-    </div>
-  );
-}
 
 export function LiveTvClient({
   initialData,
@@ -225,33 +220,24 @@ export function LiveTvClient({
   const playbackSessionIdRef = useRef<number>(0);
 
   const [isPlaying, setIsPlaying] = useState(false);
-  const [isMuted, setIsMuted] = useState(false);
-  const [volume, setVolume] = useState<number>(0.9);
-  // Premium Volume OSD (YouTube Top Pill Style - Đồng bộ 100% với Movie Player CinemaPlayer.tsx)
-  const [volumeOsd, setVolumeOsd] = useState<{
-    volume: number;
-    isMuted: boolean;
-    visible: boolean;
-  } | null>(null);
-  const volumeOsdTimerRef = useRef<NodeJS.Timeout | null>(null);
-
-  const triggerVolumeOsd = useCallback((newVol: number, muted: boolean) => {
-    if (volumeOsdTimerRef.current) {
-      clearTimeout(volumeOsdTimerRef.current);
-      volumeOsdTimerRef.current = null;
-    }
-    setVolumeOsd({
-      volume: newVol,
-      isMuted: muted,
-      visible: true,
-    });
-    volumeOsdTimerRef.current = setTimeout(() => {
-      setVolumeOsd((prev) => (prev ? { ...prev, visible: false } : null));
-      volumeOsdTimerRef.current = null;
-    }, 1500);
-  }, []);
-  const [isFullscreen, setIsFullscreen] = useState(false);
-  const [isPip, setIsPip] = useState(false);
+  const {
+    volume,
+    setVolume,
+    isMuted,
+    setIsMuted,
+    volumeRef,
+    userMutedRef,
+    volumeOsd,
+    handleVolumeChange,
+    triggerVolumeOsd,
+  } = useMediaVolume({ videoRef });
+  const {
+    isFullscreen,
+    isPip,
+    setIsPip,
+    toggleFullscreen,
+    togglePip,
+  } = useMediaFullscreen({ containerRef, videoRef });
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
@@ -315,9 +301,7 @@ export function LiveTvClient({
     return () => cancelAnimationFrame(rafId);
   }, [showChannelRail, selectedTvChannel?.id]);
 
-  const volumeRef = useRef(volume);
   const isMutedRef = useRef(isMuted);
-  const userMutedRef = useRef<boolean>(false);
 
   const getStreamUrl = (url: string) => {
     if (!url) return "";
@@ -393,18 +377,7 @@ export function LiveTvClient({
       .slice(0, 12);
   }, [channels]);
 
-  // Khôi phục volume từ localStorage
-  useEffect(() => {
-    try {
-      const savedVol = localStorage.getItem("nanaflix_live_volume");
-      if (savedVol !== null) {
-        const val = parseFloat(savedVol);
-        if (!isNaN(val) && val > 0 && val <= 1) {
-          setVolume(val);
-        }
-      }
-    } catch {}
-  }, []);
+
 
   // Đồng bộ khi channels hoặc URL thay đổi
   useEffect(() => {
@@ -957,228 +930,7 @@ export function LiveTvClient({
     }
   }, [isMuted, volume, unmuteSound, triggerVolumeOsd]);
 
-  const handleVolumeChange = useCallback(
-    (newVol: number) => {
-      const clamped = Math.max(0, Math.min(1, newVol));
-      setVolume(clamped);
-      const shouldMute = clamped === 0;
-      userMutedRef.current = shouldMute;
-      setIsMuted(shouldMute);
-      if (videoRef.current) {
-        videoRef.current.volume = clamped;
-        videoRef.current.muted = shouldMute;
-      }
-      triggerVolumeOsd(clamped, shouldMute);
-      try {
-        localStorage.setItem("nanaflix_live_volume", String(clamped));
-      } catch {}
-    },
-    [triggerVolumeOsd],
-  );
 
-  // Khóa hướng màn hình xoay ngang tự động trên thiết bị di động khi phóng to
-  const lockLandscape = useCallback(async () => {
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const ori = (screen?.orientation || (screen as any)?.mozOrientation || (screen as any)?.msOrientation) as any;
-      if (ori && typeof ori.lock === "function") {
-        await ori.lock("landscape").catch(() => {
-          return ori.lock("landscape-primary").catch(() => {});
-        });
-      }
-    } catch {}
-  }, []);
-
-  // Mở khóa xoay màn hình tự do khi thoát toàn màn hình
-  const unlockOrientation = useCallback(() => {
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const ori = (screen?.orientation || (screen as any)?.mozOrientation || (screen as any)?.msOrientation) as any;
-      if (ori && typeof ori.unlock === "function") {
-        ori.unlock();
-      }
-    } catch {}
-  }, []);
-
-  // Toàn màn hình hỗ trợ đa nền tảng (Desktop, Android, iOS Safari)
-  const toggleFullscreen = useCallback(() => {
-    const container = containerRef.current;
-    const video = videoRef.current;
-
-    // Kiểm tra trạng thái fullscreen hiện tại
-    const isDocFs = Boolean(
-      document.fullscreenElement ||
-      (document as unknown as { webkitFullscreenElement?: Element })
-        .webkitFullscreenElement ||
-      (document as unknown as { mozFullScreenElement?: Element })
-        .mozFullScreenElement ||
-      (document as unknown as { msFullscreenElement?: Element })
-        .msFullscreenElement,
-    );
-
-    // Kiểm tra trạng thái fullscreen riêng của iOS Safari trên video element
-    const isVideoFs = Boolean(
-      video &&
-      (video as unknown as { webkitDisplayingFullscreen?: boolean })
-        .webkitDisplayingFullscreen,
-    );
-
-    if (isDocFs || isVideoFs || isFullscreen) {
-      // Thoát toàn màn hình
-      if (document.exitFullscreen) {
-        document.exitFullscreen().catch(() => {});
-      } else if (
-        (document as unknown as { webkitExitFullscreen?: () => void })
-          .webkitExitFullscreen
-      ) {
-        (
-          document as unknown as { webkitExitFullscreen: () => void }
-        ).webkitExitFullscreen();
-      } else if (
-        (document as unknown as { mozCancelFullScreen?: () => void })
-          .mozCancelFullScreen
-      ) {
-        (
-          document as unknown as { mozCancelFullScreen: () => void }
-        ).mozCancelFullScreen();
-      } else if (
-        (document as unknown as { msExitFullscreen?: () => void })
-          .msExitFullscreen
-      ) {
-        (
-          document as unknown as { msExitFullscreen: () => void }
-        ).msExitFullscreen();
-      }
-      setIsFullscreen(false);
-      unlockOrientation();
-    } else {
-      // Bật toàn màn hình
-      if (container && container.requestFullscreen) {
-        // Thử bật fullscreen với navigationUI ẩn để giảm thiểu thanh điều hướng trình duyệt
-        const p = container.requestFullscreen({ navigationUI: "hide" } as FullscreenOptions).catch(() => {
-          return container.requestFullscreen().catch(() => {
-            // Fallback cho iOS Safari
-            if (
-              video &&
-              (video as unknown as { webkitEnterFullscreen?: () => void })
-                .webkitEnterFullscreen
-            ) {
-              (
-                video as unknown as { webkitEnterFullscreen: () => void }
-              ).webkitEnterFullscreen();
-            }
-          });
-        });
-
-        if (p && typeof p.then === "function") {
-          p.then(lockLandscape).catch(() => {});
-        } else {
-          lockLandscape();
-        }
-      } else if (
-        container &&
-        (container as unknown as { webkitRequestFullscreen?: () => void })
-          .webkitRequestFullscreen
-      ) {
-        (
-          container as unknown as { webkitRequestFullscreen: () => void }
-        ).webkitRequestFullscreen();
-        lockLandscape();
-      } else if (
-        container &&
-        (container as unknown as { mozRequestFullScreen?: () => void })
-          .mozRequestFullScreen
-      ) {
-        (
-          container as unknown as { mozRequestFullScreen: () => void }
-        ).mozRequestFullScreen();
-        lockLandscape();
-      } else if (
-        container &&
-        (container as unknown as { msRequestFullscreen?: () => void })
-          .msRequestFullscreen
-      ) {
-        (
-          container as unknown as { msRequestFullscreen: () => void }
-        ).msRequestFullscreen();
-        lockLandscape();
-      } else if (
-        video &&
-        (video as unknown as { webkitEnterFullscreen?: () => void })
-          .webkitEnterFullscreen
-      ) {
-        // iOS Safari trên iPhone bắt buộc dùng webkitEnterFullscreen trên video element
-        (
-          video as unknown as { webkitEnterFullscreen: () => void }
-        ).webkitEnterFullscreen();
-      }
-      setIsFullscreen(true);
-    }
-  }, [isFullscreen, lockLandscape, unlockOrientation]);
-
-  const togglePip = useCallback(async () => {
-    if (!videoRef.current) return;
-    try {
-      if (document.pictureInPictureElement) {
-        await document.exitPictureInPicture();
-        setIsPip(false);
-      } else {
-        await videoRef.current.requestPictureInPicture();
-        setIsPip(true);
-      }
-    } catch {}
-  }, []);
-
-  useEffect(() => {
-    const handleFsChange = () => {
-      const isFs = Boolean(
-        document.fullscreenElement ||
-        (document as unknown as { webkitFullscreenElement?: Element })
-          .webkitFullscreenElement ||
-        (document as unknown as { mozFullScreenElement?: Element })
-          .mozFullScreenElement ||
-        (document as unknown as { msFullscreenElement?: Element })
-          .msFullscreenElement,
-      );
-      setIsFullscreen(isFs);
-      if (isFs) {
-        lockLandscape();
-      } else {
-        unlockOrientation();
-      }
-    };
-
-    const video = videoRef.current;
-    const handleVideoBeginFs = () => {
-      setIsFullscreen(true);
-      lockLandscape();
-    };
-    const handleVideoEndFs = () => {
-      setIsFullscreen(false);
-      unlockOrientation();
-    };
-
-    document.addEventListener("fullscreenchange", handleFsChange);
-    document.addEventListener("webkitfullscreenchange", handleFsChange);
-    document.addEventListener("mozfullscreenchange", handleFsChange);
-    document.addEventListener("MSFullscreenChange", handleFsChange);
-
-    if (video) {
-      video.addEventListener("webkitbeginfullscreen", handleVideoBeginFs);
-      video.addEventListener("webkitendfullscreen", handleVideoEndFs);
-    }
-
-    return () => {
-      document.removeEventListener("fullscreenchange", handleFsChange);
-      document.removeEventListener("webkitfullscreenchange", handleFsChange);
-      document.removeEventListener("mozfullscreenchange", handleFsChange);
-      document.removeEventListener("MSFullscreenChange", handleFsChange);
-      if (video) {
-        video.removeEventListener("webkitbeginfullscreen", handleVideoBeginFs);
-        video.removeEventListener("webkitendfullscreen", handleVideoEndFs);
-      }
-    };
-  }, [lockLandscape, unlockOrientation]);
 
   // Chuyển kênh bằng phím N/P, PageDown/PageUp hoặc nút trên Player
   const handleSwitchChannel = useCallback(
@@ -1467,8 +1219,8 @@ export function LiveTvClient({
         <div className="mb-2.5 flex items-center justify-between pb-2.5 shrink-0">
           <div className="min-w-0 pr-2">
             <div className="flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-sky-400 animate-ping" />
-              <p className="text-[11px] sm:text-[10px] font-black uppercase tracking-[0.18em] text-sky-300">
+              <span className="w-2 h-2 rounded-full bg-netflix-red animate-ping" />
+              <p className="text-[11px] sm:text-[10px] font-black uppercase tracking-[0.18em] text-netflix-red">
                 Kênh Truyền Hình Trực Tiếp
               </p>
             </div>
@@ -1531,7 +1283,7 @@ export function LiveTvClient({
                   onClick={() => handleSelectChannel(channel, false)}
                   className={`flex w-full items-center gap-3 rounded-2xl  p-2.5 sm:p-2 text-left transition min-h-[56px] active:scale-[0.98] cursor-pointer touch-manipulation ${
                     active
-                      ? " bg-sky-500/20 text-white shadow-md shadow-black/50 "
+                      ? " bg-netflix-red/20 text-white border-l-4 border-l-netflix-red shadow-md shadow-black/50 "
                       : " bg-white/[0.04] text-zinc-200 hover: hover:bg-white/[0.1] active:bg-white/[0.15]"
                   }`}
                 >
@@ -1634,25 +1386,27 @@ export function LiveTvClient({
                 title={showChannelRail ? "Đóng danh sách kênh (C)" : "Mở danh sách kênh (C)"}
                 className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[10.5px] sm:text-xs font-bold  transition cursor-pointer ${
                   showChannelRail
-                    ? "bg-sky-600 text-white  shadow-md shadow-black/50"
+                    ? "bg-netflix-red text-white shadow-md shadow-black/50"
                     : "bg-white/10 hover:bg-white/20 text-zinc-300 hover:text-white "
                 }`}
               >
-                <Tv className="w-3 h-3 text-sky-300" />
+                <Tv className="w-3 h-3 text-white" />
                 <span className="hidden sm:inline">Danh sách kênh</span>
               </button>
-              <button
-                type="button"
-                onClick={handleCopy}
-                title="Sao chép link stream HLS"
-                className="p-1 sm:p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-zinc-300 hover:text-white transition cursor-pointer"
-              >
+              <Tooltip content="Sao chép link stream HLS" side="top" align="end">
+                <button
+                  type="button"
+                  onClick={handleCopy}
+                  aria-label="Sao chép link stream HLS"
+                  className="p-1 sm:p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-zinc-300 hover:text-white transition cursor-pointer"
+                >
                 {copied ? (
                   <Check className="w-3.5 h-3.5 text-emerald-400" />
                 ) : (
                   <Copy className="w-3.5 h-3.5" />
                 )}
-              </button>
+                </button>
+              </Tooltip>
             </div>
           </div>
 
@@ -1773,36 +1527,7 @@ export function LiveTvClient({
             )}
 
             {/* PREMIUM YOUTUBE TOP PILL VOLUME OSD (ĐỒNG BỘ 100% VỚI MOVIE PLAYER) */}
-            {volumeOsd && volumeOsd.visible && (
-              <div
-                role="status"
-                aria-live="polite"
-                className="absolute top-5 sm:top-7 left-1/2 -translate-x-1/2 z-30 pointer-events-none max-w-[calc(100%-32px)] animate-in fade-in slide-in-from-top-3 duration-200 motion-reduce:animate-none"
-              >
-                <div className="flex items-center gap-3 px-4 py-2 sm:px-4.5 sm:py-2.5 rounded-full bg-zinc-950/90 backdrop-blur-2xl text-white shadow-[0_12px_36px_rgba(0,0,0,0.85)]">
-                  {volumeOsd.isMuted || volumeOsd.volume === 0 ? (
-                    <YouTubeVolumeMuteIcon className="w-5 h-5 text-netflix-red shrink-0" />
-                  ) : volumeOsd.volume < 0.5 ? (
-                    <YouTubeVolumeLowIcon className="w-5 h-5 text-white/90 shrink-0" />
-                  ) : (
-                    <YouTubeVolumeHighIcon className="w-5 h-5 text-white/90 shrink-0" />
-                  )}
-
-                  <div className="w-24 sm:w-28 h-1.5 rounded-full bg-white/20 overflow-hidden shrink-0">
-                    <div
-                      className="h-full bg-gradient-to-r from-white to-zinc-200 rounded-full transition-all duration-150 ease-out"
-                      style={{
-                        width: `${volumeOsd.isMuted ? 0 : Math.round(volumeOsd.volume * 100)}%`,
-                      }}
-                    />
-                  </div>
-
-                  <span className="text-xs sm:text-[13px] font-semibold tracking-tight tabular-nums text-white min-w-[34px] text-right">
-                    {volumeOsd.isMuted ? "Tắt tiếng" : `${Math.round(volumeOsd.volume * 100)}%`}
-                  </span>
-                </div>
-              </div>
-            )}
+            <VolumeOsdPill volumeOsd={volumeOsd} />
 
             {/* ACTION FEEDBACK OVERLAY (PLAY, PAUSE, CHANNEL SWITCH & CINEMA SEEK HUD) */}
             {actionFeedback && (
@@ -1855,7 +1580,7 @@ export function LiveTvClient({
                   </div>
                 ) : actionFeedback.icon === "channel" ? (
                   <div className="flex flex-col items-center justify-center px-6 py-4 rounded-3xl bg-black/75 backdrop-blur-xl shadow-2xl animate-in fade-in zoom-in duration-200">
-                    <Tv className="w-10 h-10 text-sky-400" />
+                    <Tv className="w-10 h-10 text-netflix-red" />
                     {actionFeedback.text && (
                       <span className="mt-2 text-xs sm:text-sm font-bold text-white font-sans tabular-nums">
                         {actionFeedback.text}
@@ -1983,51 +1708,53 @@ export function LiveTvClient({
               {/* CỤM TRÁI: TUA LÙI 10S + PLAY/PAUSE + TUA TỚI 10S + ÂM LƯỢNG (BỐ TRÍ CÂN ĐỐI CHUẨN MOVIE PLAYER) */}
               <div className="flex items-center gap-1 sm:gap-1.5 min-w-0 shrink-0">
                 {/* Nút Tua lùi 10s */}
-                <button
-                  type="button"
-                  data-player-control="true"
-                  onClick={() => handleSeek(-10)}
-                  title="Tua lùi 10 giây (←)"
-                  aria-label="Tua lùi 10 giây"
-                  className="w-9 h-9 sm:w-10 sm:h-10 rounded-full hover:bg-white/15 active:scale-90 text-zinc-300 hover:text-white flex items-center justify-center transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-white/40 touch-manipulation"
-                >
-                  <YouTubeSeek10BackIcon className="w-4.5 h-4.5 sm:w-5 sm:h-5" />
-                </button>
+                <Tooltip content="Tua lùi 10 giây" shortcut="←" side="top">
+                  <button
+                    type="button"
+                    data-player-control="true"
+                    onClick={() => handleSeek(-10)}
+                    aria-label="Tua lùi 10 giây"
+                    className="w-9 h-9 sm:w-10 sm:h-10 rounded-full hover:bg-white/15 active:scale-90 text-zinc-300 hover:text-white flex items-center justify-center transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-white/40 touch-manipulation"
+                  >
+                    <YouTubeSeek10BackIcon className="w-4.5 h-4.5 sm:w-5 sm:h-5" />
+                  </button>
+                </Tooltip>
 
                 {/* Nút Play / Pause trung tâm */}
-                <button
-                  type="button"
-                  data-player-control="true"
-                  onClick={togglePlay}
-                  title={isPlaying ? "Tạm dừng (Space)" : "Phát (Space)"}
-                  aria-label={isPlaying ? "Tạm dừng" : "Phát"}
-                  className="w-9 h-9 sm:w-10 sm:h-10 rounded-full hover:bg-white/15 active:scale-90 text-white flex items-center justify-center transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-white/40 touch-manipulation"
-                >
-                  {isPlaying ? (
-                    <YouTubePauseIcon className="w-5 h-5 sm:w-6 sm:h-6" />
-                  ) : (
-                    <YouTubePlayIcon className="w-5 h-5 sm:w-6 sm:h-6 ml-0.5" />
-                  )}
-                </button>
+                <Tooltip content={isPlaying ? "Tạm dừng" : "Phát"} shortcut="Space" side="top">
+                  <button
+                    type="button"
+                    data-player-control="true"
+                    onClick={togglePlay}
+                    aria-label={isPlaying ? "Tạm dừng" : "Phát"}
+                    className="w-9 h-9 sm:w-10 sm:h-10 rounded-full hover:bg-white/15 active:scale-90 text-white flex items-center justify-center transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-white/40 touch-manipulation"
+                  >
+                    {isPlaying ? (
+                      <YouTubePauseIcon className="w-5 h-5 sm:w-6 sm:h-6" />
+                    ) : (
+                      <YouTubePlayIcon className="w-5 h-5 sm:w-6 sm:h-6 ml-0.5" />
+                    )}
+                  </button>
+                </Tooltip>
 
                 {/* Nút Tua tới 10s */}
-                <button
-                  type="button"
-                  data-player-control="true"
-                  onClick={() => handleSeek(10)}
-                  title="Tua tới 10 giây (→)"
-                  aria-label="Tua tới 10 giây"
-                  className="w-9 h-9 sm:w-10 sm:h-10 rounded-full hover:bg-white/15 active:scale-90 text-zinc-300 hover:text-white flex items-center justify-center transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-white/40 touch-manipulation"
-                >
-                  <YouTubeSeek10ForwardIcon className="w-4.5 h-4.5 sm:w-5 sm:h-5" />
-                </button>
+                <Tooltip content="Tua tới 10 giây" shortcut="→" side="top">
+                  <button
+                    type="button"
+                    data-player-control="true"
+                    onClick={() => handleSeek(10)}
+                    aria-label="Tua tới 10 giây"
+                    className="w-9 h-9 sm:w-10 sm:h-10 rounded-full hover:bg-white/15 active:scale-90 text-zinc-300 hover:text-white flex items-center justify-center transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-white/40 touch-manipulation"
+                  >
+                    <YouTubeSeek10ForwardIcon className="w-4.5 h-4.5 sm:w-5 sm:h-5" />
+                  </button>
+                </Tooltip>
 
                 {/* CỤM VOLUME TRÊN MOBILE (Chỉ hiện nút Mute nhỏ gọn) */}
                 <button
                   type="button"
                   data-player-control="true"
                   onClick={toggleMute}
-                  title={isMuted ? "Bật âm thanh (M)" : "Tắt âm thanh (M)"}
                   aria-label={isMuted ? "Bật âm thanh" : "Tắt âm thanh"}
                   className="w-9 h-9 sm:hidden rounded-full hover:bg-white/15 active:scale-90 flex items-center justify-center text-white transition cursor-pointer shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-white/40 touch-manipulation"
                 >
@@ -2042,14 +1769,14 @@ export function LiveTvClient({
 
                 {/* CỤM ÂM LƯỢNG YOUTUBE (Hover nở thanh kéo trượt mượt mà chuẩn Movie Player) */}
                 <div className="hidden sm:flex items-center group/vol shrink-0">
-                  <button
-                    type="button"
-                    data-player-control="true"
-                    onClick={toggleMute}
-                    title={isMuted ? "Bật âm thanh (M)" : "Tắt âm thanh (M)"}
-                    aria-label={isMuted ? "Bật âm thanh" : "Tắt âm thanh"}
-                    className="w-9 h-9 sm:w-10 sm:h-10 rounded-full hover:bg-white/15 active:scale-90 text-white/90 hover:text-white flex items-center justify-center transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-white/40 touch-manipulation"
-                  >
+                  <Tooltip content={isMuted ? "Bật âm thanh" : "Tắt âm thanh"} shortcut="M" side="top">
+                    <button
+                      type="button"
+                      data-player-control="true"
+                      onClick={toggleMute}
+                      aria-label={isMuted ? "Bật âm thanh" : "Tắt âm thanh"}
+                      className="w-9 h-9 sm:w-10 sm:h-10 rounded-full hover:bg-white/15 active:scale-90 text-white/90 hover:text-white flex items-center justify-center transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-white/40 touch-manipulation"
+                    >
                     {isMuted || volume === 0 ? (
                       <YouTubeVolumeMuteIcon className="w-5 h-5 text-netflix-red" />
                     ) : volume < 0.5 ? (
@@ -2057,7 +1784,8 @@ export function LiveTvClient({
                     ) : (
                       <YouTubeVolumeHighIcon className="w-5 h-5 text-white" />
                     )}
-                  </button>
+                    </button>
+                  </Tooltip>
 
                   <input
                     type="range"
@@ -2106,36 +1834,38 @@ export function LiveTvClient({
                 <LiveShortcutPopover mode="tv" />
 
                 {/* Nút Picture in Picture */}
-                <button
-                  type="button"
-                  data-player-control="true"
-                  onClick={togglePip}
-                  title="Xem thu nhỏ góc màn hình (PiP - Phím I)"
-                  aria-label="Xem thu nhỏ góc màn hình"
-                  className={`w-9 h-9 sm:w-10 sm:h-10 hidden sm:flex rounded-full items-center justify-center transition-all duration-200 active:scale-90 cursor-pointer shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-white/40 ${
-                    isPip
-                      ? "bg-netflix-red text-white"
-                      : "text-zinc-300 hover:text-white hover:bg-white/15"
-                  }`}
-                >
-                  <YouTubeMiniplayerIcon className="w-5 h-5" />
-                </button>
+                <Tooltip content="Xem thu nhỏ góc màn hình (PiP)" shortcut="I" side="top">
+                  <button
+                    type="button"
+                    data-player-control="true"
+                    onClick={togglePip}
+                    aria-label="Xem thu nhỏ góc màn hình"
+                    className={`w-9 h-9 sm:w-10 sm:h-10 hidden sm:flex rounded-full items-center justify-center transition-all duration-200 active:scale-90 cursor-pointer shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-white/40 ${
+                      isPip
+                        ? "bg-netflix-red text-white"
+                        : "text-zinc-300 hover:text-white hover:bg-white/15"
+                    }`}
+                  >
+                    <YouTubeMiniplayerIcon className="w-5 h-5" />
+                  </button>
+                </Tooltip>
 
                 {/* Nút Toàn màn hình */}
-                <button
-                  type="button"
-                  data-player-control="true"
-                  onClick={toggleFullscreen}
-                  title={isFullscreen ? "Thu nhỏ (F)" : "Toàn màn hình (F)"}
-                  aria-label={isFullscreen ? "Thu nhỏ" : "Toàn màn hình"}
-                  className="w-9 h-9 sm:w-10 sm:h-10 rounded-full hover:bg-white/15 active:scale-90 text-white flex items-center justify-center transition cursor-pointer shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-white/40 touch-manipulation"
-                >
-                  {isFullscreen ? (
-                    <YouTubeExitFullscreenIcon className="w-5 h-5 sm:w-6 sm:h-6" />
-                  ) : (
-                    <YouTubeFullscreenIcon className="w-5 h-5 sm:w-6 sm:h-6" />
-                  )}
-                </button>
+                <Tooltip content={isFullscreen ? "Thu nhỏ" : "Toàn màn hình"} shortcut="F" side="top" align="end">
+                  <button
+                    type="button"
+                    data-player-control="true"
+                    onClick={toggleFullscreen}
+                    aria-label={isFullscreen ? "Thu nhỏ" : "Toàn màn hình"}
+                    className="w-9 h-9 sm:w-10 sm:h-10 rounded-full hover:bg-white/15 active:scale-90 text-white flex items-center justify-center transition cursor-pointer shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-white/40 touch-manipulation"
+                  >
+                    {isFullscreen ? (
+                      <YouTubeExitFullscreenIcon className="w-5 h-5 sm:w-6 sm:h-6" />
+                    ) : (
+                      <YouTubeFullscreenIcon className="w-5 h-5 sm:w-6 sm:h-6" />
+                    )}
+                  </button>
+                </Tooltip>
               </div>
             </div>
           </div>
@@ -2180,7 +1910,7 @@ export function LiveTvClient({
                   key={ch.id}
                   type="button"
                   onClick={() => handleSelectChannel(ch)}
-                  className={`flex items-center gap-2 px-3 py-1.5 rounded-xl  transition-all flex-none cursor-pointer focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:outline-none ${
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-xl  transition-all flex-none cursor-pointer focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:outline-none ${
                     isSelected
                       ? "bg-netflix-red text-white  shadow-md shadow-black/50 scale-102 font-bold"
                       : "bg-zinc-900/90 text-zinc-300  hover: hover:text-white hover:bg-zinc-800"
@@ -2332,7 +2062,7 @@ export function LiveTvClient({
                     onClick={() => setSelectedCategory(cat)}
                     className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1  cursor-pointer ${
                       isSelected
-                        ? "bg-sky-600 text-white  shadow-md shadow-black/50"
+                        ? "bg-netflix-red text-white shadow-md shadow-black/50"
                         : "bg-zinc-900/90 text-zinc-300  hover:text-white"
                     }`}
                   >
@@ -2362,7 +2092,7 @@ export function LiveTvClient({
           <aside className="hidden lg:flex flex-col w-64 xl:w-72 shrink-0 space-y-3 sticky top-20 rounded-2xl bg-zinc-950/90 p-3.5 backdrop-blur-xl shadow-2xl">
             <div className="flex items-center justify-between pb-2.5 px-1">
               <div className="flex items-center gap-2">
-                <Tv className="w-4 h-4 text-sky-400" />
+                <Tv className="w-4 h-4 text-netflix-red" />
                 <h3 className="text-xs font-black uppercase tracking-wider text-white">
                   Danh mục đài TV
                 </h3>
@@ -2400,7 +2130,7 @@ export function LiveTvClient({
                 onClick={() => setSelectedCategory("all")}
                 className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold transition-all  text-left cursor-pointer ${
                   selectedCategory === "all"
-                    ? "bg-sky-600 text-white  shadow-md shadow-black/50"
+                    ? "bg-netflix-red text-white shadow-md shadow-black/50"
                     : " text-zinc-300 hover:bg-white/5 hover:text-white"
                 }`}
               >
@@ -2430,7 +2160,7 @@ export function LiveTvClient({
                     onClick={() => setSelectedCategory(cat)}
                     className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold transition-all  text-left cursor-pointer ${
                       isSelected
-                        ? "bg-sky-600 text-white  shadow-md shadow-black/50"
+                        ? "bg-netflix-red text-white shadow-md shadow-black/50"
                         : " text-zinc-300 hover:bg-white/5 hover:text-white"
                     }`}
                   >
@@ -2465,7 +2195,7 @@ export function LiveTvClient({
                       : `${getCategoryEmoji(selectedCategory)} ${selectedCategory}`}
                   </span>
                 </h2>
-                <span className="text-xs px-2.5 py-0.5 rounded-full bg-sky-500/20 text-sky-300 font-bold">
+                <span className="text-xs px-2.5 py-0.5 rounded-full bg-netflix-red/20 text-netflix-red font-bold">
                   {filteredChannels.length} kênh
                 </span>
                 {totalPages > 1 && (
@@ -2480,7 +2210,7 @@ export function LiveTvClient({
                 <button
                   type="button"
                   onClick={() => setOnlyFhd((prev) => !prev)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition  shadow-sm cursor-pointer whitespace-nowrap focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:outline-none ${
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition  shadow-sm cursor-pointer whitespace-nowrap focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:outline-none ${
                     onlyFhd
                       ? "bg-emerald-600 text-white  shadow-md shadow-black/50"
                       : "bg-zinc-900/90 text-zinc-300  hover: hover:text-white"
@@ -2538,7 +2268,7 @@ export function LiveTvClient({
                               handleSelectChannel(ch);
                             }
                           }}
-                          className={`live-channel-card group relative rounded-xl sm:rounded-2xl border p-2 sm:p-3.5 cursor-pointer transition-all duration-300 flex flex-col items-center justify-between text-center focus-visible:scale-105 focus-visible:ring-4 focus-visible:ring-sky-400 focus-visible:outline-none ${
+                          className={`live-channel-card group relative rounded-xl sm:rounded-2xl border p-2 sm:p-3.5 cursor-pointer transition-all duration-300 flex flex-col items-center justify-between text-center focus-visible:scale-105 focus-visible:ring-4 focus-visible:ring-netflix-red focus-visible:outline-none ${
                             isSelected
                               ? "live-channel-active  scale-102"
                               : "hover:shadow-lg hover:-translate-y-0.5"
@@ -2571,7 +2301,7 @@ export function LiveTvClient({
                           </div>
 
                           {/* TÊN KÊNH */}
-                          <h3 className="live-channel-title text-[11px] sm:text-xs md:text-sm font-bold sm:font-extrabold text-white group-hover:text-sky-400 transition line-clamp-1 mt-0.5 sm:mt-1 leading-tight w-full">
+                          <h3 className="live-channel-title text-[11px] sm:text-xs md:text-sm font-bold sm:font-extrabold text-white group-hover:text-netflix-red transition line-clamp-1 mt-0.5 sm:mt-1 leading-tight w-full">
                             {ch.name}
                           </h3>
                         </div>
@@ -2593,7 +2323,7 @@ export function LiveTvClient({
                               handleSelectChannel(ch);
                             }
                           }}
-                          className={`group rounded-xl border p-2 sm:p-2.5 cursor-pointer transition-all flex items-center justify-between gap-2.5 sm:gap-3 live-channel-card focus-visible:scale-102 focus-visible:ring-4 focus-visible:ring-sky-400 focus-visible:outline-none ${
+                          className={`group rounded-xl border p-2 sm:p-2.5 cursor-pointer transition-all flex items-center justify-between gap-2.5 sm:gap-3 live-channel-card focus-visible:scale-102 focus-visible:ring-4 focus-visible:ring-netflix-red focus-visible:outline-none ${
                             isSelected
                               ? "live-channel-active "
                               : "hover:"
@@ -2605,7 +2335,7 @@ export function LiveTvClient({
                             </div>
                             <div className="min-w-0">
                               <div className="flex items-center gap-1.5">
-                                <h4 className="live-channel-title text-[11px] sm:text-xs font-bold text-white group-hover:text-sky-300 truncate">
+                                <h4 className="live-channel-title text-[11px] sm:text-xs font-bold text-white group-hover:text-netflix-red truncate">
                                   {ch.name}
                                 </h4>
                                 {isSelected && isPlaying && <PlayingEqualizer />}
@@ -2639,7 +2369,7 @@ export function LiveTvClient({
                       <span className="text-white font-bold">
                         {Math.min(safePage * INITIAL_PAGE_SIZE, filteredChannels.length)}
                       </span>{" "}
-                      trên tổng số <span className="text-sky-400 font-bold">{filteredChannels.length}</span> kênh
+                      trên tổng số <span className="text-netflix-red font-bold">{filteredChannels.length}</span> kênh
                     </div>
 
                     <div className="flex items-center gap-1 sm:gap-1.5 justify-center flex-nowrap">
@@ -2676,7 +2406,7 @@ export function LiveTvClient({
                               onClick={() => handlePageChange(Number(p))}
                               className={`min-w-[30px] sm:min-w-[32px] h-7 sm:h-8 px-1.5 sm:px-2 rounded-xl text-[11px] sm:text-xs font-bold transition  cursor-pointer shrink-0 ${
                                 isCurrent
-                                  ? "bg-sky-600 text-white  shadow-md shadow-black/50 font-black scale-105"
+                                  ? "bg-netflix-red text-white shadow-md shadow-black/50 font-black scale-105"
                                   : " bg-zinc-900/90 text-zinc-300 hover:text-white hover:bg-zinc-800 hover:"
                               }`}
                             >
@@ -2716,7 +2446,7 @@ export function LiveTvClient({
                   <button
                     type="button"
                     onClick={handleResetFilters}
-                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold transition shadow-md shadow-black/50 cursor-pointer"
+                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-netflix-red hover:brightness-110 active:brightness-95 text-white text-xs font-bold transition shadow-md shadow-black/50 cursor-pointer"
                   >
                     <RotateCcw className="w-3.5 h-3.5" />
                     <span>Đặt lại bộ lọc</span>

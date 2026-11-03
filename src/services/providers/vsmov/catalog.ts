@@ -1,7 +1,7 @@
 import { cacheService } from "@/lib/cache";
 import { fetchVsmovList } from "./client";
 import { adaptVsmovMovieItem } from "./adapter";
-import { deduplicateMovieItems } from "@/services/movies/service";
+import { deduplicateMovieItems } from "@/lib/movieMedia";
 import { normalizeForMatch } from "@/lib/stringUtils";
 
 export interface VsmovCatalogFeed {

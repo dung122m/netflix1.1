@@ -11,26 +11,8 @@ import {
   RATE_LIMIT_PRESETS,
 } from "@/lib/rateLimit";
 
-export interface EnhancedActorProfile {
-  name: string;
-  canonicalName?: string;
-  englishName?: string;
-  title: string;
-  description?: string;
-  extract?: string;
-  thumbnail?: string;
-  wikiUrl?: string;
-  birthday?: string;
-  formattedBirthday?: string | null;
-  deathday?: string;
-  age?: string | null;
-  placeOfBirth?: string;
-  country?: string;
-  roles?: string;
-  tags?: string[];
-  slug?: string;
-  notFound?: boolean;
-}
+import { type EnhancedActorProfile } from "@/services/aiActorService";
+export type { EnhancedActorProfile };
 
 function calculateAge(birthdayStr?: string, deathdayStr?: string): string | null {
   if (!birthdayStr) return null;

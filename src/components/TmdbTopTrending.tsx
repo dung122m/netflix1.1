@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import {
   Flame,
   Sparkles,
@@ -8,8 +8,7 @@ import {
   Crown,
 } from "lucide-react";
 import { formatGenreName, formatCountryName } from "@/lib/movieMedia";
-import { CarouselNavButton } from "@/components/ui/CarouselNavButton";
-import { NumberedRankCard } from "@/components/browse/NumberedRankCard";
+import { RankedCarouselSection, RankedMovieData } from "@/components/movies/RankedCarouselSection";
 
 export interface TmdbTrendingCategoryItem {
   id?: string;
@@ -61,8 +60,8 @@ const TAB_CONFIG: Record<
     subtitle: "Top 20 phim thịnh hành toàn cầu trên TMDB đã có bản xem tại Nanaflix",
     badge: "TMDB Quốc Tế • Thịnh Hành Tuần",
     icon: Flame,
-    badgeClass: "text-rose-400 bg-rose-500/10 ",
-    gradientClass: "from-rose-600 to-amber-500 shadow-black/50",
+    badgeClass: "text-netflix-red bg-netflix-red/10 ",
+    gradientClass: "from-netflix-red to-netflix-red/70 shadow-black/50",
   },
   month: {
     title: "Phim Nổi Bật Trong Tháng",
@@ -92,10 +91,6 @@ function TmdbTopTrendingInner() {
   const activeTabRef = useRef(activeTab);
   activeTabRef.current = activeTab;
 
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const [canScrollLeft, setCanScrollLeft] = useState(false);
-  const [canScrollRight, setCanScrollRight] = useState(true);
-
   // 1. Đọc cache localStorage ngay khi mount (0ms) và fetch revalidate chỉ tab "week" nếu cache đã quá 5 phút
   useEffect(() => {
     let isMounted = true;
@@ -123,43 +118,50 @@ function TmdbTopTrendingInner() {
             tabCacheRef.current["top_rated"] = parsed.top_rated;
           }
 
-          const currentTf = activeTabRef.current;
-          const cachedForCurrent = tabCacheRef.current[currentTf];
+          const currentTab = activeTabRef.current;
+          const cachedForCurrent = tabCacheRef.current[currentTab];
           if (cachedForCurrent && cachedForCurrent.length > 0) {
             setItems(cachedForCurrent);
             setLoading(false);
           }
 
-          // Nếu cache tuần còn dưới 5 phút, không cần revalidate ngầm
-          if (Date.now() - parsed.timestamp < FRESH_REVALIDATE_TTL && Array.isArray(parsed.week) && parsed.week.length > 0) {
+          // Nếu cache còn rất mới (dưới 6 tiếng), KHÔNG fetch lại nền ngầm để tiết kiệm băng thông và CPU
+          if (Date.now() - parsed.timestamp < FRESH_REVALIDATE_TTL) {
             shouldRevalidateWeek = false;
           }
         }
       }
     } catch {
-      // Bỏ qua nếu localStorage lỗi
+      // Bỏ qua nếu localStorage bị vô hiệu hóa
     }
 
-    if (!shouldRevalidateWeek) return;
+    if (!shouldRevalidateWeek) {
+      return () => {
+        isMounted = false;
+      };
+    }
 
-    // Chỉ fetch tab "week" khi mới mở trang (Lazy/On-demand cho các tab còn lại)
-    const fetchWeekInitial = async () => {
+    // Luôn fetch tab mặc định "week" khi vào trang (SWR) nếu cần revalidate
+    const fetchWeek = async () => {
       try {
         const res = await fetch("/api/trending-tmdb?type=week&limit=20");
         if (!res.ok) throw new Error("Fetch failed");
         const data = await res.json();
         if (!isMounted) return;
 
-        if (Array.isArray(data?.items) && data.items.length > 0) {
+        if (Array.isArray(data?.items)) {
           tabCacheRef.current["week"] = data.items;
           if (activeTabRef.current === "week") {
             setItems(data.items);
           }
+
           try {
+            const raw = localStorage.getItem(TMDB_RANKING_CACHE_KEY);
+            const currentCache = raw ? JSON.parse(raw) : {};
             localStorage.setItem(
               TMDB_RANKING_CACHE_KEY,
               JSON.stringify({
-                ...tabCacheRef.current,
+                ...currentCache,
                 week: data.items,
                 timestamp: Date.now(),
               })
@@ -167,19 +169,19 @@ function TmdbTopTrendingInner() {
           } catch {}
         }
       } catch (err) {
-        console.warn("Lỗi tải TMDB Trending Week:", err);
+        console.warn("Lỗi tải TMDB Trending:", err);
       } finally {
         if (isMounted) setLoading(false);
       }
     };
 
-    fetchWeekInitial();
+    fetchWeek();
     return () => {
       isMounted = false;
     };
   }, []);
 
-  // 2. Chuyển đổi tab: fetch on-demand nếu tab chưa có cache
+  // 2. Chuyển đổi tab: render cache tức thì nếu có, và fetch ngầm nếu chưa có
   const switchTab = (nextTab: TmdbTab) => {
     if (nextTab === activeTab) return;
 
@@ -187,178 +189,106 @@ function TmdbTopTrendingInner() {
     setActiveTab(nextTab);
     activeTabRef.current = nextTab;
 
-    if (scrollContainerRef.current) {
-      scrollContainerRef.current.scrollLeft = 0;
-    }
-
     const cached = tabCacheRef.current[nextTab];
     if (cached && cached.length > 0) {
       setItems(cached);
       setTimeout(() => setIsFading(false), 100);
+      return;
+    }
 
-      // Nếu cache còn dưới 5 phút, không cần gửi request revalidate ngầm
-      let isFresh = false;
-      try {
-        const raw = localStorage.getItem(TMDB_RANKING_CACHE_KEY);
-        if (raw) {
-          const parsed = JSON.parse(raw);
-          if (parsed.timestamp && Date.now() - parsed.timestamp < FRESH_REVALIDATE_TTL && parsed[nextTab]) {
-            isFresh = true;
+    setLoading(true);
+    fetch(`/api/trending-tmdb?type=${nextTab}&limit=20`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (data?.items && Array.isArray(data.items)) {
+          tabCacheRef.current[nextTab] = data.items;
+          if (activeTabRef.current === nextTab) {
+            setItems(data.items);
           }
+          try {
+            const raw = localStorage.getItem(TMDB_RANKING_CACHE_KEY);
+            const currentCache = raw ? JSON.parse(raw) : {};
+            localStorage.setItem(
+              TMDB_RANKING_CACHE_KEY,
+              JSON.stringify({
+                ...currentCache,
+                [nextTab]: data.items,
+                timestamp: Date.now(),
+              })
+            );
+          } catch {}
         }
-      } catch {}
-
-      if (isFresh) return;
-
-      // Revalidate ngầm
-      fetch(`/api/trending-tmdb?type=${nextTab}&limit=20`)
-        .then((r) => (r.ok ? r.json() : null))
-        .then((data) => {
-          if (data?.items && Array.isArray(data.items) && data.items.length > 0) {
-            tabCacheRef.current[nextTab] = data.items;
-            if (activeTabRef.current === nextTab) {
-              setItems(data.items);
-            }
-            try {
-              const raw = localStorage.getItem(TMDB_RANKING_CACHE_KEY);
-              const currentCache = raw ? JSON.parse(raw) : {};
-              localStorage.setItem(
-                TMDB_RANKING_CACHE_KEY,
-                JSON.stringify({
-                  ...currentCache,
-                  [nextTab]: data.items,
-                  timestamp: Date.now(),
-                })
-              );
-            } catch {}
-          }
-        })
-        .catch(() => {});
-    } else {
-      // Chưa có cache cho tab này: fetch mới
-      setLoading(true);
-      fetch(`/api/trending-tmdb?type=${nextTab}&limit=20`)
-        .then((r) => (r.ok ? r.json() : null))
-        .then((data) => {
-          if (data?.items && Array.isArray(data.items) && data.items.length > 0) {
-            tabCacheRef.current[nextTab] = data.items;
-            if (activeTabRef.current === nextTab) {
-              setItems(data.items);
-            }
-            try {
-              const raw = localStorage.getItem(TMDB_RANKING_CACHE_KEY);
-              const currentCache = raw ? JSON.parse(raw) : {};
-              localStorage.setItem(
-                TMDB_RANKING_CACHE_KEY,
-                JSON.stringify({
-                  ...currentCache,
-                  [nextTab]: data.items,
-                  timestamp: Date.now(),
-                })
-              );
-            } catch {}
-          }
-        })
-        .catch((err) => {
-          console.warn(`Lỗi tải BXH TMDB ${nextTab}:`, err);
-        })
-        .finally(() => {
-          setIsFading(false);
-          setLoading(false);
-        });
-    }
-  };
-
-  const rafRef = useRef<number | null>(null);
-
-  const checkScroll = useCallback(() => {
-    if (rafRef.current !== null) {
-      cancelAnimationFrame(rafRef.current);
-    }
-    rafRef.current = requestAnimationFrame(() => {
-      rafRef.current = null;
-      if (!scrollContainerRef.current) return;
-      const el = scrollContainerRef.current;
-      const { scrollLeft, scrollWidth, clientWidth } = el;
-      const firstCard = el.querySelector<HTMLElement>(".snap-start");
-      const isAtStart =
-        scrollLeft <= 8 ||
-        (firstCard ? firstCard.getBoundingClientRect().left >= el.getBoundingClientRect().left - 2 : scrollLeft <= 8);
-      const isAtEnd = scrollLeft >= scrollWidth - clientWidth - 8;
-
-      setCanScrollLeft(!isAtStart);
-      setCanScrollRight(!isAtEnd);
-    });
-  }, []);
-
-  // Đảm bảo scroll luôn reset về 0 (Top 1) khi đổi tab hoặc đổi danh sách phim
-  useEffect(() => {
-    if (scrollContainerRef.current) {
-      scrollContainerRef.current.scrollLeft = 0;
-    }
-    checkScroll();
-  }, [activeTab, items, checkScroll]);
-
-  useEffect(() => {
-    const el = scrollContainerRef.current;
-    if (!el) return;
-    const onScrollEnd = () => checkScroll();
-    el.addEventListener("scrollend", onScrollEnd, { passive: true });
-    window.addEventListener("resize", checkScroll, { passive: true });
-
-    return () => {
-      if (rafRef.current !== null) {
-        cancelAnimationFrame(rafRef.current);
-      }
-      el.removeEventListener("scrollend", onScrollEnd);
-      window.removeEventListener("resize", checkScroll);
-    };
-  }, [checkScroll]);
-
-  const handleScroll = (direction: "left" | "right") => {
-    if (scrollContainerRef.current) {
-      const cardEl = scrollContainerRef.current.querySelector<HTMLElement>(".snap-start");
-      const step = cardEl
-        ? (cardEl.offsetWidth + 16) * Math.max(1, Math.floor(scrollContainerRef.current.clientWidth / (cardEl.offsetWidth + 16)))
-        : scrollContainerRef.current.clientWidth * 0.75;
-      scrollContainerRef.current.scrollBy({
-        left: direction === "left" ? -step : step,
-        behavior: "smooth",
+      })
+      .catch((err) => {
+        console.warn(`Lỗi tải TMDB ${nextTab}:`, err);
+      })
+      .finally(() => {
+        setIsFading(false);
+        setLoading(false);
       });
-      setTimeout(checkScroll, 150);
-      setTimeout(checkScroll, 400);
-    }
   };
 
   const currentConfig = TAB_CONFIG[activeTab];
   const IconComponent = currentConfig.icon;
 
-  return (
-    <section
-      className="relative my-8 sm:my-12 select-none"
-      style={{
-        contentVisibility: "auto",
-        containIntrinsicSize: "auto 480px",
-      }}
-    >
-      {/* HEADER SECTION */}
-      <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-3.5 sm:gap-4 mb-4 sm:mb-5 px-1">
-        <div className="min-w-0">
-          <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-white tracking-tight flex items-center gap-2.5 flex-wrap sm:flex-nowrap">
-            <span className="flex items-center justify-center w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-netflix-red text-white shadow-md shadow-black/50 shrink-0">
-              <IconComponent className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
-            </span>
-            <span>{currentConfig.title}</span>
-            {activeTab === "week" && <Flame className="w-5 h-5 text-netflix-red shrink-0" />}
-            {activeTab === "month" && <Zap className="w-5 h-5 text-amber-400 shrink-0" />}
-            {activeTab === "top_rated" && <Crown className="w-5 h-5 text-yellow-400 shrink-0" />}
-          </h2>
-          <p className="text-xs sm:text-sm text-zinc-400 mt-1 max-w-[65ch] leading-relaxed line-clamp-2">
-            {currentConfig.subtitle}
-          </p>
-        </div>
+  const rankedItems: RankedMovieData[] = useMemo(() => {
+    return items.map((movie, index) => {
+      const movieSlug = movie.slug || `trending-tmdb-${activeTab}-${index}`;
+      const movieTitle = movie.name || movie.origin_name || "Phim";
 
-        {/* 3 TABS & CAROUSEL CONTROLS */}
+      const rawCountry = Array.isArray(movie.country)
+        ? (typeof movie.country[0] === "object"
+            ? movie.country[0]?.name || movie.country[0]?.slug
+            : movie.country[0]) || ""
+        : typeof movie.country === "string"
+        ? movie.country
+        : "";
+      const countryText = formatCountryName(rawCountry);
+
+      const rawCategory = Array.isArray(movie.category)
+        ? (typeof movie.category[0] === "object" ? movie.category[0]?.name : movie.category[0]) || ""
+        : typeof movie.category === "string"
+        ? movie.category
+        : "";
+      const categoryText = formatGenreName(rawCategory);
+
+      const secondaryTag = categoryText || countryText;
+
+      return {
+        slug: movieSlug,
+        title: movieTitle,
+        origin_name: movie.origin_name,
+        poster_url: movie.poster_url,
+        thumb_url: movie.thumb_url,
+        year: movie.year,
+        quality: movie.quality,
+        secondaryTag,
+      };
+    });
+  }, [items, activeTab]);
+
+  return (
+    <RankedCarouselSection
+      title={currentConfig.title}
+      icon={<IconComponent className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />}
+      iconBadge
+      trailingBadge={
+        <>
+          {activeTab === "week" && <Flame className="w-5 h-5 text-netflix-red shrink-0" />}
+          {activeTab === "month" && <Zap className="w-5 h-5 text-amber-400 shrink-0" />}
+          {activeTab === "top_rated" && <Crown className="w-5 h-5 text-yellow-400 shrink-0" />}
+        </>
+      }
+      subtitle={currentConfig.subtitle}
+      theme="amber"
+      ariaLabel="Bảng xếp hạng TMDB"
+      resetTrigger={activeTab}
+      items={rankedItems}
+      loading={loading}
+      isFading={isFading}
+      emptyIcon={<Sparkles className="w-8 h-8 text-zinc-600 mb-2" />}
+      emptyMessage="Chưa có phim phù hợp trong danh mục này."
+      actions={
         <div className="flex items-center justify-between lg:justify-end gap-3 w-full lg:w-auto shrink-0">
           <div className="flex items-center gap-1 p-1 rounded-xl bg-zinc-900/90 text-xs font-semibold backdrop-blur-md overflow-x-auto scrollbar-none max-w-full w-full sm:w-auto justify-start">
             <button
@@ -399,116 +329,8 @@ function TmdbTopTrendingInner() {
             </button>
           </div>
         </div>
-      </div>
-
-      {/* HORIZONTAL SCROLL CAROUSEL */}
-      <div className="relative group/row">
-        {/* NÚT CUỘN TRÁI / PHẢI: FLOATING GLASS CHUẨN ĐỒNG BỘ */}
-        <CarouselNavButton
-          direction="left"
-          onClick={() => handleScroll("left")}
-          visible={canScrollLeft}
-          ariaLabel="Cuộn bảng xếp hạng sang trái"
-          topOffsetClass="top-[40%]"
-        />
-
-        <CarouselNavButton
-          direction="right"
-          onClick={() => handleScroll("right")}
-          visible={canScrollRight}
-          ariaLabel="Cuộn bảng xếp hạng sang phải"
-          topOffsetClass="top-[40%]"
-        />
-
-        {/* MOBILE SUBTLE GRADIENT FADE AFFORDANCE */}
-        {canScrollLeft && (
-          <div
-            className="sm:hidden absolute left-0 top-4 bottom-4 w-6 bg-gradient-to-r from-black via-black/60 to-transparent pointer-events-none z-20 transition-opacity duration-200"
-            aria-hidden="true"
-          />
-        )}
-        {canScrollRight && (
-          <div
-            className="sm:hidden absolute right-0 top-4 bottom-4 w-8 bg-gradient-to-l from-black via-black/60 to-transparent pointer-events-none z-20 transition-opacity duration-200"
-            aria-hidden="true"
-          />
-        )}
-
-        <div
-          ref={scrollContainerRef}
-          onScroll={checkScroll}
-          className="flex items-center gap-3 sm:gap-6 overflow-x-auto overflow-y-hidden px-3 sm:px-6 scroll-pl-3 sm:scroll-pl-6 py-4 sm:py-5 scrollbar-none snap-x snap-mandatory"
-          style={{
-            scrollbarWidth: "none",
-            msOverflowStyle: "none",
-            opacity: isFading ? 0.4 : 1,
-            transition: "opacity 0.15s cubic-bezier(0.4, 0, 0.2, 1)",
-          }}
-        >
-          {loading && items.length === 0 ? (
-            Array.from({ length: 6 }).map((_, idx) => (
-              <div
-                key={idx}
-                className="flex-none flex items-start"
-              >
-                <div className="w-[45px] sm:w-[65px] md:w-[75px] h-[210px] sm:h-[262px] md:h-[285px] -mr-5 sm:-mr-8" />
-                <div className="w-[140px] sm:w-[175px] md:w-[190px] flex flex-col gap-2">
-                  <div className="aspect-[2/3] rounded-xl bg-zinc-900/80 animate-pulse" />
-                  <div className="h-4 bg-zinc-900/80 rounded animate-pulse w-3/4" />
-                  <div className="h-3 bg-zinc-900/60 rounded animate-pulse w-1/2" />
-                </div>
-              </div>
-            ))
-          ) : items.length === 0 ? (
-            <div className="w-full py-12 flex flex-col items-center justify-center text-center px-4">
-              <Sparkles className="w-8 h-8 text-zinc-600 mb-2" />
-              <p className="text-sm font-medium text-zinc-400">
-                Chưa có phim phù hợp trong danh mục này.
-              </p>
-            </div>
-          ) : (
-            items.map((movie, index) => {
-              const rank = index + 1;
-              const movieSlug = movie.slug;
-              const movieTitle = movie.name || movie.origin_name || "Phim";
-
-              const rawCountry = Array.isArray(movie.country)
-                ? (typeof movie.country[0] === "object" ? movie.country[0]?.name || movie.country[0]?.slug : movie.country[0]) || ""
-                : typeof movie.country === "string"
-                ? movie.country
-                : "";
-              const countryText = formatCountryName(rawCountry);
-
-              const rawCategory = Array.isArray(movie.category)
-                ? (typeof movie.category[0] === "object" ? movie.category[0]?.name : movie.category[0]) || ""
-                : typeof movie.category === "string"
-                ? movie.category
-                : "";
-              const categoryText = formatGenreName(rawCategory);
-
-              const secondaryTag = categoryText || countryText;
-
-              return (
-                <NumberedRankCard
-                  key={movieSlug || `trending-tmdb-${activeTab}-${index}`}
-                  rank={rank}
-                  slug={movieSlug}
-                  title={movieTitle}
-                  origin_name={movie.origin_name}
-                  poster_url={movie.poster_url}
-                  thumb_url={movie.thumb_url}
-                  year={movie.year}
-                  quality={movie.quality}
-                  secondaryTag={secondaryTag}
-                  priority={index < 3}
-                  theme="amber"
-                />
-              );
-            })
-          )}
-        </div>
-      </div>
-    </section>
+      }
+    />
   );
 }
 

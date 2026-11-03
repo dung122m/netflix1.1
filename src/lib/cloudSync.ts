@@ -8,6 +8,7 @@ import {
   getWatchlist,
   registerWatchlistSyncHandler,
   WatchlistItem,
+  mergeWatchlists,
 } from "./watchlist";
 
 const WATCHLIST_STORAGE_KEY = "nanaflix_watchlist_v1";
@@ -284,13 +285,16 @@ export async function syncWatchlistWithCloud(
       const json = await res.json();
       if (json.success && Array.isArray(json.items)) {
         if (json.items.length > 0) {
-          localStorage.setItem(WATCHLIST_STORAGE_KEY, JSON.stringify(json.items));
+          const localList = getWatchlist();
+          const merged = mergeWatchlists(localList, json.items);
+          localStorage.setItem(WATCHLIST_STORAGE_KEY, JSON.stringify(merged));
           if (typeof window !== "undefined") {
             window.dispatchEvent(new Event("watchlist-updated"));
           }
-          return json.items;
+          return merged;
         } else {
           // Khi cloud watchlist của user mới rỗng, KHÔNG upload unscoped localList của phiên trước.
+          // Đặt local watchlist về rỗng để phân lập hoàn toàn với tài khoản trước.
           localStorage.setItem(WATCHLIST_STORAGE_KEY, JSON.stringify([]));
           if (typeof window !== "undefined") {
             window.dispatchEvent(new Event("watchlist-updated"));
@@ -313,19 +317,21 @@ export async function syncWatchlistWithCloud(
 export async function saveWatchlistItemToCloud(
   userId: string,
   item: WatchlistItem,
-): Promise<void> {
-  if (!userId || !item.slug) return;
+): Promise<boolean> {
+  if (!userId || !item.slug) return false;
   try {
     const headers = await getAuthHeaders();
-    if (!headers["Authorization" as keyof typeof headers]) return;
+    if (!headers["Authorization" as keyof typeof headers]) return false;
 
-    await fetch("/api/user/watchlist", {
+    const res = await fetch("/api/user/watchlist", {
       method: "POST",
       headers,
       body: JSON.stringify({ items: [item] }),
     });
+    return res.ok;
   } catch (err) {
     console.warn("Lỗi saveWatchlistItemToCloud:", err);
+    return false;
   }
 }
 
@@ -335,18 +341,20 @@ export async function saveWatchlistItemToCloud(
 export async function removeWatchlistItemFromCloud(
   userId: string,
   slug: string,
-): Promise<void> {
-  if (!userId || !slug) return;
+): Promise<boolean> {
+  if (!userId || !slug) return false;
   try {
     const headers = await getAuthHeaders();
-    if (!headers["Authorization" as keyof typeof headers]) return;
+    if (!headers["Authorization" as keyof typeof headers]) return false;
 
-    await fetch(`/api/user/watchlist?slug=${encodeURIComponent(slug)}`, {
+    const res = await fetch(`/api/user/watchlist?slug=${encodeURIComponent(slug)}`, {
       method: "DELETE",
       headers,
     });
+    return res.ok || res.status === 404;
   } catch (err) {
     console.warn("Lỗi removeWatchlistItemFromCloud:", err);
+    return false;
   }
 }
 

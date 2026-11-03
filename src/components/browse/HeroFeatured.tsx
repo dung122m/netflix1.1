@@ -27,7 +27,7 @@ import {
   formatCountryName,
 } from "@/lib/movieMedia";
 import { cleanHtmlText } from "@/lib/cleanHtml";
-import { clientSynopsisCache } from "./MediaCard";
+import { clientSynopsisCache } from "@/services/synopsisService";
 import { fetchMovieSynopsisShared } from "@/services/synopsisService";
 import TrailerModal from "@/components/TrailerModal";
 import {
@@ -983,7 +983,7 @@ const HeroFeaturedInner: React.FC<{ movies?: HeroMovie[] }> = ({
                               ease: "linear",
                             }
                       }
-                      className="h-full rounded-full bg-netflix-red shadow-[0_0_10px_var(--accent-glow,rgba(229,9,20,0.8))]"
+                      className="h-full rounded-full bg-netflix-red shadow-[0_0_10px_var(--accent-glow)]"
                     />
                   </div>
                 </div>

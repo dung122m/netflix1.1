@@ -2141,7 +2141,7 @@ export async function getFptEventChannels(): Promise<FootballMatch[]> {
 }
 
 // Cache kết quả kiểm tra luồng stream (TTL 5 phút cho luồng sống, 60s cho luồng chết)
-const urlHealthCache = new Map<string, { isLive: boolean; expireAt: number }>();
+export const urlHealthCache = new Map<string, { isLive: boolean; expireAt: number }>();
 
 export type StreamHealthStatus = "alive" | "dead" | "unknown";
 
@@ -2165,7 +2165,7 @@ export function getStreamHealthStatus(url: string): StreamHealthStatus {
 
 export async function isStreamPlayable(
   url: string,
-  timeoutMs: number = 1200,
+  timeoutMs: number = 1500,
 ): Promise<boolean> {
   if (!url || isBlockedStreamUrl(url)) return false;
 
@@ -2202,14 +2202,21 @@ export async function isStreamPlayable(
       },
       signal: AbortSignal.timeout(timeoutMs),
     });
-    const isLive = res.ok;
+    // 200/206 là thành công; 416 (Range Not Satisfiable) là do server từ chối Range trên file manifest nhưng endpoint hoàn toàn sống
+    const isLive = res.ok || res.status === 416;
     urlHealthCache.set(key, {
       isLive,
       expireAt: now + (isLive ? 5 * 60 * 1000 : 60 * 1000), // Sống: cache 5 phút, chết: cache 60s
     });
     return isLive;
-  } catch {
-    urlHealthCache.set(key, { isLive: false, expireAt: now + 60 * 1000 });
+  } catch (err: unknown) {
+    // Timeout hoặc AbortError không đánh dấu dead vĩnh viễn (giữ trạng thái unknown để không loại nhầm nguồn)
+    const isTimeout =
+      err instanceof Error &&
+      (err.name === "TimeoutError" || err.name === "AbortError");
+    if (!isTimeout) {
+      urlHealthCache.set(key, { isLive: false, expireAt: now + 60 * 1000 });
+    }
     return false;
   }
 }
@@ -2309,6 +2316,7 @@ export interface RawStreamItem {
   extinfLine?: string;
   awayLogo?: string;
   tournament?: string;
+  format?: "hls" | "flv" | "other" | string;
 }
 
 export function normalizeAndMergeStreams(
@@ -2352,11 +2360,14 @@ export function normalizeAndMergeStreams(
     const upperTitle = rawTitle.toUpperCase();
 
     const isHls =
+      item.format?.toLowerCase() === "hls" ||
       effectiveUrl.includes(".m3u8") ||
       rawTitle.toLowerCase().includes("[hls");
     const isFlv =
       !isHls &&
-      (effectiveUrl.includes(".flv") || rawTitle.toLowerCase().includes("[flv"));
+      (item.format?.toLowerCase() === "flv" ||
+        effectiveUrl.includes(".flv") ||
+        rawTitle.toLowerCase().includes("[flv"));
     const format: "hls" | "flv" | "other" = isHls
       ? "hls"
       : isFlv
@@ -3110,6 +3121,7 @@ export async function fetchHailabStreams(now: number = Date.now()): Promise<RawS
                 tournament,
                 url: st.url,
                 effectiveUrl: st.url,
+                format: st.format,
                 extinfLine: `#EXTINF:-1 tvg-logo="${homeLogo}" group-title="Live Sports (Hailab)" status="${isLive ? "LIVE" : "UPCOMING"}",${rawTitle}`,
               });
             }

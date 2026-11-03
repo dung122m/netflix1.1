@@ -175,7 +175,7 @@ export const PaginationControl: React.FC<PaginationControlProps> = ({
         <button
           type="button"
           onClick={() => setIsJumpOpen((prev) => !prev)}
-          className="px-3.5 py-2 min-h-[40px] text-xs font-bold text-white bg-netflix-red rounded-xl shadow-md active:scale-95 hover:bg-red-700 transition-all flex items-center justify-center gap-1 touch-target outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-105 cursor-pointer"
+          className="px-3.5 py-2 min-h-[40px] text-xs font-bold text-white bg-netflix-red rounded-xl shadow-md hover:brightness-110 active:brightness-95 transition-all flex items-center justify-center gap-1 touch-target outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-105 cursor-pointer"
           aria-label="Đi tới trang"
         >
           <span>{currentPage} / {totalPages}</span>
@@ -215,7 +215,7 @@ export const PaginationControl: React.FC<PaginationControlProps> = ({
               />
               <button
                 type="submit"
-                className="flex-none bg-netflix-red hover:bg-red-700 text-white font-bold text-xs px-3.5 py-2.5 rounded-xl transition flex items-center justify-center gap-1 shadow-md active:scale-95 cursor-pointer"
+                className="flex-none bg-netflix-red hover:brightness-110 active:brightness-95 text-white font-bold text-xs px-3.5 py-2.5 rounded-xl transition flex items-center justify-center gap-1 shadow-md active:scale-95 cursor-pointer"
               >
                 <span>Đến</span>
                 <ArrowRight className="w-3.5 h-3.5" />

@@ -1,7 +1,7 @@
 import React, { Suspense } from "react";
 import { Metadata } from "next";
-import { liveFootballService } from "@/services/liveFootballService";
-import { liveTvService } from "@/services/liveTvService";
+import { liveFootballService } from "@/services/live/football/service";
+import { liveTvService } from "@/services/live/tv/service";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { LiveHubClient } from "@/components/live/LiveHubClient";

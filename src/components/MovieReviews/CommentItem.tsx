@@ -77,12 +77,24 @@ function formatRelativeTime(timestamp: number): string {
   });
 }
 
-function renderCommentContent(text: string) {
+function renderCommentContent(text: string, replyToUserName?: string) {
+  if (replyToUserName && text.startsWith(`@${replyToUserName}`)) {
+    const mention = `@${replyToUserName}`;
+    const rest = text.slice(mention.length);
+    return (
+      <>
+        <span className="text-netflix-red font-semibold inline-block mr-1">
+          {mention}
+        </span>
+        {rest}
+      </>
+    );
+  }
   const parts = text.split(/(@[^\s@]+)/g);
   return parts.map((part, index) => {
     if (part.startsWith("@")) {
       return (
-        <span key={index} className="text-blue-400 font-semibold inline-block mr-0.5">
+        <span key={index} className="text-netflix-red font-semibold inline-block mr-0.5">
           {part}
         </span>
       );
@@ -342,12 +354,15 @@ export const CommentItem: React.FC<CommentItemProps> = ({
       variant: "danger",
     });
     if (!confirmed) return;
+    const previous = replies;
+    setReplies((prev) => prev.filter((r) => r.id !== replyId));
     try {
-      setReplies((prev) => prev.filter((r) => r.id !== replyId));
-      await deleteMovieComment(replyId);
+      await deleteMovieComment(replyId, { movieSlug: comment.movieSlug, userId: currentUserId || undefined });
       toast.info("Đã xóa trả lời.");
-    } catch {
-      toast.error("Không thể xóa trả lời!");
+    } catch (err) {
+      setReplies(previous);
+      const msg = err instanceof Error ? err.message : "Không thể xóa trả lời!";
+      toast.error(msg);
     }
   };
 
@@ -440,35 +455,173 @@ export const CommentItem: React.FC<CommentItemProps> = ({
     }
   };
 
+  // --- GIAO DIỆN PHẢN HỒI (REPLY) DẠNG THREAD PHẲNG LIỀN MẠCH (YOUTUBE / THREADS STYLE) ---
+  if (isReply) {
+    return (
+      <div
+        ref={itemRef}
+        id={`comment-${comment.id}`}
+        className={`group relative flex items-start gap-2.5 sm:gap-3 py-1.5 px-2 sm:px-2.5 rounded-xl transition-all duration-200 ${
+          isHighlighted
+            ? "bg-netflix-red/15 ring-1 ring-netflix-red/40 shadow-[0_0_20px_var(--accent-glow)]"
+            : "hover:bg-white/[0.03]"
+        }`}
+      >
+        {/* User Avatar */}
+        <Tooltip content={isAuthor ? "Xem & chỉnh sửa hồ sơ của bạn" : `Xem trang cá nhân của ${comment.userName}`} side="top">
+          <button
+            type="button"
+            onClick={handleOpenProfile}
+            aria-label={isAuthor ? "Xem & chỉnh sửa hồ sơ của bạn" : `Xem trang cá nhân của ${comment.userName}`}
+            className="cursor-pointer hover:ring-2 hover:ring-amber-400/60 hover:scale-105 transition-all rounded-full shrink-0 mt-0.5"
+          >
+            <UserAvatar
+              src={comment.userAvatar || undefined}
+              name={comment.userName}
+              seed={comment.userId || comment.userName}
+              sizeClassName="w-6 h-6 sm:w-7 sm:h-7 text-[10px] sm:text-xs"
+              className="shadow-sm"
+            />
+          </button>
+        </Tooltip>
+
+        {/* Reply Body */}
+        <div className="flex-1 min-w-0">
+          {/* Header Row: Tên + Huy hiệu + Thời gian + Nút xóa */}
+          <div className="flex items-center justify-between gap-1.5">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <button
+                type="button"
+                onClick={handleOpenProfile}
+                title={isAuthor ? "Xem & chỉnh sửa hồ sơ của bạn" : `Xem trang cá nhân của ${comment.userName}`}
+                className="font-semibold text-xs sm:text-[13px] text-zinc-200 hover:text-amber-300 hover:underline transition cursor-pointer text-left truncate leading-tight"
+              >
+                {comment.userName}
+              </button>
+
+              {/* HUY HIỆU ADMIN */}
+              {isCommentAuthorAdmin && (
+                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-gradient-to-r from-netflix-red/30 to-netflix-red/15 text-netflix-red border border-netflix-red/30 whitespace-nowrap shrink-0 leading-none">
+                  <ShieldCheck className="w-2.5 h-2.5 text-netflix-red shrink-0" />
+                  <span>Admin</span>
+                </span>
+              )}
+
+              {/* DANH HIỆU USER */}
+              {(() => {
+                const badgesToRender =
+                  comment.userBadges && comment.userBadges.length > 0
+                    ? comment.userBadges
+                    : ["🍿 Mọt Phim Đêm"];
+
+                return (
+                  <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-semibold bg-white/5 text-amber-300 border border-amber-500/20 whitespace-nowrap shrink-0 leading-none">
+                    {badgesToRender[0]}
+                  </span>
+                );
+              })()}
+
+              {isAuthor && (
+                <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-semibold bg-netflix-red/15 text-netflix-red border border-netflix-red/30 whitespace-nowrap shrink-0 leading-none">
+                  Bạn
+                </span>
+              )}
+
+              <span className="text-[10px] sm:text-[11px] text-zinc-500 whitespace-nowrap">
+                • {formatRelativeTime(comment.createdAt)}
+                {comment.isEdited ? " (đã sửa)" : ""}
+              </span>
+            </div>
+
+            {/* Nút xóa nhanh cho tác giả reply */}
+            {isAuthor && (
+              <div className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                <Tooltip content="Xóa phản hồi" side="top">
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteReply(comment.id)}
+                    aria-label="Xóa phản hồi"
+                    className="text-zinc-500 hover:text-red-400 p-1 rounded hover:bg-white/5 transition cursor-pointer"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </Tooltip>
+              </div>
+            )}
+          </div>
+
+          {/* Reply Content */}
+          <div className="mt-1">
+            {comment.isSpoiler && !showSpoiler ? (
+              <div className="relative rounded-lg overflow-hidden bg-black/40 p-2 sm:p-2.5">
+                <p className="filter blur-md select-none text-zinc-400 text-xs line-clamp-2">
+                  {comment.content}
+                </p>
+                <div className="absolute inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm p-1 text-center">
+                  <button
+                    type="button"
+                    onClick={() => setShowSpoiler(true)}
+                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 transition-colors"
+                  >
+                    <Eye className="w-2.5 h-2.5 shrink-0" />
+                    <span>Spoil. Bấm xem</span>
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <p className="text-zinc-200 text-xs sm:text-[13px] leading-relaxed whitespace-pre-line break-words">
+                {renderCommentContent(comment.content, comment.replyToUserName)}
+              </p>
+            )}
+          </div>
+
+          {/* Reply Actions: Reactions + Trả lời */}
+          <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+            <ReactionPicker
+              comment={comment}
+              currentUserId={currentUserId}
+              onReact={handleSelfReact}
+              onRequireAuth={onRequireAuth}
+              isCompact={true}
+            />
+
+            <button
+              type="button"
+              onClick={() => onReplyTo?.(comment.userId, comment.userName)}
+              className="inline-flex items-center gap-1 text-[11px] font-medium text-zinc-400 hover:text-zinc-200 hover:bg-white/5 px-2 py-0.5 rounded transition cursor-pointer active:scale-95"
+            >
+              <Reply className="w-3 h-3" />
+              <span>Trả lời</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
       ref={itemRef}
       id={`comment-${comment.id}`}
-      className={`group relative ${
+      className={`group relative py-4 sm:py-5 transition-all duration-300 ${
         isHighlighted
-          ? " shadow-[0_0_35px_rgba(229,9,20,0.65)] bg-red-950/40 "
+          ? "bg-netflix-red/10 border-l-2 border-netflix-red pl-3.5 sm:pl-4 rounded-r-xl shadow-[0_0_25px_var(--accent-glow)]"
           : comment.isPinned
-          ? "bg-gradient-to-r from-amber-950/30 via-zinc-900/90 to-zinc-950/90  shadow-[0_0_20px_rgba(245,158,11,0.15)] "
-          : isReply
-          ? "bg-zinc-900/40 hover:bg-zinc-900/60 "
-          : "bg-zinc-900/60 hover:bg-zinc-900/90  hover:"
-      } ${
-        isReply
-          ? "p-2.5 sm:p-3.5 rounded-xl border"
-          : "p-3 sm:p-4 md:p-5 rounded-2xl border"
-      } transition-all duration-500`}
+          ? "border-l-2 border-amber-400/80 bg-amber-500/[0.04] pl-3.5 sm:pl-4 rounded-r-xl"
+          : "hover:bg-white/[0.015]"
+      }`}
     >
       {/* BADGE BÌNH LUẬN ĐÃ GHIM BỞI ADMIN */}
       {comment.isPinned && (
-        <div className="mb-2.5 flex items-center gap-1.5 text-[11px] sm:text-xs font-bold text-amber-300 bg-amber-500/15 px-2.5 py-1 rounded-xl w-fit shadow-md">
+        <div className="mb-2 flex items-center gap-1.5 text-xs font-semibold text-amber-400">
           <Pin className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
-          <span>📌 Bình luận quan trọng được ghim bởi Quản trị viên</span>
+          <span>📌 Đã ghim bởi Quản trị viên</span>
         </div>
       )}
 
       {/* BADGE THÔNG BÁO KHI ĐƯỢC CHỌN TỪ POPUP / THÔNG BÁO */}
       {isHighlighted && (
-        <div className="mb-2.5 flex items-center gap-1.5 text-[11px] font-bold text-red-300 bg-red-500/15 px-2.5 py-1 rounded-lg w-fit animate-pulse">
+        <div className="mb-2 flex items-center gap-1.5 text-xs font-medium text-netflix-red animate-pulse">
           <Sparkles className="w-3.5 h-3.5 text-amber-400" />
           <span>Bình luận bạn vừa chọn từ thông báo</span>
         </div>
@@ -478,20 +631,22 @@ export const CommentItem: React.FC<CommentItemProps> = ({
       <div className="flex items-start justify-between gap-2 sm:gap-3">
         {/* User Avatar + Meta */}
         <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
-          <button
-            type="button"
-            onClick={handleOpenProfile}
-            title={isAuthor ? "Xem & chỉnh sửa hồ sơ của bạn" : `Xem trang cá nhân của ${comment.userName}`}
-            className="cursor-pointer hover: hover:ring-amber-400/60 hover:scale-105 transition-all rounded-full shrink-0"
-          >
-            <UserAvatar
-              src={comment.userAvatar || undefined}
-              name={comment.userName}
-              seed={comment.userId || comment.userName}
-              sizeClassName={isReply ? "w-7 h-7 sm:w-8 sm:h-8 text-xs" : "w-8 h-8 sm:w-10 sm:h-10 text-sm"}
-              className="shadow-sm"
-            />
-          </button>
+          <Tooltip content={isAuthor ? "Xem & chỉnh sửa hồ sơ của bạn" : `Xem trang cá nhân của ${comment.userName}`} side="top">
+            <button
+              type="button"
+              onClick={handleOpenProfile}
+              aria-label={isAuthor ? "Xem & chỉnh sửa hồ sơ của bạn" : `Xem trang cá nhân của ${comment.userName}`}
+              className="cursor-pointer hover: hover:ring-amber-400/60 hover:scale-105 transition-all rounded-full shrink-0"
+            >
+              <UserAvatar
+                src={comment.userAvatar || undefined}
+                name={comment.userName}
+                seed={comment.userId || comment.userName}
+                sizeClassName={isReply ? "w-7 h-7 sm:w-8 sm:h-8 text-xs" : "w-8 h-8 sm:w-10 sm:h-10 text-sm"}
+                className="shadow-sm"
+              />
+            </button>
+          </Tooltip>
 
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
@@ -508,8 +663,8 @@ export const CommentItem: React.FC<CommentItemProps> = ({
 
               {/* HUY HIỆU QUẢN TRỊ VIÊN (ADMIN) */}
               {isCommentAuthorAdmin && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-bold bg-gradient-to-r from-rose-600/30 via-red-500/25 to-amber-500/30 text-rose-300 shadow-sm shadow-black/40 whitespace-nowrap shrink-0 leading-none animate-in fade-in">
-                  <ShieldCheck className="w-3 h-3 text-rose-400 shrink-0" />
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-bold bg-gradient-to-r from-netflix-red/30 to-netflix-red/15 text-netflix-red shadow-sm shadow-black/40 whitespace-nowrap shrink-0 leading-none animate-in fade-in">
+                  <ShieldCheck className="w-3 h-3 text-netflix-red shrink-0" />
                   <span className="leading-none">Admin</span>
                 </span>
               )}
@@ -540,13 +695,13 @@ export const CommentItem: React.FC<CommentItemProps> = ({
               )}
 
               {isAuthor && isReply && (
-                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-semibold bg-blue-500/15 text-blue-300 border border-blue-500/30 whitespace-nowrap shrink-0 leading-none">
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-semibold bg-netflix-red/15 text-netflix-red border border-netflix-red/30 whitespace-nowrap shrink-0 leading-none">
                   <span className="leading-none">Bạn</span>
                 </span>
               )}
 
               {comment.episodeName && (
-                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-medium bg-red-500/10 text-red-400 whitespace-nowrap shrink-0 leading-none">
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-medium bg-netflix-red/10 text-netflix-red whitespace-nowrap shrink-0 leading-none">
                   <span className="leading-none">{comment.episodeName}</span>
                 </span>
               )}
@@ -621,7 +776,7 @@ export const CommentItem: React.FC<CommentItemProps> = ({
         ) : (
           <div className="relative">
             <p className="text-zinc-200 text-xs sm:text-sm md:text-[15px] leading-relaxed whitespace-pre-line break-words">
-              {renderCommentContent(comment.content)}
+              {renderCommentContent(comment.content, comment.replyToUserName)}
             </p>
             {comment.isSpoiler && (
               <button
@@ -657,7 +812,7 @@ export const CommentItem: React.FC<CommentItemProps> = ({
                 handleReplyClick();
               }
             }}
-            className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full text-zinc-400 hover:text-blue-400 hover:bg-blue-500/10 border border-transparent hover:border-blue-500/20 transition-all cursor-pointer active:scale-95"
+            className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full text-zinc-400 hover:text-netflix-red hover:bg-netflix-red/10 border border-transparent hover:border-netflix-red/20 transition-all cursor-pointer active:scale-95"
           >
             <Reply className="w-3.5 h-3.5" />
             <span>Trả lời</span>
@@ -688,7 +843,7 @@ export const CommentItem: React.FC<CommentItemProps> = ({
             <button
               type="button"
               onClick={handleToggleReplies}
-              className="inline-flex items-center gap-1 text-xs text-zinc-400 hover:text-zinc-200 transition-colors cursor-pointer py-1 px-1.5 rounded-lg hover:bg-white/5"
+              className="inline-flex items-center gap-1.5 text-xs font-bold text-netflix-red hover:underline transition-colors cursor-pointer py-1 px-2.5 rounded-full hover:bg-netflix-red/10"
             >
               {showReplies ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
               <span>
@@ -704,10 +859,10 @@ export const CommentItem: React.FC<CommentItemProps> = ({
         {showReplyForm && !isReply && (
           <div className="mt-3 p-2.5 sm:p-3.5 bg-zinc-950/80 rounded-xl sm:rounded-2xl animate-in fade-in zoom-in-98 duration-150">
             {replyTargetUser && (
-              <div className="flex items-center justify-between mb-2 px-1 text-xs text-blue-400 font-medium">
+              <div className="flex items-center justify-between mb-2 px-1 text-xs text-netflix-red font-medium">
                 <span className="flex items-center gap-1 truncate">
                   <span>Đang trả lời</span>
-                  <strong className="text-blue-300">@{replyTargetUser.userName}</strong>
+                  <strong className="text-netflix-red">@{replyTargetUser.userName}</strong>
                 </span>
                 <button
                   type="button"
@@ -751,7 +906,7 @@ export const CommentItem: React.FC<CommentItemProps> = ({
                       handleSubmitReply();
                     }
                   }}
-                  className="w-full bg-black/80 rounded-xl px-3 py-2 text-xs sm:text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-blue-500/60 focus:ring-1 focus:ring-blue-500/30 resize-none transition-all"
+                  className="w-full bg-black/80 rounded-xl px-3 py-2 text-xs sm:text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-netflix-red/60 focus:ring-1 focus:ring-netflix-red/30 resize-none transition-all"
                 />
                 <div className="flex items-center justify-between mt-1.5 gap-2 flex-wrap">
                   <span className="text-[10px] text-zinc-500">
@@ -773,7 +928,7 @@ export const CommentItem: React.FC<CommentItemProps> = ({
                       type="button"
                       onClick={handleSubmitReply}
                       disabled={isSubmittingReply || !replyContent.trim()}
-                      className="inline-flex items-center gap-1.5 text-xs font-bold px-3.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-95 cursor-pointer shadow-md shadow-blue-900/30"
+                      className="inline-flex items-center gap-1.5 text-xs font-bold px-3.5 py-1.5 rounded-lg bg-netflix-red hover:brightness-110 active:brightness-95 text-white disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-95 cursor-pointer shadow-md shadow-black/40"
                     >
                       {isSubmittingReply ? (
                         <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -791,14 +946,14 @@ export const CommentItem: React.FC<CommentItemProps> = ({
 
         {/* REPLIES LIST: COMPACT RESPONSIVE NESTING */}
         {showReplies && !isReply && (
-          <div className="mt-3 space-y-2 border-l-2 ml-1 sm:ml-2 pl-2 sm:pl-3.5">
-            <div className="flex items-center gap-1.5 text-[11px] text-zinc-400 mb-2">
-              <CornerDownRight className="w-3 h-3 text-blue-400" />
+          <div className="mt-3.5 border-l-2 border-white/10 ml-2.5 sm:ml-3.5 pl-2 sm:pl-3 space-y-2">
+            <div className="flex items-center gap-1.5 text-xs font-semibold text-zinc-400 mb-1 px-1">
+              <CornerDownRight className="w-3.5 h-3.5 text-netflix-red shrink-0" />
               <span>{replies.length} phản hồi</span>
             </div>
             {loadingReplies ? (
               <div className="flex items-center gap-2 text-zinc-400 text-xs py-2">
-                <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-400" />
+                <Loader2 className="w-3.5 h-3.5 animate-spin text-netflix-red" />
                 <span>Đang tải danh sách phản hồi...</span>
               </div>
             ) : replies.length === 0 ? (

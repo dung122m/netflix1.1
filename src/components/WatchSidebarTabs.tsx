@@ -51,7 +51,7 @@ export function WatchSidebarTabs({
           onClick={() => setActiveTab("episodes")}
           className={`flex-1 flex items-center justify-center gap-1.5 sm:gap-2 py-2 px-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer select-none outline-none focus-visible:ring-2 focus-visible:ring-netflix-red ${
             activeTab === "episodes"
-              ? "bg-netflix-red text-white shadow-md shadow-[var(--accent-glow,rgba(229,9,20,0.4))] font-black scale-[1.01]"
+              ? "bg-netflix-red text-white shadow-md shadow-[var(--accent-glow)] font-black scale-[1.01]"
               : "text-zinc-400 hover:text-white hover:bg-white/5"
           }`}
         >
@@ -65,7 +65,7 @@ export function WatchSidebarTabs({
           onClick={() => setActiveTab("recommendations")}
           className={`flex-1 flex items-center justify-center gap-1.5 sm:gap-2 py-2 px-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer select-none outline-none focus-visible:ring-2 focus-visible:ring-netflix-red ${
             activeTab === "recommendations"
-              ? "bg-netflix-red text-white shadow-md shadow-[var(--accent-glow,rgba(229,9,20,0.4))] font-black scale-[1.01]"
+              ? "bg-netflix-red text-white shadow-md shadow-[var(--accent-glow)] font-black scale-[1.01]"
               : "text-zinc-400 hover:text-white hover:bg-white/5"
           }`}
         >

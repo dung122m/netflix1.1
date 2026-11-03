@@ -243,7 +243,7 @@ export const DesktopReplyPopup: React.FC = () => {
           <button
             type="button"
             onClick={handleClickNotification}
-            className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-900/30 transition-all active:scale-95 cursor-pointer"
+            className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-xl bg-netflix-red hover:brightness-110 active:brightness-95 text-white shadow-lg shadow-black/40 transition-all cursor-pointer"
           >
             <span>Xem ngay</span>
             <ArrowRight className="w-3.5 h-3.5" />
@@ -254,7 +254,7 @@ export const DesktopReplyPopup: React.FC = () => {
       {/* PROGRESS BAR TIMER */}
       <div className="absolute bottom-0 inset-x-3 h-0.5 bg-white/10 rounded-full overflow-hidden">
         <div
-          className="h-full bg-gradient-to-r from-blue-500 to-indigo-500 transition-all duration-75 ease-linear"
+          className="h-full bg-gradient-to-r from-netflix-red to-netflix-red/70 transition-all duration-75 ease-linear"
           style={{ width: `${progress}%` }}
         />
       </div>

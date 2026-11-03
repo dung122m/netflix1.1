@@ -220,7 +220,7 @@ export const AddToCollectionModal: React.FC<AddToCollectionModalProps> = ({
                 <button
                   type="button"
                   onClick={() => setShowCreateModal(true)}
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-netflix-red hover:bg-rose-700 text-white text-xs font-bold transition cursor-pointer"
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-netflix-red hover:brightness-110 active:brightness-95 text-white text-xs font-bold transition cursor-pointer"
                 >
                   <Plus className="w-4 h-4" />
                   <span>Tạo bộ sưu tập mới</span>
@@ -237,7 +237,7 @@ export const AddToCollectionModal: React.FC<AddToCollectionModalProps> = ({
                     onClick={() => !isLoadingThis && handleToggle(col)}
                     className={`flex items-center justify-between p-3 rounded-2xl transition cursor-pointer group ${
                       isSelected
-                        ? "bg-rose-950/20  hover:bg-rose-950/30"
+                        ? "bg-netflix-red/15 hover:bg-netflix-red/25"
                         : "bg-zinc-900/60 hover:bg-zinc-900"
                     }`}
                   >
@@ -294,7 +294,7 @@ export const AddToCollectionModal: React.FC<AddToCollectionModalProps> = ({
               <button
                 type="button"
                 onClick={() => setShowCreateModal(true)}
-                className="inline-flex items-center gap-1.5 text-xs text-rose-400 hover:text-rose-300 font-semibold cursor-pointer hover:underline"
+                className="inline-flex items-center gap-1.5 text-xs text-netflix-red hover:brightness-110 font-semibold cursor-pointer hover:underline"
               >
                 <FolderPlus className="w-4 h-4" />
                 <span>+ Tạo bộ sưu tập mới</span>

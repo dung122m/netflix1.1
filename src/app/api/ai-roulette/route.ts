@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { movieApi } from "@/services/movieApi";
+import { movieApi } from "@/services/movies/service";
 import { sanitizeImageUrl } from "@/lib/movieMedia";
 import { searchMoviesBySemantic } from "@/services/aiVectorService";
 import { generateFastAiChat } from "@/services/aiProviderService";

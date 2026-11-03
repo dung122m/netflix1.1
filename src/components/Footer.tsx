@@ -43,7 +43,7 @@ export const Footer: React.FC = () => {
         {/* ============================================================ */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-4">
           <div className="flex items-center gap-2.5 sm:gap-3 p-2.5 sm:p-3.5 rounded-xl sm:rounded-2xl bg-zinc-950/60 backdrop-blur-xl shadow-md hover:bg-zinc-900/70 transition-all group min-h-[52px] sm:min-h-[60px]">
-            <div className="p-1.5 sm:p-2 rounded-lg sm:rounded-xl bg-red-600/15 text-netflix-red group-hover:scale-105 transition-transform flex-shrink-0">
+            <div className="p-1.5 sm:p-2 rounded-lg sm:rounded-xl bg-netflix-red/15 text-netflix-red group-hover:scale-105 transition-transform flex-shrink-0">
               <Zap className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </div>
             <div className="min-w-0">
@@ -219,7 +219,7 @@ export const Footer: React.FC = () => {
                   className="hover:text-emerald-300 transition-colors flex items-center gap-2 cursor-pointer text-left w-full group"
                 >
                   <span className="w-4 h-4 flex items-center justify-center shrink-0">
-                    <Smartphone size={13} className="text-zinc-400 group-hover:text-emerald-400 transition-colors" />
+                    <Smartphone size={13} className="text-zinc-400 group-hover:text-netflix-red transition-colors" />
                   </span>
                   <span className="truncate text-emerald-400 font-medium">Cài app (PWA)</span>
                 </button>
@@ -263,7 +263,7 @@ export const Footer: React.FC = () => {
           <div className="space-y-3 sm:space-y-4">
             <h4 className="text-white font-black text-xs sm:text-sm tracking-wider uppercase flex items-center gap-2">
               <span className="w-4 h-4 flex items-center justify-center shrink-0">
-                <Shield className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-400" />
+                <Shield className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-netflix-red" />
               </span>
               <span>Thông Tin</span>
             </h4>
@@ -274,7 +274,7 @@ export const Footer: React.FC = () => {
                   className="hover:text-white transition-colors flex items-center gap-2 group"
                 >
                   <span className="w-4 h-4 flex items-center justify-center shrink-0">
-                    <Sparkles size={13} className="text-zinc-400 group-hover:text-emerald-400 transition-colors" />
+                    <Sparkles size={13} className="text-zinc-400 group-hover:text-netflix-red transition-colors" />
                   </span>
                   <span className="truncate text-zinc-200 font-medium">Giới thiệu Nanaflix</span>
                 </Link>
@@ -285,7 +285,7 @@ export const Footer: React.FC = () => {
                   className="hover:text-white transition-colors flex items-center gap-2 group"
                 >
                   <span className="w-4 h-4 flex items-center justify-center shrink-0">
-                    <HelpCircle size={13} className="text-zinc-400 group-hover:text-emerald-400 transition-colors" />
+                    <HelpCircle size={13} className="text-zinc-400 group-hover:text-netflix-red transition-colors" />
                   </span>
                   <span className="truncate">Hỏi & Đáp (FAQ)</span>
                 </Link>
@@ -296,7 +296,7 @@ export const Footer: React.FC = () => {
                   className="hover:text-white transition-colors flex items-center gap-2 group"
                 >
                   <span className="w-4 h-4 flex items-center justify-center shrink-0">
-                    <ShieldCheck size={13} className="text-zinc-400 group-hover:text-emerald-400 transition-colors" />
+                    <ShieldCheck size={13} className="text-zinc-400 group-hover:text-netflix-red transition-colors" />
                   </span>
                   <span className="truncate">Bảo mật & Riêng tư</span>
                 </Link>
@@ -307,7 +307,7 @@ export const Footer: React.FC = () => {
                   className="hover:text-white transition-colors flex items-center gap-2 group"
                 >
                   <span className="w-4 h-4 flex items-center justify-center shrink-0">
-                    <Scale size={13} className="text-zinc-400 group-hover:text-emerald-400 transition-colors" />
+                    <Scale size={13} className="text-zinc-400 group-hover:text-netflix-red transition-colors" />
                   </span>
                   <span className="truncate">Điều khoản & DMCA</span>
                 </Link>
@@ -318,7 +318,7 @@ export const Footer: React.FC = () => {
                   className="hover:text-white transition-colors flex items-center gap-2 group"
                 >
                   <span className="w-4 h-4 flex items-center justify-center shrink-0">
-                    <Users size={13} className="text-zinc-400 group-hover:text-emerald-400 transition-colors" />
+                    <Users size={13} className="text-zinc-400 group-hover:text-netflix-red transition-colors" />
                   </span>
                   <span className="truncate">Trợ giúp & Báo lỗi</span>
                 </Link>

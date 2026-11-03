@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { movieApi } from "@/services/movieApi";
+import { movieApi } from "@/services/movies/service";
 import { upsertMovieEmbedding } from "@/services/aiVectorService";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { isUserAdmin } from "@/lib/adminConfig";
 import { getVsmovCatalogFeed } from "@/services/providers/vsmov";
-import { deduplicateMovieItems } from "@/services/movies/service";
+import { deduplicateMovieItems } from "@/lib/movieMedia";
 import {
   enforceRateLimit,
   buildRateLimitResponse,

@@ -329,7 +329,7 @@ export async function triggerAutoWarmupIfNeeded(): Promise<void> {
 
     if (count === 0 || count === null) {
       // Gọi fetch API phim và nạp tự động
-      const { movieApi } = await import("@/services/movieApi");
+      const { movieApi } = await import("@/services/movies/service");
       const res = await movieApi.getMovies({ page: 1, limit: 24 });
       if (res?.items && res.items.length > 0) {
         enqueueAutoEmbedMovies(res.items);

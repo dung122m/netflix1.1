@@ -1,9 +1,31 @@
-import { movieApi } from "@/services/movieApi";
+import { movieApi } from "@/services/movies/service";
 import { generateFastAiChat } from "@/services/aiProviderService";
 import { getActorFilmographyFromTmdb, searchTmdbPerson } from "@/services/tmdbService";
 import { cacheService } from "@/lib/cache";
 import { normalizeForMatch } from "@/lib/stringUtils";
 import { getHistoricalArtistBySlug } from "@/data/history/historicalArtistsBirthdays";
+
+
+export interface EnhancedActorProfile {
+  name: string;
+  canonicalName?: string;
+  englishName?: string;
+  title: string;
+  description?: string;
+  extract?: string;
+  thumbnail?: string;
+  wikiUrl?: string;
+  birthday?: string;
+  formattedBirthday?: string | null;
+  deathday?: string;
+  age?: string | null;
+  placeOfBirth?: string;
+  country?: string;
+  roles?: string;
+  tags?: string[];
+  slug?: string;
+  notFound?: boolean;
+}
 
 export interface ActorProfile {
   name: string;

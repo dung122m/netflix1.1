@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
-import { verifyServerAuth } from "@/lib/serverAuth";
+import { verifyServerAuth, getEffectiveTargetUserId } from "@/lib/serverAuth";
 import {
   enforceRateLimit,
   buildRateLimitResponse,
@@ -31,10 +31,7 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const { searchParams } = new URL(req.url);
-    const targetUserId = (auth.isAdmin && searchParams.get("userId"))
-      ? searchParams.get("userId")!
-      : auth.userId;
+    const targetUserId = getEffectiveTargetUserId(auth, req) || auth.userId;
 
     const { data, error } = await supabase
       .from("watchlist")

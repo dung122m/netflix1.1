@@ -147,15 +147,15 @@ export const NavMobileMenu: React.FC<NavMobileMenuProps> = React.memo(function N
                   }}
                   className="flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-xl text-xs font-semibold text-zinc-200 bg-white/5 hover:bg-white/10 transition active:scale-95 cursor-pointer shadow-sm"
                 >
-                  <User size={13} className="text-red-400 shrink-0" />
+                  <User size={13} className="text-netflix-red shrink-0" />
                   <span className="truncate">Hồ sơ</span>
                 </button>
                 <Link
                   href="/my-list?tab=comments"
                   onClick={onClose}
-                  className="flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-xl text-xs font-semibold text-rose-300 bg-rose-500/15 hover:bg-rose-500/25 transition active:scale-95 cursor-pointer shadow-sm"
+                  className="flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-xl text-xs font-semibold text-netflix-red bg-netflix-red/15 hover:bg-netflix-red/25 transition active:scale-95 cursor-pointer shadow-sm"
                 >
-                  <MessageSquare size={13} className="text-rose-400 shrink-0" />
+                  <MessageSquare size={13} className="text-netflix-red shrink-0" />
                   <span className="truncate">Bình luận</span>
                 </Link>
                 {isUserAdmin(user?.email) && (
@@ -257,7 +257,7 @@ export const NavMobileMenu: React.FC<NavMobileMenuProps> = React.memo(function N
             onClick={onClose}
             className="flex items-center gap-2.5 p-2.5 rounded-xl bg-zinc-900/90 hover:bg-zinc-800 text-white transition text-left active:scale-[0.98]"
           >
-            <div className="w-8 h-8 rounded-lg bg-red-600/20 text-red-400 flex items-center justify-center shrink-0">
+            <div className="w-8 h-8 rounded-lg bg-netflix-red/20 text-netflix-red flex items-center justify-center shrink-0">
               <History size={16} />
             </div>
             <div className="min-w-0 flex-1">

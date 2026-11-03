@@ -70,6 +70,12 @@ import {
 } from "@/lib/keyboardSeekManager";
 import { toOptimizedCardPosterUrl, toOptimizedCardBackdropUrl } from "@/lib/movieMedia";
 
+/** Ngưỡng buffer phía trước tối thiểu để kích hoạt video.play() ban đầu (Batch 1: 0.5s thay vì 1.2s để tối ưu TTFF) */
+const INITIAL_BUFFER_START_SECONDS = 0.5;
+
+// Bộ nhớ đệm văn bản playlist m3u8 tránh fetch trùng lặp trên trình duyệt
+const m3u8ManifestCache = new Map<string, string>();
+
 interface EpisodeItem {
   name?: string;
   slug?: string;
@@ -316,6 +322,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
   const videoRef = useRef<HTMLVideoElement>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const hlsRef = useRef<Hls | null>(null);
+  const loadedSourceKeyRef = useRef<string | null>(null);
   const lastProgressSaveRef = useRef<number>(0);
   const hasStartedInitialPlaybackRef = useRef(false);
   const isStalledRef = useRef(false);
@@ -1010,8 +1017,19 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
         hlsRef.current.destroy();
         hlsRef.current = null;
       }
+      loadedSourceKeyRef.current = null;
       return;
     }
+
+    const currentMovieSlug = watchContext?.movieSlug || propMovieSlug;
+    const sourceKey = `${resolvedM3u8}__${activeEpisodeSlug || ""}`;
+    if (loadedSourceKeyRef.current === sourceKey && (hlsRef.current || video.src === resolvedM3u8)) {
+      // Luồng stream đang tải hoặc hoạt động trên instance này; tránh hủy và tải lại khi các prop phụ re-render
+      return;
+    }
+    loadedSourceKeyRef.current = sourceKey;
+
+    let cleanupMediaListeners: () => void = () => {};
 
     if (hlsRef.current) {
       hlsRef.current.destroy();
@@ -1034,8 +1052,6 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
     video.currentTime = 0;
     video.removeAttribute("src");
     video.load();
-
-    const currentMovieSlug = watchContext?.movieSlug || propMovieSlug;
 
     const trySeekToTarget = () => {
       if (targetProgress <= 0 || hasSeekedInitialRef.current) return;
@@ -1114,9 +1130,15 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
           const dur = (v as any).__hlsDuration || (v.duration && isFinite(v.duration) ? v.duration : 0);
           const isNearEnd = dur > 0 && (v.currentTime + bufAhead >= dur - 2);
 
-          // Bắt đầu playback an toàn khi buffer đạt >= 5s hoặc sắp hết phim,
-          // hoặc sau khi timeout dự phòng đã kích hoạt và buffer có ít nhất 0.5s an toàn
-          if (bufAhead >= 5 || isNearEnd || (initialTimeoutFired && bufAhead >= 0.5)) {
+          // Bắt đầu playback an toàn khi buffer đạt >= 0.5s hoặc readyState >= 3 có đệm >= 0.2s hoặc sắp hết phim,
+          // hoặc sau khi timeout dự phòng đã kích hoạt và buffer có ít nhất 0.1s an toàn
+          const isBufferReady =
+            bufAhead >= INITIAL_BUFFER_START_SECONDS ||
+            (v.readyState >= 3 && bufAhead >= 0.2) ||
+            isNearEnd ||
+            (initialTimeoutFired && bufAhead > 0.1);
+
+          if (isBufferReady) {
             // P0: Đảm bảo nếu có pre-roll thì vị trí currentTime trước khi gọi play() đã ở sau pre-roll
             const preRollDecision = evaluatePreRollAdDecision({
               targetProgress,
@@ -1166,14 +1188,27 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
 
         hls.on(Hls.Events.FRAG_BUFFERED, checkInitialBufferAndStart);
 
-        // Fallback timeout sau 7s đảm bảo không bị treo player nếu mạng yếu hoặc stream ngắn
+        const onCanPlayOrLoaded = () => {
+          checkInitialBufferAndStart();
+        };
+        video.addEventListener("canplay", onCanPlayOrLoaded);
+        video.addEventListener("loadeddata", onCanPlayOrLoaded);
+        cleanupMediaListeners = () => {
+          video.removeEventListener("canplay", onCanPlayOrLoaded);
+          video.removeEventListener("loadeddata", onCanPlayOrLoaded);
+        };
+        if (video.readyState >= 3 || getBufferAhead(video) >= INITIAL_BUFFER_START_SECONDS) {
+          checkInitialBufferAndStart();
+        }
+
+        // Fallback timeout sau 3.5s (thay vì 7s) đảm bảo không bị treo player nếu mạng yếu hoặc stream ngắn
         initialBufferTimeoutRef.current = setTimeout(() => {
           initialTimeoutFired = true;
           if (!hasStartedInitialPlaybackRef.current && videoRef.current) {
             const v = videoRef.current;
             const bufAhead = getBufferAhead(v);
-            // Bảo đảm timeout không ép phát nếu chưa có dữ liệu đủ để phát an toàn (cần >= 0.5s buffer)
-            if (bufAhead >= 0.5) {
+            // Bảo đảm timeout không ép phát nếu chưa có dữ liệu đủ để phát an toàn (cần >= 0.2s buffer hoặc readyState >= 2)
+            if (bufAhead >= 0.2 || v.readyState >= 2) {
               const preRollDecision = evaluatePreRollAdDecision({
                 targetProgress,
                 hasStartedInitialPlayback: hasStartedInitialPlaybackRef.current,
@@ -1366,11 +1401,19 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
         resolvedM3u8 &&
         (resolvedM3u8.startsWith("http://") || resolvedM3u8.startsWith("https://") || resolvedM3u8.startsWith("/"))
       ) {
-        fetch(resolvedM3u8)
-          .then((res) => {
-            if (res.ok) return res.text();
-            throw new Error(`m3u8 fetch failed: ${res.status}`);
-          })
+        const fetchM3u8TextCached = async (url: string): Promise<string> => {
+          if (m3u8ManifestCache.has(url)) {
+            return m3u8ManifestCache.get(url)!;
+          }
+          const res = await fetch(url);
+          if (!res.ok) throw new Error(`m3u8 fetch failed: ${res.status}`);
+          const text = await res.text();
+          if (m3u8ManifestCache.size > 20) m3u8ManifestCache.clear();
+          m3u8ManifestCache.set(url, text);
+          return text;
+        };
+
+        fetchM3u8TextCached(resolvedM3u8)
           .then(async (m3u8Text) => {
             let text = m3u8Text;
             if (text.includes("#EXT-X-STREAM-INF")) {
@@ -1388,10 +1431,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
               }
               if (variantUri) {
                 const absoluteVariantUrl = new URL(variantUri, resolvedM3u8).toString();
-                const variantRes = await fetch(absoluteVariantUrl);
-                if (variantRes.ok) {
-                  text = await variantRes.text();
-                }
+                text = await fetchM3u8TextCached(absoluteVariantUrl);
               }
             }
             const fragments = parseM3u8PlaylistFragments(text);
@@ -1434,7 +1474,13 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
         const dur = video.duration && isFinite(video.duration) ? video.duration : 0;
         const isNearEnd = dur > 0 && (video.currentTime + bufAhead >= dur - 2);
 
-        if (bufAhead >= 5 || isNearEnd || (initialNativeTimeoutFired && bufAhead >= 0.5)) {
+        const isBufferReady =
+          bufAhead >= INITIAL_BUFFER_START_SECONDS ||
+          (video.readyState >= 3 && bufAhead >= 0.2) ||
+          isNearEnd ||
+          (initialNativeTimeoutFired && bufAhead > 0.1);
+
+        if (isBufferReady) {
           hasStartedInitialPlaybackRef.current = true;
           if (initialBufferTimeoutRef.current) {
             clearTimeout(initialBufferTimeoutRef.current);
@@ -1462,7 +1508,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
           initialNativeTimeoutFired = true;
           if (!hasStartedInitialPlaybackRef.current) {
             const bufAhead = getBufferAhead(video);
-            if (bufAhead >= 0.5) {
+            if (bufAhead >= 0.2 || video.readyState >= 2) {
               hasStartedInitialPlaybackRef.current = true;
               setIsBuffering(false);
               video
@@ -1486,6 +1532,8 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
       };
 
       video.addEventListener("loadedmetadata", onLoaded);
+      video.addEventListener("canplay", checkNativeInitialBuffer);
+      video.addEventListener("loadeddata", checkNativeInitialBuffer);
       video.addEventListener("progress", checkNativeInitialBuffer);
       video.addEventListener("error", onNativeError);
 
@@ -1499,7 +1547,10 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
       );
 
       return () => {
+        loadedSourceKeyRef.current = null;
         video.removeEventListener("loadedmetadata", onLoaded);
+        video.removeEventListener("canplay", checkNativeInitialBuffer);
+        video.removeEventListener("loadeddata", checkNativeInitialBuffer);
         video.removeEventListener("progress", checkNativeInitialBuffer);
         video.removeEventListener("error", onNativeError);
         seekTimeouts.forEach((t) => clearTimeout(t));
@@ -1515,6 +1566,8 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
     }
 
     return () => {
+      cleanupMediaListeners();
+      loadedSourceKeyRef.current = null;
       seekTimeouts.forEach((t) => clearTimeout(t));
       if (initialBufferTimeoutRef.current) {
         clearTimeout(initialBufferTimeoutRef.current);
@@ -1682,7 +1735,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
       const isNearEnd = dur > 0 && (v.currentTime + bufAhead >= dur - 2);
 
       if (!hasStartedInitialPlaybackRef.current) {
-        if (bufAhead >= 5 || isNearEnd) {
+        if (bufAhead >= INITIAL_BUFFER_START_SECONDS || (v.readyState >= 3 && bufAhead >= 0.2) || isNearEnd) {
           hasStartedInitialPlaybackRef.current = true;
           if (initialBufferTimeoutRef.current) {
             clearTimeout(initialBufferTimeoutRef.current);
@@ -2951,7 +3004,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
                           switchEpisode(effectiveNextEpisode.slug);
                         }
                       }}
-                      className="px-3 py-1.5 rounded-xl bg-netflix-red hover:bg-red-700 active:scale-95 text-white text-xs sm:text-sm font-bold shadow-md shadow-black/50 transition cursor-pointer flex items-center gap-1.5"
+                      className="px-3 py-1.5 rounded-xl bg-netflix-red hover:brightness-110 active:brightness-95 text-white text-xs sm:text-sm font-bold shadow-md shadow-black/50 transition cursor-pointer flex items-center gap-1.5"
                     >
                       <Play className="w-3.5 h-3.5 fill-white" />
                       <span>Xem ngay</span>

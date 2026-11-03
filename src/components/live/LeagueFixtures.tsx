@@ -23,6 +23,7 @@ import {
 } from "@/services/live/football-score/types";
 import { CountryFlag } from "./CountryFlag";
 import { MatchCenter } from "./MatchCenter";
+import { Tooltip } from "@/components/ui/Tooltip";
 
 // Danh sách các giải đấu hỗ trợ chọn trong Lịch thi đấu & Kết quả
 export const FIXTURE_LEAGUES = [
@@ -482,7 +483,7 @@ export const LeagueFixtures: React.FC<LeagueFixturesProps> = ({
         className="flex items-center justify-between p-4 sm:p-5 cursor-pointer hover:bg-white/[0.03] transition-colors select-none"
       >
         <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-2xl bg-gradient-to-br from-red-600/20 to-orange-600/10 text-netflix-red shadow-inner">
+          <div className="p-2.5 rounded-2xl bg-gradient-to-br from-netflix-red/20 to-netflix-red/10 text-netflix-red shadow-inner">
             <CalendarDays className="w-5 h-5" />
           </div>
           <div>
@@ -490,7 +491,7 @@ export const LeagueFixtures: React.FC<LeagueFixturesProps> = ({
               <h2 className="text-base sm:text-lg font-black text-white tracking-wide">
                 Lịch Thi Đấu & Kết Quả
               </h2>
-              <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-red-600/20 text-red-400">
+              <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-netflix-red/20 text-netflix-red">
                 FotMob UX
               </span>
               <span className="hidden sm:inline-block text-[11px] font-semibold text-zinc-400 px-2 py-0.5 rounded-full bg-white/5">
@@ -531,15 +532,16 @@ export const LeagueFixtures: React.FC<LeagueFixturesProps> = ({
           {/* A. THANH CHỌN NGÀY NGANG CHUẨN FOTMOB (FOTMOB DATE STRIP) */}
           <div className="flex items-center justify-between gap-1.5 sm:gap-2 bg-zinc-900/90 rounded-2xl p-1.5 sm:p-2 shadow-lg backdrop-blur-md">
             {/* Nút Ngày trước */}
-            <button
-              type="button"
-              onClick={goToPreviousDay}
-              className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-zinc-300 hover:text-white transition cursor-pointer shrink-0"
-              title="Ngày trước"
-              aria-label="Ngày trước"
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </button>
+            <Tooltip content="Ngày trước" side="top">
+              <button
+                type="button"
+                onClick={goToPreviousDay}
+                className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-zinc-300 hover:text-white transition cursor-pointer shrink-0"
+                aria-label="Ngày trước"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+            </Tooltip>
 
             {/* Dải ngày cuộn ngang tự động căn giữa ngày đang chọn */}
             <div
@@ -554,7 +556,7 @@ export const LeagueFixtures: React.FC<LeagueFixturesProps> = ({
                   onClick={() => setSelectedDate(item.dateStr)}
                   className={`flex flex-col items-center justify-center min-w-[54px] sm:min-w-[62px] px-2 py-1.5 rounded-xl transition cursor-pointer shrink-0 ${
                     item.isSelected
-                      ? "bg-gradient-to-b from-netflix-red to-netflix-red/85 text-white font-black shadow-md shadow-[var(--accent-glow,rgba(229,9,20,0.4))] scale-[1.03] "
+                      ? "bg-gradient-to-b from-netflix-red to-netflix-red/85 text-white font-black shadow-md shadow-[var(--accent-glow)] scale-[1.03] "
                       : item.isToday
                         ? "bg-white/10 text-white hover:bg-white/15 "
                         : "bg-white/[0.03] text-zinc-400 hover:text-white hover:bg-white/[0.08]"
@@ -579,30 +581,33 @@ export const LeagueFixtures: React.FC<LeagueFixturesProps> = ({
             </div>
 
             {/* Nút Ngày tiếp theo */}
-            <button
-              type="button"
-              onClick={goToNextDay}
-              className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-zinc-300 hover:text-white transition cursor-pointer shrink-0"
-              title="Ngày tiếp theo"
-              aria-label="Ngày tiếp theo"
-            >
-              <ChevronRight className="w-4 h-4" />
-            </button>
+            <Tooltip content="Ngày tiếp theo" side="top">
+              <button
+                type="button"
+                onClick={goToNextDay}
+                className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-zinc-300 hover:text-white transition cursor-pointer shrink-0"
+                aria-label="Ngày tiếp theo"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </Tooltip>
 
             {/* Nút Trở về Hôm nay */}
-            <button
-              type="button"
-              onClick={goToToday}
-              className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-2 rounded-xl text-xs font-bold transition cursor-pointer shrink-0 whitespace-nowrap ${
-                selectedDate === todayUtc7String
-                  ? "bg-red-500/20 text-red-300  shadow-sm"
-                  : "bg-white/5 hover:bg-white/10 text-zinc-300 hover:text-white "
-              }`}
-              title="Trở về hôm nay"
-            >
-              <Calendar className="w-3.5 h-3.5 text-netflix-red" />
-              <span className="hidden sm:inline">Hôm nay</span>
-            </button>
+            <Tooltip content="Trở về hôm nay" side="top">
+              <button
+                type="button"
+                onClick={goToToday}
+                aria-label="Trở về hôm nay"
+                className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-2 rounded-xl text-xs font-bold transition cursor-pointer shrink-0 whitespace-nowrap ${
+                  selectedDate === todayUtc7String
+                    ? "bg-netflix-red/20 text-white shadow-sm"
+                    : "bg-white/5 hover:bg-white/10 text-zinc-300 hover:text-white "
+                }`}
+              >
+                <Calendar className="w-3.5 h-3.5 text-netflix-red" />
+                <span className="hidden sm:inline">Hôm nay</span>
+              </button>
+            </Tooltip>
           </div>
 
           {/* B. THANH THÔNG TIN NGÀY & ĐIỀU HƯỚNG BỘ LỌC GỌN GÀNG */}
@@ -613,7 +618,7 @@ export const LeagueFixtures: React.FC<LeagueFixturesProps> = ({
                 {formatFullDateUtc7(selectedDate)}
               </strong>
               {selectedDate === todayUtc7String && (
-                <span className="text-[10px] uppercase font-black px-2 py-0.2 rounded-full bg-red-500/20 text-red-300">
+                <span className="text-[10px] uppercase font-black px-2 py-0.2 rounded-full bg-netflix-red/20 text-white">
                   Hôm nay
                 </span>
               )}
@@ -642,7 +647,7 @@ export const LeagueFixtures: React.FC<LeagueFixturesProps> = ({
                 onClick={() => setActiveTab("scheduled")}
                 className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
                   activeTab === "scheduled"
-                    ? "bg-gradient-to-r from-red-600 to-orange-600 text-white shadow-sm font-extrabold"
+                    ? "bg-gradient-to-r from-netflix-red to-netflix-red/80 text-white shadow-sm font-extrabold"
                     : "text-zinc-400 hover:text-white"
                 }`}
               >
@@ -654,7 +659,7 @@ export const LeagueFixtures: React.FC<LeagueFixturesProps> = ({
                 onClick={() => setActiveTab("finished")}
                 className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
                   activeTab === "finished"
-                    ? "bg-gradient-to-r from-red-600 to-orange-600 text-white shadow-sm font-extrabold"
+                    ? "bg-gradient-to-r from-netflix-red to-netflix-red/80 text-white shadow-sm font-extrabold"
                     : "text-zinc-400 hover:text-white"
                 }`}
               >
@@ -746,7 +751,7 @@ export const LeagueFixtures: React.FC<LeagueFixturesProps> = ({
               <button
                 type="button"
                 onClick={() => fetchFixtures(selectedLeague, activeTab, true)}
-                className="px-4 py-2 rounded-xl bg-netflix-red hover:bg-red-700 text-white text-xs font-bold transition shadow-lg inline-flex items-center gap-1.5 cursor-pointer"
+                className="px-4 py-2 rounded-xl bg-netflix-red hover:brightness-110 text-white text-xs font-bold transition shadow-lg inline-flex items-center gap-1.5 cursor-pointer"
               >
                 <RefreshCw className="w-3.5 h-3.5" />
                 <span>Thử lại</span>
@@ -771,7 +776,7 @@ export const LeagueFixtures: React.FC<LeagueFixturesProps> = ({
                   <button
                     type="button"
                     onClick={goToToday}
-                    className="px-3.5 py-1.5 rounded-xl bg-netflix-red hover:bg-red-700 text-white text-xs font-bold transition shadow-md cursor-pointer"
+                    className="px-3.5 py-1.5 rounded-xl bg-netflix-red hover:brightness-110 text-white text-xs font-bold transition shadow-md cursor-pointer"
                   >
                     Về ngày hôm nay
                   </button>

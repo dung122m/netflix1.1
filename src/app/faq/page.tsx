@@ -338,7 +338,7 @@ export default function FAQPage() {
       <Navbar />
 
       {/* AMBIENT GLOW */}
-      <div className="fixed top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-[500px] bg-[radial-gradient(ellipse_80%_60%_at_50%_0%,rgba(229,9,20,0.12),rgba(0,0,0,0))] pointer-events-none -z-10" />
+      <div className="fixed top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-[500px] bg-[radial-gradient(ellipse_80%_60%_at_50%_0%,rgba(var(--accent-rgb),0.12),rgba(0,0,0,0))] pointer-events-none -z-10" />
 
       <main className="flex-1 pt-28 sm:pt-32 pb-24 px-4 sm:px-8 md:px-12 max-w-6xl mx-auto w-full space-y-14 sm:space-y-20">
         
@@ -517,20 +517,20 @@ export default function FAQPage() {
                 </button>
               </div>
             ) : (
-              <div className="space-y-3">
+              <div className="rounded-2xl sm:rounded-3xl bg-zinc-900/40 border border-white/[0.08] divide-y divide-white/[0.06] overflow-hidden backdrop-blur-md">
                 {filteredFAQs.map((faq) => {
                   const isOpen = Boolean(openItems[faq.id]);
                   return (
                     <div
                       key={faq.id}
-                      className={`rounded-2xl bg-zinc-950/80 border transition-all duration-300 overflow-hidden backdrop-blur-xl ${
-                        isOpen ? " shadow-xl bg-zinc-900/40" : "border-white/[0.08] hover:"
+                      className={`transition-colors duration-200 ${
+                        isOpen ? "bg-zinc-900/40" : "hover:bg-white/[0.015]"
                       }`}
                     >
                       <button
                         type="button"
                         onClick={() => toggleItem(faq.id)}
-                        className="w-full p-5 sm:p-6 text-left flex items-start justify-between gap-4 cursor-pointer select-none"
+                        className="w-full p-4 sm:p-5 text-left flex items-start justify-between gap-4 cursor-pointer select-none"
                       >
                         <div className="space-y-1 min-w-0">
                           <span className="text-[10px] font-sans tabular-nums text-netflix-red font-bold uppercase tracking-wider">
@@ -586,7 +586,7 @@ export default function FAQPage() {
           <div className="flex items-center gap-3 flex-wrap justify-center flex-shrink-0">
             <Link
               href="/about#contact"
-              className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-netflix-red hover:bg-red-700 text-xs font-bold text-white transition shadow-md shadow-black/50"
+              className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-netflix-red hover:brightness-110 active:brightness-95 text-xs font-bold text-white transition shadow-md shadow-black/50"
             >
               <MessageSquare size={14} />
               <span>Báo Lỗi & Trợ Giúp</span>

@@ -39,7 +39,7 @@ export function CarouselNavButton({
         isInteractive
           ? "opacity-0 group-hover/row:opacity-100 focus-visible:opacity-100 scale-95 group-hover/row:scale-100 pointer-events-none group-hover/row:pointer-events-auto focus-visible:pointer-events-auto"
           : "opacity-0 pointer-events-none scale-75 invisible"
-      } bg-gradient-to-b from-zinc-900/90 via-zinc-950/90 to-black/95 hover:from-zinc-800/95 hover:via-zinc-900/95 hover:to-zinc-950 text-white  hover:border-white/50 active:border-white/80 backdrop-blur-xl shadow-[0_8px_24px_rgba(0,0,0,0.7),inset_0_1px_1px_rgba(255,255,255,0.25)] hover:shadow-[0_12px_32px_rgba(0,0,0,0.9),0_0_20px_rgba(229,9,20,0.3),inset_0_1px_2px_rgba(255,255,255,0.4)] hover:scale-110 active:scale-90 transition-all duration-300 ease-out focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black motion-reduce:transform-none ${className}`}
+      } bg-gradient-to-b from-zinc-900/90 via-zinc-950/90 to-black/95 hover:from-zinc-800/95 hover:via-zinc-900/95 hover:to-zinc-950 text-white  hover:border-white/50 active:border-white/80 backdrop-blur-xl shadow-[0_8px_24px_rgba(0,0,0,0.7),inset_0_1px_1px_rgba(255,255,255,0.25)] hover:shadow-[0_12px_32px_rgba(0,0,0,0.9),0_0_20px_var(--accent-glow),inset_0_1px_2px_rgba(255,255,255,0.4)] hover:scale-110 active:scale-90 transition-all duration-300 ease-out focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black motion-reduce:transform-none ${className}`}
     >
       {/* Subtle radial sheen effect */}
       <span

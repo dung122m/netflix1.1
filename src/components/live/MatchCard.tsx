@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState, useMemo, useEffect, useCallback } from "react";
-import { Play, Flame, Mic } from "lucide-react";
+import { Play, Flame, Mic, Radio } from "lucide-react";
+import { PlayingEqualizer } from "./PlayingEqualizer";
 import { FootballMatch } from "@/services/liveFootballService";
 import { LiveMatchScore } from "@/services/live/football-score/types";
 import {
@@ -17,6 +18,7 @@ import { resolveCanonicalTournament } from "@/services/live/football-score/canon
 import { isFeaturedMatch } from "@/services/live/football/featuredMatch";
 import { toCanonicalSourceUrl } from "./LivePlayer";
 import { isOffensiveCommentatorName } from "@/services/live/football/service";
+import { CountryFlag } from "./CountryFlag";
 
 interface MatchCardProps {
   match: FootballMatch;
@@ -39,59 +41,28 @@ function getSportIcon(sport?: string): string {
   return "🏆";
 }
 
-/**
- * Hiển thị cờ quốc gia dạng đồ họa vector Twemoji chuẩn quốc tế
- */
-function CountryFlag({ emoji, className = "" }: { emoji: string; className?: string }) {
-  const [imgError, setImgError] = useState(false);
-
-  const twemojiUrl = useMemo(() => {
-    try {
-      if (!emoji) return null;
-      const cps: string[] = [];
-      for (const char of emoji) {
-        const cp = char.codePointAt(0);
-        if (cp && cp !== 0xfe0f) {
-          cps.push(cp.toString(16));
-        }
-      }
-      const isFlag = cps.some((cp) => {
-        const num = parseInt(cp, 16);
-        return (num >= 0x1f1e6 && num <= 0x1f1ff) || num === 0x1f3f4;
-      });
-      if (!isFlag) return null;
-      return `https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/${cps.join("-")}.svg`;
-    } catch {
-      return null;
-    }
-  }, [emoji]);
-
-  if (twemojiUrl && !imgError) {
+/** Fallback hiển thị chữ viết tắt của CLB / ĐTQG: tròn trịa, tối giản, KHÔNG VIỀN cứng */
+function TeamLogoFallback({
+  initials,
+  compact = false,
+}: {
+  initials: string;
+  compact?: boolean;
+  color?: "rose" | "sky";
+}) {
+  const displayInitials = initials && initials.trim() ? initials.trim().slice(0, 3) : "⚽";
+  if (compact) {
     return (
-      /* eslint-disable-next-line @next/next/no-img-element */
-      <img
-        src={twemojiUrl}
-        alt={emoji}
-        className={`w-7 h-7 sm:w-8 sm:h-8 object-contain drop-shadow-md select-none inline-block ${className}`}
-        onError={() => setImgError(true)}
-        loading="lazy"
-        crossOrigin="anonymous"
-      />
+      <div className="w-5 h-5 rounded-full flex items-center justify-center font-bold select-none bg-zinc-800 text-zinc-300 shrink-0">
+        <span className="text-[8.5px] font-bold tracking-tighter leading-none">
+          {displayInitials}
+        </span>
+      </div>
     );
   }
 
   return (
-    <span className={`text-xl sm:text-2xl select-none leading-none drop-shadow-sm ${className}`}>
-      {emoji}
-    </span>
-  );
-}
-
-/** Fallback hiển thị chữ viết tắt của CLB / ĐTQG: tròn trịa, tối giản, KHÔNG VIỀN cứng */
-function TeamLogoFallback({ initials }: { initials: string; color?: "rose" | "sky" }) {
-  const displayInitials = initials && initials.trim() ? initials.trim().slice(0, 3) : "⚽";
-  return (
-    <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-full flex items-center justify-center font-bold select-none bg-zinc-800/80 text-zinc-300">
+    <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-full flex items-center justify-center font-bold select-none bg-zinc-800/80 text-zinc-300 shrink-0">
       <span className="text-xs sm:text-sm tracking-tight font-semibold">
         {displayInitials}
       </span>
@@ -218,7 +189,7 @@ function MatchCardInner({ match, isSelected, onSelect, score, compact }: MatchCa
     setLogoError(false);
   }, [match.id, match.logo, match.homeLogo, match.awayLogo]);
 
-  const isFhd = useMemo(() => {
+  const _isFhd = useMemo(() => {
     return Boolean(
       match.quality?.toUpperCase().includes("FHD") ||
         match.servers?.some(
@@ -370,18 +341,20 @@ function MatchCardInner({ match, isSelected, onSelect, score, compact }: MatchCa
             onSelect(match);
           }
         }}
-        className={`group relative rounded-xl  cursor-pointer transition-all duration-150 p-2 sm:p-2.5 flex flex-col gap-1.5 overflow-hidden outline-none select-none ${
-          isSelected
-            ? "bg-zinc-900/95   shadow-md"
+        className={`group relative rounded-xl cursor-pointer transition-all duration-150 p-2 sm:p-2.5 flex flex-col gap-1.5 overflow-hidden outline-none select-none ${
+          isSelected && featured.isFeatured
+            ? "bg-gradient-to-r from-netflix-red/15 via-zinc-900/95 to-zinc-900/95 ring-1 ring-netflix-red/80 border-l-[3px] border-l-netflix-red shadow-lg shadow-netflix-red/10"
+            : isSelected
+            ? "bg-gradient-to-r from-netflix-red/10 via-zinc-900/95 to-zinc-900/95 ring-1 ring-netflix-red/70 border-l-[3px] border-l-netflix-red shadow-md shadow-black/50"
             : featured.isFeatured
-            ? "bg-zinc-900/90 hover:bg-zinc-850/95  hover: shadow-md "
+            ? "bg-zinc-900/90 hover:bg-zinc-850/95 border-l-[3px] border-l-amber-500/80 border border-amber-500/20 shadow-md shadow-black/40 hover:border-amber-500/40"
             : isConfirmedLive
-            ? "bg-zinc-900/80 hover:bg-zinc-850/90 /[0.08] hover:"
-            : "bg-zinc-900/60 hover:bg-zinc-850/80 /[0.05] hover:"
+            ? "bg-zinc-900/80 hover:bg-zinc-850/90 border border-white/[0.06] hover:border-white/10 shadow-sm"
+            : "bg-zinc-900/60 hover:bg-zinc-850/80 border border-white/[0.04] hover:border-white/[0.08] shadow-sm"
         }`}
       >
         {/* DÒNG 1: HEADER MINI */}
-        <div className="flex items-center justify-between text-[10.5px] text-zinc-400 gap-1.5 /[0.05] pb-1">
+        <div className="flex items-center justify-between text-[10.5px] text-zinc-400 gap-1.5 pb-1">
           <span className="truncate font-medium flex items-center gap-1 min-w-0 flex-1">
             <span className="text-[11px] shrink-0">{getSportIcon(match.sport)}</span>
             <span className="truncate">{tournamentName}</span>
@@ -441,10 +414,22 @@ function MatchCardInner({ match, isSelected, onSelect, score, compact }: MatchCa
                 </span>
               )
             )}
+            {/* Huy hiệu Tâm điểm: icon lửa nhỏ, không nền đặc */}
             {featured.isFeatured && (
-              <span className="inline-flex items-center gap-0.5 text-[9px] font-bold text-rose-300 bg-rose-500/15 px-1.5 py-0.2 rounded-full uppercase tracking-wider">
-                <Flame size={9} className="text-rose-400 fill-rose-500/30" />
-                <span>Tâm điểm</span>
+              <span
+                className="inline-flex items-center gap-1 text-[9.5px] font-semibold text-amber-400 shrink-0"
+                title={featured.badgeLabel || "Trận cầu tâm điểm"}
+              >
+                <Flame size={11} className="text-amber-400 fill-amber-400/30 shrink-0" />
+                {!isSelected && <span>{featured.badgeLabel || "Tâm điểm"}</span>}
+              </span>
+            )}
+
+            {/* Huy hiệu Đang xem: Glassmorphism kính mờ, viền mảnh, chữ nhỏ, sóng âm nhẹ nhàng */}
+            {isSelected && (
+              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-white/[0.08] backdrop-blur-md border border-white/15 text-[9.5px] font-medium text-zinc-200 shadow-sm shrink-0">
+                <PlayingEqualizer className="h-2.5 !px-0" barColor="bg-netflix-red" />
+                <span>Đang xem</span>
               </span>
             )}
           </div>
@@ -456,7 +441,7 @@ function MatchCardInner({ match, isSelected, onSelect, score, compact }: MatchCa
             {/* Đội Nhà */}
             <div className="flex items-center justify-between gap-1.5">
               <div className="flex items-center gap-1.5 min-w-0 flex-1">
-                <div className="w-5 h-5 flex items-center justify-center shrink-0">
+                <div className="w-5 h-5 rounded-full overflow-hidden flex items-center justify-center shrink-0">
                   {homeFlagEmoji ? (
                     <CountryFlag emoji={homeFlagEmoji} className="w-4 h-4" />
                   ) : homeLogoSrc ? (
@@ -469,12 +454,16 @@ function MatchCardInner({ match, isSelected, onSelect, score, compact }: MatchCa
                       loading="lazy"
                     />
                   ) : (
-                    <TeamLogoFallback initials={getTeamInitials(displayTeam1)} />
+                    <TeamLogoFallback initials={getTeamInitials(displayTeam1)} compact={true} />
                   )}
                 </div>
                 <span
-                  className={`text-xs truncate ${
-                    isSelected ? "text-white font-bold" : "text-zinc-200 font-medium group-hover:text-white"
+                  className={`text-xs line-clamp-2 leading-tight break-words ${
+                    isSelected
+                      ? "text-white font-bold"
+                      : featured.isFeatured
+                      ? "text-amber-100 font-bold group-hover:text-amber-200"
+                      : "text-zinc-200 font-medium group-hover:text-white"
                   }`}
                 >
                   {displayTeam1}
@@ -490,7 +479,7 @@ function MatchCardInner({ match, isSelected, onSelect, score, compact }: MatchCa
             {/* Đội Khách */}
             <div className="flex items-center justify-between gap-1.5">
               <div className="flex items-center gap-1.5 min-w-0 flex-1">
-                <div className="w-5 h-5 flex items-center justify-center shrink-0">
+                <div className="w-5 h-5 rounded-full overflow-hidden flex items-center justify-center shrink-0">
                   {awayFlagEmoji ? (
                     <CountryFlag emoji={awayFlagEmoji} className="w-4 h-4" />
                   ) : awayLogoSrc ? (
@@ -503,12 +492,16 @@ function MatchCardInner({ match, isSelected, onSelect, score, compact }: MatchCa
                       loading="lazy"
                     />
                   ) : (
-                    <TeamLogoFallback initials={getTeamInitials(displayTeam2)} />
+                    <TeamLogoFallback initials={getTeamInitials(displayTeam2)} compact={true} />
                   )}
                 </div>
                 <span
-                  className={`text-xs truncate ${
-                    isSelected ? "text-white font-bold" : "text-zinc-200 font-medium group-hover:text-white"
+                  className={`text-xs line-clamp-2 leading-tight break-words ${
+                    isSelected
+                      ? "text-white font-bold"
+                      : featured.isFeatured
+                      ? "text-amber-100 font-bold group-hover:text-amber-200"
+                      : "text-zinc-200 font-medium group-hover:text-white"
                   }`}
                 >
                   {displayTeam2}
@@ -523,26 +516,34 @@ function MatchCardInner({ match, isSelected, onSelect, score, compact }: MatchCa
           </div>
         ) : (
           <div className="flex items-center gap-1.5 py-0.5">
-            <span className="text-xs text-white font-bold truncate flex-1">{match.title || match.team1}</span>
+            <span className={`text-xs font-bold truncate flex-1 ${featured.isFeatured ? "text-amber-100" : "text-white"}`}>
+              {match.title || match.team1}
+            </span>
           </div>
         )}
 
         {/* DÒNG 3: FOOTER MINI (BLV & SỐ NGUỒN) */}
         <div className="flex items-center justify-between text-xs text-zinc-400 pt-1.5 /[0.06]">
-          <span className="truncate flex items-center gap-1.5 min-w-0 flex-1">
-            <Mic className="w-3 h-3 text-zinc-500 shrink-0" />
-            <span className="truncate text-[11px] sm:text-xs">
-              {match.blv
-                ? `BLV ${match.blv.split(",")[0].trim().replace(/^(?:blv|bình luận viên)\s+/i, "")}`
-                : primaryGroup || "Trực tiếp"}
+          {isSelected ? (
+            <span className="text-[11px] font-medium text-zinc-400 tabular-nums flex items-center gap-1.5">
+              <Radio className="w-3 h-3 text-zinc-500 shrink-0" />
+              <span>{match.servers.length} nguồn khả dụng</span>
             </span>
-          </span>
+          ) : (
+            <span className="truncate flex items-center gap-1.5 min-w-0 flex-1">
+              <Mic className="w-3 h-3 text-zinc-500 shrink-0" />
+              <span className="truncate text-[11px] sm:text-xs">
+                {match.blv
+                  ? `BLV ${match.blv.split(",")[0].trim().replace(/^(?:blv|bình luận viên)\s+/i, "")}`
+                  : primaryGroup || "Trực tiếp"}
+              </span>
+            </span>
+          )}
           <div className="flex items-center gap-1.5 shrink-0">
-            <span className="text-[11px] font-medium text-zinc-400 tabular-nums">
-              {match.servers.length} nguồn
-            </span>
-            {isSelected && (
-              <span className="text-netflix-red font-bold text-xs ml-1">Đang xem</span>
+            {!isSelected && (
+              <span className="text-[10.5px] font-medium text-zinc-500 tabular-nums">
+                {match.servers.length} nguồn
+              </span>
             )}
           </div>
         </div>
@@ -564,23 +565,27 @@ function MatchCardInner({ match, isSelected, onSelect, score, compact }: MatchCa
           onSelect(match);
         }
       }}
-      className={`group relative rounded-2xl  cursor-pointer transition-all duration-200 flex flex-col justify-between overflow-hidden outline-none select-none backdrop-blur-md ${
-        isSelected
-          ? "bg-zinc-900/95   shadow-xl shadow-black/60"
+      className={`group relative rounded-2xl cursor-pointer transition-all duration-200 flex flex-col justify-between overflow-hidden outline-none select-none backdrop-blur-md ${
+        isSelected && featured.isFeatured
+          ? "bg-gradient-to-b from-zinc-900 via-zinc-900/95 to-zinc-950 ring-2 ring-netflix-red border border-amber-500/40 shadow-2xl shadow-netflix-red/15"
+          : isSelected
+          ? "bg-gradient-to-b from-zinc-900 via-zinc-900/95 to-zinc-950 ring-2 ring-netflix-red border border-netflix-red/40 shadow-xl shadow-netflix-red/10"
           : featured.isFeatured
-          ? "bg-zinc-900/90 hover:bg-zinc-850/95  hover: shadow-lg shadow-black/40 "
+          ? "bg-gradient-to-b from-zinc-900 via-zinc-900/90 to-zinc-950 border border-amber-500/30 hover:border-amber-500/50 shadow-xl shadow-black/50 hover:shadow-amber-500/5"
           : isConfirmedLive
-          ? "bg-zinc-900/80 hover:bg-zinc-850/90 /[0.08] hover: shadow-md shadow-black/30"
-          : "bg-zinc-900/60 hover:bg-zinc-850/80 /[0.06] hover: shadow-sm"
+          ? "bg-zinc-900/80 hover:bg-zinc-850/90 border border-white/[0.08] hover:border-white/[0.14] shadow-md shadow-black/30"
+          : "bg-zinc-900/60 hover:bg-zinc-850/80 border border-white/[0.05] hover:border-white/[0.10] shadow-sm"
       }`}
     >
       {/* Top Crown Rim tinh tế */}
       <div
-        className={`absolute top-0 inset-x-0 h-[1.5px] pointer-events-none transition-opacity ${
-          isSelected
+        className={`absolute top-0 inset-x-0 h-[2px] pointer-events-none transition-opacity ${
+          isSelected && featured.isFeatured
+            ? "bg-gradient-to-r from-amber-500/70 via-netflix-red to-amber-500/70 opacity-100"
+            : isSelected
             ? "bg-gradient-to-r from-transparent via-netflix-red to-transparent opacity-100"
             : featured.isFeatured
-            ? "bg-gradient-to-r from-transparent via-rose-500/60 to-transparent opacity-100"
+            ? "bg-gradient-to-r from-transparent via-amber-500/80 to-transparent opacity-100"
             : "opacity-0"
         }`}
       />
@@ -592,7 +597,7 @@ function MatchCardInner({ match, isSelected, onSelect, score, compact }: MatchCa
           <div className="flex items-center gap-1.5 min-w-0 flex-1">
             <span
               className={`transition-colors text-[11px] sm:text-xs font-medium truncate flex items-center gap-1.5 ${
-                featured.isFeatured ? "text-rose-200/90 font-semibold" : "text-zinc-400 group-hover:text-zinc-300"
+                featured.isFeatured ? "text-amber-200/90 font-semibold" : "text-zinc-400 group-hover:text-zinc-300"
               }`}
             >
               <span className="text-xs shrink-0">{getSportIcon(match.sport)}</span>
@@ -601,29 +606,34 @@ function MatchCardInner({ match, isSelected, onSelect, score, compact }: MatchCa
           </div>
 
           {/* Góc phải Header: Trạng thái & Huy hiệu (Typography thuần khiết) */}
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             {isConfirmedLive && (
-              <span className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-emerald-400">
+              <span className="inline-flex items-center gap-1 sm:gap-1.5 text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-emerald-400">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
                 <span>LIVE</span>
               </span>
             )}
 
+            {/* Huy hiệu Tâm điểm: icon lửa nhỏ, không nền đặc */}
             {featured.isFeatured && (
               <span
-                className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold tracking-wider bg-rose-500/15 text-rose-300 shrink-0"
+                className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-400 shrink-0"
                 title={featured.badgeLabel || "Trận cầu tâm điểm"}
               >
-                <Flame size={10} className="text-rose-400 shrink-0 fill-rose-500/30" />
-                <span>{featured.badgeLabel || "Tâm điểm"}</span>
+                <Flame size={12} className="text-amber-400 fill-amber-400/30 shrink-0" />
+                {!isSelected && <span>{featured.badgeLabel || "Tâm điểm"}</span>}
               </span>
             )}
 
-            {isFhd && (
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500">
-                1080P
+            {/* Huy hiệu Đang xem: Glassmorphism kính mờ, viền mảnh, chữ nhỏ, sóng âm nhẹ nhàng */}
+            {isSelected && (
+              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-white/[0.08] backdrop-blur-md border border-white/15 text-[10px] font-medium text-zinc-200 shadow-sm shrink-0">
+                <PlayingEqualizer className="h-2.5 !px-0" barColor="bg-netflix-red" />
+                <span>Đang xem</span>
               </span>
             )}
+
+            {/* 1080p subtly indicated in player */}
           </div>
         </div>
 
@@ -657,12 +667,12 @@ function MatchCardInner({ match, isSelected, onSelect, score, compact }: MatchCa
               {/* Khu vực Tên đội: cố định min-height 2 dòng để dù 1 dòng hay 2 dòng thì baseline vẫn thẳng tắp */}
               <div className="min-h-[34px] sm:min-h-[36px] flex items-start justify-center mt-1.5 w-full">
                 <span
-                  className={`text-xs sm:text-[13px] font-semibold line-clamp-2 leading-tight transition-colors text-center max-w-[110px] sm:max-w-[130px] md:max-w-[150px] ${
+                  className={`text-xs sm:text-[13px] line-clamp-2 leading-tight transition-colors text-center max-w-[110px] sm:max-w-[130px] md:max-w-[150px] ${
                     isSelected
-                      ? "text-white font-bold"
+                      ? "text-white font-black"
                       : featured.isFeatured
-                      ? "text-white font-bold"
-                      : "text-zinc-200 group-hover:text-white"
+                      ? "text-white font-extrabold group-hover:text-amber-200"
+                      : "text-zinc-200 font-semibold group-hover:text-white"
                   }`}
                   title={displayTeam1}
                 >
@@ -744,12 +754,12 @@ function MatchCardInner({ match, isSelected, onSelect, score, compact }: MatchCa
               {/* Khu vực Tên đội: cố định min-height 2 dòng */}
               <div className="min-h-[34px] sm:min-h-[36px] flex items-start justify-center mt-1.5 w-full">
                 <span
-                  className={`text-xs sm:text-[13px] font-semibold line-clamp-2 leading-tight transition-colors text-center max-w-[110px] sm:max-w-[130px] md:max-w-[150px] ${
+                  className={`text-xs sm:text-[13px] line-clamp-2 leading-tight transition-colors text-center max-w-[110px] sm:max-w-[130px] md:max-w-[150px] ${
                     isSelected
-                      ? "text-white font-bold"
+                      ? "text-white font-black"
                       : featured.isFeatured
-                      ? "text-white font-bold"
-                      : "text-zinc-200 group-hover:text-white"
+                      ? "text-white font-extrabold group-hover:text-amber-200"
+                      : "text-zinc-200 font-semibold group-hover:text-white"
                   }`}
                   title={displayTeam2}
                 >
@@ -775,7 +785,9 @@ function MatchCardInner({ match, isSelected, onSelect, score, compact }: MatchCa
                   <span className="text-base">{getSportIcon(match.sport)}</span>
                 )}
               </div>
-              <strong className="text-xs sm:text-[13px] font-bold text-white line-clamp-2 flex-1 leading-tight">
+              <strong className={`text-xs sm:text-[13px] line-clamp-2 flex-1 leading-tight ${
+                featured.isFeatured ? "text-amber-100 font-extrabold" : "text-white font-bold"
+              }`}>
                 {match.title || match.team1}
               </strong>
             </div>
@@ -822,8 +834,8 @@ function MatchCardInner({ match, isSelected, onSelect, score, compact }: MatchCa
             </span>
 
             {isSelected ? (
-              <span className="text-netflix-red font-bold text-xs tracking-wide">
-                Đang xem
+              <span className="w-6 h-6 rounded-full bg-netflix-red/15 text-netflix-red flex items-center justify-center">
+                <span className="w-2 h-2 rounded-full bg-netflix-red animate-pulse" />
               </span>
             ) : (
               <div className="w-6 h-6 rounded-full bg-white/[0.06] group-hover:bg-netflix-red text-zinc-400 group-hover:text-white flex items-center justify-center transition-all shadow-sm">

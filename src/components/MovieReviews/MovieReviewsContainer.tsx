@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { MessageSquare, Globe } from "lucide-react";
 import { MovieCommentsSection } from "./MovieCommentsSection";
-import { TmdbAudienceReviews } from "@/components/TmdbAudienceReviews";
+import { TmdbAudienceReviews } from "./TmdbAudienceReviews";
 import { useWatchController } from "@/components/WatchController";
 
 interface MovieReviewsContainerProps {
@@ -30,7 +30,7 @@ export const MovieReviewsContainer: React.FC<MovieReviewsContainerProps> = ({
   const [activeTab, setActiveTab] = useState<"nanaflix" | "tmdb">("nanaflix");
 
   return (
-    <div className="bg-zinc-950/80 rounded-2xl sm:rounded-3xl p-4 sm:p-6 md:p-8 backdrop-blur-xl shadow-2xl">
+    <div className="py-6 sm:py-8 space-y-6">
       {/* Header Bar with Tabs */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 sm:pb-6 border-b">
         <div>

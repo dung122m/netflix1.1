@@ -281,7 +281,7 @@ export default async function ActorDetailPage({ params, searchParams }: PageProp
       <Navbar />
 
       {/* AMBIENT GLOW */}
-      <div className="fixed top-0 left-1/2 -translate-x-1/2 w-full max-w-[1800px] h-[550px] bg-[radial-gradient(ellipse_80%_60%_at_50%_0%,rgba(229,9,20,0.15),rgba(0,0,0,0))] pointer-events-none -z-10" />
+      <div className="fixed top-0 left-1/2 -translate-x-1/2 w-full max-w-[1800px] h-[550px] bg-[radial-gradient(ellipse_80%_60%_at_50%_0%,rgba(var(--accent-rgb),0.15),rgba(0,0,0,0))] pointer-events-none -z-10" />
 
       <main className="flex-1 pt-24 sm:pt-28 pb-24 px-4 sm:px-6 md:px-10 lg:px-12 max-w-[1800px] mx-auto w-full space-y-12 sm:space-y-16">
         
@@ -303,7 +303,7 @@ export default async function ActorDetailPage({ params, searchParams }: PageProp
         {/* ============================================================ */}
         {/* HERO SECTION: PORTRAIT + KEY FACTS */}
         {/* ============================================================ */}
-        <section className="p-6 sm:p-8 md:p-10 rounded-3xl bg-gradient-to-br from-zinc-900/90 via-zinc-950/90 to-zinc-950 border border-white/[0.1] backdrop-blur-2xl shadow-2xl relative overflow-hidden">
+        <section className="p-6 sm:p-8 md:p-10 rounded-2xl sm:rounded-3xl bg-zinc-900/40 border border-white/[0.08] backdrop-blur-md relative overflow-hidden">
           <div className="flex flex-col md:flex-row items-center md:items-start gap-6 sm:gap-8 md:gap-10">
             
             {/* PORTRAIT IMAGE */}

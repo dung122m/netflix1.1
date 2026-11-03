@@ -1,8 +1,10 @@
 "use client";
 
-import React, { useRef, useState, useCallback, useEffect, useMemo } from "react";
+import React, { useMemo } from "react";
 import Link from "next/link";
-import { ChevronLeft, ChevronRight, Users } from "lucide-react";
+import { Users } from "lucide-react";
+import { CarouselNavButton } from "@/components/ui/CarouselNavButton";
+import { useCarouselScroll } from "@/components/ui/useCarouselScroll";
 import { TmdbCastMember } from "@/services/tmdbService";
 import { ActorAvatar } from "@/components/actors/ActorAvatar";
 import { normalizeForMatch } from "@/lib/stringUtils";
@@ -28,9 +30,7 @@ export const MovieCastGallery: React.FC<MovieCastGalleryProps> = ({
   cast = [],
   fallbackActors = [],
 }) => {
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const [canScrollLeft, setCanScrollLeft] = useState(false);
-  const [canScrollRight, setCanScrollRight] = useState(false);
+  
 
   // Chuẩn hóa danh sách diễn viên hiển thị: ưu tiên cast TMDB (có ID), nếu không có thì dùng fallbackActors (chỉ có tên)
   const displayItems = useMemo<ProcessedCastItem[]>(() => {
@@ -67,35 +67,15 @@ export const MovieCastGallery: React.FC<MovieCastGalleryProps> = ({
     return [];
   }, [cast, fallbackActors]);
 
-  const checkScroll = useCallback(() => {
-    const el = scrollRef.current;
-    if (!el) return;
-    setCanScrollLeft(el.scrollLeft > 5);
-    setCanScrollRight(el.scrollLeft < el.scrollWidth - el.clientWidth - 5);
-  }, []);
-
-  useEffect(() => {
-    checkScroll();
-    const el = scrollRef.current;
-    if (el) {
-      el.addEventListener("scroll", checkScroll, { passive: true });
-    }
-    window.addEventListener("resize", checkScroll);
-    return () => {
-      if (el) el.removeEventListener("scroll", checkScroll);
-      window.removeEventListener("resize", checkScroll);
-    };
-  }, [checkScroll, displayItems]);
-
-  const handleScroll = (direction: "left" | "right") => {
-    const el = scrollRef.current;
-    if (!el) return;
-    const step = el.clientWidth * 0.75;
-    el.scrollBy({
-      left: direction === "left" ? -step : step,
-      behavior: "smooth",
-    });
-  };
+  const {
+    scrollRef,
+    canScrollLeft,
+    canScrollRight,
+    handleScroll,
+  } = useCarouselScroll<HTMLDivElement>({
+    resetTrigger: displayItems,
+    boundaryThreshold: 5,
+  });
 
   if (displayItems.length === 0) {
     return null;
@@ -119,34 +99,23 @@ export const MovieCastGallery: React.FC<MovieCastGalleryProps> = ({
       </div>
 
       {/* CAROUSEL WRAPPER */}
-      <div className="relative group/gallery">
-        {/* NÚT CUỘN TRÁI */}
-        {canScrollLeft && (
-          <button
-            type="button"
-            onClick={() => handleScroll("left")}
-            aria-label="Cuộn sang trái"
-            className="hidden sm:flex absolute left-0 top-0 bottom-4 z-20 w-9 bg-gradient-to-r from-black/90 via-black/60 to-transparent items-center justify-start pl-1 text-white hover:text-rose-400 transition cursor-pointer group/btn"
-          >
-            <div className="w-7 h-7 rounded-full bg-zinc-900/90 flex items-center justify-center backdrop-blur-md shadow-lg group-hover/btn:scale-110 transition">
-              <ChevronLeft className="w-4 h-4" />
-            </div>
-          </button>
-        )}
+      <div className="relative group/row">
+        {/* NÚT CUỘN TRÁI / PHẢI CHUẨN ĐỒNG BỘ */}
+        <CarouselNavButton
+          direction="left"
+          onClick={() => handleScroll("left")}
+          visible={canScrollLeft}
+          ariaLabel="Cuộn danh sách diễn viên sang trái"
+          topOffsetClass="top-[45%]"
+        />
 
-        {/* NÚT CUỘN PHẢI */}
-        {canScrollRight && (
-          <button
-            type="button"
-            onClick={() => handleScroll("right")}
-            aria-label="Cuộn sang phải"
-            className="hidden sm:flex absolute right-0 top-0 bottom-4 z-20 w-9 bg-gradient-to-l from-black/90 via-black/60 to-transparent items-center justify-end pr-1 text-white hover:text-rose-400 transition cursor-pointer group/btn"
-          >
-            <div className="w-7 h-7 rounded-full bg-zinc-900/90 flex items-center justify-center backdrop-blur-md shadow-lg group-hover/btn:scale-110 transition">
-              <ChevronRight className="w-4 h-4" />
-            </div>
-          </button>
-        )}
+        <CarouselNavButton
+          direction="right"
+          onClick={() => handleScroll("right")}
+          visible={canScrollRight}
+          ariaLabel="Cuộn danh sách diễn viên sang phải"
+          topOffsetClass="top-[45%]"
+        />
 
         {/* MOBILE GRADIENT FADE AFFORDANCE */}
         {canScrollLeft && (

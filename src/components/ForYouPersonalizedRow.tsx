@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { SectionHeader } from "@/components/ui/SectionHeader";
 import {
   Sparkles,
   RefreshCw,
@@ -11,7 +12,9 @@ import { UserProfile } from "@/types/user";
 import { getWatchHistory } from "@/lib/watchHistory";
 import { normalizeMovie, formatGenreName } from "@/lib/movieMedia";
 import MediaCard from "@/components/browse/MediaCard";
+import { Tooltip } from "@/components/ui/Tooltip";
 import { CarouselNavButton } from "@/components/ui/CarouselNavButton";
+import { useCarouselScroll } from "@/components/ui/useCarouselScroll";
 
 export interface ForYouMovieItem {
   slug: string;
@@ -251,9 +254,7 @@ function ForYouPersonalizedRowInner({ fallbackMovies }: ForYouPersonalizedRowPro
   const [isUpdating, setIsUpdating] = useState<boolean>(false);
 
   const [refreshCount, setRefreshCount] = useState<number>(0);
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const [canScrollLeft, setCanScrollLeft] = useState(false);
-  const [canScrollRight, setCanScrollRight] = useState(true);
+
 
   // 1. Theo dõi thông tin profile người dùng
   useEffect(() => {
@@ -403,47 +404,17 @@ function ForYouPersonalizedRowInner({ fallbackMovies }: ForYouPersonalizedRowPro
     fetchRecommendations(true, next);
   };
 
-  const checkScroll = useCallback(() => {
-    if (scrollContainerRef.current) {
-      const el = scrollContainerRef.current;
-      const { scrollLeft, scrollWidth, clientWidth } = el;
-      const firstCard = el.querySelector<HTMLElement>(".snap-start");
-      const isAtStart =
-        scrollLeft <= 8 ||
-        (firstCard ? firstCard.getBoundingClientRect().left >= el.getBoundingClientRect().left - 2 : scrollLeft <= 8);
-      const isAtEnd = scrollLeft >= scrollWidth - clientWidth - 8;
-      setCanScrollLeft(!isAtStart);
-      setCanScrollRight(!isAtEnd);
-    }
-  }, []);
-
-  useEffect(() => {
-    const el = scrollContainerRef.current;
-    if (!el) return;
-    checkScroll();
-    const onScrollEnd = () => checkScroll();
-    el.addEventListener("scrollend", onScrollEnd, { passive: true });
-    window.addEventListener("resize", checkScroll, { passive: true });
-    return () => {
-      el.removeEventListener("scrollend", onScrollEnd);
-      window.removeEventListener("resize", checkScroll);
-    };
-  }, [checkScroll, movies]);
-
-  const handleScroll = (direction: "left" | "right") => {
-    if (scrollContainerRef.current) {
-      const cardEl = scrollContainerRef.current.querySelector<HTMLElement>(".snap-start");
-      const step = cardEl
-        ? (cardEl.offsetWidth + 16) * Math.max(1, Math.floor(scrollContainerRef.current.clientWidth / (cardEl.offsetWidth + 16)))
-        : scrollContainerRef.current.clientWidth * 0.75;
-      scrollContainerRef.current.scrollBy({
-        left: direction === "left" ? -step : step,
-        behavior: "smooth",
-      });
-      setTimeout(checkScroll, 150);
-      setTimeout(checkScroll, 400);
-    }
-  };
+  const {
+    scrollRef: scrollContainerRef,
+    canScrollLeft,
+    canScrollRight,
+    checkScroll,
+    handleScroll,
+  } = useCarouselScroll<HTMLDivElement>({
+    resetTrigger: movies,
+    cardSelector: ".snap-start",
+    boundaryThreshold: 8,
+  });
 
   const displayName = profile?.displayName || user?.displayName || "Bạn";
 
@@ -458,33 +429,28 @@ function ForYouPersonalizedRowInner({ fallbackMovies }: ForYouPersonalizedRowPro
   return (
     <section className="relative my-8 sm:my-12 select-none">
       {/* HEADER SECTION */}
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 mb-5 px-1">
-        <div>
-          <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-white tracking-tight flex items-center gap-2.5">
-            <span className="flex items-center justify-center w-7 h-7 rounded-lg bg-netflix-red text-white shadow-md shadow-black/50 shrink-0">
-              <Sparkles className="w-4 h-4 text-white" />
-            </span>
-            <span>Dành Riêng Cho {user ? displayName : "Bạn"}</span>
-          </h2>
-          <p className="text-xs sm:text-sm text-zinc-400 mt-1 max-w-[65ch] leading-relaxed">
-            {contextText}
-          </p>
-        </div>
-
-        {/* CONTROLS */}
-        <div className="flex items-center justify-between sm:justify-end gap-2">
-          <button
-            type="button"
-            onClick={handleRefreshClick}
-            disabled={isUpdating}
-            title="Làm mới danh sách gợi ý"
-            className="px-3.5 py-1.5 rounded-xl bg-zinc-900/90 hover:bg-zinc-800 text-zinc-300 hover:text-white text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer active:scale-95 shadow-md disabled:opacity-75"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${loading || isUpdating ? "animate-spin text-netflix-red" : ""}`} />
-            <span>{isUpdating ? "Đang Cập Nhật..." : "Đổi Gợi Ý"}</span>
-          </button>
-        </div>
-      </div>
+      <SectionHeader
+        title={`Dành Riêng Cho ${user ? displayName : "Bạn"}`}
+        icon={<Sparkles className="w-4 h-4 text-white" />}
+        iconBadge
+        subtitle={contextText}
+        actions={
+          <div className="flex items-center justify-between sm:justify-end gap-2">
+            <Tooltip content="Làm mới danh sách gợi ý" side="top">
+              <button
+                type="button"
+                onClick={handleRefreshClick}
+                disabled={isUpdating}
+                aria-label="Làm mới danh sách gợi ý"
+                className="px-3.5 py-1.5 rounded-xl bg-zinc-900/90 hover:bg-zinc-800 text-zinc-300 hover:text-white text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer active:scale-95 shadow-md disabled:opacity-75"
+              >
+              <RefreshCw className={`w-3.5 h-3.5 ${loading || isUpdating ? "animate-spin text-netflix-red" : ""}`} />
+              <span>{isUpdating ? "Đang Cập Nhật..." : "Đổi Gợi Ý"}</span>
+              </button>
+            </Tooltip>
+          </div>
+        }
+      />
 
       {/* KHUNG CAROUSEL CÓ NÚT ĐIỀU HƯỚNG TRÁI/PHẢI PHỦ MÉP CHUẨN NETFLIX */}
       <div className="relative group/row">

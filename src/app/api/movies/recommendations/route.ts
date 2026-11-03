@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createHash } from "node:crypto";
-import { movieApi, DEFAULT_GENRES, DEFAULT_COUNTRIES } from "@/services/movieApi";
+import { movieApi, DEFAULT_GENRES, DEFAULT_COUNTRIES } from "@/services/movies/service";
 import { matchesActorAlias } from "@/lib/actorAlias";
 import { queryMoviesByActor } from "@/services/aiActorService";
 import { getTmdbMovieRecommendations, getDirectorFilmographyFromTmdb } from "@/services/tmdbService";

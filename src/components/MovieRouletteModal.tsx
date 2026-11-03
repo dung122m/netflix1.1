@@ -849,7 +849,7 @@ export const MovieRouletteModal: React.FC<MovieRouletteModalProps> = ({
                     <Link
                       href={`/movies/${rouletteResult.movie.slug}`}
                       onClick={handleClose}
-                      className="inline-flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-6 py-2.5 sm:py-3 rounded-xl bg-netflix-red hover:bg-red-700 text-white font-black text-xs sm:text-sm transition shadow-md shadow-black/50 cursor-pointer active:scale-95 text-center truncate"
+                      className="inline-flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-6 py-2.5 sm:py-3 rounded-xl bg-netflix-red hover:brightness-110 active:brightness-95 text-white font-black text-xs sm:text-sm transition shadow-md shadow-black/50 cursor-pointer active:scale-95 text-center truncate"
                     >
                       <Play className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-white shrink-0" />
                       <span className="truncate">Xem Suất Chiếu</span>

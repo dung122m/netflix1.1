@@ -526,15 +526,16 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
                 <Loader2 size={15} className="animate-spin text-netflix-red" />
               )}
               {hasSearchText && (
-                <button
-                  type="button"
-                  onClick={clearSearch}
-                  aria-label="Xóa nội dung tìm kiếm"
-                  className="p-1 text-zinc-400 hover:text-white transition cursor-pointer rounded-full hover:bg-white/10"
-                  title="Xóa nội dung"
-                >
-                  <X size={16} />
-                </button>
+                <Tooltip content="Xóa nội dung" side="bottom">
+                  <button
+                    type="button"
+                    onClick={clearSearch}
+                    aria-label="Xóa nội dung tìm kiếm"
+                    className="p-1 text-zinc-400 hover:text-white transition cursor-pointer rounded-full hover:bg-white/10"
+                  >
+                    <X size={16} />
+                  </button>
+                </Tooltip>
               )}
             </div>
           </form>
@@ -703,7 +704,7 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
                     <button
                       type="button"
                       onClick={handleSearchSubmit}
-                      className="w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg bg-netflix-red hover:bg-red-700 text-white font-bold text-xs transition shadow-md cursor-pointer active:scale-98"
+                      className="w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg bg-netflix-red hover:brightness-110 active:brightness-95 text-white font-bold text-xs transition shadow-md cursor-pointer active:scale-98"
                     >
                       <Search size={13} />
                       <span>Xem tất cả kết quả cho &quot;{mobileInputRef.current?.value || inputRef.current?.value}&quot;</span>
@@ -721,7 +722,7 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
                     <button
                       type="button"
                       onClick={handleSearchSubmit}
-                      className="w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg bg-netflix-red hover:bg-red-700 text-white font-bold text-xs transition shadow-md cursor-pointer active:scale-98"
+                      className="w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg bg-netflix-red hover:brightness-110 active:brightness-95 text-white font-bold text-xs transition shadow-md cursor-pointer active:scale-98"
                     >
                       <Search size={13} />
                       <span>Tìm kiếm toàn bộ kho phim cho &quot;{mobileInputRef.current?.value || inputRef.current?.value}&quot;</span>
@@ -969,7 +970,7 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
                   <button
                     type="button"
                     onClick={handleSearchSubmit}
-                    className="w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg bg-netflix-red hover:bg-red-700 text-white font-bold text-xs transition shadow-md cursor-pointer active:scale-98"
+                    className="w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg bg-netflix-red hover:brightness-110 active:brightness-95 text-white font-bold text-xs transition shadow-md cursor-pointer active:scale-98"
                   >
                     <Search size={13} />
                     <span>Xem tất cả kết quả cho &quot;{inputRef.current?.value}&quot;</span>
@@ -987,7 +988,7 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
                   <button
                     type="button"
                     onClick={handleSearchSubmit}
-                    className="w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg bg-netflix-red hover:bg-red-700 text-white font-bold text-xs transition shadow-md cursor-pointer active:scale-98"
+                    className="w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg bg-netflix-red hover:brightness-110 active:brightness-95 text-white font-bold text-xs transition shadow-md cursor-pointer active:scale-98"
                   >
                     <Search size={13} />
                     <span>Tìm kiếm toàn bộ kho phim cho &quot;{inputRef.current?.value || mobileInputRef.current?.value}&quot;</span>

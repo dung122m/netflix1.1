@@ -1,6 +1,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { movieApi, deduplicateMovieItems, extractMovieRatingScore } from "@/services/movies/service";
+import { movieApi } from "@/services/movies/service";
+import { deduplicateMovieItems, extractMovieRatingScore } from "@/lib/movieMedia";
 
 describe("Nanaflix — Rating Audit & Sorting Test Suite", () => {
   it("1. extractMovieRatingScore correctly normalizes ratings and handles edge cases", () => {

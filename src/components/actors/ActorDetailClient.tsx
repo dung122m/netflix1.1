@@ -347,7 +347,7 @@ export const ActorDetailClient: React.FC<ActorDetailClientProps> = ({
             <div className="pt-2">
               <Link
                 href="/browse"
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-netflix-red hover:bg-red-700 text-white font-bold text-xs transition shadow-md shadow-black/50 cursor-pointer"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-netflix-red hover:brightness-110 active:brightness-95 text-white font-bold text-xs transition shadow-md shadow-black/50 cursor-pointer"
               >
                 <span>Khám phá các phim khác</span>
               </Link>

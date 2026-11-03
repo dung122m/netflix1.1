@@ -291,6 +291,7 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
           isSpoiler: finalIsSpoiler,
         };
 
+        const previousComments = comments;
         // 1. Optimistic update local state ngay lập tức
         setComments((prev) =>
           prev.map((c) =>
@@ -298,6 +299,8 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
               ? {
                   ...c,
                   ...updatePayload,
+                  isEdited: true,
+                  editedAt: Date.now(),
                   updatedAt: Date.now(),
                 }
               : c
@@ -305,8 +308,13 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
         );
 
         // 2. Ghi vào database Supabase
-        await updateMovieComment(myExistingReview.id, updatePayload, movieSlug);
-        toast.success(rating > 0 ? "Đã cập nhật đánh giá của bạn thành công!" : "Đã cập nhật bình luận thành công!");
+        try {
+          await updateMovieComment(myExistingReview.id, updatePayload, movieSlug);
+          toast.success(rating > 0 ? "Đã cập nhật đánh giá của bạn thành công!" : "Đã cập nhật bình luận thành công!");
+        } catch (updateErr) {
+          setComments(previousComments);
+          throw updateErr;
+        }
       } else {
         // Tạo đánh giá mới (lần đầu)
         const createdId = await addMovieComment({
@@ -427,13 +435,17 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
 
     if (!confirmed) return;
 
+    const previous = comments;
+    setComments((prev) => prev.filter((c) => c.id !== commentId));
+
     try {
-      await deleteMovieComment(commentId);
-      setComments((prev) => prev.filter((c) => c.id !== commentId));
+      await deleteMovieComment(commentId, { movieSlug, userId: user?.uid });
       toast.info("Đã xóa bình luận.");
     } catch (err) {
+      setComments(previous);
       console.error("Lỗi khi xóa bình luận:", err);
-      toast.error("Không thể xóa bình luận!");
+      const msg = err instanceof Error ? err.message : "Không thể xóa bình luận!";
+      toast.error(msg);
     }
   };
 
@@ -610,7 +622,7 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
                 }}
                 placeholder="Chia sẻ cảm nghĩ của bạn về bộ phim... (Vui lòng không tiết lộ trước nội dung 🤫)"
                 rows={3}
-                className="w-full min-h-[88px] bg-black/60 rounded-xl px-4 py-3 text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus: focus:ring-1 focus:ring-red-500/30 resize-y transition-all"
+                className="w-full min-h-[88px] bg-black/60 rounded-xl px-4 py-3 text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-netflix-red focus:ring-1 focus:ring-netflix-red/30 resize-y transition-all"
                 maxLength={1000}
               />
               <div className="text-[11px] text-zinc-600 text-right mt-1">
@@ -672,7 +684,7 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
                 className={`inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm text-white shadow-lg disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-95 w-full sm:w-auto shrink-0 ${
                   myExistingReview
                     ? "bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 shadow-amber-900/30"
-                    : "bg-netflix-red hover:brightness-110 shadow-[var(--accent-glow,rgba(229,9,20,0.3))]"
+                    : "bg-netflix-red hover:brightness-110 shadow-[var(--accent-glow)]"
                 }`}
               >
                 {isSubmitting ? (
@@ -696,9 +708,9 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
           </form>
         ) : (
           /* Login Banner */
-          <div className="relative overflow-hidden bg-gradient-to-r from-zinc-900/90 via-zinc-900/60 to-red-950/30 rounded-xl sm:rounded-2xl p-4 sm:p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="relative overflow-hidden bg-gradient-to-r from-zinc-900/90 via-zinc-900/60 to-netflix-red/10 rounded-xl sm:rounded-2xl p-4 sm:p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-3 sm:gap-4 text-center sm:text-left w-full sm:w-auto">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-red-600/10 flex items-center justify-center text-red-500 shrink-0">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-netflix-red/10 flex items-center justify-center text-netflix-red shrink-0">
                 <LogIn className="w-5 h-5 sm:w-6 sm:h-6" />
               </div>
               <div className="flex-1 min-w-0">
@@ -768,7 +780,7 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
         </div>
 
         {/* Comments Feed */}
-        <div className="mt-4 space-y-3">
+        <div className="mt-4 divide-y divide-white/[0.08] border-t border-white/[0.08]">
           {loading ? (
             <div className="py-12 flex flex-col items-center justify-center gap-3 text-zinc-500">
               <Loader2 className="w-6 h-6 animate-spin text-red-500" />
@@ -798,7 +810,7 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
               />
             ))
           ) : (
-            <div className="py-12 text-center bg-zinc-900/30 rounded-2xl border border-dashed p-6">
+            <div className="py-12 text-center rounded-2xl border border-dashed border-white/10 p-6 mt-4">
               <MessageSquare className="w-10 h-10 text-zinc-600 mx-auto mb-2" />
               <div className="font-semibold text-zinc-300 text-sm">
                 Chưa có bình luận nào cho bộ phim này

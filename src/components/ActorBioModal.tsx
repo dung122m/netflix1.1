@@ -7,7 +7,7 @@ import { useBodyScrollLock } from "@/lib/scrollLock";
 import { splitBlockIntoNaturalParagraphs } from "@/lib/bioFormatter";
 import { cleanBioExtract } from "@/services/wikipediaService";
 import { ActorAvatar } from "@/components/actors/ActorAvatar";
-import { EnhancedActorProfile } from "@/app/api/actor-bio/route";
+import { EnhancedActorProfile } from "@/services/aiActorService";
 
 export interface ActorBioModalProps {
   initialActorName?: string;
@@ -257,7 +257,7 @@ export const ActorBioModal: React.FC<ActorBioModalProps> = ({
                 <Link
                   href={`/browse?actor=${encodeURIComponent(displayTitle)}`}
                   onClick={() => setIsOpen(false)}
-                  className="min-h-[46px] h-11 px-5 rounded-xl bg-netflix-red hover:bg-red-700 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition shadow-lg shadow-netflix-red/30 active:scale-[0.99] cursor-pointer w-full sm:flex-1 shrink-0"
+                  className="min-h-[46px] h-11 px-5 rounded-xl bg-netflix-red hover:brightness-110 active:brightness-95 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition shadow-lg shadow-netflix-red/30 active:scale-[0.99] cursor-pointer w-full sm:flex-1 shrink-0"
                 >
                   <Film className="w-4 h-4 flex-none" />
                   <span className="truncate">Xem phim của {displayTitle}</span>

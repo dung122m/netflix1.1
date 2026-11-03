@@ -41,7 +41,8 @@ export interface MovieExtraInfo {
 }
 
 // Bộ nhớ đệm client (giữ nguyên cho các component khác như HeroFeatured)
-export const clientSynopsisCache = new Map<string, string>();
+import { clientSynopsisCache } from "@/services/synopsisService";
+export { clientSynopsisCache };
 export const clientTrailerCache = new Map<string, string>();
 export const clientExtraInfoCache = new Map<string, MovieExtraInfo>();
 
@@ -622,7 +623,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
         className={`relative aspect-[2/3] w-full rounded-xl overflow-hidden bg-zinc-950 bg-gradient-to-br from-zinc-800/70 via-zinc-900 to-zinc-950 transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] focus-within:ring-2 focus-within:ring-white ${
           isCardActive
             ? " shadow-[inset_0_0_0_2px_#22c55e]"
-            : " group-hover/card: group-hover/card:ring-netflix-red group-hover/card:ring-inset group-hover/card:shadow-[0_12px_28px_rgba(229,9,20,0.35),0_0_16px_rgba(0,0,0,0.8)]"
+            : " group-hover/card: group-hover/card:ring-netflix-red group-hover/card:ring-inset group-hover/card:shadow-[0_12px_28px_var(--accent-glow),0_0_16px_rgba(0,0,0,0.8)]"
         }`}
         data-card-active={isCardActive ? "true" : undefined}
       >
@@ -723,23 +724,24 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
         {/* NÚT XOÁ (NẾU ĐƯỢC TRUYỀN onRemove) */}
         {onRemove && (
           <div className="absolute top-2 right-2 z-20 pointer-events-auto">
-            <button
-              type="button"
-              onClick={onRemove}
-              title={removeTooltip || "Xóa"}
-              aria-label={removeTooltip || `Xóa ${title}`}
-              className="w-7 h-7 rounded-full bg-black/75 hover:bg-netflix-red hover:border-netflix-red hover:text-white text-zinc-300 backdrop-blur-md flex items-center justify-center shadow-lg transition-all duration-200 hover:scale-110 active:scale-90 cursor-pointer"
-            >
-              <X className="w-3.5 h-3.5" />
-            </button>
+            <Tooltip content={removeTooltip || "Xóa"} side="top" align="end">
+              <button
+                type="button"
+                onClick={onRemove}
+                aria-label={removeTooltip || `Xóa ${title}`}
+                className="w-7 h-7 rounded-full bg-black/75 hover:bg-netflix-red hover:border-netflix-red hover:text-white text-zinc-300 backdrop-blur-md flex items-center justify-center shadow-lg transition-all duration-200 hover:scale-110 active:scale-90 cursor-pointer"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </Tooltip>
           </div>
         )}
 
-        {/* THANH TIẾN ĐỘ XEM ĐỎ DƯỚI ĐÁY POSTER */}
+        {/* THANH TIẾN ĐỘ XEM THEO THEME DƯỚI ĐÁY POSTER */}
         {typeof progressPercent === "number" && progressPercent >= 0 && (
           <div className="absolute bottom-0 left-0 right-0 h-[3.5px] bg-white/20 backdrop-blur-sm z-10 overflow-hidden">
             <div
-              className="h-full bg-gradient-to-r from-red-600 via-rose-500 to-red-500 rounded-r-full transition-all duration-500 shadow-[0_0_8px_rgba(229,9,20,0.9)]"
+              className="h-full bg-gradient-to-r from-netflix-red to-netflix-red/80 rounded-r-full transition-all duration-500 shadow-[0_0_8px_var(--accent-glow)]"
               style={{ width: `${Math.min(100, Math.max(0, progressPercent))}%` }}
             />
           </div>
@@ -777,9 +779,9 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
               type="button"
               onClick={handleToggleList}
               aria-label={inList ? `Bỏ lưu phim ${title}` : `Lưu phim ${title} vào danh sách`}
-              className={`w-7 h-7 rounded-full flex items-center justify-center border transition-all duration-150 hover:scale-110 active:scale-95 cursor-pointer shadow-md shadow-black/50 backdrop-blur-md outline-none focus-visible:ring-2 focus-visible:ring-red-500 ${
+              className={`w-7 h-7 rounded-full flex items-center justify-center border transition-all duration-150 hover:scale-110 active:scale-95 cursor-pointer shadow-md shadow-black/50 backdrop-blur-md outline-none focus-visible:ring-2 focus-visible:ring-netflix-red ${
                 inList
-                  ? "bg-netflix-red border-netflix-red text-white hover:bg-red-700 hover:border-red-700"
+                  ? "bg-netflix-red border-netflix-red text-white hover:brightness-110"
                   : "bg-black/75 hover:bg-netflix-red hover:border-netflix-red hover:text-white  text-white"
               }`}
             >
@@ -791,17 +793,18 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
         {/* NÚT TRAILER KÍNH MỜ GÓC DƯỚI TRÁI KHI HOVER (CHỈ HIỆN KHI CÓ TRAILER) */}
         {(trailerUrl || hasTrailerState || isTrailerOnly) && (
           <div className="absolute bottom-2.5 left-2.5 z-20 pointer-events-auto opacity-0 group-hover/card:opacity-100 focus-within:opacity-100 transition-opacity duration-200 hidden sm:flex">
-            <button
-              type="button"
-              onClick={handleTrailerClick}
-              disabled={isLoadingTrailer}
-              title="Xem Trailer chính thức"
-              aria-label={`Xem Trailer phim ${title}`}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-black/75 hover:bg-white hover:text-zinc-950 text-white text-[11px] font-bold transition-all hover:scale-105 active:scale-95 cursor-pointer shadow-md shadow-black/50 backdrop-blur-md outline-none focus-visible:ring-2 focus-visible:ring-white"
-            >
-              <Film className="w-3 h-3 text-current" />
-              <span>{isLoadingTrailer ? "..." : "Trailer"}</span>
-            </button>
+            <Tooltip content="Xem Trailer chính thức" side="top" align="start">
+              <button
+                type="button"
+                onClick={handleTrailerClick}
+                disabled={isLoadingTrailer}
+                aria-label={`Xem Trailer phim ${title}`}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-black/75 hover:bg-white hover:text-zinc-950 text-white text-[11px] font-bold transition-all hover:scale-105 active:scale-95 cursor-pointer shadow-md shadow-black/50 backdrop-blur-md outline-none focus-visible:ring-2 focus-visible:ring-white"
+              >
+                <Film className="w-3 h-3 text-current" />
+                <span>{isLoadingTrailer ? "..." : "Trailer"}</span>
+              </button>
+            </Tooltip>
           </div>
         )}
       </div>
@@ -829,7 +832,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
           <div className="h-5 sm:h-5.5 flex items-center w-full min-w-0">
             <h3
               title={title}
-              className="text-zinc-100 group-hover/card:text-rose-400 font-semibold text-[13px] sm:text-[14px] leading-tight truncate w-full transition-colors"
+              className="text-zinc-100 group-hover/card:text-netflix-red font-semibold text-[13px] sm:text-[14px] leading-tight truncate w-full transition-colors"
             >
               {title}
             </h3>
@@ -839,7 +842,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
         {/* DÒNG 2 — THÔNG TIN PHỤ: KHOẢNG CÁCH 6PX CHUẨN MỰC, BÁM SÁT TIÊU ĐỀ, METADATA THẲNG TĂM TẮP */}
         {typeof progressPercent === "number" ? (
           <div className="flex items-center justify-between text-[11px] sm:text-xs text-zinc-400 mt-1 select-none leading-none h-4">
-            <span className="text-rose-400 font-semibold">
+            <span className="text-netflix-red font-semibold">
               {progressPercent > 0 ? `Đã xem ${progressPercent}%` : "Chưa xem"}
             </span>
             {updatedTimeAgo ? (

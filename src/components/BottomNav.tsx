@@ -86,7 +86,7 @@ export function BottomNav() {
           <div className="relative">
             <Home size={19} strokeWidth={isHome ? 2.5 : 2} aria-hidden="true" />
             {isHome && (
-              <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-netflix-red rounded-full shadow-[0_0_8px_#E50914]" />
+              <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-netflix-red rounded-full shadow-[0_0_8px_var(--accent-color)]" />
             )}
           </div>
           <span className="text-[11px] mt-0.5 tracking-tight truncate max-w-[56px] leading-tight">Trang chủ</span>
@@ -104,7 +104,7 @@ export function BottomNav() {
           <div className="relative">
             <Compass size={19} strokeWidth={isBrowse ? 2.5 : 2} aria-hidden="true" />
             {isBrowse && (
-              <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-netflix-red rounded-full shadow-[0_0_8px_#E50914]" />
+              <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-netflix-red rounded-full shadow-[0_0_8px_var(--accent-color)]" />
             )}
           </div>
           <span className="text-[11px] mt-0.5 tracking-tight truncate max-w-[56px] leading-tight">Khám phá</span>
@@ -116,7 +116,7 @@ export function BottomNav() {
           onClick={handleNavClick}
           aria-current={isLive ? "page" : undefined}
           className={`flex flex-col items-center justify-center h-full transition-all duration-200 active:scale-95 cursor-pointer outline-none focus-visible:text-white rounded-lg ${
-            isLive ? "text-rose-500 font-bold" : "text-zinc-400 hover:text-zinc-200 font-medium"
+            isLive ? "text-netflix-red font-bold" : "text-zinc-400 hover:text-zinc-200 font-medium"
           }`}
         >
           <div className="relative">
@@ -141,7 +141,7 @@ export function BottomNav() {
           <div className="relative">
             <Bookmark size={19} strokeWidth={isMyList ? 2.5 : 2} aria-hidden="true" />
             {isMyList && (
-              <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-netflix-red rounded-full shadow-[0_0_8px_#E50914]" />
+              <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-netflix-red rounded-full shadow-[0_0_8px_var(--accent-color)]" />
             )}
           </div>
           <span className="text-[11px] mt-0.5 tracking-tight truncate max-w-[56px] leading-tight">Danh sách</span>

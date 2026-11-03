@@ -40,24 +40,29 @@ export function findEpisodeMatch<T extends { slug?: string; name?: string }>(
 
   // 2. Chuẩn hóa bỏ tiền tố "tap-", "tap ", "ep-"
   const cleanTarget = t.replace(/^(tap|ep)[-_\s]*/i, "").trim();
-  const targetNum = parseInt(cleanTarget, 10);
 
-  const cleanMatch = episodes.find((e) => {
+  // So khớp chính xác sau khi bỏ tiền tố tap- (ví dụ: target="tap-1049", cleanTarget="1049")
+  const cleanExact = episodes.find((e) => {
     const slugClean = (e.slug || "").toLowerCase().replace(/^(tap|ep)[-_\s]*/i, "").trim();
     const nameClean = (e.name || "").toLowerCase().replace(/^(tap|ep)[-_\s]*/i, "").trim();
-
-    if (slugClean === cleanTarget || nameClean === cleanTarget) return true;
-
-    if (!isNaN(targetNum)) {
-      const slugNum = parseInt(slugClean, 10);
-      const nameNum = parseInt(nameClean, 10);
-      if (!isNaN(slugNum) && slugNum === targetNum) return true;
-      if (!isNaN(nameNum) && nameNum === targetNum) return true;
-    }
-    return false;
+    return slugClean === cleanTarget || nameClean === cleanTarget;
   });
+  if (cleanExact) return cleanExact;
 
-  return cleanMatch;
+  // 3. So khớp số học nguyên vẹn (chống lỗi 1049 vô tình khớp nhầm 1049-2)
+  if (/^\d+$/.test(cleanTarget)) {
+    const targetNum = parseInt(cleanTarget, 10);
+    const numMatch = episodes.find((e) => {
+      const slugClean = (e.slug || "").toLowerCase().replace(/^(tap|ep)[-_\s]*/i, "").trim();
+      const nameClean = (e.name || "").toLowerCase().replace(/^(tap|ep)[-_\s]*/i, "").trim();
+      if (/^\d+$/.test(slugClean) && parseInt(slugClean, 10) === targetNum) return true;
+      if (/^\d+$/.test(nameClean) && parseInt(nameClean, 10) === targetNum) return true;
+      return false;
+    });
+    if (numMatch) return numMatch;
+  }
+
+  return undefined;
 }
 
 /**

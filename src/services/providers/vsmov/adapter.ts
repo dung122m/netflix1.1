@@ -65,16 +65,35 @@ export function adaptVsmovMovieItem(raw: VsmovRawMovieItem) {
 export function adaptVsmovEpisodes(servers?: VsmovRawServerItem[]) {
   if (!Array.isArray(servers) || servers.length === 0) return [];
 
-  return servers.map((srv, idx) => ({
-    server_name: srv.server_name || `Server VSMOV #${idx + 1}`,
-    server_data: (srv.server_data || []).map((ep) => ({
+  return servers.map((srv, idx) => {
+    const rawData = (srv.server_data || []).map((ep) => ({
       name: ep.name || "",
       slug: ep.slug || "",
       filename: ep.filename || ep.name || "",
       link_embed: ep.link_embed || "",
       link_m3u8: ep.link_m3u8 || "",
-    })),
-  }));
+    }));
+
+    // Sắp xếp tự nhiên theo thứ tự tập số học để chống lỗi tập bị đảo lộn từ upstream VSMOV
+    const sortedData = [...rawData].sort((a, b) => {
+      const getNum = (s: string) => {
+        const m = s.match(/(?:tập|tap|ep)?[\s-_]*(\d+)[\s-_]*(\d+)?/i);
+        if (!m) return 0;
+        const main = parseInt(m[1], 10);
+        const sub = m[2] ? parseInt(m[2], 10) / 100 : 0;
+        return main + sub;
+      };
+      const numA = getNum(`${a.name} ${a.slug}`);
+      const numB = getNum(`${b.name} ${b.slug}`);
+      if (numA !== numB) return numA - numB;
+      return String(a.name || "").localeCompare(String(b.name || ""), undefined, { numeric: true });
+    });
+
+    return {
+      server_name: srv.server_name || `Server VSMOV #${idx + 1}`,
+      server_data: sortedData,
+    };
+  });
 }
 
 /**

@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { sanitizeAndDeduplicateMovies } from "@/app/api/user/collections/route";
+import { sanitizeAndDeduplicateMovies } from "@/services/collectionService";
 import { normalizeCollection } from "@/services/collectionService";
 import type { CollectionMovieItem } from "@/types/collection";
 

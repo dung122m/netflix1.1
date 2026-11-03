@@ -205,7 +205,7 @@ function UserProfileModalInner({
     return () => unsub();
   }, [user?.uid, isOpen]);
 
-  const handleDeleteComment = async (commentId: string) => {
+  const handleDeleteComment = async (commentId: string, movieSlug?: string) => {
     const confirmed = await showConfirmDialog({
       title: "Xóa bình luận",
       message: "Bạn có chắc chắn muốn xóa nhận xét này? Bình luận sẽ bị gỡ vĩnh viễn khỏi bộ phim.",
@@ -216,13 +216,18 @@ function UserProfileModalInner({
 
     if (!confirmed) return;
 
+    const previous = userComments;
+    setUserComments((prev) => prev.filter((c) => c.id !== commentId));
     setDeletingCommentId(commentId);
+
     try {
-      await deleteMovieComment(commentId);
+      await deleteMovieComment(commentId, { movieSlug, userId: user?.uid });
       toast.success("Đã xóa bình luận thành công!");
-    } catch (err) {
+    } catch (err: unknown) {
       console.error("Lỗi xóa bình luận:", err);
-      toast.error("Không thể xóa bình luận lúc này!");
+      setUserComments(previous);
+      const msg = err instanceof Error ? err.message : "Không thể xóa bình luận lúc này!";
+      toast.error(msg);
     } finally {
       setDeletingCommentId(null);
     }
@@ -483,7 +488,7 @@ function UserProfileModalInner({
                 <h3 className="text-sm sm:text-lg font-black text-white truncate max-w-[180px] sm:max-w-none">
                   {displayName || user.displayName || "Thành viên Nanaflix"}
                 </h3>
-                <span className="px-1.5 sm:px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 text-[9.5px] sm:text-[10px] font-bold whitespace-nowrap">
+                <span className="px-1.5 sm:px-2 py-0.5 rounded-full bg-netflix-red/20 text-netflix-red text-[9.5px] sm:text-[10px] font-bold whitespace-nowrap">
                   {levelInfo.levelName}
                 </span>
               </div>
@@ -502,7 +507,7 @@ function UserProfileModalInner({
             aria-label="Xem lịch sử xem phim"
             className="p-1.5 sm:p-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] text-center flex flex-col items-center justify-center transition group min-w-0 overflow-hidden cursor-pointer"
           >
-            <Film className="w-3.5 h-3.5 text-rose-400 mb-0.5 sm:mb-1 group-hover:scale-110 transition flex-shrink-0" />
+            <Film className="w-3.5 h-3.5 text-netflix-red mb-0.5 sm:mb-1 group-hover:scale-110 transition flex-shrink-0" />
             <span className="text-xs sm:text-sm font-black text-white truncate max-w-full">{watchHistoryCount}</span>
             <span className="text-[9.5px] sm:text-[10px] text-zinc-400 truncate max-w-full px-0.5">Lịch sử xem</span>
           </Link>
@@ -528,7 +533,7 @@ function UserProfileModalInner({
             onClick={() => setIsOpen(false)}
             className="p-1.5 sm:p-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] text-center flex flex-col items-center justify-center transition group min-w-0 overflow-hidden"
           >
-            <FolderHeart className="w-3.5 h-3.5 text-sky-400 mb-0.5 sm:mb-1 group-hover:scale-110 transition flex-shrink-0" />
+            <FolderHeart className="w-3.5 h-3.5 text-netflix-red mb-0.5 sm:mb-1 group-hover:scale-110 transition flex-shrink-0" />
             <span className="text-xs sm:text-sm font-black text-white truncate max-w-full">{collectionsCount}</span>
             <span className="text-[9.5px] sm:text-[10px] text-zinc-400 truncate max-w-full px-0.5">Bộ sưu tập</span>
           </Link>
@@ -537,11 +542,11 @@ function UserProfileModalInner({
             type="button"
             onClick={() => setActiveTab("comments")}
             className={`p-1.5 sm:p-2.5 rounded-xl text-center flex flex-col items-center justify-center transition cursor-pointer min-w-0 overflow-hidden ${activeTab === "comments"
-              ? "bg-rose-500/20 text-rose-300"
+              ? "bg-netflix-red/20 text-netflix-red"
               : "bg-white/[0.04] hover:bg-white/[0.08] text-white"
               }`}
           >
-            <MessageSquare className="w-3.5 h-3.5 text-emerald-400 mb-0.5 sm:mb-1 flex-shrink-0" />
+            <MessageSquare className="w-3.5 h-3.5 text-netflix-red mb-0.5 sm:mb-1 flex-shrink-0" />
             <span className="text-xs sm:text-sm font-black truncate max-w-full">{userComments.length}</span>
             <span className="text-[9.5px] sm:text-[10px] text-zinc-400 truncate max-w-full px-0.5">Đánh giá</span>
           </button>
@@ -849,7 +854,7 @@ function UserProfileModalInner({
                 <button
                   type="submit"
                   disabled={isSaving}
-                  className="flex-1 sm:flex-none px-4 sm:px-5 py-2.5 rounded-xl bg-netflix-red hover:bg-rose-700 text-white text-xs font-black shadow-md shadow-black/50 transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 active:scale-95"
+                  className="flex-1 sm:flex-none px-4 sm:px-5 py-2.5 rounded-xl bg-netflix-red hover:brightness-110 active:brightness-95 text-white text-xs font-black shadow-md shadow-black/50 transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 active:scale-95"
                 >
                   {isSaving ? (
                     <>
@@ -873,7 +878,7 @@ function UserProfileModalInner({
           <form onSubmit={handleSavePlayerSettings} className="space-y-3 sm:space-y-4 py-1">
             <div className="p-3 sm:p-3.5 rounded-2xl bg-white/[0.03] space-y-1">
               <h4 className="text-xs sm:text-sm font-bold text-white flex items-center gap-2">
-                <Sliders className="w-4 h-4 text-rose-400 flex-shrink-0" />
+                <Sliders className="w-4 h-4 text-netflix-red flex-shrink-0" />
                 <span>Đồng bộ tùy chọn trình phát Cloud</span>
               </h4>
               <p className="text-[11px] sm:text-xs text-zinc-400 leading-relaxed">
@@ -886,7 +891,7 @@ function UserProfileModalInner({
               <div className="flex items-start sm:items-center justify-between p-3 sm:p-3.5 rounded-2xl bg-zinc-900/60 hover:bg-zinc-900/80 transition gap-2.5 sm:gap-3">
                 <div className="space-y-0.5 min-w-0 flex-1 pr-1 sm:pr-3">
                   <div className="text-xs sm:text-sm font-bold text-white flex items-center gap-1.5">
-                    <Play className="w-3.5 h-3.5 text-rose-400 flex-shrink-0" />
+                    <Play className="w-3.5 h-3.5 text-netflix-red flex-shrink-0" />
                     <span>Tự động phát tập tiếp theo</span>
                   </div>
                   <p className="text-[10.5px] sm:text-[11px] text-zinc-400 leading-normal">
@@ -1025,7 +1030,7 @@ function UserProfileModalInner({
               <button
                 type="submit"
                 disabled={isSavingPlayerSettings}
-                className="flex-1 sm:flex-none px-4 sm:px-5 py-2.5 rounded-xl bg-netflix-red hover:bg-rose-700 text-white text-xs font-black shadow-md shadow-black/50 transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 active:scale-95"
+                className="flex-1 sm:flex-none px-4 sm:px-5 py-2.5 rounded-xl bg-netflix-red hover:brightness-110 active:brightness-95 text-white text-xs font-black shadow-md shadow-black/50 transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 active:scale-95"
               >
                 {isSavingPlayerSettings ? (
                   <>
@@ -1068,13 +1073,13 @@ function UserProfileModalInner({
                         <Link
                           href={`/movies/${c.movieSlug}#comments`}
                           onClick={() => setIsOpen(false)}
-                          className="text-xs sm:text-sm font-bold text-white hover:text-rose-400 transition flex items-center gap-1.5 group truncate"
+                          className="text-xs sm:text-sm font-bold text-white hover:text-netflix-red transition flex items-center gap-1.5 group truncate"
                         >
                           <span className="truncate">{c.movieTitle || c.movieSlug}</span>
-                          <ExternalLink className="w-3.5 h-3.5 text-zinc-500 group-hover:text-rose-400 transition flex-shrink-0" />
+                          <ExternalLink className="w-3.5 h-3.5 text-zinc-500 group-hover:text-netflix-red transition flex-shrink-0" />
                         </Link>
                         {c.episodeName && (
-                          <span className="text-[10px] sm:text-[11px] text-rose-300 font-semibold bg-rose-500/10 px-2 py-0.5 rounded-md inline-block mt-1">
+                          <span className="text-[10px] sm:text-[11px] text-netflix-red font-semibold bg-netflix-red/10 px-2 py-0.5 rounded-md inline-block mt-1">
                             {c.episodeName}
                           </span>
                         )}
@@ -1100,8 +1105,8 @@ function UserProfileModalInner({
                           <span>{new Date(c.createdAt).toLocaleString("vi-VN")}</span>
                         </span>
                         {c.likes > 0 && (
-                          <span className="flex items-center gap-1 text-rose-400 font-bold">
-                            <ThumbsUp className="w-3 h-3 fill-rose-400 flex-shrink-0" />
+                          <span className="flex items-center gap-1 text-netflix-red font-bold">
+                            <ThumbsUp className="w-3 h-3 fill-netflix-red flex-shrink-0" />
                             <span>{c.likes}</span>
                           </span>
                         )}
@@ -1110,7 +1115,7 @@ function UserProfileModalInner({
                       <button
                         type="button"
                         disabled={deletingCommentId === c.id}
-                        onClick={() => handleDeleteComment(c.id)}
+                        onClick={() => handleDeleteComment(c.id, c.movieSlug)}
                         className="flex items-center gap-1 text-red-400 hover:text-red-300 hover:bg-red-500/15 px-2 py-1 rounded-lg transition text-[11px] sm:text-xs font-bold cursor-pointer disabled:opacity-50 ml-auto"
                       >
                         {deletingCommentId === c.id ? (

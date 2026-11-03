@@ -416,7 +416,7 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(function Episo
                 <div
                   className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 font-bold text-sm ${
                     isActive
-                      ? "bg-gradient-to-br from-red-600 to-rose-600 text-white shadow-lg shadow-red-600/40 "
+                      ? "bg-gradient-to-br from-netflix-red to-netflix-red/80 text-white shadow-lg shadow-netflix-red/40 "
                       : "bg-white/10 text-white "
                   }`}
                 >
@@ -435,7 +435,7 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(function Episo
                   <h4 className="text-sm font-bold text-white truncate flex items-center gap-2">
                     <span>{formatEpisodeName(tapName)}</span>
                     {isActive && (
-                      <span className="text-[10px] uppercase font-bold px-1.5 py-0.5 rounded-full bg-netflix-red/30 text-rose-300 border border-netflix-red/40 shrink-0">
+                      <span className="text-[10px] uppercase font-bold px-1.5 py-0.5 rounded-full bg-netflix-red/25 text-white border border-netflix-red/40 shrink-0">
                         Đang phát
                       </span>
                     )}
@@ -464,7 +464,7 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(function Episo
                 className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 ${
                   isActive
                     ? "bg-zinc-800 text-zinc-300  cursor-default"
-                    : "bg-netflix-red hover:bg-red-600 text-white shadow-md shadow-red-600/30 active:scale-95 cursor-pointer"
+                    : "bg-netflix-red hover:brightness-110 text-white shadow-md shadow-netflix-red/30 active:scale-95 cursor-pointer"
                 }`}
               >
                 {isActive ? "Đang chọn" : "Phát ngay"}
@@ -551,7 +551,7 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(function Episo
                       : "py-2 px-1 text-xs sm:text-[13px] font-bold"
                   } ${
                     isActive
-                      ? "bg-gradient-to-br from-red-600 via-netflix-red to-rose-700 text-white font-black shadow-lg shadow-netflix-red/40  scale-[1.03] z-10 "
+                      ? "bg-gradient-to-br from-netflix-red to-netflix-red/80 text-white font-black shadow-lg shadow-netflix-red/40 scale-[1.03] z-10 "
                       : isWatched
                       ? "bg-zinc-950/70 hover:bg-zinc-900 text-zinc-400 hover:text-zinc-200  hover:"
                       : "bg-white/[0.06] hover:bg-white/[0.12] text-zinc-200 hover:text-white  hover: hover:scale-[1.03] active:scale-[0.97] shadow-xs"

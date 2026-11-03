@@ -5,12 +5,13 @@ import { useSearchParams } from "next/navigation";
 import {
   FootballMatch,
   LiveFootballData,
-} from "@/services/liveFootballService";
+} from "@/services/live/football/service";
 import { useBodyScrollLock } from "@/lib/scrollLock";
 import { clearProbeQueue } from "@/services/live/football/clientSourceProbe";
 import { LivePlayer, toCanonicalSourceUrl } from "./LivePlayer";
 import { MatchCard } from "./MatchCard";
 import { MatchCenter } from "./MatchCenter";
+import { Tooltip } from "@/components/ui/Tooltip";
 import { MatchTimelineSidebar } from "./MatchTimelineSidebar";
 import { LeagueStandings } from "./LeagueStandings";
 import { ScrollablePillsRow } from "@/components/ui/ScrollablePillsRow";
@@ -361,6 +362,52 @@ export function LiveFootballClient({
     }
     return null;
   }, [selectedMatch, scoresMap]);
+
+  // Xác định trạng thái trận tâm điểm cho trận đấu đang chọn
+  const _selectedMatchFeatured = useMemo(() => {
+    if (!selectedMatch) return null;
+    const tName = resolveCanonicalTournament({
+      tournament: selectedMatch.tournament,
+      title: selectedMatch.title,
+      sport: selectedMatch.sport,
+      team1: selectedMatch.team1,
+      team2: selectedMatch.team2,
+      category: selectedMatch.category,
+      gender: selectedMatch.gender,
+      score: currentMatchScore,
+    });
+    return isFeaturedMatch({
+      title: selectedMatch.title,
+      tournament: tName,
+      team1: selectedMatch.team1,
+      team2: selectedMatch.team2,
+      sport: selectedMatch.sport,
+      category: selectedMatch.category,
+      gender: selectedMatch.gender,
+      score: currentMatchScore,
+      validServersCount: selectedMatch.servers?.length || 0,
+      servers: selectedMatch.servers,
+    });
+  }, [selectedMatch, currentMatchScore]);
+
+  // Tên giải đấu chuẩn hóa của trận đang chọn cho thanh điều hướng
+  const selectedMatchTournament = useMemo(() => {
+    if (!selectedMatch) return "";
+    return (
+      resolveCanonicalTournament({
+        tournament: selectedMatch.tournament,
+        title: selectedMatch.title,
+        sport: selectedMatch.sport,
+        team1: selectedMatch.team1,
+        team2: selectedMatch.team2,
+        category: selectedMatch.category,
+        gender: selectedMatch.gender,
+        score: currentMatchScore,
+      }) ||
+      selectedMatch.tournament ||
+      "Trực tiếp"
+    );
+  }, [selectedMatch, currentMatchScore]);
 
   useEffect(() => {
     setMatchSummary(null);
@@ -1387,7 +1434,7 @@ export function LiveFootballClient({
           {selectedMatch ? (
             <div className="space-y-2.5 sm:space-y-3 pb-16 lg:pb-0">
               {/* THANH ĐIỀU HƯỚNG QUAY LẠI DANH SÁCH & TIÊU ĐỀ TRẬN (BREADCRUMB COMPACT ~32-36PX) */}
-              <div className="flex items-center justify-between gap-2.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-zinc-950/90 backdrop-blur-xl text-xs shadow-md">
+              <div className="flex items-center justify-between gap-2.5 px-1 py-1 text-xs">
                 <button
                   type="button"
                   onClick={handleClosePlayer}
@@ -1400,17 +1447,18 @@ export function LiveFootballClient({
                 <div className="flex items-center gap-2 min-w-0 flex-1 justify-start overflow-hidden px-1">
                   <span className="text-zinc-600 text-xs shrink-0 select-none">/</span>
                   <div className="flex items-center gap-1.5 min-w-0 truncate">
-                    <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse shrink-0" />
                     <span className="font-bold text-white text-xs sm:text-sm truncate">
-                      {selectedMatch.title}
+                      {selectedMatchTournament}
                     </span>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-1.5 shrink-0">
-                  <span className="text-[10px] font-sans font-bold tabular-nums px-2 py-0.5 rounded bg-netflix-red/20 text-rose-300 shrink-0">
-                    {selectedMatch.quality || "FHD"}
-                  </span>
+                  {selectedMatch.quality ? (
+                    <span className="text-[10px] font-sans font-bold tabular-nums px-2 py-0.5 rounded bg-white/10 text-zinc-300 shrink-0">
+                      {selectedMatch.quality}
+                    </span>
+                  ) : null}
                 </div>
               </div>
 
@@ -1438,34 +1486,20 @@ export function LiveFootballClient({
                       onVideoHeightChange={handleVideoHeightChange}
                     />
 
-                    {/* Thanh thông tin và điều khiển nhanh dưới player */}
-                    <div className="flex items-center justify-between gap-2.5 px-3 py-2.5 rounded-xl bg-zinc-950/80 text-xs shadow-md">
-                      <div className="flex items-center gap-2 min-w-0 flex-1">
-                        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
-                        <div className="min-w-0 flex-1">
-                          <span className="text-zinc-300 truncate text-[11px] sm:text-xs block font-bold">
-                            Tín hiệu tiếp sóng trực tiếp
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* NÚT ĐỔI TRẬN TRÊN MOBILE: BẤM ĐỂ MỞ BOTTOM SHEET */}
+                    {/* NÚT ĐỔI TRẬN TRÊN MOBILE: CHỈ HIỂN THỊ KHI Ở GIAO DIỆN MÀN HÌNH NHỎ */}
+                    <div className="lg:hidden w-full pt-1">
                       <button
                         type="button"
                         onClick={() => setIsMobileSheetOpen(true)}
                         aria-label={`Đổi trận đấu (${filteredMatches.length} trận khả dụng)`}
-                        className="lg:hidden flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-netflix-red hover:bg-red-700 text-white font-black text-xs shadow-md shadow-black/50 transition cursor-pointer active:scale-95 shrink-0"
+                        className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-netflix-red hover:brightness-110 active:brightness-95 text-white font-bold text-xs shadow-md shadow-black/50 transition cursor-pointer active:scale-95"
                       >
-                        <Clock className="w-3.5 h-3.5 shrink-0" />
-                        <span>Đổi trận</span>
-                        <span className="bg-black/40 text-white text-[10px] font-bold px-1.5 py-0.2 rounded-full shrink-0">
+                        <Clock className="w-4 h-4 shrink-0" />
+                        <span>Đổi trận đấu</span>
+                        <span className="bg-black/40 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0">
                           {filteredMatches.length}
                         </span>
                       </button>
-
-                      <span className="hidden sm:inline-block text-[10px] font-bold px-2 py-0.5 rounded-full bg-netflix-red/20 text-rose-300 shrink-0 whitespace-nowrap">
-                        Tín hiệu HD
-                      </span>
                     </div>
 
                     {/* KHỐI MATCH CENTER TRÊN MOBILE: THÔNG TIN TRẬN ĐẤU & LUỒNG PHÁT CUỘN TỰ NHIÊN */}
@@ -1541,7 +1575,7 @@ export function LiveFootballClient({
                       <div className="flex items-center gap-2 min-w-0">
                         <Clock className="w-3.5 h-3.5 text-netflix-red shrink-0" />
                         <span className="text-xs font-black text-white truncate">
-                          Đổi trận đấu ({filteredMatches.length})
+                          Đổi trận đấu
                         </span>
                       </div>
                       {isSummaryLoading && (
@@ -1725,7 +1759,7 @@ export function LiveFootballClient({
                           onClick={() => handleStatusChange("live")}
                           className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold whitespace-nowrap transition  cursor-pointer ${
                             selectedStatus === "live"
-                              ? "bg-red-600 text-white  shadow-sm"
+                              ? "bg-netflix-red text-white shadow-sm"
                               : "bg-zinc-900 text-rose-300  hover:text-white"
                           }`}
                         >
@@ -1886,7 +1920,7 @@ export function LiveFootballClient({
                           onClick={() => handleStatusChange("live")}
                           className={`flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg text-[11px] sm:text-xs font-semibold whitespace-nowrap transition cursor-pointer min-h-[32px] sm:min-h-[38px] ${
                             selectedStatus === "live"
-                              ? "bg-red-600/90 text-white font-bold  shadow-md shadow-black/50"
+                              ? "bg-netflix-red text-white font-bold shadow-md shadow-black/50"
                               : "text-rose-300/90 hover:text-white hover:bg-white/5 "
                           }`}
                         >
@@ -1942,16 +1976,17 @@ export function LiveFootballClient({
                     </div>
 
                     {/* NÚT LỌC TRẬN TÂM ĐIỂM (ĐỘC LẬP, CÂN ĐỐI) */}
-                    <button
-                      type="button"
-                      onClick={handleFeaturedToggle}
-                      aria-pressed={onlyFeatured}
-                      title="Chỉ hiện các trận cầu tâm điểm / đại chiến hấp dẫn nhất"
-                      className={`flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl text-[11px] sm:text-xs font-semibold whitespace-nowrap transition cursor-pointer min-h-[32px] sm:min-h-[38px] shrink-0 ${
-                        onlyFeatured
-                          ? "bg-gradient-to-r from-rose-600 to-red-600 text-white  shadow-md shadow-rose-950/60 font-bold"
-                          : "bg-zinc-900/80 text-zinc-400  hover:text-rose-300 hover:"
-                      }`}
+                    <Tooltip content="Chỉ hiện các trận cầu tâm điểm / đại chiến hấp dẫn nhất" side="top">
+                      <button
+                        type="button"
+                        onClick={handleFeaturedToggle}
+                        aria-pressed={onlyFeatured}
+                        aria-label="Chỉ hiện các trận cầu tâm điểm / đại chiến hấp dẫn nhất"
+                        className={`flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl text-[11px] sm:text-xs font-semibold whitespace-nowrap transition cursor-pointer min-h-[32px] sm:min-h-[38px] shrink-0 ${
+                          onlyFeatured
+                            ? "bg-gradient-to-r from-rose-600 to-red-600 text-white  shadow-md shadow-rose-950/60 font-bold"
+                            : "bg-zinc-900/80 text-zinc-400  hover:text-rose-300 hover:"
+                        }`}
                     >
                       <Flame
                         className={`w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 transition-transform ${
@@ -1964,6 +1999,7 @@ export function LiveFootballClient({
                         Tâm điểm {counts.featured > 0 && <span className="opacity-75 tabular-nums font-normal">({counts.featured})</span>}
                       </span>
                     </button>
+                  </Tooltip>
                   </div>
                 </div>
 
@@ -2255,7 +2291,7 @@ export function LiveFootballClient({
                       <button
                         type="button"
                         onClick={handleResetFilters}
-                        className="px-4 py-2 rounded-xl bg-netflix-red text-white text-xs font-bold cursor-pointer hover:bg-red-700 transition"
+                        className="px-4 py-2 rounded-xl bg-netflix-red text-white text-xs font-bold cursor-pointer hover:brightness-110 active:brightness-95 transition"
                       >
                         Đặt lại bộ lọc
                       </button>

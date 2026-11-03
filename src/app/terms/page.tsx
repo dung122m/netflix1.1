@@ -130,7 +130,7 @@ export default function TermsPage() {
       <Navbar />
 
       {/* AMBIENT GLOW */}
-      <div className="fixed top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-[500px] bg-[radial-gradient(ellipse_80%_60%_at_50%_0%,rgba(229,9,20,0.12),rgba(0,0,0,0))] pointer-events-none -z-10" />
+      <div className="fixed top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-[500px] bg-[radial-gradient(ellipse_80%_60%_at_50%_0%,rgba(var(--accent-rgb),0.12),rgba(0,0,0,0))] pointer-events-none -z-10" />
 
       <main className="flex-1 pt-28 sm:pt-32 pb-24 px-4 sm:px-8 md:px-12 max-w-5xl mx-auto w-full space-y-16 sm:space-y-20">
         
@@ -292,7 +292,7 @@ export default function TermsPage() {
 
             <a
               href="mailto:contact@nanaflix.id.vn?subject=[DMCA%20Takedown%20Request]%20Yeu%20cau%20go%20bo%20noi%20dung"
-              className="inline-flex items-center gap-2.5 px-6 py-3.5 rounded-xl bg-netflix-red hover:bg-red-700 text-white font-bold text-sm tracking-wide transition-all shadow-lg hover:shadow-red-600/30 hover:scale-105 shrink-0"
+              className="inline-flex items-center gap-2.5 px-6 py-3.5 rounded-xl bg-netflix-red hover:brightness-110 active:brightness-95 text-white font-bold text-sm tracking-wide transition-all shadow-lg hover:shadow-red-600/30 hover:scale-105 shrink-0"
             >
               <Mail className="w-4 h-4" />
               <span>Gửi thông báo DMCA</span>

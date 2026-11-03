@@ -4,7 +4,7 @@ import { HomeGenreExploreBar } from "@/components/home/HomeGenreExploreBar";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { ContinueWatchingRow } from "@/components/ContinueWatchingRow";
-import { movieApi } from "@/services/movieApi";
+import { movieApi } from "@/services/movies/service";
 import { getTmdbRankedMovies, getTmdbBackdropUrl } from "@/services/tmdbService";
 import { CuratedMovieSection } from "@/components/CuratedMovieSection";
 import { TmdbTopTrending } from "@/components/TmdbTopTrending";

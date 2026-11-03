@@ -111,8 +111,17 @@ export async function GET(req: NextRequest) {
         isPinned: Boolean(d.is_pinned),
         createdAt: Number(d.created_at) || Date.now(),
         updatedAt: Number(d.updated_at) || Date.now(),
-        isEdited: Boolean(d.is_edited ?? d.isEdited ?? (d.edited_at ? Number(d.edited_at) > (Number(d.created_at) || 0) + 3000 : false)),
-        editedAt: d.edited_at ? Number(d.edited_at) : undefined,
+        isEdited: Boolean(
+          d.is_edited ??
+            d.isEdited ??
+            (Number(d.updated_at) > (Number(d.created_at) || 0) + 3000)
+        ),
+        editedAt:
+          d.edited_at
+            ? Number(d.edited_at)
+            : Number(d.updated_at) > (Number(d.created_at) || 0) + 3000
+            ? Number(d.updated_at)
+            : undefined,
       };
     });
 
@@ -321,8 +330,6 @@ export async function POST(req: NextRequest) {
       is_flagged: false,
       is_approved: true,
       is_pinned: false,
-      is_edited: false,
-      edited_at: null,
       created_at: now,
       updated_at: now,
     };
@@ -826,8 +833,6 @@ export async function PUT(req: NextRequest) {
     }
 
     const payload: Record<string, unknown> = {
-      is_edited: true,
-      edited_at: Date.now(),
       updated_at: Date.now(),
     };
     if (rating !== undefined) {
@@ -920,8 +925,13 @@ export async function DELETE(req: NextRequest) {
       .eq("id", commentId)
       .maybeSingle();
 
-    if (fetchErr || !existingComment) {
-      return NextResponse.json({ error: "Không tìm thấy bình luận" }, { status: 404 });
+    if (fetchErr) {
+      return NextResponse.json({ error: fetchErr.message }, { status: 500 });
+    }
+
+    // Tính chất lũy thừa (Idempotent): nếu bình luận không còn trong DB (đã xóa), trả về thành công
+    if (!existingComment) {
+      return NextResponse.json({ success: true, alreadyDeleted: true });
     }
 
     const isOwner = existingComment.user_id === auth.userId;
@@ -934,6 +944,42 @@ export async function DELETE(req: NextRequest) {
       );
     }
 
+    // Thu thập tất cả các reply con/cháu (descendants) để xóa sạch, tránh để lại orphaned replies
+    let allDescendantIds: string[] = [];
+    let currentParentIds = [commentId];
+    while (currentParentIds.length > 0) {
+      const { data: children, error: childErr } = await supabaseAdmin
+        .from("movie_comments")
+        .select("id")
+        .in("parent_id", currentParentIds);
+
+      if (childErr) {
+        return NextResponse.json({ error: childErr.message }, { status: 500 });
+      }
+      if (!children || children.length === 0) break;
+
+      const foundIds = children
+        .map((c) => String(c.id))
+        .filter((id) => !allDescendantIds.includes(id) && id !== commentId);
+      if (foundIds.length === 0) break;
+
+      allDescendantIds = allDescendantIds.concat(foundIds);
+      currentParentIds = foundIds;
+    }
+
+    // Thứ tự an toàn: Xóa toàn bộ con cháu trước nếu có
+    if (allDescendantIds.length > 0) {
+      const { error: deleteChildrenErr } = await supabaseAdmin
+        .from("movie_comments")
+        .delete()
+        .in("id", allDescendantIds);
+
+      if (deleteChildrenErr) {
+        return NextResponse.json({ error: deleteChildrenErr.message }, { status: 500 });
+      }
+    }
+
+    // Sau khi dọn dẹp các reply con thành công, xóa bình luận chính
     const { error: deleteErr } = await supabaseAdmin.from("movie_comments").delete().eq("id", commentId);
     if (deleteErr) {
       return NextResponse.json({ error: deleteErr.message }, { status: 500 });

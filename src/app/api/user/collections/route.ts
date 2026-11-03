@@ -10,87 +10,12 @@ import {
 
 export const dynamic = "force-dynamic";
 
-export interface SanitizedMovieItem {
-  slug: string;
-  title: string;
-  poster: string;
-  year?: string;
-  quality?: string;
-  category?: string;
-  addedAt: number;
-  itemType?: "movie" | "series" | "episode";
-  seriesSlug?: string;
-  seriesTitle?: string;
-  episodeSlug?: string;
-  episodeName?: string;
-  seasonName?: string;
-}
+import {
+  sanitizeAndDeduplicateMovies,
+  type SanitizedMovieItem,
+} from "@/services/collectionService";
 
-/**
- * Chuẩn hóa và loại bỏ phim trùng slug ở cấp độ Server API
- * - Chuẩn hóa slug (trim, case-insensitive khi kiểm tra trùng)
- * - Bảo tồn thứ tự phim xuất hiện ban đầu
- * - Giữ trọn vẹn metadata hợp lệ (poster, year, quality, category, addedAt, itemType, seriesSlug, episodeSlug...)
- * - Loại bỏ các item rỗng hoặc thiếu slug/title
- */
-export function sanitizeAndDeduplicateMovies(rawMovies: unknown): SanitizedMovieItem[] {
-  if (!Array.isArray(rawMovies)) return [];
-
-  const seenSlugs = new Set<string>();
-  const sanitized: SanitizedMovieItem[] = [];
-
-  for (const item of rawMovies) {
-    if (!item || typeof item !== "object") continue;
-    const m = item as Record<string, unknown>;
-
-    const slug = String(m.slug || "").trim();
-    const title = String(m.title || "").trim();
-    if (!slug || !title) continue;
-
-    const normalizedKey = slug.toLowerCase();
-    if (seenSlugs.has(normalizedKey)) {
-      continue; // Đã có trong danh sách, bỏ qua để chống trùng
-    }
-    seenSlugs.add(normalizedKey);
-
-    const poster = String(m.poster || m.posterUrl || m.poster_url || m.thumb_url || "/default-poster.jpg").trim();
-    const year = m.year !== undefined && m.year !== null ? String(m.year).trim() : undefined;
-    const quality = m.quality ? String(m.quality).trim() : undefined;
-    const category = m.category ? String(m.category).trim() : undefined;
-    const addedAt = Number(m.addedAt ?? m.added_at) || Date.now();
-
-    const itemType = m.itemType && ["movie", "series", "episode"].includes(String(m.itemType))
-      ? (String(m.itemType) as "movie" | "series" | "episode")
-      : (slug.includes("__ep__") ? "episode" : undefined);
-    const seriesSlug = m.seriesSlug
-      ? String(m.seriesSlug).trim()
-      : (slug.includes("__ep__") ? slug.split("__ep__")[0] : undefined);
-    const seriesTitle = m.seriesTitle ? sanitizeSafeText(String(m.seriesTitle), 200) : undefined;
-    const episodeSlug = m.episodeSlug
-      ? String(m.episodeSlug).trim()
-      : (slug.includes("__ep__") ? slug.split("__ep__")[1] : undefined);
-    const episodeName = m.episodeName ? sanitizeSafeText(String(m.episodeName), 100) : undefined;
-    const seasonName = m.seasonName ? sanitizeSafeText(String(m.seasonName), 100) : undefined;
-
-    sanitized.push({
-      slug,
-      title: sanitizeSafeText(title, 200),
-      poster,
-      year: year || undefined,
-      quality: quality || undefined,
-      category: category || undefined,
-      addedAt,
-      itemType,
-      seriesSlug,
-      seriesTitle,
-      episodeSlug,
-      episodeName,
-      seasonName,
-    });
-  }
-
-  return sanitized;
-}
+export { sanitizeAndDeduplicateMovies, type SanitizedMovieItem };
 
 function formatCollectionResponse(row: Record<string, unknown>) {
   const now = Date.now();
@@ -108,8 +33,8 @@ function formatCollectionResponse(row: Record<string, unknown>) {
     is_public: Boolean(row.is_public ?? row.isPublic ?? true),
     colorGradient: (row.color_gradient || row.colorGradient || null) as string | null,
     color_gradient: (row.color_gradient || row.colorGradient || null) as string | null,
-    coverUrl: (row.cover_url || row.coverUrl || null) as string | null,
-    cover_url: (row.cover_url || row.coverUrl || null) as string | null,
+    coverUrl: (row.cover_url || row.coverUrl || (Array.isArray(row.movies) && (row.movies[0] as Record<string, unknown>)?.poster) || null) as string | null,
+    cover_url: (row.cover_url || row.coverUrl || (Array.isArray(row.movies) && (row.movies[0] as Record<string, unknown>)?.poster) || null) as string | null,
     movies: Array.isArray(row.movies) ? row.movies : [],
     likesCount: Number(row.likes_count ?? row.likesCount ?? 0),
     likes_count: Number(row.likes_count ?? row.likesCount ?? 0),
@@ -313,7 +238,6 @@ export async function POST(req: NextRequest) {
       description: description ? sanitizeSafeText(description, 500) : null,
       is_public: Boolean(isPublic),
       color_gradient: colorGradient || null,
-      cover_url: coverUrl || null,
       movies,
       created_at: createdAt,
       updated_at: now,
@@ -324,7 +248,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }
 
-    return NextResponse.json({ success: true, id: collectionId, item: formatCollectionResponse(payload) });
+    return NextResponse.json({
+      success: true,
+      id: collectionId,
+      item: formatCollectionResponse({ ...payload, cover_url: coverUrl || null }),
+    });
   } catch (err) {
     console.error("[Collections API POST] Error:", err);
     return NextResponse.json({ success: false, error: "Internal error" }, { status: 500 });

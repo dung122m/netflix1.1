@@ -9,7 +9,7 @@ import {
   addTombstone,
   getTombstones,
 } from "./collectionService";
-import { sanitizeAndDeduplicateMovies } from "@/app/api/user/collections/route";
+import { sanitizeAndDeduplicateMovies } from "@/services/collectionService";
 import { MovieCollection, CollectionMovieItem } from "@/types/collection";
 
 describe("Nanaflix Collections - Regression Test Suite", () => {

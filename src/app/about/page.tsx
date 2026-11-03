@@ -143,7 +143,7 @@ export default function AboutPage() {
       <Navbar />
 
       {/* AMBIENT GLOW EFFECTS */}
-      <div className="fixed top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-[600px] bg-[radial-gradient(ellipse_80%_60%_at_50%_0%,rgba(229,9,20,0.15),rgba(0,0,0,0))] pointer-events-none -z-10" />
+      <div className="fixed top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-[600px] bg-[radial-gradient(ellipse_80%_60%_at_50%_0%,rgba(var(--accent-rgb),0.15),rgba(0,0,0,0))] pointer-events-none -z-10" />
       <div className="fixed bottom-0 right-0 w-[500px] h-[500px] bg-[radial-gradient(ellipse_at_bottom_right,rgba(147,51,234,0.06),rgba(0,0,0,0))] pointer-events-none -z-10" />
 
       <main className="flex-1 pt-28 sm:pt-32 pb-24 px-4 sm:px-8 md:px-12 max-w-6xl mx-auto w-full space-y-20 sm:space-y-28">
@@ -194,7 +194,7 @@ export default function AboutPage() {
           <div className="flex items-center justify-center gap-4 pt-4 flex-wrap">
             <Link
               href="/"
-              className="inline-flex items-center gap-2 px-7 py-3.5 rounded-xl bg-netflix-red hover:bg-red-700 text-white font-bold text-sm transition-all shadow-md shadow-black/50 hover:shadow-black/70 hover:scale-[1.02] active:scale-95"
+              className="inline-flex items-center gap-2 px-7 py-3.5 rounded-xl bg-netflix-red hover:brightness-110 active:brightness-95 text-white font-bold text-sm transition-all shadow-md shadow-black/50 hover:shadow-black/70 hover:scale-[1.02] active:scale-95"
             >
               <Play size={16} className="fill-current" />
               <span>Khám Phá Phim Ngay</span>
@@ -211,7 +211,7 @@ export default function AboutPage() {
 
         {/* ================= 2. FOUNDER'S STORY & PHILOSOPHY ================= */}
         <section className="relative">
-          <div className="p-6 sm:p-10 rounded-3xl bg-gradient-to-b from-zinc-900/80 via-zinc-950/90 to-black border border-white/[0.1] backdrop-blur-2xl shadow-2xl relative overflow-hidden space-y-8">
+          <div className="p-6 sm:p-8 rounded-2xl sm:rounded-3xl bg-zinc-900/40 border border-white/[0.08] backdrop-blur-md relative overflow-hidden space-y-6">
             {/* Top Tag */}
             <div className="flex items-center justify-between flex-wrap gap-4 border-b border-white/[0.08] pb-6">
               <div className="flex items-center gap-2.5 text-xs font-bold uppercase tracking-widest text-netflix-red">
@@ -411,7 +411,7 @@ export default function AboutPage() {
 
         {/* ================= 6. HELP & ISSUE REPORTING CENTER (SECTION #CONTACT) ================= */}
         <section id="contact" className="scroll-mt-28 space-y-8">
-          <div className="p-8 sm:p-12 rounded-3xl bg-gradient-to-b from-zinc-900/90 via-zinc-950 to-black border border-white/[0.12] backdrop-blur-2xl shadow-2xl relative overflow-hidden space-y-8">
+          <div className="py-8 sm:py-12 space-y-8">
             <div className="text-center space-y-3 max-w-2xl mx-auto">
               <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-rose-500/10 text-rose-400 text-xs font-bold tracking-wider uppercase">
                 <MessageSquare size={14} />
@@ -502,7 +502,7 @@ export default function AboutPage() {
 
               <a
                 href="mailto:contact@nanaflix.id.vn"
-                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-netflix-red hover:bg-red-700 text-white font-bold text-xs transition shadow-lg shrink-0"
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-netflix-red hover:brightness-110 active:brightness-95 text-white font-bold text-xs transition shadow-lg shrink-0"
               >
                 <Mail size={14} />
                 <span>Gửi Email Ngay</span>

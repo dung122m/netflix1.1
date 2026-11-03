@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { normalizeMovie, formatGenreName } from "@/lib/movieMedia";
-import { movieApi } from "@/services/movieApi";
+import { movieApi } from "@/services/movies/service";
 import { cacheService } from "@/lib/cache";
 import {
   enforceRateLimit,

@@ -112,7 +112,7 @@ export const WatchPlayerHost: React.FC<WatchPlayerHostProps> = (props) => {
                 {hasNanaflixSource && (
                   <button
                     onClick={() => setActiveProvider("nanaflix")}
-                    className="px-4 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-xs font-semibold text-white transition cursor-pointer"
+                    className="px-4 py-1.5 rounded-lg bg-netflix-red hover:brightness-110 active:brightness-95 text-xs font-semibold text-white transition cursor-pointer"
                   >
                     Chuyển về Server Nanaflix
                   </button>

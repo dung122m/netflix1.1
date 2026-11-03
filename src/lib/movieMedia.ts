@@ -48,6 +48,124 @@ export function isBrokenImageUrl(url?: unknown): boolean {
   return false;
 }
 
+// ============================================================
+// KHỬ TRÙNG LẶP & LỌC ỨNG VIÊN (GIỮ SOURCE PROVENANCE)
+// ============================================================
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function deduplicateMovieItems(items: any[]): any[] {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const seenMap = new Map<string, any>();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const uniqueItems: any[] = [];
+
+  for (const item of items) {
+    if (!item) continue;
+    const tmdbId = item.tmdb?.id ? String(item.tmdb.id).trim() : "";
+    const imdbId = item.imdb?.id ? String(item.imdb.id).trim().toLowerCase() : "";
+    const slug = item.slug ? String(item.slug).trim().toLowerCase() : "";
+    const year = item.year ? String(item.year).trim() : "";
+    const normName = item.name ? normalizeForMatch(String(item.name)) : "";
+    const titleYearKey = normName && year ? `${normName}_${year}` : "";
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let existing: any = null;
+    if (tmdbId && seenMap.has(`tmdb:${tmdbId}`)) existing = seenMap.get(`tmdb:${tmdbId}`);
+    else if (imdbId && seenMap.has(`imdb:${imdbId}`)) existing = seenMap.get(`imdb:${imdbId}`);
+    else if (slug && seenMap.has(`slug:${slug}`)) existing = seenMap.get(`slug:${slug}`);
+    else if (titleYearKey && seenMap.has(`ty:${titleYearKey}`)) existing = seenMap.get(`ty:${titleYearKey}`);
+    else if (normName && seenMap.has(`name:${normName}`)) {
+      const candidate = seenMap.get(`name:${normName}`);
+      const candYear = candidate.year ? String(candidate.year).trim() : "";
+      if (!year || !candYear || year === candYear) {
+        existing = candidate;
+      }
+    }
+
+    if (existing) {
+      // Merge source provenance
+      const itemSources = Array.isArray(item.sources) ? item.sources : (item.source ? [item.source] : []);
+      const existingSources = Array.isArray(existing.sources) ? existing.sources : (existing.source ? [existing.source] : []);
+      const mergedSources = Array.from(new Set([...existingSources, ...itemSources]));
+      existing.sources = mergedSources;
+
+      // Merge missing metadata hoặc nâng cấp ảnh nếu existing bị trỏ vào CDN lỗi (upload/vod)
+      if (!existing.origin_name && item.origin_name) existing.origin_name = item.origin_name;
+      if (
+        (!existing.poster_url || isBrokenImageUrl(existing.poster_url)) &&
+        item.poster_url &&
+        !isBrokenImageUrl(item.poster_url)
+      ) {
+        existing.poster_url = item.poster_url;
+      } else if (!existing.poster_url && item.poster_url) {
+        existing.poster_url = item.poster_url;
+      }
+
+      if (
+        (!existing.thumb_url || isBrokenImageUrl(existing.thumb_url)) &&
+        item.thumb_url &&
+        !isBrokenImageUrl(item.thumb_url)
+      ) {
+        existing.thumb_url = item.thumb_url;
+      } else if (!existing.thumb_url && item.thumb_url) {
+        existing.thumb_url = item.thumb_url;
+      }
+      if (!existing.year && item.year) existing.year = item.year;
+      if (!existing.quality && item.quality) existing.quality = item.quality;
+      if (!existing.lang && item.lang) existing.lang = item.lang;
+      if (!existing.time && item.time) existing.time = item.time;
+      if ((!existing.category || (Array.isArray(existing.category) && existing.category.length === 0)) && item.category && (!Array.isArray(item.category) || item.category.length > 0)) {
+        existing.category = item.category;
+      }
+      if ((!existing.country || (Array.isArray(existing.country) && existing.country.length === 0)) && item.country && (!Array.isArray(item.country) || item.country.length > 0)) {
+        existing.country = item.country;
+      }
+      if ((!existing.genre_ids || (Array.isArray(existing.genre_ids) && existing.genre_ids.length === 0)) && item.genre_ids) {
+        existing.genre_ids = item.genre_ids;
+      }
+      if (!existing.original_language && item.original_language) {
+        existing.original_language = item.original_language;
+      }
+      if (!existing.tmdb && item.tmdb) {
+        existing.tmdb = item.tmdb;
+      } else if (existing.tmdb && item.tmdb) {
+        const existingRate = Number(existing.tmdb.vote_average || 0);
+        const itemRate = Number(item.tmdb.vote_average || 0);
+        if (existingRate <= 0 && itemRate > 0) {
+          existing.tmdb.vote_average = itemRate;
+          if (item.tmdb.vote_count) existing.tmdb.vote_count = item.tmdb.vote_count;
+        }
+      }
+      if (!existing.imdb && item.imdb) {
+        existing.imdb = item.imdb;
+      } else if (existing.imdb && item.imdb) {
+        const existingRate = Number(existing.imdb.vote_average || 0);
+        const itemRate = Number(item.imdb.vote_average || 0);
+        if (existingRate <= 0 && itemRate > 0) {
+          existing.imdb.vote_average = itemRate;
+          if (item.imdb.vote_count) existing.imdb.vote_count = item.imdb.vote_count;
+        }
+      }
+      continue;
+    }
+
+    // Đảm bảo item có sources
+    if (!item.sources) {
+      item.sources = item.source ? [item.source] : (item._id && !String(item._id).includes("-") ? ["phimapi"] : ["nguonc"]);
+    }
+
+    if (tmdbId) seenMap.set(`tmdb:${tmdbId}`, item);
+    if (imdbId) seenMap.set(`imdb:${imdbId}`, item);
+    if (slug) seenMap.set(`slug:${slug}`, item);
+    if (titleYearKey) seenMap.set(`ty:${titleYearKey}`, item);
+    if (normName && !seenMap.has(`name:${normName}`)) seenMap.set(`name:${normName}`, item);
+
+    uniqueItems.push(item);
+  }
+
+  return uniqueItems;
+}
+
+
 export function sanitizeImageUrl(url: string): string {
   if (!url || typeof url !== "string") return "";
   let clean = url.trim();
@@ -1234,6 +1352,33 @@ export const TMDB_SAFE_LANGUAGE_COUNTRY_MAP: Record<string, string> = {
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function extractMovieActors(m: any): string[] {
+  if (!m) return [];
+  if (Array.isArray(m.actor)) {
+    return m.actor.map(String).map((s: string) => s.trim()).filter(Boolean);
+  }
+  if (typeof m.actor === "string" && m.actor) {
+    return m.actor.split(",").map((s: string) => s.trim()).filter(Boolean);
+  }
+  if (Array.isArray(m.casts)) {
+    return m.casts.map(String).map((s: string) => s.trim()).filter(Boolean);
+  }
+  return [];
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function extractMovieDirectors(m: any): string[] {
+  if (!m) return [];
+  if (Array.isArray(m.director)) {
+    return m.director.map(String).map((s: string) => s.trim()).filter(Boolean);
+  }
+  if (typeof m.director === "string" && m.director) {
+    return m.director.split(",").map((s: string) => s.trim()).filter(Boolean);
+  }
+  return [];
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function extractMovieCountry(m: any): string | undefined {
   if (!m) return undefined;
 
@@ -1679,19 +1824,8 @@ export function normalizeMovie(m: any): NormalizedMovie {
     actor = cachedArrays.actor;
     director = cachedArrays.director;
   } else {
-    if (Array.isArray(m?.actor)) {
-      actor = m.actor.map(String).map((s: string) => s.trim()).filter(Boolean);
-    } else if (typeof m?.actor === "string" && m.actor) {
-      actor = m.actor.split(",").map((s: string) => s.trim()).filter(Boolean);
-    } else if (Array.isArray(m?.casts)) {
-      actor = m.casts.map(String).map((s: string) => s.trim()).filter(Boolean);
-    }
-
-    if (Array.isArray(m?.director)) {
-      director = m.director.map(String).map((s: string) => s.trim()).filter(Boolean);
-    } else if (typeof m?.director === "string" && m.director) {
-      director = m.director.split(",").map((s: string) => s.trim()).filter(Boolean);
-    }
+    actor = extractMovieActors(m);
+    director = extractMovieDirectors(m);
 
     if (isObject) {
       movieArrayCache.set(m, { actor, director });

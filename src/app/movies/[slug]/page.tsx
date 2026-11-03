@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import { movieApi, deduplicateServerEpisodes } from "@/services/movieApi";
+import { movieApi, deduplicateServerEpisodes } from "@/services/movies/service";
 import Link from "next/link";
 import {
   buildMovieDescriptionFallback,
@@ -626,7 +626,7 @@ export default async function MovieDetail({
               mainContent={
                 <>
                   {/* 2. MOVIE HEADER & ACTION TOOLBAR */}
-                  <div className="rounded-2xl sm:rounded-3xl bg-gradient-to-b from-zinc-900/80 via-zinc-950/85 to-black/90 p-4 sm:p-6 backdrop-blur-xl shadow-2xl space-y-3.5 sm:space-y-4">
+                  <div className="space-y-3.5 sm:space-y-4 pt-3 pb-6 border-b border-white/[0.08]">
                     {/* TIÊU ĐỀ PHIM & HUY HIỆU TẬP (RENDER TỨC THÌ 0MS, CHUẨN NETFLIX) */}
                     <div className="space-y-1">
                       <div className="flex flex-wrap items-center gap-2.5 sm:gap-3">
@@ -785,7 +785,7 @@ export default async function MovieDetail({
                         </div>
                         <div className="w-full bg-zinc-800 h-2 rounded-full overflow-hidden">
                           <div
-                            className="bg-gradient-to-r from-netflix-red to-netflix-red/80 h-full rounded-full transition-all duration-500 shadow-[0_0_10px_var(--accent-glow,rgba(229,9,20,0.5))]"
+                            className="bg-gradient-to-r from-netflix-red to-netflix-red/80 h-full rounded-full transition-all duration-500 shadow-[0_0_10px_var(--accent-glow)]"
                             style={{ width: `${progressPercent}%` }}
                           />
                         </div>
@@ -823,7 +823,7 @@ export default async function MovieDetail({
                   {/* 3. MOBILE-FIRST NGUỒN PHÁT & DANH SÁCH TẬP PHIM (< 1024px) - Vị trí ưu tiên ngay dưới player & header */}
                   <div
                     id="section-episodes"
-                    className="scroll-mt-[116px] sm:scroll-mt-[124px] lg:hidden rounded-2xl bg-gradient-to-b from-zinc-900/80 via-zinc-950/85 to-black/90 p-4 shadow-xl backdrop-blur-xl space-y-3"
+                    className="scroll-mt-[116px] sm:scroll-mt-[124px] lg:hidden py-4 border-b border-white/[0.08] space-y-3"
                   >
                     <ServerSelector
                       servers={serverSummaries}
@@ -851,7 +851,7 @@ export default async function MovieDetail({
                   {/* 4. TÓM TẮT CỐT TRUYỆN, DIỄN VIÊN & THÔNG TIN CHI TIẾT */}
                   <div
                     id="section-info"
-                    className="scroll-mt-[116px] sm:scroll-mt-[124px] rounded-2xl sm:rounded-3xl bg-gradient-to-b from-zinc-900/80 via-zinc-950/85 to-black/90 p-4 sm:p-6 backdrop-blur-xl shadow-2xl space-y-4"
+                    className="scroll-mt-[116px] sm:scroll-mt-[124px] space-y-4 py-6 border-b border-white/[0.08]"
                   >
                     <MovieSynopsis
                       synopsis={description}

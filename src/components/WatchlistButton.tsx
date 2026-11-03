@@ -108,7 +108,7 @@ export const WatchlistButton: React.FC<WatchlistButtonProps> = ({
           aria-label={inList ? "Bỏ lưu khỏi danh sách yêu thích" : "Lưu vào danh sách yêu thích"}
           className={`inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg border transition cursor-pointer text-xs active:scale-95 whitespace-nowrap ${
             inList
-              ? "bg-amber-500/20 text-amber-300  font-semibold shadow-sm"
+              ? "bg-netflix-red/20 text-netflix-red border-netflix-red/40 font-semibold shadow-sm"
               : "bg-zinc-900/80 hover:bg-zinc-800 text-zinc-300 hover:text-white "
           } ${className}`}
         >
@@ -137,13 +137,13 @@ export const WatchlistButton: React.FC<WatchlistButtonProps> = ({
         aria-label={inList ? "Đã lưu vào danh sách yêu thích" : "Thêm vào danh sách yêu thích"}
         className={`inline-flex items-center gap-1 sm:gap-1.5 rounded-lg border transition-all cursor-pointer active:scale-95 px-1.5 xs:px-2 sm:px-3.5 py-1.5 text-xs sm:text-sm font-medium shadow-sm flex-shrink-0 whitespace-nowrap ${
           inList
-            ? "bg-amber-500/20  text-amber-300 hover:bg-amber-500/30"
+            ? "bg-netflix-red/20 border-netflix-red/40 text-netflix-red hover:bg-netflix-red/30"
             : " bg-zinc-900/80 text-zinc-200 hover:bg-white/10 hover:text-white"
         } ${className}`}
       >
         {inList ? (
           <>
-            <Check className="h-3.5 w-3.5 text-amber-400 flex-shrink-0" />
+            <Check className="w-4 h-4 text-netflix-red flex-shrink-0" />
             <span className="whitespace-nowrap">{savedLabel || (label ? "Đã lưu" : "Đã lưu")}</span>
           </>
         ) : (

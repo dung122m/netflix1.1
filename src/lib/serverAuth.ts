@@ -129,3 +129,18 @@ export async function verifyServerAuth(req: NextRequest): Promise<ServerAuthResu
     isAdmin: false,
   };
 }
+
+/**
+ * Trích xuất userId mục tiêu cho các endpoint người dùng (/api/user/*).
+ * Nếu caller là Admin và truyền query parameter ?userId=..., trả về userId được yêu cầu;
+ * ngược lại trả về userId của chính người dùng đã xác thực.
+ */
+export function getEffectiveTargetUserId(auth: ServerAuthResult, req: NextRequest): string | null {
+  if (!auth.isAuthenticated || !auth.userId) return null;
+  const { searchParams } = new URL(req.url);
+  const requested = searchParams.get("userId")?.trim();
+  if (auth.isAdmin && requested) {
+    return requested;
+  }
+  return auth.userId;
+}

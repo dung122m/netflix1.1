@@ -142,12 +142,12 @@
   }
 
   ::selection {
-    background: rgba(229, 9, 20, 0.4);
+    background: rgba(var(--accent-rgb), 0.45);
     color: #ffffff;
   }
 
   input, textarea {
-    caret-color: #e50914;
+    caret-color: var(--accent-color, #e50914);
   }
 }
 
@@ -176,7 +176,7 @@
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #e50914;
+  background: var(--accent-color, #e50914);
 }
 
 ::-webkit-scrollbar-corner {
@@ -596,8 +596,8 @@
    ========================================================================== */
 .movie-card-navigating {
   transform: perspective(900px) scale3d(1.06, 1.06, 1) !important;
-  border-color: rgba(229, 9, 20, 0.85) !important;
-  box-shadow: 0 0 45px rgba(229, 9, 20, 0.65), 0 20px 50px rgba(0, 0, 0, 0.95) !important;
+  border-color: var(--accent-border, rgba(229, 9, 20, 0.85)) !important;
+  box-shadow: 0 0 45px var(--accent-glow, rgba(229, 9, 20, 0.65)), 0 20px 50px rgba(0, 0, 0, 0.95) !important;
   filter: brightness(1.1) !important;
   z-index: 45 !important;
   transition: transform 200ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 200ms ease, filter 200ms ease, border-color 200ms ease !important;

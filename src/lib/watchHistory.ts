@@ -550,6 +550,7 @@ export const clearLocalWatchHistoryOnly = (): void => {
   try {
     updateMemoryWatchHistory([]);
     localStorage.removeItem(HISTORY_KEY);
+    localStorage.removeItem(EPISODES_PROGRESS_KEY);
     window.dispatchEvent(new CustomEvent("watch-history-updated"));
   } catch (error) {
     console.error("Lỗi xoá lịch sử local:", error);
@@ -561,6 +562,7 @@ export const clearWatchHistory = (): void => {
   try {
     updateMemoryWatchHistory([]);
     localStorage.removeItem(HISTORY_KEY);
+    localStorage.removeItem(EPISODES_PROGRESS_KEY);
     window.dispatchEvent(new CustomEvent("watch-history-updated"));
 
     if (auth?.currentUser) {

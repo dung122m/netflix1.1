@@ -363,9 +363,9 @@ export function RecommendationTabs({
                   }}
                   className={`flex items-center gap-1.5 ${
                     variant === "sidebar" ? "px-2.5 py-1 rounded-full text-[11px]" : "px-3 py-1.5 rounded-xl text-xs"
-                  } font-bold transition-all whitespace-nowrap cursor-pointer border shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-purple-500 shrink-0 ${
+                  } font-bold transition-all whitespace-nowrap cursor-pointer border shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-netflix-red shrink-0 ${
                     activeTab === "actor"
-                      ? "bg-purple-600 text-white border-purple-400 shadow-sm"
+                      ? "bg-netflix-red text-white border-netflix-red/50 shadow-sm"
                       : "bg-zinc-900/90 text-zinc-300  hover: hover:text-white hover:bg-zinc-800"
                   }`}
                 >
@@ -384,9 +384,9 @@ export function RecommendationTabs({
                   }}
                   className={`flex items-center gap-1.5 ${
                     variant === "sidebar" ? "px-2.5 py-1 rounded-full text-[11px]" : "px-3 py-1.5 rounded-xl text-xs"
-                  } font-bold transition-all whitespace-nowrap cursor-pointer border shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 shrink-0 ${
+                  } font-bold transition-all whitespace-nowrap cursor-pointer border shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-netflix-red shrink-0 ${
                     activeTab === "director"
-                      ? "bg-emerald-600 text-white border-emerald-400 shadow-sm"
+                      ? "bg-netflix-red text-white border-netflix-red/50 shadow-sm"
                       : "bg-zinc-900/90 text-zinc-300 hover:text-white hover:bg-zinc-800"
                   }`}
                 >
@@ -405,7 +405,7 @@ export function RecommendationTabs({
                   }}
                   className={`flex items-center gap-1.5 ${
                     variant === "sidebar" ? "px-2.5 py-1 rounded-full text-[11px]" : "px-3 py-1.5 rounded-xl text-xs"
-                  } font-bold transition-all whitespace-nowrap cursor-pointer border shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-rose-500 shrink-0 ${
+                  } font-bold transition-all whitespace-nowrap cursor-pointer border shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-netflix-red shrink-0 ${
                     activeTab === "genre"
                       ? "bg-netflix-red text-white border-netflix-red shadow-sm"
                       : "bg-zinc-900/90 text-zinc-300  hover: hover:text-white hover:bg-zinc-800"
@@ -426,9 +426,9 @@ export function RecommendationTabs({
                   }}
                   className={`flex items-center gap-1.5 ${
                     variant === "sidebar" ? "px-2.5 py-1 rounded-full text-[11px]" : "px-3 py-1.5 rounded-xl text-xs"
-                  } font-bold transition-all whitespace-nowrap cursor-pointer border shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-sky-500 shrink-0 ${
+                  } font-bold transition-all whitespace-nowrap cursor-pointer border shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-netflix-red shrink-0 ${
                     activeTab === "country"
-                      ? "bg-sky-600 text-white border-sky-400 shadow-sm"
+                      ? "bg-netflix-red text-white border-netflix-red/50 shadow-sm"
                       : "bg-zinc-900/90 text-zinc-300  hover: hover:text-white hover:bg-zinc-800"
                   }`}
                 >
@@ -447,9 +447,9 @@ export function RecommendationTabs({
                   }}
                   className={`flex items-center gap-1.5 ${
                     variant === "sidebar" ? "px-2.5 py-1 rounded-full text-[11px]" : "px-3 py-1.5 rounded-xl text-xs"
-                  } font-bold transition-all whitespace-nowrap cursor-pointer border shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-amber-500 shrink-0 ${
+                  } font-bold transition-all whitespace-nowrap cursor-pointer border shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-netflix-red shrink-0 ${
                     activeTab === "top"
-                      ? "bg-amber-600 text-white border-amber-400 shadow-sm"
+                      ? "bg-netflix-red text-white border-netflix-red/50 shadow-sm"
                       : "bg-zinc-900/90 text-zinc-300  hover: hover:text-white hover:bg-zinc-800"
                   }`}
                 >
@@ -647,7 +647,7 @@ const RecommendedMovieCard = React.memo(function RecommendedMovieCard({
               <span
                 className={`px-1.5 py-0.5 rounded text-[11px] font-bold backdrop-blur-md border ${
                   quality.toUpperCase().includes("CAM")
-                    ? "bg-amber-950/80 text-amber-300 "
+                    ? "bg-netflix-red/20 text-white "
                     : "bg-black/75 text-zinc-300 "
                 }`}
               >

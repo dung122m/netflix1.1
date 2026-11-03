@@ -41,23 +41,15 @@ import {
 } from "@/services/live/football-score/liveStatus";
 import { resolveCanonicalTournament } from "@/services/live/football-score/canonicalLeagues";
 import { LiveShortcutPopover } from "./LiveShortcutPopover";
+import { Tooltip } from "@/components/ui/Tooltip";
 import { ChannelSourceSwitcher } from "./ChannelSourceSwitcher";
 import { CountryFlag } from "./CountryFlag";
+import { PlayingEqualizer } from "./PlayingEqualizer";
+import { useMediaFullscreen } from "./hooks/useMediaFullscreen";
+import { useMediaVolume } from "./hooks/useMediaVolume";
+import { VolumeOsdPill } from "./VolumeOsdPill";
+import { getTeamInitials } from "@/data/live/teamAssets";
 
-function getTeamInitials(teamName: string): string {
-  if (!teamName) return "⚽";
-  const clean = teamName
-    .replace(/^CLB\s+/i, "")
-    .replace(/^FC\s+/i, "")
-    .replace(/^SSC\s+/i, "")
-    .replace(/^U\d+\s+/i, "")
-    .trim();
-  const words = clean.split(/\s+/).filter(Boolean);
-  if (words.length >= 2) {
-    return (words[0][0] + words[1][0]).toUpperCase();
-  }
-  return clean.slice(0, 2).toUpperCase();
-}
 
 export interface GroupedGoalScorer {
   playerName: string;
@@ -194,16 +186,6 @@ export function parseGoalScorers(
   return result;
 }
 
-// Equalizer hoạt ảnh cho kênh đang phát sóng
-function PlayingEqualizer() {
-  return (
-    <div className="flex items-end gap-0.5 h-3 px-1">
-      <span className="w-0.5 bg-emerald-400 rounded-full animate-pulse [animation-duration:1.2s] h-3" />
-      <span className="w-0.5 bg-emerald-400 rounded-full animate-pulse [animation-duration:0.8s] h-2" />
-      <span className="w-0.5 bg-emerald-400 rounded-full animate-pulse [animation-duration:1s] h-3" />
-    </div>
-  );
-}
 
 // Diagnostic helper: tính toán lượng buffer phía trước vị trí phát hiện tại (giây)
 function getForwardBuffer(v: HTMLVideoElement): number {
@@ -812,10 +794,24 @@ function LivePlayerInner({
     return findBestInitialServerIndex(servers);
   });
   const [isPlaying, setIsPlaying] = useState(false);
-  const [isMuted, setIsMuted] = useState(false);
-  const [volume, setVolume] = useState<number>(0.9);
-  const [isFullscreen, setIsFullscreen] = useState(false);
-  const [isPip, setIsPip] = useState(false);
+  const {
+    volume,
+    setVolume,
+    isMuted,
+    setIsMuted,
+    volumeRef,
+    userMutedRef,
+    volumeOsd,
+    handleVolumeChange,
+    triggerVolumeOsd,
+  } = useMediaVolume({ videoRef });
+  const {
+    isFullscreen,
+    isPip,
+    setIsPip,
+    toggleFullscreen,
+    togglePip,
+  } = useMediaFullscreen({ containerRef, videoRef });
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
@@ -826,10 +822,50 @@ function LivePlayerInner({
   const [isGridView, setIsGridView] = useState(true);
   const chipsContainerRef = useRef<HTMLDivElement | null>(null);
   const activeChipRef = useRef<HTMLButtonElement | null>(null);
+  const [canScrollChipsLeft, setCanScrollChipsLeft] = useState(false);
+  const [canScrollChipsRight, setCanScrollChipsRight] = useState(false);
+
+  const checkChipsScroll = useCallback(() => {
+    const el = chipsContainerRef.current;
+    if (!el) return;
+    setCanScrollChipsLeft(el.scrollLeft > 4);
+    setCanScrollChipsRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 4);
+  }, []);
+
+  const handleScrollChipsBy = useCallback((amount: number) => {
+    if (!chipsContainerRef.current) return;
+    chipsContainerRef.current.scrollBy({ left: amount, behavior: "smooth" });
+    setTimeout(checkChipsScroll, 220);
+  }, [checkChipsScroll]);
+
+  const handleChipsWheel = useCallback((e: React.WheelEvent<HTMLDivElement>) => {
+    const el = chipsContainerRef.current;
+    if (!el) return;
+    if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+      if (
+        (e.deltaY < 0 && el.scrollLeft > 0) ||
+        (e.deltaY > 0 && el.scrollLeft + el.clientWidth < el.scrollWidth - 1)
+      ) {
+        el.scrollLeft += e.deltaY;
+        checkChipsScroll();
+      }
+    }
+  }, [checkChipsScroll]);
+
   const [actionFeedback, setActionFeedback] = useState<{
     icon: "play" | "pause" | "volume" | "mute" | "server" | "match" | "seek";
     text?: string;
   } | null>(null);
+
+  // Lắng nghe thay đổi kích thước và cuộn của dải chips
+  useEffect(() => {
+    checkChipsScroll();
+    const el = chipsContainerRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => checkChipsScroll());
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [checkChipsScroll, isGridView, servers.length]);
 
   // Cuộn mượt thanh chip đến nguồn đang chọn (chỉ cuộn bên trong chips container, không giật màn hình)
   useEffect(() => {
@@ -842,8 +878,9 @@ function LivePlayerInner({
         left: Math.max(0, targetScroll),
         behavior: "smooth",
       });
+      setTimeout(checkChipsScroll, 250);
     }
-  }, [selectedServerIndex, isGridView]);
+  }, [selectedServerIndex, isGridView, checkChipsScroll]);
 
   // Xác định trận đấu có đang trước giờ bóng lăn (kickoff) hay không
   const isPreKickoff = useMemo(() => {
@@ -1104,33 +1141,10 @@ function LivePlayerInner({
     }
   }, [rawAway, awayTriedAsset, assetAway]);
 
-  const volumeRef = useRef(volume);
   const isMutedRef = useRef(isMuted);
-  const userMutedRef = useRef<boolean>(false);
 
   // Premium Volume OSD (YouTube Top Pill Style - Đồng bộ 100% với Movie Player CinemaPlayer.tsx)
-  const [volumeOsd, setVolumeOsd] = useState<{
-    volume: number;
-    isMuted: boolean;
-    visible: boolean;
-  } | null>(null);
-  const volumeOsdTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  const triggerVolumeOsd = useCallback((newVol: number, muted: boolean) => {
-    if (volumeOsdTimerRef.current) {
-      clearTimeout(volumeOsdTimerRef.current);
-      volumeOsdTimerRef.current = null;
-    }
-    setVolumeOsd({
-      volume: newVol,
-      isMuted: muted,
-      visible: true,
-    });
-    volumeOsdTimerRef.current = setTimeout(() => {
-      setVolumeOsd((prev) => (prev ? { ...prev, visible: false } : null));
-      volumeOsdTimerRef.current = null;
-    }, 1500);
-  }, []);
 
   // Hiển thị visual feedback overlay tạm thời
   const triggerActionFeedback = useCallback(
@@ -1166,28 +1180,7 @@ function LivePlayerInner({
     triggerActionFeedback("server", "Đang thử kết nối lại...");
   }, [servers, currentMatchFailedUrls, triggerActionFeedback]);
 
-  // Khôi phục mức âm lượng đã lưu từ localStorage
-  useEffect(() => {
-    try {
-      const savedVol = localStorage.getItem("nanaflix_live_volume");
-      if (savedVol !== null) {
-        const val = parseFloat(savedVol);
-        if (!isNaN(val) && val > 0 && val <= 1) {
-          setVolume(val);
-          volumeRef.current = val;
-        } else {
-          setVolume(0.9);
-          volumeRef.current = 0.9;
-        }
-      } else {
-        setVolume(0.9);
-        volumeRef.current = 0.9;
-      }
-    } catch {
-      setVolume(0.9);
-      volumeRef.current = 0.9;
-    }
-  }, []);
+
 
   // Chặn và triệt tiêu các lỗi Unhandled Rejection do browser extensions tự tiêm vào (e.g. Coco, Media Downloader, M_ID)
   useEffect(() => {
@@ -1487,6 +1480,11 @@ function LivePlayerInner({
     (customReason?: string) => {
       if (isStoppedRef.current) return;
 
+      const failedUrl = lastLoadedUrlRef.current;
+      const isProxyAttempt = failedUrl
+        ? failedUrl.includes("/api/live-football/proxy")
+        : useProxyFallbackRef.current;
+
       if (watchdogTimerRef.current) {
         clearTimeout(watchdogTimerRef.current);
         watchdogTimerRef.current = null;
@@ -1510,9 +1508,11 @@ function LivePlayerInner({
         match?.timeline === "upcoming"
       );
 
-      const isNotFoundOrForbidden =
+      // Chỉ coi 404 là lỗi chết vĩnh viễn (link không tồn tại).
+      // Lỗi 403 khi kết nối trực tiếp thường do CDN upstream chặn Referer trình duyệt,
+      // trong khi luồng vẫn hoạt động bình thường qua Proxy nội bộ (/api/live-football/proxy).
+      const isFatalNotFound =
         customReason?.includes("404") ||
-        customReason?.includes("403") ||
         customReason?.includes("không tồn tại");
 
       // 1. TRẬN CHƯA KICKOFF:
@@ -1554,8 +1554,8 @@ function LivePlayerInner({
       }
 
       // 2. KHI TRẬN ĐÃ KICKOFF (HOẶC LIVE):
-      // Nếu HTTPS trực tiếp gặp sự cố kết nối/CORS và chưa thử qua Proxy (và không phải 404/403) -> thử Proxy trước
-      if (isHttpsDirect && !useProxyFallbackRef.current && !isNotFoundOrForbidden) {
+      // Nếu Direct thất bại (kể cả 403/CORS/network) và chưa thử qua Proxy (và không phải 404) -> thử Proxy trước
+      if (isHttpsDirect && !isProxyAttempt && !isFatalNotFound) {
         useProxyFallbackRef.current = true;
         setUseProxyFallback(true);
         const toastText = `Máy chủ #${selectedServerIndex + 1} ${customReason || "kết nối trực tiếp thất bại"}, đang thử qua cổng dự phòng (Proxy)...`;
@@ -1566,7 +1566,7 @@ function LivePlayerInner({
         return;
       }
 
-      // Đã thử qua Proxy hoặc link gặp lỗi thực sự -> Đánh dấu server & URL đã fail (tự động ẩn khỏi danh sách)
+      // Đã thử qua Proxy hoặc link gặp lỗi thực sự (404) -> Đánh dấu server & URL đã fail (tự động ẩn khỏi danh sách)
       failedServersRef.current.add(selectedServerIndex);
       if (currentUrl) {
         markSourceFailed(currentUrl, selectedServerIndex);
@@ -2145,234 +2145,7 @@ function LivePlayerInner({
   }, [isMuted, volume, unmuteSound, triggerVolumeOsd]);
 
   // Thay đổi âm lượng
-  const handleVolumeChange = useCallback(
-    (newVolume: number) => {
-      const clamped = Math.max(0, Math.min(1, newVolume));
-      setVolume(clamped);
-      const shouldMute = clamped === 0;
-      userMutedRef.current = shouldMute;
-      setIsMuted(shouldMute);
 
-      if (videoRef.current) {
-        videoRef.current.volume = clamped;
-        videoRef.current.muted = shouldMute;
-      }
-
-      triggerVolumeOsd(clamped, shouldMute);
-
-      try {
-        localStorage.setItem("nanaflix_live_volume", String(clamped));
-      } catch { }
-    },
-    [triggerVolumeOsd],
-  );
-
-
-  // Khóa hướng màn hình xoay ngang tự động trên thiết bị di động khi phóng to
-  const lockLandscape = useCallback(async () => {
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const ori = (screen?.orientation || (screen as any)?.mozOrientation || (screen as any)?.msOrientation) as any;
-      if (ori && typeof ori.lock === "function") {
-        await ori.lock("landscape").catch(() => {
-          return ori.lock("landscape-primary").catch(() => { });
-        });
-      }
-    } catch { }
-  }, []);
-
-  // Mở khóa xoay màn hình tự do khi thoát toàn màn hình
-  const unlockOrientation = useCallback(() => {
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const ori = (screen?.orientation || (screen as any)?.mozOrientation || (screen as any)?.msOrientation) as any;
-      if (ori && typeof ori.unlock === "function") {
-        ori.unlock();
-      }
-    } catch { }
-  }, []);
-
-  // Toàn màn hình hỗ trợ đa nền tảng (Desktop, Android, iOS Safari)
-  const toggleFullscreen = useCallback(() => {
-    const container = containerRef.current;
-    const video = videoRef.current;
-
-    // Kiểm tra trạng thái fullscreen hiện tại
-    const isDocFs = Boolean(
-      document.fullscreenElement ||
-      (document as unknown as { webkitFullscreenElement?: Element })
-        .webkitFullscreenElement ||
-      (document as unknown as { mozFullScreenElement?: Element })
-        .mozFullScreenElement ||
-      (document as unknown as { msFullscreenElement?: Element })
-        .msFullscreenElement,
-    );
-
-    // Kiểm tra trạng thái fullscreen riêng của iOS Safari trên video element
-    const isVideoFs = Boolean(
-      video &&
-      (video as unknown as { webkitDisplayingFullscreen?: boolean })
-        .webkitDisplayingFullscreen,
-    );
-
-    if (isDocFs || isVideoFs || isFullscreen) {
-      // Thoát toàn màn hình
-      if (document.exitFullscreen) {
-        document.exitFullscreen().catch(() => { });
-      } else if (
-        (document as unknown as { webkitExitFullscreen?: () => void })
-          .webkitExitFullscreen
-      ) {
-        (
-          document as unknown as { webkitExitFullscreen: () => void }
-        ).webkitExitFullscreen();
-      } else if (
-        (document as unknown as { mozCancelFullScreen?: () => void })
-          .mozCancelFullScreen
-      ) {
-        (
-          document as unknown as { mozCancelFullScreen: () => void }
-        ).mozCancelFullScreen();
-      } else if (
-        (document as unknown as { msExitFullscreen?: () => void })
-          .msExitFullscreen
-      ) {
-        (
-          document as unknown as { msExitFullscreen: () => void }
-        ).msExitFullscreen();
-      }
-      setIsFullscreen(false);
-      unlockOrientation();
-    } else {
-      // Bật toàn màn hình
-      if (container && container.requestFullscreen) {
-        const p = container.requestFullscreen({ navigationUI: "hide" } as FullscreenOptions).catch(() => {
-          return container.requestFullscreen().catch(() => {
-            // Fallback cho iOS Safari
-            if (
-              video &&
-              (video as unknown as { webkitEnterFullscreen?: () => void })
-                .webkitEnterFullscreen
-            ) {
-              (
-                video as unknown as { webkitEnterFullscreen: () => void }
-              ).webkitEnterFullscreen();
-            }
-          });
-        });
-
-        if (p && typeof p.then === "function") {
-          p.then(lockLandscape).catch(() => { });
-        } else {
-          lockLandscape();
-        }
-      } else if (
-        container &&
-        (container as unknown as { webkitRequestFullscreen?: () => void })
-          .webkitRequestFullscreen
-      ) {
-        (
-          container as unknown as { webkitRequestFullscreen: () => void }
-        ).webkitRequestFullscreen();
-        lockLandscape();
-      } else if (
-        container &&
-        (container as unknown as { mozRequestFullScreen?: () => void })
-          .mozRequestFullScreen
-      ) {
-        (
-          container as unknown as { mozRequestFullScreen: () => void }
-        ).mozRequestFullScreen();
-        lockLandscape();
-      } else if (
-        container &&
-        (container as unknown as { msRequestFullscreen?: () => void })
-          .msRequestFullscreen
-      ) {
-        (
-          container as unknown as { msRequestFullscreen: () => void }
-        ).msRequestFullscreen();
-        lockLandscape();
-      } else if (
-        video &&
-        (video as unknown as { webkitEnterFullscreen?: () => void })
-          .webkitEnterFullscreen
-      ) {
-        // iOS Safari trên iPhone bắt buộc dùng webkitEnterFullscreen trên video element
-        (
-          video as unknown as { webkitEnterFullscreen: () => void }
-        ).webkitEnterFullscreen();
-      }
-      setIsFullscreen(true);
-    }
-  }, [isFullscreen, lockLandscape, unlockOrientation]);
-
-  // Picture in Picture (PiP)
-  const togglePip = useCallback(async () => {
-    if (!videoRef.current) return;
-    try {
-      if (document.pictureInPictureElement) {
-        await document.exitPictureInPicture();
-        setIsPip(false);
-      } else {
-        await videoRef.current.requestPictureInPicture();
-        setIsPip(true);
-      }
-    } catch {
-      // Ignore PiP error
-    }
-  }, []);
-
-  useEffect(() => {
-    const handleFsChange = () => {
-      const isFs = Boolean(
-        document.fullscreenElement ||
-        (document as unknown as { webkitFullscreenElement?: Element })
-          .webkitFullscreenElement ||
-        (document as unknown as { mozFullScreenElement?: Element })
-          .mozFullScreenElement ||
-        (document as unknown as { msFullscreenElement?: Element })
-          .msFullscreenElement,
-      );
-      setIsFullscreen(isFs);
-      if (isFs) {
-        lockLandscape();
-      } else {
-        unlockOrientation();
-      }
-    };
-
-    const video = videoRef.current;
-    const handleVideoBeginFs = () => {
-      setIsFullscreen(true);
-      lockLandscape();
-    };
-    const handleVideoEndFs = () => {
-      setIsFullscreen(false);
-      unlockOrientation();
-    };
-
-    document.addEventListener("fullscreenchange", handleFsChange);
-    document.addEventListener("webkitfullscreenchange", handleFsChange);
-    document.addEventListener("mozfullscreenchange", handleFsChange);
-    document.addEventListener("MSFullscreenChange", handleFsChange);
-
-    if (video) {
-      video.addEventListener("webkitbeginfullscreen", handleVideoBeginFs);
-      video.addEventListener("webkitendfullscreen", handleVideoEndFs);
-    }
-
-    return () => {
-      document.removeEventListener("fullscreenchange", handleFsChange);
-      document.removeEventListener("webkitfullscreenchange", handleFsChange);
-      document.removeEventListener("mozfullscreenchange", handleFsChange);
-      document.removeEventListener("MSFullscreenChange", handleFsChange);
-      if (video) {
-        video.removeEventListener("webkitbeginfullscreen", handleVideoBeginFs);
-        video.removeEventListener("webkitendfullscreen", handleVideoEndFs);
-      }
-    };
-  }, [lockLandscape, unlockOrientation]);
 
   // Chuyển sang máy chủ tiếp theo / trước đó
   const handleSwitchServer = useCallback(
@@ -2744,7 +2517,7 @@ function LivePlayerInner({
                 <button
                   type="button"
                   onClick={handleRetry}
-                  className="px-4 py-2 rounded-xl bg-netflix-red hover:bg-red-700 text-white font-bold transition flex items-center gap-2 cursor-pointer text-xs"
+                  className="px-4 py-2 rounded-xl bg-netflix-red hover:brightness-110 active:brightness-95 text-white font-bold transition flex items-center gap-2 cursor-pointer text-xs"
                 >
                   <RotateCcw className="w-3.5 h-3.5" />
                   <span>Thử kết nối lại</span>
@@ -2861,7 +2634,7 @@ function LivePlayerInner({
   const scoreboardMarkup = (
     <div className="relative rounded-2xl sm:rounded-3xl bg-gradient-to-b from-zinc-900/80 via-zinc-950/90 to-zinc-950 px-3 py-2 sm:px-4 sm:py-2.5 shadow-xl overflow-hidden w-full min-w-0 backdrop-blur-xl">
       {/* Glow hiệu ứng sân vận động 2 bên */}
-      <div className="pointer-events-none absolute -top-24 left-1/4 w-96 h-96 bg-red-600/10 rounded-full blur-3xl" />
+      <div className="pointer-events-none absolute -top-24 left-1/4 w-96 h-96 bg-netflix-red/10 rounded-full blur-3xl" />
       <div className="pointer-events-none absolute -top-24 right-1/4 w-96 h-96 bg-sky-600/10 rounded-full blur-3xl" />
 
       {isEvent || !team1 || !team2 || team1.trim().toLowerCase() === team2.trim().toLowerCase() ? (
@@ -2902,11 +2675,23 @@ function LivePlayerInner({
         const hasGoalScorers = homeGoalScorers.length > 0 || awayGoalScorers.length > 0;
 
         const blvLabel = (() => {
+          if (currentServer) {
+            const displayLabel = parseServerDisplayLabel(
+              currentServer,
+              currentAvailableIdx !== -1 ? currentAvailableIdx : selectedServerIndex,
+            );
+            if (displayLabel) {
+              const parts = displayLabel.split(/[·•\-|–—]/);
+              const firstPart = parts[0]?.trim();
+              if (firstPart && !/^Nguồn\s+\d+$/i.test(firstPart)) {
+                return firstPart;
+              }
+            }
+          }
           const raw = (blv || match?.blv || "").replace(/^(?:blv|bình luận viên)\s+/i, "");
           const parts = raw.split(",").map((p) => p.trim()).filter(Boolean);
-          if (parts.length === 0) return "BLV";
-          if (parts.length <= 2) return `BLV ${parts.join(", ")}`;
-          return `BLV ${parts.slice(0, 2).join(", ")} (+${parts.length - 2})`;
+          if (parts.length === 0) return "BLV Trực Tiếp";
+          return `BLV ${parts[0]}`;
         })();
 
         return (
@@ -2921,10 +2706,10 @@ function LivePlayerInner({
                 <span className="truncate">{displayTournament}</span>
               </span>
 
-              {(blv || match?.blv) && (
+              {(blv || match?.blv || currentServer) && (
                 <span
                   className="inline-flex items-center gap-1 text-rose-300 text-[10px] font-medium truncate max-w-[150px] min-w-0"
-                  title={`BLV: ${blv || match?.blv}`}
+                  title={`BLV: ${blvLabel}`}
                 >
                   <span className="shrink-0 text-xs">🎙️</span>
                   <span className="truncate">{blvLabel}</span>
@@ -2948,10 +2733,10 @@ function LivePlayerInner({
               {/* TRUNG TÂM: ĐỘI NHÀ - TỶ SỐ / TRẠNG THÁI - ĐỘI KHÁCH */}
               <div className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 sm:gap-4 min-w-0 w-full sm:w-auto">
                 {/* ĐỘI NHÀ */}
-                <div className="flex items-center justify-end gap-1.5 sm:gap-2 min-w-0 flex-1 text-right overflow-hidden">
-                  <div className="min-w-0 flex-1 flex flex-col items-end overflow-hidden">
+                <div className="flex items-center justify-end gap-1.5 sm:gap-2 min-w-0 flex-1 text-right">
+                  <div className="min-w-0 flex-1 flex flex-col items-end">
                     <span
-                      className="text-xs sm:text-sm font-bold text-white tracking-tight truncate w-full text-right block"
+                      className="text-xs sm:text-sm font-bold text-white tracking-tight line-clamp-2 leading-snug break-words w-full text-right block"
                       title={homeDisplayName}
                     >
                       {homeDisplayName}
@@ -3065,7 +2850,7 @@ function LivePlayerInner({
                 </div>
 
                 {/* ĐỘI KHÁCH */}
-                <div className="flex items-center justify-start gap-1.5 sm:gap-2 min-w-0 flex-1 text-left overflow-hidden">
+                <div className="flex items-center justify-start gap-1.5 sm:gap-2 min-w-0 flex-1 text-left">
                   {/* Logo đội khách (không viền hộp dày) */}
                   <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-white/[0.06] p-1 flex items-center justify-center shadow-sm shrink-0 relative overflow-hidden">
                     {awayFlagEmoji ? (
@@ -3087,9 +2872,9 @@ function LivePlayerInner({
                     )}
                   </div>
 
-                  <div className="min-w-0 flex-1 flex flex-col items-start overflow-hidden">
+                  <div className="min-w-0 flex-1 flex flex-col items-start">
                     <span
-                      className="text-xs sm:text-sm font-bold text-white tracking-tight truncate w-full text-left block"
+                      className="text-xs sm:text-sm font-bold text-white tracking-tight line-clamp-2 leading-snug break-words w-full text-left block"
                       title={awayDisplayName}
                     >
                       {awayDisplayName}
@@ -3109,10 +2894,10 @@ function LivePlayerInner({
 
               {/* DESKTOP CÁNH PHẢI: BLV */}
               <div className="hidden sm:flex items-center gap-2 min-w-0 flex-1 justify-end">
-                {(blv || match?.blv) && (
+                {(blv || match?.blv || currentServer) && (
                   <span
                     className="inline-flex items-center gap-1.5 text-rose-300 text-xs font-medium truncate max-w-[200px] lg:max-w-[260px]"
-                    title={`BLV: ${blv || match?.blv}`}
+                    title={`BLV: ${blvLabel}`}
                   >
                     <span className="shrink-0 text-xs">🎙️</span>
                     <span className="truncate">{blvLabel}</span>
@@ -3282,36 +3067,7 @@ function LivePlayerInner({
         {!useMobilePortal && sourceDrawerMarkup}
 
         {/* PREMIUM YOUTUBE TOP PILL VOLUME OSD (ĐỒNG BỘ 100% VỚI MOVIE PLAYER) */}
-        {volumeOsd && volumeOsd.visible && (
-          <div
-            role="status"
-            aria-live="polite"
-            className="absolute top-5 sm:top-7 left-1/2 -translate-x-1/2 z-30 pointer-events-none max-w-[calc(100%-32px)] animate-in fade-in slide-in-from-top-3 duration-200 motion-reduce:animate-none"
-          >
-            <div className="flex items-center gap-3 px-4 py-2 sm:px-4.5 sm:py-2.5 rounded-full bg-zinc-950/90 backdrop-blur-2xl text-white shadow-[0_12px_36px_rgba(0,0,0,0.85)]">
-              {volumeOsd.isMuted || volumeOsd.volume === 0 ? (
-                <YouTubeVolumeMuteIcon className="w-5 h-5 text-netflix-red shrink-0" />
-              ) : volumeOsd.volume < 0.5 ? (
-                <YouTubeVolumeLowIcon className="w-5 h-5 text-white/90 shrink-0" />
-              ) : (
-                <YouTubeVolumeHighIcon className="w-5 h-5 text-white/90 shrink-0" />
-              )}
-
-              <div className="w-24 sm:w-28 h-1.5 rounded-full bg-white/20 overflow-hidden shrink-0">
-                <div
-                  className="h-full bg-gradient-to-r from-white to-zinc-200 rounded-full transition-all duration-150 ease-out"
-                  style={{
-                    width: `${volumeOsd.isMuted ? 0 : Math.round(volumeOsd.volume * 100)}%`,
-                  }}
-                />
-              </div>
-
-              <span className="text-xs sm:text-[13px] font-semibold tracking-tight tabular-nums text-white min-w-[34px] text-right">
-                {volumeOsd.isMuted ? "Tắt tiếng" : `${Math.round(volumeOsd.volume * 100)}%`}
-              </span>
-            </div>
-          </div>
-        )}
+        <VolumeOsdPill volumeOsd={volumeOsd} />
 
         {/* ACTION FEEDBACK OVERLAY (PLAY, PAUSE, SERVER SWITCH & CINEMA SEEK HUD) */}
         {actionFeedback && (
@@ -3418,7 +3174,7 @@ function LivePlayerInner({
                 <button
                   type="button"
                   onClick={() => handleSwitchServer("next")}
-                  className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-netflix-red hover:bg-red-700 text-xs font-bold text-white transition shadow-md shadow-black/50 cursor-pointer"
+                  className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-netflix-red hover:brightness-110 active:brightness-95 text-xs font-bold text-white transition shadow-md shadow-black/50 cursor-pointer"
                 >
                   <Sparkles className="w-3.5 h-3.5" />
                   <span>
@@ -3502,51 +3258,53 @@ function LivePlayerInner({
             {/* CỤM TRÁI: TUA LÙI 10S + PLAY/PAUSE + TUA TỚI 10S + ÂM LƯỢNG (BỐ TRÍ CÂN ĐỐI CHUẨN MOVIE PLAYER) */}
             <div className="flex items-center gap-1 sm:gap-1.5 min-w-0 shrink-0">
               {/* Nút Tua lùi 10s */}
-              <button
-                type="button"
-                data-player-control="true"
-                onClick={() => handleSeek(-10)}
-                title="Tua lùi 10 giây (←)"
-                aria-label="Tua lùi 10 giây"
-                className="w-9 h-9 sm:w-10 sm:h-10 rounded-full hover:bg-white/15 active:scale-90 text-zinc-300 hover:text-white flex items-center justify-center transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-white/40 touch-manipulation"
-              >
-                <YouTubeSeek10BackIcon className="w-4.5 h-4.5 sm:w-5 sm:h-5" />
-              </button>
+              <Tooltip content="Tua lùi 10 giây" shortcut="←" side="top">
+                <button
+                  type="button"
+                  data-player-control="true"
+                  onClick={() => handleSeek(-10)}
+                  aria-label="Tua lùi 10 giây"
+                  className="w-9 h-9 sm:w-10 sm:h-10 rounded-full hover:bg-white/15 active:scale-90 text-zinc-300 hover:text-white flex items-center justify-center transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-white/40 touch-manipulation"
+                >
+                  <YouTubeSeek10BackIcon className="w-4.5 h-4.5 sm:w-5 sm:h-5" />
+                </button>
+              </Tooltip>
 
               {/* Nút Play / Pause trung tâm */}
-              <button
-                type="button"
-                data-player-control="true"
-                onClick={togglePlay}
-                title={isPlaying ? "Tạm dừng (Space)" : "Phát (Space)"}
-                aria-label={isPlaying ? "Tạm dừng" : "Phát"}
-                className="w-9 h-9 sm:w-10 sm:h-10 rounded-full hover:bg-white/15 active:scale-90 text-white flex items-center justify-center transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-white/40 touch-manipulation"
-              >
-                {isPlaying ? (
-                  <YouTubePauseIcon className="w-5 h-5 sm:w-6 sm:h-6" />
-                ) : (
-                  <YouTubePlayIcon className="w-5 h-5 sm:w-6 sm:h-6 ml-0.5" />
-                )}
-              </button>
+              <Tooltip content={isPlaying ? "Tạm dừng" : "Phát"} shortcut="Space" side="top">
+                <button
+                  type="button"
+                  data-player-control="true"
+                  onClick={togglePlay}
+                  aria-label={isPlaying ? "Tạm dừng" : "Phát"}
+                  className="w-9 h-9 sm:w-10 sm:h-10 rounded-full hover:bg-white/15 active:scale-90 text-white flex items-center justify-center transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-white/40 touch-manipulation"
+                >
+                  {isPlaying ? (
+                    <YouTubePauseIcon className="w-5 h-5 sm:w-6 sm:h-6" />
+                  ) : (
+                    <YouTubePlayIcon className="w-5 h-5 sm:w-6 sm:h-6 ml-0.5" />
+                  )}
+                </button>
+              </Tooltip>
 
               {/* Nút Tua tới 10s */}
-              <button
-                type="button"
-                data-player-control="true"
-                onClick={() => handleSeek(10)}
-                title="Tua tới 10 giây (→)"
-                aria-label="Tua tới 10 giây"
-                className="w-9 h-9 sm:w-10 sm:h-10 rounded-full hover:bg-white/15 active:scale-90 text-zinc-300 hover:text-white flex items-center justify-center transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-white/40 touch-manipulation"
-              >
-                <YouTubeSeek10ForwardIcon className="w-4.5 h-4.5 sm:w-5 sm:h-5" />
-              </button>
+              <Tooltip content="Tua tới 10 giây" shortcut="→" side="top">
+                <button
+                  type="button"
+                  data-player-control="true"
+                  onClick={() => handleSeek(10)}
+                  aria-label="Tua tới 10 giây"
+                  className="w-9 h-9 sm:w-10 sm:h-10 rounded-full hover:bg-white/15 active:scale-90 text-zinc-300 hover:text-white flex items-center justify-center transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-white/40 touch-manipulation"
+                >
+                  <YouTubeSeek10ForwardIcon className="w-4.5 h-4.5 sm:w-5 sm:h-5" />
+                </button>
+              </Tooltip>
 
               {/* CỤM VOLUME TRÊN MOBILE (Chỉ hiện nút Mute nhỏ gọn) */}
               <button
                 type="button"
                 data-player-control="true"
                 onClick={toggleMute}
-                title={isMuted ? "Bật âm thanh (M)" : "Tắt âm thanh (M)"}
                 aria-label={isMuted ? "Bật âm thanh" : "Tắt âm thanh"}
                 className="w-9 h-9 sm:hidden rounded-full hover:bg-white/15 active:scale-90 flex items-center justify-center text-white transition cursor-pointer shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-white/40 touch-manipulation"
               >
@@ -3561,14 +3319,14 @@ function LivePlayerInner({
 
               {/* CỤM ÂM LƯỢNG YOUTUBE (Hover nở thanh kéo trượt mượt mà chuẩn Movie Player) */}
               <div className="hidden sm:flex items-center group/vol shrink-0">
-                <button
-                  type="button"
-                  data-player-control="true"
-                  onClick={toggleMute}
-                  title={isMuted ? "Bật âm thanh (M)" : "Tắt âm thanh (M)"}
-                  aria-label={isMuted ? "Bật âm thanh" : "Tắt âm thanh"}
-                  className="w-9 h-9 sm:w-10 sm:h-10 rounded-full hover:bg-white/15 active:scale-90 text-white/90 hover:text-white flex items-center justify-center transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-white/40 touch-manipulation"
-                >
+                <Tooltip content={isMuted ? "Bật âm thanh" : "Tắt âm thanh"} shortcut="M" side="top">
+                  <button
+                    type="button"
+                    data-player-control="true"
+                    onClick={toggleMute}
+                    aria-label={isMuted ? "Bật âm thanh" : "Tắt âm thanh"}
+                    className="w-9 h-9 sm:w-10 sm:h-10 rounded-full hover:bg-white/15 active:scale-90 text-white/90 hover:text-white flex items-center justify-center transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-white/40 touch-manipulation"
+                  >
                   {isMuted || volume === 0 ? (
                     <YouTubeVolumeMuteIcon className="w-5 h-5 text-netflix-red" />
                   ) : volume < 0.5 ? (
@@ -3576,7 +3334,8 @@ function LivePlayerInner({
                   ) : (
                     <YouTubeVolumeHighIcon className="w-5 h-5 text-white" />
                   )}
-                </button>
+                  </button>
+                </Tooltip>
 
                 <input
                   type="range"
@@ -3623,36 +3382,38 @@ function LivePlayerInner({
               <LiveShortcutPopover mode="football" />
 
               {/* Nút Picture in Picture - Chỉ hiện trên tablet/desktop */}
-              <button
-                type="button"
-                data-player-control="true"
-                onClick={togglePip}
-                title="Xem thu nhỏ góc màn hình (PiP - Phím I)"
-                aria-label="Xem thu nhỏ góc màn hình"
-                className={`w-9 h-9 sm:w-10 sm:h-10 hidden sm:flex rounded-full items-center justify-center transition-all duration-200 active:scale-90 cursor-pointer shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-white/40 ${
-                  isPip
-                    ? "bg-netflix-red text-white"
-                    : "text-zinc-300 hover:text-white hover:bg-white/15"
-                }`}
-              >
-                <YouTubeMiniplayerIcon className="w-5 h-5" />
-              </button>
+              <Tooltip content="Xem thu nhỏ góc màn hình (PiP)" shortcut="I" side="top">
+                <button
+                  type="button"
+                  data-player-control="true"
+                  onClick={togglePip}
+                  aria-label="Xem thu nhỏ góc màn hình"
+                  className={`w-9 h-9 sm:w-10 sm:h-10 hidden sm:flex rounded-full items-center justify-center transition-all duration-200 active:scale-90 cursor-pointer shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-white/40 ${
+                    isPip
+                      ? "bg-netflix-red text-white"
+                      : "text-zinc-300 hover:text-white hover:bg-white/15"
+                  }`}
+                >
+                  <YouTubeMiniplayerIcon className="w-5 h-5" />
+                </button>
+              </Tooltip>
 
               {/* Nút Toàn màn hình */}
-              <button
-                type="button"
-                data-player-control="true"
-                onClick={toggleFullscreen}
-                title={isFullscreen ? "Thu nhỏ (F)" : "Toàn màn hình (F)"}
-                aria-label={isFullscreen ? "Thu nhỏ" : "Toàn màn hình"}
-                className="w-9 h-9 sm:w-10 sm:h-10 rounded-full hover:bg-white/15 active:scale-90 text-white flex items-center justify-center transition cursor-pointer shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-white/40 touch-manipulation"
-              >
-                {isFullscreen ? (
-                  <YouTubeExitFullscreenIcon className="w-5 h-5 sm:w-6 sm:h-6" />
-                ) : (
-                  <YouTubeFullscreenIcon className="w-5 h-5 sm:w-6 sm:h-6" />
-                )}
-              </button>
+              <Tooltip content={isFullscreen ? "Thu nhỏ" : "Toàn màn hình"} shortcut="F" side="top" align="end">
+                <button
+                  type="button"
+                  data-player-control="true"
+                  onClick={toggleFullscreen}
+                  aria-label={isFullscreen ? "Thu nhỏ" : "Toàn màn hình"}
+                  className="w-9 h-9 sm:w-10 sm:h-10 rounded-full hover:bg-white/15 active:scale-90 text-white flex items-center justify-center transition cursor-pointer shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-white/40 touch-manipulation"
+                >
+                  {isFullscreen ? (
+                    <YouTubeExitFullscreenIcon className="w-5 h-5 sm:w-6 sm:h-6" />
+                  ) : (
+                    <YouTubeFullscreenIcon className="w-5 h-5 sm:w-6 sm:h-6" />
+                  )}
+                </button>
+              </Tooltip>
             </div>
           </div>
         </div>
@@ -3680,12 +3441,13 @@ function LivePlayerInner({
 
           <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
             {availableServers.length > 1 && (
-              <button
-                type="button"
-                onClick={() => setIsGridView((prev) => !prev)}
-                className="flex items-center gap-1 text-[11px] font-bold text-zinc-300 hover:text-white bg-white/5 hover:bg-white/10 px-2.5 py-1.5 rounded-xl transition cursor-pointer"
-                title={isGridView ? "Thu gọn dạng hàng" : "Mở rộng dạng lưới"}
-              >
+              <Tooltip content={isGridView ? "Thu gọn dạng hàng" : "Mở rộng dạng lưới"} side="top">
+                <button
+                  type="button"
+                  onClick={() => setIsGridView((prev) => !prev)}
+                  className="flex items-center gap-1 text-[11px] font-bold text-zinc-300 hover:text-white bg-white/5 hover:bg-white/10 px-2.5 py-1.5 rounded-xl transition cursor-pointer"
+                  aria-label={isGridView ? "Thu gọn dạng hàng" : "Mở rộng dạng lưới"}
+                >
                 {isGridView ? (
                   <>
                     <ChevronUp className="w-3 h-3 text-netflix-red" />
@@ -3697,15 +3459,45 @@ function LivePlayerInner({
                     <span>Lưới ({availableServers.length})</span>
                   </>
                 )}
-              </button>
+                </button>
+              </Tooltip>
             )}
 
-            <button
-              type="button"
-              onClick={handleCopyStream}
-              title="Sao chép link stream trực tiếp"
-              className="px-2.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-zinc-300 hover:text-white transition cursor-pointer flex items-center gap-1.5 text-xs font-semibold"
-            >
+            {/* Nút điều hướng bấm sang trái / sang phải khi ở dạng hàng */}
+            {!isGridView && availableServers.length > 3 && (
+              <div className="hidden sm:flex items-center gap-1 bg-white/5 p-0.5 rounded-xl border border-white/10">
+                <Tooltip content="Cuộn sang trái" side="top">
+                  <button
+                    type="button"
+                    onClick={() => handleScrollChipsBy(-260)}
+                    disabled={!canScrollChipsLeft}
+                    className="w-6 h-6 rounded-lg hover:bg-white/10 disabled:opacity-30 disabled:hover:bg-transparent text-zinc-300 hover:text-white flex items-center justify-center transition cursor-pointer"
+                    aria-label="Cuộn sang trái"
+                  >
+                    <ChevronLeft className="w-3.5 h-3.5" />
+                  </button>
+                </Tooltip>
+                <Tooltip content="Cuộn sang phải" side="top">
+                  <button
+                    type="button"
+                    onClick={() => handleScrollChipsBy(260)}
+                    disabled={!canScrollChipsRight}
+                    className="w-6 h-6 rounded-lg hover:bg-white/10 disabled:opacity-30 disabled:hover:bg-transparent text-zinc-300 hover:text-white flex items-center justify-center transition cursor-pointer"
+                    aria-label="Cuộn sang phải"
+                  >
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </button>
+                </Tooltip>
+              </div>
+            )}
+
+            <Tooltip content="Sao chép link stream trực tiếp" side="top" align="end">
+              <button
+                type="button"
+                onClick={handleCopyStream}
+                aria-label="Sao chép link stream trực tiếp"
+                className="px-2.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-zinc-300 hover:text-white transition cursor-pointer flex items-center gap-1.5 text-xs font-semibold"
+              >
               {copied ? (
                 <>
                   <Check className="w-3.5 h-3.5 text-emerald-400" />
@@ -3717,7 +3509,8 @@ function LivePlayerInner({
                   <span className="hidden sm:inline">Sao chép</span>
                 </>
               )}
-            </button>
+              </button>
+            </Tooltip>
           </div>
         </div>
 
@@ -3794,71 +3587,105 @@ function LivePlayerInner({
             })}
           </div>
         ) : (
-          /* DẠNG CHIP CUỘN NGANG (MẶC ĐỊNH - COMPACT 1 DÒNG, KHÔNG TRÀN TRANG MOBILE) */
-          <div
-            ref={chipsContainerRef}
-            className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto scrollbar-none py-0.5 px-0.5 w-full min-w-0 touch-pan-x"
-          >
-            {availableServers.map((s, idx) => {
-              const isSelected = currentServer?.url === s.url;
-              const qualityBadge = getSourceQuality(s);
-              const cleanName = parseServerDisplayLabel(s, idx);
-
-              return (
+          /* DẠNG CHIP CUỘN NGANG (MẶC ĐỊNH - COMPACT 1 DÒNG VỚI NÚT ĐIỀU HƯỚNG BẤM SANG TRÊN PC) */
+          <div className="relative group/chips flex items-center w-full min-w-0">
+            {/* Nút bấm sang trái trên PC */}
+            {canScrollChipsLeft && (
+              <div className="absolute left-0 top-0 bottom-0 z-10 hidden sm:flex items-center pl-1 pr-8 bg-gradient-to-r from-zinc-900 via-zinc-900/95 to-transparent pointer-events-none">
                 <button
-                  key={`${toCanonicalSourceUrl(s.url) || "sv"}-${idx}`}
-                  ref={isSelected ? activeChipRef : null}
                   type="button"
-                  onClick={() => {
-                    fallbackCountRef.current = 0;
-                    isStoppedRef.current = false;
-                    const origIdx = servers.findIndex(
-                      (srv) =>
-                        toCanonicalSourceUrl(srv.url) ===
-                        toCanonicalSourceUrl(s.url),
-                    );
-                    const targetIdx = origIdx !== -1 ? origIdx : 0;
-                    useProxyFallbackRef.current = false;
-                    setUseProxyFallback(false);
-                    lastLoadedUrlRef.current = "";
-                    setHasError(false);
-                    setErrorMessage("");
-                    setIsLoading(true);
-                    setSelectedServerIndex(targetIdx);
-                    setRetryNonce((prev) => prev + 1);
-                  }}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap shrink-0 transition-all flex items-center gap-2 cursor-pointer ${
-                    isSelected
-                      ? "bg-red-950/80 text-white  shadow-md shadow-black/50"
-                      : "bg-white/[0.06] text-zinc-300 hover:text-white hover:bg-white/10"
-                  }`}
+                  onClick={() => handleScrollChipsBy(-280)}
+                  className="w-7 h-7 rounded-full bg-zinc-800/95 hover:bg-zinc-700 text-white shadow-xl flex items-center justify-center transition-all duration-200 hover:scale-110 active:scale-95 cursor-pointer pointer-events-auto border border-white/15"
+                  aria-label="Cuộn sang trái"
+                  title="Cuộn sang trái"
                 >
-                  <span
-                    className={`w-2 h-2 rounded-full shrink-0 ${
-                      isSelected
-                        ? "bg-red-400  animate-pulse"
-                        : "bg-emerald-400"
-                    }`}
-                  />
-                  <span>{cleanName}</span>
-                  {qualityBadge && (
-                    <span
-                      className={`px-1.5 py-0.5 text-[9px] font-black rounded tracking-wider ${
-                        qualityBadge === "FHD"
-                          ? isSelected
-                            ? "bg-amber-500/25 text-amber-300"
-                            : "bg-amber-500/15 text-amber-300"
-                          : isSelected
-                            ? "bg-sky-500/25 text-sky-300"
-                            : "bg-sky-500/15 text-sky-300"
-                      }`}
-                    >
-                      {qualityBadge}
-                    </span>
-                  )}
+                  <ChevronLeft className="w-4 h-4 text-zinc-200" />
                 </button>
-              );
-            })}
+              </div>
+            )}
+
+            <div
+              ref={chipsContainerRef}
+              onScroll={checkChipsScroll}
+              onWheel={handleChipsWheel}
+              className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto scrollbar-none py-1 px-0.5 w-full min-w-0 touch-pan-x scroll-smooth"
+            >
+              {availableServers.map((s, idx) => {
+                const isSelected = currentServer?.url === s.url;
+                const qualityBadge = getSourceQuality(s);
+                const cleanName = parseServerDisplayLabel(s, idx);
+
+                return (
+                  <button
+                    key={`${toCanonicalSourceUrl(s.url) || "sv"}-${idx}`}
+                    ref={isSelected ? activeChipRef : null}
+                    type="button"
+                    onClick={() => {
+                      fallbackCountRef.current = 0;
+                      isStoppedRef.current = false;
+                      const origIdx = servers.findIndex(
+                        (srv) =>
+                          toCanonicalSourceUrl(srv.url) ===
+                          toCanonicalSourceUrl(s.url),
+                      );
+                      const targetIdx = origIdx !== -1 ? origIdx : 0;
+                      useProxyFallbackRef.current = false;
+                      setUseProxyFallback(false);
+                      lastLoadedUrlRef.current = "";
+                      setHasError(false);
+                      setErrorMessage("");
+                      setIsLoading(true);
+                      setSelectedServerIndex(targetIdx);
+                      setRetryNonce((prev) => prev + 1);
+                    }}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap shrink-0 transition-all flex items-center gap-2 cursor-pointer ${
+                      isSelected
+                        ? "bg-red-950/80 text-white  shadow-md shadow-black/50"
+                        : "bg-white/[0.06] text-zinc-300 hover:text-white hover:bg-white/10"
+                    }`}
+                  >
+                    <span
+                      className={`w-2 h-2 rounded-full shrink-0 ${
+                        isSelected
+                          ? "bg-red-400  animate-pulse"
+                          : "bg-emerald-400"
+                      }`}
+                    />
+                    <span>{cleanName}</span>
+                    {qualityBadge && (
+                      <span
+                        className={`px-1.5 py-0.5 text-[9px] font-black rounded tracking-wider ${
+                          qualityBadge === "FHD"
+                            ? isSelected
+                              ? "bg-amber-500/25 text-amber-300"
+                              : "bg-amber-500/15 text-amber-300"
+                            : isSelected
+                              ? "bg-sky-500/25 text-sky-300"
+                              : "bg-sky-500/15 text-sky-300"
+                        }`}
+                      >
+                        {qualityBadge}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Nút bấm sang phải trên PC */}
+            {canScrollChipsRight && (
+              <div className="absolute right-0 top-0 bottom-0 z-10 hidden sm:flex items-center pr-1 pl-8 bg-gradient-to-l from-zinc-900 via-zinc-900/90 to-transparent pointer-events-none">
+                <button
+                  type="button"
+                  onClick={() => handleScrollChipsBy(280)}
+                  className="w-7 h-7 rounded-full bg-zinc-800/95 hover:bg-zinc-700 text-white shadow-xl flex items-center justify-center transition-all duration-200 hover:scale-110 active:scale-95 cursor-pointer pointer-events-auto border border-white/15"
+                  aria-label="Cuộn sang phải"
+                  title="Cuộn sang phải"
+                >
+                  <ChevronRight className="w-4 h-4 text-zinc-200" />
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>

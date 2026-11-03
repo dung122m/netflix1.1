@@ -2,7 +2,6 @@ import { MovieComment, MovieRatingStats, CommentReactionType } from "@/types/com
 import { checkContentModeration, detectSpoiler } from "@/lib/contentModeration";
 import { sanitizeSafeText } from "@/lib/security";
 import {
-  postCommentSupabase,
   getMovieCommentsSupabase,
   getCommentRepliesSupabase,
   getUserCommentsSupabase,
@@ -18,6 +17,55 @@ import { auth } from "@/lib/firebase";
 // In-memory cache lưu danh sách bình luận theo movieSlug để hiển thị ngay 0ms không bị chớp hay mất
 const movieCommentsMemoryCache: Record<string, MovieComment[]> = {};
 const replyCommentsMemoryCache: Record<string, MovieComment[]> = {};
+const userCommentsMemoryCache: Record<string, MovieComment[]> = {};
+
+// Quản lý ID các bình luận đã bị xóa để ngăn chặn tuyệt đối tình trạng hồi sinh (Ghost Comments)
+const deletedCommentIds = new Set<string>();
+
+export function markCommentDeleted(commentId: string): void {
+  if (!commentId) return;
+  deletedCommentIds.add(commentId);
+  try {
+    if (typeof sessionStorage !== "undefined") {
+      const stored = JSON.parse(sessionStorage.getItem("nanaflix_deleted_comments") || "[]");
+      if (Array.isArray(stored) && !stored.includes(commentId)) {
+        stored.push(commentId);
+        sessionStorage.setItem("nanaflix_deleted_comments", JSON.stringify(stored.slice(-200)));
+      }
+    }
+  } catch {}
+}
+
+export function unmarkCommentDeleted(commentId: string): void {
+  if (!commentId) return;
+  deletedCommentIds.delete(commentId);
+  try {
+    if (typeof sessionStorage !== "undefined") {
+      const stored = JSON.parse(sessionStorage.getItem("nanaflix_deleted_comments") || "[]");
+      if (Array.isArray(stored)) {
+        sessionStorage.setItem(
+          "nanaflix_deleted_comments",
+          JSON.stringify(stored.filter((id: string) => id !== commentId))
+        );
+      }
+    }
+  } catch {}
+}
+
+export function isCommentDeleted(commentId: string): boolean {
+  if (!commentId) return false;
+  if (deletedCommentIds.has(commentId)) return true;
+  try {
+    if (typeof sessionStorage !== "undefined") {
+      const stored = JSON.parse(sessionStorage.getItem("nanaflix_deleted_comments") || "[]");
+      if (Array.isArray(stored) && stored.includes(commentId)) {
+        deletedCommentIds.add(commentId);
+        return true;
+      }
+    }
+  } catch {}
+  return false;
+}
 
 /**
  * Lấy danh sách bình luận từ LocalStorage theo movieSlug
@@ -45,6 +93,31 @@ function saveLocalMovieComments(movieSlug: string, items: MovieComment[]): void 
 }
 
 /**
+ * Lấy danh sách bình luận cá nhân từ LocalStorage theo userId
+ */
+function getLocalUserComments(userId: string): MovieComment[] {
+  if (typeof window === "undefined" || !userId) return [];
+  try {
+    const raw = localStorage.getItem(`nanaflix_user_comments_${userId}`);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : [];
+    }
+  } catch {}
+  return [];
+}
+
+/**
+ * Lưu danh sách bình luận cá nhân vào LocalStorage theo userId
+ */
+function saveLocalUserComments(userId: string, items: MovieComment[]): void {
+  if (typeof window === "undefined" || !userId) return;
+  try {
+    localStorage.setItem(`nanaflix_user_comments_${userId}`, JSON.stringify(items.slice(0, 100)));
+  } catch {}
+}
+
+/**
  * Đăng ký lắng nghe bình luận theo thời gian thực (Supabase PostgreSQL + 0ms Optimistic UI)
  */
 export function subscribeMovieComments(
@@ -62,9 +135,9 @@ export function subscribeMovieComments(
   // 1. Phục hồi ngay lập tức từ bộ nhớ đệm (0ms - không bị nhấp nháy hay mất comment)
   const memCached = movieCommentsMemoryCache[movieSlug];
   if (memCached && Array.isArray(memCached) && memCached.length > 0) {
-    onUpdate(memCached);
+    onUpdate(memCached.filter((c) => !isCommentDeleted(c.id)));
   } else {
-    const local = getLocalMovieComments(movieSlug);
+    const local = getLocalMovieComments(movieSlug).filter((c) => !isCommentDeleted(c.id));
     if (local.length > 0) {
       movieCommentsMemoryCache[movieSlug] = local;
       onUpdate(local);
@@ -72,8 +145,11 @@ export function subscribeMovieComments(
   }
 
   const handleNewData = (items: MovieComment[]) => {
-    const validItems = items.filter((c) => !c.movieSlug || c.movieSlug === movieSlug);
-    const existingCache = movieCommentsMemoryCache[movieSlug] || [];
+    const validItems = items
+      .filter((c) => !isCommentDeleted(c.id))
+      .filter((c) => !c.movieSlug || c.movieSlug === movieSlug);
+
+    const existingCache = (movieCommentsMemoryCache[movieSlug] || []).filter((c) => !isCommentDeleted(c.id));
     const localMap = new Map<string, MovieComment>();
     existingCache.forEach((item) => localMap.set(item.id, item));
 
@@ -81,8 +157,12 @@ export function subscribeMovieComments(
       const localItem = localMap.get(remoteItem.id);
       if (!localItem) return remoteItem;
 
-      // Nếu local có bản sửa mới hơn chưa kịp sync (hoặc vừa lưu xong), giữ lại dữ liệu edit
-      const isLocalNewer = (localItem.updatedAt || 0) > (remoteItem.updatedAt || 0);
+      // Chỉ giữ lại bản sửa cục bộ nếu mới hơn và nằm trong cửa sổ thời gian gần (< 30s)
+      // Ngăn chặn tuyệt đối zombie edits kẹt vĩnh viễn trong LocalStorage
+      const nowTime = Date.now();
+      const isLocalNewer =
+        (localItem.updatedAt || 0) > (remoteItem.updatedAt || 0) &&
+        nowTime - (Number(localItem.updatedAt) || 0) < 30000;
 
       // Hợp nhất reactions từ remote và local để tránh bị mất emoji reaction
       const mergedReactions: Record<string, CommentReactionType> = {
@@ -122,9 +202,15 @@ export function subscribeMovieComments(
       };
     });
 
-    // Giữ lại các comment vừa tạo cục bộ mà Supabase chưa kịp trả về trong request này
+    // Giữ lại các comment vừa tạo cục bộ (< 15 giây) mà Supabase chưa kịp trả về trong request này
+    // TUYỆT ĐỐI KHÔNG giữ lại comment đã bị xóa
+    const now = Date.now();
     existingCache.forEach((localItem) => {
-      if (!mergedItems.some((m) => m.id === localItem.id)) {
+      if (
+        !isCommentDeleted(localItem.id) &&
+        !mergedItems.some((m) => m.id === localItem.id) &&
+        now - (Number(localItem.createdAt) || 0) < 15000
+      ) {
         mergedItems.push(localItem);
       }
     });
@@ -180,10 +266,33 @@ export function subscribeMovieComments(
   // 3. Lắng nghe event comments-updated để reload tức thời
   const handleCommentsUpdated = (e: Event) => {
     if (isUnsubscribed) return;
-    const customEvent = e as CustomEvent<{ movieSlug?: string }>;
+    const customEvent = e as CustomEvent<{
+      movieSlug?: string;
+      commentId?: string;
+      deleted?: boolean;
+      comment?: MovieComment;
+      reply?: MovieComment;
+      parentId?: string;
+    }>;
     if (!customEvent.detail?.movieSlug || customEvent.detail.movieSlug === movieSlug) {
-      const cur = movieCommentsMemoryCache[movieSlug];
-      if (cur) onUpdate([...cur]);
+      if (customEvent.detail?.deleted && customEvent.detail?.commentId) {
+        const cId = customEvent.detail.commentId;
+        const cur = movieCommentsMemoryCache[movieSlug] || [];
+        const filtered = cur.filter((c) => c.id !== cId && c.parentId !== cId);
+        movieCommentsMemoryCache[movieSlug] = filtered;
+        saveLocalMovieComments(movieSlug, filtered);
+        onUpdate(filtered);
+      } else if (customEvent.detail?.comment || customEvent.detail?.reply) {
+        const newC = (customEvent.detail.comment || customEvent.detail.reply)!;
+        const cur = movieCommentsMemoryCache[movieSlug] || [];
+        const updated = [newC, ...cur.filter((c) => c.id !== newC.id)];
+        movieCommentsMemoryCache[movieSlug] = updated;
+        saveLocalMovieComments(movieSlug, updated);
+        onUpdate(updated);
+      } else {
+        const cur = movieCommentsMemoryCache[movieSlug];
+        if (cur) onUpdate(cur.filter((c) => !isCommentDeleted(c.id)));
+      }
       lastFetchTime = Date.now();
       fetchSupabase();
     }
@@ -265,11 +374,12 @@ export function subscribeCommentReplies(
   let isUnsubscribed = false;
 
   const handleNewReplies = (items: MovieComment[]) => {
-    const existingReplies = replyCommentsMemoryCache[parentId] || [];
+    const validItems = items.filter((r) => !isCommentDeleted(r.id));
+    const existingReplies = (replyCommentsMemoryCache[parentId] || []).filter((r) => !isCommentDeleted(r.id));
     const localMap = new Map<string, MovieComment>();
     existingReplies.forEach((r) => localMap.set(r.id, r));
 
-    const merged = items.map((remoteItem) => {
+    const merged = validItems.map((remoteItem) => {
       const localItem = localMap.get(remoteItem.id);
       if (!localItem) return remoteItem;
 
@@ -297,8 +407,15 @@ export function subscribeCommentReplies(
       };
     });
 
+    // Giữ lại các reply tạo cục bộ (< 15 giây) mà Supabase chưa kịp trả về
+    // Tuyệt đối không giữ lại reply đã bị xóa
+    const now = Date.now();
     existingReplies.forEach((localItem) => {
-      if (!merged.some((m) => m.id === localItem.id)) {
+      if (
+        !isCommentDeleted(localItem.id) &&
+        !merged.some((m) => m.id === localItem.id) &&
+        now - (Number(localItem.createdAt) || 0) < 15000
+      ) {
         merged.push(localItem);
       }
     });
@@ -309,7 +426,7 @@ export function subscribeCommentReplies(
   };
 
   if (replyCommentsMemoryCache[parentId]) {
-    onUpdate(replyCommentsMemoryCache[parentId]);
+    onUpdate(replyCommentsMemoryCache[parentId].filter((r) => !isCommentDeleted(r.id)));
   }
 
   const fetchReplies = async () => {
@@ -341,9 +458,24 @@ export function subscribeCommentReplies(
 
   const handleLocalReplyUpdated = (e: Event) => {
     if (isUnsubscribed) return;
-    const customEvent = e as CustomEvent<{ parentId?: string; reply?: MovieComment }>;
+    const customEvent = e as CustomEvent<{
+      parentId?: string;
+      reply?: MovieComment;
+      deleted?: boolean;
+      commentId?: string;
+    }>;
+
+    if (customEvent.detail?.deleted && customEvent.detail?.commentId) {
+      const cId = customEvent.detail.commentId;
+      const cur = replyCommentsMemoryCache[parentId] || [];
+      const updated = cur.filter((r) => r.id !== cId);
+      replyCommentsMemoryCache[parentId] = updated;
+      onUpdate(updated);
+      return;
+    }
+
     if (customEvent.detail?.parentId === parentId) {
-      if (customEvent.detail.reply) {
+      if (customEvent.detail.reply && !isCommentDeleted(customEvent.detail.reply.id)) {
         const cur = replyCommentsMemoryCache[parentId] || [];
         const updated = [...cur.filter((r) => r.id !== customEvent.detail.reply!.id), customEvent.detail.reply];
         replyCommentsMemoryCache[parentId] = updated;
@@ -509,7 +641,7 @@ export function subscribeAllComments(
 }
 
 /**
- * Lắng nghe tất cả bình luận do một Người Dùng đăng theo thời gian thực
+ * Lắng nghe tất cả bình luận do một Người Dùng đăng theo thời gian thực (0ms Optimistic UI + Supabase/API Sync)
  */
 export function subscribeUserComments(
   userId: string,
@@ -524,27 +656,80 @@ export function subscribeUserComments(
   let isUnsubscribed = false;
   let isFetching = false;
 
+  // 1. Phục hồi 0ms từ memory cache hoặc localStorage
+  const memCached = userCommentsMemoryCache[userId];
+  if (memCached && Array.isArray(memCached) && memCached.length > 0) {
+    onUpdate(memCached.filter((c) => !isCommentDeleted(c.id)));
+  } else {
+    const local = getLocalUserComments(userId).filter((c) => !isCommentDeleted(c.id));
+    if (local.length > 0) {
+      userCommentsMemoryCache[userId] = local;
+      onUpdate(local);
+    }
+  }
+
+  const handleNewUserComments = (items: MovieComment[]) => {
+    const validItems = items.filter((c) => !isCommentDeleted(c.id));
+    userCommentsMemoryCache[userId] = validItems;
+    saveLocalUserComments(userId, validItems);
+    onUpdate(validItems);
+  };
+
   const fetchUserComments = async () => {
     if (isUnsubscribed || isFetching) return;
-    if (isSupabaseConfigured()) {
-      isFetching = true;
+    isFetching = true;
+    try {
+      let items: MovieComment[] = [];
       try {
-        const items = await getUserCommentsSupabase(userId);
-        if (!isUnsubscribed) {
-          onUpdate(items);
-        }
-      } catch (err) {
-        if (onError && err instanceof Error) onError(err);
-      } finally {
-        isFetching = false;
+        items = await getUserCommentsSupabase(userId);
+      } catch {}
+
+      if (!isUnsubscribed) {
+        handleNewUserComments(items);
       }
+    } catch (err) {
+      if (onError && err instanceof Error) onError(err);
+    } finally {
+      isFetching = false;
     }
   };
 
   fetchUserComments();
 
-  const handleCommentsUpdated = () => {
-    if (!isUnsubscribed) fetchUserComments();
+  // 2. Lắng nghe event comments-updated để cập nhật tức thời không có độ trễ
+  const handleCommentsUpdated = (e: Event) => {
+    if (isUnsubscribed) return;
+    const customEvent = e as CustomEvent<{
+      commentId?: string;
+      deleted?: boolean;
+      userId?: string;
+      comment?: MovieComment;
+      reply?: MovieComment;
+    }>;
+
+    // Nếu là sự kiện xóa comment
+    if (customEvent.detail?.deleted && customEvent.detail?.commentId) {
+      const cId = customEvent.detail.commentId;
+      const cur = userCommentsMemoryCache[userId] || [];
+      const filtered = cur.filter((c) => c.id !== cId);
+      userCommentsMemoryCache[userId] = filtered;
+      saveLocalUserComments(userId, filtered);
+      onUpdate(filtered);
+      return;
+    }
+
+    // Nếu là sự kiện thêm mới comment/reply của user hiện tại
+    const newCommentOrReply = customEvent.detail?.comment || customEvent.detail?.reply;
+    if (newCommentOrReply && customEvent.detail?.userId === userId) {
+      const newC = newCommentOrReply;
+      const cur = userCommentsMemoryCache[userId] || [];
+      const updated = [newC, ...cur.filter((c) => c.id !== newC.id)];
+      userCommentsMemoryCache[userId] = updated;
+      saveLocalUserComments(userId, updated);
+      onUpdate(updated);
+    }
+
+    fetchUserComments();
   };
 
   const handleVisibilityChange = () => {
@@ -556,6 +741,32 @@ export function subscribeUserComments(
   if (typeof window !== "undefined") {
     window.addEventListener("comments-updated", handleCommentsUpdated);
     document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("focus", handleVisibilityChange);
+  }
+
+  // 3. Supabase Realtime cho user comments (< 50ms)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let realtimeChannel: any = null;
+  if (supabase) {
+    try {
+      realtimeChannel = supabase
+        .channel(`realtime_user_comments_${userId}_${Date.now()}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "movie_comments",
+            filter: `user_id=eq.${userId}`,
+          },
+          () => {
+            if (!isUnsubscribed) fetchUserComments();
+          }
+        )
+        .subscribe();
+    } catch (err) {
+      console.warn("Lỗi đăng ký Realtime user comments:", err);
+    }
   }
 
   const interval = setInterval(() => {
@@ -567,9 +778,15 @@ export function subscribeUserComments(
   return () => {
     isUnsubscribed = true;
     clearInterval(interval);
+    if (realtimeChannel && supabase) {
+      try {
+        supabase.removeChannel(realtimeChannel);
+      } catch {}
+    }
     if (typeof window !== "undefined") {
       window.removeEventListener("comments-updated", handleCommentsUpdated);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("focus", handleVisibilityChange);
     }
   };
 }
@@ -684,38 +901,38 @@ export async function addMovieComment(
   };
 
   // 3. Ghi vào cơ sở dữ liệu qua Server API (/api/comments)
-  let createdId = `cmt_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
-  try {
-    const idToken = await auth?.currentUser?.getIdToken().catch(() => null);
-    const res = await fetch("/api/comments", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        ...(idToken ? { Authorization: `Bearer ${idToken}` } : {}),
-      },
-      body: JSON.stringify({
-        movieSlug: newComment.movieSlug,
-        movieTitle: newComment.movieTitle,
-        rating: newComment.rating,
-        content: newComment.content,
-        isSpoiler: newComment.isSpoiler,
-        episodeSlug: newComment.episodeSlug,
-        episodeName: newComment.episodeName,
-      }),
-    });
-    if (res.ok) {
-      const data = await res.json();
-      if (data.id) createdId = data.id;
-    } else if (isSupabaseConfigured()) {
-      createdId = await postCommentSupabase(newComment as unknown as Omit<MovieComment, "id" | "createdAt" | "updatedAt">);
-    }
-  } catch {
-    if (isSupabaseConfigured()) {
-      try {
-        createdId = await postCommentSupabase(newComment as unknown as Omit<MovieComment, "id" | "createdAt" | "updatedAt">);
-      } catch {}
-    }
+  const idToken = await auth?.currentUser?.getIdToken().catch(() => null);
+  const res = await fetch("/api/comments", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(idToken ? { Authorization: `Bearer ${idToken}` } : {}),
+    },
+    body: JSON.stringify({
+      movieSlug: newComment.movieSlug,
+      movieTitle: newComment.movieTitle,
+      rating: newComment.rating,
+      content: newComment.content,
+      isSpoiler: newComment.isSpoiler,
+      episodeSlug: newComment.episodeSlug,
+      episodeName: newComment.episodeName,
+    }),
+  });
+
+  if (!res.ok) {
+    let errMsg = "Không thể gửi bình luận!";
+    try {
+      const errJson = await res.json();
+      if (errJson.error) errMsg = errJson.error;
+    } catch {}
+    throw new Error(errMsg);
   }
+
+  const resData = await res.json();
+  if (!resData.id) {
+    throw new Error("Máy chủ không trả về mã định danh bình luận!");
+  }
+  const createdId: string = resData.id;
 
   const fullComment: MovieComment = { id: createdId, ...newComment } as MovieComment;
 
@@ -723,8 +940,22 @@ export async function addMovieComment(
   movieCommentsMemoryCache[comment.movieSlug] = [fullComment, ...curList.filter((c) => c.id !== createdId)];
   saveLocalMovieComments(comment.movieSlug, movieCommentsMemoryCache[comment.movieSlug]);
 
+  if (comment.userId) {
+    const curUserList = userCommentsMemoryCache[comment.userId] || [];
+    userCommentsMemoryCache[comment.userId] = [fullComment, ...curUserList.filter((c) => c.id !== createdId)];
+    saveLocalUserComments(comment.userId, userCommentsMemoryCache[comment.userId]);
+  }
+
   if (typeof window !== "undefined") {
-    window.dispatchEvent(new CustomEvent("comments-updated", { detail: { movieSlug: comment.movieSlug, comment: fullComment } }));
+    window.dispatchEvent(
+      new CustomEvent("comments-updated", {
+        detail: {
+          movieSlug: comment.movieSlug,
+          comment: fullComment,
+          userId: comment.userId,
+        },
+      })
+    );
   }
 
   return createdId;
@@ -771,68 +1002,40 @@ export async function addReplyComment(params: {
   const { parentId, parentOwnerId, replyToUserId, replyToUserName, ...replyData } = params;
 
   // 2. Ghi qua Server API
-  let createdId = `cmt_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
-  try {
-    const idToken = await auth?.currentUser?.getIdToken().catch(() => null);
-    const res = await fetch("/api/comments", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        ...(idToken ? { Authorization: `Bearer ${idToken}` } : {}),
-      },
-      body: JSON.stringify({
-        movieSlug: params.movieSlug,
-        movieTitle: params.movieTitle,
-        rating: 0,
-        content: sanitizeSafeText(replyData.content, 2500),
-        isSpoiler: Boolean(params.isSpoiler || detectSpoiler(params.content)),
-        parentId,
-        parentOwnerId,
-        replyToUserId,
-        replyToUserName: replyToUserName ? sanitizeSafeText(replyToUserName, 100) : undefined,
-      }),
-    });
-    if (res.ok) {
-      const data = await res.json();
-      if (data.id) createdId = data.id;
-    } else if (isSupabaseConfigured()) {
-      createdId = await postCommentSupabase({
-        movieSlug: params.movieSlug,
-        movieTitle: params.movieTitle,
-        userId: params.userId,
-        userName: params.userName,
-        userAvatar: params.userAvatar,
-        userEmail: params.userEmail,
-        content: sanitizeSafeText(replyData.content, 2500),
-        isSpoiler: Boolean(params.isSpoiler || detectSpoiler(params.content)),
-        parentId,
-        parentOwnerId,
-        replyToUserId,
-        replyToUserName: replyToUserName ? sanitizeSafeText(replyToUserName, 100) : undefined,
-        rating: 0,
-      });
-    }
-  } catch {
-    if (isSupabaseConfigured()) {
-      try {
-        createdId = await postCommentSupabase({
-          movieSlug: params.movieSlug,
-          movieTitle: params.movieTitle,
-          userId: params.userId,
-          userName: params.userName,
-          userAvatar: params.userAvatar,
-          userEmail: params.userEmail,
-          content: sanitizeSafeText(replyData.content, 2500),
-          isSpoiler: Boolean(params.isSpoiler || detectSpoiler(params.content)),
-          parentId,
-          parentOwnerId,
-          replyToUserId,
-          replyToUserName: replyToUserName ? sanitizeSafeText(replyToUserName, 100) : undefined,
-          rating: 0,
-        });
-      } catch {}
-    }
+  const idToken = await auth?.currentUser?.getIdToken().catch(() => null);
+  const res = await fetch("/api/comments", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(idToken ? { Authorization: `Bearer ${idToken}` } : {}),
+    },
+    body: JSON.stringify({
+      movieSlug: params.movieSlug,
+      movieTitle: params.movieTitle,
+      rating: 0,
+      content: sanitizeSafeText(replyData.content, 2500),
+      isSpoiler: Boolean(params.isSpoiler || detectSpoiler(params.content)),
+      parentId,
+      parentOwnerId,
+      replyToUserId,
+      replyToUserName: replyToUserName ? sanitizeSafeText(replyToUserName, 100) : undefined,
+    }),
+  });
+
+  if (!res.ok) {
+    let errMsg = "Không thể gửi phản hồi!";
+    try {
+      const errJson = await res.json();
+      if (errJson.error) errMsg = errJson.error;
+    } catch {}
+    throw new Error(errMsg);
   }
+
+  const resData = await res.json();
+  if (!resData.id) {
+    throw new Error("Máy chủ không trả về mã định danh phản hồi!");
+  }
+  const createdId: string = resData.id;
 
   const fullReply: MovieComment = {
     id: createdId,
@@ -857,8 +1060,28 @@ export async function addReplyComment(params: {
   movieCommentsMemoryCache[params.movieSlug] = [...curList.filter((c) => c.id !== createdId), fullReply];
   saveLocalMovieComments(params.movieSlug, movieCommentsMemoryCache[params.movieSlug]);
 
+  // Cập nhật cả cache replies cho parentId
+  const curReplies = replyCommentsMemoryCache[parentId] || [];
+  replyCommentsMemoryCache[parentId] = [...curReplies.filter((r) => r.id !== createdId), fullReply];
+
+  if (params.userId) {
+    const curUserList = userCommentsMemoryCache[params.userId] || [];
+    userCommentsMemoryCache[params.userId] = [fullReply, ...curUserList.filter((c) => c.id !== createdId)];
+    saveLocalUserComments(params.userId, userCommentsMemoryCache[params.userId]);
+  }
+
   if (typeof window !== "undefined") {
-    window.dispatchEvent(new CustomEvent("comments-updated", { detail: { movieSlug: params.movieSlug, parentId, reply: fullReply } }));
+    window.dispatchEvent(
+      new CustomEvent("comments-updated", {
+        detail: {
+          movieSlug: params.movieSlug,
+          parentId,
+          reply: fullReply,
+          comment: fullReply,
+          userId: params.userId,
+        },
+      })
+    );
   }
 
   return createdId;
@@ -987,6 +1210,20 @@ export async function updateMovieComment(
 
   const now = Date.now();
 
+  // Snapshot memory cache & local storage trước khi mutate để sẵn sàng rollback nếu API thất bại
+  const previousMovieCache: Record<string, MovieComment[]> = {};
+  for (const [slug, list] of Object.entries(movieCommentsMemoryCache)) {
+    previousMovieCache[slug] = [...list];
+  }
+  const previousReplyCache: Record<string, MovieComment[]> = {};
+  for (const [pid, list] of Object.entries(replyCommentsMemoryCache)) {
+    previousReplyCache[pid] = [...list];
+  }
+  const previousUserCache: Record<string, MovieComment[]> = {};
+  for (const [uid, list] of Object.entries(userCommentsMemoryCache)) {
+    previousUserCache[uid] = [...list];
+  }
+
   // 1. Cập nhật ngay lập tức vào Memory Cache & LocalStorage
   let affectedMovieSlug: string | undefined = movieSlug;
   for (const [slug, list] of Object.entries(movieCommentsMemoryCache)) {
@@ -1008,14 +1245,22 @@ export async function updateMovieComment(
     );
   });
 
+  // Cập nhật trong user comments memory cache
+  Object.keys(userCommentsMemoryCache).forEach((uid) => {
+    userCommentsMemoryCache[uid] = userCommentsMemoryCache[uid].map((c) =>
+      c.id === commentId ? { ...c, ...data, isEdited: true, editedAt: now, updatedAt: now } : c
+    );
+    saveLocalUserComments(uid, userCommentsMemoryCache[uid]);
+  });
+
   const finalIsSpoiler = data.isSpoiler !== undefined 
     ? (data.isSpoiler || (data.content ? detectSpoiler(data.content) : false))
     : (data.content ? detectSpoiler(data.content) : undefined);
 
-  // 2. Ghi qua Server API
+  // 2. Ghi qua Server API và kiểm tra kết quả trả về
   try {
     const idToken = await auth?.currentUser?.getIdToken().catch(() => null);
-    await fetch("/api/comments", {
+    const res = await fetch("/api/comments", {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
@@ -1030,11 +1275,32 @@ export async function updateMovieComment(
         isSpoiler: finalIsSpoiler,
       }),
     });
+
+    if (!res.ok) {
+      let errMsg = "Không thể cập nhật bình luận!";
+      try {
+        const errJson = await res.json();
+        if (errJson.error) errMsg = errJson.error;
+      } catch {}
+      throw new Error(errMsg);
+    }
   } catch (err) {
-    console.warn("Lỗi update comment qua API:", err);
+    // ROLLBACK TOÀN DIỆN: Phục hồi lại toàn bộ cache và LocalStorage về trạng thái trước khi sửa
+    for (const [slug, list] of Object.entries(previousMovieCache)) {
+      movieCommentsMemoryCache[slug] = list;
+      saveLocalMovieComments(slug, list);
+    }
+    for (const [pid, list] of Object.entries(previousReplyCache)) {
+      replyCommentsMemoryCache[pid] = list;
+    }
+    for (const [uid, list] of Object.entries(previousUserCache)) {
+      userCommentsMemoryCache[uid] = list;
+      saveLocalUserComments(uid, list);
+    }
+    throw err;
   }
 
-  // 3. Sau khi ghi xong, phát event để đồng bộ toàn bộ tab/component
+  // 3. Sau khi ghi thành công vào database, phát event để đồng bộ toàn bộ tab/component
   if (typeof window !== "undefined") {
     window.dispatchEvent(new CustomEvent("comments-updated", { detail: { commentId, movieSlug: affectedMovieSlug } }));
   }
@@ -1043,18 +1309,59 @@ export async function updateMovieComment(
 /**
  * Xóa bình luận của chính người dùng
  */
-export async function deleteMovieComment(commentId: string): Promise<void> {
+export async function deleteMovieComment(
+  commentId: string,
+  options?: { movieSlug?: string; userId?: string }
+): Promise<void> {
   if (!commentId) return;
 
-  // 1. Xóa ngay lập tức khỏi Memory Cache & LocalStorage
-  let affectedMovieSlug: string | undefined;
+  // Snapshot memory cache & local storage trước khi xóa
+  const previousMovieCache: Record<string, MovieComment[]> = {};
+  for (const [slug, list] of Object.entries(movieCommentsMemoryCache)) {
+    previousMovieCache[slug] = [...list];
+  }
+  const previousReplyCache: Record<string, MovieComment[]> = {};
+  for (const [pid, list] of Object.entries(replyCommentsMemoryCache)) {
+    previousReplyCache[pid] = [...list];
+  }
+  const previousUserCache: Record<string, MovieComment[]> = {};
+  for (const [uid, list] of Object.entries(userCommentsMemoryCache)) {
+    previousUserCache[uid] = [...list];
+  }
+
+  // 1. Đánh dấu xóa vào Set chống hồi sinh (Ghost Comments)
+  markCommentDeleted(commentId);
+
+  // 2. Xóa ngay lập tức khỏi Memory Cache & LocalStorage
+  let affectedMovieSlug: string | undefined = options?.movieSlug;
   for (const [slug, list] of Object.entries(movieCommentsMemoryCache)) {
     if (list.some((c) => c.id === commentId || c.parentId === commentId)) {
-      affectedMovieSlug = slug;
+      if (!affectedMovieSlug) affectedMovieSlug = slug;
       movieCommentsMemoryCache[slug] = list.filter((c) => c.id !== commentId && c.parentId !== commentId);
       saveLocalMovieComments(slug, movieCommentsMemoryCache[slug]);
-      break;
     }
+  }
+
+  if (affectedMovieSlug) {
+    const local = getLocalMovieComments(affectedMovieSlug);
+    const cleaned = local.filter((c) => c.id !== commentId && c.parentId !== commentId);
+    saveLocalMovieComments(affectedMovieSlug, cleaned);
+  } else if (typeof window !== "undefined") {
+    try {
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith("nanaflix_comments_")) {
+          const raw = localStorage.getItem(key);
+          if (raw && raw.includes(commentId)) {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed)) {
+              const cleaned = parsed.filter((c) => c.id !== commentId && c.parentId !== commentId);
+              localStorage.setItem(key, JSON.stringify(cleaned));
+            }
+          }
+        }
+      }
+    } catch {}
   }
 
   // Xóa trong reply cache
@@ -1064,19 +1371,78 @@ export async function deleteMovieComment(commentId: string): Promise<void> {
     );
   });
 
-  if (typeof window !== "undefined") {
-    window.dispatchEvent(new CustomEvent("comments-updated", { detail: { commentId, movieSlug: affectedMovieSlug, deleted: true } }));
+  // Xóa trong user comments memory cache
+  const effectiveUserId = options?.userId || auth?.currentUser?.uid;
+  if (effectiveUserId && userCommentsMemoryCache[effectiveUserId]) {
+    userCommentsMemoryCache[effectiveUserId] = userCommentsMemoryCache[effectiveUserId].filter(
+      (c) => c.id !== commentId && c.parentId !== commentId
+    );
+    saveLocalUserComments(effectiveUserId, userCommentsMemoryCache[effectiveUserId]);
+  } else if (typeof window !== "undefined") {
+    try {
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith("nanaflix_user_comments_")) {
+          const raw = localStorage.getItem(key);
+          if (raw && raw.includes(commentId)) {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed)) {
+              const cleaned = parsed.filter((c) => c.id !== commentId && c.parentId !== commentId);
+              localStorage.setItem(key, JSON.stringify(cleaned));
+            }
+          }
+        }
+      }
+    } catch {}
   }
 
-  // 2. Xóa qua Server API
+  // 3. Xóa qua Server API và BẮT BUỘC CHỜ PHẢN HỒI từ cơ sở dữ liệu
   try {
     const idToken = await auth?.currentUser?.getIdToken().catch(() => null);
-    await fetch(`/api/comments?commentId=${encodeURIComponent(commentId)}`, {
+    const res = await fetch(`/api/comments?commentId=${encodeURIComponent(commentId)}`, {
       method: "DELETE",
       headers: idToken ? { Authorization: `Bearer ${idToken}` } : {},
     });
+
+    // Tính chất lũy thừa: 200/204 hoặc 404 (đã bị xóa trước đó) được coi là thành công
+    if (!res.ok && res.status !== 404) {
+      let errMsg = "Không thể xóa bình luận!";
+      try {
+        const errJson = await res.json();
+        if (errJson.error) errMsg = errJson.error;
+      } catch {}
+      throw new Error(errMsg);
+    }
   } catch (err) {
-    console.warn("Lỗi delete comment qua API:", err);
+    // ROLLBACK NẾU XÓA THẤT BẠI: Hủy đánh dấu xóa và phục hồi lại cache
+    unmarkCommentDeleted(commentId);
+    for (const [slug, list] of Object.entries(previousMovieCache)) {
+      movieCommentsMemoryCache[slug] = list;
+      saveLocalMovieComments(slug, list);
+    }
+    for (const [pid, list] of Object.entries(previousReplyCache)) {
+      replyCommentsMemoryCache[pid] = list;
+    }
+    for (const [uid, list] of Object.entries(previousUserCache)) {
+      userCommentsMemoryCache[uid] = list;
+      saveLocalUserComments(uid, list);
+    }
+    console.error("Lỗi delete comment qua API:", err);
+    throw err;
+  }
+
+  // 4. CHỈ PHÁT EVENT ĐỒNG BỘ SAU KHI SERVER ĐÃ XÁC NHẬN XÓA XONG
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(
+      new CustomEvent("comments-updated", {
+        detail: {
+          commentId,
+          movieSlug: affectedMovieSlug,
+          userId: effectiveUserId,
+          deleted: true,
+        },
+      })
+    );
   }
 }
 

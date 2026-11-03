@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { X, Clock, Film } from "lucide-react";
 import {
@@ -16,6 +16,8 @@ import {
 } from "@/lib/movieMedia";
 import { formatEpisodeName } from "@/lib/formatEpisode";
 import { CarouselNavButton } from "@/components/ui/CarouselNavButton";
+import { useCarouselScroll } from "@/components/ui/useCarouselScroll";
+import { SectionHeader } from "@/components/ui/SectionHeader";
 import { useMoviePosterFallback } from "@/hooks/useMoviePosterFallback";
 
 export const MAX_CONTINUE_WATCHING_DISPLAY = 15;
@@ -106,7 +108,7 @@ function ContinueWatchingCard({ item, index = 0, onRemove }: ContinueWatchingCar
 
   return (
     <div
-      className="group relative flex-none w-[130px] xs:w-[140px] sm:w-[155px] md:w-[172px] bg-zinc-950/90 rounded-xl overflow-hidden border border-white/[0.08] hover: transition-all duration-300 hover:scale-[1.03] shadow-lg hover:shadow-[0_12px_28px_rgba(229,9,20,0.18)] transform-gpu will-change-transform flex flex-col"
+      className="group relative flex-none w-[130px] xs:w-[140px] sm:w-[155px] md:w-[172px] bg-zinc-950/90 rounded-xl overflow-hidden border border-white/[0.08] hover: transition-all duration-300 hover:scale-[1.03] shadow-lg hover:shadow-[0_12px_28px_var(--accent-glow)] transform-gpu will-change-transform flex flex-col"
     >
       <Link href={href} className="block flex-1 flex flex-col">
         {/* ẢNH POSTER DỌC (TỈ LỆ 2:3 CHUẨN ĐIỆN ẢNH) */}
@@ -115,7 +117,7 @@ function ContinueWatchingCard({ item, index = 0, onRemove }: ContinueWatchingCar
           {!isLoaded && (
             <div className="absolute inset-0 bg-gradient-to-br from-zinc-850 via-zinc-900 to-zinc-950 flex flex-col items-center justify-center p-3 text-center z-0 animate-pulse pointer-events-none">
               <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center mb-1.5 shadow-inner">
-                <Film className="w-5 h-5 text-rose-500/70" />
+                <Film className="w-5 h-5 text-netflix-red/70" />
               </div>
               <span className="text-[11px] font-semibold text-zinc-400 line-clamp-2 max-w-[90%] leading-tight">
                 {item.title}
@@ -137,9 +139,9 @@ function ContinueWatchingCard({ item, index = 0, onRemove }: ContinueWatchingCar
               onError={handleImgError}
             />
           ) : (
-            <div className="w-full h-full bg-gradient-to-br from-zinc-900 via-rose-950/20 to-zinc-950 flex flex-col items-center justify-center p-3 text-center relative overflow-hidden">
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_40%,rgba(229,9,20,0.18),transparent_70%)]" />
-              <Film className="w-8 h-8 text-rose-500/60 mb-2 relative z-10 animate-pulse" />
+            <div className="w-full h-full bg-gradient-to-br from-zinc-900 via-netflix-red/10 to-zinc-950 flex flex-col items-center justify-center p-3 text-center relative overflow-hidden">
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_40%,rgba(var(--accent-rgb),0.18),transparent_70%)]" />
+              <Film className="w-8 h-8 text-netflix-red/60 mb-2 relative z-10 animate-pulse" />
               <span className="text-[11px] font-semibold text-zinc-300 line-clamp-3 max-w-[95%] relative z-10 leading-tight">
                 {item.title}
               </span>
@@ -181,10 +183,10 @@ function ContinueWatchingCard({ item, index = 0, onRemove }: ContinueWatchingCar
 
 
 
-          {/* THANH TIẾN ĐỘ GRADIENT ĐỎ SANG TRỌNG Ở ĐÁY POSTER */}
+          {/* THANH TIẾN ĐỘ GRADIENT THEME SANG TRỌNG Ở ĐÁY POSTER */}
           <div className="absolute bottom-0 left-0 right-0 h-[3px] bg-white/20 backdrop-blur-sm z-10 overflow-hidden">
             <div
-              className="h-full bg-gradient-to-r from-red-600 via-rose-500 to-red-500 rounded-r-full transition-all duration-500 shadow-[0_0_8px_rgba(229,9,20,0.9)]"
+              className="h-full bg-gradient-to-r from-netflix-red to-netflix-red/80 rounded-r-full transition-all duration-500 shadow-[0_0_8px_var(--accent-glow)]"
               style={{ width: `${progressPercent}%` }}
             />
           </div>
@@ -192,13 +194,13 @@ function ContinueWatchingCard({ item, index = 0, onRemove }: ContinueWatchingCar
 
         {/* THÔNG TIN PHIM */}
         <div className="p-2.5 sm:p-3 bg-zinc-950/95 flex-1 flex flex-col justify-between gap-1.5">
-          <h3 className="text-zinc-100 text-xs sm:text-[13px] font-semibold truncate group-hover:text-rose-400 transition-colors leading-snug">
+          <h3 className="text-zinc-100 text-xs sm:text-[13px] font-semibold truncate group-hover:text-netflix-red transition-colors leading-snug">
             {item.title}
           </h3>
 
           <div className="flex items-center justify-between text-[11px] text-zinc-400">
             <div className="flex items-center gap-1.5 min-w-0">
-              <span className="w-1.5 h-1.5 rounded-full bg-red-500 flex-shrink-0 animate-pulse shadow-[0_0_6px_#EF4444]" />
+              <span className="w-1.5 h-1.5 rounded-full bg-netflix-red flex-shrink-0 animate-pulse shadow-[0_0_6px_var(--accent-color)]" />
               <span className="text-zinc-300 font-medium truncate">
                 {item.episodeName ? formatEpisodeName(item.episodeName) : "Xem tiếp"}
               </span>
@@ -218,29 +220,16 @@ function ContinueWatchingCard({ item, index = 0, onRemove }: ContinueWatchingCar
 function ContinueWatchingRowInner() {
   const [items, setItems] = useState<WatchHistoryItem[]>([]);
   const [isClient, setIsClient] = useState(false);
-  const [canScrollLeft, setCanScrollLeft] = useState(false);
-  const [canScrollRight, setCanScrollRight] = useState(false);
-
-  const rowRef = useRef<HTMLDivElement>(null);
-  const rafRef = useRef<number | null>(null);
-
-  const checkScroll = useCallback(() => {
-    if (rafRef.current !== null) {
-      cancelAnimationFrame(rafRef.current);
-    }
-    rafRef.current = requestAnimationFrame(() => {
-      if (!rowRef.current) return;
-      const el = rowRef.current;
-      const { scrollLeft, scrollWidth, clientWidth } = el;
-      const firstCard = el.querySelector<HTMLElement>(".group");
-      const isAtStart =
-        scrollLeft <= 8 ||
-        (firstCard ? firstCard.getBoundingClientRect().left >= el.getBoundingClientRect().left - 2 : scrollLeft <= 8);
-      const isAtEnd = scrollLeft >= scrollWidth - clientWidth - 8;
-      setCanScrollLeft(!isAtStart);
-      setCanScrollRight(!isAtEnd);
-    });
-  }, []);
+  const {
+    scrollRef: rowRef,
+    canScrollLeft,
+    canScrollRight,
+    handleScroll,
+  } = useCarouselScroll<HTMLDivElement>({
+    resetTrigger: items,
+    cardSelector: ".group",
+    boundaryThreshold: 8,
+  });
 
   useEffect(() => {
     setIsClient(true);
@@ -276,30 +265,13 @@ function ContinueWatchingRowInner() {
     };
   }, []);
 
-  useEffect(() => {
-    if (!isClient) return;
-    checkScroll();
-    window.addEventListener("resize", checkScroll);
-    return () => {
-      window.removeEventListener("resize", checkScroll);
-      if (rafRef.current !== null) {
-        cancelAnimationFrame(rafRef.current);
-      }
-    };
-  }, [items, isClient, checkScroll]);
+  
 
   if (!isClient || items.length === 0) {
     return null;
   }
 
-  const handleScroll = (direction: "left" | "right") => {
-    if (!rowRef.current) return;
-    const { clientWidth } = rowRef.current;
-    const scrollAmount = direction === "left" ? -clientWidth * 0.75 : clientWidth * 0.75;
-    rowRef.current.scrollBy({ left: scrollAmount, behavior: "smooth" });
-    setTimeout(checkScroll, 150);
-    setTimeout(checkScroll, 400);
-  };
+  
 
   const handleRemove = (e: React.MouseEvent, slug: string) => {
     e.preventDefault();
@@ -309,20 +281,19 @@ function ContinueWatchingRowInner() {
 
   return (
     <section className="relative z-10 w-full select-none">
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <Clock className="w-5 h-5 text-netflix-red" />
-          <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-white tracking-tight">
-            Tiếp tục xem
-          </h2>
-        </div>
-        <Link
-          href="/my-list?tab=history"
-          className="text-xs sm:text-sm text-zinc-400 hover:text-white transition font-medium"
-        >
-          Xem tất cả ({items.length})
-        </Link>
-      </div>
+      <SectionHeader
+        variant="compact"
+        title="Tiếp tục xem"
+        icon={<Clock className="w-5 h-5 text-netflix-red" />}
+        actions={
+          <Link
+            href="/my-list?tab=history"
+            className="text-xs sm:text-sm text-zinc-400 hover:text-white transition font-medium"
+          >
+            Xem tất cả ({items.length})
+          </Link>
+        }
+      />
 
       {/* KHUNG CAROUSEL CÓ NÚT ĐIỀU HƯỚNG TRÁI/PHẢI CHUẨN NETFLIX */}
       <div className="relative group/row">

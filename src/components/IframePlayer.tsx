@@ -128,7 +128,7 @@ export const IframePlayer: React.FC<IframePlayerProps> = ({
             {onFallbackToNanaflix && (
               <button
                 onClick={onFallbackToNanaflix}
-                className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-xs font-semibold text-white transition shadow-md shadow-black/50 cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-netflix-red hover:brightness-110 active:brightness-95 text-xs font-semibold text-white transition shadow-md shadow-black/50 cursor-pointer"
               >
                 <ArrowLeft className="w-3.5 h-3.5" />
                 <span>Quay lại Server Nanaflix</span>

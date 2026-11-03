@@ -21,27 +21,13 @@ import {
   shouldSkipDuplicateRequest,
 } from "@/services/live/football-score/matchCenterRealtime";
 import { resolveCanonicalTournament } from "@/services/live/football-score/canonicalLeagues";
-import { getTeamAsset } from "@/data/live/teamAssets";
+import { getTeamAsset, getTeamInitials } from "@/data/live/teamAssets";
 import { toDarkModeLogoUrl } from "@/services/live/football-logo/service";
 import { TacticalLineup } from "./TacticalLineup";
 import { DualTeamPitch } from "./DualTeamPitch";
 import { CountryFlag } from "./CountryFlag";
 import { Tooltip } from "@/components/ui/Tooltip";
 
-function getTeamInitials(teamName: string): string {
-  if (!teamName) return "⚽";
-  const clean = teamName
-    .replace(/^CLB\s+/i, "")
-    .replace(/^FC\s+/i, "")
-    .replace(/^SSC\s+/i, "")
-    .replace(/^U\d+\s+/i, "")
-    .trim();
-  const words = clean.split(/\s+/).filter(Boolean);
-  if (words.length >= 2) {
-    return (words[0][0] + words[1][0]).toUpperCase();
-  }
-  return clean.slice(0, 2).toUpperCase();
-}
 
 export interface MatchCenterScoreProp {
   homeScore?: number;
@@ -339,7 +325,7 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
     (isLive ? (time || "Đang đá") : (time || ""));
 
   const miniScoreboardMarkup = (
-    <div className="rounded-2xl bg-gradient-to-b from-white/[0.04] via-zinc-900/70 to-zinc-950 p-3 sm:p-4 shadow-lg">
+    <div className="rounded-xl bg-white/[0.03] border border-white/[0.06] p-3 sm:p-4">
       <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 sm:gap-6">
         {/* Đội nhà: Tên (căn phải) + Logo */}
         <div className="flex items-center justify-end gap-2 sm:gap-3.5 min-w-0">
@@ -458,8 +444,13 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
     </div>
   );
 
+  // CHỈ HIỂN THỊ TRUNG TÂM TRẬN ĐẤU KHI CÓ DỮ LIỆU THỰC TẾ (SUMMARY)
+  if (!summary) {
+    return null;
+  }
+
   return (
-    <div className="w-full rounded-3xl bg-zinc-950/90 backdrop-blur-xl shadow-2xl overflow-hidden">
+    <div className="w-full rounded-2xl bg-zinc-900/40 border border-white/[0.08] backdrop-blur-md overflow-hidden">
       {/* 1. HEADER MATCH CENTER (COMPACT & RESPONSIVE) */}
       <div
         onClick={() => setIsOpen(!isOpen)}
@@ -535,7 +526,7 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
               <button
                 type="button"
                 onClick={() => fetchSummary(true)}
-                className="px-4 py-2 rounded-xl bg-netflix-red hover:bg-red-700 text-white text-xs font-bold transition shadow-lg inline-flex items-center gap-1.5 cursor-pointer"
+                className="px-4 py-2 rounded-xl bg-netflix-red hover:brightness-110 active:brightness-95 text-white text-xs font-bold transition shadow-lg inline-flex items-center gap-1.5 cursor-pointer"
               >
                 <RefreshCw className="w-3.5 h-3.5" />
                 <span>Thử lại</span>
@@ -653,7 +644,7 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
                           onClick={() => setActiveTab(tab.id as TabType)}
                           className={`flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer outline-none focus-visible:bg-white/10 min-h-[40px] sm:min-h-[44px] ${
                             isActive
-                              ? "bg-gradient-to-r from-netflix-red to-netflix-red/85 text-white shadow-md shadow-[var(--accent-glow,rgba(229,9,20,0.4))] font-black scale-[1.02]"
+                              ? "bg-gradient-to-r from-netflix-red to-netflix-red/85 text-white shadow-md shadow-[var(--accent-glow)] font-black scale-[1.02]"
                               : "text-zinc-400 hover:text-white hover:bg-white/5 bg-zinc-900/70 "
                           }`}
                         >
@@ -810,21 +801,21 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
                   )}
 
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
-                    <div className="rounded-xl bg-zinc-900/50 p-3 flex flex-col gap-1 min-w-0">
+                    <div className="rounded-xl bg-white/[0.03] border border-white/[0.06] p-3 flex flex-col gap-1 min-w-0">
                       <span className="text-[10px] uppercase font-bold text-zinc-400">🏆 Giải đấu</span>
                       <span className="font-extrabold text-white text-xs line-clamp-2 leading-tight">
                         {canonicalLeague || tournament || "Giải Đấu Khác"}
                       </span>
                     </div>
 
-                    <div className="rounded-xl bg-zinc-900/50 p-3 flex flex-col gap-1 min-w-0">
+                    <div className="rounded-xl bg-white/[0.03] border border-white/[0.06] p-3 flex flex-col gap-1 min-w-0">
                       <span className="text-[10px] uppercase font-bold text-zinc-400">🎙️ Bình luận viên</span>
                       <span className="font-extrabold text-white text-xs line-clamp-2 leading-tight">
                         {blv || "BLV Tiếng Việt"}
                       </span>
                     </div>
 
-                    <div className="rounded-xl bg-zinc-900/50 p-3 flex flex-col gap-1 min-w-0 col-span-2 sm:col-span-1">
+                    <div className="rounded-xl bg-white/[0.03] border border-white/[0.06] p-3 flex flex-col gap-1 min-w-0 col-span-2 sm:col-span-1">
                       <span className="text-[10px] uppercase font-bold text-zinc-400">⚡ Tín hiệu phát</span>
                       <span className="font-extrabold text-emerald-400 text-xs flex items-center gap-1.5">
                         <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />

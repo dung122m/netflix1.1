@@ -62,7 +62,7 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = React.mem
             type="button"
             data-player-control="true"
             onClick={onToggleTheaterMode}
-            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border transition cursor-pointer text-xs outline-none focus-visible:ring-2 focus-visible:ring-white/40 ${
+            className={`hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border transition cursor-pointer text-xs outline-none focus-visible:ring-2 focus-visible:ring-white/40 ${
               isTheaterMode
                 ? "bg-netflix-red/90 text-white border-netflix-red font-medium shadow-sm"
                 : "bg-zinc-900/60 hover:bg-zinc-800/80 text-zinc-300 hover:text-white  backdrop-blur-md"

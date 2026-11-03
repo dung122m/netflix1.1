@@ -5,6 +5,7 @@ import { FolderPlus } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { AuthModal } from "@/components/AuthModal";
 import { AddToCollectionModal } from "./AddToCollectionModal";
+import { Tooltip } from "@/components/ui/Tooltip";
 
 interface AddToCollectionButtonProps {
   movie: {
@@ -50,11 +51,11 @@ export const AddToCollectionButton: React.FC<AddToCollectionButtonProps> = ({
 
   return (
     <>
-      <button
-        type="button"
-        onClick={handleClick}
-        title={label || "Thêm phim vào bộ sưu tập cá nhân"}
-        aria-label={label || "Bộ sưu tập"}
+      <Tooltip content={label || "Thêm phim vào bộ sưu tập cá nhân"} side="top">
+        <button
+          type="button"
+          onClick={handleClick}
+          aria-label={label || "Bộ sưu tập"}
         className={`inline-flex items-center gap-1 sm:gap-1.5 transition-all cursor-pointer active:scale-95 shadow-sm flex-shrink-0 whitespace-nowrap ${
           variant === "player"
             ? "px-2.5 py-1.5 rounded-lg bg-zinc-900/80 hover:bg-zinc-800  hover: text-zinc-300 hover:text-white text-xs font-medium"
@@ -67,7 +68,8 @@ export const AddToCollectionButton: React.FC<AddToCollectionButtonProps> = ({
           } text-amber-400`}
         />
         <span className="whitespace-nowrap">{label || "Bộ sưu tập"}</span>
-      </button>
+        </button>
+      </Tooltip>
 
       {/* Modal danh sách bộ sưu tập */}
       <AddToCollectionModal

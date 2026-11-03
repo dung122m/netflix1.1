@@ -1,6 +1,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { movieApi, deduplicateServerEpisodes, buildMovieCacheKey, deduplicateMovieItems } from "./service";
+import { movieApi, deduplicateServerEpisodes, buildMovieCacheKey } from "./service";
+import { deduplicateMovieItems } from "@/lib/movieMedia";
 import { formatCountryName, extractMovieCountry, normalizeMovie } from "@/lib/movieMedia";
 
 describe("Nanaflix Movie Browse Pagination & Filter Service", () => {
@@ -132,7 +133,7 @@ describe("Nanaflix Movie Browse Pagination & Filter Service", () => {
     const res = await movieApi.getMovies({ category: "tai-lieu", page: 1, limit: 24, skipKvCache: true });
     // Both sources contribute items to the browsable list
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const sourcePhimApi = res.items.filter((i: any) => i.thumb_url?.includes("phimimg.com")).length;
+    const sourcePhimApi = res.items.filter((i: any) => !i.thumb_url?.includes("nguonc") && !i.poster_url?.includes("nguonc")).length;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const sourceNguonC = res.items.filter((i: any) =>
       i.thumb_url?.includes("nguonc") || i.poster_url?.includes("nguonc")

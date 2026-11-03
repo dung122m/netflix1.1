@@ -26,6 +26,7 @@ import {
   translatePosition,
   translateStatName,
 } from "./TacticalLineup";
+import { SoccerBallIcon } from "./MatchTimelineSidebar";
 
 interface TeamInfo {
   id: string;
@@ -62,33 +63,6 @@ interface PositionedDualPlayer {
   isSubbedOut: boolean;
   isSubbedIn: boolean;
   subClock?: string;
-}
-
-/**
- * Icon Quả bóng đá chuẩn quốc tế (FIFA / Adidas Telstar classic geometry)
- */
-function SoccerBallIcon({ className = "w-3.5 h-3.5" }: { className?: string }) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      className={`${className} shrink-0 inline-block drop-shadow-sm`}
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      <circle cx="12" cy="12" r="10" fill="#FFFFFF" stroke="#09090b" strokeWidth="1.2" />
-      <polygon points="12,8 15.3,10.4 14.1,14.2 9.9,14.2 8.7,10.4" fill="#09090b" />
-      <line x1="12" y1="8" x2="12" y2="2" stroke="#09090b" strokeWidth="1.2" />
-      <line x1="15.3" y1="10.4" x2="21" y2="8.5" stroke="#09090b" strokeWidth="1.2" />
-      <line x1="14.1" y1="14.2" x2="17.6" y2="19.7" stroke="#09090b" strokeWidth="1.2" />
-      <line x1="9.9" y1="14.2" x2="6.4" y2="19.7" stroke="#09090b" strokeWidth="1.2" />
-      <line x1="8.7" y1="10.4" x2="3" y2="8.5" stroke="#09090b" strokeWidth="1.2" />
-      <path d="M10 2.2C10.6 2.06 11.3 2 12 2c.7 0 1.4.06 2 .2l-.8 2.3h-2.4L10 2.2z" fill="#09090b" />
-      <path d="M21 8.5c.5.9.8 1.9.9 3l-2.4.4-.9-2.1 2.4-1.3z" fill="#09090b" />
-      <path d="M17.6 19.7c-.8.6-1.7 1.1-2.7 1.4l-.5-2.4 2-1.2 1.2 2.2z" fill="#09090b" />
-      <path d="M6.4 19.7c.8.6 1.7 1.1 2.7 1.4l.5-2.4-2-1.2-1.2 2.2z" fill="#09090b" />
-      <path d="M3 8.5c-.5.9-.8 1.9-.9 3l2.4.4.9-2.1L3 8.5z" fill="#09090b" />
-    </svg>
-  );
 }
 
 /**

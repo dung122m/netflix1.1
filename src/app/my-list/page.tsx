@@ -264,7 +264,7 @@ function MyListContent() {
     return () => unsub();
   }, [user?.uid]);
 
-  const handleDeleteComment = async (commentId: string) => {
+  const handleDeleteComment = async (commentId: string, movieSlug?: string) => {
     const confirmed = await showConfirmDialog({
       title: "Xóa bình luận",
       message: "Bạn có chắc chắn muốn xóa nhận xét này? Bình luận sẽ bị gỡ vĩnh viễn khỏi bộ phim.",
@@ -275,13 +275,19 @@ function MyListContent() {
 
     if (!confirmed) return;
 
+    // Cập nhật giao diện 0ms tức thì, sẵn sàng khôi phục nếu máy chủ gặp sự cố
+    const previous = userComments;
+    setUserComments((prev) => prev.filter((c) => c.id !== commentId));
     setDeletingCommentId(commentId);
+
     try {
-      await deleteMovieComment(commentId);
+      await deleteMovieComment(commentId, { movieSlug, userId: user?.uid });
       toast.success("Đã xóa bình luận thành công!");
-    } catch (err) {
+    } catch (err: unknown) {
       console.error("Lỗi xóa bình luận:", err);
-      toast.error("Không thể xóa bình luận lúc này!");
+      setUserComments(previous);
+      const msg = err instanceof Error ? err.message : "Không thể xóa bình luận lúc này!";
+      toast.error(msg);
     } finally {
       setDeletingCommentId(null);
     }
@@ -478,7 +484,7 @@ function MyListContent() {
                     setShowCreateCollectionModal(true);
                   }
                 }}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-netflix-red hover:bg-rose-700 text-white text-xs sm:text-sm font-bold shadow-md shadow-black/50 transition cursor-pointer active:scale-95"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-netflix-red hover:brightness-110 text-white text-xs sm:text-sm font-bold shadow-md shadow-black/50 transition cursor-pointer active:scale-95"
               >
                 <Plus className="w-4 h-4" />
                 <span>Tạo bộ sưu tập</span>
@@ -574,7 +580,7 @@ function MyListContent() {
               : "bg-white/[0.04] text-zinc-400 hover:text-white hover:bg-white/10"
           }`}
         >
-          <Bookmark className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-red-400" />
+          <Bookmark className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-netflix-red" />
           <span>Yêu thích ({mounted ? watchlist.length : 0})</span>
         </button>
 
@@ -613,7 +619,7 @@ function MyListContent() {
               : "bg-white/[0.04] text-zinc-400 hover:text-white hover:bg-white/10"
           }`}
         >
-          <MessageSquare className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-purple-400" />
+          <MessageSquare className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-netflix-red" />
           <span>Bình luận ({mounted && user ? userComments.length : 0})</span>
         </button>
       </div>
@@ -642,7 +648,7 @@ function MyListContent() {
             action={
               <Link
                 href="/"
-                className="inline-flex items-center gap-2 rounded-lg bg-netflix-red px-6 py-3 text-sm sm:text-base font-bold text-white transition hover:bg-red-700 shadow-lg"
+                className="inline-flex items-center gap-2 rounded-lg bg-netflix-red px-6 py-3 text-sm sm:text-base font-bold text-white transition hover:brightness-110 shadow-lg"
               >
                 Khám phá phim ngay
               </Link>
@@ -688,7 +694,7 @@ function MyListContent() {
             action={
               <Link
                 href="/"
-                className="inline-flex items-center gap-2 rounded-lg bg-netflix-red px-6 py-3 text-sm sm:text-base font-bold text-white transition hover:bg-red-700 shadow-lg"
+                className="inline-flex items-center gap-2 rounded-lg bg-netflix-red px-6 py-3 text-sm sm:text-base font-bold text-white transition hover:brightness-110 shadow-lg"
               >
                 Xem phim ngay
               </Link>
@@ -747,7 +753,7 @@ function MyListContent() {
                 <button
                   type="button"
                   onClick={() => setShowAuthModal(true)}
-                  className="inline-flex items-center gap-2 rounded-xl bg-netflix-red px-5 py-2.5 text-xs sm:text-sm font-bold text-white transition hover:bg-red-700 shadow-lg cursor-pointer active:scale-95"
+                  className="inline-flex items-center gap-2 rounded-xl bg-netflix-red px-5 py-2.5 text-xs sm:text-sm font-bold text-white transition hover:brightness-110 shadow-lg cursor-pointer active:scale-95"
                 >
                   <LogIn className="w-4 h-4" />
                   <span>Đăng nhập ngay</span>
@@ -764,7 +770,7 @@ function MyListContent() {
                 <button
                   type="button"
                   onClick={() => setShowCreateCollectionModal(true)}
-                  className="inline-flex items-center gap-2 rounded-xl bg-netflix-red px-5 py-2.5 text-xs sm:text-sm font-bold text-white transition hover:bg-red-700 shadow-lg cursor-pointer active:scale-95"
+                  className="inline-flex items-center gap-2 rounded-xl bg-netflix-red px-5 py-2.5 text-xs sm:text-sm font-bold text-white transition hover:brightness-110 shadow-lg cursor-pointer active:scale-95"
                 >
                   <Plus className="w-4 h-4" />
                   <span>Tạo bộ sưu tập đầu tiên</span>
@@ -788,7 +794,7 @@ function MyListContent() {
                       className="group/card relative flex flex-col w-full select-none cursor-pointer hover:scale-[1.02] hover:-translate-y-0.5 hover:z-20 transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:transform-none"
                     >
                       {/* KHỐI POSTER DỌC 2:3 CHO BỘ SƯU TẬP (CHUẨN ĐỒNG BỘ TRANG CHỦ) */}
-                      <div className="relative aspect-[2/3] w-full rounded-xl overflow-hidden bg-zinc-950 bg-gradient-to-br from-zinc-800/70 via-zinc-900 to-zinc-950 group-hover/card: group-hover/card:ring-netflix-red group-hover/card:ring-inset group-hover/card:shadow-[0_12px_28px_rgba(229,9,20,0.35),0_0_16px_rgba(0,0,0,0.8)] transition-all duration-300">
+                      <div className="relative aspect-[2/3] w-full rounded-xl overflow-hidden bg-zinc-950 bg-gradient-to-br from-zinc-800/70 via-zinc-900 to-zinc-950 group-hover/card: group-hover/card:ring-netflix-red group-hover/card:ring-inset group-hover/card:shadow-[0_12px_28px_var(--accent-glow),0_0_16px_rgba(0,0,0,0.8)] transition-all duration-300">
                         <Link
                           href={`/collection/${col.id}`}
                           className="block absolute inset-0 z-0 outline-none focus-visible:ring-2 focus-visible:ring-white rounded-xl"
@@ -855,7 +861,7 @@ function MyListContent() {
                       <div className="pt-2 sm:pt-2.5 pb-1 flex flex-col gap-0.5 sm:gap-1">
                         <Link
                           href={`/collection/${col.id}`}
-                          className="text-xs sm:text-[13px] md:text-sm font-semibold text-zinc-100 truncate group-hover/card:text-rose-400 transition-colors leading-snug"
+                          className="text-xs sm:text-[13px] md:text-sm font-semibold text-zinc-100 truncate group-hover/card:text-netflix-red transition-colors leading-snug"
                           title={col.name}
                         >
                           {col.name}
@@ -931,7 +937,7 @@ function MyListContent() {
                   <div>
                     <div className="flex items-center justify-between gap-2 mb-2.5">
                       <span className="text-2xl">{smart.emoji}</span>
-                      <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-netflix-red/20 text-red-300">
+                      <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-netflix-red/20 text-white">
                         {smart.badge}
                       </span>
                     </div>
@@ -955,13 +961,13 @@ function MyListContent() {
         /* TAB 4: LỊCH SỬ BÌNH LUẬN */
         userComments.length === 0 ? (
           <EmptyState
-            icon={<MessageSquare className="h-9 w-9 text-rose-500" />}
+            icon={<MessageSquare className="h-9 w-9 text-netflix-red" />}
             title="Bạn chưa viết bình luận nào"
             description="Mỗi đánh giá và nhận xét của bạn giúp cộng đồng Nanaflix tìm được bộ phim hay nhất!"
             action={
               <Link
                 href="/"
-                className="inline-flex items-center gap-2 rounded-lg bg-netflix-red px-6 py-3 text-sm sm:text-base font-bold text-white transition hover:bg-red-700 shadow-lg"
+                className="inline-flex items-center gap-2 rounded-lg bg-netflix-red px-6 py-3 text-sm sm:text-base font-bold text-white transition hover:brightness-110 shadow-lg"
               >
                 Xem phim & Đánh giá ngay
               </Link>
@@ -971,7 +977,7 @@ function MyListContent() {
           <div className="rounded-2xl bg-gradient-to-b from-zinc-900/40 to-transparent p-4 sm:p-6 space-y-4">
             <div className="flex items-center justify-between pb-3">
               <h3 className="text-base font-bold text-white flex items-center gap-2">
-                <MessageSquare className="w-4 h-4 text-rose-400" />
+                <MessageSquare className="w-4 h-4 text-netflix-red" />
                 <span>Tất cả nhận xét & đánh giá ({userComments.length})</span>
               </h3>
             </div>
@@ -992,7 +998,7 @@ function MyListContent() {
                         <ExternalLink className="w-3.5 h-3.5 text-zinc-500 group-hover:text-netflix-red group-hover:translate-x-0.5 transition-all shrink-0" />
                       </Link>
                       {c.episodeName && (
-                        <span className="text-[11px] text-rose-300 font-semibold bg-rose-500/10 px-2 py-0.5 rounded-md inline-block mt-1">
+                        <span className="text-[11px] text-white font-semibold bg-netflix-red/20 px-2 py-0.5 rounded-md inline-block mt-1">
                           {c.episodeName}
                         </span>
                       )}
@@ -1021,8 +1027,8 @@ function MyListContent() {
                         <span>{formatCommentDate(c.createdAt)}</span>
                       </span>
                       {c.likes > 0 && (
-                        <span className="flex items-center gap-1 text-rose-400 font-bold">
-                          <ThumbsUp className="w-3.5 h-3.5 fill-rose-400" />
+                        <span className="flex items-center gap-1 text-netflix-red font-bold">
+                          <ThumbsUp className="w-3.5 h-3.5 fill-netflix-red text-netflix-red" />
                           {c.likes}
                         </span>
                       )}
@@ -1031,7 +1037,7 @@ function MyListContent() {
                     <button
                       type="button"
                       disabled={deletingCommentId === c.id}
-                      onClick={() => handleDeleteComment(c.id)}
+                      onClick={() => handleDeleteComment(c.id, c.movieSlug)}
                       className="flex items-center gap-1 text-red-400 hover:text-red-300 hover:bg-red-500/15 px-3 py-1.5 rounded-xl transition text-xs font-bold cursor-pointer disabled:opacity-50 border border-transparent hover:"
                     >
                       {deletingCommentId === c.id ? (

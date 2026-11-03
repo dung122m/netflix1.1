@@ -142,3 +142,29 @@ Bộ quy chuẩn kỹ thuật bắt buộc nhằm triệt tiêu lỗi ESLint, Ty
 3. **Targeted Test:** Chạy các unit/regression test liên quan đến module vừa can thiệp.
 4. **Diff Inspection:** Soát kỹ `git diff` để phát hiện sửa sót ngoài phạm vi, phát hiện suppression mới và ngăn ngừa thay đổi cấu hình ngoài ý muốn.
 5. **Browser Regression:** Với các thay đổi liên quan đến UI/Player/Animation, kiểm tra hành vi thực tế hoặc chạy kịch bản browser regression phù hợp.
+
+---
+
+## 8. Chuẩn Hóa Tooltip & Khả Năng Tiếp Cận (Custom Tooltip Standard)
+
+Quy tắc bắt buộc khi thiết kế và triển khai tooltip trên toàn bộ giao diện Nanaflix:
+
+### A. Tái Sử Dụng Custom Tooltip Hiện Hữu
+- **Bắt buộc tái sử dụng component `<Tooltip>` có sẵn (`@/components/ui/Tooltip`):**
+  - Mọi nút bấm, icon button, control thanh điều khiển video/audio, action pill hoặc phần tử tương tác cần tooltip giải thích hành động BẮT BUỘC phải bọc bằng `<Tooltip content="..." side="..." align="..." shortcut="...">`.
+  - **Tuyệt đối không tự cài đặt thư viện tooltip bên thứ ba mới** (như Radix, Floating UI, Tippy) hoặc tạo thêm component tooltip thứ hai gây phân mảnh codebase.
+  - Trước khi tạo giải pháp UI mới, AI Agent bắt buộc phải kiểm tra component/API hiện hữu trong dự án.
+
+### B. Cấm Dùng Native `title` Tooltip Cho UI Controls
+- **KHÔNG BAO GIỜ** sử dụng thuộc tính HTML native `title="..."` trên `<button>`, `<a>`, `<Link>` hoặc interactive controls cho mục đích hiển thị tooltip người dùng.
+- Tooltip mặc định của trình duyệt (`title`) hiển thị trễ, thô kệch, không đồng bộ với ngôn ngữ Dark Cinema của Nanaflix, và gây khó chịu trên thiết bị cảm ứng (touch devices).
+- **Phân biệt rõ:**
+  - *Chuyển đổi sang `<Tooltip>`:* Các interactive UI controls (nút Play/Pause, tua, âm lượng, PiP, toàn màn hình, nút sao chép, nút xóa, nút cuộn trang, nút lọc, nút hành động icon-only).
+  - *Giữ nguyên `title`:* Thuộc tính `title` trên `<iframe>` (chuẩn trợ năng WCAG bắt buộc), hoặc `title` là prop dữ liệu (như `movie.title`, `section.title`), hoặc fallback tooltip trên văn bản bị cắt ngắn (`truncate`) của hàng nghìn dòng danh mục dày đặc để tránh quá tải DOM.
+
+### C. Trợ Năng (Accessibility) & Trải Nghiệm Người Dùng
+- **Bảo toàn Accessible Name (`aria-label`):** Khi chuyển sang `<Tooltip>`, **luôn giữ nguyên `aria-label="..."`** trên `<button>` hoặc phần tử tương tác để đảm bảo Screen Reader đọc đúng tên hành động. Tooltip chỉ phục vụ thị giác, không thay thế `aria-label`.
+- **Hỗ trợ đầy đủ tương tác:** Custom tooltip phải kích hoạt được cả khi hover chuột (`onMouseEnter`/`onMouseLeave`) lẫn khi điều hướng bằng bàn phím (`onFocus`/`onBlur`), hỗ trợ phím `Escape` để đóng ngay lập tức.
+- **Không gây Layout Shift & Không che nội dung thiết yếu:** Tooltip phải được định vị tuyệt đối (`position: absolute`), có khoảng đệm an toàn, không làm xê dịch layout (`CLS = 0`). Không lạm dụng tooltip để chứa thông tin sống còn mà người dùng bắt buộc phải biết để hoàn thành thao tác.
+- **Hành vi trên Mobile/Touch:** Component `<Tooltip>` mặc định ẩn trên thiết bị màn hình nhỏ (`hidden sm:flex`) để tránh tình trạng tooltip bị "kẹt" sau khi chạm ngón tay. Trên mobile, ưu tiên nhãn hiển thị trực tiếp hoặc biểu tượng tự tường minh.
+

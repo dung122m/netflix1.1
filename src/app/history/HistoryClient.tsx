@@ -21,6 +21,7 @@ import { resolveHistoricalFigure } from "@/data/history/figures";
 import { getEventImage, getPeriodImage } from "@/data/history/images";
 import { HistoricalEvent, HistoricalPrecision } from "@/data/history/types";
 import { getVietnamNow } from "@/lib/vietnamCalendarCore";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 const ALL_EVENTS = allHistoryData as HistoricalEvent[];
 const PAGE_SIZE = 40;
@@ -175,7 +176,7 @@ export function HistoryClient() {
       {/* ========================================================================= */}
       <div className="relative rounded-3xl overflow-hidden bg-gradient-to-b from-zinc-900 via-zinc-900/90 to-zinc-950 p-6 sm:p-10 mb-8 shadow-2xl">
         {/* Subtle Ambient Red/Gold Glow */}
-        <div className="absolute -top-24 -left-24 w-96 h-96 bg-red-600/15 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -top-24 -left-24 w-96 h-96 bg-netflix-red/15 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute -bottom-24 -right-24 w-96 h-96 bg-amber-500/15 rounded-full blur-3xl pointer-events-none" />
 
         <div className="relative z-10 max-w-3xl space-y-3 sm:space-y-4">
@@ -237,7 +238,7 @@ export function HistoryClient() {
             </div>
 
             {todayHighlight.primary.year && (
-              <span className="px-3 py-1 rounded-full text-xs font-bold bg-red-600/30 text-red-200">
+              <span className="px-3 py-1 rounded-full text-xs font-bold bg-netflix-red/20 text-netflix-red">
                 Năm {todayHighlight.primary.year}
                 {todayHighlight.primary.year > 0 && todayHighlight.currentYear && (
                   <span className="ml-1 text-amber-300 font-normal">
@@ -382,7 +383,7 @@ export function HistoryClient() {
             {hasActiveFilters && (
               <button
                 onClick={resetFilters}
-                className="inline-flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-xs sm:text-sm font-semibold bg-red-600/20 hover:bg-red-600/30 text-red-300 transition-colors whitespace-nowrap cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-xs sm:text-sm font-semibold bg-netflix-red/15 hover:bg-netflix-red/25 text-netflix-red transition-colors whitespace-nowrap cursor-pointer"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
                 <span>Đặt lại</span>
@@ -736,20 +737,20 @@ export function HistoryClient() {
         </div>
       ) : (
         /* Empty State */
-        <div className="text-center py-16 px-4 rounded-3xl bg-zinc-900/40 space-y-4">
-          <HistoryIcon className="w-12 h-12 text-zinc-600 mx-auto" />
-          <h3 className="text-lg font-bold text-white">Không tìm thấy sự kiện lịch sử phù hợp</h3>
-          <p className="text-sm text-zinc-400 max-w-md mx-auto">
-            Hãy thử tìm kiếm với từ khóa khác (ví dụ: &ldquo;Điện Biên Phủ&rdquo;, &ldquo;1945&rdquo;, &ldquo;Bác Hồ&rdquo;, &ldquo;Bạch Đằng&rdquo;) hoặc đặt lại bộ lọc thời kỳ.
-          </p>
-          <button
-            onClick={resetFilters}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold bg-amber-500 hover:bg-amber-400 text-zinc-950 transition-colors cursor-pointer"
-          >
-            <RotateCcw className="w-4 h-4" />
-            <span>Đặt lại toàn bộ bộ lọc</span>
-          </button>
-        </div>
+        <EmptyState
+          icon={<HistoryIcon className="w-12 h-12 text-zinc-600" />}
+          title="Không tìm thấy sự kiện lịch sử phù hợp"
+          description="Hãy thử tìm kiếm với từ khóa khác (ví dụ: “Điện Biên Phủ”, “1945”, “Bác Hồ”, “Bạch Đằng”) hoặc đặt lại bộ lọc thời kỳ."
+          action={
+            <button
+              onClick={resetFilters}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold bg-amber-500 hover:bg-amber-400 text-zinc-950 transition-colors cursor-pointer"
+            >
+              <RotateCcw className="w-4 h-4" />
+              <span>Đặt lại toàn bộ bộ lọc</span>
+            </button>
+          }
+        />
       )}
 
       {/* ========================================================================= */}

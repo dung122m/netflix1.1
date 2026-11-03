@@ -28,7 +28,11 @@ export function SectionHeader({
     return (
       <div className={`flex items-center justify-between mb-3 px-1 ${className}`}>
         <div className="flex items-center gap-2 min-w-0">
-          {icon && <span className="shrink-0">{icon}</span>}
+          {icon && (
+            <span className={`inline-flex items-center justify-center shrink-0 ${iconBadge ? "text-netflix-red" : "text-zinc-300"}`}>
+              {icon}
+            </span>
+          )}
           <h2 className="text-base sm:text-lg font-bold text-white tracking-tight truncate flex items-center gap-2">
             <span>{title}</span>
             {trailingBadge}
@@ -44,15 +48,16 @@ export function SectionHeader({
       className={`flex flex-col md:flex-row md:items-end justify-between gap-3 mb-5 px-1 ${className}`}
     >
       <div className="min-w-0">
-        <h2 className="text-lg sm:text-xl md:text-2xl font-bold tracking-tight text-white flex items-center gap-2.5 flex-wrap sm:flex-nowrap">
-          {icon &&
-            (iconBadge ? (
-              <span className="flex items-center justify-center w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-netflix-red text-white shadow-md shadow-black/50 shrink-0">
-                {icon}
-              </span>
-            ) : (
-              <span className="shrink-0">{icon}</span>
-            ))}
+        <h2 className="text-xl sm:text-2xl md:text-[26px] font-black tracking-tight text-white flex items-center gap-2.5 flex-wrap sm:flex-nowrap">
+          {icon && (
+            <span
+              className={`inline-flex items-center justify-center shrink-0 ${
+                iconBadge ? "text-netflix-red" : "text-zinc-300"
+              }`}
+            >
+              {icon}
+            </span>
+          )}
           <span className="truncate">{title}</span>
           {trailingBadge}
         </h2>

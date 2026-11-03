@@ -318,7 +318,7 @@ export async function recordAnalyticsEvent(payload: AnalyticsEventPayload): Prom
   const client = isSupabaseAdminConfigured() ? getSupabaseAdmin() : supabase;
   if (client) {
     try {
-      await client.from("analytics_events").insert({
+      const { error: insertError } = await client.from("analytics_events").insert({
         id: eventRecord.id,
         event_type: "site_visit",
         movie_slug: eventRecord.movieSlug || "home",
@@ -334,12 +334,11 @@ export async function recordAnalyticsEvent(payload: AnalyticsEventPayload): Prom
         duration_seconds: 0,
         progress_seconds: 0,
         keyword: null,
-        country: eventRecord.country || null,
-        country_code: eventRecord.countryCode || null,
-        region: eventRecord.region || null,
-        city: eventRecord.city || null,
         created_at: eventRecord.createdAt,
       });
+      if (insertError) {
+        console.warn("[Analytics] Supabase analytics_events insert error:", insertError.message || insertError);
+      }
     } catch (dbErr) {
       console.warn("[Analytics] Supabase analytics_events insert error:", dbErr);
     }

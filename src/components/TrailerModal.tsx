@@ -100,7 +100,7 @@ export const TrailerModal: React.FC<TrailerModalProps> = React.memo(
             onClick={() => setInternalIsOpen(true)}
             className={
               triggerClassName ||
-              "inline-flex items-center gap-1 sm:gap-1.5 rounded-lg bg-netflix-red hover:bg-red-700 text-white px-1.5 xs:px-2 sm:px-3.5 py-1.5 text-xs sm:text-sm font-semibold shadow transition-all active:scale-95 cursor-pointer flex-shrink-0 whitespace-nowrap outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-black"
+              "inline-flex items-center gap-1 sm:gap-1.5 rounded-lg bg-netflix-red hover:brightness-110 active:brightness-95 text-white px-1.5 xs:px-2 sm:px-3.5 py-1.5 text-xs sm:text-sm font-semibold shadow transition-all active:scale-95 cursor-pointer flex-shrink-0 whitespace-nowrap outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-black"
             }
           >
             <Film className="w-3.5 h-3.5 text-white flex-shrink-0" />
@@ -174,7 +174,7 @@ export const TrailerModal: React.FC<TrailerModalProps> = React.memo(
                             href={`https://www.youtube.com/watch?v=${parsed.videoId}`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-netflix-red hover:bg-red-700 text-white text-xs font-semibold shadow transition-all"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-netflix-red hover:brightness-110 active:brightness-95 text-white text-xs font-semibold shadow transition-all"
                           >
                             <ExternalLink className="w-3.5 h-3.5" />
                             <span>Xem trực tiếp trên YouTube</span>

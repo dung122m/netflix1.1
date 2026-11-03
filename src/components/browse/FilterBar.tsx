@@ -3,7 +3,8 @@
 import React, { useEffect, useState, useRef, useCallback, useTransition } from "react";
 import { createPortal } from "react-dom";
 import { useRouter, useSearchParams } from "next/navigation";
-import { movieApi, DEFAULT_GENRES, DEFAULT_COUNTRIES } from "@/services/movieApi";
+import { movieApi, DEFAULT_GENRES, DEFAULT_COUNTRIES } from "@/services/movies/service";
+import { Tooltip } from "@/components/ui/Tooltip";
 import { getCanonicalGenreSlug, getCanonicalCountrySlug, isRawId } from "@/lib/movieMedia";
 import { useBodyScrollLock } from "@/lib/scrollLock";
 import {
@@ -437,14 +438,8 @@ export const FilterBar: React.FC = () => {
 
   return (
     <div ref={containerRef} className="w-full relative z-40 select-none">
-      {/* 0. SUBTLE AMBIENT GLOW BEHIND DOCK */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute -inset-0.5 rounded-2xl bg-gradient-to-r from-red-600/15 via-purple-600/10 to-transparent blur-lg opacity-70"
-      />
-
       {/* 1A. MOBILE COMPACT TRIGGER BAR (< 640px) */}
-      <div className="sm:hidden relative w-full rounded-2xl bg-zinc-900/90 backdrop-blur-xl p-2 shadow-2xl shadow-black/80 flex items-center justify-between gap-2">
+      <div className="sm:hidden relative w-full rounded-2xl bg-zinc-900/70 backdrop-blur-md p-2 border border-white/[0.08] shadow-md shadow-black/40 flex items-center justify-between gap-2">
         <button
           type="button"
           onClick={openMobileDrawer}
@@ -462,40 +457,44 @@ export const FilterBar: React.FC = () => {
           <ChevronDown className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
         </button>
 
-        <button
-          type="button"
-          onClick={() => {
-            if (typeof window !== "undefined") {
-              window.dispatchEvent(new CustomEvent("open-ai-roulette"));
-            }
-          }}
-          className="h-10 px-3 rounded-xl bg-zinc-900/90 hover:bg-zinc-800 text-white text-xs font-semibold flex items-center gap-1.5 shrink-0 active:scale-95 transition cursor-pointer"
-          title="Bốc quẻ phim ngẫu nhiên"
-        >
-          <Dices className="w-3.5 h-3.5 text-netflix-red shrink-0" />
-          <span className="text-xs font-bold">Bốc quẻ</span>
-        </button>
-
-        {hasAnyFilter && (
+        <Tooltip content="Bốc quẻ phim ngẫu nhiên" side="bottom">
           <button
             type="button"
-            onClick={handleClearAll}
-            className="h-10 w-10 rounded-xl border border-dashed text-rose-300 hover:bg-rose-950/40 flex items-center justify-center shrink-0 active:scale-95 transition cursor-pointer"
-            title="Xóa tất cả bộ lọc"
+            onClick={() => {
+              if (typeof window !== "undefined") {
+                window.dispatchEvent(new CustomEvent("open-ai-roulette"));
+              }
+            }}
+            aria-label="Bốc quẻ phim ngẫu nhiên"
+            className="h-10 px-3 rounded-xl bg-zinc-900/90 hover:bg-zinc-800 text-white text-xs font-semibold flex items-center gap-1.5 shrink-0 active:scale-95 transition cursor-pointer"
           >
-            {isPending && pendingGroup === "all" ? (
-              <Loader2 className="w-3.5 h-3.5 text-rose-400 animate-spin" />
-            ) : (
-              <RotateCcw className="w-3.5 h-3.5 text-rose-400" />
-            )}
+            <Dices className="w-3.5 h-3.5 text-netflix-red shrink-0" />
+            <span className="text-xs font-bold">Bốc quẻ</span>
           </button>
+        </Tooltip>
+
+        {hasAnyFilter && (
+          <Tooltip content="Xóa tất cả bộ lọc" side="bottom">
+            <button
+              type="button"
+              onClick={handleClearAll}
+              aria-label="Xóa tất cả bộ lọc"
+              className="h-10 w-10 rounded-xl border border-dashed text-netflix-red hover:bg-netflix-red/15 flex items-center justify-center shrink-0 active:scale-95 transition cursor-pointer"
+            >
+            {isPending && pendingGroup === "all" ? (
+              <Loader2 className="w-3.5 h-3.5 text-netflix-red animate-spin" />
+            ) : (
+              <RotateCcw className="w-3.5 h-3.5 text-netflix-red" />
+            )}
+            </button>
+          </Tooltip>
         )}
       </div>
 
-      {/* 1B. CINEMATIC GLASSMORPHIC DOCK CONTAINER (DESKTOP >= 640px) */}
-      <div className="hidden sm:flex relative w-full rounded-2xl bg-zinc-900/80 backdrop-blur-xl p-2 sm:p-2.5 shadow-2xl shadow-black/80 items-center gap-2 sm:gap-3">
+      {/* 1B. CINEMATIC DOCK CONTAINER (DESKTOP >= 640px) */}
+      <div className="hidden sm:flex relative w-full rounded-2xl bg-zinc-900/50 backdrop-blur-md p-2 sm:p-2.5 border border-white/[0.08] shadow-lg shadow-black/40 items-center gap-2 sm:gap-3">
         {/* LEFT LABEL: ICON + TEXT (DESKTOP / TABLET) */}
-        <div className="flex-none hidden sm:flex items-center gap-2 pl-2 pr-2.5 border-r text-white font-bold text-xs sm:text-sm tracking-tight">
+        <div className="flex-none hidden sm:flex items-center gap-2 pl-2 pr-2.5 border-r border-white/10 text-white font-bold text-xs sm:text-sm tracking-tight">
           <SlidersHorizontal className="w-4 h-4 text-netflix-red flex-none" />
           <span className="whitespace-nowrap">Bộ lọc nhanh</span>
         </div>
@@ -538,10 +537,10 @@ export const FilterBar: React.FC = () => {
               aria-label="Lọc theo loại phim"
               className={`h-10 px-3.5 sm:px-4 rounded-xl border text-xs sm:text-sm font-semibold transition-all duration-150 flex items-center gap-2 cursor-pointer shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black flex-none ${
                 currentType
-                  ? "bg-purple-950/70 border-purple-500/60 text-purple-200 shadow-md shadow-black/50"
+                  ? "bg-netflix-red/20 border-netflix-red/60 text-white shadow-md shadow-black/50"
                   : activeDropdown === "type"
                   ? "bg-zinc-800 text-white border-zinc-500"
-                  : "bg-zinc-950/70 text-zinc-200  hover:bg-zinc-800/80 hover:text-white hover:"
+                  : "bg-white/[0.04] text-zinc-300 border-white/[0.06] hover:bg-white/[0.08] hover:text-white hover:border-white/[0.12]"
               }`}
             >
               <Film className={`w-3.5 h-3.5 flex-none ${currentType ? "text-purple-400" : "text-purple-400/80"}`} />
@@ -571,10 +570,10 @@ export const FilterBar: React.FC = () => {
               aria-label="Lọc theo thể loại phim"
               className={`h-10 px-3.5 sm:px-4 rounded-xl border text-xs sm:text-sm font-semibold transition-all duration-150 flex items-center gap-2 cursor-pointer shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black flex-none ${
                 currentCategory
-                  ? "bg-rose-950/70  text-rose-200 shadow-md shadow-black/50"
+                  ? "bg-netflix-red/20 border-netflix-red/60 text-white shadow-md shadow-black/50"
                   : activeDropdown === "genre"
                   ? "bg-zinc-800 text-white border-zinc-500"
-                  : "bg-zinc-950/70 text-zinc-200  hover:bg-zinc-800/80 hover:text-white hover:"
+                  : "bg-white/[0.04] text-zinc-300 border-white/[0.06] hover:bg-white/[0.08] hover:text-white hover:border-white/[0.12]"
               }`}
             >
               <Sparkles className={`w-3.5 h-3.5 flex-none ${currentCategory ? "text-rose-400" : "text-amber-400/90"}`} />
@@ -582,7 +581,7 @@ export const FilterBar: React.FC = () => {
                 {currentCategory ? activeCategoryName : "Thể loại"}
               </span>
               {isPending && pendingGroup === "genre" ? (
-                <Loader2 className="w-3.5 h-3.5 text-rose-400 animate-spin flex-none" />
+                <Loader2 className="w-3.5 h-3.5 text-netflix-red animate-spin flex-none" />
               ) : (
                 <ChevronDown
                   className={`w-3.5 h-3.5 text-zinc-400 transition-transform duration-200 flex-none ${
@@ -604,10 +603,10 @@ export const FilterBar: React.FC = () => {
               aria-label="Lọc theo quốc gia sản xuất"
               className={`h-10 px-3.5 sm:px-4 rounded-xl border text-xs sm:text-sm font-semibold transition-all duration-150 flex items-center gap-2 cursor-pointer shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black flex-none ${
                 currentCountry
-                  ? "bg-sky-950/70  text-sky-200 shadow-md shadow-black/50"
+                  ? "bg-netflix-red/20 border-netflix-red/60 text-white shadow-md shadow-black/50"
                   : activeDropdown === "country"
                   ? "bg-zinc-800 text-white border-zinc-500"
-                  : "bg-zinc-950/70 text-zinc-200  hover:bg-zinc-800/80 hover:text-white hover:"
+                  : "bg-white/[0.04] text-zinc-300 border-white/[0.06] hover:bg-white/[0.08] hover:text-white hover:border-white/[0.12]"
               }`}
             >
               <Globe2 className={`w-3.5 h-3.5 flex-none ${currentCountry ? "text-sky-400" : "text-sky-400/80"}`} />
@@ -637,10 +636,10 @@ export const FilterBar: React.FC = () => {
               aria-label="Lọc theo năm phát hành"
               className={`h-10 px-3.5 sm:px-4 rounded-xl border text-xs sm:text-sm font-semibold transition-all duration-150 flex items-center gap-2 cursor-pointer shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black flex-none ${
                 currentYear
-                  ? "bg-emerald-950/70  text-emerald-200 shadow-md shadow-black/50"
+                  ? "bg-netflix-red/20 border-netflix-red/60 text-white shadow-md shadow-black/50"
                   : activeDropdown === "year"
                   ? "bg-zinc-800 text-white border-zinc-500"
-                  : "bg-zinc-950/70 text-zinc-200  hover:bg-zinc-800/80 hover:text-white hover:"
+                  : "bg-white/[0.04] text-zinc-300 border-white/[0.06] hover:bg-white/[0.08] hover:text-white hover:border-white/[0.12]"
               }`}
             >
               <Calendar className={`w-3.5 h-3.5 flex-none ${currentYear ? "text-emerald-400" : "text-emerald-400/80"}`} />
@@ -666,7 +665,7 @@ export const FilterBar: React.FC = () => {
                   window.dispatchEvent(new CustomEvent("open-ai-roulette"));
                 }
               }}
-              className="h-10 px-3.5 sm:px-4 rounded-xl bg-zinc-900/90 hover:bg-zinc-800 text-white text-xs sm:text-sm font-semibold transition-all duration-150 flex items-center gap-1.5 cursor-pointer shadow-sm hover: flex-none active:scale-95 outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black"
+              className="h-10 px-3.5 sm:px-4 rounded-xl bg-white/[0.05] hover:bg-white/[0.10] border border-white/[0.08] text-white text-xs sm:text-sm font-semibold transition-all duration-150 flex items-center gap-1.5 cursor-pointer shadow-sm flex-none active:scale-95 outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black"
               title="Bốc quẻ phim ngẫu nhiên với AI"
             >
               <Dices className="w-4 h-4 text-netflix-red flex-none" />
@@ -675,19 +674,21 @@ export const FilterBar: React.FC = () => {
 
             {/* XÓA NHANH TOÀN BỘ BỘ LỌC KHI CÓ FILTER */}
             {hasAnyFilter && (
-              <button
-                type="button"
-                onClick={handleClearAll}
-                className="h-10 px-3 sm:px-3.5 rounded-xl border border-dashed hover:border-rose-500 text-rose-300 hover:text-white hover:bg-rose-950/40 text-xs sm:text-sm font-semibold transition-all duration-150 flex items-center gap-1.5 cursor-pointer shadow-sm flex-none outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black active:scale-95"
-                title="Xóa tất cả các bộ lọc hiện tại"
-              >
+              <Tooltip content="Xóa tất cả các bộ lọc hiện tại" side="bottom">
+                <button
+                  type="button"
+                  onClick={handleClearAll}
+                  aria-label="Xóa tất cả các bộ lọc hiện tại"
+                  className="h-10 px-3 sm:px-3.5 rounded-xl border border-dashed hover:border-netflix-red text-netflix-red hover:text-white hover:bg-netflix-red/20 text-xs sm:text-sm font-semibold transition-all duration-150 flex items-center gap-1.5 cursor-pointer shadow-sm flex-none outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black active:scale-95"
+                >
                 {isPending && pendingGroup === "all" ? (
-                  <Loader2 className="w-3.5 h-3.5 text-rose-400 animate-spin flex-none" />
+                  <Loader2 className="w-3.5 h-3.5 text-netflix-red animate-spin flex-none" />
                 ) : (
-                  <RotateCcw className="w-3.5 h-3.5 text-rose-400 flex-none" />
+                  <RotateCcw className="w-3.5 h-3.5 text-netflix-red flex-none" />
                 )}
                 <span className="hidden sm:inline">Đặt lại</span>
-              </button>
+                </button>
+              </Tooltip>
             )}
           </div>
         </div>
@@ -712,7 +713,7 @@ export const FilterBar: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => updateQueryParam("type", "")}
-                    className="text-purple-400 hover:text-purple-300 text-[11px] normal-case font-medium cursor-pointer"
+                    className="text-netflix-red hover:brightness-110 text-[11px] normal-case font-medium cursor-pointer"
                   >
                     Bỏ chọn
                   </button>
@@ -729,7 +730,7 @@ export const FilterBar: React.FC = () => {
                   }`}
                 >
                   <span>Tất cả loại phim</span>
-                  {!currentType && <Check className="w-3.5 h-3.5 text-purple-400" />}
+                  {!currentType && <Check className="w-3.5 h-3.5 text-netflix-red" />}
                 </button>
                 {MOVIE_TYPES.map((t) => {
                   const isSelected = currentType === t.slug;
@@ -740,7 +741,7 @@ export const FilterBar: React.FC = () => {
                       onClick={() => updateQueryParam("type", t.slug)}
                       className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs sm:text-sm font-medium transition cursor-pointer text-left ${
                         isSelected
-                          ? "bg-purple-600 text-white font-bold shadow-md shadow-black/50"
+                          ? "bg-netflix-red text-white font-bold shadow-md shadow-black/50"
                           : "text-zinc-300 hover:bg-zinc-800/80 hover:text-white"
                       }`}
                     >
@@ -762,7 +763,7 @@ export const FilterBar: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => updateQueryParam("category", "")}
-                    className="text-rose-400 hover:text-rose-300 text-[11px] normal-case font-medium cursor-pointer"
+                    className="text-netflix-red hover:brightness-110 text-[11px] normal-case font-medium cursor-pointer"
                   >
                     Bỏ chọn
                   </button>
@@ -778,7 +779,7 @@ export const FilterBar: React.FC = () => {
                     window.dispatchEvent(new CustomEvent("open-ai-roulette"));
                   }
                 }}
-                className="w-full mb-2.5 px-3 py-2 rounded-xl text-xs font-bold transition bg-netflix-red hover:brightness-110 text-white flex items-center justify-center gap-2 shadow-md shadow-[var(--accent-glow,rgba(229,9,20,0.3))] cursor-pointer"
+                className="w-full mb-2.5 px-3 py-2 rounded-xl text-xs font-bold transition bg-netflix-red hover:brightness-110 text-white flex items-center justify-center gap-2 shadow-md shadow-[var(--accent-glow)] cursor-pointer"
               >
                 <Dices className="w-4 h-4 text-amber-300 animate-spin" style={{ animationDuration: "4s" }} />
                 <span>Bốc quẻ phim ngẫu nhiên</span>
@@ -795,7 +796,7 @@ export const FilterBar: React.FC = () => {
                   }`}
                 >
                   <span>Tất cả thể loại</span>
-                  {!currentCategory && <Check className="w-3.5 h-3.5 text-rose-400" />}
+                  {!currentCategory && <Check className="w-3.5 h-3.5 text-netflix-red" />}
                 </button>
                 {filters.genres.map((g) => {
                   const isSelected = currentCategory === g.slug;
@@ -806,7 +807,7 @@ export const FilterBar: React.FC = () => {
                       onClick={() => updateQueryParam("category", g.slug)}
                       className={`flex items-center justify-between px-2.5 py-2 rounded-xl text-xs sm:text-sm font-medium transition cursor-pointer text-left truncate ${
                         isSelected
-                          ? "bg-rose-600 text-white font-bold shadow-md shadow-black/50"
+                          ? "bg-netflix-red text-white font-bold shadow-md shadow-black/50"
                           : "text-zinc-300 hover:bg-zinc-800/80 hover:text-white bg-zinc-900/60"
                       }`}
                     >
@@ -828,7 +829,7 @@ export const FilterBar: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => updateQueryParam("country", "")}
-                    className="text-sky-400 hover:text-sky-300 text-[11px] normal-case font-medium cursor-pointer"
+                    className="text-netflix-red hover:brightness-110 text-[11px] normal-case font-medium cursor-pointer"
                   >
                     Bỏ chọn
                   </button>
@@ -845,7 +846,7 @@ export const FilterBar: React.FC = () => {
                   }`}
                 >
                   <span>Tất cả quốc gia</span>
-                  {!currentCountry && <Check className="w-3.5 h-3.5 text-sky-400" />}
+                  {!currentCountry && <Check className="w-3.5 h-3.5 text-netflix-red" />}
                 </button>
                 {filters.countries.map((c) => {
                   const isSelected = currentCountry === c.slug;
@@ -856,7 +857,7 @@ export const FilterBar: React.FC = () => {
                       onClick={() => updateQueryParam("country", c.slug)}
                       className={`flex items-center justify-between px-2.5 py-2 rounded-xl text-xs sm:text-sm font-medium transition cursor-pointer text-left truncate ${
                         isSelected
-                          ? "bg-sky-600 text-white font-bold shadow-md shadow-black/50"
+                          ? "bg-netflix-red text-white font-bold shadow-md shadow-black/50"
                           : "text-zinc-300 hover:bg-zinc-800/80 hover:text-white bg-zinc-900/60"
                       }`}
                     >
@@ -878,7 +879,7 @@ export const FilterBar: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => updateQueryParam("year", "")}
-                    className="text-emerald-400 hover:text-emerald-300 text-[11px] normal-case font-medium cursor-pointer"
+                    className="text-netflix-red hover:brightness-110 text-[11px] normal-case font-medium cursor-pointer"
                   >
                     Bỏ chọn
                   </button>
@@ -894,7 +895,7 @@ export const FilterBar: React.FC = () => {
                 }`}
               >
                 <span>Tất cả các năm</span>
-                {!currentYear && <Check className="w-3.5 h-3.5 text-emerald-400" />}
+                {!currentYear && <Check className="w-3.5 h-3.5 text-netflix-red" />}
               </button>
               <div className="max-h-60 overflow-y-auto grid grid-cols-4 gap-1.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none]">
                 {filters.years.map((y) => {
@@ -906,7 +907,7 @@ export const FilterBar: React.FC = () => {
                       onClick={() => updateQueryParam("year", y)}
                       className={`py-2 px-1 text-center rounded-xl text-xs sm:text-sm font-medium transition cursor-pointer ${
                         isSelected
-                          ? "bg-emerald-600 text-white font-bold shadow-md shadow-black/50"
+                          ? "bg-netflix-red text-white font-bold shadow-md shadow-black/50"
                           : "text-zinc-300 hover:bg-zinc-800 hover:text-white bg-zinc-900/60"
                       }`}
                     >
@@ -1024,7 +1025,7 @@ export const FilterBar: React.FC = () => {
             type="button"
             onClick={handleClearAll}
             aria-label="Xóa tất cả các bộ lọc đang chọn"
-            className="flex-none ml-auto text-xs text-rose-400 hover:text-rose-300 hover:underline flex items-center gap-1 font-semibold px-2.5 py-1 min-h-[32px] transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-rose-500/50 rounded-md"
+            className="flex-none ml-auto text-xs text-netflix-red hover:brightness-110 hover:underline flex items-center gap-1 font-semibold px-2.5 py-1 min-h-[32px] transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-netflix-red/50 rounded-md"
           >
             <span>[Xóa bộ lọc]</span>
           </button>
@@ -1091,7 +1092,7 @@ export const FilterBar: React.FC = () => {
                         onClick={() => setDraftSort(opt.value)}
                         className={`py-2 px-3 rounded-xl border text-xs font-semibold flex items-center gap-2 transition active:scale-95 cursor-pointer text-left ${
                           isSelected
-                            ? "bg-amber-950/70  text-amber-200 "
+                            ? "bg-netflix-red/20 border-netflix-red/60 text-white "
                             : "bg-zinc-900/90  text-zinc-300 hover:bg-zinc-800"
                         }`}
                       >
@@ -1114,7 +1115,7 @@ export const FilterBar: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => setDraftType("")}
-                      className="text-[11px] text-purple-400 hover:text-purple-300 font-medium cursor-pointer"
+                      className="text-[11px] text-netflix-red hover:brightness-110 font-medium cursor-pointer"
                     >
                       Bỏ chọn
                     </button>
@@ -1126,7 +1127,7 @@ export const FilterBar: React.FC = () => {
                     onClick={() => setDraftType("")}
                     className={`py-1.5 px-3 rounded-xl border text-xs font-semibold transition active:scale-95 cursor-pointer ${
                       !draftType
-                        ? "bg-purple-600 text-white font-bold border-purple-400"
+                        ? "bg-netflix-red text-white font-bold border-netflix-red/50"
                         : "bg-zinc-900/90  text-zinc-300"
                     }`}
                   >
@@ -1141,7 +1142,7 @@ export const FilterBar: React.FC = () => {
                         onClick={() => setDraftType(isSelected ? "" : t.slug)}
                         className={`py-1.5 px-3 rounded-xl border text-xs font-semibold flex items-center gap-1.5 transition active:scale-95 cursor-pointer ${
                           isSelected
-                            ? "bg-purple-600 text-white font-bold border-purple-400 shadow-sm"
+                            ? "bg-netflix-red text-white font-bold border-netflix-red/50 shadow-sm"
                             : "bg-zinc-900/90  text-zinc-300"
                         }`}
                       >
@@ -1156,14 +1157,14 @@ export const FilterBar: React.FC = () => {
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider flex items-center gap-1.5">
-                    <Sparkles className="w-3.5 h-3.5 text-rose-400" />
+                    <Sparkles className="w-3.5 h-3.5 text-netflix-red" />
                     Thể loại
                   </span>
                   {draftCategory && (
                     <button
                       type="button"
                       onClick={() => setDraftCategory("")}
-                      className="text-[11px] text-rose-400 hover:text-rose-300 font-medium cursor-pointer"
+                      className="text-[11px] text-netflix-red hover:brightness-110 font-medium cursor-pointer"
                     >
                       Bỏ chọn
                     </button>
@@ -1175,7 +1176,7 @@ export const FilterBar: React.FC = () => {
                     onClick={() => setDraftCategory("")}
                     className={`py-1.5 px-3 rounded-xl border text-xs font-semibold transition active:scale-95 cursor-pointer ${
                       !draftCategory
-                        ? "bg-rose-600 text-white font-bold border-rose-400"
+                        ? "bg-netflix-red text-white font-bold border-netflix-red/50"
                         : "bg-zinc-900/90  text-zinc-300"
                     }`}
                   >
@@ -1190,7 +1191,7 @@ export const FilterBar: React.FC = () => {
                         onClick={() => setDraftCategory(isSelected ? "" : g.slug)}
                         className={`py-1.5 px-3 rounded-xl border text-xs font-semibold transition active:scale-95 cursor-pointer ${
                           isSelected
-                            ? "bg-rose-600 text-white font-bold border-rose-400 shadow-sm"
+                            ? "bg-netflix-red text-white font-bold border-netflix-red/50 shadow-sm"
                             : "bg-zinc-900/90  text-zinc-300"
                         }`}
                       >
@@ -1212,7 +1213,7 @@ export const FilterBar: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => setDraftCountry("")}
-                      className="text-[11px] text-sky-400 hover:text-sky-300 font-medium cursor-pointer"
+                      className="text-[11px] text-netflix-red hover:brightness-110 font-medium cursor-pointer"
                     >
                       Bỏ chọn
                     </button>
@@ -1224,7 +1225,7 @@ export const FilterBar: React.FC = () => {
                     onClick={() => setDraftCountry("")}
                     className={`py-1.5 px-3 rounded-xl border text-xs font-semibold transition active:scale-95 cursor-pointer ${
                       !draftCountry
-                        ? "bg-sky-600 text-white font-bold border-sky-400"
+                        ? "bg-netflix-red text-white font-bold border-netflix-red/50"
                         : "bg-zinc-900/90  text-zinc-300"
                     }`}
                   >
@@ -1239,7 +1240,7 @@ export const FilterBar: React.FC = () => {
                         onClick={() => setDraftCountry(isSelected ? "" : c.slug)}
                         className={`py-1.5 px-3 rounded-xl border text-xs font-semibold transition active:scale-95 cursor-pointer ${
                           isSelected
-                            ? "bg-sky-600 text-white font-bold border-sky-400 shadow-sm"
+                            ? "bg-netflix-red text-white font-bold border-netflix-red/50 shadow-sm"
                             : "bg-zinc-900/90  text-zinc-300"
                         }`}
                       >
@@ -1261,7 +1262,7 @@ export const FilterBar: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => setDraftYear("")}
-                      className="text-[11px] text-emerald-400 hover:text-emerald-300 font-medium cursor-pointer"
+                      className="text-[11px] text-netflix-red hover:brightness-110 font-medium cursor-pointer"
                     >
                       Bỏ chọn
                     </button>
@@ -1274,7 +1275,7 @@ export const FilterBar: React.FC = () => {
                   onClick={() => setDraftYear("")}
                   className={`w-full py-2.5 px-3 rounded-xl border text-xs font-bold transition active:scale-[0.98] cursor-pointer flex items-center justify-between ${
                     !draftYear
-                      ? "bg-emerald-600 text-white border-emerald-400 shadow-md shadow-black/50"
+                      ? "bg-netflix-red text-white font-bold border-netflix-red/50 shadow-md shadow-black/50"
                       : "bg-zinc-900/90  text-zinc-300 hover:bg-zinc-800"
                   }`}
                 >
@@ -1293,7 +1294,7 @@ export const FilterBar: React.FC = () => {
                         onClick={() => setDraftYear(isSelected ? "" : y)}
                         className={`py-2 px-1 text-center rounded-xl border text-xs sm:text-sm font-semibold transition active:scale-95 cursor-pointer ${
                           isSelected
-                            ? "bg-emerald-600 text-white font-bold border-emerald-400 shadow-md shadow-black/50"
+                            ? "bg-netflix-red text-white font-bold border-netflix-red/50 shadow-md shadow-black/50"
                             : "bg-zinc-900/90  text-zinc-300 hover:bg-zinc-800"
                         }`}
                       >
@@ -1317,7 +1318,7 @@ export const FilterBar: React.FC = () => {
               <button
                 type="button"
                 onClick={handleApplyMobileDrawer}
-                className="flex-1 h-12 rounded-xl bg-netflix-red hover:bg-red-700 text-white font-bold text-sm shadow-md shadow-black/50 flex items-center justify-center gap-2 active:scale-95 transition cursor-pointer"
+                className="flex-1 h-12 rounded-xl bg-netflix-red hover:brightness-110 text-white font-bold text-sm shadow-md shadow-black/50 flex items-center justify-center gap-2 active:scale-95 transition cursor-pointer"
               >
                 <span>Áp dụng bộ lọc</span>
                 {draftActiveCount > 0 && (
