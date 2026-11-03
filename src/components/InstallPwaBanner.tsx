@@ -17,7 +17,9 @@ export const InstallPwaBanner: React.FC = () => {
       navigator.serviceWorker
         .register("/sw.js")
         .then((reg) => {
-          console.log("[PWA] Service Worker đã sẵn sàng:", reg.scope);
+          if (reg?.scope) {
+            console.log("[PWA] Service Worker đã sẵn sàng:", reg.scope);
+          }
         })
         .catch((err) => {
           console.warn("[PWA] Lỗi đăng ký Service Worker:", err);
