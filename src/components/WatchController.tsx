@@ -230,7 +230,11 @@ export function WatchController({
   }, [initialServers, initialServerIndex, isVsmovOnly]);
 
   const activeEpisode = useMemo(() => {
-    return episodes.find((ep) => ep.slug === activeEpisodeSlug) || episodes[0];
+    return (
+      episodes.find((ep) => ep.slug === activeEpisodeSlug) ||
+      findEpisodeMatch(episodes, activeEpisodeSlug) ||
+      episodes[0]
+    );
   }, [episodes, activeEpisodeSlug]);
 
   const currentIndex = useMemo(() => {
@@ -287,18 +291,20 @@ export function WatchController({
   const switchEpisode = useCallback(
     (newSlug: string) => {
       if (!newSlug || newSlug === activeEpisodeSlug) return;
-      setActiveEpisodeSlug(newSlug);
-      updateUrlQuietly(newSlug, currentServerIndex, activeProvider);
+      const targetEp = episodes.find((ep) => ep.slug === newSlug) || findEpisodeMatch(episodes, newSlug);
+      const canonicalSlug = targetEp?.slug || newSlug;
+      setActiveEpisodeSlug(canonicalSlug);
+      updateUrlQuietly(canonicalSlug, currentServerIndex, activeProvider);
 
-      const targetEp = episodes.find((ep) => ep.slug === newSlug);
-      if (targetEp) {
+      const targetEpForHistory = targetEp;
+      if (targetEpForHistory) {
         saveWatchHistory({
           slug: movieSlug,
           title: movieTitle,
           poster: posterUrl,
           thumb: thumbUrl,
-          episodeName: targetEp.name,
-          episodeSlug: targetEp.slug,
+          episodeName: targetEpForHistory.name,
+          episodeSlug: targetEpForHistory.slug,
           year,
           quality,
           category,
@@ -335,7 +341,7 @@ export function WatchController({
       const newServer = initialServers[safeIndex];
       const newEpisodes = newServer?.server_data || [];
       const foundMatch =
-        findEpisodeMatch(newEpisodes, activeEpisodeSlug) ||
+        findEpisodeMatch(newEpisodes, activeEpisode?.slug || activeEpisodeSlug) ||
         (activeEpisode?.name ? findEpisodeMatch(newEpisodes, activeEpisode.name) : undefined);
       const currentTargetSlug = foundMatch?.slug || newEpisodes[0]?.slug || "";
       setActiveEpisodeSlug(currentTargetSlug);

@@ -49,7 +49,7 @@ export function findEpisodeMatch<T extends { slug?: string; name?: string }>(
   });
   if (cleanExact) return cleanExact;
 
-  // 3. So khớp số học nguyên vẹn (chống lỗi 1049 vô tình khớp nhầm 1049-2)
+  // 3. So khớp số học nguyên vẹn (chống lỗi 1049 vô tình khớp nhầm 1049-2, xử lý tap-2 <-> tap-02)
   if (/^\d+$/.test(cleanTarget)) {
     const targetNum = parseInt(cleanTarget, 10);
     const numMatch = episodes.find((e) => {
@@ -60,6 +60,35 @@ export function findEpisodeMatch<T extends { slug?: string; name?: string }>(
       return false;
     });
     if (numMatch) return numMatch;
+  }
+
+  // 4. So khớp tập đôi/tập ba hoặc dải số (ví dụ: "39" hoặc "40" khớp "tap-39-40", "267" khớp "tap-266-267-268")
+  const targetNumbers = (cleanTarget.match(/\d+/g) || []).map((n) => parseInt(n, 10)).filter((n) => !isNaN(n));
+  if (targetNumbers.length > 0) {
+    if (targetNumbers.length === 1) {
+      const singleTarget = targetNumbers[0];
+      const rangeMatch = episodes.find((e) => {
+        const slugClean = (e.slug || "").toLowerCase().replace(/^(tap|ep)[-_\s]*/i, "").trim();
+        const epNums = (slugClean.match(/\d+/g) || []).map((n) => parseInt(n, 10)).filter((n) => !isNaN(n));
+        if (epNums.length > 1) {
+          if (epNums.includes(singleTarget)) return true;
+          const min = Math.min(...epNums);
+          const max = Math.max(...epNums);
+          if (singleTarget >= min && singleTarget <= max) return true;
+        }
+        return false;
+      });
+      if (rangeMatch) return rangeMatch;
+    } else {
+      // Target là dải số (ví dụ target="39-40"), tìm episode khớp với số đầu tiên của dải
+      const firstTarget = targetNumbers[0];
+      const matchFirst = episodes.find((e) => {
+        const slugClean = (e.slug || "").toLowerCase().replace(/^(tap|ep)[-_\s]*/i, "").trim();
+        if (/^\d+$/.test(slugClean) && parseInt(slugClean, 10) === firstTarget) return true;
+        return false;
+      });
+      if (matchFirst) return matchFirst;
+    }
   }
 
   return undefined;

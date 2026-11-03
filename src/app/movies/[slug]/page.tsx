@@ -407,7 +407,8 @@ export default async function MovieDetail({
   // Chuẩn hóa và làm sạch cấu trúc episodeServers: chỉ giữ các trường thực sự cần thiết cho playback
   // và chuyển tập (name, slug, link_embed, link_m3u8), loại bỏ triệt để các thuộc tính nặng như filename
   // đồng thời khử trùng lặp tập phim chống lỗi duplicate key từ upstream API.
-  const episodeServers = (episodes || []).map((srv: { server_name?: string; server_data?: Array<{ name?: string; slug?: string; link_embed?: string; link_m3u8?: string }> }, sIdx: number) => ({
+  const rawEpisodes = (episodes && episodes.length > 0) ? episodes : (movie?.episodes || []);
+  const episodeServers = rawEpisodes.map((srv: { server_name?: string; server_data?: Array<{ name?: string; slug?: string; link_embed?: string; link_m3u8?: string }> }, sIdx: number) => ({
     server_name: srv.server_name || `Server #${sIdx + 1}`,
     server_data: deduplicateServerEpisodes(
       (srv.server_data || []).map((ep: { name?: string; slug?: string; link_embed?: string; link_m3u8?: string }) => ({

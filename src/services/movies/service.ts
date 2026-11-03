@@ -232,6 +232,7 @@ function normalizeNguonCMovieDetail(raw: any) {
       imdb: movie.imdb || undefined,
       episodes: episodes,
     },
+    episodes: episodes,
   };
 }
 
@@ -416,12 +417,16 @@ async function fetchAndCacheMovieDetail(slug: string, source?: "nguonc" | "ophim
         // Bổ sung các server phát từ nguồn phụ (NguonC Embed hoặc PhimAPI) để người dùng có nhiều server lựa chọn
         const secondaryEpContainer = secondary?.episodes || secondary?.movie?.episodes;
         if (Array.isArray(secondaryEpContainer) && secondaryEpContainer.length > 0) {
-          if (!primary.movie.episodes) primary.movie.episodes = [];
-          if (!primary.episodes) primary.episodes = primary.movie.episodes;
+          // Bảo đảm primary.episodes và primary.movie.episodes luôn đồng bộ tuyệt đối về cùng một tham chiếu
+          const primaryEpisodes = primary.episodes || primary.movie?.episodes || [];
+          primary.episodes = primaryEpisodes;
+          if (primary.movie) {
+            primary.movie.episodes = primaryEpisodes;
+          }
 
           // Thu thập toàn bộ các stream URL thực tế đang có ở server chính để chống duplicate link
           const primaryStreamUrls = new Set<string>();
-          for (const s of primary.movie.episodes) {
+          for (const s of primaryEpisodes) {
             for (const ep of s?.server_data || []) {
               const u = (ep?.link_m3u8 || ep?.link_embed || "").trim();
               if (u) primaryStreamUrls.add(u);
@@ -429,7 +434,7 @@ async function fetchAndCacheMovieDetail(slug: string, source?: "nguonc" | "ophim
           }
 
           const existingNames = new Set(
-            primary.movie.episodes.map((s: { server_name?: string }) => (s.server_name || "").trim().toLowerCase())
+            primaryEpisodes.map((s: { server_name?: string }) => (s.server_name || "").trim().toLowerCase())
           );
 
           for (const s of secondaryEpContainer) {
@@ -455,11 +460,12 @@ async function fetchAndCacheMovieDetail(slug: string, source?: "nguonc" | "ophim
                 ...s,
                 server_name: targetName,
               };
-              primary.movie.episodes.push(newServerObj);
-              if (primary.episodes && primary.episodes !== primary.movie.episodes) {
-                primary.episodes.push(newServerObj);
-              }
+              primaryEpisodes.push(newServerObj);
             }
+          }
+
+          if (primary.movie) {
+            primary.movie.episodes = primaryEpisodes;
           }
         }
 

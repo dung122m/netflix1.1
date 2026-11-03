@@ -4,8 +4,8 @@ import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { Check, Search, X, Play, ChevronRight, ChevronDown } from "lucide-react";
 import { getWatchedEpisodes } from "@/lib/episodeTracker";
-import { getShortEpisodeLabel, formatEpisodeName } from "@/lib/formatEpisode";
-import { useWatchController } from "./WatchController";
+import { getShortEpisodeLabel, formatEpisodeName, findEpisodeMatch } from "@/lib/formatEpisode";
+import { useWatchController, EpisodeItem } from "./WatchController";
 import { ScrollablePillsRow } from "@/components/ui/ScrollablePillsRow";
 import { getMovieEpisodesProgress } from "@/lib/watchHistory";
 
@@ -13,13 +13,6 @@ import WatchlistButton from "@/components/WatchlistButton";
 import AddToCollectionButton from "@/components/Collections/AddToCollectionButton";
 
 const CHUNK_SIZE = 25;
-
-interface EpisodeItem {
-  name: string;
-  slug: string;
-  link_embed?: string;
-  link_m3u8?: string;
-}
 
 interface EpisodeListProps {
   movieSlug: string;
@@ -84,14 +77,19 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(function Episo
   >({});
   const [searchQuery, setSearchQuery] = useState("");
 
-  // Tìm index của tập đang phát để tự động nhảy đúng tab dải tập
-  const activeEpisodeIndex = useMemo(() => {
-    return episodes.findIndex((tap) => tap.slug === activeEpisodeSlug);
+  // Tìm tập phim đang phát chuẩn xác bằng findEpisodeMatch (hỗ trợ tập 01 <-> 1, dải tập 39-40)
+  const currentActiveEpisode = useMemo(() => {
+    return (
+      episodes.find((tap) => tap.slug === activeEpisodeSlug) ||
+      findEpisodeMatch(episodes, activeEpisodeSlug)
+    );
   }, [episodes, activeEpisodeSlug]);
 
-  const currentActiveEpisode = useMemo(() => {
-    return episodes.find((tap) => tap.slug === activeEpisodeSlug) || (activeEpisodeIndex >= 0 ? episodes[activeEpisodeIndex] : undefined);
-  }, [episodes, activeEpisodeSlug, activeEpisodeIndex]);
+  // Tìm index của tập đang phát để tự động nhảy đúng tab dải tập
+  const activeEpisodeIndex = useMemo(() => {
+    if (!currentActiveEpisode) return -1;
+    return episodes.findIndex((tap) => tap.slug === currentActiveEpisode.slug);
+  }, [episodes, currentActiveEpisode]);
 
   const initialChunk = useMemo(() => {
     if (activeEpisodeIndex >= 0) {
@@ -500,7 +498,11 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(function Episo
             {displayEpisodes.map((tap, tapIdx) => {
               const tapSlug = tap.slug || `ep-${tapIdx + 1}`;
               const tapName = tap.name || `Tập ${tapIdx + 1}`;
-              const isActive = Boolean(activeEpisodeSlug && activeEpisodeSlug === tap.slug);
+              const isActive = Boolean(
+                currentActiveEpisode
+                  ? currentActiveEpisode.slug === tap.slug
+                  : activeEpisodeSlug && activeEpisodeSlug === tap.slug
+              );
               const isWatched = Boolean(tap.slug && watchedList.includes(tap.slug));
               
               // Nhãn nút: nếu đang tìm kiếm thì hiển thị "Tập X" rõ ràng, nếu xem dải thường thì rút gọn số

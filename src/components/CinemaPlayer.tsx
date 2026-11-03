@@ -21,7 +21,7 @@ import {
 import { useWatchController } from "./WatchController";
 import { getWatchProgress, saveWatchProgress } from "@/lib/watchHistory";
 import { markEpisodeAsWatched } from "@/lib/episodeTracker";
-import { formatEpisodeName } from "@/lib/formatEpisode";
+import { formatEpisodeName, findEpisodeMatch } from "@/lib/formatEpisode";
 import { useAuth } from "@/context/AuthContext";
 import { updateActivePlaybackSession } from "@/services/handoffService";
 import { incrementUserWatchTime, getPlayerSettings, PlayerSettings } from "@/services/userService";
@@ -125,7 +125,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
   const isTrailerOnly = watchContext?.isTrailerOnly ?? propIsTrailerOnly;
   const episodes = useMemo(() => watchContext?.episodes || propEpisodes || [], [watchContext?.episodes, propEpisodes]);
   const activeEpisodeSlug = watchContext?.activeEpisodeSlug || propActiveEpisodeSlug;
-  const activeEpisode = watchContext?.activeEpisode || episodes.find((e) => e.slug === activeEpisodeSlug) || episodes[0];
+  const activeEpisode = watchContext?.activeEpisode || episodes.find((e) => e.slug === activeEpisodeSlug) || findEpisodeMatch(episodes, activeEpisodeSlug) || episodes[0];
   const activeEpisodeName = activeEpisode?.name || propActiveEpisodeName;
 
   const videoLink = activeEpisode?.link_embed || activeEpisode?.link_m3u8 || propVideoLink;
@@ -142,7 +142,8 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
   const effectiveNextEpisode = useMemo(() => {
     if (rawNextEpisode) return rawNextEpisode;
     if (!episodes || episodes.length <= 1 || !activeEpisodeSlug) return null;
-    const idx = episodes.findIndex((e) => e.slug === activeEpisodeSlug);
+    const currentSlug = activeEpisode?.slug || activeEpisodeSlug;
+    const idx = episodes.findIndex((e) => e.slug === currentSlug);
     if (idx >= 0 && idx < episodes.length - 1) {
       return episodes[idx + 1];
     }
