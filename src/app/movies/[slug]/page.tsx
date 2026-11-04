@@ -606,6 +606,7 @@ export default async function MovieDetail({
               <>
                 <Link
                   href={`/browse?category=${encodeURIComponent(primaryGenreSlug)}`}
+                  prefetch={false}
                   className="hover:text-zinc-300 transition"
                 >
                   {primaryGenreName}
@@ -922,6 +923,7 @@ export default async function MovieDetail({
                               {categoryList.map((cat, idx) => (
                                 <Link
                                   key={cat.slug || idx}
+                                  prefetch={false}
                                   href={
                                     cat.slug
                                       ? `/browse?category=${cat.slug}`
@@ -946,6 +948,7 @@ export default async function MovieDetail({
                               {countryList.map((cnt, idx) => (
                                 <Link
                                   key={cnt.slug || idx}
+                                  prefetch={false}
                                   href={
                                     cnt.slug
                                       ? `/browse?country=${cnt.slug}`

@@ -107,6 +107,7 @@ export const ResumeEpisodeBanner: React.FC<ResumeEpisodeBannerProps> = ({
         <div className="flex items-center gap-2 flex-none">
           <Link
             href={`?ep=${epSlug}`}
+            prefetch={false}
             scroll={false}
             onClick={(e) => {
               if (switchEpisode && epSlug) {

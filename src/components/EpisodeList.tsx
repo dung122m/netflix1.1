@@ -480,6 +480,7 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(function Episo
               {/* Nút phát nhanh */}
               <Link
                 href={`?ep=${tapSlug}`}
+                prefetch={false}
                 scroll={false}
                 onClick={(e) => {
                   if (switchEpisode && singleTap.slug) {
@@ -569,6 +570,7 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(function Episo
                   key={`${tapSlug}-${tapIdx}`}
                   ref={isActive ? activeItemRef : null}
                   href={`?ep=${tapSlug}`}
+                  prefetch={false}
                   scroll={false}
                   tabIndex={0}
                   aria-current={isActive ? "page" : undefined}

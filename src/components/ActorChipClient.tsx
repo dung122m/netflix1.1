@@ -20,6 +20,7 @@ export const ActorChipClient: React.FC<ActorChipProps> = ({ name, isDirector = f
   return (
     <Link
       href={`/dien-vien/${slug}`}
+      prefetch={false}
       title={`Xem hồ sơ & danh sách phim của ${name}`}
       className="group inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs bg-white/5 hover:bg-white/10 text-zinc-300 hover:text-white backdrop-blur-md transition cursor-pointer active:scale-95"
     >
