@@ -161,7 +161,7 @@ export interface AnalyticsDashboardStats {
 let redisInstance: Redis | null = null;
 let isRedisChecked = false;
 
-function getRedis(): Redis | null {
+function _getRedis(): Redis | null {
   if (isRedisChecked) return redisInstance;
   isRedisChecked = true;
 
@@ -525,17 +525,15 @@ export async function getAnalyticsDashboardStats(
     cutoffTimestamp = 0;
   }
 
-  const redis = getRedis();
   let rawEvents: StoredAnalyticsEvent[] = [];
 
   const analyticsEventsColumns = [
-    "id", "event_type", "movie_slug", "movie_title",
+    "id", "event_type", "movie_slug", "movie_title", "episode_slug", "episode_name",
     "user_id", "anonymous_id", "device_type", "os", "browser",
-    "country", "country_code", "region", "city", "created_at",
+    "duration_seconds", "progress_seconds", "keyword", "created_at",
   ].join(",");
 
-  // Parallel fetch: Supabase analytics_events (only site_visit) and Supabase device_handoff
-  // (Redis analytics:events eliminated to save 162+ KB payload and bandwidth; memoryEventsBuffer used as L1)
+  // Parallel fetch: Supabase analytics_events and Supabase device_handoff
   const [supabaseEventsResult, supabaseHandoffResult] = await Promise.all([
     (async () => {
       const client = isSupabaseAdminConfigured() ? getSupabaseAdmin() : supabase;
@@ -544,7 +542,6 @@ export async function getAnalyticsDashboardStats(
         let q = client
           .from("analytics_events")
           .select(analyticsEventsColumns)
-          .eq("event_type", "site_visit")
           .order("created_at", { ascending: false })
           .limit(2000);
         if (cutoffTimestamp > 0) {
@@ -573,7 +570,7 @@ export async function getAnalyticsDashboardStats(
 
   // Seed with in-memory buffer events
   if (memoryEventsBuffer.length > 0) {
-    rawEvents = memoryEventsBuffer.filter((e) => e.eventType === "site_visit");
+    rawEvents = [...memoryEventsBuffer];
   }
 
   // Merge Supabase analytics_events
@@ -582,7 +579,7 @@ export async function getAnalyticsDashboardStats(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const dbEvents: StoredAnalyticsEvent[] = (eventsData as any[]).map((d) => ({
       id: d.id,
-      eventType: "site_visit",
+      eventType: d.event_type || "site_visit",
       movieSlug: d.movie_slug || "home",
       movieTitle: d.movie_title || "/",
       userId: d.user_id || undefined,
@@ -591,13 +588,13 @@ export async function getAnalyticsDashboardStats(
       os: d.os,
       browser: d.browser,
       screenRes: undefined,
-      durationSeconds: 0,
-      progressSeconds: 0,
-      keyword: undefined,
-      country: d.country || undefined,
-      countryCode: d.country_code || undefined,
-      region: d.region || undefined,
-      city: d.city || undefined,
+      durationSeconds: Number(d.duration_seconds) || 0,
+      progressSeconds: Number(d.progress_seconds) || 0,
+      keyword: d.keyword || undefined,
+      country: undefined,
+      countryCode: undefined,
+      region: undefined,
+      city: undefined,
       createdAt: Number(d.created_at),
     }));
 
@@ -931,28 +928,11 @@ export async function getAnalyticsDashboardStats(
     console.warn("[Analytics] Error processing live watching from handoff:", err);
   }
 
-  // If timeframe === 'all' and redis is connected, check if Redis totals are higher
-  let finalTotalViews = totalVisits;
-  let finalUniqueTotal = uniqueAll.size;
-  let finalUniqueUsers = uniqueUsers.size;
-  let finalUniqueGuests = uniqueGuests.size;
-
-  if (timeframe === "all" && redis) {
-    try {
-      const [redisVisits, redisUniqTotal, redisUniqUsers, redisUniqGuests] = await Promise.all([
-        redis.get<number>("analytics:visits:total"),
-        redis.scard("analytics:unique:total"),
-        redis.scard("analytics:unique:users"),
-        redis.scard("analytics:unique:guests"),
-      ]);
-      if (redisVisits && redisVisits > finalTotalViews) finalTotalViews = redisVisits;
-      if (redisUniqTotal && redisUniqTotal > finalUniqueTotal) finalUniqueTotal = redisUniqTotal;
-      if (redisUniqUsers && redisUniqUsers > finalUniqueUsers) finalUniqueUsers = redisUniqUsers;
-      if (redisUniqGuests && redisUniqGuests > finalUniqueGuests) finalUniqueGuests = redisUniqGuests;
-    } catch (redisSyncErr) {
-      console.warn("[Analytics] Redis sync error:", redisSyncErr);
-    }
-  }
+  // Toàn bộ số liệu thống kê được tính toán trực tiếp từ Supabase (100% Zero-Redis analytics)
+  const finalTotalViews = totalVisits;
+  const finalUniqueTotal = uniqueAll.size;
+  const finalUniqueUsers = uniqueUsers.size;
+  const finalUniqueGuests = uniqueGuests.size;
 
   const enrichedRecentActivity: StoredAnalyticsEvent[] = filteredEvents.slice(0, 40).map((ev) => {
     let resolvedUserName: string | undefined = undefined;
@@ -1039,9 +1019,9 @@ export async function getDailyVisitorsStats(dateStr?: string): Promise<DailyVisi
   const client = isSupabaseAdminConfigured() ? getSupabaseAdmin() : supabase;
 
   const analyticsEventsColumns = [
-    "id", "event_type", "movie_slug", "movie_title",
+    "id", "event_type", "movie_slug", "movie_title", "episode_slug", "episode_name",
     "user_id", "anonymous_id", "device_type", "os", "browser",
-    "country", "country_code", "region", "city", "created_at",
+    "duration_seconds", "progress_seconds", "keyword", "created_at",
   ].join(",");
 
   interface DbEventRow {
@@ -1054,10 +1034,9 @@ export async function getDailyVisitorsStats(dateStr?: string): Promise<DailyVisi
     device_type?: string;
     os?: string;
     browser?: string;
-    country?: string;
-    country_code?: string;
-    region?: string;
-    city?: string;
+    duration_seconds?: number;
+    progress_seconds?: number;
+    keyword?: string;
     created_at: number | string;
   }
 
@@ -1067,7 +1046,6 @@ export async function getDailyVisitorsStats(dateStr?: string): Promise<DailyVisi
       const res = await client
         .from("analytics_events")
         .select(analyticsEventsColumns)
-        .eq("event_type", "site_visit")
         .gte("created_at", startMs)
         .lte("created_at", endMs)
         .order("created_at", { ascending: false })
@@ -1093,12 +1071,13 @@ export async function getDailyVisitorsStats(dateStr?: string): Promise<DailyVisi
         deviceType: r.device_type,
         os: r.os,
         browser: r.browser,
-        country: r.country || undefined,
-        countryCode: r.country_code || undefined,
-        region: r.region || undefined,
-        city: r.city || undefined,
-        durationSeconds: 0,
-        progressSeconds: 0,
+        country: undefined,
+        countryCode: undefined,
+        region: undefined,
+        city: undefined,
+        durationSeconds: Number(r.duration_seconds) || 0,
+        progressSeconds: Number(r.progress_seconds) || 0,
+        keyword: r.keyword || undefined,
         createdAt: Number(r.created_at),
       };
       if (ev.createdAt >= startMs && ev.createdAt <= endMs) {

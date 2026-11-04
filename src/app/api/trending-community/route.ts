@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getTopTrendingCommunitySupabase, invalidateTrendingSummaryCache } from "@/services/communityWatchService";
+import { getTopTrendingCommunitySupabase } from "@/services/communityWatchService";
 import {
   enforceRateLimit,
   buildRateLimitResponse,
@@ -15,8 +15,8 @@ const SERVER_CACHE = new Map<string, { data: any; expireAt: number }>();
 const CACHE_TTL = 60 * 1000;
 
 export function invalidateTrendingCache(): void {
+  // Chỉ xóa cache RAM cục bộ, không gửi hàng loạt lệnh Redis DEL khi có lượt xem phim
   SERVER_CACHE.clear();
-  invalidateTrendingSummaryCache();
 }
 
 export async function GET(req: NextRequest) {

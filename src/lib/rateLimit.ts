@@ -173,7 +173,7 @@ export const RATE_LIMIT_PRESETS = {
     maxRequests: 180,
     windowSeconds: 60,
     failClosed: false,
-    strategy: "fixed-window",
+    strategy: "in-memory-only",
   },
   SEARCH: {
     namespace: "search",
@@ -264,21 +264,21 @@ export const RATE_LIMIT_PRESETS = {
     maxRequests: 180,
     windowSeconds: 60, // 180 requests / 60s per IP (allows manifest polling & adaptive bitrate switching)
     failClosed: false,
-    strategy: "fixed-window",
+    strategy: "in-memory-only",
   },
   HLS_SEGMENT: {
     namespace: "stream-segment",
     maxRequests: 1200,
     windowSeconds: 60, // 1200 requests / 60s per IP (high throughput for 1080p/4K segments + burst buffer)
     failClosed: false,
-    strategy: "fixed-window",
+    strategy: "in-memory-only",
   },
   STREAM_PROXY: {
     namespace: "stream-proxy",
     maxRequests: 300,
     windowSeconds: 60, // 300 requests / 60s per IP (fallback media proxy)
     failClosed: false,
-    strategy: "fixed-window",
+    strategy: "in-memory-only",
   },
   RECOMMENDATIONS: {
     namespace: "recommendations",

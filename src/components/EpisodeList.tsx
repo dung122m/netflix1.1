@@ -247,154 +247,160 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(function Episo
   }
 
   return (
-    <div className="space-y-3.5">
-      {/* Ô TÌM NHANH SỐ TẬP (Hiển thị khi phim có từ 12 tập trở lên) */}
-      {episodes.length > 12 && (
-        <div className="relative group">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-400 group-focus-within:text-netflix-red transition-colors" aria-hidden="true" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Tìm nhanh số tập (vd: 1, 59, 199)..."
-            aria-label="Tìm nhanh số tập"
-            className="w-full pl-9 pr-8 py-2 rounded-xl bg-zinc-900/90 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-netflix-red/70 focus:bg-zinc-900/95 focus:ring-1 focus:ring-netflix-red/30 transition shadow-inner"
-          />
-          {searchQuery && (
+    <div className="flex flex-col h-full min-h-0 space-y-2">
+      {/* 1. KHUNG ĐIỀU KHIỂN CỐ ĐỊNH (SEARCH + TẬP ĐANG CHỌN + DẢI TẬP) - GHIM ĐẦU, KHÔNG CUỘN MẤT */}
+      <div className="flex-shrink-0 space-y-1.5">
+        {/* Ô TÌM NHANH SỐ TẬP (Hiển thị khi phim có từ 12 tập trở lên) */}
+        {episodes.length > 12 && (
+          <div className="relative group">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-400 group-focus-within:text-netflix-red transition-colors" aria-hidden="true" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Tìm nhanh số tập (vd: 1, 59, 199)..."
+              aria-label="Tìm nhanh số tập"
+              className="w-full pl-8 pr-7 py-1.5 rounded-lg bg-zinc-900/90 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-netflix-red/70 focus:bg-zinc-900/95 focus:ring-1 focus:ring-netflix-red/30 transition shadow-inner"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery("")}
+                aria-label="Xóa nội dung tìm kiếm"
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-white p-0.5 hover:bg-white/10 rounded-full transition cursor-pointer"
+              >
+                <X className="w-3.5 h-3.5" aria-hidden="true" />
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* THANH THÔNG BÁO KẾT QUẢ TÌM KIẾM */}
+        {isSearching && (
+          <div className="flex items-center justify-between text-xs text-zinc-400 px-2.5 py-1 rounded-lg bg-white/[0.04] animate-in fade-in duration-150">
+            <div className="flex items-center gap-1.5 min-w-0">
+              <span className="w-1.5 h-1.5 rounded-full bg-netflix-red shrink-0" />
+              <span className="truncate text-[11px]">
+                Tìm thấy <strong className="text-white font-bold">{displayEpisodes.length}</strong> tập phù hợp
+              </span>
+            </div>
             <button
               type="button"
               onClick={() => setSearchQuery("")}
-              aria-label="Xóa nội dung tìm kiếm"
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-white p-1 hover:bg-white/10 rounded-full transition"
+              className="text-[10px] text-zinc-400 hover:text-white transition flex items-center gap-1 cursor-pointer shrink-0 ml-2 bg-white/5 hover:bg-white/10 px-1.5 py-0.5 rounded active:scale-95"
             >
-              <X className="w-3.5 h-3.5" aria-hidden="true" />
+              <span>Xóa lọc</span>
+              <X className="w-2.5 h-2.5" />
             </button>
-          )}
-        </div>
-      )}
-
-      {/* THANH THÔNG BÁO KẾT QUẢ TÌM KIẾM */}
-      {isSearching && (
-        <div className="flex items-center justify-between text-xs text-zinc-400 px-3 py-1.5 rounded-xl bg-white/[0.04] animate-in fade-in duration-150">
-          <div className="flex items-center gap-1.5 min-w-0">
-            <span className="w-2 h-2 rounded-full bg-netflix-red shrink-0" />
-            <span className="truncate">
-              Tìm thấy <strong className="text-white font-bold">{displayEpisodes.length}</strong> tập phù hợp
-            </span>
           </div>
-          <button
-            type="button"
-            onClick={() => setSearchQuery("")}
-            className="text-[11px] text-zinc-400 hover:text-white transition flex items-center gap-1 cursor-pointer shrink-0 ml-2 bg-white/5 hover:bg-white/10 px-2 py-0.5 rounded-lg active:scale-95"
-          >
-            <span>Xóa lọc</span>
-            <X className="w-3 h-3" />
-          </button>
-        </div>
-      )}
+        )}
 
-      {/* THANH ĐIỀU KHIỂN LƯU TẬP PHIM ĐANG CHỌN (Chỉ hiện khi không tìm kiếm để tránh rối mắt) */}
-      {!isSearching && currentActiveEpisode?.slug && episodes.length > 1 && (
-        <div className="flex items-center justify-between gap-2 px-3 py-2 rounded-xl bg-gradient-to-r from-zinc-900/90 to-zinc-950/90 text-xs shadow-sm">
-          <div className="flex items-center gap-1.5 min-w-0">
-            <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse flex-shrink-0" aria-hidden="true" />
-            <span className="text-zinc-300 truncate text-[11px] sm:text-xs">
-              Tập đang chọn: <span className="text-white font-semibold">{currentActiveEpisode.name || currentActiveEpisode.slug}</span>
-            </span>
+        {/* THANH ĐIỀU KHIỂN LƯU TẬP PHIM ĐANG CHỌN (GỌN GÀNG, KHÔNG CHIẾM DIỆN TÍCH) */}
+        {!isSearching && currentActiveEpisode?.slug && episodes.length > 1 && (
+          <div className="flex items-center justify-between gap-1.5 px-2.5 py-1 rounded-lg bg-zinc-900/60 text-xs border border-white/[0.04]">
+            <div className="flex items-center gap-1.5 min-w-0">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse flex-shrink-0" aria-hidden="true" />
+              <span className="text-zinc-300 truncate text-[11px]">
+                Đang chọn: <span className="text-white font-semibold">{currentActiveEpisode.name || currentActiveEpisode.slug}</span>
+              </span>
+            </div>
+            <div className="flex items-center gap-1 flex-shrink-0">
+              <WatchlistButton
+                movie={{
+                  slug: `${movieSlug}__ep__${currentActiveEpisode.slug}`,
+                  title: `${movieTitle} - ${currentActiveEpisode.name || currentActiveEpisode.slug}`,
+                  poster: moviePoster,
+                  imageUrl: moviePoster,
+                  year: movieYear,
+                  quality: movieQuality,
+                  category: movieCategory,
+                  itemType: "episode",
+                  seriesSlug: movieSlug,
+                  seriesTitle: movieTitle,
+                  episodeSlug: currentActiveEpisode.slug,
+                  episodeName: currentActiveEpisode.name || currentActiveEpisode.slug,
+                }}
+                variant="player"
+                className="!px-1.5 !py-0.5 !min-h-[24px] !text-[10px]"
+                label="Lưu tập"
+              />
+              <AddToCollectionButton
+                movie={{
+                  slug: `${movieSlug}__ep__${currentActiveEpisode.slug}`,
+                  title: `${movieTitle} - ${currentActiveEpisode.name || currentActiveEpisode.slug}`,
+                  poster: moviePoster,
+                  year: movieYear,
+                  quality: movieQuality,
+                  category: movieCategory,
+                  itemType: "episode",
+                  seriesSlug: movieSlug,
+                  seriesTitle: movieTitle,
+                  episodeSlug: currentActiveEpisode.slug,
+                  episodeName: currentActiveEpisode.name || currentActiveEpisode.slug,
+                }}
+                variant="player"
+                className="!px-1.5 !py-0.5 !min-h-[24px] !text-[10px]"
+                label="Bộ sưu tập"
+              />
+            </div>
           </div>
-          <div className="flex items-center gap-1.5 flex-shrink-0">
-            <WatchlistButton
-              movie={{
-                slug: `${movieSlug}__ep__${currentActiveEpisode.slug}`,
-                title: `${movieTitle} - ${currentActiveEpisode.name || currentActiveEpisode.slug}`,
-                poster: moviePoster,
-                imageUrl: moviePoster,
-                year: movieYear,
-                quality: movieQuality,
-                category: movieCategory,
-                itemType: "episode",
-                seriesSlug: movieSlug,
-                seriesTitle: movieTitle,
-                episodeSlug: currentActiveEpisode.slug,
-                episodeName: currentActiveEpisode.name || currentActiveEpisode.slug,
-              }}
-              variant="player"
-              className="!px-2 !py-1 text-[11px]"
-              label="Lưu tập"
-            />
-            <AddToCollectionButton
-              movie={{
-                slug: `${movieSlug}__ep__${currentActiveEpisode.slug}`,
-                title: `${movieTitle} - ${currentActiveEpisode.name || currentActiveEpisode.slug}`,
-                poster: moviePoster,
-                year: movieYear,
-                quality: movieQuality,
-                category: movieCategory,
-                itemType: "episode",
-                seriesSlug: movieSlug,
-                seriesTitle: movieTitle,
-                episodeSlug: currentActiveEpisode.slug,
-                episodeName: currentActiveEpisode.name || currentActiveEpisode.slug,
-              }}
-              variant="player"
-              className="!px-2 !py-1 text-[11px]"
-              label="Bộ sưu tập"
-            />
-          </div>
-        </div>
-      )}
+        )}
 
-      {/* DẢI TABS PHÂN NHÓM TẬP + NÚT CHỌN NHANH DẢI TẬP (Khi có trên 25 tập và không trong chế độ tìm kiếm) */}
-      {!isSearching && chunks.length > 1 && (
-        <div className="space-y-1.5">
-          {chunks.length > 3 && (
+        {/* DẢI TABS PHÂN NHÓM TẬP + NÚT CHỌN NHANH DẢI TẬP (Khi có trên 25 tập và không trong chế độ tìm kiếm) */}
+        {!isSearching && chunks.length > 1 && (
+          <div className="space-y-1">
             <div className="flex items-center justify-between gap-2 px-1">
               <span className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider flex items-center gap-1.5">
                 <span>Dải tập</span>
                 <span className="text-[10px] text-zinc-500 font-sans tabular-nums">({chunks.length} dải)</span>
               </span>
 
-              {/* Menu nhảy nhanh đến dải tập (hữu ích cho phim 1000+ tập như Conan/One Piece) */}
-              <div className="relative flex items-center">
-                <select
-                  value={activeChunk}
-                  onChange={(e) => setActiveChunk(Number(e.target.value))}
-                  aria-label="Nhảy nhanh đến dải tập"
-                  className="bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-white text-[11px] font-semibold rounded-lg px-2 py-1 pr-6 outline-none focus:border-netflix-red cursor-pointer transition appearance-none"
-                >
-                  {chunks.map((c) => (
-                    <option key={c.index} value={c.index} className="bg-zinc-950 text-white">
-                      {c.label}
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown className="w-3 h-3 text-zinc-400 absolute right-1.5 pointer-events-none" />
-              </div>
+              {/* Menu nhảy nhanh đến dải tập */}
+              {chunks.length > 3 && (
+                <div className="relative flex items-center">
+                  <select
+                    value={activeChunk}
+                    onChange={(e) => setActiveChunk(Number(e.target.value))}
+                    aria-label="Nhảy nhanh đến dải tập"
+                    className="bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-white text-[11px] font-semibold rounded-md px-2 py-0.5 pr-5 outline-none focus:border-netflix-red cursor-pointer transition appearance-none"
+                  >
+                    {chunks.map((c) => (
+                      <option key={c.index} value={c.index} className="bg-zinc-950 text-white">
+                        {c.label}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown className="w-3 h-3 text-zinc-400 absolute right-1 pointer-events-none" />
+                </div>
+              )}
             </div>
-          )}
 
-          <ScrollablePillsRow innerClassName="flex items-center gap-1.5 py-0.5 px-0.5">
-            {chunks.map((chunk) => {
-              const isSelected = activeChunk === chunk.index;
-              return (
-                <button
-                  key={chunk.index}
-                  type="button"
-                  aria-pressed={isSelected}
-                  onClick={() => setActiveChunk(chunk.index)}
-                  className={`px-3 py-1.5 min-h-[32px] rounded-xl text-xs font-bold whitespace-nowrap transition cursor-pointer select-none border ${
-                    isSelected
-                      ? "bg-white text-zinc-950 border-white shadow-md shadow-white/10 font-black scale-[1.02]"
-                      : "bg-zinc-900/90 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800  hover:"
-                  }`}
-                >
-                  {chunk.label}
-                </button>
-              );
-            })}
-          </ScrollablePillsRow>
-        </div>
-      )}
+            <ScrollablePillsRow innerClassName="flex items-center gap-1 py-0.5 px-0.5">
+              {chunks.map((chunk) => {
+                const isSelected = activeChunk === chunk.index;
+                return (
+                  <button
+                    key={chunk.index}
+                    type="button"
+                    aria-pressed={isSelected}
+                    onClick={() => setActiveChunk(chunk.index)}
+                    className={`px-2.5 py-1 min-h-[28px] rounded-lg text-[11px] font-bold whitespace-nowrap transition cursor-pointer select-none border ${
+                      isSelected
+                        ? "bg-white text-zinc-950 border-white shadow-sm font-black scale-[1.01]"
+                        : "bg-zinc-900/90 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800"
+                    }`}
+                  >
+                    {chunk.label}
+                  </button>
+                );
+              })}
+            </ScrollablePillsRow>
+          </div>
+        )}
+      </div>
+
+      {/* 2. KHUNG CUỘN DANH SÁCH TẬP PHIM ĐỘC LẬP (TẬN DỤNG TOÀN BỘ KHÔNG GIAN CÒN LẠI) */}
+      <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden pr-1 custom-scrollbar overscroll-contain">
 
       {/* TRƯỜNG HỢP TÌM KIẾM CHỈ RA 1 TẬP: HIỂN THỊ THẺ TẬP NỔI BẬT CAO CẤP */}
       {isSearching && displayEpisodes.length === 1 && (() => {
@@ -560,12 +566,12 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(function Episo
                       switchEpisode(tap.slug);
                     }
                   }}
-                  className={`relative flex items-center justify-center text-center transition-all duration-200 group rounded-xl cursor-pointer select-none outline-none overflow-hidden focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950 focus-visible:scale-[1.04] focus-visible:z-20 min-h-[40px] sm:min-h-[42px] ${
+                  className={`relative flex items-center justify-center text-center transition-all duration-200 group rounded-xl cursor-pointer select-none outline-none overflow-hidden focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950 focus-visible:scale-[1.04] focus-visible:z-20 min-h-[36px] sm:min-h-[38px] ${
                     episodes.length === 1
-                      ? "py-3 px-4 text-xs sm:text-sm font-bold"
+                      ? "py-2.5 px-3 text-xs sm:text-sm font-bold"
                       : isFewEpisodes
-                      ? "py-2.5 px-2 sm:px-3 text-xs sm:text-[13px] font-bold"
-                      : "py-2 px-1 text-xs sm:text-[13px] font-bold"
+                      ? "py-2 px-2 sm:px-2.5 text-xs sm:text-[13px] font-bold"
+                      : "py-1.5 px-1 text-xs sm:text-[13px] font-bold"
                   } ${
                     isActive
                       ? "bg-gradient-to-br from-netflix-red to-netflix-red/80 text-white font-black shadow-lg shadow-netflix-red/40 scale-[1.03] z-10 "
@@ -637,6 +643,7 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(function Episo
           </button>
         </div>
       )}
+      </div>
     </div>
   );
 });

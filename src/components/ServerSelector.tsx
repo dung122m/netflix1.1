@@ -126,14 +126,14 @@ export const ServerSelector: React.FC<ServerSelectorProps> = ({
         </div>
       ) : (
         /* 2. GIAO DIỆN ĐẦY ĐỦ KHI CÓ NHIỀU BẢN/PHÂN LOẠI PHIM */
-        <div className="space-y-2.5">
+        <div className="space-y-2">
           {showHeader && (
-            <div className="flex items-center justify-between pb-2 border-b min-w-0">
-              <h3 className="text-xs sm:text-sm font-bold flex items-center gap-1.5 text-white">
+            <div className="flex items-center justify-between pb-1.5 border-b min-w-0">
+              <h3 className="text-xs font-bold flex items-center gap-1.5 text-white">
                 <Radio className="w-3.5 h-3.5 text-netflix-red shrink-0" aria-hidden="true" />
                 <span>Nguồn phát</span>
               </h3>
-              <div className="flex items-center gap-1 bg-zinc-900/90 p-1 rounded-full">
+              <div className="flex items-center gap-1 bg-zinc-900/90 p-0.5 rounded-full">
                 <Tooltip
                   content={!hasNanaflixSource ? "Phim này hiện chỉ có nguồn phát độc quyền từ máy chủ VSMOV" : "Chuyển sang nguồn Nanaflix "}
                   side="top"
@@ -144,7 +144,7 @@ export const ServerSelector: React.FC<ServerSelectorProps> = ({
                     onClick={() => hasNanaflixSource && setActiveProvider?.("nanaflix" as PlaybackProviderType)}
                     aria-pressed={activeProvider === "nanaflix"}
                     aria-label={!hasNanaflixSource ? "Phim này hiện chỉ có nguồn phát độc quyền từ máy chủ VSMOV" : "Chuyển sang nguồn Nanaflix "}
-                    className={`inline-flex items-center gap-1.5 px-3 py-1 min-h-[32px] rounded-full text-xs font-semibold transition ${
+                    className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 min-h-[28px] rounded-full text-xs font-semibold transition ${
                       !hasNanaflixSource
                         ? "text-zinc-500 opacity-40 cursor-not-allowed"
                         : activeProvider === "nanaflix"
@@ -160,7 +160,7 @@ export const ServerSelector: React.FC<ServerSelectorProps> = ({
                   type="button"
                   onClick={() => setActiveProvider?.("vsmov" as PlaybackProviderType)}
                   aria-pressed={activeProvider === "vsmov"}
-                  className={`inline-flex items-center gap-1.5 px-3 py-1 min-h-[32px] rounded-full text-xs font-semibold transition cursor-pointer ${
+                  className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 min-h-[28px] rounded-full text-xs font-semibold transition cursor-pointer ${
                     activeProvider === "vsmov"
                       ? "bg-sky-500 text-black shadow-sm font-bold"
                       : "text-zinc-400 hover:text-white"
@@ -175,13 +175,25 @@ export const ServerSelector: React.FC<ServerSelectorProps> = ({
 
           {/* CHỈ HIỂN THỊ DANH SÁCH BẢN PHIM CỦA NANAFLIX KHI ACTIVE PROVIDER LÀ NANAFLIX */}
           {activeProvider === "nanaflix" ? (
-            <div className="space-y-1.5">
-              <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider flex items-center gap-1.5">
-                <Zap className="w-3 h-3 text-amber-400" aria-hidden="true" />
-                <span>Bản phim</span>
-              </span>
+            <div className="space-y-1">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider flex items-center gap-1.5">
+                  <Zap className="w-3 h-3 text-amber-400" aria-hidden="true" />
+                  <span>Bản phim</span>
+                </span>
+                {servers.length > 2 && (
+                  <span className="text-[10px] text-zinc-500 font-sans tabular-nums">
+                    ({servers.length} bản)
+                  </span>
+                )}
+              </div>
 
-              <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Danh sách các bản phát hành">
+              {/* Dải cuộn ngang mượt mà 1 hàng: triệt tiêu hiện tượng tràn 3 hàng làm tụt danh sách tập */}
+              <div
+                className="flex items-center gap-1.5 overflow-x-auto scrollbar-none py-0.5 no-scrollbar"
+                role="group"
+                aria-label="Danh sách các bản phát hành"
+              >
                 {servers.map((s, sIdx) => {
                   const isSelected = sIdx === currentServerIndex;
                   const count = "count" in s && s.count !== undefined ? s.count : s.server_data?.length;
@@ -196,17 +208,17 @@ export const ServerSelector: React.FC<ServerSelectorProps> = ({
                         e.preventDefault();
                         switchServer?.(sIdx);
                       }}
-                      className={`group relative inline-flex items-center gap-1.5 px-3.5 py-1.5 min-h-[36px] rounded-full text-xs font-semibold transition-all duration-150 cursor-pointer ${
+                      className={`group relative inline-flex items-center gap-1.5 px-2.5 py-1 min-h-[30px] rounded-lg text-xs font-semibold whitespace-nowrap shrink-0 transition-all duration-150 cursor-pointer ${
                         isSelected
-                          ? "bg-netflix-red text-white shadow-sm  scale-[1.02]"
+                          ? "bg-netflix-red text-white shadow-sm font-bold scale-[1.01]"
                           : "bg-zinc-900/80 text-zinc-300 hover:text-white hover:bg-zinc-800"
                       }`}
                     >
-                      <Sparkles className={`w-3.5 h-3.5 ${isSelected ? "text-amber-300" : "text-zinc-400"}`} aria-hidden="true" />
+                      <Sparkles className={`w-3 h-3 ${isSelected ? "text-amber-300" : "text-zinc-400"}`} aria-hidden="true" />
                       <span>{displayName}</span>
                       {count !== undefined && count > 0 && (
                         <span
-                          className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${
+                          className={`text-[10px] px-1.5 py-0.2 rounded font-medium ${
                             isSelected ? "bg-black/30 text-white" : "bg-white/10 text-zinc-400"
                           }`}
                         >

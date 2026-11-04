@@ -128,12 +128,13 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
   const activeEpisode = watchContext?.activeEpisode || episodes.find((e) => e.slug === activeEpisodeSlug) || findEpisodeMatch(episodes, activeEpisodeSlug) || episodes[0];
   const activeEpisodeName = activeEpisode?.name || propActiveEpisodeName;
 
-  const videoLink = activeEpisode?.link_embed || activeEpisode?.link_m3u8 || propVideoLink;
-  const embedSrc = activeEpisode?.link_embed || propEmbedSrc;
+  const isPropMatchingActive = !propActiveEpisodeSlug || activeEpisodeSlug === propActiveEpisodeSlug;
+  const videoLink = activeEpisode?.link_embed || activeEpisode?.link_m3u8 || (isPropMatchingActive ? propVideoLink : undefined);
+  const embedSrc = activeEpisode?.link_embed || (isPropMatchingActive ? propEmbedSrc : undefined);
   const m3u8Link = activeEpisode?.link_m3u8
     || (activeEpisode as Record<string, string | undefined>)?.m3u8
     || (activeEpisode as Record<string, string | undefined>)?.file
-    || propM3u8Link;
+    || (isPropMatchingActive ? propM3u8Link : undefined);
 
   const prevEpisode = watchContext?.prevEpisode ?? null;
   const rawNextEpisode = watchContext?.nextEpisode ?? null;
@@ -148,7 +149,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
       return episodes[idx + 1];
     }
     return null;
-  }, [rawNextEpisode, episodes, activeEpisodeSlug]);
+  }, [rawNextEpisode, episodes, activeEpisodeSlug, activeEpisode?.slug]);
 
   // Next Episode Countdown States
   const [showNextEpCountdown, setShowNextEpCountdown] = useState(false);

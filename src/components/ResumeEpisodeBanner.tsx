@@ -18,7 +18,7 @@ export const ResumeEpisodeBanner: React.FC<ResumeEpisodeBannerProps> = ({
   activeEpisodeSlug: propActiveEpisodeSlug,
 }) => {
   const watchContext = useWatchController();
-  const episodes = watchContext?.episodes || [];
+  const episodes = React.useMemo(() => watchContext?.episodes || [], [watchContext?.episodes]);
   const activeEpisodeSlug = watchContext?.activeEpisodeSlug ?? propActiveEpisodeSlug;
   const switchEpisode = watchContext?.switchEpisode;
 

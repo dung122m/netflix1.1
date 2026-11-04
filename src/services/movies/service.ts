@@ -343,7 +343,13 @@ export function toCompactDetailPayload(data: any, requestedEpSlug?: string): Mov
 
     const compactData: CompactEpisodeItem[] = rawData.map((ep: RawEpisodeItem, epIdx: number) => {
       // Giữ streaming links cho phim <= 12 tập, hoặc 2 tập đầu, hoặc tập được yêu cầu cụ thể
-      const isInitial = epIdx < 2 || (requestedEpSlug && (ep.slug === requestedEpSlug || ep.name === requestedEpSlug));
+      const isReqMatch = Boolean(
+        requestedEpSlug &&
+        (ep.slug === requestedEpSlug ||
+         ep.name === requestedEpSlug ||
+         (ep.slug && ep.slug.replace(/^tap-0*/, '') === requestedEpSlug.replace(/^tap-0*/, '')))
+      );
+      const isInitial = epIdx < 2 || isReqMatch;
       if (isSmallSeries || isInitial) {
         return {
           name: ep.name || "",
@@ -677,10 +683,14 @@ const fetchMovieDetailBase = async (
   if (existing) return existing;
 
   const promise = (async () => {
-    // 1. Đọc từ Redis v3 Compact Metadata (loại bỏ hoàn toàn fallback đọc key cũ khổng lồ 500KB-1.5MB)
+    // 1. Đọc từ Redis v3 Compact Metadata, có fallback tương thích sang key cũ nếu v3 chưa có
     const kvKeyV3 = `movie:detail:v3:${slug}:${source || "any"}`;
+    const kvKeyLegacy = `movie:detail:${slug}:${source || "any"}`;
 
-    const rawData = await cacheService.get<MovieDetailCachePayload>(kvKeyV3);
+    let rawData = await cacheService.get<MovieDetailCachePayload>(kvKeyV3);
+    if (!rawData) {
+      rawData = await cacheService.get<MovieDetailCachePayload>(kvKeyLegacy);
+    }
     let data = rawData ? unpackDetailPayload(rawData) : null;
 
     // Cơ chế Tự Phục Hồi (Self-Healing Cache):
@@ -766,7 +776,33 @@ export async function getEpisodeStream(
     return cachedStreams;
   }
 
-  // 3. Fallback: Kích hoạt fetchAndCacheMovieDetail để nạp nguồn
+  // 3. Fallback: Kiểm tra legacy detail cache trong Redis trước khi gọi live upstream
+  const legacyKey = `movie:detail:${slug}:${source || "any"}`;
+  try {
+    const legacyDetail = await cacheService.get<MovieDetailCachePayload>(legacyKey);
+    if (legacyDetail) {
+      const servers = (legacyDetail.episodes || legacyDetail.movie?.episodes || []) as unknown as RawServerItem[];
+      const streams: EpisodeStreamResult[] = [];
+      for (const srv of servers) {
+        const epList: RawEpisodeItem[] = srv?.server_data || [];
+        const match = epList.find((e: RawEpisodeItem) => e.slug === episodeSlug || e.name === episodeSlug)
+          || findEpisodeMatch(epList, episodeSlug);
+        if (match && (match.link_m3u8 || match.link_embed)) {
+          streams.push({
+            server_name: srv.server_name || "Server",
+            link_embed: match.link_embed || "",
+            link_m3u8: match.link_m3u8 || "",
+          });
+        }
+      }
+      if (streams.length > 0) {
+        cacheService.set(streamKvKey, streams, 7 * 86400).catch(() => {});
+        return streams;
+      }
+    }
+  } catch {}
+
+  // 4. Fallback: Kích hoạt fetchAndCacheMovieDetail để nạp nguồn
   try {
     const freshDetail = await fetchAndCacheMovieDetail(slug, source, localKey);
     if (freshDetail) {
@@ -2158,6 +2194,8 @@ const PRIORITY_WARMUP_COMBINATIONS: MovieFilterParams[] = [
 
 let hasWarmedUp = false;
 function warmUpTopCategories() {
+  // Vô hiệu hóa: Loại bỏ request storm và tiêu thụ Redis bandwidth khi idle
+  return;
   if (hasWarmedUp) return;
   hasWarmedUp = true;
   const isTest =
@@ -2285,11 +2323,22 @@ export const movieApi = {
 
     const kvKey = `movie:list:${cacheKey}`;
     const ttlSeconds = params.keyword ? 86400 : 7200; // 1 ngày cho search, 2 giờ cho list
-    const res = await cacheService.fetchOrSet(
-      kvKey,
-      () => executeGetMovies(params, cacheKey),
-      ttlSeconds
-    );
+
+    let res = await cacheService.get<Awaited<ReturnType<typeof executeGetMovies>>>(kvKey);
+
+    // Chống nhiễm độc Cache: Nếu cache trả về mảng rỗng cho filter danh mục/quốc gia/loại phim,
+    // coi như cache miss, xóa key hỏng và fetch dữ liệu mới!
+    if (res && (!Array.isArray(res.items) || (res.items.length === 0 && !params.keyword))) {
+      cacheService.delete(kvKey).catch(() => {});
+      res = null;
+    }
+
+    if (!res) {
+      res = await executeGetMovies(params, cacheKey);
+      if (res && Array.isArray(res.items) && res.items.length > 0) {
+        cacheService.set(kvKey, res, ttlSeconds).catch(() => {});
+      }
+    }
     return sanitizeMovieImages(res);
   },
 

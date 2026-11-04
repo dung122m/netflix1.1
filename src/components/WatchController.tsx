@@ -198,6 +198,41 @@ export function WatchController({
     }
   }, [initialEpisodeSlug, episodes]);
 
+  // Tự động nạp stream on-demand nếu tập hiện tại chưa có liên kết streaming (chống lỗi tập trắng)
+  useEffect(() => {
+    if (!movieSlug || !activeEpisodeSlug) return;
+    const targetEp = episodes.find((ep) => ep.slug === activeEpisodeSlug) || findEpisodeMatch(episodes, activeEpisodeSlug);
+    if (targetEp && !targetEp.link_m3u8 && !targetEp.link_embed) {
+      fetch(`/api/movies/streams?slug=${encodeURIComponent(movieSlug)}&ep=${encodeURIComponent(activeEpisodeSlug)}`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (data?.success && Array.isArray(data.streams) && data.streams.length > 0) {
+            setServers((prevServers) => {
+              return prevServers.map((srv, sIdx) => {
+                const streamMatch = data.streams.find(
+                  (s: { server_name?: string }) => s.server_name === srv.server_name
+                ) || data.streams[sIdx] || data.streams[0];
+                if (!streamMatch) return srv;
+
+                const updatedData = (srv.server_data || []).map((ep) => {
+                  if (ep.slug === activeEpisodeSlug || ep.name === targetEp?.name) {
+                    return {
+                      ...ep,
+                      link_embed: streamMatch.link_embed || ep.link_embed,
+                      link_m3u8: streamMatch.link_m3u8 || ep.link_m3u8,
+                    };
+                  }
+                  return ep;
+                });
+                return { ...srv, server_data: updatedData };
+              });
+            });
+          }
+        })
+        .catch(() => {});
+    }
+  }, [movieSlug, activeEpisodeSlug, episodes]);
+
   // Lắng nghe sự kiện điều hướng URL (Back / Forward) từ trình duyệt
   useEffect(() => {
     const handlePopState = () => {

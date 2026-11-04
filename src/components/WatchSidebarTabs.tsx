@@ -41,21 +41,21 @@ export function WatchSidebarTabs({
     );
   }
 
-  // VỚI PHIM BỘ: 2 tab dùng chung 1 khung duy nhất, khóa chiều cao vừa vặn màn hình
+  // VỚI PHIM BỘ: 2 tab dùng chung 1 khung duy nhất, chiều cao vừa vặn hoàn hảo màn hình laptop & desktop
   return (
-    <div className="rounded-2xl sm:rounded-3xl bg-gradient-to-b from-zinc-900/85 via-zinc-950/90 to-black/95 p-3 sm:p-4 shadow-2xl backdrop-blur-xl flex flex-col max-h-[calc(100vh-92px)] overflow-hidden">
-      {/* 1. THANH CHUYỂN ĐỔI HAI TAB SIDEBAR (TẬP PHIM / PHIM TƯƠNG TỰ) */}
-      <div className="flex items-center gap-1.5 p-1 bg-zinc-950/90 rounded-2xl mb-3 flex-shrink-0">
+    <div className="rounded-2xl sm:rounded-3xl bg-gradient-to-b from-zinc-900/85 via-zinc-950/90 to-black/95 p-3 sm:p-3.5 shadow-2xl backdrop-blur-xl flex flex-col h-[calc(100vh-84px)] max-h-[calc(100vh-84px)] overflow-hidden">
+      {/* 1. THANH CHUYỂN ĐỔI HAI TAB SIDEBAR (TẬP PHIM / PHIM TƯƠNG TỰ) - TINH GỌN CHIỀU CAO */}
+      <div className="flex items-center gap-1.5 p-1 bg-zinc-950/90 rounded-2xl mb-2 flex-shrink-0">
         <button
           type="button"
           onClick={() => setActiveTab("episodes")}
-          className={`flex-1 flex items-center justify-center gap-1.5 sm:gap-2 py-2 px-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer select-none outline-none focus-visible:ring-2 focus-visible:ring-netflix-red ${
+          className={`flex-1 flex items-center justify-center gap-1.5 sm:gap-2 py-1.5 px-2 rounded-xl text-xs font-bold transition-all cursor-pointer select-none outline-none focus-visible:ring-2 focus-visible:ring-netflix-red ${
             activeTab === "episodes"
               ? "bg-netflix-red text-white shadow-md shadow-[var(--accent-glow)] font-black scale-[1.01]"
               : "text-zinc-400 hover:text-white hover:bg-white/5"
           }`}
         >
-          <Film className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+          <Film className="w-3.5 h-3.5 shrink-0" />
           <span>Tập phim</span>
           {episodeCountBadge}
         </button>
@@ -63,13 +63,13 @@ export function WatchSidebarTabs({
         <button
           type="button"
           onClick={() => setActiveTab("recommendations")}
-          className={`flex-1 flex items-center justify-center gap-1.5 sm:gap-2 py-2 px-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer select-none outline-none focus-visible:ring-2 focus-visible:ring-netflix-red ${
+          className={`flex-1 flex items-center justify-center gap-1.5 sm:gap-2 py-1.5 px-2 rounded-xl text-xs font-bold transition-all cursor-pointer select-none outline-none focus-visible:ring-2 focus-visible:ring-netflix-red ${
             activeTab === "recommendations"
               ? "bg-netflix-red text-white shadow-md shadow-[var(--accent-glow)] font-black scale-[1.01]"
               : "text-zinc-400 hover:text-white hover:bg-white/5"
           }`}
         >
-          <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-300 shrink-0 animate-pulse" />
+          <Sparkles className="w-3.5 h-3.5 text-amber-300 shrink-0 animate-pulse" />
           <span>Phim tương tự</span>
         </button>
       </div>
@@ -82,13 +82,13 @@ export function WatchSidebarTabs({
           activeTab === "episodes" ? "flex" : "hidden"
         }`}
       >
-        {/* Nguồn phát (Server Selector) */}
-        <div className="mb-2.5 flex-shrink-0 pb-2.5 border-b">
+        {/* Nguồn phát (Server Selector) - Ghim cố định ở trên đầu */}
+        <div className="mb-2 flex-shrink-0 pb-2 border-b border-white/[0.08]">
           {serverSelector}
         </div>
 
-        {/* Danh sách tập phim (cuộn mượt mà trong không gian còn lại của khung) */}
-        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden pr-1 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-zinc-700 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-zinc-500 [&::-webkit-scrollbar-corner]:bg-transparent">
+        {/* Danh sách tập phim: chiếm trọn phần chiều cao còn lại, cuộn nội bộ mượt mà */}
+        <div className="flex-1 min-h-0 flex flex-col">
           {episodeList}
         </div>
       </div>
@@ -99,7 +99,7 @@ export function WatchSidebarTabs({
           activeTab === "recommendations" ? "flex" : "hidden"
         }`}
       >
-        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden pr-1 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-zinc-700 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-zinc-500 [&::-webkit-scrollbar-corner]:bg-transparent">
+        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden pr-1 custom-scrollbar overscroll-contain">
           {recommendations}
         </div>
       </div>
