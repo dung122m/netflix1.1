@@ -43,9 +43,9 @@ export function WatchSidebarTabs({
 
   // VỚI PHIM BỘ: 2 tab dùng chung 1 khung duy nhất, chiều cao vừa vặn hoàn hảo màn hình laptop & desktop
   return (
-    <div className="rounded-2xl sm:rounded-3xl bg-gradient-to-b from-zinc-900/85 via-zinc-950/90 to-black/95 p-3 sm:p-3.5 shadow-2xl backdrop-blur-xl flex flex-col h-[calc(100vh-84px)] max-h-[calc(100vh-84px)] overflow-hidden">
+    <div className="rounded-2xl sm:rounded-3xl bg-gradient-to-b from-zinc-900/85 via-zinc-950/90 to-black/95 p-2.5 sm:p-3 shadow-2xl backdrop-blur-xl flex flex-col h-[calc(100vh-84px)] max-h-[calc(100vh-84px)] overflow-hidden">
       {/* 1. THANH CHUYỂN ĐỔI HAI TAB SIDEBAR (TẬP PHIM / PHIM TƯƠNG TỰ) - TINH GỌN CHIỀU CAO */}
-      <div className="flex items-center gap-1.5 p-1 bg-zinc-950/90 rounded-2xl mb-2 flex-shrink-0">
+      <div className="flex items-center gap-1.5 p-1 bg-zinc-950/90 rounded-2xl mb-1.5 flex-shrink-0">
         <button
           type="button"
           onClick={() => setActiveTab("episodes")}
@@ -83,7 +83,7 @@ export function WatchSidebarTabs({
         }`}
       >
         {/* Nguồn phát (Server Selector) - Ghim cố định ở trên đầu */}
-        <div className="mb-2 flex-shrink-0 pb-2 border-b border-white/[0.08]">
+        <div className="mb-1.5 flex-shrink-0 pb-1.5 border-b border-white/[0.08]">
           {serverSelector}
         </div>
 

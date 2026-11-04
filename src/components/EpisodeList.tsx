@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
-import { Check, Search, X, Play, ChevronRight, ChevronDown } from "lucide-react";
+import { Check, Search, X, Play, ChevronRight, ChevronDown, Target } from "lucide-react";
 import { getWatchedEpisodes } from "@/lib/episodeTracker";
 import { getShortEpisodeLabel, formatEpisodeName, findEpisodeMatch } from "@/lib/formatEpisode";
 import { useWatchController, EpisodeItem } from "./WatchController";
@@ -295,8 +295,8 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(function Episo
           </div>
         )}
 
-        {/* THANH ĐIỀU KHIỂN LƯU TẬP PHIM ĐANG CHỌN (GỌN GÀNG, KHÔNG CHIẾM DIỆN TÍCH) */}
-        {!isSearching && currentActiveEpisode?.slug && episodes.length > 1 && (
+        {/* THANH ĐIỀU KHIỂN LƯU TẬP PHIM ĐANG CHỌN (CHỈ HIỆN KHI DẢI TẬP ÍT ĐỂ KHÔNG LÃNG PHÍ CHIỀU DỌC) */}
+        {!isSearching && currentActiveEpisode?.slug && episodes.length > 1 && chunks.length <= 4 && (
           <div className="flex items-center justify-between gap-1.5 px-2.5 py-1 rounded-lg bg-zinc-900/60 text-xs border border-white/[0.04]">
             <div className="flex items-center gap-1.5 min-w-0">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse flex-shrink-0" aria-hidden="true" />
@@ -346,55 +346,68 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(function Episo
           </div>
         )}
 
-        {/* DẢI TABS PHÂN NHÓM TẬP + NÚT CHỌN NHANH DẢI TẬP (Khi có trên 25 tập và không trong chế độ tìm kiếm) */}
+        {/* DẢI TABS PHÂN NHÓM TẬP + NÚT CHỌN NHANH DẢI TẬP */}
         {!isSearching && chunks.length > 1 && (
           <div className="space-y-1">
-            <div className="flex items-center justify-between gap-2 px-1">
-              <span className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider flex items-center gap-1.5">
-                <span>Dải tập</span>
-                <span className="text-[10px] text-zinc-500 font-sans tabular-nums">({chunks.length} dải)</span>
-              </span>
-
-              {/* Menu nhảy nhanh đến dải tập */}
-              {chunks.length > 3 && (
-                <div className="relative flex items-center">
+            {chunks.length > 4 ? (
+              /* KHI CÓ NHIỀU DẢI TẬP (> 4 dải, vd Conan 41 dải): Thu gọn thành 1 hàng duy nhất kèm nút nhảy về tập đang xem */
+              <div className="flex items-center justify-between gap-1.5 p-1 rounded-lg bg-zinc-900/80 border border-white/[0.06]">
+                <div className="relative flex-1 min-w-0">
                   <select
                     value={activeChunk}
                     onChange={(e) => setActiveChunk(Number(e.target.value))}
-                    aria-label="Nhảy nhanh đến dải tập"
-                    className="bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-white text-[11px] font-semibold rounded-md px-2 py-0.5 pr-5 outline-none focus:border-netflix-red cursor-pointer transition appearance-none"
+                    aria-label="Chọn dải tập phim"
+                    className="w-full bg-transparent text-white text-xs font-bold py-1 pl-2 pr-6 outline-none cursor-pointer appearance-none truncate"
                   >
                     {chunks.map((c) => (
                       <option key={c.index} value={c.index} className="bg-zinc-950 text-white">
-                        {c.label}
+                        {c.label} {c.index === initialChunk ? "• (Đang phát)" : ""}
                       </option>
                     ))}
                   </select>
-                  <ChevronDown className="w-3 h-3 text-zinc-400 absolute right-1 pointer-events-none" />
+                  <ChevronDown className="w-3.5 h-3.5 text-zinc-400 absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                 </div>
-              )}
-            </div>
 
-            <ScrollablePillsRow innerClassName="flex items-center gap-1 py-0.5 px-0.5">
-              {chunks.map((chunk) => {
-                const isSelected = activeChunk === chunk.index;
-                return (
+                {/* Nút nhảy nhanh về dải tập đang xem nếu người dùng đang duyệt dải khác */}
+                {activeChunk !== initialChunk && activeEpisodeIndex >= 0 ? (
                   <button
-                    key={chunk.index}
                     type="button"
-                    aria-pressed={isSelected}
-                    onClick={() => setActiveChunk(chunk.index)}
-                    className={`px-2.5 py-1 min-h-[28px] rounded-lg text-[11px] font-bold whitespace-nowrap transition cursor-pointer select-none border ${
-                      isSelected
-                        ? "bg-white text-zinc-950 border-white shadow-sm font-black scale-[1.01]"
-                        : "bg-zinc-900/90 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800"
-                    }`}
+                    onClick={() => setActiveChunk(initialChunk)}
+                    title={`Chuyển về dải tập chứa ${currentActiveEpisode?.name || "tập đang phát"}`}
+                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-netflix-red hover:brightness-110 text-white text-[11px] font-bold shadow-sm transition-all cursor-pointer shrink-0 animate-in fade-in"
                   >
-                    {chunk.label}
+                    <Target className="w-3 h-3 shrink-0" />
+                    <span className="truncate max-w-[130px]">Về {currentActiveEpisode?.name || `Tập ${activeEpisodeIndex + 1}`}</span>
                   </button>
-                );
-              })}
-            </ScrollablePillsRow>
+                ) : (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] text-emerald-400 font-medium shrink-0 bg-emerald-500/10 rounded-md">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                    <span>Đang phát {currentActiveEpisode?.name ? `• ${currentActiveEpisode.name}` : ""}</span>
+                  </span>
+                )}
+              </div>
+            ) : (
+              <ScrollablePillsRow innerClassName="flex items-center gap-1 py-0.5 px-0.5">
+                {chunks.map((chunk) => {
+                  const isSelected = activeChunk === chunk.index;
+                  return (
+                    <button
+                      key={chunk.index}
+                      type="button"
+                      aria-pressed={isSelected}
+                      onClick={() => setActiveChunk(chunk.index)}
+                      className={`px-2.5 py-1 min-h-[28px] rounded-lg text-[11px] font-bold whitespace-nowrap transition cursor-pointer select-none border ${
+                        isSelected
+                          ? "bg-white text-zinc-950 border-white shadow-sm font-black scale-[1.01]"
+                          : "bg-zinc-900/90 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800"
+                      }`}
+                    >
+                      {chunk.label}
+                    </button>
+                  );
+                })}
+              </ScrollablePillsRow>
+            )}
           </div>
         )}
       </div>
@@ -566,12 +579,12 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(function Episo
                       switchEpisode(tap.slug);
                     }
                   }}
-                  className={`relative flex items-center justify-center text-center transition-all duration-200 group rounded-xl cursor-pointer select-none outline-none overflow-hidden focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950 focus-visible:scale-[1.04] focus-visible:z-20 min-h-[36px] sm:min-h-[38px] ${
+                  className={`relative flex items-center justify-center text-center transition-all duration-200 group rounded-xl cursor-pointer select-none outline-none overflow-hidden focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950 focus-visible:scale-[1.04] focus-visible:z-20 ${
                     episodes.length === 1
-                      ? "py-2.5 px-3 text-xs sm:text-sm font-bold"
+                      ? "py-2.5 px-3 min-h-[38px] text-xs sm:text-sm font-bold"
                       : isFewEpisodes
-                      ? "py-2 px-2 sm:px-2.5 text-xs sm:text-[13px] font-bold"
-                      : "py-1.5 px-1 text-xs sm:text-[13px] font-bold"
+                      ? "py-2 px-2 sm:px-2.5 min-h-[36px] text-xs sm:text-[13px] font-bold"
+                      : "py-1.5 px-1 min-h-[32px] sm:min-h-[34px] text-xs sm:text-[13px] font-bold"
                   } ${
                     isActive
                       ? "bg-gradient-to-br from-netflix-red to-netflix-red/80 text-white font-black shadow-lg shadow-netflix-red/40 scale-[1.03] z-10 "

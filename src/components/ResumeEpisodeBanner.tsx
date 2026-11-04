@@ -32,19 +32,31 @@ export const ResumeEpisodeBanner: React.FC<ResumeEpisodeBannerProps> = ({
     }
 
     const resolved = resolveNextResumeEpisode(movieSlug, episodes);
-    // Chỉ hiển thị banner khi tập giải quyết khác với tập đang phát hiện tại
+    if (!resolved || !resolved.episode?.slug) {
+      setResumeInfo(null);
+      return;
+    }
+
+    const currentIdx = episodes.findIndex((ep) => ep.slug === activeEpisodeSlug);
+    const resolvedIdx = resolved.episodeIndex;
+
+    // Chỉ hiển thị banner khi:
+    // 1. Tập gợi ý khác với tập đang phát
+    // 2. Người dùng đang ở tập trước tập xem dở (ví dụ đang ở tập 1/mở đầu nhưng có lịch sử xem dở tập 61)
+    // -> Tuyệt đối không hiển thị banner gợi ý quay lại tập cũ khi người dùng đã xem tiến xa hơn (ví dụ đang xem tập 67 thì không gợi ý tập 61)
+    const isPastEpisode = currentIdx >= 0 && resolvedIdx >= 0 && currentIdx >= resolvedIdx;
+
     if (
-      resolved &&
-      resolved.episode?.slug &&
+      !isPastEpisode &&
       resolved.episode.slug !== activeEpisodeSlug &&
       (resolved.caseType === "in_progress" || resolved.caseType === "next_episode")
     ) {
       setResumeInfo(resolved);
 
-      // Tự động ẩn thông báo sau 12 giây để không làm phiền trải nghiệm xem
+      // Tự động ẩn thông báo sau 10 giây để không làm phiền trải nghiệm xem
       const autoDismissTimer = setTimeout(() => {
         setDismissed(true);
-      }, 12000);
+      }, 10000);
 
       return () => clearTimeout(autoDismissTimer);
     } else {

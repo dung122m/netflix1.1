@@ -1,5 +1,3 @@
-import { Redis } from "@upstash/redis";
-import { getSafeRedisCredentials } from "@/lib/redisEnvGuard";
 import { supabase } from "@/lib/supabase";
 import { getSupabaseAdmin, isSupabaseAdminConfigured } from "@/lib/supabaseAdmin";
 import { AnalyticsEventPayload } from "@/lib/analyticsClient";
@@ -156,28 +154,6 @@ export interface AnalyticsDashboardStats {
   hourlyWatchActivity: HourlyWatchStat[];
   todayVisitorsCount: number;
   deviceProfileStats: DeviceProfileStats;
-}
-
-let redisInstance: Redis | null = null;
-let isRedisChecked = false;
-
-function _getRedis(): Redis | null {
-  if (isRedisChecked) return redisInstance;
-  isRedisChecked = true;
-
-  const creds = getSafeRedisCredentials();
-  if (!creds) {
-    redisInstance = null;
-    return null;
-  }
-
-  try {
-    redisInstance = new Redis({ url: creds.url, token: creds.token });
-    return redisInstance;
-  } catch {
-    redisInstance = null;
-    return null;
-  }
 }
 
 // In-memory fallback buffer (capped at 500 items, zero Redis bandwidth)

@@ -683,15 +683,30 @@ const fetchMovieDetailBase = async (
   if (existing) return existing;
 
   const promise = (async () => {
-    // 1. Đọc từ Redis v3 Compact Metadata, có fallback tương thích sang key cũ nếu v3 chưa có
+    // 1. Đọc từ Redis v3 Compact Metadata (~2KB), xóa sạch key legacy 1.33MB nếu còn tồn tại
     const kvKeyV3 = `movie:detail:v3:${slug}:${source || "any"}`;
     const kvKeyLegacy = `movie:detail:${slug}:${source || "any"}`;
 
-    let rawData = await cacheService.get<MovieDetailCachePayload>(kvKeyV3);
-    if (!rawData) {
-      rawData = await cacheService.get<MovieDetailCachePayload>(kvKeyLegacy);
+    let data: MovieDetailCachePayload | null = null;
+    const rawData = await cacheService.get<MovieDetailCachePayload>(kvKeyV3);
+    if (rawData) {
+      data = unpackDetailPayload(rawData);
+      // Đã có bản v3 gọn nhẹ: đảm bảo xóa bỏ key legacy cũ nếu còn sót lại
+      cacheService.delete(kvKeyLegacy).catch(() => {});
+    } else {
+      // Migrate-on-Read: Đọc legacy key 1 lần duy nhất, chuyển đổi sang v3 và XÓA NGAY key cũ
+      const legacyRaw = await cacheService.get<MovieDetailCachePayload>(kvKeyLegacy);
+      if (legacyRaw) {
+        const legacyData = unpackDetailPayload(legacyRaw);
+        if (legacyData) {
+          data = legacyData;
+          const ttl = Boolean((legacyData as MovieDetailCachePayload)?._isFallback) ? 180 : 7 * 24 * 60 * 60;
+          const compact = toCompactDetailPayload(legacyData, requestedEpisode);
+          cacheService.set(kvKeyV3, compact, ttl).catch(() => {});
+          cacheService.delete(kvKeyLegacy).catch(() => {});
+        }
+      }
     }
-    let data = rawData ? unpackDetailPayload(rawData) : null;
 
     // Cơ chế Tự Phục Hồi (Self-Healing Cache):
     // Nếu cache trước đây bị nhiễm fallback VSMOV trong khi source yêu cầu là mặc định ("any" / Nanaflix),
@@ -776,33 +791,7 @@ export async function getEpisodeStream(
     return cachedStreams;
   }
 
-  // 3. Fallback: Kiểm tra legacy detail cache trong Redis trước khi gọi live upstream
-  const legacyKey = `movie:detail:${slug}:${source || "any"}`;
-  try {
-    const legacyDetail = await cacheService.get<MovieDetailCachePayload>(legacyKey);
-    if (legacyDetail) {
-      const servers = (legacyDetail.episodes || legacyDetail.movie?.episodes || []) as unknown as RawServerItem[];
-      const streams: EpisodeStreamResult[] = [];
-      for (const srv of servers) {
-        const epList: RawEpisodeItem[] = srv?.server_data || [];
-        const match = epList.find((e: RawEpisodeItem) => e.slug === episodeSlug || e.name === episodeSlug)
-          || findEpisodeMatch(epList, episodeSlug);
-        if (match && (match.link_m3u8 || match.link_embed)) {
-          streams.push({
-            server_name: srv.server_name || "Server",
-            link_embed: match.link_embed || "",
-            link_m3u8: match.link_m3u8 || "",
-          });
-        }
-      }
-      if (streams.length > 0) {
-        cacheService.set(streamKvKey, streams, 7 * 86400).catch(() => {});
-        return streams;
-      }
-    }
-  } catch {}
-
-  // 4. Fallback: Kích hoạt fetchAndCacheMovieDetail để nạp nguồn
+  // 3. Nạp nguồn trực tiếp từ upstream và lưu cache riêng cho tập này (~250 bytes, KHÔNG đọc payload 1.33MB)
   try {
     const freshDetail = await fetchAndCacheMovieDetail(slug, source, localKey);
     if (freshDetail) {
