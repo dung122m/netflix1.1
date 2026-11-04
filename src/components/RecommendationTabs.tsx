@@ -616,6 +616,7 @@ const RecommendedMovieCard = React.memo(function RecommendedMovieCard({
     <div className="group relative bg-zinc-900 rounded-2xl overflow-hidden hover: transition-all duration-300 hover:scale-[1.02] shadow-md hover:shadow-2xl flex flex-col">
       <Link
         href={`/movies/${item.slug}`}
+        prefetch={false}
         tabIndex={0}
         className="block h-full flex flex-col outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950 focus-visible:scale-[1.03] transition-transform rounded-2xl"
       >
@@ -715,6 +716,7 @@ const RecommendedSidebarCard = React.memo(function RecommendedSidebarCard({
   return (
     <Link
       href={`/movies/${item.slug}`}
+      prefetch={false}
       tabIndex={0}
       title={title}
       className="group flex items-center gap-3 p-2 rounded-xl hover:bg-white/[0.07] border border-transparent hover: transition-all duration-200 outline-none focus-visible:ring-2 focus-visible:ring-white cursor-pointer w-full max-w-full min-w-0"

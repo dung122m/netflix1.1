@@ -13,6 +13,7 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const slug = searchParams.get("slug");
   const ep = searchParams.get("ep");
+  const server = searchParams.get("server") || undefined;
   const source = (searchParams.get("source") || undefined) as "nguonc" | "ophim" | "vsmov" | undefined;
 
   if (!slug || !ep) {
@@ -23,7 +24,7 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const streams = await movieApi.getEpisodeStream(slug, ep, source);
+    const streams = await movieApi.getEpisodeStream(slug, ep, server, source);
     return NextResponse.json(
       {
         success: true,

@@ -203,7 +203,8 @@ export function WatchController({
     if (!movieSlug || !activeEpisodeSlug) return;
     const targetEp = episodes.find((ep) => ep.slug === activeEpisodeSlug) || findEpisodeMatch(episodes, activeEpisodeSlug);
     if (targetEp && !targetEp.link_m3u8 && !targetEp.link_embed) {
-      fetch(`/api/movies/streams?slug=${encodeURIComponent(movieSlug)}&ep=${encodeURIComponent(activeEpisodeSlug)}`)
+      const serverParam = servers[currentServerIndex]?.server_name ? `&server=${encodeURIComponent(servers[currentServerIndex].server_name)}` : "";
+      fetch(`/api/movies/streams?slug=${encodeURIComponent(movieSlug)}&ep=${encodeURIComponent(activeEpisodeSlug)}${serverParam}`)
         .then((res) => res.json())
         .then((data) => {
           if (data?.success && Array.isArray(data.streams) && data.streams.length > 0) {
@@ -231,7 +232,7 @@ export function WatchController({
         })
         .catch(() => {});
     }
-  }, [movieSlug, activeEpisodeSlug, episodes]);
+  }, [movieSlug, activeEpisodeSlug, episodes, currentServerIndex, servers]);
 
   // Lắng nghe sự kiện điều hướng URL (Back / Forward) từ trình duyệt
   useEffect(() => {
@@ -272,11 +273,13 @@ export function WatchController({
   }, [initialServers, initialServerIndex, isVsmovOnly]);
 
   const activeEpisode = useMemo(() => {
-    return (
-      episodes.find((ep) => ep.slug === activeEpisodeSlug) ||
-      findEpisodeMatch(episodes, activeEpisodeSlug) ||
-      episodes[0]
-    );
+    if (activeEpisodeSlug) {
+      return (
+        episodes.find((ep) => ep.slug === activeEpisodeSlug) ||
+        findEpisodeMatch(episodes, activeEpisodeSlug)
+      );
+    }
+    return episodes[0];
   }, [episodes, activeEpisodeSlug]);
 
   const currentIndex = useMemo(() => {

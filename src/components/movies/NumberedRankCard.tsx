@@ -122,6 +122,7 @@ export const NumberedRankCard: React.FC<NumberedRankCardProps> = ({
     <div className="flex-none relative snap-start group select-none">
       <Link
         href={`/movies/${slug}`}
+        prefetch={false}
         className={`flex items-start relative block cursor-pointer group-hover:scale-[1.025] group-hover:-translate-y-1 transition-all duration-300 ease-out focus-visible:outline-none focus-visible:ring-2 rounded-xl`}
       >
         {/* SỐ THỨ TỰ BẢNG XẾP HẠNG (RANK) */}

@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import { movieApi, deduplicateServerEpisodes } from "@/services/movies/service";
+import { movieApi, deduplicateServerEpisodes, filterDualServers } from "@/services/movies/service";
 import Link from "next/link";
 import {
   buildMovieDescriptionFallback,
@@ -408,7 +408,8 @@ export default async function MovieDetail({
   // và chuyển tập (name, slug, link_embed, link_m3u8), loại bỏ triệt để các thuộc tính nặng như filename
   // đồng thời khử trùng lặp tập phim chống lỗi duplicate key từ upstream API.
   const rawEpisodes = (episodes && episodes.length > 0) ? episodes : (movie?.episodes || []);
-  const episodeServers = rawEpisodes.map((srv: { server_name?: string; server_data?: Array<{ name?: string; slug?: string; link_embed?: string; link_m3u8?: string }> }, sIdx: number) => ({
+  const dualServers = filterDualServers(rawEpisodes);
+  const episodeServers = dualServers.map((srv: { server_name?: string; server_data?: Array<{ name?: string; slug?: string; link_embed?: string; link_m3u8?: string }> }, sIdx: number) => ({
     server_name: srv.server_name || `Server #${sIdx + 1}`,
     server_data: deduplicateServerEpisodes(
       (srv.server_data || []).map((ep: { name?: string; slug?: string; link_embed?: string; link_m3u8?: string }) => ({
@@ -503,7 +504,7 @@ export default async function MovieDetail({
     : 0;
 
   const activeEpisode = ep
-    ? findEpisodeMatch(serverData, ep) || serverData[0]
+    ? findEpisodeMatch(serverData, ep)
     : serverData[0];
   const videoLink = activeEpisode?.link_embed || activeEpisode?.link_m3u8;
   const embedSrc = activeEpisode?.link_embed;

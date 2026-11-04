@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { cacheService } from "@/lib/cache";
 import { movieApi } from "@/services/movies/service";
 import { pickBestMoviePoster, pickBestMovieThumb } from "@/lib/movieMedia";
 import { getTmdbPosterUrl, searchTmdbPosterByTitle } from "@/services/tmdbService";
@@ -25,6 +24,16 @@ interface PosterCacheEntry {
 }
 const posterMemoryCache = new Map<string, PosterCacheEntry>();
 const MEMORY_TTL = 24 * 60 * 60 * 1000;
+
+function setBoundedMap<K, V>(map: Map<K, V>, key: K, value: V, maxSize = 2000): void {
+  if (map.size >= maxSize) {
+    const firstKey = map.keys().next().value;
+    if (firstKey !== undefined) {
+      map.delete(firstKey);
+    }
+  }
+  map.set(key, value);
+}
 
 function getSearchVariants(text: string): string[] {
   if (!text) return [];
@@ -189,129 +198,131 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  // 2. Kiểm tra L2 KV cache (v3 để không dính cache phimimg cũ)
-  const kvKey = `poster:fallback:v3:${cacheKey}`;
-  const result = await cacheService.fetchOrSet(
-    kvKey,
-    async () => {
-      // 1. Ưu tiên tìm theo tên gốc tiếng Anh/quốc tế trước (tỷ lệ match TMDB chuẩn xác 98%)
-      if (origin_name && origin_name !== title) {
-        const res = await queryTmdbPoster(origin_name, year);
-        if (res.posterUrl || res.backdropUrl) return res;
-      }
+  // 2. Không truy vấn Redis Upstash, tự tìm kiếm fallback trực tiếp và lưu RAM + CDN
+  let result: { posterUrl: string | null; backdropUrl: string | null } | null = null;
 
-      // 2. Thử tìm theo tên tiếng Việt
-      if (title) {
-        const res = await queryTmdbPoster(title, year);
-        if (res.posterUrl || res.backdropUrl) return res;
-      }
+  // 1. Ưu tiên tìm theo tên gốc tiếng Anh/quốc tế trước (tỷ lệ match TMDB chuẩn xác 98%)
+  if (origin_name && origin_name !== title) {
+    const res = await queryTmdbPoster(origin_name, year);
+    if (res.posterUrl || res.backdropUrl) result = res;
+  }
 
-      // 3. Thử tìm theo slug được chuẩn hóa thành từ khóa
-      if (slug) {
-        const slugQuery = slug.replace(/-/g, " ");
-        const res = await queryTmdbPoster(slugQuery, year);
-        if (res.posterUrl || res.backdropUrl) return res;
-      }
+  // 2. Thử tìm theo tên tiếng Việt
+  if (!result && title) {
+    const res = await queryTmdbPoster(title, year);
+    if (res.posterUrl || res.backdropUrl) result = res;
+  }
 
-      // 4. Fallback tra cứu chi tiết phim từ slug: Tận dụng tmdb.id và origin_name của phim
-      if (slug) {
-        try {
-          const detail = await movieApi.getMovieDetail(slug);
-          if (detail?.movie) {
-            const m = detail.movie;
-            // 4a. Nếu upstream có gắn tmdb.id, lấy trực tiếp ảnh TMDb chuẩn xác 100%
-            if (m.tmdb?.id) {
-              const tmdbPoster = await getTmdbPosterUrl(m.tmdb.id, m.type);
-              if (tmdbPoster) {
-                return {
-                  posterUrl: tmdbPoster,
-                  backdropUrl: tmdbPoster,
-                };
-              }
-            }
+  // 3. Thử tìm theo slug được chuẩn hóa thành từ khóa
+  if (!result && slug) {
+    const slugQuery = slug.replace(/-/g, " ");
+    const res = await queryTmdbPoster(slugQuery, year);
+    if (res.posterUrl || res.backdropUrl) result = res;
+  }
 
-            // 4b. Tìm theo tên gốc quốc tế của phim (vd: Otis, Ultraman Tiga, A Melody to Remember)
-            const altName = m.origin_name && m.origin_name !== m.name ? m.origin_name : (m.name || m.slug);
-            if (altName) {
-              const res = await searchTmdbPosterByTitle(altName, m.year || year, m.type);
-              if (res?.posterUrl || res?.backdropUrl) {
-                return res;
-              }
-            }
+  // 4. Fallback tra cứu chi tiết phim từ slug: Tận dụng tmdb.id và origin_name của phim
+  if (!result && slug) {
+    try {
+      const detail = await movieApi.getMovieDetail(slug);
+      if (detail?.movie) {
+        const m = detail.movie;
+        // 4a. Nếu upstream có gắn tmdb.id, lấy trực tiếp ảnh TMDb chuẩn xác 100%
+        if (m.tmdb?.id) {
+          const tmdbPoster = await getTmdbPosterUrl(m.tmdb.id, m.type);
+          if (tmdbPoster) {
+            result = {
+              posterUrl: tmdbPoster,
+              backdropUrl: tmdbPoster,
+            };
+          }
+        }
 
-            // 4c. Cuối cùng mới lấy poster/thumb gốc
-            const p = pickBestMoviePoster(m, "");
-            const t = pickBestMovieThumb(m, "");
-            if (p || t) {
-              return {
-                posterUrl: p || t || null,
-                backdropUrl: t || p || null,
-              };
+        // 4b. Tìm theo tên gốc quốc tế của phim (vd: Otis, Ultraman Tiga, A Melody to Remember)
+        if (!result) {
+          const altName = m.origin_name && m.origin_name !== m.name ? m.origin_name : (m.name || m.slug);
+          if (altName) {
+            const res = await searchTmdbPosterByTitle(altName, m.year || year, m.type);
+            if (res?.posterUrl || res?.backdropUrl) {
+              result = res;
             }
           }
-        } catch {}
-      }
+        }
 
-      if (title) {
-        try {
-          const searchRes = await movieApi.searchMovies(title, 2);
-          const first = searchRes?.items?.[0];
-          if (first) {
-            if (first.tmdb?.id) {
-              const tmdbPoster = await getTmdbPosterUrl(first.tmdb.id, first.type);
-              if (tmdbPoster) {
-                return {
-                  posterUrl: tmdbPoster,
-                  backdropUrl: tmdbPoster,
-                };
-              }
-            }
-            if (first.origin_name) {
-              const res = await searchTmdbPosterByTitle(first.origin_name, first.year || year, first.type);
-              if (res?.posterUrl || res?.backdropUrl) {
-                return res;
-              }
-            }
-            const p = pickBestMoviePoster(first, "");
-            const t = pickBestMovieThumb(first, "");
-            if (p || t) {
-              return {
-                posterUrl: p || t || null,
-                backdropUrl: t || p || null,
-              };
-            }
+        // 4c. Cuối cùng mới lấy poster/thumb gốc
+        if (!result) {
+          const p = pickBestMoviePoster(m, "");
+          const t = pickBestMovieThumb(m, "");
+          if (p || t) {
+            result = {
+              posterUrl: p || t || null,
+              backdropUrl: t || p || null,
+            };
           }
-        } catch {}
+        }
       }
+    } catch {}
+  }
 
-      // TẦNG 2: Dự phòng cho Hoạt hình / Anime / Donghua qua AniList GraphQL
-      if (title || origin_name) {
-        try {
-          const aniRes = await searchAniListPoster(title, origin_name);
-          if (aniRes?.posterUrl || aniRes?.backdropUrl) {
-            return aniRes;
+  if (!result && title) {
+    try {
+      const searchRes = await movieApi.searchMovies(title, 2);
+      const first = searchRes?.items?.[0];
+      if (first) {
+        if (first.tmdb?.id) {
+          const tmdbPoster = await getTmdbPosterUrl(first.tmdb.id, first.type);
+          if (tmdbPoster) {
+            result = {
+              posterUrl: tmdbPoster,
+              backdropUrl: tmdbPoster,
+            };
           }
-        } catch {}
+        }
+        if (!result && first.origin_name) {
+          const res = await searchTmdbPosterByTitle(first.origin_name, first.year || year, first.type);
+          if (res?.posterUrl || res?.backdropUrl) {
+            result = res;
+          }
+        }
+        if (!result) {
+          const p = pickBestMoviePoster(first, "");
+          const t = pickBestMovieThumb(first, "");
+          if (p || t) {
+            result = {
+              posterUrl: p || t || null,
+              backdropUrl: t || p || null,
+            };
+          }
+        }
       }
+    } catch {}
+  }
 
-      return { posterUrl: null, backdropUrl: null };
-    },
-    30 * 86400 // 30 ngày
-  );
+  // TẦNG 2: Dự phòng cho Hoạt hình / Anime / Donghua qua AniList GraphQL
+  if (!result && (title || origin_name)) {
+    try {
+      const aniRes = await searchAniListPoster(title, origin_name);
+      if (aniRes?.posterUrl || aniRes?.backdropUrl) {
+        result = aniRes;
+      }
+    } catch {}
+  }
 
-  // Lưu vào L1 RAM
-  posterMemoryCache.set(cacheKey, {
-    posterUrl: result?.posterUrl || null,
-    backdropUrl: result?.backdropUrl || null,
+  const finalPosterUrl = result?.posterUrl || null;
+  const finalBackdropUrl = result?.backdropUrl || null;
+
+  // Lưu vào bounded L1 RAM
+  setBoundedMap(posterMemoryCache, cacheKey, {
+    posterUrl: finalPosterUrl,
+    backdropUrl: finalBackdropUrl,
     expireAt: now + MEMORY_TTL,
   });
 
-  const hasPoster = Boolean(result?.posterUrl || result?.backdropUrl);
+  const hasPoster = Boolean(finalPosterUrl || finalBackdropUrl);
   return NextResponse.json(
     {
       status: true,
-      posterUrl: result?.posterUrl || null,
-      backdropUrl: result?.backdropUrl || null,
+      posterUrl: finalPosterUrl,
+      backdropUrl: finalBackdropUrl,
       source: "tmdb",
     },
     {

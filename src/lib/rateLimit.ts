@@ -285,21 +285,21 @@ export const RATE_LIMIT_PRESETS = {
     maxRequests: 30,
     windowSeconds: 60, // 30 requests / 60s per IP (heavy parallel compute)
     failClosed: false,
-    strategy: "fixed-window",
+    strategy: "in-memory-only",
   },
   TRANSLATION: {
     namespace: "translation",
     maxRequests: 30,
     windowSeconds: 60, // 30 requests / 60s per IP (outbound translation API)
     failClosed: false,
-    strategy: "fixed-window",
+    strategy: "in-memory-only",
   },
   ANALYTICS_TRACK: {
     namespace: "analytics-track",
     maxRequests: 60,
     windowSeconds: 60,
     failClosed: false,
-    strategy: "fixed-window",
+    strategy: "in-memory-only",
   },
   FOOTBALL_POLLING: {
     namespace: "football-polling",

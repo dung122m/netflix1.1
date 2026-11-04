@@ -907,6 +907,7 @@ const HeroFeaturedInner: React.FC<{ movies?: HeroMovie[] }> = ({
                 {featuredMovie?.slug && (
                   <Link
                     href={`/movies/${featuredMovie.slug}`}
+                    prefetch={false}
                     className="inline-flex items-center justify-center gap-2 rounded-xl bg-white hover:bg-zinc-200 text-black px-7 py-2.5 text-sm font-black transition-all active:scale-95 shadow-lg shadow-black/40 cursor-pointer"
                   >
                     <Play size={18} fill="black" className="ml-0.5" />
@@ -918,6 +919,7 @@ const HeroFeaturedInner: React.FC<{ movies?: HeroMovie[] }> = ({
                 {featuredMovie?.slug && (
                   <Link
                     href={`/movies/${featuredMovie.slug}`}
+                    prefetch={false}
                     className="flex flex-col items-center justify-center gap-1 text-white active:scale-90 transition-transform cursor-pointer min-w-[64px]"
                   >
                     <Info size={22} className="text-white" />
@@ -931,6 +933,7 @@ const HeroFeaturedInner: React.FC<{ movies?: HeroMovie[] }> = ({
                 {featuredMovie?.slug && (
                   <Link
                     href={`/movies/${featuredMovie.slug}`}
+                    prefetch={false}
                     className="inline-flex items-center gap-2.5 rounded-2xl bg-netflix-red hover:brightness-110 text-white px-7 sm:px-9 py-3.5 sm:py-4 text-xs sm:text-sm md:text-base font-black transition-all duration-200 hover:scale-[1.02] hover:-translate-y-0.5 active:scale-95 shadow-xl shadow-black/60 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-black"
                   >
                     <Play size={19} fill="white" className="ml-0.5" />

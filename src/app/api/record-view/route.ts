@@ -11,12 +11,13 @@ export const maxDuration = 10;
 
 export async function POST(req: NextRequest) {
   try {
-    // 1. Giới hạn tần suất phân tán theo IP (30 requests / 60s) - ngăn chặn bot spam ghi dữ liệu
+    // 1. Giới hạn tần suất in-memory (0ms, 0 Redis commands) - ngăn chặn bot spam ghi dữ liệu
     const rateLimit = await enforceRateLimit(req, {
       namespace: "record-view",
       maxRequests: 30,
       windowSeconds: 60,
       failClosed: false,
+      strategy: "in-memory-only",
     });
     if (!rateLimit.allowed) {
       return buildRateLimitResponse(rateLimit, "Too many record view requests. Please try again later.");

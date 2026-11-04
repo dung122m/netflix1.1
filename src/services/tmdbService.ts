@@ -73,6 +73,16 @@ interface CacheEntry<T> {
   staleUntil: number;
 }
 
+export function setBoundedMap<K, V>(map: Map<K, V>, key: K, value: V, maxSize = 2000): void {
+  if (map.size >= maxSize) {
+    const firstKey = map.keys().next().value;
+    if (firstKey !== undefined) {
+      map.delete(firstKey);
+    }
+  }
+  map.set(key, value);
+}
+
 // 1. Cache kết quả tìm kiếm diễn viên (24h)
 const TMDB_PERSON_CACHE = new Map<string, CacheEntry<TmdbPerson | null>>();
 
@@ -122,38 +132,30 @@ export async function getTmdbBackdropUrl(
     return memoryHit.url;
   }
 
-  const kvKey = `tmdb:backdrop:${cleanType}:${cleanId}`;
-  const backdropUrl = await cacheService.fetchOrSet(
-    kvKey,
-    async () => {
-      try {
-        let data = await fetchTmdbEndpoint(`/${cleanType}/${cleanId}`);
-        if (!data?.backdrop_path && !data?.id) {
-          // Thử loại hình thay thế nếu phim bị phân loại nhầm giữa tv/movie
-          const altType = cleanType === "tv" ? "movie" : "tv";
-          data = await fetchTmdbEndpoint(`/${altType}/${cleanId}`);
-        }
-        if (data?.backdrop_path) {
-          return `https://image.tmdb.org/t/p/w1280${data.backdrop_path}`;
-        }
-        return null;
-      } catch (err) {
-        console.warn(`[TMDB] Error fetching backdrop for ${cleanType}/${cleanId}:`, err);
-        return null;
-      }
-    },
-    7 * 86400 // 7 ngày trên KV
-  );
+  try {
+    let data = await fetchTmdbEndpoint(`/${cleanType}/${cleanId}`, 86400);
+    if (!data?.backdrop_path && !data?.id) {
+      // Thử loại hình thay thế nếu phim bị phân loại nhầm giữa tv/movie
+      const altType = cleanType === "tv" ? "movie" : "tv";
+      data = await fetchTmdbEndpoint(`/${altType}/${cleanId}`, 86400);
+    }
+    const backdropUrl = data?.backdrop_path
+      ? `https://image.tmdb.org/t/p/w1280${data.backdrop_path}`
+      : null;
 
-  TMDB_BACKDROP_CACHE.set(cacheKey, {
-    url: backdropUrl,
-    expireAt: now + (backdropUrl ? 24 * 3600 * 1000 : 3600 * 1000),
-  });
+    setBoundedMap(TMDB_BACKDROP_CACHE, cacheKey, {
+      url: backdropUrl,
+      expireAt: now + (backdropUrl ? 24 * 3600 * 1000 : 3600 * 1000),
+    });
 
-  return backdropUrl;
+    return backdropUrl;
+  } catch (err) {
+    console.warn(`[TMDB] Error fetching backdrop for ${cleanType}/${cleanId}:`, err);
+    return null;
+  }
 }
 
-// 5.0 CACHE POSTER TMDB CHUẨN ĐỨNG 2:3 CHO THẺ PHIM (24h L1 RAM, 30 ngày L2 Upstash)
+// 5.0 CACHE POSTER TMDB CHUẨN ĐỨNG 2:3 CHO THẺ PHIM (24h RAM, Next.js fetch revalidate 24h)
 const TMDB_POSTER_CACHE = new Map<string, { url: string | null; expireAt: number }>();
 
 export async function getTmdbPosterUrl(
@@ -173,46 +175,38 @@ export async function getTmdbPosterUrl(
     return memoryHit.url;
   }
 
-  const kvKey = `tmdb:poster:v2:${cleanType}:${cleanId}`;
-  const posterUrl = await cacheService.fetchOrSet(
-    kvKey,
-    async () => {
-      try {
-        // 1. Thử lấy poster tiếng Việt theo cleanType
-        let data = await fetchTmdbEndpoint(`/${cleanType}/${cleanId}?language=vi-VN`);
+  try {
+    // 1. Thử lấy poster tiếng Việt theo cleanType
+    let data = await fetchTmdbEndpoint(`/${cleanType}/${cleanId}?language=vi-VN`, 86400);
 
-        // 2. Nếu có phim nhưng chưa có poster tiếng Việt, lấy poster mặc định quốc tế
-        if (!data?.poster_path && data?.id) {
-          data = await fetchTmdbEndpoint(`/${cleanType}/${cleanId}`);
-        }
+    // 2. Nếu có phim nhưng chưa có poster tiếng Việt, lấy poster mặc định quốc tế
+    if (!data?.poster_path && data?.id) {
+      data = await fetchTmdbEndpoint(`/${cleanType}/${cleanId}`, 86400);
+    }
 
-        // 3. Fallback sang loại media khác (movie <-> tv) nếu không tìm thấy phim
-        if (!data?.poster_path && !data?.id) {
-          const altType = cleanType === "tv" ? "movie" : "tv";
-          data = await fetchTmdbEndpoint(`/${altType}/${cleanId}?language=vi-VN`);
-          if (!data?.poster_path && data?.id) {
-            data = await fetchTmdbEndpoint(`/${altType}/${cleanId}`);
-          }
-        }
-
-        if (data?.poster_path) {
-          return `https://image.tmdb.org/t/p/w500${data.poster_path}`;
-        }
-        return null;
-      } catch (err) {
-        console.warn(`[TMDB] Error fetching poster for ${cleanType}/${cleanId}:`, err);
-        return null;
+    // 3. Fallback sang loại media khác (movie <-> tv) nếu không tìm thấy phim
+    if (!data?.poster_path && !data?.id) {
+      const altType = cleanType === "tv" ? "movie" : "tv";
+      data = await fetchTmdbEndpoint(`/${altType}/${cleanId}?language=vi-VN`, 86400);
+      if (!data?.poster_path && data?.id) {
+        data = await fetchTmdbEndpoint(`/${altType}/${cleanId}`, 86400);
       }
-    },
-    30 * 86400
-  );
+    }
 
-  TMDB_POSTER_CACHE.set(cacheKey, {
-    url: posterUrl,
-    expireAt: now + (posterUrl ? 24 * 3600 * 1000 : 3600 * 1000),
-  });
+    const posterUrl = data?.poster_path
+      ? `https://image.tmdb.org/t/p/w500${data.poster_path}`
+      : null;
 
-  return posterUrl;
+    setBoundedMap(TMDB_POSTER_CACHE, cacheKey, {
+      url: posterUrl,
+      expireAt: now + (posterUrl ? 24 * 3600 * 1000 : 3600 * 1000),
+    });
+
+    return posterUrl;
+  } catch (err) {
+    console.warn(`[TMDB] Error fetching poster for ${cleanType}/${cleanId}:`, err);
+    return null;
+  }
 }
 
 const TMDB_TITLE_POSTER_CACHE = new Map<string, { posterUrl: string | null; backdropUrl: string | null; expireAt: number }>();
@@ -299,68 +293,67 @@ export async function searchTmdbPosterByTitle(
     return { posterUrl: memHit.posterUrl, backdropUrl: memHit.backdropUrl };
   }
 
-  const kvKey = `tmdb:title_poster:v2:${cacheKey}`;
-  const result = await cacheService.fetchOrSet(
-    kvKey,
-    async () => {
-      const cleanType =
-        type === "tv" || type === "series" || type === "phim-bo" || type === "tvshows" ? "tv" : "movie";
-      const searchYear = year && /^\d{4}$/.test(String(year).trim()) ? `&year=${String(year).trim()}` : "";
-      const variants = extractTitleVariants(cleanQuery);
+  const cleanType =
+    type === "tv" || type === "series" || type === "phim-bo" || type === "tvshows" ? "tv" : "movie";
+  const searchYear = year && /^\d{4}$/.test(String(year).trim()) ? `&year=${String(year).trim()}` : "";
+  const variants = extractTitleVariants(cleanQuery);
 
-      for (const v of variants) {
-        // 1. Thử search/multi trước (hỗ trợ cả movie và tv series, anime, chấm điểm theo type, năm phát hành, độ phổ biến)
-        try {
-          const endpointMulti = `/search/multi?query=${encodeURIComponent(v)}&include_adult=false`;
-          const dataMulti = await fetchTmdbEndpoint(endpointMulti);
-          const bestMulti = pickBestTmdbCandidate(dataMulti?.results, cleanType, year);
-          if (bestMulti?.poster_path) {
-            return {
-              posterUrl: `https://image.tmdb.org/t/p/w500${bestMulti.poster_path}`,
-              backdropUrl: bestMulti.backdrop_path ? `https://image.tmdb.org/t/p/w1280${bestMulti.backdrop_path}` : null,
-            };
-          }
-        } catch {}
+  let result: { posterUrl: string | null; backdropUrl: string | null } = {
+    posterUrl: null,
+    backdropUrl: null,
+  };
 
-        // 2. Thử theo type chính thức (kèm năm nếu có)
-        try {
-          const endpointType = `/search/${cleanType}?query=${encodeURIComponent(v)}${searchYear}&language=vi-VN`;
-          const dataType = await fetchTmdbEndpoint(endpointType);
-          const bestType = pickBestTmdbCandidate(dataType?.results, cleanType, year);
-          if (bestType?.poster_path) {
-            return {
-              posterUrl: `https://image.tmdb.org/t/p/w500${bestType.poster_path}`,
-              backdropUrl: bestType.backdrop_path ? `https://image.tmdb.org/t/p/w1280${bestType.backdrop_path}` : null,
-            };
-          }
-        } catch {}
-
-        // 3. Thử tv riêng biệt không năm (nhiều phim bộ / anime năm bị lệch giữa upstream và TMDB)
-        try {
-          const endpointTv = `/search/tv?query=${encodeURIComponent(v)}`;
-          const dataTv = await fetchTmdbEndpoint(endpointTv);
-          const bestTv = pickBestTmdbCandidate(dataTv?.results, "tv", year);
-          if (bestTv?.poster_path) {
-            return {
-              posterUrl: `https://image.tmdb.org/t/p/w500${bestTv.poster_path}`,
-              backdropUrl: bestTv.backdrop_path ? `https://image.tmdb.org/t/p/w1280${bestTv.backdrop_path}` : null,
-            };
-          }
-        } catch {}
+  for (const v of variants) {
+    // 1. Thử search/multi trước (hỗ trợ cả movie và tv series, anime, chấm điểm theo type, năm phát hành, độ phổ biến)
+    try {
+      const endpointMulti = `/search/multi?query=${encodeURIComponent(v)}&include_adult=false`;
+      const dataMulti = await fetchTmdbEndpoint(endpointMulti, 86400);
+      const bestMulti = pickBestTmdbCandidate(dataMulti?.results, cleanType, year);
+      if (bestMulti?.poster_path) {
+        result = {
+          posterUrl: `https://image.tmdb.org/t/p/w500${bestMulti.poster_path}`,
+          backdropUrl: bestMulti.backdrop_path ? `https://image.tmdb.org/t/p/w1280${bestMulti.backdrop_path}` : null,
+        };
+        break;
       }
+    } catch {}
 
-      return { posterUrl: null, backdropUrl: null };
-    },
-    30 * 86400
-  );
+    // 2. Thử theo type chính thức (kèm năm nếu có)
+    try {
+      const endpointType = `/search/${cleanType}?query=${encodeURIComponent(v)}${searchYear}&language=vi-VN`;
+      const dataType = await fetchTmdbEndpoint(endpointType, 86400);
+      const bestType = pickBestTmdbCandidate(dataType?.results, cleanType, year);
+      if (bestType?.poster_path) {
+        result = {
+          posterUrl: `https://image.tmdb.org/t/p/w500${bestType.poster_path}`,
+          backdropUrl: bestType.backdrop_path ? `https://image.tmdb.org/t/p/w1280${bestType.backdrop_path}` : null,
+        };
+        break;
+      }
+    } catch {}
 
-  TMDB_TITLE_POSTER_CACHE.set(cacheKey, {
-    posterUrl: result?.posterUrl || null,
-    backdropUrl: result?.backdropUrl || null,
-    expireAt: now + (result?.posterUrl ? 24 * 3600 * 1000 : 3600 * 1000),
+    // 3. Thử tv riêng biệt không năm (nhiều phim bộ / anime năm bị lệch giữa upstream và TMDB)
+    try {
+      const endpointTv = `/search/tv?query=${encodeURIComponent(v)}`;
+      const dataTv = await fetchTmdbEndpoint(endpointTv, 86400);
+      const bestTv = pickBestTmdbCandidate(dataTv?.results, "tv", year);
+      if (bestTv?.poster_path) {
+        result = {
+          posterUrl: `https://image.tmdb.org/t/p/w500${bestTv.poster_path}`,
+          backdropUrl: bestTv.backdrop_path ? `https://image.tmdb.org/t/p/w1280${bestTv.backdrop_path}` : null,
+        };
+        break;
+      }
+    } catch {}
+  }
+
+  setBoundedMap(TMDB_TITLE_POSTER_CACHE, cacheKey, {
+    posterUrl: result.posterUrl,
+    backdropUrl: result.backdropUrl,
+    expireAt: now + (result.posterUrl ? 24 * 3600 * 1000 : 3600 * 1000),
   });
 
-  return result || { posterUrl: null, backdropUrl: null };
+  return result;
 }
 
 // 5.1 CACHE CLEARLOGO TRONG SUỐT CHO MOVIE DETAIL (24h L1 RAM, 30 ngày L2 Upstash)

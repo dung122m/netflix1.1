@@ -161,6 +161,101 @@ export function deduplicateServerEpisodes(serverData: any[]): any[] {
   });
 }
 
+/**
+ * Chuẩn hóa slug tập phim, đảm bảo tap-3, tap-03, tap 3, 3 đều được nhận diện thống nhất
+ */
+export function normalizeEpisodeSlug(epSlug?: string): string {
+  if (!epSlug) return "tap-01";
+  const trimmed = epSlug.trim().toLowerCase();
+  if (trimmed === "full" || trimmed === "tap-full") return "tap-full";
+  const numMatch = trimmed.match(/^(?:tap|ep)?[-_\s]*0*(\d+)/i);
+  if (numMatch) {
+    const num = parseInt(numMatch[1], 10);
+    const padded = num < 10 ? `0${num}` : String(num);
+    return `tap-${padded}`;
+  }
+  return trimmed;
+}
+
+/**
+ * Lọc và chuẩn hóa tối đa đúng 2 server: Lồng Tiếng và Thuyết Minh (hoặc Vietsub)
+ * Không tải, parse, lưu cache hoặc đồng bộ toàn bộ tập phim từ các server thừa/dự phòng
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function filterDualServers(rawServers: any[]): any[] {
+  if (!Array.isArray(rawServers) || rawServers.length === 0) return [];
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let longTiengServer: any = null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let thuyetMinhServer: any = null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let vietsubServer: any = null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const otherServers: any[] = [];
+
+  for (const srv of rawServers) {
+    if (!srv || !Array.isArray(srv.server_data) || srv.server_data.length === 0) continue;
+    const sName = String(srv.server_name || "").trim();
+    const nameLower = sName.toLowerCase();
+
+    const isLongTieng =
+      nameLower.includes("lồng tiếng") ||
+      nameLower.includes("long tieng") ||
+      nameLower.includes("dub");
+
+    const isThuyetMinh =
+      nameLower.includes("thuyết minh") ||
+      nameLower.includes("thuyet minh") ||
+      nameLower.includes("voiceover");
+
+    const isVietsub =
+      nameLower.includes("vietsub") ||
+      nameLower.includes("phụ đề") ||
+      nameLower.includes("sub");
+
+    const count = srv.server_data.length;
+
+    if (isLongTieng) {
+      if (!longTiengServer || count > (longTiengServer.server_data?.length || 0)) {
+        longTiengServer = { ...srv, server_name: "Lồng Tiếng" };
+      }
+    } else if (isThuyetMinh) {
+      if (!thuyetMinhServer || count > (thuyetMinhServer.server_data?.length || 0)) {
+        thuyetMinhServer = { ...srv, server_name: "Thuyết Minh" };
+      }
+    } else if (isVietsub) {
+      if (!vietsubServer || count > (vietsubServer.server_data?.length || 0)) {
+        vietsubServer = { ...srv, server_name: "Thuyết Minh" };
+      }
+    } else {
+      otherServers.push(srv);
+    }
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const result: any[] = [];
+  if (longTiengServer) result.push(longTiengServer);
+  if (thuyetMinhServer) {
+    result.push(thuyetMinhServer);
+  } else if (vietsubServer) {
+    result.push(vietsubServer);
+  }
+
+  // Fallback nếu nguồn phim không đặt tên server theo mẫu chuẩn
+  if (result.length === 0 && otherServers.length > 0) {
+    result.push({ ...otherServers[0], server_name: "Lồng Tiếng" });
+    if (otherServers.length > 1) {
+      result.push({ ...otherServers[1], server_name: "Thuyết Minh" });
+    }
+  } else if (result.length === 1 && otherServers.length > 0) {
+    const missingName = result[0].server_name === "Lồng Tiếng" ? "Thuyết Minh" : "Lồng Tiếng";
+    result.push({ ...otherServers[0], server_name: missingName });
+  }
+
+  return result.slice(0, 2);
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function normalizeNguonCMovieDetail(raw: any) {
   if (!raw || !raw.movie) return null;
@@ -333,21 +428,24 @@ interface RawServerItem {
 export function toCompactDetailPayload(data: any, requestedEpSlug?: string): MovieDetailV3Payload {
   if (!data || !data.movie) return data;
 
-  const rawEpisodes: RawServerItem[] = data.episodes || data.movie?.episodes || [];
+  // Lọc tối đa đúng 2 server: Lồng Tiếng và Thuyết Minh, loại bỏ hoàn toàn các server dư thừa
+  const rawEpisodes: RawServerItem[] = filterDualServers(data.episodes || data.movie?.episodes || []);
   const cleanMovie = { ...data.movie };
   delete cleanMovie.episodes;
+
+  const normReqEp = requestedEpSlug ? normalizeEpisodeSlug(requestedEpSlug) : undefined;
 
   const compactEpisodes: CompactServerItem[] = rawEpisodes.map((srv: RawServerItem, sIdx: number) => {
     const rawData: RawEpisodeItem[] = srv?.server_data || [];
     const isSmallSeries = rawData.length <= 12;
 
     const compactData: CompactEpisodeItem[] = rawData.map((ep: RawEpisodeItem, epIdx: number) => {
-      // Giữ streaming links cho phim <= 12 tập, hoặc 2 tập đầu, hoặc tập được yêu cầu cụ thể
+      const epNorm = normalizeEpisodeSlug(ep.slug || ep.name);
       const isReqMatch = Boolean(
-        requestedEpSlug &&
+        normReqEp &&
         (ep.slug === requestedEpSlug ||
          ep.name === requestedEpSlug ||
-         (ep.slug && ep.slug.replace(/^tap-0*/, '') === requestedEpSlug.replace(/^tap-0*/, '')))
+         epNorm === normReqEp)
       );
       const isInitial = epIdx < 2 || isReqMatch;
       if (isSmallSeries || isInitial) {
@@ -683,29 +781,13 @@ const fetchMovieDetailBase = async (
   if (existing) return existing;
 
   const promise = (async () => {
-    // 1. Đọc từ Redis v3 Compact Metadata (~2KB), xóa sạch key legacy 1.33MB nếu còn tồn tại
+    // 1. Đọc từ Redis v3 Compact Metadata (~2KB)
     const kvKeyV3 = `movie:detail:v3:${slug}:${source || "any"}`;
-    const kvKeyLegacy = `movie:detail:${slug}:${source || "any"}`;
 
     let data: MovieDetailCachePayload | null = null;
     const rawData = await cacheService.get<MovieDetailCachePayload>(kvKeyV3);
     if (rawData) {
       data = unpackDetailPayload(rawData);
-      // Đã có bản v3 gọn nhẹ: đảm bảo xóa bỏ key legacy cũ nếu còn sót lại
-      cacheService.delete(kvKeyLegacy).catch(() => {});
-    } else {
-      // Migrate-on-Read: Đọc legacy key 1 lần duy nhất, chuyển đổi sang v3 và XÓA NGAY key cũ
-      const legacyRaw = await cacheService.get<MovieDetailCachePayload>(kvKeyLegacy);
-      if (legacyRaw) {
-        const legacyData = unpackDetailPayload(legacyRaw);
-        if (legacyData) {
-          data = legacyData;
-          const ttl = Boolean((legacyData as MovieDetailCachePayload)?._isFallback) ? 180 : 7 * 24 * 60 * 60;
-          const compact = toCompactDetailPayload(legacyData, requestedEpisode);
-          cacheService.set(kvKeyV3, compact, ttl).catch(() => {});
-          cacheService.delete(kvKeyLegacy).catch(() => {});
-        }
-      }
     }
 
     // Cơ chế Tự Phục Hồi (Self-Healing Cache):
@@ -759,20 +841,26 @@ const fetchMovieDetailInternal = async (
 export async function getEpisodeStream(
   slug: string,
   episodeSlug: string,
+  serverName?: string,
   source?: "nguonc" | "ophim" | "vsmov"
 ): Promise<EpisodeStreamResult[]> {
+  const normEp = normalizeEpisodeSlug(episodeSlug);
+  const serverKey = serverName ? serverName.toLowerCase().replace(/[^a-z0-9]/g, "_") : "any";
   const localKey = `${slug}_${source || "any"}`;
   const now = Date.now();
 
-  // 1. Kiểm tra L1 Memory Cache: Nếu full detail đang có trong RAM, trả về 0ms!
+  // 1. Kiểm tra L1 Memory Cache: Nếu full detail đang có trong RAM, lọc đúng 2 server và trả về ngay
   const mem = movieDetailMemoryCache.get(localKey);
   if (mem && mem.data && mem.expireAt > now) {
-    const servers: RawServerItem[] = mem.data.episodes || mem.data.movie?.episodes || [];
+    const rawServers: RawServerItem[] = mem.data.episodes || mem.data.movie?.episodes || [];
+    const dualServers = filterDualServers(rawServers);
     const streams: EpisodeStreamResult[] = [];
-    for (const srv of servers) {
+    for (const srv of dualServers) {
+      if (serverName && !srv.server_name?.toLowerCase().includes(serverName.toLowerCase())) {
+        continue;
+      }
       const epList: RawEpisodeItem[] = srv?.server_data || [];
-      const match = epList.find((e: RawEpisodeItem) => e.slug === episodeSlug || e.name === episodeSlug)
-        || findEpisodeMatch(epList, episodeSlug);
+      const match = findEpisodeMatch(epList, episodeSlug) || findEpisodeMatch(epList, normEp);
       if (match && (match.link_m3u8 || match.link_embed)) {
         streams.push({
           server_name: srv.server_name || "Server",
@@ -784,23 +872,26 @@ export async function getEpisodeStream(
     if (streams.length > 0) return streams;
   }
 
-  // 2. Kiểm tra L2 Redis Cache cho tập cụ thể (~250 bytes)
-  const streamKvKey = `movie:stream:v1:${slug}:${episodeSlug}:${source || "any"}`;
+  // 2. Kiểm tra L2 Redis Cache cho tập và server cụ thể (~200 bytes)
+  const streamKvKey = `movie:stream:v1:${slug}:${serverKey}:${normEp}`;
   const cachedStreams = await cacheService.get<EpisodeStreamResult[]>(streamKvKey);
   if (cachedStreams && Array.isArray(cachedStreams) && cachedStreams.length > 0) {
     return cachedStreams;
   }
 
-  // 3. Nạp nguồn trực tiếp từ upstream và lưu cache riêng cho tập này (~250 bytes, KHÔNG đọc payload 1.33MB)
+  // 3. Nạp nguồn trực tiếp từ upstream và lưu cache riêng cho tập này (~200 bytes, KHÔNG đọc payload 1.33MB)
   try {
     const freshDetail = await fetchAndCacheMovieDetail(slug, source, localKey);
     if (freshDetail) {
-      const servers: RawServerItem[] = freshDetail.episodes || freshDetail.movie?.episodes || [];
+      const rawServers: RawServerItem[] = freshDetail.episodes || freshDetail.movie?.episodes || [];
+      const dualServers = filterDualServers(rawServers);
       const streams: EpisodeStreamResult[] = [];
-      for (const srv of servers) {
+      for (const srv of dualServers) {
+        if (serverName && !srv.server_name?.toLowerCase().includes(serverName.toLowerCase())) {
+          continue;
+        }
         const epList: RawEpisodeItem[] = srv?.server_data || [];
-        const match = epList.find((e: RawEpisodeItem) => e.slug === episodeSlug || e.name === episodeSlug)
-          || findEpisodeMatch(epList, episodeSlug);
+        const match = findEpisodeMatch(epList, episodeSlug) || findEpisodeMatch(epList, normEp);
         if (match && (match.link_m3u8 || match.link_embed)) {
           streams.push({
             server_name: srv.server_name || "Server",
@@ -916,59 +1007,17 @@ async function fetchAndCacheMovieDetail(slug: string, source?: "nguonc" | "ophim
         const primary = resPhimApi && getEpMax(resPhimApi) > 0 ? resPhimApi : validCandidates[0];
         const secondary = primary === resPhimApi ? resNguonC : resPhimApi;
 
-        // Bổ sung các server phát từ nguồn phụ (NguonC Embed hoặc PhimAPI) để người dùng có nhiều server lựa chọn
+        // Bổ sung và lọc tối đa đúng 2 server: Lồng Tiếng và Thuyết Minh
         const secondaryEpContainer = secondary?.episodes || secondary?.movie?.episodes;
-        if (Array.isArray(secondaryEpContainer) && secondaryEpContainer.length > 0) {
-          // Bảo đảm primary.episodes và primary.movie.episodes luôn đồng bộ tuyệt đối về cùng một tham chiếu
-          const primaryEpisodes = primary.episodes || primary.movie?.episodes || [];
-          primary.episodes = primaryEpisodes;
-          if (primary.movie) {
-            primary.movie.episodes = primaryEpisodes;
-          }
+        const primaryEpisodes = primary.episodes || primary.movie?.episodes || [];
+        const combined = Array.isArray(secondaryEpContainer) && secondaryEpContainer.length > 0
+          ? [...primaryEpisodes, ...secondaryEpContainer]
+          : primaryEpisodes;
 
-          // Thu thập toàn bộ các stream URL thực tế đang có ở server chính để chống duplicate link
-          const primaryStreamUrls = new Set<string>();
-          for (const s of primaryEpisodes) {
-            for (const ep of s?.server_data || []) {
-              const u = (ep?.link_m3u8 || ep?.link_embed || "").trim();
-              if (u) primaryStreamUrls.add(u);
-            }
-          }
-
-          const existingNames = new Set(
-            primaryEpisodes.map((s: { server_name?: string }) => (s.server_name || "").trim().toLowerCase())
-          );
-
-          for (const s of secondaryEpContainer) {
-            if (!s || !Array.isArray(s.server_data) || s.server_data.length === 0) continue;
-
-            // Kiểm tra xem server phụ này có mang stream khác biệt so với server chính hay không
-            const hasDistinctStream = s.server_data.some((ep: { link_m3u8?: string; link_embed?: string }) => {
-              const u = (ep?.link_m3u8 || ep?.link_embed || "").trim();
-              return u && !primaryStreamUrls.has(u);
-            });
-
-            if (hasDistinctStream) {
-              let targetName = (s.server_name || "Dự phòng").trim();
-              if (existingNames.has(targetName.toLowerCase())) {
-                targetName = `${targetName} (Dự phòng)`;
-              }
-              if (existingNames.has(targetName.toLowerCase())) {
-                targetName = `${targetName} #2`;
-              }
-              existingNames.add(targetName.toLowerCase());
-
-              const newServerObj = {
-                ...s,
-                server_name: targetName,
-              };
-              primaryEpisodes.push(newServerObj);
-            }
-          }
-
-          if (primary.movie) {
-            primary.movie.episodes = primaryEpisodes;
-          }
+        const dual = filterDualServers(combined);
+        primary.episodes = dual;
+        if (primary.movie) {
+          primary.movie.episodes = dual;
         }
 
         // Bổ sung đầy đủ metadata từ secondary nếu primary bị thiếu (actor, director, category, country, alt names,...)
@@ -997,7 +1046,20 @@ async function fetchAndCacheMovieDetail(slug: string, source?: "nguonc" | "ophim
     }
 
     if (result && !source) {
-      await discoverAndMergeMissingSources(result, slug);
+      const currentServers = result.episodes || result.movie?.episodes || [];
+      const hasPlayableStreams = currentServers.some((s: { server_data?: unknown[] }) => Array.isArray(s.server_data) && s.server_data.length > 0);
+      if (!hasPlayableStreams) {
+        await discoverAndMergeMissingSources(result, slug);
+      }
+    }
+
+    if (result) {
+      // Đảm bảo kết quả luôn tuân thủ tối đa 2 server
+      const dual = filterDualServers(result.episodes || result.movie?.episodes || []);
+      result.episodes = dual;
+      if (result.movie) {
+        result.movie.episodes = dual;
+      }
     }
 
     if (result) {
@@ -2361,8 +2423,13 @@ export const movieApi = {
     const res = await cachedGetMovieDetail(...args);
     return sanitizeMovieImages(res);
   },
-  getEpisodeStream: async (slug: string, episodeSlug: string, source?: "nguonc" | "ophim" | "vsmov") => {
-    return await getEpisodeStream(slug, episodeSlug, source);
+  getEpisodeStream: async (
+    slug: string,
+    episodeSlug: string,
+    serverName?: string,
+    source?: "nguonc" | "ophim" | "vsmov"
+  ) => {
+    return await getEpisodeStream(slug, episodeSlug, serverName, source);
   },
 
   // ==========================================

@@ -673,6 +673,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
         <Link
           ref={baseCardRef}
           href={targetHref}
+          prefetch={false}
           onClick={handleCardClick}
           tabIndex={0}
           aria-label={`Xem phim ${title}`}
@@ -856,6 +857,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
         {/* DÒNG 1 — TÊN PHIM: CHUẨN 1 DÒNG TRUNCATE DUY NHẤT, CÂN ĐỐI 100%, KHÔNG KHOẢNG TRỐNG THỪA */}
         <Link
           href={targetHref}
+          prefetch={false}
           onClick={handleCardClick}
           tabIndex={-1}
           aria-hidden="true"
