@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 export async function GET(request: NextRequest) {
-  const rateLimit = await enforceRateLimit(request, RATE_LIMIT_PRESETS.PUBLIC_READ);
+  const rateLimit = await enforceRateLimit(request, RATE_LIMIT_PRESETS.FOOTBALL_POLLING);
   if (!rateLimit.allowed) {
     return buildRateLimitResponse(rateLimit);
   }

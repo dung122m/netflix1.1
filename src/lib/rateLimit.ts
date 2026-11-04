@@ -155,7 +155,7 @@ export interface RateLimitConfig {
   failClosed?: boolean; // True for mutations/AI/upload/admin: reject if Redis fails
   timeoutMs?: number;
   fallbackMaxRequests?: number;
-  strategy?: "sliding-window" | "fixed-window";
+  strategy?: "sliding-window" | "fixed-window" | "in-memory-only";
 }
 
 export interface RateLimitResult {
@@ -316,6 +316,13 @@ export const RATE_LIMIT_PRESETS = {
     windowSeconds: 60,
     failClosed: false,
     strategy: "fixed-window",
+  },
+  FOOTBALL_POLLING: {
+    namespace: "football-polling",
+    maxRequests: 60,
+    windowSeconds: 60,
+    failClosed: false,
+    strategy: "in-memory-only",
   },
 } as const;
 
@@ -611,6 +618,72 @@ function evaluateMemoryFallback(
   };
 }
 
+/**
+ * Evaluates purely in-memory sliding window rate limit (ZERO Redis commands).
+ * Used for high-frequency public read polling endpoints (e.g. live scores, match summaries)
+ * to eliminate unnecessary Redis commands while protecting against client loops and DDoS.
+ */
+function evaluateInMemoryStrategy(
+  key: string,
+  target: string,
+  config: RateLimitConfig,
+  now: number,
+  windowMs: number
+): RateLimitResult {
+  let rec = localMemoryStore.get(key);
+  if (!rec) {
+    if (localMemoryStore.size >= 5000) {
+      for (const [k, r] of localMemoryStore.entries()) {
+        r.timestamps = r.timestamps.filter((t) => now - t < windowMs);
+        if (r.timestamps.length === 0) localMemoryStore.delete(k);
+      }
+      if (localMemoryStore.size >= 5000) {
+        const firstKey = localMemoryStore.keys().next().value;
+        if (firstKey) localMemoryStore.delete(firstKey);
+      }
+    }
+    rec = { timestamps: [] };
+    localMemoryStore.set(key, rec);
+  }
+  rec.timestamps = rec.timestamps.filter((t) => now - t < windowMs);
+
+  const max = config.fallbackMaxRequests ?? config.maxRequests;
+  if (rec.timestamps.length >= max) {
+    const oldest = rec.timestamps[0] || (now - windowMs);
+    const resetSeconds = Math.max(1, Math.ceil((oldest + windowMs - now) / 1000));
+    return {
+      allowed: false,
+      limit: max,
+      remaining: 0,
+      resetSeconds,
+      target,
+      reason: "Tần suất yêu cầu vượt quá giới hạn cho phép.",
+      headers: {
+        "X-RateLimit-Limit": String(max),
+        "X-RateLimit-Remaining": "0",
+        "X-RateLimit-Reset": String(resetSeconds),
+        "Retry-After": String(resetSeconds),
+      },
+    };
+  }
+
+  rec.timestamps.push(now);
+  const remaining = Math.max(0, max - rec.timestamps.length);
+  const resetSeconds = Math.max(1, Math.ceil(config.windowSeconds));
+  return {
+    allowed: true,
+    limit: max,
+    remaining,
+    resetSeconds,
+    target,
+    headers: {
+      "X-RateLimit-Limit": String(max),
+      "X-RateLimit-Remaining": String(remaining),
+      "X-RateLimit-Reset": String(resetSeconds),
+    },
+  };
+}
+
 // ============================================================================
 // 5. CORE SLIDING WINDOW ENFORCEMENT
 // ============================================================================
@@ -698,6 +771,13 @@ export async function checkRateLimit(
     config.namespace.includes("upload");
 
   const strategy = config.strategy ?? (isSensitive ? "sliding-window" : "fixed-window");
+
+  // ==========================================================================
+  // STRATEGY 0: IN-MEMORY ONLY (ZERO REDIS COMMANDS FOR HIGH-FREQUENCY POLLING)
+  // ==========================================================================
+  if (strategy === "in-memory-only") {
+    return evaluateInMemoryStrategy(key, target, config, now, windowMs);
+  }
 
   // ==========================================================================
   // STRATEGY A: FIXED WINDOW COUNTER (1-2 REDIS COMMANDS VIA LUA EVAL)

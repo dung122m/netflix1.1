@@ -3,6 +3,7 @@ import { getTopMovieSlugsFromAnalytics, getStartOfWeekVietnam } from "@/services
 import { movieApi } from "@/services/movies/service";
 import { pickBestMoviePoster, pickBestMovieThumb, isBrokenImageUrl } from "@/lib/movieMedia";
 import { getTmdbPosterUrl, searchTmdbPosterByTitle } from "@/services/tmdbService";
+import { cacheService } from "@/lib/cache";
 
 export interface MovieViewStatItem {
   movieSlug: string;
@@ -59,13 +60,81 @@ export async function recordMovieViewSupabase(movie: {
   }
 }
 
+// Single-Flight Mutex chống cache stampede khi nhiều request cùng MISS trên instance lạnh
+const inFlightTrendingResolves = new Map<string, Promise<MovieViewStatItem[]>>();
+
+/**
+ * Xóa cache tóm tắt Trending Community trên Redis (phục vụ test hoặc admin invalidate)
+ */
+export async function invalidateTrendingSummaryCache(timeframe?: "total" | "week", limit?: number): Promise<void> {
+  if (timeframe && limit) {
+    await cacheService.delete(`trending:community:summary:v1:${timeframe}:${limit}`).catch(() => {});
+  } else {
+    await Promise.allSettled([
+      cacheService.delete(`trending:community:summary:v1:total:10`),
+      cacheService.delete(`trending:community:summary:v1:week:10`),
+      cacheService.delete(`trending:community:summary:v1:total:20`),
+      cacheService.delete(`trending:community:summary:v1:week:20`),
+    ]);
+  }
+}
+
 /**
  * Lấy danh sách phim thịnh hành cộng đồng theo view count thực tế từ Analytics Pipeline.
  * Hỗ trợ phân định chính xác giữa "total" (Toàn thời gian) và "week" (Thứ 2 00:00 -> Chủ Nhật 23:59:59 Asia/Ho_Chi_Minh).
+ * 
+ * Kiến trúc 2 tầng Cache tối ưu:
+ * 1. Dedicated Summary Cache (trending:community:summary:v1:${timeframe}:${limit}, TTL 600s):
+ *    - Cache HIT chỉ tốn 1 Redis GET (~3-5 KB), TUYỆT ĐỐI KHÔNG gọi movieApi.getMovieDetail() trong vòng lặp.
+ * 2. Single-Flight Mutex:
+ *    - Đảm bảo khi cache MISS đồng thời nhiều request trên instance lạnh, chỉ có 1 request thực thi resolve.
  */
 export async function getTopTrendingCommunitySupabase(
   limit: number = 10,
   timeframe: "total" | "week" = "total"
+): Promise<MovieViewStatItem[]> {
+  const safeLimit = Math.max(1, Math.min(limit, 50));
+  const summaryCacheKey = `trending:community:summary:v1:${timeframe}:${safeLimit}`;
+
+  // 1. Kiểm tra L1 Memory & L2 Redis qua CacheService (0ms nếu L1 hit, 1 GET nếu Redis hit)
+  try {
+    const cached = await cacheService.get<MovieViewStatItem[]>(summaryCacheKey);
+    if (cached && Array.isArray(cached) && cached.length > 0) {
+      return cached.slice(0, safeLimit);
+    }
+  } catch (err) {
+    console.warn("[getTopTrendingCommunitySupabase] Cache read warning:", err);
+  }
+
+  // 2. Chống Cache Stampede: gom các request đồng thời trên cùng instance
+  const existingResolve = inFlightTrendingResolves.get(summaryCacheKey);
+  if (existingResolve) {
+    return await existingResolve;
+  }
+
+  const resolveTask = (async () => {
+    try {
+      const items = await resolveTrendingCommunityInternal(safeLimit, timeframe);
+      if (items && items.length > 0) {
+        // Lưu summary nhẹ (chỉ ~3-5 KB, không chứa episodes hay stream links) vào Redis với TTL 600s
+        await cacheService.set(summaryCacheKey, items, 600).catch(() => {});
+      }
+      return items;
+    } finally {
+      inFlightTrendingResolves.delete(summaryCacheKey);
+    }
+  })();
+
+  inFlightTrendingResolves.set(summaryCacheKey, resolveTask);
+  return await resolveTask;
+}
+
+/**
+ * Hàm phân giải danh sách phim thịnh hành (chỉ thực thi khi cache MISS)
+ */
+async function resolveTrendingCommunityInternal(
+  limit: number,
+  timeframe: "total" | "week"
 ): Promise<MovieViewStatItem[]> {
   try {
     // 1. Lấy danh sách top slugs từ Analytics Pipeline (Redis Sorted Sets + Supabase events)

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getTopTrendingCommunitySupabase } from "@/services/communityWatchService";
+import { getTopTrendingCommunitySupabase, invalidateTrendingSummaryCache } from "@/services/communityWatchService";
 import {
   enforceRateLimit,
   buildRateLimitResponse,
@@ -16,6 +16,7 @@ const CACHE_TTL = 60 * 1000;
 
 export function invalidateTrendingCache(): void {
   SERVER_CACHE.clear();
+  invalidateTrendingSummaryCache();
 }
 
 export async function GET(req: NextRequest) {
