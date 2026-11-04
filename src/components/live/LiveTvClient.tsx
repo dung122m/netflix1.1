@@ -1636,24 +1636,9 @@ export function LiveTvClient({
               </div>
             )}
 
-            {/* 2. CENTER PLAYBACK CONTROLS CHO MOBILE (CHUẨN YOUTUBE MOBILE TỪ MOVIE PLAYER) */}
+            {/* 2. CENTER PLAYBACK CONTROLS CHO MOBILE (GỌN GÀNG, DUY NHẤT 1 NÚT PLAY/PAUSE, KHÔNG RÁC ICON) */}
             {showControls && !isLoading && !hasError && (
-              <div className="md:hidden absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center justify-center gap-6 sm:gap-10 pointer-events-none z-20">
-                {/* Tua lùi 10s */}
-                <button
-                  type="button"
-                  data-player-control="true"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleSeek(-10);
-                    resetControlsTimeout();
-                  }}
-                  aria-label="Tua lùi 10 giây"
-                  className="pointer-events-auto w-11 h-11 rounded-full bg-black/50 hover:bg-black/70 active:scale-90 text-white/95 flex items-center justify-center shadow-lg backdrop-blur-md transition-all cursor-pointer outline-none touch-manipulation"
-                >
-                  <YouTubeSeek10BackIcon className="w-5 h-5" />
-                </button>
-
+              <div className="md:hidden absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center justify-center pointer-events-none z-20">
                 {/* Play/Pause chính giữa */}
                 <button
                   type="button"
@@ -1664,28 +1649,13 @@ export function LiveTvClient({
                     resetControlsTimeout();
                   }}
                   aria-label={isPlaying ? "Tạm dừng" : "Phát"}
-                  className="pointer-events-auto w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-black/55 hover:bg-black/75 active:scale-95 text-white flex items-center justify-center shadow-2xl backdrop-blur-md transition-transform duration-150 cursor-pointer outline-none touch-manipulation"
+                  className="pointer-events-auto w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-black/60 hover:bg-black/75 active:scale-95 text-white flex items-center justify-center shadow-2xl backdrop-blur-md transition-transform duration-150 cursor-pointer outline-none touch-manipulation"
                 >
                   {isPlaying ? (
                     <YouTubePauseIcon className="w-7 h-7 sm:w-8 sm:h-8" />
                   ) : (
                     <YouTubePlayIcon className="w-7 h-7 sm:w-8 sm:h-8 ml-0.5" />
                   )}
-                </button>
-
-                {/* Tua tới 10s */}
-                <button
-                  type="button"
-                  data-player-control="true"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleSeek(10);
-                    resetControlsTimeout();
-                  }}
-                  aria-label="Tua tới 10 giây"
-                  className="pointer-events-auto w-11 h-11 rounded-full bg-black/50 hover:bg-black/70 active:scale-90 text-white/95 flex items-center justify-center shadow-lg backdrop-blur-md transition-all cursor-pointer outline-none touch-manipulation"
-                >
-                  <YouTubeSeek10ForwardIcon className="w-5 h-5" />
                 </button>
               </div>
             )}
@@ -1705,50 +1675,53 @@ export function LiveTvClient({
                 paddingRight: isFullscreen ? "max(0.75rem, env(safe-area-inset-right, 0.75rem))" : undefined,
               }}
             >
-              {/* CỤM TRÁI: TUA LÙI 10S + PLAY/PAUSE + TUA TỚI 10S + ÂM LƯỢNG (BỐ TRÍ CÂN ĐỐI CHUẨN MOVIE PLAYER) */}
+              {/* CỤM TRÁI: DESKTOP PLAYBACK (TUA LÙI 10S + PLAY/PAUSE + TUA TỚI 10S) + ÂM LƯỢNG */}
               <div className="flex items-center gap-1 sm:gap-1.5 min-w-0 shrink-0">
-                {/* Nút Tua lùi 10s */}
-                <Tooltip content="Tua lùi 10 giây" shortcut="←" side="top">
-                  <button
-                    type="button"
-                    data-player-control="true"
-                    onClick={() => handleSeek(-10)}
-                    aria-label="Tua lùi 10 giây"
-                    className="w-9 h-9 sm:w-10 sm:h-10 rounded-full hover:bg-white/15 active:scale-90 text-zinc-300 hover:text-white flex items-center justify-center transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-white/40 touch-manipulation"
-                  >
-                    <YouTubeSeek10BackIcon className="w-4.5 h-4.5 sm:w-5 sm:h-5" />
-                  </button>
-                </Tooltip>
+                {/* Tua & Play/Pause dưới đáy - CHỈ HIỆN TRÊN DESKTOP, TRÁNH TRÙNG LẶP RÁC ICON TRÊN MOBILE */}
+                <div className="hidden sm:flex items-center gap-1 sm:gap-1.5">
+                  {/* Nút Tua lùi 10s */}
+                  <Tooltip content="Tua lùi 10 giây" shortcut="←" side="top">
+                    <button
+                      type="button"
+                      data-player-control="true"
+                      onClick={() => handleSeek(-10)}
+                      aria-label="Tua lùi 10 giây"
+                      className="w-9 h-9 sm:w-10 sm:h-10 rounded-full hover:bg-white/15 active:scale-90 text-zinc-300 hover:text-white flex items-center justify-center transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-white/40 touch-manipulation"
+                    >
+                      <YouTubeSeek10BackIcon className="w-4.5 h-4.5 sm:w-5 sm:h-5" />
+                    </button>
+                  </Tooltip>
 
-                {/* Nút Play / Pause trung tâm */}
-                <Tooltip content={isPlaying ? "Tạm dừng" : "Phát"} shortcut="Space" side="top">
-                  <button
-                    type="button"
-                    data-player-control="true"
-                    onClick={togglePlay}
-                    aria-label={isPlaying ? "Tạm dừng" : "Phát"}
-                    className="w-9 h-9 sm:w-10 sm:h-10 rounded-full hover:bg-white/15 active:scale-90 text-white flex items-center justify-center transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-white/40 touch-manipulation"
-                  >
-                    {isPlaying ? (
-                      <YouTubePauseIcon className="w-5 h-5 sm:w-6 sm:h-6" />
-                    ) : (
-                      <YouTubePlayIcon className="w-5 h-5 sm:w-6 sm:h-6 ml-0.5" />
-                    )}
-                  </button>
-                </Tooltip>
+                  {/* Nút Play / Pause trung tâm */}
+                  <Tooltip content={isPlaying ? "Tạm dừng" : "Phát"} shortcut="Space" side="top">
+                    <button
+                      type="button"
+                      data-player-control="true"
+                      onClick={togglePlay}
+                      aria-label={isPlaying ? "Tạm dừng" : "Phát"}
+                      className="w-9 h-9 sm:w-10 sm:h-10 rounded-full hover:bg-white/15 active:scale-90 text-white flex items-center justify-center transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-white/40 touch-manipulation"
+                    >
+                      {isPlaying ? (
+                        <YouTubePauseIcon className="w-5 h-5 sm:w-6 sm:h-6" />
+                      ) : (
+                        <YouTubePlayIcon className="w-5 h-5 sm:w-6 sm:h-6 ml-0.5" />
+                      )}
+                    </button>
+                  </Tooltip>
 
-                {/* Nút Tua tới 10s */}
-                <Tooltip content="Tua tới 10 giây" shortcut="→" side="top">
-                  <button
-                    type="button"
-                    data-player-control="true"
-                    onClick={() => handleSeek(10)}
-                    aria-label="Tua tới 10 giây"
-                    className="w-9 h-9 sm:w-10 sm:h-10 rounded-full hover:bg-white/15 active:scale-90 text-zinc-300 hover:text-white flex items-center justify-center transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-white/40 touch-manipulation"
-                  >
-                    <YouTubeSeek10ForwardIcon className="w-4.5 h-4.5 sm:w-5 sm:h-5" />
-                  </button>
-                </Tooltip>
+                  {/* Nút Tua tới 10s */}
+                  <Tooltip content="Tua tới 10 giây" shortcut="→" side="top">
+                    <button
+                      type="button"
+                      data-player-control="true"
+                      onClick={() => handleSeek(10)}
+                      aria-label="Tua tới 10 giây"
+                      className="w-9 h-9 sm:w-10 sm:h-10 rounded-full hover:bg-white/15 active:scale-90 text-zinc-300 hover:text-white flex items-center justify-center transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-white/40 touch-manipulation"
+                    >
+                      <YouTubeSeek10ForwardIcon className="w-4.5 h-4.5 sm:w-5 sm:h-5" />
+                    </button>
+                  </Tooltip>
+                </div>
 
                 {/* CỤM VOLUME TRÊN MOBILE (Chỉ hiện nút Mute nhỏ gọn) */}
                 <button
