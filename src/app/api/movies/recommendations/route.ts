@@ -621,14 +621,9 @@ export function unpackRecommendationsPayload(raw: any): any {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function executeAndCacheRecommendations(cacheKey: string, body: any) {
   const kvKeyV13 = `movie:recommendations:v13:${cacheKey}`;
-  const kvKeyLegacy = `movie:recommendations:v12:${cacheKey}`;
 
-  // 1. Thử đọc từ Redis v13 Compact Metadata
+  // 1. Đọc từ Redis v13 Compact Metadata (loại bỏ hoàn toàn fallback v12 cồng kềnh 200+ KB)
   let rawData = await cacheService.get<CompactRecommendationsPayload | Record<string, unknown>>(kvKeyV13);
-  // Fallback sang v12 cũ nếu v13 chưa có
-  if (!rawData) {
-    rawData = await cacheService.get<CompactRecommendationsPayload | Record<string, unknown>>(kvKeyLegacy);
-  }
 
   if (!rawData) {
     const computed = await computeMovieRecommendations(body);
@@ -657,7 +652,7 @@ async function executeAndCacheRecommendations(cacheKey: string, body: any) {
 
 export async function POST(req: NextRequest) {
   try {
-    const rateLimit = await enforceRateLimit(req, RATE_LIMIT_PRESETS.RECOMMENDATIONS);
+    const rateLimit = await enforceRateLimit(req, RATE_LIMIT_PRESETS.RECOMMENDATIONS_IN_MEMORY);
     if (!rateLimit.allowed) {
       return buildRateLimitResponse(rateLimit);
     }

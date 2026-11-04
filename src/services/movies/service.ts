@@ -498,139 +498,162 @@ function mergeSecondaryIntoPrimary(primary: any, secondary: any) {
   }
 }
 
+// Mutex map ngăn ngừa gọi discovery trùng lặp đồng thời trên cùng 1 slug
+const inFlightDiscovery = new Map<string, Promise<void>>();
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function discoverAndMergeMissingSources(result: any, slug: string) {
   if (!result?.movie) return;
 
-  const m = result.movie;
-  const primaryEpisodes = result.episodes || m.episodes || [];
-  const primaryStreamUrls = new Set<string>();
-  for (const s of primaryEpisodes) {
-    for (const ep of s?.server_data || []) {
-      const u = (ep?.link_m3u8 || ep?.link_embed || "").trim().toLowerCase();
-      if (u) primaryStreamUrls.add(u);
-    }
+  const discoveryKey = slug.trim().toLowerCase();
+  const existing = inFlightDiscovery.get(discoveryKey);
+  if (existing) {
+    await existing;
+    return;
   }
 
-  const hasPhimApi = m.source === "phimapi" || Array.from(primaryStreamUrls).some((u) => u.includes("phimapi.com") || u.includes(".m3u8"));
-  const hasNguonC = m.source === "nguonc" || Array.from(primaryStreamUrls).some((u) => u.includes("nguonc") || u.includes("gatec"));
-  const hasVsmov = m.source === "vsmov" || Array.from(primaryStreamUrls).some((u) => u.includes("vsmov"));
-
-  const targetName = String(m.name || m.title || "").trim();
-  const targetOrig = String(m.origin_name || "").trim();
-  if (!targetName && !targetOrig) return;
-
-  const cleanTargetName = cleanNormalizedForMatch(targetName);
-  const cleanTargetOrig = cleanNormalizedForMatch(targetOrig);
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const discoveryPromises: Promise<any>[] = [];
-
-  // 1. Khám phá NguonC nếu chưa có
-  if (!hasNguonC) {
-    discoveryPromises.push((async () => {
-      try {
-        const query = targetName || targetOrig;
-        const res = await fetch(`${API_NGUONC}/films/search?keyword=${encodeURIComponent(query)}&page=1`, {
-          headers: DEFAULT_FETCH_HEADERS,
-          next: { revalidate: 600 },
-          signal: AbortSignal.timeout(4000),
-        });
-        if (!res.ok) return null;
-        const json = await res.json();
-        const items = json?.items || [];
-        for (const itm of items) {
-          const cn = cleanNormalizedForMatch(itm.name || "");
-          const co = cleanNormalizedForMatch(itm.original_name || "");
-          const matched = (cleanTargetName && (cn === cleanTargetName || co === cleanTargetName)) ||
-                          (cleanTargetOrig && (cn === cleanTargetOrig || co === cleanTargetOrig));
-          if (matched && itm.slug && itm.slug !== slug) {
-            const detailRes = await fetch(`${API_NGUONC}/film/${itm.slug}`, {
-              headers: DEFAULT_FETCH_HEADERS,
-              next: { revalidate: 600 },
-              signal: AbortSignal.timeout(4000),
-            });
-            if (detailRes.ok) {
-              const detailJson = await detailRes.json();
-              return normalizeNguonCMovieDetail(detailJson);
-            }
-          }
-        }
-      } catch {}
-      return null;
-    })());
-  }
-
-  // 2. Khám phá PhimAPI nếu chưa có
-  if (!hasPhimApi) {
-    discoveryPromises.push((async () => {
-      try {
-        const query = targetName || targetOrig;
-        const res = await fetch(`${API_PHIMAPI}/v1/api/tim-kiem?keyword=${encodeURIComponent(query)}&limit=10`, {
-          headers: DEFAULT_FETCH_HEADERS,
-          next: { revalidate: 600 },
-          signal: AbortSignal.timeout(4000),
-        });
-        if (!res.ok) return null;
-        const json = await res.json();
-        const items = json?.data?.items || json?.items || [];
-        for (const itm of items) {
-          const cn = cleanNormalizedForMatch(itm.name || "");
-          const co = cleanNormalizedForMatch(itm.origin_name || "");
-          const matched = (cleanTargetName && (cn === cleanTargetName || co === cleanTargetName)) ||
-                          (cleanTargetOrig && (cn === cleanTargetOrig || co === cleanTargetOrig));
-          if (matched && itm.slug && itm.slug !== slug) {
-            const detailRes = await fetch(`${API_PHIMAPI}/phim/${itm.slug}`, {
-              headers: DEFAULT_FETCH_HEADERS,
-              next: { revalidate: 600 },
-              signal: AbortSignal.timeout(4000),
-            });
-            if (detailRes.ok) {
-              return await detailRes.json();
-            }
-          }
-        }
-      } catch {}
-      return null;
-    })());
-  }
-
-  // 3. Khám phá VSMOV nếu chưa có
-  if (!hasVsmov) {
-    discoveryPromises.push((async () => {
-      try {
-        const vsmovExact = await fetchVsmovDetail(slug, 3500);
-        if (vsmovExact) return adaptVsmovMovieDetail(vsmovExact);
-
-        const query = targetName || targetOrig;
-        const searchRes = await searchVsmov(query, 1, 10);
-        const items = searchRes?.items || [];
-        for (const itm of items) {
-          const cn = cleanNormalizedForMatch(itm.name || "");
-          const co = cleanNormalizedForMatch(itm.origin_name || "");
-          const matched = (cleanTargetName && (cn === cleanTargetName || co === cleanTargetName)) ||
-                          (cleanTargetOrig && (cn === cleanTargetOrig || co === cleanTargetOrig));
-          if (matched && itm.slug && itm.slug !== slug) {
-            const detail = await fetchVsmovDetail(itm.slug, 3500);
-            if (detail) return adaptVsmovMovieDetail(detail);
-          }
-        }
-      } catch {}
-      return null;
-    })());
-  }
-
-  if (discoveryPromises.length > 0) {
-    const settled = await Promise.allSettled(discoveryPromises);
-    for (const s of settled) {
-      if (s.status === "fulfilled" && s.value) {
-        mergeSecondaryIntoPrimary(result, s.value);
+  const promise = (async () => {
+    const m = result.movie;
+    const primaryEpisodes = result.episodes || m.episodes || [];
+    const primaryStreamUrls = new Set<string>();
+    for (const s of primaryEpisodes) {
+      for (const ep of s?.server_data || []) {
+        const u = (ep?.link_m3u8 || ep?.link_embed || "").trim().toLowerCase();
+        if (u) primaryStreamUrls.add(u);
       }
     }
+
+    const hasPhimApi = m.source === "phimapi" || Array.from(primaryStreamUrls).some((u) => u.includes("phimapi.com") || u.includes(".m3u8"));
+    const hasNguonC = m.source === "nguonc" || Array.from(primaryStreamUrls).some((u) => u.includes("nguonc") || u.includes("gatec"));
+    const hasVsmov = m.source === "vsmov" || Array.from(primaryStreamUrls).some((u) => u.includes("vsmov"));
+
+    const targetName = String(m.name || m.title || "").trim();
+    const targetOrig = String(m.origin_name || "").trim();
+    if (!targetName && !targetOrig) return;
+
+    const cleanTargetName = cleanNormalizedForMatch(targetName);
+    const cleanTargetOrig = cleanNormalizedForMatch(targetOrig);
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const discoveryPromises: Promise<any>[] = [];
+
+    // 1. Khám phá NguonC nếu chưa có
+    if (!hasNguonC) {
+      discoveryPromises.push((async () => {
+        try {
+          const query = targetName || targetOrig;
+          const res = await fetch(`${API_NGUONC}/films/search?keyword=${encodeURIComponent(query)}&page=1`, {
+            headers: DEFAULT_FETCH_HEADERS,
+            next: { revalidate: 600 },
+            signal: AbortSignal.timeout(4000),
+          });
+          if (!res.ok) return null;
+          const json = await res.json();
+          const items = json?.items || [];
+          for (const itm of items) {
+            const cn = cleanNormalizedForMatch(itm.name || "");
+            const co = cleanNormalizedForMatch(itm.original_name || "");
+            const matched = (cleanTargetName && (cn === cleanTargetName || co === cleanTargetName)) ||
+                            (cleanTargetOrig && (cn === cleanTargetOrig || co === cleanTargetOrig));
+            if (matched && itm.slug && itm.slug !== slug) {
+              const detailRes = await fetch(`${API_NGUONC}/film/${itm.slug}`, {
+                headers: DEFAULT_FETCH_HEADERS,
+                next: { revalidate: 600 },
+                signal: AbortSignal.timeout(4000),
+              });
+              if (detailRes.ok) {
+                const detailJson = await detailRes.json();
+                return normalizeNguonCMovieDetail(detailJson);
+              }
+            }
+          }
+        } catch {}
+        return null;
+      })());
+    }
+
+    // 2. Khám phá PhimAPI nếu chưa có
+    if (!hasPhimApi) {
+      discoveryPromises.push((async () => {
+        try {
+          const query = targetName || targetOrig;
+          const res = await fetch(`${API_PHIMAPI}/v1/api/tim-kiem?keyword=${encodeURIComponent(query)}&limit=10`, {
+            headers: DEFAULT_FETCH_HEADERS,
+            next: { revalidate: 600 },
+            signal: AbortSignal.timeout(4000),
+          });
+          if (!res.ok) return null;
+          const json = await res.json();
+          const items = json?.data?.items || json?.items || [];
+          for (const itm of items) {
+            const cn = cleanNormalizedForMatch(itm.name || "");
+            const co = cleanNormalizedForMatch(itm.origin_name || "");
+            const matched = (cleanTargetName && (cn === cleanTargetName || co === cleanTargetName)) ||
+                            (cleanTargetOrig && (cn === cleanTargetOrig || co === cleanTargetOrig));
+            if (matched && itm.slug && itm.slug !== slug) {
+              const detailRes = await fetch(`${API_PHIMAPI}/phim/${itm.slug}`, {
+                headers: DEFAULT_FETCH_HEADERS,
+                next: { revalidate: 600 },
+                signal: AbortSignal.timeout(4000),
+              });
+              if (detailRes.ok) {
+                return await detailRes.json();
+              }
+            }
+          }
+        } catch {}
+        return null;
+      })());
+    }
+
+    // 3. Khám phá VSMOV nếu chưa có
+    if (!hasVsmov) {
+      discoveryPromises.push((async () => {
+        try {
+          const vsmovExact = await fetchVsmovDetail(slug, 3500);
+          if (vsmovExact) return adaptVsmovMovieDetail(vsmovExact);
+
+          const query = targetName || targetOrig;
+          const searchRes = await searchVsmov(query, 1, 10);
+          const items = searchRes?.items || [];
+          for (const itm of items) {
+            const cn = cleanNormalizedForMatch(itm.name || "");
+            const co = cleanNormalizedForMatch(itm.origin_name || "");
+            const matched = (cleanTargetName && (cn === cleanTargetName || co === cleanTargetName)) ||
+                            (cleanTargetOrig && (cn === cleanTargetOrig || co === cleanTargetOrig));
+            if (matched && itm.slug && itm.slug !== slug) {
+              const detail = await fetchVsmovDetail(itm.slug, 3500);
+              if (detail) return adaptVsmovMovieDetail(detail);
+            }
+          }
+        } catch {}
+        return null;
+      })());
+    }
+
+    if (discoveryPromises.length > 0) {
+      const settled = await Promise.allSettled(discoveryPromises);
+      for (const s of settled) {
+        if (s.status === "fulfilled" && s.value) {
+          mergeSecondaryIntoPrimary(result, s.value);
+        }
+      }
+    }
+  })();
+
+  inFlightDiscovery.set(discoveryKey, promise);
+  try {
+    await promise;
+  } finally {
+    inFlightDiscovery.delete(discoveryKey);
   }
 }
 
-const fetchMovieDetailInternal = async (
+// Mutex map ngăn ngừa gọi Base Movie Detail trùng lặp (giữa generateMetadata và Page component)
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const inFlightDetailBase = new Map<string, Promise<any>>();
+
+const fetchMovieDetailBase = async (
   slug: string,
   source?: "nguonc" | "ophim" | "vsmov",
   requestedEpisode?: string,
@@ -641,56 +664,70 @@ const fetchMovieDetailInternal = async (
   if (movieDetailMemoryCache.has(localKey)) {
     const entry = movieDetailMemoryCache.get(localKey)!;
     if (entry.expireAt > now) {
-      if (entry.data === null) return undefined;
-      return sanitizeMovieDetailEpisodes(attachRequestedEpisodeStreams(entry.data, requestedEpisode));
+      return entry.data;
     }
     // Trả về dữ liệu đệm ngay lập tức nếu chưa quá hạn stale (0ms)
     if (entry.staleUntil > now) {
-      if (entry.data === null) return undefined;
-      // Revalidate ngầm
       revalidateMovieDetail(slug, source, localKey).catch(() => {});
-      return sanitizeMovieDetailEpisodes(attachRequestedEpisodeStreams(entry.data, requestedEpisode));
+      return entry.data;
     }
   }
 
-  // 1. Thử đọc từ Redis v3 Compact Metadata, fallback sang cache cũ nếu chưa có
-  const kvKeyV3 = `movie:detail:v3:${slug}:${source || "any"}`;
-  const kvKeyLegacy = `movie:detail:${slug}:${source || "any"}`;
+  const existing = inFlightDetailBase.get(localKey);
+  if (existing) return existing;
 
-  let rawData = await cacheService.get<MovieDetailCachePayload>(kvKeyV3);
-  if (!rawData) {
-    rawData = await cacheService.get<MovieDetailCachePayload>(kvKeyLegacy);
-  }
+  const promise = (async () => {
+    // 1. Đọc từ Redis v3 Compact Metadata (loại bỏ hoàn toàn fallback đọc key cũ khổng lồ 500KB-1.5MB)
+    const kvKeyV3 = `movie:detail:v3:${slug}:${source || "any"}`;
 
-  let data = rawData ? unpackDetailPayload(rawData) : null;
+    const rawData = await cacheService.get<MovieDetailCachePayload>(kvKeyV3);
+    let data = rawData ? unpackDetailPayload(rawData) : null;
 
-  // Cơ chế Tự Phục Hồi (Self-Healing Cache):
-  // Nếu cache trước đây bị nhiễm fallback VSMOV trong khi source yêu cầu là mặc định ("any" / Nanaflix),
-  // thử kích hoạt live fetch để khôi phục nguồn phát chuẩn Nanaflix (PhimAPI/NguonC)
-  if (!source && data?.movie?.source === "vsmov") {
-    try {
-      const freshNanaflix = await fetchAndCacheMovieDetail(slug, source, localKey);
-      if (freshNanaflix && freshNanaflix.movie?.source !== "vsmov") {
-        const ttl = Boolean((freshNanaflix as MovieDetailCachePayload)?._isFallback) ? 180 : 7 * 24 * 60 * 60;
-        const compact = toCompactDetailPayload(freshNanaflix, requestedEpisode);
+    // Cơ chế Tự Phục Hồi (Self-Healing Cache):
+    // Nếu cache trước đây bị nhiễm fallback VSMOV trong khi source yêu cầu là mặc định ("any" / Nanaflix),
+    // thử kích hoạt live fetch để khôi phục nguồn phát chuẩn Nanaflix (PhimAPI/NguonC)
+    if (!source && data?.movie?.source === "vsmov") {
+      try {
+        const freshNanaflix = await fetchAndCacheMovieDetail(slug, source, localKey);
+        if (freshNanaflix && freshNanaflix.movie?.source !== "vsmov") {
+          const ttl = Boolean((freshNanaflix as MovieDetailCachePayload)?._isFallback) ? 180 : 7 * 24 * 60 * 60;
+          const compact = toCompactDetailPayload(freshNanaflix, requestedEpisode);
+          await cacheService.set(kvKeyV3, compact, ttl);
+          data = freshNanaflix;
+        }
+      } catch {}
+    }
+
+    if (!data) {
+      data = await fetchAndCacheMovieDetail(slug, source, localKey);
+      if (data && !(typeof data === "object" && "_isNegative" in data)) {
+        const ttl = Boolean((data as MovieDetailCachePayload)?._isFallback) ? 180 : 7 * 24 * 60 * 60;
+        const compact = toCompactDetailPayload(data, requestedEpisode);
         await cacheService.set(kvKeyV3, compact, ttl);
-        data = freshNanaflix;
       }
-    } catch {}
-  }
-
-  if (!data) {
-    data = await fetchAndCacheMovieDetail(slug, source, localKey);
-    if (data && !(typeof data === "object" && "_isNegative" in data)) {
-      const ttl = Boolean((data as MovieDetailCachePayload)?._isFallback) ? 180 : 7 * 24 * 60 * 60;
-      const compact = toCompactDetailPayload(data, requestedEpisode);
-      await cacheService.set(kvKeyV3, compact, ttl);
     }
-  }
 
-  if (!data || (typeof data === "object" && "_isNegative" in data)) {
-    return undefined;
+    if (!data || (typeof data === "object" && "_isNegative" in data)) {
+      return null;
+    }
+    return data;
+  })();
+
+  inFlightDetailBase.set(localKey, promise);
+  try {
+    return await promise;
+  } finally {
+    inFlightDetailBase.delete(localKey);
   }
+};
+
+const fetchMovieDetailInternal = async (
+  slug: string,
+  source?: "nguonc" | "ophim" | "vsmov",
+  requestedEpisode?: string,
+) => {
+  const data = await fetchMovieDetailBase(slug, source, requestedEpisode);
+  if (!data) return undefined;
   return sanitizeMovieDetailEpisodes(attachRequestedEpisodeStreams(data, requestedEpisode));
 };
 
@@ -763,12 +800,20 @@ async function revalidateMovieDetail(slug: string, source?: "nguonc" | "ophim" |
   } catch {}
 }
 
-async function fetchAndCacheMovieDetail(slug: string, source?: "nguonc" | "ophim" | "vsmov", cacheKey?: string) {
-  const now = Date.now();
-  const key = cacheKey || `${slug}_${source || "any"}`;
+// Mutex map ngăn ngừa gọi fetchAndCacheMovieDetail trùng lặp đồng thời
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const inFlightDetailFetches = new Map<string, Promise<any>>();
 
-  try {
-    let result = undefined;
+async function fetchAndCacheMovieDetail(slug: string, source?: "nguonc" | "ophim" | "vsmov", cacheKey?: string) {
+  const key = cacheKey || `${slug}_${source || "any"}`;
+  const existing = inFlightDetailFetches.get(key);
+  if (existing) return existing;
+
+  const promise = (async () => {
+    const now = Date.now();
+
+    try {
+      let result = undefined;
 
     if (source === "nguonc") {
       const res = await fetch(`${API_NGUONC}/film/${slug}`, {
@@ -983,6 +1028,14 @@ async function fetchAndCacheMovieDetail(slug: string, source?: "nguonc" | "ophim
       staleUntil: now + 60 * 1000,
     });
     return undefined;
+  }
+  })();
+
+  inFlightDetailFetches.set(key, promise);
+  try {
+    return await promise;
+  } finally {
+    inFlightDetailFetches.delete(key);
   }
 }
 

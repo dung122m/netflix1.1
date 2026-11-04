@@ -308,6 +308,41 @@ export const RATE_LIMIT_PRESETS = {
     failClosed: false,
     strategy: "in-memory-only",
   },
+  PUBLIC_IN_MEMORY_READ: {
+    namespace: "public-in-memory-read",
+    maxRequests: 120,
+    windowSeconds: 60,
+    failClosed: false,
+    strategy: "in-memory-only",
+  },
+  SEARCH_IN_MEMORY: {
+    namespace: "search-in-memory",
+    maxRequests: 60,
+    windowSeconds: 60,
+    failClosed: false,
+    strategy: "in-memory-only",
+  },
+  POSTER_FALLBACK_IN_MEMORY: {
+    namespace: "poster-fallback-in-memory",
+    maxRequests: 300,
+    windowSeconds: 60,
+    failClosed: false,
+    strategy: "in-memory-only",
+  },
+  COMMENTS_READ_IN_MEMORY: {
+    namespace: "comments-read-in-memory",
+    maxRequests: 60,
+    windowSeconds: 60,
+    failClosed: false,
+    strategy: "in-memory-only",
+  },
+  RECOMMENDATIONS_IN_MEMORY: {
+    namespace: "recommendations-in-memory",
+    maxRequests: 30,
+    windowSeconds: 60,
+    failClosed: false,
+    strategy: "in-memory-only",
+  },
 } as const;
 
 /**

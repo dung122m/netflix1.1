@@ -31,7 +31,7 @@ export const fetchCache = "force-no-store";
  */
 export async function GET(req: NextRequest) {
   // 1. Giới hạn tần suất phân tán (60 req / phút / IP)
-  const rateLimit = await enforceRateLimit(req, RATE_LIMIT_PRESETS.COMMENTS_READ);
+  const rateLimit = await enforceRateLimit(req, RATE_LIMIT_PRESETS.COMMENTS_READ_IN_MEMORY);
   if (!rateLimit.allowed) {
     logSecurityEvent(req, {
       event: "RATE_LIMIT_EXCEEDED",

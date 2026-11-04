@@ -51,6 +51,19 @@ export async function fetchVsmovList(
   }
 }
 
+function logVsmovError(action: string, target: string, error: unknown, timeoutMs: number) {
+  const isAbort = error instanceof Error && (error.name === "AbortError" || error.name === "TimeoutError");
+  if (isAbort) {
+    console.warn(`[VSMOV Client] ${action} ("${target}") timed out after ${timeoutMs}ms (aborted)`);
+  } else {
+    console.warn(`[VSMOV Client] ${action} ("${target}") failed:`, error instanceof Error ? error.message : error);
+  }
+}
+
+// Single-Flight Mutex Maps để loại bỏ triệt để request trùng lặp
+const inFlightVsmovDetails = new Map<string, Promise<VsmovRawDetailResponse | null>>();
+const inFlightVsmovSearches = new Map<string, Promise<VsmovRawListResponse | null>>();
+
 /**
  * Fetch movie detail from VSMOV by slug
  */
@@ -58,28 +71,40 @@ export async function fetchVsmovDetail(
   slug: string,
   timeoutMs: number = 5000
 ): Promise<VsmovRawDetailResponse | null> {
-  if (!slug) return null;
+  const cleanSlug = slug?.trim() || "";
+  if (!cleanSlug) return null;
 
-  try {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), timeoutMs);
+  const key = `${cleanSlug.toLowerCase()}_${timeoutMs}`;
+  const existing = inFlightVsmovDetails.get(key);
+  if (existing) return existing;
 
-    const res = await fetch(
-      `${VSMOV_API_BASE}/phim/${encodeURIComponent(slug)}`,
-      {
-        headers: DEFAULT_HEADERS,
-        signal: controller.signal,
-        next: { revalidate: 1800 }, // 30 mins cache
-      }
-    );
-    clearTimeout(timer);
+  const promise = (async () => {
+    try {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), timeoutMs);
 
-    if (!res.ok) return null;
-    return await res.json().catch(() => null);
-  } catch (error) {
-    console.warn(`[VSMOV Client] fetchVsmovDetail (${slug}) failed:`, error);
-    return null;
-  }
+      const res = await fetch(
+        `${VSMOV_API_BASE}/phim/${encodeURIComponent(cleanSlug)}`,
+        {
+          headers: DEFAULT_HEADERS,
+          signal: controller.signal,
+          next: { revalidate: 1800 }, // 30 mins cache
+        }
+      );
+      clearTimeout(timer);
+
+      if (!res.ok) return null;
+      return await res.json().catch(() => null);
+    } catch (error) {
+      logVsmovError("fetchVsmovDetail", cleanSlug, error, timeoutMs);
+      return null;
+    } finally {
+      inFlightVsmovDetails.delete(key);
+    }
+  })();
+
+  inFlightVsmovDetails.set(key, promise);
+  return promise;
 }
 
 /**
@@ -90,28 +115,40 @@ export async function searchVsmov(
   page: number = 1,
   timeoutMs: number = 4000
 ): Promise<VsmovRawListResponse | null> {
-  if (!keyword) return null;
+  const cleanKw = keyword?.trim() || "";
+  if (!cleanKw) return null;
 
-  try {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), timeoutMs);
+  const key = `${cleanKw.toLowerCase()}_${page}_${timeoutMs}`;
+  const existing = inFlightVsmovSearches.get(key);
+  if (existing) return existing;
 
-    const res = await fetch(
-      `${VSMOV_API_BASE}/tim-kiem?keyword=${encodeURIComponent(keyword)}&page=${page}`,
-      {
-        headers: DEFAULT_HEADERS,
-        signal: controller.signal,
-        next: { revalidate: 300 },
-      }
-    );
-    clearTimeout(timer);
+  const promise = (async () => {
+    try {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), timeoutMs);
 
-    if (!res.ok) return null;
-    return await res.json().catch(() => null);
-  } catch (error) {
-    console.warn(`[VSMOV Client] searchVsmov (${keyword}) failed:`, error);
-    return null;
-  }
+      const res = await fetch(
+        `${VSMOV_API_BASE}/tim-kiem?keyword=${encodeURIComponent(cleanKw)}&page=${page}`,
+        {
+          headers: DEFAULT_HEADERS,
+          signal: controller.signal,
+          next: { revalidate: 300 },
+        }
+      );
+      clearTimeout(timer);
+
+      if (!res.ok) return null;
+      return await res.json().catch(() => null);
+    } catch (error) {
+      logVsmovError("searchVsmov", cleanKw, error, timeoutMs);
+      return null;
+    } finally {
+      inFlightVsmovSearches.delete(key);
+    }
+  })();
+
+  inFlightVsmovSearches.set(key, promise);
+  return promise;
 }
 
 /**
@@ -141,7 +178,7 @@ export async function fetchVsmovType(
     if (!res.ok) return null;
     return await res.json().catch(() => null);
   } catch (error) {
-    console.warn(`[VSMOV Client] fetchVsmovType (${type}) failed:`, error);
+    logVsmovError("fetchVsmovType", type, error, timeoutMs);
     return null;
   }
 }
@@ -173,7 +210,7 @@ export async function fetchVsmovCategory(
     if (!res.ok) return null;
     return await res.json().catch(() => null);
   } catch (error) {
-    console.warn(`[VSMOV Client] fetchVsmovCategory (${categorySlug}) failed:`, error);
+    logVsmovError("fetchVsmovCategory", categorySlug, error, timeoutMs);
     return null;
   }
 }
@@ -205,7 +242,7 @@ export async function fetchVsmovCountry(
     if (!res.ok) return null;
     return await res.json().catch(() => null);
   } catch (error) {
-    console.warn(`[VSMOV Client] fetchVsmovCountry (${countrySlug}) failed:`, error);
+    logVsmovError("fetchVsmovCountry", countrySlug, error, timeoutMs);
     return null;
   }
 }
@@ -237,7 +274,7 @@ export async function fetchVsmovYear(
     if (!res.ok) return null;
     return await res.json().catch(() => null);
   } catch (error) {
-    console.warn(`[VSMOV Client] fetchVsmovYear (${year}) failed:`, error);
+    logVsmovError("fetchVsmovYear", String(year), error, timeoutMs);
     return null;
   }
 }

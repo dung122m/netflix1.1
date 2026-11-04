@@ -9,7 +9,7 @@ import {
 export const runtime = "nodejs";
 
 export async function GET(req: NextRequest) {
-  const rateLimit = await enforceRateLimit(req, RATE_LIMIT_PRESETS.PUBLIC_READ);
+  const rateLimit = await enforceRateLimit(req, RATE_LIMIT_PRESETS.PUBLIC_IN_MEMORY_READ);
   if (!rateLimit.allowed) {
     return buildRateLimitResponse(rateLimit);
   }

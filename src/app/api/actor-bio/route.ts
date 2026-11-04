@@ -42,7 +42,7 @@ function formatDate(dateStr?: string): string | null {
 }
 
 export async function GET(request: NextRequest) {
-  const rateLimit = await enforceRateLimit(request, RATE_LIMIT_PRESETS.PUBLIC_READ);
+  const rateLimit = await enforceRateLimit(request, RATE_LIMIT_PRESETS.PUBLIC_IN_MEMORY_READ);
   if (!rateLimit.allowed) {
     return buildRateLimitResponse(rateLimit);
   }

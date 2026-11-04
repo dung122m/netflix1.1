@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
   const methodErr = validateHttpMethod(request, ["GET"]);
   if (methodErr) return methodErr;
 
-  const rateLimit = await enforceRateLimit(request, RATE_LIMIT_PRESETS.PUBLIC_READ);
+  const rateLimit = await enforceRateLimit(request, RATE_LIMIT_PRESETS.PUBLIC_IN_MEMORY_READ);
   if (!rateLimit.allowed) {
     return buildRateLimitResponse(rateLimit);
   }

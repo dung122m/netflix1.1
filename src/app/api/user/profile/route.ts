@@ -20,7 +20,7 @@ export const dynamic = "force-dynamic";
  */
 export async function GET(req: NextRequest) {
   const auth = await verifyServerAuth(req);
-  const rateLimitPreset = auth.userId ? RATE_LIMIT_PRESETS.USER_READ : RATE_LIMIT_PRESETS.PUBLIC_READ;
+  const rateLimitPreset = auth.userId ? RATE_LIMIT_PRESETS.USER_READ : RATE_LIMIT_PRESETS.PUBLIC_IN_MEMORY_READ;
   const rateLimit = await enforceRateLimit(req, rateLimitPreset, auth.userId || undefined);
   if (!rateLimit.allowed) {
     return buildRateLimitResponse(rateLimit);

@@ -150,7 +150,7 @@ async function queryTmdbPoster(query: string, year?: string): Promise<{ posterUr
 }
 
 export async function GET(req: NextRequest) {
-  const rateLimit = await enforceRateLimit(req, RATE_LIMIT_PRESETS.POSTER_FALLBACK);
+  const rateLimit = await enforceRateLimit(req, RATE_LIMIT_PRESETS.POSTER_FALLBACK_IN_MEMORY);
   if (!rateLimit.allowed) {
     return buildRateLimitResponse(rateLimit);
   }

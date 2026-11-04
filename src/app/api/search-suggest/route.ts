@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
     if (methodErr) return methodErr;
 
     // 2. Giới hạn tần suất phân tán (30 requests / phút / IP)
-    const rateLimit = await enforceRateLimit(req, RATE_LIMIT_PRESETS.SEARCH);
+    const rateLimit = await enforceRateLimit(req, RATE_LIMIT_PRESETS.SEARCH_IN_MEMORY);
     if (!rateLimit.allowed) {
       logSecurityEvent(req, {
         event: "RATE_LIMIT_EXCEEDED",

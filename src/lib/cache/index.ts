@@ -12,7 +12,9 @@ import { getSafeRedisCredentials } from "@/lib/redisEnvGuard";
 
 export interface CacheService {
   get<T>(key: string): Promise<T | null>;
+  mget<T>(keys: string[]): Promise<(T | null)[]>;
   set<T>(key: string, value: T, ttlSeconds?: number): Promise<boolean>;
+  setMany<T>(entries: Array<{ key: string; value: T; ttlSeconds?: number }>): Promise<boolean>;
   delete(key: string): Promise<boolean>;
   fetchOrSet<T>(key: string, fetcher: () => Promise<T>, ttlSeconds?: number): Promise<T>;
   clearL1(): void;
@@ -129,6 +131,65 @@ export const cacheService: CacheService = {
   },
 
   /**
+   * Batch get items from cache (Checks L1 RAM first, then executes 1 Redis MGET for missing keys)
+   * Guaranteed to preserve input order and handle null/missing correctly.
+   */
+  async mget<T>(rawKeys: string[]): Promise<(T | null)[]> {
+    if (!rawKeys || rawKeys.length === 0) return [];
+    const keys = rawKeys.map(sanitizeKey);
+    const now = Date.now();
+    const results: (T | null)[] = new Array(keys.length).fill(null);
+    const missingIndices: number[] = [];
+    const missingKeys: string[] = [];
+
+    // 1. Check L1 Memory Cache for each key (0ms)
+    for (let i = 0; i < keys.length; i++) {
+      const k = keys[i];
+      const mem = L1_CACHE.get(k);
+      if (mem) {
+        if (mem.expireAt > now) {
+          results[i] = mem.value as T;
+          continue;
+        }
+        L1_CACHE.delete(k);
+      }
+      missingIndices.push(i);
+      missingKeys.push(k);
+    }
+
+    // If 100% hits in L1 RAM, return immediately with 0 Redis commands!
+    if (missingKeys.length === 0) {
+      return results;
+    }
+
+    // 2. Query missing keys from L2 Upstash Redis using single MGET
+    const redis = getRedisClient();
+    if (!redis) {
+      return results;
+    }
+
+    try {
+      const redisValues = await redis.mget<T[]>(...missingKeys);
+      if (Array.isArray(redisValues)) {
+        for (let j = 0; j < missingKeys.length; j++) {
+          const val = redisValues[j];
+          const origIdx = missingIndices[j];
+          if (val !== null && val !== undefined) {
+            results[origIdx] = val;
+            // Repopulate L1 RAM so subsequent calls are 0ms
+            L1_CACHE.set(missingKeys[j], { value: val, expireAt: now + 5 * 60 * 1000 });
+          }
+        }
+      }
+      return results;
+    } catch (err) {
+      console.warn("[Cache ERROR: MGET]:", err instanceof Error ? err.message : err);
+      // Fail-safe: return partial L1 results
+      return results;
+    }
+  },
+
+  /**
    * Set item into cache (L1 Memory immediately, L2 Upstash Redis with single SET EX command)
    */
   async set<T>(rawKey: string, value: T, ttlSeconds: number = 86400): Promise<boolean> {
@@ -165,6 +226,48 @@ export const cacheService: CacheService = {
       // Fail-safe: Returns false without breaking flow
       return false;
     }
+  },
+
+  /**
+   * Batch set multiple items into cache (L1 Memory immediately, L2 Upstash Redis via single pipeline)
+   */
+  async setMany<T>(entries: Array<{ key: string; value: T; ttlSeconds?: number }>): Promise<boolean> {
+    if (!entries || entries.length === 0) return true;
+    const now = Date.now();
+    const redis = getRedisClient();
+    const pipe = redis ? redis.pipeline() : null;
+
+    for (const entry of entries) {
+      if (entry.value === undefined || entry.value === null) continue;
+      const key = sanitizeKey(entry.key);
+      const safeTtl = Math.max(1, Math.floor(entry.ttlSeconds ?? 86400));
+
+      // 1. Save to L1 Memory Cache
+      if (L1_CACHE.size >= MAX_L1_ENTRIES) {
+        const oldestKey = L1_CACHE.keys().next().value;
+        if (oldestKey) L1_CACHE.delete(oldestKey);
+      }
+      L1_CACHE.set(key, {
+        value: entry.value,
+        expireAt: now + Math.min(safeTtl * 1000, 30 * 60 * 1000),
+      });
+
+      // 2. Queue in Redis pipeline
+      if (pipe) {
+        pipe.set(key, entry.value, { ex: safeTtl });
+      }
+    }
+
+    if (pipe) {
+      try {
+        await pipe.exec();
+        return true;
+      } catch (err) {
+        console.warn("[Cache ERROR: setMany]:", err instanceof Error ? err.message : err);
+        return false;
+      }
+    }
+    return true;
   },
 
   /**

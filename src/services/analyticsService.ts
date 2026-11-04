@@ -180,10 +180,7 @@ function getRedis(): Redis | null {
   }
 }
 
-// In-memory counter for periodic list trimming
-let globalEventTrimCounter = 0;
-
-// In-memory fallback buffer when Redis is unavailable
+// In-memory fallback buffer (capped at 500 items, zero Redis bandwidth)
 const memoryEventsBuffer: StoredAnalyticsEvent[] = [];
 const memoryVisitorsMap = new Map<string, VisitorInfo>();
 
@@ -252,29 +249,13 @@ export async function recordAnalyticsEvent(payload: AnalyticsEventPayload): Prom
   const pagePath = payload.movieTitle?.trim() || "/";
 
   // Check 30-Second Deduplication for rapid double-clicks / F5 on the same page
+  // Handled purely in-memory (0ms, 0 Redis commands, zero Redis bandwidth)
   const visitDedupKey = `visit_dedup:${viewerKey}:${pageGroup}`;
   const localDedup = localVisitDedupCache.get(visitDedupKey);
   if (localDedup && now - localDedup < 30000) {
     return { success: true, deduped: true, visitorRecorded: true };
   }
-
-  try {
-    const redis = getRedis();
-    if (redis) {
-      // SET ... NX EX 30: Single atomic command replaces separate GET + SET (saves 1 roundtrip and 1 Redis command)
-      const acquired = await redis.set(visitDedupKey, now, { nx: true, ex: 30 });
-      if (!acquired) {
-        localVisitDedupCache.set(visitDedupKey, now);
-        return { success: true, deduped: true, visitorRecorded: true };
-      }
-      localVisitDedupCache.set(visitDedupKey, now);
-    } else {
-      localVisitDedupCache.set(visitDedupKey, now);
-    }
-  } catch {
-    localVisitDedupCache.set(visitDedupKey, now);
-    // Fail gracefully: proceed if Redis is temporarily unavailable
-  }
+  localVisitDedupCache.set(visitDedupKey, now);
 
   const eventRecord: StoredAnalyticsEvent = {
     id: `evt_${now}_${Math.random().toString(36).substring(2, 7)}`,
@@ -297,65 +278,24 @@ export async function recordAnalyticsEvent(payload: AnalyticsEventPayload): Prom
     createdAt: now,
   };
 
-  const redis = getRedis();
+  // 1. Persist to in-memory buffer (eliminates heavy 162+ KB Redis analytics:events list)
+  memoryEventsBuffer.unshift(eventRecord);
+  if (memoryEventsBuffer.length > 500) memoryEventsBuffer.pop();
 
-  let visitorRecorded = false;
-
-  // Persist to Upstash Redis via single pipeline (fail-safe)
-  if (redis) {
-    try {
-      const isKnown = Boolean(payload.isReturningVisitor) || localKnownVisitors.has(viewerKey);
-      localKnownVisitors.add(viewerKey);
-
-      const pipe = redis.pipeline();
-      pipe.lpush("analytics:events", JSON.stringify(eventRecord));
-
-      // Serverless-resilient probabilistic (~10%) + local counter trimming:
-      // Guarantees list stays bounded <= 550 across multiple cold/concurrent lambdas without extra Redis commands
-      globalEventTrimCounter += 1;
-      if (globalEventTrimCounter >= 10 || Math.random() < 0.1) {
-        globalEventTrimCounter = 0;
-        pipe.ltrim("analytics:events", 0, 500);
-      }
-
-      pipe.incr("analytics:visits:total");
-
-      // Unique Visitor tracking: Only run SADD when visitor is not previously known in this session
-      if (!isKnown) {
-        pipe.sadd("analytics:unique:total", viewerKey);
-        if (userId) {
-          pipe.sadd("analytics:unique:users", userId);
-        } else {
-          pipe.sadd("analytics:unique:guests", anonymousId);
-        }
-      }
-
-      await pipe.exec();
-      visitorRecorded = true;
-    } catch (redisErr) {
-      console.warn("[Analytics] Redis storage error:", redisErr);
-      visitorRecorded = false;
-    }
-  } else {
-    // Memory fallback
-    memoryEventsBuffer.unshift(eventRecord);
-    if (memoryEventsBuffer.length > 500) memoryEventsBuffer.pop();
-
-    const existingMem = memoryVisitorsMap.get(viewerKey);
-    memoryVisitorsMap.set(viewerKey, {
-      id: viewerKey,
-      isUser: Boolean(userId),
-      userId,
-      anonymousId,
-      deviceType: eventRecord.deviceType || "desktop",
-      os: eventRecord.os || "Other",
-      browser: eventRecord.browser || "Other",
-      screenRes: undefined,
-      firstSeen: existingMem?.firstSeen || now,
-      lastSeen: now,
-    });
-    visitorRecorded = true;
-  }
+  const existingMem = memoryVisitorsMap.get(viewerKey);
+  memoryVisitorsMap.set(viewerKey, {
+    id: viewerKey,
+    isUser: Boolean(userId),
+    userId,
+    anonymousId,
+    deviceType: eventRecord.deviceType || "desktop",
+    os: eventRecord.os || "Other",
+    browser: eventRecord.browser || "Other",
+    screenRes: undefined,
+    firstSeen: existingMem?.firstSeen || now,
+    lastSeen: now,
+  });
+  const visitorRecorded = true;
 
   // Persist to Supabase analytics_events table (fail-safe)
   const client = isSupabaseAdminConfigured() ? getSupabaseAdmin() : supabase;
@@ -432,61 +372,13 @@ export function getWeekKeyVietnam(nowMs: number = Date.now()): string {
 }
 
 /**
- * Helper to safely parse ZRANGE / ZREVRANGE scores from Upstash Redis
- */
-function parseZRangeScores(raw: unknown): Array<{ slug: string; score: number }> {
-  if (!Array.isArray(raw)) return [];
-  const results: Array<{ slug: string; score: number }> = [];
-
-  // Format 1: [{ member: 'slug', score: 10 }, ...]
-  if (raw.length > 0 && typeof raw[0] === "object" && raw[0] !== null && "member" in raw[0]) {
-    for (const item of raw as Array<{ member: string; score: number }>) {
-      if (item.member && typeof item.member === "string") {
-        results.push({ slug: item.member, score: Number(item.score) || 0 });
-      }
-    }
-    return results;
-  }
-
-  // Format 2: ['slug1', 10, 'slug2', 5]
-  for (let i = 0; i < raw.length; i += 2) {
-    const slug = raw[i];
-    const score = raw[i + 1];
-    if (typeof slug === "string" && slug.length > 0) {
-      results.push({ slug, score: Number(score) || 0 });
-    }
-  }
-  return results;
-}
-
-/**
- * Get top movie slugs and view counts from Analytics (Redis Sorted Set with Supabase fallback).
+ * Get top movie slugs and view counts from Analytics (Supabase analytics_events with Memory fallback).
  */
 export async function getTopMovieSlugsFromAnalytics(
   timeframe: "total" | "week" = "total",
   limit: number = 10
 ): Promise<Array<{ slug: string; score: number }>> {
-  const redis = getRedis();
-
-  // 1. Try Redis Sorted Set
-  if (redis) {
-    try {
-      const redisKey =
-        timeframe === "week"
-          ? `analytics:views:week:${getWeekKeyVietnam(Date.now())}`
-          : "analytics:views:movies";
-
-      const raw = await redis.zrange(redisKey, 0, limit - 1, { rev: true, withScores: true });
-      const parsed = parseZRangeScores(raw);
-      if (parsed.length > 0) {
-        return parsed;
-      }
-    } catch (err) {
-      console.warn("[Analytics] Error reading top movie slugs from Redis:", err);
-    }
-  }
-
-  // 2. Fallback: Query Supabase analytics_events table
+  // 1. Query Supabase analytics_events table
   const client = isSupabaseAdminConfigured() ? getSupabaseAdmin() : supabase;
   if (client) {
     try {
@@ -642,16 +534,9 @@ export async function getAnalyticsDashboardStats(
     "country", "country_code", "region", "city", "created_at",
   ].join(",");
 
-  // Parallel fetch: Redis events, Supabase analytics_events (only site_visit), Supabase device_handoff
-  // (device_profiles scan is completely removed to eliminate heavy obsolete queries)
-  const [redisListData, supabaseEventsResult, supabaseHandoffResult] = await Promise.all([
-    redis
-      ? redis.lrange<string | StoredAnalyticsEvent>("analytics:events", 0, 500).catch((e) => {
-          console.warn("[Analytics] Redis lrange error:", e);
-          return null;
-        })
-      : Promise.resolve(null),
-
+  // Parallel fetch: Supabase analytics_events (only site_visit) and Supabase device_handoff
+  // (Redis analytics:events eliminated to save 162+ KB payload and bandwidth; memoryEventsBuffer used as L1)
+  const [supabaseEventsResult, supabaseHandoffResult] = await Promise.all([
     (async () => {
       const client = isSupabaseAdminConfigured() ? getSupabaseAdmin() : supabase;
       if (!client) return { data: null, error: null };
@@ -686,24 +571,8 @@ export async function getAnalyticsDashboardStats(
     })(),
   ]);
 
-  // Process Redis events
-  if (redisListData && Array.isArray(redisListData)) {
-    rawEvents = redisListData
-      .map((item) => {
-        if (typeof item === "string") {
-          try {
-            return JSON.parse(item) as StoredAnalyticsEvent;
-          } catch {
-            return null;
-          }
-        }
-        return item as StoredAnalyticsEvent;
-      })
-      .filter((evt): evt is StoredAnalyticsEvent => Boolean(evt && evt.eventType === "site_visit"));
-  }
-
-  // Memory buffer fallback
-  if (rawEvents.length === 0 && memoryEventsBuffer.length > 0) {
+  // Seed with in-memory buffer events
+  if (memoryEventsBuffer.length > 0) {
     rawEvents = memoryEventsBuffer.filter((e) => e.eventType === "site_visit");
   }
 
@@ -1168,7 +1037,6 @@ export async function getDailyVisitorsStats(dateStr?: string): Promise<DailyVisi
   const { date, startMs, endMs } = getVietnamDayBoundaries(dateStr);
 
   const client = isSupabaseAdminConfigured() ? getSupabaseAdmin() : supabase;
-  const redis = getRedis();
 
   const analyticsEventsColumns = [
     "id", "event_type", "movie_slug", "movie_title",
@@ -1176,40 +1044,45 @@ export async function getDailyVisitorsStats(dateStr?: string): Promise<DailyVisi
     "country", "country_code", "region", "city", "created_at",
   ].join(",");
 
-  const [supabaseEventsResult, redisListData] = await Promise.all([
-    (async () => {
-      if (!client) return { data: null, error: null };
-      try {
-        return await client
-          .from("analytics_events")
-          .select(analyticsEventsColumns)
-          .eq("event_type", "site_visit")
-          .gte("created_at", startMs)
-          .lte("created_at", endMs)
-          .order("created_at", { ascending: false })
-          .limit(2000);
-      } catch {
-        return { data: null, error: new Error("analytics_events fetch failed") };
-      }
-    })(),
-    (async () => {
-      if (!redis) return null;
-      try {
-        return await redis.lrange<string | StoredAnalyticsEvent>("analytics:events", 0, 500);
-      } catch {
-        return null;
-      }
-    })(),
-  ]);
+  interface DbEventRow {
+    id: string;
+    event_type?: string;
+    movie_slug?: string;
+    movie_title?: string;
+    user_id?: string;
+    anonymous_id: string;
+    device_type?: string;
+    os?: string;
+    browser?: string;
+    country?: string;
+    country_code?: string;
+    region?: string;
+    city?: string;
+    created_at: number | string;
+  }
+
+  let dbEvents: DbEventRow[] | null = null;
+  if (client) {
+    try {
+      const res = await client
+        .from("analytics_events")
+        .select(analyticsEventsColumns)
+        .eq("event_type", "site_visit")
+        .gte("created_at", startMs)
+        .lte("created_at", endMs)
+        .order("created_at", { ascending: false })
+        .limit(2000);
+      dbEvents = (res.data as unknown as DbEventRow[]) || null;
+    } catch {
+      // Fail-safe to memoryEventsBuffer
+    }
+  }
 
   const eventMap = new Map<string, StoredAnalyticsEvent>();
 
   // 1. Add Supabase events
-  const { data: dbEvents } = supabaseEventsResult ?? { data: null, error: null };
   if (Array.isArray(dbEvents)) {
-    for (const raw of dbEvents) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const r = raw as any;
+    for (const r of dbEvents) {
       const ev: StoredAnalyticsEvent = {
         id: r.id,
         eventType: r.event_type || "site_visit",
@@ -1234,28 +1107,13 @@ export async function getDailyVisitorsStats(dateStr?: string): Promise<DailyVisi
     }
   }
 
-  // 2. Merge Redis events
-  if (Array.isArray(redisListData)) {
-    for (const item of redisListData) {
-      let ev: StoredAnalyticsEvent | null = null;
-      if (typeof item === "string") {
-        try {
-          ev = JSON.parse(item);
-        } catch {}
-      } else if (item && typeof item === "object") {
-        ev = item as StoredAnalyticsEvent;
-      }
-      if (ev && ev.id && ev.eventType === "site_visit" && ev.createdAt >= startMs && ev.createdAt <= endMs) {
-        eventMap.set(ev.id, ev);
-      }
-    }
-  }
-
-  // 3. Fallback to memoryEventsBuffer if no events found
+  // 2. Merge memoryEventsBuffer (in-memory L1 cache, zero Redis overhead)
   if (memoryEventsBuffer.length > 0) {
     for (const ev of memoryEventsBuffer) {
       if (ev.eventType === "site_visit" && ev.createdAt >= startMs && ev.createdAt <= endMs) {
-        eventMap.set(ev.id, ev);
+        if (!eventMap.has(ev.id)) {
+          eventMap.set(ev.id, ev);
+        }
       }
     }
   }

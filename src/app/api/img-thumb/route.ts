@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { enforceRateLimit, buildRateLimitResponse } from "@/lib/rateLimit";
+import {
+  enforceRateLimit,
+  buildRateLimitResponse,
+  RATE_LIMIT_PRESETS,
+} from "@/lib/rateLimit";
 
 export const runtime = "nodejs";
 
@@ -11,12 +15,10 @@ export const runtime = "nodejs";
  * Returns HTTP 410 Gone immediately.
  */
 export async function GET(req: NextRequest) {
-  const rateLimit = await enforceRateLimit(req, {
-    namespace: "img-thumb",
-    maxRequests: 120,
-    windowSeconds: 60,
-    failClosed: false,
-  });
+  const rateLimit = await enforceRateLimit(
+    req,
+    RATE_LIMIT_PRESETS.PUBLIC_IN_MEMORY_READ,
+  );
   if (!rateLimit.allowed) {
     return buildRateLimitResponse(rateLimit);
   }

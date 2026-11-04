@@ -6,6 +6,8 @@ const bundleAnalyzer = withBundleAnalyzer({
 });
 
 const nextConfig: NextConfig = {
+  // Cho phép 127.0.0.1 và localhost trong môi trường dev cục bộ (chống lỗi 403 cross-origin _next/*)
+  allowedDevOrigins: ["127.0.0.1", "localhost"],
   reactStrictMode: true,
   compress: false, // Tắt in-process Node.js Gzip để tránh MaxListenersExceededWarning trên streaming RSC responses (CDN/Edge tự động nén Brotli/Gzip)
   poweredByHeader: false,

@@ -12,8 +12,6 @@
  */
 
 import { NextRequest } from "next/server";
-import { Redis } from "@upstash/redis";
-import { getSafeRedisCredentials } from "@/lib/redisEnvGuard";
 import { getClientIp } from "@/lib/security";
 
 export interface GeoLocationInfo {
@@ -118,7 +116,7 @@ function safeDecodeHeader(val: string | null | undefined): string | null {
   }
 }
 
-// In-Memory L1 Cache for GeoIP resolutions (TTL: 24 hours)
+// In-Memory L1 Cache for GeoIP resolutions (TTL: 24 hours, zero Redis bandwidth)
 interface GeoCacheEntry {
   data: GeoLocationInfo;
   expiresAt: number;
@@ -126,32 +124,6 @@ interface GeoCacheEntry {
 const geoL1Cache = new Map<string, GeoCacheEntry>();
 
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
-
-// Upstash Redis client singleton for distributed L2 cache
-let geoRedisClient: Redis | null = null;
-let isGeoRedisChecked = false;
-
-function getGeoRedis(): Redis | null {
-  if (isGeoRedisChecked) return geoRedisClient;
-  isGeoRedisChecked = true;
-
-  const creds = getSafeRedisCredentials();
-
-  if (!creds) {
-    geoRedisClient = null;
-    return null;
-  }
-
-  const { url, token } = creds;
-
-  try {
-    geoRedisClient = new Redis({ url, token });
-    return geoRedisClient;
-  } catch {
-    geoRedisClient = null;
-    return null;
-  }
-}
 
 /**
  * Extract GeoLocation directly from Edge Infrastructure Headers (Vercel & Cloudflare).
@@ -280,38 +252,19 @@ export async function getGeoLocationFromIp(
 
   const cleanIp = ip.trim();
 
-  // 3. Check L1 In-Memory Cache
+  // 3. Check L1 In-Memory Cache (0ms, 0 Redis commands)
   const now = Date.now();
   const cachedL1 = geoL1Cache.get(cleanIp);
   if (cachedL1 && cachedL1.expiresAt > now) {
     return cachedL1.data;
   }
 
-  // 4. Check L2 Upstash Redis Cache
-  const redis = getGeoRedis();
-  const redisKey = `geo:${cleanIp}`;
-
-  if (redis) {
-    try {
-      const cachedL2 = await redis.get<GeoLocationInfo>(redisKey);
-      if (cachedL2 && typeof cachedL2 === "object") {
-        geoL1Cache.set(cleanIp, { data: cachedL2, expiresAt: now + CACHE_TTL_MS });
-        return cachedL2;
-      }
-    } catch {
-      // Fail open to continue resolution
-    }
-  }
-
-  // 5. Fallback Lookup
+  // 4. Fallback Lookup (free GeoIP service with 800ms timeout)
   const geoResult = await fetchFallbackGeoFromIp(cleanIp);
 
-  // 6. Cache valid results
+  // 5. Cache valid results in L1 RAM (zero Redis bandwidth)
   if (geoResult.country || geoResult.countryCode) {
     geoL1Cache.set(cleanIp, { data: geoResult, expiresAt: now + CACHE_TTL_MS });
-    if (redis) {
-      redis.set(redisKey, JSON.stringify(geoResult), { ex: 24 * 60 * 60 }).catch(() => {});
-    }
   }
 
   return geoResult;
