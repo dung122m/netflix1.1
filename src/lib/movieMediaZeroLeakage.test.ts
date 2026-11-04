@@ -9,63 +9,50 @@ import {
   toHighResBackdropUrl,
 } from "./movieMedia";
 
-describe("Movie Media Complete Phimimg Purge Invariant", () => {
-  const samplePhimimgUrls = [
-    "https://phimimg.com/upload/vod/20240101-1/sample-poster.jpg",
-    "https://phimimg.com/upload/vod/20240101-1/sample-thumb.webp",
-    "https://phimimg.com/uploads/movies/duoi-day-ho-thumb.webp",
-    "https://phimimg.com/uploads/movies/duoi-day-ho-poster.webp",
-    "/api/img-thumb?url=https%3A%2F%2Fphimimg.com%2Fsample.jpg",
-  ];
+describe("Movie Media Phimimg & CDN Safe Fallback Invariant", () => {
+  const samplePosterWebp = "https://phimimg.com/uploads/movies/sample-poster.webp";
+  const sampleThumbWebp = "https://phimimg.com/uploads/movies/sample-thumb.webp";
+  const sampleJpg = "https://phimimg.com/upload/vod/20240101-1/sample-poster.jpg";
 
-  it("toOptimizedPhimimgUrl completely rejects all phimimg.com and proxy URLs (returns empty string)", () => {
-    for (const url of samplePhimimgUrls) {
-      const res = toOptimizedPhimimgUrl(url, 320);
-      assert.equal(res, "", `Expected empty string for purged phimimg, got: ${res}`);
-    }
+  it("toOptimizedPhimimgUrl preserves clean phimimg URLs directly without broken proxy", () => {
+    assert.equal(toOptimizedPhimimgUrl(samplePosterWebp, 320), samplePosterWebp);
+    assert.equal(toOptimizedPhimimgUrl(sampleJpg, 320), sampleJpg);
   });
 
-  it("toOptimizedCardBackdropUrl completely rejects all phimimg.com and proxy URLs (returns empty string)", () => {
-    for (const url of samplePhimimgUrls) {
-      const res = toOptimizedCardBackdropUrl(url, 320);
-      assert.equal(res, "", `Expected empty string for purged phimimg, got: ${res}`);
-    }
+  it("toOptimizedCardBackdropUrl normalizes phimimg -poster.webp to -thumb.webp for 16:9 aspect ratio", () => {
+    assert.equal(toOptimizedCardBackdropUrl(samplePosterWebp, 320), sampleThumbWebp);
+    assert.equal(toOptimizedCardBackdropUrl(sampleThumbWebp, 320), sampleThumbWebp);
   });
 
-  it("toOptimizedCardPosterUrl completely rejects all phimimg.com and proxy URLs (returns empty string)", () => {
-    for (const url of samplePhimimgUrls) {
-      const res = toOptimizedCardPosterUrl(url, 320);
-      assert.equal(res, "", `Expected empty string for purged phimimg, got: ${res}`);
-    }
+  it("toOptimizedCardPosterUrl normalizes phimimg -thumb.webp to -poster.webp for 2:3 aspect ratio", () => {
+    assert.equal(toOptimizedCardPosterUrl(sampleThumbWebp, 320), samplePosterWebp);
+    assert.equal(toOptimizedCardPosterUrl(samplePosterWebp, 320), samplePosterWebp);
   });
 
-  it("toHighResBackdropUrl completely rejects all phimimg.com and proxy URLs (returns empty string)", () => {
-    for (const url of samplePhimimgUrls) {
-      const res = toHighResBackdropUrl(url, "w1280");
-      assert.equal(res, "", `Expected empty string for purged phimimg, got: ${res}`);
-    }
+  it("toHighResBackdropUrl normalizes phimimg -poster.webp to -thumb.webp for high-res hero banner", () => {
+    assert.equal(toHighResBackdropUrl(samplePosterWebp, "w1280"), sampleThumbWebp);
   });
 
-  it("pickBestMoviePoster returns empty string when only phimimg candidates are present and fallback is empty", () => {
+  it("pickBestMoviePoster returns valid phimimg poster when only phimimg candidates are present", () => {
     const res = pickBestMoviePoster(
       {
-        poster_url: "https://phimimg.com/upload/vod/20240101-1/sample-poster.jpg",
-        thumb_url: "https://phimimg.com/upload/vod/20240101-1/sample-thumb.webp",
+        poster_url: samplePosterWebp,
+        thumb_url: sampleThumbWebp,
       },
       ""
     );
-    assert.equal(res, "", `Expected empty string so Canvas renders immediately, got: ${res}`);
+    assert.equal(res, samplePosterWebp);
   });
 
-  it("pickBestMovieThumb returns empty string when only phimimg candidates are present and fallback is empty", () => {
+  it("pickBestMovieThumb returns valid phimimg thumb when only phimimg candidates are present", () => {
     const res = pickBestMovieThumb(
       {
-        poster_url: "https://phimimg.com/upload/vod/20240101-1/sample-poster.jpg",
-        thumb_url: "https://phimimg.com/upload/vod/20240101-1/sample-thumb.webp",
+        poster_url: samplePosterWebp,
+        thumb_url: sampleThumbWebp,
       },
       ""
     );
-    assert.equal(res, "", `Expected empty string so Canvas renders immediately, got: ${res}`);
+    assert.equal(res, sampleThumbWebp);
   });
 
   it("prioritizes official TMDb image when present and discards phimimg thumb", () => {

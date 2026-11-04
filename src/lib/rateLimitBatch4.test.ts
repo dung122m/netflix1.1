@@ -69,6 +69,7 @@ describe("Batch 4 — Dual-Engine Rate Limiting (Fixed vs Sliding Window)", () =
     const config: RateLimitConfig = {
       namespace: "test-sliding-auth",
       maxRequests: 2,
+      fallbackMaxRequests: 2,
       windowSeconds: 300,
       failClosed: true,
       strategy: "sliding-window",

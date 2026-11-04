@@ -95,6 +95,9 @@ interface SingleMovieMatchEntry {
   expireAt: number;
 }
 const TMDB_SINGLE_MOVIE_MATCH_CACHE = new Map<number, SingleMovieMatchEntry>();
+
+// Single-Flight Mutex for concurrent individual TMDB movie source probes
+const inFlightSourceProbes = new Map<number | string, Promise<{ candidate: any; matchType: "tmdb_id" | "imdb_id" | "title_year" } | null>>();
 export function clearTmdbSingleMatchCache(): void {
   TMDB_SINGLE_MOVIE_MATCH_CACHE.clear();
 }
@@ -1544,13 +1547,22 @@ export async function matchTmdbMoviesWithSources(
           return null;
         };
 
-        // Thử tên đang dùng hiện tại trước
-        let matchResult = await trySearchAndMatch(primarySearchKw);
-
-        // Nếu không match được, thử tiếp với tên còn lại (original_title hoặc title)
-        if (!matchResult && secondarySearchKw && secondarySearchKw !== primarySearchKw) {
-          matchResult = await trySearchAndMatch(secondarySearchKw);
+        // Khử trùng lặp probe đang chạy (Single-Flight Mutex trên từng TMDB credit)
+        let probePromise = inFlightSourceProbes.get(credit.id);
+        if (!probePromise) {
+          probePromise = (async () => {
+            let res = await trySearchAndMatch(primarySearchKw);
+            if (!res && secondarySearchKw && secondarySearchKw !== primarySearchKw) {
+              res = await trySearchAndMatch(secondarySearchKw);
+            }
+            return res;
+          })().finally(() => {
+            inFlightSourceProbes.delete(credit.id);
+          });
+          inFlightSourceProbes.set(credit.id, probePromise);
         }
+
+        const matchResult = await probePromise;
 
         const matchedCandidate = matchResult?.candidate || null;
         const matchType = matchResult?.matchType || null;
@@ -1777,7 +1789,7 @@ async function executeTmdbActorFlow(
     const tMatchStart = performance.now();
     const checkLimit = Math.min(
       credits.length,
-      Math.min(Math.max(maxMovies * 2.5, 50), 160)
+      Math.min(Math.max(Math.round(maxMovies * 2), 24), 160)
     );
     const matchedMovies = await matchTmdbMoviesWithSources(credits, checkLimit, concurrency, {
       isActorFilmography: true,
@@ -2318,7 +2330,10 @@ export async function getDirectorFilmographyFromTmdb(
           });
         }
 
-        const matchedMovies = await matchTmdbMoviesWithSources(credits, 80, concurrency);
+        // Sắp xếp credit theo độ phổ biến / vote count để ưu tiên probe phim nổi tiếng trước
+        credits.sort((a, b) => (b.popularity || 0) - (a.popularity || 0));
+        const checkLimit = Math.min(credits.length, Math.min(Math.max(maxMovies * 2, 24), 80));
+        const matchedMovies = await matchTmdbMoviesWithSources(credits, checkLimit, concurrency);
         const filmographyMovies = matchedMovies.map((m) => ({
           ...m,
           _isDirectorRec: true,

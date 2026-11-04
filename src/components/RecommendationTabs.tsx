@@ -496,6 +496,7 @@ export function RecommendationTabs({
                   <RecommendedSidebarCard
                     key={item.slug}
                     item={item}
+                    index={index}
                     matchPercent={matchPercent}
                     displayCategory={resolveDisplayCategory(item, activeTab, genreName)}
                   />
@@ -694,12 +695,15 @@ const RecommendedMovieCard = React.memo(function RecommendedMovieCard({
  */
 const RecommendedSidebarCard = React.memo(function RecommendedSidebarCard({
   item,
+  index = 0,
   displayCategory,
 }: {
   item: MovieItem;
+  index?: number;
   matchPercent?: number;
   displayCategory?: string;
 }) {
+  const isLcpCandidate = index === 0;
   const rawThumb = pickBestMovieThumb(item, "/default-hero.jpg");
   const thumbUrl = toOptimizedPhimimgUrl(rawThumb, 240);
   const title = item.name || item.title || "Phim";
@@ -725,7 +729,9 @@ const RecommendedSidebarCard = React.memo(function RecommendedSidebarCard({
           sizes="140px"
           className="object-cover group-hover:scale-105 transition-transform duration-300"
           decoding="async"
-          loading="lazy"
+          loading={isLcpCandidate ? "eager" : "lazy"}
+          priority={isLcpCandidate}
+          fetchPriority={isLcpCandidate ? "high" : "auto"}
           quality={80}
           onError={(e) => {
             const target = e.currentTarget as HTMLImageElement;

@@ -7,7 +7,7 @@ import { getWatchedEpisodes } from "@/lib/episodeTracker";
 import { getShortEpisodeLabel, formatEpisodeName, findEpisodeMatch } from "@/lib/formatEpisode";
 import { useWatchController, EpisodeItem } from "./WatchController";
 import { ScrollablePillsRow } from "@/components/ui/ScrollablePillsRow";
-import { getMovieEpisodesProgress } from "@/lib/watchHistory";
+import { getMovieEpisodesProgress, EpisodeProgressData } from "@/lib/watchHistory";
 
 import WatchlistButton from "@/components/WatchlistButton";
 import AddToCollectionButton from "@/components/Collections/AddToCollectionButton";
@@ -73,7 +73,7 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(function Episo
 
   const [watchedList, setWatchedList] = useState<string[]>([]);
   const [episodesProgress, setEpisodesProgress] = useState<
-    Record<string, { progressSeconds: number; durationSeconds?: number }>
+    Record<string, EpisodeProgressData>
   >({});
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -402,7 +402,16 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(function Episo
         const tapSlug = singleTap.slug || `ep-1`;
         const tapName = singleTap.name || `Tập 1`;
         const isActive = Boolean(activeEpisodeSlug && activeEpisodeSlug === singleTap.slug);
-        const isWatched = Boolean(singleTap.slug && watchedList.includes(singleTap.slug));
+        const singleEpProg = singleTap.slug ? episodesProgress[singleTap.slug] : undefined;
+        const isSingleCompletedFromProg = Boolean(
+          singleEpProg?.isCompleted ||
+          (singleEpProg?.durationSeconds &&
+            singleEpProg.durationSeconds > 0 &&
+            singleEpProg.progressSeconds / singleEpProg.durationSeconds >= 0.9)
+        );
+        const isWatched = Boolean(
+          singleTap.slug && (watchedList.includes(singleTap.slug) || isSingleCompletedFromProg)
+        );
         const epIndex = episodes.findIndex((e) => e.slug === singleTap.slug);
         const chunkIdx = epIndex >= 0 ? Math.floor(epIndex / CHUNK_SIZE) : -1;
         const chunkObj = chunkIdx >= 0 ? chunks[chunkIdx] : null;
@@ -503,17 +512,23 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(function Episo
                   ? currentActiveEpisode.slug === tap.slug
                   : activeEpisodeSlug && activeEpisodeSlug === tap.slug
               );
-              const isWatched = Boolean(tap.slug && watchedList.includes(tap.slug));
+              // Tiến trình xem dở và trạng thái hoàn thành cho tập này
+              const epProg = tap.slug ? episodesProgress[tap.slug] : undefined;
+              const progressSeconds = epProg?.progressSeconds || 0;
+              const durationSeconds = epProg?.durationSeconds || 0;
+              const isCompletedFromProg = Boolean(
+                epProg?.isCompleted ||
+                (durationSeconds > 0 && progressSeconds / durationSeconds >= 0.9)
+              );
+              const isWatched = Boolean(
+                tap.slug && (watchedList.includes(tap.slug) || isCompletedFromProg)
+              );
               
               // Nhãn nút: nếu đang tìm kiếm thì hiển thị "Tập X" rõ ràng, nếu xem dải thường thì rút gọn số
               const displayLabel = isSearching
                 ? (tapName.toLowerCase().startsWith("tập") ? tapName : `Tập ${getShortEpisodeLabel(tapName, String(tapIdx + 1))}`)
                 : getFormattedEpisodeLabel(tapName, tapIdx + 1, isFewEpisodes);
 
-              // Tiến trình xem dở cho tập này (>= 10 giây và chưa hoàn thành)
-              const epProg = tap.slug ? episodesProgress[tap.slug] : undefined;
-              const progressSeconds = epProg?.progressSeconds || 0;
-              const durationSeconds = epProg?.durationSeconds || 0;
               const isPartiallyWatched = !isActive && !isWatched && progressSeconds >= 10;
               const progressPercent = isPartiallyWatched
                 ? durationSeconds > 0

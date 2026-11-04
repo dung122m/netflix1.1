@@ -97,9 +97,9 @@ test("BATCH 2: TRENDING COMMUNITY SUMMARY CACHE VERIFICATION", async (t) => {
         assert.ok(item.movieTitle, "Phải có movieTitle");
         assert.ok(item.poster, "Phải có poster");
         // Kiểm tra an toàn: không chứa episodes hay server data cồng kềnh
-        assert.equal((item as any).episodes, undefined, "Item không được chứa episodes");
-        assert.equal((item as any).servers, undefined, "Item không được chứa servers");
-        assert.equal((item as any).link_m3u8, undefined, "Item không được chứa streaming links");
+        assert.equal((item as unknown as Record<string, unknown>).episodes, undefined, "Item không được chứa episodes");
+        assert.equal((item as unknown as Record<string, unknown>).servers, undefined, "Item không được chứa servers");
+        assert.equal((item as unknown as Record<string, unknown>).link_m3u8, undefined, "Item không được chứa streaming links");
       }
     }
   });

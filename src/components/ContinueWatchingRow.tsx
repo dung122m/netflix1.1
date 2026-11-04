@@ -64,22 +64,23 @@ function getInitialPoster(item: WatchHistoryItem): string {
 
 function ContinueWatchingCard({ item, index = 0, onRemove }: ContinueWatchingCardProps) {
   const initialPoster = React.useMemo(() => getInitialPoster(item), [item]);
+  const needsFallback = !initialPoster || initialPoster.includes("/default-");
   const { displaySrc, triggerFallback } = useMoviePosterFallback({
     slug: item.slug,
     title: item.title,
     year: item.year,
     initialSrc: initialPoster,
-    enabled: false, // Không gọi đón đầu hàng loạt khi mount
+    enabled: needsFallback, // Tự động tra cứu fallback TMDb khi chưa có poster hợp lệ
   });
 
   const [imgSrc, setImgSrc] = useState<string>(displaySrc || initialPoster);
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
-    if (displaySrc && displaySrc !== initialPoster) {
+    if (displaySrc && displaySrc !== imgSrc) {
       setImgSrc(displaySrc);
     }
-  }, [displaySrc, initialPoster]);
+  }, [displaySrc, imgSrc]);
 
   const handleImgError = useCallback(() => {
     // Nếu link hiện tại bị lỗi, thử dùng thumb ngang nếu có và khác link đang lỗi

@@ -2091,13 +2091,13 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
           posterUrl,
         });
       }
-      // Tự động đánh dấu đã xem khi xem được >= 85% hoặc cách đoạn kết tối đa 90 giây
+      // Tự động đánh dấu đã xem khi xem đạt >= 90% thời lượng hợp lệ
       if (movieSlug && activeEpisodeSlug) {
         const currentEffectiveDuration = getEffectiveDuration();
         if (
-          currentEffectiveDuration > 60 &&
-          (video.currentTime / currentEffectiveDuration >= 0.85 ||
-            currentEffectiveDuration - video.currentTime <= 90)
+          Number.isFinite(currentEffectiveDuration) &&
+          currentEffectiveDuration > 0 &&
+          video.currentTime / currentEffectiveDuration >= 0.9
         ) {
           markEpisodeAsWatched(movieSlug, activeEpisodeSlug);
         }
@@ -2237,8 +2237,45 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
     video.addEventListener("loadstart", handleLoadStart, { passive: true });
     video.addEventListener("loadeddata", handleLoadedData, { passive: true });
 
+    const saveCurrentPlaybackState = () => {
+      if (video.currentTime > 3 && movieSlug && activeEpisodeSlug) {
+        const curDur = getEffectiveDuration();
+        saveWatchProgress(
+          movieSlug,
+          video.currentTime,
+          curDur,
+          activeEpisodeSlug,
+          {
+            title,
+            poster: posterUrl,
+            thumb: resolvedThumb,
+            episodeName: activeEpisodeName,
+          },
+          true
+        );
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "hidden") {
+        saveCurrentPlaybackState();
+      }
+    };
+
+    const handlePageHide = () => {
+      saveCurrentPlaybackState();
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("pagehide", handlePageHide);
+    window.addEventListener("beforeunload", saveCurrentPlaybackState);
+
     return () => {
       cancelAdPreTrigger();
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("pagehide", handlePageHide);
+      window.removeEventListener("beforeunload", saveCurrentPlaybackState);
+      saveCurrentPlaybackState();
       video.removeEventListener("waiting", handleWaiting);
       video.removeEventListener("stalled", handleStalled);
       video.removeEventListener("playing", handlePlaying);

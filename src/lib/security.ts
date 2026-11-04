@@ -8,6 +8,7 @@
  */
 
 import { Redis } from "@upstash/redis";
+import { getSafeRedisCredentials } from "@/lib/redisEnvGuard";
 
 // ==========================================
 // 1. ANTI-XSS & CHUẨN HÓA ĐẦU VÀO AN TOÀN
@@ -190,13 +191,13 @@ function getRateLimitRedis(): Redis | null {
   if (isRedisInitChecked) return redisRateLimitClient;
   isRedisInitChecked = true;
 
-  const url = process.env.UPSTASH_REDIS_REST_URL?.trim();
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN?.trim();
-
-  if (!url || !token) {
+  const creds = getSafeRedisCredentials({ allowTestRedis: true });
+  if (!creds) {
     redisRateLimitClient = null;
     return null;
   }
+
+  const { url, token } = creds;
 
   try {
     redisRateLimitClient = new Redis({

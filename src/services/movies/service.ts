@@ -1,12 +1,14 @@
 import { cache } from "react";
 import { cleanHtmlText } from "@/lib/cleanHtml";
 import { cacheService } from "@/lib/cache";
+import { findEpisodeMatch } from "@/lib/formatEpisode";
 import {
   fetchVsmovDetail,
   fetchVsmovFiltered,
   adaptVsmovMovieItem,
   adaptVsmovMovieDetail,
   performVsmovCatalogIngestion,
+  searchVsmov,
 } from "@/services/providers/vsmov";
 import { formatGenreName, formatCountryName, getCanonicalGenreSlug, getCanonicalCountrySlug } from "@/lib/movieMedia";
 import { getTmdbPosterUrl, searchTmdbPosterByTitle } from "@/services/tmdbService";
@@ -33,6 +35,20 @@ interface CacheEntry<T> {
 const moviesMemoryCache = new Map<string, CacheEntry<any>>();
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const movieDetailMemoryCache = new Map<string, CacheEntry<any>>();
+
+// In-flight deduplication để tránh gọi lặp cùng 1 trang NguonC (đặc biệt các trang giao thoa như page 5, page 10)
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const inFlightNguonC = new Map<string, Promise<any>>();
+
+// Cache metadata phân trang của NguonC (totalItems, totalPages) theo query để chống gọi các trang vượt quá giới hạn
+const nguonCQueryMetaCache = new Map<string, { totalItems: number; totalPages: number; timestamp: number }>();
+
+function getNguonCQueryMetaKey(params: MovieFilterParams, isSearch: boolean): string {
+  if (isSearch && params.keyword) {
+    return `search:${params.keyword.trim().toLowerCase()}`;
+  }
+  return `filter:${params.type || ""}:${params.category || ""}:${params.country || ""}:${params.year || ""}`;
+}
 
 let cachedFilters: {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -269,12 +285,355 @@ interface MovieDetailCachePayload {
   episodes?: Array<{ server_name?: string; server_data?: unknown[] }>;
   _isFallback?: boolean;
   _isNegative?: boolean;
+  _v?: number;
   [key: string]: unknown;
+}
+
+export interface CompactEpisodeItem {
+  name: string;
+  slug: string;
+  link_embed?: string;
+  link_m3u8?: string;
+}
+
+export interface CompactServerItem {
+  server_name: string;
+  server_data: CompactEpisodeItem[];
+}
+
+export interface MovieDetailV3Payload {
+  _v: 3;
+  status?: boolean;
+  msg?: string;
+  movie: Record<string, unknown>;
+  episodes: CompactServerItem[];
+  _isFallback?: boolean;
+  _isNegative?: boolean;
+}
+
+export interface EpisodeStreamResult {
+  server_name: string;
+  link_embed?: string;
+  link_m3u8?: string;
+}
+
+interface RawEpisodeItem {
+  name?: string;
+  slug?: string;
+  link_embed?: string;
+  link_m3u8?: string;
+}
+
+interface RawServerItem {
+  server_name?: string;
+  server_data?: RawEpisodeItem[];
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function toCompactDetailPayload(data: any, requestedEpSlug?: string): MovieDetailV3Payload {
+  if (!data || !data.movie) return data;
+
+  const rawEpisodes: RawServerItem[] = data.episodes || data.movie?.episodes || [];
+  const cleanMovie = { ...data.movie };
+  delete cleanMovie.episodes;
+
+  const compactEpisodes: CompactServerItem[] = rawEpisodes.map((srv: RawServerItem, sIdx: number) => {
+    const rawData: RawEpisodeItem[] = srv?.server_data || [];
+    const isSmallSeries = rawData.length <= 12;
+
+    const compactData: CompactEpisodeItem[] = rawData.map((ep: RawEpisodeItem, epIdx: number) => {
+      // Giữ streaming links cho phim <= 12 tập, hoặc 2 tập đầu, hoặc tập được yêu cầu cụ thể
+      const isInitial = epIdx < 2 || (requestedEpSlug && (ep.slug === requestedEpSlug || ep.name === requestedEpSlug));
+      if (isSmallSeries || isInitial) {
+        return {
+          name: ep.name || "",
+          slug: ep.slug || "",
+          link_embed: ep.link_embed || "",
+          link_m3u8: ep.link_m3u8 || "",
+        };
+      }
+      return {
+        name: ep.name || "",
+        slug: ep.slug || "",
+      };
+    });
+
+    return {
+      server_name: srv.server_name || `Server #${sIdx + 1}`,
+      server_data: deduplicateServerEpisodes(compactData),
+    };
+  });
+
+  return {
+    _v: 3,
+    status: data.status ?? true,
+    msg: data.msg ?? "done",
+    movie: cleanMovie,
+    episodes: compactEpisodes,
+    _isFallback: Boolean(data._isFallback),
+  };
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function unpackDetailPayload(raw: any): any {
+  if (!raw || !raw.movie) return raw;
+  const episodes = raw.episodes || raw.movie.episodes || [];
+  const movie = { ...raw.movie, episodes };
+  return {
+    ...raw,
+    movie,
+    episodes,
+  };
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function attachRequestedEpisodeStreams(data: any, requestedEpSlug?: string): any {
+  if (!data || !requestedEpSlug || !data.episodes) return data;
+  const episodes: RawServerItem[] = data.episodes || data.movie?.episodes || [];
+  for (const srv of episodes) {
+    const list: RawEpisodeItem[] = srv.server_data || [];
+    const target = list.find((e: RawEpisodeItem) => e.slug === requestedEpSlug || e.name === requestedEpSlug)
+      || findEpisodeMatch(list, requestedEpSlug);
+    if (target && (target.link_m3u8 || target.link_embed)) {
+      continue;
+    }
+    const localKey = `${data.movie?.slug}_any`;
+    const mem = movieDetailMemoryCache.get(localKey);
+    if (mem?.data?.episodes) {
+      for (const memSrv of mem.data.episodes) {
+        if (memSrv.server_name === srv.server_name || (!memSrv.server_name && !srv.server_name)) {
+          const memMatch = (memSrv.server_data || []).find((e: RawEpisodeItem) => e.slug === target?.slug || e.name === target?.name)
+            || findEpisodeMatch(memSrv.server_data || [], requestedEpSlug);
+          if (memMatch && target) {
+            target.link_embed = memMatch.link_embed || target.link_embed;
+            target.link_m3u8 = memMatch.link_m3u8 || target.link_m3u8;
+          }
+        }
+      }
+    }
+  }
+  return data;
+}
+
+
+const DEFAULT_FETCH_HEADERS = {
+  "User-Agent":
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36",
+  Accept: "application/json, text/plain, */*",
+  "Accept-Language": "vi-VN,vi;q=0.9,en-US;q=0.8,en;q=0.7",
+};
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function mergeSecondaryIntoPrimary(primary: any, secondary: any) {
+  if (!primary || !secondary) return;
+  const secondaryEpContainer = secondary?.episodes || secondary?.movie?.episodes;
+  if (Array.isArray(secondaryEpContainer) && secondaryEpContainer.length > 0) {
+    const primaryEpisodes = primary.episodes || primary.movie?.episodes || [];
+    primary.episodes = primaryEpisodes;
+    if (primary.movie) {
+      primary.movie.episodes = primaryEpisodes;
+    }
+
+    const primaryStreamUrls = new Set<string>();
+    for (const s of primaryEpisodes) {
+      for (const ep of s?.server_data || []) {
+        const u = (ep?.link_m3u8 || ep?.link_embed || "").trim();
+        if (u) primaryStreamUrls.add(u);
+      }
+    }
+
+    const existingNames = new Set(
+      primaryEpisodes.map((s: { server_name?: string }) => (s.server_name || "").trim().toLowerCase())
+    );
+
+    for (const s of secondaryEpContainer) {
+      if (!s || !Array.isArray(s.server_data) || s.server_data.length === 0) continue;
+
+      const hasDistinctStream = s.server_data.some((ep: { link_m3u8?: string; link_embed?: string }) => {
+        const u = (ep?.link_m3u8 || ep?.link_embed || "").trim();
+        return u && !primaryStreamUrls.has(u);
+      });
+
+      if (hasDistinctStream) {
+        let targetName = (s.server_name || "Dự phòng").trim();
+        if (existingNames.has(targetName.toLowerCase())) {
+          targetName = `${targetName} (Dự phòng)`;
+        }
+        if (existingNames.has(targetName.toLowerCase())) {
+          targetName = `${targetName} #2`;
+        }
+        existingNames.add(targetName.toLowerCase());
+
+        primaryEpisodes.push({
+          ...s,
+          server_name: targetName,
+        });
+      }
+    }
+
+    if (primary.movie) {
+      primary.movie.episodes = primaryEpisodes;
+    }
+  }
+
+  // Bổ sung metadata nếu primary bị thiếu
+  if (secondary?.movie && primary?.movie) {
+    const pm = primary.movie;
+    const sm = secondary.movie;
+    if ((!pm.actor || (Array.isArray(pm.actor) && pm.actor.length === 0)) && sm.actor) pm.actor = sm.actor;
+    if ((!pm.casts || (Array.isArray(pm.casts) && pm.casts.length === 0)) && sm.casts) pm.casts = sm.casts;
+    if ((!pm.director || (Array.isArray(pm.director) && pm.director.length === 0)) && sm.director) pm.director = sm.director;
+    if ((!pm.category || (Array.isArray(pm.category) && pm.category.length === 0)) && sm.category && (!Array.isArray(sm.category) || sm.category.length > 0)) pm.category = sm.category;
+    if ((!pm.country || (Array.isArray(pm.country) && pm.country.length === 0)) && sm.country && (!Array.isArray(sm.country) || sm.country.length > 0)) pm.country = sm.country;
+    if ((!pm.alternative_names || (Array.isArray(pm.alternative_names) && pm.alternative_names.length === 0)) && sm.alternative_names) pm.alternative_names = sm.alternative_names;
+    if (!pm.tmdb && sm.tmdb) pm.tmdb = sm.tmdb;
+    if (!pm.imdb && sm.imdb) pm.imdb = sm.imdb;
+    if (!pm.modified && sm.modified) pm.modified = sm.modified;
+    if (!pm.created && sm.created) pm.created = sm.created;
+    if (!pm.trailer_url && sm.trailer_url) pm.trailer_url = sm.trailer_url;
+    if ((!pm.content || !pm.description) && (sm.content || sm.description)) {
+      if (!pm.content) pm.content = sm.content || sm.description;
+      if (!pm.description) pm.description = sm.description || sm.content;
+    }
+  }
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function discoverAndMergeMissingSources(result: any, slug: string) {
+  if (!result?.movie) return;
+
+  const m = result.movie;
+  const primaryEpisodes = result.episodes || m.episodes || [];
+  const primaryStreamUrls = new Set<string>();
+  for (const s of primaryEpisodes) {
+    for (const ep of s?.server_data || []) {
+      const u = (ep?.link_m3u8 || ep?.link_embed || "").trim().toLowerCase();
+      if (u) primaryStreamUrls.add(u);
+    }
+  }
+
+  const hasPhimApi = m.source === "phimapi" || Array.from(primaryStreamUrls).some((u) => u.includes("phimapi.com") || u.includes(".m3u8"));
+  const hasNguonC = m.source === "nguonc" || Array.from(primaryStreamUrls).some((u) => u.includes("nguonc") || u.includes("gatec"));
+  const hasVsmov = m.source === "vsmov" || Array.from(primaryStreamUrls).some((u) => u.includes("vsmov"));
+
+  const targetName = String(m.name || m.title || "").trim();
+  const targetOrig = String(m.origin_name || "").trim();
+  if (!targetName && !targetOrig) return;
+
+  const cleanTargetName = cleanNormalizedForMatch(targetName);
+  const cleanTargetOrig = cleanNormalizedForMatch(targetOrig);
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const discoveryPromises: Promise<any>[] = [];
+
+  // 1. Khám phá NguonC nếu chưa có
+  if (!hasNguonC) {
+    discoveryPromises.push((async () => {
+      try {
+        const query = targetName || targetOrig;
+        const res = await fetch(`${API_NGUONC}/films/search?keyword=${encodeURIComponent(query)}&page=1`, {
+          headers: DEFAULT_FETCH_HEADERS,
+          next: { revalidate: 600 },
+          signal: AbortSignal.timeout(4000),
+        });
+        if (!res.ok) return null;
+        const json = await res.json();
+        const items = json?.items || [];
+        for (const itm of items) {
+          const cn = cleanNormalizedForMatch(itm.name || "");
+          const co = cleanNormalizedForMatch(itm.original_name || "");
+          const matched = (cleanTargetName && (cn === cleanTargetName || co === cleanTargetName)) ||
+                          (cleanTargetOrig && (cn === cleanTargetOrig || co === cleanTargetOrig));
+          if (matched && itm.slug && itm.slug !== slug) {
+            const detailRes = await fetch(`${API_NGUONC}/film/${itm.slug}`, {
+              headers: DEFAULT_FETCH_HEADERS,
+              next: { revalidate: 600 },
+              signal: AbortSignal.timeout(4000),
+            });
+            if (detailRes.ok) {
+              const detailJson = await detailRes.json();
+              return normalizeNguonCMovieDetail(detailJson);
+            }
+          }
+        }
+      } catch {}
+      return null;
+    })());
+  }
+
+  // 2. Khám phá PhimAPI nếu chưa có
+  if (!hasPhimApi) {
+    discoveryPromises.push((async () => {
+      try {
+        const query = targetName || targetOrig;
+        const res = await fetch(`${API_PHIMAPI}/v1/api/tim-kiem?keyword=${encodeURIComponent(query)}&limit=10`, {
+          headers: DEFAULT_FETCH_HEADERS,
+          next: { revalidate: 600 },
+          signal: AbortSignal.timeout(4000),
+        });
+        if (!res.ok) return null;
+        const json = await res.json();
+        const items = json?.data?.items || json?.items || [];
+        for (const itm of items) {
+          const cn = cleanNormalizedForMatch(itm.name || "");
+          const co = cleanNormalizedForMatch(itm.origin_name || "");
+          const matched = (cleanTargetName && (cn === cleanTargetName || co === cleanTargetName)) ||
+                          (cleanTargetOrig && (cn === cleanTargetOrig || co === cleanTargetOrig));
+          if (matched && itm.slug && itm.slug !== slug) {
+            const detailRes = await fetch(`${API_PHIMAPI}/phim/${itm.slug}`, {
+              headers: DEFAULT_FETCH_HEADERS,
+              next: { revalidate: 600 },
+              signal: AbortSignal.timeout(4000),
+            });
+            if (detailRes.ok) {
+              return await detailRes.json();
+            }
+          }
+        }
+      } catch {}
+      return null;
+    })());
+  }
+
+  // 3. Khám phá VSMOV nếu chưa có
+  if (!hasVsmov) {
+    discoveryPromises.push((async () => {
+      try {
+        const vsmovExact = await fetchVsmovDetail(slug, 3500);
+        if (vsmovExact) return adaptVsmovMovieDetail(vsmovExact);
+
+        const query = targetName || targetOrig;
+        const searchRes = await searchVsmov(query, 1, 10);
+        const items = searchRes?.items || [];
+        for (const itm of items) {
+          const cn = cleanNormalizedForMatch(itm.name || "");
+          const co = cleanNormalizedForMatch(itm.origin_name || "");
+          const matched = (cleanTargetName && (cn === cleanTargetName || co === cleanTargetName)) ||
+                          (cleanTargetOrig && (cn === cleanTargetOrig || co === cleanTargetOrig));
+          if (matched && itm.slug && itm.slug !== slug) {
+            const detail = await fetchVsmovDetail(itm.slug, 3500);
+            if (detail) return adaptVsmovMovieDetail(detail);
+          }
+        }
+      } catch {}
+      return null;
+    })());
+  }
+
+  if (discoveryPromises.length > 0) {
+    const settled = await Promise.allSettled(discoveryPromises);
+    for (const s of settled) {
+      if (s.status === "fulfilled" && s.value) {
+        mergeSecondaryIntoPrimary(result, s.value);
+      }
+    }
+  }
 }
 
 const fetchMovieDetailInternal = async (
   slug: string,
   source?: "nguonc" | "ophim" | "vsmov",
+  requestedEpisode?: string,
 ) => {
   const localKey = `${slug}_${source || "any"}`;
   const now = Date.now();
@@ -283,19 +642,27 @@ const fetchMovieDetailInternal = async (
     const entry = movieDetailMemoryCache.get(localKey)!;
     if (entry.expireAt > now) {
       if (entry.data === null) return undefined;
-      return sanitizeMovieDetailEpisodes(entry.data);
+      return sanitizeMovieDetailEpisodes(attachRequestedEpisodeStreams(entry.data, requestedEpisode));
     }
     // Trả về dữ liệu đệm ngay lập tức nếu chưa quá hạn stale (0ms)
     if (entry.staleUntil > now) {
       if (entry.data === null) return undefined;
       // Revalidate ngầm
       revalidateMovieDetail(slug, source, localKey).catch(() => {});
-      return sanitizeMovieDetailEpisodes(entry.data);
+      return sanitizeMovieDetailEpisodes(attachRequestedEpisodeStreams(entry.data, requestedEpisode));
     }
   }
 
-  const kvKey = `movie:detail:${slug}:${source || "any"}`;
-    let data = await cacheService.get<MovieDetailCachePayload>(kvKey);
+  // 1. Thử đọc từ Redis v3 Compact Metadata, fallback sang cache cũ nếu chưa có
+  const kvKeyV3 = `movie:detail:v3:${slug}:${source || "any"}`;
+  const kvKeyLegacy = `movie:detail:${slug}:${source || "any"}`;
+
+  let rawData = await cacheService.get<MovieDetailCachePayload>(kvKeyV3);
+  if (!rawData) {
+    rawData = await cacheService.get<MovieDetailCachePayload>(kvKeyLegacy);
+  }
+
+  let data = rawData ? unpackDetailPayload(rawData) : null;
 
   // Cơ chế Tự Phục Hồi (Self-Healing Cache):
   // Nếu cache trước đây bị nhiễm fallback VSMOV trong khi source yêu cầu là mặc định ("any" / Nanaflix),
@@ -305,7 +672,8 @@ const fetchMovieDetailInternal = async (
       const freshNanaflix = await fetchAndCacheMovieDetail(slug, source, localKey);
       if (freshNanaflix && freshNanaflix.movie?.source !== "vsmov") {
         const ttl = Boolean((freshNanaflix as MovieDetailCachePayload)?._isFallback) ? 180 : 7 * 24 * 60 * 60;
-        await cacheService.set(kvKey, freshNanaflix, ttl);
+        const compact = toCompactDetailPayload(freshNanaflix, requestedEpisode);
+        await cacheService.set(kvKeyV3, compact, ttl);
         data = freshNanaflix;
       }
     } catch {}
@@ -315,15 +683,79 @@ const fetchMovieDetailInternal = async (
     data = await fetchAndCacheMovieDetail(slug, source, localKey);
     if (data && !(typeof data === "object" && "_isNegative" in data)) {
       const ttl = Boolean((data as MovieDetailCachePayload)?._isFallback) ? 180 : 7 * 24 * 60 * 60;
-      await cacheService.set(kvKey, data, ttl);
+      const compact = toCompactDetailPayload(data, requestedEpisode);
+      await cacheService.set(kvKeyV3, compact, ttl);
     }
   }
 
   if (!data || (typeof data === "object" && "_isNegative" in data)) {
     return undefined;
   }
-  return sanitizeMovieDetailEpisodes(data);
+  return sanitizeMovieDetailEpisodes(attachRequestedEpisodeStreams(data, requestedEpisode));
 };
+
+export async function getEpisodeStream(
+  slug: string,
+  episodeSlug: string,
+  source?: "nguonc" | "ophim" | "vsmov"
+): Promise<EpisodeStreamResult[]> {
+  const localKey = `${slug}_${source || "any"}`;
+  const now = Date.now();
+
+  // 1. Kiểm tra L1 Memory Cache: Nếu full detail đang có trong RAM, trả về 0ms!
+  const mem = movieDetailMemoryCache.get(localKey);
+  if (mem && mem.data && mem.expireAt > now) {
+    const servers: RawServerItem[] = mem.data.episodes || mem.data.movie?.episodes || [];
+    const streams: EpisodeStreamResult[] = [];
+    for (const srv of servers) {
+      const epList: RawEpisodeItem[] = srv?.server_data || [];
+      const match = epList.find((e: RawEpisodeItem) => e.slug === episodeSlug || e.name === episodeSlug)
+        || findEpisodeMatch(epList, episodeSlug);
+      if (match && (match.link_m3u8 || match.link_embed)) {
+        streams.push({
+          server_name: srv.server_name || "Server",
+          link_embed: match.link_embed || "",
+          link_m3u8: match.link_m3u8 || "",
+        });
+      }
+    }
+    if (streams.length > 0) return streams;
+  }
+
+  // 2. Kiểm tra L2 Redis Cache cho tập cụ thể (~250 bytes)
+  const streamKvKey = `movie:stream:v1:${slug}:${episodeSlug}:${source || "any"}`;
+  const cachedStreams = await cacheService.get<EpisodeStreamResult[]>(streamKvKey);
+  if (cachedStreams && Array.isArray(cachedStreams) && cachedStreams.length > 0) {
+    return cachedStreams;
+  }
+
+  // 3. Fallback: Kích hoạt fetchAndCacheMovieDetail để nạp nguồn
+  try {
+    const freshDetail = await fetchAndCacheMovieDetail(slug, source, localKey);
+    if (freshDetail) {
+      const servers: RawServerItem[] = freshDetail.episodes || freshDetail.movie?.episodes || [];
+      const streams: EpisodeStreamResult[] = [];
+      for (const srv of servers) {
+        const epList: RawEpisodeItem[] = srv?.server_data || [];
+        const match = epList.find((e: RawEpisodeItem) => e.slug === episodeSlug || e.name === episodeSlug)
+          || findEpisodeMatch(epList, episodeSlug);
+        if (match && (match.link_m3u8 || match.link_embed)) {
+          streams.push({
+            server_name: srv.server_name || "Server",
+            link_embed: match.link_embed || "",
+            link_m3u8: match.link_m3u8 || "",
+          });
+        }
+      }
+      if (streams.length > 0) {
+        cacheService.set(streamKvKey, streams, 7 * 86400).catch(() => {});
+        return streams;
+      }
+    }
+  } catch {}
+
+  return [];
+}
 
 async function revalidateMovieDetail(slug: string, source?: "nguonc" | "ophim" | "vsmov", cacheKey?: string) {
   try {
@@ -494,6 +926,10 @@ async function fetchAndCacheMovieDetail(slug: string, source?: "nguonc" | "ophim
       }
     }
 
+    if (result && !source) {
+      await discoverAndMergeMissingSources(result, slug);
+    }
+
     if (result) {
       // Khử trùng lặp các tập phim trong từng server của kết quả (Chống lỗi duplicate key từ upstream API)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -535,7 +971,7 @@ async function fetchAndCacheMovieDetail(slug: string, source?: "nguonc" | "ophim
       expireAt: now + 60 * 1000,
       staleUntil: now + 60 * 1000,
     });
-    const kvKey = `movie:detail:${slug}:${source || "any"}`;
+    const kvKey = `movie:detail:v3:${slug}:${source || "any"}`;
     cacheService.set(kvKey, { _isNegative: true }, 60).catch(() => {});
 
     return undefined;
@@ -655,7 +1091,7 @@ async function fetchSourceData(
     if (params.category) urlParams.set("category", params.category);
     if (params.country) urlParams.set("country", params.country);
     if (params.year) urlParams.set("year", params.year);
-    const effectiveSortMode = params.sort || "rating";
+    const effectiveSortMode = params.sort || "latest";
     if (effectiveSortMode) {
       urlParams.set(
         "sort_field",
@@ -731,9 +1167,9 @@ async function fetchSourceData(
         const json = await res.json();
 
         const imageDomain =
-          (json.data?.APP_DOMAIN_CDN_IMAGE && !json.data.APP_DOMAIN_CDN_IMAGE.includes("phimimg.com") ? json.data.APP_DOMAIN_CDN_IMAGE : "") ||
-          (json.data?.APP_DOMAIN_FRONTEND && !json.data.APP_DOMAIN_FRONTEND.includes("phimimg.com") ? json.data.APP_DOMAIN_FRONTEND : "") ||
-          "";
+          json.data?.APP_DOMAIN_CDN_IMAGE ||
+          json.data?.APP_DOMAIN_FRONTEND ||
+          "https://phimimg.com/";
         const items = json.data?.items || json.items || [];
 
         const mappedItems = items.map(
@@ -761,12 +1197,12 @@ async function fetchSourceData(
             const cdnClean = imageDomain.replace(/\/+$/, "");
 
             const formatImg = (path: string) => {
-              if (!path || path.includes("phimimg.com") || path.includes("/api/img-thumb")) return "";
+              if (!path) return "";
               if (path.startsWith("http://") || path.startsWith("https://")) return path;
-              if (cdnClean && !cdnClean.includes("phimimg.com")) {
+              if (cdnClean) {
                 return `${cdnClean}/${path.replace(/^\/+/, "")}`;
               }
-              return "";
+              return path;
             };
 
             const formattedThumb = formatImg(rawThumb);
@@ -845,15 +1281,44 @@ async function fetchSourceData(
       return null;
     }
 
+    const nguonCMetaKey = getNguonCQueryMetaKey(params, isSearch);
+    const cachedNguonCMeta = nguonCQueryMetaCache.get(nguonCMetaKey);
+    const now = Date.now();
+    const isMetaFresh = Boolean(cachedNguonCMeta && (now - cachedNguonCMeta.timestamp < 300000));
+
+    // Dừng sớm ngay lập tức nếu đã biết query này chỉ có N trang và offset bắt đầu vượt quá số trang đó
+    if (isMetaFresh && cachedNguonCMeta && cachedNguonCMeta.totalPages > 0 && startNguonCPage > cachedNguonCMeta.totalPages) {
+      return {
+        items: [],
+        totalPages: Math.ceil(cachedNguonCMeta.totalItems / fetchLimit) || 1,
+        totalItems: cachedNguonCMeta.totalItems,
+      };
+    }
+
+    // Giới hạn trang cuối không vượt quá total_page đã biết
+    const effectiveEndNguonCPage = (isMetaFresh && cachedNguonCMeta && cachedNguonCMeta.totalPages > 0)
+      ? Math.min(endNguonCPage, cachedNguonCMeta.totalPages)
+      : endNguonCPage;
+
     const pagesToFetch: number[] = [];
-    for (let p = startNguonCPage; p <= endNguonCPage; p++) {
+    for (let p = startNguonCPage; p <= effectiveEndNguonCPage; p++) {
       pagesToFetch.push(p);
     }
 
-    const nguonCSettled = await Promise.allSettled(
-      pagesToFetch.map(async (p) => {
-        const u = buildNguonCUrl(p);
-        if (!u) return null;
+    if (pagesToFetch.length === 0) {
+      return {
+        items: [],
+        totalPages: 1,
+        totalItems: cachedNguonCMeta?.totalItems || 0,
+      };
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const fetchSingleNguonC = (p: number, u: string): Promise<any> => {
+      const inFlight = inFlightNguonC.get(u);
+      if (inFlight) return inFlight;
+
+      const promise = (async () => {
         const t0 = performance.now();
         try {
           const res = await fetch(u, {
@@ -874,14 +1339,38 @@ async function fetchSourceData(
           const json = await res.json();
           const itmCount = json?.items?.length || 0;
           const tot = json?.paginate?.total_items || itmCount;
+          const totalPage = json?.paginate?.total_page || (tot ? Math.ceil(tot / 10) : 0);
           console.info(`[NguonC] page=${p} status=200 elapsed=${elapsed}ms items=${itmCount} total=${tot}`);
+
+          // Ghi nhận metadata phân trang để các page khác cùng query không gọi vượt ngưỡng
+          if (totalPage > 0 || tot > 0) {
+            const current = nguonCQueryMetaCache.get(nguonCMetaKey);
+            nguonCQueryMetaCache.set(nguonCMetaKey, {
+              totalItems: Math.max(tot, current?.totalItems || 0),
+              totalPages: Math.max(totalPage, current?.totalPages || 0),
+              timestamp: Date.now(),
+            });
+          }
           return json;
         } catch (err) {
           const elapsed = Math.round(performance.now() - t0);
           const errType = err instanceof Error && err.name === "AbortError" ? "timeout" : "network_error";
           console.info(`[NguonC] page=${p} error=${errType} elapsed=${elapsed}ms`);
           return null;
+        } finally {
+          inFlightNguonC.delete(u);
         }
+      })();
+
+      inFlightNguonC.set(u, promise);
+      return promise;
+    };
+
+    const nguonCSettled = await Promise.allSettled(
+      pagesToFetch.map((p) => {
+        const u = buildNguonCUrl(p);
+        if (!u) return Promise.resolve(null);
+        return fetchSingleNguonC(p, u);
       })
     );
 
@@ -969,6 +1458,7 @@ async function fetchSourceData(
         episode_current: item.current_episode || "",
         year: Number(item.year) || undefined,
         time: item.time || "",
+        modified: typeof item.modified === "string" ? { time: item.modified } : item.modified || (item.created ? { time: String(item.created) } : undefined),
         ...(Array.isArray(item.category) && item.category.length > 0
           ? { category: item.category }
           : params.category
@@ -1094,8 +1584,8 @@ async function fetchVsmovSourceData(
 // ============================================================
 // CHUẨN HÓA ĐIỂM ĐÁNH GIÁ & KHỬ TRÙNG LẶP CATALOG
 // ============================================================
-import { deduplicateMovieItems, extractMovieRatingScore, isBrokenImageUrl } from "@/lib/movieMedia";
-export { deduplicateMovieItems, extractMovieRatingScore };
+import { deduplicateMovieItems, evaluateSearchRelevance, cleanNormalizedForMatch, extractMovieRatingScore, extractMovieModifiedTime, isBrokenImageUrl } from "@/lib/movieMedia";
+export { deduplicateMovieItems, extractMovieRatingScore, extractMovieModifiedTime };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function applyMovieFilters(items: any[], params: MovieFilterParams): any[] {
@@ -1156,6 +1646,30 @@ export function applyMovieFilters(items: any[], params: MovieFilterParams): any[
   return filtered;
 }
 
+interface QueryPaginationMeta {
+  countApi1: number;
+  countApi2: number;
+  countApi3: number;
+  totalItems: number;
+  totalPages: number;
+  updatedAt: number;
+  seenSlugs?: Set<string>;
+}
+const queryMetadataCache = new Map<string, QueryPaginationMeta>();
+
+function buildQueryMetaKey(params: MovieFilterParams): string {
+  return JSON.stringify({
+    skipVsmov: Boolean(params.skipVsmov),
+    category: params.category || "",
+    country: params.country || "",
+    year: params.year || "",
+    keyword: params.keyword?.trim() || "",
+    limit: params.limit || 24,
+    type: params.type || "",
+    sort: params.sort || "latest",
+  });
+}
+
 // ============================================================
 // AI CANDIDATE SOURCING (FEDERATED 3 SOURCES IN PARALLEL)
 // ============================================================
@@ -1195,6 +1709,17 @@ async function executeGetAiCandidates(params: MovieFilterParams, options?: AiCan
   let candidates = deduplicateMovieItems(primaryItems);
   candidates = applyMovieFilters(candidates, params);
 
+  if (isSearch && params.keyword) {
+    const kw = params.keyword.trim();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const scored = candidates.map((m: any) => ({
+      ...m,
+      relevanceScore: evaluateSearchRelevance(m, kw).score,
+    }));
+    const hasStrong = scored.some((m) => m.relevanceScore >= 40);
+    candidates = scored.filter((m) => (hasStrong ? m.relevanceScore >= 40 : m.relevanceScore > 0));
+  }
+
   return {
     status: true,
     items: candidates.slice(0, limit),
@@ -1210,6 +1735,9 @@ async function executeGetMovies(params: MovieFilterParams, cacheKey: string) {
   const isSearch = Boolean(params.keyword?.trim());
   const limit = params.limit || 24;
   const effectiveSort = params.sort || "latest";
+  const metaKey = buildQueryMetaKey(params);
+  const cachedMeta = queryMetadataCache.get(metaKey);
+  const currentSeen = cachedMeta?.seenSlugs || new Set<string>();
 
   // ============================================================
   // CHIẾN LƯỢC FEDERATION PER-PAGE SONG SONG CHO BROWSE:
@@ -1249,7 +1777,41 @@ async function executeGetMovies(params: MovieFilterParams, cacheKey: string) {
   let candidates = deduplicateMovieItems(primaryItems);
   candidates = applyMovieFilters(candidates, params);
 
-  if (effectiveSort === "rating") {
+  if (isSearch && params.keyword) {
+    const kw = params.keyword.trim();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const scored = candidates.map((m: any) => ({
+      ...m,
+      relevanceScore: evaluateSearchRelevance(m, kw).score,
+    }));
+    const hasStrong = scored.some((m) => m.relevanceScore >= 40);
+    candidates = scored.filter((m) => (hasStrong ? m.relevanceScore >= 40 : m.relevanceScore > 0));
+
+    // Với tìm kiếm, sắp xếp ưu tiên phim có điểm liên quan (relevance) cao nhất
+    candidates.sort((a, b) => (b.relevanceScore || 0) - (a.relevanceScore || 0));
+
+    // Khử trùng lặp giữa các trang (cross-page deduplication)
+    const requestedPageNum = params.page || 1;
+    if (requestedPageNum > 1 && currentSeen.size === 0) {
+      try {
+        const p1Key = buildMovieCacheKey({ ...params, page: 1 });
+        let p1Cached = moviesMemoryCache.get(p1Key)?.data;
+        if (!p1Cached) {
+          p1Cached = await executeGetMovies({ ...params, page: 1 }, p1Key);
+        }
+        if (p1Cached?.items) {
+          for (const itm of p1Cached.items) {
+            if (itm?.slug) currentSeen.add(itm.slug);
+          }
+        }
+      } catch {}
+    }
+
+    if (requestedPageNum > 1 && currentSeen.size > 0) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      candidates = candidates.filter((m: any) => !currentSeen.has(m.slug));
+    }
+  } else if (effectiveSort === "rating") {
     candidates.sort((a, b) => {
       const { rating: rateA, voteCount: vcA } = extractMovieRatingScore(a);
       const { rating: rateB, voteCount: vcB } = extractMovieRatingScore(b);
@@ -1275,16 +1837,37 @@ async function executeGetMovies(params: MovieFilterParams, cacheKey: string) {
     candidates.sort((a, b) => {
       const yearA = Number(a.year || 0);
       const yearB = Number(b.year || 0);
-      return yearB - yearA;
+      if (yearB !== yearA) return yearB - yearA;
+      return extractMovieModifiedTime(b) - extractMovieModifiedTime(a);
+    });
+  } else if (effectiveSort === "views") {
+    candidates.sort((a, b) => {
+      const vA = Number(a.view || a.tmdb?.vote_count || 0);
+      const vB = Number(b.view || b.tmdb?.vote_count || 0);
+      if (vB !== vA) return vB - vA;
+      return extractMovieModifiedTime(b) - extractMovieModifiedTime(a);
+    });
+  } else {
+    // "latest" (Mặc định toàn hệ thống): Sắp xếp theo timestamp cập nhật thực tế từ nguồn dữ liệu
+    candidates.sort((a, b) => {
+      const timeA = extractMovieModifiedTime(a);
+      const timeB = extractMovieModifiedTime(b);
+      if (timeB !== timeA) {
+        return timeB - timeA;
+      }
+      // Tie-break: Năm phát hành mới hơn xếp trước
+      const yearA = Number(a.year || 0);
+      const yearB = Number(b.year || 0);
+      if (yearB !== yearA) {
+        return yearB - yearA;
+      }
+      return String(a.name || "").localeCompare(String(b.name || ""));
     });
   }
 
   // ============================================================
   // TÍNH TỔNG SỐ PHIM VÀ TRANG (FEDERATION THỰC TẾ & BẢO ĐẢM NHẤT QUÁN TOÀN HỆ THỐNG)
   // ============================================================
-  const metaKey = buildQueryMetaKey(params);
-  const cachedMeta = queryMetadataCache.get(metaKey);
-
   let countApi1 = resPhimApi?.totalItems || 0;
   let countApi2 = resNguonC?.totalItems   || 0;
   let countApi3 = resVsmov?.totalItems    || 0;
@@ -1324,17 +1907,6 @@ async function executeGetMovies(params: MovieFilterParams, cacheKey: string) {
   }
 
   const maxTotalPages = Math.max(1, Math.ceil(totalItemsCount / limit));
-
-  // Lưu lại metadata của query để các request trang sau (page=20, page=last) kế thừa chính xác
-  queryMetadataCache.set(metaKey, {
-    countApi1: Math.max(countApi1, cachedMeta?.countApi1 || 0),
-    countApi2: Math.max(countApi2, cachedMeta?.countApi2 || 0),
-    countApi3: Math.max(countApi3, cachedMeta?.countApi3 || 0),
-    totalItems: totalItemsCount,
-    totalPages: maxTotalPages,
-    updatedAt: Date.now(),
-  });
-
   const requestedPage = params.page || 1;
   let finalItems = (maxTotalPages > 0 && requestedPage > maxTotalPages) ? [] : candidates.slice(0, limit);
 
@@ -1363,6 +1935,14 @@ async function executeGetMovies(params: MovieFilterParams, cacheKey: string) {
   if (requestedPage === maxTotalPages && finalItems.length === 0 && totalItemsCount > 0) {
     if (candidates.length > 0) {
       finalItems = candidates.slice(0, Math.min(limit, candidates.length));
+    } else {
+      try {
+        const fallbackPage = Math.max(1, Math.min(requestedPage - 1, Math.floor((countApi1 || totalItemsCount) / limit)));
+        const fallbackRes = await fetchSourceData(API_PHIMAPI, params, isSearch, fallbackPage);
+        if (fallbackRes?.items && fallbackRes.items.length > 0) {
+          finalItems = fallbackRes.items.slice(0, limit);
+        }
+      } catch {}
     }
   }
 
@@ -1450,13 +2030,7 @@ async function executeGetMovies(params: MovieFilterParams, cacheKey: string) {
           }
         }
 
-        // Purged: Loại bỏ hoàn toàn nguồn phimimg.com
-        if (item.poster_url && (item.poster_url.includes("phimimg.com") || item.poster_url.includes("/api/img-thumb"))) {
-          item.poster_url = "";
-        }
-        if (item.thumb_url && (item.thumb_url.includes("phimimg.com") || item.thumb_url.includes("/api/img-thumb"))) {
-          item.thumb_url = "";
-        }
+
       }
     })
   );
@@ -1477,6 +2051,22 @@ async function executeGetMovies(params: MovieFilterParams, cacheKey: string) {
   const freshTtl = isDegraded ? 15 * 1000 : 300 * 1000;
   const staleTtl = isDegraded ? 30 * 1000 : 1800 * 1000;
 
+  if (isSearch && finalItems.length > 0) {
+    for (const itm of finalItems) {
+      if (itm?.slug) currentSeen.add(itm.slug);
+    }
+  }
+
+  queryMetadataCache.set(metaKey, {
+    seenSlugs: currentSeen,
+    countApi1: Math.max(countApi1, cachedMeta?.countApi1 || 0),
+    countApi2: Math.max(countApi2, cachedMeta?.countApi2 || 0),
+    countApi3: Math.max(countApi3, cachedMeta?.countApi3 || 0),
+    totalItems: totalItemsCount,
+    totalPages: maxTotalPages,
+    updatedAt: Date.now(),
+  });
+
   moviesMemoryCache.set(cacheKey, {
     data: payload,
     expireAt: now + freshTtl,
@@ -1486,32 +2076,11 @@ async function executeGetMovies(params: MovieFilterParams, cacheKey: string) {
   return payload;
 }
 
-interface QueryPaginationMeta {
-  countApi1: number;
-  countApi2: number;
-  countApi3: number;
-  totalItems: number;
-  totalPages: number;
-  updatedAt: number;
-}
-const queryMetadataCache = new Map<string, QueryPaginationMeta>();
 
-function buildQueryMetaKey(params: MovieFilterParams): string {
-  return JSON.stringify({
-    skipVsmov: Boolean(params.skipVsmov),
-    category: params.category || "",
-    country: params.country || "",
-    year: params.year || "",
-    keyword: params.keyword?.trim() || "",
-    limit: params.limit || 24,
-    type: params.type || "",
-    sort: params.sort || "latest",
-  });
-}
 
 export function buildMovieCacheKey(params: MovieFilterParams): string {
   return JSON.stringify({
-    v: 15,
+    v: 16,
     category: params.category || "",
     country: params.country || "",
     year: params.year || "",
@@ -1626,30 +2195,6 @@ export const DEFAULT_COUNTRIES = [
 
 
 function sanitizeMovieImages<T>(data: T): T {
-  if (!data || typeof data !== "object") return data;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const anyData = data as any;
-  if (Array.isArray(anyData.items)) {
-    for (const item of anyData.items) {
-      if (item && typeof item === "object") {
-        if (typeof item.poster_url === "string" && (item.poster_url.includes("phimimg.com") || item.poster_url.includes("/api/img-thumb"))) {
-          item.poster_url = "";
-        }
-        if (typeof item.thumb_url === "string" && (item.thumb_url.includes("phimimg.com") || item.thumb_url.includes("/api/img-thumb"))) {
-          item.thumb_url = "";
-        }
-      }
-    }
-  }
-  const m = anyData.movie || (anyData.slug ? anyData : null);
-  if (m && typeof m === "object") {
-    if (typeof m.poster_url === "string" && (m.poster_url.includes("phimimg.com") || m.poster_url.includes("/api/img-thumb"))) {
-      m.poster_url = "";
-    }
-    if (typeof m.thumb_url === "string" && (m.thumb_url.includes("phimimg.com") || m.thumb_url.includes("/api/img-thumb"))) {
-      m.thumb_url = "";
-    }
-  }
   return data;
 }
 
@@ -1724,6 +2269,9 @@ export const movieApi = {
   getMovieDetail: async (...args: Parameters<typeof cachedGetMovieDetail>) => {
     const res = await cachedGetMovieDetail(...args);
     return sanitizeMovieImages(res);
+  },
+  getEpisodeStream: async (slug: string, episodeSlug: string, source?: "nguonc" | "ophim" | "vsmov") => {
+    return await getEpisodeStream(slug, episodeSlug, source);
   },
 
   // ==========================================

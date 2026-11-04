@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { Redis } from "@upstash/redis";
 import crypto from "crypto";
 import { AsyncLocalStorage } from "node:async_hooks";
+import { getSafeRedisCredentials } from "@/lib/redisEnvGuard";
 
 /**
  * Request-scoped AbortSignal storage for real underlying HTTP cancellation on timeout.
@@ -95,31 +96,14 @@ export function getRateLimitEnvPrefix(): "development" | "test" | "preview" | "p
 }
 
 export function getRedisInstance(): Redis | null {
-  const isTest = process.env.NODE_ENV === "test" || process.env.APP_ENV === "test";
-
-  let url: string | undefined;
-  let token: string | undefined;
-
-  if (isTest) {
-    url = process.env.TEST_REDIS_URL?.trim();
-    token = process.env.TEST_REDIS_TOKEN?.trim();
-    const prodUrl = process.env.UPSTASH_REDIS_REST_URL?.trim();
-    if (url && prodUrl && url.toLowerCase() === prodUrl.toLowerCase()) {
-      console.warn("[RateLimit Safety Guard] TEST_REDIS_URL matches UPSTASH_REDIS_REST_URL. Refusing to connect to production Redis during tests.");
-      cachedRedisClient = null;
-      cachedRedisSignature = null;
-      return null;
-    }
-  } else {
-    url = process.env.UPSTASH_REDIS_REST_URL?.trim();
-    token = process.env.UPSTASH_REDIS_REST_TOKEN?.trim();
-  }
-
-  if (!url || !token) {
+  const creds = getSafeRedisCredentials({ allowTestRedis: true });
+  if (!creds) {
     cachedRedisClient = null;
     cachedRedisSignature = null;
     return null;
   }
+
+  const { url, token } = creds;
 
   const signature = `${url}:::${token}`;
   if (cachedRedisClient && cachedRedisSignature === signature) {
@@ -537,8 +521,8 @@ function evaluateMemoryFallback(
   if (config.failClosed) {
     // For sensitive endpoints (AI, Mutations, Upload, Admin), Fail-Closed when Redis is down
     // Allow very small local burst to prevent total bricking, but block rapid automated requests
-    // Strict local threshold: 50% of nominal or at least 1 request
-    const fallbackMax = Math.max(1, Math.floor(config.maxRequests * 0.5));
+    // Strict local threshold: 50% of nominal or at least 1 request (or caller explicit fallbackMaxRequests)
+    const fallbackMax = config.fallbackMaxRequests ?? Math.max(1, Math.floor(config.maxRequests * 0.5));
     if (rec.timestamps.length >= fallbackMax) {
       return {
         allowed: false,

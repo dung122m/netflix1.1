@@ -134,7 +134,7 @@ export default async function MovieDetail({
   const { slug } = await params;
   const { ep, server, t, provider } = await searchParams;
 
-  const data = await movieApi.getMovieDetail(slug);
+  const data = await movieApi.getMovieDetail(slug, undefined, ep);
   if (!data || !data.movie) {
     return (
       <div className="min-h-screen bg-black text-white flex flex-col justify-between selection:bg-netflix-red selection:text-white">

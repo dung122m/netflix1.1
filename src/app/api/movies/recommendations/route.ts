@@ -122,12 +122,12 @@ async function computeMovieRecommendations(body: any) {
         : Promise.resolve([]),
       Promise.all(
         targetCategories.map((c) =>
-          movieApi.getMovies({ category: c.slug, page: 1, limit: 16, skipKvCache: true, skipVsmov: true }).catch(() => null)
+          movieApi.getMovies({ category: c.slug, page: 1, limit: 16, skipVsmov: true }).catch(() => null)
         )
       ),
       Promise.all(
         targetCountries.map((c) =>
-          movieApi.getMovies({ country: c.slug, page: 1, limit: 16, skipKvCache: true, skipVsmov: true }).catch(() => null)
+          movieApi.getMovies({ country: c.slug, page: 1, limit: 16, skipVsmov: true }).catch(() => null)
         )
       ),
       primaryActor
@@ -137,7 +137,7 @@ async function computeMovieRecommendations(body: any) {
         ? getDirectorFilmographyFromTmdb(primaryDirector, 12).catch(() => [])
         : Promise.resolve([]),
       srcHasMartialArts
-        ? movieApi.getMovies({ category: "vo-thuat", page: 1, limit: 16, skipKvCache: true, skipVsmov: true }).catch(() => null)
+        ? movieApi.getMovies({ category: "vo-thuat", page: 1, limit: 16, skipVsmov: true }).catch(() => null)
         : Promise.resolve(null),
     ]);
 
@@ -491,14 +491,157 @@ export function getCanonicalRecommendationsCacheKey(body: any): string {
   return `${canonicalObj.slug}_${hash}`;
 }
 
+export interface CompactMovieCard {
+  _id?: string;
+  name: string;
+  slug: string;
+  origin_name?: string;
+  thumb_url?: string;
+  poster_url?: string;
+  year?: number | string;
+  time?: string;
+  quality?: string;
+  episode_current?: string;
+  lang?: string;
+  category?: Array<{ name: string; slug?: string }>;
+  country?: Array<{ name: string; slug?: string }>;
+  type?: string;
+  matchPercent?: number;
+}
+
+export interface CompactRecommendationsPayload {
+  v: 13;
+  success: boolean;
+  currentMovieTitle: string;
+  genreName: string;
+  countryName: string;
+  actorName: string;
+  directorName: string;
+  pool: CompactMovieCard[];
+  genreSlugs: string[];
+  countrySlugs: string[];
+  actorSlugs: string[];
+  directorSlugs: string[];
+  allSlugs: string[];
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function packRecommendationsPayload(data: any): CompactRecommendationsPayload {
+  const poolMap = new Map<string, CompactMovieCard>();
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const getCleanCard = (item: any): CompactMovieCard => ({
+    _id: item._id,
+    name: item.name || item.title || "",
+    slug: item.slug,
+    origin_name: item.origin_name || item.original_name,
+    thumb_url: item.thumb_url || item.poster_url,
+    poster_url: item.poster_url || item.thumb_url,
+    year: item.year,
+    time: item.time,
+    quality: item.quality,
+    episode_current: item.episode_current,
+    lang: item.lang,
+    category: Array.isArray(item.category)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ? item.category.map((c: any) => ({ name: c.name || "", slug: c.slug || "" }))
+      : undefined,
+    country: Array.isArray(item.country)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ? item.country.map((c: any) => ({ name: c.name || "", slug: c.slug || "" }))
+      : undefined,
+    type: item.type,
+    matchPercent: item.matchPercent,
+  });
+
+  const lists = [
+    data.genreMovies || [],
+    data.countryMovies || [],
+    data.actorMovies || [],
+    data.directorMovies || [],
+    data.allMovies || [],
+  ];
+
+  for (const list of lists) {
+    for (const item of list) {
+      if (item && item.slug && !poolMap.has(item.slug)) {
+        poolMap.set(item.slug, getCleanCard(item));
+      }
+    }
+  }
+
+  return {
+    v: 13,
+    success: data.success ?? true,
+    currentMovieTitle: data.currentMovieTitle || "",
+    genreName: data.genreName || "",
+    countryName: data.countryName || "",
+    actorName: data.actorName || "",
+    directorName: data.directorName || "",
+    pool: Array.from(poolMap.values()),
+    genreSlugs: (data.genreMovies || []).map((m: { slug?: string }) => m.slug).filter(Boolean),
+    countrySlugs: (data.countryMovies || []).map((m: { slug?: string }) => m.slug).filter(Boolean),
+    actorSlugs: (data.actorMovies || []).map((m: { slug?: string }) => m.slug).filter(Boolean),
+    directorSlugs: (data.directorMovies || []).map((m: { slug?: string }) => m.slug).filter(Boolean),
+    allSlugs: (data.allMovies || []).map((m: { slug?: string }) => m.slug).filter(Boolean),
+  };
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function unpackRecommendationsPayload(raw: any): any {
+  if (!raw) return raw;
+  // If raw is in compact format (v === 13)
+  if (raw.v === 13 && Array.isArray(raw.pool)) {
+    const poolMap = new Map<string, CompactMovieCard>();
+    for (const card of raw.pool) {
+      if (card && card.slug) {
+        poolMap.set(card.slug, card);
+      }
+    }
+
+    return {
+      success: raw.success ?? true,
+      currentMovieTitle: raw.currentMovieTitle || "",
+      genreName: raw.genreName || "",
+      countryName: raw.countryName || "",
+      actorName: raw.actorName || "",
+      directorName: raw.directorName || "",
+      genreMovies: (raw.genreSlugs || []).map((slug: string) => poolMap.get(slug)).filter(Boolean),
+      countryMovies: (raw.countrySlugs || []).map((slug: string) => poolMap.get(slug)).filter(Boolean),
+      actorMovies: (raw.actorSlugs || []).map((slug: string) => poolMap.get(slug)).filter(Boolean),
+      directorMovies: (raw.directorSlugs || []).map((slug: string) => poolMap.get(slug)).filter(Boolean),
+      allMovies: (raw.allSlugs || []).map((slug: string) => poolMap.get(slug)).filter(Boolean),
+    };
+  }
+
+  // Backward compatibility: Legacy uncompact format (v12)
+  return raw;
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function executeAndCacheRecommendations(cacheKey: string, body: any) {
-  const kvKey = `movie:recommendations:v12:${cacheKey}`;
-  const data = await cacheService.fetchOrSet(
-    kvKey,
-    () => computeMovieRecommendations(body),
-    12 * 3600 // 12 giờ trên Upstash KV
-  );
+  const kvKeyV13 = `movie:recommendations:v13:${cacheKey}`;
+  const kvKeyLegacy = `movie:recommendations:v12:${cacheKey}`;
+
+  // 1. Thử đọc từ Redis v13 Compact Metadata
+  let rawData = await cacheService.get<CompactRecommendationsPayload | Record<string, unknown>>(kvKeyV13);
+  // Fallback sang v12 cũ nếu v13 chưa có
+  if (!rawData) {
+    rawData = await cacheService.get<CompactRecommendationsPayload | Record<string, unknown>>(kvKeyLegacy);
+  }
+
+  if (!rawData) {
+    const computed = await computeMovieRecommendations(body);
+    if (computed && computed.success) {
+      const packed = packRecommendationsPayload(computed);
+      await cacheService.set(kvKeyV13, packed, 12 * 3600);
+      rawData = packed;
+    } else {
+      rawData = computed;
+    }
+  }
+
+  const data = unpackRecommendationsPayload(rawData);
 
   const now = Date.now();
   if (data && data.success && Array.isArray(data.allMovies) && data.allMovies.length > 0) {

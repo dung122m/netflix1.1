@@ -37,6 +37,7 @@ export interface AnalyticsEventPayload {
   region?: string;
   city?: string;
   timestamp?: number;
+  isReturningVisitor?: boolean;
 }
 
 const ANON_STORAGE_KEY = "nanaflix_anon_id";

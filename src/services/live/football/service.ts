@@ -1,4 +1,7 @@
-import { enrichMatchLogos } from "@/services/live/football-logo/service";
+import {
+  enrichMatchLogosSync,
+  triggerBackgroundLogoEnrichment,
+} from "@/services/live/football-logo/service";
 import { isBlockedStreamUrl } from "@/services/live/shared/streamHealth";
 import { getTeamAsset, normalizeTeamKey } from "@/data/live/teamAssets";
 import { LiveMatchScore } from "@/services/live/football-score/types";
@@ -3412,13 +3415,13 @@ export const liveFootballService = {
         (a, b) => a.timestamp - b.timestamp,
       );
 
-      // Tự động bổ sung Logo HD cho Đội Nhà & Đội Khách
-      await enrichMatchLogos(
-        sortedMatches.filter(
-          (match) =>
-            !match.isEvent && Boolean(match.team1) && Boolean(match.team2),
-        ),
+      // Tự động bổ sung Logo HD cho Đội Nhà & Đội Khách (0ms critical path, background discovery)
+      const validLogoMatches = sortedMatches.filter(
+        (match) =>
+          !match.isEvent && Boolean(match.team1) && Boolean(match.team2),
       );
+      enrichMatchLogosSync(validLogoMatches);
+      triggerBackgroundLogoEnrichment(validLogoMatches);
 
       // Tự động gắn tỷ số livescore và chuẩn hóa giải đấu canonical (0ms latency, không block)
       const cachedScoreEvents = footballScoreService.getCachedEventsSync();

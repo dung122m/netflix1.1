@@ -211,8 +211,9 @@ function MatchCardInner({ match, isSelected, onSelect, score, compact }: MatchCa
     [displayTeam2],
   );
 
-  const homeFlagEmoji = homeAsset?.emoji || null;
-  const awayFlagEmoji = awayAsset?.emoji || null;
+  // Chỉ ưu tiên cờ quốc gia khi thực sự là Đội tuyển quốc gia (isCountry: true)
+  const homeFlagEmoji = homeAsset?.isCountry && homeAsset?.emoji ? homeAsset.emoji : null;
+  const awayFlagEmoji = awayAsset?.isCountry && awayAsset?.emoji ? awayAsset.emoji : null;
 
   const rawHome =
     match.homeLogo &&

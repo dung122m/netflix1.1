@@ -21,11 +21,14 @@ import { BrowseAiSearchBanner } from "@/components/BrowseAiSearchBanner";
 import { PaginationControl } from "@/components/PaginationControl";
 import {
   isBrokenImageUrl,
+  cleanNormalizedForMatch,
+  getTitleEvidence,
   formatGenreName,
   formatCountryName,
   getCanonicalGenreSlug,
   getCanonicalCountrySlug,
   isRawId,
+  extractMovieModifiedTime,
   } from "@/lib/movieMedia";
 import { getTmdbPosterUrl, searchTmdbPosterByTitle } from "@/services/tmdbService";
 import { searchAniListPoster } from "@/services/aniListService";
@@ -149,198 +152,6 @@ const getPagination = (current: number, total: number) => {
   return [1, "...", current - 1, current, current + 1, "...", total];
 };
 
-function cleanNormalizedForMatch(str: string): string {
-  return (str || "")
-    .toLowerCase()
-    .replace(/đ/g, "d")
-    .replace(/Đ/g, "d")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9\s]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-function extractDescriptionSnippet(content: string, kw: string): string | undefined {
-  if (!content || !kw) return undefined;
-  const plainText = content.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
-  const cleanPlain = cleanNormalizedForMatch(plainText);
-  const cleanKw = cleanNormalizedForMatch(kw);
-
-  if (!cleanKw || cleanKw.length < 2) return undefined;
-
-  const idx = cleanPlain.indexOf(cleanKw);
-  if (idx === -1) return undefined;
-
-  const start = Math.max(0, idx - 30);
-  const end = Math.min(plainText.length, idx + kw.length + 45);
-
-  let snippet = plainText.slice(start, end).trim();
-  if (start > 0) snippet = "..." + snippet;
-  if (end < plainText.length) snippet = snippet + "...";
-  return snippet;
-}
-
-type TitleEvidence = { score: number; matched: boolean };
-
-/**
- * Lexical evidence is authoritative for ordinary search. This deliberately
- * looks only at title, original title, and slug; descriptions are not enough
- * to turn a semantic neighbour into a title result.
- */
-function getTitleEvidence(movie: { name?: unknown; title?: unknown; origin_name?: unknown; slug?: unknown }, query: string): TitleEvidence {
-  const cleanQuery = cleanNormalizedForMatch(query);
-  if (!cleanQuery) return { score: 0, matched: false };
-
-  const name = cleanNormalizedForMatch(String(movie.name || movie.title || ""));
-  const original = cleanNormalizedForMatch(String(movie.origin_name || ""));
-  const slug = cleanNormalizedForMatch(String(movie.slug || ""));
-  const slugQuery = cleanQuery.replace(/\s+/g, "-");
-
-  if (name === cleanQuery || original === cleanQuery || slug === cleanQuery || slug === slugQuery) {
-    return { score: 100, matched: true };
-  }
-
-  const escapedCleanQuery = cleanQuery.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const startsWithWordRegex = new RegExp(`^${escapedCleanQuery}(?:$|\\s)`, "i");
-  const startsWithSlugRegex = new RegExp(`^${slugQuery.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?:$|-)`, "i");
-  if (startsWithWordRegex.test(name) || startsWithWordRegex.test(original) || startsWithSlugRegex.test(slug)) {
-    return { score: 85, matched: true };
-  }
-
-  const phrasePattern = new RegExp(
-    `(?:^|\\s)${cleanQuery.split(" ").map((word) => word.replace(/[.*+?^${}()|[\\]\\\\]/g, "\\\\$&")).join("\\\\s+")}(?=$|\\s)`
-  );
-  if (phrasePattern.test(name) || phrasePattern.test(original) || phrasePattern.test(slug)) {
-    return { score: 70, matched: true };
-  }
-
-  return { score: 0, matched: false };
-}
-
-interface SearchRelevanceResult {
-  score: number;
-  matchType: "title" | "actor" | "content";
-  matchSnippet?: string;
-}
-
-/**
- * Strict diacritic-aware & word-boundary relevance scorer for search queries.
- * Prevents false positives where upstream APIs strip diacritics (e.g. 'mưa đỏ' matching 'mùa đông').
- */
-function evaluateSearchRelevance(
-  movie: { name?: unknown; title?: unknown; origin_name?: unknown; slug?: unknown; content?: unknown; description?: unknown },
-  query: string
-): SearchRelevanceResult {
-  if (!query || !query.trim()) return { score: 100, matchType: "title" };
-  const rawKw = query.trim().toLowerCase();
-  const normKw = cleanNormalizedForMatch(query);
-  if (!normKw) return { score: 0, matchType: "title" };
-
-  const rawTitle = String(movie.name || movie.title || "").trim().toLowerCase();
-  const rawOrig = String(movie.origin_name || "").trim().toLowerCase();
-  const slug = String(movie.slug || "").trim().toLowerCase();
-
-  const normTitle = cleanNormalizedForMatch(rawTitle);
-  const normOrig = cleanNormalizedForMatch(rawOrig);
-  const normSlug = slug.replace(/-/g, " ");
-
-  const escapedNormKw = normKw.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const escapedRawKw = rawKw.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-
-  // 1. EXACT FULL MATCH
-  const slugKw = normKw.replace(/\s+/g, "-");
-  if (rawTitle === rawKw || rawOrig === rawKw || slug === slugKw) {
-    return { score: 100, matchType: "title" };
-  }
-  if (normTitle === normKw || normOrig === normKw || normSlug === normKw) {
-    return { score: 95, matchType: "title" };
-  }
-
-  // 2. STARTS WITH FULL PHRASE (Must have word boundary: followed by space or end of string)
-  const startsWithRawRegex = new RegExp(`^${escapedRawKw}(?:$|\\s)`, "i");
-  const startsWithNormRegex = new RegExp(`^${escapedNormKw}(?:$|\\s)`, "i");
-  if (startsWithRawRegex.test(rawTitle) || startsWithRawRegex.test(rawOrig)) {
-    return { score: 90, matchType: "title" };
-  }
-  if (startsWithNormRegex.test(normTitle) || startsWithNormRegex.test(normOrig) || startsWithNormRegex.test(normSlug)) {
-    return { score: 85, matchType: "title" };
-  }
-
-  // 3. CONTAINS FULL PHRASE (Must have word boundaries before and after phrase)
-  const containsRawRegex = new RegExp(`(?:^|\\s)${escapedRawKw}(?:$|\\s)`, "i");
-  const containsNormRegex = new RegExp(`(?:^|\\s)${escapedNormKw}(?:$|\\s)`, "i");
-  if (containsRawRegex.test(rawTitle) || containsRawRegex.test(rawOrig)) {
-    return { score: 85, matchType: "title" };
-  }
-  if (containsNormRegex.test(normTitle) || containsNormRegex.test(normOrig) || containsNormRegex.test(normSlug)) {
-    return { score: 80, matchType: "title" };
-  }
-
-  // 4. DIACRITIC-AWARE MULTI-WORD / SINGLE-WORD MATCHING
-  const userHasDiacritics = /[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/i.test(query);
-  const kwWords = rawKw.split(/\s+/).filter((w) => w.length > 0);
-
-  if (userHasDiacritics) {
-    if (kwWords.length > 1) {
-      const titleTokens = rawTitle.split(/[^\w\u00C0-\u1EF9]+/).filter(Boolean);
-      const origTokens = rawOrig.split(/[^\w\u00C0-\u1EF9]+/).filter(Boolean);
-      const allTokens = new Set([...titleTokens, ...origTokens]);
-
-      const allWordsPresent = kwWords.every((qw) => allTokens.has(qw));
-      if (allWordsPresent) return { score: 75, matchType: "title" };
-      return { score: 0, matchType: "title" };
-    }
-    const singleWordRegex = new RegExp(`(?:^|\\s)${escapedRawKw}(?:$|\\s)`, "i");
-    if (singleWordRegex.test(rawTitle) || singleWordRegex.test(rawOrig)) {
-      return { score: 75, matchType: "title" };
-    }
-    return { score: 0, matchType: "title" };
-  }
-
-  // 5. UNACCENTED TOKEN MATCH (For users typing without accents like "mua do")
-  const normKwTokens = normKw.split(/\s+/).filter((w) => w.length > 1);
-  if (normKwTokens.length > 1) {
-    const titleTokens = new Set(normTitle.split(/\s+/).filter(Boolean));
-    const origTokens = new Set(normOrig.split(/\s+/).filter(Boolean));
-    const slugTokens = new Set(normSlug.split(/\s+/).filter(Boolean));
-
-    const matchedTokensCount = normKwTokens.filter(
-      (tok) => titleTokens.has(tok) || origTokens.has(tok) || slugTokens.has(tok)
-    ).length;
-
-    if (matchedTokensCount === normKwTokens.length) {
-      return { score: 65, matchType: "title" };
-    }
-    if (matchedTokensCount / normKwTokens.length >= 0.75) {
-      return { score: 45, matchType: "title" };
-    }
-    return { score: 0, matchType: "title" };
-  }
-
-  // 6. SINGLE-WORD UNACCENTED SEARCH (e.g. "batman", "dune")
-  if (normKwTokens.length === 1) {
-    const singleWord = normKwTokens[0];
-    const wordRegex = new RegExp(`(?:^|\\s)${singleWord.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?:$|\\s)`, "i");
-    if (wordRegex.test(normTitle) || wordRegex.test(normOrig) || wordRegex.test(normSlug)) {
-      return { score: 70, matchType: "title" };
-    }
-  }
-
-  // 7. CONTENT / SYNOPSIS MATCH (fallback if no title match)
-  const desc = cleanNormalizedForMatch(String(movie.content || movie.description || ""));
-  if (desc && containsNormRegex.test(desc)) {
-    return {
-      score: 30,
-      matchType: "content",
-      matchSnippet: extractDescriptionSnippet(String(movie.content || movie.description || ""), query),
-    };
-  }
-
-  return { score: 0, matchType: "title" };
-}
-
-// Semantic search remains useful, but a nearest vector alone is not display evidence.
 function isRelevantSemanticCandidate(
   candidate: { name?: unknown; title?: unknown; origin_name?: unknown; slug?: unknown; similarity?: unknown },
   query: string,
@@ -454,7 +265,7 @@ async function runActorSearch(options: ActorSearchOptions) {
       return true;
     });
   }
-  const effectiveActorSort = sort || "rating";
+  const effectiveActorSort = sort || "latest";
   if (effectiveActorSort === "rating") {
     filteredActorMovies.sort((a, b) => {
       const voteCountA = Number(a.tmdb?.vote_count || 0);
@@ -472,9 +283,30 @@ async function runActorSearch(options: ActorSearchOptions) {
       return voteCountB - voteCountA;
     });
   } else if (effectiveActorSort === "views") {
-    filteredActorMovies.sort((a, b) => Number(b.view || b.tmdb?.vote_count || 0) - Number(a.view || a.tmdb?.vote_count || 0));
+    filteredActorMovies.sort((a, b) => {
+      const vA = Number(a.view || a.tmdb?.vote_count || 0);
+      const vB = Number(b.view || b.tmdb?.vote_count || 0);
+      if (vB !== vA) return vB - vA;
+      return extractMovieModifiedTime(b) - extractMovieModifiedTime(a);
+    });
   } else if (effectiveActorSort === "year") {
-    filteredActorMovies.sort((a, b) => Number(b.year || 0) - Number(a.year || 0));
+    filteredActorMovies.sort((a, b) => {
+      const yearA = Number(a.year || 0);
+      const yearB = Number(b.year || 0);
+      if (yearB !== yearA) return yearB - yearA;
+      return extractMovieModifiedTime(b) - extractMovieModifiedTime(a);
+    });
+  } else {
+    // "latest" (Mặc định)
+    filteredActorMovies.sort((a, b) => {
+      const timeA = extractMovieModifiedTime(a);
+      const timeB = extractMovieModifiedTime(b);
+      if (timeB !== timeA) return timeB - timeA;
+      const yearA = Number(a.year || 0);
+      const yearB = Number(b.year || 0);
+      if (yearB !== yearA) return yearB - yearA;
+      return String(a.name || "").localeCompare(String(b.name || ""));
+    });
   }
   const totalItems = filteredActorMovies.length;
   const totalPages = Math.max(1, Math.ceil(totalItems / pageLimit));
@@ -657,7 +489,7 @@ export default async function BrowsePage({
   const actorParam = params.actor || undefined;
   const type = params.type || undefined;
   const rawSort = (params.sort as "latest" | "rating" | "views" | "year") || undefined;
-  const sort = rawSort || "rating";
+  const sort = rawSort || "latest";
   const effectiveSort = sort;
 
   const currentPage = params.page ? parseInt(params.page, 10) : 1;
@@ -693,34 +525,20 @@ export default async function BrowsePage({
       totalPages = actorSearch.totalPages;
     }
   } else if (keyword) {
-    // 2A. TÌM KIẾM THEO TỪ KHÓA (KEYWORD SEARCH VỚI STRICT RELEVANCE & KHÔNG TRÙNG LẶP / KHUYẾT TRANG)
-    // Upstream search (PhimAPI/NguonC) thường bỏ dấu tiếng Việt dẫn đến nhiều false positives
-    // (ví dụ: tìm "mưa đỏ" ra "mùa đông", "mùa thu", "mùa hè").
-    // Để giải quyết triệt để vấn đề kết quả sai lệch, trang 2 bị khuyết và trang 3 bị trùng:
-    // 1. Nạp các trang ứng viên từ upstream (trang 1, 2 và các trang kế cận nếu cần).
-    // 2. Chấm điểm liên quan với ranh giới từ (word boundaries) và dấu tiếng Việt (diacritic-aware).
-    // 3. Khử trùng lặp slug tuyệt đối, sắp xếp theo độ phù hợp và phân trang chính xác trên tập kết quả thật.
-    const pagesToFetch = [1, 2, 3];
-    if (currentPage > 2) {
-      pagesToFetch.push(currentPage, currentPage + 1);
-    }
-    const uniquePagesToFetch = Array.from(new Set(pagesToFetch));
-
-    const [searchResponses, semanticPicks] = await Promise.all([
-      Promise.all(
-        uniquePagesToFetch.map((p) =>
-          movieApi.getMovies({
-            category,
-            country,
-            year,
-            keyword,
-            page: p,
-            limit: 48,
-            type,
-            sort: rawSort,
-          }).catch(() => null)
-        )
-      ),
+    // 2A. TÌM KIẾM THEO TỪ KHÓA (SEARCH MODE)
+    // Hệ thống phân trang đồng bộ qua movieApi.getMovies với limit = PAGE_LIMIT (24),
+    // đảm bảo tính nhất quán totalPages, khử trùng lặp và không bỏ sót phim giữa các trang.
+    const [searchResponse, semanticPicks] = await Promise.all([
+      movieApi.getMovies({
+        category,
+        country,
+        year,
+        keyword,
+        page: currentPage,
+        limit: PAGE_LIMIT,
+        type,
+        sort: effectiveSort,
+      }),
       currentPage === 1 && keyword.trim().length >= 3
         ? Promise.race([
             searchMoviesBySemantic(keyword, 16, 0.42),
@@ -730,135 +548,38 @@ export default async function BrowsePage({
         : Promise.resolve([]),
     ]);
 
-    const seenSlugs = new Set<string>();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const allCandidates: any[] = [];
+    const items = searchResponse?.items || [];
+    totalPages = searchResponse?.pagination?.totalPages || 1;
+    totalItems = searchResponse?.pagination?.totalItems || items.length;
 
-    // Semantic picks (cho trang 1 nếu có concept hợp lệ)
-    const semanticConcepts = resolveConcepts(keyword);
-    const relevantSemanticPicks = Array.isArray(semanticPicks)
-      ? semanticPicks.filter((candidate) =>
-          isRelevantSemanticCandidate(candidate, keyword, semanticConcepts)
-        )
-      : [];
+    // Khi không có kết quả từ khóa trực tiếp, hiển thị gợi ý thông minh từ AI Semantic Search
+    if (items.length === 0 && Array.isArray(semanticPicks) && semanticPicks.length > 0) {
+      const semanticConcepts = resolveConcepts(keyword);
+      const relevantSemanticPicks = semanticPicks.filter((candidate) =>
+        isRelevantSemanticCandidate(candidate, keyword, semanticConcepts)
+      );
 
-    for (const sp of relevantSemanticPicks) {
-      if (sp?.id && !seenSlugs.has(sp.id)) {
-        seenSlugs.add(sp.id);
-        allCandidates.push({
-          slug: sp.id,
-          name: sp.title,
-          origin_name: sp.originalName || "",
-          poster_url: sp.posterUrl,
-          thumb_url: sp.thumbUrl || sp.posterUrl,
-          year: sp.year,
-          quality: sp.quality || "HD",
-          category: sp.category ? [{ name: sp.category, slug: "" }] : [],
-          content: sp.description,
-          isSemanticMatch: true,
-          similarity: sp.similarity,
-        });
-      }
-    }
-
-    // Upstream search candidates
-    for (const sRes of searchResponses) {
-      if (!sRes?.items) continue;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      for (const item of sRes.items as any[]) {
-        if (!item?.slug) continue;
-        if (!seenSlugs.has(item.slug)) {
-          seenSlugs.add(item.slug);
-          allCandidates.push(item);
-        } else {
-          const existing = allCandidates.find((c) => c.slug === item.slug);
-          if (existing) {
-            if (isBrokenImageUrl(existing.poster_url) && item.poster_url && !isBrokenImageUrl(item.poster_url)) {
-              existing.poster_url = item.poster_url;
-            }
-            if (isBrokenImageUrl(existing.thumb_url) && item.thumb_url && !isBrokenImageUrl(item.thumb_url)) {
-              existing.thumb_url = item.thumb_url;
-            }
-          }
-        }
+      movies = relevantSemanticPicks.map((sp: any) => ({
+        slug: sp.id,
+        name: sp.title,
+        origin_name: sp.originalName || "",
+        poster_url: sp.posterUrl,
+        thumb_url: sp.thumbUrl || sp.posterUrl,
+        year: sp.year,
+        quality: sp.quality || "HD",
+        category: sp.category ? [{ name: sp.category, slug: "" }] : [],
+        content: sp.description,
+        isSemanticMatch: true,
+        similarity: sp.similarity,
+      }));
+      if (movies.length > 0) {
+        totalPages = 1;
+        totalItems = movies.length;
       }
-    }
-
-    // Concept discovery expansion (trang 1, chỉ khi có concept kích hoạt như MCU/Avengers)
-    if (currentPage === 1 && semanticConcepts.length > 0) {
-      const allDiscoveryKws = Array.from(
-        new Set(semanticConcepts.flatMap((c) => c.discoveryKeywords))
-      )
-        .filter((dk) => cleanNormalizedForMatch(dk) !== cleanNormalizedForMatch(keyword))
-        .slice(0, 5);
-
-      if (allDiscoveryKws.length > 0) {
-        const discoveryResponses = await Promise.all(
-          allDiscoveryKws.map((dk) =>
-            movieApi.getMovies({ keyword: dk, limit: 6 }).catch(() => null)
-          )
-        );
-        for (const dRes of discoveryResponses) {
-          if (!dRes?.items) continue;
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          for (const item of dRes.items as any[]) {
-            if (item?.slug && !seenSlugs.has(item.slug)) {
-              seenSlugs.add(item.slug);
-              allCandidates.push(item);
-            }
-          }
-        }
-      }
-    }
-
-    upstreamMovies = allCandidates;
-
-    // Chấm điểm độ phù hợp (Relevance Scoring)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const scoredCandidates = allCandidates.map((m: any) => {
-      const rel = evaluateSearchRelevance(m, keyword);
-      return {
-        ...m,
-        relevanceScore: rel.score,
-        matchType: rel.matchType,
-        matchSnippet: rel.matchSnippet,
-      };
-    });
-
-    const hasStrongTitleMatch = scoredCandidates.some((movie) => movie.relevanceScore >= 40);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const validSearchMovies = scoredCandidates.filter((movie: any) => {
-      if (hasStrongTitleMatch) {
-        return (
-          movie.relevanceScore >= 40 ||
-          getTitleEvidence(movie, keyword).matched ||
-          (semanticConcepts.length > 0 && evaluateConceptEvidence(movie, semanticConcepts).score >= 80)
-        );
-      }
-      return movie.relevanceScore > 0;
-    });
-
-    if (effectiveSort === "year") {
-      validSearchMovies.sort((a, b) => Number(b.year || 0) - Number(a.year || 0));
     } else {
-      validSearchMovies.sort((a, b) => {
-        if (b.relevanceScore !== a.relevanceScore) {
-          return b.relevanceScore - a.relevanceScore;
-        }
-        // Tie-break: Điểm đánh giá cao hơn xếp trước
-        const rateA = Number(a.vote_average || a.rating || 0);
-        const rateB = Number(b.vote_average || b.rating || 0);
-        if (rateB !== rateA) return rateB - rateA;
-        return Number(b.year || 0) - Number(a.year || 0);
-      });
+      movies = items;
     }
-
-    totalItems = validSearchMovies.length;
-    totalPages = Math.max(1, Math.ceil(totalItems / PAGE_LIMIT));
-
-    const startIndex = (currentPage - 1) * PAGE_LIMIT;
-    movies = validSearchMovies.slice(startIndex, startIndex + PAGE_LIMIT);
-
 
   } else {
     // 2B. DUYỆT THEO DANH MỤC / QUỐC GIA / NĂM (CATALOG BROWSING)

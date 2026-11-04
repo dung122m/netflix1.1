@@ -1079,9 +1079,9 @@ function LivePlayerInner({
     [summary?.awayTeam?.name, summary?.awayTeam?.displayName, team2],
   );
 
-  // Ưu tiên cờ quốc gia / emoji đặc thù (luôn hiển thị chuẩn, sắc nét, không 404)
-  const homeFlagEmoji = homeAsset?.emoji || null;
-  const awayFlagEmoji = awayAsset?.emoji || null;
+  // Ưu tiên cờ quốc gia khi thực sự là ĐTQG (isCountry: true)
+  const homeFlagEmoji = homeAsset?.isCountry && homeAsset?.emoji ? homeAsset.emoji : null;
+  const awayFlagEmoji = awayAsset?.isCountry && awayAsset?.emoji ? awayAsset.emoji : null;
 
   const rawHome =
     (Boolean(summary?.homeTeam?.logo) &&

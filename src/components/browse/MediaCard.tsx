@@ -680,8 +680,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
               alt={title}
               loading={priority ? "eager" : "lazy"}
               decoding={priority ? "sync" : "async"}
-              // @ts-expect-error - fetchpriority is supported in modern browsers
-              fetchpriority={priority ? "high" : "auto"}
+              fetchPriority={priority ? "high" : "auto"}
               referrerPolicy="no-referrer"
               className={`relative z-[1] w-full h-full object-cover object-center group-hover/card:scale-105 group-hover/card:brightness-105 transition-all duration-300 ease-out motion-reduce:transform-none ${
                 isImageLoaded ? "opacity-100" : "opacity-0"

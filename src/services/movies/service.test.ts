@@ -322,7 +322,7 @@ describe("Nanaflix Movie Browse Pagination & Filter Service", () => {
       sort: "rating",
     });
     const parsed = JSON.parse(key);
-    assert.equal(parsed.v, 15, "Cache key version must be 15");
+    assert.equal(parsed.v, 16, "Cache key version must be 15");
     assert.equal(parsed.type, "phim-le");
     assert.equal(parsed.category, "hanh-dong");
     assert.equal(parsed.country, "han-quoc");

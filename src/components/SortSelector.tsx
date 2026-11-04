@@ -5,8 +5,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowUpDown, Check, Clock, Star, Flame, Calendar } from "lucide-react";
 
 const SORT_OPTIONS = [
-  { label: "Điểm đánh giá cao", value: "rating", icon: Star, iconColor: "text-amber-400" },
   { label: "Mới cập nhật", value: "latest", icon: Clock, iconColor: "text-sky-400" },
+  { label: "Điểm đánh giá cao", value: "rating", icon: Star, iconColor: "text-amber-400" },
   { label: "Xem nhiều nhất", value: "views", icon: Flame, iconColor: "text-orange-500" },
   { label: "Năm mới nhất", value: "year", icon: Calendar, iconColor: "text-emerald-400" },
 ];
@@ -15,7 +15,7 @@ export const SortSelector: React.FC = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const rawSort = searchParams.get("sort") || "";
-  const currentSort = rawSort || "rating";
+  const currentSort = rawSort || "latest";
   const [isOpen, setIsOpen] = useState(false);
   const [, startTransition] = useTransition();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -44,7 +44,7 @@ export const SortSelector: React.FC = () => {
     }
 
     const params = new URLSearchParams(searchParams.toString());
-    if (value === "rating" || !value) {
+    if (value === "latest" || !value) {
       params.delete("sort");
     } else {
       params.set("sort", value);

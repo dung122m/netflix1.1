@@ -1,5 +1,6 @@
 import { auth } from "./firebase";
 import { getOrCreateAnonymousId } from "./analyticsClient";
+import { markEpisodeAsWatched } from "./episodeTracker";
 
 export type WatchHistorySyncHandler = {
   saveItem: (uid: string, item: WatchHistoryItem, delayMs?: number, options?: { force?: boolean }) => void;
@@ -62,6 +63,48 @@ export function setWatchHistoryFromSync(items: WatchHistoryItem[]): void {
   updateMemoryWatchHistory(sorted);
   try {
     localStorage.setItem(HISTORY_KEY, JSON.stringify(sorted));
+
+    // Đồng bộ các tập từ Cloud vào bản đồ tiến trình tập chi tiết nếu tiến độ Cloud mới hơn
+    const allProgress = getAllEpisodeProgress();
+    let hasEpProgressChange = false;
+    for (const item of sorted) {
+      if (item.slug && item.episodeSlug && typeof item.progressSeconds === "number") {
+        if (!allProgress[item.slug]) {
+          allProgress[item.slug] = {};
+        }
+        const existingEp = allProgress[item.slug][item.episodeSlug];
+        const cloudUpdatedAt = Number(item.updatedAt) || 0;
+        const localUpdatedAt = Number(existingEp?.updatedAt) || 0;
+
+        // Chỉ cập nhật nếu Cloud có timestamp mới hơn hoặc máy này chưa có bản ghi
+        if (!existingEp || cloudUpdatedAt >= localUpdatedAt) {
+          const isCompleted = Boolean(
+            item.durationSeconds &&
+              item.durationSeconds > 0 &&
+              Number.isFinite(item.durationSeconds) &&
+              item.progressSeconds / item.durationSeconds >= 0.9
+          );
+          allProgress[item.slug][item.episodeSlug] = {
+            progressSeconds: Math.floor(item.progressSeconds),
+            durationSeconds:
+              item.durationSeconds && item.durationSeconds > 0
+                ? Math.floor(item.durationSeconds)
+                : existingEp?.durationSeconds,
+            updatedAt: cloudUpdatedAt || Date.now(),
+            isCompleted,
+            episodeName: item.episodeName || existingEp?.episodeName,
+          };
+          hasEpProgressChange = true;
+          if (isCompleted) {
+            markEpisodeAsWatched(item.slug, item.episodeSlug);
+          }
+        }
+      }
+    }
+    if (hasEpProgressChange) {
+      localStorage.setItem(EPISODES_PROGRESS_KEY, JSON.stringify(allProgress));
+      window.dispatchEvent(new CustomEvent("watch-progress-updated", { detail: {} }));
+    }
   } catch {}
   window.dispatchEvent(new CustomEvent("watch-history-updated"));
 }
@@ -75,14 +118,21 @@ if (typeof window !== "undefined") {
   });
 }
 
-// Bản đồ lưu tiến trình chi tiết từng tập: { [movieSlug]: { [episodeSlug]: { progressSeconds, durationSeconds, updatedAt } } }
+// Cấu trúc lưu tiến trình chi tiết của từng tập
+export interface EpisodeProgressData {
+  progressSeconds: number;
+  durationSeconds?: number;
+  updatedAt: number;
+  isCompleted?: boolean;
+  episodeName?: string;
+  seasonNumber?: number;
+  episodeNumber?: number;
+}
+
+// Bản đồ lưu tiến trình chi tiết từng tập: { [movieSlug]: { [episodeSlug]: EpisodeProgressData } }
 export interface EpisodeProgressMap {
   [movieSlug: string]: {
-    [episodeSlug: string]: {
-      progressSeconds: number;
-      durationSeconds?: number;
-      updatedAt: number;
-    };
+    [episodeSlug: string]: EpisodeProgressData;
   };
 }
 
@@ -102,6 +152,12 @@ export const saveEpisodeProgress = (
   episodeSlug: string,
   progressSeconds: number,
   durationSeconds?: number,
+  meta?: {
+    episodeName?: string;
+    seasonNumber?: number;
+    episodeNumber?: number;
+    isCompleted?: boolean;
+  },
 ): void => {
   if (typeof window === "undefined" || !movieSlug || !episodeSlug) return;
   try {
@@ -109,12 +165,52 @@ export const saveEpisodeProgress = (
     if (!all[movieSlug]) {
       all[movieSlug] = {};
     }
+    const existing = all[movieSlug][episodeSlug];
+    const now = Date.now();
+
+    // Không để dữ liệu cũ ghi đè dữ liệu mới hơn (nếu có bản ghi trong tương lai hơn 1 phút)
+    if (existing?.updatedAt && existing.updatedAt > now + 60000) {
+      return;
+    }
+
+    const flooredProg = Math.max(0, Math.floor(progressSeconds));
+    const flooredDur =
+      durationSeconds && durationSeconds > 0
+        ? Math.floor(durationSeconds)
+        : existing?.durationSeconds;
+
+    const hasValidDuration = Boolean(
+      flooredDur && Number.isFinite(flooredDur) && flooredDur > 0
+    );
+
+    const isCompleted = Boolean(
+      meta?.isCompleted ||
+      (existing?.isCompleted && meta?.isCompleted !== false) ||
+      (hasValidDuration && flooredDur !== undefined && flooredProg / flooredDur >= 0.9)
+    );
+
     all[movieSlug][episodeSlug] = {
-      progressSeconds: Math.floor(progressSeconds),
-      durationSeconds: durationSeconds && durationSeconds > 0 ? Math.floor(durationSeconds) : undefined,
-      updatedAt: Date.now(),
+      progressSeconds: flooredProg,
+      durationSeconds: flooredDur,
+      updatedAt: now,
+      isCompleted,
+      episodeName: meta?.episodeName || existing?.episodeName,
+      seasonNumber:
+        meta?.seasonNumber !== undefined
+          ? meta.seasonNumber
+          : existing?.seasonNumber,
+      episodeNumber:
+        meta?.episodeNumber !== undefined
+          ? meta.episodeNumber
+          : existing?.episodeNumber,
     };
+
     localStorage.setItem(EPISODES_PROGRESS_KEY, JSON.stringify(all));
+
+    // Nếu tập đã hoàn tất (>= 90%), đồng bộ ngay vào danh sách đã xem
+    if (isCompleted) {
+      markEpisodeAsWatched(movieSlug, episodeSlug);
+    }
   } catch (error) {
     console.error("Lỗi lưu tiến trình tập:", error);
   }
@@ -133,7 +229,7 @@ export const getEpisodeProgress = (movieSlug: string, episodeSlug: string): numb
 
 export const getMovieEpisodesProgress = (
   movieSlug: string,
-): Record<string, { progressSeconds: number; durationSeconds?: number }> => {
+): Record<string, EpisodeProgressData> => {
   if (typeof window === "undefined" || !movieSlug) return {};
   try {
     const all = getAllEpisodeProgress();
@@ -301,10 +397,15 @@ export const saveWatchProgress = (
     year?: number | string;
     quality?: string;
     category?: string;
+    seasonNumber?: number;
+    episodeNumber?: number;
   },
   forceSync?: boolean,
 ): void => {
   if (typeof window === "undefined" || !slug) return;
+  // Không lưu nếu thời gian xem < 2s trừ khi có forceSync (tránh ghi đè giả lúc mới tải)
+  if (progressSeconds < 2 && !forceSync) return;
+
   try {
     const list = getWatchHistory();
     const existing = list.find((i) => i.slug === slug);
@@ -318,6 +419,10 @@ export const saveWatchProgress = (
       }
       if (episodeSlug) {
         existing.episodeSlug = episodeSlug;
+        // Cập nhật tên tập mới tương ứng khi đổi tập
+        if (extraMeta?.episodeName) {
+          existing.episodeName = extraMeta.episodeName;
+        }
       }
       if (extraMeta?.title && (existing.title === slug || !existing.title)) {
         existing.title = extraMeta.title;
@@ -367,7 +472,12 @@ export const saveWatchProgress = (
 
     // Luôn lưu tiến trình riêng biệt cho tập đó (độc lập với các tập khác)
     if (episodeSlug) {
-      saveEpisodeProgress(slug, episodeSlug, progressSeconds, durationSeconds);
+      saveEpisodeProgress(slug, episodeSlug, progressSeconds, durationSeconds, {
+        episodeName: extraMeta?.episodeName,
+        seasonNumber: extraMeta?.seasonNumber,
+        episodeNumber: extraMeta?.episodeNumber,
+        isCompleted: durationSeconds && durationSeconds > 0 ? (progressSeconds / durationSeconds >= 0.9) : false,
+      });
     }
 
     // Phát sự kiện realtime cho toàn bộ trang
@@ -551,6 +661,13 @@ export const clearLocalWatchHistoryOnly = (): void => {
     updateMemoryWatchHistory([]);
     localStorage.removeItem(HISTORY_KEY);
     localStorage.removeItem(EPISODES_PROGRESS_KEY);
+    // Dọn sạch danh sách tập đã xem để phân lập tuyệt đối giữa các tài khoản
+    for (let i = localStorage.length - 1; i >= 0; i--) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith("nanaflix_watched_eps_")) {
+        localStorage.removeItem(key);
+      }
+    }
     window.dispatchEvent(new CustomEvent("watch-history-updated"));
   } catch (error) {
     console.error("Lỗi xoá lịch sử local:", error);

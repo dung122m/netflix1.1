@@ -1,4 +1,5 @@
 import { Redis } from "@upstash/redis";
+import { getSafeRedisCredentials } from "@/lib/redisEnvGuard";
 import { supabase } from "@/lib/supabase";
 import { getSupabaseAdmin, isSupabaseAdminConfigured } from "@/lib/supabaseAdmin";
 import { AnalyticsEventPayload } from "@/lib/analyticsClient";
@@ -158,19 +159,29 @@ export interface AnalyticsDashboardStats {
 }
 
 let redisInstance: Redis | null = null;
+let isRedisChecked = false;
 
 function getRedis(): Redis | null {
-  if (redisInstance) return redisInstance;
-  const url = process.env.UPSTASH_REDIS_REST_URL?.trim();
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN?.trim();
-  if (!url || !token) return null;
+  if (isRedisChecked) return redisInstance;
+  isRedisChecked = true;
+
+  const creds = getSafeRedisCredentials();
+  if (!creds) {
+    redisInstance = null;
+    return null;
+  }
+
   try {
-    redisInstance = new Redis({ url, token });
+    redisInstance = new Redis({ url: creds.url, token: creds.token });
     return redisInstance;
   } catch {
+    redisInstance = null;
     return null;
   }
 }
+
+// In-memory counter for periodic list trimming
+let globalEventTrimCounter = 0;
 
 // In-memory fallback buffer when Redis is unavailable
 const memoryEventsBuffer: StoredAnalyticsEvent[] = [];
@@ -225,10 +236,11 @@ if (typeof setInterval !== "undefined") {
 export async function recordAnalyticsEvent(payload: AnalyticsEventPayload): Promise<{
   success: boolean;
   deduped?: boolean;
+  visitorRecorded?: boolean;
 }> {
   // Exclusively record site_visit events
   if (payload.eventType !== "site_visit") {
-    return { success: true, deduped: false };
+    return { success: true, deduped: false, visitorRecorded: true };
   }
 
   const now = payload.timestamp || Date.now();
@@ -243,7 +255,7 @@ export async function recordAnalyticsEvent(payload: AnalyticsEventPayload): Prom
   const visitDedupKey = `visit_dedup:${viewerKey}:${pageGroup}`;
   const localDedup = localVisitDedupCache.get(visitDedupKey);
   if (localDedup && now - localDedup < 30000) {
-    return { success: true, deduped: true };
+    return { success: true, deduped: true, visitorRecorded: true };
   }
 
   try {
@@ -253,11 +265,14 @@ export async function recordAnalyticsEvent(payload: AnalyticsEventPayload): Prom
       const acquired = await redis.set(visitDedupKey, now, { nx: true, ex: 30 });
       if (!acquired) {
         localVisitDedupCache.set(visitDedupKey, now);
-        return { success: true, deduped: true };
+        return { success: true, deduped: true, visitorRecorded: true };
       }
+      localVisitDedupCache.set(visitDedupKey, now);
+    } else {
       localVisitDedupCache.set(visitDedupKey, now);
     }
   } catch {
+    localVisitDedupCache.set(visitDedupKey, now);
     // Fail gracefully: proceed if Redis is temporarily unavailable
   }
 
@@ -284,33 +299,29 @@ export async function recordAnalyticsEvent(payload: AnalyticsEventPayload): Prom
 
   const redis = getRedis();
 
+  let visitorRecorded = false;
+
   // Persist to Upstash Redis via single pipeline (fail-safe)
   if (redis) {
     try {
-      const isKnown = localKnownVisitors.has(viewerKey);
+      const isKnown = Boolean(payload.isReturningVisitor) || localKnownVisitors.has(viewerKey);
       localKnownVisitors.add(viewerKey);
-
-      const visitorKey = `analytics:visitor:${viewerKey}`;
-      const visitorData: VisitorInfo = {
-        id: viewerKey,
-        isUser: Boolean(userId),
-        userId,
-        anonymousId,
-        deviceType: eventRecord.deviceType || "desktop",
-        os: eventRecord.os || "Other",
-        browser: eventRecord.browser || "Other",
-        screenRes: undefined,
-        firstSeen: now,
-        lastSeen: now,
-      };
 
       const pipe = redis.pipeline();
       pipe.lpush("analytics:events", JSON.stringify(eventRecord));
-      pipe.ltrim("analytics:events", 0, 500);
+
+      // Serverless-resilient probabilistic (~10%) + local counter trimming:
+      // Guarantees list stays bounded <= 550 across multiple cold/concurrent lambdas without extra Redis commands
+      globalEventTrimCounter += 1;
+      if (globalEventTrimCounter >= 10 || Math.random() < 0.1) {
+        globalEventTrimCounter = 0;
+        pipe.ltrim("analytics:events", 0, 500);
+      }
+
       pipe.incr("analytics:visits:total");
 
+      // Unique Visitor tracking: Only run SADD when visitor is not previously known in this session
       if (!isKnown) {
-        pipe.set(visitorKey, visitorData, { ex: 60 * 86400 });
         pipe.sadd("analytics:unique:total", viewerKey);
         if (userId) {
           pipe.sadd("analytics:unique:users", userId);
@@ -320,8 +331,10 @@ export async function recordAnalyticsEvent(payload: AnalyticsEventPayload): Prom
       }
 
       await pipe.exec();
+      visitorRecorded = true;
     } catch (redisErr) {
       console.warn("[Analytics] Redis storage error:", redisErr);
+      visitorRecorded = false;
     }
   } else {
     // Memory fallback
@@ -341,6 +354,7 @@ export async function recordAnalyticsEvent(payload: AnalyticsEventPayload): Prom
       firstSeen: existingMem?.firstSeen || now,
       lastSeen: now,
     });
+    visitorRecorded = true;
   }
 
   // Persist to Supabase analytics_events table (fail-safe)
@@ -373,7 +387,7 @@ export async function recordAnalyticsEvent(payload: AnalyticsEventPayload): Prom
     }
   }
 
-  return { success: true, deduped: false };
+  return { success: true, deduped: false, visitorRecorded };
 }
 
 // Timezone offset for Vietnam (Asia/Ho_Chi_Minh, UTC+7 in milliseconds)

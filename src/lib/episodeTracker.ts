@@ -39,5 +39,23 @@ export const isEpisodeWatched = (
 ): boolean => {
   if (typeof window === "undefined" || !movieSlug || !episodeSlug) return false;
   const list = getWatchedEpisodes(movieSlug);
-  return list.includes(episodeSlug);
+  if (list.includes(episodeSlug)) return true;
+
+  try {
+    const raw = localStorage.getItem("nanaflix_episodes_progress");
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      const epData = parsed[movieSlug]?.[episodeSlug];
+      if (epData?.isCompleted) return true;
+      if (
+        epData?.durationSeconds &&
+        epData.durationSeconds > 0 &&
+        epData.progressSeconds / epData.durationSeconds >= 0.9
+      ) {
+        return true;
+      }
+    }
+  } catch {}
+
+  return false;
 };

@@ -1,4 +1,9 @@
 import { getTeamAsset } from "@/data/live/teamAssets";
+import {
+  resolveDynamicSportsLogo,
+  getCachedLogo,
+  setCachedLogo,
+} from "@/services/live/dynamicLogoService";
 
 // Service tự động tra cứu, chuẩn hóa và bổ sung Logo/Huy hiệu (Crest/Badge) cho các đội bóng đá
 // Hỗ trợ: Static Dictionary (0ms), TheSportsDB API (Dynamic HD Badges), In-memory LRU cache
@@ -18,6 +23,9 @@ export function toDarkModeLogoUrl(url?: string | null): string {
         return url.replace(`/500/${id}.png`, `/500-dark/${id}.png`);
       }
     }
+  }
+  if (url.includes("/teamlogos/nba/500/sa.png")) {
+    return url.replace("/500/sa.png", "/500-dark/sa.png");
   }
   return url;
 }
@@ -455,7 +463,7 @@ export function isTeamIdentityMatch(
 /**
  * Tra cứu và trả về link Huy hiệu/Logo CLB chất lượng cao
  */
-export async function resolveTeamLogo(teamName: string): Promise<string> {
+export async function resolveTeamLogo(teamName: string, sport?: string): Promise<string> {
   if (!teamName) return "";
   const key = normalizeTeamKey(teamName);
   if (!key) return "";
@@ -472,8 +480,18 @@ export async function resolveTeamLogo(teamName: string): Promise<string> {
 
   // 3. Kiểm tra in-memory cache
   if (LOGO_CACHE.has(key)) return LOGO_CACHE.get(key) || "";
+  const dynamicCached = getCachedLogo(`${sport || "all"}:${key}`);
+  if (dynamicCached !== null) return dynamicCached;
 
-  // 4. Dọn sạch tên để tìm kiếm trên TheSportsDB API (KHÔNG bỏ City, United, Town...)
+  // 4. Nếu là môn Basketball, Esports hoặc Tennis -> ưu tiên Dynamic Resolver
+  const s = (sport || "").toLowerCase();
+  if (s === "basketball" || s === "esports" || s === "tennis") {
+    const dynamicLogo = await resolveDynamicSportsLogo(teamName, sport);
+    LOGO_CACHE.set(key, dynamicLogo);
+    return dynamicLogo;
+  }
+
+  // 5. Thử tìm kiếm bóng đá qua TheSportsDB API
   const clean = teamName
     .replace(/^CLB\s+/i, "")
     .replace(/^FC\s+/i, "")
@@ -517,71 +535,149 @@ export async function resolveTeamLogo(teamName: string): Promise<string> {
       if (res.ok) {
         const data = await res.json();
         if (Array.isArray(data.teams)) {
-          // Xác thực danh tính team nghiêm ngặt trước khi lấy strBadge
           for (const t of data.teams) {
             if (t?.strBadge && isTeamIdentityMatch(teamName, t)) {
               LOGO_CACHE.set(key, t.strBadge);
+              setCachedLogo(`${sport || "all"}:${key}`, t.strBadge);
               return t.strBadge;
             }
           }
         }
       }
     } catch {
-      // Timeout hoặc network error -> thử query tiếp
+      // Timeout hoặc network error -> tiếp tục
     }
   }
 
-  // Nếu không tìm thấy hoặc không khớp danh tính, lưu chuỗi rỗng vào cache để không gán nhầm
-  LOGO_CACHE.set(key, "");
-  return "";
+  // 6. Fallback cuối cùng: Wikimedia dynamic lookup
+  const dynamicFallback = await resolveDynamicSportsLogo(teamName, sport);
+  LOGO_CACHE.set(key, dynamicFallback);
+  return dynamicFallback;
 }
 
+// Hàng đợi các key đang query logo ngầm để tránh trùng lặp request (Deduplication)
+const pendingQueries = new Set<string>();
+
 /**
- * Bổ sung logo cho tất cả các trận đấu song song (Tối ưu hóa siêu tốc cho Vercel SSR)
+ * Phục hồi logo 0ms từ static dictionary & dynamic cache (Hoàn toàn đồng bộ, không bao giờ block critical path)
  */
-export async function enrichMatchLogos<T extends { team1: string; team2: string; homeLogo?: string; awayLogo?: string }>(
-  matches: T[]
-): Promise<T[]> {
-  // 1. Phục hồi 0ms từ static dictionary trước
+export function enrichMatchLogosSync<
+  T extends { team1: string; team2: string; homeLogo?: string; awayLogo?: string; sport?: string }
+>(matches: T[]): T[] {
   for (const m of matches) {
+    const s = m.sport || "all";
     if (m.team1 && (!m.homeLogo || m.homeLogo.includes("tinhlagi.pro/logo.jpg"))) {
       const key = normalizeTeamKey(m.team1);
-      if (key && STATIC_CLUB_LOGOS[key]) m.homeLogo = STATIC_CLUB_LOGOS[key];
-      else if (key && LOGO_CACHE.has(key)) m.homeLogo = LOGO_CACHE.get(key) || "";
+      if (key && STATIC_CLUB_LOGOS[key]) {
+        m.homeLogo = STATIC_CLUB_LOGOS[key];
+      } else if (key) {
+        const cached = getCachedLogo(`${s}:${key}`) ?? LOGO_CACHE.get(key);
+        if (cached) m.homeLogo = cached;
+      }
     }
     if (m.team2 && (!m.awayLogo || m.awayLogo.includes("tinhlagi.pro/logo.jpg"))) {
       const key = normalizeTeamKey(m.team2);
-      if (key && STATIC_CLUB_LOGOS[key]) m.awayLogo = STATIC_CLUB_LOGOS[key];
-      else if (key && LOGO_CACHE.has(key)) m.awayLogo = LOGO_CACHE.get(key) || "";
+      if (key && STATIC_CLUB_LOGOS[key]) {
+        m.awayLogo = STATIC_CLUB_LOGOS[key];
+      } else if (key) {
+        const cached = getCachedLogo(`${s}:${key}`) ?? LOGO_CACHE.get(key);
+        if (cached) m.awayLogo = cached;
+      }
     }
   }
+  return matches;
+}
 
-  // 2. Query TheSportsDB bất đồng bộ chạy nền để cập nhật LOGO_CACHE cho các request tiếp theo (KHÔNG block SSR critical path)
+/**
+ * Tự động khám phá logo mới bất đồng bộ ở background mà KHÔNG block response chính
+ */
+export function triggerBackgroundLogoEnrichment<
+  T extends { team1: string; team2: string; homeLogo?: string; awayLogo?: string; sport?: string }
+>(matches: T[]): void {
   const pending = matches
     .filter(
       (m) =>
         (m.team1 && (!m.homeLogo || m.homeLogo.includes("tinhlagi.pro/logo.jpg"))) ||
         (m.team2 && (!m.awayLogo || m.awayLogo.includes("tinhlagi.pro/logo.jpg")))
     )
-    .slice(0, 8);
+    .slice(0, 10);
+
+  if (pending.length === 0) return;
+
+  // Thực thi ngầm trong background (fire-and-forget), không await
+  Promise.allSettled(
+    pending.map(async (m) => {
+      const s = m.sport || "all";
+      const needHome = Boolean(m.team1) && (!m.homeLogo || m.homeLogo.includes("tinhlagi.pro/logo.jpg"));
+      const needAway = Boolean(m.team2) && (!m.awayLogo || m.awayLogo.includes("tinhlagi.pro/logo.jpg"));
+
+      if (needHome && m.team1) {
+        const key = `${s}:${normalizeTeamKey(m.team1)}`;
+        if (!pendingQueries.has(key)) {
+          pendingQueries.add(key);
+          try {
+            const logo = await resolveTeamLogo(m.team1, m.sport);
+            if (logo) m.homeLogo = logo;
+          } catch {
+            // fail-safe
+          } finally {
+            pendingQueries.delete(key);
+          }
+        }
+      }
+
+      if (needAway && m.team2) {
+        const key = `${s}:${normalizeTeamKey(m.team2)}`;
+        if (!pendingQueries.has(key)) {
+          pendingQueries.add(key);
+          try {
+            const logo = await resolveTeamLogo(m.team2, m.sport);
+            if (logo) m.awayLogo = logo;
+          } catch {
+            // fail-safe
+          } finally {
+            pendingQueries.delete(key);
+          }
+        }
+      }
+    })
+  ).catch(() => {});
+}
+
+/**
+ * Bổ sung logo cho tất cả các trận đấu:
+ * - Khôi phục logo đã biết ngay lập tức từ Static Dictionary & Cache
+ * - Nếu gọi bất đồng bộ với await, resolve các logo còn thiếu
+ */
+export async function enrichMatchLogos<
+  T extends { team1: string; team2: string; homeLogo?: string; awayLogo?: string; sport?: string }
+>(matches: T[]): Promise<T[]> {
+  // 1. Phục hồi 0ms từ static dictionary & dynamic cache trước
+  enrichMatchLogosSync(matches);
+
+  const pending = matches
+    .filter(
+      (m) =>
+        (m.team1 && (!m.homeLogo || m.homeLogo.includes("tinhlagi.pro/logo.jpg"))) ||
+        (m.team2 && (!m.awayLogo || m.awayLogo.includes("tinhlagi.pro/logo.jpg")))
+    )
+    .slice(0, 10);
 
   if (pending.length > 0) {
-    Promise.allSettled(
+    await Promise.allSettled(
       pending.map(async (m) => {
         const needHome = Boolean(m.team1) && (!m.homeLogo || m.homeLogo.includes("tinhlagi.pro/logo.jpg"));
         const needAway = Boolean(m.team2) && (!m.awayLogo || m.awayLogo.includes("tinhlagi.pro/logo.jpg"));
-
         if (needHome && m.team1) {
-          const logo = await resolveTeamLogo(m.team1);
+          const logo = await resolveTeamLogo(m.team1, m.sport);
           if (logo) m.homeLogo = logo;
         }
         if (needAway && m.team2) {
-          const logo = await resolveTeamLogo(m.team2);
+          const logo = await resolveTeamLogo(m.team2, m.sport);
           if (logo) m.awayLogo = logo;
         }
       })
-    ).catch(() => {});
+    );
   }
-
   return matches;
 }

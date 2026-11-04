@@ -1,4 +1,5 @@
 import { Redis } from "@upstash/redis";
+import { getSafeRedisCredentials } from "@/lib/redisEnvGuard";
 
 /**
  * Cache abstraction layer for Nanaflix.
@@ -41,17 +42,18 @@ function getRedisClient(): Redis | null {
   }
 
   isRedisInitChecked = true;
-  const url = process.env.UPSTASH_REDIS_REST_URL?.trim();
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN?.trim();
+  const creds = getSafeRedisCredentials();
 
-  if (!url || !token) {
-    if (!isWarnedUnavailable) {
-      console.info("[Cache] Upstash Redis credentials missing. Operating in In-Memory High Performance mode.");
+  if (!creds) {
+    if (!isWarnedUnavailable && process.env.NODE_ENV !== "test") {
+      console.info("[Cache] Operating in In-Memory High Performance mode (Production Redis protected).");
       isWarnedUnavailable = true;
     }
     redisClient = null;
     return null;
   }
+
+  const { url, token } = creds;
 
   try {
     redisClient = new Redis({

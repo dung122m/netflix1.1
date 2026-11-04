@@ -20,7 +20,10 @@ import {
   shouldRefreshOnTabFocus,
   shouldSkipDuplicateRequest,
 } from "@/services/live/football-score/matchCenterRealtime";
-import { resolveCanonicalTournament } from "@/services/live/football-score/canonicalLeagues";
+import {
+  resolveCanonicalTournament,
+  resolveTournamentLogo,
+} from "@/services/live/football-score/canonicalLeagues";
 import { getTeamAsset, getTeamInitials } from "@/data/live/teamAssets";
 import { toDarkModeLogoUrl } from "@/services/live/football-logo/service";
 import { TacticalLineup } from "./TacticalLineup";
@@ -48,6 +51,7 @@ interface MatchCenterProps {
   team1?: string;
   team2?: string;
   tournament?: string;
+  sport?: string;
   team1Logo?: string;
   team2Logo?: string;
   isLive?: boolean;
@@ -72,6 +76,7 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
   team1,
   team2,
   tournament,
+  sport,
   team1Logo,
   team2Logo,
   isLive,
@@ -340,7 +345,7 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
           </div>
 
           <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-zinc-800/90 p-1.5 flex items-center justify-center shadow-md relative overflow-hidden shrink-0">
-            {homeAsset?.emoji ? (
+            {homeAsset?.isCountry && homeAsset?.emoji ? (
               <CountryFlag emoji={homeAsset.emoji} className="w-6 h-6 sm:w-7 sm:h-7 relative z-10" />
             ) : homeLogoSrc ? (
               /* eslint-disable-next-line @next/next/no-img-element */
@@ -410,7 +415,7 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
         {/* Đội khách: Logo + Tên (căn trái) */}
         <div className="flex items-center justify-start gap-2 sm:gap-3.5 min-w-0">
           <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-zinc-800/90 p-1.5 flex items-center justify-center shadow-md relative overflow-hidden shrink-0">
-            {awayAsset?.emoji ? (
+            {awayAsset?.isCountry && awayAsset?.emoji ? (
               <CountryFlag emoji={awayAsset.emoji} className="w-6 h-6 sm:w-7 sm:h-7 relative z-10" />
             ) : awayLogoSrc ? (
               /* eslint-disable-next-line @next/next/no-img-element */
@@ -465,8 +470,17 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
               {displayTitle}
             </h3>
             {canonicalLeague && canonicalLeague !== "Giải Đấu Khác" && (
-              <span className="px-1.5 py-0.5 rounded-md text-[9.5px] sm:text-[10px] font-bold bg-white/10 text-zinc-300 shrink-0 flex items-center gap-1">
-                <span>🏆</span>
+              <span className="px-1.5 py-0.5 rounded-md text-[9.5px] sm:text-[10px] font-bold bg-white/10 text-zinc-300 shrink-0 flex items-center gap-1.5">
+                {resolveTournamentLogo(canonicalLeague, sport) ? (
+                  <img
+                    src={toDarkModeLogoUrl(resolveTournamentLogo(canonicalLeague, sport))}
+                    alt=""
+                    className="w-3.5 h-3.5 object-contain shrink-0"
+                    loading="lazy"
+                  />
+                ) : (
+                  <span>🏆</span>
+                )}
                 <span className="truncate max-w-[110px] sm:max-w-none">{canonicalLeague}</span>
               </span>
             )}

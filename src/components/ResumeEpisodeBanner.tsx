@@ -2,9 +2,9 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { Play, RotateCcw, X } from "lucide-react";
-import { getWatchHistory } from "@/lib/watchHistory";
+import { Play, RotateCcw, X, FastForward } from "lucide-react";
 import { formatEpisodeName } from "@/lib/formatEpisode";
+import { resolveNextResumeEpisode, ResolvedResumeEpisode } from "@/lib/seriesResume";
 import { useWatchController } from "./WatchController";
 import { Tooltip } from "@/components/ui/Tooltip";
 
@@ -18,28 +18,28 @@ export const ResumeEpisodeBanner: React.FC<ResumeEpisodeBannerProps> = ({
   activeEpisodeSlug: propActiveEpisodeSlug,
 }) => {
   const watchContext = useWatchController();
+  const episodes = watchContext?.episodes || [];
   const activeEpisodeSlug = watchContext?.activeEpisodeSlug ?? propActiveEpisodeSlug;
   const switchEpisode = watchContext?.switchEpisode;
 
-  const [resumeData, setResumeData] = useState<{
-    episodeName?: string;
-    episodeSlug?: string;
-  } | null>(null);
+  const [resumeInfo, setResumeInfo] = useState<ResolvedResumeEpisode | null>(null);
   const [dismissed, setDismissed] = useState(false);
 
   useEffect(() => {
-    const history = getWatchHistory();
-    const item = history.find((h) => h.slug === movieSlug);
+    if (!movieSlug || episodes.length === 0) {
+      setResumeInfo(null);
+      return;
+    }
 
+    const resolved = resolveNextResumeEpisode(movieSlug, episodes);
+    // Chỉ hiển thị banner khi tập giải quyết khác với tập đang phát hiện tại
     if (
-      item &&
-      item.episodeSlug &&
-      item.episodeSlug !== activeEpisodeSlug
+      resolved &&
+      resolved.episode?.slug &&
+      resolved.episode.slug !== activeEpisodeSlug &&
+      (resolved.caseType === "in_progress" || resolved.caseType === "next_episode")
     ) {
-      setResumeData({
-        episodeName: item.episodeName,
-        episodeSlug: item.episodeSlug,
-      });
+      setResumeInfo(resolved);
 
       // Tự động ẩn thông báo sau 12 giây để không làm phiền trải nghiệm xem
       const autoDismissTimer = setTimeout(() => {
@@ -48,13 +48,17 @@ export const ResumeEpisodeBanner: React.FC<ResumeEpisodeBannerProps> = ({
 
       return () => clearTimeout(autoDismissTimer);
     } else {
-      setResumeData(null);
+      setResumeInfo(null);
     }
-  }, [movieSlug, activeEpisodeSlug]);
+  }, [movieSlug, episodes, activeEpisodeSlug]);
 
-  if (!resumeData || !resumeData.episodeSlug || dismissed) {
+  if (!resumeInfo || !resumeInfo.episode?.slug || dismissed) {
     return null;
   }
+
+  const epSlug = resumeInfo.episode.slug;
+  const epDisplayName = formatEpisodeName(resumeInfo.sourceEpisodeName || epSlug);
+  const isInProgress = resumeInfo.caseType === "in_progress";
 
   return (
     <aside
@@ -63,29 +67,45 @@ export const ResumeEpisodeBanner: React.FC<ResumeEpisodeBannerProps> = ({
     >
       <div className="flex items-center justify-between gap-3 px-3.5 py-2.5 rounded-xl bg-gradient-to-r from-zinc-900 via-zinc-900/90 to-netflix-red/10 border border-netflix-red/30 shadow-lg min-w-0">
         <div className="flex items-center gap-2.5 text-xs sm:text-sm text-zinc-200 min-w-0">
-          <RotateCcw className="w-4 h-4 text-netflix-red flex-none animate-spin-slow" aria-hidden="true" />
+          {isInProgress ? (
+            <RotateCcw className="w-4 h-4 text-netflix-red flex-none animate-spin-slow" aria-hidden="true" />
+          ) : (
+            <FastForward className="w-4 h-4 text-emerald-400 flex-none" aria-hidden="true" />
+          )}
           <span className="truncate leading-[1.4]">
-            Lần trước bạn đang xem dở:{" "}
-            <strong className="text-white font-bold">
-              {formatEpisodeName(resumeData.episodeName || resumeData.episodeSlug)}
-            </strong>
+            {isInProgress ? (
+              <>
+                Lần trước bạn đang xem dở:{" "}
+                <strong className="text-white font-bold">{epDisplayName}</strong>
+                {resumeInfo.progressPercent > 0 && (
+                  <span className="text-zinc-400 font-sans tabular-nums ml-1">
+                    ({resumeInfo.progressPercent}%)
+                  </span>
+                )}
+              </>
+            ) : (
+              <>
+                Gợi ý xem tiếp:{" "}
+                <strong className="text-white font-bold">{epDisplayName}</strong>
+              </>
+            )}
           </span>
         </div>
 
         <div className="flex items-center gap-2 flex-none">
           <Link
-            href={`?ep=${resumeData.episodeSlug}`}
+            href={`?ep=${epSlug}`}
             scroll={false}
             onClick={(e) => {
-              if (switchEpisode && resumeData.episodeSlug) {
+              if (switchEpisode && epSlug) {
                 e.preventDefault();
-                switchEpisode(resumeData.episodeSlug);
+                switchEpisode(epSlug);
               }
             }}
             className="inline-flex items-center justify-center gap-1.5 px-3.5 py-1.5 min-h-[36px] rounded-lg bg-netflix-red hover:brightness-110 text-white text-xs font-bold transition shadow-md hover:scale-[1.02] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
           >
             <Play className="w-3 h-3 fill-white" aria-hidden="true" />
-            <span>Tiếp tục xem ngay</span>
+            <span>{isInProgress ? "Tiếp tục xem ngay" : "Xem tập tiếp theo"}</span>
           </Link>
 
           <Tooltip content="Đóng thông báo" side="top">

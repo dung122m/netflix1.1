@@ -1,10 +1,10 @@
 import React, { Suspense } from "react";
 import { Metadata } from "next";
 import { liveFootballService } from "@/services/live/football/service";
-import { liveTvService } from "@/services/live/tv/service";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { LiveHubClient } from "@/components/live/LiveHubClient";
+import { LiveHubSkeleton } from "@/components/live/LiveHubSkeleton";
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://nanaflix.vercel.app";
 
@@ -40,19 +40,21 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-export default async function LivePage() {
-  const [footballData, tvData] = await Promise.all([
-    liveFootballService.getFootballMatches(),
-    liveTvService.getTvChannels(),
-  ]);
-
+// Server streaming component: Shell (Navbar, Skeleton, Footer) được flush ngay lập tức về browser
+export default function LivePage() {
   return (
     <div className="page-cinema-container min-h-screen w-full max-w-full overflow-x-clip">
       <Navbar />
-      <Suspense fallback={<div className="min-h-[60vh] flex items-center justify-center text-white">Đang tải...</div>}>
-        <LiveHubClient footballData={footballData} tvData={tvData} />
+      <Suspense fallback={<LiveHubSkeleton />}>
+        <LiveContent />
       </Suspense>
       <Footer />
     </div>
   );
+}
+
+// Data fetching component: Chỉ fetch dữ liệu thể thao ban đầu; Live TV được lazy-load theo nhu cầu
+async function LiveContent() {
+  const footballData = await liveFootballService.getFootballMatches();
+  return <LiveHubClient footballData={footballData} />;
 }

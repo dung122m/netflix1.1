@@ -274,6 +274,8 @@ export async function fetchVsmovFiltered(
   options: VsmovFilterOptions,
   timeoutMs: number = VSMOV_DEFAULT_TIMEOUT_MS
 ): Promise<VsmovRawListResponse | null> {
+  const isSearch = Boolean(options.keyword && options.keyword.trim());
+  const effectiveTimeout = isSearch ? Math.min(timeoutMs, 2500) : timeoutMs;
   const page = options.page || 1;
   const limit = options.limit || 24;
 
@@ -325,7 +327,7 @@ export async function fetchVsmovFiltered(
   const t0 = performance.now();
   try {
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    const timer = setTimeout(() => controller.abort(), effectiveTimeout);
 
     const res = await fetch(endpoint, {
       headers: DEFAULT_HEADERS,
@@ -337,6 +339,11 @@ export async function fetchVsmovFiltered(
 
     if (!res.ok) {
       console.info(`[VSMOV] filtered status=${res.status} elapsed=${elapsed}ms endpoint=${endpoint}`);
+      return null;
+    }
+    const contentType = res.headers.get("content-type") || "";
+    if (contentType.includes("text/html")) {
+      console.info(`[VSMOV] filtered ignored html response elapsed=${elapsed}ms`);
       return null;
     }
     const data = await res.json().catch(() => null);

@@ -45,8 +45,8 @@ const MOVIE_TYPES: MovieTypeOption[] = [
 ];
 
 const SORT_OPTIONS = [
-  { label: "Điểm đánh giá cao", value: "rating", icon: Star, color: "text-amber-400" },
   { label: "Mới cập nhật", value: "latest", icon: Clock, color: "text-sky-400" },
+  { label: "Điểm đánh giá cao", value: "rating", icon: Star, color: "text-amber-400" },
   { label: "Xem nhiều nhất", value: "views", icon: Flame, color: "text-orange-500" },
   { label: "Năm mới nhất", value: "year", icon: Calendar, color: "text-emerald-400" },
 ];
@@ -136,7 +136,7 @@ export const FilterBar: React.FC = () => {
   const rawCtry = optimisticParams.country !== undefined ? optimisticParams.country : (searchParams.get("country") || "");
   const currentCountry = (rawCtry ? getCanonicalCountrySlug(null, rawCtry) : "") || (rawCtry && !isRawId(rawCtry) ? rawCtry : "");
   const currentYear = optimisticParams.year !== undefined ? optimisticParams.year : (searchParams.get("year") || "");
-  const currentSort = optimisticParams.sort !== undefined ? optimisticParams.sort : (searchParams.get("sort") || "rating");
+  const currentSort = optimisticParams.sort !== undefined ? optimisticParams.sort : (searchParams.get("sort") || "latest");
   const currentActor = searchParams.get("actor") || "";
   const currentKeyword = searchParams.get("keyword") || "";
 
@@ -165,7 +165,7 @@ export const FilterBar: React.FC = () => {
     }
 
     if (key === "sort") {
-      if (nextValue === "rating" || !nextValue) {
+      if (nextValue === "latest" || !nextValue) {
         params.delete("sort");
       } else {
         params.set("sort", nextValue);
@@ -257,10 +257,10 @@ export const FilterBar: React.FC = () => {
   const activeCountryName = activeCountryObj ? activeCountryObj.name : "Quốc gia";
 
   const activeSortObj = SORT_OPTIONS.find((s) => s.value === currentSort);
-  const activeSortName = activeSortObj ? activeSortObj.label : "Điểm đánh giá cao";
+  const activeSortName = activeSortObj ? activeSortObj.label : "Mới cập nhật";
 
   // Count active filters for badge
-  const isCustomSort = Boolean(currentSort && currentSort !== "rating");
+  const isCustomSort = Boolean(currentSort && currentSort !== "latest");
   const activeFiltersCount = [
     Boolean(currentType),
     Boolean(currentCategory),
@@ -286,7 +286,7 @@ export const FilterBar: React.FC = () => {
     setDraftCategory(currentCategory);
     setDraftCountry(currentCountry);
     setDraftYear(currentYear);
-    setDraftSort(currentSort || "rating");
+    setDraftSort(currentSort || "latest");
     setIsMobileDrawerOpen(true);
   }, [currentType, currentCategory, currentCountry, currentYear, currentSort]);
 
@@ -295,7 +295,7 @@ export const FilterBar: React.FC = () => {
     setDraftCategory("");
     setDraftCountry("");
     setDraftYear("");
-    setDraftSort("rating");
+    setDraftSort("latest");
   }, []);
 
   const handleApplyMobileDrawer = useCallback(() => {
@@ -317,7 +317,7 @@ export const FilterBar: React.FC = () => {
     if (draftYear) params.set("year", draftYear);
     else params.delete("year");
 
-    if (draftSort && draftSort !== "rating") {
+    if (draftSort && draftSort !== "latest") {
       params.set("sort", draftSort);
     } else {
       params.delete("sort");
@@ -339,7 +339,7 @@ export const FilterBar: React.FC = () => {
     Boolean(draftCategory),
     Boolean(draftCountry),
     Boolean(draftYear),
-    Boolean(draftSort && draftSort !== "rating"),
+    Boolean(draftSort && draftSort !== "latest"),
   ].filter(Boolean).length;
 
   useEffect(() => {

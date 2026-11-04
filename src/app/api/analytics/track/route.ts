@@ -89,13 +89,21 @@ export async function POST(req: NextRequest) {
     // 4. Resolve Server-side Approximate GeoIP Location for regional distribution
     const location = await getGeoLocationFromRequest(req);
 
-    // 5. Construct sanitized site_visit payload
+    // 5. Deterministic identity token for the current visitor session
+    // - Authenticated User: `u_${verifiedUserId}`
+    // - Anonymous Guest: `a_${finalAnonymousId}`
+    const currentVisitorToken = verifiedUserId ? `u_${verifiedUserId}` : `a_${finalAnonymousId}`;
+    const cookieVisitorToken = req.cookies.get("nanaflix_has_visited")?.value;
+    const isReturningVisitor = Boolean(cookieVisitorToken && cookieVisitorToken === currentVisitorToken);
+
+    // 6. Construct sanitized site_visit payload
     const sanitizedPayload: AnalyticsEventPayload = {
       eventType: "site_visit",
       movieSlug: typeof body.movieSlug === "string" ? body.movieSlug.trim().slice(0, 100) : "home",
       movieTitle: typeof body.movieTitle === "string" ? body.movieTitle.trim().slice(0, 200) : "/",
       userId: verifiedUserId, // Only set if token is verified by server
       anonymousId: finalAnonymousId, // Always populated with valid anonId to satisfy PostgreSQL NOT NULL constraint
+      isReturningVisitor,
       deviceInfo: body.deviceInfo
         ? {
             deviceType: body.deviceInfo.deviceType || "desktop",
@@ -115,6 +123,15 @@ export async function POST(req: NextRequest) {
     const result = await recordAnalyticsEvent(sanitizedPayload);
 
     const response = NextResponse.json({ success: true, deduped: result.deduped || false });
+
+    // ONLY issue or update the returning visitor cookie IF storage/Redis successfully recorded the visitor
+    if (result.visitorRecorded && (!cookieVisitorToken || cookieVisitorToken !== currentVisitorToken)) {
+      response.cookies.set("nanaflix_has_visited", currentVisitorToken, {
+        maxAge: 30 * 86400, // 30 days
+        path: "/",
+        sameSite: "lax",
+      });
+    }
 
     // Ensure cookie is set on client if it was missing
     if (isNewCookieNeeded) {

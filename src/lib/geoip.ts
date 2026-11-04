@@ -13,6 +13,7 @@
 
 import { NextRequest } from "next/server";
 import { Redis } from "@upstash/redis";
+import { getSafeRedisCredentials } from "@/lib/redisEnvGuard";
 import { getClientIp } from "@/lib/security";
 
 export interface GeoLocationInfo {
@@ -134,13 +135,14 @@ function getGeoRedis(): Redis | null {
   if (isGeoRedisChecked) return geoRedisClient;
   isGeoRedisChecked = true;
 
-  const url = process.env.UPSTASH_REDIS_REST_URL?.trim();
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN?.trim();
+  const creds = getSafeRedisCredentials();
 
-  if (!url || !token) {
+  if (!creds) {
     geoRedisClient = null;
     return null;
   }
+
+  const { url, token } = creds;
 
   try {
     geoRedisClient = new Redis({ url, token });

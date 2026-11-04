@@ -126,7 +126,13 @@ export function WatchController({
     setIsLightsOff((prev) => !prev);
   }, []);
 
-  const currentServer = initialServers[currentServerIndex] || initialServers[0];
+  const [servers, setServers] = useState<EpisodeServer[]>(initialServers);
+
+  useEffect(() => {
+    setServers(initialServers);
+  }, [initialServers]);
+
+  const currentServer = servers[currentServerIndex] || servers[0];
   const episodes = useMemo(
     () => currentServer?.server_data || [],
     [currentServer]
@@ -145,19 +151,20 @@ export function WatchController({
 
   // Ghi nhận lịch sử xem duy nhất 1 lần khi mount trang hoặc khởi tạo tập phim
   useEffect(() => {
-    if (!movieSlug || !activeEpisodeSlug) return;
-    const historyKey = `${movieSlug}_${activeEpisodeSlug}`;
+    const currentSlug = activeEpisodeSlug || episodes[0]?.slug || "";
+    if (!movieSlug || !currentSlug) return;
+    const historyKey = `${movieSlug}_${currentSlug}`;
     if (hasInitializedHistoryRef.current === historyKey) return;
     hasInitializedHistoryRef.current = historyKey;
 
-    const targetEp = episodes.find((ep) => ep.slug === activeEpisodeSlug);
+    const targetEp = episodes.find((ep) => ep.slug === currentSlug) || episodes[0];
     saveWatchHistory({
       slug: movieSlug,
       title: movieTitle,
       poster: posterUrl,
       thumb: thumbUrl,
       episodeName: targetEp?.name,
-      episodeSlug: activeEpisodeSlug,
+      episodeSlug: currentSlug,
       year,
       quality,
       category,
@@ -287,7 +294,7 @@ export function WatchController({
     [activeEpisodeSlug, currentServerIndex, updateUrlQuietly]
   );
 
-  // Chuyển tập tức thì trong 0ms
+  // Chuyển tập tức thì trong 0ms, tự động nạp stream on-demand nếu chưa có
   const switchEpisode = useCallback(
     (newSlug: string) => {
       if (!newSlug || newSlug === activeEpisodeSlug) return;
@@ -295,6 +302,37 @@ export function WatchController({
       const canonicalSlug = targetEp?.slug || newSlug;
       setActiveEpisodeSlug(canonicalSlug);
       updateUrlQuietly(canonicalSlug, currentServerIndex, activeProvider);
+
+      // Nếu tập chưa có link streaming (do tách metadata), tải on-demand và cập nhật vào state
+      if (targetEp && !targetEp.link_m3u8 && !targetEp.link_embed) {
+        fetch(`/api/movies/streams?slug=${encodeURIComponent(movieSlug)}&ep=${encodeURIComponent(canonicalSlug)}`)
+          .then((res) => res.json())
+          .then((data) => {
+            if (data?.success && Array.isArray(data.streams) && data.streams.length > 0) {
+              setServers((prevServers) => {
+                return prevServers.map((srv, sIdx) => {
+                  const streamMatch = data.streams.find(
+                    (s: { server_name?: string }) => s.server_name === srv.server_name
+                  ) || data.streams[sIdx] || data.streams[0];
+                  if (!streamMatch) return srv;
+
+                  const updatedData = (srv.server_data || []).map((ep) => {
+                    if (ep.slug === canonicalSlug || ep.name === targetEp?.name) {
+                      return {
+                        ...ep,
+                        link_embed: streamMatch.link_embed || ep.link_embed,
+                        link_m3u8: streamMatch.link_m3u8 || ep.link_m3u8,
+                      };
+                    }
+                    return ep;
+                  });
+                  return { ...srv, server_data: updatedData };
+                });
+              });
+            }
+          })
+          .catch(() => {});
+      }
 
       const targetEpForHistory = targetEp;
       if (targetEpForHistory) {
@@ -336,9 +374,9 @@ export function WatchController({
   // Chuyển server tức thì
   const switchServer = useCallback(
     (newIndex: number) => {
-      const safeIndex = Math.max(0, Math.min(newIndex, initialServers.length - 1));
+      const safeIndex = Math.max(0, Math.min(newIndex, servers.length - 1));
       setCurrentServerIndex(safeIndex);
-      const newServer = initialServers[safeIndex];
+      const newServer = servers[safeIndex];
       const newEpisodes = newServer?.server_data || [];
       const foundMatch =
         findEpisodeMatch(newEpisodes, activeEpisode?.slug || activeEpisodeSlug) ||
@@ -347,7 +385,7 @@ export function WatchController({
       setActiveEpisodeSlug(currentTargetSlug);
       updateUrlQuietly(currentTargetSlug, safeIndex, activeProvider);
     },
-    [initialServers, activeEpisodeSlug, activeEpisode, activeProvider, updateUrlQuietly]
+    [servers, activeEpisodeSlug, activeEpisode, activeProvider, updateUrlQuietly]
   );
 
   const value = useMemo<WatchContextValue>(() => {
@@ -359,7 +397,7 @@ export function WatchController({
       year,
       quality,
       category,
-      servers: initialServers,
+      servers,
       currentServerIndex,
       episodes,
       activeEpisodeSlug,
@@ -391,7 +429,7 @@ export function WatchController({
     year,
     quality,
     category,
-    initialServers,
+    servers,
     currentServerIndex,
     episodes,
     activeEpisodeSlug,

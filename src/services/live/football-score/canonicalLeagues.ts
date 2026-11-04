@@ -55,6 +55,21 @@ const TITLE_TOURNAMENT_PATTERNS: Array<{ regex: RegExp; name: string; sport?: "f
   { regex: /\b(?:mpbl)\b/i, name: "Giải Bóng Rổ MPBL", sport: "basketball" },
   { regex: /\b(?:euroleague|euro\s*league)\b/i, name: "Giải Bóng Rổ EuroLeague", sport: "basketball" },
   { regex: /\b(?:cba|chinese\s*basketball)\b/i, name: "Giải Bóng Rổ CBA", sport: "basketball" },
+
+  // --- QUẦN VỢT (TENNIS) ---
+  { regex: /\b(?:australian\s*open|úc\s*mở\s*rộng|\bao\b)\b/i, name: "Australian Open" },
+  { regex: /\b(?:roland[- ]?garros|french\s*open|pháp\s*mở\s*rộng)\b/i, name: "Roland-Garros" },
+  { regex: /\b(?:wimbledon)\b/i, name: "Wimbledon" },
+  { regex: /\b(?:us\s*open|mỹ\s*mở\s*rộng)\b/i, name: "US Open" },
+  { regex: /\b(?:atp\s*(?:finals|masters|1000|500|250)?|atp)\b/i, name: "ATP Tour" },
+  { regex: /\b(?:wta\s*(?:finals|1000|500|250)?|wta)\b/i, name: "WTA Tour" },
+
+  // --- ESPORTS (THỂ THAO ĐIỆN TỬ) ---
+  { regex: /\b(?:lck)\b/i, name: "LCK" },
+  { regex: /\b(?:lpl)\b/i, name: "LPL" },
+  { regex: /\b(?:vcs)\b/i, name: "VCS" },
+  { regex: /\b(?:worlds|chung\s*kết\s*thế\s*giới|\bcktg\b)\b/i, name: "Chung Kết Thế Giới" },
+  { regex: /\b(?:msi|mid[- ]?season\s*invitational)\b/i, name: "MSI" },
 ];
 
 /**
@@ -278,4 +293,44 @@ export function resolveCanonicalTournament(params: {
 
   // Mặc định cho bóng đá khi không đủ căn cứ xác minh: gom vào "Giải Đấu Khác"
   return "Giải Đấu Khác";
+}
+
+/**
+ * Tra cứu logo chính thức cho giải đấu hoặc bộ môn thể thao (Tennis Grand Slam, NBA, V-League...)
+ */
+export function resolveTournamentLogo(tournamentName?: string, sport?: string): string {
+  if (!tournamentName && !sport) return "";
+  const norm = (tournamentName || "").toLowerCase().trim();
+
+  // 1. Basketball (NBA League Logo trên ESPN CDN)
+  if (norm.includes("nba")) {
+    return "https://a.espncdn.com/i/teamlogos/leagues/500/nba.png";
+  }
+
+  // 2. Football (V-League asset tĩnh có sẵn)
+  if (norm.includes("v-league") || norm.includes("vleague")) {
+    return "/images/tournaments/v-league.png";
+  }
+
+  // 3. Tennis Grand Slams (Verified CDN Thumbnails)
+  if (norm.includes("australian open") || norm.includes("uc mo rong") || norm.includes("úc mở rộng")) {
+    return "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b4/Australian_Open_Logo_2017.svg/330px-Australian_Open_Logo_2017.svg.png?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail";
+  }
+  if (
+    norm.includes("roland garros") ||
+    norm.includes("roland-garros") ||
+    norm.includes("phap mo rong") ||
+    norm.includes("pháp mở rộng") ||
+    norm.includes("french open")
+  ) {
+    return "https://thumb.wikimedia.org/wikipedia/en/thumb/1/1d/Logo_Roland-Garros.svg/330px-Logo_Roland-Garros.svg.png?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail";
+  }
+  if (norm.includes("wimbledon")) {
+    return "https://thumb.wikimedia.org/wikipedia/en/thumb/b/b9/Wimbledon.svg/330px-Wimbledon.svg.png?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail";
+  }
+  if (norm.includes("us open") || norm.includes("my mo rong") || norm.includes("mỹ mở rộng")) {
+    return "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/cd/Usopen-horizontal-logo.svg/330px-Usopen-horizontal-logo.svg.png?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail";
+  }
+
+  return "";
 }
