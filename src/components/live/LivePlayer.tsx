@@ -1231,7 +1231,7 @@ function LivePlayerInner({
       videoRef.current.volume = volume;
       videoRef.current.muted = isMuted;
     }
-  }, [volume, isMuted]);
+  }, [volume, isMuted, volumeRef]);
 
   // Tự động chuyển đổi link FLV sang HLS nếu nhà đài hỗ trợ
   const toPlayableHlsUrl = (url: string): string => {
@@ -1437,7 +1437,7 @@ function LivePlayerInner({
           });
       }
     },
-    [isActive],
+    [isActive, setIsMuted],
   );
 
   // Xử lý khi tab thay đổi (isActive true/false) hoặc minimize tab - Cleanup triệt để tránh rò rỉ RAM
@@ -1458,7 +1458,7 @@ function LivePlayerInner({
         setIsPip(false);
       }
     }
-  }, [isActive, safePause, resetMediaElement, destroyHlsInstance]);
+  }, [isActive, safePause, resetMediaElement, destroyHlsInstance, setIsPip]);
 
   // Phát hiện nếu nguồn chỉ hỗ trợ iframe/embed
   const isIframe = useMemo(() => {
@@ -2161,7 +2161,7 @@ function LivePlayerInner({
     try {
       localStorage.setItem("nanaflix_live_volume", String(targetVol));
     } catch { }
-  }, [volume, isActive, safePlay, triggerVolumeOsd]);
+  }, [volume, isActive, safePlay, triggerVolumeOsd, setIsMuted, setVolume, userMutedRef]);
 
   // Bật / Tắt tiếng
   const toggleMute = useCallback(() => {
@@ -2177,7 +2177,7 @@ function LivePlayerInner({
       }
       triggerVolumeOsd(volume, true);
     }
-  }, [isMuted, volume, unmuteSound, triggerVolumeOsd]);
+  }, [isMuted, volume, unmuteSound, triggerVolumeOsd, setIsMuted, userMutedRef]);
 
   // Thay đổi âm lượng
 

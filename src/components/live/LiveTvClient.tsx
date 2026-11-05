@@ -333,7 +333,7 @@ export function LiveTvClient({
 
   useEffect(() => {
     volumeRef.current = volume;
-  }, [volume]);
+  }, [volume, volumeRef]);
   useEffect(() => {
     isMutedRef.current = isMuted;
   }, [isMuted]);
@@ -485,7 +485,7 @@ export function LiveTvClient({
         window.scrollTo({ top: Math.max(0, topOffset), behavior: "smooth" });
       }
     },
-    [triggerActionFeedback],
+    [triggerActionFeedback, setIsMuted, userMutedRef],
   );
 
   const scrollCategories = (direction: "left" | "right") => {
@@ -538,7 +538,7 @@ export function LiveTvClient({
         setIsPip(false);
       }
     }
-  }, [isActive]);
+  }, [isActive, setIsPip]);
 
   // Bắt sự kiện timeupdate để phát hiện độ trễ so với Live Edge
   useEffect(() => {
@@ -826,7 +826,7 @@ export function LiveTvClient({
       playbackSessionIdRef.current += 1;
       stopAndTeardown();
     };
-  }, [selectedTvChannel, isActive]);
+  }, [selectedTvChannel, isActive, setIsMuted, userMutedRef, volumeRef]);
 
   // Hành động nhảy về Live Edge (một lần click)
   const goToLiveEdge = useCallback(() => {
@@ -917,7 +917,7 @@ export function LiveTvClient({
     try {
       localStorage.setItem("nanaflix_live_volume", String(targetVol));
     } catch {}
-  }, [volume, isActive, triggerVolumeOsd]);
+  }, [volume, isActive, triggerVolumeOsd, setIsMuted, setVolume, userMutedRef]);
 
   const toggleMute = useCallback(() => {
     if (isMuted) {
@@ -928,7 +928,7 @@ export function LiveTvClient({
       if (videoRef.current) videoRef.current.muted = true;
       triggerVolumeOsd(volume, true);
     }
-  }, [isMuted, volume, unmuteSound, triggerVolumeOsd]);
+  }, [isMuted, volume, unmuteSound, triggerVolumeOsd, setIsMuted, userMutedRef]);
 
 
 

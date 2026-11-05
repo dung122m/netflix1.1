@@ -472,6 +472,7 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
             {canonicalLeague && canonicalLeague !== "Giải Đấu Khác" && (
               <span className="px-1.5 py-0.5 rounded-md text-[9.5px] sm:text-[10px] font-bold bg-white/10 text-zinc-300 shrink-0 flex items-center gap-1.5">
                 {resolveTournamentLogo(canonicalLeague, sport) ? (
+                  /* eslint-disable-next-line @next/next/no-img-element */
                   <img
                     src={toDarkModeLogoUrl(resolveTournamentLogo(canonicalLeague, sport))}
                     alt=""
