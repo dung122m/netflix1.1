@@ -357,6 +357,27 @@ export const RATE_LIMIT_PRESETS = {
     failClosed: false,
     strategy: "in-memory-only",
   },
+  USER_HANDOFF_IN_MEMORY: {
+    namespace: "handoff-in-memory",
+    maxRequests: 120,
+    windowSeconds: 60,
+    failClosed: false,
+    strategy: "in-memory-only",
+  },
+  USER_HISTORY_IN_MEMORY: {
+    namespace: "user-history-in-memory",
+    maxRequests: 120,
+    windowSeconds: 60,
+    failClosed: false,
+    strategy: "in-memory-only",
+  },
+  USER_WATCHLIST_IN_MEMORY: {
+    namespace: "user-watchlist-in-memory",
+    maxRequests: 60,
+    windowSeconds: 60,
+    failClosed: false,
+    strategy: "in-memory-only",
+  },
 } as const;
 
 /**

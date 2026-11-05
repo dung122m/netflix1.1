@@ -124,7 +124,7 @@ export async function POST(req: NextRequest) {
 
   const rateLimit = await enforceRateLimit(
     req,
-    { namespace: "handoff-post", maxRequests: 60, windowSeconds: 60, failClosed: true },
+    RATE_LIMIT_PRESETS.USER_HANDOFF_IN_MEMORY,
     auth.userId
   );
   if (!rateLimit.allowed) {
@@ -203,7 +203,7 @@ export async function DELETE(req: NextRequest) {
 
   const rateLimit = await enforceRateLimit(
     req,
-    { namespace: "handoff-delete", maxRequests: 30, windowSeconds: 60, failClosed: true },
+    { namespace: "handoff-delete", maxRequests: 30, windowSeconds: 60, failClosed: false, strategy: "in-memory-only" },
     auth.userId
   );
   if (!rateLimit.allowed) {

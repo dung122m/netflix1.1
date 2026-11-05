@@ -92,12 +92,7 @@ export async function POST(req: NextRequest) {
 
   const rateLimit = await enforceRateLimit(
     req,
-    {
-      namespace: "user-watchlist-post",
-      maxRequests: 60,
-      windowSeconds: 60,
-      failClosed: true,
-    },
+    RATE_LIMIT_PRESETS.USER_WATCHLIST_IN_MEMORY,
     auth.userId
   );
   if (!rateLimit.allowed) {
@@ -167,7 +162,8 @@ export async function DELETE(req: NextRequest) {
       namespace: "user-watchlist-delete",
       maxRequests: 30,
       windowSeconds: 60,
-      failClosed: true,
+      failClosed: false,
+      strategy: "in-memory-only",
     },
     auth.userId
   );
