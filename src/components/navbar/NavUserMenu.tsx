@@ -6,12 +6,9 @@ import {
   ChevronDown,
   ShieldCheck,
   User,
-  History,
   Bookmark,
-  MessageSquare,
   Smartphone,
   LogOut,
-  Sliders,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { isUserAdmin } from "@/lib/adminConfig";
@@ -150,17 +147,25 @@ export const NavUserMenu: React.FC<NavUserMenuProps> = React.memo(function NavUs
       </Tooltip>
 
       {showUserDropdown && (
-        <div className="absolute right-0 mt-2 w-56 bg-zinc-950/98 rounded-2xl shadow-2xl p-1.5 z-[100] backdrop-blur-xl animate-in fade-in zoom-in-95 duration-150 space-y-0.5">
-          <div className="px-2.5 py-2 mb-1">
-            <p className="text-xs font-bold text-white truncate">
-              {effectiveDisplayName}
-            </p>
+        <div className="absolute right-0 mt-2 w-56 bg-zinc-950/98 rounded-2xl shadow-2xl p-1.5 z-[100] backdrop-blur-xl animate-in fade-in zoom-in-95 duration-150 space-y-0.5 border border-white/10">
+          {/* HEADER: USER CARD & QUICK PROFILE ACCESS */}
+          <Link
+            href="/profile"
+            onClick={() => setShowUserDropdown(false)}
+            className="block px-2.5 py-2 mb-1 rounded-xl hover:bg-white/5 transition group"
+          >
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-bold text-white truncate group-hover:text-netflix-red transition">
+                {effectiveDisplayName}
+              </p>
+              <span className="text-[10px] text-zinc-500 group-hover:text-zinc-400">Xem hồ sơ →</span>
+            </div>
             <p className="text-[11px] text-zinc-400 truncate mt-0.5">{user.email}</p>
             <div className="mt-1.5 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/15 text-[10px] text-emerald-400 font-medium">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
               <span>Cloud Sync</span>
             </div>
-          </div>
+          </Link>
 
           {isUserAdmin(user?.email) && (
             <Link
@@ -168,66 +173,32 @@ export const NavUserMenu: React.FC<NavUserMenuProps> = React.memo(function NavUs
               onClick={() => setShowUserDropdown(false)}
               className="flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-xs font-bold text-amber-400 bg-amber-500/15 hover:bg-amber-500/25 hover:text-amber-300 transition my-0.5 shadow-sm"
             >
-              <ShieldCheck size={14} className="text-amber-400" />
+              <ShieldCheck size={14} className="text-amber-400 shrink-0" />
               <span>👑 Admin Panel</span>
             </Link>
           )}
 
-          <button
-            type="button"
-            onClick={() => {
-              setShowUserDropdown(false);
-              if (typeof window !== "undefined") {
-                window.dispatchEvent(new CustomEvent("open-user-profile-modal", { detail: { tab: "profile" } }));
-              }
-            }}
-            className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-xs text-netflix-red hover:text-white hover:bg-white/10 transition cursor-pointer text-left font-bold"
-          >
-            <User size={14} className="text-netflix-red" />
-            <span>🧑 Hồ sơ & Dashboard</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => {
-              setShowUserDropdown(false);
-              if (typeof window !== "undefined") {
-                window.dispatchEvent(new CustomEvent("open-user-profile-modal", { detail: { tab: "player_settings" } }));
-              }
-            }}
-            className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-xs text-zinc-300 hover:text-white hover:bg-white/10 transition cursor-pointer text-left font-medium"
-          >
-            <Sliders size={14} className="text-amber-400" />
-            <span>⚙️ Cài đặt phát lại Cloud</span>
-          </button>
-
+          {/* 1. HỒ SƠ & CÀI ĐẶT TRÌNH PHÁT CLOUD (GOM THÀNH 1 ĐƯỜNG DẪN RIÊNG) */}
           <Link
-            href="/my-list?tab=history"
+            href="/profile"
             onClick={() => setShowUserDropdown(false)}
-            className="flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-xs text-zinc-300 hover:text-white hover:bg-white/10 transition"
+            className="flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-xs text-zinc-200 hover:text-white hover:bg-white/10 transition font-medium"
           >
-            <History size={14} className="text-netflix-red" />
-            <span>Lịch sử xem phim</span>
+            <User size={14} className="text-netflix-red shrink-0" />
+            <span>Hồ sơ & Cài đặt Cloud</span>
           </Link>
 
+          {/* 2. DANH SÁCH & LỊCH SỬ XEM (MY-LIST) */}
           <Link
-            href="/my-list?tab=watchlist"
+            href="/my-list"
             onClick={() => setShowUserDropdown(false)}
-            className="flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-xs text-zinc-300 hover:text-white hover:bg-white/10 transition"
+            className="flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-xs text-zinc-200 hover:text-white hover:bg-white/10 transition font-medium"
           >
-            <Bookmark size={14} className="text-amber-400" />
-            <span>Phim đã lưu</span>
+            <Bookmark size={14} className="text-amber-400 shrink-0" />
+            <span>Danh sách & Lịch sử</span>
           </Link>
 
-          <Link
-            href="/my-list?tab=comments"
-            onClick={() => setShowUserDropdown(false)}
-            className="flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-xs text-zinc-300 hover:text-white hover:bg-white/10 transition"
-          >
-            <MessageSquare size={14} className="text-emerald-400" />
-            <span>Lịch sử bình luận</span>
-          </Link>
-
+          {/* 3. CÀI ĐẶT ỨNG DỤNG PWA */}
           <button
             type="button"
             onClick={() => {
@@ -236,13 +207,14 @@ export const NavUserMenu: React.FC<NavUserMenuProps> = React.memo(function NavUs
                 window.dispatchEvent(new CustomEvent("open-pwa-install"));
               }
             }}
-            className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-xs text-emerald-400 hover:text-emerald-300 hover:bg-white/10 transition cursor-pointer text-left"
+            className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-xs text-zinc-300 hover:text-white hover:bg-white/10 transition cursor-pointer text-left"
           >
-            <Smartphone size={14} />
-            <span>PWA App</span>
+            <Smartphone size={14} className="text-emerald-400 shrink-0" />
+            <span>Cài đặt ứng dụng PWA</span>
           </button>
 
-          <div className="border-t mt-1 pt-1">
+          {/* 4. ĐĂNG XUẤT */}
+          <div className="border-t border-white/10 mt-1 pt-1">
             <button
               type="button"
               onClick={async () => {
@@ -251,7 +223,7 @@ export const NavUserMenu: React.FC<NavUserMenuProps> = React.memo(function NavUs
               }}
               className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-xs text-red-400 hover:text-red-300 hover:bg-red-500/10 transition cursor-pointer text-left font-medium"
             >
-              <LogOut size={14} />
+              <LogOut size={14} className="shrink-0" />
               <span>Đăng xuất</span>
             </button>
           </div>

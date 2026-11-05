@@ -533,18 +533,13 @@ function MyListContent() {
         <div className="flex-shrink-0 w-full sm:w-auto">
           {user ? (
             <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
-              <button
-                type="button"
-                onClick={() => {
-                  if (typeof window !== "undefined") {
-                    window.dispatchEvent(new CustomEvent("open-user-profile-modal"));
-                  }
-                }}
+              <Link
+                href="/profile"
                 className="flex-1 sm:flex-none justify-center inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-netflix-red/20 hover:bg-netflix-red/30 text-xs font-bold text-white transition cursor-pointer active:scale-95"
               >
                 <User className="w-3.5 h-3.5 text-current flex-shrink-0" />
-                <span>Sửa hồ sơ</span>
-              </button>
+                <span>Hồ sơ & Cài đặt</span>
+              </Link>
 
               <button
                 type="button"

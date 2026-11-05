@@ -136,20 +136,14 @@ export const NavMobileMenu: React.FC<NavMobileMenuProps> = React.memo(function N
               </div>
 
               <div className="grid grid-cols-2 gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    onClose();
-                    if (typeof window !== "undefined") {
-                      window.dispatchEvent(new CustomEvent("open-user-profile-modal"));
-                      window.dispatchEvent(new CustomEvent("open-user-profile"));
-                    }
-                  }}
+                <Link
+                  href="/profile"
+                  onClick={onClose}
                   className="flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-xl text-xs font-semibold text-zinc-200 bg-white/5 hover:bg-white/10 transition active:scale-95 cursor-pointer shadow-sm"
                 >
                   <User size={13} className="text-netflix-red shrink-0" />
-                  <span className="truncate">Hồ sơ</span>
-                </button>
+                  <span className="truncate">Hồ sơ & Cài đặt</span>
+                </Link>
                 <Link
                   href="/my-list?tab=comments"
                   onClick={onClose}

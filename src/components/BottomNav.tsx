@@ -48,6 +48,7 @@ export function BottomNav() {
   const isBrowse = pathname?.startsWith("/browse");
   const isLive = pathname?.startsWith("/live");
   const isMyList = pathname?.startsWith("/my-list");
+  const isProfile = pathname?.startsWith("/profile");
 
   const handleNavClick = () => {
     if (typeof window !== "undefined") {
@@ -55,16 +56,10 @@ export function BottomNav() {
     }
   };
 
-  const handleOpenProfile = () => {
+  const handleOpenAuth = () => {
     if (typeof window !== "undefined") {
       window.dispatchEvent(new CustomEvent("close-all-modals"));
-      if (user) {
-        window.dispatchEvent(new CustomEvent("open-user-profile-modal"));
-        window.dispatchEvent(new CustomEvent("open-user-profile"));
-      } else {
-        // Mở popup đăng nhập
-        window.dispatchEvent(new CustomEvent("open-auth-modal"));
-      }
+      window.dispatchEvent(new CustomEvent("open-auth-modal"));
     }
   };
 
@@ -148,26 +143,44 @@ export function BottomNav() {
         </Link>
 
         {/* 5. HỒ SƠ / TÀI KHOẢN */}
-        <button
-          type="button"
-          onClick={handleOpenProfile}
-          className="flex flex-col items-center justify-center h-full text-zinc-400 hover:text-zinc-200 font-medium transition-all duration-200 active:scale-95 cursor-pointer outline-none focus-visible:text-white rounded-lg"
-          aria-label="Tài khoản cá nhân"
-        >
-          {user ? (
-            <UserAvatar
-              src={effectiveAvatar || undefined}
-              name={effectiveDisplayName || user.email}
-              sizeClassName="w-5 h-5 text-[10px]"
-              className=""
-            />
-          ) : (
+        {user ? (
+          <Link
+            href="/profile"
+            onClick={handleNavClick}
+            aria-current={isProfile ? "page" : undefined}
+            className={`flex flex-col items-center justify-center h-full transition-all duration-200 active:scale-95 cursor-pointer outline-none focus-visible:text-white rounded-lg ${
+              isProfile ? "text-netflix-red font-bold" : "text-zinc-400 hover:text-zinc-200 font-medium"
+            }`}
+            aria-label="Tài khoản cá nhân"
+          >
+            <div className="relative">
+              <UserAvatar
+                src={effectiveAvatar || undefined}
+                name={effectiveDisplayName || user.email}
+                sizeClassName="w-5 h-5 text-[10px]"
+                className={isProfile ? "ring-2 ring-netflix-red" : ""}
+              />
+              {isProfile && (
+                <span className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-1 h-1 bg-netflix-red rounded-full shadow-[0_0_8px_var(--accent-color)]" />
+              )}
+            </div>
+            <span className="text-[10px] mt-0.5 tracking-tight truncate max-w-[56px]">
+              {effectiveDisplayName ? effectiveDisplayName.split(" ").pop() : "Tài khoản"}
+            </span>
+          </Link>
+        ) : (
+          <button
+            type="button"
+            onClick={handleOpenAuth}
+            className="flex flex-col items-center justify-center h-full text-zinc-400 hover:text-zinc-200 font-medium transition-all duration-200 active:scale-95 cursor-pointer outline-none focus-visible:text-white rounded-lg"
+            aria-label="Đăng nhập tài khoản"
+          >
             <User size={19} />
-          )}
-          <span className="text-[10px] mt-0.5 tracking-tight truncate max-w-[56px]">
-            {user ? (effectiveDisplayName ? effectiveDisplayName.split(" ").pop() : "Tài khoản") : "Tài khoản"}
-          </span>
-        </button>
+            <span className="text-[10px] mt-0.5 tracking-tight truncate max-w-[56px]">
+              Tài khoản
+            </span>
+          </button>
+        )}
       </div>
     </nav>
   );

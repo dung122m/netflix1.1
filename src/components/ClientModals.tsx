@@ -4,7 +4,6 @@ import React, { useState, useEffect, useRef } from "react";
 import dynamic from "next/dynamic";
 import { GlobalConfirmDialog } from "@/components/ui/ConfirmDialog";
 import type { ActorBioModalProps } from "@/components/ActorBioModal";
-import type { UserProfileModalProps } from "@/components/UserProfileModal";
 import type { PublicUserProfileModalProps, PublicProfileDetail } from "@/components/PublicUserProfileModal";
 import type { VietnamTodayInfo } from "@/lib/vietnamCalendarCore";
 
@@ -55,11 +54,6 @@ const ActorBioModal = dynamic(
   { ssr: false }
 );
 
-const UserProfileModal = dynamic(
-  () => import("@/components/UserProfileModal").then((m) => m.UserProfileModal),
-  { ssr: false }
-);
-
 const PublicUserProfileModal = dynamic(
   () => import("@/components/PublicUserProfileModal").then((m) => m.PublicUserProfileModal),
   { ssr: false }
@@ -91,16 +85,13 @@ export const ClientModals = React.memo(function ClientModals() {
   const [mountRoulette, setMountRoulette] = useState(false);
   const [rouletteOpen, setRouletteOpen] = useState(false);
   const [mountActorBio, setMountActorBio] = useState(false);
-  const [mountUserProfile, setMountUserProfile] = useState(false);
   const [mountPublicProfile, setMountPublicProfile] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
 
   const mountedActorBioRef = useRef(false);
-  const mountedUserProfileRef = useRef(false);
   const mountedPublicProfileRef = useRef(false);
 
   const [actorBioProps, setActorBioProps] = useState<ActorBioModalProps>({});
-  const [userProfileProps, setUserProfileProps] = useState<UserProfileModalProps>({});
   const [publicProfileProps, setPublicProfileProps] = useState<PublicUserProfileModalProps>({});
 
   const [mountVietnamToday, setMountVietnamToday] = useState(false);
@@ -141,13 +132,14 @@ export const ClientModals = React.memo(function ClientModals() {
       setMountActorBio(true);
     };
 
-    // 3. User Profile Modal
+    // 3. User Profile Navigation (Chuyển sang đường dẫn /profile chuyên biệt thay vì modal)
     const handleUserProfileTrigger = (e: Event) => {
-      if (mountedUserProfileRef.current) return;
-      mountedUserProfileRef.current = true;
       const customEvent = e as CustomEvent<{ tab?: "profile" | "player_settings" | "comments" }>;
-      setUserProfileProps({ initialOpen: true, initialTab: customEvent.detail?.tab || "profile" });
-      setMountUserProfile(true);
+      const tab = customEvent?.detail?.tab;
+      const targetUrl = tab ? `/profile?tab=${tab}` : "/profile";
+      if (typeof window !== "undefined") {
+        window.location.href = targetUrl;
+      }
     };
 
     // 4. Public User Profile Modal
@@ -241,7 +233,6 @@ export const ClientModals = React.memo(function ClientModals() {
         />
       )}
       {mountActorBio && <ActorBioModal {...actorBioProps} />}
-      {mountUserProfile && <UserProfileModal {...userProfileProps} />}
       {mountPublicProfile && <PublicUserProfileModal {...publicProfileProps} />}
       {mountVietnamToday && (vietnamTodayLoading && !todayInfo ? (
         <div className="fixed inset-0 z-[100000] flex items-center justify-center p-3 sm:p-6 pb-[max(1rem,env(safe-area-inset-bottom,0px))] sm:pb-6 bg-black/80 backdrop-blur-sm pointer-events-none animate-in fade-in duration-100">
