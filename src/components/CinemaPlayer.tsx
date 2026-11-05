@@ -272,6 +272,8 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
   const lastTapRef = useRef<{ time: number; x: number; y: number } | null>(null);
   const lastControlsShownTimeRef = useRef<number>(0);
   const singleTapTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const singleTapExecutedTimeRef = useRef<number>(0);
+  const lastFullscreenToggleTimeRef = useRef<number>(0);
   const desktopFeedbackTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
@@ -2670,12 +2672,12 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
         tabIndex={0}
         onMouseMove={handleMouseMove}
         onMouseLeave={handleMouseLeave}
-        className={`w-full mx-auto transition-all duration-300 bg-black outline-none focus:outline-none focus-visible:outline-none ${
+        className={`w-full mx-auto transition-all duration-300 outline-none focus:outline-none focus-visible:outline-none ${
           isFullscreen
             ? "fixed inset-0 z-[80] w-full h-full max-w-none p-0 m-0 bg-black flex flex-col justify-center overflow-hidden"
             : isMobileStickyActive
-            ? "fixed top-[51px] sm:top-[55px] left-0 right-0 z-40 shadow-2xl border-b  md:relative md:top-auto"
-            : "relative z-30"
+            ? "fixed top-[51px] sm:top-[55px] left-0 right-0 z-40 shadow-2xl border-b bg-black md:relative md:top-auto"
+            : "relative z-20 bg-transparent"
         } ${isTheaterMode && !isFullscreen ? "max-w-none px-0 sm:px-0" : isFullscreen ? "" : "max-w-7xl"}`}
       >
         {isMobileStickyActive && (
@@ -2715,6 +2717,24 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
               className={`w-full h-full relative ${
                 showControls || !isPlaying ? "cursor-pointer" : "cursor-none"
               }`}
+              onDoubleClick={(e) => {
+                const target = e.target as HTMLElement | null;
+                if (target?.closest('[data-player-control="true"]')) return;
+                const now = Date.now();
+                if (now - lastFullscreenToggleTimeRef.current > 400) {
+                  lastFullscreenToggleTimeRef.current = now;
+                  if (now - singleTapExecutedTimeRef.current < 400) {
+                    togglePlayPause();
+                    singleTapExecutedTimeRef.current = 0;
+                  }
+                  if (singleTapTimerRef.current) {
+                    clearTimeout(singleTapTimerRef.current);
+                    singleTapTimerRef.current = null;
+                  }
+                  toggleFullscreen();
+                  resetControlsTimeout();
+                }
+              }}
               onClick={(e) => {
                 // If click is inside controls, do nothing
                 const target = e.target as HTMLElement | null;
@@ -2735,9 +2755,53 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
                   (typeof window !== "undefined" && window.matchMedia && window.matchMedia("(pointer: coarse)").matches) ||
                   isMobile;
 
-                // Check if double tap: within 320ms and within 90px
+                if (!isTouch) {
+                  // ===============================================================
+                  // DESKTOP: BẤM ĐÚP CHUỘT BẤT KỲ ĐÂU TRÊN MÀN HÌNH -> TOÀN MÀN HÌNH
+                  // ===============================================================
+                  const isDoubleClick =
+                    (lastTap && now - lastTap.time < 380 && Math.abs(e.clientX - lastTap.x) < 120) ||
+                    e.detail === 2;
+
+                  if (isDoubleClick) {
+                    if (singleTapTimerRef.current) {
+                      clearTimeout(singleTapTimerRef.current);
+                      singleTapTimerRef.current = null;
+                    }
+                    if (now - singleTapExecutedTimeRef.current < 380) {
+                      togglePlayPause();
+                      singleTapExecutedTimeRef.current = 0;
+                    }
+                    lastTapRef.current = null;
+                    lastFullscreenToggleTimeRef.current = now;
+                    toggleFullscreen();
+                    resetControlsTimeout();
+                    return;
+                  }
+
+                  // Single Click trên Desktop: Play/Pause với độ trễ 260ms để phân biệt double click
+                  lastTapRef.current = { time: now, x: e.clientX, y: e.clientY };
+                  if (singleTapTimerRef.current) {
+                    clearTimeout(singleTapTimerRef.current);
+                    singleTapTimerRef.current = null;
+                  }
+                  if (!showControlsRef.current) {
+                    resetControlsTimeout();
+                  }
+                  singleTapTimerRef.current = setTimeout(() => {
+                    singleTapTimerRef.current = null;
+                    singleTapExecutedTimeRef.current = Date.now();
+                    togglePlayPause();
+                  }, 260);
+                  resetControlsTimeout();
+                  return;
+                }
+
+                // ===============================================================
+                // MOBILE / TOUCH DEVICES (YOUTUBE DOUBLE TAP GESTURES)
+                // ===============================================================
                 if (lastTap && now - lastTap.time < 320 && Math.abs(e.clientX - lastTap.x) < 90) {
-                  // DOUBLE TAP DETECTED
+                  // DOUBLE TAP DETECTED TRÊN MOBILE
                   if (singleTapTimerRef.current) {
                     clearTimeout(singleTapTimerRef.current);
                     singleTapTimerRef.current = null;
@@ -2764,46 +2828,32 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
                     triggerDesktopFeedback("seek-right", `+${nextSec}s`, nextSec);
                   } else {
                     // Chạm đúp ở giữa (center) -> Toggle fullscreen
+                    lastFullscreenToggleTimeRef.current = now;
                     toggleFullscreen();
                   }
                   resetControlsTimeout();
                 } else {
-                  // FIRST TAP / SINGLE CLICK
+                  // FIRST TAP / SINGLE CLICK TRÊN MOBILE
                   lastTapRef.current = { time: now, x: e.clientX, y: e.clientY };
                   if (singleTapTimerRef.current) {
                     clearTimeout(singleTapTimerRef.current);
                     singleTapTimerRef.current = null;
                   }
 
-                  if (isTouch) {
-                    // MOBILE TOUCH LOGIC (YOUTUBE / NETFLIX STYLE):
-                    if (!showControlsRef.current) {
-                      // Nếu controls đang ẩn -> Chạm 1 lần hiện controls và bắt đầu đếm 3s bình thường
-                      resetControlsTimeout();
-                    } else {
-                      // Nếu vừa mới mở controls trong 350ms, bỏ qua để tránh sự kiện chạm kép gây ẩn tức thì
-                      if (now - lastControlsShownTimeRef.current < 350) {
-                        resetControlsTimeout();
-                        return;
-                      }
-                      // Người dùng chủ động chạm vào khoảng trống màn hình -> Ẩn controls
-                      setShowControls(false);
-                      showControlsRef.current = false;
-                      if (controlsTimerRef.current) {
-                        clearTimeout(controlsTimerRef.current);
-                        controlsTimerRef.current = null;
-                      }
-                    }
-                  } else {
-                    // DESKTOP CLICK LOGIC:
-                    if (!showControlsRef.current) {
-                      resetControlsTimeout();
-                    }
-                    singleTapTimerRef.current = setTimeout(() => {
-                      singleTapTimerRef.current = null;
-                      togglePlayPause();
-                    }, 250);
+                  // MOBILE TOUCH LOGIC (YOUTUBE / NETFLIX STYLE):
+                  if (!showControlsRef.current) {
                     resetControlsTimeout();
+                  } else {
+                    if (now - lastControlsShownTimeRef.current < 350) {
+                      resetControlsTimeout();
+                      return;
+                    }
+                    setShowControls(false);
+                    showControlsRef.current = false;
+                    if (controlsTimerRef.current) {
+                      clearTimeout(controlsTimerRef.current);
+                      controlsTimerRef.current = null;
+                    }
                   }
                 }
               }}
@@ -3142,8 +3192,8 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
       {/* ISOLATED ACTION BUTTONS BAR */}
       {!isFullscreen && (
         <div
-          className={`cinema-action-buttons w-full mx-auto relative z-20 ${
-            isTheaterMode ? "max-w-none px-0 sm:px-0" : "max-w-7xl"
+          className={`cinema-action-buttons w-full mx-auto relative z-30 mt-3 sm:mt-4 ${
+            isTheaterMode ? "max-w-none px-2 sm:px-4" : "max-w-7xl px-2 sm:px-0"
           }`}
         >
           <PlayerActionButtons
