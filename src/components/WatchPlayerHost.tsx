@@ -1,10 +1,38 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import dynamic from "next/dynamic";
 import { AlertCircle } from "lucide-react";
-import { CinemaPlayer, CinemaPlayerProps } from "./CinemaPlayer";
+import type { CinemaPlayerProps } from "./CinemaPlayer";
 import { IframePlayer } from "./IframePlayer";
 import { useWatchController } from "./WatchController";
+
+// Tải CinemaPlayer (3.200+ dòng & thư viện hls.js ~150KB gzip) bất đồng bộ phía Client
+// Giúp giảm First Load JS trên trang xem phim, giải phóng Main Thread và loại bỏ Total Blocking Time (TBT)
+const CinemaPlayer = dynamic<CinemaPlayerProps>(
+  () => import("./CinemaPlayer").then((m) => m.CinemaPlayer),
+  {
+    ssr: false,
+    loading: () => (
+      <div
+        className="relative w-full aspect-video bg-black rounded-xl sm:rounded-2xl overflow-hidden shadow-2xl flex flex-col items-center justify-center border border-white/[0.04]"
+        aria-label="Đang tải trình phát phim"
+        role="status"
+      >
+        {/* Lớp nền xung điện nhẹ khớp 100% tỷ lệ khung hình aspect-video */}
+        <div className="absolute inset-0 bg-gradient-to-br from-zinc-900/60 via-black to-zinc-950 animate-pulse" />
+
+        {/* Vòng quay chỉ báo tải phim chuẩn nhận diện Nanaflix */}
+        <div className="relative z-10 flex flex-col items-center gap-3">
+          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full border-2 border-white/10 border-t-netflix-red animate-spin" />
+          <span className="text-xs text-zinc-400 font-medium tracking-wide">
+            Đang tải trình phát phim...
+          </span>
+        </div>
+      </div>
+    ),
+  }
+);
 
 export type PlaybackProviderType = "nanaflix" | "vsmov";
 
