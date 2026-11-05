@@ -5,9 +5,10 @@ import { useRouter } from "next/navigation";
 import {
   Bell,
   CheckCheck,
-  Film,
   Heart,
   MessageSquare,
+  MoreHorizontal,
+  Sparkles,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import {
@@ -26,6 +27,7 @@ export const NavNotifications: React.FC = React.memo(function NavNotifications()
   const [showNotifications, setShowNotifications] = useState(false);
   const [userNotifications, setUserNotifications] = useState<UserNotification[]>([]);
   const [filterMode, setFilterMode] = useState<"all" | "unread">("all");
+  const [showOptionsMenu, setShowOptionsMenu] = useState(false);
 
   const notificationRef = useRef<HTMLDivElement>(null);
 
@@ -75,17 +77,26 @@ export const NavNotifications: React.FC = React.memo(function NavNotifications()
     [dedupedUserNotifications]
   );
 
+  // Định dạng thời gian theo chuẩn Facebook ("5 giờ", "15 giờ", "2 ngày")
   const formatTimeAgo = (timestamp: number) => {
     const diff = Math.max(0, Date.now() - timestamp);
     const mins = Math.floor(diff / 60000);
     if (mins < 1) return "Vừa xong";
-    if (mins < 60) return `${mins} phút trước`;
+    if (mins < 60) return `${mins} phút`;
     const hours = Math.floor(mins / 60);
-    if (hours < 24) return `${hours} giờ trước`;
+    if (hours < 24) return `${hours} giờ`;
     const days = Math.floor(hours / 24);
     if (days === 1) return "Hôm qua";
-    if (days < 7) return `${days} ngày trước`;
-    return `${Math.floor(days / 7)} tuần trước`;
+    if (days < 7) return `${days} ngày`;
+    return `${Math.floor(days / 7)} tuần`;
+  };
+
+  const formatMovieTitle = (slug?: string): string => {
+    if (!slug) return "";
+    return slug
+      .split("-")
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(" ");
   };
 
   const displayedNotifications = useMemo(() => {
@@ -95,40 +106,30 @@ export const NavNotifications: React.FC = React.memo(function NavNotifications()
     return dedupedUserNotifications;
   }, [dedupedUserNotifications, filterMode]);
 
-  // Phân nhóm theo Timeline (Hôm nay, Hôm qua, Tuần này, Cũ hơn)
+  // Phân nhóm Timeline Facebook: "Hôm nay" & "Trước đó"
   const timelineGroups = useMemo(() => {
     const now = new Date();
     const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-    const startOfYesterday = startOfToday - 86400000;
-    const startOfWeek = startOfToday - 6 * 86400000;
 
     const today: UserNotification[] = [];
-    const yesterday: UserNotification[] = [];
-    const thisWeek: UserNotification[] = [];
-    const older: UserNotification[] = [];
+    const earlier: UserNotification[] = [];
 
     for (const item of displayedNotifications) {
       const ts = item.createdAt || 0;
       if (ts >= startOfToday) {
         today.push(item);
-      } else if (ts >= startOfYesterday) {
-        yesterday.push(item);
-      } else if (ts >= startOfWeek) {
-        thisWeek.push(item);
       } else {
-        older.push(item);
+        earlier.push(item);
       }
     }
 
     return [
-      { label: "Hôm nay", items: today },
-      { label: "Hôm qua", items: yesterday },
-      { label: "Tuần này", items: thisWeek },
-      { label: "Cũ hơn", items: older },
+      { label: "Hôm nay", items: today, hasViewAll: false },
+      { label: "Trước đó", items: earlier, hasViewAll: true },
     ].filter((g) => g.items.length > 0);
   }, [displayedNotifications]);
 
-  // Click outside to close
+  // Click outside to close cả popup và options menu
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (
@@ -136,24 +137,99 @@ export const NavNotifications: React.FC = React.memo(function NavNotifications()
         !notificationRef.current.contains(e.target as Node)
       ) {
         setShowNotifications(false);
+        setShowOptionsMenu(false);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // Icon badge nhỏ ở góc avatar kiểu Facebook
   const renderNotificationIcon = (item: UserNotification) => {
     if (item.type === "comment_reply") {
       return (
-        <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-sky-500 ring-2 ring-zinc-950 flex items-center justify-center text-white shadow-md">
-          <MessageSquare size={9} className="fill-white text-white" />
+        <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-[#00a884] border-2 border-[#242526] flex items-center justify-center text-white shadow-md">
+          <MessageSquare size={11} className="fill-white text-white" />
+        </div>
+      );
+    }
+    if (item.type === "comment_reaction") {
+      return (
+        <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-[#fa3e3e] border-2 border-[#242526] flex items-center justify-center text-white shadow-md">
+          <Heart size={11} className="fill-white text-white" />
         </div>
       );
     }
     return (
-      <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-rose-500 ring-2 ring-zinc-950 flex items-center justify-center text-white shadow-md">
-        <Heart size={9} className="fill-white text-white" />
+      <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-purple-600 border-2 border-[#242526] flex items-center justify-center text-white shadow-md">
+        <Sparkles size={11} className="fill-white text-white" />
       </div>
+    );
+  };
+
+  // Nội dung thông báo dòng chảy liền mạch chuẩn Facebook
+  const renderFacebookContent = (
+    item: UserNotification,
+    actorName: string,
+    movieName: string
+  ) => {
+    const isReply = item.type === "comment_reply";
+    const isReaction = item.type === "comment_reaction";
+
+    if (isReply) {
+      return (
+        <p className="text-[13px] text-zinc-300 leading-snug line-clamp-3">
+          <strong className="font-bold text-white hover:underline">{actorName}</strong>
+          {" đã phản hồi bình luận của bạn"}
+          {movieName && (
+            <>
+              {" về một bộ phim trong "}
+              <strong className="font-bold text-white hover:underline">{movieName}</strong>
+              {item.episodeName && <span className="text-zinc-300"> ({item.episodeName})</span>}
+            </>
+          )}
+          {item.message ? `: "${item.message}"` : "."}
+        </p>
+      );
+    }
+
+    if (isReaction) {
+      return (
+        <p className="text-[13px] text-zinc-300 leading-snug line-clamp-3">
+          <strong className="font-bold text-white hover:underline">{actorName}</strong>
+          {" đã thả cảm xúc "}
+          {item.reactionType ? (
+            <strong className="font-bold text-white">{item.reactionType}</strong>
+          ) : (
+            "yêu thích"
+          )}
+          {" vào bình luận của bạn"}
+          {movieName && (
+            <>
+              {" trong "}
+              <strong className="font-bold text-white hover:underline">{movieName}</strong>
+            </>
+          )}
+          {item.message ? `: "${item.message}"` : "."}
+        </p>
+      );
+    }
+
+    if (item.type === "achievement_level") {
+      return (
+        <p className="text-[13px] text-zinc-300 leading-snug line-clamp-3">
+          <strong className="font-bold text-white">Chúc mừng nhé!</strong>
+          {" Bạn đã nhận được huy hiệu "}
+          <strong className="font-bold text-white">{item.title || "fan cứng"}</strong>.
+        </p>
+      );
+    }
+
+    return (
+      <p className="text-[13px] text-zinc-300 leading-snug line-clamp-3">
+        <strong className="font-bold text-white">{item.title}</strong>
+        {item.message && ` ${item.message}`}
+      </p>
     );
   };
 
@@ -164,6 +240,7 @@ export const NavNotifications: React.FC = React.memo(function NavNotifications()
           type="button"
           onClick={() => {
             setShowNotifications((prev) => !prev);
+            setShowOptionsMenu(false);
           }}
           aria-label="Thông báo"
           className="relative flex items-center justify-center h-8 w-8 sm:h-9 sm:w-9 rounded-full bg-white/10 hover:bg-white/20 text-zinc-200 hover:text-white transition cursor-pointer flex-shrink-0 active:scale-95"
@@ -178,217 +255,182 @@ export const NavNotifications: React.FC = React.memo(function NavNotifications()
         </button>
       </Tooltip>
 
-      {/* NOTIFICATION POPUP DROPDOWN */}
+      {/* FACEBOOK-STYLE NOTIFICATION POPUP DROPDOWN */}
       {showNotifications && (
-        <div className="fixed sm:absolute top-[52px] sm:top-full mt-0 sm:mt-2 left-2 right-2 sm:left-auto sm:right-0 w-auto sm:w-[430px] max-w-sm sm:max-w-none mx-auto sm:mx-0 bg-zinc-950/98 backdrop-blur-2xl rounded-2xl shadow-[0_25px_60px_rgba(0,0,0,0.95)] border border-white/10 p-4 z-50 animate-in fade-in zoom-in-95 duration-150">
-          {/* HEADER */}
-          <div className="pb-3 mb-2.5 border-b border-white/10 space-y-2">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="p-1.5 rounded-lg bg-netflix-red/15 text-netflix-red">
-                  <Bell size={15} />
-                </div>
-                <h4 className="text-white font-bold text-sm">Thông Báo</h4>
-                {userUnreadCount > 0 && (
-                  <span className="px-2 py-0.5 rounded-full bg-netflix-red text-white text-[10px] font-black animate-pulse shadow-sm">
-                    {userUnreadCount} mới
-                  </span>
-                )}
-              </div>
-
-              {user && (
-                <button
-                  type="button"
-                  onClick={async () => {
-                    setUserNotifications((prev) =>
-                      prev.map((item) => ({ ...item, isRead: true }))
-                    );
-                    await markAllNotificationsAsRead(user.uid);
-                  }}
-                  className={`text-[11px] flex items-center gap-1.5 transition cursor-pointer px-2 py-1 rounded-lg hover:bg-white/5 ${
-                    userUnreadCount > 0
-                      ? "text-emerald-400 hover:text-emerald-300 font-semibold"
-                      : "text-zinc-500 hover:text-zinc-400"
-                  }`}
-                >
-                  <CheckCheck size={13} className={userUnreadCount > 0 ? "text-emerald-400" : "text-zinc-500"} />
-                  <span>Đã đọc hết</span>
-                </button>
-              )}
-            </div>
-
-            {/* FILTER TABS (TẤT CẢ / CHƯA ĐỌC) */}
-            <div className="flex items-center gap-1.5 pt-0.5">
+        <div className="fixed sm:absolute top-[52px] sm:top-full mt-0 sm:mt-2 left-2 right-2 sm:left-auto sm:right-0 w-auto sm:w-[380px] md:w-[400px] max-w-sm sm:max-w-none mx-auto sm:mx-0 bg-[#242526] backdrop-blur-2xl rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.95)] border border-white/10 p-3.5 z-50 animate-in fade-in zoom-in-95 duration-150">
+          {/* HEADER (TIÊU ĐỀ + NÚT 3 CHẤM ...) */}
+          <div className="flex items-center justify-between px-1 pb-2">
+            <h3 className="text-2xl font-bold text-white tracking-tight">Thông báo</h3>
+            <div className="relative">
               <button
                 type="button"
-                onClick={() => setFilterMode("all")}
-                className={`px-3 py-1 rounded-full text-[11px] font-bold transition cursor-pointer ${
-                  filterMode === "all"
-                    ? "bg-white/20 text-white shadow-sm"
-                    : "text-zinc-400 hover:text-zinc-200 hover:bg-white/5"
-                }`}
+                onClick={() => setShowOptionsMenu((prev) => !prev)}
+                title="Tùy chọn thông báo"
+                className="w-8 h-8 rounded-full hover:bg-white/10 flex items-center justify-center text-zinc-300 hover:text-white transition cursor-pointer"
               >
-                Tất cả ({dedupedUserNotifications.length})
+                <MoreHorizontal size={20} />
               </button>
-              {userUnreadCount > 0 && (
-                <button
-                  type="button"
-                  onClick={() => setFilterMode("unread")}
-                  className={`px-3 py-1 rounded-full text-[11px] font-bold transition cursor-pointer flex items-center gap-1.5 ${
-                    filterMode === "unread"
-                      ? "bg-netflix-red text-white shadow-sm shadow-netflix-red/30"
-                      : "text-rose-400 hover:bg-rose-500/10"
-                  }`}
-                >
-                  <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
-                  Chưa đọc ({userUnreadCount})
-                </button>
+
+              {/* THREE-DOTS CONTEXT MENU */}
+              {showOptionsMenu && (
+                <div className="absolute right-0 top-full mt-1.5 w-56 bg-[#242526] border border-white/10 rounded-xl shadow-2xl p-1 z-50 animate-in fade-in zoom-in-95 duration-100">
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      setShowOptionsMenu(false);
+                      setUserNotifications((prev) =>
+                        prev.map((item) => ({ ...item, isRead: true }))
+                      );
+                      if (user?.uid) await markAllNotificationsAsRead(user.uid);
+                    }}
+                    className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-zinc-200 hover:text-white hover:bg-white/10 rounded-lg transition text-left cursor-pointer"
+                  >
+                    <CheckCheck size={16} className="text-[#1877f2]" />
+                    <span>Đánh dấu tất cả là đã đọc</span>
+                  </button>
+                </div>
               )}
             </div>
           </div>
 
+          {/* FILTER PILLS: "Tất cả" & "Chưa đọc" */}
+          <div className="flex items-center gap-2 px-1 mb-2.5">
+            <button
+              type="button"
+              onClick={() => setFilterMode("all")}
+              className={`px-3.5 py-1.5 rounded-full text-sm font-semibold transition cursor-pointer ${
+                filterMode === "all"
+                  ? "bg-[#1877f2] text-white shadow-sm"
+                  : "text-zinc-300 hover:bg-white/10"
+              }`}
+            >
+              Tất cả
+            </button>
+            <button
+              type="button"
+              onClick={() => setFilterMode("unread")}
+              className={`px-3.5 py-1.5 rounded-full text-sm font-semibold transition cursor-pointer ${
+                filterMode === "unread"
+                  ? "bg-[#1877f2] text-white shadow-sm"
+                  : "text-zinc-300 hover:bg-white/10"
+              }`}
+            >
+              Chưa đọc
+            </button>
+          </div>
+
           {/* TIMELINE NOTIFICATION LIST */}
-          <div className="space-y-3.5 max-h-[400px] overflow-y-auto overscroll-contain pr-1 scrollbar-none">
+          <div className="space-y-3 max-h-[420px] overflow-y-auto overscroll-contain pr-0.5 scrollbar-none">
             {timelineGroups.map((group) => (
-              <div key={group.label} className="space-y-2">
-                <div className="flex items-center gap-2 px-1 pt-1">
-                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-zinc-500">
+              <div key={group.label} className="space-y-0.5">
+                <div className="flex items-center justify-between px-2 pt-1 pb-1">
+                  <span className="text-base font-bold text-white">
                     {group.label}
                   </span>
-                  <div className="flex-1 h-px bg-white/5" />
+                  {group.hasViewAll && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowNotifications(false);
+                        router.push("/my-list?tab=comments");
+                      }}
+                      className="text-sm font-semibold text-[#1877f2] hover:underline cursor-pointer"
+                    >
+                      Xem tất cả
+                    </button>
+                  )}
                 </div>
 
-                {group.items.map((item) => {
-                  const isReply = item.type === "comment_reply";
-                  const itemAvatar = item.replierAvatar || item.image;
-                  const actorName =
-                    item.replierName ||
-                    (item.title ? item.title.split(/\s+đã\s+/i)[0].trim() : "") ||
-                    "Một thành viên";
-                  const actionLabel = isReply
-                    ? "đã trả lời bình luận của bạn"
-                    : item.reactionType
-                    ? `đã thả cảm xúc "${item.reactionType}" vào bình luận`
-                    : "đã thích bình luận của bạn";
+                <div className="space-y-0.5">
+                  {group.items.map((item) => {
+                    const itemAvatar = item.replierAvatar || item.image;
+                    const actorName =
+                      item.replierName ||
+                      (item.title ? item.title.split(/\s+đã\s+/i)[0].trim() : "") ||
+                      "Một thành viên";
+                    const movieName = formatMovieTitle(item.movieSlug);
 
-                  return (
-                    <div
-                      key={item.id}
-                      onClick={() => {
-                        if (user && !item.isRead) {
-                          setUserNotifications((prev) =>
-                            prev.map((n) => (n.id === item.id ? { ...n, isRead: true } : n))
-                          );
-                          markNotificationAsRead(user.uid, item.id);
-                        }
-                        setShowNotifications(false);
-                        if (item.commentId && typeof window !== "undefined") {
-                          window.dispatchEvent(
-                            new CustomEvent("nanaflix-highlight-comment", {
-                              detail: { commentId: item.commentId },
-                            })
-                          );
-                        }
-                        const targetLink =
-                          item.link ||
-                          (item.movieSlug
-                            ? item.commentId
-                              ? `/movies/${item.movieSlug}?highlightComment=${item.commentId}#comment-${item.commentId}`
-                              : `/movies/${item.movieSlug}#comments`
-                            : "/");
-                        router.push(targetLink);
-                      }}
-                      className={`relative flex items-start gap-3 p-3 rounded-2xl transition-all duration-200 cursor-pointer group ${
-                        !item.isRead
-                          ? "bg-gradient-to-r from-netflix-red/15 via-netflix-red/5 to-transparent border-l-2 border-l-netflix-red hover:from-netflix-red/20 hover:to-white/5 shadow-sm"
-                          : "bg-white/[0.02] hover:bg-white/[0.06] border border-white/[0.04]"
-                      }`}
-                    >
-                      {/* AVATAR WITH INTERACTION BADGE */}
-                      <div className="relative shrink-0 pt-0.5">
-                        <UserAvatar
-                          src={itemAvatar || undefined}
-                          name={actorName}
-                          sizeClassName="w-10 h-10 text-xs font-bold"
-                          className="shadow-md ring-2 ring-white/10 group-hover:ring-netflix-red/40 transition"
-                        />
-                        {renderNotificationIcon(item)}
-                      </div>
-
-                      {/* CONTENT */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between gap-1.5">
-                          <p className="text-xs leading-snug line-clamp-2">
-                            <span className="font-bold text-white group-hover:text-netflix-red transition">
-                              {actorName}
-                            </span>{" "}
-                            <span className="text-zinc-400 font-normal">
-                              {actionLabel}
-                            </span>
-                          </p>
-                          {!item.isRead && (
-                            <span
-                              className="w-2 h-2 rounded-full bg-netflix-red shadow-[0_0_8px_rgba(229,9,20,0.9)] shrink-0 mt-1"
-                              title="Chưa đọc"
-                            />
-                          )}
+                    return (
+                      <div
+                        key={item.id}
+                        onClick={() => {
+                          if (user && !item.isRead) {
+                            setUserNotifications((prev) =>
+                              prev.map((n) => (n.id === item.id ? { ...n, isRead: true } : n))
+                            );
+                            markNotificationAsRead(user.uid, item.id);
+                          }
+                          setShowNotifications(false);
+                          if (item.commentId && typeof window !== "undefined") {
+                            window.dispatchEvent(
+                              new CustomEvent("nanaflix-highlight-comment", {
+                                detail: { commentId: item.commentId },
+                              })
+                            );
+                          }
+                          const targetLink =
+                            item.link ||
+                            (item.movieSlug
+                              ? item.commentId
+                                ? `/movies/${item.movieSlug}?highlightComment=${item.commentId}#comment-${item.commentId}`
+                                : `/movies/${item.movieSlug}#comments`
+                              : "/");
+                          router.push(targetLink);
+                        }}
+                        className="flex items-center gap-3 p-2 rounded-xl hover:bg-white/[0.08] transition-colors cursor-pointer group relative"
+                      >
+                        {/* FACEBOOK ROUND AVATAR WITH OVERLAPPING BADGE */}
+                        <div className="relative shrink-0 w-12 h-12 sm:w-14 sm:h-14">
+                          <UserAvatar
+                            src={itemAvatar || undefined}
+                            name={actorName}
+                            sizeClassName="w-12 h-12 sm:w-14 sm:h-14 text-base font-bold"
+                            className="rounded-full shadow-sm"
+                          />
+                          {renderNotificationIcon(item)}
                         </div>
 
-                        {/* FILM CONTEXT TAG */}
-                        {item.movieSlug && (
-                          <div className="flex items-center gap-1.5 mt-1">
-                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-white/5 text-zinc-300 border border-white/5 truncate max-w-[240px]">
-                              <Film size={10} className="text-netflix-red shrink-0" />
-                              <span className="truncate capitalize">{item.movieSlug.replace(/-/g, " ")}</span>
-                              {item.episodeName && (
-                                <span className="text-zinc-400 shrink-0">• {item.episodeName}</span>
-                              )}
-                            </span>
-                          </div>
-                        )}
-
-                        {/* MESSAGE PREVIEW QUOTE */}
-                        {item.message && (
-                          <div
-                            className={`mt-2 text-xs leading-relaxed rounded-r-xl border-l-2 px-2.5 py-1.5 line-clamp-2 ${
-                              isReply
-                                ? "border-sky-500/70 bg-sky-950/25 text-zinc-200"
-                                : "border-rose-500/70 bg-rose-950/25 text-zinc-200"
+                        {/* FACEBOOK INLINE FLOWING TEXT BODY */}
+                        <div className="flex-1 min-w-0 pr-1">
+                          {renderFacebookContent(item, actorName, movieName)}
+                          <span
+                            className={`text-xs mt-0.5 block font-medium ${
+                              !item.isRead ? "text-[#1877f2] font-semibold" : "text-zinc-400"
                             }`}
                           >
-                            <span className="italic text-zinc-300 font-normal">{`"${item.message}"`}</span>
-                          </div>
-                        )}
-
-                        {/* FOOTER: TIMESTAMP */}
-                        <div className="flex items-center justify-between text-[10px] text-zinc-500 font-medium mt-1.5">
-                          <span>{formatTimeAgo(item.createdAt || Date.now())}</span>
-                          <span className="text-zinc-500 group-hover:text-zinc-300 transition text-[10px] flex items-center gap-0.5">
-                            Xem phản hồi →
+                            {formatTimeAgo(item.createdAt || Date.now())}
                           </span>
                         </div>
+
+                        {/* FACEBOOK BLUE UNREAD DOT */}
+                        {!item.isRead && (
+                          <span
+                            className="w-3 h-3 rounded-full bg-[#1877f2] shrink-0 self-center mr-1 shadow-[0_0_6px_rgba(24,119,242,0.6)]"
+                            title="Chưa đọc"
+                          />
+                        )}
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
               </div>
             ))}
 
             {displayedNotifications.length === 0 && (
-              <div className="py-10 text-center text-zinc-400 text-xs flex flex-col items-center justify-center gap-2">
-                <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-zinc-600">
-                  <Bell size={20} />
+              <div className="py-12 text-center text-zinc-400 text-xs flex flex-col items-center justify-center gap-2">
+                <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center text-zinc-500">
+                  <Bell size={24} />
                 </div>
-                <span className="font-medium text-zinc-400">
+                <span className="font-semibold text-sm text-zinc-300">
                   {filterMode === "unread"
-                    ? "Bạn không có thông báo chưa đọc nào"
-                    : "Chưa có thông báo tương tác hoặc phản hồi mới nào"}
+                    ? "Không có thông báo chưa đọc nào"
+                    : "Bạn không có thông báo nào"}
                 </span>
                 {filterMode === "unread" && (
                   <button
                     type="button"
                     onClick={() => setFilterMode("all")}
-                    className="text-[11px] text-netflix-red hover:underline font-bold mt-1"
+                    className="text-xs text-[#1877f2] hover:underline font-bold mt-1"
                   >
                     Xem tất cả thông báo
                   </button>
@@ -396,6 +438,22 @@ export const NavNotifications: React.FC = React.memo(function NavNotifications()
               </div>
             )}
           </div>
+
+          {/* BOTTOM BUTTON: "Xem thông báo trước đó" (CHUẨN FACEBOOK) */}
+          {displayedNotifications.length > 0 && (
+            <div className="pt-2 px-1">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowNotifications(false);
+                  router.push("/my-list?tab=comments");
+                }}
+                className="w-full py-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-white font-semibold text-sm transition text-center cursor-pointer"
+              >
+                Xem thông báo trước đó
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>
