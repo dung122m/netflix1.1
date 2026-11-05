@@ -413,7 +413,7 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(function Episo
       </div>
 
       {/* 2. KHUNG CUỘN DANH SÁCH TẬP PHIM ĐỘC LẬP (TẬN DỤNG TOÀN BỘ KHÔNG GIAN CÒN LẠI) */}
-      <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden pr-1 custom-scrollbar overscroll-contain">
+      <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-1.5 custom-scrollbar overscroll-contain">
 
       {/* TRƯỜNG HỢP TÌM KIẾM CHỈ RA 1 TẬP: HIỂN THỊ THẺ TẬP NỔI BẬT CAO CẤP */}
       {isSearching && displayEpisodes.length === 1 && (() => {
@@ -436,7 +436,7 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(function Episo
         const chunkObj = chunkIdx >= 0 ? chunks[chunkIdx] : null;
 
         return (
-          <div className="p-3.5 rounded-2xl bg-gradient-to-br from-zinc-900/95 via-zinc-950 to-black shadow-xl space-y-3 animate-in fade-in zoom-in-95 duration-200">
+          <div className="p-3.5 my-1 rounded-2xl bg-gradient-to-br from-zinc-900/95 via-zinc-950 to-black shadow-xl space-y-3 animate-in fade-in zoom-in-95 duration-200">
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-3 min-w-0">
                 <div
@@ -523,7 +523,7 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(function Episo
       {displayEpisodes.length > 0 ? (
         // Chỉ render lưới này khi không phải trường hợp 1 tập duy nhất trong tìm kiếm (đã hiển thị Card ở trên)
         (!isSearching || displayEpisodes.length > 1) && (
-          <div className={gridClasses}>
+          <div className={`${gridClasses} p-1`}>
             {displayEpisodes.map((tap, tapIdx) => {
               const tapSlug = tap.slug || `ep-${tapIdx + 1}`;
               const tapName = tap.name || `Tập ${tapIdx + 1}`;
@@ -581,7 +581,7 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(function Episo
                       switchEpisode(tap.slug);
                     }
                   }}
-                  className={`relative flex items-center justify-center text-center transition-all duration-200 group rounded-xl cursor-pointer select-none outline-none overflow-hidden focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950 focus-visible:scale-[1.04] focus-visible:z-20 ${
+                  className={`relative flex items-center justify-center text-center transition-all duration-200 group rounded-xl cursor-pointer select-none outline-none overflow-hidden focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950 focus-visible:scale-[1.02] focus-visible:z-20 ${
                     episodes.length === 1
                       ? "py-2.5 px-3 min-h-[38px] text-xs sm:text-sm font-bold"
                       : isFewEpisodes
@@ -589,10 +589,10 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(function Episo
                       : "py-1.5 px-1 min-h-[32px] sm:min-h-[34px] text-xs sm:text-[13px] font-bold"
                   } ${
                     isActive
-                      ? "bg-gradient-to-br from-netflix-red to-netflix-red/80 text-white font-black shadow-lg shadow-netflix-red/40 scale-[1.03] z-10 "
+                      ? "bg-gradient-to-br from-netflix-red to-netflix-red/80 text-white font-black shadow-lg shadow-netflix-red/40 scale-[1.02] ring-1 ring-white/20 z-10"
                       : isWatched
-                      ? "bg-zinc-950/70 hover:bg-zinc-900 text-zinc-400 hover:text-zinc-200  hover:"
-                      : "bg-white/[0.06] hover:bg-white/[0.12] text-zinc-200 hover:text-white  hover: hover:scale-[1.03] active:scale-[0.97] shadow-xs"
+                      ? "bg-zinc-950/70 hover:bg-zinc-900 text-zinc-400 hover:text-zinc-200 hover:scale-[1.02]"
+                      : "bg-white/[0.06] hover:bg-white/[0.12] text-zinc-200 hover:text-white hover:scale-[1.02] active:scale-[0.98] shadow-xs"
                   }`}
                 >
                   <div className="flex items-center justify-center gap-1 sm:gap-1.5 w-full min-w-0 px-1">
