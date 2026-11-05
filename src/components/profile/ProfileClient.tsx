@@ -107,6 +107,7 @@ export function ProfileClient() {
   const [userBadges, setUserBadges] = useState<string[]>([]);
   const [badgeHint, setBadgeHint] = useState<string | null>(null);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [useCustomUrl, setUseCustomUrl] = useState(false);
 
   // Player Settings State
@@ -322,28 +323,80 @@ export function ProfileClient() {
 
     if (file.size > 10 * 1024 * 1024) {
       toast.error("Vui lòng chọn file ảnh dung lượng dưới 10MB!");
+      if (fileInputRef.current) fileInputRef.current.value = "";
       return;
     }
 
+    setIsUploadingAvatar(true);
     try {
-      const compressedDataUrl = await compressImage(file, 200, 0.85);
-      let finalUrl = compressedDataUrl;
-      if (user?.uid) {
+      let finalUrl = "";
+
+      // 1. Tải ảnh trực tiếp lên Supabase Storage qua Server API Admin
+      if (user) {
         try {
-          const cloudUrl = await uploadAvatarSupabase(user.uid, file);
-          if (cloudUrl) {
-            finalUrl = cloudUrl;
+          const idToken = await user.getIdToken();
+          const formData = new FormData();
+          formData.append("file", file);
+
+          const res = await fetch("/api/user/avatar", {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${idToken}`,
+            },
+            body: formData,
+          });
+
+          const data = await res.json().catch(() => null);
+          if (res.ok && data?.avatarUrl) {
+            finalUrl = data.avatarUrl;
+          } else {
+            console.warn("[Avatar Upload] API server trả lỗi:", data?.error);
           }
-        } catch {}
+        } catch (apiErr) {
+          console.warn("[Avatar Upload] Lỗi gọi API server:", apiErr);
+        }
       }
 
+      // 2. Fallback dự phòng: nén ảnh và dùng client upload / base64 nếu API lỗi
+      if (!finalUrl) {
+        const compressedDataUrl = await compressImage(file, 200, 0.85);
+        finalUrl = compressedDataUrl;
+        if (user?.uid) {
+          try {
+            const cloudUrl = await uploadAvatarSupabase(user.uid, file);
+            if (cloudUrl) {
+              finalUrl = cloudUrl;
+            }
+          } catch {}
+        }
+      }
+
+      // 3. Cập nhật state UI tức thì
       setCustomAvatarUrl(finalUrl);
       setSelectedAvatar(finalUrl);
       setUseCustomUrl(true);
-      toast.success("Đã chọn & tối ưu ảnh đại diện thành công! 🎉");
+      setProfile((prev) => (prev ? { ...prev, customAvatar: finalUrl, photoURL: finalUrl } : null));
+
+      // 4. Lưu trực tiếp vào profile người dùng để đồng bộ ngay lập tức
+      if (user?.uid) {
+        await updateUserProfile(user, user.uid, {
+          ...(profile || {}),
+          displayName: displayName.trim() || user.displayName || "Thành viên",
+          customAvatar: finalUrl,
+          photoURL: finalUrl,
+          bio: bio.trim(),
+          favoriteGenres,
+          badges: userBadges,
+        }).catch((err) => console.warn("Lỗi lưu profile sau upload avatar:", err));
+      }
+
+      toast.success("Đã tải và cập nhật ảnh đại diện thành công! 🎉");
     } catch (err) {
       console.error("Lỗi xử lý ảnh:", err);
       toast.error("Không thể xử lý file ảnh này. Vui lòng thử lại!");
+    } finally {
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      setIsUploadingAvatar(false);
     }
   };
 
@@ -504,7 +557,8 @@ export function ProfileClient() {
   const watchMins = profile?.watchTimeMinutes || 0;
   const levelInfo = getWatchLevelInfo(watchMins);
   const watchHours = (watchMins / 60).toFixed(1);
-  const effectiveAvatar = profile?.customAvatar || profile?.photoURL || user.photoURL || "";
+  const effectiveAvatar =
+    selectedAvatar || customAvatarUrl || profile?.customAvatar || profile?.photoURL || user.photoURL || "";
   const effectiveDisplayName = profile?.displayName || user.displayName || "Thành viên Nanaflix";
   const progressPct = levelInfo.nextMinMinutes
     ? Math.min(100, Math.round((watchMins / levelInfo.nextMinMinutes) * 100))
@@ -512,6 +566,15 @@ export function ProfileClient() {
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+      {/* Global Hidden file input để luôn hoạt động ở mọi tab */}
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handleFileUpload}
+        accept="image/*"
+        className="hidden"
+      />
+
       {/* 1. BREADCRUMB */}
       <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-xs text-zinc-400">
         <Link href="/" className="hover:text-white transition">
@@ -537,14 +600,18 @@ export function ProfileClient() {
             </div>
             <button
               type="button"
+              disabled={isUploadingAvatar}
               onClick={() => {
-                setActiveTab("profile");
                 fileInputRef.current?.click();
               }}
-              title="Đổi ảnh đại diện"
-              className="absolute bottom-0 right-0 p-2 rounded-full bg-netflix-red hover:brightness-110 active:brightness-90 text-white shadow-lg transition-transform duration-200 hover:scale-110 cursor-pointer"
+              title={isUploadingAvatar ? "Đang tải ảnh..." : "Đổi ảnh đại diện"}
+              className="absolute bottom-0 right-0 p-2 rounded-full bg-netflix-red hover:brightness-110 active:brightness-90 text-white shadow-lg transition-transform duration-200 hover:scale-110 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              <Upload className="w-4 h-4" />
+              {isUploadingAvatar ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Upload className="w-4 h-4" />
+              )}
             </button>
           </div>
 
@@ -700,15 +767,6 @@ export function ProfileClient() {
         {/* =================================================================== */}
         {activeTab === "profile" && (
           <form onSubmit={handleSaveProfile} className="space-y-6">
-            {/* Hidden file input */}
-            <input
-              type="file"
-              ref={fileInputRef}
-              onChange={handleFileUpload}
-              accept="image/*"
-              className="hidden"
-            />
-
             {/* 1. KHO AVATAR */}
             <div className="space-y-3">
               <div className="flex items-center justify-between">
@@ -720,11 +778,16 @@ export function ProfileClient() {
                 </div>
                 <button
                   type="button"
+                  disabled={isUploadingAvatar}
                   onClick={() => fileInputRef.current?.click()}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold transition cursor-pointer active:scale-95 shadow-sm"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold transition cursor-pointer active:scale-95 shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
                 >
-                  <Upload className="w-3.5 h-3.5 text-netflix-red" />
-                  <span>Tải ảnh từ máy</span>
+                  {isUploadingAvatar ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin text-netflix-red" />
+                  ) : (
+                    <Upload className="w-3.5 h-3.5 text-netflix-red" />
+                  )}
+                  <span>{isUploadingAvatar ? "Đang tải..." : "Tải ảnh từ máy"}</span>
                 </button>
               </div>
 

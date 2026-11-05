@@ -157,31 +157,37 @@ export function subscribeMovieComments(
       const localItem = localMap.get(remoteItem.id);
       if (!localItem) return remoteItem;
 
-      // Chỉ giữ lại bản sửa cục bộ nếu mới hơn và nằm trong cửa sổ thời gian gần (< 30s)
-      // Ngăn chặn tuyệt đối zombie edits kẹt vĩnh viễn trong LocalStorage
+      // Kiểm tra xem local item có bản cập nhật mới hơn remote không
       const nowTime = Date.now();
       const isLocalNewer =
         (localItem.updatedAt || 0) > (remoteItem.updatedAt || 0) &&
         nowTime - (Number(localItem.updatedAt) || 0) < 30000;
 
-      // Hợp nhất reactions từ remote và local để tránh bị mất emoji reaction
-      const mergedReactions: Record<string, CommentReactionType> = {
-        ...(remoteItem.reactions || {}),
-        ...(localItem.reactions || {}),
-      };
+      let mergedReactions: Record<string, CommentReactionType>;
+      let likedByList: string[];
+      let calculatedLikes: number;
 
-      const likedBySet = new Set<string>([
-        ...(Array.isArray(remoteItem.likedBy) ? remoteItem.likedBy : []),
-        ...(Array.isArray(localItem.likedBy) ? localItem.likedBy : []),
-        ...Object.keys(mergedReactions),
-      ]);
+      if (isLocalNewer && localItem.reactions !== undefined) {
+        // Bản cập nhật cục bộ mới hơn (ví dụ vừa thả cảm xúc / gỡ cảm xúc), ưu tiên dữ liệu cục bộ
+        mergedReactions = { ...localItem.reactions };
+        likedByList = Array.isArray(localItem.likedBy) ? [...localItem.likedBy] : Object.keys(mergedReactions);
+        calculatedLikes = localItem.likes !== undefined ? localItem.likes : Object.keys(mergedReactions).length;
+      } else {
+        mergedReactions = {
+          ...(remoteItem.reactions || {}),
+        };
+        const likedBySet = new Set<string>([
+          ...(Array.isArray(remoteItem.likedBy) ? remoteItem.likedBy : []),
+          ...Object.keys(mergedReactions),
+        ]);
+        likedByList = Array.from(likedBySet);
+        calculatedLikes = Math.max(remoteItem.likes || 0, likedByList.length);
+      }
 
-      const calculatedLikes = Math.max(
-        remoteItem.likes || 0,
-        localItem.likes || 0,
-        likedBySet.size,
-        Object.keys(mergedReactions).length
-      );
+      const tally: Partial<Record<CommentReactionType, number>> = {};
+      Object.values(mergedReactions).forEach((t) => {
+        tally[t] = (tally[t] || 0) + 1;
+      });
 
       return {
         ...remoteItem,
@@ -196,7 +202,8 @@ export function subscribeMovieComments(
             }
           : {}),
         reactions: mergedReactions,
-        likedBy: Array.from(likedBySet),
+        reactionCounts: tally,
+        likedBy: likedByList,
         likes: calculatedLikes,
         isPinned: localItem.isPinned !== undefined ? localItem.isPinned : remoteItem.isPinned,
       };
@@ -273,6 +280,7 @@ export function subscribeMovieComments(
       comment?: MovieComment;
       reply?: MovieComment;
       parentId?: string;
+      skipRemoteFetch?: boolean;
     }>;
     if (!customEvent.detail?.movieSlug || customEvent.detail.movieSlug === movieSlug) {
       if (customEvent.detail?.deleted && customEvent.detail?.commentId) {
@@ -293,6 +301,11 @@ export function subscribeMovieComments(
         const cur = movieCommentsMemoryCache[movieSlug];
         if (cur) onUpdate(cur.filter((c) => !isCommentDeleted(c.id)));
       }
+
+      if (customEvent.detail?.skipRemoteFetch) {
+        return;
+      }
+
       lastFetchTime = Date.now();
       fetchSupabase();
     }
@@ -383,27 +396,42 @@ export function subscribeCommentReplies(
       const localItem = localMap.get(remoteItem.id);
       if (!localItem) return remoteItem;
 
-      const mergedReactions: Record<string, CommentReactionType> = {
-        ...(remoteItem.reactions || {}),
-        ...(localItem.reactions || {}),
-      };
+      const nowTime = Date.now();
+      const isLocalNewer =
+        (localItem.updatedAt || 0) > (remoteItem.updatedAt || 0) &&
+        nowTime - (Number(localItem.updatedAt) || 0) < 30000;
 
-      const likedBySet = new Set<string>([
-        ...(Array.isArray(remoteItem.likedBy) ? remoteItem.likedBy : []),
-        ...(Array.isArray(localItem.likedBy) ? localItem.likedBy : []),
-        ...Object.keys(mergedReactions),
-      ]);
+      let mergedReactions: Record<string, CommentReactionType>;
+      let likedByList: string[];
+      let calculatedLikes: number;
+
+      if (isLocalNewer && localItem.reactions !== undefined) {
+        mergedReactions = { ...localItem.reactions };
+        likedByList = Array.isArray(localItem.likedBy) ? [...localItem.likedBy] : Object.keys(mergedReactions);
+        calculatedLikes = localItem.likes !== undefined ? localItem.likes : Object.keys(mergedReactions).length;
+      } else {
+        mergedReactions = {
+          ...(remoteItem.reactions || {}),
+        };
+        const likedBySet = new Set<string>([
+          ...(Array.isArray(remoteItem.likedBy) ? remoteItem.likedBy : []),
+          ...Object.keys(mergedReactions),
+        ]);
+        likedByList = Array.from(likedBySet);
+        calculatedLikes = Math.max(remoteItem.likes || 0, likedByList.length);
+      }
+
+      const tally: Partial<Record<CommentReactionType, number>> = {};
+      Object.values(mergedReactions).forEach((t) => {
+        tally[t] = (tally[t] || 0) + 1;
+      });
 
       return {
         ...remoteItem,
         reactions: mergedReactions,
-        likedBy: Array.from(likedBySet),
-        likes: Math.max(
-          remoteItem.likes || 0,
-          localItem.likes || 0,
-          likedBySet.size,
-          Object.keys(mergedReactions).length
-        ),
+        reactionCounts: tally,
+        likedBy: likedByList,
+        likes: calculatedLikes,
       };
     });
 
@@ -463,6 +491,7 @@ export function subscribeCommentReplies(
       reply?: MovieComment;
       deleted?: boolean;
       commentId?: string;
+      skipRemoteFetch?: boolean;
     }>;
 
     if (customEvent.detail?.deleted && customEvent.detail?.commentId) {
@@ -480,6 +509,9 @@ export function subscribeCommentReplies(
         const updated = [...cur.filter((r) => r.id !== customEvent.detail.reply!.id), customEvent.detail.reply];
         replyCommentsMemoryCache[parentId] = updated;
         onUpdate(updated);
+      }
+      if (customEvent.detail?.skipRemoteFetch) {
+        return;
       }
       lastReplyFetch = Date.now();
       fetchReplies();
@@ -1100,6 +1132,7 @@ export async function setCommentReaction(
   if (!commentId || !userId) return;
 
   // 1. Cập nhật ngay bộ nhớ cache & localStorage cho root comments
+  const now = Date.now();
   Object.keys(movieCommentsMemoryCache).forEach((slug) => {
     movieCommentsMemoryCache[slug] = movieCommentsMemoryCache[slug].map((c) => {
       if (c.id !== commentId) return c;
@@ -1121,11 +1154,17 @@ export async function setCommentReaction(
       } else {
         delete updatedReactions[userId];
       }
+      const tally: Partial<Record<CommentReactionType, number>> = {};
+      Object.values(updatedReactions).forEach((t) => {
+        tally[t] = (tally[t] || 0) + 1;
+      });
       return {
         ...c,
         likes: newLikes,
         likedBy: newLikedBy,
         reactions: updatedReactions,
+        reactionCounts: tally,
+        updatedAt: now,
       };
     });
     saveLocalMovieComments(slug, movieCommentsMemoryCache[slug]);
@@ -1153,17 +1192,25 @@ export async function setCommentReaction(
       } else {
         delete updatedReactions[userId];
       }
+      const tally: Partial<Record<CommentReactionType, number>> = {};
+      Object.values(updatedReactions).forEach((t) => {
+        tally[t] = (tally[t] || 0) + 1;
+      });
       return {
         ...r,
         likes: newLikes,
         likedBy: newLikedBy,
         reactions: updatedReactions,
+        reactionCounts: tally,
+        updatedAt: now,
       };
     });
   });
 
   if (typeof window !== "undefined") {
-    window.dispatchEvent(new CustomEvent("comments-updated", { detail: { commentId } }));
+    window.dispatchEvent(
+      new CustomEvent("comments-updated", { detail: { commentId, skipRemoteFetch: true } })
+    );
   }
 
   // 3. Cập nhật qua Server API

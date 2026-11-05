@@ -398,11 +398,16 @@ export const CommentItem: React.FC<CommentItemProps> = ({
         } else {
           delete updatedReactions[currentUserId];
         }
+        const tally: Partial<Record<CommentReactionType, number>> = {};
+        Object.values(updatedReactions).forEach((t) => {
+          tally[t] = (tally[t] || 0) + 1;
+        });
         return {
           ...r,
           likes: newLikes,
           likedBy: newLikedBy,
           reactions: updatedReactions,
+          reactionCounts: tally,
         };
       })
     );

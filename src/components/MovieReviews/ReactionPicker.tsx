@@ -94,6 +94,8 @@ export const ReactionPicker: React.FC<ReactionPickerProps> = ({
   const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const closeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const isLongPressRef = useRef(false);
+  const lastReactTimeRef = useRef(0);
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Xác định reaction hiện tại của user
@@ -162,12 +164,14 @@ export const ReactionPicker: React.FC<ReactionPickerProps> = ({
 
   // Xử lý chạm giữ (Long Press) trên màn hình cảm ứng điện thoại
   const handleTouchStart = () => {
+    isLongPressRef.current = false;
     longPressTimerRef.current = setTimeout(() => {
+      isLongPressRef.current = true;
       setShowPicker(true);
       if (typeof navigator !== "undefined" && navigator.vibrate) {
         navigator.vibrate(40);
       }
-    }, 300);
+    }, 280);
   };
 
   const handleTouchEnd = () => {
@@ -191,7 +195,13 @@ export const ReactionPicker: React.FC<ReactionPickerProps> = ({
     };
   }, []);
 
-  const handleButtonClick = () => {
+  const handleButtonClick = (e?: React.MouseEvent) => {
+    e?.preventDefault();
+    if (isLongPressRef.current) {
+      isLongPressRef.current = false;
+      return;
+    }
+
     if (!currentUserId) {
       onRequireAuth?.();
       return;
@@ -212,7 +222,15 @@ export const ReactionPicker: React.FC<ReactionPickerProps> = ({
   };
 
   const handleSelectReaction = (type: CommentReactionType, e: React.MouseEvent | React.TouchEvent) => {
+    e.preventDefault();
     e.stopPropagation();
+
+    const now = Date.now();
+    if (now - lastReactTimeRef.current < 300) {
+      return;
+    }
+    lastReactTimeRef.current = now;
+
     if (!currentUserId) {
       setShowPicker(false);
       onRequireAuth?.();
@@ -253,7 +271,6 @@ export const ReactionPicker: React.FC<ReactionPickerProps> = ({
                 key={type}
                 type="button"
                 onClick={(e) => handleSelectReaction(type, e)}
-                onTouchEnd={(e) => handleSelectReaction(type, e)}
                 onMouseEnter={() => setHoveredReaction(type)}
                 onMouseLeave={() => setHoveredReaction(null)}
                 className={`group/emoji relative flex flex-col items-center justify-center p-1.5 sm:p-2 rounded-full cursor-pointer transition-all duration-150 ${

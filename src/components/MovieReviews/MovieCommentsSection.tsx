@@ -407,11 +407,16 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
         } else {
           delete updatedReactions[user.uid];
         }
+        const tally: Partial<Record<CommentReactionType, number>> = {};
+        Object.values(updatedReactions).forEach((t) => {
+          tally[t] = (tally[t] || 0) + 1;
+        });
         return {
           ...c,
           likes: newLikes,
           likedBy: newLikedBy,
           reactions: updatedReactions,
+          reactionCounts: tally,
         };
       })
     );
