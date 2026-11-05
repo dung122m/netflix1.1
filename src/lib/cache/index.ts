@@ -30,7 +30,8 @@ interface L1CacheEntry {
 }
 
 const L1_CACHE = new Map<string, L1CacheEntry>();
-const MAX_L1_ENTRIES = 600;
+const MAX_L1_ENTRIES = 2500;
+const DEFAULT_L1_TTL_MS = 60 * 60 * 1000; // 60 minutes L1 RAM retention
 
 // Single-Flight Mutex: Batches concurrent requests for the same key so fetcher runs only once
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -51,15 +52,44 @@ export function _resetRedisClientsForTesting(): void {
 }
 
 /**
- * Kiểm tra xem key có thuộc nhóm nghiệp vụ Live Thể Thao / Tỷ số / TV hay không.
- * Nếu đúng, tự động định tuyến sang Upstash Redis Live (Tài khoản 2).
+ * Kiểm tra xem key có thuộc nhóm nghiệp vụ phụ / Live / TMDb / Metadata phụ trợ hay không.
+ * Nếu đúng, tự động định tuyến sang Upstash Redis Live/Secondary (Tài khoản 2) để san sẻ tải.
+ * 
+ * PHÂN CHIA TẢI 2 TÀI KHOẢN REDIS:
+ * - Redis 1 (Primary - Kho Phim & Catalog chính):
+ *   + movie:list:* (Danh sách phim, bộ lọc, trang duyệt)
+ *   + movie:detail:* (Chi tiết phim gốc & tập phim)
+ *   + movie:stream:* (Nguồn phát tập phim)
+ *   + ai:* / synopsis:* (Tóm tắt AI & Embeddings)
+ *   + trending:community:* (BXH thịnh hành cộng đồng)
+ * 
+ * - Redis 2 (Secondary / Live - Phụ trợ, Thể thao, TMDb, Đề xuất & Rate Limiting):
+ *   + live:*, football:*, match:*, tv:* (Bóng đá, trận đấu, kênh TV)
+ *   + tmdb:* (Credits, cast, logo, trailer, reviews, ranked movies)
+ *   + actor:*, wiki:* (Tiểu sử diễn viên, Wikipedia profiles)
+ *   + movie:rec:*, movie:recommendations:*, foryou:* (Gợi ý phim AI & For-You)
+ *   + search:* (Gợi ý tìm kiếm)
+ *   + comments:* (Bình luận phim)
+ *   + sec:*, rl:* (Rate Limiting & bảo mật)
+ *   + ai:roulette:* (Kho ứng viên vòng quay phim)
  */
 export function isLiveKey(key: string): boolean {
   return (
     key.startsWith("live:") ||
     key.startsWith("football:") ||
     key.startsWith("match:") ||
-    key.startsWith("tv:")
+    key.startsWith("tv:") ||
+    key.startsWith("tmdb:") ||
+    key.startsWith("actor:") ||
+    key.startsWith("wiki:") ||
+    key.startsWith("comments:") ||
+    key.startsWith("foryou:") ||
+    key.startsWith("movie:recommendations:") ||
+    key.startsWith("movie:rec:") ||
+    key.startsWith("search:") ||
+    key.startsWith("sec:") ||
+    key.startsWith("rl:") ||
+    key.startsWith("ai:roulette:")
   );
 }
 
@@ -170,7 +200,11 @@ export const cacheService: CacheService = {
           console.debug(`[Cache HIT: Redis] key="${key}"`);
         }
         // Repopulate L1 RAM so subsequent requests on this instance take 0ms
-        L1_CACHE.set(key, { value: data, expireAt: now + 5 * 60 * 1000 });
+        if (L1_CACHE.size >= MAX_L1_ENTRIES) {
+          const oldestKey = L1_CACHE.keys().next().value;
+          if (oldestKey) L1_CACHE.delete(oldestKey);
+        }
+        L1_CACHE.set(key, { value: data, expireAt: now + DEFAULT_L1_TTL_MS });
         return data;
       }
 
@@ -243,7 +277,11 @@ export const cacheService: CacheService = {
             const val = vals[m];
             if (val !== null && val !== undefined) {
               results[group[m].origIdx] = val;
-              L1_CACHE.set(group[m].key, { value: val, expireAt: now + 5 * 60 * 1000 });
+              if (L1_CACHE.size >= MAX_L1_ENTRIES) {
+                const oldestKey = L1_CACHE.keys().next().value;
+                if (oldestKey) L1_CACHE.delete(oldestKey);
+              }
+              L1_CACHE.set(group[m].key, { value: val, expireAt: now + DEFAULT_L1_TTL_MS });
             }
           }
         }
@@ -276,7 +314,7 @@ export const cacheService: CacheService = {
     }
     L1_CACHE.set(key, {
       value,
-      expireAt: now + Math.min(safeTtl * 1000, 30 * 60 * 1000), // L1 retained for up to 30 minutes
+      expireAt: now + Math.min(safeTtl * 1000, DEFAULT_L1_TTL_MS),
     });
 
     // 2. Save to L2 Upstash Redis (Tự động chọn Default hoặc Live)
@@ -322,7 +360,7 @@ export const cacheService: CacheService = {
       }
       L1_CACHE.set(key, {
         value: entry.value,
-        expireAt: now + Math.min(safeTtl * 1000, 30 * 60 * 1000),
+        expireAt: now + Math.min(safeTtl * 1000, DEFAULT_L1_TTL_MS),
       });
 
       // 2. Queue in corresponding Redis pipeline
@@ -401,6 +439,13 @@ export const cacheService: CacheService = {
         const freshData = await fetcher();
         if (freshData !== null && freshData !== undefined) {
           await this.set(key, freshData, ttlSeconds);
+        } else {
+          // Negative cache in L1 RAM to prevent hammering upstream/Redis for non-existent items
+          if (L1_CACHE.size >= MAX_L1_ENTRIES) {
+            const oldestKey = L1_CACHE.keys().next().value;
+            if (oldestKey) L1_CACHE.delete(oldestKey);
+          }
+          L1_CACHE.set(sanitized, { value: null, expireAt: Date.now() + 30 * 60 * 1000 });
         }
         return freshData;
       } finally {

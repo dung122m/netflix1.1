@@ -5,8 +5,8 @@ import { getSafeRedisCredentials } from "./redisEnvGuard";
 import { getEmbeddingCacheKey } from "@/services/aiVectorService";
 
 describe("Nanaflix Dual Redis Multi-Account Architecture", () => {
-  it("1. isLiveKey correctly classifies Live sports, matches, TV channels, and athlete profiles", () => {
-    // Priority 1 Keys (Live Redis - Account 2)
+  it("1. isLiveKey correctly classifies Live sports, matches, TV channels, TMDb, actors, comments, and recommendations to Secondary Redis", () => {
+    // Priority 1 Keys (Live / Secondary Redis - Account 2: Sports, TV, TMDb, Actors, Comments, Recommendations, Search, Rate Limiting)
     assert.equal(isLiveKey("live:football:matches:v1"), true);
     assert.equal(isLiveKey("football:standings:v1:pl"), true);
     assert.equal(isLiveKey("football:fixtures:v1:cl"), true);
@@ -14,14 +14,24 @@ describe("Nanaflix Dual Redis Multi-Account Architecture", () => {
     assert.equal(isLiveKey("tv:channels:list"), true);
     assert.equal(isLiveKey("football:athlete:252607"), true);
     assert.equal(isLiveKey("football:athlete:125824"), true);
+    assert.equal(isLiveKey("tmdb:trending:week:20"), true);
+    assert.equal(isLiveKey("tmdb:credits:v1:movie:123"), true);
+    assert.equal(isLiveKey("actor:bio:v4:tran_thanh"), true);
+    assert.equal(isLiveKey("wiki:actor:tran_thanh"), true);
+    assert.equal(isLiveKey("comments:movie:tham-tu-lung-danh-conan"), true);
+    assert.equal(isLiveKey("comments:movie:avatar-2"), true);
+    assert.equal(isLiveKey("foryou:v3:pool"), true);
+    assert.equal(isLiveKey("movie:rec:v13:avatar"), true);
+    assert.equal(isLiveKey("search:suggest:conan"), true);
+    assert.equal(isLiveKey("sec:rl:production:user:123"), true);
 
-    // Priority 2 Keys (Default Redis - Account 1: Movies, Comments, AI Embeddings)
-    assert.equal(isLiveKey("comments:movie:tham-tu-lung-danh-conan"), false);
-    assert.equal(isLiveKey("comments:movie:avatar-2"), false);
+    // Priority 2 Keys (Default Redis - Account 1: Core Movie Catalog, Streams, AI Embeddings & Synopsis)
+    assert.equal(isLiveKey("movie:list:v16:phim-le"), false);
+    assert.equal(isLiveKey("movie:detail:v4:avatar"), false);
+    assert.equal(isLiveKey("movie:stream:v2:avatar:server:ep1"), false);
     assert.equal(isLiveKey("ai:embedding:8f3c4d5e6a7b"), false);
-    assert.equal(isLiveKey("wiki:actor:tran_thanh"), false);
     assert.equal(isLiveKey("movie:synopsis:v1:avatar"), false);
-    assert.equal(isLiveKey("tmdb:trending:week:20"), false);
+    assert.equal(isLiveKey("trending:community:summary:v1:week:10"), false);
     assert.equal(isLiveKey("custom:key:test"), false);
   });
 
