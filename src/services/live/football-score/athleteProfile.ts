@@ -1,16 +1,7 @@
 import { AthleteProfile } from "./types";
+import { cacheService } from "@/lib/cache";
 
-// In-memory cache cho hồ sơ cầu thủ (TTL 24 giờ vì thông tin tiểu sử và ảnh không thay đổi theo phút)
-const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
-const MAX_CACHE_ENTRIES = 500;
 
-interface CacheEntry {
-  data: AthleteProfile;
-  expireAt: number;
-}
-
-const athleteCache = new Map<string, CacheEntry>();
-const inFlightRequests = new Map<string, Promise<AthleteProfile | null>>();
 
 /**
  * Làm sạch và chuẩn hóa text an toàn
@@ -326,7 +317,8 @@ async function fetchWikidataPhotoFallback(
 }
 
 /**
- * Lấy hồ sơ đầy đủ của cầu thủ (tiểu sử + ảnh chân dung) có cache server và in-flight deduplication
+ * Lấy hồ sơ đầy đủ của cầu thủ (tiểu sử + ảnh chân dung)
+ * Triển khai Dual-Database L2 Cache (Upstash Redis Live) với key `football:athlete:${cleanId}` (TTL 24h)
  */
 export async function getAthleteProfile(
   athleteId: string,
@@ -337,104 +329,86 @@ export async function getAthleteProfile(
     return null;
   }
 
-  // 1. Kiểm tra Cache
-  const cached = athleteCache.get(cleanId);
-  if (cached && cached.expireAt > Date.now()) {
-    return cached.data;
-  }
+  const cacheKey = `football:athlete:${cleanId}`;
+  return cacheService.fetchOrSet<AthleteProfile | null>(
+    cacheKey,
+    () => fetchAthleteProfileInternal(cleanId, fallbackName),
+    86400 // 24 giờ
+  );
+}
 
-  // 2. In-flight Deduplication (Tránh gọi trùng lặp song song cho cùng 1 ID)
-  if (inFlightRequests.has(cleanId)) {
-    return inFlightRequests.get(cleanId)!;
-  }
+async function fetchAthleteProfileInternal(
+  cleanId: string,
+  fallbackName?: string,
+): Promise<AthleteProfile | null> {
+  try {
+    // Bước A: Lấy tiểu sử chính thức từ ESPN Core
+    const espnBio = await fetchEspnCoreAthlete(cleanId);
+    const nowIso = new Date().toISOString();
 
-  const fetchPromise = (async () => {
-    try {
-      // Bước A: Lấy tiểu sử chính thức từ ESPN Core
-      const espnBio = await fetchEspnCoreAthlete(cleanId);
-      const nowIso = new Date().toISOString();
-
-      const baseProfile: AthleteProfile = {
-        id: cleanId,
-        displayName: espnBio?.displayName || fallbackName || "Cầu thủ",
-        citizenship: espnBio?.citizenship,
-        flagUrl: espnBio?.flagUrl,
-        dateOfBirth: espnBio?.dateOfBirth,
-        age: espnBio?.age,
-        height: espnBio?.height,
-        weight: espnBio?.weight,
-        birthPlace: espnBio?.birthPlace,
-        photoUrl: espnBio?.photoUrl,
-        photoSource: espnBio?.photoSource,
+    const baseProfile: AthleteProfile = {
+      id: cleanId,
+      displayName: espnBio?.displayName || fallbackName || "Cầu thủ",
+      citizenship: espnBio?.citizenship,
+      flagUrl: espnBio?.flagUrl,
+      dateOfBirth: espnBio?.dateOfBirth,
+      age: espnBio?.age,
+      height: espnBio?.height,
+      weight: espnBio?.weight,
+      birthPlace: espnBio?.birthPlace,
+      photoUrl: espnBio?.photoUrl,
+      photoSource: espnBio?.photoSource,
+      updatedAt: nowIso,
+      provenance: {
+        source: "espn-core",
         updatedAt: nowIso,
-        provenance: {
-          source: "espn-core",
+        fields: {
+          bio: espnBio ? "espn-core" : undefined,
+          photo: espnBio?.photoUrl ? "espn-core" : undefined,
+        },
+      },
+    };
+
+    // Bước B: Nếu ESPN chưa có ảnh chân dung, bổ sung ảnh từ Wikimedia Commons nếu xác minh được quyền sở hữu
+    if (!baseProfile.photoUrl) {
+      const wikiPhoto = await fetchWikidataPhotoFallback(
+        cleanId,
+        baseProfile.displayName,
+        baseProfile.dateOfBirth,
+        baseProfile.citizenship,
+      );
+
+      if (wikiPhoto) {
+        baseProfile.photoUrl = wikiPhoto.photoUrl;
+        baseProfile.photoSource = "wikimedia";
+        baseProfile.photoLicense = wikiPhoto.photoLicense;
+        baseProfile.photoLicenseUrl = wikiPhoto.photoLicenseUrl;
+        baseProfile.photoAttribution = wikiPhoto.photoAttribution;
+        baseProfile.provenance = {
+          source: baseProfile.citizenship ? "espn-wikidata-hybrid" : "wikidata",
           updatedAt: nowIso,
           fields: {
-            bio: espnBio ? "espn-core" : undefined,
-            photo: espnBio?.photoUrl ? "espn-core" : undefined,
+            bio: baseProfile.citizenship ? "espn-core" : undefined,
+            photo: "wikimedia-commons",
           },
-        },
-      };
-
-      // Bước B: Nếu ESPN chưa có ảnh chân dung, bổ sung ảnh từ Wikimedia Commons nếu xác minh được quyền sở hữu
-      if (!baseProfile.photoUrl) {
-        const wikiPhoto = await fetchWikidataPhotoFallback(
-          cleanId,
-          baseProfile.displayName,
-          baseProfile.dateOfBirth,
-          baseProfile.citizenship,
-        );
-
-        if (wikiPhoto) {
-          baseProfile.photoUrl = wikiPhoto.photoUrl;
-          baseProfile.photoSource = "wikimedia";
-          baseProfile.photoLicense = wikiPhoto.photoLicense;
-          baseProfile.photoLicenseUrl = wikiPhoto.photoLicenseUrl;
-          baseProfile.photoAttribution = wikiPhoto.photoAttribution;
-          baseProfile.provenance = {
-            source: baseProfile.citizenship ? "espn-wikidata-hybrid" : "wikidata",
-            updatedAt: nowIso,
-            fields: {
-              bio: baseProfile.citizenship ? "espn-core" : undefined,
-              photo: "wikimedia-commons",
-            },
-          };
-        }
+        };
       }
-
-      // Nếu không có cả ESPN Bio lẫn ảnh bổ sung (ID không tồn tại), không tạo profile rỗng
-      if (!espnBio && !baseProfile.photoUrl) {
-        return null;
-      }
-
-      // Lưu Cache
-      if (athleteCache.size >= MAX_CACHE_ENTRIES) {
-        const firstKey = athleteCache.keys().next().value;
-        if (firstKey) athleteCache.delete(firstKey);
-      }
-
-      athleteCache.set(cleanId, {
-        data: baseProfile,
-        expireAt: Date.now() + CACHE_TTL_MS,
-      });
-
-      return baseProfile;
-    } catch {
-      return null;
-    } finally {
-      inFlightRequests.delete(cleanId);
     }
-  })();
 
-  inFlightRequests.set(cleanId, fetchPromise);
-  return fetchPromise;
+    // Nếu không có cả ESPN Bio lẫn ảnh bổ sung (ID không tồn tại), không tạo profile rỗng
+    if (!espnBio && !baseProfile.photoUrl) {
+      return null;
+    }
+
+    return baseProfile;
+  } catch {
+    return null;
+  }
 }
 
 /**
  * Xóa cache (hỗ trợ kiểm thử)
  */
 export function clearAthleteProfileCache() {
-  athleteCache.clear();
-  inFlightRequests.clear();
+  cacheService.clearL1();
 }

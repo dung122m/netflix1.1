@@ -5,6 +5,7 @@ import { verifyServerAuth } from "@/lib/serverAuth";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { parseReactionsAndLikedBy } from "@/services/supabaseService";
 import { MovieComment } from "@/types/comment";
+import { cacheService } from "@/lib/cache";
 import {
   enforceRateLimit,
   buildRateLimitResponse,
@@ -24,6 +25,84 @@ import { logSecurityEvent } from "@/lib/securityLogger";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 export const fetchCache = "force-no-store";
+
+function mapCommentRecord(d: Record<string, unknown>, isAdmin: boolean = false): MovieComment {
+  const { likedBy, reactions } = parseReactionsAndLikedBy(d.liked_by);
+  return {
+    id: String(d.id),
+    movieSlug: String(d.movie_slug || ""),
+    movieTitle: String(d.movie_title || ""),
+    userId: String(d.user_id || ""),
+    userName: String(d.user_name || "Thành viên"),
+    userAvatar: String(d.user_avatar || ""),
+    userEmail: isAdmin && d.user_email ? String(d.user_email) : undefined,
+    rating: (() => {
+      const num = Number(d.rating);
+      return !isNaN(num) && num >= 1 && num <= 5 ? Math.round(num) : 0;
+    })(),
+    content: String(d.content || ""),
+    episodeSlug: d.episode_slug ? String(d.episode_slug) : undefined,
+    episodeName: d.episode_name ? String(d.episode_name) : undefined,
+    parentId: d.parent_id ? String(d.parent_id) : undefined,
+    parentOwnerId: d.parent_owner_id ? String(d.parent_owner_id) : undefined,
+    replyToUserId: d.reply_to_user_id ? String(d.reply_to_user_id) : undefined,
+    replyToUserName: d.reply_to_user_name ? String(d.reply_to_user_name) : undefined,
+    isSpoiler: Boolean(d.is_spoiler),
+    likes: Math.max(Number(d.likes) || 0, likedBy.length),
+    likedBy,
+    reactions,
+    isFlagged: Boolean(d.is_flagged),
+    flagReason: isAdmin && d.flag_reason ? String(d.flag_reason) : undefined,
+    isPinned: Boolean(d.is_pinned),
+    createdAt: Number(d.created_at) || Date.now(),
+    updatedAt: Number(d.updated_at) || Date.now(),
+    isEdited: Boolean(
+      d.is_edited ??
+        d.isEdited ??
+        (Number(d.updated_at) > (Number(d.created_at) || 0) + 3000)
+    ),
+    editedAt:
+      d.edited_at
+        ? Number(d.edited_at)
+        : Number(d.updated_at) > (Number(d.created_at) || 0) + 3000
+        ? Number(d.updated_at)
+        : undefined,
+  };
+}
+
+function sortComments(items: MovieComment[]): MovieComment[] {
+  return items.sort((a, b) => {
+    const isPinnedA = Boolean(a.isPinned);
+    const isPinnedB = Boolean(b.isPinned);
+    if (isPinnedA && !isPinnedB) return -1;
+    if (!isPinnedA && isPinnedB) return 1;
+    return (Number(b.createdAt) || 0) - (Number(a.createdAt) || 0);
+  });
+}
+
+async function invalidateCommentsCache(movieSlug?: string, commentId?: string): Promise<void> {
+  try {
+    if (movieSlug) {
+      await cacheService.delete(`comments:movie:${movieSlug}`);
+      return;
+    }
+    if (commentId) {
+      const supabaseAdmin = getSupabaseAdmin();
+      if (supabaseAdmin) {
+        const { data } = await supabaseAdmin
+          .from("movie_comments")
+          .select("movie_slug")
+          .eq("id", commentId)
+          .maybeSingle();
+        if (data?.movie_slug) {
+          await cacheService.delete(`comments:movie:${data.movie_slug}`);
+        }
+      }
+    }
+  } catch (err) {
+    console.warn("[Comments Cache Invalidation Warning]:", err);
+  }
+}
 
 /**
  * GET /api/comments?movieSlug=xxx
@@ -57,6 +136,45 @@ export async function GET(req: NextRequest) {
     const auth = await verifyServerAuth(req);
     const isAdmin = Boolean(auth.isAuthenticated && auth.isAdmin);
 
+    // 2. Tối ưu hoá Cache cho truy vấn công khai theo bộ phim (Giảm tải Supabase)
+    const isPublicMovieQuery = Boolean(
+      movieSlug &&
+      !parentId &&
+      !userId &&
+      all !== "true" &&
+      !isAdmin
+    );
+
+    if (isPublicMovieQuery && movieSlug) {
+      const items = await cacheService.fetchOrSet<MovieComment[]>(
+        `comments:movie:${movieSlug}`,
+        async () => {
+          const { data, error } = await supabaseAdmin
+            .from("movie_comments")
+            .select("*")
+            .eq("is_flagged", false)
+            .eq("movie_slug", movieSlug)
+            .order("created_at", { ascending: false });
+
+          if (error || !data) return [];
+          const mapped = (data as Array<Record<string, unknown>>).map((d) => mapCommentRecord(d, false));
+          return sortComments(mapped);
+        },
+        60 // TTL 60 giây (tự động xóa khi có tương tác mới)
+      );
+
+      return NextResponse.json(
+        { success: true, items },
+        {
+          headers: {
+            "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0",
+            "CDN-Cache-Control": "no-store",
+            "Vercel-CDN-Cache-Control": "no-store",
+          },
+        }
+      );
+    }
+
     let query = supabaseAdmin.from("movie_comments").select("*");
 
     if (all !== "true" || !isAdmin) {
@@ -80,58 +198,9 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ success: true, items: [] });
     }
 
-    const items: MovieComment[] = (data as Array<Record<string, unknown>>).map((d) => {
-      const { likedBy, reactions } = parseReactionsAndLikedBy(d.liked_by);
-      return {
-        id: String(d.id),
-        movieSlug: String(d.movie_slug || ""),
-        movieTitle: String(d.movie_title || ""),
-        userId: String(d.user_id || ""),
-        userName: String(d.user_name || "Thành viên"),
-        userAvatar: String(d.user_avatar || ""),
-        userEmail: isAdmin && d.user_email ? String(d.user_email) : undefined,
-        rating: (() => {
-          const num = Number(d.rating);
-          return !isNaN(num) && num >= 1 && num <= 5 ? Math.round(num) : 0;
-        })(),
-        content: String(d.content || ""),
-        episodeSlug: d.episode_slug ? String(d.episode_slug) : undefined,
-        episodeName: d.episode_name ? String(d.episode_name) : undefined,
-        parentId: d.parent_id ? String(d.parent_id) : undefined,
-        parentOwnerId: d.parent_owner_id ? String(d.parent_owner_id) : undefined,
-        replyToUserId: d.reply_to_user_id ? String(d.reply_to_user_id) : undefined,
-        replyToUserName: d.reply_to_user_name ? String(d.reply_to_user_name) : undefined,
-        isSpoiler: Boolean(d.is_spoiler),
-        likes: Math.max(Number(d.likes) || 0, likedBy.length),
-        likedBy,
-        reactions,
-        isFlagged: Boolean(d.is_flagged),
-        flagReason: isAdmin && d.flag_reason ? String(d.flag_reason) : undefined,
-        isApproved: d.is_approved !== false,
-        isPinned: Boolean(d.is_pinned),
-        createdAt: Number(d.created_at) || Date.now(),
-        updatedAt: Number(d.updated_at) || Date.now(),
-        isEdited: Boolean(
-          d.is_edited ??
-            d.isEdited ??
-            (Number(d.updated_at) > (Number(d.created_at) || 0) + 3000)
-        ),
-        editedAt:
-          d.edited_at
-            ? Number(d.edited_at)
-            : Number(d.updated_at) > (Number(d.created_at) || 0) + 3000
-            ? Number(d.updated_at)
-            : undefined,
-      };
-    });
-
-    items.sort((a, b) => {
-      const isPinnedA = Boolean(a.isPinned);
-      const isPinnedB = Boolean(b.isPinned);
-      if (isPinnedA && !isPinnedB) return -1;
-      if (!isPinnedA && isPinnedB) return 1;
-      return (Number(b.createdAt) || 0) - (Number(a.createdAt) || 0);
-    });
+    const items = sortComments(
+      (data as Array<Record<string, unknown>>).map((d) => mapCommentRecord(d, isAdmin))
+    );
 
     return NextResponse.json(
       { success: true, items },
@@ -366,6 +435,9 @@ export async function POST(req: NextRequest) {
     // Ghi nhận nội dung đã gửi vào bộ nhớ đệm chống trùng lặp
     recordRecentContent(userId, rawContent);
 
+    // Xóa cache bình luận phim để phản ánh ngay bình luận mới
+    await invalidateCommentsCache(movieSlug);
+
     return NextResponse.json({ success: true, id: commentId });
   } catch (error) {
     console.error("Lỗi API post comment:", error);
@@ -432,6 +504,8 @@ export async function PATCH(req: NextRequest) {
         return NextResponse.json({ error: "Lỗi cơ sở dữ liệu khi ghim bình luận: " + pinErr.message }, { status: 500 });
       }
 
+      await invalidateCommentsCache(undefined, commentId);
+
       return NextResponse.json({ success: true });
     }
 
@@ -462,6 +536,8 @@ export async function PATCH(req: NextRequest) {
         console.error("[Comments API] Lỗi gỡ cờ bình luận:", unflagErr);
         return NextResponse.json({ error: "Lỗi cơ sở dữ liệu khi gỡ cờ: " + unflagErr.message }, { status: 500 });
       }
+
+      await invalidateCommentsCache(undefined, commentId);
 
       return NextResponse.json({ success: true });
     }
@@ -577,6 +653,10 @@ export async function PATCH(req: NextRequest) {
               }, { onConflict: "id" });
             } catch {}
           }
+
+          if (cmtData.movie_slug) {
+            await invalidateCommentsCache(cmtData.movie_slug);
+          }
         }
       }
       return NextResponse.json({ success: true });
@@ -653,6 +733,10 @@ export async function PATCH(req: NextRequest) {
           reason: `Admin ẩn bình luận ${commentId}: ${sanitizedReason}`,
           metadata: { commentId, flagReason: sanitizedReason },
         });
+
+        if (targetComment?.movie_slug) {
+          await invalidateCommentsCache(targetComment.movie_slug);
+        }
 
         return NextResponse.json({
           success: true,
@@ -807,7 +891,7 @@ export async function PUT(req: NextRequest) {
     // Kiểm tra quyền sở hữu bình luận từ cơ sở dữ liệu (không tin tưởng client)
     const { data: existingComment, error: fetchErr } = await supabaseAdmin
       .from("movie_comments")
-      .select("user_id")
+      .select("user_id, movie_slug")
       .eq("id", commentId)
       .maybeSingle();
 
@@ -858,6 +942,10 @@ export async function PUT(req: NextRequest) {
 
     if (updateErr) {
       return NextResponse.json({ error: updateErr.message }, { status: 500 });
+    }
+
+    if (existingComment?.movie_slug) {
+      await invalidateCommentsCache(existingComment.movie_slug);
     }
 
     return NextResponse.json({ success: true });
@@ -924,7 +1012,7 @@ export async function DELETE(req: NextRequest) {
     // Kiểm tra quyền sở hữu bình luận từ cơ sở dữ liệu (không tin tưởng client)
     const { data: existingComment, error: fetchErr } = await supabaseAdmin
       .from("movie_comments")
-      .select("user_id")
+      .select("user_id, movie_slug")
       .eq("id", commentId)
       .maybeSingle();
 
@@ -986,6 +1074,10 @@ export async function DELETE(req: NextRequest) {
     const { error: deleteErr } = await supabaseAdmin.from("movie_comments").delete().eq("id", commentId);
     if (deleteErr) {
       return NextResponse.json({ error: deleteErr.message }, { status: 500 });
+    }
+
+    if (existingComment?.movie_slug) {
+      await invalidateCommentsCache(existingComment.movie_slug);
     }
 
     return NextResponse.json({ success: true });

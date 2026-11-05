@@ -1,5 +1,7 @@
+import crypto from "crypto";
 import { GoogleGenAI } from "@google/genai";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import { cacheService } from "@/lib/cache";
 
 export interface SemanticMovieItem {
   id: string; // slug
@@ -89,29 +91,58 @@ async function generateCloudflareEmbedding(text: string): Promise<number[] | nul
 }
 
 /**
+ * Tạo cache key compact cho Vector Embedding (Tiền tố ai: tự động định tuyến sang Redis Account 1)
+ */
+export function getEmbeddingCacheKey(text: string): string {
+  const hash = crypto
+    .createHash("sha256")
+    .update(text.trim().toLowerCase())
+    .digest("hex")
+    .slice(0, 32);
+  return `ai:embedding:${hash}`;
+}
+
+/**
  * Tạo Vector Embedding từ văn bản (Ưu tiên Cloudflare Workers AI -> Fallback sang Google Gemini)
  */
 export async function generateGeminiEmbedding(text: string, customApiKey?: string): Promise<number[] | null> {
   const cleanText = text?.trim();
   if (!cleanText) return null;
 
-  // 1. Kiểm tra cache (Lưu trữ 24 giờ để không gọi API trùng lặp)
+  // 1. Kiểm tra L1 RAM cache (0ms)
   const cached = queryEmbeddingCache.get(cleanText.toLowerCase());
   if (cached && Date.now() - cached.timestamp < 86400000) {
     return cached.vector;
   }
 
-  // 2. Thử Cloudflare Workers AI trước (10,000 requests/ngày, không lo cạn quota)
+  // 2. Kiểm tra L2 Redis cache (Tài khoản 1 - DB Default)
+  const cacheKey = getEmbeddingCacheKey(cleanText);
+  try {
+    const redisVector = await cacheService.get<number[]>(cacheKey);
+    if (redisVector && Array.isArray(redisVector) && redisVector.length > 0) {
+      queryEmbeddingCache.set(cleanText.toLowerCase(), {
+        vector: redisVector,
+        timestamp: Date.now(),
+      });
+      return redisVector;
+    }
+  } catch (err) {
+    console.warn("[aiVectorService] Redis embedding cache get skipped:", err);
+  }
+
+  // 3. Thử Cloudflare Workers AI trước (10,000 requests/ngày, không lo cạn quota)
   const cfVector = await generateCloudflareEmbedding(cleanText);
   if (cfVector && cfVector.length === 768) {
     queryEmbeddingCache.set(cleanText.toLowerCase(), {
       vector: cfVector,
       timestamp: Date.now(),
     });
+    // Lưu vào Redis L2 (TTL: 7 ngày = 604800s)
+    cacheService.set(cacheKey, cfVector, 604800).catch(() => {});
     return cfVector;
   }
 
-  // 3. Fallback sang Google Gemini Embedding (Tự động xoay vòng nhiều Key)
+  // 4. Fallback sang Google Gemini Embedding (Tự động xoay vòng nhiều Key)
   const candidateKeys = getCandidateGeminiApiKeys(customApiKey);
   if (candidateKeys.length === 0) {
     return null;
@@ -146,6 +177,8 @@ export async function generateGeminiEmbedding(text: string, customApiKey?: strin
               vector: values,
               timestamp: Date.now(),
             });
+            // Lưu vào Redis L2 (TTL: 7 ngày = 604800s)
+            cacheService.set(cacheKey, values, 604800).catch(() => {});
             return values;
           }
         } catch (mErr) {

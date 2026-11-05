@@ -1,4 +1,5 @@
 import { isBlockedStreamUrl } from "@/services/live/shared/streamHealth";
+import { cacheService } from "@/lib/cache";
 
 // Service cung cấp danh sách kênh truyền hình trực tiếp chuẩn FHD / HD
 // - Kênh VTV sử dụng logo SVG vector chuẩn chính thức từ Đài Truyền hình Việt Nam
@@ -389,41 +390,23 @@ const VERIFIED_CHANNELS: TvChannel[] = [
   },
 ];
 
-let memoryCache: {
-  data: LiveTvData;
-  expireAt: number;
-  staleUntil: number;
-} | null = null;
 let inFlightFetch: Promise<LiveTvData> | null = null;
 
 export const liveTvService = {
   getTvChannels: async (): Promise<LiveTvData> => {
-    const now = Date.now();
-    if (memoryCache) {
-      if (memoryCache.expireAt > now) {
-        return memoryCache.data;
-      }
-      // Dùng tạm stale data 60 phút và fetch cập nhật ngầm
-      if (memoryCache.staleUntil > now) {
-        liveTvService.revalidateTvChannels().catch(() => {});
-        return memoryCache.data;
-      }
-    }
-
-    if (inFlightFetch) return inFlightFetch;
-    inFlightFetch = liveTvService.fetchAndCacheTvChannels();
-    try {
-      return await inFlightFetch;
-    } finally {
-      inFlightFetch = null;
-    }
+    return cacheService.fetchOrSet<LiveTvData>(
+      "tv:channels:list",
+      async () => liveTvService.fetchAndCacheTvChannels(),
+      300
+    );
   },
 
   revalidateTvChannels: async () => {
     if (inFlightFetch) return;
     inFlightFetch = liveTvService.fetchAndCacheTvChannels();
     try {
-      await inFlightFetch;
+      const fresh = await inFlightFetch;
+      await cacheService.set("tv:channels:list", fresh, 300);
     } catch {
       // Keep serving the last good snapshot when a source is unavailable.
     } finally {
@@ -432,7 +415,6 @@ export const liveTvService = {
   },
 
   fetchAndCacheTvChannels: async (): Promise<LiveTvData> => {
-    const now = Date.now();
     try {
       const fetchPromises = TV_M3U_SOURCES.map(async (srcUrl) => {
         try {
@@ -678,12 +660,6 @@ export const liveTvService = {
         updatedAt: new Date().toLocaleTimeString("vi-VN"),
         categories: sortedCategories,
         channels: channelList,
-      };
-
-      memoryCache = {
-        data,
-        expireAt: now + 10 * 60 * 1000, // 10 phút tươi
-        staleUntil: now + 24 * 60 * 60 * 1000, // 24h stale-while-revalidate
       };
 
       return data;
