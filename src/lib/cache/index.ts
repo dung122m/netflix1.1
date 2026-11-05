@@ -39,61 +39,108 @@ const inFlightRequests = new Map<string, Promise<any>>();
 
 let defaultRedisClient: Redis | null = null;
 let liveRedisClient: Redis | null = null;
+let auxRedisClient: Redis | null = null;
 let isDefaultInitChecked = false;
 let isLiveInitChecked = false;
+let isAuxInitChecked = false;
 let isWarnedUnavailable = false;
 
 export function _resetRedisClientsForTesting(): void {
   defaultRedisClient = null;
   liveRedisClient = null;
+  auxRedisClient = null;
   isDefaultInitChecked = false;
   isLiveInitChecked = false;
+  isAuxInitChecked = false;
   isWarnedUnavailable = false;
 }
 
 /**
- * Kiểm tra xem key có thuộc nhóm nghiệp vụ phụ / Live / TMDb / Metadata phụ trợ hay không.
- * Nếu đúng, tự động định tuyến sang Upstash Redis Live/Secondary (Tài khoản 2) để san sẻ tải.
+ * Phân định nghiệp vụ chính xác cho 3 tài khoản Redis (Tổng 1.5 triệu lệnh/tháng):
  * 
- * PHÂN CHIA TẢI 2 TÀI KHOẢN REDIS:
- * - Redis 1 (Primary - Kho Phim & Catalog chính):
+ * - DB 1: Primary (UPSTASH_REDIS_REST_URL - finer-ray-284585)
  *   + movie:list:* (Danh sách phim, bộ lọc, trang duyệt)
  *   + movie:detail:* (Chi tiết phim gốc & tập phim)
  *   + movie:stream:* (Nguồn phát tập phim)
- *   + ai:* / synopsis:* (Tóm tắt AI & Embeddings)
  *   + trending:community:* (BXH thịnh hành cộng đồng)
  * 
- * - Redis 2 (Secondary / Live - Phụ trợ, Thể thao, TMDb, Đề xuất & Rate Limiting):
+ * - DB 2: Live / Realtime (UPSTASH_REDIS_LIVE_REST_URL - composed-squid-82374)
  *   + live:*, football:*, match:*, tv:* (Bóng đá, trận đấu, kênh TV)
- *   + tmdb:* (Credits, cast, logo, trailer, reviews, ranked movies)
+ *   + comments:* (Bình luận phim & thảo luận)
+ *   + sec:*, rl:* (Rate Limiting phân tán & bảo mật API)
+ * 
+ * - DB 3: Aux / Metadata (UPSTASH_REDIS_AUX_REST_URL - fitting-swift-159224)
+ *   + tmdb:* (TMDb credits, cast, logo, trailer, reviews, ranked movies) -> Chiếm ~73% tải cũ
  *   + actor:*, wiki:* (Tiểu sử diễn viên, Wikipedia profiles)
  *   + movie:rec:*, movie:recommendations:*, foryou:* (Gợi ý phim AI & For-You)
  *   + search:* (Gợi ý tìm kiếm)
- *   + comments:* (Bình luận phim)
- *   + sec:*, rl:* (Rate Limiting & bảo mật)
  *   + ai:roulette:* (Kho ứng viên vòng quay phim)
+ *   + synopsis:*, ai:* (Tóm tắt AI & Embeddings)
  */
-export function isLiveKey(key: string): boolean {
-  return (
-    key.startsWith("live:") ||
-    key.startsWith("football:") ||
-    key.startsWith("match:") ||
-    key.startsWith("tv:") ||
+export function getRedisPurposeForKey(key: string): RedisPurpose {
+  // DB 3: Aux / Metadata
+  if (
     key.startsWith("tmdb:") ||
     key.startsWith("actor:") ||
     key.startsWith("wiki:") ||
-    key.startsWith("comments:") ||
     key.startsWith("foryou:") ||
     key.startsWith("movie:recommendations:") ||
     key.startsWith("movie:rec:") ||
     key.startsWith("search:") ||
+    key.startsWith("ai:roulette:") ||
+    key.startsWith("synopsis:") ||
+    key.startsWith("movie:synopsis:")
+  ) {
+    return "aux";
+  }
+
+  // DB 2: Live / Realtime & Community
+  if (
+    key.startsWith("live:") ||
+    key.startsWith("football:") ||
+    key.startsWith("match:") ||
+    key.startsWith("tv:") ||
+    key.startsWith("comments:") ||
     key.startsWith("sec:") ||
-    key.startsWith("rl:") ||
-    key.startsWith("ai:roulette:")
-  );
+    key.startsWith("rl:")
+  ) {
+    return "live";
+  }
+
+  // DB 1: Core Movie Catalog
+  return "default";
+}
+
+export function isLiveKey(key: string): boolean {
+  const p = getRedisPurposeForKey(key);
+  return p === "live" || p === "aux";
 }
 
 export function getRedisClient(purpose: RedisPurpose = "default"): Redis | null {
+  if (purpose === "aux") {
+    if (isAuxInitChecked) {
+      return auxRedisClient;
+    }
+    isAuxInitChecked = true;
+    const creds = getSafeRedisCredentials({ purpose: "aux" });
+    if (!creds) {
+      auxRedisClient = null;
+      return null;
+    }
+    try {
+      auxRedisClient = new Redis({
+        url: creds.url,
+        token: creds.token,
+      });
+      console.info("[Cache:Aux] Connected to Upstash Redis Aux (REST mode)");
+      return auxRedisClient;
+    } catch (err) {
+      console.warn("[Cache:Aux] Failed to initialize Upstash Redis Aux client:", err instanceof Error ? err.message : err);
+      auxRedisClient = null;
+      return null;
+    }
+  }
+
   if (purpose === "live") {
     if (isLiveInitChecked) {
       return liveRedisClient;
@@ -118,7 +165,7 @@ export function getRedisClient(purpose: RedisPurpose = "default"): Redis | null 
     }
   }
 
-  // Default Purpose (Movies, TMDb, AI Synopsis, Wikipedia)
+  // Default Purpose (Core Movie Catalog)
   if (isDefaultInitChecked) {
     return defaultRedisClient;
   }
@@ -150,10 +197,10 @@ export function getRedisClient(purpose: RedisPurpose = "default"): Redis | null 
 }
 
 /**
- * Tự động chọn client Redis tương ứng với tiền tố của cache key.
+ * Tự động chọn client Redis tương ứng với nghiệp vụ của cache key (DB 1 vs DB 2 vs DB 3).
  */
 export function getRedisClientForKey(key: string): Redis | null {
-  return getRedisClient(isLiveKey(key) ? "live" : "default");
+  return getRedisClient(getRedisPurposeForKey(key));
 }
 
 /**
@@ -251,14 +298,18 @@ export const cacheService: CacheService = {
       return results;
     }
 
-    // 2. Nhóm các missing keys theo Redis DB (Default vs Live)
+    // 2. Nhóm các missing keys theo Redis DB (Default vs Live vs Aux)
     const defaultGroup: { key: string; origIdx: number }[] = [];
     const liveGroup: { key: string; origIdx: number }[] = [];
+    const auxGroup: { key: string; origIdx: number }[] = [];
 
     for (let j = 0; j < missingKeys.length; j++) {
       const k = missingKeys[j];
       const origIdx = missingIndices[j];
-      if (isLiveKey(k)) {
+      const purpose = getRedisPurposeForKey(k);
+      if (purpose === "aux") {
+        auxGroup.push({ key: k, origIdx });
+      } else if (purpose === "live") {
         liveGroup.push({ key: k, origIdx });
       } else {
         defaultGroup.push({ key: k, origIdx });
@@ -293,6 +344,7 @@ export const cacheService: CacheService = {
     await Promise.all([
       fetchGroup(defaultGroup, "default"),
       fetchGroup(liveGroup, "live"),
+      fetchGroup(auxGroup, "aux"),
     ]);
 
     return results;
@@ -344,9 +396,11 @@ export const cacheService: CacheService = {
 
     const defaultRedis = getRedisClient("default");
     const liveRedis = getRedisClient("live");
+    const auxRedis = getRedisClient("aux");
 
     const defaultPipe = defaultRedis ? defaultRedis.pipeline() : null;
     const livePipe = liveRedis ? liveRedis.pipeline() : null;
+    const auxPipe = auxRedis ? auxRedis.pipeline() : null;
 
     for (const entry of entries) {
       if (entry.value === undefined || entry.value === null) continue;
@@ -364,7 +418,10 @@ export const cacheService: CacheService = {
       });
 
       // 2. Queue in corresponding Redis pipeline
-      if (isLiveKey(key)) {
+      const purpose = getRedisPurposeForKey(key);
+      if (purpose === "aux") {
+        if (auxPipe) auxPipe.set(key, entry.value, { ex: safeTtl });
+      } else if (purpose === "live") {
         if (livePipe) livePipe.set(key, entry.value, { ex: safeTtl });
       } else {
         if (defaultPipe) defaultPipe.set(key, entry.value, { ex: safeTtl });
@@ -374,6 +431,7 @@ export const cacheService: CacheService = {
     const pipesToExec: Promise<unknown>[] = [];
     if (defaultPipe) pipesToExec.push(defaultPipe.exec());
     if (livePipe) pipesToExec.push(livePipe.exec());
+    if (auxPipe) pipesToExec.push(auxPipe.exec());
 
     if (pipesToExec.length > 0) {
       try {

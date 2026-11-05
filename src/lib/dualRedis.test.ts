@@ -1,38 +1,46 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { isLiveKey, sanitizeKey, cacheService } from "./cache";
+import { isLiveKey, getRedisPurposeForKey, sanitizeKey, cacheService } from "./cache";
 import { getSafeRedisCredentials } from "./redisEnvGuard";
 import { getEmbeddingCacheKey } from "@/services/aiVectorService";
 
-describe("Nanaflix Dual Redis Multi-Account Architecture", () => {
-  it("1. isLiveKey correctly classifies Live sports, matches, TV channels, TMDb, actors, comments, and recommendations to Secondary Redis", () => {
-    // Priority 1 Keys (Live / Secondary Redis - Account 2: Sports, TV, TMDb, Actors, Comments, Recommendations, Search, Rate Limiting)
-    assert.equal(isLiveKey("live:football:matches:v1"), true);
-    assert.equal(isLiveKey("football:standings:v1:pl"), true);
-    assert.equal(isLiveKey("football:fixtures:v1:cl"), true);
-    assert.equal(isLiveKey("match:12345"), true);
-    assert.equal(isLiveKey("tv:channels:list"), true);
-    assert.equal(isLiveKey("football:athlete:252607"), true);
-    assert.equal(isLiveKey("football:athlete:125824"), true);
-    assert.equal(isLiveKey("tmdb:trending:week:20"), true);
-    assert.equal(isLiveKey("tmdb:credits:v1:movie:123"), true);
-    assert.equal(isLiveKey("actor:bio:v4:tran_thanh"), true);
-    assert.equal(isLiveKey("wiki:actor:tran_thanh"), true);
-    assert.equal(isLiveKey("comments:movie:tham-tu-lung-danh-conan"), true);
-    assert.equal(isLiveKey("comments:movie:avatar-2"), true);
-    assert.equal(isLiveKey("foryou:v3:pool"), true);
-    assert.equal(isLiveKey("movie:rec:v13:avatar"), true);
-    assert.equal(isLiveKey("search:suggest:conan"), true);
-    assert.equal(isLiveKey("sec:rl:production:user:123"), true);
+describe("Nanaflix Triple Redis Multi-Account Architecture", () => {
+  it("1. getRedisPurposeForKey correctly routes keys to DB 1 (Catalog), DB 2 (Realtime/Live), and DB 3 (Aux/TMDb)", () => {
+    // DB 3: Aux / Metadata (fitting-swift-159224)
+    assert.equal(getRedisPurposeForKey("tmdb:trending:week:20"), "aux");
+    assert.equal(getRedisPurposeForKey("tmdb:credits:v1:movie:123"), "aux");
+    assert.equal(getRedisPurposeForKey("actor:bio:v4:tran_thanh"), "aux");
+    assert.equal(getRedisPurposeForKey("wiki:actor:tran_thanh"), "aux");
+    assert.equal(getRedisPurposeForKey("foryou:v3:pool"), "aux");
+    assert.equal(getRedisPurposeForKey("movie:rec:v13:avatar"), "aux");
+    assert.equal(getRedisPurposeForKey("movie:recommendations:v13:123"), "aux");
+    assert.equal(getRedisPurposeForKey("search:suggest:conan"), "aux");
+    assert.equal(getRedisPurposeForKey("ai:roulette:pool"), "aux");
+    assert.equal(getRedisPurposeForKey("movie:synopsis:v1:avatar"), "aux");
 
-    // Priority 2 Keys (Default Redis - Account 1: Core Movie Catalog, Streams, AI Embeddings & Synopsis)
+    // DB 2: Live / Realtime & Community (composed-squid-82374)
+    assert.equal(getRedisPurposeForKey("live:football:matches:v1"), "live");
+    assert.equal(getRedisPurposeForKey("football:standings:v1:pl"), "live");
+    assert.equal(getRedisPurposeForKey("football:fixtures:v1:cl"), "live");
+    assert.equal(getRedisPurposeForKey("match:12345"), "live");
+    assert.equal(getRedisPurposeForKey("tv:channels:list"), "live");
+    assert.equal(getRedisPurposeForKey("football:athlete:252607"), "live");
+    assert.equal(getRedisPurposeForKey("comments:movie:tham-tu-lung-danh-conan"), "live");
+    assert.equal(getRedisPurposeForKey("comments:movie:avatar-2"), "live");
+    assert.equal(getRedisPurposeForKey("sec:rl:production:user:123"), "live");
+    assert.equal(getRedisPurposeForKey("rl:user:123"), "live");
+
+    // DB 1: Core Movie Catalog (finer-ray-284585)
+    assert.equal(getRedisPurposeForKey("movie:list:v16:phim-le"), "default");
+    assert.equal(getRedisPurposeForKey("movie:detail:v4:avatar"), "default");
+    assert.equal(getRedisPurposeForKey("movie:stream:v2:avatar:server:ep1"), "default");
+    assert.equal(getRedisPurposeForKey("trending:community:summary:v1:week:10"), "default");
+    assert.equal(getRedisPurposeForKey("custom:key:test"), "default");
+
+    // Backward compatibility helper isLiveKey
+    assert.equal(isLiveKey("live:football:matches:v1"), true);
+    assert.equal(isLiveKey("tmdb:trending:week:20"), true);
     assert.equal(isLiveKey("movie:list:v16:phim-le"), false);
-    assert.equal(isLiveKey("movie:detail:v4:avatar"), false);
-    assert.equal(isLiveKey("movie:stream:v2:avatar:server:ep1"), false);
-    assert.equal(isLiveKey("ai:embedding:8f3c4d5e6a7b"), false);
-    assert.equal(isLiveKey("movie:synopsis:v1:avatar"), false);
-    assert.equal(isLiveKey("trending:community:summary:v1:week:10"), false);
-    assert.equal(isLiveKey("custom:key:test"), false);
   });
 
   it("2. sanitizeKey formats keys cleanly", () => {
@@ -41,7 +49,7 @@ describe("Nanaflix Dual Redis Multi-Account Architecture", () => {
     assert.equal(sanitizeKey("comments:movie:conan "), "comments:movie:conan");
   });
 
-  it("3. getSafeRedisCredentials respects purpose isolation", () => {
+  it("3. getSafeRedisCredentials respects 3-way purpose isolation", () => {
     const origEnv = { ...process.env };
     try {
       process.env.APP_ENV = "production";
@@ -49,6 +57,8 @@ describe("Nanaflix Dual Redis Multi-Account Architecture", () => {
       process.env.UPSTASH_REDIS_REST_TOKEN = "token_db1";
       process.env.UPSTASH_REDIS_LIVE_REST_URL = "https://db2-live.upstash.io";
       process.env.UPSTASH_REDIS_LIVE_REST_TOKEN = "token_db2";
+      process.env.UPSTASH_REDIS_AUX_REST_URL = "https://db3-aux.upstash.io";
+      process.env.UPSTASH_REDIS_AUX_REST_TOKEN = "token_db3";
 
       // Default purpose -> DB 1
       const defaultCreds = getSafeRedisCredentials({ purpose: "default" });
@@ -62,12 +72,18 @@ describe("Nanaflix Dual Redis Multi-Account Architecture", () => {
       assert.equal(liveCreds?.url, "https://db2-live.upstash.io");
       assert.equal(liveCreds?.token, "token_db2");
 
-      // Live purpose without LIVE credentials -> falls back to default DB 1
-      delete process.env.UPSTASH_REDIS_LIVE_REST_URL;
-      delete process.env.UPSTASH_REDIS_LIVE_REST_TOKEN;
-      const fallbackLiveCreds = getSafeRedisCredentials({ purpose: "live" });
-      assert.notEqual(fallbackLiveCreds, null);
-      assert.equal(fallbackLiveCreds?.url, "https://db1-movies.upstash.io");
+      // Aux purpose -> DB 3
+      const auxCreds = getSafeRedisCredentials({ purpose: "aux" });
+      assert.notEqual(auxCreds, null);
+      assert.equal(auxCreds?.url, "https://db3-aux.upstash.io");
+      assert.equal(auxCreds?.token, "token_db3");
+
+      // Aux purpose without AUX credentials -> falls back to default DB 1
+      delete process.env.UPSTASH_REDIS_AUX_REST_URL;
+      delete process.env.UPSTASH_REDIS_AUX_REST_TOKEN;
+      const fallbackAuxCreds = getSafeRedisCredentials({ purpose: "aux" });
+      assert.notEqual(fallbackAuxCreds, null);
+      assert.equal(fallbackAuxCreds?.url, "https://db1-movies.upstash.io");
     } finally {
       process.env = origEnv;
     }

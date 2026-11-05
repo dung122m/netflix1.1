@@ -27,7 +27,7 @@ export interface SafeRedisCredentials {
   token: string;
 }
 
-export type RedisPurpose = "default" | "live";
+export type RedisPurpose = "default" | "live" | "aux";
 
 export function getSafeRedisCredentials(options?: {
   allowTestRedis?: boolean;
@@ -41,24 +41,32 @@ export function getSafeRedisCredentials(options?: {
   const isNodeProd = process.env.NODE_ENV === "production";
   const isVercelRuntime = Boolean(process.env.VERCEL === "1");
 
-  const isLive = options?.purpose === "live";
+  const purpose = options?.purpose || "default";
 
-  const prodUrl = isLive
-    ? (process.env.UPSTASH_REDIS_LIVE_REST_URL?.trim() || process.env.UPSTASH_REDIS_REST_URL?.trim())
-    : process.env.UPSTASH_REDIS_REST_URL?.trim();
-  const prodToken = isLive
-    ? (process.env.UPSTASH_REDIS_LIVE_REST_TOKEN?.trim() || process.env.UPSTASH_REDIS_REST_TOKEN?.trim())
-    : process.env.UPSTASH_REDIS_REST_TOKEN?.trim();
+  let prodUrl = process.env.UPSTASH_REDIS_REST_URL?.trim();
+  let prodToken = process.env.UPSTASH_REDIS_REST_TOKEN?.trim();
+
+  if (purpose === "live") {
+    prodUrl = process.env.UPSTASH_REDIS_LIVE_REST_URL?.trim() || prodUrl;
+    prodToken = process.env.UPSTASH_REDIS_LIVE_REST_TOKEN?.trim() || prodToken;
+  } else if (purpose === "aux") {
+    prodUrl = process.env.UPSTASH_REDIS_AUX_REST_URL?.trim() || prodUrl;
+    prodToken = process.env.UPSTASH_REDIS_AUX_REST_TOKEN?.trim() || prodToken;
+  }
 
   // 1. TEST MODE
   if (isTest) {
     if (options?.allowTestRedis !== false) {
-      const testUrl = isLive
-        ? (process.env.TEST_REDIS_LIVE_URL?.trim() || process.env.TEST_REDIS_URL?.trim())
-        : process.env.TEST_REDIS_URL?.trim();
-      const testToken = isLive
-        ? (process.env.TEST_REDIS_LIVE_TOKEN?.trim() || process.env.TEST_REDIS_TOKEN?.trim())
-        : process.env.TEST_REDIS_TOKEN?.trim();
+      let testUrl = process.env.TEST_REDIS_URL?.trim();
+      let testToken = process.env.TEST_REDIS_TOKEN?.trim();
+
+      if (purpose === "live") {
+        testUrl = process.env.TEST_REDIS_LIVE_URL?.trim() || testUrl;
+        testToken = process.env.TEST_REDIS_LIVE_TOKEN?.trim() || testToken;
+      } else if (purpose === "aux") {
+        testUrl = process.env.TEST_REDIS_AUX_URL?.trim() || testUrl;
+        testToken = process.env.TEST_REDIS_AUX_TOKEN?.trim() || testToken;
+      }
 
       if (testUrl && testToken) {
         if (prodUrl && testUrl.toLowerCase() === prodUrl.toLowerCase()) {
@@ -77,12 +85,17 @@ export function getSafeRedisCredentials(options?: {
   // 2. VERCEL PREVIEW ENVIRONMENT (Strict Isolation)
   // By default, Vercel Preview environments MUST NOT write to Production Redis.
   if (isVercelPreview || process.env.APP_ENV === "preview") {
-    const previewUrl = isLive
-      ? (process.env.PREVIEW_REDIS_LIVE_URL?.trim() || process.env.PREVIEW_REDIS_URL?.trim())
-      : process.env.PREVIEW_REDIS_URL?.trim();
-    const previewToken = isLive
-      ? (process.env.PREVIEW_REDIS_LIVE_TOKEN?.trim() || process.env.PREVIEW_REDIS_TOKEN?.trim())
-      : process.env.PREVIEW_REDIS_TOKEN?.trim();
+    let previewUrl = process.env.PREVIEW_REDIS_URL?.trim();
+    let previewToken = process.env.PREVIEW_REDIS_TOKEN?.trim();
+
+    if (purpose === "live") {
+      previewUrl = process.env.PREVIEW_REDIS_LIVE_URL?.trim() || previewUrl;
+      previewToken = process.env.PREVIEW_REDIS_LIVE_TOKEN?.trim() || previewToken;
+    } else if (purpose === "aux") {
+      previewUrl = process.env.PREVIEW_REDIS_AUX_URL?.trim() || previewUrl;
+      previewToken = process.env.PREVIEW_REDIS_AUX_TOKEN?.trim() || previewToken;
+    }
+
     if (previewUrl && previewToken) {
       return { url: previewUrl, token: previewToken };
     }
@@ -110,12 +123,16 @@ export function getSafeRedisCredentials(options?: {
     }
 
     // Dedicated local Redis instance (e.g. local Docker or emulator)
-    const devUrl = isLive
-      ? (process.env.DEV_REDIS_LIVE_URL?.trim() || process.env.DEV_REDIS_URL?.trim())
-      : process.env.DEV_REDIS_URL?.trim();
-    const devToken = isLive
-      ? (process.env.DEV_REDIS_LIVE_TOKEN?.trim() || process.env.DEV_REDIS_TOKEN?.trim())
-      : process.env.DEV_REDIS_TOKEN?.trim();
+    let devUrl = process.env.DEV_REDIS_URL?.trim();
+    let devToken = process.env.DEV_REDIS_TOKEN?.trim();
+
+    if (purpose === "live") {
+      devUrl = process.env.DEV_REDIS_LIVE_URL?.trim() || devUrl;
+      devToken = process.env.DEV_REDIS_LIVE_TOKEN?.trim() || devToken;
+    } else if (purpose === "aux") {
+      devUrl = process.env.DEV_REDIS_AUX_URL?.trim() || devUrl;
+      devToken = process.env.DEV_REDIS_AUX_TOKEN?.trim() || devToken;
+    }
     if (devUrl && devToken) {
       return { url: devUrl, token: devToken };
     }
