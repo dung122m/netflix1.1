@@ -129,7 +129,7 @@ export const WatchPlayerHost: React.FC<WatchPlayerHostProps> = (props) => {
         {/* PROVIDER 1: NANAFLIX CINEMA PLAYER */}
         {activeProvider === "nanaflix" && (
           <CinemaPlayer
-            key={`cinema_${movieSlug}_srv_${currentServerIdx}`}
+            key={`cinema_${movieSlug}_s${currentServerIdx}_${currentEpSlug}`}
             {...props}
             activeEpisodeSlug={currentEpSlug}
             activeEpisodeName={dynamicEpisodeName}

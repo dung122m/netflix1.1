@@ -631,7 +631,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
     if (activeEpisodeSlug && effectiveInitialSlug && activeEpisodeSlug !== effectiveInitialSlug) {
       setInitialTimeUsed(true);
     }
-  }, [activeEpisodeSlug, resolvedM3u8, initialEpisodeSlug, initialLoadedEpisode]);
+  }, [activeEpisodeSlug, resolvedM3u8, watchContext?.currentServerIndex, initialEpisodeSlug, initialLoadedEpisode]);
 
   const activeSrc = useMemo(() => {
     let src = videoLink ? embedSrc : trailerEmbedSrc;
@@ -1026,7 +1026,8 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
     }
 
     const currentMovieSlug = watchContext?.movieSlug || propMovieSlug;
-    const sourceKey = `${resolvedM3u8}__${activeEpisodeSlug || ""}`;
+    const currentSrvIdx = watchContext?.currentServerIndex ?? 0;
+    const sourceKey = `${currentSrvIdx}__${resolvedM3u8}__${activeEpisodeSlug || ""}`;
     if (loadedSourceKeyRef.current === sourceKey && (hlsRef.current || video.src === resolvedM3u8)) {
       // Luồng stream đang tải hoặc hoạt động trên instance này; tránh hủy và tải lại khi các prop phụ re-render
       return;
@@ -1630,6 +1631,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
     useIframeFallback,
     activeEpisodeSlug,
     watchContext?.movieSlug,
+    watchContext?.currentServerIndex,
     propMovieSlug,
     targetProgress,
     initialTime,

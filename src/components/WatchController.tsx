@@ -409,7 +409,7 @@ export function WatchController({
     ]
   );
 
-  // Chuyển server tức thì
+  // Chuyển server tức thì và đồng bộ stream 0ms
   const switchServer = useCallback(
     (newIndex: number) => {
       const safeIndex = Math.max(0, Math.min(newIndex, servers.length - 1));
@@ -422,8 +422,41 @@ export function WatchController({
       const currentTargetSlug = foundMatch?.slug || newEpisodes[0]?.slug || "";
       setActiveEpisodeSlug(currentTargetSlug);
       updateUrlQuietly(currentTargetSlug, safeIndex, activeProvider);
+
+      // On-demand nạp stream nếu tập trên server mới chưa có link streaming
+      const targetEp = foundMatch || newEpisodes[0];
+      if (targetEp && !targetEp.link_m3u8 && !targetEp.link_embed && movieSlug && currentTargetSlug) {
+        const sName = newServer?.server_name ? `&server=${encodeURIComponent(newServer.server_name)}` : "";
+        fetch(`/api/movies/streams?slug=${encodeURIComponent(movieSlug)}&ep=${encodeURIComponent(currentTargetSlug)}${sName}`)
+          .then((res) => res.json())
+          .then((data) => {
+            if (data?.success && Array.isArray(data.streams) && data.streams.length > 0) {
+              setServers((prevServers) => {
+                return prevServers.map((srv, sIdx) => {
+                  const streamMatch = data.streams.find(
+                    (s: { server_name?: string }) => s.server_name === srv.server_name
+                  ) || data.streams[sIdx] || data.streams[0];
+                  if (!streamMatch) return srv;
+
+                  const updatedData = (srv.server_data || []).map((ep) => {
+                    if (ep.slug === currentTargetSlug || ep.name === targetEp?.name) {
+                      return {
+                        ...ep,
+                        link_embed: streamMatch.link_embed || ep.link_embed,
+                        link_m3u8: streamMatch.link_m3u8 || ep.link_m3u8,
+                      };
+                    }
+                    return ep;
+                  });
+                  return { ...srv, server_data: updatedData };
+                });
+              });
+            }
+          })
+          .catch(() => {});
+      }
     },
-    [servers, activeEpisodeSlug, activeEpisode, activeProvider, updateUrlQuietly]
+    [servers, activeEpisodeSlug, activeEpisode, activeProvider, movieSlug, updateUrlQuietly]
   );
 
   const value = useMemo<WatchContextValue>(() => {

@@ -177,9 +177,32 @@ export function normalizeEpisodeSlug(epSlug?: string): string {
   return trimmed;
 }
 
+// Helper to check if a server has playable direct M3U8 links
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function serverHasM3u8(srv: any): boolean {
+  return (
+    Array.isArray(srv?.server_data) &&
+    srv.server_data.some(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (e: any) => typeof e?.link_m3u8 === "string" && e.link_m3u8.includes(".m3u8")
+    )
+  );
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function isBetterServerCandidate(candidate: any, current: any): boolean {
+  if (!current) return true;
+  const candM3u8 = serverHasM3u8(candidate);
+  const curM3u8 = serverHasM3u8(current);
+  // Ưu tiên tuyệt đối server có đường truyền direct .m3u8 (phát mượt mà qua HLS, không dính quảng cáo iframe hay lỗi CORS/403)
+  if (candM3u8 && !curM3u8) return true;
+  if (!candM3u8 && curM3u8) return false;
+  return (candidate.server_data?.length || 0) > (current.server_data?.length || 0);
+}
+
 /**
  * Lọc và chuẩn hóa tối đa đúng 2 server: Lồng Tiếng và Thuyết Minh (hoặc Vietsub)
- * Không tải, parse, lưu cache hoặc đồng bộ toàn bộ tập phim từ các server thừa/dự phòng
+ * Ưu tiên server có luồng phát trực tiếp .m3u8, không để server iframe lỗi đè lên server m3u8 chất lượng cao
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function filterDualServers(rawServers: any[]): any[] {
@@ -214,18 +237,16 @@ export function filterDualServers(rawServers: any[]): any[] {
       nameLower.includes("phụ đề") ||
       nameLower.includes("sub");
 
-    const count = srv.server_data.length;
-
     if (isLongTieng) {
-      if (!longTiengServer || count > (longTiengServer.server_data?.length || 0)) {
+      if (isBetterServerCandidate(srv, longTiengServer)) {
         longTiengServer = { ...srv, server_name: "Lồng Tiếng" };
       }
     } else if (isThuyetMinh) {
-      if (!thuyetMinhServer || count > (thuyetMinhServer.server_data?.length || 0)) {
+      if (isBetterServerCandidate(srv, thuyetMinhServer)) {
         thuyetMinhServer = { ...srv, server_name: "Thuyết Minh" };
       }
     } else if (isVietsub) {
-      if (!vietsubServer || count > (vietsubServer.server_data?.length || 0)) {
+      if (isBetterServerCandidate(srv, vietsubServer)) {
         vietsubServer = { ...srv, server_name: "Thuyết Minh" };
       }
     } else {
@@ -244,11 +265,13 @@ export function filterDualServers(rawServers: any[]): any[] {
 
   // Fallback nếu nguồn phim không đặt tên server theo mẫu chuẩn
   if (result.length === 0 && otherServers.length > 0) {
+    otherServers.sort((a, b) => (isBetterServerCandidate(a, b) ? -1 : 1));
     result.push({ ...otherServers[0], server_name: "Lồng Tiếng" });
     if (otherServers.length > 1) {
       result.push({ ...otherServers[1], server_name: "Thuyết Minh" });
     }
   } else if (result.length === 1 && otherServers.length > 0) {
+    otherServers.sort((a, b) => (isBetterServerCandidate(a, b) ? -1 : 1));
     const missingName = result[0].server_name === "Lồng Tiếng" ? "Thuyết Minh" : "Lồng Tiếng";
     result.push({ ...otherServers[0], server_name: missingName });
   }
@@ -490,34 +513,7 @@ export function unpackDetailPayload(raw: any): any {
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function attachRequestedEpisodeStreams(data: any, requestedEpSlug?: string): any {
-  if (!data || !requestedEpSlug || !data.episodes) return data;
-  const episodes: RawServerItem[] = data.episodes || data.movie?.episodes || [];
-  for (const srv of episodes) {
-    const list: RawEpisodeItem[] = srv.server_data || [];
-    const target = list.find((e: RawEpisodeItem) => e.slug === requestedEpSlug || e.name === requestedEpSlug)
-      || findEpisodeMatch(list, requestedEpSlug);
-    if (target && (target.link_m3u8 || target.link_embed)) {
-      continue;
-    }
-    const localKey = `${data.movie?.slug}_any`;
-    const mem = movieDetailMemoryCache.get(localKey);
-    if (mem?.data?.episodes) {
-      for (const memSrv of mem.data.episodes) {
-        if (memSrv.server_name === srv.server_name || (!memSrv.server_name && !srv.server_name)) {
-          const memMatch = (memSrv.server_data || []).find((e: RawEpisodeItem) => e.slug === target?.slug || e.name === target?.name)
-            || findEpisodeMatch(memSrv.server_data || [], requestedEpSlug);
-          if (memMatch && target) {
-            target.link_embed = memMatch.link_embed || target.link_embed;
-            target.link_m3u8 = memMatch.link_m3u8 || target.link_m3u8;
-          }
-        }
-      }
-    }
-  }
-  return data;
-}
+
 
 
 const DEFAULT_FETCH_HEADERS = {
@@ -782,7 +778,7 @@ const fetchMovieDetailBase = async (
 
   const promise = (async () => {
     // 1. Đọc từ Redis v3 Compact Metadata (~2KB)
-    const kvKeyV3 = `movie:detail:v3:${slug}:${source || "any"}`;
+    const kvKeyV3 = `movie:detail:v4:${slug}:${source || "any"}`;
 
     let data: MovieDetailCachePayload | null = null;
     const rawData = await cacheService.get<MovieDetailCachePayload>(kvKeyV3);
@@ -828,15 +824,7 @@ const fetchMovieDetailBase = async (
   }
 };
 
-const fetchMovieDetailInternal = async (
-  slug: string,
-  source?: "nguonc" | "ophim" | "vsmov",
-  requestedEpisode?: string,
-) => {
-  const data = await fetchMovieDetailBase(slug, source, requestedEpisode);
-  if (!data) return undefined;
-  return sanitizeMovieDetailEpisodes(attachRequestedEpisodeStreams(data, requestedEpisode));
-};
+
 
 export async function getEpisodeStream(
   slug: string,
@@ -873,7 +861,7 @@ export async function getEpisodeStream(
   }
 
   // 2. Kiểm tra L2 Redis Cache cho tập và server cụ thể (~200 bytes)
-  const streamKvKey = `movie:stream:v1:${slug}:${serverKey}:${normEp}`;
+  const streamKvKey = `movie:stream:v2:${slug}:${serverKey}:${normEp}`;
   const cachedStreams = await cacheService.get<EpisodeStreamResult[]>(streamKvKey);
   if (cachedStreams && Array.isArray(cachedStreams) && cachedStreams.length > 0) {
     return cachedStreams;
@@ -909,6 +897,74 @@ export async function getEpisodeStream(
 
   return [];
 }
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function attachRequestedEpisodeStreams(data: any, requestedEpSlug?: string): Promise<any> {
+  if (!data || !requestedEpSlug || !data.episodes) return data;
+  const episodes: RawServerItem[] = data.episodes || data.movie?.episodes || [];
+  const movieSlug = data.movie?.slug;
+  if (!movieSlug) return data;
+
+  const tasks: Promise<void>[] = [];
+  for (const srv of episodes) {
+    const list: RawEpisodeItem[] = srv.server_data || [];
+    const target = list.find((e: RawEpisodeItem) => e.slug === requestedEpSlug || e.name === requestedEpSlug)
+      || findEpisodeMatch(list, requestedEpSlug);
+    if (!target) continue;
+    if (target.link_m3u8 || target.link_embed) continue;
+
+    const localKey = `${movieSlug}_any`;
+    const mem = movieDetailMemoryCache.get(localKey);
+    let foundInMem = false;
+    if (mem?.data?.episodes) {
+      for (const memSrv of mem.data.episodes) {
+        if (memSrv.server_name === srv.server_name || (!memSrv.server_name && !srv.server_name)) {
+          const memMatch = (memSrv.server_data || []).find((e: RawEpisodeItem) => e.slug === target?.slug || e.name === target?.name)
+            || findEpisodeMatch(memSrv.server_data || [], requestedEpSlug);
+          if (memMatch && (memMatch.link_m3u8 || memMatch.link_embed)) {
+            target.link_embed = memMatch.link_embed || target.link_embed;
+            target.link_m3u8 = memMatch.link_m3u8 || target.link_m3u8;
+            foundInMem = true;
+            break;
+          }
+        }
+      }
+    }
+
+    if (!foundInMem) {
+      tasks.push(
+        (async () => {
+          try {
+            const streams = await getEpisodeStream(movieSlug, requestedEpSlug, srv.server_name);
+            if (Array.isArray(streams) && streams.length > 0) {
+              const match = streams.find(s => s.server_name === srv.server_name) || streams[0];
+              if (match) {
+                target.link_embed = match.link_embed || target.link_embed;
+                target.link_m3u8 = match.link_m3u8 || target.link_m3u8;
+              }
+            }
+          } catch {}
+        })()
+      );
+    }
+  }
+
+  if (tasks.length > 0) {
+    await Promise.allSettled(tasks);
+  }
+
+  return data;
+}
+
+const fetchMovieDetailInternal = async (
+  slug: string,
+  source?: "nguonc" | "ophim" | "vsmov",
+  requestedEpisode?: string,
+) => {
+  const data = await fetchMovieDetailBase(slug, source, requestedEpisode);
+  if (!data) return undefined;
+  return sanitizeMovieDetailEpisodes(await attachRequestedEpisodeStreams(data, requestedEpisode));
+};
 
 async function revalidateMovieDetail(slug: string, source?: "nguonc" | "ophim" | "vsmov", cacheKey?: string) {
   try {
@@ -1103,7 +1159,7 @@ async function fetchAndCacheMovieDetail(slug: string, source?: "nguonc" | "ophim
       expireAt: now + 60 * 1000,
       staleUntil: now + 60 * 1000,
     });
-    const kvKey = `movie:detail:v3:${slug}:${source || "any"}`;
+    const kvKey = `movie:detail:v4:${slug}:${source || "any"}`;
     cacheService.set(kvKey, { _isNegative: true }, 60).catch(() => {});
 
     return undefined;
