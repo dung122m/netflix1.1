@@ -353,8 +353,6 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
   const baseCardRef = useRef<HTMLAnchorElement>(null);
   const [isNavigating, setIsNavigating] = useState(false);
   const navTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const prefetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const hasPrefetchedRef = useRef(false);
 
   // Đồng bộ Watchlist qua 1 shared listener duy nhất
   useEffect(() => {
@@ -366,7 +364,6 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
     return () => {
       unsubscribe();
       if (navTimeoutRef.current) clearTimeout(navTimeoutRef.current);
-      if (prefetchTimeoutRef.current) clearTimeout(prefetchTimeoutRef.current);
     };
   }, [slug]);
 
@@ -535,12 +532,6 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
 
   // Điều hướng chuyển trang khi click Movie Card
   const handleCardClick = (e: React.MouseEvent) => {
-    // Hủy ngay timer prefetch nếu click xảy ra trước khi hết dwell time
-    if (prefetchTimeoutRef.current) {
-      clearTimeout(prefetchTimeoutRef.current);
-      prefetchTimeoutRef.current = null;
-    }
-
     // Để trình duyệt xử lý tự nhiên khi mở tab mới (Ctrl, Cmd, Shift, Alt, chuột giữa)
     if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) {
       return;
@@ -612,42 +603,9 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
     return "";
   })();
 
-  // Dwell intent: Rê chuột dừng trên card >= 190ms mới kích hoạt prefetch (chống bão prefetch khi lướt qua)
-  const handleMouseEnterCard = useCallback(() => {
-    if (!targetHref || hasPrefetchedRef.current) return;
-    if (prefetchTimeoutRef.current) {
-      clearTimeout(prefetchTimeoutRef.current);
-    }
-    prefetchTimeoutRef.current = setTimeout(() => {
-      if (!hasPrefetchedRef.current) {
-        hasPrefetchedRef.current = true;
-        router.prefetch(targetHref);
-      }
-    }, 190);
-  }, [targetHref, router]);
-
-  // Hủy ngay prefetch khi con trỏ rời khỏi card trước khi chạm ngưỡng 190ms
-  const handleMouseLeaveCard = useCallback(() => {
-    if (prefetchTimeoutRef.current) {
-      clearTimeout(prefetchTimeoutRef.current);
-      prefetchTimeoutRef.current = null;
-    }
-  }, []);
-
-  // Hỗ trợ người dùng bàn phím (Tab navigation / A11y): Prefetch ngay khi thẻ nhận focus
-  const handleFocusCard = useCallback(() => {
-    if (targetHref && !hasPrefetchedRef.current) {
-      hasPrefetchedRef.current = true;
-      router.prefetch(targetHref);
-    }
-  }, [targetHref, router]);
-
   return (
     <div
       className="group/card relative flex flex-col w-full select-none cursor-pointer hover:scale-[1.02] hover:-translate-y-0.5 hover:z-20 transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:transform-none"
-      onMouseEnter={handleMouseEnterCard}
-      onMouseLeave={handleMouseLeaveCard}
-      onFocus={handleFocusCard}
     >
       {/* ========================================================================= */}
       {/* 1. KHỐI POSTER NGHỆ THUẬT (2:3 POSTER ARTWORK CANVAS - CLEAN & ELEVATED)   */}
