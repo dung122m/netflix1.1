@@ -197,10 +197,9 @@ const NavbarInner: React.FC = () => {
         {/* RIGHT ACTIONS */}
         <div className="flex items-center gap-1.5 sm:gap-2.5 flex-shrink-0 text-white">
 
-          {/* NÚT BỐC QUẺ ĐỊNH MỆNH TRÊN NAVBAR (Chỉ hiển thị trên màn hình md+ để giữ header mobile thoáng đãng) */}
+          {/* NÚT GỢI Ý PHIM NGẪU NHIÊN TRÊN NAVBAR */}
           <div className="hidden md:flex items-center gap-1.5 sm:gap-2">
-            {/* NÚT BỐC QUẺ ĐỊNH MỆNH */}
-            <Tooltip content="Bốc Quẻ Phim Định Mệnh" side="bottom">
+            <Tooltip content="Gợi ý phim ngẫu nhiên" side="bottom">
               <button
                 type="button"
                 onClick={() => {
@@ -212,11 +211,11 @@ const NavbarInner: React.FC = () => {
                     );
                   }
                 }}
-                aria-label="Bốc Quẻ Phim Định Mệnh"
-                className="group inline-flex items-center justify-center gap-1 sm:gap-1.5 w-8 h-8 sm:w-auto sm:h-auto sm:px-3 sm:py-1.5 min-h-[36px] rounded-full text-xs font-bold bg-gradient-to-r from-amber-500/25 via-orange-500/30 to-amber-600/25 hover:from-amber-400/40 hover:via-orange-400/45 hover:to-amber-500/40 text-amber-200 hover:text-white transition-all duration-300 cursor-pointer shadow-sm shadow-black/50 hover:shadow-md hover:shadow-black/60 hover:scale-[1.02] active:scale-[0.98] flex-shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2 focus-visible:ring-offset-black backdrop-blur-sm"
+                aria-label="Gợi ý phim ngẫu nhiên"
+                className="group inline-flex items-center justify-center gap-1.5 px-3 py-1.5 min-h-[36px] rounded-full text-xs font-semibold bg-white/10 hover:bg-white/20 text-zinc-200 hover:text-white border border-white/10 transition-all duration-200 cursor-pointer shadow-sm hover:scale-[1.02] active:scale-[0.98] flex-shrink-0 outline-none backdrop-blur-sm"
               >
-                <Dices className="w-4 h-4 sm:w-3.5 sm:h-3.5 text-amber-300 flex-shrink-0 group-hover:rotate-45 transition-transform duration-300" aria-hidden="true" />
-                <span className="hidden sm:inline tracking-tight font-extrabold">Bốc quẻ</span>
+                <Dices className="w-4 h-4 text-zinc-300 group-hover:text-white flex-shrink-0 group-hover:rotate-45 transition-transform duration-300" aria-hidden="true" />
+                <span className="hidden sm:inline tracking-tight">Gợi ý phim</span>
               </button>
             </Tooltip>
           </div>

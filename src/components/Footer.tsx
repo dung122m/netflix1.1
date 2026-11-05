@@ -209,7 +209,7 @@ export const Footer: React.FC = () => {
                   <span className="w-4 h-4 flex items-center justify-center shrink-0">
                     <Dices size={13} className="text-zinc-400 group-hover:text-amber-400 transition-colors" />
                   </span>
-                  <span className="truncate">Bốc quẻ phim AI</span>
+                  <span className="truncate">Gợi ý phim ngẫu nhiên</span>
                 </button>
               </li>
               <li>
