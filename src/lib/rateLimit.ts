@@ -96,7 +96,7 @@ export function getRateLimitEnvPrefix(): "development" | "test" | "preview" | "p
 }
 
 export function getRedisInstance(): Redis | null {
-  const creds = getSafeRedisCredentials({ allowTestRedis: true });
+  const creds = getSafeRedisCredentials({ allowTestRedis: true, purpose: "live" });
   if (!creds) {
     cachedRedisClient = null;
     cachedRedisSignature = null;

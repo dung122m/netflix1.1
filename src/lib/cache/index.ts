@@ -1,11 +1,13 @@
 import { Redis } from "@upstash/redis";
-import { getSafeRedisCredentials } from "@/lib/redisEnvGuard";
+import { getSafeRedisCredentials, RedisPurpose } from "@/lib/redisEnvGuard";
 
 /**
  * Cache abstraction layer for Nanaflix.
- * Multi-Tier Cache:
+ * Multi-Tier Dual-Database Cache:
  * - L1: In-Memory RAM (0ms latency, bounded size)
- * - L2: Upstash Redis via Serverless REST API
+ * - L2: Upstash Redis (Dual-Database Isolation):
+ *   + DB 1 (Default): Kho Phim, TMDb Trending, AI Synopsis, Wikipedia Profiles
+ *   + DB 2 (Live): Bóng đá Trực tiếp, Tỷ số Live, Kênh TV & Rate Limiting
  * - Single-Flight Mutex: Prevents cache stampede on simultaneous misses
  * - Resilient Fail-safe: Automatic graceful fallback if Redis is unavailable or unconfigured
  */
@@ -34,41 +36,94 @@ const MAX_L1_ENTRIES = 600;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const inFlightRequests = new Map<string, Promise<any>>();
 
-let redisClient: Redis | null = null;
-let isRedisInitChecked = false;
+let defaultRedisClient: Redis | null = null;
+let liveRedisClient: Redis | null = null;
+let isDefaultInitChecked = false;
+let isLiveInitChecked = false;
 let isWarnedUnavailable = false;
 
-function getRedisClient(): Redis | null {
-  if (isRedisInitChecked) {
-    return redisClient;
+export function _resetRedisClientsForTesting(): void {
+  defaultRedisClient = null;
+  liveRedisClient = null;
+  isDefaultInitChecked = false;
+  isLiveInitChecked = false;
+  isWarnedUnavailable = false;
+}
+
+/**
+ * Kiểm tra xem key có thuộc nhóm nghiệp vụ Live Thể Thao / Tỷ số / TV hay không.
+ * Nếu đúng, tự động định tuyến sang Upstash Redis Live (Tài khoản 2).
+ */
+export function isLiveKey(key: string): boolean {
+  return (
+    key.startsWith("live:") ||
+    key.startsWith("football:") ||
+    key.startsWith("match:") ||
+    key.startsWith("tv:")
+  );
+}
+
+export function getRedisClient(purpose: RedisPurpose = "default"): Redis | null {
+  if (purpose === "live") {
+    if (isLiveInitChecked) {
+      return liveRedisClient;
+    }
+    isLiveInitChecked = true;
+    const creds = getSafeRedisCredentials({ purpose: "live" });
+    if (!creds) {
+      liveRedisClient = null;
+      return null;
+    }
+    try {
+      liveRedisClient = new Redis({
+        url: creds.url,
+        token: creds.token,
+      });
+      console.info("[Cache:Live] Connected to Upstash Redis Live (REST mode)");
+      return liveRedisClient;
+    } catch (err) {
+      console.warn("[Cache:Live] Failed to initialize Upstash Redis Live client:", err instanceof Error ? err.message : err);
+      liveRedisClient = null;
+      return null;
+    }
   }
 
-  isRedisInitChecked = true;
-  const creds = getSafeRedisCredentials();
+  // Default Purpose (Movies, TMDb, AI Synopsis, Wikipedia)
+  if (isDefaultInitChecked) {
+    return defaultRedisClient;
+  }
+
+  isDefaultInitChecked = true;
+  const creds = getSafeRedisCredentials({ purpose: "default" });
 
   if (!creds) {
     if (!isWarnedUnavailable && process.env.NODE_ENV !== "test") {
       console.info("[Cache] Operating in In-Memory High Performance mode (Production Redis protected).");
       isWarnedUnavailable = true;
     }
-    redisClient = null;
+    defaultRedisClient = null;
     return null;
   }
-
-  const { url, token } = creds;
 
   try {
-    redisClient = new Redis({
-      url,
-      token,
+    defaultRedisClient = new Redis({
+      url: creds.url,
+      token: creds.token,
     });
-    console.info("[Cache] Connected to Upstash Redis (REST mode)");
-    return redisClient;
+    console.info("[Cache:Default] Connected to Upstash Redis Default (REST mode)");
+    return defaultRedisClient;
   } catch (err) {
-    console.warn("[Cache] Failed to initialize Upstash Redis client:", err instanceof Error ? err.message : err);
-    redisClient = null;
+    console.warn("[Cache:Default] Failed to initialize Upstash Redis Default client:", err instanceof Error ? err.message : err);
+    defaultRedisClient = null;
     return null;
   }
+}
+
+/**
+ * Tự động chọn client Redis tương ứng với tiền tố của cache key.
+ */
+export function getRedisClientForKey(key: string): Redis | null {
+  return getRedisClient(isLiveKey(key) ? "live" : "default");
 }
 
 /**
@@ -84,7 +139,7 @@ export function sanitizeKey(key: string): string {
 
 export const cacheService: CacheService = {
   /**
-   * Get item from cache (Checks L1 RAM first, then L2 Upstash Redis)
+   * Get item from cache (Checks L1 RAM first, then L2 Upstash Redis tương ứng)
    */
   async get<T>(rawKey: string): Promise<T | null> {
     const key = sanitizeKey(rawKey);
@@ -102,8 +157,8 @@ export const cacheService: CacheService = {
       L1_CACHE.delete(key);
     }
 
-    // 2. Check L2 Upstash Redis
-    const redis = getRedisClient();
+    // 2. Check L2 Upstash Redis (Tự động định tuyến Default vs Live)
+    const redis = getRedisClientForKey(key);
     if (!redis) {
       return null;
     }
@@ -131,7 +186,7 @@ export const cacheService: CacheService = {
   },
 
   /**
-   * Batch get items from cache (Checks L1 RAM first, then executes 1 Redis MGET for missing keys)
+   * Batch get items from cache (Checks L1 RAM first, then executes Redis MGET for missing keys)
    * Guaranteed to preserve input order and handle null/missing correctly.
    */
   async mget<T>(rawKeys: string[]): Promise<(T | null)[]> {
@@ -162,31 +217,47 @@ export const cacheService: CacheService = {
       return results;
     }
 
-    // 2. Query missing keys from L2 Upstash Redis using single MGET
-    const redis = getRedisClient();
-    if (!redis) {
-      return results;
+    // 2. Nhóm các missing keys theo Redis DB (Default vs Live)
+    const defaultGroup: { key: string; origIdx: number }[] = [];
+    const liveGroup: { key: string; origIdx: number }[] = [];
+
+    for (let j = 0; j < missingKeys.length; j++) {
+      const k = missingKeys[j];
+      const origIdx = missingIndices[j];
+      if (isLiveKey(k)) {
+        liveGroup.push({ key: k, origIdx });
+      } else {
+        defaultGroup.push({ key: k, origIdx });
+      }
     }
 
-    try {
-      const redisValues = await redis.mget<T[]>(...missingKeys);
-      if (Array.isArray(redisValues)) {
-        for (let j = 0; j < missingKeys.length; j++) {
-          const val = redisValues[j];
-          const origIdx = missingIndices[j];
-          if (val !== null && val !== undefined) {
-            results[origIdx] = val;
-            // Repopulate L1 RAM so subsequent calls are 0ms
-            L1_CACHE.set(missingKeys[j], { value: val, expireAt: now + 5 * 60 * 1000 });
+    const fetchGroup = async (group: { key: string; origIdx: number }[], purpose: RedisPurpose) => {
+      if (group.length === 0) return;
+      const redis = getRedisClient(purpose);
+      if (!redis) return;
+      try {
+        const groupKeys = group.map((g) => g.key);
+        const vals = await redis.mget<T[]>(...groupKeys);
+        if (Array.isArray(vals)) {
+          for (let m = 0; m < group.length; m++) {
+            const val = vals[m];
+            if (val !== null && val !== undefined) {
+              results[group[m].origIdx] = val;
+              L1_CACHE.set(group[m].key, { value: val, expireAt: now + 5 * 60 * 1000 });
+            }
           }
         }
+      } catch (err) {
+        console.warn(`[Cache ERROR: MGET ${purpose}]:`, err instanceof Error ? err.message : err);
       }
-      return results;
-    } catch (err) {
-      console.warn("[Cache ERROR: MGET]:", err instanceof Error ? err.message : err);
-      // Fail-safe: return partial L1 results
-      return results;
-    }
+    };
+
+    await Promise.all([
+      fetchGroup(defaultGroup, "default"),
+      fetchGroup(liveGroup, "live"),
+    ]);
+
+    return results;
   },
 
   /**
@@ -208,14 +279,13 @@ export const cacheService: CacheService = {
       expireAt: now + Math.min(safeTtl * 1000, 30 * 60 * 1000), // L1 retained for up to 30 minutes
     });
 
-    // 2. Save to L2 Upstash Redis
-    const redis = getRedisClient();
+    // 2. Save to L2 Upstash Redis (Tự động chọn Default hoặc Live)
+    const redis = getRedisClientForKey(key);
     if (!redis) {
       return true;
     }
 
     try {
-      // Single Redis command: SET key value EX safeTtl (prevents multi-command overhead)
       await redis.set(key, value, { ex: safeTtl });
       if (process.env.NODE_ENV !== "production") {
         console.debug(`[Cache SET] key="${key}" ttl=${safeTtl}s`);
@@ -223,19 +293,22 @@ export const cacheService: CacheService = {
       return true;
     } catch (err) {
       console.warn(`[Cache ERROR: SET] key="${key}":`, err instanceof Error ? err.message : err);
-      // Fail-safe: Returns false without breaking flow
       return false;
     }
   },
 
   /**
-   * Batch set multiple items into cache (L1 Memory immediately, L2 Upstash Redis via single pipeline)
+   * Batch set multiple items into cache (L1 Memory immediately, L2 Upstash Redis via pipelines)
    */
   async setMany<T>(entries: Array<{ key: string; value: T; ttlSeconds?: number }>): Promise<boolean> {
     if (!entries || entries.length === 0) return true;
     const now = Date.now();
-    const redis = getRedisClient();
-    const pipe = redis ? redis.pipeline() : null;
+
+    const defaultRedis = getRedisClient("default");
+    const liveRedis = getRedisClient("live");
+
+    const defaultPipe = defaultRedis ? defaultRedis.pipeline() : null;
+    const livePipe = liveRedis ? liveRedis.pipeline() : null;
 
     for (const entry of entries) {
       if (entry.value === undefined || entry.value === null) continue;
@@ -252,15 +325,21 @@ export const cacheService: CacheService = {
         expireAt: now + Math.min(safeTtl * 1000, 30 * 60 * 1000),
       });
 
-      // 2. Queue in Redis pipeline
-      if (pipe) {
-        pipe.set(key, entry.value, { ex: safeTtl });
+      // 2. Queue in corresponding Redis pipeline
+      if (isLiveKey(key)) {
+        if (livePipe) livePipe.set(key, entry.value, { ex: safeTtl });
+      } else {
+        if (defaultPipe) defaultPipe.set(key, entry.value, { ex: safeTtl });
       }
     }
 
-    if (pipe) {
+    const pipesToExec: Promise<unknown>[] = [];
+    if (defaultPipe) pipesToExec.push(defaultPipe.exec());
+    if (livePipe) pipesToExec.push(livePipe.exec());
+
+    if (pipesToExec.length > 0) {
       try {
-        await pipe.exec();
+        await Promise.all(pipesToExec);
         return true;
       } catch (err) {
         console.warn("[Cache ERROR: setMany]:", err instanceof Error ? err.message : err);
@@ -277,7 +356,7 @@ export const cacheService: CacheService = {
     const key = sanitizeKey(rawKey);
     L1_CACHE.delete(key);
 
-    const redis = getRedisClient();
+    const redis = getRedisClientForKey(key);
     if (!redis) {
       return true;
     }
