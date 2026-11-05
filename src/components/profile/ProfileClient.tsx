@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
+import NextImage from "next/image";
 import { useSearchParams, useRouter } from "next/navigation";
 import {
   User,
@@ -10,7 +11,6 @@ import {
   ShieldCheck,
   Star,
   Clock,
-  ThumbsUp,
   Trash2,
   ExternalLink,
   Loader2,
@@ -31,6 +31,8 @@ import {
   ChevronRight,
   LogIn,
   Flame,
+  Film,
+  Heart,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { UserProfile } from "@/types/user";
@@ -48,6 +50,7 @@ import { subscribeUserComments, deleteMovieComment } from "@/services/commentSer
 import { subscribeUserCollections, getLocalCollections } from "@/services/collectionService";
 import { getWatchHistory } from "@/lib/watchHistory";
 import { getWatchlist } from "@/lib/watchlist";
+import { toOptimizedCardPosterUrl } from "@/lib/movieMedia";
 import { MovieComment } from "@/types/comment";
 import { UserAvatar } from "@/components/ui/UserAvatar";
 import { showConfirmDialog } from "@/components/ui/ConfirmDialog";
@@ -112,6 +115,7 @@ export function ProfileClient() {
 
   // Comments & Stats
   const [userComments, setUserComments] = useState<MovieComment[]>([]);
+  const [moviePosterMap, setMoviePosterMap] = useState<Record<string, string>>({});
   const [deletingCommentId, setDeletingCommentId] = useState<string | null>(null);
   const [watchlistCount, setWatchlistCount] = useState(0);
   const [watchHistoryCount, setWatchHistoryCount] = useState(0);
@@ -210,6 +214,55 @@ export function ProfileClient() {
     });
     return () => unsub();
   }, [user?.uid]);
+
+  // Cập nhật poster map từ Watchlist & History
+  useEffect(() => {
+    try {
+      const wl = getWatchlist();
+      const hi = getWatchHistory();
+      const map: Record<string, string> = {};
+      for (const item of wl) {
+        const poster = item.poster || item.imageUrl;
+        if (poster && item.slug) map[item.slug] = poster;
+      }
+      for (const item of hi) {
+        const poster = item.poster || item.thumb;
+        if (poster && item.slug) map[item.slug] = poster;
+      }
+      if (Object.keys(map).length > 0) {
+        setMoviePosterMap((prev) => ({ ...map, ...prev }));
+      }
+    } catch {}
+  }, []);
+
+  // Tự động nạp poster bổ sung cho các bình luận chưa có
+  useEffect(() => {
+    if (userComments.length === 0) return;
+    const missingSlugs = userComments
+      .map((c) => c.movieSlug)
+      .filter((slug) => slug && !moviePosterMap[slug]);
+
+    if (missingSlugs.length === 0) return;
+    const uniqueSlugs = Array.from(new Set(missingSlugs)).slice(0, 20);
+
+    fetch(`/api/movies/meta?slugs=${encodeURIComponent(uniqueSlugs.join(","))}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data?.success && data?.movies) {
+          setMoviePosterMap((prev) => {
+            const updated = { ...prev };
+            for (const [s, meta] of Object.entries(data.movies)) {
+              const m = meta as { poster?: string; thumb?: string };
+              if (m.poster || m.thumb) {
+                updated[s] = m.poster || m.thumb || "";
+              }
+            }
+            return updated;
+          });
+        }
+      })
+      .catch(() => {});
+  }, [userComments, moviePosterMap]);
 
   // Realtime Collections Listener
   useEffect(() => {
@@ -1076,70 +1129,145 @@ export function ProfileClient() {
                 </Link>
               </div>
             ) : (
-              <div className="space-y-3 max-h-[65vh] overflow-y-auto pr-1">
-                {userComments.map((c) => (
-                  <div
-                    key={c.id}
-                    className="p-4 rounded-2xl bg-white/[0.03] hover:bg-white/[0.05] border border-white/5 transition space-y-2.5"
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0 flex-1">
-                        <Link
-                          href={`/movies/${c.movieSlug}#comments`}
-                          className="text-sm font-bold text-white hover:text-netflix-red transition inline-flex items-center gap-1.5 group truncate"
-                        >
-                          <span className="truncate">{c.movieTitle || c.movieSlug}</span>
-                          <ExternalLink className="w-3.5 h-3.5 text-zinc-500 group-hover:text-netflix-red transition shrink-0" />
-                        </Link>
-                        {c.episodeName && (
-                          <span className="text-[11px] text-netflix-red font-semibold bg-netflix-red/10 px-2 py-0.5 rounded-md inline-block ml-2">
-                            {c.episodeName}
-                          </span>
-                        )}
-                      </div>
+              <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-1">
+                {userComments.map((c) => {
+                  const poster = moviePosterMap[c.movieSlug];
+                  const movieTitle = c.movieTitle || c.movieSlug.replace(/-/g, " ");
 
-                      {c.rating > 0 && (
-                        <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-500/15 text-amber-300 text-xs font-black shrink-0">
-                          <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-                          <span>{c.rating}/5</span>
-                        </div>
-                      )}
-                    </div>
-
-                    <p className="text-xs sm:text-sm text-zinc-200 leading-relaxed bg-black/40 p-3 rounded-xl whitespace-pre-line break-words border border-white/5">
-                      {c.content}
-                    </p>
-
-                    <div className="flex items-center justify-between text-xs text-zinc-400 pt-1">
-                      <div className="flex items-center gap-3">
-                        <span className="flex items-center gap-1">
-                          <Clock className="w-3.5 h-3.5 text-zinc-500 shrink-0" />
-                          <span>{new Date(c.createdAt).toLocaleString("vi-VN")}</span>
-                        </span>
-                        {c.likes > 0 && (
-                          <span className="flex items-center gap-1 text-netflix-red font-bold">
-                            <ThumbsUp className="w-3.5 h-3.5 fill-netflix-red shrink-0" />
-                            <span>{c.likes}</span>
-                          </span>
-                        )}
-                      </div>
-
-                      <button
-                        type="button"
-                        disabled={deletingCommentId === c.id}
-                        onClick={() => handleDeleteComment(c.id, c.movieSlug)}
-                        className="flex items-center gap-1 text-red-400 hover:text-red-300 hover:bg-red-500/15 px-2.5 py-1 rounded-lg transition text-xs font-bold cursor-pointer disabled:opacity-50"
+                  return (
+                    <div
+                      key={c.id}
+                      className="group relative flex flex-col sm:flex-row gap-3.5 sm:gap-4 p-4 rounded-2xl bg-gradient-to-b from-zinc-900/90 to-zinc-950/90 border border-white/5 hover:border-white/15 transition-all duration-300 shadow-lg hover:shadow-2xl hover:shadow-black/70 overflow-hidden"
+                    >
+                      {/* POSTER THUMBNAIL */}
+                      <Link
+                        href={`/movies/${c.movieSlug}`}
+                        className="relative w-full sm:w-20 md:w-24 h-36 sm:h-auto sm:aspect-[2/3] rounded-xl overflow-hidden bg-zinc-800/80 border border-white/10 shrink-0 group-hover:scale-[1.02] transition-transform duration-300 shadow-md block"
                       >
-                        {deletingCommentId === c.id ? (
-                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        {poster ? (
+                          <NextImage
+                            src={toOptimizedCardPosterUrl(poster, 200)}
+                            alt={movieTitle}
+                            fill
+                            sizes="(max-width: 640px) 100vw, 96px"
+                            className="object-cover"
+                            loading="lazy"
+                          />
                         ) : (
-                          <Trash2 className="w-3.5 h-3.5" />
+                          <div className="w-full h-full min-h-[100px] flex flex-col items-center justify-center p-2 text-center bg-gradient-to-br from-zinc-800 to-zinc-950">
+                            <Film className="w-6 h-6 text-netflix-red/60 mb-1" />
+                            <span className="text-[10px] text-zinc-400 font-bold line-clamp-2 leading-tight">
+                              {movieTitle}
+                            </span>
+                          </div>
                         )}
-                        <span>Xóa nhận xét</span>
-                      </button>
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-center p-1.5">
+                          <span className="text-[10px] font-bold text-white flex items-center gap-1">
+                            <Play className="w-3 h-3 fill-white text-white" />
+                            Xem phim
+                          </span>
+                        </div>
+                      </Link>
+
+                      {/* CONTENT DETAILS */}
+                      <div className="flex-1 min-w-0 flex flex-col justify-between">
+                        <div>
+                          {/* HEADER: TITLE + RATING */}
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0 flex-1">
+                              <Link
+                                href={`/movies/${c.movieSlug}#comments`}
+                                className="text-sm sm:text-base font-extrabold text-white hover:text-netflix-red transition-colors inline-flex items-center gap-1.5 group/title truncate max-w-full"
+                              >
+                                <span className="truncate">{movieTitle}</span>
+                                <ExternalLink className="w-3.5 h-3.5 text-zinc-500 group-hover/title:text-netflix-red shrink-0" />
+                              </Link>
+
+                              {c.episodeName && (
+                                <div className="mt-1">
+                                  <span className="inline-block px-2 py-0.5 rounded-md bg-netflix-red/15 text-netflix-red text-[11px] font-bold border border-netflix-red/20">
+                                    {c.episodeName}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* STAR RATING */}
+                            {c.rating > 0 && (
+                              <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-500/15 border border-amber-500/25 shrink-0">
+                                <div className="flex items-center gap-0.5">
+                                  {[1, 2, 3, 4, 5].map((star) => (
+                                    <Star
+                                      key={star}
+                                      size={11}
+                                      className={
+                                        star <= c.rating
+                                          ? "fill-amber-400 text-amber-400"
+                                          : "fill-zinc-700 text-zinc-700"
+                                      }
+                                    />
+                                  ))}
+                                </div>
+                                <span className="text-xs font-black text-amber-300 ml-0.5">
+                                  {c.rating}/5
+                                </span>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* REVIEW QUOTE BODY */}
+                          <div className="relative mt-2.5 p-3 rounded-xl bg-white/[0.03] border-l-2 border-netflix-red/60 border-y border-r border-white/5">
+                            <p className="text-xs sm:text-sm text-zinc-200 leading-relaxed italic line-clamp-3 whitespace-pre-line">
+                              {`"${c.content}"`}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* FOOTER: TIME + LIKES + ACTIONS */}
+                        <div className="flex items-center justify-between text-xs text-zinc-400 pt-2.5 mt-2 border-t border-white/5">
+                          <div className="flex items-center gap-3">
+                            <span
+                              className="flex items-center gap-1 text-[11px] text-zinc-400"
+                              title={new Date(c.createdAt).toLocaleString("vi-VN")}
+                            >
+                              <Clock className="w-3 h-3 text-zinc-500" />
+                              <span>{new Date(c.createdAt).toLocaleDateString("vi-VN")}</span>
+                            </span>
+
+                            {c.likes > 0 && (
+                              <span className="flex items-center gap-1 text-[11px] text-rose-400 font-bold bg-rose-500/10 px-2 py-0.5 rounded-full">
+                                <Heart className="w-3 h-3 fill-rose-500 text-rose-500" />
+                                <span>{c.likes}</span>
+                              </span>
+                            )}
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            <Link
+                              href={`/movies/${c.movieSlug}#comments`}
+                              className="text-[11px] font-semibold text-zinc-400 hover:text-white transition px-2 py-1 rounded-lg hover:bg-white/5"
+                            >
+                              Chi tiết
+                            </Link>
+                            <button
+                              type="button"
+                              disabled={deletingCommentId === c.id}
+                              onClick={() => handleDeleteComment(c.id, c.movieSlug)}
+                              className="flex items-center gap-1 text-zinc-400 hover:text-red-400 hover:bg-red-500/10 px-2.5 py-1 rounded-lg transition text-[11px] font-semibold cursor-pointer disabled:opacity-50"
+                            >
+                              {deletingCommentId === c.id ? (
+                                <Loader2 className="w-3 h-3 animate-spin" />
+                              ) : (
+                                <Trash2 className="w-3 h-3" />
+                              )}
+                              <span>Xóa</span>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>

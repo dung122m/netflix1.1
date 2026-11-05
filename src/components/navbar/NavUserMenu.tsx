@@ -154,12 +154,9 @@ export const NavUserMenu: React.FC<NavUserMenuProps> = React.memo(function NavUs
             onClick={() => setShowUserDropdown(false)}
             className="block px-2.5 py-2 mb-1 rounded-xl hover:bg-white/5 transition group"
           >
-            <div className="flex items-center justify-between">
-              <p className="text-xs font-bold text-white truncate group-hover:text-netflix-red transition">
-                {effectiveDisplayName}
-              </p>
-              <span className="text-[10px] text-zinc-500 group-hover:text-zinc-400">Xem hồ sơ →</span>
-            </div>
+            <p className="text-xs font-bold text-white truncate group-hover:text-netflix-red transition">
+              {effectiveDisplayName}
+            </p>
             <p className="text-[11px] text-zinc-400 truncate mt-0.5">{user.email}</p>
             <div className="mt-1.5 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/15 text-[10px] text-emerald-400 font-medium">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
