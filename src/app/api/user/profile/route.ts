@@ -190,21 +190,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const rateLimit = await enforceRateLimit(
-    req,
-    RATE_LIMIT_PRESETS.USER_MUTATION,
-    auth.userId
-  );
-  if (!rateLimit.allowed) {
-    logSecurityEvent(req, {
-      event: "RATE_LIMIT_EXCEEDED",
-      status: 429,
-      userId: auth.userId,
-      reason: rateLimit.reason,
-    });
-    return buildRateLimitResponse(rateLimit);
-  }
-
   try {
     const parseRes = await safeParseJson<Record<string, unknown>>(req, 30 * 1024);
     if (!parseRes.success) {
@@ -216,6 +201,31 @@ export async function POST(req: NextRequest) {
     const malCheck = detectMaliciousPayload(body);
     if (malCheck.isMalicious) {
       return NextResponse.json({ error: malCheck.reason || "Nội dung không hợp lệ" }, { status: 400 });
+    }
+
+    // Phân biệt heartbeat thời gian xem phim (high-frequency) với cập nhật hồ sơ (low-frequency)
+    const bodyKeys = Object.keys(body);
+    const isOnlyWatchTime =
+      typeof body.watchTimeMinutes === "number" &&
+      bodyKeys.every((k) => k === "watchTimeMinutes" || k === "timestamp");
+
+    const rateLimitPreset = isOnlyWatchTime
+      ? RATE_LIMIT_PRESETS.USER_WATCH_TIME_IN_MEMORY
+      : RATE_LIMIT_PRESETS.USER_MUTATION;
+
+    const rateLimit = await enforceRateLimit(
+      req,
+      rateLimitPreset,
+      auth.userId
+    );
+    if (!rateLimit.allowed) {
+      logSecurityEvent(req, {
+        event: "RATE_LIMIT_EXCEEDED",
+        status: 429,
+        userId: auth.userId,
+        reason: rateLimit.reason,
+      });
+      return buildRateLimitResponse(rateLimit);
     }
     const userId = auth.userId;
     const now = Date.now();

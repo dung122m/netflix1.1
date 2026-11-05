@@ -42,7 +42,7 @@ describe("Redis Traffic Reduction Final Batch Verification Tests", () => {
       assert.strictEqual(RATE_LIMIT_PRESETS.COMMENT_MUTATION.strategy, "sliding-window");
       assert.strictEqual(RATE_LIMIT_PRESETS.AI_REQUEST.strategy, "sliding-window");
       assert.strictEqual(RATE_LIMIT_PRESETS.USER_MUTATION.strategy, "sliding-window");
-      assert.strictEqual(RATE_LIMIT_PRESETS.USER_READ.strategy, "fixed-window");
+      assert.strictEqual(RATE_LIMIT_PRESETS.USER_READ.strategy, "in-memory-only");
     });
   });
 

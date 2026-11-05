@@ -343,6 +343,20 @@ export const RATE_LIMIT_PRESETS = {
     failClosed: false,
     strategy: "in-memory-only",
   },
+  USER_WATCH_TIME_IN_MEMORY: {
+    namespace: "user-watch-time-in-memory",
+    maxRequests: 120,
+    windowSeconds: 60,
+    failClosed: false,
+    strategy: "in-memory-only",
+  },
+  COMMENT_REACTION_IN_MEMORY: {
+    namespace: "comment-reaction-in-memory",
+    maxRequests: 60,
+    windowSeconds: 60,
+    failClosed: false,
+    strategy: "in-memory-only",
+  },
 } as const;
 
 /**
@@ -1058,6 +1072,7 @@ export async function enforceRateLimit(
       maxRequests: Math.max(30, config.maxRequests * 2),
       windowSeconds: 60,
       failClosed: config.failClosed,
+      strategy: config.strategy,
     };
     const ipResult = await checkRateLimit(`ip:${ipHash}`, ipBurstConfig);
     if (!ipResult.allowed) {

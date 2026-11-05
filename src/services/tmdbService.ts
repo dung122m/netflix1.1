@@ -1387,51 +1387,13 @@ export async function matchTmdbMoviesWithSources(
     missedL1.push(credit);
   }
 
-  // BƯỚC 2: KIỂM TRA BỘ NHỚ ĐỆM L2 (REDIS / KV) CHO CÁC CREDIT CHƯA CÓ TRONG L1 QUA MGET (1 COMMAND DUY NHẤT)
-  const creditsToFetch: TmdbMovieCredit[] = [];
-  if (missedL1.length > 0) {
-    const kvKeys = missedL1.map((c) => `tmdb:movie_source:v2:${c.id}`);
-    try {
-      const l2Entries = await cacheService.mget<{ movie: any | null; _isNegative?: boolean }>(kvKeys);
-      for (let i = 0; i < missedL1.length; i++) {
-        const credit = missedL1[i];
-        const l2Entry = l2Entries[i];
-        if (l2Entry !== null && l2Entry !== undefined) {
-          if (l2Entry.movie) {
-            if (!l2Entry.movie.content && !l2Entry.movie.description) {
-              l2Entry.movie.content = credit.overview || "";
-              l2Entry.movie.description = credit.overview || "";
-            }
-            // Positive hit từ L2 -> lưu lại vào L1 (TTL 60 phút)
-            TMDB_SINGLE_MOVIE_MATCH_CACHE.set(credit.id, {
-              movie: l2Entry.movie,
-              expireAt: now + 60 * 60 * 1000,
-            });
-            if (!seenSlugs.has(l2Entry.movie.slug)) {
-              seenSlugs.add(l2Entry.movie.slug);
-              matchedMovies.push(l2Entry.movie);
-            }
-            continue;
-          } else if (l2Entry._isNegative || l2Entry.movie === null) {
-            // Negative miss từ L2 -> lưu lại vào L1 (TTL 12 giờ) và bỏ qua probe 0ms
-            TMDB_SINGLE_MOVIE_MATCH_CACHE.set(credit.id, {
-              movie: null,
-              expireAt: now + 12 * 3600 * 1000,
-            });
-            continue;
-          }
-        }
-        creditsToFetch.push(credit);
-      }
-    } catch {
-      // Fail-safe: tiếp tục probe HTTP nếu L2 gặp sự cố
-      creditsToFetch.push(...missedL1);
-    }
-  }
+  // BƯỚC 2: CÁC CREDIT CHƯA CÓ TRONG L1 RAM ĐƯỢC CHUYỂN THẲNG ĐẾN PROBE (0 REDIS COMMANDS)
+  // Kết quả sau khi probe được lưu trong L1 RAM Map và cache tổng thể của actor/recommendations
+  const creditsToFetch: TmdbMovieCredit[] = missedL1;
 
   // BƯỚC 3: ƯU TIÊN PHIMAPI TRƯỚC, CHỈ FALLBACK SANG NGUONC KHI CẦN THIẾT (CONCURRENCY <= 16)
   if (creditsToFetch.length > 0) {
-    const entriesToBatchSet: Array<{ key: string; value: any; ttlSeconds: number }> = [];
+
 
     await runWithConcurrencyLimit(creditsToFetch, concurrency, async (credit) => {
       const tmdbIdStr = String(credit.id);
@@ -1448,11 +1410,8 @@ export async function matchTmdbMoviesWithSources(
       const primarySearchKw = isLatinOriginal ? cleanOrigTitle : (cleanViTitle || cleanOrigTitle);
       const secondarySearchKw = isLatinOriginal ? cleanViTitle : cleanOrigTitle;
 
-      const kvKey = `tmdb:movie_source:v2:${credit.id}`;
-
       if ((!primarySearchKw || primarySearchKw.length < 2) && (!secondarySearchKw || secondarySearchKw.length < 2)) {
         TMDB_SINGLE_MOVIE_MATCH_CACHE.set(credit.id, { movie: null, expireAt: now + 12 * 3600 * 1000 });
-        cacheService.set(kvKey, { movie: null, _isNegative: true }, 14 * 86400).catch(() => {});
         return;
       }
 
@@ -1658,12 +1617,7 @@ export async function matchTmdbMoviesWithSources(
             expireAt: now + 60 * 60 * 1000,
           });
 
-          // Chuẩn bị batch set L2 Redis / KV (TTL 30 ngày)
-          entriesToBatchSet.push({
-            key: kvKey,
-            value: { movie: formattedMovie },
-            ttlSeconds: 30 * 86400,
-          });
+
 
           if (!seenSlugs.has(formattedMovie.slug)) {
             seenSlugs.add(formattedMovie.slug);
@@ -1676,22 +1630,14 @@ export async function matchTmdbMoviesWithSources(
             expireAt: now + 12 * 3600 * 1000,
           });
 
-          // Chuẩn bị batch set L2 Redis / KV negative miss (TTL 14 ngày)
-          entriesToBatchSet.push({
-            key: kvKey,
-            value: { movie: null, _isNegative: true },
-            ttlSeconds: 14 * 86400,
-          });
+
         }
       } catch {
         // Bỏ qua lỗi từng phim để không làm crash toàn bộ danh sách
       }
     });
 
-    // Thực thi batch set qua 1 network call pipeline duy nhất
-    if (entriesToBatchSet.length > 0) {
-      cacheService.setMany(entriesToBatchSet).catch(() => {});
-    }
+
   }
 
   const tEnd = performance.now();
@@ -1739,12 +1685,9 @@ export async function getActorFilmographyFromTmdb(
     }
   }
 
-  const kvKey = `tmdb:actor_flow_v7:${tmdbPersonId || cleanKey}:${maxMovies}`;
-  return await cacheService.fetchOrSet(
-    kvKey,
-    () => executeTmdbActorFlow(actorQuery, canonicalName, aliases, cacheKey, maxMovies, concurrency, tmdbPersonId),
-    14 * 86400 // 14 ngày
-  );
+  // Không ghi vào Redis tmdb:actor_flow_v7 (tránh double-caching với actor:filmography_v10).
+  // Kết quả được lưu trong TMDB_ACTOR_MOVIES_CACHE (RAM Map) và actor:filmography_v10 (aiActorService).
+  return await executeTmdbActorFlow(actorQuery, canonicalName, aliases, cacheKey, maxMovies, concurrency, tmdbPersonId);
 }
 
 async function executeTmdbActorFlow(
@@ -2273,11 +2216,7 @@ export async function getDirectorFilmographyFromTmdb(
     }
   }
 
-  const kvKey = `tmdb:dir_flow_v2:${tmdbPersonId || cleanKey}:${maxMovies}`;
-  return await cacheService.fetchOrSet(
-    kvKey,
-    async () => {
-      try {
+  try {
         let personId = tmdbPersonId;
         let personName = directorQuery;
 
@@ -2360,7 +2299,4 @@ export async function getDirectorFilmographyFromTmdb(
         console.error("[TMDB Director Flow] Execution error:", err);
         return [];
       }
-    },
-    14 * 86400
-  );
 }

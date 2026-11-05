@@ -9,16 +9,16 @@ import {
 
 describe("Batch 4 — Dual-Engine Rate Limiting (Fixed vs Sliding Window)", () => {
   it("TC-RL-01: Correctly classifies presets into Fixed Window vs Sliding Window", () => {
-    // Read-heavy / Public presets MUST be fixed-window to minimize Redis commands
+    // Read-heavy / Public presets MUST be fixed-window or in-memory-only to minimize Redis commands
     assert.strictEqual(RATE_LIMIT_PRESETS.PUBLIC_READ.strategy, "fixed-window");
     assert.strictEqual(RATE_LIMIT_PRESETS.POSTER_FALLBACK.strategy, "fixed-window");
-    assert.strictEqual(RATE_LIMIT_PRESETS.USER_READ.strategy, "fixed-window");
+    assert.strictEqual(RATE_LIMIT_PRESETS.USER_READ.strategy, "in-memory-only");
     assert.strictEqual(RATE_LIMIT_PRESETS.SEARCH.strategy, "fixed-window");
     assert.strictEqual(RATE_LIMIT_PRESETS.COMMENTS_READ.strategy, "fixed-window");
-    assert.strictEqual(RATE_LIMIT_PRESETS.HLS_PLAYLIST.strategy, "fixed-window");
-    assert.strictEqual(RATE_LIMIT_PRESETS.STREAM_PROXY.strategy, "fixed-window");
-    assert.strictEqual(RATE_LIMIT_PRESETS.RECOMMENDATIONS.strategy, "fixed-window");
-    assert.strictEqual(RATE_LIMIT_PRESETS.TRANSLATION.strategy, "fixed-window");
+    assert.strictEqual(RATE_LIMIT_PRESETS.HLS_PLAYLIST.strategy, "in-memory-only");
+    assert.strictEqual(RATE_LIMIT_PRESETS.STREAM_PROXY.strategy, "in-memory-only");
+    assert.strictEqual(RATE_LIMIT_PRESETS.RECOMMENDATIONS.strategy, "in-memory-only");
+    assert.strictEqual(RATE_LIMIT_PRESETS.TRANSLATION.strategy, "in-memory-only");
 
     // Security-sensitive / Mutation / AI / Auth presets MUST be sliding-window to prevent boundary reset attacks
     assert.strictEqual(RATE_LIMIT_PRESETS.AUTH_SENSITIVE.strategy, "sliding-window");

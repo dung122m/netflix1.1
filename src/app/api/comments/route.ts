@@ -379,16 +379,6 @@ export async function POST(req: NextRequest) {
  */
 export async function PATCH(req: NextRequest) {
   try {
-    const rateLimit = await enforceRateLimit(req, RATE_LIMIT_PRESETS.COMMENT_MUTATION);
-    if (!rateLimit.allowed) {
-      logSecurityEvent(req, {
-        event: "RATE_LIMIT_EXCEEDED",
-        status: 429,
-        reason: rateLimit.reason || "Vượt quá giới hạn thao tác bình luận",
-      });
-      return buildRateLimitResponse(rateLimit);
-    }
-
     const parseRes = await safeParseJson<Record<string, unknown>>(req, 20 * 1024);
     if (!parseRes.success) {
       return parseRes.response;
@@ -399,6 +389,19 @@ export async function PATCH(req: NextRequest) {
     const { commentId, isPinned, action, reactionType, reason } = body;
     if (!commentId) {
       return NextResponse.json({ error: "Thiếu commentId!" }, { status: 400 });
+    }
+
+    // Rate limit: Phân biệt thao tác reaction (tần suất cao, in-memory) với các thao tác quản trị khác
+    if (action !== "reaction") {
+      const rateLimit = await enforceRateLimit(req, RATE_LIMIT_PRESETS.COMMENT_MUTATION);
+      if (!rateLimit.allowed) {
+        logSecurityEvent(req, {
+          event: "RATE_LIMIT_EXCEEDED",
+          status: 429,
+          reason: rateLimit.reason || "Vượt quá giới hạn thao tác bình luận",
+        });
+        return buildRateLimitResponse(rateLimit);
+      }
     }
 
     // 1. GHIM / BỎ GHIM BÌNH LUẬN: Dành riêng cho Quản trị viên (Admin-only)
@@ -471,8 +474,8 @@ export async function PATCH(req: NextRequest) {
       }
       const effectiveUserId = auth.userId;
 
-      // Rate limit thao tác reaction theo người dùng kết hợp IP (Dual-Key)
-      const reactRateLimit = await enforceRateLimit(req, RATE_LIMIT_PRESETS.COMMENT_MUTATION, effectiveUserId);
+      // Rate limit thao tác reaction theo người dùng kết hợp IP (Dual-Key) - In-Memory (0 Redis commands)
+      const reactRateLimit = await enforceRateLimit(req, RATE_LIMIT_PRESETS.COMMENT_REACTION_IN_MEMORY, effectiveUserId);
       if (!reactRateLimit.allowed) {
         return buildRateLimitResponse(reactRateLimit);
       }

@@ -1,5 +1,3 @@
-import { cacheService } from "@/lib/cache";
-
 const ANILIST_GRAPHQL_ENDPOINT = "https://graphql.anilist.co";
 
 interface AniListPosterResult {
@@ -18,6 +16,7 @@ const ANILIST_MEMORY_CACHE = new Map<string, AniListMemoryCacheEntry>();
  * - Miễn phí 100%, không cần API Key
  * - CDN: s4.anilist.co (nhanh, ổn định, không bị chặn bởi ISP Việt Nam)
  * - Chuyên trị 10% Anime/Donghua còn lại nếu TMDb không tìm thấy
+ * - 100% In-Memory Cache (0 Redis commands)
  */
 export async function searchAniListPoster(
   title: string,
@@ -43,76 +42,70 @@ export async function searchAniListPoster(
     return { posterUrl: memHit.posterUrl, backdropUrl: memHit.backdropUrl };
   }
 
-  const kvKey = `anilist:poster:v1:${primaryKey}`;
-  const result = await cacheService.fetchOrSet(
-    kvKey,
-    async () => {
-      const graphQuery = `
-        query ($search: String) {
-          Media(search: $search, type: ANIME) {
-            id
-            coverImage {
-              extraLarge
-              large
-              medium
-            }
-            bannerImage
-          }
+  const graphQuery = `
+    query ($search: String) {
+      Media(search: $search, type: ANIME) {
+        id
+        coverImage {
+          extraLarge
+          large
+          medium
         }
-      `;
-
-      for (const candidate of queryCandidates) {
-        try {
-          const controller = new AbortController();
-          const timeout = setTimeout(() => controller.abort(), 2500);
-
-          const res = await fetch(ANILIST_GRAPHQL_ENDPOINT, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Accept: "application/json",
-            },
-            body: JSON.stringify({
-              query: graphQuery,
-              variables: { search: candidate },
-            }),
-            signal: controller.signal,
-          });
-
-          clearTimeout(timeout);
-
-          if (!res.ok) continue;
-
-          const json = await res.json();
-          const media = json?.data?.Media;
-          const cover =
-            media?.coverImage?.extraLarge ||
-            media?.coverImage?.large ||
-            media?.coverImage?.medium ||
-            null;
-          const banner = media?.bannerImage || null;
-
-          if (cover) {
-            return {
-              posterUrl: cover,
-              backdropUrl: banner || cover,
-            };
-          }
-        } catch {
-          // Bỏ qua và thử ứng viên tiếp theo
-        }
+        bannerImage
       }
+    }
+  `;
 
-      return { posterUrl: null, backdropUrl: null };
-    },
-    7 * 24 * 3600 // Cache 7 ngày
-  );
+  let matchedResult: AniListPosterResult | null = null;
 
-  const finalRes = result || { posterUrl: null, backdropUrl: null };
+  for (const candidate of queryCandidates) {
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 2500);
+
+      const res = await fetch(ANILIST_GRAPHQL_ENDPOINT, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({
+          query: graphQuery,
+          variables: { search: candidate },
+        }),
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeout);
+
+      if (!res.ok) continue;
+
+      const json = await res.json();
+      const media = json?.data?.Media;
+      const cover =
+        media?.coverImage?.extraLarge ||
+        media?.coverImage?.large ||
+        media?.coverImage?.medium ||
+        null;
+      const banner = media?.bannerImage || null;
+
+      if (cover) {
+        matchedResult = {
+          posterUrl: cover,
+          backdropUrl: banner || cover,
+        };
+        break;
+      }
+    } catch {
+      // Bỏ qua và thử ứng viên tiếp theo
+    }
+  }
+
+  const finalRes = matchedResult || { posterUrl: null, backdropUrl: null };
   ANILIST_MEMORY_CACHE.set(primaryKey, {
     posterUrl: finalRes.posterUrl,
     backdropUrl: finalRes.backdropUrl,
-    expireAt: now + 3600 * 1000, // 1h in-memory
+    expireAt: now + 24 * 3600 * 1000, // 24h in-memory
   });
 
   return finalRes;
