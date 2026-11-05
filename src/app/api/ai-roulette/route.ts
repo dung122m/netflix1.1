@@ -1292,18 +1292,18 @@ export async function POST(req: NextRequest) {
     const auth = await verifyServerAuth(req);
     const verifiedUserId = auth.isAuthenticated && auth.userId ? auth.userId : null;
 
-    // 3. Giới hạn tần suất phân tán Fail-Closed (10 requests / 10 phút / user hoặc IP)
-    const rateLimit = await enforceRateLimit(req, RATE_LIMIT_PRESETS.AI_REQUEST, verifiedUserId);
+    // 3. Giới hạn tần suất phân tán Fail-Closed (30 requests / 5 phút / user hoặc IP)
+    const rateLimit = await enforceRateLimit(req, RATE_LIMIT_PRESETS.ROULETTE, verifiedUserId);
     if (!rateLimit.allowed) {
       logSecurityEvent(req, {
         event: "RATE_LIMIT_EXCEEDED",
         status: 429,
         userId: verifiedUserId,
-        reason: rateLimit.reason || "Vượt quá tần suất yêu cầu AI",
+        reason: rateLimit.reason || "Vượt quá tần suất quay phim",
       });
       return buildRateLimitResponse(
         rateLimit,
-        "Bạn đang quay quẻ quá nhanh. Vui lòng chờ vài phút trước khi tiếp tục để bảo vệ tài nguyên AI."
+        "Bạn đang đổi phim quá nhanh. Vui lòng chờ giây lát trước khi tiếp tục quay phim."
       );
     }
 
@@ -1711,7 +1711,7 @@ export async function POST(req: NextRequest) {
               ? `1. Phim PHẢI CÓ THẬT trên các trang xem phim tại Việt Nam (PhimAPI, Ophim), ưu tiên các tác phẩm ẩn mình (hidden gems), độc đáo, ít người biết nhưng chất lượng kịch bản xuất sắc.`
               : `1. Phim PHẢI CÓ THẬT, CỰC KỲ NỔI TIẾNG, CÓ ĐIỂM ĐÁNH GIÁ CAO trên các trang xem phim tại Việt Nam (PhimAPI, Ophim, Netflix).`;
 
-          const promptText = `Bạn là Trợ lý Nana của Nanaflix đang bốc quẻ 'Suất Chiếu Định Mệnh' cho người dùng:
+          const promptText = `Bạn là Trợ lý Nana của Nanaflix đang gợi ý 'Suất Chiếu Phim Ngẫu Nhiên' cho người dùng:
 - Tâm trạng: "${moodMeta.label} - ${moodMeta.desc}"
 - Người xem cùng: "${companionDesc}"
 - Thời lượng yêu cầu: "${durationDesc}"${countryConstraint}${durationConstraint}${surpriseConstraint}${excludePrompt}
@@ -1838,7 +1838,7 @@ Trả về DUY NHẤT một chuỗi JSON hợp lệ:
       return NextResponse.json(
         {
           notFound: true,
-          error: "🎴 Chưa tìm thấy suất chiếu phù hợp với quẻ này.",
+          error: "🎬 Chưa tìm thấy phim phù hợp với lựa chọn này.",
         },
         { status: 404 }
       );
@@ -1877,7 +1877,7 @@ Trả về DUY NHẤT một chuỗi JSON hợp lệ:
       return NextResponse.json(
         {
           notFound: true,
-          error: "🎴 Chưa tìm thấy suất chiếu phù hợp với quẻ này.",
+          error: "🎬 Chưa tìm thấy phim phù hợp với lựa chọn này.",
         },
         { status: 404 }
       );

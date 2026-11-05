@@ -217,6 +217,13 @@ export const RATE_LIMIT_PRESETS = {
     failClosed: true,
     strategy: "sliding-window",
   },
+  ROULETTE: {
+    namespace: "roulette",
+    maxRequests: 30,
+    windowSeconds: 300, // 30 requests / 5 mins / user (smooth movie discovery & roulette rolling)
+    failClosed: true,
+    strategy: "sliding-window",
+  },
   UPLOAD: {
     namespace: "upload",
     maxRequests: 10,
@@ -822,6 +829,7 @@ export async function checkRateLimit(
     config.namespace.includes("comment-create") ||
     config.namespace.includes("comment-delete") ||
     config.namespace.includes("ai-request") ||
+    config.namespace.includes("roulette") ||
     config.namespace.includes("upload");
 
   const strategy = config.strategy ?? (isSensitive ? "sliding-window" : "fixed-window");
