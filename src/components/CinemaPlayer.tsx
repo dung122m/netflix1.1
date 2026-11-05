@@ -129,12 +129,14 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
   const activeEpisodeName = activeEpisode?.name || propActiveEpisodeName;
 
   const isPropMatchingActive = !propActiveEpisodeSlug || activeEpisodeSlug === propActiveEpisodeSlug;
-  const videoLink = activeEpisode?.link_embed || activeEpisode?.link_m3u8 || (isPropMatchingActive ? propVideoLink : undefined);
-  const embedSrc = activeEpisode?.link_embed || (isPropMatchingActive ? propEmbedSrc : undefined);
-  const m3u8Link = activeEpisode?.link_m3u8
-    || (activeEpisode as Record<string, string | undefined>)?.m3u8
-    || (activeEpisode as Record<string, string | undefined>)?.file
-    || (isPropMatchingActive ? propM3u8Link : undefined);
+  const rawEpM3u8 = typeof activeEpisode?.link_m3u8 === "string"
+    ? activeEpisode.link_m3u8
+    : (activeEpisode as Record<string, string | undefined>)?.m3u8 || (activeEpisode as Record<string, string | undefined>)?.file;
+  const m3u8Link = rawEpM3u8 !== undefined ? rawEpM3u8 : (isPropMatchingActive ? propM3u8Link : undefined);
+
+  const rawEpEmbed = typeof activeEpisode?.link_embed === "string" ? activeEpisode.link_embed : undefined;
+  const embedSrc = rawEpEmbed !== undefined ? rawEpEmbed : (isPropMatchingActive ? propEmbedSrc : undefined);
+  const videoLink = m3u8Link || embedSrc || (isPropMatchingActive ? propVideoLink : undefined);
 
   const prevEpisode = watchContext?.prevEpisode ?? null;
   const rawNextEpisode = watchContext?.nextEpisode ?? null;
@@ -3074,7 +3076,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
           ) : activeSrc ? (
             <>
               <iframe
-                key={activeEpisodeSlug || activeSrc}
+                key={`iframe_${activeEpisodeSlug || "ep"}_${watchContext?.currentServerIndex ?? 0}_${activeSrc}`}
                 ref={iframeRef}
                 src={activeSrc}
                 className="w-full h-full absolute inset-0 border-0"

@@ -51,6 +51,16 @@ export const WatchPlayerHost: React.FC<WatchPlayerHostProps> = (props) => {
 
   const watchContext = useWatchController();
   const currentEpSlug = watchContext?.activeEpisodeSlug || activeEpisodeSlug;
+  const currentServerIdx = watchContext?.currentServerIndex ?? 0;
+  const currentActiveEp = watchContext?.activeEpisode;
+
+  // Lấy stream liên kết động trực tiếp từ server và tập hiện tại trong watchContext
+  const dynamicEmbedSrc = currentActiveEp?.link_embed || props.embedSrc;
+  const dynamicM3u8Link = typeof currentActiveEp?.link_m3u8 === "string"
+    ? currentActiveEp.link_m3u8
+    : props.m3u8Link;
+  const dynamicVideoLink = dynamicM3u8Link || dynamicEmbedSrc || props.videoLink;
+  const dynamicEpisodeName = currentActiveEp?.name || props.activeEpisodeName;
 
   const isVsmovSource = Boolean(
     (props.embedSrc && (props.embedSrc.includes("vsmov") || props.embedSrc.includes("streamvsmov"))) ||
@@ -117,7 +127,17 @@ export const WatchPlayerHost: React.FC<WatchPlayerHostProps> = (props) => {
       {/* 2. DYNAMIC ACTIVE PLAYER CONTAINER */}
       <div className="w-full">
         {/* PROVIDER 1: NANAFLIX CINEMA PLAYER */}
-        {activeProvider === "nanaflix" && <CinemaPlayer {...props} />}
+        {activeProvider === "nanaflix" && (
+          <CinemaPlayer
+            key={`cinema_${movieSlug}_srv_${currentServerIdx}`}
+            {...props}
+            activeEpisodeSlug={currentEpSlug}
+            activeEpisodeName={dynamicEpisodeName}
+            embedSrc={dynamicEmbedSrc}
+            videoLink={dynamicVideoLink}
+            m3u8Link={dynamicM3u8Link}
+          />
+        )}
 
         {/* PROVIDER 2: VSMOV EMBED PLAYER */}
         {activeProvider === "vsmov" && (
@@ -149,6 +169,7 @@ export const WatchPlayerHost: React.FC<WatchPlayerHostProps> = (props) => {
             )}
             {!vsmovLoading && !vsmovError && vsmovUrl && (
               <IframePlayer
+                key={`vsmov_${movieSlug}_${currentEpSlug || "full"}_${vsmovUrl}`}
                 src={vsmovUrl}
                 title={title || "Movie"}
                 serverName="Máy chủ VSMOV"
