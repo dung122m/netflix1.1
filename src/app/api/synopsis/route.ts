@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { movieApi } from "@/services/movies/service";
 import { cleanHtmlText } from "@/lib/cleanHtml";
+import { cacheService } from "@/lib/cache";
 import {
   pickHeroBackdropImage,
   pickBestMoviePoster,
@@ -68,6 +69,24 @@ export async function GET(request: NextRequest) {
       }
     );
   }
+
+  // 1.2 Kiểm tra L2 Upstash Redis Cache (1 GET)
+  const kvKey = `movie:synopsis:v1:${slug}`;
+  try {
+    const redisCached = await cacheService.get<SynopsisDetailPayload>(kvKey);
+    if (redisCached) {
+      setBoundedSynopsisCache(slug, redisCached);
+      return NextResponse.json(
+        { slug, ...redisCached },
+        {
+          headers: {
+            "Cache-Control":
+              "public, s-maxage=86400, stale-while-revalidate=86400",
+          },
+        }
+      );
+    }
+  } catch {}
 
   // 1.5 Kiểm tra in-flight Promise trên server để không gọi trùng đồng thời
   if (inFlightServerRequests.has(slug)) {
@@ -159,8 +178,9 @@ export async function GET(request: NextRequest) {
         thumb_url: thumbUrl,
       };
 
-      // Lưu vào RAM cache (bounded FIFO)
+      // Lưu vào RAM cache (bounded FIFO) & L2 Redis Cache (7 ngày)
       setBoundedSynopsisCache(slug, payload);
+      cacheService.set(kvKey, payload, 7 * 86400).catch(() => {});
       return payload;
     } catch (err) {
       console.error("Lỗi lấy tóm tắt phim:", slug, err);

@@ -2,6 +2,7 @@ import {
   enrichMatchLogosSync,
   triggerBackgroundLogoEnrichment,
 } from "@/services/live/football-logo/service";
+import { cacheService } from "@/lib/cache";
 import { isBlockedStreamUrl } from "@/services/live/shared/streamHealth";
 import { getTeamAsset, normalizeTeamKey } from "@/data/live/teamAssets";
 import { LiveMatchScore } from "@/services/live/football-score/types";
@@ -3147,6 +3148,8 @@ let memoryCache: {
   staleUntil: number;
 } | null = null;
 let inFlightFetch: Promise<LiveFootballData> | null = null;
+const FOOTBALL_REDIS_KEY = "live:football:matches:v1";
+const FOOTBALL_REDIS_TTL = 180; // 3 phút
 
 export const liveFootballService = {
   getFootballMatches: async (): Promise<LiveFootballData> => {
@@ -3160,6 +3163,19 @@ export const liveFootballService = {
         return memoryCache.data;
       }
     }
+
+    // Kiểm tra L2 Upstash Redis Cache (chia sẻ giữa các Vercel instance, 0 M3U fetches)
+    try {
+      const redisCached = await cacheService.get<LiveFootballData>(FOOTBALL_REDIS_KEY);
+      if (redisCached && Array.isArray(redisCached.matches) && redisCached.matches.length > 0) {
+        memoryCache = {
+          data: redisCached,
+          expireAt: now + 3 * 60 * 1000,
+          staleUntil: now + 6 * 60 * 1000,
+        };
+        return redisCached;
+      }
+    } catch {}
 
     if (inFlightFetch) return inFlightFetch;
     inFlightFetch = liveFootballService.fetchAndCacheMatches();
@@ -3466,6 +3482,11 @@ export const liveFootballService = {
         expireAt: now + 5 * 60 * 1000,
         staleUntil: now + 10 * 60 * 1000,
       };
+
+      // Đồng bộ L2 Upstash Redis để các serverless instance khác tái sử dụng (0ms re-parse)
+      if (result.matches && result.matches.length > 0) {
+        cacheService.set(FOOTBALL_REDIS_KEY, result, FOOTBALL_REDIS_TTL).catch(() => {});
+      }
 
       // Kích hoạt revalidate ngầm theo thứ tự ưu tiên (LIVE -> UPCOMING <= 60m -> Khác)
       // Tuyệt đối không await để không làm chậm response

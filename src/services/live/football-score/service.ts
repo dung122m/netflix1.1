@@ -17,6 +17,7 @@ import {
   FixtureCompetitor,
   FixtureStatus,
 } from "./types";
+import { cacheService } from "@/lib/cache";
 
 export const VERIFIED_SCOREBOARD_LEAGUES = [
   "eng.1", // Premier League
@@ -498,6 +499,22 @@ export const footballScoreService = {
       };
     }
 
+    // 1.5 Kiểm tra L2 Upstash Redis Cache (1 GET, chia sẻ giữa các instance)
+    const redisStandingsKey = `football:standings:v1:${cacheKey}`;
+    try {
+      const redisCached = await cacheService.get<{ data: NormalizedLeagueStandings | null; isCupOrNoStandings: boolean }>(redisStandingsKey);
+      if (redisCached) {
+        standingsMemoryCache.set(cacheKey, {
+          ...redisCached,
+          expireAt: now + STANDINGS_CACHE_TTL_MS,
+        });
+        return {
+          ...redisCached,
+          cached: true,
+        };
+      }
+    } catch {}
+
     // 2. In-flight deduplication
     if (standingsInFlight.has(cacheKey)) {
       const result = await standingsInFlight.get(cacheKey)!;
@@ -564,6 +581,7 @@ export const footballScoreService = {
               ...resObj,
               expireAt: now + STANDINGS_CACHE_TTL_MS,
             });
+            cacheService.set(redisStandingsKey, resObj, 3600).catch(() => {});
             return resObj;
           } catch {
             // Thử URL tiếp theo
@@ -624,6 +642,22 @@ export const footballScoreService = {
       };
     }
 
+    // 1.5 Kiểm tra L2 Upstash Redis Cache (1 GET)
+    const redisFixturesKey = `football:fixtures:v1:${cacheKey}`;
+    try {
+      const redisCached = await cacheService.get<NormalizedLeagueFixtures>(redisFixturesKey);
+      if (redisCached) {
+        fixturesMemoryCache.set(cacheKey, {
+          data: redisCached,
+          expireAt: now + FIXTURES_CACHE_TTL_MS,
+        });
+        return {
+          data: redisCached,
+          cached: true,
+        };
+      }
+    } catch {}
+
     // 2. In-flight deduplication
     if (fixturesInFlight.has(cacheKey)) {
       const result = await fixturesInFlight.get(cacheKey)!;
@@ -663,6 +697,7 @@ export const footballScoreService = {
               data: normalized,
               expireAt: now + FIXTURES_CACHE_TTL_MS,
             });
+            cacheService.set(redisFixturesKey, normalized, 1800).catch(() => {});
             return normalized;
           } catch {
             // Thử candidate URL tiếp theo

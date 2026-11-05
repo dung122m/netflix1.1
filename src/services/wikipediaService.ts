@@ -1,4 +1,5 @@
 import { stripTrailingDanglingHeadings } from "@/lib/bioFormatter";
+import { cacheService } from "@/lib/cache";
 
 export interface ActorProfile {
   name: string;
@@ -255,6 +256,9 @@ async function fetchSummary(
   }
 }
 
+const WIKI_TTL_SECONDS = 30 * 24 * 3600; // 30 ngày
+const WIKI_NEGATIVE_TTL_SECONDS = 86400; // 1 ngày cho trường hợp không tìm thấy
+
 export async function fetchActorProfile(
   actorName: string,
   aliases: string[] = []
@@ -262,9 +266,26 @@ export async function fetchActorProfile(
   const cleanName = actorName.trim();
   if (!cleanName) return null;
 
+  // 1. Kiểm tra L1 In-Memory Cache (0ms)
   if (wikiCache.has(cleanName)) {
     return wikiCache.get(cleanName) || null;
   }
+
+  // 2. Kiểm tra L2 Upstash Redis Cache (1 GET)
+  const normKey = cleanName.toLowerCase().replace(/\s+/g, "_");
+  const kvKey = `wiki:actor:${normKey}`;
+  try {
+    const redisCached = await cacheService.get<ActorProfile | { _isNull: boolean }>(kvKey);
+    if (redisCached) {
+      if ("_isNull" in redisCached && redisCached._isNull) {
+        wikiCache.set(cleanName, null);
+        return null;
+      }
+      const profile = redisCached as ActorProfile;
+      wikiCache.set(cleanName, profile);
+      return profile;
+    }
+  } catch {}
 
   const queriesToTry = Array.from(
     new Set([cleanName, ...aliases].map((q) => q.trim()).filter((q) => q.length >= 2))
@@ -278,13 +299,11 @@ export async function fetchActorProfile(
         fetchSummary(q, "en"),
       ]);
 
-      if (summaryVi) {
-        wikiCache.set(cleanName, summaryVi);
-        return summaryVi;
-      }
-      if (summaryEn) {
-        wikiCache.set(cleanName, summaryEn);
-        return summaryEn;
+      const found = summaryVi || summaryEn;
+      if (found) {
+        wikiCache.set(cleanName, found);
+        cacheService.set(kvKey, found, WIKI_TTL_SECONDS).catch(() => {});
+        return found;
       }
 
       // 2. Thử các danh xưng định hướng (vd: Trường Giang (nghệ sĩ))
@@ -300,6 +319,7 @@ export async function fetchActorProfile(
 
       if (validDisambiguation) {
         wikiCache.set(cleanName, validDisambiguation);
+        cacheService.set(kvKey, validDisambiguation, WIKI_TTL_SECONDS).catch(() => {});
         return validDisambiguation;
       }
     } catch (err) {
@@ -308,6 +328,7 @@ export async function fetchActorProfile(
   }
 
   wikiCache.set(cleanName, null);
+  cacheService.set(kvKey, { _isNull: true }, WIKI_NEGATIVE_TTL_SECONDS).catch(() => {});
   return null;
 }
 

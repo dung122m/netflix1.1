@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getTmdbRankedMovies, TmdbRankType } from "@/services/tmdbService";
+import { cacheService } from "@/lib/cache";
 import {
   enforceRateLimit,
   buildRateLimitResponse,
@@ -36,6 +37,20 @@ export async function GET(req: NextRequest) {
     });
   }
 
+  // 1.5 Kiểm tra L2 Upstash Redis Cache (1 GET, chia sẻ giữa các Vercel instance)
+  const redisTrendingKey = `tmdb:trending:${cacheKey}`;
+  try {
+    const redisCached = await cacheService.get<Record<string, unknown>>(redisTrendingKey);
+    if (redisCached) {
+      SERVER_CACHE.set(cacheKey, { data: redisCached, expireAt: Date.now() + CACHE_TTL });
+      return NextResponse.json(redisCached, {
+        headers: {
+          "Cache-Control": "public, s-maxage=21600, stale-while-revalidate=43200",
+        },
+      });
+    }
+  } catch {}
+
   try {
     // 2. Lấy dữ liệu phim từ TMDB Ranking / IMDb Top 250 và đối chiếu catalog Nanaflix
     const items = await getTmdbRankedMovies(type, limit);
@@ -48,6 +63,7 @@ export async function GET(req: NextRequest) {
         items,
       };
       SERVER_CACHE.set(cacheKey, { data: responseData, expireAt: Date.now() + CACHE_TTL });
+      cacheService.set(redisTrendingKey, responseData, 6 * 3600).catch(() => {});
       return NextResponse.json(responseData, {
         headers: {
           "Cache-Control": "public, s-maxage=21600, stale-while-revalidate=43200",
