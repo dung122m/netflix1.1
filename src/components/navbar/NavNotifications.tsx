@@ -332,7 +332,7 @@ export const NavNotifications: React.FC = React.memo(function NavNotifications()
                       type="button"
                       onClick={() => {
                         setShowNotifications(false);
-                        router.push("/my-list?tab=comments");
+                        router.push("/notifications");
                       }}
                       className="text-sm font-semibold text-[#1877f2] hover:underline cursor-pointer"
                     >
@@ -446,7 +446,7 @@ export const NavNotifications: React.FC = React.memo(function NavNotifications()
                 type="button"
                 onClick={() => {
                   setShowNotifications(false);
-                  router.push("/my-list?tab=comments");
+                  router.push("/notifications");
                 }}
                 className="w-full py-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-white font-semibold text-sm transition text-center cursor-pointer"
               >
