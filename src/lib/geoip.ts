@@ -130,7 +130,23 @@ const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
  * This provides 0ms lookup latency, high accuracy, and ZERO external third-party network calls.
  */
 export function extractGeoLocationFromHeaders(headers: Headers): GeoLocationInfo | null {
-  // 1. Vercel Edge Headers
+  // 1. Cloudflare Edge Headers (Priority when behind Cloudflare proxy, since Cloudflare is the direct client edge)
+  const cfCountryCode = headers.get("cf-ipcountry")?.trim().toUpperCase();
+  const cfRegion = safeDecodeHeader(headers.get("cf-region") || headers.get("cf-region-code") || headers.get("cf-ipregion"));
+  const cfCity = safeDecodeHeader(headers.get("cf-ipcity"));
+  const cfTimezone = safeDecodeHeader(headers.get("cf-timezone"));
+
+  if (cfCountryCode && cfCountryCode.length === 2 && cfCountryCode !== "XX" && cfCountryCode !== "T1") {
+    return {
+      country: getCountryNameFromCode(cfCountryCode),
+      countryCode: cfCountryCode,
+      region: cfRegion || null,
+      city: cfCity || null,
+      timezone: cfTimezone || null,
+    };
+  }
+
+  // 2. Vercel Edge Headers
   const vercelCountryCode = headers.get("x-vercel-ip-country")?.trim().toUpperCase();
   const vercelRegion = safeDecodeHeader(headers.get("x-vercel-ip-country-region"));
   const vercelCity = safeDecodeHeader(headers.get("x-vercel-ip-city"));
@@ -146,22 +162,6 @@ export function extractGeoLocationFromHeaders(headers: Headers): GeoLocationInfo
     };
   }
 
-  // 2. Cloudflare Edge Headers
-  const cfCountryCode = headers.get("cf-ipcountry")?.trim().toUpperCase();
-  const cfRegion = safeDecodeHeader(headers.get("cf-region") || headers.get("cf-region-code"));
-  const cfCity = safeDecodeHeader(headers.get("cf-ipcity"));
-  const cfTimezone = safeDecodeHeader(headers.get("cf-timezone"));
-
-  if (cfCountryCode && cfCountryCode.length === 2 && cfCountryCode !== "XX" && cfCountryCode !== "T1") {
-    return {
-      country: getCountryNameFromCode(cfCountryCode),
-      countryCode: cfCountryCode,
-      region: cfRegion || null,
-      city: cfCity || null,
-      timezone: cfTimezone || null,
-    };
-  }
-
   return null;
 }
 
@@ -169,43 +169,75 @@ export function extractGeoLocationFromHeaders(headers: Headers): GeoLocationInfo
  * Query a fallback public GeoIP provider with a strict timeout and fail-open guarantee.
  * Only invoked when running outside Vercel/Cloudflare edge (e.g., local testing or custom node runtime).
  */
-async function fetchFallbackGeoFromIp(ip: string, timeoutMs = 800): Promise<GeoLocationInfo> {
+async function fetchFallbackGeoFromIp(ip: string, timeoutMs = 1200): Promise<GeoLocationInfo> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
-    // freeipapi.com: Free, SSL, no API key required, supports IPv4 & IPv6, rate limit 60 req/min
+    // 1. Primary: freeipapi.com (Requires User-Agent header)
     const res = await fetch(`https://freeipapi.com/api/json/${encodeURIComponent(ip)}`, {
       method: "GET",
-      headers: { Accept: "application/json" },
+      headers: {
+        Accept: "application/json",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko)",
+      },
+      signal: controller.signal,
+    });
+
+    if (res.ok) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const data: any = await res.json();
+      const countryCode = typeof data.countryCode === "string" ? data.countryCode.trim().toUpperCase() : null;
+      const countryName = typeof data.countryName === "string" ? data.countryName.trim() : getCountryNameFromCode(countryCode);
+      const region = typeof data.regionName === "string" ? data.regionName.trim() : null;
+      const city = typeof data.cityName === "string" ? data.cityName.trim() : null;
+      const timezone = typeof data.timeZone === "string" ? data.timeZone.trim() : null;
+
+      if (countryCode || countryName) {
+        clearTimeout(timeout);
+        return {
+          country: countryName || null,
+          countryCode: countryCode || null,
+          region: region || null,
+          city: city || null,
+          timezone: timezone || null,
+        };
+      }
+    }
+
+    // 2. Failover: ip-api.com
+    const res2 = await fetch(`http://ip-api.com/json/${encodeURIComponent(ip)}?fields=status,country,countryCode,regionName,city,timezone`, {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko)",
+      },
       signal: controller.signal,
     });
 
     clearTimeout(timeout);
 
-    if (!res.ok) {
-      return { ...EMPTY_GEO_LOCATION };
+    if (res2.ok) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const data2: any = await res2.json();
+      if (data2 && data2.status === "success") {
+        const countryCode = typeof data2.countryCode === "string" ? data2.countryCode.trim().toUpperCase() : null;
+        const countryName = typeof data2.country === "string" ? data2.country.trim() : getCountryNameFromCode(countryCode);
+        const region = typeof data2.regionName === "string" ? data2.regionName.trim() : null;
+        const city = typeof data2.city === "string" ? data2.city.trim() : null;
+        const timezone = typeof data2.timezone === "string" ? data2.timezone.trim() : null;
+
+        return {
+          country: countryName || null,
+          countryCode: countryCode || null,
+          region: region || null,
+          city: city || null,
+          timezone: timezone || null,
+        };
+      }
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const data: any = await res.json();
-    const countryCode = typeof data.countryCode === "string" ? data.countryCode.trim().toUpperCase() : null;
-    const countryName = typeof data.countryName === "string" ? data.countryName.trim() : getCountryNameFromCode(countryCode);
-    const region = typeof data.regionName === "string" ? data.regionName.trim() : null;
-    const city = typeof data.cityName === "string" ? data.cityName.trim() : null;
-    const timezone = typeof data.timeZone === "string" ? data.timeZone.trim() : null;
-
-    if (!countryCode && !countryName) {
-      return { ...EMPTY_GEO_LOCATION };
-    }
-
-    return {
-      country: countryName || null,
-      countryCode: countryCode || null,
-      region: region || null,
-      city: city || null,
-      timezone: timezone || null,
-    };
+    return { ...EMPTY_GEO_LOCATION };
   } catch {
     clearTimeout(timeout);
     return { ...EMPTY_GEO_LOCATION };
@@ -275,11 +307,39 @@ export async function getGeoLocationFromIp(
  */
 export async function getGeoLocationFromRequest(req: NextRequest, explicitIp?: string): Promise<GeoLocationInfo> {
   const edgeGeo = extractGeoLocationFromHeaders(req.headers);
+  const ip = explicitIp || getClientIp(req);
+
+  // 1. If edge headers provided both country and city, return immediately (0ms lookup)
+  if (edgeGeo && (edgeGeo.country || edgeGeo.countryCode) && edgeGeo.city) {
+    return edgeGeo;
+  }
+
+  // 2. If edge headers only provided country (e.g. Cloudflare free tier sends cf-ipcountry without cf-ipcity),
+  // enrich with city/region via client IP lookup (cached in L1 RAM)
+  if (edgeGeo && (edgeGeo.country || edgeGeo.countryCode) && !isPrivateOrLocalIp(ip)) {
+    try {
+      const ipGeo = await getGeoLocationFromIp(ip, null);
+      if (ipGeo && (ipGeo.city || ipGeo.region)) {
+        return {
+          country: edgeGeo.country || ipGeo.country,
+          countryCode: edgeGeo.countryCode || ipGeo.countryCode,
+          region: edgeGeo.region || ipGeo.region,
+          city: ipGeo.city || edgeGeo.city,
+          timezone: edgeGeo.timezone || ipGeo.timezone,
+        };
+      }
+    } catch {
+      // Fall through to edgeGeo
+    }
+    return edgeGeo;
+  }
+
+  // 3. Fallback to edge headers if present
   if (edgeGeo && (edgeGeo.country || edgeGeo.countryCode)) {
     return edgeGeo;
   }
 
-  const ip = explicitIp || getClientIp(req);
+  // 4. Fallback to full IP lookup
   return getGeoLocationFromIp(ip, req);
 }
 

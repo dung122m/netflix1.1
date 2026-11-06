@@ -273,11 +273,11 @@ export async function recordAnalyticsEvent(payload: AnalyticsEventPayload): Prom
   });
   const visitorRecorded = true;
 
-  // Persist to Supabase analytics_events table (fail-safe)
+  // Persist to Supabase analytics_events table & device_profiles (fail-safe)
   const client = isSupabaseAdminConfigured() ? getSupabaseAdmin() : supabase;
   if (client) {
     try {
-      const { error: insertError } = await client.from("analytics_events").insert({
+      const insertPromise = client.from("analytics_events").insert({
         id: eventRecord.id,
         event_type: "site_visit",
         movie_slug: eventRecord.movieSlug || "home",
@@ -295,11 +295,53 @@ export async function recordAnalyticsEvent(payload: AnalyticsEventPayload): Prom
         keyword: null,
         created_at: eventRecord.createdAt,
       });
-      if (insertError) {
-        console.warn("[Analytics] Supabase analytics_events insert error:", insertError.message || insertError);
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let upsertPromise: PromiseLike<any> | null = null;
+      if (eventRecord.anonymousId) {
+        const profileData: Record<string, unknown> = {
+          id: eventRecord.anonymousId,
+          guest_id: eventRecord.anonymousId,
+          device_type: eventRecord.deviceType || "desktop",
+          os: eventRecord.os || "Other",
+          browser: eventRecord.browser || "Other",
+          first_seen: eventRecord.createdAt,
+          last_seen: eventRecord.createdAt,
+        };
+        if (eventRecord.userId) {
+          profileData.user_id = eventRecord.userId;
+        }
+        if (eventRecord.country) {
+          profileData.country = eventRecord.country;
+        }
+        if (eventRecord.countryCode) {
+          profileData.country_code = eventRecord.countryCode;
+        }
+        if (eventRecord.region) {
+          profileData.region = eventRecord.region;
+        }
+        if (eventRecord.city) {
+          profileData.city = eventRecord.city;
+        }
+
+        upsertPromise = client.from("device_profiles").upsert(profileData, { onConflict: "id" });
+      }
+
+      const [insertRes, upsertRes] = await Promise.all([
+        insertPromise,
+        upsertPromise ? Promise.resolve(upsertPromise) : Promise.resolve({ error: null }),
+      ]);
+
+      if (insertRes?.error) {
+        console.warn("[Analytics] Supabase analytics_events insert error:", insertRes.error.message || insertRes.error);
+      }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      if ((upsertRes as any)?.error) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        console.warn("[Analytics] Supabase device_profiles upsert error:", (upsertRes as any).error.message || (upsertRes as any).error);
       }
     } catch (dbErr) {
-      console.warn("[Analytics] Supabase analytics_events insert error:", dbErr);
+      console.warn("[Analytics] Supabase analytics storage error:", dbErr);
     }
   }
 
@@ -585,6 +627,51 @@ export async function getAnalyticsDashboardStats(
 
   // Filter events by timeframe
   const filteredEvents = rawEvents.filter((ev) => ev.createdAt >= cutoffTimestamp);
+
+  // Enrich events with location from device_profiles if missing
+  const dbClient = isSupabaseAdminConfigured() ? getSupabaseAdmin() : supabase;
+  if (dbClient && filteredEvents.length > 0) {
+    const anonIdsToEnrich = new Set<string>();
+    for (const ev of filteredEvents) {
+      if (!ev.country && ev.anonymousId) {
+        anonIdsToEnrich.add(ev.anonymousId);
+      }
+    }
+    if (anonIdsToEnrich.size > 0) {
+      try {
+        const { data: devLocs } = await dbClient
+          .from("device_profiles")
+          .select("id, guest_id, country, country_code, region, city")
+          .in("id", Array.from(anonIdsToEnrich).slice(0, 1000));
+
+        if (Array.isArray(devLocs)) {
+          const locMap = new Map<string, { country?: string; countryCode?: string; region?: string; city?: string }>();
+          for (const d of devLocs) {
+            const key = d.guest_id || d.id;
+            if (key) {
+              locMap.set(key, {
+                country: d.country || undefined,
+                countryCode: d.country_code || undefined,
+                region: d.region || undefined,
+                city: d.city || undefined,
+              });
+            }
+          }
+          for (const ev of filteredEvents) {
+            if (!ev.country && ev.anonymousId) {
+              const loc = locMap.get(ev.anonymousId);
+              if (loc) {
+                ev.country = loc.country;
+                ev.countryCode = loc.countryCode;
+                ev.region = loc.region;
+                ev.city = loc.city;
+              }
+            }
+          }
+        }
+      } catch {}
+    }
+  }
 
   // Map anonymousId -> userId across all available events to reliably link anonymous sessions
   const anonToUserMap = buildAnonymousToUserMap(rawEvents);
@@ -1105,30 +1192,109 @@ export async function getDailyVisitorsStats(dateStr?: string): Promise<DailyVisi
     group.events.push(ev);
   }
 
-  // 6. Batch fetch Profiles for logged-in Users (device_profiles queries eliminated)
+  // 6. Batch fetch Profiles for logged-in Users & Device Profiles for GeoIP location resolution
   const userIdsToFetch = new Set<string>();
+  const guestIdsToFetch = new Set<string>();
   for (const group of visitorGroupMap.values()) {
     if (group.userId) userIdsToFetch.add(group.userId);
+    if (group.anonymousId) guestIdsToFetch.add(group.anonymousId);
+  }
+
+  interface LocationRecord {
+    country?: string;
+    countryCode?: string;
+    region?: string;
+    city?: string;
   }
 
   const profileMap = new Map<string, { name: string; avatar?: string; email?: string }>();
-  if (client && userIdsToFetch.size > 0) {
-    try {
-      const { data: profs } = await client
-        .from("profiles")
-        .select("id, display_name, photo_url, custom_avatar, email")
-        .in("id", Array.from(userIdsToFetch));
+  const userLocationMap = new Map<string, LocationRecord>();
+  const guestLocationMap = new Map<string, LocationRecord>();
 
-      if (Array.isArray(profs)) {
-        for (const p of profs) {
-          profileMap.set(p.id, {
-            name: p.display_name || "Thành viên",
-            avatar: p.custom_avatar || p.photo_url || undefined,
-            email: p.email || undefined,
-          });
-        }
-      }
-    } catch {}
+  if (client) {
+    const fetchPromises: Promise<void>[] = [];
+
+    // A. Profiles lookup for logged-in users (name, avatar, email)
+    if (userIdsToFetch.size > 0) {
+      fetchPromises.push(
+        (async () => {
+          try {
+            const { data: profs } = await client
+              .from("profiles")
+              .select("id, display_name, photo_url, custom_avatar, email")
+              .in("id", Array.from(userIdsToFetch));
+
+            if (Array.isArray(profs)) {
+              for (const p of profs) {
+                profileMap.set(p.id, {
+                  name: p.display_name || "Thành viên",
+                  avatar: p.custom_avatar || p.photo_url || undefined,
+                  email: p.email || undefined,
+                });
+              }
+            }
+          } catch {}
+        })()
+      );
+
+      // B. Device Profiles lookup by User ID
+      fetchPromises.push(
+        (async () => {
+          try {
+            const { data: userDevs } = await client
+              .from("device_profiles")
+              .select("user_id, country, country_code, region, city")
+              .in("user_id", Array.from(userIdsToFetch))
+              .order("last_seen", { ascending: false });
+
+            if (Array.isArray(userDevs)) {
+              for (const d of userDevs) {
+                if (d.user_id && !userLocationMap.has(d.user_id) && (d.country || d.city || d.country_code)) {
+                  userLocationMap.set(d.user_id, {
+                    country: d.country || undefined,
+                    countryCode: d.country_code || undefined,
+                    region: d.region || undefined,
+                    city: d.city || undefined,
+                  });
+                }
+              }
+            }
+          } catch {}
+        })()
+      );
+    }
+
+    // C. Device Profiles lookup by Guest ID (anonymousId)
+    if (guestIdsToFetch.size > 0) {
+      fetchPromises.push(
+        (async () => {
+          try {
+            const { data: guestDevs } = await client
+              .from("device_profiles")
+              .select("id, guest_id, country, country_code, region, city")
+              .in("id", Array.from(guestIdsToFetch).slice(0, 1000));
+
+            if (Array.isArray(guestDevs)) {
+              for (const d of guestDevs) {
+                const key = d.guest_id || d.id;
+                if (key && !guestLocationMap.has(key) && (d.country || d.city || d.country_code)) {
+                  guestLocationMap.set(key, {
+                    country: d.country || undefined,
+                    countryCode: d.country_code || undefined,
+                    region: d.region || undefined,
+                    city: d.city || undefined,
+                  });
+                }
+              }
+            }
+          } catch {}
+        })()
+      );
+    }
+
+    if (fetchPromises.length > 0) {
+      await Promise.all(fetchPromises);
+    }
   }
 
   // 7. Build DailyVisitorItem list
@@ -1141,6 +1307,11 @@ export async function getDailyVisitorsStats(dateStr?: string): Promise<DailyVisi
     const firstEv = group.events[0];
     const lastEv = group.events[group.events.length - 1];
 
+    let loc = group.userId ? userLocationMap.get(group.userId) : undefined;
+    if (!loc) {
+      loc = guestLocationMap.get(group.anonymousId);
+    }
+
     if (group.type === "user") {
       userCount++;
       const prof = group.userId ? profileMap.get(group.userId) : undefined;
@@ -1152,10 +1323,10 @@ export async function getDailyVisitorsStats(dateStr?: string): Promise<DailyVisi
         displayName,
         email: prof?.email,
         avatar: prof?.avatar,
-        country: lastEv.country,
-        countryCode: lastEv.countryCode,
-        region: lastEv.region,
-        city: lastEv.city,
+        country: loc?.country || lastEv.country,
+        countryCode: loc?.countryCode || lastEv.countryCode,
+        region: loc?.region || lastEv.region,
+        city: loc?.city || lastEv.city,
         firstSeen: firstEv.createdAt,
         lastSeen: lastEv.createdAt,
         eventCount: group.events.length,
@@ -1175,10 +1346,10 @@ export async function getDailyVisitorsStats(dateStr?: string): Promise<DailyVisi
         visitorKey: group.anonymousId,
         type: "guest",
         displayName,
-        country: lastEv.country,
-        countryCode: lastEv.countryCode,
-        region: lastEv.region,
-        city: lastEv.city,
+        country: loc?.country || lastEv.country,
+        countryCode: loc?.countryCode || lastEv.countryCode,
+        region: loc?.region || lastEv.region,
+        city: loc?.city || lastEv.city,
         firstSeen: firstEv.createdAt,
         lastSeen: lastEv.createdAt,
         eventCount: group.events.length,
