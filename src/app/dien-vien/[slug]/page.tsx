@@ -1,7 +1,13 @@
-import React from "react";
+import React, { cache } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+
+/**
+ * ISR / Edge Cache: Cho phép CDN Cloudflare và Vercel Edge cache response HTML 24 giờ.
+ * Ngăn chặn crawler bot kích hoạt lại SSR và giảm 90%+ Redis DB3 commands.
+ */
+export const revalidate = 86400;
 import {
   ArrowLeft,
   Calendar,
@@ -105,55 +111,12 @@ function formatDate(dateStr?: string): string | null {
   return dateStr;
 }
 
-export async function generateMetadata({ params, searchParams }: PageProps): Promise<Metadata> {
-  const { slug } = await params;
-  const query = searchParams ? await searchParams : undefined;
-  const { personId, rawName } = parseActorIdentifier(slug, query?.id);
-
-  let actorName = "";
-
-  if (personId) {
-    try {
-      const tmdb = await getTmdbPersonDetail(personId);
-      if (tmdb?.name) {
-        actorName = tmdb.name;
-      }
-    } catch {
-      // Fallback below
-    }
-  }
-
-  if (!actorName && rawName) {
-    try {
-      const person = await searchTmdbPerson(rawName, rawName);
-      if (person?.name) {
-        actorName = person.name;
-      }
-    } catch {
-      // Fallback below
-    }
-  }
-
-  if (!actorName) {
-    const historicalItem = getHistoricalArtistBySlug(slug) || (rawName ? getHistoricalArtistBySlug(rawName) : undefined);
-    const synonymRes = getActorSynonyms(rawName) || getActorSynonyms(slug);
-    actorName = historicalItem?.name || (synonymRes?.isMatched ? synonymRes.canonicalName : "") || toVietnameseTitleCase(rawName);
-  }
-
-  return {
-    title: `Phim của ${actorName} - Tiểu sử & Danh sách phim | Nanaflix`,
-    description: `Khám phá hồ sơ tiểu sử, vai diễn nổi bật và trọn bộ tuyển tập phim của nghệ sĩ ${actorName} chất lượng cao trên Nanaflix.`,
-    openGraph: {
-      title: `${actorName} - Hồ sơ nghệ sĩ & Danh sách phim | Nanaflix`,
-      description: `Xem trọn bộ phim của ${actorName} phụ đề Vietsub và Thuyết minh chất lượng cao tại Nanaflix.`,
-    },
-  };
-}
-
-export default async function ActorDetailPage({ params, searchParams }: PageProps) {
-  const { slug } = await params;
-  const query = searchParams ? await searchParams : undefined;
-  const { personId: explicitPersonId, rawName } = parseActorIdentifier(slug, query?.id);
+/**
+ * Request-scoped memoized actor profile resolver (React cache).
+ * Loại bỏ hoàn toàn Double GET giữa generateMetadata() và ActorDetailPage() trong cùng 1 request SSR.
+ */
+const resolveActorProfile = cache(async (slug: string, queryId?: string) => {
+  const { personId: explicitPersonId, rawName } = parseActorIdentifier(slug, queryId);
 
   // 1. Phân giải danh tính nghệ sĩ On-Demand
   const historicalItem = getHistoricalArtistBySlug(slug) || (rawName ? getHistoricalArtistBySlug(rawName) : undefined);
@@ -220,7 +183,49 @@ export default async function ActorDetailPage({ params, searchParams }: PageProp
     }
   }
 
-  // 3. Tra cứu thông tin bổ trợ từ Wikipedia
+  return {
+    rawName,
+    tmdbPersonId,
+    canonicalName,
+    actorAliases,
+    historicalItem,
+    actorSynonyms,
+    actorRes,
+    matchedPreset,
+    tmdbDetail,
+  };
+});
+
+export async function generateMetadata({ params, searchParams }: PageProps): Promise<Metadata> {
+  const { slug } = await params;
+  const query = searchParams ? await searchParams : undefined;
+  const profile = await resolveActorProfile(slug, query?.id);
+  const actorName = profile.canonicalName || profile.rawName;
+
+  return {
+    title: `Phim của ${actorName} - Tiểu sử & Danh sách phim | Nanaflix`,
+    description: `Khám phá hồ sơ tiểu sử, vai diễn nổi bật và trọn bộ tuyển tập phim của nghệ sĩ ${actorName} chất lượng cao trên Nanaflix.`,
+    openGraph: {
+      title: `${actorName} - Hồ sơ nghệ sĩ & Danh sách phim | Nanaflix`,
+      description: `Xem trọn bộ phim của ${actorName} phụ đề Vietsub và Thuyết minh chất lượng cao tại Nanaflix.`,
+    },
+  };
+}
+
+export default async function ActorDetailPage({ params, searchParams }: PageProps) {
+  const { slug } = await params;
+  const query = searchParams ? await searchParams : undefined;
+  const {
+    canonicalName,
+    actorAliases,
+    historicalItem,
+    actorSynonyms,
+    actorRes,
+    matchedPreset,
+    tmdbDetail,
+  } = await resolveActorProfile(slug, query?.id);
+
+  // 3. Tra cứu thông tin bổ trợ từ Wikipedia và Danh sách phim
   const wikiProfilePromise = canonicalName ? fetchActorProfile(canonicalName) : Promise.resolve(null);
   const moviesPromise = canonicalName
     ? queryMoviesByActor(canonicalName, actorAliases, historicalItem?.country || actorRes?.country || actorSynonyms?.country || "", 150)

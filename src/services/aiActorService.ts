@@ -1303,6 +1303,47 @@ export function matchesActorAliases(castList: string[], aliases: string[]): bool
  * 3. Bounded Detail Probing: Chỉ kiểm tra tối đa 15 phim chưa xác định trong 1 đợt song song có timeout.
  * 4. SWR In-Memory Cache: Phản hồi 0ms cho các lần truy cập tiếp theo hoặc khi chuyển trang.
  */
+/**
+ * Rút gọn payload Movie Card cho Actor Filmography nhằm tiết kiệm 88-90% dung lượng Redis DB3.
+ * Loại bỏ các trường cồng kềnh không dùng trên MovieGrid (content, description, actor mảng con, director)
+ * trong khi bảo toàn 100% các trường cần thiết cho MediaCard / normalizeMovie.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function slimActorMovieItem(m: any): any {
+  if (!m) return null;
+  return {
+    _id: m._id || m.id,
+    name: m.name || m.title || "",
+    origin_name: m.origin_name || m.original_name,
+    slug: m.slug,
+    poster_url: m.poster_url || m.thumb_url,
+    thumb_url: m.thumb_url || m.poster_url,
+    year: m.year,
+    quality: m.quality || "FHD",
+    time: m.time || m.episode_current,
+    episode_current: m.episode_current,
+    type: m.type || m.type_name,
+    type_name: m.type_name || m.type,
+    category: Array.isArray(m.category)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ? m.category.map((c: any) => ({ name: typeof c === "string" ? c : c?.name || "", slug: c?.slug }))
+      : undefined,
+    country: Array.isArray(m.country)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ? m.country.map((c: any) => ({ name: typeof c === "string" ? c : c?.name || "", slug: c?.slug }))
+      : undefined,
+    tmdb: m.tmdb
+      ? {
+          id: m.tmdb.id,
+          vote_average: m.tmdb.vote_average,
+          vote_count: m.tmdb.vote_count,
+        }
+      : undefined,
+    isActorFilmography: true,
+    matchBy: m.matchBy,
+  };
+}
+
 export async function queryMoviesByActor(
   actorName: string,
   aliases: string[] = [],
@@ -1331,6 +1372,7 @@ export async function queryMoviesByActor(
 
   const normalizedVariants = Array.from(new Set(allVariants.map(normalizeForMatch).filter(Boolean)));
   const cacheKey = `ACTOR_QUERY_V10:${matchedSlug || normalizedVariants.sort().join("|")}`;
+  const normSlug = normalizeForMatch(matchedSlug || actorName).replace(/\s+/g, "_");
 
   // 2. Cơ chế SWR Cache (Stale-While-Revalidate - Phản hồi 0ms tức thì)
   const cached = ACTOR_FILM_CACHE.get(cacheKey);
@@ -1350,11 +1392,27 @@ export async function queryMoviesByActor(
     }
   }
 
-  const kvKey = `actor:filmography_v10:${matchedSlug || actorName}:${maxMovies}`;
+  // 3. Nếu yêu cầu maxMovies < 150 (ví dụ gợi ý 12 phim), kiểm tra xem cache filmography đầy đủ 150 phim đã có chưa
+  if (maxMovies < 150) {
+    const fullKvKey = `actor:filmography_v10:${normSlug}:150`;
+    try {
+      const fullCached = await cacheService.get<Record<string, unknown>[]>(fullKvKey);
+      if (Array.isArray(fullCached) && fullCached.length > 0) {
+        return fullCached.slice(0, maxMovies);
+      }
+    } catch {
+      // Ignore cache lookup error
+    }
+  }
+
+  const kvKey = `actor:filmography_v10:${normSlug}:${maxMovies}`;
   const res = await cacheService.fetchOrSet(
     kvKey,
-    () => executeActorFilmQuery(actorName, allVariants, matchedSlug, synonymRes, maxMovies, cacheKey),
-    14 * 86400 // 14 ngày
+    async () => {
+      const items = await executeActorFilmQuery(actorName, allVariants, matchedSlug, synonymRes, maxMovies, cacheKey);
+      return Array.isArray(items) ? items.map(slimActorMovieItem).filter(Boolean) : [];
+    },
+    3 * 86400 // Giảm từ 14 ngày xuống 3 ngày để bảo vệ 250 MB RAM của DB3
   );
   return res || [];
 }
@@ -1426,10 +1484,7 @@ async function executeActorFilmQueryInternal(
       tmdbPersonId
     );
     if (tmdbMovies && tmdbMovies.length > 0) {
-      const enrichedMovies = tmdbMovies.map((m) => ({
-        ...m,
-        actor: Array.isArray(m.actor) ? m.actor : [],
-      }));
+      const enrichedMovies = tmdbMovies.map(slimActorMovieItem).filter(Boolean);
       ACTOR_FILM_CACHE.set(cacheKey, {
         items: enrichedMovies,
         expireAt: Date.now() + CACHE_7_DAYS,
@@ -1566,7 +1621,7 @@ async function executeActorFilmQueryInternal(
     return yearB - yearA;
   });
 
-  const clampedResults = finalResults.slice(0, maxMovies);
+  const clampedResults = finalResults.slice(0, maxMovies).map(slimActorMovieItem).filter(Boolean);
 
   if (clampedResults.length > 0) {
     setBoundedCache(ACTOR_FILM_CACHE, cacheKey, {

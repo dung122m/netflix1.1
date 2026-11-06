@@ -16,9 +16,9 @@ export default function robots(): MetadataRoute.Robots {
         disallow: ["/"],
       },
       {
-        userAgent: ["AhrefsBot", "SemrushBot", "MJ12bot", "DotBot"],
+        userAgent: ["AhrefsBot", "SemrushBot", "MJ12bot", "DotBot", "Amazonbot", "ClaudeBot", "GPTBot"],
         crawlDelay: 10,
-        disallow: ["/admin/", "/api/"],
+        disallow: ["/admin/", "/api/", "/dien-vien/"],
       },
     ],
     sitemap: `${siteUrl}/sitemap.xml`,

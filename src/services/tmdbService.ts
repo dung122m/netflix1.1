@@ -1225,11 +1225,7 @@ export async function getTmdbPersonMovieCredits(personId: number): Promise<TmdbM
       vote_count: Number(m.vote_count || 0),
       popularity: Number(m.popularity || 0),
       poster_path: m.poster_path || null,
-      backdrop_path: m.backdrop_path || null,
-      overview: m.overview || "",
       character: m.character || "",
-      department: m.department || "",
-      job: m.job || "",
       media_type: m.media_type || (m.first_air_date ? "tv" : "movie"),
       genre_ids: Array.isArray(m.genre_ids) ? m.genre_ids : (genreIds.length > 0 ? genreIds : undefined),
       original_language: m.original_language || undefined,
@@ -1254,7 +1250,7 @@ export async function getTmdbPersonMovieCredits(personId: number): Promise<TmdbM
 
       return sortedCredits;
     },
-    14 * 86400 // 14 ngày trên Cloudflare KV
+    3 * 86400 // Giảm từ 14 ngày xuống 3 ngày để bảo vệ 250 MB RAM của DB3
   );
 }
 

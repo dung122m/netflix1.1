@@ -1,5 +1,11 @@
 import { Suspense } from "react";
 import { movieApi, deduplicateServerEpisodes, filterDualServers } from "@/services/movies/service";
+
+/**
+ * ISR / Edge Cache: Cho phép CDN Cloudflare và Vercel Edge cache response HTML công khai 24 giờ.
+ * Ngăn chặn SSR thực thi lại trên mỗi request crawler và bảo vệ Redis DB1 khỏi bùng nổ lệnh GET.
+ */
+export const revalidate = 86400;
 import Link from "next/link";
 import {
   buildMovieDescriptionFallback,
