@@ -138,9 +138,20 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
   const embedSrc = rawEpEmbed !== undefined ? rawEpEmbed : (isPropMatchingActive ? propEmbedSrc : undefined);
   const videoLink = m3u8Link || embedSrc || (isPropMatchingActive ? propVideoLink : undefined);
 
-  const prevEpisode = watchContext?.prevEpisode ?? null;
+  const rawPrevEpisode = watchContext?.prevEpisode ?? null;
   const rawNextEpisode = watchContext?.nextEpisode ?? null;
   const switchEpisode = watchContext?.switchEpisode;
+
+  const effectivePrevEpisode = useMemo(() => {
+    if (rawPrevEpisode) return rawPrevEpisode;
+    if (!episodes || episodes.length <= 1 || !activeEpisodeSlug) return null;
+    const currentSlug = activeEpisode?.slug || activeEpisodeSlug;
+    const idx = episodes.findIndex((e) => e.slug === currentSlug);
+    if (idx > 0) {
+      return episodes[idx - 1];
+    }
+    return null;
+  }, [rawPrevEpisode, episodes, activeEpisodeSlug, activeEpisode?.slug]);
 
   const effectiveNextEpisode = useMemo(() => {
     if (rawNextEpisode) return rawNextEpisode;
@@ -2480,12 +2491,12 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
         return;
       }
 
-      if ((e.key === "p" || e.key === "P") && prevEpisode?.slug && switchEpisode) {
+      if ((e.key === "p" || e.key === "P") && effectivePrevEpisode?.slug && switchEpisode) {
         if (e.repeat) return;
         e.preventDefault();
         resetControlsTimeout();
-        showHud(<SkipBack className="w-5 h-5 text-netflix-red" />, `Chuyển về ${prevEpisode.name}`);
-        switchEpisode(prevEpisode.slug);
+        showHud(<SkipBack className="w-5 h-5 text-netflix-red" />, `Chuyển về ${effectivePrevEpisode.name}`);
+        switchEpisode(effectivePrevEpisode.slug);
         return;
       }
 
@@ -2588,7 +2599,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
     };
   }, [
     isNativeVideo,
-    prevEpisode,
+    effectivePrevEpisode,
     effectiveNextEpisode,
     switchEpisode,
     togglePlayPause,
@@ -2998,6 +3009,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
                 videoRef={videoRef}
                 title={title}
                 activeEpisodeName={activeEpisodeName ? formatEpisodeName(activeEpisodeName) : undefined}
+                prevEpisode={effectivePrevEpisode}
                 nextEpisode={effectiveNextEpisode}
                 onTogglePlayPause={togglePlayPause}
                 onSeekFeedback={(txt) => {
@@ -3194,12 +3206,10 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
         </div>
       </div>
 
-      {/* ISOLATED ACTION BUTTONS BAR */}
-      {!isFullscreen && (
+      {/* ISOLATED ACTION BUTTONS BAR (DESKTOP ONLY CHO PHIM BỘ) */}
+      {!isFullscreen && (effectivePrevEpisode || effectiveNextEpisode) && (
         <div
-          className={`cinema-action-buttons w-full mx-auto relative z-30 ${
-            prevEpisode || effectiveNextEpisode ? "mt-2 sm:mt-4" : "hidden sm:block sm:mt-4"
-          } ${
+          className={`cinema-action-buttons w-full mx-auto relative z-30 hidden sm:block sm:mt-4 ${
             isTheaterMode ? "max-w-none px-2 sm:px-4" : "max-w-7xl px-2 sm:px-0"
           }`}
         >
@@ -3209,7 +3219,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
             isFullscreen={isFullscreen}
             onToggleFullscreen={toggleFullscreen}
             onOpenShortcuts={() => setShowShortcutModal(true)}
-            prevEpisode={prevEpisode}
+            prevEpisode={effectivePrevEpisode}
             nextEpisode={effectiveNextEpisode}
             onSwitchEpisode={switchEpisode}
             isSticky={false}
