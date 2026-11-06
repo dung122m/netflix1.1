@@ -7,6 +7,7 @@ import { notFound } from "next/navigation";
  * ISR / Edge Cache: Cho phép CDN Cloudflare và Vercel Edge cache response HTML 24 giờ.
  * Ngăn chặn crawler bot kích hoạt lại SSR và giảm 90%+ Redis DB3 commands.
  */
+export const dynamic = "force-static";
 export const revalidate = 86400;
 import {
   ArrowLeft,
