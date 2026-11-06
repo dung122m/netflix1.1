@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
-import { Check, Search, X, Play, ChevronRight, ChevronDown, Target } from "lucide-react";
+import { Check, Search, X, Play, ChevronRight, ChevronDown, ChevronUp, Target } from "lucide-react";
 import { getWatchedEpisodes } from "@/lib/episodeTracker";
 import { getShortEpisodeLabel, formatEpisodeName, findEpisodeMatch } from "@/lib/formatEpisode";
 import { useWatchController, EpisodeItem } from "./WatchController";
@@ -99,6 +99,12 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(function Episo
   }, [activeEpisodeIndex]);
 
   const [activeChunk, setActiveChunk] = useState<number>(initialChunk);
+  const [isMobileExpanded, setIsMobileExpanded] = useState<boolean>(false);
+
+  // Tự động thu gọn danh sách tập trên mobile khi đổi dải tập
+  useEffect(() => {
+    setIsMobileExpanded(false);
+  }, [activeChunk]);
 
   // Cập nhật tab khi activeEpisodeSlug hoặc danh sách tập thay đổi (khi đổi nguồn phát / server)
   useEffect(() => {
@@ -412,8 +418,8 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(function Episo
         )}
       </div>
 
-      {/* 2. KHUNG CUỘN DANH SÁCH TẬP PHIM ĐỘC LẬP (TẬN DỤNG TOÀN BỘ KHÔNG GIAN CÒN LẠI) */}
-      <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-1.5 custom-scrollbar overscroll-contain">
+      {/* 2. KHUNG CUỘN DANH SÁCH TẬP PHIM (TỐI ƯU DESKTOP SIDEBAR, VUỐT MƯỢT KHÔNG BỊ TRAP TRÊN MOBILE) */}
+      <div className="flex-1 min-h-0 max-lg:overflow-y-visible max-lg:overscroll-auto lg:overflow-y-auto lg:overscroll-contain overflow-x-hidden px-1.5 custom-scrollbar touch-pan-y">
 
       {/* TRƯỜNG HỢP TÌM KIẾM CHỈ RA 1 TẬP: HIỂN THỊ THẺ TẬP NỔI BẬT CAO CẤP */}
       {isSearching && displayEpisodes.length === 1 && (() => {
@@ -523,7 +529,8 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(function Episo
       {displayEpisodes.length > 0 ? (
         // Chỉ render lưới này khi không phải trường hợp 1 tập duy nhất trong tìm kiếm (đã hiển thị Card ở trên)
         (!isSearching || displayEpisodes.length > 1) && (
-          <div className={`${gridClasses} p-1`}>
+          <>
+            <div className={`${gridClasses} p-1`}>
             {displayEpisodes.map((tap, tapIdx) => {
               const tapSlug = tap.slug || `ep-${tapIdx + 1}`;
               const tapName = tap.name || `Tập ${tapIdx + 1}`;
@@ -565,6 +572,8 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(function Episo
                 ? `${tapName} • Đang xem dở (${formatSec(progressSeconds)}${durationSeconds > 0 ? ` / ${formatSec(durationSeconds)}` : ""})`
                 : tapName;
 
+              const isHiddenOnMobile = !isMobileExpanded && !isSearching && displayEpisodes.length > 8 && tapIdx >= 8;
+
               return (
                 <Link
                   key={`${tapSlug}-${tapIdx}`}
@@ -582,6 +591,8 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(function Episo
                     }
                   }}
                   className={`relative flex items-center justify-center text-center transition-all duration-200 group rounded-xl cursor-pointer select-none outline-none overflow-hidden focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950 focus-visible:scale-[1.02] focus-visible:z-20 ${
+                    isHiddenOnMobile ? "max-lg:hidden" : ""
+                  } ${
                     episodes.length === 1
                       ? "py-2.5 px-3 min-h-[38px] text-xs sm:text-sm font-bold"
                       : isFewEpisodes
@@ -643,6 +654,35 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(function Episo
               );
             })}
           </div>
+
+          {/* Nút Xem thêm / Thu gọn tập phim trên màn hình điện thoại (tránh chiếm quá nhiều chiều dọc màn hình & giúp vuốt trang dễ dàng) */}
+          {!isSearching && displayEpisodes.length > 8 && (
+            <div className="mt-2.5 px-1 text-center lg:hidden">
+              <button
+                type="button"
+                onClick={() => setIsMobileExpanded((prev) => !prev)}
+                className="w-full py-2 px-3 rounded-xl bg-white/[0.06] hover:bg-white/10 active:bg-white/15 text-xs font-bold text-zinc-200 hover:text-white transition-all flex items-center justify-center gap-1.5 border border-white/[0.08] cursor-pointer shadow-xs active:scale-[0.99]"
+              >
+                {isMobileExpanded ? (
+                  <>
+                    <span>Thu gọn danh sách tập</span>
+                    <ChevronUp className="w-3.5 h-3.5 text-zinc-400" />
+                  </>
+                ) : (
+                  <>
+                    <span>
+                      Xem thêm {displayEpisodes.length - 8} tập còn lại
+                      {currentActiveEpisode && displayEpisodes.findIndex((e) => e.slug === currentActiveEpisode.slug) >= 8
+                        ? ` (Đang xem: ${currentActiveEpisode.name || currentActiveEpisode.slug})`
+                        : ""}
+                    </span>
+                    <ChevronDown className="w-3.5 h-3.5 text-zinc-400" />
+                  </>
+                )}
+              </button>
+            </div>
+          )}
+        </>
         )
       ) : (
         <div className="rounded-2xl bg-zinc-950/60 p-6 text-center space-y-2 animate-in fade-in duration-150">

@@ -2720,6 +2720,14 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
               onDoubleClick={(e) => {
                 const target = e.target as HTMLElement | null;
                 if (target?.closest('[data-player-control="true"]')) return;
+
+                // Bỏ qua hoàn toàn trên màn hình cảm ứng: trên mobile chỉ chạm đúp để tua, TUYỆT ĐỐI không bật/tắt toàn màn hình
+                const isTouch =
+                  (e.nativeEvent as PointerEvent)?.pointerType === "touch" ||
+                  (typeof window !== "undefined" && window.matchMedia && window.matchMedia("(pointer: coarse)").matches) ||
+                  isMobile;
+                if (isTouch) return;
+
                 const now = Date.now();
                 if (now - lastFullscreenToggleTimeRef.current > 400) {
                   lastFullscreenToggleTimeRef.current = now;
@@ -2798,38 +2806,35 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
                 }
 
                 // ===============================================================
-                // MOBILE / TOUCH DEVICES (YOUTUBE DOUBLE TAP GESTURES)
+                // MOBILE / TOUCH DEVICES (CHẠM ĐÚP ĐỂ TUA NHANH ±10S - YOUTUBE STYLE)
                 // ===============================================================
-                if (lastTap && now - lastTap.time < 320 && Math.abs(e.clientX - lastTap.x) < 90) {
-                  // DOUBLE TAP DETECTED TRÊN MOBILE
+                if (lastTap && now - lastTap.time < 350 && Math.abs(e.clientX - lastTap.x) < 100) {
+                  // DOUBLE TAP DETECTED TRÊN MOBILE: CHỈ TUA, TUYỆT ĐỐI KHÔNG BẬT FULLSCREEN
                   if (singleTapTimerRef.current) {
                     clearTimeout(singleTapTimerRef.current);
                     singleTapTimerRef.current = null;
                   }
                   lastTapRef.current = null;
 
-                  if (xPct <= 0.38) {
-                    // TUA LÙI (Đồng bộ Minimalist: cộng dồn nếu chạm đúp liên tiếp)
+                  const SEEK_STEP = 10; // Chuẩn tua 10 giây mỗi lần chạm đúp
+                  if (xPct < 0.5) {
+                    // Nửa bên trái: TUA LÙI (-10s, cộng dồn nếu chạm đúp liên tiếp)
                     if (videoRef.current) {
-                      requestPlayerSeek(Math.max(0, (videoRef.current.currentTime || 0) - 5), false);
+                      requestPlayerSeek(Math.max(0, (videoRef.current.currentTime || 0) - SEEK_STEP), false);
                     }
                     const cur = desktopFeedbackRef.current;
                     const prevSec = cur && cur.type === "seek-left" ? (cur.seconds || 0) : 0;
-                    const nextSec = prevSec + 5;
+                    const nextSec = prevSec + SEEK_STEP;
                     triggerDesktopFeedback("seek-left", `−${nextSec}s`, nextSec);
-                  } else if (xPct >= 0.62) {
-                    // TUA TỚI (Đồng bộ Minimalist: cộng dồn nếu chạm đúp liên tiếp)
+                  } else {
+                    // Nửa bên phải: TUA TỚI (+10s, cộng dồn nếu chạm đúp liên tiếp)
                     if (videoRef.current) {
-                      requestPlayerSeek((videoRef.current.currentTime || 0) + 5, false);
+                      requestPlayerSeek((videoRef.current.currentTime || 0) + SEEK_STEP, false);
                     }
                     const cur = desktopFeedbackRef.current;
                     const prevSec = cur && cur.type === "seek-right" ? (cur.seconds || 0) : 0;
-                    const nextSec = prevSec + 5;
+                    const nextSec = prevSec + SEEK_STEP;
                     triggerDesktopFeedback("seek-right", `+${nextSec}s`, nextSec);
-                  } else {
-                    // Chạm đúp ở giữa (center) -> Toggle fullscreen
-                    lastFullscreenToggleTimeRef.current = now;
-                    toggleFullscreen();
                   }
                   resetControlsTimeout();
                 } else {
