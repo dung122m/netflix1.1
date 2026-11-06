@@ -27,6 +27,12 @@ const MALICIOUS_USER_AGENTS = [
 // Danh sách các User-Agent cào dữ liệu hung hãn không mong muốn (chặn sớm tại Edge để triệt tiêu tải Redis DB1 & DB3)
 // Giữ nguyên Googlebot, Bingbot, ClaudeBot và các Verified Bots hợp lệ theo yêu cầu
 const AGGRESSIVE_SCRAPER_USER_AGENTS = [
+  /gptbot/i,
+  /chatgpt/i,
+  /claudebot/i,
+  /claude-web/i,
+  /anthropic-ai/i,
+  /amazonbot/i,
   /bytespider/i,
   /petalbot/i,
   /ahrefsbot/i,
@@ -39,6 +45,7 @@ const AGGRESSIVE_SCRAPER_USER_AGENTS = [
   /screaming\s*frog/i,
   /zoominfobot/i,
   /exabot/i,
+  /ccbot/i,
   /python-requests/i,
   /python-urllib/i,
   /scrapy/i,
@@ -59,7 +66,7 @@ interface EdgeRateLimitRecord {
   resetAt: number;
 }
 const ACTOR_EDGE_RATE_LIMIT = new Map<string, EdgeRateLimitRecord>();
-const ACTOR_RL_MAX_REQUESTS = 15; // Tối đa 15 request trong 10 giây
+const ACTOR_RL_MAX_REQUESTS = 4; // Tối đa 4 request trong 10 giây (ngăn chặn triệt để crawler giãn cách 2-3s)
 const ACTOR_RL_WINDOW_MS = 10_000;
 const MAX_ACTOR_RL_ENTRIES = 5000;
 
