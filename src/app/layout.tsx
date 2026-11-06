@@ -71,8 +71,8 @@ export const metadata: Metadata = {
       "Xem phim bom tấn, anime vietsub và theo dõi trực tiếp bóng đá Ngoại Hạng Anh, C1, V-League Full HD mượt mà cùng Trợ lý Nana AI.",
     images: [
       {
-        url: `${siteUrl}/default-hero.jpg?v=2`,
-        secureUrl: `${siteUrl}/default-hero.jpg?v=2`,
+        url: `${siteUrl}/og-cinema.jpg?v=2026`,
+        secureUrl: `${siteUrl}/og-cinema.jpg?v=2026`,
         width: 1200,
         height: 630,
         alt: "Nanaflix - Xem Phim & Trực Tiếp Thể Thao Full HD",
@@ -85,7 +85,7 @@ export const metadata: Metadata = {
     title: "Nanaflix - Xem Phim & Trực Tiếp Thể Thao Miễn Phí",
     description:
       "Xem phim bom tấn, anime vietsub và theo dõi trực tiếp bóng đá Ngoại Hạng Anh, C1, V-League Full HD mượt mà cùng Trợ lý Nana AI.",
-    images: [`${siteUrl}/default-hero.jpg?v=2`],
+    images: [`${siteUrl}/og-cinema.jpg?v=2026`],
   },
   robots: {
     index: true,

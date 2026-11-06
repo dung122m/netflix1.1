@@ -19,8 +19,8 @@ export const metadata: Metadata = {
     type: "website",
     images: [
       {
-        url: `${siteUrl}/default-hero.jpg?v=2`,
-        secureUrl: `${siteUrl}/default-hero.jpg?v=2`,
+        url: `${siteUrl}/og-cinema.jpg?v=2026`,
+        secureUrl: `${siteUrl}/og-cinema.jpg?v=2026`,
         width: 1200,
         height: 630,
         alt: "Nanaflix Live TV & Bóng Đá",
@@ -33,7 +33,7 @@ export const metadata: Metadata = {
     title: "Nanaflix - Trực Tiếp Bóng Đá & Truyền Hình TV HD",
     description:
       "Xem trực tiếp bóng đá và hơn 100 kênh truyền hình VTV, HTV, THVL chất lượng cao trên Nanaflix.",
-    images: [`${siteUrl}/default-hero.jpg?v=2`],
+    images: [`${siteUrl}/og-cinema.jpg?v=2026`],
   },
 };
 
