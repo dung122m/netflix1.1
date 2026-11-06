@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import { Tv, Radio, Zap, Trophy, RefreshCw } from "lucide-react";
-import { LiveFootballData } from "@/services/liveFootballService";
+import { LiveFootballData, evaluateEventLifecycle } from "@/services/liveFootballService";
 import { LiveTvData } from "@/services/liveTvService";
 import { LiveFootballClient } from "./LiveFootballClient";
 import { LiveTvClient } from "./LiveTvClient";
@@ -69,10 +69,26 @@ export function LiveHubClient({ footballData, tvData: initialTvData }: LiveHubCl
   const initialValidCount = useMemo(() => {
     const now = Date.now();
     return footballData.matches.filter((m) => {
-      if (m.timeline === "finished" || m.realStatus === "finished" || m.sourceStatus === "finished") return false;
-      if (!m.isEvent && m.timestamp && now > m.timestamp + 140 * 60 * 1000) return false;
-      if (m.isEvent && m.timestamp && now > m.timestamp + 140 * 60 * 1000 && m.timeline !== "live") return false;
-      return true;
+      const hasStream = Boolean(
+        Array.isArray(m.servers) &&
+          m.servers.length > 0 &&
+          m.servers.some((s) => s.url && s.url.trim().length > 0),
+      );
+      const evalResult = evaluateEventLifecycle({
+        timestamp: m.timestamp,
+        score: m.score,
+        sourceStatus: m.sourceStatus,
+        streamHealth: hasStream ? "alive" : "dead",
+        now,
+        sport: m.sport,
+        isEvent: m.isEvent,
+      });
+      if (evalResult.displayTimeline === "finished") return false;
+      if (evalResult.displayTimeline === "live") return true;
+      if (evalResult.displayTimeline === "upcoming") {
+        return evalResult.isLiveInWindow;
+      }
+      return false;
     }).length;
   }, [footballData.matches]);
 

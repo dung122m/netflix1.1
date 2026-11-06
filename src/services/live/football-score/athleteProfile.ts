@@ -126,7 +126,7 @@ async function fetchCommonsImageInfo(fileName: string): Promise<{
 
     const res = await fetch(url, {
       headers: {
-        "User-Agent": "Nanaflix/1.0 (https://nanaflix.vercel.app; support@nanaflix.com)",
+        "User-Agent": "Nanaflix/1.0 (https://nanaflix.asia; support@nanaflix.com)",
       },
       signal: AbortSignal.timeout(2500),
     });
@@ -211,7 +211,7 @@ async function fetchWikidataPhotoFallback(
     const qUrl = `https://query.wikidata.org/sparql?format=json&query=${encodeURIComponent(sparql)}`;
     const wRes = await fetch(qUrl, {
       headers: {
-        "User-Agent": "Nanaflix/1.0 (https://nanaflix.vercel.app; support@nanaflix.com)",
+        "User-Agent": "Nanaflix/1.0 (https://nanaflix.asia; support@nanaflix.com)",
       },
       signal: AbortSignal.timeout(2500),
     });
@@ -250,7 +250,7 @@ async function fetchWikidataPhotoFallback(
     )}&language=en&format=json&type=item&limit=3`;
 
     const sRes = await fetch(searchUrl, {
-      headers: { "User-Agent": "Nanaflix/1.0 (https://nanaflix.vercel.app)" },
+      headers: { "User-Agent": "Nanaflix/1.0 (https://nanaflix.asia)" },
       signal: AbortSignal.timeout(2000),
     });
 

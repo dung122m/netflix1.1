@@ -93,7 +93,7 @@ export async function generateMetadata({
   }
 
   const fullTitle = `Nanaflix - ${title}`;
-  const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || "https://nanaflix.vercel.app").replace(/\/+$/, "");
+  const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || "https://nanaflix.asia").replace(/\/+$/, "");
   const search = new URLSearchParams();
   for (const [key, value] of Object.entries(params)) {
     if (typeof value === "string" && value.trim()) {
@@ -115,8 +115,8 @@ export async function generateMetadata({
       type: "website",
       images: [
         {
-          url: `${siteUrl}/default-hero.jpg`,
-          secureUrl: `${siteUrl}/default-hero.jpg`,
+          url: `${siteUrl}/default-hero.jpg?v=2`,
+          secureUrl: `${siteUrl}/default-hero.jpg?v=2`,
           width: 1200,
           height: 630,
           alt: fullTitle,
@@ -128,7 +128,7 @@ export async function generateMetadata({
       card: "summary_large_image",
       title: fullTitle,
       description,
-      images: [`${siteUrl}/default-hero.jpg`],
+      images: [`${siteUrl}/default-hero.jpg?v=2`],
     },
   };
 }

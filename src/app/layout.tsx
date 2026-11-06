@@ -19,7 +19,7 @@ const beVietnamPro = Be_Vietnam_Pro({
   display: "swap",
 });
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://nanaflix.vercel.app";
+const siteUrl = "https://nanaflix.asia";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
@@ -66,26 +66,26 @@ export const metadata: Metadata = {
     locale: "vi_VN",
     url: siteUrl,
     siteName: "Nanaflix",
-    title: "Nanaflix - Thế Giới Điện Ảnh Của Nana | Xem Phim HD Miễn Phí",
+    title: "Nanaflix - Xem Phim & Trực Tiếp Thể Thao Miễn Phí Chất Lượng Cao",
     description:
-      "Nanaflix - Xem phim trực tuyến chất lượng cao cùng Trợ lý Nana gợi ý phim thông minh, cập nhật liên tục các siêu phẩm điện ảnh mới nhất.",
+      "Xem phim bom tấn, anime vietsub và theo dõi trực tiếp bóng đá Ngoại Hạng Anh, C1, V-League Full HD mượt mà cùng Trợ lý Nana AI.",
     images: [
       {
-        url: `${siteUrl}/default-hero.jpg`,
-        secureUrl: `${siteUrl}/default-hero.jpg`,
+        url: `${siteUrl}/default-hero.jpg?v=2`,
+        secureUrl: `${siteUrl}/default-hero.jpg?v=2`,
         width: 1200,
         height: 630,
-        alt: "Nanaflix - Xem Phim Online HD",
+        alt: "Nanaflix - Xem Phim & Trực Tiếp Thể Thao Full HD",
         type: "image/jpeg",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Nanaflix - Thế Giới Điện Ảnh Của Nana",
+    title: "Nanaflix - Xem Phim & Trực Tiếp Thể Thao Miễn Phí",
     description:
-      "Nanaflix - Xem phim trực tuyến chất lượng cao cùng Trợ lý Nana gợi ý phim thông minh, cập nhật liên tục các siêu phẩm điện ảnh mới nhất.",
-    images: [`${siteUrl}/default-hero.jpg`],
+      "Xem phim bom tấn, anime vietsub và theo dõi trực tiếp bóng đá Ngoại Hạng Anh, C1, V-League Full HD mượt mà cùng Trợ lý Nana AI.",
+    images: [`${siteUrl}/default-hero.jpg?v=2`],
   },
   robots: {
     index: true,

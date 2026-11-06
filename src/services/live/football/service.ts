@@ -68,6 +68,8 @@ export interface FootballMatch {
   servers: StreamServer[];
   score?: LiveMatchScore;
   realStatus?: "live" | "upcoming" | "finished";
+  statusBadge?: string | null;
+  lifecycle?: LifecycleEvaluation;
   isLive?: boolean;
   isFeatured?: boolean;
 }
@@ -250,66 +252,75 @@ export const MAX_MATCH_DURATION_MS = 140 * 60 * 1000; // 140 phút
 export const MAX_EVENT_DURATION_MS = 8 * 60 * 60 * 1000; // 8 giờ (an toàn tối đa cho sự kiện trực tiếp kéo dài)
 export const UPCOMING_DISPLAY_WINDOW_MS = 2 * 60 * 60 * 1000; // 2 giờ (120 phút)
 
+import {
+  evaluateEventLifecycle,
+  type LifecycleEvaluation,
+} from "./lifecycleEngine";
+
+export {
+  evaluateEventLifecycle,
+  SPORT_SAFETY_CEILINGS_MS,
+  SPORT_NORMAL_DURATION_MS,
+  normalizeSportCategory,
+  type EventStatus,
+  type StreamStatus,
+  type ListingStatus,
+  type EvaluationConfidence,
+  type LifecycleEvaluation,
+} from "./lifecycleEngine";
+
+/**
+ * Thời lượng phát sóng tối đa theo từng bộ môn thể thao:
+ * - esports: 6 giờ (360 phút) - Các trận BO3, BO5 (LoL, Dota2, CS2, Valorant) kéo dài 3 - 5.5 giờ
+ * - tennis: 5 giờ (300 phút) - Grand Slam 5 set hoặc trận 3 set kéo dài 3 - 4.5 giờ
+ * - billiards: 6 giờ (360 phút) - Các trận bida / snooker nhiều frame kéo dài 4 - 6 giờ
+ * - motorsport / f1: 4.5 giờ (270 phút) - Đua xe, cờ đỏ, trao giải
+ * - basketball: 165 phút (~2h 45m) - 4 hiệp + hội ý + OT
+ * - volleyball: 165 phút (~2h 45m) - 3 - 5 set
+ * - football: 125 phút (~2h 05m) - Trận bóng 90m + 15m nghỉ + bù giờ. Sau 125m trận thông thường đã kết thúc 100%.
+ * - other / sự kiện (isEvent): 8 giờ (480 phút)
+ */
+export function getSportMaxDurationMs(sport?: string, isEvent: boolean = false): number {
+  if (isEvent) return MAX_EVENT_DURATION_MS;
+  switch (sport) {
+    case "esports":
+      return 6 * 60 * 60 * 1000; // 6 giờ
+    case "tennis":
+      return 5 * 60 * 60 * 1000; // 5 giờ
+    case "billiards":
+      return 6 * 60 * 60 * 1000; // 6 giờ
+    case "f1":
+    case "motorsport":
+      return 4.5 * 60 * 60 * 1000; // 4.5 giờ
+    case "basketball":
+    case "volleyball":
+      return 165 * 60 * 1000; // 165 phút
+    case "football":
+      return 125 * 60 * 1000; // 125 phút
+    default:
+      return MAX_MATCH_DURATION_MS; // 140 phút mặc định cho generic/legacy
+  }
+}
+
 export function getMatchTimeline(
   timestamp?: number | null,
   sourceStatusOrLiveMarker: SourceMatchStatus | boolean = "unknown",
   streamHealth: "alive" | "dead" | "unknown" = "unknown",
   now: number = Date.now(),
   isEvent: boolean = false,
+  sport?: string,
+  score?: LiveMatchScore | null,
 ): "live" | "upcoming" | "finished" {
-  let normalizedStatus: SourceMatchStatus = "unknown";
-  if (typeof sourceStatusOrLiveMarker === "boolean") {
-    normalizedStatus = sourceStatusOrLiveMarker ? "live" : "unknown";
-  } else if (sourceStatusOrLiveMarker) {
-    normalizedStatus = sourceStatusOrLiveMarker;
-  }
-
-  // 1. Luồng stream đã xác nhận chết hoặc nguồn phát báo kết thúc -> Luôn ẩn (finished)
-  if (normalizedStatus === "finished" || streamHealth === "dead") {
-    return "finished";
-  }
-
-  const hasValidTimestamp =
-    timestamp !== undefined &&
-    timestamp !== null &&
-    timestamp > 0 &&
-    timestamp !== Number.MAX_SAFE_INTEGER;
-
-  // 2. Xử lý khi có mốc thời gian bắt đầu (kickoff)
-  if (hasValidTimestamp) {
-    // 2A. Chưa đến giờ bắt đầu -> Sắp diễn ra
-    if (now < timestamp) {
-      return "upcoming";
-    }
-
-    // 2B. Kiểm tra thời lượng tối đa:
-    // - Trận bóng đá thông thường: Sau 140 phút bắt buộc kết thúc
-    if (!isEvent && now > timestamp + MAX_MATCH_DURATION_MS) {
-      return "finished";
-    }
-
-    // - Sự kiện trực tiếp kéo dài (gala, trao giải):
-    //   + Quá 8 giờ: Hard stop (ngắt stream zombie)
-    //   + Quá 140 phút: Chỉ duy trì 'live' nếu stream đã xác nhận còn hoạt động ('alive')
-    if (isEvent) {
-      if (now > timestamp + MAX_EVENT_DURATION_MS) {
-        return "finished";
-      }
-      if (now > timestamp + MAX_MATCH_DURATION_MS && streamHealth !== "alive") {
-        return "finished";
-      }
-    }
-
-    // Đang trong khung giờ phát sóng
-    return "live";
-  }
-
-  // 3. Xử lý khi không có mốc thời gian bắt đầu: Chỉ live khi nguồn báo live và stream còn sống
-  if (normalizedStatus === "live" && (!isEvent || streamHealth === "alive")) {
-    return "live";
-  }
-
-  return "finished";
+  const evaluation = evaluateEventLifecycle({
+    timestamp,
+    sourceStatus: sourceStatusOrLiveMarker,
+    streamHealth,
+    now,
+    isEvent,
+    sport,
+    score,
+  });
+  return evaluation.displayTimeline;
 }
 
 /**
@@ -2900,6 +2911,7 @@ export function normalizeAndMergeStreams(
         "unknown",
         now,
         foundMatch.isEvent,
+        foundMatch.sport || item.sport,
       );
 
       const espHomeMerge = resolveEsportsTeam(foundMatch.team1);
@@ -2934,6 +2946,7 @@ export function normalizeAndMergeStreams(
         "unknown",
         now,
         item.isEvent,
+        item.sport,
       );
 
       const espHomeNew = resolveEsportsTeam(item.team1);
@@ -3094,10 +3107,20 @@ export async function fetchHailabStreams(now: number = Date.now()): Promise<RawS
         sourceStatus = "upcoming";
       }
 
+      // Phân loại bộ môn từ mô tả hoặc tên kênh
+      let sport = "football";
+      const descLower = `${ch.name} ${ch.description || ""}`.toLowerCase();
+      if (descLower.includes("bóng rổ") || descLower.includes("basketball")) sport = "basketball";
+      else if (descLower.includes("tennis") || descLower.includes("quần vợt")) sport = "tennis";
+      else if (descLower.includes("esport") || descLower.includes("điện tử") || descLower.includes("lol") || descLower.includes("dota") || descLower.includes("cs")) sport = "esports";
+      else if (descLower.includes("billiard") || descLower.includes("bida") || descLower.includes("snooker")) sport = "billiards";
+      else if (descLower.includes("f1") || descLower.includes("motor") || descLower.includes("đua xe")) sport = "motorsport";
+      else if (descLower.includes("bóng chuyền") || descLower.includes("volleyball")) sport = "volleyball";
+
       // QUY TẮC LỌC TRẬN HIỂN THỊ TRÊN /LIVE:
       // 1. Vòng đời: timeline = getMatchTimeline (live / upcoming / finished)
       // 2. Phạm vi hiển thị: isMatchInLiveWindow (ĐANG CHIẾU hoặc SẮP CHIẾU <= 2 giờ)
-      const timeline = getMatchTimeline(timestamp, sourceStatus, "unknown", now);
+      const timeline = getMatchTimeline(timestamp, sourceStatus, "unknown", now, false, sport);
       if (!isMatchInLiveWindow(timeline, timestamp, now)) {
         continue;
       }
@@ -3447,6 +3470,7 @@ export const liveFootballService = {
           streamHealth,
           now,
           m.isEvent,
+          m.sport,
         );
 
         if (!isMatchInLiveWindow(m.timeline, m.timestamp, now)) {

@@ -104,7 +104,7 @@ export function MobileMovieNav({ isSeries = true }: MobileMovieNavProps) {
     <div
       role="tablist"
       aria-label="Điều hướng nhanh nội dung phim"
-      className="mobile-movie-nav-sticky lg:hidden sticky top-[52px] sm:top-[56px] z-30 -mx-2 sm:-mx-4 px-2 sm:px-4 py-2 bg-zinc-950/90 backdrop-blur-xl border-y shadow-lg transition-all mb-3 sm:mb-4"
+      className="mobile-movie-nav-sticky lg:hidden sticky top-[52px] sm:top-[56px] z-30 -mx-2 sm:-mx-4 px-2 sm:px-4 py-2 bg-zinc-950/95 backdrop-blur-xl border-y border-white/10 shadow-lg transition-all mb-3 sm:mb-4"
     >
       <div className="flex items-center justify-between gap-1 sm:gap-2">
         {sections.map(({ id, label, icon: Icon }) => {
@@ -116,9 +116,9 @@ export function MobileMovieNav({ isSeries = true }: MobileMovieNavProps) {
               role="tab"
               aria-selected={isActive}
               onClick={() => scrollToSection(id)}
-              className={`flex-1 flex items-center justify-center gap-1 sm:gap-1.5 py-1.5 sm:py-2 px-1 rounded-xl text-xs sm:text-[13px] font-semibold transition-all duration-200 active:scale-95 cursor-pointer whitespace-nowrap ${
+              className={`flex-1 flex items-center justify-center gap-1 sm:gap-1.5 py-1.5 sm:py-2 px-1 rounded-xl text-xs sm:text-[13px] font-semibold min-h-[34px] sm:min-h-[38px] transition-all duration-200 active:scale-95 cursor-pointer whitespace-nowrap ${
                 isActive
-                  ? "bg-white/15 text-white shadow-sm  font-bold"
+                  ? "bg-white/15 text-white shadow-sm font-bold border border-white/20"
                   : "text-zinc-400 hover:text-zinc-200 hover:bg-white/5 border border-transparent"
               }`}
             >

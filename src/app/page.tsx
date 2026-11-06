@@ -36,7 +36,7 @@ export async function generateMetadata({
     }
   }
   const queryString = search.toString();
-  const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || "https://nanaflix.vercel.app").replace(/\/+$/, "");
+  const siteUrl = "https://nanaflix.asia";
 
   if (queryString) {
     return {
@@ -46,9 +46,9 @@ export async function generateMetadata({
     };
   }
 
-  const title = "Nanaflix - Xem Phim Trực Tuyến Miễn Phí Chất Lượng Cao";
+  const title = "Nanaflix - Xem Phim & Trực Tiếp Thể Thao Miễn Phí Chất Lượng Cao";
   const description =
-    "Xem phim trực tuyến chất lượng cao cùng Trợ lý Nana gợi ý phim thông minh, cập nhật liên tục các siêu phẩm điện ảnh mới nhất.";
+    "Xem phim bom tấn, anime vietsub và theo dõi trực tiếp bóng đá Ngoại Hạng Anh, C1, V-League Full HD mượt mà cùng Trợ lý Nana AI.";
 
   return {
     title,
@@ -57,13 +57,15 @@ export async function generateMetadata({
       canonical: `${siteUrl}`,
     },
     openGraph: {
+      url: siteUrl,
+      siteName: "Nanaflix",
       title,
       description,
       type: "website",
       images: [
         {
-          url: `${siteUrl}/default-hero.jpg`,
-          secureUrl: `${siteUrl}/default-hero.jpg`,
+          url: `${siteUrl}/default-hero.jpg?v=2`,
+          secureUrl: `${siteUrl}/default-hero.jpg?v=2`,
           width: 1200,
           height: 630,
           alt: title,
@@ -75,7 +77,7 @@ export async function generateMetadata({
       card: "summary_large_image",
       title,
       description,
-      images: [`${siteUrl}/default-hero.jpg`],
+      images: [`${siteUrl}/default-hero.jpg?v=2`],
     },
   };
 }

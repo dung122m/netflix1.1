@@ -27,7 +27,9 @@ interface WatchlistButtonProps {
   variant?: "badge" | "button" | "icon" | "player";
   className?: string;
   label?: string;
+  mobileLabel?: string;
   savedLabel?: string;
+  savedMobileLabel?: string;
 }
 
 export const WatchlistButton: React.FC<WatchlistButtonProps> = ({
@@ -35,7 +37,9 @@ export const WatchlistButton: React.FC<WatchlistButtonProps> = ({
   variant = "badge",
   className = "",
   label,
+  mobileLabel,
   savedLabel,
+  savedMobileLabel,
 }) => {
   const [inList, setInList] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -93,7 +97,8 @@ export const WatchlistButton: React.FC<WatchlistButtonProps> = ({
         className={`inline-flex items-center gap-1.5 rounded-lg  bg-zinc-900/60 px-2.5 sm:px-3.5 py-1.5 text-xs sm:text-sm font-medium text-zinc-500 opacity-60 flex-shrink-0 whitespace-nowrap ${className}`}
       >
         <Bookmark className="h-3.5 w-3.5 flex-shrink-0" />
-        <span className="whitespace-nowrap">{label || "Lưu"}</span>
+        <span className="whitespace-nowrap sm:hidden">{mobileLabel || "Lưu"}</span>
+        <span className="whitespace-nowrap hidden sm:inline">{label || "Lưu"}</span>
       </button>
     );
   }
@@ -144,19 +149,14 @@ export const WatchlistButton: React.FC<WatchlistButtonProps> = ({
         {inList ? (
           <>
             <Check className="w-4 h-4 text-netflix-red flex-shrink-0" />
-            <span className="whitespace-nowrap">{savedLabel || (label ? "Đã lưu" : "Đã lưu")}</span>
+            <span className="whitespace-nowrap sm:hidden">{savedMobileLabel || "Đã lưu"}</span>
+            <span className="whitespace-nowrap hidden sm:inline">{savedLabel || (label ? "Đã lưu" : "Đã lưu")}</span>
           </>
         ) : (
           <>
             <Bookmark className="h-3.5 w-3.5 text-amber-400 flex-shrink-0" />
-            {label ? (
-              <span className="whitespace-nowrap">{label}</span>
-            ) : (
-              <>
-                <span className="whitespace-nowrap sm:hidden">Lưu</span>
-                <span className="whitespace-nowrap hidden sm:inline">Yêu thích</span>
-              </>
-            )}
+            <span className="whitespace-nowrap sm:hidden">{mobileLabel || "Lưu"}</span>
+            <span className="whitespace-nowrap hidden sm:inline">{label || "Yêu thích"}</span>
           </>
         )}
       </button>

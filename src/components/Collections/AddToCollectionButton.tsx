@@ -25,6 +25,7 @@ interface AddToCollectionButtonProps {
   variant?: "default" | "player";
   className?: string;
   label?: string;
+  mobileLabel?: string;
 }
 
 export const AddToCollectionButton: React.FC<AddToCollectionButtonProps> = ({
@@ -32,6 +33,7 @@ export const AddToCollectionButton: React.FC<AddToCollectionButtonProps> = ({
   variant = "default",
   className = "",
   label,
+  mobileLabel,
 }) => {
   const { user } = useAuth();
   const [showModal, setShowModal] = useState(false);
@@ -67,7 +69,8 @@ export const AddToCollectionButton: React.FC<AddToCollectionButtonProps> = ({
             variant === "player" ? "w-3.5 h-3.5" : "w-3.5 h-3.5 sm:w-4 sm:h-4"
           } text-amber-400`}
         />
-        <span className="whitespace-nowrap">{label || "Bộ sưu tập"}</span>
+        <span className="whitespace-nowrap sm:hidden">{mobileLabel || "Sưu tập"}</span>
+        <span className="whitespace-nowrap hidden sm:inline">{label || "Bộ sưu tập"}</span>
         </button>
       </Tooltip>
 

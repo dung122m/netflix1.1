@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import {
   FootballMatch,
   LiveFootballData,
+  evaluateEventLifecycle,
 } from "@/services/live/football/service";
 import { useBodyScrollLock } from "@/lib/scrollLock";
 import { clearProbeQueue } from "@/services/live/football/clientSourceProbe";
@@ -760,53 +761,39 @@ export function LiveFootballClient({
 
       const isKickoffInFuture = hasValidTimestamp && currentTime < matchTimestamp;
 
-      // Phân nhóm trạng thái thực tế: live, upcoming, finished
-      let realStatus: "live" | "upcoming" | "finished" = "upcoming";
-      if (
-        displayStatus.statusType === "finished" ||
-        m.timeline === "finished" ||
-        m.sourceStatus === "finished" ||
-        liveScore?.status === "finished" ||
-        (!m.isEvent && hasValidTimestamp && currentTime > matchTimestamp + 140 * 60 * 1000) ||
-        (m.isEvent && hasValidTimestamp && currentTime > matchTimestamp + 8 * 60 * 60 * 1000) ||
-        (m.isEvent && hasValidTimestamp && currentTime > matchTimestamp + 140 * 60 * 1000 && m.timeline !== "live")
-      ) {
+      const lifecycle = evaluateEventLifecycle({
+        timestamp: matchTimestamp,
+        score: liveScore,
+        sourceStatus: m.sourceStatus,
+        streamHealth: hasStream ? "alive" : "dead",
+        now: currentTime,
+        sport: m.sport,
+        isEvent: m.isEvent,
+      });
+
+      // Phân nhóm trạng thái thực tế dựa trên Adaptive Hybrid Event Lifecycle Engine
+      let realStatus: "live" | "upcoming" | "finished" = lifecycle.displayTimeline;
+      if (lifecycle.eventStatus === "FINISHED" || displayStatus.statusType === "finished") {
         realStatus = "finished";
-      } else if (isKickoffInFuture) {
-        // Trận đấu chưa đến giờ đá (kickoff trong tương lai):
-        // Bắt buộc phân loại là "upcoming" để nằm trong nhóm "SẮP DIỄN RA".
-        // Tuyệt đối không để link stream có sẵn, group "Trực tiếp", hay icon title kéo nhầm lên "Đang phát trực tiếp".
-        // Ngoại lệ duy nhất: Livescore xác nhận đang đá VÀ thời gian hiện tại đã sát giờ bóng lăn (<= 5 phút trước kickoff).
-        if (displayStatus.isConfirmedLive && currentTime >= matchTimestamp - 5 * 60 * 1000) {
-          realStatus = "live";
-        } else {
-          realStatus = "upcoming";
-        }
-      } else if (
-        // Trận đấu đã đến hoặc qua giờ bắt đầu (currentTime >= matchTimestamp),
-        // hoặc sự kiện không có timestamp cố định:
-        displayStatus.isConfirmedLive ||
-        liveScore?.status === "live" ||
-        m.timeline === "live" ||
-        m.sourceStatus === "live" ||
-        m.isLive === true ||
-        (hasValidTimestamp &&
-          currentTime >= matchTimestamp &&
-          currentTime - matchTimestamp <= 140 * 60 * 1000 &&
-          hasStream) ||
-        (m.isEvent && hasStream && hasValidTimestamp && currentTime >= matchTimestamp && currentTime - matchTimestamp <= 8 * 60 * 60 * 1000) ||
-        (!hasValidTimestamp && Boolean(m.group) && /trực tiếp/i.test(m.group) && hasStream)
-      ) {
-        realStatus = "live";
-      } else {
+      } else if (isKickoffInFuture && !lifecycle.isLiveInWindow) {
         realStatus = "upcoming";
       }
+
+      const enrichedDisplayStatus = lifecycle.statusBadge
+        ? {
+            ...displayStatus,
+            badgeLabel: lifecycle.statusBadge,
+            isConfirmedLive: realStatus === "live",
+          }
+        : displayStatus;
 
       return {
         ...m,
         realStatus,
+        statusBadge: lifecycle.statusBadge,
+        lifecycle,
         hasStream,
-        displayStatus,
+        displayStatus: enrichedDisplayStatus,
         isFeatured: isFeaturedMatch({
           title: m.title,
           tournament: resolveCanonicalTournament({

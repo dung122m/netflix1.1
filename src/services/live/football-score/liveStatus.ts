@@ -246,6 +246,12 @@ export function formatMatchMinute(rawClock?: string | null): string | null {
   if (/^ft$/i.test(trimmed) || /^fulltime$/i.test(trimmed)) {
     return "FT";
   }
+  if (/^et$/i.test(trimmed) || /^overtime$/i.test(trimmed) || /^extra\s*time$/i.test(trimmed)) {
+    return "ET";
+  }
+  if (/^pen$/i.test(trimmed) || /^shootout$/i.test(trimmed) || /^penalties$/i.test(trimmed)) {
+    return "PEN";
+  }
 
   // Bù giờ: 45'+2', 45+2, 90'+3, 90+3', 105+1
   const stoppageMatch = trimmed.match(/^(\d+)'?\s*\+\s*(\d+)'?$/);
@@ -350,6 +356,34 @@ export function resolveMatchTimeInfo(params: {
         kickoffTime,
         kickoffDisplay,
         hasPulse: false,
+      };
+    }
+
+    // 3A.1 Hiệp phụ (ET) hoặc Luân lưu (PEN)
+    if (
+      formattedClock === "PEN" ||
+      detail.includes("shootout") ||
+      detail.includes("penalties")
+    ) {
+      return {
+        state: "live",
+        clockBadge: "PEN",
+        kickoffTime,
+        kickoffDisplay,
+        hasPulse: true,
+      };
+    }
+    if (
+      formattedClock === "ET" ||
+      detail.includes("overtime") ||
+      detail.includes("extra time")
+    ) {
+      return {
+        state: "live",
+        clockBadge: "ET",
+        kickoffTime,
+        kickoffDisplay,
+        hasPulse: true,
       };
     }
 

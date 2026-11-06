@@ -3197,7 +3197,9 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
       {/* ISOLATED ACTION BUTTONS BAR */}
       {!isFullscreen && (
         <div
-          className={`cinema-action-buttons w-full mx-auto relative z-30 mt-3 sm:mt-4 ${
+          className={`cinema-action-buttons w-full mx-auto relative z-30 ${
+            prevEpisode || effectiveNextEpisode ? "mt-2 sm:mt-4" : "hidden sm:block sm:mt-4"
+          } ${
             isTheaterMode ? "max-w-none px-2 sm:px-4" : "max-w-7xl px-2 sm:px-0"
           }`}
         >

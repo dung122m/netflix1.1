@@ -71,7 +71,7 @@ export async function generateMetadata({
 }: {
   params: Promise<{ slug: string }>;
 }) {
-  const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || "https://nanaflix.vercel.app").replace(/\/+$/, "");
+  const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || "https://nanaflix.asia").replace(/\/+$/, "");
   try {
     const { slug } = await params;
     const data = await movieApi.getMovieDetail(slug);
@@ -526,7 +526,7 @@ export default async function MovieDetail({
     "@type": isSeries ? "TVSeries" : "Movie",
     name: title,
     alternateName: movie.origin_name || undefined,
-    image: pickBestMovieImage(movie, "https://nanaflix.vercel.app/default-poster.jpg"),
+    image: pickBestMovieImage(movie, "https://nanaflix.asia/default-poster.jpg"),
     description:
       cleanHtmlText(movie.content || movie.description) ||
       `Xem phim ${title} chất lượng cao Full HD, Vietsub trên Nanaflix.`,
@@ -614,7 +614,7 @@ export default async function MovieDetail({
                 <span className="text-zinc-700 select-none">/</span>
               </>
             )}
-            <span className="text-zinc-300 font-medium truncate max-w-[150px] xs:max-w-[200px] sm:max-w-none">
+            <span className="text-zinc-300 font-medium truncate min-w-0 flex-1 sm:flex-initial sm:max-w-none">
               {title}
             </span>
           </div>
@@ -675,87 +675,74 @@ export default async function MovieDetail({
                         )}
                     </div>
 
-                    {/* THÔNG TIN PHIM TINH GỌN (METADATA LINE) */}
-                    <div className="flex flex-wrap items-center gap-2 sm:gap-2.5 text-xs text-zinc-300 font-medium">
-                      <span className="rounded bg-white/10 px-1.5 py-0.5 text-[11px] font-bold text-white uppercase tracking-wider">
+                    {/* THÔNG TIN PHIM TINH GỌN (METADATA CHIPS) */}
+                    <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 text-xs font-medium">
+                      <span className="rounded-md bg-white/15 px-2 py-0.5 text-[11px] font-extrabold text-white uppercase tracking-wider border border-white/10">
                         {movie.quality || "HD"}
                       </span>
                       {movie.year && (
-                        <span className="text-zinc-200">{movie.year}</span>
+                        <span className="rounded-md bg-white/5 px-2 py-0.5 text-[11px] text-zinc-200 font-semibold border border-white/5">
+                          {movie.year}
+                        </span>
                       )}
                       {cleanDuration && (
-                        <>
-                          <span className="text-zinc-600">•</span>
-                          <span className="text-zinc-200">{cleanDuration}</span>
-                        </>
+                        <span className="rounded-md bg-white/5 px-2 py-0.5 text-[11px] text-zinc-300 border border-white/5">
+                          {cleanDuration}
+                        </span>
                       )}
                       {movie.lang && (
-                        <>
-                          <span className="text-zinc-600">•</span>
-                          <span className="text-zinc-300">{movie.lang}</span>
-                        </>
+                        <span className="rounded-md bg-white/5 px-2 py-0.5 text-[11px] text-zinc-300 border border-white/5">
+                          {movie.lang}
+                        </span>
                       )}
                       {tmdbScore && tmdbScore > 0 ? (
-                        <>
-                          <span className="text-zinc-600">•</span>
-                          <span className="inline-flex items-center gap-1 font-bold text-emerald-400">
-                            <span className="bg-emerald-500/15 text-emerald-400 px-1.5 py-0.5 rounded text-[10px] font-extrabold leading-none">
-                              TMDB
-                            </span>
-                            <span>{tmdbScore.toFixed(1)}</span>
-                            {tmdbVotesText && (
-                              <span className="text-zinc-400 text-[10px] font-normal">({tmdbVotesText})</span>
-                            )}
-                          </span>
-                        </>
+                        <span className="inline-flex items-center gap-1 rounded-md bg-emerald-500/15 border border-emerald-500/25 px-2 py-0.5 text-[11px] font-bold text-emerald-400">
+                          <span className="text-[10px] font-extrabold tracking-tight">TMDB</span>
+                          <span>{tmdbScore.toFixed(1)}</span>
+                          {tmdbVotesText && (
+                            <span className="text-emerald-400/70 text-[10px] font-normal">({tmdbVotesText})</span>
+                          )}
+                        </span>
                       ) : null}
                       {imdbScore && imdbScore > 0 ? (
-                        <>
-                          <span className="text-zinc-600">•</span>
-                          <span className="inline-flex items-center gap-1 font-bold text-amber-400">
-                            <span className="bg-amber-500/15 text-amber-400 px-1.5 py-0.5 rounded text-[10px] font-extrabold leading-none">
-                              IMDb
-                            </span>
-                            <span>{imdbScore.toFixed(1)}</span>
-                            {imdbVotesText && (
-                              <span className="text-zinc-400 text-[10px] font-normal">({imdbVotesText})</span>
-                            )}
-                          </span>
-                        </>
+                        <span className="inline-flex items-center gap-1 rounded-md bg-amber-500/15 border border-amber-500/25 px-2 py-0.5 text-[11px] font-bold text-amber-400">
+                          <span className="text-[10px] font-extrabold tracking-tight">IMDb</span>
+                          <span>{imdbScore.toFixed(1)}</span>
+                          {imdbVotesText && (
+                            <span className="text-amber-400/70 text-[10px] font-normal">({imdbVotesText})</span>
+                          )}
+                        </span>
                       ) : null}
                       {isChieuRap && (
-                        <>
-                          <span className="text-zinc-600">•</span>
-                          <span className="text-amber-300 font-semibold">
-                            Chiếu Rạp
-                          </span>
-                        </>
+                        <span className="rounded-md bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 text-[11px] font-bold text-amber-300">
+                          Chiếu Rạp
+                        </span>
                       )}
                       {isCompleted && (
-                        <>
-                          <span className="text-zinc-600">•</span>
-                          <span className="text-emerald-400 font-semibold">
-                            Trọn bộ
-                          </span>
-                        </>
+                        <span className="rounded-md bg-emerald-500/15 border border-emerald-500/30 px-2 py-0.5 text-[11px] font-bold text-emerald-300">
+                          Trọn bộ
+                        </span>
                       )}
                       {viewCount !== undefined && viewCount > 500 && (
-                        <>
-                          <span className="text-zinc-600">•</span>
-                          <span className="text-zinc-400 text-[11px]">
-                            {viewCount >= 1000 ? `${(viewCount / 1000).toFixed(1)}k` : viewCount} lượt xem
-                          </span>
-                        </>
+                        <span className="text-zinc-400 text-[11px] ml-auto sm:ml-0 font-normal">
+                          {viewCount >= 1000 ? `${(viewCount / 1000).toFixed(1)}k` : viewCount} lượt xem
+                        </span>
                       )}
                     </div>
 
-                    {/* THANH NÚT TÁC VỤ (ACTION TOOLBAR) */}
-                    <div className="mt-3 sm:mt-4 pt-3 border-t w-full min-w-0">
-                      <div className="flex items-center gap-1 sm:gap-2 overflow-x-auto scrollbar-none pb-0.5 w-full min-w-0">
+                    {/* THANH NÚT TÁC VỤ (ACTION TOOLBAR) - CO GIÃN THÔNG MINH, KHÔNG TRÀN CẮT CHỮ */}
+                    <div className="mt-3 sm:mt-4 pt-3 border-t border-white/10 w-full min-w-0">
+                      <div className={`grid ${effectiveTrailerUrl ? "grid-cols-4" : "grid-cols-3"} gap-1.5 sm:flex sm:items-center sm:gap-2 w-full min-w-0`}>
                         {/* Nút Xem Trailer */}
-                        <TrailerModal trailerUrl={effectiveTrailerUrl} title={title} />
+                        {effectiveTrailerUrl && (
+                          <TrailerModal
+                            trailerUrl={effectiveTrailerUrl}
+                            title={title}
+                            triggerClassName="w-full sm:w-auto h-9 sm:h-auto inline-flex items-center justify-center gap-1 sm:gap-1.5 rounded-xl bg-netflix-red hover:brightness-110 active:brightness-95 text-white px-2 sm:px-3.5 py-1.5 text-xs sm:text-sm font-bold shadow-md shadow-netflix-red/20 transition-all active:scale-95 cursor-pointer flex-shrink-0 whitespace-nowrap"
+                          />
+                        )}
 
-                        {/* Divider */}
+                        {/* Divider desktop */}
                         <div className="h-6 w-px bg-white/10 mx-0.5 flex-shrink-0 hidden sm:block" />
 
                         {/* Nút Danh sách yêu thích */}
@@ -772,6 +759,8 @@ export default async function MovieDetail({
                             seriesTitle: title,
                           }}
                           label={isSeries ? "Lưu trọn bộ" : undefined}
+                          mobileLabel="Lưu"
+                          className="w-full sm:w-auto h-9 sm:h-auto justify-center rounded-xl"
                         />
 
                         {/* Nút Thêm vào Bộ sưu tập */}
@@ -788,13 +777,18 @@ export default async function MovieDetail({
                             seriesTitle: title,
                           }}
                           label={isSeries ? "Bộ sưu tập trọn bộ" : undefined}
+                          mobileLabel="Sưu tập"
+                          className="w-full sm:w-auto h-9 sm:h-auto justify-center rounded-xl"
                         />
 
                         {/* Divider đẩy cụm chia sẻ sang phải trên desktop */}
                         <div className="h-6 w-px bg-white/10 mx-0.5 flex-shrink-0 ml-auto hidden sm:block" />
 
                         {/* Cụm tiện ích: Chia sẻ */}
-                        <ShareButton title={title} />
+                        <ShareButton
+                          title={title}
+                          className="w-full sm:w-auto h-9 sm:h-auto justify-center rounded-xl"
+                        />
                       </div>
                     </div>
 

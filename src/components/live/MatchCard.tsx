@@ -85,7 +85,13 @@ function sanitizeDisplayName(name?: string): string {
 function formatDisplayMinute(rawBadge?: string | null): string {
   if (!rawBadge) return "LIVE";
   const trimmed = rawBadge.trim();
-  if (trimmed === "LIVE" || trimmed === "HT" || trimmed === "FT") {
+  if (
+    trimmed === "LIVE" ||
+    trimmed === "HT" ||
+    trimmed === "FT" ||
+    trimmed === "ET" ||
+    trimmed === "PEN"
+  ) {
     return trimmed;
   }
   const stoppage = trimmed.match(/^(\d+)['′]?\s*\+\s*(\d+)['′]?$/);

@@ -2595,5 +2595,26 @@ describe("Nanaflix Hotfix: Live Event Lifecycle & Ballon d'Or Regression Tests",
     assert.equal(isValidFootballTeamName("Arsenal"), true);
     assert.equal(isValidFootballTeamName("Real Madrid"), true);
   });
+
+  // 11. Bug Fix: Trận Esports (DK vs BLG) lúc 05:00 tại 07:28 (148m > 140m) vẫn phải là LIVE và nằm trong live window
+  it("11. Trận Esports (DK vs BLG) tại 148m, 210m, 300m vẫn là LIVE vì BO3/BO5 kéo dài 3-5h", () => {
+    const kickoff148mAgo = baseNow - 148 * 60 * 1000; // 2 giờ 28 phút trước (trường hợp DK vs BLG)
+    const tl148 = getMatchTimeline(kickoff148mAgo, "live", "unknown", baseNow, false, "esports");
+    assert.equal(tl148, "live", "Esports match at 148m must still be LIVE");
+    assert.equal(isMatchInLiveWindow(tl148, kickoff148mAgo, baseNow), true, "Esports match at 148m must be in live window");
+
+    const kickoff240mAgo = baseNow - 240 * 60 * 1000; // 4 giờ trước (BO5 game 4/5)
+    const tl240 = getMatchTimeline(kickoff240mAgo, "live", "alive", baseNow, false, "esports");
+    assert.equal(tl240, "live", "Esports BO5 at 240m must still be LIVE");
+    assert.equal(isMatchInLiveWindow(tl240, kickoff240mAgo, baseNow), true, "Esports BO5 at 240m must be in live window");
+  });
+
+  // 12. Bug Fix: Trận bóng đá thông thường sau 125 phút (ví dụ 05:15 tại 07:28 = 133m) chuyển sang finished
+  it("12. Trận bóng đá thông thường sau 125 phút (126m, 133m) với sport='football' chuyển sang finished", () => {
+    const kickoff133mAgo = baseNow - 133 * 60 * 1000; // 05:15 kickoff tại 07:28
+    const tl133 = getMatchTimeline(kickoff133mAgo, "unknown", "unknown", baseNow, false, "football");
+    assert.equal(tl133, "finished", "Football match at 133m elapsed without livescore must be finished");
+    assert.equal(isMatchInLiveWindow(tl133, kickoff133mAgo, baseNow), false, "Finished football match must NOT appear in live window");
+  });
 });
 
