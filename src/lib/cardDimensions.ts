@@ -18,7 +18,8 @@ export const MOVIE_CARD_TOKENS = {
 
   // 2. Thẻ phim bảng xếp hạng có số thứ tự Top 20 (TmdbTopTrending, CommunityTopTrending)
   ranked: {
-    numberCol: "w-[45px] sm:w-[65px] md:w-[75px] h-[210px] sm:h-[262px] md:h-[285px] -mr-5 sm:-mr-8",
+    numberCol: "w-[50px] sm:w-[70px] md:w-[88px] h-[210px] sm:h-[262px] md:h-[285px] -mr-4 sm:-mr-6 md:-mr-8",
+    numberColDouble: "w-[74px] sm:w-[94px] md:w-[110px] h-[210px] sm:h-[262px] md:h-[285px] -mr-4 sm:-mr-6 md:-mr-8",
     posterWidth: "w-[140px] sm:w-[175px] md:w-[190px]",
     radius: "rounded-xl",
   },

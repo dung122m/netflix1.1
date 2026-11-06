@@ -10,7 +10,6 @@ import { CuratedMovieSection } from "@/components/CuratedMovieSection";
 import { TmdbTopTrending } from "@/components/TmdbTopTrending";
 import { CommunityTopTrending } from "@/components/CommunityTopTrending";
 import { ForYouPersonalizedRow } from "@/components/ForYouPersonalizedRow";
-import { VietnamTodaySection } from "@/components/vietnam-today/VietnamTodaySection";
 
 const HeroFeatured = dynamic(() =>
   import("@/components/browse/HeroFeatured").then(
@@ -312,13 +311,8 @@ export default async function HomePage({
       </div>
 
       {/* 3. KHÁM PHÁ THEO THỂ LOẠI (Điều hướng chủ đích sang Browse) */}
-      <div className="px-4 md:px-8 mb-6 sm:mb-8 relative z-30 w-full min-w-0 max-w-full overflow-hidden">
+      <div className="px-4 md:px-8 mb-8 sm:mb-10 relative z-30 w-full min-w-0 max-w-full overflow-hidden">
         <HomeGenreExploreBar />
-      </div>
-
-      {/* 4. 🇻🇳 HÔM NAY TẠI VIỆT NAM (FEATURE SPOTLIGHT BANNER) */}
-      <div className="px-4 md:px-8 mb-8 sm:mb-12 relative z-20">
-        <VietnamTodaySection />
       </div>
 
       <div className="px-4 md:px-8 relative z-10 space-y-10 sm:space-y-14">

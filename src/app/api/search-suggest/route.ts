@@ -151,7 +151,11 @@ export async function GET(req: NextRequest) {
       console.warn("[search-suggest] Lỗi ghi cache Redis:", err);
     });
 
-    return NextResponse.json(responseData);
+    return NextResponse.json(responseData, {
+      headers: {
+        "Cache-Control": "public, max-age=1800, s-maxage=3600, stale-while-revalidate=86400",
+      },
+    });
   } catch (error) {
     console.error("Lỗi tìm kiếm gợi ý:", error);
     return NextResponse.json({ items: [] });

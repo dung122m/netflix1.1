@@ -8,6 +8,13 @@ import {
 } from "@/lib/rateLimit";
 
 export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
+
+const NO_CACHE_HEADERS = {
+  "Cache-Control": "private, no-cache, no-store, max-age=0, must-revalidate, proxy-revalidate",
+  "CDN-Cache-Control": "no-store",
+  "Vercel-CDN-Cache-Control": "no-store",
+};
 
 export async function POST(req: NextRequest) {
   const auth = await verifyServerAuth(req);
@@ -110,10 +117,13 @@ export async function POST(req: NextRequest) {
       })
       .eq("id", auth.userId);
 
-    return NextResponse.json({
-      success: true,
-      avatarUrl,
-    });
+    return NextResponse.json(
+      {
+        success: true,
+        avatarUrl,
+      },
+      { headers: NO_CACHE_HEADERS }
+    );
   } catch (err: unknown) {
     console.error("[Avatar Upload API] Lỗi không xác định:", err);
     const msg = err instanceof Error ? err.message : "Internal error";

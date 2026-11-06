@@ -28,7 +28,6 @@ import {
   Ban,
   Eye,
   Check,
-  MapPin,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { isUserAdmin } from "@/lib/adminConfig";
@@ -41,7 +40,6 @@ import { UserProfile, MemberWithStats } from "@/types/user";
 import { WatchHistoryItem } from "@/lib/watchHistory";
 import { WatchlistItem } from "@/lib/watchlist";
 import {
-  subscribeAllComments,
   fetchAllCommentsDirect,
   deleteMovieComment,
   unflagComment,
@@ -50,17 +48,19 @@ import {
   type AutoCleanResult,
 } from "@/services/commentService";
 import {
-  subscribeAllPublicCollections,
   deletePublicCollectionAdmin,
 } from "@/services/collectionService";
 import {
-  subscribeAllUsers,
   getUserCloudWatchHistory,
   getUserCloudWatchlist,
   deleteAllUserComments,
   setUserCommentRestriction,
   type DeviceHandoffItem,
 } from "@/services/userService";
+import {
+  getAllProfilesSupabase,
+  getPublicCollectionsSupabase,
+} from "@/services/supabaseService";
 import { UserAvatar } from "@/components/ui/UserAvatar";
 import { StarRating } from "@/components/MovieReviews/StarRating";
 import { AdminCollectionsTab } from "./components/AdminCollectionsTab";
@@ -183,21 +183,56 @@ function AdminDashboardContent() {
     }
   }, [user]);
 
+  const loadComments = useCallback(async (showLoading = true) => {
+    if (showLoading) setLoadingData(true);
+    try {
+      const items = await fetchAllCommentsDirect();
+      setComments(items);
+    } catch (err) {
+      console.error("Lỗi tải bình luận:", err);
+      toast.error("Không thể tải danh sách bình luận!");
+    } finally {
+      if (showLoading) setLoadingData(false);
+    }
+  }, []);
+
+  const loadCollections = useCallback(async () => {
+    try {
+      const items = await getPublicCollectionsSupabase();
+      if (items) setCollections(items);
+    } catch (err) {
+      console.warn("Lỗi tải bộ sưu tập:", err);
+    }
+  }, []);
+
+  const loadMembers = useCallback(async () => {
+    try {
+      const result = await getAllProfilesSupabase();
+      setRawUsers(result.profiles);
+      setTotalMemberCount(result.totalCount);
+    } catch (err) {
+      console.warn("Lỗi tải thành viên:", err);
+    }
+  }, []);
+
   const handleManualRefresh = async () => {
     setIsManualRefreshing(true);
     try {
-      const items = await fetchAllCommentsDirect();
-      if (items.length > 0) {
-        setComments(items);
-        toast.success(`Đã đồng bộ tức thì ${items.length} bình luận mới nhất!`);
+      if (activeTab === "comments") {
+        await loadComments(false);
+        toast.success("Đã làm mới danh sách bình luận!");
+      } else if (activeTab === "members") {
+        await Promise.all([loadMembers(), fetchAuthorizedHandoffs()]);
+        toast.success("Đã làm mới danh sách thành viên & thiết bị!");
+      } else if (activeTab === "collections") {
+        await loadCollections();
+        toast.success("Đã làm mới danh sách bộ sưu tập!");
       } else {
-        toast.info("Dữ liệu bình luận đã là mới nhất.");
-      }
-      if (activeTab === "members") {
-        fetchAuthorizedHandoffs().catch(() => { });
+        await Promise.all([loadComments(false), loadMembers()]);
+        toast.success("Đã làm mới dữ liệu quản trị!");
       }
     } catch {
-      toast.error("Không thể làm mới danh sách bình luận!");
+      toast.error("Không thể làm mới dữ liệu!");
     } finally {
       setIsManualRefreshing(false);
     }
@@ -205,70 +240,28 @@ function AdminDashboardContent() {
 
   const isAdmin = useMemo(() => isUserAdmin(user?.email), [user?.email]);
 
-  // 1. Comments subscription: Chỉ kích hoạt khi ở tab "comments"
+  // 1. Tải bình luận khi mở trang hoặc chuyển sang tab "comments"
   useEffect(() => {
     if (!isAdmin) {
       setLoadingData(false);
       return;
     }
-    if (activeTab !== "comments") return;
+    if (activeTab === "comments") {
+      loadComments();
+    }
+  }, [isAdmin, activeTab, loadComments]);
 
-    setLoadingData(true);
-
-    const unsubComments = subscribeAllComments(
-      (items) => {
-        setComments(items);
-        setLoadingData(false);
-      },
-      (err) => {
-        console.error("Lỗi realtime comments:", err);
-        setLoadingData(false);
-        toast.error("Không thể tải danh sách bình luận!");
-      },
-      300
-    );
-
-    return () => {
-      unsubComments();
-    };
-  }, [isAdmin, activeTab]);
-
-  // 2. Collections subscription: Chỉ kích hoạt khi ở tab "collections"
+  // 2. Tải bộ sưu tập khi chuyển sang tab "collections"
   useEffect(() => {
     if (!isAdmin || activeTab !== "collections") return;
+    loadCollections();
+  }, [isAdmin, activeTab, loadCollections]);
 
-    const unsubCollections = subscribeAllPublicCollections(
-      (items) => {
-        setCollections(items);
-      },
-      (err) => {
-        console.warn("Lỗi realtime collections:", err);
-      }
-    );
-
-    return () => {
-      unsubCollections();
-    };
-  }, [isAdmin, activeTab]);
-
-  // 3. Members subscription: Kích hoạt ngay khi Admin vào trang, độc lập với tab hiện tại
+  // 3. Tải thành viên khi Admin vào trang
   useEffect(() => {
     if (!isAdmin) return;
-
-    const unsubUsers = subscribeAllUsers(
-      (items, dbTotalCount) => {
-        setRawUsers(items);
-        setTotalMemberCount(dbTotalCount);
-      },
-      (err) => {
-        console.warn("Lỗi realtime users:", err);
-      }
-    );
-
-    return () => {
-      unsubUsers();
-    };
-  }, [isAdmin]);
+    loadMembers();
+  }, [isAdmin, loadMembers]);
 
   // 4. Live watching handoffs: Cập nhật khi ở tab "members"
   useEffect(() => {
@@ -513,6 +506,7 @@ function AdminDashboardContent() {
       } else {
         toast.success(`Đã tự động quét và xóa sạch ${res.deletedCount} bình luận vi phạm / spam!`);
         setCleanResultModal(res);
+        await loadComments(false);
       }
     } catch (e) {
       console.error("Lỗi tự động dọn rác cmt:", e);
@@ -1621,16 +1615,6 @@ function AdminDashboardContent() {
                             <Clock size={11} />
                             <span>Lần cuối: {formatDate(m.lastActiveAt || m.lastLoginAt)}</span>
                           </span>
-                          {m.approximateLocation?.country && (
-                            <span className="text-teal-400 font-medium flex items-center gap-1">
-                              <MapPin size={11} className="text-teal-400 flex-shrink-0" />
-                              <span className="truncate max-w-[130px]">
-                                {m.approximateLocation.city
-                                  ? `${m.approximateLocation.city}, ${m.approximateLocation.countryCode || m.approximateLocation.country}`
-                                  : m.approximateLocation.country}
-                              </span>
-                            </span>
-                          )}
                           {m.violationsCount && m.violationsCount > 0 ? (
                             <span className="text-red-400 font-semibold flex items-center gap-1">
                               <AlertOctagon size={11} />

@@ -40,6 +40,19 @@ const BLOCKED_PATH_PATTERNS = [
 ];
 
 /**
+ * Constant-time string comparison for Edge Middleware (Zero external dependencies)
+ */
+function timingSafeEqualString(a?: string | null, b?: string | null): boolean {
+  if (!a || !b || typeof a !== "string" || typeof b !== "string") return false;
+  if (a.length !== b.length) return false;
+  let mismatch = 0;
+  for (let i = 0; i < a.length; i++) {
+    mismatch |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  }
+  return mismatch === 0;
+}
+
+/**
  * Origin Protection & Direct Vercel Domain Bypass Defense
  * - Protects Vercel origin from being bypassed directly via *.vercel.app.
  * - Enforces requests arrive through Cloudflare Edge proxy using shared EDGE_ORIGIN_SECRET.
@@ -94,9 +107,9 @@ export function checkOriginProtection(req: NextRequest): NextResponse | null {
     );
   }
 
-  // 2. Validate secret header injected by Cloudflare Transform Rule
-  const incomingSecret = req.headers.get("x-nanaflix-edge-secret")?.trim();
-  if (!incomingSecret || incomingSecret !== edgeSecret) {
+  // 2. Validate secret header injected by Cloudflare Transform Rule (supporting both standard headers)
+  const incomingSecret = (req.headers.get("x-nanaflix-edge-secret") || req.headers.get("x-edge-origin-secret"))?.trim();
+  if (!incomingSecret || !timingSafeEqualString(incomingSecret, edgeSecret)) {
     return new NextResponse(
       JSON.stringify({
         error: "Truy cập không hợp lệ. Yêu cầu kết nối qua Cloudflare Edge Proxy.",

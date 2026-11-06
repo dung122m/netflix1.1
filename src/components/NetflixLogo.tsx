@@ -12,119 +12,11 @@ import React from "react";
  * 4. Chữ "Nanaflix" Bold Sans-serif trắng tuyết sắc nét và ký hiệu "VN" superscript xám kim loại.
  */
 
-let cachedGeoBadge: string | null = null;
-let cachedGeoBadgeExpiresAt = 0;
-let inFlightGeoBadgePromise: Promise<string> | null = null;
-
-const GEO_BADGE_STORAGE_KEY = "nanaflix_geo_badge_v2";
-const GEO_BADGE_TTL_MS = 60 * 60 * 1000; // 60 phút TTL
-const GEO_BADGE_SCHEMA_VERSION = 2;
-
-interface StoredGeoBadgePayload {
-  badge: string;
-  timestamp: number;
-  version: number;
-}
-
 /**
- * Hook tự động phát hiện mã vùng / tỉnh thành / quốc gia cho Logo Nanaflix
- * 1. Đọc tức thì 0ms từ sessionStorage nếu còn hạn TTL
- * 2. Fallback gọi /api/geo/badge (đúng 1 request duy nhất theo cơ chế Single-Flight)
- * 3. Deterministic initial state "VN" đảm bảo 100% không phát sinh Hydration Mismatch
+ * Hook trả về mã vùng cố định "VN" cho Logo Nanaflix
  */
 export function useGeoBadge(): string {
-  // Luôn khởi tạo "VN" một cách deterministic cho cả SSR và lần render đầu tiên của client (tránh hydration mismatch)
-  const [badge, setBadge] = React.useState<string>("VN");
-
-  React.useEffect(() => {
-    const now = Date.now();
-
-    // 1. Kiểm tra cache trong RAM
-    if (cachedGeoBadge && cachedGeoBadgeExpiresAt > now) {
-      if (badge !== cachedGeoBadge) {
-        setBadge(cachedGeoBadge);
-      }
-      return;
-    }
-
-    // 2. Đọc từ sessionStorage (chỉ thực thi an toàn sau hydration)
-    try {
-      const rawStored = sessionStorage.getItem(GEO_BADGE_STORAGE_KEY);
-      if (rawStored) {
-        const parsed: StoredGeoBadgePayload = JSON.parse(rawStored);
-        if (
-          parsed &&
-          parsed.version === GEO_BADGE_SCHEMA_VERSION &&
-          typeof parsed.badge === "string" &&
-          parsed.badge !== "VN" && // Không khoá cache nếu là fallback "VN" để luôn có cơ hội cập nhật mã vùng thực
-          typeof parsed.timestamp === "number" &&
-          now - parsed.timestamp < GEO_BADGE_TTL_MS
-        ) {
-          cachedGeoBadge = parsed.badge;
-          cachedGeoBadgeExpiresAt = parsed.timestamp + GEO_BADGE_TTL_MS;
-          if (badge !== parsed.badge) {
-            setBadge(parsed.badge);
-          }
-          return;
-        }
-      }
-    } catch {}
-
-    // 3. Nếu chưa có hoặc cache hết hạn, gọi /api/geo/badge (Single-Flight Mutex)
-    const fetchFreshBadge = () => {
-      if (!inFlightGeoBadgePromise) {
-        inFlightGeoBadgePromise = fetch("/api/geo/badge", {
-          cache: "no-store", // Chống browser disk-cache giữ nguyên payload cũ
-          signal: AbortSignal.timeout(3500),
-        })
-          .then((res) => (res.ok ? res.json() : { badge: "VN" }))
-          .then((data) => {
-            const resBadge =
-              typeof data.badge === "string" && data.badge ? data.badge.trim().toUpperCase() : "VN";
-            cachedGeoBadge = resBadge;
-            cachedGeoBadgeExpiresAt = Date.now() + (resBadge !== "VN" ? GEO_BADGE_TTL_MS : 5000);
-            try {
-              if (resBadge !== "VN") {
-                const payload: StoredGeoBadgePayload = {
-                  badge: resBadge,
-                  timestamp: Date.now(),
-                  version: GEO_BADGE_SCHEMA_VERSION,
-                };
-                sessionStorage.setItem(GEO_BADGE_STORAGE_KEY, JSON.stringify(payload));
-              }
-            } catch {}
-            inFlightGeoBadgePromise = null;
-            return resBadge;
-          })
-          .catch(() => {
-            inFlightGeoBadgePromise = null;
-            return "VN";
-          });
-      }
-
-      inFlightGeoBadgePromise.then((b) => {
-        if (b) {
-          setBadge((prev) => (prev !== b ? b : prev));
-        }
-      });
-    };
-
-    fetchFreshBadge();
-
-    // 4. Lắng nghe sự kiện 'online' như một tín hiệu kích hoạt kiểm tra lại cache
-    const handleOnlineCheck = () => {
-      if (Date.now() > cachedGeoBadgeExpiresAt) {
-        fetchFreshBadge();
-      }
-    };
-
-    window.addEventListener("online", handleOnlineCheck);
-    return () => {
-      window.removeEventListener("online", handleOnlineCheck);
-    };
-  }, [badge]);
-
-  return badge;
+  return "VN";
 }
 
 export interface NanaflixBrandLogoProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -139,8 +31,7 @@ export const NanaflixBrandLogo: React.FC<NanaflixBrandLogoProps> = ({
   badgeOverride,
   ...props
 }) => {
-  const dynamicBadge = useGeoBadge();
-  const displayBadge = badgeOverride || dynamicBadge || "VN";
+  const displayBadge = badgeOverride || "VN";
   const isThreeLetters = displayBadge.length >= 3;
 
   const sizeClasses = {
@@ -158,9 +49,9 @@ export const NanaflixBrandLogo: React.FC<NanaflixBrandLogoProps> = ({
       title={`Nanaflix ${displayBadge} - Trang Chủ`}
       {...props}
     >
-      {/* 🎬 SVG Vector YouTube-Style NANAFLIX VN Logo */}
+      {/* 🎬 SVG Vector YouTube-Style NANAFLIX Logo với Regional Badge liền mạch (tspan) */}
       <svg
-        viewBox="0 0 152 32"
+        viewBox="0 0 144 32"
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
         className={`${sizeClasses} max-w-full overflow-visible`}
@@ -212,7 +103,8 @@ export const NanaflixBrandLogo: React.FC<NanaflixBrandLogoProps> = ({
         </g>
 
         {/* ============================================================ */}
-        {/* ✍️ 2. CHỮ: Nanaflix (YouTube Bold Sans Trắng Tuyết) */}
+        {/* ✍️ 2. CHỮ: Nanaflix (Bold Sans) + KÝ HIỆU VỊ TRÍ LIỀN MẠCH (<tspan>) */}
+        {/* Dùng <tspan dx="2" dy="-10.5"> bám sát tuyệt đối vào ký tự cuối 'x'   */}
         {/* ============================================================ */}
         <text
           x="39"
@@ -225,22 +117,17 @@ export const NanaflixBrandLogo: React.FC<NanaflixBrandLogoProps> = ({
           style={{ textRendering: "geometricPrecision" }}
         >
           Nanaflix
-        </text>
-
-        {/* ============================================================ */}
-        {/* 🇻🇳 3. KÝ HIỆU VỊ TRÍ: VN, HCM, HN, BD, HT... hoặc Quốc tế (Xám kim loại, khoảng cách chuẩn YouTube) */}
-        {/* ============================================================ */}
-        <text
-          x="122.5"
-          y="11.5"
-          fill="#94A3B8"
-          fontFamily="'YouTube Sans', 'Roboto', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif"
-          fontWeight="600"
-          fontSize={isThreeLetters ? "7.5" : "8.5"}
-          letterSpacing="0.2px"
-          style={{ textRendering: "geometricPrecision" }}
-        >
-          {displayBadge}
+          <tspan
+            id="nanaflix-brand-badge"
+            dx="2"
+            dy="-10.5"
+            fill="#94A3B8"
+            fontWeight="600"
+            fontSize={isThreeLetters ? "7.5" : "8.5"}
+            letterSpacing="0.2px"
+          >
+            {displayBadge}
+          </tspan>
         </text>
       </svg>
     </div>

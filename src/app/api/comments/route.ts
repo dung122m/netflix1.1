@@ -26,15 +26,33 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 export const fetchCache = "force-no-store";
 
-function mapCommentRecord(d: Record<string, unknown>, isAdmin: boolean = false): MovieComment {
+interface CommentUserProfile {
+  custom_avatar?: string | null;
+  photo_url?: string | null;
+  display_name?: string | null;
+  badges?: string[] | null;
+}
+
+function mapCommentRecord(
+  d: Record<string, unknown>,
+  isAdmin: boolean = false,
+  profileMap?: Map<string, CommentUserProfile>
+): MovieComment {
   const { likedBy, reactions } = parseReactionsAndLikedBy(d.liked_by);
+  const userId = String(d.user_id || "");
+  const profile = userId && profileMap ? profileMap.get(userId) : undefined;
+  const userAvatar = profile?.custom_avatar || profile?.photo_url || String(d.user_avatar || "");
+  const userName = profile?.display_name || String(d.user_name || "Thành viên");
+  const userBadges = Array.isArray(profile?.badges) ? (profile.badges as string[]) : [];
+
   return {
     id: String(d.id),
     movieSlug: String(d.movie_slug || ""),
     movieTitle: String(d.movie_title || ""),
-    userId: String(d.user_id || ""),
-    userName: String(d.user_name || "Thành viên"),
-    userAvatar: String(d.user_avatar || ""),
+    userId,
+    userName,
+    userAvatar,
+    userBadges,
     userEmail: isAdmin && d.user_email ? String(d.user_email) : undefined,
     rating: (() => {
       const num = Number(d.rating);
@@ -68,6 +86,31 @@ function mapCommentRecord(d: Record<string, unknown>, isAdmin: boolean = false):
         ? Number(d.updated_at)
         : undefined,
   };
+}
+
+async function fetchProfilesMap(
+  supabaseAdmin: ReturnType<typeof getSupabaseAdmin>,
+  records: Array<Record<string, unknown>>
+): Promise<Map<string, CommentUserProfile>> {
+  const map = new Map<string, CommentUserProfile>();
+  if (!supabaseAdmin || !records || records.length === 0) return map;
+  const userIds = Array.from(
+    new Set(records.map((r) => String(r.user_id || "")).filter(Boolean))
+  );
+  if (userIds.length === 0) return map;
+
+  try {
+    const { data } = await supabaseAdmin
+      .from("profiles")
+      .select("id, custom_avatar, photo_url, display_name, badges")
+      .in("id", userIds);
+    if (data && Array.isArray(data)) {
+      for (const p of data) {
+        map.set(p.id, p);
+      }
+    }
+  } catch {}
+  return map;
 }
 
 function sortComments(items: MovieComment[]): MovieComment[] {
@@ -135,6 +178,7 @@ export async function GET(req: NextRequest) {
     // Kiểm tra quyền Admin (chỉ Admin mới được xem flag_reason và email người dùng)
     const auth = await verifyServerAuth(req);
     const isAdmin = Boolean(auth.isAuthenticated && auth.isAdmin);
+    const isFresh = searchParams.has("_t") || searchParams.get("fresh") === "true";
 
     // 2. Tối ưu hoá Cache cho truy vấn công khai theo bộ phim (Giảm tải Supabase)
     const isPublicMovieQuery = Boolean(
@@ -146,6 +190,35 @@ export async function GET(req: NextRequest) {
     );
 
     if (isPublicMovieQuery && movieSlug) {
+      if (isFresh) {
+        // Yêu cầu dữ liệu mới nhất (vừa đăng bình luận hoặc refresh realtime) -> Truy vấn trực tiếp Supabase & làm tươi cache
+        const { data, error } = await supabaseAdmin
+          .from("movie_comments")
+          .select("*")
+          .eq("is_flagged", false)
+          .eq("movie_slug", movieSlug)
+          .order("created_at", { ascending: false });
+
+        let mapped: MovieComment[] = [];
+        if (!error && data && data.length > 0) {
+          const profileMap = await fetchProfilesMap(supabaseAdmin, data as Array<Record<string, unknown>>);
+          mapped = sortComments((data as Array<Record<string, unknown>>).map((d) => mapCommentRecord(d, false, profileMap)));
+        }
+
+        await cacheService.set(`comments:movie:${movieSlug}`, mapped, 60).catch(() => false);
+
+        return NextResponse.json(
+          { success: true, items: mapped },
+          {
+            headers: {
+              "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0",
+              "CDN-Cache-Control": "no-store",
+              "Vercel-CDN-Cache-Control": "no-store",
+            },
+          }
+        );
+      }
+
       const items = await cacheService.fetchOrSet<MovieComment[]>(
         `comments:movie:${movieSlug}`,
         async () => {
@@ -156,8 +229,9 @@ export async function GET(req: NextRequest) {
             .eq("movie_slug", movieSlug)
             .order("created_at", { ascending: false });
 
-          if (error || !data) return [];
-          const mapped = (data as Array<Record<string, unknown>>).map((d) => mapCommentRecord(d, false));
+          if (error || !data || data.length === 0) return [];
+          const profileMap = await fetchProfilesMap(supabaseAdmin, data as Array<Record<string, unknown>>);
+          const mapped = (data as Array<Record<string, unknown>>).map((d) => mapCommentRecord(d, false, profileMap));
           return sortComments(mapped);
         },
         60 // TTL 60 giây (tự động xóa khi có tương tác mới)
@@ -198,8 +272,9 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ success: true, items: [] });
     }
 
+    const profileMap = await fetchProfilesMap(supabaseAdmin, data as Array<Record<string, unknown>>);
     const items = sortComments(
-      (data as Array<Record<string, unknown>>).map((d) => mapCommentRecord(d, isAdmin))
+      (data as Array<Record<string, unknown>>).map((d) => mapCommentRecord(d, isAdmin, profileMap))
     );
 
     return NextResponse.json(

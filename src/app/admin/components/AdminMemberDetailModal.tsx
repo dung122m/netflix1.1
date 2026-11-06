@@ -13,7 +13,6 @@ import {
   X,
   Clock,
   Film,
-  MapPin,
   Monitor,
 } from "lucide-react";
 import { MemberWithStats } from "@/types/user";
@@ -109,26 +108,14 @@ export const AdminMemberDetailModal: React.FC<AdminMemberDetailModalProps> = Rea
                 </div>
                 <p className="text-[11px] sm:text-xs text-zinc-400 truncate mt-0.5">{selectedMember.email || "Chưa có email"}</p>
                 <p className="text-[10px] sm:text-[11px] text-zinc-500 font-sans tabular-nums mt-0.5 truncate max-w-[200px] sm:max-w-none">UID: {selectedMember.uid}</p>
-                {(selectedMember.approximateLocation?.country || selectedMember.deviceInfo?.deviceType) && (
+                {selectedMember.deviceInfo?.deviceType && (
                   <div className="flex items-center gap-1.5 flex-wrap mt-1.5 text-[10px] sm:text-[11px]">
-                    {selectedMember.approximateLocation?.country && (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-teal-500/15 text-teal-300 font-medium">
-                        <MapPin size={10} className="text-teal-400 flex-shrink-0" />
-                        <span>
-                          {selectedMember.approximateLocation.city
-                            ? `${selectedMember.approximateLocation.city}, ${selectedMember.approximateLocation.countryCode || selectedMember.approximateLocation.country}`
-                            : selectedMember.approximateLocation.country}
-                        </span>
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-500/15 border border-blue-500/30 text-blue-300 font-medium">
+                      <Monitor size={10} className="text-blue-400 flex-shrink-0" />
+                      <span>
+                        {selectedMember.deviceInfo.deviceType} / {selectedMember.deviceInfo.os || "Other"}
                       </span>
-                    )}
-                    {selectedMember.deviceInfo?.deviceType && (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-500/15 border border-blue-500/30 text-blue-300 font-medium">
-                        <Monitor size={10} className="text-blue-400 flex-shrink-0" />
-                        <span>
-                          {selectedMember.deviceInfo.deviceType} / {selectedMember.deviceInfo.os || "Other"}
-                        </span>
-                      </span>
-                    )}
+                    </span>
                   </div>
                 )}
               </div>

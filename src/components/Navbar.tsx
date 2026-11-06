@@ -12,20 +12,16 @@ import {
   Tv,
   Clapperboard,
   Sparkles,
-  Dices,
   Bookmark,
   Compass,
   X,
 } from "lucide-react";
 import { NanaflixBrandLogo } from "@/components/NetflixLogo";
-import { HolidayNavbarAtmosphere } from "./navbar/HolidayNavbarAtmosphere";
 import { NavSearchBar } from "./navbar/NavSearchBar";
 import { NavNotifications } from "./navbar/NavNotifications";
 import { NavUserMenu } from "./navbar/NavUserMenu";
 import { AccentStudio } from "./navbar/AccentStudio";
-import { Tooltip } from "@/components/ui/Tooltip";
 import { NavMobileMenu } from "./navbar/NavMobileMenu";
-import { NavHotkeyModal } from "./navbar/NavHotkeyModal";
 import { useAuth } from "@/context/AuthContext";
 import { subscribeUserNotifications } from "@/services/notificationService";
 
@@ -57,7 +53,6 @@ const NavbarInner: React.FC = () => {
   const [showBackground, setShowBackground] = useState(false);
   const [isSearchExpanded, setIsSearchExpanded] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [showHotkeyModal, setShowHotkeyModal] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
 
   const { user } = useAuth();
@@ -143,9 +138,6 @@ const NavbarInner: React.FC = () => {
           : "bg-black/80 backdrop-blur-md sm:bg-gradient-to-b sm:from-black/90 sm:via-black/50 sm:to-transparent py-1.5 sm:py-2.5"
       }`}
     >
-      {/* CINEMATIC LIVING NAVBAR ATMOSPHERE (PHÍA SAU UI) */}
-      <HolidayNavbarAtmosphere />
-
       <div className="flex items-center justify-between px-3 sm:px-6 lg:px-8 max-w-[1700px] mx-auto gap-2 sm:gap-4 relative z-10 w-full min-h-[44px] sm:min-h-[48px]">
         {/* LOGO & DESKTOP NAV */}
         <div className="flex items-center gap-3 sm:gap-6 lg:gap-7 flex-shrink-0 min-w-0">
@@ -197,29 +189,6 @@ const NavbarInner: React.FC = () => {
         {/* RIGHT ACTIONS */}
         <div className="flex items-center gap-1.5 sm:gap-2.5 flex-shrink-0 text-white">
 
-          {/* NÚT GỢI Ý PHIM NGẪU NHIÊN TRÊN NAVBAR */}
-          <div className="hidden md:flex items-center gap-1.5 sm:gap-2">
-            <Tooltip content="Gợi ý phim ngẫu nhiên" side="bottom">
-              <button
-                type="button"
-                onClick={() => {
-                  if (typeof window !== "undefined") {
-                    window.dispatchEvent(
-                      new CustomEvent("open-nana-ai-studio", {
-                        detail: { tab: "roulette" },
-                      })
-                    );
-                  }
-                }}
-                aria-label="Gợi ý phim ngẫu nhiên"
-                className="group inline-flex items-center justify-center gap-1.5 px-3 py-1.5 min-h-[36px] rounded-full text-xs font-semibold bg-white/10 hover:bg-white/20 text-zinc-200 hover:text-white border border-white/10 transition-all duration-200 cursor-pointer shadow-sm hover:scale-[1.02] active:scale-[0.98] flex-shrink-0 outline-none backdrop-blur-sm"
-              >
-                <Dices className="w-4 h-4 text-zinc-300 group-hover:text-white flex-shrink-0 group-hover:rotate-45 transition-transform duration-300" aria-hidden="true" />
-                <span className="hidden sm:inline tracking-tight">Gợi ý phim</span>
-              </button>
-            </Tooltip>
-          </div>
-
           {/* ISOLATED SEARCH BAR COMPONENT */}
           <NavSearchBar
             isSearchExpanded={isSearchExpanded}
@@ -262,12 +231,6 @@ const NavbarInner: React.FC = () => {
         navLinks={NAV_LINKS}
         isLinkActive={isLinkActive}
         userUnreadCount={unreadCount}
-      />
-
-      {/* ISOLATED HOTKEY MODAL */}
-      <NavHotkeyModal
-        isOpen={showHotkeyModal}
-        onClose={() => setShowHotkeyModal(false)}
       />
 
       {/* GOOGLE AUTH MODAL */}

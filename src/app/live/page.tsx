@@ -1,6 +1,6 @@
 import React, { Suspense } from "react";
 import { Metadata } from "next";
-import { liveFootballService } from "@/services/live/football/service";
+import { liveFootballService, LiveMatchScore } from "@/services/live/football/service";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { LiveHubClient } from "@/components/live/LiveHubClient";
@@ -56,5 +56,13 @@ export default function LivePage() {
 // Data fetching component: Chỉ fetch dữ liệu thể thao ban đầu; Live TV được lazy-load theo nhu cầu
 async function LiveContent() {
   const footballData = await liveFootballService.getFootballMatches();
-  return <LiveHubClient footballData={footballData} />;
+  const initialScores: Record<string, LiveMatchScore> = {};
+  if (footballData?.matches) {
+    for (const m of footballData.matches) {
+      if (m.score) {
+        initialScores[m.id] = m.score;
+      }
+    }
+  }
+  return <LiveHubClient footballData={footballData} initialScores={initialScores} />;
 }

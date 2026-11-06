@@ -8,7 +8,7 @@ import {
   evaluateEventLifecycle,
 } from "@/services/live/football/service";
 import { useBodyScrollLock } from "@/lib/scrollLock";
-import { clearProbeQueue } from "@/services/live/football/clientSourceProbe";
+import { clearProbeQueue, getServerProbeStatus } from "@/services/live/football/clientSourceProbe";
 import { LivePlayer, toCanonicalSourceUrl } from "./LivePlayer";
 import { MatchCard } from "./MatchCard";
 import { MatchCenter } from "./MatchCenter";
@@ -40,6 +40,7 @@ import {
 
 interface LiveFootballClientProps {
   initialData: LiveFootballData;
+  initialScores?: Record<string, LiveMatchScore> | null;
   hideHeader?: boolean;
   isActive?: boolean;
   selectedSport?: string;
@@ -50,6 +51,7 @@ interface LiveFootballClientProps {
 
 export function LiveFootballClient({
   initialData,
+  initialScores,
   hideHeader = false,
   isActive = true,
   selectedSport,
@@ -201,12 +203,12 @@ export function LiveFootballClient({
     };
   }, [isActive]);
 
-  // Bản đồ tỷ số livescore được làm mới mỗi 60s
+  // Bản đồ tỷ số livescore được làm mới mỗi 15-60s (khởi tạo ngay lập tức từ SSR)
   const [scoresMap, setScoresMap] = useState<Record<string, LiveMatchScore>>(() => {
-    const initialMap: Record<string, LiveMatchScore> = {};
+    const initialMap: Record<string, LiveMatchScore> = { ...(initialScores || {}) };
     if (initialData?.matches) {
       for (const m of initialData.matches) {
-        if (m.score) {
+        if (m.score && !initialMap[m.id]) {
           initialMap[m.id] = m.score;
         }
       }
@@ -275,8 +277,8 @@ export function LiveFootballClient({
       // Khi tab bóng đá active trở lại: fetch ngay lập tức để cập nhật tỷ số mới nhất
       fetchScores();
     } else if (lastFetchedScoresTimeRef.current === 0) {
-      // Khi vừa mount ban đầu: chờ 3s để nhường luồng tải ban đầu cho player
-      initialTimer = setTimeout(fetchScores, 3000);
+      // Đã nạp initialScores từ SSR -> ghi nhận timestamp, loại bỏ độ trễ 3s không cần thiết
+      lastFetchedScoresTimeRef.current = Date.now();
     }
 
     const interval = setInterval(() => {
@@ -545,7 +547,7 @@ export function LiveFootballClient({
     requestAnimationFrame(() => {
       if (playerRef.current) {
         const rect = playerRef.current.getBoundingClientRect();
-        const navbarHeight = window.innerWidth >= 640 ? 76 : 68;
+        const navbarHeight = window.innerWidth >= 640 ? 64 : 58;
         const targetY = Math.max(0, window.scrollY + rect.top - navbarHeight);
         window.scrollTo({ top: targetY, behavior: "smooth" });
       } else {
@@ -747,11 +749,18 @@ export function LiveFootballClient({
         now: currentTime,
       });
 
-      const hasStream = Boolean(
-        Array.isArray(m.servers) &&
-          m.servers.length > 0 &&
-          m.servers.some((s) => s.url && s.url.trim().length > 0),
-      );
+      const workingServers = (m.servers || []).filter((s) => {
+        if (!s.url) return false;
+        return getServerProbeStatus(s.url) !== "dead";
+      });
+      const hasStream = workingServers.length > 0;
+      const hasAliveServer = workingServers.some((s) => getServerProbeStatus(s.url) === "alive");
+      const streamHealth: "alive" | "dead" | "unknown" =
+        workingServers.length === 0
+          ? "dead"
+          : hasAliveServer
+          ? "alive"
+          : "unknown";
 
       const hasValidTimestamp =
         matchTimestamp !== undefined &&
@@ -765,7 +774,7 @@ export function LiveFootballClient({
         timestamp: matchTimestamp,
         score: liveScore,
         sourceStatus: m.sourceStatus,
-        streamHealth: hasStream ? "alive" : "dead",
+        streamHealth,
         now: currentTime,
         sport: m.sport,
         isEvent: m.isEvent,
@@ -1421,7 +1430,11 @@ export function LiveFootballClient({
           {selectedMatch ? (
             <div className="space-y-2.5 sm:space-y-3 pb-16 lg:pb-0">
               {/* THANH ĐIỀU HƯỚNG QUAY LẠI DANH SÁCH & TIÊU ĐỀ TRẬN (BREADCRUMB COMPACT ~32-36PX) */}
-              <div className="flex items-center justify-between gap-2.5 px-1 py-1 text-xs">
+              <div
+                id="live-player-header"
+                ref={playerRef}
+                className="flex items-center justify-between gap-2.5 px-1 py-1 text-xs"
+              >
                 <button
                   type="button"
                   onClick={handleClosePlayer}
@@ -1441,11 +1454,19 @@ export function LiveFootballClient({
                 </div>
 
                 <div className="flex items-center gap-1.5 shrink-0">
-                  {selectedMatch.quality ? (
-                    <span className="text-[10px] font-sans font-bold tabular-nums px-2 py-0.5 rounded bg-white/10 text-zinc-300 shrink-0">
-                      {selectedMatch.quality}
+                  {/* NÚT ĐỔI TRẬN NHỎ GỌN TRÊN MOBILE: ĐẶT CÙNG HÀNG ĐIỀU HƯỚNG BREADCRUMB GỌN GÀNG, HỢP LÝ */}
+                  <button
+                    type="button"
+                    onClick={() => setIsMobileSheetOpen(true)}
+                    aria-label={`Đổi trận (${filteredMatches.length} trận khả dụng)`}
+                    className="lg:hidden inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-netflix-red hover:brightness-110 active:brightness-95 text-white font-bold text-xs shadow-sm transition cursor-pointer active:scale-95"
+                  >
+                    <Clock className="w-3.5 h-3.5 shrink-0" />
+                    <span>Đổi trận</span>
+                    <span className="bg-black/35 text-white text-[10px] font-bold px-1.5 py-0.2 rounded-full shrink-0">
+                      {filteredMatches.length}
                     </span>
-                  ) : null}
+                  </button>
                 </div>
               </div>
 
@@ -1453,7 +1474,7 @@ export function LiveFootballClient({
               <div className="space-y-4 lg:space-y-0 lg:grid lg:grid-cols-12 lg:gap-6 items-start pb-2 sm:pb-3">
                 {/* CỘT TRÁI (COL 1-7/8 TRÊN DESKTOP): LIVE PLAYER */}
                 <div className="lg:col-span-7 xl:col-span-8 space-y-3 flex flex-col justify-start">
-                  <div ref={playerRef} className="space-y-3">
+                  <div className="space-y-3">
                     <LivePlayer
                       match={selectedMatch}
                       title={selectedMatch.title}
@@ -1472,22 +1493,6 @@ export function LiveFootballClient({
                       isActive={isActive}
                       onVideoHeightChange={handleVideoHeightChange}
                     />
-
-                    {/* NÚT ĐỔI TRẬN TRÊN MOBILE: CHỈ HIỂN THỊ KHI Ở GIAO DIỆN MÀN HÌNH NHỎ */}
-                    <div className="lg:hidden w-full pt-1">
-                      <button
-                        type="button"
-                        onClick={() => setIsMobileSheetOpen(true)}
-                        aria-label={`Đổi trận đấu (${filteredMatches.length} trận khả dụng)`}
-                        className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-netflix-red hover:brightness-110 active:brightness-95 text-white font-bold text-xs shadow-md shadow-black/50 transition cursor-pointer active:scale-95"
-                      >
-                        <Clock className="w-4 h-4 shrink-0" />
-                        <span>Đổi trận đấu</span>
-                        <span className="bg-black/40 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0">
-                          {filteredMatches.length}
-                        </span>
-                      </button>
-                    </div>
 
                     {/* KHỐI MATCH CENTER TRÊN MOBILE: THÔNG TIN TRẬN ĐẤU & LUỒNG PHÁT CUỘN TỰ NHIÊN */}
                     <div className="w-full pt-1 sm:pt-2">
@@ -1598,16 +1603,16 @@ export function LiveFootballClient({
 
                   {/* TAB 2: ĐỔI TRẬN ĐẤU - DANH SÁCH THU GỌN VỚI TÌM KIẾM */}
                   {sidePanelTab === "matches" && (
-                    <div className="flex-1 min-h-0 flex flex-col space-y-2.5 overflow-hidden">
+                    <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
                       {/* Ô tìm kiếm nhanh trong side panel */}
-                      <div className="relative w-full shrink-0">
+                      <div className="relative w-full shrink-0 mb-2">
                         <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-400" />
                         <input
                           type="text"
                           value={searchQuery}
                           onChange={(e) => handleSearchChange(e.target.value)}
                           placeholder="Tìm trận đấu, giải đấu, bình luận viên..."
-                          className="w-full pl-8 pr-16 py-1.5 rounded-xl bg-zinc-900 text-xs text-white placeholder-zinc-400 focus:outline-none focus: focus:ring-1 focus:ring-netflix-red/50 transition shadow-inner"
+                          className="w-full pl-8 pr-16 py-1.5 rounded-xl bg-zinc-900 text-xs text-white placeholder-zinc-400 focus:outline-none focus:ring-1 focus:ring-netflix-red/50 transition shadow-inner"
                         />
                         <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
                           {searchQuery && (
@@ -1626,22 +1631,129 @@ export function LiveFootballClient({
                         </div>
                       </div>
 
+                      {/* Hàng nút lọc nhanh trạng thái trong side panel */}
+                      <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none shrink-0 pb-2 pt-0.5 border-b border-white/5 bg-zinc-950">
+                        <button
+                          type="button"
+                          onClick={() => handleStatusChange("all")}
+                          className={`px-2.5 py-1 rounded-lg text-[11px] font-bold whitespace-nowrap transition cursor-pointer ${
+                            selectedStatus === "all"
+                              ? "bg-zinc-700/90 text-white shadow-sm font-bold"
+                              : "bg-zinc-900 text-zinc-400 hover:text-white"
+                          }`}
+                        >
+                          Tất cả ({counts.total})
+                        </button>
+                        {counts.live > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => handleStatusChange("live")}
+                            className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold whitespace-nowrap transition cursor-pointer ${
+                              selectedStatus === "live"
+                                ? "bg-netflix-red text-white shadow-sm"
+                                : "bg-zinc-900 text-rose-300 hover:text-white"
+                            }`}
+                          >
+                            <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+                            <span>Đang live ({counts.live})</span>
+                          </button>
+                        )}
+                        {counts.upcoming > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => handleStatusChange("upcoming")}
+                            className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold whitespace-nowrap transition cursor-pointer ${
+                              selectedStatus === "upcoming"
+                                ? "bg-sky-600 text-white shadow-sm"
+                                : "bg-zinc-900 text-sky-300 hover:text-white"
+                            }`}
+                          >
+                            <Clock className="w-2.5 h-2.5" />
+                            <span>Sắp đá ({counts.upcoming})</span>
+                          </button>
+                        )}
+                      </div>
+
                       {/* Danh sách thẻ trận cuộn dọc */}
                       <div
                         ref={railContainerRef}
                         style={{ overscrollBehavior: "contain" }}
-                        className="flex-1 min-h-0 overflow-y-auto overscroll-contain space-y-1.5 px-0.5 py-0.5 pr-1 scrollbar-thin touch-pan-y"
+                        className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-0.5 pt-0 pb-3 pr-1 scrollbar-thin touch-pan-y"
                       >
-                        {filteredMatches.map((match) => (
-                          <MatchCard
-                            key={match.id}
-                            match={match}
-                            score={scoresMap[match.id] || match.score}
-                            isSelected={selectedMatch?.id === match.id}
-                            onSelect={handleSelectMatch}
-                            compact={true}
-                          />
-                        ))}
+                        {filteredMatches.length > 0 ? (
+                          <div className="space-y-2">
+                            {/* KHỐI TRẬN ĐANG TRỰC TIẾP */}
+                            {liveMatchesList.length > 0 && (
+                              <div>
+                                <div className="sticky top-0 z-20 -mx-0.5 -mr-1 px-3 py-2 bg-zinc-950 border-b border-red-500/30 flex items-center justify-between shadow-md">
+                                  <div className="flex items-center gap-2">
+                                    <span className="relative flex h-2 w-2">
+                                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
+                                      <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500" />
+                                    </span>
+                                    <span className="text-[11px] font-black uppercase tracking-wider text-red-400">
+                                      Đang trực tiếp
+                                    </span>
+                                  </div>
+                                  <span className="text-[10px] font-black tabular-nums px-2 py-0.5 rounded-full bg-red-500/20 text-red-300 border border-red-500/30">
+                                    {liveMatchesList.length} trận
+                                  </span>
+                                </div>
+
+                                <div className="space-y-1.5 pt-1.5">
+                                  {liveMatchesList.map((match) => (
+                                    <MatchCard
+                                      key={match.id}
+                                      match={match}
+                                      score={scoresMap[match.id] || match.score}
+                                      isSelected={selectedMatch?.id === match.id}
+                                      onSelect={handleSelectMatch}
+                                      compact={true}
+                                    />
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* KHỐI TRẬN SẮP DIỄN RA */}
+                            {upcomingMatchesList.length > 0 && (
+                              <div className="mt-2.5">
+                                <div className="sticky top-0 z-20 -mx-0.5 -mr-1 px-3 py-2 bg-zinc-950 border-b border-sky-500/30 flex items-center justify-between shadow-md">
+                                  <div className="flex items-center gap-2">
+                                    <Clock className="w-3.5 h-3.5 text-sky-400 shrink-0" />
+                                    <span className="text-[11px] font-black uppercase tracking-wider text-sky-400">
+                                      Sắp diễn ra
+                                    </span>
+                                  </div>
+                                  <span className="text-[10px] font-black tabular-nums px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-300 border border-sky-500/30">
+                                    {upcomingMatchesList.length} trận
+                                  </span>
+                                </div>
+
+                                <div className="space-y-1.5 pt-1.5">
+                                  {upcomingMatchesList.map((match) => (
+                                    <MatchCard
+                                      key={match.id}
+                                      match={match}
+                                      score={scoresMap[match.id] || match.score}
+                                      isSelected={selectedMatch?.id === match.id}
+                                      onSelect={handleSelectMatch}
+                                      compact={true}
+                                    />
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="py-10 text-center text-zinc-400 space-y-2">
+                            <Search className="w-6 h-6 mx-auto text-zinc-500" />
+                            <p className="text-xs font-bold text-white">Không tìm thấy trận đấu nào</p>
+                            <p className="text-[11px] text-zinc-500">
+                              {searchQuery ? "Thử tìm kiếm với từ khóa khác" : "Chưa có trận nào trong danh sách"}
+                            </p>
+                          </div>
+                        )}
                       </div>
                     </div>
                   )}
@@ -1704,7 +1816,7 @@ export function LiveFootballClient({
                     </div>
 
                     {/* Ô tìm kiếm cố định */}
-                    <div className="shrink-0 p-3 pb-2">
+                    <div className="shrink-0 px-3 pt-3 pb-2">
                       <div className="relative w-full">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-400" />
                         <input
@@ -1712,7 +1824,7 @@ export function LiveFootballClient({
                           value={searchQuery}
                           onChange={(e) => handleSearchChange(e.target.value)}
                           placeholder="Tìm trận đấu, giải đấu, BLV..."
-                          className="w-full pl-9 pr-14 py-2 rounded-xl bg-zinc-900 text-xs text-white placeholder-zinc-400 focus:outline-none focus: focus:ring-1 focus:ring-netflix-red/50 transition shadow-inner font-medium"
+                          className="w-full pl-9 pr-14 py-2 rounded-xl bg-zinc-900 text-xs text-white placeholder-zinc-400 focus:outline-none focus:ring-1 focus:ring-netflix-red/50 transition shadow-inner font-medium"
                         />
                         {searchQuery && (
                           <button
@@ -1728,14 +1840,14 @@ export function LiveFootballClient({
                     </div>
 
                     {/* Hàng nút lọc nhanh trạng thái trong Bottom Sheet */}
-                    <div className="shrink-0 px-3 py-1.5 flex items-center gap-1.5 overflow-x-auto scrollbar-none touch-pan-x">
+                    <div className="shrink-0 px-3 pb-2 pt-0.5 flex items-center gap-1.5 overflow-x-auto scrollbar-none touch-pan-x border-b border-white/5 bg-zinc-950">
                       <button
                         type="button"
                         onClick={() => handleStatusChange("all")}
-                        className={`px-2.5 py-1 rounded-lg text-[11px] font-bold whitespace-nowrap transition  cursor-pointer ${
+                        className={`px-2.5 py-1 rounded-lg text-[11px] font-bold whitespace-nowrap transition cursor-pointer ${
                           selectedStatus === "all"
-                            ? "bg-zinc-700/90 text-white  shadow-sm font-bold"
-                            : "bg-zinc-900 text-zinc-400  hover:text-white"
+                            ? "bg-zinc-700/90 text-white shadow-sm font-bold"
+                            : "bg-zinc-900 text-zinc-400 hover:text-white"
                         }`}
                       >
                         Tất cả ({counts.total})
@@ -1744,10 +1856,10 @@ export function LiveFootballClient({
                         <button
                           type="button"
                           onClick={() => handleStatusChange("live")}
-                          className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold whitespace-nowrap transition  cursor-pointer ${
+                          className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold whitespace-nowrap transition cursor-pointer ${
                             selectedStatus === "live"
                               ? "bg-netflix-red text-white shadow-sm"
-                              : "bg-zinc-900 text-rose-300  hover:text-white"
+                              : "bg-zinc-900 text-rose-300 hover:text-white"
                           }`}
                         >
                           <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
@@ -1758,10 +1870,10 @@ export function LiveFootballClient({
                         <button
                           type="button"
                           onClick={() => handleStatusChange("upcoming")}
-                          className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold whitespace-nowrap transition  cursor-pointer ${
+                          className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold whitespace-nowrap transition cursor-pointer ${
                             selectedStatus === "upcoming"
-                              ? "bg-sky-600 text-white  shadow-sm"
-                              : "bg-zinc-900 text-sky-300  hover:text-white"
+                              ? "bg-sky-600 text-white shadow-sm"
+                              : "bg-zinc-900 text-sky-300 hover:text-white"
                           }`}
                         >
                           <Clock className="w-2.5 h-2.5" />
@@ -1773,19 +1885,73 @@ export function LiveFootballClient({
                     {/* Vùng danh sách thẻ trận cuộn dọc độc lập */}
                     <div
                       style={{ overscrollBehavior: "contain" }}
-                      className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-3 py-2 space-y-1.5 scrollbar-thin touch-pan-y pb-[max(1.25rem,env(safe-area-inset-bottom))]"
+                      className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-3 pt-0 scrollbar-thin touch-pan-y pb-[max(1.5rem,env(safe-area-inset-bottom))]"
                     >
                       {filteredMatches.length > 0 ? (
-                        filteredMatches.map((match) => (
-                          <MatchCard
-                            key={match.id}
-                            match={match}
-                            score={scoresMap[match.id] || match.score}
-                            isSelected={selectedMatch?.id === match.id}
-                            onSelect={handleSelectMatchFromSheet}
-                            compact={true}
-                          />
-                        ))
+                        <div className="space-y-2.5">
+                          {/* KHỐI TRẬN ĐANG TRỰC TIẾP */}
+                          {liveMatchesList.length > 0 && (
+                            <div>
+                              <div className="sticky top-0 z-20 -mx-3 px-3.5 py-2.5 bg-zinc-950 border-b border-red-500/30 flex items-center justify-between shadow-md">
+                                <div className="flex items-center gap-2">
+                                  <span className="relative flex h-2.5 w-2.5">
+                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
+                                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500" />
+                                  </span>
+                                  <span className="text-xs sm:text-[13px] font-black uppercase tracking-wider text-red-200">
+                                    Đang trực tiếp
+                                  </span>
+                                </div>
+                                <span className="text-xs font-black tabular-nums px-2.5 py-0.5 rounded-full bg-red-500/20 text-red-200 border border-red-500/30">
+                                  {liveMatchesList.length} trận
+                                </span>
+                              </div>
+
+                              <div className="space-y-1.5 pt-2">
+                                {liveMatchesList.map((match) => (
+                                  <MatchCard
+                                    key={match.id}
+                                    match={match}
+                                    score={scoresMap[match.id] || match.score}
+                                    isSelected={selectedMatch?.id === match.id}
+                                    onSelect={handleSelectMatchFromSheet}
+                                    compact={true}
+                                  />
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* KHỐI TRẬN SẮP DIỄN RA */}
+                          {upcomingMatchesList.length > 0 && (
+                            <div className="mt-3">
+                              <div className="sticky top-0 z-20 -mx-3 px-3.5 py-2.5 bg-zinc-950 border-b border-sky-500/30 flex items-center justify-between shadow-md">
+                                <div className="flex items-center gap-2">
+                                  <Clock className="w-3.5 h-3.5 text-sky-400 shrink-0" />
+                                  <span className="text-xs sm:text-[13px] font-black uppercase tracking-wider text-sky-200">
+                                    Sắp diễn ra
+                                  </span>
+                                </div>
+                                <span className="text-xs font-black tabular-nums px-2.5 py-0.5 rounded-full bg-sky-500/20 text-sky-200 border border-sky-500/30">
+                                  {upcomingMatchesList.length} trận
+                                </span>
+                              </div>
+
+                              <div className="space-y-1.5 pt-2">
+                                {upcomingMatchesList.map((match) => (
+                                  <MatchCard
+                                    key={match.id}
+                                    match={match}
+                                    score={scoresMap[match.id] || match.score}
+                                    isSelected={selectedMatch?.id === match.id}
+                                    onSelect={handleSelectMatchFromSheet}
+                                    compact={true}
+                                  />
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
                       ) : (
                         <div className="py-12 text-center text-zinc-400 space-y-2">
                           <Search className="w-6 h-6 mx-auto text-zinc-500" />

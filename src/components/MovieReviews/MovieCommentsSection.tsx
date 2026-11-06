@@ -360,6 +360,10 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
           },
           ...prev.filter((c) => c.id !== createdId),
         ]);
+        setContent("");
+        setRating(0);
+        setIsSpoiler(false);
+        setScopeEpisode("all");
         toast.success(rating > 0 ? "Đã đăng bình luận và đánh giá thành công!" : "Đã đăng bình luận thành công!");
       }
       clearTimeout(timeoutId);

@@ -128,23 +128,39 @@ export const NumberedRankCard: React.FC<NumberedRankCardProps> = ({
         {/* SỐ THỨ TỰ BẢNG XẾP HẠNG (RANK) */}
         <div
           aria-hidden="true"
-          className="flex items-end h-[210px] sm:h-[262px] md:h-[285px] relative -mr-5 sm:-mr-8 z-0 pointer-events-none select-none shrink-0"
+          className={`flex items-end ${
+            rank >= 10
+              ? MOVIE_CARD_TOKENS.ranked.numberColDouble
+              : MOVIE_CARD_TOKENS.ranked.numberCol
+          } relative z-0 pointer-events-none select-none shrink-0 overflow-visible`}
         >
-          <span
-            className="text-[90px] sm:text-[130px] md:text-[150px] font-black leading-none tracking-tighter text-transparent"
-            style={{
-              WebkitTextStroke:
-                rank === 1
-                  ? "3px var(--accent-color, #e50914)"
-                  : rank === 2
-                  ? "3px #d4d4d8"
-                  : rank === 3
-                  ? "3px #a1a1aa"
-                  : "2px rgba(255, 255, 255, 0.2)",
-            }}
-          >
-            {rank}
-          </span>
+          {rank >= 10 ? (
+            <span
+              className="font-black leading-none text-transparent select-none text-[72px] sm:text-[98px] md:text-[116px] inline-flex items-baseline"
+              style={{
+                WebkitTextStroke: "2px rgba(255, 255, 255, 0.28)",
+              }}
+            >
+              <span className="shrink-0">{String(rank)[0]}</span>
+              <span className="shrink-0 -ml-1 sm:-ml-1.5 md:-ml-2">{String(rank)[1]}</span>
+            </span>
+          ) : (
+            <span
+              className="font-black leading-none text-transparent select-none text-[90px] sm:text-[125px] md:text-[145px] tracking-tighter"
+              style={{
+                WebkitTextStroke:
+                  rank === 1
+                    ? "3px var(--accent-color, #e50914)"
+                    : rank === 2
+                    ? "3px #d4d4d8"
+                    : rank === 3
+                    ? "3px #a1a1aa"
+                    : "2px rgba(255, 255, 255, 0.24)",
+              }}
+            >
+              {rank}
+            </span>
+          )}
         </div>
 
         {/* CỘT POSTER + METADATA */}

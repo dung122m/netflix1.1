@@ -1,5 +1,38 @@
 import { NextRequest } from "next/server";
+import crypto from "crypto";
 import { isUserAdmin } from "./adminConfig";
+
+/**
+ * Constant-time comparison between user-provided secret and environment secret.
+ * Defends against timing attacks (SEC-AUDIT-01).
+ *
+ * Requirements:
+ * - Both inputs must be non-empty strings.
+ * - Buffers must be of equal length before timingSafeEqual, or false is returned in constant-time.
+ * - Handles undefined, null, empty strings, and malformed inputs safely.
+ */
+export function isTimingSafeSecretMatch(
+  providedSecret?: string | null,
+  expectedSecret?: string | null
+): boolean {
+  if (!providedSecret || !expectedSecret || typeof providedSecret !== "string" || typeof expectedSecret !== "string") {
+    return false;
+  }
+  const cleanProvided = providedSecret.trim();
+  const cleanExpected = expectedSecret.trim();
+  if (cleanProvided.length === 0 || cleanExpected.length === 0) {
+    return false;
+  }
+
+  const providedBuf = Buffer.from(cleanProvided, "utf8");
+  const expectedBuf = Buffer.from(cleanExpected, "utf8");
+
+  if (providedBuf.length !== expectedBuf.length) {
+    return false;
+  }
+
+  return crypto.timingSafeEqual(providedBuf, expectedBuf);
+}
 
 export interface ServerAuthResult {
   isAuthenticated: boolean;
@@ -47,21 +80,25 @@ export async function verifyServerAuth(req: NextRequest): Promise<ServerAuthResu
   const authHeader = req.headers.get("authorization")?.trim();
   const bearerToken = authHeader?.startsWith("Bearer ") ? authHeader.slice(7).trim() : null;
 
-  // 1. Verify ADMIN_SYNC_SECRET (Server-side bypass for automated admin tasks)
+  // 1. Verify ADMIN_SYNC_SECRET (Server-side bypass for automated admin tasks with timing-safe comparison)
   const envSecret = process.env.ADMIN_SYNC_SECRET?.trim();
-  if (envSecret && (secretHeader === envSecret || bearerToken === envSecret)) {
-    return {
-      isAuthenticated: true,
-      isAdmin: true,
-      userId: "admin_system",
-      email: "admin@system",
-      displayName: "Admin System",
-      photoUrl: "",
-    };
+  if (envSecret) {
+    const isHeaderMatch = secretHeader ? isTimingSafeSecretMatch(secretHeader, envSecret) : false;
+    const isBearerMatch = bearerToken ? isTimingSafeSecretMatch(bearerToken, envSecret) : false;
+    if (isHeaderMatch || isBearerMatch) {
+      return {
+        isAuthenticated: true,
+        isAdmin: true,
+        userId: "admin_system",
+        email: "admin@system",
+        displayName: "Admin System",
+        photoUrl: "",
+      };
+    }
   }
 
   // 2. Verify Firebase ID Token
-  if (bearerToken && bearerToken !== envSecret) {
+  if (bearerToken && !isTimingSafeSecretMatch(bearerToken, envSecret)) {
     const now = Date.now();
     const cached = tokenCache.get(bearerToken);
     if (cached && cached.expiry > now) {

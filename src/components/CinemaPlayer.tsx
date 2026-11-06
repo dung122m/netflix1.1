@@ -34,7 +34,6 @@ import {
   YouTubeVolumeLowIcon,
   YouTubeVolumeMuteIcon,
 } from "./player/PlayerNativeControls";
-import { PlayerShortcutModal } from "./player/PlayerShortcutModal";
 import {
   detectAdBoundaries,
   AdBoundary,
@@ -248,7 +247,6 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
   const [useIframeFallback, setUseIframeFallback] = useState(false);
   const [showControls, setShowControls] = useState(true);
   const showControlsRef = useRef(showControls);
-  const [showShortcutModal, setShowShortcutModal] = useState(false);
 
   useEffect(() => {
     showControlsRef.current = showControls;
@@ -2390,16 +2388,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
         return;
       }
 
-      // 4. Nếu showShortcutModal của player đang mở:
-      if (showShortcutModal) {
-        if (e.key === "Escape" || e.key === "?" || (e.key === "/" && !e.shiftKey)) {
-          e.preventDefault();
-          setShowShortcutModal(false);
-        }
-        return;
-      }
-
-      // 5. Phím Escape: Thoát toàn màn hình
+      // 4. Phím Escape: Thoát toàn màn hình
       if (e.key === "Escape") {
         if (isFullscreen) {
           e.preventDefault();
@@ -2508,15 +2497,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
         return;
       }
 
-      if (e.key === "?" || (e.key === "/" && !e.shiftKey)) {
-        if (e.repeat) return;
-        e.preventDefault();
-        resetControlsTimeout();
-        setShowShortcutModal((prev) => !prev);
-        return;
-      }
-
-      // 9. PHÍM TUA VIDEO (← / →): Tua lùi / tiến 10s (Chu kỳ hiển thị chuẩn xác và đồng bộ OSD)
+      // 8. PHÍM TUA VIDEO (← / →): Tua lùi / tiến 10s (Chu kỳ hiển thị chuẩn xác và đồng bộ OSD)
       if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
         if (active && active.tagName === "INPUT" && active.getAttribute("type") === "range") {
           return;
@@ -2608,7 +2589,6 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
     showHud,
     volume,
     getEffectiveDuration,
-    showShortcutModal,
     isFullscreen,
     resetControlsTimeout,
     triggerDesktopFeedback,
@@ -3068,7 +3048,6 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
                 onUseIframeFallback={() => setUseIframeFallback(true)}
                 isTheaterMode={isTheaterMode}
                 onToggleTheaterMode={() => setIsTheaterMode((prev) => !prev)}
-                onOpenShortcuts={() => setShowShortcutModal(true)}
                 onToggleFullscreen={toggleFullscreen}
                 onSwitchEpisode={(slug) => {
                   if (switchEpisode) switchEpisode(slug);
@@ -3243,13 +3222,6 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
           display: none !important;
         }
       `}</style>
-
-      {/* MODALS */}
-      <PlayerShortcutModal
-        isOpen={showShortcutModal}
-        onClose={() => setShowShortcutModal(false)}
-        containerRef={containerRef}
-      />
     </>
   );
 };

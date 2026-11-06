@@ -10,7 +10,6 @@ import {
   Sliders,
   Scaling,
   Tv,
-  Keyboard,
   Gauge,
   Repeat,
   X,
@@ -174,7 +173,6 @@ interface PlayerNativeControlsProps {
   onUseIframeFallback: () => void;
   isTheaterMode?: boolean;
   onToggleTheaterMode?: () => void;
-  onOpenShortcuts?: () => void;
   onToggleFullscreen: () => void;
   onSwitchEpisode?: (slug: string) => void;
   onUserInteraction?: () => void;
@@ -218,7 +216,6 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
     onUseIframeFallback,
     isTheaterMode = false,
     onToggleTheaterMode,
-    onOpenShortcuts,
     onToggleFullscreen,
     onSwitchEpisode,
     onUserInteraction,
@@ -470,26 +467,6 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
                 <div className="w-4 h-4 rounded-full bg-white shadow-sm" />
               </div>
             </button>
-
-            {/* Mục: Phím tắt điều khiển (Chỉ hiện trên desktop) */}
-            {!isMobileLayout && onOpenShortcuts && (
-              <button
-                type="button"
-                onClick={() => {
-                  setShowSettings(false);
-                  onOpenShortcuts();
-                }}
-                className="flex items-center justify-between px-3.5 py-2.5 hover:bg-white/10 transition cursor-pointer text-xs sm:text-sm text-left group border-t mt-1"
-              >
-                <div className="flex items-center gap-2.5 text-zinc-200 group-hover:text-white">
-                  <Keyboard className="w-4 h-4 text-zinc-400 group-hover:text-white" />
-                  <span>Phím tắt điều khiển</span>
-                </div>
-                <span className="text-[10px] font-sans tabular-nums text-zinc-400 bg-white/10 px-1.5 py-0.5 rounded">
-                  ?
-                </span>
-              </button>
-            )}
           </div>
         )}
 
@@ -728,26 +705,15 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
         </div>
 
         {/* =================================================================== */}
-        {/* 2. CENTER PLAYBACK CONTROLS (CHUẨN YOUTUBE MOBILE TỐI GIẢN & ĐẸP)   */}
+        {/* 2. CENTER PLAYBACK CONTROLS (CHUẨN MOBILE TỐI GIẢN: CHỈ PLAY/PAUSE) */}
         {/* =================================================================== */}
         {isBuffering ? (
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none select-none z-10 flex flex-col items-center justify-center">
             <div className="w-12 h-12 sm:w-14 sm:h-14 border-[3px] border-t-white rounded-full animate-spin shadow-2xl" />
           </div>
         ) : (
-          <div className="md:hidden absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center justify-center gap-6 sm:gap-10 pointer-events-none z-10">
-            {/* Tua lùi 5s */}
-            <button
-              type="button"
-              data-player-control="true"
-              onClick={handleSeekBack}
-              aria-label="Tua lùi 5 giây"
-              className="pointer-events-auto w-11 h-11 rounded-full bg-black/45 hover:bg-black/65 active:scale-90 text-white/95 flex items-center justify-center shadow-lg backdrop-blur-md transition-all cursor-pointer outline-none"
-            >
-              <YouTubeSeek5BackIcon className="w-5 h-5" />
-            </button>
-
-            {/* Play/Pause chính giữa - phong cách YouTube: viền mờ tinh tế, không chói đỏ */}
+          <div className="md:hidden absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center justify-center pointer-events-none z-10">
+            {/* Play/Pause chính giữa - phong cách YouTube: viền mờ tinh tế, không chói đỏ (tua thời gian dùng chạm đúp 2 bên) */}
             <button
               type="button"
               data-player-control="true"
@@ -764,17 +730,6 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
               ) : (
                 <YouTubePlayIcon className="w-7 h-7 sm:w-8 sm:h-8 ml-0.5" />
               )}
-            </button>
-
-            {/* Tua tới 5s */}
-            <button
-              type="button"
-              data-player-control="true"
-              onClick={handleSeekForward}
-              aria-label="Tua tới 5 giây"
-              className="pointer-events-auto w-11 h-11 rounded-full bg-black/45 hover:bg-black/65 active:scale-90 text-white/95 flex items-center justify-center shadow-lg backdrop-blur-md transition-all cursor-pointer outline-none"
-            >
-              <YouTubeSeek5ForwardIcon className="w-5 h-5" />
             </button>
           </div>
         )}

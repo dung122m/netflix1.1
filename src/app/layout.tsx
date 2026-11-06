@@ -261,7 +261,7 @@ export default function RootLayout({
           {/* Facebook-style Desktop Reply & Realtime Notification Popup */}
           <DesktopReplyPopup />
 
-          {/* AI Modals: Concierge, Roulette, Actor Bio — lazy-loaded client-side */}
+          {/* Client-side modals: Actor Bio, Profile, Auth — lazy-loaded client-side */}
           <ClientModals />
 
           {/* PWA Smart Install Banner & Modal */}

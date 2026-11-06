@@ -28,6 +28,7 @@ export interface UserNotification {
   link: string;
   image?: string;
   movieSlug?: string;
+  movieTitle?: string;
   episodeName?: string;
   actorName?: string;
   actorId?: string;

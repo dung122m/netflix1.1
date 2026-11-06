@@ -5,7 +5,6 @@ import Link from "next/link";
 import {
   Eye,
   Users,
-  Clock,
   Radio,
   Smartphone,
   Monitor,
@@ -16,20 +15,13 @@ import {
   Compass,
   Star,
   Info,
-  Film,
   BarChart2,
-  MapPin,
   Cpu,
   Sparkles,
-  Calendar,
-  UserCheck,
-  UserX,
 } from "lucide-react";
 import {
   AnalyticsDashboardStats,
-  DailyVisitorsResponse,
 } from "@/services/analyticsService";
-import { UserAvatar } from "@/components/ui/UserAvatar";
 import { toast } from "@/components/Toast";
 import { useAuth } from "@/context/AuthContext";
 
@@ -53,28 +45,6 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
   const [stats, setStats] = useState<AnalyticsDashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
-
-  // Helper to compute YYYY-MM-DD in Asia/Ho_Chi_Minh (UTC+7)
-  const getTodayVietnamStr = () => {
-    const vn = new Date(Date.now() + 7 * 60 * 60 * 1000);
-    const y = vn.getUTCFullYear();
-    const m = String(vn.getUTCMonth() + 1).padStart(2, "0");
-    const d = String(vn.getUTCDate()).padStart(2, "0");
-    return `${y}-${m}-${d}`;
-  };
-
-  const getYesterdayVietnamStr = () => {
-    const vn = new Date(Date.now() + 7 * 60 * 60 * 1000 - 86400000);
-    const y = vn.getUTCFullYear();
-    const m = String(vn.getUTCMonth() + 1).padStart(2, "0");
-    const d = String(vn.getUTCDate()).padStart(2, "0");
-    return `${y}-${m}-${d}`;
-  };
-
-  const [selectedDate, setSelectedDate] = useState<string>(getTodayVietnamStr);
-  const [dailyVisitors, setDailyVisitors] = useState<DailyVisitorsResponse | null>(null);
-  const [loadingDaily, setLoadingDaily] = useState(true);
-  const [isRefreshingDaily, setIsRefreshingDaily] = useState(false);
 
   const fetchStats = useCallback(async (tf: "today" | "7d" | "30d" | "all", showToast = false) => {
     try {
@@ -100,70 +70,12 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
     }
   }, [user]);
 
-  const fetchDailyVisitors = useCallback(async (dateToFetch: string, showToast = false) => {
-    try {
-      if (showToast) setIsRefreshingDaily(true);
-      const idToken = await user?.getIdToken().catch(() => null);
-      const res = await fetch(`/api/analytics/daily-visitors?date=${dateToFetch}`, {
-        headers: idToken ? { Authorization: `Bearer ${idToken}` } : {},
-      });
-      const data = await res.json();
-      if (data.success && data.data) {
-        setDailyVisitors(data.data);
-        if (showToast) {
-          toast.success(`Đã cập nhật danh sách khách ngày ${dateToFetch}!`);
-        }
-      }
-    } catch {
-      if (showToast) {
-        toast.error("Không thể tải danh sách khách truy cập!");
-      }
-    } finally {
-      setLoadingDaily(false);
-      setIsRefreshingDaily(false);
-    }
-  }, [user]);
-
   useEffect(() => {
     // Skip fetch until Firebase auth has resolved to a real user.
     if (!user) return;
     setLoading(true);
     fetchStats(timeframe);
   }, [timeframe, fetchStats, user]);
-
-  useEffect(() => {
-    if (!user) return;
-    setLoadingDaily(true);
-    fetchDailyVisitors(selectedDate);
-  }, [selectedDate, fetchDailyVisitors, user]);
-
-  // Format seconds to hours and minutes
-  const formatDuration = (seconds: number) => {
-    if (!seconds || seconds <= 0) return "0 phút";
-    const hours = Math.floor(seconds / 3600);
-    const mins = Math.floor((seconds % 3600) / 60);
-    if (hours > 0) {
-      return `${hours}h ${mins}m`;
-    }
-    return `${mins} phút`;
-  };
-
-  // Format event date
-  const formatTime = (ts: number) => {
-    const d = new Date(ts);
-    return `${d.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })} • ${d.toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit" })}`;
-  };
-
-  const formatTimeOnly = (ts: number) => {
-    if (!ts) return "—";
-    const d = new Date(ts);
-    return d.toLocaleTimeString("vi-VN", {
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit",
-      timeZone: "Asia/Ho_Chi_Minh",
-    });
-  };
 
   // Helper to resolve route URL from pageGroup slug
   const getPageGroupUrl = (slug: string) => {
@@ -226,7 +138,7 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
       </div>
 
       {/* OVERVIEW STATS CARDS */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {/* Total Visits */}
         <div className="p-5 rounded-2xl bg-zinc-900/60 hover: transition backdrop-blur-sm relative overflow-hidden group">
           <div className="flex items-center justify-between text-zinc-400 mb-2">
@@ -286,177 +198,6 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
             Khách vãng lai tương tác trong 30 phút gần nhất
           </p>
         </div>
-
-        {/* Today Visitors */}
-        <div className="p-5 rounded-2xl bg-zinc-900/60 hover: transition backdrop-blur-sm relative overflow-hidden group">
-          <div className="flex items-center justify-between text-zinc-400 mb-2">
-            <span className="text-xs font-medium">Khách Truy Cập Hôm Nay</span>
-            <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-400">
-              <MapPin size={18} />
-            </div>
-          </div>
-          <div className="text-3xl font-black text-emerald-400 flex items-baseline gap-2 group-hover:scale-105 transition-transform origin-left">
-            <span>{loading ? "..." : (stats?.todayVisitorsCount ?? 0).toLocaleString("vi-VN")}</span>
-            <span className="text-xs font-normal text-zinc-400">khách riêng biệt</span>
-          </div>
-          <p className="text-[11px] text-zinc-400 mt-1">
-            User & Guest riêng biệt hôm nay (Asia/Ho_Chi_Minh)
-          </p>
-        </div>
-      </div>
-
-      {/* SECTION: PHIÊN TIẾP TỤC XEM ĐA THIẾT BỊ (DEVICE HANDOFF) */}
-      <div className="p-6 rounded-2xl bg-zinc-900/60 backdrop-blur-sm space-y-4">
-        <div className="flex items-center justify-between flex-wrap gap-2">
-          <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-400">
-              <Film size={18} />
-            </div>
-            <div>
-              <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                <span>Phiên Tiếp Tục Xem Đa Thiết Bị (Device Handoff)</span>
-                {stats?.liveWatching && stats.liveWatching.filter((s) => s.isLive).length > 0 && (
-                  <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-bold flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
-                    {stats.liveWatching.filter((s) => s.isLive).length} đang phát
-                  </span>
-                )}
-              </h3>
-              <p className="text-[11px] text-zinc-400">
-                Tiến trình xem phim thời gian thực được đồng bộ giữa các thiết bị của thành viên (Continue Watching)
-              </p>
-            </div>
-          </div>
-          <span className="text-xs text-zinc-400">
-            {stats?.liveWatching?.length || 0} phiên ghi nhận
-          </span>
-        </div>
-
-        {!stats?.liveWatching || stats.liveWatching.length === 0 ? (
-          <div className="p-8 text-center rounded-xl bg-black/40 text-zinc-400 text-xs">
-            Hiện chưa có phiên tiếp tục xem nào được ghi nhận từ thiết bị của thành viên.
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {stats.liveWatching.map((session) => (
-              <div
-                key={`${session.userId}-${session.movieSlug}`}
-                className="p-4 rounded-xl bg-black/40 hover: transition space-y-3 flex flex-col justify-between"
-              >
-                {/* User & Status Header */}
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <UserAvatar
-                      src={session.userAvatar || undefined}
-                      name={session.userName}
-                      seed={session.userId || session.userName}
-                      sizeClassName="w-8 h-8 text-xs font-bold"
-                      rounded="xl"
-                      className=""
-                    />
-                    <div className="min-w-0">
-                      <div className="text-xs font-bold text-white truncate flex items-center gap-1.5">
-                        <span className="truncate">{session.userName}</span>
-                        {session.isGuest ? (
-                          <span className="px-1.5 py-0.5 rounded bg-zinc-800 text-[10px] text-zinc-300 font-semibold flex-shrink-0">
-                            🎭 Guest
-                          </span>
-                        ) : (
-                          <span className="px-1.5 py-0.5 rounded bg-emerald-500/15 text-[10px] text-emerald-300 font-semibold flex-shrink-0">
-                            👤 User
-                          </span>
-                        )}
-                      </div>
-                      <div className="text-[10px] text-zinc-500 truncate font-sans tabular-nums">
-                        {session.isGuest
-                          ? (session.deviceName || "Khách vãng lai")
-                          : (session.userEmail || session.userId.slice(0, 10))}
-                      </div>
-                    </div>
-                  </div>
-
-                  {session.isLive ? (
-                    <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-bold flex items-center gap-1.5 flex-shrink-0">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
-                      🟢 Đang xem
-                    </span>
-                  ) : (
-                    <span className="px-2 py-0.5 rounded-full bg-zinc-800 text-zinc-400 text-[10px] font-medium flex items-center gap-1 flex-shrink-0">
-                      <Clock size={10} />
-                      Tạm dừng
-                    </span>
-                  )}
-                </div>
-
-                {/* Movie & Progress */}
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between gap-2">
-                    <Link
-                      href={`/movies/${session.movieSlug}`}
-                      target="_blank"
-                      className="text-xs font-bold text-white hover:text-netflix-red truncate transition"
-                    >
-                      {session.movieTitle}
-                    </Link>
-                    {session.episodeName && (
-                      <span className="text-[11px] text-zinc-400 flex-shrink-0">
-                        {session.episodeName}
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Progress bar */}
-                  <div className="h-1.5 rounded-full bg-zinc-800 overflow-hidden">
-                    <div
-                      className={`h-full rounded-full ${
-                        session.isLive
-                          ? "bg-gradient-to-r from-emerald-500 to-teal-400"
-                          : "bg-gradient-to-r from-netflix-red to-amber-500"
-                      }`}
-                      style={{ width: `${Math.min(100, Math.max(0, session.progressPercent))}%` }}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between text-[10px] text-zinc-400 font-sans tabular-nums">
-                    <span>
-                      {session.durationSeconds > 0 ? (
-                        <>
-                          {formatDuration(session.progressSeconds)} / {formatDuration(session.durationSeconds)}
-                        </>
-                      ) : (
-                        <>Đã xem: {formatDuration(session.progressSeconds)}</>
-                      )}
-                    </span>
-                    <span className="font-bold text-white">{session.progressPercent}%</span>
-                  </div>
-                </div>
-
-                {/* Device & Timestamp Footer */}
-                <div className="pt-2 border-t flex items-center justify-between text-[10px] text-zinc-500">
-                  <span className="flex items-center gap-1">
-                    {session.deviceName?.toLowerCase().includes("điện thoại") ||
-                    session.deviceName?.toLowerCase().includes("mobile") ? (
-                      <Smartphone size={12} className="text-emerald-400" />
-                    ) : session.deviceName?.toLowerCase().includes("tablet") ||
-                      session.deviceName?.toLowerCase().includes("ipad") ? (
-                      <Tablet size={12} className="text-purple-400" />
-                    ) : (
-                      <Monitor size={12} className="text-blue-400" />
-                    )}
-                    <span>{session.deviceName || "Thiết bị"}</span>
-                  </span>
-                  <span>
-                    {session.isLive
-                      ? "Vừa xong"
-                      : session.updatedAt > 0
-                      ? `Tạm dừng lúc ${formatTime(session.updatedAt)}`
-                      : "Chưa rõ thời gian"}
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
       </div>
 
       {/* ROW: TOP PAGES BY VISITS & UNIQUE VISITORS */}
@@ -670,7 +411,7 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
         })()}
       </div>
 
-      {/* SECTION: THIẾT BỊ & MÔI TRƯỜNG KHÁN GIẢ (PLATFORM & GEOIP) */}
+      {/* SECTION: THIẾT BỊ & NỀN TẢNG KHÁN GIẢ (PLATFORM & DEVICES) */}
       <div className="p-6 rounded-2xl bg-zinc-900/60 backdrop-blur-sm space-y-6">
         <div className="flex items-center justify-between flex-wrap gap-2 pb-2 border-b">
           <div className="flex items-center gap-2.5">
@@ -679,13 +420,13 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
             </div>
             <div>
               <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                <span>Hồ Sơ Nền Tảng & Vị Trí Truy Cập (Platform & GeoIP)</span>
+                <span>Hồ Sơ Nền Tảng & Thiết Bị (Platform & Devices)</span>
                 <span className="px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30 text-[10px] font-bold">
                   Guest + User
                 </span>
               </h3>
               <p className="text-[11px] text-zinc-400">
-                Phân tích nền tảng thiết bị, hệ điều hành, trình duyệt và phân bố địa lý ước lượng (GeoIP)
+                Phân tích nền tảng thiết bị, hệ điều hành và trình duyệt của người dùng
               </p>
             </div>
           </div>
@@ -839,314 +580,6 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
             )}
           </div>
         </div>
-
-        {/* ROW 2: APPROXIMATE LOCATION DISTRIBUTION (GEOIP) */}
-        <div className="pt-2 border-t">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* 4. Top Countries */}
-            <div className="p-4 rounded-xl bg-black/40 space-y-3">
-              <div className="flex items-center justify-between">
-                <h4 className="text-xs font-bold text-zinc-300 flex items-center gap-2">
-                  <Globe size={15} className="text-teal-400" />
-                  <span>Quốc Gia Ước Lượng (Approximate Country)</span>
-                </h4>
-                <span className="text-[10px] text-zinc-500 font-medium">Edge GeoIP</span>
-              </div>
-
-              {stats?.deviceProfileStats?.locations?.countries && stats.deviceProfileStats.locations.countries.length > 0 ? (
-                <div className="space-y-2 pt-0.5">
-                  {stats.deviceProfileStats.locations.countries.slice(0, 5).map((c) => (
-                    <div key={c.name} className="space-y-1">
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="text-zinc-300 flex items-center gap-1.5">
-                          <span className="px-1.5 py-0.2 rounded bg-teal-500/20 text-teal-300 font-sans tabular-nums text-[10px] font-bold">
-                            {c.code || "N/A"}
-                          </span>
-                          <span className="truncate max-w-[150px]">{c.name}</span>
-                        </span>
-                        <span className="text-zinc-400 font-sans tabular-nums text-[11px]">
-                          {c.count} ({c.percentage}%)
-                        </span>
-                      </div>
-                      <div className="h-1.5 rounded-full bg-black/50 overflow-hidden">
-                        <div
-                          className="h-full rounded-full bg-gradient-to-r from-teal-500 to-emerald-400"
-                          style={{ width: `${Math.max(c.percentage, 4)}%` }}
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="p-4 text-center rounded-lg bg-zinc-900/40">
-                  <p className="text-xs text-zinc-400">Chưa có dữ liệu quốc gia.</p>
-                  <p className="text-[10px] text-zinc-500 mt-1">Vị trí ước lượng sẽ tự động hiển thị khi có lượt truy cập từ môi trường mạng công cộng.</p>
-                </div>
-              )}
-            </div>
-
-            {/* 5. Top Cities */}
-            <div className="p-4 rounded-xl bg-black/40 space-y-3">
-              <div className="flex items-center justify-between">
-                <h4 className="text-xs font-bold text-zinc-300 flex items-center gap-2">
-                  <MapPin size={15} className="text-amber-400" />
-                  <span>Tỉnh / Thành Phố Ước Lượng (Approximate City)</span>
-                </h4>
-                <span className="text-[10px] text-zinc-500 font-medium">ISP Gateway Approx.</span>
-              </div>
-
-              {stats?.deviceProfileStats?.locations?.topCities && stats.deviceProfileStats.locations.topCities.length > 0 ? (
-                <div className="space-y-1.5 max-h-[160px] overflow-y-auto pr-1">
-                  {stats.deviceProfileStats.locations.topCities.slice(0, 5).map((ct) => (
-                    <div
-                      key={ct.name}
-                      className="flex items-center justify-between text-xs p-1.5 rounded-lg bg-zinc-900/60"
-                    >
-                      <span className="font-medium text-white text-[11px] flex items-center gap-1.5">
-                        <MapPin size={11} className="text-amber-400 flex-shrink-0" />
-                        <span className="truncate max-w-[140px]">{ct.name}</span>
-                        <span className="text-[10px] text-zinc-500">({ct.country})</span>
-                      </span>
-                      <div className="flex items-center gap-2 font-sans tabular-nums text-[11px]">
-                        <span className="text-zinc-400">{ct.count}</span>
-                        <span className="text-xs text-amber-300 font-bold w-9 text-right">
-                          {ct.percentage}%
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="p-4 text-center rounded-lg bg-zinc-900/40">
-                  <p className="text-xs text-zinc-400">Chưa có dữ liệu tỉnh / thành phố.</p>
-                  <p className="text-[10px] text-zinc-500 mt-1">Vị trí ước lượng qua GeoIP sẽ tự động hiển thị khi có dữ liệu IP hợp lệ.</p>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* SECTION: KHÁCH TRUY CẬP THEO NGÀY (DAILY VISITORS) */}
-      <div className="p-4 sm:p-6 rounded-2xl bg-zinc-900/60 backdrop-blur-sm space-y-5">
-        {/* Header with Title & Date Picker Controls */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-xl bg-violet-500/10 text-violet-400">
-              <Calendar size={18} />
-            </div>
-            <div>
-              <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                <span>Khách Truy Cập Theo Ngày</span>
-                {selectedDate === getTodayVietnamStr() && (
-                  <span className="px-2 py-0.5 rounded-full bg-violet-500/20 text-violet-300 border border-violet-500/30 text-[10px] font-bold">
-                    Hôm nay
-                  </span>
-                )}
-              </h3>
-              <p className="text-[11px] text-zinc-400">
-                Tổng hợp người dùng & khách vãng lai độc nhất theo từng ngày (Asia/Ho_Chi_Minh)
-              </p>
-            </div>
-          </div>
-
-          {/* Controls: Date buttons & input */}
-          <div className="flex items-center flex-wrap gap-2">
-            <div className="flex items-center bg-black/40 p-1 rounded-xl text-xs">
-              <button
-                type="button"
-                onClick={() => setSelectedDate(getTodayVietnamStr())}
-                className={`px-3 py-1.5 rounded-lg font-medium transition ${
-                  selectedDate === getTodayVietnamStr()
-                    ? "bg-violet-600 text-white shadow-sm"
-                    : "text-zinc-400 hover:text-white"
-                }`}
-              >
-                Hôm nay
-              </button>
-              <button
-                type="button"
-                onClick={() => setSelectedDate(getYesterdayVietnamStr())}
-                className={`px-3 py-1.5 rounded-lg font-medium transition ${
-                  selectedDate === getYesterdayVietnamStr()
-                    ? "bg-violet-600 text-white shadow-sm"
-                    : "text-zinc-400 hover:text-white"
-                }`}
-              >
-                Hôm qua
-              </button>
-            </div>
-
-            {/* Custom Date Input */}
-            <div className="flex items-center gap-2">
-              <input
-                type="date"
-                value={selectedDate}
-                max={getTodayVietnamStr()}
-                onChange={(e) => {
-                  if (e.target.value) setSelectedDate(e.target.value);
-                }}
-                className="bg-black/40 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-violet-500 transition cursor-pointer"
-              />
-
-              <button
-                type="button"
-                onClick={() => fetchDailyVisitors(selectedDate, true)}
-                disabled={isRefreshingDaily || loadingDaily}
-                className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-zinc-300 transition disabled:opacity-50"
-                title="Làm mới danh sách khách truy cập"
-              >
-                <RefreshCw size={14} className={isRefreshingDaily ? "animate-spin text-violet-400" : ""} />
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Quick Summary Cards for Selected Day */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <div className="p-3.5 rounded-xl bg-black/30 flex items-center justify-between">
-            <div>
-              <span className="text-[11px] text-zinc-400 font-medium">Tổng Khách Trong Ngày</span>
-              <div className="text-xl font-black text-white mt-0.5">
-                {loadingDaily ? "..." : (dailyVisitors?.summary.total ?? 0).toLocaleString("vi-VN")}
-              </div>
-            </div>
-            <div className="p-2 rounded-lg bg-violet-500/10 text-violet-400">
-              <Users size={16} />
-            </div>
-          </div>
-
-          <div className="p-3.5 rounded-xl bg-black/30 flex items-center justify-between">
-            <div>
-              <span className="text-[11px] text-zinc-400 font-medium">Thành Viên (User)</span>
-              <div className="text-xl font-black text-emerald-400 mt-0.5">
-                {loadingDaily ? "..." : (dailyVisitors?.summary.users ?? 0).toLocaleString("vi-VN")}
-              </div>
-            </div>
-            <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-400">
-              <UserCheck size={16} />
-            </div>
-          </div>
-
-          <div className="p-3.5 rounded-xl bg-black/30 flex items-center justify-between">
-            <div>
-              <span className="text-[11px] text-zinc-400 font-medium">Khách Vãng Lai (Guest)</span>
-              <div className="text-xl font-black text-zinc-300 mt-0.5">
-                {loadingDaily ? "..." : (dailyVisitors?.summary.guests ?? 0).toLocaleString("vi-VN")}
-              </div>
-            </div>
-            <div className="p-2 rounded-lg bg-zinc-800 text-zinc-400">
-              <UserX size={16} />
-            </div>
-          </div>
-        </div>
-
-        {/* Visitors Table */}
-        {loadingDaily ? (
-          <div className="p-8 text-center rounded-xl bg-black/40 text-zinc-400 text-xs">
-            <RefreshCw size={16} className="animate-spin mx-auto mb-2 text-violet-400" />
-            Đang tải danh sách khách truy cập ngày {selectedDate}...
-          </div>
-        ) : !dailyVisitors || dailyVisitors.visitors.length === 0 ? (
-          <div className="p-8 text-center rounded-xl bg-black/40 text-zinc-400 text-xs">
-            Không có lượt truy cập nào được ghi nhận trong ngày {selectedDate}.
-          </div>
-        ) : (
-          <div className="overflow-x-auto rounded-xl bg-black/30">
-            <table className="w-full text-left text-xs">
-              <thead>
-                <tr className="border-b bg-white/[0.02] text-zinc-400 text-[11px]">
-                  <th className="py-3 px-4 font-semibold">Visitor</th>
-                  <th className="py-3 px-3 font-semibold">Loại</th>
-                  <th className="py-3 px-3 font-semibold">Vị trí (GeoIP)</th>
-                  <th className="py-3 px-3 font-semibold">Lần gần nhất</th>
-                  <th className="py-3 px-4 font-semibold">Hoạt động cuối</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/5">
-                {dailyVisitors.visitors.map((v) => (
-                  <tr key={v.visitorKey} className="hover:bg-white/[0.02] transition">
-                    {/* Visitor Info */}
-                    <td className="py-3 px-4 min-w-[180px]">
-                      <div className="flex items-center gap-2.5">
-                        {v.type === "user" ? (
-                          <UserAvatar
-                            src={v.avatar}
-                            name={v.displayName}
-                            seed={v.visitorKey}
-                            sizeClassName="w-8 h-8 text-xs font-bold flex-shrink-0"
-                            rounded="xl"
-                            className=""
-                          />
-                        ) : (
-                          <div className="w-8 h-8 rounded-xl bg-zinc-800 flex items-center justify-center text-zinc-400 flex-shrink-0 font-bold text-[11px]">
-                            🎭
-                          </div>
-                        )}
-                        <div className="min-w-0">
-                          <div className="font-bold text-white truncate text-xs flex items-center gap-1.5">
-                            <span className="truncate">{v.displayName}</span>
-                          </div>
-                          <div className="text-[10px] text-zinc-400 truncate font-sans tabular-nums">
-                            {v.type === "user"
-                              ? (v.email || v.visitorKey.slice(0, 12) + "...")
-                              : `${v.deviceType || "desktop"} • ${v.os || "Web"}`}
-                          </div>
-                        </div>
-                      </div>
-                    </td>
-
-                    {/* Type Badge */}
-                    <td className="py-3 px-3 whitespace-nowrap">
-                      {v.type === "user" ? (
-                        <span className="px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 font-semibold text-[10px] inline-flex items-center gap-1">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                          User
-                        </span>
-                      ) : (
-                        <span className="px-2 py-0.5 rounded-full bg-zinc-800 text-zinc-300 font-semibold text-[10px] inline-flex items-center gap-1">
-                          <span className="w-1.5 h-1.5 rounded-full bg-zinc-400" />
-                          Guest
-                        </span>
-                      )}
-                    </td>
-
-                    {/* Location */}
-                    <td className="py-3 px-3 whitespace-nowrap text-[11px]">
-                      {v.city || v.country ? (
-                        <span className="text-teal-300 font-medium inline-flex items-center gap-1">
-                          <MapPin size={11} className="text-teal-400 flex-shrink-0" />
-                          <span>
-                            {v.city ? `${v.city}, ${v.countryCode || v.country}` : v.country}
-                          </span>
-                        </span>
-                      ) : (
-                        <span className="text-zinc-500 italic">Không xác định</span>
-                      )}
-                    </td>
-
-                    {/* Last Seen (HH:mm:ss) */}
-                    <td className="py-3 px-3 whitespace-nowrap font-sans tabular-nums text-[11px] text-zinc-300">
-                      {formatTimeOnly(v.lastSeen)}
-                    </td>
-
-                    {/* Last Action */}
-                    <td className="py-3 px-4 min-w-[200px]">
-                      <div className="flex items-center gap-2">
-                        <span className="text-zinc-200 text-xs truncate max-w-[240px]" title={v.lastAction}>
-                          {v.lastAction}
-                        </span>
-                        <span className="px-1.5 py-0.2 rounded-full bg-white/10 text-zinc-400 font-sans tabular-nums text-[10px] flex-shrink-0">
-                          {v.eventCount} lượt truy cập
-                        </span>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
       </div>
 
       {/* SYSTEM DIAGNOSTICS & RATINGS (PRESERVED FROM PREVIOUS DASHBOARD) */}
@@ -1202,20 +635,6 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
             <div className="flex items-center justify-between p-3 rounded-xl bg-black/40">
               <span className="text-zinc-400">Tài khoản Quản trị viên:</span>
               <span className="font-sans tabular-nums font-bold text-white">{adminEmail || "Chưa rõ"}</span>
-            </div>
-            <div className="flex items-center justify-between p-3 rounded-xl bg-black/40">
-              <span className="text-zinc-400">Cơ sở dữ liệu Supabase:</span>
-              <span className="text-emerald-400 font-bold flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                Hoạt động bình thường
-              </span>
-            </div>
-            <div className="flex items-center justify-between p-3 rounded-xl bg-black/40">
-              <span className="text-zinc-400">Bộ đệm Upstash Redis:</span>
-              <span className="text-emerald-400 font-bold flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                Đang kết nối (Dedup & Counters)
-              </span>
             </div>
             <div className="flex items-center justify-between p-3 rounded-xl bg-black/40">
               <span className="text-zinc-400">Tổng thành viên ghi nhận:</span>

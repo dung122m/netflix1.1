@@ -825,6 +825,32 @@ function LivePlayerInner({
   const [canScrollChipsLeft, setCanScrollChipsLeft] = useState(false);
   const [canScrollChipsRight, setCanScrollChipsRight] = useState(false);
 
+  // Ghi nhận khi người dùng chủ động bấm chọn nguồn phát để cuộn lên player khi xem được
+  const userSelectedServerRef = useRef<boolean>(false);
+
+  const scrollToPlayer = useCallback(() => {
+    if (typeof window === "undefined") return;
+    const headerEl = document.getElementById("live-player-header");
+    const target = headerEl || containerRef.current;
+    if (!target) return;
+    const rect = target.getBoundingClientRect();
+    // Nếu đỉnh thanh điều hướng / player đang bị khuất phía trên navbar
+    if (rect.top < 56) {
+      const offset = headerEl
+        ? window.innerWidth >= 640
+          ? 64
+          : 58
+        : window.innerWidth >= 640
+          ? 76
+          : 68;
+      const targetY = window.scrollY + rect.top - offset;
+      window.scrollTo({
+        top: Math.max(0, targetY),
+        behavior: "smooth",
+      });
+    }
+  }, [containerRef]);
+
   const checkChipsScroll = useCallback(() => {
     const el = chipsContainerRef.current;
     if (!el) return;
@@ -1749,6 +1775,11 @@ function LivePlayerInner({
         isPlayingRef.current = true;
         setIsPlaying(true);
       }
+      // Khi bấm chọn nguồn nếu xem được thì cuộn mượt lên khu vực trình phát
+      if (userSelectedServerRef.current) {
+        userSelectedServerRef.current = false;
+        scrollToPlayer();
+      }
     };
 
     const onTimeUpdateCheck = () => {
@@ -2572,12 +2603,18 @@ function LivePlayerInner({
                     key={`${toCanonicalSourceUrl(s.url) || "srv"}-${idx}`}
                     type="button"
                     onClick={() => {
+                      if (isSelected && isPlayingRef.current && !hasError) {
+                        scrollToPlayer();
+                        closeRail();
+                        return;
+                      }
                       const origIdx = servers.findIndex(
                         (srv) =>
                           toCanonicalSourceUrl(srv.url) ===
                           toCanonicalSourceUrl(s.url),
                       );
                       const targetIdx = origIdx !== -1 ? origIdx : 0;
+                      userSelectedServerRef.current = true;
                       fallbackCountRef.current = 0;
                       isStoppedRef.current = false;
                       useProxyFallbackRef.current = false;
@@ -3542,6 +3579,11 @@ function LivePlayerInner({
                   key={`${toCanonicalSourceUrl(s.url) || "sv"}-${idx}`}
                   type="button"
                   onClick={() => {
+                    if (isSelected && isPlayingRef.current && !hasError) {
+                      scrollToPlayer();
+                      return;
+                    }
+                    userSelectedServerRef.current = true;
                     fallbackCountRef.current = 0;
                     isStoppedRef.current = false;
                     const origIdx = servers.findIndex(
@@ -3630,6 +3672,11 @@ function LivePlayerInner({
                     ref={isSelected ? activeChipRef : null}
                     type="button"
                     onClick={() => {
+                      if (isSelected && isPlayingRef.current && !hasError) {
+                        scrollToPlayer();
+                        return;
+                      }
+                      userSelectedServerRef.current = true;
                       fallbackCountRef.current = 0;
                       isStoppedRef.current = false;
                       const origIdx = servers.findIndex(

@@ -26,9 +26,6 @@ describe("Batch 4 — Dual-Engine Rate Limiting (Fixed vs Sliding Window)", () =
     assert.strictEqual(RATE_LIMIT_PRESETS.AUTH_VERIFY.strategy, "sliding-window");
     assert.strictEqual(RATE_LIMIT_PRESETS.ADMIN_MUTATION.strategy, "sliding-window");
     assert.strictEqual(RATE_LIMIT_PRESETS.AI_REQUEST.strategy, "sliding-window");
-    assert.strictEqual(RATE_LIMIT_PRESETS.ROULETTE.strategy, "sliding-window");
-    assert.strictEqual(RATE_LIMIT_PRESETS.ROULETTE.maxRequests, 30);
-    assert.strictEqual(RATE_LIMIT_PRESETS.ROULETTE.windowSeconds, 300);
     assert.strictEqual(RATE_LIMIT_PRESETS.COMMENT_CREATE.strategy, "sliding-window");
     assert.strictEqual(RATE_LIMIT_PRESETS.COMMENT_MUTATION.strategy, "sliding-window");
     assert.strictEqual(RATE_LIMIT_PRESETS.COMMENT_DELETE.strategy, "sliding-window");

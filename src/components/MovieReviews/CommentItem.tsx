@@ -141,6 +141,7 @@ export const CommentItem: React.FC<CommentItemProps> = ({
   const replyInputRef = useRef<HTMLTextAreaElement>(null);
 
   const isAuthor = Boolean(currentUserId && currentUserId === comment.userId);
+  const effectiveUserAvatar = isAuthor && currentUserAvatar ? currentUserAvatar : comment.userAvatar;
   const isCommentAuthorAdmin = Boolean(
     (comment.userEmail && isUserAdmin(comment.userEmail)) ||
     (isAuthor && isUserAdmin(currentUserEmail)) ||
@@ -171,7 +172,7 @@ export const CommentItem: React.FC<CommentItemProps> = ({
   };
 
   // Tổng số replies (từ realtime hoặc từ replyCount field)
-  const totalReplies = showReplies ? replies.length : (comment.replyCount || 0);
+  const totalReplies = Math.max(comment.replyCount || 0, replies.length);
 
   // Tự động mở replies nếu có reply con trong thread này được chỉ định highlight
   useEffect(() => {
@@ -336,6 +337,21 @@ export const CommentItem: React.FC<CommentItemProps> = ({
       setReplyTargetUser(null);
       setShowReplyForm(false);
       setShowReplies(true);
+
+      // Nếu chưa kích hoạt lắng nghe replies của comment này, kết nối realtime ngay lập tức
+      if (!repliesUnsubscribe) {
+        setLoadingReplies(true);
+        const unsub = subscribeCommentReplies(
+          comment.id,
+          (data) => {
+            setReplies(data);
+            setLoadingReplies(false);
+          },
+          () => setLoadingReplies(false),
+        );
+        setRepliesUnsubscribe(() => unsub);
+      }
+
       toast.success("Đã gửi trả lời!");
     } catch (err) {
       console.error("Lỗi gửi reply:", err);
@@ -481,7 +497,7 @@ export const CommentItem: React.FC<CommentItemProps> = ({
             className="cursor-pointer hover:ring-2 hover:ring-amber-400/60 hover:scale-105 transition-all rounded-full shrink-0 mt-0.5"
           >
             <UserAvatar
-              src={comment.userAvatar || undefined}
+              src={effectiveUserAvatar || undefined}
               name={comment.userName}
               seed={comment.userId || comment.userName}
               sizeClassName="w-6 h-6 sm:w-7 sm:h-7 text-[10px] sm:text-xs"
@@ -513,18 +529,11 @@ export const CommentItem: React.FC<CommentItemProps> = ({
               )}
 
               {/* DANH HIỆU USER */}
-              {(() => {
-                const badgesToRender =
-                  comment.userBadges && comment.userBadges.length > 0
-                    ? comment.userBadges
-                    : ["🍿 Mọt Phim Đêm"];
-
-                return (
-                  <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-semibold bg-white/5 text-amber-300 border border-amber-500/20 whitespace-nowrap shrink-0 leading-none">
-                    {badgesToRender[0]}
-                  </span>
-                );
-              })()}
+              {comment.userBadges && comment.userBadges.length > 0 ? (
+                <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-semibold bg-white/5 text-amber-300 border border-amber-500/20 whitespace-nowrap shrink-0 leading-none">
+                  {comment.userBadges[0]}
+                </span>
+              ) : null}
 
               {isAuthor && (
                 <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-semibold bg-netflix-red/15 text-netflix-red border border-netflix-red/30 whitespace-nowrap shrink-0 leading-none">
@@ -644,7 +653,7 @@ export const CommentItem: React.FC<CommentItemProps> = ({
               className="cursor-pointer hover: hover:ring-amber-400/60 hover:scale-105 transition-all rounded-full shrink-0"
             >
               <UserAvatar
-                src={comment.userAvatar || undefined}
+                src={effectiveUserAvatar || undefined}
                 name={comment.userName}
                 seed={comment.userId || comment.userName}
                 sizeClassName={isReply ? "w-7 h-7 sm:w-8 sm:h-8 text-xs" : "w-8 h-8 sm:w-10 sm:h-10 text-sm"}
@@ -674,24 +683,19 @@ export const CommentItem: React.FC<CommentItemProps> = ({
                 </span>
               )}
 
-              {/* BỘ DANH HIỆU  SỞ HỮU HIỂN THỊ TRÊN BÌNH LUẬN */}
-              {(() => {
-                const badgesToRender =
-                  comment.userBadges && comment.userBadges.length > 0
-                    ? comment.userBadges
-                    : ["🍿 Mọt Phim Đêm"];
-
-                return badgesToRender.slice(0, 2).map((badgeLabel, bIdx) => (
+              {/* BỘ DANH HIỆU SỞ HỮU HIỂN THỊ TRÊN BÌNH LUẬN */}
+              {comment.userBadges && comment.userBadges.length > 0 ? (
+                comment.userBadges.slice(0, 2).map((badgeLabel, bIdx) => (
                   <span
                     key={bIdx}
-                    className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-bold bg-gradient-to-r from-amber-500/20 to-rose-500/20 text-amber-300  shadow-sm shadow-black/40 whitespace-nowrap shrink-0 leading-none animate-in fade-in ${
+                    className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-bold bg-gradient-to-r from-amber-500/20 to-rose-500/20 text-amber-300 shadow-sm shadow-black/40 whitespace-nowrap shrink-0 leading-none animate-in fade-in ${
                       bIdx >= 1 ? "hidden sm:inline-flex" : ""
                     }`}
                   >
                     <span className="leading-none">{badgeLabel}</span>
                   </span>
-                ));
-              })()}
+                ))
+              ) : null}
 
               {isAuthor && !isReply && (
                 <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-bold bg-amber-500/15 text-amber-300 whitespace-nowrap shrink-0 leading-none">

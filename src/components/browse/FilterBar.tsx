@@ -18,7 +18,6 @@ import {
   X,
   RotateCcw,
   Filter,
-  Dices,
   Clock,
   Star,
   Flame,
@@ -457,22 +456,6 @@ export const FilterBar: React.FC = () => {
           <ChevronDown className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
         </button>
 
-        <Tooltip content="Bốc quẻ phim ngẫu nhiên" side="bottom">
-          <button
-            type="button"
-            onClick={() => {
-              if (typeof window !== "undefined") {
-                window.dispatchEvent(new CustomEvent("open-ai-roulette"));
-              }
-            }}
-            aria-label="Bốc quẻ phim ngẫu nhiên"
-            className="h-10 px-3 rounded-xl bg-zinc-900/90 hover:bg-zinc-800 text-white text-xs font-semibold flex items-center gap-1.5 shrink-0 active:scale-95 transition cursor-pointer"
-          >
-            <Dices className="w-3.5 h-3.5 text-netflix-red shrink-0" />
-            <span className="text-xs font-bold">Bốc quẻ</span>
-          </button>
-        </Tooltip>
-
         {hasAnyFilter && (
           <Tooltip content="Xóa tất cả bộ lọc" side="bottom">
             <button
@@ -657,21 +640,6 @@ export const FilterBar: React.FC = () => {
               )}
             </button>
 
-            {/* NÚT BỐC QUẺ NHANH (CTA TINH TẾ DARK GLASS) */}
-            <button
-              type="button"
-              onClick={() => {
-                if (typeof window !== "undefined") {
-                  window.dispatchEvent(new CustomEvent("open-ai-roulette"));
-                }
-              }}
-              className="h-10 px-3.5 sm:px-4 rounded-xl bg-white/[0.05] hover:bg-white/[0.10] border border-white/[0.08] text-white text-xs sm:text-sm font-semibold transition-all duration-150 flex items-center gap-1.5 cursor-pointer shadow-sm flex-none active:scale-95 outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black"
-              title="Bốc quẻ phim ngẫu nhiên với AI"
-            >
-              <Dices className="w-4 h-4 text-netflix-red flex-none" />
-              <span>Bốc quẻ</span>
-            </button>
-
             {/* XÓA NHANH TOÀN BỘ BỘ LỌC KHI CÓ FILTER */}
             {hasAnyFilter && (
               <Tooltip content="Xóa tất cả các bộ lọc hiện tại" side="bottom">
@@ -769,21 +737,6 @@ export const FilterBar: React.FC = () => {
                   </button>
                 )}
               </div>
-
-              {/* Bốc quẻ roulette action button */}
-              <button
-                type="button"
-                onClick={() => {
-                  setActiveDropdown(null);
-                  if (typeof window !== "undefined") {
-                    window.dispatchEvent(new CustomEvent("open-ai-roulette"));
-                  }
-                }}
-                className="w-full mb-2.5 px-3 py-2 rounded-xl text-xs font-bold transition bg-netflix-red hover:brightness-110 text-white flex items-center justify-center gap-2 shadow-md shadow-[var(--accent-glow)] cursor-pointer"
-              >
-                <Dices className="w-4 h-4 text-amber-300 animate-spin" style={{ animationDuration: "4s" }} />
-                <span>Bốc quẻ phim ngẫu nhiên</span>
-              </button>
 
               <div className="max-h-64 sm:max-h-72 overflow-y-auto grid grid-cols-2 gap-1.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none]">
                 <button

@@ -2,39 +2,22 @@ import { NextRequest, NextResponse } from "next/server";
 import { recordAnalyticsEvent } from "@/services/analyticsService";
 import { AnalyticsEventPayload } from "@/lib/analyticsClient";
 import { verifyServerAuth } from "@/lib/serverAuth";
-
-import { getGeoLocationFromRequest } from "@/lib/geoip";
-import { getClientIp } from "@/lib/clientIp";
+import {
+  enforceRateLimit,
+  buildRateLimitResponse,
+  RATE_LIMIT_PRESETS,
+} from "@/lib/rateLimit";
 
 export const maxDuration = 10;
 
-// Bộ nhớ đệm giới hạn tần suất local (30 req / 10s per IP) chống bot flood mà không tốn Redis commands
-const localTrackRateMap = new Map<string, number[]>();
-
-function checkLocalTrackRateLimit(ip: string): boolean {
-  const now = Date.now();
-  let timestamps = localTrackRateMap.get(ip);
-  if (!timestamps) {
-    timestamps = [];
-    localTrackRateMap.set(ip, timestamps);
-  }
-  timestamps = timestamps.filter((t) => now - t < 10000);
-  if (timestamps.length >= 30) {
-    return false;
-  }
-  timestamps.push(now);
-  localTrackRateMap.set(ip, timestamps);
-  return true;
-}
-
 export async function POST(req: NextRequest) {
   try {
-    // 1. Kiểm tra tần suất in-memory (0ms, 0 Redis commands; bảo vệ endpoint mà không phát sinh Redis ZSET)
-    const clientIp = getClientIp(req);
-    if (!checkLocalTrackRateLimit(clientIp)) {
-      return NextResponse.json(
-        { success: false, error: "Too many analytics requests. Please try again later." },
-        { status: 429, headers: { "Retry-After": "10" } }
+    // 1. Kiểm tra tần suất in-memory (0ms, 0 Redis commands; bảo vệ endpoint chống bot flood)
+    const rateLimit = await enforceRateLimit(req, RATE_LIMIT_PRESETS.ANALYTICS_TRACK);
+    if (!rateLimit.allowed) {
+      return buildRateLimitResponse(
+        rateLimit,
+        "Too many analytics requests. Please try again later."
       );
     }
 
@@ -86,17 +69,14 @@ export async function POST(req: NextRequest) {
     const auth = await verifyServerAuth(req);
     const verifiedUserId = auth.isAuthenticated && auth.userId ? auth.userId : undefined;
 
-    // 4. Resolve Server-side Approximate GeoIP Location for regional distribution
-    const location = await getGeoLocationFromRequest(req);
-
-    // 5. Deterministic identity token for the current visitor session
+    // 4. Deterministic identity token for the current visitor session
     // - Authenticated User: `u_${verifiedUserId}`
     // - Anonymous Guest: `a_${finalAnonymousId}`
     const currentVisitorToken = verifiedUserId ? `u_${verifiedUserId}` : `a_${finalAnonymousId}`;
     const cookieVisitorToken = req.cookies.get("nanaflix_has_visited")?.value;
     const isReturningVisitor = Boolean(cookieVisitorToken && cookieVisitorToken === currentVisitorToken);
 
-    // 6. Construct sanitized site_visit payload
+    // 5. Construct sanitized site_visit payload
     const sanitizedPayload: AnalyticsEventPayload = {
       eventType: "site_visit",
       movieSlug: typeof body.movieSlug === "string" ? body.movieSlug.trim().slice(0, 100) : "home",
@@ -113,10 +93,6 @@ export async function POST(req: NextRequest) {
         : undefined,
       durationSeconds: 0,
       progressSeconds: 0,
-      country: location.country || undefined,
-      countryCode: location.countryCode || undefined,
-      region: location.region || undefined,
-      city: location.city || undefined,
       timestamp: serverTimestamp, // Strictly server time
     };
 

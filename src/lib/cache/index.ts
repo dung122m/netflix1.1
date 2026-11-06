@@ -80,14 +80,16 @@ export function _resetRedisClientsForTesting(): void {
 export function getRedisPurposeForKey(key: string): RedisPurpose {
   // DB 3: Aux / Metadata
   if (
+    key.startsWith("ai:") ||
     key.startsWith("tmdb:") ||
     key.startsWith("actor:") ||
     key.startsWith("wiki:") ||
     key.startsWith("foryou:") ||
     key.startsWith("movie:recommendations:") ||
     key.startsWith("movie:rec:") ||
+    key.startsWith("recommendations:") ||
+    key.startsWith("rec:") ||
     key.startsWith("search:") ||
-    key.startsWith("ai:roulette:") ||
     key.startsWith("synopsis:") ||
     key.startsWith("movie:synopsis:")
   ) {
@@ -98,6 +100,7 @@ export function getRedisPurposeForKey(key: string): RedisPurpose {
   if (
     key.startsWith("live:") ||
     key.startsWith("football:") ||
+    key.startsWith("athlete:") ||
     key.startsWith("match:") ||
     key.startsWith("tv:") ||
     key.startsWith("comments:") ||

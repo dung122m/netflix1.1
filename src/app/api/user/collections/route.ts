@@ -9,6 +9,13 @@ import {
 } from "@/lib/rateLimit";
 
 export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
+
+const NO_CACHE_HEADERS = {
+  "Cache-Control": "private, no-cache, no-store, max-age=0, must-revalidate, proxy-revalidate",
+  "CDN-Cache-Control": "no-store",
+  "Vercel-CDN-Cache-Control": "no-store",
+};
 
 import {
   sanitizeAndDeduplicateMovies,
@@ -155,7 +162,7 @@ export async function GET(req: NextRequest) {
     }
 
     const items = (data || []).map(formatCollectionResponse);
-    return NextResponse.json({ success: true, items });
+    return NextResponse.json({ success: true, items }, { headers: NO_CACHE_HEADERS });
   } catch (err) {
     console.error("[Collections API GET] Error:", err);
     return NextResponse.json({ success: false, error: "Internal error" }, { status: 500 });

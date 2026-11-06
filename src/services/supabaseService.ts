@@ -290,7 +290,7 @@ export async function getMovieCommentsSupabase(movieSlug: string): Promise<Movie
   const fetchPromise = (async () => {
     try {
       const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
-      const res = await fetch(`${baseUrl}/api/comments?movieSlug=${encodeURIComponent(movieSlug)}`, {
+      const res = await fetch(`${baseUrl}/api/comments?movieSlug=${encodeURIComponent(movieSlug)}&_t=${Date.now()}`, {
         cache: "no-store",
       });
       if (res.ok) {
@@ -315,7 +315,7 @@ export async function getUserCommentsSupabase(userId: string): Promise<MovieComm
   if (!userId) return [];
   try {
     const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
-    const res = await fetch(`${baseUrl}/api/comments?userId=${encodeURIComponent(userId)}`, {
+    const res = await fetch(`${baseUrl}/api/comments?userId=${encodeURIComponent(userId)}&_t=${Date.now()}`, {
       cache: "no-store",
     });
     if (res.ok) {
@@ -334,7 +334,7 @@ export async function getCommentRepliesSupabase(parentId: string): Promise<Movie
   if (!parentId) return [];
   try {
     const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
-    const res = await fetch(`${baseUrl}/api/comments?parentId=${encodeURIComponent(parentId)}`, {
+    const res = await fetch(`${baseUrl}/api/comments?parentId=${encodeURIComponent(parentId)}&_t=${Date.now()}`, {
       cache: "no-store",
     });
     if (res.ok) {

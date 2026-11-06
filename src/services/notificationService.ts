@@ -114,8 +114,10 @@ export function mergeNotifications(
     seenSemanticKeys.add(semanticKey);
 
     const isAutoRead = lastRead > 0 && (item.createdAt || 0) <= lastRead;
+    const existing = current.find((c) => c.id === item.id);
     result.push({
       ...item,
+      movieTitle: item.movieTitle || existing?.movieTitle,
       isRead: Boolean(item.isRead || isAutoRead),
     });
   }

@@ -1340,10 +1340,12 @@ export async function queryMoviesByActor(
       // Dữ liệu tươi mới -> trả về tức thì 0ms
       return cached.items.slice(0, maxMovies);
     } else if (cached.staleUntil > now) {
-      // Dữ liệu cũ còn hạn dùng tạm -> trả về ngay lập tức 0ms và tự động revalidate ngầm
-      setTimeout(() => {
-        executeActorFilmQuery(actorName, allVariants, matchedSlug, synonymRes, maxMovies, cacheKey).catch(() => {});
-      }, 100);
+      // Dữ liệu cũ còn hạn dùng tạm -> trả về ngay lập tức 0ms và tự động revalidate ngầm (nếu chưa có in-flight task)
+      if (!inFlightActorFilmQueries.has(cacheKey)) {
+        setTimeout(() => {
+          executeActorFilmQuery(actorName, allVariants, matchedSlug, synonymRes, maxMovies, cacheKey).catch(() => {});
+        }, 100);
+      }
       return cached.items.slice(0, maxMovies);
     }
   }
@@ -1357,7 +1359,44 @@ export async function queryMoviesByActor(
   return res || [];
 }
 
+// In-Flight Promise Map: chống bão gọi API/Redis đồng thời khi nhiều request cùng miss/stale cho cùng diễn viên
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const inFlightActorFilmQueries = new Map<string, Promise<any[]>>();
+
 async function executeActorFilmQuery(
+  actorName: string,
+  allVariants: string[],
+  matchedSlug: string,
+  synonymRes: ActorSynonymResult,
+  maxMovies: number,
+  cacheKey: string
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+): Promise<any[]> {
+  const existing = inFlightActorFilmQueries.get(cacheKey);
+  if (existing) {
+    return existing;
+  }
+
+  const queryTask = (async () => {
+    try {
+      return await executeActorFilmQueryInternal(
+        actorName,
+        allVariants,
+        matchedSlug,
+        synonymRes,
+        maxMovies,
+        cacheKey
+      );
+    } finally {
+      inFlightActorFilmQueries.delete(cacheKey);
+    }
+  })();
+
+  inFlightActorFilmQueries.set(cacheKey, queryTask);
+  return queryTask;
+}
+
+async function executeActorFilmQueryInternal(
   actorName: string,
   allVariants: string[],
   matchedSlug: string,
@@ -1416,21 +1455,30 @@ async function executeActorFilmQuery(
   const canonicalTarget = synonymRes.canonicalName || actorName;
   const englishTarget = synonymRes.englishName;
 
-  // Thu thập các từ khóa tên chuẩn và bí danh để query động vào Database API
-  const searchKeywords = Array.from(
-    new Set(
-      [
-        canonicalTarget,
-        englishTarget,
-        actorName,
-        ...allVariants.filter((v) => v.trim().includes(" ") || v.trim().length >= 4),
-      ].filter((k): k is string => Boolean(k && k.trim().length >= 3))
-    )
-  ).slice(0, 4);
+  // Thu thập tối đa 2 từ khóa đặc trưng nhất (Tên chuẩn & Tên tiếng Anh/quốc tế khác biệt)
+  // Loại bỏ hoàn toàn các biến thể trùng lặp ngữ nghĩa sau khi normalize
+  const normalizedSeen = new Set<string>();
+  const searchKeywords: string[] = [];
+  const candidateKeywords = [
+    canonicalTarget,
+    englishTarget,
+    actorName,
+    ...allVariants.filter((v) => v.trim().includes(" ") || v.trim().length >= 4),
+  ].filter((k): k is string => Boolean(k && k.trim().length >= 3));
 
+  for (const kw of candidateKeywords) {
+    const norm = normalizeForMatch(kw);
+    if (!normalizedSeen.has(norm)) {
+      normalizedSeen.add(norm);
+      searchKeywords.push(kw.trim());
+      if (searchKeywords.length >= 2) break;
+    }
+  }
+
+  // Tối ưu hóa: Chỉ truy vấn page 1 với limit 30 cho tối đa 2 keyword đặc trưng
+  // Giảm từ 8 calls (4 keywords x 2 pages) xuống tối đa 2 calls (1-2 keywords x 1 page)
   for (const kw of searchKeywords) {
-    searchPromises.push(movieApi.getAiCandidates({ keyword: kw.trim(), page: 1, limit: 30 }, { minCandidates: 10 }));
-    searchPromises.push(movieApi.getAiCandidates({ keyword: kw.trim(), page: 2, limit: 30 }, { minCandidates: 10 }));
+    searchPromises.push(movieApi.getAiCandidates({ keyword: kw, page: 1, limit: 30 }, { minCandidates: 10 }));
   }
 
   // Chờ tất cả kết quả tìm kiếm ứng viên đồng thời (1 đợt duy nhất, loại bỏ vòng lặp tuần tự N+1)
@@ -1475,38 +1523,27 @@ async function executeActorFilmQuery(
     }
   }
 
-  // BOUNDED PARALLEL DETAIL PROBING:
-  // Lấy chi tiết song song (tối đa 40 phim ứng viên) để kiểm tra mảng nhân sự thực tế từ detail.movie
+  // BOUNDED PARALLEL DETAIL PROBING (Batch MGET Optimization):
+  // Lấy chi tiết hàng loạt (tối đa 40 phim ứng viên) qua 1 lệnh Redis MGET thay vì 40 lệnh GET riêng lẻ
   const DETAIL_MAX_CHECKS = 40;
   const candidatesToCheck = needDetailCheck.slice(0, DETAIL_MAX_CHECKS);
   if (candidatesToCheck.length > 0) {
-    const detailResults = await Promise.allSettled(
-      candidatesToCheck.map(async (item) => {
-        try {
-          const detail = await Promise.race([
-            movieApi.getMovieDetail(item.slug),
-            new Promise<null>((resolve) => setTimeout(() => resolve(null), 2500)),
-          ]);
-          if (!detail?.movie) return null;
-          const detailCast = extractItemActorsAndDirectors(detail.movie);
-          // STRICT ACTOR MAPPING: Chỉ chấp nhận nếu mảng actors / casts / directors thực tế chứa nghệ sĩ
-          const isMatch = matchesActorAliases(detailCast, allVariants);
-          if (isMatch) {
-            return {
-              ...item,
-              actor: detail.movie.actor,
-              director: detail.movie.director,
-              isActorFilmography: true,
-            };
-          }
-        } catch {}
-        return null;
-      })
-    );
+    const slugsToCheck = candidatesToCheck.map((c) => c.slug);
+    const detailMap = await movieApi.getMoviesDetailBatch(slugsToCheck);
 
-    for (const r of detailResults) {
-      if (r.status === "fulfilled" && r.value) {
-        verifiedMovies.push(r.value);
+    for (const item of candidatesToCheck) {
+      const detail = detailMap[item.slug];
+      if (!detail?.movie) continue;
+      const detailCast = extractItemActorsAndDirectors(detail.movie);
+      // STRICT ACTOR MAPPING: Chỉ chấp nhận nếu mảng actors / casts / directors thực tế chứa nghệ sĩ
+      const isMatch = matchesActorAliases(detailCast, allVariants);
+      if (isMatch) {
+        verifiedMovies.push({
+          ...item,
+          actor: detail.movie.actor,
+          director: detail.movie.director,
+          isActorFilmography: true,
+        });
       }
     }
   }

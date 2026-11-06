@@ -14,9 +14,12 @@ describe("Nanaflix Triple Redis Multi-Account Architecture", () => {
     assert.equal(getRedisPurposeForKey("foryou:v3:pool"), "aux");
     assert.equal(getRedisPurposeForKey("movie:rec:v13:avatar"), "aux");
     assert.equal(getRedisPurposeForKey("movie:recommendations:v13:123"), "aux");
+    assert.equal(getRedisPurposeForKey("recommendations:pool:v1"), "aux");
+    assert.equal(getRedisPurposeForKey("rec:avatar"), "aux");
     assert.equal(getRedisPurposeForKey("search:suggest:conan"), "aux");
-    assert.equal(getRedisPurposeForKey("ai:roulette:pool"), "aux");
     assert.equal(getRedisPurposeForKey("movie:synopsis:v1:avatar"), "aux");
+    assert.equal(getRedisPurposeForKey("ai:candidate:v2:action"), "aux");
+    assert.equal(getRedisPurposeForKey("ai:embedding:test"), "aux");
 
     // DB 2: Live / Realtime & Community (composed-squid-82374)
     assert.equal(getRedisPurposeForKey("live:football:matches:v1"), "live");
@@ -25,6 +28,7 @@ describe("Nanaflix Triple Redis Multi-Account Architecture", () => {
     assert.equal(getRedisPurposeForKey("match:12345"), "live");
     assert.equal(getRedisPurposeForKey("tv:channels:list"), "live");
     assert.equal(getRedisPurposeForKey("football:athlete:252607"), "live");
+    assert.equal(getRedisPurposeForKey("athlete:profile:123"), "live");
     assert.equal(getRedisPurposeForKey("comments:movie:tham-tu-lung-danh-conan"), "live");
     assert.equal(getRedisPurposeForKey("comments:movie:avatar-2"), "live");
     assert.equal(getRedisPurposeForKey("sec:rl:production:user:123"), "live");
@@ -97,7 +101,7 @@ describe("Nanaflix Triple Redis Multi-Account Architecture", () => {
     assert.ok(key1.startsWith("ai:embedding:"));
     assert.equal(key1, key2, "Embedding key must be case-insensitive and trimmed");
     assert.notEqual(key1, key3, "Different queries must produce different keys");
-    assert.equal(isLiveKey(key1), false, "AI Embedding must route to DB 1 (Default Redis)");
+    assert.equal(getRedisPurposeForKey(key1), "aux", "AI Embedding must route to DB 3 (Aux Redis)");
   });
 
   it("5. cacheService fetchOrSet and delete correctly handle Priority 1 and Priority 2 keys", async () => {

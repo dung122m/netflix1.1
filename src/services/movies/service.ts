@@ -1150,25 +1150,25 @@ async function fetchAndCacheMovieDetail(slug: string, source?: "nguonc" | "ophim
     }
 
     // ============================================================
-    // NEGATIVE CACHE (60s TTL):
+    // NEGATIVE CACHE (1800s / 30m TTL):
     // Khi slug không tìm thấy trên cả 3 nguồn (PhimAPI, NguonC, VSMOV)
-    // -> Lưu negative cache ngắn 60s để chống lãng phí quét upstream liên tục
+    // -> Lưu negative cache 30 phút để chống lãng phí quét upstream và Redis liên tục
     // ============================================================
     movieDetailMemoryCache.set(key, {
       data: null,
-      expireAt: now + 60 * 1000,
-      staleUntil: now + 60 * 1000,
+      expireAt: now + 1800 * 1000,
+      staleUntil: now + 1800 * 1000,
     });
     const kvKey = `movie:detail:v4:${slug}:${source || "any"}`;
-    cacheService.set(kvKey, { _isNegative: true }, 60).catch(() => {});
+    cacheService.set(kvKey, { _isNegative: true }, 1800).catch(() => {});
 
     return undefined;
   } catch {
     // Negative cache an toàn khi có lỗi
     movieDetailMemoryCache.set(key, {
       data: null,
-      expireAt: now + 60 * 1000,
-      staleUntil: now + 60 * 1000,
+      expireAt: now + 1800 * 1000,
+      staleUntil: now + 1800 * 1000,
     });
     return undefined;
   }
@@ -2428,8 +2428,20 @@ export const movieApi = {
       return sanitizeMovieImages(res);
     }
 
+    // P5 DEEP PAGINATION BOT PROTECTION:
+    // Các trang phân trang sâu (> 10) hầu như 100% do bot crawler/scraper quét.
+    // Chỉ lưu cache L1 RAM (0ms), KHÔNG lưu vào Redis L2 để tránh bùng nổ key rác và lãng phí lệnh GET/SET
+    const pageNum = params.page || 1;
+    if (pageNum > 10 && !params.keyword) {
+      const res = await executeGetMovies(params, cacheKey);
+      return sanitizeMovieImages(res);
+    }
+
     const kvKey = `movie:list:${cacheKey}`;
-    const ttlSeconds = params.keyword ? 86400 : 7200; // 1 ngày cho search, 2 giờ cho list
+    // Phân tầng TTL hợp lý: Trang 1-5 (User phổ thông) giữ 6 giờ (21600s).
+    // Trang 6-10 (ít người xem) giữ 2 giờ (7200s). Tìm kiếm: 24 giờ (86400s).
+    // Tuyệt đối không tăng TTL đại trà lên 24 giờ cho toàn bộ catalog list.
+    const ttlSeconds = params.keyword ? 86400 : pageNum > 5 ? 7200 : 21600;
 
     let res = await cacheService.get<Awaited<ReturnType<typeof executeGetMovies>>>(kvKey);
 
@@ -2478,6 +2490,83 @@ export const movieApi = {
   getMovieDetail: async (...args: Parameters<typeof cachedGetMovieDetail>) => {
     const res = await cachedGetMovieDetail(...args);
     return sanitizeMovieImages(res);
+  },
+  /**
+   * Batch get movie details for multiple slugs (Checks L1 Memory first, then executes Redis MGET)
+   * Giảm thiểu N+1 Redis GET queries xuống thành 1 MGET duy nhất.
+   */
+  getMoviesDetailBatch: async (
+    slugs: string[],
+    source?: "nguonc" | "ophim" | "vsmov"
+  ): Promise<Record<string, any>> => {
+    if (!slugs || slugs.length === 0) return {};
+    const uniqueSlugs = Array.from(new Set(slugs.map((s) => s.trim()).filter(Boolean)));
+    if (uniqueSlugs.length === 0) return {};
+
+    const now = Date.now();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const result: Record<string, any> = {};
+    const missingSlugs: string[] = [];
+
+    // 1. Kiểm tra L1 Memory Cache trước (0ms, 0 Redis commands)
+    for (const slug of uniqueSlugs) {
+      const localKey = `${slug}_${source || "any"}`;
+      const entry = movieDetailMemoryCache.get(localKey);
+      if (entry && entry.expireAt > now && entry.data) {
+        result[slug] = sanitizeMovieImages(entry.data);
+      } else {
+        missingSlugs.push(slug);
+      }
+    }
+
+    if (missingSlugs.length === 0) {
+      return result;
+    }
+
+    // 2. Gom các missing slugs và thực hiện MGET 1 lần trên Redis
+    const redisKeys = missingSlugs.map((slug) => `movie:detail:v4:${slug}:${source || "any"}`);
+    const cachedItems = await cacheService.mget<MovieDetailCachePayload>(redisKeys);
+
+    const stillMissingSlugs: string[] = [];
+
+    for (let i = 0; i < missingSlugs.length; i++) {
+      const slug = missingSlugs[i];
+      const raw = cachedItems[i];
+      const localKey = `${slug}_${source || "any"}`;
+
+      if (raw && !(typeof raw === "object" && "_isNegative" in raw)) {
+        const data = unpackDetailPayload(raw);
+        if (data?.movie) {
+          movieDetailMemoryCache.set(localKey, {
+            data,
+            expireAt: now + 600 * 1000,
+            staleUntil: now + 3600 * 1000,
+          });
+          result[slug] = sanitizeMovieImages(data);
+          continue;
+        }
+      } else if (raw && typeof raw === "object" && "_isNegative" in raw) {
+        // Negative cache hit -> phim không tồn tại
+        continue;
+      }
+
+      stillMissingSlugs.push(slug);
+    }
+
+    // 3. Fallback chỉ fetch các phim thực sự thiếu trên cả L1 và Redis (tối đa 10 phim đồng thời)
+    if (stillMissingSlugs.length > 0) {
+      const liveFetches = stillMissingSlugs.slice(0, 10).map(async (slug) => {
+        try {
+          const detail = await movieApi.getMovieDetail(slug, source);
+          if (detail && detail.movie) {
+            result[slug] = detail;
+          }
+        } catch {}
+      });
+      await Promise.allSettled(liveFetches);
+    }
+
+    return result;
   },
   getEpisodeStream: async (
     slug: string,

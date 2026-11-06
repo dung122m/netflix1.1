@@ -1218,24 +1218,13 @@ export async function getDailyVisitorsStats(dateStr?: string): Promise<DailyVisi
     group.events.push(ev);
   }
 
-  // 6. Batch fetch Profiles for logged-in Users & Device Profiles for GeoIP location resolution
+  // 6. Batch fetch Profiles for logged-in Users
   const userIdsToFetch = new Set<string>();
-  const guestIdsToFetch = new Set<string>();
   for (const group of visitorGroupMap.values()) {
     if (group.userId) userIdsToFetch.add(group.userId);
-    if (group.anonymousId) guestIdsToFetch.add(group.anonymousId);
-  }
-
-  interface LocationRecord {
-    country?: string;
-    countryCode?: string;
-    region?: string;
-    city?: string;
   }
 
   const profileMap = new Map<string, { name: string; avatar?: string; email?: string }>();
-  const userLocationMap = new Map<string, LocationRecord>();
-  const guestLocationMap = new Map<string, LocationRecord>();
 
   if (client) {
     const fetchPromises: Promise<void>[] = [];
@@ -1262,60 +1251,6 @@ export async function getDailyVisitorsStats(dateStr?: string): Promise<DailyVisi
           } catch {}
         })()
       );
-
-      // B. Device Profiles lookup by User ID
-      fetchPromises.push(
-        (async () => {
-          try {
-            const { data: userDevs } = await client
-              .from("device_profiles")
-              .select("user_id, country, country_code, region, city")
-              .in("user_id", Array.from(userIdsToFetch))
-              .order("last_seen", { ascending: false });
-
-            if (Array.isArray(userDevs)) {
-              for (const d of userDevs) {
-                if (d.user_id && !userLocationMap.has(d.user_id) && (d.country || d.city || d.country_code)) {
-                  userLocationMap.set(d.user_id, {
-                    country: d.country || undefined,
-                    countryCode: d.country_code || undefined,
-                    region: d.region || undefined,
-                    city: d.city || undefined,
-                  });
-                }
-              }
-            }
-          } catch {}
-        })()
-      );
-    }
-
-    // C. Device Profiles lookup by Guest ID (anonymousId)
-    if (guestIdsToFetch.size > 0) {
-      fetchPromises.push(
-        (async () => {
-          try {
-            const { data: guestDevs } = await client
-              .from("device_profiles")
-              .select("id, guest_id, country, country_code, region, city")
-              .in("id", Array.from(guestIdsToFetch).slice(0, 1000));
-
-            if (Array.isArray(guestDevs)) {
-              for (const d of guestDevs) {
-                const key = d.guest_id || d.id;
-                if (key && !guestLocationMap.has(key) && (d.country || d.city || d.country_code)) {
-                  guestLocationMap.set(key, {
-                    country: d.country || undefined,
-                    countryCode: d.country_code || undefined,
-                    region: d.region || undefined,
-                    city: d.city || undefined,
-                  });
-                }
-              }
-            }
-          } catch {}
-        })()
-      );
     }
 
     if (fetchPromises.length > 0) {
@@ -1333,11 +1268,6 @@ export async function getDailyVisitorsStats(dateStr?: string): Promise<DailyVisi
     const firstEv = group.events[0];
     const lastEv = group.events[group.events.length - 1];
 
-    let loc = group.userId ? userLocationMap.get(group.userId) : undefined;
-    if (!loc) {
-      loc = guestLocationMap.get(group.anonymousId);
-    }
-
     if (group.type === "user") {
       userCount++;
       const prof = group.userId ? profileMap.get(group.userId) : undefined;
@@ -1349,10 +1279,6 @@ export async function getDailyVisitorsStats(dateStr?: string): Promise<DailyVisi
         displayName,
         email: prof?.email,
         avatar: prof?.avatar,
-        country: loc?.country || lastEv.country,
-        countryCode: loc?.countryCode || lastEv.countryCode,
-        region: loc?.region || lastEv.region,
-        city: loc?.city || lastEv.city,
         firstSeen: firstEv.createdAt,
         lastSeen: lastEv.createdAt,
         eventCount: group.events.length,
@@ -1372,10 +1298,6 @@ export async function getDailyVisitorsStats(dateStr?: string): Promise<DailyVisi
         visitorKey: group.anonymousId,
         type: "guest",
         displayName,
-        country: loc?.country || lastEv.country,
-        countryCode: loc?.countryCode || lastEv.countryCode,
-        region: loc?.region || lastEv.region,
-        city: loc?.city || lastEv.city,
         firstSeen: firstEv.createdAt,
         lastSeen: lastEv.createdAt,
         eventCount: group.events.length,

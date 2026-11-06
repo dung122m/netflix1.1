@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import { Tv, Radio, Zap, Trophy, RefreshCw } from "lucide-react";
-import { LiveFootballData, evaluateEventLifecycle } from "@/services/liveFootballService";
+import { LiveFootballData, LiveMatchScore, evaluateEventLifecycle } from "@/services/liveFootballService";
 import { LiveTvData } from "@/services/liveTvService";
 import { LiveFootballClient } from "./LiveFootballClient";
 import { LiveTvClient } from "./LiveTvClient";
@@ -12,9 +12,10 @@ import { LiveTvSkeleton } from "./LiveTvSkeleton";
 interface LiveHubClientProps {
   footballData: LiveFootballData;
   tvData?: LiveTvData | null;
+  initialScores?: Record<string, LiveMatchScore> | null;
 }
 
-export function LiveHubClient({ footballData, tvData: initialTvData }: LiveHubClientProps) {
+export function LiveHubClient({ footballData, tvData: initialTvData, initialScores }: LiveHubClientProps) {
   const searchParams = useSearchParams();
   const initialTabParam = searchParams.get("tab");
   const initialTab: "sports" | "tv" = initialTabParam === "tv" ? "tv" : "sports";
@@ -69,16 +70,20 @@ export function LiveHubClient({ footballData, tvData: initialTvData }: LiveHubCl
   const initialValidCount = useMemo(() => {
     const now = Date.now();
     return footballData.matches.filter((m) => {
+      const liveScore = (initialScores && initialScores[m.id]) || m.score;
+      const effectiveTs = liveScore?.kickoffTimestamp || m.timestamp;
       const hasStream = Boolean(
         Array.isArray(m.servers) &&
           m.servers.length > 0 &&
           m.servers.some((s) => s.url && s.url.trim().length > 0),
       );
+      if (!hasStream) return false;
+
       const evalResult = evaluateEventLifecycle({
-        timestamp: m.timestamp,
-        score: m.score,
+        timestamp: effectiveTs,
+        score: liveScore,
         sourceStatus: m.sourceStatus,
-        streamHealth: hasStream ? "alive" : "dead",
+        streamHealth: "unknown",
         now,
         sport: m.sport,
         isEvent: m.isEvent,
@@ -90,7 +95,7 @@ export function LiveHubClient({ footballData, tvData: initialTvData }: LiveHubCl
       }
       return false;
     }).length;
-  }, [footballData.matches]);
+  }, [footballData.matches, initialScores]);
 
   const [sportsMatchesCount, setSportsMatchesCount] = useState<number>(initialValidCount);
   const [hasActiveMatch, setHasActiveMatch] = useState<boolean>(false);
@@ -279,6 +284,7 @@ export function LiveHubClient({ footballData, tvData: initialTvData }: LiveHubCl
         <div className={activeTab === "sports" ? "block" : "hidden"}>
           <LiveFootballClient
             initialData={footballData}
+            initialScores={initialScores}
             hideHeader
             isActive={activeTab === "sports"}
             onMatchesCountChange={setSportsMatchesCount}

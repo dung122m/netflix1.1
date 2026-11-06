@@ -50,7 +50,7 @@ export function PublicUserProfileModal({ initialDetail }: PublicUserProfileModal
       displayName: initialDetail.userName || "Thành viên Nanaflix",
       photoURL: initialDetail.userAvatar || "",
       customAvatar: initialDetail.userAvatar || "",
-      badges: initialDetail.badges || ["Mọt Phim Đêm"],
+      badges: initialDetail.badges || [],
       role: "member",
       watchTimeMinutes: 0,
       favoriteGenres: [],
@@ -81,7 +81,7 @@ export function PublicUserProfileModal({ initialDetail }: PublicUserProfileModal
           displayName: customEv.detail.userName || "Thành viên Nanaflix",
           photoURL: customEv.detail.userAvatar || "",
           customAvatar: customEv.detail.userAvatar || "",
-          badges: customEv.detail.badges || ["Mọt Phim Đêm"],
+          badges: customEv.detail.badges || [],
           role: "member",
           watchTimeMinutes: 0,
           favoriteGenres: [],
@@ -192,7 +192,7 @@ export function PublicUserProfileModal({ initialDetail }: PublicUserProfileModal
 
         {/* PROFILE HEADER CỰC KỲ SANG TRỌNG */}
         <div className="relative pt-1 sm:pt-2">
-          <div className="flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left gap-4 sm:gap-5 px-1 sm:px-0 pr-12 sm:pr-0">
+          <div className="flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left gap-4 sm:gap-5 px-1 sm:px-0">
             {/* AVATAR TRÒN CÓ VIỀN KÉP & HUY HIỆU CẤP ĐỘ TINH TẾ */}
             <div className="relative flex-shrink-0 mx-auto sm:mx-0">
               <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full ring-2 ring-white/15 ring-offset-4 ring-offset-[#0c0c0e] shadow-2xl p-0.5 bg-gradient-to-br from-white/10 via-white/5 to-white/0">
@@ -203,9 +203,9 @@ export function PublicUserProfileModal({ initialDetail }: PublicUserProfileModal
                   sizeClassName="w-full h-full text-2xl sm:text-3xl font-black"
                 />
               </div>
-              {/* Badge cấp độ gài góc avatar */}
+              {/* Badge cấp độ căn giữa phía dưới avatar chuẩn tỉ lệ */}
               <div
-                className="absolute -bottom-2 left-1/2 -translate-x-1/2 sm:left-auto sm:translate-x-0 sm:-right-2 px-2.5 py-0.5 rounded-full text-[10px] font-bold border border-white/15 flex items-center gap-1 shadow-xl bg-zinc-950/95 backdrop-blur-md text-amber-300 whitespace-nowrap"
+                className="absolute -bottom-2.5 left-1/2 -translate-x-1/2 px-2.5 py-0.5 rounded-full text-[10px] font-bold border border-white/15 flex items-center gap-1 shadow-xl bg-zinc-950/95 backdrop-blur-md text-amber-300 whitespace-nowrap z-10"
               >
                 <span>{levelInfo.badgeIcon}</span>
                 <span>{levelInfo.levelName}</span>
@@ -233,9 +233,11 @@ export function PublicUserProfileModal({ initialDetail }: PublicUserProfileModal
 
               {/* BIO / GIỚI THIỆU */}
               {profile.bio ? (
-                <p className="text-xs sm:text-sm text-zinc-300 italic max-w-md mx-auto sm:mx-0 break-words leading-relaxed text-center sm:text-left border-l-2 border-netflix-red/60 pl-2.5 my-1">
-                  &ldquo;{profile.bio}&rdquo;
-                </p>
+                <div className="flex items-center justify-center sm:justify-start my-1">
+                  <p className="text-xs sm:text-sm text-zinc-300/90 italic max-w-md break-words leading-relaxed text-center sm:text-left px-3 py-1 rounded-xl bg-white/[0.04] border border-white/5 inline-block">
+                    &ldquo;{profile.bio}&rdquo;
+                  </p>
+                </div>
               ) : (
                 <p className="text-xs text-zinc-500 text-center sm:text-left italic">
                   Thành viên chưa thêm lời giới thiệu.
@@ -243,9 +245,9 @@ export function PublicUserProfileModal({ initialDetail }: PublicUserProfileModal
               )}
 
               {/* HUY HIỆU THÀNH VIÊN (BADGES) */}
-              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-1.5 pt-0.5">
-                {profile.badges && profile.badges.length > 0 ? (
-                  profile.badges.map((badge, idx) => (
+              {profile.badges && profile.badges.length > 0 && (
+                <div className="flex flex-wrap items-center justify-center sm:justify-start gap-1.5 pt-0.5">
+                  {profile.badges.map((badge, idx) => (
                     <span
                       key={idx}
                       className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-medium bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-amber-200/90 shadow-sm whitespace-nowrap transition-colors"
@@ -253,14 +255,9 @@ export function PublicUserProfileModal({ initialDetail }: PublicUserProfileModal
                       <Award className="w-3 h-3 text-amber-400 flex-shrink-0" />
                       <span>{cleanBadgeText(badge)}</span>
                     </span>
-                  ))
-                ) : (
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-medium bg-white/[0.04] border border-white/10 text-zinc-400 whitespace-nowrap">
-                    <Award className="w-3 h-3 text-zinc-500 flex-shrink-0" />
-                    <span>Mọt Phim Đêm</span>
-                  </span>
-                )}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -268,49 +265,49 @@ export function PublicUserProfileModal({ initialDetail }: PublicUserProfileModal
         {/* THỐNG KÊ NHANH (CARDS KÍNH TỐI GIẢN) */}
         <div className="grid grid-cols-3 gap-2 sm:gap-3">
           {/* CỘT 1: THỜI GIAN XEM */}
-          <div className="p-3 sm:p-4 rounded-2xl bg-white/[0.03] hover:bg-white/[0.05] border border-white/5 transition-all text-center flex flex-col items-center justify-center gap-1 group">
+          <div className="p-2.5 sm:p-4 rounded-2xl bg-white/[0.03] hover:bg-white/[0.05] border border-white/5 transition-all text-center flex flex-col items-center justify-center gap-1 min-h-[76px] sm:min-h-[88px] group">
             <div className="flex items-center justify-center gap-1 text-rose-400">
               <Clock className="w-3.5 h-3.5 flex-shrink-0" />
               <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-zinc-400">
                 Đã Cày
               </span>
             </div>
-            <div className="text-base sm:text-xl font-black text-white tracking-tight truncate max-w-full">
+            <div className="text-sm sm:text-lg font-black text-white tracking-tight break-words max-w-full">
               {watchHours}h
             </div>
-            <div className="text-[10px] text-zinc-500 truncate max-w-full font-medium">
+            <div className="text-[9.5px] sm:text-[10px] text-zinc-500 max-w-full font-medium leading-tight">
               {watchMins.toLocaleString()} phút
             </div>
           </div>
 
           {/* CỘT 2: HẠNG CINEPHILE */}
-          <div className="p-3 sm:p-4 rounded-2xl bg-white/[0.03] hover:bg-white/[0.05] border border-white/5 transition-all text-center flex flex-col items-center justify-center gap-1 group">
+          <div className="p-2.5 sm:p-4 rounded-2xl bg-white/[0.03] hover:bg-white/[0.05] border border-white/5 transition-all text-center flex flex-col items-center justify-center gap-1 min-h-[76px] sm:min-h-[88px] group">
             <div className="flex items-center justify-center gap-1 text-amber-400">
               <Crown className="w-3.5 h-3.5 flex-shrink-0" />
               <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-zinc-400">
                 Hạng
               </span>
             </div>
-            <div className="text-xs sm:text-sm font-black text-amber-300 truncate max-w-full px-0.5">
+            <div className="text-[11px] sm:text-xs font-black text-amber-300 leading-tight text-center break-words max-w-full px-0.5">
               {levelInfo.levelName}
             </div>
-            <div className="text-[10px] text-zinc-500 truncate max-w-full font-medium">
+            <div className="text-[9.5px] sm:text-[10px] text-zinc-500 max-w-full font-medium leading-tight text-center">
               Cấp độ cinephile
             </div>
           </div>
 
           {/* CỘT 3: BỘ SƯU TẬP */}
-          <div className="p-3 sm:p-4 rounded-2xl bg-white/[0.03] hover:bg-white/[0.05] border border-white/5 transition-all text-center flex flex-col items-center justify-center gap-1 group">
+          <div className="p-2.5 sm:p-4 rounded-2xl bg-white/[0.03] hover:bg-white/[0.05] border border-white/5 transition-all text-center flex flex-col items-center justify-center gap-1 min-h-[76px] sm:min-h-[88px] group">
             <div className="flex items-center justify-center gap-1 text-indigo-400">
               <Bookmark className="w-3.5 h-3.5 flex-shrink-0" />
               <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-zinc-400">
                 Bộ Sưu Tập
               </span>
             </div>
-            <div className="text-base sm:text-xl font-black text-white tracking-tight truncate max-w-full">
+            <div className="text-sm sm:text-lg font-black text-white tracking-tight break-words max-w-full">
               {collections.length}
             </div>
-            <div className="text-[10px] text-zinc-500 truncate max-w-full font-medium">
+            <div className="text-[9.5px] sm:text-[10px] text-zinc-500 max-w-full font-medium leading-tight">
               Công khai
             </div>
           </div>
@@ -323,7 +320,7 @@ export function PublicUserProfileModal({ initialDetail }: PublicUserProfileModal
             onClick={() => setActiveTab("overview")}
             className={`flex-1 py-2 px-3 rounded-xl transition-all duration-200 cursor-pointer flex items-center justify-center gap-2 whitespace-nowrap ${
               activeTab === "overview"
-                ? "bg-netflix-red text-white font-bold shadow-lg shadow-netflix-red/25"
+                ? "bg-red-600 text-white font-bold shadow-lg shadow-red-600/30"
                 : "text-zinc-400 hover:text-white hover:bg-white/5"
             }`}
           >
@@ -335,7 +332,7 @@ export function PublicUserProfileModal({ initialDetail }: PublicUserProfileModal
             onClick={() => setActiveTab("collections")}
             className={`flex-1 py-2 px-3 rounded-xl transition-all duration-200 cursor-pointer flex items-center justify-center gap-2 whitespace-nowrap ${
               activeTab === "collections"
-                ? "bg-netflix-red text-white font-bold shadow-lg shadow-netflix-red/25"
+                ? "bg-red-600 text-white font-bold shadow-lg shadow-red-600/30"
                 : "text-zinc-400 hover:text-white hover:bg-white/5"
             }`}
           >

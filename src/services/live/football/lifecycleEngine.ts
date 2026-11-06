@@ -78,14 +78,14 @@ export type SportCategory =
  * - Trận đấu có stream sống và livescore live sẽ KHÔNG bao giờ bị kết thúc sớm trước ngưỡng này.
  */
 export const SPORT_SAFETY_CEILINGS_MS: Record<SportCategory, number> = {
-  football: 210 * 60 * 1000,   // 3.5 giờ (bao quát trọn vẹn 90m + 30m ET + Pen + bù giờ + gián đoạn)
-  esports: 8 * 60 * 60 * 1000,  // 8 giờ (bao quát trọn vẹn BO5 + pause/remake + trao giải)
-  tennis: 6 * 60 * 60 * 1000,   // 6 giờ (bao quát Grand Slam 5 set lịch sử)
-  basketball: 4 * 60 * 60 * 1000, // 4 giờ (bao quát nhiều hiệp phụ OT1, OT2, OT3)
-  volleyball: 4 * 60 * 60 * 1000,
-  billiards: 8 * 60 * 60 * 1000,
-  motorsport: 5 * 60 * 60 * 1000,
-  other: 8 * 60 * 60 * 1000,
+  football: 180 * 60 * 1000,   // 3 giờ (bao quát trọn vẹn 90m + 30m ET + Pen + bù giờ + gián đoạn)
+  esports: 330 * 60 * 1000,    // 5.5 giờ (bao quát trọn vẹn BO5 + pause/remake + trao giải)
+  tennis: 300 * 60 * 1000,     // 5 giờ (bao quát Grand Slam 5 set lịch sử)
+  basketball: 210 * 60 * 1000, // 3.5 giờ (bao quát nhiều hiệp phụ OT1, OT2, OT3)
+  volleyball: 180 * 60 * 1000, // 3 giờ
+  billiards: 360 * 60 * 1000,  // 6 giờ
+  motorsport: 270 * 60 * 1000, // 4.5 giờ
+  other: 240 * 60 * 1000,      // 4 giờ (giảm từ 8 giờ để dọn sạch sự kiện võ thuật/khác đã hết)
 };
 
 /**
@@ -95,13 +95,32 @@ export const SPORT_SAFETY_CEILINGS_MS: Record<SportCategory, number> = {
  */
 export const SPORT_NORMAL_DURATION_MS: Record<SportCategory, number> = {
   football: 105 * 60 * 1000,   // 105 phút (90m + 15m nghỉ)
-  esports: 180 * 60 * 1000,    // 180 phút
-  tennis: 150 * 60 * 1000,     // 150 phút
-  basketball: 135 * 60 * 1000, // 135 phút
-  volleyball: 120 * 60 * 1000,
+  esports: 150 * 60 * 1000,    // 150 phút (2.5 giờ)
+  tennis: 150 * 60 * 1000,     // 150 phút (2.5 giờ)
+  basketball: 120 * 60 * 1000, // 120 phút (2 giờ)
+  volleyball: 105 * 60 * 1000, // 105 phút
   billiards: 180 * 60 * 1000,
-  motorsport: 180 * 60 * 1000,
+  motorsport: 150 * 60 * 1000,
   other: 140 * 60 * 1000,
+};
+
+/**
+ * Khoảng đệm thời gian mở rộng (Extended Buffer Duration):
+ * - Dành cho bù giờ sâu, hiệp phụ, tạm dừng, gián đoạn kỹ thuật và độ trễ tín hiệu.
+ * - Trong khoảng này (từ normalDuration đến extendedBuffer): Trận đấu tiếp tục được giữ LIVE
+ *   nếu stream chưa bị xác nhận ngắt (INACTIVE) và upstream chưa unlist.
+ * - Sau khoảng này (từ extendedBuffer đến safetyCeiling): Cờ static M3U (listingStatus === "LISTED")
+ *   KHÔNG ĐƯỢC PHÉP tự động giữ LIVE nữa. BẮT BUỘC phải có streamStatus === "ACTIVE" hoặc livescore live.
+ */
+export const SPORT_EXTENDED_BUFFER_MS: Record<SportCategory, number> = {
+  football: 125 * 60 * 1000,   // 125 phút (90m + 15m nghỉ + tới 20 phút bù giờ/gián đoạn)
+  esports: 210 * 60 * 1000,    // 210 phút (3.5 giờ - BO3 kéo dài hoặc gián đoạn kỹ thuật)
+  tennis: 210 * 60 * 1000,     // 210 phút (3.5 giờ - 3 set giằng co)
+  basketball: 150 * 60 * 1000, // 150 phút (2.5 giờ - hiệp 4 kéo dài hoặc OT1)
+  volleyball: 140 * 60 * 1000, // 140 phút (set 5 quyết định)
+  billiards: 240 * 60 * 1000,  // 4 giờ
+  motorsport: 210 * 60 * 1000, // 3.5 giờ
+  other: 180 * 60 * 1000,      // 3 giờ
 };
 
 export const UPCOMING_WINDOW_MS = 2 * 60 * 60 * 1000; // 2 giờ hiển thị trước trận
@@ -427,15 +446,13 @@ export function evaluateEventLifecycle(params: EvaluateLifecycleParams): Lifecyc
     }
 
     // 4C. GIAI ĐOẠN CO GIÃN LINH HOẠT (FLEXIBLE / OVERTIME / PENALTY WINDOW)
-    // Ví dụ: Bóng đá từ phút 105 đến 210 phút (Hiệp phụ, luân lưu, bù giờ dài)
-    // Esports từ 180 đến 480 phút (BO5 giằng co, tạm dừng kỹ thuật)
-    // Tennis từ 150 đến 360 phút (5 set giằng co)
+    // Ví dụ: Bóng đá từ 105 đến 180 phút (Hiệp phụ, luân lưu, bù giờ dài)
+    // Esports từ 150 đến 330 phút (BO3/BO5 giằng co, tạm dừng kỹ thuật)
+    // Tennis từ 150 đến 300 phút (5 set giằng co)
     if (elapsedMs > normalDuration && elapsedMs <= safetyCeiling) {
-      // NGUYÊN TẮC CỐT LÕI:
-      // Chừng nào luồng stream VẪN ĐANG PHÁT (streamStatus === "ACTIVE")
-      // HOẶC nguồn upstream vẫn gắn nhãn LISTED:
-      // -> TRẬN ĐẤU VẪN TIẾP TỤC ĐƯỢC GIỮ LIVE 100%!
-      if (streamStatus === "ACTIVE" || listingStatus === "LISTED") {
+      // 1. Luồng stream XÁC NHẬN ĐANG HOẠT ĐỘNG (streamStatus === "ACTIVE"):
+      // Bằng chứng sống thực tế -> Trận đấu TIẾP TỤC ĐƯỢC GIỮ LIVE 100%!
+      if (streamStatus === "ACTIVE") {
         const badge = sportCat === "football" && elapsedMs > 120 * 60 * 1000 ? "ET" : "LIVE";
         return {
           eventStatus: badge === "ET" ? "EXTRA_TIME" : "LIVE",
@@ -449,8 +466,25 @@ export function evaluateEventLifecycle(params: EvaluateLifecycleParams): Lifecyc
         };
       }
 
-      // Nếu stream đã xác nhận ngắt (INACTIVE) HOẶC không có bằng chứng stream sống:
-      // Kết thúc trận đấu an toàn, không giữ nhầm trận 90 phút đã đá xong!
+      // 2. Không có bằng chứng stream ACTIVE:
+      // Trong khoảng đệm mở rộng (extended buffer): Cho phép giữ LIVE nếu stream chưa xác nhận chết (INACTIVE)
+      const extendedBuffer = SPORT_EXTENDED_BUFFER_MS[sportCat] || normalDuration + 30 * 60 * 1000;
+      if (elapsedMs <= extendedBuffer && streamStatus !== "INACTIVE") {
+        const badge = sportCat === "football" && elapsedMs > 120 * 60 * 1000 ? "ET" : "LIVE";
+        return {
+          eventStatus: badge === "ET" ? "EXTRA_TIME" : "LIVE",
+          streamStatus,
+          listingStatus,
+          displayTimeline: "live",
+          isLiveInWindow: true,
+          confidence: "inferred",
+          reason: `Trận đấu trong khoảng đệm bù giờ/gián đoạn (${Math.round(elapsedMs / (60 * 1000))}m)`,
+          statusBadge: badge,
+        };
+      }
+
+      // 3. Vượt quá khoảng đệm extendedBuffer mà KHÔNG CÓ stream ACTIVE hay livescore live:
+      // Cờ 🟢 từ title M3U cũ (listingStatus === "LISTED") KHÔNG ĐƯỢC PHÉP tự ý kéo dài trận đấu đã hết giờ!
       return {
         eventStatus: "FINISHED",
         streamStatus,
@@ -458,7 +492,7 @@ export function evaluateEventLifecycle(params: EvaluateLifecycleParams): Lifecyc
         displayTimeline: "finished",
         isLiveInWindow: false,
         confidence: "inferred",
-        reason: `Trận đấu quá thời gian tiêu chuẩn (${Math.round(elapsedMs / (60 * 1000))}m) và luồng stream đã kết thúc`,
+        reason: `Trận đấu quá thời gian tiêu chuẩn và khoảng đệm (${Math.round(elapsedMs / (60 * 1000))}m) không có bằng chứng luồng phát còn hoạt động`,
         statusBadge: "FT",
       };
     }

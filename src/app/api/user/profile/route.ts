@@ -12,6 +12,13 @@ import { safeParseJson, detectMaliciousPayload } from "@/lib/securityValidation"
 import { logSecurityEvent } from "@/lib/securityLogger";
 
 export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
+
+const NO_CACHE_HEADERS = {
+  "Cache-Control": "private, no-cache, no-store, max-age=0, must-revalidate, proxy-revalidate",
+  "CDN-Cache-Control": "no-store",
+  "Vercel-CDN-Cache-Control": "no-store",
+};
 
 /**
  * GET /api/user/profile
@@ -52,10 +59,10 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({ success: false, error: error.message }, { status: 500 });
       }
 
-      // Lấy device_profiles của các user để hiển thị vị trí & thiết bị ước lượng
+      // Lấy device_profiles của các user để hiển thị thiết bị
       const { data: devProfiles } = await supabase
         .from("device_profiles")
-        .select("user_id, country, country_code, region, city, device_type, browser, os, last_seen")
+        .select("user_id, device_type, browser, os, last_seen")
         .not("user_id", "is", null)
         .order("last_seen", { ascending: false })
         .limit(1000);
@@ -87,12 +94,6 @@ export async function GET(req: NextRequest) {
           isCommentRestricted: Boolean(d.is_comment_restricted),
           violationsCount: d.violations_count || 0,
           lastViolationReason: d.last_violation_reason,
-          approximateLocation: dp?.country ? {
-            country: dp.country,
-            countryCode: dp.country_code,
-            region: dp.region,
-            city: dp.city,
-          } : null,
           deviceInfo: dp?.device_type ? {
             deviceType: dp.device_type,
             browser: dp.browser,
@@ -103,11 +104,14 @@ export async function GET(req: NextRequest) {
         };
       });
 
-      return NextResponse.json({
-        success: true,
-        profiles,
-        totalCount: typeof count === "number" ? count : profiles.length,
-      });
+      return NextResponse.json(
+        {
+          success: true,
+          profiles,
+          totalCount: typeof count === "number" ? count : profiles.length,
+        },
+        { headers: NO_CACHE_HEADERS }
+      );
     } catch (err) {
       console.error("[Profile API GET ALL] Error:", err);
       return NextResponse.json({ success: false, error: "Internal error" }, { status: 500 });
@@ -163,7 +167,7 @@ export async function GET(req: NextRequest) {
       updatedAt: Number(data.updated_at) || Date.now(),
     };
 
-    return NextResponse.json({ success: true, profile });
+    return NextResponse.json({ success: true, profile }, { headers: NO_CACHE_HEADERS });
   } catch (err) {
     console.error("[Profile API GET] Error:", err);
     return NextResponse.json({ success: false, error: "Internal error" }, { status: 500 });
@@ -281,6 +285,21 @@ export async function POST(req: NextRequest) {
     const { error } = await supabase.from("profiles").upsert(payload, { onConflict: "id" });
     if (error) {
       return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    }
+
+    // Đồng bộ tức thời avatar & tên mới vào các bình luận cũ của người dùng trong movie_comments
+    const finalAvatar = payload.custom_avatar || payload.photo_url || "";
+    const finalName = payload.display_name;
+    if (finalAvatar || finalName) {
+      const commentUpdates: Record<string, unknown> = {};
+      if (finalAvatar) commentUpdates.user_avatar = finalAvatar;
+      if (finalName) commentUpdates.user_name = finalName;
+      try {
+        await supabase
+          .from("movie_comments")
+          .update(commentUpdates)
+          .eq("user_id", userId);
+      } catch {}
     }
 
     return NextResponse.json({ success: true, profile: payload });

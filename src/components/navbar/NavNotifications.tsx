@@ -20,6 +20,8 @@ import { UserNotification } from "@/types/notification";
 import { UserAvatar } from "@/components/ui/UserAvatar";
 import { Tooltip } from "@/components/ui/Tooltip";
 
+const movieTitleGlobalCache = new Map<string, string>();
+
 export const NavNotifications: React.FC = React.memo(function NavNotifications() {
   const router = useRouter();
   const { user } = useAuth();
@@ -28,6 +30,7 @@ export const NavNotifications: React.FC = React.memo(function NavNotifications()
   const [userNotifications, setUserNotifications] = useState<UserNotification[]>([]);
   const [filterMode, setFilterMode] = useState<"all" | "unread">("all");
   const [showOptionsMenu, setShowOptionsMenu] = useState(false);
+  const [cachedTitles, setCachedTitles] = useState<Record<string, string>>({});
 
   const notificationRef = useRef<HTMLDivElement>(null);
 
@@ -97,6 +100,64 @@ export const NavNotifications: React.FC = React.memo(function NavNotifications()
       .split("-")
       .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
       .join(" ");
+  };
+
+  // Đồng bộ và tải tiêu đề tiếng Việt có dấu cho các phim trong thông báo
+  useEffect(() => {
+    const fromCache: Record<string, string> = {};
+    const neededSlugs = new Set<string>();
+
+    for (const n of dedupedUserNotifications) {
+      if (!n.movieSlug) continue;
+      if (n.movieTitle) {
+        movieTitleGlobalCache.set(n.movieSlug, n.movieTitle);
+        fromCache[n.movieSlug] = n.movieTitle;
+      } else if (movieTitleGlobalCache.has(n.movieSlug)) {
+        fromCache[n.movieSlug] = movieTitleGlobalCache.get(n.movieSlug)!;
+      } else {
+        neededSlugs.add(n.movieSlug);
+      }
+    }
+
+    if (Object.keys(fromCache).length > 0) {
+      setCachedTitles((prev) => ({ ...prev, ...fromCache }));
+    }
+
+    if (neededSlugs.size === 0) return;
+
+    let isMounted = true;
+    const slugsList = Array.from(neededSlugs).slice(0, 20);
+    fetch(`/api/movies/meta?slugs=${encodeURIComponent(slugsList.join(","))}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (!isMounted || !data?.success || !data.movies) return;
+        const newTitles: Record<string, string> = {};
+        for (const [slug, meta] of Object.entries<Record<string, unknown>>(data.movies)) {
+          const title = (meta as { title?: string })?.title;
+          if (title) {
+            movieTitleGlobalCache.set(slug, title);
+            newTitles[slug] = title;
+          }
+        }
+        if (Object.keys(newTitles).length > 0) {
+          setCachedTitles((prev) => ({ ...prev, ...newTitles }));
+        }
+      })
+      .catch(() => {});
+
+    return () => {
+      isMounted = false;
+    };
+  }, [dedupedUserNotifications]);
+
+  const getMovieName = (item: UserNotification): string => {
+    if (item.movieTitle) return item.movieTitle;
+    if (item.movieSlug) {
+      if (cachedTitles[item.movieSlug]) return cachedTitles[item.movieSlug];
+      if (movieTitleGlobalCache.has(item.movieSlug)) return movieTitleGlobalCache.get(item.movieSlug)!;
+      return formatMovieTitle(item.movieSlug);
+    }
+    return "";
   };
 
   const displayedNotifications = useMemo(() => {
@@ -183,7 +244,7 @@ export const NavNotifications: React.FC = React.memo(function NavNotifications()
           {" đã phản hồi bình luận của bạn"}
           {movieName && (
             <>
-              {" về một bộ phim trong "}
+              {" trong phim "}
               <strong className="font-bold text-white hover:underline">{movieName}</strong>
               {item.episodeName && <span className="text-zinc-300"> ({item.episodeName})</span>}
             </>
@@ -206,7 +267,7 @@ export const NavNotifications: React.FC = React.memo(function NavNotifications()
           {" vào bình luận của bạn"}
           {movieName && (
             <>
-              {" trong "}
+              {" trong phim "}
               <strong className="font-bold text-white hover:underline">{movieName}</strong>
             </>
           )}
@@ -348,7 +409,7 @@ export const NavNotifications: React.FC = React.memo(function NavNotifications()
                       item.replierName ||
                       (item.title ? item.title.split(/\s+đã\s+/i)[0].trim() : "") ||
                       "Một thành viên";
-                    const movieName = formatMovieTitle(item.movieSlug);
+                    const movieName = getMovieName(item);
 
                     return (
                       <div

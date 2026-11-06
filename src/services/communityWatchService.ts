@@ -63,10 +63,31 @@ export async function recordMovieViewSupabase(movie: {
 // Single-Flight Mutex chống cache stampede khi nhiều request cùng MISS trên instance lạnh
 const inFlightTrendingResolves = new Map<string, Promise<MovieViewStatItem[]>>();
 
+// Throttle chống bão lệnh DEL Redis khi nhiều lượt xem ghi nhận liên tiếp
+let lastTrendingInvalidateTime = 0;
+const TRENDING_INVALIDATE_THROTTLE_MS = 60 * 1000; // Tối đa 1 lần xóa mỗi 60 giây
+
 /**
  * Xóa cache tóm tắt Trending Community trên Redis (phục vụ test hoặc admin invalidate)
+ * Có cơ chế throttle chống spam lệnh DEL khi lượt xem phát sinh dồn dập
  */
-export async function invalidateTrendingSummaryCache(timeframe?: "total" | "week", limit?: number): Promise<void> {
+export async function invalidateTrendingSummaryCache(
+  timeframe?: "total" | "week",
+  limit?: number,
+  options?: { force?: boolean; simulateProduction?: boolean }
+): Promise<void> {
+  const now = Date.now();
+  const isTest =
+    !options?.simulateProduction &&
+    (process.env.NODE_ENV === "test" ||
+      process.env.APP_ENV === "test" ||
+      process.argv.some((a) => a.includes("--test") || a.includes(".test.ts")));
+  if (!options?.force && !isTest && now - lastTrendingInvalidateTime < TRENDING_INVALIDATE_THROTTLE_MS) {
+    // Bỏ qua các lệnh DEL lặp lại dồn dập, để cache tự hết hạn theo TTL 15 phút
+    return;
+  }
+  lastTrendingInvalidateTime = now;
+
   if (timeframe && limit) {
     await cacheService.delete(`trending:community:summary:v1:${timeframe}:${limit}`).catch(() => {});
   } else {
@@ -116,8 +137,9 @@ export async function getTopTrendingCommunitySupabase(
     try {
       const items = await resolveTrendingCommunityInternal(safeLimit, timeframe);
       if (items && items.length > 0) {
-        // Lưu summary nhẹ (chỉ ~3-5 KB, không chứa episodes hay stream links) vào Redis với TTL 3600s (1 giờ)
-        await cacheService.set(summaryCacheKey, items, 3600).catch(() => {});
+        // Lưu summary nhẹ (~3-5 KB) vào Redis với TTL tối ưu 900s (15 phút)
+        // Dữ liệu luôn tươi mới tự động mà không cần bắn phá lệnh DEL liên tục
+        await cacheService.set(summaryCacheKey, items, 900).catch(() => {});
       }
       return items;
     } finally {
@@ -141,10 +163,13 @@ async function resolveTrendingCommunityInternal(
     const analyticsSlugs = await getTopMovieSlugsFromAnalytics(timeframe, Math.max(limit * 2, 20));
 
     if (analyticsSlugs && analyticsSlugs.length > 0) {
+      const allSlugs = analyticsSlugs.map((s) => s.slug);
+      const detailMap = await movieApi.getMoviesDetailBatch(allSlugs);
+
       const resolvedMovies = await Promise.allSettled(
         analyticsSlugs.map(async ({ slug, score }) => {
           try {
-            const detail = await movieApi.getMovieDetail(slug);
+            const detail = detailMap[slug] || (await movieApi.getMovieDetail(slug));
             if (!detail || !detail.movie) return null;
             const m = detail.movie;
 

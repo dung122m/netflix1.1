@@ -3,6 +3,7 @@ import { movieApi } from "@/services/movies/service";
 import { upsertMovieEmbedding } from "@/services/aiVectorService";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { isUserAdmin } from "@/lib/adminConfig";
+import { isTimingSafeSecretMatch } from "@/lib/serverAuth";
 import { getVsmovCatalogFeed } from "@/services/providers/vsmov";
 import { deduplicateMovieItems } from "@/lib/movieMedia";
 import {
@@ -24,14 +25,18 @@ async function verifyAdminAuth(req: NextRequest): Promise<{ authorized: boolean;
   const authHeader = req.headers.get("authorization")?.trim();
   const bearerToken = authHeader?.startsWith("Bearer ") ? authHeader.slice(7).trim() : null;
 
-  // 1. Kiểm tra Admin Secret server-side
+  // 1. Kiểm tra Admin Secret server-side (Timing-Safe Comparison)
   const envSecret = process.env.ADMIN_SYNC_SECRET?.trim();
-  if (envSecret && (secretHeader === envSecret || bearerToken === envSecret)) {
-    return { authorized: true, status: 200, userEmail: "admin_system" };
+  if (envSecret) {
+    const isHeaderMatch = secretHeader ? isTimingSafeSecretMatch(secretHeader, envSecret) : false;
+    const isBearerMatch = bearerToken ? isTimingSafeSecretMatch(bearerToken, envSecret) : false;
+    if (isHeaderMatch || isBearerMatch) {
+      return { authorized: true, status: 200, userEmail: "admin_system" };
+    }
   }
 
   // 2. Kiểm tra Firebase ID Token từ người dùng đăng nhập tài khoản Admin
-  if (bearerToken && bearerToken !== envSecret) {
+  if (bearerToken && !isTimingSafeSecretMatch(bearerToken, envSecret)) {
     const apiKey = process.env.NEXT_PUBLIC_FIREBASE_API_KEY || process.env.FIREBASE_API_KEY;
     if (apiKey) {
       try {

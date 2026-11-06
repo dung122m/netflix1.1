@@ -28,53 +28,48 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ success: true, movies: {} });
     }
 
-    const results = await Promise.allSettled(
-      slugs.map(async (slug) => {
-        const detail = await movieApi.getMovieDetail(slug);
-        if (!detail || !detail.movie) return null;
-        const m = detail.movie;
-        const title = m.name || m.title || slug;
-        const poster = pickBestMoviePoster(m, "/default-poster.jpg");
-        const thumb = pickBestMovieThumb(m, "/default-hero.jpg");
-        const typeName = detectMovieTypeName(m);
-        const isSingle =
-          m.type === "single" ||
-          typeName === "Phim lẻ" ||
-          typeName === "Phim rạp" ||
-          (m.episode_total !== undefined && Number(m.episode_total) === 1);
-
-        const rawCats = Array.isArray(m.category)
-          ? m.category
-          : Array.isArray(m.categories)
-          ? m.categories
-          : [];
-        const category =
-          rawCats
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            .map((c: any) => (typeof c === "string" ? c : c?.name || ""))
-            .filter(Boolean)
-            .join(", ") || "Phim Hay";
-
-        return {
-          slug,
-          title,
-          poster,
-          thumb,
-          year: m.year ? Number(m.year) : undefined,
-          quality: m.quality || "HD",
-          category,
-          type: m.type,
-          typeName,
-          isSingle: Boolean(isSingle),
-        };
-      })
-    );
+    // Batch get movie details (1 Redis MGET thay vì N GETs riêng lẻ)
+    const detailMap = await movieApi.getMoviesDetailBatch(slugs);
 
     const movies: Record<string, unknown> = {};
-    for (const r of results) {
-      if (r.status === "fulfilled" && r.value) {
-        movies[r.value.slug] = r.value;
-      }
+    for (const slug of slugs) {
+      const detail = detailMap[slug];
+      if (!detail || !detail.movie) continue;
+      const m = detail.movie;
+      const title = m.name || m.title || slug;
+      const poster = pickBestMoviePoster(m, "/default-poster.jpg");
+      const thumb = pickBestMovieThumb(m, "/default-hero.jpg");
+      const typeName = detectMovieTypeName(m);
+      const isSingle =
+        m.type === "single" ||
+        typeName === "Phim lẻ" ||
+        typeName === "Phim rạp" ||
+        (m.episode_total !== undefined && Number(m.episode_total) === 1);
+
+      const rawCats = Array.isArray(m.category)
+        ? m.category
+        : Array.isArray(m.categories)
+        ? m.categories
+        : [];
+      const category =
+        rawCats
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          .map((c: any) => (typeof c === "string" ? c : c?.name || ""))
+          .filter(Boolean)
+          .join(", ") || "Phim Hay";
+
+      movies[slug] = {
+        slug,
+        title,
+        poster,
+        thumb,
+        year: m.year ? Number(m.year) : undefined,
+        quality: m.quality || "HD",
+        category,
+        type: m.type,
+        typeName,
+        isSingle: Boolean(isSingle),
+      };
     }
 
     return NextResponse.json(

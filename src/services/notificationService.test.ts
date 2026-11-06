@@ -196,4 +196,40 @@ describe("Nanaflix Notification Shared Service-Level Singleton", () => {
     assert.equal(receivedUserB[0]?.id, "notif_b");
     unsubB();
   });
+
+  it("5. mergeNotifications preserves Vietnamese movieTitle when merging existing and incoming items", () => {
+    const current: UserNotification[] = [
+      {
+        id: "notif_movie_1",
+        type: "comment_reply",
+        title: "Dũng Trần đã phản hồi",
+        message: "vl",
+        link: "/movies/bo-gia-hoc-viec",
+        movieSlug: "bo-gia-hoc-viec",
+        movieTitle: "Bố Già Học Việc",
+        commentId: "cmt_100",
+        createdAt: 1000,
+        isRead: false,
+      },
+    ];
+
+    // Incoming from realtime without movieTitle
+    const incoming: UserNotification[] = [
+      {
+        id: "notif_movie_1",
+        type: "comment_reply",
+        title: "Dũng Trần đã phản hồi",
+        message: "vl",
+        link: "/movies/bo-gia-hoc-viec",
+        movieSlug: "bo-gia-hoc-viec",
+        commentId: "cmt_100",
+        createdAt: 1000,
+        isRead: false,
+      },
+    ];
+
+    const merged = mergeNotifications(current, incoming);
+    assert.equal(merged.length, 1);
+    assert.equal(merged[0]?.movieTitle, "Bố Già Học Việc");
+  });
 });

@@ -16,7 +16,6 @@ interface PlayerActionButtonsProps {
   onToggleLightsOff?: () => void;
   isFullscreen?: boolean;
   onToggleFullscreen?: () => void;
-  onOpenShortcuts?: () => void;
   prevEpisode?: EpisodeItem | null;
   nextEpisode?: EpisodeItem | null;
   onSwitchEpisode?: (slug: string) => void;

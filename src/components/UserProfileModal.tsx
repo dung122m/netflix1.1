@@ -177,7 +177,7 @@ function UserProfileModalInner({
       } else {
         setUseCustomUrl(false);
       }
-      if (profile.badges && profile.badges.length > 0) {
+      if (profile.badges !== undefined) {
         setUserBadges(profile.badges);
       }
       if (profile.playerSettings) {
@@ -269,7 +269,7 @@ function UserProfileModalInner({
           return badgeConfig ? userWatchMins >= badgeConfig.minMinutesReq : true;
         });
 
-        if (!data.badges || data.badges.length === 0) {
+        if (data.badges === undefined || data.badges === null) {
           const defaultLevelBadges = getWatchLevelInfo(userWatchMins).badges;
           setUserBadges(defaultLevelBadges);
         } else {
@@ -811,14 +811,28 @@ function UserProfileModalInner({
 
               {/* 4. DANH HIỆU (BADGES) */}
               <div className="space-y-2">
-                <div className="flex items-center justify-between gap-1.5">
+                <div className="flex items-center justify-between gap-1.5 flex-wrap">
                   <label className="text-[11px] sm:text-xs font-bold text-zinc-300 uppercase tracking-wider block">
-                    4. Bộ Danh Hiệu
+                    4. Huy Hiệu Hiển Thị (Cạnh tên khi bình luận)
                   </label>
-                  <span className="text-[10.5px] sm:text-[11px] text-amber-400 font-bold whitespace-nowrap">
-                    Đã mở: {AVAILABLE_BADGES.filter((b) => watchMins >= b.minMinutesReq).length}/{AVAILABLE_BADGES.length}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    {userBadges.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setUserBadges([])}
+                        className="text-[10.5px] text-zinc-400 hover:text-red-400 underline underline-offset-2 transition-colors cursor-pointer"
+                      >
+                        Tắt tất cả
+                      </button>
+                    )}
+                    <span className="text-[10.5px] sm:text-[11px] text-amber-400 font-bold whitespace-nowrap">
+                      Đã mở: {AVAILABLE_BADGES.filter((b) => watchMins >= b.minMinutesReq).length}/{AVAILABLE_BADGES.length}
+                    </span>
+                  </div>
                 </div>
+                <p className="text-[11px] text-zinc-400">
+                  Nhấn vào danh hiệu đã mở khóa để chọn đeo hoặc bỏ chọn để tắt hiển thị khi bình luận.
+                </p>
                 <div className="flex flex-wrap gap-1 sm:gap-1.5">
                   {AVAILABLE_BADGES.map((b) => {
                     const isUnlocked = watchMins >= b.minMinutesReq;

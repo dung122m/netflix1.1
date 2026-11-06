@@ -8,7 +8,6 @@ import {
   ShieldCheck,
   LogOut,
   Smartphone,
-  Dices,
   History,
   ChevronRight,
   Info,
@@ -85,9 +84,6 @@ export const NavMobileMenu: React.FC<NavMobileMenuProps> = React.memo(function N
       window.removeEventListener("nanaflix-accent-changed", handleAccentChange);
     };
   }, []);
-
-  // Lịch sử Việt Nam có các mốc son ghi nhận cho toàn bộ 365 ngày trong năm
-  const hasHistoricalToday = true;
 
   if (!isOpen) return null;
 
@@ -201,30 +197,6 @@ export const NavMobileMenu: React.FC<NavMobileMenuProps> = React.memo(function N
 
         {/* QUICK FEATURE APPS GRID */}
         <div className="grid grid-cols-2 gap-2.5 my-1">
-          {/* CARD: BỐC QUẺ PHIM ĐỊNH MỆNH */}
-          <button
-            type="button"
-            onClick={() => {
-              onClose();
-              if (typeof window !== "undefined") {
-                window.dispatchEvent(
-                  new CustomEvent("open-nana-ai-studio", {
-                    detail: { tab: "roulette" },
-                  })
-                );
-              }
-            }}
-            className="col-span-2 flex items-center gap-2.5 p-2.5 rounded-2xl bg-gradient-to-r from-amber-500/20 via-orange-500/25 to-rose-500/20 text-white transition-all text-left active:scale-[0.98] cursor-pointer shadow-sm shadow-black/50"
-          >
-            <div className="w-9 h-9 rounded-xl bg-amber-500/25 text-amber-200 flex items-center justify-center shrink-0 shadow-inner">
-              <Dices size={18} className="text-amber-300" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="text-xs font-black text-amber-200 truncate tracking-tight">Bốc quẻ</div>
-              <div className="text-[10px] text-amber-300/80 font-medium truncate">Vòng quay phim</div>
-            </div>
-          </button>
-
           {/* CARD 3: CÀI APP PWA */}
           <button
             type="button"
@@ -260,30 +232,6 @@ export const NavMobileMenu: React.FC<NavMobileMenuProps> = React.memo(function N
             </div>
           </Link>
         </div>
-
-        {/* 📜 NGÀY NÀY TRONG LỊCH SỬ VIỆT NAM (MOBILE) */}
-        {hasHistoricalToday && (
-          <button
-            type="button"
-            onClick={() => {
-              onClose();
-              if (typeof window !== "undefined") {
-                window.dispatchEvent(
-                  new CustomEvent("open-vietnam-today-modal", {
-                    detail: { tab: "history" },
-                  })
-                );
-              }
-            }}
-            className="w-full text-xs font-semibold py-2 px-3 text-amber-200 hover:text-white flex items-center justify-between rounded-xl bg-gradient-to-r from-red-950/40 to-amber-950/30 hover:bg-red-900/30 transition text-left cursor-pointer shadow-sm active:scale-[0.98]"
-          >
-            <div className="flex items-center gap-2 min-w-0 flex-1">
-              <span className="text-base leading-none shrink-0">📜</span>
-              <span className="truncate">Ngày này trong lịch sử Việt Nam</span>
-            </div>
-            <ChevronRight size={14} className="text-amber-400 shrink-0 ml-1.5" />
-          </button>
-        )}
 
         {/* DANH MỤC ĐIỀU HƯỚNG GRID 2 CỘT */}
         <div className="grid grid-cols-2 gap-1.5 pt-1">

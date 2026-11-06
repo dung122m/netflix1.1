@@ -6,15 +6,12 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { Redis } from "@upstash/redis";
 import crypto from "crypto";
 import { AsyncLocalStorage } from "node:async_hooks";
-import { getSafeRedisCredentials } from "@/lib/redisEnvGuard";
 
 /**
- * Request-scoped AbortSignal storage for real underlying HTTP cancellation on timeout.
- * Allows persistent Redis singleton connection reuse while ensuring each individual
- * request pipeline has an isolated AbortSignal wired into @upstash/redis fetch.
+ * Request-scoped AbortSignal storage for cancellation support.
+ * Retained for backward compatibility.
  */
 export const redisRequestSignalStorage = new AsyncLocalStorage<AbortSignal>();
 
@@ -57,20 +54,15 @@ export function hashClientIp(rawIp?: string | null): string {
 }
 
 // ============================================================================
-// 2. REDIS CLIENT & FAILOVER CONFIGURATION
+// 2. REDIS CLIENT & FAILOVER CONFIGURATION (PERMANENTLY REMOVED)
 // ============================================================================
 
-let cachedRedisClient: Redis | null = null;
-let cachedRedisSignature: string | null = null;
-
 export function _resetRedisClientForTesting(): void {
-  cachedRedisClient = null;
-  cachedRedisSignature = null;
+  // No-op: Redis rate limiting has been completely removed to eliminate Redis command waste
 }
 
 /**
- * Resolves the environment prefix for Redis keys to prevent
- * accidental cross-environment quota collisions (development, test, preview, production).
+ * Resolves the environment prefix for rate limit namespaces.
  *
  * Priority order:
  * 1. Test Mode (Safety isolation for tests)
@@ -95,37 +87,12 @@ export function getRateLimitEnvPrefix(): "development" | "test" | "preview" | "p
   return "development";
 }
 
-export function getRedisInstance(): Redis | null {
-  const creds = getSafeRedisCredentials({ allowTestRedis: true, purpose: "live" });
-  if (!creds) {
-    cachedRedisClient = null;
-    cachedRedisSignature = null;
-    return null;
-  }
-
-  const { url, token } = creds;
-
-  const signature = `${url}:::${token}`;
-  if (cachedRedisClient && cachedRedisSignature === signature) {
-    return cachedRedisClient;
-  }
-
-  try {
-    cachedRedisClient = new Redis({
-      url,
-      token,
-      keepAlive: true,
-      retry: false, // Don't block serverless execution
-      signal: () => redisRequestSignalStorage.getStore() ?? new AbortController().signal,
-    });
-    cachedRedisSignature = signature;
-    return cachedRedisClient;
-  } catch (err) {
-    console.warn("[RateLimit] Failed to initialize Redis client:", err);
-    cachedRedisClient = null;
-    cachedRedisSignature = null;
-    return null;
-  }
+/**
+ * Redis rate limiting has been completely eliminated to save ~30,000 commands/day.
+ * Always returns null. All rate limiting is evaluated purely in-memory.
+ */
+export function getRedisInstance(): null {
+  return null;
 }
 
 // ============================================================================
@@ -214,13 +181,6 @@ export const RATE_LIMIT_PRESETS = {
     namespace: "ai-request",
     maxRequests: 10,
     windowSeconds: 600, // 10 requests / 10 mins / user
-    failClosed: true,
-    strategy: "sliding-window",
-  },
-  ROULETTE: {
-    namespace: "roulette",
-    maxRequests: 30,
-    windowSeconds: 300, // 30 requests / 5 mins / user (smooth movie discovery & roulette rolling)
     failClosed: true,
     strategy: "sliding-window",
   },
@@ -590,6 +550,16 @@ function evaluateMemoryFallback(
 ): RateLimitResult {
   let rec = localMemoryStore.get(key);
   if (!rec) {
+    if (localMemoryStore.size >= 5000) {
+      for (const [k, r] of localMemoryStore.entries()) {
+        r.timestamps = r.timestamps.filter((t) => now - t < windowMs);
+        if (r.timestamps.length === 0) localMemoryStore.delete(k);
+      }
+      if (localMemoryStore.size >= 5000) {
+        const firstKey = localMemoryStore.keys().next().value;
+        if (firstKey) localMemoryStore.delete(firstKey);
+      }
+    }
     rec = { timestamps: [] };
     localMemoryStore.set(key, rec);
   }
@@ -829,247 +799,19 @@ export async function checkRateLimit(
     config.namespace.includes("comment-create") ||
     config.namespace.includes("comment-delete") ||
     config.namespace.includes("ai-request") ||
-    config.namespace.includes("roulette") ||
     config.namespace.includes("upload");
 
   const strategy = config.strategy ?? (isSensitive ? "sliding-window" : "fixed-window");
 
   // ==========================================================================
-  // STRATEGY 0: IN-MEMORY ONLY (ZERO REDIS COMMANDS FOR HIGH-FREQUENCY POLLING)
+  // ZERO-REDIS RATE LIMITING: Pure In-Memory Sliding Window & Block Cache
+  // Upstash Redis commands for Rate Limiting permanently reduced to ZERO.
   // ==========================================================================
   if (strategy === "in-memory-only") {
     return evaluateInMemoryStrategy(key, target, config, now, windowMs);
   }
 
-  // ==========================================================================
-  // STRATEGY A: FIXED WINDOW COUNTER (1-2 REDIS COMMANDS VIA LUA EVAL)
-  // ==========================================================================
-  if (strategy === "fixed-window") {
-    const bucket = Math.floor(now / windowMs);
-    const fixedKey = `${key}:${bucket}`;
-    const bucketEnd = (bucket + 1) * windowMs;
-    const resetSeconds = Math.max(1, Math.ceil((bucketEnd - now) / 1000));
-
-    // L1 Ephemeral Blocked Cache check for this bucket
-    const fixedBlockedUntil = localBlockedCache.get(fixedKey);
-    if (fixedBlockedUntil && fixedBlockedUntil > now) {
-      const waitSec = Math.max(1, Math.ceil((fixedBlockedUntil - now) / 1000));
-      return {
-        allowed: false,
-        limit: config.maxRequests,
-        remaining: 0,
-        resetSeconds: waitSec,
-        target,
-        reason: "Tần suất yêu cầu vượt quá giới hạn cho phép.",
-        headers: {
-          "X-RateLimit-Limit": String(config.maxRequests),
-          "X-RateLimit-Remaining": "0",
-          "X-RateLimit-Reset": String(waitSec),
-          "Retry-After": String(waitSec),
-        },
-      };
-    }
-
-    const redis = getRedisInstance();
-    if (redis) {
-      let timeoutTimer: NodeJS.Timeout | undefined;
-      const controller = new AbortController();
-      try {
-        const timeoutPromise = new Promise<never>((_, reject) => {
-          timeoutTimer = setTimeout(() => {
-            controller.abort(new Error("Redis rate limit timeout"));
-            reject(new Error("Redis rate limit timeout"));
-          }, timeoutMs);
-        });
-
-        const fixedWindowPromise = redisRequestSignalStorage.run(controller.signal, async () => {
-          const ttlSeconds = config.windowSeconds + 10;
-          const p = redis.pipeline();
-          p.incr(fixedKey);
-          p.expire(fixedKey, ttlSeconds, "NX");
-          const results = await p.exec<[number, 0 | 1]>();
-
-          if (!results || results.length < 2) {
-            throw new Error("Redis rate limit pipeline returned invalid result structure");
-          }
-
-          const incrResult = results[0];
-          const expireResult = results[1];
-
-          if (typeof incrResult !== "number" || isNaN(incrResult)) {
-            throw new Error("Redis INCR returned invalid non-numeric result");
-          }
-
-          // EXPIRE with NX returns 1 when timeout was set, 0 when key already has timeout (both valid)
-          if (expireResult !== 0 && expireResult !== 1) {
-            throw new Error("Redis EXPIRE NX returned invalid status");
-          }
-
-          return incrResult;
-        });
-
-        const currentCount = await Promise.race([fixedWindowPromise, timeoutPromise]);
-        clearTimeout(timeoutTimer);
-        recordRedisSuccess();
-
-        const totalCount = typeof currentCount === "number" && !isNaN(currentCount) ? currentCount : 1;
-
-        if (totalCount > config.maxRequests) {
-          localBlockedCache.set(fixedKey, now + resetSeconds * 1000);
-          return {
-            allowed: false,
-            limit: config.maxRequests,
-            remaining: 0,
-            resetSeconds,
-            target,
-            reason: "Tần suất yêu cầu vượt quá giới hạn cho phép.",
-            headers: {
-              "X-RateLimit-Limit": String(config.maxRequests),
-              "X-RateLimit-Remaining": "0",
-              "X-RateLimit-Reset": String(resetSeconds),
-              "Retry-After": String(resetSeconds),
-            },
-          };
-        }
-
-        const remaining = Math.max(0, config.maxRequests - totalCount);
-        return {
-          allowed: true,
-          limit: config.maxRequests,
-          remaining,
-          resetSeconds,
-          target,
-          headers: {
-            "X-RateLimit-Limit": String(config.maxRequests),
-            "X-RateLimit-Remaining": String(remaining),
-            "X-RateLimit-Reset": String(resetSeconds),
-          },
-        };
-      } catch (err) {
-        clearTimeout(timeoutTimer);
-        controller.abort();
-        const { kind, message } = classifyRedisError(err);
-        recordRedisFailure(kind, now);
-
-        const safeTarget = target.startsWith("ip:iph_")
-          ? target
-          : target.replace(/^ip:(.+)$/, "ip:sanitized");
-
-        if (kind === "timeout") {
-          console.warn(
-            `[RateLimit:Timeout] Redis timeout on ${config.namespace}:${safeTarget} (threshold ${timeoutMs}ms): ${message}`
-          );
-        } else if (kind === "connection") {
-          console.warn(
-            `[RateLimit:ConnectionError] Redis connection failure on ${config.namespace}:${safeTarget}: ${message}`
-          );
-        } else {
-          console.warn(
-            `[RateLimit:CommandError] Redis command error on ${config.namespace}:${safeTarget}: ${message}`
-          );
-        }
-      }
-    }
-
-    return evaluateMemoryFallback(fixedKey, target, config, now, windowMs);
-  }
-
-  // ==========================================================================
-  // STRATEGY B: SLIDING WINDOW LOG (ZSET, 4 COMMANDS, STRICT ANTI-BURST)
-  // ==========================================================================
-  const redis = getRedisInstance();
-
-  // 2. Distributed Sliding Window via Upstash Redis ZSET Pipeline
-  if (redis) {
-    let timeoutTimer: NodeJS.Timeout | undefined;
-    const controller = new AbortController();
-    try {
-      const timeoutPromise = new Promise<never>((_, reject) => {
-        timeoutTimer = setTimeout(() => {
-          controller.abort(new Error("Redis rate limit timeout"));
-          reject(new Error("Redis rate limit timeout"));
-        }, timeoutMs);
-      });
-
-      const uniqueMember = `${now}:${Math.random().toString(36).slice(2, 9)}`;
-
-      const pipelinePromise = redisRequestSignalStorage.run(controller.signal, async () => {
-        const p = redis.pipeline();
-        p.zremrangebyscore(key, 0, windowStart);
-        p.zcard(key);
-        p.zadd(key, { score: now, member: uniqueMember });
-        p.expire(key, config.windowSeconds + 15);
-        const results = await p.exec<[number, number, number, number]>();
-        return results[1]; // Result of zcard before adding new request
-      });
-
-      const currentCount = await Promise.race([pipelinePromise, timeoutPromise]);
-      clearTimeout(timeoutTimer);
-      recordRedisSuccess();
-
-      const totalCount = typeof currentCount === "number" ? currentCount + 1 : 1;
-
-      if (totalCount > config.maxRequests) {
-        const resetSeconds = config.windowSeconds;
-        localBlockedCache.set(key, now + resetSeconds * 1000);
-        return {
-          allowed: false,
-          limit: config.maxRequests,
-          remaining: 0,
-          resetSeconds,
-          target,
-          reason: "Tần suất yêu cầu vượt quá giới hạn cho phép.",
-          headers: {
-            "X-RateLimit-Limit": String(config.maxRequests),
-            "X-RateLimit-Remaining": "0",
-            "X-RateLimit-Reset": String(resetSeconds),
-            "Retry-After": String(resetSeconds),
-          },
-        };
-      }
-
-      const remaining = Math.max(0, config.maxRequests - totalCount);
-      return {
-        allowed: true,
-        limit: config.maxRequests,
-        remaining,
-        resetSeconds: config.windowSeconds,
-        target,
-        headers: {
-          "X-RateLimit-Limit": String(config.maxRequests),
-          "X-RateLimit-Remaining": String(remaining),
-          "X-RateLimit-Reset": String(config.windowSeconds),
-        },
-      };
-    } catch (err) {
-      clearTimeout(timeoutTimer);
-      controller.abort();
-      const { kind, message } = classifyRedisError(err);
-      recordRedisFailure(kind, now);
-
-      // Safe logging: avoid logging raw IPs, tokens, or URL secrets
-      const safeTarget = target.startsWith("ip:iph_")
-        ? target
-        : target.replace(/^ip:(.+)$/, "ip:sanitized");
-
-      if (kind === "timeout") {
-        console.warn(
-          `[RateLimit:Timeout] Redis timeout on ${config.namespace}:${safeTarget} (threshold ${timeoutMs}ms): ${message}`
-        );
-      } else if (kind === "connection") {
-        console.warn(
-          `[RateLimit:ConnectionError] Redis connection failure on ${config.namespace}:${safeTarget}: ${message}`
-        );
-      } else {
-        console.warn(
-          `[RateLimit:CommandError] Redis command error on ${config.namespace}:${safeTarget}: ${message}`
-        );
-      }
-      // Redis unavailable: proceed to Fallback Evaluation below
-    }
-  }
-
-  // 3. Fallback Evaluation
+  // Pure in-memory sliding window fallback (0ms latency, zero Redis commands)
   return evaluateMemoryFallback(key, target, config, now, windowMs);
 }
 

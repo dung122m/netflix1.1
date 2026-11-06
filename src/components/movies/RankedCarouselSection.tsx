@@ -5,6 +5,7 @@ import { SectionHeader } from "@/components/ui/SectionHeader";
 import { CarouselNavButton } from "@/components/ui/CarouselNavButton";
 import { NumberedRankCard } from "@/components/movies/NumberedRankCard";
 import { useCarouselScroll } from "@/components/ui/useCarouselScroll";
+import { MOVIE_CARD_TOKENS } from "@/lib/cardDimensions";
 
 export interface RankedMovieData {
   slug: string;
@@ -120,7 +121,7 @@ export const RankedCarouselSection: React.FC<RankedCarouselSectionProps> = React
           <div
             ref={scrollRef}
             onScroll={checkScroll}
-            className="flex items-center gap-3 sm:gap-6 overflow-x-auto overflow-y-hidden px-3 sm:px-6 scroll-pl-3 sm:scroll-pl-6 py-4 sm:py-5 scrollbar-none snap-x snap-mandatory"
+            className="flex items-center gap-2 sm:gap-3.5 md:gap-4 overflow-x-auto overflow-y-hidden px-3 sm:px-6 scroll-pl-3 sm:scroll-pl-6 py-4 sm:py-5 scrollbar-none snap-x snap-mandatory"
             style={{
               scrollbarWidth: "none",
               msOverflowStyle: "none",
@@ -134,8 +135,8 @@ export const RankedCarouselSection: React.FC<RankedCarouselSectionProps> = React
                   key={idx}
                   className="flex-none flex items-start"
                 >
-                  <div className="w-[45px] sm:w-[65px] md:w-[75px] h-[210px] sm:h-[262px] md:h-[285px] -mr-5 sm:-mr-8" />
-                  <div className="w-[140px] sm:w-[175px] md:w-[190px] flex flex-col gap-2">
+                  <div className={`${MOVIE_CARD_TOKENS.ranked.numberCol} shrink-0`} />
+                  <div className={`${MOVIE_CARD_TOKENS.ranked.posterWidth} flex flex-col gap-2 shrink-0`}>
                     <div className="aspect-[2/3] rounded-xl bg-zinc-900/80 animate-pulse" />
                     <div className="h-4 bg-zinc-900/80 rounded animate-pulse w-3/4" />
                     <div className="h-3 bg-zinc-900/60 rounded animate-pulse w-1/2" />

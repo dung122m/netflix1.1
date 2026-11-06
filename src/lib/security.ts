@@ -7,8 +7,6 @@
  * 4. Content Payload Validation (Giới hạn độ dài, ngăn tràn bộ nhớ)
  */
 
-import { Redis } from "@upstash/redis";
-import { getSafeRedisCredentials } from "@/lib/redisEnvGuard";
 
 // ==========================================
 // 1. ANTI-XSS & CHUẨN HÓA ĐẦU VÀO AN TOÀN
@@ -181,56 +179,24 @@ export function checkRateLimit(
 }
 
 // ==========================================
-// 4. DISTRIBUTED RATE LIMITER (UPSTASH REDIS FIXED WINDOW)
+// 4. IN-MEMORY RATE LIMITER (ZERO REDIS COMMANDS)
 // ==========================================
-
-let redisRateLimitClient: Redis | null = null;
-let isRedisInitChecked = false;
-
-function getRateLimitRedis(): Redis | null {
-  if (isRedisInitChecked) return redisRateLimitClient;
-  isRedisInitChecked = true;
-
-  const creds = getSafeRedisCredentials({ allowTestRedis: true });
-  if (!creds) {
-    redisRateLimitClient = null;
-    return null;
-  }
-
-  const { url, token } = creds;
-
-  try {
-    redisRateLimitClient = new Redis({
-      url,
-      token,
-      retry: false, // Tắt retry để fail-open ngay lập tức mà không làm chậm request
-    });
-    return redisRateLimitClient;
-  } catch (err) {
-    console.warn("[DistributedRateLimit] Failed to initialize Redis client:", err);
-    redisRateLimitClient = null;
-    return null;
-  }
-}
 
 // Local Ephemeral Cache (L1): Cho phản hồi 0ms khi một IP đã bị khóa trong cửa sổ hiện tại
 const localBlockedCache = new Map<string, number>();
 
-// In-Memory Fixed Window Fallback (Fail-Open): Khi Redis timeout / unavailable
+// In-Memory Fixed Window Store (Zero Redis commands, 0ms latency)
 const localFallbackStore = new Map<string, { count: number; expiresAt: number }>();
 
 /**
- * Kiểm tra giới hạn tốc độ phân tán qua Upstash Redis (Fixed Window Algorithm)
- * - Distributed: Chia sẻ bộ đếm giữa tất cả Serverless Instances của Vercel
- * - Ephemeral L1 Cache: 0ms response cho IP đang bị khóa
- * - Fail-Open: Tự động cho phép request nếu Redis lỗi/timeout (150-250ms), không bao giờ gây 500/503
+ * Kiểm tra giới hạn tốc độ In-Memory (Zero Redis commands, 0 quota)
  * @returns { allowed: boolean, remaining: number, resetSeconds: number }
  */
 export async function checkDistributedRateLimit(
   key: string,
   maxRequests: number = 60,
   windowSeconds: number = 60,
-  timeoutMs: number = 200
+  _timeoutMs: number = 200
 ): Promise<{ allowed: boolean; remaining: number; resetSeconds: number }> {
   const now = Date.now();
   const windowMs = windowSeconds * 1000;
@@ -248,47 +214,7 @@ export async function checkDistributedRateLimit(
     };
   }
 
-  const redis = getRateLimitRedis();
-
-  // 2. Thực thi Fixed Window trên Upstash Redis qua Pipeline với timeout 200ms
-  if (redis) {
-    try {
-      const timeoutPromise = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error("Redis rate limit timeout")), timeoutMs)
-      );
-
-      const pipelinePromise = (async () => {
-        const p = redis.pipeline();
-        p.incr(bucketKey);
-        p.expire(bucketKey, windowSeconds + 10);
-        const results = await p.exec<[number, unknown]>();
-        return results[0];
-      })();
-
-      const count = await Promise.race([pipelinePromise, timeoutPromise]);
-
-      if (typeof count === "number" && count > maxRequests) {
-        // Ghi nhận vào L1 Ephemeral Cache để các request tiếp theo trong window là 0ms
-        localBlockedCache.set(bucketKey, (currentBucket + 1) * windowMs);
-        return {
-          allowed: false,
-          remaining: 0,
-          resetSeconds,
-        };
-      }
-
-      return {
-        allowed: true,
-        remaining: typeof count === "number" ? Math.max(0, maxRequests - count) : maxRequests - 1,
-        resetSeconds,
-      };
-    } catch (err) {
-      console.warn("[DistributedRateLimit] Redis error/timeout, failing open:", err instanceof Error ? err.message : err);
-      // Fallback xuống in-memory store (Fail-open)
-    }
-  }
-
-  // 3. Fallback: In-memory Fixed Window Store (Fail-Open guarantee)
+  // 2. In-memory Fixed Window Store (Zero Redis commands)
   let fallbackRec = localFallbackStore.get(bucketKey);
   if (!fallbackRec || fallbackRec.expiresAt < now) {
     fallbackRec = { count: 1, expiresAt: (currentBucket + 1) * windowMs };
@@ -302,6 +228,7 @@ export async function checkDistributedRateLimit(
 
   fallbackRec.count += 1;
   if (fallbackRec.count > maxRequests) {
+    localBlockedCache.set(bucketKey, (currentBucket + 1) * windowMs);
     return {
       allowed: false,
       remaining: 0,

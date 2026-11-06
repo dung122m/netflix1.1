@@ -372,6 +372,9 @@ export const footballScoreService = {
     summaryInFlight.clear();
     standingsMemoryCache.clear();
     standingsInFlight.clear();
+    try {
+      cacheService.clearL1();
+    } catch {}
   },
 
   /**

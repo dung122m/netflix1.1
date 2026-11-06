@@ -14,7 +14,6 @@ import {
   Zap,
   Radio,
   Clapperboard,
-  Dices,
   Monitor,
   Smartphone,
   Cast,
@@ -25,7 +24,6 @@ import {
   Scale,
   Users,
   History,
-  Landmark,
 } from "lucide-react";
 import { NanaflixBrandLogo } from "@/components/NetflixLogo";
 
@@ -203,25 +201,13 @@ export const Footer: React.FC = () => {
               <li>
                 <button
                   type="button"
-                  onClick={() => window.dispatchEvent(new CustomEvent("open-ai-roulette"))}
-                  className="hover:text-amber-300 transition-colors flex items-center gap-2 cursor-pointer text-left w-full group"
-                >
-                  <span className="w-4 h-4 flex items-center justify-center shrink-0">
-                    <Dices size={13} className="text-zinc-400 group-hover:text-amber-400 transition-colors" />
-                  </span>
-                  <span className="truncate">Gợi ý phim ngẫu nhiên</span>
-                </button>
-              </li>
-              <li>
-                <button
-                  type="button"
                   onClick={() => window.dispatchEvent(new CustomEvent("open-pwa-install"))}
                   className="hover:text-emerald-300 transition-colors flex items-center gap-2 cursor-pointer text-left w-full group"
                 >
                   <span className="w-4 h-4 flex items-center justify-center shrink-0">
                     <Smartphone size={13} className="text-zinc-400 group-hover:text-netflix-red transition-colors" />
                   </span>
-                  <span className="truncate text-emerald-400 font-medium">Cài app (PWA)</span>
+                  <span className="truncate  font-medium">Cài app (PWA)</span>
                 </button>
               </li>
               <li>
@@ -246,14 +232,6 @@ export const Footer: React.FC = () => {
                     <Flame size={13} className="text-zinc-400 group-hover:text-amber-400 transition-colors" />
                   </span>
                   <span className="truncate">Bảng xếp hạng Top</span>
-                </Link>
-              </li>
-              <li>
-                <Link href="/history" className="hover:text-white transition-colors flex items-center gap-2 group">
-                  <span className="w-4 h-4 flex items-center justify-center shrink-0">
-                    <Landmark size={13} className="text-zinc-400 group-hover:text-amber-400 transition-colors" />
-                  </span>
-                  <span className="truncate text-amber-300 font-medium">Biên niên sử Việt Nam</span>
                 </Link>
               </li>
             </ul>

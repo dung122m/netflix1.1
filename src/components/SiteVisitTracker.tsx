@@ -59,8 +59,7 @@ export function classifyRoute(pathname: string | null | undefined): RouteClassif
     cleanPath.startsWith("/browse") ||
     cleanPath.startsWith("/collection") ||
     cleanPath.startsWith("/dien-vien") ||
-    cleanPath.startsWith("/my-list") ||
-    cleanPath.startsWith("/history")
+    cleanPath.startsWith("/my-list")
   ) {
     return { pageGroup: "browse", pagePath: cleanPath, shouldTrack: true };
   }

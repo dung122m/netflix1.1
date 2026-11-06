@@ -3225,19 +3225,101 @@ let memoryCache: {
   staleUntil: number;
 } | null = null;
 let inFlightFetch: Promise<LiveFootballData> | null = null;
-const FOOTBALL_REDIS_KEY = "live:football:matches:v1";
+const FOOTBALL_REDIS_KEY = "live:football:matches:v2";
 const FOOTBALL_REDIS_TTL = 180; // 3 phút
+
+/**
+ * Lọc snapshot danh sách trận đấu tức thời theo thời gian thực (0ms overhead)
+ * - Loại bỏ các trận đã có kết quả kết thúc (FT) từ livescore
+ * - Loại bỏ các trận đã vượt quá thời lượng tiêu chuẩn + khoảng đệm mà stream không active
+ * - Đảm bảo khi F5 reload, không bao giờ để dữ liệu cache cũ làm tái xuất hiện trận FT
+ */
+export function filterLiveMatchesSnapshot(
+  data: LiveFootballData,
+  now: number = Date.now(),
+): LiveFootballData {
+  if (!data || !Array.isArray(data.matches) || data.matches.length === 0) {
+    return data;
+  }
+
+  const cachedScoreEvents = footballScoreService.getCachedEventsSync();
+  const validMatches: FootballMatch[] = [];
+
+  for (const m of data.matches) {
+    let currentScore = m.score;
+    if (cachedScoreEvents && cachedScoreEvents.length > 0) {
+      const matched = matchFixtureToScore(m, cachedScoreEvents);
+      if (matched) {
+        currentScore = matched;
+        m.score = matched;
+      }
+    }
+
+    // 1. Loại bỏ ngay lập tức nếu livescore xác nhận FT/Finished
+    if (currentScore && currentScore.status) {
+      const rawStatusText = (currentScore as unknown as { statusText?: string }).statusText || "";
+      const rawDetail = `${rawStatusText} ${currentScore.statusDetail || ""} ${currentScore.displayClock || ""}`.toLowerCase();
+      const isExplicitFT =
+        currentScore.status === "finished" ||
+        /\bft\b/i.test(rawDetail) ||
+        /\bfull[\s-]?time\b/i.test(rawDetail) ||
+        /\bfinal\b/i.test(rawDetail) ||
+        /\baet\b/i.test(rawDetail) ||
+        rawDetail.includes("pen_ft") ||
+        rawDetail.includes("kết thúc");
+      if (isExplicitFT) {
+        continue;
+      }
+    }
+
+    // 2. Kiểm tra máy chủ phát
+    const workingServers = (m.servers || []).filter((s) => {
+      if (!s.url || isBlockedStreamUrl(s.url)) return false;
+      const status = getStreamHealthStatus(s.url);
+      return status !== "dead";
+    });
+    if (workingServers.length === 0) {
+      continue;
+    }
+
+    const hasAlive = workingServers.some((s) => getStreamHealthStatus(s.url) === "alive");
+    const streamHealth: StreamHealthStatus = hasAlive ? "alive" : "unknown";
+    const effectiveTs = currentScore?.kickoffTimestamp || m.timestamp;
+
+    const timeline = getMatchTimeline(
+      effectiveTs,
+      m.sourceStatus,
+      streamHealth,
+      now,
+      m.isEvent,
+      m.sport,
+      currentScore,
+    );
+    m.timeline = timeline;
+
+    if (!isMatchInLiveWindow(timeline, effectiveTs, now)) {
+      continue;
+    }
+
+    validMatches.push(m);
+  }
+
+  return {
+    ...data,
+    matches: validMatches,
+  };
+}
 
 export const liveFootballService = {
   getFootballMatches: async (): Promise<LiveFootballData> => {
     const now = Date.now();
     if (memoryCache) {
       if (memoryCache.expireAt > now) {
-        return memoryCache.data;
+        return filterLiveMatchesSnapshot(memoryCache.data, now);
       }
       if (memoryCache.staleUntil > now) {
         liveFootballService.revalidateFootballMatches().catch(() => {});
-        return memoryCache.data;
+        return filterLiveMatchesSnapshot(memoryCache.data, now);
       }
     }
 
@@ -3245,12 +3327,13 @@ export const liveFootballService = {
     try {
       const redisCached = await cacheService.get<LiveFootballData>(FOOTBALL_REDIS_KEY);
       if (redisCached && Array.isArray(redisCached.matches) && redisCached.matches.length > 0) {
+        const filteredSnapshot = filterLiveMatchesSnapshot(redisCached, now);
         memoryCache = {
-          data: redisCached,
+          data: filteredSnapshot,
           expireAt: now + 3 * 60 * 1000,
           staleUntil: now + 6 * 60 * 1000,
         };
-        return redisCached;
+        return filteredSnapshot;
       }
     } catch {}
 
@@ -3443,8 +3526,17 @@ export const liveFootballService = {
         await Promise.allSettled(uniqueEventUrls.map((u) => isStreamPlayable(u, 800)));
       }
 
-      // 5. LỌC VÀ SẮP XẾP CÁC MÁY CHỦ THEO HEALTH CACHE (0ms, KHÔNG BLOCK CRITICAL PATH)
+      // 5. LỌC VÀ SẮP XẾP CÁC MÁY CHỦ THEO HEALTH CACHE & GHÉP LIVESCORE TRƯỚC KHI ĐÁNH GIÁ VÒNG ĐỜI
       const availableMatches: FootballMatch[] = [];
+
+      // Đồng bộ sẵn sự kiện livescore (0ms latency nếu có cache, hoặc fetch nhanh có timeout)
+      let cachedScoreEvents = footballScoreService.getCachedEventsSync();
+      if (!cachedScoreEvents || cachedScoreEvents.length === 0) {
+        try {
+          const scoreboardRes = await footballScoreService.getScoreboardEvents();
+          cachedScoreEvents = scoreboardRes.events;
+        } catch {}
+      }
 
       for (const m of mergedMatches) {
         // Lọc bỏ các server đã xác nhận DEAD hoặc thuộc blocked host list
@@ -3460,24 +3552,58 @@ export const liveFootballService = {
           continue;
         }
 
+        // 5A. GHÉP LIVESCORE VÀ CHUẨN HÓA GIẢI ĐẤU TRƯỚC
+        let matchedScore: LiveMatchScore | null = null;
+        if (cachedScoreEvents && cachedScoreEvents.length > 0) {
+          matchedScore = matchFixtureToScore(m, cachedScoreEvents);
+          if (matchedScore) {
+            m.score = matchedScore;
+            // Bổ sung giờ đá và timestamp chuẩn xác từ Scoreboard API khi trận chỉ có mác placeholder ("Trực tiếp", "24/7")
+            const wasPlaceholderTime = !m.time || m.time === "Trực tiếp" || m.time === "24/7";
+            if (matchedScore.kickoffTime && wasPlaceholderTime) {
+              m.time = matchedScore.kickoffTime;
+            }
+            if (
+              matchedScore.kickoffTimestamp &&
+              (wasPlaceholderTime || m.timestamp === Number.MAX_SAFE_INTEGER || !m.timestamp)
+            ) {
+              m.timestamp = matchedScore.kickoffTimestamp;
+            }
+          }
+        }
+
+        // Luôn chuẩn hóa giải đấu canonical duy nhất cho mọi trận đấu
+        m.tournament = resolveCanonicalTournament({
+          tournament: m.tournament,
+          title: m.title,
+          sport: m.sport,
+          team1: m.team1,
+          team2: m.team2,
+          score: matchedScore,
+        });
+
         const hasAlive = workingServers.some(
           (s) => getStreamHealthStatus(s.url) === "alive",
         );
         const streamHealth: StreamHealthStatus = hasAlive ? "alive" : "unknown";
+        const effectiveTimestamp = m.score?.kickoffTimestamp || m.timestamp;
+
+        // 5B. ĐÁNH GIÁ VÒNG ĐỜI TRẬN ĐẤU VỚI LIVESCORE ĐÃ ĐƯỢC GẮN
         m.timeline = getMatchTimeline(
-          m.timestamp,
+          effectiveTimestamp,
           m.sourceStatus,
           streamHealth,
           now,
           m.isEvent,
           m.sport,
+          m.score,
         );
 
-        if (!isMatchInLiveWindow(m.timeline, m.timestamp, now)) {
+        if (!isMatchInLiveWindow(m.timeline, effectiveTimestamp, now)) {
           // Chỉ hiển thị hai nhóm trận trên /live:
           // 1. ĐANG CHIẾU: timeline === "live"
           // 2. SẮP CHIẾU: timeline === "upcoming" trong cửa sổ <= 2 giờ (120 phút)
-          // Ẩn hoàn toàn trận đã kết thúc hoặc trận còn hơn 2 giờ tới
+          // Ẩn hoàn toàn trận đã kết thúc (FT) hoặc trận còn hơn 2 giờ tới
           continue;
         }
 
@@ -3516,38 +3642,6 @@ export const liveFootballService = {
       );
       enrichMatchLogosSync(validLogoMatches);
       triggerBackgroundLogoEnrichment(validLogoMatches);
-
-      // Tự động gắn tỷ số livescore và chuẩn hóa giải đấu canonical (0ms latency, không block)
-      const cachedScoreEvents = footballScoreService.getCachedEventsSync();
-      for (const m of sortedMatches) {
-        let matchedScore: LiveMatchScore | null = null;
-        if (cachedScoreEvents && cachedScoreEvents.length > 0) {
-          matchedScore = matchFixtureToScore(m, cachedScoreEvents);
-          if (matchedScore) {
-            m.score = matchedScore;
-            // Bổ sung giờ đá và timestamp chuẩn xác từ Scoreboard API khi trận chỉ có mác placeholder ("Trực tiếp", "24/7")
-            const wasPlaceholderTime = !m.time || m.time === "Trực tiếp" || m.time === "24/7";
-            if (matchedScore.kickoffTime && wasPlaceholderTime) {
-              m.time = matchedScore.kickoffTime;
-            }
-            if (
-              matchedScore.kickoffTimestamp &&
-              (wasPlaceholderTime || m.timestamp === Number.MAX_SAFE_INTEGER || !m.timestamp)
-            ) {
-              m.timestamp = matchedScore.kickoffTimestamp;
-            }
-          }
-        }
-        // Luôn chuẩn hóa giải đấu canonical duy nhất cho mọi trận đấu (Bóng đá, Quần vợt, Bóng rổ...)
-        m.tournament = resolveCanonicalTournament({
-          tournament: m.tournament,
-          title: m.title,
-          sport: m.sport,
-          team1: m.team1,
-          team2: m.team2,
-          score: matchedScore,
-        });
-      }
 
       const result: LiveFootballData = {
         updatedAt: new Date().toISOString(),

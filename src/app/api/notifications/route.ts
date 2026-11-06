@@ -8,6 +8,7 @@ import {
   RATE_LIMIT_PRESETS,
 } from "@/lib/rateLimit";
 import { safeParseJson } from "@/lib/securityValidation";
+import { movieApi } from "@/services/movies/service";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -57,6 +58,47 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ success: true, items: [] });
     }
 
+    // Thu thập danh sách slug phim để giải mã tiêu đề tiếng Việt chuẩn có dấu
+    const movieSlugs = Array.from(
+      new Set(data.map((d) => d.movie_slug).filter((s): s is string => Boolean(s)))
+    );
+    const movieTitleMap = new Map<string, string>();
+
+    if (movieSlugs.length > 0) {
+      try {
+        const { data: comments } = await supabase
+          .from("movie_comments")
+          .select("movie_slug, movie_title")
+          .in("movie_slug", movieSlugs)
+          .not("movie_title", "is", null)
+          .neq("movie_title", "");
+
+        if (comments) {
+          for (const c of comments) {
+            if (c.movie_slug && c.movie_title && !movieTitleMap.has(c.movie_slug)) {
+              movieTitleMap.set(c.movie_slug, c.movie_title);
+            }
+          }
+        }
+      } catch {}
+
+      // Bổ sung các phim chưa tìm thấy qua movieApi
+      const missingSlugs = movieSlugs.filter((s) => !movieTitleMap.has(s));
+      if (missingSlugs.length > 0) {
+        await Promise.allSettled(
+          missingSlugs.slice(0, 10).map(async (slug) => {
+            try {
+              const detail = await movieApi.getMovieDetail(slug);
+              const name = detail?.movie?.name || detail?.movie?.title;
+              if (name) {
+                movieTitleMap.set(slug, name);
+              }
+            } catch {}
+          })
+        );
+      }
+    }
+
     const items = data.map((d) => ({
       id: d.id,
       type: d.type as "comment_reply" | "comment_reaction",
@@ -65,6 +107,7 @@ export async function GET(req: NextRequest) {
       link: d.link || "",
       image: d.replier_avatar || undefined,
       movieSlug: d.movie_slug || undefined,
+      movieTitle: d.movie_slug ? (movieTitleMap.get(d.movie_slug) || undefined) : undefined,
       commentId: d.comment_id || undefined,
       replierName: d.replier_name || undefined,
       replierAvatar: d.replier_avatar || undefined,
