@@ -13,20 +13,34 @@ import React from "react";
  */
 
 let cachedGeoBadge: string | null = null;
+let cachedGeoBadgeExpiresAt = 0;
 let inFlightGeoBadgePromise: Promise<string> | null = null;
+
+const GEO_BADGE_STORAGE_KEY = "nanaflix_geo_badge_v2";
+const GEO_BADGE_TTL_MS = 60 * 60 * 1000; // 60 phút TTL
+const GEO_BADGE_SCHEMA_VERSION = 2;
+
+interface StoredGeoBadgePayload {
+  badge: string;
+  timestamp: number;
+  version: number;
+}
 
 /**
  * Hook tự động phát hiện mã vùng / tỉnh thành / quốc gia cho Logo Nanaflix
- * 1. Đọc tức thì 0ms từ sessionStorage
- * 2. Fallback gọi /api/geo/badge (đúng 1 request cho cả phiên duyệt web)
+ * 1. Đọc tức thì 0ms từ sessionStorage nếu còn hạn TTL
+ * 2. Fallback gọi /api/geo/badge (đúng 1 request duy nhất theo cơ chế Single-Flight)
+ * 3. Deterministic initial state "VN" đảm bảo 100% không phát sinh Hydration Mismatch
  */
 export function useGeoBadge(): string {
   // Luôn khởi tạo "VN" một cách deterministic cho cả SSR và lần render đầu tiên của client (tránh hydration mismatch)
   const [badge, setBadge] = React.useState<string>("VN");
 
   React.useEffect(() => {
-    // 1. Kiểm tra cache trong RAM sau khi component đã mount / hydrate xong
-    if (cachedGeoBadge) {
+    const now = Date.now();
+
+    // 1. Kiểm tra cache trong RAM
+    if (cachedGeoBadge && cachedGeoBadgeExpiresAt > now) {
       if (badge !== cachedGeoBadge) {
         setBadge(cachedGeoBadge);
       }
@@ -35,35 +49,79 @@ export function useGeoBadge(): string {
 
     // 2. Đọc từ sessionStorage (chỉ thực thi an toàn sau hydration)
     try {
-      const stored = sessionStorage.getItem("nanaflix_geo_badge");
-      if (stored) {
-        cachedGeoBadge = stored;
-        setBadge(stored);
-        return;
+      const rawStored = sessionStorage.getItem(GEO_BADGE_STORAGE_KEY);
+      if (rawStored) {
+        const parsed: StoredGeoBadgePayload = JSON.parse(rawStored);
+        if (
+          parsed &&
+          parsed.version === GEO_BADGE_SCHEMA_VERSION &&
+          typeof parsed.badge === "string" &&
+          parsed.badge !== "VN" && // Không khoá cache nếu là fallback "VN" để luôn có cơ hội cập nhật mã vùng thực
+          typeof parsed.timestamp === "number" &&
+          now - parsed.timestamp < GEO_BADGE_TTL_MS
+        ) {
+          cachedGeoBadge = parsed.badge;
+          cachedGeoBadgeExpiresAt = parsed.timestamp + GEO_BADGE_TTL_MS;
+          if (badge !== parsed.badge) {
+            setBadge(parsed.badge);
+          }
+          return;
+        }
       }
     } catch {}
 
-    // 3. Nếu chưa có trong cache, gọi /api/geo/badge (đúng 1 request duy nhất)
-    if (!inFlightGeoBadgePromise) {
-      inFlightGeoBadgePromise = fetch("/api/geo/badge", {
-        signal: AbortSignal.timeout(3000),
-      })
-        .then((res) => (res.ok ? res.json() : { badge: "VN" }))
-        .then((data) => {
-          const resBadge =
-            typeof data.badge === "string" && data.badge ? data.badge.trim().toUpperCase() : "VN";
-          cachedGeoBadge = resBadge;
-          try {
-            sessionStorage.setItem("nanaflix_geo_badge", resBadge);
-          } catch {}
-          return resBadge;
+    // 3. Nếu chưa có hoặc cache hết hạn, gọi /api/geo/badge (Single-Flight Mutex)
+    const fetchFreshBadge = () => {
+      if (!inFlightGeoBadgePromise) {
+        inFlightGeoBadgePromise = fetch("/api/geo/badge", {
+          cache: "no-store", // Chống browser disk-cache giữ nguyên payload cũ
+          signal: AbortSignal.timeout(3500),
         })
-        .catch(() => "VN");
-    }
+          .then((res) => (res.ok ? res.json() : { badge: "VN" }))
+          .then((data) => {
+            const resBadge =
+              typeof data.badge === "string" && data.badge ? data.badge.trim().toUpperCase() : "VN";
+            cachedGeoBadge = resBadge;
+            cachedGeoBadgeExpiresAt = Date.now() + (resBadge !== "VN" ? GEO_BADGE_TTL_MS : 5000);
+            try {
+              if (resBadge !== "VN") {
+                const payload: StoredGeoBadgePayload = {
+                  badge: resBadge,
+                  timestamp: Date.now(),
+                  version: GEO_BADGE_SCHEMA_VERSION,
+                };
+                sessionStorage.setItem(GEO_BADGE_STORAGE_KEY, JSON.stringify(payload));
+              }
+            } catch {}
+            inFlightGeoBadgePromise = null;
+            return resBadge;
+          })
+          .catch(() => {
+            inFlightGeoBadgePromise = null;
+            return "VN";
+          });
+      }
 
-    inFlightGeoBadgePromise.then((b) => {
-      setBadge(b);
-    });
+      inFlightGeoBadgePromise.then((b) => {
+        if (b) {
+          setBadge((prev) => (prev !== b ? b : prev));
+        }
+      });
+    };
+
+    fetchFreshBadge();
+
+    // 4. Lắng nghe sự kiện 'online' như một tín hiệu kích hoạt kiểm tra lại cache
+    const handleOnlineCheck = () => {
+      if (Date.now() > cachedGeoBadgeExpiresAt) {
+        fetchFreshBadge();
+      }
+    };
+
+    window.addEventListener("online", handleOnlineCheck);
+    return () => {
+      window.removeEventListener("online", handleOnlineCheck);
+    };
   }, [badge]);
 
   return badge;

@@ -299,32 +299,58 @@ export async function recordAnalyticsEvent(payload: AnalyticsEventPayload): Prom
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       let upsertPromise: PromiseLike<any> | null = null;
       if (eventRecord.anonymousId) {
-        const profileData: Record<string, unknown> = {
-          id: eventRecord.anonymousId,
-          guest_id: eventRecord.anonymousId,
-          device_type: eventRecord.deviceType || "desktop",
-          os: eventRecord.os || "Other",
-          browser: eventRecord.browser || "Other",
-          first_seen: eventRecord.createdAt,
-          last_seen: eventRecord.createdAt,
-        };
-        if (eventRecord.userId) {
-          profileData.user_id = eventRecord.userId;
-        }
-        if (eventRecord.country) {
-          profileData.country = eventRecord.country;
-        }
-        if (eventRecord.countryCode) {
-          profileData.country_code = eventRecord.countryCode;
-        }
-        if (eventRecord.region) {
-          profileData.region = eventRecord.region;
-        }
-        if (eventRecord.city) {
-          profileData.city = eventRecord.city;
-        }
+        // Safe Profile Upsert: Bảo toàn first_seen và bảo vệ dữ liệu vị trí tốt, không ghi đè dữ liệu tốt bằng null
+        upsertPromise = (async () => {
+          try {
+            // 1. Kiểm tra bản ghi hiện có để bảo toàn first_seen và vị trí có độ tin cậy cao
+            const { data: existingProfile } = await client
+              .from("device_profiles")
+              .select("id, first_seen, country, country_code, region, city")
+              .eq("id", eventRecord.anonymousId)
+              .maybeSingle();
 
-        upsertPromise = client.from("device_profiles").upsert(profileData, { onConflict: "id" });
+            const profileData: Record<string, unknown> = {
+              id: eventRecord.anonymousId,
+              guest_id: eventRecord.anonymousId,
+              device_type: eventRecord.deviceType || "desktop",
+              os: eventRecord.os || "Other",
+              browser: eventRecord.browser || "Other",
+              // Bảo toàn first_seen: nếu đã có bản ghi cũ thì giữ nguyên, chỉ lấy createdAt cho bản ghi mới
+              first_seen: existingProfile?.first_seen || eventRecord.createdAt,
+              last_seen: eventRecord.createdAt,
+            };
+
+            if (eventRecord.userId) {
+              profileData.user_id = eventRecord.userId;
+            }
+
+            // Bảo vệ dữ liệu vị trí theo độ tin cậy (Confidence):
+            // - Nếu request mới có country/countryCode thì cập nhật, nếu không thì giữ nguyên giá trị cũ
+            const resolvedCountry = eventRecord.country || existingProfile?.country;
+            if (resolvedCountry) {
+              profileData.country = resolvedCountry;
+            }
+            const resolvedCountryCode = eventRecord.countryCode || existingProfile?.country_code;
+            if (resolvedCountryCode) {
+              profileData.country_code = resolvedCountryCode;
+            }
+
+            // - Với city và region: chỉ cập nhật khi request mới thực sự có city/region hợp lệ.
+            // Nếu request mới thiếu city (do 4G CGNAT hoặc timeout) -> giữ nguyên city/region tốt đã có
+            const resolvedCity = eventRecord.city || existingProfile?.city;
+            if (resolvedCity) {
+              profileData.city = resolvedCity;
+            }
+            const resolvedRegion = eventRecord.region || existingProfile?.region;
+            if (resolvedRegion) {
+              profileData.region = resolvedRegion;
+            }
+
+            return await client.from("device_profiles").upsert(profileData, { onConflict: "id" });
+          } catch (upsertErr) {
+            return { error: upsertErr };
+          }
+        })();
       }
 
       const [insertRes, upsertRes] = await Promise.all([

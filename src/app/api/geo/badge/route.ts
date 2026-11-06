@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
       { badge, countryCode: geo.countryCode || "VN", city: geo.city || null },
       {
         headers: {
-          "Cache-Control": "private, max-age=3600, stale-while-revalidate=86400",
+          "Cache-Control": "private, no-cache, no-store, max-age=0, must-revalidate",
         },
       },
     );

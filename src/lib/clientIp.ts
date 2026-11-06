@@ -169,6 +169,11 @@ export function getClientIp(req: NextRequest | Headers): string {
     if (isValidIp(candidate)) {
       platformConnectingIp = candidate;
     }
+  } else if (headers.get("x-real-ip")) {
+    const candidate = cleanIpString(headers.get("x-real-ip"));
+    if (isValidIp(candidate)) {
+      platformConnectingIp = candidate;
+    }
   }
 
   // 2. Evaluate cf-connecting-ip with Cloudflare proxy verification

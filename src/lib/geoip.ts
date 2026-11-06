@@ -14,19 +14,25 @@
 import { NextRequest } from "next/server";
 import { getClientIp } from "@/lib/security";
 
+export type GeoConfidence = "HIGH" | "LOW" | "NONE";
+
 export interface GeoLocationInfo {
   country: string | null;
   countryCode: string | null;
+  countryConfidence?: GeoConfidence;
   region: string | null;
   city: string | null;
+  cityConfidence?: GeoConfidence;
   timezone: string | null;
 }
 
 export const EMPTY_GEO_LOCATION: Readonly<GeoLocationInfo> = Object.freeze({
   country: null,
   countryCode: null,
+  countryConfidence: "NONE",
   region: null,
   city: null,
+  cityConfidence: "NONE",
   timezone: null,
 });
 
@@ -140,8 +146,10 @@ export function extractGeoLocationFromHeaders(headers: Headers): GeoLocationInfo
     return {
       country: getCountryNameFromCode(cfCountryCode),
       countryCode: cfCountryCode,
+      countryConfidence: "HIGH",
       region: cfRegion || null,
       city: cfCity || null,
+      cityConfidence: cfCity ? "HIGH" : "NONE",
       timezone: cfTimezone || null,
     };
   }
@@ -156,8 +164,10 @@ export function extractGeoLocationFromHeaders(headers: Headers): GeoLocationInfo
     return {
       country: getCountryNameFromCode(vercelCountryCode),
       countryCode: vercelCountryCode,
+      countryConfidence: "HIGH",
       region: vercelRegion || null,
       city: vercelCity || null,
+      cityConfidence: vercelCity ? "HIGH" : "NONE",
       timezone: vercelTimezone || null,
     };
   }
@@ -169,13 +179,14 @@ export function extractGeoLocationFromHeaders(headers: Headers): GeoLocationInfo
  * Query a fallback public GeoIP provider with a strict timeout and fail-open guarantee.
  * Only invoked when running outside Vercel/Cloudflare edge (e.g., local testing or custom node runtime).
  */
-async function fetchFallbackGeoFromIp(ip: string, timeoutMs = 1200): Promise<GeoLocationInfo> {
+async function fetchFallbackGeoFromIp(ip: string, timeoutMs = 1500): Promise<GeoLocationInfo> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
-    // 1. Primary: freeipapi.com (Requires User-Agent header)
-    const res = await fetch(`https://freeipapi.com/api/json/${encodeURIComponent(ip)}`, {
+    // 1. Primary: ipinfo.io (Độ chính xác cao nhất cho ISP Việt Nam, nhận diện chính xác Thuận An, Dĩ An, Bình Dương)
+    const ipPath = ip ? `${encodeURIComponent(ip)}/json` : "json";
+    const res = await fetch(`https://ipinfo.io/${ipPath}`, {
       method: "GET",
       headers: {
         Accept: "application/json",
@@ -187,26 +198,63 @@ async function fetchFallbackGeoFromIp(ip: string, timeoutMs = 1200): Promise<Geo
     if (res.ok) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const data: any = await res.json();
-      const countryCode = typeof data.countryCode === "string" ? data.countryCode.trim().toUpperCase() : null;
-      const countryName = typeof data.countryName === "string" ? data.countryName.trim() : getCountryNameFromCode(countryCode);
-      const region = typeof data.regionName === "string" ? data.regionName.trim() : null;
-      const city = typeof data.cityName === "string" ? data.cityName.trim() : null;
-      const timezone = typeof data.timeZone === "string" ? data.timeZone.trim() : null;
+      const countryCode = typeof data.country === "string" ? data.country.trim().toUpperCase() : null;
+      const countryName = getCountryNameFromCode(countryCode);
+      const region = typeof data.region === "string" ? data.region.trim() : null;
+      const city = typeof data.city === "string" ? data.city.trim() : null;
+      const timezone = typeof data.timezone === "string" ? data.timezone.trim() : null;
 
-      if (countryCode || countryName) {
+      if (countryCode) {
         clearTimeout(timeout);
         return {
           country: countryName || null,
-          countryCode: countryCode || null,
+          countryCode,
+          countryConfidence: "HIGH",
           region: region || null,
           city: city || null,
+          cityConfidence: city ? "HIGH" : "NONE",
           timezone: timezone || null,
         };
       }
     }
 
-    // 2. Failover: ip-api.com
-    const res2 = await fetch(`http://ip-api.com/json/${encodeURIComponent(ip)}?fields=status,country,countryCode,regionName,city,timezone`, {
+    // 2. Failover: ipwho.is
+    const ipwhoPath = ip ? encodeURIComponent(ip) : "";
+    const res2 = await fetch(`https://ipwho.is/${ipwhoPath}`, {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko)",
+      },
+      signal: controller.signal,
+    });
+
+    if (res2.ok) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const data2: any = await res2.json();
+      if (data2 && data2.success) {
+        clearTimeout(timeout);
+        const countryCode = typeof data2.country_code === "string" ? data2.country_code.trim().toUpperCase() : null;
+        const countryName = typeof data2.country === "string" ? data2.country.trim() : getCountryNameFromCode(countryCode);
+        const region = typeof data2.region === "string" ? data2.region.trim() : null;
+        const city = typeof data2.city === "string" ? data2.city.trim() : null;
+        const timezone = typeof data2.timezone?.id === "string" ? data2.timezone.id.trim() : null;
+
+        return {
+          country: countryName || null,
+          countryCode: countryCode || null,
+          countryConfidence: countryCode ? "HIGH" : "NONE",
+          region: region || null,
+          city: city || null,
+          cityConfidence: city ? "HIGH" : "NONE",
+          timezone: timezone || null,
+        };
+      }
+    }
+
+    // 3. Failover: ip-api.com
+    const ipApiPath = ip ? encodeURIComponent(ip) : "";
+    const res3 = await fetch(`http://ip-api.com/json/${ipApiPath}?fields=status,country,countryCode,regionName,city,timezone`, {
       method: "GET",
       headers: {
         Accept: "application/json",
@@ -217,21 +265,23 @@ async function fetchFallbackGeoFromIp(ip: string, timeoutMs = 1200): Promise<Geo
 
     clearTimeout(timeout);
 
-    if (res2.ok) {
+    if (res3.ok) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const data2: any = await res2.json();
-      if (data2 && data2.status === "success") {
-        const countryCode = typeof data2.countryCode === "string" ? data2.countryCode.trim().toUpperCase() : null;
-        const countryName = typeof data2.country === "string" ? data2.country.trim() : getCountryNameFromCode(countryCode);
-        const region = typeof data2.regionName === "string" ? data2.regionName.trim() : null;
-        const city = typeof data2.city === "string" ? data2.city.trim() : null;
-        const timezone = typeof data2.timezone === "string" ? data2.timezone.trim() : null;
+      const data3: any = await res3.json();
+      if (data3 && data3.status === "success") {
+        const countryCode = typeof data3.countryCode === "string" ? data3.countryCode.trim().toUpperCase() : null;
+        const countryName = typeof data3.country === "string" ? data3.country.trim() : getCountryNameFromCode(countryCode);
+        const region = typeof data3.regionName === "string" ? data3.regionName.trim() : null;
+        const city = typeof data3.city === "string" ? data3.city.trim() : null;
+        const timezone = typeof data3.timezone === "string" ? data3.timezone.trim() : null;
 
         return {
           country: countryName || null,
           countryCode: countryCode || null,
+          countryConfidence: countryCode || countryName ? "HIGH" : "NONE",
           region: region || null,
           city: city || null,
+          cityConfidence: city ? "HIGH" : "NONE",
           timezone: timezone || null,
         };
       }
@@ -272,8 +322,8 @@ export async function getGeoLocationFromIp(
 
   // 2. Filter out private, local, or invalid IPs
   if (isPrivateOrLocalIp(ip)) {
-    // Khi đang chạy local dev hoặc test trên máy phát triển, tự động tra cứu theo public IP của máy
-    if (process.env.NODE_ENV === "development") {
+    // Khi đang chạy local dev hoặc test trên máy phát triển (không phải Vercel), tự động tra cứu theo public IP của máy
+    if (process.env.NODE_ENV === "development" || !process.env.VERCEL) {
       const devGeo = await fetchFallbackGeoFromIp("");
       if (devGeo.country || devGeo.countryCode) {
         return devGeo;
@@ -306,41 +356,88 @@ export async function getGeoLocationFromIp(
  * Convenient helper to resolve approximate GeoLocation directly from NextRequest
  */
 export async function getGeoLocationFromRequest(req: NextRequest, explicitIp?: string): Promise<GeoLocationInfo> {
-  const edgeGeo = extractGeoLocationFromHeaders(req.headers);
   const ip = explicitIp || getClientIp(req);
+  const isCfProxy = Boolean(req.headers.get("cf-connecting-ip"));
 
-  // 1. If edge headers provided both country and city, return immediately (0ms lookup)
-  if (edgeGeo && (edgeGeo.country || edgeGeo.countryCode) && edgeGeo.city) {
-    return edgeGeo;
+  // 1. Nếu KHÔNG qua Cloudflare Proxy (truy cập Vercel trực tiếp), đọc Vercel Edge Headers trực tiếp
+  if (!isCfProxy) {
+    const edgeGeo = extractGeoLocationFromHeaders(req.headers);
+    if (edgeGeo && (edgeGeo.country || edgeGeo.countryCode) && edgeGeo.city) {
+      return {
+        ...edgeGeo,
+        countryConfidence: edgeGeo.countryCode ? "HIGH" : "NONE",
+        cityConfidence: edgeGeo.city ? "HIGH" : "NONE",
+      };
+    }
   }
 
-  // 2. If edge headers only provided country (e.g. Cloudflare free tier sends cf-ipcountry without cf-ipcity),
-  // enrich with city/region via client IP lookup (cached in L1 RAM)
-  if (edgeGeo && (edgeGeo.country || edgeGeo.countryCode) && !isPrivateOrLocalIp(ip)) {
+  // 2. Xác thực header quốc gia Cloudflare (được Cloudflare gắn trực tiếp từ IP kết nối thực tế)
+  const cfCountryCode = req.headers.get("cf-ipcountry")?.trim().toUpperCase() || null;
+  const hasValidCfCountry = Boolean(
+    cfCountryCode &&
+    cfCountryCode.length === 2 &&
+    cfCountryCode !== "XX" &&
+    cfCountryCode !== "T1"
+  );
+
+  // 3. Phân giải vị trí từ IP thật đã được xác thực (bỏ qua vị trí máy chủ trung chuyển Cloudflare HKG/HAN)
+  if (!isPrivateOrLocalIp(ip)) {
     try {
       const ipGeo = await getGeoLocationFromIp(ip, null);
       if (ipGeo && (ipGeo.city || ipGeo.region)) {
         return {
-          country: edgeGeo.country || ipGeo.country,
-          countryCode: edgeGeo.countryCode || ipGeo.countryCode,
-          region: edgeGeo.region || ipGeo.region,
-          city: ipGeo.city || edgeGeo.city,
-          timezone: edgeGeo.timezone || ipGeo.timezone,
+          country: ipGeo.country || (hasValidCfCountry && cfCountryCode ? getCountryNameFromCode(cfCountryCode) : null),
+          countryCode: ipGeo.countryCode || (hasValidCfCountry && cfCountryCode ? cfCountryCode : null),
+          countryConfidence: "HIGH",
+          region: ipGeo.region || null,
+          city: ipGeo.city || null,
+          cityConfidence: ipGeo.city ? "HIGH" : "NONE",
+          timezone: ipGeo.timezone || null,
+        };
+      }
+      if (ipGeo && (ipGeo.country || ipGeo.countryCode)) {
+        return {
+          country: ipGeo.country || (hasValidCfCountry && cfCountryCode ? getCountryNameFromCode(cfCountryCode) : null),
+          countryCode: ipGeo.countryCode || (hasValidCfCountry && cfCountryCode ? cfCountryCode : null),
+          countryConfidence: "HIGH",
+          region: null,
+          city: null,
+          cityConfidence: "NONE",
+          timezone: ipGeo.timezone || null,
         };
       }
     } catch {
-      // Fall through to edgeGeo
+      // Fall through to edge country
     }
-    return edgeGeo;
+  } else if (process.env.NODE_ENV === "development" || !process.env.VERCEL) {
+    // Khi đang chạy local dev hoặc test trên máy phát triển (localhost, 127.0.0.1)
+    try {
+      const devGeo = await getGeoLocationFromIp(ip, null);
+      if (devGeo && (devGeo.country || devGeo.countryCode)) {
+        return devGeo;
+      }
+    } catch {}
   }
 
-  // 3. Fallback to edge headers if present
-  if (edgeGeo && (edgeGeo.country || edgeGeo.countryCode)) {
-    return edgeGeo;
+  // 4. Nếu chỉ có quốc gia xác thực qua Cloudflare header (Confidence Quốc gia HIGH, Tỉnh/Thành NONE)
+  if (hasValidCfCountry && cfCountryCode) {
+    return {
+      country: getCountryNameFromCode(cfCountryCode),
+      countryCode: cfCountryCode,
+      countryConfidence: "HIGH",
+      region: null,
+      city: null,
+      cityConfidence: "NONE",
+      timezone: null,
+    };
   }
 
-  // 4. Fallback to full IP lookup
-  return getGeoLocationFromIp(ip, req);
+  // 5. Unknown (Private/Local IP hoặc lỗi tra cứu)
+  return {
+    ...EMPTY_GEO_LOCATION,
+    countryConfidence: "NONE",
+    cityConfidence: "NONE",
+  };
 }
 
 /**
@@ -357,20 +454,30 @@ export function getVietnamProvinceAbbreviation(locationName: string | null | und
     .replace(/\s+(city|province)$/i, "")
     .trim();
 
-  if (/ho\s*chi\s*minh|sai\s*gon|hcmc?|sg\b/i.test(clean)) return "HCM";
-  if (/ha\s*noi|hn\b/i.test(clean)) return "HN";
-  if (/binh\s*duong|bd\b/i.test(clean)) return "BD";
-  if (/ha\s*tinh|ht\b/i.test(clean)) return "HT";
+  // 1. Bình Dương cũ & các đô thị trực thuộc (Thuận An, Dĩ An, Thủ Dầu Một, Bến Cát, Tân Uyên...) -> Mã Branding "BD"
+  if (/binh\s*duong|thuan\s*an|di\s*an|thu\s*dau\s*mot|ben\s*cat|tan\s*uyen|bau\s*bang|dau\s*tieng|phu\s*giao|bd\b/i.test(clean)) return "BD";
+  // 2. TP. Hồ Chí Minh -> "HCM"
+  if (/ho\s*chi\s*minh|sai\s*gon|thu\s*duc|hcmc?|sg\b/i.test(clean)) return "HCM";
+  // 3. Hà Nội -> "HN"
+  if (/ha\s*noi|ha\s*dong|son\s*tay|hn\b/i.test(clean)) return "HN";
+  // 4. Đà Nẵng -> "DN"
   if (/da\s*nang|danang|dn\b/i.test(clean)) return "DN";
+  // 5. Đồng Nai -> "DNI" (Mã branding nội bộ Nanaflix, triệt tiêu xung đột hiển thị với "DN" của Đà Nẵng)
+  if (/dong\s*nai|bien\s*hoa|long\s*khanh|dni\b/i.test(clean)) return "DNI";
+  // 6. Hải Phòng -> "HP"
   if (/hai\s*phong|haiphong|hp\b/i.test(clean)) return "HP";
+  // 7. Cần Thơ -> "CT"
   if (/can\s*tho|cantho|ct\b/i.test(clean)) return "CT";
+  // 8. Khánh Hòa / Nha Trang -> "NT"
+  if (/khanh\s*hoa|nha\s*trang|nhatrang|cam\s*ranh|nt\b|kh\b/i.test(clean)) return "NT";
+  // 9. Bà Rịa - Vũng Tàu -> "VT"
+  if (/ba\s*ria|vung\s*tau|vungtau|vt\b/i.test(clean)) return "VT";
+  // 10. Lâm Đồng / Đà Lạt -> "DL"
+  if (/lam\s*dong|da\s*lat|dalat|dl\b/i.test(clean)) return "DL";
+  if (/ha\s*tinh|ht\b/i.test(clean)) return "HT";
   if (/nghe\s*an|nghean|na\b/i.test(clean)) return "NA";
   if (/thanh\s*hoa|thanhhoa|th\b/i.test(clean)) return "TH";
   if (/quang\s*ninh|quangninh|qn\b/i.test(clean)) return "QN";
-  if (/khanh\s*hoa|nha\s*trang|nhatrang|nt\b|kh\b/i.test(clean)) return "NT";
-  if (/lam\s*dong|da\s*lat|dalat|dl\b/i.test(clean)) return "DL";
-  if (/ba\s*ria|vung\s*tau|vungtau|vt\b/i.test(clean)) return "VT";
-  if (/dong\s*nai|bien\s*hoa|bienhoa|dni\b/i.test(clean)) return "ĐN";
   if (/tay\s*ninh|tayninh|tn\b/i.test(clean)) return "TN";
   if (/an\s*giang|angiang|ag\b/i.test(clean)) return "AG";
   if (/tien\s*giang|my\s*tho|mytho|tg\b/i.test(clean)) return "TG";
@@ -433,9 +540,10 @@ export function getRegionalBadge(geo: GeoLocationInfo | null | undefined): strin
       getVietnamProvinceAbbreviation(geo.region);
     return provinceCode || "VN";
   }
-  // Nếu ở nước ngoài: hiển thị mã quốc gia ISO (ví dụ: US, JP, KR, SG, AU, CA, UK, FR, DE...)
+  // Nếu ở nước ngoài: hiển thị mã quốc gia ISO alpha-2 chuẩn (ví dụ: US, JP, KR, SG, AU, CA, GB, FR, DE...)
+  // Tuân thủ ISO 3166-1 alpha-2 nghiêm ngặt (Vương quốc Anh giữ nguyên GB, không tự đổi thành UK)
   if (code.length === 2) {
-    return code === "GB" ? "UK" : code;
+    return code;
   }
   return "VN";
 }
