@@ -1149,6 +1149,9 @@ export async function getTmdbPersonDetail(personId: number): Promise<TmdbPersonD
  *    - Lọc bỏ credit không phải diễn xuất (special thanks, archive footage, cameo tự thân)
  *    - Sắp xếp ưu tiên các tác phẩm nổi tiếng/kinh điển nhất lên đầu
  */
+// Single-Flight Mutex for TMDB person combined_credits
+const inFlightCredits = new Map<number, Promise<TmdbMovieCredit[]>>();
+
 export async function getTmdbPersonMovieCredits(personId: number): Promise<TmdbMovieCredit[]> {
   if (!personId) return [];
 
@@ -1158,10 +1161,13 @@ export async function getTmdbPersonMovieCredits(personId: number): Promise<TmdbM
     return cached.data;
   }
 
-  const kvKey = `tmdb:credits:v2:${personId}`;
-  return await cacheService.fetchOrSet(
-    kvKey,
-    async () => {
+  const existing = inFlightCredits.get(personId);
+  if (existing) {
+    return existing;
+  }
+
+  const task = (async () => {
+    try {
       // Gọi TMDB combined_credits với ngôn ngữ vi-VN để có cả phim lẻ, phim bộ lẫn tên Việt và tên gốc
       const data = await fetchTmdbEndpoint(`/person/${personId}/combined_credits?language=vi-VN`);
 
@@ -1176,73 +1182,73 @@ export async function getTmdbPersonMovieCredits(personId: number): Promise<TmdbM
 
       const currentYear = new Date().getFullYear();
 
-  for (const m of combined) {
-    if (!m || !m.id || uniqueMap.has(m.id)) continue;
+      for (const m of combined) {
+        if (!m || !m.id || uniqueMap.has(m.id)) continue;
 
-    const releaseDate = m.release_date || m.first_air_date || "";
-    // LỌC BỎ PHIM CHƯA PHÁT HÀNH TRONG TƯƠNG LAI XA
-    if (releaseDate) {
-      const year = parseInt(releaseDate.slice(0, 4), 10);
-      if (year > currentYear + 1) continue;
-    }
+        const releaseDate = m.release_date || m.first_air_date || "";
+        // LỌC BỎ PHIM CHƯA PHÁT HÀNH TRONG TƯƠNG LAI XA
+        if (releaseDate) {
+          const year = parseInt(releaseDate.slice(0, 4), 10);
+          if (year > currentYear + 1) continue;
+        }
 
-    // LỌC BỎ CÁC CREDIT KHÔNG PHẢI DIỄN XUẤT CHÍNH
-    const charLower = (m.character || "").toLowerCase();
-    const jobLower = (m.job || "").toLowerCase();
-    const genreIds: number[] = Array.isArray(m.genre_ids) ? m.genre_ids : [];
-    const isTv = m.media_type === "tv" || Boolean(m.first_air_date);
-    const episodeCount = Number(m.episode_count || 1);
+        // LỌC BỎ CÁC CREDIT KHÔNG PHẢI DIỄN XUẤT CHÍNH
+        const charLower = (m.character || "").toLowerCase();
+        const jobLower = (m.job || "").toLowerCase();
+        const genreIds: number[] = Array.isArray(m.genre_ids) ? m.genre_ids : [];
+        const isTv = m.media_type === "tv" || Boolean(m.first_air_date);
+        const episodeCount = Number(m.episode_count || 1);
 
-    if (
-      charLower.includes("uncredited") &&
-      (charLower.includes("archive") || charLower.includes("thanks"))
-    ) {
-      continue;
-    }
-    if (jobLower.includes("special thanks") || jobLower.includes("thanks")) {
-      continue;
-    }
+        if (
+          charLower.includes("uncredited") &&
+          (charLower.includes("archive") || charLower.includes("thanks"))
+        ) {
+          continue;
+        }
+        if (jobLower.includes("special thanks") || jobLower.includes("thanks")) {
+          continue;
+        }
 
-    // Lọc bỏ TV Game Shows, Talk Shows, Reality Shows, Tin tức nơi nghệ sĩ chỉ tham gia với tư cách khách mời (ví dụ: Running Man, Late Show...)
-    const isRealityOrTalk =
-      genreIds.includes(10764) || genreIds.includes(10767) || genreIds.includes(10763);
-    const isGuestOrSelf =
-      charLower.startsWith("self - guest") ||
-      charLower.includes("guest") ||
-      charLower === "self" ||
-      charLower === "self - host" ||
-      !charLower;
+        // Lọc bỏ TV Game Shows, Talk Shows, Reality Shows, Tin tức nơi nghệ sĩ chỉ tham gia với tư cách khách mời
+        const isRealityOrTalk =
+          genreIds.includes(10764) || genreIds.includes(10767) || genreIds.includes(10763);
+        const isGuestOrSelf =
+          charLower.startsWith("self - guest") ||
+          charLower.includes("guest") ||
+          charLower === "self" ||
+          charLower === "self - host" ||
+          !charLower;
 
-    if (isTv && (isRealityOrTalk || (isGuestOrSelf && episodeCount <= 2))) {
-      continue;
-    }
+        if (isTv && (isRealityOrTalk || (isGuestOrSelf && episodeCount <= 2))) {
+          continue;
+        }
 
-    uniqueMap.set(m.id, {
-      id: m.id,
-      title: m.title || m.name || m.original_name || m.original_title || "",
-      original_title: m.original_title || m.original_name || m.title || m.name || "",
-      release_date: releaseDate,
-      vote_average: Number(m.vote_average || 0),
-      vote_count: Number(m.vote_count || 0),
-      popularity: Number(m.popularity || 0),
-      poster_path: m.poster_path || null,
-      character: m.character || "",
-      media_type: m.media_type || (m.first_air_date ? "tv" : "movie"),
-      genre_ids: Array.isArray(m.genre_ids) ? m.genre_ids : (genreIds.length > 0 ? genreIds : undefined),
-      original_language: m.original_language || undefined,
-    });
-  }
+        uniqueMap.set(m.id, {
+          id: m.id,
+          title: m.title || m.name || m.original_name || m.original_title || "",
+          original_title: m.original_title || m.original_name || m.title || m.name || "",
+          release_date: releaseDate,
+          vote_average: Number(m.vote_average || 0),
+          vote_count: Number(m.vote_count || 0),
+          popularity: Number(m.popularity || 0),
+          poster_path: m.poster_path || null,
+          character: m.character || "",
+          media_type: m.media_type || (m.first_air_date ? "tv" : "movie"),
+          genre_ids: Array.isArray(m.genre_ids) ? m.genre_ids : (genreIds.length > 0 ? genreIds : undefined),
+          original_language: m.original_language || undefined,
+        });
+      }
 
-  // SẮP XẾP ƯU TIÊN:
-  // 1. Phim có lượt bình chọn (vote_count) và độ nổi tiếng (popularity) cao nhất
-  // 2. Năm phát hành mới nhất để các tác phẩm gần đây và kinh điển nhất được match trước
-  const sortedCredits = Array.from(uniqueMap.values()).sort((a, b) => {
-    const scoreA = (a.vote_count || 0) * 0.7 + (a.popularity || 0) * 10;
-    const scoreB = (b.vote_count || 0) * 0.7 + (b.popularity || 0) * 10;
-    return scoreB - scoreA;
-  });
+      // SẮP XẾP ƯU TIÊN:
+      // 1. Phim có lượt bình chọn (vote_count) và độ nổi tiếng (popularity) cao nhất
+      // 2. Năm phát hành mới nhất để các tác phẩm gần đây và kinh điển nhất được match trước
+      const sortedCredits = Array.from(uniqueMap.values()).sort((a, b) => {
+        const scoreA = (a.vote_count || 0) * 0.7 + (a.popularity || 0) * 10;
+        const scoreB = (b.vote_count || 0) * 0.7 + (b.popularity || 0) * 10;
+        return scoreB - scoreA;
+      });
 
-      // Lưu cache 24h
+      // Lưu RAM cache L1 24h (tránh double-caching thừa vào Redis DB3 với actor:filmography_v10)
       TMDB_CREDITS_CACHE.set(personId, {
         data: sortedCredits,
         expireAt: Date.now() + 24 * 3600 * 1000,
@@ -1250,9 +1256,13 @@ export async function getTmdbPersonMovieCredits(personId: number): Promise<TmdbM
       });
 
       return sortedCredits;
-    },
-    3 * 86400 // Giảm từ 14 ngày xuống 3 ngày để bảo vệ 250 MB RAM của DB3
-  );
+    } finally {
+      inFlightCredits.delete(personId);
+    }
+  })();
+
+  inFlightCredits.set(personId, task);
+  return task;
 }
 
 /**

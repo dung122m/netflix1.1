@@ -257,7 +257,6 @@ async function fetchSummary(
 }
 
 const WIKI_TTL_SECONDS = 30 * 24 * 3600; // 30 ngày
-const WIKI_NEGATIVE_TTL_SECONDS = 86400; // 1 ngày cho trường hợp không tìm thấy
 
 export async function fetchActorProfile(
   actorName: string,
@@ -328,7 +327,7 @@ export async function fetchActorProfile(
   }
 
   wikiCache.set(cleanName, null);
-  cacheService.set(kvKey, { _isNull: true }, WIKI_NEGATIVE_TTL_SECONDS).catch(() => {});
+  // Negative cache lưu tại RAM L1 wikiCache để tránh tiêu tốn lệnh Redis SET của DB3
   return null;
 }
 

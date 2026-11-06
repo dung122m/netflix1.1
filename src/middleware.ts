@@ -24,12 +24,44 @@ const MALICIOUS_USER_AGENTS = [
   /censys/i,
 ];
 
-// Danh sách các User-Agent cào dữ liệu hung hãn không mong muốn (chặn sớm tại Edge để triệt tiêu tải Redis DB1)
+// Danh sách các User-Agent cào dữ liệu hung hãn không mong muốn (chặn sớm tại Edge để triệt tiêu tải Redis DB1 & DB3)
 // Giữ nguyên Googlebot, Bingbot, ClaudeBot và các Verified Bots hợp lệ theo yêu cầu
 const AGGRESSIVE_SCRAPER_USER_AGENTS = [
   /bytespider/i,
   /petalbot/i,
+  /ahrefsbot/i,
+  /semrushbot/i,
+  /dotbot/i,
+  /mj12bot/i,
+  /dataforseobot/i,
+  /blexbot/i,
+  /seekport/i,
+  /screaming\s*frog/i,
+  /zoominfobot/i,
+  /exabot/i,
+  /python-requests/i,
+  /python-urllib/i,
+  /scrapy/i,
+  /aiohttp/i,
+  /go-http-client/i,
+  /node-fetch/i,
+  /axios/i,
+  /headlesschrome/i,
+  /phantomjs/i,
+  /selenium/i,
+  /puppeteer/i,
 ];
+
+// In-Memory Edge Rate Limiter cho tuyến đường diễn viên (/dien-vien/*)
+// Chặn đứng hoàn toàn bão quét từ crawler mà không tiêu tốn lệnh Redis nào
+interface EdgeRateLimitRecord {
+  count: number;
+  resetAt: number;
+}
+const ACTOR_EDGE_RATE_LIMIT = new Map<string, EdgeRateLimitRecord>();
+const ACTOR_RL_MAX_REQUESTS = 15; // Tối đa 15 request trong 10 giây
+const ACTOR_RL_WINDOW_MS = 10_000;
+const MAX_ACTOR_RL_ENTRIES = 5000;
 
 // Danh sách các đường dẫn dò quét lỗ hổng phổ biến của botnet
 const BLOCKED_PATH_PATTERNS = [
@@ -224,6 +256,48 @@ export function middleware(req: NextRequest) {
         redirectRes.headers.set("X-Request-Id", requestId);
         redirectRes.headers.set("Cache-Control", "public, max-age=86400, s-maxage=86400");
         return redirectRes;
+      }
+    }
+
+    // 4.2 Giới hạn tần suất Edge cho trang diễn viên (chống crawler cào dồn dập, 0 Redis commands)
+    const isSearchBot = /googlebot|bingbot|duckduckbot/i.test(userAgent);
+    if (!isSearchBot) {
+      const clientIp =
+        req.headers.get("cf-connecting-ip") ||
+        req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+        req.headers.get("x-real-ip") ||
+        "unknown";
+      const now = Date.now();
+      const record = ACTOR_EDGE_RATE_LIMIT.get(clientIp);
+
+      if (record && record.resetAt > now) {
+        record.count++;
+        if (record.count > ACTOR_RL_MAX_REQUESTS) {
+          return new NextResponse(
+            JSON.stringify({
+              error: "Too Many Requests",
+              message: "Tần suất truy cập trang diễn viên vượt ngưỡng an toàn. Vui lòng thử lại sau.",
+            }),
+            {
+              status: 429,
+              headers: {
+                "Content-Type": "application/json",
+                "Retry-After": "60",
+                "X-Request-Id": requestId,
+                "Cache-Control": "private, no-cache, no-store, max-age=0, must-revalidate",
+              },
+            }
+          );
+        }
+      } else {
+        if (ACTOR_EDGE_RATE_LIMIT.size >= MAX_ACTOR_RL_ENTRIES) {
+          const oldestKey = ACTOR_EDGE_RATE_LIMIT.keys().next().value;
+          if (oldestKey) ACTOR_EDGE_RATE_LIMIT.delete(oldestKey);
+        }
+        ACTOR_EDGE_RATE_LIMIT.set(clientIp, {
+          count: 1,
+          resetAt: now + ACTOR_RL_WINDOW_MS,
+        });
       }
     }
   }

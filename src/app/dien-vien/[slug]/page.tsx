@@ -31,7 +31,7 @@ import {
   searchTmdbPerson,
   getTmdbPersonDetail,
 } from "@/services/tmdbService";
-import { fetchActorProfile } from "@/services/wikipediaService";
+import { fetchActorProfile, type ActorProfile } from "@/services/wikipediaService";
 import { selectBestBiography } from "@/lib/bioFormatter";
 import { ActorDetailClient } from "@/components/actors/ActorDetailClient";
 import { ActorAvatar } from "@/components/actors/ActorAvatar";
@@ -103,11 +103,56 @@ function formatDate(dateStr?: string): string | null {
   return dateStr;
 }
 
+interface ResolvedActorProfile {
+  rawName: string;
+  tmdbPersonId?: number;
+  canonicalName: string;
+  actorAliases: string[];
+  historicalItem?: ReturnType<typeof getHistoricalArtistBySlug>;
+  actorSynonyms?: ReturnType<typeof getActorSynonyms> | null;
+  actorRes: Awaited<ReturnType<typeof resolveActorMovies>> | null;
+  matchedPreset?: (typeof GOLDEN_ACTOR_INDEX)[number];
+  tmdbDetail: Awaited<ReturnType<typeof getTmdbPersonDetail>> | null;
+  isCachedNotFound?: boolean;
+}
+
+// In-Memory RAM Cache cho trang diễn viên (0ms, 0 Redis commands cho các request lặp lại trên cùng instance)
+interface ActorPageRamCacheEntry {
+  profile: ResolvedActorProfile | null;
+  wikiProfile: ActorProfile | null;
+  movies: unknown[];
+  isNotFound?: boolean;
+  expireAt: number;
+}
+const ACTOR_PAGE_RAM_CACHE = new Map<string, ActorPageRamCacheEntry>();
+const MAX_ACTOR_PAGE_RAM_ENTRIES = 2000;
+
 /**
  * Request-scoped memoized actor profile resolver (React cache).
  * Loại bỏ hoàn toàn Double GET giữa generateMetadata() và ActorDetailPage() trong cùng 1 request SSR.
  */
-const resolveActorProfile = cache(async (slug: string) => {
+const resolveActorProfile = cache(async (slug: string): Promise<ResolvedActorProfile> => {
+  const cachedPage = ACTOR_PAGE_RAM_CACHE.get(slug);
+  if (cachedPage && cachedPage.expireAt > Date.now()) {
+    if (cachedPage.isNotFound) {
+      return {
+        rawName: slug.replace(/-/g, " "),
+        tmdbPersonId: undefined,
+        canonicalName: "",
+        actorAliases: [],
+        historicalItem: undefined,
+        actorSynonyms: null,
+        actorRes: null,
+        matchedPreset: undefined,
+        tmdbDetail: null,
+        isCachedNotFound: true,
+      };
+    }
+    if (cachedPage.profile) {
+      return cachedPage.profile;
+    }
+  }
+
   const { personId: explicitPersonId, rawName } = parseActorIdentifier(slug);
 
   // 1. Phân giải danh tính nghệ sĩ On-Demand
@@ -207,6 +252,19 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function ActorDetailPage({ params }: PageProps) {
   const { slug } = await params;
+  const now = Date.now();
+  const cachedPage = ACTOR_PAGE_RAM_CACHE.get(slug);
+  if (cachedPage && cachedPage.expireAt > now) {
+    if (cachedPage.isNotFound) {
+      notFound();
+    }
+  }
+
+  const profile = await resolveActorProfile(slug);
+  if (profile.isCachedNotFound) {
+    notFound();
+  }
+
   const {
     canonicalName,
     actorAliases,
@@ -215,19 +273,47 @@ export default async function ActorDetailPage({ params }: PageProps) {
     actorRes,
     matchedPreset,
     tmdbDetail,
-  } = await resolveActorProfile(slug);
+  } = profile;
 
   // 3. Tra cứu thông tin bổ trợ từ Wikipedia và Danh sách phim
-  const wikiProfilePromise = canonicalName ? fetchActorProfile(canonicalName) : Promise.resolve(null);
+  // Chỉ gọi Wikipedia khi TMDb thiếu tiểu sử hoặc thiếu ảnh (tiết kiệm 100% lệnh Redis wiki:* cho các diễn viên TMDB đầy đủ)
+  const needsWiki = !historicalItem?.bio && (!tmdbDetail?.biography || !tmdbDetail?.profile_path);
+  const wikiProfilePromise = (needsWiki && canonicalName) ? fetchActorProfile(canonicalName) : Promise.resolve(null);
   const moviesPromise = canonicalName
     ? queryMoviesByActor(canonicalName, actorAliases, historicalItem?.country || actorRes?.country || actorSynonyms?.country || "", 150)
     : Promise.resolve([]);
 
-  const [wikiProfile, movies] = await Promise.all([wikiProfilePromise, moviesPromise]);
+  const [wikiProfile, movies] = cachedPage && cachedPage.expireAt > now
+    ? [cachedPage.wikiProfile, cachedPage.movies]
+    : await Promise.all([wikiProfilePromise, moviesPromise]);
 
   // Nếu không tìm thấy thông tin trên TMDb, Wikipedia và cũng không có phim nào trên hệ thống -> 404 Not Found
   if (!tmdbDetail && !wikiProfile && (!movies || movies.length === 0)) {
+    if (ACTOR_PAGE_RAM_CACHE.size >= MAX_ACTOR_PAGE_RAM_ENTRIES) {
+      const oldest = ACTOR_PAGE_RAM_CACHE.keys().next().value;
+      if (oldest) ACTOR_PAGE_RAM_CACHE.delete(oldest);
+    }
+    ACTOR_PAGE_RAM_CACHE.set(slug, {
+      profile: null,
+      wikiProfile: null,
+      movies: [],
+      isNotFound: true,
+      expireAt: Date.now() + 3600000, // 1h negative RAM cache
+    });
     notFound();
+  }
+
+  if (!cachedPage || cachedPage.expireAt <= now) {
+    if (ACTOR_PAGE_RAM_CACHE.size >= MAX_ACTOR_PAGE_RAM_ENTRIES) {
+      const oldest = ACTOR_PAGE_RAM_CACHE.keys().next().value;
+      if (oldest) ACTOR_PAGE_RAM_CACHE.delete(oldest);
+    }
+    ACTOR_PAGE_RAM_CACHE.set(slug, {
+      profile,
+      wikiProfile,
+      movies,
+      expireAt: Date.now() + 7200000, // 2h RAM cache
+    });
   }
 
   const country =
@@ -332,7 +418,7 @@ export default async function ActorDetailPage({ params }: PageProps) {
                   <Clapperboard className="w-3 h-3" />
                   <span>{movies.length} Phim trên Nanaflix</span>
                 </span>
-                {historicalItem?.tags?.map((tag) => (
+                {historicalItem?.tags?.map((tag: string) => (
                   <span
                     key={tag}
                     className="px-2.5 py-1 rounded-full bg-zinc-800/80 border border-zinc-700/60 text-zinc-300 text-xs font-medium"
