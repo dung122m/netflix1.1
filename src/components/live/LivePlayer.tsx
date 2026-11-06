@@ -33,7 +33,7 @@ import {
 } from "@/components/player/PlayerNativeControls";
 import { FootballMatch, StreamServer } from "@/services/liveFootballService";
 import { LiveMatchScore, NormalizedMatchSummary, MatchKeyEvent } from "@/services/live/football-score/types";
-import { getTeamAsset } from "@/data/live/teamAssets";
+import { getTeamAsset, resolveEsportsTeam } from "@/data/live/teamAssets";
 import { toDarkModeLogoUrl } from "@/services/live/football-logo/service";
 import {
   resolveMatchDisplayStatus,
@@ -1064,25 +1064,27 @@ function LivePlayerInner({
   }, [match?.id, homeLogo, awayLogo]);
 
   // Tra cứu cờ quốc gia / logo CLB O(1) từ local mapping (đồng bộ 100% với MatchCard & MatchCenter)
+  const isEsports = match?.sport === "esports";
+  const homeTeamStr = summary?.homeTeam?.name || summary?.homeTeam?.displayName || team1;
+  const awayTeamStr = summary?.awayTeam?.name || summary?.awayTeam?.displayName || team2;
+
   const homeAsset = useMemo(
-    () =>
-      getTeamAsset(
-        summary?.homeTeam?.name || summary?.homeTeam?.displayName || team1,
-      ),
-    [summary?.homeTeam?.name, summary?.homeTeam?.displayName, team1],
+    () => getTeamAsset(homeTeamStr),
+    [homeTeamStr],
   );
   const awayAsset = useMemo(
-    () =>
-      getTeamAsset(
-        summary?.awayTeam?.name || summary?.awayTeam?.displayName || team2,
-      ),
-    [summary?.awayTeam?.name, summary?.awayTeam?.displayName, team2],
+    () => getTeamAsset(awayTeamStr),
+    [awayTeamStr],
   );
 
-  // Ưu tiên cờ quốc gia khi thực sự là ĐTQG (isCountry: true)
-  const homeFlagEmoji = homeAsset?.isCountry && homeAsset?.emoji ? homeAsset.emoji : null;
-  const awayFlagEmoji = awayAsset?.isCountry && awayAsset?.emoji ? awayAsset.emoji : null;
+  const espHome = useMemo(() => resolveEsportsTeam(homeTeamStr), [homeTeamStr]);
+  const espAway = useMemo(() => resolveEsportsTeam(awayTeamStr), [awayTeamStr]);
 
+  // Ưu tiên cờ quốc gia khi thực sự là ĐTQG (isCountry: true) VÀ không phải Esports
+  const homeFlagEmoji = !isEsports && !espHome && homeAsset?.isCountry && homeAsset?.emoji ? homeAsset.emoji : null;
+  const awayFlagEmoji = !isEsports && !espAway && awayAsset?.isCountry && awayAsset?.emoji ? awayAsset.emoji : null;
+
+  const assetHome = espHome?.logo || homeAsset?.logo || null;
   const rawHome =
     (Boolean(summary?.homeTeam?.logo) &&
     !summary?.homeTeam?.logo?.includes("tinhlagi.pro/logo.jpg")
@@ -1091,9 +1093,8 @@ function LivePlayerInner({
     (Boolean(homeLogo) && !homeLogo?.includes("tinhlagi.pro/logo.jpg")
       ? homeLogo
       : null) ||
-    homeAsset?.logo ||
+    assetHome ||
     null;
-  const assetHome = homeAsset?.logo || null;
 
   let homeLogoSrc: string | null = null;
   if (!homeFlagEmoji && !homeFailed) {
@@ -1112,6 +1113,7 @@ function LivePlayerInner({
     }
   }, [rawHome, homeTriedAsset, assetHome]);
 
+  const assetAway = espAway?.logo || awayAsset?.logo || null;
   const rawAway =
     (Boolean(summary?.awayTeam?.logo) &&
     !summary?.awayTeam?.logo?.includes("tinhlagi.pro/logo.jpg")
@@ -1120,9 +1122,8 @@ function LivePlayerInner({
     (Boolean(awayLogo) && !awayLogo?.includes("tinhlagi.pro/logo.jpg")
       ? awayLogo
       : null) ||
-    awayAsset?.logo ||
+    assetAway ||
     null;
-  const assetAway = awayAsset?.logo || null;
 
   let awayLogoSrc: string | null = null;
   if (!awayFlagEmoji && !awayFailed) {

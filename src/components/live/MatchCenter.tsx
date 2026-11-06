@@ -24,7 +24,7 @@ import {
   resolveCanonicalTournament,
   resolveTournamentLogo,
 } from "@/services/live/football-score/canonicalLeagues";
-import { getTeamAsset, getTeamInitials } from "@/data/live/teamAssets";
+import { getTeamAsset, getTeamInitials, resolveEsportsTeam } from "@/data/live/teamAssets";
 import { toDarkModeLogoUrl } from "@/services/live/football-logo/service";
 import { TacticalLineup } from "./TacticalLineup";
 import { DualTeamPitch } from "./DualTeamPitch";
@@ -257,20 +257,23 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
   const homeDisplayName = summary?.homeTeam?.displayName || summary?.homeTeam?.name || team1 || "Đội nhà";
   const awayDisplayName = summary?.awayTeam?.displayName || summary?.awayTeam?.name || team2 || "Đội khách";
 
+  const espHome = useMemo(() => resolveEsportsTeam(homeDisplayName), [homeDisplayName]);
+  const espAway = useMemo(() => resolveEsportsTeam(awayDisplayName), [awayDisplayName]);
+
   const homeAsset = useMemo(() => getTeamAsset(homeDisplayName), [homeDisplayName]);
   const awayAsset = useMemo(() => getTeamAsset(awayDisplayName), [awayDisplayName]);
 
   const homeLogoSrc = useMemo(() => {
     if (homeImgFailed) return null;
-    const raw = summary?.homeTeam?.logo || team1Logo || homeAsset?.logo;
+    const raw = espHome?.logo || summary?.homeTeam?.logo || team1Logo || homeAsset?.logo;
     return raw ? toDarkModeLogoUrl(raw) : null;
-  }, [summary?.homeTeam?.logo, team1Logo, homeAsset, homeImgFailed]);
+  }, [espHome, summary?.homeTeam?.logo, team1Logo, homeAsset, homeImgFailed]);
 
   const awayLogoSrc = useMemo(() => {
     if (awayImgFailed) return null;
-    const raw = summary?.awayTeam?.logo || team2Logo || awayAsset?.logo;
+    const raw = espAway?.logo || summary?.awayTeam?.logo || team2Logo || awayAsset?.logo;
     return raw ? toDarkModeLogoUrl(raw) : null;
-  }, [summary?.awayTeam?.logo, team2Logo, awayAsset, awayImgFailed]);
+  }, [espAway, summary?.awayTeam?.logo, team2Logo, awayAsset, awayImgFailed]);
 
   const displayTitle = useMemo(() => {
     if (title) return title;
@@ -345,7 +348,7 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
           </div>
 
           <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-zinc-800/90 p-1.5 flex items-center justify-center shadow-md relative overflow-hidden shrink-0">
-            {homeAsset?.isCountry && homeAsset?.emoji ? (
+            {!espHome && homeAsset?.isCountry && homeAsset?.emoji ? (
               <CountryFlag emoji={homeAsset.emoji} className="w-6 h-6 sm:w-7 sm:h-7 relative z-10" />
             ) : homeLogoSrc ? (
               /* eslint-disable-next-line @next/next/no-img-element */
@@ -415,7 +418,7 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
         {/* Đội khách: Logo + Tên (căn trái) */}
         <div className="flex items-center justify-start gap-2 sm:gap-3.5 min-w-0">
           <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-zinc-800/90 p-1.5 flex items-center justify-center shadow-md relative overflow-hidden shrink-0">
-            {awayAsset?.isCountry && awayAsset?.emoji ? (
+            {!espAway && awayAsset?.isCountry && awayAsset?.emoji ? (
               <CountryFlag emoji={awayAsset.emoji} className="w-6 h-6 sm:w-7 sm:h-7 relative z-10" />
             ) : awayLogoSrc ? (
               /* eslint-disable-next-line @next/next/no-img-element */

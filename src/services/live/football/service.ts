@@ -4,7 +4,12 @@ import {
 } from "@/services/live/football-logo/service";
 import { cacheService } from "@/lib/cache";
 import { isBlockedStreamUrl } from "@/services/live/shared/streamHealth";
-import { getTeamAsset, normalizeTeamKey } from "@/data/live/teamAssets";
+import {
+  getTeamAsset,
+  normalizeTeamKey,
+  resolveEsportsTeam,
+  isEsportsTeamMatch,
+} from "@/data/live/teamAssets";
 import { LiveMatchScore } from "@/services/live/football-score/types";
 import { footballScoreService } from "@/services/live/football-score/service";
 import { matchFixtureToScore } from "@/services/live/football-score/matcher";
@@ -593,6 +598,12 @@ const CLUB_ALIAS_MAP: Record<string, string> = {
 export function normalizeClubKey(name: string): string {
   if (!name) return "";
 
+  // 0. Canonical Esports resolution (O(1))
+  const esp = resolveEsportsTeam(name);
+  if (esp) {
+    return esp.canonicalKey;
+  }
+
   const clean = name
     .toLowerCase()
     .replace(/[đĐ]/g, "d")
@@ -695,6 +706,13 @@ function calculateStringSimilarity(s1: string, s2: string): number {
 
 export function isSingleTeamMatching(nameA: string, nameB: string): boolean {
   if (!nameA || !nameB) return false;
+
+  // 0. Esports canonical match check:
+  // Nếu cả hai đều khớp cùng một đội esports canonical (ví dụ: "DK" vs "Dplus", "BLG" vs "Bilibili Gaming", "T1" vs "SKT") -> MATCH 100%!
+  if (isEsportsTeamMatch(nameA, nameB)) {
+    return true;
+  }
+
   const keyA = normalizeClubKey(nameA);
   const keyB = normalizeClubKey(nameB);
 
@@ -2359,7 +2377,10 @@ export function normalizeAndMergeStreams(
   const normalizedList: NormalizedStream[] = [];
 
   for (const item of rawStreams) {
-    const { group, rawTitle, rawLogo, effectiveUrl } = item;
+    const group = item.group || "";
+    const rawTitle = item.rawTitle || "";
+    const rawLogo = item.rawLogo || "";
+    const effectiveUrl = item.effectiveUrl || item.url || "";
     const upperGroup = group.toUpperCase();
     const upperTitle = rawTitle.toUpperCase();
 
@@ -2814,6 +2835,22 @@ export function normalizeAndMergeStreams(
         foundMatch.team2 = item.team2;
         foundMatch.isEvent = false;
         foundMatch.title = `${item.team1} vs ${item.team2}`;
+      } else if (!foundMatch.isEvent && !item.isEvent && item.team1 && item.team2) {
+        const espFound1 = resolveEsportsTeam(foundMatch.team1);
+        const espItem1 = resolveEsportsTeam(item.team1);
+        if (espFound1 && espItem1 && espFound1.canonicalKey === espItem1.canonicalKey) {
+          if (item.team1.length > foundMatch.team1.length) {
+            foundMatch.team1 = item.team1;
+          }
+        }
+        const espFound2 = resolveEsportsTeam(foundMatch.team2);
+        const espItem2 = resolveEsportsTeam(item.team2);
+        if (espFound2 && espItem2 && espFound2.canonicalKey === espItem2.canonicalKey) {
+          if (item.team2.length > foundMatch.team2.length) {
+            foundMatch.team2 = item.team2;
+          }
+        }
+        foundMatch.title = `${foundMatch.team1} vs ${foundMatch.team2}`;
       }
 
       if (item.blv) {
@@ -2865,10 +2902,17 @@ export function normalizeAndMergeStreams(
         foundMatch.isEvent,
       );
 
-      if (!foundMatch.homeLogo && item.rawLogo && !item.rawLogo.includes("tinhlagi.pro/logo.jpg")) {
+      const espHomeMerge = resolveEsportsTeam(foundMatch.team1);
+      if (espHomeMerge?.logo) {
+        foundMatch.homeLogo = espHomeMerge.logo;
+      } else if (!foundMatch.homeLogo && item.rawLogo && !item.rawLogo.includes("tinhlagi.pro/logo.jpg")) {
         foundMatch.homeLogo = item.rawLogo;
       }
-      if (!foundMatch.awayLogo && item.awayLogo && !item.awayLogo.includes("tinhlagi.pro/logo.jpg")) {
+
+      const espAwayMerge = resolveEsportsTeam(foundMatch.team2);
+      if (espAwayMerge?.logo) {
+        foundMatch.awayLogo = espAwayMerge.logo;
+      } else if (!foundMatch.awayLogo && item.awayLogo && !item.awayLogo.includes("tinhlagi.pro/logo.jpg")) {
         foundMatch.awayLogo = item.awayLogo;
       }
     } else {
@@ -2892,15 +2936,25 @@ export function normalizeAndMergeStreams(
         item.isEvent,
       );
 
+      const espHomeNew = resolveEsportsTeam(item.team1);
+      const espAwayNew = resolveEsportsTeam(item.team2);
+
       let effectiveLogo = item.rawLogo;
       if (!effectiveLogo && item.cleanGroup === "FPT Play") {
         effectiveLogo = FPT_EVENT_POSTER;
       }
 
       const effectiveHomeLogo =
-        !item.isEvent && effectiveLogo && !effectiveLogo.includes("tinhlagi.pro/logo.jpg")
+        espHomeNew?.logo ||
+        (!item.isEvent && effectiveLogo && !effectiveLogo.includes("tinhlagi.pro/logo.jpg")
           ? effectiveLogo
-          : "";
+          : "");
+
+      const effectiveAwayLogo =
+        espAwayNew?.logo ||
+        (!item.isEvent && item.awayLogo && !item.awayLogo.includes("tinhlagi.pro/logo.jpg")
+          ? item.awayLogo
+          : "");
 
       mergedMatches.push({
         id: matchId,
@@ -2912,7 +2966,7 @@ export function normalizeAndMergeStreams(
         blv: item.blv,
         logo: effectiveLogo,
         homeLogo: effectiveHomeLogo,
-        awayLogo: item.awayLogo || "",
+        awayLogo: effectiveAwayLogo,
         group: item.cleanGroup,
         groups: [item.cleanGroup],
         tournament: item.tournament,

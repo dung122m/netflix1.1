@@ -13,6 +13,18 @@ export interface TeamAsset {
   isCountry?: boolean;
 }
 
+import {
+  resolveEsportsTeam,
+  isEsportsTeamMatch,
+  ESPORTS_TEAMS,
+} from "./esportsTeams";
+
+export {
+  resolveEsportsTeam,
+  isEsportsTeamMatch,
+  ESPORTS_TEAMS,
+};
+
 export function normalizeTeamTokens(name: string): string[] {
   if (!name) return [];
   // Bảo toàn cụm đặc thù tránh nhầm lẫn giữa Barcelona SC và FC Barcelona
@@ -54,7 +66,7 @@ const NATIONAL_TEAMS_DATA: Array<{ name: string; emoji: string; logo?: string; a
   { name: "Lào", emoji: "🇱🇦", logo: "https://a.espncdn.com/i/teamlogos/soccer/500/187.png", aliases: ["laos", "lao", "la"] },
   { name: "Campuchia", emoji: "🇰🇭", aliases: ["cambodia", "campuchia", "khmer", "kh"] },
   { name: "Brunei", emoji: "🇧🇳", aliases: ["brunei", "brunei darussalam", "bn"] },
-  { name: "Đông Timor", emoji: "🇹🇱", aliases: ["timor leste", "dong timor", "timor", "tl"] },
+  { name: "Đông Timor", emoji: "🇹🇱", aliases: ["timor leste", "dong timor", "timor", "tls"] },
   { name: "Úc", emoji: "🇦🇺", aliases: ["australia", "uc", "au", "socceroos", "matildas"] },
   { name: "Ả Rập Xê Út", emoji: "🇸🇦", aliases: ["saudi arabia", "a rap xe ut", "saudi", "sa", "green falcons"] },
   { name: "Qatar", emoji: "🇶🇦", aliases: ["qatar", "qa", "the maroon"] },
@@ -75,7 +87,7 @@ const NATIONAL_TEAMS_DATA: Array<{ name: string; emoji: string; logo?: string; a
   { name: "Turkmenistan", emoji: "🇹🇲", aliases: ["turkmenistan", "tm"] },
   { name: "Ấn Độ", emoji: "🇮🇳", aliases: ["india", "an do", "in", "blue tigers"] },
   { name: "Maldives", emoji: "🇲🇻", aliases: ["maldives", "mv", "red snappers"] },
-  { name: "Đài Loan", emoji: "🇹🇼", aliases: ["chinese taipei", "taiwan", "dai loan", "tw"] },
+  { name: "Đài Loan", emoji: "🇹🇼", aliases: ["chinese taipei", "taiwan", "dai loan", "tpe"] },
   { name: "Hong Kong", emoji: "🇭🇰", aliases: ["hong kong", "hk", "the dragons"] },
   { name: "Mông Cổ", emoji: "🇲🇳", aliases: ["mongolia", "mong co", "mn"] },
   { name: "Nepal", emoji: "🇳🇵", aliases: ["nepal", "np"] },
@@ -139,7 +151,7 @@ const NATIONAL_TEAMS_DATA: Array<{ name: string; emoji: string; logo?: string; a
   { name: "Bỉ", emoji: "🇧🇪", aliases: ["belgium", "bi", "be", "quy do", "red devils"] },
   { name: "Croatia", emoji: "🇭🇷", aliases: ["croatia", "hr", "vatreni"] },
   { name: "Thụy Sĩ", emoji: "🇨🇭", aliases: ["switzerland", "thuy si", "ch", "nati"] },
-  { name: "Đan Mạch", emoji: "🇩🇰", aliases: ["denmark", "dan mach", "dk", "thung lung do", "danish dynamite"] },
+  { name: "Đan Mạch", emoji: "🇩🇰", aliases: ["denmark", "dan mach", "den", "dnk", "thung lung do", "danish dynamite"] },
   { name: "Thụy Điển", emoji: "🇸🇪", aliases: ["sweden", "thuy dien", "se", "blagult"] },
   { name: "Na Uy", emoji: "🇳🇴", aliases: ["norway", "na uy", "no", "lions"] },
   { name: "Ba Lan", emoji: "🇵🇱", aliases: ["poland", "ba lan", "pl", "dai bang trang", "biale orly"] },
@@ -159,7 +171,7 @@ const NATIONAL_TEAMS_DATA: Array<{ name: string; emoji: string; logo?: string; a
   { name: "Romania", emoji: "🇷🇴", aliases: ["romania", "ro", "tricolorii"] },
   { name: "Bulgaria", emoji: "🇧🇬", aliases: ["bulgaria", "bg", "the lions"] },
   { name: "Georgia", emoji: "🇬🇪", aliases: ["georgia", "ge", "crusaders"] },
-  { name: "Albania", emoji: "🇦🇱", aliases: ["albania", "al", "kuqezinjte"] },
+  { name: "Albania", emoji: "🇦🇱", aliases: ["albania", "alb", "kuqezinjte"] },
   { name: "Phần Lan", emoji: "🇫🇮", aliases: ["finland", "phan lan", "fi", "huuhkajat"] },
   { name: "Iceland", emoji: "🇮🇸", aliases: ["iceland", "is", "strakarnir okkar"] },
   { name: "Bosnia & Herzegovina", emoji: "🇧🇦", aliases: ["bosnia and herzegovina", "bosnia", "ba", "dragons"] },
@@ -206,7 +218,7 @@ const NATIONAL_TEAMS_DATA: Array<{ name: string; emoji: string; logo?: string; a
   { name: "Honduras", emoji: "🇭🇳", aliases: ["honduras", "hn", "los catrachos"] },
   { name: "El Salvador", emoji: "🇸🇻", aliases: ["el salvador", "sv", "la selecta"] },
   { name: "Guatemala", emoji: "🇬🇹", aliases: ["guatemala", "gt", "los chapines"] },
-  { name: "Trinidad & Tobago", emoji: "🇹🇹", aliases: ["trinidad and tobago", "trinidad", "tt", "soca warriors"] },
+  { name: "Trinidad & Tobago", emoji: "🇹🇹", aliases: ["trinidad and tobago", "trinidad", "tri", "tto", "soca warriors"] },
   { name: "Haiti", emoji: "🇭🇹", aliases: ["haiti", "ht", "les grenadiers"] },
   { name: "Curacao", emoji: "🇨🇼", aliases: ["curacao", "cw"] },
   { name: "Cuba", emoji: "🇨🇺", aliases: ["cuba", "cu"] },
@@ -248,20 +260,12 @@ const CLUBS_DATA: Array<{ name: string; logo?: string; emoji?: string; aliases: 
   { name: "New York Knicks", emoji: "🏀", logo: "https://a.espncdn.com/i/teamlogos/nba/500/ny.png", aliases: ["knicks", "new york knicks"] },
 
   // --- ESPORTS ---
-  { name: "Apogee Esports", emoji: "🎮", aliases: ["apogee esports", "apogee esport", "apogee"] },
-  { name: "JijieHao", emoji: "🎮", aliases: ["jijiehao", "jijie hao", "jjh"] },
-  { name: "T1", emoji: "🎮", logo: "https://r2.thesportsdb.com/images/media/team/badge/4o02u71705664404.png", aliases: ["t1", "skt", "skt t1", "t1 lol"] },
-  { name: "Gen.G", emoji: "🎮", aliases: ["gen g", "geng", "gen.g"] },
-  { name: "GAM Esports", emoji: "🎮", logo: "https://a.espncdn.com/i/teamlogos/soccer/500/7102.png", aliases: ["gam", "gam esports", "gigabyte marines"] },
-  { name: "Team Flash", emoji: "🎮", aliases: ["team flash", "flash", "fl"] },
-  { name: "Saigon Phantom", emoji: "🎮", aliases: ["saigon phantom", "sgp"] },
-  { name: "V Gaming", emoji: "🎮", aliases: ["v gaming", "vgp"] },
-  { name: "G2 Esports", emoji: "🎮", logo: "https://r2.thesportsdb.com/images/media/team/badge/0vkww41675440633.png", aliases: ["g2", "g2 esports"] },
-  { name: "Fnatic", emoji: "🎮", logo: "https://r2.thesportsdb.com/images/media/team/badge/u877191761294036.png", aliases: ["fnatic", "fnc"] },
-  { name: "Team Liquid", emoji: "🎮", logo: "https://r2.thesportsdb.com/images/media/team/badge/o1bxs61761218944.png", aliases: ["team liquid", "liquid", "tl"] },
-  { name: "Bilibili Gaming", emoji: "🎮", aliases: ["bilibili gaming", "blg"] },
-  { name: "Top Esports", emoji: "🎮", aliases: ["top esports", "tes"] },
-  { name: "Weibo Gaming", emoji: "🎮", aliases: ["weibo gaming", "wbg"] },
+  ...ESPORTS_TEAMS.map((e) => ({
+    name: e.name,
+    emoji: "🎮",
+    logo: e.logo,
+    aliases: [e.shortName.toLowerCase(), ...e.aliases],
+  })),
 
   // --- PREMIER LEAGUE & CHAMPIONSHIP (ANH) ---
   { name: "Arsenal", logo: "https://a.espncdn.com/i/teamlogos/soccer/500/359.png", aliases: ["arsenal", "phao thu", "gunners"] },
@@ -568,6 +572,18 @@ for (const club of CLUBS_DATA) {
  */
 export function getTeamAsset(rawTeamName?: string | null): TeamAsset | null {
   if (!rawTeamName) return null;
+
+  // 0. Ưu tiên tra cứu đội tuyển thể thao điện tử (Esports) để nhận diện chính xác logo và ngăn cờ quốc gia
+  const esp = resolveEsportsTeam(rawTeamName);
+  if (esp) {
+    return {
+      name: esp.name,
+      logo: esp.logo,
+      emoji: "🎮",
+      isCountry: false,
+    };
+  }
+
   const key = normalizeTeamKey(rawTeamName);
   if (!key) return null;
 

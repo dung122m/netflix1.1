@@ -1,4 +1,4 @@
-import { getTeamAsset } from "@/data/live/teamAssets";
+import { getTeamAsset, resolveEsportsTeam } from "@/data/live/teamAssets";
 import {
   resolveDynamicSportsLogo,
   getCachedLogo,
@@ -464,6 +464,13 @@ export function isTeamIdentityMatch(
  * Tra cứu và trả về link Huy hiệu/Logo CLB chất lượng cao
  */
 export async function resolveTeamLogo(teamName: string, sport?: string): Promise<string> {
+  // 0. Tra cứu logo đội tuyển Esports chính thức (0ms)
+  const esp = resolveEsportsTeam(teamName);
+  if (esp?.logo) {
+    const key = normalizeTeamKey(teamName);
+    if (key) STATIC_CLUB_LOGOS[key] = esp.logo;
+    return esp.logo;
+  }
   if (!teamName) return "";
   const key = normalizeTeamKey(teamName);
   if (!key) return "";
@@ -567,21 +574,31 @@ export function enrichMatchLogosSync<
   for (const m of matches) {
     const s = m.sport || "all";
     if (m.team1 && (!m.homeLogo || m.homeLogo.includes("tinhlagi.pro/logo.jpg"))) {
-      const key = normalizeTeamKey(m.team1);
-      if (key && STATIC_CLUB_LOGOS[key]) {
-        m.homeLogo = STATIC_CLUB_LOGOS[key];
-      } else if (key) {
-        const cached = getCachedLogo(`${s}:${key}`) ?? LOGO_CACHE.get(key);
-        if (cached) m.homeLogo = cached;
+      const esp = resolveEsportsTeam(m.team1);
+      if (esp?.logo) {
+        m.homeLogo = esp.logo;
+      } else {
+        const key = normalizeTeamKey(m.team1);
+        if (key && STATIC_CLUB_LOGOS[key]) {
+          m.homeLogo = STATIC_CLUB_LOGOS[key];
+        } else if (key) {
+          const cached = getCachedLogo(`${s}:${key}`) ?? LOGO_CACHE.get(key);
+          if (cached) m.homeLogo = cached;
+        }
       }
     }
     if (m.team2 && (!m.awayLogo || m.awayLogo.includes("tinhlagi.pro/logo.jpg"))) {
-      const key = normalizeTeamKey(m.team2);
-      if (key && STATIC_CLUB_LOGOS[key]) {
-        m.awayLogo = STATIC_CLUB_LOGOS[key];
-      } else if (key) {
-        const cached = getCachedLogo(`${s}:${key}`) ?? LOGO_CACHE.get(key);
-        if (cached) m.awayLogo = cached;
+      const esp = resolveEsportsTeam(m.team2);
+      if (esp?.logo) {
+        m.awayLogo = esp.logo;
+      } else {
+        const key = normalizeTeamKey(m.team2);
+        if (key && STATIC_CLUB_LOGOS[key]) {
+          m.awayLogo = STATIC_CLUB_LOGOS[key];
+        } else if (key) {
+          const cached = getCachedLogo(`${s}:${key}`) ?? LOGO_CACHE.get(key);
+          if (cached) m.awayLogo = cached;
+        }
       }
     }
   }

@@ -8,6 +8,7 @@ import { LiveMatchScore } from "@/services/live/football-score/types";
 import {
   getTeamAsset,
   getTeamInitials,
+  resolveEsportsTeam,
 } from "@/data/live/teamAssets";
 import { toDarkModeLogoUrl } from "@/services/live/football-logo/service";
 import {
@@ -202,6 +203,7 @@ function MatchCardInner({ match, isSelected, onSelect, score, compact }: MatchCa
   const displayTeam2 = useMemo(() => sanitizeDisplayName(match.team2), [match.team2]);
   const isTwoTeamMatch = Boolean(displayTeam1 && displayTeam2);
 
+  const isEsports = match.sport === "esports";
   const homeAsset = useMemo(
     () => (displayTeam1 ? getTeamAsset(displayTeam1) : null),
     [displayTeam1],
@@ -211,9 +213,12 @@ function MatchCardInner({ match, isSelected, onSelect, score, compact }: MatchCa
     [displayTeam2],
   );
 
-  // Chỉ ưu tiên cờ quốc gia khi thực sự là Đội tuyển quốc gia (isCountry: true)
-  const homeFlagEmoji = homeAsset?.isCountry && homeAsset?.emoji ? homeAsset.emoji : null;
-  const awayFlagEmoji = awayAsset?.isCountry && awayAsset?.emoji ? awayAsset.emoji : null;
+  const espHome = useMemo(() => resolveEsportsTeam(displayTeam1), [displayTeam1]);
+  const espAway = useMemo(() => resolveEsportsTeam(displayTeam2), [displayTeam2]);
+
+  // Chỉ ưu tiên cờ quốc gia khi thực sự là Đội tuyển quốc gia (isCountry: true) VÀ KHÔNG PHẢI Esports
+  const homeFlagEmoji = !isEsports && !espHome && homeAsset?.isCountry && homeAsset?.emoji ? homeAsset.emoji : null;
+  const awayFlagEmoji = !isEsports && !espAway && awayAsset?.isCountry && awayAsset?.emoji ? awayAsset.emoji : null;
 
   const rawHome =
     match.homeLogo &&
@@ -221,7 +226,7 @@ function MatchCardInner({ match, isSelected, onSelect, score, compact }: MatchCa
     !match.homeLogo.includes("tinhlagi.pro/logo.jpg")
       ? match.homeLogo
       : null;
-  const assetHome = homeAsset?.logo || null;
+  const assetHome = espHome?.logo || homeAsset?.logo || null;
   const preferredHome = assetHome || rawHome;
 
   let homeLogoSrc: string | null = null;
@@ -247,7 +252,7 @@ function MatchCardInner({ match, isSelected, onSelect, score, compact }: MatchCa
     !match.awayLogo.includes("tinhlagi.pro/logo.jpg")
       ? match.awayLogo
       : null;
-  const assetAway = awayAsset?.logo || null;
+  const assetAway = espAway?.logo || awayAsset?.logo || null;
   const preferredAway = assetAway || rawAway;
 
   let awayLogoSrc: string | null = null;
