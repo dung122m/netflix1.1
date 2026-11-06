@@ -366,6 +366,7 @@ export interface TmdbImageLogo {
   file_path: string;
   vote_average: number;
   vote_count: number;
+
   width: number;
 }
 
