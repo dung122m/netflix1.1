@@ -37,7 +37,7 @@ export const MovieCastGallery: React.FC<MovieCastGalleryProps> = ({
     if (cast && cast.length > 0) {
       return cast.map((c) => {
         const slug = toActorSlug(c.name);
-        const href = typeof c.id === "number" ? `/dien-vien/${slug}?id=${c.id}` : `/dien-vien/${slug}`;
+        const href = typeof c.id === "number" ? `/dien-vien/${c.id}-${slug}` : `/dien-vien/${slug}`;
         return {
           id: c.id,
           name: c.name,

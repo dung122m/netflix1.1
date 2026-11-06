@@ -1013,7 +1013,10 @@ export function buildActorAggregationPipeline(
  * - TIER 2: Smart In-memory Cache L1 (0ms cho các truy vấn đã phân giải trong 7 ngày).
  * - TIER 3: Fast AI Router (Qwen / Groq / Gemini) phân giải ĐỘNG mọi diễn viên/đạo diễn khác trên thế giới (~500ms).
  */
-export async function resolveActorMovies(keyword: string): Promise<{
+export async function resolveActorMovies(
+  keyword: string,
+  options?: { skipAiFallback?: boolean }
+): Promise<{
   actorName: string;
   country?: string;
   aliases: string[];
@@ -1111,6 +1114,15 @@ export async function resolveActorMovies(keyword: string): Promise<{
   } catch {}
 
   // 1.3 TIER 3: Phân tích trực tiếp qua Fast AI (Smart Provider Router)
+  if (options?.skipAiFallback) {
+    return {
+      actorName: "",
+      aliases: [],
+      isActor: false,
+      source: "none",
+    };
+  }
+
   try {
     const promptText = `Bạn là Chuyên gia Bách khoa Toàn thư Điện ảnh thế giới (IMDb & TMDB Cast Directory Engine).
 Phân tích từ khóa tìm kiếm: "${keyword}" (tên rút gọn: "${normalizedQuery}").

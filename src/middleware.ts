@@ -197,6 +197,37 @@ export function middleware(req: NextRequest) {
     return originBlock;
   }
 
+  // 4.1 Chuẩn hóa URL trang diễn viên: Chuyển hướng 308 vĩnh viễn từ /dien-vien/:slug?id=:id sang /dien-vien/:id-:slug
+  // Loại bỏ hoàn toàn query param ?id= để Next.js ISR / Edge Cache hoạt động 100% không bị Dynamic Rendering
+  if (pathname.startsWith("/dien-vien/")) {
+    const rawId = req.nextUrl.searchParams.get("id")?.trim();
+    if (rawId && /^\d+$/.test(rawId)) {
+      const rawSlug = pathname.slice("/dien-vien/".length).trim();
+      if (rawSlug) {
+        let cleanNameSlug = rawSlug;
+        const prefixMatch = cleanNameSlug.match(/^(\d+)(?:-(.*))?$/);
+        if (prefixMatch) {
+          cleanNameSlug = prefixMatch[2] || "";
+        } else {
+          const suffixMatch = cleanNameSlug.match(/^(.*?)-(\d+)$/);
+          if (suffixMatch) {
+            cleanNameSlug = suffixMatch[1];
+          }
+        }
+
+        const canonicalSlug = cleanNameSlug ? `${rawId}-${cleanNameSlug}` : rawId;
+        const nextUrl = req.nextUrl.clone();
+        nextUrl.pathname = `/dien-vien/${canonicalSlug}`;
+        nextUrl.searchParams.delete("id");
+
+        const redirectRes = NextResponse.redirect(nextUrl, 308);
+        redirectRes.headers.set("X-Request-Id", requestId);
+        redirectRes.headers.set("Cache-Control", "public, max-age=86400, s-maxage=86400");
+        return redirectRes;
+      }
+    }
+  }
+
   // 5. Cho phép request tiếp tục và gắn Security Headers
   const response = NextResponse.next();
 

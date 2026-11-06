@@ -37,39 +37,30 @@ import { ActorAvatar } from "@/components/actors/ActorAvatar";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
-  searchParams?: Promise<{ id?: string }>;
 }
 
 /**
- * Phân tích slug và query params để trích xuất TMDb Person ID (nếu có) và tên diễn viên.
- * Hỗ trợ các định dạng:
- * 1. /dien-vien/sydney-sweeney?id=115440
- * 2. /dien-vien/115440-sydney-sweeney
- * 3. /dien-vien/115440
- * 4. /dien-vien/sydney-sweeney
+ * Phân tích slug để trích xuất TMDb Person ID (nếu có) và tên diễn viên.
+ * Hỗ trợ các định dạng URL tĩnh tối ưu cho ISR / Edge Cache:
+ * 1. /dien-vien/115440-sydney-sweeney (Tiền tố ID chuẩn)
+ * 2. /dien-vien/sydney-sweeney-115440 (Hậu tố ID)
+ * 3. /dien-vien/115440 (Chỉ có ID)
+ * 4. /dien-vien/sydney-sweeney (Chỉ có slug tên)
  */
-function parseActorIdentifier(slug: string, queryId?: string): {
+function parseActorIdentifier(slug: string): {
   personId?: number;
   rawName: string;
 } {
   let personId: number | undefined = undefined;
-  if (queryId && /^\d+$/.test(queryId.trim())) {
-    personId = parseInt(queryId.trim(), 10);
-  }
-
   let cleanSlug = (slug || "").trim();
   const prefixMatch = cleanSlug.match(/^(\d+)(?:-(.*))?$/);
   if (prefixMatch) {
-    if (!personId) {
-      personId = parseInt(prefixMatch[1], 10);
-    }
+    personId = parseInt(prefixMatch[1], 10);
     cleanSlug = prefixMatch[2] || "";
   } else {
     const suffixMatch = cleanSlug.match(/^(.*?)-(\d+)$/);
     if (suffixMatch) {
-      if (!personId) {
-        personId = parseInt(suffixMatch[2], 10);
-      }
+      personId = parseInt(suffixMatch[2], 10);
       cleanSlug = suffixMatch[1];
     }
   }
@@ -115,8 +106,8 @@ function formatDate(dateStr?: string): string | null {
  * Request-scoped memoized actor profile resolver (React cache).
  * Loại bỏ hoàn toàn Double GET giữa generateMetadata() và ActorDetailPage() trong cùng 1 request SSR.
  */
-const resolveActorProfile = cache(async (slug: string, queryId?: string) => {
-  const { personId: explicitPersonId, rawName } = parseActorIdentifier(slug, queryId);
+const resolveActorProfile = cache(async (slug: string) => {
+  const { personId: explicitPersonId, rawName } = parseActorIdentifier(slug);
 
   // 1. Phân giải danh tính nghệ sĩ On-Demand
   const historicalItem = getHistoricalArtistBySlug(slug) || (rawName ? getHistoricalArtistBySlug(rawName) : undefined);
@@ -124,17 +115,19 @@ const resolveActorProfile = cache(async (slug: string, queryId?: string) => {
 
   let tmdbPersonId = explicitPersonId || historicalItem?.tmdbPersonId;
 
-  const actorRes = actorSynonyms?.isMatched
-    ? {
-        actorName: actorSynonyms.canonicalName,
-        country: actorSynonyms.country,
-        aliases: actorSynonyms.variants,
-        isActor: true,
-        source: "preset" as const,
-      }
-    : rawName
-    ? await resolveActorMovies(rawName)
-    : null;
+  // Nếu đã có tmdbPersonId rõ ràng, bỏ qua resolveActorMovies để triệt tiêu gọi AI/LLM thừa
+  let actorRes = null;
+  if (actorSynonyms?.isMatched) {
+    actorRes = {
+      actorName: actorSynonyms.canonicalName,
+      country: actorSynonyms.country,
+      aliases: actorSynonyms.variants,
+      isActor: true,
+      source: "preset" as const,
+    };
+  } else if (!tmdbPersonId && rawName) {
+    actorRes = await resolveActorMovies(rawName, { skipAiFallback: true });
+  }
 
   let canonicalName =
     historicalItem?.name ||
@@ -196,10 +189,9 @@ const resolveActorProfile = cache(async (slug: string, queryId?: string) => {
   };
 });
 
-export async function generateMetadata({ params, searchParams }: PageProps): Promise<Metadata> {
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params;
-  const query = searchParams ? await searchParams : undefined;
-  const profile = await resolveActorProfile(slug, query?.id);
+  const profile = await resolveActorProfile(slug);
   const actorName = profile.canonicalName || profile.rawName;
 
   return {
@@ -212,9 +204,8 @@ export async function generateMetadata({ params, searchParams }: PageProps): Pro
   };
 }
 
-export default async function ActorDetailPage({ params, searchParams }: PageProps) {
+export default async function ActorDetailPage({ params }: PageProps) {
   const { slug } = await params;
-  const query = searchParams ? await searchParams : undefined;
   const {
     canonicalName,
     actorAliases,
@@ -223,7 +214,7 @@ export default async function ActorDetailPage({ params, searchParams }: PageProp
     actorRes,
     matchedPreset,
     tmdbDetail,
-  } = await resolveActorProfile(slug, query?.id);
+  } = await resolveActorProfile(slug);
 
   // 3. Tra cứu thông tin bổ trợ từ Wikipedia và Danh sách phim
   const wikiProfilePromise = canonicalName ? fetchActorProfile(canonicalName) : Promise.resolve(null);
