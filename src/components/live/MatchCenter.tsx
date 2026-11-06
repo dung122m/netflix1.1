@@ -660,7 +660,7 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
                           tabIndex={0}
                           type="button"
                           onClick={() => setActiveTab(tab.id as TabType)}
-                          className={`flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer outline-none focus-visible:bg-white/10 min-h-[40px] sm:min-h-[44px] ${
+                          className={`flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all shrink-0 whitespace-nowrap cursor-pointer outline-none focus-visible:bg-white/10 min-h-[40px] sm:min-h-[44px] ${
                             isActive
                               ? "bg-gradient-to-r from-netflix-red to-netflix-red/85 text-white shadow-md shadow-[var(--accent-glow)] font-black scale-[1.02]"
                               : "text-zinc-400 hover:text-white hover:bg-white/5 bg-zinc-900/70 "

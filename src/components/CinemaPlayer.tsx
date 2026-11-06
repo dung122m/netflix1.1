@@ -34,7 +34,6 @@ import {
   YouTubeVolumeLowIcon,
   YouTubeVolumeMuteIcon,
 } from "./player/PlayerNativeControls";
-import { PlayerActionButtons } from "./player/PlayerActionButtons";
 import { PlayerShortcutModal } from "./player/PlayerShortcutModal";
 import {
   detectAdBoundaries,
@@ -3206,26 +3205,6 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
         </div>
       </div>
 
-      {/* ISOLATED ACTION BUTTONS BAR (DESKTOP ONLY CHO PHIM BỘ) */}
-      {!isFullscreen && (effectivePrevEpisode || effectiveNextEpisode) && (
-        <div
-          className={`cinema-action-buttons w-full mx-auto relative z-30 hidden sm:block sm:mt-4 ${
-            isTheaterMode ? "max-w-none px-2 sm:px-4" : "max-w-7xl px-2 sm:px-0"
-          }`}
-        >
-          <PlayerActionButtons
-            isTheaterMode={isTheaterMode}
-            onToggleTheaterMode={() => setIsTheaterMode((prev) => !prev)}
-            isFullscreen={isFullscreen}
-            onToggleFullscreen={toggleFullscreen}
-            onOpenShortcuts={() => setShowShortcutModal(true)}
-            prevEpisode={effectivePrevEpisode}
-            nextEpisode={effectiveNextEpisode}
-            onSwitchEpisode={switchEpisode}
-            isSticky={false}
-          />
-        </div>
-      )}
 
       <style>{`
         :fullscreen,

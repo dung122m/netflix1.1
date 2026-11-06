@@ -307,7 +307,7 @@ export const DualTeamPitch: React.FC<DualTeamPitchProps> = ({
           <button
             type="button"
             onClick={() => setMobileTeamTab("home")}
-            className={`flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl text-xs transition cursor-pointer ${
+            className={`flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl text-xs transition cursor-pointer whitespace-nowrap min-w-0 ${
               mobileTeamTab === "home"
                 ? "bg-[#dc2626] text-white font-black shadow-md"
                 : "text-zinc-400 hover:text-white font-semibold"
@@ -325,7 +325,7 @@ export const DualTeamPitch: React.FC<DualTeamPitchProps> = ({
           <button
             type="button"
             onClick={() => setMobileTeamTab("away")}
-            className={`flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl text-xs transition cursor-pointer ${
+            className={`flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl text-xs transition cursor-pointer whitespace-nowrap min-w-0 ${
               mobileTeamTab === "away"
                 ? "bg-[#0284c7] text-white font-black shadow-md"
                 : "text-zinc-400 hover:text-white font-semibold"

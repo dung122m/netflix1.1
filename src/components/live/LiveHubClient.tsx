@@ -188,7 +188,7 @@ export function LiveHubClient({ footballData, tvData: initialTvData }: LiveHubCl
               role="tab"
               aria-selected={false}
               onClick={() => handleTabChange("sports")}
-              className="flex items-center justify-center gap-1 sm:gap-1.5 px-2.5 sm:px-3.5 py-1.5 min-h-[34px] sm:min-h-[36px] rounded-md text-[11px] sm:text-xs font-black transition-all cursor-pointer outline-none shrink-0 text-zinc-400 hover:text-white hover:bg-white/5"
+              className="flex items-center justify-center gap-1 sm:gap-1.5 px-2.5 sm:px-3.5 py-1.5 min-h-[34px] sm:min-h-[36px] rounded-md text-[11px] sm:text-xs font-black transition-all cursor-pointer outline-none shrink-0 whitespace-nowrap text-zinc-400 hover:text-white hover:bg-white/5"
             >
               <Trophy className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0" aria-hidden="true" />
               <span>Thể Thao</span>
@@ -202,7 +202,7 @@ export function LiveHubClient({ footballData, tvData: initialTvData }: LiveHubCl
               role="tab"
               aria-selected={true}
               onClick={() => handleTabChange("tv")}
-              className="flex items-center justify-center gap-1 sm:gap-1.5 px-2.5 sm:px-3.5 py-1.5 min-h-[34px] sm:min-h-[36px] rounded-md text-[11px] sm:text-xs font-black transition-all cursor-pointer outline-none shrink-0 bg-gradient-to-r from-sky-600 to-blue-600 text-white shadow-md shadow-black/40"
+              className="flex items-center justify-center gap-1 sm:gap-1.5 px-2.5 sm:px-3.5 py-1.5 min-h-[34px] sm:min-h-[36px] rounded-md text-[11px] sm:text-xs font-black transition-all cursor-pointer outline-none shrink-0 whitespace-nowrap bg-gradient-to-r from-sky-600 to-blue-600 text-white shadow-md shadow-black/40"
             >
               <Tv className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-sky-200" aria-hidden="true" />
               <span>Truyền Hình</span>
@@ -248,7 +248,7 @@ export function LiveHubClient({ footballData, tvData: initialTvData }: LiveHubCl
               role="tab"
               aria-selected={true}
               onClick={() => handleTabChange("sports")}
-              className="flex items-center justify-center gap-1 sm:gap-1.5 px-2.5 sm:px-4 md:px-5 py-1.5 sm:py-2 min-h-[36px] rounded-md sm:rounded-lg text-[11px] sm:text-xs font-black transition-all cursor-pointer outline-none shrink-0 focus-visible:ring-2 focus-visible:ring-netflix-red bg-gradient-to-r from-netflix-red to-netflix-red/85 text-white shadow-md shadow-black/40"
+              className="flex items-center justify-center gap-1 sm:gap-1.5 px-2.5 sm:px-4 md:px-5 py-1.5 sm:py-2 min-h-[36px] rounded-md sm:rounded-lg text-[11px] sm:text-xs font-black transition-all cursor-pointer outline-none shrink-0 whitespace-nowrap focus-visible:ring-2 focus-visible:ring-netflix-red bg-gradient-to-r from-netflix-red to-netflix-red/85 text-white shadow-md shadow-black/40"
             >
               <Trophy className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0" aria-hidden="true" />
               <span>Thể Thao</span>
@@ -262,7 +262,7 @@ export function LiveHubClient({ footballData, tvData: initialTvData }: LiveHubCl
               role="tab"
               aria-selected={false}
               onClick={() => handleTabChange("tv")}
-              className="flex items-center justify-center gap-1 sm:gap-1.5 px-2.5 sm:px-4 md:px-5 py-1.5 sm:py-2 min-h-[36px] rounded-md sm:rounded-lg text-[11px] sm:text-xs font-black transition-all cursor-pointer outline-none shrink-0 focus-visible:ring-2 focus-visible:ring-sky-500 text-zinc-400 hover:text-white hover:bg-white/5"
+              className="flex items-center justify-center gap-1 sm:gap-1.5 px-2.5 sm:px-4 md:px-5 py-1.5 sm:py-2 min-h-[36px] rounded-md sm:rounded-lg text-[11px] sm:text-xs font-black transition-all cursor-pointer outline-none shrink-0 whitespace-nowrap focus-visible:ring-2 focus-visible:ring-sky-500 text-zinc-400 hover:text-white hover:bg-white/5"
             >
               <Tv className="w-3 h-3 sm:w-3.5 sm:h-4 shrink-0 text-zinc-400" aria-hidden="true" />
               <span>Truyền Hình</span>

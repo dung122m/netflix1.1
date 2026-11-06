@@ -594,7 +594,7 @@ function UserProfileModalInner({
           <button
             type="button"
             onClick={() => setActiveTab("profile")}
-            className={`flex items-center justify-center gap-1 sm:gap-1.5 py-2 px-1 sm:px-2 rounded-xl transition cursor-pointer min-w-0 ${activeTab === "profile"
+            className={`flex items-center justify-center gap-1 sm:gap-1.5 py-2 px-1 sm:px-2 rounded-xl transition cursor-pointer min-w-0 whitespace-nowrap ${activeTab === "profile"
               ? "bg-netflix-red text-white shadow-md shadow-black/50"
               : "text-zinc-400 hover:text-white hover:bg-white/5"
               }`}
@@ -609,7 +609,7 @@ function UserProfileModalInner({
           <button
             type="button"
             onClick={() => setActiveTab("player_settings")}
-            className={`flex items-center justify-center gap-1 sm:gap-1.5 py-2 px-1 sm:px-2 rounded-xl transition cursor-pointer min-w-0 ${activeTab === "player_settings"
+            className={`flex items-center justify-center gap-1 sm:gap-1.5 py-2 px-1 sm:px-2 rounded-xl transition cursor-pointer min-w-0 whitespace-nowrap ${activeTab === "player_settings"
               ? "bg-netflix-red text-white shadow-md shadow-black/50"
               : "text-zinc-400 hover:text-white hover:bg-white/5"
               }`}
@@ -624,7 +624,7 @@ function UserProfileModalInner({
           <button
             type="button"
             onClick={() => setActiveTab("comments")}
-            className={`flex items-center justify-center gap-1 sm:gap-1.5 py-2 px-1 sm:px-2 rounded-xl transition cursor-pointer min-w-0 ${activeTab === "comments"
+            className={`flex items-center justify-center gap-1 sm:gap-1.5 py-2 px-1 sm:px-2 rounded-xl transition cursor-pointer min-w-0 whitespace-nowrap ${activeTab === "comments"
               ? "bg-netflix-red text-white shadow-md shadow-black/50"
               : "text-zinc-400 hover:text-white hover:bg-white/5"
               }`}

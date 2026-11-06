@@ -1814,7 +1814,7 @@ export function TacticalLineup({
             type="button"
             onClick={() => setViewMode("pitch")}
             aria-label="Xem sơ đồ sân cỏ"
-            className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+            className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
               viewMode === "pitch"
                 ? "bg-white/15 text-white shadow-sm"
                 : "text-zinc-400 hover:text-white"
@@ -1828,7 +1828,7 @@ export function TacticalLineup({
             type="button"
             onClick={() => setViewMode("list")}
             aria-label="Xem danh sách bảng"
-            className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+            className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
               viewMode === "list"
                 ? "bg-white/15 text-white shadow-sm"
                 : "text-zinc-400 hover:text-white"
@@ -1846,10 +1846,10 @@ export function TacticalLineup({
               type="button"
               onClick={() => setTokenDisplayMode("badge")}
               aria-label="Hiện số áo tròn Flat Matte"
-              className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+              className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
                 tokenDisplayMode === "badge"
-                  ? "bg-white/20 text-white shadow-sm  font-black"
-                  : "text-zinc-400 hover:text-white  font-medium"
+                  ? "bg-white/20 text-white shadow-sm font-black"
+                  : "text-zinc-400 hover:text-white font-medium"
               }`}
             >
               <CircleDot className="w-3.5 h-3.5" />
@@ -1860,10 +1860,10 @@ export function TacticalLineup({
               type="button"
               onClick={() => setTokenDisplayMode("jersey")}
               aria-label="Hiện áo đấu vector"
-              className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+              className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
                 tokenDisplayMode === "jersey"
-                  ? "bg-white/20 text-white shadow-sm  font-black"
-                  : "text-zinc-400 hover:text-white  font-medium"
+                  ? "bg-white/20 text-white shadow-sm font-black"
+                  : "text-zinc-400 hover:text-white font-medium"
               }`}
             >
               <Shirt className="w-3.5 h-3.5" />

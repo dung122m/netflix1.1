@@ -687,13 +687,13 @@ export function ProfileClient() {
           >
             <History className="w-4 h-4 text-netflix-red mb-1 group-hover:scale-110 transition-transform" />
             <span className="text-base sm:text-lg font-black text-white tabular-nums">{watchHistoryCount}</span>
-            <span className="text-[11px] text-zinc-400 font-medium">Lịch sử xem</span>
+            <span className="text-[11px] text-zinc-400 font-medium whitespace-nowrap">Lịch sử xem</span>
           </Link>
 
           <div className="p-3 rounded-2xl bg-white/[0.03] border border-white/5 flex flex-col items-center justify-center text-center">
             <Flame className="w-4 h-4 text-amber-400 mb-1" />
             <span className="text-base sm:text-lg font-black text-white tabular-nums">{watchHours}h</span>
-            <span className="text-[11px] text-zinc-400 font-medium">Thời gian cày</span>
+            <span className="text-[11px] text-zinc-400 font-medium whitespace-nowrap">Thời gian cày</span>
           </div>
 
           <Link
@@ -702,7 +702,7 @@ export function ProfileClient() {
           >
             <Bookmark className="w-4 h-4 text-sky-400 mb-1 group-hover:scale-110 transition-transform" />
             <span className="text-base sm:text-lg font-black text-white tabular-nums">{watchlistCount}</span>
-            <span className="text-[11px] text-zinc-400 font-medium">Phim đã lưu</span>
+            <span className="text-[11px] text-zinc-400 font-medium whitespace-nowrap">Phim đã lưu</span>
           </Link>
 
           <Link
@@ -711,7 +711,7 @@ export function ProfileClient() {
           >
             <FolderHeart className="w-4 h-4 text-pink-400 mb-1 group-hover:scale-110 transition-transform" />
             <span className="text-base sm:text-lg font-black text-white tabular-nums">{collectionsCount}</span>
-            <span className="text-[11px] text-zinc-400 font-medium">Bộ sưu tập</span>
+            <span className="text-[11px] text-zinc-400 font-medium whitespace-nowrap">Bộ sưu tập</span>
           </Link>
 
           <button
@@ -721,52 +721,63 @@ export function ProfileClient() {
           >
             <MessageSquare className="w-4 h-4 text-emerald-400 mb-1 group-hover:scale-110 transition-transform" />
             <span className="text-base sm:text-lg font-black text-white tabular-nums">{userComments.length}</span>
-            <span className="text-[11px] text-zinc-400 font-medium">Đánh giá & Review</span>
+            <span className="text-[11px] text-zinc-400 font-medium whitespace-nowrap">
+              <span className="sm:hidden">Đánh giá</span>
+              <span className="hidden sm:inline">Đánh giá & Review</span>
+            </span>
           </button>
         </div>
       </div>
 
       {/* 4. MODERN TAB SWITCHER */}
-      <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-zinc-900/80 border border-white/10 backdrop-blur-md">
+      <div className="grid grid-cols-3 gap-1 sm:gap-2 p-1 rounded-2xl bg-zinc-900/80 border border-white/10 backdrop-blur-md">
         <button
           type="button"
           onClick={() => handleTabChange("profile")}
-          className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+          className={`flex items-center justify-center gap-1.5 sm:gap-2 py-2.5 px-1.5 sm:px-3 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer whitespace-nowrap min-w-0 ${
             activeTab === "profile"
               ? "bg-netflix-red text-white shadow-lg shadow-netflix-red/20"
               : "text-zinc-400 hover:text-white hover:bg-white/5"
           }`}
         >
           <User className="w-4 h-4 shrink-0" />
-          <span>Hồ Sơ & Danh Hiệu</span>
+          <span className="truncate">
+            <span className="sm:hidden">Hồ Sơ</span>
+            <span className="hidden sm:inline">Hồ Sơ & Danh Hiệu</span>
+          </span>
         </button>
 
         <button
           type="button"
           onClick={() => handleTabChange("player_settings")}
-          className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+          className={`flex items-center justify-center gap-1.5 sm:gap-2 py-2.5 px-1.5 sm:px-3 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer whitespace-nowrap min-w-0 ${
             activeTab === "player_settings"
               ? "bg-netflix-red text-white shadow-lg shadow-netflix-red/20"
               : "text-zinc-400 hover:text-white hover:bg-white/5"
           }`}
         >
           <Sliders className="w-4 h-4 shrink-0" />
-          <span>Cài Đặt Trình Phát Cloud</span>
+          <span className="truncate">
+            <span className="sm:hidden">Trình Phát</span>
+            <span className="hidden sm:inline">Cài Đặt Trình Phát</span>
+          </span>
         </button>
 
         <button
           type="button"
           onClick={() => handleTabChange("comments")}
-          className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+          className={`flex items-center justify-center gap-1.5 sm:gap-2 py-2.5 px-1.5 sm:px-3 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer whitespace-nowrap min-w-0 ${
             activeTab === "comments"
               ? "bg-netflix-red text-white shadow-lg shadow-netflix-red/20"
               : "text-zinc-400 hover:text-white hover:bg-white/5"
           }`}
         >
           <MessageSquare className="w-4 h-4 shrink-0" />
-          <span className="hidden sm:inline">Đánh Giá & Bình Luận</span>
-          <span className="sm:hidden">Đánh Giá</span>
-          <span className="text-xs px-1.5 py-0.2 rounded-full bg-white/20 font-black">
+          <span className="truncate">
+            <span className="sm:hidden">Đánh Giá</span>
+            <span className="hidden sm:inline">Đánh Giá ({userComments.length})</span>
+          </span>
+          <span className="sm:hidden text-xs px-1.5 py-0.2 rounded-full bg-white/20 font-black shrink-0">
             {userComments.length}
           </span>
         </button>

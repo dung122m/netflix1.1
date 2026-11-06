@@ -936,7 +936,7 @@ function AdminDashboardContent() {
           <button
             type="button"
             onClick={() => handleTabChange("comments")}
-            className={`flex items-center gap-1.5 sm:gap-2 px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs font-bold transition cursor-pointer flex-shrink-0 ${activeTab === "comments"
+            className={`flex items-center gap-1.5 sm:gap-2 px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs font-bold transition cursor-pointer flex-shrink-0 whitespace-nowrap ${activeTab === "comments"
                 ? "bg-netflix-red text-white shadow-md shadow-black/50"
                 : "bg-white/5 text-zinc-400 hover:text-white hover:bg-white/10"
               }`}
@@ -956,7 +956,7 @@ function AdminDashboardContent() {
           <button
             type="button"
             onClick={() => handleTabChange("members")}
-            className={`flex items-center gap-1.5 sm:gap-2 px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs font-bold transition cursor-pointer flex-shrink-0 ${activeTab === "members"
+            className={`flex items-center gap-1.5 sm:gap-2 px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs font-bold transition cursor-pointer flex-shrink-0 whitespace-nowrap ${activeTab === "members"
                 ? "bg-netflix-red text-white shadow-md shadow-black/50"
                 : "bg-white/5 text-zinc-400 hover:text-white hover:bg-white/10"
               }`}
@@ -971,7 +971,7 @@ function AdminDashboardContent() {
           <button
             type="button"
             onClick={() => handleTabChange("collections")}
-            className={`flex items-center gap-1.5 sm:gap-2 px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs font-bold transition cursor-pointer flex-shrink-0 ${activeTab === "collections"
+            className={`flex items-center gap-1.5 sm:gap-2 px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs font-bold transition cursor-pointer flex-shrink-0 whitespace-nowrap ${activeTab === "collections"
                 ? "bg-netflix-red text-white shadow-md shadow-black/50"
                 : "bg-white/5 text-zinc-400 hover:text-white hover:bg-white/10"
               }`}
@@ -986,7 +986,7 @@ function AdminDashboardContent() {
           <button
             type="button"
             onClick={() => handleTabChange("analytics")}
-            className={`flex items-center gap-1.5 sm:gap-2 px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs font-bold transition cursor-pointer flex-shrink-0 ${activeTab === "analytics"
+            className={`flex items-center gap-1.5 sm:gap-2 px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs font-bold transition cursor-pointer flex-shrink-0 whitespace-nowrap ${activeTab === "analytics"
                 ? "bg-netflix-red text-white shadow-md shadow-black/50"
                 : "bg-white/5 text-zinc-400 hover:text-white hover:bg-white/10"
               }`}
