@@ -351,15 +351,39 @@ function UserProfileModalInner({
     }
 
     try {
-      const compressedDataUrl = await compressImage(file, 200, 0.85);
-      let finalUrl = compressedDataUrl;
-      if (user?.uid) {
+      let finalUrl = "";
+      if (user) {
         try {
-          const cloudUrl = await uploadAvatarSupabase(user.uid, file);
-          if (cloudUrl) {
-            finalUrl = cloudUrl;
+          const idToken = await user.getIdToken();
+          const formData = new FormData();
+          formData.append("file", file);
+
+          const res = await fetch("/api/user/avatar", {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${idToken}`,
+            },
+            body: formData,
+          });
+
+          const data = await res.json().catch(() => null);
+          if (res.ok && data?.avatarUrl) {
+            finalUrl = data.avatarUrl;
           }
-        } catch { }
+        } catch {}
+      }
+
+      if (!finalUrl) {
+        const compressedDataUrl = await compressImage(file, 200, 0.85);
+        finalUrl = compressedDataUrl;
+        if (user?.uid) {
+          try {
+            const cloudUrl = await uploadAvatarSupabase(user.uid, file);
+            if (cloudUrl) {
+              finalUrl = cloudUrl;
+            }
+          } catch { }
+        }
       }
 
       setCustomAvatarUrl(finalUrl);
@@ -418,6 +442,19 @@ function UserProfileModalInner({
     setIsSaving(true);
     try {
       const finalAvatar = useCustomUrl ? customAvatarUrl.trim() : selectedAvatar;
+      setProfile((prev) =>
+        prev
+          ? {
+              ...prev,
+              displayName: trimmedName,
+              customAvatar: finalAvatar,
+              photoURL: finalAvatar,
+              bio: bio.trim(),
+              favoriteGenres,
+              badges: userBadges,
+            }
+          : null
+      );
       await updateUserProfile(user, user.uid, {
         displayName: trimmedName,
         customAvatar: finalAvatar,

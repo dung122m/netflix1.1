@@ -100,6 +100,8 @@ import {
   getWatchHistorySupabase,
   getWatchlistSupabase,
   getAllDeviceHandoffsSupabase,
+  invalidateUserProfileCache,
+  setProfileMemoryCache,
   type DeviceHandoffItem,
 } from "./supabaseService";
 import { isSupabaseConfigured } from "@/lib/supabase";
@@ -151,36 +153,43 @@ export async function recordUserProfile(user: BaseAuthUser): Promise<void> {
       } catch {}
     }
 
+    const isLocalNewer = Boolean(
+      cached?.updatedAt && remoteProfile?.updatedAt && cached.updatedAt > remoteProfile.updatedAt
+    );
+
+    const primary = isLocalNewer ? cached : (remoteProfile || cached);
+    const secondary = isLocalNewer ? (remoteProfile || cached) : cached;
+
     const mergedDisplayName =
-      cached?.displayName ||
-      remoteProfile?.displayName ||
+      primary?.displayName ||
+      secondary?.displayName ||
       sanitizeSafeText(user.displayName || "Thành viên Nanaflix", 100);
 
     const mergedCustomAvatar =
-      cached?.customAvatar ||
-      remoteProfile?.customAvatar ||
+      primary?.customAvatar ||
+      secondary?.customAvatar ||
       "";
 
     const mergedPhotoURL =
-      cached?.photoURL ||
-      remoteProfile?.photoURL ||
+      primary?.photoURL ||
+      secondary?.photoURL ||
       user.photoURL ||
       "";
 
     const mergedBio =
-      cached?.bio ||
-      remoteProfile?.bio ||
+      primary?.bio ||
+      secondary?.bio ||
       "";
 
     const mergedFavoriteGenres =
-      cached?.favoriteGenres && cached.favoriteGenres.length > 0
-        ? cached.favoriteGenres
-        : remoteProfile?.favoriteGenres || [];
+      primary?.favoriteGenres && primary.favoriteGenres.length > 0
+        ? primary.favoriteGenres
+        : secondary?.favoriteGenres || [];
 
     const mergedBadges =
-      cached?.badges && cached.badges.length > 0
-        ? cached.badges
-        : remoteProfile?.badges || [];
+      primary?.badges && primary.badges.length > 0
+        ? primary.badges
+        : secondary?.badges || [];
 
     // Nguồn dữ liệu chuẩn: Supabase remote profile hoặc cache riêng của chính user.
     // Tuyệt đối không dùng unscoped local watch history để khởi tạo/nâng watchTimeMinutes.
@@ -204,6 +213,7 @@ export async function recordUserProfile(user: BaseAuthUser): Promise<void> {
       lastLoginAt: now,
       role: isAdmin ? "admin" : (remoteProfile?.role || "member"),
       createdAt: remoteProfile?.createdAt || cached?.createdAt || now,
+      updatedAt: Math.max(cached?.updatedAt || 0, remoteProfile?.updatedAt || 0, now),
       watchTimeMinutes: currentWatchMins,
     };
 
@@ -217,8 +227,9 @@ export async function recordUserProfile(user: BaseAuthUser): Promise<void> {
       } catch {}
     }
 
-    // Lưu vào Local cache
+    // Lưu vào Local cache & memory cache
     setCachedUserProfile(user.uid, profileData as Partial<UserProfile>);
+    setProfileMemoryCache(user.uid, profileData as UserProfile);
 
     // Lưu qua Server API có xác thực Firebase Token
     try {
@@ -465,6 +476,23 @@ export function subscribeUserProfile(
       getUserProfileSupabase(userId)
         .then((profile) => {
           if (profile && !isUnsubscribed) {
+            const currentLocal = getCachedUserProfile(userId);
+            if (currentLocal) {
+              const localTime = Number(currentLocal.updatedAt) || 0;
+              const remoteTime = Number(profile.updatedAt) || 0;
+              if (localTime > remoteTime) {
+                const mergedProfile: UserProfile = {
+                  ...profile,
+                  ...currentLocal,
+                  customAvatar: currentLocal.customAvatar || profile.customAvatar,
+                  photoURL: currentLocal.photoURL || profile.photoURL,
+                  displayName: currentLocal.displayName || profile.displayName,
+                };
+                setCachedUserProfile(userId, mergedProfile);
+                onUpdate(mergedProfile);
+                return;
+              }
+            }
             setCachedUserProfile(userId, profile);
             onUpdate(profile);
           }
@@ -554,6 +582,25 @@ export async function updateUserProfile(
 
   // 1. Cập nhật ngay lập tức vào Local cache (Optimistic UI 0ms)
   setCachedUserProfile(userId, payload);
+  invalidateUserProfileCache(userId);
+  setProfileMemoryCache(userId, payload as UserProfile);
+
+  // Cập nhật Firebase Auth profile để photoURL trong AuthContext đồng bộ 100%
+  try {
+    const { auth } = await import("@/lib/firebase");
+    if (
+      auth?.currentUser &&
+      (data.displayName !== undefined || data.customAvatar !== undefined || data.photoURL !== undefined)
+    ) {
+      const { updateProfile } = await import("firebase/auth");
+      const targetPhoto = data.customAvatar || data.photoURL || undefined;
+      const targetName = data.displayName || undefined;
+      await updateProfile(auth.currentUser, {
+        displayName: targetName,
+        photoURL: targetPhoto,
+      }).catch(() => {});
+    }
+  } catch {}
 
   // 2. Lưu qua Server API có xác thực
   try {

@@ -380,8 +380,7 @@ export function ProfileClient() {
       // 4. Lưu trực tiếp vào profile người dùng để đồng bộ ngay lập tức
       if (user?.uid) {
         await updateUserProfile(user, user.uid, {
-          ...(profile || {}),
-          displayName: displayName.trim() || user.displayName || "Thành viên",
+          displayName: displayName.trim() || profile?.displayName || user.displayName || "Thành viên",
           customAvatar: finalUrl,
           photoURL: finalUrl,
           bio: bio.trim(),
@@ -447,6 +446,19 @@ export function ProfileClient() {
     setIsSavingProfile(true);
     try {
       const finalAvatar = useCustomUrl ? customAvatarUrl.trim() : selectedAvatar;
+      setProfile((prev) =>
+        prev
+          ? {
+              ...prev,
+              displayName: trimmedName,
+              customAvatar: finalAvatar,
+              photoURL: finalAvatar,
+              bio: bio.trim(),
+              favoriteGenres,
+              badges: userBadges,
+            }
+          : null
+      );
       await updateUserProfile(user, user.uid, {
         displayName: trimmedName,
         customAvatar: finalAvatar,

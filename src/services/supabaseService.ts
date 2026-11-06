@@ -45,6 +45,18 @@ const profileMemoryCache = new Map<string, { data: UserProfile; expiry: number }
 // In-flight Promise deduplication by userId
 const inFlightProfilePromises = new Map<string, Promise<UserProfile | null>>();
 
+export function invalidateUserProfileCache(userId: string): void {
+  if (!userId) return;
+  profileMemoryCache.delete(userId);
+  inFlightProfilePromises.delete(userId);
+}
+
+export function setProfileMemoryCache(userId: string, profile: UserProfile): void {
+  if (!userId || !profile) return;
+  profileMemoryCache.set(userId, { data: profile, expiry: Date.now() + 30000 });
+  inFlightProfilePromises.delete(userId);
+}
+
 export async function getUserProfileSupabase(userId: string): Promise<UserProfile | null> {
   if (!userId) return null;
 
@@ -83,6 +95,7 @@ export async function getUserProfileSupabase(userId: string): Promise<UserProfil
             isCommentRestricted: Boolean(d.isCommentRestricted),
             createdAt: Number(d.createdAt) || Date.now(),
             lastLoginAt: Number(d.lastLoginAt) || Date.now(),
+            updatedAt: Number(d.updatedAt) || Date.now(),
           };
 
           profileMemoryCache.set(userId, { data: profile, expiry: Date.now() + 30000 });
