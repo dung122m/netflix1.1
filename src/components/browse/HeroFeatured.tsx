@@ -154,7 +154,24 @@ const HeroFeaturedInner: React.FC<{ movies?: HeroMovie[] }> = ({
 
   const heroRef = useRef<HTMLElement>(null);
   const [isHeroVisible, setIsHeroVisible] = useState(true);
+  const [isDocumentVisible, setIsDocumentVisible] = useState(() => {
+    return typeof document !== "undefined" ? !document.hidden : true;
+  });
   const isUserActionRef = useRef(false);
+
+  useEffect(() => {
+    const handleVisibility = () => {
+      setIsDocumentVisible(typeof document !== "undefined" ? !document.hidden : true);
+    };
+    if (typeof document !== "undefined") {
+      document.addEventListener("visibilitychange", handleVisibility);
+    }
+    return () => {
+      if (typeof document !== "undefined") {
+        document.removeEventListener("visibilitychange", handleVisibility);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     const el = heroRef.current;
@@ -258,8 +275,9 @@ const HeroFeaturedInner: React.FC<{ movies?: HeroMovie[] }> = ({
   // Auto-slide: Tự động chuyển slide; trailer không chặn auto-slide
   // Banner có trailer: preview 15–20s (18s: 2s xuất hiện + ~16s trailer) rồi tự chuyển
   // Banner không có trailer / trailer lỗi / chất lượng thấp / mobile: chuyển bình thường sau 6s
+  // Tạm dừng tuyệt đối khi tab không hiển thị (document.hidden) để tránh lãng phí tài nguyên và request ngầm
   useEffect(() => {
-    if (slides.length <= 1 || paused || !isHeroVisible) return;
+    if (slides.length <= 1 || paused || !isHeroVisible || !isDocumentVisible) return;
 
     const isTrailerSlide = isDesktop && Boolean(currentSlug && !failedTrailerMap[currentSlug]);
 
@@ -280,7 +298,7 @@ const HeroFeaturedInner: React.FC<{ movies?: HeroMovie[] }> = ({
     }, slideDuration);
 
     return () => clearTimeout(id);
-  }, [index, slides.length, paused, isHeroVisible, isDesktop, currentSlug, failedTrailerMap]);
+  }, [index, slides.length, paused, isHeroVisible, isDocumentVisible, isDesktop, currentSlug, failedTrailerMap]);
 
 
   // Fetch synopsis tóm tắt nội dung ngay khi slide active, không trì hoãn nhân tạo
@@ -342,8 +360,8 @@ const HeroFeaturedInner: React.FC<{ movies?: HeroMovie[] }> = ({
     isIframeLoadedRef.current = false;
     isVideoPlayingRef.current = false;
 
-    // Mobile / Touch hoặc Hero ra ngoài viewport -> Tuyệt đối không mount trailer
-    if (!isDesktop || !isHeroVisible || !targetSlug) {
+    // Mobile / Touch hoặc Hero ra ngoài viewport / tab bị ẩn -> Tuyệt đối không mount trailer
+    if (!isDesktop || !isHeroVisible || !isDocumentVisible || !targetSlug) {
       return;
     }
 
@@ -399,7 +417,7 @@ const HeroFeaturedInner: React.FC<{ movies?: HeroMovie[] }> = ({
         trailerWatchdogTimerRef.current = null;
       }
     };
-  }, [index, currentSlug, isDesktop, isHeroVisible, slides]);
+  }, [index, currentSlug, isDesktop, isHeroVisible, isDocumentVisible, slides]);
 
   // Lắng nghe thông báo từ YouTube iframe: chỉ fade-in khi video thực sự PLAYING hoặc fallback khi có lỗi
   useEffect(() => {

@@ -23,8 +23,11 @@ export async function GET(req: NextRequest) {
 
     let scores = {};
     try {
-      // Lấy danh sách trận hiện tại từ memory cache của liveFootballService
-      const footballData = await liveFootballService.getFootballMatches();
+      // Ưu tiên đọc từ RAM cache đồng bộ của liveFootballService (0ms, 0 Redis commands)
+      let footballData = liveFootballService.getCachedFootballMatchesSync();
+      if (!footballData?.matches || footballData.matches.length === 0) {
+        footballData = await liveFootballService.getFootballMatches();
+      }
       if (footballData?.matches && footballData.matches.length > 0) {
         scores = buildScoresMap(footballData.matches, events);
       }
@@ -44,7 +47,7 @@ export async function GET(req: NextRequest) {
       },
       {
         headers: {
-          "Cache-Control": "no-cache, no-store, must-revalidate",
+          "Cache-Control": "public, s-maxage=5, stale-while-revalidate=10, max-age=5",
         },
       },
     );

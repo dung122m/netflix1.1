@@ -137,9 +137,9 @@ export async function getTopTrendingCommunitySupabase(
     try {
       const items = await resolveTrendingCommunityInternal(safeLimit, timeframe);
       if (items && items.length > 0) {
-        // Lưu summary nhẹ (~3-5 KB) vào Redis với TTL tối ưu 900s (15 phút)
+        // Lưu summary nhẹ (~3-5 KB) vào Redis với TTL 3600s (1 giờ)
         // Dữ liệu luôn tươi mới tự động mà không cần bắn phá lệnh DEL liên tục
-        await cacheService.set(summaryCacheKey, items, 900).catch(() => {});
+        await cacheService.set(summaryCacheKey, items, 3600).catch(() => {});
       }
       return items;
     } finally {

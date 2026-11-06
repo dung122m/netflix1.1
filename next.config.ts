@@ -130,6 +130,38 @@ const nextConfig: NextConfig = {
         ],
       },
       {
+        // Edge / CDN caching an toàn cho trang chi tiết phim công khai (/movies/:slug)
+        // Cache 1 giờ (3600s), stale-while-revalidate 1 ngày: chống bot crawler quét cạn Redis commands
+        // mà vẫn bảo đảm tập phim và dữ liệu luôn tươi mới, an toàn.
+        source: "/movies/:slug",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, s-maxage=3600, stale-while-revalidate=86400",
+          },
+        ],
+      },
+      {
+        // Edge / CDN caching an toàn cho trang diễn viên công khai (/dien-vien/:slug)
+        source: "/dien-vien/:slug",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, s-maxage=3600, stale-while-revalidate=86400",
+          },
+        ],
+      },
+      {
+        // Edge / CDN caching cho trang duyệt phim / bộ lọc công khai (/browse)
+        source: "/browse",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, s-maxage=1800, stale-while-revalidate=3600",
+          },
+        ],
+      },
+      {
         // Cache search suggest 1 phút
         source: "/api/search-suggest",
         headers: [

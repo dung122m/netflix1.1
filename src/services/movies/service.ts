@@ -752,6 +752,9 @@ async function discoverAndMergeMissingSources(result: any, slug: string) {
 // Mutex map ngăn ngừa gọi Base Movie Detail trùng lặp (giữa generateMetadata và Page component)
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const inFlightDetailBase = new Map<string, Promise<any>>();
+const inFlightStreams = new Map<string, Promise<EpisodeStreamResult[]>>();
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const inFlightGetMovies = new Map<string, Promise<any>>();
 
 const fetchMovieDetailBase = async (
   slug: string,
@@ -784,21 +787,14 @@ const fetchMovieDetailBase = async (
     const rawData = await cacheService.get<MovieDetailCachePayload>(kvKeyV3);
     if (rawData) {
       data = unpackDetailPayload(rawData);
-    }
-
-    // Cơ chế Tự Phục Hồi (Self-Healing Cache):
-    // Nếu cache trước đây bị nhiễm fallback VSMOV trong khi source yêu cầu là mặc định ("any" / Nanaflix),
-    // thử kích hoạt live fetch để khôi phục nguồn phát chuẩn Nanaflix (PhimAPI/NguonC)
-    if (!source && data?.movie?.source === "vsmov") {
-      try {
-        const freshNanaflix = await fetchAndCacheMovieDetail(slug, source, localKey);
-        if (freshNanaflix && freshNanaflix.movie?.source !== "vsmov") {
-          const ttl = Boolean((freshNanaflix as MovieDetailCachePayload)?._isFallback) ? 180 : 7 * 24 * 60 * 60;
-          const compact = toCompactDetailPayload(freshNanaflix, requestedEpisode);
-          await cacheService.set(kvKeyV3, compact, ttl);
-          data = freshNanaflix;
-        }
-      } catch {}
+      // Nạp ngay vào L1 RAM cache khi trúng Redis để các request tiếp theo lấy trong 0ms với 0 lệnh Redis
+      if (data?.movie) {
+        movieDetailMemoryCache.set(localKey, {
+          data,
+          expireAt: now + 600 * 1000,
+          staleUntil: now + 3600 * 1000,
+        });
+      }
     }
 
     if (!data) {
@@ -860,42 +856,55 @@ export async function getEpisodeStream(
     if (streams.length > 0) return streams;
   }
 
-  // 2. Kiểm tra L2 Redis Cache cho tập và server cụ thể (~200 bytes)
+  // 2. Kiểm tra L2 Redis Cache cho tập và server cụ thể (~200 bytes) với Single-Flight Mutex
   const streamKvKey = `movie:stream:v2:${slug}:${serverKey}:${normEp}`;
-  const cachedStreams = await cacheService.get<EpisodeStreamResult[]>(streamKvKey);
-  if (cachedStreams && Array.isArray(cachedStreams) && cachedStreams.length > 0) {
-    return cachedStreams;
+  const existingStreamTask = inFlightStreams.get(streamKvKey);
+  if (existingStreamTask) {
+    return await existingStreamTask;
   }
 
-  // 3. Nạp nguồn trực tiếp từ upstream và lưu cache riêng cho tập này (~200 bytes, KHÔNG đọc payload 1.33MB)
-  try {
-    const freshDetail = await fetchAndCacheMovieDetail(slug, source, localKey);
-    if (freshDetail) {
-      const rawServers: RawServerItem[] = freshDetail.episodes || freshDetail.movie?.episodes || [];
-      const dualServers = filterDualServers(rawServers);
-      const streams: EpisodeStreamResult[] = [];
-      for (const srv of dualServers) {
-        if (serverName && !srv.server_name?.toLowerCase().includes(serverName.toLowerCase())) {
-          continue;
-        }
-        const epList: RawEpisodeItem[] = srv?.server_data || [];
-        const match = findEpisodeMatch(epList, episodeSlug) || findEpisodeMatch(epList, normEp);
-        if (match && (match.link_m3u8 || match.link_embed)) {
-          streams.push({
-            server_name: srv.server_name || "Server",
-            link_embed: match.link_embed || "",
-            link_m3u8: match.link_m3u8 || "",
-          });
-        }
+  const streamTask = (async (): Promise<EpisodeStreamResult[]> => {
+    try {
+      const cachedStreams = await cacheService.get<EpisodeStreamResult[]>(streamKvKey);
+      if (cachedStreams && Array.isArray(cachedStreams) && cachedStreams.length > 0) {
+        return cachedStreams;
       }
-      if (streams.length > 0) {
-        cacheService.set(streamKvKey, streams, 7 * 86400).catch(() => {});
-        return streams;
-      }
-    }
-  } catch {}
 
-  return [];
+      // 3. Nạp nguồn trực tiếp từ upstream và lưu cache riêng cho tập này (~200 bytes, KHÔNG đọc payload 1.33MB)
+      const freshDetail = await fetchAndCacheMovieDetail(slug, source, localKey);
+      if (freshDetail) {
+        const rawServers: RawServerItem[] = freshDetail.episodes || freshDetail.movie?.episodes || [];
+        const dualServers = filterDualServers(rawServers);
+        const streams: EpisodeStreamResult[] = [];
+        for (const srv of dualServers) {
+          if (serverName && !srv.server_name?.toLowerCase().includes(serverName.toLowerCase())) {
+            continue;
+          }
+          const epList: RawEpisodeItem[] = srv?.server_data || [];
+          const match = findEpisodeMatch(epList, episodeSlug) || findEpisodeMatch(epList, normEp);
+          if (match && (match.link_m3u8 || match.link_embed)) {
+            streams.push({
+              server_name: srv.server_name || "Server",
+              link_embed: match.link_embed || "",
+              link_m3u8: match.link_m3u8 || "",
+            });
+          }
+        }
+        if (streams.length > 0) {
+          cacheService.set(streamKvKey, streams, 7 * 86400).catch(() => {});
+          return streams;
+        }
+      }
+      return [];
+    } catch {
+      return [];
+    } finally {
+      inFlightStreams.delete(streamKvKey);
+    }
+  })();
+
+  inFlightStreams.set(streamKvKey, streamTask);
+  return await streamTask;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -955,16 +964,6 @@ async function attachRequestedEpisodeStreams(data: any, requestedEpSlug?: string
 
   return data;
 }
-
-const fetchMovieDetailInternal = async (
-  slug: string,
-  source?: "nguonc" | "ophim" | "vsmov",
-  requestedEpisode?: string,
-) => {
-  const data = await fetchMovieDetailBase(slug, source, requestedEpisode);
-  if (!data) return undefined;
-  return sanitizeMovieDetailEpisodes(await attachRequestedEpisodeStreams(data, requestedEpisode));
-};
 
 async function revalidateMovieDetail(slug: string, source?: "nguonc" | "ophim" | "vsmov", cacheKey?: string) {
   try {
@@ -1182,8 +1181,14 @@ async function fetchAndCacheMovieDetail(slug: string, source?: "nguonc" | "ophim
   }
 }
 
-// Sử dụng React cache để khử trùng lặp giữa generateMetadata và Page Component
-const cachedGetMovieDetail = cache(fetchMovieDetailInternal);
+// Sử dụng React cache để khử trùng lặp Base Movie Detail giữa generateMetadata và Page Component
+// Chuẩn hóa tham số (slug, source || "any") để cả 2 hàm luôn chia sẻ ĐÚNG 1 lượt đọc duy nhất trong 1 request SSR!
+const cachedFetchMovieDetailBase = cache(
+  async (slug: string, source: "nguonc" | "ophim" | "vsmov" | "any" = "any") => {
+    const realSource = source === "any" ? undefined : source;
+    return await fetchMovieDetailBase(slug, realSource);
+  }
+);
 
 // Hàm kiểm tra chính xác loại phim (Khử hoàn toàn việc lẫn lộn phim lẻ / phim bộ / hoạt hình / tv-shows)
 export function isMovieOfType(item: Record<string, unknown>, type: string): boolean {
@@ -2443,22 +2448,44 @@ export const movieApi = {
     // Tuyệt đối không tăng TTL đại trà lên 24 giờ cho toàn bộ catalog list.
     const ttlSeconds = params.keyword ? 86400 : pageNum > 5 ? 7200 : 21600;
 
-    let res = await cacheService.get<Awaited<ReturnType<typeof executeGetMovies>>>(kvKey);
-
-    // Chống nhiễm độc Cache: Nếu cache trả về mảng rỗng cho filter danh mục/quốc gia/loại phim,
-    // coi như cache miss, xóa key hỏng và fetch dữ liệu mới!
-    if (res && (!Array.isArray(res.items) || (res.items.length === 0 && !params.keyword))) {
-      cacheService.delete(kvKey).catch(() => {});
-      res = null;
+    // Single-Flight Mutex: Gom các request đồng thời cho cùng danh mục/trang trên cùng instance
+    const inFlightKey = cacheKey;
+    const existingInFlight = inFlightGetMovies.get(inFlightKey);
+    if (existingInFlight) {
+      return await existingInFlight;
     }
 
-    if (!res) {
-      res = await executeGetMovies(params, cacheKey);
-      if (res && Array.isArray(res.items) && res.items.length > 0) {
-        cacheService.set(kvKey, res, ttlSeconds).catch(() => {});
+    const task = (async () => {
+      try {
+        let res = await cacheService.get<Awaited<ReturnType<typeof executeGetMovies>>>(kvKey);
+
+        // Chống nhiễm độc Cache: Nếu cache trả về mảng rỗng cho filter danh mục/quốc gia/loại phim,
+        // coi như cache miss và fetch dữ liệu mới (KHÔNG gọi lệnh DEL làm tốn commands)
+        if (res && (!Array.isArray(res.items) || (res.items.length === 0 && !params.keyword))) {
+          res = null;
+        }
+
+        if (res) {
+          // Nạp ngay vào L1 RAM cache để các request kế tiếp trên instance này lấy trong 0ms (0 Redis GETs)
+          moviesMemoryCache.set(cacheKey, {
+            data: res,
+            expireAt: now + 300 * 1000,
+            staleUntil: now + 1800 * 1000,
+          });
+        } else {
+          res = await executeGetMovies(params, cacheKey);
+          if (res && Array.isArray(res.items) && res.items.length > 0) {
+            cacheService.set(kvKey, res, ttlSeconds).catch(() => {});
+          }
+        }
+        return sanitizeMovieImages(res);
+      } finally {
+        inFlightGetMovies.delete(inFlightKey);
       }
-    }
-    return sanitizeMovieImages(res);
+    })();
+
+    inFlightGetMovies.set(inFlightKey, task);
+    return await task;
   },
 
   // ==========================================
@@ -2487,8 +2514,24 @@ export const movieApi = {
   // ==========================================
   // 3. CHI TIẾT PHIM (ĐÃ ĐƯỢC CACHE REACT & MEMORY)
   // ==========================================
-  getMovieDetail: async (...args: Parameters<typeof cachedGetMovieDetail>) => {
-    const res = await cachedGetMovieDetail(...args);
+  getMovieDetail: async (
+    slug: string,
+    source?: "nguonc" | "ophim" | "vsmov",
+    requestedEpisode?: string
+  ) => {
+    // 1. Luôn dùng cachedFetchMovieDetailBase với 2 tham số chuẩn hóa (slug, safeSource)
+    // React.cache bảo đảm 100% trong cùng request SSR: generateMetadata(slug) và MovieDetail(slug, undefined, ep)
+    // CHIA SẺ CHÍNH XÁC 1 LẦN ĐỌC DỮ LIỆU DUY NHẤT (0 REDIS GET DƯ THỪA)!
+    const safeSource = source || "any";
+    const baseData = await cachedFetchMovieDetailBase(slug, safeSource);
+    if (!baseData) return undefined;
+
+    // 2. Chỉ gắn stream riêng cho tập khi có requestedEpisode
+    const dataWithStreams = requestedEpisode
+      ? await attachRequestedEpisodeStreams(baseData, requestedEpisode)
+      : baseData;
+
+    const res = sanitizeMovieDetailEpisodes(dataWithStreams);
     return sanitizeMovieImages(res);
   },
   /**
@@ -2498,6 +2541,7 @@ export const movieApi = {
   getMoviesDetailBatch: async (
     slugs: string[],
     source?: "nguonc" | "ophim" | "vsmov"
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
   ): Promise<Record<string, any>> => {
     if (!slugs || slugs.length === 0) return {};
     const uniqueSlugs = Array.from(new Set(slugs.map((s) => s.trim()).filter(Boolean)));

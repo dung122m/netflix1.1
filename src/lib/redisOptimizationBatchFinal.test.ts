@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/ban-ts-comment, @typescript-eslint/no-unused-vars */
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { getRedisPurposeForKey, cacheService } from "./cache";

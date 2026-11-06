@@ -343,8 +343,10 @@ export const Footer: React.FC = () => {
             <Link href="/" className="hover:opacity-90 transition inline-flex items-center">
               <NanaflixBrandLogo />
             </Link>
-            <span className="text-xs text-zinc-400 sm:border-l sm: sm:pl-3">
-              Không gian điện ảnh cá nhân hóa • Không quảng cáo rác
+            <span className="text-[11px] sm:text-xs text-zinc-400 sm:border-l sm:border-white/15 sm:pl-3 tracking-tight sm:tracking-normal">
+              <span className="whitespace-nowrap">Không gian điện ảnh cá nhân hóa</span>
+              {" • "}
+              <span className="whitespace-nowrap">Không quảng cáo rác</span>
             </span>
           </div>
 

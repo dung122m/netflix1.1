@@ -55,6 +55,19 @@ export function _resetRedisClientsForTesting(): void {
   isWarnedUnavailable = false;
 }
 
+export function _setMockRedisClientForTesting(client: Redis | null, purpose: RedisPurpose = "default"): void {
+  if (purpose === "aux") {
+    auxRedisClient = client;
+    isAuxInitChecked = true;
+  } else if (purpose === "live") {
+    liveRedisClient = client;
+    isLiveInitChecked = true;
+  } else {
+    defaultRedisClient = client as Redis | null;
+    isDefaultInitChecked = true;
+  }
+}
+
 /**
  * Phân định nghiệp vụ chính xác cho 3 tài khoản Redis (Tổng 1.5 triệu lệnh/tháng):
  * 

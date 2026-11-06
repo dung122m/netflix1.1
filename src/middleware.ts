@@ -24,6 +24,13 @@ const MALICIOUS_USER_AGENTS = [
   /censys/i,
 ];
 
+// Danh sách các User-Agent cào dữ liệu hung hãn không mong muốn (chặn sớm tại Edge để triệt tiêu tải Redis DB1)
+// Giữ nguyên Googlebot, Bingbot, ClaudeBot và các Verified Bots hợp lệ theo yêu cầu
+const AGGRESSIVE_SCRAPER_USER_AGENTS = [
+  /bytespider/i,
+  /petalbot/i,
+];
+
 // Danh sách các đường dẫn dò quét lỗ hổng phổ biến của botnet
 const BLOCKED_PATH_PATTERNS = [
   /^\/\.env(\..*)?$/i,
@@ -170,6 +177,19 @@ export function middleware(req: NextRequest) {
     }
   }
 
+  // 3.1 Chặn các bot cào dữ liệu hung hãn không mong muốn (tiết kiệm 100% Redis commands)
+  for (const scraperPattern of AGGRESSIVE_SCRAPER_USER_AGENTS) {
+    if (scraperPattern.test(userAgent)) {
+      return new NextResponse("Forbidden Access - Automated Scraper Disallowed", {
+        status: 403,
+        headers: {
+          "X-Content-Type-Options": "nosniff",
+          "X-Request-Id": requestId,
+        },
+      });
+    }
+  }
+
   // 4. Kiểm tra bảo vệ Origin (Chống bypass Cloudflare qua *.vercel.app)
   const originBlock = checkOriginProtection(req);
   if (originBlock) {
@@ -189,13 +209,19 @@ export function middleware(req: NextRequest) {
     "camera=(), microphone=(), geolocation=(), browsing-topics=()"
   );
 
-  // 5. Ngăn chặn tuyệt đối CDN / Cache proxy lưu dữ liệu người dùng riêng tư
-  const isPrivateApi =
+  // 5. Ngăn chặn tuyệt đối CDN / Cache proxy lưu dữ liệu người dùng riêng tư hoặc trang quản trị/cá nhân
+  const isPrivateResource =
     pathname.startsWith("/api/user/") ||
     pathname.startsWith("/api/notifications") ||
-    pathname.startsWith("/api/admin/");
+    pathname.startsWith("/api/admin/") ||
+    pathname.startsWith("/admin") ||
+    pathname.startsWith("/profile") ||
+    pathname.startsWith("/my-list");
 
-  if (isPrivateApi) {
+  // Nếu request có Authorization header hoặc truy cập tài nguyên riêng tư, buộc no-store
+  const hasAuthHeader = req.headers.has("authorization");
+
+  if (isPrivateResource || hasAuthHeader) {
     response.headers.set(
       "Cache-Control",
       "private, no-cache, no-store, max-age=0, must-revalidate"
@@ -203,6 +229,15 @@ export function middleware(req: NextRequest) {
     response.headers.set("Pragma", "no-cache");
     response.headers.set("CDN-Cache-Control", "no-store");
     response.headers.set("Vercel-CDN-Cache-Control", "no-store");
+    response.headers.set("Cloudflare-CDN-Cache-Control", "no-store");
+  }
+
+  // 6. Bảo vệ RSC flight stream: Tuyệt đối không để CDN / Cloudflare Edge lưu cache RSC payload
+  // Tránh nguy cơ trả nhầm text/x-component cho người dùng truy cập HTML hoặc ngược lại
+  const isRscRequest = req.headers.get("rsc") === "1" || req.nextUrl.searchParams.has("_rsc");
+  if (isRscRequest) {
+    response.headers.set("CDN-Cache-Control", "no-store");
+    response.headers.set("Cloudflare-CDN-Cache-Control", "no-store");
   }
 
   return response;

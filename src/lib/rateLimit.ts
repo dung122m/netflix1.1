@@ -728,16 +728,8 @@ export async function checkRateLimit(
 ): Promise<RateLimitResult> {
   const now = Date.now();
   const windowMs = config.windowSeconds * 1000;
-  const windowStart = now - windowMs;
   const envPrefix = getRateLimitEnvPrefix();
   const key = `sec:rl:${envPrefix}:${config.namespace}:${target}`;
-
-  // Calibrated timeout budget:
-  // - Explicit config.timeoutMs takes highest priority.
-  // - Otherwise: 500ms for sensitive fail-closed endpoints (AUTH, AI, MUTATION) to ensure distributed consistency.
-  // - 350ms for fail-open public endpoints (PUBLIC_READ, SEARCH, STREAMING) to absorb cold TLS handshakes (~200-240ms) without false timeouts, while failing open quickly.
-  const defaultTimeoutMs = config.failClosed ? 500 : 350;
-  const timeoutMs = config.timeoutMs ?? defaultTimeoutMs;
 
   // 0. Check Ephemeral Suspicious Target Block (Anti-Abuse / Brute-force Lockout)
   const suspiciousBlockedKey = `sec:blocked:${envPrefix}:${target}`;

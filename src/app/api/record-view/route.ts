@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { recordMovieViewSupabase } from "@/services/communityWatchService";
-import { invalidateTrendingCache } from "@/app/api/trending-community/route";
 import {
   enforceRateLimit,
   buildRateLimitResponse,
@@ -71,10 +70,8 @@ export async function POST(req: NextRequest) {
       console.warn("[record-view API] Lỗi ghi watch_history:", err);
     });
 
-    // 4. Invalidate bộ nhớ RAM server cache để BXH cập nhật tức thì
-    try {
-      invalidateTrendingCache();
-    } catch {}
+    // Không xóa cache Trending trên mỗi lượt xem (tránh gây bão Redis DEL và tái tạo cache liên tục)
+    // Dữ liệu Trending được làm mới định kỳ có kiểm soát theo TTL 15 phút
 
     return NextResponse.json({ success: true });
   } catch (err) {

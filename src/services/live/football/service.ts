@@ -3676,6 +3676,17 @@ export const liveFootballService = {
       return fallbackData;
     }
   },
+
+  /**
+   * Lấy dữ liệu danh sách trận đấu tức thì từ bộ nhớ đệm RAM (0ms latency, ZERO Redis commands)
+   */
+  getCachedFootballMatchesSync: (): LiveFootballData | null => {
+    const now = Date.now();
+    if (memoryCache && memoryCache.staleUntil > now) {
+      return filterLiveMatchesSnapshot(memoryCache.data, now);
+    }
+    return null;
+  },
 };
 
 

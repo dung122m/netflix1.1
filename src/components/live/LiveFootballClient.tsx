@@ -272,7 +272,6 @@ export function LiveFootballClient({
     const isReturningFromInactive = !wasActiveScoresRef.current;
     wasActiveScoresRef.current = true;
 
-    let initialTimer: NodeJS.Timeout | null = null;
     if (isReturningFromInactive) {
       // Khi tab bóng đá active trở lại: fetch ngay lập tức để cập nhật tỷ số mới nhất
       fetchScores();
@@ -306,7 +305,6 @@ export function LiveFootballClient({
     return () => {
       isEffectActive = false;
       abortController.abort();
-      if (initialTimer) clearTimeout(initialTimer);
       clearInterval(interval);
       if (typeof document !== "undefined") {
         document.removeEventListener("visibilitychange", handleVisibilityChange);

@@ -2,9 +2,6 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import {
   evaluateEventLifecycle,
-  SPORT_NORMAL_DURATION_MS,
-  SPORT_EXTENDED_BUFFER_MS,
-  SPORT_SAFETY_CEILINGS_MS,
 } from "./lifecycleEngine";
 import {
   filterLiveMatchesSnapshot,
