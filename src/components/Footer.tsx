@@ -404,16 +404,6 @@ export const Footer: React.FC = () => {
             </div>
           </Link>
         </div>
-
-        {/* Security Honeypot Trap: Tự động phát hiện và bẫy crawler/scraper cào mã nguồn HTML */}
-        <div
-          className="absolute opacity-0 pointer-events-none -z-50 w-0 h-0 overflow-hidden"
-          aria-hidden="true"
-        >
-          <Link href="/api/v1/bot-trap" rel="nofollow" tabIndex={-1}>
-            Nanaflix Internal Directory Index
-          </Link>
-        </div>
       </div>
     </footer>
   );

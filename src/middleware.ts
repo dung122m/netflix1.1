@@ -59,10 +59,6 @@ const AGGRESSIVE_SCRAPER_USER_AGENTS = [
   /puppeteer/i,
 ];
 
-// Bẫy Honeypot ngầm: Tự động lưu và chặn IP crawler trong 24 giờ (In-Memory, 0ms, 0 Redis commands)
-const EDGE_HONEYPOT_BANS = new Map<string, number>();
-const MAX_HONEYPOT_BANS = 10000;
-
 // In-Memory Multi-Tier Edge Rate Limiter (Bảo vệ toàn diện, 0 Redis commands)
 interface EdgeRateLimitRecord {
   count: number;
@@ -199,37 +195,6 @@ export function middleware(req: NextRequest) {
     req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
     req.headers.get("x-real-ip") ||
     "unknown";
-
-  // 0. Bẫy Honeypot: Kiểm tra IP trong danh sách đen tự động (Blacklisted 24 giờ)
-  const banExpiresAt = EDGE_HONEYPOT_BANS.get(clientIp);
-  if (banExpiresAt) {
-    if (banExpiresAt > Date.now()) {
-      return new NextResponse("Access Denied - Security Trap Triggered", {
-        status: 403,
-        headers: {
-          "X-Content-Type-Options": "nosniff",
-          "Cache-Control": "private, no-cache, no-store, max-age=0, must-revalidate",
-        },
-      });
-    }
-    EDGE_HONEYPOT_BANS.delete(clientIp);
-  }
-
-  // 0.1 Bẫy Bot Honeypot: Bất kỳ crawler nào truy cập link bẫy ẩn này sẽ bị ban lập tức 24h
-  if (pathname === "/api/v1/bot-trap" || pathname === "/cdn-cgi/bot-trap") {
-    if (EDGE_HONEYPOT_BANS.size >= MAX_HONEYPOT_BANS) {
-      const oldest = EDGE_HONEYPOT_BANS.keys().next().value;
-      if (oldest) EDGE_HONEYPOT_BANS.delete(oldest);
-    }
-    EDGE_HONEYPOT_BANS.set(clientIp, Date.now() + 24 * 3600 * 1000);
-    return new NextResponse("Forbidden Access - Crawler Blacklisted", {
-      status: 403,
-      headers: {
-        "X-Content-Type-Options": "nosniff",
-        "Cache-Control": "private, no-cache, no-store, max-age=0, must-revalidate",
-      },
-    });
-  }
 
   // 1. Chặn các phương thức HTTP nguy hiểm
   if (method === "TRACE" || method === "TRACK") {
