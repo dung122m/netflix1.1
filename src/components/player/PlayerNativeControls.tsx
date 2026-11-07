@@ -787,7 +787,7 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
                     type="button"
                     disabled
                     aria-hidden="true"
-                    className="w-9 h-9 sm:w-10 sm:h-10 rounded-full text-white/20 flex items-center justify-center opacity-30 cursor-not-allowed select-none"
+                    className="hidden sm:flex w-9 h-9 sm:w-10 sm:h-10 rounded-full text-white/20 items-center justify-center opacity-30 cursor-not-allowed select-none"
                   >
                     <YouTubePrevIcon className="w-5 h-5" />
                   </button>
@@ -830,7 +830,7 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
                     type="button"
                     disabled
                     aria-hidden="true"
-                    className="w-9 h-9 sm:w-10 sm:h-10 rounded-full text-white/20 flex items-center justify-center opacity-30 cursor-not-allowed select-none"
+                    className="hidden sm:flex w-9 h-9 sm:w-10 sm:h-10 rounded-full text-white/20 items-center justify-center opacity-30 cursor-not-allowed select-none"
                   >
                     <YouTubeNextIcon className="w-5 h-5" />
                   </button>
