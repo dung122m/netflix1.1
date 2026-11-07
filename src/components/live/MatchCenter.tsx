@@ -121,11 +121,7 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
 
   useEffect(() => {
     if (activeTab === "commentary" && commentaryScrollRef.current) {
-      if (commentaryOrder === "newest") {
-        commentaryScrollRef.current.scrollTop = 0;
-      } else {
-        commentaryScrollRef.current.scrollTop = commentaryScrollRef.current.scrollHeight;
-      }
+      commentaryScrollRef.current.scrollTop = 0;
     }
   }, [activeTab, commentaryOrder]);
 
@@ -756,14 +752,30 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
                       <span>Diễn biến trực tiếp từ sân cỏ</span>
                     </h5>
 
-                    <button
-                      type="button"
-                      onClick={() => setCommentaryOrder((prev) => (prev === "newest" ? "oldest" : "newest"))}
-                      className="inline-flex items-center gap-1.5 text-[11px] font-bold text-zinc-300 hover:text-white px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 border border-white/5 transition cursor-pointer"
-                    >
-                      <ArrowUpDown className="w-3 h-3 text-zinc-400" />
-                      <span>{commentaryOrder === "newest" ? "Mới nhất trước" : "Cũ nhất trước"}</span>
-                    </button>
+                    <div className="flex items-center gap-1 bg-white/5 p-0.5 rounded-lg border border-white/5 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => setCommentaryOrder("newest")}
+                        className={`px-2 py-0.5 rounded-md text-[11px] font-bold transition cursor-pointer ${
+                          commentaryOrder === "newest"
+                            ? "bg-netflix-red text-white shadow-sm"
+                            : "text-zinc-400 hover:text-white"
+                        }`}
+                      >
+                        Mới nhất
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setCommentaryOrder("oldest")}
+                        className={`px-2 py-0.5 rounded-md text-[11px] font-bold transition cursor-pointer ${
+                          commentaryOrder === "oldest"
+                            ? "bg-netflix-red text-white shadow-sm"
+                            : "text-zinc-400 hover:text-white"
+                        }`}
+                      >
+                        Cũ nhất
+                      </button>
+                    </div>
                   </div>
 
                   {displayedCommentary.length > 0 ? (
