@@ -523,15 +523,19 @@ export async function POST(req: NextRequest) {
     } = body || {};
 
     const seed = Number(refreshSeed) || 0;
+    const isRefresh = seed > 0;
 
     // 1. TẠO USER TASTE PROFILE ĐA CHIỀU (Tích hợp lịch sử + Profile)
     const profile = buildUserTasteProfile(historyItems, genres, watchedSlugs);
 
-    // Tập hợp 100% slug phim cần loại bỏ (lịch sử + phim đang hiện)
-    const watchedSet = new Set<string>([
-      ...Array.from(profile.historySlugs),
-      ...((currentSlugs as string[]) || []).map((s: string) => s.toLowerCase().trim()),
-    ]);
+    // BẮT BUỘC 100%: Phim đã có trong lịch sử xem không bao giờ gợi ý lại
+    const watchedHistorySet = new Set<string>(profile.historySlugs);
+
+    // Phim đang hiển thị trên màn hình: CHỈ loại bỏ khi người dùng chủ động bấm 'Đổi gợi ý' (seed > 0)
+    // Khi tải trang / reload (seed === 0), tuyệt đối KHÔNG loại bỏ để luôn hiển thị danh sách đầy đủ, tối ưu nhất
+    const currentOnScreenSet = new Set<string>(
+      isRefresh ? ((currentSlugs as string[]) || []).map((s: string) => s.toLowerCase().trim()) : []
+    );
 
     let tasteHash: string;
     if (profile.isGuest) {
@@ -549,15 +553,20 @@ export async function POST(req: NextRequest) {
     // Thử lấy từ Cache
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const cachedPool = await cacheService.get<{ context: string; movies: any[] }>(kvForYouKey);
-    if (cachedPool && Array.isArray(cachedPool.movies) && cachedPool.movies.length >= 10) {
+    if (cachedPool && Array.isArray(cachedPool.movies) && cachedPool.movies.length >= 14) {
       const filtered = cachedPool.movies.filter(
-        (m) => m && m.slug && !watchedSet.has(m.slug.toLowerCase().trim())
+        (m) =>
+          m &&
+          m.slug &&
+          !watchedHistorySet.has(m.slug.toLowerCase().trim()) &&
+          (!isRefresh || !currentOnScreenSet.has(m.slug.toLowerCase().trim()))
       );
-      if (filtered.length >= 8) {
+      // Chỉ dùng cache nếu còn đủ số lượng phong phú (>= 14 phim)
+      if (filtered.length >= 14) {
         return NextResponse.json({
           success: true,
           context: cachedPool.context,
-          items: filtered.slice(0, 16),
+          items: filtered.slice(0, 20),
           cached: true,
         });
       }
@@ -692,8 +701,12 @@ export async function POST(req: NextRequest) {
       if (!norm.slug) continue;
       const cleanSlug = norm.slug.toLowerCase().trim();
 
-      // BẮT BUỘC: Loại bỏ triệt để 100% phim đã có trong lịch sử xem
-      if (watchedSet.has(cleanSlug) || seenSlugs.has(cleanSlug)) {
+      // BẮT BUỘC 100%: Loại bỏ triệt để phim đã có trong lịch sử xem của người dùng
+      if (watchedHistorySet.has(cleanSlug) || seenSlugs.has(cleanSlug)) {
+        continue;
+      }
+      // Khi người dùng chủ động nhấn 'Đổi gợi ý' (isRefresh), ưu tiên phim mới chưa có trên màn hình
+      if (isRefresh && currentOnScreenSet.has(cleanSlug)) {
         continue;
       }
       seenSlugs.add(cleanSlug);
@@ -986,7 +999,7 @@ export async function POST(req: NextRequest) {
     const remainingCandidates = [...scoredCandidates];
     let lastGenre = "";
 
-    while (remainingCandidates.length > 0 && selectedFinalMovies.length < 16) {
+    while (remainingCandidates.length > 0 && selectedFinalMovies.length < 20) {
       // Tìm ứng viên có điểm cao nhất nhưng không trùng lặp liên tiếp thể loại hiển thị
       let pickIdx = remainingCandidates.findIndex(
         (c) => (c.displayGenreName || c.norm.genre || "") !== lastGenre
@@ -1011,34 +1024,40 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // 7. BACKFILL BẢO VỆ CAROUSEL LUÔN ĐẦY ĐỦ >= 12 PHIM NẾU THIẾU
-    if (selectedFinalMovies.length < 12) {
+    // 7. BACKFILL BẢO VỆ CAROUSEL LUÔN ĐẦY ĐỦ >= 18 PHIM NẾU THIẾU
+    if (selectedFinalMovies.length < 18) {
       try {
-        const fallbackRes = await movieApi.getMovies({
-          page: 1,
-          limit: 20,
-          sort: "views",
-        });
-        for (const raw of fallbackRes?.items || []) {
-          const norm = normalizeMovie(raw);
-          if (!norm.slug || watchedSet.has(norm.slug.toLowerCase().trim()) || seenSlugs.has(norm.slug.toLowerCase().trim())) {
-            continue;
-          }
-          seenSlugs.add(norm.slug.toLowerCase().trim());
-          selectedFinalMovies.push({
-            slug: norm.slug,
-            name: norm.title,
-            title: norm.title,
-            origin_name: norm.origin_name,
-            poster_url: norm.posterUrl || norm.imageUrl || "/default-poster.jpg",
-            thumb_url: norm.thumbUrl || norm.posterUrl || "/default-hero.jpg",
-            year: norm.year,
-            quality: norm.quality || "Full HD",
-            category: [{ name: formatGenreName(norm.genre) || norm.type_name || "Đề Xuất" }],
-            matchPercentage: 88,
-            matchReason: "Siêu phẩm thịnh hành được yêu thích nhất",
+        const backfillPages = [1, 2];
+        for (const p of backfillPages) {
+          if (selectedFinalMovies.length >= 20) break;
+          const fallbackRes = await movieApi.getMovies({
+            page: p,
+            limit: 24,
+            sort: p === 1 ? "views" : "rating",
           });
-          if (selectedFinalMovies.length >= 16) break;
+          for (const raw of fallbackRes?.items || []) {
+            const norm = normalizeMovie(raw);
+            if (!norm.slug) continue;
+            const cleanSlug = norm.slug.toLowerCase().trim();
+            if (watchedHistorySet.has(cleanSlug) || seenSlugs.has(cleanSlug)) {
+              continue;
+            }
+            seenSlugs.add(cleanSlug);
+            selectedFinalMovies.push({
+              slug: norm.slug,
+              name: norm.title,
+              title: norm.title,
+              origin_name: norm.origin_name,
+              poster_url: norm.posterUrl || norm.imageUrl || "/default-poster.jpg",
+              thumb_url: norm.thumbUrl || norm.posterUrl || "/default-hero.jpg",
+              year: norm.year,
+              quality: norm.quality || "Full HD",
+              category: [{ name: formatGenreName(norm.genre) || norm.type_name || "Đề Xuất" }],
+              matchPercentage: 88,
+              matchReason: "Siêu phẩm thịnh hành được yêu thích nhất",
+            });
+            if (selectedFinalMovies.length >= 20) break;
+          }
         }
       } catch (backfillErr) {
         console.warn("[for-you recommendations] Backfill error:", backfillErr);
@@ -1057,8 +1076,8 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 8. LƯU VÀO CACHE VỚI TTL 2 GIỜ (7200s)
-    if (selectedFinalMovies.length >= 8) {
+    // 8. LƯU VÀO CACHE VỚI TTL 2 GIỜ (7200s) CHỈ KHI ĐẠT ĐỦ >= 14 PHIM
+    if (selectedFinalMovies.length >= 14) {
       cacheService.set(
         kvForYouKey,
         {

@@ -36,10 +36,10 @@ export interface ForYouPersonalizedRowProps {
   fallbackMovies?: any[];
 }
 
-const CACHE_KEY_NAME = "nanaflix_foryou_cache_v6";
+const CACHE_KEY_NAME = "nanaflix_foryou_cache_v7";
 const CACHE_TTL = 15 * 60 * 1000; // 15 phút
 
-// Danh sách fallback catalog siêu phẩm luôn sẵn sàng 0ms không cần API ngoài
+// Danh sách fallback catalog siêu phẩm luôn sẵn sàng 0ms không cần API ngoài (16 phim đỉnh cao)
 const DEFAULT_CATALOG_FALLBACK: ForYouMovieItem[] = [
   {
     slug: "avatar",
@@ -145,6 +145,110 @@ const DEFAULT_CATALOG_FALLBACK: ForYouMovieItem[] = [
     matchPercentage: 96,
     matchReason: "Tuyệt tác hài hành động kinh điển Châu Tinh Trì",
   },
+  {
+    slug: "oppenheimer",
+    name: "Oppenheimer",
+    title: "Oppenheimer",
+    origin_name: "Oppenheimer",
+    poster_url: "https://image.tmdb.org/t/p/w500/8Gxv8gSFCU0XGDykEGv7zR1n2ua.jpg",
+    thumb_url: "https://image.tmdb.org/t/p/w780/fm6KqXpk3M2HVveHwCrBSSBaO0V.jpg",
+    year: 2023,
+    quality: "4K UHD",
+    category: [{ name: "Lịch Sử" }],
+    matchPercentage: 98,
+    matchReason: "Kiệt tác tiểu sử bom nguyên tử đoạt 7 giải Oscar",
+  },
+  {
+    slug: "john-wick-chapter-4",
+    name: "Sát Thủ John Wick 4",
+    title: "Sát Thủ John Wick 4",
+    origin_name: "John Wick: Chapter 4",
+    poster_url: "https://image.tmdb.org/t/p/w500/vZloFAK7NKnMGKEslUsZevaRAVm.jpg",
+    thumb_url: "https://image.tmdb.org/t/p/w780/h8gHn0OzBoaefW0z1tGl4grio0z.jpg",
+    year: 2023,
+    quality: "4K UHD",
+    category: [{ name: "Hành Động" }],
+    matchPercentage: 99,
+    matchReason: "Đỉnh cao hành động võ thuật hiện đại mãn nhãn",
+  },
+  {
+    slug: "your-name",
+    name: "Tên Cậu Là Gì?",
+    title: "Tên Cậu Là Gì?",
+    origin_name: "Your Name",
+    poster_url: "https://image.tmdb.org/t/p/w500/q719jXXEzOoYaps6qFsxWa93bu.jpg",
+    thumb_url: "https://image.tmdb.org/t/p/w780/dIWwZW7dJJ1q49RJvT6NWPaevFl.jpg",
+    year: 2016,
+    quality: "Full HD",
+    category: [{ name: "Hoạt Hình" }],
+    matchPercentage: 97,
+    matchReason: "Siêu phẩm anime lãng mạn rung động triệu trái tim",
+  },
+  {
+    slug: "top-gun-maverick",
+    name: "Phi Công Siêu Đẳng: Maverick",
+    title: "Phi Công Siêu Đẳng: Maverick",
+    origin_name: "Top Gun: Maverick",
+    poster_url: "https://image.tmdb.org/t/p/w500/62HCnUTziyWcpDaBO2i1DX17ljH.jpg",
+    thumb_url: "https://image.tmdb.org/t/p/w780/odJ4hx6g6vBt4lBWKFD1tI8WS4x.jpg",
+    year: 2022,
+    quality: "4K UHD",
+    category: [{ name: "Hành Động" }],
+    matchPercentage: 98,
+    matchReason: "Bom tấn không chiến đỉnh cao với những cảnh quay thật",
+  },
+  {
+    slug: "avengers-endgame",
+    name: "Avengers: Hồi Kết",
+    title: "Avengers: Hồi Kết",
+    origin_name: "Avengers: Endgame",
+    poster_url: "https://image.tmdb.org/t/p/w500/or06FN3Dka5tukK1e9sl16pB3iy.jpg",
+    thumb_url: "https://image.tmdb.org/t/p/w780/7RyHsO4yDXtBv1zUU3mTpHeQ0d5.jpg",
+    year: 2019,
+    quality: "4K UHD",
+    category: [{ name: "Hành Động" }],
+    matchPercentage: 99,
+    matchReason: "Hồi kết vĩ đại của vũ trụ điện ảnh Marvel",
+  },
+  {
+    slug: "spider-man-across-the-spider-verse",
+    name: "Người Nhện: Du Hành Vũ Trụ Nhện",
+    title: "Người Nhện: Du Hành Vũ Trụ Nhện",
+    origin_name: "Spider-Man: Across the Spider-Verse",
+    poster_url: "https://image.tmdb.org/t/p/w500/8Vt6mWEReuy4Of61Lnj5Xj704m8.jpg",
+    thumb_url: "https://image.tmdb.org/t/p/w780/4HodYYKEIsGOdinkGi2Ucz6X9i0.jpg",
+    year: 2023,
+    quality: "4K UHD",
+    category: [{ name: "Hoạt Hình" }],
+    matchPercentage: 98,
+    matchReason: "Kiệt tác hoạt hình đột phá thị giác và cốt truyện",
+  },
+  {
+    slug: "squid-game",
+    name: "Trò Chơi Con Mực",
+    title: "Trò Chơi Con Mực",
+    origin_name: "Squid Game",
+    poster_url: "https://image.tmdb.org/t/p/w500/dDlG1TzUgtcTqSkgGptH5K98aXl.jpg",
+    thumb_url: "https://image.tmdb.org/t/p/w780/oaGvjB0DvdurWhfPtF7AuMi32bm.jpg",
+    year: 2021,
+    quality: "4K UHD",
+    category: [{ name: "Tâm Lý" }],
+    matchPercentage: 96,
+    matchReason: "Hiện tượng sinh tồn kịch tính toàn cầu của xứ sở kim chi",
+  },
+  {
+    slug: "one-piece-film-red",
+    name: "One Piece Film: Red",
+    title: "One Piece Film: Red",
+    origin_name: "One Piece Film: Red",
+    poster_url: "https://image.tmdb.org/t/p/w500/ogDXpT9O8Z8z5V4k0fHw7R0gH8C.jpg",
+    thumb_url: "https://image.tmdb.org/t/p/w780/7k2a2L1Y5vV9Vb3h7Y5X1b3h7Y5.jpg",
+    year: 2022,
+    quality: "Full HD",
+    category: [{ name: "Hoạt Hình" }],
+    matchPercentage: 97,
+    matchReason: "Bom tấn anime One Piece càn quét mọi phòng vé",
+  },
 ];
 
 // Hàm tính điểm hợp gu ổn định (deterministic) dựa trên slug để tránh lệch SSR/Hydration
@@ -212,7 +316,7 @@ function getCachedData(expectedUid?: string): CachedPayload | null {
     const raw = localStorage.getItem(CACHE_KEY_NAME);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
-    if (parsed && Array.isArray(parsed.items) && parsed.items.length >= 8) {
+    if (parsed && Array.isArray(parsed.items) && parsed.items.length >= 12) {
       if (expectedUid && parsed.uid && parsed.uid !== expectedUid) {
         return null;
       }
@@ -242,7 +346,7 @@ function ForYouPersonalizedRowInner({ fallbackMovies }: ForYouPersonalizedRowPro
   // Nguồn fallback ưu tiên 2: Catalog từ prop có sẵn
   const catalogFallback = useMemo(() => {
     const mapped = mapToForYouItems(fallbackMovies || []);
-    return mapped.length >= 8 ? mapped : DEFAULT_CATALOG_FALLBACK;
+    return mapped.length >= 12 ? mapped : DEFAULT_CATALOG_FALLBACK;
   }, [fallbackMovies]);
 
   // Khởi tạo ngay lập tức không để trống: ưu tiên catalog fallback hoặc default
@@ -356,13 +460,13 @@ function ForYouPersonalizedRowInner({ fallbackMovies }: ForYouPersonalizedRowPro
           watchedTitles,
           watchedSlugs,
           refreshSeed: currentSeed,
-          currentSlugs: moviesRef.current.map((m) => m.slug),
+          currentSlugs: forceRefresh ? moviesRef.current.map((m) => m.slug) : [],
         }),
       });
 
       if (res.ok) {
         const data = await res.json();
-        if (Array.isArray(data.items) && data.items.length >= 8) {
+        if (Array.isArray(data.items) && data.items.length >= 12) {
           // Cập nhật mượt mà dữ liệu mới
           setMovies(data.items);
           if (data.context) {
