@@ -29,7 +29,7 @@ import { NanaflixBrandLogo } from "@/components/NetflixLogo";
 
 export const Footer: React.FC = () => {
   return (
-    <footer className="relative z-0 bg-gradient-to-b from-transparent via-[#080808] to-[#030303] text-zinc-400 pt-6 sm:pt-12 pb-6 sm:pb-12 px-4 sm:px-8 md:px-16 mt-6 sm:mt-10 border-t border-white/[0.08] overflow-hidden cv-auto-footer">
+    <footer className="relative z-0 bg-gradient-to-b from-transparent via-[#080808] to-[#030303] text-zinc-400 pt-6 sm:pt-12 pb-12 sm:pb-12 px-4 sm:px-8 md:px-16 mt-6 sm:mt-10 border-t border-white/[0.08] overflow-hidden cv-auto-footer">
       {/* Hiệu ứng ánh sáng tinh tế phía trên footer */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-3/4 max-w-4xl h-[1px] bg-gradient-to-r from-transparent via-netflix-red/70 to-transparent" />
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-1/2 max-w-2xl h-16 sm:h-20 bg-netflix-red/10 blur-3xl pointer-events-none" />
@@ -309,42 +309,42 @@ export const Footer: React.FC = () => {
         {/* 2B. GIAO DIỆN MOBILE TINH GỌN (CHUẨN NETFLIX COMPACT FOOTER) */}
         {/* ============================================================ */}
         <div className="sm:hidden pt-1">
-          {/* Lưới liên kết dạng text tinh gọn, chuẩn phong cách Netflix, không đóng khung nút */}
-          <div className="grid grid-cols-2 gap-x-6 gap-y-3 text-xs text-zinc-400 max-w-sm mx-auto">
+          {/* Lưới 6 ô liên kết cân đối 100%, bo góc mềm mại, TUYỆT ĐỐI KHÔNG DÙNG VIỀN */}
+          <div className="grid grid-cols-2 gap-2 text-xs">
             <Link
               href="/about"
-              className="hover:text-white transition-colors"
+              className="flex items-center justify-center py-2.5 px-2.5 rounded-xl bg-white/[0.04] active:bg-white/[0.08] text-zinc-300 hover:text-white transition-colors text-center truncate"
             >
               Giới thiệu Nanaflix
             </Link>
             <Link
               href="/faq"
-              className="hover:text-white transition-colors"
+              className="flex items-center justify-center py-2.5 px-2.5 rounded-xl bg-white/[0.04] active:bg-white/[0.08] text-zinc-300 hover:text-white transition-colors text-center truncate"
             >
               Hỏi & Đáp (FAQ)
             </Link>
             <Link
               href="/privacy"
-              className="hover:text-white transition-colors"
+              className="flex items-center justify-center py-2.5 px-2.5 rounded-xl bg-white/[0.04] active:bg-white/[0.08] text-zinc-300 hover:text-white transition-colors text-center truncate"
             >
               Bảo mật & Riêng tư
             </Link>
             <Link
               href="/terms"
-              className="hover:text-white transition-colors"
+              className="flex items-center justify-center py-2.5 px-2.5 rounded-xl bg-white/[0.04] active:bg-white/[0.08] text-zinc-300 hover:text-white transition-colors text-center truncate"
             >
               Điều khoản & DMCA
             </Link>
             <Link
               href="/collection"
-              className="hover:text-white transition-colors"
+              className="flex items-center justify-center py-2.5 px-2.5 rounded-xl bg-white/[0.04] active:bg-white/[0.08] text-zinc-300 hover:text-white transition-colors text-center truncate"
             >
               Bộ sưu tập phim
             </Link>
             <button
               type="button"
               onClick={() => window.dispatchEvent(new CustomEvent("open-pwa-install"))}
-              className="text-left hover:text-emerald-400 transition-colors cursor-pointer"
+              className="flex items-center justify-center py-2.5 px-2.5 rounded-xl bg-white/[0.04] active:bg-white/[0.08] text-emerald-400 hover:text-emerald-300 transition-colors text-center truncate cursor-pointer"
             >
               Cài ứng dụng (PWA)
             </button>
@@ -354,8 +354,8 @@ export const Footer: React.FC = () => {
         {/* ============================================================ */}
         {/* 3. ECOSYSTEM STATUS BAR */}
         {/* ============================================================ */}
-        <div className="py-2 px-1 sm:p-4 rounded-xl sm:rounded-2xl sm:bg-zinc-950/70 sm:border sm:border-white/[0.08] sm:backdrop-blur-xl flex flex-col sm:flex-row items-center justify-center sm:justify-between gap-3 text-center sm:text-left">
-          <div className="flex items-center justify-center gap-2.5">
+        <div className="py-2.5 px-1 sm:p-4 rounded-xl sm:rounded-2xl sm:bg-zinc-950/70 sm:border sm:border-white/[0.08] sm:backdrop-blur-xl flex flex-col sm:flex-row items-center justify-center sm:justify-between gap-3 text-center sm:text-left">
+          <div className="flex items-center justify-center gap-2.5 w-full sm:w-auto text-center">
             <span className="relative flex h-2 w-2 sm:h-2.5 sm:w-2.5 shrink-0">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2 w-2 sm:h-2.5 sm:w-2.5 bg-emerald-500"></span>
@@ -402,7 +402,7 @@ export const Footer: React.FC = () => {
           >
             {/* Lá cờ Việt Nam */}
             <div
-              className="w-6 h-6 sm:w-9 sm:h-9 rounded-full overflow-hidden border border-zinc-700 sm:border-2 group-hover:border-netflix-red group-hover:scale-105 transition-all duration-300 shadow-sm shrink-0 flex items-center justify-center bg-[#DA251D] relative shadow-black/60"
+              className="w-6 h-6 sm:w-9 sm:h-9 rounded-full overflow-hidden border-0 sm:border-2 sm:border-zinc-700 group-hover:border-netflix-red group-hover:scale-105 transition-all duration-300 shadow-sm shrink-0 flex items-center justify-center bg-[#DA251D] relative shadow-black/60"
               title="Việt Nam"
               aria-label="Cờ Việt Nam"
             >
