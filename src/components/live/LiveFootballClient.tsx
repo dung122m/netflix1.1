@@ -415,7 +415,11 @@ export function LiveFootballClient({
     setIsSummaryLoading(Boolean(currentMatchScore?.eventId && currentMatchScore?.leagueSlug));
   }, [selectedMatch?.id, currentMatchScore?.eventId, currentMatchScore?.leagueSlug]);
 
-  const hasTimelineEvents = Boolean(matchSummary?.events && matchSummary.events.length > 0);
+  const hasTimelineEvents = Boolean(
+    (matchSummary?.events && matchSummary.events.length > 0) ||
+    (matchSummary?.commentary && matchSummary.commentary.length > 0) ||
+    (matchSummary?.stats && matchSummary.stats.length > 0)
+  );
   const prevMatchIdRef = useRef<string | null>(null);
   const prevHasEventsRef = useRef<boolean>(false);
 
@@ -1543,9 +1547,7 @@ export function LiveFootballClient({
                         }`}
                       >
                         <Flame className="w-3.5 h-3.5 text-amber-300" />
-                        <span className="truncate">
-                          Diễn biến{matchSummary?.events ? ` (${matchSummary.events.length})` : ""}
-                        </span>
+                        <span className="truncate">Diễn biến</span>
                       </button>
                       <button
                         type="button"
@@ -1582,6 +1584,8 @@ export function LiveFootballClient({
                     <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
                       <MatchTimelineSidebar
                         events={matchSummary?.events}
+                        commentary={matchSummary?.commentary}
+                        stats={matchSummary?.stats}
                         homeTeamName={selectedMatch.team1}
                         awayTeamName={selectedMatch.team2}
                         isLive={
