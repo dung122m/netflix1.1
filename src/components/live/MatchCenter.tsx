@@ -69,6 +69,12 @@ interface MatchCenterProps {
 
 type TabType = "lineups" | "commentary" | "stats" | "info";
 
+function formatCommentaryTime(raw?: string): string {
+  if (!raw) return "•";
+  const normalized = raw.trim().replace(/['’"“”\s]+$/g, "").trim();
+  return normalized ? `${normalized}'` : "•";
+}
+
 export const MatchCenter: React.FC<MatchCenterProps> = ({
   leagueSlug,
   eventId,
@@ -741,11 +747,11 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
                 </div>
               )}
 
-              {/* TAB BÌNH LUẬN TRỰC TIẾP */}
+              {/* TAB BÌNH LUẬN TRỰC TIẾP (GIAO DIỆN PHẲNG TINH TẾ, KHÔNG LỒNG THẺ) */}
               {activeTab === "commentary" && (
-                <div className="rounded-2xl bg-zinc-900/50 border border-white/10 p-4 sm:p-6 space-y-3">
-                  <div className="flex items-center justify-between pb-2 border-b border-white/10">
-                    <h5 className="text-xs font-extrabold uppercase tracking-wider text-gray-400 flex items-center gap-1.5">
+                <div className="space-y-2 pt-1">
+                  <div className="flex items-center justify-between pb-2.5 border-b border-white/[0.06] px-1">
+                    <h5 className="text-xs font-black uppercase tracking-wider text-zinc-400 flex items-center gap-1.5">
                       <MessageSquare className="w-3.5 h-3.5 text-netflix-red" />
                       <span>Diễn biến trực tiếp từ sân cỏ</span>
                     </h5>
@@ -753,9 +759,9 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
                     <button
                       type="button"
                       onClick={() => setCommentaryOrder((prev) => (prev === "newest" ? "oldest" : "newest"))}
-                      className="inline-flex items-center gap-1 text-[11px] font-bold text-gray-300 hover:text-white px-2.5 py-1 rounded-lg bg-white/5 border border-white/10 cursor-pointer"
+                      className="inline-flex items-center gap-1.5 text-[11px] font-bold text-zinc-300 hover:text-white px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 border border-white/5 transition cursor-pointer"
                     >
-                      <ArrowUpDown className="w-3 h-3" />
+                      <ArrowUpDown className="w-3 h-3 text-zinc-400" />
                       <span>{commentaryOrder === "newest" ? "Mới nhất trước" : "Cũ nhất trước"}</span>
                     </button>
                   </div>
@@ -763,43 +769,52 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
                   {displayedCommentary.length > 0 ? (
                     <div
                       ref={commentaryScrollRef}
-                      className="space-y-2 max-h-[450px] overflow-y-auto pr-2 scrollbar-thin"
+                      className="divide-y divide-white/[0.05] max-h-[480px] overflow-y-auto pr-1 scrollbar-thin"
                     >
                       {displayedCommentary.map((c, i) => (
                         <div
                           key={i}
-                          className="flex items-start gap-3 p-3 rounded-xl bg-white/[0.02] border border-white/5 hover:bg-white/[0.04] transition text-xs"
+                          className="flex items-start gap-3 py-2.5 px-2 rounded-lg hover:bg-white/[0.02] transition text-xs"
                         >
-                          <span className="font-mono text-amber-400 font-extrabold shrink-0 min-w-[32px] pt-0.5">
-                            {c.time ? `${c.time}'` : "•"}
+                          <span className="font-mono text-amber-400 font-extrabold shrink-0 min-w-[34px] pt-0.5 tabular-nums text-right">
+                            {formatCommentaryTime(c.time)}
                           </span>
-                          <p className="text-gray-200 leading-relaxed flex-1">{c.text}</p>
+                          <p className="text-zinc-200 leading-relaxed flex-1 font-sans">{c.text}</p>
                         </div>
                       ))}
                     </div>
                   ) : (
-                    <p className="text-xs text-gray-500 py-8 text-center">Chưa có dòng bình luận trực tiếp nào</p>
+                    <p className="text-xs text-zinc-500 py-8 text-center">Chưa có dòng bình luận trực tiếp nào</p>
                   )}
                 </div>
               )}
 
-              {/* TAB 2: THỐNG KÊ CHI TIẾT (CHUẨN PHONG CÁCH FPT PLAY) */}
+              {/* TAB 2: THỐNG KÊ CHI TIẾT (CHUẨN PHONG CÁCH FPT PLAY / SOFASCORE PHẲNG TINH GỌN) */}
               {activeTab === "stats" && (
-                <div className="rounded-2xl bg-zinc-900/40 p-4 sm:p-6 space-y-5">
-                  <div className="flex items-center justify-between text-xs pb-3">
-                    <div className="flex items-center gap-2">
+                <div className="space-y-4 max-w-2xl mx-auto pt-1">
+                  {/* TIÊU ĐỀ 2 ĐỘI CÂN ĐỐI (TRÁNH CHÈN CHỮ VÀ LỆCH HÀNG TRÊN MOBILE) */}
+                  <div className="flex items-center justify-between text-xs pb-2.5 border-b border-white/[0.06] px-1">
+                    <div className="flex items-center gap-2 min-w-0 flex-1">
                       <span className="w-2.5 h-2.5 rounded-full bg-netflix-red shrink-0" />
-                      <span className="font-extrabold text-white text-sm">{summary.homeTeam.displayName}</span>
+                      <span className="font-black text-white text-xs sm:text-sm truncate">
+                        {summary.homeTeam.displayName}
+                      </span>
                     </div>
-                    <span className="text-zinc-400 font-bold tracking-wider text-[11px] uppercase">Thống kê trận đấu</span>
-                    <div className="flex items-center gap-2">
-                      <span className="font-extrabold text-white text-sm">{summary.awayTeam.displayName}</span>
+
+                    <span className="hidden sm:inline-block text-zinc-400 font-bold tracking-wider text-[11px] uppercase shrink-0 px-3">
+                      Thống kê trận đấu
+                    </span>
+
+                    <div className="flex items-center gap-2 min-w-0 flex-1 justify-end text-right">
+                      <span className="font-black text-white text-xs sm:text-sm truncate">
+                        {summary.awayTeam.displayName}
+                      </span>
                       <span className="w-2.5 h-2.5 rounded-full bg-sky-500 shrink-0" />
                     </div>
                   </div>
 
                   {summary.stats.length > 0 ? (
-                    <div className="space-y-4 max-w-2xl mx-auto">
+                    <div className="space-y-3.5">
                       {summary.stats.map((stat: MatchStatItem) => {
                         const { homePct, awayPct } = calculateStatPercentage(
                           stat.homeValue,
@@ -813,21 +828,21 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
 
                         if (isPossession) {
                           return (
-                            <div key={stat.name} className="space-y-2 py-1">
-                              <p className="text-center text-xs font-bold text-zinc-400 uppercase tracking-wider">
+                            <div key={stat.name} className="space-y-1.5 py-1">
+                              <p className="text-center text-[11px] font-bold text-zinc-400 uppercase tracking-wider">
                                 {stat.label}
                               </p>
-                              <div className="flex justify-between items-center text-sm font-sans font-bold tabular-nums">
+                              <div className="flex justify-between items-center text-sm font-sans font-black tabular-nums px-1">
                                 <span className="text-white">{stat.homeValue}</span>
                                 <span className="text-white">{stat.awayValue}</span>
                               </div>
-                              <div className="flex h-3 rounded-full overflow-hidden bg-white/5 gap-1 shadow-inner">
+                              <div className="flex h-2.5 rounded-full overflow-hidden bg-white/5 gap-1 shadow-inner">
                                 <div
-                                  className="bg-netflix-red rounded-l-full transition-all duration-500 flex items-center justify-start pl-2 text-[10px] font-bold text-white"
+                                  className="bg-netflix-red rounded-l-full transition-all duration-500"
                                   style={{ width: `${homePct}%` }}
                                 />
                                 <div
-                                  className="bg-sky-500 rounded-r-full transition-all duration-500 flex items-center justify-end pr-2 text-[10px] font-bold text-white"
+                                  className="bg-sky-500 rounded-r-full transition-all duration-500"
                                   style={{ width: `${awayPct}%` }}
                                 />
                               </div>
@@ -838,7 +853,7 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
                         return (
                           <div
                             key={stat.name}
-                            className="flex items-center justify-between py-2 text-xs sm:text-sm hover:bg-white/[0.02] transition px-2 rounded-lg"
+                            className="flex items-center justify-between py-1.5 text-xs sm:text-sm hover:bg-white/[0.02] transition px-2 rounded-lg"
                           >
                             <div className="flex items-center gap-2 min-w-[50px] justify-start font-sans font-bold tabular-nums text-white">
                               {homeLeading && <span className="w-1 h-3.5 bg-netflix-red rounded-full shrink-0" />}
