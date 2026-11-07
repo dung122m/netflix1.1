@@ -25,13 +25,18 @@ const MALICIOUS_USER_AGENTS = [
 ];
 
 // Danh sách các User-Agent cào dữ liệu hung hãn không mong muốn (chặn sớm tại Edge để triệt tiêu tải Redis DB1 & DB3)
-// Giữ nguyên Googlebot, Bingbot, ClaudeBot và các Verified Bots hợp lệ theo yêu cầu
+// Giữ nguyên Googlebot, Bingbot và các Verified Search Bots hợp lệ
 const AGGRESSIVE_SCRAPER_USER_AGENTS = [
   /gptbot/i,
   /chatgpt/i,
-  /claudebot/i,
-  /claude-web/i,
-  /anthropic-ai/i,
+  /claude/i,
+  /anthropic/i,
+  /cohere/i,
+  /perplexity/i,
+  /diffbot/i,
+  /omgili/i,
+  /meta-externalagent/i,
+  /turnitin/i,
   /amazonbot/i,
   /bytespider/i,
   /petalbot/i,
@@ -53,6 +58,8 @@ const AGGRESSIVE_SCRAPER_USER_AGENTS = [
   /go-http-client/i,
   /node-fetch/i,
   /axios/i,
+  /curl\//i,
+  /wget\//i,
   /headlesschrome/i,
   /phantomjs/i,
   /selenium/i,
