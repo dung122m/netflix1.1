@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Be_Vietnam_Pro } from "next/font/google";
+import { cookies } from "next/headers";
 import "./globals.css";
+import { ACCENT_PRESETS, ACCENT_COOKIE_KEY } from "@/lib/accentStudio";
 import SmoothScroll from "@/components/SmoothScroll";
 import { BackToTop } from "@/components/BackToTop";
 import { ToastContainer } from "@/components/Toast";
@@ -100,18 +102,54 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  let savedThemeId = "netflix-red";
+  try {
+    const cookieStore = await cookies();
+    const cookieVal = cookieStore.get(ACCENT_COOKIE_KEY)?.value;
+    if (cookieVal) {
+      savedThemeId = cookieVal;
+    }
+  } catch {
+    // Trong môi trường static build hoặc worker không có request context
+  }
+
+  const activePreset =
+    ACCENT_PRESETS.find((p) => p.id === savedThemeId) || ACCENT_PRESETS[0];
+
   return (
     <html
       lang="vi"
       suppressHydrationWarning
+      data-accent={activePreset.id}
+      style={{
+        "--netflix-red": activePreset.oklch,
+        "--accent-color": activePreset.color,
+        "--accent-rgb": activePreset.rgb,
+        "--accent-glow": activePreset.glow,
+        "--accent-border": activePreset.border,
+      } as React.CSSProperties}
       className={`${beVietnamPro.variable} font-sans antialiased bg-black text-white dark`}
     >
       <head>
+        {/* Style injection ưu tiên cao nhất, giúp trình duyệt áp dụng màu chủ đề ngay từ frame đầu tiên (0ms FOUC) */}
+        <style
+          id="accent-theme-vars"
+          dangerouslySetInnerHTML={{
+            __html: `:root, html {
+  --netflix-red: ${activePreset.oklch} !important;
+  --accent-color: ${activePreset.color} !important;
+  --accent-rgb: ${activePreset.rgb} !important;
+  --accent-glow: ${activePreset.glow} !important;
+  --accent-border: ${activePreset.border} !important;
+}`,
+          }}
+        />
+
         {/* PWA & Mobile Web App */}
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -156,6 +194,12 @@ export default function RootLayout({
                   document.documentElement.setAttribute('data-mode', 'dark');
 
                   var savedTheme = localStorage.getItem('nanaflix_theme');
+                  if (savedTheme) {
+                    try {
+                      document.cookie = 'nanaflix_theme=' + encodeURIComponent(savedTheme) + '; path=/; max-age=31536000; SameSite=Lax';
+                    } catch(e) {}
+                  }
+
                   var themeMap = {
                     'netflix-red': { oklch: 'oklch(0.55 0.23 25)', color: '#E50914', rgb: '229, 9, 20', glow: 'rgba(229, 9, 20, 0.40)', border: 'rgba(229, 9, 20, 0.55)' },
                     'cyber-cyan': { oklch: 'oklch(0.68 0.18 220)', color: '#00b4d8', rgb: '0, 180, 216', glow: 'rgba(0, 180, 216, 0.30)', border: 'rgba(0, 180, 216, 0.50)' },
@@ -164,14 +208,23 @@ export default function RootLayout({
                     'sunset-gold': { oklch: 'oklch(0.68 0.21 48)', color: '#f59e0b', rgb: '245, 158, 11', glow: 'rgba(245, 158, 11, 0.30)', border: 'rgba(245, 158, 11, 0.50)' },
                     'hot-pink': { oklch: 'oklch(0.62 0.24 350)', color: '#f43f5e', rgb: '244, 63, 94', glow: 'rgba(244, 63, 94, 0.42)', border: 'rgba(244, 63, 94, 0.55)' }
                   };
-                  var themeObj = (savedTheme && themeMap[savedTheme]) ? themeMap[savedTheme] : themeMap['netflix-red'];
-                  var themeKey = (savedTheme && themeMap[savedTheme]) ? savedTheme : 'netflix-red';
-                  document.documentElement.setAttribute('data-accent', themeKey);
+                  var activeKey = (savedTheme && themeMap[savedTheme]) ? savedTheme : (document.documentElement.getAttribute('data-accent') || 'netflix-red');
+                  var themeObj = themeMap[activeKey] || themeMap['netflix-red'];
+
+                  document.documentElement.setAttribute('data-accent', activeKey);
                   document.documentElement.style.setProperty('--netflix-red', themeObj.oklch);
                   document.documentElement.style.setProperty('--accent-color', themeObj.color);
                   document.documentElement.style.setProperty('--accent-rgb', themeObj.rgb);
                   document.documentElement.style.setProperty('--accent-glow', themeObj.glow);
                   document.documentElement.style.setProperty('--accent-border', themeObj.border);
+
+                  var styleEl = document.getElementById('accent-theme-vars');
+                  if (!styleEl) {
+                    styleEl = document.createElement('style');
+                    styleEl.id = 'accent-theme-vars';
+                    document.head.appendChild(styleEl);
+                  }
+                  styleEl.textContent = ':root, html { --netflix-red: ' + themeObj.oklch + ' !important; --accent-color: ' + themeObj.color + ' !important; --accent-rgb: ' + themeObj.rgb + ' !important; --accent-glow: ' + themeObj.glow + ' !important; --accent-border: ' + themeObj.border + ' !important; }';
                 } catch(e) {}
 
                 // Gỡ bỏ các thuộc tính do Chrome Extension (Baidu, Translators, Skins) tiêm vào DOM trước khi React hydrate

@@ -123,6 +123,63 @@
   --sidebar-ring: oklch(0.556 0 0);
 }
 
+/* =========================================================================
+   Theme Accent Presets (0ms FOUC & SSR instant matching)
+   ========================================================================= */
+:root[data-accent="netflix-red"],
+[data-accent="netflix-red"] {
+  --netflix-red: oklch(0.55 0.23 25);
+  --accent-color: #E50914;
+  --accent-rgb: 229, 9, 20;
+  --accent-glow: rgba(229, 9, 20, 0.40);
+  --accent-border: rgba(229, 9, 20, 0.55);
+}
+
+:root[data-accent="cyber-cyan"],
+[data-accent="cyber-cyan"] {
+  --netflix-red: oklch(0.68 0.18 220);
+  --accent-color: #00b4d8;
+  --accent-rgb: 0, 180, 216;
+  --accent-glow: rgba(0, 180, 216, 0.30);
+  --accent-border: rgba(0, 180, 216, 0.50);
+}
+
+:root[data-accent="amethyst-purple"],
+[data-accent="amethyst-purple"] {
+  --netflix-red: oklch(0.58 0.22 300);
+  --accent-color: #a855f7;
+  --accent-rgb: 168, 85, 247;
+  --accent-glow: rgba(168, 85, 247, 0.45);
+  --accent-border: rgba(168, 85, 247, 0.55);
+}
+
+:root[data-accent="emerald-green"],
+[data-accent="emerald-green"] {
+  --netflix-red: oklch(0.62 0.20 150);
+  --accent-color: #10b981;
+  --accent-rgb: 16, 185, 129;
+  --accent-glow: rgba(16, 185, 129, 0.38);
+  --accent-border: rgba(16, 185, 129, 0.50);
+}
+
+:root[data-accent="sunset-gold"],
+[data-accent="sunset-gold"] {
+  --netflix-red: oklch(0.68 0.21 48);
+  --accent-color: #f59e0b;
+  --accent-rgb: 245, 158, 11;
+  --accent-glow: rgba(245, 158, 11, 0.30);
+  --accent-border: rgba(245, 158, 11, 0.50);
+}
+
+:root[data-accent="hot-pink"],
+[data-accent="hot-pink"] {
+  --netflix-red: oklch(0.62 0.24 350);
+  --accent-color: #f43f5e;
+  --accent-rgb: 244, 63, 94;
+  --accent-glow: rgba(244, 63, 94, 0.42);
+  --accent-border: rgba(244, 63, 94, 0.55);
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

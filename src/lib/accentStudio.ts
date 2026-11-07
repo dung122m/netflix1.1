@@ -87,29 +87,66 @@ export const ACCENT_PRESETS: AccentPreset[] = [
 ];
 
 export const ACCENT_STORAGE_KEY = "nanaflix_theme";
+export const ACCENT_COOKIE_KEY = "nanaflix_theme";
 
-export function getActiveAccent(): AccentPreset {
-  if (typeof window === "undefined") return ACCENT_PRESETS[0];
+export function getActiveAccent(fallbackId?: string): AccentPreset {
+  if (typeof window === "undefined") {
+    if (fallbackId) {
+      const found = ACCENT_PRESETS.find((p) => p.id === fallbackId);
+      if (found) return found;
+    }
+    return ACCENT_PRESETS[0];
+  }
   try {
     const saved = localStorage.getItem(ACCENT_STORAGE_KEY);
     const found = ACCENT_PRESETS.find((p) => p.id === saved);
-    return found || ACCENT_PRESETS[0];
+    if (found) return found;
+    if (fallbackId) {
+      const fallbackFound = ACCENT_PRESETS.find((p) => p.id === fallbackId);
+      if (fallbackFound) return fallbackFound;
+    }
+    return ACCENT_PRESETS[0];
   } catch {
     return ACCENT_PRESETS[0];
   }
 }
 
-export function applyAccent(presetId: string): AccentPreset {
-  if (typeof window === "undefined") {
-    return ACCENT_PRESETS.find((p) => p.id === presetId) || ACCENT_PRESETS[0];
-  }
+export function updateThemeStyleTag(preset: AccentPreset): void {
+  if (typeof document === "undefined") return;
+  try {
+    let styleEl = document.getElementById("accent-theme-vars") as HTMLStyleElement | null;
+    if (!styleEl) {
+      styleEl = document.createElement("style");
+      styleEl.id = "accent-theme-vars";
+      document.head.appendChild(styleEl);
+    }
+    styleEl.textContent = `:root, html {
+  --netflix-red: ${preset.oklch} !important;
+  --accent-color: ${preset.color} !important;
+  --accent-rgb: ${preset.rgb} !important;
+  --accent-glow: ${preset.glow} !important;
+  --accent-border: ${preset.border} !important;
+}`;
+  } catch {}
+}
 
+export function applyAccent(presetId: string): AccentPreset {
   const preset = ACCENT_PRESETS.find((p) => p.id === presetId) || ACCENT_PRESETS[0];
+
+  if (typeof window === "undefined") {
+    return preset;
+  }
 
   try {
     localStorage.setItem(ACCENT_STORAGE_KEY, preset.id);
   } catch {
     // Ignore quota issues
+  }
+
+  try {
+    document.cookie = `${ACCENT_COOKIE_KEY}=${encodeURIComponent(preset.id)}; path=/; max-age=31536000; SameSite=Lax`;
+  } catch {
+    // Ignore cookie write issues
   }
 
   const root = document.documentElement;
@@ -119,6 +156,8 @@ export function applyAccent(presetId: string): AccentPreset {
   root.style.setProperty("--accent-rgb", preset.rgb);
   root.style.setProperty("--accent-glow", preset.glow);
   root.style.setProperty("--accent-border", preset.border);
+
+  updateThemeStyleTag(preset);
 
   window.dispatchEvent(
     new CustomEvent("nanaflix-accent-changed", { detail: preset })
