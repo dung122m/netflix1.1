@@ -122,6 +122,8 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
   const fetchSummary = async (force: boolean = false, isBackground: boolean = false) => {
     if (!leagueSlug || !eventId) {
       setSummary(null);
+      setLoading(false);
+      onLoadingChange?.(false);
       return;
     }
 
@@ -136,6 +138,8 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
         force,
       })
     ) {
+      setLoading(false);
+      onLoadingChange?.(false);
       return;
     }
 
@@ -165,9 +169,11 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
 
       if (!res.ok) {
         if (res.status === 404) {
-          // Trận đấu chưa có dữ liệu chi tiết API -> chuyển sang chế độ thông tin luồng phát
-          setSummary(null);
-          setError(null);
+          // Trận đấu chưa có dữ liệu chi tiết API -> chỉ xóa summary nếu trước đó chưa có dữ liệu
+          if (!summaryRef.current) {
+            setSummary(null);
+            setError(null);
+          }
           return;
         }
         throw new Error("Không thể tải thông tin trận đấu lúc này.");

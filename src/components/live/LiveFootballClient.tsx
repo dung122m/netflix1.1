@@ -410,10 +410,23 @@ export function LiveFootballClient({
     );
   }, [selectedMatch, currentMatchScore]);
 
+  const lastMatchIdRef = useRef<string | null>(null);
   useEffect(() => {
-    setMatchSummary(null);
-    setIsSummaryLoading(Boolean(currentMatchScore?.eventId && currentMatchScore?.leagueSlug));
+    if (selectedMatch?.id !== lastMatchIdRef.current) {
+      lastMatchIdRef.current = selectedMatch?.id || null;
+      setMatchSummary(null);
+      setIsSummaryLoading(Boolean(currentMatchScore?.eventId && currentMatchScore?.leagueSlug));
+    }
   }, [selectedMatch?.id, currentMatchScore?.eventId, currentMatchScore?.leagueSlug]);
+
+  // Fail-safe chống kẹt spinner loading diễn biến nếu upstream chậm hoặc mạng lỗi
+  useEffect(() => {
+    if (!isSummaryLoading) return;
+    const timer = setTimeout(() => {
+      setIsSummaryLoading(false);
+    }, 8000);
+    return () => clearTimeout(timer);
+  }, [isSummaryLoading]);
 
   const hasTimelineEvents = Boolean(
     (matchSummary?.events && matchSummary.events.length > 0) ||

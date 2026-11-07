@@ -331,8 +331,10 @@ export const MatchTimelineSidebar: React.FC<MatchTimelineSidebarProps> = ({
   }, [commentary, events, homeTeamName, awayTeamName, sortOrder]);
 
   const displayedList = viewMode === "events" ? pureKeyEvents : allStreamFeed;
+  const hasData = displayedList.length > 0 || hasStats || events.length > 0 || commentary.length > 0;
 
-  if (loading) {
+  // Chỉ hiển thị màn hình loading toàn phần khi THỰC SỰ chưa có dữ liệu nào (cả stream, events lẫn stats)
+  if (loading && !hasData) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center p-6 text-zinc-500 space-y-2">
         <Activity className="w-5 h-5 animate-pulse text-netflix-red" />
@@ -483,6 +485,12 @@ export const MatchTimelineSidebar: React.FC<MatchTimelineSidebarProps> = ({
               <MessageSquare className="w-3 h-3" />
               <span>Tất cả</span>
             </button>
+          )}
+
+          {loading && hasData && (
+            <span className="flex items-center gap-1 text-[10px] text-zinc-400 font-medium pl-1">
+              <Activity className="w-2.5 h-2.5 animate-spin text-netflix-red" />
+            </span>
           )}
         </div>
 

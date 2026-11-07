@@ -45,7 +45,7 @@ const BASE_API_URL = process.env.LIVESCORE_API_URL || "https://worldcup26.ir";
 const CACHE_TTL_LIVE_MS = 15 * 1000; // 15s cache TTL khi có trận đang live
 const CACHE_TTL_DEFAULT_MS = 60 * 1000; // 60s cache TTL khi không có trận live
 const STALE_TTL_MS = 45 * 1000; // 45s stale grace period
-const REQUEST_TIMEOUT_MS = 4000; // 4s timeout mỗi request
+const REQUEST_TIMEOUT_MS = 6500; // 6.5s timeout an toàn chống nghẽn mạng quốc tế từ local/server
 
 // Cache cấu hình cho Match Center Summary (P2)
 const SUMMARY_TTL_LIVE_MS = 10 * 1000; // 10s cho trận đang diễn ra
@@ -259,6 +259,11 @@ async function fetchAllScoreboards(): Promise<ScoreboardCache> {
     if (r.status === "fulfilled" && Array.isArray(r.value)) {
       allEvents.push(...r.value);
     }
+  }
+
+  // Nếu toàn bộ mạng lỗi/timeout nhưng memoryCache cũ có danh sách sự kiện -> bảo vệ UI không bị giật mất điểm
+  if (allEvents.length === 0 && memoryCache?.events && memoryCache.events.length > 0) {
+    return memoryCache;
   }
 
   const now = Date.now();
@@ -486,6 +491,12 @@ export const footballScoreService = {
 
     summaryInFlight.set(cacheKey, fetchPromise);
     const result = await fetchPromise;
+
+    // Graceful Stale Fallback: Nếu fetch mới gặp lỗi/timeout nhưng RAM cache trước đó có data -> giữ lại data cũ
+    if (!result && cachedEntry?.data) {
+      return { data: cachedEntry.data, cached: true };
+    }
+
     return { data: result, cached: false };
   },
 
