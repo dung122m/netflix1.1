@@ -3567,8 +3567,8 @@ function LivePlayerInner({
             <span>Không có nguồn phát khả dụng</span>
           </div>
         ) : isGridView ? (
-          /* DẠNG LƯỚI MỞ RỘNG */
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-1.5 sm:gap-2 w-full min-w-0 pt-0.5 px-0.5 max-h-72 overflow-y-auto">
+          /* DẠNG LƯỚI MỞ RỘNG (TRÊN MOBILE KHÔNG BỊ BẪY CUỘN OVERFLOW-Y TRONG HỘP) */
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-1.5 sm:gap-2 w-full min-w-0 pt-0.5 px-0.5 sm:max-h-72 sm:overflow-y-auto">
             {availableServers.map((s, idx) => {
               const isSelected = currentServer?.url === s.url;
               const qualityBadge = getSourceQuality(s);

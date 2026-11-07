@@ -1475,7 +1475,7 @@ function TeamPitchColumn({
             <span className="text-[11px] sm:text-xs text-zinc-400 font-medium shrink-0 whitespace-nowrap">Bấm xem chỉ số</span>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-[380px] overflow-y-auto pr-1 scrollbar-thin">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:max-h-[380px] sm:overflow-y-auto pr-1 scrollbar-thin">
             {bench.map((player) => {
               const hasValidPhoto = Boolean(player.photoUrl && !imageErrors[player.id]);
               const isSelected = selectedPlayer?.id === player.id;
@@ -1657,7 +1657,7 @@ function TeamListColumn({
           <p className="text-xs sm:text-[13px] font-extrabold text-zinc-400 uppercase tracking-wider">
             Dự bị ({bench.length})
           </p>
-          <div className="max-h-[260px] overflow-y-auto pr-0.5 scrollbar-thin space-y-1">
+          <div className="sm:max-h-[260px] sm:overflow-y-auto pr-0.5 scrollbar-thin space-y-1">
             {bench.map((p, i) => {
               const isSelected = selectedPlayer?.id === p.id;
               return (

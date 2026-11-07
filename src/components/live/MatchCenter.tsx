@@ -105,6 +105,7 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
   const [awayImgFailed, setAwayImgFailed] = useState(false);
 
   const [commentaryOrder, setCommentaryOrder] = useState<"newest" | "oldest">("newest");
+  const [showAllMobileCommentary, setShowAllMobileCommentary] = useState(false);
   const commentaryScrollRef = useRef<HTMLDivElement>(null);
 
   const displayedCommentary = useMemo(() => {
@@ -117,6 +118,7 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
   }, [summary?.commentary, commentaryOrder]);
 
   useEffect(() => {
+    setShowAllMobileCommentary(false);
     if (activeTab === "commentary" && commentaryScrollRef.current) {
       commentaryScrollRef.current.scrollTop = 0;
     }
@@ -775,21 +777,50 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
                   </div>
 
                   {displayedCommentary.length > 0 ? (
-                    <div
-                      ref={commentaryScrollRef}
-                      className="divide-y divide-white/[0.05] max-h-[480px] overflow-y-auto pr-1 scrollbar-thin"
-                    >
-                      {displayedCommentary.map((c, i) => (
-                        <div
-                          key={i}
-                          className="flex items-start gap-3 py-2.5 px-2 rounded-lg hover:bg-white/[0.02] transition text-xs"
+                    <div>
+                      {/* TRÊN MOBILE KHÔNG BỊ BẪY CUỘN OVERFLOW-Y: CHỈ GIỚI HẠN SCROLL TRÊN DESKTOP (sm:) */}
+                      <div
+                        ref={commentaryScrollRef}
+                        className="divide-y divide-white/[0.05] sm:max-h-[500px] sm:overflow-y-auto pr-1 scrollbar-thin"
+                      >
+                        {displayedCommentary.map((c, i) => {
+                          const isHiddenOnMobile = i >= 12 && !showAllMobileCommentary;
+                          return (
+                            <div
+                              key={i}
+                              className={`items-start gap-3 py-2.5 px-2 rounded-lg hover:bg-white/[0.02] transition text-xs ${
+                                isHiddenOnMobile ? "hidden sm:flex" : "flex"
+                              }`}
+                            >
+                              <span className="font-mono text-amber-400 font-extrabold shrink-0 min-w-[34px] pt-0.5 tabular-nums text-right">
+                                {formatCommentaryTime(c.time)}
+                              </span>
+                              <p className="text-zinc-200 leading-relaxed flex-1 font-sans">{c.text}</p>
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {/* NÚT XEM THÊM / THU GỌN TRÊN MOBILE (KHÔNG TRAP SCROLL CỦA TRANG) */}
+                      {displayedCommentary.length > 12 && (
+                        <button
+                          type="button"
+                          onClick={() => setShowAllMobileCommentary((prev) => !prev)}
+                          className="sm:hidden w-full py-2.5 my-2 rounded-xl bg-white/5 hover:bg-white/10 text-xs font-bold text-zinc-300 hover:text-white transition flex items-center justify-center gap-1.5 cursor-pointer border border-white/5"
                         >
-                          <span className="font-mono text-amber-400 font-extrabold shrink-0 min-w-[34px] pt-0.5 tabular-nums text-right">
-                            {formatCommentaryTime(c.time)}
-                          </span>
-                          <p className="text-zinc-200 leading-relaxed flex-1 font-sans">{c.text}</p>
-                        </div>
-                      ))}
+                          {showAllMobileCommentary ? (
+                            <>
+                              <span>Thu gọn</span>
+                              <ChevronUp className="w-3.5 h-3.5 text-zinc-400" />
+                            </>
+                          ) : (
+                            <>
+                              <span>Xem thêm ({displayedCommentary.length - 12} diễn biến)</span>
+                              <ChevronDown className="w-3.5 h-3.5 text-zinc-400" />
+                            </>
+                          )}
+                        </button>
+                      )}
                     </div>
                   ) : (
                     <p className="text-xs text-zinc-500 py-8 text-center">Chưa có diễn biến</p>

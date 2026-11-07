@@ -817,7 +817,7 @@ export const DualTeamPitch: React.FC<DualTeamPitchProps> = ({
           {homeBench.length === 0 ? (
             <p className="text-xs text-zinc-500 py-8 text-center font-sans">Chưa có danh sách dự bị</p>
           ) : (
-            <div className="space-y-1 overflow-y-auto max-h-[320px] pr-1 scrollbar-thin">
+            <div className="space-y-1 sm:overflow-y-auto sm:max-h-[320px] pr-1 scrollbar-thin">
               {homeBench.map((p) => {
                 const eventsInfo = getPlayerEventBadges(p);
                 const isSelected = selectedPlayer?.player.id === p.id;
@@ -895,7 +895,7 @@ export const DualTeamPitch: React.FC<DualTeamPitchProps> = ({
           {awayBench.length === 0 ? (
             <p className="text-xs text-zinc-500 py-8 text-center font-sans">Chưa có danh sách dự bị</p>
           ) : (
-            <div className="space-y-1 overflow-y-auto max-h-[320px] pr-1 scrollbar-thin">
+            <div className="space-y-1 sm:overflow-y-auto sm:max-h-[320px] pr-1 scrollbar-thin">
               {awayBench.map((p) => {
                 const eventsInfo = getPlayerEventBadges(p);
                 const isSelected = selectedPlayer?.player.id === p.id;
