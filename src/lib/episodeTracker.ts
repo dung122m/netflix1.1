@@ -69,49 +69,52 @@ export const isEpisodeWatched = (
   episodeName?: string,
 ): boolean => {
   if (typeof window === "undefined" || !movieSlug || !episodeSlug) return false;
-  const list = getWatchedEpisodes(movieSlug);
-  if (list.includes(episodeSlug)) return true;
 
   const targetNum = extractEpisodeNumber(episodeSlug) ?? extractEpisodeNumber(episodeName);
 
-  if (targetNum !== null && list.some((w) => extractEpisodeNumber(w) === targetNum)) {
-    return true;
-  }
-
+  // 1. Kiểm tra tiến trình chi tiết trước (Ground Truth)
   try {
     const raw = localStorage.getItem("nanaflix_episodes_progress");
     if (raw) {
       const parsed = JSON.parse(raw);
       const movieEps = parsed[movieSlug];
       if (movieEps) {
-        const epData = movieEps[episodeSlug];
-        if (epData?.isCompleted) return true;
-        if (
-          epData?.durationSeconds &&
-          epData.durationSeconds > 0 &&
-          epData.progressSeconds / epData.durationSeconds >= 0.9
-        ) {
-          return true;
-        }
-
-        if (targetNum !== null) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        let epData = movieEps[episodeSlug] as any;
+        if (!epData && targetNum !== null) {
           for (const key of Object.keys(movieEps)) {
             if (extractEpisodeNumber(key) === targetNum) {
-              const data = movieEps[key];
-              if (data?.isCompleted) return true;
-              if (
-                data?.durationSeconds &&
-                data.durationSeconds > 0 &&
-                data.progressSeconds / data.durationSeconds >= 0.9
-              ) {
-                return true;
-              }
+              epData = movieEps[key];
+              break;
             }
+          }
+        }
+
+        if (epData) {
+          if (epData.isCompleted) return true;
+          if (
+            typeof epData.durationSeconds === "number" &&
+            Number.isFinite(epData.durationSeconds) &&
+            epData.durationSeconds > 0
+          ) {
+            if (epData.progressSeconds / epData.durationSeconds >= 0.9) {
+              return true;
+            }
+            // Nếu có duration hợp lệ và tiến độ < 90% -> đây là tập đang xem dở, KHÔNG phải đã xem
+            return false;
           }
         }
       }
     }
   } catch {}
+
+  // 2. Nếu không có tiến trình xem dở mâu thuẫn, kiểm tra watchedList
+  const list = getWatchedEpisodes(movieSlug);
+  if (list.includes(episodeSlug)) return true;
+
+  if (targetNum !== null && list.some((w) => extractEpisodeNumber(w) === targetNum)) {
+    return true;
+  }
 
   return false;
 };
