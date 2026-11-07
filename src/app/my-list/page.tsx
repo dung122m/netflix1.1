@@ -53,7 +53,6 @@ import {
   subscribeUserCollections,
   deleteCollection,
   toggleCollectionPrivacy,
-  getSmartCollectionsList,
 } from "@/services/collectionService";
 import { subscribeUserComments, deleteMovieComment } from "@/services/commentService";
 import { MovieCollection } from "@/types/collection";
@@ -957,48 +956,6 @@ function MyListContent() {
               </div>
             </div>
           )}
-
-          {/* TUYỂN TẬP THÔNG MINH (SMART COLLECTIONS) */}
-          <div className="pt-6 border-t">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-5">
-              <div>
-                <h2 className="text-lg sm:text-xl font-bold text-white flex items-center gap-2">
-                  <span>✨ Tuyển Tập Đề Xuất (Smart Collections)</span>
-                </h2>
-                <p className="text-xs text-zinc-400 mt-0.5">
-                  Bộ sưu tập tự động phân loại theo chủ đề hấp dẫn từ kho phim Nanaflix
-                </p>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4 md:gap-5">
-              {getSmartCollectionsList().map((smart) => (
-                <Link
-                  key={smart.id}
-                  href={`/collection/${smart.id}`}
-                  className="group p-4 rounded-2xl bg-zinc-900/60 hover:bg-zinc-800/80 transition-all duration-300 hover:scale-[1.02] flex flex-col justify-between shadow-lg"
-                >
-                  <div>
-                    <div className="flex items-center justify-between gap-2 mb-2.5">
-                      <span className="text-2xl">{smart.emoji}</span>
-                      <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-netflix-red/20 text-white">
-                        {smart.badge}
-                      </span>
-                    </div>
-                    <h3 className="text-white font-bold text-sm group-hover:text-netflix-red transition-colors line-clamp-1">
-                      {smart.name}
-                    </h3>
-                    <p className="text-xs text-zinc-400 line-clamp-2 mt-1.5 leading-relaxed">
-                      {smart.description}
-                    </p>
-                  </div>
-                  <div className="mt-4 pt-2.5 flex items-center justify-between text-[11px] text-zinc-400 font-medium">
-                    <span>Khám phá danh sách</span>
-                    <span className="text-netflix-red group-hover:translate-x-1 transition-transform">→</span>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          </div>
         </div>
       ) : activeTab === "comments" ? (
         /* TAB 4: LỊCH SỬ BÌNH LUẬN */
