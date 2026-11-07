@@ -59,16 +59,32 @@ const AGGRESSIVE_SCRAPER_USER_AGENTS = [
   /puppeteer/i,
 ];
 
-// In-Memory Edge Rate Limiter cho tuyến đường diễn viên (/dien-vien/*)
-// Chặn đứng hoàn toàn bão quét từ crawler mà không tiêu tốn lệnh Redis nào
+// Bẫy Honeypot ngầm: Tự động lưu và chặn IP crawler trong 24 giờ (In-Memory, 0ms, 0 Redis commands)
+const EDGE_HONEYPOT_BANS = new Map<string, number>();
+const MAX_HONEYPOT_BANS = 10000;
+
+// In-Memory Multi-Tier Edge Rate Limiter (Bảo vệ toàn diện, 0 Redis commands)
 interface EdgeRateLimitRecord {
   count: number;
   resetAt: number;
 }
-const ACTOR_EDGE_RATE_LIMIT = new Map<string, EdgeRateLimitRecord>();
-const ACTOR_RL_MAX_REQUESTS = 4; // Tối đa 4 request trong 10 giây (ngăn chặn triệt để crawler giãn cách 2-3s)
-const ACTOR_RL_WINDOW_MS = 10_000;
-const MAX_ACTOR_RL_ENTRIES = 5000;
+const EDGE_RATE_LIMIT_STORE = new Map<string, EdgeRateLimitRecord>();
+const MAX_EDGE_RATE_LIMIT_ENTRIES = 10000;
+
+interface EdgeTierRule {
+  prefix: string;
+  name: string;
+  maxRequests: number;
+  windowMs: number;
+}
+
+const EDGE_TIER_RULES: EdgeTierRule[] = [
+  { prefix: "/dien-vien/", name: "trang diễn viên", maxRequests: 4, windowMs: 10_000 },
+  { prefix: "/movies/", name: "trang phim", maxRequests: 8, windowMs: 10_000 },
+  { prefix: "/browse", name: "trang khám phá", maxRequests: 10, windowMs: 10_000 },
+  { prefix: "/api/search-suggest", name: "gợi ý tìm kiếm", maxRequests: 12, windowMs: 10_000 },
+  { prefix: "/api/for-you", name: "gợi ý phim", maxRequests: 8, windowMs: 10_000 },
+];
 
 // Danh sách các đường dẫn dò quét lỗ hổng phổ biến của botnet
 const BLOCKED_PATH_PATTERNS = [
@@ -178,6 +194,43 @@ export function middleware(req: NextRequest) {
   const method = req.method.toUpperCase();
   const requestId = getRequestId(req);
 
+  const clientIp =
+    req.headers.get("cf-connecting-ip") ||
+    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+    req.headers.get("x-real-ip") ||
+    "unknown";
+
+  // 0. Bẫy Honeypot: Kiểm tra IP trong danh sách đen tự động (Blacklisted 24 giờ)
+  const banExpiresAt = EDGE_HONEYPOT_BANS.get(clientIp);
+  if (banExpiresAt) {
+    if (banExpiresAt > Date.now()) {
+      return new NextResponse("Access Denied - Security Trap Triggered", {
+        status: 403,
+        headers: {
+          "X-Content-Type-Options": "nosniff",
+          "Cache-Control": "private, no-cache, no-store, max-age=0, must-revalidate",
+        },
+      });
+    }
+    EDGE_HONEYPOT_BANS.delete(clientIp);
+  }
+
+  // 0.1 Bẫy Bot Honeypot: Bất kỳ crawler nào truy cập link bẫy ẩn này sẽ bị ban lập tức 24h
+  if (pathname === "/api/v1/bot-trap" || pathname === "/cdn-cgi/bot-trap") {
+    if (EDGE_HONEYPOT_BANS.size >= MAX_HONEYPOT_BANS) {
+      const oldest = EDGE_HONEYPOT_BANS.keys().next().value;
+      if (oldest) EDGE_HONEYPOT_BANS.delete(oldest);
+    }
+    EDGE_HONEYPOT_BANS.set(clientIp, Date.now() + 24 * 3600 * 1000);
+    return new NextResponse("Forbidden Access - Crawler Blacklisted", {
+      status: 403,
+      headers: {
+        "X-Content-Type-Options": "nosniff",
+        "Cache-Control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      },
+    });
+  }
+
   // 1. Chặn các phương thức HTTP nguy hiểm
   if (method === "TRACE" || method === "TRACK") {
     return new NextResponse("Method Not Allowed", {
@@ -265,25 +318,44 @@ export function middleware(req: NextRequest) {
         return redirectRes;
       }
     }
+  }
 
-    // 4.2 Giới hạn tần suất Edge cho trang diễn viên (chống crawler cào dồn dập, 0 Redis commands)
-    const isSearchBot = /googlebot|bingbot|duckduckbot/i.test(userAgent);
-    if (!isSearchBot) {
-      const clientIp =
-        req.headers.get("cf-connecting-ip") ||
-        req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-        req.headers.get("x-real-ip") ||
-        "unknown";
+  // 4.2 Chuẩn hóa URL trang phim: Loại bỏ các query param rác (chống Cache-Busting của bot cào)
+  if (pathname.startsWith("/movies/")) {
+    const searchParams = req.nextUrl.searchParams;
+    const hasJunkParams = Array.from(searchParams.keys()).some(
+      (k) => !["ep", "server", "source"].includes(k)
+    );
+    if (hasJunkParams) {
+      const cleanUrl = req.nextUrl.clone();
+      Array.from(searchParams.keys()).forEach((k) => {
+        if (!["ep", "server", "source"].includes(k)) {
+          cleanUrl.searchParams.delete(k);
+        }
+      });
+      const redirectRes = NextResponse.redirect(cleanUrl, 308);
+      redirectRes.headers.set("X-Request-Id", requestId);
+      redirectRes.headers.set("Cache-Control", "public, max-age=86400, s-maxage=86400");
+      return redirectRes;
+    }
+  }
+
+  // 4.3 Giới hạn tần suất Edge đa tầng (Multi-tier Edge Rate Limiting - 0 Redis commands)
+  const isSearchBot = /googlebot|bingbot|duckduckbot/i.test(userAgent);
+  if (!isSearchBot) {
+    const matchedTier = EDGE_TIER_RULES.find((tier) => pathname.startsWith(tier.prefix));
+    if (matchedTier) {
+      const rlKey = `${clientIp}:${matchedTier.prefix}`;
       const now = Date.now();
-      const record = ACTOR_EDGE_RATE_LIMIT.get(clientIp);
+      const record = EDGE_RATE_LIMIT_STORE.get(rlKey);
 
       if (record && record.resetAt > now) {
         record.count++;
-        if (record.count > ACTOR_RL_MAX_REQUESTS) {
+        if (record.count > matchedTier.maxRequests) {
           return new NextResponse(
             JSON.stringify({
               error: "Too Many Requests",
-              message: "Tần suất truy cập trang diễn viên vượt ngưỡng an toàn. Vui lòng thử lại sau.",
+              message: `Tần suất truy cập ${matchedTier.name} vượt ngưỡng an toàn. Vui lòng thử lại sau.`,
             }),
             {
               status: 429,
@@ -297,13 +369,13 @@ export function middleware(req: NextRequest) {
           );
         }
       } else {
-        if (ACTOR_EDGE_RATE_LIMIT.size >= MAX_ACTOR_RL_ENTRIES) {
-          const oldestKey = ACTOR_EDGE_RATE_LIMIT.keys().next().value;
-          if (oldestKey) ACTOR_EDGE_RATE_LIMIT.delete(oldestKey);
+        if (EDGE_RATE_LIMIT_STORE.size >= MAX_EDGE_RATE_LIMIT_ENTRIES) {
+          const oldestKey = EDGE_RATE_LIMIT_STORE.keys().next().value;
+          if (oldestKey) EDGE_RATE_LIMIT_STORE.delete(oldestKey);
         }
-        ACTOR_EDGE_RATE_LIMIT.set(clientIp, {
+        EDGE_RATE_LIMIT_STORE.set(rlKey, {
           count: 1,
-          resetAt: now + ACTOR_RL_WINDOW_MS,
+          resetAt: now + matchedTier.windowMs,
         });
       }
     }

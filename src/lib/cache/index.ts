@@ -45,6 +45,18 @@ let isLiveInitChecked = false;
 let isAuxInitChecked = false;
 let isWarnedUnavailable = false;
 
+// ============================================================================
+// DB3 WRITE CIRCUIT BREAKER (QUOTA SHIELD - 500K DAILY COMMANDS PROTECTION)
+// ============================================================================
+let db3RecentWriteCount = 0;
+let db3WindowStart = Date.now();
+const DB3_BURST_MAX_WRITES_PER_MIN = 35; // Tối đa 35 lượt ghi / phút trên 1 instance container
+
+export function _resetDb3WriteShieldForTesting(): void {
+  db3RecentWriteCount = 0;
+  db3WindowStart = Date.now();
+}
+
 export function _resetRedisClientsForTesting(): void {
   defaultRedisClient = null;
   liveRedisClient = null;
@@ -53,6 +65,7 @@ export function _resetRedisClientsForTesting(): void {
   isLiveInitChecked = false;
   isAuxInitChecked = false;
   isWarnedUnavailable = false;
+  _resetDb3WriteShieldForTesting();
 }
 
 export function _setMockRedisClientForTesting(client: Redis | null, purpose: RedisPurpose = "default"): void {
@@ -385,7 +398,23 @@ export const cacheService: CacheService = {
       expireAt: now + Math.min(safeTtl * 1000, DEFAULT_L1_TTL_MS),
     });
 
-    // 2. Save to L2 Upstash Redis (Tự động chọn Default hoặc Live)
+    // 2. Kiểm tra DB3 Circuit Breaker: Chống cháy quota 500K khi có bot quét bão dữ liệu
+    const purpose = getRedisPurposeForKey(key);
+    if (purpose === "aux" && process.env.NODE_ENV !== "test") {
+      if (now - db3WindowStart > 60_000) {
+        db3WindowStart = now;
+        db3RecentWriteCount = 0;
+      }
+      db3RecentWriteCount++;
+      if (db3RecentWriteCount > DB3_BURST_MAX_WRITES_PER_MIN || process.env.DB3_WRITE_SHIELD === "true") {
+        if (process.env.NODE_ENV !== "production") {
+          console.warn(`[DB3_WRITE_SHIELD] Quota Circuit Breaker activated (${db3RecentWriteCount}/min). Saved key="${key}" to L1 RAM only (Skipped redis.set).`);
+        }
+        return true; // Lưu an toàn trong L1 RAM, bỏ qua Redis SET để bảo vệ quota
+      }
+    }
+
+    // 3. Save to L2 Upstash Redis (Tự động chọn Default hoặc Live)
     const redis = getRedisClientForKey(key);
     if (!redis) {
       return true;
@@ -436,6 +465,16 @@ export const cacheService: CacheService = {
       // 2. Queue in corresponding Redis pipeline
       const purpose = getRedisPurposeForKey(key);
       if (purpose === "aux") {
+        if (process.env.NODE_ENV !== "test") {
+          if (now - db3WindowStart > 60_000) {
+            db3WindowStart = now;
+            db3RecentWriteCount = 0;
+          }
+          db3RecentWriteCount++;
+          if (db3RecentWriteCount > DB3_BURST_MAX_WRITES_PER_MIN || process.env.DB3_WRITE_SHIELD === "true") {
+            continue; // Lưu an toàn trong L1 RAM, bỏ qua queue pipeline vào DB3
+          }
+        }
         if (auxPipe) auxPipe.set(key, entry.value, { ex: safeTtl });
       } else if (purpose === "live") {
         if (livePipe) livePipe.set(key, entry.value, { ex: safeTtl });

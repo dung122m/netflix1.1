@@ -10,6 +10,49 @@ export async function GET(req: NextRequest) {
     return buildRateLimitResponse(rateLimit);
   }
 
+  // Anti-Hotlinking: Chặn các website bên ngoài leech trộm link stream
+  const origin = req.headers.get("origin");
+  const referer = req.headers.get("referer");
+  const host = (req.headers.get("host") || "").toLowerCase().split(":")[0];
+
+  const isTrustedHost = (h: string) => {
+    return (
+      h === host ||
+      h.includes("localhost") ||
+      h.includes("127.0.0.1") ||
+      h.endsWith("nanaflix.asia") ||
+      h.endsWith(".vercel.app")
+    );
+  };
+
+  if (origin) {
+    try {
+      const originHost = new URL(origin).host.toLowerCase().split(":")[0];
+      if (!isTrustedHost(originHost)) {
+        return NextResponse.json(
+          { success: false, error: "Access Denied: Hotlinking is forbidden" },
+          { status: 403 }
+        );
+      }
+    } catch {
+      // Bỏ qua nếu format URL không hợp lệ
+    }
+  }
+
+  if (referer) {
+    try {
+      const refererHost = new URL(referer).host.toLowerCase().split(":")[0];
+      if (!isTrustedHost(refererHost)) {
+        return NextResponse.json(
+          { success: false, error: "Access Denied: Hotlinking is forbidden" },
+          { status: 403 }
+        );
+      }
+    } catch {
+      // Bỏ qua nếu format URL không hợp lệ
+    }
+  }
+
   const { searchParams } = new URL(req.url);
   const slug = searchParams.get("slug");
   const ep = searchParams.get("ep");
