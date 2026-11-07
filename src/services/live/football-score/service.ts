@@ -407,6 +407,23 @@ export const footballScoreService = {
       return { data: cachedEntry.data, cached: true };
     }
 
+    // 2.5 Kiểm tra L2 Upstash Redis Cache (DB 2: Live / Realtime - match:*)
+    const redisSummaryKey = `match:summary:v1:${cleanLeague}:${cleanEventId}`;
+    try {
+      const redisCached = await cacheService.get<NormalizedMatchSummary>(redisSummaryKey);
+      if (redisCached) {
+        let memTtl = SUMMARY_TTL_SCHEDULED_MS;
+        if (redisCached.status === "live") memTtl = SUMMARY_TTL_LIVE_MS;
+        else if (redisCached.status === "finished") memTtl = SUMMARY_TTL_FINISHED_MS;
+
+        summaryMemoryCache.set(cacheKey, {
+          data: redisCached,
+          expireAt: now + memTtl,
+        });
+        return { data: redisCached, cached: true };
+      }
+    } catch {}
+
     // 3. In-flight deduplication để tránh gọi nhiều lần cho cùng 1 trận
     if (summaryInFlight.has(cacheKey)) {
       const result = await summaryInFlight.get(cacheKey)!;
@@ -441,16 +458,20 @@ export const footballScoreService = {
 
             // Quyết định TTL theo trạng thái trận đấu
             let ttl = SUMMARY_TTL_SCHEDULED_MS;
+            let redisTtlSeconds = 60;
             if (normalized.status === "live") {
               ttl = SUMMARY_TTL_LIVE_MS;
+              redisTtlSeconds = 30; // 30s cho trận live
             } else if (normalized.status === "finished") {
               ttl = SUMMARY_TTL_FINISHED_MS;
+              redisTtlSeconds = 300; // 5 phút cho trận đã kết thúc
             }
 
             summaryMemoryCache.set(cacheKey, {
               data: normalized,
               expireAt: Date.now() + ttl,
             });
+            cacheService.set(redisSummaryKey, normalized, redisTtlSeconds).catch(() => {});
 
             return normalized;
           } catch {

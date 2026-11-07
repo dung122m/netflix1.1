@@ -1066,6 +1066,31 @@ export async function resolveActorMovies(
     };
   }
 
+  // 1.22 Kiểm tra TIER 2.2: Cache L2 Upstash Redis DB 3 (Aux / Metadata - actor:intent:*)
+  const cleanKey = cleanRaw.replace(/[^a-z0-9_]/g, "_").slice(0, 80);
+  const redisActorKey = `actor:intent:${cleanKey}`;
+  try {
+    const redisCached = await cacheService.get<{
+      actorName: string;
+      country?: string;
+      aliases: string[];
+      isActor: boolean;
+    }>(redisActorKey);
+    if (redisCached) {
+      setBoundedCache(ACTOR_AI_CACHE, cleanRaw, {
+        ...redisCached,
+        expireAt: Date.now() + CACHE_7_DAYS,
+      });
+      return {
+        actorName: redisCached.actorName,
+        country: redisCached.country,
+        aliases: redisCached.aliases,
+        isActor: redisCached.isActor,
+        source: "cache",
+      };
+    }
+  } catch {}
+
   // 1.25 TIER 2.5: Tra cứu trực tiếp TMDB Search Person (Chuẩn quốc tế, 100% chính xác, không phụ thuộc vào ngưỡng popularity)
   try {
     const tmdbPerson = await searchTmdbPerson(keyword);
@@ -1096,12 +1121,17 @@ export async function resolveActorMovies(
           new Set([actorName, keyword, tmdbPerson.original_name].filter(Boolean))
         ) as string[];
 
-        setBoundedCache(ACTOR_AI_CACHE, cleanRaw, {
+        const tmdbEntry = {
           actorName,
           aliases,
           isActor: true,
+        };
+
+        setBoundedCache(ACTOR_AI_CACHE, cleanRaw, {
+          ...tmdbEntry,
           expireAt: Date.now() + CACHE_7_DAYS,
         });
+        cacheService.set(redisActorKey, tmdbEntry, 14 * 86400).catch(() => {});
 
         return {
           actorName,
@@ -1175,13 +1205,18 @@ BẮT BUỘC chỉ trả về DUY NHẤT một chuỗi JSON hợp lệ theo đ�
             (s): s is string => typeof s === "string" && s.trim().length >= 2
           );
 
-          setBoundedCache(ACTOR_AI_CACHE, cleanRaw, {
+          const aiEntry = {
             actorName,
             country,
             aliases,
             isActor: true,
+          };
+
+          setBoundedCache(ACTOR_AI_CACHE, cleanRaw, {
+            ...aiEntry,
             expireAt: Date.now() + CACHE_7_DAYS,
           });
+          cacheService.set(redisActorKey, aiEntry, 14 * 86400).catch(() => {});
 
           return {
             actorName,
@@ -1191,12 +1226,16 @@ BẮT BUỘC chỉ trả về DUY NHẤT một chuỗi JSON hợp lệ theo đ�
             source: "ai",
           };
         } else {
-          setBoundedCache(ACTOR_AI_CACHE, cleanRaw, {
+          const negEntry = {
             actorName: "",
             aliases: [],
             isActor: false,
+          };
+          setBoundedCache(ACTOR_AI_CACHE, cleanRaw, {
+            ...negEntry,
             expireAt: Date.now() + 24 * 60 * 60 * 1000,
           });
+          cacheService.set(redisActorKey, negEntry, 86400).catch(() => {});
         }
       }
     }

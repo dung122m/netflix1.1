@@ -20,19 +20,23 @@ describe("Nanaflix Triple Redis Multi-Account Architecture", () => {
     assert.equal(getRedisPurposeForKey("movie:synopsis:v1:avatar"), "aux");
     assert.equal(getRedisPurposeForKey("ai:candidate:v2:action"), "aux");
     assert.equal(getRedisPurposeForKey("tmdb:dir_flow_v2:12345:20"), "aux");
+    assert.equal(getRedisPurposeForKey("tmdb:fallback_poster:avatar"), "aux");
     assert.equal(getRedisPurposeForKey("ai:anilist:poster:conan"), "aux");
     assert.equal(getRedisPurposeForKey("ai:embedding:test"), "aux");
+    assert.equal(getRedisPurposeForKey("actor:intent:a_xin"), "aux");
 
     // DB 2: Live / Realtime & Community (composed-squid-82374)
     assert.equal(getRedisPurposeForKey("live:football:matches:v1"), "live");
     assert.equal(getRedisPurposeForKey("football:standings:v1:pl"), "live");
     assert.equal(getRedisPurposeForKey("football:fixtures:v1:cl"), "live");
     assert.equal(getRedisPurposeForKey("match:12345"), "live");
+    assert.equal(getRedisPurposeForKey("match:summary:v1:eng.1:12345"), "live");
     assert.equal(getRedisPurposeForKey("tv:channels:list"), "live");
     assert.equal(getRedisPurposeForKey("football:athlete:252607"), "live");
     assert.equal(getRedisPurposeForKey("athlete:profile:123"), "live");
     assert.equal(getRedisPurposeForKey("comments:movie:tham-tu-lung-danh-conan"), "live");
     assert.equal(getRedisPurposeForKey("comments:movie:avatar-2"), "live");
+    assert.equal(getRedisPurposeForKey("community:trending:v1:week:10"), "live");
     assert.equal(getRedisPurposeForKey("user:handoff:user_12345"), "live");
     assert.equal(getRedisPurposeForKey("handoff:device:user_12345"), "live");
     assert.equal(getRedisPurposeForKey("sec:rl:production:user:123"), "live");

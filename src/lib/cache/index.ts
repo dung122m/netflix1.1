@@ -130,6 +130,7 @@ export function getRedisPurposeForKey(key: string): RedisPurpose {
     key.startsWith("match:") ||
     key.startsWith("tv:") ||
     key.startsWith("comments:") ||
+    key.startsWith("community:") ||
     key.startsWith("user:handoff:") ||
     key.startsWith("handoff:") ||
     key.startsWith("user:resume:") ||

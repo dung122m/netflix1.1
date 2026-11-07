@@ -3,6 +3,7 @@ import { movieApi } from "@/services/movies/service";
 import { pickBestMoviePoster, pickBestMovieThumb } from "@/lib/movieMedia";
 import { getTmdbPosterUrl, searchTmdbPosterByTitle } from "@/services/tmdbService";
 import { searchAniListPoster } from "@/services/aniListService";
+import { cacheService } from "@/lib/cache";
 import {
   enforceRateLimit,
   buildRateLimitResponse,
@@ -198,7 +199,37 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  // 2. Không truy vấn Redis Upstash, tự tìm kiếm fallback trực tiếp và lưu RAM + CDN
+  // 1.5 Kiểm tra L2 Upstash Redis Cache (DB 3: Aux / TMDb - tmdb:fallback_poster:*)
+  const cleanKey = cacheKey.replace(/[^a-z0-9_]/g, "_").slice(0, 100);
+  const redisPosterKey = `tmdb:fallback_poster:${cleanKey}`;
+  try {
+    const redisCached = await cacheService.get<PosterCacheEntry>(redisPosterKey);
+    if (redisCached) {
+      setBoundedMap(posterMemoryCache, cacheKey, {
+        posterUrl: redisCached.posterUrl,
+        backdropUrl: redisCached.backdropUrl,
+        expireAt: now + MEMORY_TTL,
+      });
+      const hasPoster = Boolean(redisCached.posterUrl || redisCached.backdropUrl);
+      return NextResponse.json(
+        {
+          status: true,
+          posterUrl: redisCached.posterUrl,
+          backdropUrl: redisCached.backdropUrl,
+          source: "l2-redis",
+        },
+        {
+          headers: {
+            "Cache-Control": hasPoster
+              ? "public, max-age=86400, s-maxage=604800, stale-while-revalidate=86400"
+              : "public, max-age=3600, s-maxage=86400",
+          },
+        }
+      );
+    }
+  } catch {}
+
+  // 2. Tra cứu fallback trực tiếp nếu cả RAM và Redis đều chưa có
   let result: { posterUrl: string | null; backdropUrl: string | null } | null = null;
 
   // 1. Ưu tiên tìm theo tên gốc tiếng Anh/quốc tế trước (tỷ lệ match TMDB chuẩn xác 98%)
@@ -309,15 +340,21 @@ export async function GET(req: NextRequest) {
 
   const finalPosterUrl = result?.posterUrl || null;
   const finalBackdropUrl = result?.backdropUrl || null;
+  const hasPoster = Boolean(finalPosterUrl || finalBackdropUrl);
 
-  // Lưu vào bounded L1 RAM
-  setBoundedMap(posterMemoryCache, cacheKey, {
+  const cacheEntry: PosterCacheEntry = {
     posterUrl: finalPosterUrl,
     backdropUrl: finalBackdropUrl,
     expireAt: now + MEMORY_TTL,
-  });
+  };
 
-  const hasPoster = Boolean(finalPosterUrl || finalBackdropUrl);
+  // Lưu vào bounded L1 RAM
+  setBoundedMap(posterMemoryCache, cacheKey, cacheEntry);
+
+  // Lưu vào L2 Upstash Redis DB 3 (Aux / TMDb - tmdb:fallback_poster:*)
+  // TTL: 14 ngày nếu có ảnh, 24 giờ nếu không tìm thấy
+  const redisTtlSeconds = hasPoster ? 14 * 86400 : 86400;
+  cacheService.set(redisPosterKey, cacheEntry, redisTtlSeconds).catch(() => {});
   return NextResponse.json(
     {
       status: true,
