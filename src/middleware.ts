@@ -60,7 +60,6 @@ const AGGRESSIVE_SCRAPER_USER_AGENTS = [
   /axios/i,
   /curl\//i,
   /wget\//i,
-  /headlesschrome/i,
   /phantomjs/i,
   /selenium/i,
   /puppeteer/i,
@@ -130,20 +129,23 @@ export function checkOriginProtection(req: NextRequest): NextResponse | null {
     return null;
   }
 
-  // Bypass for local development, standalone tests, and Vercel preview environments
+  const host = (req.headers.get("host") || req.nextUrl.host || "")
+    .toLowerCase()
+    .split(":")[0];
+  const userAgent = req.headers.get("user-agent") || "";
+
+  // Bypass for local development, standalone tests, and Vercel preview/deployment screenshot environments
   const isTest = process.env.NODE_ENV === "test" || process.env.APP_ENV === "test";
   const isDev = process.env.NODE_ENV === "development";
   const isPreview = process.env.VERCEL_ENV === "preview" || process.env.APP_ENV === "preview";
   const isLoopback = req.nextUrl.hostname === "localhost" || req.nextUrl.hostname === "127.0.0.1";
+  const isVercelDeployment = host.includes("-projects.vercel.app") || (host.endsWith(".vercel.app") && host.includes("-"));
+  const isVercelBot = host.endsWith(".vercel.app") && userAgent.includes("HeadlessChrome");
 
   const isForcedTest = Boolean(req.headers.get("x-test-enforce-origin-protection"));
-  if (!isForcedTest && (isTest || isDev || isPreview || isLoopback)) {
+  if (!isForcedTest && (isTest || isDev || isPreview || isLoopback || isVercelDeployment || isVercelBot)) {
     return null;
   }
-
-  const host = (req.headers.get("host") || req.nextUrl.host || "")
-    .toLowerCase()
-    .split(":")[0];
   const customDomain = (process.env.CUSTOM_DOMAIN || process.env.NEXT_PUBLIC_APP_URL || "")
     .replace(/^https?:\/\//, "")
     .split("/")[0]
