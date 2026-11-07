@@ -77,12 +77,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [cachedUser, setCachedUser] = useState<CachedAuthUser | null>(() => {
-    return getCachedAuthUser();
-  });
+  const [cachedUser, setCachedUser] = useState<CachedAuthUser | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
   const isConfigured = isFirebaseConfigured();
+
+  // Đọc cachedUser sau khi client đã mount để đảm bảo SSR và client hydration hoàn toàn khớp 100%
+  useEffect(() => {
+    const cached = getCachedAuthUser();
+    if (cached) {
+      setCachedUser(cached);
+    }
+  }, []);
 
   const syncNow = useCallback(async () => {
     if (!user) return;

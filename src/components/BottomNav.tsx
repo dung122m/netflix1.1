@@ -11,9 +11,14 @@ import { UserAvatar } from "@/components/ui/UserAvatar";
 
 export function BottomNav() {
   const pathname = usePathname();
+  const [isMounted, setIsMounted] = useState(false);
   const { user, cachedUser } = useAuth();
   const currentUser = user || cachedUser;
   const activeUid = user?.uid || cachedUser?.uid;
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const [userProfile, setUserProfile] = useState<UserProfile | null>(() => {
     if (typeof window !== "undefined" && activeUid) {
@@ -161,7 +166,7 @@ export function BottomNav() {
         </Link>
 
         {/* 5. HỒ SƠ / TÀI KHOẢN */}
-        {currentUser ? (
+        {isMounted && currentUser ? (
           <Link
             href="/profile"
             onClick={handleNavClick}

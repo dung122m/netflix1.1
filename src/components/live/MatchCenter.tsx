@@ -10,8 +10,6 @@ import {
   ChevronDown,
   ChevronUp,
   Radio,
-  MessageSquare,
-  ArrowUpDown,
 } from "lucide-react";
 import { NormalizedMatchSummary, MatchStatItem, LiveMatchScore } from "@/services/live/football-score/types";
 import {
@@ -64,13 +62,7 @@ interface MatchCenterProps {
   initialScore?: MatchCenterScoreProp | null;
 }
 
-type TabType = "lineups" | "commentary" | "stats";
-
-function formatCommentaryTime(raw?: string): string {
-  if (!raw) return "•";
-  const normalized = raw.trim().replace(/['’"“”\s]+$/g, "").trim();
-  return normalized ? `${normalized}'` : "•";
-}
+type TabType = "lineups" | "stats";
 
 export const MatchCenter: React.FC<MatchCenterProps> = ({
   leagueSlug,
@@ -103,26 +95,6 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
 
   const [homeImgFailed, setHomeImgFailed] = useState(false);
   const [awayImgFailed, setAwayImgFailed] = useState(false);
-
-  const [commentaryOrder, setCommentaryOrder] = useState<"newest" | "oldest">("newest");
-  const [showAllMobileCommentary, setShowAllMobileCommentary] = useState(false);
-  const commentaryScrollRef = useRef<HTMLDivElement>(null);
-
-  const displayedCommentary = useMemo(() => {
-    if (!summary?.commentary || summary.commentary.length === 0) return [];
-    const list = [...summary.commentary];
-    if (commentaryOrder === "newest") {
-      return list.reverse();
-    }
-    return list;
-  }, [summary?.commentary, commentaryOrder]);
-
-  useEffect(() => {
-    setShowAllMobileCommentary(false);
-    if (activeTab === "commentary" && commentaryScrollRef.current) {
-      commentaryScrollRef.current.scrollTop = 0;
-    }
-  }, [activeTab, commentaryOrder]);
 
   useEffect(() => {
     setHomeImgFailed(false);
@@ -183,7 +155,8 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
     abortControllerRef.current = controller;
 
     try {
-      const url = `/api/live-football/summary?league=${encodeURIComponent(leagueSlug)}&event=${encodeURIComponent(eventId)}`;
+      const cacheBuster = isLive || isBackground ? `&_t=${Date.now()}` : "";
+      const url = `/api/live-football/summary?league=${encodeURIComponent(leagueSlug)}&event=${encodeURIComponent(eventId)}${cacheBuster}`;
       const res = await fetch(url, {
         signal: controller.signal,
         cache: "no-store",
@@ -670,7 +643,6 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
                   >
                     {[
                       { id: "lineups", label: "Đội hình", icon: Users },
-                      { id: "commentary", label: "Bình luận", icon: MessageSquare },
                       { id: "stats", label: "Thống kê", icon: BarChart2 },
                     ].map((tab) => {
                       const Icon = tab.icon;
@@ -737,93 +709,6 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
                       awayRoster={summary.awayRoster}
                       matchStatus={summary.status}
                     />
-                  )}
-                </div>
-              )}
-
-              {/* TAB BÌNH LUẬN TRỰC TIẾP (GIAO DIỆN PHẲNG TINH TẾ, KHÔNG LỒNG THẺ) */}
-              {activeTab === "commentary" && (
-                <div className="space-y-2 pt-1">
-                  <div className="flex items-center justify-between pb-2.5 border-b border-white/[0.06] px-1 gap-2">
-                    <h5 className="text-xs font-black uppercase tracking-wider text-zinc-400 flex items-center gap-1.5 min-w-0">
-                      <MessageSquare className="w-3.5 h-3.5 text-netflix-red shrink-0" />
-                      <span className="truncate">Diễn biến</span>
-                    </h5>
-
-                    <div className="flex items-center gap-1 bg-white/5 p-0.5 rounded-lg border border-white/5 shrink-0">
-                      <button
-                        type="button"
-                        onClick={() => setCommentaryOrder("newest")}
-                        className={`px-2 py-0.5 rounded-md text-[11px] font-bold transition cursor-pointer ${
-                          commentaryOrder === "newest"
-                            ? "bg-netflix-red text-white shadow-sm"
-                            : "text-zinc-400 hover:text-white"
-                        }`}
-                      >
-                        Mới nhất
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setCommentaryOrder("oldest")}
-                        className={`px-2 py-0.5 rounded-md text-[11px] font-bold transition cursor-pointer ${
-                          commentaryOrder === "oldest"
-                            ? "bg-netflix-red text-white shadow-sm"
-                            : "text-zinc-400 hover:text-white"
-                        }`}
-                      >
-                        Cũ nhất
-                      </button>
-                    </div>
-                  </div>
-
-                  {displayedCommentary.length > 0 ? (
-                    <div>
-                      {/* TRÊN MOBILE KHÔNG BỊ BẪY CUỘN OVERFLOW-Y: CHỈ GIỚI HẠN SCROLL TRÊN DESKTOP (sm:) */}
-                      <div
-                        ref={commentaryScrollRef}
-                        className="divide-y divide-white/[0.05] sm:max-h-[500px] sm:overflow-y-auto pr-1 scrollbar-thin"
-                      >
-                        {displayedCommentary.map((c, i) => {
-                          const isHiddenOnMobile = i >= 12 && !showAllMobileCommentary;
-                          return (
-                            <div
-                              key={i}
-                              className={`items-start gap-3 py-2.5 px-2 rounded-lg hover:bg-white/[0.02] transition text-xs ${
-                                isHiddenOnMobile ? "hidden sm:flex" : "flex"
-                              }`}
-                            >
-                              <span className="font-mono text-amber-400 font-extrabold shrink-0 min-w-[34px] pt-0.5 tabular-nums text-right">
-                                {formatCommentaryTime(c.time)}
-                              </span>
-                              <p className="text-zinc-200 leading-relaxed flex-1 font-sans">{c.text}</p>
-                            </div>
-                          );
-                        })}
-                      </div>
-
-                      {/* NÚT XEM THÊM / THU GỌN TRÊN MOBILE (KHÔNG TRAP SCROLL CỦA TRANG) */}
-                      {displayedCommentary.length > 12 && (
-                        <button
-                          type="button"
-                          onClick={() => setShowAllMobileCommentary((prev) => !prev)}
-                          className="sm:hidden w-full py-2.5 my-2 rounded-xl bg-white/5 hover:bg-white/10 text-xs font-bold text-zinc-300 hover:text-white transition flex items-center justify-center gap-1.5 cursor-pointer border border-white/5"
-                        >
-                          {showAllMobileCommentary ? (
-                            <>
-                              <span>Thu gọn</span>
-                              <ChevronUp className="w-3.5 h-3.5 text-zinc-400" />
-                            </>
-                          ) : (
-                            <>
-                              <span>Xem thêm ({displayedCommentary.length - 12} diễn biến)</span>
-                              <ChevronDown className="w-3.5 h-3.5 text-zinc-400" />
-                            </>
-                          )}
-                        </button>
-                      )}
-                    </div>
-                  ) : (
-                    <p className="text-xs text-zinc-500 py-8 text-center">Chưa có diễn biến</p>
                   )}
                 </div>
               )}

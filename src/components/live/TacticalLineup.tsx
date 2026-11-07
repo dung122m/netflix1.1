@@ -281,26 +281,41 @@ function getHorizontalScore(p: MatchRosterPlayer): number {
  */
 function getVerticalDepthScore(p: MatchRosterPlayer): number {
   const pos = (p.position || "").toLowerCase();
-  if (pos.includes("goalkeeper") || /\b(g|gk)\b/.test(pos)) return 0;
+  if (pos.includes("goalkeeper") || /\b(g|gk)\b/.test(pos) || p.formationPlace === 1) return 0;
   if (pos.includes("defender") || pos.includes("back") || /\b(cb|df|d)\b/.test(pos)) return 1;
 
-  // Tiền đạo trung tâm / cắm
-  if (pos.includes("striker") || pos.includes("center forward") || /\b(st|cf)\b/.test(pos)) return 4;
-  // Tiền đạo cánh / Chạy cánh dâng cao
-  if (pos.includes("wing") || /\b(lw|rw|lf|rf)\b/.test(pos)) return 3.6;
-  // Tiền đạo chung
-  if (pos.includes("forward") || /\b(fw|f)\b/.test(pos)) return 3.8;
+  // 1. Tiền đạo cánh / Tiền đạo lệch / Vệ tinh hỗ trợ (CF-L, CF-R, LF, RF, LW, RW, AM-L, AM-R)
+  const isWingerOrSideForward =
+    pos.includes("wing") ||
+    /\b(lw|rw|lf|rf)\b/.test(pos) ||
+    pos.includes("center left") ||
+    pos.includes("center right") ||
+    /\b(cf-l|cf-r|am-l|am-r|lam|ram)\b/.test(pos);
 
-  // Tiền vệ tấn công / Hộ công (kiểm tra trước midfielder)
-  if (pos.includes("attacking") || /\b(am|cam|lam|ram|am-l|am-r)\b/.test(pos)) return 3.2;
+  if (isWingerOrSideForward) return 3.6;
 
-  // Tiền vệ phòng ngự (kiểm tra trước midfielder)
+  // 2. Tiền đạo trung tâm / cắm (ST, CF trung tâm, F, hoặc formationPlace === 9 chuẩn quốc tế)
+  if (
+    p.formationPlace === 9 ||
+    pos.includes("striker") ||
+    pos.includes("center forward") ||
+    /\b(st|cf)\b/.test(pos) ||
+    pos.includes("forward") ||
+    /\b(fw|f)\b/.test(pos)
+  ) {
+    return 4.2;
+  }
+
+  // 3. Tiền vệ tấn công / Hộ công (kiểm tra trước midfielder)
+  if (pos.includes("attacking") || /\b(am|cam)\b/.test(pos)) return 3.2;
+
+  // 4. Tiền vệ phòng ngự (kiểm tra trước midfielder)
   if (pos.includes("defensive") || /\b(dm|cdm)\b/.test(pos)) return 2.1;
 
-  // Tiền vệ cánh (LM, RM)
+  // 5. Tiền vệ cánh (LM, RM)
   if (pos.includes("left midfielder") || pos.includes("right midfielder") || /\b(lm|rm)\b/.test(pos)) return 2.8;
 
-  // Tiền vệ trung tâm hoặc chung
+  // 6. Tiền vệ trung tâm hoặc chung
   if (pos.includes("midfielder") || /\b(cm|mf|m)\b/.test(pos)) {
     if (p.formationPlace) {
       return getDepthScoreFromFormationPlace(p.formationPlace);

@@ -4,11 +4,11 @@
  */
 
 export const MATCH_CENTER_INTERVALS = {
-  LIVE_MS: 30_000,        // 30s khi trận đang diễn ra
+  LIVE_MS: 15_000,        // 15s khi trận đang diễn ra (tối ưu độ trễ diễn biến & sự kiện)
   FINISHED_MS: 120_000,   // 120s khi trận đã kết thúc (giảm tải)
   SCHEDULED_MS: 60_000,   // 60s khi trận sắp diễn ra
-  COOLDOWN_MS: 8_000,     // 8s cooldown chống spam request cho cùng 1 trận
-  TAB_RETURN_THRESHOLD_MS: 30_000, // 30s ngưỡng kích hoạt refresh khi quay lại tab
+  COOLDOWN_MS: 5_000,     // 5s cooldown chống spam request cho cùng 1 trận
+  TAB_RETURN_THRESHOLD_MS: 15_000, // 15s ngưỡng kích hoạt refresh khi quay lại tab
 } as const;
 
 /**

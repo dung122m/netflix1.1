@@ -17,10 +17,17 @@ export async function GET(req: NextRequest) {
 
   try {
     const data = await liveFootballService.getFootballMatches();
-    return NextResponse.json({
-      status: true,
-      data,
-    });
+    return NextResponse.json(
+      {
+        status: true,
+        data,
+      },
+      {
+        headers: {
+          "Cache-Control": "public, s-maxage=30, stale-while-revalidate=60",
+        },
+      },
+    );
   } catch (error) {
     return NextResponse.json(
       {

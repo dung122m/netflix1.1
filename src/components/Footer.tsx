@@ -29,9 +29,8 @@ import { NanaflixBrandLogo } from "@/components/NetflixLogo";
 
 export const Footer: React.FC = () => {
   return (
-    <footer className="relative z-0 bg-gradient-to-b from-transparent via-[#080808] to-[#030303] text-zinc-400 pt-6 sm:pt-12 pb-12 sm:pb-12 px-4 sm:px-8 md:px-16 mt-6 sm:mt-10 border-t border-white/[0.08] overflow-hidden cv-auto-footer">
-      {/* Hiệu ứng ánh sáng tinh tế phía trên footer */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-3/4 max-w-4xl h-[1px] bg-gradient-to-r from-transparent via-netflix-red/70 to-transparent" />
+    <footer className="relative z-0 bg-gradient-to-b from-transparent via-[#080808] to-[#030303] text-zinc-400 pt-6 sm:pt-12 pb-12 sm:pb-12 px-4 sm:px-8 md:px-16 mt-6 sm:mt-10 overflow-hidden cv-auto-footer">
+      {/* Hiệu ứng ánh sáng tinh tế phía trên footer (không dùng đường kẻ cứng) */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-1/2 max-w-2xl h-16 sm:h-20 bg-netflix-red/10 blur-3xl pointer-events-none" />
 
       <div className="max-w-7xl 2xl:max-w-[1440px] mx-auto space-y-5 sm:space-y-12 relative z-10">

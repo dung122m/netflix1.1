@@ -11,6 +11,7 @@ import {
   AlertCircle,
   Radio,
   ChevronUp,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   Sparkles,
@@ -820,6 +821,7 @@ function LivePlayerInner({
   const [copied, setCopied] = useState(false);
   const [showControls, setShowControls] = useState(false);
   const [isGridView, setIsGridView] = useState(true);
+  const [showAllMobileServers, setShowAllMobileServers] = useState(false);
   const chipsContainerRef = useRef<HTMLDivElement | null>(null);
   const activeChipRef = useRef<HTMLButtonElement | null>(null);
   const [canScrollChipsLeft, setCanScrollChipsLeft] = useState(false);
@@ -3567,75 +3569,104 @@ function LivePlayerInner({
             <span>Không có nguồn phát khả dụng</span>
           </div>
         ) : isGridView ? (
-          /* DẠNG LƯỚI MỞ RỘNG (TRÊN MOBILE KHÔNG BỊ BẪY CUỘN OVERFLOW-Y TRONG HỘP) */
-          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-1.5 sm:gap-2 w-full min-w-0 pt-0.5 px-0.5 sm:max-h-72 sm:overflow-y-auto">
-            {availableServers.map((s, idx) => {
-              const isSelected = currentServer?.url === s.url;
-              const qualityBadge = getSourceQuality(s);
-              const cleanName = parseServerDisplayLabel(s, idx);
+          /* DẠNG LƯỚI / DANH SÁCH MỞ RỘNG (TRÊN MOBILE 1 CỘT THOÁNG ĐÃNG, RỘNG RÃI, KHÔNG BỊ CẮT CHỮ) */
+          <div className="w-full min-w-0">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-1.5 sm:gap-2 w-full min-w-0 pt-0.5 px-0.5 sm:max-h-72 sm:overflow-y-auto">
+              {availableServers.map((s, idx) => {
+                const isSelected = currentServer?.url === s.url;
+                const qualityBadge = getSourceQuality(s);
+                const cleanName = parseServerDisplayLabel(s, idx);
+                const isHiddenOnMobile =
+                  !showAllMobileServers &&
+                  idx >= 6 &&
+                  !isSelected;
 
-              return (
-                <button
-                  key={`${toCanonicalSourceUrl(s.url) || "sv"}-${idx}`}
-                  type="button"
-                  onClick={() => {
-                    if (isSelected && isPlayingRef.current && !hasError) {
-                      scrollToPlayer();
-                      return;
-                    }
-                    userSelectedServerRef.current = true;
-                    fallbackCountRef.current = 0;
-                    isStoppedRef.current = false;
-                    const origIdx = servers.findIndex(
-                      (srv) =>
-                        toCanonicalSourceUrl(srv.url) ===
-                        toCanonicalSourceUrl(s.url),
-                    );
-                    const targetIdx = origIdx !== -1 ? origIdx : 0;
-                    useProxyFallbackRef.current = false;
-                    setUseProxyFallback(false);
-                    lastLoadedUrlRef.current = "";
-                    setHasError(false);
-                    setErrorMessage("");
-                    setIsLoading(true);
-                    setSelectedServerIndex(targetIdx);
-                    setRetryNonce((prev) => prev + 1);
-                  }}
-                  className={`px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl text-xs font-semibold transition-all flex items-center justify-between gap-2 cursor-pointer text-left min-w-0 ${
-                    isSelected
-                      ? "bg-red-950/80 text-white  shadow-md shadow-black/50"
-                      : "bg-white/[0.06] text-zinc-300 hover:text-white hover:bg-white/10"
-                  }`}
-                >
-                  <div className="flex items-center gap-2 min-w-0 flex-1 truncate">
-                    <span
-                      className={`w-2 h-2 rounded-full shrink-0 ${
-                        isSelected
-                          ? "bg-red-400  animate-pulse"
-                          : "bg-emerald-400"
-                      }`}
-                    />
-                    <span className="truncate">{cleanName}</span>
-                  </div>
+                return (
+                  <button
+                    key={`${toCanonicalSourceUrl(s.url) || "sv"}-${idx}`}
+                    type="button"
+                    onClick={() => {
+                      if (isSelected && isPlayingRef.current && !hasError) {
+                        scrollToPlayer();
+                        return;
+                      }
+                      userSelectedServerRef.current = true;
+                      fallbackCountRef.current = 0;
+                      isStoppedRef.current = false;
+                      const origIdx = servers.findIndex(
+                        (srv) =>
+                          toCanonicalSourceUrl(srv.url) ===
+                          toCanonicalSourceUrl(s.url),
+                      );
+                      const targetIdx = origIdx !== -1 ? origIdx : 0;
+                      useProxyFallbackRef.current = false;
+                      setUseProxyFallback(false);
+                      lastLoadedUrlRef.current = "";
+                      setHasError(false);
+                      setErrorMessage("");
+                      setIsLoading(true);
+                      setSelectedServerIndex(targetIdx);
+                      setRetryNonce((prev) => prev + 1);
+                    }}
+                    className={`px-3 py-2 rounded-xl text-xs font-semibold transition-all items-center justify-between gap-2 cursor-pointer text-left min-w-0 ${
+                      isHiddenOnMobile ? "hidden sm:flex" : "flex"
+                    } ${
+                      isSelected
+                        ? "bg-red-950/80 text-white shadow-md shadow-black/50"
+                        : "bg-white/[0.06] text-zinc-300 hover:text-white hover:bg-white/10"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0 flex-1 truncate">
+                      <span
+                        className={`w-2 h-2 rounded-full shrink-0 ${
+                          isSelected
+                            ? "bg-red-400 animate-pulse"
+                            : "bg-emerald-400"
+                        }`}
+                      />
+                      <span className="truncate">{cleanName}</span>
+                    </div>
 
-                  {qualityBadge && (
-                    <span
-                      className={`shrink-0 px-1.5 py-0.5 text-[9px] font-black rounded tracking-wider ${
-                        qualityBadge === "FHD"
-                          ? isSelected
-                            ? "bg-amber-500/25 text-amber-300"
-                            : "bg-amber-500/15 text-amber-300"
-                          : isSelected
-                            ? "bg-sky-500/25 text-sky-300"
-                            : "bg-sky-500/15 text-sky-300"
-                      }`}
-                    >
-                      {qualityBadge}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
+                    {qualityBadge && (
+                      <span
+                        className={`shrink-0 px-1.5 py-0.5 text-[9px] font-black rounded tracking-wider ${
+                          qualityBadge === "FHD"
+                            ? isSelected
+                              ? "bg-amber-500/25 text-amber-300"
+                              : "bg-amber-500/15 text-amber-300"
+                            : isSelected
+                              ? "bg-sky-500/25 text-sky-300"
+                              : "bg-sky-500/15 text-sky-300"
+                        }`}
+                      >
+                        {qualityBadge}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* NÚT XEM THÊM / THU GỌN NGUỒN PHÁT TRÊN MOBILE (KHÔNG CHIẾM DIỆN TÍCH TRANG) */}
+            {availableServers.length > 6 && (
+              <button
+                type="button"
+                onClick={() => setShowAllMobileServers((prev) => !prev)}
+                className="sm:hidden w-full py-2.5 mt-2 rounded-xl bg-white/5 hover:bg-white/10 text-xs font-bold text-zinc-300 hover:text-white transition flex items-center justify-center gap-1.5 cursor-pointer border border-white/5"
+              >
+                {showAllMobileServers ? (
+                  <>
+                    <span>Thu gọn nguồn phát</span>
+                    <ChevronUp className="w-3.5 h-3.5 text-zinc-400" />
+                  </>
+                ) : (
+                  <>
+                    <span>Xem thêm ({availableServers.length - 6} nguồn khác)</span>
+                    <ChevronDown className="w-3.5 h-3.5 text-zinc-400" />
+                  </>
+                )}
+              </button>
+            )}
           </div>
         ) : (
           /* DẠNG CHIP CUỘN NGANG (MẶC ĐỊNH - COMPACT 1 DÒNG VỚI NÚT ĐIỀU HƯỚNG BẤM SANG TRÊN PC) */

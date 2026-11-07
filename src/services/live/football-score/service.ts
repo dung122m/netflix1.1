@@ -48,7 +48,7 @@ const STALE_TTL_MS = 45 * 1000; // 45s stale grace period
 const REQUEST_TIMEOUT_MS = 4000; // 4s timeout mỗi request
 
 // Cache cấu hình cho Match Center Summary (P2)
-const SUMMARY_TTL_LIVE_MS = 15 * 1000; // 15s cho trận đang diễn ra
+const SUMMARY_TTL_LIVE_MS = 10 * 1000; // 10s cho trận đang diễn ra
 const SUMMARY_TTL_FINISHED_MS = 300 * 1000; // 5 phút cho trận đã kết thúc
 const SUMMARY_TTL_SCHEDULED_MS = 60 * 1000; // 60s cho trận sắp diễn ra
 
@@ -461,7 +461,7 @@ export const footballScoreService = {
             let redisTtlSeconds = 60;
             if (normalized.status === "live") {
               ttl = SUMMARY_TTL_LIVE_MS;
-              redisTtlSeconds = 30; // 30s cho trận live
+              redisTtlSeconds = 12; // 12s cho trận live
             } else if (normalized.status === "finished") {
               ttl = SUMMARY_TTL_FINISHED_MS;
               redisTtlSeconds = 300; // 5 phút cho trận đã kết thúc

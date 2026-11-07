@@ -1588,6 +1588,8 @@ export function LiveFootballClient({
                         stats={matchSummary?.stats}
                         homeTeamName={selectedMatch.team1}
                         awayTeamName={selectedMatch.team2}
+                        homeTeamLogo={matchSummary?.homeTeam?.logo || selectedMatch.homeLogo || selectedMatch.logo}
+                        awayTeamLogo={matchSummary?.awayTeam?.logo || selectedMatch.awayLogo}
                         isLive={
                           currentMatchScore?.status === "live" ||
                           selectedMatch.timeline === "live"

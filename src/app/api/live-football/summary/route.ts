@@ -67,9 +67,13 @@ export async function GET(request: NextRequest) {
     }
 
     // 5. Cấu hình Cache-Control phù hợp với trạng thái trận đấu
-    const maxAge = data.status === "live" ? 15 : data.status === "finished" ? 300 : 60;
-    const sMaxAge = maxAge;
-    const staleWhileRevalidate = maxAge * 2;
+    // Đối với trận đang LIVE: không cho Edge/Browser cache lâu, tối đa 5s để đảm bảo cập nhật sự kiện thời gian thực
+    const isLive = data.status === "live";
+    const cacheControlHeader = isLive
+      ? "public, s-maxage=5, stale-while-revalidate=5, max-age=5"
+      : data.status === "finished"
+        ? "public, s-maxage=300, stale-while-revalidate=600, max-age=300"
+        : "public, s-maxage=30, stale-while-revalidate=60, max-age=30";
 
     return NextResponse.json(
       {
@@ -79,7 +83,7 @@ export async function GET(request: NextRequest) {
       },
       {
         headers: {
-          "Cache-Control": `public, s-maxage=${sMaxAge}, stale-while-revalidate=${staleWhileRevalidate}, max-age=${maxAge}`,
+          "Cache-Control": cacheControlHeader,
         },
       },
     );

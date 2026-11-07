@@ -123,11 +123,11 @@ function TmdbTopTrendingInner() {
           if (cachedForCurrent && cachedForCurrent.length > 0) {
             setItems(cachedForCurrent);
             setLoading(false);
-          }
 
-          // Nếu cache còn rất mới (dưới 6 tiếng), KHÔNG fetch lại nền ngầm để tiết kiệm băng thông và CPU
-          if (Date.now() - parsed.timestamp < FRESH_REVALIDATE_TTL) {
-            shouldRevalidateWeek = false;
+            // Chỉ bỏ qua fetch nếu ĐÃ CÓ dữ liệu thực sự trong cache và cache dưới 6 tiếng
+            if (Date.now() - parsed.timestamp < FRESH_REVALIDATE_TTL) {
+              shouldRevalidateWeek = false;
+            }
           }
         }
       }
@@ -149,7 +149,7 @@ function TmdbTopTrendingInner() {
         const data = await res.json();
         if (!isMounted) return;
 
-        if (Array.isArray(data?.items)) {
+        if (Array.isArray(data?.items) && data.items.length > 0) {
           tabCacheRef.current["week"] = data.items;
           if (activeTabRef.current === "week") {
             setItems(data.items);
@@ -272,13 +272,6 @@ function TmdbTopTrendingInner() {
       title={currentConfig.title}
       icon={<IconComponent className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />}
       iconBadge
-      trailingBadge={
-        <>
-          {activeTab === "week" && <Flame className="w-5 h-5 text-netflix-red shrink-0" />}
-          {activeTab === "month" && <Zap className="w-5 h-5 text-amber-400 shrink-0" />}
-          {activeTab === "top_rated" && <Crown className="w-5 h-5 text-yellow-400 shrink-0" />}
-        </>
-      }
       subtitle={currentConfig.subtitle}
       theme="amber"
       ariaLabel="Bảng xếp hạng TMDB"

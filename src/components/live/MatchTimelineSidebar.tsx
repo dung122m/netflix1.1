@@ -6,7 +6,7 @@ import {
   MatchCommentaryItem,
   MatchStatItem,
 } from "@/services/live/football-score/types";
-import { Activity, Clock, ArrowLeftRight, MessageSquare } from "lucide-react";
+import { Activity, Clock, ArrowLeftRight, Sparkles, MessageSquare } from "lucide-react";
 
 export interface MatchTimelineSidebarProps {
   events?: MatchKeyEvent[];
@@ -14,6 +14,8 @@ export interface MatchTimelineSidebarProps {
   stats?: MatchStatItem[];
   homeTeamName: string;
   awayTeamName: string;
+  homeTeamLogo?: string;
+  awayTeamLogo?: string;
   isLive?: boolean;
   displayClock?: string;
   statusText?: string;
@@ -57,7 +59,7 @@ function formatEventMinute(raw?: string): string {
 }
 
 /**
- * Trích xuất giá trị số phút để sắp xếp theo thời gian
+ * Trích xuất giá trị số phút để sắp xếp thời gian chính xác
  */
 function parseMinuteNumber(raw?: string): number {
   if (!raw) return 0;
@@ -68,15 +70,17 @@ function parseMinuteNumber(raw?: string): number {
   return base * 100 + extra;
 }
 
-interface FeedItem {
+interface StreamItem {
   id: string;
   minuteNum: number;
   timeDisplay: string;
+  isKeyEvent: boolean;
+  type?: "goal" | "yellow-card" | "red-card" | "substitution" | "commentary" | "other";
+  title?: string;
+  subtitle?: string;
   text: string;
-  type: "commentary" | "goal" | "yellow-card" | "red-card" | "substitution" | "other";
-  playerName?: string;
-  teamName?: string;
   isHome?: boolean;
+  teamLabel?: string;
 }
 
 export const MatchTimelineSidebar: React.FC<MatchTimelineSidebarProps> = ({
@@ -85,20 +89,31 @@ export const MatchTimelineSidebar: React.FC<MatchTimelineSidebarProps> = ({
   stats = [],
   homeTeamName,
   awayTeamName,
-  isLive,
-  displayClock,
-  statusText,
+  homeTeamLogo,
+  awayTeamLogo,
+  isLive: _isLive,
+  displayClock: _displayClock,
+  statusText: _statusText,
   loading = false,
 }) => {
+  // Chế độ xem: Mặc định là 'all' (Tất cả diễn biến từ sân cỏ), người dùng có thể lọc nhanh 'events'
+  const [viewMode, setViewMode] = useState<"events" | "all">("all");
   const [sortOrder, setSortOrder] = useState<"newest" | "oldest">("newest");
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Cuộn về đỉnh khi đổi thứ tự
+  // Cuộn về đỉnh khi đổi tab hoặc thứ tự
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = 0;
     }
-  }, [sortOrder]);
+  }, [viewMode, sortOrder]);
+
+  // Tự động chuyển tab 'events' nếu trận đấu không có commentary nhưng có events
+  useEffect(() => {
+    if (commentary.length === 0 && events.length > 0) {
+      setViewMode("events");
+    }
+  }, [events.length, commentary.length]);
 
   // 1. TRÍCH XUẤT MINI STATS (Kiểm soát bóng + 3 chỉ số nhanh)
   const possessionStat = useMemo(() => {
@@ -140,97 +155,182 @@ export const MatchTimelineSidebar: React.FC<MatchTimelineSidebarProps> = ({
 
   const hasStats = Boolean(possessionStat || shotsStat || onTargetStat || cornersStat);
 
-  // 2. HỢP NHẤT LIVE FEED (Bình luận + Sự kiện Highlight)
-  const unifiedFeed = useMemo(() => {
-    const items: FeedItem[] = [];
+  // 2. DANH SÁCH SỰ KIỆN CHÍNH THỨC (CHÍNH XÁC 100% TỪ summary.events - KHÔNG ĐOÁN TỰ BỊA)
+  const pureKeyEvents = useMemo(() => {
+    const list: StreamItem[] = events.map((ev, idx) => {
+      const isHome = ev.homeAway === "home";
+      const isAway = ev.homeAway === "away";
+      const teamLabel = isHome ? homeTeamName : isAway ? awayTeamName : undefined;
 
-    // Map các sự kiện đặc biệt theo phút để highlight chính xác
-    const eventTimeMap = new Map<string, MatchKeyEvent>();
-    events.forEach((ev) => {
-      if (ev.clock) {
-        const key = ev.clock.replace(/['’"“”\s]+/g, "");
-        eventTimeMap.set(key, ev);
+      let title = ev.playerName || "";
+      let subtitle = "";
+
+      if (ev.type === "goal") {
+        title = ev.playerName ? `Bàn thắng: ${ev.playerName}` : "BÀN THẮNG";
+      } else if (ev.type === "yellow-card") {
+        title = ev.playerName ? `${ev.playerName}` : "Thẻ vàng";
+        subtitle = "Thẻ vàng";
+      } else if (ev.type === "red-card") {
+        title = ev.playerName ? `${ev.playerName}` : "Thẻ đỏ";
+        subtitle = "Thẻ đỏ";
+      } else if (ev.type === "substitution") {
+        title = ev.subInPlayer ? `Vào: ${ev.subInPlayer}` : "Thay người";
+        subtitle = ev.subOutPlayer ? `Ra: ${ev.subOutPlayer}` : "";
       }
+
+      return {
+        id: ev.id || `ev-${idx}`,
+        minuteNum: parseMinuteNumber(ev.clock),
+        timeDisplay: formatEventMinute(ev.clock),
+        isKeyEvent: true,
+        type: ev.type,
+        title,
+        subtitle,
+        text: ev.text || title,
+        isHome,
+        teamLabel,
+      };
     });
 
-    // A. Nếu có commentary từ API
-    if (commentary.length > 0) {
-      commentary.forEach((c, idx) => {
-        const text = c.text || "";
-        const rawTime = c.time || "";
-        const cleanTimeKey = rawTime.replace(/['’"“”\s]+/g, "");
-        const matchedEv = cleanTimeKey ? eventTimeMap.get(cleanTimeKey) : undefined;
-
-        let type: FeedItem["type"] = "commentary";
-        let teamName: string | undefined = undefined;
-        let isHome: boolean | undefined = undefined;
-
-        if (matchedEv) {
-          type = matchedEv.type;
-          isHome = matchedEv.homeAway === "home";
-          teamName = isHome ? homeTeamName : awayTeamName;
-        } else if (/goal|bàn thắng/i.test(text)) {
-          type = "goal";
-        } else if (/red card|thẻ đỏ/i.test(text)) {
-          type = "red-card";
-        } else if (/yellow card|thẻ vàng/i.test(text)) {
-          type = "yellow-card";
-        } else if (/substitution|thay người/i.test(text)) {
-          type = "substitution";
-        }
-
-        items.push({
-          id: `c-${idx}`,
-          minuteNum: parseMinuteNumber(rawTime),
-          timeDisplay: formatEventMinute(rawTime),
-          text,
-          type,
-          playerName: matchedEv?.playerName,
-          teamName,
-          isHome,
-        });
-      });
+    if (sortOrder === "newest") {
+      list.sort((a, b) => b.minuteNum - a.minuteNum);
+    } else {
+      list.sort((a, b) => a.minuteNum - b.minuteNum);
     }
+    return list;
+  }, [events, homeTeamName, awayTeamName, sortOrder]);
 
-    // B. Kiểm tra sự kiện nào trong events chưa có trong feed thì bổ sung
+  // 3. TOÀN BỘ DÒNG BÌNH LUẬN + SỰ KIỆN ĐỒNG BỘ THEO THỜI GIAN & NGỮ NGHĨA (KHÔNG BỊ TRÙNG LẶP)
+  const allStreamFeed = useMemo(() => {
+    // Tập hợp ID các sự kiện đã được ghép khớp thành công với câu bình luận
+    const matchedEventKeys = new Set<string>();
+
+    // Chuẩn hóa tên cầu thủ để so khớp (lấy các từ có độ dài >= 3)
+    const matchesPlayerName = (text: string, name?: string): boolean => {
+      if (!name) return false;
+      const lowerText = text.toLowerCase();
+      const parts = name.toLowerCase().split(/\s+/).filter((p) => p.length >= 3);
+      if (parts.length === 0) return lowerText.includes(name.toLowerCase());
+      return parts.some((p) => lowerText.includes(p));
+    };
+
+    // Kiểm tra xem dòng bình luận c có mô tả sự kiện ev không
+    const findMatchingEvent = (cTimeNum: number, cText: string): MatchKeyEvent | undefined => {
+      const lower = cText.toLowerCase();
+
+      for (const ev of events) {
+        const evKey = ev.id || `${ev.type}-${ev.clock}-${ev.playerName || ""}`;
+        if (matchedEventKeys.has(evKey)) continue;
+
+        const evTimeNum = parseMinuteNumber(ev.clock);
+        // Chênh lệch phút không quá 1 (vì có thể commentary ghi 51' và event ghi 51' hoặc 50')
+        if (Math.abs(evTimeNum - cTimeNum) > 100 && Math.abs(evTimeNum - cTimeNum) > 1) continue;
+
+        if (ev.type === "yellow-card") {
+          const hasYellowKeyword = /yellow card|thẻ vàng|booking|booked/i.test(lower);
+          const hasPlayer = matchesPlayerName(lower, ev.playerName);
+          if (hasYellowKeyword && hasPlayer) return ev;
+        } else if (ev.type === "red-card") {
+          const hasRedKeyword = /red card|thẻ đỏ|sent off/i.test(lower);
+          const hasPlayer = matchesPlayerName(lower, ev.playerName);
+          if (hasRedKeyword && hasPlayer) return ev;
+        } else if (ev.type === "substitution") {
+          const hasSubKeyword = /substitution|replaces|thay người|subbed/i.test(lower);
+          const hasPlayer = matchesPlayerName(lower, ev.subInPlayer) || matchesPlayerName(lower, ev.subOutPlayer);
+          if (hasSubKeyword && hasPlayer) return ev;
+        } else if (ev.type === "goal") {
+          const hasGoalKeyword = /\b(goal|bàn thắng|scores|scored)\b/i.test(lower);
+          const isNotSaved = !/saved|attempt saved|missed|blocked|disallowed|var/i.test(lower);
+          const hasPlayer = matchesPlayerName(lower, ev.playerName);
+          if (hasGoalKeyword && isNotSaved && hasPlayer) return ev;
+        }
+      }
+      return undefined;
+    };
+
+    // A. Duyệt qua từng dòng bình luận: Nếu là dòng mô tả sự kiện chính thức thì gắn icon sự kiện trực tiếp
+    // và giữ NGUYÊN VẸN câu bình luận gốc (đầy đủ ai vào, ai ra, ai bị thẻ, ai ghi bàn)
+    const list: StreamItem[] = commentary.map((c, idx) => {
+      const cTimeNum = parseMinuteNumber(c.time);
+      const matchedEv = findMatchingEvent(cTimeNum, c.text || "");
+
+      if (matchedEv) {
+        const evKey = matchedEv.id || `${matchedEv.type}-${matchedEv.clock}-${matchedEv.playerName || ""}`;
+        matchedEventKeys.add(evKey);
+        const isHome = matchedEv.homeAway === "home";
+        const teamLabel = isHome ? homeTeamName : awayTeamName;
+
+        return {
+          id: `c-${idx}`,
+          minuteNum: cTimeNum,
+          timeDisplay: formatEventMinute(c.time),
+          isKeyEvent: true,
+          type: matchedEv.type,
+          // Để nguyên câu text bình luận đầy đủ (ví dụ: "Substitution, Tottenham Hotspur. Conor Gallagher replaces Pedro Porro.")
+          text: c.text || "",
+          isHome,
+          teamLabel,
+        };
+      }
+
+      return {
+        id: `c-${idx}`,
+        minuteNum: cTimeNum,
+        timeDisplay: formatEventMinute(c.time),
+        isKeyEvent: false,
+        type: "commentary",
+        text: c.text || "",
+      };
+    });
+
+    // B. Với các sự kiện trong events mà KHÔNG tìm thấy dòng bình luận nào mô tả tương ứng,
+    // thì bổ sung riêng vào để không bao giờ bị sót sự kiện
     events.forEach((ev, idx) => {
-      const cleanKey = (ev.clock || "").replace(/['’"“”\s]+/g, "");
-      const exists = items.some((it) => it.type === ev.type && it.minuteNum === parseMinuteNumber(ev.clock));
-      if (!exists) {
+      const evKey = ev.id || `${ev.type}-${ev.clock}-${ev.playerName || ""}`;
+      if (!matchedEventKeys.has(evKey)) {
         const isHome = ev.homeAway === "home";
-        const teamName = isHome ? homeTeamName : awayTeamName;
-        let eventText = ev.text || "";
-        if (!eventText) {
-          if (ev.type === "goal") eventText = `Bàn thắng: ${ev.playerName || teamName}`;
-          else if (ev.type === "yellow-card") eventText = `Thẻ vàng: ${ev.playerName || teamName}`;
-          else if (ev.type === "red-card") eventText = `Thẻ đỏ: ${ev.playerName || teamName}`;
-          else if (ev.type === "substitution") {
-            eventText = ev.subInPlayer ? `Vào: ${ev.subInPlayer} • Ra: ${ev.subOutPlayer || ""}` : `Thay người (${teamName})`;
-          }
+        const teamLabel = isHome ? homeTeamName : awayTeamName;
+
+        let title = ev.playerName || "";
+        let subtitle = "";
+        if (ev.type === "goal") {
+          title = ev.playerName ? `Bàn thắng: ${ev.playerName}` : "BÀN THẮNG";
+        } else if (ev.type === "yellow-card") {
+          title = `${ev.playerName || "Cầu thủ"}`;
+          subtitle = "Thẻ vàng";
+        } else if (ev.type === "red-card") {
+          title = `${ev.playerName || "Cầu thủ"}`;
+          subtitle = "Thẻ đỏ";
+        } else if (ev.type === "substitution") {
+          title = ev.subInPlayer ? `Vào: ${ev.subInPlayer}` : "Thay người";
+          subtitle = ev.subOutPlayer ? `Ra: ${ev.subOutPlayer}` : "";
         }
 
-        items.push({
-          id: `ev-${idx}-${cleanKey}`,
+        list.push({
+          id: `fallback-ev-${idx}-${evKey}`,
           minuteNum: parseMinuteNumber(ev.clock),
           timeDisplay: formatEventMinute(ev.clock),
-          text: eventText,
+          isKeyEvent: true,
           type: ev.type,
-          playerName: ev.playerName || ev.subInPlayer,
-          teamName,
+          title,
+          subtitle,
+          text: ev.text || title,
           isHome,
+          teamLabel,
         });
       }
     });
 
-    // C. Sắp xếp theo thứ tự người dùng chọn
     if (sortOrder === "newest") {
-      items.sort((a, b) => b.minuteNum - a.minuteNum);
+      list.sort((a, b) => b.minuteNum - a.minuteNum);
     } else {
-      items.sort((a, b) => a.minuteNum - b.minuteNum);
+      list.sort((a, b) => a.minuteNum - b.minuteNum);
     }
 
-    return items;
+    return list;
   }, [commentary, events, homeTeamName, awayTeamName, sortOrder]);
+
+  const displayedList = viewMode === "events" ? pureKeyEvents : allStreamFeed;
 
   if (loading) {
     return (
@@ -242,91 +342,158 @@ export const MatchTimelineSidebar: React.FC<MatchTimelineSidebarProps> = ({
   }
 
   return (
-    <div className="flex-1 min-h-0 flex flex-col space-y-2.5 overflow-hidden">
-      {/* 1. MINI STATS WIDGET PHÍA TRÊN CÙNG (~75px, CỐ ĐỊNH) */}
+    <div className="flex-1 min-h-0 flex flex-col space-y-2 overflow-hidden">
+      {/* 1. MINI STATS WIDGET PHÍA TRÊN CÙNG (~70px, CỐ ĐỊNH PHẲNG) */}
       {hasStats && (
         <div className="px-2.5 py-2 rounded-xl bg-white/[0.03] border border-white/5 space-y-2 shrink-0">
-          {/* Thanh tỉ lệ kiểm soát bóng */}
+          {/* Thanh tỉ lệ kiểm soát bóng kèm Tên & Logo hai đội */}
           {possessionStat && (
             <div className="space-y-1">
-              <div className="flex items-center justify-between text-[11px] font-sans font-bold tabular-nums">
-                <span className="text-white truncate max-w-[110px]">
-                  {homeTeamName} {possessionStat.homeValue}
-                </span>
-                <span className="text-[10px] text-zinc-400 uppercase tracking-wider shrink-0 px-1">
+              <div className="flex items-center justify-between text-[11px] font-sans">
+                {/* Đội nhà (Màu đỏ) */}
+                <div className="flex items-center gap-1.5 min-w-0 max-w-[42%]">
+                  {homeTeamLogo && (
+                    /* eslint-disable-next-line @next/next/no-img-element */
+                    <img
+                      src={homeTeamLogo}
+                      alt=""
+                      className="w-3.5 h-3.5 object-contain shrink-0"
+                      onError={(e) => {
+                        e.currentTarget.style.display = "none";
+                      }}
+                    />
+                  )}
+                  <span
+                    className="font-bold text-rose-400 truncate text-[11px]"
+                    title={homeTeamName}
+                  >
+                    {homeTeamName}
+                  </span>
+                  <span className="font-black text-rose-400 tabular-nums shrink-0 ml-0.5">
+                    {possessionStat.homeValue}%
+                  </span>
+                </div>
+
+                <span className="text-[9.5px] text-zinc-500 uppercase tracking-wider font-semibold shrink-0 px-1">
                   Kiểm soát
                 </span>
-                <span className="text-white truncate max-w-[110px] text-right">
-                  {possessionStat.awayValue} {awayTeamName}
-                </span>
+
+                {/* Đội khách (Màu xanh) */}
+                <div className="flex items-center justify-end gap-1.5 min-w-0 max-w-[42%]">
+                  <span className="font-black text-sky-400 tabular-nums shrink-0 mr-0.5">
+                    {possessionStat.awayValue}%
+                  </span>
+                  <span
+                    className="font-bold text-sky-400 truncate text-[11px] text-right"
+                    title={awayTeamName}
+                  >
+                    {awayTeamName}
+                  </span>
+                  {awayTeamLogo && (
+                    /* eslint-disable-next-line @next/next/no-img-element */
+                    <img
+                      src={awayTeamLogo}
+                      alt=""
+                      className="w-3.5 h-3.5 object-contain shrink-0"
+                      onError={(e) => {
+                        e.currentTarget.style.display = "none";
+                      }}
+                    />
+                  )}
+                </div>
               </div>
-              <div className="flex h-1.5 rounded-full overflow-hidden bg-white/5 gap-0.5">
+              <div className="w-full h-2 rounded-full bg-zinc-800/80 overflow-hidden flex">
                 <div
-                  className="bg-netflix-red rounded-l-full transition-all duration-500"
+                  className="h-full bg-rose-500 transition-all duration-500 rounded-l-full"
                   style={{ width: `${homePossPct}%` }}
                 />
                 <div
-                  className="bg-sky-500 rounded-r-full transition-all duration-500"
+                  className="h-full bg-sky-500 transition-all duration-500 rounded-r-full"
                   style={{ width: `${awayPossPct}%` }}
                 />
               </div>
             </div>
           )}
 
-          {/* Hàng 3 chỉ số nhanh: Sút - Trúng đích - Phạt góc */}
-          {(shotsStat || onTargetStat || cornersStat) && (
-            <div className="grid grid-cols-3 gap-1.5 pt-0.5 text-center">
-              {shotsStat && (
-                <div className="px-1 py-0.5 rounded-lg bg-white/[0.02]">
-                  <span className="text-[9.5px] font-semibold text-zinc-400 block truncate">Sút</span>
-                  <span className="text-xs font-bold font-sans tabular-nums text-white">
-                    {shotsStat.homeValue} - {shotsStat.awayValue}
-                  </span>
-                </div>
-              )}
-              {onTargetStat && (
-                <div className="px-1 py-0.5 rounded-lg bg-white/[0.02]">
-                  <span className="text-[9.5px] font-semibold text-zinc-400 block truncate">Trúng đích</span>
-                  <span className="text-xs font-bold font-sans tabular-nums text-white">
-                    {onTargetStat.homeValue} - {onTargetStat.awayValue}
-                  </span>
-                </div>
-              )}
-              {cornersStat && (
-                <div className="px-1 py-0.5 rounded-lg bg-white/[0.02]">
-                  <span className="text-[9.5px] font-semibold text-zinc-400 block truncate">Phạt góc</span>
-                  <span className="text-xs font-bold font-sans tabular-nums text-white">
-                    {cornersStat.homeValue} - {cornersStat.awayValue}
-                  </span>
-                </div>
-              )}
-            </div>
-          )}
+          {/* 3 chỉ số nhanh với màu Đỏ - Xanh đồng bộ từng đội */}
+          <div className="grid grid-cols-3 gap-1 pt-0.5 text-center text-[10.5px] font-sans">
+            {shotsStat && (
+              <div className="bg-white/[0.02] py-1 px-1 rounded-lg">
+                <span className="text-zinc-500 text-[9.5px] block font-medium">Tổng sút</span>
+                <span className="font-bold tabular-nums">
+                  <span className="text-rose-400">{shotsStat.homeValue}</span>
+                  <span className="text-zinc-600 font-normal mx-1">-</span>
+                  <span className="text-sky-400">{shotsStat.awayValue}</span>
+                </span>
+              </div>
+            )}
+            {onTargetStat && (
+              <div className="bg-white/[0.02] py-1 px-1 rounded-lg">
+                <span className="text-zinc-500 text-[9.5px] block font-medium">Trúng đích</span>
+                <span className="font-bold tabular-nums">
+                  <span className="text-rose-400">{onTargetStat.homeValue}</span>
+                  <span className="text-zinc-600 font-normal mx-1">-</span>
+                  <span className="text-sky-400">{onTargetStat.awayValue}</span>
+                </span>
+              </div>
+            )}
+            {cornersStat && (
+              <div className="bg-white/[0.02] py-1 px-1 rounded-lg">
+                <span className="text-zinc-500 text-[9.5px] block font-medium">Phạt góc</span>
+                <span className="font-bold tabular-nums">
+                  <span className="text-rose-400">{cornersStat.homeValue}</span>
+                  <span className="text-zinc-600 font-normal mx-1">-</span>
+                  <span className="text-sky-400">{cornersStat.awayValue}</span>
+                </span>
+              </div>
+            )}
+          </div>
         </div>
       )}
 
-      {/* 2. HEADER ĐIỀU HƯỚNG LIVE FEED (TIÊU ĐỀ GỌN + NÚT CHỌN THỨ TỰ) */}
-      <div className="flex items-center justify-between px-1 pb-1 shrink-0 gap-2">
-        <div className="flex items-center gap-1.5 min-w-0">
-          <span className="w-2 h-2 rounded-full bg-netflix-red animate-pulse shrink-0" />
-          <h4 className="text-xs font-bold text-white uppercase tracking-wider truncate font-sans">
-            Diễn biến
-          </h4>
-          {displayClock && (
-            <span className="text-[10px] font-sans font-bold tabular-nums text-amber-400 bg-amber-500/10 px-1.5 py-0.2 rounded shrink-0">
-              {displayClock}
-            </span>
+      {/* 2. HEADER ĐIỀU HƯỚNG & BỘ LỌC (PHẲNG, RÕ RÀNG, DỄ CHUYỂN ĐỔI) */}
+      <div className="flex items-center justify-between px-1 shrink-0 gap-1.5 pt-0.5">
+        {/* Nút lọc Chế độ xem: Sự kiện chính (chuẩn 100%) vs Tất cả */}
+        <div className="flex items-center gap-1 bg-white/5 p-0.5 rounded-lg border border-white/5 shrink-0">
+          <button
+            type="button"
+            onClick={() => setViewMode("events")}
+            className={`px-2 py-1 rounded-md text-[11px] font-bold transition flex items-center gap-1 cursor-pointer ${
+              viewMode === "events"
+                ? "bg-netflix-red text-white shadow-sm"
+                : "text-zinc-400 hover:text-white"
+            }`}
+            title="Chỉ hiển thị các sự kiện chính: Bàn thắng, Thẻ, Thay người chuẩn xác 100%"
+          >
+            <Sparkles className="w-3 h-3" />
+            <span>Sự kiện ({events.length})</span>
+          </button>
+
+          {commentary.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setViewMode("all")}
+              className={`px-2 py-1 rounded-md text-[11px] font-bold transition flex items-center gap-1 cursor-pointer ${
+                viewMode === "all"
+                  ? "bg-netflix-red text-white shadow-sm"
+                  : "text-zinc-400 hover:text-white"
+              }`}
+              title="Xem đầy đủ dòng bình luận tường thuật kèm sự kiện"
+            >
+              <MessageSquare className="w-3 h-3" />
+              <span>Tất cả</span>
+            </button>
           )}
         </div>
 
-        {/* Nút Segmented Control chọn thứ tự rõ ràng */}
+        {/* Nút chọn thứ tự Mới nhất / Cũ nhất */}
         <div className="flex items-center gap-0.5 bg-white/5 p-0.5 rounded-lg border border-white/5 shrink-0">
           <button
             type="button"
             onClick={() => setSortOrder("newest")}
-            className={`px-2 py-0.5 rounded-md text-[10.5px] font-bold transition cursor-pointer ${
+            className={`px-2 py-1 rounded-md text-[10.5px] font-bold transition cursor-pointer ${
               sortOrder === "newest"
-                ? "bg-netflix-red text-white shadow-sm"
+                ? "bg-white/15 text-white"
                 : "text-zinc-400 hover:text-white"
             }`}
           >
@@ -335,9 +502,9 @@ export const MatchTimelineSidebar: React.FC<MatchTimelineSidebarProps> = ({
           <button
             type="button"
             onClick={() => setSortOrder("oldest")}
-            className={`px-2 py-0.5 rounded-md text-[10.5px] font-bold transition cursor-pointer ${
+            className={`px-2 py-1 rounded-md text-[10.5px] font-bold transition cursor-pointer ${
               sortOrder === "oldest"
-                ? "bg-netflix-red text-white shadow-sm"
+                ? "bg-white/15 text-white"
                 : "text-zinc-400 hover:text-white"
             }`}
           >
@@ -346,8 +513,8 @@ export const MatchTimelineSidebar: React.FC<MatchTimelineSidebarProps> = ({
         </div>
       </div>
 
-      {/* 3. DÒNG BÌNH LUẬN & SỰ KIỆN CUỘN MƯỢT MÀ (FLAT STREAM - KHÔNG LỒNG THẺ) */}
-      {unifiedFeed.length === 0 ? (
+      {/* 3. DANH SÁCH DIỄN BIẾN PHẲNG (TUYỆT ĐỐI KHÔNG DÙNG THẺ HỘP LỒNG NHAU) */}
+      {displayedList.length === 0 ? (
         <div className="flex-1 flex flex-col items-center justify-center p-6 text-center text-zinc-500 space-y-2">
           <div className="w-10 h-10 rounded-2xl bg-white/[0.03] flex items-center justify-center text-zinc-400">
             <Clock className="w-5 h-5 stroke-[1.5]" />
@@ -356,7 +523,7 @@ export const MatchTimelineSidebar: React.FC<MatchTimelineSidebarProps> = ({
             Chưa có diễn biến
           </p>
           <p className="text-[11px] text-zinc-500 max-w-[200px] font-sans leading-relaxed">
-            Dữ liệu sẽ hiển thị khi có sự kiện từ sân cỏ.
+            Dữ liệu sẽ hiển thị khi trận đấu có diễn biến từ sân cỏ.
           </p>
         </div>
       ) : (
@@ -364,98 +531,86 @@ export const MatchTimelineSidebar: React.FC<MatchTimelineSidebarProps> = ({
           ref={scrollRef}
           className="flex-1 min-h-0 overflow-y-auto pr-1 divide-y divide-white/[0.04] scrollbar-thin"
         >
-          {unifiedFeed.map((item) => {
-            // A. BÀN THẮNG ⚽
-            if (item.type === "goal") {
+          {displayedList.map((item) => {
+            // A. NẾU LÀ SỰ KIỆN CHÍNH THỨC (Bàn thắng, Thẻ, Thay người từ events - Flat Row)
+            if (item.isKeyEvent) {
               return (
                 <div
                   key={item.id}
-                  className="flex items-start gap-2.5 py-2.5 px-2 rounded-lg bg-rose-500/10 border-l-2 border-rose-500 text-xs my-0.5"
+                  className={`flex items-start gap-2.5 py-2.5 px-2 hover:bg-white/[0.02] transition text-xs ${
+                    item.type === "goal" ? "bg-rose-500/[0.04]" : ""
+                  }`}
                 >
-                  <span className="w-9 shrink-0 text-right font-mono font-black tabular-nums text-rose-400 pt-0.5">
+                  {/* Phút */}
+                  <span className="w-8 shrink-0 text-right font-mono font-black tabular-nums text-amber-400 pt-0.5">
                     {item.timeDisplay}
                   </span>
+
+                  {/* Icon sự kiện (phẳng, không có viền hộp) */}
                   <div className="w-4 h-4 shrink-0 flex items-center justify-center pt-0.5">
-                    <SoccerBallIcon className="w-3.5 h-3.5" />
+                    {item.type === "goal" && <SoccerBallIcon className="w-4 h-4" />}
+                    {item.type === "yellow-card" && (
+                      <span className="w-2.5 h-3.5 rounded-[1px] bg-amber-400 shadow-sm inline-block" />
+                    )}
+                    {item.type === "red-card" && (
+                      <span className="w-2.5 h-3.5 rounded-[1px] bg-red-600 shadow-sm inline-block" />
+                    )}
+                    {item.type === "substitution" && (
+                      <ArrowLeftRight className="w-3.5 h-3.5 text-sky-400 stroke-[2.5]" />
+                    )}
                   </div>
+
+                  {/* Chi tiết nội dung */}
                   <div className="flex-1 min-w-0">
-                    <span className="font-black text-rose-300 block text-[11px]">BÀN THẮNG</span>
-                    <p className="text-zinc-200 leading-snug font-sans">{item.text}</p>
+                    {item.title ? (
+                      <>
+                        <p className="text-xs font-bold text-white font-sans leading-snug">
+                          {item.title}
+                        </p>
+                        {item.subtitle && (
+                          <p className="text-[11px] text-zinc-400 font-sans leading-snug mt-0.5">
+                            {item.subtitle}
+                          </p>
+                        )}
+                        {item.teamLabel && (
+                          <p
+                            className={`text-[10px] font-semibold tracking-wide uppercase truncate font-sans mt-0.5 leading-none ${
+                              item.isHome ? "text-rose-400" : "text-sky-400"
+                            }`}
+                          >
+                            {item.teamLabel}
+                          </p>
+                        )}
+                      </>
+                    ) : (
+                      <p
+                        className={`text-xs font-sans leading-relaxed ${
+                          item.type === "goal"
+                            ? "font-bold text-white"
+                            : item.type === "yellow-card"
+                              ? "text-amber-200/90"
+                              : item.type === "red-card"
+                                ? "text-rose-300 font-bold"
+                                : item.type === "substitution"
+                                  ? "text-sky-200/90"
+                                  : "text-zinc-200"
+                        }`}
+                      >
+                        {item.text}
+                      </p>
+                    )}
                   </div>
                 </div>
               );
             }
 
-            // B. THẺ VÀNG 🟨
-            if (item.type === "yellow-card") {
-              return (
-                <div
-                  key={item.id}
-                  className="flex items-start gap-2.5 py-2 px-2 rounded-lg bg-amber-500/10 border-l-2 border-amber-400 text-xs my-0.5"
-                >
-                  <span className="w-9 shrink-0 text-right font-mono font-black tabular-nums text-amber-400 pt-0.5">
-                    {item.timeDisplay}
-                  </span>
-                  <div className="w-4 h-4 shrink-0 flex items-center justify-center pt-0.5">
-                    <span className="w-2.5 h-3.5 rounded-[1.5px] bg-amber-400 shadow-sm inline-block" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <span className="font-bold text-amber-300 block text-[11px]">Thẻ vàng</span>
-                    <p className="text-zinc-200 leading-snug font-sans">{item.text}</p>
-                  </div>
-                </div>
-              );
-            }
-
-            // C. THẺ ĐỎ 🟥
-            if (item.type === "red-card") {
-              return (
-                <div
-                  key={item.id}
-                  className="flex items-start gap-2.5 py-2 px-2 rounded-lg bg-red-600/15 border-l-2 border-red-500 text-xs my-0.5"
-                >
-                  <span className="w-9 shrink-0 text-right font-mono font-black tabular-nums text-red-400 pt-0.5">
-                    {item.timeDisplay}
-                  </span>
-                  <div className="w-4 h-4 shrink-0 flex items-center justify-center pt-0.5">
-                    <span className="w-2.5 h-3.5 rounded-[1.5px] bg-red-600 shadow-sm inline-block" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <span className="font-black text-red-300 block text-[11px]">Thẻ đỏ</span>
-                    <p className="text-zinc-200 leading-snug font-sans">{item.text}</p>
-                  </div>
-                </div>
-              );
-            }
-
-            // D. THAY NGƯỜI 🔄
-            if (item.type === "substitution") {
-              return (
-                <div
-                  key={item.id}
-                  className="flex items-start gap-2.5 py-2 px-2 rounded-lg bg-sky-500/10 border-l-2 border-sky-400 text-xs my-0.5"
-                >
-                  <span className="w-9 shrink-0 text-right font-mono font-black tabular-nums text-sky-400 pt-0.5">
-                    {item.timeDisplay}
-                  </span>
-                  <div className="w-4 h-4 shrink-0 flex items-center justify-center pt-0.5 text-sky-400">
-                    <ArrowLeftRight className="w-3.5 h-3.5 stroke-[2.5]" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <span className="font-bold text-sky-300 block text-[11px]">Thay người</span>
-                    <p className="text-zinc-200 leading-snug font-sans">{item.text}</p>
-                  </div>
-                </div>
-              );
-            }
-
-            // E. TÌNH HUỐNG BÌNH THƯỜNG (Dòng phẳng nhẹ nhàng)
+            // B. NẾU LÀ DÒNG BÌNH LUẬN THƯỜNG (Text phẳng nhẹ nhàng)
             return (
               <div
                 key={item.id}
-                className="flex items-start gap-2.5 py-2 px-1 hover:bg-white/[0.02] rounded-lg transition text-xs"
+                className="flex items-start gap-2.5 py-2 px-2 hover:bg-white/[0.02] transition text-xs"
               >
-                <span className="w-9 shrink-0 text-right font-mono font-bold tabular-nums text-amber-400/90 pt-0.5">
+                <span className="w-8 shrink-0 text-right font-mono font-bold tabular-nums text-amber-400/90 pt-0.5">
                   {item.timeDisplay}
                 </span>
                 <p className="text-zinc-300 leading-relaxed flex-1 font-sans">{item.text}</p>
