@@ -666,7 +666,7 @@ export async function POST(req: NextRequest) {
       return buildRateLimitResponse(rateLimit);
     }
 
-    const body = await req.json();
+    const body = await req.json().catch(() => null);
     const { currentMovieSlug } = body || {};
 
     if (!currentMovieSlug) {
