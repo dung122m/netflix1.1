@@ -40,7 +40,7 @@ export const IframePlayer: React.FC<IframePlayerProps> = ({
     };
   }, [src, serverName]);
 
-  // Timeout guard: if iframe doesn't load within 12s, show error/retry banner
+  // Timeout guard: if iframe doesn't load within 22s, show error/retry banner
   useEffect(() => {
     if (!isLoading) return;
     const timer = setTimeout(() => {
@@ -48,7 +48,7 @@ export const IframePlayer: React.FC<IframePlayerProps> = ({
         setHasError(true);
         setIsLoading(false);
       }
-    }, 12000);
+    }, 22000);
 
     return () => clearTimeout(timer);
   }, [isLoading, key, src]);
@@ -114,27 +114,30 @@ export const IframePlayer: React.FC<IframePlayerProps> = ({
           <h4 className="text-base font-bold text-white mb-1">
             Không thể tải luồng phát từ {serverName}
           </h4>
-          <p className="text-xs sm:text-sm text-zinc-400 max-w-md mb-4">
-            Máy chủ bên thứ ba có thể đang bảo trì hoặc tạm thời từ chối kết nối.
+          <p className="text-xs sm:text-sm text-zinc-400 max-w-md mb-2">
+            Máy chủ bên thứ ba có thể đang bảo trì, mạng chậm hoặc bị tiện ích chặn quảng cáo (AdBlock / Brave Shields) ngăn chặn.
           </p>
-          <div className="flex flex-wrap items-center justify-center gap-2.5">
+          <div className="flex flex-wrap items-center justify-center gap-2.5 mt-2">
+            {onFallbackToNanaflix && (
+              <button
+                onClick={onFallbackToNanaflix}
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-netflix-red hover:brightness-110 active:brightness-95 text-xs sm:text-sm font-bold text-white transition shadow-lg shadow-netflix-red/30 cursor-pointer"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                <span>Xem trên Server Nanaflix (Khuyên dùng)</span>
+              </button>
+            )}
             <button
               onClick={handleRetry}
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-xs font-semibold text-white transition"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-xs sm:text-sm font-semibold text-white transition cursor-pointer"
             >
               <RefreshCw className="w-3.5 h-3.5" />
               <span>Thử lại</span>
             </button>
-            {onFallbackToNanaflix && (
-              <button
-                onClick={onFallbackToNanaflix}
-                className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-netflix-red hover:brightness-110 active:brightness-95 text-xs font-semibold text-white transition shadow-md shadow-black/50 cursor-pointer"
-              >
-                <ArrowLeft className="w-3.5 h-3.5" />
-                <span>Quay lại Server Nanaflix</span>
-              </button>
-            )}
           </div>
+          <p className="text-[11px] text-zinc-500 max-w-sm mt-3">
+            Mẹo: Tiện ích AdBlock có thể chặn nhầm máy chủ phát video. Hãy tạm tắt AdBlock hoặc chọn &quot;Xem trên Server Nanaflix&quot;.
+          </p>
         </div>
       )}
 
@@ -147,7 +150,7 @@ export const IframePlayer: React.FC<IframePlayerProps> = ({
           className="w-full h-full border-0 relative z-0"
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
           allowFullScreen
-          referrerPolicy="origin"
+          referrerPolicy="no-referrer"
           onLoad={() => setIsLoading(false)}
           onError={() => {
             setIsLoading(false);

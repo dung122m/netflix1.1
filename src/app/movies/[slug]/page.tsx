@@ -565,17 +565,15 @@ export default async function MovieDetail({
       : {}),
   };
 
-  const isVsmovOnly = Boolean(
-    movie.source === "vsmov" ||
-    (Array.isArray(movie.sources) && movie.sources.length === 1 && movie.sources[0] === "vsmov") ||
-    (videoLink && (videoLink.includes("vsmov") || videoLink.includes("streamvsmov"))) ||
-    (embedSrc && (embedSrc.includes("vsmov") || embedSrc.includes("streamvsmov"))) ||
-    (episodeServers.length > 0 && episodeServers.every((s: { server_name?: string }) => (s.server_name || "").toLowerCase().includes("vsmov")))
-  );
-
-  const hasNanaflixSource = !isVsmovOnly && Boolean(
+  const hasNanaflixSource = Boolean(
     movie.source !== "vsmov" &&
     episodeServers.some((s: { server_name?: string }) => !(s.server_name || "").toLowerCase().includes("vsmov"))
+  );
+
+  const isVsmovOnly = !hasNanaflixSource && Boolean(
+    movie.source === "vsmov" ||
+    (Array.isArray(movie.sources) && movie.sources.length === 1 && movie.sources[0] === "vsmov") ||
+    (episodeServers.length > 0 && episodeServers.every((s: { server_name?: string }) => (s.server_name || "").toLowerCase().includes("vsmov")))
   );
 
   return (

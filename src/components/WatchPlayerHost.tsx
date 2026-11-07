@@ -68,14 +68,13 @@ export const WatchPlayerHost: React.FC<WatchPlayerHostProps> = (props) => {
   const dynamicEpisodeName = currentActiveEp?.name || props.activeEpisodeName;
 
   const isVsmovSource = Boolean(
-    (props.embedSrc && (props.embedSrc.includes("vsmov") || props.embedSrc.includes("streamvsmov"))) ||
-    (props.videoLink && (props.videoLink.includes("vsmov") || props.videoLink.includes("streamvsmov"))) ||
-    watchContext?.isVsmovOnly
+    watchContext?.isVsmovOnly ||
+    ((props.embedSrc && (props.embedSrc.includes("vsmov") || props.embedSrc.includes("streamvsmov"))) && !watchContext?.hasNanaflixSource)
   );
   const hasNanaflixSource = watchContext?.hasNanaflixSource ?? !isVsmovSource;
 
   const [localProvider, setLocalProvider] = useState<PlaybackProviderType>(
-    isVsmovSource ? "vsmov" : "nanaflix"
+    watchContext?.isVsmovOnly ? "vsmov" : "nanaflix"
   );
   const activeProvider = watchContext?.activeProvider ?? localProvider;
   const setActiveProvider = watchContext?.setActiveProvider ?? setLocalProvider;
