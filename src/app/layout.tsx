@@ -6,7 +6,6 @@ import { BackToTop } from "@/components/BackToTop";
 import { ToastContainer } from "@/components/Toast";
 import { ClientModals } from "@/components/ClientModals";
 import { InstallPwaBanner } from "@/components/InstallPwaBanner";
-import { InstantPlaybackResumeBanner } from "@/components/InstantPlaybackResumeBanner";
 import { DesktopReplyPopup } from "@/components/Notifications/DesktopReplyPopup";
 import { BottomNav } from "@/components/BottomNav";
 import { AuthProvider } from "@/context/AuthContext";
@@ -268,8 +267,6 @@ export default function RootLayout({
           {/* PWA Smart Install Banner & Modal */}
           <InstallPwaBanner />
 
-          {/* Instant Cross-Device Playback Resume Banner */}
-          <InstantPlaybackResumeBanner />
         </AuthProvider>
       </body>
     </html>

@@ -796,7 +796,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
               const secs = (Math.floor(handoff.progressSeconds) % 60).toString().padStart(2, "0");
               showHud(
                 <RotateCcw className="w-5 h-5 text-netflix-red" />,
-                `Đồng bộ từ ${handoff.deviceName || "thiết bị khác"}: ${mins}:${secs}`
+                `Tiếp tục xem từ ${mins}:${secs}`
               );
             }
           }
@@ -2144,7 +2144,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
           });
         }
       }
-      if (user?.uid && now - lastHandoffSyncRef.current > 8000 && movieSlug && video.currentTime > 5) {
+      if (user?.uid && now - lastHandoffSyncRef.current > 25000 && movieSlug && video.currentTime > 5) {
         lastHandoffSyncRef.current = now;
         const currentEffectiveDuration = getEffectiveDuration();
         updateActivePlaybackSession(user.uid, {
