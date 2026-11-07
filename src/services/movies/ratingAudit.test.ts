@@ -39,7 +39,7 @@ describe("Nanaflix — Rating Audit & Sorting Test Suite", () => {
       new Date("2026-11-03T17:52:20.000000Z").getTime()
     );
 
-    // VSMOV / general fallback format { updated_at: "..." }
+    // General fallback format { updated_at: "..." }
     const generalItem = { updated_at: "2026-10-15T08:00:00.000Z" };
     assert.equal(
       extractMovieModifiedTime(generalItem),
@@ -62,7 +62,7 @@ describe("Nanaflix — Rating Audit & Sorting Test Suite", () => {
 
   it("3. deduplicateMovieItems preserves valid rating metadata and newest modified timestamp", () => {
     // PhimAPI has vote_average: 0, earlier modified
-    // VSMOV has vote_average: 7.7, newer modified
+    // NguonC has vote_average: 7.7, newer modified
     const items = [
       {
         slug: "thuan-huyet",
@@ -74,7 +74,7 @@ describe("Nanaflix — Rating Audit & Sorting Test Suite", () => {
       {
         slug: "thuan-huyet",
         name: "Thuần Huyết",
-        source: "vsmov",
+        source: "nguonc",
         modified: { time: "2026-11-01T12:00:00.000Z" },
         tmdb: { id: "10545", vote_average: 7.7, vote_count: 2157 },
       },
@@ -82,8 +82,8 @@ describe("Nanaflix — Rating Audit & Sorting Test Suite", () => {
 
     const deduped = deduplicateMovieItems(items);
     assert.equal(deduped.length, 1);
-    assert.equal(deduped[0].tmdb?.vote_average, 7.7, "Must enrich vote_average from VSMOV when PhimAPI is 0");
-    assert.equal(deduped[0].tmdb?.vote_count, 2157, "Must enrich vote_count from VSMOV when PhimAPI is 0");
+    assert.equal(deduped[0].tmdb?.vote_average, 7.7, "Must enrich vote_average from NguonC when PhimAPI is 0");
+    assert.equal(deduped[0].tmdb?.vote_count, 2157, "Must enrich vote_count from NguonC when PhimAPI is 0");
     assert.equal(
       extractMovieModifiedTime(deduped[0]),
       new Date("2026-11-01T12:00:00.000Z").getTime(),

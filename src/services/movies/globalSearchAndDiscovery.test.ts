@@ -37,13 +37,13 @@ describe("Global Search Pagination & Source Discovery Invariants", () => {
   });
 
   it("3. Global Movie Source Discovery automatically unifies missing providers", async () => {
-    // Doraemon on VSMOV has slug "doraemon" and on NguonC has slug "doraemon-2005"
-    const movieDetail = await movieApi.getMovieDetail("doraemon");
-    assert.ok(movieDetail, "Movie detail for doraemon must exist");
-    assert.ok(movieDetail.episodes && movieDetail.episodes.length > 0, "Doraemon must have episode servers");
+    // Conan on PhimAPI and NguonC provides dual servers (Long Tieng & Thuyet Minh) with > 1000 episodes
+    const movieDetail = await movieApi.getMovieDetail("tham-tu-lung-danh-conan");
+    assert.ok(movieDetail, "Movie detail for tham-tu-lung-danh-conan must exist");
+    assert.ok(movieDetail.episodes && movieDetail.episodes.length > 0, "Conan must have episode servers");
 
-    // Total episode count should be substantial (> 20 episodes discovered)
+    // Total episode count should be substantial (> 1000 episodes discovered)
     const totalEpisodes = movieDetail.episodes.reduce((acc: number, s: { server_data?: unknown[]; items?: unknown[] }) => acc + (s.server_data?.length || s.items?.length || 0), 0);
-    assert.ok(totalEpisodes > 10, `Discovered episodes must be substantial, got ${totalEpisodes}`);
+    assert.ok(totalEpisodes > 1000, `Discovered episodes must be substantial, got ${totalEpisodes}`);
   });
 });

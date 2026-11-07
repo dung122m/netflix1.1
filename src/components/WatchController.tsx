@@ -13,7 +13,7 @@ import { saveWatchHistory } from "@/lib/watchHistory";
 import { findEpisodeMatch } from "@/lib/formatEpisode";
 import { markEpisodeAsWatched } from "@/lib/episodeTracker";
 
-export type PlaybackProviderType = "nanaflix" | "vsmov";
+export type PlaybackProviderType = "nanaflix";
 
 export interface EpisodeItem {
   name?: string;
@@ -49,7 +49,6 @@ export interface WatchContextValue {
   switchServer: (serverIndex: number) => void;
   activeProvider: PlaybackProviderType;
   setActiveProvider: (provider: PlaybackProviderType) => void;
-  isVsmovOnly?: boolean;
   hasNanaflixSource?: boolean;
   tmdbId?: string | number | null;
   isSeries?: boolean;
@@ -83,7 +82,6 @@ interface WatchControllerProps {
   initialServerIndex?: number;
   initialEpisodeSlug?: string;
   initialProvider?: PlaybackProviderType;
-  isVsmovOnly?: boolean;
   hasNanaflixSource?: boolean;
   tmdbId?: string | number | null;
   isSeries?: boolean;
@@ -106,7 +104,6 @@ export function WatchController({
   initialServerIndex = 0,
   initialEpisodeSlug,
   initialProvider,
-  isVsmovOnly = false,
   hasNanaflixSource = true,
   tmdbId,
   isSeries,
@@ -114,8 +111,7 @@ export function WatchController({
   children,
 }: WatchControllerProps) {
   const [currentServerIndex, setCurrentServerIndex] = useState(initialServerIndex);
-  const resolvedInitialProvider: PlaybackProviderType = initialProvider ?? (isVsmovOnly ? "vsmov" : "nanaflix");
-  const [activeProvider, setActiveProvider] = useState<PlaybackProviderType>(resolvedInitialProvider);
+  const [activeProvider, setActiveProvider] = useState<PlaybackProviderType>("nanaflix");
   const [isTheaterMode, setIsTheaterMode] = useState<boolean>(false);
   const [isLightsOff, setIsLightsOff] = useState<boolean>(false);
 
@@ -259,19 +255,12 @@ export function WatchController({
         } else if (targetEpisodes.length > 0) {
           setActiveEpisodeSlug(targetEpisodes[0]?.slug || "");
         }
-
-        const provParam = urlParams.get("provider");
-        if (provParam === "vsmov") {
-          setActiveProvider("vsmov");
-        } else if (provParam === "nanaflix" || (provParam === null && !isVsmovOnly)) {
-          setActiveProvider("nanaflix");
-        }
       } catch {}
     };
 
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
-  }, [initialServers, initialServerIndex, isVsmovOnly]);
+  }, [initialServers, initialServerIndex]);
 
   const activeEpisode = useMemo(() => {
     if (activeEpisodeSlug) {
@@ -312,26 +301,15 @@ export function WatchController({
       } else {
         url.searchParams.delete("server");
       }
-      const targetProv = prov !== undefined ? prov : activeProvider;
-      if (targetProv === "vsmov") {
-        url.searchParams.set("provider", "vsmov");
-      } else {
-        url.searchParams.delete("provider");
-      }
+      // Xóa provider thừa nếu có trong URL cũ
+      url.searchParams.delete("provider");
       // Xóa mốc thời gian cũ khỏi thanh địa chỉ để tập mới luôn phát từ đầu (0:00)
       url.searchParams.delete("t");
       window.history.pushState(null, "", url.pathname + url.search);
     } catch {}
-  }, [activeProvider]);
+  }, []);
 
-  // Chuyển nguồn phát (Nanaflix <-> VSMOV) và đồng bộ ngay vào URL
-  const switchProvider = useCallback(
-    (newProvider: PlaybackProviderType) => {
-      setActiveProvider(newProvider);
-      updateUrlQuietly(activeEpisodeSlug, currentServerIndex, newProvider);
-    },
-    [activeEpisodeSlug, currentServerIndex, updateUrlQuietly]
-  );
+  const switchProvider = useCallback(() => {}, []);
 
   // Chuyển tập tức thì trong 0ms, tự động nạp stream on-demand nếu chưa có
   const switchEpisode = useCallback(
@@ -488,8 +466,7 @@ export function WatchController({
       switchServer,
       activeProvider,
       setActiveProvider: switchProvider,
-      isVsmovOnly,
-      hasNanaflixSource,
+      hasNanaflixSource: true,
       tmdbId,
       isSeries,
       isTheaterMode,
@@ -520,8 +497,6 @@ export function WatchController({
     switchServer,
     activeProvider,
     switchProvider,
-    isVsmovOnly,
-    hasNanaflixSource,
     tmdbId,
     isSeries,
     isTheaterMode,

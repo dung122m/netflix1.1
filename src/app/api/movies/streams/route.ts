@@ -57,7 +57,7 @@ export async function GET(req: NextRequest) {
   const slug = searchParams.get("slug");
   const ep = searchParams.get("ep");
   const server = searchParams.get("server") || undefined;
-  const source = (searchParams.get("source") || undefined) as "nguonc" | "ophim" | "vsmov" | undefined;
+  const source = (searchParams.get("source") || undefined) as "nguonc" | "ophim" | undefined;
 
   if (!slug || !ep) {
     return NextResponse.json(

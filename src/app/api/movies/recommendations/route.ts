@@ -121,7 +121,7 @@ async function computeMovieRecommendations(body: any) {
         new Promise<T>((resolve) => setTimeout(() => resolve(fallback), timeoutMs)),
       ]);
 
-    // 3. Truy vấn song song các nguồn phim (TUYỆT ĐỐI LOẠI TRỪ VSMOV: skipVsmov = true)
+    // 3. Truy vấn song song các nguồn phim (PhimAPI & NguonC)
     // Áp dụng giới hạn thời gian an toàn 2.5s cho các luồng phụ trợ TMDb/Actor để tránh nghẽn serverless
     const [tmdbRecs, genreResults, countryResults, actorResult, directorResult, martialArtsResult] = await Promise.all([
       tmdbId
@@ -129,12 +129,12 @@ async function computeMovieRecommendations(body: any) {
         : Promise.resolve([]),
       Promise.all(
         targetCategories.map((c) =>
-          movieApi.getMovies({ category: c.slug, page: 1, limit: 16, skipVsmov: true }).catch(() => null)
+          movieApi.getMovies({ category: c.slug, page: 1, limit: 16 }).catch(() => null)
         )
       ),
       Promise.all(
         targetCountries.map((c) =>
-          movieApi.getMovies({ country: c.slug, page: 1, limit: 16, skipVsmov: true }).catch(() => null)
+          movieApi.getMovies({ country: c.slug, page: 1, limit: 16 }).catch(() => null)
         )
       ),
       primaryActor
@@ -144,7 +144,7 @@ async function computeMovieRecommendations(body: any) {
         ? withTimeout(getDirectorFilmographyFromTmdb(primaryDirector, 12).catch(() => []), 2500, [])
         : Promise.resolve([]),
       srcHasMartialArts
-        ? movieApi.getMovies({ category: "vo-thuat", page: 1, limit: 16, skipVsmov: true }).catch(() => null)
+        ? movieApi.getMovies({ category: "vo-thuat", page: 1, limit: 16 }).catch(() => null)
         : Promise.resolve(null),
     ]);
 

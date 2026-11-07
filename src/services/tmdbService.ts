@@ -819,7 +819,7 @@ export async function getTmdbMovieRecommendations(
 
         if (candidateCredits.length === 0) return [];
 
-        // 4. Đối chiếu candidate TMDB với catalog Nanaflix (PhimAPI/NguonC/VSMOV)
+        // 4. Đối chiếu candidate TMDB với catalog Nanaflix (PhimAPI/NguonC)
         // Ưu tiên: 1. TMDB ID -> 2. IMDb ID -> 3. Title + Year match
         const matched = await matchTmdbMoviesWithSources(candidateCredits, candidateCredits.length, 10);
         return matched || [];

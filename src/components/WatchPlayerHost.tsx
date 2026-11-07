@@ -1,10 +1,8 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React from "react";
 import dynamic from "next/dynamic";
-import { AlertCircle } from "lucide-react";
 import type { CinemaPlayerProps } from "./CinemaPlayer";
-import { IframePlayer } from "./IframePlayer";
 import { useWatchController } from "./WatchController";
 
 // Pre-warm CinemaPlayer chunk ngay khi module được nạp trên client, loại bỏ hoàn toàn độ trễ của dynamic import waterfall
@@ -39,7 +37,7 @@ const CinemaPlayer = dynamic<CinemaPlayerProps>(
   }
 );
 
-export type PlaybackProviderType = "nanaflix" | "vsmov";
+export type PlaybackProviderType = "nanaflix";
 
 export interface WatchPlayerHostProps extends CinemaPlayerProps {
   tmdbId?: string | number | null;
@@ -49,9 +47,7 @@ export interface WatchPlayerHostProps extends CinemaPlayerProps {
 export const WatchPlayerHost: React.FC<WatchPlayerHostProps> = (props) => {
   const {
     movieSlug,
-    title,
     activeEpisodeSlug,
-    posterUrl,
   } = props;
 
   const watchContext = useWatchController();
@@ -67,123 +63,17 @@ export const WatchPlayerHost: React.FC<WatchPlayerHostProps> = (props) => {
   const dynamicVideoLink = dynamicM3u8Link || dynamicEmbedSrc || props.videoLink;
   const dynamicEpisodeName = currentActiveEp?.name || props.activeEpisodeName;
 
-  const isVsmovSource = Boolean(
-    watchContext?.isVsmovOnly ||
-    ((props.embedSrc && (props.embedSrc.includes("vsmov") || props.embedSrc.includes("streamvsmov"))) && !watchContext?.hasNanaflixSource)
-  );
-  const hasNanaflixSource = watchContext?.hasNanaflixSource ?? !isVsmovSource;
-
-  const [localProvider, setLocalProvider] = useState<PlaybackProviderType>(
-    watchContext?.isVsmovOnly ? "vsmov" : "nanaflix"
-  );
-  const activeProvider = watchContext?.activeProvider ?? localProvider;
-  const setActiveProvider = watchContext?.setActiveProvider ?? setLocalProvider;
-
-  const initialVsmovUrl =
-    (isVsmovSource && props.embedSrc) || (isVsmovSource && props.videoLink)
-      ? props.embedSrc || props.videoLink || null
-      : null;
-
-  const [vsmovUrl, setVsmovUrl] = useState<string | null>(initialVsmovUrl);
-  const [vsmovLoading, setVsmovLoading] = useState<boolean>(false);
-  const [vsmovError, setVsmovError] = useState<string | null>(null);
-  const lastFetchedKeyRef = React.useRef<string | null>(null);
-
-  // Fetch VSMOV embed URL when user selects Server VSMOV and not already present
-  useEffect(() => {
-    if (activeProvider !== "vsmov" || !movieSlug) return;
-    const fetchKey = `${movieSlug}_${currentEpSlug || "full"}`;
-    if (vsmovUrl && lastFetchedKeyRef.current === fetchKey) return;
-
-    let isMounted = true;
-    setVsmovLoading(true);
-    setVsmovError(null);
-    lastFetchedKeyRef.current = fetchKey;
-
-    const epParam = currentEpSlug ? `&ep=${encodeURIComponent(currentEpSlug)}` : "";
-    fetch(`/api/movies/vsmov-embed?slug=${encodeURIComponent(movieSlug)}${epParam}`)
-      .then((res) => res.json())
-      .then((data) => {
-        if (!isMounted) return;
-        if (data.success && data.embedUrl) {
-          setVsmovUrl(data.embedUrl);
-        } else if (!vsmovUrl) {
-          setVsmovError(data.error || "Không tìm thấy luồng phát trên VSMOV");
-        }
-      })
-      .catch((err) => {
-        if (!isMounted) return;
-        if (!vsmovUrl) {
-          setVsmovError(err.message || "Lỗi kết nối máy chủ VSMOV");
-        }
-      })
-      .finally(() => {
-        if (isMounted) setVsmovLoading(false);
-      });
-
-    return () => {
-      isMounted = false;
-    };
-  }, [activeProvider, movieSlug, currentEpSlug, vsmovUrl]);
-
   return (
     <div className="w-full">
-      {/* 2. DYNAMIC ACTIVE PLAYER CONTAINER */}
-      <div className="w-full">
-        {/* PROVIDER 1: NANAFLIX CINEMA PLAYER */}
-        {activeProvider === "nanaflix" && (
-          <CinemaPlayer
-            key={`cinema_${movieSlug}_s${currentServerIdx}_${currentEpSlug}`}
-            {...props}
-            activeEpisodeSlug={currentEpSlug}
-            activeEpisodeName={dynamicEpisodeName}
-            embedSrc={dynamicEmbedSrc}
-            videoLink={dynamicVideoLink}
-            m3u8Link={dynamicM3u8Link}
-          />
-        )}
-
-        {/* PROVIDER 2: VSMOV EMBED PLAYER */}
-        {activeProvider === "vsmov" && (
-          <>
-            {vsmovLoading && (
-              <div className="w-full aspect-video bg-zinc-950 rounded-xl sm:rounded-2xl flex flex-col items-center justify-center">
-                <div className="w-10 h-10 border-2 border-t-red-600 rounded-full animate-spin mb-2" />
-                <p className="text-xs text-zinc-400">Đang đồng bộ liên kết từ VSMOV...</p>
-              </div>
-            )}
-            {vsmovError && !vsmovLoading && (
-              <div className="w-full aspect-video bg-zinc-950 rounded-xl sm:rounded-2xl p-6 flex flex-col items-center justify-center text-center">
-                <AlertCircle className="w-10 h-10 text-amber-400 mb-2" />
-                <h4 className="text-sm font-bold text-white mb-1">
-                  Chưa tìm thấy tập phim trên Server VSMOV
-                </h4>
-                <p className="text-xs text-zinc-400 max-w-sm mb-4">
-                  {vsmovError}
-                </p>
-                {hasNanaflixSource && (
-                  <button
-                    onClick={() => setActiveProvider("nanaflix")}
-                    className="px-4 py-1.5 rounded-lg bg-netflix-red hover:brightness-110 active:brightness-95 text-xs font-semibold text-white transition cursor-pointer"
-                  >
-                    Chuyển về Server Nanaflix
-                  </button>
-                )}
-              </div>
-            )}
-            {!vsmovLoading && !vsmovError && vsmovUrl && (
-              <IframePlayer
-                key={`vsmov_${movieSlug}_${currentEpSlug || "full"}_${vsmovUrl}`}
-                src={vsmovUrl}
-                title={title || "Movie"}
-                serverName="Máy chủ VSMOV"
-                posterUrl={posterUrl}
-                onFallbackToNanaflix={hasNanaflixSource ? () => setActiveProvider("nanaflix") : undefined}
-              />
-            )}
-          </>
-        )}
-      </div>
+      <CinemaPlayer
+        key={`cinema_${movieSlug}_s${currentServerIdx}_${currentEpSlug}`}
+        {...props}
+        activeEpisodeSlug={currentEpSlug}
+        activeEpisodeName={dynamicEpisodeName}
+        embedSrc={dynamicEmbedSrc}
+        videoLink={dynamicVideoLink}
+        m3u8Link={dynamicM3u8Link}
+      />
     </div>
   );
 };

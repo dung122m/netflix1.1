@@ -4,7 +4,6 @@ import { upsertMovieEmbedding } from "@/services/aiVectorService";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { isUserAdmin } from "@/lib/adminConfig";
 import { isTimingSafeSecretMatch } from "@/lib/serverAuth";
-import { getVsmovCatalogFeed } from "@/services/providers/vsmov";
 import { deduplicateMovieItems } from "@/lib/movieMedia";
 import {
   enforceRateLimit,
@@ -119,17 +118,10 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    // 1. Lấy danh sách phim từ cả Primary Catalog (PhimAPI + NguonC) và VSMOV Catalog Feed
-    const [resPrimary, vsmovFeed] = await Promise.all([
-      movieApi.getMovies({ page: 1, limit, skipKvCache: true }),
-      getVsmovCatalogFeed(),
-    ]);
-
+    // 1. Lấy danh sách phim từ Primary Catalog (PhimAPI + NguonC)
+    const resPrimary = await movieApi.getMovies({ page: 1, limit, skipKvCache: true });
     const primaryItems = resPrimary?.items || [];
-    const vsmovItems = vsmovFeed?.items || [];
-
-    // Hợp nhất và khử trùng lặp 4 cấp độ (TMDB ID, IMDb ID, slug, title + year)
-    const combinedCatalog = deduplicateMovieItems([...primaryItems, ...vsmovItems]);
+    const combinedCatalog = deduplicateMovieItems(primaryItems);
     const items = combinedCatalog.slice(0, Math.max(limit, 60));
 
     if (items.length === 0) {

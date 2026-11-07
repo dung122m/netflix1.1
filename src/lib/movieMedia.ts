@@ -325,6 +325,14 @@ export function deduplicateMovieItems(items: any[]): any[] {
           if (item.imdb.vote_count) existing.imdb.vote_count = item.imdb.vote_count;
         }
       }
+
+      // Giữ thời gian cập nhật mới nhất giữa các nguồn
+      const existingMod = extractMovieModifiedTime(existing);
+      const itemMod = extractMovieModifiedTime(item);
+      if (itemMod > existingMod) {
+        existing.modified = item.modified;
+      }
+
       continue;
     }
 
@@ -368,9 +376,9 @@ export function sanitizeImageUrl(url: string): string {
   // Sửa lỗi url có 2 dấu gạch chéo // sau tên miền (gây redirect chậm)
   clean = clean.replace(/(https?:\/\/)([^/]+)\/\/+/g, "$1$2/");
 
-  // Tối ưu ảnh VSMOV / NguonC: Nhận diện mã hash TMDb (kể cả có subfolder /movie-slug/ và tiền tố poster_/backdrop_)
+  // Tối ưu ảnh NguonC: Nhận diện mã hash TMDb (kể cả có subfolder /movie-slug/ và tiền tố poster_/backdrop_)
   const tmdbHashMatch = clean.match(
-    /https?:\/\/(?:vsmov\.com\/storage\/images|phim\.nguonc\.com\/public\/images\/Film)(?:\/[^/]+)*\/(?:poster_|backdrop_)?([a-zA-Z0-9]{22,35}\.(?:jpg|jpeg|png|webp))$/i
+    /https?:\/\/(?:phim\.nguonc\.com\/public\/images\/Film)(?:\/[^/]+)*\/(?:poster_|backdrop_)?([a-zA-Z0-9]{22,35}\.(?:jpg|jpeg|png|webp))$/i
   );
   if (tmdbHashMatch && !tmdbHashMatch[1].includes("-")) {
     clean = `https://image.tmdb.org/t/p/w500/${tmdbHashMatch[1]}`;
@@ -401,26 +409,22 @@ export function isNguonCSource(movie: MovieLike): boolean {
   return (
     p.includes("nguonc.com") ||
     t.includes("nguonc.com") ||
-    p.includes("vsmov.com") ||
-    t.includes("vsmov.com") ||
     (raw._id !== undefined && typeof raw._id === "number")
   );
 }
-
-export const isVsmovSource = isNguonCSource;
 
 export function pickBestMoviePoster(movie: MovieLike, fallback = "/default-poster.svg"): string {
   if (!movie) return fallback;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const rawMovie = (movie as any)?.movie || movie;
-  const isVsmov = isNguonCSource(movie);
+  const isNguonC = isNguonCSource(movie);
 
-  // VSMOV đảo ngược trường: thumb_url là poster dọc (2:3), poster_url là backdrop ngang (16:9)
-  const primary = isVsmov
+  // NguonC đảo ngược trường: thumb_url là poster dọc (2:3), poster_url là backdrop ngang (16:9)
+  const primary = isNguonC
     ? rawMovie.thumb_url || rawMovie.thumbUrl || movie.thumb_url || movie.thumbUrl
     : rawMovie.poster_url || rawMovie.posterUrl || movie.poster_url || movie.posterUrl;
 
-  const secondary = isVsmov
+  const secondary = isNguonC
     ? rawMovie.poster_url || rawMovie.posterUrl || movie.poster_url || movie.posterUrl
     : rawMovie.thumb_url || rawMovie.thumbUrl || movie.thumb_url || movie.thumbUrl;
 
@@ -445,7 +449,7 @@ export function pickBestMoviePoster(movie: MovieLike, fallback = "/default-poste
     }
   }
 
-  // 2. Ưu tiên bất kỳ CDN / nguồn ảnh nào KHÔNG PHẢI phimimg.com (như VSMOV, NguonC, Amazon, v.v.)
+  // 2. Ưu tiên bất kỳ CDN / nguồn ảnh nào KHÔNG PHẢI phimimg.com (như NguonC, Amazon, v.v.)
   for (const c of candidates) {
     if (!c.includes("phimimg.com")) {
       const l = c.toLowerCase();
@@ -485,14 +489,14 @@ export function pickBestMovieThumb(movie: MovieLike, fallback = "/default-hero.s
   if (!movie) return fallback;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const rawMovie = (movie as any)?.movie || movie;
-  const isVsmov = isNguonCSource(movie);
+  const isNguonC = isNguonCSource(movie);
 
-  // VSMOV đảo ngược trường: poster_url là backdrop ngang (16:9), thumb_url là poster dọc (2:3)
-  const primary = isVsmov
+  // NguonC đảo ngược trường: poster_url là backdrop ngang (16:9), thumb_url là poster dọc (2:3)
+  const primary = isNguonC
     ? rawMovie.poster_url || rawMovie.posterUrl || movie.poster_url || movie.posterUrl
     : rawMovie.thumb_url || rawMovie.thumbUrl || movie.thumb_url || movie.thumbUrl;
 
-  const secondary = isVsmov
+  const secondary = isNguonC
     ? rawMovie.thumb_url || rawMovie.thumbUrl || movie.thumb_url || movie.thumbUrl
     : rawMovie.poster_url || rawMovie.posterUrl || movie.poster_url || movie.posterUrl;
 
@@ -662,9 +666,9 @@ export function toHighResBackdropUrl(url: string, targetWidth: "w780" | "w1280" 
     return "";
   }
 
-  // 1. Nhận diện trực tiếp mã hash TMDb từ VSMOV hoặc NguonC -> Chuyển sang TMDb targetWidth (mặc định w1280, mobile w780)
+  // 1. Nhận diện trực tiếp mã hash TMDb từ NguonC -> Chuyển sang TMDb targetWidth (mặc định w1280, mobile w780)
   const tmdbHashMatch = clean.match(
-    /https?:\/\/(?:vsmov\.com\/storage\/images|phim\.nguonc\.com\/public\/images\/Film)(?:\/[^/]+)*\/(?:poster_|backdrop_)?([a-zA-Z0-9]{22,35}\.(?:jpg|jpeg|png|webp))$/i
+    /https?:\/\/(?:phim\.nguonc\.com\/public\/images\/Film)(?:\/[^/]+)*\/(?:poster_|backdrop_)?([a-zA-Z0-9]{22,35}\.(?:jpg|jpeg|png|webp))$/i
   );
   if (tmdbHashMatch && !tmdbHashMatch[1].includes("-")) {
     return `https://image.tmdb.org/t/p/${targetWidth}/${tmdbHashMatch[1]}`;
@@ -701,14 +705,14 @@ export function pickHeroBackdropImage(
 ): string {
   if (!movie) return fallback;
   const rawMovie = ((movie as Record<string, unknown>)?.movie as MovieLike) || movie;
-  const isVsmov = isNguonCSource(movie);
+  const isNguonC = isNguonCSource(movie);
 
-  // VSMOV / NguonC đảo ngược: poster_url là backdrop 16:9, thumb_url là poster dọc 2:3
-  const primary = isVsmov
+  // NguonC đảo ngược: poster_url là backdrop 16:9, thumb_url là poster dọc 2:3
+  const primary = isNguonC
     ? rawMovie.poster_url || rawMovie.posterUrl || movie.poster_url || movie.posterUrl
     : rawMovie.thumb_url || rawMovie.thumbUrl || movie.thumb_url || movie.thumbUrl;
 
-  const secondary = isVsmov
+  const secondary = isNguonC
     ? rawMovie.thumb_url || rawMovie.thumbUrl || movie.thumb_url || movie.thumbUrl
     : rawMovie.poster_url || rawMovie.posterUrl || movie.poster_url || movie.posterUrl;
 

@@ -2007,10 +2007,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
       checkBufferRecovery();
 
       // Tự động bỏ qua đoạn quảng cáo đã xác minh ranh giới (Verified Ad-Boundary Skip Controller — Zero-Flash)
-      if (
-        isNativeVideo &&
-        watchContext?.activeProvider !== "vsmov"
-      ) {
+      if (isNativeVideo) {
         const effectiveDur = getEffectiveDuration();
         const ct = video.currentTime;
 

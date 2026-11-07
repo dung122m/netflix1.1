@@ -565,17 +565,6 @@ export default async function MovieDetail({
       : {}),
   };
 
-  const hasNanaflixSource = Boolean(
-    movie.source !== "vsmov" &&
-    episodeServers.some((s: { server_name?: string }) => !(s.server_name || "").toLowerCase().includes("vsmov"))
-  );
-
-  const isVsmovOnly = !hasNanaflixSource && Boolean(
-    movie.source === "vsmov" ||
-    (Array.isArray(movie.sources) && movie.sources.length === 1 && movie.sources[0] === "vsmov") ||
-    (episodeServers.length > 0 && episodeServers.every((s: { server_name?: string }) => (s.server_name || "").toLowerCase().includes("vsmov")))
-  );
-
   return (
     <div className="page-cinema-container min-h-screen pb-[calc(5rem+env(safe-area-inset-bottom,0px))] lg:pb-12 w-full max-w-full overflow-x-clip">
       <script
@@ -599,9 +588,6 @@ export default async function MovieDetail({
         initialServers={episodeServers}
         initialServerIndex={currentServerIndex}
         initialEpisodeSlug={activeEpisode?.slug || serverData[0]?.slug}
-        initialProvider={provider === "vsmov" || isVsmovOnly ? "vsmov" : "nanaflix"}
-        isVsmovOnly={isVsmovOnly}
-        hasNanaflixSource={hasNanaflixSource}
         tmdbId={tmdbId}
         isSeries={isSeries}
         isTrailerOnly={isTrailerOnly}
