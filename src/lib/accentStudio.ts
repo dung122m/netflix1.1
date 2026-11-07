@@ -101,6 +101,11 @@ export function getActiveAccent(fallbackId?: string): AccentPreset {
     const saved = localStorage.getItem(ACCENT_STORAGE_KEY);
     const found = ACCENT_PRESETS.find((p) => p.id === saved);
     if (found) return found;
+    const attr = document.documentElement.getAttribute("data-accent");
+    if (attr) {
+      const attrFound = ACCENT_PRESETS.find((p) => p.id === attr);
+      if (attrFound) return attrFound;
+    }
     if (fallbackId) {
       const fallbackFound = ACCENT_PRESETS.find((p) => p.id === fallbackId);
       if (fallbackFound) return fallbackFound;
@@ -109,25 +114,6 @@ export function getActiveAccent(fallbackId?: string): AccentPreset {
   } catch {
     return ACCENT_PRESETS[0];
   }
-}
-
-export function updateThemeStyleTag(preset: AccentPreset): void {
-  if (typeof document === "undefined") return;
-  try {
-    let styleEl = document.getElementById("accent-theme-vars") as HTMLStyleElement | null;
-    if (!styleEl) {
-      styleEl = document.createElement("style");
-      styleEl.id = "accent-theme-vars";
-      document.head.appendChild(styleEl);
-    }
-    styleEl.textContent = `:root, html {
-  --netflix-red: ${preset.oklch} !important;
-  --accent-color: ${preset.color} !important;
-  --accent-rgb: ${preset.rgb} !important;
-  --accent-glow: ${preset.glow} !important;
-  --accent-border: ${preset.border} !important;
-}`;
-  } catch {}
 }
 
 export function applyAccent(presetId: string): AccentPreset {
@@ -156,8 +142,6 @@ export function applyAccent(presetId: string): AccentPreset {
   root.style.setProperty("--accent-rgb", preset.rgb);
   root.style.setProperty("--accent-glow", preset.glow);
   root.style.setProperty("--accent-border", preset.border);
-
-  updateThemeStyleTag(preset);
 
   window.dispatchEvent(
     new CustomEvent("nanaflix-accent-changed", { detail: preset })
