@@ -768,30 +768,19 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
           <div className="flex items-center justify-between text-white mt-1">
             {/* CỤM TRÁI: PLAY/PAUSE, TẬP TRƯỚC/TIẾP, TUA 10S, ÂM LƯỢNG, THỜI GIAN TABULAR */}
             <div className="flex items-center gap-1 sm:gap-2">
-              {/* Nút Tập Trước (YouTube Skip Prev Icon) - Chỉ hiển thị khi là phim bộ */}
-              {Boolean(prevEpisode?.slug || nextEpisode?.slug) && onSwitchEpisode && (
-                prevEpisode?.slug ? (
-                  <Tooltip content={`Tập trước: ${prevEpisode.name || ""}`} shortcut="P" side="top">
-                    <button
-                      type="button"
-                      data-player-control="true"
-                      onClick={() => onSwitchEpisode(prevEpisode.slug!)}
-                      aria-label={`Tập trước: ${prevEpisode.name || ""}`}
-                      className="w-9 h-9 sm:w-10 sm:h-10 rounded-full hover:bg-white/15 active:scale-90 text-white/90 hover:text-white flex items-center justify-center transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-white/40"
-                    >
-                      <YouTubePrevIcon className="w-5 h-5" />
-                    </button>
-                  </Tooltip>
-                ) : (
+              {/* Nút Tập Trước (YouTube Skip Prev Icon) - Chỉ hiển thị khi có tập trước */}
+              {prevEpisode?.slug && onSwitchEpisode && (
+                <Tooltip content={`Tập trước: ${prevEpisode.name || ""}`} shortcut="P" side="top">
                   <button
                     type="button"
-                    disabled
-                    aria-hidden="true"
-                    className="hidden sm:flex w-9 h-9 sm:w-10 sm:h-10 rounded-full text-white/20 items-center justify-center opacity-30 cursor-not-allowed select-none"
+                    data-player-control="true"
+                    onClick={() => onSwitchEpisode(prevEpisode.slug!)}
+                    aria-label={`Tập trước: ${prevEpisode.name || ""}`}
+                    className="w-9 h-9 sm:w-10 sm:h-10 rounded-full hover:bg-white/15 active:scale-90 text-white/90 hover:text-white flex items-center justify-center transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-white/40"
                   >
                     <YouTubePrevIcon className="w-5 h-5" />
                   </button>
-                )
+                </Tooltip>
               )}
 
               {/* Nút Play / Pause */}
@@ -811,30 +800,19 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
                 </button>
               </Tooltip>
 
-              {/* Nút Tập Tiếp Theo (YouTube Skip Track Icon) */}
-              {Boolean(prevEpisode?.slug || nextEpisode?.slug) && onSwitchEpisode && (
-                nextEpisode?.slug ? (
-                  <Tooltip content={`Tập tiếp: ${nextEpisode.name || ""}`} shortcut="N" side="top">
-                    <button
-                      type="button"
-                      data-player-control="true"
-                      onClick={() => onSwitchEpisode(nextEpisode.slug!)}
-                      aria-label={`Tập tiếp: ${nextEpisode.name || ""}`}
-                      className="w-9 h-9 sm:w-10 sm:h-10 rounded-full hover:bg-white/15 active:scale-90 text-white/90 hover:text-white flex items-center justify-center transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-white/40"
-                    >
-                      <YouTubeNextIcon className="w-5 h-5" />
-                    </button>
-                  </Tooltip>
-                ) : (
+              {/* Nút Tập Tiếp Theo (YouTube Skip Track Icon) - Chỉ hiển thị khi có tập tiếp theo */}
+              {nextEpisode?.slug && onSwitchEpisode && (
+                <Tooltip content={`Tập tiếp: ${nextEpisode.name || ""}`} shortcut="N" side="top">
                   <button
                     type="button"
-                    disabled
-                    aria-hidden="true"
-                    className="hidden sm:flex w-9 h-9 sm:w-10 sm:h-10 rounded-full text-white/20 items-center justify-center opacity-30 cursor-not-allowed select-none"
+                    data-player-control="true"
+                    onClick={() => onSwitchEpisode(nextEpisode.slug!)}
+                    aria-label={`Tập tiếp: ${nextEpisode.name || ""}`}
+                    className="w-9 h-9 sm:w-10 sm:h-10 rounded-full hover:bg-white/15 active:scale-90 text-white/90 hover:text-white flex items-center justify-center transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-white/40"
                   >
                     <YouTubeNextIcon className="w-5 h-5" />
                   </button>
-                )
+                </Tooltip>
               )}
 
               {/* Tua lùi 5s (Ẩn trên mobile để thanh dưới thoáng rộng) */}
