@@ -115,10 +115,17 @@ async function computeMovieRecommendations(body: any) {
     const plainContent = (contentText || "").replace(/<[^>]+>/g, " ");
     const srcHasMartialArts = /võ thuật|kung fu|martial|quyền|kiếm hiệp/i.test(plainContent);
 
+    const withTimeout = <T>(promise: Promise<T>, timeoutMs: number, fallback: T): Promise<T> =>
+      Promise.race([
+        promise,
+        new Promise<T>((resolve) => setTimeout(() => resolve(fallback), timeoutMs)),
+      ]);
+
     // 3. Truy vấn song song các nguồn phim (TUYỆT ĐỐI LOẠI TRỪ VSMOV: skipVsmov = true)
+    // Áp dụng giới hạn thời gian an toàn 2.5s cho các luồng phụ trợ TMDb/Actor để tránh nghẽn serverless
     const [tmdbRecs, genreResults, countryResults, actorResult, directorResult, martialArtsResult] = await Promise.all([
       tmdbId
-        ? getTmdbMovieRecommendations(tmdbId, tmdbType || type, currentMovieSlug).catch(() => [])
+        ? withTimeout(getTmdbMovieRecommendations(tmdbId, tmdbType || type, currentMovieSlug).catch(() => []), 2500, [])
         : Promise.resolve([]),
       Promise.all(
         targetCategories.map((c) =>
@@ -131,10 +138,10 @@ async function computeMovieRecommendations(body: any) {
         )
       ),
       primaryActor
-        ? queryMoviesByActor(primaryActor, [], undefined, 12).catch(() => [])
+        ? withTimeout(queryMoviesByActor(primaryActor, [], undefined, 12).catch(() => []), 2500, [])
         : Promise.resolve([]),
       primaryDirector
-        ? getDirectorFilmographyFromTmdb(primaryDirector, 12).catch(() => [])
+        ? withTimeout(getDirectorFilmographyFromTmdb(primaryDirector, 12).catch(() => []), 2500, [])
         : Promise.resolve([]),
       srcHasMartialArts
         ? movieApi.getMovies({ category: "vo-thuat", page: 1, limit: 16, skipVsmov: true }).catch(() => null)
@@ -473,6 +480,8 @@ export function getCanonicalRecommendationsCacheKey(body: any): string {
     .filter(Boolean)
     .sort();
 
+  const srcHasMartialArts = /võ thuật|kung fu|martial|quyền|kiếm hiệp/i.test(contentText || "");
+
   const canonicalObj = {
     v: 12,
     slug: String(currentMovieSlug).toLowerCase().trim(),
@@ -484,7 +493,7 @@ export function getCanonicalRecommendationsCacheKey(body: any): string {
     actor: String(primaryActor || "").toLowerCase().trim(),
     director: String(primaryDirector || "").toLowerCase().trim(),
     year: Number(year) || 0,
-    content: String(contentText || "").toLowerCase().trim(),
+    martial: srcHasMartialArts ? 1 : 0,
   };
 
   const hash = createHash("sha256").update(JSON.stringify(canonicalObj)).digest("hex").slice(0, 32);

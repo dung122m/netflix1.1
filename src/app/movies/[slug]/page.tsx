@@ -309,12 +309,17 @@ export default async function MovieDetail({
   let effectiveThumbUrl = pickBestMovieThumb(movie, "/default-hero.jpg");
   let effectiveTrailerUrl = (movie.trailer_url || "").trim();
 
-  // Bổ sung dữ liệu TMDb phụ trợ với thời hạn tối đa 600ms (Non-blocking SSR)
-  // Nếu TMDb phản hồi chậm hoặc timeout trên mạng yếu, lập tức dùng dữ liệu gốc, không bao giờ chặn HTML render
-  if (tmdbId || movie.origin_name || movie.name) {
+  // Bổ sung dữ liệu TMDb phụ trợ với thời hạn tối đa 300ms (Non-blocking SSR)
+  // Nếu dữ liệu gốc đã có đủ trailer và poster chất lượng cao thì bỏ qua ngay để tải trang tức thì (0ms SSR overhead)
+  const hasGoodPoster = effectivePosterUrl && !effectivePosterUrl.includes("default-poster");
+  const hasGoodThumb = effectiveThumbUrl && !effectiveThumbUrl.includes("default-hero");
+  const needsTrailer = !effectiveTrailerUrl;
+  const needsPoster = !hasGoodPoster || !hasGoodThumb;
+
+  if ((needsTrailer || needsPoster) && (tmdbId || movie.origin_name || movie.name)) {
     const tmdbTasks = Promise.allSettled([
       // 1. Trailer lookup (chỉ gọi khi nguồn chính chưa có trailer)
-      !effectiveTrailerUrl
+      needsTrailer
         ? (async () => {
             let tr = "";
             if (tmdbId) {
@@ -327,27 +332,29 @@ export default async function MovieDetail({
           })()
         : Promise.resolve(effectiveTrailerUrl),
 
-      // 2. Poster & Backdrop lookup
-      (async () => {
-        let pUrl = "";
-        let tUrl = "";
-        if (tmdbId) {
-          pUrl = (await getTmdbPosterUrl(tmdbId, tmdbType).catch(() => "")) || "";
-        }
-        if (!pUrl && (movie.origin_name || movie.name)) {
-          const res = await searchTmdbPosterByTitle(movie.origin_name || movie.name, movie.year, tmdbType).catch(() => null);
-          if (res?.posterUrl) {
-            pUrl = res.posterUrl;
-            if (res.backdropUrl) tUrl = res.backdropUrl;
-          }
-        }
-        return { posterUrl: pUrl, thumbUrl: tUrl };
-      })(),
+      // 2. Poster & Backdrop lookup (chỉ gọi khi thiếu ảnh)
+      needsPoster
+        ? (async () => {
+            let pUrl = "";
+            let tUrl = "";
+            if (tmdbId) {
+              pUrl = (await getTmdbPosterUrl(tmdbId, tmdbType).catch(() => "")) || "";
+            }
+            if (!pUrl && (movie.origin_name || movie.name)) {
+              const res = await searchTmdbPosterByTitle(movie.origin_name || movie.name, movie.year, tmdbType).catch(() => null);
+              if (res?.posterUrl) {
+                pUrl = res.posterUrl;
+                if (res.backdropUrl) tUrl = res.backdropUrl;
+              }
+            }
+            return { posterUrl: pUrl, thumbUrl: tUrl };
+          })()
+        : Promise.resolve({ posterUrl: effectivePosterUrl, thumbUrl: effectiveThumbUrl }),
     ]);
 
     try {
       const tmdbTimeout = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error("TMDB SSR Timeout")), 600)
+        setTimeout(() => reject(new Error("TMDB SSR Timeout")), 300)
       );
       const [trailerRes, posterRes] = await Promise.race([tmdbTasks, tmdbTimeout]);
 

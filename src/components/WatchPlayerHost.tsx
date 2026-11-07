@@ -7,6 +7,11 @@ import type { CinemaPlayerProps } from "./CinemaPlayer";
 import { IframePlayer } from "./IframePlayer";
 import { useWatchController } from "./WatchController";
 
+// Pre-warm CinemaPlayer chunk ngay khi module được nạp trên client, loại bỏ hoàn toàn độ trễ của dynamic import waterfall
+if (typeof window !== "undefined") {
+  import("./CinemaPlayer").catch(() => {});
+}
+
 // Tải CinemaPlayer (3.200+ dòng & thư viện hls.js ~150KB gzip) bất đồng bộ phía Client
 // Giúp giảm First Load JS trên trang xem phim, giải phóng Main Thread và loại bỏ Total Blocking Time (TBT)
 const CinemaPlayer = dynamic<CinemaPlayerProps>(
