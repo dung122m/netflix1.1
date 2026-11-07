@@ -9,10 +9,7 @@ import {
   RefreshCw,
   ChevronDown,
   ChevronUp,
-  MapPin,
-  UserCheck,
   Radio,
-  Info,
   MessageSquare,
   ArrowUpDown,
 } from "lucide-react";
@@ -67,7 +64,7 @@ interface MatchCenterProps {
   initialScore?: MatchCenterScoreProp | null;
 }
 
-type TabType = "lineups" | "commentary" | "stats" | "info";
+type TabType = "lineups" | "commentary" | "stats";
 
 function formatCommentaryTime(raw?: string): string {
   if (!raw) return "•";
@@ -673,7 +670,6 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
                       { id: "lineups", label: "Đội hình", icon: Users },
                       { id: "commentary", label: "Bình luận", icon: MessageSquare },
                       { id: "stats", label: "Thống kê", icon: BarChart2 },
-                      { id: "info", label: "Thông tin", icon: Info },
                     ].map((tab) => {
                       const Icon = tab.icon;
                       const isActive = activeTab === tab.id;
@@ -891,62 +887,6 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
                   ) : (
                     <p className="text-xs text-zinc-500 py-8 text-center">Chưa có số liệu thống kê trận đấu</p>
                   )}
-                </div>
-              )}
-
-              {/* TAB 3: THÔNG TIN TRẬN ĐẤU (INFO - SÂN VẬN ĐỘNG, TRỌNG TÀI, TIẾP SÓNG) */}
-              {activeTab === "info" && (
-                <div className="space-y-3">
-                  {summary.gameInfo && (summary.gameInfo.venue?.name || summary.gameInfo.referee) && (
-                    <div className="rounded-2xl bg-zinc-900/60 p-4 grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs text-zinc-400">
-                      {summary.gameInfo.venue?.name && (
-                        <div className="flex items-center gap-2.5">
-                          <div className="w-8 h-8 rounded-xl bg-red-950/60 flex items-center justify-center text-netflix-red shrink-0">
-                            <MapPin className="w-4 h-4" />
-                          </div>
-                          <div className="min-w-0">
-                            <span className="text-[10px] uppercase font-bold text-zinc-400 block">Sân vận động</span>
-                            <span className="font-extrabold text-white text-xs truncate block">{summary.gameInfo.venue.name}</span>
-                          </div>
-                        </div>
-                      )}
-                      {summary.gameInfo.referee && (
-                        <div className="flex items-center gap-2.5">
-                          <div className="w-8 h-8 rounded-xl bg-emerald-950/60 flex items-center justify-center text-emerald-400 shrink-0">
-                            <UserCheck className="w-4 h-4" />
-                          </div>
-                          <div className="min-w-0">
-                            <span className="text-[10px] uppercase font-bold text-zinc-400 block">Trọng tài chính</span>
-                            <span className="font-extrabold text-white text-xs truncate block">{summary.gameInfo.referee}</span>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
-                    <div className="rounded-xl bg-white/[0.03] border border-white/[0.06] p-3 flex flex-col gap-1 min-w-0">
-                      <span className="text-[10px] uppercase font-bold text-zinc-400">🏆 Giải đấu</span>
-                      <span className="font-extrabold text-white text-xs line-clamp-2 leading-tight">
-                        {canonicalLeague || tournament || "Giải Đấu Khác"}
-                      </span>
-                    </div>
-
-                    <div className="rounded-xl bg-white/[0.03] border border-white/[0.06] p-3 flex flex-col gap-1 min-w-0">
-                      <span className="text-[10px] uppercase font-bold text-zinc-400">🎙️ Bình luận viên</span>
-                      <span className="font-extrabold text-white text-xs line-clamp-2 leading-tight">
-                        {blv || "BLV Tiếng Việt"}
-                      </span>
-                    </div>
-
-                    <div className="rounded-xl bg-white/[0.03] border border-white/[0.06] p-3 flex flex-col gap-1 min-w-0 col-span-2 sm:col-span-1">
-                      <span className="text-[10px] uppercase font-bold text-zinc-400">⚡ Tín hiệu phát</span>
-                      <span className="font-extrabold text-emerald-400 text-xs flex items-center gap-1.5">
-                        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                        <span>{quality || "Full HD 1080p"}</span>
-                      </span>
-                    </div>
-                  </div>
                 </div>
               )}
             </div>
