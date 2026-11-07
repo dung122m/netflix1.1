@@ -701,7 +701,7 @@ export default async function BrowsePage({
   }
 
   return (
-    <div className="page-cinema-container min-h-screen pb-20">
+    <div className="page-cinema-container min-h-screen pb-0">
       <Navbar />
 
       {/* TRỤC CĂN CHỈNH NỘI DUNG CHÍNH (MAX-WIDTH 1440PX ĐỒNG BỘ THẲNG HÀNG 100%) */}

@@ -299,7 +299,7 @@ export default async function HomePage({
   );
 
   return (
-    <div className="page-cinema-container min-h-screen pb-20 w-full max-w-full overflow-x-clip">
+    <div className="page-cinema-container min-h-screen pb-0 w-full max-w-full overflow-x-clip">
       <Navbar />
 
       {/* 1. HERO SPOTLIGHT BANNER */}

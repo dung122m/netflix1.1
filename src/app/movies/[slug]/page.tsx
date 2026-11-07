@@ -566,7 +566,7 @@ export default async function MovieDetail({
   };
 
   return (
-    <div className="page-cinema-container min-h-screen pb-[calc(5rem+env(safe-area-inset-bottom,0px))] lg:pb-12 w-full max-w-full overflow-x-clip">
+    <div className="page-cinema-container min-h-screen pb-0 lg:pb-0 w-full max-w-full overflow-x-clip">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}

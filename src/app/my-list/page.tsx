@@ -1186,7 +1186,7 @@ function MyListContent() {
 
 export default function MyListPage() {
   return (
-    <div className="page-cinema-container min-h-screen flex flex-col justify-between pb-[calc(5rem+env(safe-area-inset-bottom,0px))] lg:pb-0 w-full max-w-full overflow-x-clip">
+    <div className="page-cinema-container min-h-screen flex flex-col justify-between pb-0 lg:pb-0 w-full max-w-full overflow-x-clip">
       <div>
         <Suspense fallback={<div className="h-16 bg-black" />}>
           <Navbar />
