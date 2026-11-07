@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from "react";
 import { ChevronUp } from "lucide-react";
-import { Tooltip } from "@/components/ui/Tooltip";
 
 export function BackToTop() {
   const [visible, setVisible] = useState(false);
@@ -31,21 +30,17 @@ export function BackToTop() {
   if (!visible) return null;
 
   return (
-    <Tooltip
-      content="Cuộn lên đầu trang"
-      side="top"
-      align="center"
-      wrapperClassName="fixed bottom-[calc(4.25rem+env(safe-area-inset-bottom,0px))] right-3.5 sm:bottom-[calc(4.5rem+env(safe-area-inset-bottom,0px))] sm:right-5 lg:bottom-8 lg:right-6 z-40"
-    >
+    <div className="fixed bottom-[calc(4.5rem+env(safe-area-inset-bottom,0px))] right-4 sm:bottom-24 sm:right-6 lg:bottom-8 lg:right-6 z-40 pointer-events-auto">
       <button
         type="button"
         onClick={scrollToTop}
         aria-label="Cuộn lên đầu trang"
-        className="h-9 w-9 sm:h-10 sm:w-10 rounded-full bg-zinc-900/95 text-white shadow-[0_8px_24px_rgba(0,0,0,0.7)] backdrop-blur-md flex items-center justify-center transition-all duration-300 hover:bg-netflix-red hover:border-netflix-red hover:scale-110 active:scale-95 cursor-pointer animate-in fade-in zoom-in-90"
+        title="Cuộn lên đầu trang"
+        className="h-10 w-10 sm:h-11 sm:w-11 rounded-full bg-zinc-900/95 text-white shadow-[0_8px_24px_rgba(0,0,0,0.7)] border border-white/10 backdrop-blur-md flex items-center justify-center transition-all duration-300 hover:bg-netflix-red hover:border-netflix-red hover:scale-110 active:scale-95 cursor-pointer animate-in fade-in zoom-in-90"
       >
-        <ChevronUp className="h-4 w-4 sm:h-5 sm:w-5" />
+        <ChevronUp className="h-5 w-5" />
       </button>
-    </Tooltip>
+    </div>
   );
 }
 

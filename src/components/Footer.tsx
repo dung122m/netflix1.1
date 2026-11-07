@@ -308,43 +308,43 @@ export const Footer: React.FC = () => {
         {/* ============================================================ */}
         {/* 2B. GIAO DIỆN MOBILE TINH GỌN (CHUẨN NETFLIX COMPACT FOOTER) */}
         {/* ============================================================ */}
-        <div className="sm:hidden space-y-3.5 pt-1">
-          {/* Lưới 6 ô liên kết đối xứng, bo góc tinh tế, căn giữa 100% */}
-          <div className="grid grid-cols-2 gap-2 text-xs">
+        <div className="sm:hidden pt-1">
+          {/* Lưới liên kết dạng text tinh gọn, chuẩn phong cách Netflix, không đóng khung nút */}
+          <div className="grid grid-cols-2 gap-x-6 gap-y-3 text-xs text-zinc-400 max-w-sm mx-auto">
             <Link
               href="/about"
-              className="flex items-center justify-center py-2 px-2.5 rounded-xl bg-white/[0.03] hover:bg-white/[0.08] border border-white/[0.06] text-zinc-300 hover:text-white transition text-center truncate"
+              className="hover:text-white transition-colors"
             >
               Giới thiệu Nanaflix
             </Link>
             <Link
               href="/faq"
-              className="flex items-center justify-center py-2 px-2.5 rounded-xl bg-white/[0.03] hover:bg-white/[0.08] border border-white/[0.06] text-zinc-300 hover:text-white transition text-center truncate"
+              className="hover:text-white transition-colors"
             >
               Hỏi & Đáp (FAQ)
             </Link>
             <Link
               href="/privacy"
-              className="flex items-center justify-center py-2 px-2.5 rounded-xl bg-white/[0.03] hover:bg-white/[0.08] border border-white/[0.06] text-zinc-300 hover:text-white transition text-center truncate"
+              className="hover:text-white transition-colors"
             >
               Bảo mật & Riêng tư
             </Link>
             <Link
               href="/terms"
-              className="flex items-center justify-center py-2 px-2.5 rounded-xl bg-white/[0.03] hover:bg-white/[0.08] border border-white/[0.06] text-zinc-300 hover:text-white transition text-center truncate"
+              className="hover:text-white transition-colors"
             >
               Điều khoản & DMCA
             </Link>
             <Link
               href="/collection"
-              className="flex items-center justify-center py-2 px-2.5 rounded-xl bg-white/[0.03] hover:bg-white/[0.08] border border-white/[0.06] text-zinc-300 hover:text-white transition text-center truncate"
+              className="hover:text-white transition-colors"
             >
               Bộ sưu tập phim
             </Link>
             <button
               type="button"
               onClick={() => window.dispatchEvent(new CustomEvent("open-pwa-install"))}
-              className="flex items-center justify-center py-2 px-2.5 rounded-xl bg-white/[0.03] hover:bg-white/[0.08] border border-white/[0.06] text-emerald-400 hover:text-emerald-300 transition text-center truncate cursor-pointer"
+              className="text-left hover:text-emerald-400 transition-colors cursor-pointer"
             >
               Cài ứng dụng (PWA)
             </button>
@@ -354,14 +354,14 @@ export const Footer: React.FC = () => {
         {/* ============================================================ */}
         {/* 3. ECOSYSTEM STATUS BAR */}
         {/* ============================================================ */}
-        <div className="p-2.5 sm:p-4 rounded-xl sm:rounded-2xl bg-zinc-950/70 border border-white/[0.08] backdrop-blur-xl flex flex-col sm:flex-row items-center justify-center sm:justify-between gap-3 text-center sm:text-left">
+        <div className="py-2 px-1 sm:p-4 rounded-xl sm:rounded-2xl sm:bg-zinc-950/70 sm:border sm:border-white/[0.08] sm:backdrop-blur-xl flex flex-col sm:flex-row items-center justify-center sm:justify-between gap-3 text-center sm:text-left">
           <div className="flex items-center justify-center gap-2.5">
             <span className="relative flex h-2 w-2 sm:h-2.5 sm:w-2.5 shrink-0">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2 w-2 sm:h-2.5 sm:w-2.5 bg-emerald-500"></span>
             </span>
-            <span className="text-xs font-semibold text-zinc-200">
-              Hệ thống: <span className="text-emerald-400 font-sans tabular-nums">99.99% Uptime</span> • CDN Tốc độ cao
+            <span className="text-xs text-zinc-400">
+              Hệ thống: <span className="text-emerald-400 font-sans tabular-nums font-medium">99.99% Uptime</span> • CDN Tốc độ cao
             </span>
           </div>
 
@@ -384,12 +384,12 @@ export const Footer: React.FC = () => {
         {/* ============================================================ */}
         {/* 4. BRANDING & CREATOR CARD (DŨNG TRẦN) */}
         {/* ============================================================ */}
-        <div className="border-t border-white/[0.08] pt-5 sm:pt-6 flex flex-col md:flex-row items-center justify-between gap-4 sm:gap-6 text-center sm:text-left">
+        <div className="border-t border-white/[0.08] pt-4 sm:pt-6 flex flex-col md:flex-row items-center justify-between gap-3 sm:gap-6 text-center sm:text-left">
           <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4">
             <Link href="/" className="hover:opacity-90 transition inline-flex items-center">
               <NanaflixBrandLogo />
             </Link>
-            <span className="text-[11px] sm:text-xs text-zinc-400 sm:border-l sm:border-white/15 sm:pl-3 tracking-tight sm:tracking-normal">
+            <span className="text-[11px] sm:text-xs text-zinc-500 sm:border-l sm:border-white/15 sm:pl-3 tracking-tight sm:tracking-normal">
               <span className="whitespace-nowrap">Không gian điện ảnh cá nhân hóa</span>
               {" • "}
               <span className="whitespace-nowrap">Không quảng cáo rác</span>
@@ -398,11 +398,11 @@ export const Footer: React.FC = () => {
 
           <Link
             href="/about"
-            className="inline-flex items-center gap-2.5 sm:gap-3 px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl sm:rounded-2xl bg-zinc-950/80 hover:bg-zinc-900 border border-white/[0.08] sm:border-white/[0.1] hover:border-netflix-red/50 transition-all duration-300 group cursor-pointer shadow-lg mx-auto md:mx-0"
+            className="inline-flex items-center gap-2.5 sm:gap-3 py-1 sm:px-4 sm:py-2.5 rounded-xl sm:rounded-2xl sm:bg-zinc-950/80 sm:hover:bg-zinc-900 sm:border sm:border-white/[0.08] sm:hover:border-netflix-red/50 transition-all duration-300 group cursor-pointer sm:shadow-lg mx-auto md:mx-0"
           >
             {/* Lá cờ Việt Nam */}
             <div
-              className="w-7 h-7 sm:w-9 sm:h-9 rounded-full overflow-hidden border-2 border-zinc-700 group-hover:border-netflix-red group-hover:scale-105 transition-all duration-300 shadow-md shrink-0 flex items-center justify-center bg-[#DA251D] relative shadow-black/60"
+              className="w-6 h-6 sm:w-9 sm:h-9 rounded-full overflow-hidden border border-zinc-700 sm:border-2 group-hover:border-netflix-red group-hover:scale-105 transition-all duration-300 shadow-sm shrink-0 flex items-center justify-center bg-[#DA251D] relative shadow-black/60"
               title="Việt Nam"
               aria-label="Cờ Việt Nam"
             >
@@ -438,13 +438,13 @@ export const Footer: React.FC = () => {
               </svg>
             </div>
             <div className="flex flex-col text-left">
-              <span className="text-xs text-zinc-300 font-medium">
+              <span className="text-xs text-zinc-400 group-hover:text-zinc-200 transition-colors">
                 Designed & Developed by{" "}
-                <strong className="text-white font-bold group-hover:text-netflix-red transition-colors">
+                <strong className="text-white font-semibold group-hover:text-netflix-red transition-colors">
                   DT
                 </strong>
               </span>
-              <span className="text-[11px] sm:text-xs text-zinc-400 font-sans tabular-nums">
+              <span className="text-[10px] sm:text-xs text-zinc-500 font-sans tabular-nums">
                 © {new Date().getFullYear()} Nanaflix • Made with passion
               </span>
             </div>
