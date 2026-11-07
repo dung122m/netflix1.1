@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
-import { Film, Info, MessageSquare, Sparkles } from "lucide-react";
+import { Film, Info, MessageSquare, Compass } from "lucide-react";
 
 interface MobileMovieNavProps {
   isSeries?: boolean;
@@ -37,7 +37,7 @@ export function MobileMovieNav({ isSeries = true }: MobileMovieNavProps) {
     {
       id: "section-recommendations",
       label: "Đề xuất",
-      icon: Sparkles,
+      icon: Compass,
     },
   ], [isSeries]);
 

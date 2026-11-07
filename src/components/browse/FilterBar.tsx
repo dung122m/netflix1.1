@@ -9,7 +9,7 @@ import { getCanonicalGenreSlug, getCanonicalCountrySlug, isRawId } from "@/lib/m
 import { useBodyScrollLock } from "@/lib/scrollLock";
 import {
   Film,
-  Sparkles,
+  Tag,
   Globe2,
   Calendar,
   ArrowUpDown,
@@ -559,7 +559,7 @@ export const FilterBar: React.FC = () => {
                   : "bg-white/[0.04] text-zinc-300 border-white/[0.06] hover:bg-white/[0.08] hover:text-white hover:border-white/[0.12]"
               }`}
             >
-              <Sparkles className={`w-3.5 h-3.5 flex-none ${currentCategory ? "text-rose-400" : "text-amber-400/90"}`} />
+              <Tag className={`w-3.5 h-3.5 flex-none ${currentCategory ? "text-rose-400" : "text-amber-400/90"}`} />
               <span className="truncate max-w-[110px] sm:max-w-none">
                 {currentCategory ? activeCategoryName : "Thể loại"}
               </span>
@@ -1110,7 +1110,7 @@ export const FilterBar: React.FC = () => {
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider flex items-center gap-1.5">
-                    <Sparkles className="w-3.5 h-3.5 text-netflix-red" />
+                    <Tag className="w-3.5 h-3.5 text-netflix-red" />
                     Thể loại
                   </span>
                   {draftCategory && (

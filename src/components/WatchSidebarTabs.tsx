@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Film, Sparkles } from "lucide-react";
+import { Film, Compass } from "lucide-react";
 
 interface WatchSidebarTabsProps {
   isSingleEpisode?: boolean;
@@ -69,7 +69,7 @@ export function WatchSidebarTabs({
               : "text-zinc-400 hover:text-white hover:bg-white/5"
           }`}
         >
-          <Sparkles className="w-3.5 h-3.5 text-amber-300 shrink-0 animate-pulse" />
+          <Compass className="w-3.5 h-3.5 shrink-0" />
           <span>Phim tương tự</span>
         </button>
       </div>

@@ -24,7 +24,7 @@ import {
   LayoutGrid,
   List,
   RotateCcw,
-  Sparkles,
+  Flame,
   Zap,
 } from "lucide-react";
 import { LiveTvData, TvChannel } from "@/services/live/tv/service";
@@ -1854,7 +1854,7 @@ export function LiveTvClient({
       <div className="space-y-2 pt-2">
         <div className="flex items-center justify-between">
           <span className="text-xs font-extrabold text-zinc-300 flex items-center gap-1.5 uppercase tracking-wider">
-            <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+            <Flame className="w-3.5 h-3.5 text-netflix-red" />
             <span>Kênh Phổ Biến (Xem nhiều)</span>
           </span>
           <span className="text-[11px] text-zinc-500">

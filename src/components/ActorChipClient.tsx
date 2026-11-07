@@ -2,7 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
-import { User, Sparkles } from "lucide-react";
+import { User } from "lucide-react";
 import { normalizeForMatch } from "@/lib/stringUtils";
 
 interface ActorChipProps {
@@ -30,7 +30,6 @@ export const ActorChipClient: React.FC<ActorChipProps> = ({ name, isDirector = f
         <User className="w-3 h-3 text-zinc-400 group-hover:text-white group-hover:scale-110 transition-transform flex-none" />
       )}
       <span className="font-medium">{name}</span>
-      <Sparkles className="w-2.5 h-2.5 text-zinc-400 opacity-0 group-hover:opacity-100 transition-opacity" />
     </Link>
   );
 };

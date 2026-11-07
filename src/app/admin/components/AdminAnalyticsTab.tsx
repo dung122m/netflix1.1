@@ -17,7 +17,6 @@ import {
   Info,
   BarChart2,
   Cpu,
-  Sparkles,
 } from "lucide-react";
 import {
   AnalyticsDashboardStats,
@@ -552,7 +551,7 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
           {/* 3. Operating System */}
           <div className="p-4 rounded-xl bg-black/40 space-y-3">
             <h4 className="text-xs font-bold text-zinc-300 flex items-center gap-2">
-              <Sparkles size={15} className="text-amber-400" />
+              <Monitor size={15} className="text-amber-400" />
               <span>Hệ Điều Hành (Operating System)</span>
             </h4>
 

@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import {
   Flame,
-  Sparkles,
+  Film,
   Zap,
   Crown,
 } from "lucide-react";
@@ -279,7 +279,7 @@ function TmdbTopTrendingInner() {
       items={rankedItems}
       loading={loading}
       isFading={isFading}
-      emptyIcon={<Sparkles className="w-8 h-8 text-zinc-600 mb-2" />}
+      emptyIcon={<Film className="w-8 h-8 text-zinc-600 mb-2" />}
       emptyMessage="Chưa có phim phù hợp trong danh mục này."
       actions={
         <div className="flex items-center justify-between lg:justify-end gap-3 w-full lg:w-auto shrink-0">

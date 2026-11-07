@@ -11,7 +11,7 @@ import {
   ArrowLeft,
   ExternalLink,
   ShieldCheck,
-  Sparkles,
+  Info,
   MessageSquare,
 } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
@@ -321,7 +321,7 @@ export default function TermsPage() {
             className="p-4 rounded-xl bg-zinc-950/50 hover:bg-zinc-900 border border-white/[0.06] hover: transition-all flex items-center justify-between group"
           >
             <div className="flex items-center gap-3">
-              <Sparkles className="w-5 h-5 text-netflix-red" />
+              <Info className="w-5 h-5 text-netflix-red" />
               <div className="text-left">
                 <div className="text-xs font-bold text-white group-hover:text-red-300 transition-colors">Giới thiệu Nanaflix</div>
                 <div className="text-[11px] text-zinc-400">Câu chuyện & Đội ngũ sáng lập</div>

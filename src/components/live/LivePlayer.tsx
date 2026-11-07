@@ -14,7 +14,8 @@ import {
   ChevronDown,
   ChevronLeft,
   ChevronRight,
-  Sparkles,
+  Server,
+  Loader2,
   X,
   RotateCcw,
   Mic,
@@ -3195,7 +3196,7 @@ function LivePlayerInner({
               </div>
             ) : actionFeedback.icon === "server" ? (
               <div className="flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-black/75 backdrop-blur-xl shadow-2xl animate-in fade-in zoom-in duration-150">
-                <Sparkles className="w-7 h-7 text-amber-400" />
+                <Server className="w-7 h-7 text-white" />
               </div>
             ) : null}
           </div>
@@ -3204,11 +3205,10 @@ function LivePlayerInner({
         {/* LOADING BADGE (Floating corner toast without dark full-screen blackout) */}
         {isLoading && !hasError && (
           <div className="absolute top-4 right-4 z-20 pointer-events-none animate-in fade-in duration-200">
-            <div className="flex items-center gap-2.5 px-3.5 py-2 rounded-xl bg-black/75 backdrop-blur-md shadow-xl">
-              <div className="w-4 h-4 rounded-full -transparent animate-spin flex-shrink-0 shadow-sm" />
-              <p className="text-xs sm:text-sm font-semibold text-zinc-200 flex items-center gap-1.5 whitespace-nowrap">
-                <Sparkles className="w-3.5 h-3.5 text-amber-400 animate-spin flex-shrink-0" />
-                <span>Đang kết nối luồng phát sóng trực tiếp...</span>
+            <div className="flex items-center gap-2.5 px-3.5 py-2 rounded-xl bg-black/75 backdrop-blur-md shadow-xl border border-white/10">
+              <Loader2 className="w-4 h-4 text-netflix-red animate-spin flex-shrink-0" />
+              <p className="text-xs sm:text-sm font-semibold text-zinc-200 whitespace-nowrap">
+                Đang kết nối luồng phát sóng trực tiếp...
               </p>
             </div>
           </div>
@@ -3251,7 +3251,7 @@ function LivePlayerInner({
                   onClick={() => handleSwitchServer("next")}
                   className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-netflix-red hover:brightness-110 active:brightness-95 text-xs font-bold text-white transition shadow-md shadow-black/50 cursor-pointer"
                 >
-                  <Sparkles className="w-3.5 h-3.5" />
+                  <RefreshCw className="w-3.5 h-3.5" />
                   <span>
                     Đổi Máy Chủ #
                     {((selectedServerIndex + 1) % servers.length) + 1}

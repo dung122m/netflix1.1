@@ -10,7 +10,6 @@ import {
   PlusSquare,
   Download,
   CheckCircle2,
-  Sparkles,
   Monitor,
   MoreVertical,
 } from "lucide-react";
@@ -177,7 +176,7 @@ export const InstallPwaModal: React.FC<InstallPwaModalProps> = ({
 
           <div>
             <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-netflix-red/20 text-white border border-netflix-red/30 mb-1">
-              <Sparkles className="w-3 h-3" />
+              <Smartphone className="w-3 h-3" />
               Ứng Dụng Nanaflix (PWA)
             </div>
             <h3 className="text-lg sm:text-xl font-black text-white">Cài Đặt Lên Điện Thoại / PC</h3>

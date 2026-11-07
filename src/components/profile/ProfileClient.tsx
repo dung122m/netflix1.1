@@ -27,7 +27,7 @@ import {
   History,
   FolderHeart,
   RotateCcw,
-  Sparkles,
+  Compass,
   ChevronRight,
   LogIn,
   Flame,
@@ -1218,7 +1218,7 @@ export function ProfileClient() {
                   href="/"
                   className="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-white/10 hover:bg-white/15 text-white text-xs font-semibold transition"
                 >
-                  <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                  <Compass className="w-3.5 h-3.5 text-zinc-300" />
                   <span>Khám phá phim ngay</span>
                 </Link>
               </div>

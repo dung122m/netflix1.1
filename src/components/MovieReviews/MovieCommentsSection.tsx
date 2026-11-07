@@ -4,7 +4,7 @@ import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   MessageSquare,
-  Sparkles,
+  Tag,
   Send,
   AlertTriangle,
   LogIn,
@@ -599,7 +599,7 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
             {/* Quick Tag chips */}
             <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none flex-nowrap sm:flex-wrap pb-1.5 mb-2.5 -mx-1 px-1">
               <span className="text-[11px] text-zinc-500 mr-1 flex items-center gap-1 shrink-0 whitespace-nowrap">
-                <Sparkles className="w-3 h-3 text-zinc-400 shrink-0" />
+                <Tag className="w-3 h-3 text-zinc-400 shrink-0" />
                 Gợi ý:
               </span>
               {QUICK_TAGS.map((tag) => (

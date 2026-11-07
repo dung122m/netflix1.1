@@ -14,7 +14,7 @@ import {
   Calendar,
   MapPin,
   Clapperboard,
-  Sparkles,
+  TrendingUp,
 } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
@@ -467,7 +467,7 @@ export default async function ActorDetailPage({ params }: PageProps) {
                 )}
 
                 <div className="flex items-center gap-2.5 p-3 rounded-xl bg-white/[0.03] border border-white/[0.06]">
-                  <Sparkles className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <TrendingUp className="w-4 h-4 text-emerald-400 shrink-0" />
                   <div className="text-left text-xs">
                     <div className="text-zinc-400 text-[10px]">Độ phổ biến</div>
                     <div className="text-white font-bold">

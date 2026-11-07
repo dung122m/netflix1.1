@@ -8,7 +8,6 @@ import {
   Heart,
   MessageSquare,
   MoreHorizontal,
-  Sparkles,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import {
@@ -223,7 +222,7 @@ export const NavNotifications: React.FC = React.memo(function NavNotifications()
     }
     return (
       <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-purple-600 border-2 border-[#242526] flex items-center justify-center text-white shadow-md">
-        <Sparkles size={11} className="fill-white text-white" />
+        <Bell size={11} className="fill-white text-white" />
       </div>
     );
   };

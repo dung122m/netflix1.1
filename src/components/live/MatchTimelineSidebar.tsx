@@ -6,7 +6,7 @@ import {
   MatchCommentaryItem,
   MatchStatItem,
 } from "@/services/live/football-score/types";
-import { Activity, Clock, ArrowLeftRight, Sparkles, MessageSquare } from "lucide-react";
+import { Activity, Clock, ArrowLeftRight, MessageSquare } from "lucide-react";
 
 export interface MatchTimelineSidebarProps {
   events?: MatchKeyEvent[];
@@ -467,7 +467,6 @@ export const MatchTimelineSidebar: React.FC<MatchTimelineSidebarProps> = ({
             }`}
             title="Chỉ hiển thị các sự kiện chính: Bàn thắng, Thẻ, Thay người chuẩn xác 100%"
           >
-            <Sparkles className="w-3 h-3" />
             <span>Sự kiện ({events.length})</span>
           </button>
 

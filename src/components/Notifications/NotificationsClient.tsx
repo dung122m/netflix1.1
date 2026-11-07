@@ -9,7 +9,6 @@ import {
   Heart,
   MessageSquare,
   MoreHorizontal,
-  Sparkles,
   ChevronRight,
   Trash2,
   LogIn,
@@ -269,7 +268,7 @@ export function NotificationsClient() {
     }
     return (
       <div className="absolute -bottom-1 -right-1 w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-purple-600 border-2 border-[#18191a] flex items-center justify-center text-white shadow-md">
-        <Sparkles size={12} className="fill-white text-white" />
+        <Bell size={12} className="fill-white text-white" />
       </div>
     );
   };

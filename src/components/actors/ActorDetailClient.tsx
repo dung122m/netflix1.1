@@ -11,7 +11,8 @@ import {
   ChevronUp,
   ExternalLink,
   Layers,
-  Sparkles,
+  Music,
+  Trophy,
 } from "lucide-react";
 import { MovieGrid } from "@/components/MovieGrid";
 import { PaginationControl } from "@/components/PaginationControl";
@@ -42,11 +43,11 @@ function getPaginationPages(currentPage: number, totalPages: number): (number | 
 import { parseBioContent } from "@/lib/bioFormatter";
 
 function getSectionIcon(heading?: string) {
-  if (!heading) return Sparkles;
+  if (!heading) return BookOpen;
   const lower = heading.toLowerCase();
-  if (lower.includes("âm nhạc") || lower.includes("ca hát")) return Sparkles;
+  if (lower.includes("âm nhạc") || lower.includes("ca hát")) return Music;
   if (lower.includes("điện ảnh") || lower.includes("diễn xuất") || lower.includes("phim") || lower.includes("filmography")) return Clapperboard;
-  if (lower.includes("thành tựu") || lower.includes("giải thưởng") || lower.includes("awards")) return Sparkles;
+  if (lower.includes("thành tựu") || lower.includes("giải thưởng") || lower.includes("awards")) return Trophy;
   if (lower.includes("đời tư") || lower.includes("thời thơ ấu") || lower.includes("tiểu sử") || lower.includes("personal") || lower.includes("life")) return BookOpen;
   return BookOpen;
 }
@@ -334,7 +335,7 @@ export const ActorDetailClient: React.FC<ActorDetailClientProps> = ({
         ) : (
           <div className="py-16 px-6 rounded-3xl bg-zinc-950/60 border border-white/[0.08] text-center max-w-xl mx-auto space-y-4">
             <div className="w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-400 flex items-center justify-center mx-auto">
-              <Sparkles className="w-6 h-6" />
+              <Film className="w-6 h-6" />
             </div>
             <div className="space-y-1">
               <h3 className="text-base font-bold text-white">

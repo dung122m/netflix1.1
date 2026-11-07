@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { Palette, Check, Sparkles, X, Play, Plus } from "lucide-react";
+import { Palette, Check, X, Play, Plus } from "lucide-react";
 import {
   ACCENT_PRESETS,
   AccentPreset,
@@ -126,7 +126,7 @@ export const AccentStudio: React.FC<AccentStudioProps> = ({ className = "" }) =>
                   boxShadow: `0 0 14px ${currentAccent.glow}`,
                 }}
               >
-                <Sparkles className="w-3.5 h-3.5" />
+                <Palette className="w-3.5 h-3.5" />
               </div>
               <div>
                 <h3 className="text-white font-black text-sm tracking-tight flex items-center gap-1.5">

@@ -9,7 +9,7 @@ import {
   Tv,
   MonitorSmartphone,
   Bot,
-  Sparkles,
+  Compass,
   LifeBuoy,
   Film,
   BookOpen,
@@ -296,7 +296,7 @@ const FAQ_DATA: FAQItem[] = [
 ];
 
 const CATEGORIES = [
-  { id: "all", label: "Tất cả", icon: Sparkles },
+  { id: "all", label: "Tất cả", icon: Compass },
   { id: "guide", label: "📖 Hướng Dẫn & Sử Dụng", icon: BookOpen },
   { id: "player", label: "Trình Phát & Video", icon: Tv },
   { id: "ai", label: "Trợ Lý AI Nana", icon: Bot },
@@ -554,7 +554,7 @@ export default function FAQPage() {
                           <p>{faq.answer}</p>
                           {faq.tips && (
                             <div className="p-3.5 rounded-xl bg-amber-500/10 text-amber-300 text-xs flex items-start gap-2.5">
-                              <Sparkles size={14} className="text-amber-400 flex-shrink-0 mt-0.5" />
+                              <CheckCircle2 size={14} className="text-amber-400 flex-shrink-0 mt-0.5" />
                               <span>{faq.tips}</span>
                             </div>
                           )}

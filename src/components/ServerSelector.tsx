@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Sparkles, Zap } from "lucide-react";
+import { Zap } from "lucide-react";
 import { useWatchController, EpisodeServer } from "./WatchController";
 
 interface ServerSelectorProps {
@@ -70,7 +70,7 @@ export const ServerSelector: React.FC<ServerSelectorProps> = ({
                   : "bg-zinc-900/80 text-zinc-300 hover:text-white hover:bg-zinc-800"
               }`}
             >
-              <Sparkles className={`w-3 h-3 ${isSelected ? "text-amber-300" : "text-zinc-400"}`} aria-hidden="true" />
+              <Zap className={`w-3 h-3 ${isSelected ? "text-amber-300" : "text-zinc-400"}`} aria-hidden="true" />
               <span>{displayName}</span>
               {count !== undefined && count > 0 && (
                 <span

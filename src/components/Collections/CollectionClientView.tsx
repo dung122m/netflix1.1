@@ -11,7 +11,7 @@ import {
   Film,
   Check,
   Loader2,
-  Sparkles,
+  Layers,
   Plus,
 } from "lucide-react";
 import { MediaCard } from "@/components/browse/MediaCard";
@@ -164,7 +164,7 @@ export function CollectionClientView({
               <div className="max-w-2xl">
                 <div className="flex items-center gap-2.5 mb-2.5">
                   <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-netflix-red/20 text-netflix-red text-xs font-bold uppercase tracking-wider">
-                    <Sparkles className="w-3.5 h-3.5" />
+                    <Layers className="w-3.5 h-3.5" />
                     Tuyển Tập Phim
                   </span>
                   {collection.isPublic ? (

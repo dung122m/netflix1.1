@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { X, Sparkles, ExternalLink, Film, Loader2, BookOpen, Calendar, MapPin, Globe, Tag, UserCheck } from "lucide-react";
+import { X, ExternalLink, Film, Loader2, BookOpen, Calendar, MapPin, Globe, Tag, UserCheck } from "lucide-react";
 import { useBodyScrollLock } from "@/lib/scrollLock";
 import { splitBlockIntoNaturalParagraphs } from "@/lib/bioFormatter";
 import { cleanBioExtract } from "@/services/wikipediaService";
@@ -144,7 +144,7 @@ export const ActorBioModal: React.FC<ActorBioModalProps> = ({
         {/* HEADER BAR */}
         <div className="flex items-center justify-between px-4 sm:px-6 py-3.5 border-b bg-zinc-900/90 gap-2">
           <div className="flex items-center gap-2 text-rose-400 min-w-0 flex-1">
-            <Sparkles className="w-4 h-4 text-amber-300 animate-pulse shrink-0" />
+            <BookOpen className="w-4 h-4 text-rose-400 shrink-0" />
             <span className="text-[11px] sm:text-xs font-black uppercase tracking-wider text-white truncate">
               Hồ Sơ Nghệ Sĩ & Tiểu Sử Điện Ảnh
             </span>

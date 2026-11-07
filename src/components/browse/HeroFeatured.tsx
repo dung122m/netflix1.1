@@ -7,7 +7,7 @@ import {
   ChevronRight,
   Play,
   Star,
-  Sparkles,
+  Flame,
   Volume2,
   VolumeX,
   Plus,
@@ -818,7 +818,7 @@ const HeroFeaturedInner: React.FC<{ movies?: HeroMovie[] }> = ({
               {/* 3.1 TOP BADGE TINH GIẢN */}
               <div className="flex items-center gap-2">
                 <span className="inline-flex items-center gap-1.5 rounded-full border border-netflix-red/40 bg-netflix-red/25 px-2.5 sm:px-3 py-0.5 text-[11px] sm:text-xs font-bold text-white shadow-sm backdrop-blur-md">
-                  <Sparkles size={11} className="text-netflix-red fill-netflix-red" />
+                  <Flame size={11} className="text-netflix-red fill-netflix-red" />
                   <span>Nổi bật</span>
                 </span>
                 {heroType && (

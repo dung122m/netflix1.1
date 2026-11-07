@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { MessageSquare, X, ArrowRight, Sparkles } from "lucide-react";
+import { MessageSquare, X, ArrowRight } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { subscribeUserNotifications, markNotificationAsRead } from "@/services/notificationService";
 import { UserNotification } from "@/types/notification";
@@ -208,7 +208,6 @@ export const DesktopReplyPopup: React.FC = () => {
                     : "text-rose-400"
                 }`}
               >
-                <Sparkles className="w-2.5 h-2.5" />
                 {getBadgeTitle()}
               </span>
               <span className="text-[10px] text-zinc-500">· Vừa xong</span>

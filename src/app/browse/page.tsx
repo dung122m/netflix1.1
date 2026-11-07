@@ -4,7 +4,7 @@ import { FilterBarClient } from "@/components/FilterBarClient";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { SortSelector } from "@/components/SortSelector";
-import { Film, ExternalLink, Sparkles } from "lucide-react";
+import { Film, ExternalLink, User } from "lucide-react";
 import { movieApi } from "@/services/movies/service";
 import {
   resolveActorMovies,
@@ -737,7 +737,7 @@ export default async function BrowsePage({
           <div className="mb-6 p-4 sm:p-5 rounded-2xl bg-zinc-900/60 border border-white/[0.08] flex items-center justify-between gap-3 shadow-lg animate-in fade-in duration-300">
             <div className="flex items-center gap-3.5">
               <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-netflix-red/15 border border-netflix-red/25 text-netflix-red flex items-center justify-center flex-none">
-                <Sparkles className="w-5 h-5 text-netflix-red" />
+                <User className="w-5 h-5 text-netflix-red" />
               </div>
               <div>
                 <h4 className="text-sm sm:text-base font-black text-white flex items-center gap-2 flex-wrap">

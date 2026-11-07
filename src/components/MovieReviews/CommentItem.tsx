@@ -13,7 +13,7 @@ import {
   ChevronUp,
   CornerDownRight,
   Reply,
-  Sparkles,
+  Info,
   Pin,
   ShieldCheck,
 } from "lucide-react";
@@ -636,7 +636,7 @@ export const CommentItem: React.FC<CommentItemProps> = ({
       {/* BADGE THÔNG BÁO KHI ĐƯỢC CHỌN TỪ POPUP / THÔNG BÁO */}
       {isHighlighted && (
         <div className="mb-2 flex items-center gap-1.5 text-xs font-medium text-netflix-red animate-pulse">
-          <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+          <Info className="w-3.5 h-3.5 text-netflix-red" />
           <span>Bình luận bạn vừa chọn từ thông báo</span>
         </div>
       )}

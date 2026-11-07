@@ -4,7 +4,7 @@ import React, { useState, useMemo, useRef, useEffect, useCallback } from "react"
 import Link from "next/link";
 import Image from "next/image";
 import {
-  Sparkles,
+  Compass,
   Clapperboard,
   Globe2,
   Users,
@@ -349,7 +349,7 @@ export function RecommendationTabs({
                     : "bg-zinc-900/90 text-zinc-300  hover: hover:text-white hover:bg-zinc-800"
                 }`}
               >
-                <Sparkles className="w-3 h-3 text-amber-300 animate-pulse" />
+                <Compass className="w-3 h-3 text-zinc-300 shrink-0" />
                 <span>{variant === "sidebar" ? "Tương Tự" : "Phim Tương Tự"} ({allMovies.length})</span>
               </button>
 

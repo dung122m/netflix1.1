@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
 import {
-  Sparkles,
+  Film,
   Bot,
   Tv,
   Layers,
@@ -450,7 +450,7 @@ export default function AboutPage() {
               {/* Channel 2: Góp ý tính năng & Yêu cầu phim */}
               <div className="p-6 rounded-2xl bg-black/50 border border-white/[0.08] hover:border-purple-500/40 transition space-y-4">
                 <div className="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-400 flex items-center justify-center">
-                  <Sparkles size={20} />
+                  <Film size={20} />
                 </div>
                 <div className="space-y-1">
                   <h3 className="text-sm font-bold text-white">Yêu Cầu Phim & Tính Năng</h3>

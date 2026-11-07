@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import {
   X,
-  Sparkles,
+  User,
   Clock,
   Award,
   Film,
@@ -225,7 +225,7 @@ export function PublicUserProfileModal({ initialDetail }: PublicUserProfileModal
                   </span>
                 ) : (
                   <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-white/5 text-zinc-300 border border-white/10 flex-shrink-0">
-                    <Sparkles className="w-3 h-3 text-amber-400" />
+                    <User className="w-3 h-3 text-zinc-400" />
                     Thành viên
                   </span>
                 )}
@@ -324,7 +324,7 @@ export function PublicUserProfileModal({ initialDetail }: PublicUserProfileModal
                 : "text-zinc-400 hover:text-white hover:bg-white/5"
             }`}
           >
-            <Sparkles className="w-3.5 h-3.5 flex-shrink-0" />
+            <User className="w-3.5 h-3.5 flex-shrink-0" />
             <span>Tổng Quan</span>
           </button>
           <button
