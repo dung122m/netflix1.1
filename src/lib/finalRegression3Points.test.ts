@@ -9,7 +9,7 @@ import {
   clearLocalWatchHistoryOnly,
   WatchHistoryItem,
 } from "./watchHistory";
-import { isEpisodeWatched, getWatchedEpisodes } from "./episodeTracker";
+import { isEpisodeWatched, getWatchedEpisodes, extractEpisodeNumber, markEpisodeAsWatched } from "./episodeTracker";
 
 // Thiết lập mock localStorage & window cho môi trường node:test
 const mockStorage: Record<string, string> = {};
@@ -224,6 +224,58 @@ describe("FINAL REGRESSION CHECK: Series Watch History & Resume Episode", () => 
       saveEpisodeProgress(movieSlug, "tap-04", 50, -10);
       assert.equal(getMovieEpisodesProgress(movieSlug)["tap-04"].isCompleted, false);
       assert.equal(isEpisodeWatched(movieSlug, "tap-04"), false);
+    });
+  });
+
+  // =========================================================================
+  // ĐIỂM 4: CHUẨN HOÁ SỐ TẬP & DẤU TÍCH ĐÃ XEM LIÊN SERVER (CROSS-SERVER)
+  // =========================================================================
+  describe("4. Episode Normalization & Cross-Server Watched Checkmarks", () => {
+    it("4.1 extractEpisodeNumber bóc tách chính xác số tập từ nhiều định dạng", () => {
+      assert.equal(extractEpisodeNumber("tap-01"), 1);
+      assert.equal(extractEpisodeNumber("tap-1"), 1);
+      assert.equal(extractEpisodeNumber("tap-051"), 51);
+      assert.equal(extractEpisodeNumber("tap-51"), 51);
+      assert.equal(extractEpisodeNumber("Tập 51"), 51);
+      assert.equal(extractEpisodeNumber("51"), 51);
+      assert.equal(extractEpisodeNumber("ep-62"), 62);
+      assert.equal(extractEpisodeNumber("tap-51-52"), 51);
+      assert.equal(extractEpisodeNumber("Full"), null);
+      assert.equal(extractEpisodeNumber("Trailer"), null);
+      assert.equal(extractEpisodeNumber("Bản Full"), null);
+    });
+
+    it("4.2 isEpisodeWatched hỗ trợ đối chiếu khác biệt slug giữa các server (vd: tap-01 vs tap-1)", () => {
+      const crossMovie = "cross-server-movie";
+      // Đánh dấu tập đã xem với slug của Server A (tap-01)
+      markEpisodeAsWatched(crossMovie, "tap-01");
+
+      // Server B dùng slug 'tap-1' -> Vẫn phải nhận diện là đã xem
+      assert.equal(isEpisodeWatched(crossMovie, "tap-1"), true, "tap-1 phải khớp với tap-01 đã lưu");
+      // Server C dùng tên 'Tập 1' -> Vẫn phải nhận diện là đã xem
+      assert.equal(isEpisodeWatched(crossMovie, "other-slug", "Tập 1"), true, "Tập 1 phải khớp với tap-01");
+      // Tập khác (tap-2) chưa xem -> false
+      assert.equal(isEpisodeWatched(crossMovie, "tap-2"), false);
+    });
+
+    it("4.3 seriesResume nhận diện tập hoàn tất ngay cả khi slug giữa các server lệch định dạng", () => {
+      const crossMovie2 = "cross-resume-movie";
+      const episodesServerB: EpisodeItem[] = [
+        { name: "Tập 1", slug: "tap-1" },
+        { name: "Tập 2", slug: "tap-2" },
+      ];
+
+      // Đã xem tập 1 với slug tap-01 (server A)
+      const res = resolveNextResumeEpisode(crossMovie2, episodesServerB, {
+        watchedEpisodes: ["tap-01"],
+        episodesProgress: {},
+        watchHistory: [],
+      });
+
+      // Phải gợi ý tập kế tiếp là tập 2 (tap-2)
+      assert.ok(res);
+      assert.equal(res.caseType, "next_episode");
+      assert.equal(res.episode.slug, "tap-2");
     });
   });
 });

@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { Check, Search, X, Play, ChevronRight, ChevronDown, ChevronUp, Target } from "lucide-react";
-import { getWatchedEpisodes } from "@/lib/episodeTracker";
+import { getWatchedEpisodes, extractEpisodeNumber } from "@/lib/episodeTracker";
 import { getShortEpisodeLabel, formatEpisodeName, findEpisodeMatch } from "@/lib/formatEpisode";
 import { useWatchController, EpisodeItem } from "./WatchController";
 import { ScrollablePillsRow } from "@/components/ui/ScrollablePillsRow";
@@ -158,6 +158,46 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(function Episo
       window.removeEventListener("watch-progress-updated", handleProgressUpdate);
     };
   }, [movieSlug]);
+
+  // Tập hợp các số tập đã xem từ cả watchedList và episodesProgress (hỗ trợ chuyển server và slug không đồng nhất)
+  const watchedEpisodeNums = useMemo(() => {
+    const set = new Set<number>();
+    for (const item of watchedList) {
+      const num = extractEpisodeNumber(item);
+      if (num !== null) set.add(num);
+    }
+    for (const [epSlug, epData] of Object.entries(episodesProgress)) {
+      if (
+        epData?.isCompleted ||
+        (epData?.durationSeconds &&
+          epData.durationSeconds > 0 &&
+          epData.progressSeconds / epData.durationSeconds >= 0.9)
+      ) {
+        const num = extractEpisodeNumber(epSlug) ?? extractEpisodeNumber(epData?.episodeName);
+        if (num !== null) set.add(num);
+      }
+    }
+    return set;
+  }, [watchedList, episodesProgress]);
+
+  // Số tập lớn nhất đã xem hoặc đang xem trong tiến trình của phim này
+  const maxWatchedEpisodeNum = useMemo(() => {
+    let max: number | null = null;
+    for (const num of watchedEpisodeNums) {
+      if (max === null || num > max) max = num;
+    }
+    if (currentActiveEpisode) {
+      const activeNum =
+        extractEpisodeNumber(currentActiveEpisode.slug) ??
+        extractEpisodeNumber(currentActiveEpisode.name);
+      if (activeNum !== null) {
+        if (max === null || activeNum > max) {
+          max = activeNum;
+        }
+      }
+    }
+    return max;
+  }, [watchedEpisodeNums, currentActiveEpisode]);
 
   // Tạo các dải tập chuẩn xác theo số tập thực tế bắt đầu và kết thúc trong dải
   const totalChunks = Math.ceil(episodes.length / CHUNK_SIZE);
@@ -434,8 +474,14 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(function Episo
             singleEpProg.durationSeconds > 0 &&
             singleEpProg.progressSeconds / singleEpProg.durationSeconds >= 0.9)
         );
+        const singleNum = extractEpisodeNumber(singleTap.slug) ?? extractEpisodeNumber(singleTap.name);
+        const isDirectlyWatched = Boolean(
+          singleTap.slug && (watchedList.includes(singleTap.slug) || (singleNum !== null && watchedEpisodeNums.has(singleNum)))
+        );
         const isWatched = Boolean(
-          singleTap.slug && (watchedList.includes(singleTap.slug) || isSingleCompletedFromProg)
+          isDirectlyWatched ||
+          isSingleCompletedFromProg ||
+          (maxWatchedEpisodeNum !== null && singleNum !== null && singleNum < maxWatchedEpisodeNum)
         );
         const epIndex = episodes.findIndex((e) => e.slug === singleTap.slug);
         const chunkIdx = epIndex >= 0 ? Math.floor(epIndex / CHUNK_SIZE) : -1;
@@ -547,8 +593,16 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(function Episo
                 epProg?.isCompleted ||
                 (durationSeconds > 0 && progressSeconds / durationSeconds >= 0.9)
               );
+              const trueEpIndex = episodes.findIndex((e) => e.slug === tap.slug);
+              const fallbackNum = trueEpIndex >= 0 ? trueEpIndex + 1 : null;
+              const tapNum = extractEpisodeNumber(tap.slug) ?? extractEpisodeNumber(tap.name) ?? fallbackNum;
+              const isDirectlyWatched = Boolean(
+                tap.slug && (watchedList.includes(tap.slug) || (tapNum !== null && watchedEpisodeNums.has(tapNum)))
+              );
               const isWatched = Boolean(
-                tap.slug && (watchedList.includes(tap.slug) || isCompletedFromProg)
+                isDirectlyWatched ||
+                isCompletedFromProg ||
+                (maxWatchedEpisodeNum !== null && tapNum !== null && tapNum < maxWatchedEpisodeNum)
               );
               
               // Nhãn nút: nếu đang tìm kiếm thì hiển thị "Tập X" rõ ràng, nếu xem dải thường thì rút gọn số

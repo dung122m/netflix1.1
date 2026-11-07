@@ -202,6 +202,9 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
               nextEpCountdownTimerRef.current = null;
             }
             setShowNextEpCountdown(false);
+            if (movieSlug && activeEpisodeSlug) {
+              markEpisodeAsWatched(movieSlug, activeEpisodeSlug);
+            }
             if (switchEpisode && effectiveNextEpisode?.slug) {
               switchEpisode(effectiveNextEpisode.slug);
             }
@@ -3146,6 +3149,9 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
                     <button
                       type="button"
                       onClick={() => {
+                        if (movieSlug && activeEpisodeSlug) {
+                          markEpisodeAsWatched(movieSlug, activeEpisodeSlug);
+                        }
                         if (switchEpisode && effectiveNextEpisode.slug) {
                           switchEpisode(effectiveNextEpisode.slug);
                         }

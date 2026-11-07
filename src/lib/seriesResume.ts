@@ -4,7 +4,7 @@ import {
   getMovieEpisodesProgress,
   EpisodeProgressData,
 } from "./watchHistory";
-import { getWatchedEpisodes } from "./episodeTracker";
+import { getWatchedEpisodes, extractEpisodeNumber } from "./episodeTracker";
 import { findEpisodeMatch, getShortEpisodeLabel } from "./formatEpisode";
 
 export type ResumeCaseType =
@@ -73,8 +73,11 @@ export function resolveNextResumeEpisode(
     let pSec = prog?.progressSeconds || 0;
     let dSec = prog?.durationSeconds;
     let uAt = prog?.updatedAt || 0;
+    const epNum = extractEpisodeNumber(slug) ?? extractEpisodeNumber(ep.name);
     let isComp = Boolean(
-      prog?.isCompleted || (slug && watchedSlugs.includes(slug))
+      prog?.isCompleted ||
+      (slug && watchedSlugs.includes(slug)) ||
+      (epNum !== null && watchedSlugs.some((w) => extractEpisodeNumber(w) === epNum))
     );
 
     // Fallback/Đồng bộ đối chiếu với mainHistoryItem (dữ liệu cloud hoặc dữ liệu đơn tập cũ)
