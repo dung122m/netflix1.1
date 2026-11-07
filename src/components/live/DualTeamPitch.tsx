@@ -517,15 +517,11 @@ export const DualTeamPitch: React.FC<DualTeamPitchProps> = ({
                 </span>
               )}
             </div>
-            <div className="flex items-center gap-2 text-[10px] text-zinc-400 font-sans mt-0.5">
-              <span>{homeStarters.length || 11} chính thức</span>
-              {homeTeam.coach && (
-                <>
-                  <span>•</span>
-                  <span className="truncate max-w-[130px] sm:max-w-[200px]">HLV: {homeTeam.coach}</span>
-                </>
-              )}
-            </div>
+            {homeTeam.coach && (
+              <div className="flex items-center gap-1 text-[10px] text-zinc-400 font-sans mt-0.5">
+                <span className="truncate max-w-[130px] sm:max-w-[200px]">HLV: {homeTeam.coach}</span>
+              </div>
+            )}
           </div>
         </div>
 
@@ -547,15 +543,11 @@ export const DualTeamPitch: React.FC<DualTeamPitchProps> = ({
                 {awayTeam.displayName}
               </span>
             </div>
-            <div className="flex items-center justify-end gap-2 text-[10px] text-zinc-400 font-sans mt-0.5">
-              {awayTeam.coach && (
-                <>
-                  <span className="truncate max-w-[130px] sm:max-w-[200px]">HLV: {awayTeam.coach}</span>
-                  <span>•</span>
-                </>
-              )}
-              <span>{awayStarters.length || 11} chính thức</span>
-            </div>
+            {awayTeam.coach && (
+              <div className="flex items-center justify-end gap-1 text-[10px] text-zinc-400 font-sans mt-0.5">
+                <span className="truncate max-w-[130px] sm:max-w-[200px]">HLV: {awayTeam.coach}</span>
+              </div>
+            )}
           </div>
           <span className="w-2.5 h-2.5 rounded-full bg-[#0284c7] shrink-0" />
         </div>
@@ -789,12 +781,12 @@ export const DualTeamPitch: React.FC<DualTeamPitchProps> = ({
                     ) : null}
                   </div>
 
-                  {/* Tên cầu thủ dưới marker: font-sans nét gọn, bọc capsule mờ không border */}
+                  {/* Tên cầu thủ dưới marker: chữ trắng sắc nét có drop shadow mềm, KHÔNG VIỀN ĐEN KHỐI HỘP */}
                   <span
-                    className={`mt-1 font-sans text-[9.5px] sm:text-[10px] md:text-[10.5px] font-semibold text-center leading-tight truncate max-w-[66px] sm:max-w-[80px] px-1.5 py-0.5 rounded transition shadow-sm ${
+                    className={`mt-1 font-sans text-[9.5px] sm:text-[10px] md:text-[10.5px] font-semibold text-center leading-tight truncate max-w-[66px] sm:max-w-[80px] transition ${
                       isSelected
-                        ? "bg-amber-400 text-zinc-950 font-bold"
-                        : "bg-black/60 backdrop-blur-xs text-zinc-100 group-hover:text-white"
+                        ? "bg-amber-400 text-zinc-950 font-bold px-1.5 py-0.5 rounded shadow-sm"
+                        : "text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)] group-hover:text-amber-200"
                     }`}
                   >
                     {shortName}

@@ -135,6 +135,42 @@ describe("Tactical Lineup & Pitch Coordinate System", () => {
     assert.strictEqual(fwds.length, 3, "Hàng công 3 người phải cùng tọa độ Y = 18%");
   });
 
+  it("3b. calculateTacticalCoordinates với sơ đồ 3-4-2-1 (Leeds United): 4 tuyến và đúng 1 tiền đạo cắm ở trên cùng", () => {
+    const starters3421: MatchRosterPlayer[] = [
+      createMockPlayer("1", "Trafford", "Goalkeeper", "1", true, 1),
+      createMockPlayer("2", "Muharemovic", "Defender", "5", true, 5),
+      createMockPlayer("3", "Elvedi", "Defender", "30", true, 6),
+      createMockPlayer("4", "Justin", "Defender", "24", true, 2),
+      createMockPlayer("5", "Gudmundsson", "Midfielder", "3", true, 3),
+      createMockPlayer("6", "Tanaka", "Midfielder", "22", true, 4),
+      createMockPlayer("7", "Ampadu", "Midfielder", "4", true, 8),
+      createMockPlayer("8", "Bogle", "Midfielder", "2", true, 7),
+      createMockPlayer("9", "Nmecha", "Attacking Midfielder", "14", true, 11),
+      createMockPlayer("10", "Longstaff", "Attacking Midfielder", "8", true, 10),
+      createMockPlayer("11", "Calvert-Lewin", "Striker", "9", true, 9),
+    ];
+
+    const pos = calculateTacticalCoordinates(starters3421, "3-4-2-1");
+    assert.strictEqual(pos.length, 11);
+
+    // Tuyến 1: 3 hậu vệ
+    const defs = pos.filter((p) => p.y === 72);
+    assert.strictEqual(defs.length, 3, "Hàng thủ 3 người");
+
+    // Tuyến 2: 4 tiền vệ
+    const mids = pos.filter((p) => p.y === 54);
+    assert.strictEqual(mids.length, 4, "Tuyến giữa 4 người");
+
+    // Tuyến 3: 2 hộ công
+    const ams = pos.filter((p) => p.y === 34);
+    assert.strictEqual(ams.length, 2, "Tuyến hộ công 2 người (Nmecha, Longstaff)");
+
+    // Tuyến 4: 1 tiền đạo cắm duy nhất ở đỉnh cao nhất
+    const striker = pos.filter((p) => p.y === 16);
+    assert.strictEqual(striker.length, 1, "Chỉ có đúng 1 tiền đạo cắm ở trên đỉnh");
+    assert.strictEqual(striker[0].player.name, "Calvert-Lewin");
+  });
+
   it("4. calculateTacticalCoordinates khi không có formation hoặc dữ liệu thiếu/bất thường", () => {
     // Trường hợp mảng rỗng
     const emptyPos = calculateTacticalCoordinates([]);

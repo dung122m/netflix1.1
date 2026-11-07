@@ -4,15 +4,17 @@ import React, { useState, useEffect, useRef, useMemo } from "react";
 import {
   Activity,
   BarChart2,
-    Users,
-    AlertCircle,
+  Users,
+  AlertCircle,
   RefreshCw,
   ChevronDown,
   ChevronUp,
   MapPin,
   UserCheck,
-    Radio,
+  Radio,
   Info,
+  MessageSquare,
+  ArrowUpDown,
 } from "lucide-react";
 import { NormalizedMatchSummary, MatchStatItem, LiveMatchScore } from "@/services/live/football-score/types";
 import {
@@ -65,7 +67,7 @@ interface MatchCenterProps {
   initialScore?: MatchCenterScoreProp | null;
 }
 
-type TabType = "lineups" | "stats" | "info";
+type TabType = "lineups" | "commentary" | "stats" | "info";
 
 export const MatchCenter: React.FC<MatchCenterProps> = ({
   leagueSlug,
@@ -98,6 +100,28 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
 
   const [homeImgFailed, setHomeImgFailed] = useState(false);
   const [awayImgFailed, setAwayImgFailed] = useState(false);
+
+  const [commentaryOrder, setCommentaryOrder] = useState<"newest" | "oldest">("newest");
+  const commentaryScrollRef = useRef<HTMLDivElement>(null);
+
+  const displayedCommentary = useMemo(() => {
+    if (!summary?.commentary || summary.commentary.length === 0) return [];
+    const list = [...summary.commentary];
+    if (commentaryOrder === "newest") {
+      return list.reverse();
+    }
+    return list;
+  }, [summary?.commentary, commentaryOrder]);
+
+  useEffect(() => {
+    if (activeTab === "commentary" && commentaryScrollRef.current) {
+      if (commentaryOrder === "newest") {
+        commentaryScrollRef.current.scrollTop = 0;
+      } else {
+        commentaryScrollRef.current.scrollTop = commentaryScrollRef.current.scrollHeight;
+      }
+    }
+  }, [activeTab, commentaryOrder]);
 
   useEffect(() => {
     setHomeImgFailed(false);
@@ -645,6 +669,7 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
                   >
                     {[
                       { id: "lineups", label: "Đội hình", icon: Users },
+                      { id: "commentary", label: "Bình luận", icon: MessageSquare },
                       { id: "stats", label: "Thống kê", icon: BarChart2 },
                       { id: "info", label: "Thông tin", icon: Info },
                     ].map((tab) => {
@@ -682,8 +707,14 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
                   summary.awayRoster?.starters &&
                   summary.awayRoster.starters.length > 0 ? (
                     <DualTeamPitch
-                      homeTeam={summary.homeTeam}
-                      awayTeam={summary.awayTeam}
+                      homeTeam={{
+                        ...summary.homeTeam,
+                        formation: summary.homeTeam.formation || summary.homeRoster?.formation,
+                      }}
+                      awayTeam={{
+                        ...summary.awayTeam,
+                        formation: summary.awayTeam.formation || summary.awayRoster?.formation,
+                      }}
                       homeStarters={summary.homeRoster.starters}
                       homeBench={summary.homeRoster.bench}
                       awayStarters={summary.awayRoster.starters}
@@ -694,12 +725,60 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
                     />
                   ) : (
                     <TacticalLineup
-                      homeTeam={summary.homeTeam}
-                      awayTeam={summary.awayTeam}
+                      homeTeam={{
+                        ...summary.homeTeam,
+                        formation: summary.homeTeam.formation || summary.homeRoster?.formation,
+                      }}
+                      awayTeam={{
+                        ...summary.awayTeam,
+                        formation: summary.awayTeam.formation || summary.awayRoster?.formation,
+                      }}
                       homeRoster={summary.homeRoster}
                       awayRoster={summary.awayRoster}
                       matchStatus={summary.status}
                     />
+                  )}
+                </div>
+              )}
+
+              {/* TAB BÌNH LUẬN TRỰC TIẾP */}
+              {activeTab === "commentary" && (
+                <div className="rounded-2xl bg-zinc-900/50 border border-white/10 p-4 sm:p-6 space-y-3">
+                  <div className="flex items-center justify-between pb-2 border-b border-white/10">
+                    <h5 className="text-xs font-extrabold uppercase tracking-wider text-gray-400 flex items-center gap-1.5">
+                      <MessageSquare className="w-3.5 h-3.5 text-netflix-red" />
+                      <span>Diễn biến trực tiếp từ sân cỏ</span>
+                    </h5>
+
+                    <button
+                      type="button"
+                      onClick={() => setCommentaryOrder((prev) => (prev === "newest" ? "oldest" : "newest"))}
+                      className="inline-flex items-center gap-1 text-[11px] font-bold text-gray-300 hover:text-white px-2.5 py-1 rounded-lg bg-white/5 border border-white/10 cursor-pointer"
+                    >
+                      <ArrowUpDown className="w-3 h-3" />
+                      <span>{commentaryOrder === "newest" ? "Mới nhất trước" : "Cũ nhất trước"}</span>
+                    </button>
+                  </div>
+
+                  {displayedCommentary.length > 0 ? (
+                    <div
+                      ref={commentaryScrollRef}
+                      className="space-y-2 max-h-[450px] overflow-y-auto pr-2 scrollbar-thin"
+                    >
+                      {displayedCommentary.map((c, i) => (
+                        <div
+                          key={i}
+                          className="flex items-start gap-3 p-3 rounded-xl bg-white/[0.02] border border-white/5 hover:bg-white/[0.04] transition text-xs"
+                        >
+                          <span className="font-mono text-amber-400 font-extrabold shrink-0 min-w-[32px] pt-0.5">
+                            {c.time ? `${c.time}'` : "•"}
+                          </span>
+                          <p className="text-gray-200 leading-relaxed flex-1">{c.text}</p>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-gray-500 py-8 text-center">Chưa có dòng bình luận trực tiếp nào</p>
                   )}
                 </div>
               )}

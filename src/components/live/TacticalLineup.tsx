@@ -25,12 +25,14 @@ export interface TacticalLineupProps {
     name: string;
     displayName: string;
     logo?: string;
+    formation?: string;
   };
   awayTeam: {
     id: string;
     name: string;
     displayName: string;
     logo?: string;
+    formation?: string;
   };
   homeRoster?: {
     formation?: string;
@@ -1108,6 +1110,7 @@ interface TeamPitchColumnProps {
     name: string;
     displayName: string;
     logo?: string;
+    formation?: string;
   };
   roster?: {
     formation?: string;
@@ -1141,7 +1144,7 @@ function TeamPitchColumn({
   const isMatchScheduled = matchStatus === "scheduled";
   const starters = useMemo(() => roster?.starters || [], [roster?.starters]);
   const bench = useMemo(() => roster?.bench || [], [roster?.bench]);
-  const formation = roster?.formation;
+  const formation = roster?.formation || team.formation;
 
   const positionedStarters = useMemo(() => {
     return calculateTacticalCoordinates(starters, formation);
@@ -1545,6 +1548,7 @@ interface TeamListColumnProps {
     name: string;
     displayName: string;
     logo?: string;
+    formation?: string;
   };
   roster?: {
     formation?: string;
@@ -1574,7 +1578,7 @@ function TeamListColumn({
   const isMatchScheduled = matchStatus === "scheduled";
   const starters = roster?.starters || [];
   const bench = roster?.bench || [];
-  const formation = roster?.formation;
+  const formation = roster?.formation || team.formation;
 
   return (
     <div className="rounded-2xl bg-zinc-900/50 p-4 space-y-3">

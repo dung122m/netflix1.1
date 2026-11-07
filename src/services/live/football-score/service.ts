@@ -967,6 +967,8 @@ export function parseRawSummary(
     const awayCoach = awayRosterRaw?.coaches?.[0]?.athlete?.displayName || awayRosterRaw?.coaches?.[0]?.displayName;
     if (homeCoach) homeTeam.coach = String(homeCoach);
     if (awayCoach) awayTeam.coach = String(awayCoach);
+    if (homeRosterRaw?.formation) homeTeam.formation = String(homeRosterRaw.formation);
+    if (awayRosterRaw?.formation) awayTeam.formation = String(awayRosterRaw.formation);
 
     const parseRosterPlayers = (rosterList: any[] = []) => {
       const starters: MatchRosterPlayer[] = [];
