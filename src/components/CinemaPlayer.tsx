@@ -2650,16 +2650,8 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
 
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
     if ((e.nativeEvent as PointerEvent)?.pointerType === "touch") return;
-    if (
-      typeof window !== "undefined" &&
-      ((window.matchMedia && window.matchMedia("(pointer: coarse)").matches) ||
-        "ontouchstart" in window ||
-        isMobile)
-    ) {
-      return;
-    }
     resetControlsTimeout();
-  }, [resetControlsTimeout, isMobile]);
+  }, [resetControlsTimeout]);
 
   const handleMouseLeave = useCallback(() => {
     if (isMobile) return;
@@ -2756,7 +2748,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
           {isNativeVideo ? (
             <div
               className={`w-full h-full relative ${
-                showControls || !isPlaying ? "cursor-pointer" : "cursor-none"
+                isFullscreen && isPlaying && !showControls ? "cursor-none" : "cursor-pointer"
               }`}
               onDoubleClick={(e) => {
                 const target = e.target as HTMLElement | null;

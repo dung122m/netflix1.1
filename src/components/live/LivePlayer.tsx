@@ -3062,7 +3062,7 @@ function LivePlayerInner({
           isFullscreen
             ? "fixed inset-0 z-50 w-full h-full max-w-none max-h-none rounded-none aspect-auto -none shadow-none p-0 m-0 overflow-hidden flex flex-col justify-center"
             : "aspect-video lg:max-h-[calc(100vh-210px)] lg:max-w-[calc((100vh-210px)*16/9)] rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl"
-        } ${showControls ? "cursor-default" : "cursor-none"}`}
+        } ${isFullscreen && isPlaying && !showControls ? "cursor-none" : "cursor-default"}`}
       >
         {isIframe ? (
           <iframe
