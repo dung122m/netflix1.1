@@ -208,6 +208,16 @@ export function filterDualServers(rawServers: any[]): any[] {
   for (const srv of rawServers) {
     if (!srv || !Array.isArray(srv.server_data) || srv.server_data.length === 0) continue;
     const sName = String(srv.server_name || "").trim();
+    if (sName.toLowerCase().includes("vsmov")) continue;
+
+    // Loại bỏ hoàn toàn các tập phim có nguồn từ vsmov
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    srv.server_data = srv.server_data.filter((e: any) => {
+      const u = `${e?.link_embed || ""} ${e?.link_m3u8 || ""}`.toLowerCase();
+      return !u.includes("vsmov") && !u.includes("streamvsmov");
+    });
+    if (srv.server_data.length === 0) continue;
+
     const nameLower = sName.toLowerCase();
 
     const isLongTieng =
@@ -742,8 +752,8 @@ const fetchMovieDetailBase = async (
   if (existing) return existing;
 
   const promise = (async () => {
-    // 1. Đọc từ Redis v3 Compact Metadata (~2KB)
-    const kvKeyV3 = `movie:detail:v4:${slug}:${source || "any"}`;
+    // 1. Đọc từ Redis v5 Compact Metadata (~2KB)
+    const kvKeyV3 = `movie:detail:v5:${slug}:${source || "any"}`;
 
     let data: MovieDetailCachePayload | null = null;
     const rawData = await cacheService.get<MovieDetailCachePayload>(kvKeyV3);
@@ -819,7 +829,7 @@ export async function getEpisodeStream(
   }
 
   // 2. Kiểm tra L2 Redis Cache cho tập và server cụ thể (~200 bytes) với Single-Flight Mutex
-  const streamKvKey = `movie:stream:v2:${slug}:${serverKey}:${normEp}`;
+  const streamKvKey = `movie:stream:v3:${slug}:${serverKey}:${normEp}`;
   const existingStreamTask = inFlightStreams.get(streamKvKey);
   if (existingStreamTask) {
     return await existingStreamTask;
@@ -845,10 +855,15 @@ export async function getEpisodeStream(
           const epList: RawEpisodeItem[] = srv?.server_data || [];
           const match = findEpisodeMatch(epList, episodeSlug) || findEpisodeMatch(epList, normEp);
           if (match && (match.link_m3u8 || match.link_embed)) {
+            const embedStr = match.link_embed || "";
+            const m3u8Str = match.link_m3u8 || "";
+            if (embedStr.includes("vsmov") || m3u8Str.includes("vsmov") || embedStr.includes("streamvsmov")) {
+              continue;
+            }
             streams.push({
               server_name: srv.server_name || "Server",
-              link_embed: match.link_embed || "",
-              link_m3u8: match.link_m3u8 || "",
+              link_embed: embedStr,
+              link_m3u8: m3u8Str,
             });
           }
         }
@@ -2115,7 +2130,7 @@ async function executeGetMovies(params: MovieFilterParams, cacheKey: string) {
 
 export function buildMovieCacheKey(params: MovieFilterParams): string {
   return JSON.stringify({
-    v: 16,
+    v: 17,
     category: params.category || "",
     country: params.country || "",
     year: params.year || "",

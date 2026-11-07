@@ -29,7 +29,7 @@ The application aggregates multiple movie catalogs into a unified interface, fea
 ## Key Features
 
 ### 🎬 Movie Discovery & Filtering
-- **Multi-Source Aggregation**: Combines movie sources (KKPhim & NguonC/VSMOV) with server-side title deduplication and quality prioritization.
+- **Multi-Source Aggregation**: Combines movie sources (KKPhim & NguonC) with server-side title deduplication and quality prioritization.
 - **Multi-Dimensional Filter**: Instant filtering across Movie Types (Movies, TV Series, Anime, TV Shows), Genres, Countries, Release Years, and Sort orders.
 - **Search & Auto-Suggest**: Debounced keyword search with real-time query suggestions and actor profile lookups.
 

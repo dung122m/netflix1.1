@@ -85,7 +85,7 @@ describe('Conan Episode & Nanaflix Provider Regression Test Suite', () => {
     assert.ok(data, 'Movie detail must exist');
     assert.ok(data.movie, 'Movie payload must exist');
 
-    // Nguồn chuẩn từ PhimAPI hoặc NguonC (không phải vsmov)
+    // Nguồn chuẩn từ PhimAPI hoặc NguonC
     assert.ok(!data.movie.source || data.movie.source === 'phimapi' || data.movie.source === 'nguonc');
 
     const servers = data.episodes || data.movie.episodes || [];
