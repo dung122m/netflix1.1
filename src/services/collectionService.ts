@@ -946,8 +946,33 @@ export async function getPublicCollection(
     }
   }
 
-  // 2. Thử đọc từ Supabase public collections
+  // 2. Thử đọc từ Supabase public collections (ưu tiên truy vấn trực tiếp theo ID qua Redis/Server Cache)
   if (isSupabaseConfigured()) {
+    try {
+      const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
+      const res = await fetch(`${baseUrl}/api/user/collections?id=${encodeURIComponent(collectionId)}`, {
+        cache: "no-store",
+      });
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success && json.item) {
+          const item = json.item;
+          return {
+            id: String(item.id),
+            userId: String(item.user_id || item.userId || ""),
+            creatorName: String(item.user_name || item.creatorName || "Thành viên Nanaflix"),
+            creatorPhoto: item.user_avatar ? String(item.user_avatar) : (item.creatorPhoto ? String(item.creatorPhoto) : undefined),
+            name: String(item.name || ""),
+            description: String(item.description || ""),
+            isPublic: Boolean(item.is_public ?? item.isPublic ?? true),
+            movies: Array.isArray(item.movies) ? item.movies : [],
+            createdAt: Number(item.created_at || item.createdAt) || Date.now(),
+            updatedAt: Number(item.updated_at || item.updatedAt) || Date.now(),
+          };
+        }
+      }
+    } catch {}
+
     try {
       const supaCollections = await getPublicCollectionsSupabase();
       const found = supaCollections.find((c) => c.id === collectionId);

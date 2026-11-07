@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { verifyServerAuth } from "@/lib/serverAuth";
 import { sanitizeSafeText } from "@/lib/security";
+import { cacheService } from "@/lib/cache";
 import {
   enforceRateLimit,
   buildRateLimitResponse,
@@ -77,6 +78,12 @@ export async function GET(req: NextRequest) {
 
   try {
     if (collectionId) {
+      const cacheKey = `community:collection:${collectionId}`;
+      const cached = await cacheService.get<ReturnType<typeof formatCollectionResponse>>(cacheKey);
+      if (cached) {
+        return NextResponse.json({ success: true, item: cached });
+      }
+
       const { data, error } = await supabase
         .from("collections")
         .select("*")
@@ -94,10 +101,21 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({ error: "Forbidden: Bộ sưu tập riêng tư" }, { status: 403 });
       }
 
-      return NextResponse.json({ success: true, item: formatCollectionResponse(data) });
+      const formatted = formatCollectionResponse(data);
+      if (isPublic) {
+        cacheService.set(cacheKey, formatted, 900).catch(() => {});
+      }
+
+      return NextResponse.json({ success: true, item: formatted });
     }
 
     if (searchParams.get("public") === "true") {
+      const listCacheKey = "community:collections:public:list";
+      const cachedList = await cacheService.get<ReturnType<typeof formatCollectionResponse>[]>(listCacheKey);
+      if (cachedList && Array.isArray(cachedList)) {
+        return NextResponse.json({ success: true, items: cachedList });
+      }
+
       const { data, error } = await supabase
         .from("collections")
         .select("*")
@@ -110,6 +128,7 @@ export async function GET(req: NextRequest) {
       }
 
       const items = (data || []).map(formatCollectionResponse);
+      cacheService.set(listCacheKey, items, 900).catch(() => {});
       return NextResponse.json({ success: true, items });
     }
 
@@ -255,6 +274,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }
 
+    // Xóa cache Redis DB2 cho tuyển tập công khai để dữ liệu mới nhất được cập nhật ngay lập tức
+    Promise.allSettled([
+      cacheService.delete(`community:collection:${collectionId}`),
+      cacheService.delete("community:collections:public:list"),
+    ]).catch(() => {});
+
     return NextResponse.json({
       success: true,
       id: collectionId,
@@ -318,6 +343,12 @@ export async function DELETE(req: NextRequest) {
     if (error) {
       return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }
+
+    // Xóa cache Redis DB2
+    Promise.allSettled([
+      cacheService.delete(`community:collection:${collectionId}`),
+      cacheService.delete("community:collections:public:list"),
+    ]).catch(() => {});
 
     return NextResponse.json({ success: true, id: collectionId });
   } catch (err) {
