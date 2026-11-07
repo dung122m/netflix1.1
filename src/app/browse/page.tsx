@@ -37,14 +37,14 @@ import { searchAniListPoster } from "@/services/aniListService";
 // METADATA
 // ==========================================
 const TYPE_TITLES: Record<string, string> = {
-  "phim-chieu-rap": "🎬 Phim Chiếu Rạp Mới Nhất",
-  "phim-sap-chieu": "⏳ Phim Sắp Chiếu & Trailer",
-  "phim-thuyet-minh": "🎙️ Phim Thuyết Minh Tiếng Việt",
-  "phim-long-tieng": "🗣️ Phim Lồng Tiếng Đặc Sắc",
-  "phim-bo": "📺 Phim Bộ Chọn Lọc",
-  "phim-le": "🍿 Phim Lẻ Đặc Sắc",
-  "hoat-hinh": "🎨 Phim Hoạt Hình & Anime",
-  "tv-shows": "🎪 TV Shows & Truyền Hình",
+  "phim-chieu-rap": "Phim Chiếu Rạp Mới Nhất",
+  "phim-sap-chieu": "Phim Sắp Chiếu & Trailer",
+  "phim-thuyet-minh": "Phim Thuyết Minh Tiếng Việt",
+  "phim-long-tieng": "Phim Lồng Tiếng Đặc Sắc",
+  "phim-bo": "Phim Bộ Chọn Lọc",
+  "phim-le": "Phim Lẻ Đặc Sắc",
+  "hoat-hinh": "Phim Hoạt Hình & Anime",
+  "tv-shows": "TV Shows & Truyền Hình",
 };
 
 export async function generateMetadata({
@@ -72,7 +72,7 @@ export async function generateMetadata({
     title = `Tìm kiếm "${params.keyword}"`;
     description = `Kết quả tìm kiếm phim với từ khóa "${params.keyword}" trên Nanaflix. Xem phim chất lượng cao miễn phí.`;
   } else if (params.type && TYPE_TITLES[params.type]) {
-    title = TYPE_TITLES[params.type].replace(/^[^\w\s\u00C0-\u1EF9]*\s*/u, "");
+    title = TYPE_TITLES[params.type];
     description = `Khám phá danh sách ${title} hay nhất, chất lượng Full HD Vietsub & Thuyết minh trên Nanaflix.`;
   } else if (params.category) {
     const resolvedCat = getCanonicalGenreSlug(null, params.category) || (isRawId(params.category) ? "" : params.category);
@@ -675,11 +675,11 @@ export default async function BrowsePage({
       title = `Kết quả tìm kiếm: "${keyword}"`;
     }
   } else if (rawSort === "rating") {
-    title = "⭐ Phim Có Điểm Đánh Giá Cao Nhất";
+    title = "Phim Có Điểm Đánh Giá Cao Nhất";
   } else if (rawSort === "views") {
-    title = "🔥 Phim Có Lượt Xem & Bình Chọn Nhiều Nhất";
+    title = "Phim Có Lượt Xem Nhiều Nhất";
   } else if (rawSort === "latest") {
-    title = "🕒 Phim Mới Cập Nhật";
+    title = "Phim Mới Cập Nhật";
   } else if (type && category) {
     const typeLabel = TYPE_TITLES[type] || type;
     const catLabel = formatGenreName(category) || GENRE_NAMES[category] || category;
@@ -691,13 +691,13 @@ export default async function BrowsePage({
   } else if (type && TYPE_TITLES[type]) {
     title = TYPE_TITLES[type];
   } else if (category) {
-    title = `🎬 Phim ${formatGenreName(category) || GENRE_NAMES[category] || category}`;
+    title = `Phim ${formatGenreName(category) || GENRE_NAMES[category] || category}`;
   } else if (country) {
-    title = `🌐 Phim ${formatCountryName(country) || COUNTRY_NAMES[country] || country}`;
+    title = `Phim ${formatCountryName(country) || COUNTRY_NAMES[country] || country}`;
   } else if (year) {
-    title = `📅 Phim Năm ${year}`;
+    title = `Phim Năm ${year}`;
   } else if (category || country || year || type) {
-    title = "Kết quả lọc";
+    title = "Kết Quả Lọc Phim";
   }
 
   return (
@@ -715,7 +715,7 @@ export default async function BrowsePage({
           {/* TIÊU ĐỀ & KẾT QUẢ DANH MỤC */}
           <div className="mb-7 flex flex-wrap items-center justify-between gap-3 mt-4">
           <div>
-            <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight">
+            <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-white">
               {title}
             </h1>
             <p className="mt-1 text-sm text-zinc-400 max-w-[65ch] leading-relaxed">

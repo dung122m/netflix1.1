@@ -594,7 +594,7 @@ export default async function MovieDetail({
       >
         <div className="max-w-[1700px] mx-auto px-2 sm:px-4 md:px-6 lg:px-8 pt-[56px] md:pt-[66px]">
           {/* BREADCRUMB */}
-          <div className="py-2 px-1 flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-zinc-500 overflow-hidden">
+          <div className="py-2 px-0 flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-zinc-500 overflow-hidden">
             <Link href="/" className="hover:text-zinc-300 transition">
               Trang chủ
             </Link>

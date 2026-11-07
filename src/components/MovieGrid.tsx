@@ -75,7 +75,7 @@ const MovieGridInner = ({ movies, columnsClassName }: MovieGridProps) => {
   }, [normalizedMovies, visibleCount]);
 
   return (
-    <div className="relative movie-grid-container p-1 sm:p-2 md:p-3 space-y-6 overflow-visible">
+    <div className="relative movie-grid-container py-1 sm:py-2 md:py-3 px-0 space-y-6 overflow-visible">
       {/* FLOATING LOADING BADGE KHI ĐANG LỌC PHIM */}
       {isDimmed && (
         <div className="absolute inset-0 z-30 flex items-center justify-center pointer-events-none">

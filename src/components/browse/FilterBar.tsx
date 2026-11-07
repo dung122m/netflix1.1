@@ -876,7 +876,7 @@ export const FilterBar: React.FC = () => {
 
       {/* 2. ACTIVE FILTERS CHIP BAR (Chỉ hiển thị khi có ít nhất 1 filter active) */}
       {hasAnyFilter && (
-        <div className="mt-2.5 pt-2 border-t flex items-center gap-1.5 overflow-x-auto sm:flex-wrap [scrollbar-width:none] [&::-webkit-scrollbar]:hidden text-xs animate-in fade-in slide-in-from-top-1 duration-150">
+        <div className="mt-2.5 pt-2 border-t border-white/[0.08] flex items-center gap-1.5 overflow-x-auto sm:flex-wrap [scrollbar-width:none] [&::-webkit-scrollbar]:hidden text-xs animate-in fade-in slide-in-from-top-1 duration-150">
           <span className="flex-none flex items-center gap-1 text-zinc-400 font-semibold bg-white/5 px-2 py-0.5 rounded-full whitespace-nowrap text-[11px]">
             <Filter className="w-3 h-3 text-netflix-red" />
             <span>Đang lọc:</span>

@@ -26,7 +26,7 @@ export function SectionHeader({
 
   if (isCompact) {
     return (
-      <div className={`flex items-center justify-between mb-3 px-1 ${className}`}>
+      <div className={`flex items-center justify-between mb-3 px-0 ${className}`}>
         <div className="flex items-center gap-2 min-w-0">
           {icon && (
             <span className={`inline-flex items-center justify-center shrink-0 ${iconBadge ? "text-netflix-red" : "text-zinc-300"}`}>
@@ -45,7 +45,7 @@ export function SectionHeader({
 
   return (
     <div
-      className={`flex flex-col md:flex-row md:items-end justify-between gap-3 mb-5 px-1 ${className}`}
+      className={`flex flex-col md:flex-row md:items-end justify-between gap-3 mb-5 px-0 ${className}`}
     >
       <div className="min-w-0">
         <h2 className="text-xl sm:text-2xl md:text-[26px] font-black tracking-tight text-white flex items-center gap-2.5 flex-wrap sm:flex-nowrap">

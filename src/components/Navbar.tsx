@@ -138,7 +138,7 @@ const NavbarInner: React.FC = () => {
           : "bg-black/80 backdrop-blur-md sm:bg-gradient-to-b sm:from-black/90 sm:via-black/50 sm:to-transparent py-1.5 sm:py-2.5"
       }`}
     >
-      <div className="flex items-center justify-between px-3 sm:px-6 lg:px-8 max-w-[1700px] mx-auto gap-2 sm:gap-4 relative z-10 w-full min-h-[44px] sm:min-h-[48px]">
+      <div className="flex items-center justify-between px-4 sm:px-6 md:px-8 lg:px-8 max-w-[1700px] mx-auto gap-2 sm:gap-4 relative z-10 w-full min-h-[44px] sm:min-h-[48px]">
         {/* LOGO & DESKTOP NAV */}
         <div className="flex items-center gap-3 sm:gap-6 lg:gap-7 flex-shrink-0 min-w-0">
           <Link
