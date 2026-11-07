@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { Server, AlertCircle, RefreshCw, ArrowLeft, Play } from "lucide-react";
+import { AlertCircle, RefreshCw, ArrowLeft, Play } from "lucide-react";
 
 export interface IframePlayerProps {
   src: string;
@@ -86,7 +86,7 @@ export const IframePlayer: React.FC<IframePlayerProps> = ({
         }`}
       >
         <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-black/70 backdrop-blur-md text-[11px] sm:text-xs font-semibold text-zinc-200 shadow-lg">
-          <Server className="w-3 h-3 text-red-500" />
+          <span className="w-1.5 h-1.5 rounded-full bg-netflix-red" />
           <span>{serverName}</span>
         </div>
       </div>

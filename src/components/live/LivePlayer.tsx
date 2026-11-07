@@ -14,7 +14,6 @@ import {
   ChevronDown,
   ChevronLeft,
   ChevronRight,
-  Server,
   Loader2,
   X,
   RotateCcw,
@@ -3193,10 +3192,6 @@ function LivePlayerInner({
                     <YouTubePauseIcon className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
                   )}
                 </div>
-              </div>
-            ) : actionFeedback.icon === "server" ? (
-              <div className="flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-black/75 backdrop-blur-xl shadow-2xl animate-in fade-in zoom-in duration-150">
-                <Server className="w-7 h-7 text-white" />
               </div>
             ) : null}
           </div>
