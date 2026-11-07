@@ -558,7 +558,7 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
           {loading && !summary && (
             <div className="py-12 flex flex-col items-center justify-center gap-3 text-zinc-400">
               <RefreshCw className="w-7 h-7 animate-spin text-netflix-red" />
-              <p className="text-xs sm:text-sm font-semibold">Đang kết nối trung tâm dữ liệu trận đấu...</p>
+              <p className="text-xs sm:text-sm font-semibold">Đang tải dữ liệu...</p>
             </div>
           )}
 
@@ -649,10 +649,10 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
                       <Radio className="w-3.5 h-3.5 text-netflix-red animate-pulse" />
                     </div>
                     <div className="min-w-0 flex-1 text-[11px] sm:text-xs leading-relaxed text-zinc-300">
-                      <span className="font-bold text-white">Đang tiếp sóng trực tiếp</span>
+                      <span className="font-bold text-white">Đang tiếp sóng</span>
                       <span className="text-zinc-400 ml-1.5 hidden sm:inline">•</span>
                       <span className="text-zinc-400 block sm:inline mt-0.5 sm:mt-0 sm:ml-1.5">
-                        Trận đấu chưa có dữ liệu số liệu chuyên sâu từ ban tổ chức.
+                        Chưa có dữ liệu thống kê từ ban tổ chức.
                       </span>
                     </div>
                   </div>
@@ -746,10 +746,10 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
               {/* TAB BÌNH LUẬN TRỰC TIẾP (GIAO DIỆN PHẲNG TINH TẾ, KHÔNG LỒNG THẺ) */}
               {activeTab === "commentary" && (
                 <div className="space-y-2 pt-1">
-                  <div className="flex items-center justify-between pb-2.5 border-b border-white/[0.06] px-1">
-                    <h5 className="text-xs font-black uppercase tracking-wider text-zinc-400 flex items-center gap-1.5">
-                      <MessageSquare className="w-3.5 h-3.5 text-netflix-red" />
-                      <span>Diễn biến trực tiếp từ sân cỏ</span>
+                  <div className="flex items-center justify-between pb-2.5 border-b border-white/[0.06] px-1 gap-2">
+                    <h5 className="text-xs font-black uppercase tracking-wider text-zinc-400 flex items-center gap-1.5 min-w-0">
+                      <MessageSquare className="w-3.5 h-3.5 text-netflix-red shrink-0" />
+                      <span className="truncate">Diễn biến</span>
                     </h5>
 
                     <div className="flex items-center gap-1 bg-white/5 p-0.5 rounded-lg border border-white/5 shrink-0">
@@ -796,7 +796,7 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
                       ))}
                     </div>
                   ) : (
-                    <p className="text-xs text-zinc-500 py-8 text-center">Chưa có dòng bình luận trực tiếp nào</p>
+                    <p className="text-xs text-zinc-500 py-8 text-center">Chưa có diễn biến</p>
                   )}
                 </div>
               )}

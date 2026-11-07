@@ -492,8 +492,8 @@ export const DualTeamPitch: React.FC<DualTeamPitchProps> = ({
 
         {/* THÔNG TIN HLV (NẾU CÓ) */}
         {currentTeam.coach && (
-          <div className="flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-zinc-900/40 text-xs font-sans">
-            <span className="text-zinc-400">Huấn luyện viên trưởng:</span>
+          <div className="flex items-center justify-between px-3.5 py-2 rounded-xl bg-zinc-900/40 text-xs font-sans">
+            <span className="text-zinc-400">HLV:</span>
             <span className="font-bold text-white truncate max-w-[200px]">{currentTeam.coach}</span>
           </div>
         )}

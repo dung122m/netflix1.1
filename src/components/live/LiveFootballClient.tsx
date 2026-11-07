@@ -1565,7 +1565,7 @@ export function LiveFootballClient({
                       <div className="flex items-center gap-2 min-w-0">
                         <Clock className="w-3.5 h-3.5 text-netflix-red shrink-0" />
                         <span className="text-xs font-black text-white truncate">
-                          Đổi trận đấu
+                          Đổi trận
                         </span>
                       </div>
                       {isSummaryLoading && (
@@ -1609,7 +1609,7 @@ export function LiveFootballClient({
                           type="text"
                           value={searchQuery}
                           onChange={(e) => handleSearchChange(e.target.value)}
-                          placeholder="Tìm trận đấu, giải đấu, bình luận viên..."
+                          placeholder="Tìm trận, giải, BLV..."
                           className="w-full pl-8 pr-16 py-1.5 rounded-xl bg-zinc-900 text-xs text-white placeholder-zinc-400 focus:outline-none focus:ring-1 focus:ring-netflix-red/50 transition shadow-inner"
                         />
                         <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
@@ -1746,9 +1746,9 @@ export function LiveFootballClient({
                         ) : (
                           <div className="py-10 text-center text-zinc-400 space-y-2">
                             <Search className="w-6 h-6 mx-auto text-zinc-500" />
-                            <p className="text-xs font-bold text-white">Không tìm thấy trận đấu nào</p>
+                            <p className="text-xs font-bold text-white">Không tìm thấy trận</p>
                             <p className="text-[11px] text-zinc-500">
-                              {searchQuery ? "Thử tìm kiếm với từ khóa khác" : "Chưa có trận nào trong danh sách"}
+                              {searchQuery ? "Thử tìm kiếm với từ khóa khác" : "Chưa có trận nào"}
                             </p>
                           </div>
                         )}
@@ -1795,10 +1795,10 @@ export function LiveFootballClient({
                         <div className="flex items-center gap-2 min-w-0">
                           <Clock className="w-4 h-4 text-netflix-red shrink-0" />
                           <h3 className="text-sm font-black text-white uppercase tracking-wider truncate">
-                            Đổi Trận Đấu
+                            Đổi trận
                           </h3>
                           <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/10 text-zinc-300 shrink-0">
-                            {filteredMatches.length} trận
+                            {filteredMatches.length}
                           </span>
                         </div>
 
@@ -1821,7 +1821,7 @@ export function LiveFootballClient({
                           type="text"
                           value={searchQuery}
                           onChange={(e) => handleSearchChange(e.target.value)}
-                          placeholder="Tìm trận đấu, giải đấu, BLV..."
+                          placeholder="Tìm trận, giải, BLV..."
                           className="w-full pl-9 pr-14 py-2 rounded-xl bg-zinc-900 text-xs text-white placeholder-zinc-400 focus:outline-none focus:ring-1 focus:ring-netflix-red/50 transition shadow-inner font-medium"
                         />
                         {searchQuery && (
@@ -1953,9 +1953,9 @@ export function LiveFootballClient({
                       ) : (
                         <div className="py-12 text-center text-zinc-400 space-y-2">
                           <Search className="w-6 h-6 mx-auto text-zinc-500" />
-                          <p className="text-xs font-bold text-white">Không tìm thấy trận đấu nào</p>
+                          <p className="text-xs font-bold text-white">Không tìm thấy trận</p>
                           <p className="text-[11px] text-zinc-500">
-                            {searchQuery ? `Thử tìm kiếm với từ khóa khác` : "Chưa có trận nào trong danh sách"}
+                            {searchQuery ? `Thử tìm kiếm với từ khóa khác` : "Chưa có trận nào"}
                           </p>
                         </div>
                       )}

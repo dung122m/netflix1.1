@@ -1614,7 +1614,7 @@ function TeamListColumn({
 
       <div className="space-y-1.5">
         <p className="text-xs sm:text-[13px] font-extrabold text-zinc-300 uppercase tracking-wider">
-          Ra sân chính thức ({starters.length})
+          Đá chính ({starters.length})
         </p>
         {starters.map((p, i) => {
           const isSelected = selectedPlayer?.id === p.id;
@@ -1743,9 +1743,9 @@ export function TacticalLineup({
         <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center mx-auto text-zinc-500">
           <Users className="w-6 h-6" />
         </div>
-        <h4 className="text-sm font-bold text-white">Chưa có dữ liệu đội hình ra sân</h4>
+        <h4 className="text-sm font-bold text-white">Chưa có đội hình</h4>
         <p className="text-xs text-zinc-400 max-w-sm mx-auto">
-          Ban tổ chức giải đấu sẽ công bố đội hình chính thức trước giờ bóng lăn khoảng 30 - 60 phút.
+          Đội hình sẽ được công bố trước giờ thi đấu.
         </p>
       </div>
     );

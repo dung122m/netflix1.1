@@ -63,7 +63,7 @@ export const MatchTimelineSidebar: React.FC<MatchTimelineSidebarProps> = ({
     return (
       <div className="flex-1 flex flex-col items-center justify-center p-6 text-zinc-500 space-y-2">
         <Activity className="w-5 h-5 animate-pulse text-netflix-red" />
-        <p className="text-xs font-semibold">Đang tải diễn biến trực tiếp...</p>
+        <p className="text-xs font-semibold">Đang tải diễn biến...</p>
       </div>
     );
   }
@@ -78,7 +78,7 @@ export const MatchTimelineSidebar: React.FC<MatchTimelineSidebarProps> = ({
         <div className="flex items-center gap-2 min-w-0">
           <span className="w-2 h-2 rounded-full bg-netflix-red animate-pulse shrink-0" />
           <h4 className="text-xs font-bold text-white uppercase tracking-wider truncate font-sans">
-            Diễn biến trận đấu
+            Diễn biến
           </h4>
         </div>
         <div className="flex items-center gap-1.5 shrink-0">
@@ -105,10 +105,10 @@ export const MatchTimelineSidebar: React.FC<MatchTimelineSidebarProps> = ({
             <Clock className="w-5 h-5 stroke-[1.5]" />
           </div>
           <p className="text-xs font-bold text-zinc-300 font-sans">
-            Chưa có diễn biến trực tiếp
+            Chưa có diễn biến
           </p>
           <p className="text-[11px] text-zinc-500 max-w-[220px] font-sans leading-relaxed">
-            Trận đấu chưa có dữ liệu sự kiện hoặc đang được cập nhật trực tiếp qua luồng phát video.
+            Dữ liệu sẽ hiển thị khi có sự kiện.
           </p>
         </div>
       ) : (
