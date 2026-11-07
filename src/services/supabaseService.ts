@@ -279,10 +279,11 @@ export function parseReactionsAndLikedBy(likedByRaw: unknown): {
 // In-flight Promise deduplication by movieSlug
 const inFlightMovieCommentsPromises = new Map<string, Promise<MovieComment[]>>();
 
-export async function getMovieCommentsSupabase(movieSlug: string): Promise<MovieComment[]> {
+export async function getMovieCommentsSupabase(movieSlug: string, fresh = false): Promise<MovieComment[]> {
   if (!movieSlug) return [];
 
-  const existingPromise = inFlightMovieCommentsPromises.get(movieSlug);
+  // Khi yêu cầu fresh, bỏ qua existing in-flight cache promise để lấy trực tiếp dữ liệu mới nhất
+  const existingPromise = !fresh ? inFlightMovieCommentsPromises.get(movieSlug) : undefined;
   if (existingPromise) {
     return existingPromise;
   }
@@ -290,7 +291,10 @@ export async function getMovieCommentsSupabase(movieSlug: string): Promise<Movie
   const fetchPromise = (async () => {
     try {
       const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
-      const res = await fetch(`${baseUrl}/api/comments?movieSlug=${encodeURIComponent(movieSlug)}&_t=${Date.now()}`, {
+      const url = fresh
+        ? `${baseUrl}/api/comments?movieSlug=${encodeURIComponent(movieSlug)}&fresh=true`
+        : `${baseUrl}/api/comments?movieSlug=${encodeURIComponent(movieSlug)}`;
+      const res = await fetch(url, {
         cache: "no-store",
       });
       if (res.ok) {

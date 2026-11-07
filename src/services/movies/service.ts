@@ -2433,20 +2433,28 @@ export const movieApi = {
       return sanitizeMovieImages(res);
     }
 
-    // P5 DEEP PAGINATION BOT PROTECTION:
-    // Các trang phân trang sâu (> 10) hầu như 100% do bot crawler/scraper quét.
-    // Chỉ lưu cache L1 RAM (0ms), KHÔNG lưu vào Redis L2 để tránh bùng nổ key rác và lãng phí lệnh GET/SET
+    // Phân trang sâu thông minh (Deep Pagination Caching):
+    // Cho phép lưu cache Redis L2 lên đến trang 50 (đáp ứng trọn vẹn nhu cầu duyệt phim sâu của người dùng)
+    // Trang > 50 (rất hiếm gặp ở người dùng thật) sẽ chỉ xử lý trực tiếp và lưu RAM để bảo vệ dung lượng
     const pageNum = params.page || 1;
-    if (pageNum > 10 && !params.keyword) {
+    if (pageNum > 50 && !params.keyword) {
       const res = await executeGetMovies(params, cacheKey);
       return sanitizeMovieImages(res);
     }
 
     const kvKey = `movie:list:${cacheKey}`;
-    // Phân tầng TTL hợp lý: Trang 1-5 (User phổ thông) giữ 6 giờ (21600s).
-    // Trang 6-10 (ít người xem) giữ 2 giờ (7200s). Tìm kiếm: 24 giờ (86400s).
-    // Tuyệt đối không tăng TTL đại trà lên 24 giờ cho toàn bộ catalog list.
-    const ttlSeconds = params.keyword ? 86400 : pageNum > 5 ? 7200 : 21600;
+    // Phân tầng TTL hợp lý trên Redis DB 1:
+    // Trang 1-5 (User phổ thông): giữ 6 giờ (21600s)
+    // Trang 6-15 (Duyệt mở rộng): giữ 2 giờ (7200s)
+    // Trang 16-50 (Duyệt sâu): giữ 1 giờ (3600s)
+    // Tìm kiếm từ khóa: giữ 24 giờ (86400s)
+    const ttlSeconds = params.keyword
+      ? 86400
+      : pageNum <= 5
+      ? 21600
+      : pageNum <= 15
+      ? 7200
+      : 3600;
 
     // Single-Flight Mutex: Gom các request đồng thời cho cùng danh mục/trang trên cùng instance
     const inFlightKey = cacheKey;

@@ -234,7 +234,7 @@ export async function GET(req: NextRequest) {
           const mapped = (data as Array<Record<string, unknown>>).map((d) => mapCommentRecord(d, false, profileMap));
           return sortComments(mapped);
         },
-        60 // TTL 60 giây (tự động xóa khi có tương tác mới)
+        180 // TTL 180 giây trên Redis DB 2 (tự động xóa tức thì khi có tương tác mới)
       );
 
       return NextResponse.json(

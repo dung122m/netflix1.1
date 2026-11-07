@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { verifyServerAuth } from "@/lib/serverAuth";
+import { cacheService } from "@/lib/cache";
 import {
   enforceRateLimit,
   buildRateLimitResponse,
@@ -76,6 +77,15 @@ export async function GET(req: NextRequest) {
     }
   }
 
+  // 1. Kiểm tra cache Redis DB 2 trước (phản hồi siêu tốc < 10ms giữa các thiết bị)
+  const redisKey = `user:handoff:${auth.userId}`;
+  try {
+    const cached = await cacheService.get<Record<string, unknown>>(redisKey);
+    if (cached && typeof cached.movieSlug === "string") {
+      return NextResponse.json({ success: true, item: cached, fromCache: true }, { headers: NO_CACHE_HEADERS });
+    }
+  } catch {}
+
   try {
     const { data, error } = await supabase
       .from("device_handoff")
@@ -103,6 +113,9 @@ export async function GET(req: NextRequest) {
       deviceName: data.device_name,
       updatedAt: Number(data.updated_at) || Date.now(),
     };
+
+    // Nạp vào Redis DB 2 để các lần đọc tiếp theo từ các thiết bị khác nhận ngay lập tức
+    cacheService.set(redisKey, item, 7 * 86400).catch(() => {});
 
     return NextResponse.json({ success: true, item }, { headers: NO_CACHE_HEADERS });
   } catch (err) {
@@ -172,12 +185,28 @@ export async function POST(req: NextRequest) {
       updated_at: Date.now(),
     };
 
+    const clientItem = {
+      userId: auth.userId,
+      movieSlug: payload.movie_slug,
+      movieTitle: payload.movie_title,
+      poster: payload.poster,
+      episodeSlug: payload.episode_slug,
+      episodeName: payload.episode_name,
+      progressSeconds: payload.progress_seconds,
+      durationSeconds: payload.duration_seconds,
+      deviceName: payload.device_name,
+      updatedAt: payload.updated_at,
+    };
+
+    // 1. Ghi tức thì vào Redis DB 2 (< 10ms) để các thiết bị khác đồng bộ ngay tức thì
+    cacheService.set(`user:handoff:${auth.userId}`, clientItem, 7 * 86400).catch(() => {});
+
     const upsertPromise = (async () => {
       const { error } = await supabase.from("device_handoff").upsert(payload, { onConflict: "id" });
       if (error) {
         return { status: 500, body: { success: false, error: error.message } };
       }
-      return { status: 200, body: { success: true, item: payload } };
+      return { status: 200, body: { success: true, item: clientItem } };
     })();
 
     inFlightServerHandoffPosts.set(serverDedupKey, upsertPromise);
@@ -218,6 +247,8 @@ export async function DELETE(req: NextRequest) {
   }
 
   try {
+    // Xóa đồng thời trên Redis DB 2 và Supabase
+    cacheService.delete(`user:handoff:${auth.userId}`).catch(() => {});
     const { error } = await supabase.from("device_handoff").delete().eq("id", auth.userId);
     if (error) {
       return NextResponse.json({ success: false, error: error.message }, { status: 500 });

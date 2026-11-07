@@ -235,12 +235,12 @@ export function subscribeMovieComments(
     onUpdate(mergedItems);
   };
 
-  // 2. Fetch dữ liệu mới nhất từ Supabase
-  const fetchSupabase = async () => {
+  // 2. Fetch dữ liệu mới nhất từ Supabase (mặc định đọc từ Redis Cache DB 2)
+  const fetchSupabase = async (fresh = false) => {
     if (isUnsubscribed) return;
     if (isSupabaseConfigured()) {
       try {
-        const items = await getMovieCommentsSupabase(movieSlug);
+        const items = await getMovieCommentsSupabase(movieSlug, fresh);
         if (!isUnsubscribed) {
           handleNewData(items);
         }
@@ -257,7 +257,7 @@ export function subscribeMovieComments(
     }
   };
 
-  fetchSupabase();
+  fetchSupabase(false);
 
   let lastFetchTime = Date.now();
   const handleVisibilityOrFocus = () => {
@@ -265,7 +265,7 @@ export function subscribeMovieComments(
     if (typeof document !== "undefined" && !document.hidden) {
       if (Date.now() - lastFetchTime > 15000) {
         lastFetchTime = Date.now();
-        fetchSupabase();
+        fetchSupabase(false);
       }
     }
   };
@@ -307,7 +307,7 @@ export function subscribeMovieComments(
       }
 
       lastFetchTime = Date.now();
-      fetchSupabase();
+      fetchSupabase(true);
     }
   };
 
@@ -316,7 +316,7 @@ export function subscribeMovieComments(
     if (!isUnsubscribed && typeof document !== "undefined" && !document.hidden) {
       if (Date.now() - lastFetchTime > 180000) {
         lastFetchTime = Date.now();
-        fetchSupabase();
+        fetchSupabase(false);
       }
     }
   }, 300000);
@@ -345,7 +345,7 @@ export function subscribeMovieComments(
           () => {
             if (!isUnsubscribed) {
               lastFetchTime = Date.now();
-              fetchSupabase();
+              fetchSupabase(true);
             }
           }
         )

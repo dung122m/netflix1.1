@@ -24,6 +24,7 @@ import { markEpisodeAsWatched } from "@/lib/episodeTracker";
 import { formatEpisodeName, findEpisodeMatch } from "@/lib/formatEpisode";
 import { useAuth } from "@/context/AuthContext";
 import { updateActivePlaybackSession } from "@/services/handoffService";
+import { getDeviceHandoffSupabase } from "@/services/supabaseService";
 import { incrementUserWatchTime, getPlayerSettings, PlayerSettings } from "@/services/userService";
 import {
   PlayerNativeControls,
@@ -757,6 +758,56 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
       clearInterval(interval);
     };
   }, [user?.uid, isNativeVideo]);
+
+  // Tự động kiểm tra và đồng bộ tiến độ tức thì từ thiết bị khác (Redis Cloud Handoff)
+  useEffect(() => {
+    if (!user?.uid) return;
+    const currentSlug = watchContext?.movieSlug || propMovieSlug;
+    if (!currentSlug || initialTime || urlParamT) return;
+
+    let isCancelled = false;
+    getDeviceHandoffSupabase(user.uid)
+      .then((handoff) => {
+        if (isCancelled || !handoff) return;
+        const targetEp = activeEpisodeSlug || "tap-1";
+        if (
+          handoff.movieSlug === currentSlug &&
+          handoff.progressSeconds > 10 &&
+          (!handoff.episodeSlug || handoff.episodeSlug === targetEp)
+        ) {
+          const localProg = getWatchProgress(currentSlug, targetEp);
+          if (handoff.progressSeconds > localProg + 5) {
+            saveWatchProgress(
+              currentSlug,
+              handoff.progressSeconds,
+              handoff.durationSeconds,
+              targetEp,
+              {
+                title,
+                poster: posterUrl,
+                thumb: resolvedThumb,
+                episodeName: activeEpisodeName,
+              },
+              true
+            );
+            if (videoRef.current && Math.abs(videoRef.current.currentTime - handoff.progressSeconds) > 5) {
+              requestPlayerSeek(handoff.progressSeconds, true);
+              const mins = Math.floor(handoff.progressSeconds / 60);
+              const secs = (Math.floor(handoff.progressSeconds) % 60).toString().padStart(2, "0");
+              showHud(
+                <RotateCcw className="w-5 h-5 text-netflix-red" />,
+                `Đồng bộ từ ${handoff.deviceName || "thiết bị khác"}: ${mins}:${secs}`
+              );
+            }
+          }
+        }
+      })
+      .catch(() => {});
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [user?.uid, watchContext?.movieSlug, propMovieSlug, activeEpisodeSlug, initialTime, urlParamT, title, posterUrl, resolvedThumb, activeEpisodeName, showHud, requestPlayerSeek]);
 
   const sendPlayerCommand = useCallback((cmd: string, val?: string | number | boolean) => {
     if (!iframeRef.current?.contentWindow) return;

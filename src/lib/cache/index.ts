@@ -122,7 +122,7 @@ export function getRedisPurposeForKey(key: string): RedisPurpose {
     return "aux";
   }
 
-  // DB 2: Live / Realtime & Community
+  // DB 2: Live / Realtime & Community & Instant Cross-Device Handoff
   if (
     key.startsWith("live:") ||
     key.startsWith("football:") ||
@@ -130,6 +130,9 @@ export function getRedisPurposeForKey(key: string): RedisPurpose {
     key.startsWith("match:") ||
     key.startsWith("tv:") ||
     key.startsWith("comments:") ||
+    key.startsWith("user:handoff:") ||
+    key.startsWith("handoff:") ||
+    key.startsWith("user:resume:") ||
     key.startsWith("sec:") ||
     key.startsWith("rl:")
   ) {

@@ -31,6 +31,8 @@ describe("Nanaflix Triple Redis Multi-Account Architecture", () => {
     assert.equal(getRedisPurposeForKey("athlete:profile:123"), "live");
     assert.equal(getRedisPurposeForKey("comments:movie:tham-tu-lung-danh-conan"), "live");
     assert.equal(getRedisPurposeForKey("comments:movie:avatar-2"), "live");
+    assert.equal(getRedisPurposeForKey("user:handoff:user_12345"), "live");
+    assert.equal(getRedisPurposeForKey("handoff:device:user_12345"), "live");
     assert.equal(getRedisPurposeForKey("sec:rl:production:user:123"), "live");
     assert.equal(getRedisPurposeForKey("rl:user:123"), "live");
 
