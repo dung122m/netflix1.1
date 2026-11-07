@@ -339,10 +339,10 @@ export const ActorDetailClient: React.FC<ActorDetailClientProps> = ({
             </div>
             <div className="space-y-1">
               <h3 className="text-base font-bold text-white">
-                Đang cập nhật thêm nguồn phát cho {actorName}
+                Chưa có phim của {actorName}
               </h3>
               <p className="text-xs text-zinc-400 leading-relaxed">
-                Hệ thống đang tiếp tục chỉ mục và bổ sung các tập phim chất lượng cao của nghệ sĩ vào thư viện.
+                Danh sách phim đang được cập nhật. Bạn có thể khám phá các tác phẩm hấp dẫn khác.
               </p>
             </div>
             <div className="pt-2">

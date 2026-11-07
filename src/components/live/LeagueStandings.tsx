@@ -393,7 +393,7 @@ export const LeagueStandings: React.FC<LeagueStandingsProps> = ({
                 Chưa có dữ liệu bảng xếp hạng
               </h4>
               <p className="text-xs text-zinc-400 max-w-md leading-relaxed">
-                Dữ liệu bảng xếp hạng cho {currentLeagueMeta?.name} đang được hệ thống cập nhật từ ban tổ chức.
+                Đang cập nhật bảng xếp hạng cho {currentLeagueMeta?.name}...
               </p>
             </div>
           )}

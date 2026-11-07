@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useSearchParams } from "next/navigation";
-import { Tv, Radio, Zap, Trophy, RefreshCw } from "lucide-react";
+import { Tv, Trophy, RefreshCw } from "lucide-react";
 import { LiveFootballData, LiveMatchScore, evaluateEventLifecycle } from "@/services/liveFootballService";
 import { LiveTvData } from "@/services/liveTvService";
 import { LiveFootballClient } from "./LiveFootballClient";
@@ -148,10 +148,6 @@ export function LiveHubClient({ footballData, tvData: initialTvData, initialScor
     [tvData, loadTvChannels],
   );
 
-  const liveSportsCount = useMemo(() => {
-    return footballData.matches.filter((m) => m.timeline === "live").length;
-  }, [footballData.matches]);
-
   const isSportsCinema = hasActiveMatch && activeTab === "sports";
   const isTvCinema = activeTab === "tv";
 
@@ -171,33 +167,29 @@ export function LiveHubClient({ footballData, tvData: initialTvData, initialScor
       {/* 1. NANAFLIX LIVE STUDIO COMMAND BAR */}
       {/* Khi ở chế độ TV: Hiển thị thanh chuyển tab tinh gọn (Slim Command Bar) để tối đa diện tích xem cho TV Player */}
       {isTvCinema ? (
-        <header className="flex items-center justify-between gap-1.5 sm:gap-2 p-1.5 sm:p-2 px-2 sm:px-3 rounded-xl bg-zinc-950/80 backdrop-blur-xl shadow-lg shadow-black/40">
-          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-            <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-gradient-to-br from-red-600 to-sky-600 flex items-center justify-center text-white shrink-0 shadow-md shadow-black/40">
-              <Radio className="w-3 h-3 sm:w-3.5 sm:h-3.5 animate-pulse" />
-            </div>
-            <div className="flex items-center gap-1.5 min-w-0">
-              <span className="text-[11px] font-black uppercase tracking-wider text-sky-400 bg-sky-500/15 px-2 py-0.5 rounded-md shrink-0">
-                LIVE TV
-              </span>
-              <span className="hidden md:inline-flex text-[11px] font-bold text-zinc-400 truncate">
-                {tvChannelCount !== null ? `${tvChannelCount} kênh truyền hình HD` : isTvLoading ? "Đang tải danh sách kênh..." : "Kênh truyền hình HD"}
-              </span>
-            </div>
+        <header className="flex items-center justify-between gap-3 py-1.5 sm:py-2">
+          <div className="flex items-center gap-2 min-w-0 shrink-0">
+            <span className="relative flex h-2.5 w-2.5 shrink-0">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-sky-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-sky-500" />
+            </span>
+            <span className="text-base sm:text-lg font-bold text-white tracking-tight truncate">
+              Truyền hình
+            </span>
           </div>
 
           {/* CỤM CHUYỂN ĐỔI TAB (THỂ THAO / TRUYỀN HÌNH) */}
-          <div role="tablist" aria-label="Lựa chọn luồng phát" className="flex items-center gap-0.5 sm:gap-1 p-0.5 rounded-lg bg-zinc-900 shrink-0">
+          <div role="tablist" aria-label="Lựa chọn luồng trực tiếp" className="flex items-center gap-1 p-1 rounded-xl bg-zinc-900/90 shrink-0">
             <button
               type="button"
               role="tab"
               aria-selected={false}
               onClick={() => handleTabChange("sports")}
-              className="flex items-center justify-center gap-1 sm:gap-1.5 px-2.5 sm:px-3.5 py-1.5 min-h-[34px] sm:min-h-[36px] rounded-md text-[11px] sm:text-xs font-black transition-all cursor-pointer outline-none shrink-0 whitespace-nowrap text-zinc-400 hover:text-white hover:bg-white/5"
+              className="flex items-center justify-center gap-1.5 px-3 sm:px-3.5 py-1.5 min-h-[34px] rounded-lg text-xs font-semibold transition cursor-pointer outline-none shrink-0 whitespace-nowrap text-zinc-400 hover:text-white hover:bg-white/5"
             >
-              <Trophy className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0" aria-hidden="true" />
-              <span>Thể Thao</span>
-              <span className="hidden sm:inline-flex text-[11px] px-1.5 py-0.2 rounded-full font-black bg-black/40 text-zinc-300">
+              <Trophy className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+              <span>Thể thao</span>
+              <span className="text-[11px] px-1.5 py-0.2 rounded-full font-medium bg-black/40 text-zinc-400">
                 {sportsMatchesCount}
               </span>
             </button>
@@ -207,57 +199,41 @@ export function LiveHubClient({ footballData, tvData: initialTvData, initialScor
               role="tab"
               aria-selected={true}
               onClick={() => handleTabChange("tv")}
-              className="flex items-center justify-center gap-1 sm:gap-1.5 px-2.5 sm:px-3.5 py-1.5 min-h-[34px] sm:min-h-[36px] rounded-md text-[11px] sm:text-xs font-black transition-all cursor-pointer outline-none shrink-0 whitespace-nowrap bg-gradient-to-r from-sky-600 to-blue-600 text-white shadow-md shadow-black/40"
+              className="flex items-center justify-center gap-1.5 px-3 sm:px-3.5 py-1.5 min-h-[34px] rounded-lg text-xs font-bold transition cursor-pointer outline-none shrink-0 whitespace-nowrap bg-zinc-800 text-white shadow-sm"
             >
-              <Tv className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-sky-200" aria-hidden="true" />
-              <span>Truyền Hình</span>
-              <span className="hidden sm:inline-flex text-[11px] px-1.5 py-0.2 rounded-full font-black bg-black/40 text-zinc-300">
+              <Tv className="w-3.5 h-3.5 text-sky-400" aria-hidden="true" />
+              <span>Truyền hình</span>
+              <span className="text-[11px] px-1.5 py-0.2 rounded-full font-medium bg-sky-500/20 text-sky-300">
                 {tvBadgeCount}
               </span>
             </button>
           </div>
         </header>
       ) : !isSportsCinema ? (
-        /* Khi ở chế độ Khám phá Thể thao (chưa chọn trận): Hiển thị header Discovery gọn trên mobile, đầy đủ trên desktop */
-        <header className="flex flex-row items-center justify-between gap-1.5 sm:gap-2 p-1.5 sm:p-2.5 md:p-4 rounded-xl sm:rounded-2xl bg-zinc-950/80 backdrop-blur-2xl shadow-xl md:shadow-2xl">
-          <div className="flex items-center gap-1.5 sm:gap-3.5 min-w-0 shrink-0">
-            <div className="w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 rounded-lg sm:rounded-xl bg-gradient-to-br from-red-600 via-rose-600 to-amber-600 flex items-center justify-center text-white shadow-md shadow-black/40 shrink-0">
-              <Radio className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 animate-pulse" aria-hidden="true" />
-            </div>
-            <div className="min-w-0">
-              <div className="flex items-center gap-1.5 sm:gap-2 flex-nowrap">
-                <span className="text-[11px] font-black uppercase tracking-wider text-rose-300 bg-netflix-red/20 px-1.5 sm:px-2 py-0.5 rounded /40 shrink-0">
-                  LIVE HUB
-                </span>
-                <span className="hidden sm:inline-flex text-[11px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md items-center gap-1 shrink-0">
-                  <Zap className="w-2.5 h-2.5 fill-current" aria-hidden="true" />
-                  <span>1080p Ultra-Low Latency</span>
-                </span>
-                {liveSportsCount > 0 && (
-                  <span className="hidden xs:inline-flex sm:inline-flex text-[11px] font-bold text-rose-400 bg-red-500/15 px-1.5 sm:px-2 py-0.5 rounded items-center gap-1 shrink-0">
-                    <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" aria-hidden="true" />
-                    <span>{liveSportsCount} live</span>
-                  </span>
-                )}
-              </div>
-              <h1 className="hidden sm:block text-sm sm:text-xl font-black text-white tracking-tight mt-0.5 truncate">
-                Trung Tâm Trực Tiếp Thể Thao
-              </h1>
-            </div>
+        /* Khi ở chế độ Khám phá Thể thao: Header thoáng đãng, tinh gọn, hiện đại */
+        <header className="flex items-center justify-between gap-3 py-1.5 sm:py-2">
+          <div className="flex items-center gap-2 min-w-0 shrink-0">
+            <span className="relative flex h-2.5 w-2.5 shrink-0">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-netflix-red" />
+            </span>
+            <h1 className="text-base sm:text-lg font-bold text-white tracking-tight truncate">
+              Trực tiếp
+            </h1>
           </div>
 
-          {/* CỤM CHUYỂN ĐỔI DANH MỤC (THỂ THAO, TRUYỀN HÌNH) */}
-          <div role="tablist" aria-label="Lựa chọn luồng phát trực tiếp" className="flex items-center gap-0.5 sm:gap-1 p-0.5 sm:p-1 rounded-lg sm:rounded-xl bg-zinc-900 shrink-0 shadow-inner">
+          {/* CỤM CHUYỂN ĐỔI DANH MỤC (THỂ THAO / TRUYỀN HÌNH) */}
+          <div role="tablist" aria-label="Lựa chọn luồng trực tiếp" className="flex items-center gap-1 p-1 rounded-xl bg-zinc-900/90 shrink-0">
             <button
               type="button"
               role="tab"
               aria-selected={true}
               onClick={() => handleTabChange("sports")}
-              className="flex items-center justify-center gap-1 sm:gap-1.5 px-2.5 sm:px-4 md:px-5 py-1.5 sm:py-2 min-h-[36px] rounded-md sm:rounded-lg text-[11px] sm:text-xs font-black transition-all cursor-pointer outline-none shrink-0 whitespace-nowrap focus-visible:ring-2 focus-visible:ring-netflix-red bg-gradient-to-r from-netflix-red to-netflix-red/85 text-white shadow-md shadow-black/40"
+              className="flex items-center justify-center gap-1.5 px-3 sm:px-3.5 py-1.5 min-h-[34px] rounded-lg text-xs font-bold transition cursor-pointer outline-none shrink-0 whitespace-nowrap bg-zinc-800 text-white shadow-sm"
             >
-              <Trophy className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0" aria-hidden="true" />
-              <span>Thể Thao</span>
-              <span className="hidden xs:inline-flex text-[11px] px-1.5 py-0.5 rounded-full font-black bg-black/40 text-zinc-200">
+              <Trophy className="w-3.5 h-3.5 text-amber-400 shrink-0" aria-hidden="true" />
+              <span>Thể thao</span>
+              <span className="text-[11px] px-1.5 py-0.2 rounded-full font-medium bg-red-500/20 text-red-300">
                 {sportsMatchesCount}
               </span>
             </button>
@@ -267,11 +243,11 @@ export function LiveHubClient({ footballData, tvData: initialTvData, initialScor
               role="tab"
               aria-selected={false}
               onClick={() => handleTabChange("tv")}
-              className="flex items-center justify-center gap-1 sm:gap-1.5 px-2.5 sm:px-4 md:px-5 py-1.5 sm:py-2 min-h-[36px] rounded-md sm:rounded-lg text-[11px] sm:text-xs font-black transition-all cursor-pointer outline-none shrink-0 whitespace-nowrap focus-visible:ring-2 focus-visible:ring-sky-500 text-zinc-400 hover:text-white hover:bg-white/5"
+              className="flex items-center justify-center gap-1.5 px-3 sm:px-3.5 py-1.5 min-h-[34px] rounded-lg text-xs font-semibold transition cursor-pointer outline-none shrink-0 whitespace-nowrap text-zinc-400 hover:text-white hover:bg-white/5"
             >
-              <Tv className="w-3 h-3 sm:w-3.5 sm:h-4 shrink-0 text-zinc-400" aria-hidden="true" />
-              <span>Truyền Hình</span>
-              <span className="hidden xs:inline-flex text-[11px] px-1.5 py-0.5 rounded-full font-black bg-white/10 text-zinc-400">
+              <Tv className="w-3.5 h-3.5 shrink-0 text-zinc-400" aria-hidden="true" />
+              <span>Truyền hình</span>
+              <span className="text-[11px] px-1.5 py-0.2 rounded-full font-medium bg-white/5 text-zinc-400">
                 {tvBadgeCount}
               </span>
             </button>

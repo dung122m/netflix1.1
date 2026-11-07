@@ -172,7 +172,6 @@ function CommunityTopTrendingInner() {
       title="Khán Giả Xem Nhiều Nhất"
       icon={<TrendingUp className="w-4 h-4" />}
       iconBadge
-      trailingBadge={<Flame className="w-5 h-5 text-netflix-red shrink-0" />}
       subtitle="Bảng xếp hạng phim thịnh hành được cộng đồng khán giả xem nhiều nhất"
       theme="red"
       ariaLabel="Bảng xếp hạng cộng đồng"

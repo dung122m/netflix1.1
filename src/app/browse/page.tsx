@@ -791,7 +791,7 @@ export default async function BrowsePage({
               {detectedActor ? (
                 <>
                   <p className="text-xs sm:text-sm text-zinc-400 mt-2 leading-relaxed">
-                    Hiện tại kho phim của Nanaflix chưa có sẵn các tác phẩm do <strong>{detectedActor.name}</strong> đóng chính hoặc làm đạo diễn. Hệ thống đang liên tục cập nhật thêm nhiều phim mới mỗi ngày!
+                    Hiện tại chưa có sẵn các tác phẩm do <strong>{detectedActor.name}</strong> đóng chính hoặc làm đạo diễn. Phim mới được cập nhật liên tục mỗi ngày!
                   </p>
                   <div className="flex flex-wrap items-center justify-center gap-3 mt-5">
                     <a
@@ -814,7 +814,7 @@ export default async function BrowsePage({
               ) : keyword ? (
                 <>
                   <p className="text-xs sm:text-sm text-zinc-400 mt-2 leading-relaxed">
-                    Hệ thống nguồn phim tìm kiếm trực tiếp theo <strong>tiêu đề phim</strong>. Nếu đây là tên diễn viên hoặc đạo diễn, bạn có thể tra cứu hồ sơ và danh sách phim trên TMDb hoặc thưởng thức các phim đề xuất bên dưới:
+                    Tìm kiếm trực tiếp theo <strong>tiêu đề phim</strong>. Nếu đây là tên diễn viên hoặc đạo diễn, bạn có thể tra cứu trên TMDb hoặc thưởng thức các phim gợi ý bên dưới:
                   </p>
                   <div className="flex flex-wrap items-center justify-center gap-3 mt-5">
                     <a

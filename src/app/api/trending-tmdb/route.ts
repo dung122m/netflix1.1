@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getTmdbRankedMovies, TmdbRankType } from "@/services/tmdbService";
 import { cacheService } from "@/lib/cache";
+import { movieApi } from "@/services/movies/service";
 import {
   enforceRateLimit,
   buildRateLimitResponse,
@@ -53,7 +54,20 @@ export async function GET(req: NextRequest) {
 
   try {
     // 2. Lấy dữ liệu phim từ TMDB Ranking / IMDb Top 250 và đối chiếu catalog Nanaflix
-    const items = await getTmdbRankedMovies(type, limit);
+    let items = await getTmdbRankedMovies(type, limit);
+
+    // Fallback: Nếu không có dữ liệu (local dev bị chặn TMDB hoặc timeout), lấy danh sách phim hot để luôn có dữ liệu
+    if (!items || items.length === 0) {
+      if (cached && cached.data?.items?.length) {
+        return NextResponse.json(cached.data);
+      }
+      try {
+        const fallbackRes = await movieApi.getMovies({ sort: "latest", limit });
+        if (fallbackRes?.items?.length) {
+          items = fallbackRes.items;
+        }
+      } catch {}
+    }
 
     if (items && items.length > 0) {
       const responseData = {

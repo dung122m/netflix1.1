@@ -145,8 +145,8 @@ export const ActorBioModal: React.FC<ActorBioModalProps> = ({
         <div className="flex items-center justify-between px-4 sm:px-6 py-3.5 border-b bg-zinc-900/90 gap-2">
           <div className="flex items-center gap-2 text-rose-400 min-w-0 flex-1">
             <BookOpen className="w-4 h-4 text-rose-400 shrink-0" />
-            <span className="text-[11px] sm:text-xs font-black uppercase tracking-wider text-white truncate">
-              Hồ Sơ Nghệ Sĩ & Tiểu Sử Điện Ảnh
+            <span className="text-xs sm:text-sm font-bold text-white truncate">
+              Thông tin nghệ sĩ
             </span>
           </div>
           <button

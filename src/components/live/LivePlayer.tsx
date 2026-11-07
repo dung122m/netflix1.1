@@ -3208,7 +3208,7 @@ function LivePlayerInner({
             <div className="flex items-center gap-2.5 px-3.5 py-2 rounded-xl bg-black/75 backdrop-blur-md shadow-xl border border-white/10">
               <Loader2 className="w-4 h-4 text-netflix-red animate-spin flex-shrink-0" />
               <p className="text-xs sm:text-sm font-semibold text-zinc-200 whitespace-nowrap">
-                Đang kết nối luồng phát sóng trực tiếp...
+                Đang kết nối...
               </p>
             </div>
           </div>

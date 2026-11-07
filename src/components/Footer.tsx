@@ -15,9 +15,7 @@ import {
   Zap,
   Radio,
   Clapperboard,
-  Monitor,
   Smartphone,
-  Cast,
   Cpu,
   ShieldCheck,
   Compass,
@@ -56,7 +54,7 @@ export const Footer: React.FC = () => {
             </div>
             <div className="min-w-0">
               <h4 className="text-white text-xs sm:text-sm font-bold truncate">Gợi Ý Đúng Gu</h4>
-              <p className="text-xs text-zinc-400 truncate">AI Taste Profile</p>
+              <p className="text-xs text-zinc-400 truncate">Gợi ý theo gu</p>
             </div>
           </div>
 
@@ -352,37 +350,7 @@ export const Footer: React.FC = () => {
         </div>
 
         {/* ============================================================ */}
-        {/* 3. ECOSYSTEM STATUS BAR */}
-        {/* ============================================================ */}
-        <div className="py-2.5 px-1 sm:p-4 rounded-xl sm:rounded-2xl sm:bg-zinc-950/70 sm:border sm:border-white/[0.08] sm:backdrop-blur-xl flex flex-col sm:flex-row items-center justify-center sm:justify-between gap-3 text-center sm:text-left">
-          <div className="flex items-center justify-center gap-2.5 w-full sm:w-auto text-center">
-            <span className="relative flex h-2 w-2 sm:h-2.5 sm:w-2.5 shrink-0">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 sm:h-2.5 sm:w-2.5 bg-emerald-500"></span>
-            </span>
-            <span className="text-xs text-zinc-400">
-              Hệ thống: <span className="text-emerald-400 font-sans tabular-nums font-medium">99.99% Uptime</span> • CDN Tốc độ cao
-            </span>
-          </div>
-
-          <div className="hidden sm:flex items-center justify-center gap-2 sm:gap-5 text-xs text-zinc-300 w-full sm:w-auto">
-            <span className="flex items-center justify-center gap-1.5 hover:text-white transition bg-white/5 sm:bg-transparent px-2 sm:px-2.5 py-1.5 sm:p-0 rounded-lg sm:rounded-none sm:border-none whitespace-nowrap">
-              <Monitor className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-blue-400 shrink-0" />
-              <span>Smart TV</span>
-            </span>
-            <span className="flex items-center justify-center gap-1.5 hover:text-white transition bg-white/5 sm:bg-transparent px-2 sm:px-2.5 py-1.5 sm:p-0 rounded-lg sm:rounded-none sm:border-none whitespace-nowrap">
-              <Cast className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-400 shrink-0" />
-              <span>Cast / AirPlay</span>
-            </span>
-            <span className="flex items-center justify-center gap-1.5 hover:text-white transition bg-white/5 sm:bg-transparent px-2 sm:px-2.5 py-1.5 sm:p-0 rounded-lg sm:rounded-none sm:border-none whitespace-nowrap">
-              <Smartphone className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-rose-400 shrink-0" />
-              <span>Mobile App</span>
-            </span>
-          </div>
-        </div>
-
-        {/* ============================================================ */}
-        {/* 4. BRANDING & CREATOR CARD (DŨNG TRẦN) */}
+        {/* 3. BRANDING & CREATOR CARD (DŨNG TRẦN) */}
         {/* ============================================================ */}
         <div className="border-t border-white/[0.08] pt-4 sm:pt-6 flex flex-col md:flex-row items-center justify-between gap-3 sm:gap-6 text-center sm:text-left">
           <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4">

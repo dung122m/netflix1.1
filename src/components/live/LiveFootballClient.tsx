@@ -28,8 +28,7 @@ import {
   Radio,
   X,
   Clock,
-  Zap,
-    Trophy,
+  Trophy,
   Check,
   RotateCcw,
   ArrowLeft,
@@ -1361,45 +1360,34 @@ export function LiveFootballClient({
     >
       {/* TIÊU ĐỀ TRANG (CHỈ HIỆN KHI KHÔNG NHÚNG TRONG HUB) */}
       {!hideHeader && (
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-4">
-          <div>
-            <div className="flex items-center gap-2 mb-1.5">
-              <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-netflix-red/20 text-netflix-red text-xs font-bold animate-pulse">
-                <Radio className="w-3.5 h-3.5" />
-                <span>Nana Sports Live</span>
-              </span>
-              <span className="text-xs text-emerald-400 font-medium bg-emerald-500/10 px-2.5 py-0.5 rounded-full">
-                Full HD 1080p • Tốc độ cao
-              </span>
-            </div>
-            <h1 className="text-2xl md:text-4xl font-black text-white tracking-tight">
-              Trực Tiếp Bóng Đá & Thể Thao
-            </h1>
-          </div>
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-3">
+          <h1 className="text-xl md:text-2xl font-bold text-white tracking-tight flex items-center gap-2">
+            <Radio className="w-5 h-5 text-netflix-red animate-pulse" />
+            <span>Trực tiếp thể thao</span>
+          </h1>
         </div>
       )}
 
       {/* THANH ĐIỀU HƯỚNG PHÂN VÙNG THỂ THAO (Ẩn khi đang xem trận trong Cinema Mode) */}
       {!selectedMatch && (
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 p-1 rounded-xl bg-zinc-950/40 backdrop-blur-md">
-          <div className="grid grid-cols-2 gap-1 w-full sm:flex sm:w-auto sm:items-center sm:gap-1">
-            {/* Nút Trực Tiếp & Match Center */}
+        <div className="flex items-center justify-between gap-2 border-b border-white/5 pb-2.5">
+          <div className="flex items-center gap-1.5">
+            {/* Nút Trận đấu */}
             <button
               type="button"
               onClick={() => setActiveSection("matches")}
-              className={`flex items-center justify-center gap-1.5 px-3 py-1.5 min-h-[36px] sm:min-h-[38px] rounded-lg text-xs font-bold transition-all cursor-pointer outline-none focus-visible:ring-1 focus-visible:ring-white/30 shrink-0 ${
+              className={`flex items-center justify-center gap-1.5 px-3 py-1.5 min-h-[34px] rounded-lg text-xs font-bold transition cursor-pointer outline-none shrink-0 ${
                 activeSection === "matches" || activeSection === "match-center"
-                  ? "bg-zinc-800 text-white  shadow-sm"
-                  : "text-zinc-400 hover:text-white hover:bg-white/5 "
+                  ? "bg-zinc-800 text-white shadow-sm"
+                  : "text-zinc-400 hover:text-white hover:bg-white/5"
               }`}
             >
-              <Radio className={`w-3.5 h-3.5 shrink-0 ${activeSection === "matches" || activeSection === "match-center" ? "text-red-500 animate-pulse" : "text-zinc-400"}`} />
-              <span className="sm:hidden">Trận Đấu</span>
-              <span className="hidden sm:inline">Trực Tiếp & Match Center</span>
+              <Radio className={`w-3.5 h-3.5 shrink-0 ${activeSection === "matches" || activeSection === "match-center" ? "text-netflix-red animate-pulse" : "text-zinc-400"}`} />
+              <span>Trận đấu</span>
               <span
-                className={`inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full text-[11px] font-bold leading-none tabular-nums ${
+                className={`inline-flex items-center justify-center min-w-[20px] h-4.5 px-1.5 rounded-full text-[11px] font-semibold leading-none tabular-nums ${
                   activeSection === "matches" || activeSection === "match-center"
-                    ? "bg-red-500/20 text-red-300 "
+                    ? "bg-red-500/20 text-red-300"
                     : "bg-white/5 text-zinc-400"
                 }`}
               >
@@ -1411,27 +1399,15 @@ export function LiveFootballClient({
             <button
               type="button"
               onClick={() => setActiveSection("standings")}
-              className={`flex items-center justify-center gap-1.5 px-3 py-1.5 min-h-[36px] sm:min-h-[38px] rounded-lg text-xs font-bold transition-all cursor-pointer outline-none focus-visible:ring-1 focus-visible:ring-white/30 shrink-0 ${
+              className={`flex items-center justify-center gap-1.5 px-3 py-1.5 min-h-[34px] rounded-lg text-xs font-bold transition cursor-pointer outline-none shrink-0 ${
                 activeSection === "standings"
-                  ? "bg-zinc-800 text-white  shadow-sm"
-                  : "text-zinc-400 hover:text-white hover:bg-white/5 "
+                  ? "bg-zinc-800 text-white shadow-sm"
+                  : "text-zinc-400 hover:text-white hover:bg-white/5"
               }`}
             >
               <Trophy className={`w-3.5 h-3.5 shrink-0 ${activeSection === "standings" ? "text-amber-400" : "text-zinc-400"}`} />
-              <span className="sm:hidden">Bảng Xếp Hạng</span>
-              <span className="hidden sm:inline">Bảng Xếp Hạng Giải Đấu</span>
-              <span className="inline-flex items-center justify-center h-5 px-1.5 text-[11px] uppercase font-bold rounded bg-amber-500/15 text-amber-300 leading-none">
-                BXH
-              </span>
+              <span>Bảng xếp hạng</span>
             </button>
-          </div>
-
-          {/* Live Match Counter Pill */}
-          <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-zinc-900/80 text-xs font-medium text-zinc-400 shrink-0">
-            <Zap className="w-3 h-3 text-amber-400 fill-amber-400" />
-            <span>
-              {liveMatchesList.length} đang diễn ra • {upcomingMatchesList.length} sắp diễn ra
-            </span>
           </div>
         </div>
       )}
@@ -1989,7 +1965,7 @@ export function LiveFootballClient({
             /* ============================================================ */
             <div className="space-y-4 sm:space-y-6">
               {/* THANH BỘ LỌC TÌM KIẾM TOÀN DIỆN & TINH GỌN (TỐI ĐA 2 HÀNG) */}
-              <div className="relative z-30 rounded-xl sm:rounded-2xl bg-zinc-950/80 backdrop-blur-xl p-2 sm:p-4 space-y-2 sm:space-y-3 shadow-2xl">
+              <div className="relative z-30 space-y-2 sm:space-y-3 pt-1 pb-2">
                 {/* HÀNG 1: Ô TÌM KIẾM, BỘ LỌC TRẠNG THÁI & CÔNG TẮC PHÁT (TOGGLES) */}
                 <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-2 sm:gap-3">
                   {/* Ô tìm kiếm thông minh: Desktop luôn hiện, Mobile thu gọn thành icon khi trống */}

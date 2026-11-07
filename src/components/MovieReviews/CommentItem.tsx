@@ -13,7 +13,6 @@ import {
   ChevronUp,
   CornerDownRight,
   Reply,
-  Info,
   Pin,
   ShieldCheck,
 } from "lucide-react";
@@ -630,14 +629,6 @@ export const CommentItem: React.FC<CommentItemProps> = ({
         <div className="mb-2 flex items-center gap-1.5 text-xs font-semibold text-amber-400">
           <Pin className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
           <span>📌 Đã ghim bởi Quản trị viên</span>
-        </div>
-      )}
-
-      {/* BADGE THÔNG BÁO KHI ĐƯỢC CHỌN TỪ POPUP / THÔNG BÁO */}
-      {isHighlighted && (
-        <div className="mb-2 flex items-center gap-1.5 text-xs font-medium text-netflix-red animate-pulse">
-          <Info className="w-3.5 h-3.5 text-netflix-red" />
-          <span>Bình luận bạn vừa chọn từ thông báo</span>
         </div>
       )}
 

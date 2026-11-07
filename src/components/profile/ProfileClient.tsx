@@ -969,7 +969,7 @@ export function ProfileClient() {
                 <h3 className="text-xs font-bold text-zinc-300 uppercase tracking-wider">
                   5. Thể loại phim yêu thích (Tối đa 5)
                 </h3>
-                <p className="text-xs text-zinc-400">Giúp hệ thống AI gợi ý chính xác gu phim dành riêng cho bạn</p>
+                <p className="text-xs text-zinc-400">Giúp gợi ý chính xác gu phim dành riêng cho bạn</p>
               </div>
 
               <div className="flex flex-wrap gap-2">

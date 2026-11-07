@@ -822,7 +822,7 @@ function AdminDashboardContent() {
               title="Đồng bộ 30 phim vào bảng movie_embeddings để tìm kiếm AI dưới 50ms"
             >
               <Bot size={13} className={isSyncingEmbeddings ? "animate-spin" : ""} />
-              <span>{isSyncingEmbeddings ? "Nạp vector..." : "⚡ Vector AI"}</span>
+              <span>{isSyncingEmbeddings ? "Đang đồng bộ..." : "Đồng bộ tìm kiếm AI"}</span>
             </button>
             <Link
               href="/"
@@ -1003,12 +1003,8 @@ function AdminDashboardContent() {
                 <div>
                   <div className="flex items-center gap-2 flex-wrap">
                     <h3 className="text-xs sm:text-sm font-bold text-white">
-                      Hệ Thống Quét & Xóa Bình Luận Rác
+                      Lọc bình luận rác
                     </h3>
-                    <span className="text-[9px] sm:text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-bold uppercase tracking-wider flex items-center gap-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
-                      Auto-Shield
-                    </span>
                   </div>
                   <p className="text-[11px] sm:text-xs text-zinc-400 mt-0.5">
                     Tự động nhận diện và xóa vĩnh viễn ngôn từ xúc phạm, 18+, cờ bạc, scam và spam.
