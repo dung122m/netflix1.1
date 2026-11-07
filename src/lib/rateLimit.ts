@@ -6,8 +6,10 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import { Redis } from "@upstash/redis";
 import crypto from "crypto";
 import { AsyncLocalStorage } from "node:async_hooks";
+import { getSafeRedisCredentials } from "@/lib/redisEnvGuard";
 
 /**
  * Request-scoped AbortSignal storage for cancellation support.
@@ -57,8 +59,12 @@ export function hashClientIp(rawIp?: string | null): string {
 // 2. REDIS CLIENT & FAILOVER CONFIGURATION (PERMANENTLY REMOVED)
 // ============================================================================
 
+let cachedRedisClient: Redis | null = null;
+let cachedRedisSignature: string | null = null;
+
 export function _resetRedisClientForTesting(): void {
-  // No-op: Redis rate limiting has been completely removed to eliminate Redis command waste
+  cachedRedisClient = null;
+  cachedRedisSignature = null;
 }
 
 /**
@@ -88,11 +94,41 @@ export function getRateLimitEnvPrefix(): "development" | "test" | "preview" | "p
 }
 
 /**
- * Redis rate limiting has been completely eliminated to save ~30,000 commands/day.
- * Always returns null. All rate limiting is evaluated purely in-memory.
+ * Khởi tạo Upstash Redis Client định tuyến chuyên biệt vào DB 2 (Live / Realtime / Rate Limiting)
+ * Chỉ dùng cho các tác vụ nhạy cảm (Comment Mutations, Auth, Admin) để bảo vệ đa container phân tán.
+ * Các tác vụ đọc phổ thông & streaming tiếp tục dùng in-memory-only (0 Redis commands).
  */
-export function getRedisInstance(): null {
-  return null;
+export function getRedisInstance(): Redis | null {
+  const creds = getSafeRedisCredentials({ purpose: "live", allowTestRedis: true });
+  if (!creds) {
+    cachedRedisClient = null;
+    cachedRedisSignature = null;
+    return null;
+  }
+
+  const { url, token } = creds;
+  const signature = `${url}:::${token}`;
+  if (cachedRedisClient && cachedRedisSignature === signature) {
+    return cachedRedisClient;
+  }
+
+  try {
+    cachedRedisClient = new Redis({
+      url,
+      token,
+      retry: {
+        retries: 0, // Fail-fast: không retry làm nghẽn serverless execution
+      },
+      signal: () => redisRequestSignalStorage.getStore() ?? new AbortController().signal,
+    });
+    cachedRedisSignature = signature;
+    return cachedRedisClient;
+  } catch (err) {
+    console.warn("[RateLimit:Live] Failed to initialize Redis client:", err);
+    cachedRedisClient = null;
+    cachedRedisSignature = null;
+    return null;
+  }
 }
 
 // ============================================================================
@@ -795,15 +831,86 @@ export async function checkRateLimit(
 
   const strategy = config.strategy ?? (isSensitive ? "sliding-window" : "fixed-window");
 
-  // ==========================================================================
-  // ZERO-REDIS RATE LIMITING: Pure In-Memory Sliding Window & Block Cache
-  // Upstash Redis commands for Rate Limiting permanently reduced to ZERO.
-  // ==========================================================================
+  // Các thao tác đọc phổ thông & streaming dùng In-Memory 100% (0 Redis commands)
   if (strategy === "in-memory-only") {
     return evaluateInMemoryStrategy(key, target, config, now, windowMs);
   }
 
-  // Pure in-memory sliding window fallback (0ms latency, zero Redis commands)
+  // Rate Limiting phân tán trên Redis DB 2 cho các thao tác nhạy cảm (ZSET pipeline)
+  const redis = getRedisInstance();
+  if (redis) {
+    let timeoutTimer: NodeJS.Timeout | undefined;
+    const controller = new AbortController();
+    const timeoutMs = config.timeoutMs ?? 1500;
+    try {
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        timeoutTimer = setTimeout(() => {
+          controller.abort();
+          reject(new Error("Redis rate limit timeout"));
+        }, timeoutMs);
+      });
+
+      const uniqueMember = `${now}:${Math.random().toString(36).slice(2, 9)}`;
+      const windowStart = now - windowMs;
+
+      const pipelinePromise = redisRequestSignalStorage.run(controller.signal, async () => {
+        const p = redis.pipeline();
+        p.zremrangebyscore(key, 0, windowStart);
+        p.zcard(key);
+        p.zadd(key, { score: now, member: uniqueMember });
+        p.expire(key, config.windowSeconds + 15);
+        const results = await p.exec<[number, number, number, number]>();
+        return results[1]; // Result of zcard before adding new request
+      });
+
+      const currentCount = await Promise.race([pipelinePromise, timeoutPromise]);
+      clearTimeout(timeoutTimer);
+      recordRedisSuccess();
+
+      const totalCount = typeof currentCount === "number" ? currentCount + 1 : 1;
+
+      if (totalCount > config.maxRequests) {
+        const resetSeconds = Math.max(1, config.windowSeconds);
+        localBlockedCache.set(key, now + resetSeconds * 1000);
+        return {
+          allowed: false,
+          limit: config.maxRequests,
+          remaining: 0,
+          resetSeconds,
+          target,
+          reason: "Tần suất yêu cầu vượt quá giới hạn cho phép.",
+          headers: {
+            "X-RateLimit-Limit": String(config.maxRequests),
+            "X-RateLimit-Remaining": "0",
+            "X-RateLimit-Reset": String(resetSeconds),
+            "Retry-After": String(resetSeconds),
+          },
+        };
+      }
+
+      const remaining = Math.max(0, config.maxRequests - totalCount);
+      return {
+        allowed: true,
+        limit: config.maxRequests,
+        remaining,
+        resetSeconds: config.windowSeconds,
+        target,
+        headers: {
+          "X-RateLimit-Limit": String(config.maxRequests),
+          "X-RateLimit-Remaining": String(remaining),
+          "X-RateLimit-Reset": String(config.windowSeconds),
+        },
+      };
+    } catch (err) {
+      clearTimeout(timeoutTimer);
+      controller.abort();
+      const { kind, message } = classifyRedisError(err);
+      recordRedisFailure(kind, now);
+      // Fallback sang memory khi Redis lỗi hoặc timeout
+    }
+  }
+
+  // In-memory sliding window fallback (0ms latency khi Redis chưa kết nối hoặc circuit open)
   return evaluateMemoryFallback(key, target, config, now, windowMs);
 }
 

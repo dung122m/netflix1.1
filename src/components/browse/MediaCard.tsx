@@ -353,6 +353,8 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
   const baseCardRef = useRef<HTMLAnchorElement>(null);
   const [isNavigating, setIsNavigating] = useState(false);
   const navTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const prefetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const hasPrefetchedRef = useRef(false);
 
   // Đồng bộ Watchlist qua 1 shared listener duy nhất
   useEffect(() => {
@@ -364,6 +366,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
     return () => {
       unsubscribe();
       if (navTimeoutRef.current) clearTimeout(navTimeoutRef.current);
+      if (prefetchTimeoutRef.current) clearTimeout(prefetchTimeoutRef.current);
     };
   }, [slug]);
 
@@ -532,6 +535,12 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
 
   // Điều hướng chuyển trang khi click Movie Card
   const handleCardClick = (e: React.MouseEvent) => {
+    // Hủy ngay timer prefetch nếu click xảy ra trước khi hết dwell time
+    if (prefetchTimeoutRef.current) {
+      clearTimeout(prefetchTimeoutRef.current);
+      prefetchTimeoutRef.current = null;
+    }
+
     // Để trình duyệt xử lý tự nhiên khi mở tab mới (Ctrl, Cmd, Shift, Alt, chuột giữa)
     if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) {
       return;
@@ -552,6 +561,36 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
       router.push(targetHref);
     }, 180);
   };
+
+  // Dwell intent: Rê chuột dừng trên card >= 220ms mới kích hoạt prefetch (chống bão prefetch khi lướt chuột qua)
+  const handleMouseEnterCard = useCallback(() => {
+    if (!targetHref || hasPrefetchedRef.current) return;
+    if (prefetchTimeoutRef.current) {
+      clearTimeout(prefetchTimeoutRef.current);
+    }
+    prefetchTimeoutRef.current = setTimeout(() => {
+      if (!hasPrefetchedRef.current) {
+        hasPrefetchedRef.current = true;
+        router.prefetch(targetHref);
+      }
+    }, 220);
+  }, [targetHref, router]);
+
+  // Hủy ngay prefetch khi con trỏ rời khỏi card trước khi chạm ngưỡng 220ms
+  const handleMouseLeaveCard = useCallback(() => {
+    if (prefetchTimeoutRef.current) {
+      clearTimeout(prefetchTimeoutRef.current);
+      prefetchTimeoutRef.current = null;
+    }
+  }, []);
+
+  // Hỗ trợ người dùng bàn phím (Tab navigation / A11y): Prefetch ngay khi thẻ nhận focus
+  const handleFocusCard = useCallback(() => {
+    if (targetHref && !hasPrefetchedRef.current) {
+      hasPrefetchedRef.current = true;
+      router.prefetch(targetHref);
+    }
+  }, [targetHref, router]);
 
   // Xử lý khi nhấn nút Trailer: Tải trailer theo nhu cầu (nếu chưa có) và mở TrailerModal
   const handleTrailerClick = async (e: React.MouseEvent) => {
@@ -606,6 +645,9 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
   return (
     <div
       className="group/card relative flex flex-col w-full select-none cursor-pointer hover:scale-[1.02] hover:-translate-y-0.5 hover:z-20 transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:transform-none"
+      onMouseEnter={handleMouseEnterCard}
+      onMouseLeave={handleMouseLeaveCard}
+      onFocus={handleFocusCard}
     >
       {/* ========================================================================= */}
       {/* 1. KHỐI POSTER NGHỆ THUẬT (2:3 POSTER ARTWORK CANVAS - CLEAN & ELEVATED)   */}

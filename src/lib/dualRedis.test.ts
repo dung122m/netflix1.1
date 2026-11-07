@@ -19,6 +19,8 @@ describe("Nanaflix Triple Redis Multi-Account Architecture", () => {
     assert.equal(getRedisPurposeForKey("search:suggest:conan"), "aux");
     assert.equal(getRedisPurposeForKey("movie:synopsis:v1:avatar"), "aux");
     assert.equal(getRedisPurposeForKey("ai:candidate:v2:action"), "aux");
+    assert.equal(getRedisPurposeForKey("tmdb:dir_flow_v2:12345:20"), "aux");
+    assert.equal(getRedisPurposeForKey("ai:anilist:poster:conan"), "aux");
     assert.equal(getRedisPurposeForKey("ai:embedding:test"), "aux");
 
     // DB 2: Live / Realtime & Community (composed-squid-82374)

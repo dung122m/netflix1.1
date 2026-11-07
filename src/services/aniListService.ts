@@ -1,3 +1,5 @@
+import { cacheService } from "@/lib/cache";
+
 const ANILIST_GRAPHQL_ENDPOINT = "https://graphql.anilist.co";
 
 interface AniListPosterResult {
@@ -41,6 +43,21 @@ export async function searchAniListPoster(
   if (memHit && memHit.expireAt > now) {
     return { posterUrl: memHit.posterUrl, backdropUrl: memHit.backdropUrl };
   }
+
+  // Kiểm tra L2 Redis DB 3 (Aux / Metadata - ai:anilist:poster:...)
+  const cleanKey = primaryKey.replace(/[^a-z0-9_]/g, "_").slice(0, 80);
+  const kvKey = `ai:anilist:poster:${cleanKey}`;
+  try {
+    const cached = await cacheService.get<AniListPosterResult>(kvKey);
+    if (cached) {
+      ANILIST_MEMORY_CACHE.set(primaryKey, {
+        posterUrl: cached.posterUrl,
+        backdropUrl: cached.backdropUrl,
+        expireAt: now + 24 * 3600 * 1000,
+      });
+      return cached;
+    }
+  } catch {}
 
   const graphQuery = `
     query ($search: String) {
@@ -107,6 +124,9 @@ export async function searchAniListPoster(
     backdropUrl: finalRes.backdropUrl,
     expireAt: now + 24 * 3600 * 1000, // 24h in-memory
   });
+
+  // Lưu vào Redis DB 3 với TTL 30 ngày (2592000s)
+  cacheService.set(kvKey, finalRes, 30 * 86400).catch(() => {});
 
   return finalRes;
 }

@@ -2224,7 +2224,11 @@ export async function getDirectorFilmographyFromTmdb(
     }
   }
 
-  try {
+  const kvKey = `tmdb:dir_flow_v2:${tmdbPersonId || cleanKey}:${maxMovies}`;
+  return await cacheService.fetchOrSet(
+    kvKey,
+    async () => {
+      try {
         let personId = tmdbPersonId;
         let personName = directorQuery;
 
@@ -2307,4 +2311,7 @@ export async function getDirectorFilmographyFromTmdb(
         console.error("[TMDB Director Flow] Execution error:", err);
         return [];
       }
+    },
+    14 * 86400 // TTL 14 ngày trên Redis DB 3
+  );
 }
