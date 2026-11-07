@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import { movieApi, deduplicateServerEpisodes, filterDualServers } from "@/services/movies/service";
+import { encodeStreamUrl } from "@/lib/streamCrypto";
 
 /**
  * ISR / Edge Cache: Cho phép CDN Cloudflare và Vercel Edge cache response HTML công khai 24 giờ.
@@ -428,8 +429,8 @@ export default async function MovieDetail({
       (srv.server_data || []).map((ep: { name?: string; slug?: string; link_embed?: string; link_m3u8?: string }) => ({
         name: ep.name || "",
         slug: ep.slug || "",
-        link_embed: ep.link_embed || "",
-        link_m3u8: ep.link_m3u8 || "",
+        link_embed: encodeStreamUrl(ep.link_embed || ""),
+        link_m3u8: encodeStreamUrl(ep.link_m3u8 || ""),
       }))
     ),
   }));

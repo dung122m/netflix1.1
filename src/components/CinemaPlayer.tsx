@@ -68,6 +68,7 @@ import {
   type KeyboardSeekState,
 } from "@/lib/keyboardSeekManager";
 import { toOptimizedCardPosterUrl, toOptimizedCardBackdropUrl } from "@/lib/movieMedia";
+import { decodeStreamUrl } from "@/lib/streamCrypto";
 
 /** Ngưỡng buffer phía trước tối thiểu để kích hoạt video.play() ban đầu (Batch 1: 0.5s thay vì 1.2s để tối ưu TTFF) */
 const INITIAL_BUFFER_START_SECONDS = 0.5;
@@ -548,10 +549,14 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
   }, [videoLink, trailerUrl]);
 
   const resolvedM3u8 = useMemo(() => {
-    if (m3u8Link && m3u8Link.trim() && (m3u8Link.includes(".m3u8") || !m3u8Link.includes("<iframe"))) {
-      return m3u8Link.trim();
+    const rawM3u8 = decodeStreamUrl(m3u8Link || "");
+    const rawEmbed = decodeStreamUrl(embedSrc || "");
+    const rawVideo = decodeStreamUrl(videoLink || "");
+
+    if (rawM3u8 && rawM3u8.trim() && (rawM3u8.includes(".m3u8") || !rawM3u8.includes("<iframe"))) {
+      return rawM3u8.trim();
     }
-    const src = embedSrc || videoLink;
+    const src = rawEmbed || rawVideo;
     if (src) {
       try {
         const parsed = new URL(src, "https://dummy.com");
@@ -574,7 +579,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
         }
       }
     }
-    return m3u8Link || "";
+    return rawM3u8 || "";
   }, [m3u8Link, embedSrc, videoLink]);
 
   const [initialEpisodeSlug] = useState<string | undefined>(activeEpisodeSlug);
@@ -648,7 +653,9 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
   }, [activeEpisodeSlug, resolvedM3u8, watchContext?.currentServerIndex, initialEpisodeSlug, initialLoadedEpisode]);
 
   const activeSrc = useMemo(() => {
-    let src = videoLink ? embedSrc : trailerEmbedSrc;
+    const rawEmbed = decodeStreamUrl(embedSrc || "");
+    const rawVideo = decodeStreamUrl(videoLink || "");
+    let src = rawVideo ? rawEmbed : trailerEmbedSrc;
     if (!src) return "";
     if (!src.includes("autoplay=")) {
       src += (src.includes("?") ? "&" : "?") + "autoplay=1";

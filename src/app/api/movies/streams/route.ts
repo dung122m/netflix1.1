@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { movieApi } from "@/services/movies/service";
 import { enforceRateLimit, buildRateLimitResponse, RATE_LIMIT_PRESETS } from "@/lib/rateLimit";
+import { encodeStreamUrl } from "@/lib/streamCrypto";
 
 export const dynamic = "force-dynamic";
 
@@ -68,12 +69,17 @@ export async function GET(req: NextRequest) {
 
   try {
     const streams = await movieApi.getEpisodeStream(slug, ep, server, source);
+    const secureStreams = streams.map((s) => ({
+      ...s,
+      link_m3u8: encodeStreamUrl(s.link_m3u8),
+      link_embed: encodeStreamUrl(s.link_embed),
+    }));
     return NextResponse.json(
       {
         success: true,
         slug,
         episodeSlug: ep,
-        streams,
+        streams: secureStreams,
       },
       {
         headers: {
