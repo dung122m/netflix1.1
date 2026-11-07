@@ -22,8 +22,38 @@ import { clearLocalWatchHistoryOnly } from "@/lib/watchHistory";
 import { clearLocalWatchlistOnly } from "@/lib/watchlist";
 import { recordUserProfile } from "@/services/userService";
 
+export interface CachedAuthUser {
+  uid: string;
+  email: string | null;
+  displayName: string | null;
+  photoURL: string | null;
+}
+
+export const CACHED_AUTH_USER_KEY = "nanaflix_cached_auth_user";
+
+export function getCachedAuthUser(): CachedAuthUser | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(CACHED_AUTH_USER_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch {}
+  return null;
+}
+
+export function setCachedAuthUser(userData: CachedAuthUser | null): void {
+  if (typeof window === "undefined") return;
+  try {
+    if (userData) {
+      localStorage.setItem(CACHED_AUTH_USER_KEY, JSON.stringify(userData));
+    } else {
+      localStorage.removeItem(CACHED_AUTH_USER_KEY);
+    }
+  } catch {}
+}
+
 interface AuthContextType {
   user: User | null;
+  cachedUser: CachedAuthUser | null;
   loading: boolean;
   isConfigured: boolean;
   isSyncing: boolean;
@@ -34,6 +64,7 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
+  cachedUser: null,
   loading: true,
   isConfigured: false,
   isSyncing: false,
@@ -46,6 +77,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [cachedUser, setCachedUser] = useState<CachedAuthUser | null>(() => {
+    return getCachedAuthUser();
+  });
   const [loading, setLoading] = useState<boolean>(true);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
   const isConfigured = isFirebaseConfigured();
@@ -76,6 +110,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
+      if (currentUser) {
+        const cached: CachedAuthUser = {
+          uid: currentUser.uid,
+          email: currentUser.email,
+          displayName: currentUser.displayName,
+          photoURL: currentUser.photoURL,
+        };
+        setCachedUser(cached);
+        setCachedAuthUser(cached);
+      } else {
+        setCachedUser(null);
+        setCachedAuthUser(null);
+      }
       setLoading(false);
 
       if (currentUser) {
@@ -173,6 +220,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     try {
       await signOut(auth);
       setUser(null);
+      setCachedUser(null);
+      setCachedAuthUser(null);
       // Trả máy tính về trạng thái sạch cho người tiếp theo, không lo lẫn lộn tài khoản
       clearLocalWatchHistoryOnly();
       clearLocalWatchlistOnly();
@@ -184,6 +233,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const authValue = React.useMemo(
     () => ({
       user,
+      cachedUser,
       loading,
       isConfigured,
       isSyncing,
@@ -191,7 +241,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       logout,
       syncNow,
     }),
-    [user, loading, isConfigured, isSyncing, signInWithGoogle, logout, syncNow]
+    [user, cachedUser, loading, isConfigured, isSyncing, signInWithGoogle, logout, syncNow]
   );
 
   return (

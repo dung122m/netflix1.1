@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { isUserAdmin } from "@/lib/adminConfig";
-import { subscribeUserProfile } from "@/services/userService";
+import { subscribeUserProfile, getCachedUserProfile } from "@/services/userService";
 import { UserProfile } from "@/types/user";
 import { UserAvatar } from "@/components/ui/UserAvatar";
 import { useBodyScrollLock } from "@/lib/scrollLock";
@@ -53,21 +53,29 @@ export const NavMobileMenu: React.FC<NavMobileMenuProps> = React.memo(function N
   navLinks,
   isLinkActive,
 }) {
-  const { user, loading, logout } = useAuth();
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const { user, cachedUser, loading, logout } = useAuth();
+  const currentUser = user || cachedUser;
+  const activeUid = user?.uid || cachedUser?.uid;
+
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(() => {
+    if (typeof window !== "undefined" && activeUid) {
+      return getCachedUserProfile(activeUid);
+    }
+    return null;
+  });
 
   useBodyScrollLock(isOpen);
 
   useEffect(() => {
-    if (!user?.uid) {
+    if (!activeUid) {
       setUserProfile(null);
       return;
     }
-    const unsub = subscribeUserProfile(user.uid, (p) => {
+    const unsub = subscribeUserProfile(activeUid, (p) => {
       if (p) setUserProfile(p);
     });
     return () => unsub();
-  }, [user?.uid]);
+  }, [activeUid]);
 
   const [currentAccent, setCurrentAccent] = useState<AccentPreset>(ACCENT_PRESETS[0]);
 
@@ -87,8 +95,18 @@ export const NavMobileMenu: React.FC<NavMobileMenuProps> = React.memo(function N
 
   if (!isOpen) return null;
 
-  const effectiveAvatar = userProfile?.customAvatar || userProfile?.photoURL || user?.photoURL || "";
-  const effectiveDisplayName = userProfile?.displayName || user?.displayName || "Hồ sơ";
+  const effectiveAvatar =
+    userProfile?.customAvatar ||
+    userProfile?.photoURL ||
+    user?.photoURL ||
+    cachedUser?.photoURL ||
+    "";
+  const effectiveDisplayName =
+    userProfile?.displayName ||
+    user?.displayName ||
+    cachedUser?.displayName ||
+    "Hồ sơ";
+  const effectiveEmail = user?.email || cachedUser?.email || "";
 
   return (
     <>
@@ -106,7 +124,7 @@ export const NavMobileMenu: React.FC<NavMobileMenuProps> = React.memo(function N
       <div className="flex flex-col gap-2.5">
         {/* TÀI KHOẢN NGƯỜI DÙNG */}
         <div className="p-3 rounded-2xl bg-white/[0.04]">
-          {loading ? (
+          {loading && !currentUser ? (
             <div className="flex items-center gap-3 animate-pulse py-1">
               <div className="w-10 h-10 rounded-full bg-white/10 flex-shrink-0" />
               <div className="flex-1 space-y-1.5 min-w-0">
@@ -114,12 +132,12 @@ export const NavMobileMenu: React.FC<NavMobileMenuProps> = React.memo(function N
                 <div className="h-3 w-40 bg-white/5 rounded" />
               </div>
             </div>
-          ) : user ? (
+          ) : currentUser ? (
             <div className="space-y-2.5">
               <div className="flex items-center gap-3">
                 <UserAvatar
                   src={effectiveAvatar || undefined}
-                  name={effectiveDisplayName || user.email}
+                  name={effectiveDisplayName || effectiveEmail}
                   sizeClassName="w-10 h-10 text-sm font-bold"
                   className="shadow-lg"
                 />
@@ -127,7 +145,7 @@ export const NavMobileMenu: React.FC<NavMobileMenuProps> = React.memo(function N
                   <p className="text-sm font-bold text-white truncate">
                     {effectiveDisplayName}
                   </p>
-                  <p className="text-[11px] text-zinc-400 truncate">{user.email}</p>
+                  <p className="text-[11px] text-zinc-400 truncate">{effectiveEmail}</p>
                 </div>
               </div>
 
@@ -148,7 +166,7 @@ export const NavMobileMenu: React.FC<NavMobileMenuProps> = React.memo(function N
                   <MessageSquare size={13} className="text-netflix-red shrink-0" />
                   <span className="truncate">Bình luận</span>
                 </Link>
-                {isUserAdmin(user?.email) && (
+                {isUserAdmin(effectiveEmail) && (
                   <Link
                     href="/admin"
                     onClick={onClose}
@@ -164,7 +182,7 @@ export const NavMobileMenu: React.FC<NavMobileMenuProps> = React.memo(function N
                     onClose();
                     await logout();
                   }}
-                  className={`flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-xl text-xs font-semibold text-red-400 bg-red-500/15 hover:bg-red-500/25 transition active:scale-95 cursor-pointer shadow-sm ${!isUserAdmin(user?.email) ? "col-span-2" : ""
+                  className={`flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-xl text-xs font-semibold text-red-400 bg-red-500/15 hover:bg-red-500/25 transition active:scale-95 cursor-pointer shadow-sm ${!isUserAdmin(effectiveEmail) ? "col-span-2" : ""
                     }`}
                 >
                   <LogOut size={13} className="shrink-0" />

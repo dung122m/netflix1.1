@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { isUserAdmin } from "@/lib/adminConfig";
-import { subscribeUserProfile } from "@/services/userService";
+import { subscribeUserProfile, getCachedUserProfile } from "@/services/userService";
 import { UserProfile } from "@/types/user";
 import { UserAvatar } from "@/components/ui/UserAvatar";
 import { Tooltip } from "@/components/ui/Tooltip";
@@ -24,21 +24,30 @@ interface NavUserMenuProps {
 export const NavUserMenu: React.FC<NavUserMenuProps> = React.memo(function NavUserMenu({
   onOpenAuthModal,
 }) {
-  const { user, loading, logout } = useAuth();
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const { user, cachedUser, loading, logout } = useAuth();
+  const currentUser = user || cachedUser;
+  const activeUid = user?.uid || cachedUser?.uid;
+
+  // Khởi tạo userProfile từ cache ngay lập tức để render avatar 0ms, không biến mất khi reload
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(() => {
+    if (typeof window !== "undefined" && activeUid) {
+      return getCachedUserProfile(activeUid);
+    }
+    return null;
+  });
   const [showUserDropdown, setShowUserDropdown] = useState(false);
   const userDropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!user?.uid) {
+    if (!activeUid) {
       setUserProfile(null);
       return;
     }
-    const unsubProfile = subscribeUserProfile(user.uid, (p) => {
+    const unsubProfile = subscribeUserProfile(activeUid, (p) => {
       if (p) setUserProfile(p);
     });
     return () => unsubProfile();
-  }, [user?.uid]);
+  }, [activeUid]);
 
   // Click outside and Escape key to close
   useEffect(() => {
@@ -67,10 +76,20 @@ export const NavUserMenu: React.FC<NavUserMenuProps> = React.memo(function NavUs
     };
   }, [showUserDropdown]);
 
-  const effectiveAvatar = userProfile?.customAvatar || userProfile?.photoURL || user?.photoURL || "";
-  const effectiveDisplayName = userProfile?.displayName || user?.displayName || "Thành viên Nanaflix";
+  const effectiveAvatar =
+    userProfile?.customAvatar ||
+    userProfile?.photoURL ||
+    user?.photoURL ||
+    cachedUser?.photoURL ||
+    "";
+  const effectiveDisplayName =
+    userProfile?.displayName ||
+    user?.displayName ||
+    cachedUser?.displayName ||
+    "Thành viên Nanaflix";
+  const effectiveEmail = user?.email || cachedUser?.email || "";
 
-  if (loading) {
+  if (loading && !currentUser) {
     return (
       <div
         className="hidden sm:inline-flex items-center w-[96px] h-8 sm:h-[34px] rounded-full bg-white/5 animate-pulse flex-shrink-0"
@@ -79,7 +98,7 @@ export const NavUserMenu: React.FC<NavUserMenuProps> = React.memo(function NavUs
     );
   }
 
-  if (!user) {
+  if (!currentUser) {
     return (
       <div className="hidden sm:inline-flex items-center flex-shrink-0">
         <Tooltip
@@ -124,9 +143,9 @@ export const NavUserMenu: React.FC<NavUserMenuProps> = React.memo(function NavUs
   }
 
   return (
-    <div ref={userDropdownRef} className="relative hidden sm:block flex-shrink-0">
+    <div ref={userDropdownRef} className="relative hidden sm:block flex-shrink-0" suppressHydrationWarning>
       <Tooltip
-        content={effectiveDisplayName || user.email || "Tài khoản"}
+        content={effectiveDisplayName || effectiveEmail || "Tài khoản"}
         side="bottom"
         align="end"
         disabled={showUserDropdown}
@@ -134,12 +153,12 @@ export const NavUserMenu: React.FC<NavUserMenuProps> = React.memo(function NavUs
         <button
           type="button"
           onClick={() => setShowUserDropdown(!showUserDropdown)}
-          aria-label={effectiveDisplayName || user.email || "Tài khoản"}
+          aria-label={effectiveDisplayName || effectiveEmail || "Tài khoản"}
           className="flex items-center gap-1.5 p-1 pr-2 rounded-full bg-zinc-800/80 hover:bg-zinc-700/80 transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black"
         >
           <UserAvatar
             src={effectiveAvatar || undefined}
-            name={effectiveDisplayName || user.email}
+            name={effectiveDisplayName || effectiveEmail}
             sizeClassName="w-7 h-7 text-xs font-bold"
           />
           <ChevronDown size={13} className="text-zinc-400" />
@@ -157,14 +176,14 @@ export const NavUserMenu: React.FC<NavUserMenuProps> = React.memo(function NavUs
             <p className="text-xs font-bold text-white truncate group-hover:text-netflix-red transition">
               {effectiveDisplayName}
             </p>
-            <p className="text-[11px] text-zinc-400 truncate mt-0.5">{user.email}</p>
+            <p className="text-[11px] text-zinc-400 truncate mt-0.5">{effectiveEmail}</p>
             <div className="mt-1.5 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/15 text-[10px] text-emerald-400 font-medium">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
               <span>Cloud Sync</span>
             </div>
           </Link>
 
-          {isUserAdmin(user?.email) && (
+          {isUserAdmin(effectiveEmail) && (
             <Link
               href="/admin"
               onClick={() => setShowUserDropdown(false)}

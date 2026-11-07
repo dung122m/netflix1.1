@@ -72,6 +72,8 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
           src={src || undefined}
           alt={alt || name || "User avatar"}
           referrerPolicy="no-referrer"
+          loading="eager"
+          decoding="async"
           onError={() => setImgError(true)}
           className={`absolute inset-0 w-full h-full object-cover ${roundedClasses} ${imgClassName}`}
         />

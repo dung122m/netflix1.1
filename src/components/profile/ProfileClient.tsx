@@ -38,6 +38,7 @@ import { useAuth } from "@/context/AuthContext";
 import { UserProfile } from "@/types/user";
 import {
   subscribeUserProfile,
+  getCachedUserProfile,
   updateUserProfile,
   getWatchLevelInfo,
   updatePlayerSettings,
@@ -85,7 +86,9 @@ export const AVAILABLE_BADGES = [
 export type ProfileTab = "profile" | "player_settings" | "comments";
 
 export function ProfileClient() {
-  const { user, loading } = useAuth();
+  const { user, cachedUser, loading } = useAuth();
+  const currentUser = user || cachedUser;
+  const activeUid = user?.uid || cachedUser?.uid;
   const searchParams = useSearchParams();
   const router = useRouter();
 
@@ -94,7 +97,12 @@ export function ProfileClient() {
     tabParam === "player_settings" || tabParam === "comments" ? tabParam : "profile"
   );
 
-  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [profile, setProfile] = useState<UserProfile | null>(() => {
+    if (typeof window !== "undefined" && activeUid) {
+      return getCachedUserProfile(activeUid);
+    }
+    return null;
+  });
   const [mounted, setMounted] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -157,22 +165,22 @@ export function ProfileClient() {
   }, [user?.uid]);
 
   useEffect(() => {
-    if (user?.uid) {
+    if (activeUid) {
       refreshStats();
-      setPlayerSettingsState(getPlayerSettings(user.uid));
+      setPlayerSettingsState(getPlayerSettings(activeUid));
     }
-  }, [user?.uid, refreshStats]);
+  }, [activeUid, refreshStats]);
 
   // Realtime Profile Listener
   useEffect(() => {
-    if (!user?.uid) {
+    if (!activeUid) {
       setProfile(null);
       return;
     }
-    const unsub = subscribeUserProfile(user.uid, (data) => {
+    const unsub = subscribeUserProfile(activeUid, (data) => {
       if (data) {
         setProfile(data);
-        setDisplayName(data.displayName || user.displayName || "");
+        setDisplayName(data.displayName || user?.displayName || cachedUser?.displayName || "");
         setBio(data.bio || "");
         setFavoriteGenres(data.favoriteGenres || []);
 
@@ -190,7 +198,7 @@ export function ProfileClient() {
           setUserBadges(unlockedBadges);
         }
 
-        const currentAvatar = data.customAvatar || data.photoURL || user.photoURL || "";
+        const currentAvatar = data.customAvatar || data.photoURL || user?.photoURL || cachedUser?.photoURL || "";
         setSelectedAvatar(currentAvatar);
         if (currentAvatar && !PRESET_AVATARS.some((a) => a.url === currentAvatar)) {
           setCustomAvatarUrl(currentAvatar);
@@ -520,7 +528,7 @@ export function ProfileClient() {
     }
   };
 
-  if (!mounted || loading) {
+  if (!mounted || (loading && !currentUser)) {
     return (
       <div className="min-h-[50vh] flex flex-col items-center justify-center">
         <div className="w-10 h-10 border-2 border-netflix-red border-t-transparent rounded-full animate-spin mb-3" />
@@ -530,7 +538,7 @@ export function ProfileClient() {
   }
 
   // Not Logged In Screen
-  if (!user) {
+  if (!currentUser) {
     return (
       <div className="max-w-md mx-auto px-4 py-16 text-center space-y-6">
         <div className="w-20 h-20 rounded-full bg-zinc-900 border border-white/10 flex items-center justify-center mx-auto shadow-2xl">
@@ -570,8 +578,8 @@ export function ProfileClient() {
   const levelInfo = getWatchLevelInfo(watchMins);
   const watchHours = (watchMins / 60).toFixed(1);
   const effectiveAvatar =
-    selectedAvatar || customAvatarUrl || profile?.customAvatar || profile?.photoURL || user.photoURL || "";
-  const effectiveDisplayName = profile?.displayName || user.displayName || "Thành viên Nanaflix";
+    selectedAvatar || customAvatarUrl || profile?.customAvatar || profile?.photoURL || currentUser.photoURL || "";
+  const effectiveDisplayName = profile?.displayName || currentUser.displayName || "Thành viên Nanaflix";
   const progressPct = levelInfo.nextMinMinutes
     ? Math.min(100, Math.round((watchMins / levelInfo.nextMinMinutes) * 100))
     : 100;
@@ -640,7 +648,7 @@ export function ProfileClient() {
                 <span>{levelInfo.levelName}</span>
               </span>
 
-              {isUserAdmin(user.email) && (
+              {isUserAdmin(currentUser.email) && (
                 <Link
                   href="/admin"
                   className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-500/20 text-amber-300 text-xs font-bold hover:bg-amber-500/30 transition shadow-sm"
@@ -651,7 +659,7 @@ export function ProfileClient() {
               )}
             </div>
 
-            <p className="text-xs text-zinc-400 font-medium truncate">{user.email}</p>
+            <p className="text-xs text-zinc-400 font-medium truncate">{currentUser.email}</p>
 
             {profile?.bio && (
               <p className="text-xs sm:text-sm text-zinc-300 italic max-w-xl line-clamp-2 pt-0.5">

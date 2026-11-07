@@ -5,21 +5,29 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Home, Compass, Tv, Bookmark, User } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
-import { subscribeUserProfile } from "@/services/userService";
+import { subscribeUserProfile, getCachedUserProfile } from "@/services/userService";
 import { UserProfile } from "@/types/user";
 import { UserAvatar } from "@/components/ui/UserAvatar";
 
 export function BottomNav() {
   const pathname = usePathname();
-  const { user } = useAuth();
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const { user, cachedUser } = useAuth();
+  const currentUser = user || cachedUser;
+  const activeUid = user?.uid || cachedUser?.uid;
+
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(() => {
+    if (typeof window !== "undefined" && activeUid) {
+      return getCachedUserProfile(activeUid);
+    }
+    return null;
+  });
 
   useEffect(() => {
-    if (!user?.uid) {
+    if (!activeUid) {
       setUserProfile(null);
       return;
     }
-    const unsub = subscribeUserProfile(user.uid, (p) => {
+    const unsub = subscribeUserProfile(activeUid, (p) => {
       if (!p) return;
       setUserProfile((prev) => {
         if (
@@ -34,10 +42,20 @@ export function BottomNav() {
       });
     });
     return () => unsub();
-  }, [user?.uid]);
+  }, [activeUid]);
 
-  const effectiveAvatar = userProfile?.customAvatar || userProfile?.photoURL || user?.photoURL || "";
-  const effectiveDisplayName = userProfile?.displayName || user?.displayName || "";
+  const effectiveAvatar =
+    userProfile?.customAvatar ||
+    userProfile?.photoURL ||
+    user?.photoURL ||
+    cachedUser?.photoURL ||
+    "";
+  const effectiveDisplayName =
+    userProfile?.displayName ||
+    user?.displayName ||
+    cachedUser?.displayName ||
+    "";
+  const effectiveEmail = user?.email || cachedUser?.email || "";
 
   // Ẩn bottom nav trong trang admin để tối đa diện tích làm việc
   if (pathname?.startsWith("/admin")) {
@@ -143,7 +161,7 @@ export function BottomNav() {
         </Link>
 
         {/* 5. HỒ SƠ / TÀI KHOẢN */}
-        {user ? (
+        {currentUser ? (
           <Link
             href="/profile"
             onClick={handleNavClick}
@@ -156,7 +174,7 @@ export function BottomNav() {
             <div className="relative">
               <UserAvatar
                 src={effectiveAvatar || undefined}
-                name={effectiveDisplayName || user.email}
+                name={effectiveDisplayName || effectiveEmail}
                 sizeClassName="w-5 h-5 text-[10px]"
                 className={isProfile ? "ring-2 ring-netflix-red" : ""}
               />
