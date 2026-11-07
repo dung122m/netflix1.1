@@ -29,17 +29,17 @@ import { NanaflixBrandLogo } from "@/components/NetflixLogo";
 
 export const Footer: React.FC = () => {
   return (
-    <footer className="relative z-0 bg-gradient-to-b from-transparent via-[#080808] to-[#030303] text-zinc-400 pt-8 sm:pt-12 pb-8 sm:pb-16 px-4 sm:px-8 md:px-16 mt-6 sm:mt-10 border-t border-white/[0.08] overflow-hidden cv-auto-footer">
+    <footer className="relative z-0 bg-gradient-to-b from-transparent via-[#080808] to-[#030303] text-zinc-400 pt-6 sm:pt-12 pb-24 sm:pb-16 px-4 sm:px-8 md:px-16 mt-6 sm:mt-10 border-t border-white/[0.08] overflow-hidden cv-auto-footer">
       {/* Hiệu ứng ánh sáng tinh tế phía trên footer */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-3/4 max-w-4xl h-[1px] bg-gradient-to-r from-transparent via-netflix-red/70 to-transparent" />
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-1/2 max-w-2xl h-16 sm:h-20 bg-netflix-red/10 blur-3xl pointer-events-none" />
 
-      <div className="max-w-7xl 2xl:max-w-[1440px] mx-auto space-y-8 sm:space-y-12 relative z-10">
+      <div className="max-w-7xl 2xl:max-w-[1440px] mx-auto space-y-6 sm:space-y-12 relative z-10">
         
         {/* ============================================================ */}
-        {/* 1. 4 PILLS TÍNH NĂNG ĐẲNG CẤP (2x2 trên mobile, 4 col trên desktop) */}
+        {/* 1. 4 PILLS TÍNH NĂNG ĐẲNG CẤP (Ẩn trên mobile để footer tinh gọn) */}
         {/* ============================================================ */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-4">
+        <div className="hidden sm:grid grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-4">
           <div className="flex items-center gap-2.5 sm:gap-3 p-2.5 sm:p-3.5 rounded-xl sm:rounded-2xl bg-zinc-950/60 backdrop-blur-xl shadow-md hover:bg-zinc-900/70 transition-all group min-h-[52px] sm:min-h-[60px]">
             <div className="p-1.5 sm:p-2 rounded-lg sm:rounded-xl bg-netflix-red/15 text-netflix-red group-hover:scale-105 transition-transform flex-shrink-0">
               <Zap className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
@@ -82,9 +82,9 @@ export const Footer: React.FC = () => {
         </div>
 
         {/* ============================================================ */}
-        {/* 2. CỘT ĐIỀU HƯỚNG (Cân đối 100% 5 mục mỗi cột trên mọi màn hình) */}
+        {/* 2A. CỘT ĐIỀU HƯỚNG DESKTOP (4 Cột đầy đủ trên màn hình >= 640px) */}
         {/* ============================================================ */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-x-5 sm:gap-x-8 lg:gap-x-10 xl:gap-x-14 2xl:gap-x-16 gap-y-7 sm:gap-y-10 pt-1">
+        <div className="hidden sm:grid grid-cols-2 md:grid-cols-4 gap-x-5 sm:gap-x-8 lg:gap-x-10 xl:gap-x-14 2xl:gap-x-16 gap-y-7 sm:gap-y-10 pt-1">
           {/* CỘT 1: THẾ GIỚI ĐIỆN ẢNH */}
           <div className="space-y-3 sm:space-y-4">
             <h4 className="text-white font-black text-xs sm:text-sm tracking-wider uppercase flex items-center gap-2">
@@ -306,6 +306,36 @@ export const Footer: React.FC = () => {
         </div>
 
         {/* ============================================================ */}
+        {/* 2B. GIAO DIỆN MOBILE TINH GỌN (CHUẨN NETFLIX COMPACT FOOTER) */}
+        {/* ============================================================ */}
+        <div className="sm:hidden space-y-4 pt-1">
+          <div className="grid grid-cols-2 gap-x-4 gap-y-2.5 text-xs text-zinc-300">
+            <Link href="/about" className="hover:text-white transition-colors py-1 truncate">
+              Giới thiệu Nanaflix
+            </Link>
+            <Link href="/faq" className="hover:text-white transition-colors py-1 truncate">
+              Hỏi & Đáp (FAQ)
+            </Link>
+            <Link href="/privacy" className="hover:text-white transition-colors py-1 truncate">
+              Bảo mật & Riêng tư
+            </Link>
+            <Link href="/terms" className="hover:text-white transition-colors py-1 truncate">
+              Điều khoản & DMCA
+            </Link>
+            <Link href="/collection" className="hover:text-white transition-colors py-1 truncate">
+              Bộ sưu tập phim
+            </Link>
+            <button
+              type="button"
+              onClick={() => window.dispatchEvent(new CustomEvent("open-pwa-install"))}
+              className="hover:text-emerald-300 transition-colors py-1 text-left truncate cursor-pointer"
+            >
+              Cài ứng dụng (PWA)
+            </button>
+          </div>
+        </div>
+
+        {/* ============================================================ */}
         {/* 3. ECOSYSTEM STATUS BAR */}
         {/* ============================================================ */}
         <div className="p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-zinc-950/70 border border-white/[0.08] backdrop-blur-xl flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4 text-center sm:text-left">
@@ -319,7 +349,7 @@ export const Footer: React.FC = () => {
             </span>
           </div>
 
-          <div className="grid grid-cols-3 sm:flex items-center justify-center gap-2 sm:gap-5 text-xs text-zinc-300 w-full sm:w-auto">
+          <div className="hidden sm:flex items-center justify-center gap-2 sm:gap-5 text-xs text-zinc-300 w-full sm:w-auto">
             <span className="flex items-center justify-center gap-1.5 hover:text-white transition bg-white/5 sm:bg-transparent px-2 sm:px-2.5 py-1.5 sm:p-0 rounded-lg sm:rounded-none sm:border-none whitespace-nowrap">
               <Monitor className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-blue-400 shrink-0" />
               <span>Smart TV</span>
@@ -338,7 +368,7 @@ export const Footer: React.FC = () => {
         {/* ============================================================ */}
         {/* 4. BRANDING & CREATOR CARD (DŨNG TRẦN) */}
         {/* ============================================================ */}
-        <div className="border-t border-white/[0.08] pt-6 sm:pt-8 flex flex-col md:flex-row items-center justify-between gap-4 sm:gap-6">
+        <div className="border-t border-white/[0.08] pt-5 sm:pt-8 flex flex-col md:flex-row items-center justify-between gap-4 sm:gap-6">
           <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4 text-center sm:text-left">
             <Link href="/" className="hover:opacity-90 transition inline-flex items-center">
               <NanaflixBrandLogo />
@@ -352,11 +382,11 @@ export const Footer: React.FC = () => {
 
           <Link
             href="/about"
-            className="flex items-center gap-3 px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl sm:rounded-2xl bg-zinc-950/80 hover:bg-zinc-900 border border-white/[0.08] sm:border-white/[0.1] hover:border-netflix-red/50 transition-all duration-300 group cursor-pointer shadow-lg w-full sm:w-auto justify-center sm:justify-start"
+            className="flex items-center gap-2.5 sm:gap-3 px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl sm:rounded-2xl bg-zinc-950/80 hover:bg-zinc-900 border border-white/[0.08] sm:border-white/[0.1] hover:border-netflix-red/50 transition-all duration-300 group cursor-pointer shadow-lg w-full sm:w-auto justify-center sm:justify-start"
           >
             {/* Lá cờ Việt Nam */}
             <div
-              className="w-8 h-8 sm:w-9 sm:h-9 rounded-full overflow-hidden border-2 border-zinc-700 group-hover:border-netflix-red group-hover:scale-105 transition-all duration-300 shadow-md shrink-0 flex items-center justify-center bg-[#DA251D] relative shadow-black/60"
+              className="w-7 h-7 sm:w-9 sm:h-9 rounded-full overflow-hidden border-2 border-zinc-700 group-hover:border-netflix-red group-hover:scale-105 transition-all duration-300 shadow-md shrink-0 flex items-center justify-center bg-[#DA251D] relative shadow-black/60"
               title="Việt Nam"
               aria-label="Cờ Việt Nam"
             >

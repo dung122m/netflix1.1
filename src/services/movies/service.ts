@@ -1952,8 +1952,8 @@ async function executeGetMovies(params: MovieFilterParams, cacheKey: string) {
     totalItemsCount = availableCounts.length > 0 ? Math.max(...availableCounts) : candidates.length;
   }
 
-  // Bảo đảm tính bất biến/đơn điệu của totalItems cho cùng query giữa các trang khác nhau
-  if (cachedMeta?.totalItems && cachedMeta.totalItems > totalItemsCount) {
+  // Bảo đảm tính bất biến/ổn định của totalItems cho cùng query giữa các trang khác nhau trong cùng phiên duyệt
+  if (cachedMeta?.totalItems && (Date.now() - (cachedMeta.updatedAt || 0) < 300_000)) {
     totalItemsCount = cachedMeta.totalItems;
   }
 
