@@ -100,6 +100,20 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(function Episo
 
   const [activeChunk, setActiveChunk] = useState<number>(initialChunk);
   const [isMobileExpanded, setIsMobileExpanded] = useState<boolean>(false);
+  const [isChunkDropdownOpen, setIsChunkDropdownOpen] = useState<boolean>(false);
+  const chunkDropdownRef = React.useRef<HTMLDivElement | null>(null);
+
+  // Click outside listener đóng dropdown chọn dải tập
+  useEffect(() => {
+    if (!isChunkDropdownOpen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (chunkDropdownRef.current && !chunkDropdownRef.current.contains(e.target as Node)) {
+        setIsChunkDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [isChunkDropdownOpen]);
 
   // Tự động thu gọn danh sách tập trên mobile khi đổi dải tập
   useEffect(() => {
@@ -411,27 +425,73 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(function Episo
             {chunks.length > 4 ? (
               /* KHI CÓ NHIỀU DẢI TẬP (> 4 dải, vd Conan 41 dải): Thu gọn thành 1 hàng duy nhất kèm nút nhảy về tập đang xem */
               <div className="flex items-center justify-between gap-1.5 p-1 rounded-lg bg-zinc-900/80 border border-white/[0.06]">
-                <div className="relative flex-1 min-w-0">
-                  <select
-                    value={activeChunk}
-                    onChange={(e) => setActiveChunk(Number(e.target.value))}
+                <div className="relative flex-1 min-w-0" ref={chunkDropdownRef}>
+                  <button
+                    type="button"
+                    onClick={() => setIsChunkDropdownOpen((prev) => !prev)}
+                    aria-haspopup="listbox"
+                    aria-expanded={isChunkDropdownOpen}
                     aria-label="Chọn dải tập phim"
-                    className="w-full bg-transparent text-white text-xs font-bold py-1 pl-2 pr-6 outline-none cursor-pointer appearance-none truncate"
+                    className="w-full flex items-center justify-between gap-2 bg-zinc-900/90 hover:bg-zinc-800 text-white text-xs font-bold py-1.5 pl-2.5 pr-2 rounded-md border border-white/10 transition cursor-pointer text-left"
                   >
-                    {chunks.map((c) => (
-                      <option key={c.index} value={c.index} className="bg-zinc-950 text-white">
-                        {c.label} {c.index === initialChunk ? "• (Đang phát)" : ""}
-                      </option>
-                    ))}
-                  </select>
-                  <ChevronDown className="w-3.5 h-3.5 text-zinc-400 absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    <span className="truncate">
+                      {chunks[activeChunk]?.label || `Tập ${activeChunk * CHUNK_SIZE + 1} - ${(activeChunk + 1) * CHUNK_SIZE}`}
+                      {activeChunk === initialChunk ? " • (Đang phát)" : ""}
+                    </span>
+                    <ChevronDown
+                      className={`w-3.5 h-3.5 text-zinc-400 shrink-0 transition-transform duration-200 ${
+                        isChunkDropdownOpen ? "rotate-180 text-white" : ""
+                      }`}
+                    />
+                  </button>
+
+                  {/* MENU DROPDOWN CUSTOM SANG TRỌNG CHUẨN CINEMA (KHÔNG DÙNG NATIVE SELECT) */}
+                  {isChunkDropdownOpen && (
+                    <div className="absolute left-0 top-full mt-1.5 w-full min-w-[210px] max-h-64 overflow-y-auto rounded-xl bg-zinc-950/95 backdrop-blur-xl border border-white/10 shadow-[0_12px_40px_rgba(0,0,0,0.85)] p-1 z-50 animate-in fade-in zoom-in-95 duration-150 scrollbar-thin">
+                      {chunks.map((c) => {
+                        const isSelected = c.index === activeChunk;
+                        const isPlaying = c.index === initialChunk;
+                        return (
+                          <button
+                            key={c.index}
+                            type="button"
+                            onClick={() => {
+                              setActiveChunk(c.index);
+                              setIsChunkDropdownOpen(false);
+                            }}
+                            className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-semibold transition text-left cursor-pointer ${
+                              isSelected
+                                ? "bg-netflix-red text-white font-bold shadow-sm"
+                                : "text-zinc-300 hover:bg-white/10 hover:text-white"
+                            }`}
+                          >
+                            <span className="truncate">{c.label}</span>
+                            <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                              {isPlaying && (
+                                <span className={`inline-flex items-center gap-1 px-1.5 py-0.2 rounded text-[10px] font-medium ${
+                                  isSelected ? "bg-black/30 text-emerald-200" : "bg-emerald-500/20 text-emerald-300"
+                                }`}>
+                                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                                  <span>Đang phát</span>
+                                </span>
+                              )}
+                              {isSelected && <Check className="w-3.5 h-3.5 text-white stroke-[2.5]" />}
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
 
                 {/* Nút nhảy nhanh về dải tập đang xem nếu người dùng đang duyệt dải khác */}
                 {activeChunk !== initialChunk && activeEpisodeIndex >= 0 ? (
                   <button
                     type="button"
-                    onClick={() => setActiveChunk(initialChunk)}
+                    onClick={() => {
+                      setActiveChunk(initialChunk);
+                      setIsChunkDropdownOpen(false);
+                    }}
                     title={`Chuyển về dải tập chứa ${currentActiveEpisode?.name || "tập đang phát"}`}
                     className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-netflix-red hover:brightness-110 text-white text-[11px] font-bold shadow-sm transition-all cursor-pointer shrink-0 animate-in fade-in"
                   >
