@@ -180,22 +180,24 @@ async function resolveTrendingCommunityInternal(
             let poster = pickBestMoviePoster(m, "");
             let thumb = pickBestMovieThumb(m, "");
 
-            // Thay thế ngay từ đầu trên Server: Tra cứu poster chính thức từ TMDb nếu nguồn cũ bị thiếu/hỏng
-            if (!poster || isBrokenImageUrl(poster) || poster.includes("/default-")) {
+            // Thay thế ngay từ đầu trên Server: BẮT BUỘC tra cứu poster chính thức từ TMDb nếu là nguồn phimimg hoặc bị thiếu/hỏng
+            const isPhimimg = Boolean(poster?.includes("phimimg.com") || thumb?.includes("phimimg.com"));
+            if (!poster || isBrokenImageUrl(poster) || poster.includes("/default-") || isPhimimg) {
               if (m.tmdb?.id) {
                 try {
                   const tmdbP = await getTmdbPosterUrl(m.tmdb.id, m.type);
                   if (tmdbP) poster = tmdbP;
                 } catch {}
               }
-              if (!poster || isBrokenImageUrl(poster) || poster.includes("/default-")) {
+              const stillNeedsTmdb = Boolean(!poster || isBrokenImageUrl(poster) || poster.includes("/default-") || poster?.includes("phimimg.com"));
+              if (stillNeedsTmdb) {
                 const candidates = [title, m.origin_name, slug.replace(/-/g, " ")].filter(Boolean);
                 for (const query of candidates) {
                   try {
                     const tmdbRes = await searchTmdbPosterByTitle(query, year, m.type);
                     if (tmdbRes?.posterUrl) {
                       poster = tmdbRes.posterUrl;
-                      if (!thumb || isBrokenImageUrl(thumb) || thumb.includes("/default-")) {
+                      if (!thumb || isBrokenImageUrl(thumb) || thumb.includes("/default-") || thumb.includes("phimimg.com")) {
                         thumb = tmdbRes.backdropUrl || tmdbRes.posterUrl;
                       }
                       break;
