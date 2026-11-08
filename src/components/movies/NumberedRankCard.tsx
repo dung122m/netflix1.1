@@ -34,19 +34,17 @@ export const NumberedRankCard: React.FC<NumberedRankCardProps> = ({
   theme: _theme = "red",
 }) => {
   const initialPoster = React.useMemo(() => {
-    const rawPoster = poster_url && !poster_url.includes("phimimg.com") && !poster_url.includes("/api/img-thumb") ? poster_url : undefined;
-    const rawThumb = thumb_url && !thumb_url.includes("phimimg.com") && !thumb_url.includes("/api/img-thumb") ? thumb_url : undefined;
     const best = pickBestMoviePoster(
       {
-        poster_url: rawPoster,
-        thumb_url: rawThumb,
+        poster_url,
+        thumb_url,
         name: title,
         origin_name,
         slug,
       },
       ""
     );
-    if (best && !best.includes("phimimg.com") && !best.includes("/api/img-thumb") && !best.includes("/default-")) {
+    if (best && !best.includes("/api/img-thumb") && !best.includes("/default-")) {
       return best;
     }
     return "";
@@ -64,10 +62,10 @@ export const NumberedRankCard: React.FC<NumberedRankCardProps> = ({
       )
         .then((res) => (res.ok ? res.json() : null))
         .then((data) => {
-          if (data?.posterUrl && !data.posterUrl.includes("phimimg.com") && !data.posterUrl.includes("/api/img-thumb")) {
+          if (data?.posterUrl && !data.posterUrl.includes("/api/img-thumb")) {
             setImgSrc(data.posterUrl);
           } else {
-            setImgSrc("");
+            setImgSrc("/default-poster.jpg");
           }
         })
         .catch(() => {
@@ -77,7 +75,7 @@ export const NumberedRankCard: React.FC<NumberedRankCardProps> = ({
   }, [imgSrc, title, slug]);
 
   const handleImageError = () => {
-    const safeThumb = thumb_url && !thumb_url.includes("phimimg.com") && !thumb_url.includes("/api/img-thumb") && !thumb_url.includes("/default-") ? thumb_url : "";
+    const safeThumb = thumb_url && !thumb_url.includes("/api/img-thumb") && !thumb_url.includes("/default-") ? thumb_url : "";
     if (safeThumb && imgSrc !== safeThumb) {
       setImgSrc(safeThumb);
       return;
@@ -90,17 +88,17 @@ export const NumberedRankCard: React.FC<NumberedRankCardProps> = ({
       )
         .then((res) => (res.ok ? res.json() : null))
         .then((data) => {
-          if (data?.posterUrl && !data.posterUrl.includes("phimimg.com") && !data.posterUrl.includes("/api/img-thumb")) {
+          if (data?.posterUrl && !data.posterUrl.includes("/api/img-thumb")) {
             setImgSrc(data.posterUrl);
           } else {
-            setImgSrc("");
+            setImgSrc("/default-poster.jpg");
           }
         })
         .catch(() => {
-          setImgSrc("");
+          setImgSrc("/default-poster.jpg");
         });
     } else {
-      setImgSrc("");
+      setImgSrc("/default-poster.jpg");
     }
   };
 
