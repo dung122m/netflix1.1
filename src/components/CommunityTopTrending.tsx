@@ -147,11 +147,11 @@ function CommunityTopTrendingInner() {
     return items.map((movie) => {
       const categoryText = movie.category ? formatGenreName(movie.category) : "";
       const safePoster =
-        movie.poster && !movie.poster.includes("phimimg.com") && !movie.poster.includes("/api/img-thumb")
+        movie.poster && !movie.poster.includes("/api/img-thumb")
           ? movie.poster
           : undefined;
       const safeThumb =
-        movie.thumb && !movie.thumb.includes("phimimg.com") && !movie.thumb.includes("/api/img-thumb")
+        movie.thumb && !movie.thumb.includes("/api/img-thumb")
           ? movie.thumb
           : undefined;
 
