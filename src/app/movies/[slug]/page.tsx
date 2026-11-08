@@ -315,7 +315,10 @@ export default async function MovieDetail({
   const hasGoodPoster = effectivePosterUrl && !effectivePosterUrl.includes("default-poster");
   const hasGoodThumb = effectiveThumbUrl && !effectiveThumbUrl.includes("default-hero");
   const needsTrailer = !effectiveTrailerUrl;
-  const needsPoster = !hasGoodPoster || !hasGoodThumb;
+  const isPhimimg = Boolean(
+    effectivePosterUrl?.includes("phimimg.com") || effectiveThumbUrl?.includes("phimimg.com")
+  );
+  const needsPoster = !hasGoodPoster || !hasGoodThumb || isPhimimg;
 
   if ((needsTrailer || needsPoster) && (tmdbId || movie.origin_name || movie.name)) {
     const tmdbTasks = Promise.allSettled([

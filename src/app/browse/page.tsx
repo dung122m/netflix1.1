@@ -448,11 +448,11 @@ async function enrichMoviesWithTmdbPosters(movieList: any[]) {
           }
         }
 
-        // Purged: Loại bỏ hoàn toàn nguồn phimimg.com
-        if (item.poster_url && (item.poster_url.includes("phimimg.com") || item.poster_url.includes("/api/img-thumb"))) {
+        // Loại bỏ URL proxy /api/img-thumb cũ nếu có (giữ lại phimimg gốc nếu chưa có TMDb)
+        if (item.poster_url && item.poster_url.includes("/api/img-thumb")) {
           item.poster_url = "";
         }
-        if (item.thumb_url && (item.thumb_url.includes("phimimg.com") || item.thumb_url.includes("/api/img-thumb"))) {
+        if (item.thumb_url && item.thumb_url.includes("/api/img-thumb")) {
           item.thumb_url = "";
         }
       }
