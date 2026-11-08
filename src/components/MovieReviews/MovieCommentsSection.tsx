@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo, useRef } from "react";
+import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   MessageSquare,
@@ -79,28 +79,66 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
   const effectiveAvatar = userProfile?.customAvatar || userProfile?.photoURL || user?.photoURL || "";
   const effectiveDisplayName = userProfile?.displayName || user?.displayName || "Thành viên Nanaflix";
 
+  // Hàm cuộn mượt và chính xác tới comment mục tiêu (hỗ trợ thử lại nhiều lần nếu DOM/Replies đang tải)
+  const scrollToTargetComment = useCallback((targetId: string) => {
+    if (!targetId || typeof document === "undefined") return;
+
+    let attempts = 0;
+    const maxAttempts = 35; // 35 x 100ms = 3.5s
+    const interval = setInterval(() => {
+      attempts++;
+      const el = document.getElementById(`comment-${targetId}`);
+      if (el) {
+        clearInterval(interval);
+        el.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
+        return;
+      }
+      if (attempts >= maxAttempts) {
+        clearInterval(interval);
+        // Fallback: nếu không tìm thấy comment cụ thể, cuộn đến khu vực bình luận
+        const section = document.getElementById("section-reviews");
+        if (section) {
+          section.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+      }
+    }, 100);
+  }, []);
+
   // Lấy ID comment cần highlight từ query params (?highlightComment=xxx) hoặc URL hash (#comment-xxx) hoặc event
   useEffect(() => {
     const paramHighlight = searchParams?.get("highlightComment");
     if (paramHighlight) {
       setHighlightId(paramHighlight);
-      return;
-    }
-    if (typeof window !== "undefined" && window.location.hash.startsWith("#comment-")) {
-      setHighlightId(window.location.hash.replace("#comment-", ""));
+      scrollToTargetComment(paramHighlight);
+    } else if (typeof window !== "undefined" && window.location.hash.startsWith("#comment-")) {
+      const hashId = window.location.hash.replace("#comment-", "");
+      setHighlightId(hashId);
+      scrollToTargetComment(hashId);
     }
 
     const handleHighlightEvent = (e: Event) => {
       const customEv = e as CustomEvent<{ commentId?: string }>;
       if (customEv.detail?.commentId) {
-        setHighlightId(customEv.detail.commentId);
+        const id = customEv.detail.commentId;
+        setHighlightId(id);
+        scrollToTargetComment(id);
       }
     };
     window.addEventListener("nanaflix-highlight-comment", handleHighlightEvent);
     return () => {
       window.removeEventListener("nanaflix-highlight-comment", handleHighlightEvent);
     };
-  }, [searchParams]);
+  }, [searchParams, scrollToTargetComment]);
+
+  // Khi danh sách bình luận (comments) tải xong hoặc cập nhật, nếu có highlightId thì kích hoạt cuộn
+  useEffect(() => {
+    if (highlightId && comments.length > 0) {
+      scrollToTargetComment(highlightId);
+    }
+  }, [comments.length, highlightId, scrollToTargetComment]);
 
   // Tìm bài viết mục tiêu (có thể là root comment hoặc reply)
   const targetComment = useMemo(() => {

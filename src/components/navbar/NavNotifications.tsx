@@ -421,13 +421,6 @@ export const NavNotifications: React.FC = React.memo(function NavNotifications()
                             markNotificationAsRead(user.uid, item.id);
                           }
                           setShowNotifications(false);
-                          if (item.commentId && typeof window !== "undefined") {
-                            window.dispatchEvent(
-                              new CustomEvent("nanaflix-highlight-comment", {
-                                detail: { commentId: item.commentId },
-                              })
-                            );
-                          }
                           const targetLink =
                             item.link ||
                             (item.movieSlug
@@ -436,6 +429,19 @@ export const NavNotifications: React.FC = React.memo(function NavNotifications()
                                 : `/movies/${item.movieSlug}#comments`
                               : "/");
                           router.push(targetLink);
+
+                          if (item.commentId && typeof window !== "undefined") {
+                            const fireHighlight = () => {
+                              window.dispatchEvent(
+                                new CustomEvent("nanaflix-highlight-comment", {
+                                  detail: { commentId: item.commentId },
+                                })
+                              );
+                            };
+                            fireHighlight();
+                            setTimeout(fireHighlight, 200);
+                            setTimeout(fireHighlight, 600);
+                          }
                         }}
                         className="flex items-center gap-3 p-2 rounded-xl hover:bg-white/[0.08] transition-colors cursor-pointer group relative"
                       >

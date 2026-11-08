@@ -529,9 +529,14 @@ export const CommentItem: React.FC<CommentItemProps> = ({
 
               {/* DANH HIỆU USER */}
               {comment.userBadges && comment.userBadges.length > 0 ? (
-                <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-semibold bg-white/5 text-amber-300 border border-amber-500/20 whitespace-nowrap shrink-0 leading-none">
-                  {comment.userBadges[0]}
-                </span>
+                comment.userBadges.slice(0, 2).map((badgeLabel, bIdx) => (
+                  <span
+                    key={bIdx}
+                    className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-semibold bg-white/5 text-amber-300 border border-amber-500/20 whitespace-nowrap shrink-0 leading-none"
+                  >
+                    <span className="leading-none">{badgeLabel}</span>
+                  </span>
+                ))
               ) : null}
 
               {isAuthor && (
@@ -679,9 +684,7 @@ export const CommentItem: React.FC<CommentItemProps> = ({
                 comment.userBadges.slice(0, 2).map((badgeLabel, bIdx) => (
                   <span
                     key={bIdx}
-                    className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-bold bg-gradient-to-r from-amber-500/20 to-rose-500/20 text-amber-300 shadow-sm shadow-black/40 whitespace-nowrap shrink-0 leading-none animate-in fade-in ${
-                      bIdx >= 1 ? "hidden sm:inline-flex" : ""
-                    }`}
+                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-bold bg-gradient-to-r from-amber-500/20 to-rose-500/20 text-amber-300 shadow-sm shadow-black/40 whitespace-nowrap shrink-0 leading-none animate-in fade-in"
                   >
                     <span className="leading-none">{badgeLabel}</span>
                   </span>

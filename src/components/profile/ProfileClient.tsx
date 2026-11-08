@@ -437,6 +437,10 @@ export function ProfileClient() {
     if (userBadges.includes(badgeObj.label)) {
       setUserBadges(userBadges.filter((b) => b !== badgeObj.label));
     } else {
+      if (userBadges.length >= 2) {
+        toast.info("Bạn có thể chọn tối đa 2 huy hiệu hiển thị cùng lúc!");
+        return;
+      }
       setUserBadges([...userBadges, badgeObj.label]);
     }
   };

@@ -102,13 +102,6 @@ export const DesktopReplyPopup: React.FC = () => {
   const handleClickNotification = useCallback(() => {
     if (!activeNotification || !user) return;
     markNotificationAsRead(user.uid, activeNotification.id);
-    if (activeNotification.commentId && typeof window !== "undefined") {
-      window.dispatchEvent(
-        new CustomEvent("nanaflix-highlight-comment", {
-          detail: { commentId: activeNotification.commentId },
-        })
-      );
-    }
     const targetLink =
       activeNotification.link ||
       (activeNotification.movieSlug
@@ -118,6 +111,20 @@ export const DesktopReplyPopup: React.FC = () => {
         : "/");
     handleDismiss();
     router.push(targetLink);
+
+    if (activeNotification.commentId && typeof window !== "undefined") {
+      const cId = activeNotification.commentId;
+      const fireHighlight = () => {
+        window.dispatchEvent(
+          new CustomEvent("nanaflix-highlight-comment", {
+            detail: { commentId: cId },
+          })
+        );
+      };
+      fireHighlight();
+      setTimeout(fireHighlight, 200);
+      setTimeout(fireHighlight, 600);
+    }
   }, [activeNotification, user, handleDismiss, router]);
 
   // Đếm ngược tự động đóng sau 7 giây (tạm dừng khi hover chuột)

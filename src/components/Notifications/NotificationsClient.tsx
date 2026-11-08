@@ -231,14 +231,6 @@ export function NotificationsClient() {
       markNotificationAsRead(user.uid, item.id);
     }
 
-    if (item.commentId && typeof window !== "undefined") {
-      window.dispatchEvent(
-        new CustomEvent("nanaflix-highlight-comment", {
-          detail: { commentId: item.commentId },
-        })
-      );
-    }
-
     const targetLink =
       item.link ||
       (item.movieSlug
@@ -248,6 +240,19 @@ export function NotificationsClient() {
         : "/");
 
     router.push(targetLink);
+
+    if (item.commentId && typeof window !== "undefined") {
+      const fireHighlight = () => {
+        window.dispatchEvent(
+          new CustomEvent("nanaflix-highlight-comment", {
+            detail: { commentId: item.commentId },
+          })
+        );
+      };
+      fireHighlight();
+      setTimeout(fireHighlight, 200);
+      setTimeout(fireHighlight, 600);
+    }
   };
 
   // Badge icon nhỏ góc dưới avatar
