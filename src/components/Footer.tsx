@@ -54,7 +54,7 @@ export const Footer: React.FC = () => {
             </div>
             <div className="min-w-0">
               <h4 className="text-white text-xs sm:text-sm font-bold truncate">Gợi Ý Đúng Gu</h4>
-              <p className="text-xs text-zinc-400 truncate">Gợi ý theo gu</p>
+              <p className="text-xs text-zinc-400 truncate">Cá Nhân Hóa Sở Thích</p>
             </div>
           </div>
 

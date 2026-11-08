@@ -101,7 +101,6 @@ export const IframePlayer: React.FC<IframePlayerProps> = ({
           <p className="text-sm font-medium text-zinc-300">
             Đang tải luồng phát từ <span className="text-white font-bold">{serverName}</span>...
           </p>
-          <p className="text-xs text-zinc-500 mt-1">Vui lòng chờ trong giây lát</p>
         </div>
       )}
 

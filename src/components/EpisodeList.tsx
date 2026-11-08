@@ -436,7 +436,6 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(function Episo
                   >
                     <span className="truncate">
                       {chunks[activeChunk]?.label || `Tập ${activeChunk * CHUNK_SIZE + 1} - ${(activeChunk + 1) * CHUNK_SIZE}`}
-                      {activeChunk === initialChunk ? " • (Đang phát)" : ""}
                     </span>
                     <ChevronDown
                       className={`w-3.5 h-3.5 text-zinc-400 shrink-0 transition-transform duration-200 ${

@@ -261,7 +261,7 @@ export function LiveTvClient({
   const [copied, setCopied] = useState(false);
   const [showControls, setShowControls] = useState(false);
   const [actionFeedback, setActionFeedback] = useState<{
-    icon: "play" | "pause" | "volume" | "mute" | "channel" | "seek";
+    icon: "play" | "pause" | "volume" | "mute" | "seek";
     text?: string;
   } | null>(null);
 
@@ -341,7 +341,7 @@ export function LiveTvClient({
   // Hiển thị visual feedback overlay tạm thời
   const triggerActionFeedback = useCallback(
     (
-      icon: "play" | "pause" | "volume" | "mute" | "channel" | "seek",
+      icon: "play" | "pause" | "volume" | "mute" | "seek",
       text?: string,
     ) => {
       if (actionTimeoutRef.current) clearTimeout(actionTimeoutRef.current);
@@ -463,7 +463,6 @@ export function LiveTvClient({
       if (!keepRailOpen) {
         setShowChannelRail(false);
       }
-      triggerActionFeedback("channel", channel.name);
       try {
         localStorage.setItem("nanaflix_live_channel_id", channel.id);
         const url = new URL(window.location.href);
@@ -955,7 +954,6 @@ export function LiveTvClient({
 
       const nextCh = activeList[targetIdx];
       handleSelectChannel(nextCh);
-      triggerActionFeedback("channel", nextCh.name);
     },
     [filteredChannels, channels, selectedTvChannel, handleSelectChannel, triggerActionFeedback],
   );
@@ -1578,25 +1576,16 @@ export function LiveTvClient({
                       )}
                     </div>
                   </div>
-                ) : actionFeedback.icon === "channel" ? (
-                  <div className="flex flex-col items-center justify-center px-6 py-4 rounded-3xl bg-black/75 backdrop-blur-xl shadow-2xl animate-in fade-in zoom-in duration-200">
-                    <Tv className="w-10 h-10 text-netflix-red" />
-                    {actionFeedback.text && (
-                      <span className="mt-2 text-xs sm:text-sm font-bold text-white font-sans tabular-nums">
-                        {actionFeedback.text}
-                      </span>
-                    )}
-                  </div>
                 ) : null}
               </div>
             )}
 
-            {/* LOADING SPINNER */}
+            {/* LOADING SPINNER - CINEMA STYLE TINH TẾ */}
             {isLoading && !hasError && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 backdrop-blur-sm z-20 pointer-events-none">
-                <div className="w-12 h-12 rounded-full -transparent animate-spin mb-3 shadow-lg" />
-                <p className="text-xs sm:text-sm font-bold text-zinc-200">
-                  Đang kết nối tín hiệu truyền hình {selectedTvChannel.name}...
+              <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm z-20 pointer-events-none animate-in fade-in duration-150">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full border-2 border-white/20 border-t-netflix-red animate-spin mb-3 shadow-lg" />
+                <p className="text-xs sm:text-sm font-medium text-zinc-300 tracking-wide">
+                  Đang kết nối tín hiệu...
                 </p>
               </div>
             )}
@@ -1855,10 +1844,7 @@ export function LiveTvClient({
         <div className="flex items-center justify-between">
           <span className="text-xs font-extrabold text-zinc-300 flex items-center gap-1.5 uppercase tracking-wider">
             <Flame className="w-3.5 h-3.5 text-netflix-red" />
-            <span>Kênh Phổ Biến (Xem nhiều)</span>
-          </span>
-          <span className="text-[11px] text-zinc-500">
-            1-chạm để chuyển kênh
+            <span>Kênh Phổ Biến</span>
           </span>
         </div>
 
