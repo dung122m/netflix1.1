@@ -63,6 +63,9 @@ const AGGRESSIVE_SCRAPER_USER_AGENTS = [
   /phantomjs/i,
   /selenium/i,
   /puppeteer/i,
+  /heritrix/i,
+  /ia_archiver/i,
+  /archive\.org_bot/i,
 ];
 
 // In-Memory Multi-Tier Edge Rate Limiter (Bảo vệ toàn diện, 0 Redis commands)
