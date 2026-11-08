@@ -11,6 +11,7 @@ import {
   RefreshCw,
   AlertCircle,
   ShieldAlert,
+  X,
 } from "lucide-react";
 import { NormalizedLeagueStandings, StandingGroup } from "@/services/live/football-score/types";
 import { CountryFlag } from "./CountryFlag";
@@ -35,11 +36,13 @@ export const STANDINGS_LEAGUES = [
 export interface LeagueStandingsProps {
   initialLeague?: string;
   defaultOpen?: boolean;
+  onClose?: () => void;
 }
 
 export const LeagueStandings: React.FC<LeagueStandingsProps> = ({
   initialLeague = "eng.1",
   defaultOpen = false,
+  onClose,
 }) => {
   const [isOpen, setIsOpen] = useState(defaultOpen);
   const [selectedLeague, setSelectedLeague] = useState<string>(initialLeague);
@@ -195,57 +198,64 @@ export const LeagueStandings: React.FC<LeagueStandingsProps> = ({
   }, [selectedLeague, isOpen, checkScroll]);
 
   return (
-    <section className="mt-6 rounded-2xl bg-zinc-900/80 shadow-2xl backdrop-blur-md overflow-hidden transition-all duration-200">
+    <section className="mt-2 sm:mt-3 rounded-2xl bg-zinc-900/80 shadow-2xl backdrop-blur-md overflow-hidden transition-all duration-200">
       {/* HEADER BẢNG XẾP HẠNG */}
-      <div className="flex items-center justify-between px-4 py-3 sm:px-6 sm:py-3.5 bg-black/40">
-        <div className="flex items-center gap-2.5">
-          <div className="flex items-center justify-center w-7 h-7 rounded-lg bg-amber-500/20 text-amber-400">
+      <div className="flex items-center justify-between px-3.5 py-3 sm:px-6 sm:py-3.5 bg-black/40">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="flex items-center justify-center w-7 h-7 rounded-lg bg-amber-500/20 text-amber-400 shrink-0">
             <Trophy className="w-4 h-4" />
           </div>
-          <div>
-            <h3 className="text-sm sm:text-base font-bold text-white tracking-wide flex items-center gap-2">
+          <div className="min-w-0">
+            <h3 className="text-sm sm:text-base font-bold text-white tracking-wide truncate">
               Bảng Xếp Hạng Bóng Đá
-              <span className="text-[10px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-white/10 text-zinc-300">
-                P3 • Standings
-              </span>
             </h3>
-            <p className="text-[11px] text-zinc-400 truncate max-w-[220px] sm:max-w-md">
+            <p className="text-[11px] text-zinc-400 truncate max-w-[180px] sm:max-w-md">
               {currentLeagueMeta ? `${currentLeagueMeta.flag} ${currentLeagueMeta.name}` : "Cập nhật từ ban tổ chức"}
               {standings ? ` • Mùa giải ${standings.season}` : ""}
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          {isOpen && (
-            <button
-              type="button"
-              onClick={() => fetchStandings(selectedLeague, true)}
-              disabled={loading}
-              title="Làm mới bảng xếp hạng"
-              className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-white/10 transition-colors disabled:opacity-40 cursor-pointer"
-            >
-              <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin text-amber-400" : ""}`} />
-            </button>
-          )}
-
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
           <button
             type="button"
-            onClick={() => setIsOpen((prev) => !prev)}
-            className="flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-zinc-300 hover:text-white bg-white/5 hover:bg-white/10 rounded-lg transition-all cursor-pointer"
+            onClick={() => fetchStandings(selectedLeague, true)}
+            disabled={loading}
+            title="Làm mới bảng xếp hạng"
+            className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-white/10 transition-colors disabled:opacity-40 cursor-pointer"
           >
-            {isOpen ? (
-              <>
-                <span>Thu gọn</span>
-                <ChevronUp className="w-3.5 h-3.5" />
-              </>
-            ) : (
-              <>
-                <span>Xem bảng xếp hạng</span>
-                <ChevronDown className="w-3.5 h-3.5" />
-              </>
-            )}
+            <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin text-amber-400" : ""}`} />
           </button>
+
+          {onClose ? (
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-zinc-300 hover:text-white bg-white/10 hover:bg-white/20 rounded-lg transition-all cursor-pointer"
+            >
+              <X className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Quay lại trận đấu</span>
+              <span className="sm:hidden">Đóng</span>
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setIsOpen((prev) => !prev)}
+              className="flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-zinc-300 hover:text-white bg-white/5 hover:bg-white/10 rounded-lg transition-all cursor-pointer"
+            >
+              {isOpen ? (
+                <>
+                  <span>Thu gọn</span>
+                  <ChevronUp className="w-3.5 h-3.5" />
+                </>
+              ) : (
+                <>
+                  <span>Xem bảng xếp hạng</span>
+                  <ChevronDown className="w-3.5 h-3.5" />
+                </>
+              )}
+            </button>
+          )}
         </div>
       </div>
 
