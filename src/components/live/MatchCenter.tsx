@@ -16,6 +16,7 @@ import {
   calculateMatchCenterPollInterval,
   shouldRefreshOnTabFocus,
   shouldSkipDuplicateRequest,
+  mergeNormalizedSummaries,
 } from "@/services/live/football-score/matchCenterRealtime";
 import {
   resolveCanonicalTournament,
@@ -184,7 +185,12 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
         throw new Error(json.error || "Dữ liệu trận đấu không khả dụng.");
       }
 
-      setSummary(json.data);
+      setSummary((prev) => {
+        if (!prev || prev.eventId !== json.data.eventId) {
+          return json.data;
+        }
+        return mergeNormalizedSummaries(prev, json.data);
+      });
       lastFetchedKeyRef.current = currentKey;
       lastFetchedTimeRef.current = Date.now();
       setError(null);
@@ -203,19 +209,22 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
   };
 
   useEffect(() => {
-    const currentKey = leagueSlug && eventId ? `${leagueSlug}:${eventId}` : "";
+    if (!leagueSlug || !eventId) {
+      return;
+    }
+    const currentKey = `${leagueSlug}:${eventId}`;
 
-    if (currentKey !== lastFetchedKeyRef.current) {
+    if (lastFetchedKeyRef.current && lastFetchedKeyRef.current !== currentKey) {
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
       }
       setSummary(null);
       setError(null);
-      lastFetchedKeyRef.current = "";
       lastFetchedTimeRef.current = 0;
     }
+    lastFetchedKeyRef.current = currentKey;
 
-    if (isOpen && leagueSlug && eventId) {
+    if (isOpen) {
       fetchSummary(true, false);
     }
 

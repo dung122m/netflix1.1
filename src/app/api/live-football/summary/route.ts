@@ -67,13 +67,21 @@ export async function GET(request: NextRequest) {
     }
 
     // 5. Cấu hình Cache-Control phù hợp với trạng thái trận đấu
-    // Đối với trận đang LIVE: không cho Edge/Browser cache lâu, tối đa 5s để đảm bảo cập nhật sự kiện thời gian thực
+    // Đối với trận đang LIVE: triệt để cấm browser/edge cache để đảm bảo nhận sự kiện và bình luận mới nhất tức thì
     const isLive = data.status === "live";
     const cacheControlHeader = isLive
-      ? "public, s-maxage=5, stale-while-revalidate=5, max-age=5"
+      ? "no-cache, no-store, must-revalidate, max-age=0, s-maxage=0"
       : data.status === "finished"
         ? "public, s-maxage=300, stale-while-revalidate=600, max-age=300"
         : "public, s-maxage=30, stale-while-revalidate=60, max-age=30";
+
+    const responseHeaders: Record<string, string> = {
+      "Cache-Control": cacheControlHeader,
+    };
+    if (isLive) {
+      responseHeaders["Pragma"] = "no-cache";
+      responseHeaders["Expires"] = "0";
+    }
 
     return NextResponse.json(
       {
@@ -82,9 +90,7 @@ export async function GET(request: NextRequest) {
         cached,
       },
       {
-        headers: {
-          "Cache-Control": cacheControlHeader,
-        },
+        headers: responseHeaders,
       },
     );
   } catch {

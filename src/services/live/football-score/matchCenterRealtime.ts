@@ -3,12 +3,18 @@
  * Quản lý logic chu kỳ polling, cooldown, tab visibility và deduplication cho Match Center.
  */
 
+import {
+  NormalizedMatchSummary,
+  MatchKeyEvent,
+  MatchCommentaryItem,
+} from "./types";
+
 export const MATCH_CENTER_INTERVALS = {
-  LIVE_MS: 15_000,        // 15s khi trận đang diễn ra (tối ưu độ trễ diễn biến & sự kiện)
+  LIVE_MS: 5_000,         // 5s khi trận đang diễn ra (realtime cao độ cho diễn biến & sự kiện)
   FINISHED_MS: 120_000,   // 120s khi trận đã kết thúc (giảm tải)
-  SCHEDULED_MS: 60_000,   // 60s khi trận sắp diễn ra
-  COOLDOWN_MS: 5_000,     // 5s cooldown chống spam request cho cùng 1 trận
-  TAB_RETURN_THRESHOLD_MS: 15_000, // 15s ngưỡng kích hoạt refresh khi quay lại tab
+  SCHEDULED_MS: 30_000,   // 30s khi trận sắp diễn ra
+  COOLDOWN_MS: 1_500,     // 1.5s cooldown chống spam request cho cùng 1 trận
+  TAB_RETURN_THRESHOLD_MS: 3_000, // 3s ngưỡng kích hoạt refresh tức thì khi quay lại tab
 } as const;
 
 /**
@@ -82,4 +88,81 @@ export function shouldSkipDuplicateRequest(options: {
   }
 
   return false;
+}
+
+/**
+ * Hợp nhất đơn điệu (Monotonic Merge) hai bản tóm tắt trận đấu (Match Summary).
+ * Đảm bảo:
+ * 1. Các sự kiện (keyEvents: bàn thắng, thẻ phạt, thay người...) và bình luận (commentary)
+ *    đã từng xuất hiện sẽ KHÔNG BAO GIỜ bị xóa hay ghi đè mất bởi snapshot cũ/trễ từ upstream CDN.
+ * 2. Giữ nguyên thứ tự thời gian chuẩn xác.
+ * 3. Cập nhật tỷ số, đồng hồ trận đấu, thống kê và trạng thái mới nhất từ incoming.
+ */
+export function mergeNormalizedSummaries(
+  existing: NormalizedMatchSummary,
+  incoming: NormalizedMatchSummary
+): NormalizedMatchSummary {
+  if (existing.eventId !== incoming.eventId) {
+    return incoming;
+  }
+
+  // 1. Hợp nhất Key Events (không bao giờ làm rơi rụng sự kiện đã xảy ra)
+  const eventMap = new Map<string, MatchKeyEvent>();
+  for (const ev of existing.events || []) {
+    const key = ev.id && !ev.id.startsWith("fallback-")
+      ? ev.id
+      : `${ev.minute}_${ev.type}_${(ev.playerName || "").trim().toLowerCase()}_${(ev.text || "").trim().toLowerCase()}`;
+    eventMap.set(key, ev);
+  }
+  for (const ev of incoming.events || []) {
+    const key = ev.id && !ev.id.startsWith("fallback-")
+      ? ev.id
+      : `${ev.minute}_${ev.type}_${(ev.playerName || "").trim().toLowerCase()}_${(ev.text || "").trim().toLowerCase()}`;
+    eventMap.set(key, ev);
+  }
+  const mergedEvents = Array.from(eventMap.values()).sort((a, b) => a.minute - b.minute);
+
+  // 2. Hợp nhất Commentary (bảo toàn 100% dòng bình luận/thông báo trận đấu)
+  const commMap = new Map<string, MatchCommentaryItem>();
+  for (const c of existing.commentary || []) {
+    const key = typeof c.sequence === "number"
+      ? `seq-${c.sequence}`
+      : `${(c.time || "").trim()}-${(c.text || "").trim()}`;
+    commMap.set(key, c);
+  }
+  for (const c of incoming.commentary || []) {
+    const key = typeof c.sequence === "number"
+      ? `seq-${c.sequence}`
+      : `${(c.time || "").trim()}-${(c.text || "").trim()}`;
+    commMap.set(key, c);
+  }
+  const mergedCommentary = Array.from(commMap.values()).sort((a, b) => {
+    if (typeof a.sequence === "number" && typeof b.sequence === "number") {
+      return a.sequence - b.sequence;
+    }
+    return 0;
+  });
+
+  // 3. Stats: Ưu tiên incoming nếu có dữ liệu, nếu rỗng thì giữ existing
+  const stats = incoming.stats && incoming.stats.length > 0 ? incoming.stats : existing.stats;
+
+  // 4. Rosters: Ưu tiên incoming, giữ existing nếu incoming rỗng
+  const homeRoster = incoming.homeRoster?.starters?.length
+    ? incoming.homeRoster
+    : existing.homeRoster;
+  const awayRoster = incoming.awayRoster?.starters?.length
+    ? incoming.awayRoster
+    : existing.awayRoster;
+
+  return {
+    ...incoming,
+    events: mergedEvents,
+    commentary: mergedCommentary,
+    stats,
+    homeRoster,
+    awayRoster,
+    displayClock: incoming.displayClock || existing.displayClock,
+    statusText: incoming.statusText || existing.statusText,
+    updatedAt: incoming.updatedAt || new Date().toISOString(),
+  };
 }

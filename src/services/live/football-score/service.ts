@@ -18,6 +18,7 @@ import {
   FixtureStatus,
 } from "./types";
 import { cacheService } from "@/lib/cache";
+import { mergeNormalizedSummaries } from "./matchCenterRealtime";
 
 export const VERIFIED_SCOREBOARD_LEAGUES = [
   "eng.1", // Premier League
@@ -42,15 +43,15 @@ export type LeagueSlug = (typeof VERIFIED_SCOREBOARD_LEAGUES)[number];
 
 const ESPN_CDN_API_URL = "https://site.api.espn.com";
 const BASE_API_URL = process.env.LIVESCORE_API_URL || "https://worldcup26.ir";
-const CACHE_TTL_LIVE_MS = 15 * 1000; // 15s cache TTL khi có trận đang live
+const CACHE_TTL_LIVE_MS = 5 * 1000; // 5s cache TTL khi có trận đang live (tối ưu realtime)
 const CACHE_TTL_DEFAULT_MS = 60 * 1000; // 60s cache TTL khi không có trận live
 const STALE_TTL_MS = 45 * 1000; // 45s stale grace period
 const REQUEST_TIMEOUT_MS = 6500; // 6.5s timeout an toàn chống nghẽn mạng quốc tế từ local/server
 
 // Cache cấu hình cho Match Center Summary (P2)
-const SUMMARY_TTL_LIVE_MS = 10 * 1000; // 10s cho trận đang diễn ra
+const SUMMARY_TTL_LIVE_MS = 3 * 1000; // 3s cho trận đang diễn ra (tối ưu tốc độ thời gian thực)
 const SUMMARY_TTL_FINISHED_MS = 300 * 1000; // 5 phút cho trận đã kết thúc
-const SUMMARY_TTL_SCHEDULED_MS = 60 * 1000; // 60s cho trận sắp diễn ra
+const SUMMARY_TTL_SCHEDULED_MS = 30 * 1000; // 30s cho trận sắp diễn ra
 
 // Cache cấu hình cho Bảng xếp hạng bóng đá (P3: Standings)
 const STANDINGS_CACHE_TTL_MS = 10 * 60 * 1000; // 10 phút cache TTL phía server
@@ -160,7 +161,7 @@ async function fetchLeagueScoreboard(
   leagueSlug: string,
 ): Promise<LiveScoreboardEvent[]> {
   const candidateUrls = [
-    `${ESPN_CDN_API_URL}/apis/site/v2/sports/soccer/${leagueSlug}/scoreboard`,
+    `${ESPN_CDN_API_URL}/apis/site/v2/sports/soccer/${leagueSlug}/scoreboard?_cb=${Date.now()}`,
     `${BASE_API_URL}/get/soccer/${leagueSlug}/scoreboard`,
   ];
 
@@ -281,6 +282,8 @@ async function fetchAllScoreboards(): Promise<ScoreboardCache> {
   memoryCache = cacheObj;
   return cacheObj;
 }
+
+export { mergeNormalizedSummaries };
 
 export const footballScoreService = {
   /**
@@ -408,6 +411,8 @@ export const footballScoreService = {
 
     // 2. Kiểm tra bộ nhớ đệm
     const cachedEntry = summaryMemoryCache.get(cacheKey);
+    let previousSnapshot: NormalizedMatchSummary | null = cachedEntry?.data || null;
+
     if (cachedEntry && cachedEntry.expireAt > now) {
       return { data: cachedEntry.data, cached: true };
     }
@@ -417,6 +422,7 @@ export const footballScoreService = {
     try {
       const redisCached = await cacheService.get<NormalizedMatchSummary>(redisSummaryKey);
       if (redisCached) {
+        previousSnapshot = redisCached;
         let memTtl = SUMMARY_TTL_SCHEDULED_MS;
         if (redisCached.status === "live") memTtl = SUMMARY_TTL_LIVE_MS;
         else if (redisCached.status === "finished") memTtl = SUMMARY_TTL_FINISHED_MS;
@@ -437,7 +443,7 @@ export const footballScoreService = {
 
     const fetchPromise = (async (): Promise<NormalizedMatchSummary | null> => {
       const candidateUrls = [
-        `${ESPN_CDN_API_URL}/apis/site/v2/sports/soccer/${cleanLeague}/summary?event=${cleanEventId}`,
+        `${ESPN_CDN_API_URL}/apis/site/v2/sports/soccer/${cleanLeague}/summary?event=${cleanEventId}&_cb=${Date.now()}`,
         `${BASE_API_URL}/get/soccer/${cleanLeague}/summary?event=${cleanEventId}`,
       ];
 
@@ -461,24 +467,29 @@ export const footballScoreService = {
             const normalized = parseRawSummary(cleanLeague, cleanEventId, raw);
             if (!normalized) continue;
 
+            // Đảm bảo không bao giờ làm mất sự kiện hay bình luận đã ghi nhận trước đó (Monotonic merge)
+            const finalData = previousSnapshot && previousSnapshot.eventId === cleanEventId
+              ? mergeNormalizedSummaries(previousSnapshot, normalized)
+              : normalized;
+
             // Quyết định TTL theo trạng thái trận đấu
             let ttl = SUMMARY_TTL_SCHEDULED_MS;
             let redisTtlSeconds = 60;
-            if (normalized.status === "live") {
+            if (finalData.status === "live") {
               ttl = SUMMARY_TTL_LIVE_MS;
-              redisTtlSeconds = 12; // 12s cho trận live
-            } else if (normalized.status === "finished") {
+              redisTtlSeconds = 4; // 4s cho trận live
+            } else if (finalData.status === "finished") {
               ttl = SUMMARY_TTL_FINISHED_MS;
               redisTtlSeconds = 300; // 5 phút cho trận đã kết thúc
             }
 
             summaryMemoryCache.set(cacheKey, {
-              data: normalized,
+              data: finalData,
               expireAt: Date.now() + ttl,
             });
-            cacheService.set(redisSummaryKey, normalized, redisTtlSeconds).catch(() => {});
+            cacheService.set(redisSummaryKey, finalData, redisTtlSeconds).catch(() => {});
 
-            return normalized;
+            return finalData;
           } catch {
             // Thử tiếp candidate URL tiếp theo
           }
@@ -493,8 +504,8 @@ export const footballScoreService = {
     const result = await fetchPromise;
 
     // Graceful Stale Fallback: Nếu fetch mới gặp lỗi/timeout nhưng RAM cache trước đó có data -> giữ lại data cũ
-    if (!result && cachedEntry?.data) {
-      return { data: cachedEntry.data, cached: true };
+    if (!result && previousSnapshot) {
+      return { data: previousSnapshot, cached: true };
     }
 
     return { data: result, cached: false };

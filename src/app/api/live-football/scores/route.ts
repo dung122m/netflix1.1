@@ -35,6 +35,19 @@ export async function GET(req: NextRequest) {
       // Giữ scores rỗng nếu liveFootballService gặp lỗi, không làm hỏng phản hồi
     }
 
+    const hasLive = events.some((e) => e.status === "live");
+    const cacheControl = hasLive
+      ? "no-cache, no-store, must-revalidate, max-age=0, s-maxage=0"
+      : "public, s-maxage=10, stale-while-revalidate=15, max-age=10";
+
+    const responseHeaders: Record<string, string> = {
+      "Cache-Control": cacheControl,
+    };
+    if (hasLive) {
+      responseHeaders["Pragma"] = "no-cache";
+      responseHeaders["Expires"] = "0";
+    }
+
     return NextResponse.json(
       {
         status: true,
@@ -46,9 +59,7 @@ export async function GET(req: NextRequest) {
         },
       },
       {
-        headers: {
-          "Cache-Control": "public, s-maxage=5, stale-while-revalidate=10, max-age=5",
-        },
+        headers: responseHeaders,
       },
     );
   } catch {

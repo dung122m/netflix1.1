@@ -16,7 +16,7 @@ import { Tooltip } from "@/components/ui/Tooltip";
 import { MatchTimelineSidebar } from "./MatchTimelineSidebar";
 import { LeagueStandings } from "./LeagueStandings";
 import { LiveMatchScore, NormalizedMatchSummary } from "@/services/live/football-score/types";
-import { shouldRefreshOnTabFocus } from "@/services/live/football-score/matchCenterRealtime";
+import { shouldRefreshOnTabFocus, mergeNormalizedSummaries } from "@/services/live/football-score/matchCenterRealtime";
 import {
   resolveMatchDisplayStatus,
 } from "@/services/live/football-score/liveStatus";
@@ -266,7 +266,7 @@ export function LiveFootballClient({
       }
     };
 
-    const pollIntervalMs = hasLiveMatches ? 15_000 : 60_000;
+    const pollIntervalMs = hasLiveMatches ? 5_000 : 30_000;
     const isReturningFromInactive = !wasActiveScoresRef.current;
     wasActiveScoresRef.current = true;
 
@@ -348,6 +348,19 @@ export function LiveFootballClient({
   const [selectedMatch, setSelectedMatch] = useState<FootballMatch | null>(initialMatch);
   const [matchSummary, setMatchSummary] = useState<NormalizedMatchSummary | null>(null);
   const [isSummaryLoading, setIsSummaryLoading] = useState<boolean>(false);
+
+  const handleSummaryChange = useCallback((newSummary: NormalizedMatchSummary | null) => {
+    if (!newSummary) {
+      setMatchSummary(null);
+      return;
+    }
+    setMatchSummary((prev) => {
+      if (!prev || prev.eventId !== newSummary.eventId) {
+        return newSummary;
+      }
+      return mergeNormalizedSummaries(prev, newSummary);
+    });
+  }, []);
 
   // Tra cứu tỷ số và định danh sự kiện livescore cho trận đang chọn (hỗ trợ fallback nếu ID bị đổi đuôi thời gian)
   const currentMatchScore = useMemo(() => {
@@ -1464,7 +1477,7 @@ export function LiveFootballClient({
                         group={selectedMatch.group}
                         serversCount={selectedMatch.servers?.length}
                         quality={selectedMatch.quality}
-                        onSummaryChange={setMatchSummary}
+                        onSummaryChange={handleSummaryChange}
                         onLoadingChange={setIsSummaryLoading}
                         initialScore={currentMatchScore}
                       />
