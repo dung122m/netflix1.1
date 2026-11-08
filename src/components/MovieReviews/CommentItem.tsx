@@ -190,28 +190,31 @@ export const CommentItem: React.FC<CommentItemProps> = ({
     }
   }, [targetReplyId, showReplies, isReply, comment.id]);
 
-  // Tự động cuộn tới vị trí comment và kích hoạt hiệu ứng phát sáng (highlight)
+  // Tự động cuộn tới vị trí comment và kích hoạt hiệu ứng phát sáng (highlight) chuẩn Facebook
   useEffect(() => {
-    if (isTarget) {
-      setIsHighlighted(true);
-      const scrollTimer = setTimeout(() => {
-        if (itemRef.current) {
-          itemRef.current.scrollIntoView({
-            behavior: "smooth",
-            block: "center",
-          });
-        }
-      }, 350);
-
-      const unhighlightTimer = setTimeout(() => {
-        setIsHighlighted(false);
-      }, 5000);
-
-      return () => {
-        clearTimeout(scrollTimer);
-        clearTimeout(unhighlightTimer);
-      };
+    if (!isTarget) {
+      setIsHighlighted(false);
+      return;
     }
+
+    setIsHighlighted(true);
+    const scrollTimer = setTimeout(() => {
+      if (itemRef.current) {
+        itemRef.current.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
+      }
+    }, 200);
+
+    const fadeTimer = setTimeout(() => {
+      setIsHighlighted(false);
+    }, 2200);
+
+    return () => {
+      clearTimeout(scrollTimer);
+      clearTimeout(fadeTimer);
+    };
   }, [isTarget]);
 
   const handleToggleReplies = () => {
@@ -481,9 +484,9 @@ export const CommentItem: React.FC<CommentItemProps> = ({
       <div
         ref={itemRef}
         id={`comment-${comment.id}`}
-        className={`group relative flex items-start gap-2.5 sm:gap-3 py-1.5 px-2 sm:px-2.5 rounded-xl transition-all duration-200 ${
+        className={`group relative flex items-start gap-2.5 sm:gap-3 py-1.5 px-2.5 sm:px-3 rounded-xl transition-all duration-700 ease-out ${
           isHighlighted
-            ? "bg-netflix-red/15 ring-1 ring-netflix-red/40 shadow-[0_0_20px_var(--accent-glow)]"
+            ? "bg-blue-500/15 shadow-[0_0_20px_rgba(59,130,246,0.18)]"
             : "hover:bg-white/[0.03]"
         }`}
       >
@@ -621,9 +624,9 @@ export const CommentItem: React.FC<CommentItemProps> = ({
     <div
       ref={itemRef}
       id={`comment-${comment.id}`}
-      className={`group relative py-4 sm:py-5 transition-all duration-300 ${
+      className={`group relative py-4 sm:py-5 px-3 -mx-3 rounded-2xl transition-all duration-700 ease-out ${
         isHighlighted
-          ? "bg-netflix-red/10 border-l-2 border-netflix-red pl-3.5 sm:pl-4 rounded-r-xl shadow-[0_0_25px_var(--accent-glow)]"
+          ? "bg-blue-500/15 shadow-[0_0_25px_rgba(59,130,246,0.18)]"
           : comment.isPinned
           ? "border-l-2 border-amber-400/80 bg-amber-500/[0.04] pl-3.5 sm:pl-4 rounded-r-xl"
           : "hover:bg-white/[0.015]"

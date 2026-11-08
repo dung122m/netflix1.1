@@ -422,12 +422,10 @@ export const NavNotifications: React.FC = React.memo(function NavNotifications()
                           }
                           setShowNotifications(false);
                           const targetLink =
-                            item.link ||
-                            (item.movieSlug
-                              ? item.commentId
-                                ? `/movies/${item.movieSlug}?highlightComment=${item.commentId}#comment-${item.commentId}`
-                                : `/movies/${item.movieSlug}#comments`
-                              : "/");
+                            item.movieSlug && item.commentId
+                              ? `/movies/${item.movieSlug}?highlightComment=${item.commentId}#comment-${item.commentId}`
+                              : item.link ||
+                                (item.movieSlug ? `/movies/${item.movieSlug}#comments` : "/");
                           router.push(targetLink);
 
                           if (item.commentId && typeof window !== "undefined") {

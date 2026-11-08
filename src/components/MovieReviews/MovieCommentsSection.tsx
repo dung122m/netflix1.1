@@ -140,6 +140,24 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
     }
   }, [comments.length, highlightId, scrollToTargetComment]);
 
+  // Tự động gỡ highlightId sau khi hiệu ứng sáng Facebook hoàn tất (2.8s) và làm sạch URL
+  useEffect(() => {
+    if (!highlightId) return;
+    const timer = setTimeout(() => {
+      setHighlightId(null);
+      if (typeof window !== "undefined") {
+        try {
+          const url = new URL(window.location.href);
+          if (url.searchParams.has("highlightComment") || url.hash) {
+            url.searchParams.delete("highlightComment");
+            window.history.replaceState({}, "", url.pathname + (url.search ? url.search : ""));
+          }
+        } catch {}
+      }
+    }, 2800);
+    return () => clearTimeout(timer);
+  }, [highlightId]);
+
   // Tìm bài viết mục tiêu (có thể là root comment hoặc reply)
   const targetComment = useMemo(() => {
     if (!highlightId) return null;
