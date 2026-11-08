@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import { X, Clock, Film } from "lucide-react";
 import {
@@ -23,6 +23,7 @@ import { useMoviePosterFallback } from "@/hooks/useMoviePosterFallback";
 export const MAX_CONTINUE_WATCHING_DISPLAY = 15;
 
 const continueWatchingThumbCache = new Map<string, string>();
+const loadedPostersCache = new Set<string>();
 
 export function isContinueWatchingItem(item: WatchHistoryItem): boolean {
   if (item.durationSeconds && item.durationSeconds > 0 && typeof item.progressSeconds === "number") {
@@ -73,26 +74,48 @@ function ContinueWatchingCard({ item, index = 0, onRemove }: ContinueWatchingCar
     enabled: needsFallback, // Tự động tra cứu fallback TMDb khi chưa có poster hợp lệ
   });
 
-  const [imgSrc, setImgSrc] = useState<string>(displaySrc || initialPoster);
-  const [isLoaded, setIsLoaded] = useState(false);
+  const targetInitialSrc = displaySrc || initialPoster;
+  const [imgSrc, setImgSrc] = useState<string>(targetInitialSrc);
+  const [isLoaded, setIsLoaded] = useState<boolean>(() => {
+    return Boolean(targetInitialSrc && loadedPostersCache.has(targetInitialSrc));
+  });
+  const imgRef = useRef<HTMLImageElement>(null);
 
   useEffect(() => {
     if (displaySrc && displaySrc !== imgSrc) {
       setImgSrc(displaySrc);
+      if (loadedPostersCache.has(displaySrc)) {
+        setIsLoaded(true);
+      }
     }
   }, [displaySrc, imgSrc]);
 
+  // Kiểm tra ảnh đã có sẵn trong bộ nhớ đệm trình duyệt (complete = true) để hiển thị tức thì 0ms
+  useEffect(() => {
+    if (imgRef.current?.complete && imgRef.current.naturalWidth > 0) {
+      if (imgSrc) {
+        loadedPostersCache.add(imgSrc);
+        if (item.slug) continueWatchingThumbCache.set(item.slug, imgSrc);
+      }
+      setIsLoaded(true);
+    }
+  }, [imgSrc, item.slug]);
+
   const handleImgError = useCallback(() => {
-    // Nếu link hiện tại bị lỗi, thử dùng thumb ngang nếu có và khác link đang lỗi
+    // 1. Thử qua Cloudflare R2 proxy nếu là link phimimg bị nhà mạng chặn
+    if (imgSrc && imgSrc.includes("phimimg.com") && !imgSrc.includes("/api/media/r2-proxy")) {
+      const r2Url = `/api/media/r2-proxy?url=${encodeURIComponent(imgSrc)}`;
+      setImgSrc(r2Url);
+      return;
+    }
+    // 2. Thử thumb ngang dự phòng nếu có và khác link đang lỗi
     const rawThumb = item.thumb ? toOptimizedCardPosterUrl(item.thumb) : "";
     if (rawThumb && rawThumb !== imgSrc && !rawThumb.includes("/default-")) {
       setImgSrc(rawThumb);
-      setIsLoaded(false);
       return;
     }
-    // Kích hoạt fallback TMDb khi ảnh thực sự lỗi
+    // 3. Kích hoạt fallback TMDb khi ảnh thực sự lỗi
     triggerFallback();
-    // Giữ nguyên ảnh hoặc hiển thị fallback title mà KHÔNG xóa ảnh trắng hoặc sửa dữ liệu người dùng
     setIsLoaded(true);
   }, [imgSrc, item.thumb, triggerFallback]);
 
@@ -132,14 +155,21 @@ function ContinueWatchingCard({ item, index = 0, onRemove }: ContinueWatchingCar
           {imgSrc && !imgSrc.includes("/default-") ? (
             /* eslint-disable-next-line @next/next/no-img-element */
             <img
+              ref={imgRef}
               src={imgSrc}
               alt={item.title}
-              className={`w-full h-full object-cover transition-all duration-500 ease-out group-hover:scale-105 ${
+              className={`w-full h-full object-cover transition-opacity duration-200 ease-out group-hover:scale-105 ${
                 isLoaded ? "opacity-100" : "opacity-0"
               }`}
               decoding="async"
               loading={index < 8 ? "eager" : "lazy"}
-              onLoad={() => setIsLoaded(true)}
+              onLoad={() => {
+                if (imgSrc) {
+                  loadedPostersCache.add(imgSrc);
+                  if (item.slug) continueWatchingThumbCache.set(item.slug, imgSrc);
+                }
+                setIsLoaded(true);
+              }}
               onError={handleImgError}
             />
           ) : (
