@@ -10,6 +10,11 @@ import {
 
 export const maxDuration = 20;
 
+// L1 In-Memory RAM Cache (15 phút để phản hồi tức thì 0ms, tiết kiệm 100% CPU)
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const FOR_YOU_L1_CACHE = new Map<string, { data: any; expireAt: number }>();
+const L1_TTL_MS = 15 * 60 * 1000;
+
 // Bảng ánh xạ slug thể loại chuẩn của hệ thống
 const CATEGORY_MAP: Record<string, { slug: string; name: string }> = {
   "hanh-dong": { slug: "hanh-dong", name: "Hành Động" },
@@ -550,7 +555,17 @@ export async function POST(req: NextRequest) {
     const pageOffset = (seed % 4) + 1;
     const kvForYouKey = `foryou:taste:${tasteHash}:p${pageOffset}`;
 
-    // Thử lấy từ Cache
+    // 0. Thử lấy từ L1 In-Memory RAM Cache (0ms, 0 Redis calls, 0 CPU)
+    const l1Cached = FOR_YOU_L1_CACHE.get(kvForYouKey);
+    if (l1Cached && l1Cached.expireAt > Date.now()) {
+      return NextResponse.json(l1Cached.data, {
+        headers: {
+          "Cache-Control": "private, max-age=900",
+        },
+      });
+    }
+
+    // 1. Thử lấy từ L2 Redis Cache
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const cachedPool = await cacheService.get<{ context: string; movies: any[] }>(kvForYouKey);
     if (cachedPool && Array.isArray(cachedPool.movies) && cachedPool.movies.length >= 14) {
@@ -563,11 +578,17 @@ export async function POST(req: NextRequest) {
       );
       // Chỉ dùng cache nếu còn đủ số lượng phong phú (>= 14 phim)
       if (filtered.length >= 14) {
-        return NextResponse.json({
+        const payload = {
           success: true,
           context: cachedPool.context,
           items: filtered.slice(0, 20),
           cached: true,
+        };
+        FOR_YOU_L1_CACHE.set(kvForYouKey, { data: payload, expireAt: Date.now() + L1_TTL_MS });
+        return NextResponse.json(payload, {
+          headers: {
+            "Cache-Control": "private, max-age=900",
+          },
         });
       }
     }
@@ -1088,11 +1109,18 @@ export async function POST(req: NextRequest) {
       ).catch(() => {});
     }
 
-    return NextResponse.json({
+    const finalPayload = {
       success: true,
       context: matchContext,
       items: selectedFinalMovies,
       cached: false,
+    };
+    FOR_YOU_L1_CACHE.set(kvForYouKey, { data: finalPayload, expireAt: Date.now() + L1_TTL_MS });
+
+    return NextResponse.json(finalPayload, {
+      headers: {
+        "Cache-Control": "private, max-age=900",
+      },
     });
   } catch (err) {
     console.error("[for-you recommendations] Error:", err);
