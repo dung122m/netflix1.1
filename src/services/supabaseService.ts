@@ -240,11 +240,13 @@ export async function deleteAllUserCommentsSupabase(userId: string): Promise<voi
 export function parseReactionsAndLikedBy(likedByRaw: unknown): {
   likedBy: string[];
   reactions: Record<string, CommentReactionType>;
+  editedAt?: number;
 } {
   const likedBy: string[] = [];
   const reactions: Record<string, CommentReactionType> = {};
+  let editedAt: number | undefined = undefined;
 
-  if (!likedByRaw) return { likedBy, reactions };
+  if (!likedByRaw) return { likedBy, reactions, editedAt };
 
   if (Array.isArray(likedByRaw)) {
     likedByRaw.forEach((item) => {
@@ -262,7 +264,11 @@ export function parseReactionsAndLikedBy(likedByRaw: unknown): {
     });
   } else if (typeof likedByRaw === "object") {
     Object.entries(likedByRaw as Record<string, unknown>).forEach(([uid, val]) => {
-      if (uid) {
+      if (uid === "__edited_at") {
+        editedAt = Number(val) || undefined;
+        return;
+      }
+      if (uid && !uid.startsWith("__")) {
         likedBy.push(uid);
         if (typeof val === "string" && ["like", "love", "haha", "wow", "sad", "angry"].includes(val)) {
           reactions[uid] = val as CommentReactionType;

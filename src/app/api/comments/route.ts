@@ -38,7 +38,7 @@ function mapCommentRecord(
   isAdmin: boolean = false,
   profileMap?: Map<string, CommentUserProfile>
 ): MovieComment {
-  const { likedBy, reactions } = parseReactionsAndLikedBy(d.liked_by);
+  const { likedBy, reactions, editedAt } = parseReactionsAndLikedBy(d.liked_by);
   const userId = String(d.user_id || "");
   const profile = userId && profileMap ? profileMap.get(userId) : undefined;
   const userAvatar = profile?.custom_avatar || profile?.photo_url || String(d.user_avatar || "");
@@ -74,17 +74,8 @@ function mapCommentRecord(
     isPinned: Boolean(d.is_pinned),
     createdAt: Number(d.created_at) || Date.now(),
     updatedAt: Number(d.updated_at) || Date.now(),
-    isEdited: Boolean(
-      d.is_edited ??
-        d.isEdited ??
-        (Number(d.updated_at) > (Number(d.created_at) || 0) + 3000)
-    ),
-    editedAt:
-      d.edited_at
-        ? Number(d.edited_at)
-        : Number(d.updated_at) > (Number(d.created_at) || 0) + 3000
-        ? Number(d.updated_at)
-        : undefined,
+    isEdited: Boolean(editedAt || d.is_edited || d.isEdited),
+    editedAt: editedAt || (d.edited_at ? Number(d.edited_at) : undefined),
   };
 }
 
@@ -571,7 +562,7 @@ export async function PATCH(req: NextRequest) {
 
       const { error: pinErr } = await supabaseAdmin
         .from("movie_comments")
-        .update({ is_pinned: Boolean(isPinned), updated_at: Date.now() })
+        .update({ is_pinned: Boolean(isPinned) })
         .eq("id", commentId);
 
       if (pinErr) {
@@ -604,7 +595,7 @@ export async function PATCH(req: NextRequest) {
 
       const { error: unflagErr } = await supabaseAdmin
         .from("movie_comments")
-        .update({ is_flagged: false, flag_reason: null, updated_at: Date.now() })
+        .update({ is_flagged: false, flag_reason: null })
         .eq("id", commentId);
 
       if (unflagErr) {
@@ -644,8 +635,11 @@ export async function PATCH(req: NextRequest) {
           .maybeSingle();
 
         if (cmtData) {
-          const { reactions } = parseReactionsAndLikedBy(cmtData.liked_by);
-          const updatedReactions: Record<string, string> = { ...reactions };
+          const { reactions, editedAt } = parseReactionsAndLikedBy(cmtData.liked_by);
+          const updatedReactions: Record<string, unknown> = { ...reactions };
+          if (editedAt) {
+            updatedReactions.__edited_at = editedAt;
+          }
 
           if (reactionType) {
             updatedReactions[effectiveUserId] = reactionType;
@@ -653,7 +647,7 @@ export async function PATCH(req: NextRequest) {
             delete updatedReactions[effectiveUserId];
           }
 
-          const newLikedBy = Object.keys(updatedReactions);
+          const newLikedBy = Object.keys(updatedReactions).filter((k) => !k.startsWith("__"));
           const newLikes = newLikedBy.length;
 
           const { error: reactionErr } = await supabaseAdmin
@@ -661,7 +655,6 @@ export async function PATCH(req: NextRequest) {
             .update({
               likes: newLikes,
               liked_by: updatedReactions,
-              updated_at: Date.now(),
             })
             .eq("id", commentId);
 
@@ -966,7 +959,7 @@ export async function PUT(req: NextRequest) {
     // Kiểm tra quyền sở hữu bình luận từ cơ sở dữ liệu (không tin tưởng client)
     const { data: existingComment, error: fetchErr } = await supabaseAdmin
       .from("movie_comments")
-      .select("user_id, movie_slug")
+      .select("user_id, movie_slug, liked_by")
       .eq("id", commentId)
       .maybeSingle();
 
@@ -994,7 +987,14 @@ export async function PUT(req: NextRequest) {
       }
     }
 
+    const currentLikedBy =
+      existingComment.liked_by && typeof existingComment.liked_by === "object"
+        ? { ...(existingComment.liked_by as Record<string, unknown>) }
+        : {};
+    currentLikedBy.__edited_at = Date.now();
+
     const payload: Record<string, unknown> = {
+      liked_by: currentLikedBy,
       updated_at: Date.now(),
     };
     if (rating !== undefined) {

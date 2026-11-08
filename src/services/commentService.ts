@@ -1164,7 +1164,7 @@ export async function setCommentReaction(
         likedBy: newLikedBy,
         reactions: updatedReactions,
         reactionCounts: tally,
-        updatedAt: now,
+        updatedAt: c.updatedAt,
       };
     });
     saveLocalMovieComments(slug, movieCommentsMemoryCache[slug]);
@@ -1202,7 +1202,7 @@ export async function setCommentReaction(
         likedBy: newLikedBy,
         reactions: updatedReactions,
         reactionCounts: tally,
-        updatedAt: now,
+        updatedAt: r.updatedAt,
       };
     });
   });
