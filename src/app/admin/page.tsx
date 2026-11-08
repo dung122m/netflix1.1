@@ -241,34 +241,29 @@ function AdminDashboardContent() {
 
   const isAdmin = useMemo(() => isUserAdmin(user?.email), [user?.email]);
 
-  // 1. Tải bình luận khi mở trang hoặc chuyển sang tab "comments"
+  // 1. Tải toàn bộ dữ liệu quản trị cốt lõi khi Admin mở trang (phục vụ Metrics Cards & Tabs)
   useEffect(() => {
     if (!isAdmin) {
       setLoadingData(false);
       return;
     }
-    if (activeTab === "comments") {
-      loadComments();
-    }
-  }, [isAdmin, activeTab, loadComments]);
-
-  // 2. Tải bộ sưu tập khi chuyển sang tab "collections"
-  useEffect(() => {
-    if (!isAdmin || activeTab !== "collections") return;
+    // Tải song song bình luận, bộ sưu tập và danh sách thành viên để metrics tổng quan luôn hiển thị đủ
+    loadComments(activeTab === "comments");
     loadCollections();
-  }, [isAdmin, activeTab, loadCollections]);
+    loadMembers();
+  }, [isAdmin, loadComments, loadCollections, loadMembers]);
 
-  // 3. Tải thành viên khi Admin vào trang
+  // 2. Khi chuyển tab: Làm mới nhẹ nhàng nếu chuyển vào các tab chuyên biệt
   useEffect(() => {
     if (!isAdmin) return;
-    loadMembers();
-  }, [isAdmin, loadMembers]);
-
-  // 4. Live watching handoffs: Cập nhật khi ở tab "members"
-  useEffect(() => {
-    if (!isAdmin || activeTab !== "members") return;
-    fetchAuthorizedHandoffs().catch(() => { });
-  }, [isAdmin, activeTab, fetchAuthorizedHandoffs]);
+    if (activeTab === "comments") {
+      loadComments(false);
+    } else if (activeTab === "collections") {
+      loadCollections();
+    } else if (activeTab === "members") {
+      fetchAuthorizedHandoffs().catch(() => {});
+    }
+  }, [isAdmin, activeTab, loadComments, loadCollections, fetchAuthorizedHandoffs]);
 
   // Derived: Enrich rawUsers (registered profiles only) with comment stats and device_handoffs
   const allMembers = useMemo<MemberWithStats[]>(() => {
