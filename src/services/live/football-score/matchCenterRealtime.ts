@@ -91,12 +91,21 @@ export function shouldSkipDuplicateRequest(options: {
 }
 
 /**
+ * Trích xuất số phút từ chuỗi hiển thị đồng hồ trận đấu (ví dụ: "45'+2'" -> 45)
+ */
+function parseClockMinute(raw?: string): number {
+  if (!raw) return 0;
+  const m = raw.match(/(\d+)/);
+  return m ? parseInt(m[1], 10) : 0;
+}
+
+/**
  * Hợp nhất đơn điệu (Monotonic Merge) hai bản tóm tắt trận đấu (Match Summary).
  * Đảm bảo:
  * 1. Các sự kiện (keyEvents: bàn thắng, thẻ phạt, thay người...) và bình luận (commentary)
  *    đã từng xuất hiện sẽ KHÔNG BAO GIỜ bị xóa hay ghi đè mất bởi snapshot cũ/trễ từ upstream CDN.
  * 2. Giữ nguyên thứ tự thời gian chuẩn xác.
- * 3. Cập nhật tỷ số, đồng hồ trận đấu, thống kê và trạng thái mới nhất từ incoming.
+ * 3. Chống tụt lùi đồng hồ và tỷ số nếu snapshot từ upstream tạm thời trễ hơn snapshot hiện tại.
  */
 export function mergeNormalizedSummaries(
   existing: NormalizedMatchSummary,
@@ -154,15 +163,37 @@ export function mergeNormalizedSummaries(
     ? incoming.awayRoster
     : existing.awayRoster;
 
+  // 5. Chống tụt lùi đồng hồ và tỷ số nếu snapshot mới bị chậm hơn bản ghi hiện có
+  const existingMin = parseClockMinute(existing.displayClock);
+  const incomingMin = parseClockMinute(incoming.displayClock);
+  const isIncomingOlder = existingMin > incomingMin && incomingMin > 0;
+
+  const displayClock = isIncomingOlder ? existing.displayClock : (incoming.displayClock || existing.displayClock);
+  const statusText = isIncomingOlder ? existing.statusText : (incoming.statusText || existing.statusText);
+
+  const homeScore = Math.max(existing.homeTeam?.score ?? 0, incoming.homeTeam?.score ?? 0);
+  const awayScore = Math.max(existing.awayTeam?.score ?? 0, incoming.awayTeam?.score ?? 0);
+
+  const homeTeam = {
+    ...incoming.homeTeam,
+    score: (incoming.homeTeam?.score !== undefined || existing.homeTeam?.score !== undefined) ? homeScore : undefined,
+  };
+  const awayTeam = {
+    ...incoming.awayTeam,
+    score: (incoming.awayTeam?.score !== undefined || existing.awayTeam?.score !== undefined) ? awayScore : undefined,
+  };
+
   return {
     ...incoming,
+    homeTeam,
+    awayTeam,
     events: mergedEvents,
     commentary: mergedCommentary,
     stats,
     homeRoster,
     awayRoster,
-    displayClock: incoming.displayClock || existing.displayClock,
-    statusText: incoming.statusText || existing.statusText,
+    displayClock,
+    statusText,
     updatedAt: incoming.updatedAt || new Date().toISOString(),
   };
 }

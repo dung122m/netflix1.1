@@ -348,19 +348,23 @@ export function LiveFootballClient({
   const [selectedMatch, setSelectedMatch] = useState<FootballMatch | null>(initialMatch);
   const [matchSummary, setMatchSummary] = useState<NormalizedMatchSummary | null>(null);
   const [isSummaryLoading, setIsSummaryLoading] = useState<boolean>(false);
+  const matchSummaryMemoryRef = useRef<Map<string, NormalizedMatchSummary>>(new Map());
 
   const handleSummaryChange = useCallback((newSummary: NormalizedMatchSummary | null) => {
     if (!newSummary) {
-      setMatchSummary(null);
       return;
     }
     setMatchSummary((prev) => {
-      if (!prev || prev.eventId !== newSummary.eventId) {
-        return newSummary;
+      const merged = (!prev || prev.eventId !== newSummary.eventId)
+        ? newSummary
+        : mergeNormalizedSummaries(prev, newSummary);
+
+      if (selectedMatch?.id) {
+        matchSummaryMemoryRef.current.set(selectedMatch.id, merged);
       }
-      return mergeNormalizedSummaries(prev, newSummary);
+      return merged;
     });
-  }, []);
+  }, [selectedMatch?.id]);
 
   // Tra cứu tỷ số và định danh sự kiện livescore cho trận đang chọn (hỗ trợ fallback nếu ID bị đổi đuôi thời gian)
   const currentMatchScore = useMemo(() => {
@@ -425,8 +429,14 @@ export function LiveFootballClient({
   useEffect(() => {
     if (selectedMatch?.id !== lastMatchIdRef.current) {
       lastMatchIdRef.current = selectedMatch?.id || null;
-      setMatchSummary(null);
-      setIsSummaryLoading(Boolean(currentMatchScore?.eventId && currentMatchScore?.leagueSlug));
+      const cached = selectedMatch?.id ? matchSummaryMemoryRef.current.get(selectedMatch.id) : null;
+      if (cached) {
+        setMatchSummary(cached);
+        setIsSummaryLoading(false);
+      } else {
+        setMatchSummary(null);
+        setIsSummaryLoading(Boolean(currentMatchScore?.eventId && currentMatchScore?.leagueSlug));
+      }
     }
   }, [selectedMatch?.id, currentMatchScore?.eventId, currentMatchScore?.leagueSlug]);
 

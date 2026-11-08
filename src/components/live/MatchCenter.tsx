@@ -130,6 +130,11 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
 
     const currentKey = `${leagueSlug}:${eventId}`;
 
+    if (inFlightRef.current) {
+      // Đang có một request chạy dở -> để request đó hoàn tất suôn sẻ, không hủy ngang làm mất kết quả
+      return;
+    }
+
     if (
       shouldSkipDuplicateRequest({
         currentKey,
@@ -153,18 +158,20 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
 
     inFlightRef.current = true;
 
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
     const controller = new AbortController();
     abortControllerRef.current = controller;
 
     try {
-      const cacheBuster = isLive || isBackground ? `&_t=${Date.now()}` : "";
-      const url = `/api/live-football/summary?league=${encodeURIComponent(leagueSlug)}&event=${encodeURIComponent(eventId)}${cacheBuster}`;
+      // Giữ URL sạch để Cloudflare Edge Cache (4s) có thể phục vụ hàng ngàn người xem siêu tốc (<10ms)
+      // mà không làm tăng hạn mức Redis hay gây tải cho Server
+      const url = `/api/live-football/summary?league=${encodeURIComponent(leagueSlug)}&event=${encodeURIComponent(eventId)}`;
+      const timeoutSignal = AbortSignal.timeout(4500);
+      const signal = typeof AbortSignal.any === "function"
+        ? AbortSignal.any([controller.signal, timeoutSignal])
+        : controller.signal;
+
       const res = await fetch(url, {
-        signal: controller.signal,
-        cache: "no-store",
+        signal,
         headers: { Accept: "application/json" },
       });
 

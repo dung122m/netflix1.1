@@ -46,10 +46,10 @@ const BASE_API_URL = process.env.LIVESCORE_API_URL || "https://worldcup26.ir";
 const CACHE_TTL_LIVE_MS = 5 * 1000; // 5s cache TTL khi có trận đang live (tối ưu realtime)
 const CACHE_TTL_DEFAULT_MS = 60 * 1000; // 60s cache TTL khi không có trận live
 const STALE_TTL_MS = 45 * 1000; // 45s stale grace period
-const REQUEST_TIMEOUT_MS = 6500; // 6.5s timeout an toàn chống nghẽn mạng quốc tế từ local/server
+const REQUEST_TIMEOUT_MS = 4000; // 4s timeout an toàn chống nghẽn mạng quốc tế từ local/server
 
 // Cache cấu hình cho Match Center Summary (P2)
-const SUMMARY_TTL_LIVE_MS = 3 * 1000; // 3s cho trận đang diễn ra (tối ưu tốc độ thời gian thực)
+const SUMMARY_TTL_LIVE_MS = 4 * 1000; // 4s cho trận đang diễn ra (đồng bộ với Cloudflare Edge 4s)
 const SUMMARY_TTL_FINISHED_MS = 300 * 1000; // 5 phút cho trận đã kết thúc
 const SUMMARY_TTL_SCHEDULED_MS = 30 * 1000; // 30s cho trận sắp diễn ra
 
@@ -477,7 +477,7 @@ export const footballScoreService = {
             let redisTtlSeconds = 60;
             if (finalData.status === "live") {
               ttl = SUMMARY_TTL_LIVE_MS;
-              redisTtlSeconds = 4; // 4s cho trận live
+              redisTtlSeconds = 30; // 30s cho trận live trong Redis (tiết kiệm 85% quota Upstash, RAM & Cloudflare đã gánh realtime)
             } else if (finalData.status === "finished") {
               ttl = SUMMARY_TTL_FINISHED_MS;
               redisTtlSeconds = 300; // 5 phút cho trận đã kết thúc
