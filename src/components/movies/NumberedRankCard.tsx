@@ -51,8 +51,20 @@ export const NumberedRankCard: React.FC<NumberedRankCardProps> = ({
   }, [poster_url, thumb_url, title, origin_name, slug]);
 
   const [imgSrc, setImgSrc] = useState<string>(() => initialPoster);
+  const [isLoaded, setIsLoaded] = useState(false);
 
   const fallbackTriedRef = useRef(false);
+
+  // Tự động chuyển fallback nếu ảnh tải quá 4.5 giây (do nhà mạng chặn phimimg treo kết nối)
+  useEffect(() => {
+    if (!imgSrc || isLoaded || imgSrc.startsWith("/default-")) return;
+    const timer = setTimeout(() => {
+      if (!isLoaded) {
+        handleImageError();
+      }
+    }, 4500);
+    return () => clearTimeout(timer);
+  }, [imgSrc, isLoaded]);
 
   useEffect(() => {
     if (!imgSrc && !fallbackTriedRef.current) {
@@ -67,9 +79,11 @@ export const NumberedRankCard: React.FC<NumberedRankCardProps> = ({
           } else {
             setImgSrc("/default-poster.jpg");
           }
+          setIsLoaded(true);
         })
         .catch(() => {
           setImgSrc("/default-poster.jpg");
+          setIsLoaded(true);
         });
     }
   }, [imgSrc, title, slug]);
@@ -78,6 +92,7 @@ export const NumberedRankCard: React.FC<NumberedRankCardProps> = ({
     const safeThumb = thumb_url && !thumb_url.includes("/api/img-thumb") && !thumb_url.includes("/default-") ? thumb_url : "";
     if (safeThumb && imgSrc !== safeThumb) {
       setImgSrc(safeThumb);
+      setIsLoaded(false);
       return;
     }
 
@@ -93,12 +108,15 @@ export const NumberedRankCard: React.FC<NumberedRankCardProps> = ({
           } else {
             setImgSrc("/default-poster.jpg");
           }
+          setIsLoaded(true);
         })
         .catch(() => {
           setImgSrc("/default-poster.jpg");
+          setIsLoaded(true);
         });
     } else {
       setImgSrc("/default-poster.jpg");
+      setIsLoaded(true);
     }
   };
 
@@ -178,6 +196,7 @@ export const NumberedRankCard: React.FC<NumberedRankCardProps> = ({
                 className="object-cover group-hover:scale-105 transition-transform duration-500"
                 loading={priority ? "eager" : "lazy"}
                 quality={85}
+                onLoad={() => setIsLoaded(true)}
                 onError={handleImageError}
               />
             ) : (

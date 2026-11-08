@@ -340,6 +340,17 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
     setIsImageLoaded(true);
   }, [currentSrc, imageCandidates, tmdbFallbackSrc, isFallbackLoading, needsFallback]);
 
+  // Tự động chuyển candidate tiếp theo hoặc kích hoạt fallback nếu ảnh tải quá 4.5 giây (do nhà mạng chặn phimimg treo kết nối)
+  useEffect(() => {
+    if (!currentSrc || isImageLoaded || hasError || currentSrc.startsWith("/default-")) return;
+    const timer = setTimeout(() => {
+      if (!isImageLoaded) {
+        handleImageError();
+      }
+    }, 4500);
+    return () => clearTimeout(timer);
+  }, [currentSrc, isImageLoaded, hasError, handleImageError]);
+
   // Trạng thái Trailer & Modal Trailer (Chỉ kích hoạt khi bấm nút xem Trailer)
   const [trailerUrl, setTrailerUrl] = useState<string>(
     () => initialTrailerUrl || clientTrailerCache.get(slug) || ""
