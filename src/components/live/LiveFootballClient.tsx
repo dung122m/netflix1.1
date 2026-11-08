@@ -1275,6 +1275,7 @@ export function LiveFootballClient({
 
   const handleStatusChange = useCallback(
     (status: "all" | "live" | "upcoming" | "finished") => {
+      setActiveSection("matches");
       setSelectedStatus(status);
       updateUrl({ status: status === "all" ? null : status });
     },
@@ -1298,6 +1299,7 @@ export function LiveFootballClient({
   );
 
   const handleFeaturedToggle = useCallback(() => {
+    setActiveSection("matches");
     const next = !onlyFeatured;
     setOnlyFeatured(next);
     updateUrl({ featured: next });
@@ -1367,52 +1369,8 @@ export function LiveFootballClient({
         </div>
       )}
 
-      {/* THANH ĐIỀU HƯỚNG PHÂN VÙNG THỂ THAO (Ẩn khi đang xem trận trong Cinema Mode) */}
-      {!selectedMatch && (
-        <div className="flex items-center justify-between gap-2 border-b border-white/5 pb-2.5">
-          <div className="flex items-center gap-1.5">
-            {/* Nút Trận đấu */}
-            <button
-              type="button"
-              onClick={() => setActiveSection("matches")}
-              className={`flex items-center justify-center gap-1.5 px-3 py-1.5 min-h-[34px] rounded-lg text-xs font-bold transition cursor-pointer outline-none shrink-0 ${
-                activeSection === "matches" || activeSection === "match-center"
-                  ? "bg-zinc-800 text-white shadow-sm"
-                  : "text-zinc-400 hover:text-white hover:bg-white/5"
-              }`}
-            >
-              <Radio className={`w-3.5 h-3.5 shrink-0 ${activeSection === "matches" || activeSection === "match-center" ? "text-netflix-red animate-pulse" : "text-zinc-400"}`} />
-              <span>Trận đấu</span>
-              <span
-                className={`inline-flex items-center justify-center min-w-[20px] h-4.5 px-1.5 rounded-full text-[11px] font-semibold leading-none tabular-nums ${
-                  activeSection === "matches" || activeSection === "match-center"
-                    ? "bg-red-500/20 text-red-300"
-                    : "bg-white/5 text-zinc-400"
-                }`}
-              >
-                {liveMatchesList.length + upcomingMatchesList.length}
-              </span>
-            </button>
-
-            {/* Nút Bảng Xếp Hạng */}
-            <button
-              type="button"
-              onClick={() => setActiveSection("standings")}
-              className={`flex items-center justify-center gap-1.5 px-3 py-1.5 min-h-[34px] rounded-lg text-xs font-bold transition cursor-pointer outline-none shrink-0 ${
-                activeSection === "standings"
-                  ? "bg-zinc-800 text-white shadow-sm"
-                  : "text-zinc-400 hover:text-white hover:bg-white/5"
-              }`}
-            >
-              <Trophy className={`w-3.5 h-3.5 shrink-0 ${activeSection === "standings" ? "text-amber-400" : "text-zinc-400"}`} />
-              <span>Bảng xếp hạng</span>
-            </button>
-          </div>
-        </div>
-      )}
-
       {/* KHU VỰC 1: SÂN CỎ TRỰC TIẾP & MATCH DISCOVERY / MATCH CENTER */}
-      {(activeSection === "matches" || activeSection === "match-center") && (
+      <div>
         <div className="space-y-6">
           {/* ============================================================ */}
           {/* TRƯỜNG HỢP 1: KHI ĐÃ CHỌN TRẬN ĐẤU (THEATER WATCH & DETAILS) */}
@@ -2028,121 +1986,137 @@ export function LiveFootballClient({
                     </div>
                   )}
 
-                  {/* Cụm điều khiển bên phải: Trạng thái trận (Single-select) & Khối Toggles độc lập */}
-                  <div className="flex items-center gap-1.5 sm:gap-3 overflow-x-auto scrollbar-none py-0.5 touch-pan-x min-w-0">
-                    {/* Nút tìm kiếm thu gọn trên Mobile khi chưa mở */}
-                    {!isMobileSearchOpen && !searchQuery && (
-                      <button
-                        type="button"
-                        onClick={() => setIsMobileSearchOpen(true)}
-                        title="Tìm kiếm trận đấu"
-                        aria-label="Tìm kiếm trận đấu"
-                        className="lg:hidden flex items-center justify-center w-9 h-9 min-h-[36px] rounded-xl bg-zinc-900/90 text-zinc-400 hover:text-white hover: shrink-0 transition"
-                      >
-                        <Search className="w-3.5 h-3.5" />
-                      </button>
-                    )}
-
-                    {/* NHÓM TRẠNG THÁI TRẬN ĐẤU (SINGLE-SELECT + TÂM ĐIỂM ĐỒNG BỘ KÍCH THƯỚC) */}
-                    <div className="flex items-center gap-1 p-0.5 rounded-xl bg-zinc-900/80 shrink-0">
-                      <button
-                        type="button"
-                        onClick={() => handleStatusChange("all")}
-                        className={`flex items-center gap-1 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg text-[11px] sm:text-xs font-semibold whitespace-nowrap transition cursor-pointer min-h-[32px] sm:min-h-[38px] ${
-                          selectedStatus === "all"
-                            ? "bg-zinc-700/90 text-white font-bold  shadow-sm"
-                            : "text-zinc-400 hover:text-white hover:bg-white/5 "
-                        }`}
-                      >
-                        <span>
-                          Tất cả <span className="opacity-60 tabular-nums font-normal">({counts.total})</span>
-                        </span>
-                      </button>
-
-                      {counts.live > 0 && (
+                  {/* Cụm điều khiển: Trạng thái trận (Trái) & Nút Bảng xếp hạng (Phải) */}
+                  <div className="flex items-center justify-between gap-2 w-full min-w-0">
+                    <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto scrollbar-none py-0.5 touch-pan-x min-w-0">
+                      {/* Nút tìm kiếm thu gọn trên Mobile khi chưa mở */}
+                      {!isMobileSearchOpen && !searchQuery && (
                         <button
                           type="button"
-                          onClick={() => handleStatusChange("live")}
+                          onClick={() => setIsMobileSearchOpen(true)}
+                          title="Tìm kiếm trận đấu"
+                          aria-label="Tìm kiếm trận đấu"
+                          className="lg:hidden flex items-center justify-center w-9 h-9 min-h-[36px] rounded-xl bg-zinc-900/90 text-zinc-400 hover:text-white shrink-0 transition"
+                        >
+                          <Search className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+
+                      {/* NHÓM TRẠNG THÁI TRẬN ĐẤU (SINGLE-SELECT + TÂM ĐIỂM ĐỒNG BỘ KÍCH THƯỚC) */}
+                      <div className="flex items-center gap-1 p-0.5 rounded-xl bg-zinc-900/80 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => handleStatusChange("all")}
+                          className={`flex items-center gap-1 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg text-[11px] sm:text-xs font-semibold whitespace-nowrap transition cursor-pointer min-h-[32px] sm:min-h-[38px] ${
+                            activeSection !== "standings" && selectedStatus === "all"
+                              ? "bg-zinc-700/90 text-white font-bold shadow-sm"
+                              : "text-zinc-400 hover:text-white hover:bg-white/5"
+                          }`}
+                        >
+                          <span>
+                            Tất cả <span className="opacity-60 tabular-nums font-normal">({counts.total})</span>
+                          </span>
+                        </button>
+
+                        {counts.live > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => handleStatusChange("live")}
+                            className={`flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg text-[11px] sm:text-xs font-semibold whitespace-nowrap transition cursor-pointer min-h-[32px] sm:min-h-[38px] ${
+                              activeSection !== "standings" && selectedStatus === "live"
+                                ? "bg-netflix-red text-white font-bold shadow-md shadow-black/50"
+                                : "text-rose-300/90 hover:text-white hover:bg-white/5"
+                            }`}
+                          >
+                            <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-red-400 animate-pulse shrink-0" />
+                            <span className="xs:hidden">
+                              Live <span className="opacity-80 tabular-nums font-normal">({counts.live})</span>
+                            </span>
+                            <span className="hidden xs:inline">
+                              Đang diễn ra <span className="opacity-80 tabular-nums font-normal">({counts.live})</span>
+                            </span>
+                          </button>
+                        )}
+
+                        {counts.upcoming > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => handleStatusChange("upcoming")}
+                            className={`flex items-center gap-1 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg text-[11px] sm:text-xs font-semibold whitespace-nowrap transition cursor-pointer min-h-[32px] sm:min-h-[38px] ${
+                              activeSection !== "standings" && selectedStatus === "upcoming"
+                                ? "bg-zinc-700/90 text-sky-200 font-bold shadow-sm"
+                                : "text-zinc-400 hover:text-white hover:bg-white/5"
+                            }`}
+                          >
+                            <Clock className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0 text-sky-400" />
+                            <span className="xs:hidden">
+                              Sắp đá <span className="opacity-60 tabular-nums font-normal">({counts.upcoming})</span>
+                            </span>
+                            <span className="hidden xs:inline">
+                              Sắp diễn ra <span className="opacity-60 tabular-nums font-normal">({counts.upcoming})</span>
+                            </span>
+                          </button>
+                        )}
+
+                        {counts.finished > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => handleStatusChange("finished")}
+                            className={`flex items-center gap-1 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg text-[11px] sm:text-xs font-semibold whitespace-nowrap transition cursor-pointer min-h-[32px] sm:min-h-[38px] ${
+                              activeSection !== "standings" && selectedStatus === "finished"
+                                ? "bg-zinc-700/90 text-zinc-200 font-bold shadow-sm"
+                                : "text-zinc-400 hover:text-white hover:bg-white/5"
+                            }`}
+                          >
+                            <Check className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0" />
+                            <span className="xs:hidden">
+                              Xong <span className="opacity-60 tabular-nums font-normal">({counts.finished})</span>
+                            </span>
+                            <span className="hidden xs:inline">
+                              Đã kết thúc <span className="opacity-60 tabular-nums font-normal">({counts.finished})</span>
+                            </span>
+                          </button>
+                        )}
+
+                        {/* NÚT LỌC TRẬN TÂM ĐIỂM (ĐỒNG BỘ TRỌN VẸN CHIỀU CAO VÀ CỠ CHỮ TRONG CÙNG CỤM NÚT) */}
+                        <button
+                          type="button"
+                          onClick={handleFeaturedToggle}
+                          aria-pressed={onlyFeatured}
+                          aria-label="Chỉ hiện các trận cầu tâm điểm / đại chiến hấp dẫn nhất"
                           className={`flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg text-[11px] sm:text-xs font-semibold whitespace-nowrap transition cursor-pointer min-h-[32px] sm:min-h-[38px] ${
-                            selectedStatus === "live"
-                              ? "bg-netflix-red text-white font-bold shadow-md shadow-black/50"
-                              : "text-rose-300/90 hover:text-white hover:bg-white/5 "
+                            activeSection !== "standings" && onlyFeatured
+                              ? "bg-gradient-to-r from-rose-600 to-red-600 text-white shadow-md shadow-rose-950/60 font-bold"
+                              : "text-rose-300/90 hover:text-rose-200 hover:bg-white/5"
                           }`}
                         >
-                          <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-red-400 animate-pulse shrink-0" />
-                          <span className="xs:hidden">
-                            Live <span className="opacity-80 tabular-nums font-normal">({counts.live})</span>
-                          </span>
-                          <span className="hidden xs:inline">
-                            Đang diễn ra <span className="opacity-80 tabular-nums font-normal">({counts.live})</span>
-                          </span>
-                        </button>
-                      )}
-
-                      {counts.upcoming > 0 && (
-                        <button
-                          type="button"
-                          onClick={() => handleStatusChange("upcoming")}
-                          className={`flex items-center gap-1 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg text-[11px] sm:text-xs font-semibold whitespace-nowrap transition cursor-pointer min-h-[32px] sm:min-h-[38px] ${
-                            selectedStatus === "upcoming"
-                              ? "bg-zinc-700/90 text-sky-200 font-bold  shadow-sm"
-                              : "text-zinc-400 hover:text-white hover:bg-white/5 "
-                          }`}
-                        >
-                          <Clock className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0 text-sky-400" />
-                          <span className="xs:hidden">
-                            Sắp đá <span className="opacity-60 tabular-nums font-normal">({counts.upcoming})</span>
-                          </span>
-                          <span className="hidden xs:inline">
-                            Sắp diễn ra <span className="opacity-60 tabular-nums font-normal">({counts.upcoming})</span>
+                          <Flame
+                            className={`w-3.5 h-3.5 shrink-0 transition-transform ${
+                              onlyFeatured
+                                ? "text-amber-200 fill-amber-300 scale-110"
+                                : "text-rose-400 fill-rose-500/30"
+                            }`}
+                          />
+                          <span>
+                            Tâm điểm {counts.featured > 0 && <span className="opacity-75 tabular-nums font-normal">({counts.featured})</span>}
                           </span>
                         </button>
-                      )}
-
-                      {counts.finished > 0 && (
-                        <button
-                          type="button"
-                          onClick={() => handleStatusChange("finished")}
-                          className={`flex items-center gap-1 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg text-[11px] sm:text-xs font-semibold whitespace-nowrap transition cursor-pointer min-h-[32px] sm:min-h-[38px] ${
-                            selectedStatus === "finished"
-                              ? "bg-zinc-700/90 text-zinc-200 font-bold  shadow-sm"
-                              : "text-zinc-400 hover:text-white hover:bg-white/5 "
-                          }`}
-                        >
-                          <Check className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0" />
-                          <span className="xs:hidden">
-                            Xong <span className="opacity-60 tabular-nums font-normal">({counts.finished})</span>
-                          </span>
-                          <span className="hidden xs:inline">
-                            Đã kết thúc <span className="opacity-60 tabular-nums font-normal">({counts.finished})</span>
-                          </span>
-                        </button>
-                      )}
-
-                      {/* NÚT LỌC TRẬN TÂM ĐIỂM (ĐỒNG BỘ TRỌN VẸN CHIỀU CAO VÀ CỠ CHỮ TRONG CÙNG CỤM NÚT) */}
-                      <button
-                        type="button"
-                        onClick={handleFeaturedToggle}
-                        aria-pressed={onlyFeatured}
-                        aria-label="Chỉ hiện các trận cầu tâm điểm / đại chiến hấp dẫn nhất"
-                        className={`flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg text-[11px] sm:text-xs font-semibold whitespace-nowrap transition cursor-pointer min-h-[32px] sm:min-h-[38px] ${
-                          onlyFeatured
-                            ? "bg-gradient-to-r from-rose-600 to-red-600 text-white shadow-md shadow-rose-950/60 font-bold"
-                            : "text-rose-300/90 hover:text-rose-200 hover:bg-white/5"
-                        }`}
-                      >
-                        <Flame
-                          className={`w-3.5 h-3.5 shrink-0 transition-transform ${
-                            onlyFeatured
-                              ? "text-amber-200 fill-amber-300 scale-110"
-                              : "text-rose-400 fill-rose-500/30"
-                          }`}
-                        />
-                        <span>
-                          Tâm điểm {counts.featured > 0 && <span className="opacity-75 tabular-nums font-normal">({counts.featured})</span>}
-                        </span>
-                      </button>
+                      </div>
                     </div>
+
+                    {/* NÚT BẢNG XẾP HẠNG (NẰM CÙNG HÀNG, SANG TRỌNG VÀ TIỆN DỤNG) */}
+                    <button
+                      type="button"
+                      onClick={() => setActiveSection((prev) => (prev === "standings" ? "matches" : "standings"))}
+                      className={`flex items-center gap-1.5 px-3 py-1 sm:py-1.5 min-h-[34px] sm:min-h-[38px] rounded-xl text-xs font-bold transition cursor-pointer outline-none shrink-0 border ${
+                        activeSection === "standings"
+                          ? "bg-amber-500/20 border-amber-500/40 text-amber-300 shadow-sm"
+                          : "bg-zinc-900/90 border-white/10 text-zinc-300 hover:text-white hover:bg-zinc-800"
+                      }`}
+                    >
+                      <Trophy className={`w-3.5 h-3.5 shrink-0 ${activeSection === "standings" ? "text-amber-400" : "text-zinc-400"}`} />
+                      <span className="whitespace-nowrap">Bảng xếp hạng</span>
+                    </button>
                   </div>
                 </div>
 
@@ -2164,8 +2138,17 @@ export function LiveFootballClient({
                 )}
               </div>
 
-              {/* LƯỚI TRẬN ĐẤU RESPONSIVE DISCOVERY GRID (3 CỘT TRÊN DESKTOP, 1 CỘT TRÊN MOBILE) */}
-              <div className="space-y-6">
+              {/* NỘI DUNG: NẾU ĐANG CHỌN BẢNG XẾP HẠNG THÌ HIỆN BXH, NẾU KHÔNG THÌ HIỆN LƯỚI TRẬN ĐẤU */}
+              {activeSection === "standings" ? (
+                <div className="pt-1">
+                  <LeagueStandings
+                    initialLeague="eng.1"
+                    defaultOpen={true}
+                  />
+                </div>
+              ) : (
+                /* LƯỚI TRẬN ĐẤU RESPONSIVE DISCOVERY GRID (3 CỘT TRÊN DESKTOP, 1 CỘT TRÊN MOBILE) */
+                <div className="space-y-6">
                 {/* NHÓM 🔴 ĐANG PHÁT TRỰC TIẾP */}
                 {liveMatchesList.length > 0 && (
                   <div className="space-y-3">
@@ -2249,23 +2232,11 @@ export function LiveFootballClient({
                   </div>
                 )}
               </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* KHU VỰC 2: BẢNG XẾP HẠNG BÓNG ĐÁ (FULL SCREEN TOÀN DIỆN) */}
-      {activeSection === "standings" && (
-        <div className="pt-1">
-          <LeagueStandings
-            initialLeague={
-              (selectedMatch && (scoresMap[selectedMatch.id] || selectedMatch.score)?.leagueSlug) ||
-              "eng.1"
-            }
-            defaultOpen={true}
-          />
-        </div>
-      )}
+            )}
+          </div>
+        )}
+      </div>
+    </div>
 
     </div>
   );
