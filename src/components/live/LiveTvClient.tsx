@@ -2284,8 +2284,8 @@ export function LiveTvClient({
                           }}
                           className={`group rounded-xl border p-2 sm:p-2.5 cursor-pointer transition-all flex items-center justify-between gap-2.5 sm:gap-3 live-channel-card focus-visible:scale-102 focus-visible:ring-4 focus-visible:ring-netflix-red focus-visible:outline-none ${
                             isSelected
-                              ? "live-channel-active "
-                              : "hover:"
+                              ? "live-channel-active border-netflix-red/60 bg-netflix-red/10"
+                              : "border-white/[0.08] hover:border-white/20 hover:bg-white/[0.03]"
                           }`}
                         >
                           <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
@@ -2365,8 +2365,8 @@ export function LiveTvClient({
                               onClick={() => handlePageChange(Number(p))}
                               className={`min-w-[30px] sm:min-w-[32px] h-7 sm:h-8 px-1.5 sm:px-2 rounded-xl text-[11px] sm:text-xs font-bold transition  cursor-pointer shrink-0 ${
                                 isCurrent
-                                  ? "bg-netflix-red text-white shadow-md shadow-black/50 font-black scale-105"
-                                  : " bg-zinc-900/90 text-zinc-300 hover:text-white hover:bg-zinc-800 hover:"
+                                  ? "bg-netflix-red text-white shadow-md shadow-black/50 font-black scale-105 border border-netflix-red"
+                                  : "bg-zinc-900/90 text-zinc-300 hover:text-white hover:bg-zinc-800 border border-white/[0.08] hover:border-white/20"
                               }`}
                             >
                               {p}

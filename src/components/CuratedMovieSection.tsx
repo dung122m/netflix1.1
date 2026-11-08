@@ -240,7 +240,7 @@ export const CuratedMovieSection: React.FC<CuratedMovieSectionProps> = ({
                 className={`flex items-center gap-2 px-3.5 sm:px-5 py-2 sm:py-2.5 rounded-2xl text-xs sm:text-sm font-bold transition-all duration-200 cursor-pointer select-none shrink-0 border ${
                   isActive
                     ? "bg-netflix-red text-white border-netflix-red shadow-md shadow-black/60 scale-[1.02]"
-                    : "bg-zinc-900/90 hover:bg-zinc-800 text-zinc-300 hover:text-white  hover:"
+                    : "bg-zinc-900/90 hover:bg-zinc-800 text-zinc-300 hover:text-white border-white/[0.08] hover:border-white/20"
                 }`}
               >
                 {tab.icon}

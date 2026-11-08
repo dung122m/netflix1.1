@@ -828,8 +828,8 @@ export const CommentItem: React.FC<CommentItemProps> = ({
                 aria-label={comment.isPinned ? "Bỏ ghim bình luận này" : "Ghim bình luận quan trọng lên đầu"}
                 className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full border transition-all cursor-pointer active:scale-95 ${
                   comment.isPinned
-                    ? "bg-amber-500/20 text-amber-300  hover:bg-amber-500/30"
-                    : "bg-white/5 text-zinc-400 hover:text-amber-300  hover:"
+                    ? "bg-amber-500/20 text-amber-300 border-amber-500/40 hover:bg-amber-500/30"
+                    : "bg-white/5 text-zinc-400 hover:text-amber-300 border-white/10 hover:border-amber-400/30"
                 }`}
               >
                 <Pin className={`w-3.5 h-3.5 ${comment.isPinned ? "fill-amber-300 text-amber-300" : ""}`} />

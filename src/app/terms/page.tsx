@@ -39,7 +39,7 @@ const TERMS_PILLARS = [
     desc: "Nanaflix KHÔNG lưu trữ (host), KHÔNG tải lên (upload) và KHÔNG sở hữu bất kỳ tệp video đa phương tiện nào trên máy chủ riêng. Tất cả luồng phát (HLS/m3u8, iframe) được tổng hợp, lập chỉ mục và nhúng từ các máy chủ lưu trữ công khai của bên thứ ba trên Internet.",
     badge: "Không lưu trữ video",
     accent: "from-amber-500/20 to-orange-500/5",
-    borderColor: " hover:",
+    borderColor: "border-amber-500/20 hover:border-amber-500/40",
     iconColor: "text-amber-400",
   },
   {
@@ -48,7 +48,7 @@ const TERMS_PILLARS = [
     desc: "Chúng tôi luôn tôn trọng quyền sở hữu trí tuệ hợp pháp của các hãng sản xuất, tác giả và nhà phân phối điện ảnh. Nếu bạn là chủ sở hữu bản quyền và muốn gỡ bỏ liên kết nhúng đối với nội dung thuộc quyền sở hữu của mình, chúng tôi sẽ xử lý ngay lập tức.",
     badge: "Phản hồi trong 24–48h",
     accent: "from-rose-500/20 to-red-500/5",
-    borderColor: " hover:",
+    borderColor: "border-rose-500/20 hover:border-rose-500/40",
     iconColor: "text-red-400",
   },
   {
@@ -57,7 +57,7 @@ const TERMS_PILLARS = [
     desc: "Người dùng có quyền tự do đóng góp ý kiến, đánh giá và thảo luận văn minh. Nghiêm cấm các hành vi phát ngôn thù hận, spam bot, cố tình khai thác lỗ hổng kỹ thuật hoặc sử dụng công cụ tự động (crawler/scraper) gây quá tải hạ tầng hệ thống.",
     badge: "Cộng đồng văn minh",
     accent: "from-emerald-500/20 to-teal-500/5",
-    borderColor: " hover:",
+    borderColor: "border-emerald-500/20 hover:border-emerald-500/40",
     iconColor: "text-emerald-400",
   },
 ];

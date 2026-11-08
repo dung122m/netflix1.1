@@ -1201,8 +1201,8 @@ function AdminDashboardContent() {
                     <div
                       key={item.id}
                       className={`p-3.5 sm:p-5 rounded-2xl transition backdrop-blur-sm flex flex-col sm:flex-row sm:items-start justify-between gap-3 sm:gap-4 group ${item.isFlagged
-                          ? "bg-red-950/20 border-2  shadow-md shadow-black/50 hover:"
-                          : "bg-zinc-900/60  hover:"
+                          ? "bg-red-950/20 border-2 border-red-500/50 shadow-md shadow-black/50 hover:border-red-500/80"
+                          : "bg-zinc-900/60 border border-white/[0.08] hover:border-white/20"
                         }`}
                     >
                       {/* Left: User & Content */}

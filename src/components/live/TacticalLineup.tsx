@@ -1502,8 +1502,8 @@ function TeamPitchColumn({
                   onClick={() => onSelectPlayer(player)}
                   className={`flex items-center justify-between gap-2.5 p-2.5 rounded-xl transition-all text-left cursor-pointer group ${
                     isSelected
-                      ? "bg-white/[0.12]   shadow-sm"
-                      : "bg-white/[0.04] hover:bg-white/[0.08]  hover:"
+                      ? "bg-white/[0.12] border border-white/20 shadow-sm"
+                      : "bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.05] hover:border-white/10"
                   }`}
                 >
                   <div className="flex items-center gap-2.5 min-w-0 flex-1">
@@ -1681,8 +1681,8 @@ function TeamListColumn({
                   onClick={() => onSelectPlayer(p)}
                   className={`flex items-center justify-between gap-2.5 py-2 px-3 rounded-xl text-xs sm:text-sm cursor-pointer transition ${
                     isSelected
-                      ? "bg-white/[0.12]  "
-                      : "hover:bg-white/[0.05]  hover:"
+                      ? "bg-white/[0.12] text-white"
+                      : "hover:bg-white/[0.05] text-zinc-300 hover:text-white"
                   }`}
                 >
                   <div className="flex items-center gap-2.5 min-w-0 flex-1">

@@ -29,7 +29,7 @@ const PRIVACY_PILLARS = [
     desc: "Nanaflix là dự án phi thương mại. Chúng tôi tuyệt đối không kinh doanh, cho thuê, trao đổi hay chia sẻ dữ liệu cá nhân cũng như lịch sử xem phim của bạn cho bất kỳ mạng lưới quảng cáo, đối tác tiếp thị hay bên thứ ba nào.",
     badge: "Minh bạch tuyệt đối",
     accent: "from-rose-500/20 to-red-500/5",
-    borderColor: " hover:",
+    borderColor: "border-rose-500/20 hover:border-rose-500/40",
     iconColor: "text-red-400",
   },
   {
@@ -38,7 +38,7 @@ const PRIVACY_PILLARS = [
     desc: "Để bảo vệ quyền riêng tư kỹ thuật số, Nanaflix không bao giờ lưu trữ địa chỉ IP thực của bạn trong cơ sở dữ liệu. Mọi dữ liệu phân tích truy cập chỉ lấy thông tin xấp xỉ cấp Tỉnh/Thành phố nhằm phục vụ tối ưu hóa đường truyền CDN và thống kê ẩn danh.",
     badge: "Ẩn danh 100%",
     accent: "from-emerald-500/20 to-teal-500/5",
-    borderColor: " hover:",
+    borderColor: "border-emerald-500/20 hover:border-emerald-500/40",
     iconColor: "text-emerald-400",
   },
   {
@@ -56,7 +56,7 @@ const PRIVACY_PILLARS = [
     desc: "Tuân thủ tiêu chuẩn bảo vệ quyền riêng tư GDPR, bạn có toàn quyền xóa lịch sử xem dở, làm trống danh sách phim yêu thích, đăng xuất khỏi mọi thiết bị từ xa hoặc yêu cầu xóa vĩnh viễn tài khoản chỉ bằng 1 thao tác trong trang cá nhân.",
     badge: "Tự chủ người dùng",
     accent: "from-amber-500/20 to-yellow-500/5",
-    borderColor: " hover:",
+    borderColor: "border-amber-500/20 hover:border-amber-500/40",
     iconColor: "text-amber-400",
   },
 ];

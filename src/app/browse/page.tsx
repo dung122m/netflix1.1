@@ -3,7 +3,6 @@ import { MovieGrid } from "@/components/MovieGrid";
 import { FilterBarClient } from "@/components/FilterBarClient";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
-import { SortSelector } from "@/components/SortSelector";
 import { Film, ExternalLink, User } from "lucide-react";
 import { movieApi } from "@/services/movies/service";
 import {
@@ -17,7 +16,6 @@ import {
 } from "@/services/aiActorService";
 import { searchMoviesBySemantic } from "@/services/aiVectorService";
 import { evaluateConceptEvidence, resolveConcepts } from "@/services/conceptRegistry";
-import { BrowseAiSearchBanner } from "@/components/BrowseAiSearchBanner";
 import { PaginationControl } from "@/components/PaginationControl";
 import {
   isBrokenImageUrl,
@@ -723,7 +721,6 @@ export default async function BrowsePage({
             </p>
           </div>
           <div className="flex items-center gap-3 flex-wrap">
-            <SortSelector />
             <div className="inline-flex items-center gap-2 rounded-xl bg-white/5 px-3 py-1.5 text-xs md:text-sm text-zinc-200 backdrop-blur-sm shadow-sm">
               <Film className="w-3.5 h-3.5 text-netflix-red" />
               <span>{totalItems.toLocaleString("vi-VN")} phim</span>
@@ -759,12 +756,7 @@ export default async function BrowsePage({
           </div>
         )}
 
-        {keyword && !detectedActor && (
-          <BrowseAiSearchBanner
-            keyword={keyword}
-            hasContentMatches={movies.some((movie) => movie.matchType === "content" && movie.matchSnippet)}
-          />
-        )}
+
 
         {movies.length > 0 ? (
           <>

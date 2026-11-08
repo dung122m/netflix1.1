@@ -881,9 +881,9 @@ function UserProfileModalInner({
                         key={genre}
                         type="button"
                         onClick={() => toggleGenre(genre)}
-                        className={`px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full text-[11px] sm:text-xs font-semibold transition-all cursor-pointer ${active
-                          ? "bg-netflix-red text-white shadow-md  font-bold"
-                          : "bg-zinc-900 text-zinc-400 hover:text-white  hover:"
+                        className={`px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full text-[11px] sm:text-xs font-semibold transition-all cursor-pointer border ${active
+                          ? "bg-netflix-red text-white border-netflix-red shadow-md font-bold"
+                          : "bg-zinc-900 text-zinc-400 hover:text-white border-white/[0.08] hover:border-white/20"
                           }`}
                       >
                         {genre}

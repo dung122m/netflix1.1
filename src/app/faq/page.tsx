@@ -90,14 +90,14 @@ const QUICK_GUIDES = [
     summary: "Thao tác mượt mà chuyên nghiệp như xem trên các nền tảng quốc tế mà không cần dùng chuột.",
     shortcuts: [
       { key: "Space / K", desc: "Tạm dừng / Tiếp tục phát video" },
-      { key: "← / →", desc: "Tua lùi / Tua tiến 5 giây" },
+      { key: "← / →", desc: "Tua lùi / Tua tiến 10 giây" },
       { key: "J / L", desc: "Tua nhanh 10 giây (YouTube style)" },
       { key: "↑ / ↓", desc: "Tăng / Giảm âm lượng 10%" },
       { key: "F", desc: "Bật / Tắt chế độ Toàn màn hình" },
       { key: "T", desc: "Bật / Tắt chế độ rạp chiếu (Theater)" },
       { key: "M", desc: "Tắt / Mở tiếng nhanh (Mute)" },
+      { key: "P / N", desc: "Chuyển Tập trước / Tập kế tiếp (Phim bộ)" },
       { key: "0 ... 9", desc: "Nhảy tới 0% ... 90% thời lượng phim" },
-      { key: "C", desc: "Bật / Tắt phụ đề phim" },
       { key: "> / <", desc: "Tăng / Giảm tốc độ phát (Speed)" },
     ],
   },
@@ -170,7 +170,7 @@ const FAQ_DATA: FAQItem[] = [
     categoryLabel: "Trình Phát & Video",
     question: "Nanaflix hỗ trợ những chuẩn chất lượng video nào?",
     answer:
-      "Hầu hết các bộ phim điện ảnh và series truyền hình nổi bật trên Nanaflix đều được cung cấp nguồn phát chất lượng Full HD 1080p và một số siêu phẩm có hỗ trợ 4K Ultra HD với bitrate cao, hình ảnh sắc nét và âm thanh vòm sống động.",
+      "Hầu hết các bộ phim điện ảnh và series truyền hình nổi bật trên Nanaflix đều được cung cấp nguồn phát chất lượng Full HD 1080p và HD 720p với tốc độ tải nhanh, hình ảnh sắc nét và âm thanh rõ ràng.",
   },
   {
     id: "p3",
@@ -184,9 +184,9 @@ const FAQ_DATA: FAQItem[] = [
     id: "p4",
     category: "player",
     categoryLabel: "Trình Phát & Video",
-    question: "Tôi có thể tùy chỉnh kích thước phông chữ và kiểu hiển thị phụ đề không?",
+    question: "Nanaflix có các phiên bản Vietsub, Thuyết minh và Lồng tiếng không?",
     answer:
-      "Có! Tại bảng cài đặt (biểu tượng Bánh răng) trên trình phát video, bạn có thể tùy biến kích cỡ chữ phụ đề (Nhỏ / Vừa / Lớn), độ mờ của nền đen phía sau phụ đề và màu sắc chữ để dễ đọc nhất tùy theo kích thước màn hình thiết bị.",
+      "Có! Các bộ phim nước ngoài trên Nanaflix chủ yếu được phát với bản Phụ đề tiếng Việt (Vietsub) chất lượng cao hiển thị sắc nét. Ngoài ra, bạn có thể chọn các bản Thuyết minh hoặc Lồng tiếng bằng cách sử dụng bộ lọc tại trang Khám Phá (/browse) hoặc chọn server tương ứng trong danh sách tập phim.",
   },
   {
     id: "p5",
@@ -205,7 +205,7 @@ const FAQ_DATA: FAQItem[] = [
     question: "Trợ lý AI Nana có thể giúp gì cho trải nghiệm xem phim của tôi?",
     answer:
       "AI Nana là trợ lý ảo được huấn luyện chuyên sâu về điện ảnh. Bạn có thể trò chuyện với Nana bằng ngôn ngữ tự nhiên như: 'Gợi ý cho mình phim kinh dị tâm lý có kết thúc bất ngờ', 'Tìm phim hoạt hình Anime thanh xuân xem cuối tuần', hoặc 'Giải thích ý nghĩa đoạn kết phim Interstellar'.",
-    tips: "Thử tính năng 'Bốc quẻ phim ngẫu nhiên' khi bạn đang phân vân không biết tối nay nên xem gì!",
+    tips: "Mẹo nhỏ: Bạn có thể yêu cầu AI Nana gợi ý phim theo tâm trạng, thể loại ưa thích hoặc tìm kiếm phim theo tên diễn viên yêu thích.",
   },
   {
     id: "ai2",
@@ -403,8 +403,8 @@ export default function FAQPage() {
                     key={guide.id}
                     className={`p-6 sm:p-7 rounded-3xl bg-zinc-950/80 border transition-all duration-300 backdrop-blur-xl space-y-4 ${
                       isExpanded
-                        ? " shadow-2xl bg-zinc-900/40"
-                        : "border-white/[0.08] hover:"
+                        ? "border-netflix-red/40 shadow-2xl bg-zinc-900/40"
+                        : "border-white/[0.08] hover:border-white/20"
                     }`}
                   >
                     <div className="flex items-start justify-between gap-4">
