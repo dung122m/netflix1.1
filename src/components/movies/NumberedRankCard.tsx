@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { pickBestMoviePoster } from "@/lib/movieMedia";
@@ -55,40 +55,7 @@ export const NumberedRankCard: React.FC<NumberedRankCardProps> = ({
 
   const fallbackTriedRef = useRef(false);
 
-  // Tự động chuyển fallback nếu ảnh tải quá 4.5 giây (do nhà mạng chặn phimimg treo kết nối)
-  useEffect(() => {
-    if (!imgSrc || isLoaded || imgSrc.startsWith("/default-")) return;
-    const timer = setTimeout(() => {
-      if (!isLoaded) {
-        handleImageError();
-      }
-    }, 4500);
-    return () => clearTimeout(timer);
-  }, [imgSrc, isLoaded]);
-
-  useEffect(() => {
-    if (!imgSrc && !fallbackTriedRef.current) {
-      fallbackTriedRef.current = true;
-      fetch(
-        `/api/movie-poster-fallback?title=${encodeURIComponent(title)}&slug=${encodeURIComponent(slug)}`
-      )
-        .then((res) => (res.ok ? res.json() : null))
-        .then((data) => {
-          if (data?.posterUrl && !data.posterUrl.includes("/api/img-thumb")) {
-            setImgSrc(data.posterUrl);
-          } else {
-            setImgSrc("/default-poster.jpg");
-          }
-          setIsLoaded(true);
-        })
-        .catch(() => {
-          setImgSrc("/default-poster.jpg");
-          setIsLoaded(true);
-        });
-    }
-  }, [imgSrc, title, slug]);
-
-  const handleImageError = () => {
+  const handleImageError = useCallback(() => {
     const safeThumb = thumb_url && !thumb_url.includes("/api/img-thumb") && !thumb_url.includes("/default-") ? thumb_url : "";
     if (safeThumb && imgSrc !== safeThumb) {
       setImgSrc(safeThumb);
@@ -125,7 +92,40 @@ export const NumberedRankCard: React.FC<NumberedRankCardProps> = ({
       setImgSrc("/default-poster.jpg");
       setIsLoaded(true);
     }
-  };
+  }, [thumb_url, imgSrc, title, slug]);
+
+  // Tự động chuyển fallback nếu ảnh tải quá 4.5 giây (do nhà mạng chặn phimimg treo kết nối)
+  useEffect(() => {
+    if (!imgSrc || isLoaded || imgSrc.startsWith("/default-")) return;
+    const timer = setTimeout(() => {
+      if (!isLoaded) {
+        handleImageError();
+      }
+    }, 4500);
+    return () => clearTimeout(timer);
+  }, [imgSrc, isLoaded, handleImageError]);
+
+  useEffect(() => {
+    if (!imgSrc && !fallbackTriedRef.current) {
+      fallbackTriedRef.current = true;
+      fetch(
+        `/api/movie-poster-fallback?title=${encodeURIComponent(title)}&slug=${encodeURIComponent(slug)}`
+      )
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data) => {
+          if (data?.posterUrl && !data.posterUrl.includes("/api/img-thumb")) {
+            setImgSrc(data.posterUrl);
+          } else {
+            setImgSrc("/default-poster.jpg");
+          }
+          setIsLoaded(true);
+        })
+        .catch(() => {
+          setImgSrc("/default-poster.jpg");
+          setIsLoaded(true);
+        });
+    }
+  }, [imgSrc, title, slug]);
 
   const ringClasses =
     "group-hover:ring-netflix-red group-hover:ring-inset group-hover:shadow-[0_14px_32px_var(--accent-glow),0_0_20px_rgba(0,0,0,0.8)] focus-visible:ring-netflix-red";

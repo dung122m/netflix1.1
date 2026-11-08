@@ -63,7 +63,7 @@ function formatEventMinute(raw?: string): string {
  */
 function parseMinuteNumber(raw?: string): number {
   if (!raw) return 0;
-  const m = raw.match(/(\d+)(?:\+(\d+))?/);
+  const m = raw.match(/(\d+)(?:['’"“”\s]*\+(\d+))?/);
   if (!m) return 0;
   const base = parseInt(m[1], 10) || 0;
   const extra = parseInt(m[2], 10) || 0;
@@ -73,6 +73,7 @@ function parseMinuteNumber(raw?: string): number {
 interface StreamItem {
   id: string;
   minuteNum: number;
+  orderIndex: number;
   timeDisplay: string;
   isKeyEvent: boolean;
   type?: "goal" | "yellow-card" | "red-card" | "substitution" | "commentary" | "other";
@@ -181,6 +182,7 @@ export const MatchTimelineSidebar: React.FC<MatchTimelineSidebarProps> = ({
       return {
         id: ev.id || `ev-${idx}`,
         minuteNum: parseMinuteNumber(ev.clock),
+        orderIndex: idx,
         timeDisplay: formatEventMinute(ev.clock),
         isKeyEvent: true,
         type: ev.type,
@@ -193,9 +195,15 @@ export const MatchTimelineSidebar: React.FC<MatchTimelineSidebarProps> = ({
     });
 
     if (sortOrder === "newest") {
-      list.sort((a, b) => b.minuteNum - a.minuteNum);
+      list.sort((a, b) => {
+        if (b.minuteNum !== a.minuteNum) return b.minuteNum - a.minuteNum;
+        return b.orderIndex - a.orderIndex;
+      });
     } else {
-      list.sort((a, b) => a.minuteNum - b.minuteNum);
+      list.sort((a, b) => {
+        if (a.minuteNum !== b.minuteNum) return a.minuteNum - b.minuteNum;
+        return a.orderIndex - b.orderIndex;
+      });
     }
     return list;
   }, [events, homeTeamName, awayTeamName, sortOrder]);
@@ -263,6 +271,7 @@ export const MatchTimelineSidebar: React.FC<MatchTimelineSidebarProps> = ({
         return {
           id: `c-${idx}`,
           minuteNum: cTimeNum,
+          orderIndex: typeof c.sequence === "number" ? c.sequence : idx,
           timeDisplay: formatEventMinute(c.time),
           isKeyEvent: true,
           type: matchedEv.type,
@@ -276,6 +285,7 @@ export const MatchTimelineSidebar: React.FC<MatchTimelineSidebarProps> = ({
       return {
         id: `c-${idx}`,
         minuteNum: cTimeNum,
+        orderIndex: typeof c.sequence === "number" ? c.sequence : idx,
         timeDisplay: formatEventMinute(c.time),
         isKeyEvent: false,
         type: "commentary",
@@ -309,6 +319,7 @@ export const MatchTimelineSidebar: React.FC<MatchTimelineSidebarProps> = ({
         list.push({
           id: `fallback-ev-${idx}-${evKey}`,
           minuteNum: parseMinuteNumber(ev.clock),
+          orderIndex: (commentary.length > 0 ? commentary.length : 0) + idx,
           timeDisplay: formatEventMinute(ev.clock),
           isKeyEvent: true,
           type: ev.type,
@@ -322,9 +333,15 @@ export const MatchTimelineSidebar: React.FC<MatchTimelineSidebarProps> = ({
     });
 
     if (sortOrder === "newest") {
-      list.sort((a, b) => b.minuteNum - a.minuteNum);
+      list.sort((a, b) => {
+        if (b.minuteNum !== a.minuteNum) return b.minuteNum - a.minuteNum;
+        return b.orderIndex - a.orderIndex;
+      });
     } else {
-      list.sort((a, b) => a.minuteNum - b.minuteNum);
+      list.sort((a, b) => {
+        if (a.minuteNum !== b.minuteNum) return a.minuteNum - b.minuteNum;
+        return a.orderIndex - b.orderIndex;
+      });
     }
 
     return list;
