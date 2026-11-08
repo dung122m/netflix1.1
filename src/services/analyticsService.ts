@@ -659,7 +659,7 @@ export async function getAnalyticsDashboardStats(
   if (dbClient && filteredEvents.length > 0) {
     const anonIdsToEnrich = new Set<string>();
     for (const ev of filteredEvents) {
-      if (!ev.country && ev.anonymousId) {
+      if ((!ev.country || !ev.city) && ev.anonymousId) {
         anonIdsToEnrich.add(ev.anonymousId);
       }
     }
@@ -684,13 +684,24 @@ export async function getAnalyticsDashboardStats(
             }
           }
           for (const ev of filteredEvents) {
-            if (!ev.country && ev.anonymousId) {
+            if (ev.anonymousId) {
               const loc = locMap.get(ev.anonymousId);
               if (loc) {
-                ev.country = loc.country;
-                ev.countryCode = loc.countryCode;
-                ev.region = loc.region;
-                ev.city = loc.city;
+                if (!ev.country) ev.country = loc.country;
+                if (!ev.countryCode) ev.countryCode = loc.countryCode;
+                if (!ev.region) ev.region = loc.region;
+                if (!ev.city) ev.city = loc.city;
+              }
+            }
+          }
+          for (const ev of rawEvents) {
+            if (ev.anonymousId) {
+              const loc = locMap.get(ev.anonymousId);
+              if (loc) {
+                if (!ev.country) ev.country = loc.country;
+                if (!ev.countryCode) ev.countryCode = loc.countryCode;
+                if (!ev.region) ev.region = loc.region;
+                if (!ev.city) ev.city = loc.city;
               }
             }
           }

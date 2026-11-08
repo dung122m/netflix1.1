@@ -17,6 +17,7 @@ import {
   Info,
   BarChart2,
   Cpu,
+  MapPin,
 } from "lucide-react";
 import {
   AnalyticsDashboardStats,
@@ -577,6 +578,130 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
             ) : (
               <p className="text-xs text-zinc-500">Chưa có dữ liệu hệ điều hành.</p>
             )}
+          </div>
+        </div>
+
+        {/* ROW 2: GEOGRAPHIC LOCATION & TOP CITIES (TỈNH / THÀNH PHỐ & QUỐC GIA) */}
+        <div className="pt-4 border-t border-white/5 space-y-4">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-400">
+                <MapPin size={16} />
+              </div>
+              <div>
+                <h4 className="text-xs font-bold text-white flex items-center gap-2">
+                  <span>Phân Bố Vị Trí Địa Lý (Geographic Distribution)</span>
+                  <span className="px-1.5 py-0.2 rounded-full bg-emerald-500/15 text-emerald-300 text-[10px] font-bold">
+                    Edge GeoIP
+                  </span>
+                </h4>
+                <p className="text-[11px] text-zinc-400">
+                  Thống kê tỉnh / thành phố và quốc gia thực tế kết nối qua máy chủ Edge Cloudflare & Vercel
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* 1. Top Cities */}
+            <div className="p-4 rounded-xl bg-black/40 space-y-3">
+              <div className="flex items-center justify-between">
+                <h5 className="text-xs font-bold text-zinc-300 flex items-center gap-2">
+                  <MapPin size={14} className="text-amber-400" />
+                  <span>Top Tỉnh / Thành Phố (Top Cities)</span>
+                </h5>
+                <span className="text-[10px] text-zinc-400">Tỷ lệ theo lượt truy cập</span>
+              </div>
+
+              {stats?.deviceProfileStats?.locations?.topCities && stats.deviceProfileStats.locations.topCities.length > 0 ? (
+                <div className="space-y-2.5 pt-1">
+                  {stats.deviceProfileStats.locations.topCities.map((city, idx) => (
+                    <div key={`${city.name}-${idx}`} className="space-y-1">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-zinc-200 font-medium flex items-center gap-1.5 min-w-0">
+                          <span
+                            className={`w-4 h-4 rounded text-[10px] flex items-center justify-center font-black flex-shrink-0 ${
+                              idx === 0
+                                ? "bg-amber-400 text-black"
+                                : idx === 1
+                                ? "bg-zinc-300 text-black"
+                                : idx === 2
+                                ? "bg-amber-700 text-white"
+                                : "bg-white/10 text-zinc-400"
+                            }`}
+                          >
+                            {idx + 1}
+                          </span>
+                          <span className="truncate">{city.name}</span>
+                          <span className="text-[10px] text-zinc-400 flex-shrink-0">({city.country})</span>
+                        </span>
+                        <div className="flex items-center gap-2 font-sans tabular-nums text-[11px] flex-shrink-0 ml-2">
+                          <span className="text-zinc-400">{city.count.toLocaleString()} lượt</span>
+                          <span className="text-amber-300 font-bold w-9 text-right">{city.percentage}%</span>
+                        </div>
+                      </div>
+                      <div className="h-1.5 rounded-full bg-black/50 overflow-hidden">
+                        <div
+                          className="h-full rounded-full bg-gradient-to-r from-amber-500 to-rose-400 transition-all duration-500"
+                          style={{ width: `${Math.max(city.percentage, 4)}%` }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="p-6 text-center rounded-xl bg-zinc-900/40 text-xs text-zinc-400">
+                  <MapPin size={24} className="text-zinc-600 mx-auto mb-2 opacity-50" />
+                  <p>Đang tổng hợp vị trí địa lý khán giả...</p>
+                  <p className="text-[10px] text-zinc-500 mt-1">Dữ liệu sẽ tự động hiển thị ngay khi có lượt truy cập mới qua Cloudflare.</p>
+                </div>
+              )}
+            </div>
+
+            {/* 2. Countries */}
+            <div className="p-4 rounded-xl bg-black/40 space-y-3">
+              <div className="flex items-center justify-between">
+                <h5 className="text-xs font-bold text-zinc-300 flex items-center gap-2">
+                  <Globe size={14} className="text-cyan-400" />
+                  <span>Phân Bố Quốc Gia (Countries)</span>
+                </h5>
+                <span className="text-[10px] text-zinc-400">Lưu lượng truy cập</span>
+              </div>
+
+              {stats?.deviceProfileStats?.locations?.countries && stats.deviceProfileStats.locations.countries.length > 0 ? (
+                <div className="space-y-2.5 pt-1">
+                  {stats.deviceProfileStats.locations.countries.map((country, idx) => (
+                    <div key={`${country.code || country.name}-${idx}`} className="space-y-1">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-zinc-200 font-medium flex items-center gap-1.5 min-w-0">
+                          {country.code && (
+                            <span className="px-1.5 py-0.2 rounded bg-cyan-500/15 text-cyan-300 text-[10px] font-bold">
+                              {country.code}
+                            </span>
+                          )}
+                          <span className="truncate">{country.name}</span>
+                        </span>
+                        <div className="flex items-center gap-2 font-sans tabular-nums text-[11px] flex-shrink-0 ml-2">
+                          <span className="text-zinc-400">{country.count.toLocaleString()} lượt</span>
+                          <span className="text-cyan-300 font-bold w-9 text-right">{country.percentage}%</span>
+                        </div>
+                      </div>
+                      <div className="h-1.5 rounded-full bg-black/50 overflow-hidden">
+                        <div
+                          className="h-full rounded-full bg-gradient-to-r from-blue-500 to-cyan-400 transition-all duration-500"
+                          style={{ width: `${Math.max(country.percentage, 4)}%` }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="p-6 text-center rounded-xl bg-zinc-900/40 text-xs text-zinc-400">
+                  <Globe size={24} className="text-zinc-600 mx-auto mb-2 opacity-50" />
+                  <p>Chưa có dữ liệu quốc gia.</p>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
