@@ -18,6 +18,8 @@ import {
   BarChart2,
   Cpu,
   MapPin,
+  Clock,
+  Activity,
 } from "lucide-react";
 import {
   AnalyticsDashboardStats,
@@ -95,6 +97,33 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
         if (slug.startsWith("/")) return slug;
         return "/";
     }
+  };
+
+  const formatEventTime = (timestamp: number) => {
+    try {
+      const d = new Date(timestamp);
+      return d.toLocaleTimeString("vi-VN", {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        timeZone: "Asia/Ho_Chi_Minh",
+      });
+    } catch {
+      return "";
+    }
+  };
+
+  const getActionLabel = (ev: { movieSlug?: string; movieTitle?: string; eventType: string }) => {
+    const slug = ev.movieSlug || "home";
+    if (slug === "home" || slug === "/" || slug === "root") return "Trang chủ";
+    if (slug === "browse") return "Khám phá / Danh mục";
+    if (slug === "live" || slug === "live-tv") return "Trực tiếp Thể thao";
+    if (slug === "search") return "Tìm kiếm phim";
+    if (slug.startsWith("/movies/") || slug === "movie") {
+      const name = ev.movieTitle && ev.movieTitle !== "/" ? ev.movieTitle : slug.replace("/movies/", "");
+      return `Xem phim: ${name}`;
+    }
+    return ev.movieTitle || slug;
   };
 
   return (
@@ -704,6 +733,89 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
             </div>
           </div>
         </div>
+      </div>
+
+      {/* SECTION: NHẬT KÝ LƯỢT XEM & HOẠT ĐỘNG THỜI GIAN THỰC (LIVE VISITOR & PAGE ACTIVITY) */}
+      <div className="p-6 rounded-2xl bg-zinc-900/60 backdrop-blur-sm space-y-4">
+        <div className="flex items-center justify-between flex-wrap gap-2 pb-2 border-b border-white/5">
+          <div className="flex items-center gap-2">
+            <div className="p-1.5 rounded-lg bg-amber-500/10 text-amber-400">
+              <Activity size={16} />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                <span>Nhật Ký Hoạt Động Thời Gian Thực (Live Activity Log)</span>
+                <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[10px] font-bold flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+                  Cloudflare Edge
+                </span>
+              </h3>
+              <p className="text-[11px] text-zinc-400">
+                Chi tiết ai đang vào trang, xem phim gì, ở tỉnh/thành phố nào và vào lúc mấy giờ
+              </p>
+            </div>
+          </div>
+          <span className="text-xs text-zinc-400 font-sans tabular-nums">
+            {stats?.recentActivity?.length || 0} lượt gần nhất
+          </span>
+        </div>
+
+        {!stats?.recentActivity || stats.recentActivity.length === 0 ? (
+          <div className="p-8 text-center rounded-xl bg-black/40 text-zinc-400 text-xs">
+            <Clock size={24} className="text-zinc-600 mx-auto mb-2 opacity-50" />
+            <p>Chưa có lượt truy cập nào được ghi nhận gần đây.</p>
+          </div>
+        ) : (
+          <div className="divide-y divide-white/5 max-h-[380px] overflow-y-auto pr-1">
+            {stats.recentActivity.slice(0, 30).map((ev) => (
+              <div
+                key={ev.id}
+                className="py-2.5 px-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs hover:bg-white/[0.03] transition rounded-xl"
+              >
+                {/* Left: User & Action */}
+                <div className="flex items-center gap-3 min-w-0">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 flex-shrink-0" />
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {ev.userId ? (
+                        <span className="text-emerald-400 font-bold truncate max-w-[150px]">
+                          👤 {ev.userName || `User (${ev.userId.slice(0, 6)})`}
+                        </span>
+                      ) : (
+                        <span className="text-zinc-400 font-sans tabular-nums font-medium">
+                          🎭 Khách #{ev.anonymousId ? ev.anonymousId.replace("anon_", "").slice(0, 6) : "guest"}
+                        </span>
+                      )}
+                      <span className="text-zinc-600">•</span>
+                      <span className="text-white font-semibold truncate max-w-[240px] sm:max-w-[320px]">
+                        {getActionLabel(ev)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right: Location, Device & Timestamp */}
+                <div className="flex items-center gap-2.5 text-[11px] text-zinc-400 flex-shrink-0">
+                  {(ev.city || ev.country) && (
+                    <span className="text-amber-300 font-medium flex items-center gap-1">
+                      <MapPin size={11} className="text-amber-400 flex-shrink-0" />
+                      <span>{ev.city ? `${ev.city}, ${ev.countryCode || ev.country}` : ev.country}</span>
+                    </span>
+                  )}
+                  <span className="text-zinc-600">•</span>
+                  <span className="text-zinc-400">
+                    {ev.deviceType || "desktop"} / {ev.os || "OS"}
+                  </span>
+                  <span className="text-zinc-600">•</span>
+                  <span className="text-cyan-400 font-sans tabular-nums font-semibold flex items-center gap-1">
+                    <Clock size={11} className="text-cyan-400/80" />
+                    {formatEventTime(ev.createdAt)}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* SYSTEM DIAGNOSTICS & RATINGS (PRESERVED FROM PREVIOUS DASHBOARD) */}
