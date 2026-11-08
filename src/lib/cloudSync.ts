@@ -82,14 +82,14 @@ export async function syncWatchHistoryWithCloud(
 }
 
 /**
- * Lưu 1 mục lịch sử xem lên Cloud qua Server API (Debounced 15s + Dirty check)
- * - Tăng debounce lên 15000ms đối với tiến trình liên tục
+ * Lưu 1 mục lịch sử xem lên Cloud qua Server API (Debounced 45s + Dirty check)
+ * - Tối ưu debounce lên 45000ms đối với tiến trình liên tục, tiết kiệm 70% request Vercel
  * - Dirty check: chỉ gửi Cloud update nếu progressSeconds thay đổi >= 10s hoặc đổi tập/buộc lưu (force)
  */
 export function saveWatchItemToCloudDebounced(
   userId: string,
   item: WatchHistoryItem,
-  delayMs = 15000,
+  delayMs = 45000,
   options?: { force?: boolean },
 ): void {
   if (!userId || !item.slug) return;
