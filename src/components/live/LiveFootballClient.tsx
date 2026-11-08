@@ -15,7 +15,6 @@ import { MatchCenter } from "./MatchCenter";
 import { Tooltip } from "@/components/ui/Tooltip";
 import { MatchTimelineSidebar } from "./MatchTimelineSidebar";
 import { LeagueStandings } from "./LeagueStandings";
-import { ScrollablePillsRow } from "@/components/ui/ScrollablePillsRow";
 import { LiveMatchScore, NormalizedMatchSummary } from "@/services/live/football-score/types";
 import { shouldRefreshOnTabFocus } from "@/services/live/football-score/matchCenterRealtime";
 import {
@@ -2044,7 +2043,7 @@ export function LiveFootballClient({
                       </button>
                     )}
 
-                    {/* NHÓM TRẠNG THÁI TRẬN ĐẤU (SINGLE-SELECT) */}
+                    {/* NHÓM TRẠNG THÁI TRẬN ĐẤU (SINGLE-SELECT + TÂM ĐIỂM ĐỒNG BỘ KÍCH THƯỚC) */}
                     <div className="flex items-center gap-1 p-0.5 rounded-xl bg-zinc-900/80 shrink-0">
                       <button
                         type="button"
@@ -2119,227 +2118,32 @@ export function LiveFootballClient({
                           </span>
                         </button>
                       )}
-                    </div>
 
-                    {/* NÚT LỌC TRẬN TÂM ĐIỂM (ĐỘC LẬP, CÂN ĐỐI) */}
-                    <Tooltip content="Chỉ hiện các trận cầu tâm điểm / đại chiến hấp dẫn nhất" side="top">
+                      {/* NÚT LỌC TRẬN TÂM ĐIỂM (ĐỒNG BỘ TRỌN VẸN CHIỀU CAO VÀ CỠ CHỮ TRONG CÙNG CỤM NÚT) */}
                       <button
                         type="button"
                         onClick={handleFeaturedToggle}
                         aria-pressed={onlyFeatured}
                         aria-label="Chỉ hiện các trận cầu tâm điểm / đại chiến hấp dẫn nhất"
-                        className={`flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl text-[11px] sm:text-xs font-semibold whitespace-nowrap transition cursor-pointer min-h-[32px] sm:min-h-[38px] shrink-0 ${
+                        className={`flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg text-[11px] sm:text-xs font-semibold whitespace-nowrap transition cursor-pointer min-h-[32px] sm:min-h-[38px] ${
                           onlyFeatured
-                            ? "bg-gradient-to-r from-rose-600 to-red-600 text-white  shadow-md shadow-rose-950/60 font-bold"
-                            : "bg-zinc-900/80 text-zinc-400  hover:text-rose-300 hover:"
-                        }`}
-                    >
-                      <Flame
-                        className={`w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 transition-transform ${
-                          onlyFeatured
-                            ? "text-amber-200 fill-amber-300 scale-110"
-                            : "text-rose-400 fill-rose-500/30"
-                        }`}
-                      />
-                      <span>
-                        Tâm điểm {counts.featured > 0 && <span className="opacity-75 tabular-nums font-normal">({counts.featured})</span>}
-                      </span>
-                    </button>
-                  </Tooltip>
-                  </div>
-                </div>
-
-                {/* HÀNG 2: BỘ LỌC MÔN THỂ THAO (TRÁI) & CONTROL CHỌN GIẢI ĐẤU (PHẢI) */}
-                <div className="flex items-center justify-between gap-1.5 sm:gap-3 pt-0.5">
-                  {/* BÊN TRÁI: CÁC MÔN THỂ THAO CUỘN NGANG */}
-                  <div className="min-w-0 flex-1 relative">
-                    <ScrollablePillsRow innerClassName="flex items-center gap-1 sm:gap-1.5 py-0.5">
-                      <button
-                        type="button"
-                        onClick={() => handleSportChange("all")}
-                        className={`flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg sm:rounded-xl text-[11px] sm:text-xs font-semibold whitespace-nowrap transition  cursor-pointer shrink-0 min-h-[32px] sm:min-h-[38px] ${
-                          sportFilter === "all"
-                            ? "bg-zinc-700/90 text-white  shadow-sm font-bold"
-                            : "bg-zinc-900/90 text-zinc-400  hover:text-white hover:"
+                            ? "bg-gradient-to-r from-rose-600 to-red-600 text-white shadow-md shadow-rose-950/60 font-bold"
+                            : "text-rose-300/90 hover:text-rose-200 hover:bg-white/5"
                         }`}
                       >
-                        <span className="whitespace-nowrap shrink-0 xs:hidden">
-                          Tất cả <span className="opacity-60 tabular-nums font-normal">({validMatches.length})</span>
-                        </span>
-                        <span className="whitespace-nowrap shrink-0 hidden xs:inline">
-                          Tất cả môn <span className="opacity-60 tabular-nums font-normal">({validMatches.length})</span>
+                        <Flame
+                          className={`w-3.5 h-3.5 shrink-0 transition-transform ${
+                            onlyFeatured
+                              ? "text-amber-200 fill-amber-300 scale-110"
+                              : "text-rose-400 fill-rose-500/30"
+                          }`}
+                        />
+                        <span>
+                          Tâm điểm {counts.featured > 0 && <span className="opacity-75 tabular-nums font-normal">({counts.featured})</span>}
                         </span>
                       </button>
-
-                      {availableSports.map((sp) => {
-                        const isSelected = sportFilter === sp.key;
-                        return (
-                          <button
-                            key={sp.key}
-                            type="button"
-                            onClick={() => handleSportChange(sp.key)}
-                            className={`flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg sm:rounded-xl text-[11px] sm:text-xs font-semibold whitespace-nowrap transition  cursor-pointer shrink-0 min-h-[32px] sm:min-h-[38px] ${
-                              isSelected
-                                ? "bg-zinc-700/90 text-white  shadow-sm font-bold"
-                                : "bg-zinc-900/90 text-zinc-400  hover:text-white hover:"
-                            }`}
-                          >
-                            <span className="shrink-0">{sp.icon}</span>
-                            <span className="whitespace-nowrap shrink-0">
-                              {sp.label} <span className="opacity-60 tabular-nums font-normal">({sp.count})</span>
-                            </span>
-                          </button>
-                        );
-                      })}
-                    </ScrollablePillsRow>
-                  </div>
-
-                  {/* BÊN PHẢI: CONTROL CHỌN GIẢI ĐẤU DẠNG DROPDOWN/POPOVER NỔI */}
-                  {availableTournaments.length > 0 && (
-                    <div className="relative z-40 shrink-0 flex items-center justify-end" ref={tournamentDropdownRef}>
-                      <button
-                        type="button"
-                        onClick={() => setIsTournamentDropdownOpen((prev) => !prev)}
-                        aria-expanded={isTournamentDropdownOpen}
-                        aria-haspopup="listbox"
-                        className={`inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg sm:rounded-xl text-[11px] sm:text-xs font-semibold transition  cursor-pointer shrink-0 min-h-[32px] sm:min-h-[38px] max-w-full ${
-                          selectedTournament !== "all"
-                            ? "bg-netflix-red/15 text-rose-300 /40  shadow-sm font-bold"
-                            : isTournamentDropdownOpen
-                            ? "bg-zinc-800 text-white "
-                            : "bg-zinc-900/90 text-zinc-300  hover: hover:text-white"
-                        }`}
-                      >
-                        <Trophy className={`w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0 ${selectedTournament !== "all" ? "text-amber-400" : "text-zinc-400"}`} />
-                        <span className="truncate max-w-[65px] xs:max-w-[90px] sm:max-w-[170px]">
-                          {selectedTournament === "all" ? (
-                            <>
-                              <span className="sm:hidden">Giải đấu</span>
-                              <span className="hidden sm:inline">Tất cả giải đấu</span>
-                            </>
-                          ) : (
-                            selectedTournament
-                          )}
-                        </span>
-                        <span className="opacity-60 tabular-nums font-normal shrink-0">
-                          ({selectedTournament === "all"
-                            ? (sportFilter === "all"
-                                ? validMatches.length
-                                : (availableSports.find((s) => s.key === sportFilter)?.count || validMatches.length))
-                            : (availableTournaments.find((t) => t.name === selectedTournament)?.count || 0)})
-                        </span>
-                        {selectedTournament !== "all" ? (
-                          <span
-                            role="button"
-                            tabIndex={0}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleTournamentChange("all");
-                            }}
-                            title="Bỏ chọn giải đấu"
-                            className="p-0.5 rounded-full hover:bg-white/20 text-rose-300 hover:text-white transition ml-0.5"
-                          >
-                            <X className="w-3.5 h-3.5" />
-                          </span>
-                        ) : (
-                          <ChevronDown
-                            className={`w-3.5 h-3.5 shrink-0 transition-transform duration-200 ${
-                              isTournamentDropdownOpen ? "rotate-180 text-white" : "text-zinc-400"
-                            }`}
-                          />
-                        )}
-                      </button>
-
-                      {/* POPOVER DROPDOWN GIẢI ĐẤU (Z-50, KHÔNG TRÀN MÉP VIEWPORT) */}
-                      {isTournamentDropdownOpen && (
-                        <div className="absolute right-0 top-full mt-2 w-72 max-w-[calc(100vw-24px)] rounded-2xl bg-zinc-950 shadow-[0_20px_50px_rgba(0,0,0,0.95)] p-2 z-50 animate-in fade-in zoom-in-95 duration-150 flex flex-col">
-                          <div className="flex items-center justify-between px-2 py-1 mb-1.5">
-                            <div className="flex items-center gap-1.5 text-[11px] font-bold text-zinc-300 uppercase tracking-wider">
-                              <Trophy className="w-3.5 h-3.5 text-amber-400" />
-                              <span>Giải đấu nổi bật</span>
-                            </div>
-                            <span className="text-[10px] text-zinc-500 font-sans tabular-nums">
-                              {availableTournaments.length} giải
-                            </span>
-                          </div>
-
-                          {availableTournaments.length > 5 && (
-                            <div className="relative px-1 mb-1.5">
-                              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3 h-3 text-zinc-400" />
-                              <input
-                                type="text"
-                                value={tournamentSearch}
-                                onChange={(e) => setTournamentSearch(e.target.value)}
-                                placeholder="Tìm tên giải đấu..."
-                                className="w-full pl-8 pr-7 py-1.5 rounded-lg bg-zinc-900 text-xs text-white placeholder-zinc-500 focus:outline-none focus:"
-                              />
-                              {tournamentSearch && (
-                                <button
-                                  type="button"
-                                  onClick={() => setTournamentSearch("")}
-                                  className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-white"
-                                >
-                                  <X className="w-3 h-3" />
-                                </button>
-                              )}
-                            </div>
-                          )}
-
-                          <div className="overflow-y-auto max-h-60 scrollbar-thin space-y-0.5">
-                            {/* Tùy chọn: Tất cả giải đấu */}
-                            <button
-                              type="button"
-                              onClick={() => {
-                                handleTournamentChange("all");
-                                setIsTournamentDropdownOpen(false);
-                              }}
-                              className={`w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-semibold transition text-left cursor-pointer ${
-                                selectedTournament === "all"
-                                  ? "bg-zinc-800 text-white font-bold  shadow-sm"
-                                  : "text-zinc-300 hover:bg-zinc-800/80 hover:text-white"
-                              }`}
-                            >
-                              <span>Tất cả giải đấu</span>
-                              <div className="flex items-center gap-1.5">
-                                <span className="text-[10px] font-sans tabular-nums opacity-70">
-                                  ({sportFilter === "all"
-                                    ? validMatches.length
-                                    : (availableSports.find((s) => s.key === sportFilter)?.count || validMatches.length)})
-                                </span>
-                                {selectedTournament === "all" && <Check className="w-3.5 h-3.5 text-white stroke-[2.5]" />}
-                              </div>
-                            </button>
-
-                            {/* Danh sách từng giải */}
-                            {filteredTournaments.map((t) => {
-                              const isSelected = selectedTournament === t.name;
-                              return (
-                                <button
-                                  key={t.name}
-                                  type="button"
-                                  onClick={() => {
-                                    handleTournamentChange(t.name);
-                                    setIsTournamentDropdownOpen(false);
-                                  }}
-                                  className={`w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-semibold transition text-left cursor-pointer ${
-                                    isSelected
-                                      ? "bg-netflix-red text-white font-bold shadow-md shadow-black/50"
-                                      : "text-zinc-300 hover:bg-zinc-800/80 hover:text-white"
-                                  }`}
-                                >
-                                  <span className="truncate pr-2">{t.name}</span>
-                                  <div className="flex items-center gap-1.5 shrink-0">
-                                    <span className="text-[10px] font-sans tabular-nums opacity-70">({t.count})</span>
-                                    {isSelected && <Check className="w-3.5 h-3.5 text-white stroke-[2.5]" />}
-                                  </div>
-                                </button>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      )}
                     </div>
-                  )}
+                  </div>
                 </div>
 
                 {/* Thanh Reset filter khi có áp dụng */}

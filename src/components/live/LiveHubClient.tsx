@@ -164,32 +164,38 @@ export function LiveHubClient({ footballData, tvData: initialTvData, initialScor
             : "pt-16 sm:pt-20 pb-12 space-y-3 sm:space-y-4"
       }`}
     >
-      {/* 1. NANAFLIX LIVE STUDIO COMMAND BAR */}
-      {/* Khi ở chế độ TV: Hiển thị thanh chuyển tab tinh gọn (Slim Command Bar) để tối đa diện tích xem cho TV Player */}
-      {isTvCinema ? (
-        <header className="flex items-center justify-between gap-3 py-1.5 sm:py-2">
-          <div className="flex items-center gap-2 min-w-0 shrink-0">
-            <span className="relative flex h-2.5 w-2.5 shrink-0">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-sky-400 opacity-75" />
-              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-sky-500" />
-            </span>
-            <span className="text-base sm:text-lg font-bold text-white tracking-tight truncate">
-              Truyền hình
-            </span>
-          </div>
-
+      {/* 1. NANAFLIX LIVE STUDIO COMMAND BAR (Cụm 2 nút Thể thao / Truyền hình tinh gọn) */}
+      {!isSportsCinema || isTvCinema ? (
+        <header className="flex items-center justify-start py-1.5 sm:py-2">
           {/* CỤM CHUYỂN ĐỔI TAB (THỂ THAO / TRUYỀN HÌNH) */}
-          <div role="tablist" aria-label="Lựa chọn luồng trực tiếp" className="flex items-center gap-1 p-1 rounded-xl bg-zinc-900/90 shrink-0">
+          <div
+            role="tablist"
+            aria-label="Lựa chọn luồng trực tiếp"
+            className="flex items-center gap-1 p-1 rounded-xl bg-zinc-900/90 shrink-0"
+          >
             <button
               type="button"
               role="tab"
-              aria-selected={false}
+              aria-selected={activeTab === "sports"}
               onClick={() => handleTabChange("sports")}
-              className="flex items-center justify-center gap-1.5 px-3 sm:px-3.5 py-1.5 min-h-[34px] rounded-lg text-xs font-semibold transition cursor-pointer outline-none shrink-0 whitespace-nowrap text-zinc-400 hover:text-white hover:bg-white/5"
+              className={`flex items-center justify-center gap-1.5 px-3 sm:px-3.5 py-1.5 min-h-[34px] rounded-lg text-xs font-semibold transition cursor-pointer outline-none shrink-0 whitespace-nowrap ${
+                activeTab === "sports"
+                  ? "bg-zinc-800 text-white font-bold shadow-sm"
+                  : "text-zinc-400 hover:text-white hover:bg-white/5"
+              }`}
             >
-              <Trophy className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+              <Trophy
+                className={`w-3.5 h-3.5 shrink-0 ${activeTab === "sports" ? "text-amber-400" : "text-zinc-400"}`}
+                aria-hidden="true"
+              />
               <span>Thể thao</span>
-              <span className="text-[11px] px-1.5 py-0.2 rounded-full font-medium bg-black/40 text-zinc-400">
+              <span
+                className={`text-[11px] px-1.5 py-0.2 rounded-full font-medium ${
+                  activeTab === "sports"
+                    ? "bg-red-500/20 text-red-300"
+                    : "bg-black/40 text-zinc-400"
+                }`}
+              >
                 {sportsMatchesCount}
               </span>
             </button>
@@ -197,57 +203,26 @@ export function LiveHubClient({ footballData, tvData: initialTvData, initialScor
             <button
               type="button"
               role="tab"
-              aria-selected={true}
+              aria-selected={activeTab === "tv"}
               onClick={() => handleTabChange("tv")}
-              className="flex items-center justify-center gap-1.5 px-3 sm:px-3.5 py-1.5 min-h-[34px] rounded-lg text-xs font-bold transition cursor-pointer outline-none shrink-0 whitespace-nowrap bg-zinc-800 text-white shadow-sm"
+              className={`flex items-center justify-center gap-1.5 px-3 sm:px-3.5 py-1.5 min-h-[34px] rounded-lg text-xs font-semibold transition cursor-pointer outline-none shrink-0 whitespace-nowrap ${
+                activeTab === "tv"
+                  ? "bg-zinc-800 text-white font-bold shadow-sm"
+                  : "text-zinc-400 hover:text-white hover:bg-white/5"
+              }`}
             >
-              <Tv className="w-3.5 h-3.5 text-sky-400" aria-hidden="true" />
+              <Tv
+                className={`w-3.5 h-3.5 shrink-0 ${activeTab === "tv" ? "text-sky-400" : "text-zinc-400"}`}
+                aria-hidden="true"
+              />
               <span>Truyền hình</span>
-              <span className="text-[11px] px-1.5 py-0.2 rounded-full font-medium bg-sky-500/20 text-sky-300">
-                {tvBadgeCount}
-              </span>
-            </button>
-          </div>
-        </header>
-      ) : !isSportsCinema ? (
-        /* Khi ở chế độ Khám phá Thể thao: Header thoáng đãng, tinh gọn, hiện đại */
-        <header className="flex items-center justify-between gap-3 py-1.5 sm:py-2">
-          <div className="flex items-center gap-2 min-w-0 shrink-0">
-            <span className="relative flex h-2.5 w-2.5 shrink-0">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
-              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-netflix-red" />
-            </span>
-            <h1 className="text-base sm:text-lg font-bold text-white tracking-tight truncate">
-              Trực tiếp
-            </h1>
-          </div>
-
-          {/* CỤM CHUYỂN ĐỔI DANH MỤC (THỂ THAO / TRUYỀN HÌNH) */}
-          <div role="tablist" aria-label="Lựa chọn luồng trực tiếp" className="flex items-center gap-1 p-1 rounded-xl bg-zinc-900/90 shrink-0">
-            <button
-              type="button"
-              role="tab"
-              aria-selected={true}
-              onClick={() => handleTabChange("sports")}
-              className="flex items-center justify-center gap-1.5 px-3 sm:px-3.5 py-1.5 min-h-[34px] rounded-lg text-xs font-bold transition cursor-pointer outline-none shrink-0 whitespace-nowrap bg-zinc-800 text-white shadow-sm"
-            >
-              <Trophy className="w-3.5 h-3.5 text-amber-400 shrink-0" aria-hidden="true" />
-              <span>Thể thao</span>
-              <span className="text-[11px] px-1.5 py-0.2 rounded-full font-medium bg-red-500/20 text-red-300">
-                {sportsMatchesCount}
-              </span>
-            </button>
-
-            <button
-              type="button"
-              role="tab"
-              aria-selected={false}
-              onClick={() => handleTabChange("tv")}
-              className="flex items-center justify-center gap-1.5 px-3 sm:px-3.5 py-1.5 min-h-[34px] rounded-lg text-xs font-semibold transition cursor-pointer outline-none shrink-0 whitespace-nowrap text-zinc-400 hover:text-white hover:bg-white/5"
-            >
-              <Tv className="w-3.5 h-3.5 shrink-0 text-zinc-400" aria-hidden="true" />
-              <span>Truyền hình</span>
-              <span className="text-[11px] px-1.5 py-0.2 rounded-full font-medium bg-white/5 text-zinc-400">
+              <span
+                className={`text-[11px] px-1.5 py-0.2 rounded-full font-medium ${
+                  activeTab === "tv"
+                    ? "bg-sky-500/20 text-sky-300"
+                    : "bg-white/5 text-zinc-400"
+                }`}
+              >
                 {tvBadgeCount}
               </span>
             </button>
