@@ -74,11 +74,12 @@ let lastTrackedTimestamp: number = 0;
 
 export function SiteVisitTracker() {
   const pathname = usePathname();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const lastPathRef = useRef<string | null>(null);
 
   useEffect(() => {
-    if (!pathname) return;
+    // Đợi Firebase Auth khởi tạo xong phiên đăng nhập để tránh gửi nhầm beacon "Khách" trước khi nhận diện User
+    if (!pathname || authLoading) return;
 
     const { pageGroup, pagePath, shouldTrack } = classifyRoute(pathname);
     if (!shouldTrack) return;
@@ -120,7 +121,7 @@ export function SiteVisitTracker() {
     };
 
     sendVisit();
-  }, [pathname, user]);
+  }, [pathname, user, authLoading]);
 
   return null;
 }

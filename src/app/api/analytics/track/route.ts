@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { recordAnalyticsEvent } from "@/services/analyticsService";
 import { AnalyticsEventPayload } from "@/lib/analyticsClient";
 import { verifyServerAuth } from "@/lib/serverAuth";
+import { resolveClientGeo } from "@/lib/geoIpResolver";
 import {
   enforceRateLimit,
   buildRateLimitResponse,
@@ -76,96 +77,8 @@ export async function POST(req: NextRequest) {
     const cookieVisitorToken = req.cookies.get("nanaflix_has_visited")?.value;
     const isReturningVisitor = Boolean(cookieVisitorToken && cookieVisitorToken === currentVisitorToken);
 
-    // 5. Extract Geo Location from Cloudflare and Vercel edge headers (0ms latency, zero external API cost)
-    const rawCity = req.headers.get("cf-ipcity") || req.headers.get("x-vercel-ip-city");
-    const rawCountryCode = req.headers.get("cf-ipcountry") || req.headers.get("x-vercel-ip-country");
-    const rawRegion = req.headers.get("cf-region") || req.headers.get("x-vercel-ip-country-region");
-
-    let cleanCity: string | undefined = undefined;
-    if (rawCity) {
-      try {
-        cleanCity = decodeURIComponent(rawCity).trim();
-      } catch {
-        cleanCity = rawCity.trim();
-      }
-    }
-
-    const cleanCountryCode = rawCountryCode ? rawCountryCode.trim().toUpperCase() : undefined;
-    let cleanRegion: string | undefined = undefined;
-    if (rawRegion) {
-      try {
-        cleanRegion = decodeURIComponent(rawRegion).trim();
-      } catch {
-        cleanRegion = rawRegion.trim();
-      }
-    }
-
-    // Friendly country name mapping
-    let cleanCountry: string | undefined = undefined;
-    if (cleanCountryCode === "VN") cleanCountry = "Việt Nam";
-    else if (cleanCountryCode === "US") cleanCountry = "Hoa Kỳ";
-    else if (cleanCountryCode === "SG") cleanCountry = "Singapore";
-    else if (cleanCountryCode === "JP") cleanCountry = "Nhật Bản";
-    else if (cleanCountryCode === "KR") cleanCountry = "Hàn Quốc";
-    else if (cleanCountryCode === "DE") cleanCountry = "Đức";
-    else if (cleanCountryCode === "GB" || cleanCountryCode === "UK") cleanCountry = "Vương quốc Anh";
-    else if (cleanCountryCode === "FR") cleanCountry = "Pháp";
-    else if (cleanCountryCode === "AU") cleanCountry = "Úc";
-    else if (cleanCountryCode === "CA") cleanCountry = "Canada";
-    else if (cleanCountryCode === "TH") cleanCountry = "Thái Lan";
-    else if (cleanCountryCode) cleanCountry = cleanCountryCode;
-
-    // Friendly Vietnamese city / region normalization
-    if (cleanCountryCode === "VN") {
-      if (cleanCity) {
-        const lower = cleanCity.toLowerCase();
-        if (lower.includes("ho chi minh") || lower.includes("saigon") || lower === "hcm" || lower.includes("sai gon")) {
-          cleanCity = "TP. Hồ Chí Minh";
-        } else if (lower.includes("hanoi") || lower.includes("ha noi")) {
-          cleanCity = "Hà Nội";
-        } else if (lower.includes("da nang") || lower.includes("danang")) {
-          cleanCity = "Đà Nẵng";
-        } else if (lower.includes("hai phong") || lower.includes("haiphong")) {
-          cleanCity = "Hải Phòng";
-        } else if (lower.includes("can tho") || lower.includes("cantho")) {
-          cleanCity = "Cần Thơ";
-        } else if (lower.includes("binh duong") || lower.includes("thuan an") || lower.includes("di an") || lower.includes("thu dau mot")) {
-          cleanCity = "Bình Dương";
-        } else if (lower.includes("bien hoa") || lower.includes("dong nai")) {
-          cleanCity = "Đồng Nai";
-        } else if (lower.includes("vung tau") || lower.includes("ba ria")) {
-          cleanCity = "Bà Rịa - Vũng Tàu";
-        } else if (lower.includes("nha trang") || lower.includes("khanh hoa")) {
-          cleanCity = "Khánh Hòa";
-        } else if (lower.includes("hue") || lower.includes("thua thien")) {
-          cleanCity = "Thừa Thiên Huế";
-        } else if (lower.includes("quang ninh") || lower.includes("ha long")) {
-          cleanCity = "Quảng Ninh";
-        } else if (lower.includes("bac ninh")) {
-          cleanCity = "Bắc Ninh";
-        } else if (lower.includes("thai nguyen")) {
-          cleanCity = "Thái Nguyên";
-        } else if (lower.includes("nam dinh")) {
-          cleanCity = "Nam Định";
-        } else if (lower.includes("thanh hoa")) {
-          cleanCity = "Thanh Hóa";
-        } else if (lower.includes("nghe an") || lower.includes("vinh")) {
-          cleanCity = "Nghệ An";
-        } else if (lower.includes("lam dong") || lower.includes("da lat")) {
-          cleanCity = "Đà Lạt (Lâm Đồng)";
-        }
-      } else if (cleanRegion) {
-        // Fallback to region if city header was omitted (e.g. mobile 4G/CGNAT)
-        const lowerReg = cleanRegion.toLowerCase();
-        if (lowerReg.includes("ho chi minh") || lowerReg === "sg") cleanCity = "TP. Hồ Chí Minh";
-        else if (lowerReg.includes("hanoi") || lowerReg.includes("ha noi") || lowerReg === "hn") cleanCity = "Hà Nội";
-        else if (lowerReg.includes("da nang") || lowerReg === "dn") cleanCity = "Đà Nẵng";
-        else if (lowerReg.includes("hai phong") || lowerReg === "hp") cleanCity = "Hải Phòng";
-        else if (lowerReg.includes("can tho") || lowerReg === "ct") cleanCity = "Cần Thơ";
-        else if (lowerReg.includes("binh duong") || lowerReg === "bd") cleanCity = "Bình Dương";
-        else if (lowerReg.includes("dong nai") || lowerReg === "dna") cleanCity = "Đồng Nai";
-      }
-    }
+    // 5. Giải quyết vị trí địa lý thực tế (ưu tiên Thuận An, Dĩ An, Bình Dương, HCM, Hà Nội...)
+    const geo = await resolveClientGeo(req.headers);
 
     // 6. Construct sanitized site_visit payload
     const sanitizedPayload: AnalyticsEventPayload = {
@@ -175,10 +88,10 @@ export async function POST(req: NextRequest) {
       userId: verifiedUserId, // Only set if token is verified by server
       anonymousId: finalAnonymousId, // Always populated with valid anonId to satisfy PostgreSQL NOT NULL constraint
       isReturningVisitor,
-      country: cleanCountry,
-      countryCode: cleanCountryCode,
-      region: cleanRegion,
-      city: cleanCity,
+      country: geo.country,
+      countryCode: geo.countryCode,
+      region: geo.region,
+      city: geo.city,
       deviceInfo: body.deviceInfo
         ? {
             deviceType: body.deviceInfo.deviceType || "desktop",

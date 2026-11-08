@@ -950,7 +950,10 @@ export async function getAnalyticsDashboardStats(
     const handoffRows = rawHandoffRows.filter((h): h is HandoffRow & { user_id: string } => Boolean(h.user_id));
 
     const handoffUserIds = handoffRows.map((h) => h.user_id);
-    const recentActivityUserIds = filteredEvents.slice(0, 40).map((e) => e.userId).filter(Boolean) as string[];
+    const recentActivityUserIds = filteredEvents
+      .slice(0, 40)
+      .map((e) => e.userId || (e.anonymousId ? anonToUserMap.get(e.anonymousId) : undefined))
+      .filter(Boolean) as string[];
     const userIds = Array.from(new Set([...handoffUserIds, ...recentActivityUserIds]));
 
     const adminClient = isSupabaseAdminConfigured() ? getSupabaseAdmin() : supabase;
@@ -1036,8 +1039,9 @@ export async function getAnalyticsDashboardStats(
 
   const enrichedRecentActivity: StoredAnalyticsEvent[] = filteredEvents.slice(0, 40).map((ev) => {
     let resolvedUserName: string | undefined = undefined;
-    if (ev.userId) {
-      const prof = profileMap.get(ev.userId);
+    const effectiveUserId = ev.userId || (ev.anonymousId ? anonToUserMap.get(ev.anonymousId) : undefined);
+    if (effectiveUserId) {
+      const prof = profileMap.get(effectiveUserId);
       if (prof) {
         const rawName = prof.name?.trim();
         if (rawName && rawName !== "Thành viên") {
@@ -1049,6 +1053,7 @@ export async function getAnalyticsDashboardStats(
     }
     return {
       ...ev,
+      userId: ev.userId || effectiveUserId,
       userName: resolvedUserName,
     };
   });
