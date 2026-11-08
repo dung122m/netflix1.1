@@ -96,6 +96,13 @@ export const NumberedRankCard: React.FC<NumberedRankCardProps> = ({
       return;
     }
 
+    // Cứu cánh ảnh phimimg.com bị nhà mạng chặn bằng R2 Proxy trước khi hiển thị default poster
+    if (imgSrc && imgSrc.includes("phimimg.com") && !imgSrc.includes("/api/media/r2-proxy")) {
+      setImgSrc(`/api/media/r2-proxy?url=${encodeURIComponent(imgSrc)}`);
+      setIsLoaded(false);
+      return;
+    }
+
     if (!fallbackTriedRef.current) {
       fallbackTriedRef.current = true;
       fetch(

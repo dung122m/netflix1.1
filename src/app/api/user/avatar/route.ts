@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { verifyServerAuth } from "@/lib/serverAuth";
+import { isR2Configured, uploadToR2 } from "@/lib/r2";
 import {
   enforceRateLimit,
   buildRateLimitResponse,
@@ -84,24 +85,38 @@ export async function POST(req: NextRequest) {
     const fileName = `${auth.userId}_${Date.now()}.${fileExt}`;
     const filePath = `avatars/${fileName}`;
 
-    // Upload an toàn qua Service Role Supabase Admin (bỏ qua mọi rào cản RLS của anon key)
-    const { error: uploadError } = await supabaseAdmin.storage
-      .from("avatars")
-      .upload(filePath, fileBuffer, {
-        upsert: true,
+    let avatarUrl: string | null = null;
+
+    // 1. Ưu tiên tải lên Cloudflare R2 (0đ băng thông, lưu trữ vĩnh viễn, CDN siêu tốc)
+    if (isR2Configured()) {
+      avatarUrl = await uploadToR2({
+        key: filePath,
+        buffer: fileBuffer,
         contentType: mimeType,
       });
-
-    if (uploadError) {
-      console.error("[Avatar Upload API] Lỗi storage:", uploadError);
-      return NextResponse.json({ error: "Lỗi lưu trữ ảnh: " + uploadError.message }, { status: 500 });
     }
 
-    const { data: publicUrlData } = supabaseAdmin.storage
-      .from("avatars")
-      .getPublicUrl(filePath);
+    // 2. Dự phòng Supabase Storage nếu R2 không khả dụng
+    if (!avatarUrl) {
+      const { error: uploadError } = await supabaseAdmin.storage
+        .from("avatars")
+        .upload(filePath, fileBuffer, {
+          upsert: true,
+          contentType: mimeType,
+        });
 
-    const avatarUrl = publicUrlData?.publicUrl;
+      if (uploadError) {
+        console.error("[Avatar Upload API] Lỗi storage:", uploadError);
+        return NextResponse.json({ error: "Lỗi lưu trữ ảnh: " + uploadError.message }, { status: 500 });
+      }
+
+      const { data: publicUrlData } = supabaseAdmin.storage
+        .from("avatars")
+        .getPublicUrl(filePath);
+
+      avatarUrl = publicUrlData?.publicUrl || null;
+    }
+
     if (!avatarUrl) {
       return NextResponse.json({ error: "Không thể lấy URL ảnh" }, { status: 500 });
     }

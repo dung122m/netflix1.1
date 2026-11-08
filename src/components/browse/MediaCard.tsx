@@ -335,7 +335,18 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
       return;
     }
 
-    // 5. Toàn bộ candidates và fallback TMDb đều thất bại -> Hiện Poster Canvas nghệ thuật
+    // 5. Cứu cánh ảnh phimimg.com bị nhà mạng chặn bằng Cloudflare R2 Proxy trước khi hiển thị Poster Canvas
+    if (currentSrc && currentSrc.includes("phimimg.com") && !currentSrc.includes("/api/media/r2-proxy")) {
+      const r2ProxyUrl = `/api/media/r2-proxy?url=${encodeURIComponent(currentSrc)}`;
+      if (!triedUrlsRef.current.has(r2ProxyUrl)) {
+        setCurrentSrc(r2ProxyUrl);
+        setIsImageLoaded(false);
+        setHasError(false);
+        return;
+      }
+    }
+
+    // 6. Toàn bộ candidates và fallback TMDb đều thất bại -> Hiện Poster Canvas nghệ thuật
     setHasError(true);
     setIsImageLoaded(true);
   }, [currentSrc, imageCandidates, tmdbFallbackSrc, isFallbackLoading, needsFallback]);
