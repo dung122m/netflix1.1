@@ -5523,3 +5523,10 @@ export function findHistoricalArtist(nameOrQuery?: string): HistoricalArtistBirt
     return false;
   });
 }
+
+/**
+ * Lấy URL ảnh đại diện diễn viên từ Cloudflare R2 (0ms latency, không phụ thuộc TMDB)
+ */
+export function getR2ActorAvatarUrl(slug: string): string {
+  return `https://media.nanaflix.asia/actors/photos/${slug.toLowerCase().trim()}.jpg`;
+}

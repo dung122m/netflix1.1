@@ -45,16 +45,16 @@ export function getAvatarInitial(nameOrEmail?: string | null): string {
  * Danh sách Avatar  mẫu cho hệ thống Nanaflix
  */
 export const PRESET_AVATARS = [
-  { id: "netflix-red", name: "🍿 Bắp Rạp", url: "https://api.dicebear.com/9.x/bottts/svg?seed=Nanaflix1" },
-  { id: "gold-star", name: "🌟 Sao Vàng", url: "https://api.dicebear.com/9.x/bottts/svg?seed=Nanaflix2" },
-  { id: "cyber-gamer", name: "🎮 Cyberpunk", url: "https://api.dicebear.com/9.x/bottts/svg?seed=Nanaflix3" },
-  { id: "anime-magic", name: "✨ Anime", url: "https://api.dicebear.com/9.x/bottts/svg?seed=Nanaflix4" },
-  { id: "director-film", name: "🎬 Đạo Diễn", url: "https://api.dicebear.com/9.x/bottts/svg?seed=Nanaflix5" },
-  { id: "retro-headphones", name: "🎧 Chill Music", url: "https://api.dicebear.com/9.x/bottts/svg?seed=Nanaflix6" },
-  { id: "fire-flame", name: "🔥 Siêu Cấp", url: "https://api.dicebear.com/9.x/bottts/svg?seed=Nanaflix7" },
-  { id: "king-crown", name: "👑 Vương Miện", url: "https://api.dicebear.com/9.x/bottts/svg?seed=Nanaflix8" },
-  { id: "ghost-vampire", name: "👻 Cương Thi", url: "https://api.dicebear.com/9.x/bottts/svg?seed=Nanaflix9" },
-  { id: "rabbit-cosmic", name: "🐰 Thỏ Vũ Trụ", url: "https://api.dicebear.com/9.x/bottts/svg?seed=Nanaflix10" },
-  { id: "dragon-hero", name: "🐉 Rồng Đỏ", url: "https://api.dicebear.com/9.x/bottts/svg?seed=Nanaflix11" },
-  { id: "cat-cinema", name: "🐱 Mèo Cinema", url: "https://api.dicebear.com/9.x/bottts/svg?seed=Nanaflix12" },
+  { id: "netflix-red", name: "🍿 Bắp Rạp", url: "https://media.nanaflix.asia/avatars/preset-nanaflix-1.svg" },
+  { id: "gold-star", name: "🌟 Sao Vàng", url: "https://media.nanaflix.asia/avatars/preset-nanaflix-2.svg" },
+  { id: "cyber-gamer", name: "🎮 Cyberpunk", url: "https://media.nanaflix.asia/avatars/preset-nanaflix-3.svg" },
+  { id: "anime-magic", name: "✨ Anime", url: "https://media.nanaflix.asia/avatars/preset-nanaflix-4.svg" },
+  { id: "director-film", name: "🎬 Đạo Diễn", url: "https://media.nanaflix.asia/avatars/preset-nanaflix-5.svg" },
+  { id: "retro-headphones", name: "🎧 Chill Music", url: "https://media.nanaflix.asia/avatars/preset-nanaflix-6.svg" },
+  { id: "fire-flame", name: "🔥 Siêu Cấp", url: "https://media.nanaflix.asia/avatars/preset-nanaflix-7.svg" },
+  { id: "king-crown", name: "👑 Vương Miện", url: "https://media.nanaflix.asia/avatars/preset-nanaflix-8.svg" },
+  { id: "ghost-vampire", name: "👻 Cương Thi", url: "https://media.nanaflix.asia/avatars/preset-nanaflix-9.svg" },
+  { id: "rabbit-cosmic", name: "🐰 Thỏ Vũ Trụ", url: "https://media.nanaflix.asia/avatars/preset-nanaflix-10.svg" },
+  { id: "dragon-hero", name: "🐉 Rồng Đỏ", url: "https://media.nanaflix.asia/avatars/preset-nanaflix-11.svg" },
+  { id: "cat-cinema", name: "🐱 Mèo Cinema", url: "https://media.nanaflix.asia/avatars/preset-nanaflix-12.svg" },
 ];

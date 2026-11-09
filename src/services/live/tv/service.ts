@@ -72,7 +72,7 @@ const CATEGORY_MAPPING: Record<string, string> = {
   "KÊNH CA NHẠC": "Kênh Âm Nhạc",
 };
 
-// Hàm gán logo VTV chuẩn chính thức (chỉ gán cho đúng kênh VTV khi M3U thiếu logo)
+// Hàm gán logo VTV chuẩn chính thức (lưu trữ trực tiếp trên Cloudflare R2 CDN)
 export function getVtvOfficialLogo(name: string): string {
   const upper = name.toUpperCase();
 
@@ -81,7 +81,7 @@ export function getVtvOfficialLogo(name: string): string {
     upper.includes("CAN THO") ||
     upper.includes("VTV10")
   ) {
-    return "https://i.postimg.cc/4nY8BrVK/V10.png";
+    return "https://media.nanaflix.asia/tv-channels/vtv-can-tho.png";
   }
   if (
     upper.includes("TÂY NAM BỘ") ||
@@ -89,7 +89,7 @@ export function getVtvOfficialLogo(name: string): string {
     upper.includes("VTV5 TNB") ||
     upper.includes("VTV5TNB")
   ) {
-    return "https://i.postimg.cc/68ngzDsM/V5TNB.png";
+    return "https://media.nanaflix.asia/tv-channels/vtv5-tay-nguyen.png";
   }
   if (
     upper.includes("TÂY NGUYÊN") ||
@@ -97,20 +97,20 @@ export function getVtvOfficialLogo(name: string): string {
     upper.includes("VTV5 TN") ||
     upper.includes("VTV5TN")
   ) {
-    return "https://i.postimg.cc/HcZhVm5d/V5TN.png";
+    return "https://media.nanaflix.asia/tv-channels/vtv5-tay-nguyen.png";
   }
 
-  if (/\bVTV\s*1\b|\bVTV1\b/i.test(name)) return "https://i.postimg.cc/F1FvzstX/V1.png";
-  if (/\bVTV\s*2\b|\bVTV2\b/i.test(name)) return "https://i.postimg.cc/yDR4tDRm/V2.png";
-  if (/\bVTV\s*3\b|\bVTV3\b/i.test(name)) return "https://i.postimg.cc/B8cWZRM0/V3.png";
-  if (/\bVTV\s*4\b|\bVTV4\b/i.test(name)) return "https://i.postimg.cc/Wqzxnzj0/V4.png";
-  if (/\bVTV\s*5\b|\bVTV5\b/i.test(name)) return "https://i.postimg.cc/ZC91vWVM/V5.png";
-  if (/\bVTV\s*6\b|\bVTV6\b/i.test(name)) return "https://i.postimg.cc/t7Jc81QZ/V6.png";
-  if (/\bVTV\s*7\b|\bVTV7\b/i.test(name)) return "https://i.postimg.cc/ykSbYwN8/V7.png";
-  if (/\bVTV\s*8\b|\bVTV8\b/i.test(name)) return "https://i.postimg.cc/k2QYWK8w/V8.png";
-  if (/\bVTV\s*9\b|\bVTV9\b/i.test(name)) return "https://i.postimg.cc/44rGvQW2/V9.png";
+  if (/\bVTV\s*1\b|\bVTV1\b/i.test(name)) return "https://media.nanaflix.asia/tv-channels/vtv1.png";
+  if (/\bVTV\s*2\b|\bVTV2\b/i.test(name)) return "https://media.nanaflix.asia/tv-channels/vtv2.png";
+  if (/\bVTV\s*3\b|\bVTV3\b/i.test(name)) return "https://media.nanaflix.asia/tv-channels/vtv3.png";
+  if (/\bVTV\s*4\b|\bVTV4\b/i.test(name)) return "https://media.nanaflix.asia/tv-channels/vtv4.png";
+  if (/\bVTV\s*5\b|\bVTV5\b/i.test(name)) return "https://media.nanaflix.asia/tv-channels/vtv5.png";
+  if (/\bVTV\s*6\b|\bVTV6\b/i.test(name)) return "https://media.nanaflix.asia/tv-channels/vtv6.png";
+  if (/\bVTV\s*7\b|\bVTV7\b/i.test(name)) return "https://media.nanaflix.asia/tv-channels/vtv7.png";
+  if (/\bVTV\s*8\b|\bVTV8\b/i.test(name)) return "https://media.nanaflix.asia/tv-channels/vtv8.png";
+  if (/\bVTV\s*9\b|\bVTV9\b/i.test(name)) return "https://media.nanaflix.asia/tv-channels/vtv1.png";
 
-  return "https://i.postimg.cc/F1FvzstX/V1.png";
+  return "https://media.nanaflix.asia/tv-channels/vtv1.png";
 }
 
 // Hàm gán logo HTV chuẩn chính thức

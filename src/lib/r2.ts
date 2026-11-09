@@ -3,6 +3,17 @@ import {
   PutObjectCommand,
   HeadObjectCommand,
 } from "@aws-sdk/client-s3";
+import { checkR2QuotaAllowance, recordSuccessfulR2Upload, getR2QuotaStatus } from "./r2QuotaGuard";
+import r2Manifest from "@/data/r2AssetsManifest.json";
+
+export { getR2QuotaStatus };
+
+/**
+ * Tra cứu URL CDN R2 nhanh 0ms cho asset tĩnh đã được pre-warm
+ */
+export function getR2AssetUrl(key: string): string | null {
+  return (r2Manifest as Record<string, string>)[key] || null;
+}
 
 const accountId = process.env.R2_ACCOUNT_ID;
 const accessKeyId = process.env.R2_ACCESS_KEY_ID;
@@ -47,14 +58,25 @@ export async function uploadToR2({
   buffer,
   contentType,
   cacheControl = "public, max-age=31536000, immutable",
+  isBatchAdmin = false,
 }: {
   key: string;
   buffer: Buffer | Uint8Array;
   contentType: string;
   cacheControl?: string;
+  isBatchAdmin?: boolean;
 }): Promise<string | null> {
   const client = getR2Client();
   if (!client) return null;
+
+  // CẦU CHÌ BẢO VỆ QUOTA (CIRCUIT BREAKER)
+  // Tuyệt đối không cho phép upload nếu sắp chạm trần hoặc bị spam
+  const byteLength = buffer instanceof Buffer ? buffer.length : buffer.byteLength;
+  const quotaCheck = checkR2QuotaAllowance(byteLength, isBatchAdmin);
+  if (!quotaCheck.allowed) {
+    console.warn(`[R2 Storage Shield] Upload rejected for ${key}: ${quotaCheck.reason}`);
+    return null;
+  }
 
   try {
     await client.send(
@@ -67,6 +89,7 @@ export async function uploadToR2({
       })
     );
 
+    recordSuccessfulR2Upload(byteLength);
     return getR2PublicUrl(key);
   } catch (err) {
     console.error("[R2 Storage] Upload failed for key:", key, err);

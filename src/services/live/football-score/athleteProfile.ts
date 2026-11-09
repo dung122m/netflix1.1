@@ -16,6 +16,7 @@ function sanitizeString(str?: string): string | undefined {
  * Danh sách hostname được phép tải ảnh/cờ nhằm ngăn chặn SSRF và truy cập tài nguyên nội bộ
  */
 const ALLOWED_PHOTO_HOSTS = new Set([
+  "media.nanaflix.asia",
   "upload.wikimedia.org",
   "commons.wikimedia.org",
   "thumb.wikimedia.org",

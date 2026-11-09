@@ -1,4 +1,5 @@
 import { getTeamAsset, resolveEsportsTeam } from "@/data/live/teamAssets";
+import { getR2AssetUrl } from "@/lib/r2";
 import {
   resolveDynamicSportsLogo,
   getCachedLogo,
@@ -579,7 +580,10 @@ export function enrichMatchLogosSync<
         m.homeLogo = esp.logo;
       } else {
         const key = normalizeTeamKey(m.team1);
-        if (key && STATIC_CLUB_LOGOS[key]) {
+        const r2Logo = key ? getR2AssetUrl(`teams/football/${key}.png`) : null;
+        if (r2Logo) {
+          m.homeLogo = r2Logo;
+        } else if (key && STATIC_CLUB_LOGOS[key]) {
           m.homeLogo = STATIC_CLUB_LOGOS[key];
         } else if (key) {
           const cached = getCachedLogo(`${s}:${key}`) ?? LOGO_CACHE.get(key);
@@ -593,7 +597,10 @@ export function enrichMatchLogosSync<
         m.awayLogo = esp.logo;
       } else {
         const key = normalizeTeamKey(m.team2);
-        if (key && STATIC_CLUB_LOGOS[key]) {
+        const r2Logo = key ? getR2AssetUrl(`teams/football/${key}.png`) : null;
+        if (r2Logo) {
+          m.awayLogo = r2Logo;
+        } else if (key && STATIC_CLUB_LOGOS[key]) {
           m.awayLogo = STATIC_CLUB_LOGOS[key];
         } else if (key) {
           const cached = getCachedLogo(`${s}:${key}`) ?? LOGO_CACHE.get(key);
