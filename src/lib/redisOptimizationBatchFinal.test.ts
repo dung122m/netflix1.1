@@ -128,7 +128,7 @@ describe("NANAFLIX — 5 REDIS OPTIMIZATION BATCH VERIFICATION", () => {
     assert.equal(auditedOrigin.targetTtlSeconds, 30 * 86400);
   });
 
-  it("P5 Tiering: Deep pagination (page > 10) bypasses Redis, while pages 1-5 get 6h and 6-10 get 2h", async () => {
+  it("P5 Tiering: Deep pagination (page > 50) bypasses Redis, while pages 1-5 get 6h, 6-15 get 2h, and 16-50 get 1h", async () => {
     let checkedKey = "";
     let savedTtl = 0;
     const origSet = cacheService.set;
@@ -140,16 +140,16 @@ describe("NANAFLIX — 5 REDIS OPTIMIZATION BATCH VERIFICATION", () => {
     };
 
     try {
-      // Test page 15 (should skip Redis)
-      let page15Called = false;
+      // Test page 55 (should skip Redis)
+      let page55Called = false;
       const origGet = cacheService.get;
       cacheService.get = async <T>(key: string): Promise<T | null> => {
-        if (key.includes("page\":15")) page15Called = true;
+        if (key.includes("page\":55")) page55Called = true;
         return origGet(key);
       };
 
-      await movieApi.getMovies({ category: "hoat-hinh", page: 15, limit: 24 });
-      assert.equal(page15Called, false, "Page 15 (> 10) phải bỏ qua Redis L2");
+      await movieApi.getMovies({ category: "hoat-hinh", page: 55, limit: 24 });
+      assert.equal(page55Called, false, "Page 55 (> 50) phải bỏ qua Redis L2");
 
       cacheService.get = origGet;
     } finally {
