@@ -1,6 +1,6 @@
 import { cleanHtmlText } from "@/lib/cleanHtml";
 import { normalizeForMatch } from "@/lib/stringUtils";
-import { getR2AssetUrl } from "@/lib/r2";
+import { getR2AssetUrl, getR2BannerUrl } from "@/lib/r2";
 
 export type MovieLike = {
   poster_url?: unknown;
@@ -709,13 +709,9 @@ export function pickHeroBackdropImage(
 
   // 0. Ưu tiên tuyệt đối backdrop/banner đã được tối ưu và cache trên Cloudflare R2 CDN
   const movieSlug = ((rawMovie.slug || movie.slug) as string | undefined)?.toLowerCase().trim();
-  if (movieSlug) {
-    const r2Url =
-      getR2AssetUrl(`banners/${movieSlug}`) ||
-      getR2AssetUrl(`banners/${movieSlug}.jpg`) ||
-      getR2AssetUrl(`banners/${movieSlug}.webp`);
-    if (r2Url) return r2Url;
-  }
+  const rawBackdrop = (rawMovie.backdrop_url || rawMovie.backdropUrl || movie.backdrop_url || movie.backdropUrl) as string | undefined;
+  const r2Url = getR2BannerUrl(movieSlug, rawBackdrop);
+  if (r2Url) return r2Url;
 
   const isNguonC = isNguonCSource(movie);
 

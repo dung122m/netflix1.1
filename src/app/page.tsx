@@ -10,6 +10,7 @@ import { CuratedMovieSection } from "@/components/CuratedMovieSection";
 import { TmdbTopTrending } from "@/components/TmdbTopTrending";
 import { CommunityTopTrending } from "@/components/CommunityTopTrending";
 import { ForYouPersonalizedRow } from "@/components/ForYouPersonalizedRow";
+import { getR2BannerUrl, syncHeroBannerToR2 } from "@/lib/r2";
 
 const HeroFeatured = dynamic(() =>
   import("@/components/browse/HeroFeatured").then(
@@ -277,15 +278,43 @@ export default async function HomePage({
       ? validTrendingMovies.slice(0, 8)
       : getFeaturedMoviesWithCache(movies);
 
-  // Đảm bảo mọi phim trong Hero Banner đều ưu tiên backdrop_url w1280 chuẩn sắc nét từ server
+  // Đảm bảo mọi phim trong Hero Banner đều ưu tiên backdrop R2 CDN sắc nét, chỉ đồng bộ đúng 6-8 phim hiển thị
   const heroMovies = await Promise.all(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     rawHeroMovies.map(async (movie: any) => {
-      if (movie?.backdrop_url) return movie;
+      const slug = (movie?.slug || "").toLowerCase().trim();
+      const r2Banner = getR2BannerUrl(slug, movie?.backdrop_url || movie?.thumb_url);
+
+      if (r2Banner) {
+        return {
+          ...movie,
+          backdrop_url: r2Banner,
+          thumb_url: r2Banner,
+        };
+      }
+
+      if (movie?.backdrop_url) {
+        if (slug && typeof movie.backdrop_url === "string" && movie.backdrop_url.startsWith("http")) {
+          syncHeroBannerToR2(slug, movie.backdrop_url).catch(() => {});
+        }
+        return movie;
+      }
+
       if (movie?.tmdb?.id) {
         try {
           const tmdbBackdrop = await getTmdbBackdropUrl(movie.tmdb.id, movie.tmdb.type);
           if (tmdbBackdrop) {
+            const tmdbR2 = getR2BannerUrl(slug, tmdbBackdrop);
+            if (tmdbR2) {
+              return {
+                ...movie,
+                backdrop_url: tmdbR2,
+                thumb_url: tmdbR2,
+              };
+            }
+            if (slug && tmdbBackdrop.startsWith("http")) {
+              syncHeroBannerToR2(slug, tmdbBackdrop).catch(() => {});
+            }
             return {
               ...movie,
               backdrop_url: tmdbBackdrop,
