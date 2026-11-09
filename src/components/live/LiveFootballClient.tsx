@@ -1501,7 +1501,7 @@ export function LiveFootballClient({
                     height: sidePanelHeight ? `${Math.max(sidePanelHeight, 540)}px` : "min(580px, calc(100vh - 200px))",
                     maxHeight: sidePanelHeight ? `${Math.max(sidePanelHeight, 640)}px` : "min(680px, calc(100vh - 160px))",
                   }}
-                  className="hidden lg:flex lg:col-span-5 xl:col-span-4 min-w-0 flex-col rounded-2xl bg-zinc-950/90 backdrop-blur-xl shadow-2xl p-3 space-y-2.5 overflow-hidden"
+                  className="hidden lg:flex lg:col-span-5 xl:col-span-4 min-w-0 flex-col rounded-2xl bg-zinc-950/95 border border-white/5 shadow-2xl p-3 space-y-2.5 overflow-hidden"
                 >
                   {/* SUB-TABS TRÊN SIDE PANEL */}
                   {hasTimelineEvents ? (

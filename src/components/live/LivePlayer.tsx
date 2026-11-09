@@ -2707,7 +2707,7 @@ function LivePlayerInner({
     ) : null;
 
   const scoreboardMarkup = (
-    <div className="relative rounded-2xl sm:rounded-3xl bg-gradient-to-b from-zinc-900/80 via-zinc-950/90 to-zinc-950 px-3 py-2 sm:px-4 sm:py-2.5 shadow-xl overflow-hidden w-full min-w-0 backdrop-blur-xl">
+    <div className="relative rounded-2xl sm:rounded-3xl bg-gradient-to-b from-zinc-900/90 via-zinc-950 to-zinc-950 px-3 py-2 sm:px-4 sm:py-2.5 shadow-xl overflow-hidden w-full min-w-0 border border-white/5">
       {/* Glow hiệu ứng sân vận động 2 bên */}
       <div className="pointer-events-none absolute -top-24 left-1/4 w-96 h-96 bg-netflix-red/10 rounded-full blur-3xl" />
       <div className="pointer-events-none absolute -top-24 right-1/4 w-96 h-96 bg-sky-600/10 rounded-full blur-3xl" />
