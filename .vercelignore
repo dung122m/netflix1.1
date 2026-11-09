@@ -1,0 +1,19 @@
+# Vercel Deployment Ignore
+# Giảm thiểu dung lượng build và upload (loại bỏ >32 MB tài liệu, ảnh chụp màn hình, binary test)
+
+# Documentation & Screenshots
+docs/
+artifacts/
+
+# Local Tools & Binaries
+.github/skills/
+.github/bin/
+*.exe
+
+# Development Scripts & Temporary Data
+scripts/
+*.tsbuildinfo
+
+# Test Coverage & Logs
+coverage/
+*.log

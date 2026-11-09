@@ -447,7 +447,7 @@ const CLUBS_DATA: Array<{ name: string; logo?: string; emoji?: string; aliases: 
   { name: "SHB Đà Nẵng", logo: "https://r2.thesportsdb.com/images/media/team/badge/ly6chx1583778088.png", aliases: ["shb da nang", "da nang", "clb da nang"] },
   { name: "Quy Nhơn Bình Định", aliases: ["binh dinh", "quy nhon binh dinh"] },
   { name: "TP. Hồ Chí Minh", logo: "https://r2.thesportsdb.com/images/media/team/badge/zegcsi1757913072.png", aliases: ["tp ho chi minh", "tphcm", "clb tp ho chi minh"] },
-  { name: "Hồng Lĩnh Hà Tĩnh", logo: "/images/teams/hong-linh-ha-tinh.png", aliases: ["hong linh ha tinh", "ha tinh", "clb ha tinh"] },
+  { name: "Hồng Lĩnh Hà Tĩnh", logo: "https://media.nanaflix.asia/teams/hong-linh-ha-tinh.png", aliases: ["hong linh ha tinh", "ha tinh", "clb ha tinh"] },
   { name: "Quảng Nam", aliases: ["quang nam", "clb quang nam"] },
 
   // --- THAI LEAGUE (THÁI LAN) ---

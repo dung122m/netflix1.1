@@ -307,9 +307,9 @@ export function resolveTournamentLogo(tournamentName?: string, sport?: string): 
     return "https://a.espncdn.com/i/teamlogos/leagues/500/nba.png";
   }
 
-  // 2. Football (V-League asset tĩnh có sẵn)
+  // 2. Football (V-League asset R2 CDN)
   if (norm.includes("v-league") || norm.includes("vleague")) {
-    return "/images/tournaments/v-league.png";
+    return "https://media.nanaflix.asia/tournaments/v-league.png";
   }
 
   // 3. Tennis Grand Slams (Verified CDN Thumbnails)

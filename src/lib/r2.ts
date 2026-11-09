@@ -115,14 +115,12 @@ export async function syncHeroBannerToR2(
   }
 }
 
-const accountId = process.env.R2_ACCOUNT_ID;
-const accessKeyId = process.env.R2_ACCESS_KEY_ID;
-const secretAccessKey = process.env.R2_SECRET_ACCESS_KEY;
-const bucketName = process.env.R2_BUCKET_NAME || "nanaflix-media";
-const publicBaseUrl = process.env.R2_PUBLIC_URL || "https://media.nanaflix.asia";
-
 export const isR2Configured = (): boolean =>
-  Boolean(accountId && accessKeyId && secretAccessKey);
+  Boolean(
+    process.env.R2_ACCOUNT_ID &&
+    process.env.R2_ACCESS_KEY_ID &&
+    process.env.R2_SECRET_ACCESS_KEY
+  );
 
 let r2ClientInstance: S3Client | null = null;
 
@@ -130,6 +128,9 @@ export function getR2Client(): S3Client | null {
   if (!isR2Configured()) return null;
 
   if (!r2ClientInstance) {
+    const accountId = process.env.R2_ACCOUNT_ID;
+    const accessKeyId = process.env.R2_ACCESS_KEY_ID;
+    const secretAccessKey = process.env.R2_SECRET_ACCESS_KEY;
     r2ClientInstance = new S3Client({
       region: "auto",
       endpoint: `https://${accountId}.r2.cloudflarestorage.com`,
@@ -144,6 +145,7 @@ export function getR2Client(): S3Client | null {
 }
 
 export function getR2PublicUrl(key: string): string {
+  const publicBaseUrl = process.env.R2_PUBLIC_URL || "https://media.nanaflix.asia";
   const cleanBase = publicBaseUrl.replace(/\/+$/, "");
   const cleanKey = key.replace(/^\/+/, "");
   return `${cleanBase}/${cleanKey}`;
@@ -181,7 +183,7 @@ export async function uploadToR2({
   try {
     await client.send(
       new PutObjectCommand({
-        Bucket: bucketName,
+        Bucket: process.env.R2_BUCKET_NAME || "nanaflix-media",
         Key: key,
         Body: buffer,
         ContentType: contentType,
@@ -207,7 +209,7 @@ export async function checkR2ObjectExists(key: string): Promise<boolean> {
   try {
     await client.send(
       new HeadObjectCommand({
-        Bucket: bucketName,
+        Bucket: process.env.R2_BUCKET_NAME || "nanaflix-media",
         Key: key,
       })
     );
