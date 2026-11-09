@@ -2,6 +2,7 @@ import {
   enrichMatchLogosSync,
   triggerBackgroundLogoEnrichment,
 } from "@/services/live/football-logo/service";
+import { processLiveMatchesR2Logos } from "@/services/live/r2LiveAssetSync";
 import { cacheService } from "@/lib/cache";
 import { isBlockedStreamUrl } from "@/services/live/shared/streamHealth";
 import {
@@ -3642,6 +3643,7 @@ export const liveFootballService = {
       );
       enrichMatchLogosSync(validLogoMatches);
       triggerBackgroundLogoEnrichment(validLogoMatches);
+      processLiveMatchesR2Logos(validLogoMatches);
 
       const result: LiveFootballData = {
         updatedAt: new Date().toISOString(),
