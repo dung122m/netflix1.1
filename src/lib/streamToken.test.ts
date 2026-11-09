@@ -190,6 +190,16 @@ describe("Stream Token Security & Cryptographic Invariants", () => {
     assert.equal(sid3, sid4);
   });
 
+  test("9. Concurrent callers in the same 30s window receive identical tokens for Edge CDN caching", () => {
+    const segUrl = "https://cdn.example.com/live/match-123/chunk-001.ts";
+    const tokenUserA = generateStreamToken({ targetUrl: segUrl });
+    const tokenUserB = generateStreamToken({ targetUrl: segUrl });
+
+    assert.equal(tokenUserA.exp, tokenUserB.exp);
+    assert.equal(tokenUserA.token, tokenUserB.token);
+    assert.equal(tokenUserA.sid, tokenUserB.sid);
+  });
+
   describe("P1-B Canonical URL & Resource Binding Invariants", () => {
     const canonicalBaseUrl = "https://cdn.example.com/hls/football/match-789/seg-100.ts?token=upstream_token_123&quality=1080p";
 

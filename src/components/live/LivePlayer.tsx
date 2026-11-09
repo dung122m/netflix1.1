@@ -396,13 +396,16 @@ export function getQualityPriorityScore(
   return 0;
 }
 
+const FOOTBALL_STREAM_PROXY_ENDPOINT =
+  process.env.NEXT_PUBLIC_STREAM_PROXY_URL?.trim() || "/api/live-football/proxy";
+
 /**
  * Chuẩn hóa URL nguồn phát về dạng canonical để không bị lệch giữa direct URL và proxy URL
  */
 export function toCanonicalSourceUrl(url?: string | null): string {
   if (!url) return "";
   let clean = url.trim();
-  if (clean.includes("/api/live-football/proxy?url=")) {
+  if (clean.includes("/proxy?url=") || clean.includes("proxy?url=")) {
     try {
       const match = clean.match(/url=([^&]+)/);
       if (match) {
@@ -1284,7 +1287,7 @@ function LivePlayerInner({
     // Nâng cấp http sang https nếu domain hỗ trợ HTTPS
     if (
       finalUrl.startsWith("http://") &&
-      /fptplay|akamaized|cloudfront|vtv|cdn|vietnam/i.test(finalUrl)
+      /fptplay|akamaized|cloudfront|vtv|cdn|vietnam|vnns|losartang|miekgo|msdht|monarch|byteark|fastly|splay|dethich|thvl|xoilac|vebo|tiengruoi|cakhia|mitom|thevang|thapcam|90phut/i.test(finalUrl)
     ) {
       finalUrl = finalUrl.replace(/^http:\/\//i, "https://");
     }
@@ -1294,13 +1297,13 @@ function LivePlayerInner({
       // Ưu tiên phát trực tiếp từ trình duyệt cho các link HTTPS; chỉ qua Proxy khi gặp lỗi network/CORS
       if (finalUrl.startsWith("https://")) {
         if (useProxyFallback) {
-          return `/api/live-football/proxy?url=${encodeURIComponent(finalUrl)}`;
+          return `${FOOTBALL_STREAM_PROXY_ENDPOINT}?url=${encodeURIComponent(finalUrl)}`;
         }
         return finalUrl;
       }
       // Link HTTP thuần cần qua Proxy để không bị chặn Mixed Content trên trang HTTPS
       if (finalUrl.startsWith("http://")) {
-        return `/api/live-football/proxy?url=${encodeURIComponent(finalUrl)}`;
+        return `${FOOTBALL_STREAM_PROXY_ENDPOINT}?url=${encodeURIComponent(finalUrl)}`;
       }
     }
     return finalUrl;
@@ -1511,7 +1514,7 @@ function LivePlayerInner({
 
       const failedUrl = lastLoadedUrlRef.current;
       const isProxyAttempt = failedUrl
-        ? failedUrl.includes("/api/live-football/proxy")
+        ? (failedUrl.includes("/proxy") || failedUrl.includes(FOOTBALL_STREAM_PROXY_ENDPOINT))
         : useProxyFallbackRef.current;
 
       if (watchdogTimerRef.current) {

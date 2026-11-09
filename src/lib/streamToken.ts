@@ -110,6 +110,7 @@ export interface GenerateStreamTokenOptions {
   streamId?: string;
   ttlSeconds?: number;
   nowEpochSeconds?: number;
+  quantizeWindowSeconds?: number;
   secret?: string;
 }
 
@@ -126,9 +127,19 @@ export interface GeneratedStreamToken {
 export function generateStreamToken(options: GenerateStreamTokenOptions): GeneratedStreamToken {
   const { primary } = getStreamTokenSecrets();
   const secret = options.secret || primary;
-  const now = options.nowEpochSeconds ?? Math.floor(Date.now() / 1000);
   const ttl = options.ttlSeconds ?? DEFAULT_STREAM_TOKEN_TTL_SECONDS;
-  const exp = now + ttl;
+  let exp: number;
+  if (typeof options.nowEpochSeconds === "number") {
+    // Explicit timestamp passed (e.g. deterministic unit tests): do not quantize
+    exp = options.nowEpochSeconds + ttl;
+  } else {
+    // Production runtime: quantize into time windows (default 30s) so concurrent viewers
+    // receive identical token signatures, enabling Edge CDN cache sharing and request collapsing
+    const now = Math.floor(Date.now() / 1000);
+    const windowSize = options.quantizeWindowSeconds ?? 30;
+    const quantizedNow = Math.floor(now / windowSize) * windowSize;
+    exp = quantizedNow + ttl;
+  }
   const sid = options.streamId || computeStreamId(options.targetUrl);
   const canonicalResource = extractCanonicalTargetResource(options.targetUrl);
   const version = STREAM_TOKEN_VERSION;

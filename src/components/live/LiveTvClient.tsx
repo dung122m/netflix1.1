@@ -303,20 +303,25 @@ export function LiveTvClient({
 
   const isMutedRef = useRef(isMuted);
 
+  const TV_STREAM_PROXY_ENDPOINT =
+    process.env.NEXT_PUBLIC_TV_PROXY_URL?.trim() ||
+    process.env.NEXT_PUBLIC_STREAM_PROXY_URL?.trim() ||
+    "/api/live-tv/proxy";
+
   const getStreamUrl = (url: string) => {
     if (!url) return "";
     let cleanUrl = url.trim();
     // Nâng cấp http sang https nếu domain hỗ trợ HTTPS
     if (
       cleanUrl.startsWith("http://") &&
-      /fptplay|akamaized|cloudfront|vtv|cdn|vietnam|vnns/i.test(cleanUrl)
+      /fptplay|akamaized|cloudfront|vtv|cdn|vietnam|vnns|losartang|miekgo|msdht|monarch|byteark|fastly|splay|dethich|thvl|xoilac|vebo|tiengruoi|cakhia|mitom|thevang|thapcam|90phut/i.test(cleanUrl)
     ) {
       cleanUrl = cleanUrl.replace(/^http:\/\//i, "https://");
     }
 
     // Nếu là domain không hỗ trợ CORS cho trình duyệt (như vnns.net, dethich.pw) -> ưu tiên bọc qua proxy luôn để phát mượt mà không bị lỗi CORS
     if (cleanUrl.startsWith("https://") && /vnns\.net|dethich\.pw/i.test(cleanUrl)) {
-      return `/api/live-tv/proxy?url=${encodeURIComponent(cleanUrl)}`;
+      return `${TV_STREAM_PROXY_ENDPOINT}?url=${encodeURIComponent(cleanUrl)}`;
     }
 
     // Nếu là HTTPS -> phát trực tiếp từ trình duyệt để tối ưu độ trễ
@@ -326,7 +331,7 @@ export function LiveTvClient({
 
     // Nếu là link HTTP thuần trên trang HTTPS -> Bắt buộc bọc qua Proxy để tránh Mixed Content
     if (cleanUrl.startsWith("http://")) {
-      return `/api/live-tv/proxy?url=${encodeURIComponent(cleanUrl)}`;
+      return `${TV_STREAM_PROXY_ENDPOINT}?url=${encodeURIComponent(cleanUrl)}`;
     }
     return cleanUrl;
   };
@@ -596,10 +601,10 @@ export function LiveTvClient({
     // Nếu nguồn chính là direct HTTPS nhưng nghi ngờ CORS (ví dụ vnns.net, dethich.pw), chuẩn bị proxy
     if (
       directPrimary.startsWith("https://") &&
-      !directPrimary.includes("/api/live-tv/proxy") &&
+      !directPrimary.includes(TV_STREAM_PROXY_ENDPOINT) &&
       /vnns\.net|dethich\.pw/i.test(directPrimary)
     ) {
-      candidateUrls.push(`/api/live-tv/proxy?url=${encodeURIComponent(selectedTvChannel.url)}`);
+      candidateUrls.push(`${TV_STREAM_PROXY_ENDPOINT}?url=${encodeURIComponent(selectedTvChannel.url)}`);
     }
 
     // Nguồn dự phòng nếu có
@@ -611,10 +616,10 @@ export function LiveTvClient({
       // Nếu fallback là vnns.net, dethich.pw hoặc domain cần proxy
       if (
         directFallback.startsWith("https://") &&
-        !directFallback.includes("/api/live-tv/proxy") &&
+        !directFallback.includes(TV_STREAM_PROXY_ENDPOINT) &&
         /vnns\.net|dethich\.pw/i.test(directFallback)
       ) {
-        const proxyFallback = `/api/live-tv/proxy?url=${encodeURIComponent(fallbackUrl)}`;
+        const proxyFallback = `${TV_STREAM_PROXY_ENDPOINT}?url=${encodeURIComponent(fallbackUrl)}`;
         if (!candidateUrls.includes(proxyFallback)) {
           candidateUrls.push(proxyFallback);
         }
@@ -765,10 +770,10 @@ export function LiveTvClient({
 
               // Nếu là fatal network error (kể cả HTTP 401/403/404 hoặc CORS): thử proxy trước khi bỏ cuộc
               if (
-                !sourceUrl.includes("/api/live-tv/proxy") &&
+                !sourceUrl.includes(TV_STREAM_PROXY_ENDPOINT) &&
                 sourceUrl.startsWith("https://")
               ) {
-                const proxyUrl = `/api/live-tv/proxy?url=${encodeURIComponent(sourceUrl)}`;
+                const proxyUrl = `${TV_STREAM_PROXY_ENDPOINT}?url=${encodeURIComponent(sourceUrl)}`;
                 if (!candidateUrls.includes(proxyUrl)) {
                   candidateUrls.splice(candidateIndex + 1, 0, proxyUrl);
                 }
