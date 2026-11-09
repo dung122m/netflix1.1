@@ -9,23 +9,23 @@ import {
 
 describe("Nanaflix /live - Match Center Realtime Polling & Deduplication", () => {
   it("1. Tính toán chu kỳ polling thích ứng chính xác theo trạng thái trận đấu", () => {
-    assert.equal(MATCH_CENTER_INTERVALS.LIVE_MS, 15_000);
+    assert.equal(MATCH_CENTER_INTERVALS.LIVE_MS, 5_000);
     assert.equal(MATCH_CENTER_INTERVALS.FINISHED_MS, 120_000);
-    assert.equal(MATCH_CENTER_INTERVALS.SCHEDULED_MS, 60_000);
+    assert.equal(MATCH_CENTER_INTERVALS.SCHEDULED_MS, 30_000);
 
-    // Trận đang diễn ra (isLive = true hoặc status = 'live') -> 15 giây (tối ưu realtime)
-    assert.equal(calculateMatchCenterPollInterval("live", false), 15_000);
-    assert.equal(calculateMatchCenterPollInterval("in_progress", true), 15_000);
-    assert.equal(calculateMatchCenterPollInterval(undefined, true), 15_000);
+    // Trận đang diễn ra (isLive = true hoặc status = 'live') -> 5 giây (tối ưu realtime)
+    assert.equal(calculateMatchCenterPollInterval("live", false), 5_000);
+    assert.equal(calculateMatchCenterPollInterval("in_progress", true), 5_000);
+    assert.equal(calculateMatchCenterPollInterval(undefined, true), 5_000);
 
     // Trận đã kết thúc -> 120 giây (giảm tải triệt để)
     assert.equal(calculateMatchCenterPollInterval("finished", false), 120_000);
     assert.equal(calculateMatchCenterPollInterval("post", false), 120_000);
 
-    // Trận sắp diễn ra -> 60 giây
-    assert.equal(calculateMatchCenterPollInterval("scheduled", false), 60_000);
-    assert.equal(calculateMatchCenterPollInterval("pre", false), 60_000);
-    assert.equal(calculateMatchCenterPollInterval(undefined, false), 60_000);
+    // Trận sắp diễn ra -> 30 giây
+    assert.equal(calculateMatchCenterPollInterval("scheduled", false), 30_000);
+    assert.equal(calculateMatchCenterPollInterval("pre", false), 30_000);
+    assert.equal(calculateMatchCenterPollInterval(undefined, false), 30_000);
   });
 
   it("2. Xử lý khi người dùng quay lại tab trình duyệt (Tab Visibility Focus)", () => {
@@ -34,15 +34,15 @@ describe("Nanaflix /live - Match Center Realtime Polling & Deduplication", () =>
     // Chưa từng fetch (lastFetchedTime = 0) -> Cho phép fetch
     assert.equal(shouldRefreshOnTabFocus(0, 30_000, now), true);
 
-    // Vừa mới fetch 5 giây trước (< 30s) -> Không fetch lại vô ích
-    assert.equal(shouldRefreshOnTabFocus(now - 5_000, 30_000, now), false);
+    // Vừa mới fetch 1 giây trước (< 3s threshold) -> Không fetch lại vô ích
+    assert.equal(shouldRefreshOnTabFocus(now - 1_000, 30_000, now), false);
 
-    // Đã trôi qua 30 giây hoặc lâu hơn -> Tự động refresh ngay
-    assert.equal(shouldRefreshOnTabFocus(now - 30_000, 30_000, now), true);
+    // Đã trôi qua 3 giây hoặc lâu hơn -> Tự động refresh ngay
+    assert.equal(shouldRefreshOnTabFocus(now - 3_000, 30_000, now), true);
     assert.equal(shouldRefreshOnTabFocus(now - 45_000, 30_000, now), true);
 
-    // Với trận finished (interval 120s), nếu tab quay lại sau 35s cũng thỏa mãn ngưỡng 30s
-    assert.equal(shouldRefreshOnTabFocus(now - 35_000, 120_000, now), true);
+    // Với trận finished (interval 120s), nếu tab quay lại sau 5s cũng thỏa mãn ngưỡng 3s
+    assert.equal(shouldRefreshOnTabFocus(now - 5_000, 120_000, now), true);
   });
 
   it("3. Deduplication và Cooldown chống spam request trùng lặp", () => {
@@ -76,12 +76,12 @@ describe("Nanaflix /live - Match Center Realtime Polling & Deduplication", () =>
       false
     );
 
-    // Request cùng key, vừa fetch 3 giây trước (< cooldown 8s) -> Chặn khi không force
+    // Request cùng key, vừa fetch 500ms trước (< cooldown 1.5s) -> Chặn khi không force
     assert.equal(
       shouldSkipDuplicateRequest({
         currentKey: key1,
         lastFetchedKey: key1,
-        lastFetchedTime: now - 3_000,
+        lastFetchedTime: now - 500,
         inFlight: false,
         force: false,
         now,
@@ -89,12 +89,12 @@ describe("Nanaflix /live - Match Center Realtime Polling & Deduplication", () =>
       true
     );
 
-    // Request cùng key, vừa fetch 3 giây trước nhưng force = true (ví dụ click nút Làm mới) -> Cho phép
+    // Request cùng key, vừa fetch 500ms trước nhưng force = true (ví dụ click nút Làm mới) -> Cho phép
     assert.equal(
       shouldSkipDuplicateRequest({
         currentKey: key1,
         lastFetchedKey: key1,
-        lastFetchedTime: now - 3_000,
+        lastFetchedTime: now - 500,
         inFlight: false,
         force: true,
         now,
