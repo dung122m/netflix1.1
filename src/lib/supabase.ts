@@ -26,5 +26,14 @@ export const supabase: SupabaseClient | null = isSupabaseConfigured()
         autoRefreshToken: true,
         detectSessionInUrl: true,
       },
+      global: {
+        fetch: (input, init) => {
+          const timeoutSignal = AbortSignal.timeout(8000);
+          const signal = init?.signal
+            ? AbortSignal.any([init.signal, timeoutSignal])
+            : timeoutSignal;
+          return fetch(input, { ...init, signal });
+        },
+      },
     })
   : null;
