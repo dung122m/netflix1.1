@@ -248,7 +248,6 @@ export function LiveFootballClient({
 
         const res = await fetch("/api/live-football/scores", {
           signal,
-          cache: "no-store",
         });
         lastFetchedScoresTimeRef.current = Date.now();
         if (!res.ok) return;
@@ -266,7 +265,7 @@ export function LiveFootballClient({
       }
     };
 
-    const pollIntervalMs = hasLiveMatches ? 5_000 : 30_000;
+    const pollIntervalMs = hasLiveMatches ? 8_000 : 30_000;
     const isReturningFromInactive = !wasActiveScoresRef.current;
     wasActiveScoresRef.current = true;
 

@@ -37,8 +37,8 @@ export async function GET(req: NextRequest) {
 
     const hasLive = events.some((e) => e.status === "live");
     const cacheControl = hasLive
-      ? "public, s-maxage=4, stale-while-revalidate=3, max-age=0"
-      : "public, s-maxage=15, stale-while-revalidate=30, max-age=15";
+      ? "public, max-age=2, s-maxage=4, stale-while-revalidate=4"
+      : "public, max-age=15, s-maxage=30, stale-while-revalidate=60";
 
     const responseHeaders: Record<string, string> = {
       "Cache-Control": cacheControl,

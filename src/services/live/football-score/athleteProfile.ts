@@ -1,12 +1,35 @@
 import { AthleteProfile } from "./types";
 import { cacheService } from "@/lib/cache";
 import { getR2AssetUrl } from "@/lib/r2";
-import topPlayersCatalog from "@/data/topPlayersCatalog.json";
 
-// In-memory index 0ms cho hơn 4,500 cầu thủ và huyền thoại đã đồng bộ R2
-const playerCatalogIndex = new Map<string, (typeof topPlayersCatalog)[0]>();
-for (const p of topPlayersCatalog) {
-  if (p.id) playerCatalogIndex.set(p.id, p);
+type PlayerCatalogItem = {
+  id?: string;
+  name?: string;
+  citizenship?: string;
+  dateOfBirth?: string;
+  r2PhotoUrl?: string;
+  originalPhotoUrl?: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  [key: string]: any;
+};
+
+// Lazy-loaded in-memory index cho kho cầu thủ (tránh bundle 1.97 MB JSON vào cold start serverless)
+let playerCatalogIndex: Map<string, PlayerCatalogItem> | null = null;
+
+async function getPlayerCatalogIndex(): Promise<Map<string, PlayerCatalogItem>> {
+  if (!playerCatalogIndex) {
+    try {
+      const mod = await import("@/data/topPlayersCatalog.json");
+      const list = (mod.default || mod) as PlayerCatalogItem[];
+      playerCatalogIndex = new Map<string, PlayerCatalogItem>();
+      for (const p of list) {
+        if (p.id) playerCatalogIndex.set(p.id, p);
+      }
+    } catch {
+      playerCatalogIndex = new Map<string, PlayerCatalogItem>();
+    }
+  }
+  return playerCatalogIndex;
 }
 
 
@@ -405,10 +428,11 @@ async function fetchAthleteProfileInternal(
     }
 
     // Bước C: Bổ sung metadata từ kho 4,500 cầu thủ và ảnh CDN Cloudflare R2
-    const localPlayer = playerCatalogIndex.get(cleanId);
+    const catalogIndex = await getPlayerCatalogIndex();
+    const localPlayer = catalogIndex.get(cleanId);
     const r2Photo = getR2AssetUrl(`players/photos/${cleanId}.png`);
     if (localPlayer) {
-      if (!baseProfile.displayName || baseProfile.displayName === "Cầu thủ") {
+      if ((!baseProfile.displayName || baseProfile.displayName === "Cầu thủ") && localPlayer.name) {
         baseProfile.displayName = localPlayer.name;
       }
       if (!baseProfile.citizenship && localPlayer.citizenship) {
@@ -418,15 +442,18 @@ async function fetchAthleteProfileInternal(
         baseProfile.dateOfBirth = localPlayer.dateOfBirth;
       }
     }
-    if (r2Photo) {
-      baseProfile.photoUrl = r2Photo;
-      baseProfile.photoSource = "espn";
-    } else if (localPlayer?.r2PhotoUrl) {
-      baseProfile.photoUrl = localPlayer.r2PhotoUrl;
-      baseProfile.photoSource = "espn";
-    } else if (localPlayer?.originalPhotoUrl) {
-      baseProfile.photoUrl = localPlayer.originalPhotoUrl;
-      baseProfile.photoSource = "espn";
+    // Chỉ bổ sung ảnh từ R2 / local player nếu ESPN và Wikimedia chưa có ảnh
+    if (!baseProfile.photoUrl) {
+      if (r2Photo) {
+        baseProfile.photoUrl = r2Photo;
+        baseProfile.photoSource = "espn";
+      } else if (localPlayer?.r2PhotoUrl) {
+        baseProfile.photoUrl = localPlayer.r2PhotoUrl;
+        baseProfile.photoSource = "espn";
+      } else if (localPlayer?.originalPhotoUrl) {
+        baseProfile.photoUrl = localPlayer.originalPhotoUrl;
+        baseProfile.photoSource = "espn";
+      }
     }
 
     // Nếu không có cả ESPN Bio, ảnh bổ sung lẫn dữ liệu nội bộ (ID không tồn tại), không tạo profile rỗng
