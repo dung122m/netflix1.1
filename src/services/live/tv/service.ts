@@ -1,5 +1,6 @@
 import { isBlockedStreamUrl } from "@/services/live/shared/streamHealth";
 import { cacheService } from "@/lib/cache";
+import { getR2AssetUrl } from "@/lib/r2";
 
 // Service cung cấp danh sách kênh truyền hình trực tiếp chuẩn FHD / HD
 // - Kênh VTV sử dụng logo SVG vector chuẩn chính thức từ Đài Truyền hình Việt Nam
@@ -137,13 +138,31 @@ export function getThvlOfficialLogo(name: string): string {
 }
 
 export function getOfficialChannelLogo(name: string): string {
+  if (!name) return "";
+
+  // 0. Tra cứu tự động từ Cloudflare R2 CDN (500+ kênh truyền hình Việt Nam & Quốc tế)
+  const cleanName = name
+    .replace(/\s*\(?(?:HD|FHD|SD|4K|1080p|720p)\)?/gi, "")
+    .replace(/^[\s\.\-]+|[\s\.\-]+$/g, "")
+    .trim();
+  const slug = cleanName
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/g, "d")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+
+  const r2Logo = getR2AssetUrl(`tv-channels/${slug}`) || getR2AssetUrl(`tv-channels/${slug}.png`);
+  if (r2Logo) return r2Logo;
+
   const upper = name.toUpperCase();
   if (upper.includes("VTV")) return getVtvOfficialLogo(name);
   if (upper.includes("HTV") && !upper.includes("HTVC")) return getHtvOfficialLogo(name);
   if (upper.includes("THVL") || upper.includes("VĨNH LONG") || upper.includes("VINH LONG")) return getThvlOfficialLogo(name);
-  if (upper.includes("QPVN") || upper.includes("QUỐC PHÒNG")) return "https://i.imgur.com/UIGZw0y.png";
-  if (upper.includes("HÀ NỘI 1") || upper.includes("HANOI 1") || upper.includes("HANOITV1")) return "https://i.postimg.cc/hvL15x02/Hanoi-TV1.png";
-  if (upper.includes("HÀ NỘI 2") || upper.includes("HANOI 2") || upper.includes("HANOITV2")) return "https://i.postimg.cc/Nft4rJgS/Hanoi-TV2.png";
+  if (upper.includes("QPVN") || upper.includes("QUỐC PHÒNG")) return "https://media.nanaflix.asia/tv-channels/qpvn.png";
+  if (upper.includes("HÀ NỘI 1") || upper.includes("HANOI 1") || upper.includes("HANOITV1")) return "https://media.nanaflix.asia/tv-channels/ha-noi-1.png";
+  if (upper.includes("HÀ NỘI 2") || upper.includes("HANOI 2") || upper.includes("HANOITV2")) return "https://media.nanaflix.asia/tv-channels/ha-noi-2.png";
   return "";
 }
 
@@ -153,7 +172,7 @@ const VERIFIED_CHANNELS: TvChannel[] = [
   {
     id: "vtv1-fhd",
     name: "VTV1 HD (Thời sự - Chính luận)",
-    logo: "https://i.postimg.cc/F1FvzstX/V1.png",
+    logo: "https://media.nanaflix.asia/tv-channels/vtv1.png",
     url: "https://live.fptplay53.net/live/media/vtv1/live247-hls-avc/vtv1-avc1_5600000=10000-mp4a_131600=20000.m3u8",
     fallbackUrl: "https://vtvgolivepre-vtv02.vtvdigital.vn/hls/vtv/live/vtv1/free/master.m3u8",
     category: "Kênh VTV",
@@ -162,7 +181,7 @@ const VERIFIED_CHANNELS: TvChannel[] = [
   {
     id: "vtv2-fhd",
     name: "VTV2 HD (Khoa học - Giáo dục)",
-    logo: "https://i.postimg.cc/yDR4tDRm/V2.png",
+    logo: "https://media.nanaflix.asia/tv-channels/vtv2.png",
     url: "https://live.fptplay53.net/live/media/vtv2/live247-hls-avc/vtv2-avc1_5600000=10000-mp4a_131600=20000.m3u8",
     fallbackUrl: "https://vtvgolivepre-vtv02.vtvdigital.vn/hls/vtv/live/vtv2/free/master.m3u8",
     category: "Kênh VTV",
@@ -171,7 +190,7 @@ const VERIFIED_CHANNELS: TvChannel[] = [
   {
     id: "vtv3-hd",
     name: "VTV3 HD (Giải trí - Thể thao)",
-    logo: "https://i.postimg.cc/B8cWZRM0/V3.png",
+    logo: "https://media.nanaflix.asia/tv-channels/vtv3.png",
     url: "https://live.fptplay53.net/live/media/vtv3/live247-hls-avc/vtv3-avc1_5600000=10000-mp4a_131600=20000.m3u8",
     fallbackUrl: "https://vtvgolivepre-vtv02.vtvdigital.vn/hls/vtv/live/vtv3/free/master.m3u8",
     category: "Kênh VTV",
@@ -180,7 +199,7 @@ const VERIFIED_CHANNELS: TvChannel[] = [
   {
     id: "vtv4-hd",
     name: "VTV4 HD (Đối ngoại)",
-    logo: "https://i.postimg.cc/G22qL4vj/V4.png",
+    logo: "https://media.nanaflix.asia/tv-channels/vtv4.png",
     url: "https://live.fptplay53.net/live/media/vtv4/live247-hls-avc/vtv4-avc1_5600000=10000-mp4a_131600=20000.m3u8",
     fallbackUrl: "https://vtvgolivepre-vtv02.vtvdigital.vn/hls/vtv/live/vtv4/free/master.m3u8",
     category: "Kênh VTV",
@@ -189,7 +208,7 @@ const VERIFIED_CHANNELS: TvChannel[] = [
   {
     id: "vtv5-hd",
     name: "VTV5 HD (Đồng bào Dân tộc)",
-    logo: "https://i.postimg.cc/BvFhG157/V5.png",
+    logo: "https://media.nanaflix.asia/tv-channels/vtv5.png",
     url: "https://live.fptplay53.net/live/media/vtv5/live247-hls-avc/vtv5-avc1_5600000=10000-mp4a_131600=20000.m3u8",
     fallbackUrl: "https://vtvgolivepre-vtv02.vtvdigital.vn/hls/vtv/live/vtv5/free/master.m3u8",
     category: "Kênh VTV",
@@ -198,7 +217,7 @@ const VERIFIED_CHANNELS: TvChannel[] = [
   {
     id: "vtv7-hd",
     name: "VTV7 HD (Giáo dục Quốc gia)",
-    logo: "https://i.postimg.cc/26Z8PZ3y/V7.png",
+    logo: "https://media.nanaflix.asia/tv-channels/vtv7.png",
     url: "https://live.fptplay53.net/live/media/vtv7/live247-hls-avc/vtv7-avc1_5600000=10000-mp4a_131600=20000.m3u8",
     fallbackUrl: "https://vtvgolivepre-vtv02.vtvdigital.vn/hls/vtv/live/vtv7/free/master.m3u8",
     category: "Kênh VTV",
@@ -207,7 +226,7 @@ const VERIFIED_CHANNELS: TvChannel[] = [
   {
     id: "vtv8-hd",
     name: "VTV8 HD (Miền Trung - Tây Nguyên)",
-    logo: "https://i.postimg.cc/k47ZpTdf/V8.png",
+    logo: "https://media.nanaflix.asia/tv-channels/vtv8.png",
     url: "https://vtvgolivepre-vtv02.vtvdigital.vn/hls/vtv/live/vtv8/free/master.m3u8",
     fallbackUrl: "https://1011154949.vnns.net/CDN-FPT02/VTV8-HD-1080p/playlist.m3u8",
     category: "Kênh VTV",
@@ -216,7 +235,7 @@ const VERIFIED_CHANNELS: TvChannel[] = [
   {
     id: "vtv9-hd",
     name: "VTV9 HD (Kênh Đông Nam Bộ)",
-    logo: "https://i.postimg.cc/zGgGjJjT/V9.png",
+    logo: "https://media.nanaflix.asia/tv-channels/vtv1.png",
     url: "https://live.fptplay53.net/live/media/vtv9/live247-hls-avc/vtv9-avc1_5600000=10000-mp4a_131600=20000.m3u8",
     fallbackUrl: "https://vtvgolivepre-vtv02.vtvdigital.vn/hls/vtv/live/vtv9/free/master.m3u8",
     category: "Kênh VTV",
@@ -225,7 +244,7 @@ const VERIFIED_CHANNELS: TvChannel[] = [
   {
     id: "vtv5-cantho",
     name: "VTV Cần Thơ HD (Tây Nam Bộ)",
-    logo: "https://i.postimg.cc/4nY8BrVK/V10.png",
+    logo: "https://media.nanaflix.asia/tv-channels/vtv-can-tho.png",
     url: "https://vtvgolivepre-vtv02.vtvdigital.vn/hls/vtv/live/vtv10/free/master.m3u8",
     fallbackUrl: "https://1011154949.vnns.net/CDN-FPT02/VTV-CANTHO-HD-1080p/playlist.m3u8",
     category: "Kênh VTV",
@@ -234,7 +253,7 @@ const VERIFIED_CHANNELS: TvChannel[] = [
   {
     id: "vtv-taynguyen-hd",
     name: "VTV Tây Nguyên HD",
-    logo: "https://i.postimg.cc/HcZhVm5d/V5TN.png",
+    logo: "https://media.nanaflix.asia/tv-channels/vtv5-tay-nguyen.png",
     url: "https://vtvgolivepre-vtv02.vtvdigital.vn/hls/vtv/live/vtv5tn/free/master.m3u8",
     fallbackUrl: "https://vtvgolivepre-vtv02.vtvdigital.vn/hls/vtv/live/vtv5tnb/free/master.m3u8",
     category: "Kênh VTV",
@@ -597,10 +616,12 @@ export const liveTvService = {
             finalUrl.includes("fnxhd") ||
             finalUrl.includes("epzhd");
 
-          // Ưu tiên 100% logo gốc từ nguồn phát (tvg-logo). Nếu nguồn phát không có logo, dùng logo CDN chính thức
-          if (!logo || !logo.startsWith("http")) {
-            const fallbackLogo = getOfficialChannelLogo(rawName);
-            if (fallbackLogo) logo = fallbackLogo;
+          // Ưu tiên logo CDN chính thức từ Cloudflare R2 nếu có. Nếu không, giữ nguyên logo gốc từ nguồn phát
+          const officialLogo = getOfficialChannelLogo(rawName);
+          if (officialLogo) {
+            logo = officialLogo;
+          } else if (!logo || !logo.startsWith("http")) {
+            logo = "/default-tv-logo.png";
           }
 
           // Giữ nguyên 100% logo gốc từ nguồn cho tất cả các kênh khác

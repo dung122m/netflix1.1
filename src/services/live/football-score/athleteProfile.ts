@@ -1,5 +1,13 @@
 import { AthleteProfile } from "./types";
 import { cacheService } from "@/lib/cache";
+import { getR2AssetUrl } from "@/lib/r2";
+import topPlayersCatalog from "@/data/topPlayersCatalog.json";
+
+// In-memory index 0ms cho hơn 4,500 cầu thủ và huyền thoại đã đồng bộ R2
+const playerCatalogIndex = new Map<string, (typeof topPlayersCatalog)[0]>();
+for (const p of topPlayersCatalog) {
+  if (p.id) playerCatalogIndex.set(p.id, p);
+}
 
 
 
@@ -396,8 +404,33 @@ async function fetchAthleteProfileInternal(
       }
     }
 
-    // Nếu không có cả ESPN Bio lẫn ảnh bổ sung (ID không tồn tại), không tạo profile rỗng
-    if (!espnBio && !baseProfile.photoUrl) {
+    // Bước C: Bổ sung metadata từ kho 4,500 cầu thủ và ảnh CDN Cloudflare R2
+    const localPlayer = playerCatalogIndex.get(cleanId);
+    const r2Photo = getR2AssetUrl(`players/photos/${cleanId}.png`);
+    if (localPlayer) {
+      if (!baseProfile.displayName || baseProfile.displayName === "Cầu thủ") {
+        baseProfile.displayName = localPlayer.name;
+      }
+      if (!baseProfile.citizenship && localPlayer.citizenship) {
+        baseProfile.citizenship = localPlayer.citizenship;
+      }
+      if (!baseProfile.dateOfBirth && localPlayer.dateOfBirth) {
+        baseProfile.dateOfBirth = localPlayer.dateOfBirth;
+      }
+    }
+    if (r2Photo) {
+      baseProfile.photoUrl = r2Photo;
+      baseProfile.photoSource = "espn";
+    } else if (localPlayer?.r2PhotoUrl) {
+      baseProfile.photoUrl = localPlayer.r2PhotoUrl;
+      baseProfile.photoSource = "espn";
+    } else if (localPlayer?.originalPhotoUrl) {
+      baseProfile.photoUrl = localPlayer.originalPhotoUrl;
+      baseProfile.photoSource = "espn";
+    }
+
+    // Nếu không có cả ESPN Bio, ảnh bổ sung lẫn dữ liệu nội bộ (ID không tồn tại), không tạo profile rỗng
+    if (!espnBio && !baseProfile.photoUrl && !localPlayer) {
       return null;
     }
 
