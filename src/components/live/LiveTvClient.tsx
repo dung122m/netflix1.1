@@ -48,6 +48,11 @@ import {
 import { LiveShortcutPopover } from "./LiveShortcutPopover";
 import { Tooltip } from "@/components/ui/Tooltip";
 import { ChannelSourceSwitcher } from "./ChannelSourceSwitcher";
+import { TvChannelLogo, getCategoryEmoji, getPageNumbers } from "./TvChannelLogo";
+import { TvChannelDrawer } from "./TvChannelDrawer";
+import { TvChannelGrid } from "./TvChannelGrid";
+
+export { TvChannelLogo, getCategoryEmoji, getPageNumbers, TvChannelDrawer, TvChannelGrid };
 
 interface LiveTvClientProps {
   initialData: LiveTvData;
@@ -55,87 +60,6 @@ interface LiveTvClientProps {
 }
 
 const INITIAL_PAGE_SIZE = 24;
-
-function getPageNumbers(current: number, total: number): (number | string)[] {
-  if (total <= 5) {
-    return Array.from({ length: total }, (_, i) => i + 1);
-  }
-  if (current <= 3) {
-    return [1, 2, 3, "...", total];
-  }
-  if (current >= total - 2) {
-    return [1, "...", total - 2, total - 1, total];
-  }
-  return [1, "...", current, "...", total];
-}
-
-function getCategoryEmoji(category: string): string {
-  if (category.includes("VTV") && !category.includes("VTVcab")) return "🇻🇳";
-  if (category.includes("HTV")) return "🏙️";
-  if (category.includes("SCTV")) return "⭐";
-  if (category.includes("VTVcab")) return "📺";
-  if (category.includes("Vĩnh Long") || category.includes("THVL")) return "🌾";
-  if (
-    category.includes("Tin Tức") ||
-    category.includes("Thời Sự") ||
-    category.includes("VTC")
-  )
-    return "📰";
-  if (category.includes("Phim") || category.includes("Cinema")) return "🎬";
-  if (category.includes("Địa Phương")) return "📍";
-  if (category.includes("Quốc Tế")) return "🌍";
-  if (category.includes("Thiếu Nhi")) return "🎈";
-  if (category.includes("Âm Nhạc")) return "🎵";
-  if (category.includes("Bóng Đá") || category.includes("Thể Thao")) return "⚽";
-  return "📺";
-}
-
-function TvChannelLogo({
-  logo,
-  name,
-}: {
-  logo: string;
-  name: string;
-  size?: "sm" | "md" | "lg";
-}) {
-  const [error, setError] = useState(false);
-
-  // Nếu có logo URL và chưa bị lỗi → hiển thị ảnh trực tiếp từ nguồn
-  if (logo && !error) {
-    return (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img
-        src={logo}
-        alt={name}
-        className="w-full h-full object-contain filter drop-shadow-md transition-transform duration-200 group-hover:scale-105"
-        loading="lazy"
-        decoding="async"
-        onError={() => setError(true)}
-      />
-    );
-  }
-
-  // Fallback: Badge chữ đơn giản khi không có logo hoặc ảnh lỗi
-  const words = name
-    .toUpperCase()
-    .split(/[\s\-_]+/)
-    .filter(Boolean);
-  const code = words.slice(0, 2).join(" ").slice(0, 7);
-  const sub = words.length > 2 ? words[2].slice(0, 4) : "";
-
-  return (
-    <div className="w-full h-full rounded-xl bg-gradient-to-br from-zinc-800 to-zinc-950 flex flex-col items-center justify-center text-white select-none overflow-hidden gap-0.5 p-1">
-      <span className="text-[11px] sm:text-xs font-black tracking-tight text-white leading-none font-sans tabular-nums line-clamp-1 text-center w-full px-0.5">
-        {code}
-      </span>
-      {sub && (
-        <span className="text-[8px] font-bold text-white/70 leading-none truncate">
-          {sub}
-        </span>
-      )}
-    </div>
-  );
-}
 
 
 export function LiveTvClient({
@@ -1184,157 +1108,20 @@ export function LiveTvClient({
     selectedCategory !== "all" || searchQuery.trim() !== "" || onlyFhd;
 
   
-  const channelDrawerMarkup = selectedTvChannel ? (
-    <>
-      {/* BACKDROP KHI MỞ DRAWER KÊNH TRÊN MOBILE & DESKTOP */}
-      <div
-        className={`${
-          useMobilePortal
-            ? "fixed inset-0 z-[100000] bg-black/80"
-            : "fixed inset-0 sm:absolute sm:inset-0 z-[100000] sm:z-40 bg-black/75 sm:bg-black/40"
-        } backdrop-blur-sm transition-all duration-300 ${
-          showChannelRail
-            ? "opacity-100 pointer-events-auto visible"
-            : "opacity-0 pointer-events-none invisible"
-        }`}
-        onClick={(e) => {
-          e.stopPropagation();
-          setShowChannelRail(false);
-        }}
-      />
-
-      {/* DRAWER / BOTTOM SHEET DANH SÁCH KÊNH TRUYỀN HÌNH (TỐI ƯU CẢM ỨNG MOBILE) */}
-      <aside
-        className={`${
-          useMobilePortal
-            ? "fixed inset-x-0 bottom-0 z-[100001] w-full max-h-[85vh] max-h-[85dvh] rounded-t-3xl   bg-zinc-950/98 p-3.5 pb-[max(1.5rem,calc(env(safe-area-inset-bottom,0px)+1rem))] shadow-2xl backdrop-blur-2xl"
-            : "fixed inset-x-0 bottom-0 sm:absolute sm:inset-y-0 sm:right-0 sm:left-auto z-[100001] sm:z-50 w-full sm:w-[380px] max-h-[85vh] max-h-[85dvh] sm:max-h-full rounded-t-3xl sm:rounded-none  sm:-0 sm:  bg-zinc-950/98 sm:bg-zinc-950/95 p-3.5 pb-[max(1.5rem,calc(env(safe-area-inset-bottom,0px)+1rem))] sm:p-4 shadow-2xl backdrop-blur-2xl"
-        } transition-all duration-300 flex flex-col ${
-          showChannelRail
-            ? "translate-y-0 sm:translate-x-0 opacity-100 pointer-events-auto visible"
-            : "translate-y-full sm:translate-y-0 sm:translate-x-full opacity-0 pointer-events-none invisible"
-        }`}
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* THANH VUỐT KÉO GỢI Ý TRÊN MOBILE */}
-        <div className="w-12 h-1.5 bg-white/30 rounded-full mx-auto mb-2 sm:hidden shrink-0" />
-
-        <div className="mb-2.5 flex items-center justify-between pb-2.5 shrink-0">
-          <div className="min-w-0 pr-2">
-            <div className="flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-netflix-red animate-ping" />
-              <p className="text-[11px] sm:text-[10px] font-black uppercase tracking-[0.18em] text-netflix-red">
-                Kênh Truyền Hình Trực Tiếp
-              </p>
-            </div>
-            <p className="mt-0.5 truncate text-xs sm:text-xs font-bold text-white">
-              Đang xem: {selectedTvChannel.name}
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              setShowChannelRail(false);
-            }}
-            className="rounded-full p-2 text-white hover:bg-white/20 active:scale-95 bg-white/10 transition shrink-0 cursor-pointer min-w-[38px] min-h-[38px] flex items-center justify-center shadow-sm"
-            title="Đóng danh sách kênh"
-            aria-label="Đóng"
-          >
-            <X className="h-4 w-4 text-white" />
-          </button>
-        </div>
-
-        {/* Ô TÌM KIẾM KÊNH TRONG DRAWER */}
-        <div className="relative mb-2.5 shrink-0">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Tìm kênh theo tên, đài, danh mục..."
-            className="w-full pl-9 pr-8 py-2 sm:py-1.5 rounded-xl bg-white/10 text-xs text-white placeholder-zinc-400 focus:outline-none focus: transition"
-          />
-          {searchQuery && (
-            <button
-              type="button"
-              onClick={() => setSearchQuery("")}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-white p-1 cursor-pointer"
-            >
-              <X className="w-3.5 h-3.5" />
-            </button>
-          )}
-        </div>
-
-        {/* DANH SÁCH CUỘN KÊNH (TOUCH-FRIENDLY CHO MOBILE) */}
-        <div
-          ref={drawerListRef}
-          className="flex-1 overflow-y-auto space-y-2 pr-0.5 scrollbar-thin overscroll-contain"
-        >
-          {filteredChannels.length === 0 ? (
-            <div className="py-12 text-center text-xs text-zinc-400">
-              Không tìm thấy kênh phù hợp với tìm kiếm.
-            </div>
-          ) : (
-            filteredChannels.map((channel) => {
-              const active = selectedTvChannel.id === channel.id;
-              return (
-                <button
-                  key={channel.id}
-                  ref={active ? activeTvChannelRef : undefined}
-                  type="button"
-                  onClick={() => handleSelectChannel(channel, false)}
-                  className={`flex w-full items-center gap-3 rounded-2xl  p-2.5 sm:p-2 text-left transition min-h-[56px] active:scale-[0.98] cursor-pointer touch-manipulation ${
-                    active
-                      ? " bg-netflix-red/20 text-white border-l-4 border-l-netflix-red shadow-md shadow-black/50 "
-                      : " bg-white/[0.04] text-zinc-200 hover: hover:bg-white/[0.1] active:bg-white/[0.15]"
-                  }`}
-                >
-                  <span className="flex h-11 w-14 sm:h-10 sm:w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-zinc-900/90 p-1 shadow-inner">
-                    <TvChannelLogo
-                      logo={channel.logo}
-                      name={channel.name}
-                      size="sm"
-                    />
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="flex items-center justify-between gap-1">
-                      <span className="truncate text-xs sm:text-xs font-bold">
-                        {channel.name}
-                      </span>
-                      {active && <PlayingEqualizer />}
-                    </span>
-                    <span className="flex items-center gap-1.5 mt-0.5">
-                      <span className="truncate text-[11px] sm:text-[10px] text-zinc-400">
-                        {channel.category}
-                      </span>
-                      <span className="text-[9px] px-1.5 py-0.2 rounded bg-white/10 text-emerald-400 font-bold uppercase">
-                        {channel.quality}
-                      </span>
-                    </span>
-                  </span>
-                </button>
-              );
-            })
-          )}
-        </div>
-
-        {/* NÚT ĐÓNG TO RÕ Ở CUỐI DRAWER DÀNH RIÊNG CHO MOBILE */}
-        <div className="pt-2.5 mt-2 shrink-0 sm:hidden">
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              setShowChannelRail(false);
-            }}
-            className="w-full py-2.5 rounded-xl bg-white/10 hover:bg-white/20 active:scale-[0.99] text-white font-semibold text-xs transition cursor-pointer"
-          >
-            Đóng danh sách kênh
-          </button>
-        </div>
-      </aside>
-    </>
-  ) : null;
+  const channelDrawerMarkup = (
+    <TvChannelDrawer
+      isOpen={showChannelRail}
+      onClose={() => setShowChannelRail(false)}
+      useMobilePortal={useMobilePortal}
+      selectedChannel={selectedTvChannel}
+      channels={filteredChannels}
+      searchQuery={searchQuery}
+      onSearchChange={setSearchQuery}
+      onSelectChannel={(ch) => handleSelectChannel(ch, false)}
+      drawerListRef={drawerListRef}
+      activeChannelRef={activeTvChannelRef}
+    />
+  );
 
   return (
     <div className="space-y-3 sm:space-y-4">
@@ -2215,209 +2002,19 @@ export function LiveTvClient({
             </div>
 
             {/* DANH SÁCH KÊNH (GRID HOẶC LIST) */}
-            {displayedChannels.length > 0 ? (
-              <div className="space-y-4">
-                {viewMode === "grid" ? (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-2.5 sm:gap-3.5">
-                    {displayedChannels.map((ch) => {
-                      const isSelected = selectedTvChannel?.id === ch.id;
-                      return (
-                        <div
-                          key={ch.id}
-                          tabIndex={0}
-                          onClick={() => handleSelectChannel(ch)}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter" || e.key === " ") {
-                              e.preventDefault();
-                              handleSelectChannel(ch);
-                            }
-                          }}
-                          className={`live-channel-card group relative rounded-xl sm:rounded-2xl border p-2 sm:p-3.5 cursor-pointer transition-all duration-300 flex flex-col items-center justify-between text-center focus-visible:scale-105 focus-visible:ring-4 focus-visible:ring-netflix-red focus-visible:outline-none ${
-                            isSelected
-                              ? "live-channel-active  scale-102"
-                              : "hover:shadow-lg hover:-translate-y-0.5"
-                          }`}
-                        >
-                          {/* HUY HIỆU GÓC TRÊN */}
-                          <div className="w-full flex items-center justify-between gap-1 mb-1 sm:mb-2">
-                            <span className="text-[9px] sm:text-[10px] font-bold text-zinc-400 truncate max-w-[55px] sm:max-w-[80px]">
-                              {ch.category.replace("Kênh ", "")}
-                            </span>
-                            <div className="flex items-center gap-1 flex-shrink-0">
-                              {isSelected && isPlaying && <PlayingEqualizer />}
-                              <span
-                                className={`px-1 sm:px-1.5 py-0.2 rounded text-[8px] sm:text-[9.5px] font-black uppercase tracking-wider  ${
-                                  ch.quality.includes("FHD")
-                                    ? "bg-emerald-500/15  text-emerald-400"
-                                    : "bg-sky-500/15  text-sky-400"
-                                }`}
-                              >
-                                {ch.quality
-                                  .replace(" 1080p", "")
-                                  .replace(" 720p", "")}
-                              </span>
-                            </div>
-                          </div>
-
-                          {/* LOGO KÊNH */}
-                          <div className="live-channel-logo-container w-full h-11 sm:h-16 md:h-18 rounded-lg sm:rounded-xl bg-zinc-950/60 p-1.5 sm:p-2 flex items-center justify-center my-0.5 sm:my-1.5 shadow-inner group-hover:scale-105 transition-transform overflow-hidden">
-                            <TvChannelLogo logo={ch.logo} name={ch.name} />
-                          </div>
-
-                          {/* TÊN KÊNH */}
-                          <h3 className="live-channel-title text-[11px] sm:text-xs md:text-sm font-bold sm:font-extrabold text-white group-hover:text-netflix-red transition line-clamp-1 mt-0.5 sm:mt-1 leading-tight w-full">
-                            {ch.name}
-                          </h3>
-                        </div>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-2 sm:gap-2.5">
-                    {displayedChannels.map((ch) => {
-                      const isSelected = selectedTvChannel?.id === ch.id;
-                      return (
-                        <div
-                          key={ch.id}
-                          tabIndex={0}
-                          onClick={() => handleSelectChannel(ch)}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter" || e.key === " ") {
-                              e.preventDefault();
-                              handleSelectChannel(ch);
-                            }
-                          }}
-                          className={`group rounded-xl border p-2 sm:p-2.5 cursor-pointer transition-all flex items-center justify-between gap-2.5 sm:gap-3 live-channel-card focus-visible:scale-102 focus-visible:ring-4 focus-visible:ring-netflix-red focus-visible:outline-none ${
-                            isSelected
-                              ? "live-channel-active border-netflix-red/60 bg-netflix-red/10"
-                              : "border-white/[0.08] hover:border-white/20 hover:bg-white/[0.03]"
-                          }`}
-                        >
-                          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
-                            <div className="live-channel-logo-container w-11 h-8 sm:w-14 sm:h-10 rounded-lg sm:rounded-xl bg-zinc-950/60 p-1 flex items-center justify-center overflow-hidden flex-shrink-0">
-                              <TvChannelLogo logo={ch.logo} name={ch.name} />
-                            </div>
-                            <div className="min-w-0">
-                              <div className="flex items-center gap-1.5">
-                                <h4 className="live-channel-title text-[11px] sm:text-xs font-bold text-white group-hover:text-netflix-red truncate">
-                                  {ch.name}
-                                </h4>
-                                {isSelected && isPlaying && <PlayingEqualizer />}
-                              </div>
-                              <div className="flex items-center gap-1.5 text-[9.5px] sm:text-[10px] text-zinc-400 truncate">
-                                <span>{ch.category.replace("Kênh ", "")}</span>
-                              </div>
-                            </div>
-                          </div>
-
-                          <span
-                            className={`text-[8.5px] sm:text-[9.5px] px-1.5 sm:px-2 py-0.5 rounded font-black uppercase flex-shrink-0  ${
-                              ch.quality.includes("FHD")
-                                ? "bg-emerald-500/15  text-emerald-400"
-                                : "bg-sky-500/15  text-sky-400"
-                            }`}
-                          >
-                            {ch.quality.replace(" 1080p", "").replace(" 720p", "")}
-                          </span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-
-                {/* THANH ĐIỀU HƯỚNG PHÂN TRANG THEO SỐ TRANG (NUMBERED PAGINATION) */}
-                {totalPages > 1 && (
-                  <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 pb-2 mt-6">
-                    <div className="text-xs text-zinc-400 text-center sm:text-left">
-                      Hiển thị <span className="text-white font-bold">{(safePage - 1) * INITIAL_PAGE_SIZE + 1}</span> -{" "}
-                      <span className="text-white font-bold">
-                        {Math.min(safePage * INITIAL_PAGE_SIZE, filteredChannels.length)}
-                      </span>{" "}
-                      trên tổng số <span className="text-netflix-red font-bold">{filteredChannels.length}</span> kênh
-                    </div>
-
-                    <div className="flex items-center gap-1 sm:gap-1.5 justify-center flex-nowrap">
-                      {/* Nút Trang Trước */}
-                      <button
-                        type="button"
-                        disabled={safePage <= 1}
-                        onClick={() => handlePageChange(safePage - 1)}
-                        className={`flex items-center gap-1 px-2.5 sm:px-3 py-1.5 rounded-xl text-[11px] sm:text-xs font-bold  transition shrink-0 ${
-                          safePage <= 1
-                            ? "opacity-35 cursor-not-allowed  bg-white/[0.02] text-zinc-500"
-                            : " bg-zinc-900 hover:bg-zinc-800 text-white hover: cursor-pointer shadow-sm active:scale-95"
-                        }`}
-                      >
-                        <ChevronLeft className="w-3.5 h-3.5" />
-                        <span>Trước</span>
-                      </button>
-
-                      {/* Các nút số trang */}
-                      <div className="flex items-center gap-1 shrink-0">
-                        {getPageNumbers(safePage, totalPages).map((p, idx) => {
-                          if (p === "...") {
-                            return (
-                              <span key={`dots-${idx}`} className="px-1 py-1 text-xs text-zinc-500 font-bold">
-                                ...
-                              </span>
-                            );
-                          }
-                          const isCurrent = p === safePage;
-                          return (
-                            <button
-                              key={`page-${p}`}
-                              type="button"
-                              onClick={() => handlePageChange(Number(p))}
-                              className={`min-w-[30px] sm:min-w-[32px] h-7 sm:h-8 px-1.5 sm:px-2 rounded-xl text-[11px] sm:text-xs font-bold transition  cursor-pointer shrink-0 ${
-                                isCurrent
-                                  ? "bg-netflix-red text-white shadow-md shadow-black/50 font-black scale-105 border border-netflix-red"
-                                  : "bg-zinc-900/90 text-zinc-300 hover:text-white hover:bg-zinc-800 border border-white/[0.08] hover:border-white/20"
-                              }`}
-                            >
-                              {p}
-                            </button>
-                          );
-                        })}
-                      </div>
-
-                      {/* Nút Trang Sau */}
-                      <button
-                        type="button"
-                        disabled={safePage >= totalPages}
-                        onClick={() => handlePageChange(safePage + 1)}
-                        className={`flex items-center gap-1 px-2.5 sm:px-3 py-1.5 rounded-xl text-[11px] sm:text-xs font-bold  transition shrink-0 ${
-                          safePage >= totalPages
-                            ? "opacity-35 cursor-not-allowed  bg-white/[0.02] text-zinc-500"
-                            : " bg-zinc-900 hover:bg-zinc-800 text-white hover: cursor-pointer shadow-sm active:scale-95"
-                        }`}
-                      >
-                        <span>Sau</span>
-                        <ChevronRight className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div className="rounded-3xl bg-zinc-900/50 p-12 text-center text-zinc-400 space-y-3">
-                <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center mx-auto text-zinc-400">
-                  <Search className="w-6 h-6" />
-                </div>
-                <p className="text-sm font-semibold text-zinc-300">
-                  Không tìm thấy kênh truyền hình nào phù hợp với bộ lọc.
-                </p>
-                {hasActiveFilters && (
-                  <button
-                    type="button"
-                    onClick={handleResetFilters}
-                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-netflix-red hover:brightness-110 active:brightness-95 text-white text-xs font-bold transition shadow-md shadow-black/50 cursor-pointer"
-                  >
-                    <RotateCcw className="w-3.5 h-3.5" />
-                    <span>Đặt lại bộ lọc</span>
-                  </button>
-                )}
-              </div>
-            )}
+            <TvChannelGrid
+              viewMode={viewMode}
+              displayedChannels={displayedChannels}
+              filteredChannelsCount={filteredChannels.length}
+              selectedTvChannel={selectedTvChannel}
+              isPlaying={isPlaying}
+              safePage={safePage}
+              totalPages={totalPages}
+              onSelectChannel={handleSelectChannel}
+              onPageChange={handlePageChange}
+              hasActiveFilters={hasActiveFilters}
+              onResetFilters={handleResetFilters}
+            />
           </div>
         </div>
       </div>
