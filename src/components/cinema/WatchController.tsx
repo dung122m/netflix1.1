@@ -11,7 +11,6 @@ import React, {
 } from "react";
 import { saveWatchHistory } from "@/lib/watchHistory";
 import { findEpisodeMatch } from "@/lib/formatEpisode";
-import { markEpisodeAsWatched } from "@/lib/episodeTracker";
 
 export type PlaybackProviderType = "nanaflix";
 
@@ -326,11 +325,6 @@ export function WatchController({
   const switchEpisode = useCallback(
     (newSlug: string) => {
       if (!newSlug || newSlug === activeEpisodeSlug) return;
-
-      // Đánh dấu tập hiện tại vừa hoàn thành khi người dùng chuyển sang tập tiếp theo
-      if (movieSlug && activeEpisodeSlug) {
-        markEpisodeAsWatched(movieSlug, activeEpisodeSlug);
-      }
 
       const targetEp = episodes.find((ep) => ep.slug === newSlug) || findEpisodeMatch(episodes, newSlug);
       const canonicalSlug = targetEp?.slug || newSlug;

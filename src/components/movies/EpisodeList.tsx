@@ -226,25 +226,6 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(function Episo
     return set;
   }, [watchedList, episodesProgress]);
 
-  // Số tập lớn nhất đã xem hoặc đang xem trong tiến trình của phim này
-  const maxWatchedEpisodeNum = useMemo(() => {
-    let max: number | null = null;
-    for (const num of watchedEpisodeNums) {
-      if (max === null || num > max) max = num;
-    }
-    if (currentActiveEpisode) {
-      const activeNum =
-        extractEpisodeNumber(currentActiveEpisode.slug) ??
-        extractEpisodeNumber(currentActiveEpisode.name);
-      if (activeNum !== null) {
-        if (max === null || activeNum > max) {
-          max = activeNum;
-        }
-      }
-    }
-    return max;
-  }, [watchedEpisodeNums, currentActiveEpisode]);
-
   // Tạo các dải tập chuẩn xác theo số tập thực tế bắt đầu và kết thúc trong dải
   const totalChunks = Math.ceil(episodes.length / CHUNK_SIZE);
   const chunks = useMemo(() => {
@@ -585,8 +566,7 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(function Episo
         const isWatched = Boolean(
           !isSinglePartiallyWatched && (
             isSingleCompletedFromProg ||
-            isDirectlyWatched ||
-            (maxWatchedEpisodeNum !== null && singleNum !== null && singleNum < maxWatchedEpisodeNum)
+            isDirectlyWatched
           )
         );
         const epIndex = episodes.findIndex((e) => e.slug === singleTap.slug);
@@ -728,12 +708,10 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(function Episo
               // Một tập CHỈ được coi là đã xem khi:
               // - Đạt >= 90% / isCompleted từ tiến trình
               // - Hoặc có trong danh sách đã xem VÀ KHÔNG có tiến trình xem dở mâu thuẫn (< 90%)
-              // - Hoặc số tập nhỏ hơn tập lớn nhất đã xem (series progression)
               const isWatched = Boolean(
                 !isPartiallyWatchedProg && (
                   isCompletedFromProg ||
-                  isDirectlyWatched ||
-                  (maxWatchedEpisodeNum !== null && tapNum !== null && tapNum < maxWatchedEpisodeNum)
+                  isDirectlyWatched
                 )
               );
               
