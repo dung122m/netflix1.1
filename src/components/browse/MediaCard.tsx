@@ -641,26 +641,12 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
   const modalTrailerUrl = trailerUrl || clientTrailerCache.get(slug) || null;
 
 
-  // Nhãn chất lượng bản phim (loại bỏ hẳn HD, FHD, FULL HD để poster luôn gọn gàng, tinh tế)
+  // Nhãn chất lượng bản phim: loại bỏ hẳn chữ "Rạp", HD, FHD, Vietsub... để poster luôn sạch sẽ, chuẩn điện ảnh cao cấp
   const displayQualityBadge = (() => {
-    if (chieurap) return "Rạp";
-    if (sub_docquyen) return "Độc Quyền";
     if (!quality || typeof quality !== "string") return "";
     const clean = quality.trim().toUpperCase();
-    if (clean.includes("4K") || clean.includes("UHD")) return "4K";
     if (clean.includes("CAM")) return "CAM";
-    // Bỏ hoàn toàn nhãn HD, FHD, FULL HD, 1080P, 720P theo yêu cầu
-    if (
-      clean.includes("FHD") ||
-      clean.includes("1080") ||
-      clean.includes("HD") ||
-      clean.includes("720") ||
-      clean === "FULL"
-    ) {
-      return "";
-    }
-    if (clean.includes("VIETSUB")) return "Vietsub";
-    if (clean.includes("THUYET") || clean.includes("LỒNG TIẾNG")) return "T.Minh";
+    if (clean.includes("4K") || clean.includes("UHD")) return "4K";
     return "";
   })();
 
@@ -757,10 +743,16 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
           )}
         </Link>
 
-        {/* HUY HIỆU CHẤT LƯỢNG BẢN PHIM GÓC TRÊN TRÁI POSTER (CAM, HD, FHD, Vietsub...) */}
+        {/* HUY HIỆU CHẤT LƯỢNG BẢN PHIM GÓC TRÊN TRÁI POSTER (CHỈ HIỆN VỚI BẢN ĐẶC BIỆT: CAM / 4K) */}
         {displayQualityBadge && (
           <div className="absolute top-2 left-2 z-10 pointer-events-none">
-            <span className="inline-flex items-center px-1.5 py-0.5 rounded-[4px] bg-black/75 backdrop-blur-md text-zinc-200 text-[11px] font-bold uppercase tracking-wider shadow select-none">
+            <span
+              className={`inline-flex items-center px-1.5 py-0.5 rounded-[4px] text-[10px] font-extrabold uppercase tracking-wider shadow select-none ${
+                displayQualityBadge === "CAM"
+                  ? "bg-amber-500 text-black font-black"
+                  : "bg-black/80 backdrop-blur-md text-zinc-100 border border-white/20"
+              }`}
+            >
               {displayQualityBadge}
             </span>
           </div>
