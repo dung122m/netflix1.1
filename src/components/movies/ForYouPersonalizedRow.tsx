@@ -614,7 +614,7 @@ function ForYouPersonalizedRowInner({ fallbackMovies }: ForYouPersonalizedRowPro
                   isTrailerOnly={norm.isTrailerOnly}
                   matchSnippet={norm.matchSnippet}
                   matchType={norm.matchType}
-                  priority={idx < 4}
+                  priority={idx < 6}
                 />
               </div>
             ))}

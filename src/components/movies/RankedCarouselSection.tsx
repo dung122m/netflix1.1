@@ -168,7 +168,7 @@ export const RankedCarouselSection: React.FC<RankedCarouselSectionProps> = React
                   year={movie.year}
                   quality={movie.quality}
                   secondaryTag={movie.secondaryTag}
-                  priority={index < 3}
+                  priority={index < 5}
                   theme={theme}
                 />
               ))

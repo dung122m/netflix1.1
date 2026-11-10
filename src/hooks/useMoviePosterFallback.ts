@@ -188,8 +188,8 @@ export function useMoviePosterFallback({
 
     // Chỉ gọi tra cứu khi:
     // a) Được kích hoạt thủ công do ảnh lỗi (manuallyTriggered === true), HOẶC
-    // b) Ảnh ban đầu thực sự rỗng hoặc là placeholder mặc định
-    const needsLookup = manuallyTriggered || isPosterEmptyOrBroken(displaySrc);
+    // b) Ảnh ban đầu thực sự rỗng hoặc là placeholder mặc định khi enabled=true
+    const needsLookup = manuallyTriggered || (enabled && isPosterEmptyOrBroken(displaySrc));
     if (!needsLookup) {
       setIsLoading(false);
       return;

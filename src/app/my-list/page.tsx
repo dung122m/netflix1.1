@@ -718,7 +718,7 @@ function MyListContent() {
                   episodeSlug={item.episodeSlug}
                   episodeName={item.episodeName}
                   seasonName={item.seasonName}
-                  priority={index < 4}
+                  priority={index < 6}
                   onRemove={(e) => handleRemoveWatchlistItem(e, item.slug, item.title)}
                   removeTooltip="Xóa khỏi danh sách yêu thích"
                 />

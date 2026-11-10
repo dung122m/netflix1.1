@@ -94,17 +94,6 @@ export const NumberedRankCard: React.FC<NumberedRankCardProps> = ({
     }
   }, [thumb_url, imgSrc, title, slug]);
 
-  // Tự động chuyển fallback nếu ảnh tải quá 4.5 giây (do nhà mạng chặn phimimg treo kết nối)
-  useEffect(() => {
-    if (!imgSrc || isLoaded || imgSrc.startsWith("/default-")) return;
-    const timer = setTimeout(() => {
-      if (!isLoaded) {
-        handleImageError();
-      }
-    }, 4500);
-    return () => clearTimeout(timer);
-  }, [imgSrc, isLoaded, handleImageError]);
-
   useEffect(() => {
     if (!imgSrc && !fallbackTriedRef.current) {
       fallbackTriedRef.current = true;
