@@ -220,7 +220,11 @@ export function WatchController({
                 if (!streamMatch) return srv;
 
                 const updatedData = (srv.server_data || []).map((ep) => {
-                  if (ep.slug === activeEpisodeSlug || ep.name === targetEp?.name) {
+                  if (
+                    ep.slug === activeEpisodeSlug ||
+                    ep.name === targetEp?.name ||
+                    (srv.server_data?.length === 1)
+                  ) {
                     return {
                       ...ep,
                       link_embed: streamMatch.link_embed || ep.link_embed,

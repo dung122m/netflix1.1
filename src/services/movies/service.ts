@@ -917,9 +917,9 @@ async function attachRequestedEpisodeStreams(data: any, requestedEpSlug?: string
         if (memSrv.server_name === srv.server_name || (!memSrv.server_name && !srv.server_name)) {
           const memMatch = (memSrv.server_data || []).find((e: RawEpisodeItem) => e.slug === target?.slug || e.name === target?.name)
             || findEpisodeMatch(memSrv.server_data || [], requestedEpSlug);
-          if (memMatch && (memMatch.link_m3u8 || memMatch.link_embed)) {
+          if (memMatch && memMatch.link_m3u8) {
             target.link_embed = memMatch.link_embed || target.link_embed;
-            target.link_m3u8 = memMatch.link_m3u8 || target.link_m3u8;
+            target.link_m3u8 = memMatch.link_m3u8;
             foundInMem = true;
             break;
           }
@@ -937,6 +937,17 @@ async function attachRequestedEpisodeStreams(data: any, requestedEpSlug?: string
               if (match) {
                 target.link_embed = match.link_embed || target.link_embed;
                 target.link_m3u8 = match.link_m3u8 || target.link_m3u8;
+                if (mem?.data?.episodes) {
+                  for (const memSrv of mem.data.episodes) {
+                    if (memSrv.server_name === srv.server_name || (!memSrv.server_name && !srv.server_name)) {
+                      const m = (memSrv.server_data || []).find((e: RawEpisodeItem) => e.slug === target?.slug || e.name === target?.name);
+                      if (m) {
+                        m.link_embed = target.link_embed;
+                        m.link_m3u8 = target.link_m3u8;
+                      }
+                    }
+                  }
+                }
               }
             }
           } catch {}
@@ -2390,9 +2401,13 @@ export const movieApi = {
     const baseData = await cachedFetchMovieDetailBase(slug, safeSource);
     if (!baseData) return undefined;
 
-    // 2. Chỉ gắn stream riêng cho tập khi có requestedEpisode
-    const dataWithStreams = requestedEpisode
-      ? await attachRequestedEpisodeStreams(baseData, requestedEpisode)
+    // 2. Tự động gắn stream cho tập yêu cầu hoặc tập đầu tiên (đặc biệt khi tập đầu chưa có link_m3u8 trực tiếp)
+    const episodesList = baseData.episodes || baseData.movie?.episodes || [];
+    const firstEp = episodesList[0]?.server_data?.[0];
+    const targetEpSlug = requestedEpisode || (firstEp && !firstEp.link_m3u8 ? (firstEp.slug || "full") : undefined);
+
+    const dataWithStreams = targetEpSlug
+      ? await attachRequestedEpisodeStreams(baseData, targetEpSlug)
       : baseData;
 
     const res = sanitizeMovieDetailEpisodes(dataWithStreams);

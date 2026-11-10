@@ -62,11 +62,12 @@ export const WatchPlayerHost: React.FC<WatchPlayerHostProps> = (props) => {
     : props.m3u8Link;
   const dynamicVideoLink = dynamicM3u8Link || dynamicEmbedSrc || props.videoLink;
   const dynamicEpisodeName = currentActiveEp?.name || props.activeEpisodeName;
+  const streamType = Boolean(dynamicM3u8Link) ? "hls" : "embed";
 
   return (
     <div className="w-full">
       <CinemaPlayer
-        key={`cinema_${movieSlug}_s${currentServerIdx}_${currentEpSlug}`}
+        key={`cinema_${movieSlug}_s${currentServerIdx}_${currentEpSlug}_${streamType}`}
         {...props}
         activeEpisodeSlug={currentEpSlug}
         activeEpisodeName={dynamicEpisodeName}
