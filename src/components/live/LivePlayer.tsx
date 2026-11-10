@@ -52,258 +52,37 @@ import { VolumeOsdPill } from "./VolumeOsdPill";
 import { getTeamInitials } from "@/data/live/teamAssets";
 
 
-export interface GroupedGoalScorer {
-  playerName: string;
-  times: string[];
-}
+import { useLivePlayerShortcuts } from "./hooks/useLivePlayerShortcuts";
+import {
+  type GroupedGoalScorer,
+  parseGoalScorers,
+} from "@/services/live/football-score/goalScorersParser";
+import {
+  type LiveStallRecord,
+  getForwardBuffer,
+  calculateLiveLatency,
+} from "@/services/live/shared/liveBufferHelper";
+import {
+  getSourceQuality,
+  getQualityPriorityScore,
+  isSourceFailed,
+  cleanPlatformName,
+  parseServerDisplayLabel,
+  findBestInitialServerIndex,
+  findNextFallbackServerIndex,
+} from "@/services/live/shared/serverSelectionHelper";
 
-/**
- * Phân tích và nhóm các bàn thắng theo cầu thủ:
- * - Lọc đúng đội nhà / đội khách (home / away).
- * - Bỏ qua các bàn thắng bị hủy (VAR disallowed) hoặc sút hỏng penalty.
- * - Nhóm các bàn thắng của cùng một cầu thủ (ví dụ: E. Haaland 12', 34' (P)).
- * - Định dạng thời gian chuẩn xác, có ghi chú phạt đền (P) hoặc phản lưới nhà (OG).
- */
-export function parseGoalScorers(
-  events: MatchKeyEvent[] | undefined,
-  side: "home" | "away",
-  teamName?: string,
-  teamDisplayName?: string,
-  oppositeTeamName?: string,
-  oppositeTeamDisplayName?: string,
-): GroupedGoalScorer[] {
-  if (!events || !Array.isArray(events)) return [];
-
-  const goalEvents = events.filter((ev) => {
-    if (ev.type !== "goal") return false;
-
-    // Bỏ qua các bàn thắng bị hủy hoặc sút hỏng penalty
-    const textLower = (ev.text || "").toLowerCase();
-    if (
-      textLower.includes("disallowed") ||
-      textLower.includes("overturned") ||
-      textLower.includes("missed penalty") ||
-      textLower.includes("penalty missed") ||
-      textLower.includes("penalty saved")
-    ) {
-      return false;
-    }
-
-    if (ev.homeAway === side) return true;
-
-    // Fallback nếu sự kiện chưa gán rõ homeAway
-    if (!ev.homeAway) {
-      const name = (teamName || "").toLowerCase().trim();
-      const dispName = (teamDisplayName || "").toLowerCase().trim();
-      const oppName = (oppositeTeamName || "").toLowerCase().trim();
-      const oppDispName = (oppositeTeamDisplayName || "").toLowerCase().trim();
-
-      // 1. Kiểm tra tên đội trong ngoặc đơn sau tên cầu thủ: ví dụ "Erling Haaland (Manchester City)"
-      const inParensCurrent =
-        (name && textLower.includes(`(${name})`)) ||
-        (dispName && textLower.includes(`(${dispName})`));
-      const inParensOpposite =
-        (oppName && textLower.includes(`(${oppName})`)) ||
-        (oppDispName && textLower.includes(`(${oppDispName})`));
-
-      if (inParensCurrent && !inParensOpposite) return true;
-      if (inParensOpposite && !inParensCurrent) return false;
-
-      // 2. Kiểm tra cú pháp "Goal! TeamName" hoặc "Goal - TeamName"
-      const goalForCurrent =
-        (name && (textLower.includes(`goal! ${name}`) || textLower.includes(`goal - ${name}`))) ||
-        (dispName && (textLower.includes(`goal! ${dispName}`) || textLower.includes(`goal - ${dispName}`)));
-      const goalForOpposite =
-        (oppName && (textLower.includes(`goal! ${oppName}`) || textLower.includes(`goal - ${oppName}`))) ||
-        (oppDispName && (textLower.includes(`goal! ${oppDispName}`) || textLower.includes(`goal - ${oppDispName}`)));
-
-      if (goalForCurrent && !goalForOpposite) return true;
-      if (goalForOpposite && !goalForCurrent) return false;
-
-      // 3. Fallback nếu chỉ một đội được nhắc đến trong văn bản
-      const mentionsCurrent =
-        (name && textLower.includes(name)) ||
-        (dispName && textLower.includes(dispName));
-      const mentionsOpposite =
-        (oppName && textLower.includes(oppName)) ||
-        (oppDispName && textLower.includes(oppDispName));
-
-      if (mentionsCurrent && !mentionsOpposite) return true;
-      if (mentionsOpposite && !mentionsCurrent) return false;
-    }
-
-    return false;
-  });
-
-  // Sắp xếp bàn thắng theo thứ tự thời gian tăng dần
-  const sortedGoals = [...goalEvents].sort(
-    (a, b) => (a.minute || 0) - (b.minute || 0),
-  );
-
-  // Gom nhóm các bàn thắng theo cầu thủ
-  const playerMap = new Map<string, string[]>();
-
-  for (const ev of sortedGoals) {
-    let name = (ev.playerName || "").trim();
-    if (!name) {
-      // Trích xuất tên từ mô tả text nếu thiếu playerName
-      const match = ev.text?.match(
-        /(?:Goal!|Goal\s*-)\s*.*?[0-9]+\s*,\s*.*?[0-9]+\.\s*([^(]+)/i,
-      );
-      if (match && match[1]) {
-        name = match[1].trim();
-      } else {
-        name = ev.text?.trim() || "Bàn thắng";
-      }
-    }
-
-    let clock = (ev.clock || (ev.minute ? `${ev.minute}` : "")).trim();
-    if (clock && !clock.endsWith("'")) {
-      clock = `${clock}'`;
-    }
-    if (!clock && ev.minute) {
-      clock = `${ev.minute}'`;
-    }
-
-    if (ev.isPenalty) {
-      clock = clock ? `${clock} (P)` : "(P)";
-    } else if (ev.isOwnGoal) {
-      clock = clock ? `${clock} (OG)` : "(OG)";
-    }
-
-    if (!playerMap.has(name)) {
-      playerMap.set(name, []);
-    }
-    const times = playerMap.get(name)!;
-    if (clock && !times.includes(clock)) {
-      times.push(clock);
-    }
-  }
-
-  const result: GroupedGoalScorer[] = [];
-  for (const [playerName, times] of playerMap.entries()) {
-    result.push({ playerName, times });
-  }
-  return result;
-}
-
-
-// Diagnostic helper: tính toán lượng buffer phía trước vị trí phát hiện tại (giây)
-function getForwardBuffer(v: HTMLVideoElement): number {
-  try {
-    for (let i = 0; i < v.buffered.length; i++) {
-      if (v.currentTime >= v.buffered.start(i) && v.currentTime <= v.buffered.end(i)) {
-        return +(v.buffered.end(i) - v.currentTime).toFixed(2);
-      }
-    }
-  } catch { }
-  return 0;
-}
-
-/**
- * Tính toán độ trễ so với Live Edge (giây) an toàn, triệt tiêu số ảo (-9000s, NaN, Infinity)
- * Latency = liveEdge - currentTime
- */
-function calculateLiveLatency(
-  v: HTMLVideoElement | null,
-  hls: Hls | null,
-): { latencySec: number; isLive: boolean } {
-  if (!v) return { latencySec: 0, isLive: true };
-
-  const curTime = v.currentTime;
-  if (!Number.isFinite(curTime) || curTime < 0) {
-    return { latencySec: 0, isLive: true };
-  }
-
-  const seekable = v.seekable;
-  const hasSeekable = Boolean(seekable && seekable.length > 0);
-  const seekableStart = hasSeekable && seekable ? seekable.start(0) : null;
-  const seekableEnd =
-    hasSeekable && seekable ? seekable.end(seekable.length - 1) : null;
-
-  const livePos = hls?.liveSyncPosition;
-  const hasValidLivePos =
-    livePos !== undefined &&
-    livePos !== null &&
-    Number.isFinite(livePos) &&
-    livePos > 0;
-
-  // 1. Xác định liveEdge thực tế đáng tin cậy nhất
-  let liveEdge: number | null = null;
-
-  if (
-    hasSeekable &&
-    seekableEnd !== null &&
-    Number.isFinite(seekableEnd) &&
-    seekableEnd > 0
-  ) {
-    if (
-      hasValidLivePos &&
-      seekableStart !== null &&
-      livePos >= seekableStart - 1 &&
-      livePos <= seekableEnd + 2
-    ) {
-      liveEdge = livePos;
-    } else {
-      liveEdge = seekableEnd;
-    }
-  } else if (hasValidLivePos) {
-    liveEdge = livePos;
-  }
-
-  // Nếu không có liveEdge hợp lệ -> Mặc định coi là đang ở Live Edge
-  if (liveEdge === null || !Number.isFinite(liveEdge)) {
-    return { latencySec: 0, isLive: true };
-  }
-
-  // 2. Tính toán: liveEdge - currentTime
-  const rawLag = liveEdge - curTime;
-  if (!Number.isFinite(rawLag)) {
-    return { latencySec: 0, isLive: true };
-  }
-
-  // 3. Giới hạn cửa sổ trễ tối đa (clamp)
-  let maxPossibleLag = 300; // Mặc định 5 phút cho sliding window
-  if (hasSeekable && seekableStart !== null && seekableEnd !== null) {
-    const windowDuration = seekableEnd - seekableStart;
-    if (
-      Number.isFinite(windowDuration) &&
-      windowDuration > 0 &&
-      windowDuration < 1800
-    ) {
-      maxPossibleLag = windowDuration;
-    }
-  }
-
-  // Triệt tiêu số âm do jitter timestamp và clamp không vượt quá cửa sổ live
-  const clampedLag = Math.max(
-    0,
-    Math.min(Math.round(rawLag), Math.round(maxPossibleLag)),
-  );
-
-  // Độ lệch <= 4 giây là dung sai bình thường của HLS segment -> đang ở Live Edge
-  const isLive = clampedLag <= 4;
-
-  return {
-    latencySec: isLive ? 0 : clampedLag,
-    isLive,
-  };
-}
-
-export interface LiveStallRecord {
-  id: number;
-  timestamp: string;
-  durationMs: number;
-  currentTime: number;
-  readyState: number;
-  readyStateText: string;
-  forwardBufferSec: number;
-  liveLatencySec: number | "N/A";
-  seekableStart: number | null;
-  seekableEnd: number | null;
-  level: number;
-  bitrate: string;
-}
+export type { GroupedGoalScorer, LiveStallRecord };
+export {
+  parseGoalScorers,
+  getSourceQuality,
+  getQualityPriorityScore,
+  isSourceFailed,
+  cleanPlatformName,
+  parseServerDisplayLabel,
+  findBestInitialServerIndex,
+  findNextFallbackServerIndex,
+};
 
 declare global {
   interface Window {
@@ -335,251 +114,11 @@ interface LivePlayerProps {
   onVideoHeightChange?: (height: number) => void;
 }
 
-/**
- * Xác định chất lượng nguồn phát từ metadata của StreamServer:
- * - 1080p, 1080, FHD, Full HD -> "FHD"
- * - 720p, 720, HD -> "HD"
- * - Không xác định -> null (không tự gán)
- */
-export function getSourceQuality(
-  server?: Partial<StreamServer>,
-): "FHD" | "HD" | null {
-  if (!server) return null;
-
-  // 1. Kiểm tra trường quality từ metadata nếu có
-  const quality = (server.quality || "").toString().trim().toUpperCase();
-  if (
-    quality === "FHD" ||
-    quality === "1080P" ||
-    quality === "1080" ||
-    quality === "FULL HD"
-  ) {
-    return "FHD";
-  }
-  if (quality === "HD" || quality === "720P" || quality === "720") {
-    return "HD";
-  }
-
-  // 2. Kiểm tra tên máy chủ hoặc resolution
-  const rawText = `${server.name || ""} ${(server as Record<string, unknown>).resolution || ""
-    }`.toLowerCase();
-
-  if (
-    /\b(1080p|1080|fhd|full\s*hd)\b/i.test(rawText) ||
-    /\[fhd\]/i.test(rawText) ||
-    /fhd/i.test(server.name || "")
-  ) {
-    return "FHD";
-  }
-
-  if (
-    /\b(720p|720|hd)\b/i.test(rawText) ||
-    /\[hd\]/i.test(rawText) ||
-    /\bhd\b/i.test(server.name || "")
-  ) {
-    return "HD";
-  }
-
-  return null;
-}
-
-/**
- * Điểm ưu tiên chất lượng nguồn phát:
- * FHD (2) > HD (1) > Không xác định (0)
- */
-export function getQualityPriorityScore(
-  server?: Partial<StreamServer>,
-): number {
-  const q = getSourceQuality(server);
-  if (q === "FHD") return 2;
-  if (q === "HD") return 1;
-  return 0;
-}
-
 const FOOTBALL_STREAM_PROXY_ENDPOINT =
   process.env.NEXT_PUBLIC_STREAM_PROXY_URL?.trim() || "/api/live-football/proxy";
 
 import { toCanonicalSourceUrl, extractStreamHost } from "@/services/live/shared/streamUrlHelper";
 export { toCanonicalSourceUrl, extractStreamHost };
-
-export function isSourceFailed(url?: string | null, failedSet: Set<string> = new Set()): boolean {
-  if (!url) return false;
-  const canonical = toCanonicalSourceUrl(url);
-  if (!canonical) return false;
-  if (failedSet.has(canonical)) return true;
-  const host = extractStreamHost(url);
-  if (host && failedSet.has(`host:${host}`)) return true;
-  return false;
-}
-
-/**
- * Làm sạch tên nền tảng/nhóm nguồn để hiển thị gọn gàng, hiện đại (ví dụ: Xôi Lạc, Gà Vàng, Cola TV...)
- */
-export function cleanPlatformName(name?: string): string {
-  if (!name) return "";
-  const trimmed = name.toWellFormed().replace(/^[🔴🟢🟡⚪🟠📡\s]+/u, "").trim();
-  if (
-    /^(?:other|live football|bóng đá|thể thao|livetv|sports)$/i.test(trimmed)
-  ) {
-    return "";
-  }
-  const clean = trimmed
-    .replace(/^(?:xoilac|xôi\s*lạc)(?:\s*z)?(?:\s*tv)?$/i, "Xôi Lạc")
-    .replace(/^(?:gà\s*vàng|gavang)(?:\s*\d+h?)?(?:\s*tv)?$/i, "Gà Vàng")
-    .replace(/\s*Z\s*TV$/i, "")
-    .replace(/\s*\d+h?\s*TV$/i, "");
-
-  return clean.trim();
-}
-
-/**
- * Trích xuất tên BLV hoặc tên nguồn thân thiện kèm tên nền tảng theo Kiểu 1 (BLV ... · Nền tảng)
- */
-export function parseServerDisplayLabel(
-  server?: StreamServer,
-  index: number = 0,
-): string {
-  if (!server) return `Nguồn ${index + 1}`;
-
-  const platform = cleanPlatformName(server.sourceName);
-
-  const formatWithPlatform = (blv: string): string => {
-    if (!platform) return blv;
-    if (blv.toLowerCase().includes(platform.toLowerCase())) return blv;
-    return `${blv} · ${platform}`;
-  };
-
-  // 1. Tên BLV trong ngoặc: "(BLV Lê Hoàn)", "(Bình luận viên Batman)", "(HD ASTRA)"
-  const matchParen = server.name.match(
-    /\((?:blv\s+|bình luận viên\s+)?([^)]+)\)/i,
-  );
-  if (matchParen && matchParen[1]) {
-    const candidate = matchParen[1]
-      .replace(/^(?:blv|bình luận viên)\s+/i, "")
-      .replace(/^(?:hd|fhd|4k|sd)\s+/i, "")
-      .replace(/\s+(?:hd|fhd|4k|sd)$/i, "")
-      .trim();
-    if (
-      candidate &&
-      !/^\d+$/.test(candidate) &&
-      !/^(?:fhd|hd|4k|sd|hls|flv)$/i.test(candidate)
-    ) {
-      return formatWithPlatform(`BLV ${candidate}`);
-    }
-  }
-
-  // 2. Tên BLV dạng "BLV ..." hoặc "Bình luận viên ..."
-  const matchInline = server.name.match(
-    /(?:blv|bình luận viên)\s+([^\s#\[\]()]+(?:\s+[^\s#\[\]()]+)?)/i,
-  );
-  if (matchInline && matchInline[1]) {
-    const candidate = matchInline[1]
-      .replace(/^(?:hd|fhd|4k|sd)\s+/i, "")
-      .replace(/\s+(?:hd|fhd|4k|sd)$/i, "")
-      .trim();
-    return formatWithPlatform(`BLV ${candidate}`);
-  }
-
-  // 3. Tên nhóm nguồn sạch (ví dụ: FPT Play, K+ SPORT, Xoilac)
-  if (platform) {
-    return `${platform} · Nguồn ${index + 1}`;
-  }
-
-  // 4. Loại bỏ các nhãn kỹ thuật [FHD], [HD], #1, Server 1...
-  const cleaned = server.name
-    .replace(/\s*\[(?:FHD|HD|4K|SD|HLS|FLV)\]/gi, "")
-    .replace(/#\d+/g, "")
-    .trim();
-
-  if (
-    !cleaned ||
-    /^(?:server|máy chủ|nguồn|link|stream)(?:\s*(?:#?\d+))?$/i.test(cleaned) ||
-    /^\d+$/.test(cleaned)
-  ) {
-    return `Nguồn ${index + 1}`;
-  }
-
-  const stripped = cleaned
-    .replace(/^(?:server|máy chủ|nguồn)\s*(?:#?\d+)?\s*[-:·]?\s*/i, "")
-    .trim();
-  if (stripped && stripped.length > 2 && !/^\d+$/.test(stripped)) {
-    return stripped;
-  }
-
-  if (cleaned.length > 2 && !/^\d+$/.test(cleaned)) {
-    return cleaned;
-  }
-
-  return `Nguồn ${index + 1}`;
-}
-
-/**
- * Tìm máy chủ khởi tạo tối ưu theo thứ tự ưu tiên:
- * FHD / 1080p -> HD / 720p -> Không xác định
- */
-export function findBestInitialServerIndex(
-  serverList: StreamServer[],
-  failedSet: Set<string> = new Set(),
-): number {
-  if (!serverList || serverList.length === 0) return 0;
-  let bestIdx = 0;
-  let bestScore = -1;
-  for (let i = 0; i < serverList.length; i++) {
-    const s = serverList[i];
-    if (isSourceFailed(s?.url, failedSet)) continue;
-    const score = getQualityPriorityScore(s);
-    if (score > bestScore) {
-      bestScore = score;
-      bestIdx = i;
-      if (score === 2) {
-        break; // FHD là chất lượng cao nhất, chọn ngay máy chủ đầu tiên đạt FHD
-      }
-    }
-  }
-  return bestIdx;
-}
-
-/**
- * Tìm máy chủ dự phòng tiếp theo:
- * Ưu tiên:
- * 1. Không nằm trong danh sách failed (đối chiếu bằng canonical URL và host-level failure)
- * 2. Điểm chất lượng cao hơn (FHD > HD > Khác)
- * 3. Duyệt xoay vòng tự nhiên sau currentIndex để tránh nhảy hỗn loạn
- * Nếu không còn nguồn nào -> trả về -1
- */
-export function findNextFallbackServerIndex(
-  serverList: StreamServer[],
-  failedSet: Set<string>,
-  currentIndex: number,
-): number {
-  if (!serverList || serverList.length === 0) return -1;
-
-  const available: { index: number; score: number }[] = [];
-  serverList.forEach((s, idx) => {
-    if (!isSourceFailed(s?.url, failedSet)) {
-      available.push({
-        index: idx,
-        score: getQualityPriorityScore(s),
-      });
-    }
-  });
-
-  if (available.length === 0) return -1;
-
-  available.sort((a, b) => {
-    if (b.score !== a.score) {
-      return b.score - a.score;
-    }
-    const aAfter = a.index > currentIndex ? 1 : 0;
-    const bAfter = b.index > currentIndex ? 1 : 0;
-    if (bAfter !== aAfter) {
-      return bAfter - aAfter;
-    }
-    return a.index - b.index;
-  });
-
-  return available[0].index;
-}
 
 function LivePlayerInner({
   match,
@@ -2364,102 +1903,13 @@ function LivePlayerInner({
     [triggerActionFeedback, isAtLiveEdge, goToLiveEdge],
   );
 
-  // Phím tắt bàn phím dùng chung cho Live Football Player
-  useEffect(() => {
-    if (!isActive) return;
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      const target = e.target as HTMLElement | null;
-      const tagName = typeof target?.tagName === "string" ? target.tagName.toLowerCase() : "";
-      if (
-        ["input", "textarea", "select"].includes(tagName) ||
-        Boolean(target?.isContentEditable) ||
-        target?.getAttribute?.("role") === "textbox" ||
-        target?.getAttribute?.("role") === "searchbox"
-      ) {
-        return;
-      }
-
-      // Bỏ qua nếu người dùng đang dùng tổ hợp phím hệ thống (Ctrl + C copy, Cmd + C, Ctrl + V, Alt + ...)
-      if (e.ctrlKey || e.metaKey || e.altKey) {
-        return;
-      }
-
-      // Chỉ xử lý shortcut khi focus thực sự nằm trong vùng Live Player (hoặc đang tương tác với player)
-      const active = document.activeElement as HTMLElement | null;
-      const activeTagName = typeof active?.tagName === "string" ? active.tagName.toLowerCase() : "";
-      const isPlayerContainer = Boolean(
-        containerRef.current &&
-        active &&
-        containerRef.current.contains(active)
-      );
-
-      // Nếu focus đang ở ngoài player trên các input, form, textarea hoặc thẻ nút danh sách -> nhường quyền TV navigation
-      if (!isPlayerContainer && (["input", "textarea", "select"].includes(activeTagName) || (!isFullscreen && (activeTagName === "button" || activeTagName === "a")))) {
-        return;
-      }
-
-      if (e.code === "Space" || e.key === "Enter") {
-        if (activeTagName === "button" || activeTagName === "input" || activeTagName === "a") {
-          return;
-        }
-        e.preventDefault();
-        togglePlay();
-      } else if (e.key === "ArrowLeft") {
-        e.preventDefault();
-        handleSeek(-10);
-      } else if (e.key === "ArrowRight") {
-        e.preventDefault();
-        handleSeek(10);
-      } else if (e.key === "ArrowUp") {
-        if (isFullscreen) {
-          e.preventDefault();
-          handleVolumeChange(volume + 0.1);
-        }
-      } else if (e.key === "ArrowDown") {
-        if (isFullscreen) {
-          e.preventDefault();
-          handleVolumeChange(volume - 0.1);
-        }
-      } else if (e.key === "m" || e.key === "M") {
-        e.preventDefault();
-        toggleMute();
-      } else if (e.key === "n" || e.key === "N" || e.key === "PageDown") {
-        e.preventDefault();
-        handleSwitchServer("next");
-      } else if (e.key === "p" || e.key === "P" || e.key === "PageUp") {
-        e.preventDefault();
-        handleSwitchServer("prev");
-      } else if (e.key === "l" || e.key === "L") {
-        e.preventDefault();
-        goToLiveEdge();
-      } else if (e.key === "f" || e.key === "F") {
-        e.preventDefault();
-        toggleFullscreen();
-      } else if (e.key === "i" || e.key === "I") {
-        e.preventDefault();
-        togglePip();
-      } else if (e.key === "c" || e.key === "C") {
-        e.preventDefault();
-        toggleRail();
-      } else if (e.key === "[" || e.key === "-") {
-        e.preventDefault();
-        handleVolumeChange(volume - 0.1);
-      } else if (e.key === "]" || e.key === "=" || e.key === "+") {
-        e.preventDefault();
-        handleVolumeChange(volume + 0.1);
-      } else if (e.key === "Escape") {
-        if (isRailVisible) {
-          e.preventDefault();
-          closeRail();
-        }
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [
+  // Phím tắt bàn phím dùng chung cho Live Football Player (đã tách module useLivePlayerShortcuts)
+  useLivePlayerShortcuts({
     isActive,
+    containerRef,
+    isFullscreen,
+    volume,
+    isRailVisible,
     togglePlay,
     toggleMute,
     toggleFullscreen,
@@ -2470,10 +1920,7 @@ function LivePlayerInner({
     handleSeek,
     toggleRail,
     closeRail,
-    isRailVisible,
-    volume,
-    isFullscreen,
-  ]);
+  });
 
   const handleCopyStream = () => {
     if (
