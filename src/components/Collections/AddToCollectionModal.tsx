@@ -11,7 +11,7 @@ import {
 } from "@/services/collectionService";
 import { MovieCollection } from "@/types/collection";
 import { CreateCollectionModal } from "./CreateCollectionModal";
-import { toast } from "@/components/Toast";
+import { toast } from "@/components/ui/Toast";
 import { useBodyScrollLock } from "@/lib/scrollLock";
 import { toOptimizedCardPosterUrl } from "@/lib/movieMedia";
 

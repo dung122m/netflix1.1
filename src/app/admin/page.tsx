@@ -32,9 +32,9 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { isUserAdmin } from "@/lib/adminConfig";
-import { AuthModal } from "@/components/AuthModal";
+import { AuthModal } from "@/components/modals/AuthModal";
 import { showConfirmDialog } from "@/components/ui/ConfirmDialog";
-import { toast } from "@/components/Toast";
+import { toast } from "@/components/ui/Toast";
 import { MovieComment } from "@/types/comment";
 import { MovieCollection } from "@/types/collection";
 import { UserProfile, MemberWithStats } from "@/types/user";

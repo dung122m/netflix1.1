@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import { MessageSquare, Globe } from "lucide-react";
 import { MovieCommentsSection } from "./MovieCommentsSection";
 import { TmdbAudienceReviews } from "./TmdbAudienceReviews";
-import { useWatchController } from "@/components/WatchController";
+import { useWatchController } from "@/components/cinema/WatchController";
 
 interface MovieReviewsContainerProps {
   movieSlug: string;

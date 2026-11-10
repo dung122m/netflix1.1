@@ -1,5 +1,5 @@
 import React from "react";
-import { VietnamFlag } from "@/components/NetflixLogo";
+import { VietnamFlag } from "@/components/layout/NetflixLogo";
 
 export default function Loading() {
   return (

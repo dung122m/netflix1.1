@@ -24,7 +24,7 @@ import {
 import {
   AnalyticsDashboardStats,
 } from "@/services/analyticsService";
-import { toast } from "@/components/Toast";
+import { toast } from "@/components/ui/Toast";
 import { useAuth } from "@/context/AuthContext";
 
 interface AdminAnalyticsTabProps {

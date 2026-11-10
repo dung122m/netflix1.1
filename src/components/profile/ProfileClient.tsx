@@ -55,7 +55,7 @@ import { toOptimizedCardPosterUrl } from "@/lib/movieMedia";
 import { MovieComment } from "@/types/comment";
 import { UserAvatar } from "@/components/ui/UserAvatar";
 import { showConfirmDialog } from "@/components/ui/ConfirmDialog";
-import { toast } from "@/components/Toast";
+import { toast } from "@/components/ui/Toast";
 import { PRESET_AVATARS } from "@/lib/avatarHelper";
 import { isUserAdmin } from "@/lib/adminConfig";
 import { ProfilePlayerSettingsTab } from "./ProfilePlayerSettingsTab";

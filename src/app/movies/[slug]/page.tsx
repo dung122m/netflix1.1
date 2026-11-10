@@ -28,28 +28,28 @@ import {
   Compass,
   AlertCircle,
 } from "lucide-react";
-import { MovieSynopsis } from "@/components/MovieSynopsis";
-import { ShareButton } from "@/components/ShareButton";
-import { Navbar } from "@/components/Navbar";
-import { ActorChipClient } from "@/components/ActorChipClient";
-import { Footer } from "@/components/Footer";
+import { MovieSynopsis } from "@/components/movies/MovieSynopsis";
+import { ShareButton } from "@/components/ui/ShareButton";
+import { Navbar } from "@/components/layout/Navbar";
+import { ActorChipClient } from "@/components/actors/ActorChipClient";
+import { Footer } from "@/components/layout/Footer";
 
-import { WatchPlayerHost } from "@/components/WatchPlayerHost";
-import { EpisodeList } from "@/components/EpisodeList";
-import { ResumeEpisodeBanner } from "@/components/ResumeEpisodeBanner";
-import { WatchController } from "@/components/WatchController";
-import { WatchStage } from "@/components/WatchStage";
-import { WatchSidebarTabs } from "@/components/WatchSidebarTabs";
-import { ServerSelector } from "@/components/ServerSelector";
-import { WatchlistButton } from "@/components/WatchlistButton";
+import { WatchPlayerHost } from "@/components/cinema/WatchPlayerHost";
+import { EpisodeList } from "@/components/movies/EpisodeList";
+import { ResumeEpisodeBanner } from "@/components/movies/ResumeEpisodeBanner";
+import { WatchController } from "@/components/cinema/WatchController";
+import { WatchStage } from "@/components/cinema/WatchStage";
+import { WatchSidebarTabs } from "@/components/cinema/WatchSidebarTabs";
+import { ServerSelector } from "@/components/cinema/ServerSelector";
+import { WatchlistButton } from "@/components/movies/WatchlistButton";
 import { AddToCollectionButton } from "@/components/Collections/AddToCollectionButton";
-import { ActiveEpisodeBadge, EpisodeCountBadge } from "@/components/ActiveEpisodeBadge";
+import { ActiveEpisodeBadge, EpisodeCountBadge } from "@/components/movies/ActiveEpisodeBadge";
 import { findEpisodeMatch } from "@/lib/formatEpisode";
 
 import { MovieReviewsContainer } from "@/components/MovieReviews/MovieReviewsContainer";
-import { TrailerModal } from "@/components/TrailerModal";
-import { MovieRecommendationsClient } from "@/components/MovieRecommendationsClient";
-import { MovieCastGallery } from "@/components/MovieCastGallery";
+import { TrailerModal } from "@/components/modals/TrailerModal";
+import { MovieRecommendationsClient } from "@/components/movies/MovieRecommendationsClient";
+import { MovieCastGallery } from "@/components/movies/MovieCastGallery";
 import { getTmdbMovieCredits, getTmdbTrailerUrl, searchTmdbTrailerByTitle, getTmdbPosterUrl, searchTmdbPosterByTitle } from "@/services/tmdbService";
 import { MobileMovieNav } from "@/components/movies/MobileMovieNav";
 

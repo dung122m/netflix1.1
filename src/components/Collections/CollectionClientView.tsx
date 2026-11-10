@@ -18,7 +18,7 @@ import { MediaCard } from "@/components/browse/MediaCard";
 import { getPublicCollection } from "@/services/collectionService";
 import { MovieCollection } from "@/types/collection";
 import { addToWatchlist } from "@/lib/watchlist";
-import { toast } from "@/components/Toast";
+import { toast } from "@/components/ui/Toast";
 import { UserAvatar } from "@/components/ui/UserAvatar";
 import { useAuth } from "@/context/AuthContext";
 import { AddMovieToCollectionModal } from "./AddMovieToCollectionModal";

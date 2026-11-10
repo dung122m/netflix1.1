@@ -6,7 +6,7 @@ import { X, FolderPlus, Globe, Lock, Loader2 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { createCollection } from "@/services/collectionService";
 import { MovieCollection } from "@/types/collection";
-import { toast } from "@/components/Toast";
+import { toast } from "@/components/ui/Toast";
 
 import { subscribeUserProfile } from "@/services/userService";
 import { UserProfile } from "@/types/user";

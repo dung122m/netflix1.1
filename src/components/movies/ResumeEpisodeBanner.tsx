@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Play, RotateCcw, X, FastForward } from "lucide-react";
 import { formatEpisodeName } from "@/lib/formatEpisode";
 import { resolveNextResumeEpisode, ResolvedResumeEpisode } from "@/lib/seriesResume";
-import { useWatchController } from "./WatchController";
+import { useWatchController } from "@/components/cinema/WatchController";
 import { Tooltip } from "@/components/ui/Tooltip";
 
 interface ResumeEpisodeBannerProps {

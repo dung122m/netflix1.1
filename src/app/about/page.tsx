@@ -23,8 +23,8 @@ import {
   ExternalLink,
   Milestone,
 } from "lucide-react";
-import { Navbar } from "@/components/Navbar";
-import { Footer } from "@/components/Footer";
+import { Navbar } from "@/components/layout/Navbar";
+import { Footer } from "@/components/layout/Footer";
 
 export const metadata: Metadata = {
   title: "Giới Thiệu Nanaflix | Không Gian Điện Ảnh Thuần Khiết & Công Nghệ Trực Tuyến",

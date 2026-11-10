@@ -22,7 +22,7 @@ import { getUserCollections } from "@/services/collectionService";
 import { getWatchLevelInfo } from "@/services/userService";
 import { UserProfile } from "@/types/user";
 import { MovieCollection } from "@/types/collection";
-import { toast } from "@/components/Toast";
+import { toast } from "@/components/ui/Toast";
 import { UserAvatar } from "@/components/ui/UserAvatar";
 import { useBodyScrollLock } from "@/lib/scrollLock";
 import { Tooltip } from "@/components/ui/Tooltip";

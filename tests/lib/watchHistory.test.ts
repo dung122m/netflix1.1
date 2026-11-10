@@ -53,7 +53,7 @@ import {
   invalidateMemoryWatchHistory,
   MAX_HISTORY_STORAGE_ITEMS,
 } from "@/lib/watchHistory";
-import { isContinueWatchingItem } from "@/components/ContinueWatchingRow";
+import { isContinueWatchingItem } from "@/components/movies/ContinueWatchingRow";
 
 describe("Nanaflix Watch History — Regression & Invariant Tests", () => {
   beforeEach(() => {

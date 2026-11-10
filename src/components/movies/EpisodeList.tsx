@@ -5,11 +5,11 @@ import Link from "next/link";
 import { Check, Search, X, Play, ChevronRight, ChevronDown, ChevronUp, Target } from "lucide-react";
 import { getWatchedEpisodes, unmarkEpisodeAsWatched, extractEpisodeNumber } from "@/lib/episodeTracker";
 import { getShortEpisodeLabel, formatEpisodeName, findEpisodeMatch } from "@/lib/formatEpisode";
-import { useWatchController, EpisodeItem } from "./WatchController";
+import { useWatchController, EpisodeItem } from "@/components/cinema/WatchController";
 import { ScrollablePillsRow } from "@/components/ui/ScrollablePillsRow";
 import { getMovieEpisodesProgress, EpisodeProgressData } from "@/lib/watchHistory";
 
-import WatchlistButton from "@/components/WatchlistButton";
+import WatchlistButton from "@/components/movies/WatchlistButton";
 import AddToCollectionButton from "@/components/Collections/AddToCollectionButton";
 
 const CHUNK_SIZE = 25;

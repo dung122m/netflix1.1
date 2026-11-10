@@ -3,22 +3,22 @@
 import React, { useState, useEffect, useRef } from "react";
 import dynamic from "next/dynamic";
 import { GlobalConfirmDialog } from "@/components/ui/ConfirmDialog";
-import type { ActorBioModalProps } from "@/components/ActorBioModal";
-import type { PublicUserProfileModalProps, PublicProfileDetail } from "@/components/PublicUserProfileModal";
+import type { ActorBioModalProps } from "@/components/modals/ActorBioModal";
+import type { PublicUserProfileModalProps, PublicProfileDetail } from "@/components/modals/PublicUserProfileModal";
 
 // Dynamic import các modal nặng với ssr: false + loading shell tức thì (0ms perceived delay)
 const ActorBioModal = dynamic(
-  () => import("@/components/ActorBioModal").then((m) => m.ActorBioModal),
+  () => import("@/components/modals/ActorBioModal").then((m) => m.ActorBioModal),
   { ssr: false }
 );
 
 const PublicUserProfileModal = dynamic(
-  () => import("@/components/PublicUserProfileModal").then((m) => m.PublicUserProfileModal),
+  () => import("@/components/modals/PublicUserProfileModal").then((m) => m.PublicUserProfileModal),
   { ssr: false }
 );
 
 const AuthModal = dynamic(
-  () => import("@/components/AuthModal").then((m) => m.AuthModal),
+  () => import("@/components/modals/AuthModal").then((m) => m.AuthModal),
   { ssr: false }
 );
 

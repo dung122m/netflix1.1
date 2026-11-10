@@ -15,7 +15,7 @@ import {
   Info,
 } from "lucide-react";
 import { isInWatchlist, toggleWatchlist } from "@/lib/watchlist";
-import { toast } from "@/components/Toast";
+import { toast } from "@/components/ui/Toast";
 import {
   AnimatePresence,
   motion,
@@ -29,7 +29,7 @@ import {
 import { cleanHtmlText } from "@/lib/cleanHtml";
 import { clientSynopsisCache } from "@/services/synopsisService";
 import { fetchMovieSynopsisShared } from "@/services/synopsisService";
-import TrailerModal from "@/components/TrailerModal";
+import TrailerModal from "@/components/modals/TrailerModal";
 import {
   extractYoutubeId,
   getYoutubeTrailerEmbedUrl,

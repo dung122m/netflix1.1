@@ -14,8 +14,8 @@ import {
   Music,
   Trophy,
 } from "lucide-react";
-import { MovieGrid } from "@/components/MovieGrid";
-import { PaginationControl } from "@/components/PaginationControl";
+import { MovieGrid } from "@/components/movies/MovieGrid";
+import { PaginationControl } from "@/components/ui/PaginationControl";
 
 interface ActorDetailClientProps {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

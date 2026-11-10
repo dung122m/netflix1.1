@@ -3,16 +3,16 @@ import { Be_Vietnam_Pro } from "next/font/google";
 import { cookies } from "next/headers";
 import "./globals.css";
 import { ACCENT_PRESETS, ACCENT_COOKIE_KEY } from "@/lib/accentStudio";
-import SmoothScroll from "@/components/SmoothScroll";
-import { BackToTop } from "@/components/BackToTop";
-import { ToastContainer } from "@/components/Toast";
-import { ClientModals } from "@/components/ClientModals";
-import { InstallPwaBanner } from "@/components/InstallPwaBanner";
+import SmoothScroll from "@/components/layout/SmoothScroll";
+import { BackToTop } from "@/components/layout/BackToTop";
+import { ToastContainer } from "@/components/ui/Toast";
+import { ClientModals } from "@/components/modals/ClientModals";
+import { InstallPwaBanner } from "@/components/layout/InstallPwaBanner";
 import { DesktopReplyPopup } from "@/components/Notifications/DesktopReplyPopup";
-import { BottomNav } from "@/components/BottomNav";
+import { BottomNav } from "@/components/layout/BottomNav";
 import { AuthProvider } from "@/context/AuthContext";
-import { NavigationProgressBar } from "@/components/NavigationProgressBar";
-import { SiteVisitTracker } from "@/components/SiteVisitTracker";
+import { NavigationProgressBar } from "@/components/layout/NavigationProgressBar";
+import { SiteVisitTracker } from "@/components/layout/SiteVisitTracker";
 
 const beVietnamPro = Be_Vietnam_Pro({
   weight: ["300", "400", "500", "600", "700", "800", "900"],

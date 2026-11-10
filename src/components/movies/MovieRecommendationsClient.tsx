@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { RecommendationTabs } from "@/components/RecommendationTabs";
+import { RecommendationTabs } from "@/components/movies/RecommendationTabs";
 
 interface MovieRecommendationsClientProps {
   currentMovieSlug: string;

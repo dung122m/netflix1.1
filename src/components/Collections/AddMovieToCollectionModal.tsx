@@ -6,7 +6,7 @@ import { X, Search, Plus, Check, Loader2, Film, AlertCircle, RefreshCw } from "l
 import { useAuth } from "@/context/AuthContext";
 import { addMovieToCollection } from "@/services/collectionService";
 import { CollectionMovieItem } from "@/types/collection";
-import { toast } from "@/components/Toast";
+import { toast } from "@/components/ui/Toast";
 import { useBodyScrollLock } from "@/lib/scrollLock";
 import { toOptimizedCardPosterUrl } from "@/lib/movieMedia";
 

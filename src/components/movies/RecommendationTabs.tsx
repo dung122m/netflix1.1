@@ -18,7 +18,7 @@ import {
   Play,
 } from "lucide-react";
 import { pickBestMovieThumb, toOptimizedPhimimgUrl, extractMovieRatingScore } from "@/lib/movieMedia";
-import { toast } from "./Toast";
+import { toast } from "@/components/ui/Toast";
 import { Tooltip } from "@/components/ui/Tooltip";
 
 interface MovieItem {

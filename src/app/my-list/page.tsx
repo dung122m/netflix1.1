@@ -27,11 +27,11 @@ import {
   Heart,
   Play,
 } from "lucide-react";
-import { Navbar } from "@/components/Navbar";
+import { Navbar } from "@/components/layout/Navbar";
 import { useAuth } from "@/context/AuthContext";
-import { AuthModal } from "@/components/AuthModal";
+import { AuthModal } from "@/components/modals/AuthModal";
 import { UserAvatar } from "@/components/ui/UserAvatar";
-import { Footer } from "@/components/Footer";
+import { Footer } from "@/components/layout/Footer";
 import { MediaCard } from "@/components/browse/MediaCard";
 import { EmptyState } from "@/components/ui/EmptyState";
 import {
@@ -59,7 +59,7 @@ import { MovieCollection } from "@/types/collection";
 import { MovieComment } from "@/types/comment";
 import { CreateCollectionModal } from "@/components/Collections/CreateCollectionModal";
 import { showConfirmDialog } from "@/components/ui/ConfirmDialog";
-import { toast } from "@/components/Toast";
+import { toast } from "@/components/ui/Toast";
 
 import { useMoviePosterFallback } from "@/hooks/useMoviePosterFallback";
 

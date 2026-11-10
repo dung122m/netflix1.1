@@ -1,7 +1,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { resolveNextResumeEpisode } from "@/lib/seriesResume";
-import { EpisodeItem } from "@/components/WatchController";
+import { EpisodeItem } from "@/components/cinema/WatchController";
 import { EpisodeProgressData, WatchHistoryItem } from "@/lib/watchHistory";
 
 describe("Series Watch History & Resume Episode Suite", () => {

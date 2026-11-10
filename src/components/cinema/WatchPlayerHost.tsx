@@ -2,8 +2,8 @@
 
 import React from "react";
 import dynamic from "next/dynamic";
-import type { CinemaPlayerProps } from "./CinemaPlayer";
-import { useWatchController } from "./WatchController";
+import type { CinemaPlayerProps } from "@/components/cinema/CinemaPlayer";
+import { useWatchController } from "@/components/cinema/WatchController";
 
 // Pre-warm CinemaPlayer chunk ngay khi module được nạp trên client, loại bỏ hoàn toàn độ trễ của dynamic import waterfall
 if (typeof window !== "undefined") {

@@ -13,9 +13,9 @@ import {
   Film,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
-import { AuthModal } from "@/components/AuthModal";
+import { AuthModal } from "@/components/modals/AuthModal";
 import { showConfirmDialog } from "@/components/ui/ConfirmDialog";
-import { toast } from "@/components/Toast";
+import { toast } from "@/components/ui/Toast";
 import { MovieComment, CommentReactionType } from "@/types/comment";
 import {
   subscribeMovieComments,

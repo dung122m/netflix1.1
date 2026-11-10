@@ -29,7 +29,7 @@ import {
 } from "@/services/commentService";
 import { isUserAdmin } from "@/lib/adminConfig";
 import { checkContentModeration, detectSpoiler } from "@/lib/contentModeration";
-import { toast } from "@/components/Toast";
+import { toast } from "@/components/ui/Toast";
 import { showConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { UserAvatar } from "@/components/ui/UserAvatar";
 import { Tooltip } from "@/components/ui/Tooltip";

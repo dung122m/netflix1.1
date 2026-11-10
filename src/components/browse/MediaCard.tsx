@@ -19,11 +19,11 @@ import {
   extractMovieCountry,
   COUNTRY_DISPLAY_MAP,
 } from "@/lib/movieMedia";
-import { TrailerModal } from "@/components/TrailerModal";
+import { TrailerModal } from "@/components/modals/TrailerModal";
 import { extractYoutubeId } from "@/lib/trailerHelper";
 import { useAuth } from "@/context/AuthContext";
 import { AddToCollectionModal } from "@/components/Collections/AddToCollectionModal";
-import { AuthModal } from "@/components/AuthModal";
+import { AuthModal } from "@/components/modals/AuthModal";
 import { Tooltip } from "@/components/ui/Tooltip";
 import { useMoviePosterFallback } from "@/hooks/useMoviePosterFallback";
 

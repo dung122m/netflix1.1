@@ -46,7 +46,7 @@ import { getLocalCollections, subscribeUserCollections } from "@/services/collec
 import { uploadAvatarSupabase } from "@/services/supabaseService";
 import { MovieComment } from "@/types/comment";
 import { UserProfile, PlayerSettings } from "@/types/user";
-import { toast } from "@/components/Toast";
+import { toast } from "@/components/ui/Toast";
 import { showConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { PRESET_AVATARS } from "@/lib/avatarHelper";
 import { UserAvatar } from "@/components/ui/UserAvatar";

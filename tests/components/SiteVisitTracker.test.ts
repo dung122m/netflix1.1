@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { classifyRoute } from "@/components/SiteVisitTracker";
+import { classifyRoute } from "@/components/layout/SiteVisitTracker";
 import {
   trackSiteVisit,
   trackMovieView,

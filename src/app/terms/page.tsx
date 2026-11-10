@@ -14,8 +14,8 @@ import {
   Info,
   MessageSquare,
 } from "lucide-react";
-import { Navbar } from "@/components/Navbar";
-import { Footer } from "@/components/Footer";
+import { Navbar } from "@/components/layout/Navbar";
+import { Footer } from "@/components/layout/Footer";
 
 export const metadata: Metadata = {
   title: "Điều Khoản Dịch Vụ & Chính Sách Bản Quyền DMCA | Nanaflix",

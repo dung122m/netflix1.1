@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
 
 const InstallPwaModal = dynamic(
-  () => import("./InstallPwaModal").then((mod) => mod.InstallPwaModal),
+  () => import("@/components/modals/InstallPwaModal").then((mod) => mod.InstallPwaModal),
   { ssr: false }
 );
 

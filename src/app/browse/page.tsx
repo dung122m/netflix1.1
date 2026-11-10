@@ -1,8 +1,8 @@
 import Link from "next/link";
-import { MovieGrid } from "@/components/MovieGrid";
-import { FilterBarClient } from "@/components/FilterBarClient";
-import { Navbar } from "@/components/Navbar";
-import { Footer } from "@/components/Footer";
+import { MovieGrid } from "@/components/movies/MovieGrid";
+import { FilterBarClient } from "@/components/browse/FilterBarClient";
+import { Navbar } from "@/components/layout/Navbar";
+import { Footer } from "@/components/layout/Footer";
 import { Film, ExternalLink, User } from "lucide-react";
 import { movieApi } from "@/services/movies/service";
 import {
@@ -16,7 +16,7 @@ import {
 } from "@/services/aiActorService";
 import { searchMoviesBySemantic } from "@/services/aiVectorService";
 import { evaluateConceptEvidence, resolveConcepts } from "@/services/conceptRegistry";
-import { PaginationControl } from "@/components/PaginationControl";
+import { PaginationControl } from "@/components/ui/PaginationControl";
 import {
   isBrokenImageUrl,
   cleanNormalizedForMatch,

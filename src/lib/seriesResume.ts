@@ -1,4 +1,4 @@
-import { EpisodeItem } from "@/components/WatchController";
+import { EpisodeItem } from "@/components/cinema/WatchController";
 import {
   getWatchHistory,
   getMovieEpisodesProgress,

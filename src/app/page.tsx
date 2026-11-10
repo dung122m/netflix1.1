@@ -1,15 +1,15 @@
 import dynamic from "next/dynamic";
 import { redirect } from "next/navigation";
 import { HomeGenreExploreBar } from "@/components/home/HomeGenreExploreBar";
-import { Navbar } from "@/components/Navbar";
-import { Footer } from "@/components/Footer";
-import { ContinueWatchingRow } from "@/components/ContinueWatchingRow";
+import { Navbar } from "@/components/layout/Navbar";
+import { Footer } from "@/components/layout/Footer";
+import { ContinueWatchingRow } from "@/components/movies/ContinueWatchingRow";
 import { movieApi } from "@/services/movies/service";
 import { getTmdbRankedMovies, getTmdbBackdropUrl } from "@/services/tmdbService";
-import { CuratedMovieSection } from "@/components/CuratedMovieSection";
-import { TmdbTopTrending } from "@/components/TmdbTopTrending";
-import { CommunityTopTrending } from "@/components/CommunityTopTrending";
-import { ForYouPersonalizedRow } from "@/components/ForYouPersonalizedRow";
+import { CuratedMovieSection } from "@/components/movies/CuratedMovieSection";
+import { TmdbTopTrending } from "@/components/movies/TmdbTopTrending";
+import { CommunityTopTrending } from "@/components/movies/CommunityTopTrending";
+import { ForYouPersonalizedRow } from "@/components/movies/ForYouPersonalizedRow";
 import { getR2BannerUrl } from "@/lib/r2";
 
 const HeroFeatured = dynamic(() =>

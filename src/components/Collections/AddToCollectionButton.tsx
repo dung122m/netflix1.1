@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { FolderPlus } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
-import { AuthModal } from "@/components/AuthModal";
+import { AuthModal } from "@/components/modals/AuthModal";
 import { AddToCollectionModal } from "./AddToCollectionModal";
 import { Tooltip } from "@/components/ui/Tooltip";
 

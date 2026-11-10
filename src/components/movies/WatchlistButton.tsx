@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { Bookmark, Check } from "lucide-react";
 import { isInWatchlist, toggleWatchlist } from "@/lib/watchlist";
-import { toast } from "@/components/Toast";
+import { toast } from "@/components/ui/Toast";
 import { Tooltip } from "@/components/ui/Tooltip";
 
 interface WatchlistButtonProps {

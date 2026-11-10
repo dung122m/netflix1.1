@@ -24,7 +24,7 @@ import {
   Users,
   History,
 } from "lucide-react";
-import { NanaflixBrandLogo } from "@/components/NetflixLogo";
+import { NanaflixBrandLogo } from "@/components/layout/NetflixLogo";
 
 export const Footer: React.FC = () => {
   return (

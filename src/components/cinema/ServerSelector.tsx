@@ -2,7 +2,7 @@
 
 import React from "react";
 import { Zap } from "lucide-react";
-import { useWatchController, EpisodeServer } from "./WatchController";
+import { useWatchController, EpisodeServer } from "@/components/cinema/WatchController";
 
 interface ServerSelectorProps {
   servers?: EpisodeServer[];

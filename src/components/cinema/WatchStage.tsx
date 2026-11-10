@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { useWatchController } from "./WatchController";
+import { useWatchController } from "@/components/cinema/WatchController";
 
 interface WatchStageProps {
   player: React.ReactNode;

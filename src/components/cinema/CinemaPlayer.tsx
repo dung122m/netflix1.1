@@ -18,7 +18,7 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
-import { useWatchController } from "./WatchController";
+import { useWatchController } from "@/components/cinema/WatchController";
 import { getWatchProgress, saveWatchProgress } from "@/lib/watchHistory";
 import { markEpisodeAsWatched } from "@/lib/episodeTracker";
 import { formatEpisodeName, findEpisodeMatch } from "@/lib/formatEpisode";
@@ -26,8 +26,8 @@ import { useAuth } from "@/context/AuthContext";
 import { updateActivePlaybackSession } from "@/services/handoffService";
 import { getDeviceHandoffSupabase } from "@/services/supabaseService";
 import { incrementUserWatchTime, getPlayerSettings, PlayerSettings } from "@/services/userService";
-import { CinemaNextEpisodePrompt } from "./cinema/CinemaNextEpisodePrompt";
-import { useWatchTimeHeartbeat } from "./cinema/hooks/useWatchTimeHeartbeat";
+import { CinemaNextEpisodePrompt } from "@/components/cinema/CinemaNextEpisodePrompt";
+import { useWatchTimeHeartbeat } from "@/components/cinema/hooks/useWatchTimeHeartbeat";
 import {
   PlayerNativeControls,
   VideoFit,
@@ -36,7 +36,7 @@ import {
   YouTubeVolumeHighIcon,
   YouTubeVolumeLowIcon,
   YouTubeVolumeMuteIcon,
-} from "./player/PlayerNativeControls";
+} from "@/components/player/PlayerNativeControls";
 import {
   detectAdBoundaries,
   AdBoundary,

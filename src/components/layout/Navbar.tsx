@@ -16,17 +16,17 @@ import {
   Compass,
   X,
 } from "lucide-react";
-import { NanaflixBrandLogo } from "@/components/NetflixLogo";
-import { NavSearchBar } from "./navbar/NavSearchBar";
-import { NavNotifications } from "./navbar/NavNotifications";
-import { NavUserMenu } from "./navbar/NavUserMenu";
-import { AccentStudio } from "./navbar/AccentStudio";
-import { NavMobileMenu } from "./navbar/NavMobileMenu";
+import { NanaflixBrandLogo } from "@/components/layout/NetflixLogo";
+import { NavSearchBar } from "@/components/navbar/NavSearchBar";
+import { NavNotifications } from "@/components/navbar/NavNotifications";
+import { NavUserMenu } from "@/components/navbar/NavUserMenu";
+import { AccentStudio } from "@/components/navbar/AccentStudio";
+import { NavMobileMenu } from "@/components/navbar/NavMobileMenu";
 import { useAuth } from "@/context/AuthContext";
 import { subscribeUserNotifications } from "@/services/notificationService";
 
 const AuthModal = dynamic(
-  () => import("./AuthModal").then((mod) => mod.AuthModal),
+  () => import("@/components/modals/AuthModal").then((mod) => mod.AuthModal),
   { ssr: false }
 );
 
