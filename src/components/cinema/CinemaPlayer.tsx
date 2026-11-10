@@ -658,6 +658,13 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
     const rawEmbed = decodeStreamUrl(embedSrc || "");
     const rawVideo = decodeStreamUrl(videoLink || "");
     let src = rawVideo ? rawEmbed : trailerEmbedSrc;
+    if (src && (src.includes("embed1.streamc.xyz") || src.includes("embed.streamc.xyz") || src.includes("streamc.xyz"))) {
+      if (resolvedM3u8) {
+        src = `https://player.phimapi.com/player/?url=${encodeURIComponent(resolvedM3u8)}`;
+      } else {
+        src = "";
+      }
+    }
     if (!src) return "";
     if (!src.includes("autoplay=")) {
       src += (src.includes("?") ? "&" : "?") + "autoplay=1";
@@ -666,9 +673,11 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
       src += `&t=${Math.floor(targetProgress)}`;
     }
     return src;
-  }, [videoLink, embedSrc, trailerEmbedSrc, targetProgress]);
+  }, [videoLink, embedSrc, trailerEmbedSrc, targetProgress, resolvedM3u8]);
 
-  const isNativeVideo = Boolean(resolvedM3u8 && !useIframeFallback);
+  const rawEmbedStr = decodeStreamUrl(embedSrc || "");
+  const isEmbedBroken = Boolean(rawEmbedStr && (rawEmbedStr.includes("streamc") || rawEmbedStr.includes("vsmov")));
+  const isNativeVideo = Boolean(resolvedM3u8 && (!useIframeFallback || isEmbedBroken));
 
   const getEffectiveDuration = useCallback(() => {
     const v = videoRef.current;
@@ -1395,6 +1404,13 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
         if (networkRetryTimeout) {
           clearTimeout(networkRetryTimeout);
           networkRetryTimeout = null;
+        }
+        const currentEmbed = decodeStreamUrl(embedSrc || "");
+        if (currentEmbed && (currentEmbed.includes("streamc") || currentEmbed.includes("vsmov"))) {
+          if (hlsRef.current === hls) {
+            hls.startLoad();
+          }
+          return;
         }
         hls.destroy();
         setUseIframeFallback(true);

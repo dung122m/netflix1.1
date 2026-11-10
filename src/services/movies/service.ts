@@ -255,7 +255,13 @@ export function filterDualServers(rawServers: any[]): any[] {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const result: any[] = [];
   if (longTiengServer) result.push(longTiengServer);
-  if (thuyetMinhServer) {
+  if (thuyetMinhServer && vietsubServer) {
+    if (isBetterServerCandidate(vietsubServer, thuyetMinhServer)) {
+      result.push(vietsubServer);
+    } else {
+      result.push(thuyetMinhServer);
+    }
+  } else if (thuyetMinhServer) {
     result.push(thuyetMinhServer);
   } else if (vietsubServer) {
     result.push(vietsubServer);
@@ -272,6 +278,24 @@ export function filterDualServers(rawServers: any[]): any[] {
     otherServers.sort((a, b) => (isBetterServerCandidate(a, b) ? -1 : 1));
     const missingName = result[0].server_name === "Lồng Tiếng" ? "Thuyết Minh" : "Lồng Tiếng";
     result.push({ ...otherServers[0], server_name: missingName });
+  }
+
+  // Backfill luồng m3u8 trực tiếp từ các server dự phòng sang server được chọn nếu server được chọn bị thiếu link_m3u8
+  for (const selected of result) {
+    for (const ep of selected.server_data || []) {
+      if (!ep.link_m3u8) {
+        for (const candidate of rawServers) {
+          const match = (findEpisodeMatch(candidate?.server_data || [], ep.slug) || findEpisodeMatch(candidate?.server_data || [], ep.name)) as { link_m3u8?: string; link_embed?: string } | undefined;
+          if (match?.link_m3u8) {
+            ep.link_m3u8 = match.link_m3u8;
+            if (!ep.link_embed || ep.link_embed.includes("streamc")) {
+              ep.link_embed = match.link_embed || ep.link_embed;
+            }
+            break;
+          }
+        }
+      }
+    }
   }
 
   return result.slice(0, 2);
@@ -752,8 +776,8 @@ const fetchMovieDetailBase = async (
   if (existing) return existing;
 
   const promise = (async () => {
-    // 1. Đọc từ Redis v5 Compact Metadata (~2KB)
-    const kvKeyV3 = `movie:detail:v5:${slug}:${source || "any"}`;
+    // 1. Đọc từ Redis v6 Compact Metadata (~2KB)
+    const kvKeyV3 = `movie:detail:v6:${slug}:${source || "any"}`;
 
     let data: MovieDetailCachePayload | null = null;
     const rawData = await cacheService.get<MovieDetailCachePayload>(kvKeyV3);
@@ -768,13 +792,13 @@ const fetchMovieDetailBase = async (
         });
 
         // Nếu bản ghi trong Redis hoàn toàn không có stream .m3u8 nào (chỉ có embed iframe bên ngoài),
-        // kích hoạt revalidate ngầm để kiểm tra xem upstream đã cập nhật luồng direct m3u8 chưa
+        // hủy bỏ dữ liệu cũ để fetch nguồn trực tiếp từ upstream có direct m3u8
         const hasDirectM3u8 = Array.isArray(data.episodes) && data.episodes.some(
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           (s: any) => Array.isArray(s.server_data) && s.server_data.some((e: any) => e.link_m3u8 && String(e.link_m3u8).includes(".m3u8"))
         );
         if (!hasDirectM3u8) {
-          revalidateMovieDetail(slug, source, localKey).catch(() => {});
+          data = null;
         }
       }
     }
@@ -827,7 +851,7 @@ export async function getEpisodeStream(
       }
       const epList: RawEpisodeItem[] = srv?.server_data || [];
       const match = findEpisodeMatch(epList, episodeSlug) || findEpisodeMatch(epList, normEp);
-      if (match && (match.link_m3u8 || match.link_embed)) {
+      if (match && (match.link_m3u8 || (match.link_embed && !match.link_embed.includes("streamc")))) {
         streams.push({
           server_name: srv.server_name || "Server",
           link_embed: match.link_embed || "",
@@ -839,7 +863,7 @@ export async function getEpisodeStream(
   }
 
   // 2. Kiểm tra L2 Redis Cache cho tập và server cụ thể (~200 bytes) với Single-Flight Mutex
-  const streamKvKey = `movie:stream:v3:${slug}:${serverKey}:${normEp}`;
+  const streamKvKey = `movie:stream:v4:${slug}:${serverKey}:${normEp}`;
   const existingStreamTask = inFlightStreams.get(streamKvKey);
   if (existingStreamTask) {
     return await existingStreamTask;
@@ -896,8 +920,11 @@ export async function getEpisodeStream(
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function attachRequestedEpisodeStreams(data: any, requestedEpSlug?: string): Promise<any> {
-  if (!data || !requestedEpSlug || !data.episodes) return data;
+  if (!data || !requestedEpSlug || (!data.episodes && !data.movie?.episodes)) return data;
   const episodes: RawServerItem[] = data.episodes || data.movie?.episodes || [];
+  if (!data.episodes && episodes.length > 0) {
+    data.episodes = episodes;
+  }
   const movieSlug = data.movie?.slug;
   if (!movieSlug) return data;
 
@@ -2447,7 +2474,7 @@ export const movieApi = {
     }
 
     // 2. Gom các missing slugs và thực hiện MGET 1 lần trên Redis
-    const redisKeys = missingSlugs.map((slug) => `movie:detail:v4:${slug}:${source || "any"}`);
+    const redisKeys = missingSlugs.map((slug) => `movie:detail:v6:${slug}:${source || "any"}`);
     const cachedItems = await cacheService.mget<MovieDetailCachePayload>(redisKeys);
 
     const stillMissingSlugs: string[] = [];
