@@ -197,31 +197,31 @@ const FAQ_DATA: FAQItem[] = [
       "Theater Mode mở rộng khung video chiếm trọn chiều rộng của cửa sổ trình duyệt nhưng vẫn giữ lại các thông tin mô tả phim, danh sách tập và đề xuất bên dưới để bạn vừa xem vừa có thể đổi tập nhanh chóng mà không cần thoát khỏi chế độ Full Screen.",
   },
 
-  // 3. TRỢ LÝ AI NANA
+  // 3. GỢI Ý & TÌM KIẾM THÔNG MINH
   {
     id: "ai1",
     category: "ai",
-    categoryLabel: "Trợ Lý AI Nana",
-    question: "Trợ lý AI Nana có thể giúp gì cho trải nghiệm xem phim của tôi?",
+    categoryLabel: "Gợi Ý & Tìm Kiếm",
+    question: "Hệ thống gợi ý phim thông minh hoạt động như thế nào?",
     answer:
-      "AI Nana là trợ lý ảo được huấn luyện chuyên sâu về điện ảnh. Bạn có thể trò chuyện với Nana bằng ngôn ngữ tự nhiên như: 'Gợi ý cho mình phim kinh dị tâm lý có kết thúc bất ngờ', 'Tìm phim hoạt hình Anime thanh xuân xem cuối tuần', hoặc 'Giải thích ý nghĩa đoạn kết phim Interstellar'.",
-    tips: "Mẹo nhỏ: Bạn có thể yêu cầu AI Nana gợi ý phim theo tâm trạng, thể loại ưa thích hoặc tìm kiếm phim theo tên diễn viên yêu thích.",
+      "Nanaflix tự động ghi nhận lịch sử xem và đánh giá của bạn để xây dựng hồ sơ sở thích (Taste Profile). Từ đó, danh mục 'Dành Riêng Cho Bạn' (For You) trên trang chủ sẽ ưu tiên đề xuất các tác phẩm điện ảnh tương thích cao nhất về thể loại, phong cách và diễn viên yêu thích.",
+    tips: "Mẹo nhỏ: Càng xem và đánh giá nhiều phim, hệ thống gợi ý càng hiểu đúng gu thưởng thức của bạn.",
   },
   {
     id: "ai2",
     category: "ai",
-    categoryLabel: "Trợ Lý AI Nana",
-    question: "Hệ thống 'Taste Profile' cá nhân hóa hoạt động ra sao?",
+    categoryLabel: "Gợi Ý & Tìm Kiếm",
+    question: "Tôi có thể tìm kiếm phim theo diễn viên hoặc đạo diễn không?",
     answer:
-      "Taste Profile hoạt động hoàn toàn tự động dựa trên các bộ phim bạn đã xem, đánh giá và lưu lại. Thuật toán phân tích vector thể loại, đạo diễn, quốc gia và phong cách phim ưa thích để tạo ra danh mục đề xuất 'Dành Riêng Cho Bạn' (For You) chính xác nhất trên trang chủ.",
+      "Có! Bạn chỉ cần gõ tên diễn viên hoặc đạo diễn vào thanh tìm kiếm. Nanaflix tích hợp cơ sở dữ liệu tra cứu đa ngôn ngữ và tiểu sử nghệ sĩ, giúp bạn nhanh chóng xem toàn bộ danh sách các tác phẩm có sự tham gia của thần tượng.",
   },
   {
     id: "ai3",
     category: "ai",
-    categoryLabel: "Trợ Lý AI Nana",
-    question: "AI Nana sử dụng mô hình trí tuệ nhân tạo nào?",
+    categoryLabel: "Gợi Ý & Tìm Kiếm",
+    question: "Tính năng tóm tắt cốt truyện không tiết lộ nội dung (No Spoilers) là gì?",
     answer:
-      "Nanaflix kết hợp kiến trúc Multi-Model AI Orchestration linh hoạt giữa Google Gemini 2.5 Flash, Groq Llama 3 và Mistral AI để đem lại câu trả lời thông minh, đúng ngữ cảnh điện ảnh với tốc độ phản hồi tính bằng mili-giây.",
+      "Mỗi bộ phim trên Nanaflix đều được cung cấp phần tóm tắt ngắn gọn, làm nổi bật thông điệp chính và dàn diễn viên mà không làm lộ các tình tiết bất ngờ hay kết thúc phim, giúp bạn an tâm tham khảo trước khi bấm xem.",
   },
 
   // 4. TÀI KHOẢN & BẢO MẬT
@@ -299,7 +299,7 @@ const CATEGORIES = [
   { id: "all", label: "Tất cả", icon: Compass },
   { id: "guide", label: "📖 Hướng Dẫn & Sử Dụng", icon: BookOpen },
   { id: "player", label: "Trình Phát & Video", icon: Tv },
-  { id: "ai", label: "Trợ Lý AI Nana", icon: Bot },
+  { id: "ai", label: "Gợi Ý & Tìm Kiếm", icon: Compass },
   { id: "account", label: "Tài Khoản & Bảo Mật", icon: MonitorSmartphone },
   { id: "content", label: "Nguồn Phim & Lịch Chiếu", icon: Film },
   { id: "troubleshoot", label: "Xử Lý Sự Cố", icon: AlertOctagon },

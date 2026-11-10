@@ -577,7 +577,7 @@ function MatchCardInner({ match, isSelected, onSelect, score, compact }: MatchCa
           onSelect(match);
         }
       }}
-      className={`group relative rounded-2xl cursor-pointer transition-all duration-200 flex flex-col justify-between overflow-hidden outline-none select-none backdrop-blur-md ${
+      className={`group relative rounded-xl cursor-pointer transition-all duration-200 flex flex-col justify-between overflow-hidden outline-none select-none ${
         isSelected && featured.isFeatured
           ? "bg-gradient-to-b from-zinc-900 via-zinc-900/95 to-zinc-950 ring-2 ring-netflix-red border border-amber-500/40 shadow-2xl shadow-netflix-red/15"
           : isSelected

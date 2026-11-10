@@ -1577,14 +1577,15 @@ export function LiveFootballClient({
                       <button
                         type="button"
                         onClick={() => handleStatusChange("all")}
-                        className={`flex items-center gap-1 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg text-[11px] sm:text-xs font-semibold whitespace-nowrap transition cursor-pointer min-h-[32px] sm:min-h-[38px] ${
+                        className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition cursor-pointer min-h-[34px] sm:min-h-[36px] ${
                           activeSection !== "standings" && selectedStatus === "all"
-                            ? "bg-zinc-700/90 text-white font-bold shadow-sm"
+                            ? "bg-netflix-red text-white font-bold shadow-sm"
                             : "text-zinc-400 hover:text-white hover:bg-white/5"
                         }`}
                       >
-                        <span>
-                          Tất cả <span className="opacity-60 tabular-nums font-normal">({counts.total})</span>
+                        <span>Tất cả</span>
+                        <span className={`tabular-nums text-[11px] ${activeSection !== "standings" && selectedStatus === "all" ? "opacity-80 font-normal" : "opacity-60"}`}>
+                          ({counts.total})
                         </span>
                       </button>
 
@@ -1592,18 +1593,17 @@ export function LiveFootballClient({
                         <button
                           type="button"
                           onClick={() => handleStatusChange("live")}
-                          className={`flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg text-[11px] sm:text-xs font-semibold whitespace-nowrap transition cursor-pointer min-h-[32px] sm:min-h-[38px] ${
+                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition cursor-pointer min-h-[34px] sm:min-h-[36px] ${
                             activeSection !== "standings" && selectedStatus === "live"
                               ? "bg-netflix-red text-white font-bold shadow-md shadow-black/50"
-                              : "text-rose-300/90 hover:text-white hover:bg-white/5"
+                              : "text-zinc-300 hover:text-white hover:bg-white/5"
                           }`}
                         >
-                          <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-red-400 animate-pulse shrink-0" />
-                          <span className="xs:hidden">
-                            Live <span className="opacity-80 tabular-nums font-normal">({counts.live})</span>
-                          </span>
-                          <span className="hidden xs:inline">
-                            Đang diễn ra <span className="opacity-80 tabular-nums font-normal">({counts.live})</span>
+                          <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse shrink-0" />
+                          <span className="xs:hidden">Live</span>
+                          <span className="hidden xs:inline">Đang diễn ra</span>
+                          <span className="opacity-80 tabular-nums text-[11px] font-normal">
+                            ({counts.live})
                           </span>
                         </button>
                       )}
@@ -1612,18 +1612,16 @@ export function LiveFootballClient({
                         <button
                           type="button"
                           onClick={() => handleStatusChange("upcoming")}
-                          className={`flex items-center gap-1 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg text-[11px] sm:text-xs font-semibold whitespace-nowrap transition cursor-pointer min-h-[32px] sm:min-h-[38px] ${
+                          className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition cursor-pointer min-h-[34px] sm:min-h-[36px] ${
                             activeSection !== "standings" && selectedStatus === "upcoming"
-                              ? "bg-zinc-700/90 text-sky-200 font-bold shadow-sm"
+                              ? "bg-netflix-red text-white font-bold shadow-sm"
                               : "text-zinc-400 hover:text-white hover:bg-white/5"
                           }`}
                         >
-                          <Clock className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0 text-sky-400" />
-                          <span className="xs:hidden">
-                            Sắp đá <span className="opacity-60 tabular-nums font-normal">({counts.upcoming})</span>
-                          </span>
-                          <span className="hidden xs:inline">
-                            Sắp diễn ra <span className="opacity-60 tabular-nums font-normal">({counts.upcoming})</span>
+                          <span className="xs:hidden">Sắp đá</span>
+                          <span className="hidden xs:inline">Sắp diễn ra</span>
+                          <span className="opacity-80 tabular-nums text-[11px] font-normal">
+                            ({counts.upcoming})
                           </span>
                         </button>
                       )}
@@ -1632,18 +1630,16 @@ export function LiveFootballClient({
                         <button
                           type="button"
                           onClick={() => handleStatusChange("finished")}
-                          className={`flex items-center gap-1 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg text-[11px] sm:text-xs font-semibold whitespace-nowrap transition cursor-pointer min-h-[32px] sm:min-h-[38px] ${
+                          className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition cursor-pointer min-h-[34px] sm:min-h-[36px] ${
                             activeSection !== "standings" && selectedStatus === "finished"
-                              ? "bg-zinc-700/90 text-zinc-200 font-bold shadow-sm"
+                              ? "bg-netflix-red text-white font-bold shadow-sm"
                               : "text-zinc-400 hover:text-white hover:bg-white/5"
                           }`}
                         >
-                          <Check className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0" />
-                          <span className="xs:hidden">
-                            Xong <span className="opacity-60 tabular-nums font-normal">({counts.finished})</span>
-                          </span>
-                          <span className="hidden xs:inline">
-                            Đã kết thúc <span className="opacity-60 tabular-nums font-normal">({counts.finished})</span>
+                          <span className="xs:hidden">Xong</span>
+                          <span className="hidden xs:inline">Đã kết thúc</span>
+                          <span className="opacity-80 tabular-nums text-[11px] font-normal">
+                            ({counts.finished})
                           </span>
                         </button>
                       )}
@@ -1654,38 +1650,39 @@ export function LiveFootballClient({
                         onClick={handleFeaturedToggle}
                         aria-pressed={onlyFeatured}
                         aria-label="Chỉ hiện các trận cầu tâm điểm / đại chiến hấp dẫn nhất"
-                        className={`flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg text-[11px] sm:text-xs font-semibold whitespace-nowrap transition cursor-pointer min-h-[32px] sm:min-h-[38px] ${
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition cursor-pointer min-h-[34px] sm:min-h-[36px] ${
                           activeSection !== "standings" && onlyFeatured
-                            ? "bg-gradient-to-r from-rose-600 to-red-600 text-white shadow-md shadow-rose-950/60 font-bold"
-                            : "text-rose-300/90 hover:text-rose-200 hover:bg-white/5"
+                            ? "bg-netflix-red text-white shadow-md shadow-black/50 font-bold"
+                            : "text-zinc-400 hover:text-white hover:bg-white/5"
                         }`}
                       >
                         <Flame
-                          className={`w-3.5 h-3.5 shrink-0 transition-transform ${
-                            onlyFeatured
-                              ? "text-amber-200 fill-amber-300 scale-110"
-                              : "text-rose-400 fill-rose-500/30"
+                          className={`w-3.5 h-3.5 shrink-0 ${
+                            onlyFeatured ? "text-amber-200 fill-amber-300" : "text-amber-400 fill-amber-400/20"
                           }`}
                         />
-                        <span>
-                          Tâm điểm {counts.featured > 0 && <span className="opacity-75 tabular-nums font-normal">({counts.featured})</span>}
-                        </span>
+                        <span>Tâm điểm</span>
+                        {counts.featured > 0 && (
+                          <span className="opacity-80 tabular-nums text-[11px] font-normal">
+                            ({counts.featured})
+                          </span>
+                        )}
                       </button>
 
                       {/* VẠCH PHÂN CÁCH TINH TẾ */}
                       <div className="w-[1px] h-4 bg-white/10 mx-0.5 shrink-0" />
 
-                      {/* NÚT BẢNG XẾP HẠNG (NẰM TRONG CÙNG CỤM NÚT, KHÔNG CHIẾM DIỆN TÍCH CỐ ĐỊNH TRÊN MOBILE) */}
+                      {/* NÚT BẢNG XẾP HẠNG */}
                       <button
                         type="button"
                         onClick={() => setActiveSection((prev) => (prev === "standings" ? "matches" : "standings"))}
-                        className={`flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg text-[11px] sm:text-xs font-semibold whitespace-nowrap transition cursor-pointer min-h-[32px] sm:min-h-[38px] ${
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition cursor-pointer min-h-[34px] sm:min-h-[36px] ${
                           activeSection === "standings"
-                            ? "bg-amber-500/20 text-amber-300 font-bold border border-amber-500/40 shadow-sm"
-                            : "text-zinc-300 hover:text-white hover:bg-white/5"
+                            ? "bg-netflix-red text-white font-bold shadow-sm"
+                            : "text-zinc-400 hover:text-white hover:bg-white/5"
                         }`}
                       >
-                        <Trophy className={`w-3.5 h-3.5 shrink-0 ${activeSection === "standings" ? "text-amber-400" : "text-zinc-400"}`} />
+                        <Trophy className={`w-3.5 h-3.5 shrink-0 ${activeSection === "standings" ? "text-amber-200" : "text-amber-400"}`} />
                         <span>Bảng xếp hạng</span>
                       </button>
                     </div>
@@ -1792,11 +1789,11 @@ export function LiveFootballClient({
                           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
                           <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500" />
                         </span>
-                        <h2 className="text-sm sm:text-base font-black uppercase tracking-wider text-white">
-                          Đang Phát Trực Tiếp
+                        <h2 className="text-base sm:text-lg font-bold tracking-tight text-white">
+                          Đang phát trực tiếp
                         </h2>
                       </div>
-                      <span className="text-xs font-sans font-bold tabular-nums px-2.5 py-0.5 rounded-full bg-red-500/20 text-red-300">
+                      <span className="text-xs font-semibold tabular-nums px-2.5 py-0.5 rounded-full bg-netflix-red/15 text-netflix-red border border-netflix-red/25">
                         {liveMatchesList.length} trận
                       </span>
                     </div>
@@ -1820,12 +1817,12 @@ export function LiveFootballClient({
                   <div className="space-y-3">
                     <div className="flex items-center justify-between px-1">
                       <div className="flex items-center gap-2">
-                        <Clock className="w-4 h-4 text-sky-400 shrink-0" />
-                        <h2 className="text-sm sm:text-base font-black uppercase tracking-wider text-zinc-300">
-                          Sắp Diễn Ra
+                        <Clock className="w-4 h-4 text-zinc-400 shrink-0" />
+                        <h2 className="text-base sm:text-lg font-bold tracking-tight text-zinc-200">
+                          Sắp diễn ra
                         </h2>
                       </div>
-                      <span className="text-xs font-sans font-bold tabular-nums px-2.5 py-0.5 rounded-full bg-white/5 text-zinc-400">
+                      <span className="text-xs font-semibold tabular-nums px-2.5 py-0.5 rounded-full bg-white/10 text-zinc-300">
                         {upcomingMatchesList.length} trận
                       </span>
                     </div>

@@ -48,7 +48,7 @@ export async function generateMetadata({
 
   const title = "Nanaflix - Xem Phim & Trực Tiếp Thể Thao Miễn Phí Chất Lượng Cao";
   const description =
-    "Xem phim bom tấn, anime vietsub và theo dõi trực tiếp bóng đá Ngoại Hạng Anh, C1, V-League Full HD mượt mà cùng Trợ lý Nana AI.";
+    "Xem phim bom tấn, anime vietsub và theo dõi trực tiếp bóng đá Ngoại Hạng Anh, C1, V-League Full HD mượt mà, không quảng cáo phiền toái.";
 
   return {
     title,

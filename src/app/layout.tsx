@@ -30,7 +30,7 @@ export const metadata: Metadata = {
     template: "%s | Nanaflix",
   },
   description:
-    "Nanaflix - Xem phim trực tuyến chất lượng cao Full HD cùng Trợ lý Nana gợi ý phim thông minh, cập nhật liên tục các siêu phẩm điện ảnh mới nhất, phim bộ, phim lẻ, anime vietsub và thuyết minh.",
+    "Nanaflix - Xem phim trực tuyến chất lượng cao Full HD, gợi ý phim thông minh đúng gu, cập nhật liên tục các siêu phẩm điện ảnh mới nhất, phim bộ, phim lẻ, anime vietsub và thuyết minh.",
   keywords: [
     "xem phim online",
     "phim moi",
@@ -70,7 +70,7 @@ export const metadata: Metadata = {
     siteName: "Nanaflix",
     title: "Nanaflix - Xem Phim & Trực Tiếp Thể Thao Miễn Phí Chất Lượng Cao",
     description:
-      "Xem phim bom tấn, anime vietsub và theo dõi trực tiếp bóng đá Ngoại Hạng Anh, C1, V-League Full HD mượt mà cùng Trợ lý Nana AI.",
+      "Xem phim bom tấn, anime vietsub và theo dõi trực tiếp bóng đá Ngoại Hạng Anh, C1, V-League Full HD mượt mà, không quảng cáo phiền toái.",
     images: [
       {
         url: `${siteUrl}/og-cinema.jpg?v=2026`,
@@ -86,7 +86,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Nanaflix - Xem Phim & Trực Tiếp Thể Thao Miễn Phí",
     description:
-      "Xem phim bom tấn, anime vietsub và theo dõi trực tiếp bóng đá Ngoại Hạng Anh, C1, V-League Full HD mượt mà cùng Trợ lý Nana AI.",
+      "Xem phim bom tấn, anime vietsub và theo dõi trực tiếp bóng đá Ngoại Hạng Anh, C1, V-League Full HD mượt mà, không quảng cáo phiền toái.",
     images: [`${siteUrl}/og-cinema.jpg?v=2026`],
   },
   robots: {

@@ -4,6 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import {
   Film,
+  Compass,
   Bot,
   Tv,
   Layers,
@@ -29,7 +30,7 @@ import { Footer } from "@/components/layout/Footer";
 export const metadata: Metadata = {
   title: "Giới Thiệu Nanaflix | Không Gian Điện Ảnh Thuần Khiết & Công Nghệ Trực Tuyến",
   description:
-    "Tìm hiểu về Nanaflix — Nền tảng xem phim trực tuyến phi thương mại tối ưu tốc độ, không quảng cáo phiền toái, hỗ trợ HLS thích ứng đa thiết bị và trợ lý AI thông minh.",
+    "Tìm hiểu về Nanaflix — Nền tảng xem phim trực tuyến phi thương mại tối ưu tốc độ, không quảng cáo phiền toái, hỗ trợ HLS thích ứng đa thiết bị và gợi ý phim thông minh.",
 };
 
 const PILLARS = [
@@ -59,14 +60,14 @@ const PILLARS = [
   },
   {
     number: "03",
-    title: "Trợ Lý AI & Gợi Ý Đúng Gu",
-    subtitle: "Taste Profile & Natural Language Discovery",
+    title: "Gợi Ý Đúng Gu & Khám Phá Thông Minh",
+    subtitle: "Taste Profile & Smart Content Discovery",
     description:
-      "Không còn phải lướt hàng chục trang tìm phim mà không biết xem gì. Trợ lý AI Nana hiểu ngữ cảnh tâm trạng, hỗ trợ gợi ý phim thông minh và phân tích sâu theo diễn viên, đạo diễn cùng gu thưởng thức cá nhân hóa.",
-    badge: "AI Nana cá nhân",
+      "Không còn phải lướt hàng chục trang tìm phim mà không biết xem gì. Hệ thống phân tích gu thưởng thức thông minh dựa trên lịch sử xem, tự động đề xuất các bộ phim tương thích cao nhất theo diễn viên, đạo diễn và thể loại ưa thích.",
+    badge: "Gợi ý cá nhân hóa",
     gradient: "from-purple-500/20 via-indigo-500/10 to-transparent",
     border: "border-purple-500/20 hover:border-purple-500/40",
-    icon: Bot,
+    icon: Compass,
     iconColor: "text-purple-400",
   },
   {

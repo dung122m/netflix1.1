@@ -178,21 +178,21 @@ export function LiveHubClient({ footballData, tvData: initialTvData, initialScor
               role="tab"
               aria-selected={activeTab === "sports"}
               onClick={() => handleTabChange("sports")}
-              className={`flex items-center justify-center gap-1.5 px-3 sm:px-3.5 py-1.5 min-h-[34px] rounded-lg text-xs font-semibold transition cursor-pointer outline-none shrink-0 whitespace-nowrap ${
+              className={`flex items-center justify-center gap-1.5 px-3.5 py-1.5 min-h-[34px] rounded-lg text-xs font-semibold transition cursor-pointer outline-none shrink-0 whitespace-nowrap ${
                 activeTab === "sports"
-                  ? "bg-zinc-800 text-white font-bold shadow-sm"
+                  ? "bg-netflix-red text-white font-bold shadow-md shadow-black/40"
                   : "text-zinc-400 hover:text-white hover:bg-white/5"
               }`}
             >
               <Trophy
-                className={`w-3.5 h-3.5 shrink-0 ${activeTab === "sports" ? "text-amber-400" : "text-zinc-400"}`}
+                className={`w-3.5 h-3.5 shrink-0 ${activeTab === "sports" ? "text-amber-300" : "text-zinc-400"}`}
                 aria-hidden="true"
               />
               <span>Thể thao</span>
               <span
                 className={`text-[11px] px-1.5 py-0.2 rounded-full font-medium ${
                   activeTab === "sports"
-                    ? "bg-red-500/20 text-red-300"
+                    ? "bg-black/25 text-white"
                     : "bg-black/40 text-zinc-400"
                 }`}
               >
@@ -205,21 +205,21 @@ export function LiveHubClient({ footballData, tvData: initialTvData, initialScor
               role="tab"
               aria-selected={activeTab === "tv"}
               onClick={() => handleTabChange("tv")}
-              className={`flex items-center justify-center gap-1.5 px-3 sm:px-3.5 py-1.5 min-h-[34px] rounded-lg text-xs font-semibold transition cursor-pointer outline-none shrink-0 whitespace-nowrap ${
+              className={`flex items-center justify-center gap-1.5 px-3.5 py-1.5 min-h-[34px] rounded-lg text-xs font-semibold transition cursor-pointer outline-none shrink-0 whitespace-nowrap ${
                 activeTab === "tv"
-                  ? "bg-zinc-800 text-white font-bold shadow-sm"
+                  ? "bg-netflix-red text-white font-bold shadow-md shadow-black/40"
                   : "text-zinc-400 hover:text-white hover:bg-white/5"
               }`}
             >
               <Tv
-                className={`w-3.5 h-3.5 shrink-0 ${activeTab === "tv" ? "text-sky-400" : "text-zinc-400"}`}
+                className={`w-3.5 h-3.5 shrink-0 ${activeTab === "tv" ? "text-white" : "text-zinc-400"}`}
                 aria-hidden="true"
               />
               <span>Truyền hình</span>
               <span
                 className={`text-[11px] px-1.5 py-0.2 rounded-full font-medium ${
                   activeTab === "tv"
-                    ? "bg-sky-500/20 text-sky-300"
+                    ? "bg-black/25 text-white"
                     : "bg-white/5 text-zinc-400"
                 }`}
               >

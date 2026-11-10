@@ -167,7 +167,7 @@ export function LiveMatchSidePanel({
               onClick={() => onStatusChange("all")}
               className={`px-2.5 py-1 rounded-lg text-[11px] font-bold whitespace-nowrap transition cursor-pointer ${
                 selectedStatus === "all"
-                  ? "bg-zinc-700/90 text-white shadow-sm font-bold"
+                  ? "bg-netflix-red text-white shadow-sm font-bold"
                   : "bg-zinc-900 text-zinc-400 hover:text-white"
               }`}
             >
@@ -180,7 +180,7 @@ export function LiveMatchSidePanel({
                 className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold whitespace-nowrap transition cursor-pointer ${
                   selectedStatus === "live"
                     ? "bg-netflix-red text-white shadow-sm"
-                    : "bg-zinc-900 text-rose-300 hover:text-white"
+                    : "bg-zinc-900 text-zinc-300 hover:text-white"
                 }`}
               >
                 <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
@@ -193,11 +193,10 @@ export function LiveMatchSidePanel({
                 onClick={() => onStatusChange("upcoming")}
                 className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold whitespace-nowrap transition cursor-pointer ${
                   selectedStatus === "upcoming"
-                    ? "bg-sky-600 text-white shadow-sm"
-                    : "bg-zinc-900 text-sky-300 hover:text-white"
+                    ? "bg-netflix-red text-white shadow-sm"
+                    : "bg-zinc-900 text-zinc-400 hover:text-white"
                 }`}
               >
-                <Clock className="w-2.5 h-2.5" />
                 <span>Sắp đá ({counts.upcoming})</span>
               </button>
             )}
@@ -214,17 +213,17 @@ export function LiveMatchSidePanel({
                 {/* KHỐI TRẬN ĐANG TRỰC TIẾP */}
                 {liveMatchesList.length > 0 && (
                   <div>
-                    <div className="sticky top-0 z-20 -mx-0.5 -mr-1 px-3 py-2 bg-zinc-950 border-b border-red-500/30 flex items-center justify-between shadow-md">
+                    <div className="sticky top-0 z-20 -mx-0.5 -mr-1 px-3 py-2 bg-zinc-950 border-b border-netflix-red/30 flex items-center justify-between shadow-md">
                       <div className="flex items-center gap-2">
                         <span className="relative flex h-2 w-2">
                           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
                           <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500" />
                         </span>
-                        <span className="text-[11px] font-black uppercase tracking-wider text-red-400">
+                        <span className="text-xs font-bold text-netflix-red">
                           Đang trực tiếp
                         </span>
                       </div>
-                      <span className="text-[10px] font-black tabular-nums px-2 py-0.5 rounded-full bg-red-500/20 text-red-300 border border-red-500/30">
+                      <span className="text-[10px] font-semibold tabular-nums px-2 py-0.5 rounded-full bg-netflix-red/15 text-netflix-red border border-netflix-red/30">
                         {liveMatchesList.length} trận
                       </span>
                     </div>
@@ -247,14 +246,14 @@ export function LiveMatchSidePanel({
                 {/* KHỐI TRẬN SẮP DIỄN RA */}
                 {upcomingMatchesList.length > 0 && (
                   <div className="mt-2.5">
-                    <div className="sticky top-0 z-20 -mx-0.5 -mr-1 px-3 py-2 bg-zinc-950 border-b border-sky-500/30 flex items-center justify-between shadow-md">
+                    <div className="sticky top-0 z-20 -mx-0.5 -mr-1 px-3 py-2 bg-zinc-950 border-b border-white/10 flex items-center justify-between shadow-md">
                       <div className="flex items-center gap-2">
-                        <Clock className="w-3.5 h-3.5 text-sky-400 shrink-0" />
-                        <span className="text-[11px] font-black uppercase tracking-wider text-sky-400">
+                        <Clock className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
+                        <span className="text-xs font-bold text-zinc-300">
                           Sắp diễn ra
                         </span>
                       </div>
-                      <span className="text-[10px] font-black tabular-nums px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-300 border border-sky-500/30">
+                      <span className="text-[10px] font-semibold tabular-nums px-2 py-0.5 rounded-full bg-white/10 text-zinc-300 border border-white/10">
                         {upcomingMatchesList.length} trận
                       </span>
                     </div>
