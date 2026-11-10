@@ -25,30 +25,18 @@ import {
   SlidersHorizontal,
 } from "lucide-react";
 
-export type FilterGroup = "type" | "genre" | "country" | "year" | "sort";
+import {
+  type FilterGroup,
+  type MovieTypeOption,
+  type SortOptionItem,
+  MOVIE_TYPES,
+  SORT_OPTIONS,
+} from "./filterConstants";
+import { FilterDropdownMenu } from "./FilterDropdownMenu";
+import { FilterMobileDrawer } from "./FilterMobileDrawer";
 
-interface MovieTypeOption {
-  name: string;
-  slug: string;
-}
-
-const MOVIE_TYPES: MovieTypeOption[] = [
-  { name: "Phim Lẻ", slug: "phim-le" },
-  { name: "Phim Bộ", slug: "phim-bo" },
-  { name: "Chiếu Rạp", slug: "phim-chieu-rap" },
-  { name: "Hoạt Hình", slug: "hoat-hinh" },
-  { name: "TV Shows", slug: "tv-shows" },
-  { name: "Sắp Chiếu", slug: "phim-sap-chieu" },
-  { name: "Thuyết Minh", slug: "phim-thuyet-minh" },
-  { name: "Lồng Tiếng", slug: "phim-long-tieng" },
-];
-
-const SORT_OPTIONS = [
-  { label: "Mới cập nhật", value: "latest", icon: Clock, color: "text-sky-400" },
-  { label: "Điểm đánh giá cao", value: "rating", icon: Star, color: "text-amber-400" },
-  { label: "Xem nhiều nhất", value: "views", icon: Flame, color: "text-orange-500" },
-  { label: "Năm mới nhất", value: "year", icon: Calendar, color: "text-emerald-400" },
-];
+export type { FilterGroup, MovieTypeOption, SortOptionItem };
+export { MOVIE_TYPES, SORT_OPTIONS };
 
 export const FilterBar: React.FC = () => {
   const router = useRouter();
@@ -662,217 +650,17 @@ export const FilterBar: React.FC = () => {
         </div>
       </div>
 
-      {/* 2. ACTIVE DROPDOWN POPUP (Neo chính xác 8px dưới từng nút bấm được chọn - CHỈ TRÊN DESKTOP) */}
-      {activeDropdown && (
-        <div
-          className="hidden sm:block absolute z-50 transition-all duration-150"
-          style={{
-            top: dropdownOffset.top !== undefined ? `${dropdownOffset.top}px` : undefined,
-            left: dropdownOffset.left !== undefined ? `${dropdownOffset.left}px` : undefined,
-            right: dropdownOffset.right !== undefined ? `${dropdownOffset.right}px` : undefined,
-          }}
-        >
-          {/* POPUP 1: LOẠI PHIM */}
-          {activeDropdown === "type" && (
-            <div className="w-56 sm:w-60 rounded-2xl bg-zinc-950/98 border border-zinc-700/80 p-2.5 shadow-2xl backdrop-blur-xl animate-in fade-in zoom-in-95 duration-150">
-              <div className="px-2 py-1 text-[11px] font-bold text-zinc-400 uppercase tracking-wider border-b mb-2 flex items-center justify-between">
-                <span>Chọn loại phim</span>
-                {currentType && (
-                  <button
-                    type="button"
-                    onClick={() => updateQueryParam("type", "")}
-                    className="text-netflix-red hover:brightness-110 text-[11px] normal-case font-medium cursor-pointer"
-                  >
-                    Bỏ chọn
-                  </button>
-                )}
-              </div>
-              <div className="max-h-72 overflow-y-auto space-y-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none]">
-                <button
-                  type="button"
-                  onClick={() => updateQueryParam("type", "")}
-                  className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs sm:text-sm font-medium transition cursor-pointer text-left ${
-                    !currentType
-                      ? "bg-white/10 text-white font-bold"
-                      : "text-zinc-300 hover:bg-zinc-800/80 hover:text-white"
-                  }`}
-                >
-                  <span>Tất cả loại phim</span>
-                  {!currentType && <Check className="w-3.5 h-3.5 text-netflix-red" />}
-                </button>
-                {MOVIE_TYPES.map((t) => {
-                  const isSelected = currentType === t.slug;
-                  return (
-                    <button
-                      key={t.slug}
-                      type="button"
-                      onClick={() => updateQueryParam("type", t.slug)}
-                      className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs sm:text-sm font-medium transition cursor-pointer text-left ${
-                        isSelected
-                          ? "bg-netflix-red text-white font-bold shadow-md shadow-black/50"
-                          : "text-zinc-300 hover:bg-zinc-800/80 hover:text-white"
-                      }`}
-                    >
-                      <span>{t.name}</span>
-                      {isSelected && <Check className="w-3.5 h-3.5 text-white" />}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* POPUP 2: THỂ LOẠI */}
-          {activeDropdown === "genre" && (
-            <div className="w-[calc(100vw-2rem)] sm:w-80 md:w-96 rounded-2xl bg-zinc-950/98 border border-zinc-700/80 p-3 shadow-2xl backdrop-blur-xl animate-in fade-in zoom-in-95 duration-150">
-              <div className="px-2 py-1 text-[11px] font-bold text-zinc-400 uppercase tracking-wider border-b mb-2 flex items-center justify-between">
-                <span>Chọn thể loại</span>
-                {currentCategory && (
-                  <button
-                    type="button"
-                    onClick={() => updateQueryParam("category", "")}
-                    className="text-netflix-red hover:brightness-110 text-[11px] normal-case font-medium cursor-pointer"
-                  >
-                    Bỏ chọn
-                  </button>
-                )}
-              </div>
-
-              <div className="max-h-64 sm:max-h-72 overflow-y-auto grid grid-cols-2 gap-1.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none]">
-                <button
-                  type="button"
-                  onClick={() => updateQueryParam("category", "")}
-                  className={`col-span-2 flex items-center justify-between px-3 py-2 rounded-xl text-xs sm:text-sm font-medium transition cursor-pointer text-left ${
-                    !currentCategory
-                      ? "bg-white/10 text-white font-bold"
-                      : "text-zinc-300 hover:bg-zinc-800/80 hover:text-white"
-                  }`}
-                >
-                  <span>Tất cả thể loại</span>
-                  {!currentCategory && <Check className="w-3.5 h-3.5 text-netflix-red" />}
-                </button>
-                {filters.genres.map((g) => {
-                  const isSelected = currentCategory === g.slug;
-                  return (
-                    <button
-                      key={g.slug}
-                      type="button"
-                      onClick={() => updateQueryParam("category", g.slug)}
-                      className={`flex items-center justify-between px-2.5 py-2 rounded-xl text-xs sm:text-sm font-medium transition cursor-pointer text-left truncate ${
-                        isSelected
-                          ? "bg-netflix-red text-white font-bold shadow-md shadow-black/50"
-                          : "text-zinc-300 hover:bg-zinc-800/80 hover:text-white bg-zinc-900/60"
-                      }`}
-                    >
-                      <span className="truncate">{g.name}</span>
-                      {isSelected && <Check className="w-3.5 h-3.5 text-white flex-none ml-1" />}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* POPUP 3: QUỐC GIA */}
-          {activeDropdown === "country" && (
-            <div className="w-[calc(100vw-2rem)] sm:w-80 rounded-2xl bg-zinc-950/98 border border-zinc-700/80 p-3 shadow-2xl backdrop-blur-xl animate-in fade-in zoom-in-95 duration-150">
-              <div className="px-2 py-1 text-[11px] font-bold text-zinc-400 uppercase tracking-wider border-b mb-2 flex items-center justify-between">
-                <span>Chọn quốc gia</span>
-                {currentCountry && (
-                  <button
-                    type="button"
-                    onClick={() => updateQueryParam("country", "")}
-                    className="text-netflix-red hover:brightness-110 text-[11px] normal-case font-medium cursor-pointer"
-                  >
-                    Bỏ chọn
-                  </button>
-                )}
-              </div>
-              <div className="max-h-64 sm:max-h-72 overflow-y-auto grid grid-cols-2 gap-1.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none]">
-                <button
-                  type="button"
-                  onClick={() => updateQueryParam("country", "")}
-                  className={`col-span-2 flex items-center justify-between px-3 py-2 rounded-xl text-xs sm:text-sm font-medium transition cursor-pointer text-left ${
-                    !currentCountry
-                      ? "bg-white/10 text-white font-bold"
-                      : "text-zinc-300 hover:bg-zinc-800/80 hover:text-white"
-                  }`}
-                >
-                  <span>Tất cả quốc gia</span>
-                  {!currentCountry && <Check className="w-3.5 h-3.5 text-netflix-red" />}
-                </button>
-                {filters.countries.map((c) => {
-                  const isSelected = currentCountry === c.slug;
-                  return (
-                    <button
-                      key={c.slug}
-                      type="button"
-                      onClick={() => updateQueryParam("country", c.slug)}
-                      className={`flex items-center justify-between px-2.5 py-2 rounded-xl text-xs sm:text-sm font-medium transition cursor-pointer text-left truncate ${
-                        isSelected
-                          ? "bg-netflix-red text-white font-bold shadow-md shadow-black/50"
-                          : "text-zinc-300 hover:bg-zinc-800/80 hover:text-white bg-zinc-900/60"
-                      }`}
-                    >
-                      <span className="truncate">{c.name}</span>
-                      {isSelected && <Check className="w-3.5 h-3.5 text-white flex-none ml-1" />}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* POPUP 4: NĂM PHÁT HÀNH */}
-          {activeDropdown === "year" && (
-            <div className="w-[calc(100vw-2rem)] sm:w-80 rounded-2xl bg-zinc-950/98 border border-zinc-700/80 p-3 shadow-2xl backdrop-blur-xl animate-in fade-in zoom-in-95 duration-150">
-              <div className="px-2 py-1 text-[11px] font-bold text-zinc-400 uppercase tracking-wider border-b mb-2 flex items-center justify-between">
-                <span>Chọn năm phát hành</span>
-                {currentYear && (
-                  <button
-                    type="button"
-                    onClick={() => updateQueryParam("year", "")}
-                    className="text-netflix-red hover:brightness-110 text-[11px] normal-case font-medium cursor-pointer"
-                  >
-                    Bỏ chọn
-                  </button>
-                )}
-              </div>
-              <button
-                type="button"
-                onClick={() => updateQueryParam("year", "")}
-                className={`w-full mb-2 flex items-center justify-between px-3 py-2 rounded-xl text-xs sm:text-sm font-medium transition cursor-pointer text-left ${
-                  !currentYear
-                    ? "bg-white/10 text-white font-bold"
-                    : "text-zinc-300 hover:bg-zinc-800/80 hover:text-white"
-                }`}
-              >
-                <span>Tất cả các năm</span>
-                {!currentYear && <Check className="w-3.5 h-3.5 text-netflix-red" />}
-              </button>
-              <div className="max-h-60 overflow-y-auto grid grid-cols-4 gap-1.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none]">
-                {filters.years.map((y) => {
-                  const isSelected = currentYear === y;
-                  return (
-                    <button
-                      key={y}
-                      type="button"
-                      onClick={() => updateQueryParam("year", y)}
-                      className={`py-2 px-1 text-center rounded-xl text-xs sm:text-sm font-medium transition cursor-pointer ${
-                        isSelected
-                          ? "bg-netflix-red text-white font-bold shadow-md shadow-black/50"
-                          : "text-zinc-300 hover:bg-zinc-800 hover:text-white bg-zinc-900/60"
-                      }`}
-                    >
-                      {y}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
+      {/* 2. ACTIVE DROPDOWN POPUP */}
+      <FilterDropdownMenu
+        activeDropdown={activeDropdown}
+        dropdownOffset={dropdownOffset}
+        currentType={currentType}
+        currentCategory={currentCategory}
+        currentCountry={currentCountry}
+        currentYear={currentYear}
+        filters={filters}
+        updateQueryParam={updateQueryParam}
+      />
 
       {/* 2. ACTIVE FILTERS CHIP BAR (Chỉ hiển thị khi có ít nhất 1 filter active) */}
       {hasAnyFilter && (
@@ -985,306 +773,25 @@ export const FilterBar: React.FC = () => {
         </div>
       )}
 
-      {/* 3. MOBILE FILTER DRAWER (BOTTOM SHEET - HIỂN THỊ TRÊN MOBILE < 640px) */}
-      {isMobileDrawerOpen && isMounted && createPortal(
-        <div className="fixed inset-0 z-[100000] sm:hidden select-none">
-          {/* Lớp nền mờ tối (Backdrop Overlay) */}
-          <div
-            className="fixed inset-0 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200 cursor-pointer"
-            onClick={() => setIsMobileDrawerOpen(false)}
-            aria-hidden="true"
-          />
-
-          {/* Bảng điều khiển Bottom Sheet */}
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-label="Bảng điều khiển bộ lọc phim"
-            className="fixed inset-x-0 bottom-0 z-[100001] max-h-[85vh] max-h-[85dvh] flex flex-col rounded-t-3xl bg-zinc-950 border-t shadow-[0_-16px_50px_rgba(0,0,0,0.95)] animate-in slide-in-from-bottom duration-200"
-          >
-            {/* Thanh nắm kéo (Grab Handle) */}
-            <div className="w-12 h-1.5 rounded-full bg-zinc-700/80 mx-auto my-2.5 shrink-0" />
-
-            {/* Tiêu đề Bottom Sheet */}
-            <div className="px-4 py-2 border-b flex items-center justify-between shrink-0">
-              <div className="flex items-center gap-2">
-                <SlidersHorizontal className="w-4 h-4 text-netflix-red shrink-0" />
-                <h3 className="text-base font-bold text-white">Bộ Lọc Phim</h3>
-                {draftActiveCount > 0 && (
-                  <span className="px-2 py-0.5 rounded-full bg-netflix-red/20 text-netflix-red border border-netflix-red/30 text-xs font-bold">
-                    {draftActiveCount} đang chọn
-                  </span>
-                )}
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsMobileDrawerOpen(false)}
-                className="w-8 h-8 rounded-full flex items-center justify-center bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white transition cursor-pointer"
-                aria-label="Đóng bảng bộ lọc"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            {/* Danh sách các nhóm bộ lọc có thể cuộn (min-h-0 bảo đảm footer không bị đẩy tràn màn hình) */}
-            <div className="flex-1 min-h-0 overflow-y-auto px-4 py-3 space-y-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden overscroll-contain">
-              {/* NHÓM 1: SẮP XẾP */}
-              <div className="space-y-2">
-                <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider flex items-center gap-1.5">
-                  <ArrowUpDown className="w-3.5 h-3.5 text-amber-400" />
-                  Sắp xếp theo
-                </span>
-                <div className="grid grid-cols-2 gap-2">
-                  {SORT_OPTIONS.map((opt) => {
-                    const isSelected = draftSort === opt.value;
-                    const Icon = opt.icon;
-                    return (
-                      <button
-                        key={opt.value}
-                        type="button"
-                        onClick={() => setDraftSort(opt.value)}
-                        className={`py-2 px-3 rounded-xl border text-xs font-semibold flex items-center gap-2 transition active:scale-95 cursor-pointer text-left ${
-                          isSelected
-                            ? "bg-netflix-red/20 border-netflix-red/60 text-white "
-                            : "bg-zinc-900/90  text-zinc-300 hover:bg-zinc-800"
-                        }`}
-                      >
-                        <Icon className={`w-3.5 h-3.5 shrink-0 ${opt.color}`} />
-                        <span className="truncate">{opt.label}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* NHÓM 2: LOẠI PHIM */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider flex items-center gap-1.5">
-                    <Film className="w-3.5 h-3.5 text-purple-400" />
-                    Loại phim
-                  </span>
-                  {draftType && (
-                    <button
-                      type="button"
-                      onClick={() => setDraftType("")}
-                      className="text-[11px] text-netflix-red hover:brightness-110 font-medium cursor-pointer"
-                    >
-                      Bỏ chọn
-                    </button>
-                  )}
-                </div>
-                <div className="flex flex-wrap gap-1.5">
-                  <button
-                    type="button"
-                    onClick={() => setDraftType("")}
-                    className={`py-1.5 px-3 rounded-xl border text-xs font-semibold transition active:scale-95 cursor-pointer ${
-                      !draftType
-                        ? "bg-netflix-red text-white font-bold border-netflix-red/50"
-                        : "bg-zinc-900/90  text-zinc-300"
-                    }`}
-                  >
-                    Tất cả
-                  </button>
-                  {MOVIE_TYPES.map((t) => {
-                    const isSelected = draftType === t.slug;
-                    return (
-                      <button
-                        key={t.slug}
-                        type="button"
-                        onClick={() => setDraftType(isSelected ? "" : t.slug)}
-                        className={`py-1.5 px-3 rounded-xl border text-xs font-semibold flex items-center gap-1.5 transition active:scale-95 cursor-pointer ${
-                          isSelected
-                            ? "bg-netflix-red text-white font-bold border-netflix-red/50 shadow-sm"
-                            : "bg-zinc-900/90  text-zinc-300"
-                        }`}
-                      >
-                        <span>{t.name}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* NHÓM 3: THỂ LOẠI */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider flex items-center gap-1.5">
-                    <Tag className="w-3.5 h-3.5 text-netflix-red" />
-                    Thể loại
-                  </span>
-                  {draftCategory && (
-                    <button
-                      type="button"
-                      onClick={() => setDraftCategory("")}
-                      className="text-[11px] text-netflix-red hover:brightness-110 font-medium cursor-pointer"
-                    >
-                      Bỏ chọn
-                    </button>
-                  )}
-                </div>
-                <div className="flex flex-wrap gap-1.5">
-                  <button
-                    type="button"
-                    onClick={() => setDraftCategory("")}
-                    className={`py-1.5 px-3 rounded-xl border text-xs font-semibold transition active:scale-95 cursor-pointer ${
-                      !draftCategory
-                        ? "bg-netflix-red text-white font-bold border-netflix-red/50"
-                        : "bg-zinc-900/90  text-zinc-300"
-                    }`}
-                  >
-                    Tất cả
-                  </button>
-                  {filters.genres.map((g) => {
-                    const isSelected = draftCategory === g.slug;
-                    return (
-                      <button
-                        key={g.slug}
-                        type="button"
-                        onClick={() => setDraftCategory(isSelected ? "" : g.slug)}
-                        className={`py-1.5 px-3 rounded-xl border text-xs font-semibold transition active:scale-95 cursor-pointer ${
-                          isSelected
-                            ? "bg-netflix-red text-white font-bold border-netflix-red/50 shadow-sm"
-                            : "bg-zinc-900/90  text-zinc-300"
-                        }`}
-                      >
-                        {g.name}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* NHÓM 4: QUỐC GIA */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider flex items-center gap-1.5">
-                    <Globe2 className="w-3.5 h-3.5 text-sky-400" />
-                    Quốc gia
-                  </span>
-                  {draftCountry && (
-                    <button
-                      type="button"
-                      onClick={() => setDraftCountry("")}
-                      className="text-[11px] text-netflix-red hover:brightness-110 font-medium cursor-pointer"
-                    >
-                      Bỏ chọn
-                    </button>
-                  )}
-                </div>
-                <div className="flex flex-wrap gap-1.5">
-                  <button
-                    type="button"
-                    onClick={() => setDraftCountry("")}
-                    className={`py-1.5 px-3 rounded-xl border text-xs font-semibold transition active:scale-95 cursor-pointer ${
-                      !draftCountry
-                        ? "bg-netflix-red text-white font-bold border-netflix-red/50"
-                        : "bg-zinc-900/90  text-zinc-300"
-                    }`}
-                  >
-                    Tất cả
-                  </button>
-                  {filters.countries.map((c) => {
-                    const isSelected = draftCountry === c.slug;
-                    return (
-                      <button
-                        key={c.slug}
-                        type="button"
-                        onClick={() => setDraftCountry(isSelected ? "" : c.slug)}
-                        className={`py-1.5 px-3 rounded-xl border text-xs font-semibold transition active:scale-95 cursor-pointer ${
-                          isSelected
-                            ? "bg-netflix-red text-white font-bold border-netflix-red/50 shadow-sm"
-                            : "bg-zinc-900/90  text-zinc-300"
-                        }`}
-                      >
-                        {c.name}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* NHÓM 5: NĂM PHÁT HÀNH */}
-              <div className="space-y-2.5">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider flex items-center gap-1.5">
-                    <Calendar className="w-3.5 h-3.5 text-emerald-400" />
-                    <span>Năm phát hành</span>
-                  </span>
-                  {draftYear && (
-                    <button
-                      type="button"
-                      onClick={() => setDraftYear("")}
-                      className="text-[11px] text-netflix-red hover:brightness-110 font-medium cursor-pointer"
-                    >
-                      Bỏ chọn
-                    </button>
-                  )}
-                </div>
-
-                {/* Nút Tất cả các năm to rõ, nằm riêng ở trên */}
-                <button
-                  type="button"
-                  onClick={() => setDraftYear("")}
-                  className={`w-full py-2.5 px-3 rounded-xl border text-xs font-bold transition active:scale-[0.98] cursor-pointer flex items-center justify-between ${
-                    !draftYear
-                      ? "bg-netflix-red text-white font-bold border-netflix-red/50 shadow-md shadow-black/50"
-                      : "bg-zinc-900/90  text-zinc-300 hover:bg-zinc-800"
-                  }`}
-                >
-                  <span>Tất cả các năm</span>
-                  {!draftYear && <Check className="w-3.5 h-3.5 text-white" />}
-                </button>
-
-                {/* Lưới 4 cột đối xứng tuyệt đối (đúng 6 hàng x 4 năm = 24 năm, thẳng tắp không lượn sóng) */}
-                <div className="grid grid-cols-4 gap-1.5">
-                  {filters.years.slice(0, 24).map((y) => {
-                    const isSelected = draftYear === y;
-                    return (
-                      <button
-                        key={y}
-                        type="button"
-                        onClick={() => setDraftYear(isSelected ? "" : y)}
-                        className={`py-2 px-1 text-center rounded-xl border text-xs sm:text-sm font-semibold transition active:scale-95 cursor-pointer ${
-                          isSelected
-                            ? "bg-netflix-red text-white font-bold border-netflix-red/50 shadow-md shadow-black/50"
-                            : "bg-zinc-900/90  text-zinc-300 hover:bg-zinc-800"
-                        }`}
-                      >
-                        {y}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-
-            {/* Chân Bottom Sheet dính cố định (Sticky Footer - Không bao giờ bị che khuất) */}
-            <div className="px-4 py-3 border-t bg-zinc-950/98 backdrop-blur-md flex items-center gap-3 shrink-0 pb-[max(0.75rem,calc(env(safe-area-inset-bottom,0px)+12px))] shadow-[0_-8px_20px_rgba(0,0,0,0.6)]">
-              <button
-                type="button"
-                onClick={handleResetMobileDraft}
-                className="h-12 px-4 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-300 font-bold text-xs active:scale-95 transition cursor-pointer"
-              >
-                Đặt lại
-              </button>
-              <button
-                type="button"
-                onClick={handleApplyMobileDrawer}
-                className="flex-1 h-12 rounded-xl bg-netflix-red hover:brightness-110 text-white font-bold text-sm shadow-md shadow-black/50 flex items-center justify-center gap-2 active:scale-95 transition cursor-pointer"
-              >
-                <span>Áp dụng bộ lọc</span>
-                {draftActiveCount > 0 && (
-                  <span className="px-2 py-0.5 rounded-full bg-black/25 text-white text-xs font-extrabold">
-                    ({draftActiveCount})
-                  </span>
-                )}
-              </button>
-            </div>
-          </div>
-        </div>,
-        document.body
-      )}
+      {/* 3. MOBILE FILTER DRAWER */}
+      <FilterMobileDrawer
+        isOpen={isMobileDrawerOpen && isMounted}
+        onClose={() => setIsMobileDrawerOpen(false)}
+        filters={filters}
+        draftType={draftType}
+        setDraftType={setDraftType}
+        draftCategory={draftCategory}
+        setDraftCategory={setDraftCategory}
+        draftCountry={draftCountry}
+        setDraftCountry={setDraftCountry}
+        draftYear={draftYear}
+        setDraftYear={setDraftYear}
+        draftSort={draftSort}
+        setDraftSort={setDraftSort}
+        onReset={handleResetMobileDraft}
+        onApply={handleApplyMobileDrawer}
+        draftActiveCount={draftActiveCount}
+      />
     </div>
   );
 };
