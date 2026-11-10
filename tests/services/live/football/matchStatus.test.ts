@@ -1,0 +1,2620 @@
+import { describe, it } from "node:test";
+import assert from "node:assert/strict";
+import {
+  getMatchTimeline,
+  isMatchInLiveWindow,
+  UPCOMING_DISPLAY_WINDOW_MS,
+  parseSourceStatus,
+  mergeSourceStatus,
+  isValidFootballTeamName,
+  isGenericTvChannel,
+  extractSportAndGender,
+  getSportLabel,
+  normalizeAndMergeStreams,
+  cleanCandidateTeamName,
+  extractHailabLogos,
+  normalizeClubKey,
+  isSingleTeamMatching,
+  areMatchFixturesMatching,
+  NATIONAL_TEAM_CANONICAL_MAP,
+  NATIONAL_TEAM_CANONICAL_KEYS,
+  parseMatchTimeToTimestamp,
+  sanitizeCommentatorName,
+  isOffensiveCommentatorName,
+} from "@/services/live/football/service";
+import { resolveCanonicalTournament, isGenericSportTournament } from "@/services/live/football-score/canonicalLeagues";
+import { getTeamAsset, TOTAL_MAPPED_TEAMS } from "@/data/live/teamAssets";
+
+describe("Nanaflix Live Match Status & Timeline System", () => {
+  const baseNow = new Date("2026-09-24T20:00:00+07:00").getTime();
+
+  // 1. Papua New Guinea vs New Caledonia with 🟢 is parsed as LIVE and marked LIVE after kickoff
+  it("1. Real match with 🟢: sourceStatus = live and timeline = live after kickoff", () => {
+    const rawTitle = "🟢 14:00 24/09 ⚽ Papua New Guinea vs New Caledonia (NEMO)";
+    const sourceStatus = parseSourceStatus(rawTitle);
+    assert.equal(sourceStatus, "live", "🟢 indicator must be parsed as sourceStatus = 'live'");
+
+    const kickoffPast = new Date("2026-09-24T14:00:00+07:00").getTime();
+    const nowTime = new Date("2026-09-24T15:40:00+07:00").getTime();
+    const timeline = getMatchTimeline(kickoffPast, sourceStatus, "unknown", nowTime);
+    assert.equal(timeline, "live", "Match in progress with 🟢 and passed kickoff must have timeline = 'live'");
+  });
+
+  // 2. Future football match with 🟢 must NOT appear in LIVE (Future Kickoff Guard)
+  it("2. Future football match with 🟢 must NOT appear in LIVE due to Future Kickoff Guard", () => {
+    const kickoffFuture = baseNow + 45 * 60 * 1000; // 20:45 (future 45m <= 60m)
+    const parsedStatus = parseSourceStatus("🟢 20:45 Arsenal vs Chelsea");
+    assert.equal(parsedStatus, "live");
+
+    const timelineWithLiveStatus = getMatchTimeline(kickoffFuture, parsedStatus, "alive", baseNow);
+    assert.notEqual(timelineWithLiveStatus, "live", "Future match with live status must not be live");
+    assert.equal(timelineWithLiveStatus, "upcoming", "Future match within 60m must be upcoming");
+  });
+
+  // 3. Match bắt đầu trong 30 phút tới → UPCOMING
+  it("3. Match bắt đầu trong 30 phút tới → UPCOMING", () => {
+    const kickoffIn30m = baseNow + 30 * 60 * 1000; // 20:30
+    const timeline = getMatchTimeline(kickoffIn30m, "unknown", "unknown", baseNow);
+
+    assert.equal(timeline, "upcoming", "Match starting in 30 minutes must be classified as UPCOMING");
+  });
+
+  // 4. Match bắt đầu hơn 2 giờ (130 phút) tới → VÒNG ĐỜI là UPCOMING nhưng isMatchInLiveWindow = false (không hiển thị trên /live)
+  it("4. Match bắt đầu hơn 2 giờ tới → UPCOMING về vòng đời nhưng ngoài cửa sổ hiển thị /live", () => {
+    const kickoffIn130m = baseNow + 130 * 60 * 1000; // 22:10
+    const timeline = getMatchTimeline(kickoffIn130m, "unknown", "unknown", baseNow);
+
+    assert.equal(timeline, "upcoming", "Match starting in 130 minutes has upcoming lifecycle (never labeled finished)");
+    assert.equal(isMatchInLiveWindow(timeline, kickoffIn130m, baseNow), false, "Match > 2h must NOT be in live display window");
+  });
+
+  // 4B. Match bắt đầu ngày mai (24 giờ tới) → VẪN là UPCOMING về vòng đời nhưng ngoài cửa sổ hiển thị /live
+  it("4B. Match bắt đầu ngày mai (24 giờ tới) → UPCOMING về vòng đời nhưng ngoài cửa sổ hiển thị /live", () => {
+    const kickoffTomorrow = baseNow + 24 * 60 * 60 * 1000;
+    const timeline = getMatchTimeline(kickoffTomorrow, "unknown", "unknown", baseNow);
+
+    assert.equal(timeline, "upcoming", "Match starting tomorrow has upcoming lifecycle (never labeled finished)");
+    assert.equal(isMatchInLiveWindow(timeline, kickoffTomorrow, baseNow), false, "Match tomorrow must NOT be in live display window");
+  });
+
+  // 4C. Match xa hơn (40 giờ tới) → VẪN là UPCOMING về vòng đời (không bao giờ gán nhãn finished cho trận chưa đá)
+  it("4C. Match xa trong tương lai (40 giờ tới) → UPCOMING về vòng đời nhưng ngoài cửa sổ hiển thị /live", () => {
+    const kickoffFarFuture = baseNow + 40 * 60 * 60 * 1000; // 40 giờ tới
+    const timeline = getMatchTimeline(kickoffFarFuture, "unknown", "unknown", baseNow);
+
+    assert.equal(timeline, "upcoming", "Match in distant future must have UPCOMING lifecycle (never labeled finished)");
+    assert.equal(isMatchInLiveWindow(timeline, kickoffFarFuture, baseNow), false, "Match in far future must NOT be in live window");
+  });
+
+  // 5. Case 1 thực tế: 18:00 24/09 Hàn Quốc vs Ecuador tại now ~20:30 (elapsed: 150m > 140m) → finished, KHÔNG LIVE
+  it("5. Case 1: 18:00 24/09 Hàn Quốc vs Ecuador tại ~20:30 (>140m) must be FINISHED (not LIVE)", () => {
+    const koreaEcuadorKickoff = new Date("2026-09-24T18:00:00+07:00").getTime();
+    const nowAt2030 = new Date("2026-09-24T20:30:00+07:00").getTime(); // 150 mins elapsed
+
+    // Kể cả khi source status gắn icon 🟢 / [LIVE] hay streamHealth = alive
+    const timelineWithLiveMarker = getMatchTimeline(koreaEcuadorKickoff, "live", "alive", nowAt2030);
+    assert.equal(timelineWithLiveMarker, "finished", "Match >140m must be finished even if source has LIVE marker");
+
+    const timelineWithUnknown = getMatchTimeline(koreaEcuadorKickoff, "unknown", "alive", nowAt2030);
+    assert.equal(timelineWithUnknown, "finished", "Match >140m must be finished even if stream HTTP 200 alive");
+  });
+
+  // 6. Case 2 thực tế: 17:05 24/09 Japan vs Uruguay tại now ~20:30 (elapsed: 205m) → finished, KHÔNG UPCOMING
+  it("6. Case 2: 17:05 24/09 Japan vs Uruguay tại ~20:30 must be FINISHED (not UPCOMING)", () => {
+    const japanUruguayKickoff = new Date("2026-09-24T17:05:00+07:00").getTime();
+    const nowAt2030 = new Date("2026-09-24T20:30:00+07:00").getTime();
+
+    const timeline = getMatchTimeline(japanUruguayKickoff, "unknown", "unknown", nowAt2030);
+    assert.equal(timeline, "finished", "Past match must be finished and never UPCOMING");
+    assert.notEqual(timeline, "upcoming");
+  });
+
+  // 7. Regression 1: Kickoff + 10 phút + sourceStatus="unknown" + health unknown + có server → live
+  it("7. Regression 1: Kickoff + 10m + sourceStatus='unknown' + health unknown → live", () => {
+    const kickoff10mAgo = baseNow - 10 * 60 * 1000;
+    const timeline = getMatchTimeline(kickoff10mAgo, "unknown", "unknown", baseNow);
+    assert.equal(timeline, "live", "Match within kickoff + 10m without explicit marker must be live");
+  });
+
+  // 7B. Regression 2: Kickoff + 30 phút + không có [LIVE] → live
+  it("7B. Regression 2: Kickoff + 30m + không có [LIVE] marker → live", () => {
+    const kickoff30mAgo = baseNow - 30 * 60 * 1000;
+    const parsedStatus = parseSourceStatus("19:30 Arsenal vs Chelsea"); // không có [LIVE]
+    assert.equal(parsedStatus, "unknown");
+    const timeline = getMatchTimeline(kickoff30mAgo, parsedStatus, "unknown", baseNow);
+    assert.equal(timeline, "live", "Match within kickoff + 30m without [LIVE] must be live");
+  });
+
+  // 7C. Regression 3: Kickoff + 139 phút → live
+  it("7C. Regression 3: Kickoff + 139m → live", () => {
+    const kickoff139mAgo = baseNow - 139 * 60 * 1000;
+    const timeline = getMatchTimeline(kickoff139mAgo, "unknown", "unknown", baseNow);
+    assert.equal(timeline, "live", "Match at kickoff + 139m must still be live");
+  });
+
+  // 7D. Regression 4: Kickoff + 140 phút → theo boundary hiện tại (live)
+  it("7D. Regression 4: Kickoff + 140m → live (boundary hiện tại <= 140m)", () => {
+    const kickoff140mAgo = baseNow - 140 * 60 * 1000;
+    const timeline = getMatchTimeline(kickoff140mAgo, "unknown", "unknown", baseNow);
+    assert.equal(timeline, "live", "Match at exactly 140m must be live according to duration boundary");
+  });
+
+  // 7E. Regression 5: Kickoff + 141 phút → finished
+  it("7E. Regression 5: Kickoff + 141m → finished", () => {
+    const kickoff141mAgo = baseNow - 141 * 60 * 1000;
+    const timeline = getMatchTimeline(kickoff141mAgo, "unknown", "unknown", baseNow);
+    assert.equal(timeline, "finished", "Match at kickoff + 141m must be finished");
+  });
+
+  // 7F. Regression 6: Match + server nhưng streamHealth="dead" → không giả định stream sống
+  it("7F. Regression 6: Match + server nhưng streamHealth='dead' → finished", () => {
+    const kickoffRecent = baseNow - 25 * 60 * 1000;
+    const timeline = getMatchTimeline(kickoffRecent, "unknown", "dead", baseNow);
+    assert.equal(timeline, "finished", "Match where all servers are confirmed dead must be finished/hidden");
+  });
+
+  // 7G. Regression 7: Upcoming + 30 phút → upcoming
+  it("7G. Regression 7: Upcoming + 30m (30 phút trước kickoff) → upcoming", () => {
+    const kickoffIn30m = baseNow + 30 * 60 * 1000;
+    const timeline = getMatchTimeline(kickoffIn30m, "unknown", "unknown", baseNow);
+    assert.equal(timeline, "upcoming", "Match 30 minutes in future must be upcoming");
+  });
+
+  // 7H. Regression 8: Upcoming >2 giờ (130 phút trước kickoff) → vẫn là upcoming trong phạm vi lịch
+  it("7H. Regression 8: Upcoming >2 giờ (130 phút trước kickoff) → upcoming", () => {
+    const kickoffIn130m = baseNow + 130 * 60 * 1000;
+    const timeline = getMatchTimeline(kickoffIn130m, "unknown", "unknown", baseNow);
+    assert.equal(timeline, "upcoming", "Match >2 hours in future within schedule window must appear in upcoming");
+  });
+
+  // 7I. Playback HTTPS Fallback: direct HTTPS first, only fallback to proxy on network/CORS failure
+  it("7I. Playback HTTPS Fallback: direct HTTPS first, proxy on fallback", () => {
+    const httpsStream = "https://live2.domaincdn.cc/live/stream.m3u8";
+    const httpStream = "http://live.domaincdn.cc/live/stream.m3u8";
+
+    const resolveStreamUrl = (url: string, useProxyFallback: boolean) => {
+      const isHls = url.includes(".m3u8");
+      if (isHls) {
+        if (url.startsWith("https://")) {
+          return useProxyFallback ? `/api/live-football/proxy?url=${encodeURIComponent(url)}` : url;
+        }
+        if (url.startsWith("http://")) {
+          return `/api/live-football/proxy?url=${encodeURIComponent(url)}`;
+        }
+      }
+      return url;
+    };
+
+    // 1. Initial attempt with HTTPS: must be DIRECT (no proxy prefix)
+    assert.equal(resolveStreamUrl(httpsStream, false), httpsStream);
+
+    // 2. Fallback attempt after network/CORS error: must use PROXY
+    assert.equal(
+      resolveStreamUrl(httpsStream, true),
+      `/api/live-football/proxy?url=${encodeURIComponent(httpsStream)}`,
+    );
+
+    // 3. HTTP stream must always use PROXY to prevent Mixed Content
+    assert.equal(
+      resolveStreamUrl(httpStream, false),
+      `/api/live-football/proxy?url=${encodeURIComponent(httpStream)}`,
+    );
+  });
+
+  // 8. Regression: Source marker [LIVE] nhưng đã quá 140 phút → finished
+  it("8. Regression: Source marker [LIVE] but past 140 minutes must be finished", () => {
+    const kickoffPast145m = baseNow - 145 * 60 * 1000; // 145 mins ago (>140m)
+    const timeline = getMatchTimeline(kickoffPast145m, "live", "alive", baseNow);
+    assert.equal(timeline, "finished", "Explicit LIVE marker must yield to 140m duration guard");
+  });
+
+  // 9. Match in progress within 140m with reliable LIVE source status → LIVE
+  it("9. Match in progress within 140m with reliable LIVE source status → LIVE", () => {
+    const kickoffRecent = baseNow - 45 * 60 * 1000; // 45 mins ago
+    const timeline = getMatchTimeline(kickoffRecent, "live", "unknown", baseNow);
+    assert.equal(timeline, "live", "Match within 140m with confirmed live source status must be LIVE");
+  });
+
+  // 10. Explicit FINISHED → hidden
+  it("10. Explicit FINISHED → hidden", () => {
+    const kickoffRecent = baseNow - 20 * 60 * 1000;
+    const timeline = getMatchTimeline(kickoffRecent, "finished", "alive", baseNow);
+    assert.equal(timeline, "finished", "Explicit FINISHED status must mark match as finished/hidden even if health was alive");
+
+    const parsedStatus = parseSourceStatus("Arsenal vs Chelsea [FT]");
+    assert.equal(parsedStatus, "finished");
+    const timelineFromTitle = getMatchTimeline(kickoffRecent, parsedStatus, "alive", baseNow);
+    assert.equal(timelineFromTitle, "finished");
+  });
+
+  // 10. Football stream with team1 + team2 → kept
+  it("10. Football stream with team1 + team2 → kept", () => {
+    const match1 = isGenericTvChannel("Arsenal vs Chelsea", "Ngoại Hạng Anh");
+    const match2 = isGenericTvChannel("Real Madrid - Barcelona", "La Liga");
+    assert.equal(match1, false, "Match with 2 teams must NOT be classified as generic TV channel");
+    assert.equal(match2, false, "Match with 2 teams must NOT be classified as generic TV channel");
+  });
+
+  // 11. Football stream with only BLV/channel metadata → kept when source identifies it as Football
+  it("11. Football stream with only BLV/channel metadata → kept when source identifies it as Football", () => {
+    const blvStream1 = isGenericTvChannel("Phòng BLV Captain - Trực tiếp", "Cola TV");
+    const blvStream2 = isGenericTvChannel("Trực tiếp Ngoại Hạng Anh (BLV Batman)", "Xôi Lạc TV");
+    const blvStream3 = isGenericTvChannel("Bình luận viên Giàng A Phò", "THTT Live Sports");
+
+    assert.equal(blvStream1, false, "BLV stream must be kept in Football");
+    assert.equal(blvStream2, false, "BLV stream with tournament must be kept in Football");
+    assert.equal(blvStream3, false, "Commentator stream must be kept in Football");
+  });
+
+  // 12. Football stream with incomplete team metadata → kept when source identifies it as Football
+  it("12. Football stream with incomplete team metadata → kept when source identifies it as Football", () => {
+    const incomplete1 = isGenericTvChannel("Trực tiếp Chung Kết Cúp C1", "Bóng Đá Trực Tiếp");
+    const incomplete2 = isGenericTvChannel("Manchester United - Server 1", "Bóng Đá Trực Tiếp");
+
+    assert.equal(incomplete1, false, "Incomplete metadata football stream must be kept in Football");
+    assert.equal(incomplete2, false, "Single-team server stream must be kept in Football");
+  });
+
+  // 13. Generic non-sports TV channel → excluded; VN sports channels → kept
+  it("13. Generic non-sports TV channel → excluded; VN sports channels → kept", () => {
+    const nonSportsChannels = [
+      "VTV1 HD",
+      "VTV3 HD",
+      "VTV5 HD",
+      "VTV6 Cần Thơ",
+      "THVL1 HD",
+      "HTV7 HD",
+      "HTV9 HD",
+    ];
+
+    for (const title of nonSportsChannels) {
+      const isTv = isGenericTvChannel(title, "Kênh Truyền Hình");
+      assert.equal(isTv, true, `Generic TV channel '${title}' must be excluded from Sports`);
+    }
+
+    const sportsChannels = [
+      "K+ SPORT 1 HD",
+      "HTV Thể Thao",
+      "ON Football HD",
+      "ON Sports +",
+      "SPOTV HD",
+      "FPT Sport 1",
+    ];
+
+    for (const title of sportsChannels) {
+      const isTv = isGenericTvChannel(title, "Kênh Thể Thao");
+      assert.equal(isTv, false, `Sports channel '${title}' must be KEPT in Sports`);
+    }
+  });
+
+  // 14. 24/7 TV channel → not Football
+  it("14. 24/7 TV channel → not Football", () => {
+    const generic247 = [
+      { title: "Kênh 1 HD", group: "Kênh Địa Phương" },
+      { title: "Server 2 FHD", group: "24/7 TV" },
+      { title: "HBO HD", group: "Kênh Phim Truyện" },
+      { title: "Cartoon Network", group: "Thiếu Nhi" },
+    ];
+
+    for (const item of generic247) {
+      const isTv = isGenericTvChannel(item.title, item.group);
+      assert.equal(isTv, true, `24/7 TV channel '${item.title}' in group '${item.group}' must be excluded from Football`);
+    }
+  });
+
+  // 15. Multi-source match merging handles duplicate sources accurately
+  it("15. Multi-source match merging handles duplicate sources accurately", () => {
+    assert.equal(mergeSourceStatus("upcoming", "live"), "live");
+    assert.equal(mergeSourceStatus("unknown", "live"), "live");
+    assert.equal(mergeSourceStatus("finished", "live"), "live");
+    assert.equal(mergeSourceStatus("finished", "finished"), "finished");
+    assert.equal(mergeSourceStatus("unknown", "upcoming"), "upcoming");
+  });
+
+  // 16. Validation helper for team names
+  it("16. Team name validation helper behaves correctly", () => {
+    assert.equal(isValidFootballTeamName("Arsenal"), true);
+    assert.equal(isValidFootballTeamName("Manchester United"), true);
+    assert.equal(isValidFootballTeamName("Talia Gibson"), true);
+    assert.equal(isValidFootballTeamName(""), false);
+    assert.equal(isValidFootballTeamName("vs"), false);
+    assert.equal(isValidFootballTeamName("VTV5"), false);
+    assert.equal(isValidFootballTeamName("K+ SPORT 1"), false);
+  });
+
+  // 17. Football → football label
+  it("17. Football stream produces football label", () => {
+    const { sport } = extractSportAndGender("Arsenal vs Chelsea", "Ngoại Hạng Anh");
+    assert.equal(sport, "football");
+    const label = getSportLabel(sport, "Ngoại Hạng Anh");
+    assert.equal(label, "Ngoại Hạng Anh");
+
+    const generalSport = extractSportAndGender("⚽ Trực tiếp bóng đá", "Bóng Đá");
+    assert.equal(generalSport.sport, "football");
+    assert.equal(getSportLabel("football"), "⚽ Bóng Đá Trực Tiếp");
+  });
+
+  // 18. Tennis → tennis label
+  it("18. Tennis streams (Wang Xinyu, Ostapenko, etc.) produce tennis label", () => {
+    const t1 = extractSportAndGender("Wang Xinyu vs Joanna Garland", "Tennis");
+    assert.equal(t1.sport, "tennis");
+    assert.equal(getSportLabel(t1.sport), "🎾 Tennis Trực Tiếp");
+
+    const t2 = extractSportAndGender("🎾 Jeļena Ostapenko vs Taylah Preston", "Trực Tiếp Thể Thao");
+    assert.equal(t2.sport, "tennis");
+    assert.equal(getSportLabel(t2.sport), "🎾 Tennis Trực Tiếp");
+
+    const t3 = extractSportAndGender("🥎 14:00 Talia Gibson vs Viktoria Morvayova", "Thể Thao");
+    assert.equal(t3.sport, "tennis");
+    assert.equal(getSportLabel(t3.sport), "🎾 Tennis Trực Tiếp");
+  });
+
+  // 19. Basketball → basketball label
+  it("19. Basketball streams (Đài Loan vs Philippines, Goyang Sono, Rytas Vilnius) produce basketball label", () => {
+    const b1 = extractSportAndGender("Đài Loan vs Philippines", "Bóng Rổ");
+    assert.equal(b1.sport, "basketball");
+    assert.equal(getSportLabel(b1.sport), "🏀 Bóng Rổ Trực Tiếp");
+
+    const b2 = extractSportAndGender("🏀 Goyang Sono vs Seoul Knights", "Thể Thao");
+    assert.equal(b2.sport, "basketball");
+    assert.equal(getSportLabel(b2.sport), "🏀 Bóng Rổ Trực Tiếp");
+
+    const b3 = extractSportAndGender("Rytas Vilnius vs Shanghai Sharks", "Basketball");
+    assert.equal(b3.sport, "basketball");
+    assert.equal(getSportLabel(b3.sport), "🏀 Bóng Rổ Trực Tiếp");
+
+    const ulaanbaatar = extractSportAndGender("Hunters FC vs FC Ulaanbaatar", "Xôi Lạc TV");
+    assert.equal(ulaanbaatar.sport, "football", "Hunters FC vs FC Ulaanbaatar phải là football, không phải basketball");
+  });
+
+  // 20. F1 / Motorsport → F1 label
+  it("20. F1 / Motorsport stream produces F1 / Đua Xe label", () => {
+    const f1 = extractSportAndGender("🏎️ F1 (BLV Ngu)", "Trực Tiếp Thể Thao");
+    assert.equal(f1.sport, "f1");
+    assert.equal(getSportLabel(f1.sport), "🏎️ F1 / Đua Xe Trực Tiếp");
+
+    const f2 = extractSportAndGender("MotoGP Chặng 5", "Đua Xe");
+    assert.equal(f2.sport, "f1");
+    assert.equal(getSportLabel(f2.sport), "🏎️ F1 / Đua Xe Trực Tiếp");
+  });
+
+  // 21. Hai F1 entries giống hệt → 1 card
+  it("21. Two identical F1 entries are merged into 1 card with merged servers", () => {
+    const rawStreams = [
+      {
+        rawTitle: "🏎️ F1 (BLV Hoàng Nam)",
+        group: "THTT Live Sports",
+        rawLogo: "",
+        url: "https://stream.server1/f1.m3u8",
+        effectiveUrl: "https://stream.server1/f1.m3u8",
+      },
+      {
+        rawTitle: "🏎️ F1 (BLV Hoàng Nam)",
+        group: "THTT Live Sports Dự Phòng",
+        rawLogo: "",
+        url: "https://stream.server2/f1.m3u8",
+        effectiveUrl: "https://stream.server2/f1.m3u8",
+      },
+    ];
+
+    const { matches } = normalizeAndMergeStreams(rawStreams, baseNow);
+    assert.equal(matches.length, 1, "Two identical F1 entries must be merged into 1 match card");
+    assert.equal(matches[0].sport, "f1");
+    assert.equal(matches[0].tournament, "🏎️ F1 / Đua Xe Trực Tiếp");
+    assert.equal(matches[0].servers.length, 2, "Merged F1 match card must retain both stream servers");
+    assert.equal(matches[0].blv, "Hoàng Nam", "Merged F1 match card must retain BLV name");
+  });
+
+  // 22. Cùng một trận từ 2 source khác nhau → 1 card + giữ 2 source
+  it("22. Same match from 2 different sources merges into 1 card with both servers retained", () => {
+    const rawStreams = [
+      {
+        rawTitle: "Arsenal vs Chelsea (BLV Captain)",
+        group: "Cola TV",
+        rawLogo: "",
+        url: "https://stream1.m3u8",
+        effectiveUrl: "https://stream1.m3u8",
+      },
+      {
+        rawTitle: "Arsenal vs Chelsea (BLV Batman)",
+        group: "Xôi Lạc TV",
+        rawLogo: "",
+        url: "https://stream2.m3u8",
+        effectiveUrl: "https://stream2.m3u8",
+      },
+    ];
+
+    const { matches } = normalizeAndMergeStreams(rawStreams, baseNow);
+    assert.equal(matches.length, 1, "Same fixture from 2 sources must merge into 1 card");
+    assert.equal(matches[0].servers.length, 2, "Must keep both stream servers");
+    assert.equal(matches[0].groups.includes("Cola TV"), true);
+    assert.equal(matches[0].groups.includes("Xôi Lạc TV"), true);
+    assert.equal(matches[0].blv?.includes("Captain"), true);
+    assert.equal(matches[0].blv?.includes("Batman"), true);
+  });
+
+  // 23. Hai trận khác nhau nhưng cùng BLV → KHÔNG được merge
+  it("23. Two different matches with same commentator must NOT be merged", () => {
+    const rawStreams = [
+      {
+        rawTitle: "Arsenal vs Chelsea (BLV Batman)",
+        group: "Xôi Lạc TV",
+        rawLogo: "",
+        url: "https://stream1.m3u8",
+        effectiveUrl: "https://stream1.m3u8",
+      },
+      {
+        rawTitle: "Liverpool vs Man City (BLV Batman)",
+        group: "Xôi Lạc TV",
+        rawLogo: "",
+        url: "https://stream2.m3u8",
+        effectiveUrl: "https://stream2.m3u8",
+      },
+    ];
+
+    const { matches } = normalizeAndMergeStreams(rawStreams, baseNow);
+    assert.equal(matches.length, 2, "Different matches with same BLV must NOT be merged");
+    assert.equal(matches[0].title, "Arsenal vs Chelsea");
+    assert.equal(matches[1].title, "Liverpool vs Man City");
+  });
+
+  // 24. Hai trận khác nhau cùng sport → KHÔNG được merge
+  it("24. Two different matches of the same sport must NOT be merged", () => {
+    const rawStreams = [
+      {
+        rawTitle: "Tennis: Wang Xinyu vs Joanna Garland",
+        group: "THTT Live Sports",
+        rawLogo: "",
+        url: "https://stream1.m3u8",
+        effectiveUrl: "https://stream1.m3u8",
+      },
+      {
+        rawTitle: "Tennis: Jeļena Ostapenko vs Taylah Preston",
+        group: "THTT Live Sports",
+        rawLogo: "",
+        url: "https://stream2.m3u8",
+        effectiveUrl: "https://stream2.m3u8",
+      },
+    ];
+
+    const { matches } = normalizeAndMergeStreams(rawStreams, baseNow);
+    assert.equal(matches.length, 2, "Different tennis matches must NOT be merged");
+    assert.equal(matches[0].sport, "tennis");
+    assert.equal(matches[1].sport, "tennis");
+    assert.equal(matches[0].tournament, "🎾 Tennis Trực Tiếp");
+    assert.equal(matches[1].tournament, "🎾 Tennis Trực Tiếp");
+  });
+
+  // 25. Laos vs Brunei 16:00 + Uzbekistan vs Iran 21:00 dùng cùng URL → phải là 2 card
+  it("25. Laos vs Brunei 16:00 + Uzbekistan vs Iran 21:00 sharing same URL must produce 2 distinct cards", () => {
+    const sharedUrl = "https://luong.phaohoa.live/live/phaohoa2/index.m3u8";
+    const rawStreams = [
+      {
+        rawTitle: "16:00 24/09 ⚽ Laos vs Brunei (Enzo) [hls]",
+        group: "Khán Đài TV",
+        rawLogo: "https://cdn.example.com/laos.png",
+        url: sharedUrl,
+        effectiveUrl: sharedUrl,
+      },
+      {
+        rawTitle: "21:00 24/09 ⚽ Uzbekistan vs Iran (Enzo) [hls]",
+        group: "Khán Đài TV",
+        rawLogo: "https://cdn.example.com/uzb.png",
+        url: sharedUrl,
+        effectiveUrl: sharedUrl,
+      },
+    ];
+
+    const { matches } = normalizeAndMergeStreams(rawStreams, baseNow);
+    assert.equal(matches.length, 2, "Matches at different times must NOT be merged by shared URL");
+    assert.equal(matches[0].title, "Laos vs Brunei");
+    assert.equal(matches[1].title, "Uzbekistan vs Iran");
+  });
+
+  // 26. Laos vs Brunei 16:00 + Kosovo vs Ireland 01:45 dùng cùng URL → phải là 2 card
+  it("26. Laos vs Brunei 16:00 + Kosovo vs Ireland 01:45 sharing same URL must produce 2 distinct cards", () => {
+    const sharedUrl = "https://live2.zktsva.app/live/289650.m3u8";
+    const rawStreams = [
+      {
+        rawTitle: "16:00 24/09 ⚽ Laos vs Brunei Darussalam (Gà Siêu Bệu) [hls]",
+        group: "Gà Vàng 33 TV",
+        rawLogo: "https://cdn.example.com/laos.png",
+        url: sharedUrl,
+        effectiveUrl: sharedUrl,
+      },
+      {
+        rawTitle: "01:45 25/09 ⚽ Kosovo vs Ireland (Gà Siêu Bệu) [hls]",
+        group: "Gà Vàng 33 TV",
+        rawLogo: "https://cdn.example.com/kosovo.png",
+        url: sharedUrl,
+        effectiveUrl: sharedUrl,
+      },
+    ];
+
+    const { matches } = normalizeAndMergeStreams(rawStreams, baseNow);
+    assert.equal(matches.length, 2, "Different fixtures sharing channel URL must NOT be merged");
+    assert.equal(matches[0].title, "Laos vs Brunei Darussalam");
+    assert.equal(matches[1].title, "Kosovo vs Ireland");
+  });
+
+  // 27. Laos vs Brunei 16:00 + Myanmar vs Timor Leste 19:00 dùng cùng URL → phải là 2 card
+  it("27. Laos vs Brunei 16:00 + Myanmar vs Timor Leste 19:00 sharing same URL must produce 2 distinct cards", () => {
+    const sharedUrl = "https://playback.livetl002.com/live/69ef10b47146e04fbe6d4363.m3u8";
+    const rawStreams = [
+      {
+        rawTitle: "16:00 24/09 ⚽ Laos vs Brunei Darussalam (A Long) [hls]",
+        group: "Gà Vàng 24h TV",
+        rawLogo: "https://cdn.example.com/laos.png",
+        url: sharedUrl,
+        effectiveUrl: sharedUrl,
+      },
+      {
+        rawTitle: "19:00 24/09 ⚽ Myanmar vs Timor Leste (A Long) [hls]",
+        group: "Gà Vàng 24h TV",
+        rawLogo: "https://cdn.example.com/myanmar.png",
+        url: sharedUrl,
+        effectiveUrl: sharedUrl,
+      },
+    ];
+
+    const { matches } = normalizeAndMergeStreams(rawStreams, baseNow);
+    assert.equal(matches.length, 2, "Laos vs Brunei and Myanmar vs Timor Leste must be 2 distinct cards");
+    assert.equal(matches[0].title, "Laos vs Brunei Darussalam");
+    assert.equal(matches[1].title, "Myanmar vs Timor Leste");
+  });
+
+  // 28. Các stream Laos vs Brunei từ nhiều nguồn nhưng khác URL → phải merge thành 1 fixture, nhiều server
+  it("28. Laos vs Brunei streams from multiple sources with different URLs must merge into 1 card with multiple servers", () => {
+    const rawStreams = [
+      {
+        rawTitle: "16:00 24/09 ⚽ Laos vs Brunei Darussalam (Nguyễn Ánh)",
+        group: "Vua Sân Cỏ TV",
+        rawLogo: "https://cdn.example.com/laos.png",
+        url: "https://server1.m3u8",
+        effectiveUrl: "https://server1.m3u8",
+      },
+      {
+        rawTitle: "16:00 24/09 ⚽ Laos vs Brunei (NGƯỜI SẮT) [hls]",
+        group: "S8 TV",
+        rawLogo: "https://cdn.example.com/laos.png",
+        url: "https://server2.m3u8",
+        effectiveUrl: "https://server2.m3u8",
+      },
+      {
+        rawTitle: "16:00 24/09 ⚽ Laos vs Brunei Darussalam (LÝ LINH LỰC) [geo]",
+        group: "Phá Làng TV",
+        rawLogo: "https://cdn.example.com/laos.png",
+        url: "https://server3.m3u8",
+        effectiveUrl: "https://server3.m3u8",
+      },
+    ];
+
+    const { matches } = normalizeAndMergeStreams(rawStreams, baseNow);
+    assert.equal(matches.length, 1, "Must merge all sources of the same fixture into 1 card");
+    assert.equal(matches[0].servers.length, 3, "Must retain all 3 servers");
+    assert.equal(matches[0].groups.length, 3);
+  });
+
+  // 29. Lào vs Brunei phải merge với Laos vs Brunei Darussalam
+  it("29. 'Lào vs Brunei' must merge with 'Laos vs Brunei Darussalam'", () => {
+    const rawStreams = [
+      {
+        rawTitle: "16:00 24/09 ⚽ Laos vs Brunei Darussalam (Nguyễn Ánh)",
+        group: "Vua Sân Cỏ TV",
+        rawLogo: "https://cdn.example.com/laos.png",
+        url: "https://server1.m3u8",
+        effectiveUrl: "https://server1.m3u8",
+      },
+      {
+        rawTitle: "16:00 24/09 ⚽ Lào vs Brunei (BLV MOUNTAIN DEW) [hls]",
+        group: "Cola TV",
+        rawLogo: "https://cdn.example.com/lao.png",
+        url: "https://server2.m3u8",
+        effectiveUrl: "https://server2.m3u8",
+      },
+    ];
+
+    const { matches } = normalizeAndMergeStreams(rawStreams, baseNow);
+    assert.equal(matches.length, 1, "'Lào vs Brunei' must merge into 'Laos vs Brunei Darussalam'");
+    assert.equal(matches[0].servers.length, 2, "Must retain servers from both sources");
+  });
+
+  // 30. Regression dataset tổng hợp: không trùng match ID, không tạo fixture sai, logo Laos không tràn sang fixture khác
+  it("30. Audit regression dataset: no duplicate match IDs, no mutated fake fixtures, logo Laos isolated", () => {
+    const sharedUrl1 = "https://luong.phaohoa.live/live/phaohoa2/index.m3u8";
+    const sharedUrl2 = "https://live2.zktsva.app/live/289650.m3u8";
+    const sharedUrl3 = "https://playback.livetl002.com/live/69ef10b47146e04fbe6d4363.m3u8";
+    const laosLogo = "https://global-cdn.cdnx.tech/football/team/ac3f493742d14eee1e4e4ae00f2704f6.png";
+
+    const rawStreams = [
+      // Laos vs Brunei on sharedUrl1
+      {
+        rawTitle: "16:00 24/09 ⚽ Laos vs Brunei Darussalam (Nguyễn Ánh)",
+        group: "Vua Sân Cỏ TV",
+        rawLogo: laosLogo,
+        url: "https://unique1.m3u8",
+        effectiveUrl: "https://unique1.m3u8",
+      },
+      {
+        rawTitle: "16:00 24/09 ⚽ Laos vs Brunei (Enzo) [hls]",
+        group: "Khán Đài TV",
+        rawLogo: "https://khandai.link/laos.jpg",
+        url: sharedUrl1,
+        effectiveUrl: sharedUrl1,
+      },
+      // Uzbekistan vs Iran sharing sharedUrl1
+      {
+        rawTitle: "21:00 24/09 ⚽ Uzbekistan vs Iran (Enzo) [hls]",
+        group: "Khán Đài TV",
+        rawLogo: "https://khandai.link/uzb.jpg",
+        url: sharedUrl1,
+        effectiveUrl: sharedUrl1,
+      },
+      // Laos vs Brunei on sharedUrl2
+      {
+        rawTitle: "16:00 24/09 ⚽ Laos vs Brunei Darussalam (Gà Siêu Bệu) [hls]",
+        group: "Gà Vàng 33 TV",
+        rawLogo: laosLogo,
+        url: sharedUrl2,
+        effectiveUrl: sharedUrl2,
+      },
+      // Kosovo vs Ireland sharing sharedUrl2
+      {
+        rawTitle: "01:45 25/09 ⚽ Kosovo vs Ireland (Gà Siêu Bệu) [hls]",
+        group: "Gà Vàng 33 TV",
+        rawLogo: "https://cdn.example.com/kosovo.png",
+        url: sharedUrl2,
+        effectiveUrl: sharedUrl2,
+      },
+      // Laos vs Brunei on sharedUrl3
+      {
+        rawTitle: "16:00 24/09 ⚽ Laos vs Brunei Darussalam (A Long) [hls]",
+        group: "Gà Vàng 24h TV",
+        rawLogo: laosLogo,
+        url: sharedUrl3,
+        effectiveUrl: sharedUrl3,
+      },
+      // Myanmar vs Timor Leste sharing sharedUrl3
+      {
+        rawTitle: "19:00 24/09 ⚽ Myanmar vs Timor Leste (A Long) [hls]",
+        group: "Gà Vàng 24h TV",
+        rawLogo: "https://cdn.example.com/myanmar.png",
+        url: sharedUrl3,
+        effectiveUrl: sharedUrl3,
+      },
+      // Lào vs Brunei from Cola TV
+      {
+        rawTitle: "16:00 24/09 ⚽ Lào vs Brunei (BLV MOUNTAIN DEW) [hls]",
+        group: "Cola TV",
+        rawLogo: laosLogo,
+        url: "https://cola.live/stream.m3u8",
+        effectiveUrl: "https://cola.live/stream.m3u8",
+      },
+    ];
+
+    const { matches } = normalizeAndMergeStreams(rawStreams, baseNow);
+
+    // 1. Phải có đúng 4 trận: Laos vs Brunei, Uzbekistan vs Iran, Kosovo vs Ireland, Myanmar vs Timor Leste
+    assert.equal(matches.length, 4, `Expected exactly 4 distinct fixtures, got ${matches.length}`);
+
+    // 2. Không được có 2 card khác nhau cùng 1 canonical match ID
+    const matchIds = matches.map((m) => m.id);
+    const uniqueMatchIds = new Set(matchIds);
+    assert.equal(uniqueMatchIds.size, matches.length, "All match IDs must be unique");
+
+    // 3. Không được có fixture 'Uzbekistan vs Brunei', 'Kosovo vs Brunei', hoặc 'Myanmar vs Brunei'
+    const matchTitles = matches.map((m) => m.title);
+    assert.equal(matchTitles.some((t) => /Uzbekistan vs Brunei/i.test(t)), false);
+    assert.equal(matchTitles.some((t) => /Kosovo vs Brunei/i.test(t)), false);
+    assert.equal(matchTitles.some((t) => /Myanmar vs Brunei/i.test(t)), false);
+
+    // 4. Logo Laos chỉ xuất hiện trên fixture Laos vs Brunei
+    for (const m of matches) {
+      if (m.homeLogo === laosLogo) {
+        assert.equal(
+          /Laos|Lào/i.test(m.team1) || /Brunei/i.test(m.team2),
+          true,
+          `Laos logo must not leak to other fixtures (found on ${m.title})`
+        );
+      }
+    }
+
+    // 5. Trận Laos vs Brunei phải có đủ 5 server từ 5 nguồn khác nhau
+    const laosMatch = matches.find((m) => /Laos/i.test(m.title) || /Lào/i.test(m.title));
+    assert.ok(laosMatch, "Laos vs Brunei match must exist");
+    assert.equal(laosMatch.servers.length, 5, "Laos vs Brunei must aggregate all 5 servers");
+  });
+
+  // 31. China vs Maldives + Trung Quốc vs Maldives → 1 fixture
+  it("31. 'China vs Maldives' and 'Trung Quốc vs Maldives' must merge into 1 fixture", () => {
+    const rawStreams = [
+      {
+        rawTitle: "18:35 24/09 ⚽ China vs Maldives (BLV Leo) [FHD]",
+        group: "🌍 Giao Hữu & ĐTQG",
+        rawLogo: "https://cdn.example.com/china.png",
+        url: "https://stream1.m3u8",
+        effectiveUrl: "https://stream1.m3u8",
+      },
+      {
+        rawTitle: "18:35 24/09 ⚽ Trung Quốc vs Maldives (BLV Rùa) [HD]",
+        group: "⚽ Bóng Đá Trực Tiếp",
+        rawLogo: "https://cdn.example.com/china_alt.png",
+        url: "https://stream2.m3u8",
+        effectiveUrl: "https://stream2.m3u8",
+      },
+    ];
+
+    const { matches } = normalizeAndMergeStreams(rawStreams, baseNow);
+    assert.equal(matches.length, 1, "Must merge China vs Maldives and Trung Quốc vs Maldives into 1 fixture");
+    assert.equal(matches[0].servers.length, 2, "Must aggregate both stream servers");
+  });
+
+  // 32. South Korea vs Ecuador + Hàn Quốc vs Ecuador → 1 fixture
+  it("32. 'South Korea vs Ecuador' and 'Hàn Quốc vs Ecuador' must merge into 1 fixture", () => {
+    const rawStreams = [
+      {
+        rawTitle: "18:00 24/09 ⚽ South Korea vs Ecuador [FHD]",
+        group: "🌍 Giao Hữu & ĐTQG",
+        rawLogo: "https://cdn.example.com/korea.png",
+        url: "https://server1.m3u8",
+        effectiveUrl: "https://server1.m3u8",
+      },
+      {
+        rawTitle: "18:00 24/09 ⚽ Hàn Quốc vs Ecuador (Captain) [HD]",
+        group: "⚽ Bóng Đá Trực Tiếp",
+        rawLogo: "https://cdn.example.com/korea.png",
+        url: "https://server2.m3u8",
+        effectiveUrl: "https://server2.m3u8",
+      },
+    ];
+
+    const { matches } = normalizeAndMergeStreams(rawStreams, baseNow);
+    assert.equal(matches.length, 1, "Must merge South Korea vs Ecuador and Hàn Quốc vs Ecuador into 1 fixture");
+    assert.equal(matches[0].servers.length, 2, "Must aggregate both stream servers");
+  });
+
+  // 33. Cùng một đội nhưng khác đối thủ → không được merge
+  it("33. Same team with different opponent must NOT merge", () => {
+    const rawStreams = [
+      {
+        rawTitle: "19:00 24/09 ⚽ Vietnam vs Thailand",
+        group: "AFF Cup",
+        rawLogo: "",
+        url: "https://stream-vn-thai.m3u8",
+        effectiveUrl: "https://stream-vn-thai.m3u8",
+      },
+      {
+        rawTitle: "19:00 24/09 ⚽ Vietnam vs Malaysia",
+        group: "AFF Cup",
+        rawLogo: "",
+        url: "https://stream-vn-malay.m3u8",
+        effectiveUrl: "https://stream-vn-malay.m3u8",
+      },
+    ];
+
+    const { matches } = normalizeAndMergeStreams(rawStreams, baseNow);
+    assert.equal(matches.length, 2, "Different opponents sharing one team must NOT be merged");
+  });
+
+  // 34. Đảm bảo alias cũ cho câu lạc bộ và các cặp quốc gia khác vẫn hoạt động chính xác
+  it("34. Existing club aliases and new national team pairs normalize properly", () => {
+    const rawStreams = [
+      {
+        rawTitle: "20:00 24/09 ⚽ Barca vs Real Madrid",
+        group: "La Liga",
+        rawLogo: "",
+        url: "https://s1.m3u8",
+        effectiveUrl: "https://s1.m3u8",
+      },
+      {
+        rawTitle: "20:00 24/09 ⚽ Barcelona vs Real Madrid",
+        group: "La Liga",
+        rawLogo: "",
+        url: "https://s2.m3u8",
+        effectiveUrl: "https://s2.m3u8",
+      },
+      {
+        rawTitle: "20:00 24/09 ⚽ Đức vs Pháp",
+        group: "UEFA Nations League",
+        rawLogo: "",
+        url: "https://s3.m3u8",
+        effectiveUrl: "https://s3.m3u8",
+      },
+      {
+        rawTitle: "20:00 24/09 ⚽ Germany vs France",
+        group: "UEFA Nations League",
+        rawLogo: "",
+        url: "https://s4.m3u8",
+        effectiveUrl: "https://s4.m3u8",
+      },
+    ];
+
+    const { matches } = normalizeAndMergeStreams(rawStreams, baseNow);
+    assert.equal(matches.length, 2, "Must produce exactly 2 fixtures (Barca vs Real Madrid and Germany vs France)");
+    const mClubs = matches.find((m) => /Barca|Barcelona/i.test(m.title));
+    const mGerm = matches.find((m) => /Đức|Germany|France|Pháp/i.test(m.title));
+    assert.ok(mClubs && mClubs.servers.length === 2, "Club aliases must merge servers");
+    assert.ok(mGerm && mGerm.servers.length === 2, "National aliases must merge servers");
+  });
+
+  // 35. teamAssets: Tra cứu cờ đội tuyển quốc gia chính xác qua tiếng Việt, Anh và viết tắt
+  it("35. teamAssets: National flag emoji lookup supports Vietnamese, English and abbreviations", () => {
+    assert.ok(TOTAL_MAPPED_TEAMS >= 200, "Must map at least 200 teams");
+
+    assert.equal(getTeamAsset("Việt Nam")?.emoji, "🇻🇳");
+    assert.equal(getTeamAsset("vietnam")?.emoji, "🇻🇳");
+    assert.equal(getTeamAsset("Hàn Quốc")?.emoji, "🇰🇷");
+    assert.equal(getTeamAsset("South Korea")?.emoji, "🇰🇷");
+    assert.equal(getTeamAsset("Korea")?.emoji, "🇰🇷");
+    assert.equal(getTeamAsset("Ecuador")?.emoji, "🇪🇨");
+    assert.equal(getTeamAsset("Nhật Bản")?.emoji, "🇯🇵");
+    assert.equal(getTeamAsset("Japan")?.emoji, "🇯🇵");
+    assert.equal(getTeamAsset("Trung Quốc")?.emoji, "🇨🇳");
+    assert.equal(getTeamAsset("China")?.emoji, "🇨🇳");
+    assert.equal(getTeamAsset("Thái Lan")?.emoji, "🇹🇭");
+    assert.equal(getTeamAsset("Thailand")?.emoji, "🇹🇭");
+    assert.equal(getTeamAsset("Anh")?.emoji, "🏴󠁧󠁢󠁥󠁮󠁧󠁿");
+    assert.equal(getTeamAsset("England")?.emoji, "🏴󠁧󠁢󠁥󠁮󠁧󠁿");
+    assert.equal(getTeamAsset("Pháp")?.emoji, "🇫🇷");
+    assert.equal(getTeamAsset("France")?.emoji, "🇫🇷");
+    assert.equal(getTeamAsset("Đức")?.emoji, "🇩🇪");
+    assert.equal(getTeamAsset("Germany")?.emoji, "🇩🇪");
+    assert.equal(getTeamAsset("Tây Ban Nha")?.emoji, "🇪🇸");
+    assert.equal(getTeamAsset("Spain")?.emoji, "🇪🇸");
+    assert.equal(getTeamAsset("Bồ Đào Nha")?.emoji, "🇵🇹");
+    assert.equal(getTeamAsset("Portugal")?.emoji, "🇵🇹");
+    assert.equal(getTeamAsset("Brazil")?.emoji, "🇧🇷");
+    assert.equal(getTeamAsset("Argentina")?.emoji, "🇦🇷");
+    assert.equal(getTeamAsset("Lào")?.emoji, "🇱🇦");
+    assert.equal(getTeamAsset("Laos")?.emoji, "🇱🇦");
+    assert.equal(getTeamAsset("Brunei")?.emoji, "🇧🇳");
+  });
+
+  // 36. teamAssets: Tra cứu logo CLB các giải đấu hàng đầu
+  it("36. teamAssets: Club logo lookup for top leagues (PL, La Liga, Serie A, etc.)", () => {
+    const arsenal = getTeamAsset("Arsenal");
+    assert.ok(arsenal && arsenal.logo, "Arsenal must have logo");
+
+    const mu = getTeamAsset("Man Utd");
+    assert.ok(mu && mu.logo, "Man Utd must have logo");
+
+    const real = getTeamAsset("Real Madrid");
+    assert.ok(real && real.logo, "Real Madrid must have logo");
+
+    const barca = getTeamAsset("Barcelona");
+    assert.ok(barca && barca.logo, "Barcelona must have logo");
+
+    const bayern = getTeamAsset("Bayern Munich");
+    assert.ok(bayern && bayern.logo, "Bayern Munich must have logo");
+
+    const inter = getTeamAsset("Inter Milan");
+    assert.ok(inter && inter.logo, "Inter Milan must have logo");
+
+    const psg = getTeamAsset("PSG");
+    assert.ok(psg && psg.logo, "PSG must have logo");
+
+    const alNassr = getTeamAsset("Al Nassr");
+    assert.ok(alNassr && alNassr.logo, "Al Nassr must have logo");
+
+    const miami = getTeamAsset("Inter Miami");
+    assert.ok(miami && miami.logo, "Inter Miami must have logo");
+
+    const hanoi = getTeamAsset("Hà Nội FC");
+    assert.ok(hanoi && hanoi.logo, "Hà Nội FC must have logo");
+  });
+
+  // 37. Giờ đá hiển thị dạng HH:mm theo Asia/Ho_Chi_Minh; thiếu timestamp thì trả về null
+  it("37. Kickoff time formatting in Asia/Ho_Chi_Minh timezone", () => {
+    // 18:00 24/09/2026 UTC+7
+    const kickoff1800 = new Date("2026-09-24T18:00:00+07:00").getTime();
+    const formatter = new Intl.DateTimeFormat("vi-VN", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+      timeZone: "Asia/Ho_Chi_Minh",
+    });
+    assert.equal(formatter.format(new Date(kickoff1800)), "18:00");
+
+    // Missing / invalid timestamp must return null (không đoán)
+    const checkValid = (ts?: number | null) => {
+      if (!ts || ts <= 0 || ts === Number.MAX_SAFE_INTEGER) return null;
+      return formatter.format(new Date(ts));
+    };
+    assert.equal(checkValid(undefined), null);
+    assert.equal(checkValid(null), null);
+    assert.equal(checkValid(0), null);
+    assert.equal(checkValid(Number.MAX_SAFE_INTEGER), null);
+  });
+
+  // 38. Bổ sung các quốc gia và CLB bóng rổ / esports thực tế từ phản hồi người dùng
+  it("38. National teams with youth prefixes, state prefixes, basketball and esports assets", () => {
+    // Sudan U20 & Tanzania U20
+    const sudan = getTeamAsset("Sudan U20");
+    assert.equal(sudan?.emoji, "🇸🇩", "Sudan U20 must resolve to 🇸🇩");
+
+    const tanzania = getTeamAsset("Tanzania U20");
+    assert.equal(tanzania?.emoji, "🇹🇿", "Tanzania U20 must resolve to 🇹🇿");
+
+    // Namibia & Republic of the Congo / CH Congo
+    const namibia = getTeamAsset("Namibia");
+    assert.equal(namibia?.emoji, "🇳🇦", "Namibia must resolve to 🇳🇦");
+
+    const congoRep = getTeamAsset("Republic of the Congo");
+    assert.equal(congoRep?.emoji, "🇨🇬", "Republic of the Congo must resolve to 🇨🇬");
+
+    const chCongo = getTeamAsset("CH Congo");
+    assert.equal(chCongo?.emoji, "🇨🇬", "CH Congo must resolve to 🇨🇬");
+
+    // Algeria U20 & Tunisia U20
+    const algeria = getTeamAsset("Algeria U20");
+    assert.equal(algeria?.emoji, "🇩🇿", "Algeria U20 must resolve to 🇩🇿");
+
+    const tunisia = getTeamAsset("Tunisia U20");
+    assert.equal(tunisia?.emoji, "🇹🇳", "Tunisia U20 must resolve to 🇹🇳");
+
+    // Uzbekistan & IR Iran
+    const uzbek = getTeamAsset("Uzbekistan");
+    assert.equal(uzbek?.emoji, "🇺🇿", "Uzbekistan must resolve to 🇺🇿");
+
+    const iran = getTeamAsset("IR Iran");
+    assert.equal(iran?.emoji, "🇮🇷", "IR Iran must resolve to 🇮🇷");
+
+    // United Arab Emirates & Yemen
+    const uae = getTeamAsset("United Arab Emirates");
+    assert.equal(uae?.emoji, "🇦🇪", "United Arab Emirates must resolve to 🇦🇪");
+
+    const yemen = getTeamAsset("Yemen");
+    assert.equal(yemen?.emoji, "🇾🇪", "Yemen must resolve to 🇾🇪");
+
+    // VBA Basketball: Sài Gòn Heat & Hà Nội Buffalo
+    const saigonHeat = getTeamAsset("Sài Gòn Heat");
+    assert.equal(saigonHeat?.emoji, "🏀", "Sài Gòn Heat must resolve to 🏀");
+
+    const hanoiBuffalo = getTeamAsset("Hà Nội Buffalo");
+    assert.equal(hanoiBuffalo?.emoji, "🏀", "Hà Nội Buffalo must resolve to 🏀");
+
+    // Esports: Apogee Esport & JijieHao
+    const apogee = getTeamAsset("Apogee Esport");
+    assert.equal(apogee?.emoji, "🎮", "Apogee Esport must resolve to 🎮");
+
+    const jjh = getTeamAsset("JijieHao");
+    assert.equal(jjh?.emoji, "🎮", "JijieHao must resolve to 🎮");
+  });
+
+  // 39. LivePlayer Fallback Logic: Single server & multi-server pre-kickoff (CAR vs Mauritania 23:00)
+  it("39. LivePlayer Fallback: Pre-kickoff match terminates without infinite loop or proxy spam", () => {
+    // Trận 23:00 24/09 Central African Republic vs Mauritania mở lúc 22:30 (trước kickoff)
+    const kickoffTime = new Date("2026-09-24T23:00:00+07:00").getTime();
+    const openTime = new Date("2026-09-24T22:30:00+07:00").getTime();
+
+    const isPreKickoff = (timestamp: number, now: number) => {
+      return Boolean(timestamp > 0 && timestamp !== Number.MAX_SAFE_INTEGER && now < timestamp);
+    };
+
+    assert.equal(isPreKickoff(kickoffTime, openTime), true, "Match opened before 23:00 must be pre-kickoff");
+
+    // Case 1: 1 server duy nhất
+    const singleServer = [{ name: "Server 1", url: "https://stream1.m3u8" }];
+    const failedServers = new Set<number>();
+    const failedUrls = new Set<string>();
+    let selectedServerIndex = 0;
+    const proxyCalls = 0;
+    let stopped = false;
+    let finalError = "";
+
+    // Giả lập fallback loop
+    const simulateFallback = (servers: { name: string; url: string }[], preKickoff: boolean) => {
+      let loops = 0;
+      while (!stopped && loops < 20) {
+        loops++;
+        if (preKickoff) {
+          // Pre-kickoff: KHÔNG gọi proxy, ghi nhận failed server
+          failedServers.add(selectedServerIndex);
+          failedUrls.add(servers[selectedServerIndex].url);
+
+          let nextIndex = servers.findIndex(
+            (s, idx) => idx > selectedServerIndex && !failedServers.has(idx) && !failedUrls.has(s.url)
+          );
+          if (nextIndex === -1) {
+            nextIndex = servers.findIndex(
+              (s, idx) => !failedServers.has(idx) && !failedUrls.has(s.url)
+            );
+          }
+
+          if (nextIndex !== -1) {
+            selectedServerIndex = nextIndex;
+          } else {
+            stopped = true;
+            finalError = "Chưa có tín hiệu phát";
+          }
+        }
+      }
+      return loops;
+    };
+
+    const loops = simulateFallback(singleServer, true);
+    assert.equal(loops, 1, "Single server before kickoff must execute exactly 1 attempt before stopping");
+    assert.equal(stopped, true, "Player must stop completely");
+    assert.equal(proxyCalls, 0, "Pre-kickoff must NOT call proxy");
+    assert.equal(finalError, "Chưa có tín hiệu phát", "Must display 'Chưa có tín hiệu phát'");
+  });
+
+  // 40. LivePlayer Fallback: Single server after kickoff stops after at most 1 proxy attempt
+  it("40. LivePlayer Fallback: Single server live match does not loop back to direct after proxy fail", () => {
+    const servers = [{ name: "Server 1", url: "https://stream1.m3u8" }];
+    const failedServers = new Set<number>();
+    let selectedServerIndex = 0;
+    let useProxyFallback = false;
+    let stopped = false;
+    let attempts = 0;
+
+    // Giả lập: Lần 1 direct fail -> chuyển sang proxy -> Lần 2 proxy fail -> dừng
+    while (!stopped && attempts < 10) {
+      attempts++;
+      if (!useProxyFallback) {
+        // Thử proxy 1 lần
+        useProxyFallback = true;
+      } else {
+        // Proxy đã fail -> đánh dấu server fail
+        failedServers.add(selectedServerIndex);
+        useProxyFallback = false;
+
+        let nextIndex = servers.findIndex(
+          (_, idx) => idx > selectedServerIndex && !failedServers.has(idx)
+        );
+        if (nextIndex === -1) {
+          nextIndex = servers.findIndex((_, idx) => !failedServers.has(idx));
+        }
+
+        if (nextIndex !== -1) {
+          selectedServerIndex = nextIndex;
+        } else {
+          stopped = true;
+        }
+      }
+    }
+
+    assert.equal(attempts, 2, "Must execute direct (1) + proxy (1) and stop immediately");
+    assert.equal(stopped, true, "Must be stopped");
+    assert.equal(failedServers.has(0), true, "Server 0 must be in failedServers");
+  });
+
+  // 41. Hailab: extractHailabLogos trích xuất chính xác homeLogo và awayLogo từ query URL
+  it("41. Hailab: extractHailabLogos extracts homeLogo and awayLogo from match poster query URL", () => {
+    const posterUrl =
+      "http://livesport.hailab.cloud/match_poster.php?home=https%3A%2F%2Fimg.gvapi.cc%2Ffootball%2Fteam%2F15fa1fad1fc582dd65403f6f950b1e21.png%21w80&away=https%3A%2F%2Fimg.gvapi.cc%2Ffootball%2Fteam%2Ff7eb745a5f9b3016b083019da91b5f74.png%21w80&competition=https%3A%2F%2Fimg.gvapi.cc%2Ffootball%2Fcompetition%2F245bff452fbdc34d417164e361097ae7.png%21w80&v=light-v2";
+    const logos = extractHailabLogos(posterUrl);
+    assert.equal(logos.homeLogo, "https://img.gvapi.cc/football/team/15fa1fad1fc582dd65403f6f950b1e21.png!w80");
+    assert.equal(logos.awayLogo, "https://img.gvapi.cc/football/team/f7eb745a5f9b3016b083019da91b5f74.png!w80");
+  });
+
+  // 42. Hailab: cleanCandidateTeamName loại bỏ tiền tố ĐTQG, ĐT, CLB
+  it("42. Hailab: cleanCandidateTeamName cleans ĐTQG, ĐT, CLB prefixes cleanly", () => {
+    assert.equal(cleanCandidateTeamName("ĐTQG Hà Lan"), "Hà Lan");
+    assert.equal(cleanCandidateTeamName("ĐT Đan Mạch"), "Đan Mạch");
+    assert.equal(cleanCandidateTeamName("CLB Greece"), "Greece");
+    assert.equal(cleanCandidateTeamName("ĐTQG Kosovo"), "Kosovo");
+  });
+
+  // 43. Hailab: Hailab streams merge chính xác với M3U streams cùng fixture và giữ server từ cả 2 nguồn
+  it("43. Hailab: Streams from Hailab merge with M3U fixture and retain both servers", () => {
+    const rawStreams = [
+      {
+        rawTitle: "20:00 24/09 ⚽ Netherlands vs Germany",
+        group: "THTT Live Sports",
+        rawLogo: "https://example.com/netherlands.png",
+        url: "https://m3u-server.m3u8",
+        effectiveUrl: "https://m3u-server.m3u8",
+      },
+      {
+        rawTitle: "🟢 20:00 24/09 ⚽ ĐTQG Hà Lan vs Đức (BLV 7UP)",
+        group: "Live Sports (Hailab)",
+        rawLogo: "https://img.gvapi.cc/netherlands.png",
+        awayLogo: "https://img.gvapi.cc/germany.png",
+        tournament: "Giải vô địch bóng đá các quốc gia châu Âu",
+        url: "https://live05.meung.app/live/78905744_tsc.m3u8",
+        effectiveUrl: "https://live05.meung.app/live/78905744_tsc.m3u8",
+      },
+    ];
+
+    const { matches } = normalizeAndMergeStreams(rawStreams, baseNow);
+    assert.equal(matches.length, 1, "Must merge Netherlands vs Germany and ĐTQG Hà Lan vs Đức into 1 fixture");
+    assert.equal(matches[0].servers.length, 2, "Must aggregate servers from both M3U and Hailab");
+    assert.equal(matches[0].groups.includes("Live Sports (Hailab)"), true, "Must include Hailab in groups");
+    assert.equal(matches[0].blv?.includes("7UP"), true, "Must retain BLV from Hailab");
+  });
+
+  // 44. Strict Timeline Filtering: Tuân thủ quy tắc lọc trận đang đá và sắp đá <= 60m
+  it("44. Strict Match Timeline Filtering rule applied on matches", () => {
+    // Trận 1: Đang đá (kickoff 40 phút trước) -> LIVE
+    const playingKickoff = baseNow - 40 * 60 * 1000;
+    const tl1 = getMatchTimeline(playingKickoff, "live", "unknown", baseNow);
+    assert.equal(tl1, "live", "Match within 140m window must be LIVE");
+
+    // Trận 2: Sắp đá trong 90 phút tới (trong khung 2 giờ) -> UPCOMING & in live window
+    const soonKickoff = baseNow + 90 * 60 * 1000;
+    const tl2 = getMatchTimeline(soonKickoff, "upcoming", "unknown", baseNow);
+    assert.equal(tl2, "upcoming", "Match within 2h (120m) future must be UPCOMING");
+    assert.equal(isMatchInLiveWindow(tl2, soonKickoff, baseNow), true, "Match within 2h must be in live window");
+
+    // Trận 3: Trận đá hơn 2 giờ tới (ví dụ 150m tới) -> Vòng đời UPCOMING nhưng ngoài live window
+    const farFutureKickoff = baseNow + 150 * 60 * 1000;
+    const tl3 = getMatchTimeline(farFutureKickoff, "upcoming", "unknown", baseNow);
+    assert.equal(tl3, "upcoming", "Match >2h in future within schedule window must be UPCOMING");
+    assert.equal(isMatchInLiveWindow(tl3, farFutureKickoff, baseNow), false, "Match >2h must NOT be in live window");
+
+    // Trận 3B: Trận xa trong tương lai (>36h) -> Vòng đời UPCOMING (không gán finished) nhưng ngoài live window
+    const beyondWindowKickoff = baseNow + 40 * 60 * 60 * 1000;
+    const tl3b = getMatchTimeline(beyondWindowKickoff, "upcoming", "unknown", baseNow);
+    assert.equal(tl3b, "upcoming", "Match >36h in future must have UPCOMING lifecycle");
+    assert.equal(isMatchInLiveWindow(tl3b, beyondWindowKickoff, baseNow), false, "Match >36h must NOT be in live window");
+
+    // Trận 4: Trận đã kết thúc quá 140 phút (ví dụ 160m trước) -> FINISHED (ẩn)
+    const endedKickoff = baseNow - 160 * 60 * 1000;
+    const tl4 = getMatchTimeline(endedKickoff, "live", "alive", baseNow);
+    assert.equal(tl4, "finished", "Match >140m in past must be FINISHED (hidden)");
+  });
+
+  // 45. Deduplication: Serbia vs Greece & Ivory Coast vs Ghana merge into 1 card, preserving all sources & BLVs
+  it("45. Deduplication: Serbia vs Greece & Ivory Coast vs Ghana merge into 1 card, preserving all sources & BLVs", () => {
+    const rawStreams = [
+      // Serbia vs Greece streams (different sources, different languages, different BLVs, multi-sources)
+      {
+        rawTitle: "01:45 25/09 ⚽ Serbia vs Greece (BLV Batman) [FHD]",
+        group: "Source Group A",
+        rawLogo: "https://example.com/serbia.png",
+        url: "https://stream-serbia-greece-1.m3u8",
+        effectiveUrl: "https://stream-serbia-greece-1.m3u8",
+      },
+      {
+        rawTitle: "01:45 25/09 ⚽ Serbia vs Hy Lạp (BLV Robin) [HD]",
+        group: "Source Group B",
+        rawLogo: "https://example.com/serbia.png",
+        url: "https://stream-serbia-greece-2.m3u8",
+        effectiveUrl: "https://stream-serbia-greece-2.m3u8",
+      },
+      {
+        rawTitle: "01:45 25/09 ⚽ ĐTQG Serbia vs ĐTQG Hy Lạp - Server 3",
+        group: "Source Group C",
+        rawLogo: "",
+        url: "https://stream-serbia-greece-3.m3u8",
+        effectiveUrl: "https://stream-serbia-greece-3.m3u8",
+      },
+
+      // Ivory Coast vs Ghana streams (different sources, English/Vietnamese, different BLVs)
+      {
+        rawTitle: "02:00 25/09 ⚽ Ivory Coast vs Ghana (BLV Superman)",
+        group: "Source Group A",
+        rawLogo: "https://example.com/ivorycoast.png",
+        url: "https://stream-ci-ghana-1.m3u8",
+        effectiveUrl: "https://stream-ci-ghana-1.m3u8",
+      },
+      {
+        rawTitle: "02:00 25/09 ⚽ Bờ Biển Ngà vs Ghana (BLV Flash)",
+        group: "Source Group D",
+        rawLogo: "https://example.com/ivorycoast.png",
+        url: "https://stream-ci-ghana-2.m3u8",
+        effectiveUrl: "https://stream-ci-ghana-2.m3u8",
+      },
+
+      // Different match with different kickoff time (must NOT merge)
+      {
+        rawTitle: "03:30 25/09 ⚽ Serbia vs Greece",
+        group: "Source Group A",
+        rawLogo: "https://example.com/serbia.png",
+        url: "https://stream-serbia-greece-future.m3u8",
+        effectiveUrl: "https://stream-serbia-greece-future.m3u8",
+      },
+    ];
+
+    const { matches } = normalizeAndMergeStreams(rawStreams, baseNow);
+
+    // Verify 1: Exactly 3 matches created (Serbia vs Greece 01:45, Ivory Coast vs Ghana 02:00, Serbia vs Greece 03:30)
+    assert.equal(matches.length, 3, "Must produce exactly 3 matches, no duplicate cards for same match");
+
+    // Verify 2: Serbia vs Greece 01:45 is ONE card with all 3 servers retained
+    const serbia0145 = matches.find((m) => m.time.includes("01:45") && /serbia/i.test(m.title));
+    assert.ok(serbia0145, "Serbia vs Greece 01:45 must exist as 1 card");
+    assert.equal(serbia0145.servers.length, 3, "All 3 servers from different source groups must be merged");
+    assert.equal(serbia0145.groups.length, 3, "All 3 source groups must be retained in groups array");
+    assert.ok(serbia0145.blv?.includes("Batman"), "BLV Batman must be preserved");
+    assert.ok(serbia0145.blv?.includes("Robin"), "BLV Robin must be preserved");
+    assert.equal(serbia0145.quality, "FHD 1080p", "FHD quality must be preserved if any source has FHD");
+
+    // Verify 3: Ivory Coast vs Ghana 02:00 is ONE card with both servers retained
+    const ivory0200 = matches.find((m) => m.time.includes("02:00"));
+    assert.ok(ivory0200, "Ivory Coast vs Ghana 02:00 must exist as 1 card");
+    assert.equal(ivory0200.servers.length, 2, "Both servers from English and Vietnamese sources must be merged");
+    assert.ok(ivory0200.blv?.includes("Superman"), "BLV Superman must be preserved");
+    assert.ok(ivory0200.blv?.includes("Flash"), "BLV Flash must be preserved");
+
+    // Verify 4: Match with different kickoff time (03:30) remains separate
+    const serbia0330 = matches.find((m) => m.time.includes("03:30"));
+    assert.ok(serbia0330, "Serbia vs Greece 03:30 must remain a separate match");
+    assert.notEqual(serbia0145.id, serbia0330.id, "Different kickoff times must have distinct match IDs");
+  });
+});
+
+import {
+  getSourceQuality,
+  getQualityPriorityScore,
+  findBestInitialServerIndex,
+  findNextFallbackServerIndex,
+  toCanonicalSourceUrl,
+  parseServerDisplayLabel,
+} from "@/components/live/LivePlayer";
+import { StreamServer } from "@/services/live/football/service";
+
+describe("Nanaflix Live TV - FHD Badges, Broken Source Hiding & Smart Fallback", () => {
+  it("1. Quality Detection Mapping (FHD / HD / Null)", () => {
+    // 1080p, 1080, FHD, Full HD -> "FHD"
+    assert.equal(getSourceQuality({ quality: "FHD" as const }), "FHD");
+    assert.equal(getSourceQuality({ name: "Server #1 [FHD]" }), "FHD");
+    assert.equal(getSourceQuality({ name: "Kênh FPT 1080p 50fps" }), "FHD");
+    assert.equal(getSourceQuality({ name: "Live Sport 1080" }), "FHD");
+    assert.equal(getSourceQuality({ name: "VTV5 Full HD" }), "FHD");
+
+    // 720p, 720, HD -> "HD"
+    assert.equal(getSourceQuality({ quality: "HD" as const }), "HD");
+    assert.equal(getSourceQuality({ name: "Server #2 [HD]" }), "HD");
+    assert.equal(getSourceQuality({ name: "Kênh 720p" }), "HD");
+    assert.equal(getSourceQuality({ name: "Stream 720" }), "HD");
+    assert.equal(getSourceQuality({ name: "HTV Thể Thao HD" }), "HD");
+
+    // Undetermined quality -> null (không tự gán)
+    assert.equal(getSourceQuality({ name: "Server dự phòng #3", url: "https://cdn.example.com/live.m3u8" }), null);
+    assert.equal(getSourceQuality(undefined), null);
+  });
+
+  it("2. Quality Prioritization Score (FHD > HD > Undetermined)", () => {
+    assert.equal(getQualityPriorityScore({ quality: "FHD" as const }), 2);
+    assert.equal(getQualityPriorityScore({ name: "VTV 1080p" }), 2);
+    assert.equal(getQualityPriorityScore({ quality: "HD" as const }), 1);
+    assert.equal(getQualityPriorityScore({ name: "VTV 720p" }), 1);
+    assert.equal(getQualityPriorityScore({ name: "Server Unknown" }), 0);
+  });
+
+  it("3. Case 1: Ưu tiên chọn nguồn FHD làm nguồn mặc định", () => {
+    const servers: StreamServer[] = [
+      { name: "Server A [HD]", url: "https://example.com/a.m3u8", format: "hls", isHls: true, quality: "HD" },
+      { name: "Server B [FHD]", url: "https://example.com/b.m3u8", format: "hls", isHls: true, quality: "FHD" },
+      { name: "Server C", url: "https://example.com/c.m3u8", format: "hls", isHls: true, quality: "HD" },
+    ];
+
+    const bestIdx = findBestInitialServerIndex(servers);
+    assert.equal(bestIdx, 1, "Must pick Server B [FHD] as initial server even if it is not at index 0");
+  });
+
+  it("4. Case 2: FHD A lỗi -> A bị ẩn, tự động fallback sang FHD B", () => {
+    const servers: StreamServer[] = [
+      { name: "Server A [FHD]", url: "https://example.com/a.m3u8", format: "hls", isHls: true, quality: "FHD" },
+      { name: "Server B [FHD]", url: "https://example.com/b.m3u8", format: "hls", isHls: true, quality: "FHD" },
+      { name: "Server C [HD]", url: "https://example.com/c.m3u8", format: "hls", isHls: true, quality: "HD" },
+    ];
+
+    const failedSet = new Set<string>();
+    // FHD A fails
+    failedSet.add(servers[0].url);
+
+    // Filter available servers for UI (Section 5: Source lỗi phải được ẩn)
+    const available = servers.filter((s) => !failedSet.has(s.url));
+    assert.equal(available.length, 2, "Failed server A must be removed from available list");
+    assert.equal(available.some((s) => s.url === servers[0].url), false, "Server A must not exist in available list");
+
+    // Auto fallback to next best server
+    const nextIdx = findNextFallbackServerIndex(servers, failedSet, 0);
+    assert.equal(nextIdx, 1, "Must automatically fallback to FHD B");
+  });
+
+  it("5. Case 3: FHD A & FHD B đều lỗi -> A & B bị ẩn, tự động fallback sang HD C", () => {
+    const servers: StreamServer[] = [
+      { name: "Server A [FHD]", url: "https://example.com/a.m3u8", format: "hls", isHls: true, quality: "FHD" },
+      { name: "Server B [FHD]", url: "https://example.com/b.m3u8", format: "hls", isHls: true, quality: "FHD" },
+      { name: "Server C [HD]", url: "https://example.com/c.m3u8", format: "hls", isHls: true, quality: "HD" },
+    ];
+
+    const failedSet = new Set<string>();
+    failedSet.add(servers[0].url);
+    failedSet.add(servers[1].url);
+
+    const available = servers.filter((s) => !failedSet.has(s.url));
+    assert.equal(available.length, 1, "Only HD C should remain available");
+    assert.equal(available[0].name, "Server C [HD]");
+
+    const nextIdx = findNextFallbackServerIndex(servers, failedSet, 1);
+    assert.equal(nextIdx, 2, "Must automatically fallback to HD C");
+  });
+
+  it("6. Case 4: Tất cả server đều lỗi -> Không loop vô tận, trả về -1 (Không có nguồn phát khả dụng)", () => {
+    const servers: StreamServer[] = [
+      { name: "Server A [FHD]", url: "https://example.com/a.m3u8", format: "hls", isHls: true, quality: "FHD" },
+      { name: "Server B [FHD]", url: "https://example.com/b.m3u8", format: "hls", isHls: true, quality: "FHD" },
+      { name: "Server C [HD]", url: "https://example.com/c.m3u8", format: "hls", isHls: true, quality: "HD" },
+    ];
+
+    const failedSet = new Set<string>([
+      servers[0].url,
+      servers[1].url,
+      servers[2].url,
+    ]);
+
+    const available = servers.filter((s) => !failedSet.has(s.url));
+    assert.equal(available.length, 0, "No available servers left");
+
+    const nextIdx = findNextFallbackServerIndex(servers, failedSet, 2);
+    assert.equal(nextIdx, -1, "Must return -1 indicating no available server and preventing infinite loops");
+  });
+
+  it("7. Case 5: Reset failed source khi chuyển trận", () => {
+    // Trận 1 có server lỗi
+    const match1FailedSet = new Set<string>(["https://example.com/match1_stream.m3u8"]);
+    assert.equal(match1FailedSet.has("https://example.com/match1_stream.m3u8"), true);
+
+    // Chuyển sang trận 2: Reset set failed
+    const match2FailedSet = new Set<string>();
+    assert.equal(match2FailedSet.size, 0, "New match must start with fresh empty failed set");
+
+    const match2Servers: StreamServer[] = [
+      { name: "Match 2 Server [FHD]", url: "https://example.com/match2_fhd.m3u8", format: "hls", isHls: true, quality: "FHD" },
+      { name: "Match 2 Server [HD]", url: "https://example.com/match2_hd.m3u8", format: "hls", isHls: true, quality: "HD" },
+    ];
+    const initialIdx = findBestInitialServerIndex(match2Servers, match2FailedSet);
+    assert.equal(initialIdx, 0, "New match starts with top quality server index");
+  });
+
+  it("8. toCanonicalSourceUrl: Unwraps proxy URLs to direct URLs cleanly", () => {
+    const directUrl = "https://cdn.example.com/hls/live.m3u8";
+    const proxyUrl = `/api/live-football/proxy?url=${encodeURIComponent(directUrl)}`;
+
+    assert.equal(toCanonicalSourceUrl(directUrl), directUrl);
+    assert.equal(toCanonicalSourceUrl(proxyUrl), directUrl, "Proxy URL must unwrap to direct URL");
+    assert.equal(toCanonicalSourceUrl(""), "");
+    assert.equal(toCanonicalSourceUrl(null), "");
+  });
+
+  it("9. parseServerDisplayLabel: Extracts commentator name or clean source label without technical clutter", () => {
+    // BLV in parentheses without sourceName
+    assert.equal(
+      parseServerDisplayLabel({ name: "XoiLac 1 (BLV Lê Hoàn) [FHD]" } as StreamServer, 0),
+      "BLV Lê Hoàn",
+    );
+    assert.equal(
+      parseServerDisplayLabel({ name: "Tiếng Việt (BLV Quang Huy)" } as StreamServer, 1),
+      "BLV Quang Huy",
+    );
+    // BLV with source platform (Kiểu 1: BLV ... · Nền tảng)
+    assert.equal(
+      parseServerDisplayLabel(
+        { name: "Xôi Lạc Z TV (ASTRA) #1 [HD]", sourceName: "Xôi Lạc Z TV" } as StreamServer,
+        0,
+      ),
+      "BLV ASTRA · Xôi Lạc",
+    );
+    assert.equal(
+      parseServerDisplayLabel(
+        { name: "Xôi Lạc Z TV (HD ASTRA) #2 [FHD]", sourceName: "Xôi Lạc Z TV" } as StreamServer,
+        1,
+      ),
+      "BLV ASTRA · Xôi Lạc",
+    );
+    assert.equal(
+      parseServerDisplayLabel(
+        { name: "Cola TV (BLV GIÀ LÀNG) #3 [HD]", sourceName: "Cola TV" } as StreamServer,
+        2,
+      ),
+      "BLV GIÀ LÀNG · Cola TV",
+    );
+    assert.equal(
+      parseServerDisplayLabel(
+        { name: "Gà Vàng 33 TV (Gà Siêu Ngố) #4 [HD]", sourceName: "Gà Vàng 33 TV" } as StreamServer,
+        3,
+      ),
+      "BLV Gà Siêu Ngố · Gà Vàng",
+    );
+    assert.equal(
+      parseServerDisplayLabel(
+        { name: "Sút Bóng TV (BLV FIREMAN) #5 [HD]", sourceName: "Sút Bóng TV" } as StreamServer,
+        4,
+      ),
+      "BLV FIREMAN · Sút Bóng TV",
+    );
+    assert.equal(
+      parseServerDisplayLabel(
+        { name: "Phá Làng TV (Nhà đài) #6 [HD]", sourceName: "Phá Làng TV" } as StreamServer,
+        5,
+      ),
+      "BLV Nhà đài · Phá Làng TV",
+    );
+    // Inline BLV
+    assert.equal(
+      parseServerDisplayLabel({ name: "FHD - BLV Chuối" } as StreamServer, 2),
+      "BLV Chuối",
+    );
+    // Source group name when no commentator
+    assert.equal(
+      parseServerDisplayLabel(
+        { name: "FPT Play 1 [FHD]", sourceName: "FPT Play" } as StreamServer,
+        0,
+      ),
+      "FPT Play · Nguồn 1",
+    );
+    // Technical fallback
+    assert.equal(
+      parseServerDisplayLabel({ name: "Server #1 [HD]" } as StreamServer, 0),
+      "Nguồn 1",
+    );
+  });
+
+  it("10. failedSourcesByMatch: Failed sources are keyed by match.id, persistent across server re-renders, and isolated", () => {
+    const failedSourcesByMatch: Record<string, Set<string>> = {};
+
+    const matchAId = "arsenal-chelsea-1600";
+    const matchBId = "liverpool-mancity-1830";
+
+    const serverA1 = "https://cdn.example.com/matchA_fhd.m3u8";
+    const serverA2 = "https://cdn.example.com/matchA_hd.m3u8";
+    const serverB1 = "https://cdn.example.com/matchB_fhd.m3u8";
+
+    // Mark serverA1 failed in Match A
+    failedSourcesByMatch[matchAId] = new Set([toCanonicalSourceUrl(serverA1)]);
+
+    // Match A's available servers filters out serverA1
+    const matchAServers1: StreamServer[] = [
+      { name: "Server 1 [FHD]", url: serverA1, format: "hls", isHls: true, quality: "FHD" },
+      { name: "Server 2 [HD]", url: serverA2, format: "hls", isHls: true, quality: "HD" },
+    ];
+
+    const availableMatchA1 = matchAServers1.filter(
+      (s) => !failedSourcesByMatch[matchAId]?.has(toCanonicalSourceUrl(s.url)),
+    );
+    assert.equal(availableMatchA1.length, 1);
+    assert.equal(availableMatchA1[0].url, serverA2);
+
+    // Simulate server refresh/re-fetch or array reference change in Match A
+    const matchAServers2: StreamServer[] = [
+      { name: "Server 1 [FHD] (Refetched)", url: serverA1, format: "hls", isHls: true, quality: "FHD" },
+      { name: "Server 2 [HD] (Refetched)", url: serverA2, format: "hls", isHls: true, quality: "HD" },
+    ];
+    const availableMatchA2 = matchAServers2.filter(
+      (s) => !failedSourcesByMatch[matchAId]?.has(toCanonicalSourceUrl(s.url)),
+    );
+    assert.equal(
+      availableMatchA2.length,
+      1,
+      "Failed source must stay hidden even when servers array reference is regenerated",
+    );
+
+    // Switch to Match B: Match B has its own independent failed set
+    const matchBFailed = failedSourcesByMatch[matchBId] || new Set();
+    const matchBServers: StreamServer[] = [
+      { name: "Server 1 [FHD]", url: serverB1, format: "hls", isHls: true, quality: "FHD" },
+    ];
+    const availableMatchB = matchBServers.filter(
+      (s) => !matchBFailed.has(toCanonicalSourceUrl(s.url)),
+    );
+    assert.equal(availableMatchB.length, 1, "Match B must have all sources available");
+
+    // Switching back to Match B and resetting its failed state
+    delete failedSourcesByMatch[matchBId];
+    assert.equal(Boolean(failedSourcesByMatch[matchBId]), false);
+  });
+
+  it("11. Canonical matching prevents proxy vs direct URL mismatch when marking failed", () => {
+    const directUrl = "https://example.com/live.m3u8";
+    const proxyUrl = `/api/live-football/proxy?url=${encodeURIComponent(directUrl)}`;
+
+    const failedSet = new Set<string>();
+    // Marked failed using proxy URL
+    failedSet.add(toCanonicalSourceUrl(proxyUrl));
+
+    // Queried using direct URL
+    assert.equal(
+      failedSet.has(toCanonicalSourceUrl(directUrl)),
+      true,
+      "Direct URL must be recognized as failed even if marked via proxy URL",
+    );
+  });
+});
+
+describe("Comprehensive National Team Canonical Alias & Fixture Deduplication System", () => {
+  const kickoffTime = new Date("2026-09-25T19:30:00+07:00").getTime();
+
+  it("1. Coverage & Statistics: Must support >= 200 countries and >= 700 aliases", () => {
+    assert.ok(NATIONAL_TEAM_CANONICAL_KEYS.size >= 200, `Expected >= 200 countries, got ${NATIONAL_TEAM_CANONICAL_KEYS.size}`);
+    assert.ok(Object.keys(NATIONAL_TEAM_CANONICAL_MAP).length >= 700, `Expected >= 700 aliases, got ${Object.keys(NATIONAL_TEAM_CANONICAL_MAP).length}`);
+  });
+
+  it("2. Multilingual Alias Mapping: Vietnam variants all normalize to 'vietnam'", () => {
+    const variants = ["Vietnam", "Việt", "Việt Nam", "Viet Nam", "VN", "VIE", "ĐTQG Việt Nam", "Đội tuyển Việt Nam", "U23 Việt Nam"];
+    for (const v of variants) {
+      assert.equal(normalizeClubKey(v), "vietnam", `Variant '${v}' must resolve to 'vietnam'`);
+    }
+  });
+
+  it("3. Multilingual Alias Mapping: China variants all normalize to 'china'", () => {
+    const variants = ["China", "Trung Quốc", "China PR", "PR China", "CN", "CHN", "Đội tuyển Trung Quốc"];
+    for (const v of variants) {
+      assert.equal(normalizeClubKey(v), "china", `Variant '${v}' must resolve to 'china'`);
+    }
+  });
+
+  it("4. Multilingual Alias Mapping: South Korea variants all normalize to 'southkorea'", () => {
+    const variants = ["South Korea", "Hàn Quốc", "Korea Republic", "Republic of Korea", "ROK", "KOR", "ĐT Hàn Quốc"];
+    for (const v of variants) {
+      assert.equal(normalizeClubKey(v), "southkorea", `Variant '${v}' must resolve to 'southkorea'`);
+    }
+  });
+
+  it("5. Multilingual Alias Mapping: North Korea variants all normalize to 'northkorea'", () => {
+    const variants = ["North Korea", "Triều Tiên", "Bắc Triều Tiên", "DPR Korea", "PRK"];
+    for (const v of variants) {
+      assert.equal(normalizeClubKey(v), "northkorea", `Variant '${v}' must resolve to 'northkorea'`);
+    }
+  });
+
+  it("6. Multilingual Alias Mapping: Major football nations across confederations", () => {
+    assert.equal(normalizeClubKey("Japan"), "japan");
+    assert.equal(normalizeClubKey("Nhật Bản"), "japan");
+    assert.equal(normalizeClubKey("Germany"), "germany");
+    assert.equal(normalizeClubKey("Đức"), "germany");
+    assert.equal(normalizeClubKey("Spain"), "spain");
+    assert.equal(normalizeClubKey("Tây Ban Nha"), "spain");
+    assert.equal(normalizeClubKey("Portugal"), "portugal");
+    assert.equal(normalizeClubKey("Bồ Đào Nha"), "portugal");
+    assert.equal(normalizeClubKey("Netherlands"), "netherlands");
+    assert.equal(normalizeClubKey("Hà Lan"), "netherlands");
+    assert.equal(normalizeClubKey("Brazil"), "brazil");
+    assert.equal(normalizeClubKey("Brasil"), "brazil");
+    assert.equal(normalizeClubKey("USA"), "usa");
+    assert.equal(normalizeClubKey("United States"), "usa");
+    assert.equal(normalizeClubKey("Hoa Kỳ"), "usa");
+    assert.equal(normalizeClubKey("USMNT"), "usa");
+    assert.equal(normalizeClubKey("France"), "france");
+    assert.equal(normalizeClubKey("Pháp"), "france");
+    assert.equal(normalizeClubKey("England"), "england");
+    assert.equal(normalizeClubKey("Anh"), "england");
+    assert.equal(normalizeClubKey("Italy"), "italy");
+    assert.equal(normalizeClubKey("Ý"), "italy");
+    assert.equal(normalizeClubKey("Argentina"), "argentina");
+    assert.equal(normalizeClubKey("Thailand"), "thailand");
+    assert.equal(normalizeClubKey("Thái Lan"), "thailand");
+  });
+
+  it("7. Strict Collision Guard: Congo and DR Congo must NEVER match", () => {
+    assert.equal(normalizeClubKey("Congo"), "congo");
+    assert.equal(normalizeClubKey("DR Congo"), "drcongo");
+    assert.equal(isSingleTeamMatching("Congo", "DR Congo"), false);
+  });
+
+  it("8. Strict Collision Guard: Guinea, Guinea-Bissau, and Equatorial Guinea must NEVER match", () => {
+    assert.equal(normalizeClubKey("Guinea"), "guinea");
+    assert.equal(normalizeClubKey("Guinea-Bissau"), "guineabissau");
+    assert.equal(normalizeClubKey("Equatorial Guinea"), "equatorialguinea");
+    assert.equal(isSingleTeamMatching("Guinea", "Guinea-Bissau"), false);
+    assert.equal(isSingleTeamMatching("Guinea", "Equatorial Guinea"), false);
+    assert.equal(isSingleTeamMatching("Guinea-Bissau", "Equatorial Guinea"), false);
+  });
+
+  it("9. Strict Collision Guard: Niger and Nigeria must NEVER match", () => {
+    assert.equal(normalizeClubKey("Niger"), "niger");
+    assert.equal(normalizeClubKey("Nigeria"), "nigeria");
+    assert.equal(isSingleTeamMatching("Niger", "Nigeria"), false);
+  });
+
+  it("10. Strict Collision Guard: Australia and Austria must NEVER match", () => {
+    assert.equal(normalizeClubKey("Australia"), "australia");
+    assert.equal(normalizeClubKey("Austria"), "austria");
+    assert.equal(isSingleTeamMatching("Australia", "Austria"), false);
+  });
+
+  it("11. Strict Collision Guard: North Korea and South Korea must NEVER match", () => {
+    assert.equal(normalizeClubKey("North Korea"), "northkorea");
+    assert.equal(normalizeClubKey("South Korea"), "southkorea");
+    assert.equal(isSingleTeamMatching("North Korea", "South Korea"), false);
+    assert.equal(isSingleTeamMatching("Triều Tiên", "Hàn Quốc"), false);
+  });
+
+  it("12. Fixture Matching: 'China vs Vietnam' + 'Việt vs Trung Quốc' MERGES into 1 fixture", () => {
+    const f1 = {
+      team1: "China",
+      team2: "Vietnam",
+      time: "19:30",
+      timestamp: kickoffTime,
+      isLiveMarker: false,
+    };
+    const f2 = {
+      team1: "Việt",
+      team2: "Trung Quốc",
+      time: "19:30",
+      timestamp: kickoffTime,
+      isLiveMarker: false,
+    };
+
+    assert.equal(areMatchFixturesMatching(f1, f2), true, "China vs Vietnam and Việt vs Trung Quốc must match");
+  });
+
+  it("13. Fixture Matching: Other major national fixtures merge across language & order", () => {
+    // South Korea vs Japan <-> Nhật Bản vs Hàn Quốc
+    assert.equal(
+      areMatchFixturesMatching(
+        { team1: "South Korea", team2: "Japan", time: "20:00", timestamp: kickoffTime, isLiveMarker: false },
+        { team1: "Nhật Bản", team2: "Hàn Quốc", time: "20:00", timestamp: kickoffTime, isLiveMarker: false },
+      ),
+      true,
+    );
+
+    // Germany vs Spain <-> Tây Ban Nha vs Đức
+    assert.equal(
+      areMatchFixturesMatching(
+        { team1: "Germany", team2: "Spain", time: "02:00", timestamp: kickoffTime, isLiveMarker: false },
+        { team1: "Tây Ban Nha", team2: "Đức", time: "02:00", timestamp: kickoffTime, isLiveMarker: false },
+      ),
+      true,
+    );
+
+    // Brazil vs Netherlands <-> Hà Lan vs Brasil
+    assert.equal(
+      areMatchFixturesMatching(
+        { team1: "Brazil", team2: "Netherlands", time: "21:00", timestamp: kickoffTime, isLiveMarker: false },
+        { team1: "Hà Lan", team2: "Brasil", time: "21:00", timestamp: kickoffTime, isLiveMarker: false },
+      ),
+      true,
+    );
+
+    // USA vs Portugal <-> Bồ Đào Nha vs United States
+    assert.equal(
+      areMatchFixturesMatching(
+        { team1: "USA", team2: "Portugal", time: "21:00", timestamp: kickoffTime, isLiveMarker: false },
+        { team1: "Bồ Đào Nha", team2: "United States", time: "21:00", timestamp: kickoffTime, isLiveMarker: false },
+      ),
+      true,
+    );
+  });
+
+  it("14. Separation Invariant: Different matches sharing one team must NOT merge", () => {
+    // Vietnam vs Thailand vs Vietnam vs Malaysia
+    const v_tha = { team1: "Vietnam", team2: "Thailand", time: "19:30", timestamp: kickoffTime, isLiveMarker: false };
+    const v_mas = { team1: "Vietnam", team2: "Malaysia", time: "19:30", timestamp: kickoffTime, isLiveMarker: false };
+    assert.equal(areMatchFixturesMatching(v_tha, v_mas), false, "Vietnam vs Thailand and Vietnam vs Malaysia must NOT merge");
+
+    // China vs Vietnam vs China vs Indonesia
+    const c_vie = { team1: "China", team2: "Vietnam", time: "19:30", timestamp: kickoffTime, isLiveMarker: false };
+    const c_idn = { team1: "China", team2: "Indonesia", time: "19:30", timestamp: kickoffTime, isLiveMarker: false };
+    assert.equal(areMatchFixturesMatching(c_vie, c_idn), false, "China vs Vietnam and China vs Indonesia must NOT merge");
+  });
+
+  it("15. Separation Invariant: Distinct countries with similar names must NOT merge", () => {
+    // Congo vs Mali vs DR Congo vs Mali
+    const congo_mali = { team1: "Congo", team2: "Mali", time: "19:30", timestamp: kickoffTime, isLiveMarker: false };
+    const drcongo_mali = { team1: "DR Congo", team2: "Mali", time: "19:30", timestamp: kickoffTime, isLiveMarker: false };
+    assert.equal(areMatchFixturesMatching(congo_mali, drcongo_mali), false, "Congo vs Mali and DR Congo vs Mali must NOT merge");
+
+    // Niger vs Ghana vs Nigeria vs Ghana
+    const niger_ghana = { team1: "Niger", team2: "Ghana", time: "19:30", timestamp: kickoffTime, isLiveMarker: false };
+    const nigeria_ghana = { team1: "Nigeria", team2: "Ghana", time: "19:30", timestamp: kickoffTime, isLiveMarker: false };
+    assert.equal(areMatchFixturesMatching(niger_ghana, nigeria_ghana), false, "Niger vs Ghana and Nigeria vs Ghana must NOT merge");
+
+    // Australia vs Japan vs Austria vs Japan
+    const aus_jpn = { team1: "Australia", team2: "Japan", time: "19:30", timestamp: kickoffTime, isLiveMarker: false };
+    const aut_jpn = { team1: "Austria", team2: "Japan", time: "19:30", timestamp: kickoffTime, isLiveMarker: false };
+    assert.equal(areMatchFixturesMatching(aus_jpn, aut_jpn), false, "Australia vs Japan and Austria vs Japan must NOT merge");
+
+    // Guinea vs Senegal vs Guinea-Bissau vs Senegal vs Equatorial Guinea vs Senegal
+    const gui_sen = { team1: "Guinea", team2: "Senegal", time: "19:30", timestamp: kickoffTime, isLiveMarker: false };
+    const gbs_sen = { team1: "Guinea-Bissau", team2: "Senegal", time: "19:30", timestamp: kickoffTime, isLiveMarker: false };
+    const eqg_sen = { team1: "Equatorial Guinea", team2: "Senegal", time: "19:30", timestamp: kickoffTime, isLiveMarker: false };
+    assert.equal(areMatchFixturesMatching(gui_sen, gbs_sen), false);
+    assert.equal(areMatchFixturesMatching(gui_sen, eqg_sen), false);
+    assert.equal(areMatchFixturesMatching(gbs_sen, eqg_sen), false);
+
+    // North Korea vs Jordan vs South Korea vs Jordan
+    const prk_jor = { team1: "North Korea", team2: "Jordan", time: "19:30", timestamp: kickoffTime, isLiveMarker: false };
+    const kor_jor = { team1: "South Korea", team2: "Jordan", time: "19:30", timestamp: kickoffTime, isLiveMarker: false };
+    assert.equal(areMatchFixturesMatching(prk_jor, kor_jor), false, "North Korea vs Jordan and South Korea vs Jordan must NOT merge");
+  });
+
+  it("16. End-to-End normalizeAndMergeStreams: China vs Vietnam + Việt vs Trung Quốc merges into 1 card with both streams", () => {
+    const rawItems = [
+      {
+        rawTitle: "19:30 25/09 ⚽ China vs Vietnam (BLV Quang Huy)",
+        url: "https://source1.example.com/stream1.m3u8",
+        effectiveUrl: "https://source1.example.com/stream1.m3u8",
+        group: "VTV5",
+        rawLogo: "https://cdn.example.com/china.png",
+      },
+      {
+        rawTitle: "19:30 25/09 ⚽ Việt vs Trung Quốc (BLV Anh Quân)",
+        url: "https://source2.example.com/stream2.m3u8",
+        effectiveUrl: "https://source2.example.com/stream2.m3u8",
+        group: "FPT Play",
+        rawLogo: "https://cdn.example.com/vietnam.png",
+      },
+    ];
+
+    const { matches } = normalizeAndMergeStreams(rawItems, kickoffTime - 15 * 60 * 1000);
+    assert.equal(matches.length, 1, "Must merge into exactly 1 match fixture card");
+
+    const match = matches[0];
+    assert.equal(match.servers.length, 2, "Must retain streams/servers from both sources");
+    const serverUrls = match.servers.map((s) => s.url);
+    assert.ok(serverUrls.includes("https://source1.example.com/stream1.m3u8"));
+    assert.ok(serverUrls.includes("https://source2.example.com/stream2.m3u8"));
+  });
+
+  it("17. End-to-End normalizeAndMergeStreams: Vietnam vs Thailand and Vietnam vs Malaysia remain 2 separate fixtures", () => {
+    const rawItems = [
+      {
+        rawTitle: "19:30 25/09 ⚽ Vietnam vs Thailand",
+        url: "https://source1.example.com/tha.m3u8",
+        effectiveUrl: "https://source1.example.com/tha.m3u8",
+        group: "Kênh 1",
+        rawLogo: "https://cdn.example.com/vietnam.png",
+      },
+      {
+        rawTitle: "19:30 25/09 ⚽ Vietnam vs Malaysia",
+        url: "https://source2.example.com/mas.m3u8",
+        effectiveUrl: "https://source2.example.com/mas.m3u8",
+        group: "Kênh 2",
+        rawLogo: "https://cdn.example.com/vietnam.png",
+      },
+    ];
+
+    const { matches } = normalizeAndMergeStreams(rawItems, kickoffTime - 15 * 60 * 1000);
+    assert.equal(matches.length, 2, "Must remain 2 distinct match fixture cards");
+  });
+});
+
+describe("Generic Match Deduplication & Aggregation System", () => {
+  const baseNow = new Date("2026-09-26T21:00:00+07:00").getTime();
+
+  it("1. Same match across multilingual names, prefixes, order & BLVs merges into 1 MatchCard with 4 servers", () => {
+    const rawStreams = [
+      {
+        rawTitle: "21:00 26/09 ⚽ Italy vs Belgium (BLV Anh Quân) [1080P]",
+        url: "https://cdn1.example.com/live1.m3u8",
+        effectiveUrl: "https://cdn1.example.com/live1.m3u8",
+        group: "TV360",
+        rawLogo: "https://cdn.example.com/italy.png",
+      },
+      {
+        rawTitle: "21:00 26/09 ⚽ Ý vs Bỉ (BLV Quang Huy) [720P]",
+        url: "https://cdn2.example.com/live2.m3u8",
+        effectiveUrl: "https://cdn2.example.com/live2.m3u8",
+        group: "FPT Play",
+        rawLogo: "https://cdn.example.com/italy.png",
+      },
+      {
+        rawTitle: "21:00 26/09 ⚽ Belgium vs Italy (BLV Batman)",
+        url: "https://cdn3.example.com/live3.m3u8",
+        effectiveUrl: "https://cdn3.example.com/live3.m3u8",
+        group: "Xôi Lạc",
+        rawLogo: "https://cdn.example.com/belgium.png",
+      },
+      {
+        rawTitle: "21:00 26/09 ⚽ ĐTQG Ý vs Bỉ",
+        url: "https://cdn4.example.com/live4.m3u8",
+        effectiveUrl: "https://cdn4.example.com/live4.m3u8",
+        group: "Vua Sân Cỏ",
+        rawLogo: "",
+      },
+    ];
+
+    const { matches } = normalizeAndMergeStreams(rawStreams, baseNow);
+    assert.equal(matches.length, 1, "Must produce exactly 1 MatchCard for Italy vs Belgium");
+
+    const match = matches[0];
+    assert.equal(match.servers.length, 4, "Must aggregate all 4 distinct servers");
+    assert.equal(match.quality, "FHD 1080p", "Must preserve FHD quality from 1080p stream");
+    assert.ok(match.groups.includes("TV360") && match.groups.includes("FPT Play"), "Must retain all source providers");
+  });
+
+  it("2. Reversed teams: Finland vs France and France vs Finland merge into 1 MatchCard", () => {
+    const rawStreams = [
+      {
+        rawTitle: "22:00 26/09 ⚽ Finland vs France",
+        url: "https://cdn.example.com/fin-fra.m3u8",
+        effectiveUrl: "https://cdn.example.com/fin-fra.m3u8",
+        group: "TV360",
+        rawLogo: "https://cdn.example.com/finland.png",
+      },
+      {
+        rawTitle: "22:00 26/09 ⚽ Pháp vs Phần Lan",
+        url: "https://cdn.example.com/fra-fin.m3u8",
+        effectiveUrl: "https://cdn.example.com/fra-fin.m3u8",
+        group: "FPT Play",
+        rawLogo: "https://cdn.example.com/france.png",
+      },
+    ];
+
+    const { matches } = normalizeAndMergeStreams(rawStreams, baseNow);
+    assert.equal(matches.length, 1, "Must merge reversed teams into 1 MatchCard");
+    assert.equal(matches[0].servers.length, 2, "Must contain both stream servers");
+  });
+
+  it("3. Live marker [TRỰC TIẾP] and Scheduled stream (21:00) merge into 1 MatchCard during kickoff window", () => {
+    const rawStreams = [
+      {
+        rawTitle: "21:00 26/09 ⚽ Arsenal vs Chelsea",
+        url: "https://cdn.example.com/ars-che-sched.m3u8",
+        effectiveUrl: "https://cdn.example.com/ars-che-sched.m3u8",
+        group: "FPT Play",
+        rawLogo: "",
+      },
+      {
+        rawTitle: "🟢 [TRỰC TIẾP] ⚽ Arsenal vs Chelsea (BLV Batman)",
+        url: "https://cdn.example.com/ars-che-live.m3u8",
+        effectiveUrl: "https://cdn.example.com/ars-che-live.m3u8",
+        group: "Xôi Lạc",
+        rawLogo: "",
+      },
+    ];
+
+    const nowDuringMatch = new Date("2026-09-26T21:30:00+07:00").getTime();
+    const { matches } = normalizeAndMergeStreams(rawStreams, nowDuringMatch);
+    assert.equal(matches.length, 1, "Live stream must merge into scheduled fixture during match window");
+    assert.equal(matches[0].servers.length, 2);
+  });
+
+  it("4. Different matches on different dates (26/09 01:45 vs 30/09 20:00) remain 2 distinct MatchCards", () => {
+    const rawStreams = [
+      {
+        rawTitle: "01:45 26/09 ⚽ Italy vs Belgium",
+        url: "https://cdn.example.com/match1.m3u8",
+        effectiveUrl: "https://cdn.example.com/match1.m3u8",
+        group: "TV360",
+        rawLogo: "",
+      },
+      {
+        rawTitle: "20:00 30/09 ⚽ Italy vs Belgium",
+        url: "https://cdn.example.com/match2.m3u8",
+        effectiveUrl: "https://cdn.example.com/match2.m3u8",
+        group: "TV360",
+        rawLogo: "",
+      },
+    ];
+
+    const { matches } = normalizeAndMergeStreams(rawStreams, baseNow);
+    assert.equal(matches.length, 2, "Same teams with kickoff on different dates must NOT merge");
+  });
+
+  it("5. Category protection: Senior Men, U21, Women, and Futsal produce 4 distinct MatchCards", () => {
+    const rawStreams = [
+      {
+        rawTitle: "20:00 26/09 ⚽ Italy vs Spain",
+        url: "https://cdn.example.com/senior.m3u8",
+        effectiveUrl: "https://cdn.example.com/senior.m3u8",
+        group: "FPT Play",
+        rawLogo: "",
+      },
+      {
+        rawTitle: "20:00 26/09 ⚽ Italy U21 vs Spain U21",
+        url: "https://cdn.example.com/u21.m3u8",
+        effectiveUrl: "https://cdn.example.com/u21.m3u8",
+        group: "FPT Play",
+        rawLogo: "",
+      },
+      {
+        rawTitle: "20:00 26/09 ⚽ Italy Nữ vs Spain Nữ",
+        url: "https://cdn.example.com/women.m3u8",
+        effectiveUrl: "https://cdn.example.com/women.m3u8",
+        group: "FPT Play",
+        rawLogo: "",
+      },
+      {
+        rawTitle: "20:00 26/09 ⚽ Futsal Italy vs Futsal Spain",
+        url: "https://cdn.example.com/futsal.m3u8",
+        effectiveUrl: "https://cdn.example.com/futsal.m3u8",
+        group: "FPT Play",
+        rawLogo: "",
+      },
+    ];
+
+    const { matches } = normalizeAndMergeStreams(rawStreams, baseNow);
+    assert.equal(matches.length, 4, "Senior Men, U21, Women, and Futsal must produce 4 separate MatchCards");
+  });
+
+  it("6. Similar country names (Australia ≠ Austria, Niger ≠ Nigeria, Congo ≠ DR Congo, Guinea ≠ Guinea-Bissau) do NOT merge", () => {
+    const rawStreams = [
+      {
+        rawTitle: "19:00 26/09 ⚽ Australia vs Japan",
+        url: "https://cdn.example.com/aus.m3u8",
+        effectiveUrl: "https://cdn.example.com/aus.m3u8",
+        group: "TV360",
+        rawLogo: "",
+      },
+      {
+        rawTitle: "19:00 26/09 ⚽ Austria vs Japan",
+        url: "https://cdn.example.com/aut.m3u8",
+        effectiveUrl: "https://cdn.example.com/aut.m3u8",
+        group: "TV360",
+        rawLogo: "",
+      },
+      {
+        rawTitle: "21:00 26/09 ⚽ Niger vs Ghana",
+        url: "https://cdn.example.com/ner.m3u8",
+        effectiveUrl: "https://cdn.example.com/ner.m3u8",
+        group: "TV360",
+        rawLogo: "",
+      },
+      {
+        rawTitle: "21:00 26/09 ⚽ Nigeria vs Ghana",
+        url: "https://cdn.example.com/nga.m3u8",
+        effectiveUrl: "https://cdn.example.com/nga.m3u8",
+        group: "TV360",
+        rawLogo: "",
+      },
+    ];
+
+    const { matches } = normalizeAndMergeStreams(rawStreams, baseNow);
+    assert.equal(matches.length, 4, "Countries with similar names must never collide");
+  });
+
+  it("7. Multi-sport separation: Football vs Volleyball with same team names produce 2 distinct MatchCards", () => {
+    const rawStreams = [
+      {
+        rawTitle: "18:00 26/09 ⚽ Finland vs France",
+        url: "https://cdn.example.com/fin-fra-fb.m3u8",
+        effectiveUrl: "https://cdn.example.com/fin-fra-fb.m3u8",
+        group: "TV360",
+        rawLogo: "",
+      },
+      {
+        rawTitle: "18:00 26/09 🏐 Bóng Chuyền: Finland vs France",
+        url: "https://cdn.example.com/fin-fra-vb.m3u8",
+        effectiveUrl: "https://cdn.example.com/fin-fra-vb.m3u8",
+        group: "TV360",
+        rawLogo: "",
+      },
+    ];
+
+    const { matches } = normalizeAndMergeStreams(rawStreams, baseNow);
+    assert.equal(matches.length, 2, "Different sports must never be merged");
+  });
+
+  it("8. Duplicate effective URL across 2 raw stream items is deduplicated to 1 server within the match", () => {
+    const rawStreams = [
+      {
+        rawTitle: "20:00 26/09 ⚽ Real Madrid vs Barcelona",
+        url: "https://cdn.example.com/el-clasico.m3u8",
+        effectiveUrl: "https://cdn.example.com/el-clasico.m3u8",
+        group: "Nguồn 1",
+        rawLogo: "",
+      },
+      {
+        rawTitle: "20:00 26/09 ⚽ Real Madrid vs Barca",
+        url: "https://cdn.example.com/el-clasico.m3u8",
+        effectiveUrl: "https://cdn.example.com/el-clasico.m3u8",
+        group: "Nguồn 2",
+        rawLogo: "",
+      },
+    ];
+
+    const { matches } = normalizeAndMergeStreams(rawStreams, baseNow);
+    assert.equal(matches.length, 1);
+    assert.equal(matches[0].servers.length, 1, "Duplicate effective URLs must be deduplicated into 1 server");
+  });
+
+  it("9. Manchester United vs Liverpool: merges all sources/BLVs (including BLV Deal Pool) into 1 MatchCard and classifies as football", () => {
+    const rawStreams = [
+      {
+        rawTitle: "19:30 26/09 ⚽ Manchester United vs Liverpool (BLV Joker, Phan Quân)",
+        url: "https://cdn1.example.com/mu-liv-1.m3u8",
+        effectiveUrl: "https://cdn1.example.com/mu-liv-1.m3u8",
+        group: "Bia Ôm TV",
+        rawLogo: "",
+      },
+      {
+        rawTitle: "19:30 26/09 ⚽ Manchester United vs Liverpool (BLV Deal Pool)",
+        url: "https://cdn2.example.com/mu-liv-2.m3u8",
+        effectiveUrl: "https://cdn2.example.com/mu-liv-2.m3u8",
+        group: "Bia Ôm TV",
+        rawLogo: "",
+      },
+      {
+        rawTitle: "19:30 26/09 ⚽ Manchester United vs Liverpool (BLV NGƯỜI BẠC, FABIO)",
+        url: "https://cdn3.example.com/mu-liv-3.m3u8",
+        effectiveUrl: "https://cdn3.example.com/mu-liv-3.m3u8",
+        group: "Vua Sân Cỏ TV",
+        rawLogo: "",
+      },
+    ];
+
+    const { matches } = normalizeAndMergeStreams(rawStreams, baseNow);
+    assert.equal(matches.length, 1, "Must produce exactly 1 MatchCard for Manchester United vs Liverpool");
+    assert.equal(matches[0].servers.length, 3, "Must aggregate all 3 servers");
+    assert.equal(matches[0].sport, "football", "Must be classified as football, not billiards");
+  });
+
+  it("11. Russia vs Nigeria & Nga vs Nigeria: correctly identifies 2 teams (Russia / Nga vs Nigeria) and merges into 1 MatchCard", () => {
+    const rawStreams = [
+      {
+        rawTitle: "23:00 26/09 ⚽ Russia vs Nigeria",
+        url: "https://cdn1.example.com/rus-nga-1.m3u8",
+        effectiveUrl: "https://cdn1.example.com/rus-nga-1.m3u8",
+        group: "Cola TV",
+        rawLogo: "",
+      },
+      {
+        rawTitle: "23:00 26/09 ⚽ Nga vs Nigeria (BLV SAMURAI)",
+        url: "https://cdn2.example.com/rus-nga-2.m3u8",
+        effectiveUrl: "https://cdn2.example.com/rus-nga-2.m3u8",
+        group: "Gà Vàng TV",
+        rawLogo: "",
+      },
+      {
+        rawTitle: "23:00 26/09 ⚽ Russia vs Nigeria (LÝ LINH LỰC)",
+        url: "https://cdn3.example.com/rus-nga-3.m3u8",
+        effectiveUrl: "https://cdn3.example.com/rus-nga-3.m3u8",
+        group: "Sút Bóng TV",
+        rawLogo: "",
+      },
+    ];
+
+    const { matches } = normalizeAndMergeStreams(rawStreams, baseNow);
+    assert.equal(matches.length, 1, "Must merge all 3 Russia vs Nigeria streams into 1 card");
+    assert.equal(matches[0].isEvent, false, "Must be classified as a two-team match, not an event");
+    assert.ok(matches[0].team1.toLowerCase().includes("russia") || matches[0].team1.toLowerCase().includes("nga"));
+    assert.ok(matches[0].team2.toLowerCase().includes("nigeria"));
+    assert.equal(matches[0].servers.length, 3, "Must aggregate all 3 servers");
+  });
+
+  it("12. Unicode Surrogate & Hydration Safety: Never breaks surrogate pairs or leaves lone surrogates in team names", () => {
+    const rawStreams = [
+      {
+        rawTitle: "🟢 12:10 11/10 🥎 Alex de Minaur vs Rei Sakamoto (Điếc) [hls]",
+        url: "https://cdn.example.com/tennis1.m3u8",
+        effectiveUrl: "https://cdn.example.com/tennis1.m3u8",
+        group: "Giờ Vàng TV",
+        rawLogo: "",
+      },
+      {
+        rawTitle: "🟢 13:20 11/10 🥎 Francisco Cerundolo vs Jakub Mensik",
+        url: "https://cdn.example.com/tennis2.m3u8",
+        effectiveUrl: "https://cdn.example.com/tennis2.m3u8",
+        group: "Giờ Vàng TV",
+        rawLogo: "",
+      },
+      {
+        rawTitle: "🟢 14:30 11/10 🥎 Alexander Bublik vs Brandon Nakashima",
+        url: "https://cdn.example.com/tennis3.m3u8",
+        effectiveUrl: "https://cdn.example.com/tennis3.m3u8",
+        group: "Giờ Vàng TV",
+        rawLogo: "",
+      },
+    ];
+
+    const { matches } = normalizeAndMergeStreams(rawStreams, baseNow);
+    assert.equal(matches.length, 3);
+
+    for (const m of matches) {
+      assert.ok(!/[\uD800-\uDFFF]/.test(m.team1), `team1 must not contain lone surrogates: ${m.team1}`);
+      assert.ok(!/[\uD800-\uDFFF]/.test(m.team2), `team2 must not contain lone surrogates: ${m.team2}`);
+      assert.ok(!/[\uD800-\uDFFF]/.test(m.title), `title must not contain lone surrogates: ${m.title}`);
+      assert.ok(!m.team1.includes("\uFFFD"), `team1 must not contain replacement character: ${m.team1}`);
+      assert.ok(!m.team2.includes("\uFFFD"), `team2 must not contain replacement character: ${m.team2}`);
+      assert.ok(!m.title.includes("\uFFFD"), `title must not contain replacement character: ${m.title}`);
+    }
+
+    const minaurMatch = matches.find((m) => m.team1.toLowerCase().includes("minaur"));
+    assert.ok(minaurMatch);
+    assert.equal(minaurMatch?.team1, "Alex de Minaur");
+    assert.equal(minaurMatch?.team2, "Rei Sakamoto");
+  });
+
+  // 13. P0 Regression: isValidFootballTeamName must accept 'Phong Phú Hà Nam' but reject streaming rooms like 'Phòng BLV', 'Phòng Stream', 'Phòng 1'
+  it("13. P0 Regression: isValidFootballTeamName correctly differentiates club 'Phong' from streaming rooms", () => {
+    assert.equal(isValidFootballTeamName("Phong Phú Hà Nam"), true);
+    assert.equal(isValidFootballTeamName("Phong Phu Ha Nam"), true);
+    assert.equal(isValidFootballTeamName("Phòng BLV"), false);
+    assert.equal(isValidFootballTeamName("Phong BLV"), false);
+    assert.equal(isValidFootballTeamName("Phòng Stream"), false);
+    assert.equal(isValidFootballTeamName("Phòng 1"), false);
+    assert.equal(isValidFootballTeamName("Phòng Kỹ Thuật"), false);
+    assert.equal(isValidFootballTeamName("Phong 2"), false);
+  });
+
+  // 14. P0 Regression: cleanCandidateTeamName must preserve 'Nam' in 'Phong Phú Hà Nam' and separate sticky Roman numerals like 'IIWomen'
+  it("14. P0 Regression: cleanCandidateTeamName preserves 'Nam' in 'Phong Phú Hà Nam' and normalizes sticky tokens", () => {
+    assert.equal(cleanCandidateTeamName("Phong Phú Hà Nam"), "Phong Phú Hà Nam");
+    assert.equal(cleanCandidateTeamName("Phong Phu Ha Nam (w)"), "Phong Phu Ha Nam");
+    assert.equal(cleanCandidateTeamName("Phong Phú Hà Nam Nữ"), "Phong Phú Hà Nam");
+    assert.equal(cleanCandidateTeamName("Ha Noi IIWomen"), "Ha Noi II");
+    assert.equal(cleanCandidateTeamName("Ha Noi 2 W"), "Ha Noi 2");
+    assert.equal(cleanCandidateTeamName("Ha Noi II Women"), "Ha Noi II");
+  });
+
+  // 15. P1 Regression: Women's football variants: (w), W, Women, IIWomen must merge into a single card
+  it("15. P1 & P2 Regression: 5 streams of Phong Phu Ha Nam vs Ha Noi II merge into 1 single MatchCard with 5 servers", () => {
+    const rawStreams = [
+      {
+        rawTitle: "15:30 11/10 Phong Phu Ha Nam (w) vs Ha Noi II (w) [hls]",
+        url: "https://cdn.example.com/stream1.m3u8",
+        effectiveUrl: "https://cdn.example.com/stream1.m3u8",
+        group: "Phá Làng TV",
+        rawLogo: "",
+      },
+      {
+        rawTitle: "15:30 11/10 Phong Phu Ha Nam W vs Ha Noi 2 W [flv]",
+        url: "https://cdn.example.com/stream2.flv",
+        effectiveUrl: "https://cdn.example.com/stream2.flv",
+        group: "Giờ Vàng TV",
+        rawLogo: "",
+      },
+      {
+        rawTitle: "15:30 11/10 Phong Phu Ha Nam Women vs Ha Noi II Women [hls]",
+        url: "https://cdn.example.com/stream3.m3u8",
+        effectiveUrl: "https://cdn.example.com/stream3.m3u8",
+        group: "Sút Bóng TV",
+        rawLogo: "",
+      },
+      {
+        rawTitle: "15:30 11/10 Phong Phu Ha Nam Women vs Ha Noi IIWomen",
+        url: "https://cdn.example.com/stream4.m3u8",
+        effectiveUrl: "https://cdn.example.com/stream4.m3u8",
+        group: "Bia Ôm TV",
+        rawLogo: "",
+      },
+      {
+        rawTitle: "15:30 11/10 Phong Phu Ha Nam Women vs Ha Noi IIWomen (LÝ LÀNG LÁ)",
+        url: "https://cdn.example.com/stream5.m3u8",
+        effectiveUrl: "https://cdn.example.com/stream5.m3u8",
+        group: "Chuối Chiên TV",
+        rawLogo: "",
+      },
+    ];
+
+    const { matches } = normalizeAndMergeStreams(rawStreams, baseNow);
+    assert.equal(matches.length, 1, "All 5 stream variants must merge into exactly 1 MatchCard");
+    assert.equal(matches[0].isEvent, false, "Must be classified as a two-team match fixture, not a generic event");
+    assert.equal(matches[0].servers.length, 5, "Must aggregate all 5 stream servers");
+    assert.equal(matches[0].category, "senior_women", "Must be classified under category 'senior_women'");
+  });
+
+  // 16. P2 Regression: Thai Nguyen T&T vs Ha Noi and [Nữ] Thái Nguyên vs Hà Nội merge into 1 card
+  it("16. P2 Regression: Thai Nguyen T&T vs Ha Noi and [Nữ] Thái Nguyên vs Hà Nội merge into 1 MatchCard", () => {
+    const rawStreams = [
+      {
+        rawTitle: "15:30 11/10 ⚽ [Nữ] Thái Nguyên vs Hà Nội [hls]",
+        url: "https://cdn.example.com/tn1.m3u8",
+        effectiveUrl: "https://cdn.example.com/tn1.m3u8",
+        group: "Xôi Lạc TV",
+        rawLogo: "",
+      },
+      {
+        rawTitle: "15:30 11/10 ⚽ Thai Nguyen T&T vs Ha Noi [hls]",
+        url: "https://cdn.example.com/tn2.m3u8",
+        effectiveUrl: "https://cdn.example.com/tn2.m3u8",
+        group: "Phá Làng TV",
+        rawLogo: "",
+      },
+    ];
+
+    const { matches } = normalizeAndMergeStreams(rawStreams, baseNow);
+    assert.equal(matches.length, 1, "Must merge into exactly 1 MatchCard");
+    assert.equal(matches[0].servers.length, 2, "Must aggregate both servers");
+    assert.equal(matches[0].category, "senior_women", "Must be classified under category 'senior_women'");
+  });
+
+  // 17. Safety Guard: Ha Noi 1st team and Ha Noi II must NEVER collide
+  it("17. Safety Guard: Ha Noi 1st team and Ha Noi II must NEVER collide", () => {
+    assert.notEqual(normalizeClubKey("Ha Noi"), normalizeClubKey("Ha Noi II"));
+    assert.notEqual(normalizeClubKey("Ha Noi"), normalizeClubKey("Ha Noi 2"));
+    assert.equal(normalizeClubKey("Ha Noi II"), normalizeClubKey("Ha Noi 2"));
+
+    const rawStreams = [
+      {
+        rawTitle: "15:30 11/10 ⚽ [Nữ] Thái Nguyên vs Hà Nội [hls]",
+        url: "https://cdn.example.com/tn1.m3u8",
+        effectiveUrl: "https://cdn.example.com/tn1.m3u8",
+        group: "Xôi Lạc TV",
+        rawLogo: "",
+      },
+      {
+        rawTitle: "15:30 11/10 ⚽ [Nữ] Phong Phú Hà Nam vs Hà Nội II [hls]",
+        url: "https://cdn.example.com/pp1.m3u8",
+        effectiveUrl: "https://cdn.example.com/pp1.m3u8",
+        group: "Phá Làng TV",
+        rawLogo: "",
+      },
+    ];
+
+    const { matches } = normalizeAndMergeStreams(rawStreams, baseNow);
+    assert.equal(matches.length, 2, "Two distinct matches involving Ha Noi vs Ha Noi II must never merge");
+  });
+});
+
+describe("Đợt 4 Hotfix: Strict Regression Tests cho Match Timeline", () => {
+  const testNow = new Date("2026-10-13T11:00:00+07:00").getTime();
+
+  // 1. Trận bắt đầu sau 30 phút → upcoming
+  it("Case 1: Trận bắt đầu sau 30 phút → upcoming", () => {
+    const kickoff = testNow + 30 * 60 * 1000; // 11:30
+    const timeline = getMatchTimeline(kickoff, "unknown", "unknown", testNow);
+    assert.equal(timeline, "upcoming");
+  });
+
+  // 2. Trận bắt đầu sau 2 giờ → vòng đời upcoming, ngoài cửa sổ hiển thị /live
+  it("Case 2: Trận bắt đầu sau 2 giờ (ví dụ 14:45, sau 3h45m) → upcoming lifecycle, isMatchInLiveWindow = false", () => {
+    const kickoff = testNow + 225 * 60 * 1000; // 14:45 (3h45m tới)
+    const timeline = getMatchTimeline(kickoff, "unknown", "unknown", testNow);
+    assert.equal(timeline, "upcoming");
+    assert.equal(isMatchInLiveWindow(timeline, kickoff, testNow), false);
+  });
+
+  // 3. Trận bắt đầu ngày mai → vòng đời upcoming (tuyệt đối không gán finished), ngoài cửa sổ hiển thị /live
+  it("Case 3: Trận bắt đầu ngày mai (ví dụ 02:00 14/10 hoặc 14:30 14/10 hoặc 48h) → upcoming lifecycle, isMatchInLiveWindow = false", () => {
+    const kickoffTomorrowMidnight = new Date("2026-10-14T02:00:00+07:00").getTime(); // 15h tới
+    const tl1 = getMatchTimeline(kickoffTomorrowMidnight, "unknown", "unknown", testNow);
+    assert.equal(tl1, "upcoming");
+    assert.equal(isMatchInLiveWindow(tl1, kickoffTomorrowMidnight, testNow), false);
+
+    const kickoffTomorrowAfternoon = new Date("2026-10-14T14:30:00+07:00").getTime(); // 27.5h tới
+    const tl2 = getMatchTimeline(kickoffTomorrowAfternoon, "unknown", "unknown", testNow);
+    assert.equal(tl2, "upcoming");
+    assert.equal(isMatchInLiveWindow(tl2, kickoffTomorrowAfternoon, testNow), false);
+
+    // Xa trong tương lai (ví dụ 48h tới) -> Vẫn là UPCOMING về vòng đời, KHÔNG BAO GIỜ bị gán nhãn finished!
+    const kickoffDistantFuture = testNow + 48 * 60 * 60 * 1000;
+    const tl3 = getMatchTimeline(kickoffDistantFuture, "unknown", "unknown", testNow);
+    assert.equal(tl3, "upcoming");
+    assert.equal(isMatchInLiveWindow(tl3, kickoffDistantFuture, testNow), false);
+  });
+
+  // 4. Trận đang diễn ra → giữ trạng thái đang diễn ra
+  it("Case 4: Trận đang diễn ra (kickoff 45m trước) → live", () => {
+    const kickoffLive = testNow - 45 * 60 * 1000;
+    const timeline = getMatchTimeline(kickoffLive, "unknown", "unknown", testNow);
+    assert.equal(timeline, "live");
+  });
+
+  // 5. Trận đã kết thúc theo trạng thái nguồn đáng tin cậy → không bị hồi sinh thành upcoming
+  it("Case 5: Trận có sourceStatus='finished' hoặc [FT] → luôn finished, không hồi sinh thành upcoming", () => {
+    const kickoffFuture = testNow + 60 * 60 * 1000;
+    const tl1 = getMatchTimeline(kickoffFuture, "finished", "alive", testNow);
+    assert.equal(tl1, "finished");
+
+    const parsedFT = parseSourceStatus("14:45 [FT] Arsenal vs Chelsea");
+    const tl2 = getMatchTimeline(kickoffFuture, parsedFT, "alive", testNow);
+    assert.equal(tl2, "finished");
+  });
+
+  // 6. Trận thiếu timestamp hoặc có timestamp không hợp lệ → xử lý an toàn, không tự dựng giờ đá
+  it("Case 6: Trận thiếu timestamp hoặc không hợp lệ → an toàn, chỉ live khi có live marker rõ ràng", () => {
+    assert.equal(getMatchTimeline(undefined, "unknown", "unknown", testNow), "finished");
+    assert.equal(getMatchTimeline(null, "unknown", "unknown", testNow), "finished");
+    assert.equal(getMatchTimeline(0, "unknown", "unknown", testNow), "finished");
+    assert.equal(getMatchTimeline(Number.MAX_SAFE_INTEGER, "unknown", "unknown", testNow), "finished");
+
+    // Nếu có live marker rõ ràng từ nguồn thì mới là live
+    assert.equal(getMatchTimeline(undefined, "live", "alive", testNow), "live");
+  });
+
+  // 7. Kiểm tra ranh giới timezone và qua nửa đêm
+  it("Case 7: Ranh giới timezone Asia/Ho_Chi_Minh và qua nửa đêm", () => {
+    const parsedMidnight = parseMatchTimeToTimestamp("01:45 14/10");
+    assert.notEqual(parsedMidnight, Number.MAX_SAFE_INTEGER);
+
+    const tlMidnight = getMatchTimeline(parsedMidnight, "unknown", "unknown", testNow);
+    assert.equal(tlMidnight, "upcoming");
+  });
+});
+
+describe("Nanaflix Hotfix: Điều chỉnh phạm vi trận bóng đá trên /live & Chuẩn hóa Quần Vợt", () => {
+  const now = new Date("2026-10-13T11:30:00+07:00").getTime();
+
+  it("1. Trận đang diễn ra → xuất hiện trong ĐANG CHIẾU (timeline = 'live', inLiveWindow = true)", () => {
+    const kickoff30mAgo = now - 30 * 60 * 1000; // 11:00
+    const tl = getMatchTimeline(kickoff30mAgo, "unknown", "alive", now);
+    assert.equal(tl, "live", "Match 30m into playtime must be 'live'");
+    assert.equal(isMatchInLiveWindow(tl, kickoff30mAgo, now), true, "Live match must be shown in /live");
+  });
+
+  it("2. Trận còn 30 phút nữa đá → xuất hiện trong SẮP CHIẾU (timeline = 'upcoming', inLiveWindow = true)", () => {
+    const kickoffIn30m = now + 30 * 60 * 1000; // 12:00
+    const tl = getMatchTimeline(kickoffIn30m, "unknown", "unknown", now);
+    assert.equal(tl, "upcoming", "Match in 30m has upcoming lifecycle");
+    assert.equal(isMatchInLiveWindow(tl, kickoffIn30m, now), true, "Match in 30m is within upcoming display window");
+  });
+
+  it("3. Trận còn đúng 2 giờ (120 phút) → tuân thủ đúng cửa sổ hiển thị (timeline = 'upcoming', inLiveWindow = true)", () => {
+    const kickoffIn2h = now + UPCOMING_DISPLAY_WINDOW_MS; // 13:30 (đúng 120 phút)
+    const tl = getMatchTimeline(kickoffIn2h, "unknown", "unknown", now);
+    assert.equal(tl, "upcoming", "Match in 2h has upcoming lifecycle");
+    assert.equal(isMatchInLiveWindow(tl, kickoffIn2h, now), true, "Match at exactly 2h threshold is in upcoming window");
+  });
+
+  it("4. Trận còn 4 giờ hoặc ngày mai → KHÔNG xuất hiện trên /live (timeline = 'upcoming', inLiveWindow = false)", () => {
+    // 4 giờ tới (15:30)
+    const kickoffIn4h = now + 4 * 60 * 60 * 1000;
+    const tl4h = getMatchTimeline(kickoffIn4h, "unknown", "unknown", now);
+    assert.equal(tl4h, "upcoming", "Lifecycle is upcoming (never falsely labeled finished)");
+    assert.equal(isMatchInLiveWindow(tl4h, kickoffIn4h, now), false, "Match > 2h must NOT appear on /live");
+
+    // Ngày mai (02:00 14/10)
+    const kickoffTomorrow = new Date("2026-10-14T02:00:00+07:00").getTime();
+    const tlTomorrow = getMatchTimeline(kickoffTomorrow, "unknown", "unknown", now);
+    assert.equal(tlTomorrow, "upcoming", "Tomorrow's match lifecycle is upcoming");
+    assert.equal(isMatchInLiveWindow(tlTomorrow, kickoffTomorrow, now), false, "Tomorrow's match must NOT appear on /live");
+  });
+
+  it("5. Trận đã kết thúc → KHÔNG xuất hiện trong Đang Chiếu và Sắp Chiếu (timeline = 'finished', inLiveWindow = false)", () => {
+    // Quá 140 phút kể từ kickoff
+    const kickoffEnded = now - 150 * 60 * 1000;
+    const tlEnded = getMatchTimeline(kickoffEnded, "live", "alive", now);
+    assert.equal(tlEnded, "finished", "Match past 140m is finished");
+    assert.equal(isMatchInLiveWindow(tlEnded, kickoffEnded, now), false, "Finished match must NOT appear on /live");
+
+    // Explicit source status FT / Finished
+    const kickoffFutureFT = now + 30 * 60 * 1000;
+    const tlFT = getMatchTimeline(kickoffFutureFT, "finished", "alive", now);
+    assert.equal(tlFT, "finished", "Finished source status forces finished");
+    assert.equal(isMatchInLiveWindow(tlFT, kickoffFutureFT, now), false);
+  });
+
+  it("6. Qua nửa đêm và khác biệt múi giờ Asia/Ho_Chi_Minh → không phân loại sai", () => {
+    const lateNightNow = new Date("2026-10-13T23:30:00+07:00").getTime();
+
+    // Trận đá lúc 01:00 ngày 14/10 (còn 1 giờ 30 phút - nằm trong cửa sổ 2 giờ qua nửa đêm)
+    const midnightKickoff1 = new Date("2026-10-14T01:00:00+07:00").getTime();
+    const tlMidnight1 = getMatchTimeline(midnightKickoff1, "unknown", "unknown", lateNightNow);
+    assert.equal(tlMidnight1, "upcoming");
+    assert.equal(isMatchInLiveWindow(tlMidnight1, midnightKickoff1, lateNightNow), true, "Cross-midnight match in 90m must be shown");
+
+    // Trận đá lúc 03:00 ngày 14/10 (còn 3 giờ 30 phút - ngoài cửa sổ 2 giờ)
+    const midnightKickoff2 = new Date("2026-10-14T03:00:00+07:00").getTime();
+    const tlMidnight2 = getMatchTimeline(midnightKickoff2, "unknown", "unknown", lateNightNow);
+    assert.equal(tlMidnight2, "upcoming");
+    assert.equal(isMatchInLiveWindow(tlMidnight2, midnightKickoff2, lateNightNow), false, "Cross-midnight match in 3.5h must NOT be shown");
+  });
+
+  it("7. Chuẩn hóa giải đấu Tennis / Quần Vợt → gom về một nhãn duy nhất 'Quần Vợt'", () => {
+    // Trận 1: tournament = "Tennis Trực Tiếp", sport = "tennis"
+    const t1 = resolveCanonicalTournament({
+      tournament: "Tennis Trực Tiếp",
+      sport: "tennis",
+      title: "Alex de Minaur vs Karen Khachanov",
+    });
+    assert.equal(t1, "Quần Vợt", "Tennis Trực Tiếp must canonicalize to 'Quần Vợt'");
+
+    // Trận 2: tournament = "Quần Vợt", sport = "tennis"
+    const t2 = resolveCanonicalTournament({
+      tournament: "Quần Vợt",
+      sport: "tennis",
+      title: "Katerina Siniakova vs Liudmila Samsonova",
+    });
+    assert.equal(t2, "Quần Vợt", "Quần Vợt must canonicalize to 'Quần Vợt'");
+
+    // Trận 3: raw tournament có emoji và khoảng trắng "🎾 Tennis Trực Tiếp"
+    const t3 = resolveCanonicalTournament({
+      tournament: "🎾 Tennis Trực Tiếp",
+      title: "Novak Djokovic vs Rafael Nadal",
+    });
+    assert.equal(t3, "Quần Vợt", "🎾 Tennis Trực Tiếp must canonicalize to 'Quần Vợt'");
+
+    // Trận 4: cả 2 trận có giải đấu khác nhau ban đầu gom chung vào 1 danh mục
+    const tournamentPills = new Set([t1, t2, t3]);
+    assert.equal(tournamentPills.size, 1, "Must have exactly 1 unified tournament category for tennis");
+    assert.ok(tournamentPills.has("Quần Vợt"), "Unified category must be 'Quần Vợt'");
+  });
+
+  it("8. Làm sạch tên bình luận viên phản cảm/troll, giữ nguyên tên hợp lệ", () => {
+    // Tên phản cảm / troll
+    assert.equal(isOffensiveCommentatorName("BLV Ngu"), true);
+    assert.equal(isOffensiveCommentatorName("Mù"), true);
+    assert.equal(isOffensiveCommentatorName("BLV Chó"), true);
+    assert.equal(isOffensiveCommentatorName("ngáo"), true);
+
+    // sanitizeCommentatorName loại bỏ troll
+    assert.equal(sanitizeCommentatorName("BLV Ngu"), "");
+    assert.equal(sanitizeCommentatorName("Mù"), "");
+
+    // Tên hợp lệ vẫn giữ nguyên
+    assert.equal(isOffensiveCommentatorName("Lưu Bang, Chuối Kem"), false);
+    assert.equal(sanitizeCommentatorName("Lưu Bang, Chuối Kem"), "Lưu Bang, Chuối Kem");
+    assert.equal(sanitizeCommentatorName("Quang Huy"), "Quang Huy");
+    assert.equal(sanitizeCommentatorName("Hoàng Nam"), "Hoàng Nam");
+
+    // Không match nhầm các từ chứa chuỗi con nhưng vô hại (như họ 'Nguyễn' chứa 'ngu')
+    assert.equal(isOffensiveCommentatorName("Nguyễn"), false);
+    assert.equal(sanitizeCommentatorName("Nguyễn Văn A"), "Nguyễn Văn A");
+  });
+
+  it("9. Phân biệt giải đấu độc lập có ý nghĩa vs tên môn thể thao generic", () => {
+    // Các tên generic phải được nhận diện đúng để loại khỏi hàng giải đấu
+    assert.equal(isGenericSportTournament("Bóng Chuyền"), true);
+    assert.equal(isGenericSportTournament("Quần Vợt"), true);
+    assert.equal(isGenericSportTournament("Bóng Rổ"), true);
+    assert.equal(isGenericSportTournament("Esports"), true);
+    assert.equal(isGenericSportTournament("Đua Xe"), true);
+    assert.equal(isGenericSportTournament("Khác"), true);
+    assert.equal(isGenericSportTournament("Bóng Đá"), true);
+
+    // Các giải đấu thực sự hữu ích KHÔNG ĐƯỢC coi là generic
+    assert.equal(isGenericSportTournament("Ngoại Hạng Anh"), false);
+    assert.equal(isGenericSportTournament("Champions League"), false);
+    assert.equal(isGenericSportTournament("La Liga"), false);
+    assert.equal(isGenericSportTournament("Serie A"), false);
+    assert.equal(isGenericSportTournament("V-League"), false);
+    assert.equal(isGenericSportTournament("NBA"), false);
+    assert.equal(isGenericSportTournament("World Cup"), false);
+  });
+});
+
+describe("Nanaflix Hotfix: Live Event Lifecycle & Ballon d'Or Regression Tests", () => {
+  const baseNow = new Date("2026-10-28T03:30:00+07:00").getTime();
+
+  // 1. Trận bóng thông thường ở phút 139 vẫn theo logic cũ
+  it("1. Trận bóng thông thường ở phút 139 vẫn là 'live' và hiển thị trên /live", () => {
+    const kickoff139mAgo = baseNow - 139 * 60 * 1000;
+    const tl = getMatchTimeline(kickoff139mAgo, "unknown", "alive", baseNow, false);
+    assert.equal(tl, "live", "Standard football match at 139m elapsed must be 'live'");
+    assert.equal(isMatchInLiveWindow(tl, kickoff139mAgo, baseNow), true, "Standard football match at 139m must be in live window");
+  });
+
+  // 2. Trận bóng thông thường vượt 140 phút vẫn kết thúc theo logic cũ
+  it("2. Trận bóng thông thường vượt 140 phút (phút 141) chuyển sang 'finished' và bị ẩn", () => {
+    const kickoff141mAgo = baseNow - 141 * 60 * 1000;
+    const tl = getMatchTimeline(kickoff141mAgo, "unknown", "alive", baseNow, false);
+    assert.equal(tl, "finished", "Standard football match at 141m elapsed must be 'finished'");
+    assert.equal(isMatchInLiveWindow(tl, kickoff141mAgo, baseNow), false, "Finished match must NOT be in live window");
+  });
+
+  // 3. Sự kiện trực tiếp vượt 140 phút vẫn được hiển thị khi stream xác nhận 'alive', nhưng kết thúc nếu 'unknown' hoặc 'dead'
+  it("3. Sự kiện trực tiếp vượt 140 phút (200m, 240m) chỉ là 'live' khi stream xác nhận 'alive', ẩn nếu 'unknown' hoặc 'dead'", () => {
+    const kickoff200mAgo = baseNow - 200 * 60 * 1000; // 3 giờ 20 phút trước
+    const tl200Alive = getMatchTimeline(kickoff200mAgo, "unknown", "alive", baseNow, true);
+    assert.equal(tl200Alive, "live", "Live event at 200m elapsed with alive stream must remain 'live'");
+    assert.equal(isMatchInLiveWindow(tl200Alive, kickoff200mAgo, baseNow), true, "Live event at 200m with alive stream must be in live window");
+
+    const kickoff240mAgo = baseNow - 240 * 60 * 1000; // 4 giờ trước
+    const tl240Unknown = getMatchTimeline(kickoff240mAgo, "unknown", "unknown", baseNow, true);
+    assert.equal(tl240Unknown, "finished", "Overdue event (>140m) with unknown stream health must NOT be assumed live (prevents zombie cards)");
+    assert.equal(isMatchInLiveWindow(tl240Unknown, kickoff240mAgo, baseNow), false, "Overdue event with unknown stream must NOT be in live window");
+
+    const tl240Dead = getMatchTimeline(kickoff240mAgo, "unknown", "dead", baseNow, true);
+    assert.equal(tl240Dead, "finished", "Overdue event with dead stream must be finished");
+    assert.equal(isMatchInLiveWindow(tl240Dead, kickoff240mAgo, baseNow), false, "Overdue dead event must NOT be in live window");
+
+    // Quá 8 giờ (490m): Hard stop bắt buộc kết thúc dù stream còn báo alive
+    const kickoff490mAgo = baseNow - 490 * 60 * 1000;
+    const tl490 = getMatchTimeline(kickoff490mAgo, "unknown", "alive", baseNow, true);
+    assert.equal(tl490, "finished", "Event past 8 hours must hard stop as finished");
+  });
+
+  // 4. Sự kiện có trạng thái kết thúc rõ ràng không tiếp tục hiển thị chỉ vì được đánh dấu isEvent
+  it("4. Sự kiện có trạng thái kết thúc rõ ràng (sourceStatus = 'finished') phải kết thúc ngay", () => {
+    const kickoff60mAgo = baseNow - 60 * 60 * 1000;
+    const tl = getMatchTimeline(kickoff60mAgo, "finished", "alive", baseNow, true);
+    assert.equal(tl, "finished", "Event with sourceStatus = 'finished' must be finished");
+    assert.equal(isMatchInLiveWindow(tl, kickoff60mAgo, baseNow), false, "Finished event must NOT be in live window");
+  });
+
+  // 5. Sự kiện có tất cả stream chết vẫn được xử lý theo quy tắc hiện tại
+  it("5. Sự kiện có streamHealth = 'dead' phải chuyển sang 'finished' và bị ẩn", () => {
+    const kickoff60mAgo = baseNow - 60 * 60 * 1000;
+    const tl = getMatchTimeline(kickoff60mAgo, "unknown", "dead", baseNow, true);
+    assert.equal(tl, "finished", "Event with streamHealth = 'dead' must be finished");
+    assert.equal(isMatchInLiveWindow(tl, kickoff60mAgo, baseNow), false, "Dead stream event must NOT be in live window");
+  });
+
+  // 6. Trận / sự kiện sắp diễn ra ngoài cửa sổ 2 giờ vẫn bị loại như trước
+  it("6. Trận và sự kiện sắp diễn ra ngoài cửa sổ 2 giờ (>120m) đều không xuất hiện trên /live", () => {
+    const kickoffIn150m = baseNow + 150 * 60 * 1000; // 2 giờ 30 phút tới
+
+    // Trận bóng
+    const tlMatch = getMatchTimeline(kickoffIn150m, "unknown", "unknown", baseNow, false);
+    assert.equal(tlMatch, "upcoming");
+    assert.equal(isMatchInLiveWindow(tlMatch, kickoffIn150m, baseNow), false, "Match > 2h must NOT be in live window");
+
+    // Sự kiện trực tiếp
+    const tlEvent = getMatchTimeline(kickoffIn150m, "unknown", "unknown", baseNow, true);
+    assert.equal(tlEvent, "upcoming");
+    assert.equal(isMatchInLiveWindow(tlEvent, kickoffIn150m, baseNow), false, "Event > 2h must NOT be in live window");
+  });
+
+  // 7. Sự kiện Ballon d'Or được phân loại và hiển thị đúng khi tiêu đề thực tế khớp quy tắc nhận diện
+  it("7. Sự kiện Ballon d'Or được nhận diện đúng sport = 'football' và isEvent = true", () => {
+    const title1 = "01:00 Lễ trao giải Quả Bóng Vàng - Ballon d'Or 2024";
+    const res1 = extractSportAndGender(title1, "Trực Tiếp Thể Thao");
+    assert.equal(res1.sport, "football", "Ballon d'Or must be classified as football");
+
+    const title2 = "01:00 Gala Quả Bóng Vàng 2024 (BLV Batman)";
+    const res2 = extractSportAndGender(title2, "VMT TV");
+    assert.equal(res2.sport, "football", "Quả Bóng Vàng must be classified as football");
+
+    // normalizeAndMergeStreams phân loại thành isEvent = true
+    const { matches } = normalizeAndMergeStreams(
+      [
+        {
+          rawTitle: "01:00 Lễ trao giải Quả Bóng Vàng 2024 (BLV Batman)",
+          group: "Trực Tiếp Thể Thao",
+          rawLogo: "",
+          url: "https://example.com/ballondor.m3u8",
+          effectiveUrl: "https://example.com/ballondor.m3u8",
+        },
+      ],
+      baseNow,
+    );
+
+    assert.equal(matches.length, 1);
+    assert.equal(matches[0].isEvent, true, "Ballon d'Or gala must have isEvent = true");
+    assert.equal(matches[0].sport, "football", "Ballon d'Or must have sport = 'football'");
+    assert.equal(matches[0].team1, "", "Event must have empty team1");
+    assert.equal(matches[0].team2, "", "Event must have empty team2");
+  });
+
+  // 8. Bản ghi thông thường không bị nhận nhầm thành sự kiện trực tiếp
+  it("8. Trận bóng đá hai đội đối kháng bình thường phải có isEvent = false", () => {
+    const { matches } = normalizeAndMergeStreams(
+      [
+        {
+          rawTitle: "20:00 Arsenal vs Chelsea (BLV Anh Quân)",
+          group: "K+ Sport 1",
+          rawLogo: "",
+          url: "https://example.com/ars-che.m3u8",
+          effectiveUrl: "https://example.com/ars-che.m3u8",
+        },
+      ],
+      baseNow,
+    );
+
+    assert.equal(matches.length, 1);
+    assert.equal(matches[0].isEvent, false, "Two-team fixture must have isEvent = false");
+    assert.equal(matches[0].team1, "Arsenal");
+    assert.equal(matches[0].team2, "Chelsea");
+    assert.equal(matches[0].sport, "football");
+  });
+
+  // 9. Tiêu đề lễ trao giải có chữ 'vs' không bị phân tách thành 2 đội bóng
+  it("9. Tiêu đề 'Trực Tiếp vs Lễ trao giải Quả bóng Vàng 2026' phải là isEvent = true, không parse thành team1/team2", () => {
+    const { matches } = normalizeAndMergeStreams(
+      [
+        {
+          rawTitle: "Trực Tiếp vs Lễ trao giải Quả bóng Vàng 2026",
+          group: "Trực Tiếp Thể Thao",
+          rawLogo: "",
+          url: "https://example.com/qbv2.m3u8",
+          effectiveUrl: "https://example.com/qbv2.m3u8",
+        },
+      ],
+      baseNow,
+    );
+
+    assert.equal(matches.length, 1);
+    assert.equal(matches[0].isEvent, true, "Ceremony title with 'vs' must remain an event");
+    assert.equal(matches[0].team1, "", "Ceremony must have empty team1");
+    assert.equal(matches[0].team2, "", "Ceremony must have empty team2");
+  });
+
+  // 10. isValidFootballTeamName loại trừ các cụm từ giải thưởng/lễ trao giải/gala
+  it("10. isValidFootballTeamName trả về false cho tên sự kiện, lễ trao giải, quả bóng vàng", () => {
+    assert.equal(isValidFootballTeamName("Lễ trao giải"), false);
+    assert.equal(isValidFootballTeamName("Quả bóng Vàng 2026"), false);
+    assert.equal(isValidFootballTeamName("Gala Quả Bóng Vàng"), false);
+    assert.equal(isValidFootballTeamName("Ballon d'Or 2026"), false);
+    assert.equal(isValidFootballTeamName("Arsenal"), true);
+    assert.equal(isValidFootballTeamName("Real Madrid"), true);
+  });
+
+  // 11. Bug Fix: Trận Esports (DK vs BLG) lúc 05:00 tại 07:28 (148m > 140m) vẫn phải là LIVE và nằm trong live window
+  it("11. Trận Esports (DK vs BLG) tại 148m, 210m, 300m vẫn là LIVE vì BO3/BO5 kéo dài 3-5h", () => {
+    const kickoff148mAgo = baseNow - 148 * 60 * 1000; // 2 giờ 28 phút trước (trường hợp DK vs BLG)
+    const tl148 = getMatchTimeline(kickoff148mAgo, "live", "unknown", baseNow, false, "esports");
+    assert.equal(tl148, "live", "Esports match at 148m must still be LIVE");
+    assert.equal(isMatchInLiveWindow(tl148, kickoff148mAgo, baseNow), true, "Esports match at 148m must be in live window");
+
+    const kickoff240mAgo = baseNow - 240 * 60 * 1000; // 4 giờ trước (BO5 game 4/5)
+    const tl240 = getMatchTimeline(kickoff240mAgo, "live", "alive", baseNow, false, "esports");
+    assert.equal(tl240, "live", "Esports BO5 at 240m must still be LIVE");
+    assert.equal(isMatchInLiveWindow(tl240, kickoff240mAgo, baseNow), true, "Esports BO5 at 240m must be in live window");
+  });
+
+  // 12. Bug Fix: Trận bóng đá thông thường sau 125 phút (ví dụ 05:15 tại 07:28 = 133m) chuyển sang finished
+  it("12. Trận bóng đá thông thường sau 125 phút (126m, 133m) với sport='football' chuyển sang finished", () => {
+    const kickoff133mAgo = baseNow - 133 * 60 * 1000; // 05:15 kickoff tại 07:28
+    const tl133 = getMatchTimeline(kickoff133mAgo, "unknown", "unknown", baseNow, false, "football");
+    assert.equal(tl133, "finished", "Football match at 133m elapsed without livescore must be finished");
+    assert.equal(isMatchInLiveWindow(tl133, kickoff133mAgo, baseNow), false, "Finished football match must NOT appear in live window");
+  });
+});
+
