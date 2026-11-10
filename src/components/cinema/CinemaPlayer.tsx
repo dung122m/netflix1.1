@@ -676,7 +676,12 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
   }, [videoLink, embedSrc, trailerEmbedSrc, targetProgress, resolvedM3u8]);
 
   const rawEmbedStr = decodeStreamUrl(embedSrc || "");
-  const isEmbedBroken = Boolean(rawEmbedStr && (rawEmbedStr.includes("streamc") || rawEmbedStr.includes("vsmov")));
+  const isEmbedBroken = Boolean(
+    !rawEmbedStr ||
+    rawEmbedStr.includes("streamc") ||
+    rawEmbedStr.includes("vsmov") ||
+    rawEmbedStr.includes("phimapi.com")
+  );
   const isNativeVideo = Boolean(resolvedM3u8 && (!useIframeFallback || isEmbedBroken));
 
   const getEffectiveDuration = useCallback(() => {
@@ -1406,7 +1411,9 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
           networkRetryTimeout = null;
         }
         const currentEmbed = decodeStreamUrl(embedSrc || "");
-        if (currentEmbed && (currentEmbed.includes("streamc") || currentEmbed.includes("vsmov"))) {
+        // Nếu embedSrc là nguồn streamc, vsmov hoặc player.phimapi.com (chỉ là iframe wrapper hay bị chặn/crash trong iframe),
+        // TUYỆT ĐỐI không fallback sang iframe chết, mà giữ lại Native Player và thử startLoad lại
+        if (!currentEmbed || currentEmbed.includes("streamc") || currentEmbed.includes("vsmov") || currentEmbed.includes("phimapi.com")) {
           if (hlsRef.current === hls) {
             hls.startLoad();
           }
@@ -1443,16 +1450,17 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
         switch (data.type) {
           case Hls.ErrorTypes.NETWORK_ERROR:
             hlsNetworkRetryCountRef.current += 1;
-            // Nới số lần thử lại lỗi mạng có thể phục hồi từ 2 lên 4 lần với delay 1s chống dập tải
-            if (hlsNetworkRetryCountRef.current <= 4) {
+            // Nới số lần thử lại lỗi mạng có thể phục hồi từ 2 lên 5 lần với delay tăng dần chống dập tải
+            if (hlsNetworkRetryCountRef.current <= 5) {
               if (networkRetryTimeout) {
                 clearTimeout(networkRetryTimeout);
               }
+              const delay = Math.min(1000 * Math.pow(1.5, hlsNetworkRetryCountRef.current - 1), 3500);
               networkRetryTimeout = setTimeout(() => {
                 if (hlsRef.current === hls) {
                   hls.startLoad();
                 }
-              }, 1000);
+              }, delay);
             } else {
               fallbackToIframe();
             }
