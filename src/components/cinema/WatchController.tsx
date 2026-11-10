@@ -144,6 +144,7 @@ export function WatchController({
 
   const prevInitialSlugRef = useRef(initialEpisodeSlug);
   const hasInitializedHistoryRef = useRef<string | null>(null);
+  const streamFetchTriedRef = useRef<Set<string>>(new Set());
 
   // Ghi nhận lịch sử xem duy nhất 1 lần khi mount trang hoặc khởi tạo tập phim
   useEffect(() => {
@@ -194,11 +195,17 @@ export function WatchController({
     }
   }, [initialEpisodeSlug, episodes]);
 
-  // Tự động nạp stream on-demand nếu tập hiện tại chưa có liên kết streaming (chống lỗi tập trắng)
+  // Tự động nạp stream on-demand nếu tập hiện tại chưa có direct m3u8 hoặc chưa có liên kết streaming (nâng cấp lên direct HLS)
   useEffect(() => {
     if (!movieSlug || !activeEpisodeSlug) return;
     const targetEp = episodes.find((ep) => ep.slug === activeEpisodeSlug) || findEpisodeMatch(episodes, activeEpisodeSlug);
-    if (targetEp && !targetEp.link_m3u8 && !targetEp.link_embed) {
+    // Nếu chưa có direct link_m3u8 hoặc hoàn toàn chưa có link, chủ động gọi stream API để nâng cấp lên direct HLS
+    const needsStreamUpgrade = targetEp && (!targetEp.link_m3u8 || !targetEp.link_embed);
+    if (needsStreamUpgrade) {
+      const fetchKey = `${movieSlug}_${activeEpisodeSlug}_s${currentServerIndex}`;
+      if (streamFetchTriedRef.current.has(fetchKey)) return;
+      streamFetchTriedRef.current.add(fetchKey);
+
       const serverParam = servers[currentServerIndex]?.server_name ? `&server=${encodeURIComponent(servers[currentServerIndex].server_name)}` : "";
       fetch(`/api/movies/streams?slug=${encodeURIComponent(movieSlug)}&ep=${encodeURIComponent(activeEpisodeSlug)}${serverParam}`)
         .then((res) => res.json())
@@ -320,35 +327,39 @@ export function WatchController({
       setActiveEpisodeSlug(canonicalSlug);
       updateUrlQuietly(canonicalSlug, currentServerIndex, activeProvider);
 
-      // Nếu tập chưa có link streaming (do tách metadata), tải on-demand và cập nhật vào state
-      if (targetEp && !targetEp.link_m3u8 && !targetEp.link_embed) {
-        fetch(`/api/movies/streams?slug=${encodeURIComponent(movieSlug)}&ep=${encodeURIComponent(canonicalSlug)}`)
-          .then((res) => res.json())
-          .then((data) => {
-            if (data?.success && Array.isArray(data.streams) && data.streams.length > 0) {
-              setServers((prevServers) => {
-                return prevServers.map((srv, sIdx) => {
-                  const streamMatch = data.streams.find(
-                    (s: { server_name?: string }) => s.server_name === srv.server_name
-                  ) || data.streams[sIdx] || data.streams[0];
-                  if (!streamMatch) return srv;
+      // Nếu tập chưa có direct link_m3u8, tải on-demand và cập nhật vào state
+      if (targetEp && (!targetEp.link_m3u8 || !targetEp.link_embed)) {
+        const fetchKey = `${movieSlug}_${canonicalSlug}_s${currentServerIndex}`;
+        if (!streamFetchTriedRef.current.has(fetchKey)) {
+          streamFetchTriedRef.current.add(fetchKey);
+          fetch(`/api/movies/streams?slug=${encodeURIComponent(movieSlug)}&ep=${encodeURIComponent(canonicalSlug)}`)
+            .then((res) => res.json())
+            .then((data) => {
+              if (data?.success && Array.isArray(data.streams) && data.streams.length > 0) {
+                setServers((prevServers) => {
+                  return prevServers.map((srv, sIdx) => {
+                    const streamMatch = data.streams.find(
+                      (s: { server_name?: string }) => s.server_name === srv.server_name
+                    ) || data.streams[sIdx] || data.streams[0];
+                    if (!streamMatch) return srv;
 
-                  const updatedData = (srv.server_data || []).map((ep) => {
-                    if (ep.slug === canonicalSlug || ep.name === targetEp?.name) {
-                      return {
-                        ...ep,
-                        link_embed: streamMatch.link_embed || ep.link_embed,
-                        link_m3u8: streamMatch.link_m3u8 || ep.link_m3u8,
-                      };
-                    }
-                    return ep;
+                    const updatedData = (srv.server_data || []).map((ep) => {
+                      if (ep.slug === canonicalSlug || ep.name === targetEp?.name) {
+                        return {
+                          ...ep,
+                          link_embed: streamMatch.link_embed || ep.link_embed,
+                          link_m3u8: streamMatch.link_m3u8 || ep.link_m3u8,
+                        };
+                      }
+                      return ep;
+                    });
+                    return { ...srv, server_data: updatedData };
                   });
-                  return { ...srv, server_data: updatedData };
                 });
-              });
-            }
-          })
-          .catch(() => {});
+              }
+            })
+            .catch(() => {});
+        }
       }
 
       const targetEpForHistory = targetEp;
@@ -402,37 +413,41 @@ export function WatchController({
       setActiveEpisodeSlug(currentTargetSlug);
       updateUrlQuietly(currentTargetSlug, safeIndex, activeProvider);
 
-      // On-demand nạp stream nếu tập trên server mới chưa có link streaming
+      // On-demand nạp stream nếu tập trên server mới chưa có direct link_m3u8
       const targetEp = foundMatch || newEpisodes[0];
-      if (targetEp && !targetEp.link_m3u8 && !targetEp.link_embed && movieSlug && currentTargetSlug) {
-        const sName = newServer?.server_name ? `&server=${encodeURIComponent(newServer.server_name)}` : "";
-        fetch(`/api/movies/streams?slug=${encodeURIComponent(movieSlug)}&ep=${encodeURIComponent(currentTargetSlug)}${sName}`)
-          .then((res) => res.json())
-          .then((data) => {
-            if (data?.success && Array.isArray(data.streams) && data.streams.length > 0) {
-              setServers((prevServers) => {
-                return prevServers.map((srv, sIdx) => {
-                  const streamMatch = data.streams.find(
-                    (s: { server_name?: string }) => s.server_name === srv.server_name
-                  ) || data.streams[sIdx] || data.streams[0];
-                  if (!streamMatch) return srv;
+      if (targetEp && (!targetEp.link_m3u8 || !targetEp.link_embed) && movieSlug && currentTargetSlug) {
+        const fetchKey = `${movieSlug}_${currentTargetSlug}_s${safeIndex}`;
+        if (!streamFetchTriedRef.current.has(fetchKey)) {
+          streamFetchTriedRef.current.add(fetchKey);
+          const sName = newServer?.server_name ? `&server=${encodeURIComponent(newServer.server_name)}` : "";
+          fetch(`/api/movies/streams?slug=${encodeURIComponent(movieSlug)}&ep=${encodeURIComponent(currentTargetSlug)}${sName}`)
+            .then((res) => res.json())
+            .then((data) => {
+              if (data?.success && Array.isArray(data.streams) && data.streams.length > 0) {
+                setServers((prevServers) => {
+                  return prevServers.map((srv, sIdx) => {
+                    const streamMatch = data.streams.find(
+                      (s: { server_name?: string }) => s.server_name === srv.server_name
+                    ) || data.streams[sIdx] || data.streams[0];
+                    if (!streamMatch) return srv;
 
-                  const updatedData = (srv.server_data || []).map((ep) => {
-                    if (ep.slug === currentTargetSlug || ep.name === targetEp?.name) {
-                      return {
-                        ...ep,
-                        link_embed: streamMatch.link_embed || ep.link_embed,
-                        link_m3u8: streamMatch.link_m3u8 || ep.link_m3u8,
-                      };
-                    }
-                    return ep;
+                    const updatedData = (srv.server_data || []).map((ep) => {
+                      if (ep.slug === currentTargetSlug || ep.name === targetEp?.name) {
+                        return {
+                          ...ep,
+                          link_embed: streamMatch.link_embed || ep.link_embed,
+                          link_m3u8: streamMatch.link_m3u8 || ep.link_m3u8,
+                        };
+                      }
+                      return ep;
+                    });
+                    return { ...srv, server_data: updatedData };
                   });
-                  return { ...srv, server_data: updatedData };
                 });
-              });
-            }
-          })
-          .catch(() => {});
+              }
+            })
+            .catch(() => {});
+        }
       }
     },
     [servers, activeEpisodeSlug, activeEpisode, activeProvider, movieSlug, updateUrlQuietly]

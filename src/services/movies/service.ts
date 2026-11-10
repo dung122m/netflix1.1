@@ -766,6 +766,16 @@ const fetchMovieDetailBase = async (
           expireAt: now + 600 * 1000,
           staleUntil: now + 3600 * 1000,
         });
+
+        // Nếu bản ghi trong Redis hoàn toàn không có stream .m3u8 nào (chỉ có embed iframe bên ngoài),
+        // kích hoạt revalidate ngầm để kiểm tra xem upstream đã cập nhật luồng direct m3u8 chưa
+        const hasDirectM3u8 = Array.isArray(data.episodes) && data.episodes.some(
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (s: any) => Array.isArray(s.server_data) && s.server_data.some((e: any) => e.link_m3u8 && String(e.link_m3u8).includes(".m3u8"))
+        );
+        if (!hasDirectM3u8) {
+          revalidateMovieDetail(slug, source, localKey).catch(() => {});
+        }
       }
     }
 
@@ -897,7 +907,7 @@ async function attachRequestedEpisodeStreams(data: any, requestedEpSlug?: string
     const target = list.find((e: RawEpisodeItem) => e.slug === requestedEpSlug || e.name === requestedEpSlug)
       || findEpisodeMatch(list, requestedEpSlug);
     if (!target) continue;
-    if (target.link_m3u8 || target.link_embed) continue;
+    if (target.link_m3u8) continue;
 
     const localKey = `${movieSlug}_any`;
     const mem = movieDetailMemoryCache.get(localKey);
