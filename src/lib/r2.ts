@@ -8,8 +8,6 @@ import r2Manifest from "@/data/r2AssetsManifest.json";
 
 export { getR2QuotaStatus };
 
-const inFlightBannerSyncs = new Set<string>();
-
 /**
  * Tra cứu URL CDN R2 nhanh 0ms cho asset tĩnh đã được pre-warm
  */
@@ -46,73 +44,6 @@ export function getR2BannerUrl(
     }
   }
   return null;
-}
-
-/**
- * Đồng bộ đúng các banner phim thực sự xuất hiện trên Hero Banner (On-Demand Just-In-Time)
- * - Chỉ tải đúng 6-8 phim đang hiển thị cho người dùng, không bao giờ cào thừa thãi
- * - Tự động khử trùng lặp (Dedup qua in-flight set và manifest)
- * - Tuân thủ cầu chì Quota Guard
- */
-export async function syncHeroBannerToR2(
-  slug: string,
-  sourceUrl: string
-): Promise<string | null> {
-  if (
-    !slug ||
-    !sourceUrl ||
-    !sourceUrl.startsWith("http") ||
-    sourceUrl.includes("media.nanaflix.asia")
-  ) {
-    return null;
-  }
-
-  const cleanSlug = slug.toLowerCase().trim();
-  const existing =
-    getR2AssetUrl(`banners/${cleanSlug}`) ||
-    getR2AssetUrl(`banners/${cleanSlug}.jpg`) ||
-    getR2AssetUrl(`banners/${cleanSlug}.webp`);
-  if (existing) return existing;
-
-  if (inFlightBannerSyncs.has(cleanSlug)) return null;
-  inFlightBannerSyncs.add(cleanSlug);
-
-  try {
-    const res = await fetch(sourceUrl, {
-      headers: {
-        "User-Agent":
-          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-        Referer: "https://nanaflix.asia",
-      },
-      signal: AbortSignal.timeout(5000),
-    });
-
-    if (!res.ok) return null;
-    const arrayBuf = await res.arrayBuffer();
-    const buffer = Buffer.from(arrayBuf);
-
-    if (buffer.length < 500 || buffer.length > 2.5 * 1024 * 1024) {
-      return null;
-    }
-
-    const key = `banners/${cleanSlug}.jpg`;
-    const publicUrl = await uploadToR2({
-      key,
-      buffer,
-      contentType: "image/jpeg",
-    });
-
-    if (publicUrl) {
-      (r2Manifest as Record<string, string>)[key] = publicUrl;
-      (r2Manifest as Record<string, string>)[`banners/${cleanSlug}`] = publicUrl;
-      return publicUrl;
-    }
-    return null;
-  } catch {
-    return null;
-  } finally {
-    inFlightBannerSyncs.delete(cleanSlug);
-  }
 }
 
 export const isR2Configured = (): boolean =>

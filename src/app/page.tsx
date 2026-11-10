@@ -10,7 +10,7 @@ import { CuratedMovieSection } from "@/components/CuratedMovieSection";
 import { TmdbTopTrending } from "@/components/TmdbTopTrending";
 import { CommunityTopTrending } from "@/components/CommunityTopTrending";
 import { ForYouPersonalizedRow } from "@/components/ForYouPersonalizedRow";
-import { getR2BannerUrl, syncHeroBannerToR2 } from "@/lib/r2";
+import { getR2BannerUrl } from "@/lib/r2";
 
 const HeroFeatured = dynamic(() =>
   import("@/components/browse/HeroFeatured").then(
@@ -278,7 +278,7 @@ export default async function HomePage({
       ? validTrendingMovies.slice(0, 8)
       : getFeaturedMoviesWithCache(movies);
 
-  // Đảm bảo mọi phim trong Hero Banner đều ưu tiên backdrop R2 CDN sắc nét, chỉ đồng bộ đúng 6-8 phim hiển thị
+  // Đảm bảo mọi phim trong Hero Banner đều ưu tiên backdrop R2 CDN sắc nét (0ms tra cứu tĩnh)
   const heroMovies = await Promise.all(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     rawHeroMovies.map(async (movie: any) => {
@@ -294,9 +294,6 @@ export default async function HomePage({
       }
 
       if (movie?.backdrop_url) {
-        if (slug && typeof movie.backdrop_url === "string" && movie.backdrop_url.startsWith("http")) {
-          syncHeroBannerToR2(slug, movie.backdrop_url).catch(() => {});
-        }
         return movie;
       }
 
@@ -311,9 +308,6 @@ export default async function HomePage({
                 backdrop_url: tmdbR2,
                 thumb_url: tmdbR2,
               };
-            }
-            if (slug && tmdbBackdrop.startsWith("http")) {
-              syncHeroBannerToR2(slug, tmdbBackdrop).catch(() => {});
             }
             return {
               ...movie,
