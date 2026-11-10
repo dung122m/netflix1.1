@@ -289,4 +289,32 @@ describe("Nanaflix Watch History — Regression & Invariant Tests", () => {
     assert.equal(getEpisodeProgress(slug, "tap-2"), 600);
     assert.equal(getEpisodeProgress(slug, "tap-3"), 900);
   });
+
+  it("11. Cloud sync with watchedEpisodes: setWatchHistoryFromSync khôi phục danh sách tập đã xem (tích xanh) khi đổi máy/cài lại Win", () => {
+    const slug = "tham-tu-lung-danh-conan";
+    const cloudWatchedEpisodes = ["tap-1", "tap-2", "tap-51", "tap-52", "tap-70"];
+
+    // Giả lập máy mới cài lại Win (storage rỗng)
+    storage[`nanaflix_watched_eps_${slug}`] = "";
+
+    // Đồng bộ từ Cloud về
+    setWatchHistoryFromSync([
+      {
+        slug,
+        title: "Thám Tử Lừng Danh Conan",
+        poster: "/conan.jpg",
+        episodeSlug: "tap-70",
+        progressSeconds: 1400,
+        durationSeconds: 1500,
+        updatedAt: Date.now(),
+        watchedEpisodes: cloudWatchedEpisodes,
+      },
+    ]);
+
+    // Kiểm tra danh sách tập đã xem được khôi phục thành công vào localStorage
+    const restoredRaw = storage[`nanaflix_watched_eps_${slug}`];
+    assert.ok(restoredRaw, "LocalStorage phải có bản ghi nanaflix_watched_eps_");
+    const parsed = JSON.parse(restoredRaw);
+    assert.deepEqual(parsed.sort(), cloudWatchedEpisodes.sort(), "Danh sách tập đã xem phải trùng khớp 100% với dữ liệu trên Cloud");
+  });
 });

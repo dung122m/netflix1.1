@@ -4,6 +4,7 @@ import {
   registerWatchHistorySyncHandler,
   WatchHistoryItem,
 } from "./watchHistory";
+import { getWatchedEpisodes } from "./episodeTracker";
 import {
   getWatchlist,
   registerWatchlistSyncHandler,
@@ -131,10 +132,18 @@ export function saveWatchItemToCloudDebounced(
         const headers = await getAuthHeaders();
         if (!headers["Authorization" as keyof typeof headers]) return;
 
+        const itemToSync = {
+          ...targetItem,
+          watchedEpisodes:
+            targetItem.watchedEpisodes ||
+            (typeof window !== "undefined" ? getWatchedEpisodes(targetItem.slug) : []),
+          updatedAt: targetItem.updatedAt || Date.now(),
+        };
+
         await fetch("/api/user/history", {
           method: "POST",
           headers,
-          body: JSON.stringify({ items: [{ ...targetItem, updatedAt: targetItem.updatedAt || Date.now() }] }),
+          body: JSON.stringify({ items: [itemToSync] }),
           keepalive: true,
         });
       } catch (err) {
@@ -164,10 +173,18 @@ export function saveWatchItemToCloudDebounced(
       const headers = await getAuthHeaders();
       if (!headers["Authorization" as keyof typeof headers]) return;
 
+      const itemToSync = {
+        ...targetItem,
+        watchedEpisodes:
+          targetItem.watchedEpisodes ||
+          (typeof window !== "undefined" ? getWatchedEpisodes(targetItem.slug) : []),
+        updatedAt: targetItem.updatedAt || Date.now(),
+      };
+
       await fetch("/api/user/history", {
         method: "POST",
         headers,
-        body: JSON.stringify({ items: [{ ...targetItem, updatedAt: targetItem.updatedAt || Date.now() }] }),
+        body: JSON.stringify({ items: [itemToSync] }),
         keepalive: true,
       });
     } catch (err) {
@@ -210,6 +227,9 @@ export async function saveWatchItemsBatchToCloud(
       body: JSON.stringify({
         items: validItems.map((item) => ({
           ...item,
+          watchedEpisodes:
+            item.watchedEpisodes ||
+            (typeof window !== "undefined" ? getWatchedEpisodes(item.slug) : []),
           updatedAt: item.updatedAt || now,
         })),
       }),

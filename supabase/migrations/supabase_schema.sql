@@ -77,6 +77,7 @@ CREATE TABLE IF NOT EXISTS public.watch_history (
   year INTEGER,
   quality TEXT,
   category TEXT,
+  watched_episodes JSONB DEFAULT '[]'::jsonb,
   synced_at BIGINT DEFAULT (EXTRACT(EPOCH FROM NOW()) * 1000)::BIGINT,
   updated_at BIGINT DEFAULT (EXTRACT(EPOCH FROM NOW()) * 1000)::BIGINT
 );

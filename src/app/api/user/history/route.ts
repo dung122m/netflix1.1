@@ -64,6 +64,11 @@ export async function GET(req: NextRequest) {
       category: row.category || "Phim Hay",
       updatedAt: Number(row.updated_at) || Date.now(),
       syncedAt: Number(row.synced_at) || Date.now(),
+      watchedEpisodes: Array.isArray(row.watched_episodes)
+        ? row.watched_episodes
+        : typeof row.watched_episodes === "string"
+        ? (() => { try { return JSON.parse(row.watched_episodes); } catch { return []; } })()
+        : [],
     }));
 
     return NextResponse.json({ success: true, items }, { headers: NO_CACHE_HEADERS });
@@ -126,13 +131,20 @@ export async function POST(req: NextRequest) {
         category: String(item.category || "Phim Hay"),
         synced_at: now,
         updated_at: item.updatedAt ? Number(item.updatedAt) : now,
+        watched_episodes: Array.isArray(item.watchedEpisodes) ? item.watchedEpisodes : [],
       }));
 
     if (rows.length === 0) {
       return NextResponse.json({ success: true, count: 0 });
     }
 
-    const { error } = await supabase.from("watch_history").upsert(rows, { onConflict: "id" });
+    let { error } = await supabase.from("watch_history").upsert(rows, { onConflict: "id" });
+    if (error && (error.message?.includes("watched_episodes") || (error as { code?: string })?.code === "42703")) {
+      // Graceful fallback nếu cột watched_episodes chưa được add trong Supabase Postgres
+      const fallbackRows = rows.map(({ watched_episodes, ...rest }) => rest);
+      const retry = await supabase.from("watch_history").upsert(fallbackRows, { onConflict: "id" });
+      error = retry.error;
+    }
     if (error) {
       return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }

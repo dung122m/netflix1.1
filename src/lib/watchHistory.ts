@@ -1,6 +1,6 @@
 import { auth } from "./firebase";
 import { getOrCreateAnonymousId } from "./analyticsClient";
-import { markEpisodeAsWatched } from "./episodeTracker";
+import { markEpisodeAsWatched, getWatchedEpisodes } from "./episodeTracker";
 
 export type WatchHistorySyncHandler = {
   saveItem: (uid: string, item: WatchHistoryItem, delayMs?: number, options?: { force?: boolean }) => void;
@@ -31,6 +31,7 @@ export interface WatchHistoryItem {
   updatedAt: number;
   progressSeconds?: number;
   durationSeconds?: number;
+  watchedEpisodes?: string[];
 }
 
 const HISTORY_KEY = "nanaflix_watch_history";
@@ -104,6 +105,20 @@ export function setWatchHistoryFromSync(items: WatchHistoryItem[]): void {
     if (hasEpProgressChange) {
       localStorage.setItem(EPISODES_PROGRESS_KEY, JSON.stringify(allProgress));
       window.dispatchEvent(new CustomEvent("watch-progress-updated", { detail: {} }));
+    }
+
+    // Đồng bộ danh sách các tập đã xem từ Cloud vào LocalStorage cho từng phim
+    for (const item of sorted) {
+      if (item.slug && Array.isArray(item.watchedEpisodes) && item.watchedEpisodes.length > 0) {
+        const localWatched = getWatchedEpisodes(item.slug);
+        const merged = Array.from(new Set([...localWatched, ...item.watchedEpisodes]));
+        localStorage.setItem(`nanaflix_watched_eps_${item.slug}`, JSON.stringify(merged));
+        window.dispatchEvent(
+          new CustomEvent("watched-episodes-updated", {
+            detail: { movieSlug: item.slug },
+          })
+        );
+      }
     }
   } catch {}
   window.dispatchEvent(new CustomEvent("watch-history-updated"));
@@ -210,6 +225,24 @@ export const saveEpisodeProgress = (
     // Nếu tập đã hoàn tất (>= 90%), đồng bộ ngay vào danh sách đã xem
     if (isCompleted) {
       markEpisodeAsWatched(movieSlug, episodeSlug);
+
+      // Đẩy cập nhật tập đã xem lên Supabase ngay lập tức nếu user đã đăng nhập
+      if (auth?.currentUser && syncHandler) {
+        const currentList = getWatchHistory();
+        const currentItem = currentList.find((i) => i.slug === movieSlug);
+        if (currentItem) {
+          const updatedItem: WatchHistoryItem = {
+            ...currentItem,
+            episodeSlug,
+            episodeName: meta?.episodeName || currentItem.episodeName,
+            progressSeconds: flooredProg,
+            durationSeconds: flooredDur,
+            updatedAt: now,
+            watchedEpisodes: getWatchedEpisodes(movieSlug),
+          };
+          syncHandler.saveItem(auth.currentUser.uid, updatedItem, 2000, { force: true });
+        }
+      }
     }
   } catch (error) {
     console.error("Lỗi lưu tiến trình tập:", error);
@@ -305,6 +338,11 @@ export const saveWatchHistory = (
         ? undefined
         : existing?.durationSeconds;
 
+    const resolvedWatchedEpisodes =
+      item.watchedEpisodes && item.watchedEpisodes.length > 0
+        ? item.watchedEpisodes
+        : getWatchedEpisodes(item.slug);
+
     const newItem: WatchHistoryItem = {
       ...existing,
       ...item,
@@ -317,6 +355,7 @@ export const saveWatchHistory = (
       type: item.type || existing?.type,
       progressSeconds: resolvedProgressSeconds,
       durationSeconds: resolvedDurationSeconds,
+      watchedEpisodes: resolvedWatchedEpisodes,
       updatedAt: item.updatedAt || Date.now(),
     };
 
