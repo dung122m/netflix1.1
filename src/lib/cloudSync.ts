@@ -135,6 +135,7 @@ export function saveWatchItemToCloudDebounced(
           method: "POST",
           headers,
           body: JSON.stringify({ items: [{ ...targetItem, updatedAt: targetItem.updatedAt || Date.now() }] }),
+          keepalive: true,
         });
       } catch (err) {
         console.warn("Lỗi saveWatchItemToCloudDebounced (force):", err);
@@ -167,6 +168,7 @@ export function saveWatchItemToCloudDebounced(
         method: "POST",
         headers,
         body: JSON.stringify({ items: [{ ...targetItem, updatedAt: targetItem.updatedAt || Date.now() }] }),
+        keepalive: true,
       });
     } catch (err) {
       console.warn("Lỗi saveWatchItemToCloudDebounced:", err);
