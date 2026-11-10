@@ -3177,17 +3177,31 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
                 sizes="100vw"
               />
               <div className="absolute inset-0 bg-black/55" />
-              <div className="relative z-10 text-center px-6">
-                <p className="text-white text-lg md:text-2xl font-semibold">
-                  {isTrailerOnly
-                    ? "Phim đang ở trạng thái trailer/sắp chiếu"
-                    : "Nguồn phát đang được Nanaflix cập nhật"}
-                </p>
-                <p className="text-zinc-300 mt-2 text-sm md:text-base">
-                  {isTrailerOnly
-                    ? "Hiện chưa có tập phát chính thức. Vui lòng quay lại sau."
-                    : "Bạn vui lòng quay lại sau ít phút nhé!"}
-                </p>
+              <div className="relative z-10 text-center px-6 flex flex-col items-center">
+                {isEmbedBroken ? (
+                  <>
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full border-2 border-white/10 border-t-netflix-red animate-spin mb-3" />
+                    <p className="text-white text-base md:text-xl font-semibold">
+                      Đang kết nối luồng phát chất lượng cao...
+                    </p>
+                    <p className="text-zinc-400 mt-1.5 text-xs md:text-sm">
+                      Trình phát đang tự động chuyển sang luồng Full HD trực tiếp
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-white text-lg md:text-2xl font-semibold">
+                      {isTrailerOnly
+                        ? "Phim đang ở trạng thái trailer/sắp chiếu"
+                        : "Nguồn phát đang được Nanaflix cập nhật"}
+                    </p>
+                    <p className="text-zinc-300 mt-2 text-sm md:text-base">
+                      {isTrailerOnly
+                        ? "Hiện chưa có tập phát chính thức. Vui lòng quay lại sau."
+                        : "Bạn vui lòng quay lại sau ít phút nhé!"}
+                    </p>
+                  </>
+                )}
               </div>
             </div>
           )}

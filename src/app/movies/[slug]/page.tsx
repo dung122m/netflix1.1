@@ -3,10 +3,10 @@ import { movieApi, deduplicateServerEpisodes, filterDualServers } from "@/servic
 import { encodeStreamUrl } from "@/lib/streamCrypto";
 
 /**
- * ISR / Edge Cache: Cho phép CDN Cloudflare và Vercel Edge cache response HTML công khai 24 giờ.
- * Ngăn chặn SSR thực thi lại trên mỗi request crawler và bảo vệ Redis DB1 khỏi bùng nổ lệnh GET.
+ * ISR / Edge Cache: Cache response HTML công khai 5 phút trên Vercel Edge / CDN.
+ * Cho phép cập nhật luồng phát mới nhanh chóng mà vẫn bảo vệ máy chủ khỏi bùng nổ lệnh GET.
  */
-export const revalidate = 86400;
+export const revalidate = 300;
 import Link from "next/link";
 import {
   buildMovieDescriptionFallback,
