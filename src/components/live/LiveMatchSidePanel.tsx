@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Clock, Flame, Activity, Search, X } from "lucide-react";
+import { ArrowLeftRight, Clock, Flame, Activity, Search, X } from "lucide-react";
 import { FootballMatch } from "@/services/live/football/service";
 import { LiveMatchScore } from "@/services/live/football-score/types";
 import { MatchTimelineSidebar } from "./MatchTimelineSidebar";
@@ -83,14 +83,14 @@ export function LiveMatchSidePanel({
                 : "text-zinc-400 hover:text-white hover:bg-white/5"
             }`}
           >
-            <Clock className="w-3.5 h-3.5" />
+            <ArrowLeftRight className="w-3.5 h-3.5" />
             <span className="truncate">Đổi trận ({filteredMatches.length})</span>
           </button>
         </div>
       ) : (
         <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-zinc-900 shrink-0">
           <div className="flex items-center gap-2 min-w-0">
-            <Clock className="w-3.5 h-3.5 text-netflix-red shrink-0" />
+            <ArrowLeftRight className="w-3.5 h-3.5 text-netflix-red shrink-0" />
             <span className="text-xs font-black text-white truncate">
               Đổi trận
             </span>

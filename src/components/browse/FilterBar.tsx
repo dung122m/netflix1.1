@@ -8,10 +8,6 @@ import { Tooltip } from "@/components/ui/Tooltip";
 import { getCanonicalGenreSlug, getCanonicalCountrySlug, isRawId } from "@/lib/movieMedia";
 import { useBodyScrollLock } from "@/lib/scrollLock";
 import {
-  Film,
-  Tag,
-  Globe2,
-  Calendar,
   ArrowUpDown,
   ChevronDown,
   Check,
@@ -514,12 +510,11 @@ export const FilterBar: React.FC = () => {
                   : "bg-white/[0.04] text-zinc-300 border-white/[0.06] hover:bg-white/[0.08] hover:text-white hover:border-white/[0.12]"
               }`}
             >
-              <Film className={`w-3.5 h-3.5 flex-none ${currentType ? "text-purple-400" : "text-purple-400/80"}`} />
               <span className="truncate max-w-[110px] sm:max-w-none">
                 {currentType ? activeTypeName : "Loại phim"}
               </span>
               {isPending && pendingGroup === "type" ? (
-                <Loader2 className="w-3.5 h-3.5 text-purple-400 animate-spin flex-none" />
+                <Loader2 className="w-3.5 h-3.5 text-netflix-red animate-spin flex-none" />
               ) : (
                 <ChevronDown
                   className={`w-3.5 h-3.5 text-zinc-400 transition-transform duration-200 flex-none ${
@@ -547,7 +542,6 @@ export const FilterBar: React.FC = () => {
                   : "bg-white/[0.04] text-zinc-300 border-white/[0.06] hover:bg-white/[0.08] hover:text-white hover:border-white/[0.12]"
               }`}
             >
-              <Tag className={`w-3.5 h-3.5 flex-none ${currentCategory ? "text-rose-400" : "text-amber-400/90"}`} />
               <span className="truncate max-w-[110px] sm:max-w-none">
                 {currentCategory ? activeCategoryName : "Thể loại"}
               </span>
@@ -580,12 +574,11 @@ export const FilterBar: React.FC = () => {
                   : "bg-white/[0.04] text-zinc-300 border-white/[0.06] hover:bg-white/[0.08] hover:text-white hover:border-white/[0.12]"
               }`}
             >
-              <Globe2 className={`w-3.5 h-3.5 flex-none ${currentCountry ? "text-sky-400" : "text-sky-400/80"}`} />
               <span className="truncate max-w-[110px] sm:max-w-none">
                 {currentCountry ? activeCountryName : "Quốc gia"}
               </span>
               {isPending && pendingGroup === "country" ? (
-                <Loader2 className="w-3.5 h-3.5 text-sky-400 animate-spin flex-none" />
+                <Loader2 className="w-3.5 h-3.5 text-netflix-red animate-spin flex-none" />
               ) : (
                 <ChevronDown
                   className={`w-3.5 h-3.5 text-zinc-400 transition-transform duration-200 flex-none ${
@@ -613,12 +606,11 @@ export const FilterBar: React.FC = () => {
                   : "bg-white/[0.04] text-zinc-300 border-white/[0.06] hover:bg-white/[0.08] hover:text-white hover:border-white/[0.12]"
               }`}
             >
-              <Calendar className={`w-3.5 h-3.5 flex-none ${currentYear ? "text-emerald-400" : "text-emerald-400/80"}`} />
               <span className="truncate max-w-[110px] sm:max-w-none">
                 {currentYear ? currentYear : "Năm"}
               </span>
               {isPending && pendingGroup === "year" ? (
-                <Loader2 className="w-3.5 h-3.5 text-emerald-400 animate-spin flex-none" />
+                <Loader2 className="w-3.5 h-3.5 text-netflix-red animate-spin flex-none" />
               ) : (
                 <ChevronDown
                   className={`w-3.5 h-3.5 text-zinc-400 transition-transform duration-200 flex-none ${

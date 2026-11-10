@@ -68,10 +68,10 @@ export const ProfilePlayerSettingsTab: React.FC<ProfilePlayerSettingsTabProps> =
           </div>
 
           {/* MẶC ĐỊNH MỞ RẠP PHIM */}
-          <div className="flex items-center justify-between p-4 rounded-2xl bg-zinc-900/60 border border-white/5 hover:border-white/15 transition gap-4">
+          <div className="flex items-center justify-between p-4 rounded-xl bg-zinc-900/60 border border-white/5 hover:border-white/15 transition gap-4">
             <div className="space-y-1 flex-1 min-w-0 pr-2">
               <div className="text-sm font-bold text-white flex items-center gap-2">
-                <Tv className="w-4 h-4 text-amber-400 shrink-0" />
+                <Tv className="w-4 h-4 text-zinc-300 shrink-0" />
                 <span>Mặc định mở Giao diện Rạp Chiếu Phim (Theater Mode)</span>
               </div>
               <p className="text-xs text-zinc-400 leading-normal">
@@ -87,15 +87,15 @@ export const ProfilePlayerSettingsTab: React.FC<ProfilePlayerSettingsTabProps> =
                 }
                 className="sr-only peer"
               />
-              <div className="w-11 h-6 bg-zinc-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
+              <div className="w-11 h-6 bg-zinc-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-netflix-red"></div>
             </label>
           </div>
 
           {/* MẶC ĐỊNH TẮT ĐÈN */}
-          <div className="flex items-center justify-between p-4 rounded-2xl bg-zinc-900/60 border border-white/5 hover:border-white/15 transition gap-4">
+          <div className="flex items-center justify-between p-4 rounded-xl bg-zinc-900/60 border border-white/5 hover:border-white/15 transition gap-4">
             <div className="space-y-1 flex-1 min-w-0 pr-2">
               <div className="text-sm font-bold text-white flex items-center gap-2">
-                <Moon className="w-4 h-4 text-sky-400 shrink-0" />
+                <Moon className="w-4 h-4 text-zinc-300 shrink-0" />
                 <span>Mặc định bật chế độ Tối Màn Hình (Lights Off)</span>
               </div>
               <p className="text-xs text-zinc-400 leading-normal">
@@ -111,15 +111,15 @@ export const ProfilePlayerSettingsTab: React.FC<ProfilePlayerSettingsTabProps> =
                 }
                 className="sr-only peer"
               />
-              <div className="w-11 h-6 bg-zinc-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-sky-500"></div>
+              <div className="w-11 h-6 bg-zinc-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-netflix-red"></div>
             </label>
           </div>
 
           {/* TỰ ĐỘNG BẬT PHỤ ĐỀ */}
-          <div className="flex items-center justify-between p-4 rounded-2xl bg-zinc-900/60 border border-white/5 hover:border-white/15 transition gap-4">
+          <div className="flex items-center justify-between p-4 rounded-xl bg-zinc-900/60 border border-white/5 hover:border-white/15 transition gap-4">
             <div className="space-y-1 flex-1 min-w-0 pr-2">
               <div className="text-sm font-bold text-white flex items-center gap-2">
-                <Subtitles className="w-4 h-4 text-emerald-400 shrink-0" />
+                <Subtitles className="w-4 h-4 text-zinc-300 shrink-0" />
                 <span>Tự động hiển thị phụ đề (Auto Subtitle)</span>
               </div>
               <p className="text-xs text-zinc-400 leading-normal">
@@ -135,21 +135,21 @@ export const ProfilePlayerSettingsTab: React.FC<ProfilePlayerSettingsTabProps> =
                 }
                 className="sr-only peer"
               />
-              <div className="w-11 h-6 bg-zinc-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
+              <div className="w-11 h-6 bg-zinc-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-netflix-red"></div>
             </label>
           </div>
 
           {/* TỐC ĐỘ PHÁT MẶC ĐỊNH */}
-          <div className="p-4 rounded-2xl bg-zinc-900/60 border border-white/5 space-y-3">
+          <div className="p-4 rounded-xl bg-zinc-900/60 border border-white/5 space-y-3">
             <div className="flex items-center justify-between">
               <div>
                 <h5 className="text-sm font-bold text-white flex items-center gap-2">
-                  <Zap className="w-4 h-4 text-amber-400 shrink-0" />
+                  <Zap className="w-4 h-4 text-zinc-300 shrink-0" />
                   <span>Tốc độ phát mặc định</span>
                 </h5>
                 <p className="text-xs text-zinc-400">Tốc độ phát bắt đầu khi mở bất kỳ tập phim nào</p>
               </div>
-              <span className="text-sm font-black text-amber-400 tabular-nums">
+              <span className="text-sm font-bold text-netflix-red tabular-nums">
                 {playerSettings.playbackSpeed}x
               </span>
             </div>

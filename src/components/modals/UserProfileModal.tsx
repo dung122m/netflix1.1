@@ -548,14 +548,14 @@ function UserProfileModalInner({
             aria-label="Xem lịch sử xem phim"
             className="p-1.5 sm:p-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] text-center flex flex-col items-center justify-center transition group min-w-0 overflow-hidden cursor-pointer"
           >
-            <Film className="w-3.5 h-3.5 text-netflix-red mb-0.5 sm:mb-1 group-hover:scale-110 transition flex-shrink-0" />
+            <Film className="w-3.5 h-3.5 text-zinc-400 group-hover:text-white mb-0.5 sm:mb-1 group-hover:scale-110 transition flex-shrink-0" />
             <span className="text-xs sm:text-sm font-black text-white truncate max-w-full">{watchHistoryCount}</span>
             <span className="text-[9.5px] sm:text-[10px] text-zinc-400 truncate max-w-full px-0.5">Lịch sử xem</span>
           </Link>
 
           <div className="p-1.5 sm:p-2.5 rounded-xl bg-white/[0.04] text-center flex flex-col items-center justify-center min-w-0 overflow-hidden">
-            <Flame className="w-3.5 h-3.5 text-amber-400 mb-0.5 sm:mb-1 flex-shrink-0" />
-            <span className="text-xs sm:text-sm font-black text-amber-300 truncate max-w-full">{watchHours}h</span>
+            <Flame className="w-3.5 h-3.5 text-zinc-400 mb-0.5 sm:mb-1 flex-shrink-0" />
+            <span className="text-xs sm:text-sm font-black text-white truncate max-w-full">{watchHours}h</span>
             <span className="text-[9.5px] sm:text-[10px] text-zinc-400 truncate max-w-full px-0.5">Thời gian cày</span>
           </div>
 
@@ -564,7 +564,7 @@ function UserProfileModalInner({
             onClick={() => setIsOpen(false)}
             className="p-1.5 sm:p-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] text-center flex flex-col items-center justify-center transition group min-w-0 overflow-hidden"
           >
-            <Bookmark className="w-3.5 h-3.5 text-amber-400 mb-0.5 sm:mb-1 group-hover:scale-110 transition flex-shrink-0" />
+            <Bookmark className="w-3.5 h-3.5 text-zinc-400 group-hover:text-white mb-0.5 sm:mb-1 group-hover:scale-110 transition flex-shrink-0" />
             <span className="text-xs sm:text-sm font-black text-white truncate max-w-full">{watchlistCount}</span>
             <span className="text-[9.5px] sm:text-[10px] text-zinc-400 truncate max-w-full px-0.5">Phim đã lưu</span>
           </Link>
@@ -574,7 +574,7 @@ function UserProfileModalInner({
             onClick={() => setIsOpen(false)}
             className="p-1.5 sm:p-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] text-center flex flex-col items-center justify-center transition group min-w-0 overflow-hidden"
           >
-            <FolderHeart className="w-3.5 h-3.5 text-netflix-red mb-0.5 sm:mb-1 group-hover:scale-110 transition flex-shrink-0" />
+            <FolderHeart className="w-3.5 h-3.5 text-zinc-400 group-hover:text-white mb-0.5 sm:mb-1 group-hover:scale-110 transition flex-shrink-0" />
             <span className="text-xs sm:text-sm font-black text-white truncate max-w-full">{collectionsCount}</span>
             <span className="text-[9.5px] sm:text-[10px] text-zinc-400 truncate max-w-full px-0.5">Bộ sưu tập</span>
           </Link>
@@ -967,10 +967,11 @@ function UserProfileModalInner({
               </div>
 
               {/* MẶC ĐỊNH MỞ RẠP PHIM (THEATER MODE) */}
-              <div className="flex items-start sm:items-center justify-between p-3 sm:p-3.5 rounded-2xl bg-zinc-900/60 hover:bg-zinc-900/80 transition gap-2.5 sm:gap-3">
+              {/* MẶC ĐỊNH MỞ RẠP PHIM */}
+              <div className="flex items-start sm:items-center justify-between p-3 sm:p-3.5 rounded-xl bg-zinc-900/60 hover:bg-zinc-900/80 transition gap-2.5 sm:gap-3">
                 <div className="space-y-0.5 min-w-0 flex-1 pr-1 sm:pr-3">
                   <div className="text-xs sm:text-sm font-bold text-white flex items-center gap-1.5">
-                    <Tv className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />
+                    <Tv className="w-3.5 h-3.5 text-zinc-300 flex-shrink-0" />
                     <span>Mặc định mở Giao diện Rạp Chiếu Phim</span>
                   </div>
                   <p className="text-[10.5px] sm:text-[11px] text-zinc-400 leading-normal">
@@ -986,15 +987,15 @@ function UserProfileModalInner({
                     }
                     className="sr-only peer"
                   />
-                  <div className="w-11 h-6 bg-zinc-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
+                  <div className="w-11 h-6 bg-zinc-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-netflix-red"></div>
                 </label>
               </div>
 
               {/* MẶC ĐỊNH TẮT ĐÈN (LIGHTS OFF) */}
-              <div className="flex items-start sm:items-center justify-between p-3 sm:p-3.5 rounded-2xl bg-zinc-900/60 hover:bg-zinc-900/80 transition gap-2.5 sm:gap-3">
+              <div className="flex items-start sm:items-center justify-between p-3 sm:p-3.5 rounded-xl bg-zinc-900/60 hover:bg-zinc-900/80 transition gap-2.5 sm:gap-3">
                 <div className="space-y-0.5 min-w-0 flex-1 pr-1 sm:pr-3">
                   <div className="text-xs sm:text-sm font-bold text-white flex items-center gap-1.5">
-                    <Moon className="w-3.5 h-3.5 text-sky-400 flex-shrink-0" />
+                    <Moon className="w-3.5 h-3.5 text-zinc-300 flex-shrink-0" />
                     <span>Mặc định bật chế độ Tối Màn Hình (Lights Off)</span>
                   </div>
                   <p className="text-[10.5px] sm:text-[11px] text-zinc-400 leading-normal">
@@ -1010,15 +1011,15 @@ function UserProfileModalInner({
                     }
                     className="sr-only peer"
                   />
-                  <div className="w-11 h-6 bg-zinc-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-sky-500"></div>
+                  <div className="w-11 h-6 bg-zinc-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-netflix-red"></div>
                 </label>
               </div>
 
               {/* TỰ ĐỘNG BẬT PHỤ ĐỀ */}
-              <div className="flex items-start sm:items-center justify-between p-3 sm:p-3.5 rounded-2xl bg-zinc-900/60 hover:bg-zinc-900/80 transition gap-2.5 sm:gap-3">
+              <div className="flex items-start sm:items-center justify-between p-3 sm:p-3.5 rounded-xl bg-zinc-900/60 hover:bg-zinc-900/80 transition gap-2.5 sm:gap-3">
                 <div className="space-y-0.5 min-w-0 flex-1 pr-1 sm:pr-3">
                   <div className="text-xs sm:text-sm font-bold text-white flex items-center gap-1.5">
-                    <Subtitles className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
+                    <Subtitles className="w-3.5 h-3.5 text-zinc-300 flex-shrink-0" />
                     <span>Tự động hiển thị phụ đề (Auto Subtitle)</span>
                   </div>
                   <p className="text-[10.5px] sm:text-[11px] text-zinc-400 leading-normal">
@@ -1034,18 +1035,18 @@ function UserProfileModalInner({
                     }
                     className="sr-only peer"
                   />
-                  <div className="w-11 h-6 bg-zinc-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
+                  <div className="w-11 h-6 bg-zinc-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-netflix-red"></div>
                 </label>
               </div>
 
               {/* TỐC ĐỘ PHÁT MẶC ĐỊNH */}
-              <div className="p-3 sm:p-3.5 rounded-2xl bg-zinc-900/60 space-y-2">
+              <div className="p-3 sm:p-3.5 rounded-xl bg-zinc-900/60 space-y-2">
                 <div className="flex items-center justify-between">
                   <label className="text-xs sm:text-sm font-bold text-white flex items-center gap-1.5">
-                    <Zap className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />
+                    <Zap className="w-3.5 h-3.5 text-zinc-300 flex-shrink-0" />
                     <span>Tốc độ phát mặc định</span>
                   </label>
-                  <span className="text-xs font-black text-amber-400">
+                  <span className="text-xs font-bold text-netflix-red">
                     {playerSettings.playbackSpeed}x
                   </span>
                 </div>

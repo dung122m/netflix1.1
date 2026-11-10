@@ -2,7 +2,7 @@
 
 import React, { useRef, useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { Compass, ChevronRight } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 
 interface GenreChipItem {
   label: string;
@@ -63,12 +63,9 @@ export function HomeGenreExploreBar() {
         <Link
           href="/browse"
           prefetch={false}
-          className="group inline-flex items-center gap-2.5 outline-none focus-visible:ring-2 focus-visible:ring-netflix-red rounded-xl transition cursor-pointer"
+          className="group inline-flex items-center gap-2 outline-none focus-visible:ring-2 focus-visible:ring-netflix-red rounded-xl transition cursor-pointer"
           title="Khám phá toàn bộ kho phim Nanaflix"
         >
-          <div className="w-8 h-8 rounded-xl bg-netflix-red/15 flex items-center justify-center text-netflix-red shadow-sm flex-shrink-0 group-hover:bg-netflix-red/25 transition-colors">
-            <Compass className="w-4 h-4" />
-          </div>
           <div>
             <h2 className="text-sm sm:text-base font-black text-white tracking-tight flex items-center gap-1.5 group-hover:text-zinc-200 transition-colors">
               <span>Khám Phá Thể Loại</span>

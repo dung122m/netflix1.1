@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useMemo, useEffect, useCallback } from "react";
-import { Play, Flame, Mic, Radio } from "lucide-react";
+import { Play, Flame, Mic, Radio, Trophy } from "lucide-react";
 import { PlayingEqualizer } from "./PlayingEqualizer";
 import { FootballMatch } from "@/services/liveFootballService";
 import { LiveMatchScore } from "@/services/live/football-score/types";
@@ -27,19 +27,6 @@ interface MatchCardProps {
   onSelect: (match: FootballMatch) => void;
   score?: LiveMatchScore | null;
   compact?: boolean;
-}
-
-function getSportIcon(sport?: string): string {
-  if (sport === "basketball") return "🏀";
-  if (sport === "tennis") return "🎾";
-  if (sport === "f1" || sport === "motorsport") return "🏎️";
-  if (sport === "boxing") return "🥊";
-  if (sport === "esports") return "🎮";
-  if (sport === "billiards") return "🎱";
-  if (sport === "volleyball") return "🏐";
-  if (sport === "badminton") return "🏸";
-  if (sport === "football") return "⚽";
-  return "🏆";
 }
 
 /** Fallback hiển thị chữ viết tắt của CLB / ĐTQG: tròn trịa, tối giản, KHÔNG VIỀN cứng */
@@ -367,8 +354,7 @@ function MatchCardInner({ match, isSelected, onSelect, score, compact }: MatchCa
       >
         {/* DÒNG 1: HEADER MINI */}
         <div className="flex items-center justify-between text-[10.5px] text-zinc-400 gap-1.5 pb-1">
-          <span className="truncate font-medium flex items-center gap-1 min-w-0 flex-1">
-            <span className="text-[11px] shrink-0">{getSportIcon(match.sport)}</span>
+          <span className="truncate font-medium min-w-0 flex-1">
             <span className="truncate">{tournamentName}</span>
           </span>
 
@@ -608,11 +594,10 @@ function MatchCardInner({ match, isSelected, onSelect, score, compact }: MatchCa
           {/* Tên giải đấu */}
           <div className="flex items-center gap-1.5 min-w-0 flex-1">
             <span
-              className={`transition-colors text-[11px] sm:text-xs font-medium truncate flex items-center gap-1.5 ${
+              className={`transition-colors text-[11px] sm:text-xs font-medium truncate ${
                 featured.isFeatured ? "text-amber-200/90 font-semibold" : "text-zinc-400 group-hover:text-zinc-300"
               }`}
             >
-              <span className="text-xs shrink-0">{getSportIcon(match.sport)}</span>
               <span className="truncate">{tournamentName}</span>
             </span>
           </div>
@@ -794,7 +779,7 @@ function MatchCardInner({ match, isSelected, onSelect, score, compact }: MatchCa
                     onError={() => setLogoError(true)}
                   />
                 ) : (
-                  <span className="text-base">{getSportIcon(match.sport)}</span>
+                  <Trophy className="w-5 h-5 text-zinc-400" />
                 )}
               </div>
               <strong className={`text-xs sm:text-[13px] line-clamp-2 flex-1 leading-tight ${

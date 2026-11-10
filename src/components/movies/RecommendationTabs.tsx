@@ -4,12 +4,6 @@ import React, { useState, useMemo, useRef, useEffect, useCallback } from "react"
 import Link from "next/link";
 import Image from "next/image";
 import {
-  Compass,
-  Clapperboard,
-  Globe2,
-  Users,
-  Video,
-  Star,
   Shuffle,
   ChevronDown,
   ChevronUp,
@@ -349,7 +343,6 @@ export function RecommendationTabs({
                     : "bg-zinc-900/90 text-zinc-300  hover: hover:text-white hover:bg-zinc-800"
                 }`}
               >
-                <Compass className="w-3 h-3 text-zinc-300 shrink-0" />
                 <span>{variant === "sidebar" ? "Tương Tự" : "Phim Tương Tự"} ({allMovies.length})</span>
               </button>
 
@@ -369,7 +362,6 @@ export function RecommendationTabs({
                       : "bg-zinc-900/90 text-zinc-300  hover: hover:text-white hover:bg-zinc-800"
                   }`}
                 >
-                  <Users className="w-3 h-3 text-purple-300" />
                   <span>{variant === "sidebar" ? actorName : `Diễn viên: ${actorName}`} ({validActorMovies.length})</span>
                 </button>
               )}
@@ -390,7 +382,6 @@ export function RecommendationTabs({
                       : "bg-zinc-900/90 text-zinc-300 hover:text-white hover:bg-zinc-800"
                   }`}
                 >
-                  <Video className="w-3 h-3 text-emerald-300" />
                   <span>{variant === "sidebar" ? directorName : `Đạo diễn: ${directorName}`} ({validDirectorMovies.length})</span>
                 </button>
               )}
@@ -411,7 +402,6 @@ export function RecommendationTabs({
                       : "bg-zinc-900/90 text-zinc-300  hover: hover:text-white hover:bg-zinc-800"
                   }`}
                 >
-                  <Clapperboard className="w-3 h-3 text-rose-300" />
                   <span>{variant === "sidebar" ? genreName : `Thể loại: ${genreName}`} ({genreMovies.length})</span>
                 </button>
               )}
@@ -432,7 +422,6 @@ export function RecommendationTabs({
                       : "bg-zinc-900/90 text-zinc-300  hover: hover:text-white hover:bg-zinc-800"
                   }`}
                 >
-                  <Globe2 className="w-3 h-3 text-sky-300" />
                   <span>{variant === "sidebar" ? countryName : `Quốc gia: ${countryName}`} ({countryMovies.length})</span>
                 </button>
               )}
@@ -453,7 +442,6 @@ export function RecommendationTabs({
                       : "bg-zinc-900/90 text-zinc-300  hover: hover:text-white hover:bg-zinc-800"
                   }`}
                 >
-                  <Star className="w-3 h-3 text-amber-300 fill-current" />
                   <span>Đánh giá cao ({topRatedMovies.length})</span>
                 </button>
               )}

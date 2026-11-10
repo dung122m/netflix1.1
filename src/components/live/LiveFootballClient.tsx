@@ -30,6 +30,7 @@ import {
   Radio,
   X,
   Clock,
+  ArrowLeftRight,
   Trophy,
   Check,
   RotateCcw,
@@ -927,70 +928,6 @@ export function LiveFootballClient({
     };
   }, [validMatches]);
 
-  const availableSports = useMemo(() => {
-    const SPORT_CONFIG: Record<string, { label: string; icon: string }> = {
-      football: { label: "Bóng đá", icon: "⚽" },
-      basketball: { label: "Bóng rổ", icon: "🏀" },
-      tennis: { label: "Quần vợt", icon: "🎾" },
-      volleyball: { label: "Bóng chuyền", icon: "🏐" },
-      esports: { label: "Thể thao điện tử", icon: "🎮" },
-      badminton: { label: "Cầu lông", icon: "🏸" },
-      f1: { label: "Đua xe F1", icon: "🏎️" },
-      motorsport: { label: "Đua xe", icon: "🏍️" },
-      boxing: { label: "Quyền anh", icon: "🥊" },
-      billiards: { label: "Bida", icon: "🎱" },
-      other: { label: "Thể thao khác", icon: "🏆" },
-    };
-
-    const sportCounts: Record<string, number> = {};
-    for (const m of validMatches) {
-      const s = m.sport || "football";
-      sportCounts[s] = (sportCounts[s] || 0) + 1;
-    }
-
-    const priorityOrder = [
-      "football",
-      "basketball",
-      "tennis",
-      "volleyball",
-      "esports",
-      "badminton",
-      "f1",
-      "motorsport",
-      "boxing",
-      "billiards",
-      "other",
-    ];
-
-    const sportsWithData: { key: string; label: string; icon: string; count: number }[] = [];
-
-    for (const key of priorityOrder) {
-      const count = sportCounts[key] || 0;
-      if (count > 0) {
-        const cfg = SPORT_CONFIG[key] || { label: key, icon: "🏆" };
-        sportsWithData.push({
-          key,
-          label: cfg.label,
-          icon: cfg.icon,
-          count,
-        });
-      }
-    }
-
-    for (const [key, count] of Object.entries(sportCounts)) {
-      if (count > 0 && !priorityOrder.includes(key)) {
-        sportsWithData.push({
-          key,
-          label: key.charAt(0).toUpperCase() + key.slice(1),
-          icon: "🏆",
-          count,
-        });
-      }
-    }
-
-    return sportsWithData;
-  }, [validMatches]);
-
   const availableTournaments = useMemo(() => {
     const tourMap: Record<string, number> = {};
     let specificTournamentCount = 0;
@@ -1442,7 +1379,7 @@ export function LiveFootballClient({
                     aria-label={`Đổi trận (${filteredMatches.length} trận khả dụng)`}
                     className="lg:hidden inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-netflix-red hover:brightness-110 active:brightness-95 text-white font-bold text-xs shadow-sm transition cursor-pointer active:scale-95"
                   >
-                    <Clock className="w-3.5 h-3.5 shrink-0" />
+                    <ArrowLeftRight className="w-3.5 h-3.5 shrink-0" />
                     <span>Đổi trận</span>
                     <span className="bg-black/35 text-white text-[10px] font-bold px-1.5 py-0.2 rounded-full shrink-0">
                       {filteredMatches.length}

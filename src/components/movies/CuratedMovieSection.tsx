@@ -3,10 +3,6 @@
 import React, { useState, useRef, useTransition, useCallback, useMemo, useEffect } from "react";
 import Link from "next/link";
 import {
-  Flame,
-  Star,
-  Clapperboard,
-  Clock,
   ChevronRight,
   Film,
   Loader2,
@@ -24,7 +20,6 @@ export type CuratedTabKey = "trending" | "rating" | "theaters" | "latest";
 interface CuratedTabConfig {
   id: CuratedTabKey;
   label: string;
-  icon: React.ReactNode;
   tag: string;
   subtitle: string;
   fetchParams: {
@@ -39,7 +34,6 @@ const CURATED_TABS: CuratedTabConfig[] = [
   {
     id: "trending",
     label: "Thịnh Hành",
-    icon: <Flame className="w-4 h-4 text-orange-500 animate-pulse" />,
     tag: "Xem nhiều nhất",
     subtitle: "Các siêu phẩm điện ảnh & phim bộ đang được quan tâm nhất hôm nay",
     fetchParams: { sort: "views", limit: 12 },
@@ -48,7 +42,6 @@ const CURATED_TABS: CuratedTabConfig[] = [
   {
     id: "rating",
     label: "Đánh Giá Cao",
-    icon: <Star className="w-4 h-4 text-amber-400 fill-amber-400" />,
     tag: "Điểm đánh giá cao",
     subtitle: "Tuyển tập những tác phẩm nghệ thuật đạt điểm đánh giá xuất sắc",
     fetchParams: { sort: "rating", limit: 12 },
@@ -57,7 +50,6 @@ const CURATED_TABS: CuratedTabConfig[] = [
   {
     id: "theaters",
     label: "Chiếu Rạp",
-    icon: <Clapperboard className="w-4 h-4 text-rose-500" />,
     tag: "Bom tấn chiếu rạp",
     subtitle: "Phim chiếu rạp chất lượng cao, hình ảnh & âm thanh sống động",
     fetchParams: { type: "phim-chieu-rap", limit: 12 },
@@ -66,7 +58,6 @@ const CURATED_TABS: CuratedTabConfig[] = [
   {
     id: "latest",
     label: "Mới Cập Nhật",
-    icon: <Clock className="w-4 h-4 text-emerald-400" />,
     tag: "Mới lên sóng",
     subtitle: "Phim mới phát hành và các tập mới nhất vừa được đưa lên hệ thống",
     fetchParams: { sort: "latest", limit: 12 },
@@ -237,13 +228,12 @@ export const CuratedMovieSection: React.FC<CuratedMovieSectionProps> = ({
                 role="tab"
                 aria-selected={isActive}
                 onClick={() => handleSelectTab(tab.id)}
-                className={`flex items-center gap-2 px-3.5 sm:px-5 py-2 sm:py-2.5 rounded-2xl text-xs sm:text-sm font-bold transition-all duration-200 cursor-pointer select-none shrink-0 border ${
+                className={`px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all duration-200 cursor-pointer select-none shrink-0 border ${
                   isActive
                     ? "bg-netflix-red text-white border-netflix-red shadow-md shadow-black/60 scale-[1.02]"
                     : "bg-zinc-900/90 hover:bg-zinc-800 text-zinc-300 hover:text-white border-white/[0.08] hover:border-white/20"
                 }`}
               >
-                {tab.icon}
                 <span>{tab.label}</span>
               </button>
             );

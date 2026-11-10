@@ -48,11 +48,11 @@ import {
 import { LiveShortcutPopover } from "./LiveShortcutPopover";
 import { Tooltip } from "@/components/ui/Tooltip";
 import { ChannelSourceSwitcher } from "./ChannelSourceSwitcher";
-import { TvChannelLogo, getCategoryEmoji, getPageNumbers } from "./TvChannelLogo";
+import { TvChannelLogo, getPageNumbers } from "./TvChannelLogo";
 import { TvChannelDrawer } from "./TvChannelDrawer";
 import { TvChannelGrid } from "./TvChannelGrid";
 
-export { TvChannelLogo, getCategoryEmoji, getPageNumbers, TvChannelDrawer, TvChannelGrid };
+export { TvChannelLogo, getPageNumbers, TvChannelDrawer, TvChannelGrid };
 
 interface LiveTvClientProps {
   initialData: LiveTvData;
@@ -1631,12 +1631,11 @@ export function LiveTvClient({
         </div>
       ) : null}
 
-      {/* 2. DẢI "⭐ KÊNH PHỔ BIẾN / XEM NHIỀU NHẤT" (QUICK ACCESS ROW) */}
+      {/* 2. DẢI "KÊNH PHỔ BIẾN / XEM NHIỀU NHẤT" (QUICK ACCESS ROW) */}
       <div className="space-y-2 pt-2">
         <div className="flex items-center justify-between">
-          <span className="text-xs font-extrabold text-zinc-300 flex items-center gap-1.5 uppercase tracking-wider">
-            <Flame className="w-3.5 h-3.5 text-netflix-red" />
-            <span>Kênh Phổ Biến</span>
+          <span className="text-xs font-bold text-zinc-300 tracking-wide">
+            Kênh phổ biến
           </span>
         </div>
 
@@ -1805,21 +1804,19 @@ export function LiveTvClient({
               {categories.map((cat) => {
                 const count = channels.filter((c) => c.category === cat).length;
                 const isSelected = selectedCategory === cat;
-                const emoji = getCategoryEmoji(cat);
                 return (
                   <button
                     key={cat}
                     type="button"
                     onClick={() => setSelectedCategory(cat)}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1  cursor-pointer ${
+                    className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all flex items-center gap-1.5 cursor-pointer ${
                       isSelected
-                        ? "bg-netflix-red text-white shadow-md shadow-black/50"
-                        : "bg-zinc-900/90 text-zinc-300  hover:text-white"
+                        ? "bg-netflix-red text-white font-bold shadow-md shadow-black/50"
+                        : "bg-zinc-900/90 text-zinc-300 hover:text-white"
                     }`}
                   >
-                    <span>{emoji}</span>
                     <span>{cat.replace("Kênh ", "")}</span>
-                    <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-white/15 text-current font-black">
+                    <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-white/15 text-current font-semibold">
                       {count}
                     </span>
                   </button>
@@ -1843,8 +1840,7 @@ export function LiveTvClient({
           <aside className="hidden lg:flex flex-col w-64 xl:w-72 shrink-0 space-y-3 sticky top-20 rounded-2xl bg-zinc-950/90 p-3.5 backdrop-blur-xl shadow-2xl">
             <div className="flex items-center justify-between pb-2.5 px-1">
               <div className="flex items-center gap-2">
-                <Tv className="w-4 h-4 text-netflix-red" />
-                <h3 className="text-xs font-black uppercase tracking-wider text-white">
+                <h3 className="text-xs font-bold text-white">
                   Danh mục đài TV
                 </h3>
               </div>
@@ -1903,24 +1899,20 @@ export function LiveTvClient({
               {categories.map((cat) => {
                 const count = channels.filter((c) => c.category === cat).length;
                 const isSelected = selectedCategory === cat;
-                const emoji = getCategoryEmoji(cat);
                 return (
                   <button
                     key={cat}
                     type="button"
                     onClick={() => setSelectedCategory(cat)}
-                    className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold transition-all  text-left cursor-pointer ${
+                    className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition-all text-left cursor-pointer ${
                       isSelected
-                        ? "bg-netflix-red text-white shadow-md shadow-black/50"
-                        : " text-zinc-300 hover:bg-white/5 hover:text-white"
+                        ? "bg-netflix-red text-white font-bold shadow-md shadow-black/50"
+                        : "text-zinc-300 hover:bg-white/5 hover:text-white"
                     }`}
                   >
-                    <div className="flex items-center gap-2 truncate pr-2">
-                      <span className="text-sm flex-shrink-0">{emoji}</span>
-                      <span className="truncate">{cat.replace("Kênh ", "")}</span>
-                    </div>
+                    <span className="truncate pr-2">{cat.replace("Kênh ", "")}</span>
                     <span
-                      className={`text-[10px] px-2 py-0.5 rounded-full font-black flex-shrink-0 ${
+                      className={`text-[10px] px-2 py-0.5 rounded-full font-semibold flex-shrink-0 ${
                         isSelected
                           ? "bg-black/30 text-white"
                           : "bg-white/10 text-zinc-400"
@@ -1942,8 +1934,8 @@ export function LiveTvClient({
                 <h2 className="text-lg font-bold text-white flex items-center gap-2">
                   <span>
                     {selectedCategory === "all"
-                      ? "📺 Tất cả kênh truyền hình"
-                      : `${getCategoryEmoji(selectedCategory)} ${selectedCategory}`}
+                      ? "Tất cả kênh truyền hình"
+                      : selectedCategory}
                   </span>
                 </h2>
                 <span className="text-xs px-2.5 py-0.5 rounded-full bg-netflix-red/20 text-netflix-red font-bold">

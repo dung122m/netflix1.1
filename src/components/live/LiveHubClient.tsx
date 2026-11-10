@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useSearchParams } from "next/navigation";
-import { Tv, Trophy, RefreshCw } from "lucide-react";
+import { RefreshCw } from "lucide-react";
 import { LiveFootballData, LiveMatchScore, evaluateEventLifecycle } from "@/services/liveFootballService";
 import { LiveTvData } from "@/services/liveTvService";
 import { LiveFootballClient } from "./LiveFootballClient";
@@ -184,10 +184,6 @@ export function LiveHubClient({ footballData, tvData: initialTvData, initialScor
                   : "text-zinc-400 hover:text-white hover:bg-white/5"
               }`}
             >
-              <Trophy
-                className={`w-3.5 h-3.5 shrink-0 ${activeTab === "sports" ? "text-amber-300" : "text-zinc-400"}`}
-                aria-hidden="true"
-              />
               <span>Thể thao</span>
               <span
                 className={`text-[11px] px-1.5 py-0.2 rounded-full font-medium ${
@@ -211,10 +207,6 @@ export function LiveHubClient({ footballData, tvData: initialTvData, initialScor
                   : "text-zinc-400 hover:text-white hover:bg-white/5"
               }`}
             >
-              <Tv
-                className={`w-3.5 h-3.5 shrink-0 ${activeTab === "tv" ? "text-white" : "text-zinc-400"}`}
-                aria-hidden="true"
-              />
               <span>Truyền hình</span>
               <span
                 className={`text-[11px] px-1.5 py-0.2 rounded-full font-medium ${

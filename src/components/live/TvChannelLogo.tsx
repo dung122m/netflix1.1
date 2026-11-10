@@ -15,25 +15,8 @@ export function getPageNumbers(current: number, total: number): (number | string
   return [1, "...", current, "...", total];
 }
 
-export function getCategoryEmoji(category: string): string {
-  if (category.includes("VTV") && !category.includes("VTVcab")) return "🇻🇳";
-  if (category.includes("HTV")) return "🏙️";
-  if (category.includes("SCTV")) return "⭐";
-  if (category.includes("VTVcab")) return "📺";
-  if (category.includes("Vĩnh Long") || category.includes("THVL")) return "🌾";
-  if (
-    category.includes("Tin Tức") ||
-    category.includes("Thời Sự") ||
-    category.includes("VTC")
-  )
-    return "📰";
-  if (category.includes("Phim") || category.includes("Cinema")) return "🎬";
-  if (category.includes("Địa Phương")) return "📍";
-  if (category.includes("Quốc Tế")) return "🌍";
-  if (category.includes("Thiếu Nhi")) return "🎈";
-  if (category.includes("Âm Nhạc")) return "🎵";
-  if (category.includes("Bóng Đá") || category.includes("Thể Thao")) return "⚽";
-  return "📺";
+export function getCategoryEmoji(_category: string): string {
+  return "";
 }
 
 export interface TvChannelLogoProps {

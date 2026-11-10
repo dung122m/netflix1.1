@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
-import { X, Clock, Film } from "lucide-react";
+import { X, Film } from "lucide-react";
 import {
   getWatchHistory,
   removeWatchHistoryItem,
@@ -318,7 +318,6 @@ function ContinueWatchingRowInner() {
       <SectionHeader
         variant="compact"
         title="Tiếp tục xem"
-        icon={<Clock className="w-5 h-5 text-netflix-red" />}
         actions={
           <Link
             href="/my-list?tab=history"

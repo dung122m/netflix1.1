@@ -698,33 +698,33 @@ export function ProfileClient() {
         <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5 sm:gap-3 pt-4 border-t border-white/10">
           <Link
             href="/my-list?tab=history"
-            className="p-3 rounded-2xl bg-white/[0.03] hover:bg-white/[0.07] border border-white/5 transition flex flex-col items-center justify-center text-center group"
+            className="p-3 rounded-xl bg-white/[0.03] hover:bg-white/[0.07] border border-white/5 transition flex flex-col items-center justify-center text-center group"
           >
-            <History className="w-4 h-4 text-netflix-red mb-1 group-hover:scale-110 transition-transform" />
+            <History className="w-4 h-4 text-zinc-400 group-hover:text-white mb-1 group-hover:scale-110 transition-all" />
             <span className="text-base sm:text-lg font-black text-white tabular-nums">{watchHistoryCount}</span>
             <span className="text-[11px] text-zinc-400 font-medium whitespace-nowrap">Lịch sử xem</span>
           </Link>
 
-          <div className="p-3 rounded-2xl bg-white/[0.03] border border-white/5 flex flex-col items-center justify-center text-center">
-            <Flame className="w-4 h-4 text-amber-400 mb-1" />
+          <div className="p-3 rounded-xl bg-white/[0.03] border border-white/5 flex flex-col items-center justify-center text-center">
+            <Flame className="w-4 h-4 text-zinc-400 mb-1" />
             <span className="text-base sm:text-lg font-black text-white tabular-nums">{watchHours}h</span>
             <span className="text-[11px] text-zinc-400 font-medium whitespace-nowrap">Thời gian cày</span>
           </div>
 
           <Link
             href="/my-list?tab=watchlist"
-            className="p-3 rounded-2xl bg-white/[0.03] hover:bg-white/[0.07] border border-white/5 transition flex flex-col items-center justify-center text-center group"
+            className="p-3 rounded-xl bg-white/[0.03] hover:bg-white/[0.07] border border-white/5 transition flex flex-col items-center justify-center text-center group"
           >
-            <Bookmark className="w-4 h-4 text-sky-400 mb-1 group-hover:scale-110 transition-transform" />
+            <Bookmark className="w-4 h-4 text-zinc-400 group-hover:text-white mb-1 group-hover:scale-110 transition-all" />
             <span className="text-base sm:text-lg font-black text-white tabular-nums">{watchlistCount}</span>
             <span className="text-[11px] text-zinc-400 font-medium whitespace-nowrap">Phim đã lưu</span>
           </Link>
 
           <Link
             href="/my-list?tab=collections"
-            className="p-3 rounded-2xl bg-white/[0.03] hover:bg-white/[0.07] border border-white/5 transition flex flex-col items-center justify-center text-center group"
+            className="p-3 rounded-xl bg-white/[0.03] hover:bg-white/[0.07] border border-white/5 transition flex flex-col items-center justify-center text-center group"
           >
-            <FolderHeart className="w-4 h-4 text-pink-400 mb-1 group-hover:scale-110 transition-transform" />
+            <FolderHeart className="w-4 h-4 text-zinc-400 group-hover:text-white mb-1 group-hover:scale-110 transition-all" />
             <span className="text-base sm:text-lg font-black text-white tabular-nums">{collectionsCount}</span>
             <span className="text-[11px] text-zinc-400 font-medium whitespace-nowrap">Bộ sưu tập</span>
           </Link>
@@ -732,9 +732,9 @@ export function ProfileClient() {
           <button
             type="button"
             onClick={() => handleTabChange("comments")}
-            className="col-span-2 sm:col-span-1 p-3 rounded-2xl bg-white/[0.03] hover:bg-white/[0.07] border border-white/5 transition flex flex-col items-center justify-center text-center group cursor-pointer"
+            className="col-span-2 sm:col-span-1 p-3 rounded-xl bg-white/[0.03] hover:bg-white/[0.07] border border-white/5 transition flex flex-col items-center justify-center text-center group cursor-pointer"
           >
-            <MessageSquare className="w-4 h-4 text-emerald-400 mb-1 group-hover:scale-110 transition-transform" />
+            <MessageSquare className="w-4 h-4 text-zinc-400 group-hover:text-white mb-1 group-hover:scale-110 transition-all" />
             <span className="text-base sm:text-lg font-black text-white tabular-nums">{userComments.length}</span>
             <span className="text-[11px] text-zinc-400 font-medium whitespace-nowrap">
               <span className="sm:hidden">Đánh giá</span>

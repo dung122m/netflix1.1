@@ -5,11 +5,6 @@ import { createPortal } from "react-dom";
 import {
   SlidersHorizontal,
   X,
-  ArrowUpDown,
-  Film,
-  Tag,
-  Globe2,
-  Calendar,
   Check,
 } from "lucide-react";
 import { MOVIE_TYPES, SORT_OPTIONS } from "./filterConstants";
@@ -99,8 +94,7 @@ export const FilterMobileDrawer: React.FC<FilterMobileDrawerProps> = React.memo(
           <div className="flex-1 min-h-0 overflow-y-auto px-4 py-3 space-y-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden overscroll-contain">
             {/* NHÓM 1: SẮP XẾP */}
             <div className="space-y-2">
-              <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider flex items-center gap-1.5">
-                <ArrowUpDown className="w-3.5 h-3.5 text-amber-400" />
+              <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider flex items-center">
                 Sắp xếp theo
               </span>
               <div className="grid grid-cols-2 gap-2">
@@ -129,8 +123,7 @@ export const FilterMobileDrawer: React.FC<FilterMobileDrawerProps> = React.memo(
             {/* NHÓM 2: LOẠI PHIM */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider flex items-center gap-1.5">
-                  <Film className="w-3.5 h-3.5 text-purple-400" />
+                <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider flex items-center">
                   Loại phim
                 </span>
                 {draftType && (
@@ -178,8 +171,7 @@ export const FilterMobileDrawer: React.FC<FilterMobileDrawerProps> = React.memo(
             {/* NHÓM 3: THỂ LOẠI */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider flex items-center gap-1.5">
-                  <Tag className="w-3.5 h-3.5 text-netflix-red" />
+                <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider flex items-center">
                   Thể loại
                 </span>
                 {draftCategory && (
@@ -227,8 +219,7 @@ export const FilterMobileDrawer: React.FC<FilterMobileDrawerProps> = React.memo(
             {/* NHÓM 4: QUỐC GIA */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider flex items-center gap-1.5">
-                  <Globe2 className="w-3.5 h-3.5 text-sky-400" />
+                <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider flex items-center">
                   Quốc gia
                 </span>
                 {draftCountry && (
@@ -276,8 +267,7 @@ export const FilterMobileDrawer: React.FC<FilterMobileDrawerProps> = React.memo(
             {/* NHÓM 5: NĂM PHÁT HÀNH */}
             <div className="space-y-2.5">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider flex items-center gap-1.5">
-                  <Calendar className="w-3.5 h-3.5 text-emerald-400" />
+                <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider flex items-center">
                   <span>Năm phát hành</span>
                 </span>
                 {draftYear && (

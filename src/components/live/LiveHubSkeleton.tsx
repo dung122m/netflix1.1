@@ -22,11 +22,9 @@ export function LiveHubSkeleton() {
         {/* Tab Buttons Skeleton */}
         <div className="flex items-center gap-1 p-1 rounded-lg sm:rounded-xl bg-zinc-900 shrink-0">
           <div className="flex items-center gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 rounded-md sm:rounded-lg bg-netflix-red/30 text-white/50 text-xs font-bold">
-            <Trophy className="w-3.5 h-3.5 opacity-50" />
             <span>Thể Thao</span>
           </div>
           <div className="flex items-center gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 rounded-md sm:rounded-lg bg-white/5 text-zinc-500 text-xs font-bold">
-            <Tv className="w-3.5 h-3.5 opacity-40" />
             <span>Truyền Hình</span>
           </div>
         </div>

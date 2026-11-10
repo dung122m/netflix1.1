@@ -3,7 +3,6 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { SectionHeader } from "@/components/ui/SectionHeader";
 import {
-  Heart,
   RefreshCw,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
@@ -535,8 +534,6 @@ function ForYouPersonalizedRowInner({ fallbackMovies }: ForYouPersonalizedRowPro
       {/* HEADER SECTION */}
       <SectionHeader
         title={`Dành Riêng Cho ${user ? displayName : "Bạn"}`}
-        icon={<Heart className="w-4 h-4 text-white" />}
-        iconBadge
         subtitle={contextText}
         actions={
           <div className="flex items-center justify-between sm:justify-end gap-2">

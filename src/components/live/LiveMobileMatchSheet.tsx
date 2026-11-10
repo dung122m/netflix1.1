@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Clock, Search, X } from "lucide-react";
+import { ArrowLeftRight, Clock, Search, X } from "lucide-react";
 import { FootballMatch } from "@/services/live/football/service";
 import { LiveMatchScore } from "@/services/live/football-score/types";
 import { MatchCard } from "./MatchCard";
@@ -73,8 +73,8 @@ export function LiveMobileMatchSheet({
           {/* Tiêu đề & nút đóng */}
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 min-w-0">
-              <Clock className="w-4 h-4 text-netflix-red shrink-0" />
-              <h3 className="text-sm font-black text-white uppercase tracking-wider truncate">
+              <ArrowLeftRight className="w-4 h-4 text-netflix-red shrink-0" />
+              <h3 className="text-sm font-black text-white truncate">
                 Đổi trận
               </h3>
               <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/10 text-zinc-300 shrink-0">
@@ -203,14 +203,14 @@ export function LiveMobileMatchSheet({
               {/* KHỐI TRẬN SẮP DIỄN RA */}
               {upcomingMatchesList.length > 0 && (
                 <div className="mt-3">
-                  <div className="sticky top-0 z-20 -mx-3 px-3.5 py-2.5 bg-zinc-950 border-b border-sky-500/30 flex items-center justify-between shadow-md">
+                  <div className="sticky top-0 z-20 -mx-3 px-3.5 py-2.5 bg-zinc-950 border-b border-white/10 flex items-center justify-between shadow-md">
                     <div className="flex items-center gap-2">
-                      <Clock className="w-3.5 h-3.5 text-sky-400 shrink-0" />
-                      <span className="text-xs sm:text-[13px] font-black uppercase tracking-wider text-sky-200">
+                      <Clock className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
+                      <span className="text-xs sm:text-[13px] font-bold text-zinc-300">
                         Sắp diễn ra
                       </span>
                     </div>
-                    <span className="text-xs font-black tabular-nums px-2.5 py-0.5 rounded-full bg-sky-500/20 text-sky-200 border border-sky-500/30">
+                    <span className="text-xs font-semibold tabular-nums px-2.5 py-0.5 rounded-full bg-white/10 text-zinc-300 border border-white/10">
                       {upcomingMatchesList.length} trận
                     </span>
                   </div>
