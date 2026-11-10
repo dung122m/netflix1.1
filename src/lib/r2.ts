@@ -8,11 +8,45 @@ import r2Manifest from "@/data/r2AssetsManifest.json";
 
 export { getR2QuotaStatus };
 
+let dynamicManifest: Record<string, string> = { ...(r2Manifest as Record<string, string>) };
+let lastManifestFetch = 0;
+const MANIFEST_REFRESH_INTERVAL_MS = 60 * 60 * 1000; // 1 giờ
+
 /**
- * Tra cứu URL CDN R2 nhanh 0ms cho asset tĩnh đã được pre-warm
+ * Tự động đồng bộ manifest mới nhất từ Cloudflare R2 CDN vào RAM
+ * Cho phép nhận diện asset/banner mới tải lên R2 mà không cần redeploy Vercel
+ */
+export async function refreshR2Manifest(): Promise<void> {
+  const now = Date.now();
+  if (now - lastManifestFetch < MANIFEST_REFRESH_INTERVAL_MS) return;
+  lastManifestFetch = now;
+  try {
+    const publicUrl = process.env.R2_PUBLIC_URL || "https://media.nanaflix.asia";
+    const res = await fetch(`${publicUrl.replace(/\/+$/, "")}/manifest.json`, {
+      signal: AbortSignal.timeout(4000),
+      headers: { Accept: "application/json" },
+    });
+    if (res.ok) {
+      const data = (await res.json()) as Record<string, string>;
+      if (data && typeof data === "object") {
+        dynamicManifest = { ...dynamicManifest, ...data };
+      }
+    }
+  } catch {
+    // Giữ nguyên snapshot hiện tại nếu network lỗi
+  }
+}
+
+/**
+ * Tra cứu URL CDN R2 nhanh 0ms cho asset tĩnh đã được pre-warm (có auto-refresh từ R2 CDN)
  */
 export function getR2AssetUrl(key: string): string | null {
-  return (r2Manifest as Record<string, string>)[key] || null;
+  const match = dynamicManifest[key];
+  if (match) return match;
+  if (typeof window === "undefined" && Date.now() - lastManifestFetch > MANIFEST_REFRESH_INTERVAL_MS) {
+    refreshR2Manifest().catch(() => {});
+  }
+  return null;
 }
 
 /**

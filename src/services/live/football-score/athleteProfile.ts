@@ -13,23 +13,43 @@ type PlayerCatalogItem = {
   [key: string]: any;
 };
 
-// Lazy-loaded in-memory index cho kho cầu thủ (tránh bundle 1.97 MB JSON vào cold start serverless)
+const TOP_PLAYERS_R2_URL =
+  process.env.NEXT_PUBLIC_R2_PUBLIC_URL
+    ? `${process.env.NEXT_PUBLIC_R2_PUBLIC_URL.replace(/\/+$/, "")}/players/data/top-players.json`
+    : "https://media.nanaflix.asia/players/data/top-players.json";
+
+// Lazy-loaded in-memory index cho kho cầu thủ nạp từ Cloudflare R2 CDN (0ms RAM cache sau lần tải đầu, giải phóng 2MB bundle)
 let playerCatalogIndex: Map<string, PlayerCatalogItem> | null = null;
+let inFlightCatalogFetch: Promise<Map<string, PlayerCatalogItem>> | null = null;
 
 async function getPlayerCatalogIndex(): Promise<Map<string, PlayerCatalogItem>> {
-  if (!playerCatalogIndex) {
+  if (playerCatalogIndex) return playerCatalogIndex;
+  if (inFlightCatalogFetch) return inFlightCatalogFetch;
+
+  inFlightCatalogFetch = (async () => {
     try {
-      const mod = await import("@/data/topPlayersCatalog.json");
-      const list = (mod.default || mod) as PlayerCatalogItem[];
-      playerCatalogIndex = new Map<string, PlayerCatalogItem>();
-      for (const p of list) {
-        if (p.id) playerCatalogIndex.set(p.id, p);
+      const res = await fetch(TOP_PLAYERS_R2_URL, {
+        headers: { Accept: "application/json" },
+        signal: AbortSignal.timeout(6000),
+      });
+      if (res.ok) {
+        const list = (await res.json()) as PlayerCatalogItem[];
+        const map = new Map<string, PlayerCatalogItem>();
+        for (const p of list) {
+          if (p.id) map.set(p.id, p);
+        }
+        playerCatalogIndex = map;
+        return map;
       }
-    } catch {
-      playerCatalogIndex = new Map<string, PlayerCatalogItem>();
+    } catch (err) {
+      console.warn("[AthleteProfile] Fetch top-players from R2 failed:", err instanceof Error ? err.message : err);
     }
-  }
-  return playerCatalogIndex;
+    return playerCatalogIndex || new Map<string, PlayerCatalogItem>();
+  })().finally(() => {
+    inFlightCatalogFetch = null;
+  });
+
+  return inFlightCatalogFetch;
 }
 
 
