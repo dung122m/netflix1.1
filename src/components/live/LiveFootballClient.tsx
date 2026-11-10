@@ -1547,71 +1547,10 @@ export function LiveFootballClient({
             <div className="space-y-4 sm:space-y-6">
               {/* THANH BỘ LỌC TÌM KIẾM TOÀN DIỆN & TINH GỌN (TỐI ĐA 2 HÀNG) */}
               <div className="relative z-30 space-y-2 sm:space-y-3 pt-1 pb-2">
-                {/* HÀNG 1: Ô TÌM KIẾM, BỘ LỌC TRẠNG THÁI & CÔNG TẮC PHÁT (TOGGLES) */}
-                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-2 sm:gap-3">
-                  {/* Ô tìm kiếm thông minh: Desktop luôn hiện, Mobile thu gọn thành icon khi trống */}
-                  <div className="hidden lg:block relative w-72 xl:w-80 shrink-0">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 sm:w-4 sm:h-4 text-zinc-400 pointer-events-none" />
-                    <input
-                      type="text"
-                      value={searchQuery}
-                      onChange={(e) => handleSearchChange(e.target.value)}
-                      placeholder="Tìm trận, giải đấu, bình luận viên..."
-                      className="w-full pl-9 pr-9 py-2 sm:py-2.5 rounded-xl bg-zinc-900/90 text-xs sm:text-sm text-white placeholder-zinc-400 focus:outline-none focus: focus:ring-1 focus:ring-netflix-red/50 transition font-medium shadow-inner"
-                    />
-                    {searchQuery && (
-                      <button
-                        type="button"
-                        onClick={() => handleSearchChange("")}
-                        title="Xóa tìm kiếm"
-                        aria-label="Xóa tìm kiếm"
-                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-white p-0.5 cursor-pointer rounded-full hover:bg-white/10 transition"
-                      >
-                        <X className="w-3.5 h-3.5" />
-                      </button>
-                    )}
-                  </div>
-
-                  {/* Thanh tìm kiếm bung rộng trên mobile khi kích hoạt */}
-                  {(isMobileSearchOpen || searchQuery) && (
-                    <div className="flex lg:hidden items-center gap-1.5 w-full">
-                      <div className="relative flex-1">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-400 pointer-events-none" />
-                        <input
-                          type="text"
-                          autoFocus
-                          value={searchQuery}
-                          onChange={(e) => handleSearchChange(e.target.value)}
-                          placeholder="Tìm trận, giải đấu, BLV..."
-                          className="w-full pl-9 pr-8 py-1.5 rounded-xl bg-zinc-900 text-xs text-white placeholder-zinc-400 focus:outline-none shadow-inner min-h-[36px]"
-                        />
-                        {searchQuery && (
-                          <button
-                            type="button"
-                            onClick={() => handleSearchChange("")}
-                            title="Xóa tìm kiếm"
-                            aria-label="Xóa tìm kiếm"
-                            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-white p-0.5 cursor-pointer rounded-full hover:bg-white/10 transition"
-                          >
-                            <X className="w-3.5 h-3.5" />
-                          </button>
-                        )}
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIsMobileSearchOpen(false);
-                          if (searchQuery) handleSearchChange("");
-                        }}
-                        className="px-2.5 py-1.5 rounded-xl bg-zinc-900/90 text-xs font-semibold text-zinc-300 hover:text-white min-h-[36px] shrink-0"
-                      >
-                        Đóng
-                      </button>
-                    </div>
-                  )}
-
-                  {/* THANH ĐIỀU KHIỂN BỘ LỌC TRẬN ĐẤU & BẢNG XẾP HẠNG (THỐNG NHẤT 100% CHIỀU RỘNG TRÊN MOBILE, KHÔNG BỊ CẮT CHỮ) */}
-                  <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto scrollbar-none py-0.5 touch-pan-x w-full">
+                {/* HÀNG 1: BỘ LỌC TRẠNG THÁI (BÊN TRÁI) & Ô TÌM KIẾM (BÊN PHẢI) CÂN ĐỐI */}
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-2.5 sm:gap-3">
+                  {/* THANH ĐIỀU KHIỂN BỘ LỌC TRẬN ĐẤU & BẢNG XẾP HẠNG (NẰM BÊN TRÁI TRÊN DESKTOP) */}
+                  <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto scrollbar-none py-0.5 touch-pan-x shrink-0 max-w-full order-2 lg:order-1">
                     {/* Nút tìm kiếm thu gọn trên Mobile khi chưa mở */}
                     {!isMobileSearchOpen && !searchQuery && (
                       <button
@@ -1619,14 +1558,14 @@ export function LiveFootballClient({
                         onClick={() => setIsMobileSearchOpen(true)}
                         title="Tìm kiếm trận đấu"
                         aria-label="Tìm kiếm trận đấu"
-                        className="lg:hidden flex items-center justify-center w-9 h-9 min-h-[34px] sm:min-h-[38px] rounded-xl bg-zinc-900/90 text-zinc-400 hover:text-white shrink-0 transition"
+                        className="lg:hidden flex items-center justify-center w-9 h-9 min-h-[34px] sm:min-h-[38px] rounded-xl bg-zinc-900/90 text-zinc-400 hover:text-white shrink-0 transition border border-white/10"
                       >
                         <Search className="w-3.5 h-3.5" />
                       </button>
                     )}
 
                     {/* NHÓM TRẠNG THÁI TRẬN ĐẤU & BẢNG XẾP HẠNG (CHUNG 1 CAPSULE LIỀN MẠCH, ĐỒNG BỘ 100%) */}
-                    <div className="flex items-center gap-1 p-0.5 rounded-xl bg-zinc-900/80 border border-white/10 shrink-0">
+                    <div className="flex items-center gap-1 p-0.5 rounded-xl bg-zinc-900/90 border border-white/10 shrink-0 shadow-sm">
                       <button
                         type="button"
                         onClick={() => handleStatusChange("all")}
@@ -1743,6 +1682,67 @@ export function LiveFootballClient({
                       </button>
                     </div>
                   </div>
+
+                  {/* Ô TÌM KIẾM THÔNG MINH (NẰM BÊN PHẢI TRÊN DESKTOP, CĂN ĐỀU VỚI MÉP PHẢI) */}
+                  <div className="hidden lg:block relative w-72 xl:w-80 shrink-0 order-1 lg:order-2 lg:ml-auto">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 sm:w-4 sm:h-4 text-zinc-400 pointer-events-none" />
+                    <input
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => handleSearchChange(e.target.value)}
+                      placeholder="Tìm trận, giải đấu, bình luận viên..."
+                      className="w-full pl-9 pr-9 py-2 sm:py-2.5 rounded-xl bg-zinc-900/90 text-xs sm:text-sm text-white placeholder-zinc-400 focus:outline-none focus:ring-1 focus:ring-netflix-red/50 transition font-medium shadow-inner border border-white/5 focus:border-netflix-red/50"
+                    />
+                    {searchQuery && (
+                      <button
+                        type="button"
+                        onClick={() => handleSearchChange("")}
+                        title="Xóa tìm kiếm"
+                        aria-label="Xóa tìm kiếm"
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-white p-0.5 cursor-pointer rounded-full hover:bg-white/10 transition"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Thanh tìm kiếm bung rộng trên mobile khi kích hoạt */}
+                  {(isMobileSearchOpen || searchQuery) && (
+                    <div className="flex lg:hidden items-center gap-1.5 w-full order-1">
+                      <div className="relative flex-1">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-400 pointer-events-none" />
+                        <input
+                          type="text"
+                          autoFocus
+                          value={searchQuery}
+                          onChange={(e) => handleSearchChange(e.target.value)}
+                          placeholder="Tìm trận, giải đấu, BLV..."
+                          className="w-full pl-9 pr-8 py-1.5 rounded-xl bg-zinc-900 text-xs text-white placeholder-zinc-400 focus:outline-none shadow-inner min-h-[36px] border border-white/10"
+                        />
+                        {searchQuery && (
+                          <button
+                            type="button"
+                            onClick={() => handleSearchChange("")}
+                            title="Xóa tìm kiếm"
+                            aria-label="Xóa tìm kiếm"
+                            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-white p-0.5 cursor-pointer rounded-full hover:bg-white/10 transition"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsMobileSearchOpen(false);
+                          if (searchQuery) handleSearchChange("");
+                        }}
+                        className="px-2.5 py-1.5 rounded-xl bg-zinc-900/90 text-xs font-semibold text-zinc-300 hover:text-white min-h-[36px] shrink-0 border border-white/10"
+                      >
+                        Đóng
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 {/* Thanh Reset filter khi có áp dụng */}
