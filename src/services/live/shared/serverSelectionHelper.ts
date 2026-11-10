@@ -237,3 +237,4 @@ export function findNextFallbackServerIndex(
 
   return available[0].index;
 }
+

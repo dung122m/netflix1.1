@@ -79,3 +79,4 @@ export const CinemaNextEpisodePrompt: React.FC<CinemaNextEpisodePromptProps> = (
     </div>
   );
 };
+

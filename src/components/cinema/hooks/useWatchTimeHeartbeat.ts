@@ -36,3 +36,4 @@ export function useWatchTimeHeartbeat({
     };
   }, [userId, isNativeVideo, videoRef]);
 }
+
