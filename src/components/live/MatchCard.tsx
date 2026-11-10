@@ -17,7 +17,7 @@ import {
 } from "@/services/live/football-score/liveStatus";
 import { resolveCanonicalTournament } from "@/services/live/football-score/canonicalLeagues";
 import { isFeaturedMatch } from "@/services/live/football/featuredMatch";
-import { toCanonicalSourceUrl } from "./LivePlayer";
+import { toCanonicalSourceUrl } from "@/services/live/shared/streamUrlHelper";
 import { isOffensiveCommentatorName } from "@/services/live/football/service";
 import { CountryFlag } from "./CountryFlag";
 

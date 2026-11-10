@@ -9,7 +9,8 @@ import {
 } from "@/services/live/football/service";
 import { useBodyScrollLock } from "@/lib/scrollLock";
 import { clearProbeQueue, getServerProbeStatus } from "@/services/live/football/clientSourceProbe";
-import { LivePlayer, toCanonicalSourceUrl } from "./LivePlayer";
+import { LivePlayer } from "./LivePlayer";
+import { toCanonicalSourceUrl } from "@/services/live/shared/streamUrlHelper";
 import { MatchCard } from "./MatchCard";
 import { MatchCenter } from "./MatchCenter";
 import { Tooltip } from "@/components/ui/Tooltip";

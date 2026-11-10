@@ -399,34 +399,8 @@ export function getQualityPriorityScore(
 const FOOTBALL_STREAM_PROXY_ENDPOINT =
   process.env.NEXT_PUBLIC_STREAM_PROXY_URL?.trim() || "/api/live-football/proxy";
 
-/**
- * Chuẩn hóa URL nguồn phát về dạng canonical để không bị lệch giữa direct URL và proxy URL
- */
-export function toCanonicalSourceUrl(url?: string | null): string {
-  if (!url) return "";
-  let clean = url.trim();
-  if (clean.includes("/proxy?url=") || clean.includes("proxy?url=")) {
-    try {
-      const match = clean.match(/url=([^&]+)/);
-      if (match) {
-        clean = decodeURIComponent(match[1]).trim();
-      }
-    } catch { }
-  }
-  return clean.split("?")[0].trim();
-}
-
-export function extractStreamHost(url?: string | null): string {
-  if (!url) return "";
-  const canonical = toCanonicalSourceUrl(url);
-  if (!canonical) return "";
-  try {
-    const parsed = new URL(canonical.startsWith("http") ? canonical : `http://${canonical}`);
-    return parsed.hostname.toLowerCase();
-  } catch {
-    return "";
-  }
-}
+import { toCanonicalSourceUrl, extractStreamHost } from "@/services/live/shared/streamUrlHelper";
+export { toCanonicalSourceUrl, extractStreamHost };
 
 export function isSourceFailed(url?: string | null, failedSet: Set<string> = new Set()): boolean {
   if (!url) return false;
