@@ -1205,9 +1205,17 @@ export function LiveFootballClient({
       const relativeTop =
         targetRect.top - containerRect.top + container.scrollTop;
 
-      // Cuộn thanh bên xuống trận đấu đang phát (đưa trận lên đầu thanh bên với đệm 8px),
-      // thay vì để danh sách hiển thị từ trên đỉnh (0px) hoặc căn giữa làm trận ở nửa dưới
-      const targetScrollTop = Math.max(0, relativeTop - 8);
+      // Tìm thanh tiêu đề dính (sticky header "Đang trực tiếp" hoặc "Sắp diễn ra")
+      const sectionContainer =
+        targetCard.closest(".space-y-1\\.5")?.parentElement ||
+        targetCard.parentElement;
+      const stickyHeader =
+        sectionContainer?.querySelector<HTMLElement>(".sticky") ||
+        container.querySelector<HTMLElement>(".sticky");
+      const stickyHeaderHeight = stickyHeader ? stickyHeader.offsetHeight : 38;
+
+      // Trừ đi chiều cao sticky header + khoảng đệm an toàn 10px để card không bao giờ bị tiêu đề dính che khuất
+      const targetScrollTop = Math.max(0, relativeTop - stickyHeaderHeight - 10);
 
       container.scrollTo({
         top: targetScrollTop,

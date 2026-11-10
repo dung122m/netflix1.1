@@ -353,7 +353,7 @@ function MatchCardInner({ match, isSelected, onSelect, score, compact }: MatchCa
             onSelect(match);
           }
         }}
-        className={`group relative rounded-xl cursor-pointer transition-all duration-150 p-2 sm:p-2.5 flex flex-col gap-1.5 overflow-hidden outline-none select-none ${
+        className={`group relative rounded-xl cursor-pointer transition-all duration-150 p-2 sm:p-2.5 flex flex-col gap-1.5 overflow-hidden outline-none select-none scroll-mt-12 ${
           isSelected && featured.isFeatured
             ? "bg-gradient-to-r from-netflix-red/15 via-zinc-900/95 to-zinc-900/95 ring-1 ring-netflix-red/80 border-l-[3px] border-l-netflix-red shadow-lg shadow-netflix-red/10"
             : isSelected

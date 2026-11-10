@@ -207,7 +207,7 @@ export function LiveMatchSidePanel({
           <div
             ref={railContainerRef}
             style={{ overscrollBehavior: "contain" }}
-            className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-0.5 pt-0 pb-3 pr-1 scrollbar-thin touch-pan-y"
+            className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-0.5 pt-0 pb-3 pr-1 scrollbar-thin touch-pan-y scroll-pt-12"
           >
             {filteredMatches.length > 0 ? (
               <div className="space-y-2">
