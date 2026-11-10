@@ -28,6 +28,19 @@ export async function GET() {
           .limit(1);
 
         checks.supabase = error ? `warn: ${error.message}` : "ok";
+
+        // Tự động dọn dẹp log analytics cũ hơn 60 ngày để bảo vệ vĩnh viễn hạn ngạch 500MB Supabase Free Tier
+        const sixtyDaysAgo = Date.now() - 60 * 86400 * 1000;
+        const { error: pruneError } = await admin
+          .from("analytics_events")
+          .delete()
+          .lt("created_at", sixtyDaysAgo);
+
+        if (pruneError) {
+          console.warn("[Health Cron] Prune analytics_events skipped:", pruneError.message);
+        } else {
+          checks.analytics_pruned = "ok";
+        }
       } else {
         checks.supabase = "unconfigured";
       }
