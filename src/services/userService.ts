@@ -16,11 +16,18 @@ export const DEFAULT_PLAYER_SETTINGS: PlayerSettings = {
   autoNextEpisode: true,
   defaultTheaterMode: false,
   defaultLightsOff: false,
+  autoSubtitle: true,
   preferredQuality: "auto",
   playbackSpeed: 1,
+  preferredServer: "vip",
+  volume: 1,
+  isMuted: false,
+  videoFit: "contain",
 };
 
 const PLAYER_SETTINGS_STORAGE_KEY = "nanaflix_player_settings";
+let playerSettingsSyncTimer: NodeJS.Timeout | null = null;
+let pendingPlayerSettingsSync: PlayerSettings | null = null;
 
 /**
  * Lấy cài đặt trình phát video (kết hợp LocalStorage và Cloud Profile)
@@ -67,20 +74,28 @@ export async function updatePlayerSettings(
       });
     }
 
-    try {
-      const { auth } = await import("@/lib/firebase");
-      const token = await auth?.currentUser?.getIdToken().catch(() => null);
-      if (token) {
-        fetch("/api/user/profile", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ playerSettings: updated }),
-        }).catch(() => {});
-      }
-    } catch {}
+    pendingPlayerSettingsSync = updated;
+    if (playerSettingsSyncTimer) {
+      clearTimeout(playerSettingsSyncTimer);
+    }
+    playerSettingsSyncTimer = setTimeout(async () => {
+      playerSettingsSyncTimer = null;
+      const settingsToSync = pendingPlayerSettingsSync || updated;
+      try {
+        const { auth } = await import("@/lib/firebase");
+        const token = await auth?.currentUser?.getIdToken().catch(() => null);
+        if (token) {
+          fetch("/api/user/profile", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ playerSettings: settingsToSync }),
+          }).catch(() => {});
+        }
+      } catch {}
+    }, 1500);
   }
 
   if (typeof window !== "undefined") {
@@ -131,6 +146,19 @@ export function setCachedUserProfile(userId: string, profile: Partial<UserProfil
     const current = getCachedUserProfile(userId) || ({ uid: userId } as UserProfile);
     const merged = { ...current, ...profile };
     localStorage.setItem(`${PROFILE_CACHE_PREFIX}${userId}`, JSON.stringify(merged));
+
+    // Đồng bộ cài đặt trình phát video sang local storage riêng của player nếu có
+    if (profile.playerSettings && Object.keys(profile.playerSettings).length > 0) {
+      try {
+        const rawSettings = localStorage.getItem(PLAYER_SETTINGS_STORAGE_KEY);
+        const existingSettings = rawSettings ? JSON.parse(rawSettings) : {};
+        const mergedSettings = { ...DEFAULT_PLAYER_SETTINGS, ...existingSettings, ...profile.playerSettings };
+        localStorage.setItem(PLAYER_SETTINGS_STORAGE_KEY, JSON.stringify(mergedSettings));
+        window.dispatchEvent(
+          new CustomEvent("player-settings-updated", { detail: { settings: mergedSettings } })
+        );
+      } catch {}
+    }
   } catch {}
 }
 

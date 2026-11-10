@@ -12,6 +12,8 @@ import {
   Tv,
   Gauge,
   Repeat,
+  FastForward,
+  Subtitles,
   X,
 } from "lucide-react";
 import { PlayerScrubBar, PlayerTimeDisplay } from "./PlayerScrubBar";
@@ -177,6 +179,10 @@ interface PlayerNativeControlsProps {
   onSwitchEpisode?: (slug: string) => void;
   onUserInteraction?: () => void;
   onSeek?: (targetTime: number) => void;
+  autoNextEpisode?: boolean;
+  onToggleAutoNextEpisode?: () => void;
+  autoSubtitle?: boolean;
+  onToggleAutoSubtitle?: () => void;
 }
 
 type SettingsView = "main" | "speed" | "quality" | "fit" | "server";
@@ -220,6 +226,10 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
     onSwitchEpisode,
     onUserInteraction,
     onSeek,
+    autoNextEpisode = true,
+    onToggleAutoNextEpisode,
+    autoSubtitle = true,
+    onToggleAutoSubtitle,
   }) {
     // Menu Cài đặt YouTube Flyout
     const [showSettings, setShowSettings] = useState(false);
@@ -467,6 +477,52 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
                 <div className="w-4 h-4 rounded-full bg-white shadow-sm" />
               </div>
             </button>
+
+            {/* Mục: Tự động chuyển tập */}
+            {onToggleAutoNextEpisode && (
+              <button
+                type="button"
+                onClick={onToggleAutoNextEpisode}
+                className={`flex items-center justify-between hover:bg-white/10 transition cursor-pointer text-left group ${
+                  isMobileLayout ? "px-4 py-3 text-sm rounded-xl" : "px-3.5 py-2.5 text-xs sm:text-sm"
+                }`}
+              >
+                <div className="flex items-center gap-3 text-zinc-200 group-hover:text-white">
+                  <FastForward className={`${isMobileLayout ? "w-5 h-5" : "w-4 h-4"} text-zinc-400 group-hover:text-white`} />
+                  <span className="font-medium">Tự động chuyển tập</span>
+                </div>
+                <div
+                  className={`w-9 h-5 rounded-full p-0.5 transition-colors duration-200 flex items-center ${
+                    autoNextEpisode ? "bg-netflix-red justify-end" : "bg-white/20 justify-start"
+                  }`}
+                >
+                  <div className="w-4 h-4 rounded-full bg-white shadow-sm" />
+                </div>
+              </button>
+            )}
+
+            {/* Mục: Phụ đề mặc định */}
+            {onToggleAutoSubtitle && (
+              <button
+                type="button"
+                onClick={onToggleAutoSubtitle}
+                className={`flex items-center justify-between hover:bg-white/10 transition cursor-pointer text-left group ${
+                  isMobileLayout ? "px-4 py-3 text-sm rounded-xl" : "px-3.5 py-2.5 text-xs sm:text-sm"
+                }`}
+              >
+                <div className="flex items-center gap-3 text-zinc-200 group-hover:text-white">
+                  <Subtitles className={`${isMobileLayout ? "w-5 h-5" : "w-4 h-4"} text-zinc-400 group-hover:text-white`} />
+                  <span className="font-medium">Bật phụ đề mặc định</span>
+                </div>
+                <div
+                  className={`w-9 h-5 rounded-full p-0.5 transition-colors duration-200 flex items-center ${
+                    autoSubtitle ? "bg-netflix-red justify-end" : "bg-white/20 justify-start"
+                  }`}
+                >
+                  <div className="w-4 h-4 rounded-full bg-white shadow-sm" />
+                </div>
+              </button>
+            )}
           </div>
         )}
 

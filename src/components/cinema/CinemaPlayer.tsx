@@ -9,12 +9,10 @@ import {
   Minimize2,
   SkipBack,
   SkipForward,
-  Play,
   ArrowUpRight,
   PictureInPicture,
   RotateCcw,
   Zap,
-  X,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
@@ -25,7 +23,7 @@ import { formatEpisodeName, findEpisodeMatch } from "@/lib/formatEpisode";
 import { useAuth } from "@/context/AuthContext";
 import { updateActivePlaybackSession } from "@/services/handoffService";
 import { getDeviceHandoffSupabase } from "@/services/supabaseService";
-import { incrementUserWatchTime, getPlayerSettings, PlayerSettings } from "@/services/userService";
+import { getPlayerSettings, updatePlayerSettings, PlayerSettings } from "@/services/userService";
 import { CinemaNextEpisodePrompt } from "@/components/cinema/CinemaNextEpisodePrompt";
 import { useWatchTimeHeartbeat } from "@/components/cinema/hooks/useWatchTimeHeartbeat";
 import {
@@ -69,7 +67,7 @@ import {
   KEYBOARD_SEEK_DEBOUNCE_MS,
   type KeyboardSeekState,
 } from "@/lib/keyboardSeekManager";
-import { toOptimizedCardPosterUrl, toOptimizedCardBackdropUrl } from "@/lib/movieMedia";
+import { toOptimizedCardBackdropUrl } from "@/lib/movieMedia";
 import { decodeStreamUrl } from "@/lib/streamCrypto";
 
 /** Ngưỡng buffer phía trước tối thiểu để kích hoạt video.play() ban đầu (Batch 1: 0.5s thay vì 1.2s để tối ưu TTFF) */
@@ -229,7 +227,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
         nextEpCountdownTimerRef.current = null;
       }
     }
-  }, [showNextEpCountdown, effectiveNextEpisode?.slug, switchEpisode]);
+  }, [showNextEpCountdown, effectiveNextEpisode?.slug, switchEpisode, activeEpisodeSlug, movieSlug]);
 
   // Player UI states
   const [playerSettings, setPlayerSettings] = useState<PlayerSettings>(() => getPlayerSettings(user?.uid));
@@ -281,7 +279,8 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
     try {
       localStorage.setItem("nana_player_video_fit", mode);
     } catch {}
-  }, []);
+    updatePlayerSettings(user?.uid, { videoFit: mode });
+  }, [user?.uid]);
 
   // Double-tap on mobile seek state & timer
   const lastTapRef = useRef<{ time: number; x: number; y: number } | null>(null);
@@ -299,14 +298,44 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
     }
     if (current.playbackSpeed && current.playbackSpeed !== 1) {
       setPlaybackSpeed(current.playbackSpeed);
+      if (videoRef.current) {
+        videoRef.current.playbackRate = current.playbackSpeed;
+      }
+    }
+    if (typeof current.volume === "number") {
+      setVolume(current.volume);
+      if (videoRef.current) {
+        videoRef.current.volume = current.volume;
+      }
+    }
+    if (typeof current.isMuted === "boolean") {
+      setIsMuted(current.isMuted);
+      if (videoRef.current) {
+        videoRef.current.muted = current.isMuted;
+      }
+    }
+    if (current.videoFit) {
+      setVideoFit(current.videoFit);
     }
 
     const handleUpdate = (e: Event) => {
       const customEv = e as CustomEvent<{ settings?: PlayerSettings }>;
-      if (customEv.detail?.settings) {
-        setPlayerSettings(customEv.detail.settings);
-      } else {
-        setPlayerSettings(getPlayerSettings(user?.uid));
+      const newSettings = customEv.detail?.settings || getPlayerSettings(user?.uid);
+      setPlayerSettings(newSettings);
+      if (newSettings.playbackSpeed && videoRef.current) {
+        videoRef.current.playbackRate = newSettings.playbackSpeed;
+        setPlaybackSpeed(newSettings.playbackSpeed);
+      }
+      if (typeof newSettings.volume === "number") {
+        setVolume(newSettings.volume);
+        if (videoRef.current) videoRef.current.volume = newSettings.volume;
+      }
+      if (typeof newSettings.isMuted === "boolean") {
+        setIsMuted(newSettings.isMuted);
+        if (videoRef.current) videoRef.current.muted = newSettings.isMuted;
+      }
+      if (newSettings.videoFit) {
+        setVideoFit(newSettings.videoFit);
       }
     };
 
@@ -1049,8 +1078,9 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
       videoRef.current.playbackRate = spd;
       setPlaybackSpeed(spd);
       showHud(<Zap className="w-5 h-5 text-amber-400" />, `Tốc độ: ${spd}x`);
+      updatePlayerSettings(user?.uid, { playbackSpeed: spd });
     }
-  }, [showHud]);
+  }, [showHud, user?.uid]);
 
   const handleVolumeDelta = useCallback((delta: number) => {
     setVolume((prevVol) => {
@@ -1078,9 +1108,10 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
         );
       }
       triggerVolumeOsd(newVol, finalMuted);
+      updatePlayerSettings(user?.uid, { volume: newVol, isMuted: finalMuted });
       return newVol;
     });
-  }, [isMuted, triggerVolumeOsd]);
+  }, [isMuted, triggerVolumeOsd, user?.uid]);
 
   // HLS lifecycle
   useEffect(() => {
@@ -3073,6 +3104,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
                       );
                     }
                     triggerVolumeOsd(volume, nextMuted);
+                    updatePlayerSettings(user?.uid, { isMuted: nextMuted });
                   }
                   resetControlsTimeout();
                 }}
@@ -3090,6 +3122,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
                     }
                   }
                   triggerVolumeOsd(newVol, newVol === 0);
+                  updatePlayerSettings(user?.uid, { volume: newVol, isMuted: newVol === 0 });
                   resetControlsTimeout();
                 }}
                 onSpeedChange={(spd) => {
@@ -3107,13 +3140,29 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
                 onTogglePiP={togglePiP}
                 onUseIframeFallback={() => setUseIframeFallback(true)}
                 isTheaterMode={isTheaterMode}
-                onToggleTheaterMode={() => setIsTheaterMode((prev) => !prev)}
+                onToggleTheaterMode={() => {
+                  setIsTheaterMode((prev) => {
+                    const next = !prev;
+                    updatePlayerSettings(user?.uid, { defaultTheaterMode: next });
+                    return next;
+                  });
+                }}
                 onToggleFullscreen={toggleFullscreen}
                 onSwitchEpisode={(slug) => {
                   if (switchEpisode) switchEpisode(slug);
                 }}
                 onUserInteraction={resetControlsTimeout}
                 onSeek={requestPlayerSeek}
+                autoNextEpisode={playerSettings.autoNextEpisode !== false}
+                onToggleAutoNextEpisode={() => {
+                  const nextVal = playerSettings.autoNextEpisode === false;
+                  updatePlayerSettings(user?.uid, { autoNextEpisode: nextVal });
+                }}
+                autoSubtitle={playerSettings.autoSubtitle !== false}
+                onToggleAutoSubtitle={() => {
+                  const nextVal = playerSettings.autoSubtitle === false;
+                  updatePlayerSettings(user?.uid, { autoSubtitle: nextVal });
+                }}
               />
 
               {/* NEXT EPISODE COUNTDOWN OVERLAY (đã tách module CinemaNextEpisodePrompt) */}

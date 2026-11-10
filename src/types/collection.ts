@@ -24,6 +24,8 @@ export interface MovieCollection {
   name: string;
   description?: string;
   isPublic: boolean;
+  coverUrl?: string;
+  colorGradient?: string;
   movies: CollectionMovieItem[];
   createdAt: number;
   updatedAt: number;

@@ -158,6 +158,12 @@ export function CollectionClientView({
         <>
           {/* HEADER BỘ SƯU TẬP */}
           <div className="relative rounded-3xl bg-gradient-to-r from-zinc-950 via-zinc-900/90 to-zinc-950 p-6 sm:p-8 mb-8 shadow-2xl shadow-black/80 overflow-hidden">
+            {collection.coverUrl && (
+              <div
+                className="absolute inset-0 bg-cover bg-center opacity-35 mix-blend-screen filter blur-[1px] transform scale-105 pointer-events-none"
+                style={{ backgroundImage: `url(${collection.coverUrl})` }}
+              />
+            )}
             <div className="absolute top-0 right-0 w-96 h-96 bg-netflix-red/10 rounded-full blur-3xl pointer-events-none" />
 
             <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">

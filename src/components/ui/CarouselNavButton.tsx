@@ -11,6 +11,11 @@ export interface CarouselNavButtonProps {
   topOffsetClass?: string;
   visible?: boolean;
   disabled?: boolean;
+  /**
+   * Hiển thị nút mũi tên luôn khi có thể cuộn mà không cần chờ rê chuột (hover)
+   * Mặc định: true để mọi mục phim đều luôn hiện rõ mũi tên điều hướng
+   */
+  alwaysVisible?: boolean;
 }
 
 export function CarouselNavButton({
@@ -21,11 +26,12 @@ export function CarouselNavButton({
   topOffsetClass = "top-[40%]",
   visible = true,
   disabled = false,
+  alwaysVisible = true,
 }: CarouselNavButtonProps) {
   const isLeft = direction === "left";
   const isInteractive = visible && !disabled;
   const defaultAria = isLeft ? "Cuộn danh sách sang trái" : "Cuộn danh sách sang phải";
-  const posClass = isLeft ? "left-2 sm:left-3 md:left-4" : "right-2 sm:right-3 md:right-4";
+  const posClass = isLeft ? "left-1 sm:left-2 md:left-3" : "right-1 sm:right-2 md:right-3";
 
   return (
     <button
@@ -35,11 +41,13 @@ export function CarouselNavButton({
       tabIndex={isInteractive ? 0 : -1}
       aria-hidden={!isInteractive}
       aria-label={ariaLabel || defaultAria}
-      className={`group/btn hidden sm:flex absolute ${posClass} ${topOffsetClass} -translate-y-1/2 z-30 w-11 h-11 md:w-12 md:h-12 rounded-full items-center justify-center cursor-pointer outline-none select-none ${
+      className={`group/btn flex absolute ${posClass} ${topOffsetClass} -translate-y-1/2 z-30 w-9 h-9 sm:w-11 sm:h-11 md:w-12 md:h-12 rounded-full items-center justify-center cursor-pointer outline-none select-none ${
         isInteractive
-          ? "opacity-0 group-hover/row:opacity-100 focus-visible:opacity-100 scale-95 group-hover/row:scale-100 pointer-events-none group-hover/row:pointer-events-auto focus-visible:pointer-events-auto"
+          ? alwaysVisible
+            ? "opacity-85 sm:opacity-90 hover:!opacity-100 group-hover/row:opacity-100 focus-visible:opacity-100 scale-100 pointer-events-auto"
+            : "opacity-0 group-hover/row:opacity-100 focus-visible:opacity-100 scale-95 group-hover/row:scale-100 pointer-events-none group-hover/row:pointer-events-auto focus-visible:pointer-events-auto"
           : "opacity-0 pointer-events-none scale-75 invisible"
-      } bg-gradient-to-b from-zinc-900/90 via-zinc-950/90 to-black/95 hover:from-zinc-800/95 hover:via-zinc-900/95 hover:to-zinc-950 text-white  hover:border-white/50 active:border-white/80 backdrop-blur-xl shadow-[0_8px_24px_rgba(0,0,0,0.7),inset_0_1px_1px_rgba(255,255,255,0.25)] hover:shadow-[0_12px_32px_rgba(0,0,0,0.9),0_0_20px_var(--accent-glow),inset_0_1px_2px_rgba(255,255,255,0.4)] hover:scale-110 active:scale-90 transition-all duration-300 ease-out focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black motion-reduce:transform-none ${className}`}
+      } bg-zinc-950/85 hover:bg-zinc-900/95 text-white border border-white/10 hover:border-white/40 active:border-white/60 backdrop-blur-xl shadow-[0_8px_24px_rgba(0,0,0,0.7),inset_0_1px_1px_rgba(255,255,255,0.25)] hover:shadow-[0_12px_32px_rgba(0,0,0,0.9),0_0_20px_var(--accent-glow),inset_0_1px_2px_rgba(255,255,255,0.4)] hover:scale-110 active:scale-90 transition-all duration-300 ease-out focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black motion-reduce:transform-none ${className}`}
     >
       {/* Subtle radial sheen effect */}
       <span
@@ -50,12 +58,12 @@ export function CarouselNavButton({
       {isLeft ? (
         <ChevronLeft
           strokeWidth={2.5}
-          className="w-5 h-5 md:w-6 md:h-6 text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] transform group-hover/btn:-translate-x-0.5 transition-transform duration-200"
+          className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] transform group-hover/btn:-translate-x-0.5 transition-transform duration-200"
         />
       ) : (
         <ChevronRight
           strokeWidth={2.5}
-          className="w-5 h-5 md:w-6 md:h-6 text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] transform group-hover/btn:translate-x-0.5 transition-transform duration-200"
+          className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] transform group-hover/btn:translate-x-0.5 transition-transform duration-200"
         />
       )}
     </button>

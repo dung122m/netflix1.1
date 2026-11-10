@@ -4,7 +4,7 @@ import { sanitizeSafeText } from "@/lib/security";
 import { verifyServerAuth } from "@/lib/serverAuth";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { parseReactionsAndLikedBy } from "@/services/supabaseService";
-import { MovieComment } from "@/types/comment";
+import { MovieComment, CommentReactionType } from "@/types/comment";
 import { cacheService } from "@/lib/cache";
 import {
   enforceRateLimit,
@@ -36,9 +36,16 @@ interface CommentUserProfile {
 function mapCommentRecord(
   d: Record<string, unknown>,
   isAdmin: boolean = false,
-  profileMap?: Map<string, CommentUserProfile>
+  profileMap?: Map<string, CommentUserProfile>,
+  reactionsMap?: Map<string, { likedBy: string[]; reactions: Record<string, CommentReactionType> }>
 ): MovieComment {
-  const { likedBy, reactions, editedAt } = parseReactionsAndLikedBy(d.liked_by);
+  const commentId = String(d.id || "");
+  const fallback = parseReactionsAndLikedBy(d.liked_by);
+  const reactionData = reactionsMap?.get(commentId);
+
+  const likedBy = reactionData ? reactionData.likedBy : fallback.likedBy;
+  const reactions = reactionData ? reactionData.reactions : fallback.reactions;
+  const editedAt = fallback.editedAt;
   const userId = String(d.user_id || "");
   const profile = userId && profileMap ? profileMap.get(userId) : undefined;
   const userAvatar = profile?.custom_avatar || profile?.photo_url || String(d.user_avatar || "");
@@ -46,7 +53,7 @@ function mapCommentRecord(
   const userBadges = Array.isArray(profile?.badges) ? (profile.badges as string[]) : [];
 
   return {
-    id: String(d.id),
+    id: commentId,
     movieSlug: String(d.movie_slug || ""),
     movieTitle: String(d.movie_title || ""),
     userId,
@@ -77,6 +84,48 @@ function mapCommentRecord(
     isEdited: Boolean(editedAt || d.is_edited || d.isEdited),
     editedAt: editedAt || (d.edited_at ? Number(d.edited_at) : undefined),
   };
+}
+
+async function fetchReactionsMap(
+  supabaseAdmin: ReturnType<typeof getSupabaseAdmin>,
+  records: Array<Record<string, unknown>>
+): Promise<Map<string, { likedBy: string[]; reactions: Record<string, CommentReactionType> }>> {
+  const map = new Map<string, { likedBy: string[]; reactions: Record<string, CommentReactionType> }>();
+  if (!supabaseAdmin || !records || records.length === 0) return map;
+  const commentIds = records.map((r) => String(r.id || "")).filter(Boolean);
+  if (commentIds.length === 0) return map;
+
+  const validTypes = new Set<string>(["like", "love", "haha", "wow", "sad", "angry"]);
+
+  try {
+    const { data, error } = await supabaseAdmin
+      .from("comment_reactions")
+      .select("comment_id, user_id, reaction_type")
+      .in("comment_id", commentIds);
+
+    if (!error && data && Array.isArray(data) && data.length > 0) {
+      for (const row of data) {
+        const cId = String(row.comment_id);
+        const uId = String(row.user_id);
+        const rawType = String(row.reaction_type || "like").toLowerCase();
+        const rType: CommentReactionType = validTypes.has(rawType)
+          ? (rawType as CommentReactionType)
+          : rawType === "heart"
+          ? "love"
+          : "like";
+
+        if (!map.has(cId)) {
+          map.set(cId, { likedBy: [], reactions: {} });
+        }
+        const item = map.get(cId)!;
+        if (!item.likedBy.includes(uId)) {
+          item.likedBy.push(uId);
+        }
+        item.reactions[uId] = rType;
+      }
+    }
+  } catch {}
+  return map;
 }
 
 async function fetchProfilesMap(
@@ -192,8 +241,11 @@ export async function GET(req: NextRequest) {
 
         let mapped: MovieComment[] = [];
         if (!error && data && data.length > 0) {
-          const profileMap = await fetchProfilesMap(supabaseAdmin, data as Array<Record<string, unknown>>);
-          mapped = sortComments((data as Array<Record<string, unknown>>).map((d) => mapCommentRecord(d, false, profileMap)));
+          const [profileMap, reactionsMap] = await Promise.all([
+            fetchProfilesMap(supabaseAdmin, data as Array<Record<string, unknown>>),
+            fetchReactionsMap(supabaseAdmin, data as Array<Record<string, unknown>>),
+          ]);
+          mapped = sortComments((data as Array<Record<string, unknown>>).map((d) => mapCommentRecord(d, false, profileMap, reactionsMap)));
         }
 
         await cacheService.set(`comments:movie:${movieSlug}`, mapped, 60).catch(() => false);
@@ -221,8 +273,11 @@ export async function GET(req: NextRequest) {
             .order("created_at", { ascending: false });
 
           if (error || !data || data.length === 0) return [];
-          const profileMap = await fetchProfilesMap(supabaseAdmin, data as Array<Record<string, unknown>>);
-          const mapped = (data as Array<Record<string, unknown>>).map((d) => mapCommentRecord(d, false, profileMap));
+          const [profileMap, reactionsMap] = await Promise.all([
+            fetchProfilesMap(supabaseAdmin, data as Array<Record<string, unknown>>),
+            fetchReactionsMap(supabaseAdmin, data as Array<Record<string, unknown>>),
+          ]);
+          const mapped = (data as Array<Record<string, unknown>>).map((d) => mapCommentRecord(d, false, profileMap, reactionsMap));
           return sortComments(mapped);
         },
         180 // TTL 180 giây trên Redis DB 2 (tự động xóa tức thì khi có tương tác mới)
@@ -263,9 +318,12 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ success: true, items: [] });
     }
 
-    const profileMap = await fetchProfilesMap(supabaseAdmin, data as Array<Record<string, unknown>>);
+    const [profileMap, reactionsMap] = await Promise.all([
+      fetchProfilesMap(supabaseAdmin, data as Array<Record<string, unknown>>),
+      fetchReactionsMap(supabaseAdmin, data as Array<Record<string, unknown>>),
+    ]);
     const items = sortComments(
-      (data as Array<Record<string, unknown>>).map((d) => mapCommentRecord(d, isAdmin, profileMap))
+      (data as Array<Record<string, unknown>>).map((d) => mapCommentRecord(d, isAdmin, profileMap, reactionsMap))
     );
 
     return NextResponse.json(
@@ -626,6 +684,26 @@ export async function PATCH(req: NextRequest) {
         const supabaseAdmin = getSupabaseAdmin();
         if (!supabaseAdmin) {
           return NextResponse.json({ error: "Supabase chưa được cấu hình" }, { status: 500 });
+        }
+
+        // 1. Ghi độc lập vào bảng `comment_reactions` để phân tán tải ghi (tránh Row Lock Write Contention)
+        try {
+          if (reactionType) {
+            await supabaseAdmin.from("comment_reactions").upsert(
+              {
+                id: `${commentId}_${effectiveUserId}`,
+                comment_id: commentId,
+                user_id: effectiveUserId,
+                reaction_type: reactionType,
+                updated_at: Date.now(),
+              },
+              { onConflict: "id" }
+            );
+          } else {
+            await supabaseAdmin.from("comment_reactions").delete().eq("id", `${commentId}_${effectiveUserId}`);
+          }
+        } catch (crErr) {
+          console.warn("[Comments API] Ghi nhận comment_reactions fallback:", crErr);
         }
 
         const { data: cmtData } = await supabaseAdmin

@@ -2,9 +2,13 @@ export interface PlayerSettings {
   autoNextEpisode?: boolean;     // Tự động chuyển tập kế tiếp khi hết tập (mặc định: true)
   defaultTheaterMode?: boolean;  // Mặc định mở giao diện Rạp chiếu phim (Theater Mode)
   defaultLightsOff?: boolean;    // Mặc định bật chế độ Tối màn hình (Lights Off)
-  autoSubtitle?: boolean;        // Tự động hiển thị phụ đề
+  autoSubtitle?: boolean;        // Tự động hiển thị phụ đề (bật/tắt phụ đề)
   preferredQuality?: "auto" | "1080p" | "720p" | "480p"; // Chất lượng ưu tiên
   playbackSpeed?: number;        // Tốc độ phát mặc định (1, 1.25, 1.5...)
+  preferredServer?: string;      // Server phát mặc định ("vip", "backup"...)
+  volume?: number;               // Mức âm lượng mặc định (0 đến 1, vd: 0.9)
+  isMuted?: boolean;             // Trạng thái tắt tiếng mặc định
+  videoFit?: "contain" | "cover" | "fill" | "zoom"; // Tỷ lệ khung hình video
 }
 
 export interface UserProfile {

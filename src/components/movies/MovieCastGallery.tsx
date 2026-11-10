@@ -71,9 +71,12 @@ export const MovieCastGallery: React.FC<MovieCastGalleryProps> = ({
     scrollRef,
     canScrollLeft,
     canScrollRight,
+    checkScroll,
     handleScroll,
   } = useCarouselScroll<HTMLDivElement>({
     resetTrigger: displayItems,
+    watchTrigger: displayItems,
+    cardSelector: ".snap-start",
     boundaryThreshold: 5,
   });
 
@@ -134,7 +137,8 @@ export const MovieCastGallery: React.FC<MovieCastGalleryProps> = ({
         {/* DANH SÁCH THẺ DIỄN VIÊN */}
         <div
           ref={scrollRef}
-          className="flex gap-2.5 sm:gap-3 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden py-1 pb-2"
+          onScroll={checkScroll}
+          className="flex gap-2.5 sm:gap-3 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden py-1 pb-2 snap-x snap-mandatory px-0.5 scroll-pl-0.5"
         >
           {displayItems.map((actor) => (
             <Link
@@ -142,7 +146,7 @@ export const MovieCastGallery: React.FC<MovieCastGalleryProps> = ({
               href={actor.href}
               prefetch={false}
               title={`Xem hồ sơ & phim của ${actor.name}${actor.character ? ` (Vai: ${actor.character})` : ""}`}
-              className="group/card flex-none w-[100px] sm:w-[112px] md:w-[120px] transition-all duration-200 cursor-pointer flex flex-col text-left"
+              className="group/card flex-none w-[100px] sm:w-[112px] md:w-[120px] transition-all duration-200 cursor-pointer flex flex-col text-left snap-start select-none"
             >
               {/* ẢNH AVATAR CHÂN DUNG 3:4 VỚI FALLBACK CAO CẤP */}
               <div className="relative aspect-[3/4] w-full rounded-xl bg-zinc-900 overflow-hidden group-hover/card:shadow-md flex items-center justify-center group-hover/card:scale-[1.03] transition-transform duration-200">

@@ -264,6 +264,7 @@ export async function POST(req: NextRequest) {
       description: description ? sanitizeSafeText(description, 500) : null,
       is_public: Boolean(isPublic),
       color_gradient: colorGradient || null,
+      cover_url: coverUrl || null,
       movies,
       created_at: createdAt,
       updated_at: now,

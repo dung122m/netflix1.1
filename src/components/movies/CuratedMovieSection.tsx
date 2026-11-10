@@ -130,6 +130,7 @@ export const CuratedMovieSection: React.FC<CuratedMovieSectionProps> = ({
     handleScroll,
   } = useCarouselScroll<HTMLDivElement>({
     resetTrigger: activeTab,
+    watchTrigger: currentMovies,
     cardSelector: ".snap-start",
     boundaryThreshold: 8,
   });

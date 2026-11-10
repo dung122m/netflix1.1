@@ -62,6 +62,7 @@ export const RankedCarouselSection: React.FC<RankedCarouselSectionProps> = React
       handleScroll,
     } = useCarouselScroll<HTMLDivElement>({
       resetTrigger,
+      watchTrigger: items,
       cardSelector: ".snap-start",
       boundaryThreshold: 8,
     });

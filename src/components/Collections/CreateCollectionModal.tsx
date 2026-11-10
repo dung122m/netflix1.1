@@ -2,9 +2,10 @@
 
 import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { X, FolderPlus, Globe, Lock, Loader2 } from "lucide-react";
+import { X, FolderPlus, Globe, Lock, Loader2, Upload } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { createCollection } from "@/services/collectionService";
+import { uploadCollectionCoverSupabase } from "@/services/supabaseService";
 import { MovieCollection } from "@/types/collection";
 import { toast } from "@/components/ui/Toast";
 
@@ -28,6 +29,8 @@ export const CreateCollectionModal: React.FC<CreateCollectionModalProps> = ({
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [isPublic, setIsPublic] = useState(true);
+  const [coverFile, setCoverFile] = useState<File | null>(null);
+  const [coverPreview, setCoverPreview] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [mounted, setMounted] = useState(false);
 
@@ -81,13 +84,23 @@ export const CreateCollectionModal: React.FC<CreateCollectionModalProps> = ({
       const creatorName = userProfile?.displayName || user.displayName || user.email || "Thành viên Nanaflix";
       const creatorPhoto = userProfile?.customAvatar || userProfile?.photoURL || user.photoURL || undefined;
 
+      let coverUrl: string | undefined = undefined;
+      if (coverFile) {
+        const ext = coverFile.name.split(".").pop() || "webp";
+        const uploaded = await uploadCollectionCoverSupabase(user.uid, coverFile, ext);
+        if (uploaded) {
+          coverUrl = uploaded;
+        }
+      }
+
       const created = await createCollection(
         user.uid,
         creatorName,
         creatorPhoto,
         trimmedName,
         description,
-        isPublic
+        isPublic,
+        coverUrl
       );
 
       if (created) {
@@ -95,6 +108,8 @@ export const CreateCollectionModal: React.FC<CreateCollectionModalProps> = ({
         setName("");
         setDescription("");
         setIsPublic(true);
+        setCoverFile(null);
+        setCoverPreview(null);
         if (onSuccess) onSuccess(created);
         onClose();
       } else {
@@ -170,6 +185,61 @@ export const CreateCollectionModal: React.FC<CreateCollectionModalProps> = ({
               onChange={(e) => setDescription(e.target.value)}
               className="w-full bg-zinc-900/90 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder:text-zinc-500 focus:outline-none focus:border-netflix-red focus:ring-1 focus:ring-netflix-red transition resize-none"
             />
+          </div>
+
+          {/* Tải ảnh bìa tuyển tập (Cloudflare R2 vĩnh viễn) */}
+          <div>
+            <label className="block text-xs font-semibold text-zinc-300 mb-1.5">
+              Ảnh bìa / Banner tuyển tập (tùy chọn)
+            </label>
+            <div className="relative flex items-center gap-3">
+              <label className="flex items-center gap-2 px-3 py-2 rounded-xl bg-zinc-900/90 hover:bg-zinc-800 text-xs text-zinc-300 hover:text-white cursor-pointer transition">
+                <Upload className="w-3.5 h-3.5 text-netflix-red" />
+                <span>{coverFile ? "Thay đổi ảnh..." : "Tải ảnh từ máy"}</span>
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/gif"
+                  className="hidden"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) {
+                      if (f.size > 10 * 1024 * 1024) {
+                        toast.error("Ảnh không được vượt quá 10MB");
+                        return;
+                      }
+                      setCoverFile(f);
+                      const url = URL.createObjectURL(f);
+                      setCoverPreview(url);
+                    }
+                  }}
+                />
+              </label>
+
+              {coverPreview && (
+                <div className="relative flex items-center gap-2">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={coverPreview}
+                    alt="Cover preview"
+                    className="w-14 h-8 object-cover rounded-lg border border-white/20"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCoverFile(null);
+                      setCoverPreview(null);
+                    }}
+                    className="p-1 rounded-full text-zinc-400 hover:text-white hover:bg-white/10"
+                    title="Xóa ảnh"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              )}
+            </div>
+            <p className="text-[10px] text-zinc-500 mt-1">
+              Ảnh được lưu trữ vĩnh viễn trên Cloudflare R2 (hỗ trợ JPG, PNG, WEBP tối đa 10MB)
+            </p>
           </div>
 
           {/* Chế độ chia sẻ: Công khai / Riêng tư */}

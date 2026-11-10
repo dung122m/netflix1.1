@@ -515,6 +515,7 @@ function ForYouPersonalizedRowInner({ fallbackMovies }: ForYouPersonalizedRowPro
     handleScroll,
   } = useCarouselScroll<HTMLDivElement>({
     resetTrigger: movies,
+    watchTrigger: movies,
     cardSelector: ".snap-start",
     boundaryThreshold: 8,
   });

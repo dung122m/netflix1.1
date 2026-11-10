@@ -811,8 +811,8 @@ export function parseRawSummary(
 
     const homeTeam: MatchSummaryTeam = {
       id: String(homeComp.id || homeComp.team?.id || ""),
-      name: homeComp.team?.displayName || homeComp.team?.name || "Đội nhà",
-      displayName: homeComp.team?.displayName || homeComp.team?.name || "Đội nhà",
+      name: homeComp.team?.displayName || homeComp.team?.name || "",
+      displayName: homeComp.team?.displayName || homeComp.team?.name || "",
       abbreviation: homeComp.team?.abbreviation || "",
       logo: resolveTeamLogo(homeComp.team),
       score: parseScore(homeComp.score),
@@ -823,8 +823,8 @@ export function parseRawSummary(
 
     const awayTeam: MatchSummaryTeam = {
       id: String(awayComp.id || awayComp.team?.id || ""),
-      name: awayComp.team?.displayName || awayComp.team?.name || "Đội khách",
-      displayName: awayComp.team?.displayName || awayComp.team?.name || "Đội khách",
+      name: awayComp.team?.displayName || awayComp.team?.name || "",
+      displayName: awayComp.team?.displayName || awayComp.team?.name || "",
       abbreviation: awayComp.team?.abbreviation || "",
       logo: resolveTeamLogo(awayComp.team),
       score: parseScore(awayComp.score),
@@ -1389,8 +1389,8 @@ export function normalizeFixtures(raw: any, leagueSlug: string): NormalizedLeagu
 
       const homeTeam: FixtureCompetitor = {
         id: String(homeComp.id || homeComp.team?.id || ""),
-        name: homeComp.team?.name || homeComp.team?.displayName || "Đội nhà",
-        displayName: homeComp.team?.displayName || homeComp.team?.name || "Đội nhà",
+        name: homeComp.team?.name || homeComp.team?.displayName || "",
+        displayName: homeComp.team?.displayName || homeComp.team?.name || "",
         shortDisplayName: homeComp.team?.shortDisplayName,
         abbreviation: homeComp.team?.abbreviation,
         logo:
@@ -1405,8 +1405,8 @@ export function normalizeFixtures(raw: any, leagueSlug: string): NormalizedLeagu
 
       const awayTeam: FixtureCompetitor = {
         id: String(awayComp.id || awayComp.team?.id || ""),
-        name: awayComp.team?.name || awayComp.team?.displayName || "Đội khách",
-        displayName: awayComp.team?.displayName || awayComp.team?.name || "Đội khách",
+        name: awayComp.team?.name || awayComp.team?.displayName || "",
+        displayName: awayComp.team?.displayName || awayComp.team?.name || "",
         shortDisplayName: awayComp.team?.shortDisplayName,
         abbreviation: awayComp.team?.abbreviation,
         logo:

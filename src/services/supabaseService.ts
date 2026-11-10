@@ -972,7 +972,34 @@ export async function uploadAvatarSupabase(
   fileOrBlob: Blob | File,
   fileExt: string = "jpg"
 ): Promise<string | null> {
-  if (!supabase || !userId) return null;
+  if (!userId) return null;
+  // 1. Ưu tiên upload qua Server API /api/user/avatar (Lưu trữ Cloudflare R2 vĩnh viễn, 0đ egress)
+  try {
+    const { auth } = await import("@/lib/firebase");
+    const token = await auth?.currentUser?.getIdToken().catch(() => null);
+    if (token) {
+      const formData = new FormData();
+      formData.append("file", fileOrBlob, `avatar.${fileExt}`);
+      const res = await fetch("/api/user/avatar", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      });
+      if (res.ok) {
+        const data = await res.json().catch(() => null);
+        if (data?.avatarUrl) {
+          return data.avatarUrl;
+        }
+      }
+    }
+  } catch (apiErr) {
+    console.warn("Lỗi API upload avatar R2:", apiErr);
+  }
+
+  // 2. Dự phòng trực tiếp Supabase Storage nếu không có mạng API
+  if (!supabase) return null;
   try {
     const fileName = `${userId}_${Date.now()}.${fileExt}`;
     const filePath = `avatars/${fileName}`;
@@ -1002,7 +1029,34 @@ export async function uploadCollectionCoverSupabase(
   fileOrBlob: Blob | File,
   fileExt: string = "jpg"
 ): Promise<string | null> {
-  if (!supabase || !userId) return null;
+  if (!userId) return null;
+  // 1. Ưu tiên upload qua Server API /api/user/collections/cover (Lưu trữ Cloudflare R2 vĩnh viễn)
+  try {
+    const { auth } = await import("@/lib/firebase");
+    const token = await auth?.currentUser?.getIdToken().catch(() => null);
+    if (token) {
+      const formData = new FormData();
+      formData.append("file", fileOrBlob, `cover.${fileExt}`);
+      const res = await fetch("/api/user/collections/cover", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      });
+      if (res.ok) {
+        const data = await res.json().catch(() => null);
+        if (data?.coverUrl) {
+          return data.coverUrl;
+        }
+      }
+    }
+  } catch (apiErr) {
+    console.warn("Lỗi API upload collection cover R2:", apiErr);
+  }
+
+  // 2. Dự phòng trực tiếp Supabase Storage
+  if (!supabase) return null;
   try {
     const fileName = `${userId}_${Date.now()}.${fileExt}`;
     const filePath = `covers/${fileName}`;

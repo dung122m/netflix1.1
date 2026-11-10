@@ -11,6 +11,8 @@ import React, {
 } from "react";
 import { saveWatchHistory } from "@/lib/watchHistory";
 import { findEpisodeMatch } from "@/lib/formatEpisode";
+import { useAuth } from "@/context/AuthContext";
+import { getPlayerSettings, updatePlayerSettings } from "@/services/userService";
 
 export type PlaybackProviderType = "nanaflix";
 
@@ -102,15 +104,44 @@ export function WatchController({
   initialServers,
   initialServerIndex = 0,
   initialEpisodeSlug,
-  initialProvider,
-  hasNanaflixSource = true,
+  initialProvider: _initialProvider,
+  hasNanaflixSource: _hasNanaflixSource = true,
   tmdbId,
   isSeries,
   isTrailerOnly = false,
   children,
 }: WatchControllerProps) {
-  const [currentServerIndex, setCurrentServerIndex] = useState(initialServerIndex);
-  const [activeProvider, setActiveProvider] = useState<PlaybackProviderType>("nanaflix");
+  const { user } = useAuth();
+  const [currentServerIndex, setCurrentServerIndex] = useState<number>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const urlParams = new URLSearchParams(window.location.search);
+        const serverParam = urlParams.get("server");
+        if (serverParam !== null) {
+          const parsed = parseInt(serverParam, 10);
+          if (!isNaN(parsed) && parsed >= 0 && parsed < initialServers.length) {
+            return parsed;
+          }
+        }
+      } catch {}
+    }
+    // Tự động khớp server ưa thích đã lưu trên tài khoản (Cloud Sync)
+    if (initialServers && initialServers.length > 1) {
+      try {
+        const settings = getPlayerSettings();
+        if (settings?.preferredServer) {
+          const pref = settings.preferredServer.toLowerCase();
+          const foundIdx = initialServers.findIndex((s) =>
+            s.server_name?.toLowerCase().includes(pref) ||
+            pref.includes(s.server_name?.toLowerCase() || "")
+          );
+          if (foundIdx !== -1) return foundIdx;
+        }
+      } catch {}
+    }
+    return initialServerIndex;
+  });
+  const [activeProvider] = useState<PlaybackProviderType>("nanaflix");
   const [isTheaterMode, setIsTheaterMode] = useState<boolean>(false);
   const [isLightsOff, setIsLightsOff] = useState<boolean>(false);
 
@@ -297,7 +328,7 @@ export function WatchController({
   }, [currentIndex, episodes]);
 
   // Cập nhật URL sạch trên thanh địa chỉ không làm reload trang, giữ đúng provider đã chọn
-  const updateUrlQuietly = useCallback((epSlug: string, sIndex: number, prov?: PlaybackProviderType) => {
+  const updateUrlQuietly = useCallback((epSlug: string, sIndex: number, _prov?: PlaybackProviderType) => {
     if (typeof window === "undefined") return;
     try {
       const url = new URL(window.location.href);
@@ -409,6 +440,9 @@ export function WatchController({
       const safeIndex = Math.max(0, Math.min(newIndex, servers.length - 1));
       setCurrentServerIndex(safeIndex);
       const newServer = servers[safeIndex];
+      if (newServer?.server_name) {
+        updatePlayerSettings(user?.uid, { preferredServer: newServer.server_name });
+      }
       const newEpisodes = newServer?.server_data || [];
       const foundMatch =
         findEpisodeMatch(newEpisodes, activeEpisode?.slug || activeEpisodeSlug) ||
@@ -454,7 +488,7 @@ export function WatchController({
         }
       }
     },
-    [servers, activeEpisodeSlug, activeEpisode, activeProvider, movieSlug, updateUrlQuietly]
+    [servers, activeEpisodeSlug, activeEpisode, activeProvider, movieSlug, updateUrlQuietly, user?.uid]
   );
 
   const value = useMemo<WatchContextValue>(() => {

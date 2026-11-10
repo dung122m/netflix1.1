@@ -135,7 +135,7 @@ function ContinueWatchingCard({ item, index = 0, onRemove }: ContinueWatchingCar
 
   return (
     <div
-      className="group relative flex-none w-[130px] xs:w-[140px] sm:w-[155px] md:w-[172px] bg-zinc-950/90 rounded-xl overflow-hidden border border-white/[0.08] hover: transition-all duration-300 hover:scale-[1.03] shadow-lg hover:shadow-[0_12px_28px_var(--accent-glow)] transform-gpu will-change-transform flex flex-col"
+      className="group relative flex-none w-[130px] xs:w-[140px] sm:w-[155px] md:w-[172px] bg-zinc-950/90 rounded-xl overflow-hidden border border-white/[0.08] hover: transition-all duration-300 hover:scale-[1.03] shadow-lg hover:shadow-[0_12px_28px_var(--accent-glow)] transform-gpu will-change-transform flex flex-col snap-start select-none"
     >
       <Link href={href} prefetch={false} className="block flex-1 flex flex-col">
         {/* ẢNH POSTER DỌC (TỈ LỆ 2:3 CHUẨN ĐIỆN ẢNH) */}
@@ -258,10 +258,12 @@ function ContinueWatchingRowInner() {
     scrollRef: rowRef,
     canScrollLeft,
     canScrollRight,
+    checkScroll,
     handleScroll,
   } = useCarouselScroll<HTMLDivElement>({
     resetTrigger: items,
-    cardSelector: ".group",
+    watchTrigger: items,
+    cardSelector: ".snap-start",
     boundaryThreshold: 8,
   });
 
@@ -364,7 +366,8 @@ function ContinueWatchingRowInner() {
         {/* DANH SÁCH THẺ PHIM ĐÃ XEM */}
         <div
           ref={rowRef}
-          className="flex gap-3 sm:gap-4 overflow-x-auto px-3 sm:px-4 scroll-pl-3 sm:scroll-pl-4 py-3 sm:py-3.5 scrollbar-none [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+          onScroll={checkScroll}
+          className="flex gap-3 sm:gap-4 overflow-x-auto px-3 sm:px-4 scroll-pl-3 sm:scroll-pl-4 py-3 sm:py-3.5 scrollbar-none snap-x snap-mandatory [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
         >
           {items.slice(0, MAX_CONTINUE_WATCHING_DISPLAY).map((item, idx) => (
             <ContinueWatchingCard key={item.slug} item={item} index={idx} onRemove={handleRemove} />

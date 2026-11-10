@@ -274,8 +274,8 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, leagueSlug, eventId, summary?.status, isLive]);
 
-  const homeDisplayName = summary?.homeTeam?.displayName || summary?.homeTeam?.name || team1 || "Đội nhà";
-  const awayDisplayName = summary?.awayTeam?.displayName || summary?.awayTeam?.name || team2 || "Đội khách";
+  const homeDisplayName = summary?.homeTeam?.displayName || summary?.homeTeam?.name || team1 || "";
+  const awayDisplayName = summary?.awayTeam?.displayName || summary?.awayTeam?.name || team2 || "";
 
   const espHome = useMemo(() => resolveEsportsTeam(homeDisplayName), [homeDisplayName]);
   const espAway = useMemo(() => resolveEsportsTeam(awayDisplayName), [awayDisplayName]);
@@ -364,7 +364,6 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
             >
               {homeDisplayName}
             </h4>
-            <span className="text-[10px] sm:text-xs text-zinc-400 font-medium">Đội nhà</span>
           </div>
 
           <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-zinc-800/90 p-1.5 flex items-center justify-center shadow-md relative overflow-hidden shrink-0">
@@ -465,7 +464,6 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
             >
               {awayDisplayName}
             </h4>
-            <span className="text-[10px] sm:text-xs text-zinc-400 font-medium">Đội khách</span>
           </div>
         </div>
       </div>

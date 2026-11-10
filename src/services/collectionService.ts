@@ -81,6 +81,9 @@ export function normalizeCollection(raw: unknown): MovieCollection | null {
   const createdAt = Number(d.createdAt ?? d.created_at) || now;
   const updatedAt = Number(d.updatedAt ?? d.updated_at) || createdAt;
 
+  const coverUrl = d.coverUrl ? String(d.coverUrl) : (d.cover_url ? String(d.cover_url) : undefined);
+  const colorGradient = d.colorGradient ? String(d.colorGradient) : (d.color_gradient ? String(d.color_gradient) : undefined);
+
   return {
     id,
     userId,
@@ -89,6 +92,8 @@ export function normalizeCollection(raw: unknown): MovieCollection | null {
     name,
     description,
     isPublic,
+    coverUrl,
+    colorGradient,
     movies,
     createdAt,
     updatedAt,
@@ -577,7 +582,9 @@ export async function createCollection(
   creatorPhoto: string | undefined,
   name: string,
   description: string = "",
-  isPublic: boolean = true
+  isPublic: boolean = true,
+  coverUrl?: string,
+  colorGradient?: string
 ): Promise<MovieCollection | null> {
   if (!userId) return null;
 
@@ -593,6 +600,8 @@ export async function createCollection(
       name: name.trim(),
       description: description.trim(),
       isPublic,
+      coverUrl: coverUrl?.trim() || undefined,
+      colorGradient: colorGradient?.trim() || undefined,
       movies: [],
       createdAt: now,
       updatedAt: now,
