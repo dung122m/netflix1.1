@@ -297,7 +297,7 @@ export function RecommendationTabs({
                   type="button"
                   onClick={() => scrollTabs("left")}
                   aria-label="Cuộn sang trái"
-                  className="relative z-10 pointer-events-auto h-6 w-6 rounded-full bg-zinc-900/95 hover:bg-zinc-800 text-zinc-200 hover:text-white shadow-md flex items-center justify-center transition active:scale-95 cursor-pointer backdrop-blur-md"
+                  className="relative z-10 pointer-events-auto hidden md:flex h-6 w-6 rounded-full bg-zinc-900/95 hover:bg-zinc-800 text-zinc-200 hover:text-white shadow-md items-center justify-center transition active:scale-95 cursor-pointer backdrop-blur-md"
                 >
                   <ChevronLeft className="w-3.5 h-3.5" />
                 </button>
