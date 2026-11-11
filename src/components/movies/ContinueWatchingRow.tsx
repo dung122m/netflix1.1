@@ -367,7 +367,7 @@ function ContinueWatchingRowInner() {
         <div
           ref={rowRef}
           onScroll={checkScroll}
-          className="flex gap-3 sm:gap-4 overflow-x-auto px-3 sm:px-4 scroll-pl-3 sm:scroll-pl-4 py-3 sm:py-3.5 scrollbar-none snap-x snap-mandatory scroll-smooth [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+          className="flex gap-3 sm:gap-4 overflow-x-auto px-3 sm:px-4 scroll-pl-3 sm:scroll-pl-4 py-3 sm:py-3.5 scrollbar-none snap-x snap-mandatory md:snap-proximity scroll-smooth [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
         >
           {items.slice(0, MAX_CONTINUE_WATCHING_DISPLAY).map((item, idx) => (
             <ContinueWatchingCard key={item.slug} item={item} index={idx} onRemove={handleRemove} />

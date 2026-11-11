@@ -138,7 +138,7 @@ export const MovieCastGallery: React.FC<MovieCastGalleryProps> = ({
         <div
           ref={scrollRef}
           onScroll={checkScroll}
-          className="flex gap-2.5 sm:gap-3 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden py-1 pb-2 snap-x snap-mandatory px-0.5 scroll-pl-0.5 scroll-smooth"
+          className="flex gap-2.5 sm:gap-3 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden py-1 pb-2 snap-x snap-mandatory md:snap-proximity px-0.5 scroll-pl-0.5 scroll-smooth"
         >
           {displayItems.map((actor) => (
             <Link

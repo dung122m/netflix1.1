@@ -574,7 +574,7 @@ function ForYouPersonalizedRowInner({ fallbackMovies }: ForYouPersonalizedRowPro
         <div
           ref={scrollContainerRef}
           onScroll={checkScroll}
-          className={`flex items-start gap-3.5 sm:gap-5 overflow-x-auto overflow-y-hidden px-3 sm:px-4 scroll-pl-3 sm:scroll-pl-4 py-3.5 sm:py-4 scrollbar-none snap-x snap-mandatory scroll-smooth transition-opacity duration-500 ${
+          className={`flex items-start gap-3.5 sm:gap-5 overflow-x-auto overflow-y-hidden px-3 sm:px-4 scroll-pl-3 sm:scroll-pl-4 py-3.5 sm:py-4 scrollbar-none snap-x snap-mandatory md:snap-proximity scroll-smooth transition-opacity duration-500 ${
             isUpdating ? "opacity-75" : "opacity-100"
           } [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]`}
         >
