@@ -11,11 +11,6 @@ export interface CarouselNavButtonProps {
   topOffsetClass?: string;
   visible?: boolean;
   disabled?: boolean;
-  /**
-   * Hiển thị nút mũi tên luôn khi có thể cuộn mà không cần chờ rê chuột (hover)
-   * Mặc định: true để mọi mục phim đều luôn hiện rõ mũi tên điều hướng
-   */
-  alwaysVisible?: boolean;
 }
 
 export function CarouselNavButton({
@@ -26,7 +21,6 @@ export function CarouselNavButton({
   topOffsetClass = "top-[40%]",
   visible = true,
   disabled = false,
-  alwaysVisible = true,
 }: CarouselNavButtonProps) {
   const isLeft = direction === "left";
   const isInteractive = visible && !disabled;
@@ -41,11 +35,9 @@ export function CarouselNavButton({
       tabIndex={isInteractive ? 0 : -1}
       aria-hidden={!isInteractive}
       aria-label={ariaLabel || defaultAria}
-      className={`group/btn hidden md:flex absolute ${posClass} ${topOffsetClass} -translate-y-1/2 z-30 w-11 h-11 md:w-12 md:h-12 rounded-full items-center justify-center cursor-pointer outline-none select-none ${
+      className={`group/btn hidden md:flex max-md:!hidden max-md:!pointer-events-none absolute ${posClass} ${topOffsetClass} -translate-y-1/2 z-30 w-11 h-11 md:w-12 md:h-12 rounded-full items-center justify-center cursor-pointer outline-none select-none ${
         isInteractive
-          ? alwaysVisible
-            ? "opacity-90 hover:!opacity-100 group-hover/row:opacity-100 focus-visible:opacity-100 scale-100 pointer-events-auto"
-            : "opacity-0 group-hover/row:opacity-100 focus-visible:opacity-100 scale-95 group-hover/row:scale-100 pointer-events-none group-hover/row:pointer-events-auto focus-visible:pointer-events-auto"
+          ? "opacity-0 group-hover/row:opacity-100 focus-visible:opacity-100 scale-95 group-hover/row:scale-100 pointer-events-none group-hover/row:pointer-events-auto focus-visible:pointer-events-auto"
           : "opacity-0 pointer-events-none scale-75 invisible"
       } bg-zinc-950/85 hover:bg-zinc-900/95 text-white border border-white/10 hover:border-white/40 active:border-white/60 backdrop-blur-xl shadow-[0_8px_24px_rgba(0,0,0,0.7),inset_0_1px_1px_rgba(255,255,255,0.25)] hover:shadow-[0_12px_32px_rgba(0,0,0,0.9),0_0_20px_var(--accent-glow),inset_0_1px_2px_rgba(255,255,255,0.4)] hover:scale-110 active:scale-90 transition-all duration-300 ease-out focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black motion-reduce:transform-none ${className}`}
     >

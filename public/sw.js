@@ -1,4 +1,4 @@
-const CACHE_NAME = 'nanaflix-shell-v2';
+const CACHE_NAME = 'nanaflix-shell-v3';
 const PRECACHE_URLS = [
   '/',
   '/browse',
