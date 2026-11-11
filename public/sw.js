@@ -1,7 +1,9 @@
-const CACHE_NAME = 'nanaflix-shell-v4';
-const PRECACHE_URLS = [
-  '/',
-  '/browse',
+// Nanaflix PWA Service Worker (Optimal Standard)
+// Tự động phân tách: HTML Pages (Network-First) & Static Hashed Chunks (Cache-First)
+// Bạn không bao giờ phải tăng phiên bản thủ công nữa.
+
+const CACHE_NAME = 'nanaflix-static-v1';
+const PRECACHE_STATIC_ASSETS = [
   '/manifest.json',
   '/icon.svg',
   '/favicon.ico',
@@ -12,35 +14,42 @@ const PRECACHE_URLS = [
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(PRECACHE_URLS).catch((err) => {
+    caches
+      .open(CACHE_NAME)
+      .then((cache) => cache.addAll(PRECACHE_STATIC_ASSETS))
+      .catch((err) => {
         console.warn('[SW] Pre-caching partial failure:', err);
-      });
-    }).then(() => self.skipWaiting())
+      })
+      .then(() => self.skipWaiting())
   );
 });
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames.map((cache) => {
-          if (cache !== CACHE_NAME) {
-            return caches.delete(cache);
-          }
-        })
-      );
-    }).then(() => self.clients.claim())
+    caches
+      .keys()
+      .then((cacheNames) => {
+        return Promise.all(
+          cacheNames.map((cache) => {
+            if (cache !== CACHE_NAME) {
+              return caches.delete(cache);
+            }
+          })
+        );
+      })
+      .then(() => self.clients.claim())
   );
 });
 
 self.addEventListener('fetch', (event) => {
-  // Chỉ áp dụng cache cho các yêu cầu GET trong cùng domain
+  // Chỉ áp dụng cho GET requests cùng domain
   if (event.request.method !== 'GET') return;
+
   const url = new URL(event.request.url);
 
-  // Không can thiệp vào video streaming (m3u8, ts), firebase API hoặc external APIs
+  // 1. Không can thiệp vào video streaming, Firebase, external APIs và nội bộ API routes
   if (
+    url.pathname.startsWith('/api/') ||
     url.pathname.endsWith('.m3u8') ||
     url.pathname.endsWith('.ts') ||
     url.hostname.includes('firebase') ||
@@ -50,21 +59,35 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Network-first với fallback cache
-  event.respondWith(
-    fetch(event.request)
-      .then((response) => {
-        // Chỉ lưu cache các tài nguyên tĩnh thành công
-        if (response.status === 200 && response.type === 'basic') {
-          const responseToCache = response.clone();
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, responseToCache);
-          });
-        }
-        return response;
-      })
-      .catch(() => {
+  // 2. Với Navigation Requests (trang HTML: /, /browse, /movies/...):
+  // LUÔN LUÔN Network-First để khi bạn push code, người dùng nhận ngay giao diện mới từ Cloudflare/Vercel.
+  // Tuyệt đối không lưu đè HTML vào CacheStorage để tránh lỗi kẹt giao diện cũ.
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request).catch(() => {
+        // Chỉ fallback về cache nếu người dùng mất mạng hoàn toàn (offline)
         return caches.match(event.request);
       })
-  );
+    );
+    return;
+  }
+
+  // 3. Với Next.js Static Chunks (_next/static/...) và PWA assets:
+  // Các file này luôn có mã hash bất biến trong URL (e.g. app-8f2a1b.js), cực kỳ an toàn để Cache-First.
+  // Giúp web tải siêu tốc 0ms mà không bao giờ bị xung đột phiên bản.
+  if (url.pathname.startsWith('/_next/static/') || PRECACHE_STATIC_ASSETS.includes(url.pathname)) {
+    event.respondWith(
+      caches.match(event.request).then((cached) => {
+        if (cached) return cached;
+        return fetch(event.request).then((response) => {
+          if (response.status === 200) {
+            const copy = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
+          }
+          return response;
+        });
+      })
+    );
+    return;
+  }
 });
