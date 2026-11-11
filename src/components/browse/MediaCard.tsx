@@ -111,8 +111,8 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
   time,
   year,
   quality,
-  chieurap,
-  sub_docquyen,
+  chieurap: _chieurap,
+  sub_docquyen: _sub_docquyen,
   country: initialCountry,
   type_name: initialTypeName,
   hasTrailer: initialHasTrailer = false,
@@ -801,17 +801,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
           </div>
         )}
 
-        {/* NÚT THÊM BỘ SƯU TẬP TRÊN MOBILE (KHÔNG PHỤ THUỘC HOVER, HITBOX 44PX CHUẨN TOUCH HIG/WCAG) */}
-        <div className="absolute bottom-2 right-2 z-20 pointer-events-auto sm:hidden">
-          <button
-            type="button"
-            onClick={handleOpenCollectionModal}
-            aria-label={`Thêm phim ${title} vào bộ sưu tập`}
-            className="w-7 h-7 rounded-full flex items-center justify-center bg-black/75 backdrop-blur-md text-amber-400 active:scale-90 transition cursor-pointer shadow-md touch-manipulation relative before:absolute before:-inset-2 before:content-['']"
-          >
-            <FolderPlus className="w-3.5 h-3.5" />
-          </button>
-        </div>
+
 
         {/* CỤM NÚT HÀNH ĐỘNG KHI HOVER TRÊN DESKTOP (GÓC DƯỚI PHẢI, KÈM CUSTOM GLASS TOOLTIP HƯỚNG LÊN) */}
         <div className="absolute bottom-2.5 right-2.5 z-20 pointer-events-auto opacity-0 group-hover/card:opacity-100 focus-within:opacity-100 transition-opacity duration-200 hidden sm:flex items-center gap-1.5">

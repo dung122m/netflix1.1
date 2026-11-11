@@ -154,68 +154,74 @@ export function useCarouselScroll<T extends HTMLElement = HTMLDivElement>(
       const maxScroll = Math.max(0, scrollWidth - clientWidth);
       if (maxScroll <= 0) return;
 
-      const paddingLeft =
-        typeof window !== "undefined"
-          ? parseFloat(window.getComputedStyle(el).paddingLeft) || 0
-          : 0;
+      const standardStep = Math.max(200, Math.floor(clientWidth * (defaultStepRatio || 0.75)));
 
       const cards = cardSelector
         ? Array.from(el.querySelectorAll<HTMLElement>(cardSelector))
         : [];
 
-      let targetScroll: number;
+      let targetScroll = scrollLeft;
 
       if (cards.length > 0) {
-        // Toạ độ cuộn chuẩn để đưa thẻ snap vào mép trái container:
-        const cardSnapOffsets = cards.map((card) => Math.max(0, card.offsetLeft - paddingLeft));
+        const containerRect = el.getBoundingClientRect();
+        const paddingLeft =
+          typeof window !== "undefined"
+            ? parseFloat(window.getComputedStyle(el).paddingLeft) || 16
+            : 16;
+
+        // Tính toạ độ cuộn tuyệt đối thực tế của từng thẻ con:
+        // (cardRect.left - containerRect.left + scrollLeft - paddingLeft)
+        const cardPositions = cards
+          .map((card) => {
+            const cardRect = card.getBoundingClientRect();
+            return Math.round(cardRect.left - containerRect.left + scrollLeft - paddingLeft);
+          })
+          .filter((pos) => !isNaN(pos));
 
         if (direction === "right") {
-          // Khi trượt sang phải: lướt qua các thẻ hiện tại, giữ lại 1 thẻ để tạo điểm tựa mắt (context)
-          const targetThreshold = scrollLeft + clientWidth * 0.82;
+          // Khi trượt sang phải: lướt qua khoảng 75% màn hình và đáp nhẹ vào thẻ gần nhất
+          const targetThreshold = scrollLeft + standardStep;
+          const forwardCards = cardPositions.filter((pos) => pos > scrollLeft + 24);
 
-          // Tìm thẻ đầu tiên nằm vượt ngoài khung nhìn hiện tại
-          const nextCardOffset = cardSnapOffsets.find(
-            (offset) => offset > scrollLeft + 24 && offset >= targetThreshold - 40
-          );
-
-          if (nextCardOffset !== undefined) {
-            targetScroll = Math.min(maxScroll, nextCardOffset);
+          if (forwardCards.length > 0) {
+            let best = forwardCards[0];
+            let minDiff = Math.abs(best - targetThreshold);
+            for (const pos of forwardCards) {
+              const diff = Math.abs(pos - targetThreshold);
+              if (diff < minDiff) {
+                minDiff = diff;
+                best = pos;
+              }
+            }
+            targetScroll = best;
           } else {
-            // Nếu không tìm thấy thẻ phù hợp ở ngưỡng 82%, tìm thẻ đầu tiên sau vị trí hiện tại
-            const firstNext = cardSnapOffsets.find((offset) => offset > scrollLeft + 32);
-            targetScroll = firstNext !== undefined ? Math.min(maxScroll, firstNext) : maxScroll;
+            targetScroll = maxScroll;
           }
         } else {
-          // Khi trượt sang trái: lùi lại khoảng 80% khung nhìn
-          const targetThreshold = Math.max(0, scrollLeft - clientWidth * 0.82);
+          // Khi trượt sang trái: lùi lại standardStep
+          const targetThreshold = Math.max(0, scrollLeft - standardStep);
+          const backwardCards = cardPositions.filter((pos) => pos < scrollLeft - 24);
 
-          if (targetThreshold <= boundaryThreshold) {
+          if (targetThreshold <= boundaryThreshold || backwardCards.length === 0) {
             targetScroll = 0;
           } else {
-            // Tìm thẻ có toạ độ gần nhất với targetThreshold nhưng phải nhỏ hơn vị trí hiện tại
-            const candidateOffsets = cardSnapOffsets.filter((offset) => offset < scrollLeft - 24);
-            if (candidateOffsets.length === 0) {
-              targetScroll = 0;
-            } else {
-              let closest = candidateOffsets[0];
-              let minDiff = Math.abs(closest - targetThreshold);
-              for (const offset of candidateOffsets) {
-                const diff = Math.abs(offset - targetThreshold);
-                if (diff < minDiff) {
-                  minDiff = diff;
-                  closest = offset;
-                }
+            let best = backwardCards[backwardCards.length - 1];
+            let minDiff = Math.abs(best - targetThreshold);
+            for (const pos of backwardCards) {
+              const diff = Math.abs(pos - targetThreshold);
+              if (diff < minDiff) {
+                minDiff = diff;
+                best = pos;
               }
-              targetScroll = closest;
             }
+            targetScroll = best;
           }
         }
       } else {
-        const step = clientWidth * defaultStepRatio;
         targetScroll =
           direction === "right"
-            ? Math.min(maxScroll, scrollLeft + step)
-            : Math.max(0, scrollLeft - step);
+            ? Math.min(maxScroll, scrollLeft + standardStep)
+            : Math.max(0, scrollLeft - standardStep);
       }
 
       // Giới hạn trong phạm vi cho phép
