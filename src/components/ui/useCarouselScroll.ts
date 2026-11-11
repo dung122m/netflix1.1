@@ -12,7 +12,7 @@ export interface UseCarouselScrollOptions {
    */
   watchTrigger?: unknown;
   /**
-   * Tỷ lệ cuộn mặc định theo chiều rộng container (mặc định: 0.85 nếu không tìm thấy card con)
+   * Tỷ lệ cuộn mặc định theo chiều rộng container (mặc định: 0.82 nếu không tìm thấy card con)
    */
   defaultStepRatio?: number;
   /**
@@ -23,10 +23,6 @@ export interface UseCarouselScrollOptions {
    * Khoảng đệm phát hiện chạm biên (mặc định: 8px)
    */
   boundaryThreshold?: number;
-  /**
-   * Thời gian hiệu ứng trượt mượt mà (ms, mặc định: 520ms)
-   */
-  duration?: number;
 }
 
 export function useCarouselScroll<T extends HTMLElement = HTMLDivElement>(
@@ -35,10 +31,9 @@ export function useCarouselScroll<T extends HTMLElement = HTMLDivElement>(
   const {
     resetTrigger,
     watchTrigger,
-    defaultStepRatio = 0.85,
+    defaultStepRatio = 0.82,
     cardSelector = ".snap-start",
     boundaryThreshold = 8,
-    duration = 520,
   } = options;
 
   const scrollRef = useRef<T | null>(null);
@@ -47,29 +42,6 @@ export function useCarouselScroll<T extends HTMLElement = HTMLDivElement>(
   // Trạng thái hiển thị mũi tên trái / phải
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
-
-  // Quản lý animation mượt mà
-  const isAnimatingRef = useRef(false);
-  const animationTargetRef = useRef<number | null>(null);
-  const animationIdRef = useRef<number | null>(null);
-  const originalStylesRef = useRef<{ snapType: string; scrollBehavior: string } | null>(null);
-
-  /**
-   * Khôi phục thuộc tính CSS gốc của container sau khi trượt xong
-   */
-  const restoreOriginalStyles = useCallback((el: HTMLElement) => {
-    if (originalStylesRef.current) {
-      el.style.scrollSnapType = originalStylesRef.current.snapType;
-      el.style.scrollBehavior = originalStylesRef.current.scrollBehavior;
-      originalStylesRef.current = null;
-    }
-    isAnimatingRef.current = false;
-    animationTargetRef.current = null;
-    if (animationIdRef.current !== null) {
-      cancelAnimationFrame(animationIdRef.current);
-      animationIdRef.current = null;
-    }
-  }, []);
 
   /**
    * Kiểm tra chính xác container có thể cuộn sang trái / sang phải hay không
@@ -105,12 +77,10 @@ export function useCarouselScroll<T extends HTMLElement = HTMLDivElement>(
   // 1. Reset scroll về đầu khi resetTrigger thay đổi (ví dụ đổi tab danh mục)
   useEffect(() => {
     if (resetTrigger !== undefined && scrollRef.current) {
-      const el = scrollRef.current;
-      restoreOriginalStyles(el);
-      el.scrollLeft = 0;
+      scrollRef.current.scrollLeft = 0;
     }
     checkScroll();
-  }, [resetTrigger, checkScroll, restoreOriginalStyles]);
+  }, [resetTrigger, checkScroll]);
 
   // 2. Tự động kiểm tra biên khi watchTrigger thay đổi (ví dụ danh sách items hoàn tất tải)
   useEffect(() => {
@@ -142,25 +112,13 @@ export function useCarouselScroll<T extends HTMLElement = HTMLDivElement>(
       mutationObserver.observe(el, { childList: true, subtree: false });
     }
 
-    // Lắng nghe sự kiện scroll thủ công của người dùng
+    // Lắng nghe sự kiện scroll của người dùng
     const onScroll = () => {
-      if (!isAnimatingRef.current) {
-        checkScroll();
-      }
-    };
-
-    // Khi người dùng chạm hoặc lăn chuột thì ngắt ngay animation mượt đang chạy để tránh xung đột
-    const onUserInteraction = () => {
-      if (isAnimatingRef.current && el) {
-        restoreOriginalStyles(el);
-        checkScroll();
-      }
+      checkScroll();
     };
 
     el.addEventListener("scroll", onScroll, { passive: true });
     el.addEventListener("scrollend", checkScroll, { passive: true });
-    el.addEventListener("touchstart", onUserInteraction, { passive: true });
-    el.addEventListener("wheel", onUserInteraction, { passive: true });
     window.addEventListener("resize", checkScroll, { passive: true });
 
     // Kiểm tra định kỳ sau khi ảnh và fonts định hình layout
@@ -172,22 +130,20 @@ export function useCarouselScroll<T extends HTMLElement = HTMLDivElement>(
       if (rafRef.current !== null) {
         cancelAnimationFrame(rafRef.current);
       }
-      restoreOriginalStyles(el);
       if (resizeObserver) resizeObserver.disconnect();
       if (mutationObserver) mutationObserver.disconnect();
       el.removeEventListener("scroll", onScroll);
       el.removeEventListener("scrollend", checkScroll);
-      el.removeEventListener("touchstart", onUserInteraction);
-      el.removeEventListener("wheel", onUserInteraction);
       window.removeEventListener("resize", checkScroll);
       clearTimeout(t1);
       clearTimeout(t2);
       clearTimeout(t3);
     };
-  }, [checkScroll, restoreOriginalStyles]);
+  }, [checkScroll]);
 
   /**
    * Hiệu ứng trượt cinema mượt mà, căn chỉnh chuẩn thẻ phim (Pixel-Perfect Card Snap)
+   * Sử dụng Native GPU Compositor Scroll mượt mà 60/120fps, không khựng hình hay giật lag.
    */
   const handleScroll = useCallback(
     (direction: "left" | "right") => {
@@ -198,139 +154,84 @@ export function useCarouselScroll<T extends HTMLElement = HTMLDivElement>(
       const maxScroll = Math.max(0, scrollWidth - clientWidth);
       if (maxScroll <= 0) return;
 
-      // Danh sách thẻ con trong carousel
+      const paddingLeft =
+        typeof window !== "undefined"
+          ? parseFloat(window.getComputedStyle(el).paddingLeft) || 0
+          : 0;
+
       const cards = cardSelector
         ? Array.from(el.querySelectorAll<HTMLElement>(cardSelector))
         : [];
 
-      // Điểm mốc tính toán: nếu người dùng bấm liên tiếp (chaining), lấy mục tiêu đang chạy
-      const currentBase =
-        isAnimatingRef.current && animationTargetRef.current !== null
-          ? animationTargetRef.current
-          : scrollLeft;
-
-      let targetScroll = currentBase;
+      let targetScroll: number;
 
       if (cards.length > 0) {
-        const containerRect = el.getBoundingClientRect();
-        const paddingLeft =
-          typeof window !== "undefined"
-            ? parseFloat(window.getComputedStyle(el).paddingLeft) || 16
-            : 16;
-
-        // Tính toạ độ tuyệt đối (absolute scroll offset) của từng thẻ
-        // Không phụ thuộc vào vị trí cuộn tạm thời của container
-        const cardOffsets = cards.map((card) => {
-          const rect = card.getBoundingClientRect();
-          return Math.round(rect.left - containerRect.left + scrollLeft - paddingLeft);
-        });
+        // Toạ độ cuộn chuẩn để đưa thẻ snap vào mép trái container:
+        const cardSnapOffsets = cards.map((card) => Math.max(0, card.offsetLeft - paddingLeft));
 
         if (direction === "right") {
-          // Tìm thẻ đầu tiên nằm vượt ngoài khung nhìn hiện tại (tính từ currentBase)
-          const targetOffsetThreshold = currentBase + clientWidth - 32;
-          const nextCardOffset = cardOffsets.find((offset) => offset >= targetOffsetThreshold);
+          // Khi trượt sang phải: lướt qua các thẻ hiện tại, giữ lại 1 thẻ để tạo điểm tựa mắt (context)
+          const targetThreshold = scrollLeft + clientWidth * 0.82;
+
+          // Tìm thẻ đầu tiên nằm vượt ngoài khung nhìn hiện tại
+          const nextCardOffset = cardSnapOffsets.find(
+            (offset) => offset > scrollLeft + 24 && offset >= targetThreshold - 40
+          );
 
           if (nextCardOffset !== undefined) {
             targetScroll = Math.min(maxScroll, nextCardOffset);
           } else {
-            targetScroll = maxScroll;
+            // Nếu không tìm thấy thẻ phù hợp ở ngưỡng 82%, tìm thẻ đầu tiên sau vị trí hiện tại
+            const firstNext = cardSnapOffsets.find((offset) => offset > scrollLeft + 32);
+            targetScroll = firstNext !== undefined ? Math.min(maxScroll, firstNext) : maxScroll;
           }
         } else {
-          // Cuộn ngược sang trái: mục tiêu lùi lại xấp xỉ 1 chiều rộng khung nhìn
-          const targetOffsetThreshold = Math.max(0, currentBase - (clientWidth - paddingLeft - 24));
+          // Khi trượt sang trái: lùi lại khoảng 80% khung nhìn
+          const targetThreshold = Math.max(0, scrollLeft - clientWidth * 0.82);
 
-          if (targetOffsetThreshold <= boundaryThreshold) {
+          if (targetThreshold <= boundaryThreshold) {
             targetScroll = 0;
           } else {
-            // Tìm thẻ có toạ độ gần nhất với targetOffsetThreshold
-            let closestOffset = 0;
-            let minDiff = Infinity;
-            for (const offset of cardOffsets) {
-              if (offset <= currentBase - 32) {
-                const diff = Math.abs(offset - targetOffsetThreshold);
+            // Tìm thẻ có toạ độ gần nhất với targetThreshold nhưng phải nhỏ hơn vị trí hiện tại
+            const candidateOffsets = cardSnapOffsets.filter((offset) => offset < scrollLeft - 24);
+            if (candidateOffsets.length === 0) {
+              targetScroll = 0;
+            } else {
+              let closest = candidateOffsets[0];
+              let minDiff = Math.abs(closest - targetThreshold);
+              for (const offset of candidateOffsets) {
+                const diff = Math.abs(offset - targetThreshold);
                 if (diff < minDiff) {
                   minDiff = diff;
-                  closestOffset = offset;
+                  closest = offset;
                 }
               }
+              targetScroll = closest;
             }
-            targetScroll = Math.max(0, closestOffset);
           }
         }
       } else {
         const step = clientWidth * defaultStepRatio;
         targetScroll =
           direction === "right"
-            ? Math.min(maxScroll, currentBase + step)
-            : Math.max(0, currentBase - step);
+            ? Math.min(maxScroll, scrollLeft + step)
+            : Math.max(0, scrollLeft - step);
       }
 
       // Giới hạn trong phạm vi cho phép
       targetScroll = Math.max(0, Math.min(maxScroll, Math.round(targetScroll)));
 
-      // Nếu chênh lệch quá nhỏ (dưới 2px) thì không cần chạy animation
-      if (Math.abs(targetScroll - scrollLeft) < 2) {
-        checkScroll();
-        return;
-      }
+      // Trượt mượt mà bằng native GPU compositor của trình duyệt (120Hz/60Hz không giật lag)
+      el.scrollTo({
+        left: targetScroll,
+        behavior: "smooth",
+      });
 
-      animationTargetRef.current = targetScroll;
-
-      // Hỗ trợ người dùng bật chế độ giảm chuyển động (prefers-reduced-motion)
-      const prefersReducedMotion =
-        typeof window !== "undefined" &&
-        window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-      if (prefersReducedMotion) {
-        el.scrollLeft = targetScroll;
-        checkScroll();
-        return;
-      }
-
-      // Hủy animation cũ nếu có
-      if (animationIdRef.current !== null) {
-        cancelAnimationFrame(animationIdRef.current);
-      }
-
-      // Tạm thời vô hiệu hóa scroll-snap và CSS scroll-smooth để tránh giật lag / khựng hình
-      if (!isAnimatingRef.current) {
-        originalStylesRef.current = {
-          snapType: el.style.scrollSnapType,
-          scrollBehavior: el.style.scrollBehavior,
-        };
-        el.style.scrollSnapType = "none";
-        el.style.scrollBehavior = "auto";
-        isAnimatingRef.current = true;
-      }
-
-      const startX = el.scrollLeft;
-      const distance = targetScroll - startX;
-      let startTime: number | null = null;
-
-      // Easing Curve cao cấp: Quintic Ease-Out (1 - (1 - t)^4)
-      // Cho cảm giác lướt tức thì khi bấm và hãm phanh êm ái như phòng chiếu rạp
-      const easeOutQuart = (t: number) => 1 - Math.pow(1 - t, 4);
-
-      const stepAnimation = (timestamp: number) => {
-        if (!startTime) startTime = timestamp;
-        const elapsed = timestamp - startTime;
-        const progress = Math.min(1, elapsed / duration);
-        const eased = easeOutQuart(progress);
-
-        el.scrollLeft = Math.round(startX + distance * eased);
-
-        if (progress < 1) {
-          animationIdRef.current = requestAnimationFrame(stepAnimation);
-        } else {
-          el.scrollLeft = targetScroll;
-          restoreOriginalStyles(el);
-          checkScroll();
-        }
-      };
-
-      animationIdRef.current = requestAnimationFrame(stepAnimation);
+      // Tự động kiểm tra cập nhật lại trạng thái mũi tên
+      setTimeout(checkScroll, 350);
+      setTimeout(checkScroll, 600);
     },
-    [cardSelector, defaultStepRatio, duration, boundaryThreshold, checkScroll, restoreOriginalStyles]
+    [cardSelector, defaultStepRatio, boundaryThreshold, checkScroll]
   );
 
   return {

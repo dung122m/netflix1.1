@@ -122,7 +122,7 @@ export const RankedCarouselSection: React.FC<RankedCarouselSectionProps> = React
           <div
             ref={scrollRef}
             onScroll={checkScroll}
-            className="flex items-center gap-2 sm:gap-3.5 md:gap-4 overflow-x-auto overflow-y-hidden px-3 sm:px-6 scroll-pl-3 sm:scroll-pl-6 py-4 sm:py-5 scrollbar-none snap-x snap-mandatory"
+            className="flex items-center gap-2 sm:gap-3.5 md:gap-4 overflow-x-auto overflow-y-hidden px-3 sm:px-6 scroll-pl-3 sm:scroll-pl-6 py-4 sm:py-5 scrollbar-none snap-x snap-mandatory scroll-smooth"
             style={{
               scrollbarWidth: "none",
               msOverflowStyle: "none",
