@@ -3,16 +3,22 @@
 import React, { useState } from "react";
 
 export function getPageNumbers(current: number, total: number): (number | string)[] {
-  if (total <= 5) {
-    return Array.from({ length: total }, (_, i) => i + 1);
+  const safeTotal = Number.isFinite(total) && total >= 1 ? Math.floor(total) : 1;
+  const safeCurrent =
+    Number.isFinite(current) && current >= 1
+      ? Math.min(Math.floor(current), safeTotal)
+      : 1;
+
+  if (safeTotal <= 5) {
+    return Array.from({ length: safeTotal }, (_, i) => i + 1);
   }
-  if (current <= 3) {
-    return [1, 2, 3, "...", total];
+  if (safeCurrent <= 3) {
+    return [1, 2, 3, "...", safeTotal];
   }
-  if (current >= total - 2) {
-    return [1, "...", total - 2, total - 1, total];
+  if (safeCurrent >= safeTotal - 2) {
+    return [1, "...", safeTotal - 2, safeTotal - 1, safeTotal];
   }
-  return [1, "...", current, "...", total];
+  return [1, "...", safeCurrent, "...", safeTotal];
 }
 
 export function getCategoryEmoji(_category: string): string {

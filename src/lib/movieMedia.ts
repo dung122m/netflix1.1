@@ -833,16 +833,35 @@ export function pickBestMovieImage(movie: MovieLike, fallback: string) {
   return pickBestMovieThumb(movie, fallback);
 }
 
+function extractNamedEntries(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value
+      .map((item) =>
+        typeof item === "string"
+          ? item.trim()
+          : String((item as { name?: unknown } | null)?.name || "").trim()
+      )
+      .filter(Boolean);
+  }
+  if (typeof value === "string") {
+    return value
+      .split(",")
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
+  return [];
+}
+
 export function buildMovieDescriptionFallback(movie: {
   origin_name?: string;
   year?: string | number;
   time?: string | number;
   lang?: string;
   quality?: string;
-  category?: Array<{ name?: string }>;
-  country?: Array<{ name?: string }>;
-  director?: string[];
-  actor?: string[];
+  category?: Array<{ name?: string }> | string;
+  country?: Array<{ name?: string }> | string;
+  director?: string[] | string;
+  actor?: string[] | string;
 }) {
   const parts: string[] = [];
   if (movie.origin_name) parts.push(`Tên gốc: ${movie.origin_name}.`);
@@ -866,22 +885,13 @@ export function buildMovieDescriptionFallback(movie: {
     .join(" • ");
   if (meta) parts.push(meta);
 
-  const genres =
-    movie.category
-      ?.map((item) => item.name)
-      .filter(Boolean)
-      .join(", ") || "";
+  const genres = extractNamedEntries(movie.category).join(", ");
   if (genres) parts.push(`Thể loại: ${genres}.`);
 
-  const countries =
-    movie.country
-      ?.map((item) => item.name)
-      .filter(Boolean)
-      .join(", ") || "";
+  const countries = extractNamedEntries(movie.country).join(", ");
   if (countries) parts.push(`Quốc gia: ${countries}.`);
 
-  const directors =
-    movie.director?.filter(Boolean).slice(0, 2).join(", ") || "";
+  const directors = extractNamedEntries(movie.director).slice(0, 2).join(", ");
   if (directors) parts.push(`Đạo diễn: ${directors}.`);
 
   return parts.join(" ").trim();
@@ -1994,7 +2004,7 @@ export function normalizeMovie(m: any): NormalizedMovie {
   }
 
   const rawGenre =
-    m?.category?.[0]?.name ||
+    (Array.isArray(m?.category) ? m.category[0]?.name : undefined) ||
     categories[0]?.name ||
     (Array.isArray(m?.genre) ? m.genre.join(", ") : m?.genre) ||
     "";
@@ -2057,9 +2067,9 @@ export function normalizeMovie(m: any): NormalizedMovie {
       time: m?.time,
       lang: m?.lang,
       quality: m?.quality,
-      category: m?.category,
-      country: m?.country,
-      director: m?.director,
+      category: categories.length > 0 ? categories : m?.category,
+      country: m?.country || (country ? [{ name: country }] : undefined),
+      director,
       actor,
     }) ||
     "";

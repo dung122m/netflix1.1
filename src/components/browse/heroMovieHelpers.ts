@@ -131,7 +131,9 @@ export function computeHeroMovieMeta(
     ? activeHeroSynopsis || descriptionClean
     : "";
 
-  const firstCountry = featuredMovie?.country?.[0];
+  const firstCountry = Array.isArray(featuredMovie?.country)
+    ? featuredMovie.country[0]
+    : undefined;
   const heroCountry = formatCountryName(
     firstCountry?.name ||
       firstCountry?.slug ||

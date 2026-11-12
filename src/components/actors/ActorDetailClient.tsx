@@ -25,20 +25,9 @@ interface ActorDetailClientProps {
   actorName: string;
 }
 
-const PAGE_SIZE = 24;
+import { getPaginationPages } from "@/lib/pagination";
 
-function getPaginationPages(currentPage: number, totalPages: number): (number | string)[] {
-  if (totalPages <= 7) {
-    return Array.from({ length: totalPages }, (_, i) => i + 1);
-  }
-  if (currentPage <= 4) {
-    return [1, 2, 3, 4, 5, "...", totalPages];
-  }
-  if (currentPage >= totalPages - 3) {
-    return [1, "...", totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages];
-  }
-  return [1, "...", currentPage - 1, currentPage, currentPage + 1, "...", totalPages];
-}
+const PAGE_SIZE = 24;
 
 import { parseBioContent } from "@/lib/bioFormatter";
 
@@ -97,12 +86,16 @@ export const ActorDetailClient: React.FC<ActorDetailClientProps> = ({
 
   // Phân trang danh sách phim
   const totalPages = Math.max(1, Math.ceil(displayedMovies.length / PAGE_SIZE));
-  const paginationPages = useMemo(() => getPaginationPages(currentPage, totalPages), [currentPage, totalPages]);
+  const safeCurrentPage = Math.min(Math.max(1, currentPage), totalPages);
+  const paginationPages = useMemo(
+    () => getPaginationPages(safeCurrentPage, totalPages),
+    [safeCurrentPage, totalPages]
+  );
 
   const pagedMovies = useMemo(() => {
-    const start = (currentPage - 1) * PAGE_SIZE;
+    const start = (safeCurrentPage - 1) * PAGE_SIZE;
     return displayedMovies.slice(start, start + PAGE_SIZE);
-  }, [displayedMovies, currentPage]);
+  }, [displayedMovies, safeCurrentPage]);
 
   const handleTabChange = (tab: "all" | "single" | "series") => {
     setActiveTab(tab);
@@ -262,7 +255,7 @@ export const ActorDetailClient: React.FC<ActorDetailClientProps> = ({
               <span>Tuyển Tập Phim Của {actorName}</span>
             </h2>
             <p className="text-xs sm:text-sm text-zinc-400">
-              Tổng hợp {displayedMovies.length} tác phẩm {totalPages > 1 ? `(Trang ${currentPage} / ${totalPages})` : ""} đã được đối chiếu nguồn phát trên Nanaflix
+              Tổng hợp {displayedMovies.length} tác phẩm {totalPages > 1 ? `(Trang ${safeCurrentPage} / ${totalPages})` : ""} đã được đối chiếu nguồn phát trên Nanaflix
             </p>
           </div>
 
@@ -321,7 +314,7 @@ export const ActorDetailClient: React.FC<ActorDetailClientProps> = ({
             <MovieGrid movies={pagedMovies} />
             {totalPages > 1 && (
               <PaginationControl
-                currentPage={currentPage}
+                currentPage={safeCurrentPage}
                 totalPages={totalPages}
                 pages={paginationPages}
                 onPageChange={handlePageChange}

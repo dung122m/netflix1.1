@@ -18,6 +18,7 @@ import {
 import { searchMoviesBySemantic } from "@/services/aiVectorService";
 import { evaluateConceptEvidence, resolveConcepts } from "@/services/conceptRegistry";
 import { PaginationControl } from "@/components/ui/PaginationControl";
+import { getPaginationPages } from "@/lib/pagination";
 import {
   cleanNormalizedForMatch,
   getTitleEvidence,
@@ -133,21 +134,11 @@ export async function generateMetadata({
 // ==========================================
 // PHÂN TRANG
 // ==========================================
-const getPagination = (current: number, total: number) => {
-  if (total <= 7) {
-    return Array.from({ length: total }, (_, i) => i + 1);
-  }
-
-  if (current <= 4) {
-    return [1, 2, 3, 4, 5, "...", total];
-  }
-
-  if (current >= total - 3) {
-    return [1, "...", total - 4, total - 3, total - 2, total - 1, total];
-  }
-
-  return [1, "...", current - 1, current, current + 1, "...", total];
-};
+function parsePositivePage(rawPage?: string): number {
+  if (!rawPage) return 1;
+  const parsed = parseInt(rawPage, 10);
+  return Number.isFinite(parsed) && parsed >= 1 ? Math.floor(parsed) : 1;
+}
 
 function isRelevantSemanticCandidate(
   candidate: { name?: unknown; title?: unknown; origin_name?: unknown; slug?: unknown; similarity?: unknown },
@@ -391,7 +382,7 @@ export default async function BrowsePage({
   const sort = rawSort || "latest";
   const effectiveSort = sort;
 
-  const currentPage = params.page ? parseInt(params.page, 10) : 1;
+  const currentPage = parsePositivePage(params.page);
   const PAGE_LIMIT = 24;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -542,7 +533,7 @@ export default async function BrowsePage({
     }
   }
 
-  const pages = getPagination(currentPage, totalPages);
+  const pages = getPaginationPages(currentPage, totalPages);
 
   if (movies.length === 0 && (keyword || actorParam)) {
     const fallbackRes = await movieApi.getMovies({ limit: 16, sort: "views" });

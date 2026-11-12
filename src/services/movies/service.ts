@@ -25,10 +25,17 @@ interface CacheEntry<T> {
 const moviesMemoryCache = new Map<string, CacheEntry<any>>();
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const movieDetailMemoryCache = new Map<string, CacheEntry<any>>();
+// Track degraded responses internally so Redis KV never persists partial upstream outages
+const degradedMoviePayloads = new WeakSet<object>();
 
 // In-flight deduplication để tránh gọi lặp cùng 1 trang NguonC (đặc biệt các trang giao thoa như page 5, page 10)
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const inFlightNguonC = new Map<string, Promise<any>>();
+interface NguonCPageResponse {
+  items?: Record<string, unknown>[];
+  data?: { items?: Record<string, unknown>[] };
+  paginate?: { total_items?: number; total_page?: number };
+}
+
+const inFlightNguonC = new Map<string, Promise<NguonCPageResponse | null>>();
 
 // Cache metadata phân trang của NguonC (totalItems, totalPages) theo query để chống gọi các trang vượt quá giới hạn
 const nguonCQueryMetaCache = new Map<string, { totalItems: number; totalPages: number; timestamp: number }>();
@@ -1647,82 +1654,178 @@ async function fetchSourceData(
       };
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const fetchSingleNguonC = (p: number, u: string): Promise<any> => {
-      const inFlight = inFlightNguonC.get(u);
-      if (inFlight) return inFlight;
+async function fetchSingleNguonCPage(
+  p: number,
+  u: string,
+  nguonCMetaKey: string,
+): Promise<NguonCPageResponse | null> {
+  const existing = inFlightNguonC.get(u);
+  if (existing) return existing;
 
-      const promise = (async () => {
-        const t0 = performance.now();
-        try {
-          const res = await fetch(u, {
-            headers: {
-              "User-Agent":
-                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36",
-              Accept: "application/json, text/plain, */*",
-              "Accept-Language": "vi-VN,vi;q=0.9,en-US;q=0.8,en;q=0.7",
-            },
-            next: { revalidate: 300 },
-            signal: AbortSignal.timeout(NGUONC_TIMEOUT_MS),
-          });
-          const elapsed = Math.round(performance.now() - t0);
-          if (!res.ok) {
-            console.info(`[NguonC] page=${p} status=${res.status} elapsed=${elapsed}ms`);
-            return null;
-          }
-          const json = await res.json();
-          const itmCount = json?.items?.length || 0;
-          const tot = json?.paginate?.total_items || itmCount;
-          const totalPage = json?.paginate?.total_page || (tot ? Math.ceil(tot / 10) : 0);
-          console.info(`[NguonC] page=${p} status=200 elapsed=${elapsed}ms items=${itmCount} total=${tot}`);
+  const requestOnce = async (isRetry: boolean) => {
+    const t0 = performance.now();
+    try {
+      const res = await fetch(u, {
+        headers: {
+          "User-Agent":
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36",
+          Accept: "application/json, text/plain, */*",
+          "Accept-Language": "vi-VN,vi;q=0.9,en-US;q=0.8,en;q=0.7",
+        },
+        ...(isRetry ? { cache: "no-store" as const } : { next: { revalidate: 300 } }),
+        signal: AbortSignal.timeout(NGUONC_TIMEOUT_MS),
+      });
+      const elapsed = Math.round(performance.now() - t0);
+      if (!res.ok) {
+        console.info(`[NguonC] page=${p} status=${res.status} elapsed=${elapsed}ms retry=${isRetry}`);
+        return { ok: false, retryable: res.status === 429 || res.status >= 500, json: null };
+      }
+      const json = await res.json();
+      const itmCount = json?.items?.length || 0;
+      const tot = json?.paginate?.total_items || itmCount;
+      const totalPage = json?.paginate?.total_page || (tot ? Math.ceil(tot / 10) : 0);
+      console.info(`[NguonC] page=${p} status=200 elapsed=${elapsed}ms items=${itmCount} total=${tot}`);
 
-          // Ghi nhận metadata phân trang để các page khác cùng query không gọi vượt ngưỡng
-          if (totalPage > 0 || tot > 0) {
-            const current = nguonCQueryMetaCache.get(nguonCMetaKey);
-            nguonCQueryMetaCache.set(nguonCMetaKey, {
-              totalItems: Math.max(tot, current?.totalItems || 0),
-              totalPages: Math.max(totalPage, current?.totalPages || 0),
-              timestamp: Date.now(),
-            });
-          }
-          return json;
-        } catch (err) {
-          const elapsed = Math.round(performance.now() - t0);
-          const errType = err instanceof Error && err.name === "AbortError" ? "timeout" : "network_error";
-          console.info(`[NguonC] page=${p} error=${errType} elapsed=${elapsed}ms`);
-          return null;
-        } finally {
-          inFlightNguonC.delete(u);
-        }
-      })();
+      // Ghi nhận metadata phân trang để các page khác cùng query không gọi vượt ngưỡng
+      if (totalPage > 0 || tot > 0) {
+        const current = nguonCQueryMetaCache.get(nguonCMetaKey);
+        nguonCQueryMetaCache.set(nguonCMetaKey, {
+          totalItems: Math.max(tot, current?.totalItems || 0),
+          totalPages: Math.max(totalPage, current?.totalPages || 0),
+          timestamp: Date.now(),
+        });
+      }
+      return { ok: true, retryable: false, json };
+    } catch (err) {
+      const elapsed = Math.round(performance.now() - t0);
+      const errType = err instanceof Error && err.name === "AbortError" ? "timeout" : "network_error";
+      console.info(`[NguonC] page=${p} error=${errType} elapsed=${elapsed}ms retry=${isRetry}`);
+      return { ok: false, retryable: true, json: null };
+    }
+  };
 
-      inFlightNguonC.set(u, promise);
-      return promise;
-    };
+  const promise = (async () => {
+    try {
+      const first = await requestOnce(false);
+      if (first.ok || !first.retryable) {
+        return first.json;
+      }
+      // Retry once after short jittered delay to recover from transient HTTP 429 / socket bursts
+      const backoffMs = 200 + Math.floor(Math.random() * 180);
+      await new Promise((resolve) => setTimeout(resolve, backoffMs));
+      const second = await requestOnce(true);
+      return second.json;
+    } finally {
+      inFlightNguonC.delete(u);
+    }
+  })();
+
+  inFlightNguonC.set(u, promise);
+  return promise;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function mapNguonCListItem(item: any, params: MovieFilterParams) {
+  const nguoncBackdrop = item.poster_url;
+  const nguoncPoster = item.thumb_url;
+  const cleanPoster = nguoncPoster || item.poster_url || "";
+  const cleanThumb = nguoncBackdrop || item.thumb_url || "";
+
+  let itemType: string | undefined = undefined;
+  let chieurap: boolean | undefined = undefined;
+
+  if (params.type === "phim-chieu-rap") {
+    chieurap = true;
+    itemType = "phim-chieu-rap";
+  } else if (params.type === "hoat-hinh") {
+    itemType = "hoat-hinh";
+  } else if (params.type === "phim-bo") {
+    itemType = "series";
+  } else if (params.type === "phim-le") {
+    itemType = "single";
+  } else if (params.type === "tv-shows") {
+    itemType = "tv-shows";
+  }
+
+  const normalizedDirectors = extractMovieDirectors(item);
+  const normalizedActors = extractMovieActors(item);
+
+  return {
+    ...item,
+    source: "nguonc",
+    sources: ["nguonc"],
+    name: item.name,
+    slug: item.slug,
+    origin_name: item.original_name || item.name,
+    poster_url: cleanPoster || cleanThumb,
+    thumb_url: cleanThumb || cleanPoster,
+    quality: item.quality || "HD",
+    lang: item.language || "Vietsub",
+    episode_current: item.current_episode || "",
+    year: Number(item.year) || undefined,
+    time: item.time || "",
+    director: normalizedDirectors,
+    actor: normalizedActors,
+    modified:
+      typeof item.modified === "string"
+        ? { time: item.modified }
+        : item.modified || (item.created ? { time: String(item.created) } : undefined),
+    ...(Array.isArray(item.category) && item.category.length > 0
+      ? { category: item.category }
+      : params.category
+      ? { category: [{ name: formatGenreName(params.category) || params.category, slug: params.category }] }
+      : {}),
+    ...(Array.isArray(item.country) && item.country.length > 0
+      ? { country: item.country }
+      : params.country
+      ? { country: [{ name: formatCountryName(params.country) || params.country, slug: params.country }] }
+      : {}),
+    ...(itemType ? { type: itemType } : {}),
+    ...(chieurap !== undefined ? { chieurap } : {}),
+  };
+}
 
     const nguonCSettled = await Promise.allSettled(
       pagesToFetch.map((p) => {
         const u = buildNguonCUrl(p);
         if (!u) return Promise.resolve(null);
-        return fetchSingleNguonC(p, u);
+        return fetchSingleNguonCPage(p, u, nguonCMetaKey);
       })
     );
 
     const nguonCResults = nguonCSettled.map((s) => (s.status === "fulfilled" ? s.value : null));
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const rawCombined: any[] = [];
-    let nguonCTotalItems = 0;
+    let nguonCTotalItems = cachedNguonCMeta?.totalItems || 0;
+    let nguonCTotalPages = cachedNguonCMeta?.totalPages || 0;
     let successfulPagesCount = 0;
+    let failedPagesCount = 0;
+    const firstSlotSucceeded = Boolean(nguonCResults[0]);
 
-    for (const r of nguonCResults) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const rawCandidateStream: any[] = [];
+    const seenRawSlugs = new Set<string>();
+
+    const appendSlotItems = (r: { items?: unknown[]; data?: { items?: unknown[] }; paginate?: { total_items?: number; total_page?: number } } | null) => {
+      if (!r) return;
+      const itms = r.items || r.data?.items || [];
+      if (r.paginate?.total_items) {
+        nguonCTotalItems = Math.max(nguonCTotalItems, r.paginate.total_items);
+      }
+      if (r.paginate?.total_page) {
+        nguonCTotalPages = Math.max(nguonCTotalPages, r.paginate.total_page);
+      }
+      for (const itm of itms) {
+        rawCandidateStream.push(itm);
+      }
+    };
+
+    for (let idx = 0; idx < nguonCResults.length; idx++) {
+      const r = nguonCResults[idx];
       if (r) {
         successfulPagesCount++;
-        const itms = r.items || r.data?.items || [];
-        rawCombined.push(...itms);
-        if (r.paginate?.total_items) {
-          nguonCTotalItems = Math.max(nguonCTotalItems, r.paginate.total_items);
-        }
+        appendSlotItems(r);
+      } else {
+        failedPagesCount++;
       }
     }
 
@@ -1730,90 +1833,73 @@ async function fetchSourceData(
       return null;
     }
 
-    if (rawCombined.length === 0) {
+    // Chỉ cắt phần offset đầu khi trang NguonC đầu tiên thực sự tải thành công;
+    // nếu trang đầu bị lỗi sau retry, giữ nguyên đầu dải trang kế để tránh mất thêm phim.
+    const chunkStartOffset = (startNguonCPage - 1) * 10;
+    const rawSliceStart = firstSlotSucceeded ? Math.max(0, offsetStart - chunkStartOffset) : 0;
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const uniquePostOffset: any[] = [];
+    for (let i = rawSliceStart; i < rawCandidateStream.length; i++) {
+      const item = rawCandidateStream[i];
+      const slugKey = item?.slug ? String(item.slug) : "";
+      if (slugKey) {
+        if (seenRawSlugs.has(slugKey)) continue;
+        seenRawSlugs.add(slugKey);
+      }
+      uniquePostOffset.push(item);
+    }
+
+    // Nếu bị hụt phim do 1 trang con lỗi hoặc có phim trùng lắp giữa các trang liền kề khi NguonC dịch chuyển,
+    // chủ động tải bù thêm tối đa 2 trang NguonC kế tiếp (nếu vẫn còn trong tổng số trang NguonC).
+    const maxAllowedNguonCPage = nguonCTotalPages > 0 ? nguonCTotalPages : effectiveEndNguonCPage + 2;
+    let nextExtraPage = effectiveEndNguonCPage + 1;
+    let extraAttempts = 0;
+    while (uniquePostOffset.length < fetchLimit && nextExtraPage <= maxAllowedNguonCPage && extraAttempts < 2) {
+      const extraUrl = buildNguonCUrl(nextExtraPage);
+      if (!extraUrl) break;
+      const extraRes = await fetchSingleNguonCPage(nextExtraPage, extraUrl, nguonCMetaKey);
+      extraAttempts++;
+      nextExtraPage++;
+      if (!extraRes) continue;
+      const extraItems = extraRes.items || extraRes.data?.items || [];
+      if (extraRes.paginate?.total_items) {
+        nguonCTotalItems = Math.max(nguonCTotalItems, extraRes.paginate.total_items);
+      }
+      if (extraRes.paginate?.total_page) {
+        nguonCTotalPages = Math.max(nguonCTotalPages, extraRes.paginate.total_page);
+      }
+      for (const item of extraItems) {
+        const slugKey = item?.slug ? String(item.slug) : "";
+        if (slugKey) {
+          if (seenRawSlugs.has(slugKey)) continue;
+          seenRawSlugs.add(slugKey);
+        }
+        uniquePostOffset.push(item);
+      }
+    }
+
+    if (uniquePostOffset.length === 0) {
       return {
         items: [],
+        overflowItems: [],
+        isPartial: failedPagesCount > 0,
         totalPages: Math.ceil(nguonCTotalItems / fetchLimit) || 1,
         totalItems: nguonCTotalItems,
       };
     }
 
-    const chunkStartOffset = (startNguonCPage - 1) * 10;
-    const sliceFrom = Math.max(0, offsetStart - chunkStartOffset);
-    const sliceTo = sliceFrom + fetchLimit;
-    const rawItems = rawCombined.slice(sliceFrom, sliceTo);
+    const mappedAll = uniquePostOffset.map((item) => mapNguonCListItem(item, params));
+    const primaryItems = mappedAll.slice(0, fetchLimit);
+    const overflowItems = mappedAll.slice(fetchLimit);
 
-    // Mapping danh sách phim từ NguonC
-    const mappedNguonCItems = rawItems.map((item: {
-      name?: string;
-      slug?: string;
-      original_name?: string;
-      thumb_url?: string;
-      poster_url?: string;
-      quality?: string;
-      language?: string;
-      current_episode?: string;
-      time?: string;
-      year?: string | number;
-      [key: string]: unknown;
-    }) => {
-      const nguoncBackdrop = item.poster_url;
-      const nguoncPoster = item.thumb_url;
-      const cleanPoster = nguoncPoster || item.poster_url || "";
-      const cleanThumb = nguoncBackdrop || item.thumb_url || "";
-
-      let itemType: string | undefined = undefined;
-      let chieurap: boolean | undefined = undefined;
-
-      if (params.type === "phim-chieu-rap") {
-        chieurap = true;
-        itemType = "phim-chieu-rap";
-      } else if (params.type === "hoat-hinh") {
-        itemType = "hoat-hinh";
-      } else if (params.type === "phim-bo") {
-        itemType = "series";
-      } else if (params.type === "phim-le") {
-        itemType = "single";
-      } else if (params.type === "tv-shows") {
-        itemType = "tv-shows";
-      }
-
-      return {
-        ...item,
-        source: "nguonc",
-        sources: ["nguonc"],
-        name: item.name,
-        slug: item.slug,
-        origin_name: item.original_name || item.name,
-        poster_url: cleanPoster || cleanThumb,
-        thumb_url: cleanThumb || cleanPoster,
-        quality: item.quality || "HD",
-        lang: item.language || "Vietsub",
-        episode_current: item.current_episode || "",
-        year: Number(item.year) || undefined,
-        time: item.time || "",
-        modified: typeof item.modified === "string" ? { time: item.modified } : item.modified || (item.created ? { time: String(item.created) } : undefined),
-        ...(Array.isArray(item.category) && item.category.length > 0
-          ? { category: item.category }
-          : params.category
-          ? { category: [{ name: formatGenreName(params.category) || params.category, slug: params.category }] }
-          : {}),
-        ...(Array.isArray(item.country) && item.country.length > 0
-          ? { country: item.country }
-          : params.country
-          ? { country: [{ name: formatCountryName(params.country) || params.country, slug: params.country }] }
-          : {}),
-        ...(itemType ? { type: itemType } : {}),
-        ...(chieurap !== undefined ? { chieurap } : {}),
-      };
-    });
-
-    const totalPages =
-      Math.ceil(nguonCTotalItems / fetchLimit) ||
-      1;
+    const totalPages = Math.ceil(nguonCTotalItems / fetchLimit) || 1;
+    const isPartial = failedPagesCount > 0 || (page < totalPages && primaryItems.length < fetchLimit);
 
     return {
-      items: mappedNguonCItems,
+      items: primaryItems,
+      overflowItems,
+      isPartial,
       totalPages,
       totalItems: nguonCTotalItems,
     };
@@ -1822,12 +1908,18 @@ async function fetchSourceData(
   }
 }
 
-
-
 // ============================================================
 // CHUẨN HÓA ĐIỂM ĐÁNH GIÁ & KHỬ TRÙNG LẶP CATALOG
 // ============================================================
-import { deduplicateMovieItems, evaluateSearchRelevance, cleanNormalizedForMatch, extractMovieRatingScore, extractMovieModifiedTime } from "@/lib/movieMedia";
+import {
+  deduplicateMovieItems,
+  evaluateSearchRelevance,
+  cleanNormalizedForMatch,
+  extractMovieRatingScore,
+  extractMovieModifiedTime,
+  extractMovieDirectors,
+  extractMovieActors,
+} from "@/lib/movieMedia";
 export { deduplicateMovieItems, extractMovieRatingScore, extractMovieModifiedTime };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1896,7 +1988,7 @@ interface QueryPaginationMeta {
   totalItems: number;
   totalPages: number;
   updatedAt: number;
-  seenSlugs?: Set<string>;
+  seenSlugsByPage?: Map<number, Set<string>>;
 }
 const queryMetadataCache = new Map<string, QueryPaginationMeta>();
 
@@ -1969,11 +2061,14 @@ async function executeGetAiCandidates(params: MovieFilterParams, _options?: AiCa
 
 async function executeGetMovies(params: MovieFilterParams, cacheKey: string) {
   const isSearch = Boolean(params.keyword?.trim());
-  const limit = params.limit || 24;
+  const limit = params.limit && params.limit > 0 ? params.limit : 24;
   const effectiveSort = params.sort || "latest";
   const metaKey = buildQueryMetaKey(params);
   const cachedMeta = queryMetadataCache.get(metaKey);
-  const currentSeen = cachedMeta?.seenSlugs || new Set<string>();
+  const seenSlugsByPage =
+    cachedMeta && Date.now() - (cachedMeta.updatedAt || 0) < 300_000 && cachedMeta.seenSlugsByPage
+      ? cachedMeta.seenSlugsByPage
+      : new Map<number, Set<string>>();
 
   // ============================================================
   // CHIẾN LƯỢC FEDERATION PER-PAGE SONG SONG CHO BROWSE:
@@ -2020,9 +2115,9 @@ async function executeGetMovies(params: MovieFilterParams, cacheKey: string) {
     // Với tìm kiếm, sắp xếp ưu tiên phim có điểm liên quan (relevance) cao nhất
     candidates.sort((a, b) => (b.relevanceScore || 0) - (a.relevanceScore || 0));
 
-    // Khử trùng lặp giữa các trang (cross-page deduplication)
-    const requestedPageNum = params.page || 1;
-    if (requestedPageNum > 1 && currentSeen.size === 0) {
+    // Khử trùng lặp giữa các trang (cross-page deduplication): chỉ loại bỏ phim đã xuất hiện ở trang trước (< requestedPageNum)
+    const requestedPageNum = params.page && params.page >= 1 ? Math.floor(params.page) : 1;
+    if (requestedPageNum > 1 && !seenSlugsByPage.has(1)) {
       try {
         const p1Key = buildMovieCacheKey({ ...params, page: 1 });
         let p1Cached = moviesMemoryCache.get(p1Key)?.data;
@@ -2030,16 +2125,30 @@ async function executeGetMovies(params: MovieFilterParams, cacheKey: string) {
           p1Cached = await executeGetMovies({ ...params, page: 1 }, p1Key);
         }
         if (p1Cached?.items) {
-          for (const itm of p1Cached.items) {
-            if (itm?.slug) currentSeen.add(itm.slug);
-          }
+          seenSlugsByPage.set(
+            1,
+            new Set(
+              p1Cached.items
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                .map((itm: any) => itm?.slug)
+                .filter(Boolean)
+            )
+          );
         }
       } catch {}
     }
 
-    if (requestedPageNum > 1 && currentSeen.size > 0) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      candidates = candidates.filter((m: any) => !currentSeen.has(m.slug));
+    if (requestedPageNum > 1 && seenSlugsByPage.size > 0) {
+      const priorSeen = new Set<string>();
+      for (const [seenPage, slugSet] of seenSlugsByPage.entries()) {
+        if (seenPage < requestedPageNum) {
+          for (const s of slugSet) priorSeen.add(s);
+        }
+      }
+      if (priorSeen.size > 0) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        candidates = candidates.filter((m: any) => !priorSeen.has(m.slug));
+      }
     }
   } else if (effectiveSort === "rating") {
     candidates.sort((a, b) => {
@@ -2129,26 +2238,63 @@ async function executeGetMovies(params: MovieFilterParams, cacheKey: string) {
   }
 
   const maxTotalPages = Math.max(1, Math.ceil(totalItemsCount / limit));
-  const requestedPage = params.page || 1;
+  const requestedPage = params.page && params.page >= 1 ? Math.floor(params.page) : 1;
   let finalItems = (maxTotalPages > 0 && requestedPage > maxTotalPages) ? [] : candidates.slice(0, limit);
 
   // Tự động bù đắp (top-up) nếu sau khi lọc/dedupe trang bị khuyết dưới target limit
   if (finalItems.length < limit && requestedPage < maxTotalPages && !isSearch) {
     try {
-      const topUpRes = await fetchSourceData(API_PHIMAPI, params, isSearch, requestedPage + 1);
-      if (topUpRes?.items && topUpRes.items.length > 0) {
-        const existingSlugs = new Set(candidates.map((c) => c.slug));
-        const filteredTopUp = applyMovieFilters(
+      const existingSlugs = new Set(candidates.map((c) => c.slug).filter(Boolean));
+      const appendUniqueFiltered = (items: unknown[]) => {
+        if (!Array.isArray(items) || items.length === 0) return;
+        const filtered = applyMovieFilters(
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          topUpRes.items.filter((item: any) => item?.slug && !existingSlugs.has(item.slug)),
+          items.filter((item: any) => item?.slug && !existingSlugs.has(item.slug)),
           params
         );
-        for (const item of filteredTopUp) {
+        for (const item of filtered) {
           if (finalItems.length >= limit) break;
           existingSlugs.add(item.slug);
           candidates.push(item);
           finalItems.push(item);
         }
+      };
+
+      // 1. Tận dụng phần dư NguonC đã fetch sẵn trong bộ nhớ (0 extra HTTP calls)
+      if (resNguonC && "overflowItems" in resNguonC && Array.isArray(resNguonC.overflowItems)) {
+        appendUniqueFiltered(resNguonC.overflowItems);
+      }
+
+      // 2. Nếu vẫn thiếu, bù đắp song song từ cả PhimAPI (nếu còn trang) và NguonC (trang kế tiếp)
+      if (finalItems.length < limit) {
+        const shouldTopUpPhimApi =
+          !resPhimApi || resPhimApi.items.length > 0 || requestedPage < (resPhimApi.totalPages || 0);
+        const shouldTopUpNguonC =
+          !resNguonC || resNguonC.items.length > 0 || requestedPage < (resNguonC.totalPages || 0);
+
+        const [topUpPhimApi, topUpNguonC] = await Promise.all([
+          shouldTopUpPhimApi
+            ? fetchSourceData(API_PHIMAPI, params, isSearch, requestedPage + 1)
+            : Promise.resolve(null),
+          shouldTopUpNguonC
+            ? fetchSourceData(API_NGUONC, params, isSearch, requestedPage + 1)
+            : Promise.resolve(null),
+        ]);
+
+        const mergedTopUp = [];
+        const pTop = topUpPhimApi?.items || [];
+        const nTop = topUpNguonC?.items || [];
+        let pIdx = 0;
+        let nIdx = 0;
+        while (pIdx < pTop.length || nIdx < nTop.length) {
+          for (let k = 0; k < 2 && pIdx < pTop.length; k++) {
+            mergedTopUp.push(pTop[pIdx++]);
+          }
+          if (nIdx < nTop.length) {
+            mergedTopUp.push(nTop[nIdx++]);
+          }
+        }
+        appendUniqueFiltered(mergedTopUp);
       }
     } catch {}
   }
@@ -2159,10 +2305,23 @@ async function executeGetMovies(params: MovieFilterParams, cacheKey: string) {
       finalItems = candidates.slice(0, Math.min(limit, candidates.length));
     } else {
       try {
-        const fallbackPage = Math.max(1, Math.min(requestedPage - 1, Math.floor((countApi1 || totalItemsCount) / limit)));
-        const fallbackRes = await fetchSourceData(API_PHIMAPI, params, isSearch, fallbackPage);
-        if (fallbackRes?.items && fallbackRes.items.length > 0) {
-          finalItems = fallbackRes.items.slice(0, limit);
+        const fallbackPage = Math.max(1, requestedPage - 1);
+        const phimApiFallbackPage = countApi1 > 0 ? Math.min(fallbackPage, Math.max(1, Math.ceil(countApi1 / limit))) : fallbackPage;
+        const [phimFallbackRes, nguonCFallbackRes] = await Promise.all([
+          countApi1 > 0
+            ? fetchSourceData(API_PHIMAPI, params, isSearch, phimApiFallbackPage)
+            : Promise.resolve(null),
+          fetchSourceData(API_NGUONC, params, isSearch, fallbackPage),
+        ]);
+        const fallbackCombined = applyMovieFilters(
+          deduplicateMovieItems([
+            ...(phimFallbackRes?.items || []),
+            ...(nguonCFallbackRes?.items || []),
+          ]),
+          params
+        );
+        if (fallbackCombined.length > 0) {
+          finalItems = fallbackCombined.slice(0, limit);
         }
       } catch {}
     }
@@ -2184,20 +2343,39 @@ async function executeGetMovies(params: MovieFilterParams, cacheKey: string) {
     },
   };
 
-  const isDegraded = resPhimApi === null || resNguonC === null;
+  const nguonCIsPartial = Boolean(resNguonC && "isPartial" in resNguonC && resNguonC.isPartial);
+  const expectedMoreItems =
+    !isSearch &&
+    requestedPage < maxTotalPages &&
+    finalItems.length < limit &&
+    (countApi1 >= requestedPage * limit || countApi2 >= requestedPage * limit);
+  const isDegraded =
+    resPhimApi === null ||
+    resNguonC === null ||
+    nguonCIsPartial ||
+    expectedMoreItems;
+  if (isDegraded) {
+    degradedMoviePayloads.add(payload);
+  }
   const now = Date.now();
-  // Nếu bị degraded (1 trong các nguồn bị timeout/lỗi), chỉ lưu RAM ngắn hạn (15s) thay vì 300s để request sau phục hồi trọn vẹn
+  // Nếu bị degraded (1 trong các nguồn bị timeout/lỗi/khuyết trang), chỉ lưu RAM ngắn hạn (15s) thay vì 300s để request sau phục hồi trọn vẹn
   const freshTtl = isDegraded ? 15 * 1000 : 300 * 1000;
   const staleTtl = isDegraded ? 30 * 1000 : 1800 * 1000;
 
   if (isSearch && finalItems.length > 0) {
-    for (const itm of finalItems) {
-      if (itm?.slug) currentSeen.add(itm.slug);
-    }
+    seenSlugsByPage.set(
+      requestedPage,
+      new Set(
+        finalItems
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          .map((itm: any) => itm?.slug)
+          .filter(Boolean)
+      )
+    );
   }
 
   queryMetadataCache.set(metaKey, {
-    seenSlugs: currentSeen,
+    seenSlugsByPage,
     countApi1: Math.max(countApi1, cachedMeta?.countApi1 || 0),
     countApi2: Math.max(countApi2, cachedMeta?.countApi2 || 0),
     totalItems: totalItemsCount,
@@ -2339,11 +2517,21 @@ export const movieApi = {
   // ==========================================
   // 1. LẤY DANH SÁCH PHIM (STALE-WHILE-REVALIDATE 0MS)
   // ==========================================
-  getMovies: async (params: MovieFilterParams = {}) => {
+  getMovies: async (rawParams: MovieFilterParams = {}) => {
     // Kích hoạt nạp sẵn dữ liệu các danh mục chính trong nền
     if (!hasWarmedUp) {
       warmUpTopCategories();
     }
+
+    const parsedPage = Number(rawParams.page);
+    const parsedLimit = Number(rawParams.limit);
+    const params: MovieFilterParams = {
+      ...rawParams,
+      page: Number.isFinite(parsedPage) && parsedPage >= 1 ? Math.floor(parsedPage) : 1,
+      ...(rawParams.limit !== undefined
+        ? { limit: Number.isFinite(parsedLimit) && parsedLimit >= 1 ? Math.floor(parsedLimit) : 24 }
+        : {}),
+    };
 
     const cacheKey = buildMovieCacheKey(params);
 
@@ -2416,7 +2604,12 @@ export const movieApi = {
           });
         } else {
           res = await executeGetMovies(params, cacheKey);
-          if (res && Array.isArray(res.items) && res.items.length > 0) {
+          if (
+            res &&
+            Array.isArray(res.items) &&
+            res.items.length > 0 &&
+            !degradedMoviePayloads.has(res)
+          ) {
             cacheService.set(kvKey, res, ttlSeconds).catch(() => {});
           }
         }

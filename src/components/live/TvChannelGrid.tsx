@@ -5,8 +5,7 @@ import { ChevronLeft, ChevronRight, RotateCcw, Search } from "lucide-react";
 import { TvChannel } from "@/services/live/tv/service";
 import { PlayingEqualizer } from "./PlayingEqualizer";
 import { TvChannelLogo, getPageNumbers } from "./TvChannelLogo";
-
-const INITIAL_PAGE_SIZE = 24;
+import { TV_CHANNELS_PER_PAGE } from "./hooks/useLiveTvFilters";
 
 export interface TvChannelGridProps {
   viewMode: "grid" | "list";
@@ -170,9 +169,9 @@ export function TvChannelGrid({
       {totalPages > 1 && (
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 pb-2 mt-6">
           <div className="text-xs text-zinc-400 text-center sm:text-left">
-            Hiển thị <span className="text-white font-bold">{(safePage - 1) * INITIAL_PAGE_SIZE + 1}</span> -{" "}
+            Hiển thị <span className="text-white font-bold">{(safePage - 1) * TV_CHANNELS_PER_PAGE + 1}</span> -{" "}
             <span className="text-white font-bold">
-              {Math.min(safePage * INITIAL_PAGE_SIZE, filteredChannelsCount)}
+              {Math.min(safePage * TV_CHANNELS_PER_PAGE, filteredChannelsCount)}
             </span>{" "}
             trên tổng số <span className="text-netflix-red font-bold">{filteredChannelsCount}</span> kênh
           </div>

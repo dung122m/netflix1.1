@@ -38,16 +38,23 @@ export const PaginationControl: React.FC<PaginationControlProps> = ({
     }
   };
 
+  const safeTotalPages =
+    Number.isFinite(totalPages) && totalPages >= 1 ? Math.floor(totalPages) : 1;
+  const safeCurrentPage =
+    Number.isFinite(currentPage) && currentPage >= 1
+      ? Math.floor(currentPage)
+      : 1;
+
   // Tự động focus ô nhập khi mở popover
   useEffect(() => {
     if (isJumpOpen) {
-      setTargetPageInput(currentPage.toString());
+      setTargetPageInput(Math.min(safeCurrentPage, safeTotalPages).toString());
       setTimeout(() => {
         inputRef.current?.focus();
         inputRef.current?.select();
       }, 50);
     }
-  }, [isJumpOpen, currentPage]);
+  }, [isJumpOpen, safeCurrentPage, safeTotalPages]);
 
   // Đóng popover khi click ra ngoài
   useEffect(() => {
@@ -72,7 +79,7 @@ export const PaginationControl: React.FC<PaginationControlProps> = ({
     const pageNum = parseInt(targetPageInput.trim(), 10);
     if (isNaN(pageNum)) return;
 
-    const validPage = Math.min(Math.max(1, pageNum), totalPages);
+    const validPage = Math.min(Math.max(1, pageNum), safeTotalPages);
     setIsJumpOpen(false);
     if (onPageChange) {
       onPageChange(validPage);
@@ -81,8 +88,8 @@ export const PaginationControl: React.FC<PaginationControlProps> = ({
     }
   };
 
-  const prevPage = Math.max(1, currentPage - 1);
-  const nextPage = Math.min(totalPages, currentPage + 1);
+  const prevPage = Math.min(safeTotalPages, Math.max(1, safeCurrentPage - 1));
+  const nextPage = Math.min(safeTotalPages, Math.max(1, safeCurrentPage + 1));
 
   return (
     <div className="flex justify-center items-center gap-1.5 sm:gap-2 mt-8 sm:mt-12 relative select-none">
@@ -93,9 +100,9 @@ export const PaginationControl: React.FC<PaginationControlProps> = ({
         <button
           type="button"
           onClick={() => handlePageClick(prevPage)}
-          disabled={currentPage <= 1}
+          disabled={safeCurrentPage <= 1}
           className={`px-3.5 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm rounded-xl font-semibold transition touch-target min-h-[40px] flex items-center justify-center outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-105 ${
-            currentPage <= 1
+            safeCurrentPage <= 1
               ? "bg-zinc-900 text-zinc-600 pointer-events-none opacity-50 cursor-not-allowed"
               : "bg-zinc-800 text-white hover:bg-zinc-700 active:scale-95 cursor-pointer"
           }`}
@@ -106,10 +113,10 @@ export const PaginationControl: React.FC<PaginationControlProps> = ({
       ) : (
         <Link
           href={buildPageUrl(prevPage)}
-          prefetch={true}
-          tabIndex={currentPage <= 1 ? -1 : 0}
+          prefetch={false}
+          tabIndex={safeCurrentPage <= 1 ? -1 : 0}
           className={`px-3.5 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm rounded-xl font-semibold transition touch-target min-h-[40px] flex items-center justify-center outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-105 cursor-pointer ${
-            currentPage <= 1
+            safeCurrentPage <= 1
               ? "bg-zinc-900 text-zinc-600 pointer-events-none cursor-not-allowed opacity-50"
               : "bg-zinc-800 text-white hover:bg-zinc-700 active:scale-95"
           }`}
@@ -132,7 +139,7 @@ export const PaginationControl: React.FC<PaginationControlProps> = ({
             );
           }
           const pageNum = p as number;
-          const isActive = currentPage === pageNum;
+          const isActive = safeCurrentPage === pageNum;
 
           if (onPageChange) {
             return (
@@ -155,7 +162,7 @@ export const PaginationControl: React.FC<PaginationControlProps> = ({
             <Link
               key={index}
               href={buildPageUrl(pageNum)}
-              prefetch={true}
+              prefetch={false}
               className={`w-9 h-9 sm:w-10 sm:h-10 text-xs sm:text-sm flex items-center justify-center rounded-lg font-semibold transition-all outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-110 cursor-pointer ${
                 isActive
                   ? "bg-netflix-red text-white shadow-sm font-bold"
@@ -178,7 +185,7 @@ export const PaginationControl: React.FC<PaginationControlProps> = ({
           className="px-3.5 py-2 min-h-[40px] text-xs font-bold text-white bg-netflix-red rounded-xl shadow-md hover:brightness-110 active:brightness-95 transition-all flex items-center justify-center gap-1 touch-target outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-105 cursor-pointer"
           aria-label="Đi tới trang"
         >
-          <span>{currentPage} / {totalPages}</span>
+          <span>{safeCurrentPage} / {safeTotalPages}</span>
         </button>
 
         {/* POPOVER NHẬP SỐ TRANG TRÊN MOBILE */}
@@ -189,7 +196,7 @@ export const PaginationControl: React.FC<PaginationControlProps> = ({
               <span className="text-xs font-bold text-white flex items-center gap-1.5">
                 <span>Đi tới trang</span>
                 <span className="text-[10px] text-zinc-400 font-normal">
-                  (1 - {totalPages})
+                  (1 - {safeTotalPages})
                 </span>
               </span>
               <button
@@ -207,10 +214,10 @@ export const PaginationControl: React.FC<PaginationControlProps> = ({
                 ref={inputRef}
                 type="number"
                 min="1"
-                max={totalPages}
+                max={safeTotalPages}
                 value={targetPageInput}
                 onChange={(e) => setTargetPageInput(e.target.value)}
-                placeholder={`1 - ${totalPages}`}
+                placeholder={`1 - ${safeTotalPages}`}
                 className="w-full bg-zinc-950 text-white font-bold text-center text-base sm:text-sm px-3 py-2 rounded-xl focus:border-red-500 focus:outline-none focus:ring-1 focus:ring-red-500/50"
               />
               <button
@@ -232,9 +239,9 @@ export const PaginationControl: React.FC<PaginationControlProps> = ({
         <button
           type="button"
           onClick={() => handlePageClick(nextPage)}
-          disabled={currentPage >= totalPages}
+          disabled={safeCurrentPage >= safeTotalPages}
           className={`px-3.5 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm rounded-xl font-semibold transition touch-target min-h-[40px] flex items-center justify-center outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-105 ${
-            currentPage >= totalPages
+            safeCurrentPage >= safeTotalPages
               ? "bg-zinc-900 text-zinc-600 pointer-events-none opacity-50 cursor-not-allowed"
               : "bg-zinc-800 text-white hover:bg-zinc-700 active:scale-95 cursor-pointer"
           }`}
@@ -245,10 +252,10 @@ export const PaginationControl: React.FC<PaginationControlProps> = ({
       ) : (
         <Link
           href={buildPageUrl(nextPage)}
-          prefetch={true}
-          tabIndex={currentPage >= totalPages ? -1 : 0}
+          prefetch={false}
+          tabIndex={safeCurrentPage >= safeTotalPages ? -1 : 0}
           className={`px-3.5 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm rounded-xl font-semibold transition touch-target min-h-[40px] flex items-center justify-center outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-105 cursor-pointer ${
-            currentPage >= totalPages
+            safeCurrentPage >= safeTotalPages
               ? "bg-zinc-900 text-zinc-600 pointer-events-none cursor-not-allowed opacity-50"
               : "bg-zinc-800 text-white hover:bg-zinc-700 active:scale-95"
           }`}
