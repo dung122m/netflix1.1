@@ -15,6 +15,7 @@ import {
   type LiveStallRecord,
   getForwardBuffer,
   calculateLiveLatency,
+  evaluateLiveMediaErrorRecovery,
 } from "@/services/live/shared/liveBufferHelper";
 import {
   getSourceQuality,
@@ -688,12 +689,16 @@ export function useLiveFootballHls({
     let onNativeLoadedMetadata: (() => void) | null = null;
     let onNativeError: (() => void) | null = null;
     let stallNudgeTimer: ReturnType<typeof setTimeout> | null = null;
+    let mediaRecoveryTimer: ReturnType<typeof setTimeout> | null = null;
+    let mediaRecoveryTimestamps: number[] = [];
+    let lastMediaRecoveryAt = 0;
+    let lastMediaErrorCt: number | null = null;
 
     if (Hls.isSupported()) {
       const hls = new Hls({
         enableWorker: true,
         lowLatencyMode: false,
-        liveSyncDurationCount: 3,
+        liveSyncDurationCount: 2,
         liveMaxLatencyDurationCount: Infinity,
         maxLiveSyncPlaybackRate: 1.0,
         backBufferLength: 60,
@@ -937,12 +942,102 @@ export function useLiveFootballHls({
 
               executeServerFallbackRef.current("bị gián đoạn kết nối");
               break;
-            case Hls.ErrorTypes.MEDIA_ERROR:
-              console.warn(
-                "[LivePlayer] Media error encountered, recovering media error...",
-              );
-              hls.recoverMediaError();
+            case Hls.ErrorTypes.MEDIA_ERROR: {
+              const v = videoRef.current;
+              const nowMs = Date.now();
+              const currentCt = v?.currentTime ?? 0;
+              const sStart =
+                v?.seekable && v.seekable.length > 0 ? v.seekable.start(0) : null;
+              const sEnd =
+                v?.seekable && v.seekable.length > 0
+                  ? v.seekable.end(v.seekable.length - 1)
+                  : null;
+              const livePos =
+                hls.liveSyncPosition && Number.isFinite(hls.liveSyncPosition)
+                  ? hls.liveSyncPosition
+                  : null;
+
+              const decision = evaluateLiveMediaErrorRecovery({
+                now: nowMs,
+                recentErrorTimestamps: mediaRecoveryTimestamps,
+                lastRecoveryAt: lastMediaRecoveryAt,
+                lastErrorTimeSec: lastMediaErrorCt,
+                currentTimeSec: currentCt,
+                seekableStartSec: sStart,
+                seekableEndSec: sEnd,
+                liveSyncPositionSec: livePos,
+              });
+
+              mediaRecoveryTimestamps = decision.nextTimestamps;
+              lastMediaErrorCt = currentCt;
+
+              if (decision.action === "fallback") {
+                console.warn(
+                  "[LivePlayer] Repeated media decode errors, switching to fallback server...",
+                );
+                executeServerFallbackRef.current("luồng phát gặp lỗi giải mã");
+                break;
+              }
+
+              const runMediaRecovery = () => {
+                if (
+                  currentAttemptId !== attemptIdRef.current ||
+                  hlsRef.current !== hls ||
+                  isStoppedRef.current
+                ) {
+                  return;
+                }
+                lastMediaRecoveryAt = Date.now();
+                const targetVideo = videoRef.current;
+                if (decision.seekToSec !== null && targetVideo) {
+                  try {
+                    targetVideo.currentTime = decision.seekToSec;
+                  } catch {}
+                }
+                if (decision.action === "swap_and_recover") {
+                  console.warn(
+                    "[LivePlayer] Swapping audio codec and recovering media error...",
+                  );
+                  hls.swapAudioCodec();
+                } else {
+                  console.warn(
+                    "[LivePlayer] Media error encountered, recovering media error...",
+                  );
+                }
+                if (decision.seekToSec !== null) {
+                  const targetSec = decision.seekToSec;
+                  hls.once(Hls.Events.MEDIA_ATTACHED, () => {
+                    if (
+                      currentAttemptId !== attemptIdRef.current ||
+                      hlsRef.current !== hls
+                    ) {
+                      return;
+                    }
+                    try {
+                      if (videoRef.current) {
+                        videoRef.current.currentTime = targetSec;
+                      }
+                      hls.startLoad(targetSec);
+                    } catch {}
+                  });
+                }
+                hls.recoverMediaError();
+              };
+
+              if (mediaRecoveryTimer) {
+                clearTimeout(mediaRecoveryTimer);
+                mediaRecoveryTimer = null;
+              }
+              if (decision.delayMs > 0) {
+                mediaRecoveryTimer = setTimeout(() => {
+                  mediaRecoveryTimer = null;
+                  runMediaRecovery();
+                }, decision.delayMs);
+              } else {
+                runMediaRecovery();
+              }
               break;
+            }
             default:
               executeServerFallbackRef.current("gặp sự cố luồng phát");
               break;
@@ -977,6 +1072,10 @@ export function useLiveFootballHls({
       if (stallNudgeTimer) {
         clearTimeout(stallNudgeTimer);
         stallNudgeTimer = null;
+      }
+      if (mediaRecoveryTimer) {
+        clearTimeout(mediaRecoveryTimer);
+        mediaRecoveryTimer = null;
       }
       if (watchdogTimerRef.current) {
         clearTimeout(watchdogTimerRef.current);

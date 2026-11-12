@@ -117,3 +117,108 @@ export function calculateLiveLatency(
   };
 }
 
+export const LIVE_MEDIA_RECOVERY_WINDOW_MS = 12_000;
+export const LIVE_MEDIA_RECOVERY_MAX_ATTEMPTS = 3;
+export const LIVE_MEDIA_RECOVERY_COOLDOWN_MS = 650;
+
+export interface LiveMediaRecoveryInput {
+  now: number;
+  recentErrorTimestamps: number[];
+  lastRecoveryAt: number;
+  lastErrorTimeSec: number | null;
+  currentTimeSec: number;
+  seekableStartSec: number | null;
+  seekableEndSec: number | null;
+  liveSyncPositionSec: number | null;
+}
+
+export interface LiveMediaRecoveryDecision {
+  action: "recover" | "swap_and_recover" | "fallback";
+  nextTimestamps: number[];
+  delayMs: number;
+  seekToSec: number | null;
+}
+
+/**
+ * Prevents infinite hls.recoverMediaError() loops on live streams with sparse
+ * keyframes (e.g., 8s Open-GOP segments lacking IDR/SPS). Caps recovery
+ * attempts inside a rolling window, enforces cooldown, advances past broken
+ * startup segments when stuck at the same timestamp, and escalates to server
+ * fallback when decode recovery fails repeatedly.
+ */
+export function evaluateLiveMediaErrorRecovery(
+  input: LiveMediaRecoveryInput,
+): LiveMediaRecoveryDecision {
+  const {
+    now,
+    recentErrorTimestamps,
+    lastRecoveryAt,
+    lastErrorTimeSec,
+    currentTimeSec,
+    seekableStartSec,
+    seekableEndSec,
+    liveSyncPositionSec,
+  } = input;
+
+  const activeTimestamps = recentErrorTimestamps.filter(
+    (ts) => now - ts <= LIVE_MEDIA_RECOVERY_WINDOW_MS,
+  );
+  activeTimestamps.push(now);
+
+  if (activeTimestamps.length > LIVE_MEDIA_RECOVERY_MAX_ATTEMPTS) {
+    return {
+      action: "fallback",
+      nextTimestamps: activeTimestamps,
+      delayMs: 0,
+      seekToSec: null,
+    };
+  }
+
+  const attempt = activeTimestamps.length;
+  const elapsedSinceLast = lastRecoveryAt > 0 ? now - lastRecoveryAt : Infinity;
+  const delayMs =
+    attempt === 1
+      ? 0
+      : Math.max(0, LIVE_MEDIA_RECOVERY_COOLDOWN_MS - elapsedSinceLast);
+
+  let seekToSec: number | null = null;
+  const isStuckAtSameSpot =
+    lastErrorTimeSec !== null &&
+    Number.isFinite(currentTimeSec) &&
+    Math.abs(currentTimeSec - lastErrorTimeSec) < 3.5;
+
+  if (attempt >= 2 && isStuckAtSameSpot && Number.isFinite(currentTimeSec)) {
+    const startBound =
+      seekableStartSec !== null && Number.isFinite(seekableStartSec)
+        ? seekableStartSec
+        : 0;
+    const endBound =
+      seekableEndSec !== null && Number.isFinite(seekableEndSec)
+        ? Math.max(startBound, seekableEndSec - 1.5)
+        : null;
+
+    let candidate = Math.max(startBound, currentTimeSec) + 4.5;
+    if (
+      liveSyncPositionSec !== null &&
+      Number.isFinite(liveSyncPositionSec) &&
+      liveSyncPositionSec > candidate
+    ) {
+      candidate = liveSyncPositionSec;
+    }
+    if (endBound !== null) {
+      candidate = Math.min(endBound, candidate);
+    }
+    if (candidate > currentTimeSec + 1.0) {
+      seekToSec = +candidate.toFixed(2);
+    }
+  }
+
+  return {
+    action: attempt >= 3 ? "swap_and_recover" : "recover",
+    nextTimestamps: activeTimestamps,
+    delayMs,
+    seekToSec,
+  };
+}
+
+
