@@ -4,7 +4,7 @@ import { MovieGrid } from "@/components/movies/MovieGrid";
 import { FilterBarClient } from "@/components/browse/FilterBarClient";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
-import { Film, ExternalLink, User, Flame } from "lucide-react";
+import { Film, ExternalLink, User, Flame, ChevronRight } from "lucide-react";
 import { movieApi } from "@/services/movies/service";
 import {
   resolveActorMovies,
@@ -392,7 +392,7 @@ export default async function BrowsePage({
   let upstreamMovies: any[] = [];
   let totalPages = 1;
   let totalItems = 0;
-  let detectedActor: { name: string; country?: string } | null = null;
+  let detectedActor: { name: string; country?: string; href?: string } | null = null;
 
   // =========================================================================
   // 1. TÁCH BIỆT RÕ RÀNG: TÌM KIẾM THEO DIỄN VIÊN VS TÌM KIẾM THEO TÊN PHIM
@@ -409,7 +409,14 @@ export default async function BrowsePage({
   if (actorRes && (actorRes.isActor || actorParam || actorSynonyms?.isMatched)) {
     const actorSearch = await runActorSearch({ actorResult: actorRes, actorSynonyms, actorParam, category, country, year, type, sort, currentPage, pageLimit: PAGE_LIMIT });
     if (actorSearch) {
-      detectedActor = actorSearch.actor;
+      const actorSlug = (actorSynonyms?.slug || actorSearch.actor.name)
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "");
+      detectedActor = {
+        ...actorSearch.actor,
+        href: actorSlug ? `/dien-vien/${actorSlug}` : undefined,
+      };
       movies = actorSearch.movies;
       totalItems = actorSearch.totalItems;
       totalPages = actorSearch.totalPages;
@@ -528,7 +535,14 @@ export default async function BrowsePage({
         movies = actorSearch.movies;
         totalItems = actorSearch.totalItems;
         totalPages = actorSearch.totalPages;
-        detectedActor = actorSearch.actor;
+        const actorSlug = (fallbackSynonyms?.slug || actorSearch.actor.name)
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/^-+|-+$/g, "");
+        detectedActor = {
+          ...actorSearch.actor,
+          href: actorSlug ? `/dien-vien/${actorSlug}` : undefined,
+        };
       }
     }
   }
@@ -631,28 +645,38 @@ export default async function BrowsePage({
         </div>
 
         {detectedActor && (
-          <div className="mb-6 p-4 sm:p-5 rounded-2xl bg-zinc-900/75 flex items-center justify-between gap-3 shadow-lg animate-in fade-in duration-300">
-            <div className="flex items-center gap-3.5">
+          <div className="mb-6 p-4 sm:p-5 rounded-2xl bg-zinc-900/75 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 shadow-lg animate-in fade-in duration-300">
+            <div className="flex items-center gap-3.5 min-w-0">
               <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-netflix-red/15 text-netflix-red flex items-center justify-center flex-none">
                 <User className="w-5 h-5 text-netflix-red" />
               </div>
-              <div>
+              <div className="min-w-0">
                 <h4 className="text-sm sm:text-base font-black text-white flex items-center gap-2 flex-wrap">
-                  <span>Tuyển Tập Tác Phẩm Của {detectedActor.name}</span>
+                  <span className="truncate">Tuyển Tập Tác Phẩm Của {detectedActor.name}</span>
                   {detectedActor.country && (
-                    <span className="text-xs text-white font-bold px-2.5 py-0.5 rounded-full bg-white/10">
+                    <span className="text-xs text-white font-bold px-2.5 py-0.5 rounded-full bg-white/10 flex-none">
                       {detectedActor.country}
                     </span>
                   )}
-                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/10 text-zinc-300 font-semibold">
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/10 text-zinc-300 font-semibold flex-none">
                     Diễn viên
                   </span>
                 </h4>
-                <p className="text-xs text-zinc-300 mt-0.5">
+                <p className="text-xs text-zinc-300 mt-0.5 truncate sm:whitespace-normal">
                   Tự động tổng hợp các tác phẩm tiêu biểu & xuất sắc nhất của {detectedActor.name}
                 </p>
               </div>
             </div>
+
+            {detectedActor.href && (
+              <Link
+                href={detectedActor.href}
+                className="self-start sm:self-auto inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-netflix-red hover:brightness-110 active:brightness-95 text-white font-bold text-xs sm:text-sm transition shadow-md flex-none cursor-pointer"
+              >
+                <span>Xem hồ sơ & toàn bộ phim</span>
+                <ChevronRight className="w-4 h-4" />
+              </Link>
+            )}
           </div>
         )}
 

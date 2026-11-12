@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { movieApi } from "@/services/movies/service";
 import { resolveActorMovies, isAmbiguousShortActorKeyword, hasExplicitActorPrefix } from "@/services/aiActorService";
+import { getActorSynonyms } from "@/services/actor/actorAliasResolver";
+import { searchTmdbPerson } from "@/services/tmdbService";
 import { pickBestMoviePoster, MovieLike } from "@/lib/movieMedia";
 import { normalizeForMatch } from "@/lib/stringUtils";
 import { cacheService } from "@/lib/cache";
@@ -125,20 +127,67 @@ export async function GET(req: NextRequest) {
     }));
 
     // 3. Nếu khớp diễn viên rõ ràng:
+    // - Ưu tiên điều hướng thẳng sang trang chi tiết diễn viên (/dien-vien/:id-:slug hoặc /dien-vien/:slug)
     // - Chỉ đưa lên ĐẦU danh sách nếu người dùng gõ tiền tố rõ ràng (vd: "diễn viên ...", "phim của ...")
-    // - Với tìm kiếm thông thường (vd: "Trấn Thành"), phim tìm theo tên vẫn ưu tiên hàng đầu, thẻ diễn viên được thêm vào CUỐI danh sách để người dùng có thể bấm vào nếu muốn xem tuyển tập
+    //   hoặc kết quả phim trùng khớp ít (<= 2 phim)
+    // - Với tìm kiếm thông thường có nhiều phim trùng tên, thẻ diễn viên được thêm vào danh sách
     // - TUYỆT ĐỐI không gắn thẻ diễn viên cho từ khóa ngắn/mơ hồ ("Mai", "An", "Anh"...)
     if (actorRes?.isActor && actorRes.actorName && !isAmbiguousShortActorKeyword(keyword)) {
+      const syn = getActorSynonyms(keyword);
+      const actorDisplayName =
+        syn.isMatched && syn.canonicalName
+          ? syn.canonicalName
+          : actorRes.actorName;
+      const targetCountry = actorRes.country || syn.country || "Điện Ảnh";
+
+      // Tra cứu nhanh TMDB person để lấy ID và ảnh chân dung diễn viên (budget 450ms)
+      const personCandidates = [
+        actorDisplayName,
+        syn.englishName,
+        syn.canonicalName,
+        keyword,
+        syn.slug ? syn.slug.replace(/-/g, " ") : "",
+      ].filter((s): s is string => Boolean(s && s.trim().length >= 2));
+
+      let tmdbPerson: { id: number; name: string; profile_path?: string | null } | null = null;
+      try {
+        for (const cand of personCandidates.slice(0, 3)) {
+          const found = await Promise.race([
+            searchTmdbPerson(cand),
+            new Promise<null>((resolve) => setTimeout(() => resolve(null), 450)),
+          ]);
+          if (found && (found.profile_path || !tmdbPerson)) {
+            tmdbPerson = found;
+            if (found.profile_path) break;
+          }
+        }
+      } catch {}
+
+      const cleanSlugPart = (syn.slug || tmdbPerson?.name || actorDisplayName)
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "");
+
+      const destinationSlug = tmdbPerson?.id
+        ? `dien-vien/${tmdbPerson.id}-${cleanSlugPart}`
+        : cleanSlugPart
+          ? `dien-vien/${cleanSlugPart}`
+          : `browse?actor=${encodeURIComponent(actorDisplayName)}`;
+
+      const actorPoster =
+        tmdbPerson?.profile_path ||
+        "/default-hero.jpg";
+
       const actorItem = {
-        slug: `browse?actor=${encodeURIComponent(actorRes.actorName)}`,
-        title: `Tuyển tập phim của ${actorRes.actorName}`,
-        poster: "/default-hero.jpg",
-        year: actorRes.country || "Tuyển Chọn",
-        quality: "Gợi ý",
+        slug: destinationSlug,
+        title: `Diễn viên: ${actorDisplayName}`,
+        poster: actorPoster,
+        year: targetCountry,
+        quality: "Hồ Sơ",
         category: "Diễn Viên",
       };
 
-      if (hasExplicitActorPrefix(keyword) || items.length === 0) {
+      if (hasExplicitActorPrefix(keyword) || items.length <= 1) {
         items.unshift(actorItem);
       } else {
         items.push(actorItem);

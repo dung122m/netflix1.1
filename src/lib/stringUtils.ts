@@ -1,4 +1,14 @@
 /**
+ * Chuẩn hóa hoán đổi nguyên âm i/y trong tiếng Việt để so khớp không bị lệch
+ * (ví dụ: lí <-> lý, kỉ <-> kỷ, thúy <-> thúi, huỳnh <-> huình...)
+ * Chỉ áp dụng cho so khớp tên nghệ sĩ, diễn viên hoặc từ khóa tìm kiếm tiếng Việt.
+ */
+export function normalizeVietnameseVowels(str?: string | null): string {
+  if (!str) return "";
+  return normalizeForMatch(str).replace(/y/g, "i");
+}
+
+/**
  * Chuẩn hóa chuỗi tiếng Việt và quốc tế dùng cho so khớp tên phim, diễn viên, thể loại, quốc gia.
  * - Chuyển chữ thường
  * - Thay thế đ/Đ -> d trước khi chuẩn hóa NFD

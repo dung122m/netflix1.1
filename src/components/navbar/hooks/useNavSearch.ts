@@ -19,7 +19,9 @@ const RECENT_SEARCHES_KEY = "nanaflix_recent_searches";
 
 export function resolveSuggestionHref(slug: string): string {
   if (slug.startsWith("browse?")) return `/browse?${slug.slice(7)}`;
+  if (slug.startsWith("dien-vien/")) return `/${slug}`;
   if (slug.startsWith("?")) return `/browse${slug}`;
+  if (slug.startsWith("/")) return slug;
   return `/movies/${slug}`;
 }
 
