@@ -12,6 +12,8 @@ import {
   CheckCircle2,
   Monitor,
   MoreVertical,
+  Zap,
+  Maximize2,
 } from "lucide-react";
 import { useBodyScrollLock } from "@/lib/scrollLock";
 
@@ -148,10 +150,6 @@ export const InstallPwaModal: React.FC<InstallPwaModalProps> = ({
         onClick={(e) => e.stopPropagation()}
         className="relative w-full max-w-md bg-zinc-950 rounded-3xl p-5 sm:p-6 md:p-8 shadow-[0_25px_70px_rgba(0,0,0,0.95)] overflow-hidden"
       >
-        {/* Glowing Ambient */}
-        <div className="absolute -top-20 -right-20 w-48 h-48 bg-netflix-red/20 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-20 -left-20 w-48 h-48 bg-amber-600/15 rounded-full blur-3xl pointer-events-none" />
-
         {/* Close Button */}
         <button
           type="button"
@@ -164,7 +162,7 @@ export const InstallPwaModal: React.FC<InstallPwaModalProps> = ({
 
         {/* App Icon & Header */}
         <div className="flex items-center gap-3.5 mb-5">
-          <div className="relative w-14 h-14 sm:w-16 sm:h-16 rounded-2xl overflow-hidden shadow-xl border border-netflix-red/30 shrink-0 bg-gradient-to-br from-netflix-red to-zinc-900 flex items-center justify-center p-2">
+          <div className="relative w-14 h-14 sm:w-16 sm:h-16 rounded-2xl overflow-hidden shadow-xl shrink-0 bg-gradient-to-br from-netflix-red to-zinc-900 flex items-center justify-center p-2">
             <Image
               src="/icon-192.png"
               alt="Nanaflix App"
@@ -175,7 +173,7 @@ export const InstallPwaModal: React.FC<InstallPwaModalProps> = ({
           </div>
 
           <div>
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-netflix-red/20 text-white border border-netflix-red/30 mb-1">
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-netflix-red/20 text-white mb-1">
               <Smartphone className="w-3 h-3" />
               Ứng Dụng Nanaflix (PWA)
             </div>
@@ -216,7 +214,7 @@ export const InstallPwaModal: React.FC<InstallPwaModalProps> = ({
               </div>
 
               <div className="flex items-start gap-3">
-                <div className="w-6 h-6 rounded-full bg-netflix-red/20 text-white font-bold flex items-center justify-center shrink-0 border border-netflix-red/30">
+                <div className="w-6 h-6 rounded-full bg-netflix-red/20 text-white font-bold flex items-center justify-center shrink-0 tabular-nums">
                   1
                 </div>
                 <div className="text-zinc-300">
@@ -229,7 +227,7 @@ export const InstallPwaModal: React.FC<InstallPwaModalProps> = ({
               </div>
 
               <div className="flex items-start gap-3">
-                <div className="w-6 h-6 rounded-full bg-netflix-red/20 text-white font-bold flex items-center justify-center shrink-0 border border-netflix-red/30">
+                <div className="w-6 h-6 rounded-full bg-netflix-red/20 text-white font-bold flex items-center justify-center shrink-0 tabular-nums">
                   2
                 </div>
                 <div className="text-zinc-300">
@@ -242,7 +240,7 @@ export const InstallPwaModal: React.FC<InstallPwaModalProps> = ({
               </div>
 
               <div className="flex items-start gap-3">
-                <div className="w-6 h-6 rounded-full bg-netflix-red/20 text-white font-bold flex items-center justify-center shrink-0 border border-netflix-red/30">
+                <div className="w-6 h-6 rounded-full bg-netflix-red/20 text-white font-bold flex items-center justify-center shrink-0 tabular-nums">
                   3
                 </div>
                 <div className="text-zinc-300">
@@ -266,7 +264,7 @@ export const InstallPwaModal: React.FC<InstallPwaModalProps> = ({
             <button
               type="button"
               onClick={handleInstallClick}
-              className="w-full py-3.5 rounded-2xl font-bold text-base bg-netflix-red hover:brightness-110 text-white shadow-xl shadow-[var(--accent-glow)] flex items-center justify-center gap-2 transition-all active:scale-95 cursor-pointer"
+              className="w-full py-3.5 rounded-2xl font-bold text-base bg-netflix-red hover:brightness-110 text-white shadow-xl shadow-black/50 flex items-center justify-center gap-2 transition-all active:scale-95 cursor-pointer"
             >
               <Download className="w-5 h-5" />
               <span>Cài Đặt App Ngay</span>
@@ -284,7 +282,7 @@ export const InstallPwaModal: React.FC<InstallPwaModalProps> = ({
                     </div>
 
                     <div className="bg-black/50 p-2.5 rounded-xl flex items-start gap-2.5">
-                      <div className="w-6 h-6 rounded-lg bg-netflix-red/20 text-white flex items-center justify-center font-bold text-xs shrink-0 border border-netflix-red/30 mt-0.5">
+                      <div className="w-6 h-6 rounded-lg bg-netflix-red/20 text-white flex items-center justify-center font-bold text-xs shrink-0 mt-0.5 tabular-nums">
                         1
                       </div>
                       <p className="text-zinc-300 leading-relaxed">
@@ -293,7 +291,7 @@ export const InstallPwaModal: React.FC<InstallPwaModalProps> = ({
                     </div>
 
                     <div className="bg-black/50 p-2.5 rounded-xl flex items-start gap-2.5">
-                      <div className="w-6 h-6 rounded-lg bg-netflix-red/20 text-white flex items-center justify-center font-bold text-xs shrink-0 border border-netflix-red/30 mt-0.5">
+                      <div className="w-6 h-6 rounded-lg bg-netflix-red/20 text-white flex items-center justify-center font-bold text-xs shrink-0 mt-0.5 tabular-nums">
                         2
                       </div>
                       <p className="text-zinc-300 leading-relaxed">
@@ -310,20 +308,20 @@ export const InstallPwaModal: React.FC<InstallPwaModalProps> = ({
                     </div>
 
                     <div className="bg-black/50 p-2.5 rounded-xl flex items-start gap-2.5">
-                      <div className="w-6 h-6 rounded-lg bg-netflix-red/20 text-white flex items-center justify-center font-bold text-xs shrink-0 border border-netflix-red/30 mt-0.5">
+                      <div className="w-6 h-6 rounded-lg bg-netflix-red/20 text-white flex items-center justify-center font-bold text-xs shrink-0 mt-0.5 tabular-nums">
                         1
                       </div>
                       <p className="text-zinc-300 leading-relaxed">
-                        Nhìn góc phải thanh địa chỉ (URL), bấm biểu tượng <strong className="text-white">Cài đặt (màn hình mũi tên ⬇️)</strong>.
+                        Nhìn góc phải thanh địa chỉ (URL), bấm biểu tượng <strong className="text-white">Cài đặt</strong>.
                       </p>
                     </div>
 
                     <div className="bg-black/50 p-2.5 rounded-xl flex items-start gap-2.5">
-                      <div className="w-6 h-6 rounded-lg bg-netflix-red/20 text-white flex items-center justify-center font-bold text-xs shrink-0 border border-netflix-red/30 mt-0.5">
+                      <div className="w-6 h-6 rounded-lg bg-netflix-red/20 text-white flex items-center justify-center font-bold text-xs shrink-0 mt-0.5 tabular-nums">
                         2
                       </div>
                       <p className="text-zinc-300 leading-relaxed">
-                        Hoặc bấm menu 3 chấm <strong className="text-white">⋮</strong> góc trên bên phải ➔ Chọn <strong className="text-white">&quot;Cài đặt Nanaflix...&quot;</strong>.
+                        Hoặc bấm menu 3 chấm <strong className="text-white">⋮</strong> góc trên bên phải → Chọn <strong className="text-white">&quot;Cài đặt Nanaflix...&quot;</strong>.
                       </p>
                     </div>
                   </>
@@ -334,11 +332,17 @@ export const InstallPwaModal: React.FC<InstallPwaModalProps> = ({
             {/* Feature Perks */}
             <div className="grid grid-cols-2 gap-2 text-xs">
               <div className="p-2.5 rounded-xl bg-white/5 text-zinc-300">
-                🚀 <span className="font-semibold text-white">Mở nhanh 1-chạm</span>
+                <div className="flex items-center gap-1.5 font-semibold text-white">
+                  <Zap className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                  <span>Mở nhanh 1-chạm</span>
+                </div>
                 <p className="text-[11px] text-zinc-500 mt-0.5">Không tốn bộ nhớ máy</p>
               </div>
               <div className="p-2.5 rounded-xl bg-white/5 text-zinc-300">
-                🎬 <span className="font-semibold text-white">Toàn màn hình</span>
+                <div className="flex items-center gap-1.5 font-semibold text-white">
+                  <Maximize2 className="w-3.5 h-3.5 text-netflix-red shrink-0" />
+                  <span>Toàn màn hình</span>
+                </div>
                 <p className="text-[11px] text-zinc-500 mt-0.5">Trải nghiệm như ứng dụng gốc</p>
               </div>
             </div>

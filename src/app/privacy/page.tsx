@@ -127,19 +127,16 @@ const PRIVACY_ARTICLES = [
 
 export default function PrivacyPage() {
   return (
-    <div className="min-h-screen bg-[#050505] text-zinc-100 flex flex-col selection:bg-netflix-red selection:text-white font-sans antialiased overflow-x-hidden">
+    <div className="min-h-dvh bg-[#050505] text-zinc-100 flex flex-col selection:bg-netflix-red selection:text-white font-sans antialiased overflow-x-clip">
       <Navbar />
 
-      {/* AMBIENT GLOW */}
-      <div className="fixed top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-[500px] bg-[radial-gradient(ellipse_80%_60%_at_50%_0%,rgba(16,185,129,0.1),rgba(0,0,0,0))] pointer-events-none -z-10" />
+      <main className="flex-1 pt-24 sm:pt-32 pb-24 px-4 sm:px-8 md:px-12 max-w-5xl mx-auto w-full space-y-16 sm:space-y-20">
 
-      <main className="flex-1 pt-28 sm:pt-32 pb-24 px-4 sm:px-8 md:px-12 max-w-5xl mx-auto w-full space-y-16 sm:space-y-20">
-        
         {/* ================= 1. HEADER SECTION ================= */}
         <section className="text-center space-y-6">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-500/10 text-xs font-semibold text-emerald-300 backdrop-blur-xl shadow-sm">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-emerald-500/10 text-xs font-medium text-emerald-300">
             <ShieldCheck size={14} className="text-emerald-400" />
-            <span>Cam Kết Minh Bạch & An Toàn Tuyệt Đối</span>
+            <span>Cam kết minh bạch & an toàn tuyệt đối</span>
           </div>
 
           <div className="space-y-4 max-w-3xl mx-auto">
@@ -165,24 +162,20 @@ export default function PrivacyPage() {
             return (
               <div
                 key={idx}
-                className={`p-6 sm:p-7 rounded-3xl bg-gradient-to-b from-zinc-950/90 to-black border ${p.borderColor} transition-all duration-300 hover:shadow-2xl space-y-4 relative overflow-hidden group`}
+                className="p-6 sm:p-7 rounded-2xl bg-zinc-900/55 hover:bg-zinc-900/80 transition-colors space-y-4 group"
               >
-                <div
-                  className={`absolute top-0 right-0 w-40 h-40 bg-gradient-to-bl ${p.accent} blur-3xl pointer-events-none -z-10`}
-                />
-
                 <div className="flex items-center justify-between">
                   <div
-                    className={`w-12 h-12 rounded-2xl bg-white/[0.04] border border-white/[0.08] ${p.iconColor} flex items-center justify-center group-hover:scale-110 transition-transform`}
+                    className={`w-11 h-11 rounded-2xl bg-white/[0.05] ${p.iconColor} flex items-center justify-center group-hover:scale-105 transition-transform`}
                   >
-                    <Icon size={22} />
+                    <Icon size={20} />
                   </div>
-                  <span className="text-xs font-bold px-3 py-1 rounded-full bg-white/[0.04] border border-white/[0.08] text-zinc-300 font-sans tabular-nums">
+                  <span className="text-xs font-medium px-3 py-1 rounded-full bg-white/[0.05] text-zinc-300 font-sans tabular-nums">
                     {p.badge}
                   </span>
                 </div>
 
-                <h3 className="text-lg font-bold text-white group-hover:text-emerald-300 transition-colors">
+                <h3 className="text-lg font-bold text-white">
                   {p.title}
                 </h3>
 
@@ -195,7 +188,7 @@ export default function PrivacyPage() {
         </section>
 
         {/* ================= 3. DETAILED DATA RETENTION & BREAKDOWN ================= */}
-        <section className="p-6 sm:p-10 rounded-3xl bg-zinc-950/70 border border-white/[0.1] backdrop-blur-xl space-y-6 shadow-2xl">
+        <section className="p-6 sm:p-10 rounded-3xl bg-zinc-900/50 space-y-6">
           <div className="flex items-center gap-3 pb-4 border-b border-white/[0.08]">
             <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-400">
               <Database size={20} />
@@ -210,7 +203,7 @@ export default function PrivacyPage() {
             {DATA_COLLECTION_DETAILS.map((item, idx) => (
               <div
                 key={idx}
-                className="p-5 rounded-2xl bg-black/40 border border-white/[0.06] hover: transition space-y-3"
+                className="p-5 rounded-2xl bg-black/45 hover:bg-black/60 transition-colors space-y-3"
               >
                 <div className="text-sm font-bold text-white flex items-center gap-2">
                   <CheckCircle2 size={16} className="text-emerald-400 flex-shrink-0" />
@@ -254,10 +247,10 @@ export default function PrivacyPage() {
             {PRIVACY_ARTICLES.map((art, idx) => (
               <div
                 key={idx}
-                className="p-6 rounded-2xl bg-zinc-950/60 border border-white/[0.08] hover: transition space-y-2"
+                className="p-6 rounded-2xl bg-zinc-900/50 hover:bg-zinc-900/75 transition-colors space-y-2"
               >
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-sans tabular-nums font-bold text-emerald-400 uppercase tracking-wider">
+                  <span className="text-xs font-sans tabular-nums font-semibold text-emerald-400">
                     {art.number}
                   </span>
                   <span className="text-zinc-600">•</span>
@@ -272,7 +265,7 @@ export default function PrivacyPage() {
         </section>
 
         {/* ================= 5. CROSS ACTIONS ================= */}
-        <section className="flex flex-col sm:flex-row items-center justify-between gap-4 p-6 sm:p-8 rounded-3xl bg-gradient-to-r from-zinc-900/80 to-black">
+        <section className="flex flex-col sm:flex-row items-center justify-between gap-4 p-6 sm:p-8 rounded-3xl bg-zinc-900/60">
           <div className="space-y-1 text-center sm:text-left">
             <h4 className="text-base font-bold text-white">Bạn có thắc mắc hoặc cần hỗ trợ về bảo mật tài khoản?</h4>
             <p className="text-xs text-zinc-400">Xem thêm các điều khoản dịch vụ hoặc liên hệ bộ phận hỗ trợ kỹ thuật.</p>

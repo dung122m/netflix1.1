@@ -3,8 +3,7 @@ import { cleanHtmlText } from "@/lib/cleanHtml";
 import { cacheService } from "@/lib/cache";
 import { findEpisodeMatch } from "@/lib/formatEpisode";
 import { formatGenreName, formatCountryName, getCanonicalGenreSlug, getCanonicalCountrySlug } from "@/lib/movieMedia";
-import { getTmdbPosterUrl, searchTmdbPosterByTitle } from "@/services/tmdbService";
-import { searchAniListPoster } from "@/services/aniListService";
+import { enrichMovieListPosters } from "@/services/movies/posterEnrichment";
 
 const API_NGUONC = process.env.NEXT_PUBLIC_API_URL || "https://phim.nguonc.com/api";
 const API_PHIMAPI = process.env.NEXT_PUBLIC_API_URL_2 || "https://phimapi.com";
@@ -188,103 +187,204 @@ function isBetterServerCandidate(candidate: any, current: any): boolean {
   return (candidate.server_data?.length || 0) > (current.server_data?.length || 0);
 }
 
+function getNormalizedStreamUrls(srv: { server_data?: Array<{ link_m3u8?: string; link_embed?: string }> }): string[] {
+  const urls: string[] = [];
+  for (const ep of srv?.server_data || []) {
+    const m3u8 = String(ep?.link_m3u8 || "").trim().toLowerCase();
+    const embed = String(ep?.link_embed || "").trim().toLowerCase();
+    if (m3u8) urls.push(m3u8);
+    if (embed) urls.push(embed);
+  }
+  return urls;
+}
+
+function hasDistinctStream(
+  srv: { server_data?: Array<{ link_m3u8?: string; link_embed?: string }> },
+  seenUrls: Set<string>,
+): boolean {
+  const urls = getNormalizedStreamUrls(srv);
+  if (urls.length === 0) return false;
+  return urls.some((u) => !seenUrls.has(u));
+}
+
+function registerServerStreamUrls(
+  srv: { server_data?: Array<{ link_m3u8?: string; link_embed?: string }> },
+  seenUrls: Set<string>,
+): void {
+  for (const u of getNormalizedStreamUrls(srv)) {
+    seenUrls.add(u);
+  }
+}
+
 /**
- * Lọc và chuẩn hóa tối đa đúng 2 server: Lồng Tiếng và Thuyết Minh (hoặc Vietsub)
- * Ưu tiên server có luồng phát trực tiếp .m3u8, không để server iframe lỗi đè lên server m3u8 chất lượng cao
+ * Lọc, khử trùng lặp và chuẩn hóa tối đa 4 server (Lồng Tiếng, Thuyết Minh, Vietsub, Dự phòng):
+ * - Mỗi nhóm âm thanh giữ bản tốt nhất (.m3u8 > embed-only, nhiều tập hơn)
+ * - Giữ tách bạch cả Thuyết Minh và Vietsub nếu cả hai đều có nguồn phát khác nhau
+ * - Cho phép giữ thêm server .m3u8 dự phòng (khác hoàn toàn stream URL) và chống tuyệt đối trùng lặp
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function filterDualServers(rawServers: any[]): any[] {
   if (!Array.isArray(rawServers) || rawServers.length === 0) return [];
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let longTiengServer: any = null;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let thuyetMinhServer: any = null;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let vietsubServer: any = null;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const otherServers: any[] = [];
-
+  const cleanedServers: any[] = [];
   for (const srv of rawServers) {
     if (!srv || !Array.isArray(srv.server_data) || srv.server_data.length === 0) continue;
     const sName = String(srv.server_name || "").trim();
     if (sName.toLowerCase().includes("vsmov")) continue;
 
-    // Loại bỏ hoàn toàn các tập phim có nguồn từ vsmov
+    // Loại bỏ các tập có nguồn vsmov bị hỏng, giữ nguyên phần còn lại
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    srv.server_data = srv.server_data.filter((e: any) => {
+    const validEpisodes = srv.server_data.filter((e: any) => {
       const u = `${e?.link_embed || ""} ${e?.link_m3u8 || ""}`.toLowerCase();
       return !u.includes("vsmov") && !u.includes("streamvsmov");
     });
-    if (srv.server_data.length === 0) continue;
+    if (validEpisodes.length === 0) continue;
 
-    const nameLower = sName.toLowerCase();
-
-    const isLongTieng =
-      nameLower.includes("lồng tiếng") ||
-      nameLower.includes("long tieng") ||
-      nameLower.includes("dub");
-
-    const isThuyetMinh =
-      nameLower.includes("thuyết minh") ||
-      nameLower.includes("thuyet minh") ||
-      nameLower.includes("voiceover");
-
-    const isVietsub =
-      nameLower.includes("vietsub") ||
-      nameLower.includes("phụ đề") ||
-      nameLower.includes("sub");
-
-    if (isLongTieng) {
-      if (isBetterServerCandidate(srv, longTiengServer)) {
-        longTiengServer = { ...srv, server_name: "Lồng Tiếng" };
-      }
-    } else if (isThuyetMinh) {
-      if (isBetterServerCandidate(srv, thuyetMinhServer)) {
-        thuyetMinhServer = { ...srv, server_name: "Thuyết Minh" };
-      }
-    } else if (isVietsub) {
-      if (isBetterServerCandidate(srv, vietsubServer)) {
-        vietsubServer = { ...srv, server_name: "Thuyết Minh" };
-      }
-    } else {
-      otherServers.push(srv);
-    }
+    cleanedServers.push({
+      ...srv,
+      server_name: sName || "Server",
+      server_data: validEpisodes,
+    });
   }
+
+  if (cleanedServers.length === 0) return [];
+
+  type Category = "long_tieng" | "thuyet_minh" | "vietsub" | "other";
+  const classifyServer = (name: string): Category => {
+    const lower = name.toLowerCase();
+    if (lower.includes("lồng tiếng") || lower.includes("long tieng") || lower.includes("dub")) {
+      return "long_tieng";
+    }
+    if (lower.includes("thuyết minh") || lower.includes("thuyet minh") || lower.includes("voiceover")) {
+      return "thuyet_minh";
+    }
+    if (lower.includes("vietsub") || lower.includes("phụ đề") || lower.includes("sub")) {
+      return "vietsub";
+    }
+    return "other";
+  };
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const byCategory: Record<Category, any[]> = {
+    long_tieng: [],
+    thuyet_minh: [],
+    vietsub: [],
+    other: [],
+  };
+
+  for (const srv of cleanedServers) {
+    byCategory[classifyServer(srv.server_name)].push(srv);
+  }
+
+  // Chọn bản tốt nhất trong từng nhóm
+  const pickBest = (list: typeof cleanedServers) => {
+    let best = null;
+    for (const candidate of list) {
+      if (isBetterServerCandidate(candidate, best)) {
+        best = candidate;
+      }
+    }
+    return best;
+  };
+
+  const bestLongTieng = pickBest(byCategory.long_tieng);
+  const bestThuyetMinh = pickBest(byCategory.thuyet_minh);
+  const bestVietsub = pickBest(byCategory.vietsub);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const result: any[] = [];
-  if (longTiengServer) result.push(longTiengServer);
-  if (thuyetMinhServer && vietsubServer) {
-    if (isBetterServerCandidate(vietsubServer, thuyetMinhServer)) {
-      result.push(vietsubServer);
-    } else {
-      result.push(thuyetMinhServer);
-    }
-  } else if (thuyetMinhServer) {
-    result.push(thuyetMinhServer);
-  } else if (vietsubServer) {
-    result.push(vietsubServer);
+  const seenUrls = new Set<string>();
+  const usedNames = new Set<string>();
+
+  const pushUnique = (srv: typeof cleanedServers[number] | null, targetName: string) => {
+    if (!srv) return false;
+    if (!hasDistinctStream(srv, seenUrls)) return false;
+    const finalName = usedNames.has(targetName.toLowerCase()) ? `${targetName} (Dự phòng)` : targetName;
+    if (usedNames.has(finalName.toLowerCase())) return false;
+    usedNames.add(finalName.toLowerCase());
+    registerServerStreamUrls(srv, seenUrls);
+    result.push({ ...srv, server_name: finalName });
+    return true;
+  };
+
+  if (bestLongTieng) {
+    pushUnique(bestLongTieng, "Lồng Tiếng");
+  }
+  if (bestThuyetMinh && bestVietsub) {
+    // Khi có cả Thuyết Minh và Vietsub khác nguồn -> giữ tách bạch cả 2
+    pushUnique(bestThuyetMinh, "Thuyết Minh");
+    pushUnique(bestVietsub, "Vietsub");
+  } else if (bestThuyetMinh) {
+    pushUnique(bestThuyetMinh, "Thuyết Minh");
+  } else if (bestVietsub) {
+    // Bảo toàn quy ước slot 2 "Thuyết Minh" khi chỉ có Vietsub (khớp các test & UI hiện tại)
+    pushUnique(bestVietsub, "Thuyết Minh");
   }
 
-  // Fallback nếu nguồn phim không đặt tên server theo mẫu chuẩn
-  if (result.length === 0 && otherServers.length > 0) {
-    otherServers.sort((a, b) => (isBetterServerCandidate(a, b) ? -1 : 1));
-    result.push({ ...otherServers[0], server_name: "Lồng Tiếng" });
-    if (otherServers.length > 1) {
-      result.push({ ...otherServers[1], server_name: "Thuyết Minh" });
-    }
-  } else if (result.length === 1 && otherServers.length > 0) {
-    otherServers.sort((a, b) => (isBetterServerCandidate(a, b) ? -1 : 1));
-    const missingName = result[0].server_name === "Lồng Tiếng" ? "Thuyết Minh" : "Lồng Tiếng";
-    result.push({ ...otherServers[0], server_name: missingName });
+  // Fallback nếu nguồn phim không đặt tên chuẩn (otherServers)
+  const sortedOthers = [...byCategory.other].sort((a, b) => (isBetterServerCandidate(a, b) ? -1 : 1));
+  for (const srv of sortedOthers) {
+    if (result.length >= 3) break;
+    const defaultLabel =
+      !usedNames.has("lồng tiếng")
+        ? "Lồng Tiếng"
+        : !usedNames.has("thuyết minh")
+        ? "Thuyết Minh"
+        : srv.server_name || "Dự phòng";
+    pushUnique(srv, defaultLabel);
   }
 
-  // Backfill luồng m3u8 trực tiếp từ các server dự phòng sang server được chọn nếu server được chọn bị thiếu link_m3u8
+  // Bổ sung tối đa 1 server Dự phòng thực sự hữu ích (ưu tiên server có .m3u8 khác CDN, không thêm clone embed yếu nếu cùng nhóm đã có .m3u8)
+  const MAX_SERVERS = 4;
+  if (result.length < MAX_SERVERS) {
+    const backupPool = [
+      ...byCategory.long_tieng,
+      ...byCategory.thuyet_minh,
+      ...byCategory.vietsub,
+      ...sortedOthers,
+    ]
+      .filter((cand) => {
+        if (!hasDistinctStream(cand, seenUrls)) return false;
+        const cat = classifyServer(cand.server_name);
+        const primaryForCat =
+          cat === "long_tieng"
+            ? bestLongTieng
+            : cat === "thuyet_minh"
+            ? bestThuyetMinh
+            : cat === "vietsub"
+            ? bestVietsub
+            : null;
+        // Nếu cùng loại âm thanh đã có .m3u8 mà ứng viên này chỉ là embed -> bỏ qua tránh rác/trùng
+        if (primaryForCat && serverHasM3u8(primaryForCat) && !serverHasM3u8(cand)) {
+          return false;
+        }
+        return serverHasM3u8(cand) || result.every((r) => !serverHasM3u8(r));
+      })
+      .sort((a, b) => (isBetterServerCandidate(a, b) ? -1 : 1));
+
+    if (backupPool.length > 0) {
+      pushUnique(backupPool[0], "Dự phòng");
+    }
+  }
+
+  // Đảm bảo server có luồng trực tiếp .m3u8 luôn đứng trước server chỉ có embed (mặc định phát mượt ngay khi mở phim)
+  result.sort((a, b) => {
+    const aM3u8 = serverHasM3u8(a) ? 1 : 0;
+    const bM3u8 = serverHasM3u8(b) ? 1 : 0;
+    return bM3u8 - aM3u8;
+  });
+
+  // Backfill luồng m3u8 trực tiếp từ các server CÙNG NHÓM ÂM THANH (tránh chép nhầm audio Thuyết Minh sang Vietsub/Lồng Tiếng)
   for (const selected of result) {
+    const selectedCat = classifyServer(selected.server_name);
     for (const ep of selected.server_data || []) {
       if (!ep.link_m3u8) {
-        for (const candidate of rawServers) {
+        for (const candidate of cleanedServers) {
+          const candCat = classifyServer(candidate.server_name);
+          if (selectedCat !== "other" && candCat !== "other" && candCat !== selectedCat) {
+            continue;
+          }
           const match = (findEpisodeMatch(candidate?.server_data || [], ep.slug) || findEpisodeMatch(candidate?.server_data || [], ep.name)) as { link_m3u8?: string; link_embed?: string } | undefined;
           if (match?.link_m3u8) {
             ep.link_m3u8 = match.link_m3u8;
@@ -298,7 +398,16 @@ export function filterDualServers(rawServers: any[]): any[] {
     }
   }
 
-  return result.slice(0, 2);
+  // Khử trùng lặp lần cuối sau backfill: không để 2 server có tập stream y hệt nhau
+  const finalServers: typeof result = [];
+  const finalSeenUrls = new Set<string>();
+  for (const srv of result) {
+    if (!hasDistinctStream(srv, finalSeenUrls)) continue;
+    registerServerStreamUrls(srv, finalSeenUrls);
+    finalServers.push(srv);
+  }
+
+  return finalServers.slice(0, MAX_SERVERS);
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -558,10 +667,7 @@ function mergeSecondaryIntoPrimary(primary: any, secondary: any) {
 
     const primaryStreamUrls = new Set<string>();
     for (const s of primaryEpisodes) {
-      for (const ep of s?.server_data || []) {
-        const u = (ep?.link_m3u8 || ep?.link_embed || "").trim();
-        if (u) primaryStreamUrls.add(u);
-      }
+      registerServerStreamUrls(s, primaryStreamUrls);
     }
 
     const existingNames = new Set(
@@ -571,12 +677,7 @@ function mergeSecondaryIntoPrimary(primary: any, secondary: any) {
     for (const s of secondaryEpContainer) {
       if (!s || !Array.isArray(s.server_data) || s.server_data.length === 0) continue;
 
-      const hasDistinctStream = s.server_data.some((ep: { link_m3u8?: string; link_embed?: string }) => {
-        const u = (ep?.link_m3u8 || ep?.link_embed || "").trim();
-        return u && !primaryStreamUrls.has(u);
-      });
-
-      if (hasDistinctStream) {
+      if (hasDistinctStream(s, primaryStreamUrls)) {
         let targetName = (s.server_name || "Dự phòng").trim();
         if (existingNames.has(targetName.toLowerCase())) {
           targetName = `${targetName} (Dự phòng)`;
@@ -585,6 +686,7 @@ function mergeSecondaryIntoPrimary(primary: any, secondary: any) {
           targetName = `${targetName} #2`;
         }
         existingNames.add(targetName.toLowerCase());
+        registerServerStreamUrls(s, primaryStreamUrls);
 
         primaryEpisodes.push({
           ...s,
@@ -655,6 +757,15 @@ async function discoverAndMergeMissingSources(result: any, slug: string) {
     const cleanTargetName = cleanNormalizedForMatch(targetName);
     const cleanTargetOrig = cleanNormalizedForMatch(targetOrig);
 
+    const targetYear = m.year ? Number(m.year) : undefined;
+    const afterColonName = targetName.includes(":")
+      ? targetName.split(":").slice(1).join(":").trim()
+      : "";
+    const cleanAfterColon = afterColonName ? cleanNormalizedForMatch(afterColonName) : "";
+    const searchCandidates = Array.from(
+      new Set([targetName, afterColonName, targetOrig].map((s) => s.trim()).filter(Boolean))
+    );
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const discoveryPromises: Promise<any>[] = [];
 
@@ -662,29 +773,33 @@ async function discoverAndMergeMissingSources(result: any, slug: string) {
     if (!hasNguonC) {
       discoveryPromises.push((async () => {
         try {
-          const query = targetName || targetOrig;
-          const res = await fetch(`${API_NGUONC}/films/search?keyword=${encodeURIComponent(query)}&page=1`, {
-            headers: DEFAULT_FETCH_HEADERS,
-            next: { revalidate: 600 },
-            signal: AbortSignal.timeout(4000),
-          });
-          if (!res.ok) return null;
-          const json = await res.json();
-          const items = json?.items || [];
-          for (const itm of items) {
-            const cn = cleanNormalizedForMatch(itm.name || "");
-            const co = cleanNormalizedForMatch(itm.original_name || "");
-            const matched = (cleanTargetName && (cn === cleanTargetName || co === cleanTargetName)) ||
-                            (cleanTargetOrig && (cn === cleanTargetOrig || co === cleanTargetOrig));
-            if (matched && itm.slug && itm.slug !== slug) {
-              const detailRes = await fetch(`${API_NGUONC}/film/${itm.slug}`, {
-                headers: DEFAULT_FETCH_HEADERS,
-                next: { revalidate: 600 },
-                signal: AbortSignal.timeout(4000),
-              });
-              if (detailRes.ok) {
-                const detailJson = await detailRes.json();
-                return normalizeNguonCMovieDetail(detailJson);
+          for (const query of searchCandidates) {
+            const res = await fetch(`${API_NGUONC}/films/search?keyword=${encodeURIComponent(query)}&page=1`, {
+              headers: DEFAULT_FETCH_HEADERS,
+              next: { revalidate: 600 },
+              signal: AbortSignal.timeout(4000),
+            });
+            if (!res.ok) continue;
+            const json = await res.json();
+            const items = json?.items || [];
+            for (const itm of items) {
+              const cn = cleanNormalizedForMatch(itm.name || "");
+              const co = cleanNormalizedForMatch(itm.original_name || "");
+              const sameYearOrMissing = !targetYear || !itm.year || Number(itm.year) === targetYear;
+              const matched =
+                (cleanTargetName && (cn === cleanTargetName || co === cleanTargetName)) ||
+                (cleanTargetOrig && (cn === cleanTargetOrig || co === cleanTargetOrig)) ||
+                (cleanAfterColon && (cn === cleanAfterColon || co === cleanAfterColon) && sameYearOrMissing);
+              if (matched && itm.slug && itm.slug !== slug) {
+                const detailRes = await fetch(`${API_NGUONC}/film/${itm.slug}`, {
+                  headers: DEFAULT_FETCH_HEADERS,
+                  next: { revalidate: 600 },
+                  signal: AbortSignal.timeout(4000),
+                });
+                if (detailRes.ok) {
+                  const detailJson = await detailRes.json();
+                  return normalizeNguonCMovieDetail(detailJson);
+                }
               }
             }
           }
@@ -697,28 +812,32 @@ async function discoverAndMergeMissingSources(result: any, slug: string) {
     if (!hasPhimApi) {
       discoveryPromises.push((async () => {
         try {
-          const query = targetName || targetOrig;
-          const res = await fetch(`${API_PHIMAPI}/v1/api/tim-kiem?keyword=${encodeURIComponent(query)}&limit=10`, {
-            headers: DEFAULT_FETCH_HEADERS,
-            next: { revalidate: 600 },
-            signal: AbortSignal.timeout(4000),
-          });
-          if (!res.ok) return null;
-          const json = await res.json();
-          const items = json?.data?.items || json?.items || [];
-          for (const itm of items) {
-            const cn = cleanNormalizedForMatch(itm.name || "");
-            const co = cleanNormalizedForMatch(itm.origin_name || "");
-            const matched = (cleanTargetName && (cn === cleanTargetName || co === cleanTargetName)) ||
-                            (cleanTargetOrig && (cn === cleanTargetOrig || co === cleanTargetOrig));
-            if (matched && itm.slug && itm.slug !== slug) {
-              const detailRes = await fetch(`${API_PHIMAPI}/phim/${itm.slug}`, {
-                headers: DEFAULT_FETCH_HEADERS,
-                next: { revalidate: 600 },
-                signal: AbortSignal.timeout(4000),
-              });
-              if (detailRes.ok) {
-                return await detailRes.json();
+          for (const query of searchCandidates) {
+            const res = await fetch(`${API_PHIMAPI}/v1/api/tim-kiem?keyword=${encodeURIComponent(query)}&limit=10`, {
+              headers: DEFAULT_FETCH_HEADERS,
+              next: { revalidate: 600 },
+              signal: AbortSignal.timeout(4000),
+            });
+            if (!res.ok) continue;
+            const json = await res.json();
+            const items = json?.data?.items || json?.items || [];
+            for (const itm of items) {
+              const cn = cleanNormalizedForMatch(itm.name || "");
+              const co = cleanNormalizedForMatch(itm.origin_name || "");
+              const sameYearOrMissing = !targetYear || !itm.year || Number(itm.year) === targetYear;
+              const matched =
+                (cleanTargetName && (cn === cleanTargetName || co === cleanTargetName)) ||
+                (cleanTargetOrig && (cn === cleanTargetOrig || co === cleanTargetOrig)) ||
+                (cleanAfterColon && (cn === cleanAfterColon || co === cleanAfterColon) && sameYearOrMissing);
+              if (matched && itm.slug && itm.slug !== slug) {
+                const detailRes = await fetch(`${API_PHIMAPI}/phim/${itm.slug}`, {
+                  headers: DEFAULT_FETCH_HEADERS,
+                  next: { revalidate: 600 },
+                  signal: AbortSignal.timeout(4000),
+                });
+                if (detailRes.ok) {
+                  return await detailRes.json();
+                }
               }
             }
           }
@@ -851,7 +970,7 @@ export async function getEpisodeStream(
       }
       const epList: RawEpisodeItem[] = srv?.server_data || [];
       const match = findEpisodeMatch(epList, episodeSlug) || findEpisodeMatch(epList, normEp);
-      if (match && (match.link_m3u8 || (match.link_embed && !match.link_embed.includes("streamc")))) {
+      if (match && (match.link_m3u8 || match.link_embed)) {
         streams.push({
           server_name: srv.server_name || "Server",
           link_embed: match.link_embed || "",
@@ -1112,8 +1231,11 @@ async function fetchAndCacheMovieDetail(slug: string, source?: "nguonc" | "ophim
 
     if (result && !source) {
       const currentServers = result.episodes || result.movie?.episodes || [];
-      const hasPlayableStreams = currentServers.some((s: { server_data?: unknown[] }) => Array.isArray(s.server_data) && s.server_data.length > 0);
-      if (!hasPlayableStreams) {
+      const hasDirectM3u8 = currentServers.some(
+        (s: { server_data?: Array<{ link_m3u8?: string }> }) =>
+          Array.isArray(s.server_data) && s.server_data.some((ep) => Boolean(ep?.link_m3u8))
+      );
+      if (!hasDirectM3u8) {
         await discoverAndMergeMissingSources(result, slug);
       }
     }
@@ -1704,7 +1826,7 @@ async function fetchSourceData(
 // ============================================================
 // CHUẨN HÓA ĐIỂM ĐÁNH GIÁ & KHỬ TRÙNG LẶP CATALOG
 // ============================================================
-import { deduplicateMovieItems, evaluateSearchRelevance, cleanNormalizedForMatch, extractMovieRatingScore, extractMovieModifiedTime, isBrokenImageUrl } from "@/lib/movieMedia";
+import { deduplicateMovieItems, evaluateSearchRelevance, cleanNormalizedForMatch, extractMovieRatingScore, extractMovieModifiedTime } from "@/lib/movieMedia";
 export { deduplicateMovieItems, extractMovieRatingScore, extractMovieModifiedTime };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1792,7 +1914,7 @@ function buildQueryMetaKey(params: MovieFilterParams): string {
 // ============================================================
 // AI CANDIDATE SOURCING (FEDERATED 3 SOURCES IN PARALLEL)
 // ============================================================
-async function executeGetAiCandidates(params: MovieFilterParams, options?: AiCandidateOptions) {
+async function executeGetAiCandidates(params: MovieFilterParams, _options?: AiCandidateOptions) {
   const isSearch = Boolean(params.keyword?.trim());
   const limit = params.limit || 24;
 
@@ -2045,94 +2167,8 @@ async function executeGetMovies(params: MovieFilterParams, cacheKey: string) {
     }
   }
 
-  // SERVER-SIDE POSTER ENRICHMENT (Ưu tiên tuyệt đối nguồn TMDb siêu tốc image.tmdb.org):
-  // Duyệt qua các phim trong trang trả về:
-  // 1. Phim có tmdb.id: Luôn nâng cấp sang poster TMDb chính hãng (50ms, chuẩn tỉ lệ 2:3, không bao giờ bị nghẽn)
-  // 2. Phim bị mất ảnh/hỏng ảnh/upload/vod: Tra cứu TMDb theo tên để đắp ảnh thay thế
-  await Promise.allSettled(
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    finalItems.map(async (item: any) => {
-      // 1. Ưu tiên tuyệt đối: Nếu có TMDB ID, luôn lấy poster chuẩn sắc nét, siêu nhanh từ TMDb CDN
-      if (item.tmdb?.id) {
-        try {
-          const p = await getTmdbPosterUrl(item.tmdb.id, item.type);
-          if (p) {
-            item.poster_url = p;
-            if (isBrokenImageUrl(item.thumb_url)) item.thumb_url = p;
-            return;
-          }
-        } catch {}
-      }
-
-      // 2. Bắt buộc tra cứu TMDb nếu chưa có poster TMDb (đặc biệt là link phimimg dễ bị nhà mạng VN chặn)
-      const isNonTmdb =
-        !item.poster_url ||
-        !item.poster_url.includes("image.tmdb.org") ||
-        item.poster_url.includes("phimimg.com");
-      const needsTmdbPoster = isNonTmdb || isBrokenImageUrl(item.poster_url);
-      if (needsTmdbPoster) {
-        const queryCandidates = [
-          item.origin_name && item.origin_name !== item.name ? item.origin_name : null,
-          item.name,
-          item.slug ? item.slug.replace(/-/g, " ") : null,
-        ].filter(Boolean);
-
-        // TẦNG 1 (Chính): TMDb Multi Search (Bao quát 90% mọi thể loại từ phim bộ, phim lẻ đến hoạt hình)
-        let foundPoster = false;
-        for (const query of queryCandidates) {
-          try {
-            const res = await searchTmdbPosterByTitle(query as string, item.year, item.type);
-            if (res?.posterUrl) {
-              item.poster_url = res.posterUrl;
-              if (isBrokenImageUrl(item.thumb_url) || !item.thumb_url?.includes("image.tmdb.org")) {
-                item.thumb_url = res.backdropUrl || res.posterUrl;
-              }
-              foundPoster = true;
-              break;
-            }
-          } catch {}
-        }
-
-        // TẦNG 2 (Dự phòng cho Hoạt hình): AniList GraphQL (Miễn phí, không cần key, chuyên trị 10% anime/donghua còn lại)
-        if (!foundPoster) {
-          const isAnimeOrAnimation =
-            item.type === "hoathinh" ||
-            item.type === "hoat-hinh" ||
-            item.category?.some(
-              (c: { slug?: string; name?: string }) => c.slug === "hoat-hinh" || c.name?.toLowerCase().includes("hoạt hình")
-            );
-
-          if (isAnimeOrAnimation) {
-            try {
-              const aniRes = await searchAniListPoster(
-                item.name,
-                item.origin_name,
-                item.alternative_names
-              );
-              if (aniRes?.posterUrl) {
-                item.poster_url = aniRes.posterUrl;
-                if (isBrokenImageUrl(item.thumb_url) || !item.thumb_url?.includes("anilist.co")) {
-                  item.thumb_url = aniRes.backdropUrl || aniRes.posterUrl;
-                }
-                foundPoster = true;
-              }
-            } catch {}
-          }
-        }
-
-        // TẦNG 3: Nếu TMDb và AniList không có, giữ nguyên ảnh gốc hợp lệ của phim; chỉ fallback khi link hoàn toàn rỗng hoặc hỏng
-        if (!foundPoster && (!item.poster_url || isBrokenImageUrl(item.poster_url))) {
-          if (item.thumb_url && !isBrokenImageUrl(item.thumb_url)) {
-            item.poster_url = item.thumb_url;
-          } else {
-            item.poster_url = "/default-poster.jpg";
-          }
-        }
-
-
-      }
-    })
-  );
+  // SERVER-SIDE POSTER ENRICHMENT (Ưu tiên nguồn TMDb image.tmdb.org, không chặn quá 3s khi cold):
+  await enrichMovieListPosters(finalItems, { budgetMs: 3000 });
 
   const payload = {
     status: true,

@@ -62,6 +62,20 @@ export function isPosterEmptyOrBroken(url?: string | null): boolean {
 // Backward compatibility alias cho các component gọi tên cũ
 export const isPhimimgOrEmpty = isPosterEmptyOrBroken;
 
+export function isPhimimgSourceUrl(url?: string | null): boolean {
+  if (!url || typeof url !== "string") return false;
+  const trimmed = url.trim().toLowerCase();
+  if (trimmed.includes("phimimg.com")) return true;
+  if (trimmed.includes("/api/media/r2-proxy")) {
+    try {
+      return decodeURIComponent(trimmed).includes("phimimg.com");
+    } catch {
+      return trimmed.includes("phimimg.com");
+    }
+  }
+  return false;
+}
+
 export interface UseMoviePosterFallbackOptions {
   slug?: string;
   title?: string;
@@ -70,6 +84,7 @@ export interface UseMoviePosterFallbackOptions {
   initialSrc?: string;
   preferBackdrop?: boolean;
   enabled?: boolean;
+  upgradePhimimg?: boolean;
 }
 
 /**
@@ -88,6 +103,7 @@ export function useMoviePosterFallback({
   initialSrc,
   preferBackdrop = false,
   enabled = true,
+  upgradePhimimg = false,
 }: UseMoviePosterFallbackOptions): {
   displaySrc: string;
   isUpgraded: boolean;
@@ -119,10 +135,12 @@ export function useMoviePosterFallback({
 
   const [isLoading, setIsLoading] = useState<boolean>(() => {
     const isCached = Boolean(cacheKey && GLOBAL_POSTER_CACHE.has(cacheKey));
+    const shouldLoadForSrc =
+      isPosterEmptyOrBroken(safeInitial) || (upgradePhimimg && isPhimimgSourceUrl(safeInitial));
     const shouldLoadEagerly =
       enabled &&
       !isCached &&
-      isPosterEmptyOrBroken(safeInitial) &&
+      shouldLoadForSrc &&
       Boolean(slug || title) &&
       !GLOBAL_TRIED_FAILURES.has(cacheKey);
     return shouldLoadEagerly;
@@ -145,15 +163,17 @@ export function useMoviePosterFallback({
         setIsLoading(false);
       } else {
         setDisplaySrc(safeInitial);
+        const shouldLoadForSrc =
+          isPosterEmptyOrBroken(safeInitial) || (upgradePhimimg && isPhimimgSourceUrl(safeInitial));
         const shouldLoad =
           (enabled || manuallyTriggered) &&
-          (manuallyTriggered || isPosterEmptyOrBroken(safeInitial)) &&
+          (manuallyTriggered || shouldLoadForSrc) &&
           Boolean(slug || title) &&
           !GLOBAL_TRIED_FAILURES.has(cacheKey);
         setIsLoading(shouldLoad);
       }
     }
-  }, [safeInitial, cacheKey, isUpgraded, displaySrc, slug, title, enabled, manuallyTriggered]);
+  }, [safeInitial, cacheKey, isUpgraded, displaySrc, slug, title, enabled, manuallyTriggered, upgradePhimimg]);
 
   useEffect(() => {
     // Chỉ chạy khi được phép hoặc khi được kích hoạt thủ công do ảnh lỗi
@@ -188,8 +208,12 @@ export function useMoviePosterFallback({
 
     // Chỉ gọi tra cứu khi:
     // a) Được kích hoạt thủ công do ảnh lỗi (manuallyTriggered === true), HOẶC
-    // b) Ảnh ban đầu thực sự rỗng hoặc là placeholder mặc định khi enabled=true
-    const needsLookup = manuallyTriggered || (enabled && isPosterEmptyOrBroken(displaySrc));
+    // b) Ảnh ban đầu thực sự rỗng / placeholder mặc định khi enabled=true, HOẶC
+    // c) upgradePhimimg=true và ảnh hiện tại vẫn đến từ phimimg.com
+    const needsLookup =
+      manuallyTriggered ||
+      (enabled &&
+        (isPosterEmptyOrBroken(displaySrc) || (upgradePhimimg && isPhimimgSourceUrl(displaySrc))));
     if (!needsLookup) {
       setIsLoading(false);
       return;
@@ -258,7 +282,7 @@ export function useMoviePosterFallback({
         setIsLoading(false);
       }
     });
-  }, [cacheKey, slug, title, origin_name, year, displaySrc, preferBackdrop, enabled, manuallyTriggered]);
+  }, [cacheKey, slug, title, origin_name, year, displaySrc, preferBackdrop, enabled, manuallyTriggered, upgradePhimimg]);
 
   return { displaySrc, isUpgraded, isLoading, triggerFallback };
 }

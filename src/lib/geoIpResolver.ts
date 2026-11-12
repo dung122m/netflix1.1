@@ -15,9 +15,19 @@ interface CacheEntry {
   expiresAt: number;
 }
 
-// In-Memory L1 Cache for resolved IPs (TTL: 24h, max 5000 items)
+// In-Memory L1 Cache for resolved IPs (TTL: 24h, negative miss TTL: 5m, max 5000 items)
 const geoL1Cache = new Map<string, CacheEntry>();
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+const NEGATIVE_CACHE_TTL_MS = 5 * 60 * 1000;
+
+function isPrivateOrLoopbackIp(ip: string): boolean {
+  const clean = ip.replace(/^::ffff:/i, "").trim().toLowerCase();
+  if (!clean || clean === "::1" || clean === "localhost" || clean.startsWith("127.")) return true;
+  if (clean.startsWith("10.") || clean.startsWith("192.168.")) return true;
+  if (/^172\.(1[6-9]|2\d|3[01])\./.test(clean)) return true;
+  if (clean.startsWith("fc") || clean.startsWith("fd") || clean.startsWith("fe80:")) return true;
+  return false;
+}
 
 function normalizeVietnameseCity(rawCity?: string, rawRegion?: string): string | undefined {
   const c = (rawCity || "").trim().toLowerCase();
@@ -80,9 +90,9 @@ function normalizeVietnameseCity(rawCity?: string, rawRegion?: string): string |
 }
 
 export async function resolveClientGeo(headers: Headers): Promise<GeoResolution> {
-  const cfCountry = headers.get("cf-ipcountry")?.trim().toUpperCase();
-  const cfCityRaw = headers.get("cf-ipcity")?.trim();
-  const cfRegionRaw = headers.get("cf-region")?.trim();
+  const cfCountry = (headers.get("cf-ipcountry") || headers.get("x-vercel-ip-country"))?.trim().toUpperCase();
+  const cfCityRaw = (headers.get("cf-ipcity") || headers.get("x-vercel-ip-city"))?.trim();
+  const cfRegionRaw = (headers.get("cf-region") || headers.get("x-vercel-ip-country-region"))?.trim();
   const realIp = (
     headers.get("cf-connecting-ip") ||
     headers.get("x-real-ip") ||
@@ -103,7 +113,7 @@ export async function resolveClientGeo(headers: Headers): Promise<GeoResolution>
   let resolvedCity: string | undefined = undefined;
   let resolvedRegion: string | undefined = cfRegionRaw || undefined;
 
-  // 2. Nếu có cf-ipcity từ Cloudflare Edge và KHÔNG PHẢI là datacenter proxy
+  // 2. Nếu có cf-ipcity / x-vercel-ip-city và KHÔNG PHẢI là datacenter proxy
   if (cfCityRaw && cfCityRaw.toLowerCase() !== "hong kong" && cfCityRaw.toLowerCase() !== "singapore") {
     try {
       resolvedCity = decodeURIComponent(cfCityRaw).trim();
@@ -112,11 +122,10 @@ export async function resolveClientGeo(headers: Headers): Promise<GeoResolution>
     }
   }
 
-  // 3. Nếu là IP người dùng Việt Nam (hoặc city bị lệch sang Hong Kong/Singapore do proxy datacenter)
-  const isVn = resolvedCountryCode === "VN" || (!resolvedCountryCode && !realIp.startsWith("127."));
+  // 3. Nếu city bị lệch sang Hong Kong/Singapore hoặc còn trống do proxy datacenter (bỏ qua IP nội bộ/localhost)
   const isCitySuspicious = !resolvedCity || resolvedCity.toLowerCase() === "hong kong" || resolvedCity.toLowerCase() === "singapore";
 
-  if (realIp && (isCitySuspicious || !resolvedCity)) {
+  if (realIp && !isPrivateOrLoopbackIp(realIp) && (isCitySuspicious || !resolvedCity)) {
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 1200);
@@ -165,13 +174,14 @@ export async function resolveClientGeo(headers: Headers): Promise<GeoResolution>
     countryCode: resolvedCountryCode,
   };
 
-  // 6. Lưu vào cache L1 trong RAM
-  if (realIp && (result.city || result.countryCode)) {
+  // 6. Lưu vào cache L1 trong RAM (cache ngắn 5 phút ngay cả khi miss để tránh dội ipinfo.io)
+  if (realIp) {
     if (geoL1Cache.size >= 5000) {
       const firstKey = geoL1Cache.keys().next().value;
       if (firstKey !== undefined) geoL1Cache.delete(firstKey);
     }
-    geoL1Cache.set(realIp, { data: result, expiresAt: Date.now() + CACHE_TTL_MS });
+    const ttl = result.city || result.countryCode ? CACHE_TTL_MS : NEGATIVE_CACHE_TTL_MS;
+    geoL1Cache.set(realIp, { data: result, expiresAt: Date.now() + ttl });
   }
 
   return result;

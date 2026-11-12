@@ -132,9 +132,6 @@ export const CreateCollectionModal: React.FC<CreateCollectionModalProps> = ({
         className="relative w-full max-w-md my-auto bg-zinc-950 rounded-3xl p-6 sm:p-7 shadow-[0_25px_70px_rgba(0,0,0,0.95)] text-white animate-in zoom-in-95 duration-200 overflow-hidden transform-gpu will-change-[transform,opacity]"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Glow hiệu ứng nền đỏ Netflix */}
-        <div className="absolute -top-20 -left-20 w-48 h-48 bg-netflix-red/20 rounded-full blur-3xl pointer-events-none" />
-
         {/* Nút đóng */}
         <button
           type="button"
@@ -169,7 +166,7 @@ export const CreateCollectionModal: React.FC<CreateCollectionModalProps> = ({
               placeholder="VD: Phim Chiếu Rạp Đỉnh Cao, Anime Mùa Hè..."
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full bg-zinc-900/90 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder:text-zinc-500 focus:outline-none focus:border-netflix-red focus:ring-1 focus:ring-netflix-red transition"
+              className="w-full bg-zinc-900/90 border border-zinc-800 rounded-xl px-3.5 py-2.5 text-base sm:text-sm text-white placeholder:text-zinc-500 focus:outline-none focus:border-netflix-red focus:ring-1 focus:ring-netflix-red transition"
             />
           </div>
 
@@ -183,7 +180,7 @@ export const CreateCollectionModal: React.FC<CreateCollectionModalProps> = ({
               placeholder="Ghi chú về tuyển tập này..."
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className="w-full bg-zinc-900/90 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder:text-zinc-500 focus:outline-none focus:border-netflix-red focus:ring-1 focus:ring-netflix-red transition resize-none"
+              className="w-full bg-zinc-900/90 rounded-xl px-3.5 py-2.5 text-base sm:text-sm text-white placeholder:text-zinc-500 focus:outline-none focus:border-netflix-red focus:ring-1 focus:ring-netflix-red transition resize-none"
             />
           </div>
 
@@ -221,7 +218,7 @@ export const CreateCollectionModal: React.FC<CreateCollectionModalProps> = ({
                   <img
                     src={coverPreview}
                     alt="Cover preview"
-                    className="w-14 h-8 object-cover rounded-lg border border-white/20"
+                    className="w-14 h-8 object-cover rounded-lg"
                   />
                   <button
                     type="button"
@@ -230,7 +227,7 @@ export const CreateCollectionModal: React.FC<CreateCollectionModalProps> = ({
                       setCoverPreview(null);
                     }}
                     className="p-1 rounded-full text-zinc-400 hover:text-white hover:bg-white/10"
-                    title="Xóa ảnh"
+                    aria-label="Xóa ảnh bìa"
                   >
                     <X className="w-3.5 h-3.5" />
                   </button>

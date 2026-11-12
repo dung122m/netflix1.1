@@ -240,39 +240,36 @@
   background: transparent;
 }
 
-/* Glassmorphism & Cinema Glow Effects */
+/* Glassmorphism & Cinema Depth Effects */
 .glass-panel {
-  background: rgba(18, 18, 22, 0.75);
+  background: rgba(18, 18, 22, 0.78);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .glass-panel-hover {
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .glass-panel-hover:hover {
-  background: rgba(26, 26, 32, 0.85);
-  border-color: rgba(255, 255, 255, 0.2);
+  background: rgba(26, 26, 32, 0.88);
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
 }
 
 .ambient-cinema-glow {
   position: absolute;
-  inset: -12px;
+  inset: -8px;
   background: radial-gradient(
-    circle at 50% 50%,
-    color-mix(in srgb, var(--netflix-red) 30%, transparent) 0%,
-    rgba(147, 51, 234, 0.12) 40%,
-    transparent 70%
+    circle at 50% 45%,
+    color-mix(in srgb, var(--netflix-red) 10%, transparent) 0%,
+    transparent 65%
   );
-  filter: blur(40px);
+  filter: blur(20px);
   pointer-events: none;
   z-index: 0;
 }
 
 .netflix-red-glow {
-  box-shadow: 0 0 16px color-mix(in srgb, var(--netflix-red) 55%, transparent);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.65);
 }
 
 /* ============================================================ */
@@ -416,8 +413,8 @@
 
   /* Hero section thấp hơn trên mobile */
   .hero-mobile-height {
-    min-height: 55vh !important;
-    max-height: 70vh;
+    min-height: 55dvh !important;
+    max-height: 70dvh;
   }
 
   /* Pagination mobile: chỉ hiện prev/next */
@@ -652,12 +649,12 @@
    CINEMATIC MOVIE CARD CLICK & PAGE EXPANSION TRANSITION
    ========================================================================== */
 .movie-card-navigating {
-  transform: perspective(900px) scale3d(1.06, 1.06, 1) !important;
-  border-color: var(--accent-border, rgba(229, 9, 20, 0.85)) !important;
-  box-shadow: 0 0 45px var(--accent-glow, rgba(229, 9, 20, 0.65)), 0 20px 50px rgba(0, 0, 0, 0.95) !important;
-  filter: brightness(1.1) !important;
+  transform: scale3d(1.03, 1.03, 1) !important;
+  outline: 1.5px solid var(--accent-border, rgba(255, 255, 255, 0.4)) !important;
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.92) !important;
+  filter: brightness(1.08) !important;
   z-index: 45 !important;
-  transition: transform 200ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 200ms ease, filter 200ms ease, border-color 200ms ease !important;
+  transition: transform 200ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 200ms ease, filter 200ms ease, outline-color 200ms ease !important;
 }
 
 .page-cinema-container {
@@ -675,12 +672,12 @@
 
 /* Điều chỉnh vị trí sticky của MobileMovieNav khi CinemaPlayer đang sticky trên mobile */
 [data-player-sticky="true"] .mobile-movie-nav-sticky {
-  top: calc(83px + min(56.25vw, 38vh));
+  top: calc(83px + min(56.25vw, 38dvh));
 }
 
 @media (min-width: 640px) {
   [data-player-sticky="true"] .mobile-movie-nav-sticky {
-    top: calc(87px + min(56.25vw, 38vh));
+    top: calc(87px + min(56.25vw, 38dvh));
   }
 }
 

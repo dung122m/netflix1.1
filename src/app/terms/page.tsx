@@ -126,27 +126,26 @@ const DMCA_REQUIREMENTS = [
 
 export default function TermsPage() {
   return (
-    <div className="min-h-screen bg-[#050505] text-zinc-100 flex flex-col selection:bg-netflix-red selection:text-white font-sans antialiased overflow-x-hidden">
+    <div className="min-h-dvh bg-[#050505] text-zinc-100 flex flex-col selection:bg-netflix-red selection:text-white font-sans antialiased overflow-x-clip">
       <Navbar />
 
-      {/* AMBIENT GLOW */}
-      <div className="fixed top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-[500px] bg-[radial-gradient(ellipse_80%_60%_at_50%_0%,rgba(var(--accent-rgb),0.12),rgba(0,0,0,0))] pointer-events-none -z-10" />
+      <main className="flex-1 pt-24 sm:pt-32 pb-24 px-4 sm:px-8 md:px-12 max-w-5xl mx-auto w-full space-y-16 sm:space-y-20">
 
-      <main className="flex-1 pt-28 sm:pt-32 pb-24 px-4 sm:px-8 md:px-12 max-w-5xl mx-auto w-full space-y-16 sm:space-y-20">
-        
         {/* ================= 1. HEADER SECTION ================= */}
         <section className="space-y-4 text-center max-w-3xl mx-auto">
           <Link
             href="/"
-            className="inline-flex items-center gap-2 text-xs font-semibold text-zinc-400 hover:text-white transition-colors bg-white/[0.04] hover:bg-white/[0.08] px-3.5 py-1.5 rounded-full border border-white/[0.08] mb-2 backdrop-blur-md"
+            className="inline-flex items-center gap-2 text-xs font-semibold text-zinc-400 hover:text-white transition-colors bg-white/[0.05] hover:bg-white/[0.1] px-3.5 py-1.5 rounded-full mb-2"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
             <span>Quay lại Trang chủ</span>
           </Link>
 
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-500/10 text-red-400 text-xs font-semibold tracking-wide uppercase mx-auto block w-fit">
-            <Scale className="w-3.5 h-3.5" />
-            <span>Pháp Lý & Quy Chuẩn Hoạt Động</span>
+          <div className="flex justify-center">
+            <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-500/10 text-red-400 text-xs font-semibold">
+              <Scale className="w-3.5 h-3.5" />
+              <span>Pháp lý & quy chuẩn hoạt động</span>
+            </span>
           </div>
 
           <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-white tracking-tight leading-[1.15] text-balance">
@@ -186,14 +185,14 @@ export default function TermsPage() {
               return (
                 <div
                   key={pillar.title}
-                  className={`p-5 sm:p-6 rounded-2xl bg-gradient-to-b ${pillar.accent} bg-zinc-950/80 border ${pillar.borderColor} backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 shadow-lg flex flex-col justify-between group`}
+                  className="p-5 sm:p-6 rounded-2xl bg-zinc-900/55 hover:bg-zinc-900/80 transition-colors flex flex-col justify-between group"
                 >
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
-                      <div className={`p-2.5 rounded-xl bg-white/[0.05] border border-white/[0.08] ${pillar.iconColor} group-hover:scale-110 transition-transform`}>
+                      <div className={`p-2.5 rounded-xl bg-white/[0.05] ${pillar.iconColor} group-hover:scale-105 transition-transform`}>
                         <Icon className="w-5 h-5" />
                       </div>
-                      <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-white/[0.06] text-zinc-300 border border-white/[0.08]">
+                      <span className="text-[11px] font-medium px-2.5 py-0.5 rounded-full bg-white/[0.06] text-zinc-300">
                         {pillar.badge}
                       </span>
                     </div>
@@ -226,10 +225,10 @@ export default function TermsPage() {
             {DETAILED_SECTIONS.map((sec, idx) => (
               <div
                 key={idx}
-                className="p-5 sm:p-6 rounded-2xl bg-zinc-950/60 border border-white/[0.08] hover: transition space-y-2"
+                className="p-5 sm:p-6 rounded-2xl bg-zinc-900/50 hover:bg-zinc-900/75 transition-colors space-y-2"
               >
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-sans font-bold text-netflix-red uppercase tracking-wider">
+                  <span className="text-xs font-sans font-semibold text-netflix-red">
                     {sec.number}
                   </span>
                   <span className="text-zinc-600">•</span>
@@ -246,7 +245,7 @@ export default function TermsPage() {
         {/* ================= 4. DMCA TAKEDOWN PROCEDURE ================= */}
         <section className="space-y-6">
           <div className="text-center sm:text-left">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-500/10 text-rose-400 text-xs font-semibold uppercase mb-2">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-500/10 text-rose-400 text-xs font-semibold mb-2">
               <AlertTriangle className="w-3.5 h-3.5" />
               <span>Bảo vệ quyền sở hữu trí tuệ</span>
             </div>
@@ -262,9 +261,9 @@ export default function TermsPage() {
             {DMCA_REQUIREMENTS.map((req) => (
               <div
                 key={req.step}
-                className="p-5 rounded-2xl bg-zinc-950/70 border border-white/[0.08] flex items-start gap-4 hover: transition-colors"
+                className="p-5 rounded-2xl bg-zinc-900/55 flex items-start gap-3.5"
               >
-                <span className="text-xl font-black font-sans tabular-nums text-netflix-red px-2.5 py-1 rounded-lg bg-red-500/10 shrink-0">
+                <span className="text-xs font-semibold font-sans tabular-nums text-netflix-red pt-0.5 shrink-0">
                   {req.step}
                 </span>
                 <div className="space-y-1">
@@ -276,9 +275,9 @@ export default function TermsPage() {
           </div>
 
           {/* DMCA CONTACT BOX */}
-          <div className="p-6 sm:p-8 rounded-2xl sm:rounded-3xl bg-gradient-to-br from-red-950/40 via-zinc-950/90 to-zinc-950 backdrop-blur-2xl shadow-2xl relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-6">
+          <div className="p-6 sm:p-8 rounded-2xl sm:rounded-3xl bg-zinc-900/70 shadow-xl flex flex-col md:flex-row items-center justify-between gap-6">
             <div className="space-y-2 text-center md:text-left">
-              <div className="flex items-center justify-center md:justify-start gap-2 text-red-400 font-bold text-xs uppercase tracking-wider">
+              <div className="flex items-center justify-center md:justify-start gap-2 text-red-400 font-semibold text-xs">
                 <Mail className="w-4 h-4" />
                 <span>Hộp thư hỗ trợ bản quyền & pháp lý</span>
               </div>
@@ -292,7 +291,7 @@ export default function TermsPage() {
 
             <a
               href="mailto:contact@nanaflix.id.vn?subject=[DMCA%20Takedown%20Request]%20Yeu%20cau%20go%20bo%20noi%20dung"
-              className="inline-flex items-center gap-2.5 px-6 py-3.5 rounded-xl bg-netflix-red hover:brightness-110 active:brightness-95 text-white font-bold text-sm tracking-wide transition-all shadow-lg hover:shadow-red-600/30 hover:scale-105 shrink-0"
+              className="inline-flex items-center gap-2.5 px-6 py-3.5 rounded-xl bg-netflix-red hover:brightness-110 active:brightness-95 text-white font-bold text-sm transition-all shadow-lg shrink-0"
             >
               <Mail className="w-4 h-4" />
               <span>Gửi thông báo DMCA</span>
@@ -304,7 +303,7 @@ export default function TermsPage() {
         <section className="border-t border-white/[0.08] pt-10 grid grid-cols-1 sm:grid-cols-3 gap-4">
           <Link
             href="/privacy"
-            className="p-4 rounded-xl bg-zinc-950/50 hover:bg-zinc-900 border border-white/[0.06] hover: transition-all flex items-center justify-between group"
+            className="p-4 rounded-xl bg-zinc-900/50 hover:bg-zinc-900/80 transition-colors flex items-center justify-between group"
           >
             <div className="flex items-center gap-3">
               <ShieldCheck className="w-5 h-5 text-emerald-400" />
@@ -318,7 +317,7 @@ export default function TermsPage() {
 
           <Link
             href="/about"
-            className="p-4 rounded-xl bg-zinc-950/50 hover:bg-zinc-900 border border-white/[0.06] hover: transition-all flex items-center justify-between group"
+            className="p-4 rounded-xl bg-zinc-900/50 hover:bg-zinc-900/80 transition-colors flex items-center justify-between group"
           >
             <div className="flex items-center gap-3">
               <Info className="w-5 h-5 text-netflix-red" />
@@ -332,7 +331,7 @@ export default function TermsPage() {
 
           <Link
             href="/about#contact"
-            className="p-4 rounded-xl bg-zinc-950/50 hover:bg-zinc-900 border border-white/[0.06] hover: transition-all flex items-center justify-between group"
+            className="p-4 rounded-xl bg-zinc-900/50 hover:bg-zinc-900/80 transition-colors flex items-center justify-between group"
           >
             <div className="flex items-center gap-3">
               <MessageSquare className="w-5 h-5 text-rose-400" />

@@ -64,7 +64,7 @@ export function HomeGenreExploreBar() {
           href="/browse"
           prefetch={false}
           className="group inline-flex items-center gap-2 outline-none focus-visible:ring-2 focus-visible:ring-netflix-red rounded-xl transition cursor-pointer"
-          title="Khám phá toàn bộ kho phim Nanaflix"
+          aria-label="Khám phá toàn bộ kho phim Nanaflix"
         >
           <div>
             <h2 className="text-sm sm:text-base font-black text-white tracking-tight flex items-center gap-1.5 group-hover:text-zinc-200 transition-colors">
@@ -112,7 +112,7 @@ export function HomeGenreExploreBar() {
       <div className="md:hidden relative w-full min-w-0 max-w-full overflow-hidden">
         <div
           ref={scrollRef}
-          className="flex items-center gap-2 overflow-x-auto scrollbar-none pb-1 pt-0.5 px-0.5 touch-pan-x w-full min-w-0"
+          className="flex items-center gap-2 overflow-x-auto scrollbar-none pb-1 pt-0.5 px-0.5 touch-pan-x touch-pan-y w-full min-w-0"
         >
           {FEATURED_GENRE_CHIPS.map((chip) => (
             <Link

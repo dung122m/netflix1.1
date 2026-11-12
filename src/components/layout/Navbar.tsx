@@ -147,7 +147,7 @@ const NavbarInner: React.FC = () => {
             onMouseEnter={() => router.prefetch("/")}
             onFocus={() => router.prefetch("/")}
             className="flex items-center group flex-shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black rounded-lg"
-            title="Nanaflix - Trang Chủ"
+            aria-label="Nanaflix - Trang Chủ"
           >
             <NanaflixBrandLogo />
           </Link>
@@ -172,10 +172,7 @@ const NavbarInner: React.FC = () => {
                 >
                   <span className="whitespace-nowrap">{link.name}</span>
                   {link.isLive && (
-                    <span className="relative flex h-2 w-2 flex-shrink-0 ml-0.5">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75" />
-                      <span className="relative inline-flex rounded-full h-2 w-2 bg-netflix-red" />
-                    </span>
+                    <span className="inline-flex rounded-full h-2 w-2 bg-rose-500 flex-shrink-0 ml-0.5" />
                   )}
                   {active && (
                     <span className="absolute bottom-0 left-0 w-full h-0.5 bg-netflix-red rounded-full" />

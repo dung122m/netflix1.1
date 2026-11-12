@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { NormalizedLeagueStandings, StandingGroup } from "@/services/live/football-score/types";
 import { CountryFlag } from "./CountryFlag";
+import { Tooltip } from "@/components/ui/Tooltip";
 
 // Danh sách các giải đấu hỗ trợ chọn trong Bảng xếp hạng
 export const STANDINGS_LEAGUES = [
@@ -28,9 +29,9 @@ export const STANDINGS_LEAGUES = [
   { slug: "ned.1", name: "Eredivisie", country: "Hà Lan", flag: "🇳🇱" },
   { slug: "por.1", name: "Liga Portugal", country: "Bồ Đào Nha", flag: "🇵🇹" },
   { slug: "tur.1", name: "Super Lig", country: "Thổ Nhĩ Kỳ", flag: "🇹🇷" },
-  { slug: "eng.fa", name: "FA Cup", country: "Anh", flag: "🏆", isCup: true },
-  { slug: "eng.league_cup", name: "Carabao Cup", country: "Anh", flag: "🏆", isCup: true },
-  { slug: "esp.copa_del_rey", name: "Copa del Rey", country: "Tây Ban Nha", flag: "🏆", isCup: true },
+  { slug: "eng.fa", name: "FA Cup", country: "Anh", flag: "cup", isCup: true },
+  { slug: "eng.league_cup", name: "Carabao Cup", country: "Anh", flag: "cup", isCup: true },
+  { slug: "esp.copa_del_rey", name: "Copa del Rey", country: "Tây Ban Nha", flag: "cup", isCup: true },
 ] as const;
 
 export interface LeagueStandingsProps {
@@ -209,23 +210,32 @@ export const LeagueStandings: React.FC<LeagueStandingsProps> = ({
             <h3 className="text-sm sm:text-base font-bold text-white tracking-wide truncate">
               Bảng Xếp Hạng Bóng Đá
             </h3>
-            <p className="text-[11px] text-zinc-400 truncate max-w-[180px] sm:max-w-md">
-              {currentLeagueMeta ? `${currentLeagueMeta.flag} ${currentLeagueMeta.name}` : "Cập nhật từ ban tổ chức"}
+            <p className="text-[11px] text-zinc-400 truncate max-w-[180px] sm:max-w-md flex items-center gap-1.5">
+              {currentLeagueMeta ? (
+                <>
+                  <CountryFlag emoji={currentLeagueMeta.flag} className="w-3.5 h-3.5 shrink-0" />
+                  <span>{currentLeagueMeta.name}</span>
+                </>
+              ) : (
+                "Cập nhật từ ban tổ chức"
+              )}
               {standings ? ` • Mùa giải ${standings.season}` : ""}
             </p>
           </div>
         </div>
 
         <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-          <button
-            type="button"
-            onClick={() => fetchStandings(selectedLeague, true)}
-            disabled={loading}
-            title="Làm mới bảng xếp hạng"
-            className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-white/10 transition-colors disabled:opacity-40 cursor-pointer"
-          >
-            <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin text-amber-400" : ""}`} />
-          </button>
+          <Tooltip content="Làm mới bảng xếp hạng" side="left">
+            <button
+              type="button"
+              onClick={() => fetchStandings(selectedLeague, true)}
+              disabled={loading}
+              aria-label="Làm mới bảng xếp hạng"
+              className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-white/10 transition-colors disabled:opacity-40 cursor-pointer"
+            >
+              <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin text-amber-400" : ""}`} />
+            </button>
+          </Tooltip>
 
           {onClose ? (
             <button
@@ -265,14 +275,20 @@ export const LeagueStandings: React.FC<LeagueStandingsProps> = ({
           <div className="relative group/tabs -mx-1 px-1">
             {/* Nút cuộn trái trên desktop */}
             {canScrollLeft && (
-              <button
-                type="button"
-                onClick={() => scrollLeagues("left")}
-                className="absolute left-0 top-1/2 -translate-y-1/2 z-20 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-zinc-900/95 hover:bg-white text-zinc-200 hover:text-black shadow-xl flex items-center justify-center transition-all cursor-pointer backdrop-blur-md"
-                title="Cuộn sang trái"
+              <Tooltip
+                content="Cuộn sang trái"
+                side="right"
+                wrapperClassName="absolute left-0 top-1/2 -translate-y-1/2 z-20"
               >
-                <ChevronLeft className="w-4 h-4" />
-              </button>
+                <button
+                  type="button"
+                  onClick={() => scrollLeagues("left")}
+                  aria-label="Cuộn sang trái"
+                  className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-zinc-900/95 hover:bg-white text-zinc-200 hover:text-black shadow-xl flex items-center justify-center transition-all cursor-pointer backdrop-blur-md"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+              </Tooltip>
             )}
 
             {/* Gradient mờ mép trái báo hiệu còn nội dung */}
@@ -321,14 +337,20 @@ export const LeagueStandings: React.FC<LeagueStandingsProps> = ({
 
             {/* Nút cuộn phải trên desktop */}
             {canScrollRight && (
-              <button
-                type="button"
-                onClick={() => scrollLeagues("right")}
-                className="absolute right-0 top-1/2 -translate-y-1/2 z-20 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-zinc-900/95 hover:bg-white text-zinc-200 hover:text-black shadow-xl flex items-center justify-center transition-all cursor-pointer backdrop-blur-md"
-                title="Cuộn sang phải"
+              <Tooltip
+                content="Cuộn sang phải"
+                side="left"
+                wrapperClassName="absolute right-0 top-1/2 -translate-y-1/2 z-20"
               >
-                <ChevronRight className="w-4 h-4" />
-              </button>
+                <button
+                  type="button"
+                  onClick={() => scrollLeagues("right")}
+                  aria-label="Cuộn sang phải"
+                  className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-zinc-900/95 hover:bg-white text-zinc-200 hover:text-black shadow-xl flex items-center justify-center transition-all cursor-pointer backdrop-blur-md"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </Tooltip>
             )}
           </div>
 
@@ -435,16 +457,16 @@ export const LeagueStandings: React.FC<LeagueStandingsProps> = ({
               <div className="overflow-x-auto rounded-2xl bg-zinc-950/90 shadow-xl scrollbar-thin">
                 <table className="w-full text-left border-collapse text-xs sm:text-sm">
                   <thead>
-                    <tr className="bg-white/[0.03] text-[10px] sm:text-xs text-zinc-400 uppercase tracking-wider font-extrabold">
+                    <tr className="bg-white/[0.03] text-[11px] sm:text-xs text-zinc-400 font-semibold">
                       <th className="py-3 px-2 sm:px-3 text-center w-9 sm:w-12 sticky left-0 bg-zinc-950 z-20">#</th>
                       <th className="py-3 px-3 sm:px-4 min-w-[150px] sm:min-w-[220px] sticky left-9 sm:left-12 bg-zinc-950 z-20 shadow-[2px_0_5px_rgba(0,0,0,0.5)]">Câu lạc bộ</th>
-                      <th className="py-3 px-2 text-center w-10 sm:w-12 font-bold" title="Số trận đã đá">Trận</th>
-                      <th className="py-3 px-2 text-center w-10 sm:w-12 text-emerald-400 font-bold" title="Thắng">T</th>
-                      <th className="py-3 px-2 text-center w-10 sm:w-12 text-zinc-300 font-bold" title="Hòa">H</th>
-                      <th className="py-3 px-2 text-center w-10 sm:w-12 text-rose-400 font-bold" title="Thua">B</th>
-                      <th className="py-3 px-2 text-center w-16 sm:w-20 hidden md:table-cell font-sans tabular-nums" title="Bàn thắng - Bàn thua">BT-BB</th>
-                      <th className="py-3 px-2 text-center w-12 sm:w-14 font-semibold font-sans tabular-nums" title="Hiệu số">HS</th>
-                      <th className="py-3 px-3 text-center w-12 sm:w-16 font-black text-amber-400 bg-amber-500/10 font-sans tabular-nums" title="Điểm số">Điểm</th>
+                      <th className="py-3 px-2 text-center w-10 sm:w-12 font-bold" aria-label="Số trận đã đá">Trận</th>
+                      <th className="py-3 px-2 text-center w-10 sm:w-12 text-emerald-400 font-bold" aria-label="Thắng">T</th>
+                      <th className="py-3 px-2 text-center w-10 sm:w-12 text-zinc-300 font-bold" aria-label="Hòa">H</th>
+                      <th className="py-3 px-2 text-center w-10 sm:w-12 text-rose-400 font-bold" aria-label="Thua">B</th>
+                      <th className="py-3 px-2 text-center w-16 sm:w-20 hidden md:table-cell font-sans tabular-nums" aria-label="Bàn thắng - Bàn thua">BT-BB</th>
+                      <th className="py-3 px-2 text-center w-12 sm:w-14 font-semibold font-sans tabular-nums" aria-label="Hiệu số">HS</th>
+                      <th className="py-3 px-3 text-center w-12 sm:w-16 font-black text-amber-400 bg-amber-500/10 font-sans tabular-nums" aria-label="Điểm số">Điểm</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-white/5 text-zinc-300">
@@ -467,11 +489,13 @@ export const LeagueStandings: React.FC<LeagueStandingsProps> = ({
                           <td className="py-2.5 px-2 sm:px-3 text-center font-bold text-zinc-400 sticky left-0 bg-zinc-950 z-10">
                             <div className="flex items-center justify-center gap-1.5">
                               {zoneColor ? (
-                                <span
-                                  className="w-1.5 h-3.5 rounded-full shrink-0 shadow-sm"
-                                  style={{ backgroundColor: zoneColor }}
-                                  title={entry.note?.description || `Hạng ${entry.rank}`}
-                                />
+                                <Tooltip content={entry.note?.description || `Hạng ${entry.rank}`} side="right">
+                                  <span
+                                    className="w-1.5 h-3.5 rounded-full shrink-0 shadow-sm block"
+                                    style={{ backgroundColor: zoneColor }}
+                                    aria-label={entry.note?.description || `Hạng ${entry.rank}`}
+                                  />
+                                </Tooltip>
                               ) : (
                                 <span className="w-1.5 h-3.5 rounded-full shrink-0 bg-transparent" />
                               )}

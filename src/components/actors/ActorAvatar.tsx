@@ -8,10 +8,10 @@ import { User, Film } from "lucide-react";
  * Lấy chữ cái viết tắt đại diện cho tên diễn viên (VD: "Phạm Băng Băng" -> "PB", "Trần Thành" -> "TT", "IU" -> "IU")
  */
 export function getActorInitials(name?: string | null): string {
-  if (!name || !name.trim()) return "★";
+  if (!name || !name.trim()) return "";
   const clean = name.trim().replace(/[^\p{L}\p{N}\s]/gu, "").trim();
   const words = clean.split(/\s+/).filter(Boolean);
-  if (words.length === 0) return "★";
+  if (words.length === 0) return "";
   if (words.length === 1) {
     return words[0].slice(0, 2).toUpperCase();
   }
@@ -141,10 +141,12 @@ export const ActorAvatar: React.FC<ActorAvatarProps> = ({
   if (shape === "circle") {
     return (
       <div
-        className={`w-full h-full rounded-full bg-gradient-to-br ${theme.bg} flex items-center justify-center p-1  ${theme.ring} shadow-inner select-none ${className}`}
+        className={`w-full h-full rounded-full bg-gradient-to-br ${theme.bg} flex items-center justify-center p-1 select-none ${className}`}
       >
-        <div className={`w-full h-full rounded-full ${theme.badge} border flex items-center justify-center font-black tracking-tight`}>
-          <span className="text-xs sm:text-sm">{initials}</span>
+        <div className={`w-full h-full rounded-full ${theme.badge} flex items-center justify-center font-black tracking-tight`}>
+          <span className="text-xs sm:text-sm">
+            {initials || <User className="w-4 h-4" />}
+          </span>
         </div>
       </div>
     );
@@ -154,11 +156,10 @@ export const ActorAvatar: React.FC<ActorAvatarProps> = ({
   if (shape === "rounded") {
     return (
       <div
-        className={`w-full h-full rounded-2xl bg-gradient-to-br ${theme.bg} flex flex-col items-center justify-center p-2  select-none relative overflow-hidden ${className}`}
+        className={`w-full h-full rounded-2xl bg-gradient-to-br ${theme.bg} flex flex-col items-center justify-center p-2 select-none relative overflow-hidden ${className}`}
       >
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_40%,rgba(255,255,255,0.06),transparent_70%)]" />
-        <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl ${theme.badge} border flex items-center justify-center font-black text-sm sm:text-base shadow-lg z-10`}>
-          {initials}
+        <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl ${theme.badge} flex items-center justify-center font-black text-sm sm:text-base shadow-lg z-10`}>
+          {initials || <User className="w-5 h-5" />}
         </div>
       </div>
     );
@@ -169,18 +170,15 @@ export const ActorAvatar: React.FC<ActorAvatarProps> = ({
     <div
       className={`w-full h-full flex flex-col items-center justify-center p-4 bg-gradient-to-b ${theme.bg} text-center relative overflow-hidden select-none group-hover:from-zinc-900 group-hover:to-zinc-950 transition-colors ${className}`}
     >
-      {/* AMBIENT RADIAL LIGHT */}
-      <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-28 h-28 bg-white/[0.04] rounded-full blur-2xl pointer-events-none" />
-
       {/* BACKGROUND DECORATIVE WATERMARK */}
       <Film className="absolute -bottom-4 -right-4 w-20 h-20 text-white/[0.03] rotate-12 pointer-events-none" />
 
-      {/* INITIALS BADGE WITH LUXURY GLASSMORPHISM */}
+      {/* INITIALS BADGE */}
       <div className="relative z-10 flex flex-col items-center justify-center gap-2">
         <div
-          className={`w-13 h-13 sm:w-16 sm:h-16 rounded-2xl ${theme.badge} border backdrop-blur-md flex items-center justify-center font-black text-base sm:text-xl tracking-wider shadow-xl group-hover:scale-110 transition-transform duration-300`}
+          className={`w-13 h-13 sm:w-16 sm:h-16 rounded-2xl ${theme.badge} backdrop-blur-md flex items-center justify-center font-black text-base sm:text-xl tracking-wider shadow-xl group-hover:scale-105 transition-transform duration-300`}
         >
-          <span>{initials}</span>
+          <span>{initials || <User className="w-5 h-5" />}</span>
         </div>
 
         <div className="flex items-center gap-1 text-[10px] sm:text-[11px] font-semibold text-zinc-400 group-hover:text-zinc-200 transition-colors">

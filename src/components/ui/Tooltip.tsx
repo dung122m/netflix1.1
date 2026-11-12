@@ -120,9 +120,11 @@ export function Tooltip({
     arrowClass = "-left-1 top-1/2 -translate-y-1/2 border-b border-l";
   }
 
+  const hasExplicitPosition = /(?:^|\s)(?:absolute|fixed|sticky|static)\b/.test(wrapperClassName);
+
   return (
     <div
-      className={`relative inline-flex items-center justify-center ${wrapperClassName}`}
+      className={`${hasExplicitPosition ? "" : "relative "}inline-flex items-center justify-center ${wrapperClassName}`}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       onFocus={handleFocus}

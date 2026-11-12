@@ -19,7 +19,7 @@ export const ActiveEpisodeBadge: React.FC<ActiveEpisodeBadgeProps> = ({
   const epName = activeEpisode?.name || initialEpisodeName;
 
   return (
-    <span className="inline-flex items-center px-2.5 py-1 rounded-lg bg-netflix-red/15 border border-netflix-red/30 text-rose-200 font-bold text-xs sm:text-sm shadow-sm flex-shrink-0">
+    <span className="inline-flex items-center px-2.5 py-1 rounded-lg bg-netflix-red/15 text-rose-200 font-bold text-xs sm:text-sm flex-shrink-0">
       {isTrailerOnly ? "Trailer" : formatEpisodeName(epName, "Tập 1")}
     </span>
   );

@@ -4,15 +4,15 @@ import { Footer } from "@/components/layout/Footer";
 
 export default function MyListLoading() {
   return (
-    <div className="bg-black min-h-screen text-white">
+    <div className="bg-black min-h-dvh text-white">
       <Navbar />
       <main className="max-w-[1800px] mx-auto px-4 md:px-8 pt-24 sm:pt-28 pb-16 animate-pulse">
         {/* HEADER SKELETON */}
-        <div className="flex flex-wrap items-center justify-between gap-4 mb-6 border-b pb-5">
-          <div className="space-y-2">
-            <div className="h-4 w-32 bg-white/10 rounded" />
-            <div className="h-8 sm:h-10 w-64 bg-white/20 rounded-xl" />
-            <div className="h-4 w-80 bg-white/10 rounded" />
+        <div className="flex flex-wrap items-center justify-between gap-4 mb-6 border-b border-white/[0.08] pb-5">
+          <div className="space-y-2 max-w-full">
+            <div className="h-4 w-32 max-w-full bg-white/10 rounded" />
+            <div className="h-8 sm:h-10 w-64 max-w-full bg-white/20 rounded-xl" />
+            <div className="h-4 w-80 max-w-full bg-white/10 rounded" />
           </div>
           <div className="h-10 w-28 bg-white/10 rounded-xl" />
         </div>

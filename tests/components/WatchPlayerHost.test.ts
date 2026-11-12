@@ -87,4 +87,100 @@ describe("Nanaflix Multi-Source & Multi-Server Switching Regression Tests", () =
     assert.equal(sourceKey0.startsWith("0__"), true);
     assert.equal(sourceKey1.startsWith("1__"), true);
   });
+
+  test("5. filterDualServers preserves distinct Lồng Tiếng, Thuyết Minh, Vietsub, and M3U8 backup without duplicates", () => {
+    const rawServers = [
+      {
+        server_name: "Vietsub #1",
+        server_data: [
+          { name: "Tập 1", slug: "tap-1", link_m3u8: "https://cdn-a.com/vs1.m3u8", link_embed: "" },
+        ],
+      },
+      {
+        server_name: "Thuyết Minh #1",
+        server_data: [
+          { name: "Tập 1", slug: "tap-1", link_m3u8: "https://cdn-b.com/tm1.m3u8", link_embed: "" },
+        ],
+      },
+      {
+        server_name: "Lồng Tiếng #1",
+        server_data: [
+          { name: "Tập 1", slug: "tap-1", link_m3u8: "https://cdn-c.com/lt1.m3u8", link_embed: "" },
+        ],
+      },
+      {
+        server_name: "Vietsub Mirror (Duplicate URL)",
+        server_data: [
+          { name: "Tập 1", slug: "tap-1", link_m3u8: "https://cdn-a.com/vs1.m3u8", link_embed: "" },
+        ],
+      },
+      {
+        server_name: "Vietsub Backup CDN",
+        server_data: [
+          { name: "Tập 1", slug: "tap-1", link_m3u8: "https://cdn-d.com/vs-backup.m3u8", link_embed: "" },
+        ],
+      },
+      {
+        server_name: "Thuyết Minh Embed Clone",
+        server_data: [
+          { name: "Tập 1", slug: "tap-1", link_m3u8: "", link_embed: "https://embed1.streamc.xyz/embed.php?hash=abc" },
+        ],
+      },
+    ];
+
+    const servers = filterDualServers(rawServers);
+    assert.deepEqual(
+      servers.map((s) => s.server_name),
+      ["Lồng Tiếng", "Thuyết Minh", "Vietsub", "Dự phòng"],
+    );
+    assert.equal(servers[3].server_data[0].link_m3u8, "https://cdn-d.com/vs-backup.m3u8");
+  });
+
+  test("6. filterDualServers places playable .m3u8 server before embed-only server", () => {
+    const rawServers = [
+      {
+        server_name: "Lồng Tiếng",
+        server_data: [
+          { name: "Full", slug: "full", link_m3u8: "", link_embed: "https://embed1.streamc.xyz/embed.php?hash=dub" },
+        ],
+      },
+      {
+        server_name: "Thuyết Minh",
+        server_data: [
+          { name: "Full", slug: "full", link_m3u8: "https://cdn-tm.com/full/index.m3u8", link_embed: "" },
+        ],
+      },
+    ];
+
+    const servers = filterDualServers(rawServers);
+    assert.equal(servers.length, 2);
+    assert.equal(servers[0].server_name, "Thuyết Minh");
+    assert.equal(servers[0].server_data[0].link_m3u8, "https://cdn-tm.com/full/index.m3u8");
+    assert.equal(servers[1].server_name, "Lồng Tiếng");
+  });
+
+  test("7. filterDualServers never backfills .m3u8 across different audio categories (prevents duplicate streams)", () => {
+    const rawServers = [
+      {
+        server_name: "Vietsub #1",
+        server_data: [
+          { name: "Full", slug: "full", link_m3u8: "", link_embed: "https://embed18.streamc.xyz/embed.php?hash=vs" },
+        ],
+      },
+      {
+        server_name: "Thuyết Minh #1",
+        server_data: [
+          { name: "Full", slug: "full", link_m3u8: "https://a.kvp726.com/20261013/FotQCUTw/index.m3u8", link_embed: "" },
+        ],
+      },
+    ];
+
+    const servers = filterDualServers(rawServers);
+    assert.equal(servers.length, 2);
+    assert.equal(servers[0].server_name, "Thuyết Minh");
+    assert.equal(servers[0].server_data[0].link_m3u8, "https://a.kvp726.com/20261013/FotQCUTw/index.m3u8");
+    assert.equal(servers[1].server_name, "Vietsub");
+    assert.equal(servers[1].server_data[0].link_m3u8 || "", "");
+    assert.equal(servers[1].server_data[0].link_embed, "https://embed18.streamc.xyz/embed.php?hash=vs");
+  });
 });

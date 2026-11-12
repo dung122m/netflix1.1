@@ -142,7 +142,7 @@ export const ActorBioModal: React.FC<ActorBioModalProps> = ({
         <div className="h-1.5 w-full bg-gradient-to-r from-transparent via-netflix-red to-transparent opacity-90 shadow-sm shadow-netflix-red/50" />
 
         {/* HEADER BAR */}
-        <div className="flex items-center justify-between px-4 sm:px-6 py-3.5 border-b bg-zinc-900/90 gap-2">
+        <div className="flex items-center justify-between px-4 sm:px-6 py-3.5 border-b border-white/[0.08] bg-zinc-900/90 gap-2">
           <div className="flex items-center gap-2 text-rose-400 min-w-0 flex-1">
             <BookOpen className="w-4 h-4 text-rose-400 shrink-0" />
             <span className="text-xs sm:text-sm font-bold text-white truncate">
@@ -160,7 +160,7 @@ export const ActorBioModal: React.FC<ActorBioModalProps> = ({
         </div>
 
         {/* CONTENT BODY */}
-        <div className="p-5 sm:p-6 space-y-4 max-h-[82vh] overflow-y-auto custom-scrollbar">
+        <div className="p-4 sm:p-6 space-y-4 max-h-[82dvh] overflow-y-auto custom-scrollbar">
           {loading && !profile ? (
             <div className="py-14 flex flex-col items-center justify-center gap-3 text-zinc-400">
               <Loader2 className="w-9 h-9 animate-spin text-netflix-red" />

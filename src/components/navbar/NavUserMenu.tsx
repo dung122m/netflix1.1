@@ -166,7 +166,7 @@ export const NavUserMenu: React.FC<NavUserMenuProps> = React.memo(function NavUs
       </Tooltip>
 
       {showUserDropdown && (
-        <div className="absolute right-0 mt-2 w-56 bg-zinc-950/98 rounded-2xl shadow-2xl p-1.5 z-[100] backdrop-blur-xl animate-in fade-in zoom-in-95 duration-150 space-y-0.5 border border-white/10">
+        <div className="absolute right-0 mt-2 w-56 bg-zinc-950/98 rounded-2xl shadow-2xl p-1.5 z-[100] backdrop-blur-xl animate-in fade-in zoom-in-95 duration-150 space-y-0.5">
           {/* HEADER: USER CARD & QUICK PROFILE ACCESS */}
           <Link
             href="/profile"
@@ -178,7 +178,7 @@ export const NavUserMenu: React.FC<NavUserMenuProps> = React.memo(function NavUs
             </p>
             <p className="text-[11px] text-zinc-400 truncate mt-0.5">{effectiveEmail}</p>
             <div className="mt-1.5 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/15 text-[10px] text-emerald-400 font-medium">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
               <span>Cloud Sync</span>
             </div>
           </Link>
@@ -190,7 +190,7 @@ export const NavUserMenu: React.FC<NavUserMenuProps> = React.memo(function NavUs
               className="flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-xs font-bold text-amber-400 bg-amber-500/15 hover:bg-amber-500/25 hover:text-amber-300 transition my-0.5 shadow-sm"
             >
               <ShieldCheck size={14} className="text-amber-400 shrink-0" />
-              <span>👑 Admin Panel</span>
+              <span>Admin Panel</span>
             </Link>
           )}
 

@@ -54,7 +54,7 @@ import {
   logSecurityEvent,
 } from "@/lib/securityLogger";
 
-import { middleware, checkOriginProtection } from "@/middleware";
+import { proxy, checkOriginProtection } from "@/proxy";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
 
@@ -827,7 +827,7 @@ describe("Security Logger & Data Protection (securityLogger.ts)", () => {
 // 4. EDGE MIDDLEWARE & SCANNER BLOCKING
 // ============================================================================
 
-describe("Edge Middleware Security Controls (src/middleware.ts)", () => {
+describe("Edge Proxy Security Controls (src/proxy.ts)", () => {
   it("blocks malicious vulnerability scanners by User-Agent (403 Forbidden)", () => {
     const scannerUas = [
       "sqlmap/1.6#stable",
@@ -842,7 +842,7 @@ describe("Edge Middleware Security Controls (src/middleware.ts)", () => {
       const req = new NextRequest("http://localhost/api/movies", {
         headers: { "user-agent": ua },
       });
-      const res = middleware(req);
+      const res = proxy(req);
       assert.strictEqual(res.status, 403, `User-Agent '${ua}' must be blocked with 403`);
     }
   });
@@ -860,7 +860,7 @@ describe("Edge Middleware Security Controls (src/middleware.ts)", () => {
 
     for (const path of probePaths) {
       const req = new NextRequest(path);
-      const res = middleware(req);
+      const res = proxy(req);
       assert.strictEqual(res.status, 404, `Probe path '${path}' must be blocked with 404`);
     }
   });
@@ -868,7 +868,7 @@ describe("Edge Middleware Security Controls (src/middleware.ts)", () => {
   it("blocks HTTP TRACE and TRACK methods (405 Method Not Allowed)", () => {
     const traceReq = new NextRequest("http://localhost/api/movies", { method: "POST" });
     Object.defineProperty(traceReq, "method", { value: "TRACE" });
-    const res = middleware(traceReq);
+    const res = proxy(traceReq);
     assert.strictEqual(res.status, 405);
   });
 
@@ -876,7 +876,7 @@ describe("Edge Middleware Security Controls (src/middleware.ts)", () => {
     const req = new NextRequest("http://localhost/api/movies", {
       headers: { "user-agent": "Mozilla/5.0 Chrome/120.0.0.0" },
     });
-    const res = middleware(req);
+    const res = proxy(req);
     assert.strictEqual(res.headers.get("X-Content-Type-Options"), "nosniff");
     assert.strictEqual(res.headers.get("X-Frame-Options"), "SAMEORIGIN");
     assert.strictEqual(res.headers.get("Referrer-Policy"), "strict-origin-when-cross-origin");
@@ -894,7 +894,7 @@ describe("Edge Middleware Security Controls (src/middleware.ts)", () => {
       const req = new NextRequest(path, {
         headers: { "user-agent": "Mozilla/5.0" },
       });
-      const res = middleware(req);
+      const res = proxy(req);
       const cacheControl = res.headers.get("Cache-Control");
       assert.ok(
         cacheControl?.includes("private") &&

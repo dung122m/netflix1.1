@@ -342,14 +342,14 @@ function MatchCardInner({ match, isSelected, onSelect, score, compact }: MatchCa
         }}
         className={`group relative rounded-xl cursor-pointer transition-all duration-150 p-2 sm:p-2.5 flex flex-col gap-1.5 overflow-hidden outline-none select-none scroll-mt-12 ${
           isSelected && featured.isFeatured
-            ? "bg-gradient-to-r from-netflix-red/15 via-zinc-900/95 to-zinc-900/95 ring-1 ring-netflix-red/80 border-l-[3px] border-l-netflix-red shadow-lg shadow-netflix-red/10"
+            ? "bg-gradient-to-r from-netflix-red/15 via-zinc-900/95 to-zinc-900/95 ring-1 ring-inset ring-netflix-red/80 shadow-lg shadow-netflix-red/10"
             : isSelected
-            ? "bg-gradient-to-r from-netflix-red/10 via-zinc-900/95 to-zinc-900/95 ring-1 ring-netflix-red/70 border-l-[3px] border-l-netflix-red shadow-md shadow-black/50"
+            ? "bg-gradient-to-r from-netflix-red/10 via-zinc-900/95 to-zinc-900/95 ring-1 ring-inset ring-netflix-red/75 shadow-md shadow-black/50"
             : featured.isFeatured
-            ? "bg-zinc-900/90 hover:bg-zinc-850/95 border-l-[3px] border-l-amber-500/80 border border-amber-500/20 shadow-md shadow-black/40 hover:border-amber-500/40"
+            ? "bg-gradient-to-r from-amber-500/[0.08] via-zinc-900/95 to-zinc-900/95 hover:from-amber-500/[0.12] shadow-md shadow-black/40"
             : isConfirmedLive
-            ? "bg-zinc-900/80 hover:bg-zinc-850/90 border border-white/[0.06] hover:border-white/10 shadow-sm"
-            : "bg-zinc-900/60 hover:bg-zinc-850/80 border border-white/[0.04] hover:border-white/[0.08] shadow-sm"
+            ? "bg-zinc-900/80 hover:bg-zinc-800/80 shadow-sm"
+            : "bg-zinc-900/55 hover:bg-zinc-800/75 shadow-sm"
         }`}
       >
         {/* DÒNG 1: HEADER MINI */}
@@ -361,8 +361,8 @@ function MatchCardInner({ match, isSelected, onSelect, score, compact }: MatchCa
           <div className="flex items-center gap-1.5 shrink-0 font-sans tabular-nums">
             {timeInfo.state === "live" ? (
               <>
-                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-400 leading-none">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-rose-400 leading-none">
+                  <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse shrink-0" />
                   <span>{formatDisplayMinute(timeInfo.clockBadge)}</span>
                 </span>
                 {kickoffTime && (
@@ -416,16 +416,16 @@ function MatchCardInner({ match, isSelected, onSelect, score, compact }: MatchCa
             {featured.isFeatured && (
               <span
                 className="inline-flex items-center gap-1 text-[9.5px] font-semibold text-amber-400 shrink-0"
-                title={featured.badgeLabel || "Trận cầu tâm điểm"}
+                aria-label={featured.badgeLabel || "Trận cầu tâm điểm"}
               >
                 <Flame size={11} className="text-amber-400 fill-amber-400/30 shrink-0" />
                 {!isSelected && <span>{featured.badgeLabel || "Tâm điểm"}</span>}
               </span>
             )}
 
-            {/* Huy hiệu Đang xem: Glassmorphism kính mờ, viền mảnh, chữ nhỏ, sóng âm nhẹ nhàng */}
+            {/* Huy hiệu Đang xem: Glassmorphism kính mờ, chữ nhỏ, sóng âm nhẹ nhàng */}
             {isSelected && (
-              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-white/[0.08] backdrop-blur-md border border-white/15 text-[9.5px] font-medium text-zinc-200 shadow-sm shrink-0">
+              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-white/[0.08] backdrop-blur-md text-[9.5px] font-medium text-zinc-200 shadow-sm shrink-0">
                 <PlayingEqualizer className="h-2.5 !px-0" barColor="bg-netflix-red" />
                 <span>Đang xem</span>
               </span>
@@ -565,14 +565,14 @@ function MatchCardInner({ match, isSelected, onSelect, score, compact }: MatchCa
       }}
       className={`group relative rounded-xl cursor-pointer transition-all duration-200 flex flex-col justify-between overflow-hidden outline-none select-none ${
         isSelected && featured.isFeatured
-          ? "bg-gradient-to-b from-zinc-900 via-zinc-900/95 to-zinc-950 ring-2 ring-netflix-red border border-amber-500/40 shadow-2xl shadow-netflix-red/15"
+          ? "bg-gradient-to-b from-zinc-900 via-zinc-900/95 to-zinc-950 ring-2 ring-netflix-red shadow-2xl shadow-black/80"
           : isSelected
-          ? "bg-gradient-to-b from-zinc-900 via-zinc-900/95 to-zinc-950 ring-2 ring-netflix-red border border-netflix-red/40 shadow-xl shadow-netflix-red/10"
+          ? "bg-gradient-to-b from-zinc-900 via-zinc-900/95 to-zinc-950 ring-2 ring-netflix-red shadow-xl shadow-black/70"
           : featured.isFeatured
-          ? "bg-gradient-to-b from-zinc-900 via-zinc-900/90 to-zinc-950 border border-amber-500/30 hover:border-amber-500/50 shadow-xl shadow-black/50 hover:shadow-amber-500/5"
+          ? "bg-gradient-to-b from-zinc-900 via-zinc-900/90 to-zinc-950 hover:bg-zinc-900 shadow-xl shadow-black/50"
           : isConfirmedLive
-          ? "bg-zinc-900/80 hover:bg-zinc-850/90 border border-white/[0.08] hover:border-white/[0.14] shadow-md shadow-black/30"
-          : "bg-zinc-900/60 hover:bg-zinc-850/80 border border-white/[0.05] hover:border-white/[0.10] shadow-sm"
+          ? "bg-zinc-900/80 hover:bg-zinc-850/90 shadow-md shadow-black/30"
+          : "bg-zinc-900/60 hover:bg-zinc-850/80 shadow-sm"
       }`}
     >
       {/* Top Crown Rim tinh tế */}
@@ -590,7 +590,7 @@ function MatchCardInner({ match, isSelected, onSelect, score, compact }: MatchCa
 
       <div className="p-3 sm:p-3.5 flex flex-col justify-between flex-1 gap-2 sm:gap-2.5">
         {/* 1. HEADER: GIẢI ĐẤU & HUY HIỆU TINH GỌN (KHÔNG VIỀN HỘP THÔ CỨNG) */}
-        <div className="flex items-center justify-between gap-1.5 pb-2 /[0.06] text-xs">
+        <div className="flex items-center justify-between gap-1.5 pb-2 border-b border-white/[0.06] text-xs">
           {/* Tên giải đấu */}
           <div className="flex items-center gap-1.5 min-w-0 flex-1">
             <span
@@ -605,8 +605,8 @@ function MatchCardInner({ match, isSelected, onSelect, score, compact }: MatchCa
           {/* Góc phải Header: Trạng thái & Huy hiệu (Typography thuần khiết) */}
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             {isConfirmedLive && (
-              <span className="inline-flex items-center gap-1 sm:gap-1.5 text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-emerald-400">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+              <span className="inline-flex items-center gap-1 sm:gap-1.5 text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-rose-400">
+                <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse shrink-0" />
                 <span>LIVE</span>
               </span>
             )}
@@ -615,16 +615,16 @@ function MatchCardInner({ match, isSelected, onSelect, score, compact }: MatchCa
             {featured.isFeatured && (
               <span
                 className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-400 shrink-0"
-                title={featured.badgeLabel || "Trận cầu tâm điểm"}
+                aria-label={featured.badgeLabel || "Trận cầu tâm điểm"}
               >
                 <Flame size={12} className="text-amber-400 fill-amber-400/30 shrink-0" />
                 {!isSelected && <span>{featured.badgeLabel || "Tâm điểm"}</span>}
               </span>
             )}
 
-            {/* Huy hiệu Đang xem: Glassmorphism kính mờ, viền mảnh, chữ nhỏ, sóng âm nhẹ nhàng */}
+            {/* Huy hiệu Đang xem: Glassmorphism kính mờ, chữ nhỏ, sóng âm nhẹ nhàng */}
             {isSelected && (
-              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-white/[0.08] backdrop-blur-md border border-white/15 text-[10px] font-medium text-zinc-200 shadow-sm shrink-0">
+              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-white/[0.08] backdrop-blur-md text-[10px] font-medium text-zinc-200 shadow-sm shrink-0">
                 <PlayingEqualizer className="h-2.5 !px-0" barColor="bg-netflix-red" />
                 <span>Đang xem</span>
               </span>
@@ -697,8 +697,8 @@ function MatchCardInner({ match, isSelected, onSelect, score, compact }: MatchCa
               <div className="min-h-[34px] sm:min-h-[36px] flex flex-col items-center justify-start mt-1.5 gap-1">
                 {/* Phút thi đấu hoặc trạng thái hiệp (chỉ hiển thị khi có phút cụ thể hoặc HT/FT) */}
                 {timeInfo.state === "live" && timeInfo.clockBadge && timeInfo.clockBadge !== "LIVE" ? (
-                  <span className="inline-flex items-center gap-1 font-sans tabular-nums text-[11px] sm:text-xs font-bold text-emerald-400 leading-none">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+                  <span className="inline-flex items-center gap-1 font-sans tabular-nums text-[11px] sm:text-xs font-bold text-rose-400 leading-none">
+                    <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse shrink-0" />
                     <span>{formatDisplayMinute(timeInfo.clockBadge)}</span>
                   </span>
                 ) : timeInfo.state === "ht" ? (

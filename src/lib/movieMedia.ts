@@ -1,6 +1,6 @@
 import { cleanHtmlText } from "@/lib/cleanHtml";
 import { normalizeForMatch } from "@/lib/stringUtils";
-import { getR2AssetUrl, getR2BannerUrl } from "@/lib/r2";
+import { getR2BannerUrl } from "@/lib/r2Manifest";
 
 export type MovieLike = {
   poster_url?: unknown;
@@ -651,6 +651,20 @@ export function toOptimizedCardPosterUrl(url: string, _targetWidth: number = 320
 }
 
 /**
+ * Bảo vệ thẻ <img> trên client khỏi tải trực tiếp từ phimimg.com (nặng, chậm, thường bị chặn tại VN):
+ * chuyển mọi URL phimimg.com còn sót lại sang Cloudflare R2 Proxy (/api/media/r2-proxy).
+ */
+export function toFastCdnImageUrl(url: string): string {
+  if (!url || typeof url !== "string") return "";
+  const clean = url.trim();
+  if (!clean || clean.startsWith("/api/media/r2-proxy")) return clean;
+  if (clean.includes("phimimg.com")) {
+    return `/api/media/r2-proxy?url=${encodeURIComponent(clean)}`;
+  }
+  return clean;
+}
+
+/**
  * Dành riêng cho Banner Hero cỡ lớn toàn màn hình trên đầu trang.
  * Ưu tiên độ phân giải gốc cực cao (original / w1280) cho màn hình lớn & Retina 2x/4K.
  */
@@ -707,7 +721,7 @@ export function pickHeroBackdropImage(
   if (!movie) return fallback;
   const rawMovie = ((movie as Record<string, unknown>)?.movie as MovieLike) || movie;
 
-  // 0. Ưu tiên tuyệt đối backdrop/banner đã được tối ưu và cache trên Cloudflare R2 CDN
+  // 0. Ưu tiên tuyệt đối backdrop/banner đã được cache trên Cloudflare R2 CDN
   const movieSlug = ((rawMovie.slug || movie.slug) as string | undefined)?.toLowerCase().trim();
   const rawBackdrop = (rawMovie.backdrop_url || rawMovie.backdropUrl || movie.backdrop_url || movie.backdropUrl) as string | undefined;
   const r2Url = getR2BannerUrl(movieSlug, rawBackdrop);

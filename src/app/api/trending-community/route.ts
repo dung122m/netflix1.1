@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getTopTrendingCommunitySupabase } from "@/services/communityWatchService";
-import { cacheService } from "@/lib/cache";
 import {
   enforceRateLimit,
   buildRateLimitResponse,
@@ -40,22 +39,8 @@ export async function GET(req: NextRequest) {
     });
   }
 
-  // 1.5 Kiểm tra L2 Upstash Redis Cache (DB 2: Live / Realtime & Community - community:trending:*)
-  const redisTrendingKey = `community:trending:v1:${cacheKey}`;
   try {
-    const redisCached = await cacheService.get<Record<string, unknown>>(redisTrendingKey);
-    if (redisCached) {
-      SERVER_CACHE.set(cacheKey, { data: redisCached, expireAt: Date.now() + CACHE_TTL });
-      return NextResponse.json(redisCached, {
-        headers: {
-          "Cache-Control": "public, s-maxage=60, stale-while-revalidate=120",
-        },
-      });
-    }
-  } catch {}
-
-  try {
-    // 2. Lấy dữ liệu lượt xem thực tế từ Analytics Pipeline (Redis + Supabase Events)
+    // 2. Lấy dữ liệu lượt xem thực tế (đã có single-flight + cache Redis DB1 trending:community:summary:v1 bên trong)
     const realTrending = await getTopTrendingCommunitySupabase(limit, timeframe);
 
     if (realTrending && realTrending.length > 0) {
@@ -66,7 +51,6 @@ export async function GET(req: NextRequest) {
         items: realTrending,
       };
       SERVER_CACHE.set(cacheKey, { data: responseData, expireAt: Date.now() + CACHE_TTL });
-      cacheService.set(redisTrendingKey, responseData, 300).catch(() => {});
       return NextResponse.json(responseData, {
         headers: {
           "Cache-Control": "public, s-maxage=60, stale-while-revalidate=120",

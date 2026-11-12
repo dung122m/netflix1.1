@@ -360,21 +360,21 @@ export default async function ActorDetailPage({ params }: PageProps) {
   const wikiUrl = historicalItem?.wikiUrl || wikiProfile?.wikiUrl;
 
   return (
-    <div className="min-h-screen bg-[#050505] text-zinc-100 flex flex-col selection:bg-netflix-red selection:text-white font-sans antialiased overflow-x-hidden">
+    <div className="min-h-dvh bg-[#050505] text-zinc-100 flex flex-col selection:bg-netflix-red selection:text-white font-sans antialiased overflow-x-clip">
       <Navbar />
 
       {/* AMBIENT GLOW */}
       <div className="fixed top-0 left-1/2 -translate-x-1/2 w-full max-w-[1800px] h-[550px] bg-[radial-gradient(ellipse_80%_60%_at_50%_0%,rgba(var(--accent-rgb),0.15),rgba(0,0,0,0))] pointer-events-none -z-10" />
 
-      <main className="flex-1 pt-24 sm:pt-28 pb-24 px-4 sm:px-6 md:px-10 lg:px-12 max-w-[1800px] mx-auto w-full space-y-12 sm:space-y-16">
+      <main className="flex-1 pt-20 sm:pt-28 pb-16 sm:pb-24 px-4 sm:px-6 md:px-10 lg:px-12 max-w-[1800px] mx-auto w-full space-y-8 sm:space-y-16">
         
         {/* ============================================================ */}
         {/* BREADCRUMB & BACK BUTTON */}
         {/* ============================================================ */}
-        <div className="flex items-center gap-2 text-xs font-semibold text-zinc-400">
+        <div className="flex items-center gap-2 text-xs font-semibold text-zinc-400 min-w-0">
           <Link
             href="/browse"
-            className="inline-flex items-center gap-1.5 hover:text-white transition-colors bg-white/[0.04] hover:bg-white/[0.08] px-3 py-1.5 rounded-full border border-white/[0.08]"
+            className="inline-flex items-center gap-1.5 hover:text-white transition-colors bg-white/[0.04] hover:bg-white/[0.08] px-3 py-1.5 min-h-[36px] rounded-full shrink-0"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
             <span>Khám phá phim</span>
@@ -386,11 +386,11 @@ export default async function ActorDetailPage({ params }: PageProps) {
         {/* ============================================================ */}
         {/* HERO SECTION: PORTRAIT + KEY FACTS */}
         {/* ============================================================ */}
-        <section className="p-6 sm:p-8 md:p-10 rounded-2xl sm:rounded-3xl bg-zinc-900/40 border border-white/[0.08] backdrop-blur-md relative overflow-hidden">
-          <div className="flex flex-col md:flex-row items-center md:items-start gap-6 sm:gap-8 md:gap-10">
+        <section className="p-4 sm:p-8 md:p-10 rounded-2xl sm:rounded-3xl bg-zinc-900/40 shadow-2xl backdrop-blur-md relative overflow-hidden">
+          <div className="flex flex-col md:flex-row items-center md:items-start gap-5 sm:gap-8 md:gap-10">
             
             {/* PORTRAIT IMAGE */}
-            <div className="relative w-40 h-52 sm:w-48 sm:h-64 md:w-56 md:h-72 rounded-2xl overflow-hidden bg-zinc-900 border-2 shadow-2xl shrink-0 group">
+            <div className="relative w-36 h-48 sm:w-48 sm:h-64 md:w-56 md:h-72 rounded-2xl overflow-hidden bg-zinc-900 shadow-2xl shrink-0 group">
               <ActorAvatar
                 name={canonicalName}
                 avatarUrl={bestAvatar}
@@ -411,7 +411,7 @@ export default async function ActorDetailPage({ params }: PageProps) {
                     {country}
                   </span>
                 )}
-                <span className="px-3 py-1 rounded-full bg-white/[0.06] border border-white/[0.1] text-zinc-300 text-xs font-semibold">
+                <span className="px-3 py-1 rounded-full bg-white/[0.06] text-zinc-300 text-xs font-semibold">
                   {knownRole}
                 </span>
                 <span className="px-3 py-1 rounded-full bg-amber-500/10 text-amber-300 text-xs font-bold flex items-center gap-1">
@@ -421,7 +421,7 @@ export default async function ActorDetailPage({ params }: PageProps) {
                 {historicalItem?.tags?.map((tag: string) => (
                   <span
                     key={tag}
-                    className="px-2.5 py-1 rounded-full bg-zinc-800/80 border border-zinc-700/60 text-zinc-300 text-xs font-medium"
+                    className="px-2.5 py-1 rounded-full bg-zinc-800/80 text-zinc-300 text-xs font-medium"
                   >
                     #{tag}
                   </span>
@@ -443,7 +443,7 @@ export default async function ActorDetailPage({ params }: PageProps) {
               {/* PERSONAL FACTS GRID (CHỈ HIỂN THỊ KHI CÓ DỮ LIỆU ĐÁNG TIN CẬY) */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pt-3 border-t border-white/[0.08]">
                 {formattedBirthday && (
-                  <div className="flex items-center gap-2.5 p-3 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+                  <div className="flex items-center gap-2.5 p-3 rounded-xl bg-white/[0.04]">
                     <Calendar className="w-4 h-4 text-amber-400 shrink-0" />
                     <div className="text-left text-xs">
                       <div className="text-zinc-400 text-[10px]">Ngày sinh</div>
@@ -455,7 +455,7 @@ export default async function ActorDetailPage({ params }: PageProps) {
                 )}
 
                 {placeOfBirth && (
-                  <div className="flex items-center gap-2.5 p-3 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+                  <div className="flex items-center gap-2.5 p-3 rounded-xl bg-white/[0.04]">
                     <MapPin className="w-4 h-4 text-rose-400 shrink-0" />
                     <div className="text-left text-xs">
                       <div className="text-zinc-400 text-[10px]">Nơi sinh</div>
@@ -466,7 +466,7 @@ export default async function ActorDetailPage({ params }: PageProps) {
                   </div>
                 )}
 
-                <div className="flex items-center gap-2.5 p-3 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+                <div className="flex items-center gap-2.5 p-3 rounded-xl bg-white/[0.04]">
                   <TrendingUp className="w-4 h-4 text-emerald-400 shrink-0" />
                   <div className="text-left text-xs">
                     <div className="text-zinc-400 text-[10px]">Độ phổ biến</div>

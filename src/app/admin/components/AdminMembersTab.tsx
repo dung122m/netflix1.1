@@ -16,9 +16,12 @@ import {
   Eye,
   ShieldCheck,
   Trash2,
+  Crown,
+  X,
 } from "lucide-react";
 import { MemberWithStats } from "@/types/user";
 import { UserAvatar } from "@/components/ui/UserAvatar";
+import { Tooltip } from "@/components/ui/Tooltip";
 
 export interface AdminMembersTabProps {
   memberSearchQuery: string;
@@ -67,15 +70,16 @@ export const AdminMembersTab: React.FC<AdminMembersTabProps> = React.memo(
               value={memberSearchQuery}
               onChange={(e) => setMemberSearchQuery(e.target.value)}
               placeholder="Tìm thành viên theo tên, email hoặc UID..."
-              className="w-full bg-black/60 rounded-xl pl-9 pr-8 py-2 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-netflix-red transition"
+              className="w-full bg-black/60 rounded-xl pl-9 pr-8 py-2 text-base sm:text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-netflix-red transition"
             />
             {memberSearchQuery && (
               <button
                 type="button"
                 onClick={() => setMemberSearchQuery("")}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-white text-xs"
+                aria-label="Xóa từ khóa tìm kiếm"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-white cursor-pointer"
               >
-                ✕
+                <X size={13} />
               </button>
             )}
           </div>
@@ -95,20 +99,21 @@ export const AdminMembersTab: React.FC<AdminMembersTabProps> = React.memo(
               <button
                 type="button"
                 onClick={() => setMemberFilter("admin")}
-                className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition cursor-pointer ${
+                className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold transition cursor-pointer ${
                   memberFilter === "admin"
                     ? "bg-amber-500/20 text-amber-300 font-bold"
                     : "text-zinc-400 hover:text-white"
                 }`}
               >
-                👑 Admin
+                <Crown size={11} />
+                <span>Admin</span>
               </button>
               <button
                 type="button"
                 onClick={() => setMemberFilter("has_comments")}
                 className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition cursor-pointer ${
                   memberFilter === "has_comments"
-                    ? "bg-blue-500/20 text-blue-300 border border-blue-500/30 font-bold"
+                    ? "bg-blue-500/20 text-blue-300 font-bold"
                     : "text-zinc-400 hover:text-white"
                 }`}
               >
@@ -122,7 +127,7 @@ export const AdminMembersTab: React.FC<AdminMembersTabProps> = React.memo(
               <select
                 value={memberSortBy}
                 onChange={(e) => setMemberSortBy(e.target.value as "recent" | "watch_time" | "comments" | "name")}
-                className="bg-transparent text-zinc-300 text-xs focus:outline-none cursor-pointer"
+                className="bg-transparent text-zinc-300 text-base sm:text-xs focus:outline-none cursor-pointer"
               >
                 <option value="recent" className="bg-zinc-900 text-white">Hoạt động mới nhất</option>
                 <option value="watch_time" className="bg-zinc-900 text-white">Cày phim nhiều nhất</option>
@@ -142,7 +147,7 @@ export const AdminMembersTab: React.FC<AdminMembersTabProps> = React.memo(
 
         {/* MEMBERS GRID */}
         {filteredMembers.length === 0 ? (
-          <div className="p-12 text-center rounded-2xl bg-zinc-900/40">
+          <div className="p-6 sm:p-12 text-center rounded-2xl bg-zinc-900/40">
             <Users size={36} className="text-zinc-600 mx-auto mb-2" />
             <p className="text-sm font-semibold text-zinc-300">Không tìm thấy thành viên nào phù hợp</p>
             <p className="text-xs text-zinc-500 mt-1">Hãy thử từ khóa tìm kiếm khác.</p>
@@ -174,13 +179,14 @@ export const AdminMembersTab: React.FC<AdminMembersTabProps> = React.memo(
                             {m.displayName}
                           </h3>
                           {isSuperAdmin && (
-                            <span className="text-[9px] sm:text-[10px] px-1.5 sm:px-2 py-0.2 rounded-full bg-gradient-to-r from-amber-500/20 to-red-500/20 text-amber-300 font-bold flex-shrink-0">
-                              👑 Admin
+                            <span className="inline-flex items-center gap-1 text-[9px] sm:text-[10px] px-1.5 sm:px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-bold flex-shrink-0">
+                              <Crown size={10} />
+                              <span>Admin</span>
                             </span>
                           )}
                           {m.isWatchingNow ? (
                             <span className="text-[9px] sm:text-[10px] px-1.5 sm:px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-bold flex items-center gap-1 flex-shrink-0">
-                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
                               Đang xem
                             </span>
                           ) : m.isOnline ? (
@@ -209,18 +215,20 @@ export const AdminMembersTab: React.FC<AdminMembersTabProps> = React.memo(
                       <span className="text-zinc-500 font-sans tabular-nums truncate max-w-[160px] sm:max-w-[190px]">
                         UID: {m.uid}
                       </span>
-                      <button
-                        type="button"
-                        onClick={() => copyToClipboard(m.uid, m.uid)}
-                        className="text-zinc-400 hover:text-white p-1 rounded transition cursor-pointer flex-shrink-0"
-                        title="Sao chép UID"
-                      >
-                        {copiedUid === m.uid ? (
-                          <Check size={13} className="text-emerald-400" />
-                        ) : (
-                          <Copy size={13} />
-                        )}
-                      </button>
+                      <Tooltip content="Sao chép UID" side="top">
+                        <button
+                          type="button"
+                          onClick={() => copyToClipboard(m.uid, m.uid)}
+                          aria-label="Sao chép UID"
+                          className="text-zinc-400 hover:text-white p-1 rounded transition cursor-pointer flex-shrink-0"
+                        >
+                          {copiedUid === m.uid ? (
+                            <Check size={13} className="text-emerald-400" />
+                          ) : (
+                            <Copy size={13} />
+                          )}
+                        </button>
+                      </Tooltip>
                     </div>
 
                     {/* Member restriction status */}
@@ -243,9 +251,9 @@ export const AdminMembersTab: React.FC<AdminMembersTabProps> = React.memo(
 
                       <div className="p-2 rounded-xl bg-white/[0.03] min-w-0">
                         <span className="text-[10px] text-zinc-400 block truncate">Đánh giá</span>
-                        <span className="font-bold text-amber-400 flex items-center gap-1 mt-0.5 text-[11px] sm:text-xs truncate">
+                        <span className="font-bold text-amber-400 flex items-center gap-1 mt-0.5 text-[11px] sm:text-xs tabular-nums truncate">
                           <Star size={12} className="fill-amber-400 flex-shrink-0" />
-                          <span className="truncate">{m.avgRatingGiven > 0 ? `${m.avgRatingGiven}★` : "0★"}</span>
+                          <span className="truncate">{m.avgRatingGiven > 0 ? m.avgRatingGiven : "0"}</span>
                         </span>
                       </div>
 
@@ -295,7 +303,7 @@ export const AdminMembersTab: React.FC<AdminMembersTabProps> = React.memo(
                   </div>
 
                   {/* Action buttons */}
-                  <div className="pt-3 border-t flex items-center gap-2">
+                  <div className="pt-3 border-t border-white/[0.08] flex items-center gap-2">
                     <button
                       type="button"
                       onClick={() => onOpenMemberDetails(m)}
@@ -305,28 +313,35 @@ export const AdminMembersTab: React.FC<AdminMembersTabProps> = React.memo(
                       <span>Chi Tiết</span>
                     </button>
 
-                    <button
-                      type="button"
-                      onClick={() => onToggleUserCommentBan(m)}
-                      className={`p-2 rounded-xl border transition cursor-pointer flex items-center justify-center flex-shrink-0 ${
-                        m.isCommentRestricted
-                          ? "bg-emerald-500/15 text-emerald-300 hover:bg-emerald-500/25"
-                          : "bg-amber-500/10 text-amber-300 hover:bg-amber-500/20"
-                      }`}
-                      title={m.isCommentRestricted ? "Mở khóa quyền bình luận" : "Khóa quyền bình luận thành viên"}
+                    <Tooltip
+                      content={m.isCommentRestricted ? "Mở khóa quyền bình luận" : "Khóa quyền bình luận thành viên"}
+                      side="top"
                     >
-                      {m.isCommentRestricted ? <ShieldCheck size={14} /> : <Ban size={14} />}
-                    </button>
-
-                    {m.commentsCount > 0 && (
                       <button
                         type="button"
-                        onClick={() => onDeleteAllUserComments(m)}
-                        className="p-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 transition cursor-pointer flex-shrink-0"
-                        title="Xóa tất cả bình luận của thành viên này"
+                        onClick={() => onToggleUserCommentBan(m)}
+                        aria-label={m.isCommentRestricted ? "Mở khóa quyền bình luận" : "Khóa quyền bình luận thành viên"}
+                        className={`p-2 rounded-xl transition cursor-pointer flex items-center justify-center flex-shrink-0 ${
+                          m.isCommentRestricted
+                            ? "bg-emerald-500/15 text-emerald-300 hover:bg-emerald-500/25"
+                            : "bg-amber-500/10 text-amber-300 hover:bg-amber-500/20"
+                        }`}
                       >
-                        <Trash2 size={14} />
+                        {m.isCommentRestricted ? <ShieldCheck size={14} /> : <Ban size={14} />}
                       </button>
+                    </Tooltip>
+
+                    {m.commentsCount > 0 && (
+                      <Tooltip content="Xóa tất cả bình luận của thành viên này" side="top">
+                        <button
+                          type="button"
+                          onClick={() => onDeleteAllUserComments(m)}
+                          aria-label="Xóa tất cả bình luận của thành viên này"
+                          className="p-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 transition cursor-pointer flex-shrink-0"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </Tooltip>
                     )}
                   </div>
                 </div>

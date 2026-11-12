@@ -46,6 +46,7 @@ export interface WatchContextValue {
   prevEpisode: EpisodeItem | null;
   nextEpisode: EpisodeItem | null;
   isTrailerOnly: boolean;
+  isResolvingStream: boolean;
   switchEpisode: (slug: string) => void;
   switchServer: (serverIndex: number) => void;
   activeProvider: PlaybackProviderType;
@@ -144,6 +145,7 @@ export function WatchController({
   const [activeProvider] = useState<PlaybackProviderType>("nanaflix");
   const [isTheaterMode, setIsTheaterMode] = useState<boolean>(false);
   const [isLightsOff, setIsLightsOff] = useState<boolean>(false);
+  const [isResolvingStream, setIsResolvingStream] = useState<boolean>(false);
 
   const toggleTheaterMode = useCallback(() => {
     setIsTheaterMode((prev) => !prev);
@@ -238,6 +240,7 @@ export function WatchController({
       streamFetchTriedRef.current.add(fetchKey);
 
       const serverParam = servers[currentServerIndex]?.server_name ? `&server=${encodeURIComponent(servers[currentServerIndex].server_name)}` : "";
+      setIsResolvingStream(true);
       fetch(`/api/movies/streams?slug=${encodeURIComponent(movieSlug)}&ep=${encodeURIComponent(activeEpisodeSlug)}${serverParam}`)
         .then((res) => res.json())
         .then((data) => {
@@ -268,7 +271,8 @@ export function WatchController({
             });
           }
         })
-        .catch(() => {});
+        .catch(() => {})
+        .finally(() => setIsResolvingStream(false));
     }
   }, [movieSlug, activeEpisodeSlug, episodes, currentServerIndex, servers]);
 
@@ -509,6 +513,7 @@ export function WatchController({
       prevEpisode,
       nextEpisode,
       isTrailerOnly,
+      isResolvingStream,
       switchEpisode,
       switchServer,
       activeProvider,
@@ -540,6 +545,7 @@ export function WatchController({
     prevEpisode,
     nextEpisode,
     isTrailerOnly,
+    isResolvingStream,
     switchEpisode,
     switchServer,
     activeProvider,

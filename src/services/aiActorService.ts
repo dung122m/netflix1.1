@@ -37,20 +37,12 @@ export interface ActorProfile {
  * Hàm viết hoa chữ cái đầu từng từ chuẩn tiếng Việt (Unicode-safe Title Case)
  */
 import {
-  toVietnameseTitleCase,
-  GOLDEN_ACTOR_INDEX,
   hasExplicitActorPrefix,
   isAmbiguousShortActorKeyword,
   cleanActorQuery,
   escapeRegex,
-  ACTOR_CANONICAL_MAP,
-  ACTOR_SLUG_MAP,
   type ActorSynonymResult,
   getActorSynonyms,
-  buildActorMongoQuery,
-  buildActorSqlQuery,
-  buildActorAggregationPipeline,
-  getRecommendedDatabaseIndexes,
   ACTOR_AI_CACHE,
   CACHE_7_DAYS,
   ACTOR_FILM_CACHE,

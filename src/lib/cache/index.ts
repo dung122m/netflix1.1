@@ -46,15 +46,45 @@ let isAuxInitChecked = false;
 let isWarnedUnavailable = false;
 
 // ============================================================================
-// DB3 WRITE CIRCUIT BREAKER (QUOTA SHIELD - 500K DAILY COMMANDS PROTECTION)
+// WRITE CIRCUIT BREAKER (QUOTA SHIELD ACROSS REDIS DB 1, DB 2 & DB 3)
 // ============================================================================
-let db3RecentWriteCount = 0;
-let db3WindowStart = Date.now();
-const DB3_BURST_MAX_WRITES_PER_MIN = 35; // Tối đa 35 lượt ghi / phút trên 1 instance container
+const BURST_MAX_WRITES_PER_MIN: Record<RedisPurpose, number> = {
+  default: 90, // DB 1: Chống bot quét filter/search tạo bão key movie:list:*
+  live: 60,    // DB 2: Chống bão ghi vào live/community
+  aux: 35,     // DB 3: Bảo vệ quota 500K commands cho dữ liệu phụ trợ
+};
+
+const writeBurstCounters: Record<RedisPurpose, { count: number; windowStart: number }> = {
+  default: { count: 0, windowStart: Date.now() },
+  live: { count: 0, windowStart: Date.now() },
+  aux: { count: 0, windowStart: Date.now() },
+};
+
+/**
+ * Evaluate and track per-instance write burst limits for a target Redis DB.
+ */
+function shouldShieldRedisWrite(purpose: RedisPurpose, now: number): boolean {
+  if (purpose === "aux" && process.env.DB3_WRITE_SHIELD === "true") {
+    return true;
+  }
+  if (process.env.NODE_ENV === "test") {
+    return false;
+  }
+  const tracker = writeBurstCounters[purpose];
+  if (now - tracker.windowStart > 60_000) {
+    tracker.windowStart = now;
+    tracker.count = 0;
+  }
+  tracker.count++;
+  return tracker.count > BURST_MAX_WRITES_PER_MIN[purpose];
+}
 
 export function _resetDb3WriteShieldForTesting(): void {
-  db3RecentWriteCount = 0;
-  db3WindowStart = Date.now();
+  const now = Date.now();
+  for (const purpose of ["default", "live", "aux"] as const) {
+    writeBurstCounters[purpose].count = 0;
+    writeBurstCounters[purpose].windowStart = now;
+  }
 }
 
 export function _resetRedisClientsForTesting(): void {
@@ -149,6 +179,24 @@ export function isLiveKey(key: string): boolean {
   return p === "live" || p === "aux";
 }
 
+const REDIS_REQUEST_TIMEOUT_MS = 3000;
+
+/**
+ * Create an Upstash Redis REST client with per-command 3000ms abort timeout
+ * and bounded retry so stalled HTTP/2 sockets never hang up to Undici's 300s default.
+ */
+function createResilientRedisClient(url: string, token: string): Redis {
+  return new Redis({
+    url,
+    token,
+    retry: {
+      retries: 1,
+      backoff: () => 100,
+    },
+    signal: () => AbortSignal.timeout(REDIS_REQUEST_TIMEOUT_MS),
+  });
+}
+
 export function getRedisClient(purpose: RedisPurpose = "default"): Redis | null {
   if (purpose === "aux") {
     if (isAuxInitChecked) {
@@ -161,10 +209,7 @@ export function getRedisClient(purpose: RedisPurpose = "default"): Redis | null 
       return null;
     }
     try {
-      auxRedisClient = new Redis({
-        url: creds.url,
-        token: creds.token,
-      });
+      auxRedisClient = createResilientRedisClient(creds.url, creds.token);
       console.info("[Cache:Aux] Connected to Upstash Redis Aux (REST mode)");
       return auxRedisClient;
     } catch (err) {
@@ -185,10 +230,7 @@ export function getRedisClient(purpose: RedisPurpose = "default"): Redis | null 
       return null;
     }
     try {
-      liveRedisClient = new Redis({
-        url: creds.url,
-        token: creds.token,
-      });
+      liveRedisClient = createResilientRedisClient(creds.url, creds.token);
       console.info("[Cache:Live] Connected to Upstash Redis Live (REST mode)");
       return liveRedisClient;
     } catch (err) {
@@ -216,10 +258,7 @@ export function getRedisClient(purpose: RedisPurpose = "default"): Redis | null 
   }
 
   try {
-    defaultRedisClient = new Redis({
-      url: creds.url,
-      token: creds.token,
-    });
+    defaultRedisClient = createResilientRedisClient(creds.url, creds.token);
     console.info("[Cache:Default] Connected to Upstash Redis Default (REST mode)");
     return defaultRedisClient;
   } catch (err) {
@@ -402,20 +441,13 @@ export const cacheService: CacheService = {
       expireAt: now + Math.min(safeTtl * 1000, DEFAULT_L1_TTL_MS),
     });
 
-    // 2. Kiểm tra DB3 Circuit Breaker: Chống cháy quota 500K khi có bot quét bão dữ liệu
+    // 2. Kiểm tra Circuit Breaker cho cả DB 1, DB 2 & DB 3: Chống cháy quota khi có bot quét bão dữ liệu
     const purpose = getRedisPurposeForKey(key);
-    if (purpose === "aux" && process.env.NODE_ENV !== "test") {
-      if (now - db3WindowStart > 60_000) {
-        db3WindowStart = now;
-        db3RecentWriteCount = 0;
+    if (shouldShieldRedisWrite(purpose, now)) {
+      if (process.env.NODE_ENV !== "production") {
+        console.warn(`[WRITE_SHIELD:${purpose}] Quota Circuit Breaker activated (${writeBurstCounters[purpose].count}/min). Saved key="${key}" to L1 RAM only.`);
       }
-      db3RecentWriteCount++;
-      if (db3RecentWriteCount > DB3_BURST_MAX_WRITES_PER_MIN || process.env.DB3_WRITE_SHIELD === "true") {
-        if (process.env.NODE_ENV !== "production") {
-          console.warn(`[DB3_WRITE_SHIELD] Quota Circuit Breaker activated (${db3RecentWriteCount}/min). Saved key="${key}" to L1 RAM only (Skipped redis.set).`);
-        }
-        return true; // Lưu an toàn trong L1 RAM, bỏ qua Redis SET để bảo vệ quota
-      }
+      return true; // Lưu an toàn trong L1 RAM, bỏ qua Redis SET để bảo vệ quota
     }
 
     // 3. Save to L2 Upstash Redis (Tự động chọn Default hoặc Live)
@@ -466,19 +498,12 @@ export const cacheService: CacheService = {
         expireAt: now + Math.min(safeTtl * 1000, DEFAULT_L1_TTL_MS),
       });
 
-      // 2. Queue in corresponding Redis pipeline
+      // 2. Queue in corresponding Redis pipeline (with per-DB write burst shield)
       const purpose = getRedisPurposeForKey(key);
+      if (shouldShieldRedisWrite(purpose, now)) {
+        continue; // Lưu an toàn trong L1 RAM, bỏ qua queue pipeline khi vượt ngưỡng ghi
+      }
       if (purpose === "aux") {
-        if (process.env.NODE_ENV !== "test") {
-          if (now - db3WindowStart > 60_000) {
-            db3WindowStart = now;
-            db3RecentWriteCount = 0;
-          }
-          db3RecentWriteCount++;
-          if (db3RecentWriteCount > DB3_BURST_MAX_WRITES_PER_MIN || process.env.DB3_WRITE_SHIELD === "true") {
-            continue; // Lưu an toàn trong L1 RAM, bỏ qua queue pipeline vào DB3
-          }
-        }
         if (auxPipe) auxPipe.set(key, entry.value, { ex: safeTtl });
       } else if (purpose === "live") {
         if (livePipe) livePipe.set(key, entry.value, { ex: safeTtl });

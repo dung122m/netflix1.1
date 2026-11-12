@@ -171,7 +171,7 @@ describe("NANAFLIX — CONTINUOUS REDIS DB1 COMMAND GROWTH FIX", () => {
 
   it("Scenario 3: Movie detail: Redis cache HIT nạp ngay vào L1 RAM, các lần đọc tiếp theo phát sinh 0 Redis commands", async () => {
     const testSlug = "test-db1-movie-detail-hit";
-    const kvKeyV3 = `movie:detail:v5:${testSlug}:any`;
+    const kvKeyV3 = `movie:detail:v6:${testSlug}:any`;
 
     // Giả lập movie detail payload trong Redis DB1
     const mockDetail = {
@@ -202,7 +202,20 @@ describe("NANAFLIX — CONTINUOUS REDIS DB1 COMMAND GROWTH FIX", () => {
           },
         ],
       },
-      episodes: [],
+      episodes: [
+        {
+          server_name: "Server #1",
+          server_data: [
+            {
+              name: "Tập 1",
+              slug: "tap-1",
+              filename: "tap1",
+              link_embed: "https://example.com/embed/1",
+              link_m3u8: "https://example.com/hls/1.m3u8",
+            },
+          ],
+        },
+      ],
     };
 
     mockRedis.store.set(kvKeyV3, mockDetail);

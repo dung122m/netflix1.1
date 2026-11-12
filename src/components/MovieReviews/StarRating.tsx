@@ -12,11 +12,11 @@ interface StarRatingProps {
 }
 
 const RATING_LABELS: Record<number, string> = {
-  1: "Rất tệ 😴",
-  2: "Tạm ổn 🙂",
-  3: "Khá hay 👍",
-  4: "Rất đáng xem 🔥",
-  5: "Tuyệt phẩm 10/10! 🏆",
+  1: "Rất tệ",
+  2: "Tạm ổn",
+  3: "Khá hay",
+  4: "Rất đáng xem",
+  5: "Tuyệt phẩm 10/10",
 };
 
 export const StarRating: React.FC<StarRatingProps> = ({
@@ -66,19 +66,12 @@ export const StarRating: React.FC<StarRatingProps> = ({
                   ? "cursor-default"
                   : "cursor-pointer focus:outline-none"
               }`}
-              title={
-                readOnly
-                  ? value > 0
-                    ? `${value} sao`
-                    : "Chưa đánh giá"
-                  : RATING_LABELS[star]
-              }
-              aria-label={`${star} sao`}
+              aria-label={readOnly ? `${value} sao` : `${star} sao — ${RATING_LABELS[star]}`}
             >
               <Star
                 className={`${starSizes[size]} transition-colors duration-150 ${
                   isFilled
-                    ? "fill-amber-400 text-amber-400 drop-shadow-[0_0_8px_rgba(251,191,36,0.45)]"
+                    ? "fill-amber-400 text-amber-400"
                     : "fill-transparent text-zinc-600"
                 }`}
               />

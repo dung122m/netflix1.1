@@ -2057,12 +2057,25 @@ export function normalizeAndMergeStreams(
     normT2: string;
   }
 
+  const sanitizeLiveLogoUrl = (url?: string): string => {
+    if (!url || typeof url !== "string") return "";
+    let clean = url.trim();
+    if (!clean) return "";
+    // Tách nếu nguồn upstream nối nhầm hai URL (vd: "https://xoigac.tophttps//media.api-sports.io/...")
+    const nestedIdx = clean.slice(8).search(/https?:?\/\//i);
+    if (nestedIdx >= 0) {
+      clean = clean.slice(8 + nestedIdx);
+    }
+    clean = clean.replace(/^https\/\//i, "https://").replace(/^http\/\//i, "http://");
+    return clean;
+  };
+
   const normalizedList: NormalizedStream[] = [];
 
   for (const item of rawStreams) {
     const group = item.group || "";
     const rawTitle = item.rawTitle || "";
-    const rawLogo = item.rawLogo || "";
+    const rawLogo = sanitizeLiveLogoUrl(item.rawLogo);
     const effectiveUrl = item.effectiveUrl || item.url || "";
     const upperGroup = group.toUpperCase();
     const upperTitle = rawTitle.toUpperCase();
@@ -2299,7 +2312,7 @@ export function normalizeAndMergeStreams(
       cleanGroup,
       effectiveUrl,
       rawLogo,
-      awayLogo: item.awayLogo,
+      awayLogo: sanitizeLiveLogoUrl(item.awayLogo),
       isHls,
       format,
       isFhd,

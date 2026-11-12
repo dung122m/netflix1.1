@@ -16,7 +16,8 @@ import {
   Trash2,
 } from "lucide-react";
 import { MovieComment } from "@/types/comment";
-import { toOptimizedCardPosterUrl } from "@/lib/movieMedia";
+import { toOptimizedCardPosterUrl, toFastCdnImageUrl } from "@/lib/movieMedia";
+import { Tooltip } from "@/components/ui/Tooltip";
 
 export interface ProfileCommentsTabProps {
   userComments: MovieComment[];
@@ -34,7 +35,7 @@ export const ProfileCommentsTab: React.FC<ProfileCommentsTabProps> = React.memo(
   }) {
     return (
       <div className="space-y-4">
-        <div className="flex items-center justify-between pb-1 border-b border-white/10">
+        <div className="flex items-center justify-between pb-2 border-b border-white/[0.08]">
           <h3 className="text-sm font-bold text-white flex items-center gap-2">
             <MessageSquare className="w-4 h-4 text-emerald-400" />
             <span>Nhận xét & Đánh giá của bạn ({userComments.length})</span>
@@ -42,7 +43,7 @@ export const ProfileCommentsTab: React.FC<ProfileCommentsTabProps> = React.memo(
         </div>
 
         {userComments.length === 0 ? (
-          <div className="py-16 text-center rounded-2xl bg-white/[0.02] border border-white/5 space-y-3">
+          <div className="py-16 text-center rounded-2xl bg-white/[0.03] space-y-3">
             <MessageSquare className="w-12 h-12 text-zinc-600 mx-auto opacity-60" />
             <h4 className="text-base font-bold text-white">Bạn chưa đăng bình luận nào</h4>
             <p className="text-xs text-zinc-400 max-w-sm mx-auto">
@@ -57,7 +58,7 @@ export const ProfileCommentsTab: React.FC<ProfileCommentsTabProps> = React.memo(
             </Link>
           </div>
         ) : (
-          <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-1">
+          <div className="space-y-4 max-h-[70dvh] overflow-y-auto pr-1">
             {userComments.map((c) => {
               const poster = moviePosterMap[c.movieSlug];
               const movieTitle = c.movieTitle || c.movieSlug.replace(/-/g, " ");
@@ -65,18 +66,19 @@ export const ProfileCommentsTab: React.FC<ProfileCommentsTabProps> = React.memo(
               return (
                 <div
                   key={c.id}
-                  className="group relative flex flex-col sm:flex-row gap-3.5 sm:gap-4 p-4 rounded-2xl bg-gradient-to-b from-zinc-900/90 to-zinc-950/90 border border-white/5 hover:border-white/15 transition-all duration-300 shadow-lg hover:shadow-2xl hover:shadow-black/70 overflow-hidden"
+                  className="group relative flex flex-col sm:flex-row gap-3.5 sm:gap-4 p-4 rounded-2xl bg-zinc-900/75 hover:bg-zinc-900 transition-colors duration-200 shadow-lg overflow-hidden"
                 >
                   {/* POSTER THUMBNAIL */}
                   <Link
                     href={`/movies/${c.movieSlug}`}
-                    className="relative w-full sm:w-20 md:w-24 h-36 sm:h-auto sm:aspect-[2/3] rounded-xl overflow-hidden bg-zinc-800/80 border border-white/10 shrink-0 group-hover:scale-[1.02] transition-transform duration-300 shadow-md block"
+                    className="relative w-full sm:w-20 md:w-24 h-36 sm:h-auto sm:aspect-[2/3] rounded-xl overflow-hidden bg-zinc-800/80 shrink-0 group-hover:scale-[1.02] transition-transform duration-300 shadow-md block"
                   >
                     {poster ? (
                       <NextImage
-                        src={toOptimizedCardPosterUrl(poster, 200)}
+                        src={toFastCdnImageUrl(toOptimizedCardPosterUrl(poster, 200))}
                         alt={movieTitle}
                         fill
+                        unoptimized
                         sizes="(max-width: 640px) 100vw, 96px"
                         className="object-cover"
                         loading="lazy"
@@ -113,7 +115,7 @@ export const ProfileCommentsTab: React.FC<ProfileCommentsTabProps> = React.memo(
 
                           {c.episodeName && (
                             <div className="mt-1">
-                              <span className="inline-block px-2 py-0.5 rounded-md bg-netflix-red/15 text-netflix-red text-[11px] font-bold border border-netflix-red/20">
+                              <span className="inline-block px-2 py-0.5 rounded-md bg-netflix-red/15 text-netflix-red text-[11px] font-bold">
                                 {c.episodeName}
                               </span>
                             </div>
@@ -122,7 +124,7 @@ export const ProfileCommentsTab: React.FC<ProfileCommentsTabProps> = React.memo(
 
                         {/* STAR RATING */}
                         {c.rating > 0 && (
-                          <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-500/15 border border-amber-500/25 shrink-0">
+                          <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-500/15 shrink-0">
                             <div className="flex items-center gap-0.5">
                               {[1, 2, 3, 4, 5].map((star) => (
                                 <Star
@@ -144,7 +146,7 @@ export const ProfileCommentsTab: React.FC<ProfileCommentsTabProps> = React.memo(
                       </div>
 
                       {/* REVIEW QUOTE BODY */}
-                      <div className="relative mt-2.5 p-3 rounded-xl bg-white/[0.03] border-l-2 border-netflix-red/60 border-y border-r border-white/5">
+                      <div className="relative mt-2.5 p-3 rounded-xl bg-white/[0.04]">
                         <p className="text-xs sm:text-sm text-zinc-200 leading-relaxed italic line-clamp-3 whitespace-pre-line">
                           {`"${c.content}"`}
                         </p>
@@ -152,15 +154,14 @@ export const ProfileCommentsTab: React.FC<ProfileCommentsTabProps> = React.memo(
                     </div>
 
                     {/* FOOTER: TIME + LIKES + ACTIONS */}
-                    <div className="flex items-center justify-between text-xs text-zinc-400 pt-2.5 mt-2 border-t border-white/5">
+                    <div className="flex items-center justify-between text-xs text-zinc-400 pt-2.5 mt-2 border-t border-white/[0.08]">
                       <div className="flex items-center gap-3">
-                        <span
-                          className="flex items-center gap-1 text-[11px] text-zinc-400"
-                          title={new Date(c.createdAt).toLocaleString("vi-VN")}
-                        >
-                          <Clock className="w-3 h-3 text-zinc-500" />
-                          <span>{new Date(c.createdAt).toLocaleDateString("vi-VN")}</span>
-                        </span>
+                        <Tooltip content={new Date(c.createdAt).toLocaleString("vi-VN")}>
+                          <span className="flex items-center gap-1 text-[11px] text-zinc-400 tabular-nums">
+                            <Clock className="w-3 h-3 text-zinc-500" />
+                            <span>{new Date(c.createdAt).toLocaleDateString("vi-VN")}</span>
+                          </span>
+                        </Tooltip>
 
                         {c.likes > 0 && (
                           <span className="flex items-center gap-1 text-[11px] text-rose-400 font-bold bg-rose-500/10 px-2 py-0.5 rounded-full">

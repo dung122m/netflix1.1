@@ -53,6 +53,8 @@ import {
   invalidateMemoryWatchHistory,
   MAX_HISTORY_STORAGE_ITEMS,
 } from "@/lib/watchHistory";
+import { markEpisodeAsWatched } from "@/lib/episodeTracker";
+import { mergeWatchedEpisodesForCloud } from "@/lib/cloudSync";
 import { isContinueWatchingItem } from "@/components/movies/ContinueWatchingRow";
 
 describe("Nanaflix Watch History — Regression & Invariant Tests", () => {
@@ -316,5 +318,59 @@ describe("Nanaflix Watch History — Regression & Invariant Tests", () => {
     assert.ok(restoredRaw, "LocalStorage phải có bản ghi nanaflix_watched_eps_");
     const parsed = JSON.parse(restoredRaw);
     assert.deepEqual(parsed.sort(), cloudWatchedEpisodes.sort(), "Danh sách tập đã xem phải trùng khớp 100% với dữ liệu trên Cloud");
+  });
+
+  it("12. saveWatchProgress & saveWatchHistory không làm mất watchedEpisodes khi item truyền vào có mảng rỗng []", () => {
+    const slug = "tham-tu-lung-danh-conan";
+    setWatchHistoryFromSync([
+      {
+        slug,
+        title: "Thám Tử Lừng Danh Conan",
+        poster: "/conan.jpg",
+        episodeSlug: "tap-70",
+        progressSeconds: 1400,
+        durationSeconds: 1500,
+        updatedAt: 1000,
+        watchedEpisodes: ["tap-69", "tap-70"],
+      },
+    ]);
+
+    // Mở tập 71 lúc đầu có progress = 0 và item truyền watchedEpisodes = []
+    saveWatchHistory({
+      slug,
+      title: "Thám Tử Lừng Danh Conan",
+      poster: "/conan.jpg",
+      episodeSlug: "tap-71",
+      episodeName: "Tập 71",
+      watchedEpisodes: [],
+    });
+
+    // Tiếp tục xem tập 71 ở 10s (saveWatchProgress)
+    saveWatchProgress(slug, 10, 1500, "tap-71", { episodeName: "Tập 71" });
+
+    const historyItem = getWatchHistory().find((i) => i.slug === slug);
+    assert.ok(historyItem);
+    assert.deepEqual((historyItem.watchedEpisodes || []).sort(), ["tap-69", "tap-70"]);
+
+    // Xem xong tập 71 (>= 90%) -> phải cộng dồn tap-71 cùng tap-69, tap-70
+    saveWatchProgress(slug, 1400, 1500, "tap-71", { episodeName: "Tập 71" }, true);
+    const updatedItem = getWatchHistory().find((i) => i.slug === slug);
+    assert.deepEqual((updatedItem?.watchedEpisodes || []).sort(), ["tap-69", "tap-70", "tap-71"]);
+  });
+
+  it("13. mergeWatchedEpisodesForCloud: không bị short-circuit bởi mảng rỗng [] truthy khi đồng bộ lên Cloud", () => {
+    const slug = "conan-cloud-merge";
+    markEpisodeAsWatched(slug, "tap-1");
+    markEpisodeAsWatched(slug, "tap-2");
+
+    const merged = mergeWatchedEpisodesForCloud({
+      slug,
+      title: "Conan",
+      poster: "/conan.jpg",
+      updatedAt: Date.now(),
+      watchedEpisodes: [], // truthy empty array từ sync cũ
+    });
+
+    assert.deepEqual(merged.sort(), ["tap-1", "tap-2"]);
   });
 });

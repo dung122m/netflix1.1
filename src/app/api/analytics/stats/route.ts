@@ -39,8 +39,9 @@ export async function GET(req: NextRequest) {
       ? (rawTimeframe as "today" | "7d" | "30d" | "all")
       : "today";
 
-    // 3. Retrieve stats
-    const stats = await getAnalyticsDashboardStats(timeframe);
+    // 3. Retrieve stats (bypass 30s RAM cache when admin clicks explicit refresh)
+    const forceRefresh = req.nextUrl.searchParams.get("refresh") === "1";
+    const stats = await getAnalyticsDashboardStats(timeframe, { forceRefresh });
 
     return NextResponse.json({
       success: true,

@@ -18,7 +18,7 @@ export function MovieSynopsis({ synopsis: rawSynopsis, originName }: MovieSynops
     <section className="relative w-full" aria-labelledby="synopsis-heading">
       <div className="flex flex-wrap items-center justify-between gap-2.5 mb-3 min-w-0">
         <div className="flex items-center gap-2.5 min-w-0">
-          <span className="flex items-center justify-center w-6 h-6 rounded-lg bg-netflix-red/15 text-netflix-red border border-netflix-red/30 shadow-sm shrink-0">
+          <span className="flex items-center justify-center w-6 h-6 rounded-lg bg-netflix-red/15 text-netflix-red shrink-0">
             <BookOpen className="w-3.5 h-3.5" aria-hidden="true" />
           </span>
           <h2
@@ -61,7 +61,7 @@ export function MovieSynopsis({ synopsis: rawSynopsis, originName }: MovieSynops
           onClick={() => setExpanded(!expanded)}
           aria-expanded={expanded}
           aria-controls="movie-synopsis-text"
-          className="mt-3 inline-flex items-center justify-center gap-1.5 px-3.5 py-1.5 min-h-[36px] sm:min-h-[38px] rounded-full bg-white/5 hover:bg-white/10 hover: text-xs sm:text-sm font-medium text-zinc-300 hover:text-white transition-all cursor-pointer active:scale-95 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-netflix-red/60"
+          className="mt-3 inline-flex items-center justify-center gap-1.5 px-3.5 py-1.5 min-h-[36px] sm:min-h-[38px] rounded-full bg-white/5 hover:bg-white/10 text-xs sm:text-sm font-medium text-zinc-300 hover:text-white transition-all cursor-pointer active:scale-95 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-netflix-red/60"
         >
           <span>{expanded ? "Thu gọn" : "Xem thêm"}</span>
           {expanded ? (

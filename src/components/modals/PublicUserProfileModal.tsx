@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 import { getUserProfileSupabase } from "@/services/supabaseService";
 import { getUserCollections } from "@/services/collectionService";
-import { getWatchLevelInfo } from "@/services/userService";
+import { getWatchLevelInfo, cleanBadgeText } from "@/services/userService";
 import { UserProfile } from "@/types/user";
 import { MovieCollection } from "@/types/collection";
 import { toast } from "@/components/ui/Toast";
@@ -148,11 +148,6 @@ export function PublicUserProfileModal({ initialDetail }: PublicUserProfileModal
     }
   };
 
-  // Helper làm sạch tên badge / thể loại nếu có icon emoji cũ
-  const cleanBadgeText = (text: string) => {
-    return text.replace(/^[\s🍿🎬👑⚡💎🌟✨🏆🛡️\uD83C-\uDBFF\uDC00-\uDFFF]+/gu, "").trim() || text;
-  };
-
   return createPortal(
     <div
       onClick={() => setIsOpen(false)}
@@ -160,12 +155,8 @@ export function PublicUserProfileModal({ initialDetail }: PublicUserProfileModal
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="relative w-full max-w-md sm:max-w-xl max-h-[92vh] overflow-y-auto rounded-3xl bg-[#0c0c0e]/95 border border-white/10 shadow-[0_25px_70px_rgba(0,0,0,0.95)] backdrop-blur-2xl p-4 sm:p-6 space-y-4 sm:space-y-5 scrollbar-thin transform-gpu will-change-[transform,opacity] animate-in zoom-in-95 duration-200 my-auto text-white"
+        className="relative w-full max-w-md sm:max-w-xl max-h-[92dvh] overflow-y-auto rounded-3xl bg-[#0c0c0e]/95 shadow-[0_25px_70px_rgba(0,0,0,0.95)] backdrop-blur-2xl p-4 sm:p-6 space-y-4 sm:space-y-5 scrollbar-thin transform-gpu will-change-[transform,opacity] animate-in zoom-in-95 duration-200 my-auto text-white"
       >
-        {/* Glow hiệu ứng nền chuẩn Cinematic Netflix */}
-        <div className="absolute -top-24 -left-24 w-60 h-60 bg-netflix-red/15 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-24 -right-24 w-60 h-60 bg-purple-600/10 rounded-full blur-3xl pointer-events-none" />
-
         {/* NÚT ĐÓNG & CHIA SẺ TRÊN GÓC */}
         <div className="absolute top-3.5 right-3.5 sm:top-5 sm:right-5 flex items-center gap-1.5 z-20">
           <Tooltip content="Sao chép link hồ sơ" side="bottom">
@@ -173,7 +164,7 @@ export function PublicUserProfileModal({ initialDetail }: PublicUserProfileModal
               type="button"
               onClick={handleCopyProfile}
               aria-label="Sao chép link hồ sơ"
-              className="p-2 rounded-full bg-white/5 hover:bg-white/15 text-zinc-400 hover:text-white border border-white/10 transition backdrop-blur-md cursor-pointer active:scale-95 flex-shrink-0"
+              className="p-2 rounded-full bg-white/5 hover:bg-white/15 text-zinc-400 hover:text-white transition backdrop-blur-md cursor-pointer active:scale-95 flex-shrink-0"
             >
               {copiedLink ? <Check className="w-4 h-4 text-emerald-400" /> : <Share2 className="w-4 h-4" />}
             </button>
@@ -183,19 +174,19 @@ export function PublicUserProfileModal({ initialDetail }: PublicUserProfileModal
               type="button"
               onClick={() => setIsOpen(false)}
               aria-label="Đóng"
-              className="p-2 rounded-full bg-white/5 hover:bg-white/15 text-zinc-400 hover:text-white border border-white/10 transition backdrop-blur-md cursor-pointer active:scale-95 flex-shrink-0"
+              className="p-2 rounded-full bg-white/5 hover:bg-white/15 text-zinc-400 hover:text-white transition backdrop-blur-md cursor-pointer active:scale-95 flex-shrink-0"
             >
               <X className="w-4 h-4" />
             </button>
           </Tooltip>
         </div>
 
-        {/* PROFILE HEADER CỰC KỲ SANG TRỌNG */}
+        {/* PROFILE HEADER */}
         <div className="relative pt-1 sm:pt-2">
           <div className="flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left gap-4 sm:gap-5 px-1 sm:px-0">
-            {/* AVATAR TRÒN CÓ VIỀN KÉP & HUY HIỆU CẤP ĐỘ TINH TẾ */}
+            {/* AVATAR TRÒN & HUY HIỆU CẤP ĐỘ */}
             <div className="relative flex-shrink-0 mx-auto sm:mx-0">
-              <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full ring-2 ring-white/15 ring-offset-4 ring-offset-[#0c0c0e] shadow-2xl p-0.5 bg-gradient-to-br from-white/10 via-white/5 to-white/0">
+              <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full ring-2 ring-white/15 ring-offset-4 ring-offset-[#0c0c0e] shadow-2xl p-0.5 bg-zinc-900">
                 <UserAvatar
                   src={avatarUrl || undefined}
                   name={profile.displayName}
@@ -203,11 +194,11 @@ export function PublicUserProfileModal({ initialDetail }: PublicUserProfileModal
                   sizeClassName="w-full h-full text-2xl sm:text-3xl font-black"
                 />
               </div>
-              {/* Badge cấp độ căn giữa phía dưới avatar chuẩn tỉ lệ */}
+              {/* Badge cấp độ căn giữa phía dưới avatar */}
               <div
-                className="absolute -bottom-2.5 left-1/2 -translate-x-1/2 px-2.5 py-0.5 rounded-full text-[10px] font-bold border border-white/15 flex items-center gap-1 shadow-xl bg-zinc-950/95 backdrop-blur-md text-amber-300 whitespace-nowrap z-10"
+                className="absolute -bottom-2.5 left-1/2 -translate-x-1/2 px-2.5 py-0.5 rounded-full text-[10px] font-bold flex items-center gap-1 shadow-xl bg-zinc-950/95 backdrop-blur-md text-amber-300 whitespace-nowrap z-10"
               >
-                <span>{levelInfo.badgeIcon}</span>
+                <Award className="w-3 h-3 text-amber-400 shrink-0" />
                 <span>{levelInfo.levelName}</span>
               </div>
             </div>
@@ -219,12 +210,12 @@ export function PublicUserProfileModal({ initialDetail }: PublicUserProfileModal
                   {profile.displayName}
                 </h3>
                 {isAdmin ? (
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-red-500/15 text-red-400 border border-red-500/30 shadow-sm shadow-red-500/10 flex-shrink-0">
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-red-500/15 text-red-400 flex-shrink-0">
                     <ShieldCheck className="w-3.5 h-3.5" />
                     Quản Trị Viên
                   </span>
                 ) : (
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-white/5 text-zinc-300 border border-white/10 flex-shrink-0">
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-white/5 text-zinc-300 flex-shrink-0">
                     <User className="w-3 h-3 text-zinc-400" />
                     Thành viên
                   </span>
@@ -234,7 +225,7 @@ export function PublicUserProfileModal({ initialDetail }: PublicUserProfileModal
               {/* BIO / GIỚI THIỆU */}
               {profile.bio ? (
                 <div className="flex items-center justify-center sm:justify-start my-1">
-                  <p className="text-xs sm:text-sm text-zinc-300/90 italic max-w-md break-words leading-relaxed text-center sm:text-left px-3 py-1 rounded-xl bg-white/[0.04] border border-white/5 inline-block">
+                  <p className="text-xs sm:text-sm text-zinc-300/90 italic max-w-md break-words leading-relaxed text-center sm:text-left px-3 py-1 rounded-xl bg-white/[0.04] inline-block">
                     &ldquo;{profile.bio}&rdquo;
                   </p>
                 </div>
@@ -250,7 +241,7 @@ export function PublicUserProfileModal({ initialDetail }: PublicUserProfileModal
                   {profile.badges.map((badge, idx) => (
                     <span
                       key={idx}
-                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-medium bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-amber-200/90 shadow-sm whitespace-nowrap transition-colors"
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-medium bg-white/[0.04] hover:bg-white/[0.08] text-amber-200/90 whitespace-nowrap transition-colors"
                     >
                       <Award className="w-3 h-3 text-amber-400 flex-shrink-0" />
                       <span>{cleanBadgeText(badge)}</span>
@@ -262,65 +253,65 @@ export function PublicUserProfileModal({ initialDetail }: PublicUserProfileModal
           </div>
         </div>
 
-        {/* THỐNG KÊ NHANH (CARDS KÍNH TỐI GIẢN) */}
+        {/* THỐNG KÊ NHANH */}
         <div className="grid grid-cols-3 gap-2 sm:gap-3">
           {/* CỘT 1: THỜI GIAN XEM */}
-          <div className="p-2.5 sm:p-4 rounded-2xl bg-white/[0.03] hover:bg-white/[0.05] border border-white/5 transition-all text-center flex flex-col items-center justify-center gap-1 min-h-[76px] sm:min-h-[88px] group">
+          <div className="p-2.5 sm:p-4 rounded-2xl bg-white/[0.03] hover:bg-white/[0.05] transition-all text-center flex flex-col items-center justify-center gap-1 min-h-[76px] sm:min-h-[88px] group">
             <div className="flex items-center justify-center gap-1 text-rose-400">
               <Clock className="w-3.5 h-3.5 flex-shrink-0" />
-              <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-zinc-400">
-                Đã Cày
+              <span className="text-[11px] font-semibold text-zinc-400">
+                Đã cày
               </span>
             </div>
-            <div className="text-sm sm:text-lg font-black text-white tracking-tight break-words max-w-full">
+            <div className="text-sm sm:text-lg font-black text-white tracking-tight break-words max-w-full tabular-nums">
               {watchHours}h
             </div>
-            <div className="text-[9.5px] sm:text-[10px] text-zinc-500 max-w-full font-medium leading-tight">
+            <div className="text-[10px] text-zinc-500 max-w-full font-medium leading-tight tabular-nums">
               {watchMins.toLocaleString()} phút
             </div>
           </div>
 
           {/* CỘT 2: HẠNG CINEPHILE */}
-          <div className="p-2.5 sm:p-4 rounded-2xl bg-white/[0.03] hover:bg-white/[0.05] border border-white/5 transition-all text-center flex flex-col items-center justify-center gap-1 min-h-[76px] sm:min-h-[88px] group">
+          <div className="p-2.5 sm:p-4 rounded-2xl bg-white/[0.03] hover:bg-white/[0.05] transition-all text-center flex flex-col items-center justify-center gap-1 min-h-[76px] sm:min-h-[88px] group">
             <div className="flex items-center justify-center gap-1 text-amber-400">
               <Crown className="w-3.5 h-3.5 flex-shrink-0" />
-              <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-zinc-400">
+              <span className="text-[11px] font-semibold text-zinc-400">
                 Hạng
               </span>
             </div>
             <div className="text-[11px] sm:text-xs font-black text-amber-300 leading-tight text-center break-words max-w-full px-0.5">
               {levelInfo.levelName}
             </div>
-            <div className="text-[9.5px] sm:text-[10px] text-zinc-500 max-w-full font-medium leading-tight text-center">
+            <div className="text-[10px] text-zinc-500 max-w-full font-medium leading-tight text-center">
               Cấp độ cinephile
             </div>
           </div>
 
           {/* CỘT 3: BỘ SƯU TẬP */}
-          <div className="p-2.5 sm:p-4 rounded-2xl bg-white/[0.03] hover:bg-white/[0.05] border border-white/5 transition-all text-center flex flex-col items-center justify-center gap-1 min-h-[76px] sm:min-h-[88px] group">
+          <div className="p-2.5 sm:p-4 rounded-2xl bg-white/[0.03] hover:bg-white/[0.05] transition-all text-center flex flex-col items-center justify-center gap-1 min-h-[76px] sm:min-h-[88px] group">
             <div className="flex items-center justify-center gap-1 text-indigo-400">
               <Bookmark className="w-3.5 h-3.5 flex-shrink-0" />
-              <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-zinc-400">
-                Bộ Sưu Tập
+              <span className="text-[11px] font-semibold text-zinc-400">
+                Bộ sưu tập
               </span>
             </div>
-            <div className="text-sm sm:text-lg font-black text-white tracking-tight break-words max-w-full">
+            <div className="text-sm sm:text-lg font-black text-white tracking-tight break-words max-w-full tabular-nums">
               {collections.length}
             </div>
-            <div className="text-[9.5px] sm:text-[10px] text-zinc-500 max-w-full font-medium leading-tight">
+            <div className="text-[10px] text-zinc-500 max-w-full font-medium leading-tight">
               Công khai
             </div>
           </div>
         </div>
 
         {/* TABS SELECTOR (TỔNG QUAN & BỘ SƯU TẬP) */}
-        <div className="flex items-center gap-1 p-1 bg-black/40 border border-white/5 rounded-2xl text-xs font-semibold backdrop-blur-md">
+        <div className="flex items-center gap-1 p-1 bg-black/40 rounded-2xl text-xs font-semibold backdrop-blur-md">
           <button
             type="button"
             onClick={() => setActiveTab("overview")}
             className={`flex-1 py-2 px-3 rounded-xl transition-all duration-200 cursor-pointer flex items-center justify-center gap-2 whitespace-nowrap ${
               activeTab === "overview"
-                ? "bg-red-600 text-white font-bold shadow-lg shadow-red-600/30"
+                ? "bg-netflix-red text-white font-bold shadow-sm shadow-black/40"
                 : "text-zinc-400 hover:text-white hover:bg-white/5"
             }`}
           >
@@ -332,7 +323,7 @@ export function PublicUserProfileModal({ initialDetail }: PublicUserProfileModal
             onClick={() => setActiveTab("collections")}
             className={`flex-1 py-2 px-3 rounded-xl transition-all duration-200 cursor-pointer flex items-center justify-center gap-2 whitespace-nowrap ${
               activeTab === "collections"
-                ? "bg-red-600 text-white font-bold shadow-lg shadow-red-600/30"
+                ? "bg-netflix-red text-white font-bold shadow-sm shadow-black/40"
                 : "text-zinc-400 hover:text-white hover:bg-white/5"
             }`}
           >
@@ -347,7 +338,7 @@ export function PublicUserProfileModal({ initialDetail }: PublicUserProfileModal
           {activeTab === "overview" && (
             <div className="space-y-3.5">
               {/* GU THỂ LOẠI YÊU THÍCH */}
-              <div className="p-3.5 sm:p-4 rounded-2xl bg-white/[0.02] border border-white/5 space-y-2.5">
+              <div className="p-3.5 sm:p-4 rounded-2xl bg-white/[0.02] space-y-2.5">
                 <div className="flex items-center gap-2 text-xs sm:text-sm font-bold text-zinc-200">
                   <Film className="w-4 h-4 text-netflix-red flex-shrink-0" />
                   <span>Gu Thể Loại Yêu Thích</span>
@@ -357,7 +348,7 @@ export function PublicUserProfileModal({ initialDetail }: PublicUserProfileModal
                     {profile.favoriteGenres.map((genre, gIdx) => (
                       <span
                         key={gIdx}
-                        className="px-3 py-1.5 rounded-xl text-xs font-medium bg-white/[0.04] hover:bg-white/[0.08] text-zinc-200 border border-white/10 hover:border-netflix-red/40 transition-colors flex items-center gap-1.5 whitespace-nowrap"
+                        className="px-3 py-1.5 rounded-xl text-xs font-medium bg-white/[0.04] hover:bg-white/[0.08] text-zinc-200 transition-colors flex items-center gap-1.5 whitespace-nowrap"
                       >
                         <span className="w-1.5 h-1.5 rounded-full bg-netflix-red/80 flex-shrink-0" />
                         <span>{cleanBadgeText(genre)}</span>
@@ -371,20 +362,20 @@ export function PublicUserProfileModal({ initialDetail }: PublicUserProfileModal
 
               {/* TIẾN TRÌNH CẤP ĐỘ TIẾP THEO */}
               {levelInfo.nextLevelName && (
-                <div className="p-3.5 sm:p-4 rounded-2xl bg-white/[0.02] border border-white/5 space-y-2.5">
+                <div className="p-3.5 sm:p-4 rounded-2xl bg-white/[0.02] space-y-2.5">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between text-xs gap-1.5">
                     <div className="flex items-center gap-1.5 font-semibold text-zinc-300">
                       <TrendingUp className="w-4 h-4 text-rose-400 flex-shrink-0" />
                       <span>Mục tiêu tiếp theo:</span>
                       <span className="font-bold text-white">{levelInfo.nextLevelName}</span>
                     </div>
-                    <span className="text-zinc-400 font-mono tabular-nums text-[11px] sm:text-xs">
+                    <span className="text-zinc-400 font-sans tabular-nums text-[11px] sm:text-xs">
                       {watchMins.toLocaleString()} / {levelInfo.nextMinMinutes?.toLocaleString()} phút
                     </span>
                   </div>
                   <div className="w-full h-2 rounded-full bg-zinc-800/80 overflow-hidden relative">
                     <div
-                      className="h-full bg-gradient-to-r from-red-600 via-rose-500 to-amber-500 rounded-full transition-all duration-500 shadow-[0_0_12px_rgba(229,9,20,0.5)]"
+                      className="h-full bg-netflix-red rounded-full transition-all duration-500"
                       style={{
                         width: `${Math.min(
                           100,
@@ -394,7 +385,7 @@ export function PublicUserProfileModal({ initialDetail }: PublicUserProfileModal
                     />
                   </div>
                   {levelInfo.nextMinMinutes && levelInfo.nextMinMinutes > watchMins && (
-                    <div className="text-[10.5px] text-zinc-500 text-right">
+                    <div className="text-[10.5px] text-zinc-500 text-right tabular-nums">
                       Còn {(levelInfo.nextMinMinutes - watchMins).toLocaleString()} phút để thăng hạng
                     </div>
                   )}
@@ -412,7 +403,7 @@ export function PublicUserProfileModal({ initialDetail }: PublicUserProfileModal
                     key={col.id}
                     href={`/collection/${col.id}`}
                     onClick={() => setIsOpen(false)}
-                    className="flex items-center justify-between p-3 sm:p-3.5 rounded-2xl bg-white/[0.02] hover:bg-white/[0.06] border border-white/5 hover:border-white/15 transition-all group cursor-pointer"
+                    className="flex items-center justify-between p-3 sm:p-3.5 rounded-2xl bg-white/[0.03] hover:bg-white/[0.06] transition-all group cursor-pointer"
                   >
                     <div className="space-y-0.5 min-w-0 flex-1 pr-3">
                       <div className="text-xs sm:text-sm font-bold text-white group-hover:text-rose-400 transition-colors truncate">
@@ -423,7 +414,7 @@ export function PublicUserProfileModal({ initialDetail }: PublicUserProfileModal
                       </div>
                     </div>
                     <div className="flex items-center gap-2 flex-shrink-0">
-                      <span className="px-2.5 py-1 rounded-lg bg-white/5 border border-white/10 text-xs font-semibold text-zinc-300 whitespace-nowrap">
+                      <span className="px-2.5 py-1 rounded-lg bg-white/5 text-xs font-semibold text-zinc-300 whitespace-nowrap tabular-nums">
                         {col.movies?.length || 0} phim
                       </span>
                       <ExternalLink className="w-3.5 h-3.5 text-zinc-400 group-hover:text-white transition-colors" />
@@ -432,7 +423,7 @@ export function PublicUserProfileModal({ initialDetail }: PublicUserProfileModal
                 ))
               ) : (
                 <div className="py-10 text-center flex flex-col items-center justify-center gap-2 text-zinc-500">
-                  <div className="w-12 h-12 rounded-2xl bg-white/[0.03] border border-white/5 flex items-center justify-center text-zinc-400">
+                  <div className="w-12 h-12 rounded-2xl bg-white/[0.03] flex items-center justify-center text-zinc-400">
                     <Bookmark className="w-5 h-5 opacity-60" />
                   </div>
                   <p className="text-xs font-semibold text-zinc-300">Chưa có bộ sưu tập công khai nào</p>

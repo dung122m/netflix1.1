@@ -60,7 +60,7 @@ export default async function CollectionDetailPage({
   const collection = await getPublicCollection(id, userId);
 
   return (
-    <div className="page-cinema-container min-h-screen flex flex-col justify-between bg-black text-white">
+    <div className="page-cinema-container min-h-dvh flex flex-col justify-between bg-black text-white w-full max-w-full overflow-x-clip">
       <div>
         <Navbar />
         <CollectionClientView

@@ -40,8 +40,8 @@ export const FilterDropdownMenu: React.FC<FilterDropdownMenuProps> = React.memo(
       >
         {/* POPUP 1: LOẠI PHIM */}
         {activeDropdown === "type" && (
-          <div className="w-56 sm:w-60 rounded-2xl bg-zinc-950/98 border border-zinc-700/80 p-2.5 shadow-2xl backdrop-blur-xl animate-in fade-in zoom-in-95 duration-150">
-            <div className="px-2 py-1 text-[11px] font-bold text-zinc-400 uppercase tracking-wider border-b mb-2 flex items-center justify-between">
+          <div className="w-56 sm:w-60 rounded-2xl bg-zinc-950/98 p-2.5 shadow-[0_20px_50px_rgba(0,0,0,0.9)] backdrop-blur-xl animate-in fade-in zoom-in-95 duration-150">
+            <div className="px-2 py-1 text-[11px] font-semibold text-zinc-400 border-b border-white/[0.08] mb-2 flex items-center justify-between">
               <span>Chọn loại phim</span>
               {currentType && (
                 <button
@@ -90,8 +90,8 @@ export const FilterDropdownMenu: React.FC<FilterDropdownMenuProps> = React.memo(
 
         {/* POPUP 2: THỂ LOẠI */}
         {activeDropdown === "genre" && (
-          <div className="w-[calc(100vw-2rem)] sm:w-80 md:w-96 rounded-2xl bg-zinc-950/98 border border-zinc-700/80 p-3 shadow-2xl backdrop-blur-xl animate-in fade-in zoom-in-95 duration-150">
-            <div className="px-2 py-1 text-[11px] font-bold text-zinc-400 uppercase tracking-wider border-b mb-2 flex items-center justify-between">
+          <div className="w-[calc(100vw-2rem)] sm:w-80 md:w-96 rounded-2xl bg-zinc-950/98 p-3 shadow-[0_20px_50px_rgba(0,0,0,0.9)] backdrop-blur-xl animate-in fade-in zoom-in-95 duration-150">
+            <div className="px-2 py-1 text-[11px] font-semibold text-zinc-400 border-b border-white/[0.08] mb-2 flex items-center justify-between">
               <span>Chọn thể loại</span>
               {currentCategory && (
                 <button
@@ -141,8 +141,8 @@ export const FilterDropdownMenu: React.FC<FilterDropdownMenuProps> = React.memo(
 
         {/* POPUP 3: QUỐC GIA */}
         {activeDropdown === "country" && (
-          <div className="w-[calc(100vw-2rem)] sm:w-80 rounded-2xl bg-zinc-950/98 border border-zinc-700/80 p-3 shadow-2xl backdrop-blur-xl animate-in fade-in zoom-in-95 duration-150">
-            <div className="px-2 py-1 text-[11px] font-bold text-zinc-400 uppercase tracking-wider border-b mb-2 flex items-center justify-between">
+          <div className="w-[calc(100vw-2rem)] sm:w-80 rounded-2xl bg-zinc-950/98 p-3 shadow-[0_20px_50px_rgba(0,0,0,0.9)] backdrop-blur-xl animate-in fade-in zoom-in-95 duration-150">
+            <div className="px-2 py-1 text-[11px] font-semibold text-zinc-400 border-b border-white/[0.08] mb-2 flex items-center justify-between">
               <span>Chọn quốc gia</span>
               {currentCountry && (
                 <button
@@ -191,8 +191,8 @@ export const FilterDropdownMenu: React.FC<FilterDropdownMenuProps> = React.memo(
 
         {/* POPUP 4: NĂM PHÁT HÀNH */}
         {activeDropdown === "year" && (
-          <div className="w-[calc(100vw-2rem)] sm:w-80 rounded-2xl bg-zinc-950/98 border border-zinc-700/80 p-3 shadow-2xl backdrop-blur-xl animate-in fade-in zoom-in-95 duration-150">
-            <div className="px-2 py-1 text-[11px] font-bold text-zinc-400 uppercase tracking-wider border-b mb-2 flex items-center justify-between">
+          <div className="w-[calc(100vw-2rem)] sm:w-80 rounded-2xl bg-zinc-950/98 p-3 shadow-[0_20px_50px_rgba(0,0,0,0.9)] backdrop-blur-xl animate-in fade-in zoom-in-95 duration-150">
+            <div className="px-2 py-1 text-[11px] font-semibold text-zinc-400 border-b border-white/[0.08] mb-2 flex items-center justify-between">
               <span>Chọn năm phát hành</span>
               {currentYear && (
                 <button
@@ -216,7 +216,7 @@ export const FilterDropdownMenu: React.FC<FilterDropdownMenuProps> = React.memo(
               <span>Tất cả các năm</span>
               {!currentYear && <Check className="w-3.5 h-3.5 text-netflix-red" />}
             </button>
-            <div className="max-h-60 overflow-y-auto grid grid-cols-4 gap-1.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none]">
+            <div className="max-h-60 overflow-y-auto grid grid-cols-3 min-[360px]:grid-cols-4 gap-1.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none]">
               {filters.years.map((y) => {
                 const isSelected = currentYear === y;
                 return (
@@ -224,7 +224,7 @@ export const FilterDropdownMenu: React.FC<FilterDropdownMenuProps> = React.memo(
                     key={y}
                     type="button"
                     onClick={() => updateQueryParam("year", y)}
-                    className={`py-2 px-1 text-center rounded-xl text-xs sm:text-sm font-medium transition cursor-pointer ${
+                    className={`py-2 min-h-[38px] px-1 text-center rounded-xl text-xs sm:text-sm font-medium transition cursor-pointer ${
                       isSelected
                         ? "bg-netflix-red text-white font-bold shadow-md shadow-black/50"
                         : "text-zinc-300 hover:bg-zinc-800 hover:text-white bg-zinc-900/60"

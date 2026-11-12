@@ -56,15 +56,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, customTit
   return createPortal(
     <div
       onClick={onClose}
-      className="fixed inset-0 z-[99999] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6 animate-in fade-in duration-150 overflow-y-auto overscroll-none touch-none"
+      className="fixed inset-0 z-[99999] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6 animate-in fade-in duration-150 overflow-y-auto overscroll-contain"
     >
       <div
         onClick={(e) => e.stopPropagation()}
         className="w-full max-w-sm sm:max-w-md bg-zinc-950 rounded-2xl p-6 sm:p-8 shadow-2xl relative overflow-hidden space-y-6 transform-gpu will-change-[transform,opacity] animate-in zoom-in-95 duration-150 my-auto overscroll-contain"
       >
-        {/* Glow đỏ nhẹ background */}
-        <div className="absolute -top-20 -left-20 w-40 h-40 bg-netflix-red/15 rounded-full blur-3xl pointer-events-none" />
-
         {/* Nút đóng */}
         <button
           type="button"
@@ -122,7 +119,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, customTit
           /* TRẠNG THÁI CHƯA ĐĂNG NHẬP */
           <div className="space-y-6">
             <div className="text-center space-y-2 pt-2">
-              <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-netflix-red/10 text-netflix-red border border-netflix-red/20 mb-1">
+              <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-netflix-red/12 text-netflix-red mb-1">
                 <Film className="w-6 h-6" />
               </div>
               <h3 className="text-2xl font-black text-white tracking-tight">

@@ -17,11 +17,13 @@ import {
   ShieldCheck,
   Ban,
   Clock,
+  X,
 } from "lucide-react";
 import { MovieComment } from "@/types/comment";
 import { MemberWithStats } from "@/types/user";
 import { UserAvatar } from "@/components/ui/UserAvatar";
 import { StarRating } from "@/components/MovieReviews/StarRating";
+import { Tooltip } from "@/components/ui/Tooltip";
 
 export type SortOption = "newest" | "oldest" | "highest_rating" | "lowest_rating" | "most_liked";
 
@@ -126,15 +128,16 @@ export const AdminCommentsTab: React.FC<AdminCommentsTabProps> = React.memo(
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Tìm theo tên người dùng, email, phim, nội dung..."
-              className="w-full bg-black/60 rounded-xl pl-9 pr-8 py-2 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-netflix-red transition"
+              className="w-full bg-black/60 rounded-xl pl-9 pr-8 py-2 text-base sm:text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-netflix-red transition"
             />
             {searchQuery && (
               <button
                 type="button"
                 onClick={() => setSearchQuery("")}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-white text-xs"
+                aria-label="Xóa từ khóa tìm kiếm"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-white cursor-pointer"
               >
-                ✕
+                <X size={13} />
               </button>
             )}
           </div>
@@ -164,7 +167,7 @@ export const AdminCommentsTab: React.FC<AdminCommentsTabProps> = React.memo(
                 <Flag size={11} className={flaggedCount > 0 ? "text-red-400" : ""} />
                 <span>Vi phạm</span>
                 {flaggedCount > 0 && (
-                  <span className="px-1.5 py-0.2 rounded-full bg-red-600 text-white text-[9px] font-bold">
+                  <span className="px-1.5 py-0.5 rounded-full bg-red-600 text-white text-[9px] font-bold">
                     {flaggedCount}
                   </span>
                 )}
@@ -188,7 +191,14 @@ export const AdminCommentsTab: React.FC<AdminCommentsTabProps> = React.memo(
                       : "text-zinc-400 hover:text-white"
                   }`}
                 >
-                  {star === "all" ? "Tất cả" : `${star}★`}
+                  {star === "all" ? (
+                    "Tất cả"
+                  ) : (
+                    <span className="inline-flex items-center gap-0.5 font-sans tabular-nums">
+                      {star}
+                      <Star size={10} className="fill-current" />
+                    </span>
+                  )}
                 </button>
               ))}
             </div>
@@ -231,7 +241,7 @@ export const AdminCommentsTab: React.FC<AdminCommentsTabProps> = React.memo(
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as SortOption)}
-                className="bg-transparent text-zinc-300 text-xs focus:outline-none cursor-pointer"
+                className="bg-transparent text-zinc-300 text-base sm:text-xs focus:outline-none cursor-pointer"
               >
                 <option value="newest" className="bg-zinc-900 text-white">Mới nhất</option>
                 <option value="oldest" className="bg-zinc-900 text-white">Cũ nhất</option>
@@ -266,12 +276,12 @@ export const AdminCommentsTab: React.FC<AdminCommentsTabProps> = React.memo(
 
         {/* COMMENTS LIST */}
         {loadingData ? (
-          <div className="p-12 text-center rounded-2xl bg-zinc-900/40">
+          <div className="p-6 sm:p-12 text-center rounded-2xl bg-zinc-900/40">
             <div className="w-8 h-8 rounded-full border-2 border-netflix-red border-t-transparent animate-spin mx-auto mb-2" />
             <p className="text-xs text-zinc-400">Đang đồng bộ danh sách bình luận...</p>
           </div>
         ) : filteredComments.length === 0 ? (
-          <div className="p-12 text-center rounded-2xl bg-zinc-900/40">
+          <div className="p-6 sm:p-12 text-center rounded-2xl bg-zinc-900/40">
             <MessageSquare size={36} className="text-zinc-600 mx-auto mb-2" />
             <p className="text-sm font-semibold text-zinc-300">Không tìm thấy bình luận nào phù hợp</p>
             <p className="text-xs text-zinc-500 mt-1">Hãy thử thay đổi từ khóa hoặc bộ lọc tìm kiếm.</p>
@@ -287,8 +297,8 @@ export const AdminCommentsTab: React.FC<AdminCommentsTabProps> = React.memo(
                   key={item.id}
                   className={`p-3.5 sm:p-5 rounded-2xl transition backdrop-blur-sm flex flex-col sm:flex-row sm:items-start justify-between gap-3 sm:gap-4 group ${
                     item.isFlagged
-                      ? "bg-red-950/20 border-2 border-red-500/50 shadow-md shadow-black/50 hover:border-red-500/80"
-                      : "bg-zinc-900/60 border border-white/[0.08] hover:border-white/20"
+                      ? "bg-red-950/30 ring-1 ring-inset ring-red-500/45 shadow-md shadow-black/50"
+                      : "bg-zinc-900/70 hover:bg-zinc-900/90 shadow-md shadow-black/40"
                   }`}
                 >
                   {/* Left: User & Content */}
@@ -311,7 +321,7 @@ export const AdminCommentsTab: React.FC<AdminCommentsTabProps> = React.memo(
                             </span>
                           )}
                           {isUserRestricted && (
-                            <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-red-500/20 text-red-300 font-bold flex items-center gap-1 flex-shrink-0">
+                            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-red-500/20 text-red-300 font-bold flex items-center gap-1 flex-shrink-0">
                               <Ban size={10} />
                               <span>Bị cấm cmt</span>
                             </span>
@@ -337,7 +347,7 @@ export const AdminCommentsTab: React.FC<AdminCommentsTabProps> = React.memo(
                         href={`/movies/${item.movieSlug}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-netflix-red/15 border border-netflix-red/30 text-red-300 hover:text-white hover:bg-netflix-red/25 transition text-xs font-semibold max-w-[240px] truncate"
+                        className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-netflix-red/15 text-red-300 hover:text-white hover:bg-netflix-red/25 transition text-xs font-semibold max-w-[240px] truncate"
                       >
                         <Film size={12} className="flex-shrink-0" />
                         <span className="truncate">{item.movieTitle || item.movieSlug}</span>
@@ -365,12 +375,14 @@ export const AdminCommentsTab: React.FC<AdminCommentsTabProps> = React.memo(
                       )}
 
                       {item.parentId ? (
-                        <span className="px-2 py-0.5 rounded-md bg-blue-500/20 border border-blue-500/30 text-[10px] text-blue-300 font-medium">
-                          💬 Trả lời
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-blue-500/20 text-[10px] text-blue-300 font-medium">
+                          <MessageSquare size={10} />
+                          <span>Trả lời</span>
                         </span>
                       ) : (
-                        <span className="px-2 py-0.5 rounded-md bg-amber-500/20 text-[10px] text-amber-300 font-medium">
-                          ⭐ Đánh giá
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-500/20 text-[10px] text-amber-300 font-medium">
+                          <Star size={10} className="fill-current" />
+                          <span>Đánh giá</span>
                         </span>
                       )}
 
@@ -398,7 +410,7 @@ export const AdminCommentsTab: React.FC<AdminCommentsTabProps> = React.memo(
                             {item.flaggedKeywords.map((kw, i) => (
                               <span
                                 key={i}
-                                className="px-1.5 py-0.2 rounded bg-red-900/80 text-red-100 text-[10px] font-sans tabular-nums font-bold"
+                                className="px-1.5 py-0.5 rounded bg-red-900/80 text-red-100 text-[10px] font-sans tabular-nums font-bold"
                               >
                                 {kw}
                               </span>
@@ -415,7 +427,7 @@ export const AdminCommentsTab: React.FC<AdminCommentsTabProps> = React.memo(
                   </div>
 
                   {/* Actions */}
-                  <div className="grid grid-cols-2 sm:flex sm:flex-col items-stretch sm:items-end gap-2 pt-3 sm:pt-0 border-t sm:border-t-0 flex-shrink-0 w-full sm:w-auto">
+                  <div className="grid grid-cols-2 sm:flex sm:flex-col items-stretch sm:items-end gap-2 pt-2 sm:pt-0 flex-shrink-0 w-full sm:w-auto">
                     <Link
                       href={`/movies/${item.movieSlug}`}
                       target="_blank"
@@ -427,31 +439,38 @@ export const AdminCommentsTab: React.FC<AdminCommentsTabProps> = React.memo(
                     </Link>
 
                     {item.isFlagged && (
-                      <button
-                        type="button"
-                        onClick={() => onUnflagComment(item)}
-                        className="px-3 py-2 sm:py-1.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 transition cursor-pointer text-xs font-semibold flex items-center justify-center gap-1.5 shadow-sm active:scale-95"
-                        title="Gỡ cờ & duyệt bình luận này hợp lệ"
-                      >
-                        <ShieldCheck size={13} />
-                        <span>Gỡ cờ</span>
-                      </button>
+                      <Tooltip content="Gỡ cờ & duyệt bình luận này hợp lệ" side="top">
+                        <button
+                          type="button"
+                          onClick={() => onUnflagComment(item)}
+                          aria-label="Gỡ cờ & duyệt bình luận này hợp lệ"
+                          className="w-full px-3 py-2 sm:py-1.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 transition cursor-pointer text-xs font-semibold flex items-center justify-center gap-1.5 shadow-sm active:scale-95"
+                        >
+                          <ShieldCheck size={13} />
+                          <span>Gỡ cờ</span>
+                        </button>
+                      </Tooltip>
                     )}
 
                     {itemUser && (
-                      <button
-                        type="button"
-                        onClick={() => onToggleUserCommentBan(itemUser)}
-                        className={`px-3 py-2 sm:py-1.5 rounded-xl border transition cursor-pointer text-xs font-semibold flex items-center justify-center gap-1.5 shadow-sm active:scale-95 ${
-                          isUserRestricted
-                            ? "bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300"
-                            : "bg-amber-500/10 hover:bg-amber-500/20 text-amber-300"
-                        }`}
-                        title={isUserRestricted ? "Mở lại quyền bình luận" : "Khóa quyền bình luận thành viên"}
+                      <Tooltip
+                        content={isUserRestricted ? "Mở lại quyền bình luận" : "Khóa quyền bình luận thành viên"}
+                        side="top"
                       >
-                        {isUserRestricted ? <ShieldCheck size={13} /> : <Ban size={13} />}
-                        <span>{isUserRestricted ? "Mở cmt" : "Khóa cmt"}</span>
-                      </button>
+                        <button
+                          type="button"
+                          onClick={() => onToggleUserCommentBan(itemUser)}
+                          aria-label={isUserRestricted ? "Mở lại quyền bình luận" : "Khóa quyền bình luận thành viên"}
+                          className={`w-full px-3 py-2 sm:py-1.5 rounded-xl transition cursor-pointer text-xs font-semibold flex items-center justify-center gap-1.5 shadow-sm active:scale-95 ${
+                            isUserRestricted
+                              ? "bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300"
+                              : "bg-amber-500/10 hover:bg-amber-500/20 text-amber-300"
+                          }`}
+                        >
+                          {isUserRestricted ? <ShieldCheck size={13} /> : <Ban size={13} />}
+                          <span>{isUserRestricted ? "Mở cmt" : "Khóa cmt"}</span>
+                        </button>
+                      </Tooltip>
                     )}
 
                     <button

@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { Be_Vietnam_Pro } from "next/font/google";
-import { cookies } from "next/headers";
 import "./globals.css";
 import { ACCENT_PRESETS, ACCENT_COOKIE_KEY } from "@/lib/accentStudio";
 import SmoothScroll from "@/components/layout/SmoothScroll";
@@ -8,14 +7,13 @@ import { BackToTop } from "@/components/layout/BackToTop";
 import { ToastContainer } from "@/components/ui/Toast";
 import { ClientModals } from "@/components/modals/ClientModals";
 import { InstallPwaBanner } from "@/components/layout/InstallPwaBanner";
-import { DesktopReplyPopup } from "@/components/Notifications/DesktopReplyPopup";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { AuthProvider } from "@/context/AuthContext";
 import { NavigationProgressBar } from "@/components/layout/NavigationProgressBar";
 import { SiteVisitTracker } from "@/components/layout/SiteVisitTracker";
 
 const beVietnamPro = Be_Vietnam_Pro({
-  weight: ["300", "400", "500", "600", "700", "800", "900"],
+  weight: ["400", "500", "600", "700"],
   variable: "--font-sans",
   subsets: ["latin", "vietnamese"],
   display: "swap",
@@ -102,30 +100,19 @@ export const metadata: Metadata = {
   },
 };
 
-export default async function RootLayout({
+export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  let savedThemeId = "netflix-red";
-  try {
-    const cookieStore = await cookies();
-    const cookieVal = cookieStore.get(ACCENT_COOKIE_KEY)?.value;
-    if (cookieVal) {
-      savedThemeId = cookieVal;
-    }
-  } catch {
-    // Trong môi trường static build hoặc worker không có request context
-  }
-
-  const activePreset =
-    ACCENT_PRESETS.find((p) => p.id === savedThemeId) || ACCENT_PRESETS[0];
+  const defaultPreset = ACCENT_PRESETS[0];
+  const validAccentIdsJson = JSON.stringify(ACCENT_PRESETS.map((p) => p.id));
 
   return (
     <html
       lang="vi"
       suppressHydrationWarning
-      data-accent={activePreset.id}
+      data-accent={defaultPreset.id}
       className={`${beVietnamPro.variable} font-sans antialiased bg-black text-white dark`}
     >
       <head>
@@ -149,11 +136,8 @@ export default async function RootLayout({
           content="width=device-width, initial-scale=1, maximum-scale=5, viewport-fit=cover"
         />
 
-        {/* Preconnect tối ưu duy nhất cho ảnh direct CDN phimimg (không có crossOrigin để khớp với thẻ <img>) */}
+        {/* Preconnect tối ưu cho ảnh TMDb / trailer / stream */}
         <link rel="dns-prefetch" href="https://image.tmdb.org" />
-        <link rel="dns-prefetch" href="https://img.phimapi.com" />
-        <link rel="dns-prefetch" href="https://phim.nguonc.com" />
-        <link rel="dns-prefetch" href="https://img.gvapi.cc" />
         <link rel="dns-prefetch" href="https://m.media-amazon.com" />
         <link rel="dns-prefetch" href="https://images-na.ssl-images-amazon.com" />
         <link rel="dns-prefetch" href="https://i.ytimg.com" />
@@ -172,11 +156,17 @@ export default async function RootLayout({
                   document.documentElement.classList.remove('light');
                   document.documentElement.setAttribute('data-mode', 'dark');
 
-                  var savedTheme = localStorage.getItem('nanaflix_theme');
-                  if (savedTheme) {
+                  var savedTheme = localStorage.getItem('${ACCENT_COOKIE_KEY}');
+                  if (!savedTheme && document.cookie) {
+                    var cookieMatch = document.cookie.match(new RegExp('(?:^|; )${ACCENT_COOKIE_KEY}=([^;]*)'));
+                    if (cookieMatch) savedTheme = decodeURIComponent(cookieMatch[1]);
+                  }
+                  var validAccents = ${validAccentIdsJson};
+                  if (savedTheme && validAccents.indexOf(savedTheme) !== -1) {
                     document.documentElement.setAttribute('data-accent', savedTheme);
                     try {
-                      document.cookie = 'nanaflix_theme=' + encodeURIComponent(savedTheme) + '; path=/; max-age=31536000; SameSite=Lax';
+                      localStorage.setItem('${ACCENT_COOKIE_KEY}', savedTheme);
+                      document.cookie = '${ACCENT_COOKIE_KEY}=' + encodeURIComponent(savedTheme) + '; path=/; max-age=31536000; SameSite=Lax';
                     } catch(e) {}
                   }
                 } catch(e) {}
@@ -233,13 +223,37 @@ export default async function RootLayout({
                     }
                   }, true);
                 } catch(e) {}
+
+                // Tự động gỡ Service Worker & CacheStorage cũ trên localhost nếu từng bị cache chunk dev
+                try {
+                  var h = window.location && window.location.hostname;
+                  if ((h === 'localhost' || h === '127.0.0.1' || h === '[::1]') && 'serviceWorker' in navigator) {
+                    navigator.serviceWorker.getRegistrations().then(function(regs) {
+                      if (!regs || regs.length === 0) return;
+                      return Promise.all(regs.map(function(r) { return r.unregister(); })).then(function() {
+                        if ('caches' in window) {
+                          return caches.keys().then(function(keys) {
+                            return Promise.all(keys.map(function(k) { return caches.delete(k); }));
+                          });
+                        }
+                      }).then(function() {
+                        try {
+                          if (!sessionStorage.getItem('__nana_sw_cleaned')) {
+                            sessionStorage.setItem('__nana_sw_cleaned', '1');
+                            window.location.reload();
+                          }
+                        } catch(err) {}
+                      });
+                    }).catch(function() {});
+                  }
+                } catch(e) {}
               })();
             `,
           }}
         />
       </head>
       <body
-        className="min-h-screen flex flex-col bg-black text-white"
+        className="min-h-dvh flex flex-col bg-black text-white"
         suppressHydrationWarning
       >
         <AuthProvider>
@@ -251,7 +265,7 @@ export default async function RootLayout({
           <SiteVisitTracker />
 
           <SmoothScroll>
-            <div className="pb-16 lg:pb-0 min-h-screen flex flex-col" suppressHydrationWarning>
+            <div className="pb-[calc(4rem+env(safe-area-inset-bottom,0px))] lg:pb-0 min-h-dvh flex flex-col" suppressHydrationWarning>
               {children}
             </div>
           </SmoothScroll>
@@ -264,9 +278,6 @@ export default async function RootLayout({
 
           {/* Toast notification system — global */}
           <ToastContainer />
-
-          {/* Facebook-style Desktop Reply & Realtime Notification Popup */}
-          <DesktopReplyPopup />
 
           {/* Client-side modals: Actor Bio, Profile, Auth — lazy-loaded client-side */}
           <ClientModals />

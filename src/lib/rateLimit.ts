@@ -119,7 +119,11 @@ export function getRedisInstance(): Redis | null {
       retry: {
         retries: 0, // Fail-fast: không retry làm nghẽn serverless execution
       },
-      signal: () => redisRequestSignalStorage.getStore() ?? new AbortController().signal,
+      signal: () => {
+        const timeoutSignal = AbortSignal.timeout(3000);
+        const storeSignal = redisRequestSignalStorage.getStore();
+        return storeSignal ? AbortSignal.any([storeSignal, timeoutSignal]) : timeoutSignal;
+      },
     });
     cachedRedisSignature = signature;
     return cachedRedisClient;
@@ -356,13 +360,6 @@ export const RATE_LIMIT_PRESETS = {
   COMMENT_REACTION_IN_MEMORY: {
     namespace: "comment-reaction-in-memory",
     maxRequests: 60,
-    windowSeconds: 60,
-    failClosed: false,
-    strategy: "in-memory-only",
-  },
-  USER_HANDOFF_IN_MEMORY: {
-    namespace: "handoff-in-memory",
-    maxRequests: 120,
     windowSeconds: 60,
     failClosed: false,
     strategy: "in-memory-only",
@@ -850,27 +847,47 @@ export async function checkRateLimit(
         }, timeoutMs);
       });
 
-      const uniqueMember = `${now}:${Math.random().toString(36).slice(2, 9)}`;
-      const windowStart = now - windowMs;
+      let totalCount = 1;
+      let effectiveResetSeconds = config.windowSeconds;
 
-      const pipelinePromise = redisRequestSignalStorage.run(controller.signal, async () => {
-        const p = redis.pipeline();
-        p.zremrangebyscore(key, 0, windowStart);
-        p.zcard(key);
-        p.zadd(key, { score: now, member: uniqueMember });
-        p.expire(key, config.windowSeconds + 15);
-        const results = await p.exec<[number, number, number, number]>();
-        return results[1]; // Result of zcard before adding new request
-      });
+      if (strategy === "fixed-window") {
+        const windowBucket = Math.floor(now / windowMs);
+        const fixedKey = `${key}:fw:${windowBucket}`;
+        const bucketEndMs = (windowBucket + 1) * windowMs;
+        effectiveResetSeconds = Math.max(1, Math.ceil((bucketEndMs - now) / 1000));
 
-      const currentCount = await Promise.race([pipelinePromise, timeoutPromise]);
+        const fixedPromise = redisRequestSignalStorage.run(controller.signal, async () => {
+          const p = redis.pipeline();
+          p.incr(fixedKey);
+          p.expire(fixedKey, config.windowSeconds + 5);
+          const results = await p.exec<[number, number]>();
+          return results[0];
+        });
+        const fixedCount = await Promise.race([fixedPromise, timeoutPromise]);
+        totalCount = typeof fixedCount === "number" ? fixedCount : 1;
+      } else {
+        const uniqueMember = `${now}:${Math.random().toString(36).slice(2, 9)}`;
+        const windowStart = now - windowMs;
+
+        const pipelinePromise = redisRequestSignalStorage.run(controller.signal, async () => {
+          const p = redis.pipeline();
+          p.zremrangebyscore(key, 0, windowStart);
+          p.zcard(key);
+          p.zadd(key, { score: now, member: uniqueMember });
+          p.expire(key, config.windowSeconds + 15);
+          const results = await p.exec<[number, number, number, number]>();
+          return results[1]; // Result of zcard before adding new request
+        });
+
+        const currentCount = await Promise.race([pipelinePromise, timeoutPromise]);
+        totalCount = typeof currentCount === "number" ? currentCount + 1 : 1;
+      }
+
       clearTimeout(timeoutTimer);
       recordRedisSuccess();
 
-      const totalCount = typeof currentCount === "number" ? currentCount + 1 : 1;
-
       if (totalCount > config.maxRequests) {
-        const resetSeconds = Math.max(1, config.windowSeconds);
+        const resetSeconds = Math.max(1, effectiveResetSeconds);
         localBlockedCache.set(key, now + resetSeconds * 1000);
         return {
           allowed: false,
@@ -893,18 +910,18 @@ export async function checkRateLimit(
         allowed: true,
         limit: config.maxRequests,
         remaining,
-        resetSeconds: config.windowSeconds,
+        resetSeconds: effectiveResetSeconds,
         target,
         headers: {
           "X-RateLimit-Limit": String(config.maxRequests),
           "X-RateLimit-Remaining": String(remaining),
-          "X-RateLimit-Reset": String(config.windowSeconds),
+          "X-RateLimit-Reset": String(effectiveResetSeconds),
         },
       };
     } catch (err) {
       clearTimeout(timeoutTimer);
       controller.abort();
-      const { kind, message } = classifyRedisError(err);
+      const { kind } = classifyRedisError(err);
       recordRedisFailure(kind, now);
       // Fallback sang memory khi Redis lỗi hoặc timeout
     }

@@ -1,22 +1,16 @@
 "use client";
 
 import React, { useEffect, useState, useRef, useCallback, useTransition } from "react";
-import { createPortal } from "react-dom";
 import { useRouter, useSearchParams } from "next/navigation";
 import { movieApi, DEFAULT_GENRES, DEFAULT_COUNTRIES } from "@/services/movies/service";
 import { Tooltip } from "@/components/ui/Tooltip";
 import { getCanonicalGenreSlug, getCanonicalCountrySlug, isRawId } from "@/lib/movieMedia";
 import { useBodyScrollLock } from "@/lib/scrollLock";
 import {
-  ArrowUpDown,
   ChevronDown,
-  Check,
   X,
   RotateCcw,
   Filter,
-  Clock,
-  Star,
-  Flame,
   Loader2,
   SlidersHorizontal,
 } from "lucide-react";
@@ -422,7 +416,7 @@ export const FilterBar: React.FC = () => {
   return (
     <div ref={containerRef} className="w-full relative z-40 select-none">
       {/* 1A. MOBILE COMPACT TRIGGER BAR (< 640px) */}
-      <div className="sm:hidden relative w-full rounded-2xl bg-zinc-900/70 backdrop-blur-md p-2 border border-white/[0.08] shadow-md shadow-black/40 flex items-center justify-between gap-2">
+      <div className="sm:hidden relative w-full rounded-2xl bg-zinc-900/75 backdrop-blur-md p-2 shadow-md shadow-black/40 flex items-center justify-between gap-2">
         <button
           type="button"
           onClick={openMobileDrawer}
@@ -432,7 +426,7 @@ export const FilterBar: React.FC = () => {
             <SlidersHorizontal className="w-4 h-4 text-netflix-red shrink-0" />
             <span className="font-bold text-xs truncate">Bộ lọc & Phân loại</span>
             {activeFiltersCount > 0 && (
-              <span className="px-1.5 py-0.2 rounded-full bg-netflix-red text-white text-[10px] font-black shrink-0">
+              <span className="px-1.5 py-0.5 rounded-full bg-netflix-red text-white text-[10px] font-black shrink-0">
                 {activeFiltersCount}
               </span>
             )}
@@ -446,7 +440,7 @@ export const FilterBar: React.FC = () => {
               type="button"
               onClick={handleClearAll}
               aria-label="Xóa tất cả bộ lọc"
-              className="h-10 w-10 rounded-xl border border-dashed text-netflix-red hover:bg-netflix-red/15 flex items-center justify-center shrink-0 active:scale-95 transition cursor-pointer"
+              className="h-10 w-10 rounded-xl bg-netflix-red/10 hover:bg-netflix-red/20 text-netflix-red flex items-center justify-center shrink-0 active:scale-95 transition cursor-pointer"
             >
             {isPending && pendingGroup === "all" ? (
               <Loader2 className="w-3.5 h-3.5 text-netflix-red animate-spin" />
@@ -459,7 +453,7 @@ export const FilterBar: React.FC = () => {
       </div>
 
       {/* 1B. CINEMATIC DOCK CONTAINER (DESKTOP >= 640px) */}
-      <div className="hidden sm:flex relative w-full rounded-2xl bg-zinc-900/50 backdrop-blur-md p-2 sm:p-2.5 border border-white/[0.08] shadow-lg shadow-black/40 items-center gap-2 sm:gap-3">
+      <div className="hidden sm:flex relative w-full rounded-2xl bg-zinc-900/60 backdrop-blur-md p-2 sm:p-2.5 shadow-lg shadow-black/40 items-center gap-2 sm:gap-3">
         {/* LEFT LABEL: ICON + TEXT (DESKTOP / TABLET) */}
         <div className="flex-none hidden sm:flex items-center gap-2 pl-2 pr-2.5 border-r border-white/10 text-white font-bold text-xs sm:text-sm tracking-tight">
           <SlidersHorizontal className="w-4 h-4 text-netflix-red flex-none" />
@@ -487,7 +481,7 @@ export const FilterBar: React.FC = () => {
             className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto sm:overflow-visible [scrollbar-width:none] [&::-webkit-scrollbar]:hidden py-0.5 flex-nowrap sm:flex-wrap"
           >
             {/* MOBILE ONLY COMPACT LABEL */}
-            <div className="sm:hidden flex-none flex items-center gap-1.5 pl-1 pr-2 border-r text-white font-bold text-xs">
+            <div className="sm:hidden flex-none flex items-center gap-1.5 pl-1 pr-2 border-r border-white/[0.08] text-white font-bold text-xs">
               <SlidersHorizontal className="w-3.5 h-3.5 text-netflix-red flex-none" />
               <span className="whitespace-nowrap">Bộ lọc</span>
             </div>
@@ -502,12 +496,12 @@ export const FilterBar: React.FC = () => {
               aria-expanded={activeDropdown === "type"}
               aria-haspopup="listbox"
               aria-label="Lọc theo loại phim"
-              className={`h-10 px-3.5 sm:px-4 rounded-xl border text-xs sm:text-sm font-semibold transition-all duration-150 flex items-center gap-2 cursor-pointer shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black flex-none ${
+              className={`h-10 px-3.5 sm:px-4 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-150 flex items-center gap-2 cursor-pointer shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black flex-none ${
                 currentType
-                  ? "bg-netflix-red/20 border-netflix-red/60 text-white shadow-md shadow-black/50"
+                  ? "bg-netflix-red/25 text-white shadow-md shadow-black/50"
                   : activeDropdown === "type"
-                  ? "bg-zinc-800 text-white border-zinc-500"
-                  : "bg-white/[0.04] text-zinc-300 border-white/[0.06] hover:bg-white/[0.08] hover:text-white hover:border-white/[0.12]"
+                  ? "bg-zinc-800 text-white shadow-md shadow-black/40"
+                  : "bg-white/[0.05] text-zinc-300 hover:bg-white/[0.1] hover:text-white"
               }`}
             >
               <span className="truncate max-w-[110px] sm:max-w-none">
@@ -534,12 +528,12 @@ export const FilterBar: React.FC = () => {
               aria-expanded={activeDropdown === "genre"}
               aria-haspopup="listbox"
               aria-label="Lọc theo thể loại phim"
-              className={`h-10 px-3.5 sm:px-4 rounded-xl border text-xs sm:text-sm font-semibold transition-all duration-150 flex items-center gap-2 cursor-pointer shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black flex-none ${
+              className={`h-10 px-3.5 sm:px-4 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-150 flex items-center gap-2 cursor-pointer shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black flex-none ${
                 currentCategory
-                  ? "bg-netflix-red/20 border-netflix-red/60 text-white shadow-md shadow-black/50"
+                  ? "bg-netflix-red/25 text-white shadow-md shadow-black/50"
                   : activeDropdown === "genre"
-                  ? "bg-zinc-800 text-white border-zinc-500"
-                  : "bg-white/[0.04] text-zinc-300 border-white/[0.06] hover:bg-white/[0.08] hover:text-white hover:border-white/[0.12]"
+                  ? "bg-zinc-800 text-white shadow-md shadow-black/40"
+                  : "bg-white/[0.05] text-zinc-300 hover:bg-white/[0.1] hover:text-white"
               }`}
             >
               <span className="truncate max-w-[110px] sm:max-w-none">
@@ -566,12 +560,12 @@ export const FilterBar: React.FC = () => {
               aria-expanded={activeDropdown === "country"}
               aria-haspopup="listbox"
               aria-label="Lọc theo quốc gia sản xuất"
-              className={`h-10 px-3.5 sm:px-4 rounded-xl border text-xs sm:text-sm font-semibold transition-all duration-150 flex items-center gap-2 cursor-pointer shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black flex-none ${
+              className={`h-10 px-3.5 sm:px-4 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-150 flex items-center gap-2 cursor-pointer shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black flex-none ${
                 currentCountry
-                  ? "bg-netflix-red/20 border-netflix-red/60 text-white shadow-md shadow-black/50"
+                  ? "bg-netflix-red/25 text-white shadow-md shadow-black/50"
                   : activeDropdown === "country"
-                  ? "bg-zinc-800 text-white border-zinc-500"
-                  : "bg-white/[0.04] text-zinc-300 border-white/[0.06] hover:bg-white/[0.08] hover:text-white hover:border-white/[0.12]"
+                  ? "bg-zinc-800 text-white shadow-md shadow-black/40"
+                  : "bg-white/[0.05] text-zinc-300 hover:bg-white/[0.1] hover:text-white"
               }`}
             >
               <span className="truncate max-w-[110px] sm:max-w-none">
@@ -598,12 +592,12 @@ export const FilterBar: React.FC = () => {
               aria-expanded={activeDropdown === "year"}
               aria-haspopup="listbox"
               aria-label="Lọc theo năm phát hành"
-              className={`h-10 px-3.5 sm:px-4 rounded-xl border text-xs sm:text-sm font-semibold transition-all duration-150 flex items-center gap-2 cursor-pointer shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black flex-none ${
+              className={`h-10 px-3.5 sm:px-4 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-150 flex items-center gap-2 cursor-pointer shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black flex-none ${
                 currentYear
-                  ? "bg-netflix-red/20 border-netflix-red/60 text-white shadow-md shadow-black/50"
+                  ? "bg-netflix-red/25 text-white shadow-md shadow-black/50"
                   : activeDropdown === "year"
-                  ? "bg-zinc-800 text-white border-zinc-500"
-                  : "bg-white/[0.04] text-zinc-300 border-white/[0.06] hover:bg-white/[0.08] hover:text-white hover:border-white/[0.12]"
+                  ? "bg-zinc-800 text-white shadow-md shadow-black/40"
+                  : "bg-white/[0.05] text-zinc-300 hover:bg-white/[0.1] hover:text-white"
               }`}
             >
               <span className="truncate max-w-[110px] sm:max-w-none">
@@ -627,7 +621,7 @@ export const FilterBar: React.FC = () => {
                   type="button"
                   onClick={handleClearAll}
                   aria-label="Xóa tất cả các bộ lọc hiện tại"
-                  className="h-10 px-3 sm:px-3.5 rounded-xl border border-dashed hover:border-netflix-red text-netflix-red hover:text-white hover:bg-netflix-red/20 text-xs sm:text-sm font-semibold transition-all duration-150 flex items-center gap-1.5 cursor-pointer shadow-sm flex-none outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black active:scale-95"
+                  className="h-10 px-3 sm:px-3.5 rounded-xl bg-netflix-red/10 text-netflix-red hover:text-white hover:bg-netflix-red/25 text-xs sm:text-sm font-semibold transition-all duration-150 flex items-center gap-1.5 cursor-pointer shadow-sm flex-none outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black active:scale-95"
                 >
                 {isPending && pendingGroup === "all" ? (
                   <Loader2 className="w-3.5 h-3.5 text-netflix-red animate-spin flex-none" />
@@ -664,93 +658,107 @@ export const FilterBar: React.FC = () => {
 
           {/* Type tag */}
           {currentType && (
-            <button
-              type="button"
-              onClick={() => handleClearKey("type")}
-              className="flex-none inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-zinc-900/90 hover: text-zinc-300 hover:text-white transition cursor-pointer text-xs whitespace-nowrap group"
-              title="Nhấn để bỏ lọc loại phim này"
-            >
-              <span>{activeTypeName}</span>
-              <X className="w-3 h-3 text-zinc-400 group-hover:text-white" />
-            </button>
+            <Tooltip content="Nhấn để bỏ lọc loại phim này" side="top">
+              <button
+                type="button"
+                onClick={() => handleClearKey("type")}
+                aria-label="Nhấn để bỏ lọc loại phim này"
+                className="flex-none inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-zinc-900/90 hover:bg-zinc-800 text-zinc-300 hover:text-white transition cursor-pointer text-xs whitespace-nowrap group"
+              >
+                <span>{activeTypeName}</span>
+                <X className="w-3 h-3 text-zinc-400 group-hover:text-white" />
+              </button>
+            </Tooltip>
           )}
 
           {/* Category tag */}
           {currentCategory && (
-            <button
-              type="button"
-              onClick={() => handleClearKey("category")}
-              className="flex-none inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-zinc-900/90 hover: text-zinc-300 hover:text-white transition cursor-pointer text-xs whitespace-nowrap group"
-              title="Nhấn để bỏ lọc thể loại này"
-            >
-              <span>{activeCategoryName}</span>
-              <X className="w-3 h-3 text-zinc-400 group-hover:text-white" />
-            </button>
+            <Tooltip content="Nhấn để bỏ lọc thể loại này" side="top">
+              <button
+                type="button"
+                onClick={() => handleClearKey("category")}
+                aria-label="Nhấn để bỏ lọc thể loại này"
+                className="flex-none inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-zinc-900/90 hover:bg-zinc-800 text-zinc-300 hover:text-white transition cursor-pointer text-xs whitespace-nowrap group"
+              >
+                <span>{activeCategoryName}</span>
+                <X className="w-3 h-3 text-zinc-400 group-hover:text-white" />
+              </button>
+            </Tooltip>
           )}
 
           {/* Country tag */}
           {currentCountry && (
-            <button
-              type="button"
-              onClick={() => handleClearKey("country")}
-              className="flex-none inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-zinc-900/90 hover: text-zinc-300 hover:text-white transition cursor-pointer text-xs whitespace-nowrap group"
-              title="Nhấn để bỏ lọc quốc gia này"
-            >
-              <span>{activeCountryName}</span>
-              <X className="w-3 h-3 text-zinc-400 group-hover:text-white" />
-            </button>
+            <Tooltip content="Nhấn để bỏ lọc quốc gia này" side="top">
+              <button
+                type="button"
+                onClick={() => handleClearKey("country")}
+                aria-label="Nhấn để bỏ lọc quốc gia này"
+                className="flex-none inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-zinc-900/90 hover:bg-zinc-800 text-zinc-300 hover:text-white transition cursor-pointer text-xs whitespace-nowrap group"
+              >
+                <span>{activeCountryName}</span>
+                <X className="w-3 h-3 text-zinc-400 group-hover:text-white" />
+              </button>
+            </Tooltip>
           )}
 
           {/* Year tag */}
           {currentYear && (
-            <button
-              type="button"
-              onClick={() => handleClearKey("year")}
-              className="flex-none inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-zinc-900/90 hover: text-zinc-300 hover:text-white transition cursor-pointer text-xs whitespace-nowrap group"
-              title="Nhấn để bỏ lọc năm này"
-            >
-              <span>Năm {currentYear}</span>
-              <X className="w-3 h-3 text-zinc-400 group-hover:text-white" />
-            </button>
+            <Tooltip content="Nhấn để bỏ lọc năm này" side="top">
+              <button
+                type="button"
+                onClick={() => handleClearKey("year")}
+                aria-label="Nhấn để bỏ lọc năm này"
+                className="flex-none inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-zinc-900/90 hover:bg-zinc-800 text-zinc-300 hover:text-white transition cursor-pointer text-xs whitespace-nowrap group"
+              >
+                <span>Năm {currentYear}</span>
+                <X className="w-3 h-3 text-zinc-400 group-hover:text-white" />
+              </button>
+            </Tooltip>
           )}
 
           {/* Sort tag */}
           {isCustomSort && (
-            <button
-              type="button"
-              onClick={() => handleClearKey("sort")}
-              className="flex-none inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-zinc-900/90 hover: text-zinc-300 hover:text-white transition cursor-pointer text-xs whitespace-nowrap group"
-              title="Nhấn để đưa về sắp xếp mặc định"
-            >
-              <span>{activeSortName}</span>
-              <X className="w-3 h-3 text-zinc-400 group-hover:text-white" />
-            </button>
+            <Tooltip content="Nhấn để đưa về sắp xếp mặc định" side="top">
+              <button
+                type="button"
+                onClick={() => handleClearKey("sort")}
+                aria-label="Nhấn để đưa về sắp xếp mặc định"
+                className="flex-none inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-zinc-900/90 hover:bg-zinc-800 text-zinc-300 hover:text-white transition cursor-pointer text-xs whitespace-nowrap group"
+              >
+                <span>{activeSortName}</span>
+                <X className="w-3 h-3 text-zinc-400 group-hover:text-white" />
+              </button>
+            </Tooltip>
           )}
 
           {/* Actor tag */}
           {currentActor && (
-            <button
-              type="button"
-              onClick={() => handleClearKey("actor")}
-              className="flex-none inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-zinc-900/90 hover: text-zinc-300 hover:text-white transition cursor-pointer text-xs whitespace-nowrap group"
-              title="Nhấn để bỏ lọc diễn viên này"
-            >
-              <span>Diễn viên: {currentActor}</span>
-              <X className="w-3 h-3 text-zinc-400 group-hover:text-white" />
-            </button>
+            <Tooltip content="Nhấn để bỏ lọc diễn viên này" side="top">
+              <button
+                type="button"
+                onClick={() => handleClearKey("actor")}
+                aria-label="Nhấn để bỏ lọc diễn viên này"
+                className="flex-none inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-zinc-900/90 hover:bg-zinc-800 text-zinc-300 hover:text-white transition cursor-pointer text-xs whitespace-nowrap group"
+              >
+                <span>Diễn viên: {currentActor}</span>
+                <X className="w-3 h-3 text-zinc-400 group-hover:text-white" />
+              </button>
+            </Tooltip>
           )}
 
           {/* Keyword tag */}
           {currentKeyword && !currentActor && (
-            <button
-              type="button"
-              onClick={() => handleClearKey("keyword")}
-              className="flex-none inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-zinc-900/90 hover: text-zinc-300 hover:text-white transition cursor-pointer text-xs whitespace-nowrap group"
-              title="Nhấn để bỏ lọc từ khóa này"
-            >
-              <span>Từ khóa: &quot;{currentKeyword}&quot;</span>
-              <X className="w-3 h-3 text-zinc-400 group-hover:text-white" />
-            </button>
+            <Tooltip content="Nhấn để bỏ lọc từ khóa này" side="top">
+              <button
+                type="button"
+                onClick={() => handleClearKey("keyword")}
+                aria-label="Nhấn để bỏ lọc từ khóa này"
+                className="flex-none inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-zinc-900/90 hover:bg-zinc-800 text-zinc-300 hover:text-white transition cursor-pointer text-xs whitespace-nowrap group"
+              >
+                <span>Từ khóa: &quot;{currentKeyword}&quot;</span>
+                <X className="w-3 h-3 text-zinc-400 group-hover:text-white" />
+              </button>
+            </Tooltip>
           )}
 
           {/* Clear All button */}
@@ -758,7 +766,7 @@ export const FilterBar: React.FC = () => {
             type="button"
             onClick={handleClearAll}
             aria-label="Xóa tất cả các bộ lọc đang chọn"
-            className="flex-none ml-auto text-xs text-netflix-red hover:brightness-110 hover:underline flex items-center gap-1 font-semibold px-2.5 py-1 min-h-[32px] transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-netflix-red/50 rounded-md"
+            className="flex-none ml-auto text-xs text-netflix-red hover:brightness-110 hover:underline flex items-center gap-1 font-semibold px-2.5 py-1.5 min-h-[36px] transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-netflix-red/50 rounded-md"
           >
             <span>[Xóa bộ lọc]</span>
           </button>

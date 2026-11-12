@@ -2,7 +2,7 @@ import React from "react";
 
 export default function MovieDetailLoading() {
   return (
-    <div className="bg-black min-h-screen text-white pt-20 pb-20 px-2 sm:px-4 md:px-8">
+    <div className="bg-black min-h-dvh text-white pt-20 pb-20 px-2 sm:px-4 md:px-8">
       {/* Video Player Skeleton */}
       <div className="w-full max-w-[1800px] mx-auto aspect-video bg-zinc-900/80 rounded-xl animate-pulse flex items-center justify-center">
         <div className="h-16 w-16 rounded-full bg-zinc-800" />
@@ -23,7 +23,7 @@ export default function MovieDetailLoading() {
 
         <div className="lg:col-span-4 rounded-2xl bg-zinc-900/40 p-6 animate-pulse">
           <div className="h-6 w-36 bg-zinc-800 rounded mb-4" />
-          <div className="grid grid-cols-4 gap-2">
+          <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
             {Array.from({ length: 12 }).map((_, i) => (
               <div key={i} className="h-10 bg-zinc-800 rounded" />
             ))}

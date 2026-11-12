@@ -8,7 +8,6 @@ import {
   ChevronDown,
   Tv,
   MonitorSmartphone,
-  Bot,
   Compass,
   LifeBuoy,
   Film,
@@ -23,6 +22,7 @@ import {
 } from "lucide-react";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
+import { Tooltip } from "@/components/ui/Tooltip";
 
 interface FAQItem {
   id: string;
@@ -297,7 +297,7 @@ const FAQ_DATA: FAQItem[] = [
 
 const CATEGORIES = [
   { id: "all", label: "Tất cả", icon: Compass },
-  { id: "guide", label: "📖 Hướng Dẫn & Sử Dụng", icon: BookOpen },
+  { id: "guide", label: "Hướng Dẫn & Sử Dụng", icon: BookOpen },
   { id: "player", label: "Trình Phát & Video", icon: Tv },
   { id: "ai", label: "Gợi Ý & Tìm Kiếm", icon: Compass },
   { id: "account", label: "Tài Khoản & Bảo Mật", icon: MonitorSmartphone },
@@ -334,19 +334,16 @@ export default function FAQPage() {
   }, [selectedCategory, searchQuery]);
 
   return (
-    <div className="min-h-screen bg-[#050505] text-zinc-100 flex flex-col selection:bg-netflix-red selection:text-white font-sans antialiased overflow-x-hidden">
+    <div className="min-h-dvh bg-[#050505] text-zinc-100 flex flex-col selection:bg-netflix-red selection:text-white font-sans antialiased overflow-x-clip">
       <Navbar />
 
-      {/* AMBIENT GLOW */}
-      <div className="fixed top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-[500px] bg-[radial-gradient(ellipse_80%_60%_at_50%_0%,rgba(var(--accent-rgb),0.12),rgba(0,0,0,0))] pointer-events-none -z-10" />
+      <main className="flex-1 pt-24 sm:pt-32 pb-24 px-4 sm:px-8 md:px-12 max-w-6xl mx-auto w-full space-y-14 sm:space-y-20">
 
-      <main className="flex-1 pt-28 sm:pt-32 pb-24 px-4 sm:px-8 md:px-12 max-w-6xl mx-auto w-full space-y-14 sm:space-y-20">
-        
         {/* ================= 1. HERO HEADER ================= */}
         <section className="text-center space-y-6">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/[0.04] border border-white/[0.08] text-xs font-semibold text-zinc-300 backdrop-blur-xl shadow-sm">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-white/[0.05] text-xs font-medium text-zinc-300">
             <HelpCircle size={14} className="text-netflix-red" />
-            <span>Trung Tâm Trợ Giúp & Cẩm Nang Sử Dụng</span>
+            <span>Trung tâm trợ giúp & cẩm nang sử dụng</span>
           </div>
 
           <div className="space-y-3 max-w-2xl mx-auto">
@@ -367,7 +364,7 @@ export default function FAQPage() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Tìm kiếm hướng dẫn (ví dụ: cài app, xem trên TV, phím tắt, giật lag, phụ đề...)"
-                className="w-full pl-11 pr-4 py-3.5 rounded-2xl bg-zinc-950/80 border border-white/[0.1] focus:border-netflix-red/60 focus:bg-black text-sm text-white placeholder-zinc-500 focus:outline-none transition-all shadow-2xl backdrop-blur-xl"
+                className="w-full pl-11 pr-4 py-3.5 rounded-2xl bg-zinc-950/80 border border-white/[0.1] focus:border-netflix-red/60 focus:bg-black text-base sm:text-sm text-white placeholder-zinc-500 focus:outline-none transition-all shadow-2xl backdrop-blur-xl"
               />
               {searchQuery && (
                 <button
@@ -386,9 +383,9 @@ export default function FAQPage() {
         {(!searchQuery || searchQuery.length === 0) && (selectedCategory === "all" || selectedCategory === "guide") && (
           <section className="space-y-6">
             <div className="flex items-center justify-between border-b border-white/[0.08] pb-4">
-              <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-netflix-red">
+              <div className="flex items-center gap-2 text-xs font-semibold text-netflix-red">
                 <BookOpen size={16} />
-                <span>Hướng Dẫn Thao Tác Nhanh</span>
+                <span>Hướng dẫn thao tác nhanh</span>
               </div>
               <span className="text-xs text-zinc-500 font-sans tabular-nums">4 Cẩm Nang Thực Hành</span>
             </div>
@@ -401,10 +398,10 @@ export default function FAQPage() {
                 return (
                   <div
                     key={guide.id}
-                    className={`p-6 sm:p-7 rounded-3xl bg-zinc-950/80 border transition-all duration-300 backdrop-blur-xl space-y-4 ${
+                    className={`p-6 sm:p-7 rounded-2xl transition-colors duration-200 space-y-4 ${
                       isExpanded
-                        ? "border-netflix-red/40 shadow-2xl bg-zinc-900/40"
-                        : "border-white/[0.08] hover:border-white/20"
+                        ? "bg-zinc-900/80 ring-1 ring-netflix-red/40 shadow-xl"
+                        : "bg-zinc-900/50 hover:bg-zinc-900/70"
                     }`}
                   >
                     <div className="flex items-start justify-between gap-4">
@@ -413,23 +410,25 @@ export default function FAQPage() {
                           <Icon size={20} />
                         </div>
                         <div>
-                          <span className="text-[10px] font-sans tabular-nums font-bold px-2 py-0.5 rounded-full bg-white/[0.05] border border-white/[0.08] text-zinc-300">
+                          <span className="text-[10px] font-sans tabular-nums font-bold px-2 py-0.5 rounded-full bg-white/[0.06] text-zinc-300">
                             {guide.badge}
                           </span>
                           <h3 className="text-base font-bold text-white mt-1">{guide.title}</h3>
                         </div>
                       </div>
 
-                      <button
-                        type="button"
-                        onClick={() => setOpenGuideId(isExpanded ? null : guide.id)}
-                        className={`p-2 rounded-xl bg-white/[0.04] border border-white/[0.08] text-zinc-400 hover:text-white transition-transform cursor-pointer ${
-                          isExpanded ? "rotate-180 bg-netflix-red/20 text-netflix-red " : ""
-                        }`}
-                        title={isExpanded ? "Thu gọn" : "Xem chi tiết"}
-                      >
-                        <ChevronDown size={16} />
-                      </button>
+                      <Tooltip content={isExpanded ? "Thu gọn" : "Xem chi tiết"} side="top">
+                        <button
+                          type="button"
+                          onClick={() => setOpenGuideId(isExpanded ? null : guide.id)}
+                          aria-label={isExpanded ? "Thu gọn" : "Xem chi tiết"}
+                          className={`p-2 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] text-zinc-400 hover:text-white transition-transform cursor-pointer ${
+                            isExpanded ? "rotate-180 bg-netflix-red/20 text-netflix-red" : ""
+                          }`}
+                        >
+                          <ChevronDown size={16} />
+                        </button>
+                      </Tooltip>
                     </div>
 
                     <p className="text-xs text-zinc-400 leading-relaxed">{guide.summary}</p>
@@ -440,7 +439,7 @@ export default function FAQPage() {
                         {guide.steps && (
                           <div className="space-y-2.5">
                             {guide.steps.map((s, idx) => (
-                              <div key={idx} className="p-3.5 rounded-2xl bg-black/50 border border-white/[0.05] space-y-1">
+                              <div key={idx} className="p-3.5 rounded-2xl bg-black/45 space-y-1">
                                 <div className="text-xs font-bold text-zinc-200 flex items-center gap-1.5">
                                   <CheckCircle2 size={13} className="text-emerald-400 shrink-0" />
                                   <span>{s.device}</span>
@@ -456,7 +455,7 @@ export default function FAQPage() {
                             {guide.shortcuts.map((sc, idx) => (
                               <div
                                 key={idx}
-                                className="p-2.5 rounded-xl bg-black/50 border border-white/[0.05] flex items-center justify-between gap-2 text-xs"
+                                className="p-2.5 rounded-xl bg-black/45 flex items-center justify-between gap-2 text-xs"
                               >
                                 <span className="text-[11px] text-zinc-400">{sc.desc}</span>
                                 <kbd className="px-2 py-0.5 rounded bg-zinc-800 text-white font-sans tabular-nums text-[10px] font-bold shrink-0">
@@ -489,7 +488,7 @@ export default function FAQPage() {
                   className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
                     active
                       ? "bg-netflix-red text-white shadow-md shadow-black/50 scale-[1.02]"
-                      : "bg-zinc-900/60 hover:bg-zinc-900 text-zinc-400 hover:text-white border border-white/[0.06]"
+                      : "bg-zinc-900/70 hover:bg-zinc-800/80 text-zinc-400 hover:text-white"
                   }`}
                 >
                   <Icon size={14} />
@@ -502,7 +501,7 @@ export default function FAQPage() {
           {/* ================= 4. ACCORDION FAQ LIST ================= */}
           <div className="space-y-4">
             {filteredFAQs.length === 0 ? (
-              <div className="p-12 text-center rounded-3xl bg-zinc-950/60 border border-white/[0.08] text-zinc-400 space-y-3">
+              <div className="p-6 sm:p-12 text-center rounded-2xl bg-zinc-900/50 text-zinc-400 space-y-3">
                 <HelpCircle size={32} className="mx-auto text-zinc-500 opacity-60" />
                 <p className="text-sm font-medium">Không tìm thấy câu hỏi phù hợp với từ khóa &ldquo;{searchQuery}&rdquo;.</p>
                 <button
@@ -517,14 +516,14 @@ export default function FAQPage() {
                 </button>
               </div>
             ) : (
-              <div className="rounded-2xl sm:rounded-3xl bg-zinc-900/40 border border-white/[0.08] divide-y divide-white/[0.06] overflow-hidden backdrop-blur-md">
+              <div className="rounded-2xl sm:rounded-3xl bg-zinc-900/50 divide-y divide-white/[0.06] overflow-hidden">
                 {filteredFAQs.map((faq) => {
                   const isOpen = Boolean(openItems[faq.id]);
                   return (
                     <div
                       key={faq.id}
                       className={`transition-colors duration-200 ${
-                        isOpen ? "bg-zinc-900/40" : "hover:bg-white/[0.015]"
+                        isOpen ? "bg-zinc-900/70" : "hover:bg-white/[0.02]"
                       }`}
                     >
                       <button
@@ -533,7 +532,7 @@ export default function FAQPage() {
                         className="w-full p-4 sm:p-5 text-left flex items-start justify-between gap-4 cursor-pointer select-none"
                       >
                         <div className="space-y-1 min-w-0">
-                          <span className="text-[10px] font-sans tabular-nums text-netflix-red font-bold uppercase tracking-wider">
+                          <span className="text-[11px] font-sans tabular-nums text-netflix-red font-medium">
                             {faq.categoryLabel}
                           </span>
                           <h3 className="text-sm sm:text-base font-bold text-white leading-snug">
@@ -541,8 +540,8 @@ export default function FAQPage() {
                           </h3>
                         </div>
                         <div
-                          className={`p-2 rounded-xl bg-white/[0.04] border border-white/[0.08] text-zinc-400 flex-shrink-0 transition-transform duration-300 ${
-                            isOpen ? "rotate-180 bg-netflix-red/20 text-netflix-red " : ""
+                          className={`p-2 rounded-xl bg-white/[0.05] text-zinc-400 flex-shrink-0 transition-transform duration-300 ${
+                            isOpen ? "rotate-180 bg-netflix-red/20 text-netflix-red" : ""
                           }`}
                         >
                           <ChevronDown size={16} />
@@ -550,7 +549,7 @@ export default function FAQPage() {
                       </button>
 
                       {isOpen && (
-                        <div className="px-5 sm:px-6 pb-6 pt-1 space-y-3 text-xs sm:text-sm text-zinc-300 leading-relaxed border-t border-white/[0.05]">
+                        <div className="px-5 sm:px-6 pb-6 pt-2 space-y-3 text-xs sm:text-sm text-zinc-300 leading-relaxed border-t border-white/[0.06]">
                           <p>{faq.answer}</p>
                           {faq.tips && (
                             <div className="p-3.5 rounded-xl bg-amber-500/10 text-amber-300 text-xs flex items-start gap-2.5">
@@ -569,9 +568,9 @@ export default function FAQPage() {
         </section>
 
         {/* ================= 5. STILL NEED HELP CTA ================= */}
-        <section className="p-8 sm:p-10 rounded-3xl bg-gradient-to-r from-zinc-900/90 via-zinc-950 to-black border border-white/[0.1] backdrop-blur-2xl flex flex-col md:flex-row items-center justify-between gap-6">
+        <section className="p-5 sm:p-10 rounded-3xl bg-zinc-900/60 flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="space-y-1.5 text-center md:text-left">
-            <div className="flex items-center justify-center md:justify-start gap-2 text-netflix-red text-xs font-bold uppercase tracking-wider">
+            <div className="flex items-center justify-center md:justify-start gap-2 text-netflix-red text-xs font-semibold">
               <LifeBuoy size={14} />
               <span>Chưa Tìm Thấy Lời Giải Đáp?</span>
             </div>

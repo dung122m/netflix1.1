@@ -2,7 +2,7 @@ import { describe, it, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 import { movieApi } from "@/services/movies/service";
 import { cacheService } from "@/lib/cache";
-import { middleware } from "@/middleware";
+import { proxy } from "@/proxy";
 import { NextRequest } from "next/server";
 
 describe("SSR Deduplication & Redis DB1 Optimization Tests", () => {
@@ -37,7 +37,7 @@ describe("SSR Deduplication & Redis DB1 Optimization Tests", () => {
         "user-agent": "Mozilla/5.0 (compatible; Bytespider; spider-feedback@bytedance.com)",
       },
     });
-    const byteRes = middleware(byteReq);
+    const byteRes = proxy(byteReq);
     assert.equal(byteRes.status, 403, "Bytespider must be rejected with 403");
 
     // PetalBot request
@@ -46,7 +46,7 @@ describe("SSR Deduplication & Redis DB1 Optimization Tests", () => {
         "user-agent": "Mozilla/5.0 (compatible; PetalBot; +https://aspiegel.com/petalbot)",
       },
     });
-    const petalRes = middleware(petalReq);
+    const petalRes = proxy(petalReq);
     assert.equal(petalRes.status, 403, "PetalBot must be rejected with 403");
 
     // Googlebot request - MUST BE ALLOWED
@@ -55,7 +55,7 @@ describe("SSR Deduplication & Redis DB1 Optimization Tests", () => {
         "user-agent": "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)",
       },
     });
-    const googleRes = middleware(googleReq);
+    const googleRes = proxy(googleReq);
     assert.equal(googleRes.status, 200, "Googlebot must be allowed to proceed");
 
     // Normal browser request - MUST BE ALLOWED
@@ -64,7 +64,7 @@ describe("SSR Deduplication & Redis DB1 Optimization Tests", () => {
         "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
       },
     });
-    const normalRes = middleware(normalReq);
+    const normalRes = proxy(normalReq);
     assert.equal(normalRes.status, 200, "Standard user browser must be allowed to proceed");
   });
 
@@ -75,7 +75,7 @@ describe("SSR Deduplication & Redis DB1 Optimization Tests", () => {
         "user-agent": "Mozilla/5.0",
       },
     });
-    const privateRes = middleware(privateReq);
+    const privateRes = proxy(privateReq);
     assert.equal(privateRes.headers.get("Cache-Control"), "private, no-cache, no-store, max-age=0, must-revalidate");
     assert.equal(privateRes.headers.get("CDN-Cache-Control"), "no-store");
     assert.equal(privateRes.headers.get("Cloudflare-CDN-Cache-Control"), "no-store");
@@ -87,7 +87,7 @@ describe("SSR Deduplication & Redis DB1 Optimization Tests", () => {
         "authorization": "Bearer sample_token",
       },
     });
-    const authRes = middleware(authReq);
+    const authRes = proxy(authReq);
     assert.equal(authRes.headers.get("Cache-Control"), "private, no-cache, no-store, max-age=0, must-revalidate");
     assert.equal(authRes.headers.get("CDN-Cache-Control"), "no-store");
     assert.equal(authRes.headers.get("Cloudflare-CDN-Cache-Control"), "no-store");
@@ -131,7 +131,7 @@ describe("SSR Deduplication & Redis DB1 Optimization Tests", () => {
         "rsc": "1",
       },
     });
-    const rscRes = middleware(rscReq);
+    const rscRes = proxy(rscReq);
     assert.equal(rscRes.headers.get("CDN-Cache-Control"), "no-store");
     assert.equal(rscRes.headers.get("Cloudflare-CDN-Cache-Control"), "no-store");
 
@@ -141,7 +141,7 @@ describe("SSR Deduplication & Redis DB1 Optimization Tests", () => {
         "user-agent": "Mozilla/5.0",
       },
     });
-    const rscQueryRes = middleware(rscQueryReq);
+    const rscQueryRes = proxy(rscQueryReq);
     assert.equal(rscQueryRes.headers.get("CDN-Cache-Control"), "no-store");
     assert.equal(rscQueryRes.headers.get("Cloudflare-CDN-Cache-Control"), "no-store");
   });
@@ -152,7 +152,7 @@ describe("SSR Deduplication & Redis DB1 Optimization Tests", () => {
         "user-agent": "Mozilla/5.0",
       },
     });
-    const publicRes = middleware(publicReq);
+    const publicRes = proxy(publicReq);
     assert.equal(publicRes.headers.get("X-Content-Type-Options"), "nosniff");
     assert.equal(publicRes.headers.get("X-Frame-Options"), "SAMEORIGIN");
     assert.equal(publicRes.headers.get("Set-Cookie"), null, "Tuyệt đối không rò rỉ Set-Cookie trên route public");
@@ -178,7 +178,7 @@ describe("SSR Deduplication & Redis DB1 Optimization Tests", () => {
     );
     assert.equal(
       actorRule.headers.find((h: { key: string }) => h.key === "Cache-Control")?.value,
-      "public, s-maxage=3600, stale-while-revalidate=86400"
+      "public, s-maxage=86400, stale-while-revalidate=86400"
     );
     assert.equal(
       browseRule.headers.find((h: { key: string }) => h.key === "Cache-Control")?.value,

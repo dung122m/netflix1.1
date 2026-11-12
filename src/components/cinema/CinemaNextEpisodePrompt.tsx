@@ -3,7 +3,8 @@
 import React from "react";
 import Image from "next/image";
 import { Play, X } from "lucide-react";
-import { toOptimizedCardPosterUrl } from "@/lib/movieMedia";
+import { Tooltip } from "@/components/ui/Tooltip";
+import { toOptimizedCardPosterUrl, toFastCdnImageUrl } from "@/lib/movieMedia";
 import { formatEpisodeName } from "@/lib/formatEpisode";
 
 export interface CinemaNextEpisodePromptProps {
@@ -34,7 +35,7 @@ export const CinemaNextEpisodePrompt: React.FC<CinemaNextEpisodePromptProps> = (
       {posterUrl && (
         <div className="relative w-14 h-14 sm:w-16 sm:h-16 rounded-xl overflow-hidden shrink-0 bg-zinc-900">
           <Image
-            src={toOptimizedCardPosterUrl(posterUrl, 192) || posterUrl}
+            src={toFastCdnImageUrl(toOptimizedCardPosterUrl(posterUrl, 192) || posterUrl)}
             alt={nextEpisode.name || "Tập tiếp theo"}
             fill
             unoptimized
@@ -66,15 +67,16 @@ export const CinemaNextEpisodePrompt: React.FC<CinemaNextEpisodePromptProps> = (
           <Play className="w-3.5 h-3.5 fill-white" />
           <span>Xem ngay</span>
         </button>
-        <button
-          type="button"
-          onClick={onDismiss}
-          title="Hủy tự chuyển tập"
-          aria-label="Hủy tự chuyển tập"
-          className="p-1.5 rounded-full hover:bg-white/20 text-zinc-400 hover:text-white transition cursor-pointer"
-        >
-          <X className="w-4 h-4" />
-        </button>
+        <Tooltip content="Hủy tự chuyển tập" side="top" align="end">
+          <button
+            type="button"
+            onClick={onDismiss}
+            aria-label="Hủy tự chuyển tập"
+            className="p-1.5 rounded-full hover:bg-white/20 text-zinc-400 hover:text-white transition cursor-pointer"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </Tooltip>
       </div>
     </div>
   );

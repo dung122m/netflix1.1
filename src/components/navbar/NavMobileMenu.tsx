@@ -313,7 +313,7 @@ export const NavMobileMenu: React.FC<NavMobileMenuProps> = React.memo(function N
                     const updated = applyAccent(preset.id);
                     setCurrentAccent(updated);
                   }}
-                  className={`flex flex-col items-center justify-center p-1.5 rounded-xl transition-all cursor-pointer ${
+                  className={`flex flex-col items-center justify-center p-1.5 min-h-[38px] rounded-xl transition-all cursor-pointer ${
                     isSelected
                       ? "bg-white/15 scale-105 border"
                       : "bg-black/40 hover:bg-white/10"

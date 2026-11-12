@@ -21,7 +21,7 @@ export function LiveTvSkeleton() {
         {Array.from({ length: 18 }).map((_, idx) => (
           <div
             key={idx}
-            className="rounded-xl sm:rounded-2xl bg-zinc-900/80 border border-white/[0.06] p-2.5 sm:p-3 flex flex-col items-center justify-between gap-2.5 min-h-[110px] sm:min-h-[125px]"
+            className="rounded-xl sm:rounded-2xl bg-zinc-900/80 p-2.5 sm:p-3 flex flex-col items-center justify-between gap-2.5 min-h-[110px] sm:min-h-[125px]"
           >
             {/* Top row mini badge */}
             <div className="w-full flex items-center justify-between">

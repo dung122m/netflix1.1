@@ -7,6 +7,7 @@ import { getWatchedEpisodes, unmarkEpisodeAsWatched, extractEpisodeNumber } from
 import { getShortEpisodeLabel, formatEpisodeName, findEpisodeMatch } from "@/lib/formatEpisode";
 import { useWatchController, EpisodeItem } from "@/components/cinema/WatchController";
 import { ScrollablePillsRow } from "@/components/ui/ScrollablePillsRow";
+import { Tooltip } from "@/components/ui/Tooltip";
 import { getMovieEpisodesProgress, EpisodeProgressData } from "@/lib/watchHistory";
 
 import WatchlistButton from "@/components/movies/WatchlistButton";
@@ -306,9 +307,9 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(function Episo
     }
     // Khi nhiều tập (> 12 tập): nhãn chỉ là số ngắn (1, 2, 3...)
     if (episodes.length <= 25) {
-      return "grid grid-cols-4 min-[400px]:grid-cols-5 gap-2";
+      return "grid grid-cols-3 min-[360px]:grid-cols-4 min-[460px]:grid-cols-5 gap-2";
     }
-    return "grid grid-cols-4 min-[400px]:grid-cols-5 sm:grid-cols-6 gap-2";
+    return "grid grid-cols-3 min-[360px]:grid-cols-4 min-[460px]:grid-cols-5 sm:grid-cols-6 gap-2";
   }, [episodes.length, isSearching, displayEpisodes.length]);
 
   if (!episodes || episodes.length === 0) {
@@ -333,7 +334,7 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(function Episo
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Tìm nhanh số tập (vd: 1, 59, 199)..."
               aria-label="Tìm nhanh số tập"
-              className="w-full pl-8 pr-7 py-1.5 rounded-lg bg-zinc-900/90 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-netflix-red/70 focus:bg-zinc-900/95 focus:ring-1 focus:ring-netflix-red/30 transition shadow-inner"
+              className="w-full pl-8 pr-8 py-2 sm:py-1.5 rounded-lg bg-zinc-900/90 text-base sm:text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-netflix-red/70 focus:bg-zinc-900/95 focus:ring-1 focus:ring-netflix-red/30 transition shadow-inner"
             />
             {searchQuery && (
               <button
@@ -370,7 +371,7 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(function Episo
 
         {/* THANH ĐIỀU KHIỂN LƯU TẬP PHIM ĐANG CHỌN (CHỈ HIỆN KHI DẢI TẬP ÍT ĐỂ KHÔNG LÃNG PHÍ CHIỀU DỌC) */}
         {!isSearching && currentActiveEpisode?.slug && episodes.length > 1 && chunks.length <= 4 && (
-          <div className="flex items-center justify-between gap-1.5 px-2.5 py-1 rounded-lg bg-zinc-900/60 text-xs border border-white/[0.04]">
+          <div className="flex items-center justify-between gap-1.5 px-2.5 py-1 rounded-lg bg-zinc-900/70 text-xs">
             <div className="flex items-center gap-1.5 min-w-0">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse flex-shrink-0" aria-hidden="true" />
               <span className="text-zinc-300 truncate text-[11px]">
@@ -394,7 +395,7 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(function Episo
                   episodeName: currentActiveEpisode.name || currentActiveEpisode.slug,
                 }}
                 variant="player"
-                className="!px-1.5 !py-0.5 !min-h-[24px] !text-[10px]"
+                className="!px-2 !py-1 !min-h-[32px] sm:!min-h-[26px] !text-[11px]"
                 label="Lưu tập"
               />
               <AddToCollectionButton
@@ -412,7 +413,7 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(function Episo
                   episodeName: currentActiveEpisode.name || currentActiveEpisode.slug,
                 }}
                 variant="player"
-                className="!px-1.5 !py-0.5 !min-h-[24px] !text-[10px]"
+                className="!px-2 !py-1 !min-h-[32px] sm:!min-h-[26px] !text-[11px]"
                 label="Bộ sưu tập"
               />
             </div>
@@ -424,7 +425,7 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(function Episo
           <div className="space-y-1">
             {chunks.length > 4 ? (
               /* KHI CÓ NHIỀU DẢI TẬP (> 4 dải, vd Conan 41 dải): Thu gọn thành 1 hàng duy nhất kèm nút nhảy về tập đang xem */
-              <div className="flex items-center justify-between gap-1.5 p-1 rounded-lg bg-zinc-900/80 border border-white/[0.06]">
+              <div className="flex items-center justify-between gap-1.5 p-1 rounded-lg bg-zinc-900/80">
                 <div className="relative flex-1 min-w-0" ref={chunkDropdownRef}>
                   <button
                     type="button"
@@ -432,7 +433,7 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(function Episo
                     aria-haspopup="listbox"
                     aria-expanded={isChunkDropdownOpen}
                     aria-label="Chọn dải tập phim"
-                    className="w-full flex items-center justify-between gap-2 bg-zinc-900/90 hover:bg-zinc-800 text-white text-xs font-bold py-1.5 pl-2.5 pr-2 rounded-md border border-white/10 transition cursor-pointer text-left"
+                    className="w-full flex items-center justify-between gap-2 bg-zinc-800/80 hover:bg-zinc-800 text-white text-xs font-bold py-2 sm:py-1.5 min-h-[36px] sm:min-h-[30px] pl-2.5 pr-2 rounded-md transition cursor-pointer text-left"
                   >
                     <span className="truncate">
                       {chunks[activeChunk]?.label || `Tập ${activeChunk * CHUNK_SIZE + 1} - ${(activeChunk + 1) * CHUNK_SIZE}`}
@@ -446,7 +447,7 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(function Episo
 
                   {/* MENU DROPDOWN CUSTOM SANG TRỌNG CHUẨN CINEMA (KHÔNG DÙNG NATIVE SELECT) */}
                   {isChunkDropdownOpen && (
-                    <div className="absolute left-0 top-full mt-1.5 w-full min-w-[210px] max-h-64 overflow-y-auto rounded-xl bg-zinc-950/95 backdrop-blur-xl border border-white/10 shadow-[0_12px_40px_rgba(0,0,0,0.85)] p-1 z-50 animate-in fade-in zoom-in-95 duration-150 scrollbar-thin">
+                    <div className="absolute left-0 top-full mt-1.5 w-full min-w-0 sm:min-w-[210px] max-h-64 overflow-y-auto rounded-xl bg-zinc-950/98 backdrop-blur-xl shadow-[0_12px_40px_rgba(0,0,0,0.9)] p-1 z-50 animate-in fade-in zoom-in-95 duration-150 scrollbar-thin">
                       {chunks.map((c) => {
                         const isSelected = c.index === activeChunk;
                         const isPlaying = c.index === initialChunk;
@@ -467,7 +468,7 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(function Episo
                             <span className="truncate">{c.label}</span>
                             <div className="flex items-center gap-1.5 shrink-0 ml-2">
                               {isPlaying && (
-                                <span className={`inline-flex items-center gap-1 px-1.5 py-0.2 rounded text-[10px] font-medium ${
+                                <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium ${
                                   isSelected ? "bg-black/30 text-emerald-200" : "bg-emerald-500/20 text-emerald-300"
                                 }`}>
                                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
@@ -485,21 +486,27 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(function Episo
 
                 {/* Nút nhảy nhanh về dải tập đang xem nếu người dùng đang duyệt dải khác */}
                 {activeChunk !== initialChunk && activeEpisodeIndex >= 0 ? (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setActiveChunk(initialChunk);
-                      setIsChunkDropdownOpen(false);
-                    }}
-                    title={`Chuyển về dải tập chứa ${currentActiveEpisode?.name || "tập đang phát"}`}
-                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-netflix-red hover:brightness-110 text-white text-[11px] font-bold shadow-sm transition-all cursor-pointer shrink-0 animate-in fade-in"
+                  <Tooltip
+                    content={`Chuyển về dải tập chứa ${currentActiveEpisode?.name || "tập đang phát"}`}
+                    side="top"
+                    align="end"
                   >
-                    <Target className="w-3 h-3 shrink-0" />
-                    <span className="truncate max-w-[130px]">Về {currentActiveEpisode?.name || `Tập ${activeEpisodeIndex + 1}`}</span>
-                  </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveChunk(initialChunk);
+                        setIsChunkDropdownOpen(false);
+                      }}
+                      aria-label={`Chuyển về dải tập chứa ${currentActiveEpisode?.name || "tập đang phát"}`}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-netflix-red hover:brightness-110 text-white text-[11px] font-bold shadow-sm transition-all cursor-pointer shrink-0 animate-in fade-in"
+                    >
+                      <Target className="w-3 h-3 shrink-0" />
+                      <span className="truncate max-w-[130px]">Về {currentActiveEpisode?.name || `Tập ${activeEpisodeIndex + 1}`}</span>
+                    </button>
+                  </Tooltip>
                 ) : (
                   <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] text-emerald-400 font-medium shrink-0 bg-emerald-500/10 rounded-md">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
                     <span>Đang phát {currentActiveEpisode?.name ? `• ${currentActiveEpisode.name}` : ""}</span>
                   </span>
                 )}
@@ -514,9 +521,9 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(function Episo
                       type="button"
                       aria-pressed={isSelected}
                       onClick={() => setActiveChunk(chunk.index)}
-                      className={`px-2.5 py-1 min-h-[28px] rounded-lg text-[11px] font-bold whitespace-nowrap transition cursor-pointer select-none border ${
+                      className={`px-2.5 py-1.5 min-h-[36px] sm:min-h-[30px] rounded-lg text-[11px] font-bold whitespace-nowrap transition cursor-pointer select-none ${
                         isSelected
-                          ? "bg-white text-zinc-950 border-white shadow-sm font-black scale-[1.01]"
+                          ? "bg-white text-zinc-950 shadow-sm font-black scale-[1.01]"
                           : "bg-zinc-900/90 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800"
                       }`}
                     >
@@ -531,7 +538,7 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(function Episo
       </div>
 
       {/* 2. KHUNG CUỘN DANH SÁCH TẬP PHIM (TỐI ƯU DESKTOP SIDEBAR, VUỐT MƯỢT KHÔNG BỊ TRAP TRÊN MOBILE) */}
-      <div className="flex-1 min-h-0 max-lg:overflow-y-visible max-lg:overscroll-auto lg:overflow-y-auto lg:overscroll-contain overflow-x-hidden px-1.5 custom-scrollbar touch-pan-y">
+      <div className="flex-1 min-h-0 max-lg:overflow-y-visible lg:overflow-y-auto overscroll-auto overflow-x-hidden px-1.5 custom-scrollbar">
 
       {/* TRƯỜNG HỢP TÌM KIẾM CHỈ RA 1 TẬP: HIỂN THỊ THẺ TẬP NỔI BẬT CAO CẤP */}
       {isSearching && displayEpisodes.length === 1 && (() => {
@@ -580,12 +587,12 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(function Episo
                 <div
                   className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 font-bold text-sm ${
                     isActive
-                      ? "bg-gradient-to-br from-netflix-red to-netflix-red/80 text-white shadow-lg shadow-netflix-red/40 "
-                      : "bg-white/10 text-white "
+                      ? "bg-gradient-to-br from-netflix-red to-netflix-red/80 text-white shadow-md shadow-black/50"
+                      : "bg-white/10 text-white"
                   }`}
                 >
                   {isActive ? (
-                    <span className="flex items-end gap-[2px] h-3.5" title="Đang phát">
+                    <span className="flex items-end gap-[2px] h-3.5" aria-hidden="true">
                       <span className="w-[2px] bg-white rounded-full animate-pulse h-2" />
                       <span className="w-[2px] bg-white rounded-full animate-pulse h-3.5" />
                       <span className="w-[2px] bg-white rounded-full animate-pulse h-2" />
@@ -599,7 +606,7 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(function Episo
                   <h4 className="text-sm font-bold text-white truncate flex items-center gap-2">
                     <span>{formatEpisodeName(tapName)}</span>
                     {isActive && (
-                      <span className="text-[10px] uppercase font-bold px-1.5 py-0.5 rounded-full bg-netflix-red/25 text-white border border-netflix-red/40 shrink-0">
+                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-netflix-red/25 text-white shrink-0">
                         Đang phát
                       </span>
                     )}
@@ -628,8 +635,8 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(function Episo
                 }}
                 className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 ${
                   isActive
-                    ? "bg-zinc-800 text-zinc-300  cursor-default"
-                    : "bg-netflix-red hover:brightness-110 text-white shadow-md shadow-netflix-red/30 active:scale-95 cursor-pointer"
+                    ? "bg-zinc-800 text-zinc-300 cursor-default"
+                    : "bg-netflix-red hover:brightness-110 text-white shadow-md shadow-black/50 active:scale-95 cursor-pointer"
                 }`}
               >
                 {isActive ? "Đang chọn" : "Phát ngay"}
@@ -644,7 +651,7 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(function Episo
                   setActiveChunk(chunkIdx);
                   setSearchQuery("");
                 }}
-                className="w-full flex items-center justify-between px-3 py-2 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] hover: transition text-xs text-zinc-300 hover:text-white group cursor-pointer"
+                className="w-full flex items-center justify-between px-3 py-2 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] transition text-xs text-zinc-300 hover:text-white group cursor-pointer"
               >
                 <span className="flex items-center gap-1.5 text-zinc-400 group-hover:text-zinc-200 truncate">
                   <span>Xem trong dải tập:</span>
@@ -747,7 +754,7 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(function Episo
                   scroll={false}
                   tabIndex={0}
                   aria-current={isActive ? "page" : undefined}
-                  title={itemTitle}
+                  aria-label={itemTitle}
                   onClick={(e) => {
                     if (switchEpisode && tap.slug) {
                       e.preventDefault();
@@ -761,10 +768,10 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(function Episo
                       ? "py-2.5 px-3 min-h-[38px] text-xs sm:text-sm font-bold"
                       : isFewEpisodes
                       ? "py-2 px-2 sm:px-2.5 min-h-[36px] text-xs sm:text-[13px] font-bold"
-                      : "py-1.5 px-1 min-h-[32px] sm:min-h-[34px] text-xs sm:text-[13px] font-bold"
+                      : "py-2 px-1.5 min-h-[38px] sm:min-h-[34px] text-xs sm:text-[13px] font-bold"
                   } ${
                     isActive
-                      ? "bg-gradient-to-br from-netflix-red to-netflix-red/80 text-white font-black shadow-lg shadow-netflix-red/40 scale-[1.02] ring-1 ring-white/20 z-10"
+                      ? "bg-gradient-to-br from-netflix-red to-netflix-red/80 text-white font-black shadow-md shadow-black/50 scale-[1.02] ring-1 ring-white/20 z-10"
                       : isWatched
                       ? "bg-zinc-950/70 hover:bg-zinc-900 text-zinc-400 hover:text-zinc-200 hover:scale-[1.02]"
                       : "bg-white/[0.06] hover:bg-white/[0.12] text-zinc-200 hover:text-white hover:scale-[1.02] active:scale-[0.98] shadow-xs"
@@ -773,7 +780,7 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(function Episo
                   <div className="flex items-center justify-center gap-1 sm:gap-1.5 w-full min-w-0 px-1">
                     {/* Equalizer 3 cột sóng âm sống động khi tập đang phát */}
                     {isActive && (
-                      <span className="flex items-end gap-[2px] h-3 shrink-0" aria-hidden="true" title="Đang phát">
+                      <span className="flex items-end gap-[2px] h-3 shrink-0" aria-hidden="true">
                         <span className="w-[2px] bg-white rounded-full animate-[pulse_0.7s_ease-in-out_infinite] h-2" />
                         <span className="w-[2px] bg-white rounded-full animate-[pulse_1.1s_ease-in-out_infinite_0.2s] h-3" />
                         <span className="w-[2px] bg-white rounded-full animate-[pulse_0.9s_ease-in-out_infinite_0.4s] h-2" />
@@ -794,7 +801,7 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(function Episo
                     {/* Icon Checkmark tinh tế cho tập đã xem */}
                     {!isActive && isWatched && (
                       <span
-                        title="Đã xem"
+                        aria-label="Đã xem"
                         className="w-3.5 h-3.5 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0"
                       >
                         <Check className="w-2.5 h-2.5 stroke-[2.5]" />
@@ -825,7 +832,7 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(function Episo
               <button
                 type="button"
                 onClick={() => setIsMobileExpanded((prev) => !prev)}
-                className="w-full py-2 px-3 rounded-xl bg-white/[0.06] hover:bg-white/10 active:bg-white/15 text-xs font-bold text-zinc-200 hover:text-white transition-all flex items-center justify-center gap-1.5 border border-white/[0.08] cursor-pointer shadow-xs active:scale-[0.99]"
+                className="w-full py-2 px-3 rounded-xl bg-white/[0.07] hover:bg-white/12 active:bg-white/15 text-xs font-bold text-zinc-200 hover:text-white transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-xs active:scale-[0.99]"
               >
                 {isMobileExpanded ? (
                   <>

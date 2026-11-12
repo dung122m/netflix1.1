@@ -1,8 +1,30 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isR2Configured, checkR2ObjectExists, uploadToR2, getR2PublicUrl } from "@/lib/r2";
+import {
+  enforceRateLimit,
+  buildRateLimitResponse,
+  RATE_LIMIT_PRESETS,
+} from "@/lib/rateLimit";
 
 export const runtime = "nodejs";
 export const maxDuration = 10;
+
+// L1 cache tránh gọi lặp S3 HeadObjectCommand (Class B ops) cho cùng key
+const r2ExistsCache = new Map<string, { exists: boolean; expiresAt: number }>();
+const R2_EXISTS_TTL_MS = 6 * 60 * 60 * 1000;
+const R2_MISS_TTL_MS = 5 * 60 * 1000;
+const MAX_R2_EXISTS_CACHE = 3000;
+
+function setR2ExistsCache(key: string, exists: boolean): void {
+  if (r2ExistsCache.size >= MAX_R2_EXISTS_CACHE) {
+    const firstKey = r2ExistsCache.keys().next().value;
+    if (firstKey !== undefined) r2ExistsCache.delete(firstKey);
+  }
+  r2ExistsCache.set(key, {
+    exists,
+    expiresAt: Date.now() + (exists ? R2_EXISTS_TTL_MS : R2_MISS_TTL_MS),
+  });
+}
 
 // Danh sách các domain ảnh nguồn được phép cache qua R2
 const ALLOWED_SOURCE_DOMAINS = [
@@ -28,6 +50,11 @@ function sanitizeR2Key(rawUrl: string): string | null {
 }
 
 export async function GET(req: NextRequest) {
+  const rateLimit = await enforceRateLimit(req, RATE_LIMIT_PRESETS.POSTER_FALLBACK_IN_MEMORY);
+  if (!rateLimit.allowed) {
+    return buildRateLimitResponse(rateLimit);
+  }
+
   const { searchParams } = new URL(req.url);
   const targetUrl = searchParams.get("url")?.trim();
 
@@ -41,9 +68,17 @@ export async function GET(req: NextRequest) {
     return NextResponse.redirect(targetUrl, 302);
   }
 
-  // 1. Kiểm tra xem ảnh này đã được cache trên Cloudflare R2 chưa
+  // 1. Kiểm tra xem ảnh này đã được cache trên Cloudflare R2 chưa (ưu tiên RAM L1 cache trước khi gọi S3 HeadObject)
   if (isR2Configured()) {
-    const exists = await checkR2ObjectExists(r2Key);
+    const cachedCheck = r2ExistsCache.get(r2Key);
+    let exists: boolean | undefined =
+      cachedCheck && cachedCheck.expiresAt > Date.now() ? cachedCheck.exists : undefined;
+
+    if (exists === undefined) {
+      exists = await checkR2ObjectExists(r2Key);
+      setR2ExistsCache(r2Key, exists);
+    }
+
     if (exists) {
       const publicR2Url = getR2PublicUrl(r2Key);
       return NextResponse.redirect(publicR2Url, {
@@ -89,9 +124,13 @@ export async function GET(req: NextRequest) {
         buffer,
         contentType,
         cacheControl: "public, max-age=31536000, immutable",
-      }).catch((uploadErr) => {
-        console.warn("[R2 Proxy] Background upload error:", uploadErr);
-      });
+      })
+        .then((uploadedUrl) => {
+          if (uploadedUrl) setR2ExistsCache(r2Key, true);
+        })
+        .catch((uploadErr) => {
+          console.warn("[R2 Proxy] Background upload error:", uploadErr);
+        });
     }
 
     // 4. Trả ảnh trực tiếp cho khách xem ngay lập tức

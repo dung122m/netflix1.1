@@ -338,10 +338,13 @@ export const saveWatchHistory = (
         ? undefined
         : existing?.durationSeconds;
 
-    const resolvedWatchedEpisodes =
-      item.watchedEpisodes && item.watchedEpisodes.length > 0
-        ? item.watchedEpisodes
-        : getWatchedEpisodes(item.slug);
+    const resolvedWatchedEpisodes = Array.from(
+      new Set([
+        ...getWatchedEpisodes(item.slug),
+        ...(Array.isArray(existing?.watchedEpisodes) ? existing.watchedEpisodes : []),
+        ...(Array.isArray(item.watchedEpisodes) ? item.watchedEpisodes : []),
+      ].filter(Boolean))
+    );
 
     const newItem: WatchHistoryItem = {
       ...existing,
@@ -485,6 +488,12 @@ export const saveWatchProgress = (
         existing.category = extraMeta.category;
       }
       existing.updatedAt = now;
+      existing.watchedEpisodes = Array.from(
+        new Set([
+          ...getWatchedEpisodes(slug),
+          ...(Array.isArray(existing.watchedEpisodes) ? existing.watchedEpisodes : []),
+        ].filter(Boolean))
+      );
       targetItem = existing;
     } else {
       targetItem = {
@@ -499,17 +508,12 @@ export const saveWatchProgress = (
         category: extraMeta?.category,
         progressSeconds: Math.floor(progressSeconds),
         durationSeconds: durationSeconds && durationSeconds > 0 ? Math.floor(durationSeconds) : undefined,
+        watchedEpisodes: getWatchedEpisodes(slug),
         updatedAt: now,
       };
     }
 
-    // Đưa phim vừa xem lên đầu danh sách
-    const filtered = list.filter((i) => i.slug !== slug);
-    const updated = [targetItem, ...filtered].slice(0, MAX_HISTORY_STORAGE_ITEMS);
-    updateMemoryWatchHistory(updated);
-    localStorage.setItem(HISTORY_KEY, JSON.stringify(updated));
-
-    // Luôn lưu tiến trình riêng biệt cho tập đó (độc lập với các tập khác)
+    // Luôn lưu tiến trình riêng biệt cho tập đó trước (tránh mất tích xanh mới hoàn thành khi sync Cloud)
     if (episodeSlug) {
       saveEpisodeProgress(slug, episodeSlug, progressSeconds, durationSeconds, {
         episodeName: extraMeta?.episodeName,
@@ -517,7 +521,19 @@ export const saveWatchProgress = (
         episodeNumber: extraMeta?.episodeNumber,
         isCompleted: durationSeconds && durationSeconds > 0 ? (progressSeconds / durationSeconds >= 0.9) : false,
       });
+      targetItem.watchedEpisodes = Array.from(
+        new Set([
+          ...getWatchedEpisodes(slug),
+          ...(Array.isArray(targetItem.watchedEpisodes) ? targetItem.watchedEpisodes : []),
+        ].filter(Boolean))
+      );
     }
+
+    // Đưa phim vừa xem lên đầu danh sách
+    const filtered = list.filter((i) => i.slug !== slug);
+    const updated = [targetItem, ...filtered].slice(0, MAX_HISTORY_STORAGE_ITEMS);
+    updateMemoryWatchHistory(updated);
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(updated));
 
     // Phát sự kiện realtime cho toàn bộ trang
     window.dispatchEvent(

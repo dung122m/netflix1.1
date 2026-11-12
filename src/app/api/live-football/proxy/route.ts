@@ -14,24 +14,9 @@ import {
 } from "@/lib/streamToken";
 import { evaluatePlaylistRefreshGate } from "@/services/live/shared/proxyGate";
 import { getClientIp } from "@/lib/clientIp";
+import { isSafePublicMediaSegment } from "@/lib/live/proxySegmentCache";
 
 export const dynamic = "force-dynamic";
-
-const SAFE_PUBLIC_SEGMENT_EXTS = [".ts", ".m4s", ".mp4", ".m4a", ".aac", ".vtt"] as const;
-
-const SENSITIVE_QUERY_PARAMS = new Set([
-  "token",
-  "access_token",
-  "auth",
-  "signature",
-  "sig",
-  "expires",
-  "key",
-  "credential",
-  "policy",
-  "hmac",
-  "secret",
-]);
 
 export function isSafePublicSegment(
   request: NextRequest,
@@ -39,65 +24,7 @@ export function isSafePublicSegment(
   contentType: string,
   response: Response,
 ): boolean {
-  try {
-    const parsedUrl = new URL(targetUrl);
-    const pathname = parsedUrl.pathname.toLowerCase();
-
-    // 1. Tuyệt đối không cache public file khóa giải mã DRM (.key)
-    if (
-      pathname.endsWith(".key") ||
-      pathname.endsWith(".key.bin") ||
-      pathname.includes("/key/") ||
-      pathname.includes("/keys/")
-    ) {
-      return false;
-    }
-
-    // 2. Client Request Headers: Không cache public nếu client gửi authorization hoặc cookie
-    const clientAuth = request.headers.get("authorization");
-    const clientCookie = request.headers.get("cookie");
-    if (clientAuth || clientCookie) {
-      return false;
-    }
-
-    // 3. Upstream Response Headers: Không cache public nếu response chứa set-cookie, authorization hoặc Vary theo cookie/auth
-    if (response.headers.has("set-cookie") || response.headers.has("authorization")) {
-      return false;
-    }
-    const vary = response.headers.get("vary")?.toLowerCase() || "";
-    if (vary.includes("cookie") || vary.includes("authorization")) {
-      return false;
-    }
-
-    // 4. Query Parameters nhạy cảm: Không cache public nếu URL chứa token, signature, policy, key hoặc expiration
-    for (const [paramKey] of parsedUrl.searchParams) {
-      if (SENSITIVE_QUERY_PARAMS.has(paramKey.toLowerCase())) {
-        return false;
-      }
-    }
-
-    // 5. B2-01: Extension an toàn trong allowlist là điều kiện BẮT BUỘC
-    const hasSafeExt = SAFE_PUBLIC_SEGMENT_EXTS.some((ext) => pathname.endsWith(ext));
-    if (!hasSafeExt) {
-      return false;
-    }
-
-    // 6. Content-Type phải là media hợp lệ
-    const ct = contentType.toLowerCase();
-    const isSafeMime =
-      ct.includes("video/mp2t") ||
-      ct.includes("video/mp4") ||
-      ct.includes("video/iso.segment") ||
-      ct.includes("audio/aac") ||
-      ct.includes("audio/mp4") ||
-      ct.includes("audio/x-m4a") ||
-      ct.includes("text/vtt") ||
-      ct.includes("application/octet-stream");
-
-    return isSafeMime;
-  } catch {
-    return false;
-  }
+  return isSafePublicMediaSegment(request, targetUrl, contentType, response);
 }
 
 export const MAX_SAFE_REDIRECTS = 5;
@@ -450,6 +377,10 @@ export async function GET(request: NextRequest) {
       isSafe
         ? "public, max-age=120, s-maxage=300, stale-while-revalidate=600"
         : "private, no-cache, no-store, max-age=0, must-revalidate"
+    );
+    responseHeaders.set(
+      "CDN-Cache-Control",
+      isSafe ? "public, s-maxage=300, stale-while-revalidate=600" : "no-store"
     );
 
     const contentLength = response.headers.get("content-length");

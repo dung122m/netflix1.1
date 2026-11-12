@@ -145,17 +145,6 @@ export const GlobalConfirmDialog: React.FC = () => {
         onClick={(e) => e.stopPropagation()}
         className="relative w-full max-w-sm sm:max-w-md bg-zinc-950 rounded-3xl p-5 sm:p-7 shadow-[0_25px_70px_rgba(0,0,0,0.95)] text-white transform-gpu will-change-[transform,opacity] animate-in zoom-in-95 duration-150 overflow-hidden"
       >
-        {/* Glow hiệu ứng màu nền tinh tế */}
-        {variant === "danger" && (
-          <div className="absolute -top-20 -left-20 w-44 h-44 bg-rose-600/25 rounded-full blur-3xl pointer-events-none" />
-        )}
-        {variant === "warning" && (
-          <div className="absolute -top-20 -left-20 w-44 h-44 bg-amber-500/25 rounded-full blur-3xl pointer-events-none" />
-        )}
-        {variant === "info" && (
-          <div className="absolute -top-20 -left-20 w-44 h-44 bg-sky-500/25 rounded-full blur-3xl pointer-events-none" />
-        )}
-
         {/* Nút đóng góc phải */}
         <button
           type="button"
@@ -195,7 +184,7 @@ export const GlobalConfirmDialog: React.FC = () => {
         </div>
 
         {/* Nút tác vụ chân modal */}
-        <div className="flex items-center justify-end gap-2.5 mt-6 pt-4 border-t">
+        <div className="flex items-center justify-end gap-2.5 mt-6 pt-4 border-t border-white/[0.08]">
           <button
             type="button"
             onClick={() => handleClose(false)}

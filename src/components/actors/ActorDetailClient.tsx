@@ -132,15 +132,11 @@ export const ActorDetailClient: React.FC<ActorDetailClientProps> = ({
       {/* 1. SECTION TIỂU SỬ & SỰ NGHIỆP ĐIỆN ẢNH (EDITORIAL CARD) */}
       {/* ============================================================ */}
       {bioText && (
-        <section className="relative overflow-hidden rounded-2xl sm:rounded-3xl bg-gradient-to-b from-zinc-900/90 via-zinc-950/95 to-zinc-950 border border-white/[0.1] shadow-2xl p-5 sm:p-7 md:p-8 backdrop-blur-2xl">
-          {/* Ambient Glow Accents */}
-          <div className="absolute top-0 right-0 w-72 sm:w-96 h-72 sm:h-96 bg-red-600/[0.04] rounded-full blur-3xl pointer-events-none" />
-          <div className="absolute bottom-0 left-1/4 w-64 h-64 bg-amber-500/[0.03] rounded-full blur-3xl pointer-events-none" />
-
+        <section className="relative overflow-hidden rounded-2xl sm:rounded-3xl bg-zinc-900/60 shadow-2xl p-5 sm:p-7 md:p-8">
           {/* HEADER BAR */}
           <div className="relative z-10 flex flex-wrap items-center justify-between gap-3 border-b border-white/[0.08] pb-4 mb-5 sm:mb-6">
             <div className="flex items-center gap-2.5 sm:gap-3">
-              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-br from-amber-500/20 to-red-500/10 flex items-center justify-center text-amber-400 shadow-inner flex-shrink-0">
+              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-amber-500/12 flex items-center justify-center text-amber-400 flex-shrink-0">
                 <BookOpen className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
               </div>
               <div>
@@ -154,7 +150,7 @@ export const ActorDetailClient: React.FC<ActorDetailClientProps> = ({
             </div>
 
             <div className="flex items-center gap-2">
-              <span className="px-2.5 py-1 rounded-full bg-white/[0.04] border border-white/[0.08] text-[11px] text-zinc-400 font-medium">
+              <span className="px-2.5 py-1 rounded-full bg-white/[0.05] text-[11px] text-zinc-400 font-medium tabular-nums">
                 ~{estimatedReadTime} phút đọc
               </span>
 
@@ -163,7 +159,7 @@ export const ActorDetailClient: React.FC<ActorDetailClientProps> = ({
                   href={wikiUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/[0.05] hover:bg-white/[0.1] border border-white/[0.1] text-xs text-zinc-300 hover:text-white transition font-medium cursor-pointer"
+                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/[0.06] hover:bg-white/[0.12] text-xs text-zinc-300 hover:text-white transition font-medium cursor-pointer"
                 >
                   <span>Wikipedia</span>
                   <ExternalLink className="w-3 h-3 text-zinc-400" />
@@ -183,7 +179,7 @@ export const ActorDetailClient: React.FC<ActorDetailClientProps> = ({
             <div className="space-y-4 sm:space-y-5 text-zinc-300 text-xs sm:text-sm leading-relaxed font-normal">
               {/* LEAD INTRO PARAGRAPH */}
               {leadParagraph && (
-                <div className="relative p-4 sm:p-5 rounded-xl sm:rounded-2xl bg-zinc-900/60 backdrop-blur-md shadow-sm">
+                <div className="relative p-4 sm:p-5 rounded-xl sm:rounded-2xl bg-zinc-900/70">
                   <p className="text-zinc-200 text-sm sm:text-[14.5px] leading-relaxed font-normal">
                     {leadParagraph}
                   </p>
@@ -200,7 +196,7 @@ export const ActorDetailClient: React.FC<ActorDetailClientProps> = ({
                         <span className="w-5 h-5 rounded-md bg-amber-500/10 text-amber-400 flex items-center justify-center flex-shrink-0">
                           <SecIcon className="w-3 h-3" />
                         </span>
-                        <h3 className="text-xs sm:text-sm uppercase tracking-wider font-bold text-amber-300/90">
+                        <h3 className="text-sm font-bold text-amber-300/90">
                           {sec.heading}
                         </h3>
                       </div>
@@ -333,7 +329,7 @@ export const ActorDetailClient: React.FC<ActorDetailClientProps> = ({
             )}
           </>
         ) : (
-          <div className="py-16 px-6 rounded-3xl bg-zinc-950/60 border border-white/[0.08] text-center max-w-xl mx-auto space-y-4">
+          <div className="py-16 px-6 rounded-3xl bg-zinc-900/60 shadow-xl text-center max-w-xl mx-auto space-y-4">
             <div className="w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-400 flex items-center justify-center mx-auto">
               <Film className="w-6 h-6" />
             </div>

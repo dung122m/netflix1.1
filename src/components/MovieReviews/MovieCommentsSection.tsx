@@ -11,6 +11,8 @@ import {
   Loader2,
   CheckCircle2,
   Film,
+  Flame,
+  Star,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { AuthModal } from "@/components/modals/AuthModal";
@@ -64,17 +66,48 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [highlightId, setHighlightId] = useState<string | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const sectionRef = useRef<HTMLElement | null>(null);
+  const hasCommentDeepLink = Boolean(
+    searchParams?.get("highlightComment") ||
+      (typeof window !== "undefined" && window.location.hash.startsWith("#comment-")),
+  );
+  const [isCommentsActivated, setIsCommentsActivated] = useState<boolean>(hasCommentDeepLink);
+
+  useEffect(() => {
+    if (isCommentsActivated) return;
+    if (hasCommentDeepLink) {
+      setIsCommentsActivated(true);
+      return;
+    }
+    const target = sectionRef.current;
+    if (!target || typeof IntersectionObserver === "undefined") {
+      setIsCommentsActivated(true);
+      return;
+    }
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          setIsCommentsActivated(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: "320px 0px" },
+    );
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, [isCommentsActivated, hasCommentDeepLink, movieSlug]);
 
   useEffect(() => {
     if (!user?.uid) {
       setUserProfile(null);
       return;
     }
+    if (!isCommentsActivated) return;
     const unsub = subscribeUserProfile(user.uid, (p) => {
       if (p) setUserProfile(p);
     });
     return () => unsub();
-  }, [user?.uid]);
+  }, [user?.uid, isCommentsActivated]);
 
   const effectiveAvatar = userProfile?.customAvatar || userProfile?.photoURL || user?.photoURL || "";
   const effectiveDisplayName = userProfile?.displayName || user?.displayName || "Thành viên Nanaflix";
@@ -191,10 +224,16 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
     setRating(0);
     setIsSpoiler(false);
     setScopeEpisode("all");
-  }, [movieSlug]);
+    const hasDeepLink = Boolean(
+      searchParams?.get("highlightComment") ||
+        (typeof window !== "undefined" && window.location.hash.startsWith("#comment-")),
+    );
+    setIsCommentsActivated(hasDeepLink);
+  }, [movieSlug, searchParams]);
 
-  // Subscribe to real-time comments from Supabase + LocalStorage
+  // Subscribe to real-time comments from Supabase + LocalStorage (lazy when scrolled into view)
   useEffect(() => {
+    if (!isCommentsActivated) return;
     setLoading(true);
     setLoadError(null);
     const unsubscribe = subscribeMovieComments(
@@ -212,7 +251,7 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
     );
 
     return () => unsubscribe();
-  }, [movieSlug]);
+  }, [movieSlug, isCommentsActivated]);
 
   // Tìm bài đánh giá đã có của chính người dùng hiện tại (chỉ tính đánh giá gốc của đúng movieSlug này, không tính reply)
   const myExistingReview = useMemo(() => {
@@ -324,7 +363,7 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
     const finalIsSpoiler = isSpoiler || autoSpoiler;
     if (autoSpoiler && !isSpoiler) {
       setIsSpoiler(true);
-      toast.info("🛡️ Đã tự động bật cảnh báo Spoiler do bình luận chứa tình tiết/kết phim!");
+      toast.info("Đã tự động bật cảnh báo Spoiler do bình luận chứa tình tiết/kết phim!");
     }
 
     setIsSubmitting(true);
@@ -522,6 +561,7 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
 
   return (
     <section
+      ref={sectionRef}
       id="comments"
       className={
         hideOuterCard
@@ -531,7 +571,7 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
     >
       {/* Title & Section Header: Chỉ render khi dùng độc lập (!hideOuterCard) hoặc hiện widget điểm khi bọc trong MovieReviewsContainer */}
       {!hideOuterCard ? (
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 pb-5 sm:pb-6 border-b">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 pb-5 sm:pb-6 border-b border-white/[0.08]">
           <div>
             <h3 className="text-lg sm:text-xl md:text-2xl font-extrabold text-white flex items-center gap-2 sm:gap-2.5 flex-wrap">
               <MessageSquare className="w-5 h-5 sm:w-6 sm:h-6 text-red-500 flex-shrink-0" />
@@ -572,7 +612,7 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
           )}
         </div>
       ) : stats.totalReviews > 0 ? (
-        <div className="flex items-center justify-between pb-3 border-b">
+        <div className="flex items-center justify-between pb-3 border-b border-white/[0.08]">
           <div className="flex items-center gap-2">
             <span className="text-xs font-bold text-zinc-300">Tổng quan đánh giá:</span>
             <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-red-500/10 text-red-400">
@@ -587,7 +627,7 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
             </div>
             <div className="h-4 w-[1px] bg-white/10" />
             <StarRating value={Math.round(stats.averageRating)} readOnly size="sm" />
-            <span className="text-[11px] text-zinc-400 hidden xs:inline">
+            <span className="text-[11px] text-zinc-400 hidden min-[380px]:inline">
               ({stats.totalReviews} lượt)
             </span>
           </div>
@@ -600,7 +640,7 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
           <form
             ref={formRef}
             onSubmit={handleSubmit}
-            className="bg-zinc-900/50 rounded-2xl p-4 md:p-6 transition-all focus-within:"
+            className="bg-zinc-900/50 rounded-2xl p-4 md:p-6 transition-all"
           >
             {/* Existing Review Notice Banner */}
             {myExistingReview && (
@@ -667,7 +707,7 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
                       prev ? `${prev} ${tag}` : tag,
                     )
                   }
-                  className="px-2.5 py-1 rounded-full text-xs bg-zinc-900/80 hover:bg-zinc-800 text-zinc-300 hover:text-white hover: transition-colors cursor-pointer shrink-0 whitespace-nowrap"
+                  className="px-2.5 py-1 rounded-full text-xs bg-zinc-900/80 hover:bg-zinc-800 text-zinc-300 hover:text-white transition-colors cursor-pointer shrink-0 whitespace-nowrap"
                 >
                   {tag}
                 </button>
@@ -685,9 +725,9 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
                     setIsSpoiler(true);
                   }
                 }}
-                placeholder="Chia sẻ cảm nghĩ của bạn về bộ phim... (Vui lòng không tiết lộ trước nội dung 🤫)"
+                placeholder="Chia sẻ cảm nghĩ của bạn về bộ phim... (Vui lòng không tiết lộ trước nội dung)"
                 rows={3}
-                className="w-full min-h-[88px] bg-black/60 rounded-xl px-4 py-3 text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-netflix-red focus:ring-1 focus:ring-netflix-red/30 resize-y transition-all"
+                className="w-full min-h-[88px] bg-black/60 rounded-xl px-4 py-3 text-base sm:text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-netflix-red focus:ring-1 focus:ring-netflix-red/30 resize-y transition-all"
                 maxLength={1000}
               />
               <div className="text-[11px] text-zinc-600 text-right mt-1">
@@ -696,7 +736,7 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
             </div>
 
             {/* Options Row: Episode scope, Spoil toggle, Submit button */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mt-3 pt-3 border-t">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mt-3 pt-3 border-t border-white/[0.08]">
               <div className="flex items-center gap-3 sm:gap-4 flex-wrap w-full sm:w-auto">
                 {/* Episode scope toggle */}
                 {currentEpisodeName && (
@@ -717,7 +757,7 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
                       onClick={() => setScopeEpisode("episode")}
                       className={`px-2.5 py-1 rounded-md font-medium transition-colors flex items-center gap-1 ${
                         scopeEpisode === "episode"
-                          ? "bg-netflix-red/30 text-white border border-netflix-red/40"
+                          ? "bg-netflix-red/25 text-white shadow-sm"
                           : "text-zinc-400 hover:text-zinc-200"
                       }`}
                     >
@@ -748,8 +788,8 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
                 disabled={isSubmitting || !content.trim()}
                 className={`inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm text-white shadow-lg disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-95 w-full sm:w-auto shrink-0 ${
                   myExistingReview
-                    ? "bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 shadow-amber-900/30"
-                    : "bg-netflix-red hover:brightness-110 shadow-[var(--accent-glow)]"
+                    ? "bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 shadow-black/40"
+                    : "bg-netflix-red hover:brightness-110 shadow-black/50"
                 }`}
               >
                 {isSubmitting ? (
@@ -802,8 +842,8 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
 
       {/* Filter Tabs & Comments List */}
       <div className="mt-8">
-        <div className="flex items-center justify-between gap-2 pb-3 border-b flex-wrap gap-y-2">
-          <div className="text-sm font-semibold text-zinc-300">
+        <div className="flex items-center justify-between gap-2 pb-3 border-b border-white/[0.08] flex-wrap gap-y-2">
+          <div className="text-sm font-semibold text-zinc-300 tabular-nums">
             Tất cả bình luận ({sortedComments.length})
           </div>
 
@@ -811,7 +851,7 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
             <button
               type="button"
               onClick={() => setSortBy("newest")}
-              className={`px-2 sm:px-3 py-1 rounded-lg font-medium transition-colors ${
+              className={`px-2 sm:px-3 py-1 rounded-lg font-medium transition-colors cursor-pointer ${
                 sortBy === "newest"
                   ? "bg-zinc-800 text-white shadow-sm"
                   : "text-zinc-400 hover:text-zinc-200"
@@ -822,24 +862,26 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
             <button
               type="button"
               onClick={() => setSortBy("topLikes")}
-              className={`px-2 sm:px-3 py-1 rounded-lg font-medium transition-colors ${
+              className={`inline-flex items-center gap-1.5 px-2 sm:px-3 py-1 rounded-lg font-medium transition-colors cursor-pointer ${
                 sortBy === "topLikes"
                   ? "bg-zinc-800 text-white shadow-sm"
                   : "text-zinc-400 hover:text-zinc-200"
               }`}
             >
-              <span className="hidden sm:inline">Nhiều thích nhất </span>&#128293;
+              <Flame className="w-3.5 h-3.5 text-orange-400 shrink-0" />
+              <span className="hidden sm:inline">Nhiều thích nhất</span>
             </button>
             <button
               type="button"
               onClick={() => setSortBy("onlyFiveStar")}
-              className={`px-2 sm:px-3 py-1 rounded-lg font-medium transition-colors ${
+              className={`inline-flex items-center gap-1 px-2 sm:px-3 py-1 rounded-lg font-medium transition-colors cursor-pointer ${
                 sortBy === "onlyFiveStar"
                   ? "bg-zinc-800 text-white shadow-sm"
                   : "text-zinc-400 hover:text-zinc-200"
               }`}
             >
-              5 sao ⭐
+              <span>5 sao</span>
+              <Star className="w-3 h-3 fill-amber-400 text-amber-400 shrink-0" />
             </button>
           </div>
         </div>
@@ -875,7 +917,7 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
               />
             ))
           ) : (
-            <div className="py-12 text-center rounded-2xl border border-dashed border-white/10 p-6 mt-4">
+            <div className="py-12 text-center rounded-2xl bg-zinc-900/40 p-6 mt-4">
               <MessageSquare className="w-10 h-10 text-zinc-600 mx-auto mb-2" />
               <div className="font-semibold text-zinc-300 text-sm">
                 Chưa có bình luận nào cho bộ phim này

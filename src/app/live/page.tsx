@@ -43,7 +43,7 @@ export const runtime = "nodejs";
 // Server streaming component: Shell (Navbar, Skeleton, Footer) được flush ngay lập tức về browser
 export default function LivePage() {
   return (
-    <div className="page-cinema-container min-h-screen w-full max-w-full overflow-x-clip">
+    <div className="page-cinema-container min-h-dvh w-full max-w-full overflow-x-clip">
       <Navbar />
       <Suspense fallback={<LiveHubSkeleton />}>
         <LiveContent />

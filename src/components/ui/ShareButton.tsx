@@ -48,7 +48,7 @@ export function ShareButton({ title, align = "end", className = "" }: ShareButto
         type="button"
         onClick={handleShare}
         aria-label="Chia sẻ phim"
-        className={`inline-flex items-center gap-1 sm:gap-1.5 rounded-lg bg-zinc-900/80 px-1.5 xs:px-2 sm:px-3.5 py-1.5 text-xs sm:text-sm font-medium text-zinc-300 hover:bg-white/10 hover:text-white transition-all cursor-pointer active:scale-95 flex-shrink-0 whitespace-nowrap ${className}`}
+        className={`inline-flex items-center gap-1 sm:gap-1.5 rounded-lg bg-zinc-900/80 px-2 min-[380px]:px-2.5 sm:px-3.5 py-2 sm:py-1.5 text-xs sm:text-sm font-medium text-zinc-300 hover:bg-white/10 hover:text-white transition-all cursor-pointer active:scale-95 flex-shrink-0 whitespace-nowrap ${className}`}
       >
       {copied ? (
         <>

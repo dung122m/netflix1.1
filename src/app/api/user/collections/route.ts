@@ -156,7 +156,7 @@ export async function GET(req: NextRequest) {
       if (!isSelfOrAdmin) {
         query = query.eq("is_public", true);
       }
-      query = query.order("updated_at", { ascending: false });
+      query = query.order("updated_at", { ascending: false }).limit(100);
       const { data, error } = await query;
       if (error) {
         return NextResponse.json({ success: false, error: error.message }, { status: 500 });
@@ -174,7 +174,8 @@ export async function GET(req: NextRequest) {
       .from("collections")
       .select("*")
       .eq("user_id", auth.userId)
-      .order("updated_at", { ascending: false });
+      .order("updated_at", { ascending: false })
+      .limit(100);
 
     if (error) {
       return NextResponse.json({ success: false, error: error.message }, { status: 500 });

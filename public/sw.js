@@ -2,7 +2,11 @@
 // Tự động phân tách: HTML Pages (Network-First) & Static Hashed Chunks (Cache-First)
 // Bạn không bao giờ phải tăng phiên bản thủ công nữa.
 
-const CACHE_NAME = 'nanaflix-static-v1';
+const CACHE_NAME = 'nanaflix-static-v2';
+const isLocalDevHost = () => {
+  const host = self.location && self.location.hostname;
+  return host === 'localhost' || host === '127.0.0.1' || host === '[::1]';
+};
 const PRECACHE_STATIC_ASSETS = [
   '/manifest.json',
   '/icon.svg',
@@ -13,6 +17,10 @@ const PRECACHE_STATIC_ASSETS = [
 ];
 
 self.addEventListener('install', (event) => {
+  if (isLocalDevHost()) {
+    event.waitUntil(self.skipWaiting());
+    return;
+  }
   event.waitUntil(
     caches
       .open(CACHE_NAME)
@@ -31,17 +39,25 @@ self.addEventListener('activate', (event) => {
       .then((cacheNames) => {
         return Promise.all(
           cacheNames.map((cache) => {
-            if (cache !== CACHE_NAME) {
+            if (isLocalDevHost() || cache !== CACHE_NAME) {
               return caches.delete(cache);
             }
           })
         );
       })
       .then(() => self.clients.claim())
+      .then(() => {
+        if (isLocalDevHost() && self.registration) {
+          return self.registration.unregister();
+        }
+      })
   );
 });
 
 self.addEventListener('fetch', (event) => {
+  // Tuyệt đối không cache hay can thiệp request khi chạy local dev (Next.js dev chunks không có immutable content hash)
+  if (isLocalDevHost()) return;
+
   // Chỉ áp dụng cho GET requests cùng domain
   if (event.request.method !== 'GET') return;
 

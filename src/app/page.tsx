@@ -1,5 +1,4 @@
 import dynamic from "next/dynamic";
-import { redirect } from "next/navigation";
 import { HomeGenreExploreBar } from "@/components/home/HomeGenreExploreBar";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
@@ -12,6 +11,8 @@ import { CommunityTopTrending } from "@/components/movies/CommunityTopTrending";
 import { ForYouPersonalizedRow } from "@/components/movies/ForYouPersonalizedRow";
 import { getR2BannerUrl } from "@/lib/r2";
 
+export const revalidate = 600; // ISR 10 phút cho trang chủ landing page
+
 const HeroFeatured = dynamic(() =>
   import("@/components/browse/HeroFeatured").then(
     (mod) => mod.HeroFeatured,
@@ -21,30 +22,8 @@ const HeroFeatured = dynamic(() =>
 // ==========================================
 // METADATA
 // ==========================================
-export async function generateMetadata({
-  searchParams,
-}: {
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
-}) {
-  const params = await searchParams;
-  const search = new URLSearchParams();
-  for (const [key, value] of Object.entries(params)) {
-    if (typeof value === "string") {
-      search.set(key, value);
-    } else if (Array.isArray(value)) {
-      for (const v of value) search.append(key, v);
-    }
-  }
-  const queryString = search.toString();
+export async function generateMetadata() {
   const siteUrl = "https://nanaflix.asia";
-
-  if (queryString) {
-    return {
-      alternates: {
-        canonical: `${siteUrl}/browse?${queryString}`,
-      },
-    };
-  }
 
   const title = "Nanaflix - Xem Phim & Trực Tiếp Thể Thao Miễn Phí Chất Lượng Cao";
   const description =
@@ -226,37 +205,18 @@ function selectFeaturedMovies(pool: AnyMovie[], count: number = 7): AnyMovie[] {
 }
 
 // ==========================================
-export default async function HomePage({
-  searchParams,
-}: {
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
-}) {
-  const params = await searchParams;
-
-  // TƯƠNG THÍCH NGƯỢC: Nếu có bất kỳ query string nào, redirect sang /browse giữ nguyên toàn bộ params
-  const search = new URLSearchParams();
-  for (const [key, value] of Object.entries(params)) {
-    if (typeof value === "string") {
-      search.set(key, value);
-    } else if (Array.isArray(value)) {
-      for (const v of value) {
-        search.append(key, v);
-      }
-    }
-  }
-  const queryString = search.toString();
-  if (queryString) {
-    redirect(`/browse?${queryString}`);
-  }
-
-  // TRANG CHỦ THUẦN TÚY (LANDING PAGE)
+export default async function HomePage() {
+  // TRANG CHỦ THUẦN TÚY (LANDING PAGE) — giới hạn timeout SSR để không bao giờ kẹt loading.tsx
   const [response, weekTrending] = await Promise.all([
     movieApi.getMovies({
       page: 1,
       limit: 24,
       sort: "views",
     }),
-    getTmdbRankedMovies("week", 8).catch(() => []),
+    Promise.race([
+      getTmdbRankedMovies("week", 20).catch(() => []),
+      new Promise<[]>((resolve) => setTimeout(() => resolve([]), 2000)),
+    ]),
   ]);
 
   const movies = response?.items || [];
@@ -299,7 +259,10 @@ export default async function HomePage({
 
       if (movie?.tmdb?.id) {
         try {
-          const tmdbBackdrop = await getTmdbBackdropUrl(movie.tmdb.id, movie.tmdb.type);
+          const tmdbBackdrop = await Promise.race([
+            getTmdbBackdropUrl(movie.tmdb.id, movie.tmdb.type),
+            new Promise<null>((resolve) => setTimeout(() => resolve(null), 1500)),
+          ]);
           if (tmdbBackdrop) {
             const tmdbR2 = getR2BannerUrl(slug, tmdbBackdrop);
             if (tmdbR2) {
@@ -322,7 +285,7 @@ export default async function HomePage({
   );
 
   return (
-    <div className="page-cinema-container min-h-screen pb-0 w-full max-w-full overflow-x-clip">
+    <div className="page-cinema-container min-h-dvh pb-0 w-full max-w-full overflow-x-clip">
       <Navbar />
 
       {/* 1. HERO SPOTLIGHT BANNER */}
@@ -343,7 +306,7 @@ export default async function HomePage({
         <ForYouPersonalizedRow fallbackMovies={movies} />
 
         {/* 6. BẢNG XẾP HẠNG PHIM THỊNH HÀNH & TOP 10 CỘNG ĐỒNG */}
-        <TmdbTopTrending />
+        <TmdbTopTrending initialItems={trendingWeekRaw} />
         <CommunityTopTrending />
 
         {/* 7. TAB TUYỂN CHỌN PHIM ĐA NĂNG TRÊN TRANG CHỦ */}

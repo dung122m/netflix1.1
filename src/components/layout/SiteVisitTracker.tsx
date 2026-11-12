@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { trackSiteVisit } from "@/lib/analyticsClient";
+import { SITE_VISIT_SESSION_KEY, trackSiteVisit } from "@/lib/analyticsClient";
 
 export interface RouteClassification {
   pageGroup: string;
@@ -71,6 +71,28 @@ export function classifyRoute(pathname: string | null | undefined): RouteClassif
 // Module-level timestamp guard against React 18/19 StrictMode double-mount within 2000ms
 let lastTrackedPathname: string | null = null;
 let lastTrackedTimestamp: number = 0;
+const PAGE_GROUP_COOLDOWN_MS = 5 * 60 * 1000;
+
+function shouldSkipSessionGroup(sessionKey: string, now: number): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    const raw = sessionStorage.getItem(SITE_VISIT_SESSION_KEY);
+    const map: Record<string, number> = raw ? JSON.parse(raw) : {};
+    const prev = Number(map[sessionKey] || 0);
+    if (prev > 0 && now - prev < PAGE_GROUP_COOLDOWN_MS) {
+      return true;
+    }
+    map[sessionKey] = now;
+    const entries = Object.entries(map);
+    if (entries.length > 20) {
+      entries.sort((a, b) => b[1] - a[1]);
+      sessionStorage.setItem(SITE_VISIT_SESSION_KEY, JSON.stringify(Object.fromEntries(entries.slice(0, 20))));
+    } else {
+      sessionStorage.setItem(SITE_VISIT_SESSION_KEY, JSON.stringify(map));
+    }
+  } catch {}
+  return false;
+}
 
 export function SiteVisitTracker() {
   const pathname = usePathname();
@@ -91,6 +113,12 @@ export function SiteVisitTracker() {
       (lastPathRef.current === pagePath || lastTrackedPathname === pagePath) &&
       now - lastTrackedTimestamp < 2000
     ) {
+      return;
+    }
+
+    // Cooldown 5 phút theo từng pageGroup + trạng thái đăng nhập trong sessionStorage để tránh ghi trùng vào Supabase
+    const sessionGroupKey = `${user?.uid ? "u" : "g"}:${pageGroup}`;
+    if (shouldSkipSessionGroup(sessionGroupKey, now)) {
       return;
     }
 

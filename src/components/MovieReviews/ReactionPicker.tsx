@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { ThumbsUp } from "lucide-react";
 import { CommentReactionType, MovieComment } from "@/types/comment";
+import { Tooltip } from "@/components/ui/Tooltip";
 
 export interface ReactionConfig {
   type: CommentReactionType;
@@ -309,8 +310,8 @@ export const ReactionPicker: React.FC<ReactionPickerProps> = ({
         onTouchEnd={handleTouchEnd}
         className={`inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full transition-all cursor-pointer active:scale-95 ${
           currentConfig
-            ? `${currentConfig.bgColor} ${currentConfig.textColor} border ${currentConfig.borderColor}`
-            : "text-zinc-400 hover:text-zinc-200 hover:bg-white/5 border border-transparent"
+            ? `${currentConfig.bgColor} ${currentConfig.textColor}`
+            : "text-zinc-400 hover:text-zinc-200 hover:bg-white/5"
         }`}
       >
         {currentConfig ? (
@@ -330,12 +331,13 @@ export const ReactionPicker: React.FC<ReactionPickerProps> = ({
 
       {/* TOP REACTIONS STACKED BADGE & TOTAL COUNT */}
       {totalReactionsCount > 0 && (
-        <button
-          type="button"
-          onClick={() => setShowPicker(!showPicker)}
-          className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-xs text-zinc-400 hover:text-zinc-200 hover:bg-white/5 transition-colors cursor-pointer"
-          title={`${totalReactionsCount} lượt bày tỏ cảm xúc`}
-        >
+        <Tooltip content={`${totalReactionsCount} lượt bày tỏ cảm xúc`} side="top">
+          <button
+            type="button"
+            onClick={() => setShowPicker(!showPicker)}
+            aria-label={`${totalReactionsCount} lượt bày tỏ cảm xúc`}
+            className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-xs text-zinc-400 hover:text-zinc-200 hover:bg-white/5 transition-colors cursor-pointer"
+          >
           {/* Overlapping top emojis badge (Facebook style) */}
           <div className="flex items-center -space-x-1 flex-shrink-0">
             {topReactions.map((item, idx) => (
@@ -353,6 +355,7 @@ export const ReactionPicker: React.FC<ReactionPickerProps> = ({
             {totalReactionsCount}
           </span>
         </button>
+        </Tooltip>
       )}
     </div>
   );

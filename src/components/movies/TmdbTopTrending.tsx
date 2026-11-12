@@ -81,20 +81,29 @@ const TAB_CONFIG: Record<
   },
 };
 
-function TmdbTopTrendingInner() {
+function TmdbTopTrendingInner({
+  initialItems,
+}: {
+  initialItems?: TmdbTrendingMovieItem[];
+} = {}) {
+  const hasInitialItems = Boolean(initialItems && initialItems.length > 0);
   const [activeTab, setActiveTab] = useState<TmdbTab>("week");
-  const [items, setItems] = useState<TmdbTrendingMovieItem[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [items, setItems] = useState<TmdbTrendingMovieItem[]>(() =>
+    hasInitialItems ? initialItems! : [],
+  );
+  const [loading, setLoading] = useState<boolean>(() => !hasInitialItems);
   const [isFading, setIsFading] = useState(false);
 
-  const tabCacheRef = useRef<Partial<Record<TmdbTab, TmdbTrendingMovieItem[]>>>({});
+  const tabCacheRef = useRef<Partial<Record<TmdbTab, TmdbTrendingMovieItem[]>>>(
+    hasInitialItems ? { week: initialItems } : {},
+  );
   const activeTabRef = useRef(activeTab);
   activeTabRef.current = activeTab;
 
-  // 1. Đọc cache localStorage ngay khi mount (0ms) và fetch revalidate chỉ tab "week" nếu cache đã quá 5 phút
+  // 1. Đọc cache localStorage ngay khi mount (0ms) và bỏ qua fetch nếu đã có SSR initialItems hoặc cache tươi
   useEffect(() => {
     let isMounted = true;
-    let shouldRevalidateWeek = true;
+    let shouldRevalidateWeek = !hasInitialItems;
 
     try {
       // Dọn dẹp cache cũ để tránh hiển thị danh sách TMDB top_rated cũ
@@ -108,7 +117,7 @@ function TmdbTopTrendingInner() {
         // Cache hợp lệ trong 12 giờ
         const isValid = parsed.timestamp && Date.now() - parsed.timestamp < 12 * 60 * 60 * 1000;
         if (isValid) {
-          if (Array.isArray(parsed.week) && parsed.week.length > 0) {
+          if (!hasInitialItems && Array.isArray(parsed.week) && parsed.week.length > 0) {
             tabCacheRef.current["week"] = parsed.week;
           }
           if (Array.isArray(parsed.month) && parsed.month.length > 0) {
@@ -118,15 +127,17 @@ function TmdbTopTrendingInner() {
             tabCacheRef.current["top_rated"] = parsed.top_rated;
           }
 
-          const currentTab = activeTabRef.current;
-          const cachedForCurrent = tabCacheRef.current[currentTab];
-          if (cachedForCurrent && cachedForCurrent.length > 0) {
-            setItems(cachedForCurrent);
-            setLoading(false);
+          if (!hasInitialItems) {
+            const currentTab = activeTabRef.current;
+            const cachedForCurrent = tabCacheRef.current[currentTab];
+            if (cachedForCurrent && cachedForCurrent.length > 0) {
+              setItems(cachedForCurrent);
+              setLoading(false);
 
-            // Chỉ bỏ qua fetch nếu ĐÃ CÓ dữ liệu thực sự trong cache và cache dưới 6 tiếng
-            if (Date.now() - parsed.timestamp < FRESH_REVALIDATE_TTL) {
-              shouldRevalidateWeek = false;
+              // Chỉ bỏ qua fetch nếu ĐÃ CÓ dữ liệu thực sự trong cache và cache dưới 6 tiếng
+              if (Date.now() - parsed.timestamp < FRESH_REVALIDATE_TTL) {
+                shouldRevalidateWeek = false;
+              }
             }
           }
         }
@@ -179,7 +190,7 @@ function TmdbTopTrendingInner() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [hasInitialItems]);
 
   // 2. Chuyển đổi tab: render cache tức thì nếu có, và fetch ngầm nếu chưa có
   const switchTab = (nextTab: TmdbTab) => {

@@ -86,7 +86,7 @@ test("5. Kiểm tra đội mới chưa có trong cache (Dynamic lookup & cache w
 
   const logo = await resolveTeamLogo(newTeam, "esports");
   assert.ok(logo, "Karmine Corp dynamic logo must be found");
-  assert.match(logo, /wikimedia\.org.*Karmine_Corp/i);
+  assert.match(logo, /(wikimedia\.org|media\.nanaflix\.asia).*karmine_?corp/i);
 
   // Xác minh cache đã được lưu
   const cachedAfter = getCachedLogo(normKey);

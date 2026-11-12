@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import { Keyboard, X } from "lucide-react";
+import { Tooltip } from "@/components/ui/Tooltip";
 
 interface LiveShortcutPopoverProps {
   mode?: "football" | "tv";
@@ -59,30 +60,31 @@ export function LiveShortcutPopover({ mode = "football" }: LiveShortcutPopoverPr
       `}</style>
       <div className="relative hidden lg:inline-flex items-center live-shortcut-popover">
         {/* Nút trigger nhỏ gọn (Icon-only, đồng bộ với PiP & Fullscreen) */}
-        <button
-          ref={buttonRef}
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            setIsOpen((prev) => !prev);
-          }}
-          title="Xem hướng dẫn phím tắt (Hotkeys)"
-          aria-label="Phím tắt điều khiển"
-          className={`w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-full  transition-all duration-200 backdrop-blur-md cursor-pointer select-none flex-shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-white/40 ${
-            isOpen
-              ? "bg-white/25 text-white  shadow-lg shadow-black/40"
-              : "bg-white/10 hover:bg-white/20 text-white/80 hover:text-white "
-          }`}
-        >
-          <Keyboard className="w-4 h-4 text-white/90 shrink-0" />
-        </button>
+        <Tooltip content="Xem hướng dẫn phím tắt (Hotkeys)" side="top" align="end">
+          <button
+            ref={buttonRef}
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsOpen((prev) => !prev);
+            }}
+            aria-label="Phím tắt điều khiển"
+            className={`w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-full  transition-all duration-200 backdrop-blur-md cursor-pointer select-none flex-shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-white/40 ${
+              isOpen
+                ? "bg-white/25 text-white  shadow-lg shadow-black/40"
+                : "bg-white/10 hover:bg-white/20 text-white/80 hover:text-white "
+            }`}
+          >
+            <Keyboard className="w-4 h-4 text-white/90 shrink-0" />
+          </button>
+        </Tooltip>
 
       {/* Popover / Panel nhỏ gọn overlay ở góc dưới phải player */}
       {isOpen && (
         <div
           ref={popoverRef}
           onClick={(e) => e.stopPropagation()}
-          className="absolute bottom-full right-0 mb-2 w-72 sm:w-80 rounded-2xl bg-zinc-950/95 p-3.5 shadow-2xl backdrop-blur-xl z-50 text-left animate-in fade-in zoom-in-95 duration-150"
+          className="absolute bottom-full right-0 mb-2 w-[min(18rem,calc(100vw-24px))] sm:w-80 rounded-2xl bg-zinc-950/95 p-3.5 shadow-2xl backdrop-blur-xl z-50 text-left animate-in fade-in zoom-in-95 duration-150"
         >
           {/* Header */}
           <div className="flex items-center justify-between pb-2 mb-2.5">
@@ -90,17 +92,19 @@ export function LiveShortcutPopover({ mode = "football" }: LiveShortcutPopoverPr
               <Keyboard className="w-4 h-4 text-red-400" />
               <span>Phím tắt điều khiển</span>
             </div>
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                setIsOpen(false);
-              }}
-              className="p-1 rounded-lg hover:bg-white/10 text-zinc-400 hover:text-white transition cursor-pointer"
-              title="Đóng (Esc)"
-            >
-              <X className="w-3.5 h-3.5" />
-            </button>
+            <Tooltip content="Đóng (Esc)" side="left">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsOpen(false);
+                }}
+                aria-label="Đóng"
+                className="p-1 rounded-lg hover:bg-white/10 text-zinc-400 hover:text-white transition cursor-pointer"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </Tooltip>
           </div>
 
           {/* Danh sách phím tắt chia 2 nhóm ngắn gọn */}

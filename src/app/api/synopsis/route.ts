@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { movieApi } from "@/services/movies/service";
 import { cleanHtmlText } from "@/lib/cleanHtml";
 import { cacheService } from "@/lib/cache";
+import { getR2BannerUrl } from "@/lib/r2";
 import {
   pickHeroBackdropImage,
   pickBestMoviePoster,
@@ -148,8 +149,8 @@ export async function GET(request: NextRequest) {
         ? movie.country.map((c: { name?: string }) => c.name || "").filter(Boolean)
         : [];
 
-      let backdropUrl = "";
-      if (movie?.tmdb?.id) {
+      let backdropUrl = getR2BannerUrl(movie?.slug, movie?.backdrop_url || movie?.thumb_url) || "";
+      if (!backdropUrl && movie?.tmdb?.id) {
         try {
           backdropUrl = (await getTmdbBackdropUrl(movie.tmdb.id, movie.tmdb.type)) || "";
         } catch {

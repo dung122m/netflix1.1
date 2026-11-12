@@ -10,6 +10,11 @@ import {
   ChevronDown,
   ChevronUp,
   Radio,
+  Trophy,
+  Mic,
+  Tv,
+  Zap,
+  Clock,
 } from "lucide-react";
 import { NormalizedMatchSummary, MatchStatItem, LiveMatchScore } from "@/services/live/football-score/types";
 import {
@@ -353,7 +358,7 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
     (isLive ? (time || "Đang đá") : (time || ""));
 
   const miniScoreboardMarkup = (
-    <div className="rounded-xl bg-white/[0.03] border border-white/[0.06] p-3 sm:p-4">
+    <div className="rounded-xl bg-white/[0.04] p-3 sm:p-4">
       <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 sm:gap-6">
         {/* Đội nhà: Tên (căn phải) + Logo */}
         <div className="flex items-center justify-end gap-2 sm:gap-3.5 min-w-0">
@@ -402,7 +407,7 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
             </div>
           ) : (
             <div className="px-3 py-1 rounded-xl bg-zinc-900/90 shadow-sm">
-              <span className="text-xs sm:text-sm font-black uppercase tracking-[0.2em] text-zinc-300 select-none">
+              <span className="text-xs sm:text-sm font-black text-zinc-300 select-none">
                 VS
               </span>
             </div>
@@ -419,17 +424,21 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
             }`}
           >
             {(isLive || effectiveStatus === "live") && (
-              <span className="relative flex h-1.5 w-1.5 shrink-0">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
-                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-red-500" />
-              </span>
+              <span className="relative flex h-1.5 w-1.5 rounded-full bg-red-500 animate-pulse shrink-0" />
             )}
             <span>
-              {isLive || effectiveStatus === "live"
-                ? (effectiveClock || "Trực tiếp")
-                : effectiveStatus === "finished"
-                  ? "Hết giờ"
-                  : (time && time !== "Trực tiếp" ? `⏰ ${time}` : "Sắp diễn ra")}
+              {isLive || effectiveStatus === "live" ? (
+                effectiveClock || "Trực tiếp"
+              ) : effectiveStatus === "finished" ? (
+                "Hết giờ"
+              ) : time && time !== "Trực tiếp" ? (
+                <span className="inline-flex items-center gap-1 font-sans tabular-nums">
+                  <Clock className="w-3 h-3 shrink-0" />
+                  <span>{time}</span>
+                </span>
+              ) : (
+                "Sắp diễn ra"
+              )}
             </span>
           </span>
         </div>
@@ -476,7 +485,7 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
   }
 
   return (
-    <div className="w-full rounded-2xl bg-zinc-900/40 border border-white/[0.08] backdrop-blur-md overflow-hidden">
+    <div className="w-full rounded-2xl bg-zinc-900/50 backdrop-blur-md shadow-xl shadow-black/40 overflow-hidden">
       {/* 1. HEADER MATCH CENTER (COMPACT & RESPONSIVE) */}
       <div
         onClick={() => setIsOpen(!isOpen)}
@@ -501,15 +510,15 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
                     loading="lazy"
                   />
                 ) : (
-                  <span>🏆</span>
+                  <Trophy className="w-3.5 h-3.5 text-amber-400 shrink-0" />
                 )}
                 <span className="truncate max-w-[110px] sm:max-w-none">{canonicalLeague}</span>
               </span>
             )}
             {(isLive || effectiveStatus === "live") && (
-              <span className="flex items-center gap-1 text-[9px] sm:text-[10px] font-black uppercase px-1.5 py-0.5 rounded-full bg-red-600/20 text-red-400 animate-pulse shrink-0">
+              <span className="flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-red-600/20 text-red-400 animate-pulse shrink-0">
                 <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
-                <span>Trực Tiếp</span>
+                <span>Trực tiếp</span>
               </span>
             )}
           </div>
@@ -583,53 +592,44 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
                   <div className="grid grid-cols-2 gap-2 text-xs">
                     {/* Giải đấu */}
                     <div className="rounded-xl bg-white/[0.03] p-2.5 sm:p-3 flex flex-col gap-1 min-w-0">
-                      <span className="text-[10px] uppercase font-bold text-zinc-400 flex items-center gap-1">
-                        <span>🏆</span>
+                      <span className="text-[11px] font-medium text-zinc-400 flex items-center gap-1.5">
+                        <Trophy className="w-3 h-3 text-amber-400 shrink-0" />
                         <span>Giải đấu</span>
                       </span>
-                      <span
-                        className="font-extrabold text-white text-[11px] sm:text-xs line-clamp-2 break-words leading-tight"
-                        title={canonicalLeague || tournament || "Giải Đấu Khác"}
-                      >
+                      <span className="font-bold text-white text-[11px] sm:text-xs line-clamp-2 break-words leading-tight">
                         {canonicalLeague || tournament || "Giải Đấu Khác"}
                       </span>
                     </div>
 
                     {/* Bình luận viên */}
                     <div className="rounded-xl bg-white/[0.03] p-2.5 sm:p-3 flex flex-col gap-1 min-w-0">
-                      <span className="text-[10px] uppercase font-bold text-zinc-400 flex items-center gap-1">
-                        <span>🎙️</span>
+                      <span className="text-[11px] font-medium text-zinc-400 flex items-center gap-1.5">
+                        <Mic className="w-3 h-3 text-rose-400 shrink-0" />
                         <span>Bình luận</span>
                       </span>
-                      <span
-                        className="font-extrabold text-white text-[11px] sm:text-xs line-clamp-2 break-words leading-tight"
-                        title={blv || "BLV Tiếng Việt"}
-                      >
+                      <span className="font-bold text-white text-[11px] sm:text-xs line-clamp-2 break-words leading-tight">
                         {blv || "BLV Tiếng Việt"}
                       </span>
                     </div>
 
                     {/* Kênh phát */}
                     <div className="rounded-xl bg-white/[0.03] p-2.5 sm:p-3 flex flex-col gap-1 min-w-0">
-                      <span className="text-[10px] uppercase font-bold text-zinc-400 flex items-center gap-1">
-                        <span>📺</span>
+                      <span className="text-[11px] font-medium text-zinc-400 flex items-center gap-1.5">
+                        <Tv className="w-3 h-3 text-sky-400 shrink-0" />
                         <span>Kênh tiếp sóng</span>
                       </span>
-                      <span
-                        className="font-extrabold text-white text-[11px] sm:text-xs line-clamp-2 break-words leading-tight"
-                        title={group || "Kênh Thể Thao"}
-                      >
+                      <span className="font-bold text-white text-[11px] sm:text-xs line-clamp-2 break-words leading-tight">
                         {group || "Kênh Thể Thao"}
                       </span>
                     </div>
 
                     {/* Tín hiệu & Luồng */}
                     <div className="rounded-xl bg-white/[0.03] p-2.5 sm:p-3 flex flex-col gap-1 min-w-0">
-                      <span className="text-[10px] uppercase font-bold text-zinc-400 flex items-center gap-1">
-                        <span>⚡</span>
+                      <span className="text-[11px] font-medium text-zinc-400 flex items-center gap-1.5">
+                        <Zap className="w-3 h-3 text-emerald-400 shrink-0" />
                         <span>Chất lượng</span>
                       </span>
-                      <span className="font-extrabold text-emerald-400 text-[11px] sm:text-xs line-clamp-2 break-words leading-tight">
+                      <span className="font-bold text-emerald-400 text-[11px] sm:text-xs line-clamp-2 break-words leading-tight tabular-nums">
                         {quality || "HD Sắc Nét"} {serversCount ? `(${serversCount} nguồn)` : ""}
                       </span>
                     </div>
@@ -679,8 +679,8 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
                           onClick={() => setActiveTab(tab.id as TabType)}
                           className={`flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all shrink-0 whitespace-nowrap cursor-pointer outline-none focus-visible:bg-white/10 min-h-[40px] sm:min-h-[44px] ${
                             isActive
-                              ? "bg-gradient-to-r from-netflix-red to-netflix-red/85 text-white shadow-md shadow-[var(--accent-glow)] font-black scale-[1.02]"
-                              : "text-zinc-400 hover:text-white hover:bg-white/5 bg-zinc-900/70 "
+                              ? "bg-gradient-to-r from-netflix-red to-netflix-red/85 text-white shadow-md shadow-black/50 font-black scale-[1.02]"
+                              : "text-zinc-400 hover:text-white hover:bg-white/5 bg-zinc-900/70"
                           }`}
                         >
                           <Icon className="w-3.5 h-3.5 shrink-0" />
@@ -773,7 +773,7 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
                         if (isPossession) {
                           return (
                             <div key={stat.name} className="space-y-1.5 py-1">
-                              <p className="text-center text-[11px] font-bold text-zinc-400 uppercase tracking-wider">
+                              <p className="text-center text-xs font-medium text-zinc-400">
                                 {stat.label}
                               </p>
                               <div className="flex justify-between items-center text-sm font-sans font-black tabular-nums px-1">

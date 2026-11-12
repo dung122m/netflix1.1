@@ -26,6 +26,13 @@ interface SyncedCloudState {
 const lastSyncedCloudState = new Map<string, SyncedCloudState>();
 const pendingCloudSaveItems = new Map<string, WatchHistoryItem>();
 
+export function mergeWatchedEpisodesForCloud(item: WatchHistoryItem): string[] {
+  const fromItem = Array.isArray(item.watchedEpisodes) ? item.watchedEpisodes : [];
+  const fromLocal =
+    typeof window !== "undefined" && item.slug ? getWatchedEpisodes(item.slug) : [];
+  return Array.from(new Set([...fromLocal, ...fromItem].filter(Boolean)));
+}
+
 async function getAuthHeaders(): Promise<HeadersInit> {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
@@ -134,9 +141,7 @@ export function saveWatchItemToCloudDebounced(
 
         const itemToSync = {
           ...targetItem,
-          watchedEpisodes:
-            targetItem.watchedEpisodes ||
-            (typeof window !== "undefined" ? getWatchedEpisodes(targetItem.slug) : []),
+          watchedEpisodes: mergeWatchedEpisodesForCloud(targetItem),
           updatedAt: targetItem.updatedAt || Date.now(),
         };
 
@@ -175,9 +180,7 @@ export function saveWatchItemToCloudDebounced(
 
       const itemToSync = {
         ...targetItem,
-        watchedEpisodes:
-          targetItem.watchedEpisodes ||
-          (typeof window !== "undefined" ? getWatchedEpisodes(targetItem.slug) : []),
+        watchedEpisodes: mergeWatchedEpisodesForCloud(targetItem),
         updatedAt: targetItem.updatedAt || Date.now(),
       };
 
@@ -227,9 +230,7 @@ export async function saveWatchItemsBatchToCloud(
       body: JSON.stringify({
         items: validItems.map((item) => ({
           ...item,
-          watchedEpisodes:
-            item.watchedEpisodes ||
-            (typeof window !== "undefined" ? getWatchedEpisodes(item.slug) : []),
+          watchedEpisodes: mergeWatchedEpisodesForCloud(item),
           updatedAt: item.updatedAt || now,
         })),
       }),

@@ -8,7 +8,7 @@ import { addMovieToCollection } from "@/services/collectionService";
 import { CollectionMovieItem } from "@/types/collection";
 import { toast } from "@/components/ui/Toast";
 import { useBodyScrollLock } from "@/lib/scrollLock";
-import { toOptimizedCardPosterUrl } from "@/lib/movieMedia";
+import { toOptimizedCardPosterUrl, toFastCdnImageUrl } from "@/lib/movieMedia";
 
 interface SearchResultItem {
   slug: string;
@@ -212,12 +212,9 @@ export const AddMovieToCollectionModal: React.FC<AddMovieToCollectionModalProps>
       className="fixed inset-0 z-[99999] flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-200 overflow-y-auto overscroll-contain"
     >
       <div
-        className="relative w-full max-w-lg my-auto bg-zinc-950 rounded-3xl p-5 sm:p-6 shadow-[0_25px_70px_rgba(0,0,0,0.95)] text-white animate-in zoom-in-95 duration-200 flex flex-col max-h-[85vh] overflow-hidden transform-gpu will-change-[transform,opacity]"
+        className="relative w-full max-w-lg my-auto bg-zinc-950 rounded-3xl p-4 sm:p-6 shadow-[0_25px_70px_rgba(0,0,0,0.95)] text-white animate-in zoom-in-95 duration-200 flex flex-col max-h-[85dvh] overflow-hidden transform-gpu will-change-[transform,opacity]"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Glow hiệu ứng */}
-        <div className="absolute -top-20 -left-20 w-44 h-44 bg-netflix-red/20 rounded-full blur-3xl pointer-events-none" />
-
         {/* Nút đóng */}
         <button
           type="button"
@@ -230,7 +227,7 @@ export const AddMovieToCollectionModal: React.FC<AddMovieToCollectionModalProps>
 
         {/* Header Modal */}
         <div className="flex items-center gap-3 mb-4 pr-8">
-          <div className="w-10 h-10 rounded-2xl bg-netflix-red/20 text-netflix-red flex items-center justify-center border border-netflix-red/30 shadow-md shadow-black/40 flex-shrink-0">
+          <div className="w-10 h-10 rounded-2xl bg-netflix-red/20 text-netflix-red flex items-center justify-center shadow-md shadow-black/40 flex-shrink-0">
             <Film className="w-5 h-5" />
           </div>
           <div className="min-w-0">
@@ -252,7 +249,7 @@ export const AddMovieToCollectionModal: React.FC<AddMovieToCollectionModalProps>
             placeholder="Tìm theo tên phim (VD: Mai, Dune, Avatar...)"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full bg-zinc-900 rounded-2xl pl-10 pr-9 py-2.5 text-xs sm:text-sm text-white placeholder:text-zinc-500 focus:outline-none focus:border-netflix-red focus:ring-1 focus:ring-netflix-red transition"
+            className="w-full bg-zinc-900 border border-zinc-800 rounded-2xl pl-10 pr-9 py-2.5 text-base sm:text-sm text-white placeholder:text-zinc-500 focus:outline-none focus:border-netflix-red focus:ring-1 focus:ring-netflix-red transition"
           />
           {searchTerm && (
             <button
@@ -305,28 +302,28 @@ export const AddMovieToCollectionModal: React.FC<AddMovieToCollectionModalProps>
               return (
                 <div
                   key={movie.slug}
-                  className="flex items-center justify-between p-2.5 rounded-2xl bg-zinc-900/60 hover:bg-zinc-900 hover: transition gap-3"
+                  className="flex items-center justify-between p-2.5 rounded-2xl bg-zinc-900/60 hover:bg-zinc-900 transition gap-3"
                 >
                   {/* Poster & Tên phim */}
                   <div className="flex items-center gap-3 min-w-0 flex-1">
                     <div className="relative w-11 h-15 rounded-xl overflow-hidden bg-zinc-800 flex-shrink-0">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
-                        src={toOptimizedCardPosterUrl(movie.poster, 192) || "/default-poster.jpg"}
+                        src={toFastCdnImageUrl(toOptimizedCardPosterUrl(movie.poster, 192) || "/default-poster.jpg")}
                         alt={movie.title}
                         className="w-full h-full object-cover"
                         loading="lazy"
                       />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="text-xs sm:text-sm font-bold text-white truncate" title={movie.title}>
+                      <p className="text-xs sm:text-sm font-bold text-white truncate">
                         {movie.title}
                       </p>
                       <div className="flex items-center gap-1.5 text-[11px] text-zinc-400 mt-0.5 flex-wrap">
                         {movie.year && <span>{movie.year}</span>}
                         {movie.year && movie.quality && <span>•</span>}
                         {movie.quality && (
-                          <span className="px-1.5 py-0.2 rounded bg-white/10 text-zinc-200 text-[10px]">
+                          <span className="px-1.5 py-0.5 rounded bg-white/10 text-zinc-200 text-[10px]">
                             {movie.quality}
                           </span>
                         )}
@@ -374,7 +371,7 @@ export const AddMovieToCollectionModal: React.FC<AddMovieToCollectionModalProps>
         </div>
 
         {/* Footer */}
-        <div className="pt-3 mt-2 border-t flex items-center justify-between">
+        <div className="pt-3 mt-2 border-t border-white/[0.08] flex items-center justify-between">
           <span className="text-[11px] text-zinc-400">
             {results.length > 0 ? `Tìm thấy ${results.length} kết quả` : ""}
           </span>

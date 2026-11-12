@@ -39,7 +39,7 @@ export function RecommendationSkeleton({ variant = "grid" }: { variant?: "grid" 
   if (variant === "sidebar") {
     return (
       <div className="space-y-3 animate-pulse">
-        <div className="flex gap-2 pb-2 border-b">
+        <div className="flex gap-2 pb-2 border-b border-white/[0.08]">
           <div className="h-7 w-24 bg-zinc-800 rounded-xl" />
           <div className="h-7 w-20 bg-zinc-900 rounded-xl" />
         </div>
@@ -134,8 +134,26 @@ export function MovieRecommendationsClient({
 }: MovieRecommendationsClientProps) {
   const [data, setData] = useState<RecommendationsData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isDesktopViewport, setIsDesktopViewport] = useState<boolean | null>(null);
 
   useEffect(() => {
+    if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
+      setIsDesktopViewport(variant === "sidebar");
+      return;
+    }
+    const mediaQuery = window.matchMedia("(min-width: 1024px)");
+    const syncViewport = () => setIsDesktopViewport(mediaQuery.matches);
+    syncViewport();
+    mediaQuery.addEventListener("change", syncViewport);
+    return () => mediaQuery.removeEventListener("change", syncViewport);
+  }, [variant]);
+
+  const isActiveViewport =
+    isDesktopViewport !== null &&
+    (variant === "sidebar" ? isDesktopViewport : !isDesktopViewport);
+
+  useEffect(() => {
+    if (!isActiveViewport) return;
     let isMounted = true;
     const cacheKey = `nanaflix_rec_v4_${currentMovieSlug}_${tmdbId || ""}`;
 
@@ -190,7 +208,11 @@ export function MovieRecommendationsClient({
       isMounted = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentMovieSlug, tmdbId]);
+  }, [currentMovieSlug, tmdbId, isActiveViewport]);
+
+  if (isDesktopViewport !== null && !isActiveViewport) {
+    return null;
+  }
 
   if (loading) {
     return <RecommendationSkeleton variant={variant} />;

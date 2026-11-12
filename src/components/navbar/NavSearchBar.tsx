@@ -1,23 +1,12 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useCallback } from "react";
-import Image from "next/image";
-import Link from "next/link";
-import { useRouter, useSearchParams, usePathname } from "next/navigation";
-import { Search, Loader2, X, History, ArrowLeft } from "lucide-react";
-import { useDebounce } from "@/hooks/useDebounce";
-import { toOptimizedPhimimgUrl } from "@/lib/movieMedia";
+import React from "react";
+import { ArrowLeft, Loader2, Search, X } from "lucide-react";
 import { Tooltip } from "@/components/ui/Tooltip";
+import { useNavSearch, type SearchSuggestion } from "./hooks/useNavSearch";
+import { SearchDropdownPanel } from "./SearchDropdownPanel";
 
-
-export interface SearchSuggestion {
-  slug: string;
-  title: string;
-  poster: string;
-  year?: string | number;
-  quality?: string;
-  category?: string;
-}
+export type { SearchSuggestion };
 
 interface NavSearchBarProps {
   isSearchExpanded: boolean;
@@ -25,980 +14,228 @@ interface NavSearchBarProps {
   onOpenMobileSearch?: () => void;
 }
 
-// In-memory cache cho kết quả gợi ý tìm kiếm phía Client (phản hồi 0ms khi gõ/xóa lại ký tự)
-const clientSuggestCache = new Map<string, SearchSuggestion[]>();
+export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(
+  function NavSearchBar({
+    isSearchExpanded,
+    setIsSearchExpanded,
+    onOpenMobileSearch,
+  }) {
+    const {
+      queryText,
+      hasSearchText,
+      hasDropdownContent,
+      suggestions,
+      isSearching,
+      showDropdown,
+      setShowDropdown,
+      selectedSuggestionIndex,
+      recentSearches,
+      inputRef,
+      mobileInputRef,
+      searchContainerRef,
+      mobileSearchRef,
+      handleInputChange,
+      handleInputKeyDown,
+      handleSearchSubmit,
+      handleRecentClick,
+      removeRecentSearch,
+      clearAllRecentSearches,
+      clearSearch,
+      toggleSearch,
+      handleSuggestionSelect,
+      closeMobileOverlay,
+    } = useNavSearch({
+      isSearchExpanded,
+      setIsSearchExpanded,
+      onOpenMobileSearch,
+    });
 
-export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function NavSearchBar({
-  isSearchExpanded,
-  setIsSearchExpanded,
-  onOpenMobileSearch,
-}) {
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const urlKeyword = searchParams.get("keyword") || "";
+    const isSearchOpen = isSearchExpanded;
 
-  const [hasText, setHasText] = useState(false);
-  const [suggestions, setSuggestions] = useState<SearchSuggestion[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
-  const [showDropdown, setShowDropdown] = useState(false);
-  const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(-1);
-  const [recentSearches, setRecentSearches] = useState<string[]>([]);
-
-  const inputRef = useRef<HTMLInputElement>(null);
-  const mobileInputRef = useRef<HTMLInputElement>(null);
-  const searchContainerRef = useRef<HTMLDivElement>(null);
-  const mobileSearchRef = useRef<HTMLDivElement>(null);
-  const abortControllerRef = useRef<AbortController | null>(null);
-  const trackSearchOnce = useCallback((_kw: string) => {
-    // No-op: search analytics tracking eliminated
-  }, []);
-
-  const triggerNavigationLoading = useCallback(() => {
-    if (typeof window !== "undefined") {
-      window.dispatchEvent(new Event("app:loading-start"));
-    }
-  }, []);
-
-  const isSearchOpen = isSearchExpanded;
-  const hasSearchText = hasText;
-  const hasDropdownContent =
-    (!hasSearchText && recentSearches.length > 0) ||
-    hasSearchText;
-
-  // Debounced search fetcher (350ms phản hồi mượt mà)
-  const [debouncedFetchSuggestions, cancelDebouncedFetch] = useDebounce(
-    async (val: string) => {
-      const trimmed = val.trim();
-      const normKey = trimmed.toLowerCase();
-
-      // Kiểm tra cache hit tức thì (0ms)
-      if (clientSuggestCache.has(normKey)) {
-        const cachedItems = clientSuggestCache.get(normKey)!;
-        setSuggestions(cachedItems);
-        setShowDropdown(true);
-        setIsSearching(false);
-        return;
-      }
-
-      // Abort previous in-flight request to prevent race condition
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-      }
-      const controller = new AbortController();
-      abortControllerRef.current = controller;
-
-      try {
-        const res = await fetch(
-          `/api/search-suggest?keyword=${encodeURIComponent(trimmed)}`,
-          { signal: controller.signal }
-        );
-        if (!res.ok) {
-          throw new Error(`HTTP error! status: ${res.status}`);
-        }
-        const data = await res.json();
-        const items = data.items || [];
-        clientSuggestCache.set(normKey, items);
-
-        // Verify that input is still actively focused and matches the query
-        const isFocused =
-          typeof document !== "undefined" &&
-          (document.activeElement === inputRef.current ||
-            document.activeElement === mobileInputRef.current);
-        const currentInputVal = (inputRef.current?.value || mobileInputRef.current?.value || "").trim();
-
-        if (isFocused && currentInputVal.toLowerCase() === trimmed.toLowerCase()) {
-          setSuggestions(items);
-          setShowDropdown(true);
-        }
-      } catch (err: unknown) {
-        if (err instanceof Error && err.name === "AbortError") {
-          return; // Ignore AbortError silently
-        }
-        console.error("Lỗi gợi ý tìm kiếm:", err);
-        setSuggestions([]);
-      } finally {
-        if (abortControllerRef.current === controller) {
-          abortControllerRef.current = null;
-          setIsSearching(false);
-        }
-      }
-    },
-    350
-  );
-
-  useEffect(() => {
-    try {
-      const stored = localStorage.getItem("nanaflix_recent_searches");
-      if (stored) {
-        setRecentSearches(JSON.parse(stored));
-      }
-    } catch {}
-  }, []);
-
-  useEffect(() => () => {
-    cancelDebouncedFetch();
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-      abortControllerRef.current = null;
-    }
-  }, [cancelDebouncedFetch]);
-
-  // Sync keyword from URL
-  useEffect(() => {
-    if (inputRef.current) inputRef.current.value = urlKeyword;
-    if (mobileInputRef.current) mobileInputRef.current.value = urlKeyword;
-    setHasText(Boolean(urlKeyword));
-    if (urlKeyword && typeof window !== "undefined" && window.innerWidth >= 768) {
-      setIsSearchExpanded(true);
-    }
-  }, [urlKeyword, setIsSearchExpanded]);
-
-  // Close dropdown and collapse search on click outside
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      const insideDesktopSearch = searchContainerRef.current?.contains(e.target as Node);
-      const insideMobileSearch = mobileSearchRef.current?.contains(e.target as Node);
-      if (!insideDesktopSearch && !insideMobileSearch) {
-        setShowDropdown(false);
-        setIsSearchExpanded(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [setIsSearchExpanded]);
-
-  const isSearchExpandedRef = useRef(isSearchExpanded);
-  isSearchExpandedRef.current = isSearchExpanded;
-  const onOpenMobileSearchRef = useRef(onOpenMobileSearch);
-  onOpenMobileSearchRef.current = onOpenMobileSearch;
-
-  // Global hotkey Ctrl+K, / to open search, and Escape to close (đăng ký 1 lần duy nhất trên window)
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && isSearchExpandedRef.current) {
-        setShowDropdown(false);
-        setIsSearchExpanded(false);
-        inputRef.current?.blur();
-        mobileInputRef.current?.blur();
-        return;
-      }
-
-      const target = e.target as HTMLElement;
-      const isInput =
-        target &&
-        (target.tagName === "INPUT" ||
-          target.tagName === "TEXTAREA" ||
-          target.isContentEditable);
-
-      if (
-        (e.ctrlKey && (e.key === "k" || e.key === "K")) ||
-        (e.key === "/" && !isInput)
-      ) {
-        e.preventDefault();
-        onOpenMobileSearchRef.current?.();
-        setIsSearchExpanded(true);
-        setTimeout(() => {
-          if (typeof window !== "undefined" && window.innerWidth < 768) {
-            mobileInputRef.current?.focus();
-            mobileInputRef.current?.select();
-          } else {
-            inputRef.current?.focus();
-            inputRef.current?.select();
-          }
-        }, 50);
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [setIsSearchExpanded]);
-
-  const saveRecentSearch = (kw: string) => {
-    const clean = kw.trim();
-    if (!clean) return;
-    try {
-      const current = recentSearches.filter(
-        (s) => s.toLowerCase() !== clean.toLowerCase()
-      );
-      const updated = [clean, ...current].slice(0, 6);
-      setRecentSearches(updated);
-      localStorage.setItem("nanaflix_recent_searches", JSON.stringify(updated));
-    } catch {}
-  };
-
-  const removeRecentSearch = (kw: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    try {
-      const updated = recentSearches.filter((s) => s !== kw);
-      setRecentSearches(updated);
-      localStorage.setItem("nanaflix_recent_searches", JSON.stringify(updated));
-    } catch {}
-  };
-
-  const clearAllRecentSearches = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    try {
-      setRecentSearches([]);
-      localStorage.removeItem("nanaflix_recent_searches");
-    } catch {}
-  };
-
-  const handleRecentClick = (kw: string) => {
-    cancelDebouncedFetch();
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-      abortControllerRef.current = null;
-    }
-    setIsSearching(false);
-    setSelectedSuggestionIndex(-1);
-    if (inputRef.current) inputRef.current.value = kw;
-    if (mobileInputRef.current) mobileInputRef.current.value = kw;
-    setHasText(true);
-    setShowDropdown(false);
-    inputRef.current?.blur();
-    mobileInputRef.current?.blur();
-    if (typeof window !== "undefined" && window.innerWidth < 768) {
-      setIsSearchExpanded(false);
-    }
-    saveRecentSearch(kw);
-    trackSearchOnce(kw);
-    triggerNavigationLoading();
-    router.push(`/browse?keyword=${encodeURIComponent(kw)}`);
-  };
-
-  // Close dropdown and abort any pending fetch on route or search params change
-  useEffect(() => {
-    cancelDebouncedFetch();
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-      abortControllerRef.current = null;
-    }
-    setIsSearching(false);
-    setShowDropdown(false);
-    if (pathname !== "/browse") {
-      setIsSearchExpanded(false);
-    }
-  }, [pathname, searchParams, cancelDebouncedFetch, setIsSearchExpanded]);
-
-  const toggleSearch = (e?: React.MouseEvent) => {
-    if (e) {
-      e.preventDefault();
-      e.stopPropagation();
-    }
-    if (!isSearchExpanded) {
-      onOpenMobileSearch?.();
-      setIsSearchExpanded(true);
-      setShowDropdown(true);
-      setTimeout(() => {
-        if (typeof window !== "undefined" && window.innerWidth < 768) {
-          mobileInputRef.current?.focus();
-        } else {
-          inputRef.current?.focus();
-        }
-      }, 100);
-    } else {
-      setIsSearchExpanded(false);
-      setShowDropdown(false);
-    }
-  };
-
-  const clearSearch = (e?: React.MouseEvent) => {
-    if (e) {
-      e.preventDefault();
-      e.stopPropagation();
-    }
-    cancelDebouncedFetch();
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-      abortControllerRef.current = null;
-    }
-    if (inputRef.current) inputRef.current.value = "";
-    if (mobileInputRef.current) mobileInputRef.current.value = "";
-    setHasText(false);
-    setSuggestions([]);
-    setIsSearching(false);
-    setShowDropdown(true);
-    setSelectedSuggestionIndex(-1);
-    if (typeof window !== "undefined" && window.innerWidth < 768) {
-      mobileInputRef.current?.focus();
-    } else {
-      inputRef.current?.focus();
-    }
-
-    // Khi đang ở /browse và URL có keyword: Xóa keyword & page, giữ nguyên các bộ lọc khác
-    if (pathname === "/browse" && searchParams.has("keyword")) {
-      const params = new URLSearchParams(searchParams.toString());
-      params.delete("keyword");
-      params.delete("page");
-      const query = params.toString();
-      triggerNavigationLoading();
-      router.push(query ? `/browse?${query}` : "/browse");
-    }
-  };
-
-  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value;
-    const trimmed = val.trim();
-    setHasText(trimmed.length > 0);
-
-    if (trimmed.length >= 2) {
-      setIsSearching(true);
-      setShowDropdown(true);
-      debouncedFetchSuggestions(trimmed);
-    } else {
-      cancelDebouncedFetch();
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-        abortControllerRef.current = null;
-      }
-      setSuggestions([]);
-      setIsSearching(false);
-      setShowDropdown(true);
-    }
-  }, [debouncedFetchSuggestions, cancelDebouncedFetch]);
-
-  const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Escape") {
-      e.preventDefault();
-      cancelDebouncedFetch();
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-        abortControllerRef.current = null;
-      }
-      setIsSearching(false);
-      setShowDropdown(false);
-      setIsSearchExpanded(false);
-      inputRef.current?.blur();
-      mobileInputRef.current?.blur();
-      return;
-    }
-
-    if (e.key === "Enter") {
-      if (showDropdown && suggestions.length > 0 && selectedSuggestionIndex >= 0 && selectedSuggestionIndex < suggestions.length) {
-        e.preventDefault();
-        const selected = suggestions[selectedSuggestionIndex];
-        const val = (inputRef.current?.value || mobileInputRef.current?.value || "").trim();
-        if (val) {
-          saveRecentSearch(val);
-          trackSearchOnce(val);
-        }
-        cancelDebouncedFetch();
-        if (abortControllerRef.current) {
-          abortControllerRef.current.abort();
-          abortControllerRef.current = null;
-        }
-        setIsSearching(false);
-        setShowDropdown(false);
-        setIsSearchExpanded(false);
-        inputRef.current?.blur();
-        mobileInputRef.current?.blur();
-        triggerNavigationLoading();
-        router.push(
-          selected.slug.startsWith("browse?")
-            ? `/browse?${selected.slug.slice(7)}`
-            : selected.slug.startsWith("?")
-            ? `/browse${selected.slug}`
-            : `/movies/${selected.slug}`
-        );
-        return;
-      } else if (showDropdown && !hasSearchText && recentSearches.length > 0 && selectedSuggestionIndex >= 0 && selectedSuggestionIndex < recentSearches.length) {
-        e.preventDefault();
-        const selected = recentSearches[selectedSuggestionIndex];
-        handleRecentClick(selected);
-        return;
-      }
-    }
-
-    if (!showDropdown) return;
-
-    if (e.key === "ArrowDown") {
-      e.preventDefault();
-      if (suggestions.length > 0) {
-        setSelectedSuggestionIndex((prev) =>
-          prev < suggestions.length - 1 ? prev + 1 : 0
-        );
-      } else if (recentSearches.length > 0) {
-        setSelectedSuggestionIndex((prev) =>
-          prev < recentSearches.length - 1 ? prev + 1 : 0
-        );
-      }
-    } else if (e.key === "ArrowUp") {
-      e.preventDefault();
-      if (suggestions.length > 0) {
-        setSelectedSuggestionIndex((prev) =>
-          prev > 0 ? prev - 1 : suggestions.length - 1
-        );
-      } else if (recentSearches.length > 0) {
-        setSelectedSuggestionIndex((prev) =>
-          prev > 0 ? prev - 1 : recentSearches.length - 1
-        );
-      }
-    }
-  };
-
-  const handleSearchSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const currentKeyword = (inputRef.current?.value || mobileInputRef.current?.value || "").trim();
-
-    if (!currentKeyword) {
-      if (typeof window !== "undefined" && window.innerWidth < 768) {
-        mobileInputRef.current?.focus();
-      } else {
-        inputRef.current?.focus();
-      }
-      return;
-    }
-
-    cancelDebouncedFetch();
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-      abortControllerRef.current = null;
-    }
-    setIsSearching(false);
-    setShowDropdown(false);
-    setSelectedSuggestionIndex(-1);
-
-    inputRef.current?.blur();
-    mobileInputRef.current?.blur();
-
-    if (typeof window !== "undefined" && window.innerWidth < 768) {
-      setIsSearchExpanded(false);
-    }
-
-    saveRecentSearch(currentKeyword);
-    trackSearchOnce(currentKeyword);
-    triggerNavigationLoading();
-    router.push(`/browse?keyword=${encodeURIComponent(currentKeyword)}`);
-  };
-
-  return (
-    <>
-      {/* FULL-WIDTH MOBILE SEARCH OVERLAY */}
-      {isSearchOpen && (
-        <div
-          ref={mobileSearchRef}
-          className="md:hidden absolute inset-0 bg-black/98 px-2.5 sm:px-4 py-2 flex items-center gap-2 z-50 animate-in fade-in duration-150 border-b shadow-2xl"
-        >
-          <button
-            type="button"
-            onClick={() => {
-              setIsSearchExpanded(false);
-              setShowDropdown(false);
-            }}
-            aria-label="Đóng tìm kiếm"
-            className="p-1.5 rounded-full text-zinc-300 hover:text-white hover:bg-white/10 transition cursor-pointer flex-shrink-0"
-          >
-            <ArrowLeft size={20} />
-          </button>
-
-          <form
-            onSubmit={handleSearchSubmit}
-            className="flex-1 flex items-center bg-zinc-900/90 rounded-full px-3 py-1.5 shadow-inner min-w-0"
+    return (
+      <>
+        {/* FULL-WIDTH MOBILE SEARCH OVERLAY */}
+        {isSearchOpen && (
+          <div
+            ref={mobileSearchRef}
+            className="md:hidden absolute inset-0 bg-black/98 px-2.5 sm:px-4 py-2 flex items-center gap-2 z-50 animate-in fade-in duration-150 border-b border-white/[0.08] shadow-2xl"
           >
             <button
-              type={hasSearchText ? "submit" : "button"}
-              onClick={hasSearchText ? undefined : (e) => { e.preventDefault(); mobileInputRef.current?.focus(); }}
-              aria-label="Tìm kiếm"
-              title="Tìm kiếm ngay"
-              className="text-zinc-300 hover:text-white mr-2 flex-shrink-0 cursor-pointer"
+              type="button"
+              onClick={closeMobileOverlay}
+              aria-label="Đóng tìm kiếm"
+              className="p-1.5 rounded-full text-zinc-300 hover:text-white hover:bg-white/10 transition cursor-pointer flex-shrink-0"
             >
-              <Search size={16} />
+              <ArrowLeft size={20} />
             </button>
 
-            <input
-              ref={mobileInputRef}
-              type="text"
-              placeholder="Tìm phim, diễn viên, anime..."
-              onChange={(e) => {
-                handleInputChange(e);
-                if (inputRef.current) inputRef.current.value = e.target.value;
-              }}
-              onKeyDown={handleInputKeyDown}
-              onFocus={() => {
-                setShowDropdown(true);
-              }}
-              className="w-full bg-transparent text-white text-xs sm:text-sm outline-none placeholder:text-zinc-400 min-w-0"
-            />
-
-            <div className="flex items-center gap-1 ml-1 flex-shrink-0">
-              {isSearching && (
-                <Loader2 size={15} className="animate-spin text-netflix-red" />
-              )}
-              {hasSearchText && (
-                <Tooltip content="Xóa nội dung" side="bottom">
-                  <button
-                    type="button"
-                    onClick={clearSearch}
-                    aria-label="Xóa nội dung tìm kiếm"
-                    className="p-1 text-zinc-400 hover:text-white transition cursor-pointer rounded-full hover:bg-white/10"
-                  >
-                    <X size={16} />
-                  </button>
-                </Tooltip>
-              )}
-            </div>
-          </form>
-
-          {/* MOBILE SEARCH DROPDOWN */}
-          {showDropdown && hasDropdownContent && (
-            <div className="fixed top-[52px] sm:top-[56px] inset-x-2 w-auto max-w-lg mx-auto bg-zinc-950/98 backdrop-blur-xl rounded-2xl p-3 shadow-2xl z-50 max-h-[calc(100dvh-64px)] sm:max-h-[calc(100dvh-72px)] overflow-y-auto overscroll-contain transform-gpu will-change-[transform,opacity]">
-              {!hasSearchText && recentSearches.length > 0 ? (
-                <div>
-                  <div className="flex items-center justify-between text-[11px] font-semibold text-zinc-400 px-2 py-1 mb-1 border-b">
-                    <span className="flex items-center gap-1.5 uppercase tracking-wider text-[11px]">
-                      <History size={12} className="text-netflix-red" />
-                      Tìm kiếm gần đây
-                    </span>
-                    <button
-                      type="button"
-                      onClick={clearAllRecentSearches}
-                      className="text-[11px] text-zinc-400 hover:text-white transition cursor-pointer"
-                    >
-                      Xóa tất cả
-                    </button>
-                  </div>
-
-                  <div className="flex flex-col gap-0.5 mt-1">
-                    {recentSearches.map((kw, idx) => (
-                      <div
-                        key={kw}
-                        onClick={() => handleRecentClick(kw)}
-                        className={`flex items-center justify-between px-2.5 py-1.5 rounded-lg transition cursor-pointer group ${
-                          selectedSuggestionIndex === idx
-                            ? "bg-zinc-800 text-white "
-                            : "hover:bg-zinc-850 text-zinc-300 hover:text-white"
-                        }`}
-                      >
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <History size={13} className="text-zinc-500 group-hover:text-netflix-red transition flex-none" />
-                          <span className="text-xs transition truncate">{kw}</span>
-                        </div>
-                        <Tooltip content="Xóa từ khóa này" side="left">
-                          <button
-                            type="button"
-                            onClick={(e) => removeRecentSearch(kw, e)}
-                            aria-label="Xóa từ khóa này"
-                            className="p-1 text-zinc-500 hover:text-white rounded transition cursor-pointer hover:bg-white/10"
-                          >
-                            <X size={12} />
-                          </button>
-                        </Tooltip>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ) : isSearching && suggestions.length === 0 ? (
-                <div className="p-1 space-y-2">
-                  <div className="flex items-center gap-2 text-xs font-semibold text-zinc-400 px-2 py-1">
-                    <Loader2 size={13} className="animate-spin text-netflix-red flex-none" />
-                    <span>Đang tìm kiếm gợi ý phim...</span>
-                  </div>
-                  <div className="flex flex-col gap-1">
-                    {Array.from({ length: 3 }).map((_, idx) => (
-                      <div
-                        key={idx}
-                        className="flex items-center gap-3 p-2 rounded-lg bg-white/[0.03] animate-pulse"
-                      >
-                        <div className="w-10 h-14 bg-zinc-800 rounded flex-none" />
-                        <div className="flex-1 min-w-0 space-y-2">
-                          <div className="h-3.5 bg-zinc-700/60 rounded w-3/4" />
-                          <div className="flex items-center gap-2">
-                            <div className="h-2.5 bg-zinc-800 rounded w-12" />
-                            <div className="h-2.5 bg-zinc-800/80 rounded w-16" />
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="border-t mt-2 pt-2">
-                    <button
-                      type="button"
-                      onClick={handleSearchSubmit}
-                      className="w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg bg-zinc-850 hover:bg-netflix-red text-zinc-200 hover:text-white font-medium text-xs transition shadow-md cursor-pointer active:scale-98"
-                    >
-                      <Search size={13} />
-                      <span>Tìm kiếm ngay cho &quot;{mobileInputRef.current?.value || inputRef.current?.value}&quot;</span>
-                    </button>
-                  </div>
-                </div>
-              ) : suggestions.length > 0 ? (
-                <>
-                  <div className="flex items-center justify-between text-[11px] font-semibold text-zinc-400 px-2.5 py-1 uppercase tracking-wider">
-                    <span>Gợi ý phim</span>
-                    {isSearching && (
-                      <span className="flex items-center gap-1.5 text-netflix-red normal-case font-medium text-xs">
-                        <Loader2 size={12} className="animate-spin flex-none" />
-                        <span>Đang cập nhật...</span>
-                      </span>
-                    )}
-                  </div>
-                  <div className="flex flex-col gap-1 mt-1">
-                    {suggestions.map((item, idx) => (
-                      <Link
-                        key={item.slug}
-                        href={
-                          item.slug.startsWith("browse?")
-                            ? `/browse?${item.slug.slice(7)}`
-                            : item.slug.startsWith("?")
-                            ? `/browse${item.slug}`
-                            : `/movies/${item.slug}`
-                        }
-                        onClick={() => {
-                          const val = (mobileInputRef.current?.value || inputRef.current?.value || "").trim();
-                          if (val) {
-                            trackSearchOnce(val);
-                            saveRecentSearch(val);
-                          }
-                          cancelDebouncedFetch();
-                          if (abortControllerRef.current) {
-                            abortControllerRef.current.abort();
-                            abortControllerRef.current = null;
-                          }
-                          setIsSearching(false);
-                          setShowDropdown(false);
-                          setIsSearchExpanded(false);
-                          inputRef.current?.blur();
-                          mobileInputRef.current?.blur();
-                          triggerNavigationLoading();
-                        }}
-                        className={`flex items-center gap-3 p-2 rounded-lg transition group ${
-                          selectedSuggestionIndex === idx
-                            ? "bg-zinc-800 text-white "
-                            : "hover:bg-zinc-850"
-                        }`}
-                      >
-                        <div className="relative w-10 h-14 bg-zinc-800 rounded overflow-hidden flex-none">
-                          <Image
-                            src={toOptimizedPhimimgUrl(item.poster, 192)}
-                            alt={item.title}
-                            fill
-                            unoptimized
-                            sizes="40px"
-                            className="object-cover group-hover:scale-105 transition-transform"
-                          />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <h4 className="text-sm font-semibold text-white group-hover:text-netflix-red transition-colors truncate">
-                            {item.title}
-                          </h4>
-                          <div className="flex items-center gap-2 text-xs text-zinc-400 mt-1">
-                            {item.year && <span>{item.year}</span>}
-                            {item.category && (
-                              <span className="text-amber-400 font-medium">
-                                {item.category}
-                              </span>
-                            )}
-                            {item.quality && (
-                              <span className="bg-white/10 px-1.5 py-0.5 rounded text-[11px] font-bold">
-                                {item.quality}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </Link>
-                    ))}
-                  </div>
-
-                  <div className="border-t mt-2 pt-2">
-                    <button
-                      type="button"
-                      onClick={handleSearchSubmit}
-                      className="w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg bg-netflix-red hover:brightness-110 active:brightness-95 text-white font-bold text-xs transition shadow-md cursor-pointer active:scale-98"
-                    >
-                      <Search size={13} />
-                      <span>Xem tất cả kết quả cho &quot;{mobileInputRef.current?.value || inputRef.current?.value}&quot;</span>
-                    </button>
-                  </div>
-                </>
-              ) : hasSearchText ? (
-                <div className="py-4 px-2 text-center space-y-2">
-                  <p className="text-xs text-zinc-400">
-                    {(mobileInputRef.current?.value || inputRef.current?.value || "").trim().length >= 2
-                      ? "Không có gợi ý nhanh phù hợp"
-                      : "Nhập từ 2 ký tự trở lên để xem gợi ý phim..."}
-                  </p>
-                  {(mobileInputRef.current?.value || inputRef.current?.value || "").trim().length >= 2 && (
-                    <button
-                      type="button"
-                      onClick={handleSearchSubmit}
-                      className="w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg bg-netflix-red hover:brightness-110 active:brightness-95 text-white font-bold text-xs transition shadow-md cursor-pointer active:scale-98"
-                    >
-                      <Search size={13} />
-                      <span>Tìm kiếm toàn bộ kho phim cho &quot;{mobileInputRef.current?.value || inputRef.current?.value}&quot;</span>
-                    </button>
-                  )}
-                </div>
-              ) : null}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* MOBILE SEARCH TRIGGER BUTTON */}
-      <button
-        type="button"
-        onClick={toggleSearch}
-        aria-label="Tìm kiếm phim"
-        className="md:hidden flex items-center justify-center h-8 w-8 sm:h-9 sm:w-9 rounded-full bg-white/10 hover:bg-white/20 text-zinc-200 hover:text-white transition cursor-pointer flex-shrink-0 active:scale-95"
-      >
-        <Search size={16} />
-      </button>
-
-      {/* DESKTOP SEARCH BAR */}
-      <div ref={searchContainerRef} className="relative hidden md:block flex-shrink-0">
-        <form
-          onSubmit={handleSearchSubmit}
-          className={`flex items-center transition-all duration-300 rounded-full ${
-            isSearchOpen
-              ? "w-[240px] lg:w-[270px] xl:w-[300px] border border-white/35 bg-black/90 px-3 py-1.5 backdrop-blur-md shadow-lg"
-              : "w-9 border-transparent px-1 py-1"
-          }`}
-        >
-          <Tooltip
-            content={isSearchOpen && hasSearchText ? "Tìm kiếm ngay" : "Tìm kiếm"}
-            shortcut={!isSearchOpen ? "Ctrl+K" : undefined}
-            side="bottom"
-          >
-            <button
-              type={isSearchOpen && hasSearchText ? "submit" : "button"}
-              onClick={isSearchOpen && hasSearchText ? undefined : toggleSearch}
-              aria-label={isSearchOpen && hasSearchText ? "Tìm kiếm phim" : "Mở thanh tìm kiếm"}
-              className="text-zinc-300 hover:text-white transition flex-shrink-0 cursor-pointer p-1 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black"
+            <form
+              onSubmit={handleSearchSubmit}
+              className="flex-1 flex items-center bg-zinc-900/90 rounded-full px-3 py-1.5 shadow-inner min-w-0"
             >
-              <Search size={17} />
-            </button>
-          </Tooltip>
-
-          <input
-            ref={inputRef}
-            type="text"
-            placeholder="Tìm phim trên Nanaflix..."
-            onChange={handleInputChange}
-            onKeyDown={handleInputKeyDown}
-            onFocus={() => {
-              setShowDropdown(true);
-            }}
-            className={`bg-transparent text-white text-sm outline-none transition-opacity duration-300 ${
-              isSearchOpen
-                ? "flex-1 min-w-0 ml-2 pr-1 opacity-100 placeholder:text-zinc-400"
-                : "w-0 opacity-0 pointer-events-none"
-            }`}
-          />
-
-          {isSearchOpen && (
-            <div className="flex items-center gap-1 flex-shrink-0">
-              {isSearching && (
-                <Loader2 size={14} className="animate-spin text-netflix-red" />
-              )}
-              {hasSearchText && (
-                <Tooltip content="Xóa nội dung" side="bottom">
-                  <button
-                    type="button"
-                    onClick={clearSearch}
-                    aria-label="Xóa nội dung tìm kiếm"
-                    className="p-1 text-zinc-400 hover:text-white transition flex-shrink-0 cursor-pointer rounded-full hover:bg-white/10"
-                  >
-                    <X size={15} />
-                  </button>
-                </Tooltip>
-              )}
-            </div>
-          )}
-        </form>
-
-        {/* DESKTOP SEARCH DROPDOWN */}
-        {showDropdown && hasDropdownContent && (
-          <div className="absolute top-full mt-2 right-0 w-[360px] bg-zinc-950/98 backdrop-blur-xl rounded-xl shadow-2xl p-2.5 z-50 animate-in fade-in zoom-in-95 duration-150 transform-gpu will-change-[transform,opacity]">
-            {!hasSearchText && recentSearches.length > 0 ? (
-              <div>
-                <div className="flex items-center justify-between text-[11px] font-semibold text-zinc-400 px-2 py-1 mb-1 border-b">
-                  <span className="flex items-center gap-1.5 uppercase tracking-wider text-[11px]">
-                    <History size={12} className="text-netflix-red" />
-                    Tìm kiếm gần đây
-                  </span>
-                  <button
-                    type="button"
-                    onClick={clearAllRecentSearches}
-                    className="text-[11px] text-zinc-400 hover:text-white transition cursor-pointer"
-                  >
-                    Xóa tất cả
-                  </button>
-                </div>
-
-                <div className="flex flex-col gap-0.5 mt-1">
-                  {recentSearches.map((kw, idx) => (
-                    <div
-                      key={kw}
-                      onClick={() => handleRecentClick(kw)}
-                      className={`flex items-center justify-between px-2.5 py-1.5 rounded-lg transition cursor-pointer group ${
-                        selectedSuggestionIndex === idx
-                          ? "bg-zinc-800 text-white "
-                          : "hover:bg-zinc-850 text-zinc-300 hover:text-white"
-                      }`}
-                    >
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        <History size={13} className="text-zinc-500 group-hover:text-netflix-red transition flex-none" />
-                        <span className="text-xs transition truncate">{kw}</span>
-                      </div>
-                      <Tooltip content="Xóa từ khóa này" side="left">
-                        <button
-                          type="button"
-                          onClick={(e) => removeRecentSearch(kw, e)}
-                          aria-label="Xóa từ khóa này"
-                          className="p-1 text-zinc-500 hover:text-white rounded transition cursor-pointer hover:bg-white/10"
-                        >
-                          <X size={12} />
-                        </button>
-                      </Tooltip>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ) : isSearching && suggestions.length === 0 ? (
-              <div className="p-1 space-y-2">
-                <div className="flex items-center gap-2 text-xs font-semibold text-zinc-400 px-2 py-1">
-                  <Loader2 size={13} className="animate-spin text-netflix-red flex-none" />
-                  <span>Đang tìm kiếm gợi ý phim...</span>
-                </div>
-                <div className="flex flex-col gap-1">
-                  {Array.from({ length: 3 }).map((_, idx) => (
-                    <div
-                      key={idx}
-                      className="flex items-center gap-3 p-2 rounded-lg bg-white/[0.03] animate-pulse"
-                    >
-                      <div className="w-10 h-14 bg-zinc-800 rounded flex-none" />
-                      <div className="flex-1 min-w-0 space-y-2">
-                        <div className="h-3.5 bg-zinc-700/60 rounded w-3/4" />
-                        <div className="flex items-center gap-2">
-                          <div className="h-2.5 bg-zinc-800 rounded w-12" />
-                          <div className="h-2.5 bg-zinc-800/80 rounded w-16" />
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                <div className="border-t mt-2 pt-2">
-                  <button
-                    type="button"
-                    onClick={handleSearchSubmit}
-                    className="w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg bg-zinc-850 hover:bg-netflix-red text-zinc-200 hover:text-white font-medium text-xs transition shadow-md cursor-pointer active:scale-98"
-                  >
-                    <Search size={13} />
-                    <span>Tìm kiếm ngay cho &quot;{inputRef.current?.value}&quot;</span>
-                  </button>
-                </div>
-              </div>
-            ) : suggestions.length > 0 ? (
-              <>
-                <div className="flex items-center justify-between text-[11px] font-semibold text-zinc-400 px-2.5 py-1 uppercase tracking-wider">
-                  <span>Gợi ý phim</span>
-                  {isSearching && (
-                    <span className="flex items-center gap-1.5 text-netflix-red normal-case font-medium text-xs">
-                      <Loader2 size={12} className="animate-spin flex-none" />
-                      <span>Đang cập nhật...</span>
-                    </span>
-                  )}
-                </div>
-                <div className="flex flex-col gap-1 mt-1">
-                  {suggestions.map((item, idx) => (
-                    <Link
-                      key={item.slug}
-                      href={
-                        item.slug.startsWith("browse?")
-                          ? `/browse?${item.slug.slice(7)}`
-                          : item.slug.startsWith("?")
-                          ? `/browse${item.slug}`
-                          : `/movies/${item.slug}`
+              <button
+                type={hasSearchText ? "submit" : "button"}
+                onClick={
+                  hasSearchText
+                    ? undefined
+                    : (e) => {
+                        e.preventDefault();
+                        mobileInputRef.current?.focus();
                       }
-                      onClick={() => {
-                        const val = (inputRef.current?.value || mobileInputRef.current?.value || "").trim();
-                        if (val) {
-                          trackSearchOnce(val);
-                          saveRecentSearch(val);
-                        }
-                        cancelDebouncedFetch();
-                        if (abortControllerRef.current) {
-                          abortControllerRef.current.abort();
-                          abortControllerRef.current = null;
-                        }
-                        setIsSearching(false);
-                        setShowDropdown(false);
-                        inputRef.current?.blur();
-                        mobileInputRef.current?.blur();
-                        triggerNavigationLoading();
-                      }}
-                      className={`flex items-center gap-3 p-2 rounded-lg transition group ${
-                        selectedSuggestionIndex === idx
-                          ? "bg-zinc-800 text-white "
-                          : "hover:bg-zinc-850"
-                      }`}
-                    >
-                      <div className="relative w-10 h-14 bg-zinc-800 rounded overflow-hidden flex-none">
-                        <Image
-                          src={toOptimizedPhimimgUrl(item.poster, 192)}
-                          alt={item.title}
-                          fill
-                          unoptimized
-                          sizes="40px"
-                          className="object-cover group-hover:scale-105 transition-transform"
-                        />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h4 className="text-sm font-semibold text-white group-hover:text-netflix-red transition-colors truncate">
-                          {item.title}
-                        </h4>
-                        <div className="flex items-center gap-2 text-xs text-zinc-400 mt-1">
-                          {item.year && <span>{item.year}</span>}
-                          {item.category && (
-                            <span className="text-amber-400 font-medium">
-                              {item.category}
-                            </span>
-                          )}
-                          {item.quality && (
-                            <span className="bg-white/10 px-1.5 py-0.5 rounded text-[11px] font-bold">
-                              {item.quality}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </Link>
-                  ))}
-                </div>
+                }
+                aria-label="Tìm kiếm ngay"
+                className="text-zinc-300 hover:text-white mr-2 flex-shrink-0 cursor-pointer"
+              >
+                <Search size={16} />
+              </button>
 
-                <div className="border-t mt-2 pt-2">
-                  <button
-                    type="button"
-                    onClick={handleSearchSubmit}
-                    className="w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg bg-netflix-red hover:brightness-110 active:brightness-95 text-white font-bold text-xs transition shadow-md cursor-pointer active:scale-98"
-                  >
-                    <Search size={13} />
-                    <span>Xem tất cả kết quả cho &quot;{inputRef.current?.value}&quot;</span>
-                  </button>
-                </div>
-              </>
-            ) : hasSearchText ? (
-              <div className="py-4 px-2 text-center space-y-2">
-                <p className="text-xs text-zinc-400">
-                  {(inputRef.current?.value || mobileInputRef.current?.value || "").trim().length >= 2
-                    ? "Không có gợi ý nhanh phù hợp"
-                    : "Nhập từ 2 ký tự trở lên để xem gợi ý phim..."}
-                </p>
-                {(inputRef.current?.value || mobileInputRef.current?.value || "").trim().length >= 2 && (
-                  <button
-                    type="button"
-                    onClick={handleSearchSubmit}
-                    className="w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg bg-netflix-red hover:brightness-110 active:brightness-95 text-white font-bold text-xs transition shadow-md cursor-pointer active:scale-98"
-                  >
-                    <Search size={13} />
-                    <span>Tìm kiếm toàn bộ kho phim cho &quot;{inputRef.current?.value || mobileInputRef.current?.value}&quot;</span>
-                  </button>
+              <input
+                ref={mobileInputRef}
+                type="text"
+                placeholder="Tìm phim, diễn viên, anime..."
+                onChange={handleInputChange}
+                onKeyDown={handleInputKeyDown}
+                onFocus={() => setShowDropdown(true)}
+                className="w-full bg-transparent text-white text-base sm:text-sm outline-none placeholder:text-zinc-400 min-w-0"
+              />
+
+              <div className="flex items-center gap-1 ml-1 flex-shrink-0">
+                {isSearching && (
+                  <Loader2 size={15} className="animate-spin text-netflix-red" />
+                )}
+                {hasSearchText && (
+                  <Tooltip content="Xóa nội dung" side="bottom">
+                    <button
+                      type="button"
+                      onClick={clearSearch}
+                      aria-label="Xóa nội dung tìm kiếm"
+                      className="p-1 text-zinc-400 hover:text-white transition cursor-pointer rounded-full hover:bg-white/10"
+                    >
+                      <X size={16} />
+                    </button>
+                  </Tooltip>
                 )}
               </div>
-            ) : null}
+            </form>
+
+            {/* MOBILE SEARCH DROPDOWN */}
+            {showDropdown && hasDropdownContent && (
+              <SearchDropdownPanel
+                variant="mobile"
+                queryText={queryText}
+                hasSearchText={hasSearchText}
+                isSearching={isSearching}
+                suggestions={suggestions}
+                recentSearches={recentSearches}
+                selectedSuggestionIndex={selectedSuggestionIndex}
+                onRecentClick={handleRecentClick}
+                onRemoveRecent={removeRecentSearch}
+                onClearAllRecent={clearAllRecentSearches}
+                onSuggestionSelect={handleSuggestionSelect}
+                onSubmitSearch={handleSearchSubmit}
+              />
+            )}
           </div>
         )}
-      </div>
-    </>
-  );
-});
+
+        {/* MOBILE SEARCH TRIGGER BUTTON */}
+        <button
+          type="button"
+          onClick={toggleSearch}
+          aria-label="Tìm kiếm phim"
+          className="md:hidden flex items-center justify-center h-8 w-8 sm:h-9 sm:w-9 rounded-full bg-white/10 hover:bg-white/20 text-zinc-200 hover:text-white transition cursor-pointer flex-shrink-0 active:scale-95"
+        >
+          <Search size={16} />
+        </button>
+
+        {/* DESKTOP SEARCH BAR */}
+        <div
+          ref={searchContainerRef}
+          className="relative hidden md:block flex-shrink-0"
+        >
+          <form
+            onSubmit={handleSearchSubmit}
+            className={`flex items-center transition-all duration-300 rounded-full ${
+              isSearchOpen
+                ? "w-[240px] lg:w-[270px] xl:w-[300px] border border-white/35 bg-black/90 px-3 py-1.5 backdrop-blur-md shadow-lg"
+                : "w-9 border-transparent px-1 py-1"
+            }`}
+          >
+            <Tooltip
+              content={
+                isSearchOpen && hasSearchText ? "Tìm kiếm ngay" : "Tìm kiếm"
+              }
+              shortcut={!isSearchOpen ? "Ctrl+K" : undefined}
+              side="bottom"
+            >
+              <button
+                type={isSearchOpen && hasSearchText ? "submit" : "button"}
+                onClick={isSearchOpen && hasSearchText ? undefined : toggleSearch}
+                aria-label={
+                  isSearchOpen && hasSearchText
+                    ? "Tìm kiếm phim"
+                    : "Mở thanh tìm kiếm"
+                }
+                className="text-zinc-300 hover:text-white transition flex-shrink-0 cursor-pointer p-1 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black"
+              >
+                <Search size={17} />
+              </button>
+            </Tooltip>
+
+            <input
+              ref={inputRef}
+              type="text"
+              placeholder="Tìm phim trên Nanaflix..."
+              onChange={handleInputChange}
+              onKeyDown={handleInputKeyDown}
+              onFocus={() => setShowDropdown(true)}
+              className={`bg-transparent text-white text-base sm:text-sm outline-none transition-opacity duration-300 ${
+                isSearchOpen
+                  ? "flex-1 min-w-0 ml-2 pr-1 opacity-100 placeholder:text-zinc-400"
+                  : "w-0 opacity-0 pointer-events-none"
+              }`}
+            />
+
+            {isSearchOpen && (
+              <div className="flex items-center gap-1 flex-shrink-0">
+                {isSearching && (
+                  <Loader2 size={14} className="animate-spin text-netflix-red" />
+                )}
+                {hasSearchText && (
+                  <Tooltip content="Xóa nội dung" side="bottom">
+                    <button
+                      type="button"
+                      onClick={clearSearch}
+                      aria-label="Xóa nội dung tìm kiếm"
+                      className="p-1 text-zinc-400 hover:text-white transition flex-shrink-0 cursor-pointer rounded-full hover:bg-white/10"
+                    >
+                      <X size={15} />
+                    </button>
+                  </Tooltip>
+                )}
+              </div>
+            )}
+          </form>
+
+          {/* DESKTOP SEARCH DROPDOWN */}
+          {showDropdown && hasDropdownContent && (
+            <SearchDropdownPanel
+              variant="desktop"
+              queryText={queryText}
+              hasSearchText={hasSearchText}
+              isSearching={isSearching}
+              suggestions={suggestions}
+              recentSearches={recentSearches}
+              selectedSuggestionIndex={selectedSuggestionIndex}
+              onRecentClick={handleRecentClick}
+              onRemoveRecent={removeRecentSearch}
+              onClearAllRecent={clearAllRecentSearches}
+              onSuggestionSelect={handleSuggestionSelect}
+              onSubmitSearch={handleSearchSubmit}
+            />
+          )}
+        </div>
+      </>
+    );
+  },
+);

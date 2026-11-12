@@ -190,6 +190,30 @@ export function formatPageGroupName(group?: string): string {
 const localVisitDedupCache = new Map<string, number>();
 const localKnownVisitors = new Set<string>();
 
+interface CachedDeviceProfileMeta {
+  firstSeen: number;
+  userId?: string;
+  country?: string;
+  countryCode?: string;
+  region?: string;
+  city?: string;
+  lastSyncedAt: number;
+}
+const DEVICE_PROFILE_SYNC_COOLDOWN_MS = 15 * 60 * 1000;
+const MAX_DEVICE_PROFILE_CACHE = 5000;
+const deviceProfileSyncCache = new Map<string, CachedDeviceProfileMeta>();
+
+const DASHBOARD_STATS_CACHE_TTL_MS = 30 * 1000;
+const dashboardStatsCache = new Map<string, { data: AnalyticsDashboardStats; expiresAt: number }>();
+
+function setDeviceProfileSyncCache(id: string, entry: CachedDeviceProfileMeta): void {
+  if (deviceProfileSyncCache.size >= MAX_DEVICE_PROFILE_CACHE) {
+    const firstKey = deviceProfileSyncCache.keys().next().value;
+    if (firstKey !== undefined) deviceProfileSyncCache.delete(firstKey);
+  }
+  deviceProfileSyncCache.set(id, entry);
+}
+
 if (typeof setInterval !== "undefined") {
   const dedupTimer = setInterval(() => {
     const nowTime = Date.now();
@@ -299,58 +323,95 @@ export async function recordAnalyticsEvent(payload: AnalyticsEventPayload): Prom
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       let upsertPromise: PromiseLike<any> | null = null;
       if (eventRecord.anonymousId) {
-        // Safe Profile Upsert: Bảo toàn first_seen và bảo vệ dữ liệu vị trí tốt, không ghi đè dữ liệu tốt bằng null
-        upsertPromise = (async () => {
-          try {
-            // 1. Kiểm tra bản ghi hiện có để bảo toàn first_seen và vị trí có độ tin cậy cao
-            const { data: existingProfile } = await client
-              .from("device_profiles")
-              .select("id, first_seen, country, country_code, region, city")
-              .eq("id", eventRecord.anonymousId)
-              .maybeSingle();
+        const cachedProfile = deviceProfileSyncCache.get(eventRecord.anonymousId);
+        const hasNewUserId = Boolean(eventRecord.userId && eventRecord.userId !== cachedProfile?.userId);
+        const hasNewGeo = Boolean(
+          (eventRecord.city && eventRecord.city !== cachedProfile?.city) ||
+          (eventRecord.country && eventRecord.country !== cachedProfile?.country)
+        );
+        const isProfileSyncFresh = Boolean(
+          cachedProfile &&
+          now - cachedProfile.lastSyncedAt < DEVICE_PROFILE_SYNC_COOLDOWN_MS &&
+          !hasNewUserId &&
+          !hasNewGeo
+        );
 
-            const profileData: Record<string, unknown> = {
-              id: eventRecord.anonymousId,
-              guest_id: eventRecord.anonymousId,
-              device_type: eventRecord.deviceType || "desktop",
-              os: eventRecord.os || "Other",
-              browser: eventRecord.browser || "Other",
-              // Bảo toàn first_seen: nếu đã có bản ghi cũ thì giữ nguyên, chỉ lấy createdAt cho bản ghi mới
-              first_seen: existingProfile?.first_seen || eventRecord.createdAt,
-              last_seen: eventRecord.createdAt,
-            };
+        if (!isProfileSyncFresh) {
+          // Safe Profile Upsert: Tận dụng L1 cache để bỏ qua SELECT device_profiles lặp lại, vẫn bảo toàn first_seen & geo tốt
+          upsertPromise = (async () => {
+            try {
+              let existingFirstSeen = cachedProfile?.firstSeen;
+              let existingCountry = cachedProfile?.country;
+              let existingCountryCode = cachedProfile?.countryCode;
+              let existingRegion = cachedProfile?.region;
+              let existingCity = cachedProfile?.city;
 
-            if (eventRecord.userId) {
-              profileData.user_id = eventRecord.userId;
-            }
+              if (!cachedProfile) {
+                const { data: existingProfile } = await client
+                  .from("device_profiles")
+                  .select("id, first_seen, country, country_code, region, city")
+                  .eq("id", eventRecord.anonymousId)
+                  .maybeSingle();
 
-            // Bảo vệ dữ liệu vị trí theo độ tin cậy (Confidence):
-            // - Nếu request mới có country/countryCode thì cập nhật, nếu không thì giữ nguyên giá trị cũ
-            const resolvedCountry = eventRecord.country || existingProfile?.country;
-            if (resolvedCountry) {
-              profileData.country = resolvedCountry;
-            }
-            const resolvedCountryCode = eventRecord.countryCode || existingProfile?.country_code;
-            if (resolvedCountryCode) {
-              profileData.country_code = resolvedCountryCode;
-            }
+                if (existingProfile) {
+                  existingFirstSeen = Number(existingProfile.first_seen) || undefined;
+                  existingCountry = existingProfile.country || undefined;
+                  existingCountryCode = existingProfile.country_code || undefined;
+                  existingRegion = existingProfile.region || undefined;
+                  existingCity = existingProfile.city || undefined;
+                }
+              }
 
-            // - Với city và region: chỉ cập nhật khi request mới thực sự có city/region hợp lệ.
-            // Nếu request mới thiếu city (do 4G CGNAT hoặc timeout) -> giữ nguyên city/region tốt đã có
-            const resolvedCity = eventRecord.city || existingProfile?.city;
-            if (resolvedCity) {
-              profileData.city = resolvedCity;
-            }
-            const resolvedRegion = eventRecord.region || existingProfile?.region;
-            if (resolvedRegion) {
-              profileData.region = resolvedRegion;
-            }
+              const resolvedFirstSeen = existingFirstSeen || eventRecord.createdAt;
+              const resolvedCountry = eventRecord.country || existingCountry;
+              const resolvedCountryCode = eventRecord.countryCode || existingCountryCode;
+              const resolvedCity = eventRecord.city || existingCity;
+              const resolvedRegion = eventRecord.region || existingRegion;
 
-            return await client.from("device_profiles").upsert(profileData, { onConflict: "id" });
-          } catch (upsertErr) {
-            return { error: upsertErr };
-          }
-        })();
+              const profileData: Record<string, unknown> = {
+                id: eventRecord.anonymousId,
+                guest_id: eventRecord.anonymousId,
+                device_type: eventRecord.deviceType || "desktop",
+                os: eventRecord.os || "Other",
+                browser: eventRecord.browser || "Other",
+                first_seen: resolvedFirstSeen,
+                last_seen: eventRecord.createdAt,
+              };
+
+              if (eventRecord.userId) {
+                profileData.user_id = eventRecord.userId;
+              }
+              if (resolvedCountry) {
+                profileData.country = resolvedCountry;
+              }
+              if (resolvedCountryCode) {
+                profileData.country_code = resolvedCountryCode;
+              }
+              if (resolvedCity) {
+                profileData.city = resolvedCity;
+              }
+              if (resolvedRegion) {
+                profileData.region = resolvedRegion;
+              }
+
+              const res = await client.from("device_profiles").upsert(profileData, { onConflict: "id" });
+              if (!res?.error) {
+                setDeviceProfileSyncCache(eventRecord.anonymousId, {
+                  firstSeen: resolvedFirstSeen,
+                  userId: eventRecord.userId || cachedProfile?.userId,
+                  country: resolvedCountry,
+                  countryCode: resolvedCountryCode,
+                  region: resolvedRegion,
+                  city: resolvedCity,
+                  lastSyncedAt: now,
+                });
+              }
+              return res;
+            } catch (upsertErr) {
+              return { error: upsertErr };
+            }
+          })();
+        }
       }
 
       const [insertRes, upsertRes] = await Promise.all([
@@ -553,9 +614,16 @@ export function resolveVisitorIdentity(
  * Fetch and aggregate analytics dashboard statistics
  */
 export async function getAnalyticsDashboardStats(
-  timeframe: "today" | "7d" | "30d" | "all" = "today"
+  timeframe: "today" | "7d" | "30d" | "all" = "today",
+  options?: { forceRefresh?: boolean }
 ): Promise<AnalyticsDashboardStats> {
   const now = Date.now();
+  if (!options?.forceRefresh) {
+    const cached = dashboardStatsCache.get(timeframe);
+    if (cached && cached.expiresAt > now) {
+      return cached.data;
+    }
+  }
   let cutoffTimestamp = 0;
 
   if (timeframe === "today") {
@@ -577,40 +645,24 @@ export async function getAnalyticsDashboardStats(
     "duration_seconds", "progress_seconds", "keyword", "created_at",
   ].join(",");
 
-  // Parallel fetch: Supabase analytics_events and Supabase device_handoff
-  const [supabaseEventsResult, supabaseHandoffResult] = await Promise.all([
-    (async () => {
-      const client = isSupabaseAdminConfigured() ? getSupabaseAdmin() : supabase;
-      if (!client) return { data: null, error: null };
-      try {
-        let q = client
-          .from("analytics_events")
-          .select(analyticsEventsColumns)
-          .order("created_at", { ascending: false })
-          .limit(2000);
-        if (cutoffTimestamp > 0) {
-          q = q.gte("created_at", cutoffTimestamp);
-        }
-        return await q;
-      } catch {
-        return { data: null, error: new Error("supabase fetch failed") };
+  // Fetch Supabase analytics_events
+  const supabaseEventsResult = await (async () => {
+    const client = isSupabaseAdminConfigured() ? getSupabaseAdmin() : supabase;
+    if (!client) return { data: null, error: null };
+    try {
+      let q = client
+        .from("analytics_events")
+        .select(analyticsEventsColumns)
+        .order("created_at", { ascending: false })
+        .limit(2000);
+      if (cutoffTimestamp > 0) {
+        q = q.gte("created_at", cutoffTimestamp);
       }
-    })(),
-
-    (async () => {
-      const client = isSupabaseAdminConfigured() ? getSupabaseAdmin() : supabase;
-      if (!client) return { data: null, error: null };
-      try {
-        return await client
-          .from("device_handoff")
-          .select("*")
-          .order("updated_at", { ascending: false })
-          .limit(30);
-      } catch {
-        return { data: null, error: new Error("handoff fetch failed") };
-      }
-    })(),
-  ]);
+      return await q;
+    } catch {
+      return { data: null, error: new Error("supabase fetch failed") };
+    }
+  })();
 
   // Seed with in-memory buffer events
   if (memoryEventsBuffer.length > 0) {
@@ -929,32 +981,15 @@ export async function getAnalyticsDashboardStats(
     },
   };
 
-  // Live Watching sessions from device_handoff
+  // Resolve user profiles for recent activity feed (legacy device_handoff live table removed)
   const profileMap = new Map<string, { name: string; avatar?: string; email?: string }>();
-  let liveWatching: LiveWatchingSession[] = [];
+  const liveWatching: LiveWatchingSession[] = [];
   try {
-    const { data: handoffs, error: handoffErr } = supabaseHandoffResult ?? { data: null, error: null };
-    interface HandoffRow {
-      user_id?: string;
-      duration_seconds?: number | string;
-      progress_seconds?: number | string;
-      updated_at?: string | number;
-      movie_title?: string;
-      movie_slug?: string;
-      episode_name?: string;
-      episode_slug?: string;
-      device_name?: string;
-      poster?: string;
-    }
-    const rawHandoffRows = (!handoffErr && handoffs && Array.isArray(handoffs)) ? (handoffs as HandoffRow[]) : [];
-    const handoffRows = rawHandoffRows.filter((h): h is HandoffRow & { user_id: string } => Boolean(h.user_id));
-
-    const handoffUserIds = handoffRows.map((h) => h.user_id);
     const recentActivityUserIds = filteredEvents
       .slice(0, 40)
       .map((e) => e.userId || (e.anonymousId ? anonToUserMap.get(e.anonymousId) : undefined))
       .filter(Boolean) as string[];
-    const userIds = Array.from(new Set([...handoffUserIds, ...recentActivityUserIds]));
+    const userIds = Array.from(new Set(recentActivityUserIds));
 
     const adminClient = isSupabaseAdminConfigured() ? getSupabaseAdmin() : supabase;
     if (userIds.length > 0 && adminClient) {
@@ -973,62 +1008,8 @@ export async function getAnalyticsDashboardStats(
         });
       }
     }
-
-    if (handoffRows.length > 0) {
-      const fiveMinutesAgo = now - 5 * 60 * 1000;
-      liveWatching = handoffRows.map((h) => {
-        const prof = profileMap.get(h.user_id);
-        const rawDur = Number(h.duration_seconds);
-        const dur = (!isNaN(rawDur) && rawDur > 0) ? Math.floor(rawDur) : 0;
-
-        const rawProg = Number(h.progress_seconds);
-        let prog = (!isNaN(rawProg) && rawProg > 0) ? Math.floor(rawProg) : 0;
-        if (dur > 0) {
-          prog = Math.min(prog, dur);
-        }
-        prog = Math.max(0, prog);
-
-        const percent = dur > 0 ? Math.min(100, Math.max(0, Math.round((prog / dur) * 100))) : 0;
-
-        const rawUpAt = typeof h.updated_at === "string" ? new Date(h.updated_at).getTime() : Number(h.updated_at);
-        const isValidUpAt = !isNaN(rawUpAt) && rawUpAt > 0 && rawUpAt <= (now + 60000);
-        const upAt = isValidUpAt ? rawUpAt : 0;
-        const isLive = upAt > 0 && upAt >= fiveMinutesAgo;
-
-        const movieTitle = (typeof h.movie_title === "string" && h.movie_title.trim())
-          ? h.movie_title.trim()
-          : (h.movie_slug || "Phim chưa đặt tên");
-
-        const episodeName = (typeof h.episode_name === "string" && h.episode_name.trim())
-          ? h.episode_name.trim()
-          : (h.episode_slug ? `Tập: ${h.episode_slug}` : undefined);
-
-        const deviceName = (typeof h.device_name === "string" && h.device_name.trim())
-          ? h.device_name.trim()
-          : "Thiết bị";
-
-        return {
-          userId: h.user_id,
-          userName: prof?.name || "Thành viên",
-          userAvatar: prof?.avatar,
-          userEmail: prof?.email,
-          isGuest: false,
-          movieSlug: h.movie_slug || "unknown",
-          movieTitle,
-          poster: h.poster || undefined,
-          episodeSlug: h.episode_slug || undefined,
-          episodeName,
-          progressSeconds: prog,
-          durationSeconds: dur,
-          progressPercent: percent,
-          deviceName,
-          updatedAt: upAt,
-          isLive,
-        };
-      });
-    }
   } catch (err) {
-    console.warn("[Analytics] Error processing live watching from handoff:", err);
+    console.warn("[Analytics] Error resolving recent activity profiles:", err);
   }
 
   // Toàn bộ số liệu thống kê được tính toán trực tiếp từ Supabase (100% Zero-Redis analytics)
@@ -1058,7 +1039,7 @@ export async function getAnalyticsDashboardStats(
     };
   });
 
-  return {
+  const dashboardStatsResult: AnalyticsDashboardStats = {
     timeframe,
     totalViews: finalTotalViews,
     uniqueViewers: {
@@ -1080,6 +1061,11 @@ export async function getAnalyticsDashboardStats(
     todayVisitorsCount: todayVisitorSet.size,
     deviceProfileStats,
   };
+  dashboardStatsCache.set(timeframe, {
+    data: dashboardStatsResult,
+    expiresAt: Date.now() + DASHBOARD_STATS_CACHE_TTL_MS,
+  });
+  return dashboardStatsResult;
 }
 
 /**

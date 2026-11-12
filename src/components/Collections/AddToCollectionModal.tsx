@@ -13,7 +13,7 @@ import { MovieCollection } from "@/types/collection";
 import { CreateCollectionModal } from "./CreateCollectionModal";
 import { toast } from "@/components/ui/Toast";
 import { useBodyScrollLock } from "@/lib/scrollLock";
-import { toOptimizedCardPosterUrl } from "@/lib/movieMedia";
+import { toOptimizedCardPosterUrl, toFastCdnImageUrl } from "@/lib/movieMedia";
 
 interface AddToCollectionModalProps {
   isOpen: boolean;
@@ -163,12 +163,9 @@ export const AddToCollectionModal: React.FC<AddToCollectionModalProps> = ({
         className="fixed inset-0 z-[99998] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-200 overflow-y-auto overscroll-contain"
       >
         <div
-          className="relative w-full max-w-md my-auto bg-zinc-950 rounded-3xl p-6 shadow-[0_25px_70px_rgba(0,0,0,0.95)] text-white animate-in zoom-in-95 duration-200 flex flex-col max-h-[85vh] overflow-hidden transform-gpu will-change-[transform,opacity]"
+          className="relative w-full max-w-md my-auto bg-zinc-950 rounded-3xl p-4 sm:p-6 shadow-[0_25px_70px_rgba(0,0,0,0.95)] text-white animate-in zoom-in-95 duration-200 flex flex-col max-h-[85dvh] overflow-hidden transform-gpu will-change-[transform,opacity]"
           onClick={(e) => e.stopPropagation()}
         >
-          {/* Ambient Glow */}
-          <div className="absolute -top-20 -left-20 w-44 h-44 bg-netflix-red/20 rounded-full blur-3xl pointer-events-none" />
-
           {/* Nút đóng */}
           <button
             type="button"
@@ -179,17 +176,17 @@ export const AddToCollectionModal: React.FC<AddToCollectionModalProps> = ({
           </button>
 
           {/* Tiêu đề & Thông tin phim */}
-          <div className="flex items-center gap-3 mb-4 pb-4 border-b">
+          <div className="flex items-center gap-3 mb-4 pb-4 border-b border-white/[0.08]">
             <div className="relative w-11 h-14 rounded-lg overflow-hidden bg-zinc-800 flex-shrink-0">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={toOptimizedCardPosterUrl(movie.poster, 192) || "/default-poster.jpg"}
+                src={toFastCdnImageUrl(toOptimizedCardPosterUrl(movie.poster, 192) || "/default-poster.jpg")}
                 alt={movie.title}
                 className="w-full h-full object-cover"
               />
             </div>
             <div className="flex-1 min-w-0">
-              <span className="text-[10px] font-bold text-netflix-red uppercase tracking-wider">
+              <span className="text-xs font-semibold text-netflix-red">
                 Thêm vào bộ sưu tập
               </span>
               <h3 className="text-sm font-bold text-white truncate mt-0.5">
@@ -290,7 +287,7 @@ export const AddToCollectionModal: React.FC<AddToCollectionModalProps> = ({
 
           {/* Footer: Nút tạo thêm bộ sưu tập */}
           {collections.length > 0 && (
-            <div className="pt-4 mt-2 border-t flex items-center justify-between">
+            <div className="pt-4 mt-2 border-t border-white/[0.08] flex items-center justify-between">
               <button
                 type="button"
                 onClick={() => setShowCreateModal(true)}

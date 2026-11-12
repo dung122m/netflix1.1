@@ -1,87 +1,38 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
-import Image from "next/image";
+import React, { useState, useEffect, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
-import Hls from "hls.js";
-import {
-  Maximize2,
-  Minimize2,
-  SkipBack,
-  SkipForward,
-  ArrowUpRight,
-  PictureInPicture,
-  RotateCcw,
-  Zap,
-  ChevronLeft,
-  ChevronRight,
-} from "lucide-react";
+import { ArrowUpRight } from "lucide-react";
 import { useWatchController } from "@/components/cinema/WatchController";
-import { getWatchProgress, saveWatchProgress } from "@/lib/watchHistory";
-import { markEpisodeAsWatched } from "@/lib/episodeTracker";
-import { formatEpisodeName, findEpisodeMatch } from "@/lib/formatEpisode";
+import { getWatchProgress } from "@/lib/watchHistory";
+import { formatEpisodeName } from "@/lib/formatEpisode";
 import { useAuth } from "@/context/AuthContext";
-import { updateActivePlaybackSession } from "@/services/handoffService";
-import { getDeviceHandoffSupabase } from "@/services/supabaseService";
-import { getPlayerSettings, updatePlayerSettings, PlayerSettings } from "@/services/userService";
-import { CinemaNextEpisodePrompt } from "@/components/cinema/CinemaNextEpisodePrompt";
+import { updatePlayerSettings } from "@/services/userService";
 import { useWatchTimeHeartbeat } from "@/components/cinema/hooks/useWatchTimeHeartbeat";
 import {
-  PlayerNativeControls,
-  VideoFit,
-  YouTubePlayIcon,
-  YouTubePauseIcon,
-  YouTubeVolumeHighIcon,
-  YouTubeVolumeLowIcon,
-  YouTubeVolumeMuteIcon,
-} from "@/components/player/PlayerNativeControls";
+  type EpisodeItem,
+  extractYoutubeEmbedSrc,
+  isCinemaEmbedBroken,
+  resolveActiveEpisode,
+  resolveActiveIframeSrc,
+  resolveAdjacentEpisode,
+  resolveCinemaM3u8,
+  resolveEpisodeStreams,
+  resolveTrailerEmbedSrc,
+} from "@/components/cinema/cinemaStreamHelpers";
+import { useCinemaCoreState } from "@/components/cinema/hooks/useCinemaCoreState";
+import { useCinemaOsdAndControls } from "@/components/cinema/hooks/useCinemaOsdAndControls";
+import { useCinemaFullscreenAndOrientation } from "@/components/cinema/hooks/useCinemaFullscreenAndOrientation";
+import { useCinemaPlayerActions } from "@/components/cinema/hooks/useCinemaPlayerActions";
+import { useCinemaHlsEngine } from "@/components/cinema/hooks/useCinemaHlsEngine";
+import { useCinemaNextEpisodeAndHandoff } from "@/components/cinema/hooks/useCinemaNextEpisodeAndHandoff";
+import { useCinemaVideoEvents } from "@/components/cinema/hooks/useCinemaVideoEvents";
+import { useCinemaShortcuts } from "@/components/cinema/hooks/useCinemaShortcuts";
 import {
-  detectAdBoundaries,
-  AdBoundary,
-  FragmentLike,
-  evaluateAutoAdSkipDecision,
-  evaluatePreRollAdDecision,
-  SAFE_AD_SKIP_OFFSET,
-  calculateSafeAdSkipTarget,
-  snapTimePastAdBoundaries,
-  calculateRewindTargetPastAd,
-  parseM3u8PlaylistFragments,
-} from "@/lib/adBoundaryDetector";
-import {
-  evaluateBufferProgress,
-  evaluateTimeUpdatePlayback,
-  evaluateHlsError,
-  evaluateStallRecoveryAttempt,
-} from "@/lib/playbackStallController";
-import {
-  AdTransitionState,
-  startAdTransition,
-  endAdTransition,
-  updateUserMutePreferenceDuringTransition,
-  isAdTransitionTimedOut,
-} from "@/lib/adTransitionController";
-import {
-  calculateKeyboardSeek,
-  createInitialKeyboardSeekState,
-  KEYBOARD_SEEK_CYCLE_TIMEOUT_MS,
-  KEYBOARD_SEEK_DEBOUNCE_MS,
-  type KeyboardSeekState,
-} from "@/lib/keyboardSeekManager";
-import { toOptimizedCardBackdropUrl } from "@/lib/movieMedia";
-import { decodeStreamUrl } from "@/lib/streamCrypto";
-
-/** Ngưỡng buffer phía trước tối thiểu để kích hoạt video.play() ban đầu (Batch 1: 0.5s thay vì 1.2s để tối ưu TTFF) */
-const INITIAL_BUFFER_START_SECONDS = 0.5;
-
-// Bộ nhớ đệm văn bản playlist m3u8 tránh fetch trùng lặp trên trình duyệt
-const m3u8ManifestCache = new Map<string, string>();
-
-interface EpisodeItem {
-  name?: string;
-  slug?: string;
-  link_embed?: string;
-  link_m3u8?: string;
-}
+  CinemaFullscreenStyles,
+  CinemaIframeOrFallbackStage,
+  CinemaNativeVideoStage,
+} from "@/components/cinema/CinemaPlayerOverlays";
 
 export interface CinemaPlayerProps {
   embedSrc?: string;
@@ -118,504 +69,161 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
   const resolvedThumb = watchContext?.thumbUrl || propThumbUrl;
   const { user } = useAuth();
   const searchParams = useSearchParams();
-  const lastHandoffSyncRef = useRef<number>(0);
 
   const title = watchContext?.movieTitle || propTitle;
   const movieSlug = watchContext?.movieSlug || propMovieSlug;
   const isTrailerOnly = watchContext?.isTrailerOnly ?? propIsTrailerOnly;
-  const episodes = useMemo(() => watchContext?.episodes || propEpisodes || [], [watchContext?.episodes, propEpisodes]);
-  const activeEpisodeSlug = watchContext?.activeEpisodeSlug || propActiveEpisodeSlug;
-  const activeEpisode = watchContext?.activeEpisode || episodes.find((e) => e.slug === activeEpisodeSlug) || findEpisodeMatch(episodes, activeEpisodeSlug) || episodes[0];
+  const episodes = useMemo(
+    () => watchContext?.episodes || propEpisodes || [],
+    [watchContext?.episodes, propEpisodes],
+  );
+  const activeEpisodeSlug =
+    watchContext?.activeEpisodeSlug || propActiveEpisodeSlug;
+  const activeEpisode = resolveActiveEpisode(
+    episodes,
+    watchContext?.activeEpisode,
+    activeEpisodeSlug,
+  );
   const activeEpisodeName = activeEpisode?.name || propActiveEpisodeName;
 
-  const isPropMatchingActive = !propActiveEpisodeSlug || activeEpisodeSlug === propActiveEpisodeSlug;
-  const rawEpM3u8 = typeof activeEpisode?.link_m3u8 === "string"
-    ? activeEpisode.link_m3u8
-    : (activeEpisode as Record<string, string | undefined>)?.m3u8 || (activeEpisode as Record<string, string | undefined>)?.file;
-  const m3u8Link = rawEpM3u8 !== undefined ? rawEpM3u8 : (isPropMatchingActive ? propM3u8Link : undefined);
+  const { m3u8Link, embedSrc, videoLink } = resolveEpisodeStreams({
+    activeEpisode,
+    propActiveEpisodeSlug,
+    activeEpisodeSlug,
+    propM3u8Link,
+    propEmbedSrc,
+    propVideoLink,
+  });
 
-  const rawEpEmbed = typeof activeEpisode?.link_embed === "string" ? activeEpisode.link_embed : undefined;
-  const embedSrc = rawEpEmbed !== undefined ? rawEpEmbed : (isPropMatchingActive ? propEmbedSrc : undefined);
-  const videoLink = m3u8Link || embedSrc || (isPropMatchingActive ? propVideoLink : undefined);
-
-  const rawPrevEpisode = watchContext?.prevEpisode ?? null;
-  const rawNextEpisode = watchContext?.nextEpisode ?? null;
   const switchEpisode = watchContext?.switchEpisode;
-
-  const effectivePrevEpisode = useMemo(() => {
-    if (rawPrevEpisode) return rawPrevEpisode;
-    if (!episodes || episodes.length <= 1 || !activeEpisodeSlug) return null;
-    const currentSlug = activeEpisode?.slug || activeEpisodeSlug;
-    const idx = episodes.findIndex((e) => e.slug === currentSlug);
-    if (idx > 0) {
-      return episodes[idx - 1];
-    }
-    return null;
-  }, [rawPrevEpisode, episodes, activeEpisodeSlug, activeEpisode?.slug]);
-
-  const effectiveNextEpisode = useMemo(() => {
-    if (rawNextEpisode) return rawNextEpisode;
-    if (!episodes || episodes.length <= 1 || !activeEpisodeSlug) return null;
-    const currentSlug = activeEpisode?.slug || activeEpisodeSlug;
-    const idx = episodes.findIndex((e) => e.slug === currentSlug);
-    if (idx >= 0 && idx < episodes.length - 1) {
-      return episodes[idx + 1];
-    }
-    return null;
-  }, [rawNextEpisode, episodes, activeEpisodeSlug, activeEpisode?.slug]);
-
-  // Next Episode Countdown States
-  const [showNextEpCountdown, setShowNextEpCountdown] = useState(false);
-  const [nextEpCountdown, setNextEpCountdown] = useState(10);
-  const isNextEpDismissedRef = useRef(false);
-  const nextEpCountdownTimerRef = useRef<NodeJS.Timeout | null>(null);
-
-  useEffect(() => {
-    setShowNextEpCountdown(false);
-    setNextEpCountdown(10);
-    isNextEpDismissedRef.current = false;
-    if (nextEpCountdownTimerRef.current) {
-      clearInterval(nextEpCountdownTimerRef.current);
-      nextEpCountdownTimerRef.current = null;
-    }
-  }, [activeEpisodeSlug]);
-
-  useEffect(() => {
-    return () => {
-      if (nextEpCountdownTimerRef.current) {
-        clearInterval(nextEpCountdownTimerRef.current);
-        nextEpCountdownTimerRef.current = null;
-      }
-    };
-  }, []);
-
-  useEffect(() => {
-    if (showNextEpCountdown && effectiveNextEpisode?.slug) {
-      setNextEpCountdown(10);
-      if (nextEpCountdownTimerRef.current) {
-        clearInterval(nextEpCountdownTimerRef.current);
-      }
-      nextEpCountdownTimerRef.current = setInterval(() => {
-        setNextEpCountdown((prev) => {
-          if (prev <= 1) {
-            if (nextEpCountdownTimerRef.current) {
-              clearInterval(nextEpCountdownTimerRef.current);
-              nextEpCountdownTimerRef.current = null;
-            }
-            setShowNextEpCountdown(false);
-            if (movieSlug && activeEpisodeSlug) {
-              markEpisodeAsWatched(movieSlug, activeEpisodeSlug);
-            }
-            if (switchEpisode && effectiveNextEpisode?.slug) {
-              switchEpisode(effectiveNextEpisode.slug);
-            }
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-
-      return () => {
-        if (nextEpCountdownTimerRef.current) {
-          clearInterval(nextEpCountdownTimerRef.current);
-          nextEpCountdownTimerRef.current = null;
-        }
-      };
-    } else {
-      if (nextEpCountdownTimerRef.current) {
-        clearInterval(nextEpCountdownTimerRef.current);
-        nextEpCountdownTimerRef.current = null;
-      }
-    }
-  }, [showNextEpCountdown, effectiveNextEpisode?.slug, switchEpisode, activeEpisodeSlug, movieSlug]);
-
-  // Player UI states
-  const [playerSettings, setPlayerSettings] = useState<PlayerSettings>(() => getPlayerSettings(user?.uid));
-  const [localTheaterMode, setLocalTheaterMode] = useState(false);
-
-  const isTheaterMode = watchContext?.isTheaterMode ?? localTheaterMode;
-  const setIsTheaterMode = watchContext?.setIsTheaterMode ?? setLocalTheaterMode;
-
-  const [isFullscreen, setIsFullscreen] = useState(false);
-  const [isMuted, setIsMuted] = useState(false);
-  const isMutedRef = useRef(isMuted);
-  useEffect(() => {
-    isMutedRef.current = isMuted;
-  }, [isMuted]);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [volume, setVolume] = useState(1);
-  const [isBuffering, setIsBuffering] = useState(true);
-  const isBufferingRef = useRef(isBuffering);
-  useEffect(() => {
-    isBufferingRef.current = isBuffering;
-  }, [isBuffering]);
-  const [useIframeFallback, setUseIframeFallback] = useState(false);
-  const [showControls, setShowControls] = useState(true);
-  const showControlsRef = useRef(showControls);
-
-  useEffect(() => {
-    showControlsRef.current = showControls;
-  }, [showControls]);
-
-  const [playbackSpeed, setPlaybackSpeed] = useState(1);
-  const [qualityLevels, setQualityLevels] = useState<Array<{ id: number; label: string; height: number }>>([]);
-  const [currentQualityIndex, setCurrentQualityIndex] = useState<number>(-1);
-  const [knownDuration, setKnownDuration] = useState<number>(0);
-
-  const [videoFit, setVideoFit] = useState<VideoFit>(() => {
-    if (typeof window !== "undefined") {
-      try {
-        const saved = localStorage.getItem("nana_player_video_fit");
-        if (saved === "contain" || saved === "cover" || saved === "fill" || saved === "zoom") {
-          return saved;
-        }
-      } catch {}
-    }
-    return "contain";
-  });
-
-  const handleVideoFitChange = useCallback((mode: VideoFit) => {
-    setVideoFit(mode);
-    try {
-      localStorage.setItem("nana_player_video_fit", mode);
-    } catch {}
-    updatePlayerSettings(user?.uid, { videoFit: mode });
-  }, [user?.uid]);
-
-  // Double-tap on mobile seek state & timer
-  const lastTapRef = useRef<{ time: number; x: number; y: number } | null>(null);
-  const lastControlsShownTimeRef = useRef<number>(0);
-  const singleTapTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const singleTapExecutedTimeRef = useRef<number>(0);
-  const lastFullscreenToggleTimeRef = useRef<number>(0);
-  const desktopFeedbackTimerRef = useRef<NodeJS.Timeout | null>(null);
-
-  useEffect(() => {
-    const current = getPlayerSettings(user?.uid);
-    setPlayerSettings(current);
-    if (current.defaultTheaterMode && typeof window !== "undefined" && window.innerWidth >= 1024) {
-      setIsTheaterMode(true);
-    }
-    if (current.playbackSpeed && current.playbackSpeed !== 1) {
-      setPlaybackSpeed(current.playbackSpeed);
-      if (videoRef.current) {
-        videoRef.current.playbackRate = current.playbackSpeed;
-      }
-    }
-    if (typeof current.volume === "number") {
-      setVolume(current.volume);
-      if (videoRef.current) {
-        videoRef.current.volume = current.volume;
-      }
-    }
-    if (typeof current.isMuted === "boolean") {
-      setIsMuted(current.isMuted);
-      if (videoRef.current) {
-        videoRef.current.muted = current.isMuted;
-      }
-    }
-    if (current.videoFit) {
-      setVideoFit(current.videoFit);
-    }
-
-    const handleUpdate = (e: Event) => {
-      const customEv = e as CustomEvent<{ settings?: PlayerSettings }>;
-      const newSettings = customEv.detail?.settings || getPlayerSettings(user?.uid);
-      setPlayerSettings(newSettings);
-      if (newSettings.playbackSpeed && videoRef.current) {
-        videoRef.current.playbackRate = newSettings.playbackSpeed;
-        setPlaybackSpeed(newSettings.playbackSpeed);
-      }
-      if (typeof newSettings.volume === "number") {
-        setVolume(newSettings.volume);
-        if (videoRef.current) videoRef.current.volume = newSettings.volume;
-      }
-      if (typeof newSettings.isMuted === "boolean") {
-        setIsMuted(newSettings.isMuted);
-        if (videoRef.current) videoRef.current.muted = newSettings.isMuted;
-      }
-      if (newSettings.videoFit) {
-        setVideoFit(newSettings.videoFit);
-      }
-    };
-
-    window.addEventListener("player-settings-updated", handleUpdate);
-    return () => window.removeEventListener("player-settings-updated", handleUpdate);
-  }, [user?.uid, setIsTheaterMode]);
-
-  const controlsTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const volumeOsdTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const hudTimerRef = useRef<NodeJS.Timeout | null>(null);
-
-  useEffect(() => {
-    return () => {
-      if (controlsTimerRef.current) {
-        clearTimeout(controlsTimerRef.current);
-        controlsTimerRef.current = null;
-      }
-      if (desktopFeedbackTimerRef.current) {
-        clearTimeout(desktopFeedbackTimerRef.current);
-        desktopFeedbackTimerRef.current = null;
-      }
-      if (volumeOsdTimerRef.current) {
-        clearTimeout(volumeOsdTimerRef.current);
-        volumeOsdTimerRef.current = null;
-      }
-      if (hudTimerRef.current) {
-        clearTimeout(hudTimerRef.current);
-        hudTimerRef.current = null;
-      }
-    };
-  }, []);
-
-  const containerRef = useRef<HTMLDivElement>(null);
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const iframeRef = useRef<HTMLIFrameElement>(null);
-  const hlsRef = useRef<Hls | null>(null);
-  const loadedSourceKeyRef = useRef<string | null>(null);
-  const lastProgressSaveRef = useRef<number>(0);
-  const hasStartedInitialPlaybackRef = useRef(false);
-  const isStalledRef = useRef(false);
-  const lastPlayheadTimeRef = useRef<number>(0);
-  const stallRecoveryCountRef = useRef<number>(0);
-  const lastPlayRequestTimeRef = useRef<number>(0);
-  const initialBufferTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const stallRecoveryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const hlsNetworkRetryCountRef = useRef<number>(0);
-  const adBoundariesRef = useRef<AdBoundary[]>([]);
-  const hasSkippedAdRef = useRef<Set<string>>(new Set());
-  const lastAdSkipTimeRef = useRef<number>(0);
-  const automatedAdSkipRef = useRef<AdTransitionState | null>(null);
-  const isProgrammaticAdSkipRef = useRef<boolean>(false);
-  const [isAdTransitioning, setIsAdTransitioning] = useState<boolean>(false);
-  const hasHandledPreRollRef = useRef<boolean>(false);
-  const adPreTriggerRef = useRef<{ timer: NodeJS.Timeout | null; rVfcId: number | null }>({ timer: null, rVfcId: null });
-
-  const getBufferAhead = useCallback((v: HTMLVideoElement | null): number => {
-    if (!v || !v.buffered || v.buffered.length === 0) return 0;
-    const ct = v.currentTime;
-    for (let i = 0; i < v.buffered.length; i++) {
-      const start = v.buffered.start(i);
-      const end = v.buffered.end(i);
-      if (ct >= start - 0.5 && ct <= end + 0.1) {
-        return Math.max(0, end - ct);
-      }
-    }
-    return 0;
-  }, []);
-  const pendingKeyboardSeekRef = useRef<{
-    state: KeyboardSeekState;
-    timer: NodeJS.Timeout | null;
-    resetTimer: NodeJS.Timeout | null;
-  }>({
-    state: createInitialKeyboardSeekState(),
-    timer: null,
-    resetTimer: null,
-  });
-
-  // Dedicated unmount teardown for keyboard seek timers to avoid cancelling in-flight seeks during normal re-renders
-  useEffect(() => {
-    const s = pendingKeyboardSeekRef.current;
-    return () => {
-      if (s.timer) {
-        clearTimeout(s.timer);
-        s.timer = null;
-      }
-      if (s.resetTimer) {
-        clearTimeout(s.resetTimer);
-        s.resetTimer = null;
-      }
-    };
-  }, []);
-
-  const [isMobile, setIsMobile] = useState(false);
-  const [isScrolledPast, setIsScrolledPast] = useState(false);
-  const sentinelRef = useRef<HTMLDivElement>(null);
-
-  // Desktop Playback Visual Feedback (Pause / Play / Rewind / FastForward)
-  const [desktopFeedback, setDesktopFeedback] = useState<{
-    type: "play" | "pause" | "seek-left" | "seek-right";
-    text?: string;
-    seconds?: number;
-    id: number;
-  } | null>(null);
-  const desktopFeedbackRef = useRef(desktopFeedback);
-  useEffect(() => {
-    desktopFeedbackRef.current = desktopFeedback;
-  }, [desktopFeedback]);
-
-  // Premium Volume OSD & General HUD (YouTube Top Pill Style)
-  const [volumeOsd, setVolumeOsd] = useState<{
-    volume: number;
-    isMuted: boolean;
-    visible: boolean;
-  } | null>(null);
-
-  const [hudNotification, setHudNotification] = useState<{
-    icon: React.ReactNode;
-    text: string;
-    id: number;
-  } | null>(null);
-
-  const triggerDesktopFeedback = useCallback(
-    (type: "play" | "pause" | "seek-left" | "seek-right", text?: string, seconds?: number) => {
-      if (volumeOsdTimerRef.current) {
-        clearTimeout(volumeOsdTimerRef.current);
-        volumeOsdTimerRef.current = null;
-      }
-      setVolumeOsd((prev) => (prev ? { ...prev, visible: false } : null));
-
-      if (desktopFeedbackTimerRef.current) {
-        clearTimeout(desktopFeedbackTimerRef.current);
-      }
-      setDesktopFeedback({
-        type,
-        text,
-        seconds,
-        id: Date.now(),
-      });
-
-      // Nếu chuyển sang play/pause feedback, kết thúc chu kỳ seek indicator ngay lập tức
-      if (type === "play" || type === "pause") {
-        const s = pendingKeyboardSeekRef.current;
-        if (s.resetTimer) {
-          clearTimeout(s.resetTimer);
-          s.resetTimer = null;
-        }
-        s.state = createInitialKeyboardSeekState();
-      }
-
-      // Tua video: tự ẩn sau 800ms (chuẩn 700-900ms). Play/pause: 550ms.
-      const timeoutMs = type === "seek-left" || type === "seek-right" ? 800 : 550;
-      desktopFeedbackTimerRef.current = setTimeout(() => {
-        setDesktopFeedback(null);
-        desktopFeedbackTimerRef.current = null;
-      }, timeoutMs);
-    },
-    []
+  const effectivePrevEpisode = useMemo(
+    () =>
+      resolveAdjacentEpisode(
+        watchContext?.prevEpisode,
+        episodes,
+        activeEpisodeSlug,
+        activeEpisode?.slug,
+        -1,
+      ),
+    [watchContext?.prevEpisode, episodes, activeEpisodeSlug, activeEpisode?.slug],
+  );
+  const effectiveNextEpisode = useMemo(
+    () =>
+      resolveAdjacentEpisode(
+        watchContext?.nextEpisode,
+        episodes,
+        activeEpisodeSlug,
+        activeEpisode?.slug,
+        1,
+      ),
+    [watchContext?.nextEpisode, episodes, activeEpisodeSlug, activeEpisode?.slug],
   );
 
-  const triggerVolumeOsd = useCallback((newVol: number, muted: boolean) => {
-    // Khi chỉnh âm lượng, ẩn feedback tua/play/pause để tránh chồng lấn
-    if (desktopFeedbackTimerRef.current) {
-      clearTimeout(desktopFeedbackTimerRef.current);
-      desktopFeedbackTimerRef.current = null;
-    }
-    setDesktopFeedback(null);
+  const {
+    playerSettings,
+    isTheaterMode,
+    setIsTheaterMode,
+    isMuted,
+    setIsMuted,
+    isMutedRef,
+    isPlaying,
+    setIsPlaying,
+    volume,
+    setVolume,
+    isBuffering,
+    setIsBuffering,
+    isBufferingRef,
+    useIframeFallback,
+    setUseIframeFallback,
+    playbackSpeed,
+    setPlaybackSpeed,
+    qualityLevels,
+    setQualityLevels,
+    currentQualityIndex,
+    setCurrentQualityIndex,
+    knownDuration,
+    setKnownDuration,
+    videoFit,
+    handleVideoFitChange,
+    containerRef,
+    videoRef,
+    iframeRef,
+    hlsRef,
+    loadedSourceKeyRef,
+    lastProgressSaveRef,
+    lastHandoffSyncRef,
+    hasStartedInitialPlaybackRef,
+    isStalledRef,
+    lastPlayheadTimeRef,
+    stallRecoveryCountRef,
+    lastPlayRequestTimeRef,
+    initialBufferTimeoutRef,
+    stallRecoveryTimeoutRef,
+    hlsNetworkRetryCountRef,
+    adBoundariesRef,
+    hasSkippedAdRef,
+    lastAdSkipTimeRef,
+    automatedAdSkipRef,
+    isProgrammaticAdSkipRef,
+    isAdTransitioning,
+    setIsAdTransitioning,
+    hasHandledPreRollRef,
+    adPreTriggerRef,
+    hasSeekedInitialRef,
+    pendingKeyboardSeekRef,
+    getEffectiveDuration,
+    cancelAdPreTrigger,
+    requestPlayerSeek,
+  } = useCinemaCoreState({
+    userId: user?.uid,
+    contextTheaterMode: watchContext?.isTheaterMode,
+    setContextTheaterMode: watchContext?.setIsTheaterMode,
+  });
 
-    // Reset chu kỳ seek indicator khi volume OSD hiển thị đè lên
-    const s = pendingKeyboardSeekRef.current;
-    if (s.resetTimer) {
-      clearTimeout(s.resetTimer);
-      s.resetTimer = null;
-    }
-    s.state = createInitialKeyboardSeekState();
+  const {
+    showControls,
+    showControlsRef,
+    lastControlsShownTimeRef,
+    desktopFeedback,
+    desktopFeedbackRef,
+    volumeOsd,
+    hudNotification,
+    triggerDesktopFeedback,
+    triggerVolumeOsd,
+    showHud,
+    resetControlsTimeout,
+    hideControlsImmediately,
+    forceShowControls,
+  } = useCinemaOsdAndControls({
+    videoRef,
+    isPlaying,
+    pendingKeyboardSeekRef,
+  });
 
-    if (hudTimerRef.current) {
-      clearTimeout(hudTimerRef.current);
-      hudTimerRef.current = null;
-    }
-    setHudNotification(null);
+  const trailerEmbedSrc = useMemo(
+    () => resolveTrailerEmbedSrc(videoLink, trailerUrl),
+    [videoLink, trailerUrl],
+  );
+  const fallbackTrailerEmbedSrc = useMemo(
+    () => extractYoutubeEmbedSrc(trailerUrl),
+    [trailerUrl],
+  );
+  const [forceTrailerFallback, setForceTrailerFallback] = useState(false);
 
-    setVolumeOsd({
-      volume: newVol,
-      isMuted: muted,
-      visible: true,
-    });
+  useEffect(() => {
+    setForceTrailerFallback(false);
+  }, [movieSlug, activeEpisodeSlug, watchContext?.currentServerIndex]);
 
-    if (volumeOsdTimerRef.current) {
-      clearTimeout(volumeOsdTimerRef.current);
-    }
-    volumeOsdTimerRef.current = setTimeout(() => {
-      setVolumeOsd((prev) => (prev ? { ...prev, visible: false } : null));
-      volumeOsdTimerRef.current = null;
-    }, 1200);
-  }, []);
-
-  const showHud = useCallback((icon?: React.ReactNode, text?: string) => {
-    if (!text && !icon) return;
-    if (hudTimerRef.current) {
-      clearTimeout(hudTimerRef.current);
-    }
-    setHudNotification({
-      icon: icon || null,
-      text: text || "",
-      id: Date.now(),
-    });
-    hudTimerRef.current = setTimeout(() => {
-      setHudNotification(null);
-      hudTimerRef.current = null;
-    }, 1200);
-  }, []);
-
-
-  const resetControlsTimeout = useCallback(() => {
-    setShowControls(true);
-    showControlsRef.current = true;
-    lastControlsShownTimeRef.current = Date.now();
-    if (controlsTimerRef.current) {
-      clearTimeout(controlsTimerRef.current);
-      controlsTimerRef.current = null;
-    }
-    const isPaused = videoRef.current ? videoRef.current.paused : !isPlaying;
-    if (!isPaused) {
-      controlsTimerRef.current = setTimeout(() => {
-        const isStillPaused = videoRef.current ? videoRef.current.paused : !isPlaying;
-        if (!isStillPaused) {
-          setShowControls(false);
-          showControlsRef.current = false;
-        }
-      }, 2500);
-    }
-  }, [isPlaying]);
-
-  const trailerEmbedSrc = useMemo(() => {
-    if (videoLink || !trailerUrl) return null;
-    const match = trailerUrl.match(
-      /(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|shorts\/))([\w-]{11})/
-    );
-    return match
-      ? `https://www.youtube-nocookie.com/embed/${match[1]}?autoplay=1&mute=0&controls=1&rel=0`
-      : null;
-  }, [videoLink, trailerUrl]);
-
-  const resolvedM3u8 = useMemo(() => {
-    const rawM3u8 = decodeStreamUrl(m3u8Link || "");
-    const rawEmbed = decodeStreamUrl(embedSrc || "");
-    const rawVideo = decodeStreamUrl(videoLink || "");
-
-    if (rawM3u8 && rawM3u8.trim() && (rawM3u8.includes(".m3u8") || !rawM3u8.includes("<iframe"))) {
-      return rawM3u8.trim();
-    }
-    const src = rawEmbed || rawVideo;
-    if (src) {
-      try {
-        const parsed = new URL(src, "https://dummy.com");
-        const u =
-          parsed.searchParams.get("url") ||
-          parsed.searchParams.get("link") ||
-          parsed.searchParams.get("src") ||
-          parsed.searchParams.get("file");
-        if (u && (u.includes(".m3u8") || u.includes("/hls/"))) {
-          return decodeURIComponent(u.trim());
-        }
-      } catch {}
-
-      const match = src.match(/https?(?::%2F%2F|:\/\/)[^&\s"']+\.m3u8[^&\s"']*/i);
-      if (match) {
-        try {
-          return decodeURIComponent(match[0]);
-        } catch {
-          return match[0];
-        }
-      }
-    }
-    return rawM3u8 || "";
-  }, [m3u8Link, embedSrc, videoLink]);
+  const resolvedM3u8 = useMemo(
+    () => resolveCinemaM3u8(m3u8Link, embedSrc, videoLink),
+    [m3u8Link, embedSrc, videoLink],
+  );
 
   const [initialEpisodeSlug] = useState<string | undefined>(activeEpisodeSlug);
   const [initialTimeUsed, setInitialTimeUsed] = useState<boolean>(false);
-  const [initialLoadedEpisode, setInitialLoadedEpisode] = useState<string | undefined>(activeEpisodeSlug);
+  const [initialLoadedEpisode, setInitialLoadedEpisode] = useState<
+    string | undefined
+  >(activeEpisodeSlug);
 
   useEffect(() => {
     if (!initialLoadedEpisode && activeEpisodeSlug) {
@@ -626,7 +234,8 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
   const urlParamT = searchParams?.get("t");
   const targetProgress = useMemo(() => {
     const effectiveInitialSlug = initialEpisodeSlug || initialLoadedEpisode;
-    const isInitialEpisode = !effectiveInitialSlug || activeEpisodeSlug === effectiveInitialSlug;
+    const isInitialEpisode =
+      !effectiveInitialSlug || activeEpisodeSlug === effectiveInitialSlug;
     if (isInitialEpisode && !initialTimeUsed) {
       if (typeof initialTime === "number" && initialTime > 0) return initialTime;
       if (urlParamT) {
@@ -645,2039 +254,257 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
       }
     }
     const currentMovieSlug = watchContext?.movieSlug || propMovieSlug;
-    const savedProgress = currentMovieSlug && activeEpisodeSlug ? getWatchProgress(currentMovieSlug, activeEpisodeSlug) : 0;
+    const savedProgress =
+      currentMovieSlug && activeEpisodeSlug
+        ? getWatchProgress(currentMovieSlug, activeEpisodeSlug)
+        : 0;
     return savedProgress > 3 ? savedProgress : 0;
-  }, [initialTime, urlParamT, watchContext?.movieSlug, propMovieSlug, activeEpisodeSlug, initialEpisodeSlug, initialLoadedEpisode, initialTimeUsed]);
-
-  const hasSeekedInitialRef = useRef<boolean>(false);
-  useEffect(() => {
-    hasSeekedInitialRef.current = false;
-    hasHandledPreRollRef.current = false;
-    if (adPreTriggerRef.current.timer) {
-      clearTimeout(adPreTriggerRef.current.timer);
-      adPreTriggerRef.current.timer = null;
-    }
-    if (adPreTriggerRef.current.rVfcId !== null && videoRef.current && "cancelVideoFrameCallback" in videoRef.current) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (videoRef.current as any).cancelVideoFrameCallback(adPreTriggerRef.current.rVfcId);
-      adPreTriggerRef.current.rVfcId = null;
-    }
-    adBoundariesRef.current = [];
-    hasSkippedAdRef.current.clear();
-    lastAdSkipTimeRef.current = 0;
-    if (automatedAdSkipRef.current) {
-      const { restoredMuted } = endAdTransition(automatedAdSkipRef.current);
-      automatedAdSkipRef.current = null;
-      setIsAdTransitioning(false);
-      if (restoredMuted !== null && videoRef.current) {
-        videoRef.current.muted = restoredMuted;
-      }
-    } else {
-      automatedAdSkipRef.current = null;
-    }
-    setUseIframeFallback(false);
-    setIsBuffering(true);
-    const effectiveInitialSlug = initialEpisodeSlug || initialLoadedEpisode;
-    if (activeEpisodeSlug && effectiveInitialSlug && activeEpisodeSlug !== effectiveInitialSlug) {
-      setInitialTimeUsed(true);
-    }
-  }, [activeEpisodeSlug, resolvedM3u8, watchContext?.currentServerIndex, initialEpisodeSlug, initialLoadedEpisode]);
+  }, [
+    initialTime,
+    urlParamT,
+    watchContext?.movieSlug,
+    propMovieSlug,
+    activeEpisodeSlug,
+    initialEpisodeSlug,
+    initialLoadedEpisode,
+    initialTimeUsed,
+  ]);
 
   const activeSrc = useMemo(() => {
-    const rawEmbed = decodeStreamUrl(embedSrc || "");
-    const rawVideo = decodeStreamUrl(videoLink || "");
-    let src = rawVideo ? rawEmbed : trailerEmbedSrc;
-    if (src && (src.includes("embed1.streamc.xyz") || src.includes("embed.streamc.xyz") || src.includes("streamc.xyz"))) {
-      if (resolvedM3u8) {
-        src = `https://player.phimapi.com/player/?url=${encodeURIComponent(resolvedM3u8)}`;
-      } else {
-        src = "";
-      }
+    if (forceTrailerFallback && fallbackTrailerEmbedSrc) {
+      return fallbackTrailerEmbedSrc;
     }
-    if (!src) return "";
-    if (!src.includes("autoplay=")) {
-      src += (src.includes("?") ? "&" : "?") + "autoplay=1";
-    }
-    if (targetProgress > 0 && !src.includes("t=") && !src.includes("time=")) {
-      src += `&t=${Math.floor(targetProgress)}`;
-    }
-    return src;
-  }, [videoLink, embedSrc, trailerEmbedSrc, targetProgress, resolvedM3u8]);
+    return resolveActiveIframeSrc({
+      videoLink,
+      embedSrc,
+      trailerEmbedSrc,
+      targetProgress,
+      resolvedM3u8,
+    });
+  }, [
+    forceTrailerFallback,
+    fallbackTrailerEmbedSrc,
+    videoLink,
+    embedSrc,
+    trailerEmbedSrc,
+    targetProgress,
+    resolvedM3u8,
+  ]);
 
-  const rawEmbedStr = decodeStreamUrl(embedSrc || "");
-  const isEmbedBroken = Boolean(
-    !rawEmbedStr ||
-    rawEmbedStr.includes("streamc") ||
-    rawEmbedStr.includes("vsmov") ||
-    rawEmbedStr.includes("phimapi.com")
+  const isEmbedBroken = isCinemaEmbedBroken(embedSrc);
+  const isResolvingStream = Boolean(watchContext?.isResolvingStream);
+  const isConnectingStream = Boolean(isResolvingStream || resolvedM3u8);
+  const isNativeVideo = Boolean(
+    resolvedM3u8 && (!useIframeFallback || isEmbedBroken),
   );
-  const isNativeVideo = Boolean(resolvedM3u8 && (!useIframeFallback || isEmbedBroken));
 
-  const getEffectiveDuration = useCallback(() => {
-    const v = videoRef.current;
-    if (!v) return 0;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return knownDuration || (v as any).__hlsDuration || (v.duration && isFinite(v.duration) ? v.duration : 0);
-  }, [knownDuration]);
-
-  const cancelAdPreTrigger = useCallback(() => {
-    if (adPreTriggerRef.current.timer) {
-      clearTimeout(adPreTriggerRef.current.timer);
-      adPreTriggerRef.current.timer = null;
-    }
-    if (adPreTriggerRef.current.rVfcId !== null && videoRef.current && "cancelVideoFrameCallback" in videoRef.current) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (videoRef.current as any).cancelVideoFrameCallback(adPreTriggerRef.current.rVfcId);
-      adPreTriggerRef.current.rVfcId = null;
-    }
-  }, []);
-
-  const requestPlayerSeek = useCallback((targetTime: number, isProgrammatic: boolean = false) => {
-    const v = videoRef.current;
-    if (!v) return;
-
-    cancelAdPreTrigger();
-    const effectiveDur = getEffectiveDuration();
-    const boundedTime = Math.max(0, effectiveDur > 0 ? Math.min(effectiveDur, targetTime) : targetTime);
-    const currentPlayhead = v.currentTime;
-
-    // 1. Phục hồi quyền skip nếu người dùng tua lùi về trước mốc quảng cáo
-    if (adBoundariesRef.current.length > 0) {
-      for (const ad of adBoundariesRef.current) {
-        if (boundedTime < ad.start) {
-          hasSkippedAdRef.current.delete(`${ad.start}_${ad.end}`);
-        }
-      }
-
-      // Xử lý tua lùi (backward seek): nếu điểm đích rơi vào vùng quảng cáo, tua lùi an toàn vượt qua quảng cáo về nội dung trước đó (ví dụ từ 15p30 tua 10s về 14p50)
-      if (boundedTime < currentPlayhead) {
-        const rewindSnap = calculateRewindTargetPastAd(boundedTime, currentPlayhead, adBoundariesRef.current);
-        if (rewindSnap.jumpedPastAd) {
-          if (rewindSnap.adKey) {
-            hasSkippedAdRef.current.delete(rewindSnap.adKey);
-          }
-          isProgrammaticAdSkipRef.current = false;
-          v.currentTime = rewindSnap.adjustedTime;
-          lastPlayheadTimeRef.current = rewindSnap.adjustedTime;
-          return;
-        }
-      }
-
-      // 2. Kiểm tra nếu điểm đích nằm trong vùng [ad.start, ad.end] (cho tua tiến hoặc scrub tới)
-      const snap = snapTimePastAdBoundaries(boundedTime, adBoundariesRef.current, effectiveDur, SAFE_AD_SKIP_OFFSET);
-      if (snap.snapped && snap.adKey) {
-        hasSkippedAdRef.current.add(snap.adKey);
-        lastAdSkipTimeRef.current = Date.now();
-        isProgrammaticAdSkipRef.current = true;
-        const { transitionState, shouldMuteElement } = startAdTransition({
-          targetSeek: snap.adjustedTime,
-          adDuration: snap.adDuration,
-          currentUserMuted: isMutedRef.current ?? v.muted,
-        });
-        automatedAdSkipRef.current = transitionState;
-        if (shouldMuteElement) {
-          v.muted = true;
-        }
-        setIsAdTransitioning(true);
-        v.currentTime = snap.adjustedTime;
-        lastPlayheadTimeRef.current = snap.adjustedTime;
-        return;
-      }
-    }
-
-    // 3. Nếu là seek bình thường (ngoài quảng cáo)
-    isProgrammaticAdSkipRef.current = isProgrammatic;
-    v.currentTime = boundedTime;
-    lastPlayheadTimeRef.current = boundedTime;
-  }, [cancelAdPreTrigger, getEffectiveDuration]);
-
-  // Watch time heartbeat (đã tách module useWatchTimeHeartbeat)
   useWatchTimeHeartbeat({
     userId: user?.uid,
     isNativeVideo,
     videoRef,
   });
 
-  // Tự động kiểm tra và đồng bộ tiến độ tức thì từ thiết bị khác (Redis Cloud Handoff)
-  useEffect(() => {
-    if (!user?.uid) return;
-    const currentSlug = watchContext?.movieSlug || propMovieSlug;
-    if (!currentSlug || initialTime || urlParamT) return;
+  const {
+    isFullscreen,
+    isMobile,
+    sentinelRef,
+    isMobileStickyActive,
+    toggleFullscreen,
+    togglePiP,
+    scrollToPlayer,
+  } = useCinemaFullscreenAndOrientation({
+    containerRef,
+    videoRef,
+    isNativeVideo,
+    isPlaying,
+    activeSrc,
+    m3u8Link,
+    showHud,
+    resetControlsTimeout,
+  });
 
-    let isCancelled = false;
-    getDeviceHandoffSupabase(user.uid)
-      .then((handoff) => {
-        if (isCancelled || !handoff) return;
-        const targetEp = activeEpisodeSlug || "tap-1";
-        if (
-          handoff.movieSlug === currentSlug &&
-          handoff.progressSeconds > 10 &&
-          (!handoff.episodeSlug || handoff.episodeSlug === targetEp)
-        ) {
-          const localProg = getWatchProgress(currentSlug, targetEp);
-          if (handoff.progressSeconds > localProg + 5) {
-            saveWatchProgress(
-              currentSlug,
-              handoff.progressSeconds,
-              handoff.durationSeconds,
-              targetEp,
-              {
-                title,
-                poster: posterUrl,
-                thumb: resolvedThumb,
-                episodeName: activeEpisodeName,
-              },
-              true
-            );
-            if (videoRef.current && Math.abs(videoRef.current.currentTime - handoff.progressSeconds) > 5) {
-              requestPlayerSeek(handoff.progressSeconds, true);
-              const mins = Math.floor(handoff.progressSeconds / 60);
-              const secs = (Math.floor(handoff.progressSeconds) % 60).toString().padStart(2, "0");
-              showHud(
-                <RotateCcw className="w-5 h-5 text-netflix-red" />,
-                `Tiếp tục xem từ ${mins}:${secs}`
-              );
-            }
-          }
-        }
-      })
-      .catch(() => {});
+  const {
+    singleTapTimerRef,
+    togglePlayPause,
+    handleQualityChange,
+    handleSpeedChange,
+    handleVolumeDelta,
+    handleMouseMove,
+    handleMouseLeave,
+    handleVideoDoubleClick,
+    handleVideoClick,
+    handleToggleMuteControl,
+    handleVolumeChangeControl,
+    handleSeekFeedbackControl,
+  } = useCinemaPlayerActions({
+    userId: user?.uid,
+    videoRef,
+    iframeRef,
+    hlsRef,
+    hasStartedInitialPlaybackRef,
+    isStalledRef,
+    automatedAdSkipRef,
+    showControlsRef,
+    lastControlsShownTimeRef,
+    desktopFeedbackRef,
+    isNativeVideo,
+    isMobile,
+    isPlaying,
+    isMuted,
+    volume,
+    qualityLevels,
+    setIsMuted,
+    setIsPlaying,
+    setIsBuffering,
+    setVolume,
+    setPlaybackSpeed,
+    setCurrentQualityIndex,
+    toggleFullscreen,
+    requestPlayerSeek,
+    showHud,
+    triggerDesktopFeedback,
+    triggerVolumeOsd,
+    resetControlsTimeout,
+    hideControlsImmediately,
+    forceShowControls,
+  });
 
-    return () => {
-      isCancelled = true;
-    };
-  }, [user?.uid, watchContext?.movieSlug, propMovieSlug, activeEpisodeSlug, initialTime, urlParamT, title, posterUrl, resolvedThumb, activeEpisodeName, showHud, requestPlayerSeek]);
-
-  const sendPlayerCommand = useCallback((cmd: string, val?: string | number | boolean) => {
-    if (!iframeRef.current?.contentWindow) return;
-    try {
-      iframeRef.current.contentWindow.postMessage(
-        JSON.stringify({ event: "command", func: cmd, args: val !== undefined ? [val] : [] }),
-        "*"
-      );
-      iframeRef.current.contentWindow.postMessage({ method: cmd, value: val, action: cmd, type: cmd }, "*");
-      iframeRef.current.contentWindow.postMessage(JSON.stringify({ method: cmd, value: val }), "*");
-    } catch {}
-  }, []);
-
-  // Khóa hướng màn hình xoay ngang tự động trên thiết bị di động khi phóng to
-  const lockLandscape = useCallback(async () => {
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const ori = (screen?.orientation || (screen as any)?.mozOrientation || (screen as any)?.msOrientation) as any;
-      if (ori && typeof ori.lock === "function") {
-        await ori.lock("landscape").catch(() => {
-          return ori.lock("landscape-primary").catch(() => {});
-        });
-      }
-    } catch {}
-  }, []);
-
-  // Mở khóa xoay màn hình tự do khi thoát toàn màn hình
-  const unlockOrientation = useCallback(() => {
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const ori = (screen?.orientation || (screen as any)?.mozOrientation || (screen as any)?.msOrientation) as any;
-      if (ori && typeof ori.unlock === "function") {
-        ori.unlock();
-      }
-    } catch {}
-  }, []);
-
-  const toggleFullscreen = useCallback(() => {
-    const container = containerRef.current;
-    const video = videoRef.current;
-    if (!container) return;
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const doc = document as any;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const elem = container as any;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const webkitVideo = video as any;
-
-    const fullscreenElement =
-      doc.fullscreenElement ||
-      doc.webkitFullscreenElement ||
-      doc.mozFullScreenElement ||
-      doc.msFullscreenElement;
-
-    const isCurrentlyFs = Boolean(fullscreenElement || isFullscreen || webkitVideo?.webkitDisplayingFullscreen);
-
-    if (isCurrentlyFs) {
-      const exitFS = doc.exitFullscreen || doc.webkitExitFullscreen || doc.mozCancelFullScreen || doc.msExitFullscreen;
-      if (exitFS && fullscreenElement) {
-        exitFS.call(doc).catch(() => {});
-      } else if (webkitVideo && typeof webkitVideo.webkitExitFullscreen === "function" && webkitVideo.webkitDisplayingFullscreen) {
-        try {
-          webkitVideo.webkitExitFullscreen();
-        } catch {}
-      }
-      setIsFullscreen(false);
-      unlockOrientation();
-      showHud(<Minimize2 className="w-5 h-5 text-zinc-300" />, "Thoát toàn màn hình");
-    } else {
-      if (elem.requestFullscreen) {
-        elem
-          .requestFullscreen({ navigationUI: "hide" } as FullscreenOptions)
-          .then(lockLandscape)
-          .catch(() => {
-            if (elem.requestFullscreen) {
-              elem.requestFullscreen().then(lockLandscape).catch(() => {});
-            }
-          });
-        setIsFullscreen(true);
-        showHud(<Maximize2 className="w-5 h-5 text-netflix-red" />, "Toàn màn hình");
-      } else if (elem.webkitRequestFullscreen) {
-        elem.webkitRequestFullscreen();
-        setIsFullscreen(true);
-        lockLandscape();
-        showHud(<Maximize2 className="w-5 h-5 text-netflix-red" />, "Toàn màn hình");
-      } else if (webkitVideo && typeof webkitVideo.webkitEnterFullscreen === "function" && isNativeVideo) {
-        try {
-          webkitVideo.webkitEnterFullscreen();
-          setIsFullscreen(true);
-          lockLandscape();
-          showHud(<Maximize2 className="w-5 h-5 text-netflix-red" />, "Toàn màn hình (iOS)");
-        } catch {
-          setIsFullscreen(true);
-          lockLandscape();
-          showHud(<Maximize2 className="w-5 h-5 text-netflix-red" />, "Toàn màn hình");
-        }
-      } else {
-        setIsFullscreen(true);
-        lockLandscape();
-        showHud(<Maximize2 className="w-5 h-5 text-netflix-red" />, "Toàn màn hình");
-      }
-    }
-  }, [isNativeVideo, isFullscreen, lockLandscape, unlockOrientation, showHud]);
-
-  useEffect(() => {
-    const handleFsChange = () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const doc = document as any;
-      const isFs = Boolean(doc.fullscreenElement || doc.webkitFullscreenElement || doc.mozFullScreenElement || doc.msFullscreenElement);
-      setIsFullscreen(isFs);
-      if (isFs) {
-        lockLandscape();
-      } else {
-        unlockOrientation();
-      }
-      resetControlsTimeout();
-    };
-
-    const video = videoRef.current;
-    const handleVideoBeginFs = () => {
-      setIsFullscreen(true);
-      lockLandscape();
-      resetControlsTimeout();
-    };
-    const handleVideoEndFs = () => {
-      setIsFullscreen(false);
-      unlockOrientation();
-      resetControlsTimeout();
-    };
-
-    document.addEventListener("fullscreenchange", handleFsChange);
-    document.addEventListener("webkitfullscreenchange", handleFsChange);
-    document.addEventListener("mozfullscreenchange", handleFsChange);
-    document.addEventListener("MSFullscreenChange", handleFsChange);
-
-    if (video) {
-      video.addEventListener("webkitbeginfullscreen", handleVideoBeginFs);
-      video.addEventListener("webkitendfullscreen", handleVideoEndFs);
-    }
-
-    return () => {
-      document.removeEventListener("fullscreenchange", handleFsChange);
-      document.removeEventListener("webkitfullscreenchange", handleFsChange);
-      document.removeEventListener("mozfullscreenchange", handleFsChange);
-      document.removeEventListener("MSFullscreenChange", handleFsChange);
-      if (video) {
-        video.removeEventListener("webkitbeginfullscreen", handleVideoBeginFs);
-        video.removeEventListener("webkitendfullscreen", handleVideoEndFs);
-      }
-    };
-  }, [lockLandscape, unlockOrientation, resetControlsTimeout]);
-
-  const togglePiP = useCallback(async () => {
-    const video = videoRef.current;
-    if (!video || !isNativeVideo) return;
-    try {
-      if (document.pictureInPictureElement) {
-        await document.exitPictureInPicture();
-        showHud(<PictureInPicture className="w-5 h-5 text-zinc-400" />, "Thoát cửa sổ nổi");
-      } else if (document.pictureInPictureEnabled) {
-        await video.requestPictureInPicture();
-        showHud(<PictureInPicture className="w-5 h-5 text-netflix-red" />, "Cửa sổ nổi (PiP)");
-      }
-    } catch (err) {
-      console.warn("PiP error:", err);
-    }
-  }, [isNativeVideo, showHud]);
-
-  const togglePlayPause = useCallback(() => {
-    if (isNativeVideo && videoRef.current) {
-      const v = videoRef.current;
-      if (v.paused) {
-        if (v.muted && isMuted) {
-          v.muted = false;
-          setIsMuted(false);
-        }
-        hasStartedInitialPlaybackRef.current = true;
-        isStalledRef.current = false;
-        setIsBuffering(false);
-        v.play().catch(() => {});
-        setIsPlaying(true);
-        triggerDesktopFeedback("play");
-        resetControlsTimeout();
-      } else {
-        v.pause();
-        isStalledRef.current = false;
-        setIsPlaying(false);
-        triggerDesktopFeedback("pause");
-        setShowControls(true);
-        if (controlsTimerRef.current) {
-          clearTimeout(controlsTimerRef.current);
-          controlsTimerRef.current = null;
-        }
-      }
-    } else {
-      setIsPlaying((prev) => {
-        const next = !prev;
-        if (next) {
-          sendPlayerCommand("playVideo");
-          sendPlayerCommand("play");
-          triggerDesktopFeedback("play");
-          resetControlsTimeout();
-        } else {
-          sendPlayerCommand("pauseVideo");
-          sendPlayerCommand("pause");
-          triggerDesktopFeedback("pause");
-          setShowControls(true);
-          if (controlsTimerRef.current) {
-            clearTimeout(controlsTimerRef.current);
-            controlsTimerRef.current = null;
-          }
-        }
-        return next;
-      });
-    }
-  }, [isNativeVideo, isMuted, sendPlayerCommand, resetControlsTimeout, triggerDesktopFeedback]);
-
-  const handleQualityChange = useCallback((levelIndex: number) => {
-    if (!hlsRef.current) return;
-    hlsRef.current.currentLevel = levelIndex;
-    setCurrentQualityIndex(levelIndex);
-    const label = levelIndex === -1 ? "Tự động (Auto)" : qualityLevels.find((q) => q.id === levelIndex)?.label || "Đã đổi";
-    showHud(<Zap className="w-5 h-5 text-sky-400" />, `Chất lượng: ${label}`);
-  }, [qualityLevels, showHud]);
-
-  const handleSpeedChange = useCallback((spd: number) => {
-    if (videoRef.current) {
-      videoRef.current.playbackRate = spd;
-      setPlaybackSpeed(spd);
-      showHud(<Zap className="w-5 h-5 text-amber-400" />, `Tốc độ: ${spd}x`);
-      updatePlayerSettings(user?.uid, { playbackSpeed: spd });
-    }
-  }, [showHud, user?.uid]);
-
-  const handleVolumeDelta = useCallback((delta: number) => {
-    setVolume((prevVol) => {
-      let current = prevVol;
-      let nextMuted = isMuted;
-      if (delta > 0 && isMuted) {
-        if (videoRef.current) {
-          videoRef.current.muted = false;
-        }
-        setIsMuted(false);
-        nextMuted = false;
-        current = Math.max(0.05, prevVol);
-      }
-      const newVol = Math.max(0, Math.min(1, Math.round((current + delta) * 100) / 100));
-      if (videoRef.current) {
-        videoRef.current.volume = newVol;
-        videoRef.current.muted = newVol === 0;
-      }
-      const finalMuted = newVol === 0 ? true : nextMuted;
-      setIsMuted(finalMuted);
-      if (automatedAdSkipRef.current && automatedAdSkipRef.current.active) {
-        automatedAdSkipRef.current = updateUserMutePreferenceDuringTransition(
-          automatedAdSkipRef.current,
-          finalMuted
-        );
-      }
-      triggerVolumeOsd(newVol, finalMuted);
-      updatePlayerSettings(user?.uid, { volume: newVol, isMuted: finalMuted });
-      return newVol;
-    });
-  }, [isMuted, triggerVolumeOsd, user?.uid]);
-
-  // HLS lifecycle
-  useEffect(() => {
-    const video = videoRef.current;
-    const adPreTrigger = adPreTriggerRef.current;
-    const hasSkippedAd = hasSkippedAdRef.current;
-    if (!video || !resolvedM3u8 || useIframeFallback) {
-      if (hlsRef.current) {
-        hlsRef.current.destroy();
-        hlsRef.current = null;
-      }
-      loadedSourceKeyRef.current = null;
-      return;
-    }
-
-    const currentMovieSlug = watchContext?.movieSlug || propMovieSlug;
-    const currentSrvIdx = watchContext?.currentServerIndex ?? 0;
-    const sourceKey = `${currentSrvIdx}__${resolvedM3u8}__${activeEpisodeSlug || ""}`;
-    if (loadedSourceKeyRef.current === sourceKey && (hlsRef.current || video.src === resolvedM3u8)) {
-      // Luồng stream đang tải hoặc hoạt động trên instance này; tránh hủy và tải lại khi các prop phụ re-render
-      return;
-    }
-    loadedSourceKeyRef.current = sourceKey;
-
-    let cleanupMediaListeners: () => void = () => {};
-
-    if (hlsRef.current) {
-      hlsRef.current.destroy();
-      hlsRef.current = null;
-    }
-
-    if (initialBufferTimeoutRef.current) {
-      clearTimeout(initialBufferTimeoutRef.current);
-      initialBufferTimeoutRef.current = null;
-    }
-    if (stallRecoveryTimeoutRef.current) {
-      clearTimeout(stallRecoveryTimeoutRef.current);
-      stallRecoveryTimeoutRef.current = null;
-    }
-    hasStartedInitialPlaybackRef.current = false;
-    isStalledRef.current = false;
-
-    setIsBuffering(true);
-    video.pause();
-    video.currentTime = 0;
-    video.removeAttribute("src");
-    video.load();
-
-    const trySeekToTarget = () => {
-      if (targetProgress <= 0 || hasSeekedInitialRef.current) return;
-      hasSeekedInitialRef.current = true;
-      requestPlayerSeek(targetProgress, true);
-    };
-
-    if (targetProgress > 0) {
-      const mins = Math.floor(targetProgress / 60);
-      const secs = (Math.floor(targetProgress) % 60).toString().padStart(2, "0");
-      showHud(
-        <RotateCcw className="w-5 h-5 text-netflix-red" />,
-        (!initialTimeUsed && (initialTime || urlParamT))
-          ? `Bắt đầu xem từ mốc: ${mins}:${secs}`
-          : `Tiếp tục xem từ ${mins}:${secs}`
-      );
-      if (currentMovieSlug && activeEpisodeSlug) {
-        saveWatchProgress(currentMovieSlug, targetProgress, video.duration || 0, activeEpisodeSlug, {
-          title,
-          poster: posterUrl,
-          thumb: resolvedThumb,
-          episodeName: activeEpisodeName,
-        });
-      }
-    }
-
-    const seekTimeouts: NodeJS.Timeout[] = [];
-    let networkRetryTimeout: NodeJS.Timeout | null = null;
-
-    if (Hls.isSupported()) {
-      const hls = new Hls({
-        enableWorker: true,
-        lowLatencyMode: false,
-        capLevelToPlayerSize: true,
-        maxBufferSize: 25 * 1000 * 1000,
-        maxBufferLength: 20,
-        maxMaxBufferLength: 40,
-        backBufferLength: 20,
-        startPosition: targetProgress > 0 ? targetProgress : -1,
-        startLevel: -1,
-        autoStartLoad: true,
-        abrEwmaDefaultEstimate: 1000000,
-        fragLoadingTimeOut: 15000,
-        fragLoadingMaxRetry: 4,
-        fragLoadingRetryDelay: 1000,
-        fragLoadingMaxRetryTimeout: 20000,
-        manifestLoadingTimeOut: 10000,
-        levelLoadingTimeOut: 10000,
-      });
-      hlsRef.current = hls;
-      hls.loadSource(resolvedM3u8);
-      hls.attachMedia(video);
-
-      hls.on(Hls.Events.MANIFEST_PARSED, (_event, data) => {
-        setIsBuffering(true);
-        if (data.levels && data.levels.length > 1) {
-          const lvls = data.levels.map((lvl, index) => ({
-            id: index,
-            height: lvl.height || 0,
-            label: lvl.height ? `${lvl.height}p` : `${Math.round(lvl.bitrate / 1000)}k`,
-          }));
-          lvls.sort((a, b) => b.height - a.height);
-          setQualityLevels(lvls);
-        } else {
-          setQualityLevels([]);
-        }
-
-        let initialTimeoutFired = false;
-        const checkInitialBufferAndStart = () => {
-          if (hasStartedInitialPlaybackRef.current) return;
-          const v = videoRef.current;
-          if (!v) return;
-
-          const bufAhead = getBufferAhead(v);
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const dur = (v as any).__hlsDuration || (v.duration && isFinite(v.duration) ? v.duration : 0);
-          const isNearEnd = dur > 0 && (v.currentTime + bufAhead >= dur - 2);
-
-          // Bắt đầu playback an toàn khi buffer đạt >= 0.5s hoặc readyState >= 3 có đệm >= 0.2s hoặc sắp hết phim,
-          // hoặc sau khi timeout dự phòng đã kích hoạt và buffer có ít nhất 0.1s an toàn
-          const isBufferReady =
-            bufAhead >= INITIAL_BUFFER_START_SECONDS ||
-            (v.readyState >= 3 && bufAhead >= 0.2) ||
-            isNearEnd ||
-            (initialTimeoutFired && bufAhead > 0.1);
-
-          if (isBufferReady) {
-            // P0: Đảm bảo nếu có pre-roll thì vị trí currentTime trước khi gọi play() đã ở sau pre-roll
-            const preRollDecision = evaluatePreRollAdDecision({
-              targetProgress,
-              hasStartedInitialPlayback: hasStartedInitialPlaybackRef.current,
-              boundaries: adBoundariesRef.current,
-              safeOffset: SAFE_AD_SKIP_OFFSET,
-              maxDuration: dur,
-            });
-            if (preRollDecision && v.currentTime < preRollDecision.targetSeek - 0.5) {
-              hasHandledPreRollRef.current = true;
-              hasSeekedInitialRef.current = true;
-              hasSkippedAdRef.current.add(preRollDecision.adKey);
-              isProgrammaticAdSkipRef.current = true;
-              const { transitionState, shouldMuteElement } = startAdTransition({
-                targetSeek: preRollDecision.targetSeek,
-                adDuration: preRollDecision.adDuration,
-                currentUserMuted: isMutedRef.current ?? v.muted,
-              });
-              automatedAdSkipRef.current = transitionState;
-              if (shouldMuteElement) {
-                v.muted = true;
-              }
-              setIsAdTransitioning(true);
-              v.currentTime = preRollDecision.targetSeek;
-            }
-
-            hasStartedInitialPlaybackRef.current = true;
-            if (initialBufferTimeoutRef.current) {
-              clearTimeout(initialBufferTimeoutRef.current);
-              initialBufferTimeoutRef.current = null;
-            }
-            setIsBuffering(false);
-            const playPromise = v.play();
-            if (playPromise !== undefined) {
-              playPromise
-                .then(() => {
-                  setIsPlaying(true);
-                })
-                .catch(() => {
-                  v.muted = true;
-                  setIsMuted(true);
-                  v.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
-                });
-            }
-          }
-        };
-
-        hls.on(Hls.Events.FRAG_BUFFERED, checkInitialBufferAndStart);
-
-        const onCanPlayOrLoaded = () => {
-          checkInitialBufferAndStart();
-        };
-        video.addEventListener("canplay", onCanPlayOrLoaded);
-        video.addEventListener("loadeddata", onCanPlayOrLoaded);
-        cleanupMediaListeners = () => {
-          video.removeEventListener("canplay", onCanPlayOrLoaded);
-          video.removeEventListener("loadeddata", onCanPlayOrLoaded);
-        };
-        if (video.readyState >= 3 || getBufferAhead(video) >= INITIAL_BUFFER_START_SECONDS) {
-          checkInitialBufferAndStart();
-        }
-
-        // Fallback timeout sau 3.5s (thay vì 7s) đảm bảo không bị treo player nếu mạng yếu hoặc stream ngắn
-        initialBufferTimeoutRef.current = setTimeout(() => {
-          initialTimeoutFired = true;
-          if (!hasStartedInitialPlaybackRef.current && videoRef.current) {
-            const v = videoRef.current;
-            const bufAhead = getBufferAhead(v);
-            // Bảo đảm timeout không ép phát nếu chưa có dữ liệu đủ để phát an toàn (cần >= 0.2s buffer hoặc readyState >= 2)
-            if (bufAhead >= 0.2 || v.readyState >= 2) {
-              const preRollDecision = evaluatePreRollAdDecision({
-                targetProgress,
-                hasStartedInitialPlayback: hasStartedInitialPlaybackRef.current,
-                boundaries: adBoundariesRef.current,
-                safeOffset: SAFE_AD_SKIP_OFFSET,
-                maxDuration: getEffectiveDuration(),
-              });
-              if (preRollDecision && v.currentTime < preRollDecision.targetSeek - 0.5) {
-                hasHandledPreRollRef.current = true;
-                hasSeekedInitialRef.current = true;
-                hasSkippedAdRef.current.add(preRollDecision.adKey);
-                isProgrammaticAdSkipRef.current = true;
-                const { transitionState, shouldMuteElement } = startAdTransition({
-                  targetSeek: preRollDecision.targetSeek,
-                  adDuration: preRollDecision.adDuration,
-                  currentUserMuted: isMutedRef.current ?? v.muted,
-                });
-                automatedAdSkipRef.current = transitionState;
-                if (shouldMuteElement) {
-                  v.muted = true;
-                }
-                setIsAdTransitioning(true);
-                v.currentTime = preRollDecision.targetSeek;
-              }
-
-              hasStartedInitialPlaybackRef.current = true;
-              setIsBuffering(false);
-              const playPromise = v.play();
-              if (playPromise !== undefined) {
-                playPromise
-                  .then(() => {
-                    setIsPlaying(true);
-                  })
-                  .catch(() => {
-                    if (videoRef.current) {
-                      videoRef.current.muted = true;
-                      setIsMuted(true);
-                      videoRef.current.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
-                    }
-                  });
-              }
-            } else {
-              // Chưa có dữ liệu an toàn (< 0.5s): không ép play(), giữ spinner loading chờ FRAG_BUFFERED
-              initialBufferTimeoutRef.current = null;
-            }
-          }
-        }, 7000);
-      });
-
-      // Reset bộ đếm lỗi mạng khi có bằng chứng tải fragment thành công
-      const onFragLoaded = () => {
-        hlsNetworkRetryCountRef.current = 0;
-      };
-      hls.on(Hls.Events.FRAG_LOADED, onFragLoaded);
-
-      const updateHlsDuration = (_event: unknown, data: { details?: { totalduration?: number; fragments?: FragmentLike[] } }) => {
-        if (data?.details?.totalduration && data.details.totalduration > 0 && isFinite(data.details.totalduration)) {
-          const totalSecs = data.details.totalduration;
-          setKnownDuration(totalSecs);
-          if (videoRef.current) {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            (videoRef.current as any).__hlsDuration = totalSecs;
-            videoRef.current.dispatchEvent(new Event("durationchange"));
-          }
-        }
-        if (data?.details?.fragments && Array.isArray(data.details.fragments)) {
-          const detected = detectAdBoundaries(data.details.fragments);
-          if (detected.length > 0) {
-            adBoundariesRef.current = detected;
-            // P0: Pre-roll ad detection trước khi playback bắt đầu
-            const preRollDecision = evaluatePreRollAdDecision({
-              targetProgress,
-              hasStartedInitialPlayback: hasStartedInitialPlaybackRef.current,
-              boundaries: detected,
-              safeOffset: SAFE_AD_SKIP_OFFSET,
-              maxDuration: data?.details?.totalduration || getEffectiveDuration(),
-            });
-            if (preRollDecision && !hasHandledPreRollRef.current) {
-              hasHandledPreRollRef.current = true;
-              hasSeekedInitialRef.current = true;
-              hasSkippedAdRef.current.add(preRollDecision.adKey);
-              if (videoRef.current) {
-                try {
-                  isProgrammaticAdSkipRef.current = true;
-                  const { transitionState, shouldMuteElement } = startAdTransition({
-                    targetSeek: preRollDecision.targetSeek,
-                    adDuration: preRollDecision.adDuration,
-                    currentUserMuted: isMutedRef.current ?? videoRef.current.muted,
-                  });
-                  automatedAdSkipRef.current = transitionState;
-                  if (shouldMuteElement) {
-                    videoRef.current.muted = true;
-                  }
-                  setIsAdTransitioning(true);
-                  videoRef.current.currentTime = preRollDecision.targetSeek;
-                } catch {}
-              }
-            }
-          } else if (adBoundariesRef.current.length === 0) {
-            adBoundariesRef.current = [];
-          }
-        }
-      };
-
-      hls.on(Hls.Events.LEVEL_LOADED, updateHlsDuration);
-      hls.on(Hls.Events.LEVEL_UPDATED, updateHlsDuration);
-
-      // Fallback seek duy nhất sau 1.5s nếu Hls.js startPosition chưa khớp target
-      seekTimeouts.push(
-        setTimeout(() => {
-          if (!hasSeekedInitialRef.current && targetProgress > 0 && videoRef.current) {
-            if (Math.abs(videoRef.current.currentTime - targetProgress) > 2) {
-              trySeekToTarget();
-            } else {
-              hasSeekedInitialRef.current = true;
-            }
-          }
-        }, 1500)
-      );
-
-      const fallbackToIframe = () => {
-        if (networkRetryTimeout) {
-          clearTimeout(networkRetryTimeout);
-          networkRetryTimeout = null;
-        }
-        const currentEmbed = decodeStreamUrl(embedSrc || "");
-        // Nếu embedSrc là nguồn streamc, vsmov hoặc player.phimapi.com (chỉ là iframe wrapper hay bị chặn/crash trong iframe),
-        // TUYỆT ĐỐI không fallback sang iframe chết, mà giữ lại Native Player và thử startLoad lại
-        if (!currentEmbed || currentEmbed.includes("streamc") || currentEmbed.includes("vsmov") || currentEmbed.includes("phimapi.com")) {
-          if (hlsRef.current === hls) {
-            hls.startLoad();
-          }
-          return;
-        }
-        hls.destroy();
-        setUseIframeFallback(true);
-      };
-
-      let mediaRetryCount = 0;
-      hls.on(Hls.Events.ERROR, (_event, data) => {
-        const hlsErr = evaluateHlsError(data);
-        if (!hlsErr.isFatal) {
-          if (hlsErr.isBufferStalled) {
-            const v = videoRef.current;
-            if (v && !v.paused && !v.ended) {
-              setIsBuffering(true);
-              isStalledRef.current = true;
-              if (stallRecoveryTimeoutRef.current) {
-                clearTimeout(stallRecoveryTimeoutRef.current);
-              }
-              stallRecoveryTimeoutRef.current = setTimeout(() => {
-                const curV = videoRef.current;
-                if (curV && isStalledRef.current && !curV.paused && !curV.ended) {
-                  curV.play().catch(() => {});
-                }
-              }, 3500);
-            }
-          }
-          // Bỏ qua các lỗi non-fatal khác để Hls.js tự retry theo cơ chế nội bộ
-          return;
-        }
-
-        switch (data.type) {
-          case Hls.ErrorTypes.NETWORK_ERROR:
-            hlsNetworkRetryCountRef.current += 1;
-            // Nới số lần thử lại lỗi mạng có thể phục hồi từ 2 lên 5 lần với delay tăng dần chống dập tải
-            if (hlsNetworkRetryCountRef.current <= 5) {
-              if (networkRetryTimeout) {
-                clearTimeout(networkRetryTimeout);
-              }
-              const delay = Math.min(1000 * Math.pow(1.5, hlsNetworkRetryCountRef.current - 1), 3500);
-              networkRetryTimeout = setTimeout(() => {
-                if (hlsRef.current === hls) {
-                  hls.startLoad();
-                }
-              }, delay);
-            } else {
-              fallbackToIframe();
-            }
-            break;
-          case Hls.ErrorTypes.MEDIA_ERROR:
-            // Lỗi media: giữ nguyên tối đa 1 lần phục hồi, không nới số lần retry mạng cho lỗi media/fatal khác
-            mediaRetryCount += 1;
-            if (mediaRetryCount <= 1) {
-              hls.recoverMediaError();
-            } else {
-              fallbackToIframe();
-            }
-            break;
-          default:
-            fallbackToIframe();
-            break;
-        }
-      });
-    } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
-      video.src = resolvedM3u8;
-
-      const nativeFetchAbortController = new AbortController();
-
-      // Phân tích playlist m3u8 để phát hiện ranh giới quảng cáo trên trình duyệt Native Safari / iOS
-      if (
-        resolvedM3u8 &&
-        (resolvedM3u8.startsWith("http://") || resolvedM3u8.startsWith("https://") || resolvedM3u8.startsWith("/"))
-      ) {
-        const fetchM3u8TextCached = async (url: string): Promise<string> => {
-          if (m3u8ManifestCache.has(url)) {
-            return m3u8ManifestCache.get(url)!;
-          }
-          const timeoutSignal = AbortSignal.timeout(4000);
-          const combinedSignal = (typeof AbortSignal !== "undefined" && "any" in AbortSignal)
-            ? (AbortSignal as unknown as { any: (signals: AbortSignal[]) => AbortSignal }).any([nativeFetchAbortController.signal, timeoutSignal])
-            : nativeFetchAbortController.signal;
-          const res = await fetch(url, { signal: combinedSignal });
-          if (!res.ok) throw new Error(`m3u8 fetch failed: ${res.status}`);
-          const text = await res.text();
-          if (m3u8ManifestCache.size > 20) m3u8ManifestCache.clear();
-          m3u8ManifestCache.set(url, text);
-          return text;
-        };
-
-        fetchM3u8TextCached(resolvedM3u8)
-          .then(async (m3u8Text) => {
-            let text = m3u8Text;
-            if (text.includes("#EXT-X-STREAM-INF")) {
-              const lines = text.split(/\r?\n/);
-              let variantUri = "";
-              for (let i = 0; i < lines.length; i++) {
-                const line = lines[i].trim();
-                if (line.startsWith("#EXT-X-STREAM-INF") && i + 1 < lines.length) {
-                  const nextLine = lines[i + 1].trim();
-                  if (nextLine && !nextLine.startsWith("#")) {
-                    variantUri = nextLine;
-                    break;
-                  }
-                }
-              }
-              if (variantUri) {
-                const absoluteVariantUrl = new URL(variantUri, resolvedM3u8).toString();
-                text = await fetchM3u8TextCached(absoluteVariantUrl);
-              }
-            }
-            const fragments = parseM3u8PlaylistFragments(text);
-            if (fragments.length > 0) {
-              const detected = detectAdBoundaries(fragments);
-              if (detected.length > 0) {
-                adBoundariesRef.current = detected;
-                const preRollDecision = evaluatePreRollAdDecision({
-                  targetProgress,
-                  hasStartedInitialPlayback: hasStartedInitialPlaybackRef.current,
-                  boundaries: detected,
-                  safeOffset: SAFE_AD_SKIP_OFFSET,
-                  maxDuration:
-                    videoRef.current?.duration && isFinite(videoRef.current.duration)
-                      ? videoRef.current.duration
-                      : getEffectiveDuration(),
-                });
-                if (preRollDecision && !hasHandledPreRollRef.current) {
-                  hasHandledPreRollRef.current = true;
-                  hasSeekedInitialRef.current = true;
-                  hasSkippedAdRef.current.add(preRollDecision.adKey);
-                  if (videoRef.current) {
-                    try {
-                      videoRef.current.currentTime = preRollDecision.targetSeek;
-                    } catch {}
-                  }
-                }
-              }
-            }
-          })
-          .catch(() => {
-            // Không làm gián đoạn phát video nếu việc fetch playlist phụ trợ gặp sự cố
-          });
-      }
-
-      let initialNativeTimeoutFired = false;
-      const checkNativeInitialBuffer = () => {
-        if (hasStartedInitialPlaybackRef.current) return;
-        const bufAhead = getBufferAhead(video);
-        const dur = video.duration && isFinite(video.duration) ? video.duration : 0;
-        const isNearEnd = dur > 0 && (video.currentTime + bufAhead >= dur - 2);
-
-        const isBufferReady =
-          bufAhead >= INITIAL_BUFFER_START_SECONDS ||
-          (video.readyState >= 3 && bufAhead >= 0.2) ||
-          isNearEnd ||
-          (initialNativeTimeoutFired && bufAhead > 0.1);
-
-        if (isBufferReady) {
-          hasStartedInitialPlaybackRef.current = true;
-          if (initialBufferTimeoutRef.current) {
-            clearTimeout(initialBufferTimeoutRef.current);
-            initialBufferTimeoutRef.current = null;
-          }
-          setIsBuffering(false);
-          trySeekToTarget();
-          video
-            .play()
-            .then(() => setIsPlaying(true))
-            .catch(() => {
-              video.muted = true;
-              setIsMuted(true);
-              video.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
-            });
-        }
-      };
-
-      const onLoaded = () => {
-        setIsBuffering(true);
-        trySeekToTarget();
-        checkNativeInitialBuffer();
-
-        initialBufferTimeoutRef.current = setTimeout(() => {
-          initialNativeTimeoutFired = true;
-          if (!hasStartedInitialPlaybackRef.current) {
-            const bufAhead = getBufferAhead(video);
-            if (bufAhead >= 0.2 || video.readyState >= 2) {
-              hasStartedInitialPlaybackRef.current = true;
-              setIsBuffering(false);
-              video
-                .play()
-                .then(() => setIsPlaying(true))
-                .catch(() => {
-                  video.muted = true;
-                  setIsMuted(true);
-                  video.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
-                });
-            } else {
-              initialBufferTimeoutRef.current = null;
-            }
-          }
-        }, 7000);
-      };
-
-      const onNativeError = () => {
-        setIsBuffering(false);
-        setUseIframeFallback(true);
-      };
-
-      video.addEventListener("loadedmetadata", onLoaded);
-      video.addEventListener("canplay", checkNativeInitialBuffer);
-      video.addEventListener("loadeddata", checkNativeInitialBuffer);
-      video.addEventListener("progress", checkNativeInitialBuffer);
-      video.addEventListener("error", onNativeError);
-
-      // Fallback seek duy nhất cho Native Safari
-      seekTimeouts.push(
-        setTimeout(() => {
-          if (!hasSeekedInitialRef.current && targetProgress > 0 && videoRef.current) {
-            trySeekToTarget();
-          }
-        }, 1000)
-      );
-
-      return () => {
-        nativeFetchAbortController.abort();
-        loadedSourceKeyRef.current = null;
-        video.removeEventListener("loadedmetadata", onLoaded);
-        video.removeEventListener("canplay", checkNativeInitialBuffer);
-        video.removeEventListener("loadeddata", checkNativeInitialBuffer);
-        video.removeEventListener("progress", checkNativeInitialBuffer);
-        video.removeEventListener("error", onNativeError);
-        seekTimeouts.forEach((t) => clearTimeout(t));
-        if (initialBufferTimeoutRef.current) {
-          clearTimeout(initialBufferTimeoutRef.current);
-          initialBufferTimeoutRef.current = null;
-        }
-        if (networkRetryTimeout) {
-          clearTimeout(networkRetryTimeout);
-          networkRetryTimeout = null;
-        }
-      };
-    }
-
-    return () => {
-      cleanupMediaListeners();
-      loadedSourceKeyRef.current = null;
-      seekTimeouts.forEach((t) => clearTimeout(t));
-      if (initialBufferTimeoutRef.current) {
-        clearTimeout(initialBufferTimeoutRef.current);
-        initialBufferTimeoutRef.current = null;
-      }
-      if (stallRecoveryTimeoutRef.current) {
-        clearTimeout(stallRecoveryTimeoutRef.current);
-        stallRecoveryTimeoutRef.current = null;
-      }
-      if (networkRetryTimeout) {
-        clearTimeout(networkRetryTimeout);
-        networkRetryTimeout = null;
-      }
-      if (hlsRef.current) {
-        hlsRef.current.destroy();
-        hlsRef.current = null;
-      }
-      hasHandledPreRollRef.current = false;
-      if (adPreTrigger.timer) {
-        clearTimeout(adPreTrigger.timer);
-        adPreTrigger.timer = null;
-      }
-      if (adPreTrigger.rVfcId !== null && video && "cancelVideoFrameCallback" in video) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (video as any).cancelVideoFrameCallback(adPreTrigger.rVfcId);
-        adPreTrigger.rVfcId = null;
-      }
-      adBoundariesRef.current = [];
-      hasSkippedAd.clear();
-      lastAdSkipTimeRef.current = 0;
-      isProgrammaticAdSkipRef.current = false;
-      if (automatedAdSkipRef.current) {
-        const { restoredMuted } = endAdTransition(automatedAdSkipRef.current);
-        automatedAdSkipRef.current = null;
-        setIsAdTransitioning(false);
-        if (restoredMuted !== null && video) {
-          video.muted = restoredMuted;
-        }
-      } else {
-        automatedAdSkipRef.current = null;
-      }
-      video.pause();
-      video.removeAttribute("src");
-      video.load();
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
+  useCinemaHlsEngine({
+    videoRef,
+    hlsRef,
+    loadedSourceKeyRef,
     resolvedM3u8,
+    embedSrc,
     useIframeFallback,
+    setUseIframeFallback,
     activeEpisodeSlug,
-    watchContext?.movieSlug,
-    watchContext?.currentServerIndex,
+    contextMovieSlug: watchContext?.movieSlug,
+    currentServerIndex: watchContext?.currentServerIndex,
     propMovieSlug,
     targetProgress,
     initialTime,
     urlParamT,
     initialTimeUsed,
-    showHud,
-    activeEpisodeName,
-    posterUrl,
+    setInitialTimeUsed,
+    initialEpisodeSlug,
+    initialLoadedEpisode,
     title,
-    getBufferAhead,
-  ]);
+    posterUrl,
+    resolvedThumb,
+    activeEpisodeName,
+    showHud,
+    setIsBuffering,
+    setIsPlaying,
+    setIsMuted,
+    isMutedRef,
+    setQualityLevels,
+    setKnownDuration,
+    setIsAdTransitioning,
+    hasSeekedInitialRef,
+    hasStartedInitialPlaybackRef,
+    isStalledRef,
+    initialBufferTimeoutRef,
+    stallRecoveryTimeoutRef,
+    hlsNetworkRetryCountRef,
+    adBoundariesRef,
+    hasSkippedAdRef,
+    lastAdSkipTimeRef,
+    automatedAdSkipRef,
+    isProgrammaticAdSkipRef,
+    hasHandledPreRollRef,
+    adPreTriggerRef,
+    requestPlayerSeek,
+    getEffectiveDuration,
+  });
 
-  // Video events
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!video) return;
-
-    const triggerAdSkip = (targetSeek: number, adDuration: number, adKey: string) => {
-      const v = videoRef.current;
-      if (!v || v.ended || v.seeking) return;
-      // Tránh re-trigger nếu đang chuyển tiếp tới cùng mốc target
-      if (automatedAdSkipRef.current?.active && Math.abs(automatedAdSkipRef.current.targetSeek - targetSeek) < 0.25) {
-        return;
-      }
-      hasSkippedAdRef.current.add(adKey);
-      lastAdSkipTimeRef.current = Date.now();
-      cancelAdPreTrigger();
-
-      const { transitionState, shouldMuteElement } = startAdTransition({
-        targetSeek,
-        adDuration,
-        currentUserMuted: isMutedRef.current ?? v.muted,
-      });
-      automatedAdSkipRef.current = transitionState;
-      isProgrammaticAdSkipRef.current = true;
-      if (shouldMuteElement) {
-        v.muted = true;
-      }
-      setIsAdTransitioning(true);
-      v.currentTime = targetSeek;
-    };
-
-    const checkAndCompleteAdTransition = () => {
-      const adSkip = automatedAdSkipRef.current;
-      if (!adSkip || !adSkip.active) return;
-      const v = videoRef.current;
-      if (!v) return;
-
-      const currentCt = v.currentTime;
-      const isStillInAd = adBoundariesRef.current.some(
-        (b) => currentCt >= b.start && currentCt < (b.nextStart ?? b.end)
-      );
-      // Playhead phải thực sự đạt tới hoặc vượt qua targetSeek (không trừ 0.15s để triệt tiêu việc un-mute sớm dính audio quảng cáo)
-      const isPastTarget = currentCt >= adSkip.targetSeek;
-      const isTimedOut = isAdTransitionTimedOut(adSkip);
-
-      // Chỉ khôi phục âm thanh và tắt transition khi xác nhận playhead đã ra ngoài vùng quảng cáo và không còn seeking, hoặc timeout
-      if ((!isStillInAd && isPastTarget && !v.seeking) || isTimedOut) {
-        const durationText = adSkip.adDuration > 0 ? ` (${adSkip.adDuration}s)` : "";
-        const { restoredMuted } = endAdTransition(adSkip);
-        automatedAdSkipRef.current = null;
-        isProgrammaticAdSkipRef.current = false;
-        setIsAdTransitioning(false);
-        if (restoredMuted !== null && videoRef.current) {
-          videoRef.current.muted = restoredMuted;
-        }
-        showHud(
-          <Zap className="w-5 h-5 text-netflix-red" />,
-          `Đã tự động bỏ qua quảng cáo${durationText}`
-        );
-      }
-    };
-
-    const scheduleStallRecovery = () => {
-      if (stallRecoveryTimeoutRef.current) {
-        clearTimeout(stallRecoveryTimeoutRef.current);
-      }
-      stallRecoveryTimeoutRef.current = setTimeout(() => {
-        const v = videoRef.current;
-        if (!v || v.paused || v.ended) {
-          isStalledRef.current = false;
-          return;
-        }
-
-        if (isStalledRef.current) {
-          const bufAhead = getBufferAhead(v);
-          const recovery = evaluateStallRecoveryAttempt(stallRecoveryCountRef.current, bufAhead);
-          stallRecoveryCountRef.current += 1;
-          isBufferingRef.current = recovery.shouldKeepBuffering;
-          setIsBuffering(recovery.shouldKeepBuffering);
-
-          if (recovery.canRetry) {
-            if (recovery.shouldNudge) {
-              const dur = getEffectiveDuration();
-              v.currentTime = Math.min(v.currentTime + recovery.nudgeDelta, dur > 0 ? dur : v.currentTime + 1);
-            }
-            if (recovery.shouldRequestPlay) {
-              v.play().catch(() => {});
-            }
-            scheduleStallRecovery();
-          } else {
-            isStalledRef.current = false;
-          }
-        }
-      }, 3500);
-    };
-
-    const checkBufferRecovery = () => {
-      const v = videoRef.current;
-      if (!v) return;
-
-      const bufAhead = getBufferAhead(v);
-      const dur = getEffectiveDuration();
-      const isNearEnd = dur > 0 && (v.currentTime + bufAhead >= dur - 2);
-
-      if (!hasStartedInitialPlaybackRef.current) {
-        if (bufAhead >= INITIAL_BUFFER_START_SECONDS || (v.readyState >= 3 && bufAhead >= 0.2) || isNearEnd) {
-          hasStartedInitialPlaybackRef.current = true;
-          if (initialBufferTimeoutRef.current) {
-            clearTimeout(initialBufferTimeoutRef.current);
-            initialBufferTimeoutRef.current = null;
-          }
-          isBufferingRef.current = false;
-          setIsBuffering(false);
-          v.play().catch(() => {});
-        }
-        return;
-      }
-
-      // Fast Resume riêng cho thao tác tự động bỏ qua quảng cáo (TC-AD-SKIP-06)
-      const adSkip = automatedAdSkipRef.current;
-      if (adSkip && adSkip.active) {
-        // Hết hạn ưu tiên sau 4s nếu mạng chậm để không cản trở fallback mặc định
-        if (isAdTransitionTimedOut(adSkip)) {
-          checkAndCompleteAdTransition();
-        } else {
-          // Chỉ cần có dữ liệu giải mã an toàn (readyState >= 3: HAVE_FUTURE_DATA hoặc bufAhead >= 1.5s)
-          const hasDecodableData = v.readyState >= 3 || bufAhead >= 1.5 || isNearEnd;
-          if (hasDecodableData) {
-            isStalledRef.current = false;
-            if (stallRecoveryTimeoutRef.current) {
-              clearTimeout(stallRecoveryTimeoutRef.current);
-              stallRecoveryTimeoutRef.current = null;
-            }
-            isBufferingRef.current = false;
-            setIsBuffering(false);
-            v.play().catch(() => {});
-            return;
-          }
-          // Nếu chưa có dữ liệu, tiếp tục chờ đệm bình thường
-          return;
-        }
-      }
-
-      if (isStalledRef.current) {
-        // TC-PLAYBACK-STABILITY-03 Patch 1: evaluateBufferProgress đảm bảo KHÔNG tự tắt isBuffering (spinner)
-        // chỉ vì có buffer chunk tải về khi playhead vẫn đứng yên.
-        const decision = evaluateBufferProgress({
-          currentTime: v.currentTime,
-          lastPlayheadTime: lastPlayheadTimeRef.current,
-          isStalled: isStalledRef.current,
-          isBuffering: isBufferingRef.current,
-          bufAhead,
-          readyState: v.readyState,
-          isNearEnd,
-          isPaused: v.paused,
-          isEnded: v.ended,
-          hasStartedInitialPlayback: hasStartedInitialPlaybackRef.current,
-        });
-
-        if (decision.shouldRequestPlay) {
-          const now = Date.now();
-          if (now - lastPlayRequestTimeRef.current > 1000) {
-            lastPlayRequestTimeRef.current = now;
-            v.play().catch(() => {});
-          }
-        }
-      }
-    };
-
-    const handleWaiting = () => {
-      const v = videoRef.current;
-      if (!v || v.paused || v.ended) return;
-      isBufferingRef.current = true;
-      setIsBuffering(true);
-      isStalledRef.current = true;
-      scheduleStallRecovery();
-    };
-
-    const handleStalled = () => {
-      const v = videoRef.current;
-      if (!v || v.paused || v.ended) return;
-      isBufferingRef.current = true;
-      setIsBuffering(true);
-      isStalledRef.current = true;
-      scheduleStallRecovery();
-    };
-
-    const handlePlaying = () => {
-      isBufferingRef.current = false;
-      setIsBuffering(false);
-      isStalledRef.current = false;
-      stallRecoveryCountRef.current = 0;
-      hlsNetworkRetryCountRef.current = 0;
-      if (stallRecoveryTimeoutRef.current) {
-        clearTimeout(stallRecoveryTimeoutRef.current);
-        stallRecoveryTimeoutRef.current = null;
-      }
-      if (videoRef.current) {
-        lastPlayheadTimeRef.current = videoRef.current.currentTime;
-      }
-      hasStartedInitialPlaybackRef.current = true;
-      setIsPlaying(true);
-      resetControlsTimeout();
-
-      // Dọn dẹp cờ ad skip, khôi phục âm thanh và hiển thị Toast khi video ĐÃ THỰC SỰ PHÁT TIẾP và ra khỏi quảng cáo
-      checkAndCompleteAdTransition();
-    };
-    const handlePause = () => {
-      cancelAdPreTrigger();
-      isProgrammaticAdSkipRef.current = false;
-      if (automatedAdSkipRef.current) {
-        const { restoredMuted } = endAdTransition(automatedAdSkipRef.current);
-        automatedAdSkipRef.current = null;
-        setIsAdTransitioning(false);
-        if (restoredMuted !== null && videoRef.current) {
-          videoRef.current.muted = restoredMuted;
-        }
-      } else {
-        automatedAdSkipRef.current = null;
-      }
-      setIsPlaying(false);
-      isStalledRef.current = false;
-      isBufferingRef.current = false;
-      setIsBuffering(false);
-      stallRecoveryCountRef.current = 0;
-      if (stallRecoveryTimeoutRef.current) {
-        clearTimeout(stallRecoveryTimeoutRef.current);
-        stallRecoveryTimeoutRef.current = null;
-      }
-      setShowControls(true);
-      if (controlsTimerRef.current) {
-        clearTimeout(controlsTimerRef.current);
-        controlsTimerRef.current = null;
-      }
-      const currentEffectiveDuration = getEffectiveDuration();
-      if (movieSlug && activeEpisodeSlug && video.currentTime > 5) {
-        saveWatchProgress(
-          movieSlug,
-          video.currentTime,
-          currentEffectiveDuration,
-          activeEpisodeSlug,
-          {
-            title,
-            poster: posterUrl,
-            thumb: resolvedThumb,
-            episodeName: activeEpisodeName,
-          },
-          true // forceSync khi pause
-        );
-      }
-      if (user?.uid && movieSlug && video.currentTime > 5) {
-        lastHandoffSyncRef.current = Date.now();
-        updateActivePlaybackSession(user.uid, {
-          movieSlug,
-          movieTitle: title,
-          episodeName: activeEpisodeName,
-          episodeSlug: activeEpisodeSlug,
-          currentTime: video.currentTime,
-          duration: currentEffectiveDuration,
-          posterUrl,
-        });
-      }
-    };
-
-    const handleTimeUpdateThrottled = () => {
-      checkAndCompleteAdTransition();
-      const v = videoRef.current;
-      if (v) {
-        const ct = v.currentTime;
-        const update = evaluateTimeUpdatePlayback({
-          currentTime: ct,
-          lastPlayheadTime: lastPlayheadTimeRef.current,
-          isStalled: isStalledRef.current,
-          isBuffering: isBufferingRef.current,
-          bufAhead: getBufferAhead(v),
-          readyState: v.readyState,
-          isNearEnd: false,
-          isPaused: v.paused,
-          isEnded: v.ended,
-          hasStartedInitialPlayback: hasStartedInitialPlaybackRef.current,
-        });
-
-        if (update.hasAdvanced) {
-          lastPlayheadTimeRef.current = update.newPlayheadTime;
-          if (isStalledRef.current || isBufferingRef.current) {
-            isStalledRef.current = false;
-            isBufferingRef.current = false;
-            setIsBuffering(false);
-            stallRecoveryCountRef.current = 0;
-            if (stallRecoveryTimeoutRef.current) {
-              clearTimeout(stallRecoveryTimeoutRef.current);
-              stallRecoveryTimeoutRef.current = null;
-            }
-          }
-        }
-      }
-
-      checkBufferRecovery();
-
-      // Tự động bỏ qua đoạn quảng cáo đã xác minh ranh giới (Verified Ad-Boundary Skip Controller — Zero-Flash)
-      if (isNativeVideo) {
-        const effectiveDur = getEffectiveDuration();
-        const ct = video.currentTime;
-
-        if (!video.seeking) {
-          lastPlayheadTimeRef.current = ct;
-        }
-
-        // 1. Đánh giá skip với leadTime = 0.35s và safeOffset (kích hoạt an toàn trước ranh giới)
-        const adDecision = evaluateAutoAdSkipDecision({
-          currentTime: video.currentTime,
-          boundaries: adBoundariesRef.current,
-          hasSkippedSet: hasSkippedAdRef.current,
-          lastSkipTime: lastAdSkipTimeRef.current,
-          now: Date.now(),
-          isPaused: video.paused,
-          isEnded: video.ended,
-          isSeeking: video.seeking,
-          leadTime: 0.35,
-          safeOffset: SAFE_AD_SKIP_OFFSET,
-          maxDuration: effectiveDur,
-        });
-
-        if (adDecision && adDecision.shouldSeek) {
-          if (pendingKeyboardSeekRef.current.timer) {
-            clearTimeout(pendingKeyboardSeekRef.current.timer);
-            pendingKeyboardSeekRef.current.timer = null;
-            pendingKeyboardSeekRef.current.state.isDebouncePending = false;
-          }
-          triggerAdSkip(adDecision.targetSeek, adDecision.adDuration, adDecision.adKey);
-        } else if (!automatedAdSkipRef.current?.active && !video.seeking) {
-          // Fallback an toàn: Nếu playhead đang nằm bên trong một ad boundary mà chưa thoát ra ngoài
-          const inAd = adBoundariesRef.current.find(
-            (b) => ct >= b.start && ct < (b.nextStart ?? b.end) - 0.25
-          );
-          if (inAd) {
-            const adKey = `${inAd.start}_${inAd.end}`;
-            const targetSeek = calculateSafeAdSkipTarget(
-              inAd.end,
-              adBoundariesRef.current,
-              effectiveDur,
-              SAFE_AD_SKIP_OFFSET
-            );
-            triggerAdSkip(targetSeek, Math.round(inAd.duration), adKey);
-          } else if (!video.paused && !video.ended && adBoundariesRef.current.length > 0) {
-            // 2. Pre-emptive monitoring: Nếu playhead đang tiến sát ranh giới quảng cáo kế tiếp (trong 1.5s)
-            const ct = video.currentTime;
-            const nextUpcomingAd = adBoundariesRef.current.find(
-              (b) => b.start > ct && b.start - ct <= 1.5 && !hasSkippedAdRef.current.has(`${b.start}_${b.end}`)
-            );
-
-            if (nextUpcomingAd && adPreTriggerRef.current.timer === null && adPreTriggerRef.current.rVfcId === null) {
-              const leadThreshold = 0.3; // 300ms trước ranh giới quảng cáo
-              const targetSeek = calculateSafeAdSkipTarget(nextUpcomingAd.end, adBoundariesRef.current, effectiveDur, SAFE_AD_SKIP_OFFSET);
-              const adDuration = Math.round(nextUpcomingAd.duration);
-              const adKey = `${nextUpcomingAd.start}_${nextUpcomingAd.end}`;
-
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              if (typeof (video as any).requestVideoFrameCallback === "function") {
-                const onFrame = () => {
-                  const curV = videoRef.current;
-                  if (!curV || curV.paused || curV.seeking || curV.ended) {
-                    adPreTriggerRef.current.rVfcId = null;
-                    return;
-                  }
-                  const curCt = curV.currentTime;
-                  const nextAdEnd = nextUpcomingAd.nextStart ?? nextUpcomingAd.end;
-                  if (curCt >= nextUpcomingAd.start - leadThreshold && curCt < nextAdEnd - 0.25) {
-                    adPreTriggerRef.current.rVfcId = null;
-                    triggerAdSkip(targetSeek, adDuration, adKey);
-                    return;
-                  }
-                  if (curCt < nextUpcomingAd.start - 1.5 || curCt >= nextAdEnd) {
-                    adPreTriggerRef.current.rVfcId = null;
-                    return;
-                  }
-                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                  adPreTriggerRef.current.rVfcId = (curV as any).requestVideoFrameCallback(onFrame);
-                };
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                adPreTriggerRef.current.rVfcId = (video as any).requestVideoFrameCallback(onFrame);
-              } else {
-                // Fallback one-shot timer cho trình duyệt không hỗ trợ rVFC
-                const rate = video.playbackRate && video.playbackRate > 0 ? video.playbackRate : 1;
-                const delayMs = Math.max(10, Math.round(((nextUpcomingAd.start - leadThreshold - ct) / rate) * 1000));
-                adPreTriggerRef.current.timer = setTimeout(() => {
-                  adPreTriggerRef.current.timer = null;
-                  const curV = videoRef.current;
-                  if (curV && !curV.paused && !curV.seeking && !curV.ended) {
-                    const nextAdEnd = nextUpcomingAd.nextStart ?? nextUpcomingAd.end;
-                    if (curV.currentTime >= nextUpcomingAd.start - 0.35 && curV.currentTime < nextAdEnd - 0.25) {
-                      triggerAdSkip(targetSeek, adDuration, adKey);
-                    }
-                  }
-                }, delayMs);
-              }
-            }
-          }
-        }
-      }
-
-      // Check countdown condition on timeupdate
-      if (effectiveNextEpisode?.slug && !isNextEpDismissedRef.current && playerSettings.autoNextEpisode !== false) {
-        const currentEffectiveDuration = getEffectiveDuration();
-        const currentTime = video.currentTime;
-        if (currentEffectiveDuration > 30) {
-          const remaining = currentEffectiveDuration - currentTime;
-          if (remaining <= 12 && remaining > 0.5 && !video.paused && !video.ended) {
-            setShowNextEpCountdown((prev) => (!prev ? true : prev));
-          } else if (remaining > 18) {
-            setShowNextEpCountdown((prev) => {
-              if (prev) {
-                setNextEpCountdown(10);
-                return false;
-              }
-              return prev;
-            });
-          }
-          if (remaining > 25) {
-            isNextEpDismissedRef.current = false;
-          }
-        }
-      }
-
-      const now = Date.now();
-      if (now - lastProgressSaveRef.current > 3000) {
-        lastProgressSaveRef.current = now;
-        const currentEffectiveDuration = getEffectiveDuration();
-        if (movieSlug && activeEpisodeSlug && video.currentTime > 0) {
-          saveWatchProgress(movieSlug, video.currentTime, currentEffectiveDuration, activeEpisodeSlug, {
-            title,
-            poster: posterUrl,
-            thumb: resolvedThumb,
-            episodeName: activeEpisodeName,
-          });
-        }
-      }
-      if (user?.uid && now - lastHandoffSyncRef.current > 25000 && movieSlug && video.currentTime > 5) {
-        lastHandoffSyncRef.current = now;
-        const currentEffectiveDuration = getEffectiveDuration();
-        updateActivePlaybackSession(user.uid, {
-          movieSlug,
-          movieTitle: title,
-          episodeName: activeEpisodeName,
-          episodeSlug: activeEpisodeSlug,
-          currentTime: video.currentTime,
-          duration: currentEffectiveDuration,
-          posterUrl,
-        });
-      }
-      // Tự động đánh dấu đã xem khi xem đạt >= 90% thời lượng hợp lệ
-      if (movieSlug && activeEpisodeSlug) {
-        const currentEffectiveDuration = getEffectiveDuration();
-        if (
-          Number.isFinite(currentEffectiveDuration) &&
-          currentEffectiveDuration > 0 &&
-          video.currentTime / currentEffectiveDuration >= 0.9
-        ) {
-          markEpisodeAsWatched(movieSlug, activeEpisodeSlug);
-        }
-      }
-    };
-
-    const handleEnded = () => {
-      cancelAdPreTrigger();
-      setIsPlaying(false);
-      isStalledRef.current = false;
-      setShowControls(true);
-      if (controlsTimerRef.current) {
-        clearTimeout(controlsTimerRef.current);
-        controlsTimerRef.current = null;
-      }
-      if (nextEpCountdownTimerRef.current) {
-        clearInterval(nextEpCountdownTimerRef.current);
-        nextEpCountdownTimerRef.current = null;
-      }
-      setShowNextEpCountdown(false);
-      const currentEffectiveDuration = getEffectiveDuration();
-      if (movieSlug && activeEpisodeSlug) {
-        markEpisodeAsWatched(movieSlug, activeEpisodeSlug);
-        saveWatchProgress(
-          movieSlug,
-          currentEffectiveDuration > 0 ? currentEffectiveDuration : video.currentTime,
-          currentEffectiveDuration,
-          activeEpisodeSlug,
-          {
-            title,
-            poster: posterUrl,
-            thumb: resolvedThumb,
-            episodeName: activeEpisodeName,
-          },
-          true // forceSync khi kết thúc video
-        );
-      }
-      if (playerSettings.autoNextEpisode !== false && effectiveNextEpisode?.slug && switchEpisode && !isNextEpDismissedRef.current) {
-        switchEpisode(effectiveNextEpisode.slug);
-      }
-    };
-
-    const handleCanPlay = () => {
-      if (!isStalledRef.current && hasStartedInitialPlaybackRef.current) {
-        setIsBuffering(false);
-      } else {
-        checkBufferRecovery();
-      }
-    };
-    const handleProgress = () => checkBufferRecovery();
-    const handleSeeking = () => {
-      cancelAdPreTrigger();
-      setIsBuffering(true);
-      isStalledRef.current = true;
-
-      // 1. Nếu là lệnh seek do hệ thống chủ động bỏ qua quảng cáo (programmatic auto-skip), bảo vệ transition
-      if (isProgrammaticAdSkipRef.current) {
-        return;
-      }
-
-      // 2. Bảo vệ quá trình chuyển tiếp quảng cáo: không can thiệp hay phát lệnh seek trùng lặp khi đang transition
-      const adSkip = automatedAdSkipRef.current;
-      if (adSkip && adSkip.active) {
-        return;
-      }
-
-      // 3. Fallback bảo vệ cho seek phát sinh ngoài requestPlayerSeek (native browser controls / Picture-in-Picture):
-      const v = videoRef.current;
-      if (v && adBoundariesRef.current.length > 0) {
-        const ct = v.currentTime;
-        const prevCt = lastPlayheadTimeRef.current;
-        const dur = getEffectiveDuration();
-
-        // Nếu là tua lùi rơi vào vùng quảng cáo -> tua lùi an toàn qua quảng cáo
-        if (ct < prevCt) {
-          const rewindSnap = calculateRewindTargetPastAd(ct, prevCt, adBoundariesRef.current);
-          if (rewindSnap.jumpedPastAd) {
-            if (rewindSnap.adKey) {
-              hasSkippedAdRef.current.delete(rewindSnap.adKey);
-            }
-            isProgrammaticAdSkipRef.current = false;
-            v.currentTime = rewindSnap.adjustedTime;
-            lastPlayheadTimeRef.current = rewindSnap.adjustedTime;
-            return;
-          }
-        }
-
-        const snap = snapTimePastAdBoundaries(ct, adBoundariesRef.current, dur, SAFE_AD_SKIP_OFFSET);
-        if (snap.snapped && snap.adKey) {
-          hasSkippedAdRef.current.add(snap.adKey);
-          lastAdSkipTimeRef.current = Date.now();
-          isProgrammaticAdSkipRef.current = true;
-          const { transitionState, shouldMuteElement } = startAdTransition({
-            targetSeek: snap.adjustedTime,
-            adDuration: snap.adDuration,
-            currentUserMuted: isMutedRef.current ?? v.muted,
-          });
-          automatedAdSkipRef.current = transitionState;
-          if (shouldMuteElement) {
-            v.muted = true;
-          }
-          setIsAdTransitioning(true);
-          v.currentTime = snap.adjustedTime;
-          lastPlayheadTimeRef.current = snap.adjustedTime;
-          return;
-        }
-      }
-    };
-    const handleSeeked = () => {
-      if (videoRef.current) {
-        lastPlayheadTimeRef.current = videoRef.current.currentTime;
-      }
-      isProgrammaticAdSkipRef.current = false;
-      checkBufferRecovery();
-      // Nếu đang trong quá trình chuyển tiếp ad skip, không un-mute tại handleSeeked
-      // để tránh rò rỉ buffer âm thanh cũ của quảng cáo; chỉ un-mute khi video thực sự play lại (handlePlaying)
-      if (!automatedAdSkipRef.current?.active) {
-        checkAndCompleteAdTransition();
-      }
-    };
-    const handleLoadStart = () => {
-      isBufferingRef.current = true;
-      setIsBuffering(true);
-    };
-    const handleLoadedData = () => checkBufferRecovery();
-
-    video.addEventListener("waiting", handleWaiting, { passive: true });
-    video.addEventListener("stalled", handleStalled, { passive: true });
-    video.addEventListener("playing", handlePlaying, { passive: true });
-    video.addEventListener("pause", handlePause, { passive: true });
-    video.addEventListener("timeupdate", handleTimeUpdateThrottled, { passive: true });
-    video.addEventListener("ended", handleEnded, { passive: true });
-    video.addEventListener("canplay", handleCanPlay, { passive: true });
-    video.addEventListener("progress", handleProgress, { passive: true });
-    video.addEventListener("seeking", handleSeeking, { passive: true });
-    video.addEventListener("seeked", handleSeeked, { passive: true });
-    video.addEventListener("loadstart", handleLoadStart, { passive: true });
-    video.addEventListener("loadeddata", handleLoadedData, { passive: true });
-
-    const saveCurrentPlaybackState = () => {
-      if (video.currentTime > 3 && movieSlug && activeEpisodeSlug) {
-        const curDur = getEffectiveDuration();
-        saveWatchProgress(
-          movieSlug,
-          video.currentTime,
-          curDur,
-          activeEpisodeSlug,
-          {
-            title,
-            poster: posterUrl,
-            thumb: resolvedThumb,
-            episodeName: activeEpisodeName,
-          },
-          true
-        );
-      }
-    };
-
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === "hidden") {
-        saveCurrentPlaybackState();
-      }
-    };
-
-    const handlePageHide = () => {
-      saveCurrentPlaybackState();
-    };
-
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-    window.addEventListener("pagehide", handlePageHide);
-    window.addEventListener("beforeunload", saveCurrentPlaybackState);
-
-    return () => {
-      cancelAdPreTrigger();
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-      window.removeEventListener("pagehide", handlePageHide);
-      window.removeEventListener("beforeunload", saveCurrentPlaybackState);
-      saveCurrentPlaybackState();
-      video.removeEventListener("waiting", handleWaiting);
-      video.removeEventListener("stalled", handleStalled);
-      video.removeEventListener("playing", handlePlaying);
-      video.removeEventListener("pause", handlePause);
-      video.removeEventListener("timeupdate", handleTimeUpdateThrottled);
-      video.removeEventListener("ended", handleEnded);
-      video.removeEventListener("canplay", handleCanPlay);
-      video.removeEventListener("progress", handleProgress);
-      video.removeEventListener("seeking", handleSeeking);
-      video.removeEventListener("seeked", handleSeeked);
-      video.removeEventListener("loadstart", handleLoadStart);
-      video.removeEventListener("loadeddata", handleLoadedData);
-      if (stallRecoveryTimeoutRef.current) {
-        clearTimeout(stallRecoveryTimeoutRef.current);
-        stallRecoveryTimeoutRef.current = null;
-      }
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    effectiveNextEpisode,
-    switchEpisode,
-    watchContext?.movieSlug,
+  const {
+    showNextEpCountdown,
+    nextEpCountdown,
+    isNextEpDismissedRef,
+    nextEpCountdownTimerRef,
+    setShowNextEpCountdown,
+    setNextEpCountdown,
+    handlePlayNextEpisode,
+    handleDismissNextEpisode,
+  } = useCinemaNextEpisodeAndHandoff({
+    videoRef,
+    userId: user?.uid,
+    movieSlug,
+    contextMovieSlug: watchContext?.movieSlug,
     propMovieSlug,
     activeEpisodeSlug,
-    user?.uid,
-    title,
     activeEpisodeName,
+    effectiveNextEpisode,
+    switchEpisode,
+    title,
     posterUrl,
+    resolvedThumb,
+    initialTime,
+    urlParamT,
+    showHud,
+    requestPlayerSeek,
+  });
+
+  useCinemaVideoEvents({
+    videoRef,
+    userId: user?.uid,
+    movieSlug,
+    contextMovieSlug: watchContext?.movieSlug,
+    propMovieSlug,
+    activeEpisodeSlug,
+    activeEpisodeName,
+    effectiveNextEpisode,
+    switchEpisode,
+    title,
+    posterUrl,
+    resolvedThumb,
     targetProgress,
-    getEffectiveDuration,
-    playerSettings.autoNextEpisode,
-    resetControlsTimeout,
-    getBufferAhead,
-    cancelAdPreTrigger,
-  ]);
-
-  // Mobile touch & sticky detection
-  useEffect(() => {
-    const checkMobile = () => {
-      const hasTouch =
-        (typeof window !== "undefined" && window.matchMedia && window.matchMedia("(pointer: coarse)").matches) ||
-        (typeof window !== "undefined" && "ontouchstart" in window) ||
-        (typeof navigator !== "undefined" && navigator.maxTouchPoints > 0) ||
-        (typeof window !== "undefined" && window.innerWidth < 768);
-      setIsMobile(Boolean(hasTouch));
-    };
-    checkMobile();
-    window.addEventListener("resize", checkMobile);
-    window.addEventListener("orientationchange", checkMobile);
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        setIsScrolledPast(!entry.isIntersecting && entry.boundingClientRect.top < 0);
-      },
-      { threshold: 0, rootMargin: "-20px 0px 0px 0px" }
-    );
-
-    if (sentinelRef.current) observer.observe(sentinelRef.current);
-
-    return () => {
-      window.removeEventListener("resize", checkMobile);
-      window.removeEventListener("orientationchange", checkMobile);
-      observer.disconnect();
-    };
-  }, []);
-
-  // Global Keyboard shortcuts & TV Player Focus Navigation (YouTube Style Direct Playback & 4-Tier Control Navigation)
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // 1. Bỏ qua nếu người dùng đang dùng tổ hợp phím hệ thống (Ctrl + C, Cmd + C, Ctrl + V, Alt + ...)
-      if (e.ctrlKey || e.metaKey || e.altKey) {
-        return;
-      }
-
-      const target = (e.target || document.activeElement) as HTMLElement | null;
-      const active = (document.activeElement || target) as HTMLElement | null;
-
-      // 2. Bỏ qua phím tắt khi focus vào input, textarea, select, [contenteditable], role textbox/searchbox
-      const isInput = Boolean(
-        active &&
-        (active.tagName === "INPUT" ||
-          active.tagName === "TEXTAREA" ||
-          active.tagName === "SELECT" ||
-          active.isContentEditable ||
-          active.getAttribute("contenteditable") === "true" ||
-          active.getAttribute("role") === "textbox" ||
-          active.getAttribute("role") === "searchbox")
-      );
-      if (isInput) return;
-
-      // 3. Nếu đang mở modal / dialog bên ngoài player (ví dụ login modal, actor bio modal...):
-      // không can thiệp video
-      const isInsideDialog = Boolean(active?.closest('[role="dialog"], dialog, [aria-modal="true"]'));
-      if (isInsideDialog && !containerRef.current?.contains(active)) {
-        return;
-      }
-
-      // 4. Phím Escape: Thoát toàn màn hình
-      if (e.key === "Escape") {
-        if (isFullscreen) {
-          e.preventDefault();
-          toggleFullscreen();
-          return;
-        }
-      }
-
-      // 6. Kiểm tra xem focus có đang nằm trong menu/dropdown điều hướng (đặc biệt cho Arrow keys)
-      const isInsideMenu = Boolean(
-        active?.closest('[role="menu"], [role="listbox"]') ||
-        (containerRef.current && active && active.getAttribute("data-player-menu-item") === "true")
-      );
-
-      // Nếu menu player đang mở và người dùng dùng ArrowUp/Down để di chuyển menu items:
-      if (isInsideMenu && (e.key === "ArrowUp" || e.key === "ArrowDown")) {
-        const menuItems = containerRef.current
-          ? Array.from(containerRef.current.querySelectorAll<HTMLElement>('[data-player-menu-item="true"]'))
-          : [];
-        if (menuItems.length > 0) {
-          const currentMenuIdx = menuItems.findIndex((el) => el === active);
-          if (e.key === "ArrowDown") {
-            e.preventDefault();
-            const nextIdx = currentMenuIdx < menuItems.length - 1 ? currentMenuIdx + 1 : 0;
-            menuItems[nextIdx]?.focus();
-            return;
-          }
-          if (e.key === "ArrowUp") {
-            e.preventDefault();
-            const prevIdx = currentMenuIdx > 0 ? currentMenuIdx - 1 : menuItems.length - 1;
-            menuItems[prevIdx]?.focus();
-            return;
-          }
-        }
-        return;
-      }
-
-      // 7. PHÍM SPACE / K: Phát / Tạm dừng
-      if (e.code === "Space" || e.key === " " || e.key === "k" || e.key === "K") {
-        // Nếu active là một nút bấm hoặc link bên ngoài player (ví dụ nút chọn tập trong EpisodeList hoặc nút trên trang)
-        // và phím là Space: để sự kiện click tự nhiên cho nút đó hoạt động
-        if ((e.code === "Space" || e.key === " ") && active && (active.tagName === "BUTTON" || active.tagName === "A")) {
-          const isPlayerControlBtn = Boolean(containerRef.current?.contains(active));
-          if (!isPlayerControlBtn) {
-            return;
-          }
-        }
-        if (e.repeat) return;
-        e.preventDefault();
-        resetControlsTimeout();
-        togglePlayPause();
-        return;
-      }
-
-      // 8. PHÍM TẮT CHỨC NĂNG (F, M, T, P, N, ?)
-      if (e.key === "f" || e.key === "F") {
-        if (e.repeat) return;
-        e.preventDefault();
-        resetControlsTimeout();
-        toggleFullscreen();
-        return;
-      }
-
-      if (e.key === "m" || e.key === "M") {
-        if (e.repeat) return;
-        e.preventDefault();
-        resetControlsTimeout();
-        if (isNativeVideo && videoRef.current) {
-          const nextMuted = !videoRef.current.muted;
-          videoRef.current.muted = nextMuted;
-          setIsMuted(nextMuted);
-          if (automatedAdSkipRef.current && automatedAdSkipRef.current.active) {
-            automatedAdSkipRef.current = updateUserMutePreferenceDuringTransition(
-              automatedAdSkipRef.current,
-              nextMuted
-            );
-          }
-          triggerVolumeOsd(volume, nextMuted);
-        }
-        return;
-      }
-
-      if (e.key === "t" || e.key === "T") {
-        if (e.repeat) return;
-        e.preventDefault();
-        resetControlsTimeout();
-        setIsTheaterMode((prev) => !prev);
-        return;
-      }
-
-      if ((e.key === "p" || e.key === "P") && effectivePrevEpisode?.slug && switchEpisode) {
-        if (e.repeat) return;
-        e.preventDefault();
-        resetControlsTimeout();
-        showHud(<SkipBack className="w-5 h-5 text-netflix-red" />, `Chuyển về ${effectivePrevEpisode.name}`);
-        switchEpisode(effectivePrevEpisode.slug);
-        return;
-      }
-
-      if ((e.key === "n" || e.key === "N") && effectiveNextEpisode?.slug && switchEpisode) {
-        if (e.repeat) return;
-        e.preventDefault();
-        resetControlsTimeout();
-        showHud(<SkipForward className="w-5 h-5 text-netflix-red" />, `Chuyển sang ${effectiveNextEpisode.name}`);
-        switchEpisode(effectiveNextEpisode.slug);
-        return;
-      }
-
-      // 8. PHÍM TUA VIDEO (← / →): Tua lùi / tiến 10s (Chu kỳ hiển thị chuẩn xác và đồng bộ OSD)
-      if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
-        if (active && active.tagName === "INPUT" && active.getAttribute("type") === "range") {
-          return;
-        }
-
-        e.preventDefault();
-        resetControlsTimeout();
-
-        if (isNativeVideo && videoRef.current) {
-          const v = videoRef.current;
-          const effectiveDuration = getEffectiveDuration();
-          const s = pendingKeyboardSeekRef.current;
-
-          const result = calculateKeyboardSeek(
-            s.state,
-            e.key,
-            v.currentTime || 0,
-            effectiveDuration,
-            Date.now()
-          );
-
-          s.state = result.nextState;
-
-          // Nếu đổi hướng tua trong lúc seek trước đang debounce, flush ngay lệnh trước
-          if (result.shouldFlushPrevious && result.previousTargetToFlush !== undefined) {
-            if (s.timer) {
-              clearTimeout(s.timer);
-              s.timer = null;
-            }
-            requestPlayerSeek(result.previousTargetToFlush, false);
-          }
-
-          // Cập nhật OSD phản hồi thị giác (RotateCw / RotateCcw)
-          triggerDesktopFeedback(result.feedbackType, result.feedbackText, result.feedbackSeconds);
-
-          // Debounce lệnh seek thực tế đến player (250ms)
-          if (s.timer) {
-            clearTimeout(s.timer);
-          }
-          s.timer = setTimeout(() => {
-            requestPlayerSeek(result.targetTime, false);
-            s.timer = null;
-            s.state.isDebouncePending = false;
-          }, KEYBOARD_SEEK_DEBOUNCE_MS);
-
-          // Reset chu kỳ sau khi indicator ẩn hoàn toàn (800ms)
-          if (s.resetTimer) {
-            clearTimeout(s.resetTimer);
-          }
-          s.resetTimer = setTimeout(() => {
-            s.state = createInitialKeyboardSeekState();
-            s.resetTimer = null;
-          }, KEYBOARD_SEEK_CYCLE_TIMEOUT_MS);
-        }
-        return;
-      }
-
-      // 10. PHÍM TĂNG / GIẢM ÂM LƯỢNG (↑ / ↓): Thay đổi âm lượng ±5%
-      if (e.key === "ArrowUp" || e.key === "ArrowDown") {
-        if (active && active.tagName === "INPUT" && active.getAttribute("type") === "range") {
-          return;
-        }
-
-        e.preventDefault();
-        resetControlsTimeout();
-        handleVolumeDelta(e.key === "ArrowUp" ? 0.05 : -0.05);
-        return;
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => {
-      // NOTE: Không hủy pendingKeyboardSeekRef timer ở đây vì cleanup này chạy mỗi khi dependencies
-      // (như volume, isFullscreen) thay đổi trong lúc player đang render. Unmount effect riêng sẽ dọn dẹp an toàn.
-      if (singleTapTimerRef.current) {
-        clearTimeout(singleTapTimerRef.current);
-      }
-      window.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [
     isNativeVideo,
+    playerSettings,
+    isMutedRef,
+    isBufferingRef,
+    setIsBuffering,
+    setIsPlaying,
+    setIsAdTransitioning,
+    hasStartedInitialPlaybackRef,
+    isStalledRef,
+    lastPlayheadTimeRef,
+    stallRecoveryCountRef,
+    lastPlayRequestTimeRef,
+    initialBufferTimeoutRef,
+    stallRecoveryTimeoutRef,
+    hlsNetworkRetryCountRef,
+    lastProgressSaveRef,
+    lastHandoffSyncRef,
+    adBoundariesRef,
+    hasSkippedAdRef,
+    lastAdSkipTimeRef,
+    automatedAdSkipRef,
+    isProgrammaticAdSkipRef,
+    adPreTriggerRef,
+    pendingKeyboardSeekRef,
+    isNextEpDismissedRef,
+    nextEpCountdownTimerRef,
+    setShowNextEpCountdown,
+    setNextEpCountdown,
+    showHud,
+    resetControlsTimeout,
+    forceShowControls,
+    cancelAdPreTrigger,
+    getEffectiveDuration,
+  });
+
+  useCinemaShortcuts({
+    containerRef,
+    videoRef,
+    pendingKeyboardSeekRef,
+    singleTapTimerRef,
+    automatedAdSkipRef,
+    isNativeVideo,
+    isFullscreen,
+    volume,
+    setIsMuted,
+    setIsTheaterMode,
     effectivePrevEpisode,
     effectiveNextEpisode,
     switchEpisode,
@@ -2686,56 +513,11 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
     handleVolumeDelta,
     triggerVolumeOsd,
     showHud,
-    volume,
-    getEffectiveDuration,
-    isFullscreen,
     resetControlsTimeout,
     triggerDesktopFeedback,
-    setIsTheaterMode,
+    getEffectiveDuration,
     requestPlayerSeek,
-  ]);
-
-
-  const handleMouseMove = useCallback((e: React.MouseEvent) => {
-    if ((e.nativeEvent as PointerEvent)?.pointerType === "touch") return;
-    resetControlsTimeout();
-  }, [resetControlsTimeout]);
-
-  const handleMouseLeave = useCallback(() => {
-    if (isMobile) return;
-    const isPaused = videoRef.current ? videoRef.current.paused : !isPlaying;
-    if (!isPaused) {
-      if (controlsTimerRef.current) {
-        clearTimeout(controlsTimerRef.current);
-        controlsTimerRef.current = null;
-      }
-      setShowControls(false);
-      showControlsRef.current = false;
-    }
-  }, [isMobile, isPlaying]);
-
-  const scrollToPlayer = useCallback(() => {
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  }, []);
-
-  const isMobileStickyActive =
-    isMobile &&
-    isScrolledPast &&
-    isPlaying &&
-    !isFullscreen &&
-    Boolean(activeSrc || m3u8Link);
-
-  // Đồng bộ cờ playerSticky lên DOM để MobileMovieNav và layout mobile điều chỉnh tọa độ sticky
-  useEffect(() => {
-    if (isMobileStickyActive) {
-      document.documentElement.dataset.playerSticky = "true";
-    } else {
-      delete document.documentElement.dataset.playerSticky;
-    }
-    return () => {
-      delete document.documentElement.dataset.playerSticky;
-    };
-  }, [isMobileStickyActive]);
+  });
 
   return (
     <>
@@ -2757,16 +539,25 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
           isFullscreen
             ? "fixed inset-0 z-[80] w-full h-full max-w-none p-0 m-0 bg-black flex flex-col justify-center overflow-hidden"
             : isMobileStickyActive
-            ? "fixed top-[51px] sm:top-[55px] left-0 right-0 z-40 shadow-2xl border-b bg-black md:relative md:top-auto"
+            ? "fixed top-[51px] sm:top-[55px] left-0 right-0 z-40 shadow-2xl border-b border-white/[0.08] bg-black md:relative md:top-auto"
             : "relative z-20 bg-transparent"
-        } ${isTheaterMode && !isFullscreen ? "max-w-none px-0 sm:px-0" : isFullscreen ? "" : "max-w-7xl"}`}
+        } ${
+          isTheaterMode && !isFullscreen
+            ? "max-w-none px-0 sm:px-0"
+            : isFullscreen
+            ? ""
+            : "max-w-7xl"
+        }`}
       >
         {isMobileStickyActive && (
-          <div className="md:hidden bg-gradient-to-r from-zinc-950 via-zinc-900 to-black px-3 h-8 flex items-center justify-between border-b text-xs">
+          <div className="md:hidden bg-gradient-to-r from-zinc-950 via-zinc-900 to-black px-3 h-8 flex items-center justify-between border-b border-white/[0.08] text-xs">
             <div className="flex items-center gap-1.5 min-w-0 pr-2">
               <span className="w-2 h-2 rounded-full bg-netflix-red animate-pulse flex-shrink-0" />
               <span className="text-white font-bold text-[11px] truncate">
-                {title} {activeEpisodeName ? `• ${formatEpisodeName(activeEpisodeName)}` : ""}
+                {title}{" "}
+                {activeEpisodeName
+                  ? `• ${formatEpisodeName(activeEpisodeName)}`
+                  : ""}
               </span>
             </div>
             <button
@@ -2785,524 +576,120 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
         <div
           className={`cinema-video-wrapper w-full bg-zinc-950 relative overflow-hidden transition-all duration-300 z-10 mx-auto select-none group ${
             isFullscreen
-              ? "w-full h-full max-h-screen rounded-none border-none shadow-none aspect-auto"
+              ? "w-full h-full max-h-dvh rounded-none border-none shadow-none aspect-auto"
               : isMobileStickyActive
-              ? "aspect-video rounded-none max-h-[38vh] shadow-2xl"
+              ? "aspect-video rounded-none max-h-[38dvh] shadow-2xl"
               : isTheaterMode
-              ? "aspect-video w-full rounded-xl sm:rounded-2xl md:rounded-3xl  shadow-[0_30px_90px_rgba(0,0,0,0.85)] max-h-[calc(100vh-185px)]"
-              : "aspect-video rounded-xl sm:rounded-2xl md:rounded-3xl  shadow-[0_25px_70px_rgba(0,0,0,0.55)] max-md:landscape:rounded-none max-md:landscape:border-none"
+              ? "aspect-video w-full rounded-xl sm:rounded-2xl md:rounded-3xl shadow-[0_30px_90px_rgba(0,0,0,0.85)] max-h-[calc(100dvh-185px)]"
+              : "aspect-video rounded-xl sm:rounded-2xl md:rounded-3xl shadow-[0_25px_70px_rgba(0,0,0,0.55)] max-md:landscape:rounded-none max-md:landscape:border-none"
           }`}
         >
           {isNativeVideo ? (
-            <div
-              className={`w-full h-full relative ${
-                isFullscreen && isPlaying && !showControls ? "cursor-none" : "cursor-pointer"
-              }`}
-              onDoubleClick={(e) => {
-                const target = e.target as HTMLElement | null;
-                if (target?.closest('[data-player-control="true"]')) return;
-
-                // Bỏ qua hoàn toàn trên màn hình cảm ứng: trên mobile chỉ chạm đúp để tua, TUYỆT ĐỐI không bật/tắt toàn màn hình
-                const isTouch =
-                  (e.nativeEvent as PointerEvent)?.pointerType === "touch" ||
-                  (typeof window !== "undefined" && window.matchMedia && window.matchMedia("(pointer: coarse)").matches) ||
-                  isMobile;
-                if (isTouch) return;
-
-                const now = Date.now();
-                if (now - lastFullscreenToggleTimeRef.current > 400) {
-                  lastFullscreenToggleTimeRef.current = now;
-                  if (now - singleTapExecutedTimeRef.current < 400) {
-                    togglePlayPause();
-                    singleTapExecutedTimeRef.current = 0;
-                  }
-                  if (singleTapTimerRef.current) {
-                    clearTimeout(singleTapTimerRef.current);
-                    singleTapTimerRef.current = null;
-                  }
-                  toggleFullscreen();
-                  resetControlsTimeout();
-                }
-              }}
-              onClick={(e) => {
-                // If click is inside controls, do nothing
-                const target = e.target as HTMLElement | null;
-                if (target?.closest('[data-player-control="true"]')) {
-                  return;
-                }
-
-                const now = Date.now();
-                const rect = e.currentTarget.getBoundingClientRect();
-                if (rect.width <= 0 || rect.height <= 0) return;
-
-                const x = e.clientX - rect.left;
-                const xPct = x / rect.width;
-                const lastTap = lastTapRef.current;
-
-                const isTouch =
-                  (e.nativeEvent as PointerEvent)?.pointerType === "touch" ||
-                  (typeof window !== "undefined" && window.matchMedia && window.matchMedia("(pointer: coarse)").matches) ||
-                  isMobile;
-
-                if (!isTouch) {
-                  // ===============================================================
-                  // DESKTOP: BẤM ĐÚP CHUỘT BẤT KỲ ĐÂU TRÊN MÀN HÌNH -> TOÀN MÀN HÌNH
-                  // ===============================================================
-                  const isDoubleClick =
-                    (lastTap && now - lastTap.time < 380 && Math.abs(e.clientX - lastTap.x) < 120) ||
-                    e.detail === 2;
-
-                  if (isDoubleClick) {
-                    if (singleTapTimerRef.current) {
-                      clearTimeout(singleTapTimerRef.current);
-                      singleTapTimerRef.current = null;
-                    }
-                    if (now - singleTapExecutedTimeRef.current < 380) {
-                      togglePlayPause();
-                      singleTapExecutedTimeRef.current = 0;
-                    }
-                    lastTapRef.current = null;
-                    lastFullscreenToggleTimeRef.current = now;
-                    toggleFullscreen();
-                    resetControlsTimeout();
-                    return;
-                  }
-
-                  // Single Click trên Desktop: Play/Pause với độ trễ 260ms để phân biệt double click
-                  lastTapRef.current = { time: now, x: e.clientX, y: e.clientY };
-                  if (singleTapTimerRef.current) {
-                    clearTimeout(singleTapTimerRef.current);
-                    singleTapTimerRef.current = null;
-                  }
-                  if (!showControlsRef.current) {
-                    resetControlsTimeout();
-                  }
-                  singleTapTimerRef.current = setTimeout(() => {
-                    singleTapTimerRef.current = null;
-                    singleTapExecutedTimeRef.current = Date.now();
-                    togglePlayPause();
-                  }, 260);
-                  resetControlsTimeout();
-                  return;
-                }
-
-                // ===============================================================
-                // MOBILE / TOUCH DEVICES (CHẠM ĐÚP ĐỂ TUA NHANH ±10S - YOUTUBE STYLE)
-                // ===============================================================
-                if (lastTap && now - lastTap.time < 350 && Math.abs(e.clientX - lastTap.x) < 100) {
-                  // DOUBLE TAP DETECTED TRÊN MOBILE: CHỈ TUA, TUYỆT ĐỐI KHÔNG BẬT FULLSCREEN
-                  if (singleTapTimerRef.current) {
-                    clearTimeout(singleTapTimerRef.current);
-                    singleTapTimerRef.current = null;
-                  }
-                  lastTapRef.current = null;
-
-                  const SEEK_STEP = 10; // Chuẩn tua 10 giây mỗi lần chạm đúp
-                  if (xPct < 0.5) {
-                    // Nửa bên trái: TUA LÙI (-10s, cộng dồn nếu chạm đúp liên tiếp)
-                    if (videoRef.current) {
-                      requestPlayerSeek(Math.max(0, (videoRef.current.currentTime || 0) - SEEK_STEP), false);
-                    }
-                    const cur = desktopFeedbackRef.current;
-                    const prevSec = cur && cur.type === "seek-left" ? (cur.seconds || 0) : 0;
-                    const nextSec = prevSec + SEEK_STEP;
-                    triggerDesktopFeedback("seek-left", `−${nextSec}s`, nextSec);
-                  } else {
-                    // Nửa bên phải: TUA TỚI (+10s, cộng dồn nếu chạm đúp liên tiếp)
-                    if (videoRef.current) {
-                      requestPlayerSeek((videoRef.current.currentTime || 0) + SEEK_STEP, false);
-                    }
-                    const cur = desktopFeedbackRef.current;
-                    const prevSec = cur && cur.type === "seek-right" ? (cur.seconds || 0) : 0;
-                    const nextSec = prevSec + SEEK_STEP;
-                    triggerDesktopFeedback("seek-right", `+${nextSec}s`, nextSec);
-                  }
-                  resetControlsTimeout();
-                } else {
-                  // FIRST TAP / SINGLE CLICK TRÊN MOBILE
-                  lastTapRef.current = { time: now, x: e.clientX, y: e.clientY };
-                  if (singleTapTimerRef.current) {
-                    clearTimeout(singleTapTimerRef.current);
-                    singleTapTimerRef.current = null;
-                  }
-
-                  // MOBILE TOUCH LOGIC (YOUTUBE / NETFLIX STYLE):
-                  if (!showControlsRef.current) {
-                    resetControlsTimeout();
-                  } else {
-                    if (now - lastControlsShownTimeRef.current < 350) {
-                      resetControlsTimeout();
-                      return;
-                    }
-                    setShowControls(false);
-                    showControlsRef.current = false;
-                    if (controlsTimerRef.current) {
-                      clearTimeout(controlsTimerRef.current);
-                      controlsTimerRef.current = null;
-                    }
-                  }
-                }
-              }}
+            <CinemaNativeVideoStage
+              videoRef={videoRef}
+              isFullscreen={isFullscreen}
+              isPlaying={isPlaying}
+              showControls={showControls}
+              videoFit={videoFit}
+              isAdTransitioning={isAdTransitioning}
+              desktopFeedback={desktopFeedback}
+              volumeOsd={volumeOsd}
+              hudNotification={hudNotification}
+              isBuffering={isBuffering}
+              isMuted={isMuted}
+              volume={volume}
+              playbackSpeed={playbackSpeed}
+              qualityLevels={qualityLevels}
+              currentQualityIndex={currentQualityIndex}
+              isNativeVideo={isNativeVideo}
+              knownDuration={knownDuration}
+              embedSrc={embedSrc}
+              title={title}
+              activeEpisodeName={activeEpisodeName}
+              effectivePrevEpisode={effectivePrevEpisode}
+              effectiveNextEpisode={effectiveNextEpisode}
+              isTheaterMode={isTheaterMode}
+              autoNextEpisode={playerSettings.autoNextEpisode !== false}
+              autoSubtitle={playerSettings.autoSubtitle !== false}
+              showNextEpCountdown={showNextEpCountdown}
+              posterUrl={posterUrl}
+              nextEpCountdown={nextEpCountdown}
+              onDoubleClick={handleVideoDoubleClick}
+              onClick={handleVideoClick}
               onMouseMove={handleMouseMove}
               onMouseLeave={handleMouseLeave}
-            >
-              <video
-                ref={videoRef}
-                className={`w-full h-full bg-black transition-transform duration-200 ${
-                  videoFit === "cover"
-                    ? "object-cover"
-                    : videoFit === "fill"
-                    ? "object-fill"
-                    : "object-contain"
-                }`}
-                style={{
-                  transform: videoFit === "zoom" ? "scale(1.18)" : "none",
-                }}
-                playsInline
-                autoPlay
-                preload="auto"
-              />
-
-              {/* AUTO-SKIP SMOOTH TRANSITION OVERLAY (TC-AD-SKIP-ZERO-FLASH) */}
-              {isAdTransitioning && (
-                <div className="absolute inset-0 bg-black pointer-events-none z-20" />
-              )}
-
-
-
-              {/* DESKTOP PLAYBACK FEEDBACK ICONS (PAUSE / PLAY) - Chỉ hiện trên desktop, tránh chồng lấn nút center trên mobile */}
-              {desktopFeedback && (desktopFeedback.type === "play" || desktopFeedback.type === "pause") && (
-                <div
-                  key={desktopFeedback.id}
-                  className="hidden md:flex absolute inset-0 items-center justify-center pointer-events-none z-20"
-                >
-                  <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-black/60 backdrop-blur-xl text-white flex items-center justify-center shadow-2xl animate-in fade-in zoom-in-75 duration-150">
-                    {desktopFeedback.type === "play" ? (
-                      <YouTubePlayIcon className="w-8 h-8 sm:w-10 sm:h-10 text-white ml-0.5" />
-                    ) : (
-                      <YouTubePauseIcon className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* SEEK FEEDBACK (MINIMALIST YOUTUBE STYLE: < -5s HOẶC +5s >) */}
-              {desktopFeedback && desktopFeedback.type === "seek-left" && (
-                <div
-                  key={desktopFeedback.id}
-                  role="status"
-                  aria-live="polite"
-                  className="absolute left-6 sm:left-12 top-1/2 -translate-y-1/2 pointer-events-none z-30 animate-in fade-in zoom-in-95 slide-in-from-right-2 duration-150 motion-reduce:animate-none"
-                >
-                  <div className="flex items-center gap-1 text-white font-bold text-xs sm:text-sm md:text-base tracking-tight select-none drop-shadow-[0_2px_8px_rgba(0,0,0,0.95)]">
-                    <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2.5]" />
-                    <span>−{desktopFeedback.seconds || 5}s</span>
-                  </div>
-                </div>
-              )}
-
-              {desktopFeedback && desktopFeedback.type === "seek-right" && (
-                <div
-                  key={desktopFeedback.id}
-                  role="status"
-                  aria-live="polite"
-                  className="absolute right-6 sm:right-12 top-1/2 -translate-y-1/2 pointer-events-none z-30 animate-in fade-in zoom-in-95 slide-in-from-left-2 duration-150 motion-reduce:animate-none"
-                >
-                  <div className="flex items-center gap-1 text-white font-bold text-xs sm:text-sm md:text-base tracking-tight select-none drop-shadow-[0_2px_8px_rgba(0,0,0,0.95)]">
-                    <span>+{desktopFeedback.seconds || 5}s</span>
-                    <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2.5]" />
-                  </div>
-                </div>
-              )}
-
-              {/* PREMIUM YOUTUBE TOP PILL VOLUME OSD */}
-              {volumeOsd && volumeOsd.visible && (
-                <div
-                  role="status"
-                  aria-live="polite"
-                  className="absolute top-5 sm:top-7 left-1/2 -translate-x-1/2 z-30 pointer-events-none max-w-[calc(100%-32px)] animate-in fade-in slide-in-from-top-3 duration-200 motion-reduce:animate-none"
-                >
-                  <div className="flex items-center gap-3 px-4 py-2 sm:px-4.5 sm:py-2.5 rounded-full bg-zinc-950/90 backdrop-blur-2xl text-white shadow-[0_12px_36px_rgba(0,0,0,0.85)]">
-                    {volumeOsd.isMuted || volumeOsd.volume === 0 ? (
-                      <YouTubeVolumeMuteIcon className="w-5 h-5 text-netflix-red shrink-0" />
-                    ) : volumeOsd.volume < 0.5 ? (
-                      <YouTubeVolumeLowIcon className="w-5 h-5 text-white/90 shrink-0" />
-                    ) : (
-                      <YouTubeVolumeHighIcon className="w-5 h-5 text-white/90 shrink-0" />
-                    )}
-
-                    <div className="w-24 sm:w-28 h-1.5 rounded-full bg-white/20 overflow-hidden shrink-0">
-                      <div
-                        className="h-full bg-gradient-to-r from-white to-zinc-200 rounded-full transition-all duration-150 ease-out"
-                        style={{
-                          width: `${volumeOsd.isMuted ? 0 : Math.round(volumeOsd.volume * 100)}%`,
-                        }}
-                      />
-                    </div>
-
-                    <span className="text-xs sm:text-[13px] font-semibold tracking-tight tabular-nums text-white min-w-[34px] text-right">
-                      {volumeOsd.isMuted ? "Tắt tiếng" : `${Math.round(volumeOsd.volume * 100)}%`}
-                    </span>
-                  </div>
-                </div>
-              )}
-
-              {/* GENERAL HUD PILL (SPEED, QUALITY, PIP, EPISODE) */}
-              {(!volumeOsd || !volumeOsd.visible) && hudNotification && (
-                <div
-                  role="status"
-                  aria-live="polite"
-                  className="absolute top-5 sm:top-7 left-1/2 -translate-x-1/2 z-30 pointer-events-none max-w-[calc(100%-32px)] animate-in fade-in slide-in-from-top-3 duration-200 motion-reduce:animate-none"
-                >
-                  <div className="flex items-center gap-2.5 px-4 py-2 rounded-full bg-zinc-950/90 backdrop-blur-2xl text-white text-xs sm:text-[13px] font-semibold tracking-tight shadow-[0_12px_36px_rgba(0,0,0,0.85)]">
-                    {hudNotification.icon}
-                    <span>{hudNotification.text}</span>
-                  </div>
-                </div>
-              )}
-
-              {/* ISOLATED NATIVE CONTROLS OVERLAY (NETFLIX & YOUTUBE STYLE) */}
-              <PlayerNativeControls
-                showControls={showControls}
-                isPlaying={isPlaying}
-                isBuffering={isBuffering}
-                isMuted={isMuted}
-                volume={volume}
-                playbackSpeed={playbackSpeed}
-                qualityLevels={qualityLevels}
-                currentQualityIndex={currentQualityIndex}
-                videoFit={videoFit}
-                isFullscreen={isFullscreen}
-                isNativeVideo={isNativeVideo}
-                knownDuration={knownDuration}
-                embedSrc={embedSrc}
-                videoRef={videoRef}
-                title={title}
-                activeEpisodeName={activeEpisodeName ? formatEpisodeName(activeEpisodeName) : undefined}
-                prevEpisode={effectivePrevEpisode}
-                nextEpisode={effectiveNextEpisode}
-                onTogglePlayPause={togglePlayPause}
-                onSeekFeedback={(txt) => {
-                  resetControlsTimeout();
-                  const clean = txt.replace(/[^0-9]/g, "");
-                  const num = clean ? parseInt(clean, 10) : 5;
-                  if (txt.includes("-")) {
-                    triggerDesktopFeedback("seek-left", `−${num}s`, num);
-                  } else if (txt.includes("+")) {
-                    triggerDesktopFeedback("seek-right", `+${num}s`, num);
-                  }
-                }}
-                onToggleMute={() => {
-                  if (videoRef.current) {
-                    const nextMuted = !videoRef.current.muted;
-                    videoRef.current.muted = nextMuted;
-                    setIsMuted(nextMuted);
-                    if (automatedAdSkipRef.current && automatedAdSkipRef.current.active) {
-                      automatedAdSkipRef.current = updateUserMutePreferenceDuringTransition(
-                        automatedAdSkipRef.current,
-                        nextMuted
-                      );
-                    }
-                    triggerVolumeOsd(volume, nextMuted);
-                    updatePlayerSettings(user?.uid, { isMuted: nextMuted });
-                  }
-                  resetControlsTimeout();
-                }}
-                onVolumeChange={(newVol) => {
-                  setVolume(newVol);
-                  if (videoRef.current) {
-                    videoRef.current.volume = newVol;
-                    videoRef.current.muted = newVol === 0;
-                    setIsMuted(newVol === 0);
-                    if (automatedAdSkipRef.current && automatedAdSkipRef.current.active) {
-                      automatedAdSkipRef.current = updateUserMutePreferenceDuringTransition(
-                        automatedAdSkipRef.current,
-                        newVol === 0
-                      );
-                    }
-                  }
-                  triggerVolumeOsd(newVol, newVol === 0);
-                  updatePlayerSettings(user?.uid, { volume: newVol, isMuted: newVol === 0 });
-                  resetControlsTimeout();
-                }}
-                onSpeedChange={(spd) => {
-                  handleSpeedChange(spd);
-                  resetControlsTimeout();
-                }}
-                onQualityChange={(lvl) => {
-                  handleQualityChange(lvl);
-                  resetControlsTimeout();
-                }}
-                onVideoFitChange={(fit) => {
-                  handleVideoFitChange(fit);
-                  resetControlsTimeout();
-                }}
-                onTogglePiP={togglePiP}
-                onUseIframeFallback={() => setUseIframeFallback(true)}
-                isTheaterMode={isTheaterMode}
-                onToggleTheaterMode={() => {
-                  setIsTheaterMode((prev) => {
-                    const next = !prev;
-                    updatePlayerSettings(user?.uid, { defaultTheaterMode: next });
-                    return next;
-                  });
-                }}
-                onToggleFullscreen={toggleFullscreen}
-                onSwitchEpisode={(slug) => {
-                  if (switchEpisode) switchEpisode(slug);
-                }}
-                onUserInteraction={resetControlsTimeout}
-                onSeek={requestPlayerSeek}
-                autoNextEpisode={playerSettings.autoNextEpisode !== false}
-                onToggleAutoNextEpisode={() => {
-                  const nextVal = playerSettings.autoNextEpisode === false;
-                  updatePlayerSettings(user?.uid, { autoNextEpisode: nextVal });
-                }}
-                autoSubtitle={playerSettings.autoSubtitle !== false}
-                onToggleAutoSubtitle={() => {
-                  const nextVal = playerSettings.autoSubtitle === false;
-                  updatePlayerSettings(user?.uid, { autoSubtitle: nextVal });
-                }}
-              />
-
-              {/* NEXT EPISODE COUNTDOWN OVERLAY (đã tách module CinemaNextEpisodePrompt) */}
-              {showNextEpCountdown && effectiveNextEpisode?.slug && (
-                <CinemaNextEpisodePrompt
-                  showControls={showControls}
-                  posterUrl={posterUrl}
-                  nextEpisode={effectiveNextEpisode}
-                  countdownSeconds={nextEpCountdown}
-                  onPlayNext={() => {
-                    if (movieSlug && activeEpisodeSlug) {
-                      markEpisodeAsWatched(movieSlug, activeEpisodeSlug);
-                    }
-                    if (switchEpisode && effectiveNextEpisode.slug) {
-                      switchEpisode(effectiveNextEpisode.slug);
-                    }
-                  }}
-                  onDismiss={() => {
-                    isNextEpDismissedRef.current = true;
-                    setShowNextEpCountdown(false);
-                  }}
-                />
-              )}
-            </div>
-          ) : activeSrc ? (
-            <>
-              <iframe
-                key={`iframe_${activeEpisodeSlug || "ep"}_${watchContext?.currentServerIndex ?? 0}_${activeSrc}`}
-                ref={iframeRef}
-                src={activeSrc}
-                className="w-full h-full absolute inset-0 border-0"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
-                allowFullScreen
-                referrerPolicy="strict-origin-when-cross-origin"
-                title={videoLink ? `Đang phát ${activeEpisodeName || "phim"}` : `Trailer: ${title}`}
-              />
-              {!videoLink && trailerEmbedSrc && (
-                <div
-                  className={`absolute top-3 left-3 z-20 pointer-events-none inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-netflix-red/90 text-white text-xs font-bold shadow-lg backdrop-blur-md transition-opacity duration-300 ${
-                    showControls || !isPlaying ? "opacity-100" : "opacity-0"
-                  }`}
-                >
-                  <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
-                  <span>Đang phát Trailer</span>
-                </div>
-              )}
-              {m3u8Link && useIframeFallback && (
-                <button
-                  type="button"
-                  onClick={() => setUseIframeFallback(false)}
-                  className={`absolute top-3 right-3 z-20 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-600/90 hover:bg-emerald-600 text-white text-xs font-bold shadow-lg backdrop-blur-md transition-opacity duration-300 cursor-pointer ${
-                    showControls || !isPlaying ? "opacity-100" : "opacity-0 pointer-events-none"
-                  }`}
-                >
-                  <Zap className="w-3.5 h-3.5 fill-white" />
-                  <span>Đổi sang Native HLS</span>
-                </button>
-              )}
-            </>
+              onTogglePlayPause={togglePlayPause}
+              onSeekFeedback={handleSeekFeedbackControl}
+              onToggleMute={handleToggleMuteControl}
+              onVolumeChange={handleVolumeChangeControl}
+              onSpeedChange={(spd) => {
+                handleSpeedChange(spd);
+                resetControlsTimeout();
+              }}
+              onQualityChange={(lvl) => {
+                handleQualityChange(lvl);
+                resetControlsTimeout();
+              }}
+              onVideoFitChange={(fit) => {
+                handleVideoFitChange(fit);
+                resetControlsTimeout();
+              }}
+              onTogglePiP={togglePiP}
+              onUseIframeFallback={() => setUseIframeFallback(true)}
+              onToggleTheaterMode={() => {
+                setIsTheaterMode((prev) => {
+                  const next = !prev;
+                  updatePlayerSettings(user?.uid, { defaultTheaterMode: next });
+                  return next;
+                });
+              }}
+              onToggleFullscreen={toggleFullscreen}
+              onSwitchEpisode={(slug) => {
+                if (switchEpisode) switchEpisode(slug);
+              }}
+              onUserInteraction={resetControlsTimeout}
+              onSeek={requestPlayerSeek}
+              onToggleAutoNextEpisode={() => {
+                const nextVal = playerSettings.autoNextEpisode === false;
+                updatePlayerSettings(user?.uid, { autoNextEpisode: nextVal });
+              }}
+              onToggleAutoSubtitle={() => {
+                const nextVal = playerSettings.autoSubtitle === false;
+                updatePlayerSettings(user?.uid, { autoSubtitle: nextVal });
+              }}
+              onPlayNextEpisode={handlePlayNextEpisode}
+              onDismissNextEpisode={handleDismissNextEpisode}
+            />
           ) : (
-            <div className="w-full h-full flex flex-col items-center justify-center relative">
-              <Image
-                src={toOptimizedCardBackdropUrl(posterUrl, 640) || posterUrl}
-                alt={title}
-                fill
-                unoptimized
-                quality={80}
-                className="object-cover opacity-35"
-                sizes="100vw"
-              />
-              <div className="absolute inset-0 bg-black/55" />
-              <div className="relative z-10 text-center px-6 flex flex-col items-center">
-                {isEmbedBroken ? (
-                  <>
-                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full border-2 border-white/10 border-t-netflix-red animate-spin mb-3" />
-                    <p className="text-white text-base md:text-xl font-semibold">
-                      Đang kết nối luồng phát chất lượng cao...
-                    </p>
-                    <p className="text-zinc-400 mt-1.5 text-xs md:text-sm">
-                      Trình phát đang tự động chuyển sang luồng Full HD trực tiếp
-                    </p>
-                  </>
-                ) : (
-                  <>
-                    <p className="text-white text-lg md:text-2xl font-semibold">
-                      {isTrailerOnly
-                        ? "Phim đang ở trạng thái trailer/sắp chiếu"
-                        : "Nguồn phát đang được Nanaflix cập nhật"}
-                    </p>
-                    <p className="text-zinc-300 mt-2 text-sm md:text-base">
-                      {isTrailerOnly
-                        ? "Hiện chưa có tập phát chính thức. Vui lòng quay lại sau."
-                        : "Bạn vui lòng quay lại sau ít phút nhé!"}
-                    </p>
-                  </>
-                )}
-              </div>
-            </div>
+            <CinemaIframeOrFallbackStage
+              iframeRef={iframeRef}
+              activeSrc={activeSrc}
+              activeEpisodeSlug={activeEpisodeSlug}
+              currentServerIndex={watchContext?.currentServerIndex}
+              videoLink={videoLink}
+              activeEpisodeName={activeEpisodeName}
+              title={title}
+              trailerEmbedSrc={trailerEmbedSrc}
+              showControls={showControls}
+              isPlaying={isPlaying}
+              m3u8Link={m3u8Link}
+              useIframeFallback={useIframeFallback}
+              posterUrl={posterUrl}
+              isConnectingStream={isConnectingStream}
+              isTrailerOnly={isTrailerOnly}
+              canPlayFallbackTrailer={Boolean(fallbackTrailerEmbedSrc)}
+              isPlayingTrailer={Boolean(
+                (!videoLink && trailerEmbedSrc) ||
+                  (forceTrailerFallback && fallbackTrailerEmbedSrc),
+              )}
+              onPlayFallbackTrailer={() => setForceTrailerFallback(true)}
+              onRestoreNativeHls={() => setUseIframeFallback(false)}
+            />
           )}
         </div>
       </div>
 
-
-      <style>{`
-        :fullscreen,
-        :-webkit-full-screen {
-          width: 100vw !important;
-          height: 100vh !important;
-          max-width: 100vw !important;
-          max-height: 100vh !important;
-          margin: 0 !important;
-          padding: 0 !important;
-          background: #000000 !important;
-          overflow: hidden !important;
-        }
-        :fullscreen .cinema-video-wrapper,
-        :-webkit-full-screen .cinema-video-wrapper {
-          width: 100% !important;
-          height: 100% !important;
-          max-height: 100vh !important;
-          aspect-ratio: auto !important;
-          border-radius: 0 !important;
-          border: none !important;
-          box-shadow: none !important;
-        }
-        :fullscreen .cinema-player-controls,
-        :-webkit-full-screen .cinema-player-controls {
-          position: absolute !important;
-          inset-inline: 0 !important;
-          bottom: 0 !important;
-          z-index: 50 !important;
-          padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 0.75rem)) !important;
-          padding-left: max(0.75rem, env(safe-area-inset-left, 0.75rem)) !important;
-          padding-right: max(0.75rem, env(safe-area-inset-right, 0.75rem)) !important;
-        }
-        :fullscreen .cinema-action-buttons,
-        :-webkit-full-screen .cinema-action-buttons {
-          display: none !important;
-        }
-      `}</style>
+      <CinemaFullscreenStyles />
     </>
   );
 };

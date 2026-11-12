@@ -5,12 +5,12 @@ import { Footer } from "@/components/layout/Footer";
 
 export default function NotFound() {
   return (
-    <div className="min-h-screen bg-black text-white flex flex-col justify-between selection:bg-netflix-red selection:text-white">
+    <div className="min-h-dvh bg-black text-white flex flex-col justify-between selection:bg-netflix-red selection:text-white">
       <Navbar />
       <main className="flex-1 flex items-center justify-center px-4 py-24">
         <div className="max-w-md w-full text-center space-y-6 animate-in fade-in zoom-in-95 duration-300">
           {/* Cinema Glow Icon */}
-          <div className="relative mx-auto w-24 h-24 rounded-3xl bg-netflix-red/10 border border-netflix-red/30 flex items-center justify-center text-netflix-red shadow-xl shadow-black/80">
+          <div className="relative mx-auto w-24 h-24 rounded-3xl bg-netflix-red/10 flex items-center justify-center text-netflix-red shadow-xl shadow-black/80">
             <div className="absolute inset-0 bg-rose-500/20 rounded-3xl blur-xl" />
             <Film className="w-12 h-12 relative z-10" />
           </div>

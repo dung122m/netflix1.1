@@ -131,10 +131,10 @@ export async function GET(req: NextRequest) {
     if (actorRes?.isActor && actorRes.actorName && !isAmbiguousShortActorKeyword(keyword)) {
       const actorItem = {
         slug: `browse?actor=${encodeURIComponent(actorRes.actorName)}`,
-        title: `✨ Tuyển tập phim của ${actorRes.actorName}`,
+        title: `Tuyển tập phim của ${actorRes.actorName}`,
         poster: "/default-hero.jpg",
         year: actorRes.country || "Tuyển Chọn",
-        quality: "✨ AI Gợi Ý",
+        quality: "Gợi ý",
         category: "Diễn Viên",
       };
 

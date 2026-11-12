@@ -13,12 +13,13 @@ import {
   pickBestMoviePoster,
   pickBestMovieThumb,
   toOptimizedCardPosterUrl,
+  toFastCdnImageUrl,
 } from "@/lib/movieMedia";
 import { formatEpisodeName } from "@/lib/formatEpisode";
 import { CarouselNavButton } from "@/components/ui/CarouselNavButton";
 import { useCarouselScroll } from "@/components/ui/useCarouselScroll";
 import { SectionHeader } from "@/components/ui/SectionHeader";
-import { useMoviePosterFallback } from "@/hooks/useMoviePosterFallback";
+import { useMoviePosterFallback, isPhimimgSourceUrl } from "@/hooks/useMoviePosterFallback";
 
 export const MAX_CONTINUE_WATCHING_DISPLAY = 15;
 
@@ -41,7 +42,7 @@ interface ContinueWatchingCardProps {
 
 function getInitialPoster(item: WatchHistoryItem): string {
   if (item.slug && continueWatchingThumbCache.has(item.slug)) {
-    return continueWatchingThumbCache.get(item.slug)!;
+    return toFastCdnImageUrl(continueWatchingThumbCache.get(item.slug)!);
   }
   // 1. Ưu tiên TMDb poster CDN nếu đã có sẵn
   if (item.poster && item.poster.includes("image.tmdb.org")) {
@@ -50,31 +51,33 @@ function getInitialPoster(item: WatchHistoryItem): string {
   if (item.thumb && item.thumb.includes("image.tmdb.org")) {
     return toOptimizedCardPosterUrl(item.thumb);
   }
-  // 2. Chọn poster dọc tối ưu nhất trực tiếp từ CDN (không bọc proxy /api/img-thumb)
+  // 2. Chọn poster dọc tối ưu nhất (bọc R2 proxy nếu là phimimg.com để tránh load chậm/chặn)
   const bestPoster = pickBestMoviePoster({ poster_url: item.poster, thumb_url: item.thumb }, "");
   if (bestPoster && !bestPoster.includes("/default-")) {
-    return toOptimizedCardPosterUrl(bestPoster);
+    return toFastCdnImageUrl(toOptimizedCardPosterUrl(bestPoster));
   }
   // 3. Dự phòng thumb ngang nếu chưa có poster
   const bestThumb = pickBestMovieThumb({ poster_url: item.poster, thumb_url: item.thumb }, "");
   if (bestThumb && !bestThumb.includes("/default-")) {
-    return toOptimizedCardPosterUrl(bestThumb);
+    return toFastCdnImageUrl(toOptimizedCardPosterUrl(bestThumb));
   }
   return "";
 }
 
 function ContinueWatchingCard({ item, index = 0, onRemove }: ContinueWatchingCardProps) {
   const initialPoster = React.useMemo(() => getInitialPoster(item), [item]);
-  const needsFallback = !initialPoster || initialPoster.includes("/default-");
+  const needsFallback =
+    !initialPoster || initialPoster.includes("/default-") || isPhimimgSourceUrl(initialPoster);
   const { displaySrc, triggerFallback } = useMoviePosterFallback({
     slug: item.slug,
     title: item.title,
     year: item.year,
     initialSrc: initialPoster,
-    enabled: needsFallback, // Tự động tra cứu fallback TMDb khi chưa có poster hợp lệ
+    enabled: needsFallback, // Tự động nâng cấp TMDb khi rỗng hoặc vẫn là phimimg.com
+    upgradePhimimg: true,
   });
 
-  const targetInitialSrc = displaySrc || initialPoster;
+  const targetInitialSrc = toFastCdnImageUrl(displaySrc || initialPoster);
   const [imgSrc, setImgSrc] = useState<string>(targetInitialSrc);
   const [isLoaded, setIsLoaded] = useState<boolean>(() => {
     return Boolean(targetInitialSrc && loadedPostersCache.has(targetInitialSrc));
@@ -82,9 +85,10 @@ function ContinueWatchingCard({ item, index = 0, onRemove }: ContinueWatchingCar
   const imgRef = useRef<HTMLImageElement>(null);
 
   useEffect(() => {
-    if (displaySrc && displaySrc !== imgSrc) {
-      setImgSrc(displaySrc);
-      if (loadedPostersCache.has(displaySrc)) {
+    const safeDisplaySrc = toFastCdnImageUrl(displaySrc);
+    if (safeDisplaySrc && safeDisplaySrc !== imgSrc) {
+      setImgSrc(safeDisplaySrc);
+      if (loadedPostersCache.has(safeDisplaySrc)) {
         setIsLoaded(true);
       }
     }
@@ -104,12 +108,12 @@ function ContinueWatchingCard({ item, index = 0, onRemove }: ContinueWatchingCar
   const handleImgError = useCallback(() => {
     // 1. Thử qua Cloudflare R2 proxy nếu là link phimimg bị nhà mạng chặn
     if (imgSrc && imgSrc.includes("phimimg.com") && !imgSrc.includes("/api/media/r2-proxy")) {
-      const r2Url = `/api/media/r2-proxy?url=${encodeURIComponent(imgSrc)}`;
+      const r2Url = toFastCdnImageUrl(imgSrc);
       setImgSrc(r2Url);
       return;
     }
     // 2. Thử thumb ngang dự phòng nếu có và khác link đang lỗi
-    const rawThumb = item.thumb ? toOptimizedCardPosterUrl(item.thumb) : "";
+    const rawThumb = item.thumb ? toFastCdnImageUrl(toOptimizedCardPosterUrl(item.thumb)) : "";
     if (rawThumb && rawThumb !== imgSrc && !rawThumb.includes("/default-")) {
       setImgSrc(rawThumb);
       return;
@@ -135,7 +139,7 @@ function ContinueWatchingCard({ item, index = 0, onRemove }: ContinueWatchingCar
 
   return (
     <div
-      className="group relative flex-none w-[130px] xs:w-[140px] sm:w-[155px] md:w-[172px] bg-zinc-950/90 rounded-xl overflow-hidden border border-white/[0.08] hover: transition-all duration-300 hover:scale-[1.03] shadow-lg hover:shadow-[0_12px_28px_var(--accent-glow)] transform-gpu will-change-transform flex flex-col snap-start select-none"
+      className="group relative flex-none w-[134px] min-[380px]:w-[144px] sm:w-[155px] md:w-[172px] bg-zinc-950/90 rounded-xl overflow-hidden transition-all duration-300 hover:scale-[1.03] motion-reduce:transform-none shadow-lg hover:shadow-black/60 transform-gpu will-change-transform flex flex-col snap-start select-none"
     >
       <Link href={href} prefetch={false} className="block flex-1 flex flex-col">
         {/* ẢNH POSTER DỌC (TỈ LỆ 2:3 CHUẨN ĐIỆN ẢNH) */}
@@ -156,7 +160,7 @@ function ContinueWatchingCard({ item, index = 0, onRemove }: ContinueWatchingCar
             /* eslint-disable-next-line @next/next/no-img-element */
             <img
               ref={imgRef}
-              src={imgSrc}
+              src={toFastCdnImageUrl(imgSrc)}
               alt={item.title}
               className={`w-full h-full object-cover transition-opacity duration-200 ease-out group-hover:scale-105 ${
                 isLoaded ? "opacity-100" : "opacity-0"
@@ -164,9 +168,10 @@ function ContinueWatchingCard({ item, index = 0, onRemove }: ContinueWatchingCar
               decoding="async"
               loading={index < 8 ? "eager" : "lazy"}
               onLoad={() => {
-                if (imgSrc) {
-                  loadedPostersCache.add(imgSrc);
-                  if (item.slug) continueWatchingThumbCache.set(item.slug, imgSrc);
+                const safeLoaded = toFastCdnImageUrl(imgSrc);
+                if (safeLoaded) {
+                  loadedPostersCache.add(safeLoaded);
+                  if (item.slug) continueWatchingThumbCache.set(item.slug, safeLoaded);
                 }
                 setIsLoaded(true);
               }}
@@ -194,10 +199,10 @@ function ContinueWatchingCard({ item, index = 0, onRemove }: ContinueWatchingCar
             )}
             {item.quality && !item.episodeName && (
               <span
-                className={`px-1.5 py-0.5 rounded-md text-[9px] sm:text-[9.5px] font-bold backdrop-blur-md border shadow-md w-fit ${
+                className={`px-1.5 py-0.5 rounded-md text-[9px] sm:text-[9.5px] font-bold backdrop-blur-md shadow-md w-fit ${
                   item.quality.toUpperCase().includes("CAM")
-                    ? "bg-amber-950/90 text-amber-300 "
-                    : "bg-black/80  text-zinc-100"
+                    ? "bg-amber-950/90 text-amber-300"
+                    : "bg-black/80 text-zinc-100"
                 }`}
               >
                 {item.quality}
@@ -217,10 +222,10 @@ function ContinueWatchingCard({ item, index = 0, onRemove }: ContinueWatchingCar
 
 
 
-          {/* THANH TIẾN ĐỘ GRADIENT THEME SANG TRỌNG Ở ĐÁY POSTER */}
+          {/* THANH TIẾN ĐỘ PHÁT */}
           <div className="absolute bottom-0 left-0 right-0 h-[3px] bg-white/20 backdrop-blur-sm z-10 overflow-hidden">
             <div
-              className="h-full bg-gradient-to-r from-netflix-red to-netflix-red/80 rounded-r-full transition-all duration-500 shadow-[0_0_8px_var(--accent-glow)]"
+              className="h-full bg-netflix-red rounded-r-full transition-all duration-500"
               style={{ width: `${progressPercent}%` }}
             />
           </div>
@@ -234,7 +239,7 @@ function ContinueWatchingCard({ item, index = 0, onRemove }: ContinueWatchingCar
 
           <div className="flex items-center justify-between text-[11px] text-zinc-400">
             <div className="flex items-center gap-1.5 min-w-0">
-              <span className="w-1.5 h-1.5 rounded-full bg-netflix-red flex-shrink-0 animate-pulse shadow-[0_0_6px_var(--accent-color)]" />
+              <span className="w-1.5 h-1.5 rounded-full bg-netflix-red flex-shrink-0" />
               <span className="text-zinc-300 font-medium truncate">
                 {item.episodeName ? formatEpisodeName(item.episodeName) : "Xem tiếp"}
               </span>

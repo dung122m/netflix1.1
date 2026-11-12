@@ -34,7 +34,7 @@ export function WatchSidebarTabs({
         <div className="rounded-2xl bg-zinc-950/70 p-3 sm:p-3.5 shadow-xl backdrop-blur-xl">
           {serverSelector}
         </div>
-        <div className="rounded-2xl sm:rounded-3xl bg-gradient-to-b from-zinc-900/80 via-zinc-950/85 to-black/90 p-3.5 sm:p-4 shadow-2xl backdrop-blur-xl max-h-[calc(100vh-180px)] overflow-y-auto overflow-x-hidden [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-zinc-700 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-zinc-500 [&::-webkit-scrollbar-corner]:bg-transparent pr-1">
+        <div className="rounded-2xl sm:rounded-3xl bg-gradient-to-b from-zinc-900/80 via-zinc-950/85 to-black/90 p-3.5 sm:p-4 shadow-2xl backdrop-blur-xl max-h-[calc(100dvh-180px)] overflow-y-auto overflow-x-hidden [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-zinc-700 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-zinc-500 [&::-webkit-scrollbar-corner]:bg-transparent pr-1">
           {recommendations}
         </div>
       </div>
@@ -43,7 +43,7 @@ export function WatchSidebarTabs({
 
   // VỚI PHIM BỘ: 2 tab dùng chung 1 khung duy nhất, chiều cao vừa vặn hoàn hảo màn hình laptop & desktop
   return (
-    <div className="rounded-2xl sm:rounded-3xl bg-gradient-to-b from-zinc-900/85 via-zinc-950/90 to-black/95 p-2.5 sm:p-3 shadow-2xl backdrop-blur-xl flex flex-col h-[calc(100vh-84px)] max-h-[calc(100vh-84px)] overflow-hidden">
+    <div className="rounded-2xl sm:rounded-3xl bg-gradient-to-b from-zinc-900/85 via-zinc-950/90 to-black/95 p-2.5 sm:p-3 shadow-2xl backdrop-blur-xl flex flex-col h-[calc(100dvh-84px)] max-h-[calc(100dvh-84px)] overflow-hidden">
       {/* 1. THANH CHUYỂN ĐỔI HAI TAB SIDEBAR (TẬP PHIM / PHIM TƯƠNG TỰ) - TINH GỌN CHIỀU CAO */}
       <div className="flex items-center gap-1.5 p-1 bg-zinc-950/90 rounded-2xl mb-1.5 flex-shrink-0">
         <button
@@ -51,7 +51,7 @@ export function WatchSidebarTabs({
           onClick={() => setActiveTab("episodes")}
           className={`flex-1 flex items-center justify-center gap-1.5 sm:gap-2 py-1.5 px-2 rounded-xl text-xs font-bold transition-all cursor-pointer select-none outline-none focus-visible:ring-2 focus-visible:ring-netflix-red ${
             activeTab === "episodes"
-              ? "bg-netflix-red text-white shadow-md shadow-[var(--accent-glow)] font-black scale-[1.01]"
+              ? "bg-netflix-red text-white shadow-md shadow-black/50 font-black scale-[1.01]"
               : "text-zinc-400 hover:text-white hover:bg-white/5"
           }`}
         >
@@ -65,7 +65,7 @@ export function WatchSidebarTabs({
           onClick={() => setActiveTab("recommendations")}
           className={`flex-1 flex items-center justify-center gap-1.5 sm:gap-2 py-1.5 px-2 rounded-xl text-xs font-bold transition-all cursor-pointer select-none outline-none focus-visible:ring-2 focus-visible:ring-netflix-red ${
             activeTab === "recommendations"
-              ? "bg-netflix-red text-white shadow-md shadow-[var(--accent-glow)] font-black scale-[1.01]"
+              ? "bg-netflix-red text-white shadow-md shadow-black/50 font-black scale-[1.01]"
               : "text-zinc-400 hover:text-white hover:bg-white/5"
           }`}
         >
@@ -99,7 +99,7 @@ export function WatchSidebarTabs({
           activeTab === "recommendations" ? "flex" : "hidden"
         }`}
       >
-        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden pr-1 custom-scrollbar overscroll-contain">
+        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden pr-1 custom-scrollbar overscroll-auto">
           {recommendations}
         </div>
       </div>

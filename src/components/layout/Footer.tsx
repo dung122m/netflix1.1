@@ -6,17 +6,14 @@ import {
   Home,
   Tv,
   Film,
-  Heart,
   Info,
   Flame,
   Bookmark,
   Shield,
   HelpCircle,
-  Zap,
   Radio,
   Clapperboard,
   Smartphone,
-  Cpu,
   ShieldCheck,
   Compass,
   Layers,
@@ -25,59 +22,12 @@ import {
   History,
 } from "lucide-react";
 import { NanaflixBrandLogo } from "@/components/layout/NetflixLogo";
+import { Tooltip } from "@/components/ui/Tooltip";
 
 export const Footer: React.FC = () => {
   return (
-    <footer className="relative z-0 bg-gradient-to-b from-transparent via-[#080808] to-[#030303] text-zinc-400 pt-6 sm:pt-12 pb-12 sm:pb-12 px-4 sm:px-8 md:px-16 mt-6 sm:mt-10 overflow-hidden cv-auto-footer">
-      {/* Hiệu ứng ánh sáng tinh tế phía trên footer (không dùng đường kẻ cứng) */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-1/2 max-w-2xl h-16 sm:h-20 bg-netflix-red/10 blur-3xl pointer-events-none" />
-
+    <footer className="relative z-0 bg-gradient-to-b from-transparent via-[#080808] to-[#030303] text-zinc-400 pt-6 sm:pt-12 pb-12 sm:pb-12 px-4 sm:px-8 md:px-16 mt-6 sm:mt-10 overflow-hidden cv-auto-footer border-t border-white/[0.06]">
       <div className="max-w-7xl 2xl:max-w-[1440px] mx-auto space-y-5 sm:space-y-12 relative z-10">
-        
-        {/* ============================================================ */}
-        {/* 1. 4 PILLS TÍNH NĂNG ĐẲNG CẤP (Ẩn trên mobile để footer tinh gọn) */}
-        {/* ============================================================ */}
-        <div className="hidden sm:grid grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-4">
-          <div className="flex items-center gap-2.5 sm:gap-3 p-2.5 sm:p-3.5 rounded-xl sm:rounded-2xl bg-zinc-950/60 backdrop-blur-xl shadow-md hover:bg-zinc-900/70 transition-all group min-h-[52px] sm:min-h-[60px]">
-            <div className="p-1.5 sm:p-2 rounded-lg sm:rounded-xl bg-netflix-red/15 text-netflix-red group-hover:scale-105 transition-transform flex-shrink-0">
-              <Zap className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-            </div>
-            <div className="min-w-0">
-              <h4 className="text-white text-xs sm:text-sm font-bold truncate">4K Ultra HD</h4>
-              <p className="text-xs text-zinc-400 truncate">HLS Adaptive Bitrate</p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2.5 sm:gap-3 p-2.5 sm:p-3.5 rounded-xl sm:rounded-2xl bg-zinc-950/60 backdrop-blur-xl shadow-md hover:bg-zinc-900/70 transition-all group min-h-[52px] sm:min-h-[60px]">
-            <div className="p-1.5 sm:p-2 rounded-lg sm:rounded-xl bg-amber-500/15 text-amber-400 group-hover:scale-105 transition-transform flex-shrink-0">
-              <Heart className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-            </div>
-            <div className="min-w-0">
-              <h4 className="text-white text-xs sm:text-sm font-bold truncate">Gợi Ý Đúng Gu</h4>
-              <p className="text-xs text-zinc-400 truncate">Cá Nhân Hóa Sở Thích</p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2.5 sm:gap-3 p-2.5 sm:p-3.5 rounded-xl sm:rounded-2xl bg-zinc-950/60 backdrop-blur-xl shadow-md hover:bg-zinc-900/70 transition-all group min-h-[52px] sm:min-h-[60px]">
-            <div className="p-1.5 sm:p-2 rounded-lg sm:rounded-xl bg-emerald-500/15 text-emerald-400 group-hover:scale-105 transition-transform flex-shrink-0">
-              <ShieldCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-            </div>
-            <div className="min-w-0">
-              <h4 className="text-white text-xs sm:text-sm font-bold truncate">Không Quảng Cáo</h4>
-              <p className="text-xs text-zinc-400 truncate">100% Giao Diện Sạch</p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2.5 sm:gap-3 p-2.5 sm:p-3.5 rounded-xl sm:rounded-2xl bg-zinc-950/60 backdrop-blur-xl shadow-md hover:bg-zinc-900/70 transition-all group min-h-[52px] sm:min-h-[60px]">
-            <div className="p-1.5 sm:p-2 rounded-lg sm:rounded-xl bg-blue-500/15 text-blue-400 group-hover:scale-105 transition-transform flex-shrink-0">
-              <Cpu className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-            </div>
-            <div className="min-w-0">
-              <h4 className="text-white text-xs sm:text-sm font-bold truncate">Đồng Bộ Cloud</h4>
-              <p className="text-xs text-zinc-400 truncate">Xem Đa Thiết Bị</p>
-            </div>
-          </div>
-        </div>
 
         {/* ============================================================ */}
         {/* 2A. CỘT ĐIỀU HƯỚNG DESKTOP (4 Cột đầy đủ trên màn hình >= 640px) */}
@@ -85,7 +35,7 @@ export const Footer: React.FC = () => {
         <div className="hidden sm:grid grid-cols-2 md:grid-cols-4 gap-x-5 sm:gap-x-8 lg:gap-x-10 xl:gap-x-14 2xl:gap-x-16 gap-y-7 sm:gap-y-10 pt-1">
           {/* CỘT 1: THẾ GIỚI ĐIỆN ẢNH */}
           <div className="space-y-3 sm:space-y-4">
-            <h4 className="text-white font-black text-xs sm:text-sm tracking-wider uppercase flex items-center gap-2">
+            <h4 className="text-white font-semibold text-sm flex items-center gap-2">
               <span className="w-4 h-4 flex items-center justify-center shrink-0">
                 <Film className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-netflix-red" />
               </span>
@@ -129,7 +79,7 @@ export const Footer: React.FC = () => {
 
           {/* CỘT 2: TRỰC TIẾP & LIVE */}
           <div className="space-y-3 sm:space-y-4">
-            <h4 className="text-white font-black text-xs sm:text-sm tracking-wider uppercase flex items-center gap-2">
+            <h4 className="text-white font-semibold text-sm flex items-center gap-2">
               <span className="w-4 h-4 flex items-center justify-center shrink-0">
                 <Flame className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-netflix-red" />
               </span>
@@ -189,7 +139,7 @@ export const Footer: React.FC = () => {
 
           {/* CỘT 3: TÍNH NĂNG & TIỆN ÍCH */}
           <div className="space-y-3 sm:space-y-4">
-            <h4 className="text-white font-black text-xs sm:text-sm tracking-wider uppercase flex items-center gap-2">
+            <h4 className="text-white font-semibold text-sm flex items-center gap-2">
               <span className="w-4 h-4 flex items-center justify-center shrink-0">
                 <Compass className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-400" />
               </span>
@@ -237,7 +187,7 @@ export const Footer: React.FC = () => {
 
           {/* CỘT 4: GIỚI THIỆU & PHÁP LÝ */}
           <div className="space-y-3 sm:space-y-4">
-            <h4 className="text-white font-black text-xs sm:text-sm tracking-wider uppercase flex items-center gap-2">
+            <h4 className="text-white font-semibold text-sm flex items-center gap-2">
               <span className="w-4 h-4 flex items-center justify-center shrink-0">
                 <Shield className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-netflix-red" />
               </span>
@@ -366,45 +316,46 @@ export const Footer: React.FC = () => {
 
           <Link
             href="/about"
-            className="inline-flex items-center gap-2.5 sm:gap-3 py-1 sm:px-4 sm:py-2.5 rounded-xl sm:rounded-2xl sm:bg-zinc-950/80 sm:hover:bg-zinc-900 sm:border sm:border-white/[0.08] sm:hover:border-netflix-red/50 transition-all duration-300 group cursor-pointer sm:shadow-lg mx-auto md:mx-0"
+            className="inline-flex items-center gap-2.5 sm:gap-3 py-1 sm:px-4 sm:py-2.5 rounded-xl sm:rounded-2xl sm:bg-zinc-900/70 sm:hover:bg-zinc-900 transition-all duration-300 group cursor-pointer sm:shadow-lg mx-auto md:mx-0"
           >
             {/* Lá cờ Việt Nam */}
-            <div
-              className="w-6 h-6 sm:w-9 sm:h-9 rounded-full overflow-hidden border-0 sm:border-2 sm:border-zinc-700 group-hover:border-netflix-red group-hover:scale-105 transition-all duration-300 shadow-sm shrink-0 flex items-center justify-center bg-[#DA251D] relative shadow-black/60"
-              title="Việt Nam"
-              aria-label="Cờ Việt Nam"
-            >
-              <svg
-                viewBox="0 0 512 512"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-                className="w-full h-full object-cover"
+            <Tooltip content="Việt Nam" side="top">
+              <div
+                className="w-6 h-6 sm:w-9 sm:h-9 rounded-full overflow-hidden group-hover:scale-105 transition-transform duration-300 shadow-sm shrink-0 flex items-center justify-center bg-[#DA251D] relative shadow-black/60"
+                aria-label="Cờ Việt Nam"
               >
-                <circle cx="256" cy="256" r="256" fill="#DA251D" />
-                <defs>
-                  <linearGradient id="footer-vn-flag-star" x1="0%" y1="0%" x2="0%" y2="100%">
-                    <stop offset="0%" stopColor="#FFF775" />
-                    <stop offset="50%" stopColor="#FFDE00" />
-                    <stop offset="100%" stopColor="#E5A900" />
-                  </linearGradient>
-                </defs>
-                <polygon
-                  points="
-                    256, 110
-                    289.4, 213
-                    397.6, 213
-                    310.1, 276.5
-                    343.5, 379.5
-                    256, 316
-                    168.5, 379.5
-                    201.9, 276.5
-                    114.4, 213
-                    222.6, 213
-                  "
-                  fill="url(#footer-vn-flag-star)"
-                />
-              </svg>
-            </div>
+                <svg
+                  viewBox="0 0 512 512"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="w-full h-full object-cover"
+                >
+                  <circle cx="256" cy="256" r="256" fill="#DA251D" />
+                  <defs>
+                    <linearGradient id="footer-vn-flag-star" x1="0%" y1="0%" x2="0%" y2="100%">
+                      <stop offset="0%" stopColor="#FFF775" />
+                      <stop offset="50%" stopColor="#FFDE00" />
+                      <stop offset="100%" stopColor="#E5A900" />
+                    </linearGradient>
+                  </defs>
+                  <polygon
+                    points="
+                      256, 110
+                      289.4, 213
+                      397.6, 213
+                      310.1, 276.5
+                      343.5, 379.5
+                      256, 316
+                      168.5, 379.5
+                      201.9, 276.5
+                      114.4, 213
+                      222.6, 213
+                    "
+                    fill="url(#footer-vn-flag-star)"
+                  />
+                </svg>
+              </div>
+            </Tooltip>
             <div className="flex flex-col text-left">
               <span className="text-xs text-zinc-400 group-hover:text-zinc-200 transition-colors">
                 Designed & Developed by{" "}

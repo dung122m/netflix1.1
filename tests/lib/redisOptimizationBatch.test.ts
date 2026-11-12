@@ -11,8 +11,8 @@ describe("Nanaflix Redis Optimization Batch Verification", () => {
     // Seed 2 mock movies into cache
     const testSlug1 = "test-movie-batch-1";
     const testSlug2 = "test-movie-batch-2";
-    const kv1 = `movie:detail:v4:${testSlug1}:any`;
-    const kv2 = `movie:detail:v4:${testSlug2}:any`;
+    const kv1 = `movie:detail:v6:${testSlug1}:any`;
+    const kv2 = `movie:detail:v6:${testSlug2}:any`;
 
     await cacheService.set(kv1, {
       status: true,

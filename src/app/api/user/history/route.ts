@@ -138,10 +138,39 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: true, count: 0 });
     }
 
-    let { error } = await supabase.from("watch_history").upsert(rows, { onConflict: "id" });
+    // Bảo toàn danh sách tập đã xem (watched_episodes) hiện có trên Supabase để tránh một thiết bị/tab chưa đồng bộ ghi đè thành []
+    let mergedRows = rows;
+    const rowIds = rows.map((r) => r.id);
+    const { data: existingRows, error: existingErr } = await supabase
+      .from("watch_history")
+      .select("id, watched_episodes")
+      .eq("user_id", userId)
+      .in("id", rowIds);
+
+    if (!existingErr && Array.isArray(existingRows) && existingRows.length > 0) {
+      const existingMap = new Map<string, string[]>();
+      for (const ex of existingRows) {
+        const list = Array.isArray(ex.watched_episodes)
+          ? ex.watched_episodes
+          : typeof ex.watched_episodes === "string"
+          ? (() => { try { return JSON.parse(ex.watched_episodes); } catch { return []; } })()
+          : [];
+        existingMap.set(String(ex.id), list.filter(Boolean).map(String));
+      }
+      mergedRows = rows.map((row) => {
+        const prevWatched = existingMap.get(row.id) || [];
+        const incomingWatched = Array.isArray(row.watched_episodes) ? row.watched_episodes.filter(Boolean).map(String) : [];
+        return {
+          ...row,
+          watched_episodes: Array.from(new Set([...prevWatched, ...incomingWatched])),
+        };
+      });
+    }
+
+    let { error } = await supabase.from("watch_history").upsert(mergedRows, { onConflict: "id" });
     if (error && (error.message?.includes("watched_episodes") || (error as { code?: string })?.code === "42703")) {
       // Graceful fallback nếu cột watched_episodes chưa được add trong Supabase Postgres
-      const fallbackRows = rows.map(({ watched_episodes, ...rest }) => rest);
+      const fallbackRows = mergedRows.map(({ watched_episodes: _watchedEpisodes, ...rest }) => rest);
       const retry = await supabase.from("watch_history").upsert(fallbackRows, { onConflict: "id" });
       error = retry.error;
     }

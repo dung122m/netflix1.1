@@ -43,8 +43,9 @@ export type LeagueSlug = (typeof VERIFIED_SCOREBOARD_LEAGUES)[number];
 
 const ESPN_CDN_API_URL = "https://site.api.espn.com";
 const BASE_API_URL = process.env.LIVESCORE_API_URL || "https://worldcup26.ir";
-const CACHE_TTL_LIVE_MS = 5 * 1000; // 5s cache TTL khi có trận đang live (tối ưu realtime)
+const CACHE_TTL_LIVE_MS = 8 * 1000; // 8s cache TTL khi có trận đang live (đồng bộ chu kỳ poll client)
 const CACHE_TTL_DEFAULT_MS = 60 * 1000; // 60s cache TTL khi không có trận live
+const SCOREBOARD_REDIS_KEY = "live:scoreboard:events:v1";
 const STALE_TTL_MS = 45 * 1000; // 45s stale grace period
 const REQUEST_TIMEOUT_MS = 4000; // 4s timeout an toàn chống nghẽn mạng quốc tế từ local/server
 
@@ -280,6 +281,11 @@ async function fetchAllScoreboards(): Promise<ScoreboardCache> {
   };
 
   memoryCache = cacheObj;
+  if (allEvents.length > 0 && process.env.NODE_ENV !== "test") {
+    cacheService
+      .set(SCOREBOARD_REDIS_KEY, cacheObj, Math.max(8, Math.ceil(ttl / 1000)))
+      .catch(() => {});
+  }
   return cacheObj;
 }
 
@@ -287,7 +293,7 @@ export { mergeNormalizedSummaries };
 
 export const footballScoreService = {
   /**
-   * Lấy danh sách sự kiện livescore với bộ nhớ đệm (60s TTL) và chống thundering herd
+   * Lấy danh sách sự kiện livescore với bộ nhớ đệm (L1 RAM + L2 Redis live) và chống thundering herd
    */
   getScoreboardEvents: async (): Promise<{
     events: LiveScoreboardEvent[];
@@ -296,7 +302,7 @@ export const footballScoreService = {
   }> => {
     const now = Date.now();
 
-    // 1. Kiểm tra cache còn hạn
+    // 1. Kiểm tra L1 RAM cache còn hạn
     if (memoryCache) {
       if (memoryCache.expireAt > now) {
         return {
@@ -306,7 +312,7 @@ export const footballScoreService = {
         };
       }
 
-      // 2. Cache đã quá 60s nhưng còn trong thời gian stale (stale-while-revalidate)
+      // 2. Cache đã quá hạn nhưng còn trong thời gian stale (stale-while-revalidate)
       if (memoryCache.staleUntil > now) {
         // Tái xác thực ngầm
         footballScoreService.revalidateScoreboards().catch(() => {});
@@ -316,6 +322,21 @@ export const footballScoreService = {
           cached: true,
         };
       }
+    }
+
+    // 2.5. Kiểm tra L2 Redis DB2 (chia sẻ kết quả ESPN giữa các serverless instance khi cold/stale)
+    if (process.env.NODE_ENV !== "test") {
+      try {
+        const redisCached = await cacheService.get<ScoreboardCache>(SCOREBOARD_REDIS_KEY);
+        if (redisCached && Array.isArray(redisCached.events) && redisCached.expireAt > now) {
+          memoryCache = redisCached;
+          return {
+            events: redisCached.events,
+            updatedAt: redisCached.updatedAt,
+            cached: true,
+          };
+        }
+      } catch {}
     }
 
     // 3. Gom các request đồng thời bằng inFlightFetch

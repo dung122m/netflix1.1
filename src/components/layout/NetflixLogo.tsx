@@ -45,8 +45,7 @@ export const NanaflixBrandLogo: React.FC<NanaflixBrandLogoProps> = ({
     <div
       className={`group/brand relative inline-flex items-center select-none cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-red-600 focus-visible:ring-offset-2 focus-visible:ring-offset-black rounded-lg transition-opacity duration-200 hover:opacity-90 ${className}`}
       role="img"
-      aria-label={`Nanaflix ${displayBadge}`}
-      title={`Nanaflix ${displayBadge} - Trang Chủ`}
+      aria-label={`Nanaflix ${displayBadge} - Trang Chủ`}
       {...props}
     >
       {/* 🎬 SVG Vector YouTube-Style NANAFLIX Logo với Regional Badge liền mạch (tspan) */}

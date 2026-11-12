@@ -2,6 +2,7 @@
 
 import React, { useCallback, KeyboardEvent } from "react";
 import { ChevronLeft, ChevronRight, ChevronDown, Tv, Mic } from "lucide-react";
+import { Tooltip } from "@/components/ui/Tooltip";
 
 export interface ChannelSourceSwitcherProps {
   /**
@@ -112,25 +113,26 @@ export const ChannelSourceSwitcher: React.FC<ChannelSourceSwitcherProps> = ({
       className={`h-8 sm:h-9.5 inline-flex items-center bg-black/60 hover:bg-black/75 rounded-full  p-0.5 sm:p-1 backdrop-blur-md min-w-0 shrink max-w-full transition-all duration-200 select-none shadow-sm ${className}`}
     >
       {/* NÚT ‹ CHUYỂN TRƯỚC */}
-      <button
-        type="button"
-        onClick={(e) => {
-          e.stopPropagation();
-          onPrevious();
-        }}
-        disabled={isPrevDisabled}
-        title={prevTitle}
-        aria-label={prevTitle}
-        className={`w-7 h-7 sm:w-8 sm:h-8 flex-shrink-0 flex items-center justify-center rounded-full transition-all duration-150 touch-manipulation focus-visible:outline-none focus-visible:ring-2 ${
-          isChannel ? "focus-visible:ring-netflix-red" : "focus-visible:ring-white/40"
-        } ${
-          isPrevDisabled
-            ? "text-zinc-500 opacity-40 cursor-not-allowed"
-            : "text-zinc-300 hover:text-white hover:bg-white/15 active:bg-white/25 cursor-pointer active:scale-95"
-        }`}
-      >
-        <ChevronLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
-      </button>
+      <Tooltip content={prevTitle} side="top" disabled={isPrevDisabled}>
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onPrevious();
+          }}
+          disabled={isPrevDisabled}
+          aria-label={prevTitle}
+          className={`w-7 h-7 sm:w-8 sm:h-8 flex-shrink-0 flex items-center justify-center rounded-full transition-all duration-150 touch-manipulation focus-visible:outline-none focus-visible:ring-2 ${
+            isChannel ? "focus-visible:ring-netflix-red" : "focus-visible:ring-white/40"
+          } ${
+            isPrevDisabled
+              ? "text-zinc-500 opacity-40 cursor-not-allowed"
+              : "text-zinc-300 hover:text-white hover:bg-white/15 active:bg-white/25 cursor-pointer active:scale-95"
+          }`}
+        >
+          <ChevronLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+        </button>
+      </Tooltip>
 
       {/* VÙNG GIỮA: TÊN KÊNH / NGUỒN + INDEX + CHEVRON ĐỂ MỞ DANH SÁCH */}
       <button
@@ -140,7 +142,6 @@ export const ChannelSourceSwitcher: React.FC<ChannelSourceSwitcherProps> = ({
           if (onOpenList) onOpenList();
         }}
         disabled={disabled}
-        title={listTitle}
         aria-label={listTitle}
         aria-expanded={isListOpen}
         aria-haspopup="listbox"
@@ -190,25 +191,26 @@ export const ChannelSourceSwitcher: React.FC<ChannelSourceSwitcherProps> = ({
       </button>
 
       {/* NÚT › CHUYỂN KẾ TIẾP */}
-      <button
-        type="button"
-        onClick={(e) => {
-          e.stopPropagation();
-          onNext();
-        }}
-        disabled={isNextDisabled}
-        title={nextTitle}
-        aria-label={nextTitle}
-        className={`w-7 h-7 sm:w-8 sm:h-8 flex-shrink-0 flex items-center justify-center rounded-full transition-all duration-150 touch-manipulation focus-visible:outline-none focus-visible:ring-2 ${
-          isChannel ? "focus-visible:ring-netflix-red" : "focus-visible:ring-white/40"
-        } ${
-          isNextDisabled
-            ? "text-zinc-500 opacity-40 cursor-not-allowed"
-            : "text-zinc-300 hover:text-white hover:bg-white/15 active:bg-white/25 cursor-pointer active:scale-95"
-        }`}
-      >
-        <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
-      </button>
+      <Tooltip content={nextTitle} side="top" disabled={isNextDisabled}>
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onNext();
+          }}
+          disabled={isNextDisabled}
+          aria-label={nextTitle}
+          className={`w-7 h-7 sm:w-8 sm:h-8 flex-shrink-0 flex items-center justify-center rounded-full transition-all duration-150 touch-manipulation focus-visible:outline-none focus-visible:ring-2 ${
+            isChannel ? "focus-visible:ring-netflix-red" : "focus-visible:ring-white/40"
+          } ${
+            isNextDisabled
+              ? "text-zinc-500 opacity-40 cursor-not-allowed"
+              : "text-zinc-300 hover:text-white hover:bg-white/15 active:bg-white/25 cursor-pointer active:scale-95"
+          }`}
+        >
+          <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+        </button>
+      </Tooltip>
     </div>
   );
 };

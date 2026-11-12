@@ -1,13 +1,12 @@
 "use client";
 
 import React from "react";
-import { Trophy, Tv } from "lucide-react";
 
 export function LiveHubSkeleton() {
   return (
     <div className="max-w-[1720px] w-full mx-auto px-3 sm:px-6 lg:px-8 pt-16 sm:pt-20 pb-12 space-y-3 sm:space-y-4 animate-pulse">
       {/* 1. Header Command Bar Skeleton */}
-      <header className="flex items-center justify-between gap-2 p-2 sm:p-2.5 px-3 sm:px-4 rounded-xl sm:rounded-2xl bg-zinc-950/80 border border-white/[0.08] shadow-xl shadow-black/40">
+      <header className="flex items-center justify-between gap-2 p-2 sm:p-2.5 px-3 sm:px-4 rounded-xl sm:rounded-2xl bg-zinc-950/80 shadow-xl shadow-black/40">
         <div className="flex items-center gap-2 sm:gap-3.5 min-w-0">
           <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-zinc-800/80 shrink-0" />
           <div className="space-y-1.5">
@@ -35,7 +34,7 @@ export function LiveHubSkeleton() {
         {Array.from({ length: 6 }).map((_, idx) => (
           <div
             key={idx}
-            className="h-8 sm:h-9 rounded-xl bg-zinc-900/90 border border-white/[0.05] shrink-0"
+            className="h-8 sm:h-9 rounded-xl bg-zinc-900/90 shrink-0"
             style={{ width: `${80 + (idx % 3) * 24}px` }}
           />
         ))}
@@ -55,10 +54,10 @@ export function LiveHubSkeleton() {
         {Array.from({ length: 10 }).map((_, idx) => (
           <div
             key={idx}
-            className="rounded-2xl bg-zinc-900/70 border border-white/[0.06] p-3 sm:p-3.5 flex flex-col justify-between gap-3 min-h-[160px]"
+            className="rounded-2xl bg-zinc-900/70 p-3 sm:p-3.5 flex flex-col justify-between gap-3 min-h-[160px]"
           >
             {/* Header: Tournament + Live dot */}
-            <div className="flex items-center justify-between gap-2 border-b border-white/[0.05] pb-2">
+            <div className="flex items-center justify-between gap-2 pb-2">
               <div className="w-24 h-3 rounded bg-zinc-800/80" />
               <div className="w-10 h-3 rounded bg-zinc-800/80" />
             </div>
@@ -85,7 +84,7 @@ export function LiveHubSkeleton() {
             </div>
 
             {/* Footer mini line */}
-            <div className="flex items-center justify-between pt-1 border-t border-white/[0.04]">
+            <div className="flex items-center justify-between pt-1">
               <div className="w-20 h-2.5 rounded bg-zinc-800/60" />
               <div className="w-12 h-2.5 rounded bg-zinc-800/60" />
             </div>

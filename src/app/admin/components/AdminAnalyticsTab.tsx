@@ -20,6 +20,7 @@ import {
   MapPin,
   Clock,
   Activity,
+  User,
 } from "lucide-react";
 import {
   AnalyticsDashboardStats,
@@ -52,7 +53,8 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
     try {
       if (showToast) setIsRefreshing(true);
       const idToken = await user?.getIdToken().catch(() => null);
-      const res = await fetch(`/api/analytics/stats?timeframe=${tf}`, {
+      const refreshQuery = showToast ? "&refresh=1" : "";
+      const res = await fetch(`/api/analytics/stats?timeframe=${tf}${refreshQuery}`, {
         headers: idToken ? { Authorization: `Bearer ${idToken}` } : {},
       });
       const data = await res.json();
@@ -169,14 +171,14 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
       {/* OVERVIEW STATS CARDS */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {/* Total Visits */}
-        <div className="p-5 rounded-2xl bg-zinc-900/60 hover: transition backdrop-blur-sm relative overflow-hidden group">
+        <div className="p-5 rounded-2xl bg-zinc-900/60 hover:bg-zinc-900/80 transition backdrop-blur-sm relative overflow-hidden group">
           <div className="flex items-center justify-between text-zinc-400 mb-2">
             <span className="text-xs font-medium">Tổng Lượt Truy Cập</span>
             <div className="p-2 rounded-xl bg-blue-500/10 text-blue-400">
               <Eye size={18} />
             </div>
           </div>
-          <div className="text-3xl font-black text-white group-hover:scale-105 transition-transform origin-left">
+          <div className="text-3xl font-black text-white group-hover:scale-105 transition-transform origin-left tabular-nums">
             {loading ? "..." : (stats?.totalViews || 0).toLocaleString("vi-VN")}
           </div>
           <p className="text-[11px] text-zinc-400 mt-1 flex items-center gap-1.5">
@@ -186,40 +188,42 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
         </div>
 
         {/* Unique Visitors */}
-        <div className="p-5 rounded-2xl bg-zinc-900/60 hover: transition backdrop-blur-sm relative overflow-hidden group">
+        <div className="p-5 rounded-2xl bg-zinc-900/60 hover:bg-zinc-900/80 transition backdrop-blur-sm relative overflow-hidden group">
           <div className="flex items-center justify-between text-zinc-400 mb-2">
             <span className="text-xs font-medium">Khách Truy Cập Riêng Biệt</span>
             <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-400">
               <Users size={18} />
             </div>
           </div>
-          <div className="text-3xl font-black text-emerald-400 flex items-baseline gap-2 group-hover:scale-105 transition-transform origin-left">
+          <div className="text-3xl font-black text-emerald-400 flex items-baseline gap-2 group-hover:scale-105 transition-transform origin-left tabular-nums">
             <span>{loading ? "..." : (stats?.uniqueViewers.total || 0).toLocaleString("vi-VN")}</span>
             <span className="text-xs font-normal text-zinc-400">khách</span>
           </div>
           <div className="flex items-center gap-2 mt-2 text-[11px] text-zinc-400">
-            <span className="px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-300 font-semibold">
-              👤 {stats?.uniqueViewers.loggedIn || 0} User
+            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-300 font-semibold tabular-nums">
+              <User size={11} />
+              <span>{stats?.uniqueViewers.loggedIn || 0} User</span>
             </span>
             <span>•</span>
-            <span className="px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-300 font-semibold">
-              🎭 {stats?.uniqueViewers.guests || 0} Guest
+            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-300 font-semibold tabular-nums">
+              <Users size={11} />
+              <span>{stats?.uniqueViewers.guests || 0} Guest</span>
             </span>
           </div>
         </div>
 
         {/* Active Guests Online */}
-        <div className="p-5 rounded-2xl bg-zinc-900/60 hover: transition backdrop-blur-sm relative overflow-hidden group">
+        <div className="p-5 rounded-2xl bg-zinc-900/60 hover:bg-zinc-900/80 transition backdrop-blur-sm relative overflow-hidden group">
           <div className="flex items-center justify-between text-zinc-400 mb-2">
             <span className="text-xs font-medium">Khách Đang Trực Tuyến</span>
             <div className="p-2 rounded-xl bg-rose-500/10 text-rose-400">
-              <Radio size={18} className="animate-pulse" />
+              <Radio size={18} />
             </div>
           </div>
-          <div className="text-3xl font-black text-white flex items-baseline gap-2 group-hover:scale-105 transition-transform origin-left">
+          <div className="text-3xl font-black text-white flex items-baseline gap-2 group-hover:scale-105 transition-transform origin-left tabular-nums">
             <span>{loading ? "..." : stats?.activeGuestsCount || 0}</span>
-            <span className="text-xs font-semibold text-rose-400 flex items-center gap-1">
-              <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping" />
+            <span className="text-xs font-semibold text-rose-400 flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-rose-500" />
               Khách (30 phút qua)
             </span>
           </div>
@@ -242,7 +246,7 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
           </div>
 
           {!stats?.topMoviesByViews || stats.topMoviesByViews.length === 0 ? (
-            <div className="p-8 text-center rounded-xl bg-black/40 text-zinc-400 text-xs">
+            <div className="p-5 sm:p-8 text-center rounded-xl bg-black/40 text-zinc-400 text-xs">
               Chưa có lượt truy cập nào được ghi nhận trong khoảng thời gian này.
             </div>
           ) : (
@@ -250,7 +254,7 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
               {stats.topMoviesByViews.map((m, idx) => (
                 <div
                   key={m.slug}
-                  className="flex items-center justify-between p-3 rounded-xl bg-black/40 hover: transition group"
+                  className="flex items-center justify-between p-3 rounded-xl bg-black/40 hover:bg-black/60 transition group"
                 >
                   <div className="flex items-center gap-3 min-w-0">
                     <span
@@ -297,7 +301,7 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
           </div>
 
           {!stats?.topMoviesByUnique || stats.topMoviesByUnique.length === 0 ? (
-            <div className="p-8 text-center rounded-xl bg-black/40 text-zinc-400 text-xs">
+            <div className="p-5 sm:p-8 text-center rounded-xl bg-black/40 text-zinc-400 text-xs">
               Chưa có dữ liệu khách truy cập riêng biệt trong khoảng thời gian này.
             </div>
           ) : (
@@ -305,7 +309,7 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
               {stats.topMoviesByUnique.map((m, idx) => (
                 <div
                   key={m.slug}
-                  className="flex items-center justify-between p-3 rounded-xl bg-black/40 hover: transition group"
+                  className="flex items-center justify-between p-3 rounded-xl bg-black/40 hover:bg-black/60 transition group"
                 >
                   <div className="flex items-center gap-3 min-w-0">
                     <span
@@ -390,7 +394,7 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
           return (
             <div className="space-y-2 pt-2">
               {/* Bars container */}
-              <div className="h-32 flex items-end gap-1 sm:gap-1.5 pt-4 pb-1 border-b">
+              <div className="h-32 flex items-end gap-1 sm:gap-1.5 pt-4 pb-1 border-b border-white/[0.08]">
                 {list.map((h) => {
                   const heightPercent = total === 0 ? 4 : Math.max(4, Math.round((h.count / maxCount) * 100));
                   const isPeak = h.count > 0 && h.count === peakCount;
@@ -406,7 +410,7 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
                         <div className="px-2 py-1 rounded-lg bg-zinc-950 text-white text-[10px] font-sans tabular-nums shadow-xl whitespace-nowrap">
                           {h.label}: <strong>{h.count}</strong> lượt truy cập ({percentageOfTotal}%)
                         </div>
-                        <div className="w-1.5 h-1.5 bg-zinc-950 border-r border-b rotate-45 -mt-1" />
+                        <div className="w-1.5 h-1.5 bg-zinc-950 border-r border-b border-white/[0.08] rotate-45 -mt-1" />
                       </div>
 
                       {/* The Bar */}
@@ -442,7 +446,7 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
 
       {/* SECTION: THIẾT BỊ & NỀN TẢNG KHÁN GIẢ (PLATFORM & DEVICES) */}
       <div className="p-6 rounded-2xl bg-zinc-900/60 backdrop-blur-sm space-y-6">
-        <div className="flex items-center justify-between flex-wrap gap-2 pb-2 border-b">
+        <div className="flex items-center justify-between flex-wrap gap-2 pb-2 border-b border-white/[0.08]">
           <div className="flex items-center gap-2.5">
             <div className="p-2 rounded-xl bg-blue-500/10 text-blue-400">
               <Cpu size={18} />
@@ -450,7 +454,7 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
             <div>
               <h3 className="text-sm font-bold text-white flex items-center gap-2">
                 <span>Hồ Sơ Nền Tảng & Thiết Bị (Platform & Devices)</span>
-                <span className="px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30 text-[10px] font-bold">
+                <span className="px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 text-[10px] font-bold">
                   Guest + User
                 </span>
               </h3>
@@ -525,17 +529,17 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
               <div
                 className="bg-blue-500 h-full"
                 style={{ width: `${stats?.deviceProfileStats?.overview.desktopPercent || 0}%` }}
-                title="Desktop"
+                aria-label="Desktop"
               />
               <div
                 className="bg-emerald-500 h-full"
                 style={{ width: `${stats?.deviceProfileStats?.overview.mobilePercent || 0}%` }}
-                title="Mobile"
+                aria-label="Mobile"
               />
               <div
                 className="bg-purple-500 h-full"
                 style={{ width: `${stats?.deviceProfileStats?.overview.tabletPercent || 0}%` }}
-                title="Tablet"
+                aria-label="Tablet"
               />
             </div>
           </div>
@@ -620,7 +624,7 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
               <div>
                 <h4 className="text-xs font-bold text-white flex items-center gap-2">
                   <span>Phân Bố Vị Trí Địa Lý (Geographic Distribution)</span>
-                  <span className="px-1.5 py-0.2 rounded-full bg-emerald-500/15 text-emerald-300 text-[10px] font-bold">
+                  <span className="px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 text-[10px] font-bold">
                     Edge GeoIP
                   </span>
                 </h4>
@@ -704,7 +708,7 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
                       <div className="flex items-center justify-between text-xs">
                         <span className="text-zinc-200 font-medium flex items-center gap-1.5 min-w-0">
                           {country.code && (
-                            <span className="px-1.5 py-0.2 rounded bg-cyan-500/15 text-cyan-300 text-[10px] font-bold">
+                            <span className="px-1.5 py-0.5 rounded bg-cyan-500/15 text-cyan-300 text-[10px] font-bold">
                               {country.code}
                             </span>
                           )}
@@ -745,7 +749,7 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
             <div>
               <h3 className="text-sm font-bold text-white flex items-center gap-2">
                 <span>Nhật Ký Hoạt Động Thời Gian Thực (Live Activity Log)</span>
-                <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[10px] font-bold flex items-center gap-1">
+                <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-bold flex items-center gap-1">
                   <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
                   Cloudflare Edge
                 </span>
@@ -761,7 +765,7 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
         </div>
 
         {!stats?.recentActivity || stats.recentActivity.length === 0 ? (
-          <div className="p-8 text-center rounded-xl bg-black/40 text-zinc-400 text-xs">
+          <div className="p-5 sm:p-8 text-center rounded-xl bg-black/40 text-zinc-400 text-xs">
             <Clock size={24} className="text-zinc-600 mx-auto mb-2 opacity-50" />
             <p>Chưa có lượt truy cập nào được ghi nhận gần đây.</p>
           </div>
@@ -778,12 +782,14 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
                   <div className="min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       {ev.userId ? (
-                        <span className="text-emerald-400 font-bold truncate max-w-[150px]">
-                          👤 {ev.userName || `User (${ev.userId.slice(0, 6)})`}
+                        <span className="inline-flex items-center gap-1 text-emerald-400 font-bold truncate max-w-[150px]">
+                          <User size={12} className="flex-shrink-0" />
+                          <span className="truncate">{ev.userName || `User (${ev.userId.slice(0, 6)})`}</span>
                         </span>
                       ) : (
-                        <span className="text-zinc-400 font-sans tabular-nums font-medium">
-                          🎭 Khách #{ev.anonymousId ? ev.anonymousId.replace("anon_", "").slice(0, 6) : "guest"}
+                        <span className="inline-flex items-center gap-1 text-zinc-400 font-sans tabular-nums font-medium">
+                          <Users size={12} className="flex-shrink-0" />
+                          <span>Khách #{ev.anonymousId ? ev.anonymousId.replace("anon_", "").slice(0, 6) : "guest"}</span>
                         </span>
                       )}
                       <span className="text-zinc-600">•</span>
@@ -819,7 +825,7 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
       </div>
 
       {/* SYSTEM DIAGNOSTICS & RATINGS (PRESERVED FROM PREVIOUS DASHBOARD) */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-4 border-t">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-4 border-t border-white/[0.08]">
         {/* Rating Distribution Chart */}
         <div className="p-6 rounded-2xl bg-zinc-900/60 backdrop-blur-sm space-y-4">
           <div className="flex items-center justify-between">
@@ -827,8 +833,9 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
               <Star size={16} className="text-amber-400 fill-amber-400" />
               <span>Phân Bổ Điểm Số Đánh Giá Toàn Hệ Thống</span>
             </h3>
-            <span className="text-xs text-amber-400 font-bold">
-              {metrics.avgScore} / 5.0 ⭐
+            <span className="inline-flex items-center gap-1 text-xs text-amber-400 font-bold tabular-nums">
+              <span>{metrics.avgScore} / 5.0</span>
+              <Star size={12} className="fill-amber-400" />
             </span>
           </div>
 

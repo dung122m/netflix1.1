@@ -18,7 +18,7 @@ export default function GlobalError({
   }, [error]);
 
   return (
-    <div className="min-h-screen bg-black text-white flex flex-col justify-between selection:bg-netflix-red selection:text-white">
+    <div className="min-h-dvh bg-black text-white flex flex-col justify-between selection:bg-netflix-red selection:text-white">
       <Navbar />
       <main className="flex-1 flex items-center justify-center px-4 py-24">
         <div className="max-w-md w-full text-center space-y-6 animate-in fade-in zoom-in-95 duration-300">

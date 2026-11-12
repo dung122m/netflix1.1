@@ -104,10 +104,10 @@ export function BottomNav() {
           <div className="relative">
             <Home size={19} strokeWidth={isHome ? 2.5 : 2} aria-hidden="true" />
             {isHome && (
-              <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-netflix-red rounded-full shadow-[0_0_8px_var(--accent-color)]" />
+              <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-netflix-red rounded-full" />
             )}
           </div>
-          <span className="text-[11px] mt-0.5 tracking-tight truncate max-w-[56px] leading-tight">Trang chủ</span>
+          <span className="text-[11px] mt-0.5 tracking-tight truncate max-w-[66px] leading-tight">Trang chủ</span>
         </Link>
 
         {/* 2. KHÁM PHÁ BROWSE */}
@@ -122,10 +122,10 @@ export function BottomNav() {
           <div className="relative">
             <Compass size={19} strokeWidth={isBrowse ? 2.5 : 2} aria-hidden="true" />
             {isBrowse && (
-              <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-netflix-red rounded-full shadow-[0_0_8px_var(--accent-color)]" />
+              <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-netflix-red rounded-full" />
             )}
           </div>
-          <span className="text-[11px] mt-0.5 tracking-tight truncate max-w-[56px] leading-tight">Khám phá</span>
+          <span className="text-[11px] mt-0.5 tracking-tight truncate max-w-[66px] leading-tight">Khám phá</span>
         </Link>
 
         {/* 3. TRỰC TIẾP LIVE */}
@@ -139,12 +139,9 @@ export function BottomNav() {
         >
           <div className="relative">
             <Tv size={19} strokeWidth={isLive ? 2.5 : 2} aria-hidden="true" />
-            <span className="absolute -top-1 -right-1.5 flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75" />
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500" />
-            </span>
+            <span className="absolute -top-1 -right-1.5 inline-flex h-2 w-2 rounded-full bg-rose-500" />
           </div>
-          <span className="text-[11px] mt-0.5 tracking-tight truncate max-w-[56px] leading-tight">Trực tiếp</span>
+          <span className="text-[11px] mt-0.5 tracking-tight truncate max-w-[66px] leading-tight">Trực tiếp</span>
         </Link>
 
         {/* 4. DANH SÁCH & LỊCH SỬ */}
@@ -159,10 +156,10 @@ export function BottomNav() {
           <div className="relative">
             <Bookmark size={19} strokeWidth={isMyList ? 2.5 : 2} aria-hidden="true" />
             {isMyList && (
-              <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-netflix-red rounded-full shadow-[0_0_8px_var(--accent-color)]" />
+              <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-netflix-red rounded-full" />
             )}
           </div>
-          <span className="text-[11px] mt-0.5 tracking-tight truncate max-w-[56px] leading-tight">Danh sách</span>
+          <span className="text-[11px] mt-0.5 tracking-tight truncate max-w-[66px] leading-tight">Danh sách</span>
         </Link>
 
         {/* 5. HỒ SƠ / TÀI KHOẢN */}
@@ -184,10 +181,10 @@ export function BottomNav() {
                 className={isProfile ? "ring-2 ring-netflix-red" : ""}
               />
               {isProfile && (
-                <span className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-1 h-1 bg-netflix-red rounded-full shadow-[0_0_8px_var(--accent-color)]" />
+                <span className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-1 h-1 bg-netflix-red rounded-full" />
               )}
             </div>
-            <span className="text-[10px] mt-0.5 tracking-tight truncate max-w-[56px]">
+            <span className="text-[11px] mt-0.5 tracking-tight truncate max-w-[66px] leading-tight">
               {effectiveDisplayName ? effectiveDisplayName.split(" ").pop() : "Tài khoản"}
             </span>
           </Link>
@@ -199,7 +196,7 @@ export function BottomNav() {
             aria-label="Đăng nhập tài khoản"
           >
             <User size={19} />
-            <span className="text-[10px] mt-0.5 tracking-tight truncate max-w-[56px]">
+            <span className="text-[11px] mt-0.5 tracking-tight truncate max-w-[66px] leading-tight">
               Tài khoản
             </span>
           </button>

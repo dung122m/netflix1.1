@@ -237,7 +237,8 @@ export async function GET(req: NextRequest) {
           .select("*")
           .eq("is_flagged", false)
           .eq("movie_slug", movieSlug)
-          .order("created_at", { ascending: false });
+          .order("created_at", { ascending: false })
+          .limit(300);
 
         let mapped: MovieComment[] = [];
         if (!error && data && data.length > 0) {
@@ -270,7 +271,8 @@ export async function GET(req: NextRequest) {
             .select("*")
             .eq("is_flagged", false)
             .eq("movie_slug", movieSlug)
-            .order("created_at", { ascending: false });
+            .order("created_at", { ascending: false })
+            .limit(300);
 
           if (error || !data || data.length === 0) return [];
           const [profileMap, reactionsMap] = await Promise.all([
@@ -311,6 +313,8 @@ export async function GET(req: NextRequest) {
     query = query.order("created_at", { ascending: false });
     if (!movieSlug && !parentId && !userId && all !== "true") {
       query = query.limit(100);
+    } else {
+      query = query.limit(300);
     }
 
     const { data, error } = await query;

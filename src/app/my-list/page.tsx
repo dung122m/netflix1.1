@@ -2,38 +2,20 @@
 
 import React, { useState, useEffect, useCallback, Suspense } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import {
   Bookmark,
-  Film,
   Trash2,
   ArrowLeft,
   Clock,
-  RefreshCw,
-  LogIn,
   FolderHeart,
-  FolderPlus,
-  Share2,
-  Globe,
-  Lock,
-  Check,
   Plus,
-  User,
   MessageSquare,
-  Star,
-  ExternalLink,
-  Loader2,
-  Heart,
-  Play,
 } from "lucide-react";
 import { Navbar } from "@/components/layout/Navbar";
 import { useAuth } from "@/context/AuthContext";
 import { AuthModal } from "@/components/modals/AuthModal";
-import { UserAvatar } from "@/components/ui/UserAvatar";
 import { Footer } from "@/components/layout/Footer";
-import { MediaCard } from "@/components/browse/MediaCard";
-import { EmptyState } from "@/components/ui/EmptyState";
 import {
   getWatchlist,
   autoHydrateWatchlist,
@@ -47,124 +29,34 @@ import {
   autoHydrateWatchHistory,
   WatchHistoryItem,
 } from "@/lib/watchHistory";
-import { toOptimizedCardPosterUrl } from "@/lib/movieMedia";
 import { clearAllWatchlistFromCloud } from "@/lib/cloudSync";
 import {
   subscribeUserCollections,
   deleteCollection,
   toggleCollectionPrivacy,
 } from "@/services/collectionService";
-import { subscribeUserComments, deleteMovieComment } from "@/services/commentService";
 import { MovieCollection } from "@/types/collection";
-import { MovieComment } from "@/types/comment";
 import { CreateCollectionModal } from "@/components/Collections/CreateCollectionModal";
 import { showConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { toast } from "@/components/ui/Toast";
+import { useUserMovieComments } from "@/hooks/useUserMovieComments";
+import { MyListCloudBanner } from "@/components/my-list/MyListCloudBanner";
+import { MyListWatchlistTab } from "@/components/my-list/MyListWatchlistTab";
+import { MyListHistoryTab } from "@/components/my-list/MyListHistoryTab";
+import { MyListCollectionsTab } from "@/components/my-list/MyListCollectionsTab";
+import { MyListCommentsTab } from "@/components/my-list/MyListCommentsTab";
 
-import { useMoviePosterFallback } from "@/hooks/useMoviePosterFallback";
+type MyListTab = "watchlist" | "history" | "collections" | "comments";
 
-function formatTimeAgo(timestamp?: number): string {
-  if (!timestamp) return "";
-  const diffSec = Math.floor((Date.now() - timestamp) / 1000);
-  if (diffSec < 60) return "Vừa xong";
-  const diffMin = Math.floor(diffSec / 60);
-  if (diffMin < 60) return `${diffMin}m trước`;
-  const diffHours = Math.floor(diffMin / 60);
-  if (diffHours < 24) return `${diffHours}h trước`;
-  const diffDays = Math.floor(diffHours / 24);
-  if (diffDays < 30) return `${diffDays}d trước`;
-  return `${Math.floor(diffDays / 30)} tháng trước`;
-}
-
-function formatCommentDate(timestamp: number | string): string {
-  const d = new Date(timestamp);
-  if (isNaN(d.getTime())) return "";
-  const day = String(d.getDate()).padStart(2, "0");
-  const month = String(d.getMonth() + 1).padStart(2, "0");
-  const year = d.getFullYear();
-  const hours = String(d.getHours()).padStart(2, "0");
-  const minutes = String(d.getMinutes()).padStart(2, "0");
-  return `${day}/${month}/${year} • ${hours}:${minutes}`;
-}
-
-function CollectionMosaicPoster({
-  poster,
-  title,
-  slug,
-  size = 192,
-}: {
-  poster?: string;
-  title?: string;
-  slug?: string;
-  size?: number;
-}) {
-  const baseSrc = toOptimizedCardPosterUrl(poster || "", size) || poster || "/default-poster.jpg";
-  const { displaySrc } = useMoviePosterFallback({
-    slug,
-    title,
-    initialSrc: baseSrc,
-  });
-
-  return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      src={displaySrc}
-      alt={title || "Poster"}
-      className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-      onError={(e) => {
-        const target = e.currentTarget as HTMLImageElement;
-        if (target && !target.src.includes("/default-poster.jpg")) {
-          target.src = "/default-poster.jpg";
-        }
-      }}
-    />
-  );
-}
-
-function HistoryCardItem({
-  item,
-  onRemove,
-}: {
-  item: WatchHistoryItem;
-  onRemove: (slug: string) => void;
-}) {
-  const progressPercent =
-    item.progressSeconds && item.durationSeconds && item.durationSeconds > 0
-      ? Math.min(100, Math.round((item.progressSeconds / item.durationSeconds) * 100))
-      : 0;
-
-  return (
-    <MediaCard
-      slug={item.slug}
-      title={item.title}
-      imageUrl={item.poster || item.thumb || ""}
-      posterUrl={item.poster}
-      thumbUrl={item.thumb}
-      year={item.year}
-      genre={item.category || ""}
-      quality={item.quality}
-      country={item.country}
-      type_name={item.type}
-      episodeSlug={item.episodeSlug}
-      episodeName={item.episodeName}
-      progressPercent={progressPercent}
-      onRemove={(e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        onRemove(item.slug);
-      }}
-      removeTooltip="Xóa khỏi lịch sử xem"
-      updatedTimeAgo={item.updatedAt ? formatTimeAgo(item.updatedAt) : undefined}
-    />
-  );
-}
+const HISTORY_PAGE_SIZE = 24;
+const EMPTY_COLLECTIONS: MovieCollection[] = [];
 
 function MyListContent() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const tabParam = searchParams.get("tab");
-  const initialTab: "watchlist" | "history" | "collections" | "comments" =
+  const initialTab: MyListTab =
     tabParam === "history"
       ? "history"
       : tabParam === "collections"
@@ -173,36 +65,44 @@ function MyListContent() {
       ? "comments"
       : "watchlist";
 
-  const [activeTab, setActiveTab] = useState<"watchlist" | "history" | "collections" | "comments">(initialTab);
+  const [activeTab, setActiveTab] = useState<MyListTab>(initialTab);
 
   // Đồng bộ activeTab khi URL thay đổi hoặc điều hướng trực tiếp bằng query ?tab=...
   useEffect(() => {
     if (tabParam && ["watchlist", "history", "collections", "comments"].includes(tabParam)) {
-      setActiveTab(tabParam as "watchlist" | "history" | "collections" | "comments");
+      setActiveTab(tabParam as MyListTab);
     }
   }, [tabParam]);
 
-  const handleTabChange = (tab: "watchlist" | "history" | "collections" | "comments") => {
+  const handleTabChange = (tab: MyListTab) => {
     setActiveTab(tab);
     const params = new URLSearchParams(searchParams.toString());
     params.set("tab", tab);
     router.replace(`${pathname}?${params.toString()}`, { scroll: false });
   };
+
   const [watchlist, setWatchlist] = useState<WatchlistItem[]>([]);
   const [history, setHistory] = useState<WatchHistoryItem[]>([]);
-  const [collections, setCollections] = useState<MovieCollection[]>([]);
-  const [userComments, setUserComments] = useState<MovieComment[]>([]);
-  const [moviePosterMap, setMoviePosterMap] = useState<Record<string, string>>({});
-  const [deletingCommentId, setDeletingCommentId] = useState<string | null>(null);
+  const [rawCollections, setRawCollections] = useState<MovieCollection[]>([]);
   const [mounted, setMounted] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showCreateCollectionModal, setShowCreateCollectionModal] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
-
-  const HISTORY_PAGE_SIZE = 24;
   const [visibleHistoryCount, setVisibleHistoryCount] = useState<number>(HISTORY_PAGE_SIZE);
 
   const { user, loading, isSyncing, syncNow } = useAuth();
+  const collections = user?.uid ? rawCollections : EMPTY_COLLECTIONS;
+
+  const {
+    userComments,
+    moviePosterMap,
+    deletingCommentId,
+    handleDeleteComment,
+  } = useUserMovieComments({
+    userId: user?.uid,
+    watchlist,
+    history,
+  });
 
   // Reset phân trang lịch sử xem khi chuyển tab hoặc đổi tài khoản
   useEffect(() => {
@@ -235,110 +135,16 @@ function MyListContent() {
   // Lắng nghe bộ sưu tập cá nhân theo thời gian thực khi đăng nhập
   // P0 Fix: Chỉ quyết định trạng thái bộ sưu tập khi Auth đã khôi phục hoàn tất (loading === false)
   useEffect(() => {
-    if (loading) {
-      // Khi Auth đang khôi phục phiên (loading === true), không được vội vàng reset collections = []
-      return;
-    }
-
-    if (!user?.uid) {
-      setCollections([]);
+    if (loading || !user?.uid) {
       return;
     }
 
     const unsub = subscribeUserCollections(user.uid, (items) => {
-      setCollections(items);
+      setRawCollections(items);
     });
 
     return () => unsub();
   }, [user?.uid, loading]);
-
-  // Lắng nghe bình luận của người dùng theo thời gian thực
-  useEffect(() => {
-    if (!user?.uid) {
-      setUserComments([]);
-      return;
-    }
-
-    const unsub = subscribeUserComments(user.uid, (items) => {
-      setUserComments(items);
-    });
-
-    return () => unsub();
-  }, [user?.uid]);
-
-  // Đồng bộ hóa danh mục ảnh bìa từ Watchlist và Lịch sử xem
-  useEffect(() => {
-    const map: Record<string, string> = {};
-    for (const item of watchlist) {
-      const poster = item.poster || item.imageUrl;
-      if (poster && item.slug) map[item.slug] = poster;
-    }
-    for (const item of history) {
-      const poster = item.poster || item.thumb;
-      if (poster && item.slug) map[item.slug] = poster;
-    }
-    if (Object.keys(map).length > 0) {
-      setMoviePosterMap((prev) => ({ ...map, ...prev }));
-    }
-  }, [watchlist, history]);
-
-  // Tự động tải ảnh bìa cho các bình luận chưa có poster
-  useEffect(() => {
-    if (userComments.length === 0) return;
-    const missingSlugs = userComments
-      .map((c) => c.movieSlug)
-      .filter((slug) => slug && !moviePosterMap[slug]);
-
-    if (missingSlugs.length === 0) return;
-    const uniqueSlugs = Array.from(new Set(missingSlugs)).slice(0, 20);
-
-    fetch(`/api/movies/meta?slugs=${encodeURIComponent(uniqueSlugs.join(","))}`)
-      .then((res) => res.json())
-      .then((data) => {
-        if (data?.success && data?.movies) {
-          setMoviePosterMap((prev) => {
-            const updated = { ...prev };
-            for (const [s, meta] of Object.entries(data.movies)) {
-              const m = meta as { poster?: string; thumb?: string };
-              if (m.poster || m.thumb) {
-                updated[s] = m.poster || m.thumb || "";
-              }
-            }
-            return updated;
-          });
-        }
-      })
-      .catch(() => {});
-  }, [userComments, moviePosterMap]);
-
-  const handleDeleteComment = async (commentId: string, movieSlug?: string) => {
-    const confirmed = await showConfirmDialog({
-      title: "Xóa bình luận",
-      message: "Bạn có chắc chắn muốn xóa nhận xét này? Bình luận sẽ bị gỡ vĩnh viễn khỏi bộ phim.",
-      confirmText: "Xóa bình luận",
-      cancelText: "Giữ lại",
-      variant: "danger",
-    });
-
-    if (!confirmed) return;
-
-    // Cập nhật giao diện 0ms tức thì, sẵn sàng khôi phục nếu máy chủ gặp sự cố
-    const previous = userComments;
-    setUserComments((prev) => prev.filter((c) => c.id !== commentId));
-    setDeletingCommentId(commentId);
-
-    try {
-      await deleteMovieComment(commentId, { movieSlug, userId: user?.uid });
-      toast.success("Đã xóa bình luận thành công!");
-    } catch (err: unknown) {
-      console.error("Lỗi xóa bình luận:", err);
-      setUserComments(previous);
-      const msg = err instanceof Error ? err.message : "Không thể xóa bình luận lúc này!";
-      toast.error(msg);
-    } finally {
-      setDeletingCommentId(null);
-    }
-  };
 
   const handleRemoveWatchlistItem = useCallback(
     (e: React.MouseEvent, slug: string, title: string) => {
@@ -542,77 +348,15 @@ function MyListContent() {
       </div>
 
       {/* BANNER ĐỒNG BỘ ĐÁM MÂY (CLOUD SYNC) */}
-      <div className="mb-6 p-3.5 sm:p-4 rounded-2xl bg-white/[0.03] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-        {user ? (
-          <div className="flex items-center gap-3 min-w-0 flex-1">
-            <UserAvatar
-              src={user.photoURL || undefined}
-              name={user.displayName || user.email}
-              seed={user.uid || user.displayName || user.email}
-              sizeClassName="w-8 h-8 text-xs font-bold flex-shrink-0"
-            />
-            <div className="min-w-0 flex-1">
-              <p className="text-xs font-bold text-white flex items-center gap-1.5 truncate">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse flex-shrink-0" />
-                <span className="truncate">Đang đồng bộ Google Cloud: {user.displayName || user.email}</span>
-              </p>
-              <p className="text-[11px] text-zinc-400 leading-relaxed break-words line-clamp-2 sm:line-clamp-1">
-                Danh sách yêu thích, lịch sử xem và các bộ sưu tập được đồng bộ bảo mật tức thì.
-              </p>
-            </div>
-          </div>
-        ) : (
-          <div className="flex items-center gap-3 min-w-0 flex-1">
-            <div className="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center text-zinc-300 flex-shrink-0">
-              <FolderHeart className="w-4 h-4 text-netflix-red" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-xs font-bold text-white truncate">
-                Đồng bộ số phút, lịch sử & bộ sưu tập lên Đám mây
-              </p>
-              <p className="text-[11px] text-zinc-400 leading-relaxed break-words line-clamp-2 sm:line-clamp-1">
-                Đăng nhập tài khoản Google miễn phí để quản lý bộ sưu tập và xem tiếp đúng phút trên mọi thiết bị.
-              </p>
-            </div>
-          </div>
-        )}
-
-        <div className="flex-shrink-0 w-full sm:w-auto">
-          {user ? (
-            <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
-              <Link
-                href="/profile"
-                className="flex-1 sm:flex-none justify-center inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-netflix-red/20 hover:bg-netflix-red/30 text-xs font-bold text-white transition cursor-pointer active:scale-95"
-              >
-                <User className="w-3.5 h-3.5 text-current flex-shrink-0" />
-                <span>Hồ sơ & Cài đặt</span>
-              </Link>
-
-              <button
-                type="button"
-                disabled={isSyncing}
-                onClick={syncNow}
-                className="flex-1 sm:flex-none justify-center inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-xs font-semibold text-zinc-200 hover:text-white transition cursor-pointer disabled:opacity-50"
-              >
-                <RefreshCw className={`w-3.5 h-3.5 text-emerald-400 flex-shrink-0 ${isSyncing ? "animate-spin" : ""}`} />
-                <span>{isSyncing ? "Đang đồng bộ..." : "Đồng bộ lại"}</span>
-              </button>
-            </div>
-          ) : (
-            <button
-              type="button"
-              onClick={() => setShowAuthModal(true)}
-              className="w-full sm:w-auto justify-center inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white hover:bg-zinc-100 text-xs font-bold text-zinc-950 transition cursor-pointer shadow-sm"
-            >
-              <LogIn className="w-3.5 h-3.5 text-netflix-red flex-shrink-0" />
-              <span>Đăng nhập Google</span>
-            </button>
-          )}
-        </div>
-      </div>
+      <MyListCloudBanner
+        user={user}
+        isSyncing={isSyncing}
+        onSyncNow={syncNow}
+        onOpenAuth={() => setShowAuthModal(true)}
+      />
 
       {/* TAB SELECTOR: Segmented Control thiết kế phẳng trượt mượt trên mobile */}
-      <div className="w-full min-w-0 max-w-full overflow-x-auto scrollbar-none pb-1 no-scrollbar flex items-center gap-2 mb-6 touch-pan-x">
+      <div className="w-full min-w-0 max-w-full overflow-x-auto scrollbar-none pb-1 no-scrollbar flex items-center gap-2 mb-6 touch-pan-x touch-pan-y">
         <button
           type="button"
           onClick={() => handleTabChange("watchlist")}
@@ -677,453 +421,34 @@ function MyListContent() {
           ))}
         </div>
       ) : activeTab === "watchlist" ? (
-        /* TAB 1: WATCHLIST */
-        watchlist.length === 0 ? (
-          <EmptyState
-            icon={<Film className="h-9 w-9 text-zinc-500" />}
-            title="Danh sách của bạn chưa có phim nào"
-            description={
-              <p>
-                Khi lướt phim trên Nanaflix, hãy bấm vào nút dấu cộng (<span className="text-white font-bold">+</span>) trên các bộ phim bạn thích để lưu vào danh sách xem sau.
-              </p>
-            }
-            action={
-              <Link
-                href="/"
-                className="inline-flex items-center gap-2 rounded-lg bg-netflix-red px-6 py-3 text-sm sm:text-base font-bold text-white transition hover:brightness-110 shadow-lg"
-              >
-                Khám phá phim ngay
-              </Link>
-            }
-          />
-        ) : (
-          <div className="rounded-2xl bg-gradient-to-b from-zinc-900/40 to-transparent py-3 sm:py-4 md:py-5 px-0 overflow-visible">
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4 md:gap-4 lg:gap-5 xl:gap-6">
-              {watchlist.map((item, index) => (
-                <MediaCard
-                  key={item.slug}
-                  slug={item.slug}
-                  title={item.title}
-                  imageUrl={item.imageUrl}
-                  posterUrl={item.poster}
-                  genre={item.genre || item.category || ""}
-                  year={item.year}
-                  quality={item.quality}
-                  time={item.time}
-                  country={item.country}
-                  type_name={item.type_name}
-                  itemType={item.itemType}
-                  seriesSlug={item.seriesSlug}
-                  seriesTitle={item.seriesTitle}
-                  episodeSlug={item.episodeSlug}
-                  episodeName={item.episodeName}
-                  seasonName={item.seasonName}
-                  priority={index < 6}
-                  onRemove={(e) => handleRemoveWatchlistItem(e, item.slug, item.title)}
-                  removeTooltip="Xóa khỏi danh sách yêu thích"
-                />
-              ))}
-            </div>
-          </div>
-        )
+        <MyListWatchlistTab watchlist={watchlist} onRemove={handleRemoveWatchlistItem} />
       ) : activeTab === "history" ? (
-        /* TAB 2: WATCH HISTORY */
-        history.length === 0 ? (
-          <EmptyState
-            icon={<Clock className="h-9 w-9 text-zinc-500" />}
-            title="Chưa có lịch sử xem phim"
-            description="Các bộ phim và tập phim bạn thưởng thức sẽ tự động xuất hiện tại đây để bạn có thể dễ dàng xem tiếp bất cứ lúc nào."
-            action={
-              <Link
-                href="/"
-                className="inline-flex items-center gap-2 rounded-lg bg-netflix-red px-6 py-3 text-sm sm:text-base font-bold text-white transition hover:brightness-110 shadow-lg"
-              >
-                Xem phim ngay
-              </Link>
-            }
-          />
-        ) : (
-          <div className="rounded-2xl bg-gradient-to-b from-zinc-900/40 to-transparent py-3 sm:py-4 md:py-5 px-0">
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4 md:gap-5">
-              {history.slice(0, visibleHistoryCount).map((item, index) => (
-                <HistoryCardItem
-                  key={`${item.slug}_${item.episodeSlug || ""}_${index}`}
-                  item={item}
-                  onRemove={(slug) => removeWatchHistoryItem(slug)}
-                />
-              ))}
-            </div>
-            {history.length > visibleHistoryCount && (
-              <div className="flex justify-center mt-6 sm:mt-8 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setVisibleHistoryCount((prev) => prev + HISTORY_PAGE_SIZE)}
-                  className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-zinc-900/90 hover:bg-zinc-800 text-xs sm:text-sm font-semibold text-white transition-all shadow-md active:scale-95 cursor-pointer"
-                >
-                  <span>
-                    Xem thêm {Math.min(HISTORY_PAGE_SIZE, history.length - visibleHistoryCount)} phim
-                  </span>
-                </button>
-              </div>
-            )}
-          </div>
-        )
+        <MyListHistoryTab
+          history={history}
+          visibleHistoryCount={visibleHistoryCount}
+          pageSize={HISTORY_PAGE_SIZE}
+          onRemove={(slug) => removeWatchHistoryItem(slug)}
+          onLoadMore={() => setVisibleHistoryCount((prev) => prev + HISTORY_PAGE_SIZE)}
+        />
       ) : activeTab === "collections" ? (
-        /* TAB 3: CUSTOM COLLECTIONS & SMART COLLECTIONS */
-        <div className="space-y-10">
-          {loading ? (
-            /* SKELETON PLACEHOLDER KHI AUTH ĐANG KHÔI PHỤC PHIÊN */
-            <div className="space-y-4">
-              <div className="h-6 w-48 bg-zinc-800 rounded animate-pulse" />
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4 md:gap-5">
-                {[1, 2, 3, 4, 5, 6].map((i) => (
-                  <div key={i} className="flex flex-col gap-2">
-                    <div className="aspect-[2/3] w-full rounded-xl bg-zinc-900 animate-pulse" />
-                    <div className="h-3.5 w-3/4 bg-zinc-800 rounded animate-pulse" />
-                    <div className="h-3 w-1/2 bg-zinc-800/60 rounded animate-pulse" />
-                  </div>
-                ))}
-              </div>
-            </div>
-          ) : !user ? (
-            <EmptyState
-              variant="card"
-              icon={<FolderHeart className="h-8 w-8 text-netflix-red" />}
-              title="Bộ sưu tập phim cá nhân"
-              description="Đăng nhập tài khoản Google để tạo playlist phim theo gu riêng, gom nhóm các tác phẩm yêu thích và chia sẻ liên kết công khai."
-              action={
-                <button
-                  type="button"
-                  onClick={() => setShowAuthModal(true)}
-                  className="inline-flex items-center gap-2 rounded-xl bg-netflix-red px-5 py-2.5 text-xs sm:text-sm font-bold text-white transition hover:brightness-110 shadow-lg cursor-pointer active:scale-95"
-                >
-                  <LogIn className="w-4 h-4" />
-                  <span>Đăng nhập ngay</span>
-                </button>
-              }
-            />
-          ) : collections.length === 0 ? (
-            <EmptyState
-              variant="card"
-              icon={<FolderPlus className="h-8 w-8 text-zinc-500" />}
-              title="Bạn chưa có bộ sưu tập riêng"
-              description="Bắt đầu tạo bộ sưu tập đầu tiên (ví dụ: &quot;Anime cày đêm&quot;, &quot;Phim kinh dị đỉnh cao&quot;) và thêm các phim yêu thích vào danh sách."
-              action={
-                <button
-                  type="button"
-                  onClick={() => setShowCreateCollectionModal(true)}
-                  className="inline-flex items-center gap-2 rounded-xl bg-netflix-red px-5 py-2.5 text-xs sm:text-sm font-bold text-white transition hover:brightness-110 shadow-lg cursor-pointer active:scale-95"
-                >
-                  <Plus className="w-4 h-4" />
-                  <span>Tạo bộ sưu tập đầu tiên</span>
-                </button>
-              }
-            />
-          ) : (
-            <div>
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
-                  <FolderHeart className="w-4 h-4 text-netflix-red" />
-                  <span>Bộ sưu tập của bạn ({collections.length})</span>
-                </h2>
-              </div>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4 md:gap-5">
-                {collections.map((col) => {
-                  const previewPosters = (col.movies || []).slice(0, 4);
-                  return (
-                    <div
-                      key={col.id}
-                      className="group/card relative flex flex-col w-full select-none cursor-pointer hover:scale-[1.02] hover:-translate-y-0.5 hover:z-20 transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:transform-none"
-                    >
-                      {/* KHỐI POSTER DỌC 2:3 CHO BỘ SƯU TẬP (CHUẨN ĐỒNG BỘ TRANG CHỦ) */}
-                      <div className="relative aspect-[2/3] w-full rounded-xl overflow-hidden bg-zinc-950 bg-gradient-to-br from-zinc-800/70 via-zinc-900 to-zinc-950 group-hover/card: group-hover/card:ring-netflix-red group-hover/card:ring-inset group-hover/card:shadow-[0_12px_28px_var(--accent-glow),0_0_16px_rgba(0,0,0,0.8)] transition-all duration-300">
-                        <Link
-                          href={`/collection/${col.id}`}
-                          className="block absolute inset-0 z-0 outline-none focus-visible:ring-2 focus-visible:ring-white rounded-xl"
-                          aria-label={`Xem bộ sưu tập ${col.name}`}
-                        >
-                          {previewPosters.length >= 4 ? (
-                            <div className="grid grid-cols-2 h-full w-full gap-0.5">
-                              {previewPosters.map((m, idx) => (
-                                <div key={idx} className="relative h-full w-full bg-zinc-800 overflow-hidden">
-                                  <CollectionMosaicPoster
-                                    poster={m.poster}
-                                    title={m.title}
-                                    slug={m.slug}
-                                    size={192}
-                                  />
-                                </div>
-                              ))}
-                            </div>
-                          ) : previewPosters.length > 0 ? (
-                            <div className="relative h-full w-full bg-zinc-800">
-                              <CollectionMosaicPoster
-                                poster={previewPosters[0].poster}
-                                title={col.name || previewPosters[0].title}
-                                slug={previewPosters[0].slug}
-                                size={320}
-                              />
-                            </div>
-                          ) : (
-                            <div className="flex flex-col items-center justify-center h-full text-zinc-500 border border-dashed rounded-lg m-2 bg-zinc-900/30">
-                              <Film className="w-8 h-8 mb-1.5 opacity-40 group-hover/card:opacity-75 group-hover/card:scale-105 transition-all text-zinc-400" />
-                              <span className="text-[10px] text-zinc-400 group-hover/card:text-zinc-200 transition-colors text-center px-1">
-                                Chưa có phim
-                              </span>
-                            </div>
-                          )}
-
-                          {/* Lớp gradient điện ảnh che phủ */}
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-transparent to-transparent pointer-events-none" />
-                          <div className="absolute inset-0 bg-black/30 opacity-0 group-hover/card:opacity-100 transition-opacity duration-300 pointer-events-none" />
-                        </Link>
-
-                        {/* BADGE CÔNG KHAI / RIÊNG TƯ (GÓC TRÊN TRÁI) */}
-                        <div className="absolute top-2 left-2 z-10 pointer-events-none">
-                          {col.isPublic ? (
-                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-500/90 text-white backdrop-blur-md shadow-md">
-                              <Globe className="w-2.5 h-2.5" /> Công khai
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-zinc-900/90 text-zinc-300 backdrop-blur-md shadow-md">
-                              <Lock className="w-2.5 h-2.5" /> Riêng tư
-                            </span>
-                          )}
-                        </div>
-
-                        {/* SỐ LƯỢNG PHIM (GÓC DƯỚI PHẢI) */}
-                        <div className="absolute bottom-2 right-2 z-10 pointer-events-none">
-                          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-black/80 backdrop-blur-md text-amber-300 shadow-sm">
-                            {col.movies?.length || 0} phim
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* THÔNG TIN BỘ SƯU TẬP DƯỚI POSTER */}
-                      <div className="pt-2 sm:pt-2.5 pb-1 flex flex-col gap-0.5 sm:gap-1">
-                        <Link
-                          href={`/collection/${col.id}`}
-                          className="text-xs sm:text-[13px] md:text-sm font-semibold text-zinc-100 truncate group-hover/card:text-netflix-red transition-colors leading-snug"
-                          title={col.name}
-                        >
-                          {col.name}
-                        </Link>
-
-                        {/* Action icons row */}
-                        <div className="flex items-center justify-between text-[11px] text-zinc-400">
-                          <span className="text-zinc-500 text-[10px] truncate max-w-[50%]">
-                            {col.movies?.length || 0} phim
-                          </span>
-                          <div className="flex items-center gap-0.5">
-                            <button
-                              type="button"
-                              onClick={() => handleShareCollection(col.id)}
-                              className="p-1 rounded text-zinc-400 hover:text-white hover:bg-white/10 transition cursor-pointer"
-                              title="Chia sẻ link"
-                            >
-                              {copiedId === col.id ? (
-                                <Check className="w-3.5 h-3.5 text-emerald-400" />
-                              ) : (
-                                <Share2 className="w-3.5 h-3.5" />
-                              )}
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleTogglePrivacy(col)}
-                              className="p-1 rounded text-zinc-400 hover:text-white hover:bg-white/10 transition cursor-pointer"
-                              title={col.isPublic ? "Chuyển sang riêng tư" : "Chuyển sang công khai"}
-                            >
-                              {col.isPublic ? (
-                                <Globe className="w-3.5 h-3.5 text-emerald-400" />
-                              ) : (
-                                <Lock className="w-3.5 h-3.5 text-amber-400" />
-                              )}
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleDeleteCollection(col)}
-                              className="p-1 rounded text-zinc-400 hover:text-red-400 hover:bg-red-500/15 transition cursor-pointer"
-                              title="Xóa bộ sưu tập"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-        </div>
+        <MyListCollectionsTab
+          loading={loading}
+          hasUser={Boolean(user)}
+          collections={collections}
+          copiedId={copiedId}
+          onOpenAuth={() => setShowAuthModal(true)}
+          onOpenCreateCollection={() => setShowCreateCollectionModal(true)}
+          onShare={handleShareCollection}
+          onTogglePrivacy={handleTogglePrivacy}
+          onDelete={handleDeleteCollection}
+        />
       ) : activeTab === "comments" ? (
-        /* TAB 4: LỊCH SỬ BÌNH LUẬN */
-        userComments.length === 0 ? (
-          <EmptyState
-            icon={<MessageSquare className="h-9 w-9 text-netflix-red" />}
-            title="Bạn chưa viết bình luận nào"
-            description="Mỗi đánh giá và nhận xét của bạn giúp cộng đồng Nanaflix tìm được bộ phim hay nhất!"
-            action={
-              <Link
-                href="/"
-                className="inline-flex items-center gap-2 rounded-lg bg-netflix-red px-6 py-3 text-sm sm:text-base font-bold text-white transition hover:brightness-110 shadow-lg"
-              >
-                Xem phim & Đánh giá ngay
-              </Link>
-            }
-          />
-        ) : (
-          <div className="rounded-2xl bg-gradient-to-b from-zinc-900/40 to-transparent p-4 sm:p-6 space-y-4">
-            <div className="flex items-center justify-between pb-3">
-              <h3 className="text-base font-bold text-white flex items-center gap-2">
-                <MessageSquare className="w-4 h-4 text-netflix-red" />
-                <span>Tất cả nhận xét & đánh giá ({userComments.length})</span>
-              </h3>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              {userComments.map((c) => {
-                const poster = moviePosterMap[c.movieSlug];
-                const movieTitle = c.movieTitle || c.movieSlug.replace(/-/g, " ");
-
-                return (
-                  <div
-                    key={c.id}
-                    className="group relative flex flex-col sm:flex-row gap-3.5 sm:gap-4 p-4 rounded-2xl bg-gradient-to-b from-zinc-900/90 to-zinc-950/90 border border-white/5 hover:border-white/15 transition-all duration-300 shadow-lg hover:shadow-2xl hover:shadow-black/70 overflow-hidden"
-                  >
-                    {/* POSTER THUMBNAIL */}
-                    <Link
-                      href={`/movies/${c.movieSlug}`}
-                      className="relative w-full sm:w-20 md:w-24 h-36 sm:h-auto sm:aspect-[2/3] rounded-xl overflow-hidden bg-zinc-800/80 border border-white/10 shrink-0 group-hover:scale-[1.02] transition-transform duration-300 shadow-md block"
-                    >
-                      {poster ? (
-                        <Image
-                          src={toOptimizedCardPosterUrl(poster, 200)}
-                          alt={movieTitle}
-                          fill
-                          sizes="(max-width: 640px) 100vw, 96px"
-                          className="object-cover"
-                          loading="lazy"
-                        />
-                      ) : (
-                        <div className="w-full h-full min-h-[100px] flex flex-col items-center justify-center p-2 text-center bg-gradient-to-br from-zinc-800 to-zinc-950">
-                          <Film className="w-6 h-6 text-netflix-red/60 mb-1" />
-                          <span className="text-[10px] text-zinc-400 font-bold line-clamp-2 leading-tight">
-                            {movieTitle}
-                          </span>
-                        </div>
-                      )}
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-center p-1.5">
-                        <span className="text-[10px] font-bold text-white flex items-center gap-1">
-                          <Play className="w-3 h-3 fill-white text-white" />
-                          Xem phim
-                        </span>
-                      </div>
-                    </Link>
-
-                    {/* CONTENT DETAILS */}
-                    <div className="flex-1 min-w-0 flex flex-col justify-between">
-                      <div>
-                        {/* HEADER: TITLE + RATING */}
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="min-w-0 flex-1">
-                            <Link
-                              href={`/movies/${c.movieSlug}#comments`}
-                              className="text-sm sm:text-base font-extrabold text-white hover:text-netflix-red transition-colors inline-flex items-center gap-1.5 group/title truncate max-w-full"
-                            >
-                              <span className="truncate">{movieTitle}</span>
-                              <ExternalLink className="w-3.5 h-3.5 text-zinc-500 group-hover/title:text-netflix-red shrink-0" />
-                            </Link>
-
-                            {c.episodeName && (
-                              <div className="mt-1">
-                                <span className="inline-block px-2 py-0.5 rounded-md bg-netflix-red/15 text-netflix-red text-[11px] font-bold border border-netflix-red/20">
-                                  {c.episodeName}
-                                </span>
-                              </div>
-                            )}
-                          </div>
-
-                          {/* STAR RATING */}
-                          {c.rating > 0 && (
-                            <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-500/15 border border-amber-500/25 shrink-0">
-                              <div className="flex items-center gap-0.5">
-                                {[1, 2, 3, 4, 5].map((star) => (
-                                  <Star
-                                    key={star}
-                                    size={11}
-                                    className={
-                                      star <= c.rating
-                                        ? "fill-amber-400 text-amber-400"
-                                        : "fill-zinc-700 text-zinc-700"
-                                    }
-                                  />
-                                ))}
-                              </div>
-                              <span className="text-xs font-black text-amber-300 ml-0.5">
-                                {c.rating}/5
-                              </span>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* REVIEW QUOTE BODY */}
-                        <div className="relative mt-2.5 p-3 rounded-xl bg-white/[0.03] border-l-2 border-netflix-red/60 border-y border-r border-white/5">
-                          <p className="text-xs sm:text-sm text-zinc-200 leading-relaxed italic line-clamp-3 whitespace-pre-line">
-                            {`"${c.content}"`}
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* FOOTER: TIME + LIKES + ACTIONS */}
-                      <div className="flex items-center justify-between text-xs text-zinc-400 pt-2.5 mt-2 border-t border-white/5">
-                        <div className="flex items-center gap-3">
-                          <span
-                            className="flex items-center gap-1 text-[11px] text-zinc-400"
-                            title={new Date(c.createdAt).toLocaleString("vi-VN")}
-                          >
-                            <Clock className="w-3 h-3 text-zinc-500" />
-                            <span>{formatCommentDate(c.createdAt)}</span>
-                          </span>
-
-                          {c.likes > 0 && (
-                            <span className="flex items-center gap-1 text-[11px] text-rose-400 font-bold bg-rose-500/10 px-2 py-0.5 rounded-full">
-                              <Heart className="w-3 h-3 fill-rose-500 text-rose-500" />
-                              <span>{c.likes}</span>
-                            </span>
-                          )}
-                        </div>
-
-                        <div className="flex items-center gap-2">
-                          <Link
-                            href={`/movies/${c.movieSlug}#comments`}
-                            className="text-[11px] font-semibold text-zinc-400 hover:text-white transition px-2 py-1 rounded-lg hover:bg-white/5"
-                          >
-                            Chi tiết
-                          </Link>
-                          <button
-                            type="button"
-                            disabled={deletingCommentId === c.id}
-                            onClick={() => handleDeleteComment(c.id, c.movieSlug)}
-                            className="flex items-center gap-1 text-zinc-400 hover:text-red-400 hover:bg-red-500/10 px-2.5 py-1 rounded-lg transition text-[11px] font-semibold cursor-pointer disabled:opacity-50"
-                          >
-                            {deletingCommentId === c.id ? (
-                              <Loader2 className="w-3 h-3 animate-spin" />
-                            ) : (
-                              <Trash2 className="w-3 h-3" />
-                            )}
-                            <span>Xóa</span>
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )
+        <MyListCommentsTab
+          userComments={userComments}
+          moviePosterMap={moviePosterMap}
+          deletingCommentId={deletingCommentId}
+          onDeleteComment={handleDeleteComment}
+        />
       ) : null}
 
       {/* MODAL TẠO BỘ SƯU TẬP MỚI */}
@@ -1131,7 +456,7 @@ function MyListContent() {
         isOpen={showCreateCollectionModal}
         onClose={() => setShowCreateCollectionModal(false)}
         onSuccess={(newCol) => {
-          setCollections((prev) => [newCol, ...prev.filter((c) => c.id !== newCol.id)]);
+          setRawCollections((prev) => [newCol, ...prev.filter((c) => c.id !== newCol.id)]);
         }}
       />
 
@@ -1143,7 +468,7 @@ function MyListContent() {
 
 export default function MyListPage() {
   return (
-    <div className="page-cinema-container min-h-screen flex flex-col justify-between pb-0 lg:pb-0 w-full max-w-full overflow-x-clip">
+    <div className="page-cinema-container min-h-dvh flex flex-col justify-between pb-0 lg:pb-0 w-full max-w-full overflow-x-clip">
       <div>
         <Suspense fallback={<div className="h-16 bg-black" />}>
           <Navbar />

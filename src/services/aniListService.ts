@@ -23,15 +23,21 @@ const ANILIST_MEMORY_CACHE = new Map<string, AniListMemoryCacheEntry>();
 export async function searchAniListPoster(
   title: string,
   originName?: string,
-  alternativeNames?: string[]
+  alternativeNames?: string[],
+  externalSignal?: AbortSignal
 ): Promise<AniListPosterResult> {
+  if (externalSignal?.aborted) {
+    return { posterUrl: null, backdropUrl: null };
+  }
+
   const queryCandidates = [
     originName && originName !== title ? originName : null,
     title,
     ...(alternativeNames || []),
   ]
     .filter((q): q is string => Boolean(q && typeof q === "string" && q.trim().length >= 2))
-    .map((q) => q.trim());
+    .map((q) => q.trim())
+    .slice(0, 2);
 
   if (queryCandidates.length === 0) {
     return { posterUrl: null, backdropUrl: null };
@@ -76,9 +82,12 @@ export async function searchAniListPoster(
   let matchedResult: AniListPosterResult | null = null;
 
   for (const candidate of queryCandidates) {
+    if (externalSignal?.aborted) break;
     try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 2500);
+      const timeoutSignal = AbortSignal.timeout(2500);
+      const signal = externalSignal
+        ? AbortSignal.any([timeoutSignal, externalSignal])
+        : timeoutSignal;
 
       const res = await fetch(ANILIST_GRAPHQL_ENDPOINT, {
         method: "POST",
@@ -90,10 +99,8 @@ export async function searchAniListPoster(
           query: graphQuery,
           variables: { search: candidate },
         }),
-        signal: controller.signal,
+        signal,
       });
-
-      clearTimeout(timeout);
 
       if (!res.ok) continue;
 
@@ -119,14 +126,16 @@ export async function searchAniListPoster(
   }
 
   const finalRes = matchedResult || { posterUrl: null, backdropUrl: null };
-  ANILIST_MEMORY_CACHE.set(primaryKey, {
-    posterUrl: finalRes.posterUrl,
-    backdropUrl: finalRes.backdropUrl,
-    expireAt: now + 24 * 3600 * 1000, // 24h in-memory
-  });
+  if (!externalSignal?.aborted || matchedResult) {
+    ANILIST_MEMORY_CACHE.set(primaryKey, {
+      posterUrl: finalRes.posterUrl,
+      backdropUrl: finalRes.backdropUrl,
+      expireAt: now + 24 * 3600 * 1000, // 24h in-memory
+    });
 
-  // Lưu vào Redis DB 3 với TTL 30 ngày (2592000s)
-  cacheService.set(kvKey, finalRes, 30 * 86400).catch(() => {});
+    // Lưu vào Redis DB 3 với TTL 30 ngày (2592000s)
+    cacheService.set(kvKey, finalRes, 30 * 86400).catch(() => {});
+  }
 
   return finalRes;
 }

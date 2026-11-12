@@ -27,7 +27,7 @@ export const MOVIE_CARD_TOKENS = {
   // 3. Thẻ tiếp tục xem (ContinueWatchingRow) - Tỷ lệ 2:3 kèm thanh tiến trình
   continueWatching: {
     aspect: "aspect-[2/3]",
-    width: "w-[130px] xs:w-[140px] sm:w-[155px] md:w-[170px]",
+    width: "w-[132px] min-[380px]:w-[144px] sm:w-[155px] md:w-[170px]",
     radius: "rounded-xl",
   },
 

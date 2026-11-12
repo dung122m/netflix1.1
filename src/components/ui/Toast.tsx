@@ -70,8 +70,8 @@ function ToastBubble({
     <div
       role="alert"
       aria-live="polite"
-      className={`flex items-center gap-2.5 pl-3.5 pr-2.5 py-3 rounded-2xl border backdrop-blur-xl shadow-2xl
-        text-sm text-white font-medium max-w-[320px] w-full
+      className={`flex items-center gap-2.5 pl-3.5 pr-2.5 py-3 rounded-2xl backdrop-blur-xl shadow-2xl
+        text-sm text-white font-medium max-w-[calc(100vw-24px)] sm:max-w-[340px] w-full
         transition-all duration-300 ease-out
         ${COLORS[item.type]}
         ${visible ? "opacity-100 translate-y-0 scale-100" : "opacity-0 translate-y-4 scale-95"}

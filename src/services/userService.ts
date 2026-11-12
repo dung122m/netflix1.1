@@ -114,14 +114,10 @@ import {
   deleteAllUserCommentsSupabase,
   getWatchHistorySupabase,
   getWatchlistSupabase,
-  getAllDeviceHandoffsSupabase,
   invalidateUserProfileCache,
   setProfileMemoryCache,
-  type DeviceHandoffItem,
 } from "./supabaseService";
 import { isSupabaseConfigured } from "@/lib/supabase";
-
-export { getAllDeviceHandoffsSupabase, type DeviceHandoffItem };
 
 const PROFILE_CACHE_PREFIX = "nanaflix_user_profile_";
 
@@ -747,6 +743,13 @@ export async function incrementUserWatchTime(userId: string, minutes: number = 1
 }
 
 /**
+ * Làm sạch emoji cũ đứng đầu tên danh hiệu hoặc thể loại (giữ tương thích dữ liệu đã lưu)
+ */
+export function cleanBadgeText(text: string): string {
+  return text.replace(/^[\s🍿🎬👑⚡💎🌟✨🏆🛡️🥈💥💖👻🚀🎨😂👑🕵️📺🎪🥋🛸🤣🏯\uD83C-\uDBFF\uDC00-\uDFFF]+/gu, "").trim() || text;
+}
+
+/**
  * Tính cấp độ cày phim & danh hiệu của người dùng dựa trên số phút xem
  */
 export interface WatchLevelInfo {
@@ -763,52 +766,52 @@ export function getWatchLevelInfo(totalMinutes: number = 0): WatchLevelInfo {
   if (totalMinutes >= 12000) {
     return {
       levelName: "Thánh Phim Nanaflix",
-      badgeIcon: "👑",
+      badgeIcon: "",
       minMinutes: 12000,
-      colorClass: "from-amber-500 via-rose-500 to-amber-300 text-amber-200 ",
-      badges: ["🍿 Mọt Phim Đêm", "🎬 Đạo Diễn Tương Lai", "👑 Top Fan Nanaflix", "⚡ Cày Phim Siêu Cấp", "💎 Cương Thi Đêm"],
+      colorClass: "bg-amber-500/20 text-amber-200",
+      badges: ["Mọt Phim Đêm", "Đạo Diễn Tương Lai", "Top Fan Nanaflix", "Cày Phim Siêu Cấp", "Cương Thi Đêm"],
     };
   }
   if (totalMinutes >= 3000) {
     return {
       levelName: "Kim Cương Cày Phim",
-      badgeIcon: "💎",
+      badgeIcon: "",
       minMinutes: 3000,
-      colorClass: "from-cyan-400 to-blue-500 text-cyan-300 border-cyan-400/50",
+      colorClass: "bg-cyan-500/15 text-cyan-300",
       nextLevelName: "Thánh Phim Nanaflix",
       nextMinMinutes: 12000,
-      badges: ["🍿 Mọt Phim Đêm", "🎬 Đạo Diễn Tương Lai", "⚡ Cày Phim Siêu Cấp", "💎 Cương Thi Đêm"],
+      badges: ["Mọt Phim Đêm", "Đạo Diễn Tương Lai", "Cày Phim Siêu Cấp", "Cương Thi Đêm"],
     };
   }
   if (totalMinutes >= 600) {
     return {
       levelName: "Thành Viên Vàng",
-      badgeIcon: "🌟",
+      badgeIcon: "",
       minMinutes: 600,
-      colorClass: "from-amber-500 to-yellow-400 text-amber-300 ",
+      colorClass: "bg-amber-500/15 text-amber-300",
       nextLevelName: "Kim Cương Cày Phim",
       nextMinMinutes: 3000,
-      badges: ["🍿 Mọt Phim Đêm", "🎬 Đạo Diễn Tương Lai", "⚡ Cày Phim Siêu Cấp"],
+      badges: ["Mọt Phim Đêm", "Đạo Diễn Tương Lai", "Cày Phim Siêu Cấp"],
     };
   }
   if (totalMinutes >= 60) {
     return {
       levelName: "Thành Viên Bạc",
-      badgeIcon: "🥈",
+      badgeIcon: "",
       minMinutes: 60,
-      colorClass: "from-slate-300 to-gray-400 text-zinc-200 border-zinc-400/50",
+      colorClass: "bg-zinc-500/20 text-zinc-200",
       nextLevelName: "Thành Viên Vàng",
       nextMinMinutes: 600,
-      badges: ["🍿 Mọt Phim Đêm", "🎬 Đạo Diễn Tương Lai"],
+      badges: ["Mọt Phim Đêm", "Đạo Diễn Tương Lai"],
     };
   }
   return {
     levelName: "Tân Thủ Cày Phim",
-    badgeIcon: "🍿",
+    badgeIcon: "",
     minMinutes: 0,
-    colorClass: "from-zinc-700 to-zinc-800 text-zinc-300 border-zinc-700",
+    colorClass: "bg-zinc-800 text-zinc-300",
     nextLevelName: "Thành Viên Bạc",
     nextMinMinutes: 60,
-    badges: ["🍿 Mọt Phim Đêm"],
+    badges: ["Mọt Phim Đêm"],
   };
 }

@@ -12,8 +12,12 @@ export const InstallPwaBanner: React.FC = () => {
   const [showModal, setShowModal] = useState(false);
 
   useEffect(() => {
-    // Đăng ký Service Worker để kích hoạt tiêu chuẩn PWA của trình duyệt
-    if ("serviceWorker" in navigator) {
+    const hostname = typeof window !== "undefined" ? window.location.hostname : "";
+    const isLocalDev = hostname === "localhost" || hostname === "127.0.0.1" || hostname === "[::1]";
+
+    // Gỡ bỏ Service Worker ở local dev đã được xử lý đồng bộ sớm trong <head> của layout.tsx;
+    // ở đây chỉ đăng ký /sw.js khi chạy production trên domain thật.
+    if ("serviceWorker" in navigator && !isLocalDev && process.env.NODE_ENV === "production") {
       navigator.serviceWorker
         .register("/sw.js")
         .then((reg) => {

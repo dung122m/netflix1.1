@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
+import { Globe, Trophy } from "lucide-react";
 
 export interface CountryFlagProps {
   emoji?: string;
@@ -36,6 +37,26 @@ export function CountryFlag({ emoji, className = "", size }: CountryFlagProps) {
       return null;
     }
   }, [emoji]);
+
+  if (emoji === "🏆" || emoji === "cup") {
+    return (
+      <Trophy
+        aria-hidden="true"
+        className={`inline-block shrink-0 text-amber-400 ${className}`}
+        style={size ? { width: size, height: size } : undefined}
+      />
+    );
+  }
+
+  if (emoji === "🌐" || emoji === "all") {
+    return (
+      <Globe
+        aria-hidden="true"
+        className={`inline-block shrink-0 text-sky-400 ${className}`}
+        style={size ? { width: size, height: size } : undefined}
+      />
+    );
+  }
 
   if (twemojiUrl && !imgError) {
     return (

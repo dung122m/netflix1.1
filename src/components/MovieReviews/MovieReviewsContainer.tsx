@@ -28,14 +28,20 @@ export const MovieReviewsContainer: React.FC<MovieReviewsContainerProps> = ({
   const currentEpisodeName = watchContext?.activeEpisode?.name || propEpisodeName;
 
   const [activeTab, setActiveTab] = useState<"nanaflix" | "tmdb">("nanaflix");
+  const [hasOpenedTmdbTab, setHasOpenedTmdbTab] = useState(false);
+
+  const handleSelectTmdbTab = () => {
+    setActiveTab("tmdb");
+    setHasOpenedTmdbTab(true);
+  };
 
   return (
     <div className="py-6 sm:py-8 space-y-6">
       {/* Header Bar with Tabs */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 sm:pb-6 border-b">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 sm:pb-6 border-b border-white/[0.08]">
         <div>
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-netflix-red/10 border border-netflix-red/30 flex items-center justify-center text-netflix-red">
+            <div className="w-8 h-8 rounded-xl bg-netflix-red/10 flex items-center justify-center text-netflix-red">
               <MessageSquare className="w-4 h-4" />
             </div>
             <h2 className="text-xl sm:text-2xl font-extrabold text-white tracking-tight">
@@ -63,7 +69,7 @@ export const MovieReviewsContainer: React.FC<MovieReviewsContainerProps> = ({
           </button>
           <button
             type="button"
-            onClick={() => setActiveTab("tmdb")}
+            onClick={handleSelectTmdbTab}
             className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
               activeTab === "tmdb"
                 ? "bg-zinc-800 text-amber-300  shadow-sm font-bold"
@@ -88,11 +94,13 @@ export const MovieReviewsContainer: React.FC<MovieReviewsContainerProps> = ({
           />
         </div>
         <div className={activeTab === "tmdb" ? "block" : "hidden"}>
-          <TmdbAudienceReviews
-            tmdbId={tmdbId}
-            tmdbType={tmdbType}
-            hideOuterCard={true}
-          />
+          {hasOpenedTmdbTab ? (
+            <TmdbAudienceReviews
+              tmdbId={tmdbId}
+              tmdbType={tmdbType}
+              hideOuterCard={true}
+            />
+          ) : null}
         </div>
       </div>
     </div>

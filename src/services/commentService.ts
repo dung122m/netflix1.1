@@ -1132,7 +1132,6 @@ export async function setCommentReaction(
   if (!commentId || !userId) return;
 
   // 1. Cập nhật ngay bộ nhớ cache & localStorage cho root comments
-  const now = Date.now();
   Object.keys(movieCommentsMemoryCache).forEach((slug) => {
     movieCommentsMemoryCache[slug] = movieCommentsMemoryCache[slug].map((c) => {
       if (c.id !== commentId) return c;

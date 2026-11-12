@@ -178,7 +178,7 @@ export function LiveHubClient({ footballData, tvData: initialTvData, initialScor
               role="tab"
               aria-selected={activeTab === "sports"}
               onClick={() => handleTabChange("sports")}
-              className={`flex items-center justify-center gap-1.5 px-3.5 py-1.5 min-h-[34px] rounded-lg text-xs font-semibold transition cursor-pointer outline-none shrink-0 whitespace-nowrap ${
+              className={`flex items-center justify-center gap-1.5 px-3.5 py-1.5 min-h-[38px] sm:min-h-[36px] rounded-lg text-xs font-semibold transition cursor-pointer outline-none shrink-0 whitespace-nowrap ${
                 activeTab === "sports"
                   ? "bg-netflix-red text-white font-bold shadow-md shadow-black/40"
                   : "text-zinc-400 hover:text-white hover:bg-white/5"
@@ -186,7 +186,7 @@ export function LiveHubClient({ footballData, tvData: initialTvData, initialScor
             >
               <span>Thể thao</span>
               <span
-                className={`text-[11px] px-1.5 py-0.2 rounded-full font-medium ${
+                className={`text-[11px] px-1.5 py-0.5 rounded-full font-medium ${
                   activeTab === "sports"
                     ? "bg-black/25 text-white"
                     : "bg-black/40 text-zinc-400"
@@ -201,7 +201,7 @@ export function LiveHubClient({ footballData, tvData: initialTvData, initialScor
               role="tab"
               aria-selected={activeTab === "tv"}
               onClick={() => handleTabChange("tv")}
-              className={`flex items-center justify-center gap-1.5 px-3.5 py-1.5 min-h-[34px] rounded-lg text-xs font-semibold transition cursor-pointer outline-none shrink-0 whitespace-nowrap ${
+              className={`flex items-center justify-center gap-1.5 px-3.5 py-1.5 min-h-[38px] sm:min-h-[36px] rounded-lg text-xs font-semibold transition cursor-pointer outline-none shrink-0 whitespace-nowrap ${
                 activeTab === "tv"
                   ? "bg-netflix-red text-white font-bold shadow-md shadow-black/40"
                   : "text-zinc-400 hover:text-white hover:bg-white/5"
@@ -209,7 +209,7 @@ export function LiveHubClient({ footballData, tvData: initialTvData, initialScor
             >
               <span>Truyền hình</span>
               <span
-                className={`text-[11px] px-1.5 py-0.2 rounded-full font-medium ${
+                className={`text-[11px] px-1.5 py-0.5 rounded-full font-medium ${
                   activeTab === "tv"
                     ? "bg-black/25 text-white"
                     : "bg-white/5 text-zinc-400"
@@ -240,7 +240,7 @@ export function LiveHubClient({ footballData, tvData: initialTvData, initialScor
           {isTvLoading && (!tvData || !tvData.channels) ? (
             <LiveTvSkeleton />
           ) : tvError && (!tvData || !tvData.channels) ? (
-            <div className="rounded-2xl border border-red-500/20 bg-red-950/20 p-8 text-center my-6">
+            <div className="rounded-2xl border border-red-500/20 bg-red-950/20 p-5 sm:p-8 text-center my-6">
               <p className="text-sm font-semibold text-red-400 mb-4">{tvError}</p>
               <button
                 type="button"

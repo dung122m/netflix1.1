@@ -1,9 +1,10 @@
 import Link from "next/link";
+import { after } from "next/server";
 import { MovieGrid } from "@/components/movies/MovieGrid";
 import { FilterBarClient } from "@/components/browse/FilterBarClient";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
-import { Film, ExternalLink, User } from "lucide-react";
+import { Film, ExternalLink, User, Flame } from "lucide-react";
 import { movieApi } from "@/services/movies/service";
 import {
   resolveActorMovies,
@@ -18,7 +19,6 @@ import { searchMoviesBySemantic } from "@/services/aiVectorService";
 import { evaluateConceptEvidence, resolveConcepts } from "@/services/conceptRegistry";
 import { PaginationControl } from "@/components/ui/PaginationControl";
 import {
-  isBrokenImageUrl,
   cleanNormalizedForMatch,
   getTitleEvidence,
   formatGenreName,
@@ -28,8 +28,7 @@ import {
   isRawId,
   extractMovieModifiedTime,
   } from "@/lib/movieMedia";
-import { getTmdbPosterUrl, searchTmdbPosterByTitle } from "@/services/tmdbService";
-import { searchAniListPoster } from "@/services/aniListService";
+import { enrichMovieListPosters } from "@/services/movies/posterEnrichment";
 
 // ==========================================
 // METADATA
@@ -362,104 +361,6 @@ const COUNTRY_NAMES: Record<string, string> = {
   "phap": "Pháp",
 };
 
-/**
- * Tự động nâng cấp poster của danh sách phim sang TMDb CDN siêu nhanh (30ms Cloudflare Edge),
- * đẩy nguồn phimimg.com xuống tầng dưới cùng dự phòng.
- */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function enrichMoviesWithTmdbPosters(movieList: any[]) {
-  if (!movieList || movieList.length === 0) return;
-  await Promise.allSettled(
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    movieList.map(async (item: any) => {
-      if (item.tmdb?.id) {
-        try {
-          const p = await getTmdbPosterUrl(item.tmdb.id, item.type);
-          if (p) {
-            item.poster_url = p;
-            if (isBrokenImageUrl(item.thumb_url)) item.thumb_url = p;
-            return;
-          }
-        } catch {}
-      }
-      // Bất kỳ phim nào chưa có ảnh TMDB chuẩn (đặc biệt là link phimimg dễ bị nhà mạng VN chặn): BẮT BUỘC tra cứu TMDB
-      const isNonTmdb =
-        !item.poster_url ||
-        !item.poster_url.includes("image.tmdb.org") ||
-        item.poster_url.includes("phimimg.com");
-      const needsTmdbPoster = isNonTmdb || isBrokenImageUrl(item.poster_url);
-
-      if (needsTmdbPoster) {
-        const queryCandidates = [
-          item.origin_name && item.origin_name !== item.name ? item.origin_name : null,
-          item.name,
-          item.slug ? item.slug.replace(/-/g, " ") : null,
-        ].filter(Boolean) as string[];
-
-        // TẦNG 1 (Chính): TMDb Multi Search (Bao quát 90% mọi thể loại từ phim bộ, phim lẻ đến hoạt hình)
-        let foundPoster = false;
-        for (const query of queryCandidates) {
-          try {
-            const res = await searchTmdbPosterByTitle(query, item.year, item.type);
-            if (res?.posterUrl) {
-              item.poster_url = res.posterUrl;
-              if (isBrokenImageUrl(item.thumb_url) || !item.thumb_url?.includes("image.tmdb.org")) {
-                item.thumb_url = res.backdropUrl || res.posterUrl;
-              }
-              foundPoster = true;
-              break;
-            }
-          } catch {}
-        }
-
-        // TẦNG 2 (Dự phòng cho Hoạt hình): AniList GraphQL (Miễn phí, không cần key, chuyên trị 10% anime/donghua còn lại)
-        if (!foundPoster) {
-          const isAnimeOrAnimation =
-            item.type === "hoathinh" ||
-            item.type === "hoat-hinh" ||
-            item.category?.some(
-              (c: { slug?: string; name?: string }) => c.slug === "hoat-hinh" || c.name?.toLowerCase().includes("hoạt hình")
-            );
-
-          if (isAnimeOrAnimation) {
-            try {
-              const aniRes = await searchAniListPoster(
-                item.name,
-                item.origin_name,
-                item.alternative_names
-              );
-              if (aniRes?.posterUrl) {
-                item.poster_url = aniRes.posterUrl;
-                if (isBrokenImageUrl(item.thumb_url) || !item.thumb_url?.includes("anilist.co")) {
-                  item.thumb_url = aniRes.backdropUrl || aniRes.posterUrl;
-                }
-                foundPoster = true;
-              }
-            } catch {}
-          }
-        }
-
-        // TẦNG 3: Nếu TMDb và AniList không có, giữ nguyên ảnh gốc hợp lệ của phim; chỉ fallback khi link hoàn toàn rỗng hoặc hỏng
-        if (!foundPoster && (!item.poster_url || isBrokenImageUrl(item.poster_url))) {
-          if (item.thumb_url && !isBrokenImageUrl(item.thumb_url)) {
-            item.poster_url = item.thumb_url;
-          } else {
-            item.poster_url = "/default-poster.jpg";
-          }
-        }
-
-        // Loại bỏ URL proxy /api/img-thumb cũ nếu có (giữ lại phimimg gốc nếu chưa có TMDb)
-        if (item.poster_url && item.poster_url.includes("/api/img-thumb")) {
-          item.poster_url = "";
-        }
-        if (item.thumb_url && item.thumb_url.includes("/api/img-thumb")) {
-          item.thumb_url = "";
-        }
-      }
-    })
-  );
-}
-
 // ==========================================
 export default async function BrowsePage({
   searchParams,
@@ -524,56 +425,54 @@ export default async function BrowsePage({
     }
   } else if (keyword) {
     // 2A. TÌM KIẾM THEO TỪ KHÓA (SEARCH MODE)
-    // Hệ thống phân trang đồng bộ qua movieApi.getMovies với limit = PAGE_LIMIT (24),
-    // đảm bảo tính nhất quán totalPages, khử trùng lặp và không bỏ sót phim giữa các trang.
-    const [searchResponse, semanticPicks] = await Promise.all([
-      movieApi.getMovies({
-        category,
-        country,
-        year,
-        keyword,
-        page: currentPage,
-        limit: PAGE_LIMIT,
-        type,
-        sort: effectiveSort,
-      }),
-      currentPage === 1 && keyword.trim().length >= 3
-        ? Promise.race([
-            searchMoviesBySemantic(keyword, 16, 0.42),
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            new Promise<any[]>((resolve) => setTimeout(() => resolve([]), 800)),
-          ]).catch(() => [])
-        : Promise.resolve([]),
-    ]);
+    // Tìm kiếm trực tiếp trước; chỉ fallback sang Semantic Vector Search khi không có kết quả (tránh tốn AI + Redis DB3 + Supabase RPC dư thừa).
+    const searchResponse = await movieApi.getMovies({
+      category,
+      country,
+      year,
+      keyword,
+      page: currentPage,
+      limit: PAGE_LIMIT,
+      type,
+      sort: effectiveSort,
+    });
 
     const items = searchResponse?.items || [];
     totalPages = searchResponse?.pagination?.totalPages || 1;
     totalItems = searchResponse?.pagination?.totalItems || items.length;
 
-    // Khi không có kết quả từ khóa trực tiếp, hiển thị gợi ý thông minh từ AI Semantic Search
-    if (items.length === 0 && Array.isArray(semanticPicks) && semanticPicks.length > 0) {
-      const semanticConcepts = resolveConcepts(keyword);
-      const relevantSemanticPicks = semanticPicks.filter((candidate) =>
-        isRelevantSemanticCandidate(candidate, keyword, semanticConcepts)
-      );
+    // Khi không có kết quả từ khóa trực tiếp ở trang 1, mới gọi gợi ý thông minh từ AI Semantic Search
+    if (items.length === 0 && currentPage === 1 && keyword.trim().length >= 3) {
+      const semanticPicks = await Promise.race([
+        searchMoviesBySemantic(keyword, 16, 0.42),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        new Promise<any[]>((resolve) => setTimeout(() => resolve([]), 800)),
+      ]).catch(() => []);
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      movies = relevantSemanticPicks.map((sp: any) => ({
-        slug: sp.id,
-        name: sp.title,
-        origin_name: sp.originalName || "",
-        poster_url: sp.posterUrl,
-        thumb_url: sp.thumbUrl || sp.posterUrl,
-        year: sp.year,
-        quality: sp.quality || "HD",
-        category: sp.category ? [{ name: sp.category, slug: "" }] : [],
-        content: sp.description,
-        isSemanticMatch: true,
-        similarity: sp.similarity,
-      }));
-      if (movies.length > 0) {
-        totalPages = 1;
-        totalItems = movies.length;
+      if (Array.isArray(semanticPicks) && semanticPicks.length > 0) {
+        const semanticConcepts = resolveConcepts(keyword);
+        const relevantSemanticPicks = semanticPicks.filter((candidate) =>
+          isRelevantSemanticCandidate(candidate, keyword, semanticConcepts)
+        );
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        movies = relevantSemanticPicks.map((sp: any) => ({
+          slug: sp.id,
+          name: sp.title,
+          origin_name: sp.originalName || "",
+          poster_url: sp.posterUrl,
+          thumb_url: sp.thumbUrl || sp.posterUrl,
+          year: sp.year,
+          quality: sp.quality || "HD",
+          category: sp.category ? [{ name: sp.category, slug: "" }] : [],
+          content: sp.description,
+          isSemanticMatch: true,
+          similarity: sp.similarity,
+        }));
+        if (movies.length > 0) {
+          totalPages = 1;
+          totalItems = movies.length;
+        }
       }
     } else {
       movies = items;
@@ -650,12 +549,20 @@ export default async function BrowsePage({
     fallbackMovies = fallbackRes?.items || [];
   }
 
-  // NÂNG CẤP TOÀN BỘ POSTER SANG TMDB CDN SIÊU TỐC (ĐẨY PHIMIMG XUỐNG TẦNG DƯỚI CÙNG DỰ PHÒNG)
+  // NÂNG CẤP TOÀN BỘ POSTER SANG TMDB CDN SIÊU TỐC (GIỚI HẠN NGÂN SÁCH SSR 1500ms ĐỂ KHÔNG CHẶN TTFB)
+  const posterTasks: Promise<void>[] = [];
   if (movies.length > 0) {
-    await enrichMoviesWithTmdbPosters(movies);
+    posterTasks.push(enrichMovieListPosters(movies, { budgetMs: 2500, stripProxyUrls: true }));
   }
   if (fallbackMovies.length > 0) {
-    await enrichMoviesWithTmdbPosters(fallbackMovies);
+    posterTasks.push(enrichMovieListPosters(fallbackMovies, { budgetMs: 2500, stripProxyUrls: true }));
+  }
+  if (posterTasks.length > 0) {
+    const posterSettlement = Promise.allSettled(posterTasks);
+    after(async () => {
+      await posterSettlement;
+    });
+    await posterSettlement;
   }
 
   let title = "Khám Phá Kho Phim";
@@ -699,7 +606,7 @@ export default async function BrowsePage({
   }
 
   return (
-    <div className="page-cinema-container min-h-screen pb-0">
+    <div className="page-cinema-container min-h-dvh pb-0 w-full max-w-full overflow-x-clip">
       <Navbar />
 
       {/* TRỤC CĂN CHỈNH NỘI DUNG CHÍNH (MAX-WIDTH 1440PX ĐỒNG BỘ THẲNG HÀNG 100%) */}
@@ -731,9 +638,9 @@ export default async function BrowsePage({
         </div>
 
         {detectedActor && (
-          <div className="mb-6 p-4 sm:p-5 rounded-2xl bg-zinc-900/60 border border-white/[0.08] flex items-center justify-between gap-3 shadow-lg animate-in fade-in duration-300">
+          <div className="mb-6 p-4 sm:p-5 rounded-2xl bg-zinc-900/75 flex items-center justify-between gap-3 shadow-lg animate-in fade-in duration-300">
             <div className="flex items-center gap-3.5">
-              <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-netflix-red/15 border border-netflix-red/25 text-netflix-red flex items-center justify-center flex-none">
+              <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-netflix-red/15 text-netflix-red flex items-center justify-center flex-none">
                 <User className="w-5 h-5 text-netflix-red" />
               </div>
               <div>
@@ -744,7 +651,7 @@ export default async function BrowsePage({
                       {detectedActor.country}
                     </span>
                   )}
-                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/10 text-zinc-300 font-semibold border border-white/10">
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/10 text-zinc-300 font-semibold">
                     Diễn viên
                   </span>
                 </h4>
@@ -841,7 +748,7 @@ export default async function BrowsePage({
             {!detectedActor && fallbackMovies.length > 0 && (
               <div className="mt-12">
                 <div className="flex items-center gap-2 mb-5">
-                  <span className="text-xl">🔥</span>
+                  <Flame className="w-5 h-5 text-netflix-red shrink-0" />
                   <h3 className="text-xl md:text-2xl font-extrabold text-white">
                     Phim Thịnh Hành Nana Gợi Ý Cho Bạn
                   </h3>

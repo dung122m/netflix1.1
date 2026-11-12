@@ -92,7 +92,7 @@ export const MovieCastGallery: React.FC<MovieCastGalleryProps> = ({
           <span className="flex items-center justify-center w-5 h-5 rounded-md bg-rose-500/10 text-rose-400">
             <Users className="w-3.5 h-3.5" />
           </span>
-          <h3 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-zinc-200">
+          <h3 className="text-sm font-bold text-zinc-100">
             Diễn viên & Vai diễn
           </h3>
         </div>
@@ -145,7 +145,7 @@ export const MovieCastGallery: React.FC<MovieCastGalleryProps> = ({
               key={actor.id}
               href={actor.href}
               prefetch={false}
-              title={`Xem hồ sơ & phim của ${actor.name}${actor.character ? ` (Vai: ${actor.character})` : ""}`}
+              aria-label={`Xem hồ sơ & phim của ${actor.name}${actor.character ? ` (Vai: ${actor.character})` : ""}`}
               className="group/card flex-none w-[100px] sm:w-[112px] md:w-[120px] transition-all duration-200 cursor-pointer flex flex-col text-left snap-start select-none"
             >
               {/* ẢNH AVATAR CHÂN DUNG 3:4 VỚI FALLBACK CAO CẤP */}

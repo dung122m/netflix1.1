@@ -342,7 +342,7 @@ export function NotificationsClient() {
 
   if (loading) {
     return (
-      <div className="min-h-[50vh] flex flex-col items-center justify-center">
+      <div className="min-h-[50dvh] flex flex-col items-center justify-center">
         <div className="w-10 h-10 border-2 border-netflix-red border-t-transparent rounded-full animate-spin mb-3" />
         <p className="text-xs text-zinc-400">Đang tải thông báo...</p>
       </div>
@@ -353,7 +353,7 @@ export function NotificationsClient() {
   if (!user) {
     return (
       <div className="max-w-md mx-auto px-4 py-16 text-center space-y-6">
-        <div className="w-20 h-20 rounded-full bg-zinc-900 border border-white/10 flex items-center justify-center mx-auto shadow-2xl">
+        <div className="w-20 h-20 rounded-full bg-zinc-900 flex items-center justify-center mx-auto shadow-2xl">
           <Bell className="w-10 h-10 text-netflix-red" />
         </div>
         <div className="space-y-2">
@@ -398,7 +398,7 @@ export function NotificationsClient() {
       </nav>
 
       {/* 2. MAIN FACEBOOK NOTIFICATIONS FEED CARD */}
-      <div className="rounded-3xl bg-[#18191a]/95 border border-white/10 p-4 sm:p-6 shadow-2xl backdrop-blur-2xl space-y-4">
+      <div className="rounded-3xl bg-[#18191a]/95 p-4 sm:p-6 shadow-2xl backdrop-blur-2xl space-y-4">
         {/* HEADER: TIÊU ĐỀ + NÚT 3 CHẤM MENU */}
         <div className="flex items-center justify-between pb-1">
           <div className="flex items-center gap-2.5">
@@ -406,7 +406,7 @@ export function NotificationsClient() {
               Thông báo
             </h1>
             {unreadCount > 0 && (
-              <span className="px-2 py-0.5 rounded-full bg-[#1877f2]/20 text-[#1877f2] border border-[#1877f2]/30 text-xs font-black">
+              <span className="px-2 py-0.5 rounded-full bg-[#1877f2]/20 text-[#1877f2] text-xs font-black tabular-nums">
                 {unreadCount} mới
               </span>
             )}
@@ -416,7 +416,7 @@ export function NotificationsClient() {
             <button
               type="button"
               onClick={() => setShowGlobalMenu((prev) => !prev)}
-              title="Tùy chọn thông báo"
+              aria-label="Tùy chọn thông báo"
               className="w-9 h-9 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-zinc-300 hover:text-white transition cursor-pointer active:scale-95"
             >
               <MoreHorizontal size={20} />
@@ -424,7 +424,7 @@ export function NotificationsClient() {
 
             {/* CONTEXT MENU */}
             {showGlobalMenu && (
-              <div className="absolute right-0 top-full mt-2 w-64 bg-[#242526] border border-white/10 rounded-2xl shadow-2xl p-1.5 z-50 animate-in fade-in zoom-in-95 duration-100">
+              <div className="absolute right-0 top-full mt-2 w-64 bg-[#242526] rounded-2xl shadow-2xl p-1.5 z-50 animate-in fade-in zoom-in-95 duration-100">
                 <button
                   type="button"
                   onClick={handleMarkAllRead}
@@ -439,13 +439,13 @@ export function NotificationsClient() {
         </div>
 
         {/* FILTER PILLS: "Tất cả" & "Chưa đọc" */}
-        <div className="flex items-center gap-2 pb-2 border-b border-white/10">
+        <div className="flex items-center gap-2 pb-2 border-b border-white/[0.08]">
           <button
             type="button"
             onClick={() => setFilterMode("all")}
             className={`px-4 py-1.5 rounded-full text-sm font-bold transition cursor-pointer ${
               filterMode === "all"
-                ? "bg-[#1877f2] text-white shadow-md shadow-[#1877f2]/30"
+                ? "bg-[#1877f2] text-white"
                 : "bg-white/5 text-zinc-300 hover:bg-white/10 hover:text-white"
             }`}
           >
@@ -456,7 +456,7 @@ export function NotificationsClient() {
             onClick={() => setFilterMode("unread")}
             className={`px-4 py-1.5 rounded-full text-sm font-bold transition cursor-pointer ${
               filterMode === "unread"
-                ? "bg-[#1877f2] text-white shadow-md shadow-[#1877f2]/30"
+                ? "bg-[#1877f2] text-white"
                 : "bg-white/5 text-zinc-300 hover:bg-white/10 hover:text-white"
             }`}
           >
@@ -468,7 +468,7 @@ export function NotificationsClient() {
         <div className="space-y-4">
           {timelineGroups.map((group) => (
             <div key={group.label} className="space-y-1">
-              <h2 className="text-sm font-bold text-zinc-400 uppercase tracking-wider px-2 pt-1 pb-1">
+              <h2 className="text-sm font-bold text-zinc-400 px-2 pt-1 pb-1">
                 {group.label}
               </h2>
 
@@ -488,8 +488,8 @@ export function NotificationsClient() {
                       onClick={() => handleNotificationClick(item)}
                       className={`relative flex items-center gap-3.5 p-3 rounded-2xl transition-all cursor-pointer group ${
                         !item.isRead
-                          ? "bg-[#1877f2]/[0.08] hover:bg-[#1877f2]/[0.14] border border-[#1877f2]/20"
-                          : "hover:bg-white/[0.06] border border-transparent"
+                          ? "bg-[#1877f2]/[0.08] hover:bg-[#1877f2]/[0.14]"
+                          : "hover:bg-white/[0.06]"
                       }`}
                     >
                       {/* FACEBOOK ROUND AVATAR WITH OVERLAPPING BADGE */}
@@ -519,8 +519,8 @@ export function NotificationsClient() {
                       <div className="flex items-center gap-2 shrink-0">
                         {!item.isRead && (
                           <span
-                            className="w-3.5 h-3.5 rounded-full bg-[#1877f2] shadow-[0_0_8px_rgba(24,119,242,0.8)]"
-                            title="Chưa đọc"
+                            className="w-3 h-3 rounded-full bg-[#1877f2]"
+                            aria-label="Chưa đọc"
                           />
                         )}
 
@@ -536,14 +536,14 @@ export function NotificationsClient() {
                               setActiveItemMenuId(isItemMenuOpen ? null : item.id);
                             }}
                             className="w-8 h-8 rounded-full hover:bg-white/10 flex items-center justify-center text-zinc-400 hover:text-white transition opacity-0 group-hover:opacity-100 cursor-pointer"
-                            title="Tùy chọn"
+                            aria-label="Tùy chọn"
                           >
                             <MoreHorizontal size={18} />
                           </button>
 
                           {/* ITEM DROPDOWN MENU */}
                           {isItemMenuOpen && (
-                            <div className="absolute right-0 top-full mt-1.5 w-48 bg-[#242526] border border-white/10 rounded-xl shadow-2xl p-1 z-50 animate-in fade-in zoom-in-95 duration-100">
+                            <div className="absolute right-0 top-full mt-1.5 w-48 bg-[#242526] rounded-xl shadow-2xl p-1 z-50 animate-in fade-in zoom-in-95 duration-100">
                               <button
                                 type="button"
                                 onClick={(e) => {

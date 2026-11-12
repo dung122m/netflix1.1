@@ -2,9 +2,9 @@ import React from "react";
 
 export default function BrowseLoading() {
   return (
-    <div className="bg-black min-h-screen text-white pb-20 animate-pulse">
+    <div className="bg-black min-h-dvh text-white pb-20 animate-pulse">
       {/* HERO SKELETON */}
-      <div className="relative h-[65vh] sm:h-[75vh] w-full bg-zinc-900/60 overflow-hidden">
+      <div className="relative h-[65dvh] sm:h-[75dvh] w-full bg-zinc-900/60 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
         <div className="absolute bottom-8 left-4 md:left-10 max-w-2xl space-y-4">
           <div className="h-6 w-32 bg-white/10 rounded-full" />
@@ -26,8 +26,8 @@ export default function BrowseLoading() {
         {/* HEADER SKELETON */}
         <div className="flex justify-between items-center py-4">
           <div className="space-y-2">
-            <div className="h-7 w-48 bg-white/15 rounded-lg" />
-            <div className="h-4 w-72 bg-white/10 rounded-lg" />
+            <div className="h-7 w-48 max-w-full bg-white/15 rounded-lg" />
+            <div className="h-4 w-72 max-w-full bg-white/10 rounded-lg" />
           </div>
           <div className="h-9 w-28 bg-white/10 rounded-xl" />
         </div>

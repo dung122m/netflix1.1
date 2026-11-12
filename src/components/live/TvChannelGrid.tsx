@@ -37,7 +37,7 @@ export function TvChannelGrid({
 }: TvChannelGridProps) {
   if (displayedChannels.length === 0) {
     return (
-      <div className="rounded-3xl bg-zinc-900/50 p-12 text-center text-zinc-400 space-y-3">
+      <div className="rounded-2xl sm:rounded-3xl bg-zinc-900/50 p-6 sm:p-12 text-center text-zinc-400 space-y-3">
         <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center mx-auto text-zinc-400">
           <Search className="w-6 h-6" />
         </div>
@@ -75,7 +75,7 @@ export function TvChannelGrid({
                     onSelectChannel(ch);
                   }
                 }}
-                className={`live-channel-card group relative rounded-xl sm:rounded-2xl border p-2 sm:p-3.5 cursor-pointer transition-all duration-300 flex flex-col items-center justify-between text-center focus-visible:scale-105 focus-visible:ring-4 focus-visible:ring-netflix-red focus-visible:outline-none ${
+                className={`live-channel-card group relative rounded-xl sm:rounded-2xl p-2 sm:p-3.5 cursor-pointer transition-all duration-300 flex flex-col items-center justify-between text-center focus-visible:scale-105 focus-visible:ring-4 focus-visible:ring-netflix-red focus-visible:outline-none ${
                   isSelected
                     ? "live-channel-active scale-102"
                     : "hover:shadow-lg hover:-translate-y-0.5"
@@ -89,7 +89,7 @@ export function TvChannelGrid({
                   <div className="flex items-center gap-1 flex-shrink-0">
                     {isSelected && isPlaying && <PlayingEqualizer />}
                     <span
-                      className={`px-1 sm:px-1.5 py-0.2 rounded text-[8px] sm:text-[9.5px] font-black uppercase tracking-wider ${
+                      className={`px-1 sm:px-1.5 py-0.5 rounded text-[8px] sm:text-[9.5px] font-black uppercase ${
                         ch.quality.includes("FHD")
                           ? "bg-emerald-500/15 text-emerald-400"
                           : "bg-sky-500/15 text-sky-400"
@@ -128,10 +128,10 @@ export function TvChannelGrid({
                     onSelectChannel(ch);
                   }
                 }}
-                className={`group rounded-xl border p-2 sm:p-2.5 cursor-pointer transition-all flex items-center justify-between gap-2.5 sm:gap-3 live-channel-card focus-visible:scale-102 focus-visible:ring-4 focus-visible:ring-netflix-red focus-visible:outline-none ${
+                className={`group rounded-xl p-2 sm:p-2.5 cursor-pointer transition-all flex items-center justify-between gap-2.5 sm:gap-3 live-channel-card focus-visible:scale-102 focus-visible:ring-4 focus-visible:ring-netflix-red focus-visible:outline-none ${
                   isSelected
-                    ? "live-channel-active border-netflix-red/60 bg-netflix-red/10"
-                    : "border-white/[0.08] hover:border-white/20 hover:bg-white/[0.03]"
+                    ? "live-channel-active ring-1 ring-netflix-red/60 bg-netflix-red/10"
+                    : "bg-zinc-900/40 hover:bg-white/[0.05]"
                 }`}
               >
                 <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
@@ -211,8 +211,8 @@ export function TvChannelGrid({
                     onClick={() => onPageChange(Number(p))}
                     className={`min-w-[30px] sm:min-w-[32px] h-7 sm:h-8 px-1.5 sm:px-2 rounded-xl text-[11px] sm:text-xs font-bold transition cursor-pointer shrink-0 ${
                       isCurrent
-                        ? "bg-netflix-red text-white shadow-md shadow-black/50 font-black scale-105 border border-netflix-red"
-                        : "bg-zinc-900/90 text-zinc-300 hover:text-white hover:bg-zinc-800 border border-white/[0.08] hover:border-white/20"
+                        ? "bg-netflix-red text-white shadow-md shadow-black/50 font-black scale-105"
+                        : "bg-zinc-900/90 text-zinc-300 hover:text-white hover:bg-zinc-800"
                     }`}
                   >
                     {p}

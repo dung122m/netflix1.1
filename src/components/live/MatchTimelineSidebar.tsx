@@ -7,6 +7,7 @@ import {
   MatchStatItem,
 } from "@/services/live/football-score/types";
 import { Activity, Clock, ArrowLeftRight, MessageSquare } from "lucide-react";
+import { Tooltip } from "@/components/ui/Tooltip";
 
 export interface MatchTimelineSidebarProps {
   events?: MatchKeyEvent[];
@@ -364,7 +365,7 @@ export const MatchTimelineSidebar: React.FC<MatchTimelineSidebarProps> = ({
     <div className="flex-1 min-h-0 flex flex-col space-y-2 overflow-hidden">
       {/* 1. MINI STATS WIDGET PHÍA TRÊN CÙNG (~70px, CỐ ĐỊNH PHẲNG) */}
       {hasStats && (
-        <div className="px-2.5 py-2 rounded-xl bg-white/[0.03] border border-white/5 space-y-2 shrink-0">
+        <div className="px-2.5 py-2 rounded-xl bg-white/[0.04] space-y-2 shrink-0">
           {/* Thanh tỉ lệ kiểm soát bóng kèm Tên & Logo hai đội */}
           {possessionStat && (
             <div className="space-y-1">
@@ -393,7 +394,7 @@ export const MatchTimelineSidebar: React.FC<MatchTimelineSidebarProps> = ({
                   </span>
                 </div>
 
-                <span className="text-[9.5px] text-zinc-500 uppercase tracking-wider font-semibold shrink-0 px-1">
+                <span className="text-[11px] text-zinc-400 font-medium shrink-0 px-1">
                   Kiểm soát
                 </span>
 
@@ -473,34 +474,36 @@ export const MatchTimelineSidebar: React.FC<MatchTimelineSidebarProps> = ({
       {/* 2. HEADER ĐIỀU HƯỚNG & BỘ LỌC (PHẲNG, RÕ RÀNG, DỄ CHUYỂN ĐỔI) */}
       <div className="flex items-center justify-between px-1 shrink-0 gap-1.5 pt-0.5">
         {/* Nút lọc Chế độ xem: Sự kiện chính (chuẩn 100%) vs Tất cả */}
-        <div className="flex items-center gap-1 bg-white/5 p-0.5 rounded-lg border border-white/5 shrink-0">
-          <button
-            type="button"
-            onClick={() => setViewMode("events")}
-            className={`px-2 py-1 rounded-md text-[11px] font-bold transition flex items-center gap-1 cursor-pointer ${
-              viewMode === "events"
-                ? "bg-netflix-red text-white shadow-sm"
-                : "text-zinc-400 hover:text-white"
-            }`}
-            title="Chỉ hiển thị các sự kiện chính: Bàn thắng, Thẻ, Thay người chuẩn xác 100%"
-          >
-            <span>Sự kiện ({events.length})</span>
-          </button>
-
-          {commentary.length > 0 && (
+        <div className="flex items-center gap-1 bg-white/5 p-0.5 rounded-lg shrink-0">
+          <Tooltip content="Chỉ hiển thị các sự kiện chính: Bàn thắng, Thẻ, Thay người chuẩn xác 100%" side="top">
             <button
               type="button"
-              onClick={() => setViewMode("all")}
+              onClick={() => setViewMode("events")}
               className={`px-2 py-1 rounded-md text-[11px] font-bold transition flex items-center gap-1 cursor-pointer ${
-                viewMode === "all"
+                viewMode === "events"
                   ? "bg-netflix-red text-white shadow-sm"
                   : "text-zinc-400 hover:text-white"
               }`}
-              title="Xem đầy đủ dòng bình luận tường thuật kèm sự kiện"
             >
-              <MessageSquare className="w-3 h-3" />
-              <span>Tất cả</span>
+              <span>Sự kiện ({events.length})</span>
             </button>
+          </Tooltip>
+
+          {commentary.length > 0 && (
+            <Tooltip content="Xem đầy đủ dòng bình luận tường thuật kèm sự kiện" side="top">
+              <button
+                type="button"
+                onClick={() => setViewMode("all")}
+                className={`px-2 py-1 rounded-md text-[11px] font-bold transition flex items-center gap-1 cursor-pointer ${
+                  viewMode === "all"
+                    ? "bg-netflix-red text-white shadow-sm"
+                    : "text-zinc-400 hover:text-white"
+                }`}
+              >
+                <MessageSquare className="w-3 h-3" />
+                <span>Tất cả</span>
+              </button>
+            </Tooltip>
           )}
 
           {loading && hasData && (
@@ -511,7 +514,7 @@ export const MatchTimelineSidebar: React.FC<MatchTimelineSidebarProps> = ({
         </div>
 
         {/* Nút chọn thứ tự Mới nhất / Cũ nhất */}
-        <div className="flex items-center gap-0.5 bg-white/5 p-0.5 rounded-lg border border-white/5 shrink-0">
+        <div className="flex items-center gap-0.5 bg-white/5 p-0.5 rounded-lg shrink-0">
           <button
             type="button"
             onClick={() => setSortOrder("newest")}
@@ -566,7 +569,7 @@ export const MatchTimelineSidebar: React.FC<MatchTimelineSidebarProps> = ({
                   }`}
                 >
                   {/* Phút */}
-                  <span className="w-8 shrink-0 text-right font-mono font-black tabular-nums text-amber-400 pt-0.5">
+                  <span className="w-8 shrink-0 text-right font-sans font-black tabular-nums text-amber-400 pt-0.5">
                     {item.timeDisplay}
                   </span>
 
@@ -634,7 +637,7 @@ export const MatchTimelineSidebar: React.FC<MatchTimelineSidebarProps> = ({
                 key={item.id}
                 className="flex items-start gap-2.5 py-2 px-2 hover:bg-white/[0.02] transition text-xs"
               >
-                <span className="w-8 shrink-0 text-right font-mono font-bold tabular-nums text-amber-400/90 pt-0.5">
+                <span className="w-8 shrink-0 text-right font-sans font-bold tabular-nums text-amber-400/90 pt-0.5">
                   {item.timeDisplay}
                 </span>
                 <p className="text-zinc-300 leading-relaxed flex-1 font-sans">{item.text}</p>

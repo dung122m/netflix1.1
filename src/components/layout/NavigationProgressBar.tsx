@@ -146,7 +146,7 @@ function NavigationProgressBarInner() {
         }}
       >
         <div className="w-3.5 h-3.5 rounded-full border-2 border-netflix-red/30 border-t-netflix-red animate-spin" />
-        <span className="text-[10px] font-black text-zinc-200 tracking-wider hidden xs:inline">Đang tải...</span>
+        <span className="text-[10px] font-black text-zinc-200 tracking-wider hidden min-[380px]:inline">Đang tải...</span>
       </div>
     </>
   );

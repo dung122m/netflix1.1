@@ -2,7 +2,7 @@ import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { getTopMovieSlugsFromAnalytics, getStartOfWeekVietnam } from "@/services/analyticsService";
 import { movieApi } from "@/services/movies/service";
 import { pickBestMoviePoster, pickBestMovieThumb, isBrokenImageUrl } from "@/lib/movieMedia";
-import { getTmdbPosterUrl, searchTmdbPosterByTitle } from "@/services/tmdbService";
+import { getTmdbMediaImagesById, searchTmdbPosterByTitle } from "@/services/tmdbService";
 import { cacheService } from "@/lib/cache";
 
 export interface MovieViewStatItem {
@@ -159,8 +159,8 @@ async function resolveTrendingCommunityInternal(
   timeframe: "total" | "week"
 ): Promise<MovieViewStatItem[]> {
   try {
-    // 1. Lấy danh sách top slugs từ Analytics Pipeline (Redis Sorted Sets + Supabase events)
-    const analyticsSlugs = await getTopMovieSlugsFromAnalytics(timeframe, Math.max(limit * 2, 20));
+    // 1. Lấy danh sách top slugs từ Analytics Pipeline (giới hạn limit + 4 thay vì 20 để giảm độ trễ cold start)
+    const analyticsSlugs = await getTopMovieSlugsFromAnalytics(timeframe, Math.min(limit + 4, 20));
 
     if (analyticsSlugs && analyticsSlugs.length > 0) {
       const allSlugs = analyticsSlugs.map((s) => s.slug);
@@ -180,23 +180,28 @@ async function resolveTrendingCommunityInternal(
             let poster = pickBestMoviePoster(m, "");
             let thumb = pickBestMovieThumb(m, "");
 
-            // Thay thế ngay từ đầu trên Server: BẮT BUỘC tra cứu poster chính thức từ TMDb nếu là nguồn phimimg hoặc bị thiếu/hỏng
+            // Thay thế ngay từ đầu trên Server: tra cứu TMDb với tối đa 2 candidate để tránh chặn TTFB
             const isPhimimg = Boolean(poster?.includes("phimimg.com") || thumb?.includes("phimimg.com"));
             if (!poster || isBrokenImageUrl(poster) || poster.includes("/default-") || isPhimimg) {
               if (m.tmdb?.id) {
                 try {
-                  const tmdbP = await getTmdbPosterUrl(m.tmdb.id, m.type);
-                  if (tmdbP) poster = tmdbP;
+                  const idImgs = await getTmdbMediaImagesById(m.tmdb.id, m.type);
+                  if (idImgs.posterUrl) poster = idImgs.posterUrl;
+                  if (idImgs.backdropUrl && (!thumb || isBrokenImageUrl(thumb) || thumb.includes("/default-") || thumb.includes("phimimg.com"))) {
+                    thumb = idImgs.backdropUrl;
+                  }
                 } catch {}
               }
-              const stillNeedsTmdb = Boolean(!poster || isBrokenImageUrl(poster) || poster.includes("/default-") || poster?.includes("phimimg.com"));
+              const stillNeedsTmdb = Boolean(!poster || isBrokenImageUrl(poster) || poster.includes("/default-") || poster?.includes("phimimg.com") || thumb?.includes("phimimg.com"));
               if (stillNeedsTmdb) {
-                const candidates = [title, m.origin_name, slug.replace(/-/g, " ")].filter(Boolean);
+                const candidates = Array.from(new Set([title, m.origin_name].filter(Boolean)));
                 for (const query of candidates) {
                   try {
                     const tmdbRes = await searchTmdbPosterByTitle(query, year, m.type);
                     if (tmdbRes?.posterUrl) {
-                      poster = tmdbRes.posterUrl;
+                      if (!poster || isBrokenImageUrl(poster) || poster.includes("/default-") || poster.includes("phimimg.com")) {
+                        poster = tmdbRes.posterUrl;
+                      }
                       if (!thumb || isBrokenImageUrl(thumb) || thumb.includes("/default-") || thumb.includes("phimimg.com")) {
                         thumb = tmdbRes.backdropUrl || tmdbRes.posterUrl;
                       }

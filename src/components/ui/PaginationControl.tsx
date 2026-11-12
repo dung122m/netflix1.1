@@ -211,7 +211,7 @@ export const PaginationControl: React.FC<PaginationControlProps> = ({
                 value={targetPageInput}
                 onChange={(e) => setTargetPageInput(e.target.value)}
                 placeholder={`1 - ${totalPages}`}
-                className="w-full bg-zinc-950 text-white font-bold text-center text-sm px-3 py-2 rounded-xl focus:border-red-500 focus:outline-none focus:ring-1 focus:ring-red-500/50"
+                className="w-full bg-zinc-950 text-white font-bold text-center text-base sm:text-sm px-3 py-2 rounded-xl focus:border-red-500 focus:outline-none focus:ring-1 focus:ring-red-500/50"
               />
               <button
                 type="submit"

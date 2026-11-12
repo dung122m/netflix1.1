@@ -11,19 +11,29 @@ import { RankedCarouselSection, RankedMovieData } from "@/components/movies/Rank
 
 const TRENDING_CACHE_KEY = "nanaflix_trending_community_cache_v5";
 
-function CommunityTopTrendingInner() {
-  const [items, setItems] = useState<MovieViewStatItem[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
+function CommunityTopTrendingInner({
+  initialItems,
+}: {
+  initialItems?: MovieViewStatItem[];
+} = {}) {
+  const hasInitialItems = Boolean(initialItems && initialItems.length > 0);
+  const [items, setItems] = useState<MovieViewStatItem[]>(() =>
+    hasInitialItems ? initialItems! : [],
+  );
+  const [loading, setLoading] = useState<boolean>(() => !hasInitialItems);
 
   const [timeframe, setTimeframe] = useState<"total" | "week">("total");
   const [isFading, setIsFading] = useState(false);
-  const tabCacheRef = useRef<Partial<Record<"total" | "week", MovieViewStatItem[]>>>({});
+  const tabCacheRef = useRef<Partial<Record<"total" | "week", MovieViewStatItem[]>>>(
+    hasInitialItems ? { total: initialItems } : {},
+  );
   const timeframeRef = useRef(timeframe);
   timeframeRef.current = timeframe;
 
-  // 1. Đọc cache localStorage ngay khi mount (0ms) và luôn revalidate ngầm từ server (SWR)
+  // 1. Đọc cache localStorage ngay khi mount (0ms) và bỏ qua fetch nếu đã có SSR initialItems hoặc cache tươi
   useEffect(() => {
     let isMounted = true;
+    let isFreshCache = hasInitialItems;
 
     // Đọc cache localStorage ngay khi mount nếu dữ liệu còn hợp lệ (trong 12 giờ)
     try {
@@ -34,25 +44,37 @@ function CommunityTopTrendingInner() {
       const raw = localStorage.getItem(TRENDING_CACHE_KEY);
       if (raw) {
         const parsed = JSON.parse(raw);
-        const isValid = parsed.timestamp && Date.now() - parsed.timestamp < 12 * 60 * 60 * 1000;
+        const ageMs = parsed.timestamp ? Date.now() - parsed.timestamp : Infinity;
+        const isValid = ageMs < 12 * 60 * 60 * 1000;
         if (isValid) {
-          if (Array.isArray(parsed.total) && parsed.total.length > 0) {
+          if (!hasInitialItems && Array.isArray(parsed.total) && parsed.total.length > 0) {
             tabCacheRef.current["total"] = parsed.total;
           }
           if (Array.isArray(parsed.week) && parsed.week.length > 0) {
             tabCacheRef.current["week"] = parsed.week;
           }
 
-          const currentTf = timeframeRef.current;
-          const cachedForCurrent = tabCacheRef.current[currentTf];
-          if (cachedForCurrent && cachedForCurrent.length > 0) {
-            setItems(cachedForCurrent);
-            setLoading(false);
+          if (!hasInitialItems) {
+            const currentTf = timeframeRef.current;
+            const cachedForCurrent = tabCacheRef.current[currentTf];
+            if (cachedForCurrent && cachedForCurrent.length > 0) {
+              setItems(cachedForCurrent);
+              setLoading(false);
+              if (ageMs < 5 * 60 * 1000 && tabCacheRef.current["total"]?.length) {
+                isFreshCache = true;
+              }
+            }
           }
         }
       }
     } catch {
       // Bỏ qua nếu localStorage lỗi
+    }
+
+    if (isFreshCache) {
+      return () => {
+        isMounted = false;
+      };
     }
 
     // Luôn fetch BXH "total" khi mới vào trang (SWR: chạy ngầm revalidate)
@@ -93,7 +115,7 @@ function CommunityTopTrendingInner() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [hasInitialItems]);
 
   // 2. Chuyển đổi tab: render cache tức thì nếu có, và luôn fetch revalidate ngầm
   const switchTab = (nextTf: "total" | "week") => {

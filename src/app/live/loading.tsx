@@ -2,12 +2,12 @@ import React from "react";
 
 export default function LiveLoading() {
   return (
-    <div className="bg-black min-h-screen text-white pt-24 pb-16 px-4 md:px-8 max-w-7xl mx-auto space-y-8 animate-pulse">
+    <div className="bg-black min-h-dvh text-white pt-20 sm:pt-24 pb-16 px-4 md:px-8 max-w-7xl mx-auto space-y-8 animate-pulse">
       {/* HEADER SKELETON */}
-      <div className="space-y-3 border-b pb-6">
-        <div className="h-6 w-32 bg-red-600/20 rounded-full" />
-        <div className="h-10 w-72 bg-white/15 rounded-xl" />
-        <div className="h-4 w-96 bg-white/10 rounded-lg" />
+      <div className="space-y-3 border-b border-white/[0.08] pb-6">
+        <div className="h-6 w-32 max-w-full bg-red-600/20 rounded-full" />
+        <div className="h-10 w-72 max-w-full bg-white/15 rounded-xl" />
+        <div className="h-4 w-96 max-w-full bg-white/10 rounded-lg" />
       </div>
 
       {/* MATCH GRID SKELETON */}

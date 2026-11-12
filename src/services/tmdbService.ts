@@ -9,7 +9,6 @@ import {
 } from "@/lib/movieTitle";
 
 export { extractPartNumber, normalizeTitleCore, ROMAN_NUMERALS, checkCandidateTitleMatch };
-import { IMDB_TOP_250_SNAPSHOT } from "@/data/imdb/imdbTop250";
 import { getHistoricalArtistBySlug } from "@/data/history/historicalArtistsBirthdays";
 import { TMDB_GENRE_ID_MAP } from "@/lib/movieMedia";
 
@@ -152,58 +151,151 @@ export async function getTmdbBackdropUrl(
   }
 }
 
-// 5.0 CACHE POSTER TMDB CHUẨN ĐỨNG 2:3 CHO THẺ PHIM (24h RAM L1, Next.js Data Cache 24h)
-const TMDB_POSTER_CACHE = new Map<string, { url: string | null; expireAt: number }>();
+// 5.0 CACHE POSTER & BACKDROP TMDB CHO THẺ PHIM (24h RAM L1, Next.js Data Cache 24h)
+const TMDB_MEDIA_IMAGES_CACHE = new Map<
+  string,
+  { posterUrl: string | null; backdropUrl: string | null; expireAt: number }
+>();
+const inFlightTmdbIdImages = new Map<
+  string,
+  Promise<{ posterUrl: string | null; backdropUrl: string | null }>
+>();
+
+function normalizeTmdbLookupMediaType(type?: string): "tv" | "movie" {
+  const clean = String(type || "").toLowerCase().trim();
+  if (
+    clean === "tv" ||
+    clean === "series" ||
+    clean === "phim-bo" ||
+    clean === "tv-shows" ||
+    clean === "tvshows" ||
+    clean === "hoathinh" ||
+    clean === "hoat-hinh"
+  ) {
+    return "tv";
+  }
+  return "movie";
+}
+
+function combineTimeoutSignal(timeoutMs: number, externalSignal?: AbortSignal): AbortSignal {
+  const timeoutSignal = AbortSignal.timeout(timeoutMs);
+  return externalSignal ? AbortSignal.any([timeoutSignal, externalSignal]) : timeoutSignal;
+}
+
+function awaitWithAbort<T>(promise: Promise<T>, signal?: AbortSignal, fallback?: T): Promise<T> {
+  if (!signal) return promise;
+  if (signal.aborted) {
+    if (fallback !== undefined) return Promise.resolve(fallback);
+    return Promise.reject(signal.reason ?? new DOMException("Aborted", "AbortError"));
+  }
+  return new Promise<T>((resolve, reject) => {
+    const onAbort = () => {
+      if (fallback !== undefined) {
+        resolve(fallback);
+      } else {
+        reject(signal.reason ?? new DOMException("Aborted", "AbortError"));
+      }
+    };
+    signal.addEventListener("abort", onAbort, { once: true });
+    promise.then(
+      (val) => {
+        signal.removeEventListener("abort", onAbort);
+        resolve(val);
+      },
+      (err) => {
+        signal.removeEventListener("abort", onAbort);
+        reject(err);
+      }
+    );
+  });
+}
+
+export async function getTmdbMediaImagesById(
+  tmdbId: string | number | undefined | null,
+  type: string = "movie",
+  externalSignal?: AbortSignal
+): Promise<{ posterUrl: string | null; backdropUrl: string | null }> {
+  if (!tmdbId || externalSignal?.aborted) return { posterUrl: null, backdropUrl: null };
+  const cleanId = String(tmdbId).trim();
+  if (!cleanId || cleanId === "0" || cleanId === "null" || cleanId === "undefined") {
+    return { posterUrl: null, backdropUrl: null };
+  }
+
+  const cleanType = normalizeTmdbLookupMediaType(type);
+  const cacheKey = `v3:${cleanType}:${cleanId}`;
+
+  const now = Date.now();
+  const memoryHit = TMDB_MEDIA_IMAGES_CACHE.get(cacheKey);
+  if (memoryHit && memoryHit.expireAt > now) {
+    return { posterUrl: memoryHit.posterUrl, backdropUrl: memoryHit.backdropUrl };
+  }
+
+  const existingFlight = inFlightTmdbIdImages.get(cacheKey);
+  if (existingFlight) {
+    return awaitWithAbort(existingFlight, externalSignal, { posterUrl: null, backdropUrl: null });
+  }
+
+  const task = (async (): Promise<{ posterUrl: string | null; backdropUrl: string | null }> => {
+    try {
+      // 1. Thử lấy poster tiếng Việt theo cleanType
+      let data = await fetchTmdbEndpoint(`/${cleanType}/${cleanId}?language=vi-VN`, 86400, externalSignal);
+
+      // 2. Nếu có phim nhưng chưa có poster tiếng Việt, lấy poster mặc định quốc tế
+      if (!data?.poster_path && data?.id && !externalSignal?.aborted) {
+        data = await fetchTmdbEndpoint(`/${cleanType}/${cleanId}`, 86400, externalSignal);
+      }
+
+      // 3. Fallback sang loại media khác (movie <-> tv) bất cứ khi nào chưa có poster_path
+      // (TMDB ID của movie và tv nằm ở 2 namespace tách biệt, có thể trùng số ID)
+      if (!data?.poster_path && !externalSignal?.aborted) {
+        const altType = cleanType === "tv" ? "movie" : "tv";
+        const altVi = await fetchTmdbEndpoint(`/${altType}/${cleanId}?language=vi-VN`, 86400, externalSignal);
+        if (altVi?.poster_path) {
+          data = altVi;
+        } else if (altVi?.id && !externalSignal?.aborted) {
+          const altGlobal = await fetchTmdbEndpoint(`/${altType}/${cleanId}`, 86400, externalSignal);
+          if (altGlobal?.poster_path) {
+            data = altGlobal;
+          }
+        }
+      }
+
+      const posterUrl = data?.poster_path
+        ? `https://image.tmdb.org/t/p/w500${data.poster_path}`
+        : null;
+      const backdropUrl = data?.backdrop_path
+        ? `https://image.tmdb.org/t/p/w780${data.backdrop_path}`
+        : null;
+
+      if (!externalSignal?.aborted || posterUrl) {
+        setBoundedMap(TMDB_MEDIA_IMAGES_CACHE, cacheKey, {
+          posterUrl,
+          backdropUrl,
+          expireAt: Date.now() + (posterUrl ? 24 * 3600 * 1000 : 120 * 1000),
+        });
+      }
+
+      return { posterUrl, backdropUrl };
+    } catch (err) {
+      if (!externalSignal?.aborted) {
+        console.warn(`[TMDB] Error fetching poster for ${cleanType}/${cleanId}:`, err);
+      }
+      return { posterUrl: null, backdropUrl: null };
+    } finally {
+      inFlightTmdbIdImages.delete(cacheKey);
+    }
+  })();
+
+  inFlightTmdbIdImages.set(cacheKey, task);
+  return task;
+}
 
 export async function getTmdbPosterUrl(
   tmdbId: string | number | undefined | null,
   type: string = "movie"
 ): Promise<string | null> {
-  if (!tmdbId) return null;
-  const cleanId = String(tmdbId).trim();
-  if (!cleanId || cleanId === "0" || cleanId === "null" || cleanId === "undefined") return null;
-
-  const cleanType = type === "tv" || type === "series" ? "tv" : "movie";
-  const cacheKey = `v2:${cleanType}:${cleanId}`;
-
-  const now = Date.now();
-  const memoryHit = TMDB_POSTER_CACHE.get(cacheKey);
-  if (memoryHit && memoryHit.expireAt > now) {
-    return memoryHit.url;
-  }
-
-  try {
-    // 1. Thử lấy poster tiếng Việt theo cleanType
-    let data = await fetchTmdbEndpoint(`/${cleanType}/${cleanId}?language=vi-VN`, 86400);
-
-    // 2. Nếu có phim nhưng chưa có poster tiếng Việt, lấy poster mặc định quốc tế
-    if (!data?.poster_path && data?.id) {
-      data = await fetchTmdbEndpoint(`/${cleanType}/${cleanId}`, 86400);
-    }
-
-    // 3. Fallback sang loại media khác (movie <-> tv) nếu không tìm thấy phim
-    if (!data?.poster_path && !data?.id) {
-      const altType = cleanType === "tv" ? "movie" : "tv";
-      data = await fetchTmdbEndpoint(`/${altType}/${cleanId}?language=vi-VN`, 86400);
-      if (!data?.poster_path && data?.id) {
-        data = await fetchTmdbEndpoint(`/${altType}/${cleanId}`, 86400);
-      }
-    }
-
-    const posterUrl = data?.poster_path
-      ? `https://image.tmdb.org/t/p/w500${data.poster_path}`
-      : null;
-
-    setBoundedMap(TMDB_POSTER_CACHE, cacheKey, {
-      url: posterUrl,
-      expireAt: now + (posterUrl ? 24 * 3600 * 1000 : 3600 * 1000),
-    });
-
-    return posterUrl;
-  } catch (err) {
-    console.warn(`[TMDB] Error fetching poster for ${cleanType}/${cleanId}:`, err);
-    return null;
-  }
+  const res = await getTmdbMediaImagesById(tmdbId, type);
+  return res.posterUrl;
 }
 
 const TMDB_TITLE_POSTER_CACHE = new Map<string, { posterUrl: string | null; backdropUrl: string | null; expireAt: number }>();
@@ -274,12 +366,17 @@ function pickBestTmdbCandidate(results: any[], targetType: string, targetYear?: 
   return scored[0]?.item || valid[0];
 }
 
+const inFlightTmdbTitlePoster = new Map<string, Promise<{ posterUrl: string | null; backdropUrl: string | null }>>();
+
 export async function searchTmdbPosterByTitle(
   query: string,
   year?: number | string,
-  type: string = "movie"
+  type: string = "movie",
+  externalSignal?: AbortSignal
 ): Promise<{ posterUrl: string | null; backdropUrl: string | null }> {
-  if (!query || typeof query !== "string") return { posterUrl: null, backdropUrl: null };
+  if (!query || typeof query !== "string" || externalSignal?.aborted) {
+    return { posterUrl: null, backdropUrl: null };
+  }
   const cleanQuery = query.trim();
   if (cleanQuery.length < 2) return { posterUrl: null, backdropUrl: null };
 
@@ -290,67 +387,72 @@ export async function searchTmdbPosterByTitle(
     return { posterUrl: memHit.posterUrl, backdropUrl: memHit.backdropUrl };
   }
 
-  const cleanType =
-    type === "tv" || type === "series" || type === "phim-bo" || type === "tvshows" ? "tv" : "movie";
-  const searchYear = year && /^\d{4}$/.test(String(year).trim()) ? `&year=${String(year).trim()}` : "";
-  const variants = extractTitleVariants(cleanQuery);
-
-  let result: { posterUrl: string | null; backdropUrl: string | null } = {
-    posterUrl: null,
-    backdropUrl: null,
-  };
-
-  for (const v of variants) {
-    // 1. Thử search/multi trước (hỗ trợ cả movie và tv series, anime, chấm điểm theo type, năm phát hành, độ phổ biến)
-    try {
-      const endpointMulti = `/search/multi?query=${encodeURIComponent(v)}&include_adult=false`;
-      const dataMulti = await fetchTmdbEndpoint(endpointMulti, 86400);
-      const bestMulti = pickBestTmdbCandidate(dataMulti?.results, cleanType, year);
-      if (bestMulti?.poster_path) {
-        result = {
-          posterUrl: `https://image.tmdb.org/t/p/w500${bestMulti.poster_path}`,
-          backdropUrl: bestMulti.backdrop_path ? `https://image.tmdb.org/t/p/w1280${bestMulti.backdrop_path}` : null,
-        };
-        break;
-      }
-    } catch {}
-
-    // 2. Thử theo type chính thức (kèm năm nếu có)
-    try {
-      const endpointType = `/search/${cleanType}?query=${encodeURIComponent(v)}${searchYear}&language=vi-VN`;
-      const dataType = await fetchTmdbEndpoint(endpointType, 86400);
-      const bestType = pickBestTmdbCandidate(dataType?.results, cleanType, year);
-      if (bestType?.poster_path) {
-        result = {
-          posterUrl: `https://image.tmdb.org/t/p/w500${bestType.poster_path}`,
-          backdropUrl: bestType.backdrop_path ? `https://image.tmdb.org/t/p/w1280${bestType.backdrop_path}` : null,
-        };
-        break;
-      }
-    } catch {}
-
-    // 3. Thử tv riêng biệt không năm (nhiều phim bộ / anime năm bị lệch giữa upstream và TMDB)
-    try {
-      const endpointTv = `/search/tv?query=${encodeURIComponent(v)}`;
-      const dataTv = await fetchTmdbEndpoint(endpointTv, 86400);
-      const bestTv = pickBestTmdbCandidate(dataTv?.results, "tv", year);
-      if (bestTv?.poster_path) {
-        result = {
-          posterUrl: `https://image.tmdb.org/t/p/w500${bestTv.poster_path}`,
-          backdropUrl: bestTv.backdrop_path ? `https://image.tmdb.org/t/p/w1280${bestTv.backdrop_path}` : null,
-        };
-        break;
-      }
-    } catch {}
+  const existingFlight = inFlightTmdbTitlePoster.get(cacheKey);
+  if (existingFlight) {
+    return awaitWithAbort(existingFlight, externalSignal, { posterUrl: null, backdropUrl: null });
   }
 
-  setBoundedMap(TMDB_TITLE_POSTER_CACHE, cacheKey, {
-    posterUrl: result.posterUrl,
-    backdropUrl: result.backdropUrl,
-    expireAt: now + (result.posterUrl ? 24 * 3600 * 1000 : 3600 * 1000),
-  });
+  const cleanType = normalizeTmdbLookupMediaType(type);
+  const searchYear = year && /^\d{4}$/.test(String(year).trim()) ? `&year=${String(year).trim()}` : "";
+  const variants = extractTitleVariants(cleanQuery).slice(0, 3);
 
-  return result;
+  const task = (async (): Promise<{ posterUrl: string | null; backdropUrl: string | null }> => {
+    let result: { posterUrl: string | null; backdropUrl: string | null } = {
+      posterUrl: null,
+      backdropUrl: null,
+    };
+
+    try {
+      for (let i = 0; i < variants.length; i++) {
+        if (externalSignal?.aborted) break;
+        const v = variants[i];
+        // 1. Thử search/multi (bao quát cả movie và tv series/anime, match cả tên gốc và tên tiếng Việt)
+        try {
+          const endpointMulti = `/search/multi?query=${encodeURIComponent(v)}&include_adult=false`;
+          const dataMulti = await fetchTmdbEndpoint(endpointMulti, 86400, externalSignal);
+          const bestMulti = pickBestTmdbCandidate(dataMulti?.results, cleanType, year);
+          if (bestMulti?.poster_path) {
+            result = {
+              posterUrl: `https://image.tmdb.org/t/p/w500${bestMulti.poster_path}`,
+              backdropUrl: bestMulti.backdrop_path ? `https://image.tmdb.org/t/p/w1280${bestMulti.backdrop_path}` : null,
+            };
+            break;
+          }
+        } catch {}
+
+        // 2. Fallback localized theo type cho 2 biến thể đầu tiên
+        if (i < 2 && !externalSignal?.aborted) {
+          try {
+            const endpointType = `/search/${cleanType}?query=${encodeURIComponent(v)}${searchYear}&language=vi-VN`;
+            const dataType = await fetchTmdbEndpoint(endpointType, 86400, externalSignal);
+            const bestType = pickBestTmdbCandidate(dataType?.results, cleanType, year);
+            if (bestType?.poster_path) {
+              result = {
+                posterUrl: `https://image.tmdb.org/t/p/w500${bestType.poster_path}`,
+                backdropUrl: bestType.backdrop_path ? `https://image.tmdb.org/t/p/w1280${bestType.backdrop_path}` : null,
+              };
+              break;
+            }
+          } catch {}
+        }
+      }
+
+      if (!externalSignal?.aborted || result.posterUrl) {
+        setBoundedMap(TMDB_TITLE_POSTER_CACHE, cacheKey, {
+          posterUrl: result.posterUrl,
+          backdropUrl: result.backdropUrl,
+          expireAt: Date.now() + (result.posterUrl ? 24 * 3600 * 1000 : 120 * 1000),
+        });
+      }
+
+      return result;
+    } finally {
+      inFlightTmdbTitlePoster.delete(cacheKey);
+    }
+  })();
+
+  inFlightTmdbTitlePoster.set(cacheKey, task);
+  return task;
 }
 
 // 5.1 CACHE CLEARLOGO TRONG SUỐT CHO MOVIE DETAIL (24h L1 RAM, 30 ngày L2 Upstash)
@@ -862,95 +964,161 @@ async function resolveTmdbIp(): Promise<string> {
   return "api.themoviedb.org";
 }
 
+const inFlightTmdbEndpoint = new Map<string, Promise<any>>();
+
 /**
  * Gọi TMDB API bền bỉ và tối ưu:
  * 1. Thử fetch chuẩn của Node/Next.js có next.revalidate.
- * 2. Nếu gặp lỗi DNS ENOTFOUND do nhà mạng chặn, tự động fallback sang DNS Google 8.8.8.8 + https agent.
+ * 2. Chỉ fallback sang DNS Google 8.8.8.8 + https agent khi gặp lỗi mạng/DNS thực sự (không chạy lại khi server đã trả HTTP 4xx/5xx).
  */
-export async function fetchTmdbEndpoint(endpointPath: string, revalidateSeconds = 3600): Promise<any> {
+export async function fetchTmdbEndpoint(
+  endpointPath: string,
+  revalidateSeconds = 3600,
+  externalSignal?: AbortSignal
+): Promise<any> {
+  if (externalSignal?.aborted) return null;
+
+  const existingFlight = inFlightTmdbEndpoint.get(endpointPath);
+  if (existingFlight) {
+    return awaitWithAbort(existingFlight, externalSignal, null);
+  }
+
   const sep = endpointPath.includes("?") ? "&" : "?";
   const authQuery = TMDB_API_KEY ? `api_key=${TMDB_API_KEY}` : "";
   const fullRelativePath = `${endpointPath}${sep}${authQuery}`;
   const fullUrl = `${TMDB_BASE_URL}${fullRelativePath}`;
 
-  // 1. Thử gọi native fetch
-  try {
-    const headers: Record<string, string> = {
-      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Nanaflix/1.0",
-      Accept: "application/json",
-    };
-    if (TMDB_API_KEY && TMDB_API_KEY.startsWith("eyJ")) {
-      headers["Authorization"] = `Bearer ${TMDB_API_KEY}`;
-    }
+  const task = (async (): Promise<any> => {
+    let shouldFallbackDns = false;
 
-    const res = await fetch(fullUrl, {
-      headers,
-      signal: AbortSignal.timeout(4000),
-      next: { revalidate: revalidateSeconds },
-    });
-    if (res.ok) {
-      return await res.json();
-    }
-  } catch (err: any) {
-    const msg = String(err?.message || "");
-    if (!msg.includes("ENOTFOUND") && !msg.includes("fetch failed") && !msg.includes("timeout")) {
-      console.warn("[TMDB] Native fetch error:", msg);
-    }
-  }
-
-  // 2. Fallback sang https qua Resolved IP với Google/Cloudflare DNS
-  if (typeof window === "undefined") {
+    // 1. Thử gọi native fetch
     try {
-      const httpsModule = await import("https");
-      const ip = await resolveTmdbIp();
-      return await new Promise((resolve, reject) => {
-        const reqHeaders: Record<string, string> = {
-          Host: "api.themoviedb.org",
-          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Nanaflix/1.0",
-          Accept: "application/json",
-          Connection: "close",
-        };
-        if (TMDB_API_KEY && TMDB_API_KEY.startsWith("eyJ")) {
-          reqHeaders["Authorization"] = `Bearer ${TMDB_API_KEY}`;
-        }
+      const headers: Record<string, string> = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Nanaflix/1.0",
+        Accept: "application/json",
+      };
+      if (TMDB_API_KEY && TMDB_API_KEY.startsWith("eyJ")) {
+        headers["Authorization"] = `Bearer ${TMDB_API_KEY}`;
+      }
 
-        const req = httpsModule.request(
-          {
-            host: ip,
-            path: `/3${fullRelativePath}`,
-            headers: reqHeaders,
-            servername: "api.themoviedb.org",
-            method: "GET",
-            agent: false,
-          },
-          (res: any) => {
-            let body = "";
-            res.on("data", (chunk: any) => (body += chunk));
-            res.on("end", () => {
-              try {
-                if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) {
-                  resolve(JSON.parse(body));
-                } else {
-                  reject(new Error(`TMDB responded with status ${res.statusCode}`));
-                }
-              } catch (parseErr) {
-                reject(parseErr);
-              }
-            });
-          }
-        );
-
-        req.on("error", (err: any) => reject(err));
-        req.setTimeout(5000, () => {
-          req.destroy();
-          reject(new Error("TMDB HTTPS request timeout"));
-        });
-        req.end();
+      const res = await fetch(fullUrl, {
+        headers,
+        signal: combineTimeoutSignal(3000, externalSignal),
+        next: { revalidate: revalidateSeconds },
       });
-    } catch {}
-  }
+      if (res.ok) {
+        return await res.json();
+      }
+      // Server đã phản hồi HTTP (404, 400, 401, 429...) -> trả null ngay, không fallback DNS/HTTPS lặp lại
+      return null;
+    } catch (err: any) {
+      if (externalSignal?.aborted) {
+        return null;
+      }
+      const msg = String(err?.message || "");
+      const causeCode = String(err?.cause?.code || err?.code || "");
+      const causeMsg = String(err?.cause?.message || "");
+      const combined = `${msg} ${causeCode} ${causeMsg}`;
+      const isTimeout = err?.name === "TimeoutError" || msg.includes("aborted due to timeout");
+      const isDnsOrNetworkBlock =
+        !isTimeout &&
+        (combined.includes("ENOTFOUND") ||
+          combined.includes("EAI_AGAIN") ||
+          combined.includes("ECONNREFUSED") ||
+          combined.includes("ECONNRESET") ||
+          combined.includes("fetch failed"));
 
-  return null;
+      shouldFallbackDns = isDnsOrNetworkBlock;
+      if (!isDnsOrNetworkBlock && !isTimeout) {
+        console.warn("[TMDB] Native fetch error:", msg);
+      }
+    }
+
+    // 2. Fallback sang https qua Resolved IP với Google/Cloudflare DNS (chỉ khi gặp lỗi DNS/network block)
+    if (shouldFallbackDns && !externalSignal?.aborted && typeof window === "undefined") {
+      try {
+        const httpsModule = await import("https");
+        const ip = await awaitWithAbort(
+          Promise.race([
+            resolveTmdbIp(),
+            new Promise<string>((resolve) => setTimeout(() => resolve("api.themoviedb.org"), 1500)),
+          ]),
+          externalSignal
+        );
+        if (externalSignal?.aborted) return null;
+
+        return await new Promise((resolve, reject) => {
+          const reqHeaders: Record<string, string> = {
+            Host: "api.themoviedb.org",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Nanaflix/1.0",
+            Accept: "application/json",
+            Connection: "close",
+          };
+          if (TMDB_API_KEY && TMDB_API_KEY.startsWith("eyJ")) {
+            reqHeaders["Authorization"] = `Bearer ${TMDB_API_KEY}`;
+          }
+
+          const req = httpsModule.request(
+            {
+              host: ip,
+              path: `/3${fullRelativePath}`,
+              headers: reqHeaders,
+              servername: "api.themoviedb.org",
+              method: "GET",
+              agent: false,
+            },
+            (res: any) => {
+              let body = "";
+              res.on("data", (chunk: any) => (body += chunk));
+              res.on("end", () => {
+                cleanupAbort();
+                try {
+                  if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) {
+                    resolve(JSON.parse(body));
+                  } else {
+                    resolve(null);
+                  }
+                } catch (parseErr) {
+                  reject(parseErr);
+                }
+              });
+            }
+          );
+
+          const onAbort = () => {
+            req.destroy();
+            reject(externalSignal?.reason ?? new DOMException("Aborted", "AbortError"));
+          };
+          const cleanupAbort = () => {
+            externalSignal?.removeEventListener("abort", onAbort);
+          };
+          if (externalSignal) {
+            externalSignal.addEventListener("abort", onAbort, { once: true });
+          }
+
+          req.on("error", (err: any) => {
+            cleanupAbort();
+            reject(err);
+          });
+          req.setTimeout(2500, () => {
+            cleanupAbort();
+            req.destroy();
+            reject(new Error("TMDB HTTPS request timeout"));
+          });
+          req.end();
+        });
+      } catch {}
+    }
+
+    return null;
+  })();
+
+  inFlightTmdbEndpoint.set(endpointPath, task);
+  try {
+    return await task;
+  } finally {
+    inFlightTmdbEndpoint.delete(endpointPath);
+  }
 }
 
 /**
@@ -1544,9 +1712,10 @@ export async function matchTmdbMoviesWithSources(
           }
 
           if (synchronizedPoster && credit.id) {
-            const cleanType = credit.media_type === "tv" || credit.media_type === "series" ? "tv" : "movie";
-            TMDB_POSTER_CACHE.set(`v2:${cleanType}:${credit.id}`, {
-              url: synchronizedPoster,
+            const cleanType = normalizeTmdbLookupMediaType(credit.media_type);
+            TMDB_MEDIA_IMAGES_CACHE.set(`v3:${cleanType}:${credit.id}`, {
+              posterUrl: synchronizedPoster,
+              backdropUrl: credit.backdrop_path ? `https://image.tmdb.org/t/p/w780${credit.backdrop_path}` : null,
               expireAt: now + 24 * 3600 * 1000,
             });
           }

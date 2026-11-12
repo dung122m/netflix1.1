@@ -11,7 +11,12 @@ import {
   ChevronRight,
   Play,
 } from "lucide-react";
-import { pickBestMovieThumb, toOptimizedPhimimgUrl, extractMovieRatingScore } from "@/lib/movieMedia";
+import {
+  pickBestMovieThumb,
+  toOptimizedPhimimgUrl,
+  toFastCdnImageUrl,
+  extractMovieRatingScore,
+} from "@/lib/movieMedia";
 import { toast } from "@/components/ui/Toast";
 import { Tooltip } from "@/components/ui/Tooltip";
 
@@ -255,21 +260,30 @@ export function RecommendationTabs({
   };
 
   const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
-    if (tabsRef.current && (e.deltaY !== 0 || e.deltaX !== 0)) {
-      e.preventDefault();
-      tabsRef.current.scrollLeft += e.deltaY !== 0 ? e.deltaY * 0.8 : e.deltaX;
-      checkScroll();
+    const el = tabsRef.current;
+    if (!el) return;
+    if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+      const canScrollLeftMore = e.deltaY < 0 && el.scrollLeft > 0;
+      const canScrollRightMore =
+        e.deltaY > 0 && el.scrollLeft + el.clientWidth < el.scrollWidth - 1;
+      if (canScrollLeftMore || canScrollRightMore) {
+        el.scrollLeft += e.deltaY * 0.8;
+        checkScroll();
+      }
     }
   };
 
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (e.pointerType !== "mouse") return;
     isDragging.current = true;
     startX.current = e.pageX - (tabsRef.current?.offsetLeft || 0);
     scrollLeftStart.current = tabsRef.current?.scrollLeft || 0;
   };
 
   const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (!isDragging.current || !tabsRef.current) return;
+    if (e.pointerType !== "mouse" || !isDragging.current || !tabsRef.current) {
+      return;
+    }
     e.preventDefault();
     const x = e.pageX - (tabsRef.current.offsetLeft || 0);
     const walk = (x - startX.current) * 1.2;
@@ -284,7 +298,7 @@ export function RecommendationTabs({
   return (
     <div className={`w-full max-w-full min-w-0 overflow-hidden ${variant === "sidebar" ? "space-y-3" : "space-y-6"}`}>
       {/* 1. THANH TABS ĐỀ XUẤT THÔNG MINH (KÉO CHUỘT / LĂN CHUỘT / NÚT MŨI TÊN TRÁI PHẢI HOVER) */}
-      <div className="relative border-b pb-2 w-full min-w-0 group/rec-tabs">
+      <div className="relative border-b border-white/[0.08] pb-2 w-full min-w-0 group/rec-tabs">
         <div className="flex items-center gap-1.5 w-full min-w-0">
 
           {/* DẢI TABS CUỘN NGANG VỚI KÉO CHUỘT + LĂN CHUỘT VÀ MŨI TÊN OVERLAY CHỈ HIỆN KHI HOVER */}
@@ -337,10 +351,10 @@ export function RecommendationTabs({
                 }}
                 className={`flex items-center gap-1.5 ${
                   variant === "sidebar" ? "px-2.5 py-1 rounded-full text-[11px]" : "px-3 py-1.5 rounded-xl text-xs"
-                } font-bold transition-all whitespace-nowrap cursor-pointer border shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-netflix-red shrink-0 ${
+                } font-bold transition-all whitespace-nowrap cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-netflix-red shrink-0 ${
                   activeTab === "best"
-                    ? "bg-netflix-red text-white border-netflix-red shadow-sm"
-                    : "bg-zinc-900/90 text-zinc-300  hover: hover:text-white hover:bg-zinc-800"
+                    ? "bg-netflix-red text-white shadow-sm"
+                    : "bg-zinc-900/90 text-zinc-300 hover:text-white hover:bg-zinc-800"
                 }`}
               >
                 <span>{variant === "sidebar" ? "Tương Tự" : "Phim Tương Tự"} ({allMovies.length})</span>
@@ -356,10 +370,10 @@ export function RecommendationTabs({
                   }}
                   className={`flex items-center gap-1.5 ${
                     variant === "sidebar" ? "px-2.5 py-1 rounded-full text-[11px]" : "px-3 py-1.5 rounded-xl text-xs"
-                  } font-bold transition-all whitespace-nowrap cursor-pointer border shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-netflix-red shrink-0 ${
+                  } font-bold transition-all whitespace-nowrap cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-netflix-red shrink-0 ${
                     activeTab === "actor"
-                      ? "bg-netflix-red text-white border-netflix-red/50 shadow-sm"
-                      : "bg-zinc-900/90 text-zinc-300  hover: hover:text-white hover:bg-zinc-800"
+                      ? "bg-netflix-red text-white shadow-sm"
+                      : "bg-zinc-900/90 text-zinc-300 hover:text-white hover:bg-zinc-800"
                   }`}
                 >
                   <span>{variant === "sidebar" ? actorName : `Diễn viên: ${actorName}`} ({validActorMovies.length})</span>
@@ -376,9 +390,9 @@ export function RecommendationTabs({
                   }}
                   className={`flex items-center gap-1.5 ${
                     variant === "sidebar" ? "px-2.5 py-1 rounded-full text-[11px]" : "px-3 py-1.5 rounded-xl text-xs"
-                  } font-bold transition-all whitespace-nowrap cursor-pointer border shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-netflix-red shrink-0 ${
+                  } font-bold transition-all whitespace-nowrap cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-netflix-red shrink-0 ${
                     activeTab === "director"
-                      ? "bg-netflix-red text-white border-netflix-red/50 shadow-sm"
+                      ? "bg-netflix-red text-white shadow-sm"
                       : "bg-zinc-900/90 text-zinc-300 hover:text-white hover:bg-zinc-800"
                   }`}
                 >
@@ -396,10 +410,10 @@ export function RecommendationTabs({
                   }}
                   className={`flex items-center gap-1.5 ${
                     variant === "sidebar" ? "px-2.5 py-1 rounded-full text-[11px]" : "px-3 py-1.5 rounded-xl text-xs"
-                  } font-bold transition-all whitespace-nowrap cursor-pointer border shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-netflix-red shrink-0 ${
+                  } font-bold transition-all whitespace-nowrap cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-netflix-red shrink-0 ${
                     activeTab === "genre"
-                      ? "bg-netflix-red text-white border-netflix-red shadow-sm"
-                      : "bg-zinc-900/90 text-zinc-300  hover: hover:text-white hover:bg-zinc-800"
+                      ? "bg-netflix-red text-white shadow-sm"
+                      : "bg-zinc-900/90 text-zinc-300 hover:text-white hover:bg-zinc-800"
                   }`}
                 >
                   <span>{variant === "sidebar" ? genreName : `Thể loại: ${genreName}`} ({genreMovies.length})</span>
@@ -416,10 +430,10 @@ export function RecommendationTabs({
                   }}
                   className={`flex items-center gap-1.5 ${
                     variant === "sidebar" ? "px-2.5 py-1 rounded-full text-[11px]" : "px-3 py-1.5 rounded-xl text-xs"
-                  } font-bold transition-all whitespace-nowrap cursor-pointer border shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-netflix-red shrink-0 ${
+                  } font-bold transition-all whitespace-nowrap cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-netflix-red shrink-0 ${
                     activeTab === "country"
-                      ? "bg-netflix-red text-white border-netflix-red/50 shadow-sm"
-                      : "bg-zinc-900/90 text-zinc-300  hover: hover:text-white hover:bg-zinc-800"
+                      ? "bg-netflix-red text-white shadow-sm"
+                      : "bg-zinc-900/90 text-zinc-300 hover:text-white hover:bg-zinc-800"
                   }`}
                 >
                   <span>{variant === "sidebar" ? countryName : `Quốc gia: ${countryName}`} ({countryMovies.length})</span>
@@ -436,10 +450,10 @@ export function RecommendationTabs({
                   }}
                   className={`flex items-center gap-1.5 ${
                     variant === "sidebar" ? "px-2.5 py-1 rounded-full text-[11px]" : "px-3 py-1.5 rounded-xl text-xs"
-                  } font-bold transition-all whitespace-nowrap cursor-pointer border shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-netflix-red shrink-0 ${
+                  } font-bold transition-all whitespace-nowrap cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-netflix-red shrink-0 ${
                     activeTab === "top"
-                      ? "bg-netflix-red text-white border-netflix-red/50 shadow-sm"
-                      : "bg-zinc-900/90 text-zinc-300  hover: hover:text-white hover:bg-zinc-800"
+                      ? "bg-netflix-red text-white shadow-sm"
+                      : "bg-zinc-900/90 text-zinc-300 hover:text-white hover:bg-zinc-800"
                   }`}
                 >
                   <span>Đánh giá cao ({topRatedMovies.length})</span>
@@ -456,7 +470,7 @@ export function RecommendationTabs({
                 type="button"
                 onClick={handleShuffle}
                 aria-label="Đổi phim khác"
-                className="flex items-center justify-center h-7 w-7 rounded-xl text-xs font-bold text-zinc-200 hover:text-white bg-zinc-900/90 hover:bg-zinc-800 hover: transition shadow-sm cursor-pointer active:scale-95 shrink-0"
+                className="flex items-center justify-center h-7 w-7 rounded-xl text-xs font-bold text-zinc-200 hover:text-white bg-zinc-900/90 hover:bg-zinc-800 transition shadow-sm cursor-pointer active:scale-95 shrink-0"
               >
                 <Shuffle
                   className={`w-3.5 h-3.5 text-amber-400 transition-transform ${
@@ -495,11 +509,11 @@ export function RecommendationTabs({
 
             {/* NÚT XEM THÊM TRONG SIDEBAR */}
             {currentTabMovies.length > visibleLimit && (
-              <div className="flex justify-center pt-1 border-t">
+              <div className="flex justify-center pt-1 border-t border-white/[0.08]">
                 <button
                   type="button"
                   onClick={() => setVisibleLimit((prev) => prev + 8)}
-                  className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-white font-bold text-xs hover: transition-all cursor-pointer"
+                  className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-white font-bold text-xs transition-all cursor-pointer"
                 >
                   <span>Xem thêm</span>
                   <ChevronDown className="w-3.5 h-3.5 text-netflix-red" />
@@ -539,7 +553,7 @@ export function RecommendationTabs({
                 <button
                   type="button"
                   onClick={() => setVisibleLimit((prev) => prev + 12)}
-                  className="flex items-center gap-2 px-6 py-2.5 rounded-2xl bg-zinc-900 hover:bg-zinc-800 text-white font-bold text-xs sm:text-sm hover: shadow-lg transition-all hover:scale-102 active:scale-98 cursor-pointer"
+                  className="flex items-center gap-2 px-6 py-2.5 rounded-2xl bg-zinc-900 hover:bg-zinc-800 text-white font-bold text-xs sm:text-sm shadow-lg transition-all hover:scale-102 active:scale-98 cursor-pointer"
                 >
                   <span>Xem thêm gợi ý</span>
                   <span className="px-2 py-0.5 rounded-full bg-white/15 text-[11px] text-zinc-300">
@@ -593,7 +607,7 @@ const RecommendedMovieCard = React.memo(function RecommendedMovieCard({
   displayCategory?: string;
 }) {
   const rawThumb = pickBestMovieThumb(item, "/default-hero.jpg");
-  const thumbUrl = toOptimizedPhimimgUrl(rawThumb, 320);
+  const thumbUrl = toFastCdnImageUrl(toOptimizedPhimimgUrl(rawThumb, 320));
   const title = item.name || item.title || "Phim";
   const categoryName = displayCategory || item.category?.[0]?.name;
   const year = item.year;
@@ -601,7 +615,7 @@ const RecommendedMovieCard = React.memo(function RecommendedMovieCard({
   const quality = item.quality || "FHD";
 
   return (
-    <div className="group relative bg-zinc-900 rounded-2xl overflow-hidden hover: transition-all duration-300 hover:scale-[1.02] shadow-md hover:shadow-2xl flex flex-col">
+    <div className="group relative bg-zinc-900 rounded-2xl overflow-hidden transition-all duration-300 hover:scale-[1.02] shadow-md hover:shadow-2xl flex flex-col">
       <Link
         href={`/movies/${item.slug}`}
         prefetch={false}
@@ -635,10 +649,10 @@ const RecommendedMovieCard = React.memo(function RecommendedMovieCard({
           {quality && (
             <div className="absolute top-2 right-2 z-10 pointer-events-none">
               <span
-                className={`px-1.5 py-0.5 rounded text-[11px] font-bold backdrop-blur-md border ${
+                className={`px-1.5 py-0.5 rounded text-[11px] font-bold backdrop-blur-md ${
                   quality.toUpperCase().includes("CAM")
-                    ? "bg-netflix-red/20 text-white "
-                    : "bg-black/75 text-zinc-300 "
+                    ? "bg-netflix-red/85 text-white shadow-sm"
+                    : "bg-black/75 text-zinc-300"
                 }`}
               >
                 {quality}
@@ -694,7 +708,7 @@ const RecommendedSidebarCard = React.memo(function RecommendedSidebarCard({
 }) {
   const isLcpCandidate = index === 0;
   const rawThumb = pickBestMovieThumb(item, "/default-hero.jpg");
-  const thumbUrl = toOptimizedPhimimgUrl(rawThumb, 240);
+  const thumbUrl = toFastCdnImageUrl(toOptimizedPhimimgUrl(rawThumb, 240));
   const title = item.name || item.title || "Phim";
   const categoryName = displayCategory || item.category?.[0]?.name;
   const year = item.year;
@@ -706,11 +720,11 @@ const RecommendedSidebarCard = React.memo(function RecommendedSidebarCard({
       href={`/movies/${item.slug}`}
       prefetch={false}
       tabIndex={0}
-      title={title}
-      className="group flex items-center gap-3 p-2 rounded-xl hover:bg-white/[0.07] border border-transparent hover: transition-all duration-200 outline-none focus-visible:ring-2 focus-visible:ring-white cursor-pointer w-full max-w-full min-w-0"
+      aria-label={title}
+      className="group flex items-center gap-3 p-2 rounded-xl hover:bg-white/[0.07] transition-all duration-200 outline-none focus-visible:ring-2 focus-visible:ring-white cursor-pointer w-full max-w-full min-w-0"
     >
       {/* 1. THUMBNAIL (16:9) */}
-      <div className="relative aspect-video w-[115px] sm:w-[130px] rounded-lg overflow-hidden bg-zinc-800 shrink-0 group-hover: shadow-sm">
+      <div className="relative aspect-video w-[115px] sm:w-[130px] rounded-lg overflow-hidden bg-zinc-800 shrink-0 shadow-sm">
         <Image
           src={thumbUrl}
           alt={title}
@@ -732,7 +746,7 @@ const RecommendedSidebarCard = React.memo(function RecommendedSidebarCard({
           }}
         />
         {quality && (
-          <span className="absolute bottom-1 right-1 px-1 py-0.2 rounded text-[9px] font-bold bg-black/80 text-zinc-300 backdrop-blur-sm pointer-events-none">
+          <span className="absolute bottom-1 right-1 px-1 py-0.5 rounded text-[9px] font-bold bg-black/80 text-zinc-300 backdrop-blur-sm pointer-events-none">
             {quality}
           </span>
         )}

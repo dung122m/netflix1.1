@@ -4,6 +4,7 @@ import React from "react";
 import Link from "next/link";
 import { ExternalLink, FolderHeart, Search, Trash2 } from "lucide-react";
 import { MovieCollection } from "@/types/collection";
+import { Tooltip } from "@/components/ui/Tooltip";
 
 interface AdminCollectionsTabProps {
   filteredCollections: MovieCollection[];
@@ -31,7 +32,7 @@ export const AdminCollectionsTab: React.FC<AdminCollectionsTabProps> = React.mem
               value={colSearchQuery}
               onChange={(e) => setColSearchQuery(e.target.value)}
               placeholder="Tìm theo tên bộ sưu tập, người tạo..."
-              className="w-full bg-black/60 rounded-xl pl-9 pr-4 py-2 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-netflix-red transition"
+              className="w-full bg-black/60 rounded-xl pl-9 pr-4 py-2 text-base sm:text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-netflix-red transition"
             />
           </div>
           <div className="text-xs text-zinc-400">
@@ -40,7 +41,7 @@ export const AdminCollectionsTab: React.FC<AdminCollectionsTabProps> = React.mem
         </div>
 
         {filteredCollections.length === 0 ? (
-          <div className="p-12 text-center rounded-2xl bg-zinc-900/40">
+          <div className="p-6 sm:p-12 text-center rounded-2xl bg-zinc-900/40">
             <FolderHeart size={36} className="text-zinc-600 mx-auto mb-2" />
             <p className="text-sm font-semibold text-zinc-300">Chưa có bộ sưu tập công khai nào</p>
             <p className="text-xs text-zinc-500 mt-1">Khi người dùng chia sẻ bộ sưu tập lên cộng đồng, chúng sẽ xuất hiện ở đây.</p>
@@ -50,7 +51,7 @@ export const AdminCollectionsTab: React.FC<AdminCollectionsTabProps> = React.mem
             {filteredCollections.map((col) => (
               <div
                 key={col.id}
-                className="p-5 rounded-2xl bg-zinc-900/60 hover: transition backdrop-blur-sm flex flex-col justify-between space-y-4 group"
+                className="p-5 rounded-2xl bg-zinc-900/60 hover:bg-zinc-900/80 transition backdrop-blur-sm flex flex-col justify-between space-y-4 group"
               >
                 <div>
                   <div className="flex items-center justify-between gap-2 mb-2">
@@ -70,7 +71,7 @@ export const AdminCollectionsTab: React.FC<AdminCollectionsTabProps> = React.mem
                   </p>
                 </div>
 
-                <div className="flex items-center gap-2 pt-3 border-t">
+                <div className="flex items-center gap-2 pt-3 border-t border-white/[0.08]">
                   <Link
                     href={`/collection/${col.id}`}
                     target="_blank"
@@ -80,14 +81,16 @@ export const AdminCollectionsTab: React.FC<AdminCollectionsTabProps> = React.mem
                     <ExternalLink size={13} />
                     <span>Xem chi tiết</span>
                   </Link>
-                  <button
-                    type="button"
-                    onClick={() => onDeleteCollection(col)}
-                    className="p-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 transition cursor-pointer"
-                    title="Gỡ khỏi công khai"
-                  >
-                    <Trash2 size={16} />
-                  </button>
+                  <Tooltip content="Gỡ khỏi công khai" side="top">
+                    <button
+                      type="button"
+                      onClick={() => onDeleteCollection(col)}
+                      aria-label="Gỡ khỏi công khai"
+                      className="p-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 transition cursor-pointer"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </Tooltip>
                 </div>
               </div>
             ))}

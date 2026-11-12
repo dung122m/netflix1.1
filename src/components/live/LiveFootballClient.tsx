@@ -2,45 +2,26 @@
 
 import React, { useState, useMemo, useRef, useEffect, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
-import {
+import { Radio } from "lucide-react";
+import type {
   FootballMatch,
   LiveFootballData,
-  evaluateEventLifecycle,
 } from "@/services/live/football/service";
-import { useBodyScrollLock } from "@/lib/scrollLock";
-import { clearProbeQueue, getServerProbeStatus } from "@/services/live/football/clientSourceProbe";
-import { LivePlayer } from "./LivePlayer";
+import { clearProbeQueue } from "@/services/live/football/clientSourceProbe";
 import { toCanonicalSourceUrl } from "@/services/live/shared/streamUrlHelper";
-import { MatchCard } from "./MatchCard";
-import { MatchCenter } from "./MatchCenter";
-import { Tooltip } from "@/components/ui/Tooltip";
-import { MatchTimelineSidebar } from "./MatchTimelineSidebar";
-import { LeagueStandings } from "./LeagueStandings";
-import { LiveMatchScore, NormalizedMatchSummary } from "@/services/live/football-score/types";
-import { shouldRefreshOnTabFocus, mergeNormalizedSummaries } from "@/services/live/football-score/matchCenterRealtime";
-import {
-  resolveMatchDisplayStatus,
-} from "@/services/live/football-score/liveStatus";
-import { resolveCanonicalTournament, isGenericSportTournament } from "@/services/live/football-score/canonicalLeagues";
-import { isFeaturedMatch } from "@/services/live/football/featuredMatch";
-import { LiveMatchSidePanel } from "./LiveMatchSidePanel";
-import { LiveMobileMatchSheet } from "./LiveMobileMatchSheet";
-import {
-  Search,
-  Radio,
-  X,
-  Clock,
-  ArrowLeftRight,
-  Trophy,
-  Check,
-  RotateCcw,
-  ArrowLeft,
-  ChevronDown,
-  Flame,
-  Activity,
-} from "lucide-react";
+import type {
+  LiveMatchScore,
+  NormalizedMatchSummary,
+} from "@/services/live/football-score/types";
+import { mergeNormalizedSummaries } from "@/services/live/football-score/matchCenterRealtime";
+import { resolveCanonicalTournament } from "@/services/live/football-score/canonicalLeagues";
+import { useLiveScoresRealtime } from "./hooks/useLiveScoresRealtime";
+import { useLiveFootballFilters } from "./hooks/useLiveFootballFilters";
+import { LiveFilterCommandBar } from "./LiveFilterCommandBar";
+import { LiveMatchGroupsList } from "./LiveMatchGroupsList";
+import { LiveTheaterWatchView } from "./LiveTheaterWatchView";
 
-interface LiveFootballClientProps {
+export interface LiveFootballClientProps {
   initialData: LiveFootballData;
   initialScores?: Record<string, LiveMatchScore> | null;
   hideHeader?: boolean;
@@ -51,6 +32,10 @@ interface LiveFootballClientProps {
   onMatchSelectedChange?: (hasMatch: boolean) => void;
 }
 
+/**
+ * Top-level client orchestrator for the Live Sports hub: coordinates realtime
+ * match/score polling, URL/filter state, Theater Watch mode, and match discovery.
+ */
 export function LiveFootballClient({
   initialData,
   initialScores,
@@ -62,256 +47,16 @@ export function LiveFootballClient({
   onMatchSelectedChange,
 }: LiveFootballClientProps) {
   const searchParams = useSearchParams();
-  const [liveMatches, setLiveMatches] = useState<FootballMatch[]>(
-    initialData.matches,
-  );
+  const { liveMatches, scoresMap, now } = useLiveScoresRealtime({
+    initialMatches: initialData.matches,
+    initialScores,
+    isActive,
+  });
+
   const [activeSection, setActiveSection] = useState<
     "matches" | "match-center" | "standings"
   >("matches");
   const [sidePanelTab, setSidePanelTab] = useState<"timeline" | "matches">("matches");
-  const [isMobileSheetOpen, setIsMobileSheetOpen] = useState(false);
-  const dragStartYRef = useRef<number | null>(null);
-
-  // Khóa cuộn nền trang web chỉ trong thời gian khay Bottom Sheet đang mở
-  useBodyScrollLock(isMobileSheetOpen);
-
-  // Lắng nghe phím Escape để đóng Bottom Sheet
-  useEffect(() => {
-    if (!isMobileSheetOpen) return;
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        setIsMobileSheetOpen(false);
-      }
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isMobileSheetOpen]);
-
-  // Tự động đóng Bottom Sheet khi màn hình resize lên desktop (>= 1024px)
-  useEffect(() => {
-    const handleResize = () => {
-      if (typeof window !== "undefined" && window.innerWidth >= 1024 && isMobileSheetOpen) {
-        setIsMobileSheetOpen(false);
-      }
-    };
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, [isMobileSheetOpen]);
-
-  const handleTouchStart = useCallback((e: React.TouchEvent) => {
-    dragStartYRef.current = e.touches[0].clientY;
-  }, []);
-
-  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
-    if (dragStartYRef.current === null) return;
-    const endY = e.changedTouches[0].clientY;
-    const deltaY = endY - dragStartYRef.current;
-    if (deltaY > 50) {
-      setIsMobileSheetOpen(false);
-    }
-    dragStartYRef.current = null;
-  }, []);
-
-  // Đồng bộ khi dữ liệu từ server thay đổi hoặc khi lọc kênh
-  useEffect(() => {
-    setLiveMatches(initialData.matches);
-  }, [initialData.matches]);
-
-  const isMatchesFetchingRef = useRef(false);
-  const wasActiveMatchesRef = useRef(isActive);
-  const lastFetchedMatchesTimeRef = useRef<number>(Date.now());
-
-  // TỰ ĐỘNG LÀM MỚI DANH SÁCH TRẬN ĐẤU MỖI 3 PHÚT (không cần F5)
-  useEffect(() => {
-    if (!isActive) {
-      wasActiveMatchesRef.current = false;
-      return;
-    }
-
-    let isEffectActive = true;
-    const abortController = new AbortController();
-
-    const refreshMatches = async () => {
-      if (typeof document !== "undefined" && document.hidden) return;
-      if (isMatchesFetchingRef.current) return;
-      isMatchesFetchingRef.current = true;
-      try {
-        const timeoutSignal = AbortSignal.timeout(8000);
-        const signal =
-          typeof AbortSignal.any === "function"
-            ? AbortSignal.any([abortController.signal, timeoutSignal])
-            : abortController.signal;
-
-        const res = await fetch("/api/live-football/matches", {
-          signal,
-          cache: "no-store",
-        });
-        lastFetchedMatchesTimeRef.current = Date.now();
-        if (!res.ok) return;
-        const json = await res.json();
-        if (
-          isEffectActive &&
-          json.status &&
-          Array.isArray(json.data?.matches) &&
-          json.data.matches.length > 0
-        ) {
-          setLiveMatches(json.data.matches);
-        }
-      } catch {
-        // Giữ nguyên dữ liệu cũ nếu fetch thất bại hoặc bị hủy
-      } finally {
-        isMatchesFetchingRef.current = false;
-      }
-    };
-
-    const isReturningFromInactive = !wasActiveMatchesRef.current;
-    wasActiveMatchesRef.current = true;
-
-    // Khi quay lại tab sau khi inactive: làm mới sau 5s thay vì đợi 3 phút
-    const initialDelay = setTimeout(
-      refreshMatches,
-      isReturningFromInactive ? 5000 : 30_000,
-    );
-    const interval = setInterval(() => {
-      if (typeof document !== "undefined" && document.hidden) return;
-      refreshMatches();
-    }, 3 * 60 * 1000);
-
-    const handleVisibilityChange = () => {
-      if (typeof document !== "undefined" && !document.hidden) {
-        if (
-          shouldRefreshOnTabFocus(
-            lastFetchedMatchesTimeRef.current,
-            3 * 60 * 1000,
-          )
-        ) {
-          refreshMatches();
-        }
-      }
-    };
-
-    if (typeof document !== "undefined") {
-      document.addEventListener("visibilitychange", handleVisibilityChange);
-    }
-
-    return () => {
-      isEffectActive = false;
-      abortController.abort();
-      clearTimeout(initialDelay);
-      clearInterval(interval);
-      if (typeof document !== "undefined") {
-        document.removeEventListener("visibilitychange", handleVisibilityChange);
-      }
-    };
-  }, [isActive]);
-
-  // Bản đồ tỷ số livescore được làm mới mỗi 15-60s (khởi tạo ngay lập tức từ SSR)
-  const [scoresMap, setScoresMap] = useState<Record<string, LiveMatchScore>>(() => {
-    const initialMap: Record<string, LiveMatchScore> = { ...(initialScores || {}) };
-    if (initialData?.matches) {
-      for (const m of initialData.matches) {
-        if (m.score && !initialMap[m.id]) {
-          initialMap[m.id] = m.score;
-        }
-      }
-    }
-    return initialMap;
-  });
-
-  // TỰ ĐỘNG CẬP NHẬT TỶ SỐ LIVESCORE: 15S KHI CÓ TRẬN LIVE, 60S KHI KHÔNG CÓ TRẬN LIVE
-  const hasLiveMatches = useMemo(() => {
-    return (
-      liveMatches.some((m) => m.timeline === "live") ||
-      Object.values(scoresMap).some((s) => s.status === "live")
-    );
-  }, [liveMatches, scoresMap]);
-
-  const isScoresFetchingRef = useRef(false);
-  const wasActiveScoresRef = useRef(isActive);
-  const lastFetchedScoresTimeRef = useRef<number>(0);
-
-  useEffect(() => {
-    if (!isActive) {
-      wasActiveScoresRef.current = false;
-      return;
-    }
-
-    let isEffectActive = true;
-    const abortController = new AbortController();
-
-    const fetchScores = async () => {
-      if (typeof document !== "undefined" && document.hidden) return;
-      if (isScoresFetchingRef.current) return;
-      isScoresFetchingRef.current = true;
-      try {
-        const timeoutSignal = AbortSignal.timeout(6000);
-        const signal =
-          typeof AbortSignal.any === "function"
-            ? AbortSignal.any([abortController.signal, timeoutSignal])
-            : abortController.signal;
-
-        const res = await fetch("/api/live-football/scores", {
-          signal,
-        });
-        lastFetchedScoresTimeRef.current = Date.now();
-        if (!res.ok) return;
-        const json = await res.json();
-        if (isEffectActive && json.status && json.data?.scores) {
-          setScoresMap((prev) => ({
-            ...prev,
-            ...json.data.scores,
-          }));
-        }
-      } catch {
-        // Giữ nguyên dữ liệu cũ nếu fetch thất bại hoặc bị hủy
-      } finally {
-        isScoresFetchingRef.current = false;
-      }
-    };
-
-    const pollIntervalMs = hasLiveMatches ? 8_000 : 30_000;
-    const isReturningFromInactive = !wasActiveScoresRef.current;
-    wasActiveScoresRef.current = true;
-
-    if (isReturningFromInactive) {
-      // Khi tab bóng đá active trở lại: fetch ngay lập tức để cập nhật tỷ số mới nhất
-      fetchScores();
-    } else if (lastFetchedScoresTimeRef.current === 0) {
-      // Đã nạp initialScores từ SSR -> ghi nhận timestamp, loại bỏ độ trễ 3s không cần thiết
-      lastFetchedScoresTimeRef.current = Date.now();
-    }
-
-    const interval = setInterval(() => {
-      if (typeof document !== "undefined" && document.hidden) return;
-      fetchScores();
-    }, pollIntervalMs);
-
-    const handleVisibilityChange = () => {
-      if (typeof document !== "undefined" && !document.hidden) {
-        if (
-          shouldRefreshOnTabFocus(
-            lastFetchedScoresTimeRef.current,
-            pollIntervalMs,
-          )
-        ) {
-          fetchScores();
-        }
-      }
-    };
-
-    if (typeof document !== "undefined") {
-      document.addEventListener("visibilitychange", handleVisibilityChange);
-    }
-
-    return () => {
-      isEffectActive = false;
-      abortController.abort();
-      clearInterval(interval);
-      if (typeof document !== "undefined") {
-        document.removeEventListener("visibilitychange", handleVisibilityChange);
-      }
-    };
-  }, [isActive, hasLiveMatches]);
 
   const initialMatch = useMemo(() => {
     const matchParam = searchParams.get("match");
@@ -336,38 +81,31 @@ export function LiveFootballClient({
     return null;
   }, [liveMatches, searchParams]);
 
-  // Đồng hồ cập nhật sau mount phục vụ phân loại cửa sổ thời gian trước kickoff
-  const [now, setNow] = useState<number>(0);
-  useEffect(() => {
-    if (!isActive) return;
-    setNow(Date.now());
-    const timer = setInterval(() => {
-      setNow(Date.now());
-    }, 60_000);
-    return () => clearInterval(timer);
-  }, [isActive]);
-
   const hasUserSelectedRef = useRef(false);
   const [selectedMatch, setSelectedMatch] = useState<FootballMatch | null>(initialMatch);
   const [matchSummary, setMatchSummary] = useState<NormalizedMatchSummary | null>(null);
   const [isSummaryLoading, setIsSummaryLoading] = useState<boolean>(false);
   const matchSummaryMemoryRef = useRef<Map<string, NormalizedMatchSummary>>(new Map());
 
-  const handleSummaryChange = useCallback((newSummary: NormalizedMatchSummary | null) => {
-    if (!newSummary) {
-      return;
-    }
-    setMatchSummary((prev) => {
-      const merged = (!prev || prev.eventId !== newSummary.eventId)
-        ? newSummary
-        : mergeNormalizedSummaries(prev, newSummary);
-
-      if (selectedMatch?.id) {
-        matchSummaryMemoryRef.current.set(selectedMatch.id, merged);
+  const handleSummaryChange = useCallback(
+    (newSummary: NormalizedMatchSummary | null) => {
+      if (!newSummary) {
+        return;
       }
-      return merged;
-    });
-  }, [selectedMatch?.id]);
+      setMatchSummary((prev) => {
+        const merged =
+          !prev || prev.eventId !== newSummary.eventId
+            ? newSummary
+            : mergeNormalizedSummaries(prev, newSummary);
+
+        if (selectedMatch?.id) {
+          matchSummaryMemoryRef.current.set(selectedMatch.id, merged);
+        }
+        return merged;
+      });
+    },
+    [selectedMatch?.id],
+  );
 
   // Tra cứu tỷ số và định danh sự kiện livescore cho trận đang chọn (hỗ trợ fallback nếu ID bị đổi đuôi thời gian)
   const currentMatchScore = useMemo(() => {
@@ -381,33 +119,6 @@ export function LiveFootballClient({
     }
     return null;
   }, [selectedMatch, scoresMap]);
-
-  // Xác định trạng thái trận tâm điểm cho trận đấu đang chọn
-  const _selectedMatchFeatured = useMemo(() => {
-    if (!selectedMatch) return null;
-    const tName = resolveCanonicalTournament({
-      tournament: selectedMatch.tournament,
-      title: selectedMatch.title,
-      sport: selectedMatch.sport,
-      team1: selectedMatch.team1,
-      team2: selectedMatch.team2,
-      category: selectedMatch.category,
-      gender: selectedMatch.gender,
-      score: currentMatchScore,
-    });
-    return isFeaturedMatch({
-      title: selectedMatch.title,
-      tournament: tName,
-      team1: selectedMatch.team1,
-      team2: selectedMatch.team2,
-      sport: selectedMatch.sport,
-      category: selectedMatch.category,
-      gender: selectedMatch.gender,
-      score: currentMatchScore,
-      validServersCount: selectedMatch.servers?.length || 0,
-      servers: selectedMatch.servers,
-    });
-  }, [selectedMatch, currentMatchScore]);
 
   // Tên giải đấu chuẩn hóa của trận đang chọn cho thanh điều hướng
   const selectedMatchTournament = useMemo(() => {
@@ -432,13 +143,17 @@ export function LiveFootballClient({
   useEffect(() => {
     if (selectedMatch?.id !== lastMatchIdRef.current) {
       lastMatchIdRef.current = selectedMatch?.id || null;
-      const cached = selectedMatch?.id ? matchSummaryMemoryRef.current.get(selectedMatch.id) : null;
+      const cached = selectedMatch?.id
+        ? matchSummaryMemoryRef.current.get(selectedMatch.id)
+        : null;
       if (cached) {
         setMatchSummary(cached);
         setIsSummaryLoading(false);
       } else {
         setMatchSummary(null);
-        setIsSummaryLoading(Boolean(currentMatchScore?.eventId && currentMatchScore?.leagueSlug));
+        setIsSummaryLoading(
+          Boolean(currentMatchScore?.eventId && currentMatchScore?.leagueSlug),
+        );
       }
     }
   }, [selectedMatch?.id, currentMatchScore?.eventId, currentMatchScore?.leagueSlug]);
@@ -454,8 +169,8 @@ export function LiveFootballClient({
 
   const hasTimelineEvents = Boolean(
     (matchSummary?.events && matchSummary.events.length > 0) ||
-    (matchSummary?.commentary && matchSummary.commentary.length > 0) ||
-    (matchSummary?.stats && matchSummary.stats.length > 0)
+      (matchSummary?.commentary && matchSummary.commentary.length > 0) ||
+      (matchSummary?.stats && matchSummary.stats.length > 0),
   );
   const prevMatchIdRef = useRef<string | null>(null);
   const prevHasEventsRef = useRef<boolean>(false);
@@ -532,50 +247,6 @@ export function LiveFootballClient({
     }
   }, [liveMatches, selectedMatch]);
 
-  const [sportFilter, setSportFilter] = useState<string>(() => {
-    if (selectedSport) return selectedSport;
-    const s = searchParams.get("sport");
-    if (s && s.trim()) return s.trim();
-    return "all";
-  });
-
-  useEffect(() => {
-    if (selectedSport) {
-      setSportFilter((prev) => (selectedSport !== prev ? selectedSport : prev));
-    }
-  }, [selectedSport]);
-
-  const [selectedFootballGroup, setSelectedFootballGroup] = useState<string>(
-    () => searchParams.get("group") || "all",
-  );
-  const [selectedTournament, setSelectedTournament] = useState<string>(
-    () => searchParams.get("tournament") || "all",
-  );
-  const [selectedStatus, setSelectedStatus] = useState<
-    "all" | "live" | "upcoming" | "finished"
-  >(() => {
-    const s = searchParams.get("status");
-    if (s === "live" || s === "upcoming" || s === "finished") return s;
-    return "all";
-  });
-  const [onlyWithStream, setOnlyWithStream] = useState<boolean>(
-    () => searchParams.get("stream") === "1",
-  );
-  const [searchQuery, setSearchQuery] = useState<string>(
-    () => searchParams.get("q") || "",
-  );
-  const [onlyFhd, setOnlyFhd] = useState<boolean>(
-    () => searchParams.get("fhd") === "1",
-  );
-  const [onlyFeatured, setOnlyFeatured] = useState<boolean>(
-    () => searchParams.get("featured") === "1",
-  );
-  const [showMatchRail, setShowMatchRail] = useState(false);
-  const [isTournamentDropdownOpen, setIsTournamentDropdownOpen] = useState(false);
-  const [tournamentSearch, setTournamentSearch] = useState("");
-  const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
-  const tournamentDropdownRef = useRef<HTMLDivElement>(null);
-
   const playerRef = useRef<HTMLDivElement>(null);
   const railContainerRef = useRef<HTMLDivElement>(null);
   const pendingScrollToPlayerRef = useRef<boolean>(false);
@@ -605,158 +276,54 @@ export function LiveFootballClient({
     return () => cancelAnimationFrame(rafId);
   }, [selectedMatch?.id, scrollToPlayerArea]);
 
-  // Đồng bộ trạng thái khi người dùng nhấn nút Back / Forward trên trình duyệt
-  useEffect(() => {
-    const handlePopState = () => {
-      try {
-        const url = new URL(window.location.href);
-        setOnlyFhd(url.searchParams.get("fhd") === "1");
-        setOnlyWithStream(url.searchParams.get("stream") === "1");
-        setOnlyFeatured(url.searchParams.get("featured") === "1");
-        const s = url.searchParams.get("sport");
-        setSportFilter(s && s.trim() ? s.trim() : "all");
-        const status = url.searchParams.get("status");
-        if (status === "live" || status === "upcoming" || status === "finished") {
-          setSelectedStatus(status);
-        } else {
-          setSelectedStatus("all");
-        }
-
-        // Đồng bộ trận đấu đang chọn từ URL khi Back/Forward
-        const matchId = url.searchParams.get("match");
-        if (matchId) {
-          let foundMatch = liveMatches.find((m) => m.id === matchId);
-          if (!foundMatch) {
-            const baseId = matchId.replace(/_\d{6,10}$/, "");
-            if (baseId && baseId.length > 8) {
-              foundMatch = liveMatches.find((m) => m.id.startsWith(baseId));
-            }
-          }
-          if (foundMatch) {
-            setSelectedMatch(foundMatch);
-            pendingScrollToPlayerRef.current = true;
-          }
-        } else {
-          setSelectedMatch(null);
-        }
-      } catch {}
-    };
-    window.addEventListener("popstate", handlePopState);
-    return () => {
-      window.removeEventListener("popstate", handlePopState);
-    };
-  }, [liveMatches]);
-
   // Cân bằng chiều cao Side Panel chuẩn xác theo khung Video Player trên Desktop (>=1024px)
-  const [sidePanelHeight, setSidePanelHeight] = useState<number | undefined>(undefined);
+  const [sidePanelHeight, setSidePanelHeight] = useState<number | undefined>(
+    undefined,
+  );
 
   const handleVideoHeightChange = useCallback((height: number) => {
-    if (typeof window !== "undefined" && window.innerWidth >= 1024 && height > 0) {
+    if (
+      typeof window !== "undefined" &&
+      window.innerWidth >= 1024 &&
+      height > 0
+    ) {
       setSidePanelHeight(height);
     }
   }, []);
 
-  const updateUrl = useCallback(
-    (
-      updates: {
-        match?: string | null;
-        tournament?: string | null;
-        group?: string | null;
-        status?: string | null;
-        stream?: boolean | null;
-        q?: string | null;
-        fhd?: boolean | null;
-        sport?: string | null;
-        featured?: boolean | null;
-      },
-      pushHistory = false,
-    ) => {
-      try {
-        const url = new URL(window.location.href);
-        const currentTab = url.searchParams.get("tab");
-        if (currentTab !== "tv") {
-          url.searchParams.set("tab", "sports");
-        }
-        url.searchParams.delete("channel");
+  const handlePopstateMatchFound = useCallback((match: FootballMatch | null) => {
+    if (match) {
+      setSelectedMatch(match);
+      pendingScrollToPlayerRef.current = true;
+    } else {
+      setSelectedMatch(null);
+    }
+  }, []);
 
-        if (updates.sport !== undefined) {
-          if (updates.sport && updates.sport !== "all") {
-            url.searchParams.set("sport", updates.sport);
-          } else {
-            url.searchParams.delete("sport");
-          }
-        }
-
-        if (updates.match !== undefined) {
-          if (updates.match) url.searchParams.set("match", updates.match);
-          else url.searchParams.delete("match");
-        }
-
-        if (updates.tournament !== undefined) {
-          if (updates.tournament && updates.tournament !== "all") {
-            url.searchParams.set("tournament", updates.tournament);
-          } else {
-            url.searchParams.delete("tournament");
-          }
-        }
-
-        if (updates.group !== undefined) {
-          if (updates.group && updates.group !== "all") {
-            url.searchParams.set("group", updates.group);
-          } else {
-            url.searchParams.delete("group");
-          }
-        }
-
-        if (updates.status !== undefined) {
-          if (updates.status && updates.status !== "all") {
-            url.searchParams.set("status", updates.status);
-          } else {
-            url.searchParams.delete("status");
-          }
-        }
-
-        if (updates.stream !== undefined) {
-          if (updates.stream) {
-            url.searchParams.set("stream", "1");
-          } else {
-            url.searchParams.delete("stream");
-          }
-        }
-
-        if (updates.q !== undefined) {
-          if (updates.q && updates.q.trim()) {
-            url.searchParams.set("q", updates.q.trim());
-          } else {
-            url.searchParams.delete("q");
-          }
-        }
-
-        if (updates.fhd !== undefined) {
-          if (updates.fhd) {
-            url.searchParams.set("fhd", "1");
-          } else {
-            url.searchParams.delete("fhd");
-          }
-        }
-
-        if (updates.featured !== undefined) {
-          if (updates.featured) {
-            url.searchParams.set("featured", "1");
-          } else {
-            url.searchParams.delete("featured");
-          }
-        }
-
-        if (pushHistory) {
-          window.history.pushState(null, "", url.toString());
-        } else {
-          window.history.replaceState(null, "", url.toString());
-        }
-      } catch { }
-    },
-    [],
-  );
+  const {
+    selectedStatus,
+    searchQuery,
+    onlyFeatured,
+    counts,
+    filteredMatches,
+    liveMatchesList,
+    upcomingMatchesList,
+    hasActiveFilters,
+    updateUrl,
+    handleStatusChange,
+    handleSearchChange,
+    handleFeaturedToggle,
+    handleResetFilters,
+  } = useLiveFootballFilters({
+    liveMatches,
+    scoresMap,
+    now,
+    selectedSport,
+    onSportChange,
+    onMatchesCountChange,
+    onActiveSectionChange: setActiveSection,
+    onPopstateMatchFound: handlePopstateMatchFound,
+  });
 
   const handleClosePlayer = useCallback(() => {
     hasUserSelectedRef.current = true;
@@ -770,362 +337,15 @@ export function LiveFootballClient({
     const matchParam = searchParams.get("match");
     if (matchParam && matchParam !== selectedMatch.id) {
       const baseParam = matchParam.replace(/_\d{6,10}$/, "");
-      if (baseParam && baseParam.length > 8 && selectedMatch.id.startsWith(baseParam)) {
+      if (
+        baseParam &&
+        baseParam.length > 8 &&
+        selectedMatch.id.startsWith(baseParam)
+      ) {
         updateUrl({ match: selectedMatch.id }, false);
       }
     }
   }, [selectedMatch, searchParams, updateUrl]);
-
-  const enrichedMatches = useMemo(() => {
-    const currentTime = now || Date.now();
-    return liveMatches.map((m) => {
-      const liveScore = scoresMap[m.id] || m.score;
-      const matchTimestamp = liveScore?.kickoffTimestamp || m.timestamp;
-      const displayStatus = resolveMatchDisplayStatus({
-        timestamp: matchTimestamp,
-        score: liveScore,
-        sourceStatus: m.sourceStatus,
-        now: currentTime,
-      });
-
-      const workingServers = (m.servers || []).filter((s) => {
-        if (!s.url) return false;
-        return getServerProbeStatus(s.url) !== "dead";
-      });
-      const hasStream = workingServers.length > 0;
-      const hasAliveServer = workingServers.some((s) => getServerProbeStatus(s.url) === "alive");
-      const streamHealth: "alive" | "dead" | "unknown" =
-        workingServers.length === 0
-          ? "dead"
-          : hasAliveServer
-          ? "alive"
-          : "unknown";
-
-      const hasValidTimestamp =
-        matchTimestamp !== undefined &&
-        matchTimestamp !== null &&
-        matchTimestamp > 0 &&
-        matchTimestamp !== Number.MAX_SAFE_INTEGER;
-
-      const isKickoffInFuture = hasValidTimestamp && currentTime < matchTimestamp;
-
-      const lifecycle = evaluateEventLifecycle({
-        timestamp: matchTimestamp,
-        score: liveScore,
-        sourceStatus: m.sourceStatus,
-        streamHealth,
-        now: currentTime,
-        sport: m.sport,
-        isEvent: m.isEvent,
-      });
-
-      // Phân nhóm trạng thái thực tế dựa trên Adaptive Hybrid Event Lifecycle Engine
-      let realStatus: "live" | "upcoming" | "finished" = lifecycle.displayTimeline;
-      if (lifecycle.eventStatus === "FINISHED" || displayStatus.statusType === "finished") {
-        realStatus = "finished";
-      } else if (isKickoffInFuture && !lifecycle.isLiveInWindow) {
-        realStatus = "upcoming";
-      }
-
-      const enrichedDisplayStatus = lifecycle.statusBadge
-        ? {
-            ...displayStatus,
-            badgeLabel: lifecycle.statusBadge,
-            isConfirmedLive: realStatus === "live",
-          }
-        : displayStatus;
-
-      return {
-        ...m,
-        realStatus,
-        statusBadge: lifecycle.statusBadge,
-        lifecycle,
-        hasStream,
-        displayStatus: enrichedDisplayStatus,
-        isFeatured: isFeaturedMatch({
-          title: m.title,
-          tournament: resolveCanonicalTournament({
-            tournament: m.tournament,
-            title: m.title,
-            sport: m.sport,
-            team1: m.team1,
-            team2: m.team2,
-            score: liveScore,
-          }),
-          team1: m.team1,
-          team2: m.team2,
-          sport: m.sport,
-          category: m.category,
-          gender: m.gender,
-          score: liveScore,
-          validServersCount: new Set(
-            (m.servers || [])
-              .map((s) => s.url?.trim().toLowerCase())
-              .filter(Boolean),
-          ).size,
-          servers: m.servers,
-        }).isFeatured,
-      };
-    });
-  }, [liveMatches, now, scoresMap]);
-
-  // DANH SÁCH TRẬN HỢP LỆ ĐƯỢC PHÉP HIỂN THỊ TRÊN /LIVE:
-  // 1. Loại bỏ các trận đã kết thúc
-  // 2. Không nhầm các trận ở quá xa thời điểm hiện tại (> 2 giờ tới) vào danh sách
-  const validMatches = useMemo(() => {
-    const currentTime = now || Date.now();
-    return enrichedMatches.filter((m) => {
-      // 1. Trận đã kết thúc: loại bỏ khỏi danh sách
-      if (m.realStatus === "finished") return false;
-
-      // 2. Trận đang diễn ra: hợp lệ
-      if (m.realStatus === "live") return true;
-
-      // 3. Trận sắp diễn ra: chỉ giữ nếu trong khung giờ cho phép (<= 2 giờ tới)
-      if (m.realStatus === "upcoming") {
-        const matchTimestamp = (scoresMap[m.id] || m.score)?.kickoffTimestamp || m.timestamp;
-        const hasValidTimestamp =
-          matchTimestamp !== undefined &&
-          matchTimestamp !== null &&
-          matchTimestamp > 0 &&
-          matchTimestamp !== Number.MAX_SAFE_INTEGER;
-
-        if (hasValidTimestamp) {
-          return matchTimestamp <= currentTime + 2 * 60 * 60 * 1000;
-        }
-        return m.timeline === "upcoming" || m.sourceStatus === "upcoming";
-      }
-
-      return false;
-    });
-  }, [enrichedMatches, now, scoresMap]);
-
-  // Đồng bộ số trận hợp lệ hiển thị lên badge Thể Thao tại LiveHubClient
-  useEffect(() => {
-    onMatchesCountChange?.(validMatches.length);
-  }, [validMatches.length, onMatchesCountChange]);
-
-  const counts = useMemo(() => {
-    let live = 0;
-    let upcoming = 0;
-    let withStream = 0;
-    let featured = 0;
-
-    validMatches.forEach((m) => {
-      if (m.realStatus === "live") live++;
-      else if (m.realStatus === "upcoming") upcoming++;
-      if (m.hasStream) withStream++;
-      if (m.isFeatured) featured++;
-    });
-
-    return {
-      live,
-      upcoming,
-      finished: 0,
-      withStream,
-      featured,
-      total: validMatches.length,
-    };
-  }, [validMatches]);
-
-  const availableTournaments = useMemo(() => {
-    const tourMap: Record<string, number> = {};
-    let specificTournamentCount = 0;
-
-    validMatches.forEach((m) => {
-      // Bỏ qua giải đấu không thuộc bộ môn đang lọc
-      if (sportFilter !== "all") {
-        const matchSport = m.sport || "football";
-        if (matchSport !== sportFilter) return;
-      }
-
-      const liveScore = scoresMap[m.id] || m.score;
-      const canonicalName = resolveCanonicalTournament({
-        tournament: m.tournament,
-        title: m.title,
-        sport: m.sport,
-        team1: m.team1,
-        team2: m.team2,
-        score: liveScore,
-      });
-
-      if (canonicalName) {
-        // Loại bỏ tên bộ môn thể thao chung (không đại diện cho giải đấu độc lập)
-        if (isGenericSportTournament(canonicalName) && canonicalName !== "Giải Đấu Khác") {
-          return;
-        }
-
-        if (canonicalName !== "Giải Đấu Khác") {
-          specificTournamentCount++;
-        }
-
-        tourMap[canonicalName] = (tourMap[canonicalName] || 0) + 1;
-      }
-    });
-
-    // Chỉ hiển thị hàng lọc giải đấu khi có ít nhất 1 giải đấu cụ thể độc lập hữu ích
-    if (specificTournamentCount === 0) {
-      return [];
-    }
-
-    return Object.entries(tourMap)
-      .map(([name, count]) => ({ name, count }))
-      .sort((a, b) => {
-        if (a.name === "Giải Đấu Khác") return 1;
-        if (b.name === "Giải Đấu Khác") return -1;
-        return b.count - a.count;
-      });
-  }, [validMatches, scoresMap, sportFilter]);
-
-  // Tự động reset bộ lọc giải đấu nếu giải đấu đã chọn không còn khả dụng
-  useEffect(() => {
-    if (selectedTournament !== "all") {
-      const exists = availableTournaments.some((t) => t.name === selectedTournament);
-      if (!exists) {
-        setSelectedTournament("all");
-      }
-    }
-  }, [availableTournaments, selectedTournament]);
-
-  const filteredTournaments = useMemo(() => {
-    if (!tournamentSearch.trim()) return availableTournaments;
-    const q = tournamentSearch.toLowerCase().trim();
-    return availableTournaments.filter((t) => t.name.toLowerCase().includes(q));
-  }, [availableTournaments, tournamentSearch]);
-
-  useEffect(() => {
-    if (!isTournamentDropdownOpen) return;
-    const handleClickOutside = (e: MouseEvent) => {
-      if (tournamentDropdownRef.current && !tournamentDropdownRef.current.contains(e.target as Node)) {
-        setIsTournamentDropdownOpen(false);
-      }
-    };
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        setIsTournamentDropdownOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    document.addEventListener("keydown", handleKeyDown);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-      document.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [isTournamentDropdownOpen]);
-
-  const filteredMatches = useMemo(() => {
-    return validMatches.filter((m) => {
-      // 0. Lọc theo bộ môn thể thao chính xác (không gán ngầm non-basketball thành football)
-      if (sportFilter !== "all") {
-        const matchSport = m.sport || "football";
-        if (matchSport !== sportFilter) {
-          return false;
-        }
-      }
-
-      // 1. Lọc theo trạng thái thực tế
-      if (selectedStatus !== "all" && m.realStatus !== selectedStatus) {
-        return false;
-      }
-
-      // 2. Lọc theo nhóm kênh
-      if (
-        selectedFootballGroup !== "all" &&
-        m.group !== selectedFootballGroup &&
-        !m.groups?.includes(selectedFootballGroup)
-      ) {
-        return false;
-      }
-
-      // 3. Lọc theo giải đấu
-      if (selectedTournament !== "all") {
-        const liveScore = scoresMap[m.id] || m.score;
-        const canonicalTournament = resolveCanonicalTournament({
-          tournament: m.tournament,
-          title: m.title,
-          sport: m.sport,
-          team1: m.team1,
-          team2: m.team2,
-          score: liveScore,
-        });
-        if (canonicalTournament !== selectedTournament) {
-          return false;
-        }
-      }
-
-      // 4. Lọc "Có nguồn xem"
-      if (onlyWithStream && !m.hasStream) {
-        return false;
-      }
-
-      // 4B. Lọc "Trận tâm điểm"
-      if (onlyFeatured && !m.isFeatured) {
-        return false;
-      }
-
-      // 5. Lọc chất lượng FHD
-      if (onlyFhd) {
-        const isFhd =
-          m.quality?.includes("FHD") ||
-          m.quality?.includes("1080p") ||
-          m.servers?.some(
-            (s) => s.name.includes("FHD") || s.name.includes("1080p"),
-          );
-        if (!isFhd) return false;
-      }
-
-      // 6. Tìm kiếm thông minh theo tên đội, giải đấu, BLV, nhóm kênh
-      if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase().trim();
-        const inTitle = m.title ? m.title.toLowerCase().includes(q) : false;
-        const inTeam1 = m.team1 ? m.team1.toLowerCase().includes(q) : false;
-        const inTeam2 = m.team2 ? m.team2.toLowerCase().includes(q) : false;
-        const inBLV = m.blv ? m.blv.toLowerCase().includes(q) : false;
-        const inTournament = m.tournament
-          ? m.tournament.toLowerCase().includes(q)
-          : false;
-        const inGroup = m.group ? m.group.toLowerCase().includes(q) : false;
-        const inGroups = m.groups
-          ? m.groups.some((g) => g.toLowerCase().includes(q))
-          : false;
-
-        if (
-          !inTitle &&
-          !inTeam1 &&
-          !inTeam2 &&
-          !inBLV &&
-          !inTournament &&
-          !inGroup &&
-          !inGroups
-        ) {
-          return false;
-        }
-      }
-
-      return true;
-    });
-  }, [
-    validMatches,
-    sportFilter,
-    scoresMap,
-    selectedStatus,
-    selectedFootballGroup,
-    selectedTournament,
-    onlyWithStream,
-    onlyFeatured,
-    onlyFhd,
-    searchQuery,
-  ]);
-
-  const liveMatchesList = useMemo(() => {
-    return filteredMatches.filter((m) => m.realStatus === "live");
-  }, [filteredMatches]);
-
-  const upcomingMatchesList = useMemo(() => {
-    return filteredMatches.filter((m) => m.realStatus === "upcoming");
-  }, [filteredMatches]);
-
-  const allVisibleMatches = filteredMatches;
 
   const scrollToActiveMatch = useCallback(
     (smooth = true) => {
@@ -1152,7 +372,10 @@ export function LiveFootballClient({
       const stickyHeaderHeight = stickyHeader ? stickyHeader.offsetHeight : 38;
 
       // Trừ đi chiều cao sticky header + khoảng đệm an toàn 10px để card không bao giờ bị tiêu đề dính che khuất
-      const targetScrollTop = Math.max(0, relativeTop - stickyHeaderHeight - 10);
+      const targetScrollTop = Math.max(
+        0,
+        relativeTop - stickyHeaderHeight - 10,
+      );
 
       container.scrollTo({
         top: targetScrollTop,
@@ -1191,31 +414,6 @@ export function LiveFootballClient({
     };
   }, [selectedMatch?.id, filteredMatches.length, scrollToActiveMatch]);
 
-  // Ngăn chặn hiện tượng cuộn chuột lan (scroll chaining) từ danh sách trận ra toàn bộ trang bên ngoài
-  useEffect(() => {
-    const el = railContainerRef.current;
-    if (!el) return;
-
-    const handleWheel = (e: WheelEvent) => {
-      const { scrollTop, scrollHeight, clientHeight } = el;
-      if (scrollHeight <= clientHeight) {
-        e.preventDefault();
-        return;
-      }
-
-      const isAtTop = scrollTop <= 0;
-      const isAtBottom = Math.ceil(scrollTop + clientHeight) >= scrollHeight - 1;
-
-      if ((isAtTop && e.deltaY < 0) || (isAtBottom && e.deltaY > 0)) {
-        e.preventDefault();
-      }
-    };
-
-    el.addEventListener("wheel", handleWheel, { passive: false });
-    return () => {
-      el.removeEventListener("wheel", handleWheel);
-    };
-  }, [sidePanelTab, filteredMatches.length]);
 
   const handleSelectMatch = useCallback(
     (match: FootballMatch) => {
@@ -1234,90 +432,6 @@ export function LiveFootballClient({
     },
     [updateUrl, scrollToPlayerArea, scrollToActiveMatch],
   );
-
-  const handleSelectMatchFromSheet = useCallback(
-    (match: FootballMatch) => {
-      handleSelectMatch(match);
-      setIsMobileSheetOpen(false);
-    },
-    [handleSelectMatch],
-  );
-
-  const handleStatusChange = useCallback(
-    (status: "all" | "live" | "upcoming" | "finished") => {
-      setActiveSection("matches");
-      setSelectedStatus(status);
-      updateUrl({ status: status === "all" ? null : status });
-    },
-    [updateUrl],
-  );
-
-  const handleTournamentChange = useCallback(
-    (tournament: string) => {
-      setSelectedTournament(tournament);
-      updateUrl({ tournament: tournament === "all" ? null : tournament });
-    },
-    [updateUrl],
-  );
-
-  const handleSearchChange = useCallback(
-    (query: string) => {
-      setSearchQuery(query);
-      updateUrl({ q: query.trim() || null });
-    },
-    [updateUrl],
-  );
-
-  const handleFeaturedToggle = useCallback(() => {
-    setActiveSection("matches");
-    const next = !onlyFeatured;
-    setOnlyFeatured(next);
-    updateUrl({ featured: next });
-  }, [onlyFeatured, updateUrl]);
-
-  const handleSportChange = useCallback(
-    (sport: string) => {
-      setSportFilter(sport);
-      setSelectedTournament("all");
-      onSportChange?.(sport);
-      updateUrl({ sport: sport === "all" ? null : sport, tournament: null });
-    },
-    [onSportChange, updateUrl],
-  );
-
-  const handleResetFilters = useCallback(() => {
-    setSelectedFootballGroup("all");
-    setSelectedTournament("all");
-    setSelectedStatus("all");
-    setOnlyWithStream(false);
-    setOnlyFeatured(false);
-    setSearchQuery("");
-    setOnlyFhd(false);
-    setSportFilter("all");
-    setIsTournamentDropdownOpen(false);
-    setTournamentSearch("");
-    onSportChange?.("all");
-    updateUrl({
-      group: null,
-      tournament: null,
-      status: null,
-      stream: null,
-      featured: null,
-      q: null,
-      fhd: null,
-      sport: null,
-    });
-  }, [onSportChange, updateUrl]);
-
-  const hasActiveFilters =
-    selectedFootballGroup !== "all" ||
-    selectedTournament !== "all" ||
-    selectedStatus !== "all" ||
-    sportFilter !== "all" ||
-    onlyWithStream ||
-    onlyFeatured ||
-    searchQuery.trim() !== "" ||
-    onlyFhd;
 
   return (
     <div
@@ -1342,472 +456,71 @@ export function LiveFootballClient({
       {/* KHU VỰC 1: SÂN CỎ TRỰC TIẾP & MATCH DISCOVERY / MATCH CENTER */}
       <div>
         <div className="space-y-6">
-          {/* ============================================================ */}
-          {/* TRƯỜNG HỢP 1: KHI ĐÃ CHỌN TRẬN ĐẤU (THEATER WATCH & DETAILS) */}
-          {/* ============================================================ */}
           {selectedMatch ? (
-            <div className="space-y-2.5 sm:space-y-3 pb-16 lg:pb-0">
-              {/* THANH ĐIỀU HƯỚNG QUAY LẠI DANH SÁCH & TIÊU ĐỀ TRẬN (BREADCRUMB COMPACT ~32-36PX) */}
-              <div
-                id="live-player-header"
-                ref={playerRef}
-                className="flex items-center justify-between gap-2.5 px-1 py-1 text-xs"
-              >
-                <button
-                  type="button"
-                  onClick={handleClosePlayer}
-                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-zinc-200 hover:text-white text-xs font-bold transition cursor-pointer shrink-0 active:scale-95 shadow-sm"
-                >
-                  <ArrowLeft className="w-3.5 h-3.5" />
-                  <span>Danh sách</span>
-                </button>
-
-                <div className="flex items-center gap-2 min-w-0 flex-1 justify-start overflow-hidden px-1">
-                  <span className="text-zinc-600 text-xs shrink-0 select-none">/</span>
-                  <div className="flex items-center gap-1.5 min-w-0 truncate">
-                    <span className="font-bold text-white text-xs sm:text-sm truncate">
-                      {selectedMatchTournament}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-1.5 shrink-0">
-                  {/* NÚT ĐỔI TRẬN NHỎ GỌN TRÊN MOBILE: ĐẶT CÙNG HÀNG ĐIỀU HƯỚNG BREADCRUMB GỌN GÀNG, HỢP LÝ */}
-                  <button
-                    type="button"
-                    onClick={() => setIsMobileSheetOpen(true)}
-                    aria-label={`Đổi trận (${filteredMatches.length} trận khả dụng)`}
-                    className="lg:hidden inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-netflix-red hover:brightness-110 active:brightness-95 text-white font-bold text-xs shadow-sm transition cursor-pointer active:scale-95"
-                  >
-                    <ArrowLeftRight className="w-3.5 h-3.5 shrink-0" />
-                    <span>Đổi trận</span>
-                    <span className="bg-black/35 text-white text-[10px] font-bold px-1.5 py-0.2 rounded-full shrink-0">
-                      {filteredMatches.length}
-                    </span>
-                  </button>
-                </div>
-              </div>
-
-              {/* BỐ CỤC THEATER STUDIO 2 CỘT (DESKTOP) / XẾP CHỒNG (MOBILE) */}
-              <div className="space-y-4 lg:space-y-0 lg:grid lg:grid-cols-12 lg:gap-6 items-start pb-2 sm:pb-3">
-                {/* CỘT TRÁI (COL 1-7/8 TRÊN DESKTOP): LIVE PLAYER */}
-                <div className="lg:col-span-7 xl:col-span-8 space-y-3 flex flex-col justify-start">
-                  <div className="space-y-3">
-                    <LivePlayer
-                      match={selectedMatch}
-                      title={selectedMatch.title}
-                      servers={selectedMatch.servers}
-                      blv={selectedMatch.blv}
-                      time={selectedMatch.time}
-                      score={currentMatchScore}
-                      summary={matchSummary}
-                      matchOptions={
-                        allVisibleMatches.length > 0 ? allVisibleMatches : [selectedMatch]
-                      }
-                      onSelectMatch={handleSelectMatch}
-                      showMatchRail={showMatchRail}
-                      onToggleMatchRail={() => setShowMatchRail((prev) => !prev)}
-                      onCloseMatchRail={() => setShowMatchRail(false)}
-                      isActive={isActive}
-                      onVideoHeightChange={handleVideoHeightChange}
-                    />
-
-                    {/* KHỐI MATCH CENTER TRÊN MOBILE: THÔNG TIN TRẬN ĐẤU & LUỒNG PHÁT CUỘN TỰ NHIÊN */}
-                    <div className="w-full pt-1 sm:pt-2">
-                      <MatchCenter
-                        leagueSlug={currentMatchScore?.leagueSlug}
-                        eventId={currentMatchScore?.eventId}
-                        matchTitle={selectedMatch.title}
-                        title="Trung tâm trận đấu"
-                        hideScoreboard={true}
-                        tournament={selectedMatch.tournament}
-                        team1={selectedMatch.team1}
-                        team2={selectedMatch.team2}
-                        team1Logo={selectedMatch.homeLogo || selectedMatch.logo}
-                        team2Logo={selectedMatch.awayLogo}
-                        isLive={
-                          currentMatchScore?.status === "live" ||
-                          selectedMatch.timeline === "live"
-                        }
-                        time={selectedMatch.time}
-                        blv={selectedMatch.blv}
-                        group={selectedMatch.group}
-                        serversCount={selectedMatch.servers?.length}
-                        quality={selectedMatch.quality}
-                        onSummaryChange={handleSummaryChange}
-                        onLoadingChange={setIsSummaryLoading}
-                        initialScore={currentMatchScore}
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* CỘT PHẢI (COL 8-12 TRÊN DESKTOP): SIDE PANEL VỚI DIỄN BIẾN & ĐỔI TRẬN */}
-                <LiveMatchSidePanel
-                  sidePanelHeight={sidePanelHeight}
-                  hasTimelineEvents={hasTimelineEvents}
-                  sidePanelTab={sidePanelTab}
-                  onTabChange={setSidePanelTab}
-                  matchSummary={matchSummary}
-                  isSummaryLoading={isSummaryLoading}
-                  selectedMatch={selectedMatch}
-                  currentMatchScore={currentMatchScore}
-                  filteredMatches={filteredMatches}
-                  searchQuery={searchQuery}
-                  onSearchChange={handleSearchChange}
-                  selectedStatus={selectedStatus}
-                  onStatusChange={handleStatusChange}
-                  counts={counts}
-                  liveMatchesList={liveMatchesList}
-                  upcomingMatchesList={upcomingMatchesList}
-                  scoresMap={scoresMap}
-                  onSelectMatch={handleSelectMatch}
-                  railContainerRef={railContainerRef}
-                />
-              </div>
-
-              {/* MOBILE BOTTOM SHEET: DANH SÁCH ĐỔI TRẬN ĐẤU (CHỈ DÀNH CHO MOBILE) */}
-              <LiveMobileMatchSheet
-                isOpen={isMobileSheetOpen}
-                onClose={() => setIsMobileSheetOpen(false)}
-                filteredMatches={filteredMatches}
-                selectedMatch={selectedMatch}
-                scoresMap={scoresMap}
-                searchQuery={searchQuery}
-                onSearchChange={handleSearchChange}
+            <LiveTheaterWatchView
+              selectedMatch={selectedMatch}
+              selectedMatchTournament={selectedMatchTournament}
+              currentMatchScore={currentMatchScore}
+              matchSummary={matchSummary}
+              isSummaryLoading={isSummaryLoading}
+              hasTimelineEvents={hasTimelineEvents}
+              sidePanelTab={sidePanelTab}
+              onSidePanelTabChange={setSidePanelTab}
+              sidePanelHeight={sidePanelHeight}
+              filteredMatches={filteredMatches}
+              liveMatchesList={liveMatchesList}
+              upcomingMatchesList={upcomingMatchesList}
+              scoresMap={scoresMap}
+              searchQuery={searchQuery}
+              onSearchChange={handleSearchChange}
+              selectedStatus={selectedStatus}
+              onStatusChange={handleStatusChange}
+              counts={counts}
+              isActive={isActive}
+              playerHeaderRef={playerRef}
+              railContainerRef={railContainerRef}
+              onClosePlayer={handleClosePlayer}
+              onSelectMatch={handleSelectMatch}
+              onSummaryChange={handleSummaryChange}
+              onLoadingChange={setIsSummaryLoading}
+              onVideoHeightChange={handleVideoHeightChange}
+            />
+          ) : (
+            <>
+              <LiveFilterCommandBar
+                activeSection={activeSection}
                 selectedStatus={selectedStatus}
-                onStatusChange={handleStatusChange}
+                onlyFeatured={onlyFeatured}
+                searchQuery={searchQuery}
+                filteredCount={filteredMatches.length}
                 counts={counts}
+                hasActiveFilters={hasActiveFilters}
+                onStatusChange={handleStatusChange}
+                onFeaturedToggle={handleFeaturedToggle}
+                onToggleStandings={() =>
+                  setActiveSection((prev) =>
+                    prev === "standings" ? "matches" : "standings",
+                  )
+                }
+                onSearchChange={handleSearchChange}
+                onResetFilters={handleResetFilters}
+              />
+              <LiveMatchGroupsList
+                activeSection={activeSection}
                 liveMatchesList={liveMatchesList}
                 upcomingMatchesList={upcomingMatchesList}
-                onSelectMatch={handleSelectMatchFromSheet}
-                onTouchStart={handleTouchStart}
-                onTouchEnd={handleTouchEnd}
+                filteredCount={filteredMatches.length}
+                scoresMap={scoresMap}
+                searchQuery={searchQuery}
+                hasActiveFilters={hasActiveFilters}
+                onCloseStandings={() => setActiveSection("matches")}
+                onSelectMatch={handleSelectMatch}
+                onResetFilters={handleResetFilters}
               />
-            </div>
-          ) : (
-            /* ============================================================ */
-            /* TRƯỜNG HỢP 2: KHI VỪA VÀO TRANG (MATCH DISCOVERY FIRST)      */
-            /* ============================================================ */
-            <div className="space-y-4 sm:space-y-6">
-              {/* THANH BỘ LỌC TÌM KIẾM TOÀN DIỆN & TINH GỌN (TỐI ĐA 2 HÀNG) */}
-              <div className="relative z-30 space-y-2 sm:space-y-3 pt-1 pb-2">
-                {/* HÀNG 1: BỘ LỌC TRẠNG THÁI (BÊN TRÁI) & Ô TÌM KIẾM (BÊN PHẢI) CÂN ĐỐI */}
-                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-2.5 sm:gap-3">
-                  {/* THANH ĐIỀU KHIỂN BỘ LỌC TRẬN ĐẤU & BẢNG XẾP HẠNG (NẰM BÊN TRÁI TRÊN DESKTOP) */}
-                  <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto scrollbar-none py-0.5 touch-pan-x shrink-0 max-w-full order-2 lg:order-1">
-                    {/* Nút tìm kiếm thu gọn trên Mobile khi chưa mở */}
-                    {!isMobileSearchOpen && !searchQuery && (
-                      <button
-                        type="button"
-                        onClick={() => setIsMobileSearchOpen(true)}
-                        title="Tìm kiếm trận đấu"
-                        aria-label="Tìm kiếm trận đấu"
-                        className="lg:hidden flex items-center justify-center w-9 h-9 min-h-[34px] sm:min-h-[38px] rounded-xl bg-zinc-900/90 text-zinc-400 hover:text-white shrink-0 transition border border-white/10"
-                      >
-                        <Search className="w-3.5 h-3.5" />
-                      </button>
-                    )}
-
-                    {/* NHÓM TRẠNG THÁI TRẬN ĐẤU & BẢNG XẾP HẠNG (CHUNG 1 CAPSULE LIỀN MẠCH, ĐỒNG BỘ 100%) */}
-                    <div className="flex items-center gap-1 p-0.5 rounded-xl bg-zinc-900/90 border border-white/10 shrink-0 shadow-sm">
-                      <button
-                        type="button"
-                        onClick={() => handleStatusChange("all")}
-                        className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition cursor-pointer min-h-[34px] sm:min-h-[36px] ${
-                          activeSection !== "standings" && selectedStatus === "all"
-                            ? "bg-netflix-red text-white font-bold shadow-sm"
-                            : "text-zinc-400 hover:text-white hover:bg-white/5"
-                        }`}
-                      >
-                        <span>Tất cả</span>
-                        <span className={`tabular-nums text-[11px] ${activeSection !== "standings" && selectedStatus === "all" ? "opacity-80 font-normal" : "opacity-60"}`}>
-                          ({counts.total})
-                        </span>
-                      </button>
-
-                      {counts.live > 0 && (
-                        <button
-                          type="button"
-                          onClick={() => handleStatusChange("live")}
-                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition cursor-pointer min-h-[34px] sm:min-h-[36px] ${
-                            activeSection !== "standings" && selectedStatus === "live"
-                              ? "bg-netflix-red text-white font-bold shadow-md shadow-black/50"
-                              : "text-zinc-300 hover:text-white hover:bg-white/5"
-                          }`}
-                        >
-                          <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse shrink-0" />
-                          <span className="xs:hidden">Live</span>
-                          <span className="hidden xs:inline">Đang diễn ra</span>
-                          <span className="opacity-80 tabular-nums text-[11px] font-normal">
-                            ({counts.live})
-                          </span>
-                        </button>
-                      )}
-
-                      {counts.upcoming > 0 && (
-                        <button
-                          type="button"
-                          onClick={() => handleStatusChange("upcoming")}
-                          className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition cursor-pointer min-h-[34px] sm:min-h-[36px] ${
-                            activeSection !== "standings" && selectedStatus === "upcoming"
-                              ? "bg-netflix-red text-white font-bold shadow-sm"
-                              : "text-zinc-400 hover:text-white hover:bg-white/5"
-                          }`}
-                        >
-                          <span className="xs:hidden">Sắp đá</span>
-                          <span className="hidden xs:inline">Sắp diễn ra</span>
-                          <span className="opacity-80 tabular-nums text-[11px] font-normal">
-                            ({counts.upcoming})
-                          </span>
-                        </button>
-                      )}
-
-                      {counts.finished > 0 && (
-                        <button
-                          type="button"
-                          onClick={() => handleStatusChange("finished")}
-                          className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition cursor-pointer min-h-[34px] sm:min-h-[36px] ${
-                            activeSection !== "standings" && selectedStatus === "finished"
-                              ? "bg-netflix-red text-white font-bold shadow-sm"
-                              : "text-zinc-400 hover:text-white hover:bg-white/5"
-                          }`}
-                        >
-                          <span className="xs:hidden">Xong</span>
-                          <span className="hidden xs:inline">Đã kết thúc</span>
-                          <span className="opacity-80 tabular-nums text-[11px] font-normal">
-                            ({counts.finished})
-                          </span>
-                        </button>
-                      )}
-
-                      {/* NÚT LỌC TRẬN TÂM ĐIỂM */}
-                      <button
-                        type="button"
-                        onClick={handleFeaturedToggle}
-                        aria-pressed={onlyFeatured}
-                        aria-label="Chỉ hiện các trận cầu tâm điểm / đại chiến hấp dẫn nhất"
-                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition cursor-pointer min-h-[34px] sm:min-h-[36px] ${
-                          activeSection !== "standings" && onlyFeatured
-                            ? "bg-netflix-red text-white shadow-md shadow-black/50 font-bold"
-                            : "text-zinc-400 hover:text-white hover:bg-white/5"
-                        }`}
-                      >
-                        <Flame
-                          className={`w-3.5 h-3.5 shrink-0 ${
-                            onlyFeatured ? "text-amber-200 fill-amber-300" : "text-amber-400 fill-amber-400/20"
-                          }`}
-                        />
-                        <span>Tâm điểm</span>
-                        {counts.featured > 0 && (
-                          <span className="opacity-80 tabular-nums text-[11px] font-normal">
-                            ({counts.featured})
-                          </span>
-                        )}
-                      </button>
-
-                      {/* VẠCH PHÂN CÁCH TINH TẾ */}
-                      <div className="w-[1px] h-4 bg-white/10 mx-0.5 shrink-0" />
-
-                      {/* NÚT BẢNG XẾP HẠNG */}
-                      <button
-                        type="button"
-                        onClick={() => setActiveSection((prev) => (prev === "standings" ? "matches" : "standings"))}
-                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition cursor-pointer min-h-[34px] sm:min-h-[36px] ${
-                          activeSection === "standings"
-                            ? "bg-netflix-red text-white font-bold shadow-sm"
-                            : "text-zinc-400 hover:text-white hover:bg-white/5"
-                        }`}
-                      >
-                        <Trophy className={`w-3.5 h-3.5 shrink-0 ${activeSection === "standings" ? "text-amber-200" : "text-amber-400"}`} />
-                        <span>Bảng xếp hạng</span>
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Ô TÌM KIẾM THÔNG MINH (NẰM BÊN PHẢI TRÊN DESKTOP, CĂN ĐỀU VỚI MÉP PHẢI) */}
-                  <div className="hidden lg:block relative w-72 xl:w-80 shrink-0 order-1 lg:order-2 lg:ml-auto">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 sm:w-4 sm:h-4 text-zinc-400 pointer-events-none" />
-                    <input
-                      type="text"
-                      value={searchQuery}
-                      onChange={(e) => handleSearchChange(e.target.value)}
-                      placeholder="Tìm trận, giải đấu, bình luận viên..."
-                      className="w-full pl-9 pr-9 py-2 sm:py-2.5 rounded-xl bg-zinc-900/90 text-xs sm:text-sm text-white placeholder-zinc-400 focus:outline-none focus:ring-1 focus:ring-netflix-red/50 transition font-medium shadow-inner border border-white/5 focus:border-netflix-red/50"
-                    />
-                    {searchQuery && (
-                      <button
-                        type="button"
-                        onClick={() => handleSearchChange("")}
-                        title="Xóa tìm kiếm"
-                        aria-label="Xóa tìm kiếm"
-                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-white p-0.5 cursor-pointer rounded-full hover:bg-white/10 transition"
-                      >
-                        <X className="w-3.5 h-3.5" />
-                      </button>
-                    )}
-                  </div>
-
-                  {/* Thanh tìm kiếm bung rộng trên mobile khi kích hoạt */}
-                  {(isMobileSearchOpen || searchQuery) && (
-                    <div className="flex lg:hidden items-center gap-1.5 w-full order-1">
-                      <div className="relative flex-1">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-400 pointer-events-none" />
-                        <input
-                          type="text"
-                          autoFocus
-                          value={searchQuery}
-                          onChange={(e) => handleSearchChange(e.target.value)}
-                          placeholder="Tìm trận, giải đấu, BLV..."
-                          className="w-full pl-9 pr-8 py-1.5 rounded-xl bg-zinc-900 text-xs text-white placeholder-zinc-400 focus:outline-none shadow-inner min-h-[36px] border border-white/10"
-                        />
-                        {searchQuery && (
-                          <button
-                            type="button"
-                            onClick={() => handleSearchChange("")}
-                            title="Xóa tìm kiếm"
-                            aria-label="Xóa tìm kiếm"
-                            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-white p-0.5 cursor-pointer rounded-full hover:bg-white/10 transition"
-                          >
-                            <X className="w-3.5 h-3.5" />
-                          </button>
-                        )}
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIsMobileSearchOpen(false);
-                          if (searchQuery) handleSearchChange("");
-                        }}
-                        className="px-2.5 py-1.5 rounded-xl bg-zinc-900/90 text-xs font-semibold text-zinc-300 hover:text-white min-h-[36px] shrink-0 border border-white/10"
-                      >
-                        Đóng
-                      </button>
-                    </div>
-                  )}
-                </div>
-
-                {/* Thanh Reset filter khi có áp dụng */}
-                {hasActiveFilters && (
-                  <div className="flex items-center justify-between pt-1.5 sm:pt-2 text-[11px] sm:text-xs">
-                    <span className="text-zinc-400">
-                      Hiển thị <strong className="text-white font-bold">{filteredMatches.length}</strong>/{counts.total} trận
-                    </span>
-                    <button
-                      type="button"
-                      onClick={handleResetFilters}
-                      className="text-netflix-red hover:text-red-400 font-bold flex items-center gap-1 transition cursor-pointer"
-                    >
-                      <RotateCcw className="w-3 h-3" />
-                      <span>Đặt lại bộ lọc</span>
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              {/* NỘI DUNG: NẾU ĐANG CHỌN BẢNG XẾP HẠNG THÌ HIỆN BXH, NẾU KHÔNG THÌ HIỆN LƯỚI TRẬN ĐẤU */}
-              {activeSection === "standings" ? (
-                <div className="pt-1">
-                  <LeagueStandings
-                    initialLeague="eng.1"
-                    defaultOpen={true}
-                    onClose={() => setActiveSection("matches")}
-                  />
-                </div>
-              ) : (
-                /* LƯỚI TRẬN ĐẤU RESPONSIVE DISCOVERY GRID (3 CỘT TRÊN DESKTOP, 1 CỘT TRÊN MOBILE) */
-                <div className="space-y-6">
-                {/* NHÓM 🔴 ĐANG PHÁT TRỰC TIẾP */}
-                {liveMatchesList.length > 0 && (
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between px-1">
-                      <div className="flex items-center gap-2">
-                        <span className="relative flex h-2.5 w-2.5 shrink-0">
-                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
-                          <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500" />
-                        </span>
-                        <h2 className="text-base sm:text-lg font-bold tracking-tight text-white">
-                          Đang phát trực tiếp
-                        </h2>
-                      </div>
-                      <span className="text-xs font-semibold tabular-nums px-2.5 py-0.5 rounded-full bg-netflix-red/15 text-netflix-red border border-netflix-red/25">
-                        {liveMatchesList.length} trận
-                      </span>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3 sm:gap-3.5">
-                      {liveMatchesList.map((match) => (
-                        <MatchCard
-                          key={match.id}
-                          match={match}
-                          score={scoresMap[match.id] || match.score}
-                          isSelected={false}
-                          onSelect={handleSelectMatch}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* NHÓM 🕐 SẮP DIỄN RA */}
-                {upcomingMatchesList.length > 0 && (
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between px-1">
-                      <div className="flex items-center gap-2">
-                        <Clock className="w-4 h-4 text-zinc-400 shrink-0" />
-                        <h2 className="text-base sm:text-lg font-bold tracking-tight text-zinc-200">
-                          Sắp diễn ra
-                        </h2>
-                      </div>
-                      <span className="text-xs font-semibold tabular-nums px-2.5 py-0.5 rounded-full bg-white/10 text-zinc-300">
-                        {upcomingMatchesList.length} trận
-                      </span>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3 sm:gap-3.5">
-                      {upcomingMatchesList.map((match) => (
-                        <MatchCard
-                          key={match.id}
-                          match={match}
-                          score={scoresMap[match.id] || match.score}
-                          isSelected={false}
-                          onSelect={handleSelectMatch}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* TRẠNG THÁI RỖNG KHI TÌM KIẾM KHÔNG CÓ TRẬN */}
-                {filteredMatches.length === 0 && (
-                  <div className="p-12 text-center text-zinc-400 space-y-3 rounded-2xl bg-zinc-950/80 shadow-xl">
-                    <Search className="w-8 h-8 mx-auto text-zinc-500" />
-                    <p className="text-sm font-bold text-white">Không tìm thấy trận đấu nào</p>
-                    <p className="text-xs text-zinc-400">
-                      {searchQuery
-                        ? `Không có trận nào khớp với từ khóa "${searchQuery}"`
-                        : "Không có trận nào phù hợp với bộ lọc đang chọn"}
-                    </p>
-                    {hasActiveFilters && (
-                      <button
-                        type="button"
-                        onClick={handleResetFilters}
-                        className="px-4 py-2 rounded-xl bg-netflix-red text-white text-xs font-bold cursor-pointer hover:brightness-110 active:brightness-95 transition"
-                      >
-                        Đặt lại bộ lọc
-                      </button>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        )}
+            </>
+          )}
+        </div>
       </div>
-    </div>
-
     </div>
   );
 }
-
-export default LiveFootballClient;

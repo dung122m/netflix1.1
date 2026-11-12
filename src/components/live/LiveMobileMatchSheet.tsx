@@ -102,13 +102,13 @@ export function LiveMobileMatchSheet({
               value={searchQuery}
               onChange={(e) => onSearchChange(e.target.value)}
               placeholder="Tìm trận, giải, BLV..."
-              className="w-full pl-9 pr-14 py-2 rounded-xl bg-zinc-900 text-xs text-white placeholder-zinc-400 focus:outline-none focus:ring-1 focus:ring-netflix-red/50 transition shadow-inner font-medium"
+              className="w-full pl-9 pr-9 py-2 rounded-xl bg-zinc-900/90 focus:bg-zinc-900 text-base sm:text-xs text-white placeholder-zinc-400 focus:outline-none focus:ring-1 focus:ring-white/20 transition font-medium"
             />
             {searchQuery && (
               <button
                 type="button"
                 onClick={() => onSearchChange("")}
-                title="Xóa tìm kiếm"
+                aria-label="Xóa tìm kiếm"
                 className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-white p-0.5 cursor-pointer rounded-full hover:bg-white/10"
               >
                 <X className="w-3.5 h-3.5" />
@@ -118,7 +118,7 @@ export function LiveMobileMatchSheet({
         </div>
 
         {/* Hàng nút lọc nhanh trạng thái trong Bottom Sheet */}
-        <div className="shrink-0 px-3 pb-2 pt-0.5 flex items-center gap-1.5 overflow-x-auto scrollbar-none touch-pan-x border-b border-white/5 bg-zinc-950">
+        <div className="shrink-0 px-3 pb-2 pt-0.5 flex items-center gap-1.5 overflow-x-auto scrollbar-none touch-pan-x touch-pan-y border-b border-white/5 bg-zinc-950">
           <button
             type="button"
             onClick={() => onStatusChange("all")}
@@ -170,17 +170,14 @@ export function LiveMobileMatchSheet({
               {/* KHỐI TRẬN ĐANG TRỰC TIẾP */}
               {liveMatchesList.length > 0 && (
                 <div>
-                  <div className="sticky top-0 z-20 -mx-3 px-3.5 py-2.5 bg-zinc-950 border-b border-red-500/30 flex items-center justify-between shadow-md">
+                  <div className="sticky top-0 z-20 -mx-3 px-3.5 py-2.5 bg-zinc-950 border-b border-white/[0.08] flex items-center justify-between shadow-md">
                     <div className="flex items-center gap-2">
-                      <span className="relative flex h-2.5 w-2.5">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
-                        <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500" />
-                      </span>
-                      <span className="text-xs sm:text-[13px] font-black uppercase tracking-wider text-red-200">
+                      <span className="relative flex h-2 w-2 rounded-full bg-red-500 animate-pulse" />
+                      <span className="text-xs sm:text-[13px] font-bold text-red-200">
                         Đang trực tiếp
                       </span>
                     </div>
-                    <span className="text-xs font-black tabular-nums px-2.5 py-0.5 rounded-full bg-red-500/20 text-red-200 border border-red-500/30">
+                    <span className="text-xs font-bold tabular-nums px-2.5 py-0.5 rounded-full bg-red-500/15 text-red-200">
                       {liveMatchesList.length} trận
                     </span>
                   </div>
@@ -210,7 +207,7 @@ export function LiveMobileMatchSheet({
                         Sắp diễn ra
                       </span>
                     </div>
-                    <span className="text-xs font-semibold tabular-nums px-2.5 py-0.5 rounded-full bg-white/10 text-zinc-300 border border-white/10">
+                    <span className="text-xs font-semibold tabular-nums px-2.5 py-0.5 rounded-full bg-white/10 text-zinc-300">
                       {upcomingMatchesList.length} trận
                     </span>
                   </div>

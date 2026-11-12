@@ -6,6 +6,7 @@ import { FootballMatch } from "@/services/live/football/service";
 import { LiveMatchScore } from "@/services/live/football-score/types";
 import { MatchTimelineSidebar } from "./MatchTimelineSidebar";
 import { MatchCard } from "./MatchCard";
+import { Tooltip } from "@/components/ui/Tooltip";
 
 export interface LiveMatchSidePanelProps {
   sidePanelHeight?: number;
@@ -54,10 +55,10 @@ export function LiveMatchSidePanel({
   return (
     <div
       style={{
-        height: sidePanelHeight ? `${Math.max(sidePanelHeight, 540)}px` : "min(580px, calc(100vh - 200px))",
-        maxHeight: sidePanelHeight ? `${Math.max(sidePanelHeight, 640)}px` : "min(680px, calc(100vh - 160px))",
+        height: sidePanelHeight ? `${Math.max(sidePanelHeight, 540)}px` : "min(580px, calc(100dvh - 200px))",
+        maxHeight: sidePanelHeight ? `${Math.max(sidePanelHeight, 640)}px` : "min(680px, calc(100dvh - 160px))",
       }}
-      className="hidden lg:flex lg:col-span-5 xl:col-span-4 min-w-0 flex-col rounded-2xl bg-zinc-950/95 border border-white/5 shadow-2xl p-3 space-y-2.5 overflow-hidden"
+      className="hidden lg:flex lg:col-span-5 xl:col-span-4 min-w-0 flex-col rounded-2xl bg-zinc-950/95 shadow-2xl p-3 space-y-2.5 overflow-hidden"
     >
       {/* SUB-TABS TRÊN SIDE PANEL */}
       {hasTimelineEvents ? (
@@ -88,17 +89,21 @@ export function LiveMatchSidePanel({
           </button>
         </div>
       ) : (
-        <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-zinc-900 shrink-0">
+        <div className="flex items-center justify-between px-1 py-0.5 shrink-0">
           <div className="flex items-center gap-2 min-w-0">
             <ArrowLeftRight className="w-3.5 h-3.5 text-netflix-red shrink-0" />
             <span className="text-xs font-black text-white truncate">
               Đổi trận
             </span>
           </div>
-          {isSummaryLoading && (
+          {isSummaryLoading ? (
             <span className="flex items-center gap-1.5 text-[11px] text-zinc-400 font-medium shrink-0">
               <Activity className="w-3 h-3 animate-spin text-netflix-red" />
               <span>Đang kiểm tra...</span>
+            </span>
+          ) : (
+            <span className="text-[11px] font-semibold tabular-nums text-zinc-400 shrink-0">
+              {filteredMatches.length} trận
             </span>
           )}
         </div>
@@ -135,33 +140,32 @@ export function LiveMatchSidePanel({
         <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
           {/* Ô tìm kiếm nhanh trong side panel */}
           <div className="relative w-full shrink-0 mb-2">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-400" />
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-400 pointer-events-none" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => onSearchChange(e.target.value)}
               placeholder="Tìm trận, giải, BLV..."
-              className="w-full pl-8 pr-16 py-1.5 rounded-xl bg-zinc-900 text-xs text-white placeholder-zinc-400 focus:outline-none focus:ring-1 focus:ring-netflix-red/50 transition shadow-inner"
+              className="w-full pl-8 pr-8 py-1.5 rounded-xl bg-zinc-900/90 focus:bg-zinc-900 text-base sm:text-xs text-white placeholder-zinc-400 focus:outline-none focus:ring-1 focus:ring-white/20 transition"
             />
-            <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
-              {searchQuery && (
-                <button
-                  type="button"
-                  onClick={() => onSearchChange("")}
-                  title="Xóa tìm kiếm"
-                  className="text-zinc-400 hover:text-white p-0.5 cursor-pointer rounded-full hover:bg-white/10"
-                >
-                  <X className="w-3 h-3" />
-                </button>
-              )}
-              <span className="text-[9.5px] font-bold px-1.5 py-0.2 rounded bg-white/10 text-zinc-300">
-                {filteredMatches.length}
-              </span>
-            </div>
+            {searchQuery && (
+              <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center">
+                <Tooltip content="Xóa tìm kiếm" side="top">
+                  <button
+                    type="button"
+                    onClick={() => onSearchChange("")}
+                    aria-label="Xóa tìm kiếm"
+                    className="text-zinc-400 hover:text-white p-0.5 cursor-pointer rounded-full hover:bg-white/10"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </Tooltip>
+              </div>
+            )}
           </div>
 
           {/* Hàng nút lọc nhanh trạng thái trong side panel */}
-          <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none shrink-0 pb-2 pt-0.5 border-b border-white/5 bg-zinc-950">
+          <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none shrink-0 pb-1.5 pt-0.5">
             <button
               type="button"
               onClick={() => onStatusChange("all")}
@@ -205,25 +209,21 @@ export function LiveMatchSidePanel({
           {/* Danh sách thẻ trận cuộn dọc */}
           <div
             ref={railContainerRef}
-            style={{ overscrollBehavior: "contain" }}
-            className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-0.5 pt-0 pb-3 pr-1 scrollbar-thin touch-pan-y scroll-pt-12"
+            className="flex-1 min-h-0 overflow-y-auto overscroll-auto px-0.5 pt-0 pb-3 pr-1 scrollbar-thin scroll-pt-12"
           >
             {filteredMatches.length > 0 ? (
               <div className="space-y-2">
                 {/* KHỐI TRẬN ĐANG TRỰC TIẾP */}
                 {liveMatchesList.length > 0 && (
                   <div>
-                    <div className="sticky top-0 z-20 -mx-0.5 -mr-1 px-3 py-2 bg-zinc-950 border-b border-netflix-red/30 flex items-center justify-between shadow-md">
+                    <div className="sticky top-0 z-20 -mx-0.5 -mr-1 px-3 py-2 bg-zinc-950/95 backdrop-blur-sm flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <span className="relative flex h-2 w-2">
-                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
-                          <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500" />
-                        </span>
+                        <span className="inline-flex rounded-full h-2 w-2 bg-red-500 shrink-0" />
                         <span className="text-xs font-bold text-netflix-red">
                           Đang trực tiếp
                         </span>
                       </div>
-                      <span className="text-[10px] font-semibold tabular-nums px-2 py-0.5 rounded-full bg-netflix-red/15 text-netflix-red border border-netflix-red/30">
+                      <span className="text-[10px] font-semibold tabular-nums px-2 py-0.5 rounded-full bg-netflix-red/15 text-netflix-red">
                         {liveMatchesList.length} trận
                       </span>
                     </div>
@@ -246,14 +246,14 @@ export function LiveMatchSidePanel({
                 {/* KHỐI TRẬN SẮP DIỄN RA */}
                 {upcomingMatchesList.length > 0 && (
                   <div className="mt-2.5">
-                    <div className="sticky top-0 z-20 -mx-0.5 -mr-1 px-3 py-2 bg-zinc-950 border-b border-white/10 flex items-center justify-between shadow-md">
+                    <div className="sticky top-0 z-20 -mx-0.5 -mr-1 px-3 py-2 bg-zinc-950/95 backdrop-blur-sm flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <Clock className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
                         <span className="text-xs font-bold text-zinc-300">
                           Sắp diễn ra
                         </span>
                       </div>
-                      <span className="text-[10px] font-semibold tabular-nums px-2 py-0.5 rounded-full bg-white/10 text-zinc-300 border border-white/10">
+                      <span className="text-[10px] font-semibold tabular-nums px-2 py-0.5 rounded-full bg-white/10 text-zinc-300">
                         {upcomingMatchesList.length} trận
                       </span>
                     </div>

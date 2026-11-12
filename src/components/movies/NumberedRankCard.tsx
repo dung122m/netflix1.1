@@ -3,7 +3,8 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { pickBestMoviePoster } from "@/lib/movieMedia";
+import { pickBestMoviePoster, toFastCdnImageUrl } from "@/lib/movieMedia";
+import { isPhimimgSourceUrl } from "@/hooks/useMoviePosterFallback";
 import { MOVIE_CARD_TOKENS } from "@/lib/cardDimensions";
 
 export interface NumberedRankCardProps {
@@ -45,28 +46,26 @@ export const NumberedRankCard: React.FC<NumberedRankCardProps> = ({
       ""
     );
     if (best && !best.includes("/api/img-thumb") && !best.includes("/default-")) {
-      return best;
+      return toFastCdnImageUrl(best);
     }
     return "";
   }, [poster_url, thumb_url, title, origin_name, slug]);
 
   const [imgSrc, setImgSrc] = useState<string>(() => initialPoster);
-  const [isLoaded, setIsLoaded] = useState(false);
 
   const fallbackTriedRef = useRef(false);
 
   const handleImageError = useCallback(() => {
-    const safeThumb = thumb_url && !thumb_url.includes("/api/img-thumb") && !thumb_url.includes("/default-") ? thumb_url : "";
+    const safeThumbRaw = thumb_url && !thumb_url.includes("/api/img-thumb") && !thumb_url.includes("/default-") ? thumb_url : "";
+    const safeThumb = safeThumbRaw ? toFastCdnImageUrl(safeThumbRaw) : "";
     if (safeThumb && imgSrc !== safeThumb) {
       setImgSrc(safeThumb);
-      setIsLoaded(false);
       return;
     }
 
     // Cứu cánh ảnh phimimg.com bị nhà mạng chặn bằng R2 Proxy trước khi hiển thị default poster
     if (imgSrc && imgSrc.includes("phimimg.com") && !imgSrc.includes("/api/media/r2-proxy")) {
       setImgSrc(`/api/media/r2-proxy?url=${encodeURIComponent(imgSrc)}`);
-      setIsLoaded(false);
       return;
     }
 
@@ -78,46 +77,43 @@ export const NumberedRankCard: React.FC<NumberedRankCardProps> = ({
         .then((res) => (res.ok ? res.json() : null))
         .then((data) => {
           if (data?.posterUrl && !data.posterUrl.includes("/api/img-thumb")) {
-            setImgSrc(data.posterUrl);
+            setImgSrc(toFastCdnImageUrl(data.posterUrl));
           } else {
             setImgSrc("/default-poster.jpg");
           }
-          setIsLoaded(true);
         })
         .catch(() => {
           setImgSrc("/default-poster.jpg");
-          setIsLoaded(true);
         });
     } else {
       setImgSrc("/default-poster.jpg");
-      setIsLoaded(true);
     }
   }, [thumb_url, imgSrc, title, slug]);
 
   useEffect(() => {
-    if (!imgSrc && !fallbackTriedRef.current) {
+    if ((!imgSrc || isPhimimgSourceUrl(imgSrc)) && !fallbackTriedRef.current) {
       fallbackTriedRef.current = true;
       fetch(
         `/api/movie-poster-fallback?title=${encodeURIComponent(title)}&slug=${encodeURIComponent(slug)}`
       )
         .then((res) => (res.ok ? res.json() : null))
         .then((data) => {
-          if (data?.posterUrl && !data.posterUrl.includes("/api/img-thumb")) {
-            setImgSrc(data.posterUrl);
-          } else {
+          if (data?.posterUrl && !data.posterUrl.includes("/api/img-thumb") && !data.posterUrl.includes("phimimg.com")) {
+            setImgSrc(toFastCdnImageUrl(data.posterUrl));
+          } else if (!imgSrc) {
             setImgSrc("/default-poster.jpg");
           }
-          setIsLoaded(true);
         })
         .catch(() => {
-          setImgSrc("/default-poster.jpg");
-          setIsLoaded(true);
+          if (!imgSrc) {
+            setImgSrc("/default-poster.jpg");
+          }
         });
     }
   }, [imgSrc, title, slug]);
 
   const ringClasses =
-    "group-hover:ring-netflix-red group-hover:ring-inset group-hover:shadow-[0_14px_32px_var(--accent-glow),0_0_20px_rgba(0,0,0,0.8)] focus-visible:ring-netflix-red";
+    "group-hover:ring-2 group-hover:ring-netflix-red group-hover:ring-inset group-hover:shadow-[0_14px_32px_rgba(0,0,0,0.85)] focus-visible:ring-netflix-red";
 
   const titleHoverColor = "group-hover:text-netflix-red";
 
@@ -192,14 +188,15 @@ export const NumberedRankCard: React.FC<NumberedRankCardProps> = ({
                 className="object-cover group-hover:scale-105 transition-transform duration-500"
                 loading={priority ? "eager" : "lazy"}
                 quality={85}
-                onLoad={() => setIsLoaded(true)}
                 onError={handleImageError}
               />
             ) : (
               <div className="absolute inset-0 z-0 flex flex-col items-center justify-center p-3 bg-gradient-to-br from-zinc-900 via-zinc-950 to-black select-none overflow-hidden">
                 <div className="relative z-[1] inline-flex items-center gap-2 select-none poster-placeholder-logo">
                   <div className="w-5.5 h-4 rounded-[4px] bg-[#EA1D24] flex items-center justify-center shadow-md">
-                    <span className="text-[8px] text-[#FFF200] leading-none">★</span>
+                    <svg viewBox="0 0 24 24" className="w-2.5 h-2.5 fill-[#FFF200]" aria-hidden="true">
+                      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                    </svg>
                   </div>
                   <span className="text-white font-extrabold text-xs sm:text-sm tracking-tight drop-shadow-sm">Nanaflix</span>
                 </div>

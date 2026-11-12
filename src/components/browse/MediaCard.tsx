@@ -13,6 +13,7 @@ import {
 import { isInWatchlist, toggleWatchlist, subscribeToWatchlist } from "@/lib/watchlist";
 import {
   toOptimizedCardPosterUrl,
+  toFastCdnImageUrl,
   sanitizeImageUrl,
   formatGenreName,
   formatCountryName,
@@ -25,30 +26,15 @@ import { useAuth } from "@/context/AuthContext";
 import { AddToCollectionModal } from "@/components/Collections/AddToCollectionModal";
 import { AuthModal } from "@/components/modals/AuthModal";
 import { Tooltip } from "@/components/ui/Tooltip";
-import { useMoviePosterFallback } from "@/hooks/useMoviePosterFallback";
-
-export interface MovieExtraInfo {
-  actor?: string[];
-  director?: string[];
-  country?: string[];
-  category?: string[];
-  origin_name?: string;
-  type?: string;
-  time?: string;
-  episode_current?: string;
-  episode_total?: number;
-  backdrop_url?: string;
-}
+import { useMoviePosterFallback, isPhimimgSourceUrl } from "@/hooks/useMoviePosterFallback";
 
 // Bộ nhớ đệm client (giữ nguyên cho các component khác như HeroFeatured)
 import { clientSynopsisCache } from "@/services/synopsisService";
 export { clientSynopsisCache };
 export const clientTrailerCache = new Map<string, string>();
-export const clientExtraInfoCache = new Map<string, MovieExtraInfo>();
 
-// Bộ nhớ đệm toàn cục lưu các ảnh đã tải thành công và ảnh bị lỗi trong phiên (persists across unmount/remount)
+// Bộ nhớ đệm toàn cục lưu các ảnh đã tải thành công trong phiên (persists across unmount/remount)
 export const GLOBAL_LOADED_IMAGES = new Set<string>();
-export const GLOBAL_FAILED_IMAGES = new Set<string>();
 
 // Re-export bảng ánh xạ quốc gia và hàm chuẩn hóa
 export { COUNTRY_DISPLAY_MAP, formatCountryName };
@@ -154,7 +140,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
     const list: string[] = [];
     const addUrl = (u?: string) => {
       if (!u || typeof u !== "string" || !u.trim()) return;
-      const clean = toOptimizedCardPosterUrl(u);
+      const clean = toFastCdnImageUrl(toOptimizedCardPosterUrl(u));
       if (
         clean &&
         !list.includes(clean) &&
@@ -164,7 +150,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
       ) {
         list.push(clean);
       }
-      const raw = sanitizeImageUrl(u);
+      const raw = toFastCdnImageUrl(sanitizeImageUrl(u));
       if (
         raw &&
         !list.includes(raw) &&
@@ -212,8 +198,8 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
       if (aTmdb && !bTmdb) return -1;
       if (!aTmdb && bTmdb) return 1;
 
-      const aPhimimg = a.includes("phimimg.com");
-      const bPhimimg = b.includes("phimimg.com");
+      const aPhimimg = isPhimimgSourceUrl(a);
+      const bPhimimg = isPhimimgSourceUrl(b);
       if (aPhimimg && !bPhimimg) return 1;
       if (!aPhimimg && bPhimimg) return -1;
 
@@ -231,8 +217,10 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
 
   const initialCandidate = imageCandidates[0] || "";
 
-  // Chỉ kích hoạt fallback khi không có candidate ban đầu hoặc khi candidates đều tải lỗi
-  const [needsFallback, setNeedsFallback] = useState<boolean>(() => !initialCandidate);
+  // Kích hoạt fallback khi không có candidate ban đầu, khi là phimimg.com, hoặc khi candidates tải lỗi
+  const [needsFallback, setNeedsFallback] = useState<boolean>(
+    () => !initialCandidate || isPhimimgSourceUrl(initialCandidate)
+  );
 
   // Chuẩn hóa và tra cứu fallback TMDb dùng chung khi cần
   const { displaySrc: tmdbFallbackSrc, isLoading: isFallbackLoading, triggerFallback } = useMoviePosterFallback({
@@ -242,6 +230,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
     year,
     initialSrc: initialCandidate,
     enabled: needsFallback,
+    upgradePhimimg: true,
   });
 
   const [currentSrc, setCurrentSrc] = useState<string>(() => initialCandidate);
@@ -670,17 +659,17 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
       <div
         className={`relative aspect-[2/3] w-full rounded-xl overflow-hidden bg-zinc-950 bg-gradient-to-br from-zinc-800/70 via-zinc-900 to-zinc-950 transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] focus-within:ring-2 focus-within:ring-white ${
           isCardActive
-            ? " shadow-[inset_0_0_0_2px_#22c55e]"
-            : " group-hover/card: group-hover/card:ring-netflix-red group-hover/card:ring-inset group-hover/card:shadow-[0_12px_28px_var(--accent-glow),0_0_16px_rgba(0,0,0,0.8)]"
+            ? "shadow-[inset_0_0_0_2px_#22c55e]"
+            : "group-hover/card:ring-2 group-hover/card:ring-netflix-red group-hover/card:ring-inset group-hover/card:shadow-[0_12px_28px_rgba(0,0,0,0.85)]"
         }`}
         data-card-active={isCardActive ? "true" : undefined}
       >
-        {/* VIỀN KHUNG THẺ NỔI TRÊN ẢNH (ĐẢM BẢO KHUNG 2:3 LUÔN ĐỒNG NHẤT, RÕ RÀNG TRÊN MỌI BÌA PHIM) */}
+        {/* LỚP DỊU MÉP TRONG (LÀM MỀM POSTER NỀN SÁNG TRÊN DARK MODE MÀ KHÔNG CẦN VIỀN) */}
         <div
-          className={`pointer-events-none absolute inset-0 z-[3] rounded-xl transition-all duration-300 ${
+          className={`pointer-events-none absolute inset-0 z-[3] rounded-xl shadow-[inset_0_0_24px_rgba(0,0,0,0.22)] transition-all duration-300 ${
             isCardActive
               ? ""
-              : ".12] ring-inset group-hover/card: group-hover/card:ring-netflix-red"
+              : "ring-1 ring-inset ring-transparent group-hover/card:ring-white/25"
           }`}
           aria-hidden="true"
         />
@@ -713,7 +702,13 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
             {(hasError || !currentSrc) && (
               <div className="relative z-[1] inline-flex items-center gap-2 select-none poster-placeholder-logo">
                 <div className="w-5.5 h-4 rounded-[4px] bg-[#EA1D24] flex items-center justify-center shadow-md">
-                  <span className="text-[8px] text-[#FFF200] leading-none">★</span>
+                  <svg
+                    viewBox="0 0 24 24"
+                    className="w-2.5 h-2.5 text-[#FFF200] fill-current"
+                    aria-hidden="true"
+                  >
+                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                  </svg>
                 </div>
                 <span className="text-white font-extrabold text-xs sm:text-sm tracking-tight drop-shadow-sm">Nanaflix</span>
               </div>
@@ -731,7 +726,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
               decoding={priority ? "sync" : "async"}
               fetchPriority={priority ? "high" : "auto"}
               referrerPolicy="no-referrer"
-              className={`relative z-[1] w-full h-full object-cover object-center group-hover/card:scale-105 group-hover/card:brightness-105 transition-all duration-300 ease-out motion-reduce:transform-none ${
+              className={`relative z-[1] w-full h-full object-cover object-center brightness-[0.94] group-hover/card:scale-105 group-hover/card:brightness-105 transition-all duration-300 ease-out motion-reduce:transform-none ${
                 isImageLoaded ? "opacity-100" : "opacity-0"
               }`}
               onLoad={(e) => {
@@ -757,7 +752,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
               className={`inline-flex items-center px-1.5 py-0.5 rounded-[4px] text-[10px] font-extrabold uppercase tracking-wider shadow select-none ${
                 displayQualityBadge === "CAM"
                   ? "bg-amber-500 text-black font-black"
-                  : "bg-black/80 backdrop-blur-md text-zinc-100 border border-white/20"
+                  : "bg-black/80 backdrop-blur-md text-zinc-100"
               }`}
             >
               {displayQualityBadge}
@@ -783,7 +778,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
                 type="button"
                 onClick={onRemove}
                 aria-label={removeTooltip || `Xóa ${title}`}
-                className="w-7 h-7 rounded-full bg-black/75 hover:bg-netflix-red hover:border-netflix-red hover:text-white text-zinc-300 backdrop-blur-md flex items-center justify-center shadow-lg transition-all duration-200 hover:scale-110 active:scale-90 cursor-pointer"
+                className="w-7 h-7 rounded-full bg-black/75 hover:bg-netflix-red hover:text-white text-zinc-300 backdrop-blur-md flex items-center justify-center shadow-lg transition-all duration-200 hover:scale-110 active:scale-90 cursor-pointer"
               >
                 <X className="w-3.5 h-3.5" />
               </button>
@@ -795,7 +790,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
         {typeof progressPercent === "number" && progressPercent >= 0 && (
           <div className="absolute bottom-0 left-0 right-0 h-[3.5px] bg-white/20 backdrop-blur-sm z-10 overflow-hidden">
             <div
-              className="h-full bg-gradient-to-r from-netflix-red to-netflix-red/80 rounded-r-full transition-all duration-500 shadow-[0_0_8px_var(--accent-glow)]"
+              className="h-full bg-netflix-red rounded-r-full transition-all duration-500"
               style={{ width: `${Math.min(100, Math.max(0, progressPercent))}%` }}
             />
           </div>
@@ -811,7 +806,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
               type="button"
               onClick={handleOpenCollectionModal}
               aria-label={`Thêm phim ${title} vào bộ sưu tập`}
-              className="w-7 h-7 rounded-full flex items-center justify-center border transition-all duration-150 hover:scale-110 active:scale-95 cursor-pointer shadow-md shadow-black/50 backdrop-blur-md outline-none focus-visible:ring-2 focus-visible:ring-amber-400 bg-black/75 hover:bg-amber-400 hover:border-amber-400 text-amber-400 hover:text-black"
+              className="w-7 h-7 rounded-full flex items-center justify-center transition-all duration-150 hover:scale-110 active:scale-95 cursor-pointer shadow-md shadow-black/50 backdrop-blur-md outline-none focus-visible:ring-2 focus-visible:ring-amber-400 bg-black/75 hover:bg-amber-400 text-amber-400 hover:text-black"
             >
               <FolderPlus className="w-3.5 h-3.5 transition-colors" />
             </button>
@@ -823,10 +818,10 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
               type="button"
               onClick={handleToggleList}
               aria-label={inList ? `Bỏ lưu phim ${title}` : `Lưu phim ${title} vào danh sách`}
-              className={`w-7 h-7 rounded-full flex items-center justify-center border transition-all duration-150 hover:scale-110 active:scale-95 cursor-pointer shadow-md shadow-black/50 backdrop-blur-md outline-none focus-visible:ring-2 focus-visible:ring-netflix-red ${
+              className={`w-7 h-7 rounded-full flex items-center justify-center transition-all duration-150 hover:scale-110 active:scale-95 cursor-pointer shadow-md shadow-black/50 backdrop-blur-md outline-none focus-visible:ring-2 focus-visible:ring-netflix-red ${
                 inList
-                  ? "bg-netflix-red border-netflix-red text-white hover:brightness-110"
-                  : "bg-black/75 hover:bg-netflix-red hover:border-netflix-red hover:text-white  text-white"
+                  ? "bg-netflix-red text-white hover:brightness-110"
+                  : "bg-black/75 hover:bg-netflix-red hover:text-white text-white"
               }`}
             >
               {inList ? <Check className="w-3.5 h-3.5 stroke-[2.5]" /> : <Bookmark className="w-3.5 h-3.5 transition-colors" />}

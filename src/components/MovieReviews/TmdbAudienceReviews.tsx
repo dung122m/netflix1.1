@@ -146,12 +146,12 @@ export const TmdbAudienceReviews: React.FC<TmdbAudienceReviewsProps> = React.mem
         className={
           hideOuterCard
             ? "space-y-6"
-            : "mt-8 sm:mt-12 bg-zinc-950/80 rounded-2xl sm:rounded-3xl  p-4 sm:p-6 md:p-8 backdrop-blur-md shadow-2xl"
+            : "mt-8 sm:mt-12 bg-zinc-950/80 rounded-2xl sm:rounded-3xl p-4 sm:p-6 md:p-8 backdrop-blur-md shadow-2xl"
         }
       >
         {/* Header Bar: Chỉ render khi dùng độc lập (!hideOuterCard) */}
         {!hideOuterCard && (
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 pb-5 sm:pb-6 border-b">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 pb-5 sm:pb-6 border-b border-white/[0.08]">
             <div>
               <h3 className="text-lg sm:text-xl md:text-2xl font-extrabold text-white flex items-center gap-2 sm:gap-2.5 flex-wrap">
                 <MessageSquareQuote className="w-5 h-5 sm:w-6 sm:h-6 text-amber-400 flex-shrink-0" />
@@ -216,7 +216,7 @@ export const TmdbAudienceReviews: React.FC<TmdbAudienceReviewsProps> = React.mem
                           <span className="text-sm sm:text-base font-bold text-zinc-100 truncate">
                             {rev.author}
                           </span>
-                          <span className="text-[10.5px] px-1.5 py-0.2 rounded bg-white/10 text-zinc-400 font-medium">
+                          <span className="text-[10.5px] px-1.5 py-0.5 rounded bg-white/10 text-zinc-400 font-medium">
                             Khán giả quốc tế
                           </span>
                         </div>
@@ -289,7 +289,7 @@ export const TmdbAudienceReviews: React.FC<TmdbAudienceReviewsProps> = React.mem
                 </div>
 
                 {/* Footer Bar: Expand Button & View on TMDB Link */}
-                <div className="pt-3 mt-3 border-t flex items-center justify-between gap-3 text-xs text-zinc-400">
+                <div className="pt-3 mt-3 border-t border-white/[0.08] flex items-center justify-between gap-3 text-xs text-zinc-400">
                   {isLong ? (
                     <button
                       type="button"

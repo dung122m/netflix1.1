@@ -32,7 +32,7 @@ export const ProfilePlayerSettingsTab: React.FC<ProfilePlayerSettingsTabProps> =
   }) {
     return (
       <form onSubmit={handleSavePlayerSettings} className="space-y-6">
-        <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/10 space-y-1">
+        <div className="p-4 rounded-2xl bg-white/[0.03] space-y-1">
           <h4 className="text-sm font-bold text-white flex items-center gap-2">
             <Sliders className="w-4 h-4 text-netflix-red shrink-0" />
             <span>Đồng bộ tùy chọn trình phát Cloud</span>
@@ -44,7 +44,7 @@ export const ProfilePlayerSettingsTab: React.FC<ProfilePlayerSettingsTabProps> =
 
         <div className="space-y-3">
           {/* TỰ ĐỘNG CHUYỂN TẬP */}
-          <div className="flex items-center justify-between p-4 rounded-2xl bg-zinc-900/60 border border-white/5 hover:border-white/15 transition gap-4">
+          <div className="flex items-center justify-between p-4 rounded-2xl bg-zinc-900/60 hover:bg-zinc-900/80 transition gap-4">
             <div className="space-y-1 flex-1 min-w-0 pr-2">
               <div className="text-sm font-bold text-white flex items-center gap-2">
                 <Play className="w-4 h-4 text-netflix-red shrink-0" />
@@ -68,7 +68,7 @@ export const ProfilePlayerSettingsTab: React.FC<ProfilePlayerSettingsTabProps> =
           </div>
 
           {/* MẶC ĐỊNH MỞ RẠP PHIM */}
-          <div className="flex items-center justify-between p-4 rounded-xl bg-zinc-900/60 border border-white/5 hover:border-white/15 transition gap-4">
+          <div className="flex items-center justify-between p-4 rounded-2xl bg-zinc-900/60 hover:bg-zinc-900/80 transition gap-4">
             <div className="space-y-1 flex-1 min-w-0 pr-2">
               <div className="text-sm font-bold text-white flex items-center gap-2">
                 <Tv className="w-4 h-4 text-zinc-300 shrink-0" />
@@ -92,7 +92,7 @@ export const ProfilePlayerSettingsTab: React.FC<ProfilePlayerSettingsTabProps> =
           </div>
 
           {/* MẶC ĐỊNH TẮT ĐÈN */}
-          <div className="flex items-center justify-between p-4 rounded-xl bg-zinc-900/60 border border-white/5 hover:border-white/15 transition gap-4">
+          <div className="flex items-center justify-between p-4 rounded-2xl bg-zinc-900/60 hover:bg-zinc-900/80 transition gap-4">
             <div className="space-y-1 flex-1 min-w-0 pr-2">
               <div className="text-sm font-bold text-white flex items-center gap-2">
                 <Moon className="w-4 h-4 text-zinc-300 shrink-0" />
@@ -116,7 +116,7 @@ export const ProfilePlayerSettingsTab: React.FC<ProfilePlayerSettingsTabProps> =
           </div>
 
           {/* TỰ ĐỘNG BẬT PHỤ ĐỀ */}
-          <div className="flex items-center justify-between p-4 rounded-xl bg-zinc-900/60 border border-white/5 hover:border-white/15 transition gap-4">
+          <div className="flex items-center justify-between p-4 rounded-2xl bg-zinc-900/60 hover:bg-zinc-900/80 transition gap-4">
             <div className="space-y-1 flex-1 min-w-0 pr-2">
               <div className="text-sm font-bold text-white flex items-center gap-2">
                 <Subtitles className="w-4 h-4 text-zinc-300 shrink-0" />
@@ -140,7 +140,7 @@ export const ProfilePlayerSettingsTab: React.FC<ProfilePlayerSettingsTabProps> =
           </div>
 
           {/* TỐC ĐỘ PHÁT MẶC ĐỊNH */}
-          <div className="p-4 rounded-xl bg-zinc-900/60 border border-white/5 space-y-3">
+          <div className="p-4 rounded-2xl bg-zinc-900/60 space-y-3">
             <div className="flex items-center justify-between">
               <div>
                 <h5 className="text-sm font-bold text-white flex items-center gap-2">
@@ -162,13 +162,19 @@ export const ProfilePlayerSettingsTab: React.FC<ProfilePlayerSettingsTabProps> =
                   onClick={() =>
                     setPlayerSettingsState({ ...playerSettings, playbackSpeed: speed })
                   }
-                  className={`py-2 px-1 rounded-xl text-xs font-black transition cursor-pointer text-center ${
+                  className={`py-2 px-1 rounded-xl text-[11px] sm:text-xs font-black transition cursor-pointer text-center tabular-nums ${
                     playerSettings.playbackSpeed === speed
                       ? "bg-amber-500 text-black shadow-md shadow-black/50"
                       : "bg-white/5 text-zinc-300 hover:bg-white/10 hover:text-white"
                   }`}
                 >
-                  {speed === 1 ? "1.0x (Chuẩn)" : `${speed}x`}
+                  {speed === 1 ? (
+                    <>
+                      1.0x<span className="hidden sm:inline"> (Chuẩn)</span>
+                    </>
+                  ) : (
+                    `${speed}x`
+                  )}
                 </button>
               ))}
             </div>
@@ -176,7 +182,7 @@ export const ProfilePlayerSettingsTab: React.FC<ProfilePlayerSettingsTabProps> =
         </div>
 
         {/* ACTION BUTTONS */}
-        <div className="pt-4 border-t border-white/10 flex items-center justify-end gap-3">
+        <div className="pt-4 border-t border-white/[0.08] flex items-center justify-end gap-3">
           <button
             type="button"
             onClick={() => setPlayerSettingsState(getPlayerSettings(userId))}
@@ -188,7 +194,7 @@ export const ProfilePlayerSettingsTab: React.FC<ProfilePlayerSettingsTabProps> =
           <button
             type="submit"
             disabled={isSavingPlayerSettings}
-            className="px-6 py-2.5 rounded-xl bg-netflix-red hover:brightness-110 active:brightness-95 text-white text-xs sm:text-sm font-bold shadow-lg shadow-netflix-red/30 transition flex items-center gap-2 cursor-pointer disabled:opacity-50 active:scale-95"
+            className="px-6 py-2.5 rounded-xl bg-netflix-red hover:brightness-110 active:brightness-95 text-white text-xs sm:text-sm font-bold shadow-lg shadow-black/50 transition flex items-center gap-2 cursor-pointer disabled:opacity-50 active:scale-95"
           >
             {isSavingPlayerSettings ? (
               <>

@@ -100,7 +100,7 @@ export const TrailerModal: React.FC<TrailerModalProps> = React.memo(
             onClick={() => setInternalIsOpen(true)}
             className={
               triggerClassName ||
-              "inline-flex items-center gap-1 sm:gap-1.5 rounded-lg bg-netflix-red hover:brightness-110 active:brightness-95 text-white px-1.5 xs:px-2 sm:px-3.5 py-1.5 text-xs sm:text-sm font-semibold shadow transition-all active:scale-95 cursor-pointer flex-shrink-0 whitespace-nowrap outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-black"
+              "inline-flex items-center gap-1 sm:gap-1.5 rounded-lg bg-netflix-red hover:brightness-110 active:brightness-95 text-white px-2 min-[380px]:px-2.5 sm:px-3.5 py-2 sm:py-1.5 text-xs sm:text-sm font-semibold shadow transition-all active:scale-95 cursor-pointer flex-shrink-0 whitespace-nowrap outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-black"
             }
           >
             <Film className="w-3.5 h-3.5 text-white flex-shrink-0" />
@@ -113,7 +113,7 @@ export const TrailerModal: React.FC<TrailerModalProps> = React.memo(
           createPortal(
             <div
               onClick={handleClose}
-              className="fixed inset-0 z-[99999] bg-black/85 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200 overflow-y-auto overscroll-none touch-none"
+              className="fixed inset-0 z-[99999] bg-black/85 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200 overflow-y-auto overscroll-contain"
             >
               <div
                 role="dialog"
@@ -123,7 +123,7 @@ export const TrailerModal: React.FC<TrailerModalProps> = React.memo(
                 className="relative w-full max-w-4xl my-auto bg-zinc-950 rounded-2xl sm:rounded-3xl overflow-hidden shadow-[0_25px_70px_rgba(0,0,0,0.95)] animate-in zoom-in-95 duration-200 transform-gpu will-change-[transform,opacity] overscroll-contain"
               >
                 {/* MODAL HEADER */}
-                <div className="flex items-center justify-between px-4 sm:px-5 py-3.5 border-b bg-zinc-900/70">
+                <div className="flex items-center justify-between px-4 sm:px-5 py-3.5 border-b border-white/[0.08] bg-zinc-900/70">
                   <div className="flex items-center gap-2 min-w-0">
                     <Film className="w-4 h-4 sm:w-5 sm:h-5 text-netflix-red flex-shrink-0" />
                     <h3

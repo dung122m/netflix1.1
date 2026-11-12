@@ -60,8 +60,8 @@ export const AddToCollectionButton: React.FC<AddToCollectionButtonProps> = ({
           aria-label={label || "Bộ sưu tập"}
         className={`inline-flex items-center gap-1 sm:gap-1.5 transition-all cursor-pointer active:scale-95 shadow-sm flex-shrink-0 whitespace-nowrap ${
           variant === "player"
-            ? "px-2.5 py-1.5 rounded-lg bg-zinc-900/80 hover:bg-zinc-800  hover: text-zinc-300 hover:text-white text-xs font-medium"
-            : "px-1.5 xs:px-2 sm:px-3.5 py-1.5 rounded-lg border text-xs sm:text-sm font-medium bg-zinc-900/80 hover:bg-zinc-800 text-zinc-200 hover:text-white "
+            ? "px-2.5 py-1.5 rounded-lg bg-zinc-900/80 hover:bg-zinc-800 text-zinc-300 hover:text-white text-xs font-medium"
+            : "px-2 min-[380px]:px-2.5 sm:px-3.5 py-2 sm:py-1.5 rounded-lg text-xs sm:text-sm font-medium bg-zinc-900/80 hover:bg-zinc-800 text-zinc-200 hover:text-white"
         } ${className}`}
       >
         <FolderPlus

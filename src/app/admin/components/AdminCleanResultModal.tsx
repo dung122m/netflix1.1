@@ -15,9 +15,9 @@ export const AdminCleanResultModal: React.FC<AdminCleanResultModalProps> = React
 
     return (
       <div className="fixed inset-0 z-[160] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
-        <div className="max-w-2xl w-full bg-zinc-950 rounded-3xl p-6 shadow-2xl space-y-5 max-h-[85vh] flex flex-col overflow-hidden">
+        <div className="max-w-2xl w-full bg-zinc-950 rounded-3xl p-4 sm:p-6 shadow-2xl space-y-5 max-h-[85dvh] flex flex-col overflow-hidden">
           {/* Header */}
-          <div className="flex items-start justify-between gap-4 pb-4 border-b flex-shrink-0">
+          <div className="flex items-start justify-between gap-4 pb-4 border-b border-white/[0.08] flex-shrink-0">
             <div className="flex items-center gap-3">
               <div className="p-3 rounded-2xl bg-red-500/20 text-red-400">
                 <ShieldAlert size={22} />
@@ -56,7 +56,7 @@ export const AdminCleanResultModal: React.FC<AdminCleanResultModalProps> = React
                   <div className="flex items-center justify-between gap-2 flex-wrap">
                     <div className="flex items-center gap-2">
                       <span className="font-bold text-white">{item.userName}</span>
-                      <span className="text-[10px] px-2 py-0.2 rounded-full bg-red-500/20 text-red-300 font-semibold">
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-red-500/20 text-red-300 font-semibold">
                         {item.reason}
                       </span>
                     </div>
@@ -75,7 +75,7 @@ export const AdminCleanResultModal: React.FC<AdminCleanResultModalProps> = React
                       {item.violations.map((kw, i) => (
                         <span
                           key={i}
-                          className="px-1.5 py-0.2 rounded bg-red-900/60 text-red-200 text-[10px] font-sans tabular-nums"
+                          className="px-1.5 py-0.5 rounded bg-red-900/60 text-red-200 text-[10px] font-sans tabular-nums"
                         >
                           {kw}
                         </span>
@@ -88,11 +88,11 @@ export const AdminCleanResultModal: React.FC<AdminCleanResultModalProps> = React
           </div>
 
           {/* Footer */}
-          <div className="pt-3 border-t flex items-center justify-end flex-shrink-0">
+          <div className="pt-3 border-t border-white/[0.08] flex items-center justify-end flex-shrink-0">
             <button
               type="button"
               onClick={onClose}
-              className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-red-600 to-amber-600 hover:from-red-500 hover:to-amber-500 text-white text-xs font-bold transition cursor-pointer shadow-md shadow-black/50"
+              className="px-5 py-2.5 rounded-xl bg-netflix-red hover:bg-red-600 text-white text-xs font-bold transition cursor-pointer shadow-md shadow-black/50"
             >
               Xác Nhận & Đóng
             </button>

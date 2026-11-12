@@ -134,12 +134,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       if (currentUser) {
         setIsSyncing(true);
         try {
+          const PROFILE_SYNC_COOLDOWN_MS = 30 * 60 * 1000;
+          let shouldSyncProfile = true;
+          try {
+            const syncKey = `nanaflix_profile_synced_${currentUser.uid}`;
+            const lastSync = Number(sessionStorage.getItem(syncKey) || "0");
+            const hasLocalProfile = Boolean(localStorage.getItem(`nanaflix_user_profile_${currentUser.uid}`));
+            if (hasLocalProfile && lastSync > 0 && Date.now() - lastSync < PROFILE_SYNC_COOLDOWN_MS) {
+              shouldSyncProfile = false;
+            }
+          } catch {}
+
+          const tasks: Promise<unknown>[] = [
+            syncWatchHistoryWithCloud(currentUser.uid),
+            syncWatchlistWithCloud(currentUser.uid),
+          ];
+          if (shouldSyncProfile) {
+            tasks.push(
+              recordUserProfile(currentUser).then(() => {
+                try {
+                  sessionStorage.setItem(`nanaflix_profile_synced_${currentUser.uid}`, String(Date.now()));
+                } catch {}
+              })
+            );
+          }
+
           await Promise.race([
-            Promise.all([
-              syncWatchHistoryWithCloud(currentUser.uid),
-              syncWatchlistWithCloud(currentUser.uid),
-              recordUserProfile(currentUser),
-            ]),
+            Promise.all(tasks),
             new Promise((resolve) => setTimeout(resolve, 3000)),
           ]);
         } catch (err) {
@@ -162,8 +183,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       if (!user?.uid) return; // Chỉ chạy cho authenticated user
 
       const now = Date.now();
-      // Throttle: Tối thiểu 10s giữa các lần sync khi switch tab liên tục
-      if (now - lastVisibilitySyncTime < 10000) return;
+      // Throttle: Tối thiểu 3 phút giữa các lần sync khi switch tab để tránh đọc Supabase liên tục
+      if (now - lastVisibilitySyncTime < 3 * 60 * 1000) return;
       lastVisibilitySyncTime = now;
 
       try {

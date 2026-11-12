@@ -206,7 +206,7 @@ export const CuratedMovieSection: React.FC<CuratedMovieSectionProps> = ({
         actions={
           <Link
             href={currentTabConfig.viewAllHref}
-            className="self-start md:self-auto inline-flex items-center gap-1.5 px-3.5 sm:px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs sm:text-sm font-semibold transition hover: active:scale-95 group shrink-0"
+            className="self-start md:self-auto inline-flex items-center gap-1.5 px-3.5 sm:px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs sm:text-sm font-semibold transition active:scale-95 group shrink-0"
           >
             <span>Xem tất cả {currentTabConfig.label}</span>
             <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform text-netflix-red" />
@@ -229,10 +229,10 @@ export const CuratedMovieSection: React.FC<CuratedMovieSectionProps> = ({
                 role="tab"
                 aria-selected={isActive}
                 onClick={() => handleSelectTab(tab.id)}
-                className={`px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all duration-200 cursor-pointer select-none shrink-0 border ${
+                className={`px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all duration-200 cursor-pointer select-none shrink-0 ${
                   isActive
-                    ? "bg-netflix-red text-white border-netflix-red shadow-md shadow-black/60 scale-[1.02]"
-                    : "bg-zinc-900/90 hover:bg-zinc-800 text-zinc-300 hover:text-white border-white/[0.08] hover:border-white/20"
+                    ? "bg-netflix-red text-white shadow-md shadow-black/60 scale-[1.02]"
+                    : "bg-zinc-900/90 hover:bg-zinc-800 text-zinc-300 hover:text-white"
                 }`}
               >
                 <span>{tab.label}</span>

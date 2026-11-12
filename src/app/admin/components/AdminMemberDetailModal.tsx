@@ -14,6 +14,8 @@ import {
   Clock,
   Film,
   Monitor,
+  Crown,
+  AlertTriangle,
 } from "lucide-react";
 import { MemberWithStats } from "@/types/user";
 import { MovieComment } from "@/types/comment";
@@ -57,9 +59,9 @@ export const AdminMemberDetailModal: React.FC<AdminMemberDetailModalProps> = Rea
 
     return (
       <div className="fixed inset-0 z-[150] flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
-        <div className="max-w-2xl w-full bg-zinc-950 rounded-3xl p-4 sm:p-6 shadow-2xl space-y-4 sm:space-y-5 max-h-[92vh] flex flex-col overflow-hidden">
+        <div className="max-w-2xl w-full bg-zinc-950 rounded-3xl p-4 sm:p-6 shadow-2xl space-y-4 sm:space-y-5 max-h-[92dvh] flex flex-col overflow-hidden">
           {/* Header */}
-          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 pb-3 sm:pb-4 border-b flex-shrink-0">
+          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 pb-3 sm:pb-4 border-b border-white/[0.08] flex-shrink-0">
             <div className="flex items-start justify-between sm:justify-start gap-3 min-w-0 w-full sm:w-auto">
               <UserAvatar
                 src={selectedMember.photoURL || undefined}
@@ -75,13 +77,14 @@ export const AdminMemberDetailModal: React.FC<AdminMemberDetailModalProps> = Rea
                     {selectedMember.displayName}
                   </h2>
                   {selectedMember.role === "admin" && (
-                    <span className="text-[9px] sm:text-[10px] px-1.5 sm:px-2 py-0.2 rounded-full bg-amber-500/20 text-amber-300 font-bold flex-shrink-0">
-                      👑 Admin
+                    <span className="inline-flex items-center gap-1 text-[9px] sm:text-[10px] px-1.5 sm:px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-bold flex-shrink-0">
+                      <Crown size={10} />
+                      <span>Admin</span>
                     </span>
                   )}
                   {selectedMember.isWatchingNow ? (
                     <span className="text-[9px] sm:text-[10px] px-1.5 sm:px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-bold flex items-center gap-1 flex-shrink-0">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
                       Đang xem
                     </span>
                   ) : selectedMember.isOnline ? (
@@ -101,8 +104,9 @@ export const AdminMemberDetailModal: React.FC<AdminMemberDetailModalProps> = Rea
                     </span>
                   )}
                   {selectedMember.violationsCount && selectedMember.violationsCount > 0 ? (
-                    <span className="text-[9px] sm:text-[10px] px-1.5 sm:px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-semibold flex-shrink-0">
-                      ⚠️ {selectedMember.violationsCount} vi phạm
+                    <span className="inline-flex items-center gap-1 text-[9px] sm:text-[10px] px-1.5 sm:px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-semibold flex-shrink-0">
+                      <AlertTriangle size={10} />
+                      <span>{selectedMember.violationsCount} vi phạm</span>
                     </span>
                   ) : null}
                 </div>
@@ -110,7 +114,7 @@ export const AdminMemberDetailModal: React.FC<AdminMemberDetailModalProps> = Rea
                 <p className="text-[10px] sm:text-[11px] text-zinc-500 font-sans tabular-nums mt-0.5 truncate max-w-[200px] sm:max-w-none">UID: {selectedMember.uid}</p>
                 {selectedMember.deviceInfo?.deviceType && (
                   <div className="flex items-center gap-1.5 flex-wrap mt-1.5 text-[10px] sm:text-[11px]">
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-500/15 border border-blue-500/30 text-blue-300 font-medium">
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-300 font-medium">
                       <Monitor size={10} className="text-blue-400 flex-shrink-0" />
                       <span>
                         {selectedMember.deviceInfo.deviceType} / {selectedMember.deviceInfo.os || "Other"}
@@ -134,10 +138,10 @@ export const AdminMemberDetailModal: React.FC<AdminMemberDetailModalProps> = Rea
               <button
                 type="button"
                 onClick={() => onToggleCommentBan(selectedMember)}
-                className={`flex-1 sm:flex-none px-3 py-1.5 rounded-xl border text-xs font-semibold transition cursor-pointer flex items-center justify-center gap-1.5 ${
+                className={`flex-1 sm:flex-none px-3 py-1.5 rounded-xl text-xs font-semibold transition cursor-pointer flex items-center justify-center gap-1.5 ${
                   selectedMember.isCommentRestricted
-                    ? "bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 "
-                    : "bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 "
+                    ? "bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300"
+                    : "bg-amber-500/15 hover:bg-amber-500/25 text-amber-300"
                 }`}
               >
                 {selectedMember.isCommentRestricted ? <ShieldCheck size={14} /> : <Ban size={14} />}
@@ -205,7 +209,7 @@ export const AdminMemberDetailModal: React.FC<AdminMemberDetailModalProps> = Rea
           </div>
 
           {/* Modal Tabs */}
-          <div className="flex items-center gap-1.5 sm:gap-2 border-b pb-2 flex-shrink-0 overflow-x-auto no-scrollbar scrollbar-none">
+          <div className="flex items-center gap-1.5 sm:gap-2 border-b border-white/[0.08] pb-2 flex-shrink-0 overflow-x-auto no-scrollbar scrollbar-none">
             <button
               type="button"
               onClick={() => setMemberDetailTab("comments")}
@@ -249,7 +253,7 @@ export const AdminMemberDetailModal: React.FC<AdminMemberDetailModalProps> = Rea
           {/* Modal Body */}
           <div className="flex-1 overflow-y-auto pr-1 space-y-3">
             {loadingMemberDetails ? (
-              <div className="p-8 text-center">
+              <div className="p-5 sm:p-8 text-center">
                 <div className="w-6 h-6 rounded-full border-2 border-netflix-red border-t-transparent animate-spin mx-auto mb-2" />
                 <p className="text-xs text-zinc-400">Đang tải dữ liệu đám mây của thành viên...</p>
               </div>
@@ -258,7 +262,7 @@ export const AdminMemberDetailModal: React.FC<AdminMemberDetailModalProps> = Rea
                 const userComms = comments.filter((c) => c.userId === selectedMember.uid);
                 if (userComms.length === 0) {
                   return (
-                    <div className="p-8 text-center text-xs text-zinc-500">
+                    <div className="p-5 sm:p-8 text-center text-xs text-zinc-500">
                       Thành viên này chưa để lại bình luận nào trên hệ thống.
                     </div>
                   );
@@ -281,12 +285,12 @@ export const AdminMemberDetailModal: React.FC<AdminMemberDetailModalProps> = Rea
                               <ExternalLink size={11} />
                             </Link>
                             {c.episodeName && (
-                              <span className="text-[10px] px-1.5 py-0.2 rounded bg-white/5 text-zinc-400">
+                              <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/5 text-zinc-400">
                                 {c.episodeName}
                               </span>
                             )}
                             {c.isSpoiler && (
-                              <span className="text-[10px] px-1.5 py-0.2 rounded bg-rose-500/20 text-rose-300 font-bold">
+                              <span className="text-[10px] px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300 font-bold">
                                 Spoil
                               </span>
                             )}
@@ -339,7 +343,7 @@ export const AdminMemberDetailModal: React.FC<AdminMemberDetailModalProps> = Rea
               })()
             ) : memberDetailTab === "history" ? (
               memberHistory.length === 0 ? (
-                <div className="p-8 text-center text-xs text-zinc-500">
+                <div className="p-5 sm:p-8 text-center text-xs text-zinc-500">
                   Chưa có lịch sử xem phim đồng bộ trên Cloud.
                 </div>
               ) : (
@@ -370,7 +374,7 @@ export const AdminMemberDetailModal: React.FC<AdminMemberDetailModalProps> = Rea
               )
             ) : (
               memberWatchlist.length === 0 ? (
-                <div className="p-8 text-center text-xs text-zinc-500">
+                <div className="p-5 sm:p-8 text-center text-xs text-zinc-500">
                   Thành viên chưa lưu bộ phim nào vào danh sách yêu thích.
                 </div>
               ) : (

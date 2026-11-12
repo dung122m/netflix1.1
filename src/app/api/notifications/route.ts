@@ -71,7 +71,8 @@ export async function GET(req: NextRequest) {
           .select("movie_slug, movie_title")
           .in("movie_slug", movieSlugs)
           .not("movie_title", "is", null)
-          .neq("movie_title", "");
+          .neq("movie_title", "")
+          .limit(Math.max(movieSlugs.length * 3, 60));
 
         if (comments) {
           for (const c of comments) {

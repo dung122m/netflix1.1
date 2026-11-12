@@ -1,4 +1,3 @@
-import React from "react";
 import { Clock, Star, Flame, Calendar, LucideIcon } from "lucide-react";
 
 export type FilterGroup = "type" | "genre" | "country" | "year" | "sort";

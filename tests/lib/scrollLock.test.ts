@@ -9,15 +9,21 @@ test("scrollLock reference counting & style preservation", async (t) => {
   const mockBody = {
     style: {
       overflow: "visible",
-      paddingRight: "0px",
+      overscrollBehavior: "auto",
+    },
+  };
+
+  const mockHtml = {
+    clientWidth: 1000,
+    style: {
+      overflow: "auto",
+      overscrollBehavior: "auto",
     },
   };
 
   const mockDoc = {
     body: mockBody,
-    documentElement: {
-      clientWidth: 1000,
-    },
+    documentElement: mockHtml,
   };
 
   const mockWin = {
@@ -36,32 +42,36 @@ test("scrollLock reference counting & style preservation", async (t) => {
     assert.equal(getScrollLockCount(), 0);
   });
 
-  await t.test("Modal 1 opens: locks body and adds scrollbar padding", () => {
+  await t.test("Modal 1 opens: locks html & body overflow + overscroll", () => {
     lockBodyScroll();
     assert.equal(getScrollLockCount(), 1);
     assert.equal(mockBody.style.overflow, "hidden");
-    assert.equal(mockBody.style.paddingRight, "15px");
+    assert.equal(mockBody.style.overscrollBehavior, "none");
+    assert.equal(mockHtml.style.overflow, "hidden");
+    assert.equal(mockHtml.style.overscrollBehavior, "none");
   });
 
   await t.test("Modal 2 opens (Nested): lockCount increments to 2, still locked", () => {
     lockBodyScroll();
     assert.equal(getScrollLockCount(), 2);
     assert.equal(mockBody.style.overflow, "hidden");
-    assert.equal(mockBody.style.paddingRight, "15px");
+    assert.equal(mockHtml.style.overflow, "hidden");
   });
 
   await t.test("Modal 2 closes: lockCount decrements to 1, body stays locked", () => {
     unlockBodyScroll();
     assert.equal(getScrollLockCount(), 1);
     assert.equal(mockBody.style.overflow, "hidden");
-    assert.equal(mockBody.style.paddingRight, "15px");
+    assert.equal(mockHtml.style.overflow, "hidden");
   });
 
-  await t.test("Modal 1 closes: lockCount decrements to 0, body original styles restored", () => {
+  await t.test("Modal 1 closes: lockCount decrements to 0, original styles restored", () => {
     unlockBodyScroll();
     assert.equal(getScrollLockCount(), 0);
     assert.equal(mockBody.style.overflow, "visible");
-    assert.equal(mockBody.style.paddingRight, "0px");
+    assert.equal(mockBody.style.overscrollBehavior, "auto");
+    assert.equal(mockHtml.style.overflow, "auto");
+    assert.equal(mockHtml.style.overscrollBehavior, "auto");
   });
 
   // Teardown

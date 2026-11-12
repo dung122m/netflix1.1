@@ -12,12 +12,12 @@ export const metadata: Metadata = {
 
 export default function ProfilePage() {
   return (
-    <div className="min-h-screen bg-black text-white flex flex-col selection:bg-netflix-red selection:text-white">
+    <div className="min-h-dvh bg-black text-white flex flex-col selection:bg-netflix-red selection:text-white">
       <Navbar />
       <main className="flex-1 w-full pt-20 sm:pt-24 pb-16">
         <Suspense
           fallback={
-            <div className="min-h-[50vh] flex flex-col items-center justify-center">
+            <div className="min-h-[50dvh] flex flex-col items-center justify-center">
               <div className="w-10 h-10 border-2 border-netflix-red border-t-transparent rounded-full animate-spin mb-3" />
               <p className="text-xs text-zinc-400">Đang chuẩn bị trang hồ sơ...</p>
             </div>

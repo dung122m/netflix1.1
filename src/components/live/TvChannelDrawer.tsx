@@ -56,8 +56,8 @@ export function TvChannelDrawer({
       <aside
         className={`${
           useMobilePortal
-            ? "fixed inset-x-0 bottom-0 z-[100001] w-full max-h-[85vh] max-h-[85dvh] rounded-t-3xl bg-zinc-950/98 p-3.5 pb-[max(1.5rem,calc(env(safe-area-inset-bottom,0px)+1rem))] shadow-2xl backdrop-blur-2xl"
-            : "fixed inset-x-0 bottom-0 sm:absolute sm:inset-y-0 sm:right-0 sm:left-auto z-[100001] sm:z-50 w-full sm:w-[380px] max-h-[85vh] max-h-[85dvh] sm:max-h-full rounded-t-3xl sm:rounded-none bg-zinc-950/98 sm:bg-zinc-950/95 p-3.5 pb-[max(1.5rem,calc(env(safe-area-inset-bottom,0px)+1rem))] sm:p-4 shadow-2xl backdrop-blur-2xl"
+            ? "fixed inset-x-0 bottom-0 z-[100001] w-full max-h-[85dvh] rounded-t-3xl bg-zinc-950/98 p-3.5 pb-[max(1.5rem,calc(env(safe-area-inset-bottom,0px)+1rem))] shadow-2xl backdrop-blur-2xl"
+            : "fixed inset-x-0 bottom-0 sm:absolute sm:inset-y-0 sm:right-0 sm:left-auto z-[100001] sm:z-50 w-full sm:w-[380px] max-h-[85dvh] sm:max-h-full rounded-t-3xl sm:rounded-none bg-zinc-950/98 sm:bg-zinc-950/95 p-3.5 pb-[max(1.5rem,calc(env(safe-area-inset-bottom,0px)+1rem))] sm:p-4 shadow-2xl backdrop-blur-2xl"
         } transition-all duration-300 flex flex-col ${
           isOpen
             ? "translate-y-0 sm:translate-x-0 opacity-100 pointer-events-auto visible"
@@ -71,12 +71,12 @@ export function TvChannelDrawer({
         <div className="mb-2.5 flex items-center justify-between pb-2.5 shrink-0">
           <div className="min-w-0 pr-2">
             <div className="flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-netflix-red animate-ping" />
-              <p className="text-[11px] sm:text-[10px] font-black uppercase tracking-[0.18em] text-netflix-red">
-                Kênh Truyền Hình Trực Tiếp
+              <span className="w-1.5 h-1.5 rounded-full bg-netflix-red shrink-0" />
+              <p className="text-xs font-semibold text-netflix-red">
+                Truyền hình trực tiếp
               </p>
             </div>
-            <p className="mt-0.5 truncate text-xs sm:text-xs font-bold text-white">
+            <p className="mt-0.5 truncate text-xs font-bold text-white">
               Đang xem: {selectedChannel.name}
             </p>
           </div>
@@ -87,8 +87,7 @@ export function TvChannelDrawer({
               onClose();
             }}
             className="rounded-full p-2 text-white hover:bg-white/20 active:scale-95 bg-white/10 transition shrink-0 cursor-pointer min-w-[38px] min-h-[38px] flex items-center justify-center shadow-sm"
-            title="Đóng danh sách kênh"
-            aria-label="Đóng"
+            aria-label="Đóng danh sách kênh"
           >
             <X className="h-4 w-4 text-white" />
           </button>
@@ -102,7 +101,7 @@ export function TvChannelDrawer({
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
             placeholder="Tìm kênh theo tên, đài, danh mục..."
-            className="w-full pl-9 pr-8 py-2 sm:py-1.5 rounded-xl bg-white/10 text-xs text-white placeholder-zinc-400 focus:outline-none transition"
+            className="w-full pl-9 pr-8 py-2 sm:py-1.5 rounded-xl bg-white/10 text-base sm:text-xs text-white placeholder-zinc-400 focus:outline-none transition"
           />
           {searchQuery && (
             <button
@@ -135,7 +134,7 @@ export function TvChannelDrawer({
                   onClick={() => onSelectChannel(channel, false)}
                   className={`flex w-full items-center gap-3 rounded-2xl p-2.5 sm:p-2 text-left transition min-h-[56px] active:scale-[0.98] cursor-pointer touch-manipulation ${
                     active
-                      ? "bg-netflix-red/20 text-white border-l-4 border-l-netflix-red shadow-md shadow-black/50"
+                      ? "bg-netflix-red/20 text-white ring-1 ring-inset ring-netflix-red/40 shadow-md shadow-black/50"
                       : "bg-white/[0.04] text-zinc-200 hover:bg-white/[0.1] active:bg-white/[0.15]"
                   }`}
                 >
@@ -157,7 +156,7 @@ export function TvChannelDrawer({
                       <span className="truncate text-[11px] sm:text-[10px] text-zinc-400">
                         {channel.category}
                       </span>
-                      <span className="text-[9px] px-1.5 py-0.2 rounded bg-white/10 text-emerald-400 font-bold uppercase">
+                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-white/10 text-emerald-400 font-bold uppercase">
                         {channel.quality}
                       </span>
                     </span>

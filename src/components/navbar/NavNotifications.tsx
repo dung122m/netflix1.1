@@ -308,7 +308,7 @@ export const NavNotifications: React.FC = React.memo(function NavNotifications()
           <Bell size={16} className="sm:hidden" />
           <Bell size={18} className="hidden sm:block" />
           {userUnreadCount > 0 && (
-            <span className="absolute -top-1 -right-1 px-1 min-w-[16px] h-[16px] rounded-full bg-netflix-red text-white text-[9px] sm:text-[10px] font-black flex items-center justify-center shadow-lg border border-black animate-pulse">
+            <span className="absolute -top-1 -right-1 px-1 min-w-[16px] h-[16px] rounded-full bg-netflix-red text-white text-[9px] sm:text-[10px] font-black flex items-center justify-center shadow-lg">
               {userUnreadCount > 9 ? "9+" : userUnreadCount}
             </span>
           )}
@@ -317,7 +317,7 @@ export const NavNotifications: React.FC = React.memo(function NavNotifications()
 
       {/* FACEBOOK-STYLE NOTIFICATION POPUP DROPDOWN */}
       {showNotifications && (
-        <div className="fixed sm:absolute top-[52px] sm:top-full mt-0 sm:mt-2 left-2 right-2 sm:left-auto sm:right-0 w-auto sm:w-[380px] md:w-[400px] max-w-sm sm:max-w-none mx-auto sm:mx-0 bg-[#242526] backdrop-blur-2xl rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.95)] border border-white/10 p-3.5 z-50 animate-in fade-in zoom-in-95 duration-150">
+        <div className="fixed sm:absolute top-[52px] sm:top-full mt-0 sm:mt-2 left-2 right-2 sm:left-auto sm:right-0 w-auto sm:w-[380px] md:w-[400px] max-w-sm sm:max-w-none mx-auto sm:mx-0 bg-[#242526] backdrop-blur-2xl rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.95)] p-3.5 z-50 animate-in fade-in zoom-in-95 duration-150">
           {/* HEADER (TIÊU ĐỀ + NÚT 3 CHẤM ...) */}
           <div className="flex items-center justify-between px-1 pb-2">
             <h3 className="text-2xl font-bold text-white tracking-tight">Thông báo</h3>
@@ -325,7 +325,7 @@ export const NavNotifications: React.FC = React.memo(function NavNotifications()
               <button
                 type="button"
                 onClick={() => setShowOptionsMenu((prev) => !prev)}
-                title="Tùy chọn thông báo"
+                aria-label="Tùy chọn thông báo"
                 className="w-8 h-8 rounded-full hover:bg-white/10 flex items-center justify-center text-zinc-300 hover:text-white transition cursor-pointer"
               >
                 <MoreHorizontal size={20} />
@@ -333,7 +333,7 @@ export const NavNotifications: React.FC = React.memo(function NavNotifications()
 
               {/* THREE-DOTS CONTEXT MENU */}
               {showOptionsMenu && (
-                <div className="absolute right-0 top-full mt-1.5 w-56 bg-[#242526] border border-white/10 rounded-xl shadow-2xl p-1 z-50 animate-in fade-in zoom-in-95 duration-100">
+                <div className="absolute right-0 top-full mt-1.5 w-56 bg-[#242526] rounded-xl shadow-2xl p-1 z-50 animate-in fade-in zoom-in-95 duration-100">
                   <button
                     type="button"
                     onClick={async () => {
@@ -469,8 +469,8 @@ export const NavNotifications: React.FC = React.memo(function NavNotifications()
                         {/* FACEBOOK BLUE UNREAD DOT */}
                         {!item.isRead && (
                           <span
-                            className="w-3 h-3 rounded-full bg-[#1877f2] shrink-0 self-center mr-1 shadow-[0_0_6px_rgba(24,119,242,0.6)]"
-                            title="Chưa đọc"
+                            className="w-2.5 h-2.5 rounded-full bg-[#1877f2] shrink-0 self-center mr-1"
+                            aria-label="Chưa đọc"
                           />
                         )}
                       </div>

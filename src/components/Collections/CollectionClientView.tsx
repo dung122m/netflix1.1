@@ -164,14 +164,12 @@ export function CollectionClientView({
                 style={{ backgroundImage: `url(${collection.coverUrl})` }}
               />
             )}
-            <div className="absolute top-0 right-0 w-96 h-96 bg-netflix-red/10 rounded-full blur-3xl pointer-events-none" />
-
             <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
               <div className="max-w-2xl">
                 <div className="flex items-center gap-2.5 mb-2.5">
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-netflix-red/20 text-netflix-red text-xs font-bold uppercase tracking-wider">
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-netflix-red/20 text-netflix-red text-xs font-semibold">
                     <Layers className="w-3.5 h-3.5" />
-                    Tuyển Tập Phim
+                    Tuyển tập phim
                   </span>
                   {collection.isPublic ? (
                     <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-400 text-xs font-semibold">
@@ -211,7 +209,7 @@ export function CollectionClientView({
                         );
                       }
                     }}
-                    title={`Xem trang cá nhân của ${collection.creatorName || "thành viên"}`}
+                    aria-label={`Xem trang cá nhân của ${collection.creatorName || "thành viên"}`}
                     className="flex items-center gap-2 hover:text-amber-300 hover:underline transition cursor-pointer"
                   >
                     <UserAvatar
