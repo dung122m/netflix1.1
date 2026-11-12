@@ -373,4 +373,15 @@ describe("Nanaflix Watch History — Regression & Invariant Tests", () => {
 
     assert.deepEqual(merged.sort(), ["tap-1", "tap-2"]);
   });
+
+  it("14. formatEpisodeName & isFullEpisodeLabel: chuẩn hóa 'Tập FULL', 'Tập Full', 'FULL', 'Full' về đồng nhất 'Bản Full'", async () => {
+    const { formatEpisodeName, isFullEpisodeLabel } = await import("@/lib/formatEpisode");
+    for (const variant of ["Full", "FULL", "Tập FULL", "Tập Full", "Bản Full", "Bản FULL"]) {
+      assert.equal(isFullEpisodeLabel(variant), true, `${variant} phải nhận diện là bản Full`);
+      assert.equal(formatEpisodeName(variant), "Bản Full", `${variant} phải hiển thị 'Bản Full'`);
+    }
+    assert.equal(isFullEpisodeLabel("Tập 01"), false);
+    assert.equal(formatEpisodeName("01"), "Tập 01");
+    assert.equal(formatEpisodeName("Tập 72"), "Tập 72");
+  });
 });

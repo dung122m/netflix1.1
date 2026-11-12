@@ -870,5 +870,72 @@ describe("LiveScore Football Matcher & Enrichment Test Suite", () => {
     });
     assert.strictEqual(res, "Bóng Rổ", "Trận bóng rổ không có tên giải phải trả về Bóng Rổ");
   });
+
+  // 31. Chống lặp 'Nữ Bóng Đá Nữ' và chuẩn hóa giải đấu bóng đá nữ
+  it("31. Chuẩn hóa giải Bóng Đá Nữ không lặp tiền tố 'Nữ Bóng Đá Nữ' và bảo toàn bộ môn nữ khác", () => {
+    assert.strictEqual(
+      resolveCanonicalTournament({
+        title: "Hwacheon KSPO vs Gyeongju",
+        tournament: "Bóng Đá Nữ",
+        team1: "Hwacheon KSPO",
+        team2: "Gyeongju",
+        category: "senior_women",
+        gender: "women",
+        sport: "football",
+      }),
+      "Bóng Đá Nữ",
+    );
+
+    assert.strictEqual(
+      resolveCanonicalTournament({
+        tournament: "Nữ Bóng Đá Nữ",
+        category: "senior_women",
+        gender: "women",
+        sport: "football",
+      }),
+      "Bóng Đá Nữ",
+    );
+
+    assert.strictEqual(
+      resolveCanonicalTournament({
+        tournament: "Giải Đấu Khác",
+        category: "senior_women",
+        gender: "women",
+        sport: "football",
+      }),
+      "Bóng Đá Nữ",
+    );
+
+    assert.strictEqual(
+      resolveCanonicalTournament({
+        tournament: "Cúp Quốc Gia Nữ",
+        category: "senior_women",
+        gender: "women",
+        sport: "football",
+      }),
+      "Cúp Quốc Gia Nữ",
+    );
+
+    assert.strictEqual(
+      resolveCanonicalTournament({
+        tournament: "WK League",
+        category: "senior_women",
+        gender: "women",
+        sport: "football",
+      }),
+      "Nữ WK League",
+    );
+
+    assert.strictEqual(
+      resolveCanonicalTournament({
+        title: "Daejeon KGC vs Expressway Co",
+        tournament: "Bóng Chuyền",
+        category: "senior_women",
+        gender: "women",
+        sport: "volleyball",
+      }),
+      "Bóng Chuyền",
+    );
+  });
 });
 

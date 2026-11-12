@@ -4,7 +4,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { Check, Search, X, Play, ChevronRight, ChevronDown, ChevronUp, Target } from "lucide-react";
 import { getWatchedEpisodes, unmarkEpisodeAsWatched, extractEpisodeNumber } from "@/lib/episodeTracker";
-import { getShortEpisodeLabel, formatEpisodeName, findEpisodeMatch } from "@/lib/formatEpisode";
+import { getShortEpisodeLabel, formatEpisodeName, findEpisodeMatch, isFullEpisodeLabel } from "@/lib/formatEpisode";
 import { useWatchController, EpisodeItem } from "@/components/cinema/WatchController";
 import { ScrollablePillsRow } from "@/components/ui/ScrollablePillsRow";
 import { Tooltip } from "@/components/ui/Tooltip";
@@ -33,6 +33,7 @@ interface EpisodeListProps {
  * - Khi phim nhiều tập (> 12 tập): Hiện số rút gọn để hiển thị dạng lưới gọn gàng
  */
 function getFormattedEpisodeLabel(rawName?: string, fallbackIndex = 1, isFew = false): string {
+  if (isFullEpisodeLabel(rawName)) return "Bản Full";
   const short = getShortEpisodeLabel(rawName, String(fallbackIndex));
   const lower = short.toLowerCase();
 
@@ -722,9 +723,9 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(function Episo
                 )
               );
               
-              // Nhãn nút: nếu đang tìm kiếm thì hiển thị "Tập X" rõ ràng, nếu xem dải thường thì rút gọn số
+              // Nhãn nút: nếu đang tìm kiếm thì hiển thị chuẩn "Tập X" / "Bản Full", nếu xem dải thường thì rút gọn số
               const displayLabel = isSearching
-                ? (tapName.toLowerCase().startsWith("tập") ? tapName : `Tập ${getShortEpisodeLabel(tapName, String(tapIdx + 1))}`)
+                ? formatEpisodeName(tapName, `Tập ${tapIdx + 1}`)
                 : getFormattedEpisodeLabel(tapName, tapIdx + 1, isFewEpisodes);
 
               const isPartiallyWatched = !isActive && !isWatched && (isPartiallyWatchedProg || (!hasValidDuration && progressSeconds >= 10));

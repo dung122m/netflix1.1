@@ -196,6 +196,8 @@ export function LiveMatchScoreboard({
             sport: match?.sport,
             team1: match?.team1,
             team2: match?.team2,
+            category: match?.category,
+            gender: match?.gender,
             score: currentScore,
           });
 

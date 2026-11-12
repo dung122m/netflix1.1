@@ -15,6 +15,8 @@ interface MovieRecommendationsClientProps {
   tmdbId?: number | string;
   tmdbType?: string;
   contentText?: string;
+  hasMartialArts?: boolean;
+  initialData?: RecommendationsData | null;
   variant?: "grid" | "sidebar";
 }
 
@@ -79,21 +81,64 @@ const inFlightRecommendations = new Map<string, Promise<RecommendationsData | nu
 // Module-level in-memory cache chia sẻ tức thì giữa desktop và mobile components trong cùng trang
 const clientMemoryRecommendationsCache = new Map<string, RecommendationsData>();
 
+function encodeTaxonomyList(items: Array<{ name: string; slug?: string }> = []): string {
+  return items
+    .map((item) => {
+      const slug = (item?.slug || "").trim();
+      const name = (item?.name || "").trim();
+      if (!slug && !name) return "";
+      return `${slug}~${name}`;
+    })
+    .filter(Boolean)
+    .sort()
+    .join(",");
+}
+
+function buildRecommendationsGetUrl(payload: {
+  currentMovieSlug: string;
+  currentMovieTitle: string;
+  categories?: Array<{ name: string; slug?: string }>;
+  countries?: Array<{ name: string; slug?: string }>;
+  primaryActor?: string;
+  primaryDirector?: string;
+  year?: number | string;
+  type?: string;
+  tmdbId?: number | string;
+  tmdbType?: string;
+  hasMartialArts?: boolean;
+}): string {
+  const params = new URLSearchParams();
+  params.set("slug", payload.currentMovieSlug);
+  if (payload.currentMovieTitle) params.set("title", payload.currentMovieTitle);
+
+  const cats = encodeTaxonomyList(payload.categories);
+  if (cats) params.set("cats", cats);
+
+  const ctrs = encodeTaxonomyList(payload.countries);
+  if (ctrs) params.set("ctrs", ctrs);
+
+  if (payload.primaryActor) params.set("actor", payload.primaryActor);
+  if (payload.primaryDirector) params.set("director", payload.primaryDirector);
+  if (payload.year) params.set("year", String(payload.year));
+  if (payload.type) params.set("type", payload.type);
+  if (payload.tmdbId) params.set("tmdbId", String(payload.tmdbId));
+  if (payload.tmdbType) params.set("tmdbType", payload.tmdbType);
+  if (payload.hasMartialArts) params.set("martial", "1");
+
+  return `/api/movies/recommendations?${params.toString()}`;
+}
+
 function fetchRecommendationsDeduplicated(
   cacheKey: string,
-  payload: Record<string, unknown>
+  requestUrl: string
 ): Promise<RecommendationsData | null> {
   // 1. Nếu đang có request in-flight cùng cacheKey -> tái sử dụng Promise ngay lập tức
   if (inFlightRecommendations.has(cacheKey)) {
     return inFlightRecommendations.get(cacheKey)!;
   }
 
-  // 2. Tạo Promise fetch mới
-  const promise = fetch("/api/movies/recommendations", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  })
+  // 2. Tạo Promise fetch GET (cacheable trên Cloudflare CDN & browser)
+  const promise = fetch(requestUrl)
     .then((res) => (res.ok ? res.json() : null))
     .then((recData) => {
       if (recData && Array.isArray(recData.allMovies) && recData.allMovies.length > 0) {
@@ -130,38 +175,53 @@ export function MovieRecommendationsClient({
   tmdbId,
   tmdbType,
   contentText = "",
+  hasMartialArts,
+  initialData = null,
   variant = "grid",
 }: MovieRecommendationsClientProps) {
-  const [data, setData] = useState<RecommendationsData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const hasValidInitialData = Boolean(
+    initialData && Array.isArray(initialData.allMovies) && initialData.allMovies.length > 0
+  );
+  const [data, setData] = useState<RecommendationsData | null>(
+    hasValidInitialData ? initialData : null
+  );
+  const [loading, setLoading] = useState(!hasValidInitialData);
   const [isDesktopViewport, setIsDesktopViewport] = useState<boolean | null>(null);
 
   useEffect(() => {
-    if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
-      setIsDesktopViewport(variant === "sidebar");
-      return;
+    const hasMatchMedia =
+      typeof window !== "undefined" && typeof window.matchMedia === "function";
+    const mediaQuery = hasMatchMedia ? window.matchMedia("(min-width: 1024px)") : null;
+    const isDesktop = mediaQuery ? mediaQuery.matches : variant === "sidebar";
+    setIsDesktopViewport(isDesktop);
+
+    const handleMediaChange = (e: MediaQueryListEvent) => setIsDesktopViewport(e.matches);
+    mediaQuery?.addEventListener("change", handleMediaChange);
+
+    const isActiveHere = variant === "sidebar" ? isDesktop : !isDesktop;
+    if (!isActiveHere) {
+      return () => mediaQuery?.removeEventListener("change", handleMediaChange);
     }
-    const mediaQuery = window.matchMedia("(min-width: 1024px)");
-    const syncViewport = () => setIsDesktopViewport(mediaQuery.matches);
-    syncViewport();
-    mediaQuery.addEventListener("change", syncViewport);
-    return () => mediaQuery.removeEventListener("change", syncViewport);
-  }, [variant]);
 
-  const isActiveViewport =
-    isDesktopViewport !== null &&
-    (variant === "sidebar" ? isDesktopViewport : !isDesktopViewport);
-
-  useEffect(() => {
-    if (!isActiveViewport) return;
     let isMounted = true;
     const cacheKey = `nanaflix_rec_v4_${currentMovieSlug}_${tmdbId || ""}`;
+
+    // 0. Nếu server đã bơm sẵn dữ liệu (SSR HIT từ L1/Redis) -> lưu ngay vào client cache và bỏ qua fetch
+    if (hasValidInitialData && initialData) {
+      clientMemoryRecommendationsCache.set(cacheKey, initialData);
+      try {
+        sessionStorage.setItem(cacheKey, JSON.stringify(initialData));
+      } catch {}
+      setData(initialData);
+      setLoading(false);
+      return () => mediaQuery?.removeEventListener("change", handleMediaChange);
+    }
 
     // 1. Kiểm tra cache trong RAM trước (0ms response, chia sẻ giữa desktop và mobile)
     if (clientMemoryRecommendationsCache.has(cacheKey)) {
       setData(clientMemoryRecommendationsCache.get(cacheKey)!);
       setLoading(false);
-      return;
+      return () => mediaQuery?.removeEventListener("change", handleMediaChange);
     }
 
     // 2. Kiểm tra cache trong sessionStorage (0ms response)
@@ -173,15 +233,19 @@ export function MovieRecommendationsClient({
           clientMemoryRecommendationsCache.set(cacheKey, parsed);
           setData(parsed);
           setLoading(false);
-          return;
+          return () => mediaQuery?.removeEventListener("change", handleMediaChange);
         }
       }
     } catch {}
 
     setLoading(true);
 
-    // 2. Fetch recommendations qua singleton Promise khử trùng lặp (Mobile + Desktop chia sẻ 1 request duy nhất)
-    fetchRecommendationsDeduplicated(cacheKey, {
+    const resolvedHasMartialArts =
+      typeof hasMartialArts === "boolean"
+        ? hasMartialArts
+        : /võ thuật|kung fu|martial|quyền|kiếm hiệp/i.test(contentText || "");
+
+    const requestUrl = buildRecommendationsGetUrl({
       currentMovieSlug,
       currentMovieTitle,
       categories,
@@ -192,8 +256,11 @@ export function MovieRecommendationsClient({
       type,
       tmdbId,
       tmdbType,
-      contentText,
-    })
+      hasMartialArts: resolvedHasMartialArts,
+    });
+
+    // 3. Fetch GET cacheable qua singleton Promise khử trùng lặp ngay trong lần mount đầu tiên
+    fetchRecommendationsDeduplicated(cacheKey, requestUrl)
       .then((recData) => {
         if (!isMounted) return;
         if (recData && Array.isArray(recData.allMovies) && recData.allMovies.length > 0) {
@@ -206,11 +273,16 @@ export function MovieRecommendationsClient({
 
     return () => {
       isMounted = false;
+      mediaQuery?.removeEventListener("change", handleMediaChange);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentMovieSlug, tmdbId, isActiveViewport]);
+  }, [currentMovieSlug, tmdbId, variant]);
 
-  if (isDesktopViewport !== null && !isActiveViewport) {
+  const isActiveViewport =
+    isDesktopViewport === null ||
+    (variant === "sidebar" ? isDesktopViewport : !isDesktopViewport);
+
+  if (!isActiveViewport) {
     return null;
   }
 

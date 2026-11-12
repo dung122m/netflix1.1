@@ -11,6 +11,7 @@ import {
   X,
 } from "lucide-react";
 import { isInWatchlist, toggleWatchlist, subscribeToWatchlist } from "@/lib/watchlist";
+import { formatEpisodeName, isFullEpisodeLabel } from "@/lib/formatEpisode";
 import {
   toOptimizedCardPosterUrl,
   toFastCdnImageUrl,
@@ -520,8 +521,8 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
     if (!isEpisode) return null;
     if (episodeName) {
       const trimmed = episodeName.trim();
-      if (/^(full|bản full|tap-full)$/i.test(trimmed)) return null;
-      return trimmed;
+      if (isFullEpisodeLabel(trimmed) || /^tap-full$/i.test(trimmed)) return null;
+      return formatEpisodeName(trimmed);
     }
     if (!epSlug || /^(full|tap-full)$/i.test(epSlug.trim())) return null;
     const numMatch = epSlug.match(/(\d+)/);

@@ -3250,6 +3250,8 @@ export const liveFootballService = {
           sport: m.sport,
           team1: m.team1,
           team2: m.team2,
+          category: m.category,
+          gender: m.gender,
           score: matchedScore,
         });
 

@@ -1,4 +1,5 @@
 import { LiveMatchScore } from "../football-score/types";
+import { isGenericSportTournament, WOMEN_SOCCER_KEYWORD_REGEX } from "../football-score/canonicalLeagues";
 import { normalizeTeamKey } from "../football-logo/service";
 import { normalizeClubKey } from "./service";
 
@@ -285,6 +286,31 @@ export function countUniqueServers(
   return uniqueUrls.size;
 }
 
+const FRIENDLY_TOURNAMENT_REGEX =
+  /(?:^|[\s([.,:/_-])(?:giao\s*h[ữư]u|friendly|friendlies|pre[- ]?season|test\s*match|tập\s*huấn|tap\s*huan)(?=$|[\s)\].,:/_-])/i;
+
+function isVietnamSeniorTeam(name?: string): boolean {
+  if (!name) return false;
+  if (YOUTH_OR_RESERVE_TEAM_REGEX.test(name)) return false;
+  const key = normalizeClubKey(name);
+  return key === "vietnam" || key === "vn";
+}
+
+function isUnverifiedOrFriendlyTournament(
+  tournament: string,
+  titleCorpus: string,
+  score?: LiveMatchScore | null
+): boolean {
+  if (score?.leagueSlug && !score.leagueSlug.toLowerCase().includes("friendly")) {
+    return false;
+  }
+  const cleanTourn = tournament.trim();
+  if (!cleanTourn || isGenericSportTournament(cleanTourn)) {
+    return true;
+  }
+  return FRIENDLY_TOURNAMENT_REGEX.test(`${cleanTourn} ${titleCorpus}`);
+}
+
 /**
  * Hàm phân loại Trận Cầu Tâm Điểm (Featured Match) tập trung, nhiều tiêu chí và có thứ tự ưu tiên chặt chẽ:
  *
@@ -318,13 +344,14 @@ export function isFeaturedMatch(params: {
     };
   }
 
-  // 0B. Category Guard: Trận bóng đá Nữ không tự động kế thừa huy hiệu Tâm Điểm của giải Nam
+  // 0B. Category Guard: Trận bóng đá Nữ hoặc Futsal không tự động kế thừa huy hiệu Tâm Điểm của giải Nam
+  const corpusForWomenCheck = `${title} ${tournament} ${team1} ${team2} ${category || ""}`;
   const isWomenMatch =
     category === "senior_women" ||
     gender === "women" ||
-    /\b(?:nữ|nu|women|woman|female|wsl|frauen|femenil)\b/i.test(`${title} ${tournament} ${team1} ${team2} ${category || ""}`);
+    WOMEN_SOCCER_KEYWORD_REGEX.test(corpusForWomenCheck);
 
-  if (isWomenMatch) {
+  if (isWomenMatch || category === "futsal" || /\bfutsal\b/i.test(`${title} ${tournament}`)) {
     return {
       isFeatured: false,
     };
@@ -398,18 +425,43 @@ export function isFeaturedMatch(params: {
   }
 
   // 3. Nhóm C: Có ít nhất một đội nổi bật (CLB hoặc ĐTQG thuộc danh sách được quan tâm rộng rãi)
-  // Guard: Không áp dụng Nhóm C cho các trận đấu cấp độ trẻ / đội trẻ (U15 - U21, Youth League...)
+  // Guard: Không áp dụng Nhóm C cho các trận đấu cấp độ trẻ / đội trẻ (U15 - U23, Youth League...)
+  const isYouthCategory =
+    category === "u19" ||
+    category === "u20" ||
+    category === "u21" ||
+    category === "u23" ||
+    category === "youth";
   const isYouthMatch =
+    isYouthCategory ||
     YOUTH_OR_RESERVE_TEAM_REGEX.test(team1) ||
     YOUTH_OR_RESERVE_TEAM_REGEX.test(team2) ||
     /\b(?:u\s*\d{1,2}|youth\s*league|giai\s*tre)\b/i.test(titleCorpus);
 
-  if (!isYouthMatch && (isProminentTeam(team1) || isProminentTeam(team2))) {
-    return {
-      isFeatured: true,
-      badgeLabel: "TÂM ĐIỂM",
-      reason: "prominent_team",
-    };
+  if (!isYouthMatch) {
+    const team1Prominent = isProminentTeam(team1);
+    const team2Prominent = isProminentTeam(team2);
+
+    if (team1Prominent || team2Prominent) {
+      const bothProminent = team1Prominent && team2Prominent;
+      const isVietnamSenior =
+        isVietnamSeniorTeam(team1) || isVietnamSeniorTeam(team2);
+      const isUnverifiedOrFriendly = isUnverifiedOrFriendlyTournament(
+        tournament,
+        titleCorpus,
+        params.score
+      );
+
+      // Trong các trận thuộc "Giải Đấu Khác" hoặc giao hữu không chính thức:
+      // chỉ gắn TÂM ĐIỂM nếu CẢ HAI đội đều nổi bật hoặc có ĐTQG Việt Nam thi đấu.
+      if (!isUnverifiedOrFriendly || bothProminent || isVietnamSenior) {
+        return {
+          isFeatured: true,
+          badgeLabel: "TÂM ĐIỂM",
+          reason: "prominent_team",
+        };
+      }
+    }
   }
 
   // 4. Nhóm D: Trận đấu thông thường (không thỏa mãn các tiêu chí thực chất)

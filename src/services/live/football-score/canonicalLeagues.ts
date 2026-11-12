@@ -128,6 +128,13 @@ export const GENERIC_PLAYLIST_NAMES = new Set([
 export const GENERIC_SPORT_NAMES = new Set([
   "bóng đá",
   "bong da",
+  "bóng đá nữ",
+  "bong da nu",
+  "women's football",
+  "womens football",
+  "women football",
+  "women soccer",
+  "women's soccer",
   "bóng rổ",
   "bong ro",
   "quần vợt",
@@ -168,6 +175,35 @@ export function isGenericSportTournament(tournamentName: string): boolean {
 }
 
 /**
+ * Regex nhận diện từ khóa Bóng Đá Nữ an toàn với ký tự có dấu tiếng Việt ("nữ").
+ * Tránh dùng \b quanh "nữ" vì trong JS Regex, ký tự Unicode 'ữ' là non-word (\W) khiến \b ở cuối từ bị sai.
+ */
+export const WOMEN_SOCCER_KEYWORD_REGEX =
+  /(?:^|[\s([.,:/_-])(?:nữ|nu|women|womens|women's|woman|female|wsl|nwsl|frauen|femenil|arkema)(?=$|[\s)\].,:/_-])/i;
+
+function sanitizeRawTournamentName(raw?: string): string {
+  if (!raw || !raw.trim()) return "";
+  return raw
+    .toWellFormed()
+    .replace(/^[\p{Extended_Pictographic}\u{1F1E6}-\u{1F1FF}\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\s🔴🟢🟡⚪🟠⚽🏀🏐🏸🎾🎱🥊🏎️🏆]+/u, "")
+    .replace(/^(?:es|it|en|fr|de|vn|sa|pt)\s+(?=[A-Z])/i, "")
+    .trim();
+}
+
+function isNonLeagueLabel(cleanRaw: string): boolean {
+  if (!cleanRaw) return true;
+  const lowerClean = cleanRaw.toLowerCase();
+  return (
+    GENERIC_PLAYLIST_NAMES.has(lowerClean) ||
+    /^\d+$/.test(cleanRaw) ||
+    /^(?:kênh|channel|server|sv|stream)\s*\d+$/i.test(cleanRaw) ||
+    /^(?:blv|bình luận viên)\b/i.test(cleanRaw) ||
+    /^(?:thuyết minh|lồng tiếng|tiếng việt|tiếng anh)\b/i.test(cleanRaw) ||
+    /(?:hd|fhd|sd|4k|link\s*\d+|phòng\s*\d+)$/i.test(cleanRaw)
+  );
+}
+
+/**
  * Hàm chuẩn hóa tên giải đấu trung tâm duy nhất cho toàn bộ hệ thống Nanaflix (thẻ trận, danh sách, bộ lọc)
  * Tuân thủ mô hình 4 tầng xác định:
  * Tầng 1: Metadata Ground Truth từ Livescore Event (leagueSlug) khi đã match thành công
@@ -189,12 +225,14 @@ export function resolveCanonicalTournament(params: {
   const searchCorpus = `${title || ""} ${tournament || ""}`;
   const teamsCorpus = `${params.team1 || ""} ${params.team2 || ""}`;
   const fullCorpus = `${searchCorpus} ${teamsCorpus}`.trim();
+  const isFootballOrUnspecified = !sport || sport === "football" || sport === "soccer";
 
   // Guard đặc biệt 1: Bóng đá Nữ (Women's Football / WSL / Liga F / Women's UCL)
   const isWomenSoccer =
-    category === "senior_women" ||
-    gender === "women" ||
-    /\b(?:nữ|nu|women|woman|female|wsl|frauen|femenil)\b/i.test(`${fullCorpus} ${category || ""}`);
+    isFootballOrUnspecified &&
+    (category === "senior_women" ||
+      gender === "women" ||
+      WOMEN_SOCCER_KEYWORD_REGEX.test(`${fullCorpus} ${category || ""}`));
 
   if (isWomenSoccer) {
     if (/\b(?:premier\s*league|ngoại\s*hạng\s*anh|\bepl\b|wsl|fa\s*wsl)\b/i.test(fullCorpus)) {
@@ -215,8 +253,14 @@ export function resolveCanonicalTournament(params: {
     if (/\b(?:world\s*cup)\b/i.test(fullCorpus)) {
       return "World Cup Nữ";
     }
-    if (tournament && !GENERIC_PLAYLIST_NAMES.has(tournament.toLowerCase())) {
-      return tournament.startsWith("Nữ ") ? tournament : `Nữ ${tournament}`;
+
+    const cleanWomenRaw = sanitizeRawTournamentName(tournament)
+      // Tự sửa nhãn lặp do dữ liệu/cache cũ như "Nữ Bóng Đá Nữ" -> "Bóng Đá Nữ"
+      .replace(/^nữ\s+(?=bóng\s*đá\s*nữ(?:\s|$))/i, "")
+      .trim();
+
+    if (cleanWomenRaw && !isNonLeagueLabel(cleanWomenRaw) && !isGenericSportTournament(cleanWomenRaw)) {
+      return WOMEN_SOCCER_KEYWORD_REGEX.test(cleanWomenRaw) ? cleanWomenRaw : `Nữ ${cleanWomenRaw}`;
     }
     return "Bóng Đá Nữ";
   }
@@ -250,34 +294,18 @@ export function resolveCanonicalTournament(params: {
   }
 
   // 3. TẦNG 3: Chuẩn hóa từ chuỗi tournament hiện có (nếu hợp lệ và không phải nhãn playlist rác)
-  if (tournament && tournament.trim()) {
-    const cleanRaw = tournament
-      .toWellFormed()
-      .replace(/^[\p{Extended_Pictographic}\u{1F1E6}-\u{1F1FF}\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\s🔴🟢🟡⚪🟠⚽🏀🏐🏸🎾🎱🥊🏎️🏆]+/u, "")
-      .replace(/^(?:es|it|en|fr|de|vn|sa|pt)\s+(?=[A-Z])/i, "")
-      .trim();
-
-    const lowerClean = cleanRaw.toLowerCase();
-    if (
-      cleanRaw &&
-      !GENERIC_PLAYLIST_NAMES.has(lowerClean) &&
-      !/^\d+$/.test(cleanRaw) &&
-      !/^(?:kênh|channel|server|sv|stream)\s*\d+$/i.test(cleanRaw) &&
-      !/^(?:blv|bình luận viên)\b/i.test(cleanRaw) &&
-      !/^(?:thuyết minh|lồng tiếng|tiếng việt|tiếng anh)\b/i.test(cleanRaw) &&
-      !/(?:hd|fhd|sd|4k|link\s*\d+|phòng\s*\d+)$/i.test(cleanRaw)
-    ) {
-      if (isLikelyFootball && /bóng\s*rổ|basketball|\bnba\b|\bvba\b|\bpba\b|\bkbl\b/i.test(cleanRaw)) {
-        // Trận bóng đá không bao giờ nhận nhãn giải bóng rổ do lỗi metadata
-      } else {
-        if (/la\s*liga/i.test(cleanRaw)) return "La Liga";
-        if (/serie\s*a/i.test(cleanRaw)) return "Serie A";
-        if (/premier\s*league|ngoại\s*hạng\s*anh/i.test(cleanRaw)) return "Ngoại Hạng Anh";
-        if (/bundesliga/i.test(cleanRaw)) return "Bundesliga";
-        if (/ligue\s*1/i.test(cleanRaw)) return "Ligue 1";
-        if (/v[-_ ]?league/i.test(cleanRaw)) return "V-League";
-        return cleanRaw;
-      }
+  const cleanRaw = sanitizeRawTournamentName(tournament);
+  if (cleanRaw && !isNonLeagueLabel(cleanRaw)) {
+    if (isLikelyFootball && /bóng\s*rổ|basketball|\bnba\b|\bvba\b|\bpba\b|\bkbl\b/i.test(cleanRaw)) {
+      // Trận bóng đá không bao giờ nhận nhãn giải bóng rổ do lỗi metadata
+    } else {
+      if (/la\s*liga/i.test(cleanRaw)) return "La Liga";
+      if (/serie\s*a/i.test(cleanRaw)) return "Serie A";
+      if (/premier\s*league|ngoại\s*hạng\s*anh/i.test(cleanRaw)) return "Ngoại Hạng Anh";
+      if (/bundesliga/i.test(cleanRaw)) return "Bundesliga";
+      if (/ligue\s*1/i.test(cleanRaw)) return "Ligue 1";
+      if (/v[-_ ]?league/i.test(cleanRaw)) return "V-League";
+      return cleanRaw;
     }
   }
 

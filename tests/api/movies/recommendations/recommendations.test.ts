@@ -109,4 +109,58 @@ describe("Movie Recommendations API & Deduplication Unit Tests", () => {
     assert.equal(json.success, true);
     assert.ok(Array.isArray(json.allMovies));
   });
+
+  it("5. GET without slug returns status 400 with no-store", async () => {
+    const { GET } = await import("@/app/api/movies/recommendations/route");
+    const req = new Request("http://localhost/api/movies/recommendations", {
+      method: "GET",
+    });
+
+    const res = await GET(req as unknown as import("next/server").NextRequest);
+    assert.equal(res.status, 400);
+    assert.ok(res.headers.get("Cache-Control")?.includes("no-store"));
+  });
+
+  it("6. GET with valid query returns 200 Edge-cacheable headers and matches POST canonical cache key", async () => {
+    const { GET } = await import("@/app/api/movies/recommendations/route");
+    const { getCanonicalRecommendationsCacheKey, parseRecommendationsQuery } = await import("@/services/movies/recommendations");
+
+    const params = new URLSearchParams({
+      slug: "lat-mat-7-mot-dieu-uoc",
+      title: "Lật Mặt 7: Một Điều Ước",
+      cats: "gia-dinh~Gia Đình,hai-huoc~Hài Hước",
+      ctrs: "viet-nam~Việt Nam",
+      actor: "Quách Ngọc Tuyên",
+      year: "2024",
+      type: "single",
+      tmdbId: "111111",
+    });
+
+    const req = new Request(`http://localhost/api/movies/recommendations?${params.toString()}`, {
+      method: "GET",
+    });
+    const res = await GET(req as unknown as import("next/server").NextRequest);
+    assert.equal(res.status, 200);
+    assert.equal(res.headers.get("Cache-Control"), "public, s-maxage=3600, stale-while-revalidate=86400");
+
+    const json = await res.json();
+    assert.equal(json.success, true);
+    assert.ok(Array.isArray(json.allMovies));
+    assert.ok(json.allMovies.length > 0 && json.allMovies.length <= 24);
+
+    const parsed = parseRecommendationsQuery(params);
+    assert.equal(
+      getCanonicalRecommendationsCacheKey(parsed),
+      getCanonicalRecommendationsCacheKey({
+        currentMovieSlug: "lat-mat-7-mot-dieu-uoc",
+        currentMovieTitle: "Lật Mặt 7: Một Điều Ước",
+        categories: [{ name: "Gia Đình", slug: "gia-dinh" }, { name: "Hài Hước", slug: "hai-huoc" }],
+        countries: [{ name: "Việt Nam", slug: "viet-nam" }],
+        primaryActor: "Quách Ngọc Tuyên",
+        year: 2024,
+        type: "single",
+        tmdbId: 111111,
+      })
+    );
+  });
 });

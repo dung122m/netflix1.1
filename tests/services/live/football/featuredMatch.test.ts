@@ -547,4 +547,71 @@ describe("Featured Match (Trận Cầu Tâm Điểm) Multi-Criteria Classificati
     assert.strictEqual(res.badgeLabel, "TÂM ĐIỂM");
     assert.strictEqual(res.reason, "prominent_team");
   });
+
+  it("41. Trận ở Giải Đấu Khác / Giao Hữu chỉ có 1 CLB nổi bật (RB Leipzig vs FK Mladá Boleslav) KHÔNG phải TÂM ĐIỂM", () => {
+    const res1 = isFeaturedMatch({
+      title: "RB Leipzig vs FK Mladá Boleslav",
+      team1: "RB Leipzig",
+      team2: "FK Mladá Boleslav",
+      tournament: "Giải Đấu Khác",
+      sport: "football",
+      category: "senior_men",
+      validServersCount: 5,
+    });
+    assert.strictEqual(res1.isFeatured, false);
+
+    const res2 = isFeaturedMatch({
+      title: "Chelsea vs Wrexham",
+      team1: "Chelsea",
+      team2: "Wrexham",
+      tournament: "Club Friendly",
+      sport: "football",
+      validServersCount: 4,
+    });
+    assert.strictEqual(res2.isFeatured, false);
+  });
+
+  it("42. Giao hữu / Giải Đấu Khác giữa HAI đội nổi bật hoặc có ĐTQG Việt Nam vẫn là TÂM ĐIỂM", () => {
+    const resTwoGiants = isFeaturedMatch({
+      title: "Liverpool vs AC Milan",
+      team1: "Liverpool",
+      team2: "AC Milan",
+      tournament: "Club Friendly",
+      sport: "football",
+    });
+    assert.strictEqual(resTwoGiants.isFeatured, true);
+    assert.strictEqual(resTwoGiants.badgeLabel, "TÂM ĐIỂM");
+
+    const resVietnam = isFeaturedMatch({
+      title: "Việt Nam vs Ấn Độ",
+      team1: "Việt Nam",
+      team2: "Ấn Độ",
+      tournament: "Giao Hữu & ĐTQG",
+      sport: "football",
+      category: "senior_men",
+    });
+    assert.strictEqual(resVietnam.isFeatured, true);
+    assert.strictEqual(resVietnam.badgeLabel, "TÂM ĐIỂM");
+  });
+
+  it("43. Guard Bóng Đá Nữ (chữ có dấu 'nữ') & category trẻ không nhận nhầm TÂM ĐIỂM", () => {
+    const resWomen = isFeaturedMatch({
+      title: "England vs France",
+      team1: "England",
+      team2: "France",
+      tournament: "Bóng Đá Nữ",
+      sport: "football",
+    });
+    assert.strictEqual(resWomen.isFeatured, false);
+
+    const resYouthCategory = isFeaturedMatch({
+      title: "Germany vs Sweden",
+      team1: "Germany",
+      team2: "Sweden",
+      tournament: "Giải Đấu Khác",
+      sport: "football",
+      category: "u19",
+    });
+    assert.strictEqual(resYouthCategory.isFeatured, false);
+  });
 });

@@ -1,19 +1,30 @@
+const FULL_EPISODE_LABEL_REGEX = /^(?:(?:tập|tap|bản|ban)\s*[:.-]?\s*)?full$/i;
+
+/**
+ * Kiểm tra xem tên tập phim có phải là nhãn phim lẻ ("Full", "FULL", "Tập Full", "Tập FULL", "Bản Full") hay không
+ */
+export function isFullEpisodeLabel(name?: string): boolean {
+  if (!name) return false;
+  return FULL_EPISODE_LABEL_REGEX.test(name.trim());
+}
+
 /**
  * Chuẩn hóa và định dạng tên tập phim an toàn, chống triệt để lỗi lặp từ như "Tập Tập 01"
+ * và thống nhất các biến thể "FULL", "Full", "Tập FULL", "Tập Full" -> "Bản Full"
  */
 export function formatEpisodeName(name?: string, fallback = "Tập 1"): string {
   if (!name) return fallback;
   const trimmed = name.trim();
   if (!trimmed) return fallback;
 
+  // Chuẩn hóa mọi biến thể của bản Full ("Full", "FULL", "Tập FULL", "Tập Full", "Bản FULL"...)
+  if (isFullEpisodeLabel(trimmed)) {
+    return "Bản Full";
+  }
+
   // Nếu tên tập đã bắt đầu bằng chữ "Tập" hoặc "tap" (ví dụ: "Tập 01", "Tập 12")
   if (/^tập\s*/i.test(trimmed)) {
     return trimmed;
-  }
-
-  // Nếu là chữ "Full"
-  if (/^full$/i.test(trimmed)) {
-    return "Bản Full";
   }
 
   // Nếu chỉ là số (ví dụ: "01", "1", "15")

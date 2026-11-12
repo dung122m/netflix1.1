@@ -306,6 +306,8 @@ export function useLiveFootballFilters({
             sport: m.sport,
             team1: m.team1,
             team2: m.team2,
+            category: m.category,
+            gender: m.gender,
             score: liveScore,
           }),
           team1: m.team1,
@@ -393,6 +395,8 @@ export function useLiveFootballFilters({
         sport: m.sport,
         team1: m.team1,
         team2: m.team2,
+        category: m.category,
+        gender: m.gender,
         score: liveScore,
       });
 
@@ -465,6 +469,8 @@ export function useLiveFootballFilters({
           sport: m.sport,
           team1: m.team1,
           team2: m.team2,
+          category: m.category,
+          gender: m.gender,
           score: liveScore,
         });
         if (canonicalTournament !== selectedTournament) {

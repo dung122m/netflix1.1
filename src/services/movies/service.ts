@@ -1,7 +1,7 @@
 import { cache } from "react";
 import { cleanHtmlText } from "@/lib/cleanHtml";
 import { cacheService } from "@/lib/cache";
-import { findEpisodeMatch } from "@/lib/formatEpisode";
+import { findEpisodeMatch, formatEpisodeName } from "@/lib/formatEpisode";
 import { formatGenreName, formatCountryName, getCanonicalGenreSlug, getCanonicalCountrySlug } from "@/lib/movieMedia";
 import { enrichMovieListPosters } from "@/services/movies/posterEnrichment";
 
@@ -59,6 +59,7 @@ export interface MovieFilterParams {
   slug?: string;
   sort?: "latest" | "rating" | "views" | "year";
   skipKvCache?: boolean;
+  posterEnrichmentBudgetMs?: number;
 }
 
 export interface AiCandidateOptions {
@@ -441,8 +442,8 @@ function normalizeNguonCMovieDetail(raw: any) {
     server_name: srv.server_name || `Server NguonC #${idx + 1}`,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     server_data: deduplicateServerEpisodes((srv.items || []).map((ep: any) => {
-      const epName = String(ep.name || "");
-      const formattedName = epName.toLowerCase().startsWith("tập") ? epName : `Tập ${epName}`;
+      const epName = String(ep.name || "").trim();
+      const formattedName = formatEpisodeName(epName, "Tập 1");
       return {
         name: formattedName,
         slug: ep.slug || `tap-${epName}`,
@@ -2167,8 +2168,11 @@ async function executeGetMovies(params: MovieFilterParams, cacheKey: string) {
     }
   }
 
-  // SERVER-SIDE POSTER ENRICHMENT (Ưu tiên nguồn TMDb image.tmdb.org, không chặn quá 3s khi cold):
-  await enrichMovieListPosters(finalItems, { budgetMs: 3000 });
+  // SERVER-SIDE POSTER ENRICHMENT (Ưu tiên nguồn TMDb image.tmdb.org, bỏ qua nếu caller set budget = 0):
+  const enrichBudgetMs = params.posterEnrichmentBudgetMs ?? 3000;
+  if (enrichBudgetMs > 0) {
+    await enrichMovieListPosters(finalItems, { budgetMs: enrichBudgetMs });
+  }
 
   const payload = {
     status: true,

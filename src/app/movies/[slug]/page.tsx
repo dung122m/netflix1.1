@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { after } from "next/server";
 import Link from "next/link";
 import { Film } from "lucide-react";
 
@@ -27,6 +28,11 @@ import {
   buildMovieMetadata,
   buildMovieDetailPageData,
 } from "@/services/movies/detailPageData";
+import {
+  getCachedMovieRecommendationsFast,
+  getMovieRecommendations,
+  type RecommendationsRequestPayload,
+} from "@/services/movies/recommendations";
 import { MovieNotFoundView } from "@/components/movies/detail/MovieNotFoundView";
 import { MovieInfoHeaderAndToolbar } from "@/components/movies/detail/MovieInfoHeaderAndToolbar";
 import { MovieSynopsisAndFactsSection } from "@/components/movies/detail/MovieSynopsisAndFactsSection";
@@ -131,6 +137,33 @@ export default async function MovieDetail({
         />
       </Suspense>
     ) : undefined;
+
+  const hasMartialArts = /võ thuật|kung fu|martial|quyền|kiếm hiệp/i.test(
+    movie.content || movie.description || ""
+  );
+  const recPayload: RecommendationsRequestPayload = {
+    currentMovieSlug: movie.slug,
+    currentMovieTitle: title,
+    categories: categoryList,
+    countries: countryList,
+    primaryActor: actorList[0],
+    primaryDirector: directorList[0],
+    year: movie.year,
+    type: movie.type,
+    tmdbId: tmdbId ?? undefined,
+    tmdbType,
+    hasMartialArts,
+  };
+  const initialRecommendations = await getCachedMovieRecommendationsFast(recPayload, 120);
+  if (!initialRecommendations) {
+    try {
+      after(() => {
+        getMovieRecommendations(recPayload).catch(() => {});
+      });
+    } catch {
+      // Bỏ qua an toàn ngoài request lifecycle (ví dụ test runner)
+    }
+  }
 
   return (
     <div className="page-cinema-container min-h-dvh pb-0 lg:pb-0 w-full max-w-full overflow-x-clip">
@@ -327,9 +360,10 @@ export default async function MovieDetail({
                       primaryDirector={directorList[0]}
                       year={movie.year}
                       type={movie.type}
-                      tmdbId={tmdbId}
+                      tmdbId={tmdbId ?? undefined}
                       tmdbType={tmdbType}
-                      contentText={movie.content || movie.description || ""}
+                      hasMartialArts={hasMartialArts}
+                      initialData={initialRecommendations}
                       variant="grid"
                     />
                   </div>
@@ -371,9 +405,10 @@ export default async function MovieDetail({
                       primaryDirector={directorList[0]}
                       year={movie.year}
                       type={movie.type}
-                      tmdbId={tmdbId}
+                      tmdbId={tmdbId ?? undefined}
                       tmdbType={tmdbType}
-                      contentText={movie.content || movie.description || ""}
+                      hasMartialArts={hasMartialArts}
+                      initialData={initialRecommendations}
                       variant="sidebar"
                     />
                   }
