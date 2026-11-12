@@ -13,6 +13,7 @@ import {
   Filter,
   Loader2,
   SlidersHorizontal,
+  ArrowUpDown,
 } from "lucide-react";
 
 import {
@@ -113,7 +114,7 @@ export const FilterBar: React.FC = () => {
   const rawCtry = optimisticParams.country !== undefined ? optimisticParams.country : (searchParams.get("country") || "");
   const currentCountry = (rawCtry ? getCanonicalCountrySlug(null, rawCtry) : "") || (rawCtry && !isRawId(rawCtry) ? rawCtry : "");
   const currentYear = optimisticParams.year !== undefined ? optimisticParams.year : (searchParams.get("year") || "");
-  const currentSort = optimisticParams.sort !== undefined ? optimisticParams.sort : (searchParams.get("sort") || "latest");
+  const currentSort = optimisticParams.sort !== undefined ? (optimisticParams.sort || "latest") : (searchParams.get("sort") || "latest");
   const currentActor = searchParams.get("actor") || "";
   const currentKeyword = searchParams.get("keyword") || "";
 
@@ -351,10 +352,7 @@ export const FilterBar: React.FC = () => {
 
     const left = Math.round(btnRect.left - containerRect.left);
 
-    if (group === "sort") {
-      const right = Math.round(containerRect.right - btnRect.right);
-      return { right: Math.max(0, right), left: undefined, top };
-    } else if (group === "year" && left + 320 > containerRect.width) {
+    if (group === "year" && left + 320 > containerRect.width) {
       const right = Math.round(containerRect.right - btnRect.right);
       return { right: Math.max(0, right), left: undefined, top };
     } else {
@@ -614,6 +612,39 @@ export const FilterBar: React.FC = () => {
               )}
             </button>
 
+            {/* DROPDOWN 5: SẮP XẾP */}
+            <button
+              ref={(el) => {
+                buttonRefs.current["sort"] = el;
+              }}
+              type="button"
+              onClick={() => toggleDropdown("sort")}
+              aria-expanded={activeDropdown === "sort"}
+              aria-haspopup="listbox"
+              aria-label="Sắp xếp danh sách phim"
+              className={`h-10 px-3.5 sm:px-4 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-150 flex items-center gap-2 cursor-pointer shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black flex-none ${
+                isCustomSort
+                  ? "bg-netflix-red/25 text-white shadow-md shadow-black/50"
+                  : activeDropdown === "sort"
+                  ? "bg-zinc-800 text-white shadow-md shadow-black/40"
+                  : "bg-white/[0.05] text-zinc-300 hover:bg-white/[0.1] hover:text-white"
+              }`}
+            >
+              <ArrowUpDown className={`w-3.5 h-3.5 flex-none ${isCustomSort ? "text-netflix-red" : "text-zinc-400"}`} />
+              <span className="truncate max-w-[130px] sm:max-w-none">
+                {isCustomSort ? activeSortName : "Sắp xếp"}
+              </span>
+              {isPending && pendingGroup === "sort" ? (
+                <Loader2 className="w-3.5 h-3.5 text-netflix-red animate-spin flex-none" />
+              ) : (
+                <ChevronDown
+                  className={`w-3.5 h-3.5 text-zinc-400 transition-transform duration-200 flex-none ${
+                    activeDropdown === "sort" ? "rotate-180 text-white" : "rotate-0"
+                  }`}
+                />
+              )}
+            </button>
+
             {/* XÓA NHANH TOÀN BỘ BỘ LỌC KHI CÓ FILTER */}
             {hasAnyFilter && (
               <Tooltip content="Xóa tất cả các bộ lọc hiện tại" side="bottom">
@@ -644,6 +675,7 @@ export const FilterBar: React.FC = () => {
         currentCategory={currentCategory}
         currentCountry={currentCountry}
         currentYear={currentYear}
+        currentSort={currentSort}
         filters={filters}
         updateQueryParam={updateQueryParam}
       />
