@@ -570,12 +570,6 @@ export default async function BrowsePage({
     } else {
       title = `Kết quả tìm kiếm: "${keyword}"`;
     }
-  } else if (rawSort === "rating") {
-    title = "Phim Có Điểm Đánh Giá Cao Nhất";
-  } else if (rawSort === "views") {
-    title = "Phim Có Lượt Xem Nhiều Nhất";
-  } else if (rawSort === "latest") {
-    title = "Phim Mới Cập Nhật";
   } else if (type && category) {
     const typeLabel = TYPE_TITLES[type] || type;
     const catLabel = formatGenreName(category) || GENRE_NAMES[category] || category;
@@ -592,6 +586,14 @@ export default async function BrowsePage({
     title = `Phim ${formatCountryName(country) || COUNTRY_NAMES[country] || country}`;
   } else if (year) {
     title = `Phim Năm ${year}`;
+  } else if (rawSort === "rating") {
+    title = "Phim Có Điểm Đánh Giá Cao Nhất";
+  } else if (rawSort === "views") {
+    title = "Phim Có Lượt Xem Nhiều Nhất";
+  } else if (rawSort === "year") {
+    title = "Phim Mới Phát Hành";
+  } else if (rawSort === "latest") {
+    title = "Phim Mới Cập Nhật";
   } else if (category || country || year || type) {
     title = "Kết Quả Lọc Phim";
   }
