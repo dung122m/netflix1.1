@@ -53,7 +53,7 @@ export async function GET(req: NextRequest) {
     }
 
     // 1. Kiểm tra L1 In-memory & L2 Upstash Redis qua cacheService
-    const cacheKey = `search:suggest:${normKw}`;
+    const cacheKey = `search:suggest:v2:${normKw}`;
     const cached = await cacheService.get<{ items: unknown[] }>(cacheKey);
     if (cached && Array.isArray(cached.items)) {
       return NextResponse.json(cached);
