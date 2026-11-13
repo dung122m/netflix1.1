@@ -18,7 +18,7 @@ export function useCinemaFullscreenAndOrientation({
   containerRef,
   videoRef,
   isNativeVideo,
-  isPlaying,
+  isPlaying: _isPlaying,
   activeSrc,
   m3u8Link,
   showHud,
@@ -274,10 +274,10 @@ export function useCinemaFullscreenAndOrientation({
     };
   }, []);
 
+  // Sticky player trên mobile: Giữ cố định khi cuộn qua video mà không phụ thuộc vào trạng thái pause/play
   const isMobileStickyActive =
     isMobile &&
     isScrolledPast &&
-    isPlaying &&
     !isFullscreen &&
     Boolean(activeSrc || m3u8Link);
 

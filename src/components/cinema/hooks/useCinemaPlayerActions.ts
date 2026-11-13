@@ -353,11 +353,12 @@ export function useCinemaPlayerActions({
         return;
       }
 
-      // MOBILE / TOUCH DEVICES (CHẠM ĐÚP ĐỂ TUA NHANH ±10S - YOUTUBE STYLE)
+      // MOBILE / TOUCH DEVICES (CHẠM ĐÚP ĐỂ TUA NHANH ±10S - YOUTUBE STYLE, CÂN CHỈNH ĐỘ NHẠY CAO 450MS)
       if (
         lastTap &&
-        now - lastTap.time < 350 &&
-        Math.abs(e.clientX - lastTap.x) < 100
+        now - lastTap.time < 450 &&
+        Math.abs(e.clientX - lastTap.x) < 130 &&
+        Math.abs(e.clientY - lastTap.y) < 130
       ) {
         if (singleTapTimerRef.current) {
           clearTimeout(singleTapTimerRef.current);

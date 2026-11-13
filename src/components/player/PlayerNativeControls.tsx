@@ -173,6 +173,36 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
       [videoRef, onSeek, onSeekFeedback, onUserInteraction]
     );
 
+    // Tua lùi 10s (Mobile)
+    const handleSeekBack10 = useCallback(
+      (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (videoRef.current) {
+          const target = Math.max(0, (videoRef.current.currentTime || 0) - 10);
+          if (onSeek) onSeek(target);
+          else videoRef.current.currentTime = target;
+        }
+        onSeekFeedback("-10s");
+        onUserInteraction?.();
+      },
+      [videoRef, onSeek, onSeekFeedback, onUserInteraction]
+    );
+
+    // Tua tới 10s (Mobile)
+    const handleSeekForward10 = useCallback(
+      (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (videoRef.current) {
+          const target = (videoRef.current.currentTime || 0) + 10;
+          if (onSeek) onSeek(target);
+          else videoRef.current.currentTime = target;
+        }
+        onSeekFeedback("+10s");
+        onUserInteraction?.();
+      },
+      [videoRef, onSeek, onSeekFeedback, onUserInteraction]
+    );
+
     // Nhãn chất lượng hiện tại
     const currentQualityLabel =
       currentQualityIndex === -1
@@ -224,13 +254,25 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
           )}
         </div>
 
-        {/* 2. CENTER PLAYBACK CONTROLS (CHUẨN MOBILE TỐI GIẢN) */}
+        {/* 2. CENTER PLAYBACK CONTROLS (CHUẨN MOBILE TỐI GIẢN & CHẠM CỰC NHẠY: -10S / PLAY-PAUSE / +10S) */}
         {isBuffering ? (
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none select-none z-10 flex flex-col items-center justify-center">
             <div className="w-12 h-12 sm:w-14 sm:h-14 border-[3px] border-white/20 border-t-white rounded-full animate-spin shadow-2xl" />
           </div>
         ) : (
-          <div className="md:hidden absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center justify-center pointer-events-none z-10">
+          <div className="md:hidden absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center justify-center gap-5 sm:gap-7 pointer-events-none z-10">
+            {/* Nút tua lùi 10s mobile */}
+            <button
+              type="button"
+              data-player-control="true"
+              onClick={handleSeekBack10}
+              aria-label="Tua lùi 10 giây"
+              className="pointer-events-auto w-11 h-11 min-[380px]:w-12 min-[380px]:h-12 rounded-full bg-black/60 hover:bg-black/80 active:scale-90 text-white/90 hover:text-white flex items-center justify-center shadow-xl backdrop-blur-md transition-transform duration-150 cursor-pointer outline-none"
+            >
+              <YouTubeSeek10BackIcon className="w-6 h-6 min-[380px]:w-7 min-[380px]:h-7" />
+            </button>
+
+            {/* Nút Play / Pause to rõ ở giữa */}
             <button
               type="button"
               data-player-control="true"
@@ -240,13 +282,24 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
                 onUserInteraction?.();
               }}
               aria-label={isPlaying ? "Tạm dừng" : "Phát"}
-              className="pointer-events-auto w-12 h-12 min-[380px]:w-14 min-[380px]:h-14 sm:w-16 sm:h-16 rounded-full bg-black/50 hover:bg-black/70 active:scale-95 text-white flex items-center justify-center shadow-2xl backdrop-blur-md transition-transform duration-150 cursor-pointer outline-none"
+              className="pointer-events-auto w-14 h-14 min-[380px]:w-16 min-[380px]:h-16 rounded-full bg-black/70 hover:bg-black/90 active:scale-95 text-white flex items-center justify-center shadow-2xl backdrop-blur-md transition-transform duration-150 cursor-pointer outline-none ring-1 ring-white/20"
             >
               {isPlaying ? (
-                <YouTubePauseIcon className="w-7 h-7 sm:w-8 sm:h-8" />
+                <YouTubePauseIcon className="w-8 h-8 min-[380px]:w-9 min-[380px]:h-9" />
               ) : (
-                <YouTubePlayIcon className="w-7 h-7 sm:w-8 sm:h-8 ml-0.5" />
+                <YouTubePlayIcon className="w-8 h-8 min-[380px]:w-9 min-[380px]:h-9 ml-0.5" />
               )}
+            </button>
+
+            {/* Nút tua tới 10s mobile */}
+            <button
+              type="button"
+              data-player-control="true"
+              onClick={handleSeekForward10}
+              aria-label="Tua tới 10 giây"
+              className="pointer-events-auto w-11 h-11 min-[380px]:w-12 min-[380px]:h-12 rounded-full bg-black/60 hover:bg-black/80 active:scale-90 text-white/90 hover:text-white flex items-center justify-center shadow-xl backdrop-blur-md transition-transform duration-150 cursor-pointer outline-none"
+            >
+              <YouTubeSeek10ForwardIcon className="w-6 h-6 min-[380px]:w-7 min-[380px]:h-7" />
             </button>
           </div>
         )}

@@ -26,7 +26,7 @@ import { Tooltip } from "@/components/ui/Tooltip";
 
 export const Footer: React.FC = () => {
   return (
-    <footer className="relative z-0 bg-gradient-to-b from-transparent via-[#080808] to-[#030303] text-zinc-400 pt-6 sm:pt-12 pb-12 sm:pb-12 px-4 sm:px-8 md:px-16 mt-6 sm:mt-10 overflow-hidden cv-auto-footer border-t border-white/[0.06]">
+    <footer className="relative z-0 bg-gradient-to-b from-transparent via-[#080808] to-[#030303] text-zinc-400 pt-6 sm:pt-12 pb-28 sm:pb-12 px-4 sm:px-8 md:px-16 mt-6 sm:mt-10 overflow-hidden cv-auto-footer border-t border-white/[0.06]">
       <div className="max-w-7xl 2xl:max-w-[1440px] mx-auto space-y-5 sm:space-y-12 relative z-10">
 
         {/* ============================================================ */}
@@ -256,45 +256,62 @@ export const Footer: React.FC = () => {
         {/* ============================================================ */}
         {/* 2B. GIAO DIỆN MOBILE TINH GỌN (CHUẨN NETFLIX COMPACT FOOTER) */}
         {/* ============================================================ */}
-        <div className="sm:hidden pt-1">
-          {/* Lưới 6 ô liên kết cân đối 100%, bo góc mềm mại, TUYỆT ĐỐI KHÔNG DÙNG VIỀN */}
-          <div className="grid grid-cols-2 gap-2 text-xs">
+        <div className="sm:hidden pt-2 pb-1">
+          <div className="grid grid-cols-2 gap-x-5 gap-y-3 text-xs">
             <Link
               href="/about"
-              className="flex items-center justify-center py-2.5 px-2.5 rounded-xl bg-white/[0.04] active:bg-white/[0.08] text-zinc-300 hover:text-white transition-colors text-center truncate"
+              className="text-zinc-300 hover:text-white active:text-netflix-red transition-colors flex items-center gap-2 py-1 min-w-0"
             >
-              Giới thiệu Nanaflix
+              <span className="w-4 h-4 flex items-center justify-center shrink-0">
+                <Info size={13} className="text-zinc-500" />
+              </span>
+              <span className="truncate">Giới thiệu Nanaflix</span>
             </Link>
             <Link
               href="/faq"
-              className="flex items-center justify-center py-2.5 px-2.5 rounded-xl bg-white/[0.04] active:bg-white/[0.08] text-zinc-300 hover:text-white transition-colors text-center truncate"
+              className="text-zinc-300 hover:text-white active:text-netflix-red transition-colors flex items-center gap-2 py-1 min-w-0"
             >
-              Hỏi & Đáp (FAQ)
+              <span className="w-4 h-4 flex items-center justify-center shrink-0">
+                <HelpCircle size={13} className="text-zinc-500" />
+              </span>
+              <span className="truncate">Hỏi & Đáp (FAQ)</span>
             </Link>
             <Link
               href="/privacy"
-              className="flex items-center justify-center py-2.5 px-2.5 rounded-xl bg-white/[0.04] active:bg-white/[0.08] text-zinc-300 hover:text-white transition-colors text-center truncate"
+              className="text-zinc-300 hover:text-white active:text-netflix-red transition-colors flex items-center gap-2 py-1 min-w-0"
             >
-              Bảo mật & Riêng tư
+              <span className="w-4 h-4 flex items-center justify-center shrink-0">
+                <ShieldCheck size={13} className="text-zinc-500" />
+              </span>
+              <span className="truncate">Bảo mật & Riêng tư</span>
             </Link>
             <Link
               href="/terms"
-              className="flex items-center justify-center py-2.5 px-2.5 rounded-xl bg-white/[0.04] active:bg-white/[0.08] text-zinc-300 hover:text-white transition-colors text-center truncate"
+              className="text-zinc-300 hover:text-white active:text-netflix-red transition-colors flex items-center gap-2 py-1 min-w-0"
             >
-              Điều khoản & DMCA
+              <span className="w-4 h-4 flex items-center justify-center shrink-0">
+                <Scale size={13} className="text-zinc-500" />
+              </span>
+              <span className="truncate">Điều khoản & DMCA</span>
             </Link>
             <Link
               href="/collection"
-              className="flex items-center justify-center py-2.5 px-2.5 rounded-xl bg-white/[0.04] active:bg-white/[0.08] text-zinc-300 hover:text-white transition-colors text-center truncate"
+              className="text-zinc-300 hover:text-white active:text-amber-400 transition-colors flex items-center gap-2 py-1 min-w-0"
             >
-              Bộ sưu tập phim
+              <span className="w-4 h-4 flex items-center justify-center shrink-0">
+                <Layers size={13} className="text-zinc-500" />
+              </span>
+              <span className="truncate">Bộ sưu tập phim</span>
             </Link>
             <button
               type="button"
               onClick={() => window.dispatchEvent(new CustomEvent("open-pwa-install"))}
-              className="flex items-center justify-center py-2.5 px-2.5 rounded-xl bg-white/[0.04] active:bg-white/[0.08] text-emerald-400 hover:text-emerald-300 transition-colors text-center truncate cursor-pointer"
+              className="text-emerald-400/95 hover:text-emerald-300 active:text-emerald-200 transition-colors flex items-center gap-2 py-1 cursor-pointer text-left min-w-0"
             >
-              Cài ứng dụng (PWA)
+              <span className="w-4 h-4 flex items-center justify-center shrink-0">
+                <Smartphone size={13} className="text-emerald-400" />
+              </span>
+              <span className="truncate font-medium">Cài ứng dụng (PWA)</span>
             </button>
           </div>
         </div>
