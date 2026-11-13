@@ -124,11 +124,6 @@ export default function RootLayout({
         <meta name="application-name" content="Nanaflix" />
         <meta name="msapplication-TileColor" content="#000000" />
         <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)" />
-        {/* Favicon & App Icons */}
-        <link rel="icon" type="image/svg+xml" href="/icon.svg?v=vn-flag-rect" />
-        <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png?v=vn-flag-rect" />
-        <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=vn-flag-rect" />
-        <link rel="shortcut icon" href="/favicon.ico?v=vn-flag-rect" />
 
         {/* Viewport với safe-area cho iPhone notch & home indicator */}
         <meta

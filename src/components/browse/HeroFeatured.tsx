@@ -22,19 +22,22 @@ const HeroFeaturedInner: React.FC<{ movies?: HeroMovie[] }> = ({
 
   const heroRef = useRef<HTMLElement>(null);
   const currentSlug = slides[index]?.slug;
-  const [isHeroImageLoaded, setIsHeroImageLoaded] = useState(false);
-  const isInitialSlideRef = useRef(true);
   const [failedHeroImages, setFailedHeroImages] = useState<
     Record<string, boolean>
   >({});
 
+  // Preload backdrop images của tất cả slides để khi chuyển slide, ảnh luôn có sẵn tức thì trong browser cache
   useEffect(() => {
-    if (isInitialSlideRef.current) {
-      isInitialSlideRef.current = false;
-      return;
-    }
-    setIsHeroImageLoaded(false);
-  }, [index, currentSlug]);
+    if (typeof window === "undefined" || !slides.length) return;
+    slides.forEach((slide) => {
+      if (!slide) return;
+      const slideMeta = computeHeroMovieMeta(slide, slide.slug, {}, {});
+      if (slideMeta.heroImageSrc && slideMeta.heroImageSrc !== "/default-hero.jpg") {
+        const img = new window.Image();
+        img.src = slideMeta.heroImageSrc;
+      }
+    });
+  }, [slides]);
 
   useEffect(() => {
     setIndex((prev) => (prev >= slides.length && slides.length > 0 ? 0 : prev));
@@ -211,7 +214,7 @@ const HeroFeaturedInner: React.FC<{ movies?: HeroMovie[] }> = ({
     >
       {/* 1. HÌNH NỀN HERO BANNER */}
       <div className="absolute inset-0">
-        <AnimatePresence initial={false} custom={direction} mode="wait">
+        <AnimatePresence initial={false} custom={direction}>
           <motion.div
             key={index}
             custom={direction}
@@ -224,11 +227,8 @@ const HeroFeaturedInner: React.FC<{ movies?: HeroMovie[] }> = ({
               opacity: { duration: 0.45, ease: "easeOut" },
               scale: { duration: 0.75, ease: "easeOut" },
             }}
-            className="absolute inset-0 will-change-transform select-none"
+            className="absolute inset-0 will-change-transform select-none bg-zinc-950"
           >
-            {!isHeroImageLoaded && (
-              <div className="absolute inset-0 bg-gradient-to-br from-zinc-900 via-zinc-950 to-black animate-pulse pointer-events-none" />
-            )}
             <Image
               src={meta.heroImageSrc}
               alt={meta.title}
@@ -237,12 +237,8 @@ const HeroFeaturedInner: React.FC<{ movies?: HeroMovie[] }> = ({
               quality={80}
               unoptimized
               sizes="100vw"
-              className={`object-cover object-[center_25%] transition-opacity duration-300 ${
-                isHeroImageLoaded ? "opacity-100" : "opacity-0"
-              }`}
-              onLoad={() => setIsHeroImageLoaded(true)}
+              className="object-cover object-[center_25%]"
               onError={() => {
-                setIsHeroImageLoaded(false);
                 if (currentSlug && !failedHeroImages[currentSlug]) {
                   setFailedHeroImages((prev) => ({
                     ...prev,

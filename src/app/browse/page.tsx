@@ -1,10 +1,12 @@
 import Link from "next/link";
+import Image from "next/image";
 import { after } from "next/server";
 import { MovieGrid } from "@/components/movies/MovieGrid";
 import { FilterBarClient } from "@/components/browse/FilterBarClient";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { Film, ExternalLink, User, Flame, ChevronRight } from "lucide-react";
+import { findHistoricalArtist } from "@/data/history/historicalArtistsBirthdays";
 import { movieApi } from "@/services/movies/service";
 import {
   resolveActorMovies,
@@ -299,8 +301,14 @@ async function runActorSearch(options: ActorSearchOptions) {
   const totalItems = filteredActorMovies.length;
   const totalPages = Math.max(1, Math.ceil(totalItems / pageLimit));
   const startIndex = (currentPage - 1) * pageLimit;
+  const histArtist = findHistoricalArtist(canonicalName) || (actorParam ? findHistoricalArtist(actorParam) : undefined);
   return {
-    actor: { name: canonicalName, country: actorCountry },
+    actor: {
+      name: histArtist?.name || canonicalName,
+      englishName: histArtist?.englishName || actorSynonyms?.englishName,
+      country: histArtist?.country || actorCountry,
+      avatarUrl: histArtist?.avatarUrl,
+    },
     movies: filteredActorMovies.slice(startIndex, startIndex + pageLimit).map((m: any) => ({ ...m, isActorFilmography: true })),
     totalItems,
     totalPages,
@@ -392,7 +400,7 @@ export default async function BrowsePage({
   let upstreamMovies: any[] = [];
   let totalPages = 1;
   let totalItems = 0;
-  let detectedActor: { name: string; country?: string; href?: string } | null = null;
+  let detectedActor: { name: string; englishName?: string; country?: string; href?: string; avatarUrl?: string } | null = null;
 
   // =========================================================================
   // 1. TÁCH BIỆT RÕ RÀNG: TÌM KIẾM THEO DIỄN VIÊN VS TÌM KIẾM THEO TÊN PHIM
@@ -573,10 +581,13 @@ export default async function BrowsePage({
   let title = "Khám Phá Kho Phim";
 
   if (detectedActor) {
+    const actorDisplayName = detectedActor.englishName && detectedActor.englishName !== detectedActor.name
+      ? `${detectedActor.name} (${detectedActor.englishName})`
+      : detectedActor.name;
     if (country) {
-      title = `Tuyển Tập Phim: ${detectedActor.name} • ${COUNTRY_NAMES[country] || country}`;
+      title = `Tuyển Tập Phim: ${actorDisplayName} • ${COUNTRY_NAMES[country] || country}`;
     } else {
-      title = `Tuyển Tập Phim: ${detectedActor.name}`;
+      title = `Tuyển Tập Phim: ${actorDisplayName}`;
     }
   } else if (keyword) {
     if (country) {
@@ -647,12 +658,27 @@ export default async function BrowsePage({
         {detectedActor && (
           <div className="mb-6 p-4 sm:p-5 rounded-2xl bg-zinc-900/75 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 shadow-lg animate-in fade-in duration-300">
             <div className="flex items-center gap-3.5 min-w-0">
-              <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-netflix-red/15 text-netflix-red flex items-center justify-center flex-none">
-                <User className="w-5 h-5 text-netflix-red" />
-              </div>
+              {detectedActor.avatarUrl ? (
+                <div className="relative w-11 h-11 sm:w-12 sm:h-12 rounded-full overflow-hidden border border-white/10 flex-none shadow-md">
+                  <Image
+                    src={detectedActor.avatarUrl}
+                    alt={detectedActor.name}
+                    fill
+                    sizes="48px"
+                    className="object-cover"
+                  />
+                </div>
+              ) : (
+                <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-netflix-red/15 text-netflix-red flex items-center justify-center flex-none">
+                  <User className="w-5 h-5 text-netflix-red" />
+                </div>
+              )}
               <div className="min-w-0">
                 <h4 className="text-sm sm:text-base font-black text-white flex items-center gap-2 flex-wrap">
-                  <span className="truncate">Tuyển Tập Tác Phẩm Của {detectedActor.name}</span>
+                  <span className="truncate">
+                    Tuyển Tập Tác Phẩm Của {detectedActor.name}
+                    {detectedActor.englishName && detectedActor.englishName !== detectedActor.name ? ` (${detectedActor.englishName})` : ""}
+                  </span>
                   {detectedActor.country && (
                     <span className="text-xs text-white font-bold px-2.5 py-0.5 rounded-full bg-white/10 flex-none">
                       {detectedActor.country}
@@ -664,6 +690,7 @@ export default async function BrowsePage({
                 </h4>
                 <p className="text-xs text-zinc-300 mt-0.5 truncate sm:whitespace-normal">
                   Tự động tổng hợp các tác phẩm tiêu biểu & xuất sắc nhất của {detectedActor.name}
+                  {detectedActor.englishName && detectedActor.englishName !== detectedActor.name ? ` (${detectedActor.englishName})` : ""}
                 </p>
               </div>
             </div>

@@ -14,58 +14,24 @@ import {
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 import { auth } from "@/lib/firebase";
 
+import {
+  markCommentDeleted,
+  unmarkCommentDeleted,
+  isCommentDeleted,
+} from "./comments/tombstoneManager";
+import {
+  type AutoCleanResult,
+  autoCleanAllToxicAndSpamComments as autoCleanEngine,
+  purgeAllFlaggedComments as purgeEngine,
+} from "./comments/commentModeration";
+
+export { markCommentDeleted, unmarkCommentDeleted, isCommentDeleted };
+export type { AutoCleanResult };
+
 // In-memory cache lưu danh sách bình luận theo movieSlug để hiển thị ngay 0ms không bị chớp hay mất
 const movieCommentsMemoryCache: Record<string, MovieComment[]> = {};
 const replyCommentsMemoryCache: Record<string, MovieComment[]> = {};
 const userCommentsMemoryCache: Record<string, MovieComment[]> = {};
-
-// Quản lý ID các bình luận đã bị xóa để ngăn chặn tuyệt đối tình trạng hồi sinh (Ghost Comments)
-const deletedCommentIds = new Set<string>();
-
-export function markCommentDeleted(commentId: string): void {
-  if (!commentId) return;
-  deletedCommentIds.add(commentId);
-  try {
-    if (typeof sessionStorage !== "undefined") {
-      const stored = JSON.parse(sessionStorage.getItem("nanaflix_deleted_comments") || "[]");
-      if (Array.isArray(stored) && !stored.includes(commentId)) {
-        stored.push(commentId);
-        sessionStorage.setItem("nanaflix_deleted_comments", JSON.stringify(stored.slice(-200)));
-      }
-    }
-  } catch {}
-}
-
-export function unmarkCommentDeleted(commentId: string): void {
-  if (!commentId) return;
-  deletedCommentIds.delete(commentId);
-  try {
-    if (typeof sessionStorage !== "undefined") {
-      const stored = JSON.parse(sessionStorage.getItem("nanaflix_deleted_comments") || "[]");
-      if (Array.isArray(stored)) {
-        sessionStorage.setItem(
-          "nanaflix_deleted_comments",
-          JSON.stringify(stored.filter((id: string) => id !== commentId))
-        );
-      }
-    }
-  } catch {}
-}
-
-export function isCommentDeleted(commentId: string): boolean {
-  if (!commentId) return false;
-  if (deletedCommentIds.has(commentId)) return true;
-  try {
-    if (typeof sessionStorage !== "undefined") {
-      const stored = JSON.parse(sessionStorage.getItem("nanaflix_deleted_comments") || "[]");
-      if (Array.isArray(stored) && stored.includes(commentId)) {
-        deletedCommentIds.add(commentId);
-        return true;
-      }
-    }
-  } catch {}
-  return false;
-}
 
 /**
  * Lấy danh sách bình luận từ LocalStorage theo movieSlug
@@ -1585,79 +1551,16 @@ export function calculateMovieRatingStats(comments: MovieComment[]): MovieRating
   };
 }
 
-export interface AutoCleanResult {
-  scannedCount: number;
-  deletedCount: number;
-  deletedItems: Array<{
-    id: string;
-    userName: string;
-    movieSlug: string;
-    content: string;
-    reason: string;
-    violations: string[];
-  }>;
-}
-
 /**
  * HỆ THỐNG TỰ ĐỘNG QUÉT & XÓA BÌNH LUẬN VÔ VĂN HÓA, TỤC TĨU, SPAM
  */
 export async function autoCleanAllToxicAndSpamComments(allComments?: MovieComment[]): Promise<AutoCleanResult> {
-  let itemsToScan = allComments;
-  if (!itemsToScan || itemsToScan.length === 0) {
-    if (isSupabaseConfigured()) {
-      try {
-        itemsToScan = await getAllCommentsSupabase();
-      } catch {
-        itemsToScan = [];
-      }
-    }
-  }
-
-  const items = itemsToScan || [];
-  const deletedItems: AutoCleanResult["deletedItems"] = [];
-
-  for (const c of items) {
-    const mod = checkContentModeration(c.content || "");
-    const isToxicOrSpam = !mod.isAllowed || c.isFlagged;
-
-    if (isToxicOrSpam) {
-      try {
-        await deleteMovieComment(c.id);
-        deletedItems.push({
-          id: c.id,
-          userName: c.userName,
-          movieSlug: c.movieSlug,
-          content: c.content,
-          reason: mod.reason || c.flagReason || "Tự động xóa do vi phạm tiêu chuẩn cộng đồng",
-          violations: mod.violations,
-        });
-      } catch (err) {
-        console.warn("Lỗi xóa tự động comment rác:", c.id, err);
-      }
-    }
-  }
-
-  return {
-    scannedCount: items.length,
-    deletedCount: deletedItems.length,
-    deletedItems,
-  };
+  return autoCleanEngine(allComments, deleteMovieComment);
 }
 
 /**
  * Xóa nhanh tất cả bình luận đang bị gắn cờ vi phạm trong 1 thao tác
  */
 export async function purgeAllFlaggedComments(commentsList: MovieComment[]): Promise<number> {
-  if (!commentsList) return 0;
-  const flagged = commentsList.filter((c) => c.isFlagged);
-  let deletedCount = 0;
-  for (const c of flagged) {
-    try {
-      await deleteMovieComment(c.id);
-      deletedCount++;
-    } catch (e) {
-      console.warn("Lỗi xóa cmt gắn cờ:", c.id, e);
-    }
-  }
-  return deletedCount;
+  return purgeEngine(commentsList, deleteMovieComment);
 }

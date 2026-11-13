@@ -198,12 +198,12 @@ function MatchCardInner({ match, isSelected, onSelect, score, compact }: MatchCa
 
   const isEsports = match.sport === "esports";
   const homeAsset = useMemo(
-    () => (displayTeam1 ? getTeamAsset(displayTeam1) : null),
-    [displayTeam1],
+    () => (displayTeam1 ? getTeamAsset(displayTeam1, match.sport) : null),
+    [displayTeam1, match.sport],
   );
   const awayAsset = useMemo(
-    () => (displayTeam2 ? getTeamAsset(displayTeam2) : null),
-    [displayTeam2],
+    () => (displayTeam2 ? getTeamAsset(displayTeam2, match.sport) : null),
+    [displayTeam2, match.sport],
   );
 
   const espHome = useMemo(() => resolveEsportsTeam(displayTeam1), [displayTeam1]);

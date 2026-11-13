@@ -18,11 +18,19 @@ import {
   isEsportsTeamMatch,
   ESPORTS_TEAMS,
 } from "./esportsTeams";
+import {
+  resolveR2Logo,
+  resolveNationalTeam,
+  resolveTeamIdentity,
+} from "@/lib/sports/logoResolver";
 
 export {
   resolveEsportsTeam,
   isEsportsTeamMatch,
   ESPORTS_TEAMS,
+  resolveR2Logo,
+  resolveNationalTeam,
+  resolveTeamIdentity,
 };
 
 export function normalizeTeamTokens(name: string): string[] {
@@ -240,24 +248,88 @@ const NATIONAL_TEAMS_DATA: Array<{ name: string; emoji: string; logo?: string; a
 
 // 2. DANH SÁCH CLB BÓNG ĐÁ, BÓNG RỔ & ESPORTS HÀNG ĐẦU THẾ GIỚI (>280 ĐỘI)
 const CLUBS_DATA: Array<{ name: string; logo?: string; emoji?: string; aliases: string[] }> = [
-  // --- BÓNG RỔ VIỆT NAM (VBA) & NBA ---
-  { name: "Sài Gòn Heat", emoji: "🏀", logo: "https://a.espncdn.com/i/teamlogos/nba/500/mia.png", aliases: ["sai gon heat", "saigon heat", "sg heat", "heat"] },
+  // --- BÓNG RỔ VIỆT NAM (VBA) & TOÀN BỘ 30 ĐỘI NBA (R2 CDN NANAFLIX) ---
+  { name: "Sài Gòn Heat", emoji: "🏀", logo: "https://media.nanaflix.asia/teams/basketball/miami-heat.png", aliases: ["sai gon heat", "saigon heat", "sg heat", "heat"] },
   { name: "Hà Nội Buffaloes", emoji: "🏀", aliases: ["ha noi buffaloes", "ha noi buffalo", "hanoi buffaloes", "hanoi buffalo", "buffaloes", "buffalo"] },
   { name: "Thăng Long Warriors", emoji: "🏀", aliases: ["thang long warriors", "tl warriors", "thang long"] },
   { name: "Danang Dragons", emoji: "🏀", aliases: ["danang dragons", "da nang dragons", "dragons"] },
   { name: "Cantho Catfish", emoji: "🏀", aliases: ["cantho catfish", "can tho catfish", "catfish"] },
   { name: "Nha Trang Dolphins", emoji: "🏀", aliases: ["nha trang dolphins", "dolphins"] },
   { name: "Ho Chi Minh City Wings", emoji: "🏀", aliases: ["ho chi minh city wings", "hcmc wings", "city wings", "wings"] },
-  { name: "Los Angeles Lakers", emoji: "🏀", logo: "https://a.espncdn.com/i/teamlogos/nba/500/lal.png", aliases: ["lakers", "la lakers", "los angeles lakers"] },
-  { name: "Golden State Warriors", emoji: "🏀", logo: "https://a.espncdn.com/i/teamlogos/nba/500/gs.png", aliases: ["warriors", "golden state warriors", "gsw"] },
-  { name: "Boston Celtics", emoji: "🏀", logo: "https://a.espncdn.com/i/teamlogos/nba/500/bos.png", aliases: ["celtics", "boston celtics"] },
-  { name: "Chicago Bulls", emoji: "🏀", logo: "https://a.espncdn.com/i/teamlogos/nba/500/chi.png", aliases: ["bulls", "chicago bulls"] },
-  { name: "Miami Heat", emoji: "🏀", logo: "https://a.espncdn.com/i/teamlogos/nba/500/mia.png", aliases: ["miami heat"] },
-  { name: "Denver Nuggets", emoji: "🏀", logo: "https://a.espncdn.com/i/teamlogos/nba/500/den.png", aliases: ["nuggets", "denver nuggets"] },
-  { name: "Milwaukee Bucks", emoji: "🏀", logo: "https://a.espncdn.com/i/teamlogos/nba/500/mil.png", aliases: ["bucks", "milwaukee bucks"] },
-  { name: "Dallas Mavericks", emoji: "🏀", logo: "https://a.espncdn.com/i/teamlogos/nba/500/dal.png", aliases: ["mavericks", "mavs", "dallas mavericks"] },
-  { name: "Phoenix Suns", emoji: "🏀", logo: "https://a.espncdn.com/i/teamlogos/nba/500/phx.png", aliases: ["suns", "phoenix suns"] },
-  { name: "New York Knicks", emoji: "🏀", logo: "https://a.espncdn.com/i/teamlogos/nba/500/ny.png", aliases: ["knicks", "new york knicks"] },
+
+  // 30 ĐỘI NBA CHÍNH THỨC (Cloudflare R2 media.nanaflix.asia)
+  { name: "Atlanta Hawks", emoji: "🏀", logo: "https://media.nanaflix.asia/teams/basketball/atlanta-hawks.png", aliases: ["atlanta hawks", "hawks", "atl"] },
+  { name: "Boston Celtics", emoji: "🏀", logo: "https://media.nanaflix.asia/teams/basketball/boston-celtics.png", aliases: ["celtics", "boston celtics", "bos"] },
+  { name: "Brooklyn Nets", emoji: "🏀", logo: "https://media.nanaflix.asia/teams/basketball/brooklyn-nets.png", aliases: ["nets", "brooklyn nets", "bkn"] },
+  { name: "Charlotte Hornets", emoji: "🏀", logo: "https://media.nanaflix.asia/teams/basketball/charlotte-hornets.png", aliases: ["hornets", "charlotte hornets", "cha", "ch"] },
+  { name: "Chicago Bulls", emoji: "🏀", logo: "https://media.nanaflix.asia/teams/basketball/chicago-bulls.png", aliases: ["bulls", "chicago bulls", "chi"] },
+  { name: "Cleveland Cavaliers", emoji: "🏀", logo: "https://media.nanaflix.asia/teams/basketball/cleveland-cavaliers.png", aliases: ["cavaliers", "cavs", "cleveland cavaliers", "cle"] },
+  { name: "Dallas Mavericks", emoji: "🏀", logo: "https://media.nanaflix.asia/teams/basketball/dallas-mavericks.png", aliases: ["mavericks", "mavs", "dallas mavericks", "dal"] },
+  { name: "Denver Nuggets", emoji: "🏀", logo: "https://media.nanaflix.asia/teams/basketball/denver-nuggets.png", aliases: ["nuggets", "denver nuggets", "den"] },
+  { name: "Detroit Pistons", emoji: "🏀", logo: "https://media.nanaflix.asia/teams/basketball/detroit-pistons.png", aliases: ["pistons", "detroit pistons", "det", "dp"] },
+  { name: "Golden State Warriors", emoji: "🏀", logo: "https://media.nanaflix.asia/teams/basketball/golden-state-warriors.png", aliases: ["warriors", "golden state warriors", "gsw", "gs"] },
+  { name: "Houston Rockets", emoji: "🏀", logo: "https://media.nanaflix.asia/teams/basketball/houston-rockets.png", aliases: ["rockets", "houston rockets", "hou"] },
+  { name: "Indiana Pacers", emoji: "🏀", logo: "https://media.nanaflix.asia/teams/basketball/indiana-pacers.png", aliases: ["pacers", "indiana pacers", "ind"] },
+  { name: "LA Clippers", emoji: "🏀", logo: "https://media.nanaflix.asia/teams/basketball/la-clippers.png", aliases: ["clippers", "la clippers", "los angeles clippers", "lac"] },
+  { name: "Los Angeles Lakers", emoji: "🏀", logo: "https://media.nanaflix.asia/teams/basketball/los-angeles-lakers.png", aliases: ["lakers", "la lakers", "los angeles lakers", "lal"] },
+  { name: "Memphis Grizzlies", emoji: "🏀", logo: "https://media.nanaflix.asia/teams/basketball/memphis-grizzlies.png", aliases: ["grizzlies", "memphis grizzlies", "mem"] },
+  { name: "Miami Heat", emoji: "🏀", logo: "https://media.nanaflix.asia/teams/basketball/miami-heat.png", aliases: ["heat", "miami heat", "mia"] },
+  { name: "Milwaukee Bucks", emoji: "🏀", logo: "https://media.nanaflix.asia/teams/basketball/milwaukee-bucks.png", aliases: ["bucks", "milwaukee bucks", "mil"] },
+  { name: "Minnesota Timberwolves", emoji: "🏀", logo: "https://media.nanaflix.asia/teams/basketball/minnesota-timberwolves.png", aliases: ["timberwolves", "wolves nba", "minnesota timberwolves", "min"] },
+  { name: "New Orleans Pelicans", emoji: "🏀", logo: "https://media.nanaflix.asia/teams/basketball/new-orleans-pelicans.png", aliases: ["pelicans", "new orleans pelicans", "nop", "no"] },
+  { name: "New York Knicks", emoji: "🏀", logo: "https://media.nanaflix.asia/teams/basketball/new-york-knicks.png", aliases: ["knicks", "new york knicks", "nyk", "ny"] },
+  { name: "Oklahoma City Thunder", emoji: "🏀", logo: "https://media.nanaflix.asia/teams/basketball/oklahoma-city-thunder.png", aliases: ["thunder", "okc thunder", "oklahoma city thunder", "okc"] },
+  { name: "Orlando Magic", emoji: "🏀", logo: "https://media.nanaflix.asia/teams/basketball/orlando-magic.png", aliases: ["magic", "orlando magic", "orl"] },
+  { name: "Philadelphia 76ers", emoji: "🏀", logo: "https://media.nanaflix.asia/teams/basketball/philadelphia-76ers.png", aliases: ["76ers", "sixers", "philadelphia 76ers", "phi"] },
+  { name: "Phoenix Suns", emoji: "🏀", logo: "https://media.nanaflix.asia/teams/basketball/phoenix-suns.png", aliases: ["suns", "phoenix suns", "phx"] },
+  { name: "Portland Trail Blazers", emoji: "🏀", logo: "https://media.nanaflix.asia/teams/basketball/portland-trail-blazers.png", aliases: ["trail blazers", "blazers", "portland trail blazers", "por"] },
+  { name: "Sacramento Kings", emoji: "🏀", logo: "https://media.nanaflix.asia/teams/basketball/sacramento-kings.png", aliases: ["kings nba", "sacramento kings", "sac"] },
+  { name: "San Antonio Spurs", emoji: "🏀", logo: "https://media.nanaflix.asia/teams/basketball/san-antonio-spurs.png", aliases: ["spurs nba", "san antonio spurs", "sas", "sa"] },
+  { name: "Toronto Raptors", emoji: "🏀", logo: "https://media.nanaflix.asia/teams/basketball/toronto-raptors.png", aliases: ["raptors", "toronto raptors", "tor", "tr"] },
+  { name: "Utah Jazz", emoji: "🏀", logo: "https://media.nanaflix.asia/teams/basketball/utah-jazz.png", aliases: ["jazz", "utah jazz", "uta"] },
+  { name: "Washington Wizards", emoji: "🏀", logo: "https://media.nanaflix.asia/teams/basketball/washington-wizards.png", aliases: ["wizards", "washington wizards", "was", "wsh"] },
+
+  // BÓNG RỔ QUỐC TẾ (NBB BRAZIL / CHÂU ÂU)
+  { name: "Pinheiros", emoji: "🏀", logo: "https://r2.thesportsdb.com/images/media/team/badge/i955lf1645367395.png", aliases: ["pinheiros", "pinheiros basquete", "ec pinheiros", "esporte clube pinheiros", "pi"] },
+
+  // --- BÓNG BẦU DỤC (NFL) ---
+  { name: "Washington Commanders", emoji: "🏈", logo: "https://a.espncdn.com/i/teamlogos/nfl/500/wsh.png", aliases: ["washington commanders", "commanders"] },
+  { name: "New York Giants", emoji: "🏈", logo: "https://a.espncdn.com/i/teamlogos/nfl/500/nyg.png", aliases: ["new york giants", "ny giants", "giants", "ny"] },
+  { name: "Kansas City Chiefs", emoji: "🏈", logo: "https://a.espncdn.com/i/teamlogos/nfl/500/kc.png", aliases: ["kansas city chiefs", "chiefs"] },
+  { name: "San Francisco 49ers", emoji: "🏈", logo: "https://a.espncdn.com/i/teamlogos/nfl/500/sf.png", aliases: ["san francisco 49ers", "49ers"] },
+  { name: "Dallas Cowboys", emoji: "🏈", logo: "https://a.espncdn.com/i/teamlogos/nfl/500/dal.png", aliases: ["dallas cowboys", "cowboys"] },
+  { name: "Philadelphia Eagles", emoji: "🏈", logo: "https://a.espncdn.com/i/teamlogos/nfl/500/phi.png", aliases: ["philadelphia eagles", "eagles"] },
+
+  // --- KHÚC CÔN CẦU (NHL) ---
+  { name: "Colorado Avalanche", emoji: "🏒", logo: "https://a.espncdn.com/i/teamlogos/nhl/500/col.png", aliases: ["colorado avalanche", "avalanche", "colorado"] },
+  { name: "Ottawa Senators", emoji: "🏒", logo: "https://a.espncdn.com/i/teamlogos/nhl/500/ott.png", aliases: ["ottawa senators", "senators", "ottawa", "os"] },
+  { name: "Edmonton Oilers", emoji: "🏒", logo: "https://a.espncdn.com/i/teamlogos/nhl/500/edm.png", aliases: ["edmonton oilers", "oilers"] },
+  { name: "Florida Panthers", emoji: "🏒", logo: "https://a.espncdn.com/i/teamlogos/nhl/500/fla.png", aliases: ["florida panthers", "panthers"] },
+  { name: "Toronto Maple Leafs", emoji: "🏒", logo: "https://a.espncdn.com/i/teamlogos/nhl/500/tor.png", aliases: ["toronto maple leafs", "maple leafs"] },
+  { name: "Boston Bruins", emoji: "🏒", logo: "https://a.espncdn.com/i/teamlogos/nhl/500/bos.png", aliases: ["boston bruins", "bruins"] },
+
+  // --- QUẦN VỢT (TENNIS ATP & WTA) ---
+  { name: "Jessica Pegula", emoji: "🎾", logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e0/Jessica_Pegula_WM22_%2820%29_%2852206899793%29.jpg/500px-Jessica_Pegula_WM22_%2820%29_%2852206899793%29.jpg", aliases: ["jessica pegula", "pegula"] },
+  { name: "Linda Noskova", emoji: "🎾", logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9b/Linda_Noskov%C3%A1_%282023_US_Open%29_01_%28cropped2%29.jpg/500px-Linda_Noskov%C3%A1_%282023_US_Open%29_01_%28cropped2%29.jpg", aliases: ["linda noskova", "noskova", "ln"] },
+  { name: "Iga Swiatek", emoji: "🎾", logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/5/52/Iga_%C5%9Awi%C4%85tek_%282023_US_Open%29_04_%28cropped%29.jpg/500px-Iga_%C5%9Awi%C4%85tek_%282023_US_Open%29_04_%28cropped%29.jpg", aliases: ["iga swiatek", "swiatek"] },
+  { name: "Aryna Sabalenka", emoji: "🎾", logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d4/Aryna_Sabalenka_%282023_US_Open%29_04_%28cropped%29.jpg/500px-Aryna_Sabalenka_%282023_US_Open%29_04_%28cropped%29.jpg", aliases: ["aryna sabalenka", "sabalenka"] },
+  { name: "Coco Gauff", emoji: "🎾", logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8e/Coco_Gauff_%282023_US_Open%29_04_%28cropped%29.jpg/500px-Coco_Gauff_%282023_US_Open%29_04_%28cropped%29.jpg", aliases: ["coco gauff", "gauff"] },
+  { name: "Carlos Alcaraz", emoji: "🎾", logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/c/cd/Carlos_Alcaraz_%282023_US_Open%29_02_%28cropped%29.jpg/500px-Carlos_Alcaraz_%282023_US_Open%29_02_%28cropped%29.jpg", aliases: ["carlos alcaraz", "alcaraz"] },
+  { name: "Jannik Sinner", emoji: "🎾", logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c5/Jannik_Sinner_%282023_US_Open%29_04_%28cropped%29.jpg/500px-Jannik_Sinner_%282023_US_Open%29_04_%28cropped%29.jpg", aliases: ["jannik sinner", "sinner"] },
+  { name: "Novak Djokovic", emoji: "🎾", logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b8/Novak_Djokovic_%282023_US_Open%29_02_%28cropped%29.jpg/500px-Novak_Djokovic_%282023_US_Open%29_02_%28cropped%29.jpg", aliases: ["novak djokovic", "djokovic"] },
+
+  // --- BÓNG ĐÁ NAM MỸ & MEXICO ---
+  { name: "Estudiantes La Plata", emoji: "⚽", logo: "https://a.espncdn.com/i/teamlogos/soccer/500/10.png", aliases: ["estudiantes la plata", "estudiantes de la plata", "estudiantes"] },
+  { name: "Independiente Rivadavia", emoji: "⚽", logo: "https://r2.thesportsdb.com/images/media/team/badge/qgzi2b1769406125.png", aliases: ["independiente rivadavia", "rivadavia", "ir"] },
+  { name: "Cerro Largo", emoji: "⚽", logo: "https://r2.thesportsdb.com/images/media/team/badge/f2lnua1580234598.png", aliases: ["cerro largo", "cerrolargo"] },
+  { name: "Progreso", emoji: "⚽", logo: "https://r2.thesportsdb.com/images/media/team/badge/oh4ksb1621865842.png", aliases: ["progreso", "ca progreso", "club atletico progreso", "pr"] },
+  { name: "Sao Bernardo", emoji: "⚽", logo: "https://a.espncdn.com/i/teamlogos/soccer/500/12975.png", aliases: ["sao bernardo", "sao bernardo fc"] },
+  { name: "Athletic Club", emoji: "⚽", logo: "https://a.espncdn.com/i/teamlogos/soccer/500/21575.png", aliases: ["athletic club", "athletic club mg", "athletic mg"] },
+  { name: "Corinthians Paulista", emoji: "⚽", logo: "https://a.espncdn.com/i/teamlogos/soccer/500/874.png", aliases: ["corinthians", "corinthians paulista", "sccp"] },
+  { name: "Llaneros", emoji: "⚽", logo: "https://a.espncdn.com/i/teamlogos/soccer/500/17117.png", aliases: ["llaneros", "llaneros fc"] },
+  { name: "Boyacá Chicó", emoji: "⚽", logo: "https://r2.thesportsdb.com/images/media/team/badge/boe8tv1677602771.png", aliases: ["chico", "boyaca chico", "boyaca chico fc", "ch"] },
+  { name: "Atlético Morelia", emoji: "⚽", logo: "https://a.espncdn.com/i/teamlogos/soccer/500/246.png", aliases: ["atl morelia", "atletico morelia", "morelia"] },
+  { name: "Leones Negros", emoji: "⚽", logo: "https://r2.thesportsdb.com/images/media/team/badge/ywysws1426824667.png", aliases: ["leones negros", "leones negros udeg", "udeg", "ln"] },
 
   // --- ESPORTS ---
   ...ESPORTS_TEAMS.map((e) => ({
@@ -433,6 +505,7 @@ const CLUBS_DATA: Array<{ name: string; logo?: string; emoji?: string; aliases: 
   { name: "Atlanta United FC", logo: "https://a.espncdn.com/i/teamlogos/soccer/500/18418.png", aliases: ["atlanta united", "atlanta utd"] },
   { name: "Columbus Crew", logo: "https://a.espncdn.com/i/teamlogos/soccer/500/183.png", aliases: ["columbus crew"] },
   { name: "Seattle Sounders FC", logo: "https://a.espncdn.com/i/teamlogos/soccer/500/9726.png", aliases: ["seattle sounders", "sounders"] },
+  { name: "Santos Laguna", logo: "https://a.espncdn.com/i/teamlogos/soccer/500/230.png", aliases: ["santos laguna", "santos"] },
 
   // --- V-LEAGUE (VIỆT NAM) ---
   { name: "Hà Nội FC", logo: "https://r2.thesportsdb.com/images/media/team/badge/uzjjm91788454716.png", aliases: ["ha noi", "hanoi fc", "clb ha noi", "ha noi fc"] },
@@ -570,7 +643,7 @@ for (const club of CLUBS_DATA) {
 /**
  * Tra cứu thông tin cờ / logo cho tên đội bóng (O(1))
  */
-export function getTeamAsset(rawTeamName?: string | null): TeamAsset | null {
+export function getTeamAsset(rawTeamName?: string | null, sport?: string | null): TeamAsset | null {
   if (!rawTeamName) return null;
 
   // 0. Ưu tiên tra cứu đội tuyển thể thao điện tử (Esports) để nhận diện chính xác logo và ngăn cờ quốc gia
@@ -588,7 +661,33 @@ export function getTeamAsset(rawTeamName?: string | null): TeamAsset | null {
   if (!key) return null;
 
   // 1. Exact match trên key đã chuẩn hóa O(1)
-  return TEAM_ASSETS_MAP.get(key) || null;
+  const mapped = TEAM_ASSETS_MAP.get(key);
+  if (mapped && mapped.logo) {
+    return mapped;
+  }
+
+  // 2. Tra cứu R2 CDN thông minh đa tầng (hỗ trợ basketball, football, esports...)
+  const r2Logo = resolveR2Logo(rawTeamName, sport || undefined);
+  if (r2Logo) {
+    return {
+      name: mapped?.name || rawTeamName,
+      logo: r2Logo,
+      emoji: mapped?.emoji,
+      isCountry: Boolean(mapped?.isCountry),
+    };
+  }
+
+  // 3. Tra cứu ĐTQG fallback
+  const nat = resolveNationalTeam(rawTeamName);
+  if (nat) {
+    return {
+      name: nat.name,
+      emoji: nat.emoji,
+      isCountry: true,
+    };
+  }
+
+  return mapped || null;
 }
 
 /**

@@ -90,36 +90,18 @@ export function HomeGenreExploreBar() {
         </div>
       </div>
 
-      {/* 2. Desktop & Tablet: Bố cục tối đa 2 hàng trên desktop (8 cột) & tự thích ứng 4 cột trên tablet */}
-      <div className="hidden md:grid md:grid-cols-4 lg:grid-cols-8 gap-2 lg:gap-2.5 w-full pt-0.5">
-        {FEATURED_GENRE_CHIPS.map((chip) => (
-          <Link
-            key={chip.href}
-            href={chip.href}
-            prefetch={false}
-            className={`inline-flex items-center justify-center px-2.5 lg:px-3 py-2 rounded-full text-xs font-semibold whitespace-nowrap text-center transition-all duration-200 active:scale-95 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-netflix-red ${
-              chip.isAll
-                ? "bg-white text-black font-bold shadow-sm hover:bg-zinc-200"
-                : "bg-white/[0.06] hover:bg-white/[0.14] text-zinc-300 hover:text-white"
-            }`}
-          >
-            {chip.label}
-          </Link>
-        ))}
-      </div>
-
-      {/* 3. Mobile: Giữ trải nghiệm cuộn ngang gọn nhẹ, mượt mà, không tăng chiều cao khối */}
-      <div className="md:hidden relative w-full min-w-0 max-w-full overflow-hidden">
+      {/* 2. Danh mục Thể loại: Cuộn ngang trên Mobile & Lưới tối đa 2 hàng trên Desktop (1 mảng DOM duy nhất) */}
+      <div className="relative w-full min-w-0 max-w-full overflow-hidden">
         <div
           ref={scrollRef}
-          className="flex items-center gap-2 overflow-x-auto scrollbar-none pb-1 pt-0.5 px-0.5 touch-pan-x touch-pan-y w-full min-w-0"
+          className="flex items-center gap-2 overflow-x-auto scrollbar-none pb-1 pt-0.5 px-0.5 touch-pan-x touch-pan-y md:grid md:grid-cols-4 lg:grid-cols-8 md:gap-2 lg:gap-2.5 md:overflow-visible w-full min-w-0"
         >
           {FEATURED_GENRE_CHIPS.map((chip) => (
             <Link
               key={chip.href}
               href={chip.href}
               prefetch={false}
-              className={`inline-flex items-center px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap flex-shrink-0 cursor-pointer transition-all duration-200 active:scale-95 outline-none focus-visible:ring-2 focus-visible:ring-netflix-red ${
+              className={`inline-flex items-center justify-center px-3.5 md:px-2.5 lg:px-3 py-1.5 md:py-2 rounded-full text-xs font-semibold whitespace-nowrap flex-shrink-0 md:flex-shrink text-center cursor-pointer transition-all duration-200 active:scale-95 outline-none focus-visible:ring-2 focus-visible:ring-netflix-red ${
                 chip.isAll
                   ? "bg-white text-black font-bold shadow-sm hover:bg-zinc-200"
                   : "bg-white/[0.06] hover:bg-white/[0.14] text-zinc-300 hover:text-white"
@@ -130,10 +112,10 @@ export function HomeGenreExploreBar() {
           ))}
         </div>
 
-        {/* Fade mép phải gợi mở nội dung cuộn */}
+        {/* Fade mép phải gợi mở nội dung cuộn (chỉ hiện trên Mobile khi còn nội dung cuộn) */}
         <div
           aria-hidden="true"
-          className={`pointer-events-none absolute top-0 bottom-1 right-0 w-8 bg-gradient-to-l from-black/85 via-black/35 to-transparent transition-opacity duration-300 z-10 ${
+          className={`md:hidden pointer-events-none absolute top-0 bottom-1 right-0 w-8 bg-gradient-to-l from-black/85 via-black/35 to-transparent transition-opacity duration-300 z-10 ${
             canScrollRight ? "opacity-100" : "opacity-0"
           }`}
         />

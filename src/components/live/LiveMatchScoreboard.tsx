@@ -93,8 +93,8 @@ export function LiveMatchScoreboard({
   const awayTeamStr =
     summary?.awayTeam?.name || summary?.awayTeam?.displayName || team2;
 
-  const homeAsset = useMemo(() => getTeamAsset(homeTeamStr), [homeTeamStr]);
-  const awayAsset = useMemo(() => getTeamAsset(awayTeamStr), [awayTeamStr]);
+  const homeAsset = useMemo(() => getTeamAsset(homeTeamStr, match?.sport), [homeTeamStr, match?.sport]);
+  const awayAsset = useMemo(() => getTeamAsset(awayTeamStr, match?.sport), [awayTeamStr, match?.sport]);
 
   const espHome = useMemo(() => resolveEsportsTeam(homeTeamStr), [homeTeamStr]);
   const espAway = useMemo(() => resolveEsportsTeam(awayTeamStr), [awayTeamStr]);

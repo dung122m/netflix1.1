@@ -6,32 +6,21 @@ import { getR2AssetUrl } from "@/lib/r2";
 // - Kênh VTV sử dụng logo SVG vector chuẩn chính thức từ Đài Truyền hình Việt Nam
 // - Các kênh khác giữ nguyên 100% logo gốc từ nguồn phát (M3U / Official CDN)
 
-export interface TvChannel {
-  id: string;
-  name: string;
-  logo: string;
-  url: string;
-  fallbackUrl?: string;
-  category: string;
-  quality: "FHD 1080p" | "HD 720p";
-}
+import {
+  type TvChannel,
+  VIETNAM_IPTV_M3U_SOURCES,
+  CATEGORY_MAPPING,
+  VERIFIED_CHANNELS,
+} from "@/data/live/verifiedChannels";
+
+export type { TvChannel };
+export { VERIFIED_CHANNELS };
 
 export interface LiveTvData {
   updatedAt: string;
   categories: string[];
   channels: TvChannel[];
 }
-
-const VIETNAM_IPTV_M3U_SOURCES = [
-  "https://raw.githubusercontent.com/iptv-org/iptv/master/streams/vn.m3u",
-  "https://1.org.vn/vmttv",
-  "https://raw.githubusercontent.com/vuminhthanh12/vuminhthanh12/refs/heads/main/vmttv",
-  "https://dl.dropboxusercontent.com/s/o5vygit34v9ryly71gam4/coban66.m3u?rlkey=auyoon54hfubajt16nc7u7dbn&st=70gyvtcu&dl=0",
-  "https://raw.githubusercontent.com/hieu-TQS/error/refs/heads/main/error.m3u",
-  "https://raw.githubusercontent.com/vietng228/m3u/refs/heads/main/new.m3u",
-  "https://raw.githubusercontent.com/khanh71/All-In-One-IPTV/main/http-iptv.m3u",
-  "https://raw.githubusercontent.com/giangnam0201/All-In-One-IPTV/refs/heads/main/channels.m3u",
-];
 
 const TV_M3U_SOURCES = [
   ...(process.env.LIVE_TV_M3U_URLS || "")
@@ -40,38 +29,6 @@ const TV_M3U_SOURCES = [
     .filter(Boolean),
   ...VIETNAM_IPTV_M3U_SOURCES,
 ];
-
-// Danh mục chuẩn hóa thân thiện
-const CATEGORY_MAPPING: Record<string, string> = {
-  VTV: "Kênh VTV",
-  "KÊNH VTV": "Kênh VTV",
-  HTV: "Kênh HTV & HTVC",
-  HTVC: "Kênh HTV & HTVC",
-  "HTV/HTVC": "Kênh HTV & HTVC",
-  "KÊNH HTV - BÁO VÀ PTTH TPHCM": "Kênh HTV & HTVC",
-  "KÊNH HTVC - BÁO VÀ PTTH TPHCM": "Kênh HTV & HTVC",
-  SCTV: "Kênh SCTV",
-  "KÊNH SCTV": "Kênh SCTV",
-  VTVcab: "Kênh VTVcab",
-  "KÊNH VTVcab": "Kênh VTVcab",
-  "Truyền hình Vĩnh Long": "Truyền Hình Vĩnh Long",
-  "KÊNH THIẾT YẾU": "Tin Tức & Thời Sự",
-  "KÊNH TIN TỨC": "Tin Tức & Thời Sự",
-  "🌐| Thiết yếu": "Tin Tức & Thời Sự",
-  VTC: "Tin Tức & Thời Sự",
-  "KÊNH TRONG NƯỚC & ĐỊA PHƯƠNG": "Kênh Địa Phương",
-  "Địa phương": "Kênh Địa Phương",
-  "KÊNH PHIM TRUYỆN": "Kênh Phim & Cinema 24/7",
-  "KÊNH GIẢI TRÍ": "Kênh Phim & Cinema 24/7",
-  "Giải Trí": "Kênh Phim & Cinema 24/7",
-  "📦| In The Box": "Kênh Phim & Cinema 24/7",
-  TVB: "Kênh Phim & Cinema 24/7",
-  "KÊNH THIẾU NHI": "Kênh Thiếu Nhi",
-  "Quốc Tế": "Kênh Quốc Tế",
-  "KÊNH TỔNG HỢP NUỚC NGOÀI": "Kênh Quốc Tế",
-  "KÊNH ĐẶC SẮC": "Kênh Quốc Tế",
-  "KÊNH CA NHẠC": "Kênh Âm Nhạc",
-};
 
 // Hàm gán logo VTV chuẩn chính thức (lưu trữ trực tiếp trên Cloudflare R2 CDN)
 export function getVtvOfficialLogo(name: string): string {
@@ -165,249 +122,6 @@ export function getOfficialChannelLogo(name: string): string {
   if (upper.includes("HÀ NỘI 2") || upper.includes("HANOI 2") || upper.includes("HANOITV2")) return "https://media.nanaflix.asia/tv-channels/ha-noi-2.png";
   return "";
 }
-
-// Danh sách kênh Quốc Gia & Thể Thao ĐÃ KIỂM TRA 100% HOẠT ĐỘNG (FHD 1080p / 720p - Master Index)
-const VERIFIED_CHANNELS: TvChannel[] = [
-  // --- KÊNH VTV CHÍNH THỨC (OFFICIAL VTV DIGITAL CDN & VNNS 1080P FALLBACK) ---
-  {
-    id: "vtv1-fhd",
-    name: "VTV1 HD (Thời sự - Chính luận)",
-    logo: "https://media.nanaflix.asia/tv-channels/vtv1.png",
-    url: "https://vtvgolivepre-vtv02.vtvdigital.vn/hls/vtv/live/vtv1/free/master.m3u8",
-    fallbackUrl: "https://1011154949.vnns.net/CDN-FPT02/VTV1-HD-1080p/playlist.m3u8",
-    category: "Kênh VTV",
-    quality: "FHD 1080p",
-  },
-  {
-    id: "vtv2-fhd",
-    name: "VTV2 HD (Khoa học - Giáo dục)",
-    logo: "https://media.nanaflix.asia/tv-channels/vtv2.png",
-    url: "https://vtvgolivepre-vtv02.vtvdigital.vn/hls/vtv/live/vtv2/free/master.m3u8",
-    fallbackUrl: "https://1011154949.vnns.net/CDN-FPT02/VTV2-HD-1080p/playlist.m3u8",
-    category: "Kênh VTV",
-    quality: "FHD 1080p",
-  },
-  {
-    id: "vtv3-hd",
-    name: "VTV3 HD (Giải trí - Thể thao)",
-    logo: "https://media.nanaflix.asia/tv-channels/vtv3.png",
-    url: "https://vtvgolivepre-vtv02.vtvdigital.vn/hls/vtv/live/vtv3/free/master.m3u8",
-    fallbackUrl: "https://1011154949.vnns.net/CDN-FPT02/VTV3-HD-1080p/playlist.m3u8",
-    category: "Kênh VTV",
-    quality: "FHD 1080p",
-  },
-  {
-    id: "vtv4-hd",
-    name: "VTV4 HD (Đối ngoại)",
-    logo: "https://media.nanaflix.asia/tv-channels/vtv4.png",
-    url: "https://vtvgolivepre-vtv02.vtvdigital.vn/hls/vtv/live/vtv4/free/master.m3u8",
-    fallbackUrl: "https://vtvgolive-sctvdrm.vtvdigital.vn/manifest/vtv4/master.m3u8",
-    category: "Kênh VTV",
-    quality: "FHD 1080p",
-  },
-  {
-    id: "vtv5-hd",
-    name: "VTV5 HD (Đồng bào Dân tộc)",
-    logo: "https://media.nanaflix.asia/tv-channels/vtv5.png",
-    url: "https://vtvgolivepre-vtv02.vtvdigital.vn/hls/vtv/live/vtv5/free/master.m3u8",
-    fallbackUrl: "https://vtvgolive-sctvdrm.vtvdigital.vn/manifest/vtv5/master.m3u8",
-    category: "Kênh VTV",
-    quality: "FHD 1080p",
-  },
-  {
-    id: "vtv7-hd",
-    name: "VTV7 HD (Giáo dục Quốc gia)",
-    logo: "https://media.nanaflix.asia/tv-channels/vtv7.png",
-    url: "https://vtvgolivepre-vtv02.vtvdigital.vn/hls/vtv/live/vtv7/free/master.m3u8",
-    fallbackUrl: "https://vtvgolive-sctvdrm.vtvdigital.vn/manifest/vtv7/master.m3u8",
-    category: "Kênh VTV",
-    quality: "FHD 1080p",
-  },
-  {
-    id: "vtv8-hd",
-    name: "VTV8 HD (Miền Trung - Tây Nguyên)",
-    logo: "https://media.nanaflix.asia/tv-channels/vtv8.png",
-    url: "https://vtvgolivepre-vtv02.vtvdigital.vn/hls/vtv/live/vtv8/free/master.m3u8",
-    fallbackUrl: "https://vtvgolive-sctvdrm.vtvdigital.vn/manifest/vtv8/master.m3u8",
-    category: "Kênh VTV",
-    quality: "FHD 1080p",
-  },
-  {
-    id: "vtv9-hd",
-    name: "VTV9 HD (Kênh Đông Nam Bộ)",
-    logo: "https://media.nanaflix.asia/tv-channels/vtv9.png",
-    url: "https://vtvgolivepre-vtv02.vtvdigital.vn/hls/vtv/live/vtv9/free/master.m3u8",
-    fallbackUrl: "https://vtvgolive-sctvdrm.vtvdigital.vn/manifest/vtv9/master.m3u8",
-    category: "Kênh VTV",
-    quality: "FHD 1080p",
-  },
-  {
-    id: "vtv5-cantho",
-    name: "VTV Cần Thơ HD (Tây Nam Bộ)",
-    logo: "https://media.nanaflix.asia/tv-channels/vtv-can-tho.png",
-    url: "https://vtvgolivepre-vtv02.vtvdigital.vn/hls/vtv/live/vtv10/free/master.m3u8",
-    fallbackUrl: "https://vtvgolive-sctvdrm.vtvdigital.vn/manifest/vtv6/master.m3u8",
-    category: "Kênh VTV",
-    quality: "FHD 1080p",
-  },
-  {
-    id: "vtv-taynguyen-hd",
-    name: "VTV Tây Nguyên HD",
-    logo: "https://media.nanaflix.asia/tv-channels/vtv5-tay-nguyen.png",
-    url: "https://vtvgolivepre-vtv02.vtvdigital.vn/hls/vtv/live/vtv5tn/free/master.m3u8",
-    fallbackUrl: "https://vtvgolivepre-vtv02.vtvdigital.vn/hls/vtv/live/vtv5tnb/free/master.m3u8",
-    category: "Kênh VTV",
-    quality: "HD 720p",
-  },
-
-  // --- KÊNH HTV & THỂ THAO ---
-  {
-    id: "htv-thethao-fhd",
-    name: "HTV Thể Thao HD",
-    logo: "https://media.nanaflix.asia/tv-channels/htv-the-thao.png",
-    url: "https://1011154949.vnns.net/CDN-FPT02/HTV-THETHAO-HD-1080p/playlist.m3u8",
-    category: "Kênh Thể Thao",
-    quality: "FHD 1080p",
-  },
-  {
-    id: "htv7-fhd",
-    name: "HTV7 HD",
-    logo: "https://media.nanaflix.asia/tv-channels/htv7.png",
-    url: "https://1011154949.vnns.net/CDN-FPT02/HTV7-HD-1080p/playlist.m3u8",
-    fallbackUrl: "https://freem3u.xyz/api/live/play.m3u8?vid=193",
-    category: "Kênh HTV & HTVC",
-    quality: "FHD 1080p",
-  },
-  {
-    id: "htv9-fhd",
-    name: "HTV9 HD",
-    logo: "https://media.nanaflix.asia/tv-channels/htv9.png",
-    url: "https://1011154949.vnns.net/CDN-FPT02/HTV9-HD-1080p/playlist.m3u8",
-    fallbackUrl: "https://freem3u.xyz/api/live/play.m3u8?vid=194",
-    category: "Kênh HTV & HTVC",
-    quality: "FHD 1080p",
-  },
-  {
-    id: "htv1-hd",
-    name: "HTV1 HD",
-    logo: "https://media.nanaflix.asia/tv-channels/htv1.png",
-    url: "https://1011154949.vnns.net/CDN-FPT02/HTV1-HD-1080p/playlist.m3u8",
-    fallbackUrl: "https://freem3u.xyz/api/live/play.m3u8?vid=190",
-    category: "Kênh HTV & HTVC",
-    quality: "FHD 1080p",
-  },
-  {
-    id: "htv2-hd",
-    name: "HTV2 - Vie Channel HD",
-    logo: "https://media.nanaflix.asia/tv-channels/htv2.png",
-    url: "https://1011154949.vnns.net/CDN-FPT02/HTV2-HD-1080p/playlist.m3u8",
-    fallbackUrl: "https://freem3u.xyz/api/live/play.m3u8?vid=191",
-    category: "Kênh HTV & HTVC",
-    quality: "FHD 1080p",
-  },
-  {
-    id: "htv3-hd",
-    name: "HTV3 - DreamsTV (Thiếu Nhi)",
-    logo: "https://media.nanaflix.asia/tv-channels/htv3.png",
-    url: "https://1011154949.vnns.net/CDN-FPT02/HTV3-SD-720p/playlist.m3u8",
-    fallbackUrl: "https://freem3u.xyz/api/live/play.m3u8?vid=192",
-    category: "Kênh HTV & HTVC",
-    quality: "HD 720p",
-  },
-
-  // --- TRUYỀN HÌNH VĨNH LONG ---
-  {
-    id: "thvl1-fhd",
-    name: "THVL1 HD (Truyền hình Vĩnh Long 1)",
-    logo: "https://media.nanaflix.asia/tv-channels/thvl1.webp",
-    url: "https://1011154949.vnns.net/CDN-FPT02/THVL1-HD-1080p/playlist.m3u8",
-    fallbackUrl: "https://freem3u.xyz/api/live/play.m3u8?vid=25",
-    category: "Truyền Hình Vĩnh Long",
-    quality: "FHD 1080p",
-  },
-  {
-    id: "thvl2-fhd",
-    name: "THVL2 HD (Truyền hình Vĩnh Long 2)",
-    logo: "https://media.nanaflix.asia/tv-channels/thvl2.webp",
-    url: "https://1011154949.vnns.net/CDN-FPT02/THVL2-HD-1080p/playlist.m3u8",
-    fallbackUrl: "https://freem3u.xyz/api/live/play.m3u8?vid=26",
-    category: "Truyền Hình Vĩnh Long",
-    quality: "FHD 1080p",
-  },
-
-  // --- TIN TỨC, ĐỊA PHƯƠNG & QUÂN ĐỘI ---
-  {
-    id: "qpvn-fhd",
-    name: "QPVN HD (Quốc Phòng Việt Nam)",
-    logo: "https://media.nanaflix.asia/tv-channels/qpvn.png",
-    url: "https://qpvn.vn/live/qpvn/master.m3u8",
-    fallbackUrl: "https://liveh12.vtvprime.vn/hls/QPTV/index.m3u8",
-    category: "Tin Tức & Thời Sự",
-    quality: "FHD 1080p",
-  },
-  {
-    id: "hanoi1-hd",
-    name: "Hà Nội 1 HD (HanoiTV1)",
-    logo: "https://media.nanaflix.asia/tv-channels/hanoi1.png",
-    url: "https://liveh34.vtvprime.vn/hls/HANOI1TV/index.m3u8",
-    category: "Kênh Địa Phương",
-    quality: "FHD 1080p",
-  },
-  {
-    id: "anninh-tv-hd",
-    name: "An Ninh TV HD",
-    logo: "https://media.nanaflix.asia/tv-channels/an-ninh-tv.png",
-    url: "https://liveh12.vtvprime.vn/hls/ANNINHTV/index.m3u8",
-    fallbackUrl: "https://1011154949.vnns.net/CDN-FPT02/ANTV-HD-1080p/playlist.m3u8",
-    category: "Tin Tức & Thời Sự",
-    quality: "FHD 1080p",
-  },
-  {
-    id: "dongthap-tv-hd",
-    name: "Đồng Tháp TV 1 HD",
-    logo: "https://media.nanaflix.asia/tv-channels/dong-thap.png",
-    url: "https://liveh34.vtvprime.vn/hls/DONGTHAPTV/index.m3u8",
-    fallbackUrl: "https://618b88f69e53b.streamlock.net/THDT/thdttv/playlist.m3u8",
-    category: "Kênh Địa Phương",
-    quality: "HD 720p",
-  },
-  {
-    id: "htvc-thuanviet-hd",
-    name: "HTVC Thuần Việt HD",
-    logo: "https://media.nanaflix.asia/tv-channels/htvc-thuan-viet.png",
-    url: "https://1011154949.vnns.net/CDN-FPT02/HTVC-THUANVIET-HD-1080p/playlist.m3u8",
-    fallbackUrl: "https://freem3u.xyz/api/live/play.m3u8?vid=13",
-    category: "Kênh HTV & HTVC",
-    quality: "FHD 1080p",
-  },
-  {
-    id: "sctv6-hd",
-    name: "SCTV6 - Fim360 HD",
-    logo: "https://media.nanaflix.asia/tv-channels/sctv6.png",
-    url: "https://vtvgolive-sctvdrm.vtvdigital.vn/manifest/sctv6/master.m3u8",
-    fallbackUrl: "https://freem3u.xyz/api/live/play.m3u8?vid=232",
-    category: "Kênh SCTV",
-    quality: "FHD 1080p",
-  },
-
-  // --- KÊNH QUỐC TẾ CHỌN LỌC ---
-  {
-    id: "redbull-tv",
-    name: "Red Bull TV Sports HD",
-    logo: "https://www.google.com/s2/favicons?domain=redbull.tv&sz=256",
-    url: "https://rbmn-live.akamaized.net/hls/live/590964/BoRB-AT/master.m3u8",
-    category: "Kênh Thể Thao",
-    quality: "FHD 1080p",
-  },
-  {
-    id: "dw-english-hd",
-    name: "DW English HD (Tin Quốc Tế)",
-    logo: "https://media.nanaflix.asia/tv-channels/dw.png",
-    url: "https://dwamdstream102.akamaized.net/hls/live/2015525/dwstream102/index.m3u8",
-    category: "Kênh Quốc Tế",
-    quality: "HD 720p",
-  },
-];
 
 let inFlightFetch: Promise<LiveTvData> | null = null;
 

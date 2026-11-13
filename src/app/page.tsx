@@ -1,4 +1,4 @@
-import dynamic from "next/dynamic";
+import { HeroFeatured } from "@/components/browse/HeroFeatured";
 import { HomeGenreExploreBar } from "@/components/home/HomeGenreExploreBar";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
@@ -12,12 +12,6 @@ import { ForYouPersonalizedRow } from "@/components/movies/ForYouPersonalizedRow
 import { getR2BannerUrl } from "@/lib/r2";
 
 export const revalidate = 600; // ISR 10 phút cho trang chủ landing page
-
-const HeroFeatured = dynamic(() =>
-  import("@/components/browse/HeroFeatured").then(
-    (mod) => mod.HeroFeatured,
-  ),
-);
 
 // ==========================================
 // METADATA

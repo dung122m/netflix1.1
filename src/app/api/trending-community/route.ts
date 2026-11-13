@@ -6,7 +6,6 @@ import {
   RATE_LIMIT_PRESETS,
 } from "@/lib/rateLimit";
 
-export const dynamic = "force-dynamic";
 export const maxDuration = 10;
 
 // In-memory cache trên server (60 giây để chống bão request và phản hồi 0ms)
@@ -29,13 +28,17 @@ export async function GET(req: NextRequest) {
   const limit = Math.min(Number(searchParams.get("limit")) || 10, 20);
   const cacheKey = `trending:${timeframe}:${limit}`;
 
+  const edgeHeaders = {
+    "Cache-Control": "public, s-maxage=60, stale-while-revalidate=120",
+    "CDN-Cache-Control": "public, s-maxage=60, stale-while-revalidate=120",
+    "Vercel-CDN-Cache-Control": "public, s-maxage=60, stale-while-revalidate=120",
+  };
+
   // 1. Kiểm tra bộ nhớ cache trên RAM server (phản hồi tức thì ~1ms)
   const cached = SERVER_CACHE.get(cacheKey);
   if (cached && cached.expireAt > Date.now()) {
     return NextResponse.json(cached.data, {
-      headers: {
-        "Cache-Control": "public, s-maxage=60, stale-while-revalidate=120",
-      },
+      headers: edgeHeaders,
     });
   }
 
@@ -52,18 +55,14 @@ export async function GET(req: NextRequest) {
       };
       SERVER_CACHE.set(cacheKey, { data: responseData, expireAt: Date.now() + CACHE_TTL });
       return NextResponse.json(responseData, {
-        headers: {
-          "Cache-Control": "public, s-maxage=60, stale-while-revalidate=120",
-        },
+        headers: edgeHeaders,
       });
     }
 
     // 3. Fallback: Nếu không có dữ liệu mới nhưng có cache cũ, trả về cache cũ
     if (cached && cached.data) {
       return NextResponse.json(cached.data, {
-        headers: {
-          "Cache-Control": "public, s-maxage=60, stale-while-revalidate=120",
-        },
+        headers: edgeHeaders,
       });
     }
 

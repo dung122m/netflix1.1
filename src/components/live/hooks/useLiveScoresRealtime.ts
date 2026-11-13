@@ -85,14 +85,14 @@ export function useLiveScoresRealtime({
     const interval = setInterval(() => {
       if (typeof document !== "undefined" && document.hidden) return;
       refreshMatches();
-    }, 3 * 60 * 1000);
+    }, 5 * 60 * 1000);
 
     const handleVisibilityChange = () => {
       if (typeof document !== "undefined" && !document.hidden) {
         if (
           shouldRefreshOnTabFocus(
             lastFetchedMatchesTimeRef.current,
-            3 * 60 * 1000,
+            5 * 60 * 1000,
           )
         ) {
           refreshMatches();
@@ -179,7 +179,7 @@ export function useLiveScoresRealtime({
       }
     };
 
-    const pollIntervalMs = hasLiveMatches ? 8_000 : 30_000;
+    const pollIntervalMs = hasLiveMatches ? 15_000 : 45_000;
     const isReturningFromInactive = !wasActiveScoresRef.current;
     wasActiveScoresRef.current = true;
 
@@ -199,7 +199,7 @@ export function useLiveScoresRealtime({
         if (
           shouldRefreshOnTabFocus(
             lastFetchedScoresTimeRef.current,
-            pollIntervalMs,
+            10_000,
           )
         ) {
           fetchScores();

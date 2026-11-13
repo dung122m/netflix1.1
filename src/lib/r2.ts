@@ -4,9 +4,9 @@ import {
   HeadObjectCommand,
 } from "@aws-sdk/client-s3";
 import { checkR2QuotaAllowance, recordSuccessfulR2Upload, getR2QuotaStatus } from "./r2QuotaGuard";
-import { refreshR2Manifest, getR2AssetUrl, getR2BannerUrl } from "./r2Manifest";
+import { refreshR2Manifest, getR2AssetUrl, getR2BannerUrl, getR2TeamLogoUrl } from "./r2Manifest";
 
-export { getR2QuotaStatus, refreshR2Manifest, getR2AssetUrl, getR2BannerUrl };
+export { getR2QuotaStatus, refreshR2Manifest, getR2AssetUrl, getR2BannerUrl, getR2TeamLogoUrl };
 
 export const isR2Configured = (): boolean =>
   Boolean(

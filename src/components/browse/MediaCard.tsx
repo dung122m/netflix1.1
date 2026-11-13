@@ -478,17 +478,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
     return formatted;
   }, [initialCountry, origin_name, title, mainGenre]);
 
-  // Chuỗi thông tin phụ:
-  // - Mobile: Ưu tiên [Năm] • [Thể loại] (hoặc Quốc gia nếu không có thể loại) để vừa vặn card 140px, không bị tràn hay cắt cụt chữ
-  // - Tablet/Desktop: Giữ nguyên [Năm] • [Quốc gia] • [Thể loại]
-  const mobileMetaString = React.useMemo(() => {
-    const secondTag =
-      mainGenre && displayCountry && mainGenre.toLowerCase() === displayCountry.toLowerCase()
-        ? mainGenre
-        : mainGenre || displayCountry;
-    return [displayYear, secondTag].filter(Boolean).join(" • ");
-  }, [displayYear, mainGenre, displayCountry]);
-
+  // Chuỗi thông tin phụ (Tooltip / title):
   const desktopMetaString = React.useMemo(() => {
     // Thu thập các thành phần không trùng lặp (ví dụ: không in '2026 • Hành Động • Hành Động')
     const parts: string[] = [];
@@ -866,8 +856,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
           href={targetHref}
           prefetch={false}
           onClick={handleCardClick}
-          tabIndex={-1}
-          aria-hidden="true"
+          aria-label={title}
           className="outline-none block w-full min-w-0"
         >
           <div className="h-5 sm:h-5.5 flex items-center w-full min-w-0">
@@ -895,8 +884,18 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
             title={desktopMetaString}
             className="text-[11px] sm:text-xs text-zinc-400 mt-1.5 block truncate w-full min-w-0 select-none leading-none h-4"
           >
-            <span className="sm:hidden">{mobileMetaString || <span className="text-transparent pointer-events-none">·</span>}</span>
-            <span className="hidden sm:inline">{desktopMetaString || <span className="text-transparent pointer-events-none">·</span>}</span>
+            {displayYear && <span>{displayYear}</span>}
+            {displayCountry && mainGenre && (
+              <span className="hidden sm:inline"> • {displayCountry}</span>
+            )}
+            {mainGenre ? (
+              <span>{displayYear ? " • " : ""}{mainGenre}</span>
+            ) : displayCountry ? (
+              <span>{displayYear ? " • " : ""}{displayCountry}</span>
+            ) : null}
+            {!displayYear && !mainGenre && !displayCountry && (
+              <span className="text-zinc-500">Phim</span>
+            )}
           </p>
         )}
       </div>

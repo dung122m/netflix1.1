@@ -41,6 +41,64 @@ export function getR2AssetUrl(key: string): string | null {
 }
 
 /**
+ * Tra cứu thông minh logo đội thể thao từ Cloudflare R2 Manifest (0ms O(1)).
+ * Hỗ trợ mọi môn (basketball, football, esports...), tự động thử cả dạng kebab-case lẫn collapsed.
+ */
+export function getR2TeamLogoUrl(
+  teamName?: string | null,
+  sport?: string | null
+): string | null {
+  if (!teamName) return null;
+  const clean = teamName
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/\[[^\]]*\]/g, " ")
+    .replace(/\([^)]*\)/g, " ")
+    .replace(/\b(clb|fc|sc|afc|ac|as|rc|cf|cd|ud|sd|u\d{1,2})\b/gi, " ")
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  const tokens = clean.split(/\s+/).filter(Boolean);
+  if (tokens.length === 0) return null;
+
+  const collapsed = tokens.join("");
+  const kebab = tokens.join("-");
+
+  const categories =
+    sport === "basketball"
+      ? ["teams/basketball", "teams/football", "teams/esports"]
+      : sport === "esports"
+      ? ["teams/esports", "teams/football", "teams/basketball"]
+      : ["teams/football", "teams/basketball", "teams/esports"];
+
+  for (const cat of categories) {
+    const match =
+      getR2AssetUrl(`${cat}/${kebab}.png`) ||
+      getR2AssetUrl(`${cat}/${collapsed}.png`) ||
+      getR2AssetUrl(`${cat}/${kebab}.webp`) ||
+      getR2AssetUrl(`${cat}/${collapsed}.webp`);
+    if (match) return match;
+  }
+
+  // Nếu tên đội gồm nhiều từ, thử tìm theo từ khóa chính (vd: "Pistons", "Hornets", "Raptors")
+  if (tokens.length > 1) {
+    const lastWord = tokens[tokens.length - 1];
+    if (lastWord.length >= 4) {
+      for (const cat of categories) {
+        const match =
+          getR2AssetUrl(`${cat}/${lastWord}.png`) ||
+          getR2AssetUrl(`${cat}/${lastWord}.webp`);
+        if (match) return match;
+      }
+    }
+  }
+
+  return null;
+}
+
+
+/**
  * Tra cứu thông minh Banner phim từ R2 CDN theo slug hoặc URL gốc.
  */
 export function getR2BannerUrl(
@@ -70,4 +128,5 @@ export function getR2BannerUrl(
   }
   return null;
 }
+
 

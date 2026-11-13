@@ -285,8 +285,8 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
   const espHome = useMemo(() => resolveEsportsTeam(homeDisplayName), [homeDisplayName]);
   const espAway = useMemo(() => resolveEsportsTeam(awayDisplayName), [awayDisplayName]);
 
-  const homeAsset = useMemo(() => getTeamAsset(homeDisplayName), [homeDisplayName]);
-  const awayAsset = useMemo(() => getTeamAsset(awayDisplayName), [awayDisplayName]);
+  const homeAsset = useMemo(() => getTeamAsset(homeDisplayName, sport), [homeDisplayName, sport]);
+  const awayAsset = useMemo(() => getTeamAsset(awayDisplayName, sport), [awayDisplayName, sport]);
 
   const homeLogoSrc = useMemo(() => {
     if (homeImgFailed) return null;

@@ -8,13 +8,44 @@ import {
   RATE_LIMIT_PRESETS,
 } from "@/lib/rateLimit";
 
-export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
+
+// In-memory short cache to collapse burst polling into 0ms CPU responses
+let lastScoresCache: {
+  data: {
+    scores: Record<string, unknown>;
+    eventsCount: number;
+    updatedAt: string;
+    cached: boolean;
+  };
+  hasLive: boolean;
+  expireAt: number;
+} | null = null;
 
 export async function GET(req: NextRequest) {
   const rateLimit = await enforceRateLimit(req, RATE_LIMIT_PRESETS.FOOTBALL_POLLING);
   if (!rateLimit.allowed) {
     return buildRateLimitResponse(rateLimit);
+  }
+
+  const now = Date.now();
+  if (lastScoresCache && now < lastScoresCache.expireAt) {
+    const cacheControl = lastScoresCache.hasLive
+      ? "public, max-age=5, s-maxage=10, stale-while-revalidate=15"
+      : "public, max-age=15, s-maxage=30, stale-while-revalidate=60";
+    return NextResponse.json(
+      {
+        status: true,
+        data: lastScoresCache.data,
+      },
+      {
+        headers: {
+          "Cache-Control": cacheControl,
+          "CDN-Cache-Control": cacheControl,
+          "Vercel-CDN-Cache-Control": cacheControl,
+        },
+      }
+    );
   }
 
   try {
@@ -37,22 +68,32 @@ export async function GET(req: NextRequest) {
 
     const hasLive = events.some((e) => e.status === "live");
     const cacheControl = hasLive
-      ? "public, max-age=4, s-maxage=8, stale-while-revalidate=8"
+      ? "public, max-age=5, s-maxage=10, stale-while-revalidate=15"
       : "public, max-age=15, s-maxage=30, stale-while-revalidate=60";
+
+    const responseData = {
+      scores,
+      eventsCount: events.length,
+      updatedAt,
+      cached,
+    };
+
+    lastScoresCache = {
+      data: responseData,
+      hasLive,
+      expireAt: now + (hasLive ? 8_000 : 20_000),
+    };
 
     const responseHeaders: Record<string, string> = {
       "Cache-Control": cacheControl,
+      "CDN-Cache-Control": cacheControl,
+      "Vercel-CDN-Cache-Control": cacheControl,
     };
 
     return NextResponse.json(
       {
         status: true,
-        data: {
-          scores,
-          eventsCount: events.length,
-          updatedAt,
-          cached,
-        },
+        data: responseData,
       },
       {
         headers: responseHeaders,

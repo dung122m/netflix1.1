@@ -264,6 +264,33 @@ export async function GET(request: NextRequest) {
 
       const toProxyUrl = (value: string) => {
         const absoluteUrl = new URL(value, targetUrl).toString();
+        const cleanAbs = absoluteUrl.split("?")[0].toLowerCase();
+        const isChildPlaylist =
+          cleanAbs.endsWith(".m3u8") ||
+          cleanAbs.includes("playlist") ||
+          cleanAbs.includes("manifest");
+
+        if (isChildPlaylist) {
+          const signed = generateStreamToken({
+            targetUrl: absoluteUrl,
+            streamId: playlistStreamId,
+            ttlSeconds: DEFAULT_STREAM_TOKEN_TTL_SECONDS,
+          });
+          return `/api/live-tv/proxy?url=${encodeURIComponent(absoluteUrl)}&st=${encodeURIComponent(signed.token)}&exp=${signed.exp}&sid=${encodeURIComponent(signed.sid)}&v=${signed.v}`;
+        }
+
+        const isMediaChunk =
+          cleanAbs.endsWith(".ts") ||
+          cleanAbs.endsWith(".m4s") ||
+          cleanAbs.endsWith(".mp4") ||
+          cleanAbs.endsWith(".m4a") ||
+          cleanAbs.endsWith(".aac") ||
+          cleanAbs.endsWith(".vtt");
+
+        if (isMediaChunk && absoluteUrl.startsWith("https://")) {
+          return absoluteUrl;
+        }
+
         const signed = generateStreamToken({
           targetUrl: absoluteUrl,
           streamId: playlistStreamId,
@@ -304,11 +331,15 @@ export async function GET(request: NextRequest) {
       "Cache-Control",
       isSafe
         ? "public, max-age=120, s-maxage=300, stale-while-revalidate=600"
-        : "private, no-cache, no-store, max-age=0, must-revalidate"
+        : "public, max-age=60, s-maxage=60"
     );
     responseHeaders.set(
       "CDN-Cache-Control",
-      isSafe ? "public, s-maxage=300, stale-while-revalidate=600" : "no-store"
+      isSafe ? "public, s-maxage=300, stale-while-revalidate=600" : "public, s-maxage=60"
+    );
+    responseHeaders.set(
+      "Vercel-CDN-Cache-Control",
+      isSafe ? "public, s-maxage=300, stale-while-revalidate=600" : "public, s-maxage=60"
     );
 
     const contentLength = response.headers.get("content-length");

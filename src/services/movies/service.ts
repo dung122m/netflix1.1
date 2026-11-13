@@ -4,6 +4,13 @@ import { cacheService } from "@/lib/cache";
 import { findEpisodeMatch, formatEpisodeName } from "@/lib/formatEpisode";
 import { formatGenreName, formatCountryName, getCanonicalGenreSlug, getCanonicalCountrySlug } from "@/lib/movieMedia";
 import { enrichMovieListPosters } from "@/services/movies/posterEnrichment";
+import {
+  NGUONC_GENRE_MAP,
+  DEFAULT_GENRES,
+  DEFAULT_COUNTRIES,
+} from "@/data/movies/taxonomy";
+
+export { DEFAULT_GENRES, DEFAULT_COUNTRIES };
 
 const API_NGUONC = process.env.NEXT_PUBLIC_API_URL || "https://phim.nguonc.com/api";
 const API_PHIMAPI = process.env.NEXT_PUBLIC_API_URL_2 || "https://phimapi.com";
@@ -72,18 +79,6 @@ export interface MovieFilterParams {
 export interface AiCandidateOptions {
   minCandidates?: number;
 }
-
-// Bảng ánh xạ slug thể loại sang NguonC
-const NGUONC_GENRE_MAP: Record<string, string> = {
-  "hai-huoc": "phim-hai",
-  "vien-tuong": "khoa-hoc-vien-tuong",
-  "am-nhac": "phim-nhac",
-  "vo-thuat": "hanh-dong",
-  "than-thoai": "gia-tuong",
-  "hoc-duong": "tam-ly",
-  "the-thao": "tam-ly",
-  "khoa-hoc": "khoa-hoc-vien-tuong",
-};
 
 function getNguonCGenreSlug(slug?: string): string {
   if (!slug) return "";
@@ -2223,11 +2218,13 @@ async function executeGetMovies(params: MovieFilterParams, cacheKey: string) {
 
   let totalItemsCount: number;
 
-  if (activeFiltersCount >= 2) {
+  if (isSearch) {
+    totalItemsCount = candidates.length;
+  } else if (activeFiltersCount >= 2) {
     // KHI CÓ TỪ 2 BỘ LỌC TRỞ LÊN (VD: type + country hoặc category + year):
     totalItemsCount = countApi1 > 0 ? countApi1 : (countApi2 || candidates.length);
   } else {
-    // BỘ LỌC ĐƠN LẺ (Type / Country / Category / Year) HOẶC TÌM KIẾM KEYWORD HOẶC MẶC ĐỊNH:
+    // BỘ LỌC ĐƠN LẺ (Type / Country / Category / Year) HOẶC MẶC ĐỊNH:
     const availableCounts = [countApi1, countApi2].filter((c) => c > 0);
     totalItemsCount = availableCounts.length > 0 ? Math.max(...availableCounts) : candidates.length;
   }
@@ -2299,8 +2296,8 @@ async function executeGetMovies(params: MovieFilterParams, cacheKey: string) {
     } catch {}
   }
 
-  // Bảo đảm an toàn tuyệt đối cho trang cuối: không bao giờ trả về [] nếu totalItemsCount > 0
-  if (requestedPage === maxTotalPages && finalItems.length === 0 && totalItemsCount > 0) {
+  // Bảo đảm an toàn tuyệt đối cho trang cuối (chỉ cho Browse/Filter, KHÔNG áp dụng cho Search từ khóa):
+  if (!isSearch && requestedPage === maxTotalPages && finalItems.length === 0 && totalItemsCount > 0) {
     if (candidates.length > 0) {
       finalItems = candidates.slice(0, Math.min(limit, candidates.length));
     } else {
@@ -2408,107 +2405,6 @@ export function buildMovieCacheKey(params: MovieFilterParams): string {
   });
 }
 
-const PRIORITY_WARMUP_COMBINATIONS: MovieFilterParams[] = [
-  { type: "phim-le" },
-  { type: "phim-bo" },
-  { type: "phim-le", country: "han-quoc" },
-  { type: "phim-le", country: "hong-kong" },
-  { type: "phim-le", country: "viet-nam" },
-  { type: "phim-bo", country: "han-quoc" },
-  { type: "phim-chieu-rap" },
-  { type: "hoat-hinh" },
-];
-
-let hasWarmedUp = false;
-function warmUpTopCategories() {
-  // Vô hiệu hóa: Loại bỏ request storm và tiêu thụ Redis bandwidth khi idle
-  return;
-  if (hasWarmedUp) return;
-  hasWarmedUp = true;
-  const isTest =
-    process.env.NODE_ENV === "test" ||
-    process.argv.some((a) => a.includes("--test") || a.includes(".test.ts"));
-  if (isTest) return;
-
-  // Background non-blocking execution với Concurrency = 2
-  setTimeout(async () => {
-    try {
-      const now = Date.now();
-      // Chỉ nạp các combination chưa có trong cache hoặc đã hết hạn tươi
-      const needed = PRIORITY_WARMUP_COMBINATIONS.filter((comb) => {
-        const key = buildMovieCacheKey({ ...comb, limit: 24, page: 1 });
-        const entry = moviesMemoryCache.get(key);
-        return !entry || entry.expireAt <= now;
-      });
-
-      // Chạy theo nhóm 2 requests (Chunking) để tránh request storm lên upstream providers
-      const CHUNK_SIZE = 2;
-      for (let i = 0; i < needed.length; i += CHUNK_SIZE) {
-        const batch = needed.slice(i, i + CHUNK_SIZE);
-        await Promise.all(
-          batch.map(async (comb) => {
-            try {
-              await movieApi.getMovies({ ...comb, limit: 24, page: 1 });
-            } catch {
-              // Bỏ qua lỗi ngầm để đảm bảo tính cô lập
-            }
-          })
-        );
-        // Nghỉ 100ms giữa các chunk
-        if (i + CHUNK_SIZE < needed.length) {
-          await new Promise((resolve) => setTimeout(resolve, 100));
-        }
-      }
-    } catch {
-      // Safe fallback
-    }
-  }, 200);
-}
-
-export const DEFAULT_GENRES = [
-  { name: "Hành Động", slug: "hanh-dong" },
-  { name: "Tình Cảm", slug: "tinh-cam" },
-  { name: "Cổ Trang", slug: "co-trang" },
-  { name: "Tâm Lý", slug: "tam-ly" },
-  { name: "Hài Hước", slug: "hai-huoc" },
-  { name: "Hoạt Hình", slug: "hoat-hinh" },
-  { name: "Kinh Dị", slug: "kinh-di" },
-  { name: "Viễn Tưởng", slug: "vien-tuong" },
-  { name: "Võ Thuật", slug: "vo-thuat" },
-  { name: "Phiêu Lưu", slug: "phieu-luu" },
-  { name: "Hình Sự", slug: "hinh-su" },
-  { name: "Chiến Tranh", slug: "chien-tranh" },
-  { name: "Tài Liệu", slug: "tai-lieu" },
-  { name: "Bí Ẩn", slug: "bi-an" },
-  { name: "Học Đường", slug: "hoc-duong" },
-  { name: "Gia Đình", slug: "gia-dinh" },
-  { name: "Âm Nhạc", slug: "am-nhac" },
-  { name: "Thể Thao", slug: "the-thao" },
-  { name: "Khoa Học", slug: "khoa-hoc" },
-  { name: "Thần Thoại", slug: "than-thoai" },
-];
-
-export const DEFAULT_COUNTRIES = [
-  { name: "Việt Nam", slug: "viet-nam" },
-  { name: "Trung Quốc", slug: "trung-quoc" },
-  { name: "Hàn Quốc", slug: "han-quoc" },
-  { name: "Nhật Bản", slug: "nhat-ban" },
-  { name: "Thái Lan", slug: "thai-lan" },
-  { name: "Âu Mỹ", slug: "au-my" },
-  { name: "Đài Loan", slug: "dai-loan" },
-  { name: "Hồng Kông", slug: "hong-kong" },
-  { name: "Ấn Độ", slug: "an-do" },
-  { name: "Anh", slug: "anh" },
-  { name: "Pháp", slug: "phap" },
-  { name: "Canada", slug: "canada" },
-  { name: "Đức", slug: "duc" },
-  { name: "Tây Ban Nha", slug: "tay-ban-nha" },
-  { name: "Thổ Nhĩ Kỳ", slug: "tho-nhi-ky" },
-  { name: "Nga", slug: "nga" },
-  { name: "Úc", slug: "uc" },
-];
-
-
 function sanitizeMovieImages<T>(data: T): T {
   return data;
 }
@@ -2518,11 +2414,6 @@ export const movieApi = {
   // 1. LẤY DANH SÁCH PHIM (STALE-WHILE-REVALIDATE 0MS)
   // ==========================================
   getMovies: async (rawParams: MovieFilterParams = {}) => {
-    // Kích hoạt nạp sẵn dữ liệu các danh mục chính trong nền
-    if (!hasWarmedUp) {
-      warmUpTopCategories();
-    }
-
     const parsedPage = Number(rawParams.page);
     const parsedLimit = Number(rawParams.limit);
     const params: MovieFilterParams = {

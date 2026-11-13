@@ -333,6 +333,20 @@ export async function GET(request: NextRequest) {
           return `/api/live-football/proxy?url=${encodeURIComponent(absoluteUrl)}&st=${encodeURIComponent(signed.token)}&exp=${signed.exp}&sid=${encodeURIComponent(signed.sid)}&v=${signed.v}`;
         }
 
+        // Tối ưu hóa: Nếu là media segment (.ts, .m4s, .mp4...) có HTTPS hợp lệ, để trình duyệt tải trực tiếp
+        // từ CDN gốc, không trung chuyển qua Vercel để tránh ngốn CPU và hàng gigabyte Origin Transfer
+        const isMediaChunk =
+          cleanAbs.endsWith(".ts") ||
+          cleanAbs.endsWith(".m4s") ||
+          cleanAbs.endsWith(".mp4") ||
+          cleanAbs.endsWith(".m4a") ||
+          cleanAbs.endsWith(".aac") ||
+          cleanAbs.endsWith(".vtt");
+
+        if (isMediaChunk && absoluteUrl.startsWith("https://")) {
+          return absoluteUrl;
+        }
+
         // Media segment, key, init mp4, or subtitle chunk: generate Signed Stream Token
         const signed = generateStreamToken({
           targetUrl: absoluteUrl,
@@ -376,11 +390,15 @@ export async function GET(request: NextRequest) {
       "Cache-Control",
       isSafe
         ? "public, max-age=120, s-maxage=300, stale-while-revalidate=600"
-        : "private, no-cache, no-store, max-age=0, must-revalidate"
+        : "public, max-age=60, s-maxage=60"
     );
     responseHeaders.set(
       "CDN-Cache-Control",
-      isSafe ? "public, s-maxage=300, stale-while-revalidate=600" : "no-store"
+      isSafe ? "public, s-maxage=300, stale-while-revalidate=600" : "public, s-maxage=60"
+    );
+    responseHeaders.set(
+      "Vercel-CDN-Cache-Control",
+      isSafe ? "public, s-maxage=300, stale-while-revalidate=600" : "public, s-maxage=60"
     );
 
     const contentLength = response.headers.get("content-length");

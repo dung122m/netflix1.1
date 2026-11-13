@@ -6,7 +6,6 @@ import {
   RATE_LIMIT_PRESETS,
 } from "@/lib/rateLimit";
 
-export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 export async function GET(req?: NextRequest) {
@@ -25,7 +24,9 @@ export async function GET(req?: NextRequest) {
       },
       {
         headers: {
-          "Cache-Control": "public, s-maxage=120, stale-while-revalidate=300",
+          "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600",
+          "CDN-Cache-Control": "public, s-maxage=300, stale-while-revalidate=600",
+          "Vercel-CDN-Cache-Control": "public, s-maxage=300, stale-while-revalidate=600",
         },
       }
     );

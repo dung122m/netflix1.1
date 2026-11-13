@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { movieApi } from "@/services/movies/service";
 import { resolveActorMovies, isAmbiguousShortActorKeyword, hasExplicitActorPrefix } from "@/services/aiActorService";
 import { getActorSynonyms } from "@/services/actor/actorAliasResolver";
+import { findHistoricalArtist } from "@/data/history/historicalArtistsBirthdays";
 import { searchTmdbPerson } from "@/services/tmdbService";
 import { pickBestMoviePoster, MovieLike } from "@/lib/movieMedia";
 import { normalizeForMatch } from "@/lib/stringUtils";
@@ -59,10 +60,14 @@ export async function GET(req: NextRequest) {
       return NextResponse.json(cached);
     }
 
+    // Tra cứu nhanh nghệ sĩ từ bộ dữ liệu Historical Artists O(1) (0ms)
+    const histArtist = findHistoricalArtist(keyword);
+
     // Kiểm tra actor resolution cho từ khóa không mơ hồ (>= 2 từ hoặc có tiền tố rõ ràng)
     const shouldCheckActor =
-      hasExplicitActorPrefix(keyword) ||
-      (!isAmbiguousShortActorKeyword(keyword) && keyword.trim().split(/\s+/).length >= 2);
+      !histArtist &&
+      (hasExplicitActorPrefix(keyword) ||
+      (!isAmbiguousShortActorKeyword(keyword) && keyword.trim().split(/\s+/).length >= 2));
 
     // Chạy song song tìm kiếm phim và phân giải diễn viên với timeout tối đa 1800ms
     // skipKvCache: true đảm bảo các truy vấn gợi ý dở dang (limit 8) không ghi rác lên Cloudflare KV
@@ -112,12 +117,22 @@ export async function GET(req: NextRequest) {
       if (normTitle === kw || normOrig === kw || normSlug === kw.replace(/\s+/g, "-")) return 100;
       if (normTitle.startsWith(kw) || normOrig.startsWith(kw)) return 80;
       if (normTitle.includes(kw) || normOrig.includes(kw)) return 60;
-      return 20; // Khớp trong mô tả / nội dung
+
+      // Khớp toàn bộ token nếu query nhiều từ (tránh khớp bừa bãi như Conan)
+      const kwTokens = kw.split(/\s+/).filter(Boolean);
+      if (kwTokens.length > 1) {
+        const titleTokens = new Set((normTitle + " " + normOrig + " " + normSlug).split(/\s+/).filter(Boolean));
+        const matched = kwTokens.filter((tok) => titleTokens.has(tok)).length;
+        if (matched === kwTokens.length) return 50;
+      }
+      return 0; // Không khớp tiêu đề -> 0 điểm (loại bỏ phim rác)
     };
 
-    rawItems.sort((a, b) => getSuggestScore(b, normKw) - getSuggestScore(a, normKw));
+    const validMovieItems = rawItems
+      .filter((item) => getSuggestScore(item, normKw) >= 50)
+      .sort((a, b) => getSuggestScore(b, normKw) - getSuggestScore(a, normKw));
 
-    const items = rawItems.slice(0, 5).map((item) => ({
+    const items = validMovieItems.slice(0, 5).map((item) => ({
       slug: item.slug || "",
       title: item.name || item.title || "",
       poster: pickBestMoviePoster(item as MovieLike, "/default-poster.svg"),
@@ -132,7 +147,20 @@ export async function GET(req: NextRequest) {
     //   hoặc kết quả phim trùng khớp ít (<= 2 phim)
     // - Với tìm kiếm thông thường có nhiều phim trùng tên, thẻ diễn viên được thêm vào danh sách
     // - TUYỆT ĐỐI không gắn thẻ diễn viên cho từ khóa ngắn/mơ hồ ("Mai", "An", "Anh"...)
-    if (actorRes?.isActor && actorRes.actorName && !isAmbiguousShortActorKeyword(keyword)) {
+    if (histArtist) {
+      const displayTitle = histArtist.englishName && histArtist.englishName !== histArtist.name
+        ? `Diễn viên: ${histArtist.name} (${histArtist.englishName})`
+        : `Diễn viên: ${histArtist.name}`;
+      const actorItem = {
+        slug: `dien-vien/${histArtist.slug}`,
+        title: displayTitle,
+        poster: histArtist.avatarUrl || "/default-hero.jpg",
+        year: histArtist.country || "Điện Ảnh",
+        quality: "Hồ Sơ",
+        category: "Diễn Viên",
+      };
+      items.unshift(actorItem);
+    } else if (actorRes?.isActor && actorRes.actorName && !isAmbiguousShortActorKeyword(keyword)) {
       const syn = getActorSynonyms(keyword);
       const actorDisplayName =
         syn.isMatched && syn.canonicalName

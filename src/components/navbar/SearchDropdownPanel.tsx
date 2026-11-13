@@ -46,8 +46,8 @@ export function SearchDropdownPanel({
 }: SearchDropdownPanelProps) {
   const isMobile = variant === "mobile";
   const containerClass = isMobile
-    ? "fixed top-[52px] sm:top-[56px] inset-x-2 w-auto max-w-lg mx-auto bg-zinc-950/98 backdrop-blur-xl rounded-2xl p-3 shadow-2xl z-50 max-h-[calc(100dvh-64px)] sm:max-h-[calc(100dvh-72px)] overflow-y-auto overscroll-contain transform-gpu will-change-[transform,opacity]"
-    : "absolute top-full mt-2 right-0 w-[360px] bg-zinc-950/98 backdrop-blur-xl rounded-xl shadow-2xl p-2.5 z-50 animate-in fade-in zoom-in-95 duration-150 transform-gpu will-change-[transform,opacity]";
+    ? "fixed top-[52px] sm:top-[56px] inset-x-2 w-auto max-w-lg mx-auto bg-zinc-900/98 backdrop-blur-2xl rounded-2xl p-3 shadow-[0_24px_60px_rgba(0,0,0,0.95),0_0_20px_rgba(0,0,0,0.8)] border border-white/[0.14] ring-1 ring-white/10 z-50 max-h-[calc(100dvh-64px)] sm:max-h-[calc(100dvh-72px)] overflow-y-auto overscroll-contain transform-gpu will-change-[transform,opacity]"
+    : "absolute top-full mt-2 right-0 w-[380px] bg-zinc-900/98 backdrop-blur-2xl rounded-xl shadow-[0_24px_60px_rgba(0,0,0,0.95),0_0_25px_rgba(0,0,0,0.8)] border border-white/[0.14] ring-1 ring-white/10 p-2.5 z-50 animate-in fade-in zoom-in-95 duration-150 transform-gpu will-change-[transform,opacity]";
 
   return (
     <div className={containerClass}>
@@ -145,47 +145,68 @@ export function SearchDropdownPanel({
             )}
           </div>
           <div className="flex flex-col gap-1 mt-1">
-            {suggestions.map((item, idx) => (
-              <Link
-                key={item.slug}
-                href={resolveSuggestionHref(item.slug)}
-                onClick={() => onSuggestionSelect(isMobile)}
-                className={`flex items-center gap-3 p-2 rounded-lg transition group ${
-                  selectedSuggestionIndex === idx
-                    ? "bg-zinc-800 text-white"
-                    : "hover:bg-zinc-850"
-                }`}
-              >
-                <div className="relative w-10 h-14 bg-zinc-800 rounded overflow-hidden flex-none">
-                  <Image
-                    src={toFastCdnImageUrl(toOptimizedPhimimgUrl(item.poster, 192))}
-                    alt={item.title}
-                    fill
-                    unoptimized
-                    sizes="40px"
-                    className="object-cover group-hover:scale-105 transition-transform"
-                  />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h4 className="text-sm font-semibold text-white group-hover:text-netflix-red transition-colors truncate">
-                    {item.title}
-                  </h4>
-                  <div className="flex items-center gap-2 text-xs text-zinc-400 mt-1">
-                    {item.year && <span>{item.year}</span>}
-                    {item.category && (
-                      <span className="text-amber-400 font-medium">
-                        {item.category}
-                      </span>
-                    )}
-                    {item.quality && (
-                      <span className="bg-white/10 px-1.5 py-0.5 rounded text-[11px] font-bold">
-                        {item.quality}
-                      </span>
-                    )}
+            {suggestions.map((item, idx) => {
+              const isActor = item.category === "Diễn Viên" || item.quality === "Hồ Sơ";
+              return (
+                <Link
+                  key={item.slug}
+                  href={resolveSuggestionHref(item.slug)}
+                  onClick={() => onSuggestionSelect(isMobile)}
+                  className={`flex items-center gap-3 p-2 rounded-lg transition group ${
+                    selectedSuggestionIndex === idx
+                      ? "bg-white/[0.14] text-white"
+                      : "hover:bg-white/[0.08]"
+                  }`}
+                >
+                  <div
+                    className={`relative overflow-hidden flex-none bg-zinc-800 ${
+                      isActor
+                        ? "w-11 h-14 rounded-lg ring-1 ring-amber-500/40"
+                        : "w-10 h-14 rounded ring-1 ring-white/10"
+                    }`}
+                  >
+                    <Image
+                      src={toFastCdnImageUrl(toOptimizedPhimimgUrl(item.poster, 192))}
+                      alt={item.title}
+                      fill
+                      unoptimized
+                      sizes="44px"
+                      className="object-cover group-hover:scale-105 transition-transform"
+                    />
                   </div>
-                </div>
-              </Link>
-            ))}
+                  <div className="flex-1 min-w-0">
+                    <h4 className="text-sm font-semibold text-white group-hover:text-netflix-red transition-colors truncate">
+                      {item.title}
+                    </h4>
+                    <div className="flex items-center gap-2 text-xs text-zinc-400 mt-1">
+                      {item.year && <span>{item.year}</span>}
+                      {item.category && (
+                        <span
+                          className={
+                            isActor
+                              ? "bg-amber-400/15 text-amber-300 font-semibold px-1.5 py-0.5 rounded text-[11px]"
+                              : "text-amber-400 font-medium"
+                          }
+                        >
+                          {item.category}
+                        </span>
+                      )}
+                      {item.quality && (
+                        <span
+                          className={
+                            isActor
+                              ? "bg-red-500/20 text-red-300 font-bold px-1.5 py-0.5 rounded text-[11px]"
+                              : "bg-white/10 text-zinc-300 font-bold px-1.5 py-0.5 rounded text-[11px]"
+                          }
+                        >
+                          {item.quality}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </Link>
+              );
+            })}
           </div>
 
           <div className="border-t border-white/[0.08] mt-2 pt-2">
