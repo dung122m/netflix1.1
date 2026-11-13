@@ -266,10 +266,23 @@ export function proxy(req: NextRequest) {
     return originBlock;
   }
 
-  // 4.0 Tương thích ngược trang chủ: Chuyển hướng các URL có query param từ `/` sang `/browse` tại Edge
-  // để trang chủ `/` có thể bật ISR (revalidate) thay vì rơi vào Dynamic Rendering
+  // 4.0 Tương thích ngược: Chỉ chuyển hướng khi truy cập URL gốc `/` có kèm tham số lọc phim chuyên biệt
+  // để trang chủ `/` thuần túy luôn luôn giữ nguyên đường dẫn gốc `/` mà không bị nhảy sang `/browse`
   if (pathname === "/") {
-    const hasFilterParams = Array.from(req.nextUrl.searchParams.keys()).some((k) => k !== "_rsc");
+    const BROWSE_FILTER_PARAMS = new Set([
+      "type",
+      "category",
+      "country",
+      "year",
+      "sort",
+      "keyword",
+      "genre",
+      "actor",
+      "director",
+    ]);
+    const hasFilterParams = Array.from(req.nextUrl.searchParams.keys()).some((k) =>
+      BROWSE_FILTER_PARAMS.has(k.toLowerCase())
+    );
     if (hasFilterParams) {
       const browseUrl = req.nextUrl.clone();
       browseUrl.pathname = "/browse";
