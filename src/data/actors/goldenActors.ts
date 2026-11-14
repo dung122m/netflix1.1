@@ -237,6 +237,11 @@ export const GOLDEN_ACTOR_INDEX: ActorProfile[] = [
     aliases: ["duong tu", "yang zi"],
     country: "Trung Quốc 🇨🇳",
   },
+  {
+    name: "Hoàng Tử Thao",
+    aliases: ["hoang tu thao", "huang zitao", "zitao", "tao", "z.tao"],
+    country: "Trung Quốc 🇨🇳",
+  },
 
   // --- HOLLYWOOD / QUỐC TẾ ---
   {
@@ -479,6 +484,10 @@ export const ACTOR_CANONICAL_MAP: Record<string, string> = {
   "dương tử": "Dương Tử",
   "duong tu": "Dương Tử",
   "yang zi": "Dương Tử",
+  "hoàng tử thao": "Hoàng Tử Thao",
+  "hoang tu thao": "Hoàng Tử Thao",
+  "huang zitao": "Hoàng Tử Thao",
+  "zitao": "Hoàng Tử Thao",
 
   // Hàn Quốc, Nhật Bản, Thái Lan
   "song joong ki": "Song Joong-ki",
@@ -547,6 +556,8 @@ export const ACTOR_SLUG_MAP: Record<string, string[]> = {
   "bach-loc": ["bạch lộc", "bach loc", "bai lu"],
   "la-van-hi": ["la vân hi", "la van hi", "leo luo", "luo yunxi"],
   "duong-tu": ["dương tử", "duong tu", "yang zi", "andy yang"],
+  "hoang-tu-thao": ["hoàng tử thao", "hoang tu thao", "huang zitao", "zitao", "tao", "z.tao"],
+  "huang-zitao": ["hoàng tử thao", "hoang tu thao", "huang zitao", "zitao", "tao", "z.tao"],
   "nham-gia-luan": ["nhậm gia luân", "nham gia luan", "allen ren", "ren jialun"],
   "trieu-lo-tu": ["triệu lộ tư", "trieu lo tu", "zhao lusi", "rosy zhao"],
   "cuc-tinh-y": ["cúc tịnh y", "cuc tinh y", "ju jingyi"],

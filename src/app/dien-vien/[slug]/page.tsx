@@ -72,7 +72,7 @@ function parseActorIdentifier(slug: string): {
     }
   }
 
-  const rawName = cleanSlug.replace(/-/g, " ").trim();
+  const rawName = toVietnameseTitleCase(cleanSlug.replace(/-/g, " ").trim());
   return { personId, rawName };
 }
 
@@ -183,7 +183,9 @@ const resolveActorProfile = cache(async (slug: string): Promise<ResolvedActorPro
 
   let canonicalName =
     historicalItem?.name ||
-    (actorRes?.isActor ? actorRes.actorName : (actorSynonyms?.canonicalName || (rawName ? toVietnameseTitleCase(rawName) : "")));
+    actorSynonyms?.canonicalName ||
+    (actorRes?.isActor && actorRes.actorName ? toVietnameseTitleCase(actorRes.actorName) : "") ||
+    toVietnameseTitleCase(rawName);
 
   const actorAliases = Array.from(
     new Set([
@@ -233,7 +235,7 @@ const resolveActorProfile = cache(async (slug: string): Promise<ResolvedActorPro
       if (detailCandidate && isDetailMatchingExpectedArtist(detailCandidate)) {
         tmdbDetail = detailCandidate;
         if (!historicalItem?.name && !actorSynonyms?.canonicalName && detailCandidate.name) {
-          canonicalName = detailCandidate.name;
+          canonicalName = toVietnameseTitleCase(detailCandidate.name);
         }
       } else {
         // ID bị sai lệch hoặc không khớp người thật -> vô hiệu hóa ID để tìm kiếm lại theo tên chuẩn
@@ -253,7 +255,7 @@ const resolveActorProfile = cache(async (slug: string): Promise<ResolvedActorPro
         if (detailCandidate) {
           tmdbDetail = detailCandidate;
           if (!historicalItem?.name && !actorSynonyms?.canonicalName && detailCandidate.name) {
-            canonicalName = detailCandidate.name;
+            canonicalName = toVietnameseTitleCase(detailCandidate.name);
           }
         }
       }
@@ -286,9 +288,9 @@ const resolveActorProfile = cache(async (slug: string): Promise<ResolvedActorPro
   );
 
   return {
-    rawName,
+    rawName: toVietnameseTitleCase(rawName),
     tmdbPersonId: tmdbPersonId || tmdbDetail?.id,
-    canonicalName,
+    canonicalName: toVietnameseTitleCase(canonicalName || rawName),
     actorAliases: deduplicatedAliases,
     historicalItem,
     actorSynonyms,
@@ -301,7 +303,7 @@ const resolveActorProfile = cache(async (slug: string): Promise<ResolvedActorPro
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params;
   const profile = await resolveActorProfile(slug);
-  const actorName = profile.canonicalName || profile.rawName;
+  const actorName = toVietnameseTitleCase(profile.canonicalName || profile.rawName);
 
   return {
     title: `Phim của ${actorName} - Tiểu sử & Danh sách phim | Nanaflix`,
@@ -329,7 +331,7 @@ export default async function ActorDetailPage({ params }: PageProps) {
   }
 
   const {
-    canonicalName,
+    canonicalName: rawCanonical,
     actorAliases,
     historicalItem,
     actorSynonyms,
@@ -337,6 +339,8 @@ export default async function ActorDetailPage({ params }: PageProps) {
     matchedPreset,
     tmdbDetail,
   } = profile;
+
+  const canonicalName = toVietnameseTitleCase(rawCanonical || profile.rawName);
 
   // 3. Tra cứu thông tin bổ trợ từ Wikipedia và Danh sách phim
   // Chỉ gọi Wikipedia khi TMDb thiếu tiểu sử hoặc thiếu ảnh (tiết kiệm 100% lệnh Redis wiki:* cho các diễn viên TMDB đầy đủ)

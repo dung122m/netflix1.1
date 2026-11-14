@@ -9,6 +9,7 @@ import { TmdbCastMember } from "@/services/tmdbService";
 import { ActorAvatar } from "@/components/actors/ActorAvatar";
 import { FavoriteActorButton } from "@/components/actors/FavoriteActorButton";
 import { normalizeForMatch } from "@/lib/stringUtils";
+import { toVietnameseTitleCase } from "@/services/actor/actorAliasResolver";
 
 export interface MovieCastGalleryProps {
   cast?: TmdbCastMember[];
@@ -48,7 +49,7 @@ export const MovieCastGallery: React.FC<MovieCastGalleryProps> = ({
             : `/dien-vien/${slug || "nghe-si"}`;
         return {
           id: c.id,
-          name: c.name,
+          name: toVietnameseTitleCase(c.name),
           character: c.character || undefined,
           avatarUrl: c.profile_path || null,
           href,
@@ -66,7 +67,7 @@ export const MovieCastGallery: React.FC<MovieCastGalleryProps> = ({
           const slug = toActorSlug(name);
           return {
             id: `fb-${idx}-${name}`,
-            name,
+            name: toVietnameseTitleCase(name),
             avatarUrl: null,
             href: `/dien-vien/${slug || "nghe-si"}`,
             slug: slug || "nghe-si",
@@ -169,7 +170,7 @@ export const MovieCastGallery: React.FC<MovieCastGalleryProps> = ({
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover/card:opacity-100 transition-opacity pointer-events-none" />
 
-                {/* QUICK FAVORITE BUTTON */}
+                {/* QUICK FAVORITE BUTTON: CHỈ HIỆN KHI HOVER, GIỮ KHUNG HÌNH TĨNH LUÔN SẠCH ĐẸP */}
                 <div className="absolute top-1.5 right-1.5 z-10 pointer-events-auto">
                   <FavoriteActorButton
                     id={actor.id}
@@ -177,7 +178,7 @@ export const MovieCastGallery: React.FC<MovieCastGalleryProps> = ({
                     slug={actor.slug}
                     avatarUrl={actor.avatarUrl}
                     variant="icon"
-                    className="w-7 h-7 p-0 max-sm:opacity-80 sm:opacity-0 sm:group-hover/card:opacity-100 transition-opacity duration-200"
+                    className="w-7 h-7 p-0 opacity-0 group-hover/card:opacity-100 focus-within:opacity-100 transition-opacity duration-200"
                   />
                 </div>
               </div>

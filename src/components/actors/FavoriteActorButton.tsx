@@ -102,7 +102,7 @@ export const FavoriteActorButton: React.FC<FavoriteActorButtonProps> = ({
         aria-label={isFavorited ? `Bỏ yêu thích ${name}` : `Thêm ${name} vào yêu thích`}
         className={`group/btn relative inline-flex items-center justify-center p-2 rounded-full backdrop-blur-md transition-all duration-300 active:scale-90 ${
           isFavorited
-            ? "bg-rose-500/30 text-rose-400 hover:bg-rose-500/40 ring-1 ring-rose-500/40 !opacity-100"
+            ? "bg-rose-500/30 text-rose-400 hover:bg-rose-500/50 ring-1 ring-rose-500/40"
             : "bg-black/60 text-zinc-300 hover:bg-black/90 hover:text-white"
         } ${className}`}
       >

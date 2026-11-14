@@ -13,9 +13,16 @@ export function toVietnameseTitleCase(str: string): string {
   if (!str) return "";
   return str
     .trim()
-    .split(/\s+/)
+    .replace(/[_\s]+/g, " ")
+    .split(" ")
     .map((word) => {
       if (!word) return "";
+      if (word.includes("-")) {
+        return word
+          .split("-")
+          .map((part) => (part ? part.charAt(0).toUpperCase() + part.slice(1).toLowerCase() : ""))
+          .join("-");
+      }
       return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
     })
     .join(" ");
