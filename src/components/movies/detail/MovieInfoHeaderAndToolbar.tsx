@@ -154,7 +154,7 @@ export function MovieInfoHeaderAndToolbar({
       {/* THANH NÚT TÁC VỤ (ACTION TOOLBAR) - CO GIÃN THÔNG MINH, KHÔNG TRÀN CẮT CHỮ */}
       <div className="mt-3 sm:mt-4 pt-3 border-t border-white/[0.08] w-full min-w-0">
         <div
-          className={`grid ${effectiveTrailerUrl ? "grid-cols-2 min-[400px]:grid-cols-4" : "grid-cols-3"} gap-2 sm:flex sm:items-center sm:gap-2 w-full min-w-0`}
+          className={`grid ${effectiveTrailerUrl ? "grid-cols-2 min-[400px]:grid-cols-4" : "grid-cols-3"} gap-2 sm:flex sm:items-center sm:gap-2.5 w-full min-w-0`}
         >
           {/* Nút Xem Trailer (Dạng nút phụ tinh tế, không lấn át giao diện xem phim chính) */}
           {effectiveTrailerUrl && (
@@ -165,8 +165,10 @@ export function MovieInfoHeaderAndToolbar({
             />
           )}
 
-          {/* Divider desktop */}
-          <div className="h-6 w-px bg-white/10 mx-0.5 flex-shrink-0 hidden sm:block" />
+          {/* Divider desktop giữa Trailer và nhóm tác vụ */}
+          {effectiveTrailerUrl && (
+            <div className="h-6 w-px bg-white/10 mx-0.5 flex-shrink-0 hidden sm:block" />
+          )}
 
           {/* Nút Danh sách yêu thích */}
           <WatchlistButton
@@ -184,10 +186,7 @@ export function MovieInfoHeaderAndToolbar({
             className="w-full sm:w-auto min-h-[40px] sm:min-h-[38px] justify-center rounded-xl"
           />
 
-          {/* Divider desktop */}
-          <div className="h-6 w-px bg-white/10 mx-0.5 flex-shrink-0 hidden sm:block" />
-
-          {/* Cụm tiện ích: Chia sẻ */}
+          {/* Cụm tiện ích: Chia sẻ (nằm liền kề tự nhiên trong hàng nút tác vụ) */}
           <ShareButton
             title={title}
             className="w-full sm:w-auto min-h-[40px] sm:min-h-[38px] justify-center rounded-xl"

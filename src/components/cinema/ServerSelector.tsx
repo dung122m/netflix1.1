@@ -30,13 +30,6 @@ export const ServerSelector: React.FC<ServerSelectorProps> = ({
   // Nếu không có server nào hoặc chỉ có 1 server duy nhất, không cần hiển thị selector chiếm diện tích
   if (!servers || servers.length <= 1) return null;
 
-  // Kiểm tra xem số tập giữa các bản có khác nhau không (nếu các bản đều đủ số tập giống nhau thì ẩn nhãn lặp lại)
-  const counts = servers.map((s) =>
-    "count" in s && s.count !== undefined ? (s as unknown as { count: number }).count : s.server_data?.length
-  );
-  const hasMultipleDifferentCounts =
-    servers.length > 1 && counts.some((c) => c !== undefined && c !== counts[0]);
-
   return (
     <nav className="w-full space-y-1.5" aria-label="Lựa chọn bản phim">
       <div className="flex items-center justify-between gap-2">
@@ -59,7 +52,6 @@ export const ServerSelector: React.FC<ServerSelectorProps> = ({
       >
         {servers.map((s, sIdx) => {
           const isSelected = sIdx === effectiveServerIndex;
-          const count = "count" in s && s.count !== undefined ? (s as unknown as { count: number }).count : s.server_data?.length;
           const displayName = s.server_name || `Bản #${sIdx + 1}`;
 
           return (
@@ -79,15 +71,6 @@ export const ServerSelector: React.FC<ServerSelectorProps> = ({
             >
               <Zap className={`w-3 h-3 ${isSelected ? "text-amber-300" : "text-zinc-400"}`} aria-hidden="true" />
               <span>{displayName}</span>
-              {count !== undefined && count > 0 && hasMultipleDifferentCounts && (
-                <span
-                  className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${
-                    isSelected ? "bg-black/30 text-white" : "bg-white/10 text-zinc-400"
-                  }`}
-                >
-                  {count} tập
-                </span>
-              )}
             </button>
           );
         })}

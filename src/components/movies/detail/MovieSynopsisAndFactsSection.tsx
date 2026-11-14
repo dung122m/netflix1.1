@@ -25,7 +25,7 @@ export function MovieSynopsisAndFactsSection({
   categoryList,
   countryList,
   directorList,
-  actorCount,
+  actorCount: _actorCount,
   castSlot,
 }: MovieSynopsisAndFactsSectionProps) {
   const normalizedOrigin = (originName || "").trim().toLowerCase();
@@ -44,41 +44,17 @@ export function MovieSynopsisAndFactsSection({
     >
       <MovieSynopsis synopsis={description} originName={originName} />
 
-      {/* TÊN GỌI KHÁC (ĐÃ LỌC TRÙNG VÀ BỎ TÊN GỐC ĐÃ HIỂN THỊ) */}
-      {uniqueAltNames.length > 0 && (
-        <div className="mt-4 pt-3.5 border-t border-white/[0.08] flex flex-wrap items-center gap-2 text-xs text-zinc-400">
-          <span className="text-zinc-500 font-semibold text-xs flex-shrink-0">
-            Tên gọi khác:
-          </span>
-          <span className="text-zinc-300 font-medium leading-relaxed">
-            {uniqueAltNames.slice(0, 3).join(" • ")}
-            {uniqueAltNames.length > 3 && (
-              <span className="text-zinc-500 text-[11px] ml-1.5 font-normal">
-                (+{uniqueAltNames.length - 3} tên khác)
-              </span>
-            )}
-          </span>
-        </div>
-      )}
-
-      {/* THỜI GIAN CẬP NHẬT GẦN NHẤT */}
-      {formattedModified && (
-        <div className="mt-2 text-xs text-zinc-400 flex items-center gap-1.5">
-          <Clock className="w-3.5 h-3.5 text-zinc-500" />
-          <span>Cập nhật gần nhất: {formattedModified}</span>
-        </div>
-      )}
-
-      {/* BẢNG THÔNG TIN CHI TIẾT */}
+      {/* KHỐI THÔNG TIN PHIM LIỀN MẠCH (THỂ LOẠI, QUỐC GIA, ĐẠO DIỄN, TÊN GỌI KHÁC, CẬP NHẬT) */}
       {(categoryList.length > 0 ||
         countryList.length > 0 ||
         directorList.length > 0 ||
-        actorCount > 0 ||
+        uniqueAltNames.length > 0 ||
+        formattedModified ||
         castSlot) && (
-        <div className="mt-5 pt-4 border-t border-white/[0.08] space-y-3 text-xs sm:text-sm">
+        <div className="mt-5 rounded-2xl bg-zinc-900/40 p-4 sm:p-5 space-y-3.5 text-xs sm:text-sm">
           {/* THỂ LOẠI */}
           {categoryList.length > 0 && (
-            <div className="flex flex-wrap items-baseline gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <span className="text-zinc-400 font-medium min-w-[75px] flex-shrink-0 text-xs">
                 Thể loại:
               </span>
@@ -92,7 +68,7 @@ export function MovieSynopsisAndFactsSection({
                         ? `/browse?category=${cat.slug}`
                         : `/browse?keyword=${encodeURIComponent(cat.name)}`
                     }
-                    className="inline-flex items-center px-2.5 py-1 rounded-full bg-white/5 hover:bg-white/15 text-zinc-200 hover:text-white text-xs transition"
+                    className="inline-flex items-center px-2.5 py-1 rounded-lg bg-white/[0.06] hover:bg-white/[0.12] text-zinc-200 hover:text-white text-xs font-medium transition cursor-pointer"
                   >
                     {cat.name}
                   </Link>
@@ -103,7 +79,7 @@ export function MovieSynopsisAndFactsSection({
 
           {/* QUỐC GIA */}
           {countryList.length > 0 && (
-            <div className="flex flex-wrap items-baseline gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <span className="text-zinc-400 font-medium min-w-[75px] flex-shrink-0 text-xs">
                 Quốc gia:
               </span>
@@ -117,7 +93,7 @@ export function MovieSynopsisAndFactsSection({
                         ? `/browse?country=${cnt.slug}`
                         : `/browse?keyword=${encodeURIComponent(cnt.name)}`
                     }
-                    className="inline-flex items-center px-2.5 py-1 rounded-full bg-white/5 hover:bg-white/15 text-zinc-200 hover:text-white text-xs transition"
+                    className="inline-flex items-center px-2.5 py-1 rounded-lg bg-white/[0.06] hover:bg-white/[0.12] text-zinc-200 hover:text-white text-xs font-medium transition cursor-pointer"
                   >
                     {cnt.name}
                   </Link>
@@ -128,7 +104,7 @@ export function MovieSynopsisAndFactsSection({
 
           {/* ĐẠO DIỄN */}
           {directorList.length > 0 && (
-            <div className="flex flex-wrap items-baseline gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <span className="text-zinc-400 font-medium min-w-[75px] flex-shrink-0 text-xs">
                 Đạo diễn:
               </span>
@@ -140,9 +116,34 @@ export function MovieSynopsisAndFactsSection({
             </div>
           )}
 
+          {/* TÊN GỌI KHÁC (ĐÃ LỌC TRÙNG VÀ BỎ TÊN GỐC ĐÃ HIỂN THỊ) */}
+          {uniqueAltNames.length > 0 && (
+            <div className="flex flex-wrap items-baseline gap-2 pt-2.5 border-t border-white/[0.04]">
+              <span className="text-zinc-500 font-medium min-w-[75px] flex-shrink-0 text-xs">
+                Tên gọi khác:
+              </span>
+              <span className="text-zinc-300 font-normal leading-relaxed text-xs">
+                {uniqueAltNames.slice(0, 3).join(" • ")}
+                {uniqueAltNames.length > 3 && (
+                  <span className="text-zinc-500 text-[11px] ml-1.5 font-normal">
+                    (+{uniqueAltNames.length - 3} tên khác)
+                  </span>
+                )}
+              </span>
+            </div>
+          )}
+
+          {/* THỜI GIAN CẬP NHẬT GẦN NHẤT */}
+          {formattedModified && (
+            <div className="flex items-center gap-1.5 text-[11px] text-zinc-500">
+              <Clock className="w-3.5 h-3.5 text-zinc-500 flex-shrink-0" />
+              <span>Cập nhật gần nhất: {formattedModified}</span>
+            </div>
+          )}
+
           {/* DIỄN VIÊN & VAI DIỄN */}
           {castSlot && (
-            <div className="pt-3 border-t border-white/[0.08]">{castSlot}</div>
+            <div className="pt-3 border-t border-white/[0.04]">{castSlot}</div>
           )}
         </div>
       )}
