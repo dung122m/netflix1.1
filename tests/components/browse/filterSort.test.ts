@@ -5,10 +5,24 @@ import {
   packSort,
   getSortDisplayLabel,
   SORT_FIELDS,
+  SORT_OPTIONS,
 } from "@/components/browse/filterConstants";
 
-describe("Browse Filter Sort — TMDB/Letterboxd Style Dual Axis Tests", () => {
-  it("1. unpackSort correctly parses all valid sort strings into field and direction", () => {
+describe("Browse Filter Sort — Option 1 Streaming Clean 4-Item Tests", () => {
+  it("1. SORT_OPTIONS contains exactly the 4 Netflix/Apple TV+ core criteria", () => {
+    assert.equal(SORT_OPTIONS.length, 4);
+    assert.deepEqual(
+      SORT_OPTIONS.map((o) => ({ label: o.label, value: o.value })),
+      [
+        { label: "Mới cập nhật", value: "latest" },
+        { label: "Xem nhiều nhất", value: "views" },
+        { label: "Điểm đánh giá cao", value: "rating" },
+        { label: "Năm phát hành mới", value: "year" },
+      ]
+    );
+  });
+
+  it("2. unpackSort correctly parses all valid sort strings into field and direction", () => {
     assert.deepEqual(unpackSort("latest"), { field: "latest", direction: "desc" });
     assert.deepEqual(unpackSort("oldest"), { field: "latest", direction: "asc" });
 
@@ -27,7 +41,7 @@ describe("Browse Filter Sort — TMDB/Letterboxd Style Dual Axis Tests", () => {
     assert.deepEqual(unpackSort("unknown-value"), { field: "latest", direction: "desc" });
   });
 
-  it("2. packSort correctly encodes field and direction into canonical URL query values", () => {
+  it("3. packSort correctly encodes field and direction into canonical URL query values", () => {
     assert.equal(packSort("latest", "desc"), "latest");
     assert.equal(packSort("latest", "asc"), "oldest");
 
@@ -41,7 +55,7 @@ describe("Browse Filter Sort — TMDB/Letterboxd Style Dual Axis Tests", () => {
     assert.equal(packSort("year", "asc"), "year-asc");
   });
 
-  it("3. unpackSort and packSort are symmetric roundtrips", () => {
+  it("4. unpackSort and packSort are symmetric roundtrips", () => {
     const testCases: Array<{ field: "latest" | "views" | "rating" | "year"; direction: "desc" | "asc" }> = [
       { field: "latest", direction: "desc" },
       { field: "latest", direction: "asc" },
@@ -60,25 +74,21 @@ describe("Browse Filter Sort — TMDB/Letterboxd Style Dual Axis Tests", () => {
     }
   });
 
-  it("4. getSortDisplayLabel produces user-friendly labels with direction cues", () => {
+  it("5. getSortDisplayLabel produces user-friendly labels matching SORT_OPTIONS", () => {
     const l1 = getSortDisplayLabel("year");
-    assert.equal(l1.fieldLabel, "Năm phát hành");
-    assert.equal(l1.directionLabel, "Năm mới nhất");
-    assert.equal(l1.direction, "desc");
+    assert.equal(l1.directionLabel, "Năm phát hành mới");
 
-    const l2 = getSortDisplayLabel("year-asc");
-    assert.equal(l2.fieldLabel, "Năm phát hành");
-    assert.equal(l2.directionLabel, "Năm cũ nhất");
-    assert.equal(l2.direction, "asc");
+    const l2 = getSortDisplayLabel("views");
+    assert.equal(l2.directionLabel, "Xem nhiều nhất");
 
-    const l3 = getSortDisplayLabel("views");
-    assert.equal(l3.directionLabel, "Xem nhiều nhất");
+    const l3 = getSortDisplayLabel("rating");
+    assert.equal(l3.directionLabel, "Điểm đánh giá cao");
 
-    const l4 = getSortDisplayLabel("views-asc");
-    assert.equal(l4.directionLabel, "Xem ít nhất");
+    const l4 = getSortDisplayLabel("latest");
+    assert.equal(l4.directionLabel, "Mới cập nhật");
   });
 
-  it("5. SORT_FIELDS contains exactly 4 canonical fields with valid icons and labels", () => {
+  it("6. SORT_FIELDS contains exactly 4 canonical fields with valid icons and labels", () => {
     assert.equal(SORT_FIELDS.length, 4);
     const fields = SORT_FIELDS.map((f) => f.field);
     assert.deepEqual(fields, ["latest", "views", "rating", "year"]);

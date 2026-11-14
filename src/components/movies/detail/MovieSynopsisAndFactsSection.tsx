@@ -28,6 +28,15 @@ export function MovieSynopsisAndFactsSection({
   actorCount,
   castSlot,
 }: MovieSynopsisAndFactsSectionProps) {
+  const normalizedOrigin = (originName || "").trim().toLowerCase();
+  const uniqueAltNames = Array.from(
+    new Set(
+      altNames
+        .map((n) => n?.trim())
+        .filter((n): n is string => Boolean(n && n.toLowerCase() !== normalizedOrigin))
+    )
+  );
+
   return (
     <div
       id="section-info"
@@ -35,17 +44,17 @@ export function MovieSynopsisAndFactsSection({
     >
       <MovieSynopsis synopsis={description} originName={originName} />
 
-      {/* TÊN GỌI KHÁC */}
-      {altNames.length > 0 && (
+      {/* TÊN GỌI KHÁC (ĐÃ LỌC TRÙNG VÀ BỎ TÊN GỐC ĐÃ HIỂN THỊ) */}
+      {uniqueAltNames.length > 0 && (
         <div className="mt-4 pt-3.5 border-t border-white/[0.08] flex flex-wrap items-center gap-2 text-xs text-zinc-400">
           <span className="text-zinc-500 font-semibold text-xs flex-shrink-0">
             Tên gọi khác:
           </span>
           <span className="text-zinc-300 font-medium leading-relaxed">
-            {altNames.slice(0, 3).join(" • ")}
-            {altNames.length > 3 && (
+            {uniqueAltNames.slice(0, 3).join(" • ")}
+            {uniqueAltNames.length > 3 && (
               <span className="text-zinc-500 text-[11px] ml-1.5 font-normal">
-                (+{altNames.length - 3} tên khác)
+                (+{uniqueAltNames.length - 3} tên khác)
               </span>
             )}
           </span>

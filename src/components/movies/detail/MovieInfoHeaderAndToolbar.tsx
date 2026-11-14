@@ -141,7 +141,7 @@ export function MovieInfoHeaderAndToolbar({
         )}
         {isCompleted && (
           <span className="rounded-md bg-emerald-500/15 px-2 py-0.5 text-[11px] font-bold text-emerald-300">
-            Trọn bộ
+            {totalEpNum > 0 ? `Trọn bộ ${totalEpNum} tập` : "Trọn bộ"}
           </span>
         )}
         {viewCount !== undefined && viewCount > 500 && (
@@ -184,8 +184,8 @@ export function MovieInfoHeaderAndToolbar({
             className="w-full sm:w-auto min-h-[40px] sm:min-h-[38px] justify-center rounded-xl"
           />
 
-          {/* Divider đẩy cụm chia sẻ sang phải trên desktop */}
-          <div className="h-6 w-px bg-white/10 mx-0.5 flex-shrink-0 ml-auto hidden sm:block" />
+          {/* Divider desktop */}
+          <div className="h-6 w-px bg-white/10 mx-0.5 flex-shrink-0 hidden sm:block" />
 
           {/* Cụm tiện ích: Chia sẻ */}
           <ShareButton
@@ -195,16 +195,13 @@ export function MovieInfoHeaderAndToolbar({
         </div>
       </div>
 
-      {/* TIẾN ĐỘ PHÁT SÓNG (DÀNH CHO PHIM BỘ) */}
-      {hasProgress && (
+      {/* TIẾN ĐỘ PHÁT SÓNG (DÀNH CHO PHIM BỘ ĐANG CHIẾU) */}
+      {hasProgress && !isCompleted && (
         <div className="mt-3 rounded-2xl bg-zinc-900/60 p-3.5 backdrop-blur-md">
           <div className="flex items-center justify-between text-xs sm:text-sm mb-2">
-            <span className="text-zinc-300 font-medium">
-              {isCompleted ? "Trọn bộ phát hành:" : "Tiến độ phát sóng:"}
-            </span>
+            <span className="text-zinc-300 font-medium">Tiến độ phát sóng:</span>
             <span className="text-white font-bold">
-              {currentEpNum} / {totalEpNum} tập{" "}
-              {isCompleted ? "(Hoàn tất)" : `(${progressPercent}%)`}
+              {currentEpNum} / {totalEpNum} tập ({progressPercent}%)
             </span>
           </div>
           <div className="w-full bg-zinc-800 h-2 rounded-full overflow-hidden">
