@@ -343,12 +343,8 @@ function MatchCardInner({ match, isSelected, onSelect, score, compact }: MatchCa
           }
         }}
         className={`group relative rounded-xl cursor-pointer transition-all duration-150 p-2 sm:p-2.5 flex flex-col gap-1.5 overflow-hidden outline-none select-none scroll-mt-12 ${
-          isSelected && featured.isFeatured
-            ? "bg-gradient-to-r from-netflix-red/15 via-[#1a140a] to-zinc-900/95 ring-1 ring-inset ring-netflix-red/80 shadow-lg shadow-netflix-red/10"
-            : isSelected
+          isSelected
             ? "bg-gradient-to-r from-netflix-red/10 via-zinc-900/95 to-zinc-900/95 ring-1 ring-inset ring-netflix-red/75 shadow-md shadow-black/50"
-            : featured.isFeatured
-            ? "bg-gradient-to-r from-amber-500/[0.14] via-[#1a140a] to-zinc-900/95 hover:from-amber-500/[0.20] ring-1 ring-amber-500/35 hover:ring-amber-500/50 shadow-md shadow-amber-950/20"
             : isConfirmedLive
             ? "bg-zinc-900/80 hover:bg-zinc-800/80 shadow-sm"
             : "bg-zinc-900/55 hover:bg-zinc-800/75 shadow-sm"
@@ -414,13 +410,13 @@ function MatchCardInner({ match, isSelected, onSelect, score, compact }: MatchCa
                 </span>
               )
             )}
-            {/* Huy hiệu Tâm điểm: Luminous Broadcast Capsule */}
+            {/* Huy hiệu Tâm điểm: Frosted Glass Capsule với Netflix Red Flame */}
             {featured.isFeatured && (
               <span
-                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-gradient-to-r from-amber-400 via-amber-500 to-amber-500 text-black text-[9px] font-black uppercase tracking-wider shrink-0 shadow-[0_0_8px_rgba(245,158,11,0.4)] select-none"
+                className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-white/[0.08] text-zinc-300 border border-white/10 text-[9px] font-medium tracking-wide shrink-0 shadow-sm backdrop-blur-md"
                 aria-label={featured.badgeLabel || "Trận cầu tâm điểm"}
               >
-                <Flame size={10} className="text-black fill-black shrink-0 animate-pulse" />
+                <Flame size={9} className="text-netflix-red fill-netflix-red shrink-0" />
                 {!isSelected && <span>{featured.badgeLabel || "Tâm điểm"}</span>}
               </span>
             )}
@@ -461,8 +457,6 @@ function MatchCardInner({ match, isSelected, onSelect, score, compact }: MatchCa
                   className={`text-xs line-clamp-2 leading-tight break-words ${
                     isSelected
                       ? "text-white font-bold"
-                      : featured.isFeatured
-                      ? "text-white font-bold tracking-tight group-hover:text-amber-100"
                       : "text-zinc-200 font-medium group-hover:text-white"
                   }`}
                 >
@@ -499,8 +493,6 @@ function MatchCardInner({ match, isSelected, onSelect, score, compact }: MatchCa
                   className={`text-xs line-clamp-2 leading-tight break-words ${
                     isSelected
                       ? "text-white font-bold"
-                      : featured.isFeatured
-                      ? "text-white font-bold tracking-tight group-hover:text-amber-100"
                       : "text-zinc-200 font-medium group-hover:text-white"
                   }`}
                 >
@@ -516,7 +508,7 @@ function MatchCardInner({ match, isSelected, onSelect, score, compact }: MatchCa
           </div>
         ) : (
           <div className="flex items-center gap-1.5 py-0.5">
-            <span className={`text-xs font-bold truncate flex-1 ${featured.isFeatured ? "text-white group-hover:text-amber-100 transition-colors" : "text-white"}`}>
+            <span className="text-xs font-bold truncate flex-1 text-white">
               {match.title || match.team1}
             </span>
           </div>
@@ -566,40 +558,18 @@ function MatchCardInner({ match, isSelected, onSelect, score, compact }: MatchCa
         }
       }}
       className={`group relative rounded-2xl cursor-pointer transition-all duration-300 flex flex-col justify-between overflow-hidden outline-none select-none ${
-        isSelected && featured.isFeatured
-          ? "bg-gradient-to-b from-[#22180a] via-zinc-900/95 to-zinc-950 ring-2 ring-netflix-red shadow-2xl shadow-black/90"
-          : isSelected
-          ? "bg-gradient-to-b from-zinc-900 via-zinc-900/95 to-zinc-950 ring-2 ring-netflix-red shadow-xl shadow-black/70"
-          : featured.isFeatured
-          ? "bg-gradient-to-b from-[#1c150a] via-zinc-900/95 to-zinc-950 hover:bg-[#231b0c] ring-1 ring-amber-500/40 hover:ring-amber-400/70 shadow-xl shadow-amber-950/30 hover:shadow-2xl hover:shadow-amber-500/15"
+        isSelected
+          ? "bg-gradient-to-b from-zinc-900 via-zinc-900/95 to-zinc-950 ring-2 ring-netflix-red shadow-2xl shadow-black/80"
           : isConfirmedLive
           ? "bg-zinc-900/80 hover:bg-zinc-850/90 shadow-md shadow-black/30"
           : "bg-zinc-900/60 hover:bg-zinc-850/80 shadow-sm"
       }`}
     >
-      {/* Ambient Golden Spotlight cho thẻ tâm điểm - Apple TV+ Sports luxury aesthetic */}
-      {featured.isFeatured && (
-        <>
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute -top-14 inset-x-0 h-44 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-amber-500/[0.25] via-amber-600/[0.08] to-transparent transition-opacity duration-300 group-hover:from-amber-400/[0.32] group-hover:via-amber-500/[0.12]"
-          />
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-52 h-36 bg-amber-500/[0.05] blur-2xl transition-opacity duration-300 group-hover:bg-amber-400/[0.09]"
-          />
-        </>
-      )}
-
-      {/* Top Crown Rim tinh tế */}
+      {/* Top Crown Rim tinh tế khi được chọn */}
       <div
-        className={`absolute top-0 inset-x-0 h-[2.5px] pointer-events-none transition-all duration-300 ${
-          isSelected && featured.isFeatured
-            ? "bg-gradient-to-r from-amber-500/60 via-netflix-red to-amber-500/60 opacity-100 shadow-[0_1px_10px_rgba(245,158,11,0.6)]"
-            : isSelected
+        className={`absolute top-0 inset-x-0 h-[2px] pointer-events-none transition-all duration-300 ${
+          isSelected
             ? "bg-gradient-to-r from-transparent via-netflix-red to-transparent opacity-100"
-            : featured.isFeatured
-            ? "bg-gradient-to-r from-transparent via-amber-400 to-transparent opacity-100 group-hover:opacity-100 shadow-[0_1px_12px_rgba(245,158,11,0.7)]"
             : "opacity-0"
         }`}
       />
@@ -609,14 +579,7 @@ function MatchCardInner({ match, isSelected, onSelect, score, compact }: MatchCa
         <div className="flex items-center justify-between gap-1.5 pb-2 border-b border-white/[0.06] text-xs">
           {/* Tên giải đấu */}
           <div className="flex items-center gap-1.5 min-w-0 flex-1">
-            {featured.isFeatured && (
-              <Trophy className="w-3.5 h-3.5 text-amber-400 shrink-0 drop-shadow-[0_0_6px_rgba(245,158,11,0.5)]" />
-            )}
-            <span
-              className={`transition-colors text-[11px] sm:text-xs truncate ${
-                featured.isFeatured ? "text-amber-200/95 font-bold uppercase tracking-wider group-hover:text-amber-100" : "text-zinc-400 group-hover:text-zinc-300 font-medium"
-              }`}
-            >
+            <span className="text-zinc-400 group-hover:text-zinc-300 font-medium text-[11px] sm:text-xs truncate transition-colors">
               <span className="truncate">{tournamentName}</span>
             </span>
           </div>
@@ -630,14 +593,14 @@ function MatchCardInner({ match, isSelected, onSelect, score, compact }: MatchCa
               </span>
             )}
 
-            {/* Huy hiệu Tâm điểm: Luminous Broadcast Capsule */}
+            {/* Huy hiệu Tâm điểm: Frosted Glass Capsule với Netflix Red Flame */}
             {featured.isFeatured && (
               <span
-                className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-gradient-to-r from-amber-400 via-amber-500 to-amber-500 text-black text-[9.5px] sm:text-[10px] font-black uppercase tracking-wider shadow-[0_0_14px_rgba(245,158,11,0.5)] shrink-0 select-none drop-shadow-sm"
+                className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/[0.08] text-zinc-200 border border-white/10 text-[10px] font-medium tracking-wide shadow-sm backdrop-blur-md shrink-0 select-none"
                 aria-label={featured.badgeLabel || "Trận cầu tâm điểm"}
               >
-                <Flame size={11} className="text-black fill-black shrink-0 animate-pulse" />
-                {!isSelected && <span>{featured.badgeLabel || "TÂM ĐIỂM"}</span>}
+                <Flame size={10} className="text-netflix-red fill-netflix-red shrink-0" />
+                {!isSelected && <span>{featured.badgeLabel || "Tâm điểm"}</span>}
               </span>
             )}
 
@@ -659,15 +622,10 @@ function MatchCardInner({ match, isSelected, onSelect, score, compact }: MatchCa
             {/* CỘT TRÁI: ĐỘI NHÀ */}
             <div className="flex flex-col items-center text-center min-w-0">
               {/* Khu vực Logo cố định chiều cao h-12 (48px) để đồng trục 100% với Score và Logo Đội khách */}
-              <div className="h-12 w-full flex items-center justify-center relative">
-                {featured.isFeatured && (
-                  <div className="absolute inset-0 rounded-full bg-amber-400/[0.08] blur-md pointer-events-none" />
-                )}
-                <div className={`flex items-center justify-center shrink-0 transition-transform duration-300 group-hover:scale-110 filter drop-shadow-[0_4px_10px_rgba(0,0,0,0.6)] ${
-                  featured.isFeatured ? "w-12 h-12 sm:w-13 sm:h-13" : "w-11 h-11 sm:w-12 sm:h-12"
-                }`}>
+              <div className="h-12 w-full flex items-center justify-center">
+                <div className="w-11 h-11 sm:w-12 sm:h-12 flex items-center justify-center shrink-0 transition-transform duration-300 group-hover:scale-110 filter drop-shadow-[0_4px_10px_rgba(0,0,0,0.6)]">
                   {homeFlagEmoji ? (
-                    <CountryFlag emoji={homeFlagEmoji} className={featured.isFeatured ? "w-9 h-9 sm:w-10 sm:h-10" : "w-8 h-8 sm:w-9 sm:h-9"} />
+                    <CountryFlag emoji={homeFlagEmoji} className="w-8 h-8 sm:w-9 sm:h-9" />
                   ) : homeLogoSrc ? (
                     /* eslint-disable-next-line @next/next/no-img-element */
                     <img
@@ -691,8 +649,6 @@ function MatchCardInner({ match, isSelected, onSelect, score, compact }: MatchCa
                   className={`text-xs sm:text-[13px] line-clamp-2 leading-tight transition-colors text-center max-w-[110px] sm:max-w-[130px] md:max-w-[150px] ${
                     isSelected
                       ? "text-white font-black"
-                      : featured.isFeatured
-                      ? "text-white font-black tracking-tight drop-shadow-sm group-hover:text-amber-100"
                       : "text-zinc-200 font-semibold group-hover:text-white"
                   }`}
                   title={displayTeam1}
@@ -711,11 +667,7 @@ function MatchCardInner({ match, isSelected, onSelect, score, compact }: MatchCa
                     {currentScore?.team1Score} - {currentScore?.team2Score}
                   </span>
                 ) : (
-                  <span
-                    className={`font-sans tabular-nums text-xs sm:text-sm font-black tracking-widest select-none ${
-                      featured.isFeatured ? "text-amber-300/85 drop-shadow-[0_0_8px_rgba(245,158,11,0.3)]" : "text-zinc-400"
-                    }`}
-                  >
+                  <span className="font-sans tabular-nums text-xs sm:text-sm font-semibold tracking-wider text-zinc-400 select-none">
                     VS
                   </span>
                 )}
@@ -743,15 +695,9 @@ function MatchCardInner({ match, isSelected, onSelect, score, compact }: MatchCa
                   </span>
                 ) : null}
 
-                {/* Giờ bắt đầu: Trên thẻ tâm điểm bọc trong Frosted Time Capsule */}
+                {/* Giờ bắt đầu */}
                 {kickoffTime && (
-                  <span
-                    className={`font-sans tabular-nums text-[11px] sm:text-xs leading-none ${
-                      featured.isFeatured
-                        ? "px-3 py-1 rounded-full bg-amber-500/15 border border-amber-400/35 text-amber-300 font-bold shadow-sm shadow-amber-500/15 backdrop-blur-sm"
-                        : "font-medium text-zinc-400"
-                    }`}
-                  >
+                  <span className="font-sans tabular-nums text-[11px] sm:text-xs leading-none font-medium text-zinc-400">
                     {kickoffTime}
                   </span>
                 )}
@@ -761,15 +707,10 @@ function MatchCardInner({ match, isSelected, onSelect, score, compact }: MatchCa
             {/* CỘT PHẢI: ĐỘI KHÁCH */}
             <div className="flex flex-col items-center text-center min-w-0">
               {/* Khu vực Logo cố định chiều cao h-12 (48px) đồng trục tuyệt đối */}
-              <div className="h-12 w-full flex items-center justify-center relative">
-                {featured.isFeatured && (
-                  <div className="absolute inset-0 rounded-full bg-amber-400/[0.08] blur-md pointer-events-none" />
-                )}
-                <div className={`flex items-center justify-center shrink-0 transition-transform duration-300 group-hover:scale-110 filter drop-shadow-[0_4px_10px_rgba(0,0,0,0.6)] ${
-                  featured.isFeatured ? "w-12 h-12 sm:w-13 sm:h-13" : "w-11 h-11 sm:w-12 sm:h-12"
-                }`}>
+              <div className="h-12 w-full flex items-center justify-center">
+                <div className="w-11 h-11 sm:w-12 sm:h-12 flex items-center justify-center shrink-0 transition-transform duration-300 group-hover:scale-110 filter drop-shadow-[0_4px_10px_rgba(0,0,0,0.6)]">
                   {awayFlagEmoji ? (
-                    <CountryFlag emoji={awayFlagEmoji} className={featured.isFeatured ? "w-9 h-9 sm:w-10 sm:h-10" : "w-8 h-8 sm:w-9 sm:h-9"} />
+                    <CountryFlag emoji={awayFlagEmoji} className="w-8 h-8 sm:w-9 sm:h-9" />
                   ) : awayLogoSrc ? (
                     /* eslint-disable-next-line @next/next/no-img-element */
                     <img
@@ -793,8 +734,6 @@ function MatchCardInner({ match, isSelected, onSelect, score, compact }: MatchCa
                   className={`text-xs sm:text-[13px] line-clamp-2 leading-tight transition-colors text-center max-w-[110px] sm:max-w-[130px] md:max-w-[150px] ${
                     isSelected
                       ? "text-white font-black"
-                      : featured.isFeatured
-                      ? "text-white font-black tracking-tight drop-shadow-sm group-hover:text-amber-100"
                       : "text-zinc-200 font-semibold group-hover:text-white"
                   }`}
                   title={displayTeam2}
@@ -821,9 +760,7 @@ function MatchCardInner({ match, isSelected, onSelect, score, compact }: MatchCa
                   <Trophy className="w-5 h-5 text-zinc-400" />
                 )}
               </div>
-              <strong className={`text-xs sm:text-[13px] line-clamp-2 flex-1 leading-tight ${
-                featured.isFeatured ? "text-white font-extrabold group-hover:text-amber-100 transition-colors" : "text-white font-bold"
-              }`}>
+              <strong className="text-xs sm:text-[13px] line-clamp-2 flex-1 leading-tight text-white font-bold">
                 {match.title || match.team1}
               </strong>
             </div>
@@ -840,10 +777,8 @@ function MatchCardInner({ match, isSelected, onSelect, score, compact }: MatchCa
         <div className="flex items-center justify-between gap-2 pt-2 text-[11px] text-zinc-400">
           {/* Tên BLV / Nguồn phát bên trái */}
           <div className="flex items-center gap-1.5 min-w-0 flex-1 truncate">
-            <Mic className={`w-3 h-3 shrink-0 ${featured.isFeatured ? "text-amber-400" : "text-zinc-500"}`} />
-            <span className={`transition-colors font-medium truncate ${
-              featured.isFeatured ? "text-amber-200/90 font-semibold group-hover:text-amber-100" : "text-zinc-400 group-hover:text-zinc-300"
-            }`}>
+            <Mic className="w-3 h-3 shrink-0 text-zinc-500" />
+            <span className="text-zinc-400 group-hover:text-zinc-300 transition-colors font-medium truncate">
               {(() => {
                 if (!match.blv) {
                   return /^(?:TV360|FPT Play|VTVcab|SCTV|K\+|HTV|VTV)\b/i.test(primaryGroup)
@@ -867,7 +802,7 @@ function MatchCardInner({ match, isSelected, onSelect, score, compact }: MatchCa
 
           {/* Số lượng nguồn phát & Nút Play bên phải */}
           <div className="flex items-center gap-2 shrink-0">
-            <span className={`text-[11px] font-medium tabular-nums ${featured.isFeatured ? "text-zinc-300" : "text-zinc-400"}`}>
+            <span className="text-[11px] font-medium tabular-nums text-zinc-400">
               {match.servers.length} nguồn
             </span>
 
@@ -876,13 +811,7 @@ function MatchCardInner({ match, isSelected, onSelect, score, compact }: MatchCa
                 <span className="w-2 h-2 rounded-full bg-netflix-red animate-pulse" />
               </span>
             ) : (
-              <div
-                className={`w-6 h-6 rounded-full flex items-center justify-center transition-all shadow-sm ${
-                  featured.isFeatured
-                    ? "bg-amber-500 text-black shadow-md shadow-amber-500/30 group-hover:scale-110 group-hover:bg-amber-400"
-                    : "bg-white/[0.06] group-hover:bg-netflix-red text-zinc-400 group-hover:text-white"
-                }`}
-              >
+              <div className="w-6 h-6 rounded-full flex items-center justify-center transition-all shadow-sm bg-white/[0.06] group-hover:bg-netflix-red text-zinc-400 group-hover:text-white">
                 <Play className="w-2.5 h-2.5 fill-current ml-0.5" />
               </div>
             )}
