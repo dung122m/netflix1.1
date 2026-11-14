@@ -9,6 +9,7 @@ export interface MovieTypeOption {
 
 export interface SortOptionItem {
   label: string;
+  shortLabel?: string;
   value: string;
   icon: LucideIcon;
   color: string;
@@ -134,9 +135,9 @@ export function getSortDisplayLabel(sortValue: string = "latest"): {
  * 4 Tiêu chí cốt lõi tinh gọn chuẩn Netflix / Apple TV+ (Phương án 1)
  */
 export const SORT_OPTIONS: SortOptionItem[] = [
-  { label: "Mới cập nhật", value: "latest", icon: Clock, color: "text-sky-400" },
-  { label: "Xem nhiều nhất", value: "views", icon: Flame, color: "text-orange-500" },
-  { label: "Điểm đánh giá cao", value: "rating", icon: Star, color: "text-amber-400" },
-  { label: "Năm phát hành mới", value: "year", icon: Calendar, color: "text-emerald-400" },
+  { label: "Mới cập nhật", shortLabel: "Mới nhất", value: "latest", icon: Clock, color: "text-sky-400" },
+  { label: "Xem nhiều nhất", shortLabel: "Xem nhiều", value: "views", icon: Flame, color: "text-orange-500" },
+  { label: "Điểm đánh giá cao", shortLabel: "Đánh giá cao", value: "rating", icon: Star, color: "text-amber-400" },
+  { label: "Năm phát hành mới", shortLabel: "Năm mới", value: "year", icon: Calendar, color: "text-emerald-400" },
 ];
 

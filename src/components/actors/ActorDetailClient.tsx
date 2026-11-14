@@ -13,48 +13,12 @@ import {
   Layers,
   Music,
   Trophy,
-  Calendar,
-  Clock,
-  Star,
-  Flame,
 } from "lucide-react";
 import { MovieGrid } from "@/components/movies/MovieGrid";
 import { PaginationControl } from "@/components/ui/PaginationControl";
-import { MovieSortDropdown, SortOption } from "@/components/movies/MovieSortDropdown";
+import { SortDropdown } from "@/components/ui/SortDropdown";
+import { SORT_OPTIONS } from "@/components/browse/filterConstants";
 import { SegmentedTabs } from "@/components/ui/SegmentedTabs";
-
-export type ActorSortKey = "year-desc" | "year-asc" | "rating-desc" | "views-desc";
-
-const ACTOR_SORT_OPTIONS: SortOption<ActorSortKey>[] = [
-  {
-    value: "year-desc",
-    label: "Năm phát hành mới nhất",
-    shortLabel: "Mới nhất",
-    icon: Calendar,
-    color: "text-emerald-400",
-  },
-  {
-    value: "year-asc",
-    label: "Kinh điển / Cũ nhất",
-    shortLabel: "Cũ nhất",
-    icon: Clock,
-    color: "text-sky-400",
-  },
-  {
-    value: "rating-desc",
-    label: "Điểm đánh giá cao",
-    shortLabel: "Đánh giá cao",
-    icon: Star,
-    color: "text-amber-400",
-  },
-  {
-    value: "views-desc",
-    label: "Xem nhiều nhất",
-    shortLabel: "Xem nhiều",
-    icon: Flame,
-    color: "text-orange-500",
-  },
-];
 
 interface ActorDetailClientProps {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -87,7 +51,7 @@ export const ActorDetailClient: React.FC<ActorDetailClientProps> = ({
   actorName,
 }) => {
   const [activeTab, setActiveTab] = useState<"all" | "single" | "series">("all");
-  const [activeSort, setActiveSort] = useState<ActorSortKey>("year-desc");
+  const [activeSort, setActiveSort] = useState<string>("latest");
   const [currentPage, setCurrentPage] = useState(1);
   const [isBioExpanded, setIsBioExpanded] = useState(false);
 
@@ -159,10 +123,16 @@ export const ActorDetailClient: React.FC<ActorDetailClientProps> = ({
       const viewsB =
         parseInt(String(b?.view ?? b?.views ?? b?.view_count ?? 0), 10) || 0;
 
-      if (activeSort === "year-desc") {
-        if (yearB !== yearA) return yearB - yearA;
+      if (activeSort === "views" || activeSort === "views-desc") {
+        if (viewsB !== viewsA) return viewsB - viewsA;
         if (ratingB !== ratingA) return ratingB - ratingA;
-        return viewsB - viewsA;
+        return yearB - yearA;
+      }
+
+      if (activeSort === "rating" || activeSort === "rating-desc") {
+        if (ratingB !== ratingA) return ratingB - ratingA;
+        if (viewsB !== viewsA) return viewsB - viewsA;
+        return yearB - yearA;
       }
 
       if (activeSort === "year-asc") {
@@ -173,19 +143,10 @@ export const ActorDetailClient: React.FC<ActorDetailClientProps> = ({
         return viewsB - viewsA;
       }
 
-      if (activeSort === "rating-desc") {
-        if (ratingB !== ratingA) return ratingB - ratingA;
-        if (yearB !== yearA) return yearB - yearA;
-        return viewsB - viewsA;
-      }
-
-      if (activeSort === "views-desc") {
-        if (viewsB !== viewsA) return viewsB - viewsA;
-        if (yearB !== yearA) return yearB - yearA;
-        return ratingB - ratingA;
-      }
-
-      return 0;
+      // Default: "latest" / "year" / "year-desc" -> Năm mới nhất
+      if (yearB !== yearA) return yearB - yearA;
+      if (ratingB !== ratingA) return ratingB - ratingA;
+      return viewsB - viewsA;
     });
   }, [baseFilteredMovies, activeSort]);
 
@@ -207,7 +168,7 @@ export const ActorDetailClient: React.FC<ActorDetailClientProps> = ({
     setCurrentPage(1);
   };
 
-  const handleSortChange = (newSort: ActorSortKey) => {
+  const handleSortChange = (newSort: string) => {
     setActiveSort(newSort);
     setCurrentPage(1);
   };
@@ -405,12 +366,12 @@ export const ActorDetailClient: React.FC<ActorDetailClientProps> = ({
                 />
               )}
 
-              {/* DROPDOWN SẮP XẾP CHUẨN NETFLIX / APPLE TV+ */}
+              {/* DROPDOWN SẮP XẾP CHUẨN DÙNG CHUNG TOÀN HỆ THỐNG */}
               {movies.length > 1 && (
-                <MovieSortDropdown
+                <SortDropdown
                   value={activeSort}
                   onChange={handleSortChange}
-                  options={ACTOR_SORT_OPTIONS}
+                  options={SORT_OPTIONS}
                 />
               )}
             </div>
