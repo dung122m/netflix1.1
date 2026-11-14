@@ -21,6 +21,7 @@ import {
 import { MovieGrid } from "@/components/movies/MovieGrid";
 import { PaginationControl } from "@/components/ui/PaginationControl";
 import { MovieSortDropdown, SortOption } from "@/components/movies/MovieSortDropdown";
+import { SegmentedTabs } from "@/components/ui/SegmentedTabs";
 
 export type ActorSortKey = "year-desc" | "year-asc" | "rating-desc" | "views-desc";
 
@@ -373,50 +374,35 @@ export const ActorDetailClient: React.FC<ActorDetailClientProps> = ({
             <div className="flex flex-wrap items-center gap-2 sm:gap-2.5 self-start lg:self-auto">
               {/* TABS LỌC LOẠI PHIM (NẾU CÓ CẢ 2 LOẠI) */}
               {(singleMovies.length > 0 || seriesMovies.length > 0) && (
-                <div className="flex items-center gap-1.5 p-1 rounded-xl bg-zinc-900">
-                  <button
-                    type="button"
-                    onClick={() => handleTabChange("all")}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
-                      activeTab === "all"
-                        ? "bg-netflix-red text-white shadow-md"
-                        : "text-zinc-400 hover:text-white"
-                    }`}
-                  >
-                    <Layers className="w-3 h-3" />
-                    <span>Tất cả ({movies.length})</span>
-                  </button>
-
-                  {singleMovies.length > 0 && (
-                    <button
-                      type="button"
-                      onClick={() => handleTabChange("single")}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
-                        activeTab === "single"
-                          ? "bg-netflix-red text-white shadow-md"
-                          : "text-zinc-400 hover:text-white"
-                      }`}
-                    >
-                      <Clapperboard className="w-3 h-3" />
-                      <span>Phim lẻ ({singleMovies.length})</span>
-                    </button>
-                  )}
-
-                  {seriesMovies.length > 0 && (
-                    <button
-                      type="button"
-                      onClick={() => handleTabChange("series")}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
-                        activeTab === "series"
-                          ? "bg-netflix-red text-white shadow-md"
-                          : "text-zinc-400 hover:text-white"
-                      }`}
-                    >
-                      <Tv className="w-3 h-3" />
-                      <span>Phim bộ ({seriesMovies.length})</span>
-                    </button>
-                  )}
-                </div>
+                <SegmentedTabs<"all" | "single" | "series">
+                  variant="contained"
+                  size="sm"
+                  tabs={[
+                    { id: "all", label: "Tất cả", count: movies.length, icon: Layers },
+                    ...(singleMovies.length > 0
+                      ? [
+                          {
+                            id: "single" as const,
+                            label: "Phim lẻ",
+                            count: singleMovies.length,
+                            icon: Clapperboard,
+                          },
+                        ]
+                      : []),
+                    ...(seriesMovies.length > 0
+                      ? [
+                          {
+                            id: "series" as const,
+                            label: "Phim bộ",
+                            count: seriesMovies.length,
+                            icon: Tv,
+                          },
+                        ]
+                      : []),
+                  ]}
+                  activeTab={activeTab}
+                  onChange={handleTabChange}
+                />
               )}
 
               {/* DROPDOWN SẮP XẾP CHUẨN NETFLIX / APPLE TV+ */}

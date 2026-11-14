@@ -47,6 +47,7 @@ import { MyListHistoryTab } from "@/components/my-list/MyListHistoryTab";
 import { MyListCollectionsTab } from "@/components/my-list/MyListCollectionsTab";
 import { MyListCommentsTab } from "@/components/my-list/MyListCommentsTab";
 import { MyListActorsTab } from "@/components/my-list/MyListActorsTab";
+import { SegmentedTabs } from "@/components/ui/SegmentedTabs";
 import {
   getFavoriteActors,
   removeFavoriteActor,
@@ -425,72 +426,48 @@ function MyListContent() {
       />
 
       {/* TAB SELECTOR: Segmented Control thiết kế phẳng trượt mượt trên mobile */}
-      <div className="w-full min-w-0 max-w-full overflow-x-auto scrollbar-none pb-1 no-scrollbar flex items-center gap-2 mb-6 touch-pan-x touch-pan-y">
-        <button
-          type="button"
-          onClick={() => handleTabChange("watchlist")}
-          className={`flex-none shrink-0 flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer whitespace-nowrap active:scale-95 ${
-            activeTab === "watchlist"
-              ? "bg-netflix-red text-white shadow-md shadow-black/50"
-              : "bg-white/[0.04] text-zinc-400 hover:text-white hover:bg-white/10"
-          }`}
-        >
-          <Bookmark className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-netflix-red" />
-          <span>Yêu thích ({mounted ? watchlist.length : 0})</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => handleTabChange("history")}
-          className={`flex-none shrink-0 flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer whitespace-nowrap active:scale-95 ${
-            activeTab === "history"
-              ? "bg-netflix-red text-white shadow-md shadow-black/50"
-              : "bg-white/[0.04] text-zinc-400 hover:text-white hover:bg-white/10"
-          }`}
-        >
-          <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-400" />
-          <span>Lịch sử xem ({mounted ? history.length : 0})</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => handleTabChange("collections")}
-          className={`flex-none shrink-0 flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer whitespace-nowrap active:scale-95 ${
-            activeTab === "collections"
-              ? "bg-netflix-red text-white shadow-md shadow-black/50"
-              : "bg-white/[0.04] text-zinc-400 hover:text-white hover:bg-white/10"
-          }`}
-        >
-          <FolderHeart className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-pink-400" />
-          <span>Bộ sưu tập ({mounted && user ? collections.length : 0})</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => handleTabChange("comments")}
-          className={`flex-none shrink-0 flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer whitespace-nowrap active:scale-95 ${
-            activeTab === "comments"
-              ? "bg-netflix-red text-white shadow-md shadow-black/50"
-              : "bg-white/[0.04] text-zinc-400 hover:text-white hover:bg-white/10"
-          }`}
-        >
-          <MessageSquare className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-netflix-red" />
-          <span>Bình luận ({mounted && user ? userComments.length : 0})</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => handleTabChange("actors")}
-          className={`flex-none shrink-0 flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer whitespace-nowrap active:scale-95 ${
-            activeTab === "actors"
-              ? "bg-netflix-red text-white shadow-md shadow-black/50"
-              : "bg-white/[0.04] text-zinc-400 hover:text-white hover:bg-white/10"
-          }`}
-        >
-          <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-rose-400" />
-          <span>Diễn viên ({mounted ? favoriteActors.length : 0})</span>
-        </button>
-      </div>
+      <SegmentedTabs<MyListTab>
+        tabs={[
+          {
+            id: "watchlist",
+            label: "Yêu thích",
+            icon: Bookmark,
+            iconColor: "text-netflix-red",
+            count: mounted ? watchlist.length : 0,
+          },
+          {
+            id: "history",
+            label: "Lịch sử xem",
+            icon: Clock,
+            iconColor: "text-amber-400",
+            count: mounted ? history.length : 0,
+          },
+          {
+            id: "collections",
+            label: "Bộ sưu tập",
+            icon: FolderHeart,
+            iconColor: "text-pink-400",
+            count: mounted && user ? collections.length : 0,
+          },
+          {
+            id: "comments",
+            label: "Bình luận",
+            icon: MessageSquare,
+            iconColor: "text-netflix-red",
+            count: mounted && user ? userComments.length : 0,
+          },
+          {
+            id: "actors",
+            label: "Diễn viên",
+            icon: Users,
+            iconColor: "text-rose-400",
+            count: mounted ? favoriteActors.length : 0,
+          },
+        ]}
+        activeTab={activeTab}
+        onChange={handleTabChange}
+        className="mb-6"
+      />
 
       {/* NỘI DUNG THEO TAB */}
       {!mounted ? (
