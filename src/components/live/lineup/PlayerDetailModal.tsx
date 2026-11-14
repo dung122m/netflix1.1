@@ -25,6 +25,7 @@ import {
 import { translatePosition, translateStatName } from "./lineupTranslators";
 import { YellowCardIcon, RedCardIcon } from "./PitchEventIcons";
 import { DualPlayerEventSummary } from "./dualPitchMath";
+import { BaseModal } from "@/components/ui/BaseModal";
 
 /**
  * Modal hiển thị thông tin chi tiết cầu thủ chuẩn các web thể thao lớn (FotMob, SofaScore, Flashscore):
@@ -106,16 +107,15 @@ export function PlayerDetailModal({
   );
 
   return (
-    <div
-      onClick={onClose}
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/80 backdrop-blur-md animate-in fade-in duration-200 cursor-pointer"
+    <BaseModal
+      isOpen={true}
+      onClose={onClose}
+      size="5xl"
+      bodyClassName="p-5 sm:p-6 space-y-4 max-h-[85vh] overflow-y-auto"
+      showCloseButton={false}
     >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        className="relative w-full max-w-5xl rounded-3xl bg-zinc-950/95 backdrop-blur-2xl shadow-[0_24px_70px_rgba(0,0,0,0.85)] p-5 sm:p-6 cursor-default space-y-4"
-      >
-        {/* THANH HEADER NGANG: TÊN CẦU THỦ, SỐ ÁO, CLB & NÚT ĐÓNG */}
-        <div className="flex items-center justify-between pb-3">
+      {/* THANH HEADER NGANG: TÊN CẦU THỦ, SỐ ÁO, CLB & NÚT ĐÓNG */}
+      <div className="flex items-center justify-between pb-3">
           <div className="flex items-center gap-3 min-w-0">
             <span
               className={`w-3 h-3 rounded-full shrink-0 shadow-sm ${
@@ -414,8 +414,7 @@ export function PlayerDetailModal({
             </button>
           </div>
         </div>
-      </div>
-    </div>
+    </BaseModal>
   );
 }
 

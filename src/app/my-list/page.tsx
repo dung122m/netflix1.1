@@ -47,6 +47,7 @@ import { MyListCommentsTab } from "@/components/my-list/MyListCommentsTab";
 import { MyListActorsTab } from "@/components/my-list/MyListActorsTab";
 import { SegmentedTabs } from "@/components/ui/SegmentedTabs";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { GridSkeleton } from "@/components/ui/GridSkeleton";
 import {
   getFavoriteActors,
   removeFavoriteActor,
@@ -463,14 +464,11 @@ function MyListContent() {
 
       {/* NỘI DUNG THEO TAB */}
       {!mounted ? (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4 md:gap-4 lg:gap-5 xl:gap-6">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <div
-              key={i}
-              className="aspect-video w-full rounded-xl bg-zinc-900/60 animate-pulse"
-            />
-          ))}
-        </div>
+        <GridSkeleton
+          count={10}
+          columnsClassName="grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4 md:gap-4 lg:gap-5 xl:gap-6"
+          rounded="2xl"
+        />
       ) : activeTab === "watchlist" ? (
         <MyListWatchlistTab watchlist={watchlist} onRemove={handleRemoveWatchlistItem} />
       ) : activeTab === "history" ? (

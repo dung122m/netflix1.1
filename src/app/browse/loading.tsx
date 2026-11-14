@@ -1,4 +1,5 @@
 import React from "react";
+import { GridSkeleton } from "@/components/ui/GridSkeleton";
 
 export default function BrowseLoading() {
   return (
@@ -33,19 +34,8 @@ export default function BrowseLoading() {
         </div>
 
         {/* MOVIE GRID SKELETON (24 CARDS) */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3 sm:gap-4 md:gap-4 lg:gap-5 xl:gap-5 p-2 sm:p-4 md:p-5 lg:p-6 rounded-2xl sm:rounded-3xl bg-zinc-950/40">
-          {Array.from({ length: 24 }).map((_, i) => (
-            <div
-              key={i}
-              className="aspect-[2/3] rounded-xl sm:rounded-2xl bg-zinc-900/80 relative overflow-hidden"
-            >
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
-              <div className="absolute bottom-3 left-3 right-3 space-y-2">
-                <div className="h-4 w-3/4 bg-white/20 rounded" />
-                <div className="h-3 w-1/2 bg-white/10 rounded" />
-              </div>
-            </div>
-          ))}
+        <div className="p-2 sm:p-4 md:p-5 lg:p-6 rounded-2xl sm:rounded-3xl bg-zinc-950/40">
+          <GridSkeleton count={24} />
         </div>
       </div>
     </div>

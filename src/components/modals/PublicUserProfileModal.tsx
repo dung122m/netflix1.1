@@ -1,9 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { createPortal } from "react-dom";
 import {
-  X,
   User,
   Clock,
   Award,
@@ -24,9 +22,9 @@ import { UserProfile } from "@/types/user";
 import { MovieCollection } from "@/types/collection";
 import { toast } from "@/components/ui/Toast";
 import { UserAvatar } from "@/components/ui/UserAvatar";
-import { useBodyScrollLock } from "@/lib/scrollLock";
 import { Tooltip } from "@/components/ui/Tooltip";
 import Link from "next/link";
+import { BaseModal } from "@/components/ui/BaseModal";
 
 export interface PublicProfileDetail {
   userId: string;
@@ -129,8 +127,6 @@ export function PublicUserProfileModal({ initialDetail }: PublicUserProfileModal
     };
   }, [isOpen, targetUserId]);
 
-  useBodyScrollLock(isOpen);
-
   if (!isOpen || !mounted || !profile) return null;
 
   const watchMins = profile.watchTimeMinutes || 0;
@@ -148,41 +144,29 @@ export function PublicUserProfileModal({ initialDetail }: PublicUserProfileModal
     }
   };
 
-  return createPortal(
-    <div
-      onClick={() => setIsOpen(false)}
-      className="fixed inset-0 z-[99999] flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-200 select-none"
+  return (
+    <BaseModal
+      isOpen={isOpen}
+      onClose={() => setIsOpen(false)}
+      size="xl"
+      bodyClassName="p-4 sm:p-6 space-y-4 sm:space-y-5"
     >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        className="relative w-full max-w-md sm:max-w-xl max-h-[92dvh] overflow-y-auto rounded-3xl bg-[#0c0c0e]/95 shadow-[0_25px_70px_rgba(0,0,0,0.95)] backdrop-blur-2xl p-4 sm:p-6 space-y-4 sm:space-y-5 scrollbar-thin transform-gpu will-change-[transform,opacity] animate-in zoom-in-95 duration-200 my-auto text-white"
-      >
-        {/* NÚT ĐÓNG & CHIA SẺ TRÊN GÓC */}
-        <div className="absolute top-3.5 right-3.5 sm:top-5 sm:right-5 flex items-center gap-1.5 z-20">
-          <Tooltip content="Sao chép link hồ sơ" side="bottom">
-            <button
-              type="button"
-              onClick={handleCopyProfile}
-              aria-label="Sao chép link hồ sơ"
-              className="p-2 rounded-full bg-white/5 hover:bg-white/15 text-zinc-400 hover:text-white transition backdrop-blur-md cursor-pointer active:scale-95 flex-shrink-0"
-            >
-              {copiedLink ? <Check className="w-4 h-4 text-emerald-400" /> : <Share2 className="w-4 h-4" />}
-            </button>
-          </Tooltip>
-          <Tooltip content="Đóng" side="bottom">
-            <button
-              type="button"
-              onClick={() => setIsOpen(false)}
-              aria-label="Đóng"
-              className="p-2 rounded-full bg-white/5 hover:bg-white/15 text-zinc-400 hover:text-white transition backdrop-blur-md cursor-pointer active:scale-95 flex-shrink-0"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </Tooltip>
-        </div>
+      {/* NÚT CHIA SẺ TRÊN GÓC (CẠNH NÚT ĐÓNG CỦA BASEMODAL) */}
+      <div className="absolute top-4 right-14 z-20">
+        <Tooltip content="Sao chép link hồ sơ" side="bottom">
+          <button
+            type="button"
+            onClick={handleCopyProfile}
+            aria-label="Sao chép link hồ sơ"
+            className="p-2 rounded-full bg-white/5 hover:bg-white/15 text-zinc-400 hover:text-white transition backdrop-blur-md cursor-pointer active:scale-95 flex-shrink-0"
+          >
+            {copiedLink ? <Check className="w-4 h-4 text-emerald-400" /> : <Share2 className="w-4 h-4" />}
+          </button>
+        </Tooltip>
+      </div>
 
-        {/* PROFILE HEADER */}
-        <div className="relative pt-1 sm:pt-2">
+      {/* PROFILE HEADER */}
+      <div className="relative pt-1 sm:pt-2">
           <div className="flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left gap-4 sm:gap-5 px-1 sm:px-0">
             {/* AVATAR TRÒN & HUY HIỆU CẤP ĐỘ */}
             <div className="relative flex-shrink-0 mx-auto sm:mx-0">
@@ -435,9 +419,7 @@ export function PublicUserProfileModal({ initialDetail }: PublicUserProfileModal
             </div>
           )}
         </div>
-      </div>
-    </div>,
-    document.body
+    </BaseModal>
   );
 }
 

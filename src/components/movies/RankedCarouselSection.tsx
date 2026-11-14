@@ -6,6 +6,7 @@ import { CarouselNavButton } from "@/components/ui/CarouselNavButton";
 import { NumberedRankCard } from "@/components/movies/NumberedRankCard";
 import { useCarouselScroll } from "@/components/ui/useCarouselScroll";
 import { MOVIE_CARD_TOKENS } from "@/lib/cardDimensions";
+import { MovieCardSkeleton } from "@/components/ui/MovieCardSkeleton";
 
 export interface RankedMovieData {
   slug: string;
@@ -137,10 +138,8 @@ export const RankedCarouselSection: React.FC<RankedCarouselSectionProps> = React
                   className="flex-none flex items-start"
                 >
                   <div className={`${MOVIE_CARD_TOKENS.ranked.numberCol} shrink-0`} />
-                  <div className={`${MOVIE_CARD_TOKENS.ranked.posterWidth} flex flex-col gap-2 shrink-0`}>
-                    <div className="aspect-[2/3] rounded-xl bg-zinc-900/80 animate-pulse" />
-                    <div className="h-4 bg-zinc-900/80 rounded animate-pulse w-3/4" />
-                    <div className="h-3 bg-zinc-900/60 rounded animate-pulse w-1/2" />
+                  <div className={`${MOVIE_CARD_TOKENS.ranked.posterWidth} shrink-0`}>
+                    <MovieCardSkeleton aspect="poster" rounded="xl" />
                   </div>
                 </div>
               ))

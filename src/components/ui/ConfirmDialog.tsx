@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
-import { Trash2, AlertTriangle, HelpCircle, X } from "lucide-react";
-import { useBodyScrollLock } from "@/lib/scrollLock";
+import { Trash2, AlertTriangle, HelpCircle } from "lucide-react";
+import { BaseModal } from "./BaseModal";
 
 export type ConfirmVariant = "danger" | "warning" | "info";
 
@@ -68,8 +68,6 @@ export const GlobalConfirmDialog: React.FC = () => {
     message: "",
   });
 
-  useBodyScrollLock(dialog.isOpen);
-
   const resolveRef = useRef<((confirmed: boolean) => void) | undefined>(undefined);
 
   const handleClose = useCallback((confirmed: boolean) => {
@@ -119,10 +117,7 @@ export const GlobalConfirmDialog: React.FC = () => {
     if (!dialog.isOpen) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        e.preventDefault();
-        handleClose(false);
-      } else if (e.key === "Enter") {
+      if (e.key === "Enter") {
         e.preventDefault();
         handleClose(true);
       }
@@ -135,56 +130,31 @@ export const GlobalConfirmDialog: React.FC = () => {
   if (!dialog.isOpen) return null;
 
   const variant = dialog.variant || "danger";
+  const iconNode =
+    variant === "danger" ? (
+      <div className="w-10 h-10 rounded-2xl bg-rose-500/20 text-rose-400 flex items-center justify-center shadow-lg">
+        <Trash2 className="w-5 h-5" />
+      </div>
+    ) : variant === "warning" ? (
+      <div className="w-10 h-10 rounded-2xl bg-amber-500/20 text-amber-400 flex items-center justify-center shadow-lg">
+        <AlertTriangle className="w-5 h-5" />
+      </div>
+    ) : (
+      <div className="w-10 h-10 rounded-2xl bg-sky-500/20 text-sky-400 flex items-center justify-center shadow-lg">
+        <HelpCircle className="w-5 h-5" />
+      </div>
+    );
 
   return (
-    <div
-      onClick={() => handleClose(false)}
-      className="fixed inset-0 z-[100000] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150"
-    >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        className="relative w-full max-w-sm sm:max-w-md bg-zinc-950 rounded-3xl p-5 sm:p-7 shadow-[0_25px_70px_rgba(0,0,0,0.95)] text-white transform-gpu will-change-[transform,opacity] animate-in zoom-in-95 duration-150 overflow-hidden"
-      >
-        {/* Nút đóng góc phải */}
-        <button
-          type="button"
-          onClick={() => handleClose(false)}
-          className="absolute top-4 right-4 p-1.5 rounded-full text-zinc-400 hover:text-white hover:bg-white/10 transition cursor-pointer z-10"
-        >
-          <X className="w-4 h-4" />
-        </button>
-
-        {/* Header Icon & Tiêu đề */}
-        <div className="flex items-start gap-3.5 mb-4">
-          <div
-            className={`w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-lg ${
-              variant === "danger"
-                ? "bg-rose-500/20 text-rose-400"
-                : variant === "warning"
-                ? "bg-amber-500/20 text-amber-400"
-                : "bg-sky-500/20 text-sky-400"
-            }`}
-          >
-            {variant === "danger" ? (
-              <Trash2 className="w-5 h-5" />
-            ) : variant === "warning" ? (
-              <AlertTriangle className="w-5 h-5" />
-            ) : (
-              <HelpCircle className="w-5 h-5" />
-            )}
-          </div>
-          <div className="pt-0.5">
-            <h3 className="text-base sm:text-lg font-bold text-white leading-snug">
-              {dialog.title || (variant === "danger" ? "Xác nhận xóa" : "Xác nhận hành động")}
-            </h3>
-            <p className="text-xs sm:text-sm text-zinc-300 mt-1.5 leading-relaxed break-words">
-              {dialog.message}
-            </p>
-          </div>
-        </div>
-
-        {/* Nút tác vụ chân modal */}
-        <div className="flex items-center justify-end gap-2.5 mt-6 pt-4 border-t border-white/[0.08]">
+    <BaseModal
+      isOpen={dialog.isOpen}
+      onClose={() => handleClose(false)}
+      size="md"
+      title={dialog.title || (variant === "danger" ? "Xác nhận xóa" : "Xác nhận hành động")}
+      icon={iconNode}
+      bodyClassName="p-4 sm:p-6"
+      footer={
+        <div className="w-full flex items-center justify-end gap-2.5">
           <button
             type="button"
             onClick={() => handleClose(false)}
@@ -206,8 +176,12 @@ export const GlobalConfirmDialog: React.FC = () => {
             {dialog.confirmText || (variant === "danger" ? "Xóa" : "Đồng ý")}
           </button>
         </div>
-      </div>
-    </div>
+      }
+    >
+      <p className="text-xs sm:text-sm text-zinc-300 leading-relaxed break-words">
+        {dialog.message}
+      </p>
+    </BaseModal>
   );
 };
 

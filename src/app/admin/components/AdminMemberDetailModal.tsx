@@ -23,7 +23,7 @@ import { WatchHistoryItem } from "@/lib/watchHistory";
 import { WatchlistItem } from "@/lib/watchlist";
 import { StarRating } from "@/components/MovieReviews/StarRating";
 import { UserAvatar } from "@/components/ui/UserAvatar";
-import { useBodyScrollLock } from "@/lib/scrollLock";
+import { BaseModal } from "@/components/ui/BaseModal";
 
 interface AdminMemberDetailModalProps {
   selectedMember: MemberWithStats | null;
@@ -53,15 +53,18 @@ export const AdminMemberDetailModal: React.FC<AdminMemberDetailModalProps> = Rea
   }) {
     const [memberDetailTab, setMemberDetailTab] = useState<"comments" | "history" | "watchlist">("comments");
 
-    useBodyScrollLock(Boolean(selectedMember));
-
     if (!selectedMember) return null;
 
     return (
-      <div className="fixed inset-0 z-[150] flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
-        <div className="max-w-2xl w-full bg-zinc-950 rounded-3xl p-4 sm:p-6 shadow-2xl space-y-4 sm:space-y-5 max-h-[92dvh] flex flex-col overflow-hidden">
-          {/* Header */}
-          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 pb-3 sm:pb-4 border-b border-white/[0.08] flex-shrink-0">
+      <BaseModal
+        isOpen={Boolean(selectedMember)}
+        onClose={onClose}
+        size="2xl"
+        bodyClassName="p-4 sm:p-6 space-y-4 sm:space-y-5 max-h-[88vh] overflow-y-auto"
+        showCloseButton={false}
+      >
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 pb-3 sm:pb-4 border-b border-white/[0.08] flex-shrink-0">
             <div className="flex items-start justify-between sm:justify-start gap-3 min-w-0 w-full sm:w-auto">
               <UserAvatar
                 src={selectedMember.photoURL || undefined}
@@ -404,8 +407,7 @@ export const AdminMemberDetailModal: React.FC<AdminMemberDetailModalProps> = Rea
               )
             )}
           </div>
-        </div>
-      </div>
+      </BaseModal>
     );
   }
 );

@@ -2,9 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
-import { createPortal } from "react-dom";
 import {
-  X,
   Smartphone,
   Share2,
   PlusSquare,
@@ -15,7 +13,7 @@ import {
   Zap,
   Maximize2,
 } from "lucide-react";
-import { useBodyScrollLock } from "@/lib/scrollLock";
+import { BaseModal } from "@/components/ui/BaseModal";
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -38,13 +36,6 @@ export const InstallPwaModal: React.FC<InstallPwaModalProps> = ({
   const [isStandalone, setIsStandalone] = useState(false);
   const [installSuccess, setInstallSuccess] = useState(false);
   const [showManualGuide, setShowManualGuide] = useState(false);
-  const [mounted, setMounted] = useState(false);
-
-  useBodyScrollLock(isOpen);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -58,298 +49,222 @@ export const InstallPwaModal: React.FC<InstallPwaModalProps> = ({
 
     // Detect iOS & Mobile
     const ua = window.navigator.userAgent;
-    const isIosDevice =
-      /iPad|iPhone|iPod/.test(ua) ||
-      (window.navigator.platform === "MacIntel" && window.navigator.maxTouchPoints > 1);
-    const isMobileDev =
-      /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua) ||
-      window.innerWidth < 768;
-
-    setIsIOS(isIosDevice);
-    setIsMobile(isMobileDev);
-
-    // Check if global prompt already captured
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    if ((window as any).__deferredPwaPrompt) {
+    const isAppleDevice =
+      /iPad|iPhone|iPod/.test(ua) &&
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      setDeferredPrompt((window as any).__deferredPwaPrompt);
-    }
+      !(window as any).MSStream;
+    const isMobileDevice =
+      /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+        ua
+      );
 
-    // Listen for beforeinstallprompt
-    const handleBeforeInstallPrompt = (e: Event) => {
+    setIsIOS(isAppleDevice);
+    setIsMobile(isMobileDevice);
+
+    // Catch Chrome/Edge beforeinstallprompt event
+    const handleBeforeInstall = (e: Event) => {
       e.preventDefault();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (window as any).__deferredPwaPrompt = e;
       setDeferredPrompt(e as BeforeInstallPromptEvent);
     };
 
-    const handlePromptReady = () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      if ((window as any).__deferredPwaPrompt) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        setDeferredPrompt((window as any).__deferredPwaPrompt);
-      }
+    // Catch when app was installed
+    const handleAppInstalled = () => {
+      setInstallSuccess(true);
+      setDeferredPrompt(null);
     };
 
-    window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
-    window.addEventListener("pwa-prompt-ready", handlePromptReady);
+    window.addEventListener("beforeinstallprompt", handleBeforeInstall);
+    window.addEventListener("appinstalled", handleAppInstalled);
 
     return () => {
-      window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
-      window.removeEventListener("pwa-prompt-ready", handlePromptReady);
+      window.removeEventListener("beforeinstallprompt", handleBeforeInstall);
+      window.removeEventListener("appinstalled", handleAppInstalled);
     };
   }, []);
 
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => {
-      window.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [isOpen, onClose]);
-
-  if (!isOpen || !mounted) return null;
-
   const handleInstallClick = async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const promptEvent = deferredPrompt || (window as any).__deferredPwaPrompt;
-
-    if (promptEvent) {
+    if (deferredPrompt) {
       try {
-        await promptEvent.prompt();
-        const choice = await promptEvent.userChoice;
+        await deferredPrompt.prompt();
+        const choice = await deferredPrompt.userChoice;
         if (choice.outcome === "accepted") {
           setInstallSuccess(true);
-          setTimeout(() => {
-            onClose();
-          }, 2500);
         }
         setDeferredPrompt(null);
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (window as any).__deferredPwaPrompt = null;
       } catch (err) {
-        console.warn("Lỗi cài đặt PWA:", err);
-        setShowManualGuide(true);
+        console.error("Install prompt error:", err);
       }
     } else {
-      // Prompt native chưa sẵn sàng -> Hiện hướng dẫn chi tiết đúng theo thiết bị
       setShowManualGuide(true);
     }
   };
 
-  return createPortal(
-    <div
-      onClick={onClose}
-      className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fadeIn"
+  return (
+    <BaseModal
+      isOpen={isOpen}
+      onClose={onClose}
+      size="md"
+      title="Cài Đặt Lên Điện Thoại / PC"
+      subtitle="Xem mượt mà, không quảng cáo, mở 1-click"
+      icon={
+        <div className="relative w-12 h-12 rounded-2xl overflow-hidden shadow-xl shrink-0 bg-gradient-to-br from-netflix-red to-zinc-900 flex items-center justify-center p-1.5">
+          <Image
+            src="/icon-192.png"
+            alt="Nanaflix App"
+            width={48}
+            height={48}
+            className="w-full h-full object-contain rounded-xl drop-shadow"
+          />
+        </div>
+      }
+      bodyClassName="p-4 sm:p-6 space-y-4"
     >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        className="relative w-full max-w-md bg-zinc-950 rounded-3xl p-5 sm:p-6 md:p-8 shadow-[0_25px_70px_rgba(0,0,0,0.95)] overflow-hidden"
-      >
-        {/* Close Button */}
-        <button
-          type="button"
-          onClick={onClose}
-          className="absolute top-4 right-4 p-2 rounded-full text-zinc-400 hover:text-white bg-white/5 hover:bg-white/10 transition-colors cursor-pointer"
-          aria-label="Đóng"
-        >
-          <X className="w-5 h-5" />
-        </button>
-
-        {/* App Icon & Header */}
-        <div className="flex items-center gap-3.5 mb-5">
-          <div className="relative w-14 h-14 sm:w-16 sm:h-16 rounded-2xl overflow-hidden shadow-xl shrink-0 bg-gradient-to-br from-netflix-red to-zinc-900 flex items-center justify-center p-2">
-            <Image
-              src="/icon-192.png"
-              alt="Nanaflix App"
-              width={64}
-              height={64}
-              className="w-full h-full object-contain rounded-xl drop-shadow"
-            />
+      {/* State: Already Installed */}
+      {isStandalone ? (
+        <div className="bg-emerald-950/40 rounded-2xl p-5 text-center">
+          <CheckCircle2 className="w-10 h-10 text-emerald-400 mx-auto mb-2" />
+          <div className="font-bold text-emerald-200 text-sm">
+            Bạn đang dùng ứng dụng Nanaflix!
           </div>
-
-          <div>
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-netflix-red/20 text-white mb-1">
-              <Smartphone className="w-3 h-3" />
-              Ứng Dụng Nanaflix (PWA)
+          <p className="text-xs text-emerald-400/80 mt-1">
+            Ứng dụng đã được cài đặt trên thiết bị của bạn.
+          </p>
+        </div>
+      ) : installSuccess ? (
+        /* State: Install Just Accepted */
+        <div className="bg-emerald-950/40 rounded-2xl p-6 text-center animate-in zoom-in-95 duration-200">
+          <CheckCircle2 className="w-12 h-12 text-emerald-400 mx-auto mb-3" />
+          <div className="font-bold text-white text-base">
+            Cài đặt ứng dụng thành công!
+          </div>
+          <p className="text-xs text-zinc-400 mt-1">
+            Icon Nanaflix đã xuất hiện trên màn hình chính của bạn.
+          </p>
+        </div>
+      ) : isIOS ? (
+        /* iOS Safari Guide */
+        <div className="space-y-4">
+          <div className="bg-zinc-900/70 rounded-2xl p-4 space-y-3 text-xs">
+            <div className="font-semibold text-zinc-200 flex items-center gap-2 text-sm">
+              <Smartphone className="w-4 h-4 text-netflix-red" />
+              Hướng dẫn cài trên iPhone / iPad (Safari):
             </div>
-            <h3 className="text-lg sm:text-xl font-black text-white">Cài Đặt Lên Điện Thoại / PC</h3>
-            <p className="text-xs text-zinc-400">Xem mượt mà, không quảng cáo, mở 1-click</p>
+
+            <div className="flex items-start gap-3">
+              <div className="w-6 h-6 rounded-full bg-netflix-red/20 text-white font-bold flex items-center justify-center shrink-0 tabular-nums">
+                1
+              </div>
+              <div className="text-zinc-300">
+                Nhấn vào nút <strong className="text-white">Chia sẻ</strong>{" "}
+                <Share2 className="inline w-3.5 h-3.5 mx-1 text-sky-400" /> ở
+                thanh công cụ dưới cùng Safari.
+              </div>
+            </div>
+
+            <div className="flex items-start gap-3">
+              <div className="w-6 h-6 rounded-full bg-netflix-red/20 text-white font-bold flex items-center justify-center shrink-0 tabular-nums">
+                2
+              </div>
+              <div className="text-zinc-300">
+                Cuộn xuống và chọn{" "}
+                <strong className="text-white">Thêm vào MH chính</strong>{" "}
+                <PlusSquare className="inline w-3.5 h-3.5 mx-1 text-emerald-400" />{" "}
+                (Add to Home Screen).
+              </div>
+            </div>
+
+            <div className="flex items-start gap-3">
+              <div className="w-6 h-6 rounded-full bg-netflix-red/20 text-white font-bold flex items-center justify-center shrink-0 tabular-nums">
+                3
+              </div>
+              <div className="text-zinc-300">
+                Nhấn <strong className="text-white">Thêm</strong> ở góc trên
+                phải. Mở ứng dụng từ màn hình chính để tận hưởng!
+              </div>
+            </div>
           </div>
         </div>
-
-        {/* State: Already Installed */}
-        {isStandalone ? (
-          <div className="bg-emerald-950/40 rounded-2xl p-5 text-center">
-            <CheckCircle2 className="w-10 h-10 text-emerald-400 mx-auto mb-2" />
-            <div className="font-bold text-emerald-200 text-sm">
-              Bạn đang dùng ứng dụng Nanaflix!
-            </div>
-            <p className="text-xs text-emerald-400/80 mt-1">
-              Ứng dụng đã được cài đặt trên thiết bị của bạn.
-            </p>
-          </div>
-        ) : installSuccess ? (
-          /* State: Install Just Accepted */
-          <div className="bg-emerald-950/40 rounded-2xl p-6 text-center animate-fadeIn">
-            <CheckCircle2 className="w-12 h-12 text-emerald-400 mx-auto mb-3 animate-in zoom-in-95 duration-200" />
-            <div className="font-bold text-white text-base">
-              Cài đặt ứng dụng thành công!
-            </div>
-            <p className="text-xs text-zinc-400 mt-1">
-              Icon Nanaflix đã xuất hiện trên màn hình chính của bạn.
-            </p>
-          </div>
-        ) : isIOS ? (
-          /* iOS Safari Guide */
-          <div className="space-y-4">
-            <div className="bg-zinc-900/70 rounded-2xl p-4 space-y-3 text-xs">
-              <div className="font-semibold text-zinc-200 flex items-center gap-2 text-sm">
-                <Smartphone className="w-4 h-4 text-netflix-red" />
-                Hướng dẫn cài trên iPhone / iPad (Safari):
-              </div>
-
-              <div className="flex items-start gap-3">
-                <div className="w-6 h-6 rounded-full bg-netflix-red/20 text-white font-bold flex items-center justify-center shrink-0 tabular-nums">
-                  1
-                </div>
-                <div className="text-zinc-300">
-                  Nhấn vào nút{" "}
-                  <span className="inline-flex items-center gap-1 font-semibold text-white bg-white/10 px-1.5 py-0.5 rounded">
-                    <Share2 className="w-3.5 h-3.5 text-blue-400 inline" /> Chia sẻ (Share)
-                  </span>{" "}
-                  ở thanh công cụ bên dưới Safari.
-                </div>
-              </div>
-
-              <div className="flex items-start gap-3">
-                <div className="w-6 h-6 rounded-full bg-netflix-red/20 text-white font-bold flex items-center justify-center shrink-0 tabular-nums">
-                  2
-                </div>
-                <div className="text-zinc-300">
-                  Cuộn danh sách xuống và chọn{" "}
-                  <span className="inline-flex items-center gap-1 font-semibold text-white bg-white/10 px-1.5 py-0.5 rounded">
-                    <PlusSquare className="w-3.5 h-3.5 text-amber-400 inline" /> Thêm vào MH chính (Add to Home Screen)
-                  </span>
-                  .
-                </div>
-              </div>
-
-              <div className="flex items-start gap-3">
-                <div className="w-6 h-6 rounded-full bg-netflix-red/20 text-white font-bold flex items-center justify-center shrink-0 tabular-nums">
-                  3
-                </div>
-                <div className="text-zinc-300">
-                  Bấm nút <strong className="text-white">Thêm (Add)</strong> ở góc trên bên phải màn hình.
-                </div>
-              </div>
-            </div>
-
-            <button
-              type="button"
-              onClick={onClose}
-              className="w-full py-3 rounded-xl font-bold text-sm bg-zinc-800 hover:bg-zinc-700 text-white transition-all text-center cursor-pointer"
-            >
-              Đã hiểu, đóng hướng dẫn
-            </button>
-          </div>
-        ) : (
-          /* Android / Windows / Mac Chrome & Edge */
-          <div className="space-y-4">
-            {/* Primary Action Button */}
+      ) : (
+        /* Android & Desktop Chrome / Edge */
+        <div className="space-y-4">
+          {deferredPrompt ? (
             <button
               type="button"
               onClick={handleInstallClick}
-              className="w-full py-3.5 rounded-2xl font-bold text-base bg-netflix-red hover:brightness-110 text-white shadow-xl shadow-black/50 flex items-center justify-center gap-2 transition-all active:scale-95 cursor-pointer"
+              className="w-full py-3.5 px-4 rounded-2xl bg-netflix-red hover:brightness-110 active:brightness-95 text-white font-bold text-sm shadow-lg shadow-netflix-red/30 flex items-center justify-center gap-2 transition cursor-pointer active:scale-98"
             >
-              <Download className="w-5 h-5" />
-              <span>Cài Đặt App Ngay</span>
+              <Download className="w-4 h-4" />
+              <span>Cài Đặt Ngay Bây Giờ (Miễn Phí)</span>
             </button>
+          ) : (
+            <div>
+              <button
+                type="button"
+                onClick={() => setShowManualGuide(!showManualGuide)}
+                className="w-full py-3 px-4 rounded-2xl bg-zinc-900 hover:bg-zinc-800 text-zinc-200 font-semibold text-xs flex items-center justify-center gap-2 transition cursor-pointer"
+              >
+                <Monitor className="w-4 h-4 text-netflix-red" />
+                <span>
+                  {showManualGuide
+                    ? "Ẩn hướng dẫn cài đặt"
+                    : "Hướng dẫn cài đặt thủ công"}
+                </span>
+              </button>
 
-            {/* Device-Specific Visual Guide */}
-            {(showManualGuide || !deferredPrompt) && (
-              <div className="bg-zinc-900/80 rounded-2xl p-4 text-xs space-y-2.5 animate-fadeIn">
-                {isMobile ? (
-                  /* Android Mobile Chrome / Mobile Browser Guide */
-                  <>
-                    <div className="font-semibold text-zinc-200 flex items-center gap-2 text-sm">
-                      <Smartphone className="w-4 h-4 text-netflix-red" />
-                      <span>Hướng dẫn thêm vào màn hình trên Android:</span>
-                    </div>
-
-                    <div className="bg-black/50 p-2.5 rounded-xl flex items-start gap-2.5">
-                      <div className="w-6 h-6 rounded-lg bg-netflix-red/20 text-white flex items-center justify-center font-bold text-xs shrink-0 mt-0.5 tabular-nums">
-                        1
-                      </div>
-                      <p className="text-zinc-300 leading-relaxed">
-                        Bấm vào menu 3 chấm <strong className="text-white inline-flex items-center gap-0.5"><MoreVertical size={13} /> Dấu 3 chấm</strong> ở góc trên bên phải trình duyệt Chrome / Cốc Cốc.
-                      </p>
-                    </div>
-
-                    <div className="bg-black/50 p-2.5 rounded-xl flex items-start gap-2.5">
-                      <div className="w-6 h-6 rounded-lg bg-netflix-red/20 text-white flex items-center justify-center font-bold text-xs shrink-0 mt-0.5 tabular-nums">
-                        2
-                      </div>
-                      <p className="text-zinc-300 leading-relaxed">
-                        Chọn dòng <strong className="text-amber-300">&quot;Thêm vào màn hình chính&quot;</strong> hoặc <strong className="text-emerald-300">&quot;Cài đặt ứng dụng&quot;</strong>.
-                      </p>
-                    </div>
-                  </>
-                ) : (
-                  /* Desktop Browser Guide */
-                  <>
-                    <div className="font-semibold text-zinc-200 flex items-center gap-2 text-sm">
-                      <Monitor className="w-4 h-4 text-netflix-red" />
-                      <span>Hướng dẫn cài trên Chrome / Edge Máy tính:</span>
-                    </div>
-
-                    <div className="bg-black/50 p-2.5 rounded-xl flex items-start gap-2.5">
-                      <div className="w-6 h-6 rounded-lg bg-netflix-red/20 text-white flex items-center justify-center font-bold text-xs shrink-0 mt-0.5 tabular-nums">
-                        1
-                      </div>
-                      <p className="text-zinc-300 leading-relaxed">
-                        Nhìn góc phải thanh địa chỉ (URL), bấm biểu tượng <strong className="text-white">Cài đặt</strong>.
-                      </p>
-                    </div>
-
-                    <div className="bg-black/50 p-2.5 rounded-xl flex items-start gap-2.5">
-                      <div className="w-6 h-6 rounded-lg bg-netflix-red/20 text-white flex items-center justify-center font-bold text-xs shrink-0 mt-0.5 tabular-nums">
-                        2
-                      </div>
-                      <p className="text-zinc-300 leading-relaxed">
-                        Hoặc bấm menu 3 chấm <strong className="text-white">⋮</strong> góc trên bên phải → Chọn <strong className="text-white">&quot;Cài đặt Nanaflix...&quot;</strong>.
-                      </p>
-                    </div>
-                  </>
-                )}
-              </div>
-            )}
-
-            {/* Feature Perks */}
-            <div className="grid grid-cols-2 gap-2 text-xs">
-              <div className="p-2.5 rounded-xl bg-white/5 text-zinc-300">
-                <div className="flex items-center gap-1.5 font-semibold text-white">
-                  <Zap className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                  <span>Mở nhanh 1-chạm</span>
+              {showManualGuide && (
+                <div className="mt-3 bg-zinc-900/70 rounded-2xl p-4 text-xs space-y-2.5 text-zinc-300 animate-in fade-in duration-200">
+                  <div className="font-semibold text-white">
+                    {isMobile ? "Trên Chrome Android:" : "Trên Chrome / Edge (Máy tính):"}
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <span className="text-netflix-red font-bold">1.</span>
+                    <span>
+                      Nhấn vào biểu tượng{" "}
+                      <MoreVertical className="inline w-3.5 h-3.5 mx-0.5 text-zinc-400" />{" "}
+                      (Menu góc trên phải trình duyệt).
+                    </span>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <span className="text-netflix-red font-bold">2.</span>
+                    <span>
+                      Chọn{" "}
+                      <strong className="text-white">
+                        {isMobile
+                          ? "Cài đặt ứng dụng"
+                          : "Cài đặt Nanaflix..."}
+                      </strong>
+                    </span>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <span className="text-netflix-red font-bold">3.</span>
+                    <span>Xác nhận cài đặt để tạo icon ứng dụng.</span>
+                  </div>
                 </div>
-                <p className="text-[11px] text-zinc-500 mt-0.5">Không tốn bộ nhớ máy</p>
+              )}
+            </div>
+          )}
+
+          {/* Feature Perks */}
+          <div className="grid grid-cols-2 gap-2 text-xs">
+            <div className="p-2.5 rounded-xl bg-white/5 text-zinc-300">
+              <div className="flex items-center gap-1.5 font-semibold text-white">
+                <Zap className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                <span>Mở nhanh 1-chạm</span>
               </div>
-              <div className="p-2.5 rounded-xl bg-white/5 text-zinc-300">
-                <div className="flex items-center gap-1.5 font-semibold text-white">
-                  <Maximize2 className="w-3.5 h-3.5 text-netflix-red shrink-0" />
-                  <span>Toàn màn hình</span>
-                </div>
-                <p className="text-[11px] text-zinc-500 mt-0.5">Trải nghiệm như ứng dụng gốc</p>
+              <p className="text-[11px] text-zinc-500 mt-0.5">Không tốn bộ nhớ máy</p>
+            </div>
+            <div className="p-2.5 rounded-xl bg-white/5 text-zinc-300">
+              <div className="flex items-center gap-1.5 font-semibold text-white">
+                <Maximize2 className="w-3.5 h-3.5 text-netflix-red shrink-0" />
+                <span>Toàn màn hình</span>
               </div>
+              <p className="text-[11px] text-zinc-500 mt-0.5">Trải nghiệm như ứng dụng gốc</p>
             </div>
           </div>
-        )}
-      </div>
-    </div>,
-    document.body
+        </div>
+      )}
+    </BaseModal>
   );
 };
+
+export default InstallPwaModal;

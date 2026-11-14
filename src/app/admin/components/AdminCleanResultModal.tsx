@@ -1,8 +1,9 @@
 "use client";
 
 import React from "react";
-import { ShieldAlert, X } from "lucide-react";
+import { ShieldAlert } from "lucide-react";
 import { AutoCleanResult } from "@/services/commentService";
+import { BaseModal } from "@/components/ui/BaseModal";
 
 interface AdminCleanResultModalProps {
   cleanResult: AutoCleanResult | null;
@@ -14,91 +15,66 @@ export const AdminCleanResultModal: React.FC<AdminCleanResultModalProps> = React
     if (!cleanResult) return null;
 
     return (
-      <div className="fixed inset-0 z-[160] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
-        <div className="max-w-2xl w-full bg-zinc-950 rounded-3xl p-4 sm:p-6 shadow-2xl space-y-5 max-h-[85dvh] flex flex-col overflow-hidden">
-          {/* Header */}
-          <div className="flex items-start justify-between gap-4 pb-4 border-b border-white/[0.08] flex-shrink-0">
-            <div className="flex items-center gap-3">
-              <div className="p-3 rounded-2xl bg-red-500/20 text-red-400">
-                <ShieldAlert size={22} />
-              </div>
-              <div>
-                <h2 className="text-base font-bold text-white">
-                  Báo Cáo Tự Động Quét & Xóa Bình Luận Rác
-                </h2>
-                <p className="text-xs text-zinc-400 mt-0.5">
-                  Đã quét <strong className="text-white">{cleanResult.scannedCount}</strong> bình luận • Đã xóa sạch <strong className="text-red-400">{cleanResult.deletedCount}</strong> vi phạm
-                </p>
-              </div>
-            </div>
+      <BaseModal
+        isOpen={Boolean(cleanResult)}
+        onClose={onClose}
+        size="2xl"
+        title="Báo Cáo Tự Động Quét & Xóa Bình Luận Rác"
+        subtitle={
+          <span>
+            Đã quét <strong className="text-white">{cleanResult.scannedCount}</strong> bình luận • Đã xóa sạch{" "}
+            <strong className="text-red-400">{cleanResult.deletedCount}</strong> vi phạm
+          </span>
+        }
+        icon={<ShieldAlert className="w-5 h-5 text-red-400" />}
+        bodyClassName="p-4 sm:p-6 space-y-3 max-h-[70vh] overflow-y-auto"
+        footer={
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-5 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white text-xs font-bold transition cursor-pointer"
+          >
+            Đóng báo cáo
+          </button>
+        }
+      >
+        <p className="text-xs text-zinc-400">
+          Danh sách các bình luận chứa từ ngữ vô văn hóa, tục tĩu hoặc hành vi spam đã được hệ thống tự động xóa vĩnh viễn:
+        </p>
 
-            <button
-              type="button"
-              onClick={onClose}
-              className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white transition cursor-pointer"
+        <div className="space-y-2.5">
+          {cleanResult.deletedItems.map((item, idx) => (
+            <div
+              key={item.id || idx}
+              className="p-3.5 rounded-2xl bg-red-950/20 text-xs space-y-2"
             >
-              <X size={18} />
-            </button>
-          </div>
-
-          {/* Body */}
-          <div className="flex-1 overflow-y-auto pr-1 space-y-3">
-            <p className="text-xs text-zinc-400">
-              Danh sách các bình luận chứa từ ngữ vô văn hóa, tục tĩu hoặc hành vi spam đã được hệ thống tự động xóa vĩnh viễn:
-            </p>
-
-            <div className="space-y-2.5">
-              {cleanResult.deletedItems.map((item, idx) => (
-                <div
-                  key={item.id || idx}
-                  className="p-3.5 rounded-2xl bg-red-950/20 text-xs space-y-2"
-                >
-                  <div className="flex items-center justify-between gap-2 flex-wrap">
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold text-white">{item.userName}</span>
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-red-500/20 text-red-300 font-semibold">
-                        {item.reason}
-                      </span>
-                    </div>
-                    <span className="text-[11px] text-zinc-400 font-sans tabular-nums">
-                      Phim: {item.movieSlug}
-                    </span>
-                  </div>
-
-                  <div className="p-2.5 rounded-xl bg-black/50 text-zinc-200 font-sans">
-                    &ldquo;{item.content}&rdquo;
-                  </div>
-
-                  {item.violations && item.violations.length > 0 && (
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      <span className="text-[10px] text-red-300 font-medium">Từ khóa phát hiện:</span>
-                      {item.violations.map((kw, i) => (
-                        <span
-                          key={i}
-                          className="px-1.5 py-0.5 rounded bg-red-900/60 text-red-200 text-[10px] font-sans tabular-nums"
-                        >
-                          {kw}
-                        </span>
-                      ))}
-                    </div>
-                  )}
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-white">{item.userName}</span>
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-red-500/20 text-red-300 font-semibold">
+                    {item.reason}
+                  </span>
                 </div>
-              ))}
-            </div>
-          </div>
+                <span className="text-[11px] text-zinc-400 font-sans tabular-nums">
+                  Phim: {item.movieSlug}
+                </span>
+              </div>
 
-          {/* Footer */}
-          <div className="pt-3 border-t border-white/[0.08] flex items-center justify-end flex-shrink-0">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-5 py-2.5 rounded-xl bg-netflix-red hover:bg-red-600 text-white text-xs font-bold transition cursor-pointer shadow-md shadow-black/50"
-            >
-              Xác Nhận & Đóng
-            </button>
-          </div>
+              <div className="p-2.5 rounded-xl bg-black/50 text-zinc-200 font-sans">
+                &ldquo;{item.content}&rdquo;
+              </div>
+            </div>
+          ))}
+
+          {cleanResult.deletedItems.length === 0 && (
+            <div className="py-10 text-center text-zinc-400 text-xs">
+              Không phát hiện bình luận vi phạm nào trong đợt quét này.
+            </div>
+          )}
         </div>
-      </div>
+      </BaseModal>
     );
   }
 );
+
+export default AdminCleanResultModal;

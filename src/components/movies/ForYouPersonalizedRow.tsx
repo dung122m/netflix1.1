@@ -14,6 +14,7 @@ import MediaCard from "@/components/browse/MediaCard";
 import { Tooltip } from "@/components/ui/Tooltip";
 import { CarouselNavButton } from "@/components/ui/CarouselNavButton";
 import { useCarouselScroll } from "@/components/ui/useCarouselScroll";
+import { MovieCardSkeleton } from "@/components/ui/MovieCardSkeleton";
 
 export interface ForYouMovieItem {
   slug: string;
@@ -582,8 +583,10 @@ function ForYouPersonalizedRowInner({ fallbackMovies }: ForYouPersonalizedRowPro
           ? Array.from({ length: 6 }).map((_, idx) => (
               <div
                 key={idx}
-                className="flex-none w-[140px] sm:w-[175px] md:w-[190px] aspect-[2/3] rounded-xl bg-zinc-900/80 animate-pulse"
-              />
+                className="flex-none w-[140px] sm:w-[175px] md:w-[190px]"
+              >
+                <MovieCardSkeleton aspect="poster" rounded="xl" />
+              </div>
             ))
           : normalizedMovies.map(({ norm, bestThumb }, idx) => (
               <div

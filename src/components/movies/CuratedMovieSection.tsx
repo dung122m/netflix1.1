@@ -12,6 +12,7 @@ import { normalizeMovie } from "@/lib/movieMedia";
 import { movieApi } from "@/services/movies/service";
 import { ScrollFadeContainer } from "@/components/ui/ScrollFadeContainer";
 import { CarouselNavButton } from "@/components/ui/CarouselNavButton";
+import { MovieCardSkeleton } from "@/components/ui/MovieCardSkeleton";
 import { useCarouselScroll } from "@/components/ui/useCarouselScroll";
 import { SectionHeader } from "@/components/ui/SectionHeader";
 
@@ -267,8 +268,10 @@ export const CuratedMovieSection: React.FC<CuratedMovieSectionProps> = ({
             {Array.from({ length: 7 }).map((_, idx) => (
               <div
                 key={idx}
-                className="flex-none w-[140px] sm:w-[175px] md:w-[190px] aspect-[2/3] rounded-xl sm:rounded-2xl bg-zinc-900/80 animate-pulse"
-              />
+                className="flex-none w-[140px] sm:w-[175px] md:w-[190px]"
+              >
+                <MovieCardSkeleton aspect="poster" rounded="xl" />
+              </div>
             ))}
           </div>
         ) : normalizedMovies.length > 0 ? (

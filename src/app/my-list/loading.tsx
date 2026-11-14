@@ -1,6 +1,7 @@
 import React from "react";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
+import { GridSkeleton } from "@/components/ui/GridSkeleton";
 
 export default function MyListLoading() {
   return (
@@ -24,20 +25,11 @@ export default function MyListLoading() {
         </div>
 
         {/* CARDS SKELETON */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4 md:gap-4 lg:gap-5 xl:gap-6">
-          {Array.from({ length: 8 }).map((_, i) => (
-            <div
-              key={i}
-              className="aspect-[2/3] rounded-2xl bg-zinc-900/80 relative overflow-hidden"
-            >
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
-              <div className="absolute bottom-3 left-3 right-3 space-y-2">
-                <div className="h-4 w-3/4 bg-white/20 rounded" />
-                <div className="h-3 w-1/2 bg-white/10 rounded" />
-              </div>
-            </div>
-          ))}
-        </div>
+        <GridSkeleton
+          count={10}
+          columnsClassName="grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4 md:gap-4 lg:gap-5 xl:gap-6"
+          rounded="2xl"
+        />
       </main>
       <Footer />
     </div>

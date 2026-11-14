@@ -1,14 +1,13 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { createPortal } from "react-dom";
-import { X, Search, Plus, Check, Loader2, Film, AlertCircle, RefreshCw } from "lucide-react";
+import { Search, Plus, Check, Loader2, Film, AlertCircle, RefreshCw, X } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { addMovieToCollection } from "@/services/collectionService";
 import { CollectionMovieItem } from "@/types/collection";
 import { toast } from "@/components/ui/Toast";
-import { useBodyScrollLock } from "@/lib/scrollLock";
 import { toOptimizedCardPosterUrl, toFastCdnImageUrl } from "@/lib/movieMedia";
+import { BaseModal } from "@/components/ui/BaseModal";
 
 interface SearchResultItem {
   slug: string;
@@ -43,15 +42,11 @@ export const AddMovieToCollectionModal: React.FC<AddMovieToCollectionModalProps>
   const [searchError, setSearchError] = useState<string | null>(null);
   const [addingSlug, setAddingSlug] = useState<string | null>(null);
   const [addedSlugs, setAddedSlugs] = useState<Set<string>>(() => new Set(existingMovieSlugs));
-  const [mounted, setMounted] = useState(false);
 
   const inputRef = useRef<HTMLInputElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  useBodyScrollLock(isOpen);
-
   useEffect(() => {
-    setMounted(true);
     return () => {
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
@@ -60,53 +55,30 @@ export const AddMovieToCollectionModal: React.FC<AddMovieToCollectionModalProps>
     };
   }, []);
 
-  // Đồng bộ existingMovieSlugs mỗi khi props thay đổi
-  useEffect(() => {
-    setAddedSlugs(new Set(existingMovieSlugs));
-  }, [existingMovieSlugs]);
-
-  // Autofocus input khi mở modal và cleanup tìm kiếm khi đóng
+  // Đồng bộ lại danh sách các slug đã tồn tại khi props thay đổi hoặc modal mở lại
   useEffect(() => {
     if (isOpen) {
+      setAddedSlugs(new Set(existingMovieSlugs));
+      // Focus vào ô tìm kiếm sau khi modal mở
       setTimeout(() => {
         inputRef.current?.focus();
       }, 100);
     } else {
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-        abortControllerRef.current = null;
-      }
       setSearchTerm("");
       setResults([]);
       setSearchError(null);
-      setIsSearching(false);
     }
-  }, [isOpen]);
+  }, [isOpen, existingMovieSlugs]);
 
   const handleClose = useCallback(() => {
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-      abortControllerRef.current = null;
-    }
+    if (addingSlug) return;
     onClose();
-  }, [onClose]);
+  }, [addingSlug, onClose]);
 
-  // Đóng modal bằng phím Escape
-  useEffect(() => {
-    if (!isOpen) return;
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && !addingSlug) {
-        handleClose();
-      }
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, addingSlug, handleClose]);
-
-  // Hàm tìm kiếm có debounce & AbortController
+  // Hàm gọi API tìm kiếm
   const performSearch = useCallback(async (query: string) => {
     const trimmed = query.trim();
-    if (!trimmed || trimmed.length < 2) {
+    if (!trimmed) {
       setResults([]);
       setIsSearching(false);
       setSearchError(null);
@@ -116,37 +88,48 @@ export const AddMovieToCollectionModal: React.FC<AddMovieToCollectionModalProps>
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
-    const controller = new AbortController();
-    abortControllerRef.current = controller;
+    const abortController = new AbortController();
+    abortControllerRef.current = abortController;
 
     setIsSearching(true);
     setSearchError(null);
 
     try {
-      const res = await fetch(`/api/search-suggest?keyword=${encodeURIComponent(trimmed)}`, {
-        signal: controller.signal,
+      const res = await fetch(`/api/search-suggest?q=${encodeURIComponent(trimmed)}`, {
+        signal: abortController.signal,
       });
 
       if (!res.ok) {
-        throw new Error(`Lỗi máy chủ (${res.status})`);
+        throw new Error("Không thể tìm kiếm phim");
       }
 
       const data = await res.json();
-      if (Array.isArray(data.items)) {
-        setResults(data.items);
-      } else {
-        setResults([]);
+      const items = Array.isArray(data) ? data : data?.results || [];
+
+      // Chuẩn hóa danh sách kết quả
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const formatted: SearchResultItem[] = items.map((m: any) => ({
+        slug: m.slug || "",
+        title: m.title || m.name || "Không rõ tiêu đề",
+        poster: m.poster || m.poster_url || m.thumb_url || "/default-poster.jpg",
+        year: m.year,
+        quality: m.quality,
+        category: m.category || (Array.isArray(m.categories) ? m.categories.join(", ") : undefined),
+      })).filter((m: SearchResultItem) => Boolean(m.slug));
+
+      setResults(formatted);
+      if (formatted.length === 0) {
+        setSearchError(`Không tìm thấy phim phù hợp với "${trimmed}"`);
       }
     } catch (err: unknown) {
       if (err instanceof Error && err.name === "AbortError") {
-        return; // Hủy tìm kiếm cũ bình thường
+        return;
       }
-      console.warn("Lỗi tìm kiếm phim:", err);
-      setSearchError("Không thể tải kết quả tìm kiếm. Vui lòng thử lại!");
-      setResults([]);
+      console.error("[AddMovieToCollectionModal] Search error:", err);
+      setSearchError("Có lỗi xảy ra khi tìm kiếm. Vui lòng thử lại!");
     } finally {
-      if (abortControllerRef.current === controller) {
-        setIsSearching(false);
+      setIsSearching(false);
+      if (abortControllerRef.current === abortController) {
         abortControllerRef.current = null;
       }
     }
@@ -161,8 +144,6 @@ export const AddMovieToCollectionModal: React.FC<AddMovieToCollectionModalProps>
 
     return () => clearTimeout(timer);
   }, [searchTerm, isOpen, performSearch]);
-
-  if (!isOpen || !mounted) return null;
 
   const handleAddMovie = async (movie: SearchResultItem) => {
     if (!user?.uid) {
@@ -199,193 +180,175 @@ export const AddMovieToCollectionModal: React.FC<AddMovieToCollectionModalProps>
         toast.error("Không thể thêm phim vào bộ sưu tập. Vui lòng thử lại!");
       }
     } catch (err) {
-      console.error("Lỗi khi thêm phim:", err);
-      toast.error("Có lỗi xảy ra khi thêm phim.");
+      console.error("[AddMovieToCollectionModal] Add error:", err);
+      toast.error("Có lỗi xảy ra, vui lòng thử lại sau!");
     } finally {
       setAddingSlug(null);
     }
   };
 
-  return createPortal(
-    <div
-      onClick={handleClose}
-      className="fixed inset-0 z-[99999] flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-200 overflow-y-auto overscroll-contain"
+  return (
+    <BaseModal
+      isOpen={isOpen}
+      onClose={handleClose}
+      size="lg"
+      title="Thêm Phim Vào Bộ Sưu Tập"
+      subtitle={
+        <span>
+          Đang thêm vào: <strong className="text-rose-300 font-semibold">{collectionName}</strong>
+        </span>
+      }
+      icon={<Film className="w-5 h-5 text-netflix-red" />}
+      bodyClassName="p-4 sm:p-6 space-y-3"
     >
-      <div
-        className="relative w-full max-w-lg my-auto bg-zinc-950 rounded-3xl p-4 sm:p-6 shadow-[0_25px_70px_rgba(0,0,0,0.95)] text-white animate-in zoom-in-95 duration-200 flex flex-col max-h-[85dvh] overflow-hidden transform-gpu will-change-[transform,opacity]"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Nút đóng */}
+      {/* Thanh tìm kiếm */}
+      <div className="relative flex-shrink-0">
+        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 pointer-events-none" />
+        <input
+          ref={inputRef}
+          type="text"
+          placeholder="Tìm theo tên phim (VD: Mai, Dune, Avatar...)"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="w-full bg-zinc-900 border border-zinc-800 rounded-2xl pl-10 pr-9 py-2.5 text-base sm:text-sm text-white placeholder:text-zinc-500 focus:outline-none focus:border-netflix-red focus:ring-1 focus:ring-netflix-red transition"
+        />
+        {searchTerm && (
+          <button
+            type="button"
+            onClick={() => {
+              setSearchTerm("");
+              setResults([]);
+              inputRef.current?.focus();
+            }}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-white p-0.5 rounded cursor-pointer"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        )}
+      </div>
+
+      {/* Khu vực danh sách kết quả */}
+      <div className="overflow-y-auto space-y-2 py-1 pr-1 scrollbar-none min-h-[220px] max-h-[50vh]">
+        {isSearching ? (
+          <div className="py-14 flex flex-col items-center justify-center gap-2.5 text-zinc-400">
+            <Loader2 className="w-7 h-7 animate-spin text-netflix-red" />
+            <span className="text-xs">Đang tìm phim...</span>
+          </div>
+        ) : searchError ? (
+          <div className="py-12 flex flex-col items-center justify-center text-center px-4">
+            <div className="w-12 h-12 rounded-2xl bg-zinc-900 flex items-center justify-center text-zinc-400 mb-3">
+              <AlertCircle className="w-6 h-6 text-zinc-500" />
+            </div>
+            <p className="text-sm font-medium text-zinc-300 max-w-[280px]">
+              {searchError}
+            </p>
+            <button
+              type="button"
+              onClick={() => performSearch(searchTerm)}
+              className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-xs text-zinc-200 transition cursor-pointer"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              <span>Thử lại</span>
+            </button>
+          </div>
+        ) : !searchTerm.trim() ? (
+          <div className="py-12 flex flex-col items-center justify-center text-center px-4">
+            <div className="w-12 h-12 rounded-2xl bg-zinc-900 flex items-center justify-center text-zinc-500 mb-3">
+              <Search className="w-6 h-6" />
+            </div>
+            <p className="text-sm font-semibold text-zinc-300">
+              Nhập tên phim để tìm kiếm
+            </p>
+            <p className="text-xs text-zinc-400 mt-1 max-w-[280px]">
+              Hệ thống sẽ gợi ý danh sách phim phù hợp từ cơ sở dữ liệu để bạn thêm vào tuyển tập
+            </p>
+          </div>
+        ) : results.length > 0 ? (
+          results.map((item) => {
+            const isAdded = addedSlugs.has(item.slug);
+            const isProcessing = addingSlug === item.slug;
+
+            return (
+              <div
+                key={item.slug}
+                className="flex items-center justify-between p-2.5 sm:p-3 rounded-2xl bg-zinc-900/60 hover:bg-zinc-900 transition gap-3"
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="relative w-11 h-15 rounded-lg overflow-hidden bg-zinc-800 flex-shrink-0">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={toFastCdnImageUrl(toOptimizedCardPosterUrl(item.poster, 192) || "/default-poster.jpg")}
+                      alt={item.title}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xs sm:text-sm font-bold text-white truncate">
+                      {item.title}
+                    </p>
+                    <div className="flex items-center gap-2 text-[11px] text-zinc-400 mt-0.5 flex-wrap">
+                      {item.year && <span>{item.year}</span>}
+                      {item.quality && (
+                        <>
+                          <span>•</span>
+                          <span className="text-[10px] px-1.5 py-0.2 bg-white/10 rounded font-semibold text-zinc-300">
+                            {item.quality}
+                          </span>
+                        </>
+                      )}
+                      {item.category && (
+                        <>
+                          <span>•</span>
+                          <span className="truncate max-w-[140px]">{item.category}</span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex-shrink-0">
+                  {isAdded ? (
+                    <div className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-emerald-500/20 text-emerald-400 text-xs font-semibold">
+                      <Check className="w-3.5 h-3.5" />
+                      <span>Đã có</span>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      disabled={isProcessing}
+                      onClick={() => handleAddMovie(item)}
+                      className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-netflix-red hover:brightness-110 active:brightness-95 disabled:opacity-50 text-white text-xs font-bold transition shadow-md shadow-black/40 cursor-pointer active:scale-95"
+                    >
+                      {isProcessing ? (
+                        <>
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          <span>Đang thêm...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Plus className="w-3.5 h-3.5" />
+                          <span>Thêm</span>
+                        </>
+                      )}
+                    </button>
+                  )}
+                </div>
+              </div>
+            );
+          })
+        ) : null}
+      </div>
+
+      <div className="pt-2 border-t border-white/[0.08] flex items-center justify-end">
         <button
           type="button"
           onClick={handleClose}
-          disabled={Boolean(addingSlug)}
-          className="absolute top-4 right-4 p-1.5 rounded-full text-zinc-400 hover:text-white hover:bg-white/10 transition cursor-pointer z-10 disabled:opacity-50"
+          className="px-4 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white text-xs font-semibold transition cursor-pointer"
         >
-          <X className="w-4 h-4" />
+          Đóng
         </button>
-
-        {/* Header Modal */}
-        <div className="flex items-center gap-3 mb-4 pr-8">
-          <div className="w-10 h-10 rounded-2xl bg-netflix-red/20 text-netflix-red flex items-center justify-center shadow-md shadow-black/40 flex-shrink-0">
-            <Film className="w-5 h-5" />
-          </div>
-          <div className="min-w-0">
-            <h3 className="text-base sm:text-lg font-bold text-white truncate">
-              Thêm Phim Vào Bộ Sưu Tập
-            </h3>
-            <p className="text-xs text-zinc-400 truncate mt-0.5">
-              Đang thêm vào: <span className="text-rose-300 font-medium">{collectionName}</span>
-            </p>
-          </div>
-        </div>
-
-        {/* Thanh tìm kiếm */}
-        <div className="relative mb-3 flex-shrink-0">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 pointer-events-none" />
-          <input
-            ref={inputRef}
-            type="text"
-            placeholder="Tìm theo tên phim (VD: Mai, Dune, Avatar...)"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full bg-zinc-900 border border-zinc-800 rounded-2xl pl-10 pr-9 py-2.5 text-base sm:text-sm text-white placeholder:text-zinc-500 focus:outline-none focus:border-netflix-red focus:ring-1 focus:ring-netflix-red transition"
-          />
-          {searchTerm && (
-            <button
-              type="button"
-              onClick={() => {
-                setSearchTerm("");
-                setResults([]);
-                inputRef.current?.focus();
-              }}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-white p-0.5 rounded cursor-pointer"
-            >
-              <X className="w-3.5 h-3.5" />
-            </button>
-          )}
-        </div>
-
-        {/* Khu vực danh sách kết quả */}
-        <div className="flex-1 overflow-y-auto space-y-2 py-1 pr-1 scrollbar-none min-h-[220px]">
-          {isSearching ? (
-            <div className="py-14 flex flex-col items-center justify-center gap-2 text-zinc-400 text-xs">
-              <Loader2 className="w-6 h-6 animate-spin text-netflix-red" />
-              <span>Đang tìm kiếm phim...</span>
-            </div>
-          ) : searchError ? (
-            <div className="py-12 flex flex-col items-center justify-center text-center px-4">
-              <AlertCircle className="w-8 h-8 text-amber-400 mb-2" />
-              <p className="text-xs text-zinc-300 mb-3">{searchError}</p>
-              <button
-                type="button"
-                onClick={() => performSearch(searchTerm)}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white text-xs font-semibold cursor-pointer transition"
-              >
-                <RefreshCw className="w-3.5 h-3.5" />
-                <span>Thử lại</span>
-              </button>
-            </div>
-          ) : searchTerm.trim().length >= 2 && results.length === 0 ? (
-            <div className="py-12 text-center text-zinc-400 px-4">
-              <Film className="w-8 h-8 text-zinc-600 mx-auto mb-2" />
-              <p className="text-sm font-semibold text-white">Không tìm thấy bộ phim phù hợp</p>
-              <p className="text-xs text-zinc-400 mt-1">
-                Thử tìm với từ khóa khác hoặc viết không dấu
-              </p>
-            </div>
-          ) : results.length > 0 ? (
-            results.map((movie) => {
-              const isAlreadyAdded = addedSlugs.has(movie.slug);
-              const isThisAdding = addingSlug === movie.slug;
-
-              return (
-                <div
-                  key={movie.slug}
-                  className="flex items-center justify-between p-2.5 rounded-2xl bg-zinc-900/60 hover:bg-zinc-900 transition gap-3"
-                >
-                  {/* Poster & Tên phim */}
-                  <div className="flex items-center gap-3 min-w-0 flex-1">
-                    <div className="relative w-11 h-15 rounded-xl overflow-hidden bg-zinc-800 flex-shrink-0">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={toFastCdnImageUrl(toOptimizedCardPosterUrl(movie.poster, 192) || "/default-poster.jpg")}
-                        alt={movie.title}
-                        className="w-full h-full object-cover"
-                        loading="lazy"
-                      />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-xs sm:text-sm font-bold text-white truncate">
-                        {movie.title}
-                      </p>
-                      <div className="flex items-center gap-1.5 text-[11px] text-zinc-400 mt-0.5 flex-wrap">
-                        {movie.year && <span>{movie.year}</span>}
-                        {movie.year && movie.quality && <span>•</span>}
-                        {movie.quality && (
-                          <span className="px-1.5 py-0.5 rounded bg-white/10 text-zinc-200 text-[10px]">
-                            {movie.quality}
-                          </span>
-                        )}
-                        {movie.category && <span>• {movie.category}</span>}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Nút hành động */}
-                  <div className="flex-shrink-0">
-                    {isThisAdding ? (
-                      <div className="w-8 h-8 flex items-center justify-center">
-                        <Loader2 className="w-4 h-4 animate-spin text-netflix-red" />
-                      </div>
-                    ) : isAlreadyAdded ? (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-emerald-500/20 text-emerald-400 text-xs font-semibold">
-                        <Check className="w-3.5 h-3.5" />
-                        <span>Đã có</span>
-                      </span>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => handleAddMovie(movie)}
-                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-netflix-red hover:bg-rose-700 active:scale-95 text-white text-xs font-bold transition shadow-md shadow-black/50 cursor-pointer"
-                      >
-                        <Plus className="w-3.5 h-3.5" />
-                        <span>Thêm</span>
-                      </button>
-                    )}
-                  </div>
-                </div>
-              );
-            })
-          ) : (
-            <div className="py-12 text-center text-zinc-400 px-4">
-              <Search className="w-8 h-8 text-zinc-600 mx-auto mb-2" />
-              <p className="text-xs sm:text-sm font-medium text-zinc-300">
-                Nhập tên phim vào thanh tìm kiếm phía trên
-              </p>
-              <p className="text-[11px] text-zinc-500 mt-1">
-                Hàng ngàn bộ phim bom tấn đang sẵn sàng để bạn thêm vào bộ sưu tập
-              </p>
-            </div>
-          )}
-        </div>
-
-        {/* Footer */}
-        <div className="pt-3 mt-2 border-t border-white/[0.08] flex items-center justify-between">
-          <span className="text-[11px] text-zinc-400">
-            {results.length > 0 ? `Tìm thấy ${results.length} kết quả` : ""}
-          </span>
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-4 py-1.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white text-xs font-semibold transition cursor-pointer"
-          >
-            Đóng
-          </button>
-        </div>
       </div>
-    </div>,
-    document.body
+    </BaseModal>
   );
 };
 
