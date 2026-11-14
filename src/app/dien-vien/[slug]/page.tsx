@@ -395,7 +395,46 @@ export default async function ActorDetailPage({ params }: PageProps) {
     actorSynonyms?.country ||
     matchedPreset?.country ||
     "";
-  const englishName = historicalItem?.englishName || actorSynonyms?.englishName || tmdbDetail?.name;
+  // Xác định Tên quốc tế chuẩn mực (International Name)
+  // Ưu tiên 1: Tên quốc tế chính thức từ TMDb Person API (ví dụ: "Sammo Hung", "Huang Zitao", "Jackie Chan")
+  // Ưu tiên 2: Tên quốc tế đã duyệt trong historicalArtists (historicalItem.englishName)
+  // Ưu tiên 3: Tên bí danh quốc tế trong actorSynonyms
+  const resolveEnglishName = () => {
+    // Nghệ sĩ Việt Nam không sử dụng trường "Tên quốc tế"
+    if (country && country.includes("Việt Nam")) {
+      return undefined;
+    }
+
+    const normCanonical = normalizeForMatch(canonicalName);
+    const hasVietnameseDiacritics = (str: string) =>
+      /[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/i.test(str);
+
+    const isValidInternationalName = (candidate?: string | null) => {
+      if (!candidate || !candidate.trim()) return false;
+      // Không được chứa dấu tiếng Việt (vì là tên quốc tế Latin/English/Pinyin)
+      if (hasVietnameseDiacritics(candidate)) return false;
+      const normCandidate = normalizeForMatch(candidate);
+      // Không được trùng với tên canonical bỏ dấu (tránh "hong kim bao", "hoang tu thao")
+      if (normCandidate === normCanonical) return false;
+      return true;
+    };
+
+    if (tmdbDetail?.name && isValidInternationalName(tmdbDetail.name)) {
+      return toVietnameseTitleCase(tmdbDetail.name);
+    }
+
+    if (historicalItem?.englishName && isValidInternationalName(historicalItem.englishName)) {
+      return toVietnameseTitleCase(historicalItem.englishName);
+    }
+
+    if (actorSynonyms?.englishName && isValidInternationalName(actorSynonyms.englishName)) {
+      return toVietnameseTitleCase(actorSynonyms.englishName);
+    }
+
+    return undefined;
+  };
+
+  const englishName = resolveEnglishName();
 
   const formatProfileUrl = (path?: string | null) => {
     if (!path) return undefined;
@@ -501,7 +540,7 @@ export default async function ActorDetailPage({ params }: PageProps) {
                   <h1 className="text-2xl sm:text-4xl md:text-5xl font-black text-white tracking-tight leading-tight">
                     {canonicalName}
                   </h1>
-                  {englishName && englishName !== canonicalName && (
+                  {englishName && normalizeForMatch(englishName) !== normalizeForMatch(canonicalName) && (
                     <p className="text-sm sm:text-base text-zinc-400 font-medium">
                       Tên quốc tế: <span className="text-zinc-200">{englishName}</span>
                     </p>

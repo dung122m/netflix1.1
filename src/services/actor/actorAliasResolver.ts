@@ -177,9 +177,16 @@ export function getActorSynonyms(query: string): ActorSynonymResult {
       ].filter(Boolean))
     );
 
-    const englishName = allVariants.find(
-      (a) => !/[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/i.test(a) && a.includes(" ")
-    ) || canonicalDirect;
+    const normCanonical = normalizeForMatch(canonicalDirect);
+    const genuineEnglishAlias = allVariants.find(
+      (a) =>
+        !/[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/i.test(a) &&
+        normalizeForMatch(a) !== normCanonical &&
+        a.includes(" ") &&
+        !/\d/.test(a)
+    );
+
+    const englishName = genuineEnglishAlias ? toVietnameseTitleCase(genuineEnglishAlias) : undefined;
 
     const slug = normalizeForMatch(canonicalDirect).replace(/\s+/g, "-");
 

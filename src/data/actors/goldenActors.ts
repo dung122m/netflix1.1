@@ -233,6 +233,11 @@ export const GOLDEN_ACTOR_INDEX: ActorProfile[] = [
     country: "Hồng Kông 🇭🇰",
   },
   {
+    name: "Hồng Kim Bảo",
+    aliases: ["hong kim bao", "sammo hung", "hung kam-bo", "hung kam bo"],
+    country: "Hồng Kông 🇭🇰",
+  },
+  {
     name: "Dương Tử",
     aliases: ["duong tu", "yang zi"],
     country: "Trung Quốc 🇨🇳",
@@ -488,6 +493,10 @@ export const ACTOR_CANONICAL_MAP: Record<string, string> = {
   "hoang tu thao": "Hoàng Tử Thao",
   "huang zitao": "Hoàng Tử Thao",
   "zitao": "Hoàng Tử Thao",
+  "hồng kim bảo": "Hồng Kim Bảo",
+  "hong kim bao": "Hồng Kim Bảo",
+  "sammo hung": "Hồng Kim Bảo",
+  "hung kam bo": "Hồng Kim Bảo",
 
   // Hàn Quốc, Nhật Bản, Thái Lan
   "song joong ki": "Song Joong-ki",
