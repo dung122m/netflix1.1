@@ -316,7 +316,7 @@ export async function getActorFilmographyFromTmdb(
   const cleanKey = cleanStringForMatch(actorQuery) || cleanStringForMatch(canonicalName);
   if (!cleanKey && !tmdbPersonId) return [];
 
-  const cacheKey = `TMDB_ACTOR_FLOW_V7:${tmdbPersonId || cleanKey}`;
+  const cacheKey = `TMDB_ACTOR_FLOW_V8:${tmdbPersonId || cleanKey}`;
   const now = Date.now();
   const cached = TMDB_ACTOR_MOVIES_CACHE.get(cacheKey);
 
@@ -430,7 +430,7 @@ export async function getDirectorFilmographyFromTmdb(
   const cleanKey = cleanStringForMatch(directorQuery);
   if (!cleanKey && !tmdbPersonId) return [];
 
-  const cacheKey = `TMDB_DIR_FLOW_V2:${tmdbPersonId || cleanKey}`;
+  const cacheKey = `TMDB_DIR_FLOW_V3:${tmdbPersonId || cleanKey}`;
   const now = Date.now();
   const cached = TMDB_ACTOR_MOVIES_CACHE.get(cacheKey);
 
@@ -440,7 +440,7 @@ export async function getDirectorFilmographyFromTmdb(
     }
   }
 
-  const kvKey = `tmdb:dir_flow_v2:${tmdbPersonId || cleanKey}:${maxMovies}`;
+  const kvKey = `tmdb:dir_flow_v3:${tmdbPersonId || cleanKey}:${maxMovies}`;
   return await cacheService.fetchOrSet(
     kvKey,
     async () => {

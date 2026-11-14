@@ -52,7 +52,9 @@ function getMovieRating(movie: any): number {
     movie.vote_average ??
     movie.tmdb_vote_average ??
     movie.imdb_score ??
-    movie.vote;
+    movie.imdb?.vote_average ??
+    movie.vote ??
+    movie.rate;
   const num = parseFloat(String(val));
   return isNaN(num) ? 0 : num;
 }
@@ -60,11 +62,11 @@ function getMovieRating(movie: any): number {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function getMovieViews(movie: any): number {
   if (!movie) return 0;
-  const viewVal = movie.view ?? movie.views ?? movie.view_count;
+  const viewVal = movie.view ?? movie.views ?? movie.view_count ?? movie.total_views;
   const numView = parseFloat(String(viewVal));
   if (!isNaN(numView) && numView > 0) return numView;
 
-  const voteCountVal = movie.tmdb?.vote_count ?? movie.vote_count;
+  const voteCountVal = movie.tmdb?.vote_count ?? movie.vote_count ?? movie.imdb?.vote_count;
   const numVoteCount = parseFloat(String(voteCountVal));
   if (!isNaN(numVoteCount) && numVoteCount > 0) return numVoteCount;
 
