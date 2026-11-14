@@ -52,8 +52,14 @@ function parseActorIdentifier(slug: string): {
   personId?: number;
   rawName: string;
 } {
+  let decoded = (slug || "").trim();
+  try {
+    decoded = decodeURIComponent(decoded);
+  } catch {
+    // fallback if malformed
+  }
   let personId: number | undefined = undefined;
-  let cleanSlug = (slug || "").trim();
+  let cleanSlug = decoded;
   const prefixMatch = cleanSlug.match(/^(\d+)(?:-(.*))?$/);
   if (prefixMatch) {
     personId = parseInt(prefixMatch[1], 10);
@@ -189,13 +195,6 @@ const resolveActorProfile = cache(async (slug: string): Promise<ResolvedActorPro
     ])
   ).filter(Boolean);
 
-  const matchedPreset = GOLDEN_ACTOR_INDEX.find(
-    (p) => normalizeForMatch(p.name) === normalizeForMatch(canonicalName)
-  );
-  if (matchedPreset) {
-    actorAliases.push(...matchedPreset.aliases);
-  }
-
   // 2. Tra cứu chi tiết diễn viên từ TMDb Person API theo ID hoặc Search có ngưỡng khớp chặt chẽ
   let tmdbDetail = null;
   if (tmdbPersonId) {
@@ -222,11 +221,34 @@ const resolveActorProfile = cache(async (slug: string): Promise<ResolvedActorPro
     }
   }
 
+  // Bổ sung đầy đủ các biến thể tên từ TMDb (also_known_as: tên gốc CJK, phiên âm Pinyin, tên tiếng Việt...)
+  if (tmdbDetail) {
+    if (tmdbDetail.name) {
+      actorAliases.push(tmdbDetail.name);
+    }
+    if (Array.isArray(tmdbDetail.also_known_as)) {
+      actorAliases.push(...tmdbDetail.also_known_as);
+    }
+  }
+
+  const matchedPreset = GOLDEN_ACTOR_INDEX.find(
+    (p) =>
+      normalizeForMatch(p.name) === normalizeForMatch(canonicalName) ||
+      actorAliases.some((alias) => normalizeForMatch(p.name) === normalizeForMatch(alias))
+  );
+  if (matchedPreset) {
+    actorAliases.push(...matchedPreset.aliases);
+  }
+
+  const deduplicatedAliases = Array.from(
+    new Set(actorAliases.map((a) => (a || "").trim()).filter(Boolean))
+  );
+
   return {
     rawName,
-    tmdbPersonId,
+    tmdbPersonId: tmdbPersonId || tmdbDetail?.id,
     canonicalName,
-    actorAliases,
+    actorAliases: deduplicatedAliases,
     historicalItem,
     actorSynonyms,
     actorRes,
@@ -280,7 +302,13 @@ export default async function ActorDetailPage({ params }: PageProps) {
   const needsWiki = !historicalItem?.bio && (!tmdbDetail?.biography || !tmdbDetail?.profile_path);
   const wikiProfilePromise = (needsWiki && canonicalName) ? fetchActorProfile(canonicalName) : Promise.resolve(null);
   const moviesPromise = canonicalName
-    ? queryMoviesByActor(canonicalName, actorAliases, historicalItem?.country || actorRes?.country || actorSynonyms?.country || "", 150)
+    ? queryMoviesByActor(
+        canonicalName,
+        actorAliases,
+        historicalItem?.country || actorRes?.country || actorSynonyms?.country || "",
+        150,
+        profile.tmdbPersonId
+      )
     : Promise.resolve([]);
 
   const [wikiProfile, movies] = cachedPage && cachedPage.expireAt > now

@@ -328,6 +328,9 @@ export function extractItemActorsAndDirectors(item: any): string[] {
  *    để nhận diện chính xác mọi biến thể ('Jackie Chan', 'jackie chan', 'JACKIE CHAN',
  *    'Jackie Chan (Thành Long)', 'Chan Kong-sang') mà không bị nhầm lẫn với các từ ngắn (như 'Bạch Long').
  */
+const isAsianScript = (s: string) =>
+  /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}\p{Script=Thai}]/u.test(s);
+
 export function matchesActorAliases(castList: string[], aliases: string[]): boolean {
   if (!Array.isArray(castList) || castList.length === 0) return false;
   if (!Array.isArray(aliases) || aliases.length === 0) return false;
@@ -350,8 +353,10 @@ export function matchesActorAliases(castList: string[], aliases: string[]): bool
       }
 
       const isMultiWord = aliasLower.includes(" ") || aliasNorm.includes(" ") || aliasLower.includes("-");
-      if (isMultiWord) {
-        // 2. Cụm từ đầy đủ (ví dụ: 'jackie chan', 'thành long', 'chan kong-sang', 'duong mich', 'stephen chow'):
+      const isAsian = isAsianScript(aliasNorm) && aliasNorm.length >= 2;
+
+      if (isMultiWord || isAsian) {
+        // 2. Cụm từ đầy đủ hoặc tên tượng hình CJK / Thái (ví dụ: 'jackie chan', 'thành long', '胡可', '刘宇桥'):
         // So khớp chứa chuỗi (contains) hoặc dùng Regex ranh giới từ
         if (actorNorm.includes(aliasNorm) || actorLower.includes(aliasLower)) {
           return true;
@@ -437,10 +442,11 @@ export async function queryMoviesByActor(
   actorName: string,
   aliases: string[] = [],
   country?: string,
-  maxMovies = 150
+  maxMovies = 150,
+  tmdbPersonId?: number
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
 ): Promise<any[]> {
-  if (!actorName && aliases.length === 0) return [];
+  if (!actorName && aliases.length === 0 && !tmdbPersonId) return [];
 
   // 1. Tra cứu trực tiếp Bảng quy đổi đồng nghĩa (Mapping Table) để lấy trọn bộ biến thể
   const synonymRes = getActorSynonyms(actorName);
@@ -460,8 +466,9 @@ export async function queryMoviesByActor(
   );
 
   const normalizedVariants = Array.from(new Set(allVariants.map(normalizeForMatch).filter(Boolean)));
-  const cacheKey = `ACTOR_QUERY_V10:${matchedSlug || normalizedVariants.sort().join("|")}`;
-  const normSlug = normalizeForMatch(matchedSlug || actorName).replace(/\s+/g, "_");
+  const idPrefix = tmdbPersonId ? `id_${tmdbPersonId}:` : "";
+  const cacheKey = `ACTOR_QUERY_V10:${idPrefix}${matchedSlug || normalizedVariants.sort().join("|")}`;
+  const normSlug = normalizeForMatch(matchedSlug || actorName).replace(/\s+/g, "_") || (tmdbPersonId ? `person_${tmdbPersonId}` : "actor");
 
   // 2. Cơ chế SWR Cache (Stale-While-Revalidate - Phản hồi 0ms tức thì)
   const cached = ACTOR_FILM_CACHE.get(cacheKey);
@@ -474,7 +481,7 @@ export async function queryMoviesByActor(
       // Dữ liệu cũ còn hạn dùng tạm -> trả về ngay lập tức 0ms và tự động revalidate ngầm (nếu chưa có in-flight task)
       if (!inFlightActorFilmQueries.has(cacheKey)) {
         setTimeout(() => {
-          executeActorFilmQuery(actorName, allVariants, matchedSlug, synonymRes, maxMovies, cacheKey).catch(() => {});
+          executeActorFilmQuery(actorName, allVariants, matchedSlug, synonymRes, maxMovies, cacheKey, tmdbPersonId).catch(() => {});
         }, 100);
       }
       return cached.items.slice(0, maxMovies);
@@ -498,7 +505,7 @@ export async function queryMoviesByActor(
   const res = await cacheService.fetchOrSet(
     kvKey,
     async () => {
-      const items = await executeActorFilmQuery(actorName, allVariants, matchedSlug, synonymRes, maxMovies, cacheKey);
+      const items = await executeActorFilmQuery(actorName, allVariants, matchedSlug, synonymRes, maxMovies, cacheKey, tmdbPersonId);
       return Array.isArray(items) ? items.map(slimActorMovieItem).filter(Boolean) : [];
     },
     3 * 86400 // Giảm từ 14 ngày xuống 3 ngày để bảo vệ 250 MB RAM của DB3
@@ -516,7 +523,8 @@ async function executeActorFilmQuery(
   matchedSlug: string,
   synonymRes: ActorSynonymResult,
   maxMovies: number,
-  cacheKey: string
+  cacheKey: string,
+  tmdbPersonId?: number
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
 ): Promise<any[]> {
   const existing = inFlightActorFilmQueries.get(cacheKey);
@@ -532,7 +540,8 @@ async function executeActorFilmQuery(
         matchedSlug,
         synonymRes,
         maxMovies,
-        cacheKey
+        cacheKey,
+        tmdbPersonId
       );
     } finally {
       inFlightActorFilmQueries.delete(cacheKey);
@@ -549,7 +558,8 @@ async function executeActorFilmQueryInternal(
   matchedSlug: string,
   synonymRes: ActorSynonymResult,
   maxMovies: number,
-  cacheKey: string
+  cacheKey: string,
+  tmdbPersonId?: number
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
 ): Promise<any[]> {
   // =========================================================================
@@ -562,7 +572,7 @@ async function executeActorFilmQueryInternal(
   // =========================================================================
   try {
     const historicalActor = getHistoricalArtistBySlug(matchedSlug) || getHistoricalArtistBySlug(actorName);
-    const tmdbPersonId = historicalActor?.tmdbPersonId;
+    const resolvedTmdbPersonId = tmdbPersonId || historicalActor?.tmdbPersonId;
 
     const tmdbMovies = await getActorFilmographyFromTmdb(
       actorName,
@@ -570,7 +580,7 @@ async function executeActorFilmQueryInternal(
       allVariants,
       maxMovies,
       16,
-      tmdbPersonId
+      resolvedTmdbPersonId
     );
     if (tmdbMovies && tmdbMovies.length > 0) {
       const enrichedMovies = tmdbMovies.map(slimActorMovieItem).filter(Boolean);
@@ -607,8 +617,15 @@ async function executeActorFilmQueryInternal(
     canonicalTarget,
     englishTarget,
     actorName,
-    ...allVariants.filter((v) => v.trim().includes(" ") || v.trim().length >= 4),
-  ].filter((k): k is string => Boolean(k && k.trim().length >= 3));
+    ...allVariants.filter((v) => {
+      const trimmed = v.trim();
+      return trimmed.includes(" ") || trimmed.length >= 4 || isAsianScript(trimmed);
+    }),
+  ].filter((k): k is string => {
+    if (!k) return false;
+    const trimmed = k.trim();
+    return trimmed.length >= 3 || (isAsianScript(trimmed) && trimmed.length >= 2);
+  });
 
   for (const kw of candidateKeywords) {
     const norm = normalizeForMatch(kw);

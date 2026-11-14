@@ -104,4 +104,45 @@ test("Historical Artist Birthdays Dataset & Flexible Matching — Invariant Test
     const uniqueSlugs = new Set(slugs);
     assert.equal(uniqueSlugs.size, HISTORICAL_ARTISTS_BIRTHDAYS.length, "All artist slugs must be unique");
   });
+
+  await t.test("6. Unicode preservation in normalizeForMatch for CJK, Thai, Korean & Japanese", () => {
+    // Chinese characters must NOT be wiped out
+    assert.equal(normalizeForMatch("胡可"), "胡可");
+    assert.equal(normalizeForMatch("刘宇桥"), "刘宇桥");
+    assert.equal(normalizeForMatch("何佳怡"), "何佳怡");
+    assert.equal(normalizeForMatch("水浒传"), "水浒传");
+
+    // Thai characters and vowels must be preserved
+    assert.equal(normalizeForMatch("ใบเฟิร์น พิมพ์ชนก"), "ใบเฟิร์น พิมพ์ชนก");
+    assert.equal(normalizeForMatch("ใหม่ ดาวิกา"), "ใหม่ ดาวิกา");
+
+    // Korean & Japanese must be preserved
+    assert.equal(normalizeForMatch("송혜교"), "송혜교");
+    assert.equal(normalizeForMatch("新垣結衣"), "新垣結衣");
+
+    // Vietnamese diacritics must be stripped for fuzzy searching
+    assert.equal(normalizeForMatch("Trương Hàm Dư"), "truong ham du");
+    assert.equal(normalizeForMatch("Lữ Lương Vỹ"), "lu luong vy");
+
+    // Punctuation and brackets must be stripped
+    assert.equal(
+      normalizeForMatch("Tân Thủy Hử (2011) [Full HD]"),
+      "tan thuy hu 2011 full hd"
+    );
+  });
+
+  await t.test("7. matchesActorAliases correctly matches CJK actors in movie casts", async () => {
+    const { matchesActorAliases } = await import("@/services/aiActorService");
+
+    const castList = ["Trương Hàm Dư", "Lữ Lương Vỹ", "胡可 (Cố Đại Tẩu)", "刘宇桥", "何佳怡"];
+
+    // Exact Chinese match
+    assert.ok(matchesActorAliases(castList, ["胡可"]), "Must match '胡可' even with character annotation");
+    assert.ok(matchesActorAliases(castList, ["刘宇桥"]), "Must match '刘宇桥'");
+    assert.ok(matchesActorAliases(castList, ["何佳怡"]), "Must match '何佳怡'");
+    assert.ok(matchesActorAliases(castList, ["truong ham du"]), "Must match normalized Vietnamese 'truong ham du'");
+
+    // Negative match
+    assert.ok(!matchesActorAliases(castList, ["Châu Tinh Trì"]), "Must not match unlisted actor");
+  });
 });

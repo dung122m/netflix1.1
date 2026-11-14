@@ -23,7 +23,8 @@ interface ProcessedCastItem {
 }
 
 function toActorSlug(name: string): string {
-  return normalizeForMatch(name).replace(/\s+/g, "-");
+  const norm = normalizeForMatch(name).replace(/\s+/g, "-");
+  return norm ? encodeURIComponent(norm) : "";
 }
 
 export const MovieCastGallery: React.FC<MovieCastGalleryProps> = ({
@@ -37,7 +38,12 @@ export const MovieCastGallery: React.FC<MovieCastGalleryProps> = ({
     if (cast && cast.length > 0) {
       return cast.map((c) => {
         const slug = toActorSlug(c.name);
-        const href = typeof c.id === "number" ? `/dien-vien/${c.id}-${slug}` : `/dien-vien/${slug}`;
+        const href =
+          typeof c.id === "number"
+            ? slug
+              ? `/dien-vien/${c.id}-${slug}`
+              : `/dien-vien/${c.id}`
+            : `/dien-vien/${slug || "nghe-si"}`;
         return {
           id: c.id,
           name: c.name,
@@ -59,7 +65,7 @@ export const MovieCastGallery: React.FC<MovieCastGalleryProps> = ({
             id: `fb-${idx}-${name}`,
             name,
             avatarUrl: null,
-            href: `/dien-vien/${slug}`,
+            href: `/dien-vien/${slug || "nghe-si"}`,
           };
         });
     }

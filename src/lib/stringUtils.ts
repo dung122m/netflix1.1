@@ -23,7 +23,8 @@ export function normalizeForMatch(str?: string | null): string {
     .replace(/[đĐ]/g, "d")
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^\w\s]/gi, " ")
+    .normalize("NFC")
+    .replace(/[^\p{L}\p{M}\p{N}\s]/gu, " ")
     .replace(/\s+/g, " ")
     .trim();
 }

@@ -15,6 +15,9 @@ import { CacheEntry } from "./utils";
 
 const TMDB_IMAGE_BASE = "https://image.tmdb.org/t/p/w500";
 
+const isAsianScript = (s: string) =>
+  /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}\p{Script=Thai}]/u.test(s);
+
 // Caches
 const TMDB_PERSON_CACHE = new Map<string, CacheEntry<TmdbPerson | null>>();
 const TMDB_PERSON_DETAIL_CACHE = new Map<number, CacheEntry<TmdbPersonDetail | null>>();
@@ -79,7 +82,11 @@ export async function searchTmdbPerson(
             ) {
               score += 90;
             } else if (
-              targetNamesNormalized.some((t) => t.length >= 6 && (pName.includes(t) || pOrig.includes(t)))
+              targetNamesNormalized.some(
+                (t) =>
+                  (t.length >= 6 || (isAsianScript(t) && t.length >= 2)) &&
+                  (pName.includes(t) || pOrig.includes(t))
+              )
             ) {
               score += 30;
             }
