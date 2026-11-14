@@ -271,7 +271,7 @@ function LivePlayerInner({
           : 68;
       const targetY = window.scrollY + rect.top - offset;
       window.scrollTo({
-        top: Math.max(0, targetY),
+        top: targetY < 80 ? 0 : targetY,
         behavior: "smooth",
       });
     }
@@ -585,7 +585,17 @@ function LivePlayerInner({
       <div
         ref={containerRef}
         tabIndex={0}
-        onMouseMove={resetControlsTimeout}
+        onMouseMove={(e) => {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const native = e.nativeEvent as any;
+          if (
+            native?.pointerType === "touch" ||
+            native?.sourceCapabilities?.firesTouchEvents
+          ) {
+            return;
+          }
+          resetControlsTimeout();
+        }}
         onFocus={() => {
           setShowControls(true);
           resetControlsTimeout();

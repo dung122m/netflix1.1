@@ -71,9 +71,58 @@ export interface MovieFilterParams {
   limit?: number;
   type?: string;
   slug?: string;
-  sort?: "latest" | "rating" | "views" | "year";
+  sort?:
+    | "latest"
+    | "rating"
+    | "views"
+    | "year"
+    | "year-asc"
+    | "year-desc"
+    | "oldest"
+    | "time-asc"
+    | "time-desc"
+    | "rating-asc"
+    | "rating-desc"
+    | "views-asc"
+    | "views-desc"
+    | string;
   skipKvCache?: boolean;
   posterEnrichmentBudgetMs?: number;
+}
+
+export type NormalizedSortField = "modified.time" | "year" | "view" | "rating";
+export type NormalizedSortDirection = "desc" | "asc";
+
+export interface ParsedSortMode {
+  field: NormalizedSortField;
+  direction: NormalizedSortDirection;
+}
+
+export function parseSortMode(rawSort?: string): ParsedSortMode {
+  const s = (rawSort || "").trim().toLowerCase();
+  if (s === "year" || s === "year-desc" || s === "year_desc") {
+    return { field: "year", direction: "desc" };
+  }
+  if (s === "year-asc" || s === "year_asc" || s === "year-oldest") {
+    return { field: "year", direction: "asc" };
+  }
+  if (s === "oldest" || s === "time-asc" || s === "time_asc") {
+    return { field: "modified.time", direction: "asc" };
+  }
+  if (s === "views" || s === "views-desc" || s === "views_desc") {
+    return { field: "view", direction: "desc" };
+  }
+  if (s === "views-asc" || s === "views_asc") {
+    return { field: "view", direction: "asc" };
+  }
+  if (s === "rating" || s === "rating-desc" || s === "rating_desc") {
+    return { field: "rating", direction: "desc" };
+  }
+  if (s === "rating-asc" || s === "rating_asc") {
+    return { field: "rating", direction: "asc" };
+  }
+  // Mặc định: Mới cập nhật (modified.time DESC)
+  return { field: "modified.time", direction: "desc" };
 }
 
 export interface AiCandidateOptions {
@@ -1427,12 +1476,16 @@ async function fetchSourceData(
     if (params.category) urlParams.set("category", params.category);
     if (params.country) urlParams.set("country", params.country);
     if (params.year) urlParams.set("year", params.year);
-    const effectiveSortMode = params.sort || "latest";
-    if (effectiveSortMode) {
-      urlParams.set(
-        "sort_field",
-        effectiveSortMode === "views" ? "view" : effectiveSortMode === "year" ? "year" : "modified.time"
-      );
+
+    const parsedSort = parseSortMode(params.sort);
+    if (baseUrl === API_PHIMAPI) {
+      if (parsedSort.field === "rating") {
+        urlParams.set("sort_field", "modified.time");
+        urlParams.set("sort_type", parsedSort.direction);
+      } else {
+        urlParams.set("sort_field", parsedSort.field);
+        urlParams.set("sort_type", parsedSort.direction);
+      }
     }
 
     let fullUrl = "";
@@ -1451,7 +1504,14 @@ async function fetchSourceData(
         fullUrl = `${baseUrl}/v1/api/danh-sach/phim-moi-cap-nhat?${urlParams.toString()}`;
       }
     } else {
-      // NguonC REST API Endpoints: Ưu tiên bộ lọc có phạm vi hẹp nhất (country > category > year > type)
+      // NguonC REST API Endpoints: NguonC không hỗ trợ sắp xếp theo thứ tự khác ngoài thứ tự mặc định.
+      // Khi người dùng yêu cầu sắp xếp tùy chỉnh (năm, lượt xem, rating, v.v.),
+      // loại bỏ NguonC trong catalog browsing để tránh lấy nhầm các phim ở offset sai làm vỡ thứ tự toàn cục.
+      if (!isSearch && params.sort && params.sort !== "latest" && params.sort !== "time-desc") {
+        return null;
+      }
+
+      // Ưu tiên bộ lọc có phạm vi hẹp nhất (country > category > year > type)
       if (isSearch && params.keyword) {
         fullUrl = `${baseUrl}/films/search?keyword=${encodeURIComponent(params.keyword.trim())}&page=${page}`;
       } else if (params.country) {
@@ -2057,7 +2117,7 @@ async function executeGetAiCandidates(params: MovieFilterParams, _options?: AiCa
 async function executeGetMovies(params: MovieFilterParams, cacheKey: string) {
   const isSearch = Boolean(params.keyword?.trim());
   const limit = params.limit && params.limit > 0 ? params.limit : 24;
-  const effectiveSort = params.sort || "latest";
+  const parsedSort = parseSortMode(params.sort);
   const metaKey = buildQueryMetaKey(params);
   const cachedMeta = queryMetadataCache.get(metaKey);
   const seenSlugsByPage =
@@ -2145,55 +2205,60 @@ async function executeGetMovies(params: MovieFilterParams, cacheKey: string) {
         candidates = candidates.filter((m: any) => !priorSeen.has(m.slug));
       }
     }
-  } else if (effectiveSort === "rating") {
+  } else if (parsedSort.field === "rating") {
     candidates.sort((a, b) => {
       const { rating: rateA, voteCount: vcA } = extractMovieRatingScore(a);
       const { rating: rateB, voteCount: vcB } = extractMovieRatingScore(b);
 
-      // 1. Phim có điểm thực tế xếp trên phim không có điểm (hoặc điểm = 0)
-      if (rateB !== rateA) {
-        return rateB - rateA;
+      if (parsedSort.direction === "asc") {
+        if (rateA !== rateB) return rateA - rateB;
+        if (vcA !== vcB) return vcA - vcB;
+        const yearA = Number(a.year || 0);
+        const yearB = Number(b.year || 0);
+        if (yearA !== yearB) return yearA - yearB;
+      } else {
+        if (rateB !== rateA) return rateB - rateA;
+        if (vcB !== vcA) return vcB - vcA;
+        const yearA = Number(a.year || 0);
+        const yearB = Number(b.year || 0);
+        if (yearB !== yearA) return yearB - yearA;
       }
-      // 2. Tie-break: Phim có lượt vote tin cậy / nhiều hơn xếp trên
-      if (vcB !== vcA) {
-        return vcB - vcA;
-      }
-      // 3. Tie-break phụ: Năm phát hành mới hơn xếp trên
+      return String(a.name || "").localeCompare(String(b.name || ""));
+    });
+  } else if (parsedSort.field === "year") {
+    candidates.sort((a, b) => {
       const yearA = Number(a.year || 0);
       const yearB = Number(b.year || 0);
       if (yearB !== yearA) {
-        return yearB - yearA;
+        return parsedSort.direction === "asc" ? yearA - yearB : yearB - yearA;
       }
-      // 4. Tie-break ổn định: Tiêu đề phim (alphabetical) để thứ tự không phụ thuộc nguồn
-      return String(a.name || "").localeCompare(String(b.name || ""));
+      return parsedSort.direction === "asc"
+        ? extractMovieModifiedTime(a) - extractMovieModifiedTime(b)
+        : extractMovieModifiedTime(b) - extractMovieModifiedTime(a);
     });
-  } else if (effectiveSort === "year") {
-    candidates.sort((a, b) => {
-      const yearA = Number(a.year || 0);
-      const yearB = Number(b.year || 0);
-      if (yearB !== yearA) return yearB - yearA;
-      return extractMovieModifiedTime(b) - extractMovieModifiedTime(a);
-    });
-  } else if (effectiveSort === "views") {
+  } else if (parsedSort.field === "view") {
     candidates.sort((a, b) => {
       const vA = Number(a.view || a.tmdb?.vote_count || 0);
       const vB = Number(b.view || b.tmdb?.vote_count || 0);
-      if (vB !== vA) return vB - vA;
-      return extractMovieModifiedTime(b) - extractMovieModifiedTime(a);
+      if (vB !== vA) {
+        return parsedSort.direction === "asc" ? vA - vB : vB - vA;
+      }
+      return parsedSort.direction === "asc"
+        ? extractMovieModifiedTime(a) - extractMovieModifiedTime(b)
+        : extractMovieModifiedTime(b) - extractMovieModifiedTime(a);
     });
   } else {
-    // "latest" (Mặc định toàn hệ thống): Sắp xếp theo timestamp cập nhật thực tế từ nguồn dữ liệu
+    // "modified.time" ("latest" desc hoặc "oldest" asc)
     candidates.sort((a, b) => {
       const timeA = extractMovieModifiedTime(a);
       const timeB = extractMovieModifiedTime(b);
       if (timeB !== timeA) {
-        return timeB - timeA;
+        return parsedSort.direction === "asc" ? timeA - timeB : timeB - timeA;
       }
-      // Tie-break: Năm phát hành mới hơn xếp trước
       const yearA = Number(a.year || 0);
       const yearB = Number(b.year || 0);
       if (yearB !== yearA) {
-        return yearB - yearA;
+        return parsedSort.direction === "asc" ? yearA - yearB : yearB - yearA;
       }
       return String(a.name || "").localeCompare(String(b.name || ""));
     });

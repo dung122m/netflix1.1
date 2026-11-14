@@ -97,7 +97,7 @@ export async function syncWatchHistoryWithCloud(
 export function saveWatchItemToCloudDebounced(
   userId: string,
   item: WatchHistoryItem,
-  delayMs = 45000,
+  delayMs = 90000,
   options?: { force?: boolean },
 ): void {
   if (!userId || !item.slug) return;

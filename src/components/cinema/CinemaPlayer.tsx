@@ -589,6 +589,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
               videoRef={videoRef}
               isFullscreen={isFullscreen}
               isPlaying={isPlaying}
+              isMobile={isMobile}
               showControls={showControls}
               videoFit={videoFit}
               isAdTransitioning={isAdTransitioning}

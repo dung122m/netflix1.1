@@ -243,7 +243,13 @@ export function useCinemaFullscreenAndOrientation({
   // Mobile touch & sticky detection
   useEffect(() => {
     const checkMobile = () => {
+      const isMobileUA =
+        typeof navigator !== "undefined" &&
+        /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+          navigator.userAgent,
+        );
       const hasTouch =
+        isMobileUA ||
         (typeof window !== "undefined" &&
           window.matchMedia &&
           window.matchMedia("(pointer: coarse)").matches) ||

@@ -1052,11 +1052,12 @@ export function subscribeAllPublicCollections(
     document.addEventListener("visibilitychange", handleVisibilityChange);
   }
 
+  // Polling dự phòng 5 phút (300,000ms) - tránh gọi dồn dập làm hao tốn CPU Vercel
   const interval = setInterval(() => {
     if (!isUnsubscribed && typeof document !== "undefined" && !document.hidden) {
       fetchCollections();
     }
-  }, 45000);
+  }, 300000);
 
   return () => {
     isUnsubscribed = true;

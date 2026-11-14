@@ -179,7 +179,7 @@ export function useLiveScoresRealtime({
       }
     };
 
-    const pollIntervalMs = hasLiveMatches ? 15_000 : 45_000;
+    const pollIntervalMs = hasLiveMatches ? 30_000 : 90_000;
     const isReturningFromInactive = !wasActiveScoresRef.current;
     wasActiveScoresRef.current = true;
 

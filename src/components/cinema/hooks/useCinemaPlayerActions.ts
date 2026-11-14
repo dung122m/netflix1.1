@@ -243,10 +243,18 @@ export function useCinemaPlayerActions({
 
   const handleMouseMove = useCallback(
     (e: React.MouseEvent) => {
-      if ((e.nativeEvent as PointerEvent)?.pointerType === "touch") return;
+      if (isMobile) return;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const native = e.nativeEvent as any;
+      if (
+        native?.pointerType === "touch" ||
+        native?.sourceCapabilities?.firesTouchEvents
+      ) {
+        return;
+      }
       resetControlsTimeout();
     },
-    [resetControlsTimeout],
+    [isMobile, resetControlsTimeout],
   );
 
   const handleMouseLeave = useCallback(() => {
@@ -399,10 +407,12 @@ export function useCinemaPlayerActions({
         }
 
         if (!showControlsRef.current) {
+          // Trình điều khiển đang ẩn -> Chạm 1 cái vào màn hình để hiển thị
+          lastControlsShownTimeRef.current = now;
           resetControlsTimeout();
         } else {
-          if (now - lastControlsShownTimeRef.current < 350) {
-            resetControlsTimeout();
+          // Trình điều khiển đang hiện -> Chạm 1 cái vào màn hình để ẩn ngay lập tức!
+          if (now - lastControlsShownTimeRef.current < 250) {
             return;
           }
           hideControlsImmediately();

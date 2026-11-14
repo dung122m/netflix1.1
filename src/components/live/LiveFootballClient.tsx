@@ -255,14 +255,20 @@ export function LiveFootballClient({
   const scrollToPlayerArea = useCallback(() => {
     if (typeof window === "undefined") return;
     requestAnimationFrame(() => {
-      if (playerRef.current) {
-        const rect = playerRef.current.getBoundingClientRect();
-        const navbarHeight = window.innerWidth >= 640 ? 64 : 58;
-        const targetY = Math.max(0, window.scrollY + rect.top - navbarHeight);
-        window.scrollTo({ top: targetY, behavior: "smooth" });
-      } else {
-        window.scrollTo({ top: 0, behavior: "smooth" });
+      // 1. Trên Desktop (>=1024px): Player luôn nằm cố định trong tầm mắt cạnh danh sách trận
+      // Tuyệt đối không cuộn lỡ cỡ 16px-20px gây giật/thụt trang khi bấm chọn trận
+      if (window.innerWidth >= 1024) {
+        if (window.scrollY > 0 && window.scrollY < 120) {
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        }
+        return;
       }
+
+      // 2. Trên Mobile (<1024px): Nếu đang ở đầu trang (scrollY <= 60), không cần cuộn
+      if (window.scrollY <= 60) return;
+
+      // 3. Nếu người dùng đang cuộn sâu xuống dưới danh sách trận và bấm xem: cuộn mượt về đỉnh trang (top 0)
+      window.scrollTo({ top: 0, behavior: "smooth" });
     });
   }, []);
 

@@ -24,6 +24,7 @@ export interface CinemaNativeVideoStageProps {
   videoRef: React.RefObject<HTMLVideoElement | null>;
   isFullscreen: boolean;
   isPlaying: boolean;
+  isMobile?: boolean;
   showControls: boolean;
   videoFit: VideoFit;
   isAdTransitioning: boolean;
@@ -77,6 +78,7 @@ export const CinemaNativeVideoStage: React.FC<CinemaNativeVideoStageProps> = ({
   videoRef,
   isFullscreen,
   isPlaying,
+  isMobile,
   showControls,
   videoFit,
   isAdTransitioning,
@@ -236,6 +238,7 @@ export const CinemaNativeVideoStage: React.FC<CinemaNativeVideoStageProps> = ({
         videoFit={videoFit}
         isFullscreen={isFullscreen}
         isNativeVideo={isNativeVideo}
+        isMobile={isMobile}
         knownDuration={knownDuration}
         embedSrc={embedSrc}
         videoRef={videoRef}

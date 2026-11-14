@@ -183,8 +183,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       if (!user?.uid) return; // Chỉ chạy cho authenticated user
 
       const now = Date.now();
-      // Throttle: Tối thiểu 3 phút giữa các lần sync khi switch tab để tránh đọc Supabase liên tục
-      if (now - lastVisibilitySyncTime < 3 * 60 * 1000) return;
+      // Throttle: Tối thiểu 10 phút giữa các lần sync khi switch tab để tránh gọi /api/user/history liên tục
+      if (now - lastVisibilitySyncTime < 10 * 60 * 1000) return;
       lastVisibilitySyncTime = now;
 
       try {

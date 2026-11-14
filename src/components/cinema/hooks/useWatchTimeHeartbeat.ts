@@ -27,8 +27,8 @@ export function useWatchTimeHeartbeat({
     const interval = setInterval(() => {
       if (typeof document !== "undefined" && document.hidden) return;
       if (isNativeVideo && videoRef.current && (videoRef.current.paused || videoRef.current.ended)) return;
-      incrementUserWatchTime(userId, 1);
-    }, 60000);
+      incrementUserWatchTime(userId, 2);
+    }, 120000);
 
     return () => {
       clearTimeout(initialTimer);

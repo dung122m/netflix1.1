@@ -256,26 +256,29 @@ export const FilterDropdownMenu: React.FC<FilterDropdownMenuProps> = React.memo(
               )}
             </div>
             <div className="space-y-1">
-              {SORT_OPTIONS.map((opt) => {
+              {SORT_OPTIONS.map((opt, idx) => {
                 const isSelected = currentSort === opt.value;
                 const Icon = opt.icon;
+                const isPairStart = idx % 2 === 0 && idx > 0;
                 return (
-                  <button
-                    key={opt.value}
-                    type="button"
-                    onClick={() => updateQueryParam("sort", opt.value)}
-                    className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs sm:text-sm font-medium transition cursor-pointer text-left ${
-                      isSelected
-                        ? "bg-netflix-red text-white font-bold shadow-md shadow-black/50"
-                        : "text-zinc-300 hover:bg-zinc-800/80 hover:text-white"
-                    }`}
-                  >
-                    <div className="flex items-center gap-2">
-                      <Icon className={`w-3.5 h-3.5 flex-none ${isSelected ? "text-white" : opt.color}`} />
-                      <span>{opt.label}</span>
-                    </div>
-                    {isSelected && <Check className="w-3.5 h-3.5 text-white flex-none" />}
-                  </button>
+                  <React.Fragment key={opt.value}>
+                    {isPairStart && <div className="border-t border-white/[0.06] my-1" />}
+                    <button
+                      type="button"
+                      onClick={() => updateQueryParam("sort", opt.value)}
+                      className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs sm:text-sm font-medium transition cursor-pointer text-left ${
+                        isSelected
+                          ? "bg-netflix-red text-white font-bold shadow-md shadow-black/50"
+                          : "text-zinc-300 hover:bg-zinc-800/80 hover:text-white"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <Icon className={`w-3.5 h-3.5 flex-none ${isSelected ? "text-white" : opt.color}`} />
+                        <span>{opt.label}</span>
+                      </div>
+                      {isSelected && <Check className="w-3.5 h-3.5 text-white flex-none" />}
+                    </button>
+                  </React.Fragment>
                 );
               })}
             </div>

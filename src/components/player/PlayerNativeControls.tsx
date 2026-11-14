@@ -57,6 +57,7 @@ interface PlayerNativeControlsProps {
   videoFit?: VideoFit;
   isFullscreen: boolean;
   isNativeVideo: boolean;
+  isMobile?: boolean;
   knownDuration?: number;
   embedSrc?: string;
   videoRef: React.RefObject<HTMLVideoElement | null>;
@@ -98,6 +99,7 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
     videoFit = "contain",
     isFullscreen,
     isNativeVideo,
+    isMobile,
     knownDuration,
     embedSrc,
     videoRef,
@@ -128,6 +130,23 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
     const [showSettings, setShowSettings] = useState(false);
     const [loopVideo, setLoopVideo] = useState(false);
     const settingsBtnRef = useRef<HTMLButtonElement>(null);
+
+    // Nhận diện thiết bị cảm ứng / điện thoại (đảm bảo không bị ảnh hưởng bởi độ phân giải khi xoay ngang)
+    const [hasTouch, setHasTouch] = useState(false);
+    useEffect(() => {
+      const checkTouch = () => {
+        const isTouch =
+          (typeof window !== "undefined" &&
+            window.matchMedia &&
+            window.matchMedia("(pointer: coarse)").matches) ||
+          (typeof navigator !== "undefined" && navigator.maxTouchPoints > 0) ||
+          (typeof window !== "undefined" && "ontouchstart" in window);
+        setHasTouch(Boolean(isTouch));
+      };
+      checkTouch();
+    }, []);
+
+    const isMobileDevice = isMobile ?? hasTouch;
 
     // Kích hoạt lặp lại video
     useEffect(() => {
@@ -224,13 +243,17 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
           )}
         </div>
 
-        {/* 2. CENTER PLAYBACK CONTROLS (CHUẨN MOBILE TỐI GIẢN: CHỈ DUY NHẤT 1 NÚT PLAY/PAUSE - KHÔNG HIỂN THỊ NÚT TUA) */}
+        {/* 2. CENTER PLAYBACK CONTROLS (CHUẨN MOBILE TỐI GIẢN: CHỈ DUY NHẤT 1 NÚT PLAY/PAUSE - LUÔN HIỂN THỊ TRÊN MOBILE KỂ CẢ FULLSCREEN) */}
         {isBuffering ? (
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none select-none z-10 flex flex-col items-center justify-center">
             <div className="w-12 h-12 sm:w-14 sm:h-14 border-[3px] border-white/20 border-t-white rounded-full animate-spin shadow-2xl" />
           </div>
         ) : (
-          <div className="md:hidden absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center justify-center pointer-events-none z-10">
+          <div
+            className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center justify-center pointer-events-none z-10 ${
+              isMobileDevice ? "flex" : "hidden"
+            }`}
+          >
             {/* Nút Play / Pause to rõ ở giữa */}
             <button
               type="button"
@@ -241,7 +264,7 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
                 onUserInteraction?.();
               }}
               aria-label={isPlaying ? "Tạm dừng" : "Phát"}
-              className="pointer-events-auto w-14 h-14 min-[380px]:w-16 min-[380px]:h-16 rounded-full bg-black/60 hover:bg-black/80 active:scale-95 text-white flex items-center justify-center shadow-2xl backdrop-blur-md transition-transform duration-150 cursor-pointer outline-none ring-1 ring-white/20"
+              className="pointer-events-auto w-14 h-14 min-[380px]:w-16 min-[380px]:h-16 rounded-full bg-black/60 hover:bg-black/80 active:scale-95 text-white flex items-center justify-center shadow-2xl backdrop-blur-md transition-transform duration-150 cursor-pointer outline-none ring-1 ring-white/20 touch-manipulation"
             >
               {isPlaying ? (
                 <YouTubePauseIcon className="w-8 h-8 min-[380px]:w-9 min-[380px]:h-9" />
@@ -326,29 +349,34 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
                 </Tooltip>
               )}
 
-              <Tooltip content="Tua lùi 5 giây" shortcut="J / ←" side="top">
-                <button
-                  type="button"
-                  data-player-control="true"
-                  onClick={handleSeekBack}
-                  aria-label="Tua lùi 5 giây"
-                  className="hidden sm:inline-flex w-9 h-9 sm:w-10 sm:h-10 rounded-full hover:bg-white/15 active:scale-90 text-zinc-300 hover:text-white items-center justify-center transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-white/40"
-                >
-                  <YouTubeSeek5BackIcon className="w-4.5 h-4.5" />
-                </button>
-              </Tooltip>
+              {/* Nút Tua Lùi 5s & Tua Tới 5s: Chỉ hiển thị trên Desktop (Mobile/Fullscreen tua bằng chạm đúp 2 bên hoặc thanh tua) */}
+              {!isMobileDevice && (
+                <>
+                  <Tooltip content="Tua lùi 5 giây" shortcut="J / ←" side="top">
+                    <button
+                      type="button"
+                      data-player-control="true"
+                      onClick={handleSeekBack}
+                      aria-label="Tua lùi 5 giây"
+                      className="hidden sm:inline-flex w-9 h-9 sm:w-10 sm:h-10 rounded-full hover:bg-white/15 active:scale-90 text-zinc-300 hover:text-white items-center justify-center transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+                    >
+                      <YouTubeSeek5BackIcon className="w-4.5 h-4.5" />
+                    </button>
+                  </Tooltip>
 
-              <Tooltip content="Tua tới 5 giây" shortcut="L / →" side="top">
-                <button
-                  type="button"
-                  data-player-control="true"
-                  onClick={handleSeekForward}
-                  aria-label="Tua tới 5 giây"
-                  className="hidden sm:inline-flex w-9 h-9 sm:w-10 sm:h-10 rounded-full hover:bg-white/15 active:scale-90 text-zinc-300 hover:text-white items-center justify-center transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-white/40"
-                >
-                  <YouTubeSeek5ForwardIcon className="w-4.5 h-4.5" />
-                </button>
-              </Tooltip>
+                  <Tooltip content="Tua tới 5 giây" shortcut="L / →" side="top">
+                    <button
+                      type="button"
+                      data-player-control="true"
+                      onClick={handleSeekForward}
+                      aria-label="Tua tới 5 giây"
+                      className="hidden sm:inline-flex w-9 h-9 sm:w-10 sm:h-10 rounded-full hover:bg-white/15 active:scale-90 text-zinc-300 hover:text-white items-center justify-center transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+                    >
+                      <YouTubeSeek5ForwardIcon className="w-4.5 h-4.5" />
+                    </button>
+                  </Tooltip>
+                </>
+              )}
 
               <div className="flex items-center group/vol">
                 <Tooltip content={isMuted ? "Bật tiếng" : "Tắt tiếng"} shortcut="M" side="top">
@@ -368,16 +396,18 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
                     )}
                   </button>
                 </Tooltip>
-                <input
-                  type="range"
-                  min="0"
-                  max="1"
-                  step="0.05"
-                  value={isMuted ? 0 : volume}
-                  onChange={(e) => onVolumeChange(parseFloat(e.target.value))}
-                  aria-label="Âm lượng"
-                  className="w-0 opacity-0 group-hover/vol:w-16 sm:group-hover/vol:w-20 group-hover/vol:opacity-100 group-focus-within/vol:w-16 sm:group-focus-within/vol:w-20 group-focus-within/vol:opacity-100 transition-all duration-200 ease-out accent-netflix-red h-1 bg-white/25 rounded-full cursor-pointer hidden sm:inline-block outline-none"
-                />
+                {!isMobileDevice && (
+                  <input
+                    type="range"
+                    min="0"
+                    max="1"
+                    step="0.05"
+                    value={isMuted ? 0 : volume}
+                    onChange={(e) => onVolumeChange(parseFloat(e.target.value))}
+                    aria-label="Âm lượng"
+                    className="w-0 opacity-0 group-hover/vol:w-16 sm:group-hover/vol:w-20 group-hover/vol:opacity-100 group-focus-within/vol:w-16 sm:group-focus-within/vol:w-20 group-focus-within/vol:opacity-100 transition-all duration-200 ease-out accent-netflix-red h-1 bg-white/25 rounded-full cursor-pointer hidden sm:inline-block outline-none"
+                  />
+                )}
               </div>
 
               <PlayerTimeDisplay
@@ -430,17 +460,19 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
                 />
               </div>
 
-              <Tooltip content="Hình trong hình (PiP)" shortcut="P" side="top">
-                <button
-                  type="button"
-                  data-player-control="true"
-                  onClick={onTogglePiP}
-                  aria-label="Hình trong hình (PiP)"
-                  className="hidden sm:inline-flex w-9 h-9 sm:w-10 sm:h-10 rounded-full hover:bg-white/15 active:scale-90 text-white/90 hover:text-white items-center justify-center transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-white/40"
-                >
-                  <YouTubeMiniplayerIcon className="w-5 h-5" />
-                </button>
-              </Tooltip>
+              {!isMobileDevice && (
+                <Tooltip content="Hình trong hình (PiP)" shortcut="P" side="top">
+                  <button
+                    type="button"
+                    data-player-control="true"
+                    onClick={onTogglePiP}
+                    aria-label="Hình trong hình (PiP)"
+                    className="hidden sm:inline-flex w-9 h-9 sm:w-10 sm:h-10 rounded-full hover:bg-white/15 active:scale-90 text-white/90 hover:text-white items-center justify-center transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+                  >
+                    <YouTubeMiniplayerIcon className="w-5 h-5" />
+                  </button>
+                </Tooltip>
+              )}
 
               {onToggleTheaterMode && !isFullscreen && (
                 <Tooltip content={isTheaterMode ? "Thu nhỏ chế độ rạp phim" : "Chế độ rạp phim"} shortcut="T" side="top">

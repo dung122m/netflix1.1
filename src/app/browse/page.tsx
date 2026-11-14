@@ -7,7 +7,10 @@ import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { Film, ExternalLink, User, Flame, ChevronRight } from "lucide-react";
 import { findHistoricalArtist } from "@/data/history/historicalArtistsBirthdays";
-import { movieApi } from "@/services/movies/service";
+import { movieApi, parseSortMode } from "@/services/movies/service";
+
+/** Cache danh mục phim 3 phút trên Vercel Edge CDN để giảm tải CPU Serverless tối đa */
+export const revalidate = 180;
 import {
   resolveActorMovies,
   queryMoviesByActor,
@@ -178,7 +181,7 @@ type ActorSearchOptions = {
   country?: string;
   year?: string;
   type?: string;
-  sort?: "latest" | "rating" | "views" | "year";
+  sort?: string;
   currentPage: number;
   pageLimit: number;
 };
@@ -255,46 +258,60 @@ async function runActorSearch(options: ActorSearchOptions) {
       return true;
     });
   }
-  const effectiveActorSort = sort || "latest";
-  if (effectiveActorSort === "rating") {
+  const parsedSort = parseSortMode(sort);
+  if (parsedSort.field === "rating") {
     filteredActorMovies.sort((a, b) => {
       const voteCountA = Number(a.tmdb?.vote_count || 0);
       const voteCountB = Number(b.tmdb?.vote_count || 0);
       const hasReliableVotesA = voteCountA >= 50 ? 1 : 0;
       const hasReliableVotesB = voteCountB >= 50 ? 1 : 0;
       if (hasReliableVotesA !== hasReliableVotesB) {
-        return hasReliableVotesB - hasReliableVotesA;
+        return parsedSort.direction === "asc"
+          ? hasReliableVotesA - hasReliableVotesB
+          : hasReliableVotesB - hasReliableVotesA;
       }
       const rateA = Number(a.tmdb?.vote_average || a.imdb?.vote_average || 0);
       const rateB = Number(b.tmdb?.vote_average || b.imdb?.vote_average || 0);
       if (rateB !== rateA) {
-        return rateB - rateA;
+        return parsedSort.direction === "asc" ? rateA - rateB : rateB - rateA;
       }
-      return voteCountB - voteCountA;
+      return parsedSort.direction === "asc" ? voteCountA - voteCountB : voteCountB - voteCountA;
     });
-  } else if (effectiveActorSort === "views") {
+  } else if (parsedSort.field === "view") {
     filteredActorMovies.sort((a, b) => {
       const vA = Number(a.view || a.tmdb?.vote_count || 0);
       const vB = Number(b.view || b.tmdb?.vote_count || 0);
-      if (vB !== vA) return vB - vA;
-      return extractMovieModifiedTime(b) - extractMovieModifiedTime(a);
+      if (vB !== vA) {
+        return parsedSort.direction === "asc" ? vA - vB : vB - vA;
+      }
+      return parsedSort.direction === "asc"
+        ? extractMovieModifiedTime(a) - extractMovieModifiedTime(b)
+        : extractMovieModifiedTime(b) - extractMovieModifiedTime(a);
     });
-  } else if (effectiveActorSort === "year") {
+  } else if (parsedSort.field === "year") {
     filteredActorMovies.sort((a, b) => {
       const yearA = Number(a.year || 0);
       const yearB = Number(b.year || 0);
-      if (yearB !== yearA) return yearB - yearA;
-      return extractMovieModifiedTime(b) - extractMovieModifiedTime(a);
+      if (yearB !== yearA) {
+        return parsedSort.direction === "asc" ? yearA - yearB : yearB - yearA;
+      }
+      return parsedSort.direction === "asc"
+        ? extractMovieModifiedTime(a) - extractMovieModifiedTime(b)
+        : extractMovieModifiedTime(b) - extractMovieModifiedTime(a);
     });
   } else {
-    // "latest" (Mặc định)
+    // "modified.time" ("latest" desc hoặc "oldest" asc)
     filteredActorMovies.sort((a, b) => {
       const timeA = extractMovieModifiedTime(a);
       const timeB = extractMovieModifiedTime(b);
-      if (timeB !== timeA) return timeB - timeA;
+      if (timeB !== timeA) {
+        return parsedSort.direction === "asc" ? timeA - timeB : timeB - timeA;
+      }
       const yearA = Number(a.year || 0);
       const yearB = Number(b.year || 0);
-      if (yearB !== yearA) return yearB - yearA;
+      if (yearB !== yearA) {
+        return parsedSort.direction === "asc" ? yearA - yearB : yearB - yearA;
+      }
       return String(a.name || "").localeCompare(String(b.name || ""));
     });
   }
@@ -386,7 +403,7 @@ export default async function BrowsePage({
   const keyword = params.keyword || undefined;
   const actorParam = params.actor || undefined;
   const type = params.type || undefined;
-  const rawSort = (params.sort as "latest" | "rating" | "views" | "year") || undefined;
+  const rawSort = params.sort?.trim() || undefined;
   const sort = rawSort || "latest";
   const effectiveSort = sort;
 
@@ -611,13 +628,21 @@ export default async function BrowsePage({
     title = `Phim ${formatCountryName(country) || COUNTRY_NAMES[country] || country}`;
   } else if (year) {
     title = `Phim Năm ${year}`;
-  } else if (rawSort === "rating") {
-    title = "Phim Có Điểm Đánh Giá Cao Nhất";
-  } else if (rawSort === "views") {
+  } else if (rawSort === "rating" || rawSort === "rating-desc") {
+    title = "Phim Có Điểm Đánh Giá Cao";
+  } else if (rawSort === "rating-asc") {
+    title = "Phim Có Điểm Đánh Giá Thấp";
+  } else if (rawSort === "views" || rawSort === "views-desc") {
     title = "Phim Có Lượt Xem Nhiều Nhất";
-  } else if (rawSort === "year") {
-    title = "Phim Mới Phát Hành";
-  } else if (rawSort === "latest") {
+  } else if (rawSort === "views-asc") {
+    title = "Phim Có Lượt Xem Ít Nhất";
+  } else if (rawSort === "year" || rawSort === "year-desc") {
+    title = "Phim Năm Mới Nhất";
+  } else if (rawSort === "year-asc") {
+    title = "Phim Năm Cũ Nhất";
+  } else if (rawSort === "oldest" || rawSort === "time-asc") {
+    title = "Phim Cập Nhật Cũ Nhất";
+  } else if (rawSort === "latest" || rawSort === "time-desc") {
     title = "Phim Mới Cập Nhật";
   } else if (category || country || year || type) {
     title = "Kết Quả Lọc Phim";

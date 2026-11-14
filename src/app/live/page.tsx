@@ -37,7 +37,8 @@ export const metadata: Metadata = {
   },
 };
 
-export const dynamic = "force-dynamic";
+// Cache Edge CDN 30 giây để người dùng lướt trang không kích hoạt serverless function liên tục
+export const revalidate = 30;
 export const runtime = "nodejs";
 
 // Server streaming component: Shell (Navbar, Skeleton, Footer) được flush ngay lập tức về browser

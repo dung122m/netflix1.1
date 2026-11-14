@@ -195,9 +195,11 @@ export function useCinemaOsdAndControls({
   }, []);
 
   const resetControlsTimeout = useCallback(() => {
+    if (!showControlsRef.current) {
+      lastControlsShownTimeRef.current = Date.now();
+    }
     setShowControls(true);
     showControlsRef.current = true;
-    lastControlsShownTimeRef.current = Date.now();
     if (controlsTimerRef.current) {
       clearTimeout(controlsTimerRef.current);
       controlsTimerRef.current = null;
@@ -223,7 +225,11 @@ export function useCinemaOsdAndControls({
   }, [clearControlsTimer]);
 
   const forceShowControls = useCallback(() => {
+    if (!showControlsRef.current) {
+      lastControlsShownTimeRef.current = Date.now();
+    }
     setShowControls(true);
+    showControlsRef.current = true;
     clearControlsTimer();
   }, [clearControlsTimer]);
 

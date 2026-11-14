@@ -209,12 +209,17 @@ export function useLiveTvFilters({
         window.history.replaceState(null, "", url.toString());
       } catch {}
 
-      if (playerRef.current) {
+      // Trên Mobile (<1024px): Nếu người dùng cuộn sâu xuống danh sách kênh, cuộn nhẹ về đầu Player
+      // Trên Desktop (>=1024px): Player và danh sách kênh nằm song song cố định trong tầm mắt, tuyệt đối không cuộn giật trang
+      if (playerRef.current && window.innerWidth < 1024 && window.scrollY > 80) {
         const topOffset =
           playerRef.current.getBoundingClientRect().top +
           window.scrollY -
           70;
-        window.scrollTo({ top: Math.max(0, topOffset), behavior: "smooth" });
+        window.scrollTo({
+          top: topOffset < 80 ? 0 : topOffset,
+          behavior: "smooth",
+        });
       }
     },
     [onBeforeSelectChannel, onCloseDrawer, playerRef],
