@@ -1,8 +1,14 @@
 "use client";
 
 import React from "react";
-import { Check } from "lucide-react";
-import { FilterGroup, MOVIE_TYPES, SORT_OPTIONS } from "./filterConstants";
+import { Check, ArrowDownWideNarrow, ArrowUpNarrowWide } from "lucide-react";
+import {
+  FilterGroup,
+  MOVIE_TYPES,
+  SORT_FIELDS,
+  unpackSort,
+  packSort,
+} from "./filterConstants";
 
 export interface FilterDropdownMenuProps {
   activeDropdown: FilterGroup | null;
@@ -240,50 +246,99 @@ export const FilterDropdownMenu: React.FC<FilterDropdownMenuProps> = React.memo(
           </div>
         )}
 
-        {/* POPUP 5: SẮP XẾP */}
-        {activeDropdown === "sort" && (
-          <div className="w-56 sm:w-60 rounded-2xl bg-zinc-950/98 p-2.5 shadow-[0_20px_50px_rgba(0,0,0,0.9)] backdrop-blur-xl animate-in fade-in zoom-in-95 duration-150">
-            <div className="px-2 py-1 text-[11px] font-semibold text-zinc-400 border-b border-white/[0.08] mb-2 flex items-center justify-between">
-              <span>Sắp xếp theo</span>
-              {currentSort !== "latest" && (
-                <button
-                  type="button"
-                  onClick={() => updateQueryParam("sort", "latest")}
-                  className="text-netflix-red hover:brightness-110 text-[11px] normal-case font-medium cursor-pointer"
-                >
-                  Mặc định
-                </button>
-              )}
-            </div>
-            <div className="space-y-1">
-              {SORT_OPTIONS.map((opt, idx) => {
-                const isSelected = currentSort === opt.value;
-                const Icon = opt.icon;
-                const isPairStart = idx % 2 === 0 && idx > 0;
-                return (
-                  <React.Fragment key={opt.value}>
-                    {isPairStart && <div className="border-t border-white/[0.06] my-1" />}
+        {/* POPUP 5: SẮP XẾP (PHƯƠNG ÁN 2: TÁCH TIÊU CHÍ VÀ CHIỀU SẮP XẾP) */}
+        {activeDropdown === "sort" && (() => {
+          const { field: activeField, direction: activeDirection } = unpackSort(currentSort);
+          const currentFieldObj = SORT_FIELDS.find((f) => f.field === activeField) || SORT_FIELDS[0];
+
+          return (
+            <div className="w-64 rounded-2xl bg-zinc-950/98 p-3 shadow-[0_20px_50px_rgba(0,0,0,0.9)] backdrop-blur-xl animate-in fade-in zoom-in-95 duration-150">
+              <div className="px-2 py-1 text-[11px] font-semibold text-zinc-400 border-b border-white/[0.08] mb-2.5 flex items-center justify-between">
+                <span>Tiêu chí sắp xếp</span>
+                {currentSort !== "latest" && (
+                  <button
+                    type="button"
+                    onClick={() => updateQueryParam("sort", "latest")}
+                    className="text-netflix-red hover:brightness-110 text-[11px] normal-case font-medium cursor-pointer"
+                  >
+                    Mặc định
+                  </button>
+                )}
+              </div>
+
+              {/* 4 Tiêu chí chính: Gọn gàng, thẩm mỹ cao */}
+              <div className="space-y-1">
+                {SORT_FIELDS.map((opt) => {
+                  const isSelected = activeField === opt.field;
+                  const Icon = opt.icon;
+                  return (
                     <button
+                      key={opt.field}
                       type="button"
-                      onClick={() => updateQueryParam("sort", opt.value)}
+                      onClick={() => {
+                        const nextSort = packSort(opt.field, activeDirection);
+                        updateQueryParam("sort", nextSort === "latest" ? "" : nextSort);
+                      }}
                       className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs sm:text-sm font-medium transition cursor-pointer text-left ${
                         isSelected
                           ? "bg-netflix-red text-white font-bold shadow-md shadow-black/50"
                           : "text-zinc-300 hover:bg-zinc-800/80 hover:text-white"
                       }`}
                     >
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2.5">
                         <Icon className={`w-3.5 h-3.5 flex-none ${isSelected ? "text-white" : opt.color}`} />
                         <span>{opt.label}</span>
                       </div>
                       {isSelected && <Check className="w-3.5 h-3.5 text-white flex-none" />}
                     </button>
-                  </React.Fragment>
-                );
-              })}
+                  );
+                })}
+              </div>
+
+              {/* Chiều sắp xếp (Tăng dần / Giảm dần) */}
+              <div className="mt-3 pt-2.5 border-t border-white/[0.08]">
+                <div className="px-2 mb-2 text-[11px] font-semibold text-zinc-400 flex items-center justify-between">
+                  <span>Thứ tự</span>
+                  <span className="text-[10px] text-zinc-400 font-medium">
+                    {activeDirection === "desc" ? currentFieldObj.descLabel : currentFieldObj.ascLabel}
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 gap-1.5 p-1 rounded-xl bg-zinc-900/90 border border-white/[0.04]">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const nextSort = packSort(activeField, "desc");
+                      updateQueryParam("sort", nextSort === "latest" ? "" : nextSort);
+                    }}
+                    className={`py-1.5 px-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer ${
+                      activeDirection === "desc"
+                        ? "bg-white/15 text-white shadow-sm font-bold"
+                        : "text-zinc-400 hover:text-zinc-200"
+                    }`}
+                  >
+                    <ArrowDownWideNarrow className="w-3.5 h-3.5 text-netflix-red" />
+                    <span>Giảm dần</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const nextSort = packSort(activeField, "asc");
+                      updateQueryParam("sort", nextSort === "latest" ? "" : nextSort);
+                    }}
+                    className={`py-1.5 px-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer ${
+                      activeDirection === "asc"
+                        ? "bg-white/15 text-white shadow-sm font-bold"
+                        : "text-zinc-400 hover:text-zinc-200"
+                    }`}
+                  >
+                    <ArrowUpNarrowWide className="w-3.5 h-3.5 text-netflix-red" />
+                    <span>Tăng dần</span>
+                  </button>
+                </div>
+              </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
       </div>
     );
   }

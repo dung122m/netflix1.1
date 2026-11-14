@@ -14,6 +14,8 @@ import {
   Loader2,
   SlidersHorizontal,
   ArrowUpDown,
+  ArrowDownWideNarrow,
+  ArrowUpNarrowWide,
 } from "lucide-react";
 
 import {
@@ -22,12 +24,15 @@ import {
   type SortOptionItem,
   MOVIE_TYPES,
   SORT_OPTIONS,
+  SORT_FIELDS,
+  unpackSort,
+  packSort,
 } from "./filterConstants";
 import { FilterDropdownMenu } from "./FilterDropdownMenu";
 import { FilterMobileDrawer } from "./FilterMobileDrawer";
 
 export type { FilterGroup, MovieTypeOption, SortOptionItem };
-export { MOVIE_TYPES, SORT_OPTIONS };
+export { MOVIE_TYPES, SORT_OPTIONS, SORT_FIELDS };
 
 export const FilterBar: React.FC = () => {
   const router = useRouter();
@@ -234,11 +239,10 @@ export const FilterBar: React.FC = () => {
   const activeCountryObj = filters.countries.find((c) => c.slug === currentCountry);
   const activeCountryName = activeCountryObj ? activeCountryObj.name : "Quốc gia";
 
-  const activeSortObj = SORT_OPTIONS.find((s) => s.value === currentSort);
-  const activeSortName = activeSortObj ? activeSortObj.label : "Mới cập nhật";
-
-  // Count active filters for badge
+  const { field: sortField, direction: sortDirection } = unpackSort(currentSort);
+  const activeSortObj = SORT_FIELDS.find((s) => s.field === sortField) || SORT_FIELDS[0];
   const isCustomSort = Boolean(currentSort && currentSort !== "latest");
+  const activeSortName = isCustomSort ? activeSortObj.label : "Sắp xếp";
   const activeFiltersCount = [
     Boolean(currentType),
     Boolean(currentCategory),
@@ -635,7 +639,7 @@ export const FilterBar: React.FC = () => {
             )}
 
             {/* DROPDOWN 5: SẮP XẾP (CĂN MÉP PHẢI DOCK ĐỂ TÁCH BIỆT VỚI NHÓM LỌC) */}
-            <div className="sm:ml-auto sm:pl-3 sm:border-l sm:border-white/10 flex items-center flex-none">
+            <div className="sm:ml-auto sm:pl-3 sm:border-l sm:border-white/10 flex items-center gap-1.5 flex-none">
               <button
                 ref={(el) => {
                   buttonRefs.current["sort"] = el;
@@ -655,7 +659,7 @@ export const FilterBar: React.FC = () => {
               >
                 <ArrowUpDown className={`w-3.5 h-3.5 flex-none ${isCustomSort ? "text-netflix-red" : "text-zinc-400"}`} />
                 <span className="truncate max-w-[150px] sm:max-w-none">
-                  {isCustomSort ? activeSortName : "Sắp xếp"}
+                  {activeSortName}
                 </span>
                 {isPending && pendingGroup === "sort" ? (
                   <Loader2 className="w-3.5 h-3.5 text-netflix-red animate-spin flex-none" />
@@ -667,6 +671,40 @@ export const FilterBar: React.FC = () => {
                   />
                 )}
               </button>
+
+              {/* NÚT ĐẢO CHIỀU SẮP XẾP NHANH 1-CLICK (CHUẨN TMDB / LETTERBOXD) */}
+              <Tooltip
+                content={
+                  sortDirection === "desc"
+                    ? `Thứ tự: Giảm dần (${activeSortObj.descLabel}) — Bấm để đổi sang Tăng dần (${activeSortObj.ascLabel})`
+                    : `Thứ tự: Tăng dần (${activeSortObj.ascLabel}) — Bấm để đổi sang Giảm dần (${activeSortObj.descLabel})`
+                }
+                side="bottom"
+              >
+                <button
+                  type="button"
+                  onClick={() => {
+                    const nextDir = sortDirection === "desc" ? "asc" : "desc";
+                    const nextSort = packSort(sortField, nextDir);
+                    updateQueryParam("sort", nextSort === "latest" ? "" : nextSort);
+                  }}
+                  aria-label={sortDirection === "desc" ? "Đổi sang thứ tự tăng dần" : "Đổi sang thứ tự giảm dần"}
+                  className={`h-10 px-2.5 rounded-xl text-xs font-semibold transition-all duration-150 flex items-center justify-center gap-1 cursor-pointer shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black active:scale-95 ${
+                    sortDirection === "asc"
+                      ? "bg-netflix-red/20 text-netflix-red font-bold"
+                      : "bg-white/[0.05] text-zinc-300 hover:bg-white/[0.1] hover:text-white"
+                  }`}
+                >
+                  {sortDirection === "desc" ? (
+                    <ArrowDownWideNarrow className="w-3.5 h-3.5 flex-none" />
+                  ) : (
+                    <ArrowUpNarrowWide className="w-3.5 h-3.5 text-netflix-red flex-none" />
+                  )}
+                  <span className="hidden md:inline text-[11px] font-medium">
+                    {sortDirection === "desc" ? "Giảm dần" : "Tăng dần"}
+                  </span>
+                </button>
+              </Tooltip>
             </div>
           </div>
         </div>

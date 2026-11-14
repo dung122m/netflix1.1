@@ -6,8 +6,15 @@ import {
   SlidersHorizontal,
   X,
   Check,
+  ArrowDownWideNarrow,
+  ArrowUpNarrowWide,
 } from "lucide-react";
-import { MOVIE_TYPES, SORT_OPTIONS } from "./filterConstants";
+import {
+  MOVIE_TYPES,
+  SORT_FIELDS,
+  unpackSort,
+  packSort,
+} from "./filterConstants";
 
 export interface FilterMobileDrawerProps {
   isOpen: boolean;
@@ -92,33 +99,96 @@ export const FilterMobileDrawer: React.FC<FilterMobileDrawerProps> = React.memo(
 
           {/* Danh sách các nhóm bộ lọc có thể cuộn */}
           <div className="flex-1 min-h-0 overflow-y-auto px-4 py-3 space-y-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden overscroll-contain">
-            {/* NHÓM 1: SẮP XẾP */}
-            <div className="space-y-2">
-              <span className="text-xs font-semibold text-zinc-400 flex items-center">
-                Sắp xếp theo
-              </span>
-              <div className="grid grid-cols-2 gap-2">
-                {SORT_OPTIONS.map((opt) => {
-                  const isSelected = draftSort === opt.value;
-                  const Icon = opt.icon;
-                  return (
-                    <button
-                      key={opt.value}
-                      type="button"
-                      onClick={() => setDraftSort(opt.value)}
-                      className={`py-2 px-3 rounded-xl text-xs font-semibold flex items-center gap-2 transition active:scale-95 cursor-pointer text-left ${
-                        isSelected
-                          ? "bg-netflix-red/20 ring-1 ring-inset ring-netflix-red/50 text-white"
-                          : "bg-zinc-900/90 text-zinc-300 hover:bg-zinc-800"
-                      }`}
-                    >
-                      <Icon className={`w-3.5 h-3.5 shrink-0 ${opt.color}`} />
-                      <span className="truncate">{opt.label}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
+            {/* NHÓM 1: SẮP XẾP (PHƯƠNG ÁN 2: TÁCH TIÊU CHÍ VÀ CHIỀU SẮP XẾP) */}
+            {(() => {
+              const { field: activeField, direction: activeDirection } = unpackSort(draftSort);
+              const currentFieldObj = SORT_FIELDS.find((f) => f.field === activeField) || SORT_FIELDS[0];
+
+              return (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold text-zinc-400 flex items-center">
+                      Tiêu chí sắp xếp
+                    </span>
+                    {draftSort && draftSort !== "latest" && (
+                      <button
+                        type="button"
+                        onClick={() => setDraftSort("latest")}
+                        className="text-[11px] text-netflix-red hover:brightness-110 font-medium cursor-pointer"
+                      >
+                        Mặc định
+                      </button>
+                    )}
+                  </div>
+
+                  {/* 4 Tiêu chí chính: Lưới 2 cột trực quan */}
+                  <div className="grid grid-cols-2 gap-2">
+                    {SORT_FIELDS.map((opt) => {
+                      const isFieldActive = activeField === opt.field;
+                      const Icon = opt.icon;
+                      return (
+                        <button
+                          key={opt.field}
+                          type="button"
+                          onClick={() => {
+                            const next = packSort(opt.field, activeDirection);
+                            setDraftSort(next);
+                          }}
+                          className={`py-2 px-3 rounded-xl text-xs font-semibold flex items-center gap-2 transition active:scale-95 cursor-pointer text-left ${
+                            isFieldActive
+                              ? "bg-netflix-red/25 ring-1 ring-inset ring-netflix-red/60 text-white font-bold"
+                              : "bg-zinc-900/90 text-zinc-300 hover:bg-zinc-800"
+                          }`}
+                        >
+                          <Icon className={`w-3.5 h-3.5 shrink-0 ${isFieldActive ? "text-white" : opt.color}`} />
+                          <span className="truncate">{opt.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Chiều sắp xếp (Tăng dần / Giảm dần) */}
+                  <div className="p-1.5 rounded-xl bg-zinc-900/70 border border-white/[0.04] space-y-1.5">
+                    <div className="px-1 text-[11px] font-semibold text-zinc-400 flex items-center justify-between">
+                      <span>Thứ tự</span>
+                      <span className="text-[10px] text-zinc-400 font-medium">
+                        {activeDirection === "desc" ? currentFieldObj.descLabel : currentFieldObj.ascLabel}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setDraftSort(packSort(activeField, "desc"));
+                        }}
+                        className={`py-2 px-2.5 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer ${
+                          activeDirection === "desc"
+                            ? "bg-white/15 text-white font-bold shadow-sm"
+                            : "text-zinc-400"
+                        }`}
+                      >
+                        <ArrowDownWideNarrow className="w-3.5 h-3.5 text-netflix-red" />
+                        <span>Giảm dần</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setDraftSort(packSort(activeField, "asc"));
+                        }}
+                        className={`py-2 px-2.5 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer ${
+                          activeDirection === "asc"
+                            ? "bg-white/15 text-white font-bold shadow-sm"
+                            : "text-zinc-400"
+                        }`}
+                      >
+                        <ArrowUpNarrowWide className="w-3.5 h-3.5 text-netflix-red" />
+                        <span>Tăng dần</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* NHÓM 2: LOẠI PHIM */}
             <div className="space-y-2">
