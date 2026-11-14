@@ -15,6 +15,9 @@ interface ProfileEditFormTabProps {
   selectedAvatar: string;
   setSelectedAvatar: (url: string) => void;
   customAvatarUrl: string;
+  uploadedAvatars?: string[];
+  onSelectUploadedAvatar?: (url: string) => void;
+  onRemoveUploadedAvatar?: (url: string) => void;
   displayName: string;
   setDisplayName: (val: string) => void;
   bio: string;
@@ -37,6 +40,9 @@ export function ProfileEditFormTab({
   selectedAvatar,
   setSelectedAvatar,
   customAvatarUrl,
+  uploadedAvatars = [],
+  onSelectUploadedAvatar,
+  onRemoveUploadedAvatar,
   displayName,
   setDisplayName,
   bio,
@@ -105,16 +111,19 @@ export function ProfileEditFormTab({
           })}
         </div>
 
-        {/* Custom URL Input */}
+        {/* Custom Avatar Active Banner (No raw URL) */}
         {useCustomUrl && customAvatarUrl && (
           <div className="flex items-center gap-3 p-3 rounded-2xl bg-white/5">
-            <div className="w-10 h-10 rounded-full overflow-hidden shrink-0">
+            <div className="w-10 h-10 rounded-full overflow-hidden shrink-0 ring-1 ring-white/10">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={customAvatarUrl} alt="Custom Avatar" className="w-full h-full object-cover" />
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-xs font-bold text-white">Ảnh tùy chỉnh đang được chọn</p>
-              <p className="text-[11px] text-zinc-400 truncate">{customAvatarUrl}</p>
+              <p className="text-[11px] text-emerald-400 flex items-center gap-1 font-medium mt-0.5">
+                <Check className="w-3 h-3 stroke-[3]" />
+                Đang sử dụng ảnh cá nhân của bạn
+              </p>
             </div>
             <button
               type="button"
@@ -122,16 +131,78 @@ export function ProfileEditFormTab({
                 setUseCustomUrl(false);
                 setSelectedAvatar(PRESET_AVATARS[0].url);
               }}
-              className="text-xs text-zinc-400 hover:text-white px-2 py-1 rounded-lg hover:bg-white/10 transition"
+              className="text-xs text-zinc-400 hover:text-white px-2.5 py-1.5 rounded-lg hover:bg-white/10 transition cursor-pointer"
             >
               Dùng Avatar mẫu
             </button>
           </div>
         )}
+
+        {/* Lịch sử ảnh đã tải lên */}
+        {uploadedAvatars.length > 0 && (
+          <div className="space-y-2 pt-2 border-t border-white/5">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-zinc-300">
+                Ảnh bạn đã tải lên ({uploadedAvatars.length})
+              </span>
+              <span className="text-[11px] text-zinc-500">Bấm để dùng lại</span>
+            </div>
+            <div className="flex flex-wrap gap-2.5">
+              {uploadedAvatars.map((url, idx) => {
+                const isSelected = useCustomUrl && (selectedAvatar === url || customAvatarUrl === url);
+                return (
+                  <div key={`${url}-${idx}`} className="relative group/avatar">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (onSelectUploadedAvatar) {
+                          onSelectUploadedAvatar(url);
+                        } else {
+                          setSelectedAvatar(url);
+                          setUseCustomUrl(true);
+                        }
+                      }}
+                      className={`relative w-12 h-12 rounded-2xl overflow-hidden transition-all duration-200 cursor-pointer hover:scale-105 ${
+                        isSelected
+                          ? "ring-2 ring-netflix-red scale-105 shadow-lg shadow-netflix-red/30"
+                          : "bg-zinc-900 hover:brightness-110 opacity-80 hover:opacity-100"
+                      }`}
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={url}
+                        alt={`Ảnh đại diện ${idx + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+                      {isSelected && (
+                        <div className="absolute top-1 right-1 w-4 h-4 rounded-full bg-netflix-red text-white flex items-center justify-center shadow">
+                          <Check className="w-2.5 h-2.5 stroke-[3]" />
+                        </div>
+                      )}
+                    </button>
+                    {onRemoveUploadedAvatar && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onRemoveUploadedAvatar(url);
+                        }}
+                        title="Xóa khỏi lịch sử"
+                        className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-zinc-800 text-zinc-400 hover:text-white hover:bg-red-600 transition opacity-0 group-hover/avatar:opacity-100 flex items-center justify-center text-[11px] leading-none shadow cursor-pointer z-10"
+                      >
+                        ×
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* TÊN HIỂN THỊ & TIỂU SỬ */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 pt-2">
+      <div className="space-y-4 pt-2">
         <div className="space-y-1.5">
           <div className="flex items-center justify-between">
             <label className="text-xs font-semibold text-zinc-300">
@@ -162,7 +233,7 @@ export function ProfileEditFormTab({
             value={bio}
             onChange={(e) => setBio(e.target.value)}
             placeholder="Mê phim Marvel, cày anime ban đêm..."
-            className="w-full px-4 py-2 rounded-xl bg-zinc-900 border border-white/10 text-base sm:text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-netflix-red transition resize-none leading-relaxed"
+            className="w-full px-4 py-2.5 rounded-xl bg-zinc-900 border border-white/10 text-base sm:text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-netflix-red transition resize-none leading-relaxed"
           />
         </div>
       </div>

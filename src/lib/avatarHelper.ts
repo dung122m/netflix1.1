@@ -58,3 +58,56 @@ export const PRESET_AVATARS = [
   { id: "dragon-hero", name: "🐉 Rồng Đỏ", url: "https://media.nanaflix.asia/avatars/preset-nanaflix-11.svg" },
   { id: "cat-cinema", name: "🐱 Mèo Cinema", url: "https://media.nanaflix.asia/avatars/preset-nanaflix-12.svg" },
 ];
+
+const UPLOADED_AVATARS_STORAGE_KEY = "nanaflix_uploaded_avatars_v1";
+const MAX_SAVED_UPLOADED_AVATARS = 8;
+
+/**
+ * Lấy danh sách URL avatar người dùng đã tải lên trước đây
+ */
+export function getUploadedAvatarsHistory(userId?: string | null): string[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const key = userId ? `${UPLOADED_AVATARS_STORAGE_KEY}_${userId}` : UPLOADED_AVATARS_STORAGE_KEY;
+    const raw = localStorage.getItem(key);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed)
+      ? parsed.filter((u): u is string => typeof u === "string" && (u.startsWith("http") || u.startsWith("data:image/")))
+      : [];
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Lưu một avatar mới vào danh sách lịch sử avatar đã tải
+ */
+export function saveUploadedAvatarToHistory(url: string, userId?: string | null): string[] {
+  if (typeof window === "undefined" || !url) return [];
+  try {
+    const key = userId ? `${UPLOADED_AVATARS_STORAGE_KEY}_${userId}` : UPLOADED_AVATARS_STORAGE_KEY;
+    const current = getUploadedAvatarsHistory(userId);
+    const updated = [url, ...current.filter((u) => u !== url)].slice(0, MAX_SAVED_UPLOADED_AVATARS);
+    localStorage.setItem(key, JSON.stringify(updated));
+    return updated;
+  } catch {
+    return [url];
+  }
+}
+
+/**
+ * Xóa một avatar khỏi danh sách lịch sử avatar đã tải
+ */
+export function removeUploadedAvatarFromHistory(url: string, userId?: string | null): string[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const key = userId ? `${UPLOADED_AVATARS_STORAGE_KEY}_${userId}` : UPLOADED_AVATARS_STORAGE_KEY;
+    const current = getUploadedAvatarsHistory(userId);
+    const updated = current.filter((u) => u !== url);
+    localStorage.setItem(key, JSON.stringify(updated));
+    return updated;
+  } catch {
+    return [];
+  }
+}

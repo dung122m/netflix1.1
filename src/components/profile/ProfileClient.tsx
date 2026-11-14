@@ -27,7 +27,12 @@ import { subscribeUserCollections, getLocalCollections } from "@/services/collec
 import { getWatchHistory } from "@/lib/watchHistory";
 import { getWatchlist } from "@/lib/watchlist";
 import { toast } from "@/components/ui/Toast";
-import { PRESET_AVATARS } from "@/lib/avatarHelper";
+import {
+  PRESET_AVATARS,
+  getUploadedAvatarsHistory,
+  saveUploadedAvatarToHistory,
+  removeUploadedAvatarFromHistory,
+} from "@/lib/avatarHelper";
 import { useUserMovieComments } from "@/hooks/useUserMovieComments";
 import {
   GENRE_OPTIONS,
@@ -75,6 +80,7 @@ export function ProfileClient() {
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [useCustomUrl, setUseCustomUrl] = useState(false);
+  const [uploadedAvatars, setUploadedAvatars] = useState<string[]>([]);
 
   // Player Settings State
   const [playerSettings, setPlayerSettingsState] = useState<PlayerSettings>(DEFAULT_PLAYER_SETTINGS);
@@ -129,6 +135,9 @@ export function ProfileClient() {
     if (activeUid) {
       refreshStats();
       setPlayerSettingsState(getPlayerSettings(activeUid));
+      setUploadedAvatars(getUploadedAvatarsHistory(activeUid));
+    } else if (typeof window !== "undefined") {
+      setUploadedAvatars(getUploadedAvatarsHistory());
     }
   }, [activeUid, refreshStats]);
 
@@ -164,6 +173,8 @@ export function ProfileClient() {
         if (currentAvatar && !PRESET_AVATARS.some((a) => a.url === currentAvatar)) {
           setCustomAvatarUrl(currentAvatar);
           setUseCustomUrl(true);
+          const history = saveUploadedAvatarToHistory(currentAvatar, activeUid);
+          setUploadedAvatars(history);
         } else {
           setUseCustomUrl(false);
         }
@@ -202,6 +213,8 @@ export function ProfileClient() {
       setCustomAvatarUrl(finalUrl);
       setSelectedAvatar(finalUrl);
       setUseCustomUrl(true);
+      const updatedHistory = saveUploadedAvatarToHistory(finalUrl, user?.uid);
+      setUploadedAvatars(updatedHistory);
       setProfile((prev) => (prev ? { ...prev, customAvatar: finalUrl, photoURL: finalUrl } : null));
 
       if (user?.uid) {
@@ -223,6 +236,29 @@ export function ProfileClient() {
       if (fileInputRef.current) fileInputRef.current.value = "";
       setIsUploadingAvatar(false);
     }
+  };
+
+  const handleSelectUploadedAvatar = (url: string) => {
+    setSelectedAvatar(url);
+    setCustomAvatarUrl(url);
+    setUseCustomUrl(true);
+  };
+
+  const handleRemoveUploadedAvatar = (url: string) => {
+    const updated = removeUploadedAvatarFromHistory(url, activeUid);
+    setUploadedAvatars(updated);
+    if (selectedAvatar === url || customAvatarUrl === url) {
+      if (updated.length > 0) {
+        setSelectedAvatar(updated[0]);
+        setCustomAvatarUrl(updated[0]);
+        setUseCustomUrl(true);
+      } else {
+        setUseCustomUrl(false);
+        setSelectedAvatar(PRESET_AVATARS[0].url);
+        setCustomAvatarUrl("");
+      }
+    }
+    toast.success("Đã xóa ảnh khỏi danh sách tải lên!");
   };
 
   const toggleGenre = (genre: string) => {
@@ -483,6 +519,9 @@ export function ProfileClient() {
             selectedAvatar={selectedAvatar}
             setSelectedAvatar={setSelectedAvatar}
             customAvatarUrl={customAvatarUrl}
+            uploadedAvatars={uploadedAvatars}
+            onSelectUploadedAvatar={handleSelectUploadedAvatar}
+            onRemoveUploadedAvatar={handleRemoveUploadedAvatar}
             displayName={displayName}
             setDisplayName={setDisplayName}
             bio={bio}
