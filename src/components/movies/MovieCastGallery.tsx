@@ -177,7 +177,7 @@ export const MovieCastGallery: React.FC<MovieCastGalleryProps> = ({
                     slug={actor.slug}
                     avatarUrl={actor.avatarUrl}
                     variant="icon"
-                    className="w-7 h-7 p-0 opacity-0 group-hover/card:opacity-100 transition-opacity duration-200"
+                    className="w-7 h-7 p-0 max-sm:opacity-80 sm:opacity-0 sm:group-hover/card:opacity-100 transition-opacity duration-200"
                   />
                 </div>
               </div>
