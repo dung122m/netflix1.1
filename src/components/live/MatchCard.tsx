@@ -70,10 +70,10 @@ function sanitizeDisplayName(name?: string): string {
  * - "LIVE", "HT", "FT" giữ nguyên
  */
 function formatDisplayMinute(rawBadge?: string | null): string {
-  if (!rawBadge) return "LIVE";
+  if (!rawBadge) return "";
   const trimmed = rawBadge.trim();
+  if (trimmed === "LIVE") return "";
   if (
-    trimmed === "LIVE" ||
     trimmed === "HT" ||
     trimmed === "FT" ||
     trimmed === "ET" ||
@@ -363,7 +363,9 @@ function MatchCardInner({ match, isSelected, onSelect, score, compact }: MatchCa
               <>
                 <span className="inline-flex items-center gap-1 text-[10px] font-bold text-rose-400 leading-none">
                   <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse shrink-0" />
-                  <span>{formatDisplayMinute(timeInfo.clockBadge)}</span>
+                  {formatDisplayMinute(timeInfo.clockBadge) ? (
+                    <span>{formatDisplayMinute(timeInfo.clockBadge)}</span>
+                  ) : null}
                 </span>
                 {kickoffTime && (
                   <span className="text-[10px] font-sans text-zinc-400 tabular-nums">
@@ -598,10 +600,7 @@ function MatchCardInner({ match, isSelected, onSelect, score, compact }: MatchCa
           {/* Góc phải Header: Trạng thái & Huy hiệu (Typography thuần khiết) */}
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             {isConfirmedLive && (
-              <span className="inline-flex items-center gap-1 sm:gap-1.5 px-1.5 py-0.5 rounded-full bg-rose-500/10 border border-rose-500/20 text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-rose-400">
-                <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse shrink-0" />
-                <span>LIVE</span>
-              </span>
+              <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse shrink-0 shadow-sm shadow-rose-500/50" title="Đang phát trực tiếp" />
             )}
 
             {/* Huy hiệu Tâm điểm: Red Brand Capsule nổi bật cao cấp */}
