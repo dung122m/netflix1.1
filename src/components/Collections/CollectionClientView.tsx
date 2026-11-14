@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import {
-  ArrowLeft,
   Share2,
   BookmarkPlus,
   Globe,
@@ -22,6 +21,7 @@ import { toast } from "@/components/ui/Toast";
 import { UserAvatar } from "@/components/ui/UserAvatar";
 import { useAuth } from "@/context/AuthContext";
 import { AddMovieToCollectionModal } from "./AddMovieToCollectionModal";
+import { PageHeader } from "@/components/ui/PageHeader";
 
 interface CollectionClientViewProps {
   id: string;
@@ -112,24 +112,16 @@ export function CollectionClientView({
 
   return (
     <main className="max-w-[1800px] mx-auto px-4 md:px-8 pt-24 sm:pt-28 pb-16">
-      {/* BREADCRUMB */}
-      <div className="flex items-center gap-2.5 text-xs text-zinc-400 mb-4">
-        <Link
-          href="/"
-          className="hover:text-white transition flex items-center gap-1"
-        >
-          <ArrowLeft className="h-3.5 w-3.5" />
-          Trang chủ
-        </Link>
-        <span>/</span>
-        <Link href="/my-list?tab=collections" className="hover:text-white transition">
-          Bộ sưu tập
-        </Link>
-        <span>/</span>
-        <span className="text-zinc-200 truncate max-w-[200px] sm:max-w-none">
-          {collection?.name || "Chi tiết bộ sưu tập"}
-        </span>
-      </div>
+      {/* BREADCRUMB DÙNG CHUNG */}
+      <PageHeader
+        backHref="/"
+        backLabel="Trang chủ"
+        breadcrumbs={[
+          { label: "Bộ sưu tập", href: "/my-list?tab=collections" },
+          { label: collection?.name || "Chi tiết bộ sưu tập" },
+        ]}
+        className="mb-4"
+      />
 
       {loading ? (
         <div className="py-28 flex flex-col items-center justify-center gap-3 text-zinc-400 text-sm">

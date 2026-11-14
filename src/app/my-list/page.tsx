@@ -1,12 +1,10 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, Suspense } from "react";
-import Link from "next/link";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import {
   Bookmark,
   Trash2,
-  ArrowLeft,
   Clock,
   FolderHeart,
   Plus,
@@ -48,6 +46,7 @@ import { MyListCollectionsTab } from "@/components/my-list/MyListCollectionsTab"
 import { MyListCommentsTab } from "@/components/my-list/MyListCommentsTab";
 import { MyListActorsTab } from "@/components/my-list/MyListActorsTab";
 import { SegmentedTabs } from "@/components/ui/SegmentedTabs";
+import { PageHeader } from "@/components/ui/PageHeader";
 import {
   getFavoriteActors,
   removeFavoriteActor,
@@ -281,17 +280,14 @@ function MyListContent() {
 
   return (
     <main className="max-w-[1800px] mx-auto px-4 md:px-8 pt-24 sm:pt-28 pb-16 w-full min-w-0 overflow-x-clip">
-      {/* HEADER & BREADCRUMB */}
-      <div className="flex flex-wrap items-center justify-between gap-4 mb-6 pb-5">
-        <div>
-          <div className="flex items-center gap-2.5 text-xs text-zinc-400 mb-2">
-            <Link href="/" className="hover:text-white transition flex items-center gap-1">
-              <ArrowLeft className="h-3.5 w-3.5" />
-              Trang chủ
-            </Link>
-            <span>/</span>
-            <span className="text-zinc-200">
-              {activeTab === "watchlist"
+      {/* HEADER & BREADCRUMB DÙNG CHUNG */}
+      <PageHeader
+        backHref="/"
+        backLabel="Trang chủ"
+        breadcrumbs={[
+          {
+            label:
+              activeTab === "watchlist"
                 ? "Danh sách của tôi"
                 : activeTab === "history"
                 ? "Lịch sử xem"
@@ -299,123 +295,119 @@ function MyListContent() {
                 ? "Bình luận & Đánh giá"
                 : activeTab === "actors"
                 ? "Nghệ sĩ yêu thích"
-                : "Bộ sưu tập của tôi"}
-            </span>
-          </div>
-          <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold flex items-center gap-3">
-            {activeTab === "watchlist" ? (
-              <>
-                <Bookmark className="h-7 w-7 sm:h-8 sm:w-8 text-netflix-red fill-current" />
-                Danh sách của tôi
-              </>
-            ) : activeTab === "history" ? (
-              <>
-                <Clock className="h-7 w-7 sm:h-8 sm:w-8 text-netflix-red" />
-                Lịch sử xem phim
-              </>
-            ) : activeTab === "comments" ? (
-              <>
-                <MessageSquare className="h-7 w-7 sm:h-8 sm:w-8 text-netflix-red" />
-                Bình luận & Đánh giá
-              </>
-            ) : activeTab === "actors" ? (
-              <>
-                <Users className="h-7 w-7 sm:h-8 sm:w-8 text-rose-500" />
-                Nghệ sĩ yêu thích
-              </>
-            ) : (
-              <>
-                <FolderHeart className="h-7 w-7 sm:h-8 sm:w-8 text-netflix-red" />
-                Bộ sưu tập của tôi
-              </>
-            )}
-          </h1>
-          <p className="text-sm text-zinc-400 mt-1">
-            {activeTab === "watchlist"
-              ? "Các bộ phim bạn đã đánh dấu để xem lại bất cứ khi nào."
-              : activeTab === "history"
-              ? "Danh sách các bộ phim và tập phim bạn đã xem gần đây."
-              : activeTab === "comments"
-              ? "Tất cả các nhận xét và đánh giá bạn đã đăng trên Nanaflix."
-              : activeTab === "actors"
-              ? "Tuyển tập các diễn viên và đạo diễn bạn quan tâm theo dõi."
-              : "Các danh sách phim được tuyển chọn theo chủ đề riêng và có thể chia sẻ công khai."}
-          </p>
-        </div>
+                : "Bộ sưu tập của tôi",
+          },
+        ]}
+        icon={
+          activeTab === "watchlist" ? (
+            <Bookmark className="h-7 w-7 sm:h-8 sm:w-8 text-netflix-red fill-current" />
+          ) : activeTab === "history" ? (
+            <Clock className="h-7 w-7 sm:h-8 sm:w-8 text-netflix-red" />
+          ) : activeTab === "comments" ? (
+            <MessageSquare className="h-7 w-7 sm:h-8 sm:w-8 text-netflix-red" />
+          ) : activeTab === "actors" ? (
+            <Users className="h-7 w-7 sm:h-8 sm:w-8 text-rose-500" />
+          ) : (
+            <FolderHeart className="h-7 w-7 sm:h-8 sm:w-8 text-netflix-red" />
+          )
+        }
+        title={
+          activeTab === "watchlist"
+            ? "Danh sách của tôi"
+            : activeTab === "history"
+            ? "Lịch sử xem phim"
+            : activeTab === "comments"
+            ? "Bình luận & Đánh giá"
+            : activeTab === "actors"
+            ? "Nghệ sĩ yêu thích"
+            : "Bộ sưu tập của tôi"
+        }
+        subtitle={
+          activeTab === "watchlist"
+            ? "Các bộ phim bạn đã đánh dấu để xem lại bất cứ khi nào."
+            : activeTab === "history"
+            ? "Danh sách các bộ phim và tập phim bạn đã xem gần đây."
+            : activeTab === "comments"
+            ? "Tất cả các nhận xét và đánh giá bạn đã đăng trên Nanaflix."
+            : activeTab === "actors"
+            ? "Tuyển tập các diễn viên và đạo diễn bạn quan tâm theo dõi."
+            : "Các danh sách phim được tuyển chọn theo chủ đề riêng và có thể chia sẻ công khai."
+        }
+        actions={
+          mounted ? (
+            <>
+              {activeTab === "watchlist" && watchlist.length > 0 && (
+                <div className="flex items-center gap-3">
+                  <span className="text-xs sm:text-sm text-zinc-300 bg-zinc-900/80 px-3 py-1.5 rounded-lg">
+                    {watchlist.length} phim đã lưu
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleClearWatchlist}
+                    aria-label="Xóa tất cả phim đã lưu trong danh sách yêu thích"
+                    className="inline-flex items-center gap-1.5 text-xs sm:text-sm text-zinc-400 hover:text-red-400 bg-zinc-900/60 hover:bg-zinc-800 px-3 py-1.5 min-h-[36px] rounded-lg transition-colors cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-red-500/50"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
+                    <span>Xóa tất cả</span>
+                  </button>
+                </div>
+              )}
 
-        {/* NÚT TÁC VỤ HEADER */}
-        {mounted && (
-          <div>
-            {activeTab === "watchlist" && watchlist.length > 0 && (
-              <div className="flex items-center gap-3">
-                <span className="text-xs sm:text-sm text-zinc-300 bg-zinc-900/80 px-3 py-1.5 rounded-lg">
-                  {watchlist.length} phim đã lưu
-                </span>
+              {activeTab === "actors" && favoriteActors.length > 0 && (
+                <div className="flex items-center gap-3">
+                  <span className="text-xs sm:text-sm text-zinc-300 bg-zinc-900/80 px-3 py-1.5 rounded-lg">
+                    {favoriteActors.length} nghệ sĩ
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleClearFavoriteActors}
+                    aria-label="Xóa tất cả nghệ sĩ đã lưu trong danh sách yêu thích"
+                    className="inline-flex items-center gap-1.5 text-xs sm:text-sm text-zinc-400 hover:text-red-400 bg-zinc-900/60 hover:bg-zinc-800 px-3 py-1.5 min-h-[36px] rounded-lg transition-colors cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-red-500/50"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
+                    <span>Xóa tất cả</span>
+                  </button>
+                </div>
+              )}
+
+              {activeTab === "history" && history.length > 0 && (
+                <div className="flex items-center gap-3">
+                  <span className="text-xs sm:text-sm text-zinc-300 bg-zinc-900/80 px-3 py-1.5 rounded-lg">
+                    {history.length} phim đã xem
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleClearHistory}
+                    aria-label="Xóa toàn bộ lịch sử xem phim"
+                    className="inline-flex items-center gap-1.5 text-xs sm:text-sm text-zinc-400 hover:text-red-400 bg-zinc-900/60 hover:bg-zinc-800 px-3 py-1.5 min-h-[36px] rounded-lg transition-colors cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-red-500/50"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
+                    <span>Xóa lịch sử</span>
+                  </button>
+                </div>
+              )}
+
+              {activeTab === "collections" && (
                 <button
                   type="button"
-                  onClick={handleClearWatchlist}
-                  aria-label="Xóa tất cả phim đã lưu trong danh sách yêu thích"
-                  className="inline-flex items-center gap-1.5 text-xs sm:text-sm text-zinc-400 hover:text-red-400 bg-zinc-900/60 hover:bg-zinc-800 px-3 py-1.5 min-h-[36px] rounded-lg transition-colors cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-red-500/50"
+                  onClick={() => {
+                    if (!user) {
+                      setShowAuthModal(true);
+                    } else {
+                      setShowCreateCollectionModal(true);
+                    }
+                  }}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-netflix-red hover:brightness-110 text-white text-xs sm:text-sm font-bold shadow-md shadow-black/50 transition cursor-pointer active:scale-95"
                 >
-                  <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
-                  <span>Xóa tất cả</span>
+                  <Plus className="w-4 h-4" />
+                  <span>Tạo bộ sưu tập</span>
                 </button>
-              </div>
-            )}
-
-            {activeTab === "actors" && favoriteActors.length > 0 && (
-              <div className="flex items-center gap-3">
-                <span className="text-xs sm:text-sm text-zinc-300 bg-zinc-900/80 px-3 py-1.5 rounded-lg">
-                  {favoriteActors.length} nghệ sĩ
-                </span>
-                <button
-                  type="button"
-                  onClick={handleClearFavoriteActors}
-                  aria-label="Xóa tất cả nghệ sĩ đã lưu trong danh sách yêu thích"
-                  className="inline-flex items-center gap-1.5 text-xs sm:text-sm text-zinc-400 hover:text-red-400 bg-zinc-900/60 hover:bg-zinc-800 px-3 py-1.5 min-h-[36px] rounded-lg transition-colors cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-red-500/50"
-                >
-                  <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
-                  <span>Xóa tất cả</span>
-                </button>
-              </div>
-            )}
-
-            {activeTab === "history" && history.length > 0 && (
-              <div className="flex items-center gap-3">
-                <span className="text-xs sm:text-sm text-zinc-300 bg-zinc-900/80 px-3 py-1.5 rounded-lg">
-                  {history.length} phim đã xem
-                </span>
-                <button
-                  type="button"
-                  onClick={handleClearHistory}
-                  aria-label="Xóa toàn bộ lịch sử xem phim"
-                  className="inline-flex items-center gap-1.5 text-xs sm:text-sm text-zinc-400 hover:text-red-400 bg-zinc-900/60 hover:bg-zinc-800 px-3 py-1.5 min-h-[36px] rounded-lg transition-colors cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-red-500/50"
-                >
-                  <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
-                  <span>Xóa lịch sử</span>
-                </button>
-              </div>
-            )}
-
-            {activeTab === "collections" && (
-              <button
-                type="button"
-                onClick={() => {
-                  if (!user) {
-                    setShowAuthModal(true);
-                  } else {
-                    setShowCreateCollectionModal(true);
-                  }
-                }}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-netflix-red hover:brightness-110 text-white text-xs sm:text-sm font-bold shadow-md shadow-black/50 transition cursor-pointer active:scale-95"
-              >
-                <Plus className="w-4 h-4" />
-                <span>Tạo bộ sưu tập</span>
-              </button>
-            )}
-          </div>
-        )}
-      </div>
+              )}
+            </>
+          ) : undefined
+        }
+        className="mb-6 pb-5"
+      />
 
       {/* BANNER ĐỒNG BỘ ĐÁM MÂY (CLOUD SYNC) */}
       <MyListCloudBanner

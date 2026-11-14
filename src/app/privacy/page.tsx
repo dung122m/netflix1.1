@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
+import { PageHeader } from "@/components/ui/PageHeader";
 
 export const metadata: Metadata = {
   title: "Chính Sách Bảo Mật & Quyền Riêng Tư | Nanaflix",
@@ -132,28 +133,31 @@ export default function PrivacyPage() {
 
       <main className="flex-1 pt-24 sm:pt-32 pb-24 px-4 sm:px-8 md:px-12 max-w-5xl mx-auto w-full space-y-16 sm:space-y-20">
 
-        {/* ================= 1. HEADER SECTION ================= */}
-        <section className="text-center space-y-6">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-emerald-500/10 text-xs font-medium text-emerald-300">
-            <ShieldCheck size={14} className="text-emerald-400" />
-            <span>Cam kết minh bạch & an toàn tuyệt đối</span>
-          </div>
-
-          <div className="space-y-4 max-w-3xl mx-auto">
-            <h1 className="text-3xl sm:text-5xl md:text-6xl font-black tracking-tight text-white leading-tight">
+        {/* ================= 1. HEADER SECTION DÙNG CHUNG ================= */}
+        <PageHeader
+          align="center"
+          backHref="/"
+          backLabel="Quay lại Trang chủ"
+          badge={
+            <>
+              <ShieldCheck size={14} className="text-emerald-400" />
+              <span>Cam kết minh bạch & an toàn tuyệt đối</span>
+            </>
+          }
+          title={
+            <>
               Bảo Mật & <span className="text-emerald-400">Quyền Riêng Tư</span>
-            </h1>
-            <p className="text-base sm:text-lg text-zinc-400 font-normal leading-relaxed max-w-2xl mx-auto">
-              Tại Nanaflix, sự riêng tư và an toàn dữ liệu của bạn được đặt lên hàng đầu. Dưới đây là văn bản cam kết rõ ràng, chi tiết và minh bạch về cách chúng tôi bảo vệ thông tin của bạn.
-            </p>
-          </div>
-
-          <div className="flex items-center justify-center gap-4 text-xs text-zinc-500 font-sans tabular-nums">
-            <span>Phiên bản hiệu lực: <strong className="text-zinc-300 font-semibold">2.6</strong></span>
-            <span>•</span>
-            <span>Cập nhật lần cuối: <strong className="text-zinc-300 font-semibold">Tháng 09/2026</strong></span>
-          </div>
-        </section>
+            </>
+          }
+          subtitle="Tại Nanaflix, sự riêng tư và an toàn dữ liệu của bạn được đặt lên hàng đầu. Dưới đây là văn bản cam kết rõ ràng, chi tiết và minh bạch về cách chúng tôi bảo vệ thông tin của bạn."
+          actions={
+            <div className="flex items-center justify-center gap-4 text-xs text-zinc-500 font-sans tabular-nums">
+              <span>Phiên bản hiệu lực: <strong className="text-zinc-300 font-semibold">2.6</strong></span>
+              <span>•</span>
+              <span>Cập nhật lần cuối: <strong className="text-zinc-300 font-semibold">Tháng 09/2026</strong></span>
+            </div>
+          }
+        />
 
         {/* ================= 2. 4 CORE PILLARS ================= */}
         <section className="grid grid-cols-1 md:grid-cols-2 gap-5">

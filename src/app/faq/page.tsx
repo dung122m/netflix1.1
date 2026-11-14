@@ -23,6 +23,7 @@ import {
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { Tooltip } from "@/components/ui/Tooltip";
+import { PageHeader } from "@/components/ui/PageHeader";
 
 interface FAQItem {
   id: string;
@@ -339,45 +340,46 @@ export default function FAQPage() {
 
       <main className="flex-1 pt-24 sm:pt-32 pb-24 px-4 sm:px-8 md:px-12 max-w-6xl mx-auto w-full space-y-14 sm:space-y-20">
 
-        {/* ================= 1. HERO HEADER ================= */}
-        <section className="text-center space-y-6">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-white/[0.05] text-xs font-medium text-zinc-300">
-            <HelpCircle size={14} className="text-netflix-red" />
-            <span>Trung tâm trợ giúp & cẩm nang sử dụng</span>
-          </div>
-
-          <div className="space-y-3 max-w-2xl mx-auto">
-            <h1 className="text-3xl sm:text-5xl md:text-6xl font-black tracking-tight text-white leading-tight">
+        {/* ================= 1. HERO HEADER DÙNG CHUNG ================= */}
+        <PageHeader
+          align="center"
+          size="large"
+          badge={
+            <>
+              <HelpCircle size={14} className="text-netflix-red" />
+              <span>Trung tâm trợ giúp & cẩm nang sử dụng</span>
+            </>
+          }
+          title={
+            <>
               Hướng Dẫn & <span className="text-netflix-red">Hỏi Đáp</span>
-            </h1>
-            <p className="text-sm sm:text-base text-zinc-400 font-normal leading-relaxed">
-              Tổng hợp bí kíp làm chủ các tính năng cao cấp, hướng dẫn cài đặt app, truyền phim lên Smart TV và giải đáp cặn kẽ mọi thắc mắc.
-            </p>
-          </div>
-
-          {/* Search Input Bar */}
-          <div className="max-w-xl mx-auto relative pt-2">
-            <div className="relative flex items-center">
-              <Search size={18} className="absolute left-4 text-zinc-400 pointer-events-none" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Tìm kiếm hướng dẫn (ví dụ: cài app, xem trên TV, phím tắt, giật lag, phụ đề...)"
-                className="w-full pl-11 pr-4 py-3.5 rounded-2xl bg-zinc-950/80 border border-white/[0.1] focus:border-netflix-red/60 focus:bg-black text-base sm:text-sm text-white placeholder-zinc-500 focus:outline-none transition-all shadow-2xl backdrop-blur-xl"
-              />
-              {searchQuery && (
-                <button
-                  type="button"
-                  onClick={() => setSearchQuery("")}
-                  className="absolute right-3.5 px-2 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-xs text-zinc-400 hover:text-white transition cursor-pointer"
-                >
-                  Xóa
-                </button>
-              )}
+            </>
+          }
+          subtitle="Tổng hợp bí kíp làm chủ các tính năng cao cấp, hướng dẫn cài đặt app, truyền phim lên Smart TV và giải đáp cặn kẽ mọi thắc mắc."
+          actions={
+            <div className="w-full max-w-xl mx-auto relative pt-2">
+              <div className="relative flex items-center">
+                <Search size={18} className="absolute left-4 text-zinc-400 pointer-events-none" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Tìm kiếm hướng dẫn (ví dụ: cài app, xem trên TV, phím tắt, giật lag, phụ đề...)"
+                  className="w-full pl-11 pr-4 py-3.5 rounded-2xl bg-zinc-950/80 border border-white/[0.1] focus:border-netflix-red/60 focus:bg-black text-base sm:text-sm text-white placeholder-zinc-500 focus:outline-none transition-all shadow-2xl backdrop-blur-xl"
+                />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery("")}
+                    className="absolute right-3.5 px-2 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-xs text-zinc-400 hover:text-white transition cursor-pointer"
+                  >
+                    Xóa
+                  </button>
+                )}
+              </div>
             </div>
-          </div>
-        </section>
+          }
+        />
 
         {/* ================= 2. 4 INTERACTIVE QUICK GUIDES ================= */}
         {(!searchQuery || searchQuery.length === 0) && (selectedCategory === "all" || selectedCategory === "guide") && (

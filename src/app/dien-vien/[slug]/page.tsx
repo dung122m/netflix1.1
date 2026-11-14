@@ -1,6 +1,5 @@
 import React, { cache } from "react";
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 
 /**
@@ -10,7 +9,6 @@ import { notFound } from "next/navigation";
 export const dynamic = "force-static";
 export const revalidate = 86400;
 import {
-  ArrowLeft,
   Calendar,
   MapPin,
   Clapperboard,
@@ -36,6 +34,7 @@ import { selectBestBiography } from "@/lib/bioFormatter";
 import { ActorDetailClient } from "@/components/actors/ActorDetailClient";
 import { ActorAvatar } from "@/components/actors/ActorAvatar";
 import { FavoriteActorButton } from "@/components/actors/FavoriteActorButton";
+import { PageHeader } from "@/components/ui/PageHeader";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -398,19 +397,13 @@ export default async function ActorDetailPage({ params }: PageProps) {
       <main className="flex-1 pt-20 sm:pt-28 pb-16 sm:pb-24 px-4 sm:px-6 md:px-10 lg:px-12 max-w-[1800px] mx-auto w-full space-y-8 sm:space-y-16">
         
         {/* ============================================================ */}
-        {/* BREADCRUMB & BACK BUTTON */}
+        {/* BREADCRUMB & BACK BUTTON DÙNG CHUNG */}
         {/* ============================================================ */}
-        <div className="flex items-center gap-2 text-xs font-semibold text-zinc-400 min-w-0">
-          <Link
-            href="/browse"
-            className="inline-flex items-center gap-1.5 hover:text-white transition-colors bg-white/[0.04] hover:bg-white/[0.08] px-3 py-1.5 min-h-[36px] rounded-full shrink-0"
-          >
-            <ArrowLeft className="w-3.5 h-3.5" />
-            <span>Khám phá phim</span>
-          </Link>
-          <span className="text-zinc-600">•</span>
-          <span className="text-zinc-300 truncate">{canonicalName}</span>
-        </div>
+        <PageHeader
+          backHref="/browse"
+          backLabel="Khám phá phim"
+          breadcrumbs={[{ label: canonicalName }]}
+        />
 
         {/* ============================================================ */}
         {/* HERO SECTION: PORTRAIT + KEY FACTS */}

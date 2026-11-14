@@ -8,7 +8,6 @@ import {
   Copyright,
   Mail,
   AlertTriangle,
-  ArrowLeft,
   ExternalLink,
   ShieldCheck,
   Info,
@@ -16,6 +15,7 @@ import {
 } from "lucide-react";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
+import { PageHeader } from "@/components/ui/PageHeader";
 
 export const metadata: Metadata = {
   title: "Điều Khoản Dịch Vụ & Chính Sách Bản Quyền DMCA | Nanaflix",
@@ -131,41 +131,34 @@ export default function TermsPage() {
 
       <main className="flex-1 pt-24 sm:pt-32 pb-24 px-4 sm:px-8 md:px-12 max-w-5xl mx-auto w-full space-y-16 sm:space-y-20">
 
-        {/* ================= 1. HEADER SECTION ================= */}
-        <section className="space-y-4 text-center max-w-3xl mx-auto">
-          <Link
-            href="/"
-            className="inline-flex items-center gap-2 text-xs font-semibold text-zinc-400 hover:text-white transition-colors bg-white/[0.05] hover:bg-white/[0.1] px-3.5 py-1.5 rounded-full mb-2"
-          >
-            <ArrowLeft className="w-3.5 h-3.5" />
-            <span>Quay lại Trang chủ</span>
-          </Link>
-
-          <div className="flex justify-center">
-            <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-500/10 text-red-400 text-xs font-semibold">
-              <Scale className="w-3.5 h-3.5" />
+        {/* ================= 1. HEADER SECTION DÙNG CHUNG ================= */}
+        <PageHeader
+          align="center"
+          backHref="/"
+          backLabel="Quay lại Trang chủ"
+          badge={
+            <>
+              <Scale className="w-3.5 h-3.5 text-netflix-red" />
               <span>Pháp lý & quy chuẩn hoạt động</span>
-            </span>
-          </div>
-
-          <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-white tracking-tight leading-[1.15] text-balance">
-            Điều Khoản Dịch Vụ & <br className="hidden sm:inline" />
-            <span className="text-netflix-red">
-              Chính Sách Bản Quyền DMCA
-            </span>
-          </h1>
-
-          <p className="text-sm sm:text-base text-zinc-400 leading-relaxed font-normal">
-            Bản quy định chi tiết về quyền hạn, trách nhiệm và cam kết của Nanaflix đối với người dùng, 
-            cùng tuyên bố miễn trừ bản quyền và cơ chế tiếp nhận khiếu nại sở hữu trí tuệ minh bạch.
-          </p>
-
-          <div className="flex items-center justify-center gap-4 pt-2 text-xs text-zinc-500 font-sans tabular-nums">
-            <span>Phiên bản: <strong className="text-zinc-300">2.6</strong></span>
-            <span>•</span>
-            <span>Hiệu lực từ: <strong className="text-zinc-300">Tháng 09/2026</strong></span>
-          </div>
-        </section>
+            </>
+          }
+          title={
+            <>
+              Điều Khoản Dịch Vụ & <br className="hidden sm:inline" />
+              <span className="text-netflix-red">
+                Chính Sách Bản Quyền DMCA
+              </span>
+            </>
+          }
+          subtitle="Bản quy định chi tiết về quyền hạn, trách nhiệm và cam kết của Nanaflix đối với người dùng, cùng tuyên bố miễn trừ bản quyền và cơ chế tiếp nhận khiếu nại sở hữu trí tuệ minh bạch."
+          actions={
+            <div className="flex items-center justify-center gap-4 text-xs text-zinc-500 font-sans tabular-nums">
+              <span>Phiên bản: <strong className="text-zinc-300">2.6</strong></span>
+              <span>•</span>
+              <span>Hiệu lực từ: <strong className="text-zinc-300">Tháng 09/2026</strong></span>
+            </div>
+          }
+        />
 
         {/* ================= 2. 4 CORE PILLARS ================= */}
         <section className="space-y-6">

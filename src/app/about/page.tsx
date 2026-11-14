@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
+import { PageHeader } from "@/components/ui/PageHeader";
 
 export const metadata: Metadata = {
   title: "Giới Thiệu Nanaflix | Không Gian Điện Ảnh Thuần Khiết & Công Nghệ Trực Tuyến",
@@ -144,65 +145,65 @@ export default function AboutPage() {
 
       <main className="flex-1 pt-24 sm:pt-32 pb-24 px-4 sm:px-8 md:px-12 max-w-6xl mx-auto w-full space-y-20 sm:space-y-28">
 
-        {/* ================= 1. HERO SECTION ================= */}
-        <section className="text-center space-y-8 relative">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-white/[0.05] text-xs font-medium text-zinc-300">
-            <span className="w-1.5 h-1.5 rounded-full bg-netflix-red" />
-            <span>Nền Tảng Điện Ảnh Phi Thương Mại Cá Nhân Hóa</span>
-          </div>
-
-          {/* Main Title */}
-          <div className="space-y-5 max-w-3xl mx-auto">
-            <h1 className="text-4xl sm:text-6xl md:text-7xl font-black tracking-tight text-white leading-[1.08] text-balance">
+        {/* ================= 1. HERO SECTION DÙNG CHUNG ================= */}
+        <PageHeader
+          align="center"
+          size="large"
+          badge={
+            <>
+              <span className="w-1.5 h-1.5 rounded-full bg-netflix-red" />
+              <span>Nền Tảng Điện Ảnh Phi Thương Mại Cá Nhân Hóa</span>
+            </>
+          }
+          title={
+            <>
               Xem phim theo cách bạn{" "}
-              <span className="text-netflix-red">
-                xứng đáng
-              </span>{" "}
-              thưởng thức.
-            </h1>
-            <p className="text-base sm:text-lg md:text-xl text-zinc-400 font-normal leading-relaxed max-w-2xl mx-auto">
-              Một không gian điện ảnh trực tuyến thuần khiết: 100% không quảng cáo rác, tốc độ phản hồi tính bằng mili-giây và tự động ghi nhớ chính xác từng giây bạn đã xem dở.
-            </p>
-          </div>
+              <span className="text-netflix-red">xứng đáng</span> thưởng thức.
+            </>
+          }
+          subtitle="Một không gian điện ảnh trực tuyến thuần khiết: 100% không quảng cáo rác, tốc độ phản hồi tính bằng mili-giây và tự động ghi nhớ chính xác từng giây bạn đã xem dở."
+          actions={
+            <div className="space-y-6 w-full">
+              {/* Quick Metrics Bar */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 max-w-3xl mx-auto">
+                <div className="p-4 rounded-2xl bg-zinc-900/55 text-center space-y-1">
+                  <div className="text-xl sm:text-2xl font-bold text-white tabular-nums">0 Giây</div>
+                  <div className="text-xs text-zinc-400">Quảng cáo phiền phức</div>
+                </div>
+                <div className="p-4 rounded-2xl bg-zinc-900/55 text-center space-y-1">
+                  <div className="text-xl sm:text-2xl font-bold text-white">Adaptive</div>
+                  <div className="text-xs text-zinc-400">Tự động Full HD / 4K</div>
+                </div>
+                <div className="p-4 rounded-2xl bg-zinc-900/55 text-center space-y-1">
+                  <div className="text-xl sm:text-2xl font-bold text-white">Realtime</div>
+                  <div className="text-xs text-zinc-400">Đồng bộ đa thiết bị</div>
+                </div>
+                <div className="p-4 rounded-2xl bg-zinc-900/55 text-center space-y-1">
+                  <div className="text-xl sm:text-2xl font-bold text-white tabular-nums">100% Free</div>
+                  <div className="text-xs text-zinc-400">Phi lợi nhuận vì đam mê</div>
+                </div>
+              </div>
 
-          {/* Quick Metrics Bar */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 max-w-3xl mx-auto pt-2">
-            <div className="p-4 rounded-2xl bg-zinc-900/55 text-center space-y-1">
-              <div className="text-xl sm:text-2xl font-bold text-white tabular-nums">0 Giây</div>
-              <div className="text-xs text-zinc-400">Quảng cáo phiền phức</div>
+              {/* Call to Actions */}
+              <div className="flex items-center justify-center gap-4 flex-wrap">
+                <Link
+                  href="/"
+                  className="inline-flex items-center gap-2 px-7 py-3.5 rounded-xl bg-netflix-red hover:brightness-110 active:brightness-95 text-white font-bold text-sm transition-all shadow-md shadow-black/50 hover:scale-[1.02] active:scale-95"
+                >
+                  <Play size={16} className="fill-current" />
+                  <span>Khám Phá Phim Ngay</span>
+                </Link>
+                <a
+                  href="#contact"
+                  className="inline-flex items-center gap-2 px-6 py-3.5 rounded-xl bg-white/[0.07] hover:bg-white/[0.13] text-zinc-200 font-semibold text-sm transition-all active:scale-95"
+                >
+                  <MessageSquare size={16} />
+                  <span>Trợ Giúp & Báo Lỗi</span>
+                </a>
+              </div>
             </div>
-            <div className="p-4 rounded-2xl bg-zinc-900/55 text-center space-y-1">
-              <div className="text-xl sm:text-2xl font-bold text-white">Adaptive</div>
-              <div className="text-xs text-zinc-400">Tự động Full HD / 4K</div>
-            </div>
-            <div className="p-4 rounded-2xl bg-zinc-900/55 text-center space-y-1">
-              <div className="text-xl sm:text-2xl font-bold text-white">Realtime</div>
-              <div className="text-xs text-zinc-400">Đồng bộ đa thiết bị</div>
-            </div>
-            <div className="p-4 rounded-2xl bg-zinc-900/55 text-center space-y-1">
-              <div className="text-xl sm:text-2xl font-bold text-white tabular-nums">100% Free</div>
-              <div className="text-xs text-zinc-400">Phi lợi nhuận vì đam mê</div>
-            </div>
-          </div>
-
-          {/* Call to Actions */}
-          <div className="flex items-center justify-center gap-4 pt-4 flex-wrap">
-            <Link
-              href="/"
-              className="inline-flex items-center gap-2 px-7 py-3.5 rounded-xl bg-netflix-red hover:brightness-110 active:brightness-95 text-white font-bold text-sm transition-all shadow-md shadow-black/50 hover:scale-[1.02] active:scale-95"
-            >
-              <Play size={16} className="fill-current" />
-              <span>Khám Phá Phim Ngay</span>
-            </Link>
-            <a
-              href="#contact"
-              className="inline-flex items-center gap-2 px-6 py-3.5 rounded-xl bg-white/[0.07] hover:bg-white/[0.13] text-zinc-200 font-semibold text-sm transition-all active:scale-95"
-            >
-              <MessageSquare size={16} />
-              <span>Trợ Giúp & Báo Lỗi</span>
-            </a>
-          </div>
-        </section>
+          }
+        />
 
         {/* ================= 2. FOUNDER'S STORY & PHILOSOPHY ================= */}
         <section className="relative">
