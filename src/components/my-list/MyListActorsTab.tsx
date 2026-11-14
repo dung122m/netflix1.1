@@ -2,10 +2,11 @@
 
 import React from "react";
 import Link from "next/link";
-import { Users, Trash2, Clapperboard, ExternalLink } from "lucide-react";
+import { Users, Trash2, Clapperboard, Film, ArrowRight } from "lucide-react";
 import { FavoriteActorItem } from "@/lib/favoriteActors";
 import { ActorAvatar } from "@/components/actors/ActorAvatar";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { Tooltip } from "@/components/ui/Tooltip";
 
 interface MyListActorsTabProps {
   actors: FavoriteActorItem[];
@@ -37,68 +38,88 @@ export function MyListActorsTab({ actors, onRemove }: MyListActorsTabProps) {
 
   return (
     <div className="rounded-2xl bg-gradient-to-b from-zinc-900/40 to-transparent py-3 sm:py-4 md:py-5 px-0 overflow-visible">
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4 md:gap-5">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4 md:gap-4 lg:gap-5 xl:gap-6">
         {actors.map((actor) => {
           const actorHref = `/dien-vien/${actor.slug}`;
 
           return (
             <div
               key={actor.id || actor.slug}
-              className="group/card relative rounded-2xl bg-white/[0.03] hover:bg-white/[0.07] p-2.5 sm:p-3 flex flex-col items-center text-center transition-all duration-300 hover:scale-[1.02] shadow-lg shadow-black/40"
+              className="group/card relative flex flex-col w-full select-none"
             >
-              {/* NÚT XÓA KHỎI YÊU THÍCH */}
-              <button
-                type="button"
-                onClick={(e) => onRemove(e, actor.id || actor.slug, actor.name)}
-                title={`Bỏ ${actor.name} khỏi yêu thích`}
-                aria-label={`Bỏ ${actor.name} khỏi yêu thích`}
-                className="absolute top-2 right-2 z-20 p-1.5 rounded-full bg-black/60 hover:bg-rose-950/80 text-zinc-400 hover:text-rose-400 backdrop-blur-md opacity-0 group-hover/card:opacity-100 transition-all duration-200 active:scale-90"
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-              </button>
-
-              {/* THẺ LINK ĐẾN TRANG CHI TIẾT NGHỆ SĨ */}
-              <Link
-                href={actorHref}
-                prefetch={false}
-                className="w-full flex flex-col items-center text-center focus:outline-none"
-              >
-                {/* AVATAR CHÂN DUNG 3:4 */}
-                <div className="relative aspect-[3/4] w-full rounded-xl bg-zinc-900 overflow-hidden shadow-md flex items-center justify-center">
+              {/* POSTER PORTRAIT (3:4 CHÂN DUNG ĐIỆN ẢNH VỚI ISOLATE VÀ OVERFLOW HIDDEN) */}
+              <div className="relative aspect-[3/4] w-full rounded-2xl overflow-hidden bg-zinc-900 shadow-md shadow-black/40 isolate">
+                {/* LINK CHÍNH ĐẾN TRANG HỒ SƠ DIỄN VIÊN */}
+                <Link
+                  href={actorHref}
+                  prefetch={false}
+                  aria-label={`Xem hồ sơ và tuyển tập phim của ${actor.name}`}
+                  className="absolute inset-0 z-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-netflix-red rounded-2xl"
+                >
                   <ActorAvatar
                     name={actor.name}
                     avatarUrl={actor.avatarUrl}
                     shape="card"
-                    imageClassName="group-hover/card:scale-105 transition-transform duration-300"
-                    sizes="(max-width: 640px) 150px, 200px"
+                    imageClassName="group-hover/card:scale-105 will-change-transform transform-gpu"
+                    sizes="(max-width: 640px) 180px, (max-width: 1024px) 220px, 260px"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover/card:opacity-100 transition-opacity" />
 
-                  {/* HOVER BADGE */}
-                  <div className="absolute bottom-2 left-2 right-2 flex items-center justify-center gap-1 text-[11px] font-semibold text-white/90 opacity-0 group-hover/card:opacity-100 transition-opacity">
-                    <span>Xem tuyển tập</span>
-                    <ExternalLink className="w-3 h-3" />
-                  </div>
+                  {/* GRADIENT CINEMATIC OVERLAY KHI HOVER */}
+                  <div
+                    className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent opacity-0 group-hover/card:opacity-100 transition-opacity duration-300 pointer-events-none"
+                    aria-hidden="true"
+                  />
+                </Link>
+
+                {/* NÚT XÓA KHỎI YÊU THÍCH - NẰM GỌN TRÊN ẢNH GÓC TRÊN PHẢI */}
+                <div className="absolute top-2.5 right-2.5 z-20 pointer-events-auto">
+                  <Tooltip content={`Bỏ ${actor.name} khỏi yêu thích`} side="top" align="end">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        onRemove(e, actor.id || actor.slug, actor.name);
+                      }}
+                      aria-label={`Bỏ ${actor.name} khỏi yêu thích`}
+                      className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-black/75 hover:bg-netflix-red text-zinc-300 hover:text-white backdrop-blur-md flex items-center justify-center shadow-lg shadow-black/60 transition-all duration-200 hover:scale-110 active:scale-95 cursor-pointer max-sm:opacity-100 sm:opacity-0 sm:group-hover/card:opacity-100 focus:opacity-100 border border-white/10"
+                    >
+                      <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 transition-transform duration-200 group-hover:rotate-6" />
+                    </button>
+                  </Tooltip>
                 </div>
 
-                {/* THÔNG TIN DIỄN VIÊN */}
-                <div className="mt-2.5 w-full px-1">
-                  <h4 className="text-xs sm:text-sm font-bold text-white group-hover/card:text-zinc-200 transition-colors line-clamp-1">
-                    {actor.name}
-                  </h4>
+                {/* DÒNG XEM TUYỂN TẬP - NẰM TRONG POSTER DẠNG GLASS PILL SANG TRỌNG */}
+                <div className="absolute bottom-3 inset-x-3 z-10 flex justify-center pointer-events-none opacity-0 group-hover/card:opacity-100 transition-all duration-300 translate-y-1.5 group-hover/card:translate-y-0">
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/80 hover:bg-black text-white text-[11.5px] font-semibold backdrop-blur-md shadow-xl shadow-black/80 border border-white/15 transition-all">
+                    <Film className="w-3.5 h-3.5 text-netflix-red shrink-0" />
+                    <span>Xem tuyển tập</span>
+                    <ArrowRight className="w-3 h-3 text-white/80 shrink-0" />
+                  </span>
+                </div>
+              </div>
 
-                  <div className="flex items-center justify-center gap-1.5 mt-1 text-[10.5px] sm:text-xs text-zinc-400">
-                    {actor.country && (
-                      <span className="line-clamp-1">{actor.country}</span>
-                    )}
-                    {actor.country && actor.totalMovies ? <span>•</span> : null}
-                    {actor.totalMovies ? (
-                      <span className="text-amber-300/90 font-medium inline-flex items-center gap-1">
-                        <Clapperboard className="w-2.5 h-2.5 shrink-0" />
-                        <span className="tabular-nums">{actor.totalMovies} phim</span>
-                      </span>
-                    ) : null}
-                  </div>
+              {/* THÔNG TIN DIỄN VIÊN BÊN DƯỚI POSTER */}
+              <Link
+                href={actorHref}
+                prefetch={false}
+                className="pt-2 px-0.5 flex flex-col w-full text-center items-center focus:outline-none"
+              >
+                <h4 className="text-xs sm:text-sm font-bold text-zinc-100 group-hover/card:text-netflix-red transition-colors line-clamp-1">
+                  {actor.name}
+                </h4>
+
+                <div className="flex items-center justify-center gap-1.5 mt-1 text-[11px] sm:text-xs text-zinc-400">
+                  {actor.country && (
+                    <span className="line-clamp-1">{actor.country}</span>
+                  )}
+                  {actor.country && actor.totalMovies ? <span>•</span> : null}
+                  {actor.totalMovies ? (
+                    <span className="text-amber-300/90 font-medium inline-flex items-center gap-1">
+                      <Clapperboard className="w-3 h-3 shrink-0 text-amber-400" />
+                      <span className="tabular-nums font-sans">{actor.totalMovies} phim</span>
+                    </span>
+                  ) : null}
                 </div>
               </Link>
             </div>
