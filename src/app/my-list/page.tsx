@@ -11,6 +11,7 @@ import {
   FolderHeart,
   Plus,
   MessageSquare,
+  Users,
 } from "lucide-react";
 import { Navbar } from "@/components/layout/Navbar";
 import { useAuth } from "@/context/AuthContext";
@@ -45,8 +46,15 @@ import { MyListWatchlistTab } from "@/components/my-list/MyListWatchlistTab";
 import { MyListHistoryTab } from "@/components/my-list/MyListHistoryTab";
 import { MyListCollectionsTab } from "@/components/my-list/MyListCollectionsTab";
 import { MyListCommentsTab } from "@/components/my-list/MyListCommentsTab";
+import { MyListActorsTab } from "@/components/my-list/MyListActorsTab";
+import {
+  getFavoriteActors,
+  removeFavoriteActor,
+  clearFavoriteActors,
+  FavoriteActorItem,
+} from "@/lib/favoriteActors";
 
-type MyListTab = "watchlist" | "history" | "collections" | "comments";
+type MyListTab = "watchlist" | "history" | "collections" | "comments" | "actors";
 
 const HISTORY_PAGE_SIZE = 24;
 const EMPTY_COLLECTIONS: MovieCollection[] = [];
@@ -63,13 +71,15 @@ function MyListContent() {
       ? "collections"
       : tabParam === "comments"
       ? "comments"
+      : tabParam === "actors"
+      ? "actors"
       : "watchlist";
 
   const [activeTab, setActiveTab] = useState<MyListTab>(initialTab);
 
   // Đồng bộ activeTab khi URL thay đổi hoặc điều hướng trực tiếp bằng query ?tab=...
   useEffect(() => {
-    if (tabParam && ["watchlist", "history", "collections", "comments"].includes(tabParam)) {
+    if (tabParam && ["watchlist", "history", "collections", "comments", "actors"].includes(tabParam)) {
       setActiveTab(tabParam as MyListTab);
     }
   }, [tabParam]);
@@ -83,6 +93,7 @@ function MyListContent() {
 
   const [watchlist, setWatchlist] = useState<WatchlistItem[]>([]);
   const [history, setHistory] = useState<WatchHistoryItem[]>([]);
+  const [favoriteActors, setFavoriteActors] = useState<FavoriteActorItem[]>([]);
   const [rawCollections, setRawCollections] = useState<MovieCollection[]>([]);
   const [mounted, setMounted] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -112,6 +123,7 @@ function MyListContent() {
   useEffect(() => {
     setWatchlist(getWatchlist());
     setHistory(getWatchHistory());
+    setFavoriteActors(getFavoriteActors());
     setMounted(true);
     autoHydrateWatchHistory();
     autoHydrateWatchlist();
@@ -122,13 +134,18 @@ function MyListContent() {
     const handleHistorySync = () => {
       setHistory(getWatchHistory());
     };
+    const handleActorsSync = () => {
+      setFavoriteActors(getFavoriteActors());
+    };
 
     window.addEventListener("watchlist-updated", handleWatchlistSync);
     window.addEventListener("watch-history-updated", handleHistorySync);
+    window.addEventListener("favorite-actors-updated", handleActorsSync);
 
     return () => {
       window.removeEventListener("watchlist-updated", handleWatchlistSync);
       window.removeEventListener("watch-history-updated", handleHistorySync);
+      window.removeEventListener("favorite-actors-updated", handleActorsSync);
     };
   }, []);
 
@@ -173,6 +190,32 @@ function MyListContent() {
         await clearAllWatchlistFromCloud(user.uid);
       }
       toast.info("Đã dọn sạch danh sách yêu thích.");
+    }
+  };
+
+  const handleRemoveFavoriteActor = useCallback(
+    (e: React.MouseEvent, idOrSlug: string | number, name: string) => {
+      e.preventDefault();
+      e.stopPropagation();
+      removeFavoriteActor(idOrSlug);
+      toast.info(`Đã bỏ "${name}" khỏi danh sách yêu thích.`);
+    },
+    []
+  );
+
+  const handleClearFavoriteActors = async () => {
+    const confirmed = await showConfirmDialog({
+      title: "Xóa danh sách nghệ sĩ yêu thích",
+      message: "Bạn có chắc chắn muốn xoá toàn bộ diễn viên trong danh sách yêu thích?",
+      confirmText: "Xóa toàn bộ",
+      cancelText: "Giữ lại",
+      variant: "danger",
+    });
+
+    if (confirmed) {
+      clearFavoriteActors();
+      setFavoriteActors([]);
+      toast.info("Đã dọn sạch danh sách nghệ sĩ yêu thích.");
     }
   };
 
@@ -253,6 +296,8 @@ function MyListContent() {
                 ? "Lịch sử xem"
                 : activeTab === "comments"
                 ? "Bình luận & Đánh giá"
+                : activeTab === "actors"
+                ? "Nghệ sĩ yêu thích"
                 : "Bộ sưu tập của tôi"}
             </span>
           </div>
@@ -272,6 +317,11 @@ function MyListContent() {
                 <MessageSquare className="h-7 w-7 sm:h-8 sm:w-8 text-netflix-red" />
                 Bình luận & Đánh giá
               </>
+            ) : activeTab === "actors" ? (
+              <>
+                <Users className="h-7 w-7 sm:h-8 sm:w-8 text-rose-500" />
+                Nghệ sĩ yêu thích
+              </>
             ) : (
               <>
                 <FolderHeart className="h-7 w-7 sm:h-8 sm:w-8 text-netflix-red" />
@@ -286,6 +336,8 @@ function MyListContent() {
               ? "Danh sách các bộ phim và tập phim bạn đã xem gần đây."
               : activeTab === "comments"
               ? "Tất cả các nhận xét và đánh giá bạn đã đăng trên Nanaflix."
+              : activeTab === "actors"
+              ? "Tuyển tập các diễn viên và đạo diễn bạn quan tâm theo dõi."
               : "Các danh sách phim được tuyển chọn theo chủ đề riêng và có thể chia sẻ công khai."}
           </p>
         </div>
@@ -302,6 +354,23 @@ function MyListContent() {
                   type="button"
                   onClick={handleClearWatchlist}
                   aria-label="Xóa tất cả phim đã lưu trong danh sách yêu thích"
+                  className="inline-flex items-center gap-1.5 text-xs sm:text-sm text-zinc-400 hover:text-red-400 bg-zinc-900/60 hover:bg-zinc-800 px-3 py-1.5 min-h-[36px] rounded-lg transition-colors cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-red-500/50"
+                >
+                  <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
+                  <span>Xóa tất cả</span>
+                </button>
+              </div>
+            )}
+
+            {activeTab === "actors" && favoriteActors.length > 0 && (
+              <div className="flex items-center gap-3">
+                <span className="text-xs sm:text-sm text-zinc-300 bg-zinc-900/80 px-3 py-1.5 rounded-lg">
+                  {favoriteActors.length} nghệ sĩ
+                </span>
+                <button
+                  type="button"
+                  onClick={handleClearFavoriteActors}
+                  aria-label="Xóa tất cả nghệ sĩ đã lưu trong danh sách yêu thích"
                   className="inline-flex items-center gap-1.5 text-xs sm:text-sm text-zinc-400 hover:text-red-400 bg-zinc-900/60 hover:bg-zinc-800 px-3 py-1.5 min-h-[36px] rounded-lg transition-colors cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-red-500/50"
                 >
                   <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
@@ -408,6 +477,19 @@ function MyListContent() {
           <MessageSquare className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-netflix-red" />
           <span>Bình luận ({mounted && user ? userComments.length : 0})</span>
         </button>
+
+        <button
+          type="button"
+          onClick={() => handleTabChange("actors")}
+          className={`flex-none shrink-0 flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer whitespace-nowrap active:scale-95 ${
+            activeTab === "actors"
+              ? "bg-netflix-red text-white shadow-md shadow-black/50"
+              : "bg-white/[0.04] text-zinc-400 hover:text-white hover:bg-white/10"
+          }`}
+        >
+          <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-rose-400" />
+          <span>Diễn viên ({mounted ? favoriteActors.length : 0})</span>
+        </button>
       </div>
 
       {/* NỘI DUNG THEO TAB */}
@@ -448,6 +530,11 @@ function MyListContent() {
           moviePosterMap={moviePosterMap}
           deletingCommentId={deletingCommentId}
           onDeleteComment={handleDeleteComment}
+        />
+      ) : activeTab === "actors" ? (
+        <MyListActorsTab
+          actors={favoriteActors}
+          onRemove={handleRemoveFavoriteActor}
         />
       ) : null}
 

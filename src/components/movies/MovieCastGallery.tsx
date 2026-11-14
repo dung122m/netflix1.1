@@ -7,6 +7,7 @@ import { CarouselNavButton } from "@/components/ui/CarouselNavButton";
 import { useCarouselScroll } from "@/components/ui/useCarouselScroll";
 import { TmdbCastMember } from "@/services/tmdbService";
 import { ActorAvatar } from "@/components/actors/ActorAvatar";
+import { FavoriteActorButton } from "@/components/actors/FavoriteActorButton";
 import { normalizeForMatch } from "@/lib/stringUtils";
 
 export interface MovieCastGalleryProps {
@@ -20,6 +21,7 @@ interface ProcessedCastItem {
   character?: string;
   avatarUrl?: string | null;
   href: string;
+  slug: string;
 }
 
 function toActorSlug(name: string): string {
@@ -50,6 +52,7 @@ export const MovieCastGallery: React.FC<MovieCastGalleryProps> = ({
           character: c.character || undefined,
           avatarUrl: c.profile_path || null,
           href,
+          slug: typeof c.id === "number" ? (slug ? `${c.id}-${slug}` : `${c.id}`) : slug || "nghe-si",
         };
       });
     }
@@ -66,6 +69,7 @@ export const MovieCastGallery: React.FC<MovieCastGalleryProps> = ({
             name,
             avatarUrl: null,
             href: `/dien-vien/${slug || "nghe-si"}`,
+            slug: slug || "nghe-si",
           };
         });
     }
@@ -164,6 +168,18 @@ export const MovieCastGallery: React.FC<MovieCastGalleryProps> = ({
                   sizes="(max-width: 640px) 105px, 130px"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover/card:opacity-100 transition-opacity pointer-events-none" />
+
+                {/* QUICK FAVORITE BUTTON */}
+                <div className="absolute top-1.5 right-1.5 z-10 pointer-events-auto">
+                  <FavoriteActorButton
+                    id={actor.id}
+                    name={actor.name}
+                    slug={actor.slug}
+                    avatarUrl={actor.avatarUrl}
+                    variant="icon"
+                    className="w-7 h-7 p-0 opacity-0 group-hover/card:opacity-100 transition-opacity duration-200"
+                  />
+                </div>
               </div>
 
               {/* TÊN DIỄN VIÊN & NHÂN VẬT */}

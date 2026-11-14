@@ -35,6 +35,7 @@ import { fetchActorProfile, type ActorProfile } from "@/services/wikipediaServic
 import { selectBestBiography } from "@/lib/bioFormatter";
 import { ActorDetailClient } from "@/components/actors/ActorDetailClient";
 import { ActorAvatar } from "@/components/actors/ActorAvatar";
+import { FavoriteActorButton } from "@/components/actors/FavoriteActorButton";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -456,16 +457,30 @@ export default async function ActorDetailPage({ params }: PageProps) {
                 ))}
               </div>
 
-              {/* NAME */}
-              <div className="space-y-1">
-                <h1 className="text-2xl sm:text-4xl md:text-5xl font-black text-white tracking-tight leading-tight">
-                  {canonicalName}
-                </h1>
-                {englishName && englishName !== canonicalName && (
-                  <p className="text-sm sm:text-base text-zinc-400 font-medium">
-                    Tên quốc tế: <span className="text-zinc-200">{englishName}</span>
-                  </p>
-                )}
+              {/* NAME & ACTIONS */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="space-y-1">
+                  <h1 className="text-2xl sm:text-4xl md:text-5xl font-black text-white tracking-tight leading-tight">
+                    {canonicalName}
+                  </h1>
+                  {englishName && englishName !== canonicalName && (
+                    <p className="text-sm sm:text-base text-zinc-400 font-medium">
+                      Tên quốc tế: <span className="text-zinc-200">{englishName}</span>
+                    </p>
+                  )}
+                </div>
+
+                <div className="flex items-center justify-center sm:justify-start shrink-0">
+                  <FavoriteActorButton
+                    id={profile.tmdbPersonId || slug}
+                    name={canonicalName}
+                    slug={slug}
+                    avatarUrl={bestAvatar}
+                    country={country}
+                    roles={knownRole}
+                    totalMovies={movies.length}
+                  />
+                </div>
               </div>
 
               {/* PERSONAL FACTS GRID (CHỈ HIỂN THỊ KHI CÓ DỮ LIỆU ĐÁNG TIN CẬY) */}
