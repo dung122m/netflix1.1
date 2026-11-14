@@ -13,9 +13,47 @@ import {
   Layers,
   Music,
   Trophy,
+  Calendar,
+  Clock,
+  Star,
+  Flame,
 } from "lucide-react";
 import { MovieGrid } from "@/components/movies/MovieGrid";
 import { PaginationControl } from "@/components/ui/PaginationControl";
+import { MovieSortDropdown, SortOption } from "@/components/movies/MovieSortDropdown";
+
+export type ActorSortKey = "year-desc" | "year-asc" | "rating-desc" | "views-desc";
+
+const ACTOR_SORT_OPTIONS: SortOption<ActorSortKey>[] = [
+  {
+    value: "year-desc",
+    label: "Năm phát hành mới nhất",
+    shortLabel: "Mới nhất",
+    icon: Calendar,
+    color: "text-emerald-400",
+  },
+  {
+    value: "year-asc",
+    label: "Kinh điển / Cũ nhất",
+    shortLabel: "Cũ nhất",
+    icon: Clock,
+    color: "text-sky-400",
+  },
+  {
+    value: "rating-desc",
+    label: "Điểm đánh giá cao",
+    shortLabel: "Đánh giá cao",
+    icon: Star,
+    color: "text-amber-400",
+  },
+  {
+    value: "views-desc",
+    label: "Xem nhiều nhất",
+    shortLabel: "Xem nhiều",
+    icon: Flame,
+    color: "text-orange-500",
+  },
+];
 
 interface ActorDetailClientProps {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -48,6 +86,7 @@ export const ActorDetailClient: React.FC<ActorDetailClientProps> = ({
   actorName,
 }) => {
   const [activeTab, setActiveTab] = useState<"all" | "single" | "series">("all");
+  const [activeSort, setActiveSort] = useState<ActorSortKey>("year-desc");
   const [currentPage, setCurrentPage] = useState(1);
   const [isBioExpanded, setIsBioExpanded] = useState(false);
 
@@ -78,11 +117,76 @@ export const ActorDetailClient: React.FC<ActorDetailClientProps> = ({
     return { singleMovies: single, seriesMovies: series };
   }, [movies]);
 
-  const displayedMovies = useMemo(() => {
+  // Lọc theo tab hiển thị
+  const baseFilteredMovies = useMemo(() => {
     if (activeTab === "single") return singleMovies;
     if (activeTab === "series") return seriesMovies;
     return movies;
   }, [activeTab, movies, singleMovies, seriesMovies]);
+
+  // Sắp xếp danh sách phim theo tiêu chí đã chọn (Client-side sorting 0ms)
+  const displayedMovies = useMemo(() => {
+    const list = [...baseFilteredMovies];
+
+    return list.sort((a, b) => {
+      const yearA = parseInt(String(a?.year || 0), 10) || 0;
+      const yearB = parseInt(String(b?.year || 0), 10) || 0;
+
+      const ratingA =
+        parseFloat(
+          String(
+            a?.tmdb_vote_average ??
+              a?.vote_average ??
+              a?.imdb_score ??
+              a?.vote ??
+              0
+          )
+        ) || 0;
+      const ratingB =
+        parseFloat(
+          String(
+            b?.tmdb_vote_average ??
+              b?.vote_average ??
+              b?.imdb_score ??
+              b?.vote ??
+              0
+          )
+        ) || 0;
+
+      const viewsA =
+        parseInt(String(a?.view ?? a?.views ?? a?.view_count ?? 0), 10) || 0;
+      const viewsB =
+        parseInt(String(b?.view ?? b?.views ?? b?.view_count ?? 0), 10) || 0;
+
+      if (activeSort === "year-desc") {
+        if (yearB !== yearA) return yearB - yearA;
+        if (ratingB !== ratingA) return ratingB - ratingA;
+        return viewsB - viewsA;
+      }
+
+      if (activeSort === "year-asc") {
+        if (yearA > 0 && yearB === 0) return -1;
+        if (yearA === 0 && yearB > 0) return 1;
+        if (yearA !== yearB) return yearA - yearB;
+        if (ratingB !== ratingA) return ratingB - ratingA;
+        return viewsB - viewsA;
+      }
+
+      if (activeSort === "rating-desc") {
+        if (ratingB !== ratingA) return ratingB - ratingA;
+        if (yearB !== yearA) return yearB - yearA;
+        return viewsB - viewsA;
+      }
+
+      if (activeSort === "views-desc") {
+        if (viewsB !== viewsA) return viewsB - viewsA;
+        if (yearB !== yearA) return yearB - yearA;
+        return ratingB - ratingA;
+      }
+
+      return 0;
+    });
+  }, [baseFilteredMovies, activeSort]);
 
   // Phân trang danh sách phim
   const totalPages = Math.max(1, Math.ceil(displayedMovies.length / PAGE_SIZE));
@@ -99,6 +203,11 @@ export const ActorDetailClient: React.FC<ActorDetailClientProps> = ({
 
   const handleTabChange = (tab: "all" | "single" | "series") => {
     setActiveTab(tab);
+    setCurrentPage(1);
+  };
+
+  const handleSortChange = (newSort: ActorSortKey) => {
+    setActiveSort(newSort);
     setCurrentPage(1);
   };
 
@@ -248,7 +357,7 @@ export const ActorDetailClient: React.FC<ActorDetailClientProps> = ({
       {/* 2. SECTION PHIM CỦA DIỄN VIÊN */}
       {/* ============================================================ */}
       <section id="actor-filmography-heading" className="space-y-6 scroll-mt-24">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/[0.08] pb-4">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-white/[0.08] pb-4">
           <div className="space-y-1">
             <h2 className="text-lg sm:text-2xl font-black text-white tracking-tight flex items-center gap-2.5">
               <Film className="w-5 h-5 sm:w-6 sm:h-6 text-netflix-red" />
@@ -259,50 +368,64 @@ export const ActorDetailClient: React.FC<ActorDetailClientProps> = ({
             </p>
           </div>
 
-          {/* TABS LỌC LOẠI PHIM (NẾU CÓ CẢ 2 LOẠI) */}
-          {movies.length > 0 && (singleMovies.length > 0 || seriesMovies.length > 0) && (
-            <div className="flex items-center gap-1.5 p-1 rounded-xl bg-zinc-900 self-start sm:self-auto">
-              <button
-                type="button"
-                onClick={() => handleTabChange("all")}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
-                  activeTab === "all"
-                    ? "bg-netflix-red text-white shadow-md"
-                    : "text-zinc-400 hover:text-white"
-                }`}
-              >
-                <Layers className="w-3 h-3" />
-                <span>Tất cả ({movies.length})</span>
-              </button>
+          {/* CỤM ĐIỀU KHIỂN: BỘ LỌC LOẠI PHIM + DROPDOWN SẮP XẾP */}
+          {movies.length > 0 && (
+            <div className="flex flex-wrap items-center gap-2 sm:gap-2.5 self-start lg:self-auto">
+              {/* TABS LỌC LOẠI PHIM (NẾU CÓ CẢ 2 LOẠI) */}
+              {(singleMovies.length > 0 || seriesMovies.length > 0) && (
+                <div className="flex items-center gap-1.5 p-1 rounded-xl bg-zinc-900">
+                  <button
+                    type="button"
+                    onClick={() => handleTabChange("all")}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                      activeTab === "all"
+                        ? "bg-netflix-red text-white shadow-md"
+                        : "text-zinc-400 hover:text-white"
+                    }`}
+                  >
+                    <Layers className="w-3 h-3" />
+                    <span>Tất cả ({movies.length})</span>
+                  </button>
 
-              {singleMovies.length > 0 && (
-                <button
-                  type="button"
-                  onClick={() => handleTabChange("single")}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
-                    activeTab === "single"
-                      ? "bg-netflix-red text-white shadow-md"
-                      : "text-zinc-400 hover:text-white"
-                  }`}
-                >
-                  <Clapperboard className="w-3 h-3" />
-                  <span>Phim lẻ ({singleMovies.length})</span>
-                </button>
+                  {singleMovies.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => handleTabChange("single")}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                        activeTab === "single"
+                          ? "bg-netflix-red text-white shadow-md"
+                          : "text-zinc-400 hover:text-white"
+                      }`}
+                    >
+                      <Clapperboard className="w-3 h-3" />
+                      <span>Phim lẻ ({singleMovies.length})</span>
+                    </button>
+                  )}
+
+                  {seriesMovies.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => handleTabChange("series")}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                        activeTab === "series"
+                          ? "bg-netflix-red text-white shadow-md"
+                          : "text-zinc-400 hover:text-white"
+                      }`}
+                    >
+                      <Tv className="w-3 h-3" />
+                      <span>Phim bộ ({seriesMovies.length})</span>
+                    </button>
+                  )}
+                </div>
               )}
 
-              {seriesMovies.length > 0 && (
-                <button
-                  type="button"
-                  onClick={() => handleTabChange("series")}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
-                    activeTab === "series"
-                      ? "bg-netflix-red text-white shadow-md"
-                      : "text-zinc-400 hover:text-white"
-                  }`}
-                >
-                  <Tv className="w-3 h-3" />
-                  <span>Phim bộ ({seriesMovies.length})</span>
-                </button>
+              {/* DROPDOWN SẮP XẾP CHUẨN NETFLIX / APPLE TV+ */}
+              {movies.length > 1 && (
+                <MovieSortDropdown
+                  value={activeSort}
+                  onChange={handleSortChange}
+                  options={ACTOR_SORT_OPTIONS}
+                />
               )}
             </div>
           )}
