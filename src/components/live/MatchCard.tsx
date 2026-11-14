@@ -361,12 +361,11 @@ function MatchCardInner({ match, isSelected, onSelect, score, compact }: MatchCa
           <div className="flex items-center gap-1.5 shrink-0 font-sans tabular-nums">
             {timeInfo.state === "live" ? (
               <>
-                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-rose-400 leading-none">
-                  <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse shrink-0" />
-                  {formatDisplayMinute(timeInfo.clockBadge) ? (
-                    <span>{formatDisplayMinute(timeInfo.clockBadge)}</span>
-                  ) : null}
-                </span>
+                {formatDisplayMinute(timeInfo.clockBadge) ? (
+                  <span className="text-[10px] font-bold text-rose-400 leading-none">
+                    {formatDisplayMinute(timeInfo.clockBadge)}
+                  </span>
+                ) : null}
                 {kickoffTime && (
                   <span className="text-[10px] font-sans text-zinc-400 tabular-nums">
                     {kickoffTime}
@@ -597,12 +596,8 @@ function MatchCardInner({ match, isSelected, onSelect, score, compact }: MatchCa
             </span>
           </div>
 
-          {/* Góc phải Header: Trạng thái & Huy hiệu (Typography thuần khiết) */}
+          {/* Góc phải Header: Huy hiệu Tâm điểm & Đang xem (Gọn gàng, sạch sẽ) */}
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-            {isConfirmedLive && (
-              <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse shrink-0 shadow-sm shadow-rose-500/50" title="Đang phát trực tiếp" />
-            )}
-
             {/* Huy hiệu Tâm điểm: Red Brand Capsule nổi bật cao cấp */}
             {featured.isFeatured && (
               <span
@@ -693,9 +688,8 @@ function MatchCardInner({ match, isSelected, onSelect, score, compact }: MatchCa
               <div className="min-h-[34px] sm:min-h-[36px] flex flex-col items-center justify-start mt-1.5 gap-1">
                 {/* Phút thi đấu hoặc trạng thái hiệp (chỉ hiển thị khi có phút cụ thể hoặc HT/FT) */}
                 {timeInfo.state === "live" && timeInfo.clockBadge && timeInfo.clockBadge !== "LIVE" ? (
-                  <span className="inline-flex items-center gap-1 font-sans tabular-nums text-[11px] sm:text-xs font-bold text-rose-400 leading-none">
-                    <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse shrink-0" />
-                    <span>{formatDisplayMinute(timeInfo.clockBadge)}</span>
+                  <span className="font-sans tabular-nums text-[11px] sm:text-xs font-bold text-rose-400 leading-none">
+                    {formatDisplayMinute(timeInfo.clockBadge)}
                   </span>
                 ) : timeInfo.state === "ht" ? (
                   <span className="font-sans tabular-nums text-[11px] sm:text-xs font-bold text-amber-400 leading-none">
