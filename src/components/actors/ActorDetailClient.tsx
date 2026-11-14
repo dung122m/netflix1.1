@@ -410,6 +410,7 @@ export const ActorDetailClient: React.FC<ActorDetailClientProps> = ({
                   value={activeSort}
                   onChange={handleSortChange}
                   options={SORT_OPTIONS}
+                  menuAlign="left"
                 />
               )}
             </div>

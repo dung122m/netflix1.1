@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Clock, Search } from "lucide-react";
+import { Clock, Radio, Search } from "lucide-react";
 import type { FootballMatch } from "@/services/live/football/service";
 import type { LiveMatchScore } from "@/services/live/football-score/types";
 import { LeagueStandings } from "./LeagueStandings";
@@ -55,7 +55,7 @@ export function LiveMatchGroupsList({
         <div className="space-y-3">
           <div className="flex items-center justify-between px-1">
             <div className="flex items-center gap-2">
-              <span className="inline-flex rounded-full h-2.5 w-2.5 bg-red-500 shrink-0" />
+              <Radio className="w-4 h-4 text-netflix-red shrink-0" />
               <h2 className="text-base sm:text-lg font-bold tracking-tight text-white">
                 Đang phát trực tiếp
               </h2>

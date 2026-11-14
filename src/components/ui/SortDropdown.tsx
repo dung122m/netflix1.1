@@ -38,9 +38,48 @@ export function SortDropdown<T extends string = string>({
 }: SortDropdownProps<T>) {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const [computedAlign, setComputedAlign] = useState<"left" | "right">(menuAlign);
 
   const selectedOption = options.find((opt) => opt.value === value) || options[0];
   const isCustomSort = Boolean(value && value !== "latest" && value !== options[0]?.value);
+
+  // Tính toán thông minh biên màn hình (Viewport Collision Detection) để không bao giờ bị cắt chữ
+  const checkCollision = useCallback(() => {
+    if (!containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    const menuWidth = 240; // Chiều rộng chuẩn w-56 / w-60 (~224px - 240px)
+    const viewportWidth = typeof window !== "undefined" ? window.innerWidth : 1024;
+    const spaceOnLeft = rect.right;
+    const spaceOnRight = viewportWidth - rect.left;
+
+    if (menuAlign === "right") {
+      // Nếu menuAlign yêu cầu 'right' (mở sang trái) nhưng không đủ chỗ và bên phải rộng hơn -> lật sang 'left'
+      if (spaceOnLeft < menuWidth + 12 && spaceOnRight >= menuWidth + 12) {
+        setComputedAlign("left");
+      } else if (spaceOnLeft < menuWidth + 12 && spaceOnRight > spaceOnLeft) {
+        setComputedAlign("left");
+      } else {
+        setComputedAlign("right");
+      }
+    } else {
+      // menuAlign là 'left' (mở sang phải) nhưng không đủ chỗ và bên trái rộng hơn -> lật sang 'right'
+      if (spaceOnRight < menuWidth + 12 && spaceOnLeft >= menuWidth + 12) {
+        setComputedAlign("right");
+      } else if (spaceOnRight < menuWidth + 12 && spaceOnLeft > spaceOnRight) {
+        setComputedAlign("right");
+      } else {
+        setComputedAlign("left");
+      }
+    }
+  }, [menuAlign]);
+
+  // Đồng bộ lại khi resize hoặc khi isOpen thay đổi
+  useEffect(() => {
+    if (!isOpen) return;
+    checkCollision();
+    window.addEventListener("resize", checkCollision);
+    return () => window.removeEventListener("resize", checkCollision);
+  }, [isOpen, checkCollision]);
 
   const updateIsOpen = useCallback(
     (next: boolean | ((prev: boolean) => boolean)) => {
@@ -52,6 +91,13 @@ export function SortDropdown<T extends string = string>({
     },
     [onOpenChange]
   );
+
+  const handleToggle = useCallback(() => {
+    if (!isOpen) {
+      checkCollision();
+    }
+    updateIsOpen((prev) => !prev);
+  }, [isOpen, checkCollision, updateIsOpen]);
 
   // Đóng dropdown khi click ra ngoài hoặc bấm Escape
   useEffect(() => {
@@ -97,7 +143,7 @@ export function SortDropdown<T extends string = string>({
       {/* NÚT KÍCH HOẠT DROPDOWN */}
       <button
         type="button"
-        onClick={() => updateIsOpen((prev) => !prev)}
+        onClick={handleToggle}
         aria-haspopup="listbox"
         aria-expanded={isOpen}
         aria-label={`${labelPrefix}: ${selectedOption?.label || "Mặc định"}`}
@@ -140,8 +186,8 @@ export function SortDropdown<T extends string = string>({
         <div
           role="listbox"
           tabIndex={-1}
-          className={`absolute top-full mt-1.5 z-50 w-56 sm:w-60 rounded-2xl bg-zinc-950/98 p-1.5 shadow-[0_20px_50px_rgba(0,0,0,0.9)] backdrop-blur-xl ring-1 ring-white/10 animate-in fade-in zoom-in-95 duration-150 ${
-            menuAlign === "right" ? "right-0" : "left-0"
+          className={`absolute top-full mt-1.5 z-50 w-56 sm:w-60 max-w-[calc(100vw-1.5rem)] rounded-2xl bg-zinc-950/98 p-1.5 shadow-[0_20px_50px_rgba(0,0,0,0.9)] backdrop-blur-xl ring-1 ring-white/10 animate-in fade-in zoom-in-95 duration-150 ${
+            computedAlign === "right" ? "right-0" : "left-0"
           }`}
         >
           <div className="px-3 py-1.5 text-[11px] font-semibold text-zinc-400 border-b border-white/[0.08] mb-1 flex items-center justify-between select-none">

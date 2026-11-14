@@ -93,9 +93,9 @@ export function MyListActorsTab({ actors, onRemove }: MyListActorsTabProps) {
                         onRemove(e, actor.id || actor.slug, actor.name);
                       }}
                       aria-label={`Bỏ ${actor.name} khỏi yêu thích`}
-                      className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-black/75 hover:bg-netflix-red text-zinc-300 hover:text-white backdrop-blur-md flex items-center justify-center shadow-lg shadow-black/60 transition-all duration-200 hover:scale-110 active:scale-95 cursor-pointer max-sm:opacity-100 sm:opacity-0 sm:group-hover/card:opacity-100 focus:opacity-100 border border-white/10"
+                      className="group/btn w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-black/75 hover:bg-netflix-red text-zinc-300 hover:text-white backdrop-blur-md flex items-center justify-center shadow-lg shadow-black/60 transition-all duration-200 hover:scale-110 active:scale-95 cursor-pointer max-sm:opacity-100 sm:opacity-0 sm:group-hover/card:opacity-100 focus:opacity-100 border border-white/10"
                     >
-                      <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 transition-transform duration-200 group-hover:rotate-6" />
+                      <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 transition-transform duration-200 group-hover/btn:rotate-6" />
                     </button>
                   </Tooltip>
                 </div>

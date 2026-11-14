@@ -44,7 +44,9 @@ export function SegmentedTabs<T extends string = string>({
     : "flex items-center flex-wrap";
 
   const containerClass = isContained
-    ? `p-1 rounded-xl bg-zinc-900/90 flex items-center gap-1 sm:gap-1.5 shadow-md shadow-black/40 ${className}`
+    ? `p-1 rounded-xl bg-zinc-900/90 flex items-center gap-1 sm:gap-1.5 shadow-md shadow-black/40 ${
+        scrollable ? "max-w-full overflow-x-auto scrollbar-none no-scrollbar touch-pan-x" : "flex-wrap"
+      } ${className}`
     : `${scrollWrapperClass} gap-2 ${className}`;
 
   return (
