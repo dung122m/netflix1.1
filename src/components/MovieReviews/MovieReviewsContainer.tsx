@@ -72,7 +72,7 @@ export const MovieReviewsContainer: React.FC<MovieReviewsContainerProps> = ({
             onClick={handleSelectTmdbTab}
             className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
               activeTab === "tmdb"
-                ? "bg-zinc-800 text-amber-300  shadow-sm font-bold"
+                ? "bg-zinc-800 text-amber-300 shadow-sm font-bold"
                 : "text-zinc-400 hover:text-white hover:bg-white/5"
             }`}
           >

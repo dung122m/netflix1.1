@@ -85,7 +85,7 @@ export const StarRating: React.FC<StarRatingProps> = ({
           {activeRating > 0 ? (
             <span className="font-semibold text-amber-400">{RATING_LABELS[activeRating]}</span>
           ) : (
-            <span className="text-zinc-500 font-normal italic">Chưa đánh giá</span>
+            <span className="text-zinc-400 font-medium">Chưa đánh giá</span>
           )}
         </span>
       )}

@@ -664,25 +664,25 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
             )}
 
             {/* User Header & Star Selector */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
-              <div className="flex items-center gap-2.5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3.5">
+              <div className="flex items-center gap-2.5 min-w-0">
                 <UserAvatar
                   src={effectiveAvatar || undefined}
                   name={effectiveDisplayName}
                   sizeClassName="w-8 h-8 text-xs font-bold"
                 />
-                <div>
-                  <span className="text-sm font-semibold text-zinc-200 block leading-tight">
+                <div className="min-w-0">
+                  <span className="text-sm font-semibold text-zinc-200 block leading-tight truncate">
                     {effectiveDisplayName}
                   </span>
                   <span className="text-[11px] text-zinc-500">
-                    {myExistingReview ? "Cập nhật đánh giá (không bắt buộc):" : "Đánh giá phim (không bắt buộc):"}
+                    {myExistingReview ? "Chỉnh sửa đánh giá của bạn" : "Đóng góp cảm nghĩ và chấm điểm"}
                   </span>
                 </div>
               </div>
 
               {/* Star Rating Interactive */}
-              <div className="bg-black/40 px-3 py-1.5 rounded-xl inline-flex items-center">
+              <div className="bg-black/40 px-3.5 py-1.5 rounded-xl inline-flex items-center border border-white/[0.04] self-start sm:self-auto">
                 <StarRating
                   value={rating}
                   onChange={setRating}
@@ -690,28 +690,6 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
                   showLabel
                 />
               </div>
-            </div>
-
-            {/* Quick Tag chips */}
-            <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none flex-nowrap sm:flex-wrap pb-1.5 mb-2.5 -mx-1 px-1">
-              <span className="text-[11px] text-zinc-500 mr-1 flex items-center gap-1 shrink-0 whitespace-nowrap">
-                <Tag className="w-3 h-3 text-zinc-400 shrink-0" />
-                Gợi ý:
-              </span>
-              {QUICK_TAGS.map((tag) => (
-                <button
-                  key={tag}
-                  type="button"
-                  onClick={() =>
-                    setContent((prev) =>
-                      prev ? `${prev} ${tag}` : tag,
-                    )
-                  }
-                  className="px-2.5 py-1 rounded-full text-xs bg-zinc-900/80 hover:bg-zinc-800 text-zinc-300 hover:text-white transition-colors cursor-pointer shrink-0 whitespace-nowrap"
-                >
-                  {tag}
-                </button>
-              ))}
             </div>
 
             {/* Textarea */}
@@ -727,26 +705,48 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
                 }}
                 placeholder="Chia sẻ cảm nghĩ của bạn về bộ phim... (Vui lòng không tiết lộ trước nội dung)"
                 rows={3}
-                className="w-full min-h-[88px] bg-black/60 rounded-xl px-4 py-3 text-base sm:text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-netflix-red focus:ring-1 focus:ring-netflix-red/30 resize-y transition-all"
+                className="w-full min-h-[96px] bg-black/60 rounded-xl px-4 py-3 text-base sm:text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-netflix-red focus:ring-1 focus:ring-netflix-red/30 resize-none transition-all"
                 maxLength={1000}
               />
-              <div className="text-[11px] text-zinc-600 text-right mt-1">
+              <div className="text-[11px] text-zinc-500 text-right mt-1 font-sans tabular-nums">
                 {content.length}/1000 ký tự
               </div>
             </div>
 
+            {/* Quick Tag chips (đặt ngay bên dưới Textarea cho luồng tư duy tự nhiên) */}
+            <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none flex-nowrap sm:flex-wrap pt-1 pb-1 -mx-1 px-1">
+              <span className="text-[11px] text-zinc-500 mr-1 flex items-center gap-1 shrink-0 whitespace-nowrap">
+                <Tag className="w-3 h-3 text-zinc-400 shrink-0" />
+                Gợi ý nhanh:
+              </span>
+              {QUICK_TAGS.map((tag) => (
+                <button
+                  key={tag}
+                  type="button"
+                  onClick={() =>
+                    setContent((prev) =>
+                      prev ? `${prev} ${tag}` : tag,
+                    )
+                  }
+                  className="px-2.5 py-1 rounded-lg text-xs bg-white/[0.05] hover:bg-white/[0.1] text-zinc-300 hover:text-white transition cursor-pointer shrink-0 whitespace-nowrap"
+                >
+                  {tag}
+                </button>
+              ))}
+            </div>
+
             {/* Options Row: Episode scope, Spoil toggle, Submit button */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mt-3 pt-3 border-t border-white/[0.08]">
-              <div className="flex items-center gap-3 sm:gap-4 flex-wrap w-full sm:w-auto">
+              <div className="flex items-center gap-2.5 sm:gap-3 flex-wrap w-full sm:w-auto">
                 {/* Episode scope toggle */}
                 {currentEpisodeName && (
-                  <div className="flex items-center gap-1 bg-black/40 p-1 rounded-lg text-xs shrink-0">
+                  <div className="inline-flex items-center p-0.5 rounded-xl bg-black/40 text-xs shrink-0">
                     <button
                       type="button"
                       onClick={() => setScopeEpisode("all")}
-                      className={`px-2.5 py-1 rounded-md font-medium transition-colors ${
+                      className={`px-2.5 py-1.5 rounded-lg font-medium transition cursor-pointer ${
                         scopeEpisode === "all"
-                          ? "bg-zinc-800 text-white shadow-sm"
+                          ? "bg-zinc-800 text-white shadow-sm font-semibold"
                           : "text-zinc-400 hover:text-zinc-200"
                       }`}
                     >
@@ -755,38 +755,39 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
                     <button
                       type="button"
                       onClick={() => setScopeEpisode("episode")}
-                      className={`px-2.5 py-1 rounded-md font-medium transition-colors flex items-center gap-1 ${
+                      className={`px-2.5 py-1.5 rounded-lg font-medium transition flex items-center gap-1 cursor-pointer ${
                         scopeEpisode === "episode"
-                          ? "bg-netflix-red/25 text-white shadow-sm"
+                          ? "bg-netflix-red text-white shadow-sm font-semibold"
                           : "text-zinc-400 hover:text-zinc-200"
                       }`}
                     >
                       <Film className="w-3 h-3" />
-                      {currentEpisodeName}
+                      <span>{currentEpisodeName}</span>
                     </button>
                   </div>
                 )}
 
-                {/* Spoiler checkbox */}
-                <label className="inline-flex items-center gap-2 cursor-pointer select-none text-xs text-zinc-400 hover:text-zinc-200 shrink-0">
-                  <input
-                    type="checkbox"
-                    checked={isSpoiler}
-                    onChange={(e) => setIsSpoiler(e.target.checked)}
-                    className="rounded border-zinc-700 bg-zinc-900 text-netflix-red focus:ring-netflix-red w-4 h-4 cursor-pointer"
-                  />
-                  <span className="flex items-center gap-1">
-                    <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
-                    Bình luận có Spoil nội dung
-                  </span>
-                </label>
+                {/* Spoiler badge button (thay cho checkbox xám thô) */}
+                <button
+                  type="button"
+                  onClick={() => setIsSpoiler(!isSpoiler)}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition cursor-pointer select-none active:scale-95 ${
+                    isSpoiler
+                      ? "bg-amber-500/20 text-amber-300 ring-1 ring-inset ring-amber-500/40"
+                      : "bg-white/[0.05] text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.08]"
+                  }`}
+                  aria-pressed={isSpoiler}
+                >
+                  <AlertTriangle className={`w-3.5 h-3.5 ${isSpoiler ? "text-amber-400" : "text-zinc-500"}`} />
+                  <span>{isSpoiler ? "Có Spoil nội dung" : "Bình luận có Spoil?"}</span>
+                </button>
               </div>
 
               {/* Submit button */}
               <button
                 type="submit"
                 disabled={isSubmitting || !content.trim()}
-                className={`inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm text-white shadow-lg disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-95 w-full sm:w-auto shrink-0 ${
+                className={`inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm text-white shadow-lg disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-95 w-full sm:w-auto shrink-0 cursor-pointer ${
                   myExistingReview
                     ? "bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 shadow-black/40"
                     : "bg-netflix-red hover:brightness-110 shadow-black/50"
@@ -842,92 +843,100 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
 
       {/* Filter Tabs & Comments List */}
       <div className="mt-8">
-        <div className="flex items-center justify-between gap-2 pb-3 border-b border-white/[0.08] flex-wrap gap-y-2">
-          <div className="text-sm font-semibold text-zinc-300 tabular-nums">
-            Tất cả bình luận ({sortedComments.length})
+        {loading ? (
+          <div className="py-12 flex flex-col items-center justify-center gap-3 text-zinc-500">
+            <Loader2 className="w-6 h-6 animate-spin text-netflix-red" />
+            <span className="text-xs">Đang tải bình luận cộng đồng...</span>
           </div>
-
-          <div className="flex items-center gap-0.5 sm:gap-1 bg-black/40 p-1 rounded-xl text-xs">
-            <button
-              type="button"
-              onClick={() => setSortBy("newest")}
-              className={`px-2 sm:px-3 py-1 rounded-lg font-medium transition-colors cursor-pointer ${
-                sortBy === "newest"
-                  ? "bg-zinc-800 text-white shadow-sm"
-                  : "text-zinc-400 hover:text-zinc-200"
-              }`}
-            >
-              Mới nhất
-            </button>
-            <button
-              type="button"
-              onClick={() => setSortBy("topLikes")}
-              className={`inline-flex items-center gap-1.5 px-2 sm:px-3 py-1 rounded-lg font-medium transition-colors cursor-pointer ${
-                sortBy === "topLikes"
-                  ? "bg-zinc-800 text-white shadow-sm"
-                  : "text-zinc-400 hover:text-zinc-200"
-              }`}
-            >
-              <Flame className="w-3.5 h-3.5 text-orange-400 shrink-0" />
-              <span className="hidden sm:inline">Nhiều thích nhất</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setSortBy("onlyFiveStar")}
-              className={`inline-flex items-center gap-1 px-2 sm:px-3 py-1 rounded-lg font-medium transition-colors cursor-pointer ${
-                sortBy === "onlyFiveStar"
-                  ? "bg-zinc-800 text-white shadow-sm"
-                  : "text-zinc-400 hover:text-zinc-200"
-              }`}
-            >
-              <span>5 sao</span>
-              <Star className="w-3 h-3 fill-amber-400 text-amber-400 shrink-0" />
-            </button>
+        ) : loadError ? (
+          <div className="py-8 text-center bg-red-950/20 rounded-2xl p-4 text-xs text-red-400">
+            <p className="font-semibold mb-1">Không thể tải bình luận máy chủ:</p>
+            <p className="text-zinc-400">{loadError}</p>
           </div>
-        </div>
-
-        {/* Comments Feed */}
-        <div className="mt-4 divide-y divide-white/[0.08] border-t border-white/[0.08]">
-          {loading ? (
-            <div className="py-12 flex flex-col items-center justify-center gap-3 text-zinc-500">
-              <Loader2 className="w-6 h-6 animate-spin text-red-500" />
-              <span className="text-xs">Đang tải bình luận cộng đồng...</span>
-            </div>
-          ) : loadError ? (
-            <div className="py-8 text-center bg-red-950/20 rounded-2xl p-4 text-xs text-red-400">
-              <p className="font-semibold mb-1">Không thể tải bình luận máy chủ:</p>
-              <p className="text-zinc-400">{loadError}</p>
-            </div>
-          ) : sortedComments.length > 0 ? (
-            sortedComments.map((comment) => (
-              <CommentItem
-                key={comment.id}
-                comment={comment}
-                currentUserId={user?.uid}
-                currentUserName={effectiveDisplayName}
-                currentUserAvatar={effectiveAvatar || undefined}
-                currentUserEmail={user?.email || undefined}
-                onReact={handleReact}
-                onDelete={handleDeleteComment}
-                onEdit={handleEditReview}
-                onTogglePin={handleTogglePinComment}
-                onRequireAuth={() => setShowAuthModal(true)}
-                highlightCommentId={highlightId}
-                targetReplyId={targetParentId === comment.id ? highlightId : undefined}
-              />
-            ))
-          ) : (
-            <div className="py-12 text-center rounded-2xl bg-zinc-900/40 p-6 mt-4">
-              <MessageSquare className="w-10 h-10 text-zinc-600 mx-auto mb-2" />
-              <div className="font-semibold text-zinc-300 text-sm">
-                Chưa có bình luận nào cho bộ phim này
+        ) : sortedComments.length > 0 ? (
+          <>
+            <div className="flex items-center justify-between gap-2 pb-3 border-b border-white/[0.08] flex-wrap gap-y-2">
+              <div className="text-sm font-semibold text-zinc-300 font-sans tabular-nums">
+                Tất cả bình luận ({sortedComments.length})
               </div>
-              <p className="text-xs text-zinc-500 mt-1 max-w-sm mx-auto">
-                Hãy là người đầu tiên để lại cảm nghĩ và chấm điểm cho &quot;{movieTitle}&quot;!
-              </p>
+
+              <div className="flex items-center gap-0.5 sm:gap-1 bg-black/40 p-1 rounded-xl text-xs">
+                <button
+                  type="button"
+                  onClick={() => setSortBy("newest")}
+                  className={`px-2.5 sm:px-3 py-1 rounded-lg font-medium transition-colors cursor-pointer ${
+                    sortBy === "newest"
+                      ? "bg-zinc-800 text-white shadow-sm font-semibold"
+                      : "text-zinc-400 hover:text-zinc-200"
+                  }`}
+                >
+                  Mới nhất
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSortBy("topLikes")}
+                  className={`inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-lg font-medium transition-colors cursor-pointer ${
+                    sortBy === "topLikes"
+                      ? "bg-zinc-800 text-white shadow-sm font-semibold"
+                      : "text-zinc-400 hover:text-zinc-200"
+                  }`}
+                >
+                  <Flame className="w-3.5 h-3.5 text-orange-400 shrink-0" />
+                  <span className="hidden sm:inline">Nhiều thích nhất</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSortBy("onlyFiveStar")}
+                  className={`inline-flex items-center gap-1 px-2.5 sm:px-3 py-1 rounded-lg font-medium transition-colors cursor-pointer ${
+                    sortBy === "onlyFiveStar"
+                      ? "bg-zinc-800 text-white shadow-sm font-semibold"
+                      : "text-zinc-400 hover:text-zinc-200"
+                  }`}
+                >
+                  <span>5 sao</span>
+                  <Star className="w-3 h-3 fill-amber-400 text-amber-400 shrink-0" />
+                </button>
+              </div>
             </div>
-          )}
-        </div>
+
+            {/* Comments Feed */}
+            <div className="mt-4 divide-y divide-white/[0.08]">
+              {sortedComments.map((comment) => (
+                <CommentItem
+                  key={comment.id}
+                  comment={comment}
+                  currentUserId={user?.uid}
+                  currentUserName={effectiveDisplayName}
+                  currentUserAvatar={effectiveAvatar || undefined}
+                  currentUserEmail={user?.email || undefined}
+                  onReact={handleReact}
+                  onDelete={handleDeleteComment}
+                  onEdit={handleEditReview}
+                  onTogglePin={handleTogglePinComment}
+                  onRequireAuth={() => setShowAuthModal(true)}
+                  highlightCommentId={highlightId}
+                  targetReplyId={targetParentId === comment.id ? highlightId : undefined}
+                />
+              ))}
+            </div>
+          </>
+        ) : (
+          /* Empty State khi chưa có bình luận nào: Tinh gọn, không lặp tiêu đề thừa */
+          <div className="py-12 px-4 text-center rounded-2xl bg-zinc-900/30">
+            <div className="w-12 h-12 rounded-2xl bg-white/[0.04] flex items-center justify-center mx-auto mb-3 text-zinc-400">
+              <MessageSquare className="w-6 h-6 text-zinc-500" />
+            </div>
+            <div className="font-semibold text-zinc-200 text-sm sm:text-base">
+              Chưa có bình luận nào cho bộ phim này
+            </div>
+            <p className="text-xs sm:text-sm text-zinc-400 mt-1.5 max-w-md mx-auto leading-relaxed">
+              Hãy là người đầu tiên để lại cảm nghĩ và chấm điểm cho{" "}
+              <span className="text-zinc-200 font-semibold inline-block">
+                &ldquo;{movieTitle}&rdquo;
+              </span>!
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Auth Modal Trigger */}
