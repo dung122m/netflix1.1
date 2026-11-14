@@ -251,24 +251,14 @@ export function LiveFootballClient({
   const railContainerRef = useRef<HTMLDivElement>(null);
   const pendingScrollToPlayerRef = useRef<boolean>(false);
 
-  // Cuộn mượt mà đưa người dùng về khu vực player, tự động trừ bù chiều cao Navbar
+  // Cuộn mượt mà đưa người dùng về khu vực player khi chọn trận (cả Desktop & Mobile)
   const scrollToPlayerArea = useCallback(() => {
     if (typeof window === "undefined") return;
     requestAnimationFrame(() => {
-      // 1. Trên Desktop (>=1024px): Player luôn nằm cố định trong tầm mắt cạnh danh sách trận
-      // Tuyệt đối không cuộn lỡ cỡ 16px-20px gây giật/thụt trang khi bấm chọn trận
-      if (window.innerWidth >= 1024) {
-        if (window.scrollY > 0 && window.scrollY < 120) {
-          window.scrollTo({ top: 0, behavior: "smooth" });
-        }
-        return;
+      // Khi người dùng bấm vào 1 trận bất kỳ, luôn cuộn mượt về đỉnh trang (top: 0) để thấy đầy đủ Video Player
+      if (window.scrollY > 10) {
+        window.scrollTo({ top: 0, behavior: "smooth" });
       }
-
-      // 2. Trên Mobile (<1024px): Nếu đang ở đầu trang (scrollY <= 60), không cần cuộn
-      if (window.scrollY <= 60) return;
-
-      // 3. Nếu người dùng đang cuộn sâu xuống dưới danh sách trận và bấm xem: cuộn mượt về đỉnh trang (top 0)
-      window.scrollTo({ top: 0, behavior: "smooth" });
     });
   }, []);
 
@@ -279,7 +269,18 @@ export function LiveFootballClient({
     const rafId = requestAnimationFrame(() => {
       scrollToPlayerArea();
     });
-    return () => cancelAnimationFrame(rafId);
+
+    // Timeout ngắn 80ms phòng ngừa layout re-render làm thay đổi chiều cao trang và trôi vị trí cuộn
+    const timer = setTimeout(() => {
+      if (typeof window !== "undefined" && window.scrollY > 10) {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+    }, 80);
+
+    return () => {
+      cancelAnimationFrame(rafId);
+      clearTimeout(timer);
+    };
   }, [selectedMatch?.id, scrollToPlayerArea]);
 
   // Cân bằng chiều cao Side Panel chuẩn xác theo khung Video Player trên Desktop (>=1024px)
