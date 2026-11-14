@@ -8,8 +8,8 @@ import { useCarouselScroll } from "@/components/ui/useCarouselScroll";
 import { TmdbCastMember } from "@/services/tmdbService";
 import { ActorAvatar } from "@/components/actors/ActorAvatar";
 import { FavoriteActorButton } from "@/components/actors/FavoriteActorButton";
-import { normalizeForMatch } from "@/lib/stringUtils";
-import { toVietnameseTitleCase } from "@/services/actor/actorAliasResolver";
+import { normalizeForMatch, cleanCountryName } from "@/lib/stringUtils";
+import { toVietnameseTitleCase, getActorSynonyms } from "@/services/actor/actorAliasResolver";
 
 export interface MovieCastGalleryProps {
   cast?: TmdbCastMember[];
@@ -23,6 +23,7 @@ interface ProcessedCastItem {
   avatarUrl?: string | null;
   href: string;
   slug: string;
+  country?: string;
 }
 
 function toActorSlug(name: string): string {
@@ -54,6 +55,7 @@ export const MovieCastGallery: React.FC<MovieCastGalleryProps> = ({
           avatarUrl: c.profile_path || null,
           href,
           slug: typeof c.id === "number" ? (slug ? `${c.id}-${slug}` : `${c.id}`) : slug || "nghe-si",
+          country: cleanCountryName(getActorSynonyms(c.name)?.country) || undefined,
         };
       });
     }
@@ -71,6 +73,7 @@ export const MovieCastGallery: React.FC<MovieCastGalleryProps> = ({
             avatarUrl: null,
             href: `/dien-vien/${slug || "nghe-si"}`,
             slug: slug || "nghe-si",
+            country: cleanCountryName(getActorSynonyms(name)?.country) || undefined,
           };
         });
     }
@@ -177,6 +180,7 @@ export const MovieCastGallery: React.FC<MovieCastGalleryProps> = ({
                     name={actor.name}
                     slug={actor.slug}
                     avatarUrl={actor.avatarUrl}
+                    country={actor.country}
                     variant="icon"
                     className="w-7 h-7 p-0 opacity-0 group-hover/card:opacity-100 focus-within:opacity-100 transition-opacity duration-200"
                   />

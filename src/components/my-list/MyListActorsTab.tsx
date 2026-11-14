@@ -2,11 +2,13 @@
 
 import React from "react";
 import Link from "next/link";
-import { Users, Trash2, Clapperboard, Film, ArrowRight } from "lucide-react";
+import { Users, Trash2, Film, ArrowRight } from "lucide-react";
 import { FavoriteActorItem } from "@/lib/favoriteActors";
 import { ActorAvatar } from "@/components/actors/ActorAvatar";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Tooltip } from "@/components/ui/Tooltip";
+import { cleanCountryName } from "@/lib/stringUtils";
+import { getActorSynonyms } from "@/services/actor/actorAliasResolver";
 
 interface MyListActorsTabProps {
   actors: FavoriteActorItem[];
@@ -41,6 +43,15 @@ export function MyListActorsTab({ actors, onRemove }: MyListActorsTabProps) {
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4 md:gap-4 lg:gap-5 xl:gap-6">
         {actors.map((actor) => {
           const actorHref = `/dien-vien/${actor.slug}`;
+          const cleanCountry =
+            cleanCountryName(actor.country) ||
+            cleanCountryName(getActorSynonyms(actor.name || actor.slug)?.country) ||
+            "";
+          const roleText = actor.roles || "Diễn viên";
+          const movieText =
+            typeof actor.totalMovies === "number" && actor.totalMovies > 0
+              ? `${actor.totalMovies} phim`
+              : null;
 
           return (
             <div
@@ -109,17 +120,30 @@ export function MyListActorsTab({ actors, onRemove }: MyListActorsTabProps) {
                   {actor.name}
                 </h4>
 
-                <div className="flex items-center justify-center gap-1.5 mt-1 text-[11px] sm:text-xs text-zinc-400">
-                  {actor.country && (
-                    <span className="line-clamp-1">{actor.country}</span>
+                <div className="flex items-center justify-center gap-1.5 mt-1 text-[11px] sm:text-xs text-zinc-400 min-h-[18px]">
+                  {cleanCountry ? (
+                    <>
+                      <span className="truncate max-w-[120px]">{cleanCountry}</span>
+                      <span className="text-zinc-600 font-normal select-none">•</span>
+                      {movieText ? (
+                        <span className="tabular-nums font-sans font-medium text-zinc-300">
+                          {movieText}
+                        </span>
+                      ) : (
+                        <span className="truncate">{roleText}</span>
+                      )}
+                    </>
+                  ) : movieText ? (
+                    <>
+                      <span className="tabular-nums font-sans font-medium text-zinc-300">
+                        {movieText}
+                      </span>
+                      <span className="text-zinc-600 font-normal select-none">•</span>
+                      <span className="truncate">{roleText}</span>
+                    </>
+                  ) : (
+                    <span className="truncate">{roleText}</span>
                   )}
-                  {actor.country && actor.totalMovies ? <span>•</span> : null}
-                  {actor.totalMovies ? (
-                    <span className="text-amber-300/90 font-medium inline-flex items-center gap-1">
-                      <Clapperboard className="w-3 h-3 shrink-0 text-amber-400" />
-                      <span className="tabular-nums font-sans">{actor.totalMovies} phim</span>
-                    </span>
-                  ) : null}
                 </div>
               </Link>
             </div>

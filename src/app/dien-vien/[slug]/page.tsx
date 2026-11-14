@@ -24,7 +24,7 @@ import {
   GOLDEN_ACTOR_INDEX,
 } from "@/services/aiActorService";
 import { getHistoricalArtistBySlug } from "@/data/history/historicalArtistsBirthdays";
-import { normalizeForMatch } from "@/lib/stringUtils";
+import { normalizeForMatch, cleanCountryName } from "@/lib/stringUtils";
 import {
   searchTmdbPerson,
   getTmdbPersonDetail,
@@ -389,12 +389,13 @@ export default async function ActorDetailPage({ params }: PageProps) {
     });
   }
 
-  const country =
+  const rawCountry =
     historicalItem?.country ||
     actorRes?.country ||
     actorSynonyms?.country ||
     matchedPreset?.country ||
     "";
+  const country = cleanCountryName(rawCountry);
   // Xác định Tên quốc tế chuẩn mực (International Name)
   // Ưu tiên 1: Tên quốc tế chính thức từ TMDb Person API (ví dụ: "Sammo Hung", "Huang Zitao", "Jackie Chan")
   // Ưu tiên 2: Tên quốc tế đã duyệt trong historicalArtists (historicalItem.englishName)

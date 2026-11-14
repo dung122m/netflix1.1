@@ -4,6 +4,8 @@ import React, { useState, useEffect, useCallback } from "react";
 import { Heart } from "lucide-react";
 import { isFavoriteActor, toggleFavoriteActor } from "@/lib/favoriteActors";
 import { toast } from "@/components/ui/Toast";
+import { cleanCountryName } from "@/lib/stringUtils";
+import { getActorSynonyms } from "@/services/actor/actorAliasResolver";
 
 export interface FavoriteActorButtonProps {
   id: string | number;
@@ -50,12 +52,17 @@ export const FavoriteActorButton: React.FC<FavoriteActorButtonProps> = ({
       e.preventDefault();
       e.stopPropagation();
 
+      const resolvedCountry =
+        cleanCountryName(country) ||
+        cleanCountryName(getActorSynonyms(name || slug)?.country) ||
+        undefined;
+
       const nextState = toggleFavoriteActor({
         id,
         name,
         slug,
         avatarUrl,
-        country,
+        country: resolvedCountry,
         roles,
         totalMovies,
       });
