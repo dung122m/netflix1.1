@@ -345,6 +345,8 @@ function MatchCardInner({ match, isSelected, onSelect, score, compact }: MatchCa
         className={`group relative rounded-xl cursor-pointer transition-all duration-150 p-2 sm:p-2.5 flex flex-col gap-1.5 overflow-hidden outline-none select-none scroll-mt-12 ${
           isSelected
             ? "bg-gradient-to-r from-netflix-red/10 via-zinc-900/95 to-zinc-900/95 ring-1 ring-inset ring-netflix-red/75 shadow-md shadow-black/50"
+            : featured.isFeatured
+            ? "bg-gradient-to-r from-netflix-red/15 via-zinc-900/90 to-zinc-900/95 ring-1 ring-inset ring-netflix-red/35 shadow-sm shadow-netflix-red/10"
             : isConfirmedLive
             ? "bg-zinc-900/80 hover:bg-zinc-800/80 shadow-sm"
             : "bg-zinc-900/55 hover:bg-zinc-800/75 shadow-sm"
@@ -410,13 +412,13 @@ function MatchCardInner({ match, isSelected, onSelect, score, compact }: MatchCa
                 </span>
               )
             )}
-            {/* Huy hiệu Tâm điểm: Frosted Glass Capsule với Netflix Red Flame */}
+            {/* Huy hiệu Tâm điểm: Red Brand Capsule */}
             {featured.isFeatured && (
               <span
-                className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-white/[0.08] text-zinc-300 border border-white/10 text-[9px] font-medium tracking-wide shrink-0 shadow-sm backdrop-blur-md"
+                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-netflix-red text-white text-[9px] font-bold tracking-wide shrink-0 shadow-sm select-none"
                 aria-label={featured.badgeLabel || "Trận cầu tâm điểm"}
               >
-                <Flame size={9} className="text-netflix-red fill-netflix-red shrink-0" />
+                <Flame size={9} className="text-white fill-white shrink-0" />
                 {!isSelected && <span>{featured.badgeLabel || "Tâm điểm"}</span>}
               </span>
             )}
@@ -560,26 +562,35 @@ function MatchCardInner({ match, isSelected, onSelect, score, compact }: MatchCa
       className={`group relative rounded-2xl cursor-pointer transition-all duration-300 flex flex-col justify-between overflow-hidden outline-none select-none ${
         isSelected
           ? "bg-gradient-to-b from-zinc-900 via-zinc-900/95 to-zinc-950 ring-2 ring-netflix-red shadow-2xl shadow-black/80"
+          : featured.isFeatured
+          ? "bg-gradient-to-b from-zinc-850/95 via-zinc-900/95 to-zinc-950 ring-1 ring-netflix-red/40 hover:ring-netflix-red/60 shadow-xl shadow-black/60 shadow-netflix-red/10"
           : isConfirmedLive
           ? "bg-zinc-900/80 hover:bg-zinc-850/90 shadow-md shadow-black/30"
           : "bg-zinc-900/60 hover:bg-zinc-850/80 shadow-sm"
       }`}
     >
-      {/* Top Crown Rim tinh tế khi được chọn */}
+      {/* Top Laser Rim: Hiển thị khi được chọn HOẶC khi là Trận tâm điểm */}
       <div
-        className={`absolute top-0 inset-x-0 h-[2px] pointer-events-none transition-all duration-300 ${
+        className={`absolute top-0 inset-x-0 h-[2.5px] pointer-events-none transition-all duration-300 ${
           isSelected
             ? "bg-gradient-to-r from-transparent via-netflix-red to-transparent opacity-100"
+            : featured.isFeatured
+            ? "bg-gradient-to-r from-transparent via-netflix-red/90 to-transparent opacity-100"
             : "opacity-0"
         }`}
       />
+      {featured.isFeatured && (
+        <div className="absolute -top-12 inset-x-0 h-28 bg-gradient-to-b from-netflix-red/[0.08] to-transparent pointer-events-none blur-xl" />
+      )}
 
       <div className="p-3 sm:p-3.5 flex flex-col justify-between flex-1 gap-2 sm:gap-2.5">
         {/* 1. HEADER: GIẢI ĐẤU & HUY HIỆU TINH GỌN (KHÔNG VIỀN HỘP THÔ CỨNG) */}
         <div className="flex items-center justify-between gap-1.5 pb-2 border-b border-white/[0.06] text-xs">
           {/* Tên giải đấu */}
           <div className="flex items-center gap-1.5 min-w-0 flex-1">
-            <span className="text-zinc-400 group-hover:text-zinc-300 font-medium text-[11px] sm:text-xs truncate transition-colors">
+            <span className={`text-[11px] sm:text-xs truncate transition-colors ${
+              featured.isFeatured ? "text-zinc-300 font-semibold" : "text-zinc-400 group-hover:text-zinc-300 font-medium"
+            }`}>
               <span className="truncate">{tournamentName}</span>
             </span>
           </div>
@@ -593,13 +604,13 @@ function MatchCardInner({ match, isSelected, onSelect, score, compact }: MatchCa
               </span>
             )}
 
-            {/* Huy hiệu Tâm điểm: Frosted Glass Capsule với Netflix Red Flame */}
+            {/* Huy hiệu Tâm điểm: Red Brand Capsule nổi bật cao cấp */}
             {featured.isFeatured && (
               <span
-                className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/[0.08] text-zinc-200 border border-white/10 text-[10px] font-medium tracking-wide shadow-sm backdrop-blur-md shrink-0 select-none"
+                className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-netflix-red text-white text-[10px] sm:text-[10.5px] font-bold tracking-wide shadow-md shadow-red-950/60 shrink-0 select-none"
                 aria-label={featured.badgeLabel || "Trận cầu tâm điểm"}
               >
-                <Flame size={10} className="text-netflix-red fill-netflix-red shrink-0" />
+                <Flame size={11} className="text-white fill-white shrink-0" />
                 {!isSelected && <span>{featured.badgeLabel || "Tâm điểm"}</span>}
               </span>
             )}
@@ -623,9 +634,11 @@ function MatchCardInner({ match, isSelected, onSelect, score, compact }: MatchCa
             <div className="flex flex-col items-center text-center min-w-0">
               {/* Khu vực Logo cố định chiều cao h-12 (48px) để đồng trục 100% với Score và Logo Đội khách */}
               <div className="h-12 w-full flex items-center justify-center">
-                <div className="w-11 h-11 sm:w-12 sm:h-12 flex items-center justify-center shrink-0 transition-transform duration-300 group-hover:scale-110 filter drop-shadow-[0_4px_10px_rgba(0,0,0,0.6)]">
+                <div className={`flex items-center justify-center shrink-0 transition-transform duration-300 group-hover:scale-110 filter drop-shadow-[0_4px_10px_rgba(0,0,0,0.6)] ${
+                  featured.isFeatured ? "w-12 h-12 sm:w-13 sm:h-13" : "w-11 h-11 sm:w-12 sm:h-12"
+                }`}>
                   {homeFlagEmoji ? (
-                    <CountryFlag emoji={homeFlagEmoji} className="w-8 h-8 sm:w-9 sm:h-9" />
+                    <CountryFlag emoji={homeFlagEmoji} className={featured.isFeatured ? "w-9 h-9 sm:w-10 sm:h-10" : "w-8 h-8 sm:w-9 sm:h-9"} />
                   ) : homeLogoSrc ? (
                     /* eslint-disable-next-line @next/next/no-img-element */
                     <img
@@ -649,6 +662,8 @@ function MatchCardInner({ match, isSelected, onSelect, score, compact }: MatchCa
                   className={`text-xs sm:text-[13px] line-clamp-2 leading-tight transition-colors text-center max-w-[110px] sm:max-w-[130px] md:max-w-[150px] ${
                     isSelected
                       ? "text-white font-black"
+                      : featured.isFeatured
+                      ? "text-white font-bold tracking-tight text-[13px] sm:text-[13.5px]"
                       : "text-zinc-200 font-semibold group-hover:text-white"
                   }`}
                   title={displayTeam1}
@@ -667,7 +682,9 @@ function MatchCardInner({ match, isSelected, onSelect, score, compact }: MatchCa
                     {currentScore?.team1Score} - {currentScore?.team2Score}
                   </span>
                 ) : (
-                  <span className="font-sans tabular-nums text-xs sm:text-sm font-semibold tracking-wider text-zinc-400 select-none">
+                  <span className={`font-sans tabular-nums text-xs sm:text-sm font-semibold tracking-wider select-none ${
+                    featured.isFeatured ? "text-zinc-300 font-bold" : "text-zinc-400"
+                  }`}>
                     VS
                   </span>
                 )}
@@ -697,7 +714,13 @@ function MatchCardInner({ match, isSelected, onSelect, score, compact }: MatchCa
 
                 {/* Giờ bắt đầu */}
                 {kickoffTime && (
-                  <span className="font-sans tabular-nums text-[11px] sm:text-xs leading-none font-medium text-zinc-400">
+                  <span
+                    className={`font-sans tabular-nums text-[11px] sm:text-xs leading-none ${
+                      featured.isFeatured
+                        ? "font-semibold text-zinc-100 bg-white/[0.08] border border-white/10 px-2.5 py-0.5 rounded-full shadow-sm"
+                        : "font-medium text-zinc-400"
+                    }`}
+                  >
                     {kickoffTime}
                   </span>
                 )}
@@ -708,9 +731,11 @@ function MatchCardInner({ match, isSelected, onSelect, score, compact }: MatchCa
             <div className="flex flex-col items-center text-center min-w-0">
               {/* Khu vực Logo cố định chiều cao h-12 (48px) đồng trục tuyệt đối */}
               <div className="h-12 w-full flex items-center justify-center">
-                <div className="w-11 h-11 sm:w-12 sm:h-12 flex items-center justify-center shrink-0 transition-transform duration-300 group-hover:scale-110 filter drop-shadow-[0_4px_10px_rgba(0,0,0,0.6)]">
+                <div className={`flex items-center justify-center shrink-0 transition-transform duration-300 group-hover:scale-110 filter drop-shadow-[0_4px_10px_rgba(0,0,0,0.6)] ${
+                  featured.isFeatured ? "w-12 h-12 sm:w-13 sm:h-13" : "w-11 h-11 sm:w-12 sm:h-12"
+                }`}>
                   {awayFlagEmoji ? (
-                    <CountryFlag emoji={awayFlagEmoji} className="w-8 h-8 sm:w-9 sm:h-9" />
+                    <CountryFlag emoji={awayFlagEmoji} className={featured.isFeatured ? "w-9 h-9 sm:w-10 sm:h-10" : "w-8 h-8 sm:w-9 sm:h-9"} />
                   ) : awayLogoSrc ? (
                     /* eslint-disable-next-line @next/next/no-img-element */
                     <img
@@ -734,6 +759,8 @@ function MatchCardInner({ match, isSelected, onSelect, score, compact }: MatchCa
                   className={`text-xs sm:text-[13px] line-clamp-2 leading-tight transition-colors text-center max-w-[110px] sm:max-w-[130px] md:max-w-[150px] ${
                     isSelected
                       ? "text-white font-black"
+                      : featured.isFeatured
+                      ? "text-white font-bold tracking-tight text-[13px] sm:text-[13.5px]"
                       : "text-zinc-200 font-semibold group-hover:text-white"
                   }`}
                   title={displayTeam2}
@@ -760,7 +787,9 @@ function MatchCardInner({ match, isSelected, onSelect, score, compact }: MatchCa
                   <Trophy className="w-5 h-5 text-zinc-400" />
                 )}
               </div>
-              <strong className="text-xs sm:text-[13px] line-clamp-2 flex-1 leading-tight text-white font-bold">
+              <strong className={`text-xs sm:text-[13px] line-clamp-2 flex-1 leading-tight ${
+                featured.isFeatured ? "text-white font-extrabold" : "text-white font-bold"
+              }`}>
                 {match.title || match.team1}
               </strong>
             </div>
@@ -777,8 +806,10 @@ function MatchCardInner({ match, isSelected, onSelect, score, compact }: MatchCa
         <div className="flex items-center justify-between gap-2 pt-2 text-[11px] text-zinc-400">
           {/* Tên BLV / Nguồn phát bên trái */}
           <div className="flex items-center gap-1.5 min-w-0 flex-1 truncate">
-            <Mic className="w-3 h-3 shrink-0 text-zinc-500" />
-            <span className="text-zinc-400 group-hover:text-zinc-300 transition-colors font-medium truncate">
+            <Mic className={`w-3 h-3 shrink-0 ${featured.isFeatured ? "text-netflix-red" : "text-zinc-500"}`} />
+            <span className={`transition-colors font-medium truncate ${
+              featured.isFeatured ? "text-zinc-200 font-semibold" : "text-zinc-400 group-hover:text-zinc-300"
+            }`}>
               {(() => {
                 if (!match.blv) {
                   return /^(?:TV360|FPT Play|VTVcab|SCTV|K\+|HTV|VTV)\b/i.test(primaryGroup)
@@ -802,7 +833,7 @@ function MatchCardInner({ match, isSelected, onSelect, score, compact }: MatchCa
 
           {/* Số lượng nguồn phát & Nút Play bên phải */}
           <div className="flex items-center gap-2 shrink-0">
-            <span className="text-[11px] font-medium tabular-nums text-zinc-400">
+            <span className={`text-[11px] font-medium tabular-nums ${featured.isFeatured ? "text-zinc-300" : "text-zinc-400"}`}>
               {match.servers.length} nguồn
             </span>
 
@@ -811,7 +842,13 @@ function MatchCardInner({ match, isSelected, onSelect, score, compact }: MatchCa
                 <span className="w-2 h-2 rounded-full bg-netflix-red animate-pulse" />
               </span>
             ) : (
-              <div className="w-6 h-6 rounded-full flex items-center justify-center transition-all shadow-sm bg-white/[0.06] group-hover:bg-netflix-red text-zinc-400 group-hover:text-white">
+              <div
+                className={`w-6 h-6 rounded-full flex items-center justify-center transition-all shadow-sm ${
+                  featured.isFeatured
+                    ? "bg-netflix-red text-white shadow-md shadow-red-950/50 group-hover:scale-110"
+                    : "bg-white/[0.06] group-hover:bg-netflix-red text-zinc-400 group-hover:text-white"
+                }`}
+              >
                 <Play className="w-2.5 h-2.5 fill-current ml-0.5" />
               </div>
             )}
