@@ -539,11 +539,15 @@ export function useLiveFootballFilters({
   ]);
 
   const liveMatchesList = useMemo(() => {
-    return filteredMatches.filter((m) => m.realStatus === "live");
+    return filteredMatches
+      .filter((m) => m.realStatus === "live")
+      .sort((a, b) => (b.isFeatured ? 1 : 0) - (a.isFeatured ? 1 : 0));
   }, [filteredMatches]);
 
   const upcomingMatchesList = useMemo(() => {
-    return filteredMatches.filter((m) => m.realStatus === "upcoming");
+    return filteredMatches
+      .filter((m) => m.realStatus === "upcoming")
+      .sort((a, b) => (b.isFeatured ? 1 : 0) - (a.isFeatured ? 1 : 0));
   }, [filteredMatches]);
 
   const handleStatusChange = useCallback(
