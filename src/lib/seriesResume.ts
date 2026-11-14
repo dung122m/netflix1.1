@@ -27,8 +27,14 @@ export interface ResolvedResumeEpisode {
 }
 
 /**
+ * Ngưỡng thời gian tối thiểu (tính bằng giây) để một tập được coi là đang xem dở.
+ * Nâng lên 60 giây (1 phút) giúp loại bỏ triệt để trường hợp người dùng click nhầm tập rồi tắt ngay.
+ */
+export const MIN_RESUME_IN_PROGRESS_SECONDS = 60;
+
+/**
  * Trợ giúp phân giải thông minh tập cần xem tiếp theo cho phim bộ theo chuẩn Netflix:
- * - Trường hợp A: Ưu tiên tập đang xem dở gần nhất (progress >= 10s và < 90% duration).
+ * - Trường hợp A: Ưu tiên tập đang xem dở gần nhất (progress >= 60s và < 90% duration).
  * - Trường hợp B: Nếu tập gần nhất đã hoàn thành (>= 90% duration hoặc đánh dấu đã xem), tự động tìm tập kế tiếp thực sự tồn tại trong danh sách.
  * - Trường hợp C: Nếu chưa từng xem, bắt đầu từ tập đầu tiên có thể phát (episodes[0]).
  * - Trường hợp D: Nếu đã xem hết toàn bộ các tập, giữ ở tập cuối (hoặc cho phép xem lại), không sinh tập lỗi/văng lỗi.
@@ -104,7 +110,7 @@ export function resolveNextResumeEpisode(
       isComp = true;
     }
 
-    const inProg = !isComp && pSec >= 10 && (!dSec || dSec <= 0 || pSec / dSec < 0.9);
+    const inProg = !isComp && pSec >= MIN_RESUME_IN_PROGRESS_SECONDS && (!dSec || dSec <= 0 || pSec / dSec < 0.9);
     const pPercent =
       dSec && dSec > 0
         ? Math.min(100, Math.round((pSec / dSec) * 100))

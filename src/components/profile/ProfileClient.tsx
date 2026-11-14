@@ -427,7 +427,7 @@ export function ProfileClient() {
 
       {/* 1. BREADCRUMB */}
       <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-xs text-zinc-400">
-        <Link href="/" className="hover:text-white transition">
+        <Link href="/" prefetch={false} className="hover:text-white transition">
           Trang chủ
         </Link>
         <ChevronRight className="w-3.5 h-3.5" />

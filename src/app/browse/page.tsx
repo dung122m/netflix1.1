@@ -1,6 +1,5 @@
 import Link from "next/link";
 import Image from "next/image";
-import { after } from "next/server";
 import { MovieGrid } from "@/components/movies/MovieGrid";
 import { FilterBarClient } from "@/components/browse/FilterBarClient";
 import { Navbar } from "@/components/layout/Navbar";
@@ -579,20 +578,16 @@ export default async function BrowsePage({
     fallbackMovies = fallbackRes?.items || [];
   }
 
-  // NÂNG CẤP TOÀN BỘ POSTER SANG TMDB CDN SIÊU TỐC (GIỚI HẠN NGÂN SÁCH SSR 1500ms ĐỂ KHÔNG CHẶN TTFB)
+  // NÂNG CẤP TOÀN BỘ POSTER SANG TMDB CDN SIÊU TỐC (GIỚI HẠN NGÂN SÁCH SSR 600ms ĐỂ TIẾT KIỆM ACTIVE CPU)
   const posterTasks: Promise<void>[] = [];
   if (movies.length > 0) {
-    posterTasks.push(enrichMovieListPosters(movies, { budgetMs: 2500, stripProxyUrls: true }));
+    posterTasks.push(enrichMovieListPosters(movies, { budgetMs: 600, stripProxyUrls: true }));
   }
   if (fallbackMovies.length > 0) {
-    posterTasks.push(enrichMovieListPosters(fallbackMovies, { budgetMs: 2500, stripProxyUrls: true }));
+    posterTasks.push(enrichMovieListPosters(fallbackMovies, { budgetMs: 600, stripProxyUrls: true }));
   }
   if (posterTasks.length > 0) {
-    const posterSettlement = Promise.allSettled(posterTasks);
-    after(async () => {
-      await posterSettlement;
-    });
-    await posterSettlement;
+    await Promise.allSettled(posterTasks);
   }
 
   let title = "Khám Phá Kho Phim";

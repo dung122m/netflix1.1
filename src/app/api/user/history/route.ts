@@ -11,10 +11,14 @@ import { safeParseJson } from "@/lib/securityValidation";
 export const dynamic = "force-dynamic";
 export const fetchCache = "force-no-store";
 
-const NO_CACHE_HEADERS = {
+const _NO_CACHE_HEADERS = {
   "Cache-Control": "private, no-cache, no-store, max-age=0, must-revalidate, proxy-revalidate",
   "CDN-Cache-Control": "no-store",
   "Vercel-CDN-Cache-Control": "no-store",
+};
+
+const CACHED_HISTORY_HEADERS = {
+  "Cache-Control": "private, max-age=30, stale-while-revalidate=60",
 };
 
 /**
@@ -71,7 +75,7 @@ export async function GET(req: NextRequest) {
         : [],
     }));
 
-    return NextResponse.json({ success: true, items }, { headers: NO_CACHE_HEADERS });
+    return NextResponse.json({ success: true, items }, { headers: CACHED_HISTORY_HEADERS });
   } catch (err) {
     console.error("[History API GET] Error:", err);
     return NextResponse.json({ success: false, error: "Internal error" }, { status: 500 });

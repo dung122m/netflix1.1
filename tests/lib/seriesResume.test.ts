@@ -208,7 +208,7 @@ describe("Series Watch History & Resume Episode Suite", () => {
 
     const episodesProgress: Record<string, EpisodeProgressData> = {
       "raw-ep-1": {
-        progressSeconds: 45,
+        progressSeconds: 90,
         updatedAt: 1000,
         isCompleted: false,
       },
@@ -223,8 +223,35 @@ describe("Series Watch History & Resume Episode Suite", () => {
     assert.ok(result);
     assert.equal(result.caseType, "in_progress");
     assert.equal(result.episode.slug, "raw-ep-1");
-    assert.equal(result.progressSeconds, 45);
+    assert.equal(result.progressSeconds, 90);
     assert.equal(result.sourceEpisodeName, "Tập 1");
+  });
+
+  it("Kịch bản 8b: Xem dưới 60s (ví dụ 45s do click nhầm) -> Không tính là đang xem dở", () => {
+    const rawEpisodes: EpisodeItem[] = [
+      { slug: "raw-ep-1" },
+      { slug: "raw-ep-2" },
+    ];
+
+    const episodesProgress: Record<string, EpisodeProgressData> = {
+      "raw-ep-1": {
+        progressSeconds: 45,
+        updatedAt: 1000,
+        isCompleted: false,
+      },
+    };
+
+    const result = resolveNextResumeEpisode(movieSlug, rawEpisodes, {
+      episodesProgress,
+      watchedEpisodes: [],
+      watchHistory: [],
+    });
+
+    assert.ok(result);
+    // Khi chưa đạt 60s, không được kích hoạt in_progress mà rơi về not_started
+    assert.equal(result.caseType, "not_started");
+    assert.equal(result.episode.slug, "raw-ep-1");
+    assert.equal(result.progressSeconds, 0);
   });
 
   it("Kịch bản 9: Chưa từng xem phim này -> Bắt đầu từ tập đầu tiên có thể phát (episodes[0])", () => {

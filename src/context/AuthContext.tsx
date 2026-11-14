@@ -135,7 +135,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         setIsSyncing(true);
         try {
           const PROFILE_SYNC_COOLDOWN_MS = 30 * 60 * 1000;
+          const DATA_SYNC_COOLDOWN_MS = 10 * 60 * 1000; // 10 phút cooldown cho lịch sử xem & watchlist để giảm 80% Serverless calls
           let shouldSyncProfile = true;
+          let shouldSyncData = true;
+
           try {
             const syncKey = `nanaflix_profile_synced_${currentUser.uid}`;
             const lastSync = Number(sessionStorage.getItem(syncKey) || "0");
@@ -143,12 +146,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
             if (hasLocalProfile && lastSync > 0 && Date.now() - lastSync < PROFILE_SYNC_COOLDOWN_MS) {
               shouldSyncProfile = false;
             }
+
+            const dataSyncKey = `nanaflix_data_synced_${currentUser.uid}`;
+            const lastDataSync = Number(sessionStorage.getItem(dataSyncKey) || "0");
+            if (lastDataSync > 0 && Date.now() - lastDataSync < DATA_SYNC_COOLDOWN_MS) {
+              shouldSyncData = false;
+            }
           } catch {}
 
-          const tasks: Promise<unknown>[] = [
-            syncWatchHistoryWithCloud(currentUser.uid),
-            syncWatchlistWithCloud(currentUser.uid),
-          ];
+          const tasks: Promise<unknown>[] = [];
+          if (shouldSyncData) {
+            tasks.push(
+              syncWatchHistoryWithCloud(currentUser.uid),
+              syncWatchlistWithCloud(currentUser.uid)
+            );
+            try {
+              sessionStorage.setItem(`nanaflix_data_synced_${currentUser.uid}`, String(Date.now()));
+            } catch {}
+          }
+
           if (shouldSyncProfile) {
             tasks.push(
               recordUserProfile(currentUser).then(() => {

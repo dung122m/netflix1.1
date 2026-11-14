@@ -20,6 +20,10 @@ const NO_CACHE_HEADERS = {
   "Vercel-CDN-Cache-Control": "no-store",
 };
 
+const CACHED_PROFILE_HEADERS = {
+  "Cache-Control": "private, max-age=60, stale-while-revalidate=180",
+};
+
 /**
  * GET /api/user/profile
  * - ?userId=xxx: Lấy hồ sơ công khai của một người dùng
@@ -167,7 +171,7 @@ export async function GET(req: NextRequest) {
       updatedAt: Number(data.updated_at) || Date.now(),
     };
 
-    return NextResponse.json({ success: true, profile }, { headers: NO_CACHE_HEADERS });
+    return NextResponse.json({ success: true, profile }, { headers: CACHED_PROFILE_HEADERS });
   } catch (err) {
     console.error("[Profile API GET] Error:", err);
     return NextResponse.json({ success: false, error: "Internal error" }, { status: 500 });

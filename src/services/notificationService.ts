@@ -129,6 +129,7 @@ interface NotificationSingleton {
   userId: string;
   listeners: Set<(notifications: UserNotification[]) => void>;
   cachedData: UserNotification[] | null;
+  lastFetchTime?: number;
   inFlightPromise: Promise<UserNotification[]> | null;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   realtimeChannel: any | null;
@@ -161,6 +162,15 @@ function fetchSingletonNotifications(userId: string): Promise<UserNotification[]
     return Promise.resolve([]);
   }
 
+  // Nếu đã nạp thông báo trong vòng 2 phút, dùng ngay cache RAM (Supabase Realtime sẽ push nếu có tin mới)
+  if (
+    activeSingleton.cachedData &&
+    activeSingleton.lastFetchTime &&
+    Date.now() - activeSingleton.lastFetchTime < 120000
+  ) {
+    return Promise.resolve(activeSingleton.cachedData);
+  }
+
   // Chia sẻ promise đang bay nếu có subscriber khác hoặc request trước đó đang chạy
   if (activeSingleton.inFlightPromise) {
     return activeSingleton.inFlightPromise;
@@ -176,6 +186,7 @@ function fetchSingletonNotifications(userId: string): Promise<UserNotification[]
         return [];
       }
       activeSingleton.inFlightPromise = null;
+      activeSingleton.lastFetchTime = Date.now();
       if (Array.isArray(items) && items.length > 0) {
         broadcastUpdate(userId, items);
       }
@@ -184,6 +195,7 @@ function fetchSingletonNotifications(userId: string): Promise<UserNotification[]
     .catch((err) => {
       if (activeSingleton && activeSingleton.userId === userId) {
         activeSingleton.inFlightPromise = null;
+        activeSingleton.lastFetchTime = Date.now();
       }
       console.warn("Lỗi nạp thông báo người dùng:", err);
       return [];

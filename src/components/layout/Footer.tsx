@@ -43,7 +43,7 @@ export const Footer: React.FC = () => {
             </h4>
             <ul className="space-y-2.5 text-xs text-zinc-300 font-normal">
               <li>
-                <Link href="/" className="hover:text-white transition-colors flex items-center gap-2 group">
+                <Link href="/" prefetch={false} className="hover:text-white transition-colors flex items-center gap-2 group">
                   <span className="w-4 h-4 flex items-center justify-center shrink-0">
                     <Home size={13} className="text-zinc-400 group-hover:text-netflix-red transition-colors" />
                   </span>
@@ -51,7 +51,7 @@ export const Footer: React.FC = () => {
                 </Link>
               </li>
               <li>
-                <Link href="/browse?type=phim-bo" className="hover:text-white transition-colors flex items-center gap-2 group">
+                <Link href="/browse?type=phim-bo" prefetch={false} className="hover:text-white transition-colors flex items-center gap-2 group">
                   <span className="w-4 h-4 flex items-center justify-center shrink-0">
                     <Tv size={13} className="text-zinc-400 group-hover:text-netflix-red transition-colors" />
                   </span>
@@ -59,7 +59,7 @@ export const Footer: React.FC = () => {
                 </Link>
               </li>
               <li>
-                <Link href="/browse?type=phim-le" className="hover:text-white transition-colors flex items-center gap-2 group">
+                <Link href="/browse?type=phim-le" prefetch={false} className="hover:text-white transition-colors flex items-center gap-2 group">
                   <span className="w-4 h-4 flex items-center justify-center shrink-0">
                     <Film size={13} className="text-zinc-400 group-hover:text-netflix-red transition-colors" />
                   </span>
@@ -67,7 +67,7 @@ export const Footer: React.FC = () => {
                 </Link>
               </li>
               <li>
-                <Link href="/browse?type=phim-chieu-rap" className="hover:text-white transition-colors flex items-center gap-2 group">
+                <Link href="/browse?type=phim-chieu-rap" prefetch={false} className="hover:text-white transition-colors flex items-center gap-2 group">
                   <span className="w-4 h-4 flex items-center justify-center shrink-0">
                     <Clapperboard size={13} className="text-zinc-400 group-hover:text-netflix-red transition-colors" />
                   </span>
@@ -87,7 +87,7 @@ export const Footer: React.FC = () => {
             </h4>
             <ul className="space-y-2.5 text-xs text-zinc-300 font-normal">
               <li>
-                <Link href="/live?tab=football" className="hover:text-white transition-colors flex items-center gap-2 group">
+                <Link href="/live?tab=football" prefetch={false} className="hover:text-white transition-colors flex items-center gap-2 group">
                   <span className="w-4 h-4 flex items-center justify-center shrink-0">
                     <Flame size={13} className="text-zinc-400 group-hover:text-netflix-red transition-colors" />
                   </span>
@@ -95,7 +95,7 @@ export const Footer: React.FC = () => {
                 </Link>
               </li>
               <li>
-                <Link href="/live?tab=tv" className="hover:text-white transition-colors flex items-center gap-2 group">
+                <Link href="/live?tab=tv" prefetch={false} className="hover:text-white transition-colors flex items-center gap-2 group">
                   <span className="w-4 h-4 flex items-center justify-center shrink-0">
                     <Tv size={13} className="text-zinc-400 group-hover:text-netflix-red transition-colors" />
                   </span>
@@ -103,7 +103,7 @@ export const Footer: React.FC = () => {
                 </Link>
               </li>
               <li>
-                <Link href="/browse?type=tv-shows" className="hover:text-white transition-colors flex items-center gap-2 group">
+                <Link href="/browse?type=tv-shows" prefetch={false} className="hover:text-white transition-colors flex items-center gap-2 group">
                   <span className="w-4 h-4 flex items-center justify-center shrink-0">
                     <Radio size={13} className="text-zinc-400 group-hover:text-netflix-red transition-colors" />
                   </span>
@@ -111,7 +111,7 @@ export const Footer: React.FC = () => {
                 </Link>
               </li>
               <li>
-                <Link href="/browse?type=hoat-hinh" className="hover:text-white transition-colors flex items-center gap-2 group">
+                <Link href="/browse?type=hoat-hinh" prefetch={false} className="hover:text-white transition-colors flex items-center gap-2 group">
                   <span className="w-4 h-4 flex items-center justify-center shrink-0">
                     <Tv size={13} className="text-zinc-400 group-hover:text-netflix-red transition-colors" />
                   </span>
@@ -119,7 +119,7 @@ export const Footer: React.FC = () => {
                 </Link>
               </li>
               <li>
-                <Link href="/my-list" className="hover:text-white transition-colors flex items-center gap-2 group">
+                <Link href="/my-list" prefetch={false} className="hover:text-white transition-colors flex items-center gap-2 group">
                   <span className="w-4 h-4 flex items-center justify-center shrink-0">
                     <Bookmark size={13} className="text-zinc-400 group-hover:text-netflix-red transition-colors" />
                   </span>
@@ -127,7 +127,7 @@ export const Footer: React.FC = () => {
                 </Link>
               </li>
               <li>
-                <Link href="/my-list?tab=history" className="hover:text-white transition-colors flex items-center gap-2 group">
+                <Link href="/my-list?tab=history" prefetch={false} className="hover:text-white transition-colors flex items-center gap-2 group">
                   <span className="w-4 h-4 flex items-center justify-center shrink-0">
                     <History size={13} className="text-zinc-400 group-hover:text-netflix-red transition-colors" />
                   </span>
@@ -159,7 +159,7 @@ export const Footer: React.FC = () => {
                 </button>
               </li>
               <li>
-                <Link href="/collection" className="hover:text-white transition-colors flex items-center gap-2 group">
+                <Link href="/collection" prefetch={false} className="hover:text-white transition-colors flex items-center gap-2 group">
                   <span className="w-4 h-4 flex items-center justify-center shrink-0">
                     <Layers size={13} className="text-zinc-400 group-hover:text-amber-400 transition-colors" />
                   </span>
@@ -167,7 +167,7 @@ export const Footer: React.FC = () => {
                 </Link>
               </li>
               <li>
-                <Link href="/browse" className="hover:text-white transition-colors flex items-center gap-2 group">
+                <Link href="/browse" prefetch={false} className="hover:text-white transition-colors flex items-center gap-2 group">
                   <span className="w-4 h-4 flex items-center justify-center shrink-0">
                     <Compass size={13} className="text-zinc-400 group-hover:text-amber-400 transition-colors" />
                   </span>
@@ -175,7 +175,7 @@ export const Footer: React.FC = () => {
                 </Link>
               </li>
               <li>
-                <Link href="/browse?sort=view" className="hover:text-white transition-colors flex items-center gap-2 group">
+                <Link href="/browse?sort=view" prefetch={false} className="hover:text-white transition-colors flex items-center gap-2 group">
                   <span className="w-4 h-4 flex items-center justify-center shrink-0">
                     <Flame size={13} className="text-zinc-400 group-hover:text-amber-400 transition-colors" />
                   </span>
@@ -321,7 +321,7 @@ export const Footer: React.FC = () => {
         {/* ============================================================ */}
         <div className="border-t border-white/[0.08] pt-4 sm:pt-6 flex flex-col md:flex-row items-center justify-between gap-3 sm:gap-6 text-center sm:text-left">
           <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4">
-            <Link href="/" className="hover:opacity-90 transition inline-flex items-center">
+            <Link href="/" prefetch={false} className="hover:opacity-90 transition inline-flex items-center">
               <NanaflixBrandLogo />
             </Link>
             <span className="text-[11px] sm:text-xs text-zinc-500 sm:border-l sm:border-white/15 sm:pl-3 tracking-tight sm:tracking-normal">
@@ -333,6 +333,7 @@ export const Footer: React.FC = () => {
 
           <Link
             href="/about"
+            prefetch={false}
             className="inline-flex items-center gap-2.5 sm:gap-3 py-1 sm:px-4 sm:py-2.5 rounded-xl sm:rounded-2xl sm:bg-zinc-900/70 sm:hover:bg-zinc-900 transition-all duration-300 group cursor-pointer sm:shadow-lg mx-auto md:mx-0"
           >
             {/* Lá cờ Việt Nam */}

@@ -412,12 +412,15 @@ function ForYouPersonalizedRowInner({ fallbackMovies }: ForYouPersonalizedRowPro
 
     const watchedTitles = history.map((h) => h.title).filter(Boolean).slice(0, 20);
     const watchedSlugs = history.map((h) => h.slug).filter(Boolean);
+    // Không đưa phút xem dở vào hash để tránh làm hỏng cache recommendation mỗi khi người dùng xem thêm 1 phút phim
     const historyHash = historyItems
-      .slice(0, 6)
-      .map((h) => `${h.slug}:${Math.round((h.progressSeconds || 0) / 60)}`)
+      .slice(0, 8)
+      .map((h) => h.slug)
+      .filter(Boolean)
       .join("|");
     const currentFingerprint = `${user?.uid || "guest"}_${genresKey}_${historyHash}_seed${currentSeed}`;
 
+    if (typeof document !== "undefined" && document.hidden) return;
     if (!forceRefresh && inFlightRef.current) return;
     if (!forceRefresh && lastFingerprintRef.current === currentFingerprint && moviesRef.current.length >= 8) return;
 
@@ -500,7 +503,8 @@ function ForYouPersonalizedRowInner({ fallbackMovies }: ForYouPersonalizedRowPro
       setIsUpdating(false);
       inFlightRef.current = false;
     }
-  }, [genresKey, user?.uid, refreshCount, favoriteGenres]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [genresKey, user?.uid, refreshCount]);
 
   useEffect(() => {
     fetchRecommendations();

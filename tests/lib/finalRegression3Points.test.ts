@@ -186,12 +186,12 @@ describe("FINAL REGRESSION CHECK: Series Watch History & Resume Episode", () => 
       assert.equal(isEpisodeWatched(movieSlug, "tap-01"), true, "Phải có trong danh sách đã xem");
     });
 
-    it("3.3 Chuyển tập sớm (xem 30s / 1200s rồi chuyển tập) -> KHÔNG đánh dấu đã xem, lưu là xem dở", () => {
-      saveEpisodeProgress(movieSlug, "tap-03", 30, 1200);
+    it("3.3 Chuyển tập sớm (xem 90s / 1200s rồi chuyển tập) -> KHÔNG đánh dấu đã xem, lưu là xem dở", () => {
+      saveEpisodeProgress(movieSlug, "tap-03", 90, 1200);
 
       const prog = getMovieEpisodesProgress(movieSlug);
       assert.equal(prog["tap-03"].isCompleted, false);
-      assert.equal(prog["tap-03"].progressSeconds, 30);
+      assert.equal(prog["tap-03"].progressSeconds, 90);
       assert.equal(isEpisodeWatched(movieSlug, "tap-03"), false);
 
       const resolved = resolveNextResumeEpisode(movieSlug, dummyEpisodes, {
@@ -201,7 +201,7 @@ describe("FINAL REGRESSION CHECK: Series Watch History & Resume Episode", () => 
       });
       assert.equal(resolved?.caseType, "in_progress");
       assert.equal(resolved?.episode.slug, "tap-03");
-      assert.equal(resolved?.progressSeconds, 30);
+      assert.equal(resolved?.progressSeconds, 90);
     });
 
     it("3.4 Duration không hợp lệ (duration = 0, undefined, NaN, -1) -> TUYỆT ĐỐI KHÔNG đánh dấu đã xem sai", () => {
