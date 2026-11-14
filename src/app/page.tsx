@@ -78,6 +78,26 @@ interface ResolvedHeroCacheEntry {
 const resolvedHeroCache: { current: ResolvedHeroCacheEntry | null } = { current: null };
 const RESOLVED_HERO_CACHE_TTL_MS = 45 * 60 * 1000; // 45 phút (0ms tra cứu TMDB cho các lần ISR)
 
+function getCachedResolvedHero(): AnyMovie[] | null {
+  if (
+    resolvedHeroCache.current &&
+    resolvedHeroCache.current.expireAt > Date.now() &&
+    resolvedHeroCache.current.movies.length >= 3
+  ) {
+    return resolvedHeroCache.current.movies;
+  }
+  return null;
+}
+
+function setCachedResolvedHero(movies: AnyMovie[]) {
+  if (movies.length >= 3) {
+    resolvedHeroCache.current = {
+      movies,
+      expireAt: Date.now() + RESOLVED_HERO_CACHE_TTL_MS,
+    };
+  }
+}
+
 function getFeaturedMoviesWithCache(movies: AnyMovie[]): AnyMovie[] {
   const now = Date.now();
   if (featuredBannerCache.current && featuredBannerCache.current.expireAt > now) {
@@ -241,12 +261,9 @@ export default async function HomePage() {
 
   // Đảm bảo mọi phim trong Hero Banner đều ưu tiên backdrop R2 CDN sắc nét (0ms tra cứu tĩnh khi đã có cache)
   let heroMovies: AnyMovie[];
-  if (
-    resolvedHeroCache.current &&
-    resolvedHeroCache.current.expireAt > Date.now() &&
-    resolvedHeroCache.current.movies.length >= 3
-  ) {
-    heroMovies = resolvedHeroCache.current.movies;
+  const cachedHero = getCachedResolvedHero();
+  if (cachedHero) {
+    heroMovies = cachedHero;
   } else {
     heroMovies = await Promise.all(
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -293,12 +310,7 @@ export default async function HomePage() {
       })
     );
 
-    if (heroMovies.length >= 3) {
-      resolvedHeroCache.current = {
-        movies: heroMovies,
-        expireAt: Date.now() + RESOLVED_HERO_CACHE_TTL_MS,
-      };
-    }
+    setCachedResolvedHero(heroMovies);
   }
 
   return (
