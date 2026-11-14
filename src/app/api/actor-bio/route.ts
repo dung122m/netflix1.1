@@ -65,6 +65,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(cached, {
         headers: {
           "Cache-Control": "public, s-maxage=86400, stale-while-revalidate=43200",
+          "CDN-Cache-Control": "public, s-maxage=86400, stale-while-revalidate=43200",
+          "Vercel-CDN-Cache-Control": "public, s-maxage=86400, stale-while-revalidate=43200",
         },
       });
     }
@@ -183,6 +185,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(profile, {
       headers: {
         "Cache-Control": "public, s-maxage=86400, stale-while-revalidate=43200",
+        "CDN-Cache-Control": "public, s-maxage=86400, stale-while-revalidate=43200",
+        "Vercel-CDN-Cache-Control": "public, s-maxage=86400, stale-while-revalidate=43200",
       },
     });
   } catch (error) {

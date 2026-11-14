@@ -60,6 +60,12 @@ export async function GET(req: NextRequest) {
     return NextResponse.json(data, {
       headers: {
         "Cache-Control": isCacheable ? PUBLIC_EDGE_CACHE : PRIVATE_NO_STORE,
+        ...(isCacheable
+          ? {
+              "CDN-Cache-Control": PUBLIC_EDGE_CACHE,
+              "Vercel-CDN-Cache-Control": PUBLIC_EDGE_CACHE,
+            }
+          : {}),
         "X-Cache": cacheStatus,
       },
     });

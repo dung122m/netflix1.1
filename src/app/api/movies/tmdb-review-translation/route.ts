@@ -130,6 +130,8 @@ export async function POST(req: NextRequest) {
         {
           headers: {
             "Cache-Control": "public, s-maxage=2592000, stale-while-revalidate=86400",
+            "CDN-Cache-Control": "public, s-maxage=2592000, stale-while-revalidate=86400",
+            "Vercel-CDN-Cache-Control": "public, s-maxage=2592000, stale-while-revalidate=86400",
           },
         }
       );
@@ -160,6 +162,8 @@ export async function POST(req: NextRequest) {
       {
         headers: {
           "Cache-Control": "public, s-maxage=2592000, stale-while-revalidate=86400",
+          "CDN-Cache-Control": "public, s-maxage=2592000, stale-while-revalidate=86400",
+          "Vercel-CDN-Cache-Control": "public, s-maxage=2592000, stale-while-revalidate=86400",
         },
       }
     );
