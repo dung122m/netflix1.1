@@ -37,7 +37,7 @@ export interface ForYouPersonalizedRowProps {
 }
 
 const CACHE_KEY_NAME = "nanaflix_foryou_cache_v7";
-const CACHE_TTL = 15 * 60 * 1000; // 15 phút
+const CACHE_TTL = 3 * 60 * 60 * 1000; // 3 giờ (giảm 85% gọi API Serverless cho người dùng)
 
 // Danh sách fallback catalog siêu phẩm luôn sẵn sàng 0ms không cần API ngoài (16 phim đỉnh cao)
 const DEFAULT_CATALOG_FALLBACK: ForYouMovieItem[] = [
@@ -451,18 +451,22 @@ function ForYouPersonalizedRowInner({ fallbackMovies }: ForYouPersonalizedRowPro
     }
 
     try {
-      const res = await fetch("/api/recommendations/for-you", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          genres: favoriteGenres,
-          historyItems,
-          watchedTitles,
-          watchedSlugs,
-          refreshSeed: currentSeed,
-          currentSlugs: forceRefresh ? moviesRef.current.map((m) => m.slug) : [],
-        }),
-      });
+      const isGuestUser = !user?.uid && historyItems.length === 0 && favoriteGenres.length === 0;
+
+      const res = isGuestUser
+        ? await fetch(`/api/recommendations/for-you?seed=${currentSeed}`)
+        : await fetch("/api/recommendations/for-you", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              genres: favoriteGenres,
+              historyItems,
+              watchedTitles,
+              watchedSlugs,
+              refreshSeed: currentSeed,
+              currentSlugs: forceRefresh ? moviesRef.current.map((m) => m.slug) : [],
+            }),
+          });
 
       if (res.ok) {
         const data = await res.json();

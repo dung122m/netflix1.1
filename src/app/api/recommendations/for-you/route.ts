@@ -25,21 +25,30 @@ import {
 
 export type { MovieFormat, FormatPreference, WatchHistoryInputItem };
 
-export async function POST(req: NextRequest) {
-  try {
-    const rateLimit = await enforceRateLimit(req, RATE_LIMIT_PRESETS.RECOMMENDATIONS_IN_MEMORY);
-    if (!rateLimit.allowed) {
-      return buildRateLimitResponse(rateLimit);
-    }
+interface RecommendationInput {
+  genres?: string[];
+  historyItems?: WatchHistoryInputItem[];
+  watchedSlugs?: string[];
+  refreshSeed?: number;
+  currentSlugs?: string[];
+}
 
-    const body = await req.json().catch(() => null);
+interface RecommendationResult {
+  success: boolean;
+  context: string;
+  items: unknown[];
+  cached?: boolean;
+}
+
+async function generateForYouRecommendations(input: RecommendationInput): Promise<RecommendationResult> {
+  try {
     const {
       genres = [],
       historyItems = [],
       watchedSlugs = [],
       refreshSeed = 0,
       currentSlugs = [],
-    } = body || {};
+    } = input || {};
 
     const seed = Number(refreshSeed) || 0;
     const isRefresh = seed > 0;
@@ -72,11 +81,7 @@ export async function POST(req: NextRequest) {
     // 0. Thử lấy từ L1 In-Memory RAM Cache (0ms, 0 Redis calls, 0 CPU)
     const l1Cached = FOR_YOU_L1_CACHE.get(kvForYouKey);
     if (l1Cached && l1Cached.expireAt > Date.now()) {
-      return NextResponse.json(l1Cached.data, {
-        headers: {
-          "Cache-Control": "private, max-age=900",
-        },
-      });
+      return l1Cached.data as RecommendationResult;
     }
 
     // 1. Thử lấy từ L2 Redis Cache
@@ -99,11 +104,7 @@ export async function POST(req: NextRequest) {
           cached: true,
         };
         FOR_YOU_L1_CACHE.set(kvForYouKey, { data: payload, expireAt: Date.now() + L1_TTL_MS });
-        return NextResponse.json(payload, {
-          headers: {
-            "Cache-Control": "private, max-age=900",
-          },
-        });
+        return payload;
       }
     }
 
@@ -623,7 +624,7 @@ export async function POST(req: NextRequest) {
       ).catch(() => {});
     }
 
-    const finalPayload = {
+    const finalPayload: RecommendationResult = {
       success: true,
       context: matchContext,
       items: selectedFinalMovies,
@@ -631,13 +632,75 @@ export async function POST(req: NextRequest) {
     };
     FOR_YOU_L1_CACHE.set(kvForYouKey, { data: finalPayload, expireAt: Date.now() + L1_TTL_MS });
 
-    return NextResponse.json(finalPayload, {
+    return finalPayload;
+  } catch (err) {
+    console.error("[generateForYouRecommendations] Error:", err);
+    return { success: false, context: "Tuyển chọn chuẩn gu cho bạn", items: [] };
+  }
+}
+
+/**
+ * GET /api/recommendations/for-you?seed=0
+ * Dành cho Guest/Khách: CDN Edge Cache 1 giờ, 0ms latency, 0 Serverless CPU
+ */
+export async function GET(req: NextRequest) {
+  try {
+    const rateLimit = await enforceRateLimit(req, RATE_LIMIT_PRESETS.PUBLIC_IN_MEMORY_READ);
+    if (!rateLimit.allowed) {
+      return buildRateLimitResponse(rateLimit);
+    }
+
+    const { searchParams } = new URL(req.url);
+    const seed = Number(searchParams.get("seed")) || 0;
+
+    const result = await generateForYouRecommendations({
+      genres: [],
+      historyItems: [],
+      watchedSlugs: [],
+      refreshSeed: seed,
+      currentSlugs: [],
+    });
+
+    return NextResponse.json(result, {
       headers: {
-        "Cache-Control": "private, max-age=900",
+        "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=7200",
+        "CDN-Cache-Control": "public, s-maxage=3600, stale-while-revalidate=7200",
+        "Vercel-CDN-Cache-Control": "public, s-maxage=3600, stale-while-revalidate=7200",
       },
     });
   } catch (err) {
-    console.error("[for-you recommendations] Error:", err);
+    console.error("[for-you recommendations GET] Error:", err);
+    return NextResponse.json({ success: false, items: [] }, { status: 500 });
+  }
+}
+
+/**
+ * POST /api/recommendations/for-you
+ * Dành cho người dùng đã đăng nhập hoặc có lịch sử xem cá nhân
+ */
+export async function POST(req: NextRequest) {
+  try {
+    const rateLimit = await enforceRateLimit(req, RATE_LIMIT_PRESETS.RECOMMENDATIONS_IN_MEMORY);
+    if (!rateLimit.allowed) {
+      return buildRateLimitResponse(rateLimit);
+    }
+
+    const body = (await req.json().catch(() => null)) || {};
+    const result = await generateForYouRecommendations(body);
+
+    const isGuest =
+      (!body.historyItems || body.historyItems.length === 0) &&
+      (!body.genres || body.genres.length === 0);
+
+    return NextResponse.json(result, {
+      headers: {
+        "Cache-Control": isGuest
+          ? "public, s-maxage=1800, stale-while-revalidate=3600"
+          : "private, max-age=900",
+      },
+    });
+  } catch (err) {
+    console.error("[for-you recommendations POST] Error:", err);
     return NextResponse.json({ success: false, items: [] }, { status: 500 });
   }
 }

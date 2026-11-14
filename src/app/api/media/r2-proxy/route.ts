@@ -59,13 +59,23 @@ export async function GET(req: NextRequest) {
   const targetUrl = searchParams.get("url")?.trim();
 
   if (!targetUrl) {
-    return NextResponse.redirect(new URL("/default-poster.jpg", req.url), 307);
+    return NextResponse.redirect(new URL("/default-poster.jpg", req.url), {
+      status: 308,
+      headers: {
+        "Cache-Control": "public, max-age=86400, s-maxage=86400",
+      },
+    });
   }
 
   const r2Key = sanitizeR2Key(targetUrl);
   if (!r2Key) {
     // Domain không nằm trong danh sách cho phép -> chuyển hướng về ảnh gốc
-    return NextResponse.redirect(targetUrl, 302);
+    return NextResponse.redirect(targetUrl, {
+      status: 308,
+      headers: {
+        "Cache-Control": "public, max-age=604800, s-maxage=604800",
+      },
+    });
   }
 
   // 1. Kiểm tra xem ảnh này đã được cache trên Cloudflare R2 chưa (ưu tiên RAM L1 cache trước khi gọi S3 HeadObject)
@@ -82,7 +92,7 @@ export async function GET(req: NextRequest) {
     if (exists) {
       const publicR2Url = getR2PublicUrl(r2Key);
       return NextResponse.redirect(publicR2Url, {
-        status: 307,
+        status: 308,
         headers: {
           "Cache-Control": "public, max-age=31536000, s-maxage=31536000, immutable",
           "CDN-Cache-Control": "public, max-age=31536000, immutable",
@@ -110,8 +120,11 @@ export async function GET(req: NextRequest) {
     clearTimeout(timeoutId);
 
     if (!upstreamRes.ok) {
-      // Nguồn ngoài 404 hoặc lỗi -> fallback về default poster
-      return NextResponse.redirect(new URL("/default-poster.jpg", req.url), 307);
+      // Nguồn ngoài 404 hoặc lỗi -> fallback về default poster (cache 1h)
+      return NextResponse.redirect(new URL("/default-poster.jpg", req.url), {
+        status: 308,
+        headers: { "Cache-Control": "public, max-age=3600, s-maxage=3600" },
+      });
     }
 
     const contentType = upstreamRes.headers.get("content-type") || "image/jpeg";
@@ -147,7 +160,10 @@ export async function GET(req: NextRequest) {
     });
   } catch {
     clearTimeout(timeoutId);
-    // Timeout hoặc mạng nhà mạng chặn -> trả về default poster an toàn
-    return NextResponse.redirect(new URL("/default-poster.jpg", req.url), 307);
+    // Timeout hoặc mạng nhà mạng chặn -> trả về default poster an toàn (cache 1h)
+    return NextResponse.redirect(new URL("/default-poster.jpg", req.url), {
+      status: 308,
+      headers: { "Cache-Control": "public, max-age=3600, s-maxage=3600" },
+    });
   }
 }

@@ -37,8 +37,8 @@ export const metadata: Metadata = {
   },
 };
 
-// Cache Edge CDN 30 giây để người dùng lướt trang không kích hoạt serverless function liên tục
-export const revalidate = 30;
+// Cache Edge CDN 3 phút trên SSR (client useLiveScoresRealtime đã tự động cập nhật tỉ số theo thời gian thực)
+export const revalidate = 180;
 export const runtime = "nodejs";
 
 // Server streaming component: Shell (Navbar, Skeleton, Footer) được flush ngay lập tức về browser

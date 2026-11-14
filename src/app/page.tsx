@@ -11,7 +11,7 @@ import { CommunityTopTrending } from "@/components/movies/CommunityTopTrending";
 import { ForYouPersonalizedRow } from "@/components/movies/ForYouPersonalizedRow";
 import { getR2BannerUrl } from "@/lib/r2";
 
-export const revalidate = 600; // ISR 10 phút cho trang chủ landing page
+export const revalidate = 1800; // ISR 30 phút cho trang chủ landing page (giảm tải CPU Vercel 3x)
 
 // ==========================================
 // METADATA
@@ -70,6 +70,13 @@ interface FeaturedCacheEntry {
 }
 const featuredBannerCache: { current: FeaturedCacheEntry | null } = { current: null };
 const FEATURED_CACHE_TTL_MS = 20 * 60 * 1000; // 20 phút
+
+interface ResolvedHeroCacheEntry {
+  movies: AnyMovie[];
+  expireAt: number;
+}
+const resolvedHeroCache: { current: ResolvedHeroCacheEntry | null } = { current: null };
+const RESOLVED_HERO_CACHE_TTL_MS = 45 * 60 * 1000; // 45 phút (0ms tra cứu TMDB cho các lần ISR)
 
 function getFeaturedMoviesWithCache(movies: AnyMovie[]): AnyMovie[] {
   const now = Date.now();
@@ -232,51 +239,67 @@ export default async function HomePage() {
       ? validTrendingMovies.slice(0, 8)
       : getFeaturedMoviesWithCache(movies);
 
-  // Đảm bảo mọi phim trong Hero Banner đều ưu tiên backdrop R2 CDN sắc nét (0ms tra cứu tĩnh)
-  const heroMovies = await Promise.all(
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    rawHeroMovies.map(async (movie: any) => {
-      const slug = (movie?.slug || "").toLowerCase().trim();
-      const r2Banner = getR2BannerUrl(slug, movie?.backdrop_url || movie?.thumb_url);
+  // Đảm bảo mọi phim trong Hero Banner đều ưu tiên backdrop R2 CDN sắc nét (0ms tra cứu tĩnh khi đã có cache)
+  let heroMovies: AnyMovie[];
+  if (
+    resolvedHeroCache.current &&
+    resolvedHeroCache.current.expireAt > Date.now() &&
+    resolvedHeroCache.current.movies.length >= 3
+  ) {
+    heroMovies = resolvedHeroCache.current.movies;
+  } else {
+    heroMovies = await Promise.all(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      rawHeroMovies.map(async (movie: any) => {
+        const slug = (movie?.slug || "").toLowerCase().trim();
+        const r2Banner = getR2BannerUrl(slug, movie?.backdrop_url || movie?.thumb_url);
 
-      if (r2Banner) {
-        return {
-          ...movie,
-          backdrop_url: r2Banner,
-          thumb_url: r2Banner,
-        };
-      }
+        if (r2Banner) {
+          return {
+            ...movie,
+            backdrop_url: r2Banner,
+            thumb_url: r2Banner,
+          };
+        }
 
-      if (movie?.backdrop_url) {
-        return movie;
-      }
+        if (movie?.backdrop_url) {
+          return movie;
+        }
 
-      if (movie?.tmdb?.id) {
-        try {
-          const tmdbBackdrop = await Promise.race([
-            getTmdbBackdropUrl(movie.tmdb.id, movie.tmdb.type),
-            new Promise<null>((resolve) => setTimeout(() => resolve(null), 1500)),
-          ]);
-          if (tmdbBackdrop) {
-            const tmdbR2 = getR2BannerUrl(slug, tmdbBackdrop);
-            if (tmdbR2) {
+        if (movie?.tmdb?.id) {
+          try {
+            const tmdbBackdrop = await Promise.race([
+              getTmdbBackdropUrl(movie.tmdb.id, movie.tmdb.type),
+              new Promise<null>((resolve) => setTimeout(() => resolve(null), 1500)),
+            ]);
+            if (tmdbBackdrop) {
+              const tmdbR2 = getR2BannerUrl(slug, tmdbBackdrop);
+              if (tmdbR2) {
+                return {
+                  ...movie,
+                  backdrop_url: tmdbR2,
+                  thumb_url: tmdbR2,
+                };
+              }
               return {
                 ...movie,
-                backdrop_url: tmdbR2,
-                thumb_url: tmdbR2,
+                backdrop_url: tmdbBackdrop,
+                thumb_url: tmdbBackdrop,
               };
             }
-            return {
-              ...movie,
-              backdrop_url: tmdbBackdrop,
-              thumb_url: tmdbBackdrop,
-            };
-          }
-        } catch {}
-      }
-      return movie;
-    })
-  );
+          } catch {}
+        }
+        return movie;
+      })
+    );
+
+    if (heroMovies.length >= 3) {
+      resolvedHeroCache.current = {
+        movies: heroMovies,
+        expireAt: Date.now() + RESOLVED_HERO_CACHE_TTL_MS,
+      };
+    }
+  }
 
   return (
     <div className="page-cinema-container min-h-dvh pb-0 w-full max-w-full overflow-x-clip">

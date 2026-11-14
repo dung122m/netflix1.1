@@ -8,10 +8,10 @@ import {
 
 export const maxDuration = 10;
 
-// In-memory cache trên server (60 giây để chống bão request và phản hồi 0ms)
+// In-memory cache trên server (5 phút để chống bão request và phản hồi 0ms)
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const SERVER_CACHE = new Map<string, { data: any; expireAt: number }>();
-const CACHE_TTL = 60 * 1000;
+const CACHE_TTL = 5 * 60 * 1000;
 
 export function invalidateTrendingCache(): void {
   // Chỉ xóa cache RAM cục bộ, không gửi hàng loạt lệnh Redis DEL khi có lượt xem phim
@@ -29,9 +29,9 @@ export async function GET(req: NextRequest) {
   const cacheKey = `trending:${timeframe}:${limit}`;
 
   const edgeHeaders = {
-    "Cache-Control": "public, s-maxage=60, stale-while-revalidate=120",
-    "CDN-Cache-Control": "public, s-maxage=60, stale-while-revalidate=120",
-    "Vercel-CDN-Cache-Control": "public, s-maxage=60, stale-while-revalidate=120",
+    "Cache-Control": "public, s-maxage=600, stale-while-revalidate=1800",
+    "CDN-Cache-Control": "public, s-maxage=600, stale-while-revalidate=1800",
+    "Vercel-CDN-Cache-Control": "public, s-maxage=600, stale-while-revalidate=1800",
   };
 
   // 1. Kiểm tra bộ nhớ cache trên RAM server (phản hồi tức thì ~1ms)
