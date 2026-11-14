@@ -541,14 +541,24 @@ export function useLiveFootballFilters({
   const liveMatchesList = useMemo(() => {
     return filteredMatches
       .filter((m) => m.realStatus === "live")
-      .sort((a, b) => (b.isFeatured ? 1 : 0) - (a.isFeatured ? 1 : 0));
-  }, [filteredMatches]);
+      .sort((a, b) => {
+        const tsA = (scoresMap[a.id] || a.score)?.kickoffTimestamp || a.timestamp || 0;
+        const tsB = (scoresMap[b.id] || b.score)?.kickoffTimestamp || b.timestamp || 0;
+        if (tsA !== tsB) return tsA - tsB;
+        return (b.isFeatured ? 1 : 0) - (a.isFeatured ? 1 : 0);
+      });
+  }, [filteredMatches, scoresMap]);
 
   const upcomingMatchesList = useMemo(() => {
     return filteredMatches
       .filter((m) => m.realStatus === "upcoming")
-      .sort((a, b) => (b.isFeatured ? 1 : 0) - (a.isFeatured ? 1 : 0));
-  }, [filteredMatches]);
+      .sort((a, b) => {
+        const tsA = (scoresMap[a.id] || a.score)?.kickoffTimestamp || a.timestamp || 0;
+        const tsB = (scoresMap[b.id] || b.score)?.kickoffTimestamp || b.timestamp || 0;
+        if (tsA !== tsB) return tsA - tsB;
+        return (b.isFeatured ? 1 : 0) - (a.isFeatured ? 1 : 0);
+      });
+  }, [filteredMatches, scoresMap]);
 
   const handleStatusChange = useCallback(
     (status: MatchStatusFilter) => {
