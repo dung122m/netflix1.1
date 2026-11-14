@@ -196,24 +196,65 @@ const resolveActorProfile = cache(async (slug: string): Promise<ResolvedActorPro
   ).filter(Boolean);
 
   // 2. Tra cứu chi tiết diễn viên từ TMDb Person API theo ID hoặc Search có ngưỡng khớp chặt chẽ
-  let tmdbDetail = null;
+  let tmdbDetail: Awaited<ReturnType<typeof getTmdbPersonDetail>> | null = null;
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const isDetailMatchingExpectedArtist = (detail: any) => {
+    if (!detail?.name) return false;
+    const normDetailName = normalizeForMatch(detail.name);
+    const candidateNames = [
+      canonicalName,
+      historicalItem?.name,
+      historicalItem?.englishName,
+      actorSynonyms?.canonicalName,
+      actorSynonyms?.englishName,
+      rawName,
+      ...actorAliases,
+    ]
+      .filter((n): n is string => Boolean(n))
+      .map(normalizeForMatch);
+
+    if (candidateNames.some((c) => c === normDetailName || c.includes(normDetailName) || normDetailName.includes(c))) {
+      return true;
+    }
+
+    if (Array.isArray(detail.also_known_as)) {
+      const akaList = detail.also_known_as.map((a: string) => normalizeForMatch(a));
+      if (candidateNames.some((c) => akaList.some((aka: string) => aka === c || aka.includes(c) || c.includes(aka)))) {
+        return true;
+      }
+    }
+    return false;
+  };
+
   if (tmdbPersonId) {
     try {
-      tmdbDetail = await getTmdbPersonDetail(tmdbPersonId);
-      if (tmdbDetail?.name) {
-        canonicalName = tmdbDetail.name;
+      const detailCandidate = await getTmdbPersonDetail(tmdbPersonId);
+      if (detailCandidate && isDetailMatchingExpectedArtist(detailCandidate)) {
+        tmdbDetail = detailCandidate;
+        if (!historicalItem?.name && !actorSynonyms?.canonicalName && detailCandidate.name) {
+          canonicalName = detailCandidate.name;
+        }
+      } else {
+        // ID bị sai lệch hoặc không khớp người thật -> vô hiệu hóa ID để tìm kiếm lại theo tên chuẩn
+        tmdbPersonId = undefined;
       }
     } catch {
       // Ignored
     }
-  } else if (canonicalName) {
+  }
+
+  if (!tmdbDetail && canonicalName) {
     try {
       const matchedPerson = await searchTmdbPerson(canonicalName, canonicalName, actorAliases);
       if (matchedPerson?.id) {
         tmdbPersonId = matchedPerson.id;
-        tmdbDetail = await getTmdbPersonDetail(matchedPerson.id);
-        if (tmdbDetail?.name) {
-          canonicalName = tmdbDetail.name;
+        const detailCandidate = await getTmdbPersonDetail(matchedPerson.id);
+        if (detailCandidate) {
+          tmdbDetail = detailCandidate;
+          if (!historicalItem?.name && !actorSynonyms?.canonicalName && detailCandidate.name) {
+            canonicalName = detailCandidate.name;
+          }
         }
       }
     } catch {
