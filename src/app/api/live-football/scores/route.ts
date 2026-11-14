@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { footballScoreService } from "@/services/live/football-score/service";
 import { buildScoresMap } from "@/services/live/football-score/matcher";
+import { isVerifiedScoreboardMatch } from "@/services/live/football-score/canonicalLeagues";
 import { liveFootballService } from "@/services/liveFootballService";
 import {
   enforceRateLimit,
@@ -49,21 +50,48 @@ export async function GET(req: NextRequest) {
   }
 
   try {
+    // 1. Kiểm tra nhanh danh sách trận đấu hôm nay từ bộ nhớ RAM (0ms)
+    let footballData = liveFootballService.getCachedFootballMatchesSync();
+    if (!footballData?.matches || footballData.matches.length === 0) {
+      footballData = await liveFootballService.getFootballMatches();
+    }
+
+    const matches = footballData?.matches || [];
+    const hasAnyVerifiedMatch = matches.some((m) => isVerifiedScoreboardMatch(m));
+
+    // Nếu toàn bộ danh sách trận hôm nay KHÔNG CÓ trận nào thuộc 16 giải đấu lớn (chỉ có bóng rổ, tennis, giải phong trào...)
+    // Hoàn toàn không cần gọi ESPN CDN 16 giải -> trả ngay scores rỗng, cache CDN 5 phút (0ms CPU)
+    if (!hasAnyVerifiedMatch) {
+      const responseData = {
+        scores: {},
+        eventsCount: 0,
+        updatedAt: new Date().toISOString(),
+        cached: true,
+      };
+      lastScoresCache = {
+        data: responseData,
+        hasLive: false,
+        expireAt: now + 90_000,
+      };
+      const idleCacheControl = "public, max-age=60, s-maxage=300, stale-while-revalidate=600";
+      return NextResponse.json(
+        { status: true, data: responseData },
+        {
+          headers: {
+            "Cache-Control": idleCacheControl,
+            "CDN-Cache-Control": idleCacheControl,
+            "Vercel-CDN-Cache-Control": idleCacheControl,
+          },
+        }
+      );
+    }
+
     const { events, updatedAt, cached } =
       await footballScoreService.getScoreboardEvents();
 
     let scores = {};
-    try {
-      // Ưu tiên đọc từ RAM cache đồng bộ của liveFootballService (0ms, 0 Redis commands)
-      let footballData = liveFootballService.getCachedFootballMatchesSync();
-      if (!footballData?.matches || footballData.matches.length === 0) {
-        footballData = await liveFootballService.getFootballMatches();
-      }
-      if (footballData?.matches && footballData.matches.length > 0) {
-        scores = buildScoresMap(footballData.matches, events);
-      }
-    } catch {
-      // Giữ scores rỗng nếu liveFootballService gặp lỗi, không làm hỏng phản hồi
+    if (matches.length > 0) {
+      scores = buildScoresMap(matches, events);
     }
 
     const hasLive = events.some((e) => e.status === "live");

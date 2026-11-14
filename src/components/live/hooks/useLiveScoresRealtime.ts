@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useMemo } from "react";
 import type { FootballMatch } from "@/services/live/football/service";
 import type { LiveMatchScore } from "@/services/live/football-score/types";
 import { shouldRefreshOnTabFocus } from "@/services/live/football-score/matchCenterRealtime";
+import { isVerifiedScoreboardMatch } from "@/services/live/football-score/canonicalLeagues";
 
 export interface UseLiveScoresRealtimeOptions {
   initialMatches: FootballMatch[];
@@ -129,12 +130,54 @@ export function useLiveScoresRealtime({
     },
   );
 
-  const hasLiveMatches = useMemo(() => {
-    return (
-      liveMatches.some((m) => m.timeline === "live") ||
-      Object.values(scoresMap).some((s) => s.status === "live")
-    );
-  }, [liveMatches, scoresMap]);
+  // Đồng hồ cập nhật sau mount phục vụ phân loại cửa sổ thời gian trước kickoff
+  const [now, setNow] = useState<number>(0);
+  useEffect(() => {
+    if (!isActive) return;
+    setNow(Date.now());
+    const timer = setInterval(() => {
+      setNow(Date.now());
+    }, 60_000);
+    return () => clearInterval(timer);
+  }, [isActive]);
+
+  // Kiểm tra xem danh sách trận đấu hôm nay có bất kỳ trận nào thuộc 16 giải đấu lớn có tỷ số ESPN hay không
+  const hasScoreboardMatchesToday = useMemo(() => {
+    return liveMatches.some((m) => isVerifiedScoreboardMatch(m));
+  }, [liveMatches]);
+
+  // Kiểm tra xem hiện tại có trận giải lớn nào đang LIVE hoặc trong khung giờ thi đấu (10m trước kickoff -> 2.5h sau kickoff)
+  const hasActiveScoreboardMatches = useMemo(() => {
+    if (Object.values(scoresMap).some((s) => s.status === "live")) {
+      return true;
+    }
+
+    const currentTs = now > 0 ? now : Date.now();
+
+    return liveMatches.some((m) => {
+      if (!isVerifiedScoreboardMatch(m)) return false;
+
+      // 1. Luồng stream đã gắn mác Live
+      if (m.timeline === "live") return true;
+
+      // 2. Điểm số có trạng thái Live
+      const score = scoresMap[m.id] || m.score;
+      if (score?.status === "live") return true;
+
+      // 3. Khung giờ bóng lăn: từ 10 phút trước kickoff tới 2.5 tiếng sau kickoff
+      if (m.timestamp && m.timestamp > 0 && m.timestamp !== Number.MAX_SAFE_INTEGER) {
+        const diffMs = m.timestamp - currentTs;
+        if (diffMs <= 10 * 60 * 1000 && diffMs >= -2.5 * 60 * 60 * 1000) {
+          if (score?.status === "finished" || m.timeline === "finished") {
+            return false;
+          }
+          return true;
+        }
+      }
+
+      return false;
+    });
+  }, [liveMatches, scoresMap, now]);
 
   const isScoresFetchingRef = useRef(false);
   const wasActiveScoresRef = useRef(isActive);
@@ -179,28 +222,41 @@ export function useLiveScoresRealtime({
       }
     };
 
-    // Khi có trận Live: cập nhật 30s. Khi KHÔNG có trận Live: ngủ đông thông minh 5 phút (300,000ms) vì tỉ số trận chưa đá/đã xong là cố định
-    const pollIntervalMs = hasLiveMatches ? 30_000 : 300_000;
+    // Khi có trận giải lớn đang Live: cập nhật 30s.
+    // Khi hôm nay có trận giải lớn nhưng CHƯA ĐÁ / ĐÃ XONG: ngủ đông thông minh 5 phút (300,000ms).
+    // Khi hôm nay HOÀN TOÀN KHÔNG CÓ trận giải lớn nào (chỉ có tennis, bóng rổ, giải phong trào...): TẮT HẲN polling (null) để tiết kiệm 100% tài nguyên!
+    const pollIntervalMs = hasActiveScoreboardMatches
+      ? 30_000
+      : hasScoreboardMatchesToday
+        ? 300_000
+        : null;
+
     const isReturningFromInactive = !wasActiveScoresRef.current;
     wasActiveScoresRef.current = true;
 
-    if (isReturningFromInactive) {
+    // Chỉ fetch ngay khi vào/quay lại tab nếu hôm nay thực sự có trận thuộc các giải lớn
+    if (isReturningFromInactive && hasScoreboardMatchesToday) {
       fetchScores();
     } else if (lastFetchedScoresTimeRef.current === 0) {
       lastFetchedScoresTimeRef.current = Date.now();
     }
 
-    const interval = setInterval(() => {
-      if (typeof document !== "undefined" && document.hidden) return;
-      fetchScores();
-    }, pollIntervalMs);
+    let interval: NodeJS.Timeout | null = null;
+    if (pollIntervalMs !== null) {
+      interval = setInterval(() => {
+        if (typeof document !== "undefined" && document.hidden) return;
+        fetchScores();
+      }, pollIntervalMs);
+    }
 
     const handleVisibilityChange = () => {
       if (typeof document !== "undefined" && !document.hidden) {
+        if (!hasScoreboardMatchesToday) return;
+        const cooldown = hasActiveScoreboardMatches ? 10_000 : 300_000;
         if (
           shouldRefreshOnTabFocus(
             lastFetchedScoresTimeRef.current,
-            10_000,
+            cooldown,
           )
         ) {
           fetchScores();
@@ -215,23 +271,12 @@ export function useLiveScoresRealtime({
     return () => {
       isEffectActive = false;
       abortController.abort();
-      clearInterval(interval);
+      if (interval) clearInterval(interval);
       if (typeof document !== "undefined") {
         document.removeEventListener("visibilitychange", handleVisibilityChange);
       }
     };
-  }, [isActive, hasLiveMatches]);
-
-  // Đồng hồ cập nhật sau mount phục vụ phân loại cửa sổ thời gian trước kickoff
-  const [now, setNow] = useState<number>(0);
-  useEffect(() => {
-    if (!isActive) return;
-    setNow(Date.now());
-    const timer = setInterval(() => {
-      setNow(Date.now());
-    }, 60_000);
-    return () => clearInterval(timer);
-  }, [isActive]);
+  }, [isActive, hasActiveScoreboardMatches, hasScoreboardMatchesToday]);
 
   return {
     liveMatches,

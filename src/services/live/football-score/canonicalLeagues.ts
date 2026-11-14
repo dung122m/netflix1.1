@@ -24,6 +24,49 @@ export const LEAGUE_CANONICAL_MAP: Record<string, string> = {
 };
 
 /**
+ * Danh sách tên giải đấu chuẩn hóa (Tiếng Việt) có hỗ trợ Live Scoreboard từ ESPN
+ */
+export const VERIFIED_SCOREBOARD_TOURNAMENT_NAMES = new Set<string>(
+  Object.values(LEAGUE_CANONICAL_MAP)
+);
+
+/**
+ * Kiểm tra xem một trận đấu có thuộc các giải đấu lớn được hỗ trợ hiển thị tỷ số trực tiếp (ESPN) hay không.
+ * Nếu trận đấu là bộ môn khác (bóng rổ, tennis...) hoặc là giải cỏ / giải phong trào không có dữ liệu ESPN: trả về false.
+ */
+export function isVerifiedScoreboardMatch(match: {
+  tournament?: string;
+  sport?: string;
+  isEvent?: boolean;
+  score?: { leagueSlug?: string; status?: string } | null;
+  title?: string;
+  team1?: string;
+  team2?: string;
+  category?: string;
+  gender?: string;
+}): boolean {
+  if (match.isEvent) return false;
+  if (match.sport && match.sport !== "football") return false;
+  if (match.score?.leagueSlug && match.score.leagueSlug in LEAGUE_CANONICAL_MAP) {
+    return true;
+  }
+  if (match.tournament && VERIFIED_SCOREBOARD_TOURNAMENT_NAMES.has(match.tournament)) {
+    return true;
+  }
+  const canonical = resolveCanonicalTournament({
+    tournament: match.tournament,
+    title: match.title,
+    sport: match.sport,
+    team1: match.team1,
+    team2: match.team2,
+    category: match.category,
+    gender: match.gender,
+    score: match.score as LiveMatchScore | null,
+  });
+  return VERIFIED_SCOREBOARD_TOURNAMENT_NAMES.has(canonical);
+}
+
+/**
  * Danh sách các pattern từ khóa giải đấu trong tiêu đề trận đấu hoặc tên giải thô
  */
 const TITLE_TOURNAMENT_PATTERNS: Array<{ regex: RegExp; name: string; sport?: "football" | "basketball" }> = [

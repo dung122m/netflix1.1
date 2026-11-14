@@ -8,7 +8,12 @@ import {
 } from "@/services/live/football-score/matcher";
 import { LiveScoreboardEvent, LiveMatchScore } from "@/services/live/football-score/types";
 import { footballScoreService, VERIFIED_SCOREBOARD_LEAGUES } from "@/services/live/football-score/service";
-import { resolveCanonicalTournament, LEAGUE_CANONICAL_MAP } from "@/services/live/football-score/canonicalLeagues";
+import {
+  resolveCanonicalTournament,
+  LEAGUE_CANONICAL_MAP,
+  isVerifiedScoreboardMatch,
+  VERIFIED_SCOREBOARD_TOURNAMENT_NAMES,
+} from "@/services/live/football-score/canonicalLeagues";
 import { resolveMatchDisplayStatus, formatKickoffTime } from "@/services/live/football-score/liveStatus";
 import { normalizeAndMergeStreams, RawStreamItem } from "@/services/live/football/service";
 
@@ -935,6 +940,87 @@ describe("LiveScore Football Matcher & Enrichment Test Suite", () => {
         sport: "volleyball",
       }),
       "Bóng Chuyền",
+    );
+  });
+
+  it("43. isVerifiedScoreboardMatch phân biệt chính xác 16 giải đấu lớn vs giải phụ / môn khác", () => {
+    // 16 giải đấu lớn chính thức
+    assert.strictEqual(
+      isVerifiedScoreboardMatch({ tournament: "Ngoại Hạng Anh", sport: "football" }),
+      true,
+    );
+    assert.strictEqual(
+      isVerifiedScoreboardMatch({ tournament: "La Liga", sport: "football" }),
+      true,
+    );
+    assert.strictEqual(
+      isVerifiedScoreboardMatch({ tournament: "UEFA Champions League", sport: "football" }),
+      true,
+    );
+    assert.strictEqual(
+      isVerifiedScoreboardMatch({ tournament: "Serie A", sport: "football" }),
+      true,
+    );
+    assert.strictEqual(
+      isVerifiedScoreboardMatch({ tournament: "Bundesliga", sport: "football" }),
+      true,
+    );
+    assert.strictEqual(
+      isVerifiedScoreboardMatch({ tournament: "Ligue 1", sport: "football" }),
+      true,
+    );
+    assert.strictEqual(
+      isVerifiedScoreboardMatch({ tournament: "Saudi Pro League", sport: "football" }),
+      true,
+    );
+    assert.strictEqual(
+      isVerifiedScoreboardMatch({ tournament: "Major League Soccer", sport: "football" }),
+      true,
+    );
+
+    // Ghép qua tiêu đề
+    assert.strictEqual(
+      isVerifiedScoreboardMatch({
+        title: "Trực tiếp Ngoại Hạng Anh: Arsenal vs Chelsea",
+        sport: "football",
+      }),
+      true,
+    );
+
+    // Ghép qua score.leagueSlug
+    assert.strictEqual(
+      isVerifiedScoreboardMatch({
+        tournament: "Giải Đấu Khác",
+        sport: "football",
+        score: { leagueSlug: "eng.1", status: "live" },
+      }),
+      true,
+    );
+
+    // Các bộ môn khác hoặc giải đấu không có trên ESPN Scoreboard
+    assert.strictEqual(
+      isVerifiedScoreboardMatch({ tournament: "Quần Vợt", sport: "tennis" }),
+      false,
+    );
+    assert.strictEqual(
+      isVerifiedScoreboardMatch({ tournament: "Bóng Rổ", sport: "basketball" }),
+      false,
+    );
+    assert.strictEqual(
+      isVerifiedScoreboardMatch({ tournament: "Giải Bóng Rổ VBA", sport: "basketball" }),
+      false,
+    );
+    assert.strictEqual(
+      isVerifiedScoreboardMatch({ tournament: "V-League", sport: "football" }),
+      false,
+    );
+    assert.strictEqual(
+      isVerifiedScoreboardMatch({ tournament: "Giải Đấu Khác", sport: "football" }),
+      false,
+    );
+    assert.strictEqual(
+      isVerifiedScoreboardMatch({ isEvent: true, title: "Kênh thể thao 24/7" }),
+      false,
     );
   });
 });
