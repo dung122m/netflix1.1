@@ -431,8 +431,14 @@ export function slimActorMovieItem(m: any): any {
           id: m.tmdb.id,
           vote_average: m.tmdb.vote_average,
           vote_count: m.tmdb.vote_count,
+          popularity: m.tmdb.popularity,
         }
       : undefined,
+    vote_average: m.vote_average ?? m.tmdb?.vote_average ?? 0,
+    vote_count: m.vote_count ?? m.tmdb?.vote_count ?? 0,
+    popularity: m.popularity ?? m.tmdb?.popularity ?? 0,
+    view: m.view ?? m.views ?? m.tmdb?.vote_count ?? Math.round((m.tmdb?.popularity || 0) * 100) ?? 0,
+    modified: m.modified,
     isActorFilmography: true,
     matchBy: m.matchBy,
   };

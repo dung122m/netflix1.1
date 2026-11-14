@@ -21,6 +21,7 @@ export interface SortDropdownProps<T extends string = string> {
   menuAlign?: "left" | "right";
   size?: "sm" | "md";
   isPending?: boolean;
+  onOpenChange?: (isOpen: boolean) => void;
 }
 
 export function SortDropdown<T extends string = string>({
@@ -33,6 +34,7 @@ export function SortDropdown<T extends string = string>({
   menuAlign = "right",
   size = "sm",
   isPending = false,
+  onOpenChange,
 }: SortDropdownProps<T>) {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -40,19 +42,30 @@ export function SortDropdown<T extends string = string>({
   const selectedOption = options.find((opt) => opt.value === value) || options[0];
   const isCustomSort = Boolean(value && value !== "latest" && value !== options[0]?.value);
 
+  const updateIsOpen = useCallback(
+    (next: boolean | ((prev: boolean) => boolean)) => {
+      setIsOpen((prev) => {
+        const val = typeof next === "function" ? next(prev) : next;
+        onOpenChange?.(val);
+        return val;
+      });
+    },
+    [onOpenChange]
+  );
+
   // Đóng dropdown khi click ra ngoài hoặc bấm Escape
   useEffect(() => {
     if (!isOpen) return;
 
     const handleClickOutside = (event: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
+        updateIsOpen(false);
       }
     };
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
-        setIsOpen(false);
+        updateIsOpen(false);
       }
     };
 
@@ -62,14 +75,14 @@ export function SortDropdown<T extends string = string>({
       document.removeEventListener("mousedown", handleClickOutside);
       document.removeEventListener("keydown", handleKeyDown);
     };
-  }, [isOpen]);
+  }, [isOpen, updateIsOpen]);
 
   const handleSelect = useCallback(
     (newVal: T) => {
       onChange(newVal);
-      setIsOpen(false);
+      updateIsOpen(false);
     },
-    [onChange]
+    [onChange, updateIsOpen]
   );
 
   const SelectedIcon = selectedOption?.icon || ArrowUpDown;
@@ -84,7 +97,7 @@ export function SortDropdown<T extends string = string>({
       {/* NÚT KÍCH HOẠT DROPDOWN */}
       <button
         type="button"
-        onClick={() => setIsOpen((prev) => !prev)}
+        onClick={() => updateIsOpen((prev) => !prev)}
         aria-haspopup="listbox"
         aria-expanded={isOpen}
         aria-label={`${labelPrefix}: ${selectedOption?.label || "Mặc định"}`}
@@ -127,7 +140,7 @@ export function SortDropdown<T extends string = string>({
         <div
           role="listbox"
           tabIndex={-1}
-          className={`absolute top-full mt-1.5 z-50 w-56 sm:w-60 rounded-2xl bg-zinc-950/98 p-1.5 shadow-[0_20px_50px_rgba(0,0,0,0.9)] backdrop-blur-xl animate-in fade-in zoom-in-95 duration-150 ${
+          className={`absolute top-full mt-1.5 z-50 w-56 sm:w-60 rounded-2xl bg-zinc-950/98 p-1.5 shadow-[0_20px_50px_rgba(0,0,0,0.9)] backdrop-blur-xl ring-1 ring-white/10 animate-in fade-in zoom-in-95 duration-150 ${
             menuAlign === "right" ? "right-0" : "left-0"
           }`}
         >

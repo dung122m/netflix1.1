@@ -629,18 +629,22 @@ export const FilterBar: React.FC = () => {
                 </button>
               </Tooltip>
             )}
-
-            {/* DROPDOWN 5: SẮP XẾP CHUẨN HÓA DÙNG CHUNG TOÀN HỆ THỐNG */}
-            <div className="sm:ml-auto sm:pl-3 sm:border-l sm:border-white/10 flex items-center flex-none">
-              <SortDropdown
-                value={currentSort}
-                onChange={(s) => updateQueryParam("sort", s)}
-                options={SORT_OPTIONS}
-                size="md"
-                isPending={isPending && pendingGroup === "sort"}
-              />
-            </div>
           </div>
+        </div>
+
+        {/* DROPDOWN 5: SẮP XẾP CHUẨN HÓA DÙNG CHUNG TOÀN HỆ THỐNG (ĐẶT NGOÀI CONTAINER OVERFLOW ĐỂ KHÔNG BỊ CLIP POPUP) */}
+        <div className="sm:ml-auto sm:pl-3 sm:border-l sm:border-white/10 flex items-center flex-none relative z-50">
+          <SortDropdown
+            value={currentSort}
+            onChange={(s) => updateQueryParam("sort", s)}
+            options={SORT_OPTIONS}
+            size="md"
+            menuAlign="right"
+            isPending={isPending && pendingGroup === "sort"}
+            onOpenChange={(open) => {
+              if (open) setActiveDropdown(null);
+            }}
+          />
         </div>
       </div>
 

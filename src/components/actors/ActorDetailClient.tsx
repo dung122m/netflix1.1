@@ -44,6 +44,55 @@ function getSectionIcon(heading?: string) {
   return BookOpen;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function getMovieRating(movie: any): number {
+  if (!movie) return 0;
+  const val =
+    movie.tmdb?.vote_average ??
+    movie.vote_average ??
+    movie.tmdb_vote_average ??
+    movie.imdb_score ??
+    movie.vote;
+  const num = parseFloat(String(val));
+  return isNaN(num) ? 0 : num;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function getMovieViews(movie: any): number {
+  if (!movie) return 0;
+  const viewVal = movie.view ?? movie.views ?? movie.view_count;
+  const numView = parseFloat(String(viewVal));
+  if (!isNaN(numView) && numView > 0) return numView;
+
+  const voteCountVal = movie.tmdb?.vote_count ?? movie.vote_count;
+  const numVoteCount = parseFloat(String(voteCountVal));
+  if (!isNaN(numVoteCount) && numVoteCount > 0) return numVoteCount;
+
+  const popVal = movie.tmdb?.popularity ?? movie.popularity;
+  const numPop = parseFloat(String(popVal));
+  if (!isNaN(numPop) && numPop > 0) return Math.round(numPop * 100);
+
+  return 0;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function getMovieYear(movie: any): number {
+  if (!movie) return 0;
+  const y = parseInt(String(movie.year || 0), 10);
+  return isNaN(y) ? 0 : y;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function getMovieModifiedTime(movie: any): number {
+  if (!movie) return 0;
+  const mod = movie.modified?.time || (typeof movie.modified === "string" ? movie.modified : null);
+  if (mod) {
+    const t = new Date(mod).getTime();
+    if (!isNaN(t) && t > 0) return t;
+  }
+  return 0;
+}
+
 export const ActorDetailClient: React.FC<ActorDetailClientProps> = ({
   movies,
   bioText,
@@ -94,34 +143,12 @@ export const ActorDetailClient: React.FC<ActorDetailClientProps> = ({
     const list = [...baseFilteredMovies];
 
     return list.sort((a, b) => {
-      const yearA = parseInt(String(a?.year || 0), 10) || 0;
-      const yearB = parseInt(String(b?.year || 0), 10) || 0;
-
-      const ratingA =
-        parseFloat(
-          String(
-            a?.tmdb_vote_average ??
-              a?.vote_average ??
-              a?.imdb_score ??
-              a?.vote ??
-              0
-          )
-        ) || 0;
-      const ratingB =
-        parseFloat(
-          String(
-            b?.tmdb_vote_average ??
-              b?.vote_average ??
-              b?.imdb_score ??
-              b?.vote ??
-              0
-          )
-        ) || 0;
-
-      const viewsA =
-        parseInt(String(a?.view ?? a?.views ?? a?.view_count ?? 0), 10) || 0;
-      const viewsB =
-        parseInt(String(b?.view ?? b?.views ?? b?.view_count ?? 0), 10) || 0;
+      const yearA = getMovieYear(a);
+      const yearB = getMovieYear(b);
+      const ratingA = getMovieRating(a);
+      const ratingB = getMovieRating(b);
+      const viewsA = getMovieViews(a);
+      const viewsB = getMovieViews(b);
 
       if (activeSort === "views" || activeSort === "views-desc") {
         if (viewsB !== viewsA) return viewsB - viewsA;
@@ -143,10 +170,19 @@ export const ActorDetailClient: React.FC<ActorDetailClientProps> = ({
         return viewsB - viewsA;
       }
 
-      // Default: "latest" / "year" / "year-desc" -> Năm mới nhất
+      if (activeSort === "year" || activeSort === "year-desc") {
+        if (yearB !== yearA) return yearB - yearA;
+        if (ratingB !== ratingA) return ratingB - ratingA;
+        return viewsB - viewsA;
+      }
+
+      // Default: "latest" -> Mới cập nhật (ưu tiên thời gian cập nhật nội dung, fallback sang năm phát hành)
+      const modA = getMovieModifiedTime(a);
+      const modB = getMovieModifiedTime(b);
+      if (modB !== modA && (modA > 0 || modB > 0)) return modB - modA;
       if (yearB !== yearA) return yearB - yearA;
-      if (ratingB !== ratingA) return ratingB - ratingA;
-      return viewsB - viewsA;
+      if (viewsB !== viewsA) return viewsB - viewsA;
+      return ratingB - ratingA;
     });
   }, [baseFilteredMovies, activeSort]);
 
