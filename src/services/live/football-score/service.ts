@@ -43,8 +43,8 @@ export type LeagueSlug = (typeof VERIFIED_SCOREBOARD_LEAGUES)[number];
 
 const ESPN_CDN_API_URL = "https://site.api.espn.com";
 const BASE_API_URL = process.env.LIVESCORE_API_URL || "https://worldcup26.ir";
-const CACHE_TTL_LIVE_MS = 8 * 1000; // 8s cache TTL khi có trận đang live (đồng bộ chu kỳ poll client)
-const CACHE_TTL_DEFAULT_MS = 60 * 1000; // 60s cache TTL khi không có trận live
+const CACHE_TTL_LIVE_MS = 25 * 1000; // 25s cache TTL khi có trận đang live (khớp hoàn hảo với Edge CDN s-maxage=25)
+const CACHE_TTL_DEFAULT_MS = 120 * 1000; // 120s cache TTL khi không có trận live (giảm tối đa serverless CPU)
 const SCOREBOARD_REDIS_KEY = "live:scoreboard:events:v1";
 const STALE_TTL_MS = 45 * 1000; // 45s stale grace period
 const REQUEST_TIMEOUT_MS = 4000; // 4s timeout an toàn chống nghẽn mạng quốc tế từ local/server

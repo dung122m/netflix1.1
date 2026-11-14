@@ -32,7 +32,7 @@ export async function GET(req: NextRequest) {
   if (lastScoresCache && now < lastScoresCache.expireAt) {
     const cacheControl = lastScoresCache.hasLive
       ? "public, max-age=15, s-maxage=25, stale-while-revalidate=45"
-      : "public, max-age=30, s-maxage=60, stale-while-revalidate=120";
+      : "public, max-age=60, s-maxage=120, stale-while-revalidate=240";
     return NextResponse.json(
       {
         status: true,
@@ -69,7 +69,7 @@ export async function GET(req: NextRequest) {
     const hasLive = events.some((e) => e.status === "live");
     const cacheControl = hasLive
       ? "public, max-age=15, s-maxage=25, stale-while-revalidate=45"
-      : "public, max-age=30, s-maxage=60, stale-while-revalidate=120";
+      : "public, max-age=60, s-maxage=120, stale-while-revalidate=240";
 
     const responseData = {
       scores,
@@ -81,7 +81,7 @@ export async function GET(req: NextRequest) {
     lastScoresCache = {
       data: responseData,
       hasLive,
-      expireAt: now + (hasLive ? 15_000 : 45_000),
+      expireAt: now + (hasLive ? 25_000 : 90_000),
     };
 
     const responseHeaders: Record<string, string> = {

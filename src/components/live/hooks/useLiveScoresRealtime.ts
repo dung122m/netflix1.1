@@ -179,7 +179,8 @@ export function useLiveScoresRealtime({
       }
     };
 
-    const pollIntervalMs = hasLiveMatches ? 30_000 : 90_000;
+    // Khi có trận Live: cập nhật 30s. Khi KHÔNG có trận Live: ngủ đông thông minh 5 phút (300,000ms) vì tỉ số trận chưa đá/đã xong là cố định
+    const pollIntervalMs = hasLiveMatches ? 30_000 : 300_000;
     const isReturningFromInactive = !wasActiveScoresRef.current;
     wasActiveScoresRef.current = true;
 
