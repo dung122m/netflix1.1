@@ -47,42 +47,44 @@ export function LiveFootballClient({
   onMatchSelectedChange,
 }: LiveFootballClientProps) {
   const searchParams = useSearchParams();
+
+  const initialMatch = useMemo(() => {
+    const matchParam = searchParams.get("match");
+    if (matchParam) {
+      // 1. Khớp chính xác ID
+      const exact = initialData.matches.find((m) => m.id === matchParam);
+      if (exact) return exact;
+
+      // 2. Khớp theo tiền tố ID bỏ phần đuôi thời gian (vd: URL mang _07000211 nhưng nguồn stream đổi thành _07250211)
+      const paramBase = matchParam.replace(/_\d{6,10}$/, "");
+      if (paramBase && paramBase.length > 8) {
+        const fuzzy = initialData.matches.find((m) => m.id.startsWith(paramBase));
+        if (fuzzy) return fuzzy;
+      }
+
+      // 3. Khớp theo tiêu đề trận đấu
+      const found = initialData.matches.find((m) =>
+        m.title.toLowerCase().includes(matchParam.toLowerCase()),
+      );
+      if (found) return found;
+    }
+    return null;
+  }, [initialData.matches, searchParams]);
+
+  const hasUserSelectedRef = useRef(false);
+  const [selectedMatch, setSelectedMatch] = useState<FootballMatch | null>(initialMatch);
+
   const { liveMatches, scoresMap, now } = useLiveScoresRealtime({
     initialMatches: initialData.matches,
     initialScores,
     isActive,
+    isTheaterMode: Boolean(selectedMatch),
   });
 
   const [activeSection, setActiveSection] = useState<
     "matches" | "match-center" | "standings"
   >("matches");
   const [sidePanelTab, setSidePanelTab] = useState<"timeline" | "matches">("matches");
-
-  const initialMatch = useMemo(() => {
-    const matchParam = searchParams.get("match");
-    if (matchParam) {
-      // 1. Khớp chính xác ID
-      const exact = liveMatches.find((m) => m.id === matchParam);
-      if (exact) return exact;
-
-      // 2. Khớp theo tiền tố ID bỏ phần đuôi thời gian (vd: URL mang _07000211 nhưng nguồn stream đổi thành _07250211)
-      const paramBase = matchParam.replace(/_\d{6,10}$/, "");
-      if (paramBase && paramBase.length > 8) {
-        const fuzzy = liveMatches.find((m) => m.id.startsWith(paramBase));
-        if (fuzzy) return fuzzy;
-      }
-
-      // 3. Khớp theo tiêu đề trận đấu
-      const found = liveMatches.find((m) =>
-        m.title.toLowerCase().includes(matchParam.toLowerCase()),
-      );
-      if (found) return found;
-    }
-    return null;
-  }, [liveMatches, searchParams]);
-
-  const hasUserSelectedRef = useRef(false);
-  const [selectedMatch, setSelectedMatch] = useState<FootballMatch | null>(initialMatch);
   const [matchSummary, setMatchSummary] = useState<NormalizedMatchSummary | null>(null);
   const [isSummaryLoading, setIsSummaryLoading] = useState<boolean>(false);
   const matchSummaryMemoryRef = useRef<Map<string, NormalizedMatchSummary>>(new Map());

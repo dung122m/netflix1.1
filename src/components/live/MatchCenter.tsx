@@ -249,11 +249,12 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
   }, [isOpen, leagueSlug, eventId]);
 
   useEffect(() => {
-    if (!isOpen || !leagueSlug || !eventId) {
+    if (!leagueSlug || !eventId) {
       return;
     }
 
-    const pollInterval = calculateMatchCenterPollInterval(summary?.status, isLive);
+    // Khi mở bảng: polling 15s (trận Live). Khi đóng bảng (isOpen = false): giãn ra 60s để tiết kiệm tối đa CPU/Invocations
+    const pollInterval = calculateMatchCenterPollInterval(summary?.status, isLive, isOpen);
 
     const intervalId = setInterval(() => {
       if (typeof document !== "undefined" && document.hidden) {

@@ -105,16 +105,6 @@ const nextConfig: NextConfig = {
         ],
       },
       {
-        // Live score polling endpoint updates dynamically
-        source: "/api/live-football/scores",
-        headers: [
-          {
-            key: "Cache-Control",
-            value: "no-store, max-age=0, must-revalidate",
-          },
-        ],
-      },
-      {
         // Thông báo người dùng riêng tư: cấm tuyệt đối cache trên CDN/Edge
         source: "/api/notifications",
         headers: [

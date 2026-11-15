@@ -10,20 +10,25 @@ import {
 } from "./types";
 
 export const MATCH_CENTER_INTERVALS = {
-  LIVE_MS: 5_000,         // 5s khi trận đang diễn ra (realtime cao độ cho diễn biến & sự kiện)
+  LIVE_MS: 15_000,        // 15s khi trận đang diễn ra (realtime cao độ cho diễn biến & sự kiện, giảm 67% tải so với 5s)
   FINISHED_MS: 120_000,   // 120s khi trận đã kết thúc (giảm tải)
   SCHEDULED_MS: 30_000,   // 30s khi trận sắp diễn ra
+  CLOSED_MS: 60_000,      // 60s khi bảng MatchCenter đóng (tiết kiệm tài nguyên)
   COOLDOWN_MS: 1_500,     // 1.5s cooldown chống spam request cho cùng 1 trận
   TAB_RETURN_THRESHOLD_MS: 3_000, // 3s ngưỡng kích hoạt refresh tức thì khi quay lại tab
 } as const;
 
 /**
- * Tính toán chu kỳ polling thích ứng theo trạng thái trận đấu.
+ * Tính toán chu kỳ polling thích ứng theo trạng thái trận đấu và trạng thái mở bảng.
  */
 export function calculateMatchCenterPollInterval(
   status?: string | null,
-  isLive?: boolean
+  isLive?: boolean,
+  isOpen: boolean = true
 ): number {
+  if (!isOpen) {
+    return MATCH_CENTER_INTERVALS.CLOSED_MS;
+  }
   const currentStatus = (status || "").toLowerCase();
   const isMatchLive = Boolean(isLive || currentStatus === "live");
   const isMatchFinished = currentStatus === "finished" || currentStatus === "post";

@@ -65,19 +65,30 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // 5. Cấu hình Cache-Control tối ưu kết hợp Cloudflare Edge & Browser
-    // Đối với trận đang LIVE: Cho Cloudflare Edge cache 4s (tiết kiệm 95% quota Redis & Serverless CPU)
-    // stale-while-revalidate=3s để Edge phản hồi siêu tốc (<10ms) không gây đơ/lag
-    // max-age=0 để Browser luôn revalidate và nhận sự kiện mới từ Edge theo chu kỳ
+    // 5. Cấu hình Cache-Control tối ưu kết hợp Vercel Edge CDN & Browser
     const isLive = data.status === "live";
     const cacheControlHeader = isLive
-      ? "public, s-maxage=4, stale-while-revalidate=3, max-age=0"
+      ? "public, max-age=10, s-maxage=15, stale-while-revalidate=15"
       : data.status === "finished"
         ? "public, s-maxage=300, stale-while-revalidate=600, max-age=300"
         : "public, s-maxage=30, stale-while-revalidate=60, max-age=30";
 
+    const cdnCacheControl = isLive
+      ? "public, max-age=15"
+      : data.status === "finished"
+        ? "public, max-age=300"
+        : "public, max-age=30";
+
+    const vercelCdnCacheControl = isLive
+      ? "max-age=15, stale-while-revalidate=15"
+      : data.status === "finished"
+        ? "max-age=300, stale-while-revalidate=600"
+        : "max-age=30, stale-while-revalidate=60";
+
     const responseHeaders: Record<string, string> = {
       "Cache-Control": cacheControlHeader,
+      "CDN-Cache-Control": cdnCacheControl,
+      "Vercel-CDN-Cache-Control": vercelCdnCacheControl,
     };
 
     return NextResponse.json(

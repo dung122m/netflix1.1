@@ -27,9 +27,9 @@ export async function GET(req: NextRequest) {
       },
       {
         headers: {
-          "Cache-Control": "public, s-maxage=120, stale-while-revalidate=300",
-          "CDN-Cache-Control": "public, s-maxage=120, stale-while-revalidate=300",
-          "Vercel-CDN-Cache-Control": "public, s-maxage=120, stale-while-revalidate=300",
+          "Cache-Control": "public, max-age=30, s-maxage=60, stale-while-revalidate=60",
+          "CDN-Cache-Control": "public, max-age=60",
+          "Vercel-CDN-Cache-Control": "max-age=60, stale-while-revalidate=60",
         },
       }
     );
@@ -48,9 +48,9 @@ export async function GET(req: NextRequest) {
       },
       {
         headers: {
-          "Cache-Control": "public, s-maxage=120, stale-while-revalidate=300",
-          "CDN-Cache-Control": "public, s-maxage=120, stale-while-revalidate=300",
-          "Vercel-CDN-Cache-Control": "public, s-maxage=120, stale-while-revalidate=300",
+          "Cache-Control": "public, max-age=30, s-maxage=60, stale-while-revalidate=60",
+          "CDN-Cache-Control": "public, max-age=60",
+          "Vercel-CDN-Cache-Control": "max-age=60, stale-while-revalidate=60",
         },
       },
     );

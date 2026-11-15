@@ -10,17 +10,19 @@ export interface UseLiveScoresRealtimeOptions {
   initialMatches: FootballMatch[];
   initialScores?: Record<string, LiveMatchScore> | null;
   isActive: boolean;
+  isTheaterMode?: boolean;
 }
 
 /**
- * Manages live football match list polling (every 3m + tab-focus refresh),
- * live score polling (every 8s when live / 30s idle + tab-focus refresh),
+ * Manages live football match list polling (every 5m + tab-focus refresh),
+ * live score polling (every 30s list / 60s theater when live, 5m idle + tab-focus refresh),
  * and the 60s kickoff wall-clock tick.
  */
 export function useLiveScoresRealtime({
   initialMatches,
   initialScores,
   isActive,
+  isTheaterMode = false,
 }: UseLiveScoresRealtimeOptions) {
   const [liveMatches, setLiveMatches] =
     useState<FootballMatch[]>(initialMatches);
@@ -56,7 +58,6 @@ export function useLiveScoresRealtime({
 
         const res = await fetch("/api/live-football/matches", {
           signal,
-          cache: "no-store",
         });
         lastFetchedMatchesTimeRef.current = Date.now();
         if (!res.ok) return;
@@ -222,11 +223,14 @@ export function useLiveScoresRealtime({
       }
     };
 
-    // Khi có trận giải lớn đang Live: cập nhật 30s.
+    // Khi có trận giải lớn đang Live:
+    // - Bình thường ngoài danh sách: 30s.
+    // - Khi đang mở Player xem trận đấu (isTheaterMode): giãn ra 60s để nhường ưu tiên cho MatchCenter (15s).
     // Khi hôm nay có trận giải lớn nhưng CHƯA ĐÁ / ĐÃ XONG: ngủ đông thông minh 5 phút (300,000ms).
     // Khi hôm nay HOÀN TOÀN KHÔNG CÓ trận giải lớn nào (chỉ có tennis, bóng rổ, giải phong trào...): TẮT HẲN polling (null) để tiết kiệm 100% tài nguyên!
+    const livePollInterval = isTheaterMode ? 60_000 : 30_000;
     const pollIntervalMs = hasActiveScoreboardMatches
-      ? 30_000
+      ? livePollInterval
       : hasScoreboardMatchesToday
         ? 300_000
         : null;
@@ -252,7 +256,7 @@ export function useLiveScoresRealtime({
     const handleVisibilityChange = () => {
       if (typeof document !== "undefined" && !document.hidden) {
         if (!hasScoreboardMatchesToday) return;
-        const cooldown = hasActiveScoreboardMatches ? 10_000 : 300_000;
+        const cooldown = hasActiveScoreboardMatches ? (isTheaterMode ? 30_000 : 10_000) : 300_000;
         if (
           shouldRefreshOnTabFocus(
             lastFetchedScoresTimeRef.current,
@@ -276,7 +280,7 @@ export function useLiveScoresRealtime({
         document.removeEventListener("visibilitychange", handleVisibilityChange);
       }
     };
-  }, [isActive, hasActiveScoreboardMatches, hasScoreboardMatchesToday]);
+  }, [isActive, hasActiveScoreboardMatches, hasScoreboardMatchesToday, isTheaterMode]);
 
   return {
     liveMatches,

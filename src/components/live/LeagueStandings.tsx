@@ -101,7 +101,6 @@ export const LeagueStandings: React.FC<LeagueStandingsProps> = ({
     try {
       const res = await fetch(`/api/live-football/standings?league=${encodeURIComponent(leagueSlug)}`, {
         signal: controller.signal,
-        cache: "no-store",
         headers: { Accept: "application/json" },
       });
 

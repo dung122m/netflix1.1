@@ -32,8 +32,13 @@ export async function GET(req: NextRequest) {
   const now = Date.now();
   if (lastScoresCache && now < lastScoresCache.expireAt) {
     const cacheControl = lastScoresCache.hasLive
-      ? "public, max-age=15, s-maxage=25, stale-while-revalidate=45"
+      ? "public, max-age=15, s-maxage=25, stale-while-revalidate=15"
       : "public, max-age=60, s-maxage=120, stale-while-revalidate=240";
+    const cdnControl = lastScoresCache.hasLive ? "public, max-age=25" : "public, max-age=120";
+    const vercelCdnControl = lastScoresCache.hasLive
+      ? "max-age=25, stale-while-revalidate=15"
+      : "max-age=120, stale-while-revalidate=240";
+
     return NextResponse.json(
       {
         status: true,
@@ -42,8 +47,8 @@ export async function GET(req: NextRequest) {
       {
         headers: {
           "Cache-Control": cacheControl,
-          "CDN-Cache-Control": cacheControl,
-          "Vercel-CDN-Cache-Control": cacheControl,
+          "CDN-Cache-Control": cdnControl,
+          "Vercel-CDN-Cache-Control": vercelCdnControl,
         },
       }
     );
@@ -96,8 +101,12 @@ export async function GET(req: NextRequest) {
 
     const hasLive = events.some((e) => e.status === "live");
     const cacheControl = hasLive
-      ? "public, max-age=15, s-maxage=25, stale-while-revalidate=45"
+      ? "public, max-age=15, s-maxage=25, stale-while-revalidate=15"
       : "public, max-age=60, s-maxage=120, stale-while-revalidate=240";
+    const cdnControl = hasLive ? "public, max-age=25" : "public, max-age=120";
+    const vercelCdnControl = hasLive
+      ? "max-age=25, stale-while-revalidate=15"
+      : "max-age=120, stale-while-revalidate=240";
 
     const responseData = {
       scores,
@@ -114,8 +123,8 @@ export async function GET(req: NextRequest) {
 
     const responseHeaders: Record<string, string> = {
       "Cache-Control": cacheControl,
-      "CDN-Cache-Control": cacheControl,
-      "Vercel-CDN-Cache-Control": cacheControl,
+      "CDN-Cache-Control": cdnControl,
+      "Vercel-CDN-Cache-Control": vercelCdnControl,
     };
 
     return NextResponse.json(
