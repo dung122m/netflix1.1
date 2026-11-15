@@ -34,7 +34,7 @@ export const FilterBar: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [isPending, startTransition] = useTransition();
 
-  const [filters, setFilters] = useState<{
+  const [filters] = useState<{
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     genres: any[];
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

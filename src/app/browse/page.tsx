@@ -662,7 +662,9 @@ export default async function BrowsePage({
               {title}
             </h1>
             <p className="mt-1 text-sm text-zinc-400 max-w-[65ch] leading-relaxed">
-              Khám phá bộ sưu tập phim chất lượng cao do Nana tuyển chọn, cập nhật liên tục.
+              {detectedActor
+                ? `Tổng hợp các bộ phim tiêu biểu có sự tham gia của ${detectedActor.name}.`
+                : "Khám phá bộ sưu tập phim chất lượng cao do Nana tuyển chọn, cập nhật liên tục."}
             </p>
           </div>
           <div className="flex items-center gap-3 flex-wrap">
@@ -696,7 +698,7 @@ export default async function BrowsePage({
               <div className="min-w-0">
                 <h4 className="text-sm sm:text-base font-black text-white flex items-center gap-2 flex-wrap">
                   <span className="truncate">
-                    Tuyển Tập Tác Phẩm Của {detectedActor.name}
+                    Hồ Sơ Nghệ Sĩ • {detectedActor.name}
                     {detectedActor.englishName && detectedActor.englishName !== detectedActor.name ? ` (${detectedActor.englishName})` : ""}
                   </span>
                   {detectedActor.country && (
@@ -709,8 +711,7 @@ export default async function BrowsePage({
                   </span>
                 </h4>
                 <p className="text-xs text-zinc-300 mt-0.5 truncate sm:whitespace-normal">
-                  Tự động tổng hợp các tác phẩm tiêu biểu & xuất sắc nhất của {detectedActor.name}
-                  {detectedActor.englishName && detectedActor.englishName !== detectedActor.name ? ` (${detectedActor.englishName})` : ""}
+                  Xem chi tiết tiểu sử, năm sinh, sự nghiệp và hành trình nghệ thuật.
                 </p>
               </div>
             </div>
@@ -720,7 +721,7 @@ export default async function BrowsePage({
                 href={detectedActor.href}
                 className="self-start sm:self-auto inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-netflix-red hover:brightness-110 active:brightness-95 text-white font-bold text-xs sm:text-sm transition shadow-md flex-none cursor-pointer"
               >
-                <span>Xem hồ sơ & toàn bộ phim</span>
+                <span>Xem hồ sơ chi tiết</span>
                 <ChevronRight className="w-4 h-4" />
               </Link>
             )}
