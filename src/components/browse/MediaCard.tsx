@@ -16,6 +16,7 @@ import { formatEpisodeName, isFullEpisodeLabel } from "@/lib/formatEpisode";
 import {
   toOptimizedCardPosterUrl,
   toFastCdnImageUrl,
+  extractOriginalSourceUrl,
   sanitizeImageUrl,
   formatGenreName,
   formatCountryName,
@@ -298,8 +299,12 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
 
     // Nếu fallback TMDb đã kết thúc mà không tìm thấy ảnh, và ảnh hiện tại đã nằm trong danh sách lỗi
     if (currentSrc && triedUrlsRef.current.has(currentSrc)) {
-      if (currentSrc.includes("phimimg.com") && !currentSrc.includes("/api/media/r2-proxy")) {
-        const r2ProxyUrl = `/api/media/r2-proxy?url=${encodeURIComponent(currentSrc)}`;
+      if (
+        (currentSrc.includes("phimimg.com") || currentSrc.includes("/cache/")) &&
+        !currentSrc.includes("/api/media/r2-proxy")
+      ) {
+        const originalSource = extractOriginalSourceUrl(currentSrc);
+        const r2ProxyUrl = `/api/media/r2-proxy?url=${encodeURIComponent(originalSource || currentSrc)}`;
         if (!triedUrlsRef.current.has(r2ProxyUrl)) {
           setCurrentSrc(r2ProxyUrl);
           setIsImageLoaded(false);
@@ -353,9 +358,14 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
       return;
     }
 
-    // 5. Cứu cánh ảnh phimimg.com bị nhà mạng chặn bằng Cloudflare R2 Proxy trước khi hiển thị Poster Canvas
-    if (currentSrc && currentSrc.includes("phimimg.com") && !currentSrc.includes("/api/media/r2-proxy")) {
-      const r2ProxyUrl = `/api/media/r2-proxy?url=${encodeURIComponent(currentSrc)}`;
+    // 5. Cứu cánh ảnh phimimg.com / R2 cache bị lỗi hoặc chưa có bằng Cloudflare R2 Proxy trước khi hiển thị Poster Canvas
+    if (
+      currentSrc &&
+      (currentSrc.includes("phimimg.com") || currentSrc.includes("/cache/")) &&
+      !currentSrc.includes("/api/media/r2-proxy")
+    ) {
+      const originalSource = extractOriginalSourceUrl(currentSrc);
+      const r2ProxyUrl = `/api/media/r2-proxy?url=${encodeURIComponent(originalSource || currentSrc)}`;
       if (!triedUrlsRef.current.has(r2ProxyUrl)) {
         setCurrentSrc(r2ProxyUrl);
         setIsImageLoaded(false);

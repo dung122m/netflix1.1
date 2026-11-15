@@ -3,7 +3,7 @@ import { getOrCreateAnonymousId } from "./analyticsClient";
 import { markEpisodeAsWatched, getWatchedEpisodes } from "./episodeTracker";
 
 export type WatchHistorySyncHandler = {
-  saveItem: (uid: string, item: WatchHistoryItem, delayMs?: number, options?: { force?: boolean }) => void;
+  saveItem: (uid: string, item: WatchHistoryItem, delayMs?: number, options?: { force?: boolean; isEnded?: boolean }) => void;
   saveItemsBatch: (uid: string, items: WatchHistoryItem[]) => void;
   removeItem: (uid: string, slug: string) => void;
   clearAll: (uid: string) => void;
@@ -444,6 +444,7 @@ export const saveWatchProgress = (
     episodeNumber?: number;
   },
   forceSync?: boolean,
+  isEnded?: boolean,
 ): void => {
   if (typeof window === "undefined" || !slug) return;
   // Không lưu nếu thời gian xem < 2s trừ khi có forceSync (tránh ghi đè giả lúc mới tải)
@@ -546,7 +547,7 @@ export const saveWatchProgress = (
 
     // Tự động đồng bộ số phút lên Cloud nếu đã đăng nhập Google (debounce 45s + dirty check)
     if (auth?.currentUser) {
-      syncHandler?.saveItem(auth.currentUser.uid, targetItem, 45000, { force: forceSync });
+      syncHandler?.saveItem(auth.currentUser.uid, targetItem, 45000, { force: forceSync, isEnded });
     }
   } catch (error) {
     console.error("Lỗi lưu tiến trình xem:", error);

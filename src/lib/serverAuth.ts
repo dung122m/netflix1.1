@@ -112,6 +112,26 @@ export async function verifyServerAuth(req: NextRequest): Promise<ServerAuthResu
       return negativeResult;
     }
 
+    // Pre-flight check: Decode JWT payload in-memory (0ms) để kiểm tra hạn sử dụng (exp)
+    try {
+      const parts = bearerToken.split(".");
+      if (parts[1]) {
+        const payloadJson = Buffer.from(parts[1], "base64url").toString("utf8");
+        const payload = JSON.parse(payloadJson);
+        if (payload?.exp && typeof payload.exp === "number") {
+          const expMs = payload.exp * 1000;
+          if (expMs < now) {
+            // Token đã hết hạn! Từ chối ngay 401 nhẹ nhàng, không gọi mạng Google Identity Toolkit
+            const negativeResult: ServerAuthResult = { isAuthenticated: false, isAdmin: false };
+            setCachedToken(bearerToken, { result: negativeResult, expiry: now + 60 * 1000 });
+            return negativeResult;
+          }
+        }
+      }
+    } catch {
+      // Bỏ qua lỗi parse nếu token kỳ lạ, để logic bên dưới xử lý
+    }
+
     const apiKey = process.env.NEXT_PUBLIC_FIREBASE_API_KEY || process.env.FIREBASE_API_KEY;
     if (apiKey) {
       try {
@@ -121,7 +141,7 @@ export async function verifyServerAuth(req: NextRequest): Promise<ServerAuthResu
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ idToken: bearerToken }),
-            signal: AbortSignal.timeout(5000),
+            signal: AbortSignal.timeout(3000),
           }
         );
 

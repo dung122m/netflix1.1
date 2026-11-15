@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import { Zap } from "lucide-react";
 import { saveWatchProgress } from "@/lib/watchHistory";
 import { markEpisodeAsWatched } from "@/lib/episodeTracker";
@@ -131,6 +131,7 @@ export function useCinemaVideoEvents({
   cancelAdPreTrigger,
   getEffectiveDuration,
 }: UseCinemaVideoEventsOptions) {
+  const lastForceSyncedTimeRef = useRef<number>(-999);
 
   // Video element events: buffering, stall recovery, ad-skip, progress sync, visibility save
   useEffect(() => {
@@ -322,8 +323,21 @@ export function useCinemaVideoEvents({
       currentTimeSeconds: number,
       durationSeconds: number,
       forceSync: boolean,
+      isEnded: boolean = false,
     ) => {
       if (movieSlug && activeEpisodeSlug) {
+        let shouldForce = forceSync;
+        if (shouldForce && !isEnded) {
+          // Bỏ qua ép đồng bộ Cloud nếu vị trí thời gian xem chênh lệch < 5s so với lần sync gần nhất
+          if (Math.abs(currentTimeSeconds - lastForceSyncedTimeRef.current) < 5) {
+            shouldForce = false;
+          } else {
+            lastForceSyncedTimeRef.current = currentTimeSeconds;
+          }
+        } else if (isEnded) {
+          lastForceSyncedTimeRef.current = currentTimeSeconds;
+        }
+
         saveWatchProgress(
           movieSlug,
           currentTimeSeconds,
@@ -335,7 +349,8 @@ export function useCinemaVideoEvents({
             thumb: resolvedThumb,
             episodeName: activeEpisodeName,
           },
-          forceSync,
+          shouldForce,
+          isEnded,
         );
       }
     };
@@ -664,6 +679,7 @@ export function useCinemaVideoEvents({
             ? currentEffectiveDuration
             : video.currentTime,
           currentEffectiveDuration,
+          true,
           true,
         );
       }

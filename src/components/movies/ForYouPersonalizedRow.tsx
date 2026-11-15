@@ -36,8 +36,8 @@ export interface ForYouPersonalizedRowProps {
   fallbackMovies?: any[];
 }
 
-const CACHE_KEY_NAME = "nanaflix_foryou_cache_v7";
-const CACHE_TTL = 3 * 60 * 60 * 1000; // 3 giờ (giảm 85% gọi API Serverless cho người dùng)
+const CACHE_KEY_NAME = "nanaflix_foryou_cache_v8";
+const CACHE_TTL = 30 * 60 * 1000; // 30 phút TTL (người dùng quay lại trang chủ không gọi lại API)
 
 // Danh sách fallback catalog phim nổi bật luôn sẵn sàng 0ms không cần API ngoài
 const DEFAULT_CATALOG_FALLBACK: ForYouMovieItem[] = [
@@ -304,20 +304,26 @@ interface CachedPayload {
 
 let memoryCachedData: CachedPayload | null = null;
 
-// Lấy cache từ memory hoặc localStorage một lần duy nhất (0ms, tránh parse lặp lại)
+// Lấy cache từ memory, sessionStorage hoặc localStorage (0ms, tránh parse lặp lại)
 function getCachedData(expectedUid?: string): CachedPayload | null {
   if (typeof window === "undefined") return null;
+  const now = Date.now();
   if (memoryCachedData) {
     if (!expectedUid || !memoryCachedData.uid || memoryCachedData.uid === expectedUid) {
-      return memoryCachedData;
+      if (now - memoryCachedData.timestamp < CACHE_TTL) {
+        return memoryCachedData;
+      }
     }
   }
   try {
-    const raw = localStorage.getItem(CACHE_KEY_NAME);
+    const raw = sessionStorage.getItem(CACHE_KEY_NAME) || localStorage.getItem(CACHE_KEY_NAME);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
     if (parsed && Array.isArray(parsed.items) && parsed.items.length >= 12) {
       if (expectedUid && parsed.uid && parsed.uid !== expectedUid) {
+        return null;
+      }
+      if (parsed.timestamp && now - parsed.timestamp > CACHE_TTL) {
         return null;
       }
       const sanitizedItems = parsed.items.map((it: ForYouMovieItem) => ({
@@ -480,22 +486,41 @@ function ForYouPersonalizedRowInner({ fallbackMovies }: ForYouPersonalizedRowPro
     }
 
     try {
-      const isGuestUser = !user?.uid && historyItems.length === 0 && favoriteGenres.length === 0;
+      // Tối ưu hóa: Chuyển sang GET có Edge Cache CDN 1 giờ trên Vercel.
+      // Gom toàn bộ thể loại (profile favorite + top history), deduplicate và sort cố định
+      const combinedGenres = Array.from(
+        new Set([
+          ...favoriteGenres.map((g) => g.trim().toLowerCase()),
+          ...(topGenres ? topGenres.split(",").map((g) => g.trim().toLowerCase()) : []),
+        ])
+      )
+        .filter(Boolean)
+        .sort();
 
-      const res = isGuestUser
-        ? await fetch(`/api/recommendations/for-you?seed=${currentSeed}`)
-        : await fetch("/api/recommendations/for-you", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              genres: favoriteGenres,
-              historyItems,
-              watchedTitles,
-              watchedSlugs,
-              refreshSeed: currentSeed,
-              currentSlugs: forceRefresh ? moviesRef.current.map((m) => m.slug) : [],
-            }),
-          });
+      const params = new URLSearchParams();
+      if (combinedGenres.length > 0) {
+        params.set("genres", combinedGenres.join(","));
+      }
+      if (topTypes) {
+        params.set("types", topTypes);
+      }
+      const excludeSlugs = (watchedSlugs || []).slice(0, 10);
+      if (excludeSlugs.length > 0) {
+        params.set("exclude", excludeSlugs.join(","));
+      }
+      if (currentSeed > 0) {
+        params.set("seed", String(currentSeed));
+      }
+
+      const queryString = params.toString();
+      const endpoint = queryString
+        ? `/api/recommendations/for-you?${queryString}`
+        : `/api/recommendations/for-you?seed=${currentSeed}`;
+
+      const res = await fetch(endpoint, {
+        method: "GET",
+        headers: { Accept: "application/json" },
+      });
 
       if (res.ok) {
         const data = await res.json();
@@ -505,7 +530,7 @@ function ForYouPersonalizedRowInner({ fallbackMovies }: ForYouPersonalizedRowPro
           if (data.context) {
             setContextText(data.context);
           }
-          // Lưu vào memory cache và localStorage một lần duy nhất
+          // Lưu vào memory cache, sessionStorage và localStorage (TTL 30 phút)
           const payload: CachedPayload = {
             items: data.items,
             context: data.context || "Tuyển chọn chuẩn gu cho bạn",
@@ -516,7 +541,9 @@ function ForYouPersonalizedRowInner({ fallbackMovies }: ForYouPersonalizedRowPro
           memoryCachedData = payload;
           if (typeof window !== "undefined") {
             try {
-              localStorage.setItem(CACHE_KEY_NAME, JSON.stringify(payload));
+              const serialized = JSON.stringify(payload);
+              sessionStorage.setItem(CACHE_KEY_NAME, serialized);
+              localStorage.setItem(CACHE_KEY_NAME, serialized);
             } catch {}
           }
         }

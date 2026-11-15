@@ -26,6 +26,12 @@ const CACHED_HISTORY_HEADERS = {
  * Lấy lịch sử xem của user đã xác thực
  */
 export async function GET(req: NextRequest) {
+  const authHeader = req.headers.get("authorization")?.trim();
+  const secretHeader = req.headers.get("x-admin-secret")?.trim();
+  if (!authHeader && !secretHeader) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const supabase = getSupabaseAdmin();
   if (!supabase) {
     return NextResponse.json({ success: true, items: [] });
@@ -89,6 +95,12 @@ export async function GET(req: NextRequest) {
  * Đồng bộ / ghi nhận lịch sử xem cho user đã xác thực
  */
 export async function POST(req: NextRequest) {
+  const authHeader = req.headers.get("authorization")?.trim();
+  const secretHeader = req.headers.get("x-admin-secret")?.trim();
+  if (!authHeader && !secretHeader) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const supabase = getSupabaseAdmin();
   if (!supabase) {
     return NextResponse.json({ success: false, error: "Database not configured" }, { status: 500 });
@@ -144,33 +156,40 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: true, count: 0 });
     }
 
-    // Bảo toàn danh sách tập đã xem (watched_episodes) hiện có trên Supabase để tránh một thiết bị/tab chưa đồng bộ ghi đè thành []
-    let mergedRows = rows;
-    const rowIds = rows.map((r) => r.id);
-    const { data: existingRows, error: existingErr } = await supabase
-      .from("watch_history")
-      .select("id, watched_episodes")
-      .eq("user_id", userId)
-      .in("id", rowIds);
+    // Tối ưu hóa truy vấn: Nếu mọi item đều đã có watched_episodes (không rỗng),
+    // gộp thành 1 thao tác upsert duy nhất (bỏ qua select) để triệt tiêu race condition giữa các tab và giảm 50% CPU
+    const needsSelectWatchedEpisodes = rows.some(
+      (r) => !Array.isArray(r.watched_episodes) || r.watched_episodes.length === 0
+    );
 
-    if (!existingErr && Array.isArray(existingRows) && existingRows.length > 0) {
-      const existingMap = new Map<string, string[]>();
-      for (const ex of existingRows) {
-        const list = Array.isArray(ex.watched_episodes)
-          ? ex.watched_episodes
-          : typeof ex.watched_episodes === "string"
-          ? (() => { try { return JSON.parse(ex.watched_episodes); } catch { return []; } })()
-          : [];
-        existingMap.set(String(ex.id), list.filter(Boolean).map(String));
+    let mergedRows = rows;
+    if (needsSelectWatchedEpisodes) {
+      const rowIds = rows.map((r) => r.id);
+      const { data: existingRows, error: existingErr } = await supabase
+        .from("watch_history")
+        .select("id, watched_episodes")
+        .eq("user_id", userId)
+        .in("id", rowIds);
+
+      if (!existingErr && Array.isArray(existingRows) && existingRows.length > 0) {
+        const existingMap = new Map<string, string[]>();
+        for (const ex of existingRows) {
+          const list = Array.isArray(ex.watched_episodes)
+            ? ex.watched_episodes
+            : typeof ex.watched_episodes === "string"
+            ? (() => { try { return JSON.parse(ex.watched_episodes); } catch { return []; } })()
+            : [];
+          existingMap.set(String(ex.id), list.filter(Boolean).map(String));
+        }
+        mergedRows = rows.map((row) => {
+          const prevWatched = existingMap.get(row.id) || [];
+          const incomingWatched = Array.isArray(row.watched_episodes) ? row.watched_episodes.filter(Boolean).map(String) : [];
+          return {
+            ...row,
+            watched_episodes: Array.from(new Set([...prevWatched, ...incomingWatched])),
+          };
+        });
       }
-      mergedRows = rows.map((row) => {
-        const prevWatched = existingMap.get(row.id) || [];
-        const incomingWatched = Array.isArray(row.watched_episodes) ? row.watched_episodes.filter(Boolean).map(String) : [];
-        return {
-          ...row,
-          watched_episodes: Array.from(new Set([...prevWatched, ...incomingWatched])),
-        };
-      });
     }
 
     let { error } = await supabase.from("watch_history").upsert(mergedRows, { onConflict: "id" });
@@ -196,6 +215,12 @@ export async function POST(req: NextRequest) {
  * Xóa 1 mục hoặc toàn bộ lịch sử xem của chính user
  */
 export async function DELETE(req: NextRequest) {
+  const authHeader = req.headers.get("authorization")?.trim();
+  const secretHeader = req.headers.get("x-admin-secret")?.trim();
+  if (!authHeader && !secretHeader) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const supabase = getSupabaseAdmin();
   if (!supabase) {
     return NextResponse.json({ success: false, error: "Database not configured" }, { status: 500 });

@@ -98,7 +98,7 @@ export function saveWatchItemToCloudDebounced(
   userId: string,
   item: WatchHistoryItem,
   delayMs = 120000,
-  options?: { force?: boolean },
+  options?: { force?: boolean; isEnded?: boolean },
 ): void {
   if (!userId || !item.slug) return;
 
@@ -109,6 +109,14 @@ export function saveWatchItemToCloudDebounced(
   const isEpisodeChanged = Boolean(lastSynced && item.episodeSlug && lastSynced.episodeSlug !== item.episodeSlug);
   const isProgressSignificant = !lastSynced || Math.abs(currentProgress - lastSynced.progressSeconds) >= 10;
   const shouldSync = options?.force || isEpisodeChanged || isProgressSignificant;
+
+  // Cơ chế chống trùng lặp (dedupe): bỏ qua request đồng bộ nếu vị trí thời gian xem (currentTime)
+  // chênh lệch dưới 5 giây so với lần sync thành công gần nhất (trừ sự kiện Ended hết tập hoặc đổi tập)
+  if (lastSynced && !isEpisodeChanged && !options?.isEnded) {
+    if (Math.abs(currentProgress - lastSynced.progressSeconds) < 5) {
+      return;
+    }
+  }
 
   // Luôn cập nhật thông tin mới nhất vào hàng đợi pending
   pendingCloudSaveItems.set(key, item);

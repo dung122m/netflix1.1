@@ -693,15 +693,72 @@ export function toOptimizedCardPosterUrl(url: string, _targetWidth: number = 320
   return clean;
 }
 
+const R2_PUBLIC_BASE_URL =
+  (typeof process !== "undefined" &&
+    (process.env.NEXT_PUBLIC_R2_PUBLIC_URL || process.env.R2_PUBLIC_URL)) ||
+  "https://media.nanaflix.asia";
+
+/**
+ * Trỏ trực tiếp URL sang Cloudflare R2 Public CDN nếu thuộc các domain đối tác/nguồn phim.
+ * Giúp trình duyệt tải trực tiếp từ Edge CDN Cloudflare với 0ms serverless function invocation.
+ */
+export function getR2DirectMediaUrl(rawUrl: string): string | null {
+  try {
+    if (!rawUrl || typeof rawUrl !== "string") return null;
+    const clean = rawUrl.trim();
+    if (!clean.startsWith("http://") && !clean.startsWith("https://")) return null;
+    const parsed = new URL(clean);
+    const domain = parsed.hostname.toLowerCase();
+    if (
+      !domain.includes("phimimg.com") &&
+      !domain.includes("img.phimapi.com") &&
+      !domain.includes("img.ophim.cc")
+    ) {
+      return null;
+    }
+    const cleanPath = parsed.pathname.replace(/^\/+/, "").replace(/[^a-zA-Z0-9_\-\/.]/g, "_");
+    const base = R2_PUBLIC_BASE_URL.replace(/\/+$/, "");
+    return `${base}/cache/${domain}/${cleanPath}`;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Trích xuất URL gốc ban đầu từ link R2 CDN hoặc link /api/media/r2-proxy.
+ * Dùng khi ảnh trên R2 Public CDN bị 404 (chưa tải lên) để fallback sang proxy tải & lưu R2 ngầm.
+ */
+export function extractOriginalSourceUrl(url: string): string {
+  if (!url || typeof url !== "string") return "";
+  const clean = url.trim();
+  if (clean.includes("/api/media/r2-proxy")) {
+    try {
+      const parsed = new URL(clean, "https://nanaflix.asia");
+      return parsed.searchParams.get("url") || clean;
+    } catch {
+      return clean;
+    }
+  }
+  const r2Match = clean.match(/^https?:\/\/[^/]+\/cache\/([^/]+)\/(.+)$/);
+  if (r2Match) {
+    const [, domain, path] = r2Match;
+    return `https://${domain}/${path}`;
+  }
+  return clean;
+}
+
 /**
  * Bảo vệ thẻ <img> trên client khỏi tải trực tiếp từ phimimg.com (nặng, chậm, thường bị chặn tại VN):
- * chuyển mọi URL phimimg.com còn sót lại sang Cloudflare R2 Proxy (/api/media/r2-proxy).
+ * 1. Ưu tiên trỏ trực tiếp sang Cloudflare R2 Public CDN trước (0ms latency, 0 Vercel CPU).
+ * 2. Chỉ khi thẻ <img> kích hoạt onError mới fallback sang /api/media/r2-proxy để fetch & upload lên R2.
  */
 export function toFastCdnImageUrl(url: string): string {
   if (!url || typeof url !== "string") return "";
   const clean = url.trim();
   if (!clean || clean.startsWith("/api/media/r2-proxy")) return clean;
-  if (clean.includes("phimimg.com")) {
+  if (clean.includes("phimimg.com") || clean.includes("img.phimapi.com") || clean.includes("img.ophim.cc")) {
+    const directR2 = getR2DirectMediaUrl(clean);
+    if (directR2) return directR2;
     return `/api/media/r2-proxy?url=${encodeURIComponent(clean)}`;
   }
   return clean;

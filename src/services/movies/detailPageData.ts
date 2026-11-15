@@ -308,44 +308,44 @@ export async function resolveTmdbFallbackMedia(movie: MovieDetailRecord) {
     const tmdbTasks = Promise.allSettled([
       needsTrailer
         ? (async () => {
-            let tr = "";
-            if (tmdbId) {
-              tr = (await getTmdbTrailerUrl(tmdbId, tmdbType).catch(() => "")) || "";
-            }
-            if (!tr && movieTitleForSearch) {
-              tr =
-                (await searchTmdbTrailerByTitle(movieTitleForSearch, movie.year, tmdbType).catch(
-                  () => ""
-                )) || "";
-            }
-            return tr;
-          })()
+          let tr = "";
+          if (tmdbId) {
+            tr = (await getTmdbTrailerUrl(tmdbId, tmdbType).catch(() => "")) || "";
+          }
+          if (!tr && movieTitleForSearch) {
+            tr =
+              (await searchTmdbTrailerByTitle(movieTitleForSearch, movie.year, tmdbType).catch(
+                () => ""
+              )) || "";
+          }
+          return tr;
+        })()
         : Promise.resolve(effectiveTrailerUrl),
 
       needsPoster
         ? (async () => {
-            let pUrl = "";
-            let tUrl = "";
-            if (tmdbId) {
-              const idImages = await getTmdbMediaImagesById(tmdbId, tmdbType).catch(() => null);
-              if (idImages?.posterUrl) pUrl = idImages.posterUrl;
-              if (idImages?.backdropUrl) tUrl = idImages.backdropUrl;
+          let pUrl = "";
+          let tUrl = "";
+          if (tmdbId) {
+            const idImages = await getTmdbMediaImagesById(tmdbId, tmdbType).catch(() => null);
+            if (idImages?.posterUrl) pUrl = idImages.posterUrl;
+            if (idImages?.backdropUrl) tUrl = idImages.backdropUrl;
+          }
+          if ((!pUrl || !tUrl) && movieTitleForSearch) {
+            const res = await searchTmdbPosterByTitle(
+              movieTitleForSearch,
+              movie.year,
+              tmdbType
+            ).catch(() => null);
+            if (res?.posterUrl && !pUrl) {
+              pUrl = res.posterUrl;
             }
-            if ((!pUrl || !tUrl) && movieTitleForSearch) {
-              const res = await searchTmdbPosterByTitle(
-                movieTitleForSearch,
-                movie.year,
-                tmdbType
-              ).catch(() => null);
-              if (res?.posterUrl && !pUrl) {
-                pUrl = res.posterUrl;
-              }
-              if (res?.backdropUrl && !tUrl) {
-                tUrl = res.backdropUrl;
-              }
+            if (res?.backdropUrl && !tUrl) {
+              tUrl = res.backdropUrl;
             }
-            return { posterUrl: pUrl, thumbUrl: tUrl };
-          })()
+          }
+          return { posterUrl: pUrl, thumbUrl: tUrl };
+        })()
         : Promise.resolve({ posterUrl: effectivePosterUrl, thumbUrl: effectiveThumbUrl }),
     ]);
 
@@ -499,9 +499,9 @@ async function buildMovieDetailPageDataInternal(
 
   const isChieuRap = Boolean(
     movie.chieurap === true ||
-      movie.chieurap === "true" ||
-      movie.chieurap === 1 ||
-      movie.chieu_rap === true
+    movie.chieurap === "true" ||
+    movie.chieurap === 1 ||
+    movie.chieu_rap === true
   );
 
   const viewCount = typeof movie.view === "number" && movie.view > 0 ? movie.view : undefined;
@@ -514,10 +514,10 @@ async function buildMovieDetailPageDataInternal(
   const formattedModified =
     modifiedTime && !isNaN(modifiedTime.getTime())
       ? modifiedTime.toLocaleDateString("vi-VN", {
-          day: "2-digit",
-          month: "2-digit",
-          year: "numeric",
-        })
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+      })
       : null;
 
   const rawEpisodes = episodes && episodes.length > 0 ? episodes : movie.episodes || [];
@@ -625,13 +625,13 @@ async function buildMovieDetailPageDataInternal(
     })),
     ...(movie.tmdb?.vote_average
       ? {
-          aggregateRating: {
-            "@type": "AggregateRating",
-            ratingValue: movie.tmdb.vote_average,
-            bestRating: "10",
-            ratingCount: movie.tmdb.vote_count || 50,
-          },
-        }
+        aggregateRating: {
+          "@type": "AggregateRating",
+          ratingValue: movie.tmdb.vote_average,
+          bestRating: "10",
+          ratingCount: movie.tmdb.vote_count || 50,
+        },
+      }
       : {}),
   };
 

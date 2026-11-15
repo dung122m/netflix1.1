@@ -640,8 +640,9 @@ async function generateForYouRecommendations(input: RecommendationInput): Promis
 }
 
 /**
- * GET /api/recommendations/for-you?seed=0
- * Dành cho Guest/Khách: CDN Edge Cache 1 giờ, 0ms latency, 0 Serverless CPU
+ * GET /api/recommendations/for-you
+ * Hỗ trợ tham số URL query: genres, types, exclude/watched, seed
+ * Tối đa hóa tỷ lệ Edge CDN Cache Hit (1 giờ) cho cả khách lẫn người dùng cá nhân hóa
  */
 export async function GET(req: NextRequest) {
   try {
@@ -653,12 +654,46 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const seed = Number(searchParams.get("seed")) || 0;
 
+    // Chuẩn hóa và sắp xếp cố định các genres để tối đa hóa Edge Cache hit rate
+    const rawGenres = searchParams.get("genres");
+    const genres = rawGenres
+      ? rawGenres
+          .split(",")
+          .map((g) => g.trim().toLowerCase())
+          .filter(Boolean)
+          .sort()
+      : [];
+
+    // Chuẩn hóa danh sách exclude/watched slugs (tối đa 15 slugs gần nhất để URL gọn và cache ổn định)
+    const rawExclude = searchParams.get("exclude") || searchParams.get("watched");
+    const excludeSlugs = rawExclude
+      ? rawExclude
+          .split(",")
+          .map((s) => s.trim().toLowerCase())
+          .filter(Boolean)
+          .slice(0, 15)
+      : [];
+
+    const rawTypes = searchParams.get("types");
+    const types = rawTypes
+      ? rawTypes
+          .split(",")
+          .map((t) => t.trim().toLowerCase())
+          .filter(Boolean)
+      : [];
+
+    // Tạo synthetic history items nếu có types để phục vụ phân loại format/live-action/animation
+    const syntheticHistory: WatchHistoryInputItem[] = types.map((t) => ({
+      slug: `synth-${t}`,
+      type: t,
+    }));
+
     const result = await generateForYouRecommendations({
-      genres: [],
-      historyItems: [],
-      watchedSlugs: [],
+      genres,
+      historyItems: syntheticHistory,
+      watchedSlugs: excludeSlugs,
       refreshSeed: seed,
-      currentSlugs: [],
+      currentSlugs: excludeSlugs,
     });
 
     return NextResponse.json(result, {

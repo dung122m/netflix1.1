@@ -14,6 +14,7 @@ import {
   pickBestMovieThumb,
   toOptimizedCardPosterUrl,
   toFastCdnImageUrl,
+  extractOriginalSourceUrl,
 } from "@/lib/movieMedia";
 import { formatEpisodeName } from "@/lib/formatEpisode";
 import { CarouselNavButton } from "@/components/ui/CarouselNavButton";
@@ -106,10 +107,15 @@ function ContinueWatchingCard({ item, index = 0, onRemove }: ContinueWatchingCar
   }, [imgSrc, item.slug]);
 
   const handleImgError = useCallback(() => {
-    // 1. Thử qua Cloudflare R2 proxy nếu là link phimimg bị nhà mạng chặn
-    if (imgSrc && imgSrc.includes("phimimg.com") && !imgSrc.includes("/api/media/r2-proxy")) {
-      const r2Url = toFastCdnImageUrl(imgSrc);
-      setImgSrc(r2Url);
+    // 1. Thử qua Cloudflare R2 proxy nếu là link phimimg / R2 cache bị lỗi hoặc chưa tồn tại
+    if (
+      imgSrc &&
+      (imgSrc.includes("phimimg.com") || imgSrc.includes("/cache/")) &&
+      !imgSrc.includes("/api/media/r2-proxy")
+    ) {
+      const originalSource = extractOriginalSourceUrl(imgSrc);
+      const r2ProxyUrl = `/api/media/r2-proxy?url=${encodeURIComponent(originalSource || imgSrc)}`;
+      setImgSrc(r2ProxyUrl);
       return;
     }
     // 2. Thử thumb ngang dự phòng nếu có và khác link đang lỗi

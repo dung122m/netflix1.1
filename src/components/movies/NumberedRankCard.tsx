@@ -3,7 +3,7 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { pickBestMoviePoster, toFastCdnImageUrl } from "@/lib/movieMedia";
+import { pickBestMoviePoster, toFastCdnImageUrl, extractOriginalSourceUrl } from "@/lib/movieMedia";
 import { isPhimimgSourceUrl } from "@/hooks/useMoviePosterFallback";
 import { MOVIE_CARD_TOKENS } from "@/lib/cardDimensions";
 
@@ -63,9 +63,14 @@ export const NumberedRankCard: React.FC<NumberedRankCardProps> = ({
       return;
     }
 
-    // Cứu cánh ảnh phimimg.com bị nhà mạng chặn bằng R2 Proxy trước khi hiển thị default poster
-    if (imgSrc && imgSrc.includes("phimimg.com") && !imgSrc.includes("/api/media/r2-proxy")) {
-      setImgSrc(`/api/media/r2-proxy?url=${encodeURIComponent(imgSrc)}`);
+    // Cứu cánh ảnh phimimg / R2 cache bị lỗi hoặc chưa tồn tại bằng R2 Proxy trước khi hiển thị default poster
+    if (
+      imgSrc &&
+      (imgSrc.includes("phimimg.com") || imgSrc.includes("/cache/")) &&
+      !imgSrc.includes("/api/media/r2-proxy")
+    ) {
+      const originalSource = extractOriginalSourceUrl(imgSrc);
+      setImgSrc(`/api/media/r2-proxy?url=${encodeURIComponent(originalSource || imgSrc)}`);
       return;
     }
 
