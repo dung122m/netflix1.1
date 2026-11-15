@@ -441,8 +441,16 @@ export async function updateCommentSupabase(
 export async function getAllCommentsSupabase(): Promise<MovieComment[]> {
   try {
     const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
-    const res = await fetch(`${baseUrl}/api/comments?all=true`, {
+    const { auth } = await import("@/lib/firebase");
+    const token = await auth?.currentUser?.getIdToken().catch(() => null);
+    const headers: Record<string, string> = {};
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
+
+    const res = await fetch(`${baseUrl}/api/comments?all=true&_t=${Date.now()}`, {
       cache: "no-store",
+      headers,
     });
     if (res.ok) {
       const data = await res.json();

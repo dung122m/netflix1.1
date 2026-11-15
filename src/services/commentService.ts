@@ -554,7 +554,16 @@ export async function fetchAllCommentsDirect(): Promise<MovieComment[]> {
     } catch {}
   }
   try {
-    const res = await fetch(`/api/comments?all=true&_t=${Date.now()}`, { cache: "no-store" });
+    const { auth } = await import("@/lib/firebase");
+    const token = await auth?.currentUser?.getIdToken().catch(() => null);
+    const headers: Record<string, string> = {};
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
+    const res = await fetch(`/api/comments?all=true&_t=${Date.now()}`, {
+      cache: "no-store",
+      headers,
+    });
     if (res.ok) {
       const data = await res.json();
       if (Array.isArray(data.items)) {

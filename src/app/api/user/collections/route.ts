@@ -19,7 +19,7 @@ const NO_CACHE_HEADERS = {
 };
 
 const COLLECTION_SELECT_FIELDS =
-  "id, user_id, user_name, user_avatar, name, description, is_public, color_gradient, cover_url, movies, likes_count, views_count, created_at, updated_at";
+  "id, user_id, user_name, user_avatar, name, description, is_public, color_gradient, movies, likes_count, views_count, created_at, updated_at";
 
 import {
   sanitizeAndDeduplicateMovies,

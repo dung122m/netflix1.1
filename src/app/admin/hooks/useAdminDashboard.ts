@@ -107,6 +107,23 @@ export function useAdminDashboard({
 
   const loadCollections = useCallback(async () => {
     try {
+      const { auth } = await import("@/lib/firebase");
+      const token = await auth?.currentUser?.getIdToken().catch(() => null);
+      if (token) {
+        const res = await fetch(`/api/user/collections?all=true&_t=${Date.now()}`, {
+          cache: "no-store",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success && Array.isArray(data.items)) {
+            setCollections(data.items);
+            return;
+          }
+        }
+      }
       const items = await getPublicCollectionsSupabase();
       if (items) setCollections(items);
     } catch (err) {

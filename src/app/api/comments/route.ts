@@ -230,7 +230,7 @@ export async function GET(req: NextRequest) {
     );
 
 const COMMENT_SELECT_FIELDS =
-  "id, movie_slug, movie_title, user_id, user_name, user_avatar, user_email, rating, content, episode_slug, episode_name, parent_id, parent_owner_id, reply_to_user_id, reply_to_user_name, is_spoiler, likes, liked_by, is_flagged, flag_reason, is_pinned, created_at, updated_at, is_edited, edited_at";
+  "id, movie_slug, movie_title, user_id, user_name, user_avatar, user_email, rating, content, episode_slug, episode_name, parent_id, parent_owner_id, reply_to_user_id, reply_to_user_name, is_spoiler, likes, liked_by, is_flagged, flag_reason, is_approved, is_pinned, created_at, updated_at";
 
     if (isPublicMovieQuery && movieSlug) {
       if (isFresh) {
