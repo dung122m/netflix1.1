@@ -234,6 +234,7 @@ const HeroFeaturedInner: React.FC<{ movies?: HeroMovie[] }> = ({
               alt={meta.title}
               fill
               priority={index === 0}
+              decoding="async"
               quality={80}
               unoptimized
               sizes="100vw"

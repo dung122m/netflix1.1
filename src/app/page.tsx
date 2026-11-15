@@ -333,17 +333,25 @@ export default async function HomePage() {
 
       <div className="px-4 md:px-8 relative z-10 space-y-10 sm:space-y-14">
         {/* 5. HÀNG PHIM DÀNH RIÊNG CHO BẠN (AI PERSONALIZED RECOMMENDATIONS) */}
-        <ForYouPersonalizedRow fallbackMovies={movies} />
+        <div className="cv-auto-row py-1">
+          <ForYouPersonalizedRow fallbackMovies={movies} />
+        </div>
 
         {/* 6. BẢNG XẾP HẠNG PHIM THỊNH HÀNH & TOP 10 CỘNG ĐỒNG */}
-        <TmdbTopTrending initialItems={trendingWeekRaw} />
-        <CommunityTopTrending />
+        <div className="cv-auto-row py-1">
+          <TmdbTopTrending initialItems={trendingWeekRaw} />
+        </div>
+        <div className="cv-auto-row py-1">
+          <CommunityTopTrending />
+        </div>
 
         {/* 7. TAB TUYỂN CHỌN PHIM ĐA NĂNG TRÊN TRANG CHỦ */}
-        <CuratedMovieSection
-          initialMovies={movies}
-          initialTotalItems={totalItems}
-        />
+        <div className="cv-auto-row py-1">
+          <CuratedMovieSection
+            initialMovies={movies}
+            initialTotalItems={totalItems}
+          />
+        </div>
       </div>
       <Footer />
     </div>

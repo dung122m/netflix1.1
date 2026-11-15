@@ -372,8 +372,10 @@ export const FilterBar: React.FC = () => {
   const checkFilterScroll = useCallback(() => {
     const el = scrollContainerRef.current;
     if (!el) return;
-    setCanScrollLeft(el.scrollLeft > 3);
-    setCanScrollRight(el.scrollLeft < el.scrollWidth - el.clientWidth - 3);
+    const nextLeft = el.scrollLeft > 3;
+    const nextRight = el.scrollLeft < el.scrollWidth - el.clientWidth - 3;
+    setCanScrollLeft((prev) => (prev !== nextLeft ? nextLeft : prev));
+    setCanScrollRight((prev) => (prev !== nextRight ? nextRight : prev));
   }, []);
 
   useEffect(() => {

@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import {
   Check,
@@ -21,11 +22,20 @@ import {
   extractMovieCountry,
   COUNTRY_DISPLAY_MAP,
 } from "@/lib/movieMedia";
-import { TrailerModal } from "@/components/modals/TrailerModal";
+const TrailerModal = dynamic(
+  () => import("@/components/modals/TrailerModal").then((m) => m.TrailerModal),
+  { ssr: false }
+);
 import { extractYoutubeId } from "@/lib/trailerHelper";
 import { useAuth } from "@/context/AuthContext";
-import { AddToCollectionModal } from "@/components/Collections/AddToCollectionModal";
-import { AuthModal } from "@/components/modals/AuthModal";
+const AddToCollectionModal = dynamic(
+  () => import("@/components/Collections/AddToCollectionModal").then((m) => m.AddToCollectionModal),
+  { ssr: false }
+);
+const AuthModal = dynamic(
+  () => import("@/components/modals/AuthModal").then((m) => m.AuthModal),
+  { ssr: false }
+);
 import { Tooltip } from "@/components/ui/Tooltip";
 import { useMoviePosterFallback, isPhimimgSourceUrl } from "@/hooks/useMoviePosterFallback";
 
@@ -600,13 +610,13 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
 
   return (
     <div
-      className="group/card relative flex flex-col w-full select-none cursor-pointer hover:scale-[1.02] hover:-translate-y-0.5 hover:z-20 transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:transform-none"
+      className="group/card relative flex flex-col w-full select-none cursor-pointer hover:scale-[1.02] hover:-translate-y-0.5 hover:z-20 transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:transform-none"
     >
       {/* ========================================================================= */}
       {/* 1. KHỐI POSTER NGHỆ THUẬT (2:3 POSTER ARTWORK CANVAS - CLEAN & ELEVATED)   */}
       {/* ========================================================================= */}
       <div
-        className={`relative aspect-[2/3] w-full rounded-xl overflow-hidden bg-zinc-950 bg-gradient-to-br from-zinc-800/70 via-zinc-900 to-zinc-950 transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] focus-within:ring-2 focus-within:ring-white ${
+        className={`relative aspect-[2/3] w-full rounded-xl overflow-hidden bg-zinc-950 bg-gradient-to-br from-zinc-800/70 via-zinc-900 to-zinc-950 transition-shadow duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] focus-within:ring-2 focus-within:ring-white ${
           isCardActive
             ? "shadow-[inset_0_0_0_2px_#22c55e]"
             : "group-hover/card:ring-2 group-hover/card:ring-netflix-red group-hover/card:ring-inset group-hover/card:shadow-[0_12px_28px_rgba(0,0,0,0.85)]"
@@ -615,7 +625,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
       >
         {/* LỚP DỊU MÉP TRONG (LÀM MỀM POSTER NỀN SÁNG TRÊN DARK MODE MÀ KHÔNG CẦN VIỀN) */}
         <div
-          className={`pointer-events-none absolute inset-0 z-[3] rounded-xl shadow-[inset_0_0_24px_rgba(0,0,0,0.22)] transition-all duration-300 ${
+          className={`pointer-events-none absolute inset-0 z-[3] rounded-xl shadow-[inset_0_0_24px_rgba(0,0,0,0.22)] transition-opacity duration-300 ${
             isCardActive
               ? ""
               : "ring-1 ring-inset ring-transparent group-hover/card:ring-white/25"
@@ -675,7 +685,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
               decoding={priority ? "sync" : "async"}
               fetchPriority={priority ? "high" : "auto"}
               referrerPolicy="no-referrer"
-              className={`relative z-[1] w-full h-full object-cover object-center brightness-[0.94] group-hover/card:scale-105 group-hover/card:brightness-105 transition-all duration-300 ease-out motion-reduce:transform-none ${
+              className={`relative z-[1] w-full h-full object-cover object-center brightness-[0.94] group-hover/card:scale-105 group-hover/card:brightness-105 transition-transform duration-300 ease-out motion-reduce:transform-none ${
                 isImageLoaded ? "opacity-100" : "opacity-0"
               }`}
               onLoad={(e) => {
@@ -727,7 +737,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
                 type="button"
                 onClick={onRemove}
                 aria-label={removeTooltip || `Xóa ${title}`}
-                className="w-7 h-7 rounded-full bg-black/75 hover:bg-netflix-red hover:text-white text-zinc-300 backdrop-blur-md flex items-center justify-center shadow-lg transition-all duration-200 hover:scale-110 active:scale-90 cursor-pointer"
+                className="w-7 h-7 rounded-full bg-black/75 hover:bg-netflix-red hover:text-white text-zinc-300 backdrop-blur-md flex items-center justify-center shadow-lg transition-transform transition-colors duration-200 hover:scale-110 active:scale-90 cursor-pointer"
               >
                 <X className="w-3.5 h-3.5" />
               </button>
@@ -739,7 +749,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
         {typeof progressPercent === "number" && progressPercent >= 0 && (
           <div className="absolute bottom-0 left-0 right-0 h-[3.5px] bg-white/20 backdrop-blur-sm z-10 overflow-hidden">
             <div
-              className="h-full bg-netflix-red rounded-r-full transition-all duration-500"
+              className="h-full bg-netflix-red rounded-r-full transition-[width] duration-500"
               style={{ width: `${Math.min(100, Math.max(0, progressPercent))}%` }}
             />
           </div>
@@ -755,7 +765,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
               type="button"
               onClick={handleOpenCollectionModal}
               aria-label={`Thêm phim ${title} vào bộ sưu tập`}
-              className="w-7 h-7 rounded-full flex items-center justify-center transition-all duration-150 hover:scale-110 active:scale-95 cursor-pointer shadow-md shadow-black/50 backdrop-blur-md outline-none focus-visible:ring-2 focus-visible:ring-amber-400 bg-black/75 hover:bg-amber-400 text-amber-400 hover:text-black"
+              className="w-7 h-7 rounded-full flex items-center justify-center transition-transform transition-colors duration-150 hover:scale-110 active:scale-95 cursor-pointer shadow-md shadow-black/50 backdrop-blur-md outline-none focus-visible:ring-2 focus-visible:ring-amber-400 bg-black/75 hover:bg-amber-400 text-amber-400 hover:text-black"
             >
               <FolderPlus className="w-3.5 h-3.5 transition-colors" />
             </button>
@@ -767,7 +777,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
               type="button"
               onClick={handleToggleList}
               aria-label={inList ? `Bỏ lưu phim ${title}` : `Lưu phim ${title} vào danh sách`}
-              className={`w-7 h-7 rounded-full flex items-center justify-center transition-all duration-150 hover:scale-110 active:scale-95 cursor-pointer shadow-md shadow-black/50 backdrop-blur-md outline-none focus-visible:ring-2 focus-visible:ring-netflix-red ${
+              className={`w-7 h-7 rounded-full flex items-center justify-center transition-transform transition-colors duration-150 hover:scale-110 active:scale-95 cursor-pointer shadow-md shadow-black/50 backdrop-blur-md outline-none focus-visible:ring-2 focus-visible:ring-netflix-red ${
                 inList
                   ? "bg-netflix-red text-white hover:brightness-110"
                   : "bg-black/75 hover:bg-netflix-red hover:text-white text-white"
@@ -787,7 +797,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
                 onClick={handleTrailerClick}
                 disabled={isLoadingTrailer}
                 aria-label={`Xem Trailer phim ${title}`}
-                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-black/75 hover:bg-white hover:text-zinc-950 text-white text-[11px] font-bold transition-all hover:scale-105 active:scale-95 cursor-pointer shadow-md shadow-black/50 backdrop-blur-md outline-none focus-visible:ring-2 focus-visible:ring-white"
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-black/75 hover:bg-white hover:text-zinc-950 text-white text-[11px] font-bold transition-transform transition-colors duration-150 hover:scale-105 active:scale-95 cursor-pointer shadow-md shadow-black/50 backdrop-blur-md outline-none focus-visible:ring-2 focus-visible:ring-white"
               >
                 <Film className="w-3 h-3 text-current" />
                 <span>{isLoadingTrailer ? "..." : "Trailer"}</span>

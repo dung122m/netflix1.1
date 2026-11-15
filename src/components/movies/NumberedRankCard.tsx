@@ -184,6 +184,7 @@ export const NumberedRankCard: React.FC<NumberedRankCardProps> = ({
                 fill
                 unoptimized
                 priority={priority}
+                decoding="async"
                 sizes="(max-width: 640px) 160px, (max-width: 768px) 200px, 240px"
                 className="object-cover group-hover:scale-105 transition-transform duration-500"
                 loading={priority ? "eager" : "lazy"}

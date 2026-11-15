@@ -18,12 +18,40 @@ import {
 } from "lucide-react";
 import { NanaflixBrandLogo } from "@/components/layout/NetflixLogo";
 import { NavSearchBar } from "@/components/navbar/NavSearchBar";
-import { NavNotifications } from "@/components/navbar/NavNotifications";
 import { NavUserMenu } from "@/components/navbar/NavUserMenu";
-import { AccentStudio } from "@/components/navbar/AccentStudio";
-import { NavMobileMenu } from "@/components/navbar/NavMobileMenu";
 import { useAuth } from "@/context/AuthContext";
 import { subscribeUserNotifications } from "@/services/notificationService";
+
+const NavNotifications = dynamic(
+  () => import("@/components/navbar/NavNotifications").then((m) => m.NavNotifications),
+  {
+    ssr: false,
+    loading: () => (
+      <div
+        className="h-8 w-8 sm:h-9 sm:w-9 min-h-[32px] min-w-[32px] sm:min-h-[36px] sm:min-w-[36px] rounded-full bg-white/10 flex-shrink-0"
+        aria-hidden="true"
+      />
+    ),
+  }
+);
+
+const AccentStudio = dynamic(
+  () => import("@/components/navbar/AccentStudio").then((m) => m.AccentStudio),
+  {
+    ssr: false,
+    loading: () => (
+      <div
+        className="h-8 w-8 sm:h-9 sm:w-9 min-h-[32px] min-w-[32px] sm:min-h-[36px] sm:min-w-[36px] rounded-full bg-zinc-900/90 flex-shrink-0"
+        aria-hidden="true"
+      />
+    ),
+  }
+);
+
+const NavMobileMenu = dynamic(
+  () => import("@/components/navbar/NavMobileMenu").then((m) => m.NavMobileMenu),
+  { ssr: false }
+);
 
 const AuthModal = dynamic(
   () => import("@/components/modals/AuthModal").then((mod) => mod.AuthModal),
@@ -215,15 +243,17 @@ const NavbarInner: React.FC = () => {
       </div>
 
       {/* ISOLATED MOBILE DRAWER */}
-      <NavMobileMenu
-        isOpen={isMobileMenuOpen}
-        onClose={handleCloseMobileMenu}
-        onOpenAuthModal={handleOpenAuthModal}
-        onOpenNotifications={handleEmptyNotifications}
-        navLinks={NAV_LINKS}
-        isLinkActive={isLinkActive}
-        userUnreadCount={unreadCount}
-      />
+      {isMobileMenuOpen && (
+        <NavMobileMenu
+          isOpen={isMobileMenuOpen}
+          onClose={handleCloseMobileMenu}
+          onOpenAuthModal={handleOpenAuthModal}
+          onOpenNotifications={handleEmptyNotifications}
+          navLinks={NAV_LINKS}
+          isLinkActive={isLinkActive}
+          userUnreadCount={unreadCount}
+        />
+      )}
 
       {/* GOOGLE AUTH MODAL */}
       <AuthModal isOpen={showAuthModal} onClose={handleCloseAuthModal} />

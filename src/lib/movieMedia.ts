@@ -1,6 +1,5 @@
 import { cleanHtmlText } from "@/lib/cleanHtml";
 import { normalizeForMatch } from "@/lib/stringUtils";
-import { getR2BannerUrl } from "@/lib/r2Manifest";
 import {
   KNOWN_COUNTRIES,
   COUNTRY_DISPLAY_MAP,
@@ -741,10 +740,8 @@ export function pickHeroBackdropImage(
   const rawMovie = ((movie as Record<string, unknown>)?.movie as MovieLike) || movie;
 
   // 0. Ưu tiên tuyệt đối backdrop/banner đã được cache trên Cloudflare R2 CDN
-  const movieSlug = ((rawMovie.slug || movie.slug) as string | undefined)?.toLowerCase().trim();
   const rawBackdrop = (rawMovie.backdrop_url || rawMovie.backdropUrl || movie.backdrop_url || movie.backdropUrl) as string | undefined;
-  const r2Url = getR2BannerUrl(movieSlug, rawBackdrop);
-  if (r2Url) return r2Url;
+  if (rawBackdrop && rawBackdrop.includes("media.nanaflix.asia")) return rawBackdrop;
 
   const isNguonC = isNguonCSource(movie);
 

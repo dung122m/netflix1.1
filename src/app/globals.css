@@ -359,11 +359,16 @@
 }
 
 /* ============================================================ */
-/* PERFORMANCE OPTIMIZATIONS: FOOTER CONTENT-VISIBILITY         */
+/* PERFORMANCE OPTIMIZATIONS: ROWS & FOOTER CONTENT-VISIBILITY  */
 /* ============================================================ */
 .cv-auto-footer {
   content-visibility: auto;
   contain-intrinsic-size: 0 400px;
+}
+
+.cv-auto-row {
+  content-visibility: auto;
+  contain-intrinsic-size: 0 420px;
 }
 
 /* ============================================================ */
