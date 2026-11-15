@@ -135,6 +135,44 @@ const nextConfig: NextConfig = {
         ],
       },
       {
+        // Edge / CDN caching cho trang chủ landing page (/)
+        source: "/",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, s-maxage=1800, stale-while-revalidate=3600",
+          },
+        ],
+      },
+      {
+        // Edge / CDN caching cho trang trực tiếp bóng đá & TV (/live)
+        source: "/live",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, s-maxage=180, stale-while-revalidate=300",
+          },
+        ],
+      },
+      {
+        // Edge / CDN caching tối đa cho ảnh qua R2 proxy (/api/media/r2-proxy)
+        source: "/api/media/r2-proxy",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=31536000, s-maxage=31536000, immutable",
+          },
+          {
+            key: "CDN-Cache-Control",
+            value: "public, max-age=31536000, immutable",
+          },
+          {
+            key: "Vercel-CDN-Cache-Control",
+            value: "max-age=31536000, immutable",
+          },
+        ],
+      },
+      {
         // Edge / CDN caching an toàn cho trang chi tiết phim công khai (/movies/:slug)
         // Cache 1 giờ (3600s), stale-while-revalidate 1 ngày: chống bot crawler quét cạn Redis commands
         // mà vẫn bảo đảm tập phim và dữ liệu luôn tươi mới, an toàn.

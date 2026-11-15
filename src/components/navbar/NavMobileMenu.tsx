@@ -238,6 +238,7 @@ export const NavMobileMenu: React.FC<NavMobileMenuProps> = React.memo(function N
           {/* CARD 4: LỊCH SỬ XEM */}
           <Link
             href="/my-list?tab=history"
+            prefetch={false}
             onClick={onClose}
             className="flex items-center gap-2.5 p-2.5 rounded-xl bg-zinc-900/90 hover:bg-zinc-800 text-white transition text-left active:scale-[0.98]"
           >
@@ -261,7 +262,7 @@ export const NavMobileMenu: React.FC<NavMobileMenuProps> = React.memo(function N
               <Link
                 key={link.name}
                 href={link.href}
-                prefetch={true}
+                prefetch={false}
                 onClick={onClose}
                 className={`text-xs font-semibold py-2.5 px-3 transition-all flex items-center gap-2 rounded-xl min-w-0 ${active
                     ? "text-white font-bold bg-netflix-red/30 shadow-sm"

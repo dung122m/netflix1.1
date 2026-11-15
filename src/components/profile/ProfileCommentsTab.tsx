@@ -71,6 +71,7 @@ export const ProfileCommentsTab: React.FC<ProfileCommentsTabProps> = React.memo(
                   {/* POSTER THUMBNAIL */}
                   <Link
                     href={`/movies/${c.movieSlug}`}
+                    prefetch={false}
                     className="relative w-full sm:w-20 md:w-24 h-36 sm:h-auto sm:aspect-[2/3] rounded-xl overflow-hidden bg-zinc-800/80 shrink-0 group-hover:scale-[1.02] transition-transform duration-300 shadow-md block"
                   >
                     {poster ? (
@@ -107,6 +108,7 @@ export const ProfileCommentsTab: React.FC<ProfileCommentsTabProps> = React.memo(
                         <div className="min-w-0 flex-1">
                           <Link
                             href={`/movies/${c.movieSlug}#comments`}
+                            prefetch={false}
                             className="text-sm sm:text-base font-extrabold text-white hover:text-netflix-red transition-colors inline-flex items-center gap-1.5 group/title truncate max-w-full"
                           >
                             <span className="truncate">{movieTitle}</span>

@@ -422,14 +422,6 @@ export function proxy(req: NextRequest) {
     response.headers.set("Cloudflare-CDN-Cache-Control", "no-store");
   }
 
-  // 6. Bảo vệ RSC flight stream: Tuyệt đối không để CDN / Cloudflare Edge lưu cache RSC payload
-  // Tránh nguy cơ trả nhầm text/x-component cho người dùng truy cập HTML hoặc ngược lại
-  const isRscRequest = req.headers.get("rsc") === "1" || req.nextUrl.searchParams.has("_rsc");
-  if (isRscRequest) {
-    response.headers.set("CDN-Cache-Control", "no-store");
-    response.headers.set("Cloudflare-CDN-Cache-Control", "no-store");
-  }
-
   return response;
 }
 

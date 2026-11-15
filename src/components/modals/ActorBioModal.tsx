@@ -222,6 +222,7 @@ export const ActorBioModal: React.FC<ActorBioModalProps> = ({
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 pt-2">
             <Link
               href={`/browse?actor=${encodeURIComponent(displayTitle)}`}
+              prefetch={false}
               onClick={() => setIsOpen(false)}
               className="min-h-[46px] h-11 px-5 rounded-xl bg-netflix-red hover:brightness-110 active:brightness-95 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition shadow-lg shadow-netflix-red/30 active:scale-[0.99] cursor-pointer w-full sm:flex-1 shrink-0"
             >
@@ -232,6 +233,7 @@ export const ActorBioModal: React.FC<ActorBioModalProps> = ({
             {profile?.slug && (
               <Link
                 href={`/dien-vien/${profile.slug}`}
+                prefetch={false}
                 onClick={() => setIsOpen(false)}
                 className="min-h-[46px] h-11 px-4 rounded-xl bg-white/10 hover:bg-white/15 text-zinc-200 hover:text-white font-semibold text-xs flex items-center justify-center gap-1.5 transition cursor-pointer whitespace-nowrap w-full sm:w-auto shrink-0"
               >

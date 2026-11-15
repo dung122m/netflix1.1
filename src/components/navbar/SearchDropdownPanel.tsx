@@ -151,6 +151,7 @@ export function SearchDropdownPanel({
                 <Link
                   key={item.slug}
                   href={resolveSuggestionHref(item.slug)}
+                  prefetch={false}
                   onClick={() => onSuggestionSelect(isMobile)}
                   className={`flex items-center gap-3 p-2 rounded-lg transition group ${
                     selectedSuggestionIndex === idx

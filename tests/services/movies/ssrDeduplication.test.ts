@@ -123,8 +123,8 @@ describe("SSR Deduplication & Redis DB1 Optimization Tests", () => {
     }
   });
 
-  it("6. HTML và RSC: Request RSC mang header rsc: 1 hoặc ?_rsc bị cấm lưu trên CDN/Cloudflare", () => {
-    // Request RSC qua header 'rsc: 1'
+  it("6. HTML và RSC: Request public RSC không bị ép no-store (cho phép Vercel Edge CDN cache dữ liệu chuyển trang)", () => {
+    // Request RSC qua header 'rsc: 1' cho route phim công khai
     const rscReq = new NextRequest("https://nanaflix.asia/movies/di-giua-troi-ruc-ro", {
       headers: {
         "user-agent": "Mozilla/5.0",
@@ -132,8 +132,7 @@ describe("SSR Deduplication & Redis DB1 Optimization Tests", () => {
       },
     });
     const rscRes = proxy(rscReq);
-    assert.equal(rscRes.headers.get("CDN-Cache-Control"), "no-store");
-    assert.equal(rscRes.headers.get("Cloudflare-CDN-Cache-Control"), "no-store");
+    assert.notEqual(rscRes.headers.get("CDN-Cache-Control"), "no-store");
 
     // Request RSC qua query param '?_rsc=...'
     const rscQueryReq = new NextRequest("https://nanaflix.asia/movies/di-giua-troi-ruc-ro?_rsc=12345", {
@@ -142,8 +141,7 @@ describe("SSR Deduplication & Redis DB1 Optimization Tests", () => {
       },
     });
     const rscQueryRes = proxy(rscQueryReq);
-    assert.equal(rscQueryRes.headers.get("CDN-Cache-Control"), "no-store");
-    assert.equal(rscQueryRes.headers.get("Cloudflare-CDN-Cache-Control"), "no-store");
+    assert.notEqual(rscQueryRes.headers.get("CDN-Cache-Control"), "no-store");
   });
 
   it("7. Response headers bảo đảm an toàn: nosniff, SAMEORIGIN, không có Set-Cookie rò rỉ", () => {
