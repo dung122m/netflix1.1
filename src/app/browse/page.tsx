@@ -666,78 +666,89 @@ export default async function BrowsePage({
         </div>
 
         <div className="relative z-10 pt-2 sm:pt-4">
-          {/* TIÊU ĐỀ & KẾT QUẢ DANH MỤC */}
-          <div className="mb-7 flex flex-wrap items-center justify-between gap-3 mt-4">
-          <div>
-            <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-white">
-              {title}
-            </h1>
-            <p className="mt-1 text-sm text-zinc-400 max-w-[65ch] leading-relaxed">
-              {detectedActor
-                ? `Tổng hợp các bộ phim tiêu biểu có sự tham gia của ${detectedActor.name}.`
-                : "Kho phim trực tuyến chất lượng cao, cập nhật liên tục các tác phẩm mới nhất."}
-            </p>
-          </div>
-          <div className="flex items-center gap-3 flex-wrap">
-            <div className="inline-flex items-center gap-2 rounded-xl bg-white/5 px-3 py-1.5 text-xs md:text-sm text-zinc-200 backdrop-blur-sm shadow-sm">
-              <Film className="w-3.5 h-3.5 text-netflix-red" />
-              <span>{totalItems.toLocaleString("vi-VN")} phim</span>
-              <span className="text-white/40">•</span>
-              <span>Trang {currentPage}</span>
-            </div>
-          </div>
-        </div>
-
-        {detectedActor && (
-          <div className="mb-6 p-3.5 sm:p-4 rounded-xl bg-zinc-900/60 border border-white/[0.08] flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 backdrop-blur-md shadow-lg animate-in fade-in duration-300">
-            <div className="flex items-center gap-3.5 min-w-0">
-              {detectedActor.avatarUrl ? (
-                <div className="relative w-11 h-11 sm:w-12 sm:h-12 rounded-full overflow-hidden border border-white/10 flex-none shadow-md">
-                  <Image
-                    src={detectedActor.avatarUrl}
-                    alt={detectedActor.name}
-                    fill
-                    sizes="48px"
-                    className="object-cover"
-                  />
-                </div>
-              ) : (
-                <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-zinc-800 to-zinc-900 border border-white/10 flex items-center justify-center flex-none shadow-md text-xs sm:text-sm font-bold text-zinc-200">
-                  {getActorInitials(detectedActor.name)}
-                </div>
-              )}
-              <div className="min-w-0">
-                <h4 className="text-sm sm:text-base font-bold text-white flex items-center gap-2 flex-wrap">
-                  <span className="truncate">
-                    {detectedActor.name}
-                    {detectedActor.englishName && detectedActor.englishName !== detectedActor.name ? ` (${detectedActor.englishName})` : ""}
-                  </span>
-                  {detectedActor.country && (
-                    <span className="text-[11px] text-zinc-300 font-medium px-2 py-0.5 rounded-full bg-white/[0.08] flex-none">
-                      {detectedActor.country}
+          {detectedActor ? (
+            /* KHỐI HỒ SƠ NGHỆ SĨ DUY NHẤT (GỘP TIÊU ĐỀ + PROFILE CARD CHUẨN APPLE TV+, TRIỆT TIÊU 100% TRÙNG LẶP TEXT) */
+            <div className="mb-7 p-4 sm:p-5 rounded-2xl bg-zinc-900/60 border border-white/[0.08] backdrop-blur-md shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4 animate-in fade-in duration-300 mt-4">
+              <div className="flex items-center gap-4 min-w-0">
+                {detectedActor.avatarUrl ? (
+                  <div className="relative w-14 h-14 sm:w-16 sm:h-16 rounded-full overflow-hidden border border-white/10 flex-none shadow-lg">
+                    <Image
+                      src={detectedActor.avatarUrl}
+                      alt={detectedActor.name}
+                      fill
+                      sizes="64px"
+                      className="object-cover"
+                    />
+                  </div>
+                ) : (
+                  <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-gradient-to-br from-zinc-800 to-zinc-900 border border-white/10 flex items-center justify-center flex-none shadow-lg text-sm sm:text-base font-bold text-zinc-200">
+                    {getActorInitials(detectedActor.name)}
+                  </div>
+                )}
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap mb-1">
+                    <h1 className="text-xl sm:text-2xl md:text-3xl font-extrabold tracking-tight text-white truncate">
+                      {detectedActor.name}
+                      {detectedActor.englishName && detectedActor.englishName !== detectedActor.name ? (
+                        <span className="text-base sm:text-lg md:text-xl font-medium text-zinc-400 ml-2">
+                          ({detectedActor.englishName})
+                        </span>
+                      ) : null}
+                    </h1>
+                    {detectedActor.country && (
+                      <span className="text-xs text-zinc-300 font-medium px-2.5 py-0.5 rounded-full bg-white/[0.08] flex-none">
+                        {detectedActor.country}
+                      </span>
+                    )}
+                    <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-white/[0.06] text-zinc-400 font-medium flex-none">
+                      Diễn viên
                     </span>
-                  )}
-                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/[0.06] text-zinc-400 font-medium flex-none">
-                    Diễn viên
-                  </span>
-                </h4>
-                <p className="text-xs text-zinc-400 mt-0.5 truncate sm:whitespace-normal">
-                  Xem chi tiết tiểu sử, sự nghiệp và các tác phẩm điện ảnh.
-                </p>
+                  </div>
+                  <p className="text-xs sm:text-sm text-zinc-400 leading-relaxed truncate sm:whitespace-normal">
+                    Tuyển tập {totalItems.toLocaleString("vi-VN")} tác phẩm điện ảnh và truyền hình có sự tham gia của {detectedActor.name}.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2.5 self-start md:self-auto flex-none flex-wrap">
+                <div className="inline-flex items-center gap-2 rounded-xl bg-white/5 px-3 py-1.5 text-xs text-zinc-200 border border-white/5 shadow-sm">
+                  <Film className="w-3.5 h-3.5 text-netflix-red" />
+                  <span>{totalItems.toLocaleString("vi-VN")} phim</span>
+                  <span className="text-white/30">•</span>
+                  <span>Trang {currentPage}</span>
+                </div>
+                {detectedActor.href && (
+                  <Link
+                    href={detectedActor.href}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-white/10 hover:bg-white/15 active:bg-white/20 text-white font-medium text-xs transition border border-white/10 shadow-sm cursor-pointer"
+                  >
+                    <span>Hồ sơ nghệ sĩ</span>
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </Link>
+                )}
               </div>
             </div>
-
-            {detectedActor.href && (
-              <Link
-                href={detectedActor.href}
-                className="self-start sm:self-auto inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-white/10 hover:bg-white/15 active:bg-white/20 text-white font-medium text-xs transition border border-white/10 shadow-sm flex-none cursor-pointer"
-              >
-                <span>Hồ sơ nghệ sĩ</span>
-                <ChevronRight className="w-3.5 h-3.5" />
-              </Link>
-            )}
-          </div>
-        )}
+          ) : (
+            /* TIÊU ĐỀ & KẾT QUẢ DANH MỤC THÔNG THƯỜNG */
+            <div className="mb-7 flex flex-wrap items-center justify-between gap-3 mt-4">
+              <div>
+                <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-white">
+                  {title}
+                </h1>
+                <p className="mt-1 text-sm text-zinc-400 max-w-[65ch] leading-relaxed">
+                  Kho phim trực tuyến chất lượng cao, cập nhật liên tục các tác phẩm mới nhất.
+                </p>
+              </div>
+              <div className="flex items-center gap-3 flex-wrap">
+                <div className="inline-flex items-center gap-2 rounded-xl bg-white/5 px-3 py-1.5 text-xs md:text-sm text-zinc-200 backdrop-blur-sm shadow-sm">
+                  <Film className="w-3.5 h-3.5 text-netflix-red" />
+                  <span>{totalItems.toLocaleString("vi-VN")} phim</span>
+                  <span className="text-white/40">•</span>
+                  <span>Trang {currentPage}</span>
+                </div>
+              </div>
+            </div>
+          )}
 
 
 

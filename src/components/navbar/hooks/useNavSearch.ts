@@ -443,6 +443,14 @@ export function useNavSearch({
           handleRecentClick(recentSearches[selectedSuggestionIndex]);
           return;
         }
+
+        // Khi người dùng nhấn Enter trực tiếp trên input (không chọn suggestion),
+        // lập tức hủy tìm kiếm ngầm, đóng dropdown và blur input để không che màn hình kết quả
+        abortPendingSearch();
+        setShowDropdown(false);
+        setSelectedSuggestionIndex(-1);
+        inputRef.current?.blur();
+        mobileInputRef.current?.blur();
       }
 
       if (!showDropdown) return;
