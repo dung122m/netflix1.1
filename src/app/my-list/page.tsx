@@ -101,9 +101,19 @@ function MyListContent() {
   const [showCreateCollectionModal, setShowCreateCollectionModal] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [visibleHistoryCount, setVisibleHistoryCount] = useState<number>(HISTORY_PAGE_SIZE);
+  const [isSyncing, setIsSyncing] = useState<boolean>(false);
 
-  const { user, loading, isSyncing, syncNow } = useAuth();
+  const { user, loading, syncNow } = useAuth();
   const collections = user?.uid ? rawCollections : EMPTY_COLLECTIONS;
+
+  const handleManualSync = useCallback(async () => {
+    setIsSyncing(true);
+    try {
+      await syncNow();
+    } finally {
+      setIsSyncing(false);
+    }
+  }, [syncNow]);
 
   const {
     userComments,
@@ -414,7 +424,7 @@ function MyListContent() {
       <MyListCloudBanner
         user={user}
         isSyncing={isSyncing}
-        onSyncNow={syncNow}
+        onSyncNow={handleManualSync}
         onOpenAuth={() => setShowAuthModal(true)}
       />
 

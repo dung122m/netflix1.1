@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useRef, useCallback, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { movieApi, DEFAULT_GENRES, DEFAULT_COUNTRIES } from "@/services/movies/service";
+import { DEFAULT_GENRES, DEFAULT_COUNTRIES } from "@/data/movies/taxonomy";
 import { Tooltip } from "@/components/ui/Tooltip";
 import { getCanonicalGenreSlug, getCanonicalCountrySlug, isRawId } from "@/lib/movieMedia";
 import { useBodyScrollLock } from "@/lib/scrollLock";
@@ -58,11 +58,6 @@ export const FilterBar: React.FC = () => {
     sort?: string;
   }>({});
   const [pendingGroup, setPendingGroup] = useState<FilterGroup | "all" | null>(null);
-
-  // Sync with movieApi static/cached filters
-  useEffect(() => {
-    movieApi.getFilters().then(setFilters).catch(() => {});
-  }, []);
 
   // Dismiss on outside click & Escape key
   useEffect(() => {

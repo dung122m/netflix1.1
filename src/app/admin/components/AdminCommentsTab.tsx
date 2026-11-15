@@ -80,7 +80,7 @@ export const AdminCommentsTab: React.FC<AdminCommentsTabProps> = React.memo(
     return (
       <div className="space-y-4">
         {/* AUTO CLEAN & PURGE CONTROL BAR */}
-        <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-red-950/40 via-zinc-900/60 to-amber-950/30 backdrop-blur-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-lg">
+        <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-red-950/60 via-zinc-900/90 to-amber-950/50 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-lg">
           <div className="flex items-start sm:items-center gap-3">
             <div className="p-2 sm:p-2.5 rounded-xl bg-red-500/15 text-red-400 shadow-inner flex-shrink-0 mt-0.5 sm:mt-0">
               <ShieldAlert size={18} className="sm:w-5 sm:h-5 animate-pulse" />
@@ -120,7 +120,7 @@ export const AdminCommentsTab: React.FC<AdminCommentsTabProps> = React.memo(
         </div>
 
         {/* TOOLBAR */}
-        <div className="p-3.5 sm:p-4 rounded-2xl bg-zinc-900/60 backdrop-blur-sm space-y-3">
+        <div className="p-3.5 sm:p-4 rounded-2xl bg-zinc-900/90 space-y-3">
           <div className="relative w-full">
             <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400" />
             <input
@@ -295,7 +295,7 @@ export const AdminCommentsTab: React.FC<AdminCommentsTabProps> = React.memo(
               return (
                 <div
                   key={item.id}
-                  className={`p-3.5 sm:p-5 rounded-2xl transition backdrop-blur-sm flex flex-col sm:flex-row sm:items-start justify-between gap-3 sm:gap-4 group ${
+                  className={`p-3.5 sm:p-5 rounded-2xl transition flex flex-col sm:flex-row sm:items-start justify-between gap-3 sm:gap-4 group ${
                     item.isFlagged
                       ? "bg-red-950/30 ring-1 ring-inset ring-red-500/45 shadow-md shadow-black/50"
                       : "bg-zinc-900/70 hover:bg-zinc-900/90 shadow-md shadow-black/40"

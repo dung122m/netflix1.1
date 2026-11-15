@@ -104,7 +104,7 @@ export function AdminMetricsGrid({
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 sm:gap-4">
       {/* Card 1: Total Comments */}
-      <div className="p-3.5 sm:p-4 rounded-2xl bg-zinc-900/60 hover:bg-zinc-900/80 transition backdrop-blur-sm relative overflow-hidden group">
+      <div className="p-3.5 sm:p-4 rounded-2xl bg-zinc-900/85 hover:bg-zinc-900/95 transition relative overflow-hidden group">
         <div className="flex items-center justify-between text-zinc-400 mb-1.5 sm:mb-2">
           <span className="text-[11px] sm:text-xs font-medium truncate">Tổng Bình Luận</span>
           <div className="p-1 sm:p-1.5 rounded-lg bg-blue-500/10 text-blue-400 flex-shrink-0">
@@ -118,7 +118,7 @@ export function AdminMetricsGrid({
       </div>
 
       {/* Card 2: Average Score */}
-      <div className="p-3.5 sm:p-4 rounded-2xl bg-zinc-900/60 hover:bg-zinc-900/80 transition backdrop-blur-sm relative overflow-hidden group">
+      <div className="p-3.5 sm:p-4 rounded-2xl bg-zinc-900/85 hover:bg-zinc-900/95 transition relative overflow-hidden group">
         <div className="flex items-center justify-between text-zinc-400 mb-1.5 sm:mb-2">
           <span className="text-[11px] sm:text-xs font-medium truncate">Điểm Đánh Giá</span>
           <div className="p-1 sm:p-1.5 rounded-lg bg-amber-500/10 text-amber-400 flex-shrink-0">
@@ -133,7 +133,7 @@ export function AdminMetricsGrid({
       </div>
 
       {/* Card 3: Unique Users / Members */}
-      <div className="p-3.5 sm:p-4 rounded-2xl bg-zinc-900/60 hover:bg-zinc-900/80 transition backdrop-blur-sm relative overflow-hidden group">
+      <div className="p-3.5 sm:p-4 rounded-2xl bg-zinc-900/85 hover:bg-zinc-900/95 transition relative overflow-hidden group">
         <div className="flex items-center justify-between text-zinc-400 mb-1.5 sm:mb-2">
           <span className="text-[11px] sm:text-xs font-medium truncate">Thành Viên</span>
           <div className="p-1 sm:p-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 flex-shrink-0">
@@ -151,7 +151,7 @@ export function AdminMetricsGrid({
       </div>
 
       {/* Card 4: Unique Movies */}
-      <div className="p-3.5 sm:p-4 rounded-2xl bg-zinc-900/60 hover:bg-zinc-900/80 transition backdrop-blur-sm relative overflow-hidden group">
+      <div className="p-3.5 sm:p-4 rounded-2xl bg-zinc-900/85 hover:bg-zinc-900/95 transition relative overflow-hidden group">
         <div className="flex items-center justify-between text-zinc-400 mb-1.5 sm:mb-2">
           <span className="text-[11px] sm:text-xs font-medium truncate">Phim Đánh Giá</span>
           <div className="p-1 sm:p-1.5 rounded-lg bg-purple-500/10 text-purple-400 flex-shrink-0">
@@ -165,7 +165,7 @@ export function AdminMetricsGrid({
       </div>
 
       {/* Card 5: Flagged & Moderation */}
-      <div className="p-3.5 sm:p-4 rounded-2xl bg-zinc-900/60 hover:bg-zinc-900/80 transition backdrop-blur-sm relative overflow-hidden group">
+      <div className="p-3.5 sm:p-4 rounded-2xl bg-zinc-900/85 hover:bg-zinc-900/95 transition relative overflow-hidden group">
         <div className="flex items-center justify-between text-zinc-400 mb-1.5 sm:mb-2">
           <span className="text-[11px] sm:text-xs font-medium truncate">Vi Phạm / Cờ</span>
           <div className={`p-1 sm:p-1.5 rounded-lg flex-shrink-0 ${metrics.flaggedCount > 0 ? "bg-red-500/20 text-red-400" : "bg-zinc-800 text-zinc-400"}`}>
@@ -179,7 +179,7 @@ export function AdminMetricsGrid({
       </div>
 
       {/* Card 6: Spoilers */}
-      <div className="p-3.5 sm:p-4 rounded-2xl bg-zinc-900/60 hover:bg-zinc-900/80 transition backdrop-blur-sm relative overflow-hidden group">
+      <div className="p-3.5 sm:p-4 rounded-2xl bg-zinc-900/85 hover:bg-zinc-900/95 transition relative overflow-hidden group">
         <div className="flex items-center justify-between text-zinc-400 mb-1.5 sm:mb-2">
           <span className="text-[11px] sm:text-xs font-medium truncate">Cảnh Báo Spoil</span>
           <div className="p-1 sm:p-1.5 rounded-lg bg-rose-500/10 text-rose-400 flex-shrink-0">

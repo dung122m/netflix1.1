@@ -62,7 +62,7 @@ export const AdminMembersTab: React.FC<AdminMembersTabProps> = React.memo(
     return (
       <div className="space-y-4">
         {/* Toolbar for members */}
-        <div className="p-3.5 sm:p-4 rounded-2xl bg-zinc-900/60 backdrop-blur-sm space-y-3">
+        <div className="p-3.5 sm:p-4 rounded-2xl bg-zinc-900/90 space-y-3">
           <div className="relative w-full">
             <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400" />
             <input
@@ -159,7 +159,7 @@ export const AdminMembersTab: React.FC<AdminMembersTabProps> = React.memo(
               return (
                 <div
                   key={m.uid}
-                  className="p-4 sm:p-5 rounded-2xl bg-zinc-900/60 transition backdrop-blur-sm flex flex-col justify-between space-y-3 sm:space-y-4 group"
+                  className="p-4 sm:p-5 rounded-2xl bg-zinc-900/85 hover:bg-zinc-900/95 transition flex flex-col justify-between space-y-3 sm:space-y-4 group"
                 >
                   <div>
                     {/* Member Header */}

@@ -358,7 +358,7 @@ export async function triggerAutoWarmupIfNeeded(): Promise<void> {
   try {
     const { count } = await adminClient
       .from("movie_embeddings")
-      .select("*", { count: "exact", head: true });
+      .select("id", { count: "exact", head: true });
 
     if (count === 0 || count === null) {
       // Gọi fetch API phim và nạp tự động

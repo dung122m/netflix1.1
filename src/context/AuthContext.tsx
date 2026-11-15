@@ -56,7 +56,6 @@ interface AuthContextType {
   cachedUser: CachedAuthUser | null;
   loading: boolean;
   isConfigured: boolean;
-  isSyncing: boolean;
   signInWithGoogle: () => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
   syncNow: () => Promise<void>;
@@ -67,7 +66,6 @@ const AuthContext = createContext<AuthContextType>({
   cachedUser: null,
   loading: true,
   isConfigured: false,
-  isSyncing: false,
   signInWithGoogle: async () => ({ success: false, error: "Chưa khởi tạo" }),
   logout: async () => {},
   syncNow: async () => {},
@@ -79,7 +77,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const [user, setUser] = useState<User | null>(null);
   const [cachedUser, setCachedUser] = useState<CachedAuthUser | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
-  const [isSyncing, setIsSyncing] = useState<boolean>(false);
   const isConfigured = isFirebaseConfigured();
 
   // Đọc cachedUser sau khi client đã mount để đảm bảo SSR và client hydration hoàn toàn khớp 100%
@@ -92,7 +89,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const syncNow = useCallback(async () => {
     if (!user) return;
-    setIsSyncing(true);
     try {
       await Promise.race([
         Promise.all([
@@ -103,8 +99,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       ]);
     } catch (err) {
       console.warn("Lỗi sync thủ công:", err);
-    } finally {
-      setIsSyncing(false);
     }
   }, [user]);
 
@@ -132,7 +126,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       setLoading(false);
 
       if (currentUser) {
-        setIsSyncing(true);
         try {
           const PROFILE_SYNC_COOLDOWN_MS = 30 * 60 * 1000;
           const DATA_SYNC_COOLDOWN_MS = 10 * 60 * 1000; // 10 phút cooldown cho lịch sử xem & watchlist để giảm 80% Serverless calls
@@ -181,8 +174,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           ]);
         } catch (err) {
           console.warn("Lỗi tự động sync khi đăng nhập:", err);
-        } finally {
-          setIsSyncing(false);
         }
       }
     });
@@ -279,12 +270,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       cachedUser,
       loading,
       isConfigured,
-      isSyncing,
       signInWithGoogle,
       logout,
       syncNow,
     }),
-    [user, cachedUser, loading, isConfigured, isSyncing, signInWithGoogle, logout, syncNow]
+    [user, cachedUser, loading, isConfigured, signInWithGoogle, logout, syncNow]
   );
 
   return (

@@ -9,6 +9,7 @@ import {
 } from "@/lib/rateLimit";
 import { safeParseJson } from "@/lib/securityValidation";
 import { movieApi } from "@/services/movies/service";
+import { cacheService } from "@/lib/cache";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -83,16 +84,24 @@ export async function GET(req: NextRequest) {
         }
       } catch {}
 
-      // Bổ sung các phim chưa tìm thấy qua movieApi
+      // Bổ sung các phim chưa tìm thấy qua cacheService / movieApi
       const missingSlugs = movieSlugs.filter((s) => !movieTitleMap.has(s));
       if (missingSlugs.length > 0) {
         await Promise.allSettled(
           missingSlugs.slice(0, 10).map(async (slug) => {
             try {
+              // 1. Kiểm tra cache Redis/L1 trước (0ms)
+              const cachedTitle = await cacheService.get<string>(`movie:title:${slug}`);
+              if (cachedTitle) {
+                movieTitleMap.set(slug, cachedTitle);
+                return;
+              }
+              // 2. Fallback gọi movieApi và lưu cache 7 ngày
               const detail = await movieApi.getMovieDetail(slug);
               const name = detail?.movie?.name || detail?.movie?.title;
               if (name) {
                 movieTitleMap.set(slug, name);
+                await cacheService.set(`movie:title:${slug}`, name, 86400 * 7).catch(() => false);
               }
             } catch {}
           })
@@ -213,10 +222,14 @@ export async function POST(req: NextRequest) {
     }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const body = parseRes.data as Record<string, any>;
-    const { userId, notifId, type, title, message, link, movieSlug, commentId, replierName, replierAvatar } = body;
+    const { userId, notifId, type, title, message, link, movieSlug, movieTitle, commentId, replierName, replierAvatar } = body;
 
     if (!userId || !title) {
       return NextResponse.json({ error: "Thiếu thông tin thông báo!" }, { status: 400 });
+    }
+
+    if (movieSlug && movieTitle) {
+      cacheService.set(`movie:title:${movieSlug}`, String(movieTitle), 86400 * 7).catch(() => false);
     }
 
     const finalType = type || "comment_reply";

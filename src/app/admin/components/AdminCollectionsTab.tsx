@@ -24,7 +24,7 @@ export const AdminCollectionsTab: React.FC<AdminCollectionsTabProps> = React.mem
   }) {
     return (
       <div className="space-y-4">
-        <div className="p-4 rounded-2xl bg-zinc-900/60 backdrop-blur-sm flex flex-col md:flex-row md:items-center justify-between gap-3">
+        <div className="p-4 rounded-2xl bg-zinc-900/90 flex flex-col md:flex-row md:items-center justify-between gap-3">
           <div className="relative flex-1">
             <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400" />
             <input
@@ -51,7 +51,7 @@ export const AdminCollectionsTab: React.FC<AdminCollectionsTabProps> = React.mem
             {filteredCollections.map((col) => (
               <div
                 key={col.id}
-                className="p-5 rounded-2xl bg-zinc-900/60 hover:bg-zinc-900/80 transition backdrop-blur-sm flex flex-col justify-between space-y-4 group"
+                className="p-5 rounded-2xl bg-zinc-900/85 hover:bg-zinc-900/95 transition flex flex-col justify-between space-y-4 group"
               >
                 <div>
                   <div className="flex items-center justify-between gap-2 mb-2">

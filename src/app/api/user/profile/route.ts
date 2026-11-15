@@ -55,7 +55,7 @@ export async function GET(req: NextRequest) {
     try {
       const { data, count, error } = await supabase
         .from("profiles")
-        .select("*", { count: "exact" })
+        .select("id, email, display_name, photo_url, custom_avatar, bio, favorite_genres, badges, watch_time_minutes, role, is_comment_restricted, violations_count, last_violation_reason, created_at, last_login_at", { count: "exact" })
         .order("last_login_at", { ascending: false })
         .limit(300);
 
@@ -138,7 +138,7 @@ export async function GET(req: NextRequest) {
   try {
     const { data, error } = await supabase
       .from("profiles")
-      .select("*")
+      .select("id, email, display_name, photo_url, custom_avatar, bio, favorite_genres, badges, player_settings, watch_time_minutes, role, is_comment_restricted, violations_count, created_at, last_login_at, updated_at")
       .eq("id", uid)
       .maybeSingle();
 
@@ -241,7 +241,7 @@ export async function POST(req: NextRequest) {
     // 1. Lấy profile hiện có từ database
     const { data: existing } = await supabase
       .from("profiles")
-      .select("*")
+      .select("id, email, role, display_name, photo_url, custom_avatar, bio, favorite_genres, badges, player_settings, watch_time_minutes, is_comment_restricted, violations_count, created_at")
       .eq("id", userId)
       .maybeSingle();
 

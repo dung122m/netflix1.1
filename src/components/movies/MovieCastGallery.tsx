@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Users } from "lucide-react";
 import { CarouselNavButton } from "@/components/ui/CarouselNavButton";
 import { useCarouselScroll } from "@/components/ui/useCarouselScroll";
-import { TmdbCastMember } from "@/services/tmdbService";
+import type { TmdbCastMember } from "@/services/tmdbService";
 import { ActorAvatar } from "@/components/actors/ActorAvatar";
 import { FavoriteActorButton } from "@/components/actors/FavoriteActorButton";
 import { normalizeForMatch, cleanCountryName } from "@/lib/stringUtils";

@@ -18,6 +18,9 @@ const NO_CACHE_HEADERS = {
   "Vercel-CDN-Cache-Control": "no-store",
 };
 
+const COLLECTION_SELECT_FIELDS =
+  "id, user_id, user_name, user_avatar, name, description, is_public, color_gradient, cover_url, movies, likes_count, views_count, created_at, updated_at";
+
 import {
   sanitizeAndDeduplicateMovies,
   type SanitizedMovieItem,
@@ -86,7 +89,7 @@ export async function GET(req: NextRequest) {
 
       const { data, error } = await supabase
         .from("collections")
-        .select("*")
+        .select(COLLECTION_SELECT_FIELDS)
         .eq("id", collectionId)
         .maybeSingle();
 
@@ -118,7 +121,7 @@ export async function GET(req: NextRequest) {
 
       const { data, error } = await supabase
         .from("collections")
-        .select("*")
+        .select(COLLECTION_SELECT_FIELDS)
         .eq("is_public", true)
         .order("created_at", { ascending: false })
         .limit(50);
@@ -138,7 +141,7 @@ export async function GET(req: NextRequest) {
       }
       const { data, error } = await supabase
         .from("collections")
-        .select("*")
+        .select(COLLECTION_SELECT_FIELDS)
         .order("updated_at", { ascending: false });
 
       if (error) {
@@ -152,7 +155,7 @@ export async function GET(req: NextRequest) {
     const targetUserId = searchParams.get("userId");
     if (targetUserId) {
       const isSelfOrAdmin = auth.isAuthenticated && (auth.isAdmin || auth.userId === targetUserId);
-      let query = supabase.from("collections").select("*").eq("user_id", targetUserId);
+      let query = supabase.from("collections").select(COLLECTION_SELECT_FIELDS).eq("user_id", targetUserId);
       if (!isSelfOrAdmin) {
         query = query.eq("is_public", true);
       }
@@ -172,7 +175,7 @@ export async function GET(req: NextRequest) {
 
     const { data, error } = await supabase
       .from("collections")
-      .select("*")
+      .select(COLLECTION_SELECT_FIELDS)
       .eq("user_id", auth.userId)
       .order("updated_at", { ascending: false })
       .limit(100);

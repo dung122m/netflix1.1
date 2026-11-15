@@ -42,7 +42,7 @@ export async function GET(req: NextRequest) {
 
     const { data, error } = await supabase
       .from("watchlist")
-      .select("*")
+      .select("slug, title, poster, year, quality, category, added_at")
       .eq("user_id", targetUserId)
       .order("added_at", { ascending: false });
 

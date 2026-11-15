@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import { GlobalConfirmDialog } from "@/components/ui/ConfirmDialog";
 import type { ActorBioModalProps } from "@/components/modals/ActorBioModal";
@@ -23,6 +24,7 @@ const AuthModal = dynamic(
 );
 
 export const ClientModals = React.memo(function ClientModals() {
+  const router = useRouter();
   const [mountActorBio, setMountActorBio] = useState(false);
   const [mountPublicProfile, setMountPublicProfile] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -47,14 +49,12 @@ export const ClientModals = React.memo(function ClientModals() {
       setMountActorBio(true);
     };
 
-    // 3. User Profile Navigation (Chuyển sang đường dẫn /profile chuyên biệt thay vì modal)
+    // 3. User Profile Navigation (SPA navigation sang /profile thay vì hard refresh)
     const handleUserProfileTrigger = (e: Event) => {
       const customEvent = e as CustomEvent<{ tab?: "profile" | "player_settings" | "comments" }>;
       const tab = customEvent?.detail?.tab;
       const targetUrl = tab ? `/profile?tab=${tab}` : "/profile";
-      if (typeof window !== "undefined") {
-        window.location.href = targetUrl;
-      }
+      router.push(targetUrl);
     };
 
     // 4. Public User Profile Modal
@@ -90,7 +90,7 @@ export const ClientModals = React.memo(function ClientModals() {
       window.removeEventListener("open-public-profile", handlePublicProfileTrigger);
       window.removeEventListener("open-auth-modal", handleAuthModalTrigger);
     };
-  }, []);
+  }, [router]);
 
   return (
     <>

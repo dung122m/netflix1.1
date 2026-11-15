@@ -229,12 +229,15 @@ export async function GET(req: NextRequest) {
       !isAdmin
     );
 
+const COMMENT_SELECT_FIELDS =
+  "id, movie_slug, movie_title, user_id, user_name, user_avatar, user_email, rating, content, episode_slug, episode_name, parent_id, parent_owner_id, reply_to_user_id, reply_to_user_name, is_spoiler, likes, liked_by, is_flagged, flag_reason, is_pinned, created_at, updated_at, is_edited, edited_at";
+
     if (isPublicMovieQuery && movieSlug) {
       if (isFresh) {
         // Yêu cầu dữ liệu mới nhất (vừa đăng bình luận hoặc refresh realtime) -> Truy vấn trực tiếp Supabase & làm tươi cache
         const { data, error } = await supabaseAdmin
           .from("movie_comments")
-          .select("*")
+          .select(COMMENT_SELECT_FIELDS)
           .eq("is_flagged", false)
           .eq("movie_slug", movieSlug)
           .order("created_at", { ascending: false })
@@ -255,7 +258,7 @@ export async function GET(req: NextRequest) {
           { success: true, items: mapped },
           {
             headers: {
-              "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0",
+              "Cache-Control": "private, no-cache, no-store, max-age=0, must-revalidate",
               "CDN-Cache-Control": "no-store",
               "Vercel-CDN-Cache-Control": "no-store",
             },
@@ -268,7 +271,7 @@ export async function GET(req: NextRequest) {
         async () => {
           const { data, error } = await supabaseAdmin
             .from("movie_comments")
-            .select("*")
+            .select(COMMENT_SELECT_FIELDS)
             .eq("is_flagged", false)
             .eq("movie_slug", movieSlug)
             .order("created_at", { ascending: false })
@@ -289,15 +292,15 @@ export async function GET(req: NextRequest) {
         { success: true, items },
         {
           headers: {
-            "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0",
-            "CDN-Cache-Control": "no-store",
-            "Vercel-CDN-Cache-Control": "no-store",
+            "Cache-Control": "public, max-age=15, s-maxage=30, stale-while-revalidate=60",
+            "CDN-Cache-Control": "public, s-maxage=30, stale-while-revalidate=60",
+            "Vercel-CDN-Cache-Control": "public, s-maxage=30, stale-while-revalidate=60",
           },
         }
       );
     }
 
-    let query = supabaseAdmin.from("movie_comments").select("*");
+    let query = supabaseAdmin.from("movie_comments").select(COMMENT_SELECT_FIELDS);
 
     if (all !== "true" || !isAdmin) {
       query = query.eq("is_flagged", false);

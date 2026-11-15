@@ -1,4 +1,4 @@
-import React from "react";
+import React, { cache } from "react";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { CollectionClientView } from "@/components/Collections/CollectionClientView";
@@ -9,6 +9,11 @@ interface CollectionPageProps {
   searchParams: Promise<{ u?: string }>;
 }
 
+// Deduplicate fetch giữa generateMetadata và CollectionDetailPage trong cùng 1 chu kỳ render SSR
+const getCachedPublicCollection = cache(async (id: string, userId?: string) => {
+  return getPublicCollection(id, userId);
+});
+
 export async function generateMetadata({
   params,
   searchParams,
@@ -16,7 +21,7 @@ export async function generateMetadata({
   const { id } = await params;
   const { u: userId } = await searchParams;
 
-  const collection = await getPublicCollection(id, userId);
+  const collection = await getCachedPublicCollection(id, userId);
 
   if (!collection) {
     return {
@@ -57,7 +62,7 @@ export default async function CollectionDetailPage({
   const { id } = await params;
   const { u: userId } = await searchParams;
 
-  const collection = await getPublicCollection(id, userId);
+  const collection = await getCachedPublicCollection(id, userId);
 
   return (
     <div className="page-cinema-container min-h-dvh flex flex-col justify-between bg-black text-white w-full max-w-full overflow-x-clip">

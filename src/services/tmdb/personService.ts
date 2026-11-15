@@ -7,7 +7,6 @@
 
 import { normalizeForMatch as cleanStringForMatch } from "@/lib/stringUtils";
 import { cacheService } from "@/lib/cache";
-import { getHistoricalArtistBySlug } from "@/data/history/historicalArtistsBirthdays";
 import { fetchTmdbEndpoint } from "../tmdbService";
 import { matchTmdbMoviesWithSources } from "./movieMatcher";
 import { TmdbPerson, TmdbPersonDetail, TmdbMovieCredit } from "./types";
@@ -351,6 +350,7 @@ async function executeTmdbActorFlow(
     let personName = canonicalName || actorQuery;
 
     if (!personId) {
+      const { getHistoricalArtistBySlug } = await import("@/data/history/historicalArtistsBirthdays");
       const historicalArtist = getHistoricalArtistBySlug(actorQuery) || (canonicalName ? getHistoricalArtistBySlug(canonicalName) : undefined);
       if (historicalArtist?.tmdbPersonId) {
         personId = historicalArtist.tmdbPersonId;
@@ -456,6 +456,7 @@ export async function getDirectorFilmographyFromTmdb(
         let personName = directorQuery;
 
         if (!personId) {
+          const { getHistoricalArtistBySlug } = await import("@/data/history/historicalArtistsBirthdays");
           const historicalArtist = getHistoricalArtistBySlug(directorQuery);
           if (historicalArtist?.tmdbPersonId) {
             personId = historicalArtist.tmdbPersonId;

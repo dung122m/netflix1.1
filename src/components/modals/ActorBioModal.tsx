@@ -6,7 +6,7 @@ import { ExternalLink, Film, Loader2, BookOpen, Calendar, MapPin, Globe, Tag, Us
 import { splitBlockIntoNaturalParagraphs } from "@/lib/bioFormatter";
 import { cleanBioExtract } from "@/services/wikipediaService";
 import { ActorAvatar } from "@/components/actors/ActorAvatar";
-import { EnhancedActorProfile } from "@/services/aiActorService";
+import type { EnhancedActorProfile } from "@/types/actor";
 import { BaseModal } from "@/components/ui/BaseModal";
 
 export interface ActorBioModalProps {

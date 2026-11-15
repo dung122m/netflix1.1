@@ -131,7 +131,7 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
   return (
     <div className="space-y-6">
       {/* TIMEFRAME FILTER & REFRESH BAR */}
-      <div className="p-4 rounded-2xl bg-zinc-900/60 backdrop-blur-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="p-4 rounded-2xl bg-zinc-900/90 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-2 flex-wrap">
           <span className="text-xs text-zinc-400 font-semibold mr-1">Khoảng thời gian:</span>
           {(
@@ -171,7 +171,7 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
       {/* OVERVIEW STATS CARDS */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {/* Total Visits */}
-        <div className="p-5 rounded-2xl bg-zinc-900/60 hover:bg-zinc-900/80 transition backdrop-blur-sm relative overflow-hidden group">
+        <div className="p-5 rounded-2xl bg-zinc-900/85 hover:bg-zinc-900/95 transition relative overflow-hidden group">
           <div className="flex items-center justify-between text-zinc-400 mb-2">
             <span className="text-xs font-medium">Tổng Lượt Truy Cập</span>
             <div className="p-2 rounded-xl bg-blue-500/10 text-blue-400">
@@ -188,7 +188,7 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
         </div>
 
         {/* Unique Visitors */}
-        <div className="p-5 rounded-2xl bg-zinc-900/60 hover:bg-zinc-900/80 transition backdrop-blur-sm relative overflow-hidden group">
+        <div className="p-5 rounded-2xl bg-zinc-900/85 hover:bg-zinc-900/95 transition relative overflow-hidden group">
           <div className="flex items-center justify-between text-zinc-400 mb-2">
             <span className="text-xs font-medium">Khách Truy Cập Riêng Biệt</span>
             <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-400">
@@ -213,7 +213,7 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
         </div>
 
         {/* Active Guests Online */}
-        <div className="p-5 rounded-2xl bg-zinc-900/60 hover:bg-zinc-900/80 transition backdrop-blur-sm relative overflow-hidden group">
+        <div className="p-5 rounded-2xl bg-zinc-900/85 hover:bg-zinc-900/95 transition relative overflow-hidden group">
           <div className="flex items-center justify-between text-zinc-400 mb-2">
             <span className="text-xs font-medium">Khách Đang Trực Tuyến</span>
             <div className="p-2 rounded-xl bg-rose-500/10 text-rose-400">
@@ -236,7 +236,7 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
       {/* ROW: TOP PAGES BY VISITS & UNIQUE VISITORS */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Top Pages by Visits */}
-        <div className="p-6 rounded-2xl bg-zinc-900/60 backdrop-blur-sm space-y-4">
+        <div className="p-6 rounded-2xl bg-zinc-900/90 space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-bold text-white flex items-center gap-2">
               <TrendingUp size={16} className="text-netflix-red" />
@@ -291,7 +291,7 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
         </div>
 
         {/* Top Pages by Unique Visitors */}
-        <div className="p-6 rounded-2xl bg-zinc-900/60 backdrop-blur-sm space-y-4">
+        <div className="p-6 rounded-2xl bg-zinc-900/90 space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-bold text-white flex items-center gap-2">
               <Users size={16} className="text-emerald-400" />
@@ -347,7 +347,7 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
       </div>
 
       {/* 24-HOUR PEAK VISIT TRAFFIC HOURS */}
-      <div className="p-6 rounded-2xl bg-zinc-900/60 backdrop-blur-sm space-y-4">
+      <div className="p-6 rounded-2xl bg-zinc-900/90 space-y-4">
         <div className="flex items-center justify-between flex-wrap gap-2">
           <div>
             <h3 className="text-sm font-bold text-white flex items-center gap-2">
@@ -445,7 +445,7 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
       </div>
 
       {/* SECTION: THIẾT BỊ & NỀN TẢNG KHÁN GIẢ (PLATFORM & DEVICES) */}
-      <div className="p-6 rounded-2xl bg-zinc-900/60 backdrop-blur-sm space-y-6">
+      <div className="p-6 rounded-2xl bg-zinc-900/90 space-y-6">
         <div className="flex items-center justify-between flex-wrap gap-2 pb-2 border-b border-white/[0.08]">
           <div className="flex items-center gap-2.5">
             <div className="p-2 rounded-xl bg-blue-500/10 text-blue-400">
@@ -740,7 +740,7 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
       </div>
 
       {/* SECTION: NHẬT KÝ LƯỢT XEM & HOẠT ĐỘNG THỜI GIAN THỰC (LIVE VISITOR & PAGE ACTIVITY) */}
-      <div className="p-6 rounded-2xl bg-zinc-900/60 backdrop-blur-sm space-y-4">
+      <div className="p-6 rounded-2xl bg-zinc-900/90 space-y-4">
         <div className="flex items-center justify-between flex-wrap gap-2 pb-2 border-b border-white/5">
           <div className="flex items-center gap-2">
             <div className="p-1.5 rounded-lg bg-amber-500/10 text-amber-400">
@@ -827,7 +827,7 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
       {/* SYSTEM DIAGNOSTICS & RATINGS (PRESERVED FROM PREVIOUS DASHBOARD) */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-4 border-t border-white/[0.08]">
         {/* Rating Distribution Chart */}
-        <div className="p-6 rounded-2xl bg-zinc-900/60 backdrop-blur-sm space-y-4">
+        <div className="p-6 rounded-2xl bg-zinc-900/90 space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-bold text-white flex items-center gap-2">
               <Star size={16} className="text-amber-400 fill-amber-400" />
@@ -868,7 +868,7 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
         </div>
 
         {/* System Diagnostics */}
-        <div className="p-6 rounded-2xl bg-zinc-900/60 backdrop-blur-sm space-y-4">
+        <div className="p-6 rounded-2xl bg-zinc-900/90 space-y-4">
           <h3 className="text-sm font-bold text-white flex items-center gap-2">
             <Info size={16} className="text-blue-400" />
             <span>Trạng Thái Hệ Thống & Phân Quyền</span>

@@ -955,37 +955,84 @@ export async function getPublicCollection(
     }
   }
 
-  // 2. Thử đọc từ Supabase public collections (ưu tiên truy vấn trực tiếp theo ID qua Redis/Server Cache)
-  if (isSupabaseConfigured()) {
+  // 2. Server: Truy vấn trực tiếp Supabase Admin theo ID kết hợp Redis Cache (Triệt tiêu HTTP Loopback & Full Table Scan)
+  if (typeof window === "undefined") {
     try {
-      const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
-      const res = await fetch(`${baseUrl}/api/user/collections?id=${encodeURIComponent(collectionId)}`, {
-        cache: "no-store",
-      });
+      const { cacheService } = await import("@/lib/cache");
+      const cached = await cacheService.get<MovieCollection>(`collection:public:${collectionId}`);
+      if (cached) {
+        if (cached.isPublic || (userId && cached.userId === userId)) {
+          return cached;
+        }
+      }
+
+      const { getSupabaseAdmin } = await import("@/lib/supabaseAdmin");
+      const supabase = getSupabaseAdmin();
+      if (supabase) {
+        const { data, error } = await supabase
+          .from("collections")
+          .select("id, user_id, user_name, user_avatar, name, description, is_public, movies, created_at, updated_at")
+          .eq("id", collectionId)
+          .maybeSingle();
+
+        if (!error && data) {
+          const isPublic = Boolean(data.is_public ?? true);
+          const ownerId = String(data.user_id || "");
+
+          // BẢO MẬT: Chỉ trả về bộ sưu tập nếu is_public === true HOẶC user_id === userId (người sở hữu)
+          if (isPublic || (userId && ownerId === userId)) {
+            const formatted: MovieCollection = {
+              id: String(data.id),
+              userId: ownerId,
+              creatorName: String(data.user_name || "Thành viên Nanaflix"),
+              creatorPhoto: data.user_avatar ? String(data.user_avatar) : undefined,
+              name: String(data.name || ""),
+              description: String(data.description || ""),
+              isPublic,
+              movies: Array.isArray(data.movies) ? (data.movies as CollectionMovieItem[]) : [],
+              createdAt: Number(data.created_at) || Date.now(),
+              updatedAt: Number(data.updated_at) || Date.now(),
+            };
+
+            // Chỉ lưu vào Redis cache khi bộ sưu tập là công khai
+            if (isPublic) {
+              await cacheService.set(`collection:public:${collectionId}`, formatted, 180).catch(() => false);
+            }
+            return formatted;
+          }
+        }
+      }
+    } catch (err) {
+      console.warn("Lỗi server getPublicCollection:", err);
+    }
+  }
+
+  // 2b. Client: Gọi API nội bộ theo ID
+  if (typeof window !== "undefined") {
+    try {
+      const res = await fetch(`/api/user/collections?id=${encodeURIComponent(collectionId)}`);
       if (res.ok) {
         const json = await res.json();
         if (json.success && json.item) {
           const item = json.item;
-          return {
-            id: String(item.id),
-            userId: String(item.user_id || item.userId || ""),
-            creatorName: String(item.user_name || item.creatorName || "Thành viên Nanaflix"),
-            creatorPhoto: item.user_avatar ? String(item.user_avatar) : (item.creatorPhoto ? String(item.creatorPhoto) : undefined),
-            name: String(item.name || ""),
-            description: String(item.description || ""),
-            isPublic: Boolean(item.is_public ?? item.isPublic ?? true),
-            movies: Array.isArray(item.movies) ? item.movies : [],
-            createdAt: Number(item.created_at || item.createdAt) || Date.now(),
-            updatedAt: Number(item.updated_at || item.updatedAt) || Date.now(),
-          };
+          const isPublic = Boolean(item.is_public ?? item.isPublic ?? true);
+          const ownerId = String(item.user_id || item.userId || "");
+          if (isPublic || (userId && ownerId === userId)) {
+            return {
+              id: String(item.id),
+              userId: ownerId,
+              creatorName: String(item.user_name || item.creatorName || "Thành viên Nanaflix"),
+              creatorPhoto: item.user_avatar ? String(item.user_avatar) : (item.creatorPhoto ? String(item.creatorPhoto) : undefined),
+              name: String(item.name || ""),
+              description: String(item.description || ""),
+              isPublic,
+              movies: Array.isArray(item.movies) ? item.movies : [],
+              createdAt: Number(item.created_at || item.createdAt) || Date.now(),
+              updatedAt: Number(item.updated_at || item.updatedAt) || Date.now(),
+            };
+          }
         }
       }
-    } catch {}
-
-    try {
-      const supaCollections = await getPublicCollectionsSupabase();
-      const found = supaCollections.find((c) => c.id === collectionId);
-      if (found) return found;
     } catch {}
   }
 
