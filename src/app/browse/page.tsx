@@ -590,13 +590,13 @@ export default async function BrowsePage({
     fallbackMovies = fallbackRes?.items || [];
   }
 
-  // NÂNG CẤP TOÀN BỘ POSTER SANG TMDB CDN SIÊU TỐC (GIỚI HẠN NGÂN SÁCH SSR 600ms ĐỂ TIẾT KIỆM ACTIVE CPU)
+  // NÂNG CẤP TOÀN BỘ POSTER SANG TMDB CDN SIÊU TỐC (BUDGET 0ms: CHỈ ĐỌC TỪ CACHE CÓ SẴN, KHÔNG GỌI MẠNG SSR ĐỂ TIẾT KIỆM ACTIVE CPU)
   const posterTasks: Promise<void>[] = [];
   if (movies.length > 0) {
-    posterTasks.push(enrichMovieListPosters(movies, { budgetMs: 600, stripProxyUrls: true }));
+    posterTasks.push(enrichMovieListPosters(movies, { budgetMs: 0, stripProxyUrls: true }));
   }
   if (fallbackMovies.length > 0) {
-    posterTasks.push(enrichMovieListPosters(fallbackMovies, { budgetMs: 600, stripProxyUrls: true }));
+    posterTasks.push(enrichMovieListPosters(fallbackMovies, { budgetMs: 0, stripProxyUrls: true }));
   }
   if (posterTasks.length > 0) {
     await Promise.allSettled(posterTasks);
@@ -677,6 +677,7 @@ export default async function BrowsePage({
                       src={detectedActor.avatarUrl}
                       alt={detectedActor.name}
                       fill
+                      unoptimized
                       sizes="64px"
                       className="object-cover"
                     />

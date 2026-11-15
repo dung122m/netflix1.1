@@ -1,15 +1,30 @@
 import { Suspense } from "react";
-import { after } from "next/server";
 import Link from "next/link";
 import { Film } from "lucide-react";
+import { movieApi } from "@/services/movies/service";
 
 /**
- * ISR / Edge Cache: Cache response HTML công khai 1 giờ trên Vercel Edge / CDN.
+ * ISR / Edge Cache: Cache response HTML công khai 24 giờ trên Vercel Edge / CDN.
  * Khóa chặt force-static để ngăn chặn SSR động tốn Active CPU.
  * Chuyển tập và mốc thời gian xem phim được Client Component đồng bộ mượt mà qua URL params.
  */
 export const dynamic = "force-static";
-export const revalidate = 3600;
+export const revalidate = 86400;
+export const dynamicParams = true;
+
+export async function generateStaticParams() {
+  try {
+    const res = await movieApi.getMovies({ page: 1, limit: 25, sort: "views" });
+    const items = res?.items || [];
+    return items
+      .filter((m: { slug?: string }) => m && m.slug)
+      .slice(0, 25)
+      .map((m: { slug: string }) => ({ slug: m.slug }));
+  } catch (err) {
+    console.warn("[generateStaticParams:movies] Warning:", err);
+    return [];
+  }
+}
 
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
@@ -32,7 +47,6 @@ import {
 } from "@/services/movies/detailPageData";
 import {
   getCachedMovieRecommendationsFast,
-  getMovieRecommendations,
   type RecommendationsRequestPayload,
 } from "@/services/movies/recommendations";
 import { MovieNotFoundView } from "@/components/movies/detail/MovieNotFoundView";
@@ -154,15 +168,6 @@ export default async function MovieDetail({
     hasMartialArts,
   };
   const initialRecommendations = await getCachedMovieRecommendationsFast(recPayload, 120);
-  if (!initialRecommendations) {
-    try {
-      after(() => {
-        getMovieRecommendations(recPayload).catch(() => {});
-      });
-    } catch {
-      // Bỏ qua an toàn ngoài request lifecycle (ví dụ test runner)
-    }
-  }
 
   return (
     <div className="page-cinema-container min-h-dvh pb-0 lg:pb-0 w-full max-w-full overflow-x-clip">

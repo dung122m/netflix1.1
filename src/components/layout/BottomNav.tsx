@@ -95,6 +95,7 @@ export function BottomNav() {
         {/* 1. TRANG CHỦ */}
         <Link
           href="/"
+          prefetch={false}
           onClick={handleNavClick}
           aria-current={isHome ? "page" : undefined}
           className={`flex flex-col items-center justify-center h-full transition-all duration-200 active:scale-95 cursor-pointer outline-none focus-visible:text-white rounded-lg ${
@@ -113,6 +114,7 @@ export function BottomNav() {
         {/* 2. KHÁM PHÁ BROWSE */}
         <Link
           href="/browse"
+          prefetch={false}
           onClick={handleNavClick}
           aria-current={isBrowse ? "page" : undefined}
           className={`flex flex-col items-center justify-center h-full transition-all duration-200 active:scale-95 cursor-pointer outline-none focus-visible:text-white rounded-lg ${
@@ -131,6 +133,7 @@ export function BottomNav() {
         {/* 3. TRỰC TIẾP LIVE */}
         <Link
           href="/live"
+          prefetch={false}
           onClick={handleNavClick}
           aria-current={isLive ? "page" : undefined}
           className={`flex flex-col items-center justify-center h-full transition-all duration-200 active:scale-95 cursor-pointer outline-none focus-visible:text-white rounded-lg ${
@@ -147,6 +150,7 @@ export function BottomNav() {
         {/* 4. DANH SÁCH & LỊCH SỬ */}
         <Link
           href="/my-list"
+          prefetch={false}
           onClick={handleNavClick}
           aria-current={isMyList ? "page" : undefined}
           className={`flex flex-col items-center justify-center h-full transition-all duration-200 active:scale-95 cursor-pointer outline-none focus-visible:text-white rounded-lg ${
@@ -166,6 +170,7 @@ export function BottomNav() {
         {isMounted && currentUser ? (
           <Link
             href="/profile"
+            prefetch={false}
             onClick={handleNavClick}
             aria-current={isProfile ? "page" : undefined}
             className={`flex flex-col items-center justify-center h-full transition-all duration-200 active:scale-95 cursor-pointer outline-none focus-visible:text-white rounded-lg ${

@@ -33,6 +33,13 @@ function CommunityTopTrendingInner({
   // 1. Đọc cache localStorage ngay khi mount (0ms) và bỏ qua fetch nếu đã có SSR initialItems hoặc cache tươi
   useEffect(() => {
     let isMounted = true;
+    if (hasInitialItems && initialItems && initialItems.length > 0) {
+      tabCacheRef.current["total"] = initialItems;
+      return () => {
+        isMounted = false;
+      };
+    }
+
     let isFreshCache = hasInitialItems;
 
     // Đọc cache localStorage ngay khi mount nếu dữ liệu còn hợp lệ (trong 12 giờ)

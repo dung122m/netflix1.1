@@ -112,6 +112,7 @@ export const InstallPwaModal: React.FC<InstallPwaModalProps> = ({
             alt="Nanaflix App"
             width={48}
             height={48}
+            unoptimized
             className="w-full h-full object-contain rounded-xl drop-shadow"
           />
         </div>

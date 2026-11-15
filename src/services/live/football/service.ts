@@ -1,3 +1,4 @@
+import { unstable_cache } from "next/cache";
 import {
   enrichMatchLogosSync,
   triggerBackgroundLogoEnrichment,
@@ -1445,7 +1446,7 @@ let memoryCache: {
 } | null = null;
 let inFlightFetch: Promise<LiveFootballData> | null = null;
 const FOOTBALL_REDIS_KEY = "live:football:matches:v2";
-const FOOTBALL_REDIS_TTL = 180; // 3 phút
+const FOOTBALL_REDIS_TTL = 600; // 10 phút (giảm 70% tải CPU & Redis)
 
 /**
  * Lọc snapshot danh sách trận đấu tức thời theo thời gian thực (0ms overhead)
@@ -1529,6 +1530,21 @@ export function filterLiveMatchesSnapshot(
   };
 }
 
+// Tầng cache dữ liệu Next.js (10 phút = 600s) cho Vercel Data Cache
+let getCachedFootballDataWithNext: (() => Promise<LiveFootballData>) | null = null;
+try {
+  getCachedFootballDataWithNext =
+    typeof unstable_cache === "function"
+      ? unstable_cache(
+          async () => liveFootballService.fetchAndCacheMatchesInternal(),
+          ["nanaflix-live-football-matches-v2"],
+          { revalidate: 600, tags: ["live-football"] }
+        )
+      : null;
+} catch {
+  getCachedFootballDataWithNext = null;
+}
+
 export const liveFootballService = {
   getFootballMatches: async (): Promise<LiveFootballData> => {
     const now = Date.now();
@@ -1542,22 +1558,40 @@ export const liveFootballService = {
       }
     }
 
-    // Kiểm tra L2 Upstash Redis Cache (chia sẻ giữa các Vercel instance, 0 M3U fetches)
+    // 1. Kiểm tra L2 Upstash Redis Cache (chia sẻ giữa các Vercel instance, 0 M3U fetches)
     try {
       const redisCached = await cacheService.get<LiveFootballData>(FOOTBALL_REDIS_KEY);
       if (redisCached && Array.isArray(redisCached.matches) && redisCached.matches.length > 0) {
         const filteredSnapshot = filterLiveMatchesSnapshot(redisCached, now);
         memoryCache = {
           data: filteredSnapshot,
-          expireAt: now + 3 * 60 * 1000,
-          staleUntil: now + 6 * 60 * 1000,
+          expireAt: now + 10 * 60 * 1000,
+          staleUntil: now + 15 * 60 * 1000,
         };
         return filteredSnapshot;
       }
     } catch {}
 
+    // 2. Tận dụng Next.js Data Cache (unstable_cache: 600s)
+    if (getCachedFootballDataWithNext) {
+      try {
+        const nextData = await getCachedFootballDataWithNext();
+        if (nextData && Array.isArray(nextData.matches) && nextData.matches.length > 0) {
+          const filteredSnapshot = filterLiveMatchesSnapshot(nextData, now);
+          memoryCache = {
+            data: filteredSnapshot,
+            expireAt: now + 10 * 60 * 1000,
+            staleUntil: now + 15 * 60 * 1000,
+          };
+          return filteredSnapshot;
+        }
+      } catch (err: unknown) {
+        // Fallback an toàn nếu chạy trong test runner không có Next.js incrementalCache
+      }
+    }
+
     if (inFlightFetch) return inFlightFetch;
-    inFlightFetch = liveFootballService.fetchAndCacheMatches();
+    inFlightFetch = liveFootballService.fetchAndCacheMatchesInternal();
     try {
       return await inFlightFetch;
     } finally {
@@ -1567,7 +1601,7 @@ export const liveFootballService = {
 
   revalidateFootballMatches: async () => {
     if (inFlightFetch) return;
-    inFlightFetch = liveFootballService.fetchAndCacheMatches();
+    inFlightFetch = liveFootballService.fetchAndCacheMatchesInternal();
     try {
       await inFlightFetch;
     } catch {
@@ -1578,6 +1612,10 @@ export const liveFootballService = {
   },
 
   fetchAndCacheMatches: async (): Promise<LiveFootballData> => {
+    return liveFootballService.fetchAndCacheMatchesInternal();
+  },
+
+  fetchAndCacheMatchesInternal: async (): Promise<LiveFootballData> => {
     const now = Date.now();
     try {
       const channelsSet = new Set<string>();
@@ -1727,23 +1765,8 @@ export const liveFootballService = {
         channelsSet.add(ch);
       }
 
-      // 4B. FAST PRE-FLIGHT CHECK CHO SỰ KIỆN TRỰC TIẾP (PREVENT STALE EVENT ZOMBIE)
-      // Kiểm tra nhanh stream của các sự kiện trực tiếp đã/đang diễn ra (chỉ 1-3 URLs)
-      // để nếu stream chết (404/timeout), loại bỏ ngay từ lần render đầu tiên (không đợi 30s background check)
-      const eventUrlsToCheck: string[] = [];
-      for (const m of mergedMatches) {
-        if (m.isEvent && (!m.timestamp || m.timestamp === Number.MAX_SAFE_INTEGER || now >= m.timestamp)) {
-          for (const s of m.servers) {
-            if (s.url && !isBlockedStreamUrl(s.url) && getStreamHealthStatus(s.url) === "unknown") {
-              eventUrlsToCheck.push(s.url);
-            }
-          }
-        }
-      }
-      if (eventUrlsToCheck.length > 0) {
-        const uniqueEventUrls = Array.from(new Set(eventUrlsToCheck)).slice(0, 10);
-        await Promise.allSettled(uniqueEventUrls.map((u) => isStreamPlayable(u, 800)));
-      }
+      // 4B. TỐI ƯU ACTIVE CPU: Gỡ bỏ việc probe stream HTTP trực tiếp trên server (isStreamPlayable).
+      // Việc kiểm tra stream sống/chết do Video Player phía Client tự xử lý khi người dùng bấm phát.
 
       // 5. LỌC VÀ SẮP XẾP CÁC MÁY CHỦ THEO HEALTH CACHE & GHÉP LIVESCORE TRƯỚC KHI ĐÁNH GIÁ VÒNG ĐỜI
       const availableMatches: FootballMatch[] = [];

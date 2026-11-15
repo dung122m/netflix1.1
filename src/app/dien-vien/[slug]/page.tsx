@@ -8,6 +8,28 @@ import { notFound } from "next/navigation";
  */
 export const dynamic = "force-static";
 export const revalidate = 86400;
+export const dynamicParams = true;
+
+export async function generateStaticParams() {
+  const topSlugs = [
+    "thanh-long",
+    "chau-tinh-tri",
+    "chan-tu-dan",
+    "ly-lien-kiet",
+    "ngo-kinh",
+    "luu-duc-hoa",
+    "luong-trieu-vy",
+    "co-thien-lac",
+    "hong-kim-bao",
+    "duong-mich",
+    "trieu-le-dinh",
+    "tran-thanh",
+    "truong-giang",
+    "thai-hoa",
+    "ly-hai",
+  ];
+  return topSlugs.map((slug) => ({ slug }));
+}
 import {
   Calendar,
   MapPin,

@@ -1,3 +1,4 @@
+import { unstable_cache } from "next/cache";
 import { HeroFeatured } from "@/components/browse/HeroFeatured";
 import { HomeGenreExploreBar } from "@/components/home/HomeGenreExploreBar";
 import { Navbar } from "@/components/layout/Navbar";
@@ -5,6 +6,7 @@ import { Footer } from "@/components/layout/Footer";
 import { ContinueWatchingRow } from "@/components/movies/ContinueWatchingRow";
 import { movieApi } from "@/services/movies/service";
 import { getTmdbRankedMovies, getTmdbBackdropUrl } from "@/services/tmdbService";
+import { getTopTrendingCommunitySupabase } from "@/services/communityWatchService";
 import { CuratedMovieSection } from "@/components/movies/CuratedMovieSection";
 import { TmdbTopTrending } from "@/components/movies/TmdbTopTrending";
 import { CommunityTopTrending } from "@/components/movies/CommunityTopTrending";
@@ -97,6 +99,75 @@ function setCachedResolvedHero(movies: AnyMovie[]) {
       expireAt: Date.now() + RESOLVED_HERO_CACHE_TTL_MS,
     };
   }
+}
+
+/**
+ * Tối ưu Active CPU: Chỉ tra cứu TMDB Backdrop cho tối đa 4 slide đầu tiên (idx < 4).
+ * Kết hợp unstable_cache (1 giờ) cho Next.js Data Cache và in-memory cache cho 0ms lookup.
+ */
+async function resolveHeroMoviesWithBackdrops(rawHeroMovies: AnyMovie[]): Promise<AnyMovie[]> {
+  return Promise.all(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    rawHeroMovies.map(async (movie: any, idx: number) => {
+      const slug = (movie?.slug || "").toLowerCase().trim();
+      const r2Banner = getR2BannerUrl(slug, movie?.backdrop_url || movie?.thumb_url);
+
+      if (r2Banner) {
+        return {
+          ...movie,
+          backdrop_url: r2Banner,
+          thumb_url: r2Banner,
+        };
+      }
+
+      if (movie?.backdrop_url) {
+        return movie;
+      }
+
+      // Giới hạn tra cứu TMDB backdrop cho tối đa 3-4 slide đầu tiên (idx < 4) để tiết kiệm CPU và tránh waterfall
+      if (idx < 4 && movie?.tmdb?.id) {
+        try {
+          const tmdbBackdrop = await Promise.race([
+            getTmdbBackdropUrl(movie.tmdb.id, movie.tmdb.type),
+            new Promise<null>((resolve) => setTimeout(() => resolve(null), 1500)),
+          ]);
+          if (tmdbBackdrop) {
+            const tmdbR2 = getR2BannerUrl(slug, tmdbBackdrop);
+            if (tmdbR2) {
+              return {
+                ...movie,
+                backdrop_url: tmdbR2,
+                thumb_url: tmdbR2,
+              };
+            }
+            return {
+              ...movie,
+              backdrop_url: tmdbBackdrop,
+              thumb_url: tmdbBackdrop,
+            };
+          }
+        } catch {}
+      }
+      return movie;
+    })
+  );
+}
+
+let getCachedHeroWithNext: ((heroMoviesJson: string) => Promise<AnyMovie[]>) | null = null;
+try {
+  getCachedHeroWithNext =
+    typeof unstable_cache === "function"
+      ? unstable_cache(
+          async (heroMoviesJson: string) => {
+            const parsed = JSON.parse(heroMoviesJson) as AnyMovie[];
+            return resolveHeroMoviesWithBackdrops(parsed);
+          },
+          ["nanaflix-hero-movies-resolved-v2"],
+          { revalidate: 3600, tags: ["hero-banner"] }
+        )
+      : null;
+} catch {
+  getCachedHeroWithNext = null;
 }
 
 function getFeaturedMoviesWithCache(movies: AnyMovie[]): AnyMovie[] {
@@ -229,7 +300,7 @@ function selectFeaturedMovies(pool: AnyMovie[], count: number = 7): AnyMovie[] {
 // ==========================================
 export default async function HomePage() {
   // TRANG CHỦ THUẦN TÚY (LANDING PAGE) — giới hạn timeout SSR để không bao giờ kẹt loading.tsx
-  const [response, weekTrending] = await Promise.all([
+  const [response, weekTrending, communityTrending] = await Promise.all([
     movieApi.getMovies({
       page: 1,
       limit: 24,
@@ -239,6 +310,7 @@ export default async function HomePage() {
       getTmdbRankedMovies("week", 20).catch(() => []),
       new Promise<[]>((resolve) => setTimeout(() => resolve([]), 2000)),
     ]),
+    getTopTrendingCommunitySupabase(10, "total").catch(() => []),
   ]);
 
   const movies = response?.items || [];
@@ -266,50 +338,16 @@ export default async function HomePage() {
   if (cachedHero) {
     heroMovies = cachedHero;
   } else {
-    heroMovies = await Promise.all(
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      rawHeroMovies.map(async (movie: any) => {
-        const slug = (movie?.slug || "").toLowerCase().trim();
-        const r2Banner = getR2BannerUrl(slug, movie?.backdrop_url || movie?.thumb_url);
-
-        if (r2Banner) {
-          return {
-            ...movie,
-            backdrop_url: r2Banner,
-            thumb_url: r2Banner,
-          };
-        }
-
-        if (movie?.backdrop_url) {
-          return movie;
-        }
-
-        if (movie?.tmdb?.id) {
-          try {
-            const tmdbBackdrop = await Promise.race([
-              getTmdbBackdropUrl(movie.tmdb.id, movie.tmdb.type),
-              new Promise<null>((resolve) => setTimeout(() => resolve(null), 1500)),
-            ]);
-            if (tmdbBackdrop) {
-              const tmdbR2 = getR2BannerUrl(slug, tmdbBackdrop);
-              if (tmdbR2) {
-                return {
-                  ...movie,
-                  backdrop_url: tmdbR2,
-                  thumb_url: tmdbR2,
-                };
-              }
-              return {
-                ...movie,
-                backdrop_url: tmdbBackdrop,
-                thumb_url: tmdbBackdrop,
-              };
-            }
-          } catch {}
-        }
-        return movie;
-      })
-    );
+    try {
+      if (getCachedHeroWithNext) {
+        const heroJson = JSON.stringify(rawHeroMovies);
+        heroMovies = await getCachedHeroWithNext(heroJson);
+      } else {
+        heroMovies = await resolveHeroMoviesWithBackdrops(rawHeroMovies);
+      }
+    } catch {
+      heroMovies = await resolveHeroMoviesWithBackdrops(rawHeroMovies);
+    }
 
     setCachedResolvedHero(heroMovies);
   }
@@ -342,7 +380,7 @@ export default async function HomePage() {
           <TmdbTopTrending initialItems={trendingWeekRaw} />
         </div>
         <div className="cv-auto-row py-1">
-          <CommunityTopTrending />
+          <CommunityTopTrending initialItems={communityTrending} />
         </div>
 
         {/* 7. TAB TUYỂN CHỌN PHIM ĐA NĂNG TRÊN TRANG CHỦ */}

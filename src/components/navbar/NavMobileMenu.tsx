@@ -152,6 +152,7 @@ export const NavMobileMenu: React.FC<NavMobileMenuProps> = React.memo(function N
               <div className="grid grid-cols-2 gap-2 pt-2">
                 <Link
                   href="/profile"
+                  prefetch={false}
                   onClick={onClose}
                   className="flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-xl text-xs font-semibold text-zinc-200 bg-white/5 hover:bg-white/10 transition active:scale-95 cursor-pointer shadow-sm"
                 >
@@ -160,6 +161,7 @@ export const NavMobileMenu: React.FC<NavMobileMenuProps> = React.memo(function N
                 </Link>
                 <Link
                   href="/my-list?tab=comments"
+                  prefetch={false}
                   onClick={onClose}
                   className="flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-xl text-xs font-semibold text-netflix-red bg-netflix-red/15 hover:bg-netflix-red/25 transition active:scale-95 cursor-pointer shadow-sm"
                 >
@@ -169,6 +171,7 @@ export const NavMobileMenu: React.FC<NavMobileMenuProps> = React.memo(function N
                 {isUserAdmin(effectiveEmail) && (
                   <Link
                     href="/admin"
+                    prefetch={false}
                     onClick={onClose}
                     className="flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-xl text-xs font-bold text-amber-300 bg-amber-500/20 hover:bg-amber-500/30 transition active:scale-95 shadow-sm"
                   >
@@ -348,6 +351,7 @@ export const NavMobileMenu: React.FC<NavMobileMenuProps> = React.memo(function N
         <div className="pt-2 mt-1 flex flex-col gap-2">
           <Link
             href="/about"
+            prefetch={false}
             onClick={onClose}
             className="text-xs font-semibold py-2 px-3 text-zinc-300 hover:text-white flex items-center justify-between rounded-xl bg-white/[0.03] hover:bg-white/10 transition"
           >

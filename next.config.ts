@@ -23,7 +23,7 @@ const nextConfig: NextConfig = {
         : false,
   },
   images: {
-    unoptimized: process.env.NEXT_IMAGE_UNOPTIMIZED === "true",
+    unoptimized: true,
     deviceSizes: [640, 750, 828, 1080, 1200, 1920],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 320, 384, 500, 640],
     remotePatterns: [
@@ -140,7 +140,7 @@ const nextConfig: NextConfig = {
         headers: [
           {
             key: "Cache-Control",
-            value: "public, s-maxage=180, stale-while-revalidate=300",
+            value: "public, s-maxage=300, stale-while-revalidate=600",
           },
         ],
       },

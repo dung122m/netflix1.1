@@ -18,6 +18,12 @@ export async function GET(req: NextRequest) {
     return buildRateLimitResponse(rateLimit);
   }
 
+  const edgeHeaders = {
+    "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600",
+    "CDN-Cache-Control": "public, s-maxage=300, stale-while-revalidate=600",
+    "Vercel-CDN-Cache-Control": "public, s-maxage=300, stale-while-revalidate=600",
+  };
+
   const now = Date.now();
   if (lastMatchesCache && now < lastMatchesCache.expireAt) {
     return NextResponse.json(
@@ -26,11 +32,7 @@ export async function GET(req: NextRequest) {
         data: lastMatchesCache.data,
       },
       {
-        headers: {
-          "Cache-Control": "public, max-age=30, s-maxage=60, stale-while-revalidate=60",
-          "CDN-Cache-Control": "public, max-age=60",
-          "Vercel-CDN-Cache-Control": "max-age=60, stale-while-revalidate=60",
-        },
+        headers: edgeHeaders,
       }
     );
   }
@@ -39,7 +41,7 @@ export async function GET(req: NextRequest) {
     const data = await liveFootballService.getFootballMatches();
     lastMatchesCache = {
       data,
-      expireAt: now + 60_000,
+      expireAt: now + 300_000,
     };
     return NextResponse.json(
       {
@@ -47,11 +49,7 @@ export async function GET(req: NextRequest) {
         data,
       },
       {
-        headers: {
-          "Cache-Control": "public, max-age=30, s-maxage=60, stale-while-revalidate=60",
-          "CDN-Cache-Control": "public, max-age=60",
-          "Vercel-CDN-Cache-Control": "max-age=60, stale-while-revalidate=60",
-        },
+        headers: edgeHeaders,
       },
     );
   } catch (error) {

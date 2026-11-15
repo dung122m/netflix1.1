@@ -75,20 +75,20 @@ export interface MovieFilterParams {
   type?: string;
   slug?: string;
   sort?:
-    | "latest"
-    | "rating"
-    | "views"
-    | "year"
-    | "year-asc"
-    | "year-desc"
-    | "oldest"
-    | "time-asc"
-    | "time-desc"
-    | "rating-asc"
-    | "rating-desc"
-    | "views-asc"
-    | "views-desc"
-    | string;
+  | "latest"
+  | "rating"
+  | "views"
+  | "year"
+  | "year-asc"
+  | "year-desc"
+  | "oldest"
+  | "time-asc"
+  | "time-desc"
+  | "rating-asc"
+  | "rating-desc"
+  | "views-asc"
+  | "views-desc"
+  | string;
   skipKvCache?: boolean;
   posterEnrichmentBudgetMs?: number;
 }
@@ -396,8 +396,8 @@ export function filterDualServers(rawServers: any[]): any[] {
       !usedNames.has("lồng tiếng")
         ? "Lồng Tiếng"
         : !usedNames.has("thuyết minh")
-        ? "Thuyết Minh"
-        : srv.server_name || "Dự phòng";
+          ? "Thuyết Minh"
+          : srv.server_name || "Dự phòng";
     pushUnique(srv, defaultLabel);
   }
 
@@ -417,10 +417,10 @@ export function filterDualServers(rawServers: any[]): any[] {
           cat === "long_tieng"
             ? bestLongTieng
             : cat === "thuyet_minh"
-            ? bestThuyetMinh
-            : cat === "vietsub"
-            ? bestVietsub
-            : null;
+              ? bestThuyetMinh
+              : cat === "vietsub"
+                ? bestVietsub
+                : null;
         // Nếu cùng loại âm thanh đã có .m3u8 mà ứng viên này chỉ là embed -> bỏ qua tránh rác/trùng
         if (primaryForCat && serverHasM3u8(primaryForCat) && !serverHasM3u8(cand)) {
           return false;
@@ -529,14 +529,14 @@ function normalizeNguonCMovieDetail(raw: any) {
   const castsArr = typeof movie.casts === "string"
     ? movie.casts.split(",").map((s: string) => s.trim()).filter(Boolean)
     : Array.isArray(movie.casts)
-    ? movie.casts
-    : [];
+      ? movie.casts
+      : [];
 
   const directorArr = typeof movie.director === "string"
     ? movie.director.split(",").map((s: string) => s.trim()).filter(Boolean)
     : Array.isArray(movie.director)
-    ? movie.director
-    : [];
+      ? movie.director
+      : [];
 
   return {
     status: true,
@@ -671,8 +671,8 @@ export function toCompactDetailPayload(data: any, requestedEpSlug?: string): Mov
       const isReqMatch = Boolean(
         normReqEp &&
         (ep.slug === requestedEpSlug ||
-         ep.name === requestedEpSlug ||
-         epNorm === normReqEp)
+          ep.name === requestedEpSlug ||
+          epNorm === normReqEp)
       );
       const isInitial = epIdx < 2 || isReqMatch;
       if (isSmallSeries || isInitial) {
@@ -876,7 +876,7 @@ async function discoverAndMergeMissingSources(result: any, slug: string) {
               }
             }
           }
-        } catch {}
+        } catch { }
         return null;
       })());
     }
@@ -914,7 +914,7 @@ async function discoverAndMergeMissingSources(result: any, slug: string) {
               }
             }
           }
-        } catch {}
+        } catch { }
         return null;
       })());
     }
@@ -959,7 +959,7 @@ const fetchMovieDetailBase = async (
     }
     // Trả về dữ liệu đệm ngay lập tức nếu chưa quá hạn stale (0ms)
     if (entry.staleUntil > now) {
-      revalidateMovieDetail(slug, source, localKey).catch(() => {});
+      revalidateMovieDetail(slug, source, localKey).catch(() => { });
       return entry.data;
     }
   }
@@ -1094,7 +1094,7 @@ export async function getEpisodeStream(
           }
         }
         if (streams.length > 0) {
-          cacheService.set(streamKvKey, streams, 7 * 86400).catch(() => {});
+          cacheService.set(streamKvKey, streams, 7 * 86400).catch(() => { });
           return streams;
         }
       }
@@ -1169,7 +1169,7 @@ async function attachRequestedEpisodeStreams(data: any, requestedEpSlug?: string
                 }
               }
             }
-          } catch {}
+          } catch { }
         })()
       );
     }
@@ -1185,7 +1185,7 @@ async function attachRequestedEpisodeStreams(data: any, requestedEpSlug?: string
 async function revalidateMovieDetail(slug: string, source?: "nguonc" | "ophim", cacheKey?: string) {
   try {
     await fetchAndCacheMovieDetail(slug, source, cacheKey || `${slug}_${source || "any"}`);
-  } catch {}
+  } catch { }
 }
 
 // Mutex map ngăn ngừa gọi fetchAndCacheMovieDetail trùng lặp đồng thời
@@ -1203,176 +1203,176 @@ async function fetchAndCacheMovieDetail(slug: string, source?: "nguonc" | "ophim
     try {
       let result = undefined;
 
-    if (source === "nguonc") {
-      const res = await fetch(`${API_NGUONC}/film/${slug}`, {
-        next: { revalidate: 600 },
-        signal: AbortSignal.timeout(4500),
-      });
-      if (res.ok) {
-        const json = await res.json();
-        result = normalizeNguonCMovieDetail(json);
-      }
-    } else if (source === "ophim") {
-      const res = await fetch(`${API_PHIMAPI}/phim/${slug}`, {
-        next: { revalidate: 600 },
-        signal: AbortSignal.timeout(4500),
-      });
-      if (res.ok) result = await res.json();
-    } else {
-      // Fetch đồng thời cả 2 nguồn PhimAPI và NguonC
-      const results = await Promise.allSettled([
-        fetch(`${API_PHIMAPI}/phim/${slug}`, {
+      if (source === "nguonc") {
+        const res = await fetch(`${API_NGUONC}/film/${slug}`, {
           next: { revalidate: 600 },
-          signal: AbortSignal.timeout(10000),
-        }).then(async (res) => {
-          if (!res.ok) throw new Error("PhimAPI not ok");
-          return res.json();
-        }),
-
-        fetch(`${API_NGUONC}/film/${slug}`, {
-          next: { revalidate: 600 },
-          signal: AbortSignal.timeout(10000),
-        }).then(async (res) => {
-          if (!res.ok) throw new Error("NguonC not ok");
+          signal: AbortSignal.timeout(4500),
+        });
+        if (res.ok) {
           const json = await res.json();
-          return normalizeNguonCMovieDetail(json);
-        }),
-      ]);
-
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const validCandidates: any[] = [];
-      for (const r of results) {
-        if (r.status === "fulfilled" && r.value?.movie) {
-          validCandidates.push(r.value);
+          result = normalizeNguonCMovieDetail(json);
         }
-      }
+      } else if (source === "ophim") {
+        const res = await fetch(`${API_PHIMAPI}/phim/${slug}`, {
+          next: { revalidate: 600 },
+          signal: AbortSignal.timeout(4500),
+        });
+        if (res.ok) result = await res.json();
+      } else {
+        // Fetch đồng thời cả 2 nguồn PhimAPI và NguonC
+        const results = await Promise.allSettled([
+          fetch(`${API_PHIMAPI}/phim/${slug}`, {
+            next: { revalidate: 600 },
+            signal: AbortSignal.timeout(10000),
+          }).then(async (res) => {
+            if (!res.ok) throw new Error("PhimAPI not ok");
+            return res.json();
+          }),
 
-      if (validCandidates.length === 1) {
-        result = validCandidates[0];
-      } else if (validCandidates.length > 1) {
-        // Ưu tiên PhimAPI (hỗ trợ m3u8 direct streaming) làm nguồn chính nếu có đủ tập
+          fetch(`${API_NGUONC}/film/${slug}`, {
+            next: { revalidate: 600 },
+            signal: AbortSignal.timeout(10000),
+          }).then(async (res) => {
+            if (!res.ok) throw new Error("NguonC not ok");
+            const json = await res.json();
+            return normalizeNguonCMovieDetail(json);
+          }),
+        ]);
+
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const getEpMax = (data: any) => {
-          if (!data?.episodes || !Array.isArray(data.episodes)) return 0;
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          return data.episodes.reduce((max: number, s: any) => Math.max(max, s?.server_data?.length || 0), 0);
-        };
-
-        const resPhimApi = validCandidates.find((c) => c.movie?._id && !String(c.movie._id).includes("-"));
-        const resNguonC = validCandidates.find((c) => c !== resPhimApi) || validCandidates[1];
-
-        const primary = resPhimApi && getEpMax(resPhimApi) > 0 ? resPhimApi : validCandidates[0];
-        const secondary = primary === resPhimApi ? resNguonC : resPhimApi;
-
-        // Bổ sung và lọc tối đa đúng 2 server: Lồng Tiếng và Thuyết Minh
-        const secondaryEpContainer = secondary?.episodes || secondary?.movie?.episodes;
-        const primaryEpisodes = primary.episodes || primary.movie?.episodes || [];
-        const combined = Array.isArray(secondaryEpContainer) && secondaryEpContainer.length > 0
-          ? [...primaryEpisodes, ...secondaryEpContainer]
-          : primaryEpisodes;
-
-        const dual = filterDualServers(combined);
-        primary.episodes = dual;
-        if (primary.movie) {
-          primary.movie.episodes = dual;
-        }
-
-        // Bổ sung đầy đủ metadata từ secondary nếu primary bị thiếu (actor, director, category, country, alt names,...)
-        if (secondary?.movie && primary?.movie) {
-          const pm = primary.movie;
-          const sm = secondary.movie;
-          if ((!pm.actor || (Array.isArray(pm.actor) && pm.actor.length === 0)) && sm.actor) pm.actor = sm.actor;
-          if ((!pm.casts || (Array.isArray(pm.casts) && pm.casts.length === 0)) && sm.casts) pm.casts = sm.casts;
-          if ((!pm.director || (Array.isArray(pm.director) && pm.director.length === 0)) && sm.director) pm.director = sm.director;
-          if ((!pm.category || (Array.isArray(pm.category) && pm.category.length === 0)) && sm.category && (!Array.isArray(sm.category) || sm.category.length > 0)) pm.category = sm.category;
-          if ((!pm.country || (Array.isArray(pm.country) && pm.country.length === 0)) && sm.country && (!Array.isArray(sm.country) || sm.country.length > 0)) pm.country = sm.country;
-          if ((!pm.alternative_names || (Array.isArray(pm.alternative_names) && pm.alternative_names.length === 0)) && sm.alternative_names) pm.alternative_names = sm.alternative_names;
-          if (!pm.tmdb && sm.tmdb) pm.tmdb = sm.tmdb;
-          if (!pm.imdb && sm.imdb) pm.imdb = sm.imdb;
-          if (!pm.modified && sm.modified) pm.modified = sm.modified;
-          if (!pm.created && sm.created) pm.created = sm.created;
-          if (!pm.trailer_url && sm.trailer_url) pm.trailer_url = sm.trailer_url;
-          if ((!pm.content || !pm.description) && (sm.content || sm.description)) {
-            if (!pm.content) pm.content = sm.content || sm.description;
-            if (!pm.description) pm.description = sm.description || sm.content;
+        const validCandidates: any[] = [];
+        for (const r of results) {
+          if (r.status === "fulfilled" && r.value?.movie) {
+            validCandidates.push(r.value);
           }
         }
 
-        result = primary;
-      }
-    }
+        if (validCandidates.length === 1) {
+          result = validCandidates[0];
+        } else if (validCandidates.length > 1) {
+          // Ưu tiên PhimAPI (hỗ trợ m3u8 direct streaming) làm nguồn chính nếu có đủ tập
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const getEpMax = (data: any) => {
+            if (!data?.episodes || !Array.isArray(data.episodes)) return 0;
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            return data.episodes.reduce((max: number, s: any) => Math.max(max, s?.server_data?.length || 0), 0);
+          };
 
-    if (result && !source) {
-      const currentServers = result.episodes || result.movie?.episodes || [];
-      const hasDualServers = currentServers.length >= 2;
-      if (!hasDualServers) {
-        await discoverAndMergeMissingSources(result, slug);
-      }
-    }
+          const resPhimApi = validCandidates.find((c) => c.movie?._id && !String(c.movie._id).includes("-"));
+          const resNguonC = validCandidates.find((c) => c !== resPhimApi) || validCandidates[1];
 
-    if (result) {
-      // Đảm bảo kết quả luôn tuân thủ tối đa 2 server
-      const dual = filterDualServers(result.episodes || result.movie?.episodes || []);
-      result.episodes = dual;
-      if (result.movie) {
-        result.movie.episodes = dual;
-      }
-    }
+          const primary = resPhimApi && getEpMax(resPhimApi) > 0 ? resPhimApi : validCandidates[0];
+          const secondary = primary === resPhimApi ? resNguonC : resPhimApi;
 
-    if (result) {
-      // Khử trùng lặp các tập phim trong từng server của kết quả (Chống lỗi duplicate key từ upstream API)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const episodeContainers = [result.episodes, result.movie?.episodes].filter(Boolean) as any[][];
-      for (const container of episodeContainers) {
-        if (Array.isArray(container)) {
-          for (const srv of container) {
-            if (srv && Array.isArray(srv.server_data)) {
-              srv.server_data = deduplicateServerEpisodes(srv.server_data);
+          // Bổ sung và lọc tối đa đúng 2 server: Lồng Tiếng và Thuyết Minh
+          const secondaryEpContainer = secondary?.episodes || secondary?.movie?.episodes;
+          const primaryEpisodes = primary.episodes || primary.movie?.episodes || [];
+          const combined = Array.isArray(secondaryEpContainer) && secondaryEpContainer.length > 0
+            ? [...primaryEpisodes, ...secondaryEpContainer]
+            : primaryEpisodes;
+
+          const dual = filterDualServers(combined);
+          primary.episodes = dual;
+          if (primary.movie) {
+            primary.movie.episodes = dual;
+          }
+
+          // Bổ sung đầy đủ metadata từ secondary nếu primary bị thiếu (actor, director, category, country, alt names,...)
+          if (secondary?.movie && primary?.movie) {
+            const pm = primary.movie;
+            const sm = secondary.movie;
+            if ((!pm.actor || (Array.isArray(pm.actor) && pm.actor.length === 0)) && sm.actor) pm.actor = sm.actor;
+            if ((!pm.casts || (Array.isArray(pm.casts) && pm.casts.length === 0)) && sm.casts) pm.casts = sm.casts;
+            if ((!pm.director || (Array.isArray(pm.director) && pm.director.length === 0)) && sm.director) pm.director = sm.director;
+            if ((!pm.category || (Array.isArray(pm.category) && pm.category.length === 0)) && sm.category && (!Array.isArray(sm.category) || sm.category.length > 0)) pm.category = sm.category;
+            if ((!pm.country || (Array.isArray(pm.country) && pm.country.length === 0)) && sm.country && (!Array.isArray(sm.country) || sm.country.length > 0)) pm.country = sm.country;
+            if ((!pm.alternative_names || (Array.isArray(pm.alternative_names) && pm.alternative_names.length === 0)) && sm.alternative_names) pm.alternative_names = sm.alternative_names;
+            if (!pm.tmdb && sm.tmdb) pm.tmdb = sm.tmdb;
+            if (!pm.imdb && sm.imdb) pm.imdb = sm.imdb;
+            if (!pm.modified && sm.modified) pm.modified = sm.modified;
+            if (!pm.created && sm.created) pm.created = sm.created;
+            if (!pm.trailer_url && sm.trailer_url) pm.trailer_url = sm.trailer_url;
+            if ((!pm.content || !pm.description) && (sm.content || sm.description)) {
+              if (!pm.content) pm.content = sm.content || sm.description;
+              if (!pm.description) pm.description = sm.description || sm.content;
+            }
+          }
+
+          result = primary;
+        }
+      }
+
+      if (result && !source) {
+        const currentServers = result.episodes || result.movie?.episodes || [];
+        const hasDualServers = currentServers.length >= 2;
+        if (!hasDualServers) {
+          await discoverAndMergeMissingSources(result, slug);
+        }
+      }
+
+      if (result) {
+        // Đảm bảo kết quả luôn tuân thủ tối đa 2 server
+        const dual = filterDualServers(result.episodes || result.movie?.episodes || []);
+        result.episodes = dual;
+        if (result.movie) {
+          result.movie.episodes = dual;
+        }
+      }
+
+      if (result) {
+        // Khử trùng lặp các tập phim trong từng server của kết quả (Chống lỗi duplicate key từ upstream API)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const episodeContainers = [result.episodes, result.movie?.episodes].filter(Boolean) as any[][];
+        for (const container of episodeContainers) {
+          if (Array.isArray(container)) {
+            for (const srv of container) {
+              if (srv && Array.isArray(srv.server_data)) {
+                srv.server_data = deduplicateServerEpisodes(srv.server_data);
+              }
             }
           }
         }
+
+        if (result.movie) {
+          if (result.movie.content) {
+            result.movie.content = cleanHtmlText(result.movie.content);
+          }
+          if (result.movie.description) {
+            result.movie.description = cleanHtmlText(result.movie.description);
+          }
+        }
+        // Cache tươi 10 phút, cho phép dùng lại stale tới 60 phút
+        movieDetailMemoryCache.set(key, {
+          data: result,
+          expireAt: now + 600 * 1000,
+          staleUntil: now + 3600 * 1000,
+        });
+        return result;
       }
 
-      if (result.movie) {
-        if (result.movie.content) {
-          result.movie.content = cleanHtmlText(result.movie.content);
-        }
-        if (result.movie.description) {
-          result.movie.description = cleanHtmlText(result.movie.description);
-        }
-      }
-      // Cache tươi 10 phút, cho phép dùng lại stale tới 60 phút
+      // ============================================================
+      // NEGATIVE CACHE (1800s / 30m TTL):
+      // Khi slug không tìm thấy trên cả 2 nguồn (PhimAPI, NguonC)
+      // -> Lưu negative cache 30 phút để chống lãng phí quét upstream và Redis liên tục
+      // ============================================================
       movieDetailMemoryCache.set(key, {
-        data: result,
-        expireAt: now + 600 * 1000,
-        staleUntil: now + 3600 * 1000,
+        data: null,
+        expireAt: now + 1800 * 1000,
+        staleUntil: now + 1800 * 1000,
       });
-      return result;
+      const kvKey = `movie:detail:v4:${slug}:${source || "any"}`;
+      cacheService.set(kvKey, { _isNegative: true }, 1800).catch(() => { });
+
+      return undefined;
+    } catch {
+      // Negative cache an toàn khi có lỗi
+      movieDetailMemoryCache.set(key, {
+        data: null,
+        expireAt: now + 1800 * 1000,
+        staleUntil: now + 1800 * 1000,
+      });
+      return undefined;
     }
-
-    // ============================================================
-    // NEGATIVE CACHE (1800s / 30m TTL):
-    // Khi slug không tìm thấy trên cả 2 nguồn (PhimAPI, NguonC)
-    // -> Lưu negative cache 30 phút để chống lãng phí quét upstream và Redis liên tục
-    // ============================================================
-    movieDetailMemoryCache.set(key, {
-      data: null,
-      expireAt: now + 1800 * 1000,
-      staleUntil: now + 1800 * 1000,
-    });
-    const kvKey = `movie:detail:v4:${slug}:${source || "any"}`;
-    cacheService.set(kvKey, { _isNegative: true }, 1800).catch(() => {});
-
-    return undefined;
-  } catch {
-    // Negative cache an toàn khi có lỗi
-    movieDetailMemoryCache.set(key, {
-      data: null,
-      expireAt: now + 1800 * 1000,
-      staleUntil: now + 1800 * 1000,
-    });
-    return undefined;
-  }
   })();
 
   inFlightDetailFetches.set(key, promise);
@@ -1402,10 +1402,10 @@ export function isMovieOfType(item: Record<string, unknown>, type: string): bool
 
   const catSlugs = Array.isArray(item.category)
     ? item.category.map((c: unknown) =>
-        typeof c === "string"
-          ? c.toLowerCase()
-          : `${(c as { slug?: string })?.slug || ""} ${(c as { name?: string })?.name || ""}`.toLowerCase()
-      )
+      typeof c === "string"
+        ? c.toLowerCase()
+        : `${(c as { slug?: string })?.slug || ""} ${(c as { name?: string })?.name || ""}`.toLowerCase()
+    )
     : [String(item.category || "").toLowerCase()];
 
   const isHoatHinh =
@@ -1445,10 +1445,10 @@ export function isMovieOfType(item: Record<string, unknown>, type: string): bool
 
   const isChieuRap = Boolean(
     item.chieurap === true ||
-      item.chieurap === "true" ||
-      item.chieurap === 1 ||
-      item.chieu_rap === true ||
-      catSlugs.some((c) => c.includes("chieu-rap") || c.includes("chiếu rạp"))
+    item.chieurap === "true" ||
+    item.chieurap === 1 ||
+    item.chieu_rap === true ||
+    catSlugs.some((c) => c.includes("chieu-rap") || c.includes("chiếu rạp"))
   );
 
   switch (type) {
@@ -1607,16 +1607,16 @@ async function fetchSourceData(
           }) => {
             const rawThumb =
               typeof item.thumb_url === "string" &&
-              item.thumb_url.trim() &&
-              item.thumb_url !== "null" &&
-              item.thumb_url !== "undefined"
+                item.thumb_url.trim() &&
+                item.thumb_url !== "null" &&
+                item.thumb_url !== "undefined"
                 ? item.thumb_url.trim()
                 : "";
             const rawPoster =
               typeof item.poster_url === "string" &&
-              item.poster_url.trim() &&
-              item.poster_url !== "null" &&
-              item.poster_url !== "undefined"
+                item.poster_url.trim() &&
+                item.poster_url !== "null" &&
+                item.poster_url !== "undefined"
                 ? item.poster_url.trim()
                 : "";
 
@@ -1735,136 +1735,136 @@ async function fetchSourceData(
       };
     }
 
-async function fetchSingleNguonCPage(
-  p: number,
-  u: string,
-  nguonCMetaKey: string,
-): Promise<NguonCPageResponse | null> {
-  const existing = inFlightNguonC.get(u);
-  if (existing) return existing;
+    async function fetchSingleNguonCPage(
+      p: number,
+      u: string,
+      nguonCMetaKey: string,
+    ): Promise<NguonCPageResponse | null> {
+      const existing = inFlightNguonC.get(u);
+      if (existing) return existing;
 
-  const requestOnce = async (isRetry: boolean) => {
-    const t0 = performance.now();
-    try {
-      const res = await fetch(u, {
-        headers: {
-          "User-Agent":
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36",
-          Accept: "application/json, text/plain, */*",
-          "Accept-Language": "vi-VN,vi;q=0.9,en-US;q=0.8,en;q=0.7",
-        },
-        ...(isRetry ? { cache: "no-store" as const } : { next: { revalidate: 300 } }),
-        signal: AbortSignal.timeout(NGUONC_TIMEOUT_MS),
-      });
-      const elapsed = Math.round(performance.now() - t0);
-      if (!res.ok) {
-        console.info(`[NguonC] page=${p} status=${res.status} elapsed=${elapsed}ms retry=${isRetry}`);
-        return { ok: false, retryable: res.status === 429 || res.status >= 500, json: null };
-      }
-      const json = await res.json();
-      const itmCount = json?.items?.length || 0;
-      const tot = json?.paginate?.total_items || itmCount;
-      const totalPage = json?.paginate?.total_page || (tot ? Math.ceil(tot / 10) : 0);
-      console.info(`[NguonC] page=${p} status=200 elapsed=${elapsed}ms items=${itmCount} total=${tot}`);
+      const requestOnce = async (isRetry: boolean) => {
+        const t0 = performance.now();
+        try {
+          const res = await fetch(u, {
+            headers: {
+              "User-Agent":
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36",
+              Accept: "application/json, text/plain, */*",
+              "Accept-Language": "vi-VN,vi;q=0.9,en-US;q=0.8,en;q=0.7",
+            },
+            ...(isRetry ? { cache: "no-store" as const } : { next: { revalidate: 300 } }),
+            signal: AbortSignal.timeout(NGUONC_TIMEOUT_MS),
+          });
+          const elapsed = Math.round(performance.now() - t0);
+          if (!res.ok) {
+            console.info(`[NguonC] page=${p} status=${res.status} elapsed=${elapsed}ms retry=${isRetry}`);
+            return { ok: false, retryable: res.status === 429 || res.status >= 500, json: null };
+          }
+          const json = await res.json();
+          const itmCount = json?.items?.length || 0;
+          const tot = json?.paginate?.total_items || itmCount;
+          const totalPage = json?.paginate?.total_page || (tot ? Math.ceil(tot / 10) : 0);
+          console.info(`[NguonC] page=${p} status=200 elapsed=${elapsed}ms items=${itmCount} total=${tot}`);
 
-      // Ghi nhận metadata phân trang để các page khác cùng query không gọi vượt ngưỡng
-      if (totalPage > 0 || tot > 0) {
-        const current = nguonCQueryMetaCache.get(nguonCMetaKey);
-        nguonCQueryMetaCache.set(nguonCMetaKey, {
-          totalItems: Math.max(tot, current?.totalItems || 0),
-          totalPages: Math.max(totalPage, current?.totalPages || 0),
-          timestamp: Date.now(),
-        });
-      }
-      return { ok: true, retryable: false, json };
-    } catch (err) {
-      const elapsed = Math.round(performance.now() - t0);
-      const errType = err instanceof Error && err.name === "AbortError" ? "timeout" : "network_error";
-      console.info(`[NguonC] page=${p} error=${errType} elapsed=${elapsed}ms retry=${isRetry}`);
-      return { ok: false, retryable: true, json: null };
+          // Ghi nhận metadata phân trang để các page khác cùng query không gọi vượt ngưỡng
+          if (totalPage > 0 || tot > 0) {
+            const current = nguonCQueryMetaCache.get(nguonCMetaKey);
+            nguonCQueryMetaCache.set(nguonCMetaKey, {
+              totalItems: Math.max(tot, current?.totalItems || 0),
+              totalPages: Math.max(totalPage, current?.totalPages || 0),
+              timestamp: Date.now(),
+            });
+          }
+          return { ok: true, retryable: false, json };
+        } catch (err) {
+          const elapsed = Math.round(performance.now() - t0);
+          const errType = err instanceof Error && err.name === "AbortError" ? "timeout" : "network_error";
+          console.info(`[NguonC] page=${p} error=${errType} elapsed=${elapsed}ms retry=${isRetry}`);
+          return { ok: false, retryable: true, json: null };
+        }
+      };
+
+      const promise = (async () => {
+        try {
+          const first = await requestOnce(false);
+          if (first.ok || !first.retryable) {
+            return first.json;
+          }
+          // Retry once after short jittered delay to recover from transient HTTP 429 / socket bursts
+          const backoffMs = 200 + Math.floor(Math.random() * 180);
+          await new Promise((resolve) => setTimeout(resolve, backoffMs));
+          const second = await requestOnce(true);
+          return second.json;
+        } finally {
+          inFlightNguonC.delete(u);
+        }
+      })();
+
+      inFlightNguonC.set(u, promise);
+      return promise;
     }
-  };
 
-  const promise = (async () => {
-    try {
-      const first = await requestOnce(false);
-      if (first.ok || !first.retryable) {
-        return first.json;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    function mapNguonCListItem(item: any, params: MovieFilterParams) {
+      const nguoncBackdrop = item.poster_url;
+      const nguoncPoster = item.thumb_url;
+      const cleanPoster = nguoncPoster || item.poster_url || "";
+      const cleanThumb = nguoncBackdrop || item.thumb_url || "";
+
+      let itemType: string | undefined = undefined;
+      let chieurap: boolean | undefined = undefined;
+
+      if (params.type === "phim-chieu-rap") {
+        chieurap = true;
+        itemType = "phim-chieu-rap";
+      } else if (params.type === "hoat-hinh") {
+        itemType = "hoat-hinh";
+      } else if (params.type === "phim-bo") {
+        itemType = "series";
+      } else if (params.type === "phim-le") {
+        itemType = "single";
+      } else if (params.type === "tv-shows") {
+        itemType = "tv-shows";
       }
-      // Retry once after short jittered delay to recover from transient HTTP 429 / socket bursts
-      const backoffMs = 200 + Math.floor(Math.random() * 180);
-      await new Promise((resolve) => setTimeout(resolve, backoffMs));
-      const second = await requestOnce(true);
-      return second.json;
-    } finally {
-      inFlightNguonC.delete(u);
+
+      const normalizedDirectors = extractMovieDirectors(item);
+      const normalizedActors = extractMovieActors(item);
+
+      return {
+        ...item,
+        source: "nguonc",
+        sources: ["nguonc"],
+        name: item.name,
+        slug: item.slug,
+        origin_name: item.original_name || item.name,
+        poster_url: cleanPoster || cleanThumb,
+        thumb_url: cleanThumb || cleanPoster,
+        quality: item.quality || "HD",
+        lang: item.language || "Vietsub",
+        episode_current: item.current_episode || "",
+        year: Number(item.year) || undefined,
+        time: item.time || "",
+        director: normalizedDirectors,
+        actor: normalizedActors,
+        modified:
+          typeof item.modified === "string"
+            ? { time: item.modified }
+            : item.modified || (item.created ? { time: String(item.created) } : undefined),
+        ...(Array.isArray(item.category) && item.category.length > 0
+          ? { category: item.category }
+          : params.category
+            ? { category: [{ name: formatGenreName(params.category) || params.category, slug: params.category }] }
+            : {}),
+        ...(Array.isArray(item.country) && item.country.length > 0
+          ? { country: item.country }
+          : params.country
+            ? { country: [{ name: formatCountryName(params.country) || params.country, slug: params.country }] }
+            : {}),
+        ...(itemType ? { type: itemType } : {}),
+        ...(chieurap !== undefined ? { chieurap } : {}),
+      };
     }
-  })();
-
-  inFlightNguonC.set(u, promise);
-  return promise;
-}
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function mapNguonCListItem(item: any, params: MovieFilterParams) {
-  const nguoncBackdrop = item.poster_url;
-  const nguoncPoster = item.thumb_url;
-  const cleanPoster = nguoncPoster || item.poster_url || "";
-  const cleanThumb = nguoncBackdrop || item.thumb_url || "";
-
-  let itemType: string | undefined = undefined;
-  let chieurap: boolean | undefined = undefined;
-
-  if (params.type === "phim-chieu-rap") {
-    chieurap = true;
-    itemType = "phim-chieu-rap";
-  } else if (params.type === "hoat-hinh") {
-    itemType = "hoat-hinh";
-  } else if (params.type === "phim-bo") {
-    itemType = "series";
-  } else if (params.type === "phim-le") {
-    itemType = "single";
-  } else if (params.type === "tv-shows") {
-    itemType = "tv-shows";
-  }
-
-  const normalizedDirectors = extractMovieDirectors(item);
-  const normalizedActors = extractMovieActors(item);
-
-  return {
-    ...item,
-    source: "nguonc",
-    sources: ["nguonc"],
-    name: item.name,
-    slug: item.slug,
-    origin_name: item.original_name || item.name,
-    poster_url: cleanPoster || cleanThumb,
-    thumb_url: cleanThumb || cleanPoster,
-    quality: item.quality || "HD",
-    lang: item.language || "Vietsub",
-    episode_current: item.current_episode || "",
-    year: Number(item.year) || undefined,
-    time: item.time || "",
-    director: normalizedDirectors,
-    actor: normalizedActors,
-    modified:
-      typeof item.modified === "string"
-        ? { time: item.modified }
-        : item.modified || (item.created ? { time: String(item.created) } : undefined),
-    ...(Array.isArray(item.category) && item.category.length > 0
-      ? { category: item.category }
-      : params.category
-      ? { category: [{ name: formatGenreName(params.category) || params.category, slug: params.category }] }
-      : {}),
-    ...(Array.isArray(item.country) && item.country.length > 0
-      ? { country: item.country }
-      : params.country
-      ? { country: [{ name: formatCountryName(params.country) || params.country, slug: params.country }] }
-      : {}),
-    ...(itemType ? { type: itemType } : {}),
-    ...(chieurap !== undefined ? { chieurap } : {}),
-  };
-}
 
     const nguonCSettled = await Promise.allSettled(
       pagesToFetch.map((p) => {
@@ -2025,14 +2025,14 @@ export function applyMovieFilters(items: any[], params: MovieFilterParams): any[
       const ctryArray = Array.isArray(item.country)
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         ? item.country.map((c: any) => {
-            const cSlug = c.slug || "";
-            const cName = c.name || "";
-            const canonical = getCanonicalCountrySlug(cName, cSlug);
-            return `${cSlug} ${cName} ${canonical}`.toLowerCase();
-          })
+          const cSlug = c.slug || "";
+          const cName = c.name || "";
+          const canonical = getCanonicalCountrySlug(cName, cSlug);
+          return `${cSlug} ${cName} ${canonical}`.toLowerCase();
+        })
         : [
-            `${String(item.country || "")} ${getCanonicalCountrySlug(String(item.country || ""), null)}`.toLowerCase()
-          ];
+          `${String(item.country || "")} ${getCanonicalCountrySlug(String(item.country || ""), null)}`.toLowerCase()
+        ];
       return ctryArray.some((cStr: string) =>
         cStr.includes(rawTarget) || Boolean(canonicalTarget && cStr.includes(canonicalTarget))
       );
@@ -2051,14 +2051,14 @@ export function applyMovieFilters(items: any[], params: MovieFilterParams): any[
       const catArray = Array.isArray(item.category)
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         ? item.category.map((c: any) => {
-            const cSlug = c.slug || "";
-            const cName = c.name || "";
-            const canonical = getCanonicalGenreSlug(cName, cSlug);
-            return `${cSlug} ${cName} ${canonical}`.toLowerCase();
-          })
+          const cSlug = c.slug || "";
+          const cName = c.name || "";
+          const canonical = getCanonicalGenreSlug(cName, cSlug);
+          return `${cSlug} ${cName} ${canonical}`.toLowerCase();
+        })
         : [
-            `${String(item.category || "")} ${getCanonicalGenreSlug(String(item.category || ""), null)}`.toLowerCase()
-          ];
+          `${String(item.category || "")} ${getCanonicalGenreSlug(String(item.category || ""), null)}`.toLowerCase()
+        ];
       return catArray.some((cStr: string) =>
         cStr.includes(rawTarget) || Boolean(canonicalTarget && cStr.includes(canonicalTarget))
       );
@@ -2243,7 +2243,7 @@ async function executeGetMovies(params: MovieFilterParams, cacheKey: string) {
             )
           );
         }
-      } catch {}
+      } catch { }
     }
 
     if (requestedPageNum > 1 && seenSlugsByPage.size > 0) {
@@ -2321,7 +2321,7 @@ async function executeGetMovies(params: MovieFilterParams, cacheKey: string) {
   // TÍNH TỔNG SỐ PHIM VÀ TRANG (FEDERATION THỰC TẾ & BẢO ĐẢM NHẤT QUÁN TOÀN HỆ THỐNG)
   // ============================================================
   let countApi1 = resPhimApi?.totalItems || 0;
-  let countApi2 = resNguonC?.totalItems   || 0;
+  let countApi2 = resNguonC?.totalItems || 0;
 
   // Nếu một nguồn bị lỗi/timeout hoặc vượt quá số trang riêng của nguồn đó (trả về 0),
   // kế thừa giá trị count đã biết từ queryMetadataCache để tránh sụt giảm totalItems giữa các trang.
@@ -2412,7 +2412,7 @@ async function executeGetMovies(params: MovieFilterParams, cacheKey: string) {
         }
         appendUniqueFiltered(mergedTopUp);
       }
-    } catch {}
+    } catch { }
   }
 
   // Bảo đảm an toàn tuyệt đối cho trang cuối (chỉ cho Browse/Filter, KHÔNG áp dụng cho Search từ khóa):
@@ -2441,7 +2441,7 @@ async function executeGetMovies(params: MovieFilterParams, cacheKey: string) {
         if (fallbackCombined.length > 0) {
           finalItems = fallbackCombined.slice(0, limit);
         }
-      } catch {}
+      } catch { }
     }
   }
 
@@ -2556,7 +2556,7 @@ export const movieApi = {
       }
       // Nếu hết hạn tươi nhưng vẫn trong hạn stale -> trả về ngay lập tức (0ms) và revalidate ngầm!
       if (entry.staleUntil > now) {
-        executeGetMovies(params, cacheKey).catch(() => {});
+        executeGetMovies(params, cacheKey).catch(() => { });
         return sanitizeMovieImages(entry.data);
       }
     }
@@ -2585,10 +2585,10 @@ export const movieApi = {
     const ttlSeconds = params.keyword
       ? 86400
       : pageNum <= 5
-      ? 21600
-      : pageNum <= 15
-      ? 7200
-      : 3600;
+        ? 21600
+        : pageNum <= 15
+          ? 7200
+          : 3600;
 
     // Single-Flight Mutex: Gom các request đồng thời cho cùng danh mục/trang trên cùng instance
     const inFlightKey = cacheKey;
@@ -2622,7 +2622,7 @@ export const movieApi = {
             res.items.length > 0 &&
             !degradedMoviePayloads.has(res)
           ) {
-            cacheService.set(kvKey, res, ttlSeconds).catch(() => {});
+            cacheService.set(kvKey, res, ttlSeconds).catch(() => { });
           }
         }
         return sanitizeMovieImages(res);
@@ -2756,7 +2756,7 @@ export const movieApi = {
           if (detail && detail.movie) {
             result[slug] = detail;
           }
-        } catch {}
+        } catch { }
       });
       await Promise.allSettled(liveFetches);
     }
@@ -2803,7 +2803,7 @@ export const movieApi = {
         return entry.data;
       }
       if (entry.staleUntil > now) {
-        executeGetAiCandidates(params, options).catch(() => {});
+        executeGetAiCandidates(params, options).catch(() => { });
         return entry.data;
       }
     }

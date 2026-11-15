@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { movieApi, deduplicateServerEpisodes, filterDualServers } from "@/services/movies/service";
 import { encodeStreamUrl } from "@/lib/streamCrypto";
 import { canServerUseNanaflixPlayer } from "@/components/cinema/cinemaStreamHelpers";
@@ -379,13 +380,23 @@ export async function resolveTmdbFallbackMedia(movie: MovieDetailRecord) {
   };
 }
 
+/**
+ * Request-scoped memoized movie detail fetcher (React cache)
+ * Triệt tiêu hoàn toàn Double Fetch giữa buildMovieMetadata và buildMovieDetailPageData trong cùng 1 request
+ */
+export const getCachedMovieDetail = cache(
+  async (slug: string, source?: "nguonc" | "ophim", ep?: string) => {
+    return movieApi.getMovieDetail(slug, source, ep);
+  }
+);
+
 export async function buildMovieMetadata(slug: string) {
   const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || "https://nanaflix.asia").replace(
     /\/+$/,
     ""
   );
   try {
-    const data = await movieApi.getMovieDetail(slug);
+    const data = await getCachedMovieDetail(slug);
 
     if (!data?.movie) {
       return {
@@ -436,12 +447,12 @@ export async function buildMovieMetadata(slug: string) {
   }
 }
 
-export async function buildMovieDetailPageData(
+async function buildMovieDetailPageDataInternal(
   slug: string,
   options: { ep?: string; server?: string }
 ) {
   const { ep, server } = options;
-  const data = await movieApi.getMovieDetail(slug, undefined, ep);
+  const data = await getCachedMovieDetail(slug, undefined, ep);
   if (!data || !data.movie) {
     return null;
   }
@@ -671,3 +682,5 @@ export async function buildMovieDetailPageData(
     jsonLd,
   };
 }
+
+export const buildMovieDetailPageData = cache(buildMovieDetailPageDataInternal);
