@@ -8,9 +8,7 @@ import { getCanonicalGenreSlug, getCanonicalCountrySlug, isRawId } from "@/lib/m
 import { useBodyScrollLock } from "@/lib/scrollLock";
 import {
   ChevronDown,
-  X,
   RotateCcw,
-  Filter,
   Loader2,
   SlidersHorizontal,
 } from "lucide-react";
@@ -166,32 +164,6 @@ export const FilterBar: React.FC = () => {
     });
   }, [router]);
 
-  // Clear single key
-  const handleClearKey = useCallback((key: string) => {
-    const groupKey = (key === "type" ? "type" : key === "category" ? "genre" : key === "country" ? "country" : key === "year" ? "year" : key === "sort" ? "sort" : null) as FilterGroup | null;
-    setOptimisticParams((prev) => ({
-      ...prev,
-      [key]: "",
-    }));
-    if (groupKey) {
-      setPendingGroup(groupKey);
-    }
-
-    if (typeof window !== "undefined") {
-      window.dispatchEvent(new Event("app:loading-start"));
-    }
-
-    const params = new URLSearchParams(latestParamsRef.current.toString());
-    params.delete(key);
-    params.delete("page");
-    latestParamsRef.current = params;
-    const query = params.toString();
-
-    startTransition(() => {
-      router.push(query ? `/browse?${query}` : "/browse", { scroll: false });
-    });
-  }, [router]);
-
   // Clear all filters
   const handleClearAll = useCallback(() => {
     setActiveDropdown(null);
@@ -236,8 +208,6 @@ export const FilterBar: React.FC = () => {
   const activeCountryName = activeCountryObj ? activeCountryObj.name : "Quốc gia";
 
   const isCustomSort = Boolean(currentSort && currentSort !== "latest");
-  const activeSortOption = SORT_OPTIONS.find((s) => s.value === currentSort);
-  const activeSortName = isCustomSort ? (activeSortOption ? activeSortOption.label : "Sắp xếp") : "Sắp xếp";
   const activeFiltersCount = [
     Boolean(currentType),
     Boolean(currentCategory),
@@ -659,131 +629,6 @@ export const FilterBar: React.FC = () => {
         filters={filters}
         updateQueryParam={updateQueryParam}
       />
-
-      {/* 2. ACTIVE FILTERS CHIP BAR (Chỉ hiển thị khi có ít nhất 1 filter active) */}
-      {hasAnyFilter && (
-        <div className="mt-2.5 pt-2 border-t border-white/[0.08] flex items-center gap-1.5 overflow-x-auto sm:flex-wrap [scrollbar-width:none] [&::-webkit-scrollbar]:hidden text-xs animate-in fade-in slide-in-from-top-1 duration-150">
-          <span className="flex-none flex items-center gap-1 text-zinc-400 font-semibold bg-white/5 px-2 py-0.5 rounded-full whitespace-nowrap text-[11px]">
-            <Filter className="w-3 h-3 text-netflix-red" />
-            <span>Đang lọc:</span>
-          </span>
-
-          {/* Type tag */}
-          {currentType && (
-            <Tooltip content="Nhấn để bỏ lọc loại phim này" side="top">
-              <button
-                type="button"
-                onClick={() => handleClearKey("type")}
-                aria-label="Nhấn để bỏ lọc loại phim này"
-                className="flex-none inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-zinc-900/90 hover:bg-zinc-800 text-zinc-300 hover:text-white transition cursor-pointer text-xs whitespace-nowrap group"
-              >
-                <span>{activeTypeName}</span>
-                <X className="w-3 h-3 text-zinc-400 group-hover:text-white" />
-              </button>
-            </Tooltip>
-          )}
-
-          {/* Category tag */}
-          {currentCategory && (
-            <Tooltip content="Nhấn để bỏ lọc thể loại này" side="top">
-              <button
-                type="button"
-                onClick={() => handleClearKey("category")}
-                aria-label="Nhấn để bỏ lọc thể loại này"
-                className="flex-none inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-zinc-900/90 hover:bg-zinc-800 text-zinc-300 hover:text-white transition cursor-pointer text-xs whitespace-nowrap group"
-              >
-                <span>{activeCategoryName}</span>
-                <X className="w-3 h-3 text-zinc-400 group-hover:text-white" />
-              </button>
-            </Tooltip>
-          )}
-
-          {/* Country tag */}
-          {currentCountry && (
-            <Tooltip content="Nhấn để bỏ lọc quốc gia này" side="top">
-              <button
-                type="button"
-                onClick={() => handleClearKey("country")}
-                aria-label="Nhấn để bỏ lọc quốc gia này"
-                className="flex-none inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-zinc-900/90 hover:bg-zinc-800 text-zinc-300 hover:text-white transition cursor-pointer text-xs whitespace-nowrap group"
-              >
-                <span>{activeCountryName}</span>
-                <X className="w-3 h-3 text-zinc-400 group-hover:text-white" />
-              </button>
-            </Tooltip>
-          )}
-
-          {/* Year tag */}
-          {currentYear && (
-            <Tooltip content="Nhấn để bỏ lọc năm này" side="top">
-              <button
-                type="button"
-                onClick={() => handleClearKey("year")}
-                aria-label="Nhấn để bỏ lọc năm này"
-                className="flex-none inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-zinc-900/90 hover:bg-zinc-800 text-zinc-300 hover:text-white transition cursor-pointer text-xs whitespace-nowrap group"
-              >
-                <span>Năm {currentYear}</span>
-                <X className="w-3 h-3 text-zinc-400 group-hover:text-white" />
-              </button>
-            </Tooltip>
-          )}
-
-          {/* Sort tag */}
-          {isCustomSort && (
-            <Tooltip content="Nhấn để đưa về sắp xếp mặc định" side="top">
-              <button
-                type="button"
-                onClick={() => handleClearKey("sort")}
-                aria-label="Nhấn để đưa về sắp xếp mặc định"
-                className="flex-none inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-zinc-900/90 hover:bg-zinc-800 text-zinc-300 hover:text-white transition cursor-pointer text-xs whitespace-nowrap group"
-              >
-                <span>{activeSortName}</span>
-                <X className="w-3 h-3 text-zinc-400 group-hover:text-white" />
-              </button>
-            </Tooltip>
-          )}
-
-          {/* Actor tag */}
-          {currentActor && (
-            <Tooltip content="Nhấn để bỏ lọc diễn viên này" side="top">
-              <button
-                type="button"
-                onClick={() => handleClearKey("actor")}
-                aria-label="Nhấn để bỏ lọc diễn viên này"
-                className="flex-none inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-zinc-900/90 hover:bg-zinc-800 text-zinc-300 hover:text-white transition cursor-pointer text-xs whitespace-nowrap group"
-              >
-                <span>Diễn viên: {currentActor}</span>
-                <X className="w-3 h-3 text-zinc-400 group-hover:text-white" />
-              </button>
-            </Tooltip>
-          )}
-
-          {/* Keyword tag */}
-          {currentKeyword && !currentActor && (
-            <Tooltip content="Nhấn để bỏ lọc từ khóa này" side="top">
-              <button
-                type="button"
-                onClick={() => handleClearKey("keyword")}
-                aria-label="Nhấn để bỏ lọc từ khóa này"
-                className="flex-none inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-zinc-900/90 hover:bg-zinc-800 text-zinc-300 hover:text-white transition cursor-pointer text-xs whitespace-nowrap group"
-              >
-                <span>Từ khóa: &quot;{currentKeyword}&quot;</span>
-                <X className="w-3 h-3 text-zinc-400 group-hover:text-white" />
-              </button>
-            </Tooltip>
-          )}
-
-          {/* Clear All button */}
-          <button
-            type="button"
-            onClick={handleClearAll}
-            aria-label="Xóa tất cả các bộ lọc đang chọn"
-            className="flex-none ml-auto text-xs text-netflix-red hover:brightness-110 hover:underline flex items-center gap-1 font-semibold px-2.5 py-1.5 min-h-[36px] transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-netflix-red/50 rounded-md"
-          >
-            <span>[Xóa bộ lọc]</span>
-          </button>
-        </div>
-      )}
 
       {/* 3. MOBILE FILTER DRAWER */}
       <FilterMobileDrawer
