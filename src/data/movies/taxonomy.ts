@@ -615,6 +615,16 @@ export const NGUONC_GENRE_MAP: Record<string, string> = {
   "khoa-hoc": "khoa-hoc-vien-tuong",
 };
 
+// Bảng ánh xạ slug quốc gia sang NguonC (NguonC dùng 'my' thay vì 'au-my', có hơn 4,200 phim)
+export const NGUONC_COUNTRY_MAP: Record<string, string> = {
+  "au-my": "my",
+  "hoa-ky": "my",
+  "my": "my",
+  "us": "my",
+  "usa": "my",
+  "united-states": "my",
+};
+
 export const DEFAULT_GENRES = [
   { name: "Hành Động", slug: "hanh-dong" },
   { name: "Tình Cảm", slug: "tinh-cam" },

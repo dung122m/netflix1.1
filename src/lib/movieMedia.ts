@@ -264,7 +264,9 @@ export function deduplicateMovieItems(items: any[]): any[] {
     const slug = item.slug ? String(item.slug).trim().toLowerCase() : "";
     const year = item.year ? String(item.year).trim() : "";
     const normName = item.name ? normalizeForMatch(String(item.name)) : "";
+    const normOrigin = item.origin_name ? normalizeForMatch(String(item.origin_name)) : "";
     const titleYearKey = normName && year ? `${normName}_${year}` : "";
+    const originYearKey = normOrigin && year ? `${normOrigin}_${year}` : "";
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let existing: any = null;
@@ -272,8 +274,29 @@ export function deduplicateMovieItems(items: any[]): any[] {
     else if (imdbId && seenMap.has(`imdb:${imdbId}`)) existing = seenMap.get(`imdb:${imdbId}`);
     else if (slug && seenMap.has(`slug:${slug}`)) existing = seenMap.get(`slug:${slug}`);
     else if (titleYearKey && seenMap.has(`ty:${titleYearKey}`)) existing = seenMap.get(`ty:${titleYearKey}`);
+    else if (originYearKey && seenMap.has(`oty:${originYearKey}`)) existing = seenMap.get(`oty:${originYearKey}`);
+    else if (originYearKey && seenMap.has(`ty:${originYearKey}`)) existing = seenMap.get(`ty:${originYearKey}`);
+    else if (titleYearKey && seenMap.has(`oty:${titleYearKey}`)) existing = seenMap.get(`oty:${titleYearKey}`);
     else if (normName && seenMap.has(`name:${normName}`)) {
       const candidate = seenMap.get(`name:${normName}`);
+      const candYear = candidate.year ? String(candidate.year).trim() : "";
+      if (!year || !candYear || year === candYear) {
+        existing = candidate;
+      }
+    } else if (normOrigin && seenMap.has(`oname:${normOrigin}`)) {
+      const candidate = seenMap.get(`oname:${normOrigin}`);
+      const candYear = candidate.year ? String(candidate.year).trim() : "";
+      if (!year || !candYear || year === candYear) {
+        existing = candidate;
+      }
+    } else if (normOrigin && seenMap.has(`name:${normOrigin}`)) {
+      const candidate = seenMap.get(`name:${normOrigin}`);
+      const candYear = candidate.year ? String(candidate.year).trim() : "";
+      if (!year || !candYear || year === candYear) {
+        existing = candidate;
+      }
+    } else if (normName && seenMap.has(`oname:${normName}`)) {
+      const candidate = seenMap.get(`oname:${normName}`);
       const candYear = candidate.year ? String(candidate.year).trim() : "";
       if (!year || !candYear || year === candYear) {
         existing = candidate;
@@ -364,7 +387,9 @@ export function deduplicateMovieItems(items: any[]): any[] {
     if (imdbId) seenMap.set(`imdb:${imdbId}`, item);
     if (slug) seenMap.set(`slug:${slug}`, item);
     if (titleYearKey) seenMap.set(`ty:${titleYearKey}`, item);
+    if (originYearKey) seenMap.set(`oty:${originYearKey}`, item);
     if (normName && !seenMap.has(`name:${normName}`)) seenMap.set(`name:${normName}`, item);
+    if (normOrigin && !seenMap.has(`oname:${normOrigin}`)) seenMap.set(`oname:${normOrigin}`, item);
 
     uniqueItems.push(item);
   }
@@ -1320,7 +1345,7 @@ export function getCanonicalCountrySlug(name?: string | null, rawSlug?: string |
       if (trimmed === "korea" || trimmed === "south-korea") return "han-quoc";
       if (trimmed === "china") return "trung-quoc";
       if (trimmed === "japan") return "nhat-ban";
-      if (trimmed === "us" || trimmed === "usa" || trimmed === "united-states") return "au-my";
+      if (trimmed === "us" || trimmed === "usa" || trimmed === "united-states" || trimmed === "my") return "au-my";
       if (trimmed === "thailand") return "thai-lan";
       if (trimmed === "vietnam") return "viet-nam";
       if (trimmed === "hongkong") return "hong-kong";

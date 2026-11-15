@@ -6,6 +6,7 @@ import { formatGenreName, formatCountryName, getCanonicalGenreSlug, getCanonical
 import { enrichMovieListPosters } from "@/services/movies/posterEnrichment";
 import {
   NGUONC_GENRE_MAP,
+  NGUONC_COUNTRY_MAP,
   DEFAULT_GENRES,
   DEFAULT_COUNTRIES,
 } from "@/data/movies/taxonomy";
@@ -132,6 +133,11 @@ export interface AiCandidateOptions {
 function getNguonCGenreSlug(slug?: string): string {
   if (!slug) return "";
   return NGUONC_GENRE_MAP[slug] || slug;
+}
+
+function getNguonCCountrySlug(slug?: string): string {
+  if (!slug) return "";
+  return NGUONC_COUNTRY_MAP[slug] || slug;
 }
 
 /**
@@ -1283,11 +1289,8 @@ async function fetchAndCacheMovieDetail(slug: string, source?: "nguonc" | "ophim
 
     if (result && !source) {
       const currentServers = result.episodes || result.movie?.episodes || [];
-      const hasDirectM3u8 = currentServers.some(
-        (s: { server_data?: Array<{ link_m3u8?: string }> }) =>
-          Array.isArray(s.server_data) && s.server_data.some((ep) => Boolean(ep?.link_m3u8))
-      );
-      if (!hasDirectM3u8) {
+      const hasDualServers = currentServers.length >= 2;
+      if (!hasDualServers) {
         await discoverAndMergeMissingSources(result, slug);
       }
     }
@@ -1527,7 +1530,7 @@ async function fetchSourceData(
       if (isSearch && params.keyword) {
         fullUrl = `${baseUrl}/films/search?keyword=${encodeURIComponent(params.keyword.trim())}&page=${page}`;
       } else if (params.country) {
-        fullUrl = `${baseUrl}/films/quoc-gia/${params.country}?page=${page}`;
+        fullUrl = `${baseUrl}/films/quoc-gia/${getNguonCCountrySlug(params.country)}?page=${page}`;
       } else if (params.category) {
         fullUrl = `${baseUrl}/films/the-loai/${getNguonCGenreSlug(params.category)}?page=${page}`;
       } else if (params.year) {
@@ -1661,7 +1664,7 @@ async function fetchSourceData(
       if (isSearch && params.keyword) {
         return `${baseUrl}/films/search?keyword=${encodeURIComponent(params.keyword.trim())}&page=${p}`;
       } else if (params.country) {
-        return `${baseUrl}/films/quoc-gia/${params.country}?page=${p}`;
+        return `${baseUrl}/films/quoc-gia/${getNguonCCountrySlug(params.country)}?page=${p}`;
       } else if (params.category) {
         return `${baseUrl}/films/the-loai/${getNguonCGenreSlug(params.category)}?page=${p}`;
       } else if (params.year) {
@@ -1998,24 +2001,33 @@ export function applyMovieFilters(items: any[], params: MovieFilterParams): any[
 
   // 2. Lọc theo Quốc Gia: Khi có filter country cụ thể, KHÔNG được coi unknown/empty là match
   if (params.country) {
-    const targetCountry = params.country.toLowerCase().trim();
+    const rawTarget = params.country.toLowerCase().trim();
+    const canonicalTarget = getCanonicalCountrySlug(null, rawTarget);
     filtered = filtered.filter((item) => {
       if (!item.country || (Array.isArray(item.country) && item.country.length === 0)) {
         return false;
       }
       const ctryArray = Array.isArray(item.country)
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        ? item.country.map((c: any) =>
-            `${c.slug || ""} ${c.name || ""}`.toLowerCase()
-          )
-        : [String(item.country || "").toLowerCase()];
-      return ctryArray.some((cStr: string) => cStr.includes(targetCountry));
+        ? item.country.map((c: any) => {
+            const cSlug = c.slug || "";
+            const cName = c.name || "";
+            const canonical = getCanonicalCountrySlug(cName, cSlug);
+            return `${cSlug} ${cName} ${canonical}`.toLowerCase();
+          })
+        : [
+            `${String(item.country || "")} ${getCanonicalCountrySlug(String(item.country || ""), null)}`.toLowerCase()
+          ];
+      return ctryArray.some((cStr: string) =>
+        cStr.includes(rawTarget) || Boolean(canonicalTarget && cStr.includes(canonicalTarget))
+      );
     });
   }
 
   // 3. Lọc theo Thể Loại: Khi có filter category cụ thể, KHÔNG được coi unknown/empty là match
   if (params.category) {
-    const targetCat = params.category.toLowerCase().trim();
+    const rawTarget = params.category.toLowerCase().trim();
+    const canonicalTarget = getCanonicalGenreSlug(null, rawTarget);
 
     filtered = filtered.filter((item) => {
       if (!item.category || (Array.isArray(item.category) && item.category.length === 0)) {
@@ -2023,11 +2035,18 @@ export function applyMovieFilters(items: any[], params: MovieFilterParams): any[
       }
       const catArray = Array.isArray(item.category)
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        ? item.category.map((c: any) =>
-            `${c.slug || ""} ${c.name || ""}`.toLowerCase()
-          )
-        : [String(item.category || "").toLowerCase()];
-      return catArray.some((cStr: string) => cStr.includes(targetCat));
+        ? item.category.map((c: any) => {
+            const cSlug = c.slug || "";
+            const cName = c.name || "";
+            const canonical = getCanonicalGenreSlug(cName, cSlug);
+            return `${cSlug} ${cName} ${canonical}`.toLowerCase();
+          })
+        : [
+            `${String(item.category || "")} ${getCanonicalGenreSlug(String(item.category || ""), null)}`.toLowerCase()
+          ];
+      return catArray.some((cStr: string) =>
+        cStr.includes(rawTarget) || Boolean(canonicalTarget && cStr.includes(canonicalTarget))
+      );
     });
   }
 
@@ -2348,7 +2367,6 @@ async function executeGetMovies(params: MovieFilterParams, cacheKey: string) {
 
       // 2. Nếu vẫn thiếu, bù đắp song song từ cả PhimAPI (nếu còn trang) và NguonC (trang kế tiếp)
       if (finalItems.length < limit) {
-        const needed = limit - finalItems.length;
         const shouldTopUpPhimApi =
           !resPhimApi || resPhimApi.items.length > 0 || requestedPage < (resPhimApi.totalPages || 0);
         const shouldTopUpNguonC =

@@ -390,7 +390,8 @@ async function executeTmdbActorFlow(
     const tMatchStart = performance.now();
     const checkLimit = Math.min(
       sortedCredits.length,
-      Math.min(Math.max(Math.round(maxMovies * 1.5), 20), 40)
+      Math.max(Math.round(maxMovies * 1.5), 60),
+      150
     );
     const matchedMovies = await matchTmdbMoviesWithSources(sortedCredits, checkLimit, concurrency, {
       isActorFilmography: true,
@@ -519,7 +520,11 @@ export async function getDirectorFilmographyFromTmdb(
           if (popDiff !== 0) return popDiff;
           return (b.vote_count || 0) - (a.vote_count || 0);
         });
-        const checkLimit = Math.min(sortedCredits.length, Math.min(Math.max(Math.round(maxMovies * 1.5), 20), 40));
+        const checkLimit = Math.min(
+          sortedCredits.length,
+          Math.max(Math.round(maxMovies * 1.5), 60),
+          150
+        );
         const matchedMovies = await matchTmdbMoviesWithSources(sortedCredits, checkLimit, concurrency);
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const filmographyMovies = matchedMovies.map((m: any) => ({
