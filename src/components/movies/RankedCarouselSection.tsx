@@ -70,12 +70,8 @@ export const RankedCarouselSection: React.FC<RankedCarouselSectionProps> = React
 
     return (
       <section
-        className="relative my-8 sm:my-12 select-none"
+        className="relative select-none"
         aria-label={ariaLabel}
-        style={{
-          contentVisibility: "auto",
-          containIntrinsicSize: "auto 480px",
-        }}
       >
         {/* HEADER SECTION */}
         <SectionHeader

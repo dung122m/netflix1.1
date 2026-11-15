@@ -593,7 +593,7 @@ function ForYouPersonalizedRowInner({ fallbackMovies }: ForYouPersonalizedRowPro
   }, [movies]);
 
   return (
-    <section className="relative my-8 sm:my-12 select-none">
+    <section className="relative select-none">
       {/* HEADER SECTION */}
       <SectionHeader
         title={`Dành Riêng Cho ${user ? displayName : "Bạn"}`}

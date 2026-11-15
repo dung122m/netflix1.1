@@ -185,12 +185,8 @@ export const CuratedMovieSection: React.FC<CuratedMovieSectionProps> = ({
 
   return (
     <section
-      className="relative my-8 sm:my-12 select-none w-full"
+      className="relative select-none w-full"
       aria-label="Tuyển chọn phim Nanaflix"
-      style={{
-        contentVisibility: "auto",
-        containIntrinsicSize: "auto 440px",
-      }}
     >
       {/* HEADER SECTION */}
       <SectionHeader

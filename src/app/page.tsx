@@ -369,27 +369,19 @@ export default async function HomePage() {
         <HomeGenreExploreBar />
       </div>
 
-      <div className="px-4 md:px-8 relative z-10 space-y-10 sm:space-y-14">
+      <div className="px-4 md:px-8 relative z-10 space-y-8 sm:space-y-12">
         {/* 5. HÀNG PHIM DÀNH RIÊNG CHO BẠN (AI PERSONALIZED RECOMMENDATIONS) */}
-        <div className="cv-auto-row py-1">
-          <ForYouPersonalizedRow fallbackMovies={movies} />
-        </div>
+        <ForYouPersonalizedRow fallbackMovies={movies} />
 
         {/* 6. BẢNG XẾP HẠNG PHIM THỊNH HÀNH & TOP 10 CỘNG ĐỒNG */}
-        <div className="cv-auto-row py-1">
-          <TmdbTopTrending initialItems={trendingWeekRaw} />
-        </div>
-        <div className="cv-auto-row py-1">
-          <CommunityTopTrending initialItems={communityTrending} />
-        </div>
+        <TmdbTopTrending initialItems={trendingWeekRaw} />
+        <CommunityTopTrending initialItems={communityTrending} />
 
         {/* 7. TAB TUYỂN CHỌN PHIM ĐA NĂNG TRÊN TRANG CHỦ */}
-        <div className="cv-auto-row py-1">
-          <CuratedMovieSection
-            initialMovies={movies}
-            initialTotalItems={totalItems}
-          />
-        </div>
+        <CuratedMovieSection
+          initialMovies={movies}
+          initialTotalItems={totalItems}
+        />
       </div>
       <Footer />
     </div>
