@@ -15,6 +15,7 @@ import { saveWatchHistory } from "@/lib/watchHistory";
 import { findEpisodeMatch } from "@/lib/formatEpisode";
 import { useAuth } from "@/context/AuthContext";
 import { getPlayerSettings, updatePlayerSettings } from "@/services/userService";
+import { canServerUseNanaflixPlayer } from "@/components/cinema/cinemaStreamHelpers";
 
 export type PlaybackProviderType = "nanaflix";
 
@@ -138,10 +139,26 @@ export function WatchController({
             s.server_name?.toLowerCase().includes(pref) ||
             pref.includes(s.server_name?.toLowerCase() || "")
           );
-          if (foundIdx !== -1) return foundIdx;
+          if (foundIdx !== -1) {
+            // Nếu server ưa thích dùng được trình phát Nanaflix, dùng ngay
+            if (canServerUseNanaflixPlayer(initialServers[foundIdx])) {
+              return foundIdx;
+            }
+            // Nếu server ưa thích không dùng được, nhưng có server khác dùng được -> ưu tiên server dùng được
+            const nativeIdx = initialServers.findIndex((s) => canServerUseNanaflixPlayer(s));
+            if (nativeIdx !== -1) return nativeIdx;
+            return foundIdx;
+          }
         }
       } catch {}
     }
+
+    // Nếu không có serverParam trên URL, ưu tiên chọn server dùng được trình phát Nanaflix
+    if (initialServers && initialServers.length > 0) {
+      const nativeIdx = initialServers.findIndex((s) => canServerUseNanaflixPlayer(s));
+      if (nativeIdx !== -1) return nativeIdx;
+    }
+
     return initialServerIndex;
   });
   const [activeProvider] = useState<PlaybackProviderType>("nanaflix");
@@ -299,6 +316,11 @@ export function WatchController({
           const parsed = parseInt(serverParam, 10);
           if (!isNaN(parsed) && parsed >= 0 && parsed < initialServers.length) {
             targetServerIndex = parsed;
+          }
+        } else if (initialServers && initialServers.length > 0) {
+          const nativeIdx = initialServers.findIndex((s) => canServerUseNanaflixPlayer(s));
+          if (nativeIdx !== -1) {
+            targetServerIndex = nativeIdx;
           }
         }
         setCurrentServerIndex(targetServerIndex);

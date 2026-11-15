@@ -4,6 +4,8 @@ import { cacheService } from "@/lib/cache";
 import { findEpisodeMatch, formatEpisodeName } from "@/lib/formatEpisode";
 import { formatGenreName, formatCountryName, getCanonicalGenreSlug, getCanonicalCountrySlug } from "@/lib/movieMedia";
 import { enrichMovieListPosters } from "@/services/movies/posterEnrichment";
+import { decodeStreamUrl } from "@/lib/streamCrypto";
+import { resolveCinemaM3u8 } from "@/components/cinema/cinemaStreamHelpers";
 import {
   NGUONC_GENRE_MAP,
   NGUONC_COUNTRY_MAP,
@@ -222,16 +224,22 @@ export function normalizeEpisodeSlug(epSlug?: string): string {
   return trimmed;
 }
 
-// Helper to check if a server has playable direct M3U8 links
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function serverHasM3u8(srv: any): boolean {
-  return (
-    Array.isArray(srv?.server_data) &&
-    srv.server_data.some(
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (e: any) => typeof e?.link_m3u8 === "string" && e.link_m3u8.includes(".m3u8")
-    )
-  );
+// Helper to check if a server has playable direct M3U8 links (compatible with Nanaflix player)
+export function serverHasM3u8(
+  srv: { server_data?: Array<{ link_m3u8?: unknown; link_embed?: unknown }> } | null | undefined
+): boolean {
+  if (!srv || !Array.isArray(srv.server_data) || srv.server_data.length === 0) return false;
+  return srv.server_data.some((e: { link_m3u8?: unknown; link_embed?: unknown }) => {
+    if (!e) return false;
+    const rawM3u8 = typeof e.link_m3u8 === "string" ? decodeStreamUrl(e.link_m3u8) : "";
+    if (rawM3u8 && (rawM3u8.includes(".m3u8") || rawM3u8.includes("/hls/"))) return true;
+    const rawEmbed = typeof e.link_embed === "string" ? decodeStreamUrl(e.link_embed) : "";
+    if (rawEmbed) {
+      const resolved = resolveCinemaM3u8(rawM3u8, rawEmbed, rawM3u8 || rawEmbed);
+      if (resolved && (resolved.includes(".m3u8") || resolved.includes("/hls/"))) return true;
+    }
+    return false;
+  });
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -464,6 +472,13 @@ export function filterDualServers(rawServers: any[]): any[] {
     registerServerStreamUrls(srv, finalSeenUrls);
     finalServers.push(srv);
   }
+
+  // Đảm bảo sau backfill, server dùng được trình phát Nanaflix (.m3u8) luôn xếp đầu tiên
+  finalServers.sort((a, b) => {
+    const aM3u8 = serverHasM3u8(a) ? 1 : 0;
+    const bM3u8 = serverHasM3u8(b) ? 1 : 0;
+    return bM3u8 - aM3u8;
+  });
 
   return finalServers.slice(0, MAX_SERVERS);
 }

@@ -1,6 +1,7 @@
 import { test, describe } from "node:test";
 import assert from "node:assert/strict";
 import { filterDualServers } from "@/services/movies/service";
+import { canServerUseNanaflixPlayer } from "@/components/cinema/cinemaStreamHelpers";
 
 describe("Nanaflix Multi-Source & Multi-Server Switching Regression Tests", () => {
   test("1. filterDualServers prioritizes playable direct .m3u8 servers over embed-only servers", () => {
@@ -182,5 +183,37 @@ describe("Nanaflix Multi-Source & Multi-Server Switching Regression Tests", () =
     assert.equal(servers[1].server_name, "Vietsub");
     assert.equal(servers[1].server_data[0].link_m3u8 || "", "");
     assert.equal(servers[1].server_data[0].link_embed, "https://embed18.streamc.xyz/embed.php?hash=vs");
+  });
+
+  test("8. canServerUseNanaflixPlayer identifies servers with direct m3u8 or extractable m3u8 embed", () => {
+    const embedOnlyServer = {
+      server_name: "Thuyết Minh",
+      server_data: [
+        { name: "Full", slug: "full", link_m3u8: "", link_embed: "https://embed11.streamc.xyz/embed.php?hash=0fade6a" },
+      ],
+    };
+
+    const directM3u8Server = {
+      server_name: "Vietsub",
+      server_data: [
+        { name: "Full", slug: "full", link_m3u8: "https://a.kvp726.com/20261108/SoQtk8wC/index.m3u8", link_embed: "https://player.phimapi.com/player/?url=https://a.kvp726.com/20261108/SoQtk8wC/index.m3u8" },
+      ],
+    };
+
+    const extractableEmbedServer = {
+      server_name: "Lồng Tiếng",
+      server_data: [
+        { name: "Full", slug: "full", link_m3u8: "", link_embed: "https://player.phimapi.com/player/?url=https://cdn.example.com/stream/index.m3u8" },
+      ],
+    };
+
+    assert.equal(canServerUseNanaflixPlayer(embedOnlyServer), false);
+    assert.equal(canServerUseNanaflixPlayer(directM3u8Server), true);
+    assert.equal(canServerUseNanaflixPlayer(extractableEmbedServer), true);
+
+    const servers = [embedOnlyServer, directM3u8Server];
+    servers.sort((a, b) => (canServerUseNanaflixPlayer(b) ? 1 : 0) - (canServerUseNanaflixPlayer(a) ? 1 : 0));
+    assert.equal(servers[0].server_name, "Vietsub");
+    assert.equal(servers[1].server_name, "Thuyết Minh");
   });
 });

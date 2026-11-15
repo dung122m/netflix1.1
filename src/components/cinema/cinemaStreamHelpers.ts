@@ -156,6 +156,23 @@ export function resolveCinemaM3u8(
   return rawM3u8 || "";
 }
 
+/**
+ * Kiểm tra xem một Server hoặc danh sách tập có luồng phát tương thích với Trình phát Nanaflix (HLS Native) hay không.
+ * Trả về true nếu ít nhất một tập có link_m3u8 trực tiếp hoặc link_embed chứa luồng .m3u8 trích xuất được.
+ */
+export function canServerUseNanaflixPlayer(
+  srv: { server_data?: Array<{ link_m3u8?: string; link_embed?: string }> } | null | undefined
+): boolean {
+  if (!srv || !Array.isArray(srv.server_data) || srv.server_data.length === 0) return false;
+  return srv.server_data.some((ep) => {
+    if (!ep) return false;
+    const m3u8 = decodeStreamUrl(ep.link_m3u8 || "");
+    const embed = decodeStreamUrl(ep.link_embed || "");
+    const resolved = resolveCinemaM3u8(m3u8, embed, m3u8 || embed);
+    return Boolean(resolved && (resolved.includes(".m3u8") || resolved.includes("/hls/")));
+  });
+}
+
 export function resolveActiveIframeSrc(params: {
   videoLink?: string;
   embedSrc?: string;

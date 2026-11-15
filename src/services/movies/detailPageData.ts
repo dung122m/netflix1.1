@@ -1,5 +1,6 @@
 import { movieApi, deduplicateServerEpisodes, filterDualServers } from "@/services/movies/service";
 import { encodeStreamUrl } from "@/lib/streamCrypto";
+import { canServerUseNanaflixPlayer } from "@/components/cinema/cinemaStreamHelpers";
 import {
   buildMovieDescriptionFallback,
   pickBestMovieImage,
@@ -526,15 +527,31 @@ export async function buildMovieDetailPageData(
     ) as NormalizedEpisodeItem[],
   }));
 
+  // Ưu tiên đưa các server có nguồn tương thích Trình phát Nanaflix (.m3u8) lên hàng đầu
+  episodeServers.sort((a, b) => {
+    const aCan = canServerUseNanaflixPlayer(a) ? 1 : 0;
+    const bCan = canServerUseNanaflixPlayer(b) ? 1 : 0;
+    return bCan - aCan;
+  });
+
   const serverSummaries = episodeServers.map((s) => ({
     server_name: s.server_name,
     count: s.server_data.length,
   }));
 
-  const currentServerIndex = Math.min(
-    Math.max(0, parseInt(server || "0", 10)),
-    Math.max(0, episodeServers.length - 1)
-  );
+  // Nếu người dùng không chỉ định server cụ thể trên URL (?server=), ưu tiên chọn server dùng được trình phát Nanaflix
+  let currentServerIndex = 0;
+  if (server !== undefined && server !== null && server !== "") {
+    currentServerIndex = Math.min(
+      Math.max(0, parseInt(server, 10)),
+      Math.max(0, episodeServers.length - 1)
+    );
+  } else {
+    const playableIdx = episodeServers.findIndex((s) => canServerUseNanaflixPlayer(s));
+    if (playableIdx !== -1) {
+      currentServerIndex = playableIdx;
+    }
+  }
   const currentServer = episodeServers[currentServerIndex] || episodeServers[0];
   const serverData: NormalizedEpisodeItem[] = currentServer?.server_data || [];
   const isTrailerOnly =
