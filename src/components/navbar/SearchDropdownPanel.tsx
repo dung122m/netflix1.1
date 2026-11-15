@@ -23,7 +23,7 @@ export interface SearchDropdownPanelProps {
   onRemoveRecent: (keyword: string, e: React.MouseEvent) => void;
   onClearAllRecent: (e: React.MouseEvent) => void;
   onSuggestionSelect: (collapseExpanded: boolean) => void;
-  onSubmitSearch: (e: React.FormEvent) => void;
+  onSubmitSearch: (e?: React.FormEvent | React.MouseEvent) => void;
 }
 
 /**

@@ -394,6 +394,50 @@ export function useNavSearch({
     [debouncedFetchSuggestions, abortPendingSearch],
   );
 
+  const handleSearchSubmit = useCallback(
+    (e?: React.FormEvent | React.MouseEvent | React.KeyboardEvent) => {
+      e?.preventDefault();
+      const currentKeyword = (
+        inputRef.current?.value ||
+        mobileInputRef.current?.value ||
+        queryText ||
+        ""
+      ).trim();
+
+      if (!currentKeyword) {
+        if (typeof window !== "undefined" && window.innerWidth < 768) {
+          mobileInputRef.current?.focus();
+        } else {
+          inputRef.current?.focus();
+        }
+        return;
+      }
+
+      abortPendingSearch();
+      setShowDropdown(false);
+      setSelectedSuggestionIndex(-1);
+
+      inputRef.current?.blur();
+      mobileInputRef.current?.blur();
+
+      if (typeof window !== "undefined" && window.innerWidth < 768) {
+        setIsSearchExpanded(false);
+      }
+
+      saveRecentSearch(currentKeyword);
+      triggerNavigationLoading();
+      router.push(`/browse?keyword=${encodeURIComponent(currentKeyword)}`);
+    },
+    [
+      abortPendingSearch,
+      queryText,
+      setIsSearchExpanded,
+      saveRecentSearch,
+      triggerNavigationLoading,
+      router,
+    ],
+  );
+
   const handleInputKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLInputElement>) => {
       if (e.key === "Escape") {
@@ -418,6 +462,7 @@ export function useNavSearch({
           const val = (
             inputRef.current?.value ||
             mobileInputRef.current?.value ||
+            queryText ||
             ""
           ).trim();
           if (val) {
@@ -444,13 +489,11 @@ export function useNavSearch({
           return;
         }
 
-        // Khi người dùng nhấn Enter trực tiếp trên input (không chọn suggestion),
-        // lập tức hủy tìm kiếm ngầm, đóng dropdown và blur input để không che màn hình kết quả
-        abortPendingSearch();
-        setShowDropdown(false);
-        setSelectedSuggestionIndex(-1);
-        inputRef.current?.blur();
-        mobileInputRef.current?.blur();
+        // Khi người dùng nhấn Enter trực tiếp trên input (hoặc khi không chọn suggestion):
+        // Luôn luôn thực thi tìm kiếm toàn bộ kho phim
+        e.preventDefault();
+        handleSearchSubmit(e);
+        return;
       }
 
       if (!showDropdown) return;
@@ -491,48 +534,8 @@ export function useNavSearch({
       hasSearchText,
       recentSearches,
       handleRecentClick,
-    ],
-  );
-
-  const handleSearchSubmit = useCallback(
-    (e: React.FormEvent) => {
-      e.preventDefault();
-      const currentKeyword = (
-        inputRef.current?.value ||
-        mobileInputRef.current?.value ||
-        ""
-      ).trim();
-
-      if (!currentKeyword) {
-        if (typeof window !== "undefined" && window.innerWidth < 768) {
-          mobileInputRef.current?.focus();
-        } else {
-          inputRef.current?.focus();
-        }
-        return;
-      }
-
-      abortPendingSearch();
-      setShowDropdown(false);
-      setSelectedSuggestionIndex(-1);
-
-      inputRef.current?.blur();
-      mobileInputRef.current?.blur();
-
-      if (typeof window !== "undefined" && window.innerWidth < 768) {
-        setIsSearchExpanded(false);
-      }
-
-      saveRecentSearch(currentKeyword);
-      triggerNavigationLoading();
-      router.push(`/browse?keyword=${encodeURIComponent(currentKeyword)}`);
-    },
-    [
-      abortPendingSearch,
-      setIsSearchExpanded,
-      saveRecentSearch,
-      triggerNavigationLoading,
-      router,
+      handleSearchSubmit,
+      queryText,
     ],
   );
 
@@ -541,6 +544,7 @@ export function useNavSearch({
       const val = (
         mobileInputRef.current?.value ||
         inputRef.current?.value ||
+        queryText ||
         ""
       ).trim();
       if (val) {
@@ -557,6 +561,7 @@ export function useNavSearch({
     },
     [
       abortPendingSearch,
+      queryText,
       saveRecentSearch,
       setIsSearchExpanded,
       triggerNavigationLoading,
