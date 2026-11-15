@@ -1458,19 +1458,31 @@ export function isMovieOfType(item: Record<string, unknown>, type: string): bool
   }
 }
 
+export function isNguonCSupportedForParams(params: MovieFilterParams, isSearch: boolean): boolean {
+  if (!isSearch && params.sort && params.sort !== "latest" && params.sort !== "time-desc") {
+    return false;
+  }
+  if (params.type && !["hoat-hinh", "phim-bo", "phim-le", "tv-shows"].includes(params.type)) {
+    return false;
+  }
+  return true;
+}
+
 // Hàm tải nguồn phim nhanh có giới hạn timeout an toàn
 async function fetchSourceData(
   baseUrl: string,
   params: MovieFilterParams,
   isSearch: boolean,
-  pageOverride?: number
+  pageOverride?: number,
+  limitOverride?: number
 ) {
   try {
     const page = pageOverride || params.page || 1;
+    const effectivePageLimit = params.limit && params.limit > 0 ? params.limit : 24;
+    const fetchLimit = limitOverride && limitOverride > 0 ? limitOverride : effectivePageLimit;
 
     const urlParams = new URLSearchParams();
     urlParams.set("page", String(page));
-    const fetchLimit = params.limit && params.limit <= 48 ? params.limit : 24;
     urlParams.set("limit", String(fetchLimit));
 
     if (params.category) urlParams.set("category", params.category);
@@ -1620,11 +1632,7 @@ async function fetchSourceData(
           mappedItems.length ||
           0;
 
-        const totalPages =
-          json.data?.params?.pagination?.totalPages ||
-          json.pagination?.totalPages ||
-          Math.ceil(totalItems / fetchLimit) ||
-          1;
+        const totalPages = Math.max(1, Math.ceil(totalItems / effectivePageLimit));
 
         console.info(`[PhimAPI] status=200 elapsed=${elapsed}ms items=${mappedItems.length} total=${totalItems}`);
 
@@ -1686,7 +1694,7 @@ async function fetchSourceData(
     if (isMetaFresh && cachedNguonCMeta && cachedNguonCMeta.totalPages > 0 && startNguonCPage > cachedNguonCMeta.totalPages) {
       return {
         items: [],
-        totalPages: Math.ceil(cachedNguonCMeta.totalItems / fetchLimit) || 1,
+        totalPages: Math.ceil(cachedNguonCMeta.totalItems / effectivePageLimit) || 1,
         totalItems: cachedNguonCMeta.totalItems,
       };
     }
@@ -1939,7 +1947,7 @@ function mapNguonCListItem(item: any, params: MovieFilterParams) {
         items: [],
         overflowItems: [],
         isPartial: failedPagesCount > 0,
-        totalPages: Math.ceil(nguonCTotalItems / fetchLimit) || 1,
+        totalPages: Math.ceil(nguonCTotalItems / effectivePageLimit) || 1,
         totalItems: nguonCTotalItems,
       };
     }
@@ -1948,7 +1956,7 @@ function mapNguonCListItem(item: any, params: MovieFilterParams) {
     const primaryItems = mappedAll.slice(0, fetchLimit);
     const overflowItems = mappedAll.slice(fetchLimit);
 
-    const totalPages = Math.ceil(nguonCTotalItems / fetchLimit) || 1;
+    const totalPages = Math.ceil(nguonCTotalItems / effectivePageLimit) || 1;
     const isPartial = failedPagesCount > 0 || (page < totalPages && primaryItems.length < fetchLimit);
 
     return {
@@ -2065,11 +2073,16 @@ function buildQueryMetaKey(params: MovieFilterParams): string {
 async function executeGetAiCandidates(params: MovieFilterParams, _options?: AiCandidateOptions) {
   const isSearch = Boolean(params.keyword?.trim());
   const limit = params.limit || 24;
+  const isNguonCAvailable = isNguonCSupportedForParams(params, isSearch);
+  const targetPhimApiLimit = isNguonCAvailable ? Math.max(1, Math.round((limit * 2) / 3)) : limit;
+  const targetNguonCLimit = isNguonCAvailable ? Math.max(0, limit - targetPhimApiLimit) : 0;
 
   // Song song 2 nguồn chính chất lượng cao (PhimAPI + NguonC)
   const [resPhimApi, resNguonC] = await Promise.all([
-    fetchSourceData(API_PHIMAPI, params, isSearch),
-    fetchSourceData(API_NGUONC,   params, isSearch),
+    fetchSourceData(API_PHIMAPI, params, isSearch, undefined, targetPhimApiLimit),
+    isNguonCAvailable
+      ? fetchSourceData(API_NGUONC, params, isSearch, undefined, targetNguonCLimit)
+      : Promise.resolve(null),
   ]);
 
   const pItems = resPhimApi?.items || [];
@@ -2128,13 +2141,19 @@ async function executeGetMovies(params: MovieFilterParams, cacheKey: string) {
   // ============================================================
   // CHIẾN LƯỢC FEDERATION PER-PAGE SONG SONG CHO BROWSE:
   // - Fetch song song cả 2 nguồn: PhimAPI + NguonC với bounded timeout (4000ms)
-  // - Interleave 2:1 (PhimAPI : NguonC)
+  // - Interleave 2:1 (PhimAPI : NguonC) với phân bổ tỷ lệ offset liên tục (16 : 8)
   // - Dedupe 4 cấp độ (TMDB ID, IMDb ID, slug, title+year), merge metadata & source provenance
   // - Áp dụng filter & sort
   // ============================================================
+  const isNguonCAvailable = isNguonCSupportedForParams(params, isSearch);
+  const targetPhimApiLimit = isNguonCAvailable ? Math.max(1, Math.round((limit * 2) / 3)) : limit;
+  const targetNguonCLimit = isNguonCAvailable ? Math.max(0, limit - targetPhimApiLimit) : 0;
+
   const [resPhimApi, resNguonC] = await Promise.all([
-    fetchSourceData(API_PHIMAPI, params, isSearch),
-    fetchSourceData(API_NGUONC,   params, isSearch),
+    fetchSourceData(API_PHIMAPI, params, isSearch, undefined, targetPhimApiLimit),
+    isNguonCAvailable
+      ? fetchSourceData(API_NGUONC, params, isSearch, undefined, targetNguonCLimit)
+      : Promise.resolve(null),
   ]);
 
   const pItems = resPhimApi?.items || [];
@@ -2284,7 +2303,7 @@ async function executeGetMovies(params: MovieFilterParams, cacheKey: string) {
   let totalItemsCount: number;
 
   if (isSearch) {
-    totalItemsCount = candidates.length;
+    totalItemsCount = Math.max(countApi1, countApi2, candidates.length);
   } else if (activeFiltersCount >= 2) {
     // KHI CÓ TỪ 2 BỘ LỌC TRỞ LÊN (VD: type + country hoặc category + year):
     totalItemsCount = countApi1 > 0 ? countApi1 : (countApi2 || candidates.length);
@@ -2304,7 +2323,7 @@ async function executeGetMovies(params: MovieFilterParams, cacheKey: string) {
   let finalItems = (maxTotalPages > 0 && requestedPage > maxTotalPages) ? [] : candidates.slice(0, limit);
 
   // Tự động bù đắp (top-up) nếu sau khi lọc/dedupe trang bị khuyết dưới target limit
-  if (finalItems.length < limit && requestedPage < maxTotalPages && !isSearch) {
+  if (finalItems.length < limit && requestedPage < maxTotalPages) {
     try {
       const existingSlugs = new Set(candidates.map((c) => c.slug).filter(Boolean));
       const appendUniqueFiltered = (items: unknown[]) => {
@@ -2329,17 +2348,19 @@ async function executeGetMovies(params: MovieFilterParams, cacheKey: string) {
 
       // 2. Nếu vẫn thiếu, bù đắp song song từ cả PhimAPI (nếu còn trang) và NguonC (trang kế tiếp)
       if (finalItems.length < limit) {
+        const needed = limit - finalItems.length;
         const shouldTopUpPhimApi =
           !resPhimApi || resPhimApi.items.length > 0 || requestedPage < (resPhimApi.totalPages || 0);
         const shouldTopUpNguonC =
-          !resNguonC || resNguonC.items.length > 0 || requestedPage < (resNguonC.totalPages || 0);
+          isNguonCAvailable &&
+          (!resNguonC || resNguonC.items.length > 0 || requestedPage < (resNguonC.totalPages || 0));
 
         const [topUpPhimApi, topUpNguonC] = await Promise.all([
           shouldTopUpPhimApi
-            ? fetchSourceData(API_PHIMAPI, params, isSearch, requestedPage + 1)
+            ? fetchSourceData(API_PHIMAPI, params, isSearch, requestedPage + 1, targetPhimApiLimit)
             : Promise.resolve(null),
           shouldTopUpNguonC
-            ? fetchSourceData(API_NGUONC, params, isSearch, requestedPage + 1)
+            ? fetchSourceData(API_NGUONC, params, isSearch, requestedPage + 1, targetNguonCLimit)
             : Promise.resolve(null),
         ]);
 
@@ -2371,9 +2392,11 @@ async function executeGetMovies(params: MovieFilterParams, cacheKey: string) {
         const phimApiFallbackPage = countApi1 > 0 ? Math.min(fallbackPage, Math.max(1, Math.ceil(countApi1 / limit))) : fallbackPage;
         const [phimFallbackRes, nguonCFallbackRes] = await Promise.all([
           countApi1 > 0
-            ? fetchSourceData(API_PHIMAPI, params, isSearch, phimApiFallbackPage)
+            ? fetchSourceData(API_PHIMAPI, params, isSearch, phimApiFallbackPage, targetPhimApiLimit)
             : Promise.resolve(null),
-          fetchSourceData(API_NGUONC, params, isSearch, fallbackPage),
+          isNguonCAvailable
+            ? fetchSourceData(API_NGUONC, params, isSearch, fallbackPage, targetNguonCLimit)
+            : Promise.resolve(null),
         ]);
         const fallbackCombined = applyMovieFilters(
           deduplicateMovieItems([
@@ -2413,7 +2436,7 @@ async function executeGetMovies(params: MovieFilterParams, cacheKey: string) {
     (countApi1 >= requestedPage * limit || countApi2 >= requestedPage * limit);
   const isDegraded =
     resPhimApi === null ||
-    resNguonC === null ||
+    (isNguonCAvailable && resNguonC === null) ||
     nguonCIsPartial ||
     expectedMoreItems;
   if (isDegraded) {
