@@ -422,6 +422,14 @@ export function proxy(req: NextRequest) {
     response.headers.set("Cloudflare-CDN-Cache-Control", "no-store");
   }
 
+  // 6. Phòng vệ Cloudflare: Nếu request mang header rsc: 1 nhưng không có query param _rsc,
+  // chỉ hướng dẫn Cloudflare không cache đè text/x-component lên URL HTML sạch.
+  // Vercel Edge CDN vẫn cache và xử lý độc lập an toàn thông qua Vary: RSC.
+  const isHeaderOnlyRsc = req.headers.get("rsc") === "1" && !req.nextUrl.searchParams.has("_rsc");
+  if (isHeaderOnlyRsc) {
+    response.headers.set("Cloudflare-CDN-Cache-Control", "no-store");
+  }
+
   return response;
 }
 

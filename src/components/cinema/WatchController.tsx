@@ -49,8 +49,8 @@ export interface WatchContextValue {
   nextEpisode: EpisodeItem | null;
   isTrailerOnly: boolean;
   isResolvingStream: boolean;
-  switchEpisode: (slug: string) => void;
-  switchServer: (serverIndex: number) => void;
+  switchEpisode: (slug: string, options?: { preserveTime?: boolean }) => void;
+  switchServer: (serverIndex: number, options?: { preserveTime?: boolean }) => void;
   activeProvider: PlaybackProviderType;
   setActiveProvider: (provider: PlaybackProviderType) => void;
   hasNanaflixSource?: boolean;
@@ -170,6 +170,16 @@ export function WatchController({
   );
 
   const [activeEpisodeSlug, setActiveEpisodeSlug] = useState<string>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const urlParams = new URLSearchParams(window.location.search);
+        const epParam = urlParams.get("ep");
+        if (epParam && episodes.length > 0) {
+          const found = findEpisodeMatch(episodes, epParam);
+          if (found?.slug) return found.slug;
+        }
+      } catch {}
+    }
     if (initialEpisodeSlug) {
       const found = findEpisodeMatch(episodes, initialEpisodeSlug);
       if (found?.slug) return found.slug;
@@ -334,39 +344,49 @@ export function WatchController({
   }, [currentIndex, episodes]);
 
   // Cập nhật URL sạch trên thanh địa chỉ không làm reload trang, giữ đúng provider đã chọn
-  const updateUrlQuietly = useCallback((epSlug: string, sIndex: number, _prov?: PlaybackProviderType) => {
-    if (typeof window === "undefined") return;
-    try {
-      const url = new URL(window.location.href);
-      if (epSlug) {
-        url.searchParams.set("ep", epSlug);
-      } else {
-        url.searchParams.delete("ep");
-      }
-      if (sIndex > 0) {
-        url.searchParams.set("server", String(sIndex));
-      } else {
-        url.searchParams.delete("server");
-      }
-      // Xóa provider thừa nếu có trong URL cũ
-      url.searchParams.delete("provider");
-      // Xóa mốc thời gian cũ khỏi thanh địa chỉ để tập mới luôn phát từ đầu (0:00)
-      url.searchParams.delete("t");
-      window.history.pushState(null, "", url.pathname + url.search);
-    } catch {}
-  }, []);
+  const updateUrlQuietly = useCallback(
+    (
+      epSlug: string,
+      sIndex: number,
+      _prov?: PlaybackProviderType,
+      options?: { preserveTime?: boolean }
+    ) => {
+      if (typeof window === "undefined") return;
+      try {
+        const url = new URL(window.location.href);
+        if (epSlug) {
+          url.searchParams.set("ep", epSlug);
+        } else {
+          url.searchParams.delete("ep");
+        }
+        if (sIndex > 0) {
+          url.searchParams.set("server", String(sIndex));
+        } else {
+          url.searchParams.delete("server");
+        }
+        // Xóa provider thừa nếu có trong URL cũ
+        url.searchParams.delete("provider");
+        // Chỉ xóa mốc thời gian cũ khi người dùng chủ động đổi tập (giữ nguyên khi có preserveTime)
+        if (!options?.preserveTime) {
+          url.searchParams.delete("t");
+        }
+        window.history.pushState(null, "", url.pathname + url.search);
+      } catch {}
+    },
+    []
+  );
 
   const switchProvider = useCallback(() => {}, []);
 
   // Chuyển tập tức thì trong 0ms, tự động nạp stream on-demand nếu chưa có
   const switchEpisode = useCallback(
-    (newSlug: string) => {
+    (newSlug: string, options?: { preserveTime?: boolean }) => {
       if (!newSlug || newSlug === activeEpisodeSlug) return;
 
       const targetEp = episodes.find((ep) => ep.slug === newSlug) || findEpisodeMatch(episodes, newSlug);
       const canonicalSlug = targetEp?.slug || newSlug;
       setActiveEpisodeSlug(canonicalSlug);
-      updateUrlQuietly(canonicalSlug, currentServerIndex, activeProvider);
+      updateUrlQuietly(canonicalSlug, currentServerIndex, activeProvider, options);
 
       // Nếu tập chưa có direct link_m3u8, tải on-demand và cập nhật vào state
       if (targetEp && (!targetEp.link_m3u8 || !targetEp.link_embed)) {
@@ -442,7 +462,7 @@ export function WatchController({
 
   // Chuyển server tức thì và đồng bộ stream 0ms
   const switchServer = useCallback(
-    (newIndex: number) => {
+    (newIndex: number, options?: { preserveTime?: boolean }) => {
       const safeIndex = Math.max(0, Math.min(newIndex, servers.length - 1));
       setCurrentServerIndex(safeIndex);
       const newServer = servers[safeIndex];
@@ -455,7 +475,7 @@ export function WatchController({
         (activeEpisode?.name ? findEpisodeMatch(newEpisodes, activeEpisode.name) : undefined);
       const currentTargetSlug = foundMatch?.slug || newEpisodes[0]?.slug || "";
       setActiveEpisodeSlug(currentTargetSlug);
-      updateUrlQuietly(currentTargetSlug, safeIndex, activeProvider);
+      updateUrlQuietly(currentTargetSlug, safeIndex, activeProvider, options);
 
       // On-demand nạp stream nếu tập trên server mới chưa có direct link_m3u8
       const targetEp = foundMatch || newEpisodes[0];
@@ -603,7 +623,7 @@ function WatchUrlSync() {
       if (!isNaN(parsed) && parsed >= 0 && parsed < servers.length) {
         targetServerIdx = parsed;
         if (parsed !== currentServerIndex) {
-          switchServer(parsed);
+          switchServer(parsed, { preserveTime: true });
         }
       }
     }
@@ -612,7 +632,7 @@ function WatchUrlSync() {
       const targetEpisodes = servers[targetServerIdx]?.server_data || [];
       const found = findEpisodeMatch(targetEpisodes, ep);
       if (found?.slug && found.slug !== activeEpisodeSlug) {
-        switchEpisode(found.slug);
+        switchEpisode(found.slug, { preserveTime: true });
       }
     }
   }, [searchParams, servers, currentServerIndex, activeEpisodeSlug, switchServer, switchEpisode]);
