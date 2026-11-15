@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { movieApi } from "@/services/movies/service";
-import { resolveActorMovies, isAmbiguousShortActorKeyword, hasExplicitActorPrefix } from "@/services/aiActorService";
+import {
+  resolveActorMovies,
+  queryMoviesByActor,
+  isAmbiguousShortActorKeyword,
+  hasExplicitActorPrefix,
+} from "@/services/aiActorService";
 import { getActorSynonyms } from "@/services/actor/actorAliasResolver";
 import { findHistoricalArtist } from "@/data/history/historicalArtistsBirthdays";
 import { searchTmdbPerson } from "@/services/tmdbService";
@@ -53,10 +58,10 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ items: [] });
     }
 
-    // 1. Kiểm tra L1 In-memory & L2 Upstash Redis qua cacheService
+    // 1. Kiểm tra L1 In-memory & L2 Upstash Redis qua cacheService (chỉ dùng cache khi có ít nhất 1 kết quả)
     const cacheKey = `search:suggest:v2:${normKw}`;
     const cached = await cacheService.get<{ items: unknown[] }>(cacheKey);
-    if (cached && Array.isArray(cached.items)) {
+    if (cached && Array.isArray(cached.items) && cached.items.length > 0) {
       return NextResponse.json(cached);
     }
 
@@ -71,6 +76,7 @@ export async function GET(req: NextRequest) {
 
     // Chạy song song tìm kiếm phim và phân giải diễn viên với timeout tối đa 1800ms
     // skipKvCache: true đảm bảo các truy vấn gợi ý dở dang (limit 8) không ghi rác lên Cloudflare KV
+    // posterEnrichmentBudgetMs: 0 đảm bảo tốc độ phản hồi gợi ý tức thì trong vòng vài chục mili-giây
     const [res, actorRes] = await Promise.all([
       Promise.race([
         movieApi.getMovies({
@@ -78,6 +84,7 @@ export async function GET(req: NextRequest) {
           page: 1,
           limit: 8,
           skipKvCache: true,
+          posterEnrichmentBudgetMs: 0,
         }),
         new Promise<{ items: SuggestMovieItem[]; pagination?: unknown }>((resolve) =>
           setTimeout(() => resolve({ items: [] }), 1800)
@@ -86,8 +93,8 @@ export async function GET(req: NextRequest) {
       shouldCheckActor
         ? Promise.race([
             resolveActorMovies(keyword),
-            new Promise<{ isActor: boolean; actorName: string; titles: string[]; country?: string; source: "none" }>((resolve) =>
-              setTimeout(() => resolve({ isActor: false, actorName: "", titles: [], source: "none" }), 800)
+            new Promise<{ isActor: boolean; actorName: string; titles: string[]; aliases: string[]; country?: string; source: "none" }>((resolve) =>
+              setTimeout(() => resolve({ isActor: false, actorName: "", titles: [], aliases: [], source: "none" }), 800)
             ),
           ]).catch(() => null)
         : Promise.resolve(null),
@@ -118,19 +125,25 @@ export async function GET(req: NextRequest) {
       if (normTitle.startsWith(kw) || normOrig.startsWith(kw)) return 80;
       if (normTitle.includes(kw) || normOrig.includes(kw)) return 60;
 
-      // Khớp toàn bộ token nếu query nhiều từ (tránh khớp bừa bãi như Conan)
+      // Khớp toàn bộ token nếu query nhiều từ
       const kwTokens = kw.split(/\s+/).filter(Boolean);
       if (kwTokens.length > 1) {
         const titleTokens = new Set((normTitle + " " + normOrig + " " + normSlug).split(/\s+/).filter(Boolean));
         const matched = kwTokens.filter((tok) => titleTokens.has(tok)).length;
         if (matched === kwTokens.length) return 50;
       }
-      return 0; // Không khớp tiêu đề -> 0 điểm (loại bỏ phim rác)
+      return 20; // Phim do nguồn API tìm kiếm trả về
     };
 
-    const validMovieItems = rawItems
+    let validMovieItems = rawItems
       .filter((item) => getSuggestScore(item, normKw) >= 50)
       .sort((a, b) => getSuggestScore(b, normKw) - getSuggestScore(a, normKw));
+
+    // Fallback thông minh: nếu không có phim đạt điểm >= 50 nhưng nguồn API có kết quả,
+    // giữ lại tối đa 5 phim từ nguồn thay vì bỏ trắng
+    if (validMovieItems.length === 0 && rawItems.length > 0) {
+      validMovieItems = rawItems.slice(0, 5);
+    }
 
     const items = validMovieItems.slice(0, 5).map((item) => ({
       slug: item.slug || "",
@@ -143,11 +156,19 @@ export async function GET(req: NextRequest) {
 
     // 3. Nếu khớp diễn viên rõ ràng:
     // - Ưu tiên điều hướng thẳng sang trang chi tiết diễn viên (/dien-vien/:id-:slug hoặc /dien-vien/:slug)
-    // - Chỉ đưa lên ĐẦU danh sách nếu người dùng gõ tiền tố rõ ràng (vd: "diễn viên ...", "phim của ...")
-    //   hoặc kết quả phim trùng khớp ít (<= 2 phim)
-    // - Với tìm kiếm thông thường có nhiều phim trùng tên, thẻ diễn viên được thêm vào danh sách
-    // - TUYỆT ĐỐI không gắn thẻ diễn viên cho từ khóa ngắn/mơ hồ ("Mai", "An", "Anh"...)
+    // - Bổ sung các tác phẩm tiêu biểu của nghệ sĩ vào danh sách gợi ý phim bên dưới
+    const syn = getActorSynonyms(keyword);
+    let matchedActorName = "";
+    let matchedActorAliases: string[] = [];
+    let matchedActorCountry: string | undefined = undefined;
+    let matchedTmdbPersonId: number | undefined = undefined;
+
     if (histArtist) {
+      matchedActorName = histArtist.name;
+      matchedActorAliases = histArtist.aliases || [];
+      matchedActorCountry = histArtist.country;
+      matchedTmdbPersonId = histArtist.tmdbPersonId;
+
       const displayTitle = histArtist.englishName && histArtist.englishName !== histArtist.name
         ? `Diễn viên: ${histArtist.name} (${histArtist.englishName})`
         : `Diễn viên: ${histArtist.name}`;
@@ -161,12 +182,12 @@ export async function GET(req: NextRequest) {
       };
       items.unshift(actorItem);
     } else if (actorRes?.isActor && actorRes.actorName && !isAmbiguousShortActorKeyword(keyword)) {
-      const syn = getActorSynonyms(keyword);
-      const actorDisplayName =
-        syn.isMatched && syn.canonicalName
-          ? syn.canonicalName
-          : actorRes.actorName;
-      const targetCountry = actorRes.country || syn.country || "Điện Ảnh";
+      matchedActorName = syn.isMatched && syn.canonicalName ? syn.canonicalName : actorRes.actorName;
+      matchedActorAliases = syn.variants || (actorRes && "aliases" in actorRes && Array.isArray(actorRes.aliases) ? actorRes.aliases : []);
+      matchedActorCountry = actorRes.country || syn.country || "Điện Ảnh";
+
+      const actorDisplayName = matchedActorName;
+      const targetCountry = matchedActorCountry;
 
       // Tra cứu nhanh TMDB person để lấy ID và ảnh chân dung diễn viên (budget 450ms)
       const personCandidates = [
@@ -190,6 +211,10 @@ export async function GET(req: NextRequest) {
           }
         }
       } catch {}
+
+      if (tmdbPerson?.id) {
+        matchedTmdbPersonId = tmdbPerson.id;
+      }
 
       const cleanSlugPart = (syn.slug || tmdbPerson?.name || actorDisplayName)
         .toLowerCase()
@@ -222,11 +247,48 @@ export async function GET(req: NextRequest) {
       }
     }
 
+    // Nếu là từ khóa diễn viên và danh sách phim đang ít (<= 1 phim),
+    // tự động lấy thêm 4 phim tiêu biểu của nghệ sĩ để danh sách gợi ý luôn đầy đủ
+    if (matchedActorName && items.length <= 2) {
+      try {
+        const actorFilms = await Promise.race([
+          queryMoviesByActor(
+            matchedActorName,
+            matchedActorAliases,
+            matchedActorCountry,
+            5,
+            matchedTmdbPersonId
+          ),
+          new Promise<Record<string, unknown>[]>((resolve) => setTimeout(() => resolve([]), 1200)),
+        ]).catch(() => []);
+
+        if (Array.isArray(actorFilms) && actorFilms.length > 0) {
+          const existingSlugs = new Set(items.map((i) => i.slug));
+          for (const film of actorFilms) {
+            if (items.length >= 5) break;
+            const fSlug = film.slug || "";
+            if (!fSlug || existingSlugs.has(fSlug) || existingSlugs.has(`phim/${fSlug}`)) continue;
+            existingSlugs.add(fSlug);
+            items.push({
+              slug: fSlug,
+              title: film.name || film.title || "",
+              poster: pickBestMoviePoster(film as MovieLike, "/default-poster.svg"),
+              year: film.year || "",
+              quality: film.quality || "HD",
+              category: film.category?.[0]?.name || film.type || "",
+            });
+          }
+        }
+      } catch {}
+    }
+
     const responseData = { items };
-    // 2. Lưu vào L1 Memory & L2 Redis (TTL 1 giờ), không cache khi có lỗi
-    await cacheService.set(cacheKey, responseData, SUGGEST_CACHE_TTL_SECONDS).catch((err) => {
-      console.warn("[search-suggest] Lỗi ghi cache Redis:", err);
-    });
+    // 2. Lưu vào L1 Memory & L2 Redis (TTL 1 giờ), CHỈ cache khi có kết quả
+    if (items.length > 0) {
+      await cacheService.set(cacheKey, responseData, SUGGEST_CACHE_TTL_SECONDS).catch((err) => {
+        console.warn("[search-suggest] Lỗi ghi cache Redis:", err);
+      });
+    }
 
     return NextResponse.json(responseData, {
       headers: {

@@ -174,7 +174,8 @@ function isKnownActorName(query: string): boolean {
         cleanNormalizedForMatch(profile.name) === normalizedQuery ||
         profile.aliases.some((alias) => cleanNormalizedForMatch(alias) === normalizedQuery)
     ) ||
-      getActorSynonyms(query).isMatched)
+      getActorSynonyms(query).isMatched ||
+      Boolean(findHistoricalArtist(query)))
   );
 }
 
