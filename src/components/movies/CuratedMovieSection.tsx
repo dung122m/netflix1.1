@@ -43,7 +43,7 @@ const CURATED_TABS: CuratedTabConfig[] = [
   {
     id: "rating",
     label: "Đánh Giá Cao",
-    tag: "Điểm đánh giá cao",
+    tag: "Đánh giá cao nhất",
     subtitle: "Tuyển tập những tác phẩm nghệ thuật đạt điểm đánh giá xuất sắc",
     fetchParams: { sort: "rating", limit: 12 },
     viewAllHref: "/browse?sort=rating",

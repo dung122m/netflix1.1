@@ -60,10 +60,10 @@ export const SORT_FIELDS: SortFieldOption[] = [
   },
   {
     field: "rating",
-    label: "Điểm đánh giá",
+    label: "Đánh giá",
     icon: Star,
     color: "text-amber-400",
-    descLabel: "Điểm cao nhất",
+    descLabel: "Đánh giá cao nhất",
     ascLabel: "Điểm thấp nhất",
   },
   {
@@ -71,7 +71,7 @@ export const SORT_FIELDS: SortFieldOption[] = [
     label: "Năm phát hành",
     icon: Calendar,
     color: "text-emerald-400",
-    descLabel: "Năm mới nhất",
+    descLabel: "Năm phát hành",
     ascLabel: "Năm cũ nhất",
   },
 ];
@@ -135,9 +135,9 @@ export function getSortDisplayLabel(sortValue: string = "latest"): {
  * 4 Tiêu chí cốt lõi tinh gọn chuẩn Netflix / Apple TV+ (Phương án 1)
  */
 export const SORT_OPTIONS: SortOptionItem[] = [
-  { label: "Mới cập nhật", shortLabel: "Mới nhất", value: "latest", icon: Clock, color: "text-sky-400" },
-  { label: "Xem nhiều nhất", shortLabel: "Xem nhiều", value: "views", icon: Flame, color: "text-orange-500" },
-  { label: "Điểm đánh giá cao", shortLabel: "Đánh giá cao", value: "rating", icon: Star, color: "text-amber-400" },
-  { label: "Năm phát hành mới", shortLabel: "Năm mới", value: "year", icon: Calendar, color: "text-emerald-400" },
+  { label: "Mới cập nhật", value: "latest", icon: Clock, color: "text-sky-400" },
+  { label: "Xem nhiều nhất", value: "views", icon: Flame, color: "text-orange-500" },
+  { label: "Đánh giá cao nhất", value: "rating", icon: Star, color: "text-amber-400" },
+  { label: "Năm phát hành", value: "year", icon: Calendar, color: "text-emerald-400" },
 ];
 

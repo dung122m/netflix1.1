@@ -16,8 +16,8 @@ describe("Browse Filter Sort — Option 1 Streaming Clean 4-Item Tests", () => {
       [
         { label: "Mới cập nhật", value: "latest" },
         { label: "Xem nhiều nhất", value: "views" },
-        { label: "Điểm đánh giá cao", value: "rating" },
-        { label: "Năm phát hành mới", value: "year" },
+        { label: "Đánh giá cao nhất", value: "rating" },
+        { label: "Năm phát hành", value: "year" },
       ]
     );
   });
@@ -76,13 +76,13 @@ describe("Browse Filter Sort — Option 1 Streaming Clean 4-Item Tests", () => {
 
   it("5. getSortDisplayLabel produces user-friendly labels matching SORT_OPTIONS", () => {
     const l1 = getSortDisplayLabel("year");
-    assert.equal(l1.directionLabel, "Năm phát hành mới");
+    assert.equal(l1.directionLabel, "Năm phát hành");
 
     const l2 = getSortDisplayLabel("views");
     assert.equal(l2.directionLabel, "Xem nhiều nhất");
 
     const l3 = getSortDisplayLabel("rating");
-    assert.equal(l3.directionLabel, "Điểm đánh giá cao");
+    assert.equal(l3.directionLabel, "Đánh giá cao nhất");
 
     const l4 = getSortDisplayLabel("latest");
     assert.equal(l4.directionLabel, "Mới cập nhật");
