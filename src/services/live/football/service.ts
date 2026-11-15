@@ -1585,7 +1585,7 @@ export const liveFootballService = {
           };
           return filteredSnapshot;
         }
-      } catch (err: unknown) {
+      } catch (_err: unknown) {
         // Fallback an toàn nếu chạy trong test runner không có Next.js incrementalCache
       }
     }

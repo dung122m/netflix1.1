@@ -416,7 +416,6 @@ function ForYouPersonalizedRowInner({ fallbackMovies }: ForYouPersonalizedRowPro
       updatedAt: h.updatedAt,
     }));
 
-    const watchedTitles = history.map((h) => h.title).filter(Boolean).slice(0, 20);
     const watchedSlugs = history.map((h) => h.slug).filter(Boolean);
 
     // Tính Taste Profile Hash (Top 3 thể loại & định dạng) thay vì băm theo danh sách slug phim

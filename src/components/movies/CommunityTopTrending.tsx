@@ -122,7 +122,7 @@ function CommunityTopTrendingInner({
     return () => {
       isMounted = false;
     };
-  }, [hasInitialItems]);
+  }, [hasInitialItems, initialItems]);
 
   // 2. Chuyển đổi tab: render cache tức thì nếu có, và luôn fetch revalidate ngầm
   const switchTab = (nextTf: "total" | "week") => {
