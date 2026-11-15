@@ -1480,6 +1480,11 @@ export function isNguonCSupportedForParams(params: MovieFilterParams, isSearch: 
   if (!isSearch && params.sort && params.sort !== "latest" && params.sort !== "time-desc") {
     return false;
   }
+  // Cho default browse (Kho Phim chung không lọc): Dùng PhimAPI thuần nhất để tránh lệch offset timeline giữa 2 nguồn gây trùng lặp cross-page
+  const hasFilter = Boolean(params.type || params.category || params.country || params.year || isSearch);
+  if (!hasFilter) {
+    return false;
+  }
   if (params.type && !["hoat-hinh", "phim-bo", "phim-le", "tv-shows"].includes(params.type)) {
     return false;
   }
@@ -2222,42 +2227,6 @@ async function executeGetMovies(params: MovieFilterParams, cacheKey: string) {
 
     // Với tìm kiếm, sắp xếp ưu tiên phim có điểm liên quan (relevance) cao nhất
     candidates.sort((a, b) => (b.relevanceScore || 0) - (a.relevanceScore || 0));
-
-    // Khử trùng lặp giữa các trang (cross-page deduplication): chỉ loại bỏ phim đã xuất hiện ở trang trước (< requestedPageNum)
-    const requestedPageNum = params.page && params.page >= 1 ? Math.floor(params.page) : 1;
-    if (requestedPageNum > 1 && !seenSlugsByPage.has(1)) {
-      try {
-        const p1Key = buildMovieCacheKey({ ...params, page: 1 });
-        let p1Cached = moviesMemoryCache.get(p1Key)?.data;
-        if (!p1Cached) {
-          p1Cached = await executeGetMovies({ ...params, page: 1 }, p1Key);
-        }
-        if (p1Cached?.items) {
-          seenSlugsByPage.set(
-            1,
-            new Set(
-              p1Cached.items
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                .map((itm: any) => itm?.slug)
-                .filter(Boolean)
-            )
-          );
-        }
-      } catch { }
-    }
-
-    if (requestedPageNum > 1 && seenSlugsByPage.size > 0) {
-      const priorSeen = new Set<string>();
-      for (const [seenPage, slugSet] of seenSlugsByPage.entries()) {
-        if (seenPage < requestedPageNum) {
-          for (const s of slugSet) priorSeen.add(s);
-        }
-      }
-      if (priorSeen.size > 0) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        candidates = candidates.filter((m: any) => !priorSeen.has(m.slug));
-      }
-    }
   } else if (parsedSort.field === "rating") {
     candidates.sort((a, b) => {
       const { rating: rateA, voteCount: vcA } = extractMovieRatingScore(a);
@@ -2354,6 +2323,21 @@ async function executeGetMovies(params: MovieFilterParams, cacheKey: string) {
 
   const maxTotalPages = Math.max(1, Math.ceil(totalItemsCount / limit));
   const requestedPage = params.page && params.page >= 1 ? Math.floor(params.page) : 1;
+
+  // Khử trùng lặp giữa các trang (cross-page deduplication): loại bỏ phim đã xuất hiện ở các trang trước (< requestedPage)
+  if (requestedPage > 1 && seenSlugsByPage.size > 0) {
+    const priorSeen = new Set<string>();
+    for (const [seenPage, slugSet] of seenSlugsByPage.entries()) {
+      if (seenPage < requestedPage) {
+        for (const s of slugSet) priorSeen.add(s);
+      }
+    }
+    if (priorSeen.size > 0) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      candidates = candidates.filter((m: any) => !priorSeen.has(m.slug));
+    }
+  }
+
   let finalItems = (maxTotalPages > 0 && requestedPage > maxTotalPages) ? [] : candidates.slice(0, limit);
 
   // Tự động bù đắp (top-up) nếu sau khi lọc/dedupe trang bị khuyết dưới target limit
@@ -2480,7 +2464,7 @@ async function executeGetMovies(params: MovieFilterParams, cacheKey: string) {
   const freshTtl = isDegraded ? 15 * 1000 : 300 * 1000;
   const staleTtl = isDegraded ? 30 * 1000 : 1800 * 1000;
 
-  if (isSearch && finalItems.length > 0) {
+  if (finalItems.length > 0) {
     seenSlugsByPage.set(
       requestedPage,
       new Set(
