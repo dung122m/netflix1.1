@@ -472,6 +472,43 @@ export default async function ActorDetailPage({ params }: PageProps) {
       : "Nghệ sĩ điện ảnh");
   const wikiUrl = historicalItem?.wikiUrl || wikiProfile?.wikiUrl;
 
+  // Trích xuất thể loại tiêu biểu và thời kỳ hoạt động từ dữ liệu phim CÓ SẴN trong props (0ms, tuyệt đối không query DB)
+  const { topGenres, careerSpan } = (() => {
+    const genreCount: Record<string, number> = {};
+    const years: number[] = [];
+
+    for (const m of movies || []) {
+      if (m.year) {
+        const y = typeof m.year === "number" ? m.year : parseInt(String(m.year), 10);
+        if (!isNaN(y) && y >= 1950 && y <= 2030) years.push(y);
+      }
+      const rawCats = m.category || m.categories || [];
+      if (Array.isArray(rawCats)) {
+        for (const cat of rawCats) {
+          const name = typeof cat === "string" ? cat : cat?.name;
+          if (name && typeof name === "string" && name.trim()) {
+            const clean = name.trim();
+            genreCount[clean] = (genreCount[clean] || 0) + 1;
+          }
+        }
+      }
+    }
+
+    const sortedGenres = Object.entries(genreCount)
+      .sort((a, b) => b[1] - a[1])
+      .map(([name]) => name)
+      .slice(0, 3);
+
+    let span: string | null = null;
+    if (years.length > 0) {
+      const minYear = Math.min(...years);
+      const maxYear = Math.max(...years);
+      span = minYear === maxYear ? `${minYear}` : `${minYear} – ${maxYear}`;
+    }
+
+    return { topGenres: sortedGenres, careerSpan: span };
+  })();
+
   return (
     <div className="min-h-dvh bg-[#050505] text-zinc-100 flex flex-col selection:bg-netflix-red selection:text-white font-sans antialiased overflow-x-clip">
       <Navbar />
@@ -491,12 +528,12 @@ export default async function ActorDetailPage({ params }: PageProps) {
         />
 
         {/* ============================================================ */}
-        {/* HERO SECTION: PORTRAIT + KEY FACTS */}
+        {/* HERO SECTION: PORTRAIT + KEY FACTS + QUICK HIGHLIGHTS CARD */}
         {/* ============================================================ */}
-        <section className="p-4 sm:p-8 md:p-10 rounded-2xl sm:rounded-3xl bg-zinc-900/40 shadow-2xl backdrop-blur-md relative overflow-hidden">
-          <div className="flex flex-col md:flex-row items-center md:items-start gap-5 sm:gap-8 md:gap-10">
+        <section className="p-4 sm:p-6 md:p-8 lg:p-10 rounded-2xl sm:rounded-3xl bg-zinc-900/40 shadow-2xl backdrop-blur-md relative overflow-hidden">
+          <div className="flex flex-col lg:flex-row items-center lg:items-start gap-6 lg:gap-8 xl:gap-10">
             
-            {/* PORTRAIT IMAGE */}
+            {/* 1. PORTRAIT IMAGE */}
             <div className="relative w-36 h-48 sm:w-48 sm:h-64 md:w-56 md:h-72 rounded-2xl overflow-hidden bg-zinc-900 shadow-2xl shrink-0 group">
               <ActorAvatar
                 name={canonicalName}
@@ -508,11 +545,11 @@ export default async function ActorDetailPage({ params }: PageProps) {
               />
             </div>
 
-            {/* ACTOR DETAILS & FACTS */}
-            <div className="flex-1 space-y-4 text-center md:text-left">
+            {/* 2. ACTOR MAIN DETAILS */}
+            <div className="flex-1 space-y-4 text-center lg:text-left min-w-0 w-full">
               
               {/* COUNTRY & ROLES BADGES */}
-              <div className="flex flex-wrap items-center justify-center md:justify-start gap-2">
+              <div className="flex flex-wrap items-center justify-center lg:justify-start gap-2">
                 {country && (
                   <span className="px-3 py-1 rounded-full bg-red-500/10 text-red-300 text-xs font-bold">
                     {country}
@@ -535,9 +572,9 @@ export default async function ActorDetailPage({ params }: PageProps) {
                 ))}
               </div>
 
-              {/* NAME & ACTIONS */}
+              {/* NAME & MOBILE FAVORITE BUTTON */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div className="space-y-1">
+                <div className="space-y-1 min-w-0">
                   <h1 className="text-2xl sm:text-4xl md:text-5xl font-black text-white tracking-tight leading-tight">
                     {canonicalName}
                   </h1>
@@ -548,7 +585,8 @@ export default async function ActorDetailPage({ params }: PageProps) {
                   )}
                 </div>
 
-                <div className="flex items-center justify-center sm:justify-start shrink-0">
+                {/* Mobile Favorite Button (< lg) */}
+                <div className="flex lg:hidden items-center justify-center sm:justify-start shrink-0">
                   <FavoriteActorButton
                     id={profile.tmdbPersonId || slug}
                     name={canonicalName}
@@ -562,13 +600,13 @@ export default async function ActorDetailPage({ params }: PageProps) {
               </div>
 
               {/* PERSONAL FACTS GRID (CHỈ HIỂN THỊ KHI CÓ DỮ LIỆU ĐÁNG TIN CẬY) */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pt-3 border-t border-white/[0.08]">
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 pt-3 border-t border-white/[0.08]">
                 {formattedBirthday && (
                   <div className="flex items-center gap-2.5 p-3 rounded-xl bg-white/[0.04]">
                     <Calendar className="w-4 h-4 text-amber-400 shrink-0" />
-                    <div className="text-left text-xs">
+                    <div className="text-left text-xs min-w-0">
                       <div className="text-zinc-400 text-[10px]">Ngày sinh</div>
-                      <div className="text-white font-bold">
+                      <div className="text-white font-bold truncate">
                         {formattedBirthday} {age ? `(${age})` : ""}
                       </div>
                     </div>
@@ -578,9 +616,9 @@ export default async function ActorDetailPage({ params }: PageProps) {
                 {placeOfBirth && (
                   <div className="flex items-center gap-2.5 p-3 rounded-xl bg-white/[0.04]">
                     <MapPin className="w-4 h-4 text-rose-400 shrink-0" />
-                    <div className="text-left text-xs">
+                    <div className="text-left text-xs min-w-0">
                       <div className="text-zinc-400 text-[10px]">Nơi sinh</div>
-                      <div className="text-white font-bold truncate max-w-[180px]">
+                      <div className="text-white font-bold truncate" title={placeOfBirth}>
                         {placeOfBirth}
                       </div>
                     </div>
@@ -589,16 +627,84 @@ export default async function ActorDetailPage({ params }: PageProps) {
 
                 <div className="flex items-center gap-2.5 p-3 rounded-xl bg-white/[0.04]">
                   <TrendingUp className="w-4 h-4 text-emerald-400 shrink-0" />
-                  <div className="text-left text-xs">
+                  <div className="text-left text-xs min-w-0">
                     <div className="text-zinc-400 text-[10px]">Độ phổ biến</div>
-                    <div className="text-white font-bold">
+                    <div className="text-white font-bold truncate">
                       {tmdbDetail?.popularity ? `Top ${Math.round(tmdbDetail.popularity)} TMDB` : "Nghệ sĩ nổi tiếng"}
                     </div>
                   </div>
                 </div>
               </div>
 
+              {/* TOP GENRES TAGS TRÊN MOBILE & TABLET (< lg) */}
+              {topGenres.length > 0 && (
+                <div className="flex lg:hidden flex-wrap items-center justify-center sm:justify-start gap-1.5 pt-1">
+                  <span className="text-[11px] text-zinc-400 font-medium mr-1">Thể loại tiêu biểu:</span>
+                  {topGenres.map((genre) => (
+                    <span
+                      key={genre}
+                      className="px-2 py-0.5 rounded-md bg-white/[0.06] text-zinc-300 text-[11px] font-medium"
+                    >
+                      #{genre}
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
+
+            {/* 3. DESKTOP RIGHT STATS & ACTION CARD (CÂN BẰNG KHOẢNG TRỐNG MÀN HÌNH LỚN) */}
+            <div className="hidden lg:flex flex-col justify-between w-64 xl:w-72 p-5 rounded-2xl bg-white/[0.03] border border-white/[0.06] shadow-lg shrink-0 self-stretch">
+              <div className="space-y-4">
+                <div className="text-xs font-bold text-zinc-300 uppercase tracking-wider flex items-center gap-1.5">
+                  <Clapperboard className="w-3.5 h-3.5 text-netflix-red" />
+                  <span>Tổng quan sự nghiệp</span>
+                </div>
+
+                <div className="space-y-2.5">
+                  <div className="flex items-center justify-between text-xs py-1 border-b border-white/[0.05]">
+                    <span className="text-zinc-400">Phim trên Nanaflix</span>
+                    <span className="text-white font-bold tabular-nums">{movies.length} tác phẩm</span>
+                  </div>
+
+                  {careerSpan && (
+                    <div className="flex items-center justify-between text-xs py-1 border-b border-white/[0.05]">
+                      <span className="text-zinc-400">Thời kỳ hoạt động</span>
+                      <span className="text-zinc-200 font-semibold tabular-nums">{careerSpan}</span>
+                    </div>
+                  )}
+
+                  {topGenres.length > 0 && (
+                    <div className="pt-1 space-y-1.5">
+                      <span className="text-[11px] text-zinc-400 block">Dòng phim nổi bật</span>
+                      <div className="flex flex-wrap gap-1">
+                        {topGenres.map((genre) => (
+                          <span
+                            key={genre}
+                            className="px-2 py-0.5 rounded-md bg-white/[0.06] text-zinc-300 text-[11px] font-medium"
+                          >
+                            #{genre}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="pt-2">
+                <FavoriteActorButton
+                  id={profile.tmdbPersonId || slug}
+                  name={canonicalName}
+                  slug={slug}
+                  avatarUrl={bestAvatar}
+                  country={country}
+                  roles={knownRole}
+                  totalMovies={movies.length}
+                  className="w-full justify-center"
+                />
+              </div>
+            </div>
+
           </div>
         </section>
 

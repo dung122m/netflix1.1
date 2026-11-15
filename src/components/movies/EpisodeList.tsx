@@ -326,9 +326,9 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(
       if (episodes.length <= 8) return "grid grid-cols-2 sm:grid-cols-3 gap-2.5";
       if (episodes.length <= 12) return "grid grid-cols-2 min-[360px]:grid-cols-3 gap-2";
       if (episodes.length <= 25) {
-        return "grid grid-cols-3 min-[360px]:grid-cols-4 min-[460px]:grid-cols-5 gap-2";
+        return "grid grid-cols-5 min-[410px]:grid-cols-6 sm:grid-cols-6 gap-1.5 sm:gap-2";
       }
-      return "grid grid-cols-3 min-[360px]:grid-cols-4 min-[460px]:grid-cols-5 sm:grid-cols-6 gap-2";
+      return "grid grid-cols-5 min-[410px]:grid-cols-6 sm:grid-cols-6 gap-1.5 sm:gap-2";
     }, [episodes.length, isSearching, displayEpisodes.length]);
 
     if (!episodes || episodes.length === 0) {

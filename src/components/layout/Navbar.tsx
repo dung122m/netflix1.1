@@ -159,7 +159,7 @@ const NavbarInner: React.FC = () => {
 
   return (
     <nav
-      className={`nanaflix-navbar fixed top-0 left-0 right-0 w-full z-50 transition-[background-color,box-shadow,padding-top,padding-bottom] duration-300 ${
+      className={`nanaflix-navbar fixed top-0 left-0 right-0 w-full z-50 pt-[env(safe-area-inset-top,0px)] transition-[background-color,box-shadow,padding-top,padding-bottom] duration-300 ${
         showBackground || isMobileMenuOpen
           ? "bg-zinc-950/95 backdrop-blur-md shadow-lg shadow-black/60 py-1.5 sm:py-2"
           : "bg-black/80 backdrop-blur-md sm:bg-gradient-to-b sm:from-black/90 sm:via-black/50 sm:to-transparent py-1.5 sm:py-2.5"
@@ -216,8 +216,10 @@ const NavbarInner: React.FC = () => {
             onOpenMobileSearch={handleOpenMobileSearch}
           />
 
-          {/* ACCENT STUDIO COMPACT (ĐỔI MÀU GIAO DIỆN) */}
-          <AccentStudio />
+          {/* ACCENT STUDIO COMPACT (ĐỔI MÀU GIAO DIỆN) - ẨN TRÊN MOBILE, CHỈ HIỆN TỪ SM TRỞ LÊN */}
+          <div className="hidden sm:flex items-center">
+            <AccentStudio />
+          </div>
 
           {/* ISOLATED NOTIFICATION CENTER */}
           <NavNotifications />
