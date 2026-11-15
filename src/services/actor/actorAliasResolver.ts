@@ -30,7 +30,7 @@ export function toVietnameseTitleCase(str: string): string {
 
 export const ACTOR_AI_CACHE = new Map<
   string,
-  { actorName: string; country?: string; aliases: string[]; isActor: boolean; expireAt: number }
+  { actorName: string; englishName?: string; country?: string; aliases: string[]; isActor: boolean; expireAt: number }
 >();
 export const CACHE_7_DAYS = 7 * 24 * 60 * 60 * 1000;
 

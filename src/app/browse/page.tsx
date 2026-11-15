@@ -4,7 +4,7 @@ import { MovieGrid } from "@/components/movies/MovieGrid";
 import { FilterBarClient } from "@/components/browse/FilterBarClient";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
-import { Film, ExternalLink, User, Flame, ChevronRight } from "lucide-react";
+import { Film, Flame, ChevronRight } from "lucide-react";
 import { findHistoricalArtist } from "@/data/history/historicalArtistsBirthdays";
 import { movieApi, parseSortMode } from "@/services/movies/service";
 
@@ -34,6 +34,13 @@ import {
   extractMovieModifiedTime,
   } from "@/lib/movieMedia";
 import { enrichMovieListPosters } from "@/services/movies/posterEnrichment";
+
+function getActorInitials(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "A";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
 
 // ==========================================
 // METADATA
@@ -433,14 +440,16 @@ export default async function BrowsePage({
   if (actorRes && (actorRes.isActor || actorParam || actorSynonyms?.isMatched)) {
     const actorSearch = await runActorSearch({ actorResult: actorRes, actorSynonyms, actorParam, category, country, year, type, sort, currentPage, pageLimit: PAGE_LIMIT });
     if (actorSearch) {
-      const actorSlug = (actorSynonyms?.slug || actorSearch.actor.name)
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/^-+|-+$/g, "");
-      detectedActor = {
-        ...actorSearch.actor,
-        href: actorSlug ? `/dien-vien/${actorSlug}` : undefined,
-      };
+      if (actorSearch.movies.length > 0 || Boolean(actorSearch.actor.avatarUrl)) {
+        const actorSlug = (actorSynonyms?.slug || actorSearch.actor.name)
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/^-+|-+$/g, "");
+        detectedActor = {
+          ...actorSearch.actor,
+          href: actorSlug ? `/dien-vien/${actorSlug}` : undefined,
+        };
+      }
       movies = actorSearch.movies;
       totalItems = actorSearch.totalItems;
       totalPages = actorSearch.totalPages;
@@ -556,17 +565,19 @@ export default async function BrowsePage({
         pageLimit: PAGE_LIMIT,
       });
       if (actorSearch) {
-        movies = actorSearch.movies;
-        totalItems = actorSearch.totalItems;
-        totalPages = actorSearch.totalPages;
-        const actorSlug = (fallbackSynonyms?.slug || actorSearch.actor.name)
-          .toLowerCase()
-          .replace(/[^a-z0-9]+/g, "-")
-          .replace(/^-+|-+$/g, "");
-        detectedActor = {
-          ...actorSearch.actor,
-          href: actorSlug ? `/dien-vien/${actorSlug}` : undefined,
-        };
+        if (actorSearch.movies.length > 0 || Boolean(actorSearch.actor.avatarUrl)) {
+          const actorSlug = (fallbackSynonyms?.slug || actorSearch.actor.name)
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, "-")
+            .replace(/^-+|-+$/g, "");
+          detectedActor = {
+            ...actorSearch.actor,
+            href: actorSlug ? `/dien-vien/${actorSlug}` : undefined,
+          };
+          movies = actorSearch.movies;
+          totalItems = actorSearch.totalItems;
+          totalPages = actorSearch.totalPages;
+        }
       }
     }
   }
@@ -678,7 +689,7 @@ export default async function BrowsePage({
         </div>
 
         {detectedActor && (
-          <div className="mb-6 p-4 sm:p-5 rounded-2xl bg-zinc-900/75 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 shadow-lg animate-in fade-in duration-300">
+          <div className="mb-6 p-3.5 sm:p-4 rounded-xl bg-zinc-900/60 border border-white/[0.08] flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 backdrop-blur-md shadow-lg animate-in fade-in duration-300">
             <div className="flex items-center gap-3.5 min-w-0">
               {detectedActor.avatarUrl ? (
                 <div className="relative w-11 h-11 sm:w-12 sm:h-12 rounded-full overflow-hidden border border-white/10 flex-none shadow-md">
@@ -691,27 +702,27 @@ export default async function BrowsePage({
                   />
                 </div>
               ) : (
-                <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-netflix-red/15 text-netflix-red flex items-center justify-center flex-none">
-                  <User className="w-5 h-5 text-netflix-red" />
+                <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-zinc-800 to-zinc-900 border border-white/10 flex items-center justify-center flex-none shadow-md text-xs sm:text-sm font-bold text-zinc-200">
+                  {getActorInitials(detectedActor.name)}
                 </div>
               )}
               <div className="min-w-0">
-                <h4 className="text-sm sm:text-base font-black text-white flex items-center gap-2 flex-wrap">
+                <h4 className="text-sm sm:text-base font-bold text-white flex items-center gap-2 flex-wrap">
                   <span className="truncate">
-                    Hồ Sơ Nghệ Sĩ • {detectedActor.name}
+                    {detectedActor.name}
                     {detectedActor.englishName && detectedActor.englishName !== detectedActor.name ? ` (${detectedActor.englishName})` : ""}
                   </span>
                   {detectedActor.country && (
-                    <span className="text-xs text-white font-bold px-2.5 py-0.5 rounded-full bg-white/10 flex-none">
+                    <span className="text-[11px] text-zinc-300 font-medium px-2 py-0.5 rounded-full bg-white/[0.08] flex-none">
                       {detectedActor.country}
                     </span>
                   )}
-                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/10 text-zinc-300 font-semibold flex-none">
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/[0.06] text-zinc-400 font-medium flex-none">
                     Diễn viên
                   </span>
                 </h4>
-                <p className="text-xs text-zinc-300 mt-0.5 truncate sm:whitespace-normal">
-                  Xem chi tiết tiểu sử, năm sinh, sự nghiệp và hành trình nghệ thuật.
+                <p className="text-xs text-zinc-400 mt-0.5 truncate sm:whitespace-normal">
+                  Xem chi tiết tiểu sử, sự nghiệp và các tác phẩm điện ảnh.
                 </p>
               </div>
             </div>
@@ -719,10 +730,10 @@ export default async function BrowsePage({
             {detectedActor.href && (
               <Link
                 href={detectedActor.href}
-                className="self-start sm:self-auto inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-netflix-red hover:brightness-110 active:brightness-95 text-white font-bold text-xs sm:text-sm transition shadow-md flex-none cursor-pointer"
+                className="self-start sm:self-auto inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-white/10 hover:bg-white/15 active:bg-white/20 text-white font-medium text-xs transition border border-white/10 shadow-sm flex-none cursor-pointer"
               >
-                <span>Xem hồ sơ chi tiết</span>
-                <ChevronRight className="w-4 h-4" />
+                <span>Hồ sơ nghệ sĩ</span>
+                <ChevronRight className="w-3.5 h-3.5" />
               </Link>
             )}
           </div>
@@ -743,74 +754,31 @@ export default async function BrowsePage({
           </>
         ) : (
           <div className="py-12 space-y-10">
-            <div className="max-w-xl mx-auto rounded-2xl bg-zinc-900/80 p-6 md:p-8 text-center backdrop-blur-md shadow-2xl">
+            <div className="max-w-xl mx-auto rounded-2xl bg-zinc-900/40 border border-white/[0.06] p-6 md:p-8 text-center backdrop-blur-md shadow-2xl">
               <Film className="w-12 h-12 text-zinc-500 mx-auto mb-3" />
               <h3 className="text-lg md:text-xl font-bold text-white">
                 {detectedActor
-                  ? `Chưa có dữ liệu tuyển tập cho ${detectedActor.name}`
+                  ? `Chưa có phim của ${detectedActor.name}`
                   : keyword
-                    ? `Chưa tìm thấy phim khớp với "${keyword}"`
+                    ? `Không tìm thấy phim cho "${keyword}"`
                     : "Không tìm thấy dữ liệu phim."}
               </h3>
-              {detectedActor ? (
-                <>
-                  <p className="text-xs sm:text-sm text-zinc-400 mt-2 leading-relaxed">
-                    Hiện tại chưa có sẵn các tác phẩm do <strong>{detectedActor.name}</strong> đóng chính hoặc làm đạo diễn. Phim mới được cập nhật liên tục mỗi ngày!
-                  </p>
-                  <div className="flex flex-wrap items-center justify-center gap-3 mt-5">
-                    <a
-                      href={`https://www.themoviedb.org/search/person?query=${encodeURIComponent(detectedActor.name)}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#01b4e4] hover:bg-[#01b4e4]/80 text-white text-xs font-bold transition shadow-md shadow-black/50"
-                    >
-                      <span>Tra cứu &quot;{detectedActor.name}&quot; trên TMDb</span>
-                      <ExternalLink className="w-3.5 h-3.5" />
-                    </a>
-                    <Link
-                      href="/browse"
-                      className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-zinc-200 hover:text-white text-xs font-semibold transition"
-                    >
-                      Xem tất cả phim
-                    </Link>
-                  </div>
-                </>
-              ) : keyword ? (
-                <>
-                  <p className="text-xs sm:text-sm text-zinc-400 mt-2 leading-relaxed">
-                    Không tìm thấy phim phù hợp với từ khóa này. Bạn có thể thử tìm theo tên khác hoặc xem các phim nổi bật dưới đây:
-                  </p>
-                  <div className="flex flex-wrap items-center justify-center gap-3 mt-5">
-                    <a
-                      href={`https://www.themoviedb.org/search?query=${encodeURIComponent(keyword)}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#01b4e4] hover:bg-[#01b4e4]/80 text-white text-xs font-bold transition shadow-md shadow-black/50"
-                    >
-                      <span>Tra cứu &quot;{keyword}&quot; trên TMDb</span>
-                      <ExternalLink className="w-3.5 h-3.5" />
-                    </a>
-                    <Link
-                      href="/browse"
-                      className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-zinc-200 hover:text-white text-xs font-semibold transition"
-                    >
-                      Xem tất cả phim
-                    </Link>
-                  </div>
-                </>
-              ) : (
-                <div className="mt-5">
-                  <Link
-                    href="/browse"
-                    className="px-4 py-2 rounded-xl bg-netflix-red hover:brightness-110 active:brightness-95 text-white text-xs font-semibold transition"
-                  >
-                    Xem tất cả phim
-                  </Link>
-                </div>
-              )}
+              <p className="text-xs sm:text-sm text-zinc-400 mt-2 leading-relaxed">
+                {detectedActor
+                  ? "Dữ liệu tác phẩm của nghệ sĩ này đang được cập nhật thêm. Bạn có thể xem các phim nổi bật bên dưới:"
+                  : "Không tìm thấy phim phù hợp với từ khóa này. Bạn có thể thử tìm theo tên khác hoặc xem các phim nổi bật dưới đây:"}
+              </p>
+              <div className="flex flex-wrap items-center justify-center gap-3 mt-5">
+                <Link
+                  href="/browse"
+                  className="px-5 py-2.5 rounded-xl bg-white hover:bg-zinc-200 text-zinc-950 text-xs sm:text-sm font-bold transition shadow-md"
+                >
+                  Xem tất cả phim
+                </Link>
+              </div>
             </div>
 
-            {!detectedActor && fallbackMovies.length > 0 && (
+            {fallbackMovies.length > 0 && (
               <div className="mt-12">
                 <div className="flex items-center gap-2 mb-5">
                   <Flame className="w-5 h-5 text-netflix-red shrink-0" />

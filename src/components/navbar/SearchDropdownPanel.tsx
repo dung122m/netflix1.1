@@ -126,10 +126,17 @@ export function SearchDropdownPanel({
             <button
               type="button"
               onClick={onSubmitSearch}
-              className="w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg bg-zinc-850 hover:bg-netflix-red text-zinc-200 hover:text-white font-medium text-xs transition shadow-md cursor-pointer active:scale-98"
+              className="w-full flex items-center justify-between gap-2.5 px-3 py-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] active:bg-white/[0.12] border border-white/[0.08] text-zinc-300 hover:text-white transition group cursor-pointer text-left"
             >
-              <Search size={13} />
-              <span>Tìm kiếm ngay cho &quot;{queryText}&quot;</span>
+              <div className="flex items-center gap-2.5 min-w-0">
+                <Search size={14} className="text-zinc-400 group-hover:text-white shrink-0 transition-colors" />
+                <span className="text-xs truncate">
+                  Tìm kiếm <strong className="text-white font-medium">&quot;{queryText}&quot;</strong> trong toàn bộ kho phim
+                </span>
+              </div>
+              <kbd className="hidden sm:inline-flex items-center text-[10px] text-zinc-400 group-hover:text-zinc-200 border border-white/10 bg-white/[0.04] rounded px-1.5 py-0.5 font-sans shrink-0">
+                ↵ Enter
+              </kbd>
             </button>
           </div>
         </div>
@@ -214,31 +221,47 @@ export function SearchDropdownPanel({
             <button
               type="button"
               onClick={onSubmitSearch}
-              className="w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg bg-netflix-red hover:brightness-110 active:brightness-95 text-white font-bold text-xs transition shadow-md cursor-pointer active:scale-98"
+              className="w-full flex items-center justify-between gap-2.5 px-3 py-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] active:bg-white/[0.12] border border-white/[0.08] text-zinc-300 hover:text-white transition group cursor-pointer text-left"
             >
-              <Search size={13} />
-              <span>Xem tất cả kết quả cho &quot;{queryText}&quot;</span>
+              <div className="flex items-center gap-2.5 min-w-0">
+                <Search size={14} className="text-zinc-400 group-hover:text-white shrink-0 transition-colors" />
+                <span className="text-xs truncate">
+                  Tìm kiếm <strong className="text-white font-medium">&quot;{queryText}&quot;</strong> trong toàn bộ kho phim
+                </span>
+              </div>
+              <kbd className="hidden sm:inline-flex items-center text-[10px] text-zinc-400 group-hover:text-zinc-200 border border-white/10 bg-white/[0.04] rounded px-1.5 py-0.5 font-sans shrink-0">
+                ↵ Enter
+              </kbd>
             </button>
           </div>
         </>
       ) : hasSearchText ? (
-        <div className="py-4 px-2 text-center space-y-2">
-          <p className="text-xs text-zinc-400">
-            {queryText.trim().length >= 2
-              ? "Không có gợi ý nhanh phù hợp"
-              : "Nhập từ 2 ký tự trở lên để xem gợi ý phim..."}
-          </p>
-          {queryText.trim().length >= 2 && (
-            <button
-              type="button"
-              onClick={onSubmitSearch}
-              className="w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg bg-netflix-red hover:brightness-110 active:brightness-95 text-white font-bold text-xs transition shadow-md cursor-pointer active:scale-98"
-            >
-              <Search size={13} />
-              <span>
-                Tìm kiếm toàn bộ kho phim cho &quot;{queryText}&quot;
-              </span>
-            </button>
+        <div className="py-2.5 px-1 space-y-2">
+          {queryText.trim().length < 2 ? (
+            <p className="text-xs text-zinc-400 text-center py-2">
+              Nhập từ 2 ký tự trở lên để xem gợi ý phim...
+            </p>
+          ) : (
+            <>
+              <p className="text-xs text-zinc-400 px-2">
+                Không có gợi ý nhanh phù hợp
+              </p>
+              <button
+                type="button"
+                onClick={onSubmitSearch}
+                className="w-full flex items-center justify-between gap-2.5 px-3 py-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] active:bg-white/[0.12] border border-white/[0.08] text-zinc-300 hover:text-white transition group cursor-pointer text-left"
+              >
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <Search size={14} className="text-zinc-400 group-hover:text-white shrink-0 transition-colors" />
+                  <span className="text-xs truncate">
+                    Tìm kiếm <strong className="text-white font-medium">&quot;{queryText}&quot;</strong> trong toàn bộ kho phim
+                  </span>
+                </div>
+                <kbd className="hidden sm:inline-flex items-center text-[10px] text-zinc-400 group-hover:text-zinc-200 border border-white/10 bg-white/[0.04] rounded px-1.5 py-0.5 font-sans shrink-0">
+                  ↵ Enter
+                </kbd>
+              </button>
+            </>
           )}
         </div>
       ) : null}

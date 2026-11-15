@@ -31,6 +31,7 @@ export async function resolveActorMovies(
   options?: { skipAiFallback?: boolean }
 ): Promise<{
   actorName: string;
+  englishName?: string;
   country?: string;
   aliases: string[];
   titles?: string[];
@@ -51,6 +52,7 @@ export async function resolveActorMovies(
   if (synonymRes.isMatched) {
     return {
       actorName: synonymRes.canonicalName,
+      englishName: synonymRes.englishName,
       country: synonymRes.country,
       aliases: synonymRes.variants,
       isActor: true,
@@ -72,6 +74,7 @@ export async function resolveActorMovies(
   if (cached && cached.expireAt > Date.now()) {
     return {
       actorName: cached.actorName,
+      englishName: cached.englishName,
       country: cached.country,
       aliases: cached.aliases,
       isActor: cached.isActor,
@@ -85,6 +88,7 @@ export async function resolveActorMovies(
   try {
     const redisCached = await cacheService.get<{
       actorName: string;
+      englishName?: string;
       country?: string;
       aliases: string[];
       isActor: boolean;
@@ -96,6 +100,7 @@ export async function resolveActorMovies(
       });
       return {
         actorName: redisCached.actorName,
+        englishName: redisCached.englishName,
         country: redisCached.country,
         aliases: redisCached.aliases,
         isActor: redisCached.isActor,
@@ -129,13 +134,28 @@ export async function resolveActorMovies(
         (qWords.length >= 2 && pOrigWords.length === qWords.length && qWords.every((w) => pOrigWords.includes(w)));
 
       if (isExactMatch || isWordSetMatch) {
-        const actorName = tmdbPerson.name || keyword;
+        const hasVietnameseMarks = (s: string) =>
+          /[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/i.test(s);
+        let actorName = tmdbPerson.name || keyword;
+        let englishName: string | undefined = undefined;
+
+        if (hasVietnameseMarks(keyword)) {
+          actorName = keyword;
+          if (tmdbPerson.name && tmdbPerson.name !== keyword) {
+            englishName = tmdbPerson.name;
+          }
+        } else if (tmdbPerson.original_name && hasVietnameseMarks(tmdbPerson.original_name)) {
+          actorName = tmdbPerson.original_name;
+          englishName = tmdbPerson.name;
+        }
+
         const aliases = Array.from(
-          new Set([actorName, keyword, tmdbPerson.original_name].filter(Boolean))
+          new Set([actorName, keyword, englishName, tmdbPerson.name, tmdbPerson.original_name].filter(Boolean))
         ) as string[];
 
         const tmdbEntry = {
           actorName,
+          englishName,
           aliases,
           isActor: true,
         };
@@ -148,6 +168,7 @@ export async function resolveActorMovies(
 
         return {
           actorName,
+          englishName,
           aliases,
           isActor: true,
           source: "tmdb",
@@ -211,15 +232,71 @@ BẮT BUỘC chỉ trả về DUY NHẤT một chuỗi JSON hợp lệ theo đ�
         const parsed = JSON.parse(jsonMatch[0]);
 
         if (parsed.isActor) {
-          const actorName = parsed.canonicalName || parsed.actorName || keyword;
-          const country = parsed.country || undefined;
+          const cleanQNorm = normalizeForMatch(keyword);
           const rawAliases = Array.isArray(parsed.aliases) ? parsed.aliases : [];
-          const aliases = Array.from(new Set([actorName, keyword, ...rawAliases])).filter(
+          const allCandidateNorms = [
+            parsed.canonicalName,
+            parsed.actorName,
+            ...rawAliases,
+          ]
+            .filter((s): s is string => typeof s === "string" && s.trim().length >= 2)
+            .map(normalizeForMatch);
+
+          // BẮT BUỘC: Từ khóa người dùng tìm kiếm phải khớp chính xác hoặc đảo từ với Tên/Bí danh hợp lệ của nghệ sĩ
+          const hasVerifiedMatch = allCandidateNorms.some((aliasNorm) => {
+            if (!aliasNorm) return false;
+            if (aliasNorm === cleanQNorm) return true;
+            const qWords = cleanQNorm.split(" ").filter(Boolean);
+            const aWords = aliasNorm.split(" ").filter(Boolean);
+            if (
+              qWords.length >= 2 &&
+              aWords.length === qWords.length &&
+              qWords.every((w) => aWords.includes(w))
+            ) {
+              return true;
+            }
+            return false;
+          });
+
+          if (!hasVerifiedMatch) {
+            // Từ khóa không thực sự là nghệ sĩ này (ảo giác AI hoặc vụ án/nhân vật liên quan) -> Loại bỏ hoàn toàn!
+            const negEntry = { actorName: "", aliases: [], isActor: false };
+            setBoundedCache(ACTOR_AI_CACHE, cleanRaw, { ...negEntry, expireAt: Date.now() + 86400000 });
+            cacheService.set(redisActorKey, negEntry, 86400).catch(() => {});
+            return { actorName: "", aliases: [], isActor: false, source: "none" };
+          }
+
+          const hasVietnameseMarks = (s: string) =>
+            /[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/i.test(s);
+
+          let actorName = parsed.canonicalName || parsed.actorName || keyword;
+          let englishName: string | undefined = undefined;
+
+          // Nếu người dùng tìm bằng tiếng Việt hoặc có bí danh tiếng Việt:
+          // Ưu tiên giữ tên tiếng Việt làm actorName chính để không bị 0 phim trong kho phim Việt!
+          if (hasVietnameseMarks(keyword)) {
+            actorName = keyword;
+            if (parsed.canonicalName && parsed.canonicalName !== keyword) {
+              englishName = parsed.canonicalName;
+            }
+          } else {
+            const viAlias = rawAliases.find((a: string) => typeof a === "string" && hasVietnameseMarks(a));
+            if (viAlias) {
+              englishName = parsed.canonicalName;
+              actorName = viAlias;
+            } else if (parsed.canonicalName && parsed.canonicalName !== keyword) {
+              englishName = parsed.canonicalName;
+            }
+          }
+
+          const country = parsed.country || undefined;
+          const aliases = Array.from(new Set([actorName, keyword, englishName, ...rawAliases])).filter(
             (s): s is string => typeof s === "string" && s.trim().length >= 2
           );
 
           const aiEntry = {
             actorName,
+            englishName,
             country,
             aliases,
             isActor: true,
@@ -233,6 +310,7 @@ BẮT BUỘC chỉ trả về DUY NHẤT một chuỗi JSON hợp lệ theo đ�
 
           return {
             actorName,
+            englishName,
             country,
             aliases,
             isActor: true,
