@@ -231,6 +231,24 @@ const nextConfig: NextConfig = {
         ],
       },
       {
+        // Edge / CDN caching cho gợi ý phim cho bạn (/api/recommendations/for-you)
+        source: "/api/recommendations/for-you",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, s-maxage=3600, stale-while-revalidate=7200",
+          },
+          {
+            key: "CDN-Cache-Control",
+            value: "public, s-maxage=3600, stale-while-revalidate=7200",
+          },
+          {
+            key: "Vercel-CDN-Cache-Control",
+            value: "public, s-maxage=3600, stale-while-revalidate=7200",
+          },
+        ],
+      },
+      {
         // Edge / CDN caching cho bảng xếp hạng TMDb Trending 6 giờ
         source: "/api/trending-tmdb",
         headers: [

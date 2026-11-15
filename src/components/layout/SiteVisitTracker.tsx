@@ -71,9 +71,9 @@ export function classifyRoute(pathname: string | null | undefined): RouteClassif
 // Module-level timestamp guard against React 18/19 StrictMode double-mount within 2000ms
 let lastTrackedPathname: string | null = null;
 let lastTrackedTimestamp: number = 0;
-const PAGE_GROUP_COOLDOWN_MS = 15 * 60 * 1000; // 15 phút cooldown cho mỗi nhóm trang để giảm 70% request Vercel
+const GLOBAL_SESSION_COOLDOWN_MS = 30 * 60 * 1000; // Cooldown toàn phiên 30 phút cho toàn bộ website
 
-function shouldSkipSessionGroup(sessionKey: string, now: number): boolean {
+function shouldSkipSession(sessionKey: string, now: number): boolean {
   if (typeof window === "undefined") return false;
   // Bỏ qua tracking khi đang chạy local/dev để không tốn quota Serverless & Supabase
   if (
@@ -86,28 +86,18 @@ function shouldSkipSessionGroup(sessionKey: string, now: number): boolean {
 
   try {
     // Kiểm tra đa tầng: sessionStorage + localStorage (đồng bộ qua các tab)
-    const localLast = Number(localStorage.getItem(`nanaflix_last_visit_${sessionKey}`) || 0);
-    if (localLast > 0 && now - localLast < PAGE_GROUP_COOLDOWN_MS) {
+    const localLast = Number(localStorage.getItem(`nanaflix_session_visit_${sessionKey}`) || 0);
+    if (localLast > 0 && now - localLast < GLOBAL_SESSION_COOLDOWN_MS) {
       return true;
     }
 
-    const raw = sessionStorage.getItem(SITE_VISIT_SESSION_KEY);
-    const map: Record<string, number> = raw ? JSON.parse(raw) : {};
-    const prev = Number(map[sessionKey] || 0);
-    if (prev > 0 && now - prev < PAGE_GROUP_COOLDOWN_MS) {
+    const sessionLast = Number(sessionStorage.getItem(`nanaflix_session_visit_${sessionKey}`) || 0);
+    if (sessionLast > 0 && now - sessionLast < GLOBAL_SESSION_COOLDOWN_MS) {
       return true;
     }
 
-    map[sessionKey] = now;
-    localStorage.setItem(`nanaflix_last_visit_${sessionKey}`, String(now));
-
-    const entries = Object.entries(map);
-    if (entries.length > 20) {
-      entries.sort((a, b) => b[1] - a[1]);
-      sessionStorage.setItem(SITE_VISIT_SESSION_KEY, JSON.stringify(Object.fromEntries(entries.slice(0, 20))));
-    } else {
-      sessionStorage.setItem(SITE_VISIT_SESSION_KEY, JSON.stringify(map));
-    }
+    localStorage.setItem(`nanaflix_session_visit_${sessionKey}`, String(now));
+    sessionStorage.setItem(`nanaflix_session_visit_${sessionKey}`, String(now));
   } catch {}
   return false;
 }
@@ -134,9 +124,9 @@ export function SiteVisitTracker() {
       return;
     }
 
-    // Cooldown 5 phút theo từng pageGroup + trạng thái đăng nhập trong sessionStorage để tránh ghi trùng vào Supabase
-    const sessionGroupKey = `${user?.uid ? "u" : "g"}:${pageGroup}`;
-    if (shouldSkipSessionGroup(sessionGroupKey, now)) {
+    // Cooldown 30 phút toàn phiên theo tài khoản hoặc khách (không bắn lại khi chuyển trang)
+    const sessionKey = user?.uid ? `u_${user.uid}` : "guest_session";
+    if (shouldSkipSession(sessionKey, now)) {
       return;
     }
 

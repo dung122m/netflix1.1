@@ -475,92 +475,6 @@ export async function isStreamPlayable(
   }
 }
 
-let isBackgroundHealthRunning = false;
-
-function getPriorityStreamUrls(matches: FootballMatch[]): string[] {
-  const priorityUrls: string[] = [];
-  const now = Date.now();
-
-  // 1. Trận đang LIVE
-  const liveMatches = matches.filter((m) => m.timeline === "live");
-  for (const m of liveMatches) {
-    for (const s of m.servers) {
-      if (s.url && !isBlockedStreamUrl(s.url)) {
-        priorityUrls.push(s.url);
-      }
-    }
-  }
-
-  // 2. Trận sắp diễn ra trong 2 giờ (120 phút)
-  const soonMatches = matches.filter(
-    (m) =>
-      m.timeline === "today" &&
-      m.timestamp > now &&
-      m.timestamp <= now + 2 * 60 * 60 * 1000,
-  );
-  for (const m of soonMatches) {
-    for (const s of m.servers) {
-      if (s.url && !isBlockedStreamUrl(s.url)) {
-        priorityUrls.push(s.url);
-      }
-    }
-  }
-
-  // 3. Các trận khác
-  const otherMatches = matches.filter(
-    (m) =>
-      m.timeline !== "live" &&
-      !(m.timestamp > now && m.timestamp <= now + 2 * 60 * 60 * 1000),
-  );
-  for (const m of otherMatches) {
-    for (const s of m.servers) {
-      if (s.url && !isBlockedStreamUrl(s.url)) {
-        priorityUrls.push(s.url);
-      }
-    }
-  }
-
-  return Array.from(new Set(priorityUrls));
-}
-
-export async function scheduleBackgroundHealthChecks(
-  urls: string[],
-  concurrency = 8,
-  maxBatch = 32,
-): Promise<void> {
-  if (isBackgroundHealthRunning || !urls || urls.length === 0) return;
-
-  const unknownUrls = urls.filter(
-    (url) => getStreamHealthStatus(url) === "unknown",
-  );
-  if (unknownUrls.length === 0) return;
-
-  const batch = unknownUrls.slice(0, maxBatch);
-  isBackgroundHealthRunning = true;
-
-  try {
-    let cursor = 0;
-    const worker = async () => {
-      while (cursor < batch.length) {
-        const idx = cursor++;
-        const targetUrl = batch[idx];
-        if (!targetUrl) continue;
-        try {
-          await isStreamPlayable(targetUrl, 1200);
-        } catch {
-          // Error isolated to single stream
-        }
-      }
-    };
-
-    const workerCount = Math.min(concurrency, batch.length);
-    const workers = Array.from({ length: workerCount }, () => worker());
-    await Promise.allSettled(workers);
-  } finally {
-    isBackgroundHealthRunning = false;
-  }
-}
-
 export interface RawStreamItem {
   rawTitle: string;
   group: string;
@@ -1601,6 +1515,12 @@ export const liveFootballService = {
 
   revalidateFootballMatches: async () => {
     if (inFlightFetch) return;
+    if (getCachedFootballDataWithNext) {
+      try {
+        await getCachedFootballDataWithNext();
+        return;
+      } catch {}
+    }
     inFlightFetch = liveFootballService.fetchAndCacheMatchesInternal();
     try {
       await inFlightFetch;
@@ -1771,14 +1691,8 @@ export const liveFootballService = {
       // 5. LỌC VÀ SẮP XẾP CÁC MÁY CHỦ THEO HEALTH CACHE & GHÉP LIVESCORE TRƯỚC KHI ĐÁNH GIÁ VÒNG ĐỜI
       const availableMatches: FootballMatch[] = [];
 
-      // Đồng bộ sẵn sự kiện livescore (0ms latency nếu có cache, hoặc fetch nhanh có timeout)
-      let cachedScoreEvents = footballScoreService.getCachedEventsSync();
-      if (!cachedScoreEvents || cachedScoreEvents.length === 0) {
-        try {
-          const scoreboardRes = await footballScoreService.getScoreboardEvents();
-          cachedScoreEvents = scoreboardRes.events;
-        } catch {}
-      }
+      // Đồng bộ sẵn sự kiện livescore (0ms latency từ RAM cache, không fetch 16 giải ESPN đồng bộ)
+      const cachedScoreEvents = footballScoreService.getCachedEventsSync() || [];
 
       for (const m of mergedMatches) {
         // Lọc bỏ các server đã xác nhận DEAD hoặc thuộc blocked host list
@@ -1895,19 +1809,14 @@ export const liveFootballService = {
 
       memoryCache = {
         data: result,
-        expireAt: now + 5 * 60 * 1000,
-        staleUntil: now + 10 * 60 * 1000,
+        expireAt: now + 10 * 60 * 1000,
+        staleUntil: now + 15 * 60 * 1000,
       };
 
       // Đồng bộ L2 Upstash Redis để các serverless instance khác tái sử dụng (0ms re-parse)
       if (result.matches && result.matches.length > 0) {
         cacheService.set(FOOTBALL_REDIS_KEY, result, FOOTBALL_REDIS_TTL).catch(() => {});
       }
-
-      // Kích hoạt revalidate ngầm theo thứ tự ưu tiên (LIVE -> UPCOMING <= 60m -> Khác)
-      // Tuyệt đối không await để không làm chậm response
-      const priorityUrls = getPriorityStreamUrls(sortedMatches);
-      scheduleBackgroundHealthChecks(priorityUrls, 8, 32).catch(() => {});
 
       return result;
     } catch (err) {

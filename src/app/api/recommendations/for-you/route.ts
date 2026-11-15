@@ -100,7 +100,7 @@ async function generateForYouRecommendations(input: RecommendationInput): Promis
         const payload = {
           success: true,
           context: cachedPool.context,
-          items: filtered.slice(0, 20),
+          items: filtered.slice(0, 36),
           cached: true,
         };
         FOR_YOU_L1_CACHE.set(kvForYouKey, { data: payload, expireAt: Date.now() + L1_TTL_MS });
@@ -535,7 +535,7 @@ async function generateForYouRecommendations(input: RecommendationInput): Promis
     const remainingCandidates = [...scoredCandidates];
     let lastGenre = "";
 
-    while (remainingCandidates.length > 0 && selectedFinalMovies.length < 20) {
+    while (remainingCandidates.length > 0 && selectedFinalMovies.length < 36) {
       // Tìm ứng viên có điểm cao nhất nhưng không trùng lặp liên tiếp thể loại hiển thị
       let pickIdx = remainingCandidates.findIndex(
         (c) => (c.displayGenreName || c.norm.genre || "") !== lastGenre
@@ -560,12 +560,12 @@ async function generateForYouRecommendations(input: RecommendationInput): Promis
       });
     }
 
-    // 7. BACKFILL BẢO VỆ CAROUSEL LUÔN ĐẦY ĐỦ >= 18 PHIM NẾU THIẾU
-    if (selectedFinalMovies.length < 18) {
+    // 7. BACKFILL BẢO VỆ CAROUSEL LUÔN ĐẦY ĐỦ >= 24 PHIM NẾU THIẾU
+    if (selectedFinalMovies.length < 24) {
       try {
         const backfillPages = [1, 2];
         for (const p of backfillPages) {
-          if (selectedFinalMovies.length >= 20) break;
+          if (selectedFinalMovies.length >= 36) break;
           const fallbackRes = await movieApi.getMovies({
             page: p,
             limit: 24,
@@ -592,7 +592,7 @@ async function generateForYouRecommendations(input: RecommendationInput): Promis
               matchPercentage: 88,
               matchReason: "Siêu phẩm thịnh hành được yêu thích nhất",
             });
-            if (selectedFinalMovies.length >= 20) break;
+            if (selectedFinalMovies.length >= 36) break;
           }
         }
       } catch (backfillErr) {

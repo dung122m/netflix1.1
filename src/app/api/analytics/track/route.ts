@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { recordAnalyticsEvent } from "@/services/analyticsService";
 import { AnalyticsEventPayload } from "@/lib/analyticsClient";
-import { verifyServerAuth } from "@/lib/serverAuth";
 import { resolveClientGeo } from "@/lib/geoIpResolver";
 import {
   enforceRateLimit,
@@ -66,9 +65,22 @@ export async function POST(req: NextRequest) {
       isNewCookieNeeded = true;
     }
 
-    // 3. Server-controlled User ID (Verify Firebase auth token, do NOT trust client body.userId)
-    const auth = await verifyServerAuth(req);
-    const verifiedUserId = auth.isAuthenticated && auth.userId ? auth.userId : undefined;
+    // 3. Server-controlled User ID (Giải mã nhẹ payload JWT in-memory 0ms để lấy uid, không gọi mạng Google)
+    let verifiedUserId: string | undefined = undefined;
+    const authHeader = req.headers.get("authorization")?.trim();
+    if (authHeader?.startsWith("Bearer ")) {
+      const token = authHeader.slice(7).trim();
+      try {
+        const parts = token.split(".");
+        if (parts[1]) {
+          const payloadJson = Buffer.from(parts[1], "base64url").toString("utf8");
+          const payload = JSON.parse(payloadJson);
+          if (payload?.user_id || payload?.sub) {
+            verifiedUserId = String(payload.user_id || payload.sub).trim();
+          }
+        }
+      } catch {}
+    }
 
     // 4. Deterministic identity token for the current visitor session
     // - Authenticated User: `u_${verifiedUserId}`

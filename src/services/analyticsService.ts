@@ -337,36 +337,14 @@ export async function recordAnalyticsEvent(payload: AnalyticsEventPayload): Prom
         );
 
         if (!isProfileSyncFresh) {
-          // Safe Profile Upsert: Tận dụng L1 cache để bỏ qua SELECT device_profiles lặp lại, vẫn bảo toàn first_seen & geo tốt
+          // Direct Profile Upsert: Bỏ qua hoàn toàn SELECT device_profiles, upsert trực tiếp 1 lần duy nhất
           upsertPromise = (async () => {
             try {
-              let existingFirstSeen = cachedProfile?.firstSeen;
-              let existingCountry = cachedProfile?.country;
-              let existingCountryCode = cachedProfile?.countryCode;
-              let existingRegion = cachedProfile?.region;
-              let existingCity = cachedProfile?.city;
-
-              if (!cachedProfile) {
-                const { data: existingProfile } = await client
-                  .from("device_profiles")
-                  .select("id, first_seen, country, country_code, region, city")
-                  .eq("id", eventRecord.anonymousId)
-                  .maybeSingle();
-
-                if (existingProfile) {
-                  existingFirstSeen = Number(existingProfile.first_seen) || undefined;
-                  existingCountry = existingProfile.country || undefined;
-                  existingCountryCode = existingProfile.country_code || undefined;
-                  existingRegion = existingProfile.region || undefined;
-                  existingCity = existingProfile.city || undefined;
-                }
-              }
-
-              const resolvedFirstSeen = existingFirstSeen || eventRecord.createdAt;
-              const resolvedCountry = eventRecord.country || existingCountry;
-              const resolvedCountryCode = eventRecord.countryCode || existingCountryCode;
-              const resolvedCity = eventRecord.city || existingCity;
-              const resolvedRegion = eventRecord.region || existingRegion;
+              const resolvedFirstSeen = cachedProfile?.firstSeen || eventRecord.createdAt;
+              const resolvedCountry = eventRecord.country || cachedProfile?.country;
+              const resolvedCountryCode = eventRecord.countryCode || cachedProfile?.countryCode;
+              const resolvedCity = eventRecord.city || cachedProfile?.city;
+              const resolvedRegion = eventRecord.region || cachedProfile?.region;
 
               const profileData: Record<string, unknown> = {
                 id: eventRecord.anonymousId,

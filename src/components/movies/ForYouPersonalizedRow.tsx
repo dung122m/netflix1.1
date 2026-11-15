@@ -503,10 +503,6 @@ function ForYouPersonalizedRowInner({ fallbackMovies }: ForYouPersonalizedRowPro
       if (topTypes) {
         params.set("types", topTypes);
       }
-      const excludeSlugs = (watchedSlugs || []).slice(0, 10);
-      if (excludeSlugs.length > 0) {
-        params.set("exclude", excludeSlugs.join(","));
-      }
       if (currentSeed > 0) {
         params.set("seed", String(currentSeed));
       }
@@ -523,27 +519,36 @@ function ForYouPersonalizedRowInner({ fallbackMovies }: ForYouPersonalizedRowPro
 
       if (res.ok) {
         const data = await res.json();
-        if (Array.isArray(data.items) && data.items.length >= 12) {
-          // Cập nhật mượt mà dữ liệu mới
-          setMovies(data.items);
-          if (data.context) {
-            setContextText(data.context);
-          }
-          // Lưu vào memory cache, sessionStorage và localStorage (TTL 30 phút)
-          const payload: CachedPayload = {
-            items: data.items,
-            context: data.context || "Tuyển chọn chuẩn gu cho bạn",
-            timestamp: Date.now(),
-            fingerprint: currentFingerprint,
-            uid: user?.uid || null,
-          };
-          memoryCachedData = payload;
-          if (typeof window !== "undefined") {
-            try {
-              const serialized = JSON.stringify(payload);
-              sessionStorage.setItem(CACHE_KEY_NAME, serialized);
-              localStorage.setItem(CACHE_KEY_NAME, serialized);
-            } catch {}
+        if (Array.isArray(data.items) && data.items.length > 0) {
+          // Lọc client-side các phim đã xem để Edge CDN cache dùng chung tối đa giữa các user cùng gu
+          const watchedSet = new Set((watchedSlugs || []).map((s) => s.toLowerCase().trim()));
+          const filtered = data.items.filter(
+            (m: ForYouMovieItem) => m?.slug && !watchedSet.has(m.slug.toLowerCase().trim())
+          );
+          const finalItems = filtered.length >= 8 ? filtered : data.items;
+
+          if (finalItems.length >= 8) {
+            // Cập nhật mượt mà dữ liệu mới
+            setMovies(finalItems);
+            if (data.context) {
+              setContextText(data.context);
+            }
+            // Lưu vào memory cache, sessionStorage và localStorage (TTL 30 phút)
+            const payload: CachedPayload = {
+              items: finalItems,
+              context: data.context || "Tuyển chọn chuẩn gu cho bạn",
+              timestamp: Date.now(),
+              fingerprint: currentFingerprint,
+              uid: user?.uid || null,
+            };
+            memoryCachedData = payload;
+            if (typeof window !== "undefined") {
+              try {
+                const serialized = JSON.stringify(payload);
+                sessionStorage.setItem(CACHE_KEY_NAME, serialized);
+                localStorage.setItem(CACHE_KEY_NAME, serialized);
+              } catch {}
+            }
           }
         }
       }
