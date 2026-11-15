@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef, useMemo } from "react";
 import {
   Flame,
   Film,
-  Zap,
+  Calendar,
   Crown,
 } from "lucide-react";
 import { formatGenreName, formatCountryName } from "@/lib/movieMedia";
@@ -67,7 +67,7 @@ const TAB_CONFIG: Record<
     title: "Phim Nổi Bật Trong Tháng",
     subtitle: "Top 20 tác phẩm được đông đảo khán giả quốc tế quan tâm nhất trong tháng",
     badge: "TMDB Quốc Tế • Nổi Bật Tháng",
-    icon: Zap,
+    icon: Calendar,
     badgeClass: "text-amber-400 bg-amber-500/10 ",
     gradientClass: "from-amber-500 to-orange-600 shadow-black/50",
   },
@@ -316,7 +316,7 @@ function TmdbTopTrendingInner({
                   : "text-zinc-400 hover:text-white hover:bg-white/5 active:scale-95"
               }`}
             >
-              <Zap className="w-3.5 h-3.5 shrink-0" />
+              <Calendar className="w-3.5 h-3.5 shrink-0" />
               <span>Nổi Bật Tháng</span>
             </button>
             <button

@@ -20,18 +20,14 @@ export function MyListActorsTab({ actors, onRemove }: MyListActorsTabProps) {
     return (
       <EmptyState
         icon={<Users className="h-9 w-9 text-zinc-500" />}
-        title="Bạn chưa lưu nghệ sĩ yêu thích nào"
-        description={
-          <p>
-            Khi xem phim hoặc hồ sơ diễn viên, hãy bấm nút <span className="text-white font-bold">Yêu thích</span> để lưu nghệ sĩ vào danh sách, tiện theo dõi và thưởng thức trọn bộ các tác phẩm điện ảnh.
-          </p>
-        }
+        title="Chưa có nghệ sĩ yêu thích"
+        description="Các diễn viên và đạo diễn bạn theo dõi sẽ hiển thị tại đây."
         action={
           <Link
             href="/browse"
-            className="inline-flex items-center gap-2 rounded-lg bg-netflix-red px-6 py-3 text-sm sm:text-base font-bold text-white transition hover:brightness-110 shadow-lg"
+            className="inline-flex items-center gap-2 rounded-xl bg-netflix-red px-5 py-2.5 text-xs sm:text-sm font-bold text-white transition hover:brightness-110 shadow-lg"
           >
-            Khám phá phim & nghệ sĩ
+            Tìm phim
           </Link>
         }
       />

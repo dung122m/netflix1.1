@@ -68,11 +68,11 @@ export function HomeGenreExploreBar() {
         >
           <div>
             <h2 className="text-sm sm:text-base font-black text-white tracking-tight flex items-center gap-1.5 group-hover:text-zinc-200 transition-colors">
-              <span>Khám Phá Thể Loại</span>
+              <span>Thể Loại Phổ Biến</span>
               <ChevronRight className="w-3.5 h-3.5 text-zinc-500 group-hover:text-netflix-red group-hover:translate-x-0.5 transition-all" />
             </h2>
             <p className="text-[11px] sm:text-xs text-zinc-400">
-              Duyệt nhanh danh mục phim chọn lọc
+              Duyệt phim theo thể loại
             </p>
           </div>
         </Link>

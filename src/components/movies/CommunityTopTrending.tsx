@@ -207,7 +207,7 @@ function CommunityTopTrendingInner({
           ? "Chưa có lượt xem nào trong 7 ngày gần nhất."
           : "Chưa có dữ liệu lượt xem trên hệ thống."
       }
-      emptySubmessage="Khám phá và xem phim để cùng đưa phim lên bảng xếp hạng nhé!"
+      emptySubmessage="Xem phim để bình chọn và đưa tác phẩm yêu thích lên bảng xếp hạng."
       actions={
         <div className="flex items-center justify-between md:justify-end gap-3">
           <div className="inline-flex p-1 rounded-xl bg-zinc-900/90 text-xs font-semibold backdrop-blur-md">

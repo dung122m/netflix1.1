@@ -38,10 +38,10 @@ export function MyListCloudBanner({
           <div className="min-w-0 flex-1">
             <p className="text-xs font-bold text-white flex items-center gap-1.5 truncate">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse flex-shrink-0" />
-              <span className="truncate">Đang đồng bộ Google Cloud: {user.displayName || user.email}</span>
+              <span className="truncate">Tài khoản: {user.displayName || user.email}</span>
             </p>
             <p className="text-[11px] text-zinc-400 leading-relaxed break-words line-clamp-2 sm:line-clamp-1">
-              Danh sách yêu thích, lịch sử xem và các bộ sưu tập được đồng bộ bảo mật tức thì.
+              Danh sách xem sau, lịch sử xem và các bộ sưu tập đã được đồng bộ.
             </p>
           </div>
         </div>
@@ -52,10 +52,10 @@ export function MyListCloudBanner({
           </div>
           <div className="min-w-0 flex-1">
             <p className="text-xs font-bold text-white truncate">
-              Đồng bộ số phút, lịch sử & bộ sưu tập lên Đám mây
+              Đồng bộ dữ liệu xem phim
             </p>
             <p className="text-[11px] text-zinc-400 leading-relaxed break-words line-clamp-2 sm:line-clamp-1">
-              Đăng nhập tài khoản Google miễn phí để quản lý bộ sưu tập và xem tiếp đúng phút trên mọi thiết bị.
+              Đăng nhập tài khoản Google để đồng bộ danh sách phim và xem tiếp trên mọi thiết bị.
             </p>
           </div>
         </div>

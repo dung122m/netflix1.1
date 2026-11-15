@@ -17,18 +17,14 @@ export function MyListWatchlistTab({ watchlist, onRemove }: MyListWatchlistTabPr
     return (
       <EmptyState
         icon={<Film className="h-9 w-9 text-zinc-500" />}
-        title="Danh sách của bạn chưa có phim nào"
-        description={
-          <p>
-            Khi lướt phim trên Nanaflix, hãy bấm vào nút dấu cộng (<span className="text-white font-bold">+</span>) trên các bộ phim bạn thích để lưu vào danh sách xem sau.
-          </p>
-        }
+        title="Danh sách xem sau trống"
+        description="Các bộ phim bạn lưu lại sẽ hiển thị tại đây."
         action={
           <Link
-            href="/"
-            className="inline-flex items-center gap-2 rounded-lg bg-netflix-red px-6 py-3 text-sm sm:text-base font-bold text-white transition hover:brightness-110 shadow-lg"
+            href="/browse"
+            className="inline-flex items-center gap-2 rounded-xl bg-netflix-red px-5 py-2.5 text-xs sm:text-sm font-bold text-white transition hover:brightness-110 shadow-lg"
           >
-            Khám phá phim ngay
+            Tìm phim
           </Link>
         }
       />

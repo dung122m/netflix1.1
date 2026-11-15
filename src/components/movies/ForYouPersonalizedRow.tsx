@@ -39,7 +39,7 @@ export interface ForYouPersonalizedRowProps {
 const CACHE_KEY_NAME = "nanaflix_foryou_cache_v7";
 const CACHE_TTL = 3 * 60 * 60 * 1000; // 3 giờ (giảm 85% gọi API Serverless cho người dùng)
 
-// Danh sách fallback catalog siêu phẩm luôn sẵn sàng 0ms không cần API ngoài (16 phim đỉnh cao)
+// Danh sách fallback catalog phim nổi bật luôn sẵn sàng 0ms không cần API ngoài
 const DEFAULT_CATALOG_FALLBACK: ForYouMovieItem[] = [
   {
     slug: "avatar",
@@ -52,7 +52,7 @@ const DEFAULT_CATALOG_FALLBACK: ForYouMovieItem[] = [
     quality: "4K UHD",
     category: [{ name: "Viễn Tưởng" }],
     matchPercentage: 98,
-    matchReason: "Siêu phẩm điện ảnh kinh điển được yêu thích nhất",
+    matchReason: "Tác phẩm viễn tưởng đoạt 3 giải Oscar của James Cameron",
   },
   {
     slug: "interstellar",
@@ -65,7 +65,7 @@ const DEFAULT_CATALOG_FALLBACK: ForYouMovieItem[] = [
     quality: "4K UHD",
     category: [{ name: "Khoa Học" }],
     matchPercentage: 99,
-    matchReason: "Kiệt tác du hành không gian đỉnh cao mọi thời đại",
+    matchReason: "Phim khoa học viễn tưởng kinh điển của Christopher Nolan",
   },
   {
     slug: "parasite",
@@ -78,7 +78,7 @@ const DEFAULT_CATALOG_FALLBACK: ForYouMovieItem[] = [
     quality: "Full HD",
     category: [{ name: "Tâm Lý" }],
     matchPercentage: 97,
-    matchReason: "Tác phẩm đoạt 4 giải Oscar danh giá",
+    matchReason: "Tác phẩm đoạt 4 giải Oscar của đạo diễn Bong Joon-ho",
   },
   {
     slug: "train-to-busan",
@@ -91,7 +91,7 @@ const DEFAULT_CATALOG_FALLBACK: ForYouMovieItem[] = [
     quality: "Full HD",
     category: [{ name: "Kinh Dị" }],
     matchPercentage: 96,
-    matchReason: "Bom tấn sinh tồn zombie đỉnh cao châu Á",
+    matchReason: "Phim kinh dị sinh tồn ăn khách của Hàn Quốc",
   },
   {
     slug: "diep-van",
@@ -104,7 +104,7 @@ const DEFAULT_CATALOG_FALLBACK: ForYouMovieItem[] = [
     quality: "Full HD",
     category: [{ name: "Võ Thuật" }],
     matchPercentage: 98,
-    matchReason: "Đỉnh cao võ thuật Vịnh Xuân Quyền huyền thoại",
+    matchReason: "Tác phẩm võ thuật Vịnh Xuân Quyền kinh điển của Chân Tử Đan",
   },
   {
     slug: "the-dark-knight",
@@ -117,7 +117,7 @@ const DEFAULT_CATALOG_FALLBACK: ForYouMovieItem[] = [
     quality: "4K UHD",
     category: [{ name: "Hành Động" }],
     matchPercentage: 99,
-    matchReason: "Siêu phẩm siêu anh hùng vĩ đại nhất lịch sử",
+    matchReason: "Phim siêu anh hùng kinh điển nằm trong Top IMDb 250",
   },
   {
     slug: "spirited-away",
@@ -130,7 +130,7 @@ const DEFAULT_CATALOG_FALLBACK: ForYouMovieItem[] = [
     quality: "Full HD",
     category: [{ name: "Hoạt Hình" }],
     matchPercentage: 97,
-    matchReason: "Kiệt tác hoạt hình Ghibli đoạt giải Oscar",
+    matchReason: "Phim hoạt hình Ghibli đoạt giải Oscar của Hayao Miyazaki",
   },
   {
     slug: "kung-fu-hustle",
@@ -143,7 +143,7 @@ const DEFAULT_CATALOG_FALLBACK: ForYouMovieItem[] = [
     quality: "Full HD",
     category: [{ name: "Hài Hước" }],
     matchPercentage: 96,
-    matchReason: "Tuyệt tác hài hành động kinh điển Châu Tinh Trì",
+    matchReason: "Phim hài hành động đặc sắc của Châu Tinh Trì",
   },
   {
     slug: "oppenheimer",
@@ -156,7 +156,7 @@ const DEFAULT_CATALOG_FALLBACK: ForYouMovieItem[] = [
     quality: "4K UHD",
     category: [{ name: "Lịch Sử" }],
     matchPercentage: 98,
-    matchReason: "Kiệt tác tiểu sử bom nguyên tử đoạt 7 giải Oscar",
+    matchReason: "Phim tiểu sử lịch sử đoạt 7 giải Oscar của Christopher Nolan",
   },
   {
     slug: "john-wick-chapter-4",
@@ -169,7 +169,7 @@ const DEFAULT_CATALOG_FALLBACK: ForYouMovieItem[] = [
     quality: "4K UHD",
     category: [{ name: "Hành Động" }],
     matchPercentage: 99,
-    matchReason: "Đỉnh cao hành động võ thuật hiện đại mãn nhãn",
+    matchReason: "Phim hành động kịch tính với các cảnh đấu võ cận chiến",
   },
   {
     slug: "your-name",
@@ -182,7 +182,7 @@ const DEFAULT_CATALOG_FALLBACK: ForYouMovieItem[] = [
     quality: "Full HD",
     category: [{ name: "Hoạt Hình" }],
     matchPercentage: 97,
-    matchReason: "Siêu phẩm anime lãng mạn rung động triệu trái tim",
+    matchReason: "Phim hoạt hình anime nổi tiếng của đạo diễn Makoto Shinkai",
   },
   {
     slug: "top-gun-maverick",
@@ -195,7 +195,7 @@ const DEFAULT_CATALOG_FALLBACK: ForYouMovieItem[] = [
     quality: "4K UHD",
     category: [{ name: "Hành Động" }],
     matchPercentage: 98,
-    matchReason: "Bom tấn không chiến đỉnh cao với những cảnh quay thật",
+    matchReason: "Phim hành động không chiến đoạt giải Oscar với Tom Cruise",
   },
   {
     slug: "avengers-endgame",
@@ -208,7 +208,7 @@ const DEFAULT_CATALOG_FALLBACK: ForYouMovieItem[] = [
     quality: "4K UHD",
     category: [{ name: "Hành Động" }],
     matchPercentage: 99,
-    matchReason: "Hồi kết vĩ đại của vũ trụ điện ảnh Marvel",
+    matchReason: "Phần phim khép lại kỷ nguyên Infinity Saga của Marvel",
   },
   {
     slug: "spider-man-across-the-spider-verse",
@@ -221,7 +221,7 @@ const DEFAULT_CATALOG_FALLBACK: ForYouMovieItem[] = [
     quality: "4K UHD",
     category: [{ name: "Hoạt Hình" }],
     matchPercentage: 98,
-    matchReason: "Kiệt tác hoạt hình đột phá thị giác và cốt truyện",
+    matchReason: "Phim hoạt hình đoạt nhiều giải thưởng với phong cách hình ảnh đột phá",
   },
   {
     slug: "squid-game",
@@ -234,7 +234,7 @@ const DEFAULT_CATALOG_FALLBACK: ForYouMovieItem[] = [
     quality: "4K UHD",
     category: [{ name: "Tâm Lý" }],
     matchPercentage: 96,
-    matchReason: "Hiện tượng sinh tồn kịch tính toàn cầu của xứ sở kim chi",
+    matchReason: "Phim bộ kinh dị sinh tồn ăn khách toàn cầu của Hàn Quốc",
   },
   {
     slug: "one-piece-film-red",
@@ -247,7 +247,7 @@ const DEFAULT_CATALOG_FALLBACK: ForYouMovieItem[] = [
     quality: "Full HD",
     category: [{ name: "Hoạt Hình" }],
     matchPercentage: 97,
-    matchReason: "Bom tấn anime One Piece càn quét mọi phòng vé",
+    matchReason: "Phim hoạt hình chiếu rạp ăn khách thuộc thương hiệu One Piece",
   },
 ];
 

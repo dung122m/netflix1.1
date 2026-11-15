@@ -171,7 +171,7 @@ export const Footer: React.FC = () => {
                   <span className="w-4 h-4 flex items-center justify-center shrink-0">
                     <Compass size={13} className="text-zinc-400 group-hover:text-amber-400 transition-colors" />
                   </span>
-                  <span className="truncate">Bộ lọc phim đa chiều</span>
+                  <span className="truncate">Bộ lọc phim</span>
                 </Link>
               </li>
               <li>
@@ -325,9 +325,9 @@ export const Footer: React.FC = () => {
               <NanaflixBrandLogo />
             </Link>
             <span className="text-[11px] sm:text-xs text-zinc-500 sm:border-l sm:border-white/15 sm:pl-3 tracking-tight sm:tracking-normal">
-              <span className="whitespace-nowrap">Không gian điện ảnh cá nhân hóa</span>
+              <span className="whitespace-nowrap">Xem phim trực tuyến</span>
               {" • "}
-              <span className="whitespace-nowrap">Không quảng cáo rác</span>
+              <span className="whitespace-nowrap">Không quảng cáo che màn hình</span>
             </span>
           </div>
 
@@ -382,7 +382,7 @@ export const Footer: React.FC = () => {
                 </strong>
               </span>
               <span className="text-[10px] sm:text-xs text-zinc-500 font-sans tabular-nums">
-                © {new Date().getFullYear()} Nanaflix • Made with passion
+                © {new Date().getFullYear()} Nanaflix • Xem phim phi thương mại
               </span>
             </div>
           </Link>

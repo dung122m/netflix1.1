@@ -57,7 +57,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           <div>
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 text-xs font-semibold mb-2">
               <CheckCircle2 size={13} />
-              <span>Cloud Synced</span>
+              <span>Đã đồng bộ</span>
             </div>
             <h3 className="text-xl font-bold text-white">
               {user.displayName || "Nanaflix User"}

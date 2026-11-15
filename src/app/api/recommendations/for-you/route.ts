@@ -601,14 +601,14 @@ async function generateForYouRecommendations(input: RecommendationInput): Promis
     }
 
     // TẠO CONTEXT HIỂN THỊ CHÂN THỰC
-    let matchContext = "Tuyển tập siêu phẩm thịnh hành được đánh giá cao nhất";
+    let matchContext = "Phim thịnh hành được đánh giá cao";
     if (!profile.isGuest) {
       if (topCountry && topGenre) {
-        matchContext = `Tuyển tập phim ${topCountry.name} & ${topGenre.name} chuẩn gu của bạn`;
+        matchContext = `Phim ${topCountry.name} & ${topGenre.name} hợp gu bạn`;
       } else if (topGenre && secondGenre) {
-        matchContext = `Tuyển tập ${topGenre.name} & ${secondGenre.name} tuyển chọn riêng cho bạn`;
+        matchContext = `Phim ${topGenre.name} & ${secondGenre.name} tuyển chọn cho bạn`;
       } else if (topGenre) {
-        matchContext = `Tuyển tập đỉnh cao ${topGenre.name} dựa trên lịch sử xem`;
+        matchContext = `Phim ${topGenre.name} hợp gu bạn`;
       }
     }
 

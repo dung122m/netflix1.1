@@ -173,7 +173,7 @@ export function MovieInfoHeaderAndToolbar({
           {/* Nút Danh sách yêu thích */}
           <WatchlistButton
             movie={movieActionPayload}
-            label={isSeries ? "Lưu trọn bộ" : undefined}
+            label={isSeries ? "Lưu phim" : undefined}
             mobileLabel="Lưu"
             className="w-full sm:w-auto min-h-[40px] sm:min-h-[38px] justify-center rounded-xl"
           />
@@ -181,7 +181,7 @@ export function MovieInfoHeaderAndToolbar({
           {/* Nút Thêm vào Bộ sưu tập */}
           <AddToCollectionButton
             movie={movieActionPayload}
-            label={isSeries ? "Bộ sưu tập trọn bộ" : undefined}
+            label={isSeries ? "Bộ sưu tập" : undefined}
             mobileLabel="Sưu tập"
             className="w-full sm:w-auto min-h-[40px] sm:min-h-[38px] justify-center rounded-xl"
           />

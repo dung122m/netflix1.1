@@ -10,7 +10,6 @@ import {
   CheckCircle2,
   Monitor,
   MoreVertical,
-  Zap,
   Maximize2,
 } from "lucide-react";
 import { BaseModal } from "@/components/ui/BaseModal";
@@ -105,7 +104,7 @@ export const InstallPwaModal: React.FC<InstallPwaModalProps> = ({
       onClose={onClose}
       size="md"
       title="Cài Đặt Lên Điện Thoại / PC"
-      subtitle="Xem mượt mà, không quảng cáo, mở 1-click"
+      subtitle="Xem toàn màn hình, mở nhanh từ màn hình chính"
       icon={
         <div className="relative w-12 h-12 rounded-2xl overflow-hidden shadow-xl shrink-0 bg-gradient-to-br from-netflix-red to-zinc-900 flex items-center justify-center p-1.5">
           <Image
@@ -248,17 +247,17 @@ export const InstallPwaModal: React.FC<InstallPwaModalProps> = ({
           <div className="grid grid-cols-2 gap-2 text-xs">
             <div className="p-2.5 rounded-xl bg-white/5 text-zinc-300">
               <div className="flex items-center gap-1.5 font-semibold text-white">
-                <Zap className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                <span>Mở nhanh 1-chạm</span>
+                <Smartphone className="w-3.5 h-3.5 text-netflix-red shrink-0" />
+                <span>Mở từ màn hình chính</span>
               </div>
-              <p className="text-[11px] text-zinc-500 mt-0.5">Không tốn bộ nhớ máy</p>
+              <p className="text-[11px] text-zinc-500 mt-0.5">Không tốn dung lượng bộ nhớ</p>
             </div>
             <div className="p-2.5 rounded-xl bg-white/5 text-zinc-300">
               <div className="flex items-center gap-1.5 font-semibold text-white">
                 <Maximize2 className="w-3.5 h-3.5 text-netflix-red shrink-0" />
                 <span>Toàn màn hình</span>
               </div>
-              <p className="text-[11px] text-zinc-500 mt-0.5">Trải nghiệm như ứng dụng gốc</p>
+              <p className="text-[11px] text-zinc-500 mt-0.5">Giao diện tối ưu cho thiết bị của bạn</p>
             </div>
           </div>
         </div>

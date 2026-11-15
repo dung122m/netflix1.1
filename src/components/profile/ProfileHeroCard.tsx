@@ -3,12 +3,11 @@
 import React from "react";
 import Link from "next/link";
 import {
-  Award,
   ShieldCheck,
   Loader2,
   Upload,
   History,
-  Flame,
+  Clock,
   Bookmark,
   FolderHeart,
   MessageSquare,
@@ -24,10 +23,10 @@ interface ProfileHeroCardProps {
   profile: UserProfile | null;
   effectiveAvatar: string;
   effectiveDisplayName: string;
-  levelInfo: ReturnType<typeof getWatchLevelInfo>;
-  watchMins: number;
+  levelInfo?: ReturnType<typeof getWatchLevelInfo>;
+  watchMins?: number;
   watchHours: string;
-  progressPct: number;
+  progressPct?: number;
   isUploadingAvatar: boolean;
   onTriggerAvatarUpload: () => void;
   watchHistoryCount: number;
@@ -42,10 +41,10 @@ export function ProfileHeroCard({
   profile,
   effectiveAvatar,
   effectiveDisplayName,
-  levelInfo,
-  watchMins,
+  levelInfo: _levelInfo,
+  watchMins: _watchMins,
   watchHours,
-  progressPct,
+  progressPct: _progressPct,
   isUploadingAvatar,
   onTriggerAvatarUpload,
   watchHistoryCount,
@@ -94,12 +93,6 @@ export function ProfileHeroCard({
               {effectiveDisplayName}
             </h1>
 
-            {/* Rank Pill */}
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-netflix-red/20 text-netflix-red">
-              <Award className="w-3.5 h-3.5 shrink-0" />
-              <span>{levelInfo.levelName}</span>
-            </span>
-
             {isUserAdmin(email) && (
               <Link
                 href="/admin"
@@ -118,24 +111,6 @@ export function ProfileHeroCard({
               &ldquo;{profile.bio}&rdquo;
             </p>
           )}
-
-          {/* Level Progress Bar */}
-          <div className="pt-2 space-y-1.5 max-w-md mx-auto md:mx-0">
-            <div className="flex items-center justify-between text-xs text-zinc-400">
-              <span className="font-semibold text-zinc-300">
-                {levelInfo.nextLevelName ? `Tiến độ lên ${levelInfo.nextLevelName}:` : "Đã đạt cấp tối đa!"}
-              </span>
-              <span className="tabular-nums font-medium text-amber-400">
-                {watchMins} {levelInfo.nextMinMinutes ? `/ ${levelInfo.nextMinMinutes} phút` : "phút"}
-              </span>
-            </div>
-            <div className="w-full h-2 rounded-full bg-white/10 overflow-hidden">
-              <div
-                className="h-full bg-netflix-red rounded-full transition-all duration-500 ease-out"
-                style={{ width: `${Math.min(100, Math.max(4, progressPct))}%` }}
-              />
-            </div>
-          </div>
         </div>
       </div>
 
@@ -147,13 +122,13 @@ export function ProfileHeroCard({
         >
           <History className="w-4 h-4 text-zinc-400 group-hover:text-white mb-1 group-hover:scale-110 transition-all" />
           <span className="text-base sm:text-lg font-black text-white tabular-nums">{watchHistoryCount}</span>
-          <span className="text-[11px] text-zinc-400 font-medium whitespace-nowrap">Lịch sử xem</span>
+          <span className="text-[11px] text-zinc-400 font-medium whitespace-nowrap">Đã xem</span>
         </Link>
 
         <div className="p-3 rounded-xl bg-white/[0.03] flex flex-col items-center justify-center text-center">
-          <Flame className="w-4 h-4 text-zinc-400 mb-1" />
+          <Clock className="w-4 h-4 text-zinc-400 mb-1" />
           <span className="text-base sm:text-lg font-black text-white tabular-nums">{watchHours}h</span>
-          <span className="text-[11px] text-zinc-400 font-medium whitespace-nowrap">Thời gian cày</span>
+          <span className="text-[11px] text-zinc-400 font-medium whitespace-nowrap">Thời lượng</span>
         </div>
 
         <Link
@@ -162,7 +137,7 @@ export function ProfileHeroCard({
         >
           <Bookmark className="w-4 h-4 text-zinc-400 group-hover:text-white mb-1 group-hover:scale-110 transition-all" />
           <span className="text-base sm:text-lg font-black text-white tabular-nums">{watchlistCount}</span>
-          <span className="text-[11px] text-zinc-400 font-medium whitespace-nowrap">Phim đã lưu</span>
+          <span className="text-[11px] text-zinc-400 font-medium whitespace-nowrap">Danh sách lưu</span>
         </Link>
 
         <Link
@@ -183,7 +158,7 @@ export function ProfileHeroCard({
           <span className="text-base sm:text-lg font-black text-white tabular-nums">{commentsCount}</span>
           <span className="text-[11px] text-zinc-400 font-medium whitespace-nowrap">
             <span className="sm:hidden">Đánh giá</span>
-            <span className="hidden sm:inline">Đánh giá & Review</span>
+            <span className="hidden sm:inline">Đánh giá</span>
           </span>
         </button>
       </div>

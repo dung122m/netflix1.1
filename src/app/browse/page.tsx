@@ -63,9 +63,9 @@ export async function generateMetadata({
 }) {
   const params = await searchParams;
 
-  let title = "Khám Phá Kho Phim";
+  let title = "Kho Phim";
   let description =
-    "Xem phim trực tuyến chất lượng cao cùng Trợ lý Nana gợi ý phim thông minh, cập nhật liên tục các siêu phẩm điện ảnh mới nhất.";
+    "Kho phim trực tuyến chất lượng cao, cập nhật liên tục các tác phẩm điện ảnh và phim bộ mới nhất.";
 
   if (params.actor) {
     title = `Tuyển Tập Phim Của ${params.actor}`;
@@ -590,7 +590,7 @@ export default async function BrowsePage({
     await Promise.allSettled(posterTasks);
   }
 
-  let title = "Khám Phá Kho Phim";
+  let title = "Kho Phim";
 
   if (detectedActor) {
     const actorDisplayName = detectedActor.englishName && detectedActor.englishName !== detectedActor.name
@@ -664,7 +664,7 @@ export default async function BrowsePage({
             <p className="mt-1 text-sm text-zinc-400 max-w-[65ch] leading-relaxed">
               {detectedActor
                 ? `Tổng hợp các bộ phim tiêu biểu có sự tham gia của ${detectedActor.name}.`
-                : "Khám phá bộ sưu tập phim chất lượng cao do Nana tuyển chọn, cập nhật liên tục."}
+                : "Kho phim trực tuyến chất lượng cao, cập nhật liên tục các tác phẩm mới nhất."}
             </p>
           </div>
           <div className="flex items-center gap-3 flex-wrap">
@@ -771,14 +771,14 @@ export default async function BrowsePage({
                       href="/browse"
                       className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-zinc-200 hover:text-white text-xs font-semibold transition"
                     >
-                      Khám phá tất cả phim
+                      Xem tất cả phim
                     </Link>
                   </div>
                 </>
               ) : keyword ? (
                 <>
                   <p className="text-xs sm:text-sm text-zinc-400 mt-2 leading-relaxed">
-                    Tìm kiếm trực tiếp theo <strong>tiêu đề phim</strong>. Nếu đây là tên diễn viên hoặc đạo diễn, bạn có thể tra cứu trên TMDb hoặc thưởng thức các phim gợi ý bên dưới:
+                    Không tìm thấy phim phù hợp với từ khóa này. Bạn có thể thử tìm theo tên khác hoặc xem các phim nổi bật dưới đây:
                   </p>
                   <div className="flex flex-wrap items-center justify-center gap-3 mt-5">
                     <a
@@ -794,7 +794,7 @@ export default async function BrowsePage({
                       href="/browse"
                       className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-zinc-200 hover:text-white text-xs font-semibold transition"
                     >
-                      Khám phá tất cả phim
+                      Xem tất cả phim
                     </Link>
                   </div>
                 </>
@@ -815,7 +815,7 @@ export default async function BrowsePage({
                 <div className="flex items-center gap-2 mb-5">
                   <Flame className="w-5 h-5 text-netflix-red shrink-0" />
                   <h3 className="text-xl md:text-2xl font-extrabold text-white">
-                    Phim Thịnh Hành Nana Gợi Ý Cho Bạn
+                    Phim Thịnh Hành
                   </h3>
                 </div>
                 <MovieGrid movies={fallbackMovies} />

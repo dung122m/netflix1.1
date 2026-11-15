@@ -1,10 +1,9 @@
 "use client";
 
 import React from "react";
-import { Loader2, Upload, Check, Lock, Save } from "lucide-react";
+import { Loader2, Upload, Check, Save } from "lucide-react";
 import { PRESET_AVATARS } from "@/lib/avatarHelper";
-import { Tooltip } from "@/components/ui/Tooltip";
-import { AVAILABLE_BADGES, GENRE_OPTIONS } from "./profileConstants";
+import { GENRE_OPTIONS, type AVAILABLE_BADGES } from "./profileConstants";
 
 interface ProfileEditFormTabProps {
   onSubmit: (e: React.FormEvent) => void;
@@ -22,10 +21,10 @@ interface ProfileEditFormTabProps {
   setDisplayName: (val: string) => void;
   bio: string;
   setBio: (val: string) => void;
-  watchMins: number;
-  userBadges: string[];
-  badgeHint: string | null;
-  toggleBadge: (badge: (typeof AVAILABLE_BADGES)[number]) => void;
+  watchMins?: number;
+  userBadges?: string[];
+  badgeHint?: string | null;
+  toggleBadge?: (badge: (typeof AVAILABLE_BADGES)[number]) => void;
   favoriteGenres: string[];
   toggleGenre: (genre: string) => void;
   isSavingProfile: boolean;
@@ -47,10 +46,10 @@ export function ProfileEditFormTab({
   setDisplayName,
   bio,
   setBio,
-  watchMins,
-  userBadges,
-  badgeHint,
-  toggleBadge,
+  watchMins: _watchMins,
+  userBadges: _userBadges,
+  badgeHint: _badgeHint,
+  toggleBadge: _toggleBadge,
   favoriteGenres,
   toggleGenre,
   isSavingProfile,
@@ -223,7 +222,7 @@ export function ProfileEditFormTab({
         <div className="space-y-1.5">
           <div className="flex items-center justify-between">
             <label className="text-xs font-semibold text-zinc-300">
-              Tiểu sử (Slogan)
+              Tiểu sử
             </label>
             <span className="text-[11px] text-zinc-500 tabular-nums">{bio.length}/150</span>
           </div>
@@ -232,59 +231,10 @@ export function ProfileEditFormTab({
             maxLength={150}
             value={bio}
             onChange={(e) => setBio(e.target.value)}
-            placeholder="Mê phim Marvel, cày anime ban đêm..."
+            placeholder="Giới thiệu đôi nét về bản thân hoặc sở thích phim ảnh của bạn..."
             className="w-full px-4 py-2.5 rounded-xl bg-zinc-900 border border-white/10 text-base sm:text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-netflix-red transition resize-none leading-relaxed"
           />
         </div>
-      </div>
-
-      {/* BỘ DANH HIỆU */}
-      <div className="space-y-2.5 pt-2">
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="text-xs font-semibold text-zinc-300">
-              Bộ danh hiệu
-            </h3>
-            <p className="text-xs text-zinc-400">Tích lũy giờ cày phim để mở khóa danh hiệu độc quyền</p>
-          </div>
-          <span className="text-xs text-amber-400 font-black tabular-nums">
-            Đã mở: {AVAILABLE_BADGES.filter((b) => watchMins >= b.minMinutesReq).length}/{AVAILABLE_BADGES.length}
-          </span>
-        </div>
-
-        <div className="flex flex-wrap gap-2">
-          {AVAILABLE_BADGES.map((b) => {
-            const isUnlocked = watchMins >= b.minMinutesReq;
-            const active = isUnlocked && userBadges.includes(b.label);
-
-            return (
-              <Tooltip key={b.id} content={isUnlocked ? b.label : `Đang khóa - Cần ${b.reqText}`} side="top">
-                <button
-                  type="button"
-                  onClick={() => toggleBadge(b)}
-                  className={`px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
-                    !isUnlocked
-                      ? "bg-zinc-900/40 text-zinc-500 opacity-55 hover:opacity-80"
-                      : active
-                      ? "bg-amber-500/20 text-amber-300 ring-1 ring-amber-400/50 shadow-md shadow-black/50"
-                      : "bg-zinc-900 text-zinc-300 hover:bg-zinc-800 hover:text-white"
-                  }`}
-                >
-                  {!isUnlocked && <Lock className="w-3.5 h-3.5 text-zinc-500 shrink-0" />}
-                  <span>{b.label}</span>
-                  {active && <Check className="w-3.5 h-3.5 text-amber-300 shrink-0" />}
-                </button>
-              </Tooltip>
-            );
-          })}
-        </div>
-
-        {badgeHint && (
-          <div className="p-3 rounded-xl bg-amber-500/10 text-xs text-amber-300 font-semibold flex items-center gap-2">
-            <Lock className="w-4 h-4 text-amber-400 shrink-0" />
-            <span>{badgeHint}</span>
-          </div>
-        )}
       </div>
 
       {/* THỂ LOẠI YÊU THÍCH */}
@@ -293,7 +243,7 @@ export function ProfileEditFormTab({
           <h3 className="text-xs font-semibold text-zinc-300">
             Thể loại phim yêu thích (Tối đa 5)
           </h3>
-          <p className="text-xs text-zinc-400">Giúp gợi ý chính xác gu phim dành riêng cho bạn</p>
+          <p className="text-xs text-zinc-400">Giúp gợi ý phim phù hợp với gu thưởng thức của bạn</p>
         </div>
 
         <div className="flex flex-wrap gap-2">

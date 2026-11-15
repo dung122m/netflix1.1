@@ -57,7 +57,7 @@ export const ActorBioModal: React.FC<ActorBioModalProps> = ({
             title: name,
             description: fallbackCharacter || "Nghệ sĩ / Diễn viên điện ảnh",
             thumbnail: fallbackAvatar || undefined,
-            extract: `Diễn viên nổi bật tham gia nhiều tác phẩm điện ảnh và truyền hình đặc sắc. Khám phá các bộ phim có sự góp mặt của ${name} ngay trên Nanaflix!`,
+            extract: `Thông tin tiểu sử chi tiết của nghệ sĩ đang được cập nhật. Bạn có thể xem danh sách các tác phẩm đã đóng bên dưới.`,
             notFound: true,
           });
         }
@@ -69,7 +69,7 @@ export const ActorBioModal: React.FC<ActorBioModalProps> = ({
           title: name,
           description: fallbackCharacter || "Nghệ sĩ / Diễn viên điện ảnh",
           thumbnail: fallbackAvatar || undefined,
-          extract: `Khám phá các tác phẩm điện ảnh có sự tham gia của ${name} trên Nanaflix.`,
+          extract: `Thông tin tiểu sử chi tiết của nghệ sĩ đang được cập nhật. Bạn có thể xem danh sách các tác phẩm đã đóng bên dưới.`,
           notFound: true,
         });
       })
@@ -214,7 +214,7 @@ export const ActorBioModal: React.FC<ActorBioModalProps> = ({
                 ))}
               </div>
             ) : (
-              <p className="text-zinc-400">Khám phá các tác phẩm điện ảnh đặc sắc có sự tham gia của {displayTitle} trên Nanaflix.</p>
+              <p className="text-zinc-400">Thông tin tiểu sử của {displayTitle} đang được cập nhật. Bạn có thể xem các phim đã tham gia bên dưới.</p>
             )}
           </div>
 

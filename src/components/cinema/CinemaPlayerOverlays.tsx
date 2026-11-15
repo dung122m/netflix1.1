@@ -391,23 +391,23 @@ export const CinemaIframeOrFallbackStage: React.FC<
           <>
             <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full border-2 border-white/10 border-t-netflix-red animate-spin mb-3" />
             <p className="text-white text-base md:text-xl font-semibold">
-              Đang kết nối luồng phát chất lượng cao...
+              Đang kết nối luồng phát...
             </p>
             <p className="text-zinc-400 mt-1.5 text-xs md:text-sm">
-              Trình phát đang tự động chuyển sang luồng Full HD trực tiếp
+              Trình phát đang tải video
             </p>
           </>
         ) : (
           <>
             <p className="text-white text-lg md:text-2xl font-semibold">
               {isTrailerOnly
-                ? "Phim đang ở trạng thái trailer/sắp chiếu"
-                : "Nguồn phát đang được Nanaflix cập nhật"}
+                ? "Phim sắp chiếu"
+                : "Nguồn phát tạm thời chưa sẵn sàng"}
             </p>
-            <p className="text-zinc-300 mt-2 text-sm md:text-base max-w-md">
+            <p className="text-zinc-400 mt-2 text-sm md:text-base max-w-md">
               {isTrailerOnly
                 ? "Hiện chưa có tập phát chính thức. Vui lòng quay lại sau."
-                : "Máy chủ nguồn phim này tạm thời chưa phản hồi luồng phát. Bạn vui lòng quay lại sau ít phút nhé!"}
+                : "Máy chủ tạm thời chưa phản hồi luồng phát. Vui lòng thử lại sau hoặc chuyển sang tập khác."}
             </p>
             {canPlayFallbackTrailer && onPlayFallbackTrailer && (
               <button

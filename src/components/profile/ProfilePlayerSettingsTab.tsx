@@ -7,7 +7,6 @@ import {
   Tv,
   Moon,
   Subtitles,
-  Zap,
   RotateCcw,
   Save,
   Loader2,
@@ -35,10 +34,10 @@ export const ProfilePlayerSettingsTab: React.FC<ProfilePlayerSettingsTabProps> =
         <div className="p-4 rounded-2xl bg-white/[0.03] space-y-1">
           <h4 className="text-sm font-bold text-white flex items-center gap-2">
             <Sliders className="w-4 h-4 text-netflix-red shrink-0" />
-            <span>Đồng bộ tùy chọn trình phát Cloud</span>
+            <span>Cài đặt trình phát</span>
           </h4>
           <p className="text-xs text-zinc-400 leading-relaxed">
-            Tất cả các tùy chọn xem phim dưới đây được lưu trữ trên tài khoản Supabase của bạn và tự động đồng bộ tức thì trên PC, Laptop và Điện thoại di động.
+            Các tùy chọn dưới đây được tự động lưu vào tài khoản và đồng bộ trên các thiết bị của bạn.
           </p>
         </div>
 
@@ -51,7 +50,7 @@ export const ProfilePlayerSettingsTab: React.FC<ProfilePlayerSettingsTabProps> =
                 <span>Tự động phát tập tiếp theo</span>
               </div>
               <p className="text-xs text-zinc-400 leading-normal">
-                Khi xem xong một tập phim bộ, CinemaPlayer sẽ tự động chuyển sang tập kế tiếp với đồng hồ đếm ngược.
+                Khi xem xong một tập phim bộ, trình phát sẽ tự động chuyển sang tập kế tiếp.
               </p>
             </div>
             <label className="relative inline-flex items-center cursor-pointer shrink-0">
@@ -72,10 +71,10 @@ export const ProfilePlayerSettingsTab: React.FC<ProfilePlayerSettingsTabProps> =
             <div className="space-y-1 flex-1 min-w-0 pr-2">
               <div className="text-sm font-bold text-white flex items-center gap-2">
                 <Tv className="w-4 h-4 text-zinc-300 shrink-0" />
-                <span>Mặc định mở Giao diện Rạp Chiếu Phim (Theater Mode)</span>
+                <span>Mặc định mở chế độ Rạp phim</span>
               </div>
               <p className="text-xs text-zinc-400 leading-normal">
-                Mở rộng khung phát phim toàn chiều rộng màn hình để trải nghiệm điện ảnh chân thực và mãn nhãn.
+                Mở rộng khung phát video toàn màn hình trình duyệt khi bắt đầu xem.
               </p>
             </div>
             <label className="relative inline-flex items-center cursor-pointer shrink-0">
@@ -96,10 +95,10 @@ export const ProfilePlayerSettingsTab: React.FC<ProfilePlayerSettingsTabProps> =
             <div className="space-y-1 flex-1 min-w-0 pr-2">
               <div className="text-sm font-bold text-white flex items-center gap-2">
                 <Moon className="w-4 h-4 text-zinc-300 shrink-0" />
-                <span>Mặc định bật chế độ Tối Màn Hình (Lights Off)</span>
+                <span>Mặc định làm tối xung quanh</span>
               </div>
               <p className="text-xs text-zinc-400 leading-normal">
-                Làm tối toàn bộ giao diện xung quanh màn hình phát để bạn tập trung trọn vẹn vào từng thước phim.
+                Làm tối các phần giao diện xung quanh trình phát để hạn chế phân tâm.
               </p>
             </div>
             <label className="relative inline-flex items-center cursor-pointer shrink-0">
@@ -120,10 +119,10 @@ export const ProfilePlayerSettingsTab: React.FC<ProfilePlayerSettingsTabProps> =
             <div className="space-y-1 flex-1 min-w-0 pr-2">
               <div className="text-sm font-bold text-white flex items-center gap-2">
                 <Subtitles className="w-4 h-4 text-zinc-300 shrink-0" />
-                <span>Tự động hiển thị phụ đề (Auto Subtitle)</span>
+                <span>Tự động bật phụ đề</span>
               </div>
               <p className="text-xs text-zinc-400 leading-normal">
-                Tự động ưu tiên bật track phụ đề Tiếng Việt khi nguồn video có sẵn bản sub.
+                Ưu tiên hiển thị phụ đề Tiếng Việt khi video có sẵn track phụ đề.
               </p>
             </div>
             <label className="relative inline-flex items-center cursor-pointer shrink-0">
@@ -144,10 +143,10 @@ export const ProfilePlayerSettingsTab: React.FC<ProfilePlayerSettingsTabProps> =
             <div className="flex items-center justify-between">
               <div>
                 <h5 className="text-sm font-bold text-white flex items-center gap-2">
-                  <Zap className="w-4 h-4 text-zinc-300 shrink-0" />
+                  <Play className="w-4 h-4 text-zinc-300 shrink-0" />
                   <span>Tốc độ phát mặc định</span>
                 </h5>
-                <p className="text-xs text-zinc-400">Tốc độ phát bắt đầu khi mở bất kỳ tập phim nào</p>
+                <p className="text-xs text-zinc-400">Tốc độ phát bắt đầu khi mở video</p>
               </div>
               <span className="text-sm font-bold text-netflix-red tabular-nums">
                 {playerSettings.playbackSpeed}x
@@ -204,7 +203,7 @@ export const ProfilePlayerSettingsTab: React.FC<ProfilePlayerSettingsTabProps> =
             ) : (
               <>
                 <Save className="w-4 h-4" />
-                <span>Lưu Cài Đặt Cloud</span>
+                <span>Lưu Cài Đặt</span>
               </>
             )}
           </button>

@@ -116,8 +116,8 @@ export function MyListCollectionsTab({
         <EmptyState
           variant="card"
           icon={<FolderPlus className="h-8 w-8 text-zinc-500" />}
-          title="Bạn chưa có bộ sưu tập riêng"
-          description={'Bắt đầu tạo bộ sưu tập đầu tiên (ví dụ: "Anime cày đêm", "Phim kinh dị đỉnh cao") và thêm các phim yêu thích vào danh sách.'}
+          title="Chưa có bộ sưu tập nào"
+          description="Tạo danh sách phim theo chủ đề riêng của bạn."
           action={
             <button
               type="button"
@@ -125,7 +125,7 @@ export function MyListCollectionsTab({
               className="inline-flex items-center gap-2 rounded-xl bg-netflix-red px-5 py-2.5 text-xs sm:text-sm font-bold text-white transition hover:brightness-110 shadow-lg cursor-pointer active:scale-95"
             >
               <Plus className="w-4 h-4" />
-              <span>Tạo bộ sưu tập đầu tiên</span>
+              <span>Tạo bộ sưu tập</span>
             </button>
           }
         />

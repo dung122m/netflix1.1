@@ -17,8 +17,8 @@ export default function NotificationsPage() {
         <Suspense
           fallback={
             <div className="min-h-[50dvh] flex flex-col items-center justify-center">
-              <div className="w-10 h-10 border-2 border-netflix-red border-t-transparent rounded-full animate-spin mb-3" />
-              <p className="text-xs text-zinc-400">Đang chuẩn bị thông báo...</p>
+              <div className="w-8 h-8 border-2 border-white/20 border-t-netflix-red rounded-full animate-spin mb-3" />
+              <p className="text-xs text-zinc-500">Đang tải...</p>
             </div>
           }
         >

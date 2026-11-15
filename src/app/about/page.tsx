@@ -10,7 +10,6 @@ import {
   Database,
   Cpu,
   ShieldCheck,
-  Zap,
   Play,
   MonitorSmartphone,
   Flame,
@@ -28,9 +27,9 @@ import { Footer } from "@/components/layout/Footer";
 import { PageHeader } from "@/components/ui/PageHeader";
 
 export const metadata: Metadata = {
-  title: "Giới Thiệu Nanaflix | Không Gian Điện Ảnh Thuần Khiết & Công Nghệ Trực Tuyến",
+  title: "Giới Thiệu Nanaflix | Dự Án Điện Ảnh Trực Tuyến Phi Thương Mại",
   description:
-    "Tìm hiểu về Nanaflix — Nền tảng xem phim trực tuyến phi thương mại tối ưu tốc độ, không quảng cáo phiền toái, hỗ trợ HLS thích ứng đa thiết bị và gợi ý phim thông minh.",
+    "Tìm hiểu về Nanaflix — Nền tảng xem phim trực tuyến phi thương mại tối ưu tốc độ, không quảng cáo chen ngang và tự động đồng bộ tiến trình xem đa thiết bị.",
 };
 
 const PILLARS = [
@@ -40,9 +39,7 @@ const PILLARS = [
     subtitle: "HLS Adaptive Streaming & Auto-Fallback",
     description:
       "Hệ thống phát video phân giải cao tự động cân bằng bitrate theo băng thông mạng. Hỗ trợ đầy đủ Theater Mode, tua phím tắt tốc độ cao, ghi nhớ âm lượng và tự động chuyển đổi máy chủ dự phòng khi gặp sự cố nghẽn mạng.",
-    badge: "Mượt mà • Chuẩn FHD",
-    gradient: "from-rose-500/20 via-red-500/10 to-transparent",
-    border: "border-red-500/20 hover:border-red-500/40",
+    badge: "HLS Full HD",
     icon: Tv,
     iconColor: "text-red-400",
   },
@@ -53,20 +50,16 @@ const PILLARS = [
     description:
       "Xem dở bộ phim trên máy tính làm việc ban ngày, tối về mở điện thoại là tiếp tục đúng từng giây và tập phim đang dừng. Cơ chế đồng bộ đám mây Supabase tức thì giúp trải nghiệm liền mạch không ngắt quãng.",
     badge: "Tự động đồng bộ",
-    gradient: "from-amber-500/20 via-orange-500/10 to-transparent",
-    border: "border-amber-500/20 hover:border-amber-500/40",
     icon: MonitorSmartphone,
     iconColor: "text-amber-400",
   },
   {
     number: "03",
-    title: "Gợi Ý Đúng Gu & Khám Phá Thông Minh",
-    subtitle: "Taste Profile & Smart Content Discovery",
+    title: "Đề Xuất Phù Hợp Gu Xem",
+    subtitle: "Taste Profile & Content Discovery",
     description:
-      "Không còn phải lướt hàng chục trang tìm phim mà không biết xem gì. Hệ thống phân tích gu thưởng thức thông minh dựa trên lịch sử xem, tự động đề xuất các bộ phim tương thích cao nhất theo diễn viên, đạo diễn và thể loại ưa thích.",
-    badge: "Gợi ý cá nhân hóa",
-    gradient: "from-purple-500/20 via-indigo-500/10 to-transparent",
-    border: "border-purple-500/20 hover:border-purple-500/40",
+      "Hệ thống gợi ý phim dựa trên lịch sử xem, tự động đề xuất các bộ phim tương đồng theo diễn viên, đạo diễn và thể loại bạn quan tâm.",
+    badge: "Gợi ý theo gu",
     icon: Compass,
     iconColor: "text-purple-400",
   },
@@ -77,8 +70,6 @@ const PILLARS = [
     description:
       "Tuyệt đối nói không với các loại banner cờ bạc, pop-up nhảy tab khó chịu hay quảng cáo chèn ngang cao trào phim. Mọi chi tiết giao diện được thiết kế tối giản, êm mắt để bạn tập trung trọn vẹn vào cảm xúc điện ảnh.",
     badge: "100% Giao diện sạch",
-    gradient: "from-emerald-500/20 via-teal-500/10 to-transparent",
-    border: "border-emerald-500/20 hover:border-emerald-500/40",
     icon: ShieldCheck,
     iconColor: "text-emerald-400",
   },
@@ -152,7 +143,7 @@ export default function AboutPage() {
           badge={
             <>
               <span className="w-1.5 h-1.5 rounded-full bg-netflix-red" />
-              <span>Nền Tảng Điện Ảnh Phi Thương Mại Cá Nhân Hóa</span>
+              <span>Dự Án Điện Ảnh Trực Tuyến Phi Thương Mại</span>
             </>
           }
           title={
@@ -161,14 +152,14 @@ export default function AboutPage() {
               <span className="text-netflix-red">xứng đáng</span> thưởng thức.
             </>
           }
-          subtitle="Một không gian điện ảnh trực tuyến thuần khiết: 100% không quảng cáo rác, tốc độ phản hồi tính bằng mili-giây và tự động ghi nhớ chính xác từng giây bạn đã xem dở."
+          subtitle="Không gian xem phim trực tuyến không quảng cáo che màn hình, tối ưu tốc độ phản hồi và tự động ghi nhớ chính xác thời gian xem dở trên mọi thiết bị."
           actions={
             <div className="space-y-6 w-full">
               {/* Quick Metrics Bar */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 max-w-3xl mx-auto">
                 <div className="p-4 rounded-2xl bg-zinc-900/55 text-center space-y-1">
                   <div className="text-xl sm:text-2xl font-bold text-white tabular-nums">0 Giây</div>
-                  <div className="text-xs text-zinc-400">Quảng cáo phiền phức</div>
+                  <div className="text-xs text-zinc-400">Quảng cáo che màn hình</div>
                 </div>
                 <div className="p-4 rounded-2xl bg-zinc-900/55 text-center space-y-1">
                   <div className="text-xl sm:text-2xl font-bold text-white">Adaptive</div>
@@ -191,7 +182,7 @@ export default function AboutPage() {
                   className="inline-flex items-center gap-2 px-7 py-3.5 rounded-xl bg-netflix-red hover:brightness-110 active:brightness-95 text-white font-bold text-sm transition-all shadow-md shadow-black/50 hover:scale-[1.02] active:scale-95"
                 >
                   <Play size={16} className="fill-current" />
-                  <span>Khám Phá Phim Ngay</span>
+                  <span>Xem Phim Ngay</span>
                 </Link>
                 <a
                   href="#contact"
@@ -222,13 +213,13 @@ export default function AboutPage() {
               {/* Text Column */}
               <div className="lg:col-span-8 space-y-4 text-sm sm:text-base text-zinc-300 leading-relaxed font-normal">
                 <p className="text-lg sm:text-xl text-white font-medium leading-snug">
-                  Nanaflix được bắt đầu rất giản dị: Từ mong muốn có một không gian xem phim <span className="text-netflix-red font-semibold">thực sự trọn vẹn và tĩnh lặng</span> sau mỗi ngày làm việc căng thẳng.
+                  Nanaflix được xây dựng với mong muốn có một không gian xem phim <span className="text-netflix-red font-semibold">trọn vẹn và dễ chịu</span> sau những giờ làm việc.
                 </p>
                 <p>
-                  Chắc hẳn bạn cũng từng trải qua cảm giác cụt hứng khi chuẩn bị thưởng thức một tác phẩm điện ảnh yêu thích nhưng liên tục bị bủa vây bởi các biểu ngữ quảng cáo cá cược nhấp nháy, đường dẫn nhảy tab độc hại, hoặc video cứ xem được 5 phút lại bị giật đứng hình.
+                  Khi thưởng thức phim trực tuyến, người xem thường gặp phải các biểu ngữ quảng cáo cá cược, đường dẫn nhảy tab ngoài ý muốn hoặc video gián đoạn do nghẽn mạng.
                 </p>
                 <p>
-                  Đó là lý do Nanaflix ra đời — một nền tảng được đẽo gọt tỉ mỉ kết hợp giữa công nghệ streaming HLS hiện đại, kiến trúc đám mây thông minh và triết lý thiết kế hướng đến người dùng. Ở đây, bạn chỉ cần bấm Play là phim chạy mượt mà, ghi nhớ chuẩn xác từng phút từng giây bạn dừng lại trên mọi thiết bị và hoàn toàn không có bất kỳ phiền toái nào chen ngang.
+                  Nanaflix hướng tới trải nghiệm xem phim đơn giản và liền mạch: hình ảnh rõ nét, ghi nhớ đúng vị trí bạn đang xem dở trên mọi thiết bị và không bị quảng cáo che mắt.
                 </p>
                 <div className="pt-2 flex items-center gap-2 text-xs text-zinc-400 font-sans tabular-nums">
                   <span className="text-emerald-400 font-bold">●</span> Xây dựng với tình yêu điện ảnh và tinh thần mã nguồn mở vì cộng đồng.
@@ -265,8 +256,8 @@ export default function AboutPage() {
         <section className="space-y-8">
           <div className="text-center space-y-2.5 max-w-2xl mx-auto">
             <div className="inline-flex items-center gap-1.5 text-xs font-semibold text-netflix-red">
-              <Zap size={14} />
-              <span>Trải nghiệm khác biệt</span>
+              <Tv size={14} />
+              <span>Tính năng nổi bật</span>
             </div>
             <h2 className="text-2xl sm:text-4xl font-black text-white tracking-tight">
               4 Giá Trị Cốt Lõi Tạo Nên Sự Khác Biệt
@@ -315,7 +306,7 @@ export default function AboutPage() {
         <section className="space-y-8">
           <div className="text-center space-y-2.5 max-w-2xl mx-auto">
             <div className="inline-flex items-center gap-1.5 text-xs font-semibold text-netflix-red">
-              <Cpu size={14} />
+              <Database size={14} />
               <span>Kiến trúc nền tảng</span>
             </div>
             <h2 className="text-2xl sm:text-4xl font-black text-white tracking-tight">

@@ -103,7 +103,7 @@ export function SearchDropdownPanel({
         <div className="p-1 space-y-2">
           <div className="flex items-center gap-2 text-xs font-semibold text-zinc-400 px-2 py-1">
             <Loader2 size={13} className="animate-spin text-netflix-red flex-none" />
-            <span>Đang tìm kiếm gợi ý phim...</span>
+            <span>Đang tìm kiếm...</span>
           </div>
           <div className="flex flex-col gap-1">
             {Array.from({ length: 3 }).map((_, idx) => (

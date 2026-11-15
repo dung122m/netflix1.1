@@ -161,7 +161,7 @@ export async function GET(request: NextRequest) {
       title: canonicalName,
       description: roles,
       extract: cleanedExtract || (isFound
-        ? `Diễn viên nổi bật tham gia nhiều tác phẩm điện ảnh và truyền hình đặc sắc. Khám phá các bộ phim có sự góp mặt của ${canonicalName} ngay trên Nanaflix!`
+        ? `Thông tin tiểu sử của ${canonicalName} đang được cập nhật. Bạn có thể xem các phim đã tham gia bên dưới.`
         : undefined),
       thumbnail: bestThumbnail,
       wikiUrl,
@@ -196,7 +196,7 @@ export async function GET(request: NextRequest) {
         name: cleanName,
         title: cleanName,
         description: "Nghệ sĩ / Diễn viên điện ảnh",
-        extract: `Khám phá các tác phẩm điện ảnh có sự tham gia của ${cleanName} trên Nanaflix.`,
+        extract: `Thông tin tiểu sử của ${cleanName} đang được cập nhật. Bạn có thể xem các phim đã tham gia bên dưới.`,
         notFound: true,
       },
       { status: 200 }

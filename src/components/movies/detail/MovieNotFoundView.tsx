@@ -11,7 +11,6 @@ export function MovieNotFoundView() {
         <div className="max-w-md w-full text-center space-y-6 animate-in fade-in zoom-in-95 duration-300">
           {/* Glow Icon */}
           <div className="relative mx-auto w-20 h-20 rounded-3xl bg-netflix-red/10 flex items-center justify-center text-rose-500 shadow-xl shadow-black/80">
-            <div className="absolute inset-0 bg-rose-500/20 rounded-3xl blur-xl" />
             <Film className="w-10 h-10 relative z-10" />
           </div>
 
@@ -38,11 +37,11 @@ export function MovieNotFoundView() {
               <span>Về Trang Chủ</span>
             </Link>
             <Link
-              href="/"
+              href="/browse"
               className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs transition active:scale-95 cursor-pointer"
             >
               <Compass className="w-4 h-4" />
-              <span>Khám Phá Phim Mới</span>
+              <span>Kho Phim</span>
             </Link>
           </div>
         </div>

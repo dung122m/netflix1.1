@@ -814,9 +814,9 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
           </form>
         ) : (
           /* Login Banner */
-          <div className="relative overflow-hidden bg-gradient-to-r from-zinc-900/90 via-zinc-900/60 to-netflix-red/10 rounded-xl sm:rounded-2xl p-4 sm:p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="relative overflow-hidden bg-zinc-900/60 rounded-xl sm:rounded-2xl p-4 sm:p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-3 sm:gap-4 text-center sm:text-left w-full sm:w-auto">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-netflix-red/10 flex items-center justify-center text-netflix-red shrink-0">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-white/[0.05] flex items-center justify-center text-zinc-300 shrink-0">
                 <LogIn className="w-5 h-5 sm:w-6 sm:h-6" />
               </div>
               <div className="flex-1 min-w-0">
@@ -824,7 +824,7 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
                   Đăng nhập để bình luận và chấm điểm phim
                 </h4>
                 <p className="text-xs text-zinc-400 mt-0.5 line-clamp-2 sm:line-clamp-none">
-                  Đăng nhập nhanh 1 chạm bằng Google để chia sẻ cảm nghĩ cùng hàng ngàn khán giả khác.
+                  Đăng nhập bằng Google để gửi đánh giá và thảo luận về bộ phim.
                 </p>
               </div>
             </div>
@@ -832,10 +832,10 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
             <button
               type="button"
               onClick={() => setShowAuthModal(true)}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm bg-white text-black hover:bg-zinc-200 transition-all active:scale-95 shrink-0 shadow-lg w-full sm:w-auto justify-center"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm bg-white text-black hover:bg-zinc-200 transition-all active:scale-95 shrink-0 shadow-lg w-full sm:w-auto justify-center cursor-pointer"
             >
               <LogIn className="w-4 h-4 text-red-600" />
-              <span>Đăng nhập ngay</span>
+              <span>Đăng nhập</span>
             </button>
           </div>
         )}
@@ -845,13 +845,13 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
       <div className="mt-8">
         {loading ? (
           <div className="py-12 flex flex-col items-center justify-center gap-3 text-zinc-500">
-            <Loader2 className="w-6 h-6 animate-spin text-netflix-red" />
-            <span className="text-xs">Đang tải bình luận cộng đồng...</span>
+            <Loader2 className="w-5 h-5 animate-spin text-zinc-400" />
+            <span className="text-xs text-zinc-400">Đang tải bình luận...</span>
           </div>
         ) : loadError ? (
-          <div className="py-8 text-center bg-red-950/20 rounded-2xl p-4 text-xs text-red-400">
-            <p className="font-semibold mb-1">Không thể tải bình luận máy chủ:</p>
-            <p className="text-zinc-400">{loadError}</p>
+          <div className="py-8 text-center bg-zinc-900/40 rounded-2xl p-4 text-xs text-zinc-400">
+            <p className="font-semibold text-rose-400 mb-1">Không thể tải danh sách bình luận</p>
+            <p className="text-zinc-500">Vui lòng thử lại sau.</p>
           </div>
         ) : sortedComments.length > 0 ? (
           <>
