@@ -36,7 +36,7 @@ async function checkHlsManifest(
 ): Promise<boolean> {
   const response = await fetch(streamUrl, {
     headers: getStreamHeaders(streamUrl),
-    cache: "no-store",
+    next: { revalidate: 180 },
     signal: AbortSignal.timeout(4500),
   });
   if (!response.ok) return false;
@@ -58,7 +58,7 @@ async function checkHlsManifest(
 
   const segmentResponse = await fetch(childUrl, {
     headers: getStreamHeaders(childUrl),
-    cache: "no-store",
+    next: { revalidate: 180 },
     signal: AbortSignal.timeout(4500),
   });
   return segmentResponse.ok;
@@ -75,7 +75,7 @@ export async function isStreamReachable(streamUrl: string): Promise<boolean> {
       : (
           await fetch(streamUrl, {
             headers: getStreamHeaders(streamUrl),
-            cache: "no-store",
+            next: { revalidate: 180 },
             signal: AbortSignal.timeout(4500),
           })
         ).ok;

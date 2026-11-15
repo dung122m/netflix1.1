@@ -8,7 +8,9 @@ import React, {
   useCallback,
   useMemo,
   useEffect,
+  Suspense,
 } from "react";
+import { useSearchParams } from "next/navigation";
 import { saveWatchHistory } from "@/lib/watchHistory";
 import { findEpisodeMatch } from "@/lib/formatEpisode";
 import { useAuth } from "@/context/AuthContext";
@@ -560,9 +562,62 @@ export function WatchController({
 
   return (
     <WatchContext.Provider value={value}>
+      <Suspense fallback={null}>
+        <WatchUrlSync />
+      </Suspense>
       {children}
     </WatchContext.Provider>
   );
+}
+
+/**
+ * Client Component đồng bộ URL searchParams (ep, server) với WatchController state.
+ * Được bọc trong <Suspense> để trang xem phim có thể chạy Static ISR hoàn toàn trên Vercel Edge.
+ */
+function WatchUrlSync() {
+  const searchParams = useSearchParams();
+  const watchContext = useWatchController();
+  const { servers, currentServerIndex, activeEpisodeSlug, switchServer, switchEpisode } =
+    watchContext || {};
+  const lastProcessedRef = useRef<string>("");
+
+  useEffect(() => {
+    if (!servers || !switchServer || !switchEpisode) return;
+    const ep = searchParams?.get("ep") || "";
+    const server = searchParams?.get("server") || "";
+    const syncKey = `${server}_${ep}`;
+
+    // Chỉ thực hiện khi URL params thực sự thay đổi và có ít nhất 1 tham số
+    if (!ep && !server) {
+      lastProcessedRef.current = syncKey;
+      return;
+    }
+    if (lastProcessedRef.current === syncKey) {
+      return;
+    }
+    lastProcessedRef.current = syncKey;
+
+    let targetServerIdx = currentServerIndex ?? 0;
+    if (server) {
+      const parsed = parseInt(server, 10);
+      if (!isNaN(parsed) && parsed >= 0 && parsed < servers.length) {
+        targetServerIdx = parsed;
+        if (parsed !== currentServerIndex) {
+          switchServer(parsed);
+        }
+      }
+    }
+
+    if (ep) {
+      const targetEpisodes = servers[targetServerIdx]?.server_data || [];
+      const found = findEpisodeMatch(targetEpisodes, ep);
+      if (found?.slug && found.slug !== activeEpisodeSlug) {
+        switchEpisode(found.slug);
+      }
+    }
+  }, [searchParams, servers, currentServerIndex, activeEpisodeSlug, switchServer, switchEpisode]);
+
+  return null;
 }
 
 export default WatchController;

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback, Suspense } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams, usePathname } from "next/navigation";
+import { useSearchParams, usePathname } from "next/navigation";
 import dynamic from "next/dynamic";
 import {
   Menu,
@@ -44,7 +44,6 @@ const NAV_LINKS = [
 ];
 
 const NavbarInner: React.FC = () => {
-  const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const currentType = searchParams.get("type");
@@ -144,8 +143,6 @@ const NavbarInner: React.FC = () => {
           <Link
             href="/"
             prefetch={false}
-            onMouseEnter={() => router.prefetch("/")}
-            onFocus={() => router.prefetch("/")}
             className="flex items-center group flex-shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black rounded-lg"
             aria-label="Nanaflix - Trang Chủ"
           >
@@ -162,8 +159,6 @@ const NavbarInner: React.FC = () => {
                   href={link.href}
                   prefetch={false}
                   aria-current={active ? "page" : undefined}
-                  onMouseEnter={() => router.prefetch(link.href)}
-                  onFocus={() => router.prefetch(link.href)}
                   className={`transition-all relative py-1 flex items-center gap-1.5 whitespace-nowrap flex-shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black rounded-md ${
                     active
                       ? "text-white font-bold light-nav-active"

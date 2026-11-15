@@ -174,7 +174,7 @@ async function fetchLeagueScoreboard(
           Accept: "application/json",
           "User-Agent": "Nanaflix/1.0 (LiveScore Enrichment)",
         },
-        cache: "no-store",
+        next: { revalidate: 180 },
       });
 
       if (!res.ok) continue;
@@ -477,7 +477,7 @@ export const footballScoreService = {
                 Accept: "application/json",
                 "User-Agent": "Nanaflix/1.0 (Match Center)",
               },
-              cache: "no-store",
+              next: { revalidate: 180 },
             });
 
             if (!res.ok) continue;
@@ -604,7 +604,7 @@ export const footballScoreService = {
           try {
             const res = await fetch(url, {
               signal: AbortSignal.timeout(STANDINGS_REQUEST_TIMEOUT_MS),
-              cache: "no-store",
+              next: { revalidate: 180 },
               headers: {
                 Accept: "application/json",
                 "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
@@ -743,7 +743,7 @@ export const footballScoreService = {
           try {
             const res = await fetch(url, {
               signal: AbortSignal.timeout(FIXTURES_REQUEST_TIMEOUT_MS),
-              cache: "no-store",
+              next: { revalidate: 180 },
               headers: {
                 Accept: "application/json",
                 "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",

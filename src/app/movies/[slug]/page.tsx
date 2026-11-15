@@ -4,10 +4,12 @@ import Link from "next/link";
 import { Film } from "lucide-react";
 
 /**
- * ISR / Edge Cache: Cache response HTML công khai 5 phút trên Vercel Edge / CDN.
- * Cho phép cập nhật luồng phát mới nhanh chóng mà vẫn bảo vệ máy chủ khỏi bùng nổ lệnh GET.
+ * ISR / Edge Cache: Cache response HTML công khai 1 giờ trên Vercel Edge / CDN.
+ * Khóa chặt force-static để ngăn chặn SSR động tốn Active CPU.
+ * Chuyển tập và mốc thời gian xem phim được Client Component đồng bộ mượt mà qua URL params.
  */
-export const revalidate = 300;
+export const dynamic = "force-static";
+export const revalidate = 3600;
 
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
@@ -67,15 +69,12 @@ export async function generateMetadata({
 
 export default async function MovieDetail({
   params,
-  searchParams,
 }: {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ ep?: string; server?: string; t?: string }>;
 }) {
   const { slug } = await params;
-  const { ep, server, t } = await searchParams;
 
-  const pageData = await buildMovieDetailPageData(slug, { ep, server });
+  const pageData = await buildMovieDetailPageData(slug, {});
   if (!pageData) {
     return <MovieNotFoundView />;
   }
@@ -234,21 +233,38 @@ export default async function MovieDetail({
 
                   {/* 1. CINEMA PLAYER & MULTI-SERVER HOST */}
                   <div className="w-full">
-                    <WatchPlayerHost
-                      embedSrc={embedSrc}
-                      videoLink={videoLink}
-                      m3u8Link={rawM3u8}
-                      trailerUrl={effectiveTrailerUrl || movie.trailer_url}
-                      title={title}
-                      movieSlug={movie.slug}
-                      activeEpisodeName={activeEpisode?.name}
-                      activeEpisodeSlug={activeEpisode?.slug}
-                      isTrailerOnly={isTrailerOnly}
-                      posterUrl={bestImageHero}
-                      initialTime={t ? parseFloat(t) : undefined}
-                      tmdbId={movie.tmdb?.id}
-                      isSeries={isSeries}
-                    />
+                    <Suspense
+                      fallback={
+                        <div
+                          className="relative w-full aspect-video bg-black rounded-xl sm:rounded-2xl overflow-hidden shadow-2xl flex flex-col items-center justify-center border border-white/[0.04]"
+                          aria-label="Đang tải trình phát phim"
+                          role="status"
+                        >
+                          <div className="absolute inset-0 bg-gradient-to-br from-zinc-900/60 via-black to-zinc-950 animate-pulse" />
+                          <div className="relative z-10 flex flex-col items-center gap-3">
+                            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full border-2 border-white/10 border-t-netflix-red animate-spin" />
+                            <span className="text-xs text-zinc-400 font-medium tracking-wide">
+                              Đang tải trình phát phim...
+                            </span>
+                          </div>
+                        </div>
+                      }
+                    >
+                      <WatchPlayerHost
+                        embedSrc={embedSrc}
+                        videoLink={videoLink}
+                        m3u8Link={rawM3u8}
+                        trailerUrl={effectiveTrailerUrl || movie.trailer_url}
+                        title={title}
+                        movieSlug={movie.slug}
+                        activeEpisodeName={activeEpisode?.name}
+                        activeEpisodeSlug={activeEpisode?.slug}
+                        isTrailerOnly={isTrailerOnly}
+                        posterUrl={bestImageHero}
+                        tmdbId={movie.tmdb?.id}
+                        isSeries={isSeries}
+                      />
+                    </Suspense>
                   </div>
                 </div>
               }

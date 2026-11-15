@@ -380,10 +380,17 @@ async function executeTmdbActorFlow(
       return [];
     }
 
+    // Sắp xếp credits theo popularity / vote_count giảm dần để ưu tiên phim nổi bật nhất
+    credits.sort((a, b) => {
+      const popDiff = (b.popularity || 0) - (a.popularity || 0);
+      if (popDiff !== 0) return popDiff;
+      return (b.vote_count || 0) - (a.vote_count || 0);
+    });
+
     const tMatchStart = performance.now();
     const checkLimit = Math.min(
       credits.length,
-      Math.min(Math.max(Math.round(maxMovies * 2), 24), 160)
+      Math.min(Math.max(Math.round(maxMovies * 1.5), 20), 40)
     );
     const matchedMovies = await matchTmdbMoviesWithSources(credits, checkLimit, concurrency, {
       isActorFilmography: true,
@@ -506,8 +513,12 @@ export async function getDirectorFilmographyFromTmdb(
           });
         }
 
-        credits.sort((a, b) => (b.popularity || 0) - (a.popularity || 0));
-        const checkLimit = Math.min(credits.length, Math.min(Math.max(maxMovies * 2, 24), 80));
+        credits.sort((a, b) => {
+          const popDiff = (b.popularity || 0) - (a.popularity || 0);
+          if (popDiff !== 0) return popDiff;
+          return (b.vote_count || 0) - (a.vote_count || 0);
+        });
+        const checkLimit = Math.min(credits.length, Math.min(Math.max(Math.round(maxMovies * 1.5), 20), 40));
         const matchedMovies = await matchTmdbMoviesWithSources(credits, checkLimit, concurrency);
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const filmographyMovies = matchedMovies.map((m: any) => ({
