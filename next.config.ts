@@ -195,12 +195,110 @@ const nextConfig: NextConfig = {
         ],
       },
       {
-        // Cache search suggest 1 phút
+        // Cache search suggest trên CDN: 1 giờ (3600s), chống bot & crawler làm cạn CPU Serverless
         source: "/api/search-suggest",
         headers: [
           {
             key: "Cache-Control",
-            value: "public, s-maxage=60, stale-while-revalidate=30",
+            value: "public, max-age=1800, s-maxage=3600, stale-while-revalidate=86400",
+          },
+          {
+            key: "CDN-Cache-Control",
+            value: "public, s-maxage=3600, stale-while-revalidate=86400",
+          },
+          {
+            key: "Vercel-CDN-Cache-Control",
+            value: "public, s-maxage=3600, stale-while-revalidate=86400",
+          },
+        ],
+      },
+      {
+        // Edge / CDN caching cho đề xuất phim công khai (/api/movies/recommendations)
+        source: "/api/movies/recommendations",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, s-maxage=3600, stale-while-revalidate=86400",
+          },
+          {
+            key: "CDN-Cache-Control",
+            value: "public, s-maxage=3600, stale-while-revalidate=86400",
+          },
+          {
+            key: "Vercel-CDN-Cache-Control",
+            value: "public, s-maxage=3600, stale-while-revalidate=86400",
+          },
+        ],
+      },
+      {
+        // Edge / CDN caching cho bảng xếp hạng TMDb Trending 6 giờ
+        source: "/api/trending-tmdb",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, s-maxage=21600, stale-while-revalidate=43200",
+          },
+          {
+            key: "CDN-Cache-Control",
+            value: "public, s-maxage=21600, stale-while-revalidate=43200",
+          },
+          {
+            key: "Vercel-CDN-Cache-Control",
+            value: "public, s-maxage=21600, stale-while-revalidate=43200",
+          },
+        ],
+      },
+      {
+        // Edge / CDN caching cho bảng xếp hạng Trending cộng đồng 10 phút
+        source: "/api/trending-community",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, s-maxage=600, stale-while-revalidate=1800",
+          },
+          {
+            key: "CDN-Cache-Control",
+            value: "public, s-maxage=600, stale-while-revalidate=1800",
+          },
+          {
+            key: "Vercel-CDN-Cache-Control",
+            value: "public, s-maxage=600, stale-while-revalidate=1800",
+          },
+        ],
+      },
+      {
+        // Edge / CDN caching cho tiểu sử diễn viên 24 giờ
+        source: "/api/actor-bio",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, s-maxage=86400, stale-while-revalidate=43200",
+          },
+          {
+            key: "CDN-Cache-Control",
+            value: "public, s-maxage=86400, stale-while-revalidate=43200",
+          },
+          {
+            key: "Vercel-CDN-Cache-Control",
+            value: "public, s-maxage=86400, stale-while-revalidate=43200",
+          },
+        ],
+      },
+      {
+        // Edge / CDN caching cho hồ sơ cầu thủ bóng đá 24 giờ
+        source: "/api/live-football/athlete",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, s-maxage=86400, stale-while-revalidate=604800",
+          },
+          {
+            key: "CDN-Cache-Control",
+            value: "public, s-maxage=86400, stale-while-revalidate=604800",
+          },
+          {
+            key: "Vercel-CDN-Cache-Control",
+            value: "public, s-maxage=86400, stale-while-revalidate=604800",
           },
         ],
       },

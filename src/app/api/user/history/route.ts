@@ -46,7 +46,9 @@ export async function GET(req: NextRequest) {
 
     const { data, error } = await supabase
       .from("watch_history")
-      .select("*")
+      .select(
+        "slug, title, poster, episode_name, episode_slug, progress_seconds, duration_seconds, year, quality, category, updated_at, synced_at, watched_episodes"
+      )
       .eq("user_id", targetUserId)
       .order("updated_at", { ascending: false })
       .limit(150);

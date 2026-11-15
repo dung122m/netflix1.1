@@ -6,7 +6,7 @@ import { MovieCommentsSection } from "./MovieCommentsSection";
 import { TmdbAudienceReviews } from "./TmdbAudienceReviews";
 import { useWatchController } from "@/components/cinema/WatchController";
 
-interface MovieReviewsContainerProps {
+export interface MovieReviewsContainerProps {
   movieSlug: string;
   movieTitle: string;
   currentEpisodeSlug?: string;

@@ -509,6 +509,10 @@ export async function buildMovieDetailPageData(
       : null;
 
   const rawEpisodes = episodes && episodes.length > 0 ? episodes : movie.episodes || [];
+  // Loại bỏ mảng episodes thô khỏi object movie để chống nhân bản dữ liệu tập phim vào RSC payload & HTML
+  // (episodeServers bên dưới đã chứa đầy đủ dữ liệu tập phim đã chuẩn hóa, mã hóa stream cho WatchController)
+  const { episodes: _unusedRawEpisodes, ...leanMovie } = movie;
+
   const dualServers = filterDualServers(rawEpisodes) as RawEpisodeServer[];
   const episodeServers: NormalizedEpisodeServer[] = dualServers.map((srv, sIdx) => ({
     server_name: srv.server_name || `Server #${sIdx + 1}`,
@@ -604,7 +608,7 @@ export async function buildMovieDetailPageData(
   };
 
   return {
-    movie,
+    movie: leanMovie as MovieDetailRecord,
     title,
     description,
     actorList,

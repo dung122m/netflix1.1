@@ -412,24 +412,50 @@ function ForYouPersonalizedRowInner({ fallbackMovies }: ForYouPersonalizedRowPro
 
     const watchedTitles = history.map((h) => h.title).filter(Boolean).slice(0, 20);
     const watchedSlugs = history.map((h) => h.slug).filter(Boolean);
-    // Không đưa phút xem dở vào hash để tránh làm hỏng cache recommendation mỗi khi người dùng xem thêm 1 phút phim
-    const historyHash = historyItems
-      .slice(0, 8)
-      .map((h) => h.slug)
-      .filter(Boolean)
-      .join("|");
-    const currentFingerprint = `${user?.uid || "guest"}_${genresKey}_${historyHash}_seed${currentSeed}`;
+
+    // Tính Taste Profile Hash (Top 3 thể loại & định dạng) thay vì băm theo danh sách slug phim
+    // Giữ cache ổn định khi người dùng xem thêm phim cùng thể loại, triệt tiêu việc gọi lại API Serverless
+    const genreFrequency: Record<string, number> = {};
+    const typeFrequency: Record<string, number> = {};
+    for (const h of historyItems.slice(0, 15)) {
+      if (h.category) {
+        const cat = String(h.category).toLowerCase().trim();
+        genreFrequency[cat] = (genreFrequency[cat] || 0) + 1;
+      }
+      if (h.type) {
+        const typ = String(h.type).toLowerCase().trim();
+        typeFrequency[typ] = (typeFrequency[typ] || 0) + 1;
+      }
+    }
+    const topGenres = Object.entries(genreFrequency)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3)
+      .map(([g]) => g)
+      .sort()
+      .join(",");
+    const topTypes = Object.entries(typeFrequency)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 2)
+      .map(([t]) => t)
+      .sort()
+      .join(",");
+
+    const tasteProfileHash = `g:${topGenres || "none"}|t:${topTypes || "none"}`;
+    const currentFingerprint = `${user?.uid || "guest"}_${genresKey}_${tasteProfileHash}_seed${currentSeed}`;
 
     if (typeof document !== "undefined" && document.hidden) return;
     if (!forceRefresh && inFlightRef.current) return;
     if (!forceRefresh && lastFingerprintRef.current === currentFingerprint && moviesRef.current.length >= 8) return;
+
+    // Giữ cache tối thiểu 15 phút tại Client cho người dùng đăng nhập trước khi cho phép gọi lại
+    const MIN_CLIENT_CACHE_TTL = 15 * 60 * 1000; // 15 phút
 
     // Kiểm tra cache đã nạp trong memory (Fresh Cache Hit) - Tránh đọc localStorage/JSON.parse lần nữa
     if (!forceRefresh) {
       const cached = getCachedData(user?.uid);
       if (
         cached &&
-        cached.fingerprint === currentFingerprint &&
+        (cached.fingerprint === currentFingerprint || Date.now() - cached.timestamp < MIN_CLIENT_CACHE_TTL) &&
         Date.now() - cached.timestamp < CACHE_TTL &&
         Array.isArray(cached.items) &&
         cached.items.length >= 8

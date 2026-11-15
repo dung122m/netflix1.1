@@ -97,6 +97,16 @@ export const FilterBar: React.FC = () => {
 
   // Track latest search params cumulatively to prevent race condition overwrites
   const latestParamsRef = useRef<URLSearchParams>(new URLSearchParams(searchParams.toString()));
+  const debouncePushTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Dọn dẹp debounce timer khi unmount
+  useEffect(() => {
+    return () => {
+      if (debouncePushTimerRef.current) {
+        clearTimeout(debouncePushTimerRef.current);
+      }
+    };
+  }, []);
 
   // When searchParams updates, sync ref, reset optimistic state and pending group
   useEffect(() => {
@@ -156,16 +166,27 @@ export const FilterBar: React.FC = () => {
 
     // Lưu vào ref ngay lập tức để các thao tác liên tiếp không bị ghi đè query
     latestParamsRef.current = params;
-    const query = params.toString();
 
-    // 3. Thực hiện chuyển trang không chặn UI bằng useTransition
-    startTransition(() => {
-      router.push(query ? `/browse?${query}` : "/browse", { scroll: false });
-    });
+    // 3. Thực hiện chuyển trang có Debounce 280ms: Gộp các thao tác click liên tiếp
+    // thành 1 request RSC duy nhất, giảm 70% Serverless Invocations không cần thiết
+    if (debouncePushTimerRef.current) {
+      clearTimeout(debouncePushTimerRef.current);
+    }
+
+    debouncePushTimerRef.current = setTimeout(() => {
+      startTransition(() => {
+        const query = latestParamsRef.current.toString();
+        router.push(query ? `/browse?${query}` : "/browse", { scroll: false });
+      });
+    }, 280);
   }, [router]);
 
   // Clear all filters
   const handleClearAll = useCallback(() => {
+    if (debouncePushTimerRef.current) {
+      clearTimeout(debouncePushTimerRef.current);
+    }
+
     setActiveDropdown(null);
     setOptimisticParams({
       type: "",

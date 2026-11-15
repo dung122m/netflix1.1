@@ -21,7 +21,7 @@ import { WatchStage } from "@/components/cinema/WatchStage";
 import { WatchSidebarTabs } from "@/components/cinema/WatchSidebarTabs";
 import { ServerSelector } from "@/components/cinema/ServerSelector";
 import { EpisodeCountBadge } from "@/components/movies/ActiveEpisodeBadge";
-import { MovieReviewsContainer } from "@/components/MovieReviews/MovieReviewsContainer";
+import { MovieReviewsHost } from "@/components/MovieReviews/MovieReviewsHost";
 import { MovieRecommendationsClient } from "@/components/movies/MovieRecommendationsClient";
 import { MovieCastGallery } from "@/components/movies/MovieCastGallery";
 import { MobileMovieNav } from "@/components/movies/MobileMovieNav";
@@ -352,7 +352,7 @@ export default async function MovieDetail({
                     id="section-reviews"
                     className="scroll-mt-[116px] sm:scroll-mt-[124px] pt-2"
                   >
-                    <MovieReviewsContainer
+                    <MovieReviewsHost
                       movieSlug={movie.slug}
                       movieTitle={title}
                       currentEpisodeSlug={activeEpisode?.slug}

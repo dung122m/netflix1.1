@@ -28,13 +28,17 @@ export async function GET(req: NextRequest) {
   const limit = Math.min(Number(searchParams.get("limit")) || 20, 20);
   const cacheKey = `${type}_${limit}_v8`;
 
+  const edgeHeaders = {
+    "Cache-Control": "public, s-maxage=21600, stale-while-revalidate=43200",
+    "CDN-Cache-Control": "public, s-maxage=21600, stale-while-revalidate=43200",
+    "Vercel-CDN-Cache-Control": "public, s-maxage=21600, stale-while-revalidate=43200",
+  };
+
   // 1. Kiểm tra bộ nhớ cache trên RAM server (phản hồi tức thì ~0ms)
   const cached = SERVER_CACHE.get(cacheKey);
   if (cached && cached.expireAt > Date.now()) {
     return NextResponse.json(cached.data, {
-      headers: {
-        "Cache-Control": "public, s-maxage=21600, stale-while-revalidate=43200",
-      },
+      headers: edgeHeaders,
     });
   }
 
@@ -45,9 +49,7 @@ export async function GET(req: NextRequest) {
     if (redisCached) {
       SERVER_CACHE.set(cacheKey, { data: redisCached, expireAt: Date.now() + CACHE_TTL });
       return NextResponse.json(redisCached, {
-        headers: {
-          "Cache-Control": "public, s-maxage=21600, stale-while-revalidate=43200",
-        },
+        headers: edgeHeaders,
       });
     }
   } catch {}
@@ -79,9 +81,7 @@ export async function GET(req: NextRequest) {
       SERVER_CACHE.set(cacheKey, { data: responseData, expireAt: Date.now() + CACHE_TTL });
       cacheService.set(redisTrendingKey, responseData, 6 * 3600).catch(() => {});
       return NextResponse.json(responseData, {
-        headers: {
-          "Cache-Control": "public, s-maxage=21600, stale-while-revalidate=43200",
-        },
+        headers: edgeHeaders,
       });
     }
 

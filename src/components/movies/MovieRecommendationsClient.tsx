@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { RecommendationTabs } from "@/components/movies/RecommendationTabs";
 
 interface MovieRecommendationsClientProps {
@@ -188,6 +188,34 @@ export function MovieRecommendationsClient({
   const [loading, setLoading] = useState(!hasValidInitialData);
   const [isDesktopViewport, setIsDesktopViewport] = useState<boolean | null>(null);
 
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [hasBeenVisible, setHasBeenVisible] = useState(hasValidInitialData);
+
+  // Lazy Observation: Chỉ kích hoạt nạp khi người dùng cuộn gần tới vùng gợi ý hoặc bấm mở tab
+  useEffect(() => {
+    if (hasBeenVisible) return;
+    const el = containerRef.current;
+    if (!el) return;
+
+    if (typeof IntersectionObserver === "undefined") {
+      setHasBeenVisible(true);
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          setHasBeenVisible(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: "400px" } // Preload sớm 400px trước khi chạm tới viewport
+    );
+
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [hasBeenVisible]);
+
   useEffect(() => {
     const hasMatchMedia =
       typeof window !== "undefined" && typeof window.matchMedia === "function";
@@ -200,6 +228,11 @@ export function MovieRecommendationsClient({
 
     const isActiveHere = variant === "sidebar" ? isDesktop : !isDesktop;
     if (!isActiveHere) {
+      return () => mediaQuery?.removeEventListener("change", handleMediaChange);
+    }
+
+    // Nếu chưa cuộn tới hoặc chưa hiển thị thì chưa fetch API
+    if (!hasBeenVisible) {
       return () => mediaQuery?.removeEventListener("change", handleMediaChange);
     }
 
@@ -276,7 +309,7 @@ export function MovieRecommendationsClient({
       mediaQuery?.removeEventListener("change", handleMediaChange);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentMovieSlug, tmdbId, variant]);
+  }, [currentMovieSlug, tmdbId, variant, hasBeenVisible]);
 
   const isActiveViewport =
     isDesktopViewport === null ||
@@ -286,8 +319,12 @@ export function MovieRecommendationsClient({
     return null;
   }
 
-  if (loading) {
-    return <RecommendationSkeleton variant={variant} />;
+  if (!hasBeenVisible || loading) {
+    return (
+      <div ref={containerRef} className="w-full min-h-[160px]">
+        <RecommendationSkeleton variant={variant} />
+      </div>
+    );
   }
 
   if (!data || !Array.isArray(data.allMovies) || data.allMovies.length === 0) {
@@ -295,19 +332,21 @@ export function MovieRecommendationsClient({
   }
 
   return (
-    <RecommendationTabs
-      currentMovieTitle={currentMovieTitle}
-      genreName={data.genreName}
-      countryName={data.countryName}
-      actorName={data.actorName || primaryActor}
-      directorName={data.directorName || primaryDirector}
-      genreMovies={data.genreMovies}
-      countryMovies={data.countryMovies}
-      actorMovies={data.actorMovies}
-      directorMovies={data.directorMovies}
-      allMovies={data.allMovies}
-      variant={variant}
-    />
+    <div ref={containerRef} className="w-full">
+      <RecommendationTabs
+        currentMovieTitle={currentMovieTitle}
+        genreName={data.genreName}
+        countryName={data.countryName}
+        actorName={data.actorName || primaryActor}
+        directorName={data.directorName || primaryDirector}
+        genreMovies={data.genreMovies}
+        countryMovies={data.countryMovies}
+        actorMovies={data.actorMovies}
+        directorMovies={data.directorMovies}
+        allMovies={data.allMovies}
+        variant={variant}
+      />
+    </div>
   );
 }
 

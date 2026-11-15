@@ -231,6 +231,8 @@ export async function GET(req: NextRequest) {
     return NextResponse.json(responseData, {
       headers: {
         "Cache-Control": "public, max-age=1800, s-maxage=3600, stale-while-revalidate=86400",
+        "CDN-Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400",
+        "Vercel-CDN-Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400",
       },
     });
   } catch (error) {
