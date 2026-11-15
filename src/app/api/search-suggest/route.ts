@@ -72,7 +72,7 @@ export async function GET(req: NextRequest) {
     const shouldCheckActor =
       !histArtist &&
       (hasExplicitActorPrefix(keyword) ||
-      (!isAmbiguousShortActorKeyword(keyword) && keyword.trim().split(/\s+/).length >= 2));
+        (!isAmbiguousShortActorKeyword(keyword) && keyword.trim().split(/\s+/).length >= 2));
 
     // Chạy song song tìm kiếm phim và phân giải diễn viên với timeout tối đa 1800ms
     // skipKvCache: true đảm bảo các truy vấn gợi ý dở dang (limit 8) không ghi rác lên Cloudflare KV
@@ -92,11 +92,11 @@ export async function GET(req: NextRequest) {
       ]).catch(() => ({ items: [] })),
       shouldCheckActor
         ? Promise.race([
-            resolveActorMovies(keyword),
-            new Promise<{ isActor: boolean; actorName: string; titles: string[]; aliases: string[]; country?: string; source: "none" }>((resolve) =>
-              setTimeout(() => resolve({ isActor: false, actorName: "", titles: [], aliases: [], source: "none" }), 800)
-            ),
-          ]).catch(() => null)
+          resolveActorMovies(keyword),
+          new Promise<{ isActor: boolean; actorName: string; titles: string[]; aliases: string[]; country?: string; source: "none" }>((resolve) =>
+            setTimeout(() => resolve({ isActor: false, actorName: "", titles: [], aliases: [], source: "none" }), 800)
+          ),
+        ]).catch(() => null)
         : Promise.resolve(null),
     ]);
 
@@ -210,7 +210,7 @@ export async function GET(req: NextRequest) {
             if (found.profile_path) break;
           }
         }
-      } catch {}
+      } catch { }
 
       if (tmdbPerson?.id) {
         matchedTmdbPersonId = tmdbPerson.id;
@@ -279,7 +279,7 @@ export async function GET(req: NextRequest) {
             });
           }
         }
-      } catch {}
+      } catch { }
     }
 
     const responseData = { items };

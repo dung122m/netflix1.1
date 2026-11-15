@@ -162,36 +162,6 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
     // Controls hiển thị khi showControls=true hoặc khi đang mở bảng cài đặt
     const isOverlayVisible = showControls || showSettings;
 
-    // Tua lùi 5s
-    const handleSeekBack = useCallback(
-      (e: React.MouseEvent) => {
-        e.stopPropagation();
-        if (videoRef.current) {
-          const target = Math.max(0, (videoRef.current.currentTime || 0) - 5);
-          if (onSeek) onSeek(target);
-          else videoRef.current.currentTime = target;
-        }
-        onSeekFeedback("-5s");
-        onUserInteraction?.();
-      },
-      [videoRef, onSeek, onSeekFeedback, onUserInteraction]
-    );
-
-    // Tua tới 5s
-    const handleSeekForward = useCallback(
-      (e: React.MouseEvent) => {
-        e.stopPropagation();
-        if (videoRef.current) {
-          const target = (videoRef.current.currentTime || 0) + 5;
-          if (onSeek) onSeek(target);
-          else videoRef.current.currentTime = target;
-        }
-        onSeekFeedback("+5s");
-        onUserInteraction?.();
-      },
-      [videoRef, onSeek, onSeekFeedback, onUserInteraction]
-    );
-
     // Nhãn chất lượng hiện tại
     const currentQualityLabel =
       currentQualityIndex === -1
@@ -347,35 +317,6 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
                     <YouTubeNextIcon className="w-5 h-5" />
                   </button>
                 </Tooltip>
-              )}
-
-              {/* Nút Tua Lùi 5s & Tua Tới 5s: Chỉ hiển thị trên Desktop (Mobile/Fullscreen tua bằng chạm đúp 2 bên hoặc thanh tua) */}
-              {!isMobileDevice && (
-                <>
-                  <Tooltip content="Tua lùi 5 giây" shortcut="J / ←" side="top">
-                    <button
-                      type="button"
-                      data-player-control="true"
-                      onClick={handleSeekBack}
-                      aria-label="Tua lùi 5 giây"
-                      className="hidden sm:inline-flex w-9 h-9 sm:w-10 sm:h-10 rounded-full hover:bg-white/15 active:scale-90 text-zinc-300 hover:text-white items-center justify-center transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-white/40"
-                    >
-                      <YouTubeSeek5BackIcon className="w-4.5 h-4.5" />
-                    </button>
-                  </Tooltip>
-
-                  <Tooltip content="Tua tới 5 giây" shortcut="L / →" side="top">
-                    <button
-                      type="button"
-                      data-player-control="true"
-                      onClick={handleSeekForward}
-                      aria-label="Tua tới 5 giây"
-                      className="hidden sm:inline-flex w-9 h-9 sm:w-10 sm:h-10 rounded-full hover:bg-white/15 active:scale-90 text-zinc-300 hover:text-white items-center justify-center transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-white/40"
-                    >
-                      <YouTubeSeek5ForwardIcon className="w-4.5 h-4.5" />
-                    </button>
-                  </Tooltip>
-                </>
               )}
 
               <div className="flex items-center group/vol">
