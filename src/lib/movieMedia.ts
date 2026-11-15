@@ -696,7 +696,7 @@ export function toOptimizedCardPosterUrl(url: string, _targetWidth: number = 320
 const R2_PUBLIC_BASE_URL =
   (typeof process !== "undefined" &&
     (process.env.NEXT_PUBLIC_R2_PUBLIC_URL || process.env.R2_PUBLIC_URL)) ||
-  "https://media.nanaflix.asia";
+  "";
 
 /**
  * Trỏ trực tiếp URL sang Cloudflare R2 Public CDN nếu thuộc các domain đối tác/nguồn phim.
@@ -704,6 +704,7 @@ const R2_PUBLIC_BASE_URL =
  */
 export function getR2DirectMediaUrl(rawUrl: string): string | null {
   try {
+    if (!R2_PUBLIC_BASE_URL) return null;
     if (!rawUrl || typeof rawUrl !== "string") return null;
     const clean = rawUrl.trim();
     if (!clean.startsWith("http://") && !clean.startsWith("https://")) return null;

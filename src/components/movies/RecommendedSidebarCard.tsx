@@ -26,8 +26,10 @@ export const RecommendedSidebarCard = React.memo(function RecommendedSidebarCard
   displayCategory,
 }: RecommendedSidebarCardProps) {
   const isLcpCandidate = index === 0;
-  const rawThumb = pickBestMovieThumb(item, "/default-hero.jpg");
-  const thumbUrl = toFastCdnImageUrl(toOptimizedPhimimgUrl(rawThumb, 240));
+  const rawThumb = pickBestMovieThumb(item, "");
+  const rawPoster = item.poster_url || item.posterUrl || "";
+  const initialThumb = rawThumb || rawPoster || "/default-hero.jpg";
+  const [imgSrc, setImgSrc] = React.useState(() => toFastCdnImageUrl(toOptimizedPhimimgUrl(initialThumb, 240)));
   const title = item.name || item.title || "Phim";
   const categoryName = displayCategory || item.category?.[0]?.name;
   const year = item.year;
@@ -45,7 +47,7 @@ export const RecommendedSidebarCard = React.memo(function RecommendedSidebarCard
       {/* 1. THUMBNAIL (16:9) */}
       <div className="relative aspect-video w-[115px] sm:w-[130px] rounded-lg overflow-hidden bg-zinc-800 shrink-0 shadow-sm">
         <Image
-          src={thumbUrl}
+          src={imgSrc}
           alt={title}
           fill
           unoptimized
@@ -56,11 +58,11 @@ export const RecommendedSidebarCard = React.memo(function RecommendedSidebarCard
           priority={isLcpCandidate}
           fetchPriority={isLcpCandidate ? "high" : "auto"}
           quality={80}
-          onError={(e) => {
-            const target = e.currentTarget as HTMLImageElement;
-            if (target && !target.src.includes("/default-hero.jpg")) {
-              target.srcset = "";
-              target.src = "/default-hero.jpg";
+          onError={() => {
+            if (rawPoster && !imgSrc.includes(rawPoster)) {
+              setImgSrc(toFastCdnImageUrl(rawPoster));
+            } else if (!imgSrc.includes("/default-hero.jpg")) {
+              setImgSrc("/default-hero.jpg");
             }
           }}
         />
