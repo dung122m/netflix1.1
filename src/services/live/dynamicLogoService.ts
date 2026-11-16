@@ -14,6 +14,8 @@
  * - Fallback trung tính (trả về "" khi không tự tin, tuyệt đối không gán nhầm đội khác)
  */
 
+import { cacheService } from "@/lib/cache";
+
 export interface CachedLogoEntry {
   url: string;
   expiresAt: number;
@@ -437,11 +439,23 @@ export async function resolveDynamicSportsLogo(name: string, sport?: string): Pr
   if (!name || !name.trim()) return "";
   const key = `${sport || "all"}:${normalizeEntityKey(name)}`;
 
-  // 1. Kiểm tra cache tức thì (0ms)
+  // 1. Kiểm tra L1 RAM cache tức thì (0ms)
   const cached = getCachedLogo(key);
   if (cached !== null) return cached;
 
-  // 2. Ghép vào Promise in-flight nếu đang có request trùng tên chạy đồng thời
+  // 2. Kiểm tra L2 Redis cache DB 2 (Live)
+  const redisKey = `live:logo:${key}`;
+  try {
+    const redisHit = await cacheService.get<string>(redisKey);
+    if (typeof redisHit === "string") {
+      setCachedLogo(key, redisHit, !redisHit);
+      return redisHit;
+    }
+  } catch {
+    // Graceful fallback nếu Redis timeout
+  }
+
+  // 3. Ghép vào Promise in-flight nếu đang có request trùng tên chạy đồng thời
   if (IN_FLIGHT_FETCHES.has(key)) {
     return IN_FLIGHT_FETCHES.get(key)!;
   }
@@ -463,9 +477,12 @@ export async function resolveDynamicSportsLogo(name: string, sport?: string): Pr
       }
 
       setCachedLogo(key, result, !result);
+      const ttl = result ? 7 * 86400 : 3600;
+      cacheService.set(redisKey, result, ttl).catch(() => {});
       return result;
     } catch {
       setCachedLogo(key, "", true);
+      cacheService.set(redisKey, "", 3600).catch(() => {});
       return "";
     } finally {
       IN_FLIGHT_FETCHES.delete(key);

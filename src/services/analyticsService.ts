@@ -1,6 +1,7 @@
 import { supabase } from "@/lib/supabase";
 import { getSupabaseAdmin, isSupabaseAdminConfigured } from "@/lib/supabaseAdmin";
 import { AnalyticsEventPayload } from "@/lib/analyticsClient";
+import { cacheService } from "@/lib/cache";
 
 export interface StoredAnalyticsEvent {
   id: string;
@@ -601,6 +602,18 @@ export async function getAnalyticsDashboardStats(
     if (cached && cached.expiresAt > now) {
       return cached.data;
     }
+
+    const redisKey = `analytics:dashboard:${timeframe}`;
+    try {
+      const redisHit = await cacheService.get<AnalyticsDashboardStats>(redisKey);
+      if (redisHit && typeof redisHit === "object" && typeof redisHit.totalViews === "number") {
+        dashboardStatsCache.set(timeframe, {
+          data: redisHit,
+          expiresAt: now + DASHBOARD_STATS_CACHE_TTL_MS,
+        });
+        return redisHit;
+      }
+    } catch {}
   }
   let cutoffTimestamp = 0;
 
@@ -1071,6 +1084,8 @@ export async function getAnalyticsDashboardStats(
     data: dashboardStatsResult,
     expiresAt: Date.now() + DASHBOARD_STATS_CACHE_TTL_MS,
   });
+  const redisKey = `analytics:dashboard:${timeframe}`;
+  cacheService.set(redisKey, dashboardStatsResult, 45).catch(() => {});
   return dashboardStatsResult;
 }
 

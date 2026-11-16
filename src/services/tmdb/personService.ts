@@ -206,98 +206,105 @@ export async function getTmdbPersonMovieCredits(personId: number): Promise<TmdbM
     return cached.data;
   }
 
-  const existing = inFlightCredits.get(personId);
-  if (existing) {
-    return existing;
-  }
-
-  const task = (async () => {
-    try {
-      const data = await fetchTmdbEndpoint(`/person/${personId}/combined_credits?language=vi-VN`);
-
-      const rawCast = Array.isArray(data?.cast) ? data.cast : [];
-      const rawCrew = Array.isArray(data?.crew) ? data.crew : [];
-
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const directingCrew = rawCrew.filter((c: any) => c.department === "Directing");
-      const combined = [...rawCast, ...directingCrew];
-      const uniqueMap = new Map<number, TmdbMovieCredit>();
-      const currentYear = new Date().getFullYear();
-
-      for (const m of combined) {
-        if (!m || !m.id || uniqueMap.has(m.id)) continue;
-
-        const releaseDate = m.release_date || m.first_air_date || "";
-        if (releaseDate) {
-          const year = parseInt(releaseDate.slice(0, 4), 10);
-          if (year > currentYear + 1) continue;
-        }
-
-        const charLower = (m.character || "").toLowerCase();
-        const jobLower = (m.job || "").toLowerCase();
-        const genreIds: number[] = Array.isArray(m.genre_ids) ? m.genre_ids : [];
-        const isTv = m.media_type === "tv" || Boolean(m.first_air_date);
-        const episodeCount = Number(m.episode_count || 1);
-
-        if (
-          charLower.includes("uncredited") &&
-          (charLower.includes("archive") || charLower.includes("thanks"))
-        ) {
-          continue;
-        }
-        if (jobLower.includes("special thanks") || jobLower.includes("thanks")) {
-          continue;
-        }
-
-        const isRealityOrTalk =
-          genreIds.includes(10764) || genreIds.includes(10767) || genreIds.includes(10763);
-        const isGuestOrSelf =
-          charLower.startsWith("self - guest") ||
-          charLower.includes("guest") ||
-          charLower === "self" ||
-          charLower === "self - host" ||
-          !charLower;
-
-        if (isTv && (isRealityOrTalk || (isGuestOrSelf && episodeCount <= 2))) {
-          continue;
-        }
-
-        uniqueMap.set(m.id, {
-          id: m.id,
-          title: m.title || m.name || m.original_name || m.original_title || "",
-          original_title: m.original_title || m.original_name || m.title || m.name || "",
-          release_date: releaseDate,
-          vote_average: Number(m.vote_average || 0),
-          vote_count: Number(m.vote_count || 0),
-          popularity: Number(m.popularity || 0),
-          poster_path: m.poster_path || null,
-          character: m.character || "",
-          media_type: m.media_type || (m.first_air_date ? "tv" : "movie"),
-          genre_ids: Array.isArray(m.genre_ids) ? m.genre_ids : (genreIds.length > 0 ? genreIds : undefined),
-          original_language: m.original_language || undefined,
-        });
+  const kvKey = `tmdb:person_credits_v1:${personId}`;
+  return await cacheService.fetchOrSet<TmdbMovieCredit[]>(
+    kvKey,
+    async () => {
+      const existing = inFlightCredits.get(personId);
+      if (existing) {
+        return existing;
       }
 
-      const sortedCredits = Array.from(uniqueMap.values()).sort((a, b) => {
-        const scoreA = (a.vote_count || 0) * 0.7 + (a.popularity || 0) * 10;
-        const scoreB = (b.vote_count || 0) * 0.7 + (b.popularity || 0) * 10;
-        return scoreB - scoreA;
-      });
+      const task = (async () => {
+        try {
+          const data = await fetchTmdbEndpoint(`/person/${personId}/combined_credits?language=vi-VN`);
 
-      TMDB_CREDITS_CACHE.set(personId, {
-        data: sortedCredits,
-        expireAt: Date.now() + 24 * 3600 * 1000,
-        staleUntil: Date.now() + 48 * 3600 * 1000,
-      });
+          const rawCast = Array.isArray(data?.cast) ? data.cast : [];
+          const rawCrew = Array.isArray(data?.crew) ? data.crew : [];
 
-      return sortedCredits;
-    } finally {
-      inFlightCredits.delete(personId);
-    }
-  })();
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const directingCrew = rawCrew.filter((c: any) => c.department === "Directing");
+          const combined = [...rawCast, ...directingCrew];
+          const uniqueMap = new Map<number, TmdbMovieCredit>();
+          const currentYear = new Date().getFullYear();
 
-  inFlightCredits.set(personId, task);
-  return task;
+          for (const m of combined) {
+            if (!m || !m.id || uniqueMap.has(m.id)) continue;
+
+            const releaseDate = m.release_date || m.first_air_date || "";
+            if (releaseDate) {
+              const year = parseInt(releaseDate.slice(0, 4), 10);
+              if (year > currentYear + 1) continue;
+            }
+
+            const charLower = (m.character || "").toLowerCase();
+            const jobLower = (m.job || "").toLowerCase();
+            const genreIds: number[] = Array.isArray(m.genre_ids) ? m.genre_ids : [];
+            const isTv = m.media_type === "tv" || Boolean(m.first_air_date);
+            const episodeCount = Number(m.episode_count || 1);
+
+            if (
+              charLower.includes("uncredited") &&
+              (charLower.includes("archive") || charLower.includes("thanks"))
+            ) {
+              continue;
+            }
+            if (jobLower.includes("special thanks") || jobLower.includes("thanks")) {
+              continue;
+            }
+
+            const isRealityOrTalk =
+              genreIds.includes(10764) || genreIds.includes(10767) || genreIds.includes(10763);
+            const isGuestOrSelf =
+              charLower.startsWith("self - guest") ||
+              charLower.includes("guest") ||
+              charLower === "self" ||
+              charLower === "self - host" ||
+              !charLower;
+
+            if (isTv && (isRealityOrTalk || (isGuestOrSelf && episodeCount <= 2))) {
+              continue;
+            }
+
+            uniqueMap.set(m.id, {
+              id: m.id,
+              title: m.title || m.name || m.original_name || m.original_title || "",
+              original_title: m.original_title || m.original_name || m.title || m.name || "",
+              release_date: releaseDate,
+              vote_average: Number(m.vote_average || 0),
+              vote_count: Number(m.vote_count || 0),
+              popularity: Number(m.popularity || 0),
+              poster_path: m.poster_path || null,
+              character: m.character || "",
+              media_type: m.media_type || (m.first_air_date ? "tv" : "movie"),
+              genre_ids: Array.isArray(m.genre_ids) ? m.genre_ids : (genreIds.length > 0 ? genreIds : undefined),
+              original_language: m.original_language || undefined,
+            });
+          }
+
+          const sortedCredits = Array.from(uniqueMap.values()).sort((a, b) => {
+            const scoreA = (a.vote_count || 0) * 0.7 + (a.popularity || 0) * 10;
+            const scoreB = (b.vote_count || 0) * 0.7 + (b.popularity || 0) * 10;
+            return scoreB - scoreA;
+          });
+
+          TMDB_CREDITS_CACHE.set(personId, {
+            data: sortedCredits,
+            expireAt: Date.now() + 24 * 3600 * 1000,
+            staleUntil: Date.now() + 48 * 3600 * 1000,
+          });
+
+          return sortedCredits;
+        } finally {
+          inFlightCredits.delete(personId);
+        }
+      })();
+
+      inFlightCredits.set(personId, task);
+      return task;
+    },
+    14 * 86400
+  );
 }
 
 /**
@@ -331,7 +338,14 @@ export async function getActorFilmographyFromTmdb(
     }
   }
 
-  return await executeTmdbActorFlow(actorQuery, canonicalName, aliases, cacheKey, maxMovies, concurrency, tmdbPersonId);
+  const kvKey = `tmdb:actor_flow_v1:${tmdbPersonId || cleanKey}:${maxMovies}`;
+  return await cacheService.fetchOrSet(
+    kvKey,
+    async () => {
+      return await executeTmdbActorFlow(actorQuery, canonicalName, aliases, cacheKey, maxMovies, concurrency, tmdbPersonId);
+    },
+    7 * 86400
+  );
 }
 
 async function executeTmdbActorFlow(

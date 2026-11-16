@@ -148,7 +148,8 @@ export function getRedisPurposeForKey(key: string): RedisPurpose {
     key.startsWith("search:") ||
     key.startsWith("synopsis:") ||
     key.startsWith("movie:synopsis:") ||
-    key.startsWith("r2:")
+    key.startsWith("r2:") ||
+    key.startsWith("analytics:")
   ) {
     return "aux";
   }
