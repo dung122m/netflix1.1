@@ -1999,6 +1999,8 @@ async function fetchSourceData(
 // ============================================================
 import {
   deduplicateMovieItems,
+  extractMovieIdentityKeys,
+  isMovieInSeenSet,
   evaluateSearchRelevance,
   cleanNormalizedForMatch,
   extractMovieRatingScore,
@@ -2006,7 +2008,7 @@ import {
   extractMovieDirectors,
   extractMovieActors,
 } from "@/lib/movieMedia";
-export { deduplicateMovieItems, extractMovieRatingScore, extractMovieModifiedTime };
+export { deduplicateMovieItems, extractMovieIdentityKeys, isMovieInSeenSet, extractMovieRatingScore, extractMovieModifiedTime };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function applyMovieFilters(items: any[], params: MovieFilterParams): any[] {
@@ -2325,16 +2327,39 @@ async function executeGetMovies(params: MovieFilterParams, cacheKey: string) {
   const requestedPage = params.page && params.page >= 1 ? Math.floor(params.page) : 1;
 
   // Khử trùng lặp giữa các trang (cross-page deduplication): loại bỏ phim đã xuất hiện ở các trang trước (< requestedPage)
-  if (requestedPage > 1 && seenSlugsByPage.size > 0) {
-    const priorSeen = new Set<string>();
-    for (const [seenPage, slugSet] of seenSlugsByPage.entries()) {
+  const priorSeen = new Set<string>();
+  if (requestedPage > 1) {
+    for (const [seenPage, keySet] of seenSlugsByPage.entries()) {
       if (seenPage < requestedPage) {
-        for (const s of slugSet) priorSeen.add(s);
+        for (const k of keySet) priorSeen.add(k);
       }
     }
+
+    // Nếu trang 1 chưa có trong cache RAM (truy cập thẳng trang 2+ từ bookmark/link),
+    // chủ động nạp nhanh trang 1 để bảo đảm không bị trùng lặp phim của trang đầu
+    if (!seenSlugsByPage.has(1)) {
+      try {
+        const p1Key = buildMovieCacheKey({ ...params, page: 1 });
+        let p1Cached = moviesMemoryCache.get(p1Key)?.data;
+        if (!p1Cached) {
+          p1Cached = await executeGetMovies({ ...params, page: 1 }, p1Key);
+        }
+        if (p1Cached?.items && Array.isArray(p1Cached.items)) {
+          const p1Keys = new Set<string>();
+          for (const itm of p1Cached.items) {
+            for (const k of extractMovieIdentityKeys(itm)) {
+              p1Keys.add(k);
+              priorSeen.add(k);
+            }
+          }
+          seenSlugsByPage.set(1, p1Keys);
+        }
+      } catch { }
+    }
+
     if (priorSeen.size > 0) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      candidates = candidates.filter((m: any) => !priorSeen.has(m.slug));
+      candidates = candidates.filter((m: any) => !isMovieInSeenSet(m, priorSeen));
     }
   }
 
@@ -2343,17 +2368,25 @@ async function executeGetMovies(params: MovieFilterParams, cacheKey: string) {
   // Tự động bù đắp (top-up) nếu sau khi lọc/dedupe trang bị khuyết dưới target limit
   if (finalItems.length < limit && requestedPage < maxTotalPages) {
     try {
-      const existingSlugs = new Set(candidates.map((c) => c.slug).filter(Boolean));
+      const existingKeys = new Set<string>();
+      for (const c of candidates) {
+        for (const k of extractMovieIdentityKeys(c)) existingKeys.add(k);
+      }
       const appendUniqueFiltered = (items: unknown[]) => {
         if (!Array.isArray(items) || items.length === 0) return;
         const filtered = applyMovieFilters(
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          items.filter((item: any) => item?.slug && !existingSlugs.has(item.slug)),
+          items.filter(
+            (item: any) =>
+              item?.slug &&
+              !isMovieInSeenSet(item, existingKeys) &&
+              !isMovieInSeenSet(item, priorSeen)
+          ),
           params
         );
         for (const item of filtered) {
           if (finalItems.length >= limit) break;
-          existingSlugs.add(item.slug);
+          for (const k of extractMovieIdentityKeys(item)) existingKeys.add(k);
           candidates.push(item);
           finalItems.push(item);
         }
@@ -2465,15 +2498,11 @@ async function executeGetMovies(params: MovieFilterParams, cacheKey: string) {
   const staleTtl = isDegraded ? 30 * 1000 : 1800 * 1000;
 
   if (finalItems.length > 0) {
-    seenSlugsByPage.set(
-      requestedPage,
-      new Set(
-        finalItems
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          .map((itm: any) => itm?.slug)
-          .filter(Boolean)
-      )
-    );
+    const pageKeys = new Set<string>();
+    for (const itm of finalItems) {
+      for (const k of extractMovieIdentityKeys(itm)) pageKeys.add(k);
+    }
+    seenSlugsByPage.set(requestedPage, pageKeys);
   }
 
   queryMetadataCache.set(metaKey, {

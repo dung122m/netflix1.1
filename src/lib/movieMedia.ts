@@ -251,6 +251,58 @@ export function evaluateSearchRelevance(
 
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function extractMovieIdentityKeys(item: any): string[] {
+  if (!item) return [];
+  const keys: string[] = [];
+  const slug = item.slug ? String(item.slug).trim().toLowerCase() : "";
+  if (slug) {
+    keys.push(slug);
+    keys.push(`slug:${slug}`);
+  }
+
+  const tmdbId = item.tmdb?.id ? String(item.tmdb.id).trim() : "";
+  if (tmdbId) keys.push(`tmdb:${tmdbId}`);
+
+  const imdbId = item.imdb?.id ? String(item.imdb.id).trim().toLowerCase() : "";
+  if (imdbId) keys.push(`imdb:${imdbId}`);
+
+  const year = item.year ? String(item.year).trim() : "";
+  const normName = item.name ? normalizeForMatch(String(item.name)) : "";
+  const normOrigin = item.origin_name ? normalizeForMatch(String(item.origin_name)) : "";
+
+  if (normName && year) keys.push(`ty:${normName}_${year}`);
+  if (normOrigin && year) keys.push(`oty:${normOrigin}_${year}`);
+  if (normName) keys.push(`name:${normName}`);
+  if (normOrigin) keys.push(`oname:${normOrigin}`);
+
+  return keys;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function isMovieInSeenSet(item: any, seenKeys: Set<string>): boolean {
+  if (!item || seenKeys.size === 0) return false;
+  const slug = item.slug ? String(item.slug).trim().toLowerCase() : "";
+  if (slug && (seenKeys.has(slug) || seenKeys.has(`slug:${slug}`))) return true;
+
+  const tmdbId = item.tmdb?.id ? String(item.tmdb.id).trim() : "";
+  if (tmdbId && seenKeys.has(`tmdb:${tmdbId}`)) return true;
+
+  const imdbId = item.imdb?.id ? String(item.imdb.id).trim().toLowerCase() : "";
+  if (imdbId && seenKeys.has(`imdb:${imdbId}`)) return true;
+
+  const year = item.year ? String(item.year).trim() : "";
+  const normName = item.name ? normalizeForMatch(String(item.name)) : "";
+  const normOrigin = item.origin_name ? normalizeForMatch(String(item.origin_name)) : "";
+
+  if (normName && year && seenKeys.has(`ty:${normName}_${year}`)) return true;
+  if (normOrigin && year && seenKeys.has(`oty:${normOrigin}_${year}`)) return true;
+  if (normOrigin && year && seenKeys.has(`ty:${normOrigin}_${year}`)) return true;
+  if (normName && year && seenKeys.has(`oty:${normName}_${year}`)) return true;
+
+  return false;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function deduplicateMovieItems(items: any[]): any[] {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const seenMap = new Map<string, any>();

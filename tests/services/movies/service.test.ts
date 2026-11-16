@@ -128,6 +128,27 @@ describe("Nanaflix Movie Browse Pagination & Filter Service", () => {
     );
   });
 
+  // H2. Khử trùng lặp đa nguồn giữa các trang (cross-page deduplication)
+  it("H2. Multi-source catalog browsing across consecutive pages has zero cross-page duplicate movies", async () => {
+    const seen = new Set<string>();
+    const duplicates: string[] = [];
+    for (let p = 1; p <= 3; p++) {
+      const res = await movieApi.getMovies({ type: "phim-bo", page: p, limit: 24, skipKvCache: true });
+      for (const itm of res.items) {
+        if (seen.has(itm.slug)) {
+          duplicates.push(`Page ${p}: ${itm.slug} (${itm.name})`);
+        } else {
+          seen.add(itm.slug);
+        }
+      }
+    }
+    assert.equal(
+      duplicates.length,
+      0,
+      `Detected duplicate movies across pages: ${duplicates.join(", ")}`
+    );
+  });
+
   // I. Case hai source có các movie khác nhau → không được mất movie chỉ vì merge
   it("I. Two sources with different movies are both preserved without loss", async () => {
     const res = await movieApi.getMovies({ category: "tai-lieu", page: 1, limit: 24, skipKvCache: true });
