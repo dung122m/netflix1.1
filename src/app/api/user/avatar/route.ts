@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { verifyServerAuth } from "@/lib/serverAuth";
-import { isR2Configured, uploadToR2 } from "@/lib/r2";
+import { isR2Configured, uploadToR2, deleteFromR2, extractR2KeyFromUrl } from "@/lib/r2";
+import { validateImageMagicBytes, sanitizeStorageKey } from "@/lib/fileValidation";
 import {
   enforceRateLimit,
   buildRateLimitResponse,
@@ -16,6 +17,8 @@ const NO_CACHE_HEADERS = {
   "CDN-Cache-Control": "no-store",
   "Vercel-CDN-Cache-Control": "no-store",
 };
+
+const MAX_AVATAR_BYTES = 2.5 * 1024 * 1024; // 2.5MB
 
 export async function POST(req: NextRequest) {
   const auth = await verifyServerAuth(req);
@@ -40,8 +43,6 @@ export async function POST(req: NextRequest) {
   try {
     const contentType = req.headers.get("content-type") || "";
     let fileBuffer: Buffer | null = null;
-    let mimeType = "image/jpeg";
-    let fileExt = "jpg";
 
     if (contentType.includes("multipart/form-data")) {
       const formData = await req.formData();
@@ -50,15 +51,15 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "Thiếu file ảnh" }, { status: 400 });
       }
 
-      if (file.size > 10 * 1024 * 1024) {
-        return NextResponse.json({ error: "File ảnh vượt quá 10MB" }, { status: 400 });
+      if (file.size > MAX_AVATAR_BYTES) {
+        return NextResponse.json(
+          { error: "Ảnh đại diện vượt quá dung lượng cho phép (tối đa 2.5MB)" },
+          { status: 400 }
+        );
       }
 
       const bytes = await file.arrayBuffer();
       fileBuffer = Buffer.from(bytes);
-      mimeType = file.type || "image/jpeg";
-      if (mimeType.includes("png")) fileExt = "png";
-      else if (mimeType.includes("webp")) fileExt = "webp";
     } else {
       const body = await req.json().catch(() => null);
       if (!body?.base64) {
@@ -68,41 +69,65 @@ export async function POST(req: NextRequest) {
       const rawBase64 = String(body.base64);
       const matches = rawBase64.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
       if (matches && matches.length === 3) {
-        mimeType = matches[1];
         fileBuffer = Buffer.from(matches[2], "base64");
       } else {
         fileBuffer = Buffer.from(rawBase64, "base64");
       }
 
-      if (mimeType.includes("png")) fileExt = "png";
-      else if (mimeType.includes("webp")) fileExt = "webp";
+      if (fileBuffer.length > MAX_AVATAR_BYTES) {
+        return NextResponse.json(
+          { error: "Ảnh đại diện vượt quá dung lượng cho phép (tối đa 2.5MB)" },
+          { status: 400 }
+        );
+      }
     }
 
     if (!fileBuffer || fileBuffer.length === 0) {
       return NextResponse.json({ error: "Dữ liệu ảnh không hợp lệ" }, { status: 400 });
     }
 
-    const fileName = `${auth.userId}_${Date.now()}.${fileExt}`;
-    const filePath = `avatars/${fileName}`;
+    // 1. Kiểm tra chữ ký nhị phân Magic Bytes (Ngăn chặn triệt để Stored XSS / MIME Spoofing)
+    const validation = validateImageMagicBytes(fileBuffer, ["jpeg", "png", "webp"]);
+    if (!validation.isValid || !validation.mimeType || !validation.extension) {
+      return NextResponse.json(
+        { error: validation.error || "Định dạng file không được hỗ trợ (chỉ nhận JPG, PNG, WEBP)" },
+        { status: 400 }
+      );
+    }
+
+    const verifiedMimeType = validation.mimeType;
+    const verifiedExt = validation.extension;
+
+    // 2. Tra cứu avatar cũ của user để dọn dẹp file rác sau khi tải mới thành công
+    const { data: currentProfile } = await supabaseAdmin
+      .from("profiles")
+      .select("custom_avatar, photo_url")
+      .eq("id", auth.userId)
+      .maybeSingle();
+    const oldAvatarUrl = currentProfile?.custom_avatar || currentProfile?.photo_url || null;
+
+    const safeFileName = sanitizeStorageKey(`${auth.userId}_${Date.now()}.${verifiedExt}`);
+    const filePath = `avatars/${safeFileName}`;
 
     let avatarUrl: string | null = null;
 
-    // 1. Ưu tiên tải lên Cloudflare R2 (0đ băng thông, lưu trữ vĩnh viễn, CDN siêu tốc)
+    // 3. Ưu tiên tải lên Cloudflare R2 (0đ băng thông, lưu trữ vĩnh viễn, CDN siêu tốc)
     if (isR2Configured()) {
       avatarUrl = await uploadToR2({
         key: filePath,
         buffer: fileBuffer,
-        contentType: mimeType,
+        contentType: verifiedMimeType,
+        category: "ugc",
       });
     }
 
-    // 2. Dự phòng Supabase Storage nếu R2 không khả dụng
+    // 4. Dự phòng Supabase Storage nếu R2 không khả dụng
     if (!avatarUrl) {
       const { error: uploadError } = await supabaseAdmin.storage
         .from("avatars")
         .upload(filePath, fileBuffer, {
           upsert: true,
-          contentType: mimeType,
+          contentType: verifiedMimeType,
         });
 
       if (uploadError) {
@@ -121,7 +146,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Không thể lấy URL ảnh" }, { status: 500 });
     }
 
-    // Tự động cập nhật ngay hồ sơ người dùng trong database
+    // 5. Cập nhật ngay hồ sơ người dùng trong database
     const now = Date.now();
     await supabaseAdmin
       .from("profiles")
@@ -131,6 +156,23 @@ export async function POST(req: NextRequest) {
         updated_at: now,
       })
       .eq("id", auth.userId);
+
+    // 6. Tự động dọn dẹp avatar cũ (Orphaned File Cleanup) nếu có
+    if (oldAvatarUrl && typeof oldAvatarUrl === "string") {
+      const oldR2Key = extractR2KeyFromUrl(oldAvatarUrl);
+      if (oldR2Key && oldR2Key.startsWith("avatars/")) {
+        deleteFromR2(oldR2Key).catch((cleanupErr) => {
+          console.warn("[Avatar Upload] Dọn avatar R2 cũ thất bại:", cleanupErr);
+        });
+      } else if (oldAvatarUrl.includes("/avatars/") && !oldAvatarUrl.startsWith("/")) {
+        try {
+          const parts = oldAvatarUrl.split("/avatars/");
+          if (parts[1]) {
+            supabaseAdmin.storage.from("avatars").remove([parts[1]]).catch(() => {});
+          }
+        } catch {}
+      }
+    }
 
     return NextResponse.json(
       {
@@ -145,4 +187,3 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
-

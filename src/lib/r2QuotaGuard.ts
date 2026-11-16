@@ -1,17 +1,15 @@
 /**
  * CLOUDFLARE R2 QUOTA GUARD & AUTOMATIC CIRCUIT BREAKER
  * 
- * Bảo vệ tuyệt đối hạn mức gói Free của Cloudflare R2:
- * - Hạn mức Free Cloudflare R2: 10 GB lưu trữ & 1,000,000 lượt PUT/tháng
- * - Ngưỡng an toàn tối đa (Hard Ceilings):
- *   + Tối đa 150 uploads / ngày (Tháng tối đa ~4,500 lượt -> Chỉ chiếm 0.45% quota)
- *   + Tối đa 5,000 uploads / tháng (Chỉ chiếm 0.5% quota)
- *   + Tối đa 500 MB dung lượng tích lũy (Chỉ chiếm 5% quota 10 GB)
+ * Bảo vệ tối ưu hạn mức gói Free của Cloudflare R2:
+ * - Hạn mức Free Cloudflare R2: 10 GB lưu trữ & 1,000,000 lượt Class A (PUT/POST)/tháng
+ * - Băng thông Egress: 0đ (Hoàn toàn miễn phí, không giới hạn)
  * 
- * Cơ chế hoạt động:
- * 1. Trước mỗi lần uploadToR2, kiểm tra xem "cầu chì" có bị ngắt hay không.
- * 2. Nếu đã chạm ngưỡng ngày/tháng -> Cầu chì tự động NGẮT (Trip), từ chối upload và trả về fallback an toàn.
- * 3. Tự động phục hồi (Auto-reset) khi sang ngày mới hoặc tháng mới.
+ * Ngưỡng an toàn bảo vệ:
+ * - Tối đa 10,000 uploads / ngày (Tháng ~300,000 lượt -> Dưới 30% quota 1,000,000)
+ * - Tối đa 200,000 uploads / tháng (Chỉ chiếm 20% quota 1,000,000)
+ * - Tối đa 8 GB dung lượng lưu trữ (80% quota 10 GB, chừa 2 GB biên độ an toàn)
+ * - Tách riêng UGC (Avatar/Cover người dùng) và Cache Poster để đảm bảo người dùng luôn upload được
  */
 
 export interface R2QuotaMetrics {
@@ -26,15 +24,17 @@ export interface R2QuotaMetrics {
   lastTripTimestamp?: number;
 }
 
-// Ngưỡng an toàn tuyệt đối (Không bao giờ chạm đến 1% hạn mức miễn phí)
+// Ngưỡng an toàn chuẩn hóa cho Cloudflare R2
 export const R2_LIMITS = {
-  MAX_DAILY_UPLOADS: 150,
-  MAX_MONTHLY_UPLOADS: 5000,
-  MAX_STORAGE_BYTES: 500 * 1024 * 1024, // 500 MB
+  MAX_DAILY_UPLOADS: 10000,
+  MAX_MONTHLY_UPLOADS: 200000,
+  MAX_STORAGE_BYTES: 8 * 1024 * 1024 * 1024, // 8 GB
+  MAX_DAILY_UGC_UPLOADS: 2000,
 };
 
 // In-memory ledger tracking (lưu trong instance serverless/container)
 let inMemoryDailyCount = 0;
+let inMemoryDailyUgcCount = 0;
 let inMemoryDailyDate = new Date().toISOString().slice(0, 10);
 let inMemoryMonthlyCount = 0;
 let inMemoryMonthlyMonth = new Date().toISOString().slice(0, 7);
@@ -48,6 +48,7 @@ function refreshDateWindows(): void {
   if (inMemoryDailyDate !== today) {
     inMemoryDailyDate = today;
     inMemoryDailyCount = 0;
+    inMemoryDailyUgcCount = 0;
   }
   if (inMemoryMonthlyMonth !== thisMonth) {
     inMemoryMonthlyMonth = thisMonth;
@@ -57,11 +58,15 @@ function refreshDateWindows(): void {
 
 /**
  * Kiểm tra xem có được phép upload lên R2 hay không.
- * Nếu vượt ngưỡng an toàn, cầu chì sẽ lập tức ngắt.
  * @param contentLengthBytes Dung lượng file dự kiến upload
- * @param isBatchAdmin Đặt true khi chạy script seed/pre-warm của Quản trị viên (bỏ qua trần ngày 150, vẫn tuân thủ trần dung lượng 500MB)
+ * @param isBatchAdmin Đặt true khi chạy script seed/pre-warm của Quản trị viên
+ * @param category Phân loại: "ugc" (Avatar/Cover user) hoặc "cache" (Proxy ảnh phim) hoặc "admin"
  */
-export function checkR2QuotaAllowance(contentLengthBytes = 50 * 1024, isBatchAdmin = false): {
+export function checkR2QuotaAllowance(
+  contentLengthBytes = 50 * 1024,
+  isBatchAdmin = false,
+  category: "ugc" | "cache" | "admin" = "cache"
+): {
   allowed: boolean;
   reason?: string;
 } {
@@ -74,7 +79,30 @@ export function checkR2QuotaAllowance(contentLengthBytes = 50 * 1024, isBatchAdm
     };
   }
 
-  // Đối với client runtime thông thường: Chặn cứng trần ngày 150 upload để chống spam / bot cào
+  // 1. Kiểm tra trần dung lượng lưu trữ (Hard ceiling 8GB / 10GB free)
+  if (inMemoryStorageBytes + contentLengthBytes > R2_LIMITS.MAX_STORAGE_BYTES) {
+    console.warn(
+      `[R2 CIRCUIT BREAKER] Ngắt cầu chì! Dung lượng ước tính (${(inMemoryStorageBytes / 1024 / 1024).toFixed(1)}MB) sắp chạm trần an toàn ${R2_LIMITS.MAX_STORAGE_BYTES / 1024 / 1024}MB.`
+    );
+    return {
+      allowed: false,
+      reason: "Storage safety limit reached",
+    };
+  }
+
+  // 2. Đối với UGC (Avatar / Cover do người dùng đổi):
+  // Luôn ưu tiên người dùng, bảo vệ bằng quota UGC riêng biệt để không bị cache ảnh phim làm ảnh hưởng
+  if (category === "ugc") {
+    if (inMemoryDailyUgcCount >= R2_LIMITS.MAX_DAILY_UGC_UPLOADS) {
+      return {
+        allowed: false,
+        reason: `Daily UGC upload ceiling reached (${inMemoryDailyUgcCount}/${R2_LIMITS.MAX_DAILY_UGC_UPLOADS})`,
+      };
+    }
+    return { allowed: true };
+  }
+
+  // 3. Đối với Cache / Batch Admin:
   if (!isBatchAdmin && inMemoryDailyCount >= R2_LIMITS.MAX_DAILY_UPLOADS) {
     console.warn(
       `[R2 CIRCUIT BREAKER] Ngắt cầu chì! Đã đạt giới hạn ${inMemoryDailyCount}/${R2_LIMITS.MAX_DAILY_UPLOADS} uploads hôm nay. Tự động chuyển sang fallback link gốc để bảo toàn quota miễn phí.`
@@ -95,27 +123,31 @@ export function checkR2QuotaAllowance(contentLengthBytes = 50 * 1024, isBatchAdm
     };
   }
 
-  if (inMemoryStorageBytes + contentLengthBytes > R2_LIMITS.MAX_STORAGE_BYTES) {
-    console.warn(
-      `[R2 CIRCUIT BREAKER] Ngắt cầu chì! Dung lượng ước tính (${(inMemoryStorageBytes / 1024 / 1024).toFixed(1)}MB) sắp chạm trần an toàn ${R2_LIMITS.MAX_STORAGE_BYTES / 1024 / 1024}MB.`
-    );
-    return {
-      allowed: false,
-      reason: "Storage safety limit reached",
-    };
-  }
-
   return { allowed: true };
 }
 
 /**
  * Ghi nhận sau khi upload thành công vào R2
  */
-export function recordSuccessfulR2Upload(bytesUploaded: number): void {
+export function recordSuccessfulR2Upload(
+  bytesUploaded: number,
+  category: "ugc" | "cache" | "admin" = "cache"
+): void {
   refreshDateWindows();
   inMemoryDailyCount++;
+  if (category === "ugc") {
+    inMemoryDailyUgcCount++;
+  }
   inMemoryMonthlyCount++;
   inMemoryStorageBytes += bytesUploaded;
+}
+
+/**
+ * Ghi nhận sau khi xóa file thành công khỏi R2 (giảm dung lượng lưu trữ ước tính)
+ */
+export function recordSuccessfulR2Delete(bytesDeleted = 50 * 1024): void {
+  refreshDateWindows();
+  inMemoryStorageBytes = Math.max(0, inMemoryStorageBytes - bytesDeleted);
 }
 
 /**
@@ -142,4 +174,3 @@ export function getR2QuotaStatus(): R2QuotaMetrics {
 export function setManualR2CircuitBreaker(locked: boolean): void {
   manualCircuitBreakerLock = locked;
 }
-

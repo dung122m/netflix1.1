@@ -1,5 +1,6 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse, after } from "next/server";
 import { isR2Configured, checkR2ObjectExists, uploadToR2, getR2PublicUrl } from "@/lib/r2";
+import { validateImageMagicBytes } from "@/lib/fileValidation";
 import {
   enforceRateLimit,
   buildRateLimitResponse,
@@ -102,19 +103,34 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    const contentType = upstreamRes.headers.get("content-type") || "image/jpeg";
     const arrayBuffer = await upstreamRes.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
-    // 3. Tải lên R2 ngầm (không chặn người dùng, phục vụ cho lần truy cập sau)
+    // Xác thực Magic Bytes để đảm bảo upstream không trả về trang HTML lỗi 200 OK
+    const validation = validateImageMagicBytes(buffer);
+    if (!validation.isValid) {
+      return NextResponse.redirect(new URL("/default-poster.jpg", req.url), {
+        status: 308,
+        headers: { "Cache-Control": "public, max-age=3600, s-maxage=3600" },
+      });
+    }
+
+    const verifiedContentType = validation.mimeType || "image/jpeg";
+
+    // 3. Tải lên R2 ngầm bằng `after()` (Đảm bảo container Vercel không bị đóng băng giữa chừng)
     if (isR2Configured() && buffer.length > 0) {
-      uploadToR2({
-        key: r2Key,
-        buffer,
-        contentType,
-        cacheControl: "public, max-age=31536000, immutable",
-      }).catch((uploadErr) => {
-        console.warn("[R2 Proxy] Background upload error:", uploadErr);
+      after(async () => {
+        try {
+          await uploadToR2({
+            key: r2Key,
+            buffer,
+            contentType: verifiedContentType,
+            cacheControl: "public, max-age=31536000, immutable",
+            category: "cache",
+          });
+        } catch (uploadErr) {
+          console.warn("[R2 Proxy] Background upload error:", uploadErr);
+        }
       });
     }
 
@@ -122,7 +138,7 @@ export async function GET(req: NextRequest) {
     return new Response(buffer, {
       status: 200,
       headers: {
-        "Content-Type": contentType,
+        "Content-Type": verifiedContentType,
         "Cache-Control": "public, max-age=31536000, s-maxage=31536000, immutable",
         "CDN-Cache-Control": "public, max-age=31536000, immutable",
         "Vercel-CDN-Cache-Control": "max-age=31536000, immutable",
