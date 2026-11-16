@@ -1,6 +1,7 @@
 import React, { cache } from "react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { cacheService } from "@/lib/cache";
 
 /**
  * ISR / Edge Cache: Cho phép CDN Cloudflare và Vercel Edge cache response HTML 24 giờ.
@@ -153,6 +154,7 @@ interface ActorPageRamCacheEntry {
 }
 const ACTOR_PAGE_RAM_CACHE = new Map<string, ActorPageRamCacheEntry>();
 const MAX_ACTOR_PAGE_RAM_ENTRIES = 2000;
+const ACTOR_PAGE_REDIS_TTL_SEC = 7 * 24 * 60 * 60; // 7 ngày trong Redis DB 3 (Aux)
 
 /**
  * Request-scoped memoized actor profile resolver (React cache).
@@ -179,6 +181,24 @@ const resolveActorProfile = cache(async (slug: string): Promise<ResolvedActorPro
       return cachedPage.profile;
     }
   }
+
+  // 1. Kiểm tra L2 Redis DB 3 (Aux) để tận dụng cache phân tán giữa các Serverless instances
+  try {
+    const redisCached = await cacheService.get<ResolvedActorProfile>(`actor:profile:v1:${slug}`);
+    if (redisCached && redisCached.canonicalName) {
+      if (ACTOR_PAGE_RAM_CACHE.size >= MAX_ACTOR_PAGE_RAM_ENTRIES) {
+        const oldest = ACTOR_PAGE_RAM_CACHE.keys().next().value;
+        if (oldest) ACTOR_PAGE_RAM_CACHE.delete(oldest);
+      }
+      ACTOR_PAGE_RAM_CACHE.set(slug, {
+        profile: redisCached,
+        wikiProfile: null,
+        movies: [],
+        expireAt: Date.now() + 7200000,
+      });
+      return redisCached;
+    }
+  } catch {}
 
   const { personId: explicitPersonId, rawName } = parseActorIdentifier(slug);
 
@@ -308,7 +328,7 @@ const resolveActorProfile = cache(async (slug: string): Promise<ResolvedActorPro
     new Set(actorAliases.map((a) => (a || "").trim()).filter(Boolean))
   );
 
-  return {
+  const resolved: ResolvedActorProfile = {
     rawName: toVietnameseTitleCase(rawName),
     tmdbPersonId: tmdbPersonId || tmdbDetail?.id,
     canonicalName: toVietnameseTitleCase(canonicalName || rawName),
@@ -319,6 +339,10 @@ const resolveActorProfile = cache(async (slug: string): Promise<ResolvedActorPro
     matchedPreset,
     tmdbDetail,
   };
+
+  cacheService.set(`actor:profile:v1:${slug}`, resolved, ACTOR_PAGE_REDIS_TTL_SEC).catch(() => {});
+
+  return resolved;
 });
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
@@ -377,9 +401,30 @@ export default async function ActorDetailPage({ params }: PageProps) {
       )
     : Promise.resolve([]);
 
-  const [wikiProfile, movies] = cachedPage && cachedPage.expireAt > now
-    ? [cachedPage.wikiProfile, cachedPage.movies]
-    : await Promise.all([wikiProfilePromise, moviesPromise]);
+  let wikiProfile = cachedPage?.wikiProfile ?? null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let movies: any[] = (cachedPage?.movies as any[]) ?? [];
+
+  if (!cachedPage || cachedPage.expireAt <= now) {
+    try {
+      const redisFull = await cacheService.get<{ wikiProfile: ActorProfile | null; movies: unknown[] }>(
+        `actor:full_page:v1:${slug}`
+      );
+      if (redisFull && Array.isArray(redisFull.movies) && redisFull.movies.length > 0) {
+        wikiProfile = redisFull.wikiProfile;
+        movies = redisFull.movies;
+      }
+    } catch {}
+
+    if (!movies || movies.length === 0) {
+      [wikiProfile, movies] = await Promise.all([wikiProfilePromise, moviesPromise]);
+      if (movies && movies.length > 0) {
+        cacheService
+          .set(`actor:full_page:v1:${slug}`, { wikiProfile, movies }, ACTOR_PAGE_REDIS_TTL_SEC)
+          .catch(() => {});
+      }
+    }
+  }
 
   // Nếu không tìm thấy thông tin trên TMDb, Wikipedia và cũng không có phim nào trên hệ thống -> 404 Not Found
   if (!tmdbDetail && !wikiProfile && (!movies || movies.length === 0)) {

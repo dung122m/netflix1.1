@@ -14,7 +14,7 @@ import { ForYouPersonalizedRow } from "@/components/movies/ForYouPersonalizedRow
 import { getR2BannerUrl } from "@/lib/r2";
 
 export const dynamic = "force-static";
-export const revalidate = 1800; // ISR 30 phút cho trang chủ landing page (giảm tải CPU Vercel 3x)
+export const revalidate = 7200; // ISR 2 giờ cho trang chủ landing page (giảm tải CPU Vercel thêm 4x)
 
 // ==========================================
 // METADATA
