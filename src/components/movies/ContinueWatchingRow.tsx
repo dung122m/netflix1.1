@@ -21,11 +21,34 @@ import { CarouselNavButton } from "@/components/ui/CarouselNavButton";
 import { useCarouselScroll } from "@/components/ui/useCarouselScroll";
 import { SectionHeader } from "@/components/ui/SectionHeader";
 import { useMoviePosterFallback, isPhimimgSourceUrl } from "@/hooks/useMoviePosterFallback";
+import { MovieCardSkeleton } from "@/components/ui/MovieCardSkeleton";
 
 export const MAX_CONTINUE_WATCHING_DISPLAY = 15;
 
 const continueWatchingThumbCache = new Map<string, string>();
-const loadedPostersCache = new Set<string>();
+
+// Persist loaded poster URLs trong sessionStorage để reload cùng session không bị fade-in lại
+const SESSION_KEY = "nfx_cw_loaded_posters";
+function buildLoadedPostersCache(): Set<string> {
+  try {
+    const raw = typeof window !== "undefined" ? sessionStorage.getItem(SESSION_KEY) : null;
+    if (raw) return new Set<string>(JSON.parse(raw) as string[]);
+  } catch {}
+  return new Set<string>();
+}
+function persistLoadedPoster(url: string) {
+  try {
+    const raw = sessionStorage.getItem(SESSION_KEY);
+    const arr: string[] = raw ? (JSON.parse(raw) as string[]) : [];
+    if (!arr.includes(url)) {
+      arr.push(url);
+      // Giới hạn 200 entries để không chiếm quá nhiều storage
+      if (arr.length > 200) arr.splice(0, arr.length - 200);
+      sessionStorage.setItem(SESSION_KEY, JSON.stringify(arr));
+    }
+  } catch {}
+}
+const loadedPostersCache = buildLoadedPostersCache();
 
 export function isContinueWatchingItem(item: WatchHistoryItem): boolean {
   if (item.durationSeconds && item.durationSeconds > 0 && typeof item.progressSeconds === "number") {
@@ -177,6 +200,7 @@ function ContinueWatchingCard({ item, index = 0, onRemove }: ContinueWatchingCar
                 const safeLoaded = toFastCdnImageUrl(imgSrc);
                 if (safeLoaded) {
                   loadedPostersCache.add(safeLoaded);
+                  persistLoadedPoster(safeLoaded);
                   if (item.slug) continueWatchingThumbCache.set(item.slug, safeLoaded);
                 }
                 setIsLoaded(true);
@@ -314,7 +338,29 @@ function ContinueWatchingRowInner() {
 
   
 
-  if (!isClient || items.length === 0) {
+  if (!isClient) {
+    // Skeleton giữ chỗ trong lúc chờ JS hydrate — tránh layout shift
+    return (
+      <section className="relative z-10 w-full select-none">
+        <div className="flex items-center justify-between mb-3 px-1">
+          <div className="h-5 w-32 bg-zinc-800/80 rounded-md animate-pulse" />
+          <div className="h-4 w-20 bg-zinc-800/60 rounded-md animate-pulse" />
+        </div>
+        <div className="flex gap-3 sm:gap-4 overflow-hidden px-3 sm:px-4 py-3">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div
+              key={i}
+              className="flex-none w-[134px] min-[380px]:w-[144px] sm:w-[155px] md:w-[172px]"
+            >
+              <MovieCardSkeleton aspect="poster" rounded="xl" showInfo />
+            </div>
+          ))}
+        </div>
+      </section>
+    );
+  }
+
+  if (items.length === 0) {
     return null;
   }
 

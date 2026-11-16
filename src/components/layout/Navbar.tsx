@@ -19,6 +19,7 @@ import {
 import { NanaflixBrandLogo } from "@/components/layout/NetflixLogo";
 import { NavSearchBar } from "@/components/navbar/NavSearchBar";
 import { NavUserMenu } from "@/components/navbar/NavUserMenu";
+import { AccentStudio } from "@/components/navbar/AccentStudio";
 import { useAuth } from "@/context/AuthContext";
 import { subscribeUserNotifications } from "@/services/notificationService";
 
@@ -28,20 +29,7 @@ const NavNotifications = dynamic(
     ssr: false,
     loading: () => (
       <div
-        className="h-8 w-8 sm:h-9 sm:w-9 min-h-[32px] min-w-[32px] sm:min-h-[36px] sm:min-w-[36px] rounded-full bg-white/10 flex-shrink-0"
-        aria-hidden="true"
-      />
-    ),
-  }
-);
-
-const AccentStudio = dynamic(
-  () => import("@/components/navbar/AccentStudio").then((m) => m.AccentStudio),
-  {
-    ssr: false,
-    loading: () => (
-      <div
-        className="h-8 w-8 sm:h-9 sm:w-9 min-h-[32px] min-w-[32px] sm:min-h-[36px] sm:min-w-[36px] rounded-full bg-zinc-900/90 flex-shrink-0"
+        className="h-8 w-8 sm:h-9 sm:w-9 min-h-[32px] min-w-[32px] sm:min-h-[36px] sm:min-w-[36px] rounded-full bg-white/10 animate-pulse flex-shrink-0"
         aria-hidden="true"
       />
     ),

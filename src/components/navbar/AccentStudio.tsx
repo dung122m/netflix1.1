@@ -15,10 +15,16 @@ interface AccentStudioProps {
 }
 
 export const AccentStudio: React.FC<AccentStudioProps> = ({ className = "" }) => {
+  const [mounted, setMounted] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [currentAccent, setCurrentAccent] = useState<AccentPreset>(ACCENT_PRESETS[0]);
   const containerRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
+
+  // Mount guard: tránh hydration mismatch (window, localStorage chỉ có trên client)
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Synchronize with storage on mount and listen to changes
   useEffect(() => {
@@ -73,6 +79,16 @@ export const AccentStudio: React.FC<AccentStudioProps> = ({ className = "" }) =>
     const updated = applyAccent(presetId);
     setCurrentAccent(updated);
   };
+
+  // Trả về skeleton đúng kích thước khi chưa mount (tránh layout shift)
+  if (!mounted) {
+    return (
+      <div
+        className={`h-8 w-8 sm:h-9 sm:w-9 rounded-full bg-zinc-900/90 flex-shrink-0 animate-pulse ${className}`}
+        aria-hidden="true"
+      />
+    );
+  }
 
   return (
     <div ref={containerRef} className={`relative inline-block ${className}`}>
