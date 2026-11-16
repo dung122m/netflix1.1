@@ -689,7 +689,7 @@ async function executeAndCacheRecommendations(
     const computed = await computeMovieRecommendations(body);
     if (computed && computed.success) {
       const packed = packRecommendationsPayload(computed);
-      cacheService.set(kvKeyV13, packed, 12 * 3600).catch(() => {});
+      cacheService.set(kvKeyV13, packed, 7 * 24 * 3600).catch(() => {});
       rawData = packed;
     } else {
       rawData = computed as unknown as Record<string, unknown>;

@@ -141,7 +141,7 @@ describe("Movie Recommendations API & Deduplication Unit Tests", () => {
     });
     const res = await GET(req as unknown as import("next/server").NextRequest);
     assert.equal(res.status, 200);
-    assert.equal(res.headers.get("Cache-Control"), "public, s-maxage=3600, stale-while-revalidate=86400");
+    assert.equal(res.headers.get("Cache-Control"), "public, s-maxage=86400, stale-while-revalidate=604800");
 
     const json = await res.json();
     assert.equal(json.success, true);

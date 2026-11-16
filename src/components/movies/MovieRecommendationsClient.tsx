@@ -191,7 +191,7 @@ export function MovieRecommendationsClient({
   const containerRef = useRef<HTMLDivElement>(null);
   const [hasBeenVisible, setHasBeenVisible] = useState(hasValidInitialData);
 
-  // Lazy Observation: Chỉ kích hoạt nạp khi người dùng cuộn gần tới vùng gợi ý hoặc bấm mở tab
+  // Lazy Observation: Kích hoạt khi cuộn gần tới vùng gợi ý hoặc bấm mở tab
   useEffect(() => {
     if (hasBeenVisible) return;
     const el = containerRef.current;
@@ -215,6 +215,31 @@ export function MovieRecommendationsClient({
     observer.observe(el);
     return () => observer.disconnect();
   }, [hasBeenVisible]);
+
+  // Idle Background Preloader: Tự động nạp trước dữ liệu gợi ý khi CPU trình duyệt rảnh rỗi (sau khi video player đã init),
+  // giúp tab "Gợi ý" trên Desktop và vùng phim tương tự trên Mobile luôn sẵn sàng tức thì 0ms mà không phải chờ xoay vòng.
+  useEffect(() => {
+    if (hasBeenVisible || hasValidInitialData) return;
+
+    if (typeof window !== "undefined" && "requestIdleCallback" in window) {
+      const handle = (
+        window as unknown as {
+          requestIdleCallback: (cb: () => void, opts: { timeout: number }) => number;
+        }
+      ).requestIdleCallback(() => setHasBeenVisible(true), { timeout: 800 });
+
+      return () => {
+        if ("cancelIdleCallback" in window) {
+          (
+            window as unknown as { cancelIdleCallback: (id: number) => void }
+          ).cancelIdleCallback(handle);
+        }
+      };
+    } else {
+      const timer = setTimeout(() => setHasBeenVisible(true), 600);
+      return () => clearTimeout(timer);
+    }
+  }, [hasBeenVisible, hasValidInitialData]);
 
   useEffect(() => {
     const hasMatchMedia =

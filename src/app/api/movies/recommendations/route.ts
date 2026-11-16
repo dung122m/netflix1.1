@@ -34,7 +34,7 @@ const NO_STORE_HEADERS = {
 };
 
 const PRIVATE_NO_STORE = "private, no-cache, no-store, max-age=0, must-revalidate";
-const PUBLIC_EDGE_CACHE = "public, s-maxage=3600, stale-while-revalidate=86400";
+const PUBLIC_EDGE_CACHE = "public, s-maxage=86400, stale-while-revalidate=604800";
 
 export async function GET(req: NextRequest) {
   try {
