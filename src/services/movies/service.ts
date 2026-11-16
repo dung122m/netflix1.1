@@ -1499,15 +1499,31 @@ async function fetchSourceData(
   params: MovieFilterParams,
   isSearch: boolean,
   pageOverride?: number,
-  limitOverride?: number
+  limitOverride?: number,
+  offsetOverride?: number
 ) {
   try {
     const page = pageOverride || params.page || 1;
     const effectivePageLimit = params.limit && params.limit > 0 ? params.limit : 24;
-    const fetchLimit = limitOverride && limitOverride > 0 ? limitOverride : effectivePageLimit;
+    const fetchLimit = limitOverride !== undefined ? limitOverride : effectivePageLimit;
+
+    if (fetchLimit <= 0) {
+      return {
+        items: [],
+        overflowItems: [],
+        isPartial: false,
+        totalPages: 1,
+        totalItems: 0,
+      };
+    }
 
     const urlParams = new URLSearchParams();
-    urlParams.set("page", String(page));
+    if (offsetOverride !== undefined && fetchLimit > 0) {
+      const pPage = Math.floor(offsetOverride / fetchLimit) + 1;
+      urlParams.set("page", String(pPage));
+    } else {
+      urlParams.set("page", String(page));
+    }
     urlParams.set("limit", String(fetchLimit));
 
     if (params.category) urlParams.set("category", params.category);
@@ -1605,7 +1621,7 @@ async function fetchSourceData(
           "https://phimimg.com/";
         const items = json.data?.items || json.items || [];
 
-        const mappedItems = items.map(
+        let mappedItems = items.map(
           (item: {
             thumb_url?: string;
             poster_url?: string;
@@ -1651,6 +1667,13 @@ async function fetchSourceData(
           },
         );
 
+        if (offsetOverride !== undefined && fetchLimit > 0) {
+          const pPage = Math.floor(offsetOverride / fetchLimit) + 1;
+          const chunkStartOffset = (pPage - 1) * fetchLimit;
+          const rawSliceStart = Math.max(0, offsetOverride - chunkStartOffset);
+          mappedItems = mappedItems.slice(rawSliceStart, rawSliceStart + fetchLimit);
+        }
+
         const totalItems =
           json.data?.params?.pagination?.totalItems ||
           json.pagination?.totalItems ||
@@ -1677,8 +1700,8 @@ async function fetchSourceData(
     // ============================================================
     // NguonC Offset-Aligned Fetching (Đồng bộ 10 items/trang sang 24 items/trang)
     // ============================================================
-    const offsetStart = (page - 1) * fetchLimit;
-    const offsetEnd = page * fetchLimit;
+    const offsetStart = offsetOverride !== undefined ? Math.max(0, offsetOverride) : (page - 1) * fetchLimit;
+    const offsetEnd = offsetStart + fetchLimit;
     const startNguonCPage = Math.floor(offsetStart / 10) + 1;
     const endNguonCPage = Math.ceil(offsetEnd / 10);
 
@@ -2110,6 +2133,139 @@ function buildQueryMetaKey(params: MovieFilterParams): string {
   });
 }
 
+export interface SourcePageAllocation {
+  aOffset: number;
+  aLimit: number;
+  bOffset: number;
+  bLimit: number;
+}
+
+export function calculateSourcePageAllocation(
+  page: number,
+  limit: number,
+  totalA: number,
+  totalB: number,
+  isBAvailable: boolean
+): SourcePageAllocation {
+  if (!isBAvailable) {
+    return {
+      aOffset: (page - 1) * limit,
+      aLimit: limit,
+      bOffset: 0,
+      bLimit: 0,
+    };
+  }
+
+  const defaultALimit = Math.max(1, Math.round((limit * 2) / 3)); // 16
+  const defaultBLimit = Math.max(0, limit - defaultALimit); // 8
+
+  // Nếu chưa có thông tin về tổng số items (trang 1 lần đầu), mặc định phân bổ 16 : 8
+  if (totalA <= 0 && totalB <= 0) {
+    return {
+      aOffset: (page - 1) * defaultALimit,
+      aLimit: defaultALimit,
+      bOffset: (page - 1) * defaultBLimit,
+      bLimit: defaultBLimit,
+    };
+  }
+
+  // Nếu PhimAPI chắc chắn không có phim nào cho query này
+  if (totalA <= 0 && totalB > 0) {
+    return {
+      aOffset: 0,
+      aLimit: 0,
+      bOffset: (page - 1) * limit,
+      bLimit: limit,
+    };
+  }
+
+  // Nếu NguonC chắc chắn không có phim nào cho query này
+  if (totalB <= 0 && totalA > 0) {
+    return {
+      aOffset: (page - 1) * limit,
+      aLimit: limit,
+      bOffset: 0,
+      bLimit: 0,
+    };
+  }
+
+  // PhimAPI capacity
+  const pAFull = Math.floor(totalA / defaultALimit);
+  const pARem = totalA % defaultALimit;
+  const pAExhaust = pARem > 0 ? pAFull + 1 : pAFull;
+
+  // NguonC capacity
+  const pBFull = Math.floor(totalB / defaultBLimit);
+  const pBRem = totalB % defaultBLimit;
+  const pBExhaust = pBRem > 0 ? pBFull + 1 : pBFull;
+
+  // Case 1: Source A runs out earlier than Source B (e.g. hoat-hinh, phim-bo, phim-le)
+  if (pAExhaust <= pBExhaust) {
+    if (page < pAExhaust) {
+      return {
+        aOffset: (page - 1) * defaultALimit,
+        aLimit: defaultALimit,
+        bOffset: (page - 1) * defaultBLimit,
+        bLimit: defaultBLimit,
+      };
+    } else if (page === pAExhaust) {
+      const aTake = pARem > 0 ? pARem : defaultALimit;
+      const bTake = limit - aTake;
+      return {
+        aOffset: (page - 1) * defaultALimit,
+        aLimit: aTake,
+        bOffset: (page - 1) * defaultBLimit,
+        bLimit: bTake,
+      };
+    } else {
+      const bConsumedAtExhaust =
+        pARem > 0
+          ? (pAExhaust - 1) * defaultBLimit + (limit - pARem)
+          : pAExhaust * defaultBLimit;
+      const pagesAfterExhaust = page - pAExhaust - 1;
+      const bOffset = bConsumedAtExhaust + pagesAfterExhaust * limit;
+      return {
+        aOffset: totalA,
+        aLimit: 0,
+        bOffset,
+        bLimit: limit,
+      };
+    }
+  }
+
+  // Case 2: Source B runs out earlier than Source A (e.g. tv-shows)
+  if (page < pBExhaust) {
+    return {
+      aOffset: (page - 1) * defaultALimit,
+      aLimit: defaultALimit,
+      bOffset: (page - 1) * defaultBLimit,
+      bLimit: defaultBLimit,
+    };
+  } else if (page === pBExhaust) {
+    const bTake = pBRem > 0 ? pBRem : defaultBLimit;
+    const aTake = limit - bTake;
+    return {
+      aOffset: (page - 1) * defaultALimit,
+      aLimit: aTake,
+      bOffset: (page - 1) * defaultBLimit,
+      bLimit: bTake,
+    };
+  } else {
+    const aConsumedAtExhaust =
+      pBRem > 0
+        ? (pBExhaust - 1) * defaultALimit + (limit - pBRem)
+        : pBExhaust * defaultALimit;
+    const pagesAfterExhaust = page - pBExhaust - 1;
+    const aOffset = aConsumedAtExhaust + pagesAfterExhaust * limit;
+    return {
+      aOffset,
+      aLimit: limit,
+      bOffset: totalB,
+      bLimit: 0,
+    };
+  }
+}
+
 // ============================================================
 // AI CANDIDATE SOURCING (FEDERATED 3 SOURCES IN PARALLEL)
 // ============================================================
@@ -2175,27 +2331,67 @@ async function executeGetMovies(params: MovieFilterParams, cacheKey: string) {
   const limit = params.limit && params.limit > 0 ? params.limit : 24;
   const parsedSort = parseSortMode(params.sort);
   const metaKey = buildQueryMetaKey(params);
-  const cachedMeta = queryMetadataCache.get(metaKey);
+  let cachedMeta = queryMetadataCache.get(metaKey);
+  if (!cachedMeta) {
+    try {
+      const redisMeta = await cacheService.get<QueryPaginationMeta>("querymeta:" + metaKey);
+      if (redisMeta) {
+        cachedMeta = redisMeta;
+        queryMetadataCache.set(metaKey, redisMeta);
+      }
+    } catch { }
+  }
   const seenSlugsByPage =
     cachedMeta && Date.now() - (cachedMeta.updatedAt || 0) < 300_000 && cachedMeta.seenSlugsByPage
       ? cachedMeta.seenSlugsByPage
       : new Map<number, Set<string>>();
 
-  // ============================================================
-  // CHIẾN LƯỢC FEDERATION PER-PAGE SONG SONG CHO BROWSE:
-  // - Fetch song song cả 2 nguồn: PhimAPI + NguonC với bounded timeout (4000ms)
-  // - Interleave 2:1 (PhimAPI : NguonC) với phân bổ tỷ lệ offset liên tục (16 : 8)
-  // - Dedupe 4 cấp độ (TMDB ID, IMDb ID, slug, title+year), merge metadata & source provenance
-  // - Áp dụng filter & sort
-  // ============================================================
   const isNguonCAvailable = isNguonCSupportedForParams(params, isSearch);
-  const targetPhimApiLimit = isNguonCAvailable ? Math.max(1, Math.round((limit * 2) / 3)) : limit;
-  const targetNguonCLimit = isNguonCAvailable ? Math.max(0, limit - targetPhimApiLimit) : 0;
+  const requestedPage = params.page && params.page >= 1 ? Math.floor(params.page) : 1;
+
+  let countApi1 = cachedMeta?.countApi1 || 0;
+  let countApi2 = cachedMeta?.countApi2 || 0;
+
+  // Nếu requestedPage > 1 và chưa có metadata về tổng số items của các nguồn (cold start/direct link):
+  // nhanh chóng probe trang 1 để có countApi1 và countApi2 chính xác
+  if (requestedPage > 1 && (!countApi1 || (isNguonCAvailable && !countApi2))) {
+    try {
+      const [probeP, probeN] = await Promise.all([
+        !countApi1 ? fetchSourceData(API_PHIMAPI, params, isSearch, 1, 1) : Promise.resolve(null),
+        isNguonCAvailable && !countApi2 ? fetchSourceData(API_NGUONC, params, isSearch, 1, 1) : Promise.resolve(null),
+      ]);
+      if (probeP?.totalItems) countApi1 = probeP.totalItems;
+      if (probeN?.totalItems) countApi2 = probeN.totalItems;
+    } catch { }
+  }
+
+  // ============================================================
+  // PHÂN BỔ NGUỒN LIÊN TỤC & ĐỒNG BỘ OFFSET (CONTINUOUS PARTITIONING):
+  // - Bảo đảm mọi trang (kể cả trang sâu > 150) luôn có đủ 24 phim (hoặc số lượng yêu cầu)
+  // - Khi PhimAPI cạn trước NguonC (như Hoạt Hình, Phim Bộ), NguonC tiếp quản trọn vẹn 24 phim
+  // - Offset dịch chuyển mượt mà, triệt tiêu hoàn toàn hiện tượng trùng lặp chéo giữa các trang liền kề
+  // ============================================================
+  const alloc = calculateSourcePageAllocation(
+    requestedPage,
+    limit,
+    countApi1,
+    countApi2,
+    isNguonCAvailable
+  );
 
   const [resPhimApi, resNguonC] = await Promise.all([
-    fetchSourceData(API_PHIMAPI, params, isSearch, undefined, targetPhimApiLimit),
-    isNguonCAvailable
-      ? fetchSourceData(API_NGUONC, params, isSearch, undefined, targetNguonCLimit)
+    alloc.aLimit > 0
+      ? fetchSourceData(
+          API_PHIMAPI,
+          params,
+          isSearch,
+          Math.floor(alloc.aOffset / Math.max(1, alloc.aLimit)) + 1,
+          alloc.aLimit,
+          alloc.aOffset
+        )
+      : Promise.resolve({ items: [], totalPages: Math.ceil(countApi1 / limit) || 1, totalItems: countApi1 }),
+    isNguonCAvailable && alloc.bLimit > 0
+      ? fetchSourceData(API_NGUONC, params, isSearch, undefined, alloc.bLimit, alloc.bOffset)
       : Promise.resolve(null),
   ]);
 
@@ -2293,11 +2489,8 @@ async function executeGetMovies(params: MovieFilterParams, cacheKey: string) {
   // ============================================================
   // TÍNH TỔNG SỐ PHIM VÀ TRANG (FEDERATION THỰC TẾ & BẢO ĐẢM NHẤT QUÁN TOÀN HỆ THỐNG)
   // ============================================================
-  let countApi1 = resPhimApi?.totalItems || 0;
-  let countApi2 = resNguonC?.totalItems || 0;
-
-  // Nếu một nguồn bị lỗi/timeout hoặc vượt quá số trang riêng của nguồn đó (trả về 0),
-  // kế thừa giá trị count đã biết từ queryMetadataCache để tránh sụt giảm totalItems giữa các trang.
+  if (resPhimApi?.totalItems) countApi1 = Math.max(countApi1, resPhimApi.totalItems);
+  if (resNguonC?.totalItems) countApi2 = Math.max(countApi2, resNguonC.totalItems);
   if (countApi1 === 0 && cachedMeta?.countApi1) countApi1 = cachedMeta.countApi1;
   if (countApi2 === 0 && cachedMeta?.countApi2) countApi2 = cachedMeta.countApi2;
 
@@ -2326,7 +2519,6 @@ async function executeGetMovies(params: MovieFilterParams, cacheKey: string) {
   }
 
   const maxTotalPages = Math.max(1, Math.ceil(totalItemsCount / limit));
-  const requestedPage = params.page && params.page >= 1 ? Math.floor(params.page) : 1;
 
   // Khử trùng lặp giữa các trang (cross-page deduplication): loại bỏ phim đã xuất hiện ở các trang trước (< requestedPage)
   const priorSeen = new Set<string>();
@@ -2398,37 +2590,34 @@ async function executeGetMovies(params: MovieFilterParams, cacheKey: string) {
         appendUniqueFiltered(resNguonC.overflowItems);
       }
 
-      // 2. Nếu vẫn thiếu, bù đắp song song từ cả PhimAPI (nếu còn trang) và NguonC (trang kế tiếp)
-      if (finalItems.length < limit) {
-        const shouldTopUpPhimApi =
-          !resPhimApi || resPhimApi.items.length > 0 || requestedPage < (resPhimApi.totalPages || 0);
-        const shouldTopUpNguonC =
-          isNguonCAvailable &&
-          (!resNguonC || resNguonC.items.length > 0 || requestedPage < (resNguonC.totalPages || 0));
+      // 2. Bù đắp liên tục từ nguồn còn phim tiếp theo offset hiện tại (tránh nhảy trang gây trùng lặp)
+      let topUpAttempts = 0;
+      let nextTopUpOffsetB =
+        (alloc.bLimit > 0 ? alloc.bOffset + alloc.bLimit : 0) +
+        (resNguonC && "overflowItems" in resNguonC && Array.isArray(resNguonC.overflowItems)
+          ? resNguonC.overflowItems.length
+          : 0);
 
-        const [topUpPhimApi, topUpNguonC] = await Promise.all([
-          shouldTopUpPhimApi
-            ? fetchSourceData(API_PHIMAPI, params, isSearch, requestedPage + 1, targetPhimApiLimit)
-            : Promise.resolve(null),
-          shouldTopUpNguonC
-            ? fetchSourceData(API_NGUONC, params, isSearch, requestedPage + 1, targetNguonCLimit)
-            : Promise.resolve(null),
-        ]);
-
-        const mergedTopUp = [];
-        const pTop = topUpPhimApi?.items || [];
-        const nTop = topUpNguonC?.items || [];
-        let pIdx = 0;
-        let nIdx = 0;
-        while (pIdx < pTop.length || nIdx < nTop.length) {
-          for (let k = 0; k < 2 && pIdx < pTop.length; k++) {
-            mergedTopUp.push(pTop[pIdx++]);
+      while (finalItems.length < limit && topUpAttempts < 3) {
+        topUpAttempts++;
+        if (isNguonCAvailable && nextTopUpOffsetB < (countApi2 || totalItemsCount)) {
+          const extraRes = await fetchSourceData(
+            API_NGUONC,
+            params,
+            isSearch,
+            undefined,
+            10,
+            nextTopUpOffsetB
+          );
+          nextTopUpOffsetB += 10;
+          if (extraRes?.items?.length) {
+            appendUniqueFiltered(extraRes.items);
+          } else {
+            break;
           }
-          if (nIdx < nTop.length) {
-            mergedTopUp.push(nTop[nIdx++]);
-          }
+        } else {
+          break;
         }
-        appendUniqueFiltered(mergedTopUp);
       }
     } catch { }
   }
@@ -2441,12 +2630,14 @@ async function executeGetMovies(params: MovieFilterParams, cacheKey: string) {
       try {
         const fallbackPage = Math.max(1, requestedPage - 1);
         const phimApiFallbackPage = countApi1 > 0 ? Math.min(fallbackPage, Math.max(1, Math.ceil(countApi1 / limit))) : fallbackPage;
+        const fallbackPhimApiLimit = Math.max(1, Math.round((limit * 2) / 3));
+        const fallbackNguonCLimit = Math.max(0, limit - fallbackPhimApiLimit);
         const [phimFallbackRes, nguonCFallbackRes] = await Promise.all([
           countApi1 > 0
-            ? fetchSourceData(API_PHIMAPI, params, isSearch, phimApiFallbackPage, targetPhimApiLimit)
+            ? fetchSourceData(API_PHIMAPI, params, isSearch, phimApiFallbackPage, fallbackPhimApiLimit)
             : Promise.resolve(null),
           isNguonCAvailable
-            ? fetchSourceData(API_NGUONC, params, isSearch, fallbackPage, targetNguonCLimit)
+            ? fetchSourceData(API_NGUONC, params, isSearch, fallbackPage, fallbackNguonCLimit)
             : Promise.resolve(null),
         ]);
         const fallbackCombined = applyMovieFilters(
@@ -2506,14 +2697,28 @@ async function executeGetMovies(params: MovieFilterParams, cacheKey: string) {
     seenSlugsByPage.set(requestedPage, pageKeys);
   }
 
-  queryMetadataCache.set(metaKey, {
+  const metaPayload: QueryPaginationMeta = {
     seenSlugsByPage,
     countApi1: Math.max(countApi1, cachedMeta?.countApi1 || 0),
     countApi2: Math.max(countApi2, cachedMeta?.countApi2 || 0),
     totalItems: totalItemsCount,
     totalPages: maxTotalPages,
     updatedAt: Date.now(),
-  });
+  };
+  queryMetadataCache.set(metaKey, metaPayload);
+  cacheService
+    .set(
+      "querymeta:" + metaKey,
+      {
+        countApi1: metaPayload.countApi1,
+        countApi2: metaPayload.countApi2,
+        totalItems: metaPayload.totalItems,
+        totalPages: metaPayload.totalPages,
+        updatedAt: metaPayload.updatedAt,
+      },
+      86400
+    )
+    .catch(() => { });
 
   moviesMemoryCache.set(cacheKey, {
     data: payload,
