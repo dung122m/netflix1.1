@@ -684,6 +684,16 @@ export async function getAnalyticsDashboardStats(
   // Filter events by timeframe
   const filteredEvents = rawEvents.filter((ev) => ev.createdAt >= cutoffTimestamp);
 
+  // Bảo vệ toàn diện: Khử triệt để PoP máy chủ trung chuyển (Hong Kong, Singapore) gán nhầm vào Việt Nam
+  for (const ev of rawEvents) {
+    if (
+      (ev.countryCode === "VN" || ev.country === "Việt Nam") &&
+      (ev.city?.toLowerCase() === "hong kong" || ev.city?.toLowerCase() === "singapore")
+    ) {
+      ev.city = undefined;
+    }
+  }
+
   // Enrich events with location from device_profiles if missing
   const dbClient = isSupabaseAdminConfigured() ? getSupabaseAdmin() : supabase;
   if (dbClient && filteredEvents.length > 0) {
@@ -723,6 +733,13 @@ export async function getAnalyticsDashboardStats(
                 if (!ev.city) ev.city = loc.city;
               }
             }
+            // Khử triệt để lỗi PoP máy chủ trung chuyển ngoại quốc gán nhầm vào Việt Nam
+            if (
+              (ev.countryCode === "VN" || ev.country === "Việt Nam") &&
+              (ev.city?.toLowerCase() === "hong kong" || ev.city?.toLowerCase() === "singapore")
+            ) {
+              ev.city = undefined;
+            }
           }
           for (const ev of rawEvents) {
             if (ev.anonymousId) {
@@ -733,6 +750,12 @@ export async function getAnalyticsDashboardStats(
                 if (!ev.region) ev.region = loc.region;
                 if (!ev.city) ev.city = loc.city;
               }
+            }
+            if (
+              (ev.countryCode === "VN" || ev.country === "Việt Nam") &&
+              (ev.city?.toLowerCase() === "hong kong" || ev.city?.toLowerCase() === "singapore")
+            ) {
+              ev.city = undefined;
             }
           }
         }
@@ -831,10 +854,15 @@ export async function getAnalyticsDashboardStats(
       countryMap.set(ev.country, ex);
     }
     if (ev.city) {
-      const cCountry = ev.country || "Quốc tế";
-      const ex = cityMap.get(ev.city) || { country: cCountry, count: 0 };
-      ex.count++;
-      cityMap.set(ev.city, ex);
+      const isDatacenterPop =
+        (ev.countryCode === "VN" || ev.country === "Việt Nam") &&
+        (ev.city.toLowerCase() === "hong kong" || ev.city.toLowerCase() === "singapore");
+      if (!isDatacenterPop) {
+        const cCountry = ev.country || "Quốc tế";
+        const ex = cityMap.get(ev.city) || { country: cCountry, count: 0 };
+        ex.count++;
+        cityMap.set(ev.city, ex);
+      }
     }
   }
 
