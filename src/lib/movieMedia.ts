@@ -1,6 +1,5 @@
 import { cleanHtmlText } from "@/lib/cleanHtml";
 import { normalizeForMatch } from "@/lib/stringUtils";
-import { getR2AssetUrl } from "@/lib/r2Manifest";
 import {
   KNOWN_COUNTRIES,
   COUNTRY_DISPLAY_MAP,
@@ -771,13 +770,8 @@ export function getR2DirectMediaUrl(rawUrl: string): string | null {
       return null;
     }
     const cleanPath = parsed.pathname.replace(/^\/+/, "").replace(/[^a-zA-Z0-9_\-\/.]/g, "_");
-    const r2Key = `cache/${domain}/${cleanPath}`;
-
-    // Chỉ trả URL trực tiếp nếu asset đã được xác nhận trong R2 manifest (tránh 404 phía client)
-    const manifestMatch = getR2AssetUrl(r2Key);
-    if (manifestMatch) return manifestMatch;
-
-    return null;
+    // Cloudflare Worker tại media.nanaflix.asia xử lý trực tiếp /cache/* với tự động kéo & lưu R2
+    return `${R2_PUBLIC_BASE_URL.replace(/\/+$/, "")}/cache/${domain}/${cleanPath}`;
   } catch {
     return null;
   }

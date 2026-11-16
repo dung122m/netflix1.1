@@ -6,7 +6,6 @@
  * - Tầng 4: Dynamic Monogram Badge (màu gradient xác định + chữ viết tắt)
  */
 
-import { getR2TeamLogoUrl, getR2AssetUrl } from "@/lib/r2Manifest";
 import {
   cleanSportsText,
   extractCoreTokens,
@@ -15,6 +14,66 @@ import {
   SPORT_ACRONYMS,
 } from "./teamNormalizer";
 import NATIONAL_TEAM_ALIASES from "@/data/live/nationalTeamAliases.json";
+import r2TeamLogos from "@/data/live/r2TeamLogos.json";
+
+const TEAM_LOGOS_MAP: Record<string, string> = r2TeamLogos as Record<string, string>;
+
+function getR2TeamAssetUrl(key: string): string | null {
+  return TEAM_LOGOS_MAP[key] || null;
+}
+
+function getR2TeamLogoUrlLocal(
+  teamName?: string | null,
+  sport?: string | null
+): string | null {
+  if (!teamName) return null;
+  const clean = teamName
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/\[[^\]]*\]/g, " ")
+    .replace(/\([^)]*\)/g, " ")
+    .replace(/\b(clb|fc|sc|afc|ac|as|rc|cf|cd|ud|sd|u\d{1,2})\b/gi, " ")
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  const tokens = clean.split(/\s+/).filter(Boolean);
+  if (tokens.length === 0) return null;
+
+  const collapsed = tokens.join("");
+  const kebab = tokens.join("-");
+
+  const categories =
+    sport === "basketball"
+      ? ["teams/basketball", "teams/football", "teams/esports"]
+      : sport === "esports"
+      ? ["teams/esports", "teams/football", "teams/basketball"]
+      : ["teams/football", "teams/basketball", "teams/esports"];
+
+  for (const cat of categories) {
+    const match =
+      getR2TeamAssetUrl(`${cat}/${kebab}.png`) ||
+      getR2TeamAssetUrl(`${cat}/${collapsed}.png`) ||
+      getR2TeamAssetUrl(`${cat}/${kebab}.webp`) ||
+      getR2TeamAssetUrl(`${cat}/${collapsed}.webp`);
+    if (match) return match;
+  }
+
+  // Nếu tên đội gồm nhiều từ, thử tìm theo từ khóa chính (vd: "Pistons", "Hornets", "Raptors")
+  if (tokens.length > 1) {
+    const lastWord = tokens[tokens.length - 1];
+    if (lastWord.length >= 4) {
+      for (const cat of categories) {
+        const match =
+          getR2TeamAssetUrl(`${cat}/${lastWord}.png`) ||
+          getR2TeamAssetUrl(`${cat}/${lastWord}.webp`);
+        if (match) return match;
+      }
+    }
+  }
+
+  return null;
+}
 
 export interface ResolvedTeamIdentity {
   name: string;
@@ -159,8 +218,8 @@ export function extractInitials(name?: string | null): string {
 export function resolveR2Logo(teamName: string, sport?: string): string | null {
   if (!teamName) return null;
 
-  // 1. Tra cứu trực tiếp qua hàm getR2TeamLogoUrl
-  const direct = getR2TeamLogoUrl(teamName, sport);
+  // 1. Tra cứu trực tiếp qua hàm getR2TeamLogoUrlLocal
+  const direct = getR2TeamLogoUrlLocal(teamName, sport);
   if (direct) return direct;
 
   const kebab = toKebabSlug(teamName);
@@ -173,19 +232,19 @@ export function resolveR2Logo(teamName: string, sport?: string): string | null {
   for (const s of sports) {
     // Kebab match: teams/basketball/detroit-pistons.png
     if (kebab) {
-      const urlKebab = getR2AssetUrl(`teams/${s}/${kebab}.png`) || getR2AssetUrl(`teams/${s}/${kebab}.webp`);
+      const urlKebab = getR2TeamAssetUrl(`teams/${s}/${kebab}.png`) || getR2TeamAssetUrl(`teams/${s}/${kebab}.webp`);
       if (urlKebab) return urlKebab;
     }
     // Canonical match: teams/football/manchesterunited.png
     if (canonical) {
-      const urlCanonical = getR2AssetUrl(`teams/${s}/${canonical}.png`) || getR2AssetUrl(`teams/${s}/${canonical}.webp`);
+      const urlCanonical = getR2TeamAssetUrl(`teams/${s}/${canonical}.png`) || getR2TeamAssetUrl(`teams/${s}/${canonical}.webp`);
       if (urlCanonical) return urlCanonical;
     }
     // Token cuối cùng (VD: "Pistons", "Lakers", "Warriors")
     if (tokens.length > 1) {
       const lastToken = tokens[tokens.length - 1];
       if (lastToken.length >= 4) {
-        const urlLast = getR2AssetUrl(`teams/${s}/${lastToken}.png`) || getR2AssetUrl(`teams/${s}/${lastToken}.webp`);
+        const urlLast = getR2TeamAssetUrl(`teams/${s}/${lastToken}.png`) || getR2TeamAssetUrl(`teams/${s}/${lastToken}.webp`);
         if (urlLast) return urlLast;
       }
     }
@@ -198,8 +257,8 @@ export function resolveR2Logo(teamName: string, sport?: string): string | null {
     const expandedCanonical = toCanonicalSlug(SPORT_ACRONYMS[compact]);
     for (const s of sports) {
       const url =
-        getR2AssetUrl(`teams/${s}/${expandedKebab}.png`) ||
-        getR2AssetUrl(`teams/${s}/${expandedCanonical}.png`);
+        getR2TeamAssetUrl(`teams/${s}/${expandedKebab}.png`) ||
+        getR2TeamAssetUrl(`teams/${s}/${expandedCanonical}.png`);
       if (url) return url;
     }
   }
