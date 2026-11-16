@@ -55,16 +55,16 @@ export const EpisodeGridItem = React.memo(function EpisodeGridItem({
         isHiddenOnMobile ? "max-lg:hidden" : ""
       } ${
         isSingleEpisode
-          ? "py-2.5 px-3 min-h-[38px] text-xs sm:text-sm font-bold"
+          ? "py-2 px-3 min-h-[38px] text-xs sm:text-sm font-bold"
           : isFewEpisodes
-          ? "py-2 px-2 sm:px-2.5 min-h-[36px] text-xs sm:text-[13px] font-bold"
-          : "py-2 px-1.5 min-h-[38px] sm:min-h-[34px] text-xs sm:text-[13px] font-bold"
+          ? "py-2 px-1.5 sm:px-2.5 min-h-[38px] text-xs sm:text-[13px] font-bold"
+          : "py-2 px-1 min-h-[36px] sm:min-h-[34px] text-xs sm:text-[13px] font-bold"
       } ${
         isActive
-          ? "bg-gradient-to-br from-netflix-red to-netflix-red/80 text-white font-black shadow-md shadow-black/50 scale-[1.02] ring-1 ring-white/20 z-10"
+          ? "bg-gradient-to-br from-netflix-red to-netflix-red/80 text-white font-black shadow-md shadow-netflix-red/30 scale-[1.01] ring-1 ring-white/20 z-10"
           : isWatched
-          ? "bg-zinc-950/70 hover:bg-zinc-900 text-zinc-400 hover:text-zinc-200 hover:scale-[1.02]"
-          : "bg-white/[0.06] hover:bg-white/[0.12] text-zinc-200 hover:text-white hover:scale-[1.02] active:scale-[0.98] shadow-xs"
+          ? "bg-zinc-950/70 hover:bg-zinc-900 text-zinc-400 hover:text-zinc-200 active:scale-[0.98]"
+          : "bg-white/[0.06] hover:bg-white/[0.12] text-zinc-200 hover:text-white hover:scale-[1.01] active:scale-[0.98] active:bg-white/15 shadow-xs"
       }`}
     >
       <div className="flex items-center justify-center gap-1 sm:gap-1.5 w-full min-w-0 px-1">
@@ -77,7 +77,7 @@ export const EpisodeGridItem = React.memo(function EpisodeGridItem({
           </span>
         )}
 
-        <span className="truncate tracking-tight font-bold whitespace-nowrap">
+        <span className="truncate tracking-tight font-sans tabular-nums font-bold whitespace-nowrap">
           {displayLabel}
         </span>
 

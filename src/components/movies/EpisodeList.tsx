@@ -316,19 +316,17 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(
     const gridClasses = useMemo(() => {
       if (isSearching) {
         if (displayEpisodes.length <= 4) {
-          return "grid grid-cols-2 sm:grid-cols-2 gap-2";
+          return "grid grid-cols-2 min-[380px]:grid-cols-4 gap-2";
         }
-        return "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2";
+        return "grid grid-cols-3 min-[380px]:grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-2";
       }
 
-      if (episodes.length === 1) return "grid grid-cols-1 gap-2";
-      if (episodes.length <= 4) return "grid grid-cols-1 sm:grid-cols-2 gap-2.5";
-      if (episodes.length <= 8) return "grid grid-cols-2 sm:grid-cols-3 gap-2.5";
-      if (episodes.length <= 12) return "grid grid-cols-2 min-[360px]:grid-cols-3 gap-2";
-      if (episodes.length <= 25) {
-        return "grid grid-cols-5 min-[410px]:grid-cols-6 sm:grid-cols-6 gap-1.5 sm:gap-2";
-      }
-      return "grid grid-cols-5 min-[410px]:grid-cols-6 sm:grid-cols-6 gap-1.5 sm:gap-2";
+      if (episodes.length === 1) return "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2";
+      if (episodes.length === 2) return "grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 gap-2 sm:gap-2.5";
+      if (episodes.length <= 4) return "grid grid-cols-2 min-[380px]:grid-cols-4 gap-2 sm:gap-2.5";
+      if (episodes.length <= 8) return "grid grid-cols-3 min-[380px]:grid-cols-4 gap-2 sm:gap-2.5";
+      if (episodes.length <= 12) return "grid grid-cols-3 min-[380px]:grid-cols-4 min-[460px]:grid-cols-5 sm:grid-cols-4 md:grid-cols-5 gap-1.5 sm:gap-2";
+      return "grid grid-cols-5 min-[380px]:grid-cols-6 sm:grid-cols-6 gap-1.5 sm:gap-2";
     }, [episodes.length, isSearching, displayEpisodes.length]);
 
     if (!episodes || episodes.length === 0) {
@@ -352,12 +350,12 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(
             totalEpisodes={episodes.length}
           />
 
-          {/* THANH ĐIỀU KHIỂN LƯU TẬP PHIM ĐANG CHỌN */}
+          {/* THANH ĐIỀU KHIỂN LƯU TẬP PHIM ĐANG CHỌN (CHỈ HIỂN THỊ TRÊN DESKTOP SIDEBAR ĐỂ TRÁNH RỐI TRÊN MOBILE) */}
           {!isSearching &&
             currentActiveEpisode?.slug &&
             episodes.length > 1 &&
             chunks.length <= 4 && (
-              <div className="flex items-center justify-between gap-1.5 px-2.5 py-1 rounded-lg bg-zinc-900/70 text-xs">
+              <div className="hidden lg:flex items-center justify-between gap-1.5 px-2.5 py-1 rounded-lg bg-zinc-900/70 text-xs">
                 <div className="flex items-center gap-1.5 min-w-0">
                   <span
                     className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse flex-shrink-0"
@@ -605,8 +603,9 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(
                     const isHiddenOnMobile =
                       !isMobileExpanded &&
                       !isSearching &&
-                      displayEpisodes.length > 8 &&
-                      tapIdx >= 8;
+                      displayEpisodes.length > 16 &&
+                      tapIdx >= 16 &&
+                      !isActive;
 
                     return (
                       <EpisodeGridItem
@@ -630,7 +629,7 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(
                 </div>
 
                 {/* Nút Xem thêm / Thu gọn tập phim trên mobile */}
-                {!isSearching && displayEpisodes.length > 8 && (
+                {!isSearching && displayEpisodes.length > 16 && (
                   <div className="mt-2.5 px-1 text-center lg:hidden">
                     <button
                       type="button"
@@ -645,11 +644,11 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(
                       ) : (
                         <>
                           <span>
-                            Xem thêm {displayEpisodes.length - 8} tập còn lại
+                            Xem thêm {displayEpisodes.length - 16} tập còn lại
                             {currentActiveEpisode &&
                             displayEpisodes.findIndex(
                               (e) => e.slug === currentActiveEpisode.slug
-                            ) >= 8
+                            ) >= 16
                               ? ` (Đang xem: ${currentActiveEpisode.name || currentActiveEpisode.slug})`
                               : ""}
                           </span>

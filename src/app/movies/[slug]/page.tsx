@@ -334,6 +334,11 @@ export default async function MovieDetail({
                         <EpisodeList
                           movieSlug={movie.slug}
                           activeEpisodeSlug={activeEpisode?.slug}
+                          movieTitle={title}
+                          moviePoster={bestImagePoster}
+                          movieYear={movie.year}
+                          movieQuality={movie.quality}
+                          movieCategory={arrayCategories[0]?.name}
                         />
                       </div>
                     )}
