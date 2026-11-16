@@ -119,7 +119,7 @@ export async function resolveClientGeo(headers: Headers): Promise<GeoResolution>
     };
   }
 
-  let resolvedCountryCode = cfCountry || undefined;
+  const resolvedCountryCode = cfCountry || undefined;
   let resolvedCity: string | undefined = undefined;
   const resolvedRegion: string | undefined = cfRegionRaw || undefined;
 

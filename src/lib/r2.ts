@@ -3,10 +3,40 @@ import {
   PutObjectCommand,
   HeadObjectCommand,
 } from "@aws-sdk/client-s3";
+import { cacheService } from "@/lib/cache";
 import { checkR2QuotaAllowance, recordSuccessfulR2Upload, getR2QuotaStatus } from "./r2QuotaGuard";
 import { refreshR2Manifest, getR2AssetUrl, getR2BannerUrl, getR2TeamLogoUrl } from "./r2Manifest";
 
 export { getR2QuotaStatus, refreshR2Manifest, getR2AssetUrl, getR2BannerUrl, getR2TeamLogoUrl };
+
+// Multi-Tier Existence Cache (L1 RAM + L2 Redis DB 3)
+const R2_EXISTS_L1_CACHE = new Map<string, { exists: boolean; expiresAt: number }>();
+const MAX_R2_EXISTS_L1 = 5000;
+const R2_EXISTS_HIT_TTL_MS = 6 * 60 * 60 * 1000; // 6h RAM
+const R2_EXISTS_MISS_TTL_MS = 5 * 60 * 1000;      // 5m RAM
+const R2_REDIS_HIT_TTL_SEC = 7 * 24 * 60 * 60;    // 7 ngày Redis DB 3
+const R2_REDIS_MISS_TTL_SEC = 600;                 // 10 phút Redis DB 3
+
+function setR2ExistsL1(key: string, exists: boolean): void {
+  if (R2_EXISTS_L1_CACHE.size >= MAX_R2_EXISTS_L1) {
+    const firstKey = R2_EXISTS_L1_CACHE.keys().next().value;
+    if (firstKey !== undefined) R2_EXISTS_L1_CACHE.delete(firstKey);
+  }
+  R2_EXISTS_L1_CACHE.set(key, {
+    exists,
+    expiresAt: Date.now() + (exists ? R2_EXISTS_HIT_TTL_MS : R2_EXISTS_MISS_TTL_MS),
+  });
+}
+
+function getR2ExistsL1(key: string): boolean | undefined {
+  const hit = R2_EXISTS_L1_CACHE.get(key);
+  if (!hit) return undefined;
+  if (Date.now() > hit.expiresAt) {
+    R2_EXISTS_L1_CACHE.delete(key);
+    return undefined;
+  }
+  return hit.exists;
+}
 
 export const isR2Configured = (): boolean =>
   Boolean(
@@ -85,6 +115,8 @@ export async function uploadToR2({
     );
 
     recordSuccessfulR2Upload(byteLength);
+    setR2ExistsL1(key, true);
+    cacheService.set(`r2:exists:${key}`, true, R2_REDIS_HIT_TTL_SEC).catch(() => {});
     return getR2PublicUrl(key);
   } catch (err) {
     console.error("[R2 Storage] Upload failed for key:", key, err);
@@ -93,9 +125,29 @@ export async function uploadToR2({
 }
 
 /**
- * Check if an object exists in Cloudflare R2.
+ * Check if an object exists in Cloudflare R2 with L1 RAM + L2 Redis DB 3 caching.
+ * Prevents redundant S3 HeadObject (Class B) operations across serverless lambdas.
  */
 export async function checkR2ObjectExists(key: string): Promise<boolean> {
+  // 1. Kiểm tra L1 RAM cache (0ms)
+  const l1Hit = getR2ExistsL1(key);
+  if (l1Hit !== undefined) {
+    return l1Hit;
+  }
+
+  // 2. Kiểm tra Redis DB 3 (~2-5ms)
+  const redisKey = `r2:exists:${key}`;
+  try {
+    const redisVal = await cacheService.get<boolean>(redisKey);
+    if (typeof redisVal === "boolean") {
+      setR2ExistsL1(key, redisVal);
+      return redisVal;
+    }
+  } catch {
+    // Graceful fallback nếu Redis gặp sự cố
+  }
+
+  // 3. Fallback: S3 HeadObjectCommand
   const client = getR2Client();
   if (!client) return false;
 
@@ -106,8 +158,12 @@ export async function checkR2ObjectExists(key: string): Promise<boolean> {
         Key: key,
       })
     );
+    setR2ExistsL1(key, true);
+    cacheService.set(redisKey, true, R2_REDIS_HIT_TTL_SEC).catch(() => {});
     return true;
   } catch {
+    setR2ExistsL1(key, false);
+    cacheService.set(redisKey, false, R2_REDIS_MISS_TTL_SEC).catch(() => {});
     return false;
   }
 }

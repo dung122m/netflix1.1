@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { SITE_VISIT_SESSION_KEY, trackSiteVisit } from "@/lib/analyticsClient";
+import { trackSiteVisit } from "@/lib/analyticsClient";
 
 export interface RouteClassification {
   pageGroup: string;

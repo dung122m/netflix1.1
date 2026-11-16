@@ -983,13 +983,15 @@ const fetchMovieDetailBase = async (
           staleUntil: now + 3600 * 1000,
         });
 
-        // Nếu bản ghi trong Redis hoàn toàn không có stream .m3u8 nào (chỉ có embed iframe bên ngoài),
-        // hủy bỏ dữ liệu cũ để fetch nguồn trực tiếp từ upstream có direct m3u8
+        // Nếu bản ghi cũ trong Redis (chưa có _v từ compact pipeline mới) hoàn toàn không có stream .m3u8 nào (chỉ có embed iframe bên ngoài),
+        // hủy bỏ dữ liệu cũ để fetch nguồn trực tiếp từ upstream có direct m3u8.
+        // Đối với bản ghi đã có version (_v >= 3), giữ nguyên cache để tránh lặp fetch vô tận cho phim chỉ có embed/cinema trailer.
+        const isAlreadyVersioned = Boolean(rawData && typeof rawData === "object" && "_v" in rawData);
         const hasDirectM3u8 = Array.isArray(data.episodes) && data.episodes.some(
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           (s: any) => Array.isArray(s.server_data) && s.server_data.some((e: any) => e.link_m3u8 && String(e.link_m3u8).includes(".m3u8"))
         );
-        if (!hasDirectM3u8) {
+        if (!hasDirectM3u8 && !isAlreadyVersioned) {
           data = null;
         }
       }
@@ -1360,7 +1362,7 @@ async function fetchAndCacheMovieDetail(slug: string, source?: "nguonc" | "ophim
         expireAt: now + 1800 * 1000,
         staleUntil: now + 1800 * 1000,
       });
-      const kvKey = `movie:detail:v4:${slug}:${source || "any"}`;
+      const kvKey = `movie:detail:v6:${slug}:${source || "any"}`;
       cacheService.set(kvKey, { _isNegative: true }, 1800).catch(() => { });
 
       return undefined;
@@ -2375,9 +2377,8 @@ async function executeGetMovies(params: MovieFilterParams, cacheKey: string) {
       const appendUniqueFiltered = (items: unknown[]) => {
         if (!Array.isArray(items) || items.length === 0) return;
         const filtered = applyMovieFilters(
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          items.filter(
-            (item: any) =>
+          (items as Record<string, unknown>[]).filter(
+            (item) =>
               item?.slug &&
               !isMovieInSeenSet(item, existingKeys) &&
               !isMovieInSeenSet(item, priorSeen)

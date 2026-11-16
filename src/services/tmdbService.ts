@@ -139,11 +139,26 @@ export async function getTmdbMediaImagesById(
 
   const cleanType = normalizeTmdbLookupMediaType(type);
   const cacheKey = `v3:${cleanType}:${cleanId}`;
+  const redisKey = `tmdb:images:v1:${cleanType}:${cleanId}`;
 
   const now = Date.now();
   const memoryHit = TMDB_MEDIA_IMAGES_CACHE.get(cacheKey);
   if (memoryHit && memoryHit.expireAt > now) {
     return { posterUrl: memoryHit.posterUrl, backdropUrl: memoryHit.backdropUrl };
+  }
+
+  try {
+    const redisHit = await cacheService.get<{ posterUrl: string | null; backdropUrl: string | null }>(redisKey);
+    if (redisHit && typeof redisHit === "object") {
+      setBoundedMap(TMDB_MEDIA_IMAGES_CACHE, cacheKey, {
+        posterUrl: redisHit.posterUrl ?? null,
+        backdropUrl: redisHit.backdropUrl ?? null,
+        expireAt: Date.now() + (redisHit.posterUrl ? 24 * 3600 * 1000 : 120 * 1000),
+      });
+      return { posterUrl: redisHit.posterUrl ?? null, backdropUrl: redisHit.backdropUrl ?? null };
+    }
+  } catch {
+    // Graceful fallback nếu Redis timeout
   }
 
   const existingFlight = inFlightTmdbIdImages.get(cacheKey);
@@ -189,6 +204,8 @@ export async function getTmdbMediaImagesById(
           backdropUrl,
           expireAt: Date.now() + (posterUrl ? 24 * 3600 * 1000 : 120 * 1000),
         });
+        const redisTtl = posterUrl ? 30 * 86400 : 3600;
+        cacheService.set(redisKey, { posterUrl, backdropUrl }, redisTtl).catch(() => {});
       }
 
       return { posterUrl, backdropUrl };
@@ -296,11 +313,30 @@ export async function searchTmdbPosterByTitle(
   const cleanQuery = query.trim();
   if (cleanQuery.length < 2) return { posterUrl: null, backdropUrl: null };
 
-  const cacheKey = `${cleanQuery}|${year || ""}|${type}`.toLowerCase();
+  const cleanType = normalizeTmdbLookupMediaType(type);
+  const searchYear = year && /^\d{4}$/.test(String(year).trim()) ? `&year=${String(year).trim()}` : "";
+  const cacheKey = `${cleanQuery}|${year || ""}|${cleanType}`.toLowerCase();
+  const cleanQueryNorm = cleanQuery.toLowerCase().replace(/[^a-z0-9]/g, "_").slice(0, 48);
+  const redisKey = `tmdb:poster:v1:${cleanQueryNorm}:${year || ""}:${cleanType}`;
+
   const now = Date.now();
   const memHit = TMDB_TITLE_POSTER_CACHE.get(cacheKey);
   if (memHit && memHit.expireAt > now) {
     return { posterUrl: memHit.posterUrl, backdropUrl: memHit.backdropUrl };
+  }
+
+  try {
+    const redisHit = await cacheService.get<{ posterUrl: string | null; backdropUrl: string | null }>(redisKey);
+    if (redisHit && typeof redisHit === "object") {
+      setBoundedMap(TMDB_TITLE_POSTER_CACHE, cacheKey, {
+        posterUrl: redisHit.posterUrl ?? null,
+        backdropUrl: redisHit.backdropUrl ?? null,
+        expireAt: Date.now() + (redisHit.posterUrl ? 24 * 3600 * 1000 : 120 * 1000),
+      });
+      return { posterUrl: redisHit.posterUrl ?? null, backdropUrl: redisHit.backdropUrl ?? null };
+    }
+  } catch {
+    // Graceful fallback nếu Redis timeout
   }
 
   const existingFlight = inFlightTmdbTitlePoster.get(cacheKey);
@@ -308,8 +344,6 @@ export async function searchTmdbPosterByTitle(
     return awaitWithAbort(existingFlight, externalSignal, { posterUrl: null, backdropUrl: null });
   }
 
-  const cleanType = normalizeTmdbLookupMediaType(type);
-  const searchYear = year && /^\d{4}$/.test(String(year).trim()) ? `&year=${String(year).trim()}` : "";
   const variants = extractTitleVariants(cleanQuery).slice(0, 3);
 
   const task = (async (): Promise<{ posterUrl: string | null; backdropUrl: string | null }> => {
@@ -359,6 +393,8 @@ export async function searchTmdbPosterByTitle(
           backdropUrl: result.backdropUrl,
           expireAt: Date.now() + (result.posterUrl ? 24 * 3600 * 1000 : 120 * 1000),
         });
+        const redisTtl = result.posterUrl ? 30 * 86400 : 3600;
+        cacheService.set(redisKey, result, redisTtl).catch(() => {});
       }
 
       return result;
