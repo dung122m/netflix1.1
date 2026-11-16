@@ -2,6 +2,46 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 
+/**
+ * Easing: ease-out cubic — bắt đầu nhanh, decelerate cuối — cảm giác responsive, tự nhiên
+ */
+function easeInOutCubic(t: number): number {
+  return 1 - Math.pow(1 - t, 3);
+}
+
+/**
+ * Custom smooth scroll bằng RAF — không phụ thuộc browser native smooth scroll
+ * Kiểm soát hoàn toàn duration và easing, nhất quán trên mọi browser/OS
+ */
+function smoothScrollTo(el: HTMLElement, targetLeft: number, duration = 300): void {
+  const startLeft = el.scrollLeft;
+  const distance = targetLeft - startLeft;
+  if (Math.abs(distance) < 1) return;
+
+  // Tắt snap trong lúc animate để không bị override
+  const prevSnap = el.style.scrollSnapType;
+  el.style.scrollSnapType = "none";
+
+  const startTime = performance.now();
+
+  function step(now: number) {
+    const elapsed = now - startTime;
+    const progress = Math.min(elapsed / duration, 1);
+    const eased = easeInOutCubic(progress);
+    el.scrollLeft = startLeft + distance * eased;
+
+    if (progress < 1) {
+      requestAnimationFrame(step);
+    } else {
+      el.scrollLeft = targetLeft;
+      // Bật lại snap sau khi animation xong
+      el.style.scrollSnapType = prevSnap;
+    }
+  }
+
+  requestAnimationFrame(step);
+}
+
 export interface UseCarouselScrollOptions {
   /**
    * Tùy chọn reset cuộn về 0 khi trigger thay đổi (ví dụ: đổi tab hoặc danh mục)
@@ -92,6 +132,9 @@ export function useCarouselScroll<T extends HTMLElement = HTMLDivElement>(
     const el = scrollRef.current;
     if (!el) return;
 
+    // Promote scroll container lên GPU layer để scroll paint mượt hơn
+    el.style.willChange = "scroll-position";
+
     checkScroll();
 
     // ResizeObserver: Bắt kịp thay đổi kích thước màn hình / container
@@ -163,20 +206,11 @@ export function useCarouselScroll<T extends HTMLElement = HTMLDivElement>(
       let targetScroll = scrollLeft;
 
       if (cards.length > 0) {
-        const containerRect = el.getBoundingClientRect();
-        const paddingLeft =
-          typeof window !== "undefined"
-            ? parseFloat(window.getComputedStyle(el).paddingLeft) || 16
-            : 16;
-
-        // Tính toạ độ cuộn tuyệt đối thực tế của từng thẻ con:
-        // (cardRect.left - containerRect.left + scrollLeft - paddingLeft)
+        // Dùng offsetLeft thay getBoundingClientRect() — không gây forced reflow
+        const paddingLeft = 16; // px-4 mặc định
         const cardPositions = cards
-          .map((card) => {
-            const cardRect = card.getBoundingClientRect();
-            return Math.round(cardRect.left - containerRect.left + scrollLeft - paddingLeft);
-          })
-          .filter((pos) => !isNaN(pos));
+          .map((card) => Math.round(card.offsetLeft - paddingLeft))
+          .filter((pos) => !isNaN(pos) && pos >= 0);
 
         if (direction === "right") {
           // Khi trượt sang phải: lướt qua khoảng 75% màn hình và đáp nhẹ vào thẻ gần nhất
@@ -227,11 +261,8 @@ export function useCarouselScroll<T extends HTMLElement = HTMLDivElement>(
       // Giới hạn trong phạm vi cho phép
       targetScroll = Math.max(0, Math.min(maxScroll, Math.round(targetScroll)));
 
-      // Trượt mượt mà bằng native GPU compositor của trình duyệt (120Hz/60Hz không giật lag)
-      el.scrollTo({
-        left: targetScroll,
-        behavior: "smooth",
-      });
+      // Custom smooth scroll — ease-out cubic 300ms, không phụ thuộc browser native
+      smoothScrollTo(el, targetScroll, 300);
 
       // Tự động kiểm tra cập nhật lại trạng thái mũi tên
       setTimeout(checkScroll, 350);
