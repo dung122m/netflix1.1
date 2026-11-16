@@ -1,45 +1,61 @@
-# Nanaflix - Cloudflare Edge Stream Proxy Worker (Zero Vercel Bandwidth)
+# Hướng Dẫn Tối Ưu Hóa Cloudflare R2 & Edge Worker Cho Nanaflix
 
-## Tổng quan
-Giải pháp này chuyển 100% lưu lượng xem trực tiếp bóng đá & TV (các file video chunk `.ts`, `.m4s`, playlist `.m3u8`) từ Vercel Serverless Function sang chạy trực tiếp trên **Cloudflare Edge Worker**:
-- **Băng thông Vercel**: Giảm từ 100% về **0.00%**.
-- **Chi phí băng thông**: **0đ** (Cloudflare miễn phí không giới hạn băng thông Egress).
-- **Hạn mức Worker miễn phí**: 100.000 requests / ngày (~3.000.000 requests / tháng).
-- **Độ trễ**: Dưới 5ms nhờ mạng lưới Edge toàn cầu (Point of Presence tại Singapore và Việt Nam).
+Tài liệu này hướng dẫn chi tiết cách triển khai **Cloudflare Worker tại media.nanaflix.asia** (Gợi ý Cấp 2) và **Cấu hình Quy tắc Tự động Dọn rác Lifecycle Rule** (Gợi ý Cấp 3).
 
 ---
 
-## Cách triển khai (2 phút, không cần cài đặt gì thêm)
+## 🚀 GỢI Ý CẤP 2: Triển Khai Cloudflare Worker (media.nanaflix.asia)
 
-### Bước 1: Tạo Worker trên Cloudflare Dashboard
-1. Đăng nhập vào [Cloudflare Dashboard](https://dash.cloudflare.com/).
-2. Chọn menu bên trái: **Workers & Pages** -> Bấm **Create application** -> **Create Worker**.
-3. Đặt tên worker: ví dụ `nanaflix-stream-proxy`.
-4. Bấm **Deploy**.
+Worker này biến `media.nanaflix.asia` thành một CDN thông minh chạy 100% trên mạng lưới Cloudflare:
+* File đã có trên R2 -> Trả về ngay trong 10-15ms (0đ băng thông, 0ms Vercel).
+* File chưa có trên R2 -> Tự động kéo từ `phimimg.com`, lưu vào R2 rồi trả về cho khách.
+* Tiết kiệm **100% CPU & Băng thông cho Vercel**.
 
-### Bước 2: Dán mã nguồn Worker
-1. Sau khi deploy xong, bấm **Edit code**.
-2. Xóa toàn bộ nội dung mặc định và dán nội dung từ file [`stream-proxy-worker.js`](./stream-proxy-worker.js) vào.
-3. Bấm **Deploy**.
+### Cách 1: Triển khai trực tiếp qua Cloudflare Dashboard (Khuyên dùng - 2 phút)
 
-### Bước 3: Cấu hình Secret (Tùy chọn nhưng khuyến nghị)
-1. Trong trang cài đặt của Worker vừa tạo, vào tab **Settings** -> **Variables and Secrets**.
-2. Thêm biến môi trường:
-   - Tên biến: `STREAM_TOKEN_SECRET`
-   - Giá trị: Chuỗi bí mật của bạn (giống giá trị trong file `.env.local` của Vercel).
-3. Bấm **Save and deploy**.
+1. Đăng nhập vào [Cloudflare Dashboard](https://dash.cloudflare.com).
+2. Vào mục **Workers & Pages** -> Bấm **Create application** -> **Create Worker**.
+3. Đặt tên Worker: `nanaflix-media-worker` -> Bấm **Deploy**.
+4. Bấm **Edit code**:
+   * Copy toàn bộ nội dung trong file `cloudflare/worker.js` dán đè vào trình soạn thảo.
+   * Bấm **Deploy** (hoặc Save and Deploy).
+5. Gắn R2 Bucket Binding (Rất quan trọng):
+   * Quay lại trang tổng quan của Worker -> Vào thẻ **Settings** -> **Variables and Secrets** (hoặc **Bindings**).
+   * Tại mục **R2 Bucket Bindings**, bấm **Add binding**:
+     * **Variable name**: Nhập chính xác `MEDIA_BUCKET`
+     * **R2 Bucket**: Chọn `nanaflix-media`
+   * Bấm **Save and deploy**.
+6. Gắn Domain `media.nanaflix.asia`:
+   * Vào thẻ **Settings** của Worker -> Chọn mục **Domains & Routes** -> Bấm **Add** -> Chọn **Custom Domain**.
+   * Nhập: `media.nanaflix.asia`.
+   * Cloudflare sẽ tự động trỏ subdomain về Worker này và cấp chứng chỉ SSL miễn phí.
 
-### Bước 4: Định tuyến (Chọn 1 trong 2 cách)
+### Cách 2: Triển khai bằng Wrangler CLI
 
-#### Cách A: Dùng Route trên tên miền chính (Khuyến nghị nhất)
-Vào Cloudflare -> Chọn domain `nanaflix.asia` -> **Workers Routes** -> **Add route**:
-- Route: `nanaflix.asia/api/live-football/proxy*` -> Chọn Worker `nanaflix-stream-proxy`.
-- Route: `nanaflix.asia/api/live-tv/proxy*` -> Chọn Worker `nanaflix-stream-proxy`.
+Nếu máy tính của bạn đã cài đặt Node.js:
+```bash
+cd cloudflare
+npx wrangler login
+npx wrangler deploy
+```
 
-*Khi cấu hình xong, mọi yêu cầu video proxy từ trình duyệt của người dùng sẽ được Cloudflare Edge chặn và xử lý ngay tại Singapore, hoàn toàn không chạm vào Vercel!*
+---
 
-#### Cách B: Dùng Custom Subdomain
-1. Trong Worker -> **Settings** -> **Triggers** -> **Custom Domains**: Thêm `proxy.nanaflix.asia`.
-2. Trên Vercel Dashboard, thêm biến môi trường:
-   - `NEXT_PUBLIC_STREAM_PROXY_URL=https://proxy.nanaflix.asia/api/live-football/proxy`
-   - `NEXT_PUBLIC_TV_PROXY_URL=https://proxy.nanaflix.asia/api/live-tv/proxy`
+## 🧹 GỢI Ý CẤP 3: Cấu Hình Tự Động Dọn Rác (Object Lifecycle Rules)
+
+Để đảm bảo tổng dung lượng lưu trữ trên R2 không bao giờ vượt quá 10 GB miễn phí, bạn cấu hình xóa các ảnh phim cache cũ sau 90 ngày:
+
+1. Trong [Cloudflare Dashboard](https://dash.cloudflare.com), vào mục **R2** ở thanh bên trái.
+2. Chọn bucket **nanaflix-media**.
+3. Chuyển sang thẻ **Settings** (Cài đặt) -> Cuộn xuống mục **Object lifecycle rules**.
+4. Bấm **Add rule**:
+   * **Rule name**: `Auto-delete old movie cache`
+   * **Prefix**: Nhập chính xác `cache/` (Lưu ý: Chỉ dọn thư mục cache phim, KHÔNG ảnh hưởng đến `avatars/` hay `covers/`).
+   * **Action**: Chọn **Delete objects**.
+   * **Age**: Nhập `90` (hoặc `120`) ngày.
+5. Bấm **Add rule** (Lưu lại).
+
+🎉 **Xong!** Kể từ bây giờ:
+* Toàn bộ ảnh cache của các bộ phim cũ không ai xem quá 3 tháng sẽ tự động bị xóa sạch.
+* Dung lượng bucket sẽ luôn ổn định quanh mức 3 GB – 6 GB.
+* Các ảnh avatar người dùng (`avatars/`), ảnh bìa (`covers/`), logo bóng đá (`teams/`) được lưu vĩnh viễn không bao giờ bị xóa.

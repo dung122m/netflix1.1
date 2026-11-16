@@ -19,6 +19,7 @@ export interface CacheService {
   setMany<T>(entries: Array<{ key: string; value: T; ttlSeconds?: number }>): Promise<boolean>;
   delete(key: string): Promise<boolean>;
   fetchOrSet<T>(key: string, fetcher: () => Promise<T>, ttlSeconds?: number): Promise<T>;
+  incr(key: string, ttlSeconds?: number): Promise<number>;
   clearL1(): void;
   hasL1(key: string): boolean;
 }
@@ -553,6 +554,30 @@ export const cacheService: CacheService = {
       console.warn(`[Cache ERROR: DEL] key="${key}":`, err instanceof Error ? err.message : err);
       return false;
     }
+  },
+
+  /**
+   * Atomic increment for rate limits, quotas, and counters with optional TTL.
+   */
+  async incr(key: string, ttlSeconds?: number): Promise<number> {
+    const sanitized = sanitizeKey(key);
+    const redis = getRedisClientForKey(key);
+    if (redis) {
+      try {
+        const val = await redis.incr(sanitized);
+        if (val === 1 && ttlSeconds && ttlSeconds > 0) {
+          await redis.expire(sanitized, ttlSeconds);
+        }
+        return val;
+      } catch (err) {
+        console.warn(`[Cache ERROR: INCR] key="${key}":`, err instanceof Error ? err.message : err);
+      }
+    }
+    const current = (L1_CACHE.get(sanitized)?.value as number) || 0;
+    const next = current + 1;
+    const expireAt = Date.now() + (ttlSeconds ? ttlSeconds * 1000 : DEFAULT_L1_TTL_MS);
+    L1_CACHE.set(sanitized, { value: next, expireAt });
+    return next;
   },
 
   /**

@@ -10,6 +10,7 @@ import {
   recordSuccessfulR2Upload,
   recordSuccessfulR2Delete,
   getR2QuotaStatus,
+  syncQuotaFromRedis,
 } from "./r2QuotaGuard";
 import { refreshR2Manifest, getR2AssetUrl, getR2BannerUrl, getR2TeamLogoUrl } from "./r2Manifest";
 
@@ -144,7 +145,8 @@ export async function uploadToR2({
       ? "ugc"
       : "cache");
 
-  // CẦU CHÌ BẢO VỆ QUOTA (CIRCUIT BREAKER)
+  // CẦU CHÌ BẢO VỆ QUOTA (CIRCUIT BREAKER VỚI ĐỒNG BỘ REDIS DB 3)
+  syncQuotaFromRedis().catch(() => {});
   const byteLength = buffer instanceof Buffer ? buffer.length : buffer.byteLength;
   const quotaCheck = checkR2QuotaAllowance(byteLength, isBatchAdmin, resolvedCategory);
   if (!quotaCheck.allowed) {

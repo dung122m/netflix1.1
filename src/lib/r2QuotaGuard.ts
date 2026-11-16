@@ -1,16 +1,19 @@
 /**
- * CLOUDFLARE R2 QUOTA GUARD & AUTOMATIC CIRCUIT BREAKER
+ * CLOUDFLARE R2 QUOTA GUARD & DISTRIBUTED CIRCUIT BREAKER (REDIS DB 3 AUX)
  * 
  * Bảo vệ tối ưu hạn mức gói Free của Cloudflare R2:
  * - Hạn mức Free Cloudflare R2: 10 GB lưu trữ & 1,000,000 lượt Class A (PUT/POST)/tháng
  * - Băng thông Egress: 0đ (Hoàn toàn miễn phí, không giới hạn)
  * 
  * Ngưỡng an toàn bảo vệ:
- * - Tối đa 10,000 uploads / ngày (Tháng ~300,000 lượt -> Dưới 30% quota 1,000,000)
- * - Tối đa 200,000 uploads / tháng (Chỉ chiếm 20% quota 1,000,000)
- * - Tối đa 8 GB dung lượng lưu trữ (80% quota 10 GB, chừa 2 GB biên độ an toàn)
- * - Tách riêng UGC (Avatar/Cover người dùng) và Cache Poster để đảm bảo người dùng luôn upload được
+ * - Tối đa 1,500 uploads / ngày (Tháng ~45,000 lượt -> Dưới 4.5% quota 1,000,000)
+ * - Tối đa 40,000 uploads / tháng (Chỉ chiếm 4% quota 1,000,000)
+ * - Tối đa 6 GB dung lượng lưu trữ (60% quota 10 GB, chừa 4 GB biên độ an toàn)
+ * - Tách riêng UGC (Avatar/Cover người dùng) và Cache Poster để người dùng luôn upload được
+ * - Đồng bộ phân tán qua Redis DB 3 (Aux) để mọi Vercel Serverless containers cùng nhìn thấy một con số đếm
  */
+
+import { cacheService } from "@/lib/cache";
 
 export interface R2QuotaMetrics {
   isCircuitBreakerTripped: boolean;
@@ -26,13 +29,13 @@ export interface R2QuotaMetrics {
 
 // Ngưỡng an toàn chuẩn hóa cho Cloudflare R2
 export const R2_LIMITS = {
-  MAX_DAILY_UPLOADS: 10000,
-  MAX_MONTHLY_UPLOADS: 200000,
-  MAX_STORAGE_BYTES: 8 * 1024 * 1024 * 1024, // 8 GB
-  MAX_DAILY_UGC_UPLOADS: 2000,
+  MAX_DAILY_UPLOADS: 1500,
+  MAX_MONTHLY_UPLOADS: 40000,
+  MAX_STORAGE_BYTES: 6 * 1024 * 1024 * 1024, // 6 GB
+  MAX_DAILY_UGC_UPLOADS: 1000,
 };
 
-// In-memory ledger tracking (lưu trong instance serverless/container)
+// In-memory ledger tracking (L1 cache được đồng bộ với Redis DB 3)
 let inMemoryDailyCount = 0;
 let inMemoryDailyUgcCount = 0;
 let inMemoryDailyDate = new Date().toISOString().slice(0, 10);
@@ -40,6 +43,7 @@ let inMemoryMonthlyCount = 0;
 let inMemoryMonthlyMonth = new Date().toISOString().slice(0, 7);
 let inMemoryStorageBytes = 26 * 1024 * 1024; // Khởi điểm ước tính toàn bộ assets tĩnh ~26MB
 let manualCircuitBreakerLock = false;
+let lastRedisSyncTimestamp = 0;
 
 function refreshDateWindows(): void {
   const today = new Date().toISOString().slice(0, 10);
@@ -53,6 +57,38 @@ function refreshDateWindows(): void {
   if (inMemoryMonthlyMonth !== thisMonth) {
     inMemoryMonthlyMonth = thisMonth;
     inMemoryMonthlyCount = 0;
+  }
+}
+
+/**
+ * Đồng bộ dữ liệu đếm từ Redis DB 3 về RAM container (chạy mỗi 30s hoặc khi cần)
+ */
+export async function syncQuotaFromRedis(): Promise<void> {
+  const now = Date.now();
+  if (now - lastRedisSyncTimestamp < 30_000) return;
+  lastRedisSyncTimestamp = now;
+
+  const today = new Date().toISOString().slice(0, 10);
+  const thisMonth = new Date().toISOString().slice(0, 7);
+
+  try {
+    const [redisDaily, redisMonthly, redisUgc] = await Promise.all([
+      cacheService.get<number>(`r2:quota:daily:${today}`).catch(() => null),
+      cacheService.get<number>(`r2:quota:monthly:${thisMonth}`).catch(() => null),
+      cacheService.get<number>(`r2:quota:ugc:${today}`).catch(() => null),
+    ]);
+
+    if (typeof redisDaily === "number" && redisDaily > inMemoryDailyCount) {
+      inMemoryDailyCount = redisDaily;
+    }
+    if (typeof redisMonthly === "number" && redisMonthly > inMemoryMonthlyCount) {
+      inMemoryMonthlyCount = redisMonthly;
+    }
+    if (typeof redisUgc === "number" && redisUgc > inMemoryDailyUgcCount) {
+      inMemoryDailyUgcCount = redisUgc;
+    }
+  } catch {
+    // Graceful fallback to memory counters if Redis is unreachable
   }
 }
 
@@ -79,7 +115,7 @@ export function checkR2QuotaAllowance(
     };
   }
 
-  // 1. Kiểm tra trần dung lượng lưu trữ (Hard ceiling 8GB / 10GB free)
+  // 1. Kiểm tra trần dung lượng lưu trữ (Hard ceiling 6GB / 10GB free)
   if (inMemoryStorageBytes + contentLengthBytes > R2_LIMITS.MAX_STORAGE_BYTES) {
     console.warn(
       `[R2 CIRCUIT BREAKER] Ngắt cầu chì! Dung lượng ước tính (${(inMemoryStorageBytes / 1024 / 1024).toFixed(1)}MB) sắp chạm trần an toàn ${R2_LIMITS.MAX_STORAGE_BYTES / 1024 / 1024}MB.`
@@ -127,7 +163,7 @@ export function checkR2QuotaAllowance(
 }
 
 /**
- * Ghi nhận sau khi upload thành công vào R2
+ * Ghi nhận sau khi upload thành công vào R2: Cập nhật RAM cục bộ và tăng atomic trên Redis DB 3
  */
 export function recordSuccessfulR2Upload(
   bytesUploaded: number,
@@ -140,6 +176,17 @@ export function recordSuccessfulR2Upload(
   }
   inMemoryMonthlyCount++;
   inMemoryStorageBytes += bytesUploaded;
+
+  // Đồng bộ phân tán lên Redis DB 3 (Aux)
+  const today = inMemoryDailyDate;
+  const thisMonth = inMemoryMonthlyMonth;
+  const SEC_PER_DAY = 86400;
+
+  cacheService.incr(`r2:quota:daily:${today}`, SEC_PER_DAY * 2).catch(() => {});
+  cacheService.incr(`r2:quota:monthly:${thisMonth}`, SEC_PER_DAY * 35).catch(() => {});
+  if (category === "ugc") {
+    cacheService.incr(`r2:quota:ugc:${today}`, SEC_PER_DAY * 2).catch(() => {});
+  }
 }
 
 /**
