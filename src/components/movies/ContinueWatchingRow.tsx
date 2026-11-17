@@ -220,15 +220,6 @@ function ContinueWatchingCard({ item, index = 0, onRemove }: ContinueWatchingCar
           {/* GRADIENT OVERLAY BÓNG ĐỔ ĐÁY TINH TẾ */}
           <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/5 to-transparent pointer-events-none" />
 
-          {/* HUY HIỆU CẢNH BÁO BẢN CAM (CHỈ HIỂN THỊ KHI LÀ BẢN CAM) */}
-          {item.quality?.toUpperCase().includes("CAM") && (
-            <div className="absolute top-1.5 left-1.5 z-10 pointer-events-none">
-              <span className="px-1.5 py-0.5 rounded-md text-[9px] sm:text-[9.5px] font-bold bg-amber-950/90 text-amber-300 backdrop-blur-md shadow-md">
-                CAM
-              </span>
-            </div>
-          )}
-
           {/* NÚT PLAY TRUNG TÂM KHI HOVER */}
           <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10">
             <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-black/60 backdrop-blur-md border border-white/20 text-white flex items-center justify-center shadow-xl transform group-hover:scale-110 transition-transform">
@@ -274,7 +265,7 @@ function ContinueWatchingCard({ item, index = 0, onRemove }: ContinueWatchingCar
               </span>
             </div>
             {remainingMinutes && remainingMinutes > 0 && (
-              <span className="text-[10px] text-zinc-500 font-medium flex-shrink-0 ml-1.5 tabular-nums">
+              <span className="text-[10px] text-zinc-500 font-medium flex-shrink-0 ml-1.5 font-sans tabular-nums">
                 còn {remainingMinutes}p
               </span>
             )}
