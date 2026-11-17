@@ -269,13 +269,24 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
     if (initial) {
       setHasError(false);
       setCurrentSrc(initial);
-      setIsImageLoaded(GLOBAL_LOADED_IMAGES.has(initial));
+      setIsImageLoaded(
+        Boolean(
+          GLOBAL_LOADED_IMAGES.has(initial) ||
+          (imgRef.current && imgRef.current.complete && imgRef.current.naturalWidth > 0)
+        )
+      );
     } else {
       setCurrentSrc("");
       setHasError(false);
       setIsImageLoaded(false);
     }
   }, [slug, imageCandidates]);
+
+  useEffect(() => {
+    if (imgRef.current && imgRef.current.complete && imgRef.current.naturalWidth > 0) {
+      setIsImageLoaded(true);
+    }
+  }, [currentSrc]);
 
   // Khi hook useMoviePosterFallback tìm thấy ảnh TMDb hoặc hoàn tất tra cứu:
   useEffect(() => {
