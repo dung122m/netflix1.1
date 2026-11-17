@@ -683,7 +683,7 @@ export default async function BrowsePage({
                     </span>
                   </div>
                   <p className="text-xs sm:text-sm text-zinc-400 leading-relaxed truncate sm:whitespace-normal">
-                    Tuyển tập {totalItems.toLocaleString("vi-VN")} tác phẩm điện ảnh và truyền hình có sự tham gia của {detectedActor.name}.
+                    Tuyển tập {totalItems.toLocaleString("vi-VN")} tác phẩm nổi bật của {detectedActor.name}.
                   </p>
                 </div>
               </div>

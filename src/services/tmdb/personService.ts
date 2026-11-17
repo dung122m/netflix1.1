@@ -440,7 +440,7 @@ async function executeTmdbActorFlow(
     const checkLimit = Math.min(
       sortedCredits.length,
       Math.max(Math.round(maxMovies * 1.5), 60),
-      150
+      250
     );
     const matchedMovies = await matchTmdbMoviesWithSources(sortedCredits, checkLimit, concurrency, {
       isActorFilmography: true,

@@ -364,7 +364,7 @@ export const ActorDetailClient: React.FC<ActorDetailClientProps> = ({
               <span>Tuyển Tập Phim Của {actorName}</span>
             </h2>
             <p className="text-xs sm:text-sm text-zinc-400">
-              Tổng hợp {displayedMovies.length} tác phẩm {totalPages > 1 ? `(Trang ${safeCurrentPage} / ${totalPages})` : ""} đã được đối chiếu nguồn phát trên Nanaflix
+              Tuyển tập {displayedMovies.length} bộ phim đặc sắc {totalPages > 1 ? `• Trang ${safeCurrentPage} / ${totalPages}` : ""}
             </p>
           </div>
 
