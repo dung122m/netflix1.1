@@ -20,6 +20,7 @@ export interface TmdbPersonDetail extends TmdbPerson {
   gender?: number;
   homepage?: string;
   imdb_id?: string;
+  english_name?: string;
 }
 
 export interface TmdbMovieCredit {

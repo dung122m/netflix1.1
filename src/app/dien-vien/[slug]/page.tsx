@@ -46,7 +46,7 @@ import {
   GOLDEN_ACTOR_INDEX,
 } from "@/services/aiActorService";
 import { getHistoricalArtistBySlug } from "@/data/history/historicalArtistsBirthdays";
-import { normalizeForMatch, cleanCountryName } from "@/lib/stringUtils";
+import { normalizeForMatch, cleanCountryName, isAsianScript } from "@/lib/stringUtils";
 import {
   searchTmdbPerson,
   getTmdbPersonDetail,
@@ -135,6 +135,7 @@ interface ResolvedActorProfile {
   rawName: string;
   tmdbPersonId?: number;
   canonicalName: string;
+  englishName?: string;
   actorAliases: string[];
   historicalItem?: ReturnType<typeof getHistoricalArtistBySlug>;
   actorSynonyms?: ReturnType<typeof getActorSynonyms> | null;
@@ -142,6 +143,107 @@ interface ResolvedActorProfile {
   matchedPreset?: (typeof GOLDEN_ACTOR_INDEX)[number];
   tmdbDetail: Awaited<ReturnType<typeof getTmdbPersonDetail>> | null;
   isCachedNotFound?: boolean;
+}
+
+/**
+ * Trích xuất tên quốc tế / phiên âm chuẩn mực (International Name / Romanization)
+ * - Ưu tiên 1: Tên quốc tế chính thức từ TMDb tmdbDetail.english_name hoặc tmdbDetail.name (nếu là chữ Latin)
+ * - Ưu tiên 2: Tên tiếng Anh đã duyệt từ historicalArtists (historicalItem.englishName)
+ * - Ưu tiên 3: Tên bí danh quốc tế trong actorSynonyms
+ * - Ưu tiên 4: also_known_as từ TMDb (kho tàng tên Latin / Pinyin / Romanized của các nghệ sĩ châu Á)
+ * - Ưu tiên 5: Trích xuất từ tiểu sử Wikipedia / TMDb (theo mẫu "Koo Kyo-hwan (Korean: 구교환; born...")
+ */
+function resolveActorInternationalName(params: {
+  canonicalName: string;
+  country?: string;
+  tmdbDetail?: Awaited<ReturnType<typeof getTmdbPersonDetail>> | null;
+  historicalItem?: ReturnType<typeof getHistoricalArtistBySlug>;
+  actorSynonyms?: ReturnType<typeof getActorSynonyms> | null;
+  actorAliases?: string[];
+  bioText?: string;
+}): string | undefined {
+  const {
+    canonicalName,
+    country,
+    tmdbDetail,
+    historicalItem,
+    actorSynonyms,
+    actorAliases = [],
+    bioText,
+  } = params;
+
+  // Nghệ sĩ Việt Nam không hiển thị trường "Tên quốc tế"
+  if (country && country.includes("Việt Nam")) {
+    return undefined;
+  }
+
+  const normCanonical = normalizeForMatch(canonicalName);
+  const hasVietnameseDiacritics = (str: string) =>
+    /[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/i.test(str);
+
+  const isValidInternationalName = (candidate?: string | null): boolean => {
+    if (!candidate || !candidate.trim()) return false;
+    const trimmed = candidate.trim();
+    // Tuyệt đối không chứa ký tự chữ tượng hình châu Á (Hanzi, Hangul, Kana, Thai)
+    if (isAsianScript(trimmed)) return false;
+    // Không chứa dấu tiếng Việt
+    if (hasVietnameseDiacritics(trimmed)) return false;
+    // Phải có chữ cái Latin và độ dài hợp lý
+    if (!/[a-zA-Z]/.test(trimmed) || trimmed.length < 2 || trimmed.length > 50) return false;
+    // Không chứa ký tự lạ
+    if (!/^[a-zA-Z0-9\s\-'.]+$/.test(trimmed)) return false;
+    const normCandidate = normalizeForMatch(trimmed);
+    // Nếu canonicalName là chữ Latin thì không trùng với chính nó bỏ dấu
+    if (!isAsianScript(canonicalName) && normCandidate === normCanonical) return false;
+    return true;
+  };
+
+  // 1. Tên quốc tế chính thức từ tmdbDetail.english_name
+  if (tmdbDetail?.english_name && isValidInternationalName(tmdbDetail.english_name)) {
+    return toVietnameseTitleCase(tmdbDetail.english_name);
+  }
+
+  // 2. Tên chính từ TMDb nếu là Latin
+  if (tmdbDetail?.name && isValidInternationalName(tmdbDetail.name)) {
+    return toVietnameseTitleCase(tmdbDetail.name);
+  }
+
+  // 3. Tên tiếng Anh đã duyệt từ historicalArtists
+  if (historicalItem?.englishName && isValidInternationalName(historicalItem.englishName)) {
+    return toVietnameseTitleCase(historicalItem.englishName);
+  }
+
+  // 4. Tên bí danh quốc tế trong actorSynonyms
+  if (actorSynonyms?.englishName && isValidInternationalName(actorSynonyms.englishName)) {
+    return toVietnameseTitleCase(actorSynonyms.englishName);
+  }
+
+  // 5. Tìm trong also_known_as của TMDb (kho tàng tên Latin/Pinyin/Romanization chuẩn)
+  if (Array.isArray(tmdbDetail?.also_known_as)) {
+    const latinAka = tmdbDetail.also_known_as.filter((a) => isValidInternationalName(a));
+    if (latinAka.length > 0) {
+      // Ưu tiên tên có khoảng trắng (tên đầy đủ "Họ Tên") trước tên đơn
+      const fullName = latinAka.find((a) => a.trim().includes(" ")) || latinAka[0];
+      return toVietnameseTitleCase(fullName);
+    }
+  }
+
+  // 6. Tìm trong actorAliases
+  const latinAlias = actorAliases.find((a) => isValidInternationalName(a));
+  if (latinAlias) {
+    return toVietnameseTitleCase(latinAlias);
+  }
+
+  // 7. Trích xuất từ tiểu sử (TMDb / Wikipedia) theo cú pháp chuẩn:
+  // "Koo Kyo-hwan (Korean: 구교환; born December 14, 1982)..."
+  if (bioText) {
+    const match = bioText.match(/^([a-zA-Z\s\-'.]{2,40})\s*\((?:[a-zA-Z\s]+:\s*)?[^)]+\)\s*(?:is|was|born)/i);
+    if (match && isValidInternationalName(match[1])) {
+      return toVietnameseTitleCase(match[1]);
+    }
+  }
+
+  return undefined;
 }
 
 // In-Memory RAM Cache cho trang diễn viên (0ms, 0 Redis commands cho các request lặp lại trên cùng instance)
@@ -328,10 +430,30 @@ const resolveActorProfile = cache(async (slug: string): Promise<ResolvedActorPro
     new Set(actorAliases.map((a) => (a || "").trim()).filter(Boolean))
   );
 
+  const rawCountry =
+    historicalItem?.country ||
+    actorSynonyms?.country ||
+    actorRes?.country ||
+    matchedPreset?.country ||
+    "";
+  const country = cleanCountryName(rawCountry);
+
+  const finalCanonicalName = toVietnameseTitleCase(canonicalName || rawName);
+  const englishName = resolveActorInternationalName({
+    canonicalName: finalCanonicalName,
+    country,
+    tmdbDetail,
+    historicalItem,
+    actorSynonyms,
+    actorAliases: deduplicatedAliases,
+    bioText: tmdbDetail?.biography,
+  });
+
   const resolved: ResolvedActorProfile = {
     rawName: toVietnameseTitleCase(rawName),
     tmdbPersonId: tmdbPersonId || tmdbDetail?.id,
-    canonicalName: toVietnameseTitleCase(canonicalName || rawName),
+    canonicalName: finalCanonicalName,
+    englishName,
     actorAliases: deduplicatedAliases,
     historicalItem,
     actorSynonyms,
@@ -349,13 +471,16 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const { slug } = await params;
   const profile = await resolveActorProfile(slug);
   const actorName = toVietnameseTitleCase(profile.canonicalName || profile.rawName);
+  const intlName = profile.englishName;
+  const isAsian = isAsianScript(actorName);
+  const displayTitleName = intlName && isAsian ? `${actorName} (${intlName})` : actorName;
 
   return {
-    title: `Phim của ${actorName} - Tiểu sử & Danh sách phim | Nanaflix`,
-    description: `Khám phá hồ sơ tiểu sử, vai diễn nổi bật và trọn bộ tuyển tập phim của nghệ sĩ ${actorName} chất lượng cao trên Nanaflix.`,
+    title: `Phim của ${displayTitleName} - Tiểu sử & Danh sách phim | Nanaflix`,
+    description: `Khám phá hồ sơ tiểu sử, vai diễn nổi bật và trọn bộ tuyển tập phim của nghệ sĩ ${displayTitleName} chất lượng cao trên Nanaflix.`,
     openGraph: {
-      title: `${actorName} - Hồ sơ nghệ sĩ & Danh sách phim | Nanaflix`,
-      description: `Xem trọn bộ phim của ${actorName} phụ đề Vietsub và Thuyết minh chất lượng cao tại Nanaflix.`,
+      title: `${displayTitleName} - Hồ sơ nghệ sĩ & Danh sách phim | Nanaflix`,
+      description: `Xem trọn bộ phim của ${displayTitleName} phụ đề Vietsub và Thuyết minh chất lượng cao tại Nanaflix.`,
     },
   };
 }
@@ -462,46 +587,6 @@ export default async function ActorDetailPage({ params }: PageProps) {
     matchedPreset?.country ||
     "";
   const country = cleanCountryName(rawCountry);
-  // Xác định Tên quốc tế chuẩn mực (International Name)
-  // Ưu tiên 1: Tên quốc tế chính thức từ TMDb Person API (ví dụ: "Sammo Hung", "Huang Zitao", "Jackie Chan")
-  // Ưu tiên 2: Tên quốc tế đã duyệt trong historicalArtists (historicalItem.englishName)
-  // Ưu tiên 3: Tên bí danh quốc tế trong actorSynonyms
-  const resolveEnglishName = () => {
-    // Nghệ sĩ Việt Nam không sử dụng trường "Tên quốc tế"
-    if (country && country.includes("Việt Nam")) {
-      return undefined;
-    }
-
-    const normCanonical = normalizeForMatch(canonicalName);
-    const hasVietnameseDiacritics = (str: string) =>
-      /[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/i.test(str);
-
-    const isValidInternationalName = (candidate?: string | null) => {
-      if (!candidate || !candidate.trim()) return false;
-      // Không được chứa dấu tiếng Việt (vì là tên quốc tế Latin/English/Pinyin)
-      if (hasVietnameseDiacritics(candidate)) return false;
-      const normCandidate = normalizeForMatch(candidate);
-      // Không được trùng với tên canonical bỏ dấu (tránh "hong kim bao", "hoang tu thao")
-      if (normCandidate === normCanonical) return false;
-      return true;
-    };
-
-    if (tmdbDetail?.name && isValidInternationalName(tmdbDetail.name)) {
-      return toVietnameseTitleCase(tmdbDetail.name);
-    }
-
-    if (historicalItem?.englishName && isValidInternationalName(historicalItem.englishName)) {
-      return toVietnameseTitleCase(historicalItem.englishName);
-    }
-
-    if (actorSynonyms?.englishName && isValidInternationalName(actorSynonyms.englishName)) {
-      return toVietnameseTitleCase(actorSynonyms.englishName);
-    }
-
-    return undefined;
-  };
-
-  const englishName = resolveEnglishName();
 
   const formatProfileUrl = (path?: string | null) => {
     if (!path) return undefined;
@@ -522,6 +607,21 @@ export default async function ActorDetailPage({ params }: PageProps) {
     tmdbBio: tmdbDetail?.biography,
     wikiDescription: wikiProfile?.description,
   });
+
+  const isAsian = isAsianScript(canonicalName);
+  const englishName =
+    profile.englishName ||
+    resolveActorInternationalName({
+      canonicalName,
+      country,
+      tmdbDetail,
+      historicalItem,
+      actorSynonyms,
+      actorAliases,
+      bioText: bestBio,
+    });
+
+  const fullDisplayName = englishName && isAsian ? `${canonicalName} (${englishName})` : canonicalName;
 
   // 6. Trích xuất thông tin cá nhân thực tế (chỉ hiển thị khi có dữ liệu)
   const birthday = historicalItem?.birthday || tmdbDetail?.birthday;
@@ -590,7 +690,7 @@ export default async function ActorDetailPage({ params }: PageProps) {
         <PageHeader
           backHref="/browse"
           backLabel="Khám phá phim"
-          breadcrumbs={[{ label: canonicalName }]}
+          breadcrumbs={[{ label: fullDisplayName }]}
         />
 
         {/* ============================================================ */}
@@ -644,13 +744,19 @@ export default async function ActorDetailPage({ params }: PageProps) {
               </div>
 
               {/* NAME & INTERNATIONAL NAME */}
-              <div className="space-y-1 min-w-0">
+              <div className="space-y-1.5 min-w-0">
                 <h1 className="text-3xl sm:text-5xl md:text-6xl font-black text-white tracking-tight leading-tight">
                   {canonicalName}
+                  {englishName && isAsian && (
+                    <span className="text-xl sm:text-3xl md:text-4xl text-zinc-400 font-normal ml-3 inline-block">
+                      ({englishName})
+                    </span>
+                  )}
                 </h1>
-                {englishName && normalizeForMatch(englishName) !== normalizeForMatch(canonicalName) && (
+                {englishName && (
                   <p className="text-sm sm:text-base text-zinc-400 font-medium">
-                    Tên quốc tế: <span className="text-zinc-200">{englishName}</span>
+                    {isAsian ? "Tên quốc tế / Phiên âm:" : "Tên quốc tế:"}{" "}
+                    <span className="text-zinc-200 font-semibold">{englishName}</span>
                   </p>
                 )}
               </div>
@@ -700,7 +806,7 @@ export default async function ActorDetailPage({ params }: PageProps) {
               <div className="pt-2 flex items-center justify-center sm:justify-start gap-3">
                 <FavoriteActorButton
                   id={profile.tmdbPersonId || slug}
-                  name={canonicalName}
+                  name={fullDisplayName}
                   slug={slug}
                   avatarUrl={bestAvatar}
                   country={country}
@@ -720,7 +826,7 @@ export default async function ActorDetailPage({ params }: PageProps) {
           movies={movies}
           bioText={bestBio}
           wikiUrl={wikiUrl}
-          actorName={canonicalName}
+          actorName={fullDisplayName}
         />
 
       </main>

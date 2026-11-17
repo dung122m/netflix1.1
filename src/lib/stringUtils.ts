@@ -86,3 +86,13 @@ export function cleanCountryName(country?: string | null): string {
   return clean;
 }
 
+/**
+ * Kiểm tra xem chuỗi có chứa chữ viết tượng hình / chữ châu Á
+ * (Chữ Hán / Hanzi / Kanji, Hiragana / Katakana tiếng Nhật, Hangul tiếng Hàn, chữ Thái)
+ */
+export function isAsianScript(str?: string | null): boolean {
+  if (!str) return false;
+  return /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}\p{Script=Thai}]/u.test(str);
+}
+
+

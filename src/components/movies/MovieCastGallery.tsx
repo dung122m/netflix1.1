@@ -8,7 +8,7 @@ import { useCarouselScroll } from "@/components/ui/useCarouselScroll";
 import type { TmdbCastMember } from "@/services/tmdbService";
 import { ActorAvatar } from "@/components/actors/ActorAvatar";
 import { FavoriteActorButton } from "@/components/actors/FavoriteActorButton";
-import { normalizeForMatch, cleanCountryName } from "@/lib/stringUtils";
+import { normalizeForMatch, cleanCountryName, isAsianScript } from "@/lib/stringUtils";
 import { toVietnameseTitleCase, getActorSynonyms } from "@/services/actor/actorAliasResolver";
 
 export interface MovieCastGalleryProps {
@@ -41,6 +41,27 @@ export const MovieCastGallery: React.FC<MovieCastGalleryProps> = ({
   const displayItems = useMemo<ProcessedCastItem[]>(() => {
     if (cast && cast.length > 0) {
       return cast.map((c) => {
+        const isAsian = isAsianScript(c.name);
+        const latinOriginal =
+          c.original_name &&
+          !isAsianScript(c.original_name) &&
+          /[a-zA-Z]/.test(c.original_name) &&
+          !/[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/i.test(c.original_name)
+            ? toVietnameseTitleCase(c.original_name)
+            : undefined;
+
+        const asianOriginal =
+          !isAsian && c.original_name && isAsianScript(c.original_name)
+            ? c.original_name.trim()
+            : undefined;
+
+        const displayName =
+          isAsian && latinOriginal
+            ? `${toVietnameseTitleCase(c.name)} (${latinOriginal})`
+            : asianOriginal
+            ? `${toVietnameseTitleCase(c.name)} (${asianOriginal})`
+            : toVietnameseTitleCase(c.name);
+
         const slug = toActorSlug(c.name);
         const href =
           typeof c.id === "number"
@@ -50,7 +71,7 @@ export const MovieCastGallery: React.FC<MovieCastGalleryProps> = ({
             : `/dien-vien/${slug || "nghe-si"}`;
         return {
           id: c.id,
-          name: toVietnameseTitleCase(c.name),
+          name: displayName,
           character: c.character || undefined,
           avatarUrl: c.profile_path || null,
           href,

@@ -161,6 +161,24 @@ export async function getTmdbPersonDetail(personId: number): Promise<TmdbPersonD
         }
         if (!data || !data.id) return null;
 
+        const alsoKnownAs: string[] = Array.isArray(data.also_known_as) ? data.also_known_as : [];
+        let extractedEnglishName: string | undefined = undefined;
+
+        // Trích xuất tên tiếng Anh / Tên quốc tế (Latin) từ name hoặc also_known_as
+        if (data.name && typeof data.name === "string" && !isAsianScript(data.name) && /[a-zA-Z]/.test(data.name)) {
+          extractedEnglishName = data.name.trim();
+        } else if (alsoKnownAs.length > 0) {
+          const latinAka = alsoKnownAs.find(
+            (a) =>
+              typeof a === "string" &&
+              !isAsianScript(a) &&
+              /^[a-zA-Z\s\-'.]{2,40}$/.test(a.trim())
+          );
+          if (latinAka) {
+            extractedEnglishName = latinAka.trim();
+          }
+        }
+
         const detail: TmdbPersonDetail = {
           id: data.id,
           name: data.name,
@@ -172,7 +190,8 @@ export async function getTmdbPersonDetail(personId: number): Promise<TmdbPersonD
           deathday: data.deathday || undefined,
           place_of_birth: data.place_of_birth || undefined,
           biography: data.biography || undefined,
-          also_known_as: Array.isArray(data.also_known_as) ? data.also_known_as : [],
+          also_known_as: alsoKnownAs,
+          english_name: extractedEnglishName,
           gender: data.gender,
           homepage: data.homepage || undefined,
           imdb_id: data.external_ids?.imdb_id || data.imdb_id || undefined,
