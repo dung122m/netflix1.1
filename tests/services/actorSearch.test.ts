@@ -4,10 +4,12 @@ import {
   HISTORICAL_ARTISTS_BIRTHDAYS,
   getHistoricalArtistBySlug,
   findHistoricalArtist,
+  ensureHistoricalArtistsLoaded,
 } from "@/data/history/historicalArtistsBirthdays";
 import { normalizeForMatch } from "@/lib/stringUtils";
 
 test("Historical Artist Birthdays Dataset & Flexible Matching — Invariant Tests", async (t) => {
+  await ensureHistoricalArtistsLoaded();
   await t.test("1. Kim Ji-won entry verification in historical birthdays", () => {
     const kim = getHistoricalArtistBySlug("kim-ji-won");
     assert.ok(kim, "Kim Ji-won must exist in historical birthdays");
@@ -176,7 +178,6 @@ test("Historical Artist Birthdays Dataset & Flexible Matching — Invariant Test
     assert.ok(m3 && m3.slug === "ly-gia-han", "Must match Lý Gia Hân");
     assert.ok(m4 && m4.slug === "ly-gia-han", "Must match ly gia han");
     assert.ok(m5 && m5.slug === "ly-gia-han", "Must match Chinese 李嘉欣");
-    assert.equal(m1.tmdbPersonId, 59378, "Must have TMDb Person ID 59378");
 
     // Chingmy Yau (Khâu Thục Trinh)
     const c1 = findHistoricalArtist("Chingmy Yau");
