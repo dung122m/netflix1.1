@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
-import { X, Film } from "lucide-react";
+import { X, Film, Play } from "lucide-react";
 import {
   getWatchHistory,
   removeWatchHistoryItem,
@@ -16,7 +16,7 @@ import {
   toFastCdnImageUrl,
   extractOriginalSourceUrl,
 } from "@/lib/movieMedia";
-import { formatEpisodeName } from "@/lib/formatEpisode";
+import { formatEpisodeName, isFullEpisodeLabel } from "@/lib/formatEpisode";
 import { CarouselNavButton } from "@/components/ui/CarouselNavButton";
 import { useCarouselScroll } from "@/components/ui/useCarouselScroll";
 import { SectionHeader } from "@/components/ui/SectionHeader";
@@ -220,24 +220,20 @@ function ContinueWatchingCard({ item, index = 0, onRemove }: ContinueWatchingCar
           {/* GRADIENT OVERLAY BÓNG ĐỔ ĐÁY TINH TẾ */}
           <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/5 to-transparent pointer-events-none" />
 
-          {/* HUY HIỆU TẬP PHIM / CHẤT LƯỢNG GỌN GÀNG TRÁNH CHE CHỮ POSTER */}
-          <div className="absolute top-1.5 left-1.5 z-10 flex flex-col gap-1 pointer-events-none max-w-[80%]">
-            {item.episodeName && (
-              <span className="px-1.5 py-0.5 rounded-md text-[9px] sm:text-[9.5px] font-bold bg-black/80 backdrop-blur-md text-amber-300 truncate shadow-md">
-                {formatEpisodeName(item.episodeName)}
+          {/* HUY HIỆU CẢNH BÁO BẢN CAM (CHỈ HIỂN THỊ KHI LÀ BẢN CAM) */}
+          {item.quality?.toUpperCase().includes("CAM") && (
+            <div className="absolute top-1.5 left-1.5 z-10 pointer-events-none">
+              <span className="px-1.5 py-0.5 rounded-md text-[9px] sm:text-[9.5px] font-bold bg-amber-950/90 text-amber-300 backdrop-blur-md shadow-md">
+                CAM
               </span>
-            )}
-            {item.quality && !item.episodeName && (
-              <span
-                className={`px-1.5 py-0.5 rounded-md text-[9px] sm:text-[9.5px] font-bold backdrop-blur-md shadow-md w-fit ${
-                  item.quality.toUpperCase().includes("CAM")
-                    ? "bg-amber-950/90 text-amber-300"
-                    : "bg-black/80 text-zinc-100"
-                }`}
-              >
-                {item.quality}
-              </span>
-            )}
+            </div>
+          )}
+
+          {/* NÚT PLAY TRUNG TÂM KHI HOVER */}
+          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-black/60 backdrop-blur-md border border-white/20 text-white flex items-center justify-center shadow-xl transform group-hover:scale-110 transition-transform">
+              <Play className="w-4 h-4 fill-white ml-0.5 text-white" />
+            </div>
           </div>
 
           {/* NÚT XOÁ KHỎI TIẾP TỤC XEM */}
@@ -250,8 +246,6 @@ function ContinueWatchingCard({ item, index = 0, onRemove }: ContinueWatchingCar
             <X className="w-3 h-3" />
           </button>
 
-
-
           {/* THANH TIẾN ĐỘ PHÁT */}
           <div className="absolute bottom-0 left-0 right-0 h-[3px] bg-white/20 backdrop-blur-sm z-10 overflow-hidden">
             <div
@@ -263,7 +257,10 @@ function ContinueWatchingCard({ item, index = 0, onRemove }: ContinueWatchingCar
 
         {/* THÔNG TIN PHIM */}
         <div className="p-2.5 sm:p-3 bg-zinc-950/95 flex-1 flex flex-col justify-between gap-1.5">
-          <h3 className="text-zinc-100 text-xs sm:text-[13px] font-semibold truncate group-hover:text-netflix-red transition-colors leading-snug">
+          <h3
+            title={item.title}
+            className="text-zinc-100 text-xs sm:text-[13px] font-semibold truncate group-hover:text-netflix-red transition-colors leading-snug"
+          >
             {item.title}
           </h3>
 
@@ -271,11 +268,13 @@ function ContinueWatchingCard({ item, index = 0, onRemove }: ContinueWatchingCar
             <div className="flex items-center gap-1.5 min-w-0">
               <span className="w-1.5 h-1.5 rounded-full bg-netflix-red flex-shrink-0" />
               <span className="text-zinc-300 font-medium truncate">
-                {item.episodeName ? formatEpisodeName(item.episodeName) : "Xem tiếp"}
+                {item.episodeName && !isFullEpisodeLabel(item.episodeName)
+                  ? formatEpisodeName(item.episodeName)
+                  : "Xem tiếp"}
               </span>
             </div>
             {remainingMinutes && remainingMinutes > 0 && (
-              <span className="text-[10px] text-zinc-500 font-medium flex-shrink-0 ml-1.5">
+              <span className="text-[10px] text-zinc-500 font-medium flex-shrink-0 ml-1.5 tabular-nums">
                 còn {remainingMinutes}p
               </span>
             )}

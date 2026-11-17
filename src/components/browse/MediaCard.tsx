@@ -18,9 +18,7 @@ import {
   toFastCdnImageUrl,
   extractOriginalSourceUrl,
   sanitizeImageUrl,
-  formatGenreName,
   formatCountryName,
-  extractMovieCountry,
   COUNTRY_DISPLAY_MAP,
 } from "@/lib/movieMedia";
 const TrailerModal = dynamic(
@@ -431,89 +429,6 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
 
   const displayTime = time && typeof time === "string" && time.trim() && time.trim() !== "Đang cập nhật" && time.trim() !== "N/A" ? time.trim() : "";
 
-  // Thể loại chính (chỉ lấy 1 thể loại ngắn gọn, loại trừ các loại phim như Phim lẻ / Phim bộ)
-  const mainGenre = React.useMemo(() => {
-    if (!genre || typeof genre !== "string") return "";
-    const parts = genre
-      .split(/[,/]/)
-      .map((s) => s.trim())
-      .filter(Boolean);
-
-    for (const part of parts) {
-      const lower = part.toLowerCase();
-      if (
-        lower === "phim lẻ" ||
-        lower === "phim bộ" ||
-        lower === "phimle" ||
-        lower === "phimbo" ||
-        lower === "hoạt hình" ||
-        lower === "tv shows" ||
-        lower === "tvshows"
-      ) {
-        continue;
-      }
-      const formatted = formatGenreName(part);
-      if (formatted) return formatted;
-      if (part.length <= 15) return part;
-    }
-    return "";
-  }, [genre]);
-
-  // Quốc gia: Chuẩn hóa hiển thị ngắn gọn, thanh lịch (tuyệt đối không hiển thị loại phim hoặc mã thô)
-  const displayCountry = React.useMemo(() => {
-    let raw = "";
-    if (typeof initialCountry === "string" && initialCountry.trim()) {
-      raw = formatCountryName(initialCountry);
-    } else if (initialCountry && typeof initialCountry === "object") {
-      const record = initialCountry as Record<string, unknown>;
-      const list = Array.isArray(initialCountry) ? (initialCountry as unknown[]) : null;
-      const firstItem = list && list.length > 0 ? (list[0] as Record<string, unknown>) : null;
-      const maybeName =
-        (record?.name as string | undefined) ||
-        (record?.slug as string | undefined) ||
-        (firstItem?.name as string | undefined) ||
-        (firstItem?.slug as string | undefined);
-      if (typeof maybeName === "string") raw = formatCountryName(maybeName);
-    }
-
-    if (!raw) {
-      raw = extractMovieCountry({
-        origin_name,
-        title,
-        name: title,
-      }) || "";
-    }
-
-    if (!raw) return "";
-
-    const formatted = formatCountryName(raw);
-    if (!formatted) return "";
-    // Nếu quốc gia trùng với thể loại chính, loại bỏ để tránh in trùng 2 lần
-    if (mainGenre && formatted.toLowerCase() === mainGenre.toLowerCase()) {
-      return "";
-    }
-    return formatted;
-  }, [initialCountry, origin_name, title, mainGenre]);
-
-  // Chuỗi thông tin phụ (Tooltip / title):
-  const desktopMetaString = React.useMemo(() => {
-    // Thu thập các thành phần không trùng lặp (ví dụ: không in '2026 • Hành Động • Hành Động')
-    const parts: string[] = [];
-    if (displayYear) parts.push(displayYear);
-    if (displayCountry && !parts.some((p) => p.toLowerCase() === displayCountry.toLowerCase())) {
-      parts.push(displayCountry);
-    }
-    if (mainGenre && !parts.some((p) => p.toLowerCase() === mainGenre.toLowerCase())) {
-      parts.push(mainGenre);
-    }
-    const full = parts.join(" • ");
-    // Nếu cả 3 thành phần quá dài (> 31 ký tự), ưu tiên [Năm] • [Thể loại] để hiển thị trọn vẹn, không bị xén dở chữ
-    if (full.length > 31 && displayYear && mainGenre) {
-      return [displayYear, mainGenre].filter(Boolean).join(" • ");
-    }
-    return full;
-  }, [displayYear, displayCountry, mainGenre]);
-
   const isEpisode = itemType === "episode" || Boolean(episodeSlug) || slug.includes("__ep__");
   const sSlug = seriesSlug || (slug.includes("__ep__") ? slug.split("__ep__")[0] : slug);
   const epSlug = episodeSlug || (slug.includes("__ep__") ? slug.split("__ep__")[1] : "");
@@ -859,19 +774,12 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
           </div>
         ) : (
           <p
-            title={desktopMetaString}
+            title={displayYear ? String(displayYear) : "Phim"}
             className="text-[11px] sm:text-xs text-zinc-400 mt-1.5 block truncate w-full min-w-0 select-none leading-none h-4"
           >
-            {displayYear && <span>{displayYear}</span>}
-            {displayCountry && mainGenre && (
-              <span className="hidden sm:inline"> • {displayCountry}</span>
-            )}
-            {mainGenre ? (
-              <span>{displayYear ? " • " : ""}{mainGenre}</span>
-            ) : displayCountry ? (
-              <span>{displayYear ? " • " : ""}{displayCountry}</span>
-            ) : null}
-            {!displayYear && !mainGenre && !displayCountry && (
+            {displayYear ? (
+              <span className="font-medium text-zinc-400">{displayYear}</span>
+            ) : (
               <span className="text-zinc-500">Phim</span>
             )}
           </p>
