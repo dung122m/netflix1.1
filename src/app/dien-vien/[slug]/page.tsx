@@ -153,7 +153,7 @@ interface ResolvedActorProfile {
  * - Ưu tiên 4: also_known_as từ TMDb (kho tàng tên Latin / Pinyin / Romanized của các nghệ sĩ châu Á)
  * - Ưu tiên 5: Trích xuất từ tiểu sử Wikipedia / TMDb (theo mẫu "Koo Kyo-hwan (Korean: 구교환; born...")
  */
-function resolveActorInternationalName(params: {
+export function resolveActorInternationalName(params: {
   canonicalName: string;
   country?: string;
   tmdbDetail?: Awaited<ReturnType<typeof getTmdbPersonDetail>> | null;

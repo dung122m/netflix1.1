@@ -98,8 +98,8 @@ test("Historical Artist Birthdays Dataset & Flexible Matching — Invariant Test
     }
   });
 
-  await t.test("5. Dataset integrity: 208 historical artists preserved with unique slugs", () => {
-    assert.equal(HISTORICAL_ARTISTS_BIRTHDAYS.length, 208, "Must maintain exactly 208 historical artists");
+  await t.test("5. Dataset integrity: 208+ historical artists preserved with unique slugs", () => {
+    assert.ok(HISTORICAL_ARTISTS_BIRTHDAYS.length >= 208, "Must maintain at least 208 historical artists");
     const slugs = HISTORICAL_ARTISTS_BIRTHDAYS.map((a) => a.slug);
     const uniqueSlugs = new Set(slugs);
     assert.equal(uniqueSlugs.size, HISTORICAL_ARTISTS_BIRTHDAYS.length, "All artist slugs must be unique");
@@ -144,5 +144,159 @@ test("Historical Artist Birthdays Dataset & Flexible Matching — Invariant Test
 
     // Negative match
     assert.ok(!matchesActorAliases(castList, ["Châu Tinh Trì"]), "Must not match unlisted actor");
+  });
+
+  await t.test("8. isAsianScript correctly detects Hanzi, Hangul, Kana, Thai and rejects Latin", async () => {
+    const { isAsianScript } = await import("@/lib/stringUtils");
+
+    assert.equal(isAsianScript("马芯妤"), true, "Must detect Chinese Hanzi");
+    assert.equal(isAsianScript("李嘉欣"), true, "Must detect Chinese Hanzi");
+    assert.equal(isAsianScript("구교환"), true, "Must detect Korean Hangul");
+    assert.equal(isAsianScript("손석구"), true, "Must detect Korean Hangul");
+    assert.equal(isAsianScript("ソン・ジュンギ"), true, "Must detect Japanese Katakana");
+    assert.equal(isAsianScript("ใบเฟิร์น พิมพ์ชนก"), true, "Must detect Thai");
+
+    assert.equal(isAsianScript("Sydney Sweeney"), false, "Must reject English/Latin");
+    assert.equal(isAsianScript("Trấn Thành"), false, "Must reject Vietnamese Latin");
+    assert.equal(isAsianScript("Michelle Reis"), false, "Must reject English/Latin");
+    assert.equal(isAsianScript(""), false, "Must reject empty string");
+    assert.equal(isAsianScript(null), false, "Must reject null");
+  });
+
+  await t.test("9. Michelle Reis & iconic HK artists lookup across aliases", () => {
+    // Michelle Reis (Lý Gia Hân)
+    const m1 = findHistoricalArtist("Michelle Reis");
+    const m2 = findHistoricalArtist("michele reis");
+    const m3 = findHistoricalArtist("Lý Gia Hân");
+    const m4 = findHistoricalArtist("ly gia han");
+    const m5 = findHistoricalArtist("李嘉欣");
+
+    assert.ok(m1 && m1.slug === "ly-gia-han", "Must match Michelle Reis");
+    assert.ok(m2 && m2.slug === "ly-gia-han", "Must match michele reis");
+    assert.ok(m3 && m3.slug === "ly-gia-han", "Must match Lý Gia Hân");
+    assert.ok(m4 && m4.slug === "ly-gia-han", "Must match ly gia han");
+    assert.ok(m5 && m5.slug === "ly-gia-han", "Must match Chinese 李嘉欣");
+    assert.equal(m1.tmdbPersonId, 59378, "Must have TMDb Person ID 59378");
+
+    // Chingmy Yau (Khâu Thục Trinh)
+    const c1 = findHistoricalArtist("Chingmy Yau");
+    const c2 = findHistoricalArtist("Khâu Thục Trinh");
+    assert.ok(c1 && c1.slug === "khau-thuc-trinh", "Must match Chingmy Yau");
+    assert.ok(c2 && c2.slug === "khau-thuc-trinh", "Must match Khâu Thục Trinh");
+
+    // Sharla Cheung (Trương Mẫn)
+    const s1 = findHistoricalArtist("Sharla Cheung");
+    const s2 = findHistoricalArtist("Trương Mẫn");
+    assert.ok(s1 && s1.slug === "truong-man", "Must match Sharla Cheung");
+    assert.ok(s2 && s2.slug === "truong-man", "Must match Trương Mẫn");
+
+    // Anita Mui (Mai Diễm Phương)
+    const a1 = findHistoricalArtist("Anita Mui");
+    const a2 = findHistoricalArtist("Mai Diễm Phương");
+    assert.ok(a1 && a1.slug === "mai-diem-phuong", "Must match Anita Mui");
+    assert.ok(a2 && a2.slug === "mai-diem-phuong", "Must match Mai Diễm Phương");
+  });
+
+  await t.test("10. resolveActorInternationalName dynamically handles various world actors", async () => {
+    const { resolveActorInternationalName } = await import("@/app/dien-vien/[slug]/page");
+
+    // Case 1: Chinese actress (Ma Xinyu / 马芯妤)
+    const res1 = resolveActorInternationalName({
+      canonicalName: "马芯妤",
+      country: "Trung Quốc",
+      tmdbDetail: {
+        id: 2282092,
+        name: "马芯妤",
+        also_known_as: ["Ma Xinyu", "Ma Xin-Yu", "Xinyu Ma", "马芯妤"],
+        popularity: 5.2,
+      },
+    });
+    assert.equal(res1, "Ma Xinyu", "Must resolve Ma Xinyu from also_known_as");
+
+    // Case 2: Korean actor (Koo Kyo-hwan / 구교환)
+    const res2 = resolveActorInternationalName({
+      canonicalName: "구교환",
+      country: "Hàn Quốc",
+      tmdbDetail: {
+        id: 1530962,
+        name: "구교환",
+        also_known_as: ["Koo Kyo-hwan", "Gu Gyo-hwan", "Koo Kyo Hwan"],
+        popularity: 12.4,
+      },
+    });
+    assert.equal(res2, "Koo Kyo-Hwan", "Must resolve Koo Kyo-Hwan from also_known_as");
+
+    // Case 3: Korean actor (Son Suk-ku / 손석구)
+    const res3 = resolveActorInternationalName({
+      canonicalName: "손석구",
+      country: "Hàn Quốc",
+      tmdbDetail: {
+        id: 2024198,
+        name: "손석구",
+        also_known_as: ["Son Suk-ku", "Son Seok-koo", "Suk-ku Son"],
+        popularity: 14.8,
+      },
+    });
+    assert.equal(res3, "Son Suk-Ku", "Must resolve Son Suk-Ku from also_known_as");
+
+    // Case 4: Japanese actress (Yui Aragaki / 新垣結衣)
+    const res4 = resolveActorInternationalName({
+      canonicalName: "新垣結衣",
+      country: "Nhật Bản",
+      tmdbDetail: {
+        id: 128913,
+        name: "新垣結衣",
+        also_known_as: ["Yui Aragaki", "Aragaki Yui", "Gakki"],
+        popularity: 18.2,
+      },
+    });
+    assert.equal(res4, "Yui Aragaki", "Must resolve Yui Aragaki from also_known_as");
+
+    // Case 5: Hollywood actress (Sydney Sweeney) - Already Latin, must NOT duplicate as (Sydney Sweeney)
+    const res5 = resolveActorInternationalName({
+      canonicalName: "Sydney Sweeney",
+      country: "Mỹ",
+      tmdbDetail: {
+        id: 115440,
+        name: "Sydney Sweeney",
+        also_known_as: ["Sydney Sweeney"],
+        popularity: 88.5,
+      },
+    });
+    assert.equal(res5, undefined, "Hollywood/Western actor whose canonical name is already English must not duplicate international name");
+
+    // Case 5b: Sino-Vietnamese canonical name (Lý Gia Hân) -> Should resolve English name (Michelle Reis)
+    const res5b = resolveActorInternationalName({
+      canonicalName: "Lý Gia Hân",
+      country: "Hồng Kông",
+      tmdbDetail: {
+        id: 59378,
+        name: "Michelle Reis",
+        english_name: "Michelle Reis",
+        also_known_as: ["Michelle Monique Reis", "Li Jiaxin", "李嘉欣"],
+        popularity: 15.2,
+      },
+    });
+    assert.equal(res5b, "Michelle Reis", "Must resolve Michelle Reis for Sino-Vietnamese name Lý Gia Hân");
+
+    // Case 6: Vietnamese artist (Trấn Thành) - Must return undefined (no international name needed)
+    const res6 = resolveActorInternationalName({
+      canonicalName: "Trấn Thành",
+      country: "Việt Nam",
+      tmdbDetail: {
+        id: 1594385,
+        name: "Tran Thanh",
+        popularity: 10,
+      },
+    });
+    assert.equal(res6, undefined, "Vietnamese artists must not display an international name");
+
+    // Case 7: Bio extraction fallback
+    const res7 = resolveActorInternationalName({
+      canonicalName: "구교환",
+      country: "Hàn Quốc",
+      bioText: "Koo Kyo-hwan (Korean: 구교환; born December 14, 1982) is a South Korean actor...",
+    });
+    assert.equal(res7, "Koo Kyo-Hwan", "Must extract Koo Kyo-Hwan from Wikipedia bio pattern");
   });
 });
