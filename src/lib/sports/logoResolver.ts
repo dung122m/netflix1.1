@@ -14,65 +14,17 @@ import {
   SPORT_ACRONYMS,
 } from "./teamNormalizer";
 import NATIONAL_TEAM_ALIASES from "@/data/live/nationalTeamAliases.json";
-import r2TeamLogos from "@/data/live/r2TeamLogos.json";
-
-const TEAM_LOGOS_MAP: Record<string, string> = r2TeamLogos as Record<string, string>;
+import { getR2TeamLogoUrl, getR2AssetUrl } from "@/lib/r2Manifest";
 
 function getR2TeamAssetUrl(key: string): string | null {
-  return TEAM_LOGOS_MAP[key] || null;
+  return getR2AssetUrl(key);
 }
 
 function getR2TeamLogoUrlLocal(
   teamName?: string | null,
   sport?: string | null
 ): string | null {
-  if (!teamName) return null;
-  const clean = teamName
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .replace(/\[[^\]]*\]/g, " ")
-    .replace(/\([^)]*\)/g, " ")
-    .replace(/\b(clb|fc|sc|afc|ac|as|rc|cf|cd|ud|sd|u\d{1,2})\b/gi, " ")
-    .replace(/[^a-z0-9\s]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-  const tokens = clean.split(/\s+/).filter(Boolean);
-  if (tokens.length === 0) return null;
-
-  const collapsed = tokens.join("");
-  const kebab = tokens.join("-");
-
-  const categories =
-    sport === "basketball"
-      ? ["teams/basketball", "teams/football", "teams/esports"]
-      : sport === "esports"
-      ? ["teams/esports", "teams/football", "teams/basketball"]
-      : ["teams/football", "teams/basketball", "teams/esports"];
-
-  for (const cat of categories) {
-    const match =
-      getR2TeamAssetUrl(`${cat}/${kebab}.png`) ||
-      getR2TeamAssetUrl(`${cat}/${collapsed}.png`) ||
-      getR2TeamAssetUrl(`${cat}/${kebab}.webp`) ||
-      getR2TeamAssetUrl(`${cat}/${collapsed}.webp`);
-    if (match) return match;
-  }
-
-  // Nếu tên đội gồm nhiều từ, thử tìm theo từ khóa chính (vd: "Pistons", "Hornets", "Raptors")
-  if (tokens.length > 1) {
-    const lastWord = tokens[tokens.length - 1];
-    if (lastWord.length >= 4) {
-      for (const cat of categories) {
-        const match =
-          getR2TeamAssetUrl(`${cat}/${lastWord}.png`) ||
-          getR2TeamAssetUrl(`${cat}/${lastWord}.webp`);
-        if (match) return match;
-      }
-    }
-  }
-
-  return null;
+  return getR2TeamLogoUrl(teamName, sport);
 }
 
 export interface ResolvedTeamIdentity {

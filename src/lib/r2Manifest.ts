@@ -1,42 +1,74 @@
-import r2Manifest from "@/data/r2AssetsManifest.json";
+/**
+ * CLOUDFLARE R2 ASSETS MANIFEST (DYNAMIC CDN LOADER)
+ * Đã offload r2AssetsManifest.json (184 KB) khỏi Git bundle.
+ * Tự động tải động từ Cloudflare R2 CDN (https://media.nanaflix.asia/manifest.json)
+ * và lưu trong L1 RAM O(1) với Single-Flight Mutex chống trùng lặp.
+ */
 
-let dynamicManifest: Record<string, string> = { ...(r2Manifest as Record<string, string>) };
+let dynamicManifest: Record<string, string> = {};
+let isManifestLoaded = false;
 let lastManifestFetch = 0;
 const MANIFEST_REFRESH_INTERVAL_MS = 60 * 60 * 1000; // 1 giờ
+let inFlightManifestFetch: Promise<Record<string, string>> | null = null;
 
 /**
- * Tự động đồng bộ manifest mới nhất từ Cloudflare R2 CDN vào RAM.
+ * Đảm bảo manifest đã được tải từ Cloudflare R2 CDN vào RAM (Single-Flight Mutex)
  */
-export async function refreshR2Manifest(): Promise<void> {
+export async function ensureR2ManifestLoaded(): Promise<Record<string, string>> {
   const now = Date.now();
-  if (now - lastManifestFetch < MANIFEST_REFRESH_INTERVAL_MS) return;
-  lastManifestFetch = now;
-  try {
-    const publicUrl = process.env.R2_PUBLIC_URL || "https://media.nanaflix.asia";
-    const res = await fetch(`${publicUrl.replace(/\/+$/, "")}/manifest.json`, {
-      signal: AbortSignal.timeout(4000),
-      headers: { Accept: "application/json" },
-    });
-    if (res.ok) {
-      const data = (await res.json()) as Record<string, string>;
-      if (data && typeof data === "object") {
-        dynamicManifest = { ...dynamicManifest, ...data };
-      }
-    }
-  } catch {
-    // Giữ nguyên snapshot hiện tại nếu network lỗi
+  if (isManifestLoaded && now - lastManifestFetch < MANIFEST_REFRESH_INTERVAL_MS) {
+    return dynamicManifest;
   }
+
+  if (inFlightManifestFetch) {
+    return inFlightManifestFetch;
+  }
+
+  inFlightManifestFetch = (async () => {
+    try {
+      const publicUrl = process.env.R2_PUBLIC_URL || "https://media.nanaflix.asia";
+      const cleanUrl = publicUrl.replace(/\/+$/, "");
+      const res = await fetch(`${cleanUrl}/manifest.json`, {
+        signal: AbortSignal.timeout(5000),
+        headers: { Accept: "application/json" },
+      });
+      if (res.ok) {
+        const data = (await res.json()) as Record<string, string>;
+        if (data && typeof data === "object") {
+          dynamicManifest = { ...dynamicManifest, ...data };
+          isManifestLoaded = true;
+          lastManifestFetch = Date.now();
+        }
+      }
+    } catch (err) {
+      console.warn("[R2Manifest] Fetch from R2 failed:", err instanceof Error ? err.message : err);
+    }
+    return dynamicManifest;
+  })().finally(() => {
+    inFlightManifestFetch = null;
+  });
+
+  return inFlightManifestFetch;
 }
+
+export const refreshR2Manifest = ensureR2ManifestLoaded;
 
 /**
  * Tra cứu URL CDN R2 nhanh 0ms cho asset tĩnh đã được pre-warm (client-safe, không import AWS SDK).
  */
 export function getR2AssetUrl(key: string): string | null {
-  const match = dynamicManifest[key];
+  if (!key) return null;
+  const cleanKey = key.replace(/^\/+/, "");
+
+  // 1. Kiểm tra RAM cache O(1)
+  const match = dynamicManifest[cleanKey];
   if (match) return match;
-  if (typeof window === "undefined" && Date.now() - lastManifestFetch > MANIFEST_REFRESH_INTERVAL_MS) {
-    refreshR2Manifest().catch(() => {});
+
+  // 2. Kích hoạt tải ngầm nếu chưa nạp trên Server
+  if (typeof window === "undefined" && (!isManifestLoaded || Date.now() - lastManifestFetch > MANIFEST_REFRESH_INTERVAL_MS)) {
+    ensureR2ManifestLoaded().catch(() => {});
   }
+
   return null;
 }
 
@@ -97,7 +129,6 @@ export function getR2TeamLogoUrl(
   return null;
 }
 
-
 /**
  * Tra cứu thông minh Banner phim từ R2 CDN theo slug hoặc URL gốc.
  */
@@ -129,4 +160,7 @@ export function getR2BannerUrl(
   return null;
 }
 
-
+// Tự động tải ngầm manifest trên Server runtime để làm ấm cache RAM
+if (typeof window === "undefined") {
+  ensureR2ManifestLoaded().catch(() => {});
+}
