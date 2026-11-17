@@ -73,6 +73,22 @@ export async function searchTmdbPerson(
             if (targetNamesNormalized.includes(pName) || targetNamesNormalized.includes(pOrig)) {
               score += 100;
             } else if (
+              Array.isArray(p.also_known_as) &&
+              p.also_known_as.some((aka: string) => targetNamesNormalized.includes(cleanStringForMatch(aka)))
+            ) {
+              score += 100;
+            } else if (
+              targetNamesNormalized.some((t) => {
+                const s1 = t.replace(/[\s\-'.]+/g, "");
+                const s2 = pName.replace(/[\s\-'.]+/g, "");
+                if (s1 === s2) return true;
+                const r1 = s1.replace(/(.)\1+/g, "$1");
+                const r2 = s2.replace(/(.)\1+/g, "$1");
+                return r1 === r2;
+              })
+            ) {
+              score += 95;
+            } else if (
               targetNamesNormalized.some((t) => {
                 const wordsT = t.split(" ").filter((w) => w.length > 1);
                 const wordsP = pName.split(" ").filter((w) => w.length > 1);

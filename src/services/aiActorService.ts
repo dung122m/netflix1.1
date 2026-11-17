@@ -36,6 +36,7 @@ export async function resolveActorMovies(
   aliases: string[];
   titles?: string[];
   isActor: boolean;
+  tmdbPersonId?: number;
   source: "preset" | "ai" | "cache" | "none" | "tmdb";
 }> {
   if (!keyword || keyword.trim().length < 2) {
@@ -133,7 +134,17 @@ export async function resolveActorMovies(
         (qWords.length >= 2 && pNameWords.length === qWords.length && qWords.every((w) => pNameWords.includes(w))) ||
         (qWords.length >= 2 && pOrigWords.length === qWords.length && qWords.every((w) => pOrigWords.includes(w)));
 
-      if (isExactMatch || isWordSetMatch) {
+      // 3. Khớp tương đồng ký tự (ví dụ: "michelle reis" <-> "michele reis")
+      const isFuzzyMatch = (() => {
+        const s1 = cleanQNorm.replace(/[\s\-'.]+/g, "");
+        const s2 = personNameNorm.replace(/[\s\-'.]+/g, "");
+        if (s1 === s2) return true;
+        const r1 = s1.replace(/(.)\1+/g, "$1");
+        const r2 = s2.replace(/(.)\1+/g, "$1");
+        return r1 === r2;
+      })();
+
+      if (isExactMatch || isWordSetMatch || isFuzzyMatch) {
         const hasVietnameseMarks = (s: string) =>
           /[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/i.test(s);
         let actorName = tmdbPerson.name || keyword;
@@ -158,6 +169,7 @@ export async function resolveActorMovies(
           englishName,
           aliases,
           isActor: true,
+          tmdbPersonId: tmdbPerson.id,
         };
 
         setBoundedCache(ACTOR_AI_CACHE, cleanRaw, {
@@ -171,6 +183,7 @@ export async function resolveActorMovies(
           englishName,
           aliases,
           isActor: true,
+          tmdbPersonId: tmdbPerson.id,
           source: "tmdb",
         };
       }

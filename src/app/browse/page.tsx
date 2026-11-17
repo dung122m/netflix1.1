@@ -209,8 +209,14 @@ async function runActorSearch(options: ActorSearchOptions) {
   );
   if (matchedPreset) actorAliases.push(...matchedPreset.aliases);
 
-  const actorCountry = actorResult.country || actorSynonyms?.country || matchedPreset?.country;
-  const actorMovies = await queryMoviesByActor(canonicalName, actorAliases, actorCountry, 150);
+  const historicalArtist = findHistoricalArtist(canonicalName) || (actorParam ? findHistoricalArtist(actorParam) : undefined);
+  if (historicalArtist?.aliases) {
+    actorAliases.push(...historicalArtist.aliases);
+  }
+
+  const tmdbId = actorResult.tmdbPersonId || historicalArtist?.tmdbPersonId;
+  const actorCountry = actorResult.country || actorSynonyms?.country || matchedPreset?.country || historicalArtist?.country;
+  const actorMovies = await queryMoviesByActor(canonicalName, actorAliases, actorCountry, 150, tmdbId);
   let filteredActorMovies = actorMovies;
 
   if (category) {
@@ -499,8 +505,26 @@ export default async function BrowsePage({
   ) {
     const actorKeyword = hasExplicitActorPrefix(keyword) ? cleanActorQuery(keyword) : keyword;
     const fallbackSynonyms = getActorSynonyms(actorKeyword);
+    const historicalArtist = findHistoricalArtist(actorKeyword) || findHistoricalArtist(cleanActorQuery(actorKeyword));
     const fallbackResult = fallbackSynonyms.isMatched
-      ? { actorName: fallbackSynonyms.canonicalName, country: fallbackSynonyms.country, aliases: fallbackSynonyms.variants, isActor: true, source: "preset" as const }
+      ? {
+          actorName: fallbackSynonyms.canonicalName,
+          country: fallbackSynonyms.country,
+          aliases: fallbackSynonyms.variants,
+          isActor: true,
+          tmdbPersonId: historicalArtist?.tmdbPersonId,
+          source: "preset" as const,
+        }
+      : historicalArtist
+      ? {
+          actorName: historicalArtist.name,
+          englishName: historicalArtist.englishName,
+          country: historicalArtist.country,
+          aliases: historicalArtist.aliases,
+          isActor: true,
+          tmdbPersonId: historicalArtist.tmdbPersonId,
+          source: "preset" as const,
+        }
       : await resolveActorMovies(actorKeyword);
     if (fallbackResult.isActor) {
       const actorSearch = await runActorSearch({
@@ -516,7 +540,7 @@ export default async function BrowsePage({
       });
       if (actorSearch) {
         if (actorSearch.movies.length > 0 || Boolean(actorSearch.actor.avatarUrl)) {
-          const actorSlug = (fallbackSynonyms?.slug || actorSearch.actor.name)
+          const actorSlug = (historicalArtist?.slug || fallbackSynonyms?.slug || actorSearch.actor.name)
             .toLowerCase()
             .replace(/[^a-z0-9]+/g, "-")
             .replace(/^-+|-+$/g, "");
@@ -535,8 +559,11 @@ export default async function BrowsePage({
   const pages = getPaginationPages(currentPage, totalPages);
 
   if (movies.length === 0 && (keyword || actorParam)) {
-    const fallbackRes = await movieApi.getMovies({ limit: 16, sort: "views" });
-    fallbackMovies = fallbackRes?.items || [];
+    const fallbackRes = await movieApi.getMovies({ limit: 24, sort: "views" });
+    const rawFallback = fallbackRes?.items || [];
+    // Đảm bảo số lượng phim tròn hàng trên lưới 6 cột (12 hoặc 18 phim), tuyệt đối không bị khuyết ô trống
+    const count = Math.floor(rawFallback.length / 6) * 6;
+    fallbackMovies = rawFallback.slice(0, count >= 12 ? Math.min(count, 18) : 12);
   }
 
   // NÂNG CẤP TOÀN BỘ POSTER SANG TMDB CDN SIÊU TỐC (BUDGET 0ms: CHỈ ĐỌC TỪ CACHE CÓ SẴN, KHÔNG GỌI MẠNG SSR ĐỂ TIẾT KIỆM ACTIVE CPU)
