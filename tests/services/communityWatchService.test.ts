@@ -4,7 +4,7 @@ import {
   getStartOfWeekVietnam,
   getWeekKeyVietnam,
   VIETNAM_TIMEZONE_OFFSET_MS,
-} from "@/services/analyticsService";
+} from "@/services/communityWatchService";
 
 test("TEST 6 — WEEK BOUNDARY: Vietnam Timezone Week Boundaries (Mon 00:00 -> Sun 23:59:59)", () => {
   // Test Case A: Sunday 2026-10-04 at 23:59:59 VN time (UTC: 2026-10-04T16:59:59Z)

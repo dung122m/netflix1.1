@@ -1,9 +1,33 @@
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
-import { getTopMovieSlugsFromAnalytics, getStartOfWeekVietnam } from "@/services/analyticsService";
-import { movieApi } from "@/services/movies/service";
-import { pickBestMoviePoster, pickBestMovieThumb, isBrokenImageUrl } from "@/lib/movieMedia";
-import { getTmdbMediaImagesById, searchTmdbPosterByTitle } from "@/services/tmdbService";
 import { cacheService } from "@/lib/cache";
+
+export const VIETNAM_TIMEZONE_OFFSET_MS = 7 * 60 * 60 * 1000;
+
+/**
+ * Tính mốc thời gian bắt đầu tuần Thứ 2 00:00:00 (Asia/Ho_Chi_Minh)
+ */
+export function getStartOfWeekVietnam(nowMs: number = Date.now()): number {
+  const vnDate = new Date(nowMs + VIETNAM_TIMEZONE_OFFSET_MS);
+  const vnYear = vnDate.getUTCFullYear();
+  const vnMonth = vnDate.getUTCMonth();
+  const vnDay = vnDate.getUTCDate();
+  const dayOfWeek = vnDate.getUTCDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+  const daysSinceMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+  const startOfDayMs = Date.UTC(vnYear, vnMonth, vnDay, 0, 0, 0, 0) - VIETNAM_TIMEZONE_OFFSET_MS;
+  return startOfDayMs - daysSinceMonday * 24 * 60 * 60 * 1000;
+}
+
+/**
+ * Tạo weekKey đại diện tuần tại Việt Nam (VD: 2026_10_05)
+ */
+export function getWeekKeyVietnam(nowMs: number = Date.now()): string {
+  const startOfWeekMs = getStartOfWeekVietnam(nowMs);
+  const d = new Date(startOfWeekMs + VIETNAM_TIMEZONE_OFFSET_MS);
+  const y = d.getUTCFullYear();
+  const m = String(d.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(d.getUTCDate()).padStart(2, "0");
+  return `${y}_${m}_${day}`;
+}
 
 export interface MovieViewStatItem {
   movieSlug: string;
@@ -101,12 +125,11 @@ export async function invalidateTrendingSummaryCache(
 }
 
 /**
- * Lấy danh sách phim thịnh hành cộng đồng theo view count thực tế từ Analytics Pipeline.
+ * Lấy danh sách phim thịnh hành cộng đồng theo view count thực tế từ watch_history.
  * Hỗ trợ phân định chính xác giữa "total" (Toàn thời gian) và "week" (Thứ 2 00:00 -> Chủ Nhật 23:59:59 Asia/Ho_Chi_Minh).
  * 
  * Kiến trúc 2 tầng Cache tối ưu:
- * 1. Dedicated Summary Cache (trending:community:summary:v1:${timeframe}:${limit}, TTL 600s):
- *    - Cache HIT chỉ tốn 1 Redis GET (~3-5 KB), TUYỆT ĐỐI KHÔNG gọi movieApi.getMovieDetail() trong vòng lặp.
+ * 1. Dedicated Summary Cache (trending:community:summary:v1:${timeframe}:${limit}, TTL 3600s)
  * 2. Single-Flight Mutex:
  *    - Đảm bảo khi cache MISS đồng thời nhiều request trên instance lạnh, chỉ có 1 request thực thi resolve.
  */
@@ -138,7 +161,6 @@ export async function getTopTrendingCommunitySupabase(
       const items = await resolveTrendingCommunityInternal(safeLimit, timeframe);
       if (items && items.length > 0) {
         // Lưu summary nhẹ (~3-5 KB) vào Redis với TTL 3600s (1 giờ)
-        // Dữ liệu luôn tươi mới tự động mà không cần bắn phá lệnh DEL liên tục
         await cacheService.set(summaryCacheKey, items, 3600).catch(() => {});
       }
       return items;
@@ -152,172 +174,77 @@ export async function getTopTrendingCommunitySupabase(
 }
 
 /**
- * Hàm phân giải danh sách phim thịnh hành (chỉ thực thi khi cache MISS)
+ * Hàm phân giải danh sách phim thịnh hành từ watch_history (chỉ thực thi khi cache MISS)
+ * Không quét bảng analytics_events, tiết kiệm tối đa CPU & IOPS Supabase
  */
 async function resolveTrendingCommunityInternal(
   limit: number,
   timeframe: "total" | "week"
 ): Promise<MovieViewStatItem[]> {
-  try {
-    // 1. Lấy danh sách top slugs từ Analytics Pipeline (giới hạn limit + 4 thay vì 20 để giảm độ trễ cold start)
-    const analyticsSlugs = await getTopMovieSlugsFromAnalytics(timeframe, Math.min(limit + 4, 20));
-
-    if (analyticsSlugs && analyticsSlugs.length > 0) {
-      const allSlugs = analyticsSlugs.map((s) => s.slug);
-      const detailMap = await movieApi.getMoviesDetailBatch(allSlugs);
-
-      const resolvedMovies = await Promise.allSettled(
-        analyticsSlugs.map(async ({ slug, score }) => {
-          try {
-            const detail = detailMap[slug] || (await movieApi.getMovieDetail(slug));
-            if (!detail || !detail.movie) return null;
-            const m = detail.movie;
-
-            const title = m.name || m.title || slug;
-            const year = m.year ? Number(m.year) : undefined;
-            const quality = m.quality || "HD";
-
-            let poster = pickBestMoviePoster(m, "");
-            let thumb = pickBestMovieThumb(m, "");
-
-            // Thay thế ngay từ đầu trên Server: tra cứu TMDb với tối đa 2 candidate để tránh chặn TTFB
-            const isPhimimg = Boolean(poster?.includes("phimimg.com") || thumb?.includes("phimimg.com"));
-            if (!poster || isBrokenImageUrl(poster) || poster.includes("/default-") || isPhimimg) {
-              if (m.tmdb?.id) {
-                try {
-                  const idImgs = await getTmdbMediaImagesById(m.tmdb.id, m.type);
-                  if (idImgs.posterUrl) poster = idImgs.posterUrl;
-                  if (idImgs.backdropUrl && (!thumb || isBrokenImageUrl(thumb) || thumb.includes("/default-") || thumb.includes("phimimg.com"))) {
-                    thumb = idImgs.backdropUrl;
-                  }
-                } catch {}
-              }
-              const stillNeedsTmdb = Boolean(!poster || isBrokenImageUrl(poster) || poster.includes("/default-") || poster?.includes("phimimg.com") || thumb?.includes("phimimg.com"));
-              if (stillNeedsTmdb) {
-                const candidates = Array.from(new Set([title, m.origin_name].filter(Boolean)));
-                for (const query of candidates) {
-                  try {
-                    const tmdbRes = await searchTmdbPosterByTitle(query, year, m.type);
-                    if (tmdbRes?.posterUrl) {
-                      if (!poster || isBrokenImageUrl(poster) || poster.includes("/default-") || poster.includes("phimimg.com")) {
-                        poster = tmdbRes.posterUrl;
-                      }
-                      if (!thumb || isBrokenImageUrl(thumb) || thumb.includes("/default-") || thumb.includes("phimimg.com")) {
-                        thumb = tmdbRes.backdropUrl || tmdbRes.posterUrl;
-                      }
-                      break;
-                    }
-                  } catch {}
-                }
-              }
-            }
-            if (!poster) poster = "/default-poster.jpg";
-            if (!thumb) thumb = poster || "/default-hero.jpg";
-
-            const rawCats = Array.isArray(m.category)
-              ? m.category
-              : Array.isArray(m.categories)
-              ? m.categories
-              : [];
-            const category =
-              rawCats
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                .map((c: any) => (typeof c === "string" ? c : c?.name || ""))
-                .filter(Boolean)
-                .join(", ") || "Phim Hay";
-
-            return {
-              movieSlug: slug,
-              movieTitle: title,
-              poster,
-              thumb,
-              year,
-              quality,
-              category,
-              viewsTotal: timeframe === "total" ? score : 0,
-              viewsWeek: timeframe === "week" ? score : 0,
-              lastViewedAt: Date.now(),
-            } as MovieViewStatItem;
-          } catch {
-            return null;
-          }
-        })
-      );
-
-      const items: MovieViewStatItem[] = [];
-      for (const r of resolvedMovies) {
-        if (r.status === "fulfilled" && r.value) {
-          items.push(r.value);
-        }
-      }
-
-      if (items.length > 0) {
-        return items.slice(0, limit);
-      }
-    }
-  } catch (analyticsErr) {
-    console.warn("[getTopTrendingCommunitySupabase] Analytics fetch warning:", analyticsErr);
-  }
-
-  // 2. Fallback dự phòng: Query watch_history khi hệ thống analytics chưa có dữ liệu ban đầu
   const adminClient = getSupabaseAdmin();
   if (!adminClient) {
     return [];
   }
 
-  const { data, error } = await adminClient
-    .from("watch_history")
-    .select("slug, title, poster, year, quality, category, updated_at, synced_at")
-    .limit(1000);
+  try {
+    const { data, error } = await adminClient
+      .from("watch_history")
+      .select("slug, title, poster, year, quality, category, updated_at, synced_at")
+      .order("updated_at", { ascending: false })
+      .limit(500);
 
-  if (error || !data || data.length === 0) return [];
+    if (error || !data || data.length === 0) return [];
 
-  const now = Date.now();
-  const startOfWeekMs = getStartOfWeekVietnam(now);
-  const movieMap = new Map<string, MovieViewStatItem>();
+    const now = Date.now();
+    const startOfWeekMs = getStartOfWeekVietnam(now);
+    const movieMap = new Map<string, MovieViewStatItem>();
 
-  for (const row of data) {
-    if (!row.slug) continue;
-    const slug = row.slug.toLowerCase();
-    const updatedAt = Number(row.updated_at) || Number(row.synced_at) || 0;
-    const isWeek = updatedAt >= startOfWeekMs;
+    for (const row of data) {
+      if (!row.slug) continue;
+      const slug = row.slug.toLowerCase();
+      const updatedAt = Number(row.updated_at) || Number(row.synced_at) || 0;
+      const isWeek = updatedAt >= startOfWeekMs;
 
-    if (timeframe === "week" && !isWeek) {
-      continue;
-    }
+      if (timeframe === "week" && !isWeek) {
+        continue;
+      }
 
-    const existing = movieMap.get(slug);
-    if (!existing) {
-      movieMap.set(slug, {
-        movieSlug: row.slug,
-        movieTitle: row.title || row.slug,
-        poster: row.poster || "/default-poster.jpg",
-        thumb: row.poster || "/default-hero.jpg",
-        year: Number(row.year) || undefined,
-        quality: row.quality || "HD",
-        category: row.category || "Phim Hay",
-        viewsTotal: 1,
-        viewsWeek: isWeek ? 1 : 0,
-        lastViewedAt: updatedAt,
-      });
-    } else {
-      existing.viewsTotal += 1;
-      if (isWeek) existing.viewsWeek += 1;
-      if (updatedAt > existing.lastViewedAt) {
-        existing.lastViewedAt = updatedAt;
+      const existing = movieMap.get(slug);
+      if (!existing) {
+        movieMap.set(slug, {
+          movieSlug: row.slug,
+          movieTitle: row.title || row.slug,
+          poster: row.poster || "/default-poster.jpg",
+          thumb: row.poster || "/default-hero.jpg",
+          year: Number(row.year) || undefined,
+          quality: row.quality || "HD",
+          category: row.category || "Phim Hay",
+          viewsTotal: 1,
+          viewsWeek: isWeek ? 1 : 0,
+          lastViewedAt: updatedAt,
+        });
+      } else {
+        existing.viewsTotal += 1;
+        if (isWeek) existing.viewsWeek += 1;
+        if (updatedAt > existing.lastViewedAt) {
+          existing.lastViewedAt = updatedAt;
+        }
       }
     }
+
+    const items = Array.from(movieMap.values());
+    items.sort((a, b) => {
+      const viewA = timeframe === "week" ? a.viewsWeek : a.viewsTotal;
+      const viewB = timeframe === "week" ? b.viewsWeek : b.viewsTotal;
+      if (viewB !== viewA) {
+        return viewB - viewA;
+      }
+      return b.lastViewedAt - a.lastViewedAt;
+    });
+
+    return items.slice(0, limit);
+  } catch (err) {
+    console.warn("[resolveTrendingCommunityInternal] Error:", err);
+    return [];
   }
-
-  const items = Array.from(movieMap.values());
-  items.sort((a, b) => {
-    const viewA = timeframe === "week" ? a.viewsWeek : a.viewsTotal;
-    const viewB = timeframe === "week" ? b.viewsWeek : b.viewsTotal;
-    if (viewB !== viewA) {
-      return viewB - viewA;
-    }
-    return b.lastViewedAt - a.lastViewedAt;
-  });
-
-  return items.slice(0, limit);
 }

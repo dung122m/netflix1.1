@@ -19,8 +19,6 @@ import {
   isAmbiguousShortActorKeyword,
   cleanActorQuery,
 } from "@/services/aiActorService";
-import { searchMoviesBySemantic } from "@/services/aiVectorService";
-import { evaluateConceptEvidence, resolveConcepts } from "@/services/conceptRegistry";
 import { PaginationControl } from "@/components/ui/PaginationControl";
 import { getPaginationPages } from "@/lib/pagination";
 import {
@@ -149,20 +147,6 @@ function parsePositivePage(rawPage?: string): number {
   if (!rawPage) return 1;
   const parsed = parseInt(rawPage, 10);
   return Number.isFinite(parsed) && parsed >= 1 ? Math.floor(parsed) : 1;
-}
-
-function isRelevantSemanticCandidate(
-  candidate: { name?: unknown; title?: unknown; origin_name?: unknown; slug?: unknown; similarity?: unknown },
-  query: string,
-  concepts: ReturnType<typeof resolveConcepts>
-): boolean {
-  const titleEvidence = getTitleEvidence(candidate, query);
-  if (titleEvidence.matched) return true;
-
-  if (concepts.length === 0) return false;
-
-  const conceptEvidence = evaluateConceptEvidence(candidate, concepts);
-  return conceptEvidence.relevant && conceptEvidence.score >= 70;
 }
 
 function isKnownActorName(query: string): boolean {
@@ -473,42 +457,7 @@ export default async function BrowsePage({
     totalPages = searchResponse?.pagination?.totalPages || 1;
     totalItems = searchResponse?.pagination?.totalItems || items.length;
 
-    // Khi không có kết quả từ khóa trực tiếp ở trang 1, mới gọi gợi ý thông minh từ AI Semantic Search
-    if (items.length === 0 && currentPage === 1 && keyword.trim().length >= 3) {
-      const semanticPicks = await Promise.race([
-        searchMoviesBySemantic(keyword, 16, 0.42),
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        new Promise<any[]>((resolve) => setTimeout(() => resolve([]), 800)),
-      ]).catch(() => []);
-
-      if (Array.isArray(semanticPicks) && semanticPicks.length > 0) {
-        const semanticConcepts = resolveConcepts(keyword);
-        const relevantSemanticPicks = semanticPicks.filter((candidate) =>
-          isRelevantSemanticCandidate(candidate, keyword, semanticConcepts)
-        );
-
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        movies = relevantSemanticPicks.map((sp: any) => ({
-          slug: sp.id,
-          name: sp.title,
-          origin_name: sp.originalName || "",
-          poster_url: sp.posterUrl,
-          thumb_url: sp.thumbUrl || sp.posterUrl,
-          year: sp.year,
-          quality: sp.quality || "HD",
-          category: sp.category ? [{ name: sp.category, slug: "" }] : [],
-          content: sp.description,
-          isSemanticMatch: true,
-          similarity: sp.similarity,
-        }));
-        if (movies.length > 0) {
-          totalPages = 1;
-          totalItems = movies.length;
-        }
-      }
-    } else {
-      movies = items;
-    }
+    movies = items;
 
   } else {
     // 2B. DUYỆT THEO DANH MỤC / QUỐC GIA / NĂM (CATALOG BROWSING)

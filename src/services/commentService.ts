@@ -631,15 +631,8 @@ export function subscribeAllComments(
     document.addEventListener("visibilitychange", handleVisibilityChange);
   }
 
-  const syncInterval = setInterval(() => {
-    if (!isUnsubscribed && typeof document !== "undefined" && !document.hidden) {
-      fetchAll();
-    }
-  }, 300000);
-
   return () => {
     isUnsubscribed = true;
-    clearInterval(syncInterval);
     if (typeof window !== "undefined") {
       window.removeEventListener("comments-updated", handleCommentsUpdated);
       document.removeEventListener("visibilitychange", handleVisibilityChange);

@@ -2,7 +2,11 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { isLiveKey, getRedisPurposeForKey, sanitizeKey, cacheService } from "@/lib/cache";
 import { getSafeRedisCredentials } from "@/lib/redisEnvGuard";
-import { getEmbeddingCacheKey } from "@/services/aiVectorService";
+
+function getEmbeddingCacheKey(query: string): string {
+  const norm = query.trim().toLowerCase();
+  return `ai:embedding:${norm}`;
+}
 
 describe("Nanaflix Triple Redis Multi-Account Architecture", () => {
   it("1. getRedisPurposeForKey correctly routes keys to DB 1 (Catalog), DB 2 (Realtime/Live), and DB 3 (Aux/TMDb)", () => {

@@ -4,8 +4,6 @@ import {
   getSafeRedisCredentials,
   resetRedisEnvGuardForTesting,
 } from "@/lib/redisEnvGuard";
-import { recordAnalyticsEvent } from "@/services/analyticsService";
-import { AnalyticsEventPayload } from "@/lib/analyticsClient";
 
 describe("REDIS OPTIMIZATION BATCH 1: ENVIRONMENT ISOLATION & ANALYTICS", () => {
   const origEnv = { ...process.env };
@@ -161,86 +159,6 @@ describe("REDIS OPTIMIZATION BATCH 1: ENVIRONMENT ISOLATION & ANALYTICS", () => 
   });
 
   describe("Part B: Analytics Optimization & Resilience", () => {
-    it("B.1 Non-site-visit events are accepted and not processed as site visits", async () => {
-      const payload: AnalyticsEventPayload = {
-        eventType: "watch_progress",
-        movieSlug: "conan",
-        durationSeconds: 120,
-      };
-      const res = await recordAnalyticsEvent(payload);
-      assert.equal(res.success, true);
-      assert.equal(res.deduped, false);
-      assert.equal(res.visitorRecorded, true);
-    });
-
-    it("B.2 Deduplication: Rapid consecutive visits within 30s on same page are deduplicated", async () => {
-      const now = Date.now();
-      const uniqueViewer = `anon_dedup_test_${now}`;
-      const payload: AnalyticsEventPayload = {
-        eventType: "site_visit",
-        movieSlug: "home",
-        movieTitle: "/",
-        anonymousId: uniqueViewer,
-        timestamp: now,
-      };
-
-      // First visit should succeed and not be deduped
-      const res1 = await recordAnalyticsEvent(payload);
-      assert.equal(res1.success, true);
-      assert.equal(res1.deduped, false);
-      assert.equal(res1.visitorRecorded, true);
-
-      // Immediate second visit to exact same pageGroup should be marked deduped
-      const res2 = await recordAnalyticsEvent({
-        ...payload,
-        timestamp: now + 5000, // 5 seconds later
-      });
-      assert.equal(res2.success, true);
-      assert.equal(res2.deduped, true);
-      assert.equal(res2.visitorRecorded, true);
-    });
-
-    it("B.3 Multi-page navigation: Navigating to a different page is NOT blocked by deduplication", async () => {
-      const now = Date.now();
-      const uniqueViewer = `anon_multi_page_${now}`;
-
-      const resHome = await recordAnalyticsEvent({
-        eventType: "site_visit",
-        movieSlug: "home",
-        movieTitle: "/",
-        anonymousId: uniqueViewer,
-        timestamp: now,
-      });
-      assert.equal(resHome.success, true);
-      assert.equal(resHome.deduped, false);
-
-      const resBrowse = await recordAnalyticsEvent({
-        eventType: "site_visit",
-        movieSlug: "browse",
-        movieTitle: "/browse",
-        anonymousId: uniqueViewer,
-        timestamp: now + 2000,
-      });
-      assert.equal(resBrowse.success, true);
-      assert.equal(resBrowse.deduped, false);
-    });
-
-    it("B.4 Returning visitor flag (isReturningVisitor: true) records visit without throwing", async () => {
-      const now = Date.now();
-      const payload: AnalyticsEventPayload = {
-        eventType: "site_visit",
-        movieSlug: "movie",
-        movieTitle: "/movies/conan",
-        anonymousId: `anon_returning_${now}`,
-        isReturningVisitor: true,
-        timestamp: now,
-      };
-
-      const res = await recordAnalyticsEvent(payload);
-      assert.equal(res.success, true);
-      assert.equal(res.visitorRecorded, true);
-    });
-
     it("B.5 Guest-to-User Identity Transition: visitor token strictly distinguishes guest and user", () => {
       const guestAnonId = "anon_visitor_abc";
       const authenticatedUserId = "user_firebase_xyz";
