@@ -21,45 +21,15 @@ test("SECURITY TEST 1 — UNAUTHENTICATED ACCESS BLOCKED", async () => {
   assert.equal(dataDaily.success, false);
 });
 
-test("SECURITY TEST 2 — TRACK ENDPOINT PAYLOAD SANITIZATION & EVENT FILTER", async () => {
-  // 1. Non site_visit event is ignored
-  const ignoreReq = new NextRequest("http://localhost:3000/api/analytics/track", {
+test("SECURITY TEST 2 — TRACK ENDPOINT IS DISABLED FOR PERFORMANCE", async () => {
+  const req = new NextRequest("http://localhost:3000/api/analytics/track", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ eventType: "watch_progress", movieSlug: "avatar" }),
+    body: JSON.stringify({ eventType: "site_visit" }),
   });
-  const resIgnore = await trackRoute(ignoreReq);
-  const dataIgnore = await resIgnore.json();
-  assert.equal(dataIgnore.success, true);
-  assert.equal(dataIgnore.ignored, true);
-
-  // 2. Missing eventType returns 400
-  const badReq = new NextRequest("http://localhost:3000/api/analytics/track", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({}),
-  });
-  const resBad = await trackRoute(badReq);
-  assert.equal(resBad.status, 400);
-
-  // 3. Valid site_visit event
-  const visitReq = new NextRequest("http://localhost:3000/api/analytics/track", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      eventType: "site_visit",
-      movieSlug: "home",
-      movieTitle: "/",
-      anonymousId: "anon_test_auth_check_123456",
-      deviceInfo: {
-        deviceType: "desktop",
-        os: "Windows",
-        browser: "Chrome",
-      },
-    }),
-  });
-  const resVisit = await trackRoute(visitReq);
-  assert.equal(resVisit.status, 200);
-  const dataVisit = await resVisit.json();
-  assert.equal(dataVisit.success, true);
+  const res = await trackRoute(req);
+  assert.equal(res.status, 200);
+  const data = await res.json();
+  assert.equal(data.success, true);
+  assert.equal(data.tracking, "disabled");
 });

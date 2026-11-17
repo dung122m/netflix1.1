@@ -256,44 +256,10 @@ export interface TrackSiteVisitOptions {
 export const SITE_VISIT_SESSION_KEY = "nanaflix_session_visited";
 
 /**
- * Track site visit (Minimal, non-blocking visit beacon)
+ * Track site visit (Disabled - No-op for maximum performance and zero serverless invocations)
  */
-export async function trackSiteVisit(options?: TrackSiteVisitOptions): Promise<void> {
-  if (typeof window === "undefined") return;
-
-  try {
-    const pageGroup = options?.pageGroup || "home";
-    const pagePath = options?.pagePath || window.location.pathname || "/";
-    const anonymousId = getOrCreateAnonymousId();
-    const deviceInfo = getMinimalDeviceInfo();
-
-    const headers: Record<string, string> = {
-      "Content-Type": "application/json",
-    };
-
-    if (options?.token) {
-      headers["Authorization"] = `Bearer ${options.token}`;
-    }
-
-    const payload = {
-      eventType: "site_visit",
-      movieSlug: pageGroup,
-      movieTitle: pagePath,
-      anonymousId,
-      deviceInfo,
-    };
-
-    await fetch("/api/analytics/track", {
-      method: "POST",
-      headers,
-      body: JSON.stringify(payload),
-      keepalive: true,
-    }).catch(() => {
-      // Non-blocking fail-safe: never throw or block UI
-    });
-  } catch {
-    // Non-blocking fail-safe
-  }
+export async function trackSiteVisit(_options?: TrackSiteVisitOptions): Promise<void> {
+  // Tracking disabled
 }
 
 /**

@@ -52,7 +52,7 @@ interface UseAdminDashboardOptions {
 }
 
 export function useAdminDashboard({
-  user,
+  user: _user,
   isAdmin,
   activeTab,
 }: UseAdminDashboardOptions) {
@@ -89,7 +89,6 @@ export function useAdminDashboard({
   const [isCleaning, setIsCleaning] = useState(false);
   const [cleanResultModal, setCleanResultModal] = useState<AutoCleanResult | null>(null);
   const [isManualRefreshing, setIsManualRefreshing] = useState(false);
-  const [isSyncingEmbeddings, setIsSyncingEmbeddings] = useState(false);
 
 
   const loadComments = useCallback(async (showLoading = true) => {
@@ -393,29 +392,6 @@ export function useAdminDashboard({
     }
   };
 
-  const handleSyncEmbeddings = async () => {
-    setIsSyncingEmbeddings(true);
-    toast.info("Đang nạp 30 phim vào cơ sở dữ liệu Vector pgvector...");
-    try {
-      const idToken = await user?.getIdToken().catch(() => null);
-      const res = await fetch("/api/admin/sync-embeddings?limit=30", {
-        headers: idToken ? { Authorization: `Bearer ${idToken}` } : {},
-      });
-      const data = await res.json();
-      if (data.success) {
-        toast.success(
-          data.message || `Đã nạp thành công ${data.syncedCount}/${data.totalRequested} vector phim!`
-        );
-      } else {
-        toast.error(data.error || "Không thể nạp vector phim!");
-      }
-    } catch {
-      toast.error("Lỗi kết nối khi nạp vector!");
-    } finally {
-      setIsSyncingEmbeddings(false);
-    }
-  };
-
   const copyToClipboard = (text: string, id: string) => {
     if (typeof navigator !== "undefined" && navigator.clipboard) {
       navigator.clipboard.writeText(text);
@@ -458,7 +434,6 @@ export function useAdminDashboard({
     cleanResultModal,
     setCleanResultModal,
     isManualRefreshing,
-    isSyncingEmbeddings,
     allMembers,
     filteredMembers,
     metrics,
@@ -473,7 +448,6 @@ export function useAdminDashboard({
     handleDeleteAllUserComments,
     handleDeleteCollection,
     handleOpenMemberDetails,
-    handleSyncEmbeddings,
     copyToClipboard,
   };
 }

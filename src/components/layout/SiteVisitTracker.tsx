@@ -1,10 +1,5 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-import { usePathname } from "next/navigation";
-import { useAuth } from "@/context/AuthContext";
-import { trackSiteVisit } from "@/lib/analyticsClient";
-
 export interface RouteClassification {
   pageGroup: string;
   pagePath: string;
@@ -68,96 +63,10 @@ export function classifyRoute(pathname: string | null | undefined): RouteClassif
   return { pageGroup: "browse", pagePath: cleanPath, shouldTrack: true };
 }
 
-// Module-level timestamp guard against React 18/19 StrictMode double-mount within 2000ms
-let lastTrackedPathname: string | null = null;
-let lastTrackedTimestamp: number = 0;
-const GLOBAL_SESSION_COOLDOWN_MS = 30 * 60 * 1000; // Cooldown toàn phiên 30 phút cho toàn bộ website
-
-function shouldSkipSession(sessionKey: string, now: number): boolean {
-  if (typeof window === "undefined") return false;
-  // Bỏ qua tracking khi đang chạy local/dev để không tốn quota Serverless & Supabase
-  if (
-    window.location.hostname === "localhost" ||
-    window.location.hostname === "127.0.0.1" ||
-    window.location.hostname.endsWith(".local")
-  ) {
-    return true;
-  }
-
-  try {
-    // Kiểm tra đa tầng: sessionStorage + localStorage (đồng bộ qua các tab)
-    const localLast = Number(localStorage.getItem(`nanaflix_session_visit_${sessionKey}`) || 0);
-    if (localLast > 0 && now - localLast < GLOBAL_SESSION_COOLDOWN_MS) {
-      return true;
-    }
-
-    const sessionLast = Number(sessionStorage.getItem(`nanaflix_session_visit_${sessionKey}`) || 0);
-    if (sessionLast > 0 && now - sessionLast < GLOBAL_SESSION_COOLDOWN_MS) {
-      return true;
-    }
-
-    localStorage.setItem(`nanaflix_session_visit_${sessionKey}`, String(now));
-    sessionStorage.setItem(`nanaflix_session_visit_${sessionKey}`, String(now));
-  } catch {}
-  return false;
-}
-
+/**
+ * SiteVisitTracker (Disabled)
+ * Tracking has been completely disabled to eliminate redundant serverless invocations and Supabase IOPS.
+ */
 export function SiteVisitTracker() {
-  const pathname = usePathname();
-  const { user, loading: authLoading } = useAuth();
-  const lastPathRef = useRef<string | null>(null);
-
-  useEffect(() => {
-    // Đợi Firebase Auth khởi tạo xong phiên đăng nhập để tránh gửi nhầm beacon "Khách" trước khi nhận diện User
-    if (!pathname || authLoading) return;
-
-    const { pageGroup, pagePath, shouldTrack } = classifyRoute(pathname);
-    if (!shouldTrack) return;
-
-    const now = Date.now();
-
-    // Guard against React StrictMode double invocation or rapid remount on exact same path
-    if (
-      (lastPathRef.current === pagePath || lastTrackedPathname === pagePath) &&
-      now - lastTrackedTimestamp < 2000
-    ) {
-      return;
-    }
-
-    // Cooldown 30 phút toàn phiên theo tài khoản hoặc khách (không bắn lại khi chuyển trang)
-    const sessionKey = user?.uid ? `u_${user.uid}` : "guest_session";
-    if (shouldSkipSession(sessionKey, now)) {
-      return;
-    }
-
-    lastPathRef.current = pagePath;
-    lastTrackedPathname = pagePath;
-    lastTrackedTimestamp = now;
-
-    // Dispatch non-blocking visit beacon
-    const sendVisit = async () => {
-      try {
-        let token: string | null = null;
-        if (user) {
-          try {
-            token = await user.getIdToken();
-          } catch {
-            // If token retrieval fails, proceed as unauthenticated guest without error
-          }
-        }
-
-        await trackSiteVisit({
-          pageGroup,
-          pagePath,
-          token,
-        });
-      } catch {
-        // Fail-safe: never throw or block rendering/navigation
-      }
-    };
-
-    sendVisit();
-  }, [pathname, user, authLoading]);
-
   return null;
 }

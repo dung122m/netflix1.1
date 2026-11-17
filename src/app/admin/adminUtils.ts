@@ -16,7 +16,6 @@ export const VALID_ADMIN_TABS = [
   "comments",
   "members",
   "collections",
-  "analytics",
 ] as const;
 
 export type AdminTab = (typeof VALID_ADMIN_TABS)[number];

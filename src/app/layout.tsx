@@ -10,7 +10,6 @@ import { InstallPwaBanner } from "@/components/layout/InstallPwaBanner";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { AuthProvider } from "@/context/AuthContext";
 import { NavigationProgressBar } from "@/components/layout/NavigationProgressBar";
-import { SiteVisitTracker } from "@/components/layout/SiteVisitTracker";
 
 const beVietnamPro = Be_Vietnam_Pro({
   weight: ["400", "500", "600", "700"],
@@ -255,9 +254,6 @@ export default function RootLayout({
 
           {/* Thanh chỉ báo tải trang toàn cục mượt mà (Top Progress Bar) */}
           <NavigationProgressBar />
-
-          {/* Minimal Site Visit Tracker for Nanaflix (Phase 2) */}
-          <SiteVisitTracker />
 
           <SmoothScroll>
             <div className="pb-[calc(4rem+env(safe-area-inset-bottom,0px))] lg:pb-0 min-h-dvh flex flex-col" suppressHydrationWarning>
