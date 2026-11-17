@@ -81,6 +81,7 @@ export interface UseMoviePosterFallbackOptions {
   title?: string;
   origin_name?: string;
   year?: string | number;
+  type?: string;
   initialSrc?: string;
   preferBackdrop?: boolean;
   enabled?: boolean;
@@ -100,6 +101,7 @@ export function useMoviePosterFallback({
   title,
   origin_name,
   year,
+  type,
   initialSrc,
   preferBackdrop = false,
   enabled = true,
@@ -228,6 +230,8 @@ export function useMoviePosterFallback({
       if (origin_name) params.set("origin_name", origin_name);
       if (year) params.set("year", String(year));
       if (slug) params.set("slug", slug);
+      if (type) params.set("type", type);
+      params.set("v", "2");
 
       inFlight = enqueue(async () => {
         try {
@@ -282,7 +286,7 @@ export function useMoviePosterFallback({
         setIsLoading(false);
       }
     });
-  }, [cacheKey, slug, title, origin_name, year, displaySrc, preferBackdrop, enabled, manuallyTriggered, upgradePhimimg]);
+  }, [cacheKey, slug, title, origin_name, year, type, displaySrc, preferBackdrop, enabled, manuallyTriggered, upgradePhimimg]);
 
   return { displaySrc, isUpgraded, isLoading, triggerFallback };
 }

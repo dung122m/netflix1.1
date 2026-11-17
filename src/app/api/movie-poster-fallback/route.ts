@@ -53,12 +53,13 @@ export async function GET(req: NextRequest) {
   const origin_name = searchParams.get("origin_name")?.trim() || "";
   const year = searchParams.get("year")?.trim() || "";
   const slug = searchParams.get("slug")?.trim() || "";
+  const type = searchParams.get("type")?.trim() || "movie";
 
   if (!title && !origin_name && !slug) {
     return NextResponse.json({ status: false, error: "Missing query parameters" }, { status: 400 });
   }
 
-  const cacheKey = `${slug || title}|${origin_name}|${year}`.toLowerCase();
+  const cacheKey = `v3:${slug || title}|${origin_name}|${year}|${type}`.toLowerCase();
   const now = Date.now();
 
   // 1. Kiểm tra L1 RAM cache
@@ -148,11 +149,19 @@ export async function GET(req: NextRequest) {
           }
         }
 
-        // 4b. Tìm theo tên gốc quốc tế của phim (vd: Otis, Ultraman Tiga, A Melody to Remember)
+        // 4b. Tìm theo tên phim hoặc tên gốc quốc tế của phim
         if (!result) {
-          const altName = m.origin_name && m.origin_name !== m.name ? m.origin_name : (m.name || m.slug);
+          const altName = isVietnamese
+            ? (m.name || (m.slug ? m.slug.replace(/-/g, " ") : null))
+            : (m.origin_name && m.origin_name !== m.name ? m.origin_name : (m.name || m.slug));
           if (altName) {
-            const res = await searchTmdbPosterByTitle(altName, m.year || year, m.type);
+            const res = await searchTmdbPosterByTitle(
+              altName,
+              m.year || year,
+              m.type || type,
+              undefined,
+              isVietnamese ? "VN" : undefined
+            );
             if (res?.posterUrl || res?.backdropUrl) {
               result = res;
             }
@@ -188,8 +197,14 @@ export async function GET(req: NextRequest) {
             };
           }
         }
-        if (!result && first.origin_name) {
-          const res = await searchTmdbPosterByTitle(first.origin_name, first.year || year, first.type);
+        if (!result && first.origin_name && !isVietnamese) {
+          const res = await searchTmdbPosterByTitle(
+            first.origin_name,
+            first.year || year,
+            first.type || type,
+            undefined,
+            isVietnamese ? "VN" : undefined
+          );
           if (res?.posterUrl || res?.backdropUrl) {
             result = res;
           }

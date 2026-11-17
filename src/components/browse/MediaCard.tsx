@@ -238,6 +238,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
     title,
     origin_name,
     year,
+    type: itemType,
     initialSrc: initialCandidate,
     enabled: needsFallback,
     upgradePhimimg: true,
