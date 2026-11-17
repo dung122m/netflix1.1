@@ -431,7 +431,7 @@ export default async function BrowsePage({
   if (actorRes && (actorRes.isActor || actorParam || actorSynonyms?.isMatched)) {
     const actorSearch = await runActorSearch({ actorResult: actorRes, actorSynonyms, actorParam, category, country, year, type, sort, currentPage, pageLimit: PAGE_LIMIT });
     if (actorSearch) {
-      if (actorSearch.movies.length > 0 || Boolean(actorSearch.actor.avatarUrl)) {
+      if (actorSearch.movies.length > 0 || (actorParam && Boolean(actorSearch.actor.avatarUrl))) {
         const actorSlug = (actorSynonyms?.slug || actorSearch.actor.name)
           .toLowerCase()
           .replace(/[^a-z0-9]+/g, "-")

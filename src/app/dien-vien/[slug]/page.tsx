@@ -4,11 +4,10 @@ import { notFound } from "next/navigation";
 import { cacheService } from "@/lib/cache";
 
 /**
- * ISR / Edge Cache: Cho phép CDN Cloudflare và Vercel Edge cache response HTML 24 giờ.
+ * ISR / Edge Cache: Cho phép CDN Cloudflare và Vercel Edge cache response HTML 1 giờ.
  * Ngăn chặn crawler bot kích hoạt lại SSR và giảm 90%+ Redis DB3 commands.
  */
-export const dynamic = "force-static";
-export const revalidate = 86400;
+export const revalidate = 3600;
 export const dynamicParams = true;
 
 export async function generateStaticParams() {
@@ -255,6 +254,7 @@ interface ActorPageRamCacheEntry {
   expireAt: number;
 }
 const ACTOR_PAGE_RAM_CACHE = new Map<string, ActorPageRamCacheEntry>();
+const ACTOR_PROFILE_RAM_CACHE = new Map<string, { profile: ResolvedActorProfile; expireAt: number }>();
 const MAX_ACTOR_PAGE_RAM_ENTRIES = 2000;
 const ACTOR_PAGE_REDIS_TTL_SEC = 7 * 24 * 60 * 60; // 7 ngày trong Redis DB 3 (Aux)
 
@@ -263,24 +263,13 @@ const ACTOR_PAGE_REDIS_TTL_SEC = 7 * 24 * 60 * 60; // 7 ngày trong Redis DB 3 (
  * Loại bỏ hoàn toàn Double GET giữa generateMetadata() và ActorDetailPage() trong cùng 1 request SSR.
  */
 const resolveActorProfile = cache(async (slug: string): Promise<ResolvedActorProfile> => {
-  const cachedPage = ACTOR_PAGE_RAM_CACHE.get(slug);
-  if (cachedPage && cachedPage.expireAt > Date.now()) {
-    if (cachedPage.isNotFound) {
-      return {
-        rawName: slug.replace(/-/g, " "),
-        tmdbPersonId: undefined,
-        canonicalName: "",
-        actorAliases: [],
-        historicalItem: undefined,
-        actorSynonyms: null,
-        actorRes: null,
-        matchedPreset: undefined,
-        tmdbDetail: null,
-        isCachedNotFound: true,
-      };
+  const cachedProf = ACTOR_PROFILE_RAM_CACHE.get(slug);
+  if (cachedProf && cachedProf.expireAt > Date.now()) {
+    if (cachedProf.profile.isCachedNotFound) {
+      return cachedProf.profile;
     }
-    if (cachedPage.profile) {
-      return cachedPage.profile;
+    if (cachedProf.profile.canonicalName) {
+      return cachedProf.profile;
     }
   }
 
@@ -288,14 +277,12 @@ const resolveActorProfile = cache(async (slug: string): Promise<ResolvedActorPro
   try {
     const redisCached = await cacheService.get<ResolvedActorProfile>(`actor:profile:v1:${slug}`);
     if (redisCached && redisCached.canonicalName) {
-      if (ACTOR_PAGE_RAM_CACHE.size >= MAX_ACTOR_PAGE_RAM_ENTRIES) {
-        const oldest = ACTOR_PAGE_RAM_CACHE.keys().next().value;
-        if (oldest) ACTOR_PAGE_RAM_CACHE.delete(oldest);
+      if (ACTOR_PROFILE_RAM_CACHE.size >= MAX_ACTOR_PAGE_RAM_ENTRIES) {
+        const oldest = ACTOR_PROFILE_RAM_CACHE.keys().next().value;
+        if (oldest) ACTOR_PROFILE_RAM_CACHE.delete(oldest);
       }
-      ACTOR_PAGE_RAM_CACHE.set(slug, {
+      ACTOR_PROFILE_RAM_CACHE.set(slug, {
         profile: redisCached,
-        wikiProfile: null,
-        movies: [],
         expireAt: Date.now() + 7200000,
       });
       return redisCached;
@@ -462,6 +449,15 @@ const resolveActorProfile = cache(async (slug: string): Promise<ResolvedActorPro
     tmdbDetail,
   };
 
+  if (ACTOR_PROFILE_RAM_CACHE.size >= MAX_ACTOR_PAGE_RAM_ENTRIES) {
+    const oldest = ACTOR_PROFILE_RAM_CACHE.keys().next().value;
+    if (oldest) ACTOR_PROFILE_RAM_CACHE.delete(oldest);
+  }
+  ACTOR_PROFILE_RAM_CACHE.set(slug, {
+    profile: resolved,
+    expireAt: Date.now() + 7200000,
+  });
+
   cacheService.set(`actor:profile:v1:${slug}`, resolved, ACTOR_PAGE_REDIS_TTL_SEC).catch(() => {});
 
   return resolved;
@@ -526,11 +522,11 @@ export default async function ActorDetailPage({ params }: PageProps) {
       )
     : Promise.resolve([]);
 
-  let wikiProfile = cachedPage?.wikiProfile ?? null;
+  let wikiProfile = (cachedPage?.movies && cachedPage.movies.length > 0) ? cachedPage.wikiProfile : null;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let movies: any[] = (cachedPage?.movies as any[]) ?? [];
 
-  if (!cachedPage || cachedPage.expireAt <= now) {
+  if (!cachedPage || cachedPage.expireAt <= now || !Array.isArray(movies) || movies.length === 0) {
     try {
       const redisFull = await cacheService.get<{ wikiProfile: ActorProfile | null; movies: unknown[] }>(
         `actor:full_page:v1:${slug}`
@@ -567,7 +563,7 @@ export default async function ActorDetailPage({ params }: PageProps) {
     notFound();
   }
 
-  if (!cachedPage || cachedPage.expireAt <= now) {
+  if (movies && movies.length > 0) {
     if (ACTOR_PAGE_RAM_CACHE.size >= MAX_ACTOR_PAGE_RAM_ENTRIES) {
       const oldest = ACTOR_PAGE_RAM_CACHE.keys().next().value;
       if (oldest) ACTOR_PAGE_RAM_CACHE.delete(oldest);

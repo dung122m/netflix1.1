@@ -305,7 +305,16 @@ export async function resolveTmdbFallbackMedia(movie: MovieDetailRecord) {
   const needsPoster = !hasGoodPoster || !hasGoodThumb || isPhimimg;
 
   if ((needsTrailer || needsPoster) && (tmdbId || movie.origin_name || movie.name)) {
-    const movieTitleForSearch = movie.origin_name || movie.name || "";
+    const isVietnameseMovie =
+      (Array.isArray(movie.country) && movie.country.some((c) => (c.name || c.slug || "").toLowerCase().includes("viet"))) ||
+      (typeof movie.country === "string" && movie.country.toLowerCase().includes("viet")) ||
+      (Array.isArray((movie as unknown as { countries?: unknown[] }).countries) &&
+        (movie as unknown as { countries: unknown[] }).countries.some((c) => String(c).toLowerCase().includes("viet"))) ||
+      /[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/i.test(movie.name || "");
+
+    const movieTitleForSearch = isVietnameseMovie
+      ? (movie.name || movie.origin_name || "")
+      : (movie.origin_name || movie.name || "");
     const tmdbTasks = Promise.allSettled([
       needsTrailer
         ? (async () => {
@@ -336,7 +345,9 @@ export async function resolveTmdbFallbackMedia(movie: MovieDetailRecord) {
             const res = await searchTmdbPosterByTitle(
               movieTitleForSearch,
               movie.year,
-              tmdbType
+              tmdbType,
+              undefined,
+              isVietnameseMovie ? "VN" : undefined
             ).catch(() => null);
             if (res?.posterUrl && !pUrl) {
               pUrl = res.posterUrl;

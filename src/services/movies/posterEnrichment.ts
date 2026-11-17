@@ -138,21 +138,53 @@ export async function enrichMovieListPosters(movieList: any[], options: PosterEn
         return;
       }
 
-      const primaryCandidates = Array.from(
-        new Set(
-          [
-            item.origin_name && item.origin_name !== item.name ? item.origin_name : null,
-            item.name,
-            item.slug ? String(item.slug).replace(/-/g, " ") : null,
-          ].filter(Boolean) as string[]
-        )
-      ).slice(0, 2);
+      const isVietnamese =
+        Boolean(item.countries?.some((c: string) => c.toLowerCase().includes("viet"))) ||
+        Boolean(
+          Array.isArray(item.country) &&
+            item.country.some((c: unknown) => {
+              if (typeof c === "object" && c !== null) {
+                const obj = c as { name?: string; slug?: string };
+                return (obj.name || obj.slug || "").toLowerCase().includes("viet");
+              }
+              return String(c).toLowerCase().includes("viet");
+            })
+        ) ||
+        /[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/i.test(item.name || "");
+
+      // For Vietnamese content, ALWAYS prioritize item.name over translated origin_name
+      // to avoid generic translated words (e.g. "Hamlet" for "Xóm Nhỏ") hijacking posters with foreign movies.
+      const primaryCandidates = isVietnamese
+        ? Array.from(
+            new Set(
+              [
+                item.name,
+                item.slug ? String(item.slug).replace(/-/g, " ") : null,
+                item.origin_name && item.origin_name !== item.name ? item.origin_name : null,
+              ].filter(Boolean) as string[]
+            )
+          ).slice(0, 2)
+        : Array.from(
+            new Set(
+              [
+                item.origin_name && item.origin_name !== item.name ? item.origin_name : null,
+                item.name,
+                item.slug ? String(item.slug).replace(/-/g, " ") : null,
+              ].filter(Boolean) as string[]
+            )
+          ).slice(0, 2);
 
       let foundPoster = false;
       for (const query of primaryCandidates) {
         if (signal.aborted) break;
         try {
-          const res = await searchTmdbPosterByTitle(query, item.year, item.type, signal);
+          const res = await searchTmdbPosterByTitle(
+            query,
+            item.year,
+            item.type,
+            signal,
+            isVietnamese ? "VN" : undefined
+          );
           if (res?.posterUrl) {
             if (posterNonTmdb) {
               item.poster_url = res.posterUrl;

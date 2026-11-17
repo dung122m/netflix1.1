@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowRight, X } from "lucide-react";
@@ -12,7 +12,7 @@ interface PaginationControlProps {
   onPageChange?: (page: number) => void;
 }
 
-export const PaginationControl: React.FC<PaginationControlProps> = ({
+const PaginationControlInner: React.FC<PaginationControlProps> = ({
   currentPage,
   totalPages,
   pages,
@@ -265,6 +265,14 @@ export const PaginationControl: React.FC<PaginationControlProps> = ({
         </Link>
       )}
     </div>
+  );
+};
+
+export const PaginationControl: React.FC<PaginationControlProps> = (props) => {
+  return (
+    <Suspense fallback={null}>
+      <PaginationControlInner {...props} />
+    </Suspense>
   );
 };
 

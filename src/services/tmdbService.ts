@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { cacheService } from "@/lib/cache";
+import { normalizeForMatch } from "@/lib/stringUtils";
 import {
   extractPartNumber,
   normalizeTitleCore,
@@ -61,12 +62,7 @@ export async function getTmdbBackdropUrl(
   }
 
   try {
-    let data = await fetchTmdbEndpoint(`/${cleanType}/${cleanId}`, 86400);
-    if (!data?.backdrop_path && !data?.id) {
-      // Thử loại hình thay thế nếu phim bị phân loại nhầm giữa tv/movie
-      const altType = cleanType === "tv" ? "movie" : "tv";
-      data = await fetchTmdbEndpoint(`/${altType}/${cleanId}`, 86400);
-    }
+    const data = await fetchTmdbEndpoint(`/${cleanType}/${cleanId}`, 86400);
     const backdropUrl = data?.backdrop_path
       ? `https://image.tmdb.org/t/p/w1280${data.backdrop_path}`
       : null;
@@ -138,8 +134,8 @@ export async function getTmdbMediaImagesById(
   }
 
   const cleanType = normalizeTmdbLookupMediaType(type);
-  const cacheKey = `v3:${cleanType}:${cleanId}`;
-  const redisKey = `tmdb:images:v1:${cleanType}:${cleanId}`;
+  const cacheKey = `v4:${cleanType}:${cleanId}`;
+  const redisKey = `tmdb:images:v2:${cleanType}:${cleanId}`;
 
   const now = Date.now();
   const memoryHit = TMDB_MEDIA_IMAGES_CACHE.get(cacheKey);
@@ -176,20 +172,8 @@ export async function getTmdbMediaImagesById(
         data = await fetchTmdbEndpoint(`/${cleanType}/${cleanId}`, 86400, externalSignal);
       }
 
-      // 3. Fallback sang loại media khác (movie <-> tv) bất cứ khi nào chưa có poster_path
-      // (TMDB ID của movie và tv nằm ở 2 namespace tách biệt, có thể trùng số ID)
-      if (!data?.poster_path && !externalSignal?.aborted) {
-        const altType = cleanType === "tv" ? "movie" : "tv";
-        const altVi = await fetchTmdbEndpoint(`/${altType}/${cleanId}?language=vi-VN`, 86400, externalSignal);
-        if (altVi?.poster_path) {
-          data = altVi;
-        } else if (altVi?.id && !externalSignal?.aborted) {
-          const altGlobal = await fetchTmdbEndpoint(`/${altType}/${cleanId}`, 86400, externalSignal);
-          if (altGlobal?.poster_path) {
-            data = altGlobal;
-          }
-        }
-      }
+      // Lưu ý: Tuyệt đối KHÔNG fallback sang altType (movie <-> tv) bằng cùng số ID.
+      // TMDB movie và tv ID là 2 không gian số nguyên hoàn toàn độc lập, tráo ID sẽ làm sai lệch dữ liệu phim.
 
       const posterUrl = data?.poster_path
         ? `https://image.tmdb.org/t/p/w500${data.poster_path}`
@@ -265,13 +249,31 @@ function extractTitleVariants(text: string): string[] {
   return res;
 }
 
-function pickBestTmdbCandidate(results: any[], targetType: string, targetYear?: number | string): any | null {
+interface TmdbCandidateOptions {
+  originalQuery?: string;
+  expectedCountry?: string;
+  isVietnamese?: boolean;
+}
+
+function pickBestTmdbCandidate(
+  results: any[],
+  targetType: string,
+  targetYear?: number | string,
+  options?: TmdbCandidateOptions
+): any | null {
   if (!Array.isArray(results) || results.length === 0) return null;
 
   const valid = results.filter((r) => r && (r.poster_path || r.backdrop_path));
-  if (valid.length === 0) return results[0] || null;
+  if (valid.length === 0) return null;
 
   const parsedYear = targetYear ? parseInt(String(targetYear).trim(), 10) : null;
+  const originalQuery = options?.originalQuery?.trim().toLowerCase() || "";
+  const normQuery = normalizeForMatch(originalQuery);
+  const isVietnamese = options?.isVietnamese ?? (
+    options?.expectedCountry === "VN" ||
+    (options?.expectedCountry ? options.expectedCountry.toLowerCase().includes("viet") : false) ||
+    /[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/i.test(originalQuery)
+  );
 
   const scored = valid.map((r) => {
     let score = 0;
@@ -285,6 +287,7 @@ function pickBestTmdbCandidate(results: any[], targetType: string, targetYear?: 
         const diff = Math.abs(itemYear - parsedYear);
         if (diff === 0) score += 80;
         else if (diff === 1) score += 40;
+        else if (diff > 3) score -= 100;
       }
     }
 
@@ -292,11 +295,51 @@ function pickBestTmdbCandidate(results: any[], targetType: string, targetYear?: 
     score += Math.min(40, Math.log10((r.vote_count || 0) + 1) * 10);
     score += Math.min(20, (r.popularity || 0) / 10);
 
+    // Title similarity scoring
+    const titleCandidates = [r.title, r.name, r.original_title, r.original_name]
+      .filter((t): t is string => typeof t === "string" && t.trim().length > 0);
+
+    let bestTitleSim = 0;
+    if (normQuery) {
+      for (const candTitle of titleCandidates) {
+        const normCand = normalizeForMatch(candTitle);
+        if (normCand === normQuery) {
+          bestTitleSim = Math.max(bestTitleSim, 100);
+        } else if (normCand && (normCand.includes(normQuery) || normQuery.includes(normCand))) {
+          bestTitleSim = Math.max(bestTitleSim, 60);
+        }
+      }
+    }
+    score += bestTitleSim;
+
+    // Strict country / language protection:
+    // If the movie is known to be Vietnamese:
+    if (isVietnamese) {
+      const origLang = (r.original_language || "").toLowerCase();
+      const originCountries: string[] = Array.isArray(r.origin_country)
+        ? r.origin_country.map((c: string) => String(c).toUpperCase())
+        : [];
+
+      const isCandidateVietnamese = origLang === "vi" || originCountries.includes("VN");
+      if (isCandidateVietnamese) {
+        score += 80;
+      } else {
+        // Unrelated foreign film matching a Vietnamese movie
+        // Heavy penalty to prevent foreign poster hijack!
+        score -= 250;
+      }
+    }
+
     return { item: r, score };
   });
 
   scored.sort((a, b) => b.score - a.score);
-  return scored[0]?.item || valid[0];
+  const best = scored[0];
+  // Minimum quality threshold: require score >= 50
+  if (!best || best.score < 50) {
+    return null;
+  }
+  return best.item;
 }
 
 const inFlightTmdbTitlePoster = new Map<string, Promise<{ posterUrl: string | null; backdropUrl: string | null }>>();
@@ -305,7 +348,8 @@ export async function searchTmdbPosterByTitle(
   query: string,
   year?: number | string,
   type: string = "movie",
-  externalSignal?: AbortSignal
+  externalSignal?: AbortSignal,
+  expectedCountry?: string
 ): Promise<{ posterUrl: string | null; backdropUrl: string | null }> {
   if (!query || typeof query !== "string" || externalSignal?.aborted) {
     return { posterUrl: null, backdropUrl: null };
@@ -315,9 +359,9 @@ export async function searchTmdbPosterByTitle(
 
   const cleanType = normalizeTmdbLookupMediaType(type);
   const searchYear = year && /^\d{4}$/.test(String(year).trim()) ? `&year=${String(year).trim()}` : "";
-  const cacheKey = `${cleanQuery}|${year || ""}|${cleanType}`.toLowerCase();
+  const cacheKey = `${cleanQuery}|${year || ""}|${cleanType}|${expectedCountry || ""}`.toLowerCase();
   const cleanQueryNorm = cleanQuery.toLowerCase().replace(/[^a-z0-9]/g, "_").slice(0, 48);
-  const redisKey = `tmdb:poster:v1:${cleanQueryNorm}:${year || ""}:${cleanType}`;
+  const redisKey = `tmdb:poster:v2:${cleanQueryNorm}:${year || ""}:${cleanType}:${expectedCountry || ""}`;
 
   const now = Date.now();
   const memHit = TMDB_TITLE_POSTER_CACHE.get(cacheKey);
@@ -345,6 +389,10 @@ export async function searchTmdbPosterByTitle(
   }
 
   const variants = extractTitleVariants(cleanQuery).slice(0, 3);
+  const candidateOptions: TmdbCandidateOptions = {
+    originalQuery: cleanQuery,
+    expectedCountry,
+  };
 
   const task = (async (): Promise<{ posterUrl: string | null; backdropUrl: string | null }> => {
     let result: { posterUrl: string | null; backdropUrl: string | null } = {
@@ -360,7 +408,7 @@ export async function searchTmdbPosterByTitle(
         try {
           const endpointMulti = `/search/multi?query=${encodeURIComponent(v)}&include_adult=false`;
           const dataMulti = await fetchTmdbEndpoint(endpointMulti, 86400, externalSignal);
-          const bestMulti = pickBestTmdbCandidate(dataMulti?.results, cleanType, year);
+          const bestMulti = pickBestTmdbCandidate(dataMulti?.results, cleanType, year, candidateOptions);
           if (bestMulti?.poster_path) {
             result = {
               posterUrl: `https://image.tmdb.org/t/p/w500${bestMulti.poster_path}`,
@@ -375,7 +423,7 @@ export async function searchTmdbPosterByTitle(
           try {
             const endpointType = `/search/${cleanType}?query=${encodeURIComponent(v)}${searchYear}&language=vi-VN`;
             const dataType = await fetchTmdbEndpoint(endpointType, 86400, externalSignal);
-            const bestType = pickBestTmdbCandidate(dataType?.results, cleanType, year);
+            const bestType = pickBestTmdbCandidate(dataType?.results, cleanType, year, candidateOptions);
             if (bestType?.poster_path) {
               result = {
                 posterUrl: `https://image.tmdb.org/t/p/w500${bestType.poster_path}`,
@@ -439,25 +487,16 @@ export async function getTmdbMovieLogo(
     return memHit.url;
   }
 
-  const kvKey = `tmdb:logo:v1:${cleanType}:${cleanId}`;
+  const kvKey = `tmdb:logo:v2:${cleanType}:${cleanId}`;
   const logoUrl = await cacheService.fetchOrSet<string | null>(
     kvKey,
     async () => {
       try {
         // 1. Gọi endpoint images với ngôn ngữ vi, en và null
-        let data = await fetchTmdbEndpoint(
+        const data = await fetchTmdbEndpoint(
           `/${cleanType}/${cleanId}/images?include_image_language=vi,en,null`
         );
-        let logos: TmdbImageLogo[] = Array.isArray(data?.logos) ? data.logos : [];
-
-        // 2. Fallback sang loại hình thay thế nếu upstream phân loại nhầm giữa movie và tv
-        if (logos.length === 0) {
-          const altType = cleanType === "tv" ? "movie" : "tv";
-          data = await fetchTmdbEndpoint(
-            `/${altType}/${cleanId}/images?include_image_language=vi,en,null`
-          );
-          logos = Array.isArray(data?.logos) ? data.logos : [];
-        }
+        const logos: TmdbImageLogo[] = Array.isArray(data?.logos) ? data.logos : [];
 
         if (logos.length === 0) return null;
 
@@ -533,20 +572,13 @@ export async function getTmdbTrailerUrl(
     return memoryHit.url;
   }
 
-  const kvKey = `tmdb:trailer:v1:${cleanType}:${cleanId}`;
+  const kvKey = `tmdb:trailer:v2:${cleanType}:${cleanId}`;
   const trailerUrl = await cacheService.fetchOrSet<string | null>(
     kvKey,
     async () => {
       try {
-        let data = await fetchTmdbEndpoint(`/${cleanType}/${cleanId}/videos?include_video_language=vi,en,null`);
-        let videos = Array.isArray(data?.results) ? data.results : [];
-
-        if (videos.length === 0) {
-          // Thử loại hình thay thế nếu phim bị phân loại nhầm giữa tv/movie
-          const altType = cleanType === "tv" ? "movie" : "tv";
-          data = await fetchTmdbEndpoint(`/${altType}/${cleanId}/videos?include_video_language=vi,en,null`);
-          videos = Array.isArray(data?.results) ? data.results : [];
-        }
+        const data = await fetchTmdbEndpoint(`/${cleanType}/${cleanId}/videos?include_video_language=vi,en,null`);
+        const videos = Array.isArray(data?.results) ? data.results : [];
 
         const ytVideos = videos.filter((v: any) => v.site === "YouTube" && v.key);
         if (ytVideos.length === 0) return null;
@@ -635,16 +667,12 @@ export async function getTmdbReviews(
     return memHit.data;
   }
 
-  const kvKey = `tmdb:reviews:${cleanType}:${cleanId}`;
+  const kvKey = `tmdb:reviews:v2:${cleanType}:${cleanId}`;
   const reviews = await cacheService.fetchOrSet<TmdbReview[]>(
     kvKey,
     async () => {
       try {
-        let res = await fetchTmdbEndpoint(`/${cleanType}/${cleanId}/reviews?page=1`);
-        if (!res?.results || res.results.length === 0) {
-          const altType = cleanType === "tv" ? "movie" : "tv";
-          res = await fetchTmdbEndpoint(`/${altType}/${cleanId}/reviews?page=1`);
-        }
+        const res = await fetchTmdbEndpoint(`/${cleanType}/${cleanId}/reviews?page=1`);
         if (!res?.results || !Array.isArray(res.results)) return [];
 
         const items: TmdbReview[] = res.results.slice(0, 10).map((r: any) => {
@@ -717,7 +745,7 @@ export async function getTmdbMovieCredits(
     return memHit.data;
   }
 
-  const kvKey = `tmdb:credits:v1:${cleanType}:${cleanId}`;
+  const kvKey = `tmdb:credits:v2:${cleanType}:${cleanId}`;
   const castList = await cacheService.fetchOrSet<TmdbCastMember[]>(
     kvKey,
     async () => {
@@ -728,12 +756,15 @@ export async function getTmdbMovieCredits(
           // 2. Fallback sang tiếng Anh / gốc
           res = await fetchTmdbEndpoint(`/${cleanType}/${cleanId}/credits`);
         }
-        if (!res?.cast || !Array.isArray(res.cast) || res.cast.length === 0) {
-          // 3. Fallback sang loại hình thay thế (movie <-> tv) nếu upstream gán nhầm
-          const altType = cleanType === "tv" ? "movie" : "tv";
-          res = await fetchTmdbEndpoint(`/${altType}/${cleanId}/credits`);
+        // 3. Đối với TV series, nếu /credits rỗng thì tra cứu qua /aggregate_credits (nơi TMDB lưu danh sách diễn viên toàn bộ các mùa)
+        if ((!res?.cast || !Array.isArray(res.cast) || res.cast.length === 0) && cleanType === "tv") {
+          res = await fetchTmdbEndpoint(`/tv/${cleanId}/aggregate_credits?language=vi-VN`);
+          if (!res?.cast || !Array.isArray(res.cast) || res.cast.length === 0) {
+            res = await fetchTmdbEndpoint(`/tv/${cleanId}/aggregate_credits`);
+          }
         }
 
+        // Tuyệt đối KHÔNG tráo sang altType (movie <-> tv) bằng cùng số ID!
         if (!res?.cast || !Array.isArray(res.cast)) return [];
 
         const validCast: TmdbCastMember[] = res.cast
@@ -799,14 +830,14 @@ export async function getTmdbMovieRecommendations(
     return filterExcludes(memHit.data);
   }
 
-  const kvKey = `tmdb:recommendations:v1:${cleanType}:${cleanId}`;
+  const kvKey = `tmdb:recommendations:v2:${cleanType}:${cleanId}`;
   const matchedMovies = await cacheService.fetchOrSet<any[]>(
     kvKey,
     async () => {
       try {
         // 1. Thử lấy danh sách recommendations trước (ưu tiên số 1)
-        let res = await fetchTmdbEndpoint(`/${cleanType}/${cleanId}/recommendations?language=vi-VN&page=1`);
-        let results = Array.isArray(res?.results) ? res.results : [];
+        const res = await fetchTmdbEndpoint(`/${cleanType}/${cleanId}/recommendations?language=vi-VN&page=1`);
+        const results = Array.isArray(res?.results) ? res.results : [];
 
         // 2. Nếu recommendations rỗng hoặc ít hơn 6 phim, bổ sung / fallback từ endpoint similar (ưu tiên số 2)
         if (results.length < 6) {
@@ -818,17 +849,6 @@ export async function getTmdbMovieRecommendations(
               existingIds.add(s.id);
               results.push(s);
             }
-          }
-        }
-
-        // 3. Fallback loại hình chéo nếu upstream phân loại nhầm giữa movie và tv
-        if (results.length === 0) {
-          const altType = cleanType === "tv" ? "movie" : "tv";
-          res = await fetchTmdbEndpoint(`/${altType}/${cleanId}/recommendations?language=vi-VN&page=1`);
-          results = Array.isArray(res?.results) ? res.results : [];
-          if (results.length === 0) {
-            const altSim = await fetchTmdbEndpoint(`/${altType}/${cleanId}/similar?language=vi-VN&page=1`);
-            results = Array.isArray(altSim?.results) ? altSim.results : [];
           }
         }
 
