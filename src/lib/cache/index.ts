@@ -606,15 +606,17 @@ export const cacheService: CacheService = {
     const task = (async () => {
       try {
         const freshData = await fetcher();
-        if (freshData !== null && freshData !== undefined) {
+        const isEmptyArray = Array.isArray(freshData) && freshData.length === 0;
+
+        if (freshData !== null && freshData !== undefined && !isEmptyArray) {
           await this.set(key, freshData, ttlSeconds);
         } else {
-          // Negative cache in L1 RAM to prevent hammering upstream/Redis for non-existent items
+          // Negative cache in L1 RAM only (60s) to prevent hammering upstream while avoiding poisoning Redis for days
           if (L1_CACHE.size >= MAX_L1_ENTRIES) {
             const oldestKey = L1_CACHE.keys().next().value;
             if (oldestKey) L1_CACHE.delete(oldestKey);
           }
-          L1_CACHE.set(sanitized, { value: null, expireAt: Date.now() + 30 * 60 * 1000 });
+          L1_CACHE.set(sanitized, { value: freshData, expireAt: Date.now() + 60 * 1000 });
         }
         return freshData;
       } finally {

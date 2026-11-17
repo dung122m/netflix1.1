@@ -63,4 +63,5 @@ export function parseSortMode(rawSort?: string): ParsedSortMode {
 
 export interface AiCandidateOptions {
   minCandidates?: number;
+  skipRelevanceScoring?: boolean;
 }

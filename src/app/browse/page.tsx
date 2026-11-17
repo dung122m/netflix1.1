@@ -539,7 +539,7 @@ export default async function BrowsePage({
         pageLimit: PAGE_LIMIT,
       });
       if (actorSearch) {
-        if (actorSearch.movies.length > 0 || Boolean(actorSearch.actor.avatarUrl)) {
+        if (actorSearch.movies.length > 0 || (hasExplicitActorPrefix(keyword) && Boolean(actorSearch.actor.avatarUrl))) {
           const actorSlug = (historicalArtist?.slug || fallbackSynonyms?.slug || actorSearch.actor.name)
             .toLowerCase()
             .replace(/[^a-z0-9]+/g, "-")

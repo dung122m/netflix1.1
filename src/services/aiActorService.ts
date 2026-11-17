@@ -711,7 +711,7 @@ async function executeActorFilmQueryInternal(
   // Tối ưu hóa: Chỉ truy vấn page 1 với limit 30 cho tối đa 2 keyword đặc trưng
   // Giảm từ 8 calls (4 keywords x 2 pages) xuống tối đa 2 calls (1-2 keywords x 1 page)
   for (const kw of searchKeywords) {
-    searchPromises.push(movieApi.getAiCandidates({ keyword: kw, page: 1, limit: 30 }, { minCandidates: 10 }));
+    searchPromises.push(movieApi.getAiCandidates({ keyword: kw, page: 1, limit: 30 }, { minCandidates: 10, skipRelevanceScoring: true }));
   }
 
   // Chờ tất cả kết quả tìm kiếm ứng viên đồng thời (1 đợt duy nhất, loại bỏ vòng lặp tuần tự N+1)

@@ -536,7 +536,7 @@ async function executeGetAiCandidates(params: MovieFilterParams, _options?: AiCa
   let candidates = deduplicateMovieItems(primaryItems);
   candidates = applyMovieFilters(candidates, params);
 
-  if (isSearch && params.keyword) {
+  if (isSearch && params.keyword && !_options?.skipRelevanceScoring) {
     const kw = params.keyword.trim();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const scored = candidates.map((m: any) => ({
