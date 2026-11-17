@@ -801,9 +801,11 @@ export function extractOriginalSourceUrl(url: string): string {
 }
 
 /**
- * Bảo vệ thẻ <img> trên client khỏi tải trực tiếp từ phimimg.com (nặng, chậm, thường bị chặn tại VN):
+ * Bảo vệ thẻ <img> trên client khỏi tải trực tiếp từ phimimg.com (bị ISP VN chặn):
  * 1. Ưu tiên trỏ trực tiếp sang Cloudflare R2 Public CDN trước (0ms latency, 0 Vercel CPU).
- * 2. Chỉ khi thẻ <img> kích hoạt onError mới fallback sang /api/media/r2-proxy để fetch & upload lên R2.
+ *    → Nếu ảnh đã có trên R2 → load ngay, nhanh, không tốn gì.
+ * 2. Chỉ khi R2 trả 404 (chưa cache) → onError → gọi /api/media/r2-proxy
+ *    → Server Vercel (không bị chặn) fetch phimimg → upload R2 → trả ảnh → lần sau HIT.
  */
 export function toFastCdnImageUrl(url: string): string {
   if (!url || typeof url !== "string") return "";

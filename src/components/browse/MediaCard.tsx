@@ -194,9 +194,9 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
     // Sắp xếp ưu tiên:
     // 0. Ảnh đã từng nạp thành công trong phiên (0ms cache hit)
     // 1. TMDb CDN chính chủ siêu nhẹ & cực nhanh (30ms CDN)
-    // 2. Poster dọc (-poster.webp, poster_, /w500)
-    // 3. Thumb ngang (-thumb.webp) làm fallback
-    // 4. Tuyệt đối đẩy phimimg.com xuống tầng dưới cùng
+    // 2. R2 CDN (phimimg/phimapi/ophim đều được route qua toFastCdnImageUrl → R2 direct URL)
+    // 3. Poster dọc (-poster.webp, poster_, /w500)
+    // 4. Thumb ngang (-thumb.webp) làm fallback
     return list.sort((a, b) => {
       const aLoaded = GLOBAL_LOADED_IMAGES.has(a);
       const bLoaded = GLOBAL_LOADED_IMAGES.has(b);
@@ -207,11 +207,6 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
       const bTmdb = b.includes("image.tmdb.org");
       if (aTmdb && !bTmdb) return -1;
       if (!aTmdb && bTmdb) return 1;
-
-      const aPhimimg = isPhimimgSourceUrl(a);
-      const bPhimimg = isPhimimgSourceUrl(b);
-      if (aPhimimg && !bPhimimg) return 1;
-      if (!aPhimimg && bPhimimg) return -1;
 
       const aPoster = a.includes("-poster") || a.includes("poster_") || a.includes("/w500");
       const bPoster = b.includes("-poster") || b.includes("poster_") || b.includes("/w500");
@@ -227,9 +222,10 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
 
   const initialCandidate = imageCandidates[0] || "";
 
-  // Kích hoạt fallback khi không có candidate ban đầu, khi là phimimg.com, hoặc khi candidates tải lỗi
+  // Kích hoạt TMDb fallback chỉ khi KHÔNG CÓ candidate nào từ đầu.
+  // Phimimg được route qua R2 direct URL — cứ thử load trước, thất bại mới gọi TMDb.
   const [needsFallback, setNeedsFallback] = useState<boolean>(
-    () => !initialCandidate || isPhimimgSourceUrl(initialCandidate)
+    () => !initialCandidate
   );
 
   // Chuẩn hóa và tra cứu fallback TMDb dùng chung khi cần
@@ -296,22 +292,8 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
       return;
     }
 
-    // Nếu fallback TMDb đã kết thúc mà không tìm thấy ảnh, và ảnh hiện tại đã nằm trong danh sách lỗi
+    // TMDb fallback hoàn tất nhưng không tìm được ảnh → hiện Poster Canvas
     if (currentSrc && triedUrlsRef.current.has(currentSrc)) {
-      if (
-        (currentSrc.includes("phimimg.com") || currentSrc.includes("/cache/")) &&
-        !currentSrc.includes("/api/media/r2-proxy")
-      ) {
-        const originalSource = extractOriginalSourceUrl(currentSrc);
-        const r2ProxyUrl = `/api/media/r2-proxy?url=${encodeURIComponent(originalSource || currentSrc)}`;
-        if (!triedUrlsRef.current.has(r2ProxyUrl)) {
-          setCurrentSrc(r2ProxyUrl);
-          setIsImageLoaded(false);
-          setHasError(false);
-          return;
-        }
-      }
-
       setHasError(true);
       setIsImageLoaded(true);
     }
@@ -323,9 +305,9 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
       GLOBAL_LOADED_IMAGES.delete(currentSrc);
     }
 
-    // 1. Thử ứng viên kế tiếp trong danh sách candidates (bỏ qua url đã lỗi và link phimimg nếu vừa lỗi)
+    // 1. Thử ứng viên kế tiếp trong danh sách candidates
     const nextCandidate = imageCandidates.find(
-      (url) => !triedUrlsRef.current.has(url) && (!url.includes("phimimg.com") || url !== currentSrc)
+      (url) => !triedUrlsRef.current.has(url)
     );
     if (nextCandidate) {
       setCurrentSrc(nextCandidate);
@@ -333,7 +315,32 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
       return;
     }
 
-    // 2. Nếu fallback TMDb đã có sẵn (hoặc khác currentSrc vừa lỗi) -> dùng TMDb ngay
+    // 2. R2 direct URL bị 404 → gọi r2-proxy NGAY (không chờ TMDb)
+    //    Server Vercel ở nước ngoài không bị ISP VN chặn → fetch phimimg được
+    //    Song song kích hoạt TMDb fallback để chuẩn bị sẵn phòng r2-proxy cũng fail
+    if (
+      currentSrc &&
+      currentSrc.includes("/cache/") &&
+      !currentSrc.includes("/api/media/r2-proxy")
+    ) {
+      const originalSource = extractOriginalSourceUrl(currentSrc);
+      if (originalSource && originalSource !== currentSrc) {
+        const r2ProxyUrl = `/api/media/r2-proxy?url=${encodeURIComponent(originalSource)}`;
+        if (!triedUrlsRef.current.has(r2ProxyUrl)) {
+          setCurrentSrc(r2ProxyUrl);
+          setIsImageLoaded(false);
+          setHasError(false);
+          // Chuẩn bị TMDb song song để sẵn sàng nếu r2-proxy cũng fail
+          if (!needsFallback) {
+            setNeedsFallback(true);
+            triggerFallback();
+          }
+          return;
+        }
+      }
+    }
+
+    // 3. Nếu fallback TMDb đã có sẵn → dùng ngay
     if (tmdbFallbackSrc && tmdbFallbackSrc !== currentSrc && !triedUrlsRef.current.has(tmdbFallbackSrc)) {
       setCurrentSrc(tmdbFallbackSrc);
       setIsImageLoaded(GLOBAL_LOADED_IMAGES.has(tmdbFallbackSrc));
@@ -341,7 +348,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
       return;
     }
 
-    // 3. Kích hoạt gọi fallback nếu chưa kích hoạt
+    // 4. Kích hoạt gọi TMDb fallback nếu chưa kích hoạt
     if (!needsFallback) {
       setNeedsFallback(true);
       triggerFallback();
@@ -350,30 +357,14 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
       return;
     }
 
-    // 4. Nếu fallback TMDb đang được tải ngầm (isFallbackLoading) -> Giữ skeleton shimmer chờ TMDb tải xong
+    // 5. TMDb đang tải ngầm → giữ skeleton shimmer chờ
     if (isFallbackLoading) {
       setIsImageLoaded(false);
       setHasError(false);
       return;
     }
 
-    // 5. Cứu cánh ảnh phimimg.com / R2 cache bị lỗi hoặc chưa có bằng Cloudflare R2 Proxy trước khi hiển thị Poster Canvas
-    if (
-      currentSrc &&
-      (currentSrc.includes("phimimg.com") || currentSrc.includes("/cache/")) &&
-      !currentSrc.includes("/api/media/r2-proxy")
-    ) {
-      const originalSource = extractOriginalSourceUrl(currentSrc);
-      const r2ProxyUrl = `/api/media/r2-proxy?url=${encodeURIComponent(originalSource || currentSrc)}`;
-      if (!triedUrlsRef.current.has(r2ProxyUrl)) {
-        setCurrentSrc(r2ProxyUrl);
-        setIsImageLoaded(false);
-        setHasError(false);
-        return;
-      }
-    }
-
-    // 6. Toàn bộ candidates và fallback TMDb đều thất bại -> Hiện Poster Canvas nghệ thuật
+    // 6. Toàn bộ candidates, R2 proxy, và TMDb đều thất bại → Poster Canvas
     setHasError(true);
     setIsImageLoaded(true);
   }, [currentSrc, imageCandidates, tmdbFallbackSrc, isFallbackLoading, needsFallback, triggerFallback]);
@@ -604,6 +595,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
           {currentSrc && !hasError && (
             /* eslint-disable-next-line @next/next/no-img-element */
             <img
+              key={currentSrc}
               ref={checkImageComplete}
               src={currentSrc}
               alt={title}
@@ -611,9 +603,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
               decoding={priority ? "sync" : "async"}
               fetchPriority={priority ? "high" : "auto"}
               referrerPolicy="no-referrer"
-              className={`relative z-[1] w-full h-full object-cover object-center brightness-[0.94] group-hover/card:scale-105 group-hover/card:brightness-105 transition-transform duration-300 ease-out motion-reduce:transform-none ${
-                isImageLoaded ? "opacity-100" : "opacity-0"
-              }`}
+              className="relative z-[1] w-full h-full object-cover object-center brightness-[0.94] group-hover/card:scale-105 group-hover/card:brightness-105 transition-all duration-300 ease-out motion-reduce:transform-none opacity-100"
               onLoad={(e) => {
                 const target = e.currentTarget;
                 const loadedSrc = target.currentSrc || target.src || currentSrc;
