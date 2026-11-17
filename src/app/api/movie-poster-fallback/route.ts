@@ -12,11 +12,6 @@ import {
 
 export const runtime = "nodejs";
 
-const TMDB_API_KEY =
-  process.env.TMDB_API_KEY ||
-  process.env.NEXT_PUBLIC_TMDB_API_KEY ||
-  "3fd2be6f0c70a2a598f084ddfb75487c";
-
 // In-memory L1 cache (24h)
 interface PosterCacheEntry {
   posterUrl: string | null;
@@ -36,127 +31,15 @@ function setBoundedMap<K, V>(map: Map<K, V>, key: K, value: V, maxSize = 2000): 
   map.set(key, value);
 }
 
-function getSearchVariants(text: string): string[] {
-  if (!text) return [];
-  const res: string[] = [];
-  const add = (s: string) => {
-    const trimmed = (s || "").trim();
-    if (trimmed.length >= 2 && !res.includes(trimmed)) res.push(trimmed);
-  };
-  add(text);
-  const noSeason = text
-    .replace(/\((?:Phần|Season|SS|Part)\s*\d+[^)]*\)/gi, "")
-    .replace(/(?:Phần|Season|SS|Part)\s*\d+/gi, "")
-    .replace(/\[[^\]]*\]/g, "")
-    .trim();
-  add(noSeason);
-
-  const matches = text.match(/\(([^)]+)\)/g);
-  if (matches) {
-    for (const m of matches) {
-      const inside = m.slice(1, -1).trim();
-      if (!/^(Phần|Season|SS|Part)\s*\d+/i.test(inside)) {
-        add(inside);
-      }
-    }
-  }
-
-  const noParens = text.replace(/\([^)]*\)/g, "").trim();
-  add(noParens);
-
-  return res;
-}
-
-interface TmdbCandidate {
-  poster_path?: string;
-  backdrop_path?: string;
-  release_date?: string;
-  first_air_date?: string;
-  vote_count?: number;
-  popularity?: number;
-  [key: string]: unknown;
-}
-
-function pickBestTmdbCandidate(results: TmdbCandidate[], targetYear?: string): TmdbCandidate | null {
-  if (!Array.isArray(results) || results.length === 0) return null;
-
-  const valid = results.filter((r) => r && (r.poster_path || r.backdrop_path));
-  if (valid.length === 0) return results[0] || null;
-
-  const parsedYear = targetYear ? parseInt(String(targetYear).trim(), 10) : null;
-
-  const scored = valid.map((r) => {
-    let score = 0;
-    const relDate = r.release_date || r.first_air_date || "";
-    if (parsedYear && relDate) {
-      const itemYear = parseInt(relDate.slice(0, 4), 10);
-      if (!isNaN(itemYear)) {
-        const diff = Math.abs(itemYear - parsedYear);
-        if (diff === 0) score += 80;
-        else if (diff === 1) score += 40;
-      }
-    }
-
-    if (r.poster_path) score += 30;
-    score += Math.min(40, Math.log10((r.vote_count || 0) + 1) * 10);
-    score += Math.min(20, (Number(r.popularity) || 0) / 10);
-
-    return { item: r, score };
-  });
-
-  scored.sort((a, b) => b.score - a.score);
-  return scored[0]?.item || valid[0];
-}
-
-async function queryTmdbPoster(query: string, year?: string): Promise<{ posterUrl: string | null; backdropUrl: string | null }> {
+async function queryTmdbPoster(
+  query: string,
+  year?: string,
+  expectedCountry?: string
+): Promise<{ posterUrl: string | null; backdropUrl: string | null }> {
   if (!query || query.trim().length < 2) {
     return { posterUrl: null, backdropUrl: null };
   }
-
-  const variants = getSearchVariants(query);
-  const yearParam = year && /^\d{4}$/.test(year.trim()) ? `&year=${year.trim()}` : "";
-
-  for (const v of variants) {
-    // 1. Thử search/multi trước (hỗ trợ cả movie và tv series, anime, chấm điểm theo năm và độ phổ biến)
-    try {
-      const urlMulti = `https://api.themoviedb.org/3/search/multi?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(v)}${yearParam}`;
-      const res = await fetch(urlMulti, {
-        signal: AbortSignal.timeout(3000),
-        headers: { Accept: "application/json" },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        const best = pickBestTmdbCandidate(data.results, year);
-        if (best?.poster_path || best?.backdrop_path) {
-          return {
-            posterUrl: best.poster_path ? `https://image.tmdb.org/t/p/w500${best.poster_path}` : null,
-            backdropUrl: best.backdrop_path ? `https://image.tmdb.org/t/p/w1280${best.backdrop_path}` : null,
-          };
-        }
-      }
-    } catch {}
-
-    // 2. Thử search/tv riêng nếu multi chưa ra kết quả
-    try {
-      const urlTv = `https://api.themoviedb.org/3/search/tv?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(v)}`;
-      const resTv = await fetch(urlTv, {
-        signal: AbortSignal.timeout(3000),
-        headers: { Accept: "application/json" },
-      });
-      if (resTv.ok) {
-        const dataTv = await resTv.json();
-        const bestTv = pickBestTmdbCandidate(dataTv.results, year);
-        if (bestTv?.poster_path || bestTv?.backdrop_path) {
-          return {
-            posterUrl: bestTv.poster_path ? `https://image.tmdb.org/t/p/w500${bestTv.poster_path}` : null,
-            backdropUrl: bestTv.backdrop_path ? `https://image.tmdb.org/t/p/w1280${bestTv.backdrop_path}` : null,
-          };
-        }
-      }
-    } catch {}
-  }
-
-  return { posterUrl: null, backdropUrl: null };
+  return searchTmdbPosterByTitle(query, year, "movie", undefined, expectedCountry);
 }
 
 export async function GET(req: NextRequest) {
@@ -199,9 +82,9 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  // 1.5 Kiểm tra L2 Upstash Redis Cache (DB 3: Aux / TMDb - tmdb:fallback_poster:*)
+  // 1.5 Kiểm tra L2 Upstash Redis Cache (DB 3: Aux / TMDb - tmdb:fallback_poster:v2:*)
   const cleanKey = cacheKey.replace(/[^a-z0-9_]/g, "_").slice(0, 100);
-  const redisPosterKey = `tmdb:fallback_poster:${cleanKey}`;
+  const redisPosterKey = `tmdb:fallback_poster:v2:${cleanKey}`;
   try {
     const redisCached = await cacheService.get<PosterCacheEntry>(redisPosterKey);
     if (redisCached) {
@@ -232,22 +115,19 @@ export async function GET(req: NextRequest) {
   // 2. Tra cứu fallback trực tiếp nếu cả RAM và Redis đều chưa có
   let result: { posterUrl: string | null; backdropUrl: string | null } | null = null;
 
-  // 1. Ưu tiên tìm theo tên gốc tiếng Anh/quốc tế trước (tỷ lệ match TMDB chuẩn xác 98%)
-  if (origin_name && origin_name !== title) {
-    const res = await queryTmdbPoster(origin_name, year);
-    if (res.posterUrl || res.backdropUrl) result = res;
-  }
+  const isVietnamese =
+    /[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/i.test(title || "") ||
+    /[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/i.test(origin_name || "");
 
-  // 2. Thử tìm theo tên tiếng Việt
-  if (!result && title) {
-    const res = await queryTmdbPoster(title, year);
-    if (res.posterUrl || res.backdropUrl) result = res;
-  }
+  // Đối với phim Việt Nam: Luôn ưu tiên tên tiếng Việt và slug trước,
+  // tuyệt đối không ưu tiên origin_name dịch nghĩa tiếng Anh (vd: "Hamlet" cho "Xóm Nhỏ")
+  const queryOrder = isVietnamese
+    ? ([title, slug ? slug.replace(/-/g, " ") : null, origin_name && origin_name !== title ? origin_name : null].filter(Boolean) as string[])
+    : ([origin_name && origin_name !== title ? origin_name : null, title, slug ? slug.replace(/-/g, " ") : null].filter(Boolean) as string[]);
 
-  // 3. Thử tìm theo slug được chuẩn hóa thành từ khóa
-  if (!result && slug) {
-    const slugQuery = slug.replace(/-/g, " ");
-    const res = await queryTmdbPoster(slugQuery, year);
+  for (const q of queryOrder) {
+    if (result) break;
+    const res = await queryTmdbPoster(q, year, isVietnamese ? "VN" : undefined);
     if (res.posterUrl || res.backdropUrl) result = res;
   }
 

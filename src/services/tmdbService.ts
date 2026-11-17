@@ -289,6 +289,20 @@ function pickBestTmdbCandidate(
         else if (diff === 1) score += 40;
         else if (diff > 3) score -= 100;
       }
+    } else if (parsedYear && !relDate) {
+      // If a specific year was requested but candidate has NO release date at all,
+      // it cannot be verified against the requested year.
+      // Penalize heavily for unverified stubs with 0 votes to prevent poster hijacking!
+      if ((r.vote_count || 0) < 2) {
+        score -= 220;
+      } else {
+        score -= 60;
+      }
+    }
+
+    if ((r.vote_count || 0) === 0 && (!r.overview || typeof r.overview !== "string" || r.overview.trim().length === 0)) {
+      // Zero-vote stub without description
+      score -= 50;
     }
 
     if (r.poster_path) score += 30;
@@ -335,8 +349,8 @@ function pickBestTmdbCandidate(
 
   scored.sort((a, b) => b.score - a.score);
   const best = scored[0];
-  // Minimum quality threshold: require score >= 50
-  if (!best || best.score < 50) {
+  // Minimum quality threshold: require score >= 60 to prevent junk/stub matches
+  if (!best || best.score < 60) {
     return null;
   }
   return best.item;
@@ -359,9 +373,9 @@ export async function searchTmdbPosterByTitle(
 
   const cleanType = normalizeTmdbLookupMediaType(type);
   const searchYear = year && /^\d{4}$/.test(String(year).trim()) ? `&year=${String(year).trim()}` : "";
-  const cacheKey = `${cleanQuery}|${year || ""}|${cleanType}|${expectedCountry || ""}`.toLowerCase();
+  const cacheKey = `v3:${cleanQuery}|${year || ""}|${cleanType}|${expectedCountry || ""}`.toLowerCase();
   const cleanQueryNorm = cleanQuery.toLowerCase().replace(/[^a-z0-9]/g, "_").slice(0, 48);
-  const redisKey = `tmdb:poster:v2:${cleanQueryNorm}:${year || ""}:${cleanType}:${expectedCountry || ""}`;
+  const redisKey = `tmdb:poster:v3:${cleanQueryNorm}:${year || ""}:${cleanType}:${expectedCountry || ""}`;
 
   const now = Date.now();
   const memHit = TMDB_TITLE_POSTER_CACHE.get(cacheKey);

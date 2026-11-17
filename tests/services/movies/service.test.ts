@@ -331,8 +331,8 @@ describe("Nanaflix Movie Browse Pagination & Filter Service", () => {
     );
   });
 
-  // W. Cache key generation produces correct version 12 and includes all filter fields
-  it("W. buildMovieCacheKey generates version 17 with normalized filter parameters", () => {
+  // W. Cache key generation produces correct version 18 and includes all filter fields
+  it("W. buildMovieCacheKey generates version 18 with normalized filter parameters", () => {
     const key = buildMovieCacheKey({
       type: "phim-le",
       category: "hanh-dong",
@@ -343,7 +343,7 @@ describe("Nanaflix Movie Browse Pagination & Filter Service", () => {
       sort: "rating",
     });
     const parsed = JSON.parse(key);
-    assert.equal(parsed.v, 17, "Cache key version must be 17");
+    assert.equal(parsed.v, 18, "Cache key version must be 18");
     assert.equal(parsed.type, "phim-le");
     assert.equal(parsed.category, "hanh-dong");
     assert.equal(parsed.country, "han-quoc");

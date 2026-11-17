@@ -14,6 +14,7 @@ import { toVietnameseTitleCase, getActorSynonyms } from "@/services/actor/actorA
 export interface MovieCastGalleryProps {
   cast?: TmdbCastMember[];
   fallbackActors?: string[];
+  isLoading?: boolean;
 }
 
 interface ProcessedCastItem {
@@ -34,6 +35,7 @@ function toActorSlug(name: string): string {
 export const MovieCastGallery: React.FC<MovieCastGalleryProps> = ({
   cast = [],
   fallbackActors = [],
+  isLoading = false,
 }) => {
   
 
@@ -115,8 +117,56 @@ export const MovieCastGallery: React.FC<MovieCastGalleryProps> = ({
     boundaryThreshold: 5,
   });
 
+  if (isLoading) {
+    return (
+      <div className="space-y-3 select-none animate-pulse">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="flex items-center justify-center w-5 h-5 rounded-md bg-zinc-800/60" />
+            <div className="h-4 w-32 bg-zinc-800/60 rounded" />
+          </div>
+        </div>
+        <div className="flex gap-2.5 overflow-hidden">
+          {[...Array(6)].map((_, i) => (
+            <div
+              key={i}
+              className="w-[88px] sm:w-[96px] md:w-[104px] shrink-0 space-y-2"
+            >
+              <div className="w-full aspect-2/3 bg-zinc-800/50 rounded-xl" />
+              <div className="h-3 w-3/4 bg-zinc-800/40 rounded" />
+              <div className="h-2.5 w-1/2 bg-zinc-800/30 rounded" />
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   if (displayItems.length === 0) {
-    return null;
+    return (
+      <div className="space-y-3 select-none">
+        {/* SECTION HEADER */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="flex items-center justify-center w-5 h-5 rounded-md bg-rose-500/10 text-rose-400">
+              <Users className="w-3.5 h-3.5" />
+            </span>
+            <h3 className="text-sm font-bold text-zinc-100">
+              Diễn viên & Vai diễn
+            </h3>
+          </div>
+          <span className="text-[11px] text-zinc-500 font-medium">
+            Đang cập nhật
+          </span>
+        </div>
+
+        {/* REFINED PLACEHOLDER */}
+        <div className="flex items-center gap-3 py-3 px-4 rounded-xl bg-zinc-900/40 border border-zinc-800/40 text-xs text-zinc-400">
+          <Users className="w-4 h-4 text-zinc-500 shrink-0" />
+          <span>Thông tin dàn diễn viên đang được cập nhật từ nhà phát hành.</span>
+        </div>
+      </div>
+    );
   }
 
   return (

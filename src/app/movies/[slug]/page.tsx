@@ -140,16 +140,15 @@ export default async function MovieDetail({
     jsonLd,
   } = pageData;
 
-  const castSlot =
-    actorList.length > 0 || tmdbId ? (
-      <Suspense fallback={<MovieCastGallery cast={[]} fallbackActors={actorList} />}>
-        <MovieCastSectionAsync
-          tmdbId={tmdbId}
-          tmdbType={tmdbType}
-          actorList={actorList}
-        />
-      </Suspense>
-    ) : undefined;
+  const castSlot = (
+    <Suspense fallback={<MovieCastGallery isLoading />}>
+      <MovieCastSectionAsync
+        tmdbId={tmdbId}
+        tmdbType={tmdbType}
+        actorList={actorList}
+      />
+    </Suspense>
+  );
 
   const hasMartialArts = /võ thuật|kung fu|martial|quyền|kiếm hiệp/i.test(
     movie.content || movie.description || ""

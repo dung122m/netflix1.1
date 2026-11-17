@@ -24,6 +24,12 @@ test("Poster hijacking protection: Foreign film 'Hamlet' must not match Vietname
   assert.equal(poster.posterUrl, null, "Should reject foreign English Hamlet poster when expecting Vietnamese movie");
 });
 
+test("Poster stub protection: 'Xóm Nhỏ' 2026 must reject unverified TMDb stub 339621", async () => {
+  const poster = await searchTmdbPosterByTitle("Xóm Nhỏ", 2026, "series", undefined, "VN");
+  assert.equal(Boolean(poster.posterUrl?.includes("bA5NTUg4c1G7xi256yzBcQJaHgD")), false, "Should not return Hamlet poster for Xom Nho");
+  assert.equal(poster.posterUrl, null, "Should return null so official upstream poster is retained");
+});
+
 test("Dynamic actor filmography: Tran Thanh and Truong Giang must return films without hardcoding", async () => {
   const ttMovies = await queryMoviesByActor("Trấn Thành", ["Trấn Thành", "Tran Thanh", "Huỳnh Trấn Thành"]);
   assert.ok(ttMovies.length > 0, "Trấn Thành should have at least 1 movie");
