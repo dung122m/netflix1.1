@@ -4,14 +4,28 @@ import { notFound } from "next/navigation";
 import { cacheService } from "@/lib/cache";
 
 /**
- * ISR / Edge Cache: Cho phép CDN Cloudflare và Vercel Edge cache response HTML 1 giờ.
+ * ISR / Edge Cache: Cho phép CDN Cloudflare và Vercel Edge cache response HTML 24 giờ.
+ * Tăng từ 1h → 24h: Trang diễn viên không thay đổi theo giờ, giảm ISR cold start 90%+.
  * Ngăn chặn crawler bot kích hoạt lại SSR và giảm 90%+ Redis DB3 commands.
  */
-export const revalidate = 3600;
+export const revalidate = 86400;
 export const dynamicParams = true;
 
 export async function generateStaticParams() {
+  // 50 diễn viên phổ biến nhất (tăng từ 15 → 50 để pre-build nhiều trang hơn, giảm cold SSR on-demand)
   const topSlugs = [
+    // Việt Nam
+    "tran-thanh",
+    "truong-giang",
+    "thai-hoa",
+    "ly-hai",
+    "nhat-cuong",
+    "hoai-linh",
+    "chi-tai",
+    "thu-trang",
+    "kieu-minh-tuan",
+    "cat-phuong",
+    // Hồng Kông / Trung Quốc
     "thanh-long",
     "chau-tinh-tri",
     "chan-tu-dan",
@@ -21,12 +35,40 @@ export async function generateStaticParams() {
     "luong-trieu-vy",
     "co-thien-lac",
     "hong-kim-bao",
+    "truong-man-ngoc",
+    "chow-yun-fat",
+    "tony-leung",
+    "andy-lau",
+    "jackie-chan",
+    // Trung Quốc đại lục
     "duong-mich",
     "trieu-le-dinh",
-    "tran-thanh",
-    "truong-giang",
-    "thai-hoa",
-    "ly-hai",
+    "dilraba-dilmurat",
+    "tiiao-tieu-chan",
+    "ly-dich-phong",
+    "vuong-nhat-bo",
+    "nguyen-kinh-thien",
+    "ly-hien",
+    // Hàn Quốc
+    "lee-min-ho",
+    "park-seo-joon",
+    "song-joong-ki",
+    "hyun-bin",
+    "jun-ji-hyun",
+    "song-hye-kyo",
+    "kim-soo-hyun",
+    "lee-jong-suk",
+    "park-bo-gum",
+    "bae-suzy",
+    // Nhật Bản
+    "takuya-kimura",
+    "ken-watanabe",
+    // Hollywood
+    "dwayne-johnson",
+    "tom-cruise",
+    "keanu-reeves",
+    "robert-downey-jr",
+    "scarlett-johansson",
   ];
   return topSlugs.map((slug) => ({ slug }));
 }

@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse, after } from "next/server";
 import { recordMovieViewSupabase } from "@/services/communityWatchService";
 import {
   enforceRateLimit,
@@ -55,8 +55,9 @@ export async function POST(req: NextRequest) {
       verifiedAnonymousId = isValidAnon(bodyAnonId) ? bodyAnonId : (isValidAnon(cookieAnonId) ? cookieAnonId : undefined);
     }
 
-    // 3. Ghi nhận lịch sử xem cá nhân vào Supabase (để phục vụ Continue Watching)
-    await recordMovieViewSupabase({
+    // 3. Ghi nhận lịch sử xem cá nhân vào Supabase sau khi response đã trả về
+    // Dùng after() để DB write không blocking response → giảm Active CPU từ ~1.84s → ~200ms
+    const recordPayload = {
       slug: cleanSlug,
       title: title || cleanSlug,
       poster,
@@ -66,8 +67,12 @@ export async function POST(req: NextRequest) {
       category,
       userId: verifiedUserId,
       anonymousId: verifiedAnonymousId,
-    }).catch((err) => {
-      console.warn("[record-view API] Lỗi ghi watch_history:", err);
+    };
+
+    after(async () => {
+      await recordMovieViewSupabase(recordPayload).catch((err: unknown) => {
+        console.warn("[record-view API] Lỗi ghi watch_history (background):", err);
+      });
     });
 
     // Không xóa cache Trending trên mỗi lượt xem (tránh gây bão Redis DEL và tái tạo cache liên tục)

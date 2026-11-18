@@ -4,22 +4,32 @@ import { Film } from "lucide-react";
 import { movieApi } from "@/services/movies/service";
 
 /**
- * ISR / Edge Cache: Cache response HTML công khai 24 giờ trên Vercel Edge / CDN.
+ * ISR / Edge Cache: Cache response HTML công khai 7 ngày trên Vercel Edge / CDN.
  * Khóa chặt force-static để ngăn chặn SSR động tốn Active CPU.
  * Chuyển tập và mốc thời gian xem phim được Client Component đồng bộ mượt mà qua URL params.
+ * revalidate 7 ngày (604800s): Movie detail hiếm thay đổi, giảm ISR cold start 90%+.
  */
 export const dynamic = "force-static";
-export const revalidate = 86400;
+export const revalidate = 604800;
 export const dynamicParams = true;
 
 export async function generateStaticParams() {
   try {
-    const res = await movieApi.getMovies({ page: 1, limit: 25, sort: "views" });
-    const items = res?.items || [];
-    return items
-      .filter((m: { slug?: string }) => m && m.slug)
-      .slice(0, 25)
-      .map((m: { slug: string }) => ({ slug: m.slug }));
+    const [page1, page2, page3, page4] = await Promise.allSettled([
+      movieApi.getMovies({ page: 1, limit: 25, sort: "views" }),
+      movieApi.getMovies({ page: 2, limit: 25, sort: "views" }),
+      movieApi.getMovies({ page: 1, limit: 25, sort: "latest" }),
+      movieApi.getMovies({ page: 1, limit: 25, sort: "rating" }),
+    ]);
+    const slugSet = new Set<string>();
+    for (const res of [page1, page2, page3, page4]) {
+      if (res.status === "fulfilled") {
+        for (const m of res.value?.items || []) {
+          if (m?.slug) slugSet.add(m.slug);
+        }
+      }
+    }
+    return Array.from(slugSet).map((slug) => ({ slug }));
   } catch (err) {
     console.warn("[generateStaticParams:movies] Warning:", err);
     return [];
