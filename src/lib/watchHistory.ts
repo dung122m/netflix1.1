@@ -427,6 +427,23 @@ export const saveWatchHistory = (
   }
 };
 
+/**
+ * Cập nhật URL poster tối ưu (ví dụ TMDb CDN chính hãng) cho mục lịch sử đã lưu,
+ * giúp các lần tải trang sau hiển thị ngay 0ms từ cache trình duyệt mà không cần fallback.
+ */
+export const updateWatchHistoryPoster = (slug: string, posterUrl: string): void => {
+  if (typeof window === "undefined" || !slug || !posterUrl || posterUrl.includes("default-")) return;
+  try {
+    const list = getWatchHistory();
+    const item = list.find((i) => i.slug === slug);
+    if (!item || item.poster === posterUrl) return;
+
+    item.poster = posterUrl;
+    updateMemoryWatchHistory(list);
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(list));
+  } catch {}
+};
+
 export const saveWatchProgress = (
   slug: string,
   progressSeconds: number,

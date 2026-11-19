@@ -1,12 +1,20 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, {
+  useState,
+  useEffect,
+  useCallback,
+  useRef,
+  useSyncExternalStore,
+  useMemo,
+} from "react";
 import Link from "next/link";
 import { X, Film, Play } from "lucide-react";
 import {
   getWatchHistory,
   removeWatchHistoryItem,
   autoHydrateWatchHistory,
+  updateWatchHistoryPoster,
   WatchHistoryItem,
 } from "@/lib/watchHistory";
 import {
@@ -21,7 +29,6 @@ import { CarouselNavButton } from "@/components/ui/CarouselNavButton";
 import { useCarouselScroll } from "@/components/ui/useCarouselScroll";
 import { SectionHeader } from "@/components/ui/SectionHeader";
 import { useMoviePosterFallback, isPhimimgSourceUrl } from "@/hooks/useMoviePosterFallback";
-import { MovieCardSkeleton } from "@/components/ui/MovieCardSkeleton";
 
 export const MAX_CONTINUE_WATCHING_DISPLAY = 15;
 
@@ -36,18 +43,19 @@ function buildLoadedPostersCache(): Set<string> {
   } catch {}
   return new Set<string>();
 }
+
 function persistLoadedPoster(url: string) {
   try {
     const raw = sessionStorage.getItem(SESSION_KEY);
     const arr: string[] = raw ? (JSON.parse(raw) as string[]) : [];
     if (!arr.includes(url)) {
       arr.push(url);
-      // Giới hạn 200 entries để không chiếm quá nhiều storage
       if (arr.length > 200) arr.splice(0, arr.length - 200);
       sessionStorage.setItem(SESSION_KEY, JSON.stringify(arr));
     }
   } catch {}
 }
+
 const loadedPostersCache = buildLoadedPostersCache();
 
 export function isContinueWatchingItem(item: WatchHistoryItem): boolean {
@@ -97,16 +105,32 @@ function ContinueWatchingCard({ item, index = 0, onRemove }: ContinueWatchingCar
     title: item.title,
     year: item.year,
     initialSrc: initialPoster,
-    enabled: needsFallback, // Tự động nâng cấp TMDb khi rỗng hoặc vẫn là phimimg.com
+    enabled: needsFallback,
     upgradePhimimg: true,
   });
 
   const targetInitialSrc = toFastCdnImageUrl(displaySrc || initialPoster);
   const [imgSrc, setImgSrc] = useState<string>(targetInitialSrc);
   const [isLoaded, setIsLoaded] = useState<boolean>(() => {
-    return Boolean(targetInitialSrc && loadedPostersCache.has(targetInitialSrc));
+    return Boolean(
+      targetInitialSrc &&
+      (loadedPostersCache.has(targetInitialSrc) || (item.slug && continueWatchingThumbCache.has(item.slug)))
+    );
   });
-  const imgRef = useRef<HTMLImageElement>(null);
+  const imgRef = useRef<HTMLImageElement | null>(null);
+
+  const checkImageComplete = useCallback((node: HTMLImageElement | null) => {
+    imgRef.current = node;
+    if (node && node.complete && node.naturalWidth > 0) {
+      const actualSrc = node.currentSrc || node.src || imgSrc;
+      if (actualSrc) {
+        loadedPostersCache.add(actualSrc);
+        persistLoadedPoster(actualSrc);
+        if (item.slug) continueWatchingThumbCache.set(item.slug, actualSrc);
+      }
+      setIsLoaded(true);
+    }
+  }, [imgSrc, item.slug]);
 
   useEffect(() => {
     const safeDisplaySrc = toFastCdnImageUrl(displaySrc);
@@ -115,19 +139,18 @@ function ContinueWatchingCard({ item, index = 0, onRemove }: ContinueWatchingCar
       if (loadedPostersCache.has(safeDisplaySrc)) {
         setIsLoaded(true);
       }
-    }
-  }, [displaySrc, imgSrc]);
-
-  // Kiểm tra ảnh đã có sẵn trong bộ nhớ đệm trình duyệt (complete = true) để hiển thị tức thì 0ms
-  useEffect(() => {
-    if (imgRef.current?.complete && imgRef.current.naturalWidth > 0) {
-      if (imgSrc) {
-        loadedPostersCache.add(imgSrc);
-        if (item.slug) continueWatchingThumbCache.set(item.slug, imgSrc);
+      // Nâng cấp poster vĩnh viễn trong localStorage nếu tìm thấy link TMDb CDN chính hãng
+      if (displaySrc.includes("image.tmdb.org")) {
+        updateWatchHistoryPoster(item.slug, displaySrc);
       }
+    }
+  }, [displaySrc, imgSrc, item.slug]);
+
+  useEffect(() => {
+    if (imgRef.current && imgRef.current.complete && imgRef.current.naturalWidth > 0) {
       setIsLoaded(true);
     }
-  }, [imgSrc, item.slug]);
+  }, [imgSrc]);
 
   const handleImgError = useCallback(() => {
     // 1. Thử thumb ngang dự phòng nếu có và khác link đang lỗi
@@ -180,25 +203,30 @@ function ContinueWatchingCard({ item, index = 0, onRemove }: ContinueWatchingCar
       <Link href={href} prefetch={false} className="block flex-1 flex flex-col">
         {/* ẢNH POSTER DỌC (TỈ LỆ 2:3 CHUẨN ĐIỆN ẢNH) */}
         <div className="relative aspect-[2/3] w-full bg-zinc-900 overflow-hidden rounded-t-xl">
-          {/* SKELETON SHIMMER KHI ẢNH ĐANG TẢI */}
-          {!isLoaded && (
-            <div className="absolute inset-0 bg-gradient-to-br from-zinc-850 via-zinc-900 to-zinc-950 flex flex-col items-center justify-center p-3 text-center z-0 animate-pulse pointer-events-none">
-              <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center mb-1.5 shadow-inner">
-                <Film className="w-5 h-5 text-netflix-red/70" />
-              </div>
-              <span className="text-[11px] font-semibold text-zinc-400 line-clamp-2 max-w-[90%] leading-tight">
-                {item.title}
-              </span>
-            </div>
-          )}
+          {/* LỚP NỀN DỰ PHÒNG KHI ĐANG LOAD ẢNH HOẶC CHỜ THẺ ẢNH */}
+          <div
+            className="absolute inset-0 bg-gradient-to-br from-zinc-900 via-zinc-950 to-black flex flex-col items-center justify-center p-3 text-center select-none overflow-hidden"
+            aria-hidden="true"
+          >
+            {!isLoaded && (
+              <div
+                className="absolute inset-0 -translate-x-full poster-placeholder-shimmer bg-gradient-to-r from-transparent via-white/[0.05] to-transparent pointer-events-none"
+                aria-hidden="true"
+              />
+            )}
+            <Film className="w-7 h-7 text-zinc-600 mb-1.5 opacity-40" />
+            <span className="text-[11px] font-semibold text-zinc-400 line-clamp-2 max-w-[90%] leading-tight">
+              {item.title}
+            </span>
+          </div>
 
-          {imgSrc && !imgSrc.includes("/default-") ? (
+          {imgSrc && !imgSrc.includes("/default-") && (
             /* eslint-disable-next-line @next/next/no-img-element */
             <img
-              ref={imgRef}
+              ref={checkImageComplete}
               src={toFastCdnImageUrl(imgSrc)}
               alt={item.title}
-              className={`w-full h-full object-cover transition-opacity duration-200 ease-out group-hover:scale-105 ${
+              className={`relative z-10 w-full h-full object-cover transition-opacity duration-200 ease-out group-hover:scale-105 ${
                 isLoaded ? "opacity-100" : "opacity-0"
               }`}
               decoding="async"
@@ -214,21 +242,13 @@ function ContinueWatchingCard({ item, index = 0, onRemove }: ContinueWatchingCar
               }}
               onError={handleImgError}
             />
-          ) : (
-            <div className="w-full h-full bg-gradient-to-br from-zinc-900 via-netflix-red/10 to-zinc-950 flex flex-col items-center justify-center p-3 text-center relative overflow-hidden">
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_40%,rgba(var(--accent-rgb),0.18),transparent_70%)]" />
-              <Film className="w-8 h-8 text-netflix-red/60 mb-2 relative z-10 animate-pulse" />
-              <span className="text-[11px] font-semibold text-zinc-300 line-clamp-3 max-w-[95%] relative z-10 leading-tight">
-                {item.title}
-              </span>
-            </div>
           )}
 
           {/* GRADIENT OVERLAY BÓNG ĐỔ ĐÁY TINH TẾ */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/5 to-transparent pointer-events-none" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/5 to-transparent pointer-events-none z-10" />
 
           {/* NÚT PLAY TRUNG TÂM KHI HOVER */}
-          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10">
+          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-20">
             <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-black/60 backdrop-blur-md border border-white/20 text-white flex items-center justify-center shadow-xl transform group-hover:scale-110 transition-transform">
               <Play className="w-4 h-4 fill-white ml-0.5 text-white" />
             </div>
@@ -239,13 +259,13 @@ function ContinueWatchingCard({ item, index = 0, onRemove }: ContinueWatchingCar
             type="button"
             onClick={(e) => onRemove(e, item.slug)}
             aria-label="Xoá khỏi danh sách tiếp tục xem"
-            className="absolute top-2 right-2 p-1.5 rounded-full bg-black/60 text-zinc-400 hover:text-white hover:bg-red-600/90 backdrop-blur-md transition-all duration-200 z-20 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 cursor-pointer active:scale-90 shadow-md"
+            className="absolute top-2 right-2 p-1.5 rounded-full bg-black/60 text-zinc-400 hover:text-white hover:bg-red-600/90 backdrop-blur-md transition-all duration-200 z-30 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 cursor-pointer active:scale-90 shadow-md"
           >
             <X className="w-3 h-3" />
           </button>
 
           {/* THANH TIẾN ĐỘ PHÁT */}
-          <div className="absolute bottom-0 left-0 right-0 h-[3px] bg-white/20 backdrop-blur-sm z-10 overflow-hidden">
+          <div className="absolute bottom-0 left-0 right-0 h-[3px] bg-white/20 backdrop-blur-sm z-20 overflow-hidden">
             <div
               className="h-full bg-netflix-red rounded-r-full transition-all duration-500"
               style={{ width: `${progressPercent}%` }}
@@ -283,9 +303,67 @@ function ContinueWatchingCard({ item, index = 0, onRemove }: ContinueWatchingCar
   );
 }
 
+// =========================================================================
+// EXTERNAL STORE SUBSCRIPTION: Đồng bộ lịch sử xem tức thì không delay
+// =========================================================================
+const emptyArray: WatchHistoryItem[] = [];
+let cachedSnapshot: WatchHistoryItem[] = [];
+let cachedVersion = -1;
+let currentVersion = 0;
+
+function subscribeWatchHistory(callback: () => void) {
+  const handleUpdate = () => {
+    currentVersion++;
+    callback();
+  };
+  const handleStorage = (e: StorageEvent) => {
+    if (e.key === "nanaflix_watch_history") {
+      currentVersion++;
+      callback();
+    }
+  };
+
+  if (typeof window !== "undefined") {
+    window.addEventListener("watch-history-updated", handleUpdate);
+    window.addEventListener("watchHistoryUpdated", handleUpdate);
+    window.addEventListener("storage", handleStorage);
+  }
+
+  return () => {
+    if (typeof window !== "undefined") {
+      window.removeEventListener("watch-history-updated", handleUpdate);
+      window.removeEventListener("watchHistoryUpdated", handleUpdate);
+      window.removeEventListener("storage", handleStorage);
+    }
+  };
+}
+
+function getWatchHistorySnapshot(): WatchHistoryItem[] {
+  if (typeof window === "undefined") return emptyArray;
+  if (currentVersion !== cachedVersion) {
+    cachedSnapshot = getWatchHistory().filter(isContinueWatchingItem);
+    cachedVersion = currentVersion;
+  }
+  return cachedSnapshot;
+}
+
+function getServerSnapshot(): WatchHistoryItem[] {
+  return emptyArray;
+}
+
 function ContinueWatchingRowInner() {
-  const [items, setItems] = useState<WatchHistoryItem[]>([]);
-  const [isClient, setIsClient] = useState(false);
+  const allItems = useSyncExternalStore(
+    subscribeWatchHistory,
+    getWatchHistorySnapshot,
+    getServerSnapshot
+  );
+
+  const displayItems = useMemo(
+    () => allItems.slice(0, MAX_CONTINUE_WATCHING_DISPLAY),
+    [allItems]
+  );
+  const totalCount = allItems.length;
+
   const {
     scrollRef: rowRef,
     canScrollLeft,
@@ -293,84 +371,35 @@ function ContinueWatchingRowInner() {
     checkScroll,
     handleScroll,
   } = useCarouselScroll<HTMLDivElement>({
-    resetTrigger: items,
-    watchTrigger: items,
+    resetTrigger: displayItems,
+    watchTrigger: displayItems,
     cardSelector: ".snap-start",
     boundaryThreshold: 8,
   });
 
   useEffect(() => {
-    setIsClient(true);
-    const loadItems = () => {
-      const historyItems = getWatchHistory().filter(isContinueWatchingItem);
-      setItems(historyItems);
-    };
-    loadItems();
-
-    // Chạy bù đắp metadata ngầm sau khi trang đã render mượt mà (1.5s delay), không block tải trang
+    // Chạy bù đắp metadata ngầm sau 2s delay, không block tải trang
     const timer = setTimeout(() => {
       autoHydrateWatchHistory().catch(() => {});
-    }, 1500);
+    }, 2000);
 
-    const handleStorage = (e: StorageEvent) => {
-      if (e.key === "nanaflix_watch_history") {
-        loadItems();
-      }
-    };
-    const handleCustomSync = () => {
-      loadItems();
-    };
-
-    window.addEventListener("storage", handleStorage);
-    window.addEventListener("watch-history-updated", handleCustomSync);
-    window.addEventListener("watchHistoryUpdated", handleCustomSync);
-
-    return () => {
-      clearTimeout(timer);
-      window.removeEventListener("storage", handleStorage);
-      window.removeEventListener("watch-history-updated", handleCustomSync);
-      window.removeEventListener("watchHistoryUpdated", handleCustomSync);
-    };
+    return () => clearTimeout(timer);
   }, []);
 
-  
+  const handleRemove = useCallback((e: React.MouseEvent, slug: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    currentVersion++;
+    removeWatchHistoryItem(slug);
+  }, []);
 
-  if (!isClient) {
-    // Skeleton giữ chỗ trong lúc chờ JS hydrate — tránh layout shift
-    return (
-      <section className="relative z-10 w-full select-none">
-        <div className="flex items-center justify-between mb-3 px-1">
-          <div className="h-5 w-32 bg-zinc-800/80 rounded-md animate-pulse" />
-          <div className="h-4 w-20 bg-zinc-800/60 rounded-md animate-pulse" />
-        </div>
-        <div className="flex gap-3 sm:gap-4 overflow-hidden px-3 sm:px-4 py-3">
-          {Array.from({ length: 8 }).map((_, i) => (
-            <div
-              key={i}
-              className="flex-none w-[134px] min-[380px]:w-[144px] sm:w-[155px] md:w-[172px]"
-            >
-              <MovieCardSkeleton aspect="poster" rounded="xl" showInfo />
-            </div>
-          ))}
-        </div>
-      </section>
-    );
-  }
-
-  if (items.length === 0) {
+  // Nếu người dùng không có lịch sử xem: Ẩn hoàn toàn (0px, không render skeleton gây giật trang)
+  if (displayItems.length === 0) {
     return null;
   }
 
-  
-
-  const handleRemove = (e: React.MouseEvent, slug: string) => {
-    e.preventDefault();
-    e.stopPropagation();
-    removeWatchHistoryItem(slug);
-  };
-
   return (
-    <section className="relative z-10 w-full select-none">
+    <section className="relative z-10 w-full select-none animate-in fade-in duration-300">
       <SectionHeader
         variant="compact"
         title="Tiếp tục xem"
@@ -379,7 +408,7 @@ function ContinueWatchingRowInner() {
             href="/my-list?tab=history"
             className="text-xs sm:text-sm text-zinc-400 hover:text-white transition font-medium"
           >
-            Xem tất cả ({items.length})
+            Xem tất cả ({totalCount})
           </Link>
         }
       />
@@ -423,7 +452,7 @@ function ContinueWatchingRowInner() {
           onScroll={checkScroll}
           className="flex gap-3 sm:gap-4 overflow-x-auto px-3 sm:px-4 scroll-pl-3 sm:scroll-pl-4 py-3 sm:py-3.5 scrollbar-none snap-x snap-mandatory md:snap-proximity scroll-smooth [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
         >
-          {items.slice(0, MAX_CONTINUE_WATCHING_DISPLAY).map((item, idx) => (
+          {displayItems.map((item, idx) => (
             <ContinueWatchingCard key={item.slug} item={item} index={idx} onRemove={handleRemove} />
           ))}
         </div>
