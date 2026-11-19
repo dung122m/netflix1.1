@@ -1,6 +1,7 @@
 import { isBrokenImageUrl } from "@/lib/movieMedia";
 import { getTmdbMediaImagesById, searchTmdbPosterByTitle } from "@/services/tmdbService";
 import { searchAniListPoster } from "@/services/aniListService";
+import { cacheService } from "@/lib/cache";
 
 export interface PosterEnrichmentOptions {
   /** Max time to wait before aborting remaining in-flight lookups and returning. */
@@ -68,6 +69,79 @@ function scheduleAfterSettlement(task: Promise<unknown>): void {
   }
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function fastBatchEnrichFromCache(movieList: any[]): Promise<void> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const needsLookup: Array<{ item: any; key: string }> = [];
+  const keys: string[] = [];
+
+  for (const item of movieList) {
+    if (!item) continue;
+    if (item.poster_url && String(item.poster_url).includes("image.tmdb.org")) continue;
+
+    if (item.tmdb?.id) {
+      const cleanType = item.tmdb.type === "tv" || item.tmdb.type === "series" ? "tv" : "movie";
+      const key = `tmdb:images:v2:${cleanType}:${item.tmdb.id}`;
+      keys.push(key);
+      needsLookup.push({ item, key });
+    } else if (item.slug) {
+      const cleanKey = String(item.slug).toLowerCase().replace(/[^a-z0-9_]/g, "_").slice(0, 100);
+      const key = `tmdb:fallback_poster:v2:${cleanKey}`;
+      keys.push(key);
+      needsLookup.push({ item, key });
+    }
+  }
+
+  if (keys.length > 0) {
+    try {
+      const results = await Promise.race([
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        cacheService.mget<any>(keys),
+        new Promise<null[]>((resolve) => setTimeout(() => resolve(new Array(keys.length).fill(null)), 120)),
+      ]);
+
+      if (Array.isArray(results)) {
+        for (let i = 0; i < needsLookup.length; i++) {
+          const hit = results[i];
+          if (hit && typeof hit === "object") {
+            const { item } = needsLookup[i];
+            if (hit.posterUrl) {
+              item.poster_url = hit.posterUrl;
+              if (hit.backdropUrl) {
+                item.thumb_url = hit.backdropUrl;
+              }
+            }
+          }
+        }
+      }
+    } catch {}
+  }
+
+  // Với các phim còn lại có sẵn tmdb.id: Fetch trực tiếp endpoint TMDB bằng 1 request với timeout 250ms
+  const uncachedTmdb = movieList.filter(
+    (item) => item?.tmdb?.id && !String(item.poster_url || "").includes("image.tmdb.org")
+  );
+  if (uncachedTmdb.length > 0) {
+    try {
+      await Promise.race([
+        Promise.all(
+          uncachedTmdb.slice(0, 10).map(async (item) => {
+            try {
+              const cleanType = item.tmdb.type === "tv" || item.tmdb.type === "series" ? "tv" : "movie";
+              const imgs = await getTmdbMediaImagesById(item.tmdb.id, cleanType);
+              if (imgs?.posterUrl) {
+                item.poster_url = imgs.posterUrl;
+                if (imgs.backdropUrl) item.thumb_url = imgs.backdropUrl;
+              }
+            } catch {}
+          })
+        ),
+        new Promise((resolve) => setTimeout(resolve, 250)),
+      ]);
+    } catch {}
+  }
+}
+
 /**
  * Upgrade movie list posters & thumbs to TMDB CDN (with AniList fallback for animation).
  * Ties an `AbortController` directly to `budgetMs` and registers settlement via `after()` so
@@ -80,7 +154,11 @@ export async function enrichMovieListPosters(movieList: any[], options: PosterEn
   const budgetMs = options.budgetMs ?? 0;
   const stripProxyUrls = options.stripProxyUrls ?? false;
 
-  // Nếu budgetMs <= 0: Không gọi mạng TMDb (tránh tốn Active CPU); chỉ hoàn thiện ảnh trong RAM (0ms)
+  // 1. Luôn thực hiện tra cứu siêu tốc từ cache Redis + RAM + Direct TMDB ID (chỉ mất ~20-50ms)
+  // để SSR gắn thẳng link image.tmdb.org vào HTML ban đầu, tránh việc client phải thấy ảnh cũ rồi mới đổi sang TMDb!
+  await fastBatchEnrichFromCache(movieList);
+
+  // Nếu budgetMs <= 0: Không gọi mạng tìm kiếm title TMDb (tránh tốn Active CPU); chỉ hoàn thiện ảnh trong RAM (0ms)
   if (budgetMs <= 0) {
     for (const item of movieList) {
       if (item) applyPosterFallback(item, stripProxyUrls);

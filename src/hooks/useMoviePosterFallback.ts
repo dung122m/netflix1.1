@@ -7,7 +7,7 @@ import { toOptimizedCardPosterUrl, isSlowProviderSourceUrl } from "@/lib/movieMe
 // 1. IN-MEMORY GLOBAL CACHE & DEDUPLICATION (Lưu trong RAM toàn bộ phiên)
 // =========================================================================
 // Tránh việc nhiều card cùng 1 phim (hoặc khi navigate qua lại) gọi API nhiều lần
-const GLOBAL_POSTER_CACHE = new Map<string, string>();
+export const GLOBAL_POSTER_CACHE = new Map<string, string>();
 const GLOBAL_INFLIGHT_PROMISES = new Map<string, Promise<{ posterUrl: string | null; backdropUrl: string | null } | null>>();
 const GLOBAL_TRIED_FAILURES = new Set<string>();
 

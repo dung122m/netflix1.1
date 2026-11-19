@@ -37,7 +37,7 @@ const AuthModal = dynamic(
   { ssr: false }
 );
 import { Tooltip } from "@/components/ui/Tooltip";
-import { useMoviePosterFallback } from "@/hooks/useMoviePosterFallback";
+import { useMoviePosterFallback, GLOBAL_POSTER_CACHE } from "@/hooks/useMoviePosterFallback";
 
 // Bộ nhớ đệm client (giữ nguyên cho các component khác như HeroFeatured)
 import { clientSynopsisCache } from "@/services/synopsisService";
@@ -175,6 +175,15 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
       }
     };
 
+    // 0. Nếu bộ nhớ RAM GLOBAL_POSTER_CACHE đã có link TMDb từ phiên này -> Gắn ngay lên đầu
+    const cachedTmdb =
+      (tmdbId && GLOBAL_POSTER_CACHE.get(`tmdb:${tmdbId}`)) ||
+      (slug && GLOBAL_POSTER_CACHE.get(slug)) ||
+      GLOBAL_POSTER_CACHE.get(`${title || ""}_${year || ""}`.trim());
+    if (cachedTmdb) {
+      addUrl(cachedTmdb);
+    }
+
     // 1. Ưu tiên poster dọc chuẩn: nếu có -thumb.webp, suy ra -poster.webp trước
     if (posterUrl && posterUrl.includes("-thumb.webp")) {
       addUrl(posterUrl.replace("-thumb.webp", "-poster.webp"));
@@ -229,7 +238,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
 
       return 0;
     });
-  }, [posterUrl, imageUrl, thumbUrl]);
+  }, [posterUrl, imageUrl, thumbUrl, slug, title, tmdbId, year]);
 
   const triedUrlsRef = useRef<Set<string>>(new Set());
   const imgRef = useRef<HTMLImageElement | null>(null);
@@ -255,7 +264,12 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
     tmdbId,
   });
 
-  const [currentSrc, setCurrentSrc] = useState<string>(() => initialCandidate);
+  const initialToUse =
+    (tmdbFallbackSrc && !isSlowProviderSourceUrl(tmdbFallbackSrc))
+      ? tmdbFallbackSrc
+      : initialCandidate;
+
+  const [currentSrc, setCurrentSrc] = useState<string>(() => initialToUse);
   const [isImageLoaded, setIsImageLoaded] = useState<boolean>(() => {
     return Boolean(
       (initialCandidate && GLOBAL_LOADED_IMAGES.has(initialCandidate)) ||
@@ -280,7 +294,11 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
   // Đồng bộ khi card được tái sử dụng cho phim khác hoặc khi danh sách ứng viên thay đổi
   useEffect(() => {
     triedUrlsRef.current.clear();
-    const initial = imageCandidates.find((u) => !triedUrlsRef.current.has(u)) || imageCandidates[0] || "";
+    const initial =
+      (tmdbFallbackSrc && !isSlowProviderSourceUrl(tmdbFallbackSrc) ? tmdbFallbackSrc : null) ||
+      imageCandidates.find((u) => !triedUrlsRef.current.has(u)) ||
+      imageCandidates[0] ||
+      "";
     if (initial) {
       setHasError(false);
       setCurrentSrc(initial);
@@ -295,7 +313,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
       setHasError(false);
       setIsImageLoaded(false);
     }
-  }, [slug, imageCandidates]);
+  }, [slug, imageCandidates, tmdbFallbackSrc]);
 
   useEffect(() => {
     if (imgRef.current && imgRef.current.complete && imgRef.current.naturalWidth > 0) {
@@ -623,7 +641,9 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
               decoding={priority ? "sync" : "async"}
               fetchPriority={priority ? "high" : "auto"}
               referrerPolicy="no-referrer"
-              className="relative z-[1] w-full h-full object-cover object-center brightness-[0.94] group-hover/card:scale-105 group-hover/card:brightness-105 transition-all duration-300 ease-out motion-reduce:transform-none opacity-100"
+              className={`relative z-[1] w-full h-full object-cover object-center brightness-[0.94] group-hover/card:scale-105 group-hover/card:brightness-105 transition-opacity duration-300 ease-out motion-reduce:transform-none ${
+                isFallbackLoading && isSlowProviderSourceUrl(currentSrc) ? "opacity-0" : "opacity-100"
+              }`}
               onLoad={(e) => {
                 const target = e.currentTarget;
                 const loadedSrc = target.currentSrc || target.src || currentSrc;
