@@ -98,6 +98,7 @@ import { ActorDetailClient } from "@/components/actors/ActorDetailClient";
 import { ActorAvatar } from "@/components/actors/ActorAvatar";
 import { FavoriteActorButton } from "@/components/actors/FavoriteActorButton";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { CountryBadge } from "@/components/ui/CountryBadge";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -755,9 +756,10 @@ export default async function ActorDetailPage({ params }: PageProps) {
               {/* COUNTRY & ROLES BADGES */}
               <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
                 {country && (
-                  <span className="px-3 py-1 rounded-full bg-red-500/10 text-red-300 text-xs font-bold">
-                    {country}
-                  </span>
+                  <CountryBadge
+                    country={country}
+                    className="px-3 py-1 bg-red-500/10 text-red-300 border-red-500/20 text-xs font-bold"
+                  />
                 )}
                 <span className="px-3 py-1 rounded-full bg-white/[0.06] text-zinc-300 text-xs font-semibold">
                   {knownRole}

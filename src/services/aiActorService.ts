@@ -211,7 +211,7 @@ Nhiệm vụ:
 Nếu ĐÚNG là diễn viên/nghệ sĩ/đạo diễn:
 - "isActor": true
 - "canonicalName": Tên chuẩn duy nhất trong Database (ví dụ: "Robert Downey Jr", "Jackie Chan", "Huỳnh Trấn Thành", "Stephen Chow", "Tom Cruise", "Cillian Murphy", "Song Joong-ki"...).
-- "country": Quốc gia / nền điện ảnh chính xác kèm cờ (vd: "Việt Nam 🇻🇳", "Hàn Quốc 🇰🇷", "Hồng Kông 🇭🇰", "Trung Quốc 🇨🇳", "Hollywood 🇺🇸", "Anh Quốc 🇬🇧", "Thái Lan 🇹🇭", "Nhật Bản 🇯🇵").
+- "country": Quốc gia / nền điện ảnh chính xác (vd: "Việt Nam", "Hàn Quốc", "Hồng Kông", "Trung Quốc", "Mỹ", "Anh Quốc", "Thái Lan", "Nhật Bản").
 - "aliases": Mảng các bí danh, tên gọi khác, tên tiếng Việt, nghệ danh phổ biến của nghệ sĩ.
 
 Nếu KHÔNG PHẢI là diễn viên/nghệ sĩ (ví dụ là tên một bộ phim cụ thể như "Titanic", "Inception", "Mai", "Avatar", một thể loại như "phim ma", hoặc từ ngắn/từ đơn thông dụng):

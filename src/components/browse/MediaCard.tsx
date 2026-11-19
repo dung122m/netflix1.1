@@ -36,7 +36,7 @@ const AuthModal = dynamic(
   { ssr: false }
 );
 import { Tooltip } from "@/components/ui/Tooltip";
-import { useMoviePosterFallback, isPhimimgSourceUrl } from "@/hooks/useMoviePosterFallback";
+import { useMoviePosterFallback } from "@/hooks/useMoviePosterFallback";
 
 // Bộ nhớ đệm client (giữ nguyên cho các component khác như HeroFeatured)
 import { clientSynopsisCache } from "@/services/synopsisService";

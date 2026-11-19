@@ -21,6 +21,7 @@ import {
 } from "@/services/aiActorService";
 import { PaginationControl } from "@/components/ui/PaginationControl";
 import { getPaginationPages } from "@/lib/pagination";
+import { CountryBadge } from "@/components/ui/CountryBadge";
 import {
   cleanNormalizedForMatch,
   getTitleEvidence,
@@ -663,24 +664,27 @@ export default async function BrowsePage({
                     {getActorInitials(detectedActor.name)}
                   </div>
                 )}
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap mb-1">
-                    <h1 className="text-xl sm:text-2xl md:text-3xl font-extrabold tracking-tight text-white truncate">
-                      {detectedActor.name}
+                <div className="min-w-0 space-y-1">
+                  <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5">
+                    <div className="inline-flex items-baseline gap-2 flex-wrap">
+                      <h1 className="text-xl sm:text-2xl md:text-3xl font-black tracking-tight text-white leading-tight">
+                        {detectedActor.name}
+                      </h1>
                       {detectedActor.englishName && detectedActor.englishName !== detectedActor.name ? (
-                        <span className="text-base sm:text-lg md:text-xl font-medium text-zinc-400 ml-2">
+                        <span className="text-sm sm:text-base md:text-lg font-medium text-zinc-400 leading-tight">
                           ({detectedActor.englishName})
                         </span>
                       ) : null}
-                    </h1>
-                    {detectedActor.country && (
-                      <span className="text-xs text-zinc-300 font-medium px-2.5 py-0.5 rounded-full bg-white/[0.08] flex-none">
-                        {detectedActor.country}
+                    </div>
+
+                    <div className="inline-flex items-center gap-2 flex-none">
+                      {detectedActor.country && (
+                        <CountryBadge country={detectedActor.country} />
+                      )}
+                      <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-white/[0.06] text-zinc-400 font-medium flex-none border border-white/5">
+                        Diễn viên
                       </span>
-                    )}
-                    <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-white/[0.06] text-zinc-400 font-medium flex-none">
-                      Diễn viên
-                    </span>
+                    </div>
                   </div>
                   <p className="text-xs sm:text-sm text-zinc-400 leading-relaxed truncate sm:whitespace-normal">
                     Tuyển tập {totalItems.toLocaleString("vi-VN")} tác phẩm nổi bật của {detectedActor.name}.
