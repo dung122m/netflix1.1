@@ -151,13 +151,13 @@ function ContinueWatchingCard({ item, index = 0, onRemove }: ContinueWatchingCar
       !imgSrc.includes("/api/media/r2-proxy")
     ) {
       const originalSource = extractOriginalSourceUrl(imgSrc);
-      const r2ProxyUrl = `/api/media/r2-proxy?url=${encodeURIComponent(originalSource || imgSrc)}`;
+      const r2ProxyUrl = `/api/media/r2-proxy?url=${encodeURIComponent(originalSource || imgSrc)}&slug=${encodeURIComponent(item.slug || "")}&title=${encodeURIComponent(item.title || "")}`;
       setImgSrc(r2ProxyUrl);
       return;
     }
 
     setIsLoaded(true);
-  }, [imgSrc, item.thumb, displaySrc, triggerFallback]);
+  }, [imgSrc, item.thumb, item.slug, item.title, displaySrc, triggerFallback]);
 
   const href = item.episodeSlug
     ? `/movies/${item.slug}?ep=${item.episodeSlug}`

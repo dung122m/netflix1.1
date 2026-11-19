@@ -81,7 +81,7 @@ export const NumberedRankCard: React.FC<NumberedRankCardProps> = ({
               !imgSrc.includes("/api/media/r2-proxy")
             ) {
               const originalSource = extractOriginalSourceUrl(imgSrc);
-              setImgSrc(`/api/media/r2-proxy?url=${encodeURIComponent(originalSource || imgSrc)}`);
+              setImgSrc(`/api/media/r2-proxy?url=${encodeURIComponent(originalSource || imgSrc)}&slug=${encodeURIComponent(slug)}&title=${encodeURIComponent(title)}`);
             } else {
               setImgSrc("/default-poster.jpg");
             }
@@ -94,7 +94,7 @@ export const NumberedRankCard: React.FC<NumberedRankCardProps> = ({
             !imgSrc.includes("/api/media/r2-proxy")
           ) {
             const originalSource = extractOriginalSourceUrl(imgSrc);
-            setImgSrc(`/api/media/r2-proxy?url=${encodeURIComponent(originalSource || imgSrc)}`);
+            setImgSrc(`/api/media/r2-proxy?url=${encodeURIComponent(originalSource || imgSrc)}&slug=${encodeURIComponent(slug)}&title=${encodeURIComponent(title)}`);
           } else {
             setImgSrc("/default-poster.jpg");
           }

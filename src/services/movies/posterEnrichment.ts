@@ -114,7 +114,7 @@ async function fastBatchEnrichFromCache(movieList: any[]): Promise<void> {
           }
         }
       }
-    } catch {}
+    } catch { }
   }
 
   // Với các phim còn lại có sẵn tmdb.id: Fetch trực tiếp endpoint TMDB bằng 1 request với timeout 250ms
@@ -133,12 +133,12 @@ async function fastBatchEnrichFromCache(movieList: any[]): Promise<void> {
                 item.poster_url = imgs.posterUrl;
                 if (imgs.backdropUrl) item.thumb_url = imgs.backdropUrl;
               }
-            } catch {}
+            } catch { }
           })
         ),
         new Promise((resolve) => setTimeout(resolve, 250)),
       ]);
-    } catch {}
+    } catch { }
   }
 }
 
@@ -204,7 +204,7 @@ export async function enrichMovieListPosters(movieList: any[], options: PosterEn
             settledItems.add(item);
             return;
           }
-        } catch {}
+        } catch { }
       }
 
       if (signal.aborted) {
@@ -229,13 +229,13 @@ export async function enrichMovieListPosters(movieList: any[], options: PosterEn
         Boolean(item.countries?.some((c: string) => c.toLowerCase().includes("viet"))) ||
         Boolean(
           Array.isArray(item.country) &&
-            item.country.some((c: unknown) => {
-              if (typeof c === "object" && c !== null) {
-                const obj = c as { name?: string; slug?: string };
-                return (obj.name || obj.slug || "").toLowerCase().includes("viet");
-              }
-              return String(c).toLowerCase().includes("viet");
-            })
+          item.country.some((c: unknown) => {
+            if (typeof c === "object" && c !== null) {
+              const obj = c as { name?: string; slug?: string };
+              return (obj.name || obj.slug || "").toLowerCase().includes("viet");
+            }
+            return String(c).toLowerCase().includes("viet");
+          })
         ) ||
         /[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/i.test(item.name || "");
 
@@ -243,23 +243,23 @@ export async function enrichMovieListPosters(movieList: any[], options: PosterEn
       // to avoid generic translated words (e.g. "Hamlet" for "Xóm Nhỏ") hijacking posters with foreign movies.
       const primaryCandidates = isVietnamese
         ? Array.from(
-            new Set(
-              [
-                item.name,
-                item.slug ? String(item.slug).replace(/-/g, " ") : null,
-                item.origin_name && item.origin_name !== item.name ? item.origin_name : null,
-              ].filter(Boolean) as string[]
-            )
-          ).slice(0, 2)
+          new Set(
+            [
+              item.name,
+              item.slug ? String(item.slug).replace(/-/g, " ") : null,
+              item.origin_name && item.origin_name !== item.name ? item.origin_name : null,
+            ].filter(Boolean) as string[]
+          )
+        ).slice(0, 2)
         : Array.from(
-            new Set(
-              [
-                item.origin_name && item.origin_name !== item.name ? item.origin_name : null,
-                item.name,
-                item.slug ? String(item.slug).replace(/-/g, " ") : null,
-              ].filter(Boolean) as string[]
-            )
-          ).slice(0, 2);
+          new Set(
+            [
+              item.origin_name && item.origin_name !== item.name ? item.origin_name : null,
+              item.name,
+              item.slug ? String(item.slug).replace(/-/g, " ") : null,
+            ].filter(Boolean) as string[]
+          )
+        ).slice(0, 2);
 
       let foundPoster = false;
       for (const query of primaryCandidates) {
@@ -282,7 +282,7 @@ export async function enrichMovieListPosters(movieList: any[], options: PosterEn
             foundPoster = true;
             break;
           }
-        } catch {}
+        } catch { }
       }
 
       // 3. AniList fallback for animation titles when TMDB did not match
@@ -301,7 +301,7 @@ export async function enrichMovieListPosters(movieList: any[], options: PosterEn
             }
             foundPoster = true;
           }
-        } catch {}
+        } catch { }
       }
 
       if (!foundPoster) {

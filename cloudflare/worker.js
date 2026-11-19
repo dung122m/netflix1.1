@@ -12,11 +12,11 @@
  */
 
 // Danh sách domain cho phép proxy để chống lợi dụng làm open proxy
+// TUYỆT ĐỐI KHÔNG chứa image.tmdb.org vì TMDb có CDN toàn cầu riêng
 const ALLOWED_UPSTREAMS = [
   "phimimg.com",
   "img.phimapi.com",
   "img.ophim.cc",
-  "image.tmdb.org",
 ];
 
 const IMMUTABLE_CACHE_HEADER = "public, max-age=31536000, s-maxage=31536000, immutable";
@@ -64,12 +64,18 @@ export default {
     }
 
     const targetDomain = segments[1].toLowerCase();
+    const upstreamPath = segments.slice(2).join("/");
+
+    // Nếu là domain image.tmdb.org: chuyển hướng 308 trực tiếp, không lưu R2
+    if (targetDomain.includes("image.tmdb.org")) {
+      return Response.redirect(`https://image.tmdb.org/${upstreamPath}${url.search}`, 308);
+    }
+
     const isAllowedDomain = ALLOWED_UPSTREAMS.some((d) => targetDomain.includes(d));
     if (!isAllowedDomain) {
       return new Response("Forbidden Upstream Domain", { status: 403 });
     }
 
-    const upstreamPath = segments.slice(2).join("/");
     const upstreamUrl = `https://${targetDomain}/${upstreamPath}${url.search}`;
 
     try {

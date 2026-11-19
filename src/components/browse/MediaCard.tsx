@@ -267,6 +267,8 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
   const initialToUse =
     (tmdbFallbackSrc && !isSlowProviderSourceUrl(tmdbFallbackSrc))
       ? tmdbFallbackSrc
+      : (needsFallback && isSlowProviderSourceUrl(initialCandidate))
+      ? "" // Trì hoãn nạp candidate chậm (phimimg/nguonc) để chờ tra cứu TMDb xong trước, chống flash ảnh và chống ghi rác vào R2
       : initialCandidate;
 
   const [currentSrc, setCurrentSrc] = useState<string>(() => initialToUse);
@@ -294,10 +296,16 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
   // Đồng bộ khi card được tái sử dụng cho phim khác hoặc khi danh sách ứng viên thay đổi
   useEffect(() => {
     triedUrlsRef.current.clear();
+    const fastCandidate = imageCandidates.find(
+      (u) => !triedUrlsRef.current.has(u) && !isSlowProviderSourceUrl(u)
+    );
+    const fallbackCandidate = (!needsFallback || !isFallbackLoading)
+      ? imageCandidates.find((u) => !triedUrlsRef.current.has(u))
+      : null;
     const initial =
       (tmdbFallbackSrc && !isSlowProviderSourceUrl(tmdbFallbackSrc) ? tmdbFallbackSrc : null) ||
-      imageCandidates.find((u) => !triedUrlsRef.current.has(u)) ||
-      imageCandidates[0] ||
+      fastCandidate ||
+      fallbackCandidate ||
       "";
     if (initial) {
       setHasError(false);
@@ -313,7 +321,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
       setHasError(false);
       setIsImageLoaded(false);
     }
-  }, [slug, imageCandidates, tmdbFallbackSrc]);
+  }, [slug, imageCandidates, tmdbFallbackSrc, needsFallback, isFallbackLoading]);
 
   useEffect(() => {
     if (imgRef.current && imgRef.current.complete && imgRef.current.naturalWidth > 0) {
@@ -336,12 +344,20 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
       return;
     }
 
-    // TMDb fallback hoàn tất nhưng không tìm được ảnh → hiện Poster Canvas
-    if (currentSrc && triedUrlsRef.current.has(currentSrc)) {
+    // TMDb fallback hoàn tất nhưng không có ảnh trên TMDb:
+    // BÂY GIỜ MỚI CHO PHÉP fallback xuống các candidate từ phimimg/nguonc!
+    if (!currentSrc || triedUrlsRef.current.has(currentSrc)) {
+      const nextCandidate = imageCandidates.find((u) => !triedUrlsRef.current.has(u));
+      if (nextCandidate) {
+        setHasError(false);
+        setCurrentSrc(nextCandidate);
+        setIsImageLoaded(GLOBAL_LOADED_IMAGES.has(nextCandidate));
+        return;
+      }
       setHasError(true);
       setIsImageLoaded(true);
     }
-  }, [needsFallback, isFallbackLoading, tmdbFallbackSrc, currentSrc]);
+  }, [needsFallback, isFallbackLoading, tmdbFallbackSrc, currentSrc, imageCandidates]);
 
   const handleImageError = useCallback(() => {
     if (currentSrc) {
@@ -392,7 +408,12 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
     ) {
       const originalSource = extractOriginalSourceUrl(currentSrc);
       if (originalSource && originalSource !== currentSrc) {
-        const r2ProxyUrl = `/api/media/r2-proxy?url=${encodeURIComponent(originalSource)}`;
+        const params = new URLSearchParams({ url: originalSource });
+        if (slug) params.set("slug", slug);
+        if (tmdbId) params.set("tmdb_id", String(tmdbId));
+        if (title) params.set("title", title);
+        if (year) params.set("year", String(year));
+        const r2ProxyUrl = `/api/media/r2-proxy?${params.toString()}`;
         if (!triedUrlsRef.current.has(r2ProxyUrl)) {
           setCurrentSrc(r2ProxyUrl);
           setIsImageLoaded(false);
@@ -405,7 +426,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
     // 6. Toàn bộ candidates, TMDb, và R2 proxy đều thất bại → Hiện Poster Canvas
     setHasError(true);
     setIsImageLoaded(true);
-  }, [currentSrc, imageCandidates, tmdbFallbackSrc, isFallbackLoading, needsFallback, triggerFallback]);
+  }, [currentSrc, imageCandidates, tmdbFallbackSrc, isFallbackLoading, needsFallback, triggerFallback, slug, tmdbId, title, year]);
 
   // Trạng thái Trailer & Modal Trailer (Chỉ kích hoạt khi bấm nút xem Trailer)
   const [trailerUrl, setTrailerUrl] = useState<string>(
@@ -571,20 +592,18 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
       {/* 1. KHỐI POSTER NGHỆ THUẬT (2:3 POSTER ARTWORK CANVAS - CLEAN & ELEVATED)   */}
       {/* ========================================================================= */}
       <div
-        className={`relative aspect-[2/3] w-full rounded-xl overflow-hidden bg-zinc-950 bg-gradient-to-br from-zinc-800/70 via-zinc-900 to-zinc-950 transition-shadow duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] focus-within:ring-2 focus-within:ring-white ${
-          isCardActive
-            ? "shadow-[inset_0_0_0_2px_#22c55e]"
-            : "group-hover/card:ring-2 group-hover/card:ring-netflix-red group-hover/card:ring-inset group-hover/card:shadow-[0_12px_28px_rgba(0,0,0,0.85)]"
-        }`}
+        className={`relative aspect-[2/3] w-full rounded-xl overflow-hidden bg-zinc-950 bg-gradient-to-br from-zinc-800/70 via-zinc-900 to-zinc-950 transition-shadow duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] focus-within:ring-2 focus-within:ring-white ${isCardActive
+          ? "shadow-[inset_0_0_0_2px_#22c55e]"
+          : "group-hover/card:ring-2 group-hover/card:ring-netflix-red group-hover/card:ring-inset group-hover/card:shadow-[0_12px_28px_rgba(0,0,0,0.85)]"
+          }`}
         data-card-active={isCardActive ? "true" : undefined}
       >
         {/* LỚP DỊU MÉP TRONG (LÀM MỀM POSTER NỀN SÁNG TRÊN DARK MODE MÀ KHÔNG CẦN VIỀN) */}
         <div
-          className={`pointer-events-none absolute inset-0 z-[3] rounded-xl shadow-[inset_0_0_24px_rgba(0,0,0,0.22)] transition-opacity duration-300 ${
-            isCardActive
-              ? ""
-              : "ring-1 ring-inset ring-transparent group-hover/card:ring-white/25"
-          }`}
+          className={`pointer-events-none absolute inset-0 z-[3] rounded-xl shadow-[inset_0_0_24px_rgba(0,0,0,0.22)] transition-opacity duration-300 ${isCardActive
+            ? ""
+            : "ring-1 ring-inset ring-transparent group-hover/card:ring-white/25"
+            }`}
           aria-hidden="true"
         />
         {/* LIÊN KẾT CHÍNH PHỦ TOÀN BỘ POSTER (A11Y + KEYBOARD FOCUS + CLICK MỞ PHIM) */}
@@ -595,9 +614,8 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
           onClick={handleCardClick}
           tabIndex={0}
           aria-label={`Xem phim ${title}`}
-          className={`block absolute inset-0 z-0 outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-inset rounded-xl ${
-            isNavigating ? "movie-card-navigating" : ""
-          }`}
+          className={`block absolute inset-0 z-0 outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-inset rounded-xl ${isNavigating ? "movie-card-navigating" : ""
+            }`}
         >
           {/* LỚP NỀN POSTER: SKELETON KHI CHỜ LOAD ẢNH VÀ DEFAULT LOGO KHI KHÔNG CÓ ẢNH */}
           <div
@@ -641,9 +659,8 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
               decoding={priority ? "sync" : "async"}
               fetchPriority={priority ? "high" : "auto"}
               referrerPolicy="no-referrer"
-              className={`relative z-[1] w-full h-full object-cover object-center brightness-[0.94] group-hover/card:scale-105 group-hover/card:brightness-105 transition-opacity duration-300 ease-out motion-reduce:transform-none ${
-                isFallbackLoading && isSlowProviderSourceUrl(currentSrc) ? "opacity-0" : "opacity-100"
-              }`}
+              className={`relative z-[1] w-full h-full object-cover object-center brightness-[0.94] group-hover/card:scale-105 group-hover/card:brightness-105 transition-opacity duration-300 ease-out motion-reduce:transform-none ${isFallbackLoading && isSlowProviderSourceUrl(currentSrc) ? "opacity-0" : "opacity-100"
+                }`}
               onLoad={(e) => {
                 const target = e.currentTarget;
                 const loadedSrc = target.currentSrc || target.src || currentSrc;
@@ -664,11 +681,10 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
         {displayQualityBadge && (
           <div className="absolute top-2 left-2 z-10 pointer-events-none">
             <span
-              className={`inline-flex items-center px-1.5 py-0.5 rounded-[4px] text-[10px] font-extrabold uppercase tracking-wider shadow select-none ${
-                displayQualityBadge === "CAM"
-                  ? "bg-amber-500 text-black font-black"
-                  : "bg-black/80 backdrop-blur-md text-zinc-100"
-              }`}
+              className={`inline-flex items-center px-1.5 py-0.5 rounded-[4px] text-[10px] font-extrabold uppercase tracking-wider shadow select-none ${displayQualityBadge === "CAM"
+                ? "bg-amber-500 text-black font-black"
+                : "bg-black/80 backdrop-blur-md text-zinc-100"
+                }`}
             >
               {displayQualityBadge}
             </span>
@@ -733,11 +749,10 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
               type="button"
               onClick={handleToggleList}
               aria-label={inList ? `Bỏ lưu phim ${title}` : `Lưu phim ${title} vào danh sách`}
-              className={`w-7 h-7 rounded-full flex items-center justify-center transition-transform transition-colors duration-150 hover:scale-110 active:scale-95 cursor-pointer shadow-md shadow-black/50 backdrop-blur-md outline-none focus-visible:ring-2 focus-visible:ring-netflix-red ${
-                inList
-                  ? "bg-netflix-red text-white hover:brightness-110"
-                  : "bg-black/75 hover:bg-netflix-red hover:text-white text-white"
-              }`}
+              className={`w-7 h-7 rounded-full flex items-center justify-center transition-transform transition-colors duration-150 hover:scale-110 active:scale-95 cursor-pointer shadow-md shadow-black/50 backdrop-blur-md outline-none focus-visible:ring-2 focus-visible:ring-netflix-red ${inList
+                ? "bg-netflix-red text-white hover:brightness-110"
+                : "bg-black/75 hover:bg-netflix-red hover:text-white text-white"
+                }`}
             >
               {inList ? <Check className="w-3.5 h-3.5 stroke-[2.5]" /> : <Bookmark className="w-3.5 h-3.5 transition-colors" />}
             </button>
