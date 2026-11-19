@@ -1,80 +1,27 @@
 <!-- BEGIN:nextjs-agent-rules -->
-
 # This is NOT the Next.js you know
-
-This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
-
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
 This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
-
 <!-- END:nextjs-agent-rules -->
 
-# Website Reverse-Engineer Template
+# Project Rules (Nanaflix / Next.js 16)
 
-## What This Is
-A reusable template for reverse-engineering any website into a clean, modern Next.js codebase using AI coding agents. The Next.js + shadcn/ui + Tailwind v4 base is pre-scaffolded — just run `/clone-website <url1> [<url2> ...]`.
+## Stack & Execution Discipline
+- **Framework:** Next.js 16 (App Router, ưu tiên Server Components, chỉ dùng `'use client'` khi cần state/event; React 19, TypeScript strict, no `any`), shadcn/ui, Tailwind CSS v4, Lucide React, deployed on Vercel.
+- **Reuse-First:** Always inspect `src/lib/`, `src/services/`, and `src/components/` before creating new files or utilities. Keep diffs minimal and cohesive.
+- **Conventions:** Named exports, PascalCase components, camelCase utils, mobile-first Tailwind classes (no inline styles), 2-space indentation.
+- **Commands:** `npm run dev` | `npm run build` | `npm run lint` | `npm run typecheck` | `npm run check`.
 
-## Tech Stack
-- **Framework:** Next.js 16 (App Router, React 19, TypeScript strict)
-- **UI:** shadcn/ui (Radix primitives, Tailwind CSS v4, `cn()` utility)
-- **Icons:** Lucide React (default — will be replaced/supplemented by extracted SVGs)
-- **Styling:** Tailwind CSS v4 with oklch design tokens
-- **Deployment:** Vercel
+## Anti-Slop UI & Design Principles (STRICT)
+- **Zero AI Slop:** Strictly forbid generic SaaS/AI landing-page patterns (symmetric 3-column feature grids, fake stats, fluffy marketing copy, purple/indigo neon glows, or decorative gradients). Match existing `src/components/` patterns and spacing.
+- **Clean Surfaces & Borders:** Use solid, layered dark surfaces, typography, and subtle shadows (Apple TV+ / Netflix style). Forbid nested borders or bordered boxes/badges around icons. Reserve 1px borders strictly for inputs, focus/active states, and essential dividers.
+- **Clean Text & Actions:** Never prepend decorative icons to headings, labels, or body text unless functionally required (e.g., Play/Search buttons). Avoid scattered or redundant buttons.
+- **Typography:** Strictly forbidden to use `font-mono` on UI (scores, numbers, clocks, minutes) due to poor rendering on Windows; always use `font-sans tabular-nums` for aligned numbers.
 
-## Commands
-- `npm run dev` — Start dev server
-- `npm run build` — Production build
-- `npm run lint` — ESLint check
-- `npm run typecheck` — TypeScript check
-- `npm run check` — Run lint + typecheck + build
+## Zero-Hardcode & Data Integrity (STRICT)
+- **NO MOCK / HARDCODED DATA FILES:** Strictly forbidden to create mock files, `SEED_*`, `DUMMY_*`, or hardcoded arrays of movies, channels, or users. All UI data MUST come from real project services (Supabase, `/api/*`, TMDb/AniList). If data is empty or fails, render a clean empty/error state—never fake data to fill the screen.
 
-## Code Style
-- TypeScript strict mode, no `any`
-- Named exports, PascalCase components, camelCase utils
-- Tailwind utility classes, no inline styles
-- 2-space indentation
-- Responsive: mobile-first
-
-## Design Principles
-- **Pixel-perfect emulation** — match the target's spacing, colors, typography exactly
-- **Border is Exception, Not Default** — Never add decorative borders. Prefer spacing, layered dark surfaces, typography, and subtle shadows (Apple TV+ / Netflix cinematic aesthetic). Keep borders strictly for inputs, focus visibility, active states, and essential dividers. Never wrap icons (goals, cards, substitutions) in bordered boxes/badges. See `.agents/rules/pixel-perfect-taste.md`.
-- **Never Use `font-mono` on UI** — Strictly forbidden to use `font-mono` for match scores, player numbers, clocks, event minutes, or any UI text. Monospace fonts render horribly on Windows (Consolas) with spaced-out quotation marks and jagged glyphs. Use `font-sans tabular-nums` instead for all aligned numbers.
-- **No personal aesthetic changes during emulation phase** — match 1:1 first, customize later
-- **Real content** — use actual text and assets from the target site, not placeholders
-- **Beauty-first** — every pixel matters
-
-## Project Structure
-```
-src/
-  app/              # Next.js routes
-  components/       # React components
-    ui/             # shadcn/ui primitives
-    icons.tsx       # Extracted SVG icons as React components
-  lib/
-    utils.ts        # cn() utility (shadcn)
-  types/            # TypeScript interfaces
-  hooks/            # Custom React hooks
-public/
-  images/           # Downloaded images from target site
-  videos/           # Downloaded videos from target site
-  seo/              # Favicons, OG images, webmanifest
-docs/
-  research/         # Inspection output (design tokens, components, layout)
-  design-references/ # Screenshots and visual references
-scripts/            # Asset download scripts
-```
-
-## MOST IMPORTANT NOTES
-- When launching Claude Code agent teams, ALWAYS have each teammate work in their own worktree branch and merge everyone's work at the end, resolving any merge conflicts smartly since you are basically serving the orchestrator role and have full context to our goals, work given, work achieved, and desired outcomes.
-- After editing `AGENTS.md`, run `bash scripts/sync-agent-rules.sh` to regenerate platform-specific instruction files.
-- After editing `.claude/skills/clone-website/SKILL.md`, run `node scripts/sync-skills.mjs` to regenerate the skill for all platforms.
-
-## Media & Image CDN Rules (STRICT INVARIANT)
-- **NO DIRECT `phimimg.com` ON CLIENT:** The domain `phimimg.com` is actively blocked / dropped by ISPs in Vietnam (VNPT, Viettel, FPT). NEVER pass raw `phimimg.com` URLs directly to client `<img>` tags, including `-thumb.webp`. If TMDb/AniList is not available, all phimimg URLs MUST be routed through the internal proxy `/api/img-thumb?url=...`.
-- Always proactively upgrade movie posters to official TMDb CDN (`image.tmdb.org`) or non-phimimg sources.
-- In `MediaCard` and all card components, never render empty black skeleton holes. Always keep the underlying Dynamic Typography Poster Canvas rendered so cards display the movie title, year, and genre even if an image is loading or fails.
-
-@docs/research/INSPECTION_GUIDE.md
-@PRODUCT.md
-@DESIGN.md
-@.agents/rules/pixel-perfect-taste.md
-@.agents/skills/impeccable/reference/craft-floor.md
+## Media, Image CDN & Cost Guard (STRICT)
+- **NO DIRECT `phimimg.com` HOẶC `nguonc.com` TRÊN CLIENT:** Nguồn `phimimg.com` bị chặn ISP VN, còn `nguonc.com` (`img.nguonc.com`) có dung lượng ảnh gốc rất nặng (350KB-1MB+ không nén) gây nghẽn băng thông mobile. TUYỆT ĐỐI không nạp ảnh trực tiếp từ `phimimg.com` và `nguonc.com` lên thẻ `<img>` phía client; luôn chủ động nâng cấp poster sang TMDb CDN chính hãng (`image.tmdb.org`) hoặc bọc qua proxy CDN `/api/media/r2-proxy`.
+- **Card Fallback:** In `MediaCard` and card components, never render empty black skeleton holes; keep the Dynamic Typography Poster Canvas rendered so title, year, and genre remain visible while loading or on error.
+- **Vercel & Cloudflare R2 Optimization:** Prioritize Edge/ISR caching, avoid redundant client-side fetch/probe loops or unnecessary R2 uploads.

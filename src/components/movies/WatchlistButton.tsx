@@ -10,6 +10,8 @@ interface WatchlistButtonProps {
   movie: {
     slug: string;
     title: string;
+    origin_name?: string;
+    tmdbId?: string | number;
     poster?: string;
     imageUrl?: string;
     year?: string | number;
@@ -65,6 +67,8 @@ export const WatchlistButton: React.FC<WatchlistButtonProps> = ({
     const added = toggleWatchlist({
       slug: movie.slug,
       title: movie.title,
+      origin_name: movie.origin_name,
+      tmdbId: movie.tmdbId,
       imageUrl: movie.imageUrl || movie.poster || "/default-poster.jpg",
       poster: movie.poster || movie.imageUrl,
       year: movie.year,

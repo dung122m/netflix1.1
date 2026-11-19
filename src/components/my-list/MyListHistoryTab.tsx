@@ -24,6 +24,8 @@ function HistoryCardItem({
     <MediaCard
       slug={item.slug}
       title={item.title}
+      origin_name={item.origin_name}
+      tmdbId={item.tmdbId}
       imageUrl={item.poster || item.thumb || ""}
       posterUrl={item.poster}
       thumbUrl={item.thumb}

@@ -39,6 +39,8 @@ export function MyListWatchlistTab({ watchlist, onRemove }: MyListWatchlistTabPr
             key={item.slug}
             slug={item.slug}
             title={item.title}
+            origin_name={item.origin_name}
+            tmdbId={item.tmdbId}
             imageUrl={item.imageUrl}
             posterUrl={item.poster}
             genre={item.genre || item.category || ""}

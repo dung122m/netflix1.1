@@ -11,6 +11,7 @@ import {
   formatCountryName,
   getCanonicalGenreSlug,
   getCanonicalCountrySlug,
+  isSlowProviderSourceUrl,
 } from "@/lib/movieMedia";
 import { cleanHtmlText } from "@/lib/cleanHtml";
 import { findEpisodeMatch } from "@/lib/formatEpisode";
@@ -299,10 +300,11 @@ export async function resolveTmdbFallbackMedia(movie: MovieDetailRecord) {
   const hasGoodPoster = effectivePosterUrl && !effectivePosterUrl.includes("default-poster");
   const hasGoodThumb = effectiveThumbUrl && !effectiveThumbUrl.includes("default-hero");
   const needsTrailer = !effectiveTrailerUrl;
-  const isPhimimg = Boolean(
-    effectivePosterUrl?.includes("phimimg.com") || effectiveThumbUrl?.includes("phimimg.com")
+  const isSlowSource = Boolean(
+    (effectivePosterUrl && isSlowProviderSourceUrl(effectivePosterUrl)) ||
+    (effectiveThumbUrl && isSlowProviderSourceUrl(effectiveThumbUrl))
   );
-  const needsPoster = !hasGoodPoster || !hasGoodThumb || isPhimimg;
+  const needsPoster = !hasGoodPoster || !hasGoodThumb || isSlowSource;
 
   if ((needsTrailer || needsPoster) && (tmdbId || movie.origin_name || movie.name)) {
     const isVietnameseMovie =

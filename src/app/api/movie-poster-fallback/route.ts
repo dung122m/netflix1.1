@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { movieApi } from "@/services/movies/service";
-import { pickBestMoviePoster, pickBestMovieThumb } from "@/lib/movieMedia";
 import { getTmdbPosterUrl, searchTmdbPosterByTitle, getTmdbMediaImagesById } from "@/services/tmdbService";
 import { searchAniListPoster } from "@/services/aniListService";
 import { cacheService } from "@/lib/cache";
@@ -141,8 +140,10 @@ export async function GET(req: NextRequest) {
       : ([origin_name && origin_name !== title ? origin_name : null, title, slug ? slug.replace(/-/g, " ") : null].filter(Boolean) as string[]);
 
     // Tra cứu song song toàn bộ ứng viên (thay vì lặp tuần tự gây trễ 3-4s)
+    // Lưu ý: Không ép expectedCountry = "VN" vì hầu hết phim nước ngoài (Thái, Hàn, Trung, Mỹ)
+    // đều có tựa đề tiếng Việt có dấu, việc ép "VN" sẽ loại bỏ 100% phim quốc tế trên TMDb!
     const candidateLookups = queryOrder.map((q) =>
-      queryTmdbPoster(q, year, isVietnamese ? "VN" : undefined).catch(() => null)
+      queryTmdbPoster(q, year, undefined).catch(() => null)
     );
     const candidateResults = await Promise.race([
       Promise.all(candidateLookups),
@@ -159,7 +160,12 @@ export async function GET(req: NextRequest) {
         const m = detail.movie;
         // 4a. Nếu upstream có gắn tmdb.id, lấy trực tiếp ảnh TMDb chuẩn xác 100%
         if (m.tmdb?.id) {
-          const tmdbPoster = await getTmdbPosterUrl(m.tmdb.id, m.type);
+          const tmdbType = m.tmdb.type || (m.type === "series" ? "tv" : "movie");
+          let tmdbPoster = await getTmdbPosterUrl(m.tmdb.id, tmdbType);
+          if (!tmdbPoster) {
+            const altType = tmdbType === "tv" ? "movie" : "tv";
+            tmdbPoster = await getTmdbPosterUrl(m.tmdb.id, altType);
+          }
           if (tmdbPoster) {
             result = {
               posterUrl: tmdbPoster,
@@ -179,23 +185,11 @@ export async function GET(req: NextRequest) {
               m.year || year,
               m.type || type,
               undefined,
-              isVietnamese ? "VN" : undefined
+              undefined
             );
             if (res?.posterUrl || res?.backdropUrl) {
               result = res;
             }
-          }
-        }
-
-        // 4c. Cuối cùng mới lấy poster/thumb gốc
-        if (!result) {
-          const p = pickBestMoviePoster(m, "");
-          const t = pickBestMovieThumb(m, "");
-          if (p || t) {
-            result = {
-              posterUrl: p || t || null,
-              backdropUrl: t || p || null,
-            };
           }
         }
       }
@@ -208,7 +202,12 @@ export async function GET(req: NextRequest) {
       const first = searchRes?.items?.[0];
       if (first) {
         if (first.tmdb?.id) {
-          const tmdbPoster = await getTmdbPosterUrl(first.tmdb.id, first.type);
+          const tmdbType = first.tmdb.type || (first.type === "series" ? "tv" : "movie");
+          let tmdbPoster = await getTmdbPosterUrl(first.tmdb.id, tmdbType);
+          if (!tmdbPoster) {
+            const altType = tmdbType === "tv" ? "movie" : "tv";
+            tmdbPoster = await getTmdbPosterUrl(first.tmdb.id, altType);
+          }
           if (tmdbPoster) {
             result = {
               posterUrl: tmdbPoster,
@@ -216,26 +215,16 @@ export async function GET(req: NextRequest) {
             };
           }
         }
-        if (!result && first.origin_name && !isVietnamese) {
+        if (!result && first.origin_name) {
           const res = await searchTmdbPosterByTitle(
             first.origin_name,
             first.year || year,
             first.type || type,
             undefined,
-            isVietnamese ? "VN" : undefined
+            undefined
           );
           if (res?.posterUrl || res?.backdropUrl) {
             result = res;
-          }
-        }
-        if (!result) {
-          const p = pickBestMoviePoster(first, "");
-          const t = pickBestMovieThumb(first, "");
-          if (p || t) {
-            result = {
-              posterUrl: p || t || null,
-              backdropUrl: t || p || null,
-            };
           }
         }
       }

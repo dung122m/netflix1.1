@@ -18,6 +18,8 @@ export function registerWatchHistorySyncHandler(handler: WatchHistorySyncHandler
 export interface WatchHistoryItem {
   slug: string;
   title: string;
+  origin_name?: string;
+  tmdbId?: string | number;
   poster: string;
   thumb?: string;
   episodeName?: string;

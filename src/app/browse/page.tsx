@@ -7,6 +7,7 @@ import { Footer } from "@/components/layout/Footer";
 import { Film, Flame, ChevronRight } from "lucide-react";
 import { findHistoricalArtist, ensureHistoricalArtistsLoaded, getR2ActorAvatarUrl } from "@/data/history/historicalArtistsBirthdays";
 import { movieApi, parseSortMode } from "@/services/movies/service";
+import { executeSmartSearch } from "@/services/movies/smartSearchService";
 
 /** Cache danh mục phim 3 phút trên Vercel Edge CDN để giảm tải CPU Serverless tối đa */
 export const revalidate = 180;
@@ -417,6 +418,7 @@ export default async function BrowsePage({
   let totalPages = 1;
   let totalItems = 0;
   let detectedActor: { name: string; englishName?: string; country?: string; href?: string; avatarUrl?: string } | null = null;
+  let correctedQuery: string | undefined = undefined;
 
   // =========================================================================
   // 1. TÁCH BIỆT RÕ RÀNG: TÌM KIẾM THEO DIỄN VIÊN VS TÌM KIẾM THEO TÊN PHIM
@@ -456,26 +458,24 @@ export default async function BrowsePage({
       totalPages = actorSearch.totalPages;
     }
   } else if (keyword) {
-    // 2A. TÌM KIẾM THEO TỪ KHÓA (SEARCH MODE)
-    // Tìm kiếm trực tiếp trước; chỉ fallback sang Semantic Vector Search khi không có kết quả (tránh tốn AI + Redis DB3 + Supabase RPC dư thừa).
-    const searchResponse = await movieApi.getMovies({
+    // 2A. TÌM KIẾM THÔNG MINH 3 TẦNG (100% ZERO-AI, ZERO-HARDCODE)
+    // Tầng 1: Smart Filter Tokenizer -> Tầng 2: Direct Search & Slug Normalization -> Tầng 3: TMDb & Typo Tolerance
+    const smartSearchRes = await executeSmartSearch({
+      query: keyword,
+      page: currentPage,
+      limit: PAGE_LIMIT,
+      sort: effectiveSort,
       category,
       country,
       year,
-      keyword,
-      page: currentPage,
-      limit: PAGE_LIMIT,
       type,
-      sort: effectiveSort,
-      posterEnrichmentBudgetMs: 0,
     });
 
-    const items = searchResponse?.items || [];
-    totalPages = searchResponse?.pagination?.totalPages || 1;
-    totalItems = searchResponse?.pagination?.totalItems || items.length;
-
-    movies = items;
-
+    movies = smartSearchRes.items;
+    upstreamMovies = movies;
+    totalPages = smartSearchRes.totalPages;
+    totalItems = smartSearchRes.totalItems;
+    correctedQuery = smartSearchRes.correctedQuery;
   } else {
     // 2B. DUYỆT THEO DANH MỤC / QUỐC GIA / NĂM (CATALOG BROWSING)
     const response = await movieApi.getMovies({
@@ -735,9 +735,15 @@ export default async function BrowsePage({
                 <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-white">
                   {title}
                 </h1>
-                <p className="mt-1 text-sm text-zinc-400 max-w-[65ch] leading-relaxed">
-                  Kho phim trực tuyến chất lượng cao, cập nhật liên tục các tác phẩm mới nhất.
-                </p>
+                {correctedQuery ? (
+                  <p className="mt-1 text-sm text-zinc-400">
+                    Hiển thị kết quả cho <strong className="text-white font-medium">{correctedQuery}</strong>
+                  </p>
+                ) : (
+                  <p className="mt-1 text-sm text-zinc-400 max-w-[65ch] leading-relaxed">
+                    Kho phim trực tuyến chất lượng cao, cập nhật liên tục các tác phẩm mới nhất.
+                  </p>
+                )}
               </div>
               <div className="flex items-center gap-3 flex-wrap">
                 <div className="inline-flex items-center gap-2 rounded-xl bg-white/5 px-3 py-1.5 text-xs md:text-sm text-zinc-200 backdrop-blur-sm shadow-sm">

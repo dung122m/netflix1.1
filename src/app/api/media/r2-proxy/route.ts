@@ -18,6 +18,8 @@ const ALLOWED_SOURCE_DOMAINS = [
   "phimimg.com",
   "img.phimapi.com",
   "img.ophim.cc",
+  "nguonc.com",
+  "img.nguonc.com",
 ];
 
 function sanitizeR2Key(rawUrl: string): string | null {

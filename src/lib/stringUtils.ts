@@ -95,4 +95,91 @@ export function isAsianScript(str?: string | null): boolean {
   return /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}\p{Script=Thai}]/u.test(str);
 }
 
+/**
+ * Chuẩn hóa chuỗi thành slug URL không dấu, gạch nối ngăn cách
+ * (ví dụ: "Lật Mặt 7: Một Điều Ước" -> "lat-mat-7-mot-dieu-uoc", "lat mat 7" -> "lat-mat-7")
+ */
+export function slugify(str?: string | null): string {
+  if (!str) return "";
+  return str
+    .toLowerCase()
+    .replace(/[đĐ]/g, "d")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .normalize("NFC")
+    .replace(/[^\p{L}\p{M}\p{N}\s-]/gu, "")
+    .trim()
+    .replace(/[\s_]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+/**
+ * Thuật toán Damerau-Levenshtein Distance cục bộ
+ * Tính toán khoảng cách chỉnh sửa có tính đến hoán vị 2 ký tự liền kề (transposition),
+ * chèn (insertion), xóa (deletion), và thay thế (substitution).
+ * Độ phức tạp O(N * M), tính toán trực tiếp giữa chuỗi ngắn (< 100 ký tự) tốn < 0.1ms.
+ */
+export function damerauLevenshteinDistance(source: string, target: string): number {
+  if (source === target) return 0;
+  const sLen = source.length;
+  const tLen = target.length;
+  if (sLen === 0) return tLen;
+  if (tLen === 0) return sLen;
+
+  const d: number[][] = Array.from({ length: sLen + 2 }, () => new Array(tLen + 2).fill(0));
+  const maxDist = sLen + tLen;
+  d[0][0] = maxDist;
+
+  for (let i = 0; i <= sLen; i++) {
+    d[i + 1][0] = maxDist;
+    d[i + 1][1] = i;
+  }
+  for (let j = 0; j <= tLen; j++) {
+    d[0][j + 1] = maxDist;
+    d[1][j + 1] = j;
+  }
+
+  const lastRow = new Map<string, number>();
+
+  for (let i = 1; i <= sLen; i++) {
+    let db = 0;
+    const sChar = source[i - 1];
+    for (let j = 1; j <= tLen; j++) {
+      const tChar = target[j - 1];
+      const i1 = lastRow.get(tChar) || 0;
+      const j1 = db;
+      let cost = 1;
+      if (sChar === tChar) {
+        cost = 0;
+        db = j;
+      }
+
+      d[i + 1][j + 1] = Math.min(
+        d[i][j + 1] + 1, // deletion
+        d[i + 1][j] + 1, // insertion
+        d[i][j] + cost,  // substitution
+        d[i1][j1] + (i - i1 - 1) + 1 + (j - j1 - 1) // transposition
+      );
+    }
+    lastRow.set(sChar, i);
+  }
+
+  return d[sLen + 1][tLen + 1];
+}
+
+/**
+ * Tính hệ số tương đồng Damerau-Levenshtein (0.0 đến 1.0)
+ * Trả về 1.0 nếu chuỗi giống nhau hoàn toàn, 0.0 nếu khác biệt tối đa.
+ */
+export function calculateDamerauLevenshteinSimilarity(a: string, b: string): number {
+  if (!a && !b) return 1;
+  if (!a || !b) return 0;
+  const maxLen = Math.max(a.length, b.length);
+  if (maxLen === 0) return 1;
+  const dist = damerauLevenshteinDistance(a, b);
+  return Math.max(0, 1 - dist / maxLen);
+}
+
+
 

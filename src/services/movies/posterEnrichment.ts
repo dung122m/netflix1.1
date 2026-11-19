@@ -1,4 +1,4 @@
-import { isBrokenImageUrl } from "@/lib/movieMedia";
+import { isBrokenImageUrl, isSlowProviderSourceUrl } from "@/lib/movieMedia";
 import { getTmdbMediaImagesById, searchTmdbPosterByTitle } from "@/services/tmdbService";
 import { searchAniListPoster } from "@/services/aniListService";
 import { cacheService } from "@/lib/cache";
@@ -27,7 +27,7 @@ function isAnimeOrAnimationItem(item: any): boolean {
 function shouldUpgradeThumbUrl(thumbUrl: unknown): boolean {
   if (!thumbUrl || typeof thumbUrl !== "string") return true;
   if (isBrokenImageUrl(thumbUrl)) return true;
-  return thumbUrl.includes("phimimg.com");
+  return isSlowProviderSourceUrl(thumbUrl);
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -117,7 +117,7 @@ async function fastBatchEnrichFromCache(movieList: any[]): Promise<void> {
     } catch { }
   }
 
-  // Với các phim còn lại có sẵn tmdb.id: Fetch trực tiếp endpoint TMDB bằng 1 request với timeout 250ms
+  // Với các phim còn lại có sẵn tmdb.id: Fetch trực tiếp endpoint TMDB bằng 1 request với timeout 500ms
   const uncachedTmdb = movieList.filter(
     (item) => item?.tmdb?.id && !String(item.poster_url || "").includes("image.tmdb.org")
   );
@@ -125,10 +125,14 @@ async function fastBatchEnrichFromCache(movieList: any[]): Promise<void> {
     try {
       await Promise.race([
         Promise.all(
-          uncachedTmdb.slice(0, 10).map(async (item) => {
+          uncachedTmdb.slice(0, 16).map(async (item) => {
             try {
               const cleanType = item.tmdb.type === "tv" || item.tmdb.type === "series" ? "tv" : "movie";
-              const imgs = await getTmdbMediaImagesById(item.tmdb.id, cleanType);
+              let imgs = await getTmdbMediaImagesById(item.tmdb.id, cleanType);
+              if (!imgs?.posterUrl) {
+                const altType = cleanType === "tv" ? "movie" : "tv";
+                imgs = await getTmdbMediaImagesById(item.tmdb.id, altType);
+              }
               if (imgs?.posterUrl) {
                 item.poster_url = imgs.posterUrl;
                 if (imgs.backdropUrl) item.thumb_url = imgs.backdropUrl;
@@ -136,7 +140,7 @@ async function fastBatchEnrichFromCache(movieList: any[]): Promise<void> {
             } catch { }
           })
         ),
-        new Promise((resolve) => setTimeout(resolve, 250)),
+        new Promise((resolve) => setTimeout(resolve, 500)),
       ]);
     } catch { }
   }
@@ -212,15 +216,15 @@ export async function enrichMovieListPosters(movieList: any[], options: PosterEn
         return;
       }
 
-      // 2. Title search whenever poster or thumb is still non-TMDB (or broken / phimimg.com)
+      // 2. Title search whenever poster or thumb is still non-TMDB (or broken / slow provider like phimimg/nguonc)
       const posterNonTmdb =
         !item.poster_url ||
         !String(item.poster_url).includes("image.tmdb.org") ||
-        String(item.poster_url).includes("phimimg.com") ||
+        isSlowProviderSourceUrl(item.poster_url) ||
         isBrokenImageUrl(item.poster_url);
-      const thumbIsPhimimg = typeof item.thumb_url === "string" && item.thumb_url.includes("phimimg.com");
+      const thumbIsSlow = typeof item.thumb_url === "string" && isSlowProviderSourceUrl(item.thumb_url);
 
-      if (!posterNonTmdb && !thumbIsPhimimg) {
+      if (!posterNonTmdb && !thumbIsSlow) {
         settledItems.add(item);
         return;
       }

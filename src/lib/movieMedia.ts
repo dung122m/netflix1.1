@@ -773,7 +773,8 @@ export function getR2DirectMediaUrl(rawUrl: string): string | null {
     if (
       !domain.includes("phimimg.com") &&
       !domain.includes("img.phimapi.com") &&
-      !domain.includes("img.ophim.cc")
+      !domain.includes("img.ophim.cc") &&
+      !domain.includes("nguonc.com")
     ) {
       return null;
     }
@@ -819,7 +820,12 @@ export function toFastCdnImageUrl(url: string): string {
   if (!url || typeof url !== "string") return "";
   const clean = url.trim();
   if (!clean || clean.startsWith("/api/media/r2-proxy")) return clean;
-  if (clean.includes("phimimg.com") || clean.includes("img.phimapi.com") || clean.includes("img.ophim.cc")) {
+  if (
+    clean.includes("phimimg.com") ||
+    clean.includes("img.phimapi.com") ||
+    clean.includes("img.ophim.cc") ||
+    clean.includes("nguonc.com")
+  ) {
     const directR2 = getR2DirectMediaUrl(clean);
     if (directR2) return directR2;
     return `/api/media/r2-proxy?url=${encodeURIComponent(clean)}`;

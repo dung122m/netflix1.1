@@ -16,6 +16,8 @@ export type WatchlistItemType = "movie" | "series" | "episode";
 export interface WatchlistItem {
   slug: string;
   title: string;
+  origin_name?: string;
+  tmdbId?: string | number;
   imageUrl: string;
   poster?: string;
   year?: string | number;

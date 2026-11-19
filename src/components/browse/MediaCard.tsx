@@ -400,10 +400,10 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
     }
 
     // 5. CỨU CÁNH CUỐI CÙNG: Chỉ khi TMDb hoàn toàn không có (hoặc đã fail)
-    // mới thử gọi R2 Proxy qua Vercel cho nguồn phimimg.com
+    // mới thử gọi R2 Proxy qua Vercel cho nguồn phimimg.com / nguonc.com
     if (
       currentSrc &&
-      (currentSrc.includes("phimimg.com") || currentSrc.includes("/cache/")) &&
+      (currentSrc.includes("phimimg.com") || currentSrc.includes("nguonc.com") || currentSrc.includes("/cache/")) &&
       !currentSrc.includes("/api/media/r2-proxy")
     ) {
       const originalSource = extractOriginalSourceUrl(currentSrc);
@@ -509,7 +509,10 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
     const nextState = toggleWatchlist({
       slug,
       title,
+      origin_name,
+      tmdbId,
       imageUrl: currentSrc || imageUrl,
+      poster: posterUrl || currentSrc || imageUrl,
       year: displayYear,
       genre,
       time: displayTime,

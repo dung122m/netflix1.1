@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { movieApi } from "@/services/movies/service";
+import { executeSmartSearch } from "@/services/movies/smartSearchService";
 import {
   resolveActorMovies,
   queryMoviesByActor,
@@ -113,7 +114,20 @@ export async function GET(req: NextRequest) {
       category?: Array<{ name?: string }>;
     }
 
-    const rawItems = ((res?.items || []) as SuggestMovieItem[]);
+    let rawItems = ((res?.items || []) as SuggestMovieItem[]);
+
+    // Tích hợp Smart Search 3 tầng: nếu tìm kiếm trực tiếp trả về 0 kết quả
+    if (rawItems.length === 0) {
+      try {
+        const smartRes = await Promise.race([
+          executeSmartSearch({ query: keyword, limit: 8, skipKvCache: true }),
+          new Promise<null>((resolve) => setTimeout(() => resolve(null), 1200)),
+        ]);
+        if (smartRes && Array.isArray(smartRes.items) && smartRes.items.length > 0) {
+          rawItems = smartRes.items as SuggestMovieItem[];
+        }
+      } catch { }
+    }
 
     // Sắp xếp gợi ý nhanh: Ưu tiên tuyệt đối các phim có tên khớp với từ khóa gõ vào
     const getSuggestScore = (item: SuggestMovieItem, kw: string): number => {

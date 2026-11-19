@@ -448,6 +448,13 @@ export function normalizeNguonCMovieDetail(raw: any) {
       ? movie.director
       : [];
 
+  const isSingle =
+    movie.tmdb?.type === "movie" ||
+    Number(movie.total_episodes) === 1 ||
+    String(movie.current_episode || "").trim().toUpperCase() === "FULL" ||
+    String(movie.episode_total || "").trim() === "1";
+  const movieType = isSingle ? "single" : "series";
+
   return {
     status: true,
     msg: "done",
@@ -458,7 +465,7 @@ export function normalizeNguonCMovieDetail(raw: any) {
       origin_name: movie.original_name || movie.name,
       content: movie.description || "",
       description: movie.description || "",
-      type: "series",
+      type: movieType,
       status: movie.current_episode || "",
       thumb_url: movie.poster_url_webp || movie.poster_url || movie.thumb_url_webp || movie.thumb_url || "",
       poster_url: movie.thumb_url_webp || movie.thumb_url || movie.poster_url_webp || movie.poster_url || "",
@@ -476,7 +483,12 @@ export function normalizeNguonCMovieDetail(raw: any) {
       modified: movie.modified ? { time: String(movie.modified) } : undefined,
       created: movie.created ? { time: String(movie.created) } : undefined,
       alternative_names: movie.original_name && movie.original_name !== movie.name ? [movie.original_name] : [],
-      tmdb: movie.tmdb || undefined,
+      tmdb: movie.tmdb
+        ? {
+            ...movie.tmdb,
+            type: movie.tmdb.type || (isSingle ? "movie" : "tv"),
+          }
+        : undefined,
       imdb: movie.imdb || undefined,
       episodes: episodes,
     },

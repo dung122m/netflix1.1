@@ -271,8 +271,7 @@ function pickBestTmdbCandidate(
   const normQuery = normalizeForMatch(originalQuery);
   const isVietnamese = options?.isVietnamese ?? (
     options?.expectedCountry === "VN" ||
-    (options?.expectedCountry ? options.expectedCountry.toLowerCase().includes("viet") : false) ||
-    /[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/i.test(originalQuery)
+    (options?.expectedCountry ? options.expectedCountry.toLowerCase().includes("viet") : false)
   );
 
   const scored = valid.map((r) => {
@@ -337,9 +336,8 @@ function pickBestTmdbCandidate(
       const isCandidateVietnamese = origLang === "vi" || originCountries.includes("VN");
       if (isCandidateVietnamese) {
         score += 80;
-      } else {
-        // Unrelated foreign film matching a Vietnamese movie
-        // Heavy penalty to prevent foreign poster hijack!
+      } else if (bestTitleSim < 80) {
+        // Chỉ trừ điểm nếu tên phim không trùng khớp cao (chống hijack poster cho phim Việt)
         score -= 250;
       }
     }

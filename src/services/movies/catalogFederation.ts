@@ -384,7 +384,21 @@ function mapNguonCListItem(item: any, params: MovieFilterParams) {
     itemType = "single";
   } else if (params.type === "tv-shows") {
     itemType = "tv-shows";
+  } else {
+    // Tự động phân loại dựa trên metadata NguonC và TMDb
+    if (
+      item.tmdb?.type === "movie" ||
+      Number(item.total_episodes) === 1 ||
+      String(item.current_episode || "").trim().toUpperCase() === "FULL"
+    ) {
+      itemType = "single";
+    } else if (item.tmdb?.type === "tv" || Number(item.total_episodes) > 1) {
+      itemType = "series";
+    }
   }
+
+  const tmdbType = item.tmdb?.type || (itemType === "single" ? "movie" : "tv");
+  const normalizedTmdb = item.tmdb ? { ...item.tmdb, type: tmdbType } : undefined;
 
   const normalizedDirectors = extractMovieDirectors(item);
   const normalizedActors = extractMovieActors(item);
@@ -396,6 +410,11 @@ function mapNguonCListItem(item: any, params: MovieFilterParams) {
     name: item.name,
     slug: item.slug,
     origin_name: item.original_name || item.name,
+    type: itemType || item.type || "single",
+    itemType: itemType || "single",
+    chieurap,
+    tmdb: normalizedTmdb,
+    tmdbId: normalizedTmdb?.id,
     poster_url: cleanPoster || cleanThumb,
     thumb_url: cleanThumb || cleanPoster,
     quality: item.quality || "HD",

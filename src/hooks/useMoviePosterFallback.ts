@@ -247,8 +247,8 @@ export function useMoviePosterFallback({
         ? (data?.backdropUrl || data?.posterUrl)
         : (data?.posterUrl || data?.backdropUrl);
 
-      // Nếu không tìm thấy ảnh thay thế hoặc ảnh vẫn là phimimg -> GIỮ NGUYÊN ẢNH GỐC
-      if (!resolvedRaw || typeof resolvedRaw !== "string" || resolvedRaw.includes("phimimg.com") || resolvedRaw.includes("/api/img-thumb")) {
+      // Nếu không tìm thấy ảnh thay thế hoặc ảnh vẫn là nguồn chậm (phimimg/nguonc) -> GIỮ NGUYÊN ẢNH GỐC
+      if (!resolvedRaw || typeof resolvedRaw !== "string" || isSlowProviderSourceUrl(resolvedRaw)) {
         GLOBAL_TRIED_FAILURES.add(cacheKey);
         setIsLoading(false);
         return;
