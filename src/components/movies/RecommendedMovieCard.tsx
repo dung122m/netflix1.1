@@ -2,13 +2,9 @@
 
 import React from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { Play } from "lucide-react";
-import {
-  pickBestMovieThumb,
-  isSlowProviderSourceUrl,
-} from "@/lib/movieMedia";
-import { useMoviePosterFallback } from "@/hooks/useMoviePosterFallback";
+import { pickBestMovieThumb } from "@/lib/movieMedia";
+import { MoviePosterImage } from "@/components/ui/MoviePosterImage";
 
 export interface RecommendedMovieItem {
   slug: string;
@@ -41,40 +37,6 @@ export const RecommendedMovieCard = React.memo(function RecommendedMovieCard({
   displayCategory,
 }: RecommendedMovieCardProps) {
   const rawThumb = pickBestMovieThumb(item, "/default-hero.jpg");
-  const isTmdb = Boolean(rawThumb && rawThumb.includes("image.tmdb.org"));
-  const isSlow = isSlowProviderSourceUrl(rawThumb);
-
-  const { displaySrc } = useMoviePosterFallback({
-    slug: item.slug,
-    title: item.name || item.title,
-    year: item.year,
-    initialSrc: rawThumb,
-    preferBackdrop: true,
-    enabled: isSlow && !isTmdb,
-    upgradePhimimg: true,
-  });
-
-  const [imgSrc, setImgSrc] = React.useState<string>(() => displaySrc || rawThumb);
-  React.useEffect(() => {
-    if (displaySrc && displaySrc !== imgSrc) {
-      setImgSrc(displaySrc);
-    }
-  }, [displaySrc, imgSrc]);
-
-  const handleImageError = () => {
-    if (
-      imgSrc &&
-      (imgSrc.includes("phimimg.com") || imgSrc.includes("nguonc.com") || imgSrc.includes("/cache/")) &&
-      !imgSrc.includes("/api/media/r2-proxy")
-    ) {
-      setImgSrc(
-        `/api/media/r2-proxy?url=${encodeURIComponent(imgSrc)}&title=${encodeURIComponent(item.name || item.title || "")}&slug=${encodeURIComponent(item.slug)}`
-      );
-      return;
-    }
-    setImgSrc("/default-hero.jpg");
-  };
-
   const title = item.name || item.title || "Phim";
   const categoryName = displayCategory || item.category?.[0]?.name;
   const year = item.year;
@@ -91,9 +53,14 @@ export const RecommendedMovieCard = React.memo(function RecommendedMovieCard({
       >
         {/* 1. ẢNH THUMBNAIL (aspect-video 16:9 chuẩn) */}
         <div className="relative aspect-video w-full bg-zinc-900 bg-gradient-to-br from-zinc-800/70 via-zinc-900 to-zinc-950 overflow-hidden">
-          <Image
-            src={imgSrc}
+          <MoviePosterImage
+            src={rawThumb}
             alt={title}
+            title={title}
+            slug={item.slug}
+            year={year}
+            preferBackdrop={true}
+            fallbackSrc="/default-hero.jpg"
             fill
             unoptimized
             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, (max-width: 1440px) 33vw, 25vw"
@@ -101,7 +68,6 @@ export const RecommendedMovieCard = React.memo(function RecommendedMovieCard({
             decoding="async"
             loading="lazy"
             quality={85}
-            onError={handleImageError}
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
 

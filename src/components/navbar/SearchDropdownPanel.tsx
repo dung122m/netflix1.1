@@ -1,12 +1,10 @@
 "use client";
 
 import React from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { History, Loader2, Search, X } from "lucide-react";
 import { Tooltip } from "@/components/ui/Tooltip";
-import { isSlowProviderSourceUrl } from "@/lib/movieMedia";
-import { useMoviePosterFallback } from "@/hooks/useMoviePosterFallback";
+import { MoviePosterImage } from "@/components/ui/MoviePosterImage";
 import {
   resolveSuggestionHref,
   type SearchSuggestion,
@@ -25,72 +23,6 @@ export interface SearchDropdownPanelProps {
   onClearAllRecent: (e: React.MouseEvent) => void;
   onSuggestionSelect: (collapseExpanded: boolean) => void;
   onSubmitSearch: (e?: React.FormEvent | React.MouseEvent) => void;
-}
-
-function SuggestionPosterImage({
-  poster,
-  title,
-  slug,
-  year,
-  isActor,
-}: {
-  poster: string;
-  title: string;
-  slug: string;
-  year?: number | string;
-  isActor?: boolean;
-}) {
-  const isTmdb = Boolean(poster && poster.includes("image.tmdb.org"));
-  const isSlow = isSlowProviderSourceUrl(poster);
-
-  const { displaySrc } = useMoviePosterFallback({
-    slug: isActor ? undefined : slug,
-    title: isActor ? undefined : title,
-    year,
-    initialSrc: poster,
-    enabled: !isActor && isSlow && !isTmdb,
-    upgradePhimimg: true,
-  });
-
-  const [hasError, setHasError] = React.useState(false);
-  const targetSrc = displaySrc || poster || "/default-poster.jpg";
-  const [currentSrc, setCurrentSrc] = React.useState<string>(targetSrc);
-
-  React.useEffect(() => {
-    if (displaySrc && displaySrc !== currentSrc) {
-      setCurrentSrc(displaySrc);
-      setHasError(false);
-    }
-  }, [displaySrc, currentSrc]);
-
-  const handleImageError = () => {
-    // Chỉ khi TMDb fail hoặc không có, mới dùng R2 proxy làm cứu cánh cuối cùng cho phimimg/nguonc
-    if (
-      currentSrc &&
-      (currentSrc.includes("phimimg.com") || currentSrc.includes("nguonc.com") || currentSrc.includes("/cache/")) &&
-      !currentSrc.includes("/api/media/r2-proxy")
-    ) {
-      setCurrentSrc(
-        `/api/media/r2-proxy?url=${encodeURIComponent(currentSrc)}&title=${encodeURIComponent(title)}&slug=${encodeURIComponent(slug)}`
-      );
-      return;
-    }
-    setHasError(true);
-  };
-
-  const finalSrc = hasError ? "/default-poster.jpg" : currentSrc;
-
-  return (
-    <Image
-      src={finalSrc}
-      alt={title}
-      fill
-      unoptimized
-      sizes="44px"
-      className="object-cover group-hover:scale-105 transition-transform"
-      onError={handleImageError}
-    />
-  );
 }
 
 /**
@@ -240,12 +172,16 @@ export function SearchDropdownPanel({
                         : "w-10 h-14 rounded ring-1 ring-white/10"
                     }`}
                   >
-                    <SuggestionPosterImage
-                      poster={item.poster}
-                      title={item.title}
-                      slug={item.slug}
+                    <MoviePosterImage
+                      src={item.poster}
+                      alt={item.title}
+                      slug={isActor ? undefined : item.slug}
+                      title={isActor ? undefined : item.title}
                       year={item.year}
-                      isActor={isActor}
+                      fill
+                      unoptimized
+                      sizes="44px"
+                      className="object-cover group-hover:scale-105 transition-transform"
                     />
                   </div>
                   <div className="flex-1 min-w-0">

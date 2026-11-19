@@ -1,10 +1,9 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React from "react";
 import Link from "next/link";
-import Image from "next/image";
-import { pickBestMoviePoster, extractOriginalSourceUrl } from "@/lib/movieMedia";
-import { useMoviePosterFallback } from "@/hooks/useMoviePosterFallback";
+import { pickBestMoviePoster } from "@/lib/movieMedia";
+import { MoviePosterImage } from "@/components/ui/MoviePosterImage";
 import { MOVIE_CARD_TOKENS } from "@/lib/cardDimensions";
 
 export interface NumberedRankCardProps {
@@ -51,47 +50,6 @@ export const NumberedRankCard: React.FC<NumberedRankCardProps> = ({
     return "";
   }, [poster_url, thumb_url, title, origin_name, slug]);
 
-  const { displaySrc } = useMoviePosterFallback({
-    slug,
-    title,
-    origin_name,
-    year,
-    initialSrc: initialPoster,
-    enabled: Boolean(!initialPoster || !initialPoster.includes("image.tmdb.org")),
-    upgradePhimimg: true,
-  });
-
-  const [imgSrc, setImgSrc] = useState<string>(() => displaySrc || initialPoster || "/default-poster.jpg");
-
-  useEffect(() => {
-    if (displaySrc && displaySrc !== imgSrc) {
-      setImgSrc(displaySrc);
-    }
-  }, [displaySrc, imgSrc]);
-
-  const handleImageError = useCallback(() => {
-    const safeThumb = thumb_url && !thumb_url.includes("/api/img-thumb") && !thumb_url.includes("/default-") ? thumb_url : "";
-    if (safeThumb && imgSrc !== safeThumb) {
-      setImgSrc(safeThumb);
-      return;
-    }
-
-    // Chỉ khi TMDb hoàn toàn không có và ảnh hiện tại bị lỗi/chặn mới dùng R2 proxy làm cứu cánh
-    if (
-      imgSrc &&
-      (imgSrc.includes("phimimg.com") || imgSrc.includes("nguonc.com") || imgSrc.includes("/cache/")) &&
-      !imgSrc.includes("/api/media/r2-proxy")
-    ) {
-      const originalSource = extractOriginalSourceUrl(imgSrc);
-      setImgSrc(
-        `/api/media/r2-proxy?url=${encodeURIComponent(originalSource || imgSrc)}&slug=${encodeURIComponent(slug)}&title=${encodeURIComponent(title)}`
-      );
-      return;
-    }
-
-    setImgSrc("/default-poster.jpg");
-  }, [thumb_url, imgSrc, title, slug]);
-
   const ringClasses =
     "group-hover:ring-2 group-hover:ring-netflix-red group-hover:ring-inset group-hover:shadow-[0_14px_32px_rgba(0,0,0,0.85)] focus-visible:ring-netflix-red";
 
@@ -116,11 +74,10 @@ export const NumberedRankCard: React.FC<NumberedRankCardProps> = ({
         {/* SỐ THỨ TỰ BẢNG XẾP HẠNG (RANK) */}
         <div
           aria-hidden="true"
-          className={`flex items-end ${
-            rank >= 10
-              ? MOVIE_CARD_TOKENS.ranked.numberColDouble
-              : MOVIE_CARD_TOKENS.ranked.numberCol
-          } relative z-0 pointer-events-none select-none shrink-0 overflow-visible`}
+          className={`flex items-end ${rank >= 10
+            ? MOVIE_CARD_TOKENS.ranked.numberColDouble
+            : MOVIE_CARD_TOKENS.ranked.numberCol
+            } relative z-0 pointer-events-none select-none shrink-0 overflow-visible`}
         >
           {rank >= 10 ? (
             <span
@@ -140,10 +97,10 @@ export const NumberedRankCard: React.FC<NumberedRankCardProps> = ({
                   rank === 1
                     ? "3px var(--accent-color, #e50914)"
                     : rank === 2
-                    ? "3px #d4d4d8"
-                    : rank === 3
-                    ? "3px #a1a1aa"
-                    : "2px rgba(255, 255, 255, 0.24)",
+                      ? "3px #d4d4d8"
+                      : rank === 3
+                        ? "3px #a1a1aa"
+                        : "2px rgba(255, 255, 255, 0.24)",
               }}
             >
               {rank}
@@ -157,10 +114,13 @@ export const NumberedRankCard: React.FC<NumberedRankCardProps> = ({
           <div
             className={`relative w-full aspect-[2/3] ${MOVIE_CARD_TOKENS.ranked.radius} overflow-hidden bg-zinc-950 bg-gradient-to-br from-zinc-800/70 via-zinc-900 to-zinc-950 transition-all duration-300 ${ringClasses}`}
           >
-            {imgSrc ? (
-              <Image
-                src={imgSrc}
+            {initialPoster ? (
+              <MoviePosterImage
+                src={initialPoster}
                 alt={title}
+                title={title}
+                slug={slug}
+                year={year}
                 fill
                 unoptimized
                 priority={priority}
@@ -169,7 +129,6 @@ export const NumberedRankCard: React.FC<NumberedRankCardProps> = ({
                 className="object-cover group-hover:scale-105 transition-transform duration-500"
                 loading={priority ? "eager" : "lazy"}
                 quality={85}
-                onError={handleImageError}
               />
             ) : (
               <div className="absolute inset-0 z-0 flex flex-col items-center justify-center p-3 bg-gradient-to-br from-zinc-900 via-zinc-950 to-black select-none overflow-hidden">
@@ -188,11 +147,10 @@ export const NumberedRankCard: React.FC<NumberedRankCardProps> = ({
             {specialBadge && (
               <div className="absolute top-2 right-2 pointer-events-none z-10">
                 <span
-                  className={`px-1.5 py-0.5 rounded text-[10px] font-bold backdrop-blur-md ${
-                    specialBadge === "CAM"
-                      ? "bg-amber-950/90 text-amber-300"
-                      : "bg-black/75 text-zinc-100"
-                  }`}
+                  className={`px-1.5 py-0.5 rounded text-[10px] font-bold backdrop-blur-md ${specialBadge === "CAM"
+                    ? "bg-amber-950/90 text-amber-300"
+                    : "bg-black/75 text-zinc-100"
+                    }`}
                 >
                   {specialBadge}
                 </span>

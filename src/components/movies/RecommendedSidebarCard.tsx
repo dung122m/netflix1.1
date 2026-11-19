@@ -2,12 +2,8 @@
 
 import React from "react";
 import Link from "next/link";
-import Image from "next/image";
-import {
-  pickBestMovieThumb,
-  isSlowProviderSourceUrl,
-} from "@/lib/movieMedia";
-import { useMoviePosterFallback } from "@/hooks/useMoviePosterFallback";
+import { pickBestMovieThumb } from "@/lib/movieMedia";
+import { MoviePosterImage } from "@/components/ui/MoviePosterImage";
 import { RecommendedMovieItem } from "./RecommendedMovieCard";
 
 export interface RecommendedSidebarCardProps {
@@ -30,49 +26,11 @@ export const RecommendedSidebarCard = React.memo(function RecommendedSidebarCard
   const rawPoster = item.poster_url || item.posterUrl || "";
   const initialThumb = rawThumb || rawPoster || "/default-hero.jpg";
 
-  const isTmdb = Boolean(initialThumb && initialThumb.includes("image.tmdb.org"));
-  const isSlow = isSlowProviderSourceUrl(initialThumb);
-
-  const { displaySrc } = useMoviePosterFallback({
-    slug: item.slug,
-    title: item.name || item.title,
-    year: item.year,
-    initialSrc: initialThumb,
-    preferBackdrop: true,
-    enabled: isSlow && !isTmdb,
-    upgradePhimimg: true,
-  });
-
-  const [imgSrc, setImgSrc] = React.useState<string>(() => displaySrc || initialThumb);
-  React.useEffect(() => {
-    if (displaySrc && displaySrc !== imgSrc) {
-      setImgSrc(displaySrc);
-    }
-  }, [displaySrc, imgSrc]);
-
   const title = item.name || item.title || "Phim";
   const categoryName = displayCategory || item.category?.[0]?.name;
   const year = item.year;
   const time = item.time;
   const quality = item.quality || "HD";
-
-  const handleImageError = () => {
-    if (
-      imgSrc &&
-      (imgSrc.includes("phimimg.com") || imgSrc.includes("nguonc.com") || imgSrc.includes("/cache/")) &&
-      !imgSrc.includes("/api/media/r2-proxy")
-    ) {
-      setImgSrc(
-        `/api/media/r2-proxy?url=${encodeURIComponent(imgSrc)}&title=${encodeURIComponent(item.name || item.title || "")}&slug=${encodeURIComponent(item.slug)}`
-      );
-      return;
-    }
-    if (rawPoster && !imgSrc.includes(rawPoster)) {
-      setImgSrc(rawPoster);
-    } else if (!imgSrc.includes("/default-hero.jpg")) {
-      setImgSrc("/default-hero.jpg");
-    }
-  };
 
   return (
     <Link
@@ -84,9 +42,14 @@ export const RecommendedSidebarCard = React.memo(function RecommendedSidebarCard
     >
       {/* 1. THUMBNAIL (16:9) */}
       <div className="relative aspect-video w-[115px] sm:w-[130px] rounded-lg overflow-hidden bg-zinc-800 shrink-0 shadow-sm">
-        <Image
-          src={imgSrc}
+        <MoviePosterImage
+          src={initialThumb}
           alt={title}
+          title={title}
+          slug={item.slug}
+          year={year}
+          preferBackdrop={true}
+          fallbackSrc="/default-hero.jpg"
           fill
           unoptimized
           sizes="140px"
@@ -94,9 +57,7 @@ export const RecommendedSidebarCard = React.memo(function RecommendedSidebarCard
           decoding="async"
           loading={isLcpCandidate ? "eager" : "lazy"}
           priority={isLcpCandidate}
-          fetchPriority={isLcpCandidate ? "high" : "auto"}
           quality={80}
-          onError={handleImageError}
         />
         {quality && (
           <span className="absolute bottom-1 right-1 px-1 py-0.5 rounded text-[9px] font-bold bg-black/80 text-zinc-300 backdrop-blur-sm pointer-events-none">
