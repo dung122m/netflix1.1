@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { movieApi } from "@/services/movies/service";
 import { executeSmartSearch } from "@/services/movies/smartSearchService";
+import { enrichMovieListPosters } from "@/services/movies/posterEnrichment";
 import {
   resolveActorMovies,
   queryMoviesByActor,
@@ -77,7 +78,7 @@ export async function GET(req: NextRequest) {
 
     // Chạy song song tìm kiếm phim và phân giải diễn viên với timeout tối đa 1800ms
     // skipKvCache: true đảm bảo các truy vấn gợi ý dở dang (limit 8) không ghi rác lên Cloudflare KV
-    // posterEnrichmentBudgetMs: 0 đảm bảo tốc độ phản hồi gợi ý tức thì trong vòng vài chục mili-giây
+    // posterEnrichmentBudgetMs: 500ms nâng cấp poster sang TMDb CDN chính hãng
     const [res, actorRes] = await Promise.all([
       Promise.race([
         movieApi.getMovies({
@@ -85,7 +86,7 @@ export async function GET(req: NextRequest) {
           page: 1,
           limit: 8,
           skipKvCache: true,
-          posterEnrichmentBudgetMs: 0,
+          posterEnrichmentBudgetMs: 500,
         }),
         new Promise<{ items: SuggestMovieItem[]; pagination?: unknown }>((resolve) =>
           setTimeout(() => resolve({ items: [] }), 1800)
@@ -159,7 +160,11 @@ export async function GET(req: NextRequest) {
       validMovieItems = rawItems.slice(0, 5);
     }
 
-    const items = validMovieItems.slice(0, 5).map((item) => ({
+    const topMovieItems = validMovieItems.slice(0, 5);
+    // Chủ động nâng cấp sang TMDb CDN chính hãng siêu nhẹ (~35KB) thay vì để raw phimimg/nguonc
+    await enrichMovieListPosters(topMovieItems, { budgetMs: 500 }).catch(() => {});
+
+    const items = topMovieItems.map((item) => ({
       slug: item.slug || "",
       title: item.name || item.title || "",
       poster: pickBestMoviePoster(item as MovieLike, "/default-poster.svg"),
@@ -277,8 +282,10 @@ export async function GET(req: NextRequest) {
         ]).catch(() => []);
 
         if (Array.isArray(actorFilms) && actorFilms.length > 0) {
+          const topActorFilms = actorFilms.slice(0, 5);
+          await enrichMovieListPosters(topActorFilms, { budgetMs: 400 }).catch(() => {});
           const existingSlugs = new Set(items.map((i) => i.slug));
-          for (const film of actorFilms) {
+          for (const film of topActorFilms) {
             if (items.length >= 5) break;
             const fSlug = film.slug || "";
             if (!fSlug || existingSlugs.has(fSlug) || existingSlugs.has(`phim/${fSlug}`)) continue;

@@ -69,7 +69,7 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
   const sectionRef = useRef<HTMLElement | null>(null);
   const hasCommentDeepLink = Boolean(
     searchParams?.get("highlightComment") ||
-      (typeof window !== "undefined" && window.location.hash.startsWith("#comment-")),
+    (typeof window !== "undefined" && window.location.hash.startsWith("#comment-")),
   );
   const [isCommentsActivated, setIsCommentsActivated] = useState<boolean>(hasCommentDeepLink);
 
@@ -185,7 +185,7 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
             url.searchParams.delete("highlightComment");
             window.history.replaceState({}, "", url.pathname + (url.search ? url.search : ""));
           }
-        } catch {}
+        } catch { }
       }
     }, 2800);
     return () => clearTimeout(timer);
@@ -226,7 +226,7 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
     setScopeEpisode("all");
     const hasDeepLink = Boolean(
       searchParams?.get("highlightComment") ||
-        (typeof window !== "undefined" && window.location.hash.startsWith("#comment-")),
+      (typeof window !== "undefined" && window.location.hash.startsWith("#comment-")),
     );
     setIsCommentsActivated(hasDeepLink);
   }, [movieSlug, searchParams]);
@@ -357,7 +357,7 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
         reason: modCheck.reason || "Sử dụng từ ngữ không phù hợp thuần phong mỹ tục",
         violations: modCheck.violations,
         isSpam: modCheck.isSpam,
-      }).catch(() => {});
+      }).catch(() => { });
 
       toast.error(
         modCheck.reason || "Bình luận chứa từ ngữ không phù hợp thuần phong mỹ tục. Hành vi cố ý spam sẽ bị khóa tài khoản!"
@@ -399,12 +399,12 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
           prev.map((c) =>
             c.id === myExistingReview.id
               ? {
-                  ...c,
-                  ...updatePayload,
-                  isEdited: true,
-                  editedAt: Date.now(),
-                  updatedAt: Date.now(),
-                }
+                ...c,
+                ...updatePayload,
+                isEdited: true,
+                editedAt: Date.now(),
+                updatedAt: Date.now(),
+              }
               : c
           )
         );
@@ -751,22 +751,20 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
                     <button
                       type="button"
                       onClick={() => setScopeEpisode("all")}
-                      className={`px-2.5 py-1.5 rounded-lg font-medium transition cursor-pointer ${
-                        scopeEpisode === "all"
-                          ? "bg-zinc-800 text-white shadow-sm font-semibold"
-                          : "text-zinc-400 hover:text-zinc-200"
-                      }`}
+                      className={`px-2.5 py-1.5 rounded-lg font-medium transition cursor-pointer ${scopeEpisode === "all"
+                        ? "bg-zinc-800 text-white shadow-sm font-semibold"
+                        : "text-zinc-400 hover:text-zinc-200"
+                        }`}
                     >
                       Cả bộ phim
                     </button>
                     <button
                       type="button"
                       onClick={() => setScopeEpisode("episode")}
-                      className={`px-2.5 py-1.5 rounded-lg font-medium transition flex items-center gap-1 cursor-pointer ${
-                        scopeEpisode === "episode"
-                          ? "bg-netflix-red text-white shadow-sm font-semibold"
-                          : "text-zinc-400 hover:text-zinc-200"
-                      }`}
+                      className={`px-2.5 py-1.5 rounded-lg font-medium transition flex items-center gap-1 cursor-pointer ${scopeEpisode === "episode"
+                        ? "bg-netflix-red text-white shadow-sm font-semibold"
+                        : "text-zinc-400 hover:text-zinc-200"
+                        }`}
                     >
                       <Film className="w-3 h-3" />
                       <span>{currentEpisodeName}</span>
@@ -778,11 +776,10 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
                 <button
                   type="button"
                   onClick={() => setIsSpoiler(!isSpoiler)}
-                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition cursor-pointer select-none active:scale-95 ${
-                    isSpoiler
-                      ? "bg-amber-500/20 text-amber-300 ring-1 ring-inset ring-amber-500/40"
-                      : "bg-white/[0.05] text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.08]"
-                  }`}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition cursor-pointer select-none active:scale-95 ${isSpoiler
+                    ? "bg-amber-500/20 text-amber-300 ring-1 ring-inset ring-amber-500/40"
+                    : "bg-white/[0.05] text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.08]"
+                    }`}
                   aria-pressed={isSpoiler}
                 >
                   <AlertTriangle className={`w-3.5 h-3.5 ${isSpoiler ? "text-amber-400" : "text-zinc-500"}`} />
@@ -794,11 +791,10 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
               <button
                 type="submit"
                 disabled={isSubmitting || !content.trim()}
-                className={`inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm text-white shadow-lg disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-95 w-full sm:w-auto shrink-0 cursor-pointer ${
-                  myExistingReview
-                    ? "bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 shadow-black/40"
-                    : "bg-netflix-red hover:brightness-110 shadow-black/50"
-                }`}
+                className={`inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm text-white shadow-lg disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-95 w-full sm:w-auto shrink-0 cursor-pointer ${myExistingReview
+                  ? "bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 shadow-black/40"
+                  : "bg-netflix-red hover:brightness-110 shadow-black/50"
+                  }`}
               >
                 {isSubmitting ? (
                   <>
@@ -871,22 +867,20 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
                 <button
                   type="button"
                   onClick={() => setSortBy("newest")}
-                  className={`px-2.5 sm:px-3 py-1 rounded-lg font-medium transition-colors cursor-pointer ${
-                    sortBy === "newest"
-                      ? "bg-zinc-800 text-white shadow-sm font-semibold"
-                      : "text-zinc-400 hover:text-zinc-200"
-                  }`}
+                  className={`px-2.5 sm:px-3 py-1 rounded-lg font-medium transition-colors cursor-pointer ${sortBy === "newest"
+                    ? "bg-zinc-800 text-white shadow-sm font-semibold"
+                    : "text-zinc-400 hover:text-zinc-200"
+                    }`}
                 >
                   Mới nhất
                 </button>
                 <button
                   type="button"
                   onClick={() => setSortBy("topLikes")}
-                  className={`inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-lg font-medium transition-colors cursor-pointer ${
-                    sortBy === "topLikes"
-                      ? "bg-zinc-800 text-white shadow-sm font-semibold"
-                      : "text-zinc-400 hover:text-zinc-200"
-                  }`}
+                  className={`inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-lg font-medium transition-colors cursor-pointer ${sortBy === "topLikes"
+                    ? "bg-zinc-800 text-white shadow-sm font-semibold"
+                    : "text-zinc-400 hover:text-zinc-200"
+                    }`}
                 >
                   <Flame className="w-3.5 h-3.5 text-orange-400 shrink-0" />
                   <span className="hidden sm:inline">Nhiều thích nhất</span>
@@ -894,11 +888,10 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
                 <button
                   type="button"
                   onClick={() => setSortBy("onlyFiveStar")}
-                  className={`inline-flex items-center gap-1 px-2.5 sm:px-3 py-1 rounded-lg font-medium transition-colors cursor-pointer ${
-                    sortBy === "onlyFiveStar"
-                      ? "bg-zinc-800 text-white shadow-sm font-semibold"
-                      : "text-zinc-400 hover:text-zinc-200"
-                  }`}
+                  className={`inline-flex items-center gap-1 px-2.5 sm:px-3 py-1 rounded-lg font-medium transition-colors cursor-pointer ${sortBy === "onlyFiveStar"
+                    ? "bg-zinc-800 text-white shadow-sm font-semibold"
+                    : "text-zinc-400 hover:text-zinc-200"
+                    }`}
                 >
                   <span>5 sao</span>
                   <Star className="w-3 h-3 fill-amber-400 text-amber-400 shrink-0" />

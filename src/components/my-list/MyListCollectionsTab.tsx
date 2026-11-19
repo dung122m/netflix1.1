@@ -15,7 +15,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { MovieCollection } from "@/types/collection";
-import { toOptimizedCardPosterUrl, toFastCdnImageUrl } from "@/lib/movieMedia";
+import { toOptimizedCardPosterUrl } from "@/lib/movieMedia";
 import { useMoviePosterFallback, isPhimimgSourceUrl } from "@/hooks/useMoviePosterFallback";
 import { Tooltip } from "@/components/ui/Tooltip";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -31,7 +31,7 @@ function CollectionMosaicPoster({
   slug?: string;
   size?: number;
 }) {
-  const baseSrc = toFastCdnImageUrl(toOptimizedCardPosterUrl(poster || "", size) || poster || "/default-poster.jpg");
+  const baseSrc = toOptimizedCardPosterUrl(poster || "", size) || poster || "/default-poster.jpg";
   const { displaySrc } = useMoviePosterFallback({
     slug,
     title,
@@ -40,14 +40,30 @@ function CollectionMosaicPoster({
     upgradePhimimg: true,
   });
 
+  const [currentSrc, setCurrentSrc] = React.useState<string>(displaySrc || baseSrc);
+  React.useEffect(() => {
+    if (displaySrc && displaySrc !== currentSrc) {
+      setCurrentSrc(displaySrc);
+    }
+  }, [displaySrc, currentSrc]);
+
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img
-      src={toFastCdnImageUrl(displaySrc)}
+      src={currentSrc}
       alt={title || "Poster"}
       className="w-full h-full object-cover group-hover:scale-105 transition-transform"
       onError={(e) => {
         const target = e.currentTarget as HTMLImageElement;
+        if (
+          currentSrc &&
+          (currentSrc.includes("phimimg.com") || currentSrc.includes("nguonc.com") || currentSrc.includes("/cache/")) &&
+          !currentSrc.includes("/api/media/r2-proxy")
+        ) {
+          const proxy = `/api/media/r2-proxy?url=${encodeURIComponent(currentSrc)}&title=${encodeURIComponent(title || "")}&slug=${encodeURIComponent(slug || "")}`;
+          setCurrentSrc(proxy);
+          return;
+        }
         if (target && !target.src.includes("/default-poster.jpg")) {
           target.src = "/default-poster.jpg";
         }

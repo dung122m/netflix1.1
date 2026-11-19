@@ -15,7 +15,8 @@ import {
   Trash2,
 } from "lucide-react";
 import { MovieComment } from "@/types/comment";
-import { toOptimizedCardPosterUrl, toFastCdnImageUrl } from "@/lib/movieMedia";
+import { isSlowProviderSourceUrl } from "@/lib/movieMedia";
+import { useMoviePosterFallback } from "@/hooks/useMoviePosterFallback";
 import { Tooltip } from "@/components/ui/Tooltip";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { formatCommentDate } from "./myListFormatters";
@@ -25,6 +26,70 @@ interface MyListCommentsTabProps {
   moviePosterMap: Record<string, string>;
   deletingCommentId: string | null;
   onDeleteComment: (commentId: string, movieSlug?: string) => void;
+}
+
+function CommentMoviePosterThumbnail({
+  poster,
+  title,
+  slug,
+}: {
+  poster?: string;
+  title: string;
+  slug: string;
+}) {
+  const isTmdb = Boolean(poster && poster.includes("image.tmdb.org"));
+  const isSlow = isSlowProviderSourceUrl(poster);
+
+  const { displaySrc } = useMoviePosterFallback({
+    slug,
+    title,
+    initialSrc: poster,
+    enabled: isSlow && !isTmdb,
+    upgradePhimimg: true,
+  });
+
+  const [currentSrc, setCurrentSrc] = React.useState<string>(displaySrc || poster || "");
+  React.useEffect(() => {
+    if (displaySrc && displaySrc !== currentSrc) {
+      setCurrentSrc(displaySrc);
+    }
+  }, [displaySrc, currentSrc]);
+
+  const handleImageError = () => {
+    if (
+      currentSrc &&
+      (currentSrc.includes("phimimg.com") || currentSrc.includes("nguonc.com") || currentSrc.includes("/cache/")) &&
+      !currentSrc.includes("/api/media/r2-proxy")
+    ) {
+      setCurrentSrc(
+        `/api/media/r2-proxy?url=${encodeURIComponent(currentSrc)}&title=${encodeURIComponent(title)}&slug=${encodeURIComponent(slug)}`
+      );
+    }
+  };
+
+  if (!currentSrc) {
+    return (
+      <div className="w-full h-full min-h-[100px] flex flex-col items-center justify-center p-2 text-center bg-gradient-to-br from-zinc-800 to-zinc-950">
+        <Film className="w-6 h-6 text-netflix-red/60 mb-1" />
+        <span className="text-[10px] text-zinc-400 font-bold line-clamp-2 leading-tight">
+          {title}
+        </span>
+      </div>
+    );
+  }
+
+  return (
+    <Image
+      src={currentSrc}
+      alt={title}
+      fill
+      unoptimized
+      sizes="(max-width: 640px) 100vw, 96px"
+      className="object-cover"
+      loading="lazy"
+      onError={handleImageError}
+    />
+  );
 }
 
 export function MyListCommentsTab({
@@ -78,24 +143,11 @@ export function MyListCommentsTab({
                 prefetch={false}
                 className="relative w-full sm:w-20 md:w-24 h-36 sm:h-auto sm:aspect-[2/3] rounded-xl overflow-hidden bg-zinc-800/80 shrink-0 group-hover:scale-[1.02] transition-transform duration-300 shadow-md block"
               >
-                {poster ? (
-                  <Image
-                    src={toFastCdnImageUrl(toOptimizedCardPosterUrl(poster, 200))}
-                    alt={movieTitle}
-                    fill
-                    unoptimized
-                    sizes="(max-width: 640px) 100vw, 96px"
-                    className="object-cover"
-                    loading="lazy"
-                  />
-                ) : (
-                  <div className="w-full h-full min-h-[100px] flex flex-col items-center justify-center p-2 text-center bg-gradient-to-br from-zinc-800 to-zinc-950">
-                    <Film className="w-6 h-6 text-netflix-red/60 mb-1" />
-                    <span className="text-[10px] text-zinc-400 font-bold line-clamp-2 leading-tight">
-                      {movieTitle}
-                    </span>
-                  </div>
-                )}
+                <CommentMoviePosterThumbnail
+                  poster={poster}
+                  title={movieTitle}
+                  slug={c.movieSlug}
+                />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-center p-1.5">
                   <span className="text-[10px] font-bold text-white flex items-center gap-1">
                     <Play className="w-3 h-3 fill-white text-white" />

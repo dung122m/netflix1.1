@@ -1,10 +1,10 @@
 "use client";
 
-import React, { useState, useRef, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { pickBestMoviePoster, toFastCdnImageUrl, extractOriginalSourceUrl } from "@/lib/movieMedia";
-import { isPhimimgSourceUrl } from "@/hooks/useMoviePosterFallback";
+import { pickBestMoviePoster, extractOriginalSourceUrl } from "@/lib/movieMedia";
+import { useMoviePosterFallback } from "@/hooks/useMoviePosterFallback";
 import { MOVIE_CARD_TOKENS } from "@/lib/cardDimensions";
 
 export interface NumberedRankCardProps {
@@ -46,85 +46,51 @@ export const NumberedRankCard: React.FC<NumberedRankCardProps> = ({
       ""
     );
     if (best && !best.includes("/api/img-thumb") && !best.includes("/default-")) {
-      return toFastCdnImageUrl(best);
+      return best;
     }
     return "";
   }, [poster_url, thumb_url, title, origin_name, slug]);
 
-  const [imgSrc, setImgSrc] = useState<string>(() => initialPoster);
+  const { displaySrc } = useMoviePosterFallback({
+    slug,
+    title,
+    origin_name,
+    year,
+    initialSrc: initialPoster,
+    enabled: Boolean(!initialPoster || !initialPoster.includes("image.tmdb.org")),
+    upgradePhimimg: true,
+  });
 
-  const fallbackTriedRef = useRef(false);
+  const [imgSrc, setImgSrc] = useState<string>(() => displaySrc || initialPoster || "/default-poster.jpg");
+
+  useEffect(() => {
+    if (displaySrc && displaySrc !== imgSrc) {
+      setImgSrc(displaySrc);
+    }
+  }, [displaySrc, imgSrc]);
 
   const handleImageError = useCallback(() => {
-    const safeThumbRaw = thumb_url && !thumb_url.includes("/api/img-thumb") && !thumb_url.includes("/default-") ? thumb_url : "";
-    const safeThumb = safeThumbRaw ? toFastCdnImageUrl(safeThumbRaw) : "";
+    const safeThumb = thumb_url && !thumb_url.includes("/api/img-thumb") && !thumb_url.includes("/default-") ? thumb_url : "";
     if (safeThumb && imgSrc !== safeThumb) {
       setImgSrc(safeThumb);
       return;
     }
 
-    // 1. Ưu tiên tra cứu TMDb CDN chính hãng trước
-    if (!fallbackTriedRef.current) {
-      fallbackTriedRef.current = true;
-      fetch(
-        `/api/movie-poster-fallback?title=${encodeURIComponent(title)}&slug=${encodeURIComponent(slug)}`
-      )
-        .then((res) => (res.ok ? res.json() : null))
-        .then((data) => {
-          if (data?.posterUrl && !data.posterUrl.includes("/api/img-thumb") && !data.posterUrl.includes("phimimg.com")) {
-            setImgSrc(toFastCdnImageUrl(data.posterUrl));
-          } else {
-            // 2. Cứu cánh ảnh phimimg / R2 cache bị lỗi hoặc chưa tồn tại bằng R2 Proxy nếu TMDb không có
-            if (
-              imgSrc &&
-              (imgSrc.includes("phimimg.com") || imgSrc.includes("/cache/")) &&
-              !imgSrc.includes("/api/media/r2-proxy")
-            ) {
-              const originalSource = extractOriginalSourceUrl(imgSrc);
-              setImgSrc(`/api/media/r2-proxy?url=${encodeURIComponent(originalSource || imgSrc)}&slug=${encodeURIComponent(slug)}&title=${encodeURIComponent(title)}`);
-            } else {
-              setImgSrc("/default-poster.jpg");
-            }
-          }
-        })
-        .catch(() => {
-          if (
-            imgSrc &&
-            (imgSrc.includes("phimimg.com") || imgSrc.includes("/cache/")) &&
-            !imgSrc.includes("/api/media/r2-proxy")
-          ) {
-            const originalSource = extractOriginalSourceUrl(imgSrc);
-            setImgSrc(`/api/media/r2-proxy?url=${encodeURIComponent(originalSource || imgSrc)}&slug=${encodeURIComponent(slug)}&title=${encodeURIComponent(title)}`);
-          } else {
-            setImgSrc("/default-poster.jpg");
-          }
-        });
-    } else {
-      setImgSrc("/default-poster.jpg");
+    // Chỉ khi TMDb hoàn toàn không có và ảnh hiện tại bị lỗi/chặn mới dùng R2 proxy làm cứu cánh
+    if (
+      imgSrc &&
+      (imgSrc.includes("phimimg.com") || imgSrc.includes("nguonc.com") || imgSrc.includes("/cache/")) &&
+      !imgSrc.includes("/api/media/r2-proxy")
+    ) {
+      const originalSource = extractOriginalSourceUrl(imgSrc);
+      setImgSrc(
+        `/api/media/r2-proxy?url=${encodeURIComponent(originalSource || imgSrc)}&slug=${encodeURIComponent(slug)}&title=${encodeURIComponent(title)}`
+      );
+      return;
     }
-  }, [thumb_url, imgSrc, title, slug]);
 
-  useEffect(() => {
-    if ((!imgSrc || isPhimimgSourceUrl(imgSrc)) && !fallbackTriedRef.current) {
-      fallbackTriedRef.current = true;
-      fetch(
-        `/api/movie-poster-fallback?title=${encodeURIComponent(title)}&slug=${encodeURIComponent(slug)}`
-      )
-        .then((res) => (res.ok ? res.json() : null))
-        .then((data) => {
-          if (data?.posterUrl && !data.posterUrl.includes("/api/img-thumb") && !data.posterUrl.includes("phimimg.com")) {
-            setImgSrc(toFastCdnImageUrl(data.posterUrl));
-          } else if (!imgSrc) {
-            setImgSrc("/default-poster.jpg");
-          }
-        })
-        .catch(() => {
-          if (!imgSrc) {
-            setImgSrc("/default-poster.jpg");
-          }
-        });
-    }
-  }, [imgSrc, title, slug]);
+    setImgSrc("/default-poster.jpg");
+  }, [thumb_url, imgSrc, title, slug]);
 
   const ringClasses =
     "group-hover:ring-2 group-hover:ring-netflix-red group-hover:ring-inset group-hover:shadow-[0_14px_32px_rgba(0,0,0,0.85)] focus-visible:ring-netflix-red";

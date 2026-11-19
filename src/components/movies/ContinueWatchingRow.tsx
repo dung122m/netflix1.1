@@ -83,15 +83,15 @@ function getInitialPoster(item: WatchHistoryItem): string {
   if (item.thumb && item.thumb.includes("image.tmdb.org")) {
     return toOptimizedCardPosterUrl(item.thumb);
   }
-  // 2. Chọn poster dọc tối ưu nhất (bọc R2 proxy nếu là phimimg.com để tránh load chậm/chặn)
+  // 2. Chọn poster dọc tối ưu nhất
   const bestPoster = pickBestMoviePoster({ poster_url: item.poster, thumb_url: item.thumb }, "");
   if (bestPoster && !bestPoster.includes("/default-")) {
-    return toFastCdnImageUrl(toOptimizedCardPosterUrl(bestPoster));
+    return toOptimizedCardPosterUrl(bestPoster);
   }
   // 3. Dự phòng thumb ngang nếu chưa có poster
   const bestThumb = pickBestMovieThumb({ poster_url: item.poster, thumb_url: item.thumb }, "");
   if (bestThumb && !bestThumb.includes("/default-")) {
-    return toFastCdnImageUrl(toOptimizedCardPosterUrl(bestThumb));
+    return toOptimizedCardPosterUrl(bestThumb);
   }
   return "";
 }
@@ -109,7 +109,7 @@ function ContinueWatchingCard({ item, index = 0, onRemove }: ContinueWatchingCar
     upgradePhimimg: true,
   });
 
-  const targetInitialSrc = toFastCdnImageUrl(displaySrc || initialPoster);
+  const targetInitialSrc = displaySrc || (needsFallback && isPhimimgSourceUrl(initialPoster) ? "" : initialPoster);
   const [imgSrc, setImgSrc] = useState<string>(targetInitialSrc);
   const [isLoaded, setIsLoaded] = useState<boolean>(() => {
     return Boolean(
