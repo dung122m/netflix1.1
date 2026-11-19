@@ -139,17 +139,31 @@ export async function GET(req: NextRequest) {
       if (!auth.isAuthenticated || !auth.isAdmin) {
         return NextResponse.json({ error: "Forbidden: Yêu cầu quyền Quản trị viên" }, { status: 403 });
       }
-      const { data, error } = await supabase
+      const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10));
+      const limit = Math.max(1, Math.min(300, parseInt(searchParams.get("limit") || "200", 10)));
+      const offset = (page - 1) * limit;
+
+      const { data, count, error } = await supabase
         .from("collections")
-        .select(COLLECTION_SELECT_FIELDS)
-        .order("updated_at", { ascending: false });
+        .select(COLLECTION_SELECT_FIELDS, { count: "exact" })
+        .order("updated_at", { ascending: false })
+        .range(offset, offset + limit - 1);
 
       if (error) {
         return NextResponse.json({ success: false, error: error.message }, { status: 500 });
       }
 
       const items = (data || []).map(formatCollectionResponse);
-      return NextResponse.json({ success: true, items });
+      return NextResponse.json({
+        success: true,
+        items,
+        pagination: {
+          page,
+          limit,
+          totalItems: typeof count === "number" ? count : items.length,
+          totalPages: Math.ceil((typeof count === "number" ? count : items.length) / limit),
+        },
+      });
     }
 
     const targetUserId = searchParams.get("userId");

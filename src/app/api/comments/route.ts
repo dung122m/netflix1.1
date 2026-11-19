@@ -101,7 +101,8 @@ async function fetchReactionsMap(
     const { data, error } = await supabaseAdmin
       .from("comment_reactions")
       .select("comment_id, user_id, reaction_type")
-      .in("comment_id", commentIds);
+      .in("comment_id", commentIds)
+      .limit(1000);
 
     if (!error && data && Array.isArray(data) && data.length > 0) {
       for (const row of data) {
@@ -143,7 +144,8 @@ async function fetchProfilesMap(
     const { data } = await supabaseAdmin
       .from("profiles")
       .select("id, custom_avatar, photo_url, display_name, badges")
-      .in("id", userIds);
+      .in("id", userIds)
+      .limit(300);
     if (data && Array.isArray(data)) {
       for (const p of data) {
         map.set(p.id, p);
@@ -300,7 +302,11 @@ const COMMENT_SELECT_FIELDS =
       );
     }
 
-    let query = supabaseAdmin.from("movie_comments").select(COMMENT_SELECT_FIELDS);
+    const pageParam = searchParams.get("page");
+    const limitParam = searchParams.get("limit");
+    const isPaginated = Boolean(pageParam || limitParam);
+
+    let query = supabaseAdmin.from("movie_comments").select(COMMENT_SELECT_FIELDS, { count: isPaginated ? "exact" : undefined });
 
     if (all !== "true" || !isAdmin) {
       query = query.eq("is_flagged", false);
@@ -314,13 +320,21 @@ const COMMENT_SELECT_FIELDS =
     }
 
     query = query.order("created_at", { ascending: false });
-    if (!movieSlug && !parentId && !userId && all !== "true") {
+
+    let page = 1;
+    let limit = 100;
+    if (isPaginated) {
+      page = Math.max(1, parseInt(pageParam || "1", 10));
+      limit = Math.max(1, Math.min(300, parseInt(limitParam || "20", 10)));
+      const offset = (page - 1) * limit;
+      query = query.range(offset, offset + limit - 1);
+    } else if (!movieSlug && !parentId && !userId && all !== "true") {
       query = query.limit(100);
     } else {
       query = query.limit(300);
     }
 
-    const { data, error } = await query;
+    const { data, count, error } = await query;
     if (error || !data) {
       return NextResponse.json({ success: true, items: [] });
     }
@@ -333,8 +347,18 @@ const COMMENT_SELECT_FIELDS =
       (data as Array<Record<string, unknown>>).map((d) => mapCommentRecord(d, isAdmin, profileMap, reactionsMap))
     );
 
+    const responsePayload: Record<string, unknown> = { success: true, items };
+    if (isPaginated) {
+      responsePayload.pagination = {
+        page,
+        limit,
+        totalItems: typeof count === "number" ? count : items.length,
+        totalPages: Math.ceil((typeof count === "number" ? count : items.length) / limit),
+      };
+    }
+
     return NextResponse.json(
-      { success: true, items },
+      responsePayload,
       {
         headers: {
           "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0",
@@ -1202,7 +1226,8 @@ export async function DELETE(req: NextRequest) {
       const { data: children, error: childErr } = await supabaseAdmin
         .from("movie_comments")
         .select("id")
-        .in("parent_id", currentParentIds);
+        .in("parent_id", currentParentIds)
+        .limit(200);
 
       if (childErr) {
         return NextResponse.json({ error: childErr.message }, { status: 500 });

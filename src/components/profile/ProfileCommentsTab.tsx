@@ -33,6 +33,7 @@ export const ProfileCommentsTab: React.FC<ProfileCommentsTabProps> = React.memo(
     deletingCommentId,
     handleDeleteComment,
   }) {
+    const [visibleCount, setVisibleCount] = React.useState(8);
     return (
       <div className="space-y-4">
         <div className="flex items-center justify-between pb-2 border-b border-white/[0.08]">
@@ -59,7 +60,7 @@ export const ProfileCommentsTab: React.FC<ProfileCommentsTabProps> = React.memo(
           </div>
         ) : (
           <div className="space-y-4 max-h-[70dvh] overflow-y-auto pr-1">
-            {userComments.map((c) => {
+            {userComments.slice(0, visibleCount).map((c) => {
               const poster = moviePosterMap[c.movieSlug];
               const movieTitle = c.movieTitle || c.movieSlug.replace(/-/g, " ");
 
@@ -199,6 +200,21 @@ export const ProfileCommentsTab: React.FC<ProfileCommentsTabProps> = React.memo(
                 </div>
               );
             })}
+
+            {userComments.length > visibleCount && (
+              <div className="pt-3 pb-2 flex justify-center">
+                <button
+                  type="button"
+                  onClick={() => setVisibleCount((prev) => prev + 8)}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-zinc-300 hover:text-white bg-zinc-800/80 hover:bg-zinc-700/80 border border-white/5 hover:border-white/10 transition-all duration-200 cursor-pointer shadow-sm hover:shadow tabular-nums"
+                >
+                  <span>Xem thêm nhận xét</span>
+                  <span className="text-zinc-500 font-normal">
+                    ({Math.min(visibleCount, userComments.length)} / {userComments.length})
+                  </span>
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>

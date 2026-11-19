@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import {
   Search,
   ArrowUpDown,
@@ -18,6 +18,8 @@ import {
   Trash2,
   Crown,
   X,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { MemberWithStats } from "@/types/user";
 import { UserAvatar } from "@/components/ui/UserAvatar";
@@ -59,6 +61,42 @@ export const AdminMembersTab: React.FC<AdminMembersTabProps> = React.memo(
     onToggleUserCommentBan,
     onDeleteAllUserComments,
   }) {
+    const [currentPage, setCurrentPage] = useState(1);
+    const [pageSize, setPageSize] = useState<number>(12);
+    const membersGridRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+      setCurrentPage(1);
+    }, [memberSearchQuery, memberFilter, memberSortBy]);
+
+    const totalFiltered = filteredMembers.length;
+    const totalPages = Math.max(1, Math.ceil(totalFiltered / pageSize));
+
+    useEffect(() => {
+      if (currentPage > totalPages) {
+        setCurrentPage(totalPages);
+      }
+    }, [currentPage, totalPages]);
+
+    const startIndex = (currentPage - 1) * pageSize;
+    const endIndex = Math.min(startIndex + pageSize, totalFiltered);
+    const paginatedMembers = useMemo(() => {
+      return filteredMembers.slice(startIndex, endIndex);
+    }, [filteredMembers, startIndex, endIndex]);
+
+    const pageNumbers = useMemo(() => {
+      if (totalPages <= 5) {
+        return Array.from({ length: totalPages }, (_, i) => i + 1);
+      }
+      if (currentPage <= 3) {
+        return [1, 2, 3, 4, "...", totalPages];
+      }
+      if (currentPage >= totalPages - 2) {
+        return [1, "...", totalPages - 3, totalPages - 2, totalPages - 1, totalPages];
+      }
+      return [1, "...", currentPage - 1, currentPage, currentPage + 1, "...", totalPages];
+    }, [currentPage, totalPages]);
+
     return (
       <div className="space-y-4">
         {/* Toolbar for members */}
@@ -138,11 +176,45 @@ export const AdminMembersTab: React.FC<AdminMembersTabProps> = React.memo(
           </div>
         </div>
 
-        {/* COUNT HEADER */}
-        <div className="flex items-center justify-between text-xs text-zinc-400 px-1">
-          <span>
-            Hiển thị <strong className="text-white">{filteredMembers.length}</strong> / {totalMemberCount !== null ? totalMemberCount : "—"} thành viên
-          </span>
+        {/* COUNT & PAGINATION HEADER */}
+        <div ref={membersGridRef} className="flex flex-wrap items-center justify-between gap-2.5 text-xs text-zinc-400 px-1 pt-1">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span>
+              Hiển thị{" "}
+              <strong className="text-white font-sans tabular-nums">
+                {totalFiltered > 0 ? `${startIndex + 1} - ${endIndex}` : "0"}
+              </strong>{" "}
+              / <span className="font-sans tabular-nums">{totalFiltered}</span> thành viên lọc
+              {totalMemberCount !== null && totalMemberCount !== totalFiltered && (
+                <span className="text-zinc-500 font-sans tabular-nums ml-1">
+                  (Tổng {totalMemberCount})
+                </span>
+              )}
+            </span>
+            {totalPages > 1 && (
+              <span className="px-2 py-0.5 rounded-full bg-white/5 text-[11px] font-sans tabular-nums text-zinc-300">
+                Trang {currentPage} / {totalPages}
+              </span>
+            )}
+          </div>
+
+          <div className="flex items-center gap-3 ml-auto flex-wrap">
+            <div className="flex items-center gap-1.5 text-zinc-400">
+              <span className="text-[11px]">Hiển thị:</span>
+              <select
+                value={pageSize}
+                onChange={(e) => {
+                  setPageSize(Number(e.target.value));
+                  setCurrentPage(1);
+                }}
+                className="bg-black/60 border border-white/10 rounded-lg px-2 py-1 text-xs text-zinc-200 cursor-pointer focus:outline-none focus:border-netflix-red"
+              >
+                <option value={12}>12 / trang</option>
+                <option value={24}>24 / trang</option>
+                <option value={48}>48 / trang</option>
+              </select>
+            </div>
+          </div>
         </div>
 
         {/* MEMBERS GRID */}
@@ -154,7 +226,7 @@ export const AdminMembersTab: React.FC<AdminMembersTabProps> = React.memo(
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-            {filteredMembers.map((m) => {
+            {paginatedMembers.map((m) => {
               const isSuperAdmin = m.role === "admin";
               return (
                 <div
@@ -347,6 +419,71 @@ export const AdminMembersTab: React.FC<AdminMembersTabProps> = React.memo(
                 </div>
               );
             })}
+          </div>
+        )}
+
+        {/* PAGINATION CONTROLS */}
+        {totalPages > 1 && (
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t border-white/5 text-xs text-zinc-400">
+            <span className="font-sans tabular-nums text-zinc-400">
+              Đang hiển thị mục <strong className="text-white">{startIndex + 1}</strong> -{" "}
+              <strong className="text-white">{endIndex}</strong> trong số{" "}
+              <strong className="text-white">{totalFiltered}</strong> thành viên
+            </span>
+
+            <div className="flex items-center gap-1.5 flex-wrap justify-center">
+              <button
+                type="button"
+                disabled={currentPage === 1}
+                onClick={() => {
+                  setCurrentPage((p) => Math.max(1, p - 1));
+                  membersGridRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+                }}
+                className="px-3 py-1.5 rounded-xl bg-zinc-900 border border-white/10 hover:bg-zinc-800 disabled:opacity-30 disabled:pointer-events-none text-zinc-200 hover:text-white font-medium transition flex items-center gap-1 cursor-pointer"
+              >
+                <ChevronLeft size={13} />
+                <span>Trước</span>
+              </button>
+
+              <div className="flex items-center gap-1">
+                {pageNumbers.map((p, idx) =>
+                  typeof p === "number" ? (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => {
+                        setCurrentPage(p);
+                        membersGridRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+                      }}
+                      className={`min-w-8 h-8 px-2 rounded-xl font-sans tabular-nums text-xs font-semibold transition cursor-pointer ${
+                        p === currentPage
+                          ? "bg-netflix-red text-white shadow-md shadow-black/50"
+                          : "bg-zinc-900 border border-white/5 hover:bg-zinc-800 text-zinc-300 hover:text-white"
+                      }`}
+                    >
+                      {p}
+                    </button>
+                  ) : (
+                    <span key={idx} className="px-1 text-zinc-600 font-sans tabular-nums select-none">
+                      ...
+                    </span>
+                  )
+                )}
+              </div>
+
+              <button
+                type="button"
+                disabled={currentPage === totalPages}
+                onClick={() => {
+                  setCurrentPage((p) => Math.min(totalPages, p + 1));
+                  membersGridRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+                }}
+                className="px-3 py-1.5 rounded-xl bg-zinc-900 border border-white/10 hover:bg-zinc-800 disabled:opacity-30 disabled:pointer-events-none text-zinc-200 hover:text-white font-medium transition flex items-center gap-1 cursor-pointer"
+              >
+                <span>Sau</span>
+                <ChevronRight size={13} />
+              </button>
+            </div>
           </div>
         )}
       </div>

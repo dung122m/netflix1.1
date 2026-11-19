@@ -321,6 +321,13 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
     }));
   }, [comments, sortBy]);
 
+  const [visibleCommentsCount, setVisibleCommentsCount] = useState(10);
+
+  // Reset số lượng bình luận hiển thị khi đổi tập phim hoặc đổi bộ lọc sắp xếp
+  useEffect(() => {
+    setVisibleCommentsCount(10);
+  }, [currentEpisodeSlug, sortBy]);
+
   // Submit or Update review
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -901,7 +908,7 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
 
             {/* Comments Feed */}
             <div className="mt-4 divide-y divide-white/[0.08]">
-              {sortedComments.map((comment) => (
+              {sortedComments.slice(0, visibleCommentsCount).map((comment) => (
                 <CommentItem
                   key={comment.id}
                   comment={comment}
@@ -919,6 +926,24 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
                 />
               ))}
             </div>
+
+            {/* Nút Xem thêm bình luận (Lazy Load) */}
+            {sortedComments.length > visibleCommentsCount && (
+              <div className="pt-6 flex justify-center">
+                <button
+                  type="button"
+                  onClick={() => setVisibleCommentsCount((prev) => prev + 10)}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-zinc-900/90 hover:bg-zinc-800 text-xs sm:text-sm font-semibold text-white transition-all shadow-md active:scale-95 cursor-pointer border border-white/5"
+                >
+                  <span>
+                    Xem thêm {Math.min(10, sortedComments.length - visibleCommentsCount)} bình luận
+                  </span>
+                  <span className="text-xs text-zinc-400 font-sans tabular-nums">
+                    ({visibleCommentsCount} / {sortedComments.length})
+                  </span>
+                </button>
+              </div>
+            )}
           </>
         ) : (
           /* Empty State khi chưa có bình luận nào: Tinh gọn, không lặp tiêu đề thừa */

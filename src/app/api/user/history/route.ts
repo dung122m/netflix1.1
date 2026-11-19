@@ -169,7 +169,8 @@ export async function POST(req: NextRequest) {
         .from("watch_history")
         .select("id, watched_episodes")
         .eq("user_id", userId)
-        .in("id", rowIds);
+        .in("id", rowIds)
+        .limit(rowIds.length);
 
       if (!existingErr && Array.isArray(existingRows) && existingRows.length > 0) {
         const existingMap = new Map<string, string[]>();

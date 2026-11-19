@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import Link from "next/link";
 import {
   ShieldAlert,
@@ -18,6 +18,8 @@ import {
   Ban,
   Clock,
   X,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { MovieComment } from "@/types/comment";
 import { MemberWithStats } from "@/types/user";
@@ -77,6 +79,44 @@ export const AdminCommentsTab: React.FC<AdminCommentsTabProps> = React.memo(
     onDeleteComment,
     formatDate,
   }) {
+    const [currentPage, setCurrentPage] = useState(1);
+    const [pageSize, setPageSize] = useState<number>(10);
+    const commentsListRef = useRef<HTMLDivElement>(null);
+
+    // Reset về trang 1 khi thay đổi bộ lọc tìm kiếm hoặc sắp xếp
+    useEffect(() => {
+      setCurrentPage(1);
+    }, [searchQuery, starFilter, spoilerFilter, flaggedFilter, sortBy]);
+
+    const totalFiltered = filteredComments.length;
+    const totalPages = Math.max(1, Math.ceil(totalFiltered / pageSize));
+
+    // Đảm bảo currentPage hợp lệ nếu số lượng kết quả bị giảm sau khi lọc
+    useEffect(() => {
+      if (currentPage > totalPages) {
+        setCurrentPage(totalPages);
+      }
+    }, [currentPage, totalPages]);
+
+    const startIndex = (currentPage - 1) * pageSize;
+    const endIndex = Math.min(startIndex + pageSize, totalFiltered);
+    const paginatedComments = useMemo(() => {
+      return filteredComments.slice(startIndex, endIndex);
+    }, [filteredComments, startIndex, endIndex]);
+
+    // Tạo danh sách số trang hiển thị gọn gàng (vd: 1, 2, 3, '...', 10)
+    const pageNumbers = useMemo(() => {
+      if (totalPages <= 5) {
+        return Array.from({ length: totalPages }, (_, i) => i + 1);
+      }
+      if (currentPage <= 3) {
+        return [1, 2, 3, 4, "...", totalPages];
+      }
+      if (currentPage >= totalPages - 2) {
+        return [1, "...", totalPages - 3, totalPages - 2, totalPages - 1, totalPages];
+      }
+      return [1, "...", currentPage - 1, currentPage, currentPage + 1, "...", totalPages];
+    }, [currentPage, totalPages]);
     return (
       <div className="space-y-4">
         {/* AUTO CLEAN & PURGE CONTROL BAR */}
@@ -253,25 +293,62 @@ export const AdminCommentsTab: React.FC<AdminCommentsTabProps> = React.memo(
           </div>
         </div>
 
-        {/* COUNT HEADER */}
-        <div className="flex items-center justify-between text-xs text-zinc-400 px-1">
-          <span>
-            Hiển thị <strong className="text-white">{filteredComments.length}</strong> / {totalCommentsCount} bình luận
-          </span>
-          {(searchQuery || starFilter !== "all" || spoilerFilter !== "all" || flaggedFilter !== "all") && (
-            <button
-              type="button"
-              onClick={() => {
-                setSearchQuery("");
-                setStarFilter("all");
-                setSpoilerFilter("all");
-                setFlaggedFilter("all");
-              }}
-              className="text-netflix-red hover:underline cursor-pointer"
-            >
-              Xóa bộ lọc
-            </button>
-          )}
+        {/* COUNT & PAGINATION HEADER */}
+        <div ref={commentsListRef} className="flex flex-wrap items-center justify-between gap-2.5 text-xs text-zinc-400 px-1 pt-1">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span>
+              Hiển thị{" "}
+              <strong className="text-white font-sans tabular-nums">
+                {totalFiltered > 0 ? `${startIndex + 1} - ${endIndex}` : "0"}
+              </strong>{" "}
+              / <span className="font-sans tabular-nums">{totalFiltered}</span> bình luận lọc
+              {totalFiltered !== totalCommentsCount && (
+                <span className="text-zinc-500 font-sans tabular-nums ml-1">
+                  (Tổng {totalCommentsCount})
+                </span>
+              )}
+            </span>
+            {totalPages > 1 && (
+              <span className="px-2 py-0.5 rounded-full bg-white/5 text-[11px] font-sans tabular-nums text-zinc-300">
+                Trang {currentPage} / {totalPages}
+              </span>
+            )}
+          </div>
+
+          <div className="flex items-center gap-3 ml-auto flex-wrap">
+            {/* Phân trang: Chọn số lượng mỗi trang */}
+            <div className="flex items-center gap-1.5 text-zinc-400">
+              <span className="text-[11px]">Hiển thị:</span>
+              <select
+                value={pageSize}
+                onChange={(e) => {
+                  setPageSize(Number(e.target.value));
+                  setCurrentPage(1);
+                }}
+                className="bg-black/60 border border-white/10 rounded-lg px-2 py-1 text-xs text-zinc-200 cursor-pointer focus:outline-none focus:border-netflix-red"
+              >
+                <option value={10}>10 / trang</option>
+                <option value={20}>20 / trang</option>
+                <option value={50}>50 / trang</option>
+              </select>
+            </div>
+
+            {(searchQuery || starFilter !== "all" || spoilerFilter !== "all" || flaggedFilter !== "all") && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchQuery("");
+                  setStarFilter("all");
+                  setSpoilerFilter("all");
+                  setFlaggedFilter("all");
+                  setCurrentPage(1);
+                }}
+                className="text-netflix-red hover:underline cursor-pointer"
+              >
+                Xóa bộ lọc
+              </button>
+            )}
+          </div>
         </div>
 
         {/* COMMENTS LIST */}
@@ -288,7 +365,7 @@ export const AdminCommentsTab: React.FC<AdminCommentsTabProps> = React.memo(
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-3">
-            {filteredComments.map((item) => {
+            {paginatedComments.map((item) => {
               const itemUser = allMembers.find((m) => m.uid === item.userId);
               const isUserRestricted = Boolean(itemUser?.isCommentRestricted);
 
@@ -487,6 +564,71 @@ export const AdminCommentsTab: React.FC<AdminCommentsTabProps> = React.memo(
                 </div>
               );
             })}
+          </div>
+        )}
+
+        {/* PAGINATION CONTROLS */}
+        {!loadingData && totalPages > 1 && (
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t border-white/5 text-xs text-zinc-400">
+            <span className="font-sans tabular-nums text-zinc-400">
+              Đang hiển thị mục <strong className="text-white">{startIndex + 1}</strong> -{" "}
+              <strong className="text-white">{endIndex}</strong> trong số{" "}
+              <strong className="text-white">{totalFiltered}</strong> bình luận
+            </span>
+
+            <div className="flex items-center gap-1.5 flex-wrap justify-center">
+              <button
+                type="button"
+                disabled={currentPage === 1}
+                onClick={() => {
+                  setCurrentPage((p) => Math.max(1, p - 1));
+                  commentsListRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+                }}
+                className="px-3 py-1.5 rounded-xl bg-zinc-900 border border-white/10 hover:bg-zinc-800 disabled:opacity-30 disabled:pointer-events-none text-zinc-200 hover:text-white font-medium transition flex items-center gap-1 cursor-pointer"
+              >
+                <ChevronLeft size={13} />
+                <span>Trước</span>
+              </button>
+
+              <div className="flex items-center gap-1">
+                {pageNumbers.map((p, idx) =>
+                  typeof p === "number" ? (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => {
+                        setCurrentPage(p);
+                        commentsListRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+                      }}
+                      className={`min-w-8 h-8 px-2 rounded-xl font-sans tabular-nums text-xs font-semibold transition cursor-pointer ${
+                        p === currentPage
+                          ? "bg-netflix-red text-white shadow-md shadow-black/50"
+                          : "bg-zinc-900 border border-white/5 hover:bg-zinc-800 text-zinc-300 hover:text-white"
+                      }`}
+                    >
+                      {p}
+                    </button>
+                  ) : (
+                    <span key={idx} className="px-1 text-zinc-600 font-sans tabular-nums select-none">
+                      ...
+                    </span>
+                  )
+                )}
+              </div>
+
+              <button
+                type="button"
+                disabled={currentPage === totalPages}
+                onClick={() => {
+                  setCurrentPage((p) => Math.min(totalPages, p + 1));
+                  commentsListRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+                }}
+                className="px-3 py-1.5 rounded-xl bg-zinc-900 border border-white/10 hover:bg-zinc-800 disabled:opacity-30 disabled:pointer-events-none text-zinc-200 hover:text-white font-medium transition flex items-center gap-1 cursor-pointer"
+              >
+                <span>Sau</span>
+                <ChevronRight size={13} />
+              </button>
+            </div>
           </div>
         )}
       </div>

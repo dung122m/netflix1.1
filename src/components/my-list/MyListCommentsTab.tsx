@@ -33,6 +33,8 @@ export function MyListCommentsTab({
   deletingCommentId,
   onDeleteComment,
 }: MyListCommentsTabProps) {
+  const [visibleCount, setVisibleCount] = React.useState(8);
+
   if (userComments.length === 0) {
     return (
       <EmptyState
@@ -61,7 +63,7 @@ export function MyListCommentsTab({
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {userComments.map((c) => {
+        {userComments.slice(0, visibleCount).map((c) => {
           const poster = moviePosterMap[c.movieSlug];
           const movieTitle = c.movieTitle || c.movieSlug.replace(/-/g, " ");
 
@@ -202,6 +204,21 @@ export function MyListCommentsTab({
           );
         })}
       </div>
+
+      {userComments.length > visibleCount && (
+        <div className="pt-3 flex justify-center">
+          <button
+            type="button"
+            onClick={() => setVisibleCount((prev) => prev + 8)}
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-zinc-300 hover:text-white bg-zinc-800/80 hover:bg-zinc-700/80 border border-white/5 hover:border-white/10 transition-all duration-200 cursor-pointer shadow-sm hover:shadow tabular-nums"
+          >
+            <span>Xem thêm nhận xét</span>
+            <span className="text-zinc-500 font-normal">
+              ({Math.min(visibleCount, userComments.length)} / {userComments.length})
+            </span>
+          </button>
+        </div>
+      )}
     </div>
   );
 }

@@ -40,11 +40,13 @@ export async function GET(req: NextRequest) {
   try {
     const targetUserId = getEffectiveTargetUserId(auth, req) || auth.userId;
 
+    const limit = Math.max(1, Math.min(200, parseInt(req.nextUrl.searchParams.get("limit") || "200", 10)));
     const { data, error } = await supabase
       .from("watchlist")
       .select("slug, title, poster, year, quality, category, added_at")
       .eq("user_id", targetUserId)
-      .order("added_at", { ascending: false });
+      .order("added_at", { ascending: false })
+      .limit(limit);
 
     if (error) {
       return NextResponse.json({ success: false, error: error.message }, { status: 500 });

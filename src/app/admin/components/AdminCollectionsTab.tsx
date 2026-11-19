@@ -1,8 +1,8 @@
 "use client";
 
-import React from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import Link from "next/link";
-import { ExternalLink, FolderHeart, Search, Trash2 } from "lucide-react";
+import { ExternalLink, FolderHeart, Search, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
 import { MovieCollection } from "@/types/collection";
 import { Tooltip } from "@/components/ui/Tooltip";
 
@@ -22,9 +22,45 @@ export const AdminCollectionsTab: React.FC<AdminCollectionsTabProps> = React.mem
     onDeleteCollection,
     formatDate,
   }) {
+    const [currentPage, setCurrentPage] = useState(1);
+    const [pageSize, setPageSize] = useState<number>(12);
+    const collectionsGridRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+      setCurrentPage(1);
+    }, [colSearchQuery]);
+
+    const totalFiltered = filteredCollections.length;
+    const totalPages = Math.max(1, Math.ceil(totalFiltered / pageSize));
+
+    useEffect(() => {
+      if (currentPage > totalPages) {
+        setCurrentPage(totalPages);
+      }
+    }, [currentPage, totalPages]);
+
+    const startIndex = (currentPage - 1) * pageSize;
+    const endIndex = Math.min(startIndex + pageSize, totalFiltered);
+    const paginatedCollections = useMemo(() => {
+      return filteredCollections.slice(startIndex, endIndex);
+    }, [filteredCollections, startIndex, endIndex]);
+
+    const pageNumbers = useMemo(() => {
+      if (totalPages <= 5) {
+        return Array.from({ length: totalPages }, (_, i) => i + 1);
+      }
+      if (currentPage <= 3) {
+        return [1, 2, 3, 4, "...", totalPages];
+      }
+      if (currentPage >= totalPages - 2) {
+        return [1, "...", totalPages - 3, totalPages - 2, totalPages - 1, totalPages];
+      }
+      return [1, "...", currentPage - 1, currentPage, currentPage + 1, "...", totalPages];
+    }, [currentPage, totalPages]);
+
     return (
       <div className="space-y-4">
-        <div className="p-4 rounded-2xl bg-zinc-900/90 flex flex-col md:flex-row md:items-center justify-between gap-3">
+        <div ref={collectionsGridRef} className="p-4 rounded-2xl bg-zinc-900/90 flex flex-col md:flex-row md:items-center justify-between gap-3">
           <div className="relative flex-1">
             <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400" />
             <input
@@ -35,8 +71,25 @@ export const AdminCollectionsTab: React.FC<AdminCollectionsTabProps> = React.mem
               className="w-full bg-black/60 rounded-xl pl-9 pr-4 py-2 text-base sm:text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-netflix-red transition"
             />
           </div>
-          <div className="text-xs text-zinc-400">
-            Tổng số: <strong className="text-white">{filteredCollections.length}</strong> bộ sưu tập công khai
+          <div className="flex items-center gap-3 text-xs text-zinc-400 flex-wrap">
+            <span>
+              Hiển thị <strong className="text-white font-sans tabular-nums">{totalFiltered > 0 ? `${startIndex + 1} - ${endIndex}` : "0"}</strong> / <span className="font-sans tabular-nums">{totalFiltered}</span> bộ sưu tập
+            </span>
+            <div className="flex items-center gap-1.5 text-zinc-400">
+              <span className="text-[11px]">Hiển thị:</span>
+              <select
+                value={pageSize}
+                onChange={(e) => {
+                  setPageSize(Number(e.target.value));
+                  setCurrentPage(1);
+                }}
+                className="bg-black/60 border border-white/10 rounded-lg px-2 py-1 text-xs text-zinc-200 cursor-pointer focus:outline-none focus:border-netflix-red"
+              >
+                <option value={12}>12 / trang</option>
+                <option value={24}>24 / trang</option>
+                <option value={48}>48 / trang</option>
+              </select>
+            </div>
           </div>
         </div>
 
@@ -48,7 +101,7 @@ export const AdminCollectionsTab: React.FC<AdminCollectionsTabProps> = React.mem
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredCollections.map((col) => (
+            {paginatedCollections.map((col) => (
               <div
                 key={col.id}
                 className="p-5 rounded-2xl bg-zinc-900/85 hover:bg-zinc-900/95 transition flex flex-col justify-between space-y-4 group"
@@ -94,6 +147,71 @@ export const AdminCollectionsTab: React.FC<AdminCollectionsTabProps> = React.mem
                 </div>
               </div>
             ))}
+          </div>
+        )}
+
+        {/* PAGINATION CONTROLS */}
+        {totalPages > 1 && (
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t border-white/5 text-xs text-zinc-400">
+            <span className="font-sans tabular-nums text-zinc-400">
+              Đang hiển thị mục <strong className="text-white">{startIndex + 1}</strong> -{" "}
+              <strong className="text-white">{endIndex}</strong> trong số{" "}
+              <strong className="text-white">{totalFiltered}</strong> bộ sưu tập
+            </span>
+
+            <div className="flex items-center gap-1.5 flex-wrap justify-center">
+              <button
+                type="button"
+                disabled={currentPage === 1}
+                onClick={() => {
+                  setCurrentPage((p) => Math.max(1, p - 1));
+                  collectionsGridRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+                }}
+                className="px-3 py-1.5 rounded-xl bg-zinc-900 border border-white/10 hover:bg-zinc-800 disabled:opacity-30 disabled:pointer-events-none text-zinc-200 hover:text-white font-medium transition flex items-center gap-1 cursor-pointer"
+              >
+                <ChevronLeft size={13} />
+                <span>Trước</span>
+              </button>
+
+              <div className="flex items-center gap-1">
+                {pageNumbers.map((p, idx) =>
+                  typeof p === "number" ? (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => {
+                        setCurrentPage(p);
+                        collectionsGridRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+                      }}
+                      className={`min-w-8 h-8 px-2 rounded-xl font-sans tabular-nums text-xs font-semibold transition cursor-pointer ${
+                        p === currentPage
+                          ? "bg-netflix-red text-white shadow-md shadow-black/50"
+                          : "bg-zinc-900 border border-white/5 hover:bg-zinc-800 text-zinc-300 hover:text-white"
+                      }`}
+                    >
+                      {p}
+                    </button>
+                  ) : (
+                    <span key={idx} className="px-1 text-zinc-600 font-sans tabular-nums select-none">
+                      ...
+                    </span>
+                  )
+                )}
+              </div>
+
+              <button
+                type="button"
+                disabled={currentPage === totalPages}
+                onClick={() => {
+                  setCurrentPage((p) => Math.min(totalPages, p + 1));
+                  collectionsGridRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+                }}
+                className="px-3 py-1.5 rounded-xl bg-zinc-900 border border-white/10 hover:bg-zinc-800 disabled:opacity-30 disabled:pointer-events-none text-zinc-200 hover:text-white font-medium transition flex items-center gap-1 cursor-pointer"
+              >
+                <span>Sau</span>
+                <ChevronRight size={13} />
+              </button>
+            </div>
           </div>
         )}
       </div>
