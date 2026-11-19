@@ -883,10 +883,13 @@ async function executeGetMovies(params: MovieFilterParams, cacheKey: string) {
     }
   }
 
-  // SERVER-SIDE POSTER ENRICHMENT (Ưu tiên nguồn TMDb image.tmdb.org, bỏ qua nếu caller set budget = 0):
-  const enrichBudgetMs = params.posterEnrichmentBudgetMs ?? 3000;
+  // SERVER-SIDE POSTER ENRICHMENT (Mặc định 0ms đọc RAM, không block SSR để giảm thiểu Active CPU):
+  const enrichBudgetMs = params.posterEnrichmentBudgetMs ?? 0;
   if (enrichBudgetMs > 0) {
     await enrichMovieListPosters(finalItems, { budgetMs: enrichBudgetMs });
+  } else {
+    // Hoàn tất định dạng poster trong RAM (0ms)
+    await enrichMovieListPosters(finalItems, { budgetMs: 0 });
   }
 
   const payload = {

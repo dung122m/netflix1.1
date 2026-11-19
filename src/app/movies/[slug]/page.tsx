@@ -16,10 +16,10 @@ export const dynamicParams = true;
 export async function generateStaticParams() {
   try {
     const [page1, page2, page3, page4] = await Promise.allSettled([
-      movieApi.getMovies({ page: 1, limit: 25, sort: "views" }),
-      movieApi.getMovies({ page: 2, limit: 25, sort: "views" }),
-      movieApi.getMovies({ page: 1, limit: 25, sort: "latest" }),
-      movieApi.getMovies({ page: 1, limit: 25, sort: "rating" }),
+      movieApi.getMovies({ page: 1, limit: 25, sort: "views", posterEnrichmentBudgetMs: 0 }),
+      movieApi.getMovies({ page: 2, limit: 25, sort: "views", posterEnrichmentBudgetMs: 0 }),
+      movieApi.getMovies({ page: 1, limit: 25, sort: "latest", posterEnrichmentBudgetMs: 0 }),
+      movieApi.getMovies({ page: 1, limit: 25, sort: "rating", posterEnrichmentBudgetMs: 0 }),
     ]);
     const slugSet = new Set<string>();
     for (const res of [page1, page2, page3, page4]) {

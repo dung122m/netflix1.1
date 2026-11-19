@@ -467,6 +467,7 @@ export default async function BrowsePage({
       limit: PAGE_LIMIT,
       type,
       sort: effectiveSort,
+      posterEnrichmentBudgetMs: 0,
     });
 
     const items = searchResponse?.items || [];
@@ -485,6 +486,7 @@ export default async function BrowsePage({
       limit: PAGE_LIMIT,
       type,
       sort: effectiveSort,
+      posterEnrichmentBudgetMs: 0,
     });
 
     upstreamMovies = response?.items || [];
@@ -569,7 +571,7 @@ export default async function BrowsePage({
   const pages = getPaginationPages(currentPage, totalPages);
 
   if (movies.length === 0 && (keyword || actorParam)) {
-    const fallbackRes = await movieApi.getMovies({ limit: 24, sort: "views" });
+    const fallbackRes = await movieApi.getMovies({ limit: 24, sort: "views", posterEnrichmentBudgetMs: 0 });
     const rawFallback = fallbackRes?.items || [];
     // Đảm bảo số lượng phim tròn hàng trên lưới 6 cột (12 hoặc 18 phim), tuyệt đối không bị khuyết ô trống
     const count = Math.floor(rawFallback.length / 6) * 6;

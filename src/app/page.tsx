@@ -305,6 +305,7 @@ export default async function HomePage() {
       page: 1,
       limit: 24,
       sort: "views",
+      posterEnrichmentBudgetMs: 0,
     }),
     Promise.race([
       getTmdbRankedMovies("week", 20).catch(() => []),

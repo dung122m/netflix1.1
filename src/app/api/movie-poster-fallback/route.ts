@@ -126,11 +126,15 @@ export async function GET(req: NextRequest) {
     ? ([title, slug ? slug.replace(/-/g, " ") : null, origin_name && origin_name !== title ? origin_name : null].filter(Boolean) as string[])
     : ([origin_name && origin_name !== title ? origin_name : null, title, slug ? slug.replace(/-/g, " ") : null].filter(Boolean) as string[]);
 
-  for (const q of queryOrder) {
-    if (result) break;
-    const res = await queryTmdbPoster(q, year, isVietnamese ? "VN" : undefined);
-    if (res.posterUrl || res.backdropUrl) result = res;
-  }
+  // Tra cứu song song toàn bộ ứng viên (thay vì lặp tuần tự gây trễ 3-4s)
+  const candidateLookups = queryOrder.map((q) =>
+    queryTmdbPoster(q, year, isVietnamese ? "VN" : undefined).catch(() => null)
+  );
+  const candidateResults = await Promise.race([
+    Promise.all(candidateLookups),
+    new Promise<never[]>((resolve) => setTimeout(() => resolve([]), 1500)),
+  ]);
+  result = candidateResults.find((r) => r && (r.posterUrl || r.backdropUrl)) || null;
 
   // 4. Fallback tra cứu chi tiết phim từ slug: Tận dụng tmdb.id và origin_name của phim
   if (!result && slug) {

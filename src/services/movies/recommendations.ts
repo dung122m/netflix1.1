@@ -195,10 +195,10 @@ export async function computeMovieRecommendations(body: any): Promise<Recommenda
     // 2. Phát hiện tín hiệu võ thuật từ cờ truyền vào hoặc mô tả phim nguồn
     const srcHasMartialArts = hasMartialArtsSignal(body);
 
-    // 3. Truy vấn song song các nguồn với timeout cứng <= 1800ms và bỏ qua bước enrich poster đồng bộ (3000ms)
+    // 3. Truy vấn song song các nguồn với timeout gọn 1200ms và bỏ qua enrich poster đồng bộ
     const [tmdbRecs, genreResults, countryResults, actorResult, directorResult, martialArtsResult] = await Promise.all([
       tmdbId
-        ? withTimeout(getTmdbMovieRecommendations(tmdbId, tmdbType || type, currentMovieSlug).catch(() => []), 1800, [])
+        ? withTimeout(getTmdbMovieRecommendations(tmdbId, tmdbType || type, currentMovieSlug).catch(() => []), 1200, [])
         : Promise.resolve([]),
       Promise.all(
         targetCategories.map((c) =>
@@ -206,7 +206,7 @@ export async function computeMovieRecommendations(body: any): Promise<Recommenda
             movieApi
               .getMovies({ category: c.slug, page: 1, limit: 16, posterEnrichmentBudgetMs: 0 })
               .catch(() => null),
-            1800,
+            1200,
             null
           )
         )
@@ -217,23 +217,23 @@ export async function computeMovieRecommendations(body: any): Promise<Recommenda
             movieApi
               .getMovies({ country: c.slug, page: 1, limit: 16, posterEnrichmentBudgetMs: 0 })
               .catch(() => null),
-            1800,
+            1200,
             null
           )
         )
       ),
       primaryActor
-        ? withTimeout(queryMoviesByActor(primaryActor, [], undefined, 12).catch(() => []), 1800, [])
+        ? withTimeout(queryMoviesByActor(primaryActor, [], undefined, 8).catch(() => []), 1200, [])
         : Promise.resolve([]),
       primaryDirector
-        ? withTimeout(getDirectorFilmographyFromTmdb(primaryDirector, 12).catch(() => []), 1800, [])
+        ? withTimeout(getDirectorFilmographyFromTmdb(primaryDirector, 8).catch(() => []), 1200, [])
         : Promise.resolve([]),
       srcHasMartialArts
         ? withTimeout(
             movieApi
               .getMovies({ category: "vo-thuat", page: 1, limit: 16, posterEnrichmentBudgetMs: 0 })
               .catch(() => null),
-            1800,
+            1200,
             null
           )
         : Promise.resolve(null),
@@ -689,7 +689,7 @@ async function executeAndCacheRecommendations(
     const computed = await computeMovieRecommendations(body);
     if (computed && computed.success) {
       const packed = packRecommendationsPayload(computed);
-      cacheService.set(kvKeyV13, packed, 7 * 24 * 3600).catch(() => {});
+      cacheService.set(kvKeyV13, packed, 14 * 24 * 3600).catch(() => {});
       rawData = packed;
     } else {
       rawData = computed as unknown as Record<string, unknown>;

@@ -126,6 +126,7 @@ async function generateForYouRecommendations(input: RecommendationInput): Promis
           limit: 24,
           page: pageOffset,
           sort: "views",
+          posterEnrichmentBudgetMs: 0,
         })
       );
 
@@ -137,6 +138,7 @@ async function generateForYouRecommendations(input: RecommendationInput): Promis
             limit: 24,
             page: pageOffset,
             sort: "views",
+            posterEnrichmentBudgetMs: 0,
           })
         );
       } else if (topCountry) {
@@ -146,6 +148,7 @@ async function generateForYouRecommendations(input: RecommendationInput): Promis
             limit: 24,
             page: pageOffset,
             sort: "views",
+            posterEnrichmentBudgetMs: 0,
           })
         );
       } else {
@@ -155,6 +158,7 @@ async function generateForYouRecommendations(input: RecommendationInput): Promis
             limit: 24,
             page: pageOffset + 1,
             sort: "rating",
+            posterEnrichmentBudgetMs: 0,
           })
         );
       }
@@ -167,6 +171,7 @@ async function generateForYouRecommendations(input: RecommendationInput): Promis
             limit: 20,
             page: (seed % 2) + 1,
             sort: "views",
+            posterEnrichmentBudgetMs: 0,
           })
         );
       } else if (prefType) {
@@ -176,6 +181,7 @@ async function generateForYouRecommendations(input: RecommendationInput): Promis
             limit: 20,
             page: (seed % 3) + 1,
             sort: "latest",
+            posterEnrichmentBudgetMs: 0,
           })
         );
       } else {
@@ -184,6 +190,7 @@ async function generateForYouRecommendations(input: RecommendationInput): Promis
             limit: 20,
             page: (seed % 3) + 1,
             sort: "views",
+            posterEnrichmentBudgetMs: 0,
           })
         );
       }
@@ -196,6 +203,7 @@ async function generateForYouRecommendations(input: RecommendationInput): Promis
           limit: 24,
           page: pageOffset,
           sort: "views",
+          posterEnrichmentBudgetMs: 0,
         })
       );
       queryPromises.push(
@@ -204,6 +212,7 @@ async function generateForYouRecommendations(input: RecommendationInput): Promis
           limit: 24,
           page: pageOffset,
           sort: "rating",
+          posterEnrichmentBudgetMs: 0,
         })
       );
       queryPromises.push(
@@ -212,6 +221,7 @@ async function generateForYouRecommendations(input: RecommendationInput): Promis
           limit: 20,
           page: (seed % 2) + 1,
           sort: "views",
+          posterEnrichmentBudgetMs: 0,
         })
       );
     }
@@ -570,6 +580,7 @@ async function generateForYouRecommendations(input: RecommendationInput): Promis
             page: p,
             limit: 24,
             sort: p === 1 ? "views" : "rating",
+            posterEnrichmentBudgetMs: 0,
           });
           for (const raw of fallbackRes?.items || []) {
             const norm = normalizeMovie(raw);

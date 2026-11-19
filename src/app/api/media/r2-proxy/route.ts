@@ -79,9 +79,9 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  // 2. Nếu chưa có trên R2: Tải từ nguồn gốc (timeout 4.5s để chống treo mạng nhà mạng)
+  // 2. Nếu chưa có trên R2: Tải từ nguồn gốc (timeout gọn 2.2s để chống treo CPU khi mạng ngoài chậm)
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 4500);
+  const timeoutId = setTimeout(() => controller.abort(), 2200);
 
   try {
     const upstreamRes = await fetch(targetUrl, {
@@ -117,17 +117,20 @@ export async function GET(req: NextRequest) {
 
     const verifiedContentType = validation.mimeType || "image/jpeg";
 
-    // 3. Tải lên R2 ngầm bằng `after()` (Đảm bảo container Vercel không bị đóng băng giữa chừng)
+    // 3. Tải lên R2 ngầm bằng `after()` (kèm timeout trần 2000ms để không giữ container Vercel quá lâu)
     if (isR2Configured() && buffer.length > 0) {
       after(async () => {
         try {
-          await uploadToR2({
-            key: r2Key,
-            buffer,
-            contentType: verifiedContentType,
-            cacheControl: "public, max-age=31536000, immutable",
-            category: "cache",
-          });
+          await Promise.race([
+            uploadToR2({
+              key: r2Key,
+              buffer,
+              contentType: verifiedContentType,
+              cacheControl: "public, max-age=31536000, immutable",
+              category: "cache",
+            }),
+            new Promise((resolve) => setTimeout(resolve, 2000)),
+          ]);
         } catch (uploadErr) {
           console.warn("[R2 Proxy] Background upload error:", uploadErr);
         }

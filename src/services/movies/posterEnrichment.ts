@@ -77,8 +77,17 @@ function scheduleAfterSettlement(task: Promise<unknown>): void {
 export async function enrichMovieListPosters(movieList: any[], options: PosterEnrichmentOptions = {}): Promise<void> {
   if (!Array.isArray(movieList) || movieList.length === 0) return;
 
-  const budgetMs = options.budgetMs ?? 3000;
+  const budgetMs = options.budgetMs ?? 0;
   const stripProxyUrls = options.stripProxyUrls ?? false;
+
+  // Nếu budgetMs <= 0: Không gọi mạng TMDb (tránh tốn Active CPU); chỉ hoàn thiện ảnh trong RAM (0ms)
+  if (budgetMs <= 0) {
+    for (const item of movieList) {
+      if (item) applyPosterFallback(item, stripProxyUrls);
+    }
+    return;
+  }
+
   const controller = new AbortController();
   const { signal } = controller;
   const settledItems = new WeakSet<object>();
