@@ -167,6 +167,7 @@ export function getHistoricalArtistBySlug(slug?: string): HistoricalArtistBirthd
       englishName: syn.englishName,
       country: syn.country,
       aliases: syn.variants,
+      avatarUrl: getR2ActorAvatarUrl(syn.slug),
     };
   }
   return undefined;
@@ -211,6 +212,7 @@ export function findHistoricalArtist(nameOrQuery?: string): HistoricalArtistBirt
       englishName: syn.englishName,
       country: syn.country,
       aliases: syn.variants,
+      avatarUrl: getR2ActorAvatarUrl(syn.slug),
     };
   }
   return undefined;

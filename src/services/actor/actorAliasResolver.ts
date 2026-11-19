@@ -178,12 +178,15 @@ export function getActorSynonyms(query: string): ActorSynonymResult {
     );
 
     const normCanonical = normalizeForMatch(canonicalDirect);
+    const hasVietnameseMarks = (s: string) =>
+      /[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/i.test(s);
     const genuineEnglishAlias = allVariants.find(
       (a) =>
-        !/[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/i.test(a) &&
+        !hasVietnameseMarks(a) &&
         normalizeForMatch(a) !== normCanonical &&
         a.includes(" ") &&
-        !/\d/.test(a)
+        !/\d/.test(a) &&
+        !allVariants.some((v) => hasVietnameseMarks(v) && normalizeForMatch(v) === normalizeForMatch(a))
     );
 
     const englishName = genuineEnglishAlias ? toVietnameseTitleCase(genuineEnglishAlias) : undefined;
@@ -238,10 +241,18 @@ export function getActorSynonyms(query: string): ActorSynonymResult {
         ].filter((s): s is string => Boolean(s && s.trim().length >= 2)).map((s) => s.trim().toLowerCase()))
       );
 
-      // Tìm tên tiếng Anh gốc (alias chữ Latinh không chứa dấu tiếng Việt và có dấu cách)
-      const englishName = aliases.find(
-        (a) => !/[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/i.test(a) && a.includes(" ")
-      ) || aliases[2];
+      // Tìm tên tiếng Anh gốc (alias chữ Latinh không chứa dấu tiếng Việt, có dấu cách và không phải là biến thể không dấu của bí danh tiếng Việt)
+      const hasVietnameseMarks = (s: string) =>
+        /[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/i.test(s);
+      const genuineSlugEnglish = aliases.find(
+        (a) =>
+          !hasVietnameseMarks(a) &&
+          normalizeForMatch(a) !== normSlug &&
+          a.includes(" ") &&
+          !/\d/.test(a) &&
+          !aliases.some((v) => hasVietnameseMarks(v) && normalizeForMatch(v) === normalizeForMatch(a))
+      );
+      const englishName = genuineSlugEnglish ? toVietnameseTitleCase(genuineSlugEnglish) : undefined;
 
       const canonicalName = preset?.name || (aliases[0] ? toVietnameseTitleCase(aliases[0]) : toVietnameseTitleCase(query.trim()));
 

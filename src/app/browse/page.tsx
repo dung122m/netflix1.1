@@ -5,7 +5,7 @@ import { FilterBarClient } from "@/components/browse/FilterBarClient";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { Film, Flame, ChevronRight } from "lucide-react";
-import { findHistoricalArtist } from "@/data/history/historicalArtistsBirthdays";
+import { findHistoricalArtist, ensureHistoricalArtistsLoaded, getR2ActorAvatarUrl } from "@/data/history/historicalArtistsBirthdays";
 import { movieApi, parseSortMode } from "@/services/movies/service";
 
 /** Cache danh mục phim 3 phút trên Vercel Edge CDN để giảm tải CPU Serverless tối đa */
@@ -317,12 +317,13 @@ async function runActorSearch(options: ActorSearchOptions) {
   const totalPages = Math.max(1, Math.ceil(totalItems / pageLimit));
   const startIndex = (currentPage - 1) * pageLimit;
   const histArtist = findHistoricalArtist(canonicalName) || (actorParam ? findHistoricalArtist(actorParam) : undefined);
+  const bestAvatar = histArtist?.avatarUrl || (actorSynonyms?.slug ? getR2ActorAvatarUrl(actorSynonyms.slug) : undefined);
   return {
     actor: {
       name: histArtist?.name || canonicalName,
       englishName: histArtist?.englishName || actorSynonyms?.englishName,
       country: histArtist?.country || actorCountry,
-      avatarUrl: histArtist?.avatarUrl,
+      avatarUrl: bestAvatar,
     },
     movies: filteredActorMovies.slice(startIndex, startIndex + pageLimit).map((m: any) => ({ ...m, isActorFilmography: true })),
     totalItems,
@@ -420,6 +421,11 @@ export default async function BrowsePage({
   // =========================================================================
   // 1. TÁCH BIỆT RÕ RÀNG: TÌM KIẾM THEO DIỄN VIÊN VS TÌM KIẾM THEO TÊN PHIM
   // =========================================================================
+  // Đảm bảo nạp sẵn catalog nghệ sĩ từ Cloudflare R2 / RAM để luôn có avatar và tên đầy đủ
+  if (actorParam || keyword) {
+    await ensureHistoricalArtistsLoaded();
+  }
+
   // Explicit actor routes are intentional. Keyword searches always go through the title search first.
   const targetActorQuery = actorParam ? actorParam.trim() : undefined;
   const actorSynonyms = targetActorQuery ? getActorSynonyms(targetActorQuery) : null;
