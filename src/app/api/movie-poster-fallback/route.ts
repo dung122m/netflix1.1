@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { movieApi } from "@/services/movies/service";
 import { pickBestMoviePoster, pickBestMovieThumb } from "@/lib/movieMedia";
-import { getTmdbPosterUrl, searchTmdbPosterByTitle } from "@/services/tmdbService";
+import { getTmdbPosterUrl, searchTmdbPosterByTitle, getTmdbMediaImagesById } from "@/services/tmdbService";
 import { searchAniListPoster } from "@/services/aniListService";
 import { cacheService } from "@/lib/cache";
 import {
@@ -49,17 +49,20 @@ export async function GET(req: NextRequest) {
   }
 
   const { searchParams } = req.nextUrl;
+  const tmdbId = searchParams.get("tmdb_id")?.trim() || searchParams.get("tmdbId")?.trim() || "";
   const title = searchParams.get("title")?.trim() || "";
   const origin_name = searchParams.get("origin_name")?.trim() || "";
   const year = searchParams.get("year")?.trim() || "";
   const slug = searchParams.get("slug")?.trim() || "";
   const type = searchParams.get("type")?.trim() || "movie";
 
-  if (!title && !origin_name && !slug) {
+  if (!title && !origin_name && !slug && !tmdbId) {
     return NextResponse.json({ status: false, error: "Missing query parameters" }, { status: 400 });
   }
 
-  const cacheKey = `v3:${slug || title}|${origin_name}|${year}|${type}`.toLowerCase();
+  const cacheKey = tmdbId
+    ? `v3:tmdb:${tmdbId}:${type}`
+    : `v3:${slug || title}|${origin_name}|${year}|${type}`.toLowerCase();
   const now = Date.now();
 
   // 1. Kiểm tra L1 RAM cache
@@ -120,21 +123,33 @@ export async function GET(req: NextRequest) {
     /[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/i.test(title || "") ||
     /[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/i.test(origin_name || "");
 
-  // Đối với phim Việt Nam: Luôn ưu tiên tên tiếng Việt và slug trước,
-  // tuyệt đối không ưu tiên origin_name dịch nghĩa tiếng Anh (vd: "Hamlet" cho "Xóm Nhỏ")
-  const queryOrder = isVietnamese
-    ? ([title, slug ? slug.replace(/-/g, " ") : null, origin_name && origin_name !== title ? origin_name : null].filter(Boolean) as string[])
-    : ([origin_name && origin_name !== title ? origin_name : null, title, slug ? slug.replace(/-/g, " ") : null].filter(Boolean) as string[]);
+  // 1.8 Tra cứu trực tiếp theo TMDB ID nếu có (siêu nhanh ~20ms, chính xác 100%, không cần search text)
+  if (tmdbId) {
+    try {
+      const direct = await getTmdbMediaImagesById(tmdbId, type);
+      if (direct?.posterUrl || direct?.backdropUrl) {
+        result = direct;
+      }
+    } catch {}
+  }
 
-  // Tra cứu song song toàn bộ ứng viên (thay vì lặp tuần tự gây trễ 3-4s)
-  const candidateLookups = queryOrder.map((q) =>
-    queryTmdbPoster(q, year, isVietnamese ? "VN" : undefined).catch(() => null)
-  );
-  const candidateResults = await Promise.race([
-    Promise.all(candidateLookups),
-    new Promise<never[]>((resolve) => setTimeout(() => resolve([]), 1500)),
-  ]);
-  result = candidateResults.find((r) => r && (r.posterUrl || r.backdropUrl)) || null;
+  if (!result) {
+    // Đối với phim Việt Nam: Luôn ưu tiên tên tiếng Việt và slug trước,
+    // tuyệt đối không ưu tiên origin_name dịch nghĩa tiếng Anh (vd: "Hamlet" cho "Xóm Nhỏ")
+    const queryOrder = isVietnamese
+      ? ([title, slug ? slug.replace(/-/g, " ") : null, origin_name && origin_name !== title ? origin_name : null].filter(Boolean) as string[])
+      : ([origin_name && origin_name !== title ? origin_name : null, title, slug ? slug.replace(/-/g, " ") : null].filter(Boolean) as string[]);
+
+    // Tra cứu song song toàn bộ ứng viên (thay vì lặp tuần tự gây trễ 3-4s)
+    const candidateLookups = queryOrder.map((q) =>
+      queryTmdbPoster(q, year, isVietnamese ? "VN" : undefined).catch(() => null)
+    );
+    const candidateResults = await Promise.race([
+      Promise.all(candidateLookups),
+      new Promise<never[]>((resolve) => setTimeout(() => resolve([]), 1500)),
+    ]);
+    result = candidateResults.find((r) => r && (r.posterUrl || r.backdropUrl)) || null;
+  }
 
   // 4. Fallback tra cứu chi tiết phim từ slug: Tận dụng tmdb.id và origin_name của phim
   if (!result && slug) {

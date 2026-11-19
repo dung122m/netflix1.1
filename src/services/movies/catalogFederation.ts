@@ -364,10 +364,11 @@ export function applyMovieFilters(items: any[], params: MovieFilterParams): any[
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function mapNguonCListItem(item: any, params: MovieFilterParams) {
-  const nguoncBackdrop = item.poster_url;
-  const nguoncPoster = item.thumb_url;
-  const cleanPoster = nguoncPoster || item.poster_url || "";
-  const cleanThumb = nguoncBackdrop || item.thumb_url || "";
+  // Ưu tiên biến thể WebP siêu nhẹ (~23KB) thay vì PNG gốc chưa nén (~290KB)
+  const nguoncBackdrop = item.poster_url_webp || item.poster_url;
+  const nguoncPoster = item.thumb_url_webp || item.thumb_url;
+  const cleanPoster = nguoncPoster || item.poster_url_webp || item.poster_url || "";
+  const cleanThumb = nguoncBackdrop || item.thumb_url_webp || item.thumb_url || "";
 
   let itemType: string | undefined = undefined;
   let chieurap: boolean | undefined = undefined;

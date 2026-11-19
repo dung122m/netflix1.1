@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { toOptimizedCardPosterUrl } from "@/lib/movieMedia";
+import { toOptimizedCardPosterUrl, isSlowProviderSourceUrl } from "@/lib/movieMedia";
 
 // =========================================================================
 // 1. IN-MEMORY GLOBAL CACHE & DEDUPLICATION (Lưu trong RAM toàn bộ phiên)
@@ -63,17 +63,7 @@ export function isPosterEmptyOrBroken(url?: string | null): boolean {
 export const isPhimimgOrEmpty = isPosterEmptyOrBroken;
 
 export function isPhimimgSourceUrl(url?: string | null): boolean {
-  if (!url || typeof url !== "string") return false;
-  const trimmed = url.trim().toLowerCase();
-  if (trimmed.includes("phimimg.com")) return true;
-  if (trimmed.includes("/api/media/r2-proxy")) {
-    try {
-      return decodeURIComponent(trimmed).includes("phimimg.com");
-    } catch {
-      return trimmed.includes("phimimg.com");
-    }
-  }
-  return false;
+  return isSlowProviderSourceUrl(url);
 }
 
 export interface UseMoviePosterFallbackOptions {
@@ -86,6 +76,7 @@ export interface UseMoviePosterFallbackOptions {
   preferBackdrop?: boolean;
   enabled?: boolean;
   upgradePhimimg?: boolean;
+  tmdbId?: string | number;
 }
 
 /**
@@ -106,6 +97,7 @@ export function useMoviePosterFallback({
   preferBackdrop = false,
   enabled = true,
   upgradePhimimg = false,
+  tmdbId,
 }: UseMoviePosterFallbackOptions): {
   displaySrc: string;
   isUpgraded: boolean;
@@ -117,7 +109,7 @@ export function useMoviePosterFallback({
     setManuallyTriggered(true);
   }, []);
 
-  const cacheKey = slug || `${title || ""}_${year || ""}`.trim();
+  const cacheKey = tmdbId ? `tmdb:${tmdbId}` : slug || `${title || ""}_${year || ""}`.trim();
   const safeInitial = initialSrc && typeof initialSrc === "string" ? initialSrc.trim() : "";
 
   // 1. Kiểm tra cache hit ngay từ đầu
@@ -226,6 +218,7 @@ export function useMoviePosterFallback({
     let inFlight = GLOBAL_INFLIGHT_PROMISES.get(cacheKey);
     if (!inFlight) {
       const params = new URLSearchParams();
+      if (tmdbId) params.set("tmdb_id", String(tmdbId));
       if (title) params.set("title", title);
       if (origin_name) params.set("origin_name", origin_name);
       if (year) params.set("year", String(year));
@@ -286,7 +279,7 @@ export function useMoviePosterFallback({
         setIsLoading(false);
       }
     });
-  }, [cacheKey, slug, title, origin_name, year, type, displaySrc, preferBackdrop, enabled, manuallyTriggered, upgradePhimimg]);
+  }, [cacheKey, slug, title, origin_name, year, type, displaySrc, preferBackdrop, enabled, manuallyTriggered, upgradePhimimg, tmdbId]);
 
   return { displaySrc, isUpgraded, isLoading, triggerFallback };
 }

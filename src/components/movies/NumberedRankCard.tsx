@@ -63,17 +63,7 @@ export const NumberedRankCard: React.FC<NumberedRankCardProps> = ({
       return;
     }
 
-    // Cứu cánh ảnh phimimg / R2 cache bị lỗi hoặc chưa tồn tại bằng R2 Proxy trước khi hiển thị default poster
-    if (
-      imgSrc &&
-      (imgSrc.includes("phimimg.com") || imgSrc.includes("/cache/")) &&
-      !imgSrc.includes("/api/media/r2-proxy")
-    ) {
-      const originalSource = extractOriginalSourceUrl(imgSrc);
-      setImgSrc(`/api/media/r2-proxy?url=${encodeURIComponent(originalSource || imgSrc)}`);
-      return;
-    }
-
+    // 1. Ưu tiên tra cứu TMDb CDN chính hãng trước
     if (!fallbackTriedRef.current) {
       fallbackTriedRef.current = true;
       fetch(
@@ -81,14 +71,33 @@ export const NumberedRankCard: React.FC<NumberedRankCardProps> = ({
       )
         .then((res) => (res.ok ? res.json() : null))
         .then((data) => {
-          if (data?.posterUrl && !data.posterUrl.includes("/api/img-thumb")) {
+          if (data?.posterUrl && !data.posterUrl.includes("/api/img-thumb") && !data.posterUrl.includes("phimimg.com")) {
             setImgSrc(toFastCdnImageUrl(data.posterUrl));
           } else {
-            setImgSrc("/default-poster.jpg");
+            // 2. Cứu cánh ảnh phimimg / R2 cache bị lỗi hoặc chưa tồn tại bằng R2 Proxy nếu TMDb không có
+            if (
+              imgSrc &&
+              (imgSrc.includes("phimimg.com") || imgSrc.includes("/cache/")) &&
+              !imgSrc.includes("/api/media/r2-proxy")
+            ) {
+              const originalSource = extractOriginalSourceUrl(imgSrc);
+              setImgSrc(`/api/media/r2-proxy?url=${encodeURIComponent(originalSource || imgSrc)}`);
+            } else {
+              setImgSrc("/default-poster.jpg");
+            }
           }
         })
         .catch(() => {
-          setImgSrc("/default-poster.jpg");
+          if (
+            imgSrc &&
+            (imgSrc.includes("phimimg.com") || imgSrc.includes("/cache/")) &&
+            !imgSrc.includes("/api/media/r2-proxy")
+          ) {
+            const originalSource = extractOriginalSourceUrl(imgSrc);
+            setImgSrc(`/api/media/r2-proxy?url=${encodeURIComponent(originalSource || imgSrc)}`);
+          } else {
+            setImgSrc("/default-poster.jpg");
+          }
         });
     } else {
       setImgSrc("/default-poster.jpg");

@@ -288,6 +288,7 @@ export const CuratedMovieSection: React.FC<CuratedMovieSectionProps> = ({
                   imageUrl={bestThumb}
                   posterUrl={norm.posterUrl}
                   thumbUrl={norm.thumbUrl}
+                  tmdbId={norm.tmdbId}
                   genre={norm.genre}
                   description={norm.description}
                   time={norm.time}

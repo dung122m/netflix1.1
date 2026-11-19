@@ -130,7 +130,21 @@ function ContinueWatchingCard({ item, index = 0, onRemove }: ContinueWatchingCar
   }, [imgSrc, item.slug]);
 
   const handleImgError = useCallback(() => {
-    // 1. Thử qua Cloudflare R2 proxy nếu là link phimimg / R2 cache bị lỗi hoặc chưa tồn tại
+    // 1. Thử thumb ngang dự phòng nếu có và khác link đang lỗi
+    const rawThumb = item.thumb ? toFastCdnImageUrl(toOptimizedCardPosterUrl(item.thumb)) : "";
+    if (rawThumb && rawThumb !== imgSrc && !rawThumb.includes("/default-")) {
+      setImgSrc(rawThumb);
+      return;
+    }
+
+    // 2. Ưu tiên kích hoạt fallback TMDb chính hãng khi ảnh lỗi
+    if (displaySrc && displaySrc !== imgSrc && !displaySrc.includes("/default-")) {
+      setImgSrc(toFastCdnImageUrl(displaySrc));
+      return;
+    }
+    triggerFallback();
+
+    // 3. Cứu cánh cuối cùng: Thử qua Cloudflare R2 proxy nếu là link phimimg / R2 cache bị lỗi hoặc chưa tồn tại
     if (
       imgSrc &&
       (imgSrc.includes("phimimg.com") || imgSrc.includes("/cache/")) &&
@@ -141,16 +155,9 @@ function ContinueWatchingCard({ item, index = 0, onRemove }: ContinueWatchingCar
       setImgSrc(r2ProxyUrl);
       return;
     }
-    // 2. Thử thumb ngang dự phòng nếu có và khác link đang lỗi
-    const rawThumb = item.thumb ? toFastCdnImageUrl(toOptimizedCardPosterUrl(item.thumb)) : "";
-    if (rawThumb && rawThumb !== imgSrc && !rawThumb.includes("/default-")) {
-      setImgSrc(rawThumb);
-      return;
-    }
-    // 3. Kích hoạt fallback TMDb khi ảnh thực sự lỗi
-    triggerFallback();
+
     setIsLoaded(true);
-  }, [imgSrc, item.thumb, triggerFallback]);
+  }, [imgSrc, item.thumb, displaySrc, triggerFallback]);
 
   const href = item.episodeSlug
     ? `/movies/${item.slug}?ep=${item.episodeSlug}`

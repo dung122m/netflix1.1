@@ -362,9 +362,13 @@ export function deduplicateMovieItems(items: any[]): any[] {
       const mergedSources = Array.from(new Set([...existingSources, ...itemSources]));
       existing.sources = mergedSources;
 
-      // Merge missing metadata hoặc nâng cấp ảnh nếu existing bị trỏ vào CDN lỗi (upload/vod)
+      // Merge missing metadata hoặc nâng cấp ảnh: Luôn ưu tiên tuyệt đối nguồn TMDb / WebP nhẹ thay vì giữ phimimg/nguonc cũ
       if (!existing.origin_name && item.origin_name) existing.origin_name = item.origin_name;
-      if (
+      const existingPosterIsTmdb = Boolean(existing.poster_url && String(existing.poster_url).includes("image.tmdb.org"));
+      const itemPosterIsTmdb = Boolean(item.poster_url && String(item.poster_url).includes("image.tmdb.org"));
+      if (!existingPosterIsTmdb && itemPosterIsTmdb) {
+        existing.poster_url = item.poster_url;
+      } else if (
         (!existing.poster_url || isBrokenImageUrl(existing.poster_url)) &&
         item.poster_url &&
         !isBrokenImageUrl(item.poster_url)
@@ -374,7 +378,11 @@ export function deduplicateMovieItems(items: any[]): any[] {
         existing.poster_url = item.poster_url;
       }
 
-      if (
+      const existingThumbIsTmdb = Boolean(existing.thumb_url && String(existing.thumb_url).includes("image.tmdb.org"));
+      const itemThumbIsTmdb = Boolean(item.thumb_url && String(item.thumb_url).includes("image.tmdb.org"));
+      if (!existingThumbIsTmdb && itemThumbIsTmdb) {
+        existing.thumb_url = item.thumb_url;
+      } else if (
         (!existing.thumb_url || isBrokenImageUrl(existing.thumb_url)) &&
         item.thumb_url &&
         !isBrokenImageUrl(item.thumb_url)
@@ -820,6 +828,35 @@ export function toFastCdnImageUrl(url: string): string {
 }
 
 /**
+ * Nhận diện các nguồn ảnh chậm / dung lượng nặng / chưa qua CDN tối ưu
+ * (phimimg, nguonc, ophim, phimapi, r2-proxy) để ưu tiên nâng cấp sang TMDb CDN chính hãng.
+ */
+export function isSlowProviderSourceUrl(url?: string | null): boolean {
+  if (!url || typeof url !== "string") return false;
+  const trimmed = url.trim().toLowerCase();
+  if (!trimmed || trimmed.startsWith("/default-") || trimmed === "null" || trimmed === "undefined") {
+    return false;
+  }
+  // Các CDN chính hãng siêu nhanh & nhẹ -> Không phải nguồn chậm
+  if (
+    trimmed.includes("image.tmdb.org") ||
+    trimmed.includes("anilist.co") ||
+    trimmed.includes("media-amazon.com")
+  ) {
+    return false;
+  }
+  return (
+    trimmed.includes("phimimg.com") ||
+    trimmed.includes("nguonc.com") ||
+    trimmed.includes("img.phimapi.com") ||
+    trimmed.includes("img.ophim.cc") ||
+    trimmed.includes("/cache/") ||
+    trimmed.includes("/api/media/r2-proxy") ||
+    trimmed.includes("/api/img-thumb")
+  );
+}
+
+/**
  * Dành riêng cho Banner Hero cỡ lớn toàn màn hình trên đầu trang.
  * Ưu tiên độ phân giải gốc cực cao (original / w1280) cho màn hình lớn & Retina 2x/4K.
  */
@@ -1057,6 +1094,7 @@ export interface NormalizedMovie {
   imageUrl: string;
   posterUrl: string;
   thumbUrl: string;
+  tmdbId?: string | number;
   year: string;
   time?: string;
   quality: string;
@@ -1633,6 +1671,7 @@ export function normalizeMovie(m: any): NormalizedMovie {
   const hasTrailer = Boolean(
     trailer_url || isTrailerOnly || m?.hasTrailer || (typeof trailer_url === "string" && trailer_url.length > 0)
   );
+  const tmdbId = m?.tmdb?.id || m?.movie?.tmdb?.id || undefined;
 
   return {
     slug: m?.slug || "",
@@ -1641,6 +1680,7 @@ export function normalizeMovie(m: any): NormalizedMovie {
     imageUrl,
     posterUrl,
     thumbUrl,
+    tmdbId,
     year,
     time,
     quality,

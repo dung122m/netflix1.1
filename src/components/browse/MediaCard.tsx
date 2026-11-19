@@ -20,6 +20,7 @@ import {
   sanitizeImageUrl,
   formatCountryName,
   COUNTRY_DISPLAY_MAP,
+  isSlowProviderSourceUrl,
 } from "@/lib/movieMedia";
 const TrailerModal = dynamic(
   () => import("@/components/modals/TrailerModal").then((m) => m.TrailerModal),
@@ -80,6 +81,7 @@ export interface MediaCardProps {
   trailer_url?: string;
   isTrailerOnly?: boolean;
   matchSnippet?: string;
+  tmdbId?: string | number;
   matchType?: "title" | "actor" | "content";
   itemType?: "movie" | "series" | "episode";
   seriesSlug?: string;
@@ -102,6 +104,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
   imageUrl,
   posterUrl,
   thumbUrl,
+  tmdbId,
   genre,
   priority = false,
   time,
@@ -194,9 +197,10 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
     // Sắp xếp ưu tiên:
     // 0. Ảnh đã từng nạp thành công trong phiên (0ms cache hit)
     // 1. TMDb CDN chính chủ siêu nhẹ & cực nhanh (30ms CDN)
-    // 2. R2 CDN (phimimg/phimapi/ophim đều được route qua toFastCdnImageUrl → R2 direct URL)
-    // 3. Poster dọc (-poster.webp, poster_, /w500)
-    // 4. Thumb ngang (-thumb.webp) làm fallback
+    // 2. AniList CDN cho Hoạt hình
+    // 3. Đẩy các nguồn chậm / nặng (phimimg, nguonc, r2-proxy) xuống sau các nguồn CDN
+    // 4. Poster dọc (-poster.webp, poster_, /w500)
+    // 5. Thumb ngang (-thumb.webp) làm fallback
     return list.sort((a, b) => {
       const aLoaded = GLOBAL_LOADED_IMAGES.has(a);
       const bLoaded = GLOBAL_LOADED_IMAGES.has(b);
@@ -207,6 +211,16 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
       const bTmdb = b.includes("image.tmdb.org");
       if (aTmdb && !bTmdb) return -1;
       if (!aTmdb && bTmdb) return 1;
+
+      const aAni = a.includes("anilist.co");
+      const bAni = b.includes("anilist.co");
+      if (aAni && !bAni) return -1;
+      if (!aAni && bAni) return 1;
+
+      const aSlow = isSlowProviderSourceUrl(a);
+      const bSlow = isSlowProviderSourceUrl(b);
+      if (!aSlow && bSlow) return -1;
+      if (aSlow && !bSlow) return 1;
 
       const aPoster = a.includes("-poster") || a.includes("poster_") || a.includes("/w500");
       const bPoster = b.includes("-poster") || b.includes("poster_") || b.includes("/w500");
@@ -222,10 +236,10 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
 
   const initialCandidate = imageCandidates[0] || "";
 
-  // Kích hoạt TMDb fallback chỉ khi KHÔNG CÓ candidate nào từ đầu.
-  // Phimimg được route qua R2 direct URL — cứ thử load trước, thất bại mới gọi TMDb.
+  // Chủ động kích hoạt TMDb fallback khi không có candidate ban đầu HOẶC khi candidate
+  // là nguồn chậm/nặng (phimimg, nguonc, r2-proxy) để nâng cấp ngầm sang TMDb CDN chính hãng siêu nhẹ (~35KB)
   const [needsFallback, setNeedsFallback] = useState<boolean>(
-    () => !initialCandidate
+    () => !initialCandidate || isSlowProviderSourceUrl(initialCandidate)
   );
 
   // Chuẩn hóa và tra cứu fallback TMDb dùng chung khi cần
@@ -238,6 +252,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
     initialSrc: initialCandidate,
     enabled: needsFallback,
     upgradePhimimg: true,
+    tmdbId,
   });
 
   const [currentSrc, setCurrentSrc] = useState<string>(() => initialCandidate);
@@ -326,12 +341,35 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
       return;
     }
 
-    // 2. R2 direct URL bị 404 → gọi r2-proxy NGAY (không chờ TMDb)
-    //    Server Vercel ở nước ngoài không bị ISP VN chặn → fetch phimimg được
-    //    Song song kích hoạt TMDb fallback để chuẩn bị sẵn phòng r2-proxy cũng fail
+    // 2. ƯU TIÊN TUYỆT ĐỐI TMDB FALLBACK (30ms CDN, ~35KB WebP, 0ms Serverless CPU):
+    if (tmdbFallbackSrc && tmdbFallbackSrc !== currentSrc && !triedUrlsRef.current.has(tmdbFallbackSrc)) {
+      setCurrentSrc(tmdbFallbackSrc);
+      setIsImageLoaded(GLOBAL_LOADED_IMAGES.has(tmdbFallbackSrc));
+      setHasError(false);
+      return;
+    }
+
+    // 3. Kích hoạt gọi TMDb fallback nếu chưa kích hoạt
+    if (!needsFallback) {
+      setNeedsFallback(true);
+      triggerFallback();
+      setIsImageLoaded(false);
+      setHasError(false);
+      return;
+    }
+
+    // 4. TMDb đang tải ngầm → giữ skeleton shimmer chờ
+    if (isFallbackLoading) {
+      setIsImageLoaded(false);
+      setHasError(false);
+      return;
+    }
+
+    // 5. CỨU CÁNH CUỐI CÙNG: Chỉ khi TMDb hoàn toàn không có (hoặc đã fail)
+    // mới thử gọi R2 Proxy qua Vercel cho nguồn phimimg.com
     if (
       currentSrc &&
-      currentSrc.includes("/cache/") &&
+      (currentSrc.includes("phimimg.com") || currentSrc.includes("/cache/")) &&
       !currentSrc.includes("/api/media/r2-proxy")
     ) {
       const originalSource = extractOriginalSourceUrl(currentSrc);
@@ -341,41 +379,12 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
           setCurrentSrc(r2ProxyUrl);
           setIsImageLoaded(false);
           setHasError(false);
-          // Chuẩn bị TMDb song song để sẵn sàng nếu r2-proxy cũng fail
-          if (!needsFallback) {
-            setNeedsFallback(true);
-            triggerFallback();
-          }
           return;
         }
       }
     }
 
-    // 3. Nếu fallback TMDb đã có sẵn → dùng ngay
-    if (tmdbFallbackSrc && tmdbFallbackSrc !== currentSrc && !triedUrlsRef.current.has(tmdbFallbackSrc)) {
-      setCurrentSrc(tmdbFallbackSrc);
-      setIsImageLoaded(GLOBAL_LOADED_IMAGES.has(tmdbFallbackSrc));
-      setHasError(false);
-      return;
-    }
-
-    // 4. Kích hoạt gọi TMDb fallback nếu chưa kích hoạt
-    if (!needsFallback) {
-      setNeedsFallback(true);
-      triggerFallback();
-      setIsImageLoaded(false);
-      setHasError(false);
-      return;
-    }
-
-    // 5. TMDb đang tải ngầm → giữ skeleton shimmer chờ
-    if (isFallbackLoading) {
-      setIsImageLoaded(false);
-      setHasError(false);
-      return;
-    }
-
-    // 6. Toàn bộ candidates, R2 proxy, và TMDb đều thất bại → Poster Canvas
+    // 6. Toàn bộ candidates, TMDb, và R2 proxy đều thất bại → Hiện Poster Canvas
     setHasError(true);
     setIsImageLoaded(true);
   }, [currentSrc, imageCandidates, tmdbFallbackSrc, isFallbackLoading, needsFallback, triggerFallback]);
