@@ -421,9 +421,12 @@ export default async function BrowsePage({
   // =========================================================================
   // 1. TÁCH BIỆT RÕ RÀNG: TÌM KIẾM THEO DIỄN VIÊN VS TÌM KIẾM THEO TÊN PHIM
   // =========================================================================
-  // Đảm bảo nạp sẵn catalog nghệ sĩ từ Cloudflare R2 / RAM để luôn có avatar và tên đầy đủ
+  // Nạp sẵn catalog nghệ sĩ từ Cloudflare R2 / RAM (0ms nếu đã có trong RAM, trần tối đa 350ms chống nghẽn)
   if (actorParam || keyword) {
-    await ensureHistoricalArtistsLoaded();
+    await Promise.race([
+      ensureHistoricalArtistsLoaded(),
+      new Promise((resolve) => setTimeout(resolve, 350)),
+    ]);
   }
 
   // Explicit actor routes are intentional. Keyword searches always go through the title search first.
