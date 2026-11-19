@@ -59,6 +59,7 @@ export interface CountryBadgeProps {
   className?: string;
   flagSize?: number | string;
   showFlag?: boolean;
+  variant?: "pill" | "inline";
 }
 
 /**
@@ -66,18 +67,41 @@ export interface CountryBadgeProps {
  * - Tự động nhận diện toàn bộ hơn 210 quốc gia trên thế giới
  * - Sử dụng vector Twemoji từ CountryFlag hiển thị chuẩn xác trên mọi thiết bị (kể cả Windows)
  * - Tự động làm sạch tên quốc gia (loại bỏ emoji hoặc mã ISO thừa như VN, KR, US...)
+ * - variant="inline": Hiển thị dạng chữ phẳng kèm icon cờ (không viền nút), căn chỉnh typography tuyệt đối
+ * - variant="pill": Hiển thị dạng thẻ pill truyền thống
  */
 export function CountryBadge({
   country,
   className,
   flagSize = 14,
   showFlag = true,
+  variant = "pill",
 }: CountryBadgeProps) {
   if (!country) return null;
   const cleanName = cleanCountryName(country);
   if (!cleanName) return null;
 
   const flagEmoji = showFlag ? resolveCountryFlagEmoji(country) : null;
+
+  if (variant === "inline") {
+    return (
+      <span
+        className={cn(
+          "inline-flex items-center gap-1.5 text-xs sm:text-sm font-medium text-zinc-300 select-none",
+          className
+        )}
+      >
+        {flagEmoji && (
+          <CountryFlag
+            emoji={flagEmoji}
+            size={flagSize}
+            className="rounded-[2px] shadow-xs shrink-0 object-cover"
+          />
+        )}
+        <span>{cleanName}</span>
+      </span>
+    );
+  }
 
   return (
     <span

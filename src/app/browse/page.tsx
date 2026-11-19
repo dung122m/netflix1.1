@@ -665,23 +665,30 @@ export default async function BrowsePage({
                   </div>
                 )}
                 <div className="min-w-0 space-y-1">
-                  <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5">
-                    <div className="inline-flex items-baseline gap-2 flex-wrap">
-                      <h1 className="text-xl sm:text-2xl md:text-3xl font-black tracking-tight text-white leading-tight">
-                        {detectedActor.name}
-                      </h1>
-                      {detectedActor.englishName && detectedActor.englishName !== detectedActor.name ? (
-                        <span className="text-sm sm:text-base md:text-lg font-medium text-zinc-400 leading-tight">
-                          ({detectedActor.englishName})
-                        </span>
-                      ) : null}
-                    </div>
+                  <div className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
+                    <h1 className="text-xl sm:text-2xl md:text-3xl font-black tracking-tight text-white">
+                      {detectedActor.name}
+                    </h1>
+                    {detectedActor.englishName && detectedActor.englishName !== detectedActor.name ? (
+                      <span className="text-sm sm:text-base md:text-lg font-medium text-zinc-400">
+                        ({detectedActor.englishName})
+                      </span>
+                    ) : null}
 
-                    <div className="inline-flex items-center gap-2 flex-none">
+                    <div className="inline-flex items-baseline gap-2 sm:gap-2.5">
+                      <span className="text-zinc-600 select-none text-xs sm:text-sm hidden sm:inline">•</span>
                       {detectedActor.country && (
-                        <CountryBadge country={detectedActor.country} />
+                        <>
+                          <CountryBadge
+                            country={detectedActor.country}
+                            variant="inline"
+                            flagSize={14}
+                            className="text-xs sm:text-sm text-zinc-300 font-medium"
+                          />
+                          <span className="text-zinc-600 select-none text-xs sm:text-sm">•</span>
+                        </>
                       )}
-                      <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-white/[0.06] text-zinc-400 font-medium flex-none border border-white/5">
+                      <span className="text-xs sm:text-sm font-medium text-zinc-400">
                         Diễn viên
                       </span>
                     </div>
