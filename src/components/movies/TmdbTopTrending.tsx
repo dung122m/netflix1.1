@@ -177,6 +177,11 @@ function TmdbTopTrendingInner({
                 timestamp: Date.now(),
               })
             );
+            window.dispatchEvent(
+              new CustomEvent("nanaflix_tmdb_trending_updated", {
+                detail: { week: data.items },
+              })
+            );
           } catch {}
         }
       } catch (err) {

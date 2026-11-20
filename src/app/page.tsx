@@ -77,26 +77,31 @@ const FEATURED_CACHE_TTL_MS = 20 * 60 * 1000; // 20 phút
 interface ResolvedHeroCacheEntry {
   movies: AnyMovie[];
   expireAt: number;
+  isTrending: boolean;
 }
 const resolvedHeroCache: { current: ResolvedHeroCacheEntry | null } = { current: null };
 const RESOLVED_HERO_CACHE_TTL_MS = 45 * 60 * 1000; // 45 phút (0ms tra cứu TMDB cho các lần ISR)
 
-function getCachedResolvedHero(): AnyMovie[] | null {
+function getCachedResolvedHero(): { movies: AnyMovie[]; isTrending: boolean } | null {
   if (
     resolvedHeroCache.current &&
     resolvedHeroCache.current.expireAt > Date.now() &&
     resolvedHeroCache.current.movies.length >= 3
   ) {
-    return resolvedHeroCache.current.movies;
+    return {
+      movies: resolvedHeroCache.current.movies,
+      isTrending: Boolean(resolvedHeroCache.current.isTrending),
+    };
   }
   return null;
 }
 
-function setCachedResolvedHero(movies: AnyMovie[]) {
+function setCachedResolvedHero(movies: AnyMovie[], isTrending: boolean) {
   if (movies.length >= 3) {
     resolvedHeroCache.current = {
       movies,
-      expireAt: Date.now() + RESOLVED_HERO_CACHE_TTL_MS,
+      expireAt: Date.now() + (isTrending ? RESOLVED_HERO_CACHE_TTL_MS : 10 * 1000),
+      isTrending,
     };
   }
 }
@@ -146,7 +151,7 @@ async function resolveHeroMoviesWithBackdrops(rawHeroMovies: AnyMovie[]): Promis
               thumb_url: tmdbBackdrop,
             };
           }
-        } catch {}
+        } catch { }
       }
       return movie;
     })
@@ -158,13 +163,13 @@ try {
   getCachedHeroWithNext =
     typeof unstable_cache === "function"
       ? unstable_cache(
-          async (heroMoviesJson: string) => {
-            const parsed = JSON.parse(heroMoviesJson) as AnyMovie[];
-            return resolveHeroMoviesWithBackdrops(parsed);
-          },
-          ["nanaflix-hero-movies-resolved-v2"],
-          { revalidate: 3600, tags: ["hero-banner"] }
-        )
+        async (heroMoviesJson: string) => {
+          const parsed = JSON.parse(heroMoviesJson) as AnyMovie[];
+          return resolveHeroMoviesWithBackdrops(parsed);
+        },
+        ["nanaflix-hero-movies-resolved-v3"],
+        { revalidate: 3600, tags: ["hero-banner"] }
+      )
       : null;
 } catch {
   getCachedHeroWithNext = null;
@@ -191,21 +196,21 @@ function computeFeaturedScore(movie: AnyMovie): number {
   // 1. TMDB Rating — tiêu chí cốt lõi, chiếm trọng số lớn nhất
   const rating = Number(movie.tmdb?.vote_average || movie.imdb?.vote_average || 0);
   if (rating > 0) {
-    if (rating >= 8.5)      score += 35;
+    if (rating >= 8.5) score += 35;
     else if (rating >= 7.5) score += 25;
     else if (rating >= 6.5) score += 12;
     else if (rating >= 5.5) score += 0;
-    else                    score -= 15;
+    else score -= 15;
   }
 
   // 2. Popularity — TMDB vote_count hoặc NguonC view count
   const voteCount = Number(movie.tmdb?.vote_count || 0);
   const viewCount = Number(movie.view || 0);
   const popularity = Math.max(voteCount, viewCount);
-  if (popularity >= 5000)      score += 18;
+  if (popularity >= 5000) score += 18;
   else if (popularity >= 2000) score += 14;
-  else if (popularity >= 500)  score += 10;
-  else if (popularity >= 100)  score += 5;
+  else if (popularity >= 500) score += 10;
+  else if (popularity >= 100) score += 5;
 
   // 3. Chất lượng video
   const quality = String(movie.quality || "").toUpperCase();
@@ -217,7 +222,7 @@ function computeFeaturedScore(movie: AnyMovie): number {
 
   // 4. Độ mới
   const movieYear = Number(movie.year || 0);
-  if (movieYear === currentYear)          score += 5;
+  if (movieYear === currentYear) score += 5;
   else if (movieYear === currentYear - 1) score += 3;
 
   // 5. Trailer bonus
@@ -236,7 +241,7 @@ function selectFeaturedMovies(pool: AnyMovie[], count: number = 7): AnyMovie[] {
 
   const withPoster = pool.filter((m) =>
     (m.poster_url && m.poster_url !== "null" && m.poster_url !== "undefined") ||
-    (m.thumb_url  && m.thumb_url  !== "null" && m.thumb_url  !== "undefined")
+    (m.thumb_url && m.thumb_url !== "null" && m.thumb_url !== "undefined")
   );
   const afterPoster = withPoster.length >= count ? withPoster : pool;
 
@@ -262,7 +267,7 @@ function selectFeaturedMovies(pool: AnyMovie[], count: number = 7): AnyMovie[] {
       ? String(movie.country[0]?.slug || movie.country[0]?.name || "unknown")
       : String(movie.country || "unknown");
 
-    const yearOk    = (yearCount[year] || 0) < 2;
+    const yearOk = (yearCount[year] || 0) < 2;
     const countryOk = (countryCount[primaryCountry] || 0) < 2;
 
     if (yearOk && countryOk) {
@@ -285,7 +290,7 @@ function selectFeaturedMovies(pool: AnyMovie[], count: number = 7): AnyMovie[] {
 
   if (selected.length > 2) {
     const pinned = selected.slice(0, 2);
-    const rest   = selected.slice(2);
+    const rest = selected.slice(2);
     const seed = Math.floor(Date.now() / FEATURED_CACHE_TTL_MS);
     for (let i = rest.length - 1; i > 0; i--) {
       const j = Math.abs(seed * (i + 1) * 2654435761) % (i + 1);
@@ -309,7 +314,7 @@ export default async function HomePage() {
     }),
     Promise.race([
       getTmdbRankedMovies("week", 20).catch(() => []),
-      new Promise<[]>((resolve) => setTimeout(() => resolve([]), 2000)),
+      new Promise<[]>((resolve) => setTimeout(() => resolve([]), 5000)),
     ]),
     getTopTrendingCommunitySupabase(10, "total").catch(() => []),
   ]);
@@ -319,28 +324,31 @@ export default async function HomePage() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const trendingWeekRaw: any[] = weekTrending || [];
 
-  // Chọn lọc phim Featured cho banner
+  // Ưu tiên tuyệt đối Top phim thịnh hành TMDB cho Hero Banner
   const validTrendingMovies = trendingWeekRaw.filter(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (m: any) =>
       m?.slug &&
       m?.name &&
       ((m.thumb_url && m.thumb_url !== "null" && m.thumb_url !== "undefined") ||
-        (m.poster_url && m.poster_url !== "null" && m.poster_url !== "undefined"))
+        (m.poster_url && m.poster_url !== "null" && m.poster_url !== "undefined") ||
+        (m.backdrop_url && m.backdrop_url !== "null" && m.backdrop_url !== "undefined"))
   );
-  const rawHeroMovies =
-    validTrendingMovies.length >= 3
-      ? validTrendingMovies.slice(0, 8)
-      : getFeaturedMoviesWithCache(movies);
+  const isTrendingHero = validTrendingMovies.length >= 3;
+  const rawHeroMovies: AnyMovie[] = isTrendingHero
+    ? validTrendingMovies.slice(0, 8).map((m: AnyMovie) => ({ ...m, isTrending: true }))
+    : getFeaturedMoviesWithCache(movies).map((m: AnyMovie) => ({ ...m, isTrending: false }));
 
   // Đảm bảo mọi phim trong Hero Banner đều ưu tiên backdrop R2 CDN sắc nét (0ms tra cứu tĩnh khi đã có cache)
   let heroMovies: AnyMovie[];
   const cachedHero = getCachedResolvedHero();
-  if (cachedHero) {
-    heroMovies = cachedHero;
+
+  // Chỉ tái sử dụng cache nếu đã là TMDB Trending hoặc lần này cũng không có trending mới
+  if (cachedHero && (cachedHero.isTrending || !isTrendingHero)) {
+    heroMovies = cachedHero.movies;
   } else {
     try {
-      if (getCachedHeroWithNext) {
+      if (getCachedHeroWithNext && isTrendingHero) {
         const heroJson = JSON.stringify(rawHeroMovies);
         heroMovies = await getCachedHeroWithNext(heroJson);
       } else {
@@ -350,7 +358,7 @@ export default async function HomePage() {
       heroMovies = await resolveHeroMoviesWithBackdrops(rawHeroMovies);
     }
 
-    setCachedResolvedHero(heroMovies);
+    setCachedResolvedHero(heroMovies, isTrendingHero);
   }
 
   return (
@@ -361,9 +369,7 @@ export default async function HomePage() {
       <HeroFeatured movies={heroMovies} />
 
       {/* 2. TIẾP TỤC XEM: Hiển thị ngay sau Hero khi có lịch sử */}
-      <div className="px-4 md:px-8 my-5 sm:my-7 relative z-30">
-        <ContinueWatchingRow />
-      </div>
+      <ContinueWatchingRow />
 
       {/* 3. KHÁM PHÁ THEO THỂ LOẠI (Điều hướng chủ đích sang Browse) */}
       <div className="px-4 md:px-8 mb-8 sm:mb-10 relative z-30 w-full min-w-0 max-w-full overflow-hidden">

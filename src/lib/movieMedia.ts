@@ -753,54 +753,12 @@ export function toOptimizedCardPosterUrl(url: string, _targetWidth: number = 320
   return clean;
 }
 
-const R2_PUBLIC_BASE_URL =
-  (typeof process !== "undefined" &&
-    (process.env.NEXT_PUBLIC_R2_PUBLIC_URL || process.env.R2_PUBLIC_URL)) ||
-  "";
-
 /**
- * Trỏ trực tiếp URL sang Cloudflare R2 Public CDN nếu thuộc các domain đối tác/nguồn phim.
- * Giúp trình duyệt tải trực tiếp từ Edge CDN Cloudflare với 0ms serverless function invocation.
- */
-export function getR2DirectMediaUrl(rawUrl: string): string | null {
-  try {
-    if (!R2_PUBLIC_BASE_URL) return null;
-    if (!rawUrl || typeof rawUrl !== "string") return null;
-    const clean = rawUrl.trim();
-    if (!clean.startsWith("http://") && !clean.startsWith("https://")) return null;
-    const parsed = new URL(clean);
-    const domain = parsed.hostname.toLowerCase();
-    if (
-      !domain.includes("phimimg.com") &&
-      !domain.includes("img.phimapi.com") &&
-      !domain.includes("img.ophim.cc") &&
-      !domain.includes("nguonc.com")
-    ) {
-      return null;
-    }
-    const cleanPath = parsed.pathname.replace(/^\/+/, "").replace(/[^a-zA-Z0-9_\-\/.]/g, "_");
-    // Cloudflare Worker tại media.nanaflix.asia xử lý trực tiếp /cache/* với tự động kéo & lưu R2
-    return `${R2_PUBLIC_BASE_URL.replace(/\/+$/, "")}/cache/${domain}/${cleanPath}`;
-  } catch {
-    return null;
-  }
-}
-
-/**
- * Trích xuất URL gốc ban đầu từ link R2 CDN hoặc link /api/media/r2-proxy.
- * Dùng khi ảnh trên R2 Public CDN bị 404 (chưa tải lên) để fallback sang proxy tải & lưu R2 ngầm.
+ * Trích xuất URL gốc ban đầu từ link CDN hoặc link cache.
  */
 export function extractOriginalSourceUrl(url: string): string {
   if (!url || typeof url !== "string") return "";
   const clean = url.trim();
-  if (clean.includes("/api/media/r2-proxy")) {
-    try {
-      const parsed = new URL(clean, "https://nanaflix.asia");
-      return parsed.searchParams.get("url") || clean;
-    } catch {
-      return clean;
-    }
-  }
   const r2Match = clean.match(/^https?:\/\/[^/]+\/cache\/([^/]+)\/(.+)$/);
   if (r2Match) {
     const [, domain, path] = r2Match;
@@ -810,32 +768,20 @@ export function extractOriginalSourceUrl(url: string): string {
 }
 
 /**
- * Bảo vệ thẻ <img> trên client khỏi tải trực tiếp từ phimimg.com (bị ISP VN chặn):
- * 1. Ưu tiên trỏ trực tiếp sang Cloudflare R2 Public CDN trước (0ms latency, 0 Vercel CPU).
- *    → Nếu ảnh đã có trên R2 → load ngay, nhanh, không tốn gì.
- * 2. Chỉ khi R2 trả 404 (chưa cache) → onError → gọi /api/media/r2-proxy
- *    → Server Vercel (không bị chặn) fetch phimimg → upload R2 → trả ảnh → lần sau HIT.
+ * Trả thẳng URL trực tiếp:
+ * - Ưu tiên 100% TMDb CDN (image.tmdb.org).
+ * - Nếu không có thì trả về URL gốc từ NguonC/Phimimg để trình duyệt tự tải trực tiếp (không tạo proxy route trên Vercel).
  */
 export function toFastCdnImageUrl(url: string): string {
   if (!url || typeof url !== "string") return "";
   const clean = url.trim();
-  if (!clean || clean.startsWith("/api/media/r2-proxy")) return clean;
-  if (
-    clean.includes("phimimg.com") ||
-    clean.includes("img.phimapi.com") ||
-    clean.includes("img.ophim.cc") ||
-    clean.includes("nguonc.com")
-  ) {
-    const directR2 = getR2DirectMediaUrl(clean);
-    if (directR2) return directR2;
-    return `/api/media/r2-proxy?url=${encodeURIComponent(clean)}`;
-  }
+  if (!clean) return "";
   return clean;
 }
 
 /**
  * Nhận diện các nguồn ảnh chậm / dung lượng nặng / chưa qua CDN tối ưu
- * (phimimg, nguonc, ophim, phimapi, r2-proxy) để ưu tiên nâng cấp sang TMDb CDN chính hãng.
+ * (phimimg, nguonc, ophim, phimapi) để ưu tiên nâng cấp sang TMDb CDN chính hãng.
  */
 export function isSlowProviderSourceUrl(url?: string | null): boolean {
   if (!url || typeof url !== "string") return false;
@@ -857,7 +803,6 @@ export function isSlowProviderSourceUrl(url?: string | null): boolean {
     trimmed.includes("img.phimapi.com") ||
     trimmed.includes("img.ophim.cc") ||
     trimmed.includes("/cache/") ||
-    trimmed.includes("/api/media/r2-proxy") ||
     trimmed.includes("/api/img-thumb")
   );
 }

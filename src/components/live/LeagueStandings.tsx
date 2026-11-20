@@ -290,11 +290,6 @@ export const LeagueStandings: React.FC<LeagueStandingsProps> = ({
               </Tooltip>
             )}
 
-            {/* Gradient mờ mép trái báo hiệu còn nội dung */}
-            {canScrollLeft && (
-              <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-zinc-900 via-zinc-900/80 to-transparent z-10" />
-            )}
-
             {/* Container danh sách các tab */}
             <div
               ref={leaguesScrollRef}
@@ -328,11 +323,6 @@ export const LeagueStandings: React.FC<LeagueStandingsProps> = ({
                 );
               })}
             </div>
-
-            {/* Gradient mờ mép phải báo hiệu còn nội dung */}
-            {canScrollRight && (
-              <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-zinc-900 via-zinc-900/80 to-transparent z-10" />
-            )}
 
             {/* Nút cuộn phải trên desktop */}
             {canScrollRight && (

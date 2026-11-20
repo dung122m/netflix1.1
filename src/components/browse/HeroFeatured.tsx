@@ -12,9 +12,81 @@ import { HeroContentOverlay } from "./HeroContentOverlay";
 export type { HeroMovie };
 
 const HeroFeaturedInner: React.FC<{ movies?: HeroMovie[] }> = ({
-  movies = [],
+  movies: initialMovies = [],
 }) => {
-  const slides = useMemo(() => (movies || []).slice(0, 8), [movies]);
+  const [heroMovies, setHeroMovies] = useState<HeroMovie[]>(() => initialMovies);
+
+  // Đồng bộ khi initialMovies từ Server Component thay đổi
+  useEffect(() => {
+    if (initialMovies && initialMovies.length > 0) {
+      setHeroMovies(initialMovies);
+    }
+  }, [initialMovies]);
+
+  // Luôn đảm bảo Hero Banner lấy từ Top phim thịnh hành TMDB
+  useEffect(() => {
+    let isCancelled = false;
+
+    // 1. Thử đọc nhanh từ localStorage (0ms) nếu TmdbTopTrending hoặc phiên trước đã lưu
+    try {
+      const rawCache = localStorage.getItem("nanaflix_tmdb_ranking_cache_v8");
+      if (rawCache) {
+        const parsed = JSON.parse(rawCache);
+        if (Array.isArray(parsed?.week) && parsed.week.length >= 3) {
+          const cachedTrending = parsed.week.slice(0, 8).map((m: HeroMovie) => ({
+            ...m,
+            isTrending: true,
+          }));
+          setHeroMovies((prev) => {
+            const currentIsTrending = prev.some((m) => m?.isTrending);
+            if (!currentIsTrending || cachedTrending[0]?.slug !== prev[0]?.slug) {
+              return cachedTrending;
+            }
+            return prev;
+          });
+        }
+      }
+    } catch { }
+
+    // 2. Fetch SWR /api/trending-tmdb?type=week&limit=8 để cập nhật danh sách phim mới nhất
+    const fetchTrendingHero = async () => {
+      try {
+        const res = await fetch("/api/trending-tmdb?type=week&limit=8");
+        if (!res.ok) return;
+        const data = await res.json();
+        if (isCancelled) return;
+        if (Array.isArray(data?.items) && data.items.length >= 3) {
+          const trendingList = data.items.slice(0, 8).map((m: HeroMovie) => ({
+            ...m,
+            isTrending: true,
+          }));
+          setHeroMovies(trendingList);
+        }
+      } catch { }
+    };
+
+    fetchTrendingHero();
+
+    // 3. Lắng nghe event khi TmdbTopTrending cập nhật dữ liệu
+    const handleTrendingUpdated = (e: Event) => {
+      const customEvent = e as CustomEvent<{ week?: HeroMovie[] }>;
+      if (Array.isArray(customEvent.detail?.week) && customEvent.detail.week.length >= 3) {
+        const trendingList = customEvent.detail.week.slice(0, 8).map((m) => ({
+          ...m,
+          isTrending: true,
+        }));
+        setHeroMovies(trendingList);
+      }
+    };
+
+    window.addEventListener("nanaflix_tmdb_trending_updated", handleTrendingUpdated);
+    return () => {
+      isCancelled = true;
+      window.removeEventListener("nanaflix_tmdb_trending_updated", handleTrendingUpdated);
+    };
+  }, []);
+
+  const slides = useMemo(() => (heroMovies || []).slice(0, 8), [heroMovies]);
   const [index, setIndex] = useState(0);
   const [direction, setDirection] = useState(1);
   const [paused, setPaused] = useState(false);
@@ -161,23 +233,23 @@ const HeroFeaturedInner: React.FC<{ movies?: HeroMovie[] }> = ({
 
   const slideVariants = reduceMotion
     ? {
-        enter: { opacity: 0, x: 0, scale: 1 },
-        center: { opacity: 1, x: 0, scale: 1 },
-        exit: { opacity: 0, x: 0, scale: 1 },
-      }
+      enter: { opacity: 0, x: 0, scale: 1 },
+      center: { opacity: 1, x: 0, scale: 1 },
+      exit: { opacity: 0, x: 0, scale: 1 },
+    }
     : {
-        enter: (dir: number) => ({
-          x: dir > 0 ? 120 : -120,
-          opacity: 0,
-          scale: 1.05,
-        }),
-        center: { x: 0, opacity: 1, scale: 1 },
-        exit: (dir: number) => ({
-          x: dir > 0 ? -110 : 110,
-          opacity: 0,
-          scale: 1.05,
-        }),
-      };
+      enter: (dir: number) => ({
+        x: dir > 0 ? 120 : -120,
+        opacity: 0,
+        scale: 1.05,
+      }),
+      center: { x: 0, opacity: 1, scale: 1 },
+      exit: (dir: number) => ({
+        x: dir > 0 ? -110 : 110,
+        opacity: 0,
+        scale: 1.05,
+      }),
+    };
 
   const handleToggleWatchlist = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -258,9 +330,8 @@ const HeroFeaturedInner: React.FC<{ movies?: HeroMovie[] }> = ({
         !failedTrailerMap[currentSlug || ""] && (
           <div
             translate="no"
-            className={`notranslate absolute inset-0 z-0 overflow-hidden pointer-events-none transition-opacity duration-1000 [container-type:size] ${
-              isTrailerReady ? "opacity-100" : "opacity-0"
-            }`}
+            className={`notranslate absolute inset-0 z-0 overflow-hidden pointer-events-none transition-opacity duration-1000 [container-type:size] ${isTrailerReady ? "opacity-100" : "opacity-0"
+              }`}
           >
             <iframe
               key={`hero-trailer-${activeTrailerId}`}

@@ -1,12 +1,12 @@
 /**
  * HISTORICAL ARTISTS BIRTHDAYS & MEMORIAL DATA
  * Phục vụ lịch Việt Nam, ngày sinh nghệ sĩ và sự kiện lịch sử.
- * Dữ liệu tĩnh gốc được nạp từ Cloudflare R2 CDN (giải phóng toàn bộ file JSON khỏi repository):
- * https://media.nanaflix.asia/actors/data/historical-artists.json
+ * Dữ liệu tĩnh gốc được nhập trực tiếp tại build-time từ local JSON (0ms latency, không fetch mạng):
+ * src/data/history/historicalArtistsData.json
  */
 
-import { cacheService } from "@/lib/cache";
 import { getActorSynonyms } from "@/services/actor/actorAliasResolver";
+import historicalArtistsRaw from "./historicalArtistsData.json";
 
 export interface HistoricalArtistBirthday {
   slug: string;
@@ -30,17 +30,10 @@ export interface HistoricalArtistBirthday {
   featured?: boolean;
 }
 
-export const HISTORICAL_ARTISTS_R2_URL =
-  process.env.NEXT_PUBLIC_R2_PUBLIC_URL
-    ? `${process.env.NEXT_PUBLIC_R2_PUBLIC_URL.replace(/\/+$/, "")}/actors/data/historical-artists.json`
-    : "https://media.nanaflix.asia/actors/data/historical-artists.json";
-
-// In-Memory Index (L1 RAM 0ms sau lần nạp đầu tiên)
+// In-Memory Index (L1 RAM 0ms, nạp sẵn ngay khi import module)
 export let HISTORICAL_ARTISTS_BIRTHDAYS: HistoricalArtistBirthday[] = [];
 const slugMap = new Map<string, HistoricalArtistBirthday>();
 const aliasMap = new Map<string, HistoricalArtistBirthday>();
-let inFlightCatalogFetch: Promise<HistoricalArtistBirthday[]> | null = null;
-let isLoaded = false;
 
 export function normalizeArtistKey(str?: string | null): string {
   if (!str) return "";
@@ -83,55 +76,21 @@ export function initializeIndex(artists: HistoricalArtistBirthday[]) {
       }
     }
   }
-  isLoaded = true;
+}
+
+// Khởi tạo index đồng bộ ngay lập tức từ dữ liệu tĩnh cục bộ
+if (Array.isArray(historicalArtistsRaw)) {
+  initializeIndex(historicalArtistsRaw as unknown as HistoricalArtistBirthday[]);
 }
 
 /**
- * Nạp kho dữ liệu nghệ sĩ lịch sử từ Cloudflare R2 (hoặc L2 Redis Aux Cache)
- * Single-flight mutex: Đảm bảo chỉ 1 request tải dữ liệu, tất cả request đồng thời cùng chia sẻ kết quả
+ * Đảm bảo kho dữ liệu đã nạp (trả về trực tiếp RAM index 0ms, không tốn network)
  */
 export async function ensureHistoricalArtistsLoaded(): Promise<HistoricalArtistBirthday[]> {
-  if (isLoaded && HISTORICAL_ARTISTS_BIRTHDAYS.length > 0) {
-    return HISTORICAL_ARTISTS_BIRTHDAYS;
-  }
-  if (inFlightCatalogFetch) {
-    return inFlightCatalogFetch;
-  }
-
-  inFlightCatalogFetch = (async () => {
-    try {
-      // 1. Thử đọc từ Redis DB 3 (Aux) nếu có
-      const redisCached = await cacheService.get<HistoricalArtistBirthday[]>("actor:catalog_r2:v1");
-      if (Array.isArray(redisCached) && redisCached.length > 0) {
-        initializeIndex(redisCached);
-        return redisCached;
-      }
-
-      // 2. Fetch từ Cloudflare R2 CDN
-      const res = await fetch(HISTORICAL_ARTISTS_R2_URL, {
-        headers: { Accept: "application/json" },
-        signal: AbortSignal.timeout(6000),
-      });
-      if (res.ok) {
-        const list = (await res.json()) as HistoricalArtistBirthday[];
-        if (Array.isArray(list) && list.length > 0) {
-          initializeIndex(list);
-          cacheService.set("actor:catalog_r2:v1", list, 86400 * 7).catch(() => {});
-          return list;
-        }
-      }
-    } catch (err) {
-      console.warn("[HistoricalArtists] Fetch from R2 failed:", err instanceof Error ? err.message : err);
-    }
-    return HISTORICAL_ARTISTS_BIRTHDAYS;
-  })().finally(() => {
-    inFlightCatalogFetch = null;
-  });
-
-  return inFlightCatalogFetch;
+  return HISTORICAL_ARTISTS_BIRTHDAYS;
 }
 
-export const getHistoricalArtistsList = ensureHistoricalArtistsLoaded;
+export const getHistoricalArtistsList = () => HISTORICAL_ARTISTS_BIRTHDAYS;
 
 /**
  * Tra cứu nghệ sĩ theo slug (0ms RAM cache, fallback Golden Actors)
@@ -195,7 +154,13 @@ export function findHistoricalArtist(nameOrQuery?: string): HistoricalArtistBirt
     if (a.name.toLowerCase() === clean) return true;
     if (a.name.toLowerCase().replace(/[\s-]+/g, "") === noSpaceQuery) return true;
     if (normalizeArtistKey(a.name) === normKey) return true;
-    if (a.englishName && (a.englishName.toLowerCase().replace(/[\s-]+/g, "") === noSpaceQuery || normalizeArtistKey(a.englishName) === normKey)) return true;
+    if (
+      a.englishName &&
+      (a.englishName.toLowerCase().replace(/[\s-]+/g, "") === noSpaceQuery ||
+        normalizeArtistKey(a.englishName) === normKey)
+    ) {
+      return true;
+    }
     if (a.aliases && a.aliases.some((alias) => normalizeArtistKey(alias) === normKey)) {
       return true;
     }
@@ -223,9 +188,4 @@ export function findHistoricalArtist(nameOrQuery?: string): HistoricalArtistBirt
  */
 export function getR2ActorAvatarUrl(slug: string): string {
   return `https://media.nanaflix.asia/actors/photos/${slug.toLowerCase().trim()}.jpg`;
-}
-
-// Tự động tải ngầm catalog trên Server runtime (Node.js) để làm ấm cache
-if (typeof window === "undefined") {
-  ensureHistoricalArtistsLoaded().catch(() => {});
 }

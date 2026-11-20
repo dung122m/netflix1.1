@@ -54,7 +54,7 @@ export const ScrollFadeContainer: React.FC<ScrollFadeContainerProps> = ({
       {/* LEFT FADE GRADIENT */}
       {showLeftFade && (
         <div
-          className={`pointer-events-none absolute left-0 top-0 bottom-0 w-6 sm:w-8 bg-gradient-to-r ${fadeColor} via-black/50 to-transparent z-10 transition-opacity duration-200 ${
+          className={`hidden sm:block pointer-events-none absolute left-0 top-0 bottom-0 w-6 sm:w-8 bg-gradient-to-r ${fadeColor} via-black/50 to-transparent z-10 transition-opacity duration-200 ${
             canScrollLeft ? "opacity-100" : "opacity-0"
           }`}
           aria-hidden="true"
@@ -73,7 +73,7 @@ export const ScrollFadeContainer: React.FC<ScrollFadeContainerProps> = ({
       {/* RIGHT FADE GRADIENT */}
       {showRightFade && (
         <div
-          className={`pointer-events-none absolute right-0 top-0 bottom-0 w-8 sm:w-10 bg-gradient-to-l ${fadeColor} via-black/50 to-transparent z-10 transition-opacity duration-200 ${
+          className={`hidden sm:block pointer-events-none absolute right-0 top-0 bottom-0 w-8 sm:w-10 bg-gradient-to-l ${fadeColor} via-black/50 to-transparent z-10 transition-opacity duration-200 ${
             canScrollRight ? "opacity-100" : "opacity-0"
           }`}
           aria-hidden="true"

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef, useState, useEffect, useCallback } from "react";
+import React from "react";
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 
@@ -30,32 +30,6 @@ const FEATURED_GENRE_CHIPS: GenreChipItem[] = [
 ];
 
 export function HomeGenreExploreBar() {
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const [canScrollRight, setCanScrollRight] = useState(false);
-
-  const checkScroll = useCallback(() => {
-    const el = scrollRef.current;
-    if (!el) return;
-    const { scrollLeft, scrollWidth, clientWidth } = el;
-    setCanScrollRight(scrollLeft + clientWidth < scrollWidth - 8);
-  }, []);
-
-  useEffect(() => {
-    const el = scrollRef.current;
-    if (!el) return;
-    checkScroll();
-
-    el.addEventListener("scroll", checkScroll, { passive: true });
-    el.addEventListener("scrollend", checkScroll, { passive: true });
-    window.addEventListener("resize", checkScroll, { passive: true });
-
-    return () => {
-      el.removeEventListener("scroll", checkScroll);
-      el.removeEventListener("scrollend", checkScroll);
-      window.removeEventListener("resize", checkScroll);
-    };
-  }, [checkScroll]);
-
   return (
     <section aria-label="Khám phá theo thể loại" className="space-y-3 w-full min-w-0 max-w-full overflow-hidden">
       {/* 1. Header có phân cấp rõ ràng - Cho phép click tiêu đề để mở /browse */}
@@ -93,7 +67,6 @@ export function HomeGenreExploreBar() {
       {/* 2. Danh mục Thể loại: Cuộn ngang trên Mobile & Lưới tối đa 2 hàng trên Desktop (1 mảng DOM duy nhất) */}
       <div className="relative w-full min-w-0 max-w-full overflow-hidden">
         <div
-          ref={scrollRef}
           className="flex items-center gap-2 overflow-x-auto scrollbar-none pb-1 pt-0.5 px-0.5 touch-pan-x touch-pan-y md:grid md:grid-cols-4 lg:grid-cols-8 md:gap-2 lg:gap-2.5 md:overflow-visible w-full min-w-0"
         >
           {FEATURED_GENRE_CHIPS.map((chip) => (
@@ -111,14 +84,6 @@ export function HomeGenreExploreBar() {
             </Link>
           ))}
         </div>
-
-        {/* Fade mép phải gợi mở nội dung cuộn (chỉ hiện trên Mobile khi còn nội dung cuộn) */}
-        <div
-          aria-hidden="true"
-          className={`md:hidden pointer-events-none absolute top-0 bottom-1 right-0 w-8 bg-gradient-to-l from-black/85 via-black/35 to-transparent transition-opacity duration-300 z-10 ${
-            canScrollRight ? "opacity-100" : "opacity-0"
-          }`}
-        />
       </div>
     </section>
   );

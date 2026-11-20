@@ -4,12 +4,78 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { toOptimizedCardPosterUrl, isSlowProviderSourceUrl } from "@/lib/movieMedia";
 
 // =========================================================================
-// 1. IN-MEMORY GLOBAL CACHE & DEDUPLICATION (Lưu trong RAM toàn bộ phiên)
+// 1. PERSISTENT GLOBAL CACHE & DEDUPLICATION (Lưu vào localStorage/sessionStorage)
 // =========================================================================
-// Tránh việc nhiều card cùng 1 phim (hoặc khi navigate qua lại) gọi API nhiều lần
-export const GLOBAL_POSTER_CACHE = new Map<string, string>();
+// Tránh việc nhiều card cùng 1 phim (hoặc khi reload trang) gọi API nhiều lần
+const POSTER_CACHE_KEY = "nfx_poster_fallback_cache_v2";
+const TRIED_FAILURES_KEY = "nfx_poster_fallback_failures_v2";
+
+function initPersistentPosterCache(): Map<string, string> {
+  const map = new Map<string, string>();
+  if (typeof window === "undefined") return map;
+  try {
+    const raw = localStorage.getItem(POSTER_CACHE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (typeof parsed === "object" && parsed !== null) {
+        for (const [k, v] of Object.entries(parsed)) {
+          if (typeof v === "string" && v) {
+            map.set(k, v);
+          }
+        }
+      }
+    }
+  } catch {}
+  return map;
+}
+
+function initPersistentFailures(): Set<string> {
+  const set = new Set<string>();
+  if (typeof window === "undefined") return set;
+  try {
+    const raw = sessionStorage.getItem(TRIED_FAILURES_KEY) || localStorage.getItem(TRIED_FAILURES_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        parsed.forEach((k) => {
+          if (typeof k === "string") set.add(k);
+        });
+      }
+    }
+  } catch {}
+  return set;
+}
+
+export const GLOBAL_POSTER_CACHE = initPersistentPosterCache();
 const GLOBAL_INFLIGHT_PROMISES = new Map<string, Promise<{ posterUrl: string | null; backdropUrl: string | null } | null>>();
-const GLOBAL_TRIED_FAILURES = new Set<string>();
+export const GLOBAL_TRIED_FAILURES = initPersistentFailures();
+
+export function persistPosterCacheEntry(key: string, url: string) {
+  if (typeof window === "undefined" || !key || !url) return;
+  try {
+    GLOBAL_POSTER_CACHE.set(key, url);
+    const raw = localStorage.getItem(POSTER_CACHE_KEY);
+    const obj: Record<string, string> = raw ? JSON.parse(raw) : {};
+    obj[key] = url;
+    const keys = Object.keys(obj);
+    if (keys.length > 300) delete obj[keys[0]];
+    localStorage.setItem(POSTER_CACHE_KEY, JSON.stringify(obj));
+  } catch {}
+}
+
+export function persistFailureEntry(key: string) {
+  if (typeof window === "undefined" || !key) return;
+  try {
+    GLOBAL_TRIED_FAILURES.add(key);
+    const raw = sessionStorage.getItem(TRIED_FAILURES_KEY);
+    const arr: string[] = raw ? JSON.parse(raw) : [];
+    if (!arr.includes(key)) {
+      arr.push(key);
+      if (arr.length > 300) arr.shift();
+      sessionStorage.setItem(TRIED_FAILURES_KEY, JSON.stringify(arr));
+    }
+  } catch {}
+}
 
 // =========================================================================
 // 2. CONCURRENCY LIMITER (Giới hạn tối đa 4 request đồng thời)
@@ -249,7 +315,7 @@ export function useMoviePosterFallback({
 
       // Nếu không tìm thấy ảnh thay thế hoặc ảnh vẫn là nguồn chậm (phimimg/nguonc) -> GIỮ NGUYÊN ẢNH GỐC
       if (!resolvedRaw || typeof resolvedRaw !== "string" || isSlowProviderSourceUrl(resolvedRaw)) {
-        GLOBAL_TRIED_FAILURES.add(cacheKey);
+        persistFailureEntry(cacheKey);
         setIsLoading(false);
         return;
       }
@@ -261,7 +327,7 @@ export function useMoviePosterFallback({
       preloader.src = candidate;
       preloader.onload = () => {
         if (!isMountedRef.current) return;
-        GLOBAL_POSTER_CACHE.set(cacheKey, candidate);
+        persistPosterCacheEntry(cacheKey, candidate);
         setDisplaySrc(candidate);
         setIsUpgraded(true);
         setIsLoading(false);
@@ -269,12 +335,12 @@ export function useMoviePosterFallback({
       preloader.onerror = () => {
         // Ảnh mới bị lỗi mạng/404 -> Giữ nguyên ảnh gốc, không làm hỏng giao diện
         if (!isMountedRef.current) return;
-        GLOBAL_TRIED_FAILURES.add(cacheKey);
+        persistFailureEntry(cacheKey);
         setIsLoading(false);
       };
     }).catch(() => {
       GLOBAL_INFLIGHT_PROMISES.delete(cacheKey);
-      GLOBAL_TRIED_FAILURES.add(cacheKey);
+      persistFailureEntry(cacheKey);
       if (isMountedRef.current) {
         setIsLoading(false);
       }

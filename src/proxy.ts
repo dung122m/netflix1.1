@@ -36,6 +36,8 @@ const AGGRESSIVE_SCRAPER_USER_AGENTS = [
   /diffbot/i,
   /omgili/i,
   /meta-externalagent/i,
+  /meta-externalfetcher/i,
+  /facebookcatalog/i,
   /turnitin/i,
   /amazonbot/i,
   /bytespider/i,
@@ -81,6 +83,25 @@ interface EdgeTierRule {
   name: string;
   maxRequests: number;
   windowMs: number;
+}
+
+/**
+ * Chuẩn hóa IP Subnet:
+ * - IPv4: giữ nguyên
+ * - IPv6: chuẩn hóa lấy 3 nhóm hex đầu (prefix /48) để gom cụm các botnet/crawler
+ *   tự động xoay hàng ngàn địa chỉ IPv6 con trong cùng một hạ tầng datacenter (như Meta/AWS).
+ */
+function normalizeClientIpSubnet(ip: string): string {
+  if (!ip || ip === "unknown") return "unknown";
+  const clean = ip.trim().toLowerCase();
+  if (clean.includes(":")) {
+    const blocks = clean.split(":").filter(Boolean);
+    if (blocks.length >= 3) {
+      return blocks.slice(0, 3).join(":");
+    }
+    return clean;
+  }
+  return clean;
 }
 
 const EDGE_TIER_RULES: EdgeTierRule[] = [
@@ -351,7 +372,8 @@ export function proxy(req: NextRequest) {
   if (!isSearchBot) {
     const matchedTier = EDGE_TIER_RULES.find((tier) => pathname.startsWith(tier.prefix));
     if (matchedTier) {
-      const rlKey = `${clientIp}:${matchedTier.prefix}`;
+      const ipSubnet = normalizeClientIpSubnet(clientIp);
+      const rlKey = `${ipSubnet}:${matchedTier.prefix}`;
       const now = Date.now();
       const record = EDGE_RATE_LIMIT_STORE.get(rlKey);
 

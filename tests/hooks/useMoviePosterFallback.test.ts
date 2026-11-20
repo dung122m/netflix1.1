@@ -63,6 +63,8 @@ describe("Batch 2: Movie Poster Fallback Optimization Tests", () => {
       assert.ok(cacheControl, "Response must include Cache-Control header");
       assert.ok(cacheControl.includes("public"), "Cache-Control must be public");
       assert.ok(cacheControl.includes("max-age="), "Cache-Control must specify max-age");
+      assert.ok(res.headers.get("CDN-Cache-Control")?.includes("public"));
+      assert.ok(res.headers.get("Vercel-CDN-Cache-Control")?.includes("public"));
 
       // Verify L1 cache hit also includes Cache-Control
       const resL1 = await GET(req);
@@ -70,6 +72,7 @@ describe("Batch 2: Movie Poster Fallback Optimization Tests", () => {
       const dataL1 = await resL1.json();
       assert.equal(dataL1.source, "l1-cache");
       assert.ok(resL1.headers.get("Cache-Control")?.includes("public"));
+      assert.ok(resL1.headers.get("CDN-Cache-Control")?.includes("public"));
     } finally {
       globalThis.fetch = originalFetch;
     }

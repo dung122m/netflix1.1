@@ -360,13 +360,13 @@ export function RecommendationTabs({
         <div className="flex items-center gap-1.5 w-full min-w-0">
           <div className="relative flex-1 min-w-0 overflow-hidden">
             {canScrollLeft && (
-              <div className="absolute left-0 top-0 bottom-0 z-20 flex items-center pr-2 pl-0.5 pointer-events-none md:opacity-0 md:group-hover/rec-tabs:opacity-100 transition-opacity duration-200">
+              <div className="hidden md:flex absolute left-0 top-0 bottom-0 z-20 items-center pr-2 pl-0.5 pointer-events-none opacity-0 group-hover/rec-tabs:opacity-100 transition-opacity duration-200">
                 <div className="absolute inset-0 bg-gradient-to-r from-zinc-950 via-zinc-950/80 to-transparent pointer-events-none" />
                 <button
                   type="button"
                   onClick={() => scrollTabs("left")}
                   aria-label="Cuộn sang trái"
-                  className="relative z-10 pointer-events-auto hidden md:flex h-6 w-6 rounded-full bg-zinc-900/95 hover:bg-zinc-800 text-zinc-200 hover:text-white shadow-md items-center justify-center transition active:scale-95 cursor-pointer backdrop-blur-md"
+                  className="relative z-10 pointer-events-auto h-6 w-6 rounded-full bg-zinc-900/95 hover:bg-zinc-800 text-zinc-200 hover:text-white shadow-md flex items-center justify-center transition active:scale-95 cursor-pointer backdrop-blur-md"
                 >
                   <ChevronLeft className="w-3.5 h-3.5" />
                 </button>
@@ -374,13 +374,13 @@ export function RecommendationTabs({
             )}
 
             {canScrollRight && (
-              <div className="absolute right-0 top-0 bottom-0 z-20 flex items-center pl-2 pr-0.5 pointer-events-none md:opacity-0 md:group-hover/rec-tabs:opacity-100 transition-opacity duration-200">
-                <div className="absolute inset-0 bg-gradient-to-l from-zinc-950 via-zinc-950/80 to-transparent pointer-events-none opacity-40 md:opacity-100" />
+              <div className="hidden md:flex absolute right-0 top-0 bottom-0 z-20 items-center pl-2 pr-0.5 pointer-events-none opacity-0 group-hover/rec-tabs:opacity-100 transition-opacity duration-200">
+                <div className="absolute inset-0 bg-gradient-to-l from-zinc-950 via-zinc-950/80 to-transparent pointer-events-none opacity-100" />
                 <button
                   type="button"
                   onClick={() => scrollTabs("right")}
                   aria-label="Cuộn sang phải"
-                  className="relative z-10 pointer-events-auto hidden md:flex h-6 w-6 rounded-full bg-zinc-900/95 hover:bg-zinc-800 text-zinc-200 hover:text-white shadow-md items-center justify-center transition active:scale-95 cursor-pointer backdrop-blur-md"
+                  className="relative z-10 pointer-events-auto h-6 w-6 rounded-full bg-zinc-900/95 hover:bg-zinc-800 text-zinc-200 hover:text-white shadow-md flex items-center justify-center transition active:scale-95 cursor-pointer backdrop-blur-md"
                 >
                   <ChevronRight className="w-3.5 h-3.5" />
                 </button>

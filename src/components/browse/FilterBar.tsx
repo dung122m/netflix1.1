@@ -366,37 +366,20 @@ export const FilterBar: React.FC = () => {
     }
   }, [activeDropdown, computePosition]);
 
-  const [canScrollLeft, setCanScrollLeft] = useState(false);
-  const [canScrollRight, setCanScrollRight] = useState(false);
-
-  const checkFilterScroll = useCallback(() => {
-    const el = scrollContainerRef.current;
-    if (!el) return;
-    const nextLeft = el.scrollLeft > 3;
-    const nextRight = el.scrollLeft < el.scrollWidth - el.clientWidth - 3;
-    setCanScrollLeft((prev) => (prev !== nextLeft ? nextLeft : prev));
-    setCanScrollRight((prev) => (prev !== nextRight ? nextRight : prev));
-  }, []);
-
   useEffect(() => {
     updateDropdownPosition();
-    checkFilterScroll();
     window.addEventListener("resize", updateDropdownPosition);
-    window.addEventListener("resize", checkFilterScroll);
     const scrollEl = scrollContainerRef.current;
     if (scrollEl) {
       scrollEl.addEventListener("scroll", updateDropdownPosition, { passive: true });
-      scrollEl.addEventListener("scroll", checkFilterScroll, { passive: true });
     }
     return () => {
       window.removeEventListener("resize", updateDropdownPosition);
-      window.removeEventListener("resize", checkFilterScroll);
       if (scrollEl) {
         scrollEl.removeEventListener("scroll", updateDropdownPosition);
-        scrollEl.removeEventListener("scroll", checkFilterScroll);
       }
     };
-  }, [updateDropdownPosition, checkFilterScroll]);
+  }, [updateDropdownPosition]);
 
   return (
     <div ref={containerRef} className="w-full relative z-40 select-none">
@@ -447,19 +430,7 @@ export const FilterBar: React.FC = () => {
 
         {/* SCROLLABLE FILTER BUTTONS WRAPPER */}
         <div className="relative flex-1 min-w-0 overflow-hidden">
-          {/* MOBILE SUBTLE GRADIENT FADE AFFORDANCE */}
-          {canScrollLeft && (
-            <div
-              className="sm:hidden absolute left-0 top-0 bottom-0 w-6 bg-gradient-to-r from-zinc-900 via-zinc-900/80 to-transparent pointer-events-none z-10 transition-opacity duration-200"
-              aria-hidden="true"
-            />
-          )}
-          {canScrollRight && (
-            <div
-              className="sm:hidden absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-zinc-900 via-zinc-900/80 to-transparent pointer-events-none z-10 transition-opacity duration-200"
-              aria-hidden="true"
-            />
-          )}
+
 
           <div
             ref={scrollContainerRef}

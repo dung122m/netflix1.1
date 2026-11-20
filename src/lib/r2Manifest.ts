@@ -1,54 +1,21 @@
 /**
- * CLOUDFLARE R2 ASSETS MANIFEST (DYNAMIC CDN LOADER)
- * Đã offload r2AssetsManifest.json (184 KB) khỏi Git bundle.
- * Tự động tải động từ Cloudflare R2 CDN (https://media.nanaflix.asia/manifest.json)
- * và lưu trong L1 RAM O(1) với Single-Flight Mutex chống trùng lặp.
+ * CLOUDFLARE R2 ASSETS MANIFEST & CONVENTION RESOLVER
+ * Dữ liệu manifest tĩnh được nhập trực tiếp tại build-time từ local JSON (0ms latency, không fetch mạng):
+ * src/data/r2AssetsManifest.json
  */
 
-let dynamicManifest: Record<string, string> = {};
-let isManifestLoaded = false;
-let lastManifestFetch = 0;
-const MANIFEST_REFRESH_INTERVAL_MS = 60 * 60 * 1000; // 1 giờ
-let inFlightManifestFetch: Promise<Record<string, string>> | null = null;
+import r2AssetsManifestRaw from "@/data/r2AssetsManifest.json";
+
+const staticManifest: Record<string, string> =
+  (r2AssetsManifestRaw && typeof r2AssetsManifestRaw === "object"
+    ? (r2AssetsManifestRaw as Record<string, string>)
+    : {}) || {};
 
 /**
- * Đảm bảo manifest đã được tải từ Cloudflare R2 CDN vào RAM (Single-Flight Mutex)
+ * Đảm bảo manifest đã sẵn sàng (trả về trực tiếp bản đồ tĩnh 0ms, không tốn network).
  */
 export async function ensureR2ManifestLoaded(): Promise<Record<string, string>> {
-  const now = Date.now();
-  if (isManifestLoaded && now - lastManifestFetch < MANIFEST_REFRESH_INTERVAL_MS) {
-    return dynamicManifest;
-  }
-
-  if (inFlightManifestFetch) {
-    return inFlightManifestFetch;
-  }
-
-  inFlightManifestFetch = (async () => {
-    try {
-      const publicUrl = process.env.R2_PUBLIC_URL || "https://media.nanaflix.asia";
-      const cleanUrl = publicUrl.replace(/\/+$/, "");
-      const res = await fetch(`${cleanUrl}/manifest.json`, {
-        signal: AbortSignal.timeout(5000),
-        headers: { Accept: "application/json" },
-      });
-      if (res.ok) {
-        const data = (await res.json()) as Record<string, string>;
-        if (data && typeof data === "object") {
-          dynamicManifest = { ...dynamicManifest, ...data };
-          isManifestLoaded = true;
-          lastManifestFetch = Date.now();
-        }
-      }
-    } catch (err) {
-      console.warn("[R2Manifest] Fetch from R2 failed:", err instanceof Error ? err.message : err);
-    }
-    return dynamicManifest;
-  })().finally(() => {
-    inFlightManifestFetch = null;
-  });
-
-  return inFlightManifestFetch;
+  return staticManifest;
 }
 
 export const refreshR2Manifest = ensureR2ManifestLoaded;
@@ -59,22 +26,13 @@ export const refreshR2Manifest = ensureR2ManifestLoaded;
 export function getR2AssetUrl(key: string): string | null {
   if (!key) return null;
   const cleanKey = key.replace(/^\/+/, "");
-
-  // 1. Kiểm tra RAM cache O(1)
-  const match = dynamicManifest[cleanKey];
-  if (match) return match;
-
-  // 2. Kích hoạt tải ngầm nếu chưa nạp trên Server
-  if (typeof window === "undefined" && (!isManifestLoaded || Date.now() - lastManifestFetch > MANIFEST_REFRESH_INTERVAL_MS)) {
-    ensureR2ManifestLoaded().catch(() => {});
-  }
-
-  return null;
+  return staticManifest[cleanKey] || null;
 }
 
 /**
- * Tra cứu thông minh logo đội thể thao từ Cloudflare R2 Manifest (0ms O(1)).
- * Hỗ trợ mọi môn (basketball, football, esports...), tự động thử cả dạng kebab-case lẫn collapsed.
+ * Tra cứu logo đội thể thao dùng Convention-based URL trực tiếp:
+ * https://media.nanaflix.asia/teams/{sport}/{slug}.webp
+ * Không phụ thuộc manifest mạng hay fetch runtime.
  */
 export function getR2TeamLogoUrl(
   teamName?: string | null,
@@ -94,43 +52,24 @@ export function getR2TeamLogoUrl(
   const tokens = clean.split(/\s+/).filter(Boolean);
   if (tokens.length === 0) return null;
 
-  const collapsed = tokens.join("");
-  const kebab = tokens.join("-");
-
-  const categories =
+  const slug = tokens.join("-");
+  const sportCategory =
     sport === "basketball"
-      ? ["teams/basketball", "teams/football", "teams/esports"]
+      ? "basketball"
       : sport === "esports"
-      ? ["teams/esports", "teams/football", "teams/basketball"]
-      : ["teams/football", "teams/basketball", "teams/esports"];
+      ? "esports"
+      : "football";
 
-  for (const cat of categories) {
-    const match =
-      getR2AssetUrl(`${cat}/${kebab}.png`) ||
-      getR2AssetUrl(`${cat}/${collapsed}.png`) ||
-      getR2AssetUrl(`${cat}/${kebab}.webp`) ||
-      getR2AssetUrl(`${cat}/${collapsed}.webp`);
-    if (match) return match;
-  }
-
-  // Nếu tên đội gồm nhiều từ, thử tìm theo từ khóa chính (vd: "Pistons", "Hornets", "Raptors")
-  if (tokens.length > 1) {
-    const lastWord = tokens[tokens.length - 1];
-    if (lastWord.length >= 4) {
-      for (const cat of categories) {
-        const match =
-          getR2AssetUrl(`${cat}/${lastWord}.png`) ||
-          getR2AssetUrl(`${cat}/${lastWord}.webp`);
-        if (match) return match;
-      }
-    }
-  }
-
-  return null;
+  const publicBase =
+    (typeof process !== "undefined" &&
+      (process.env.NEXT_PUBLIC_R2_PUBLIC_URL || process.env.R2_PUBLIC_URL)) ||
+    "https://media.nanaflix.asia";
+  const cleanBase = publicBase.replace(/\/+$/, "");
+  return `${cleanBase}/teams/${sportCategory}/${slug}.webp`;
 }
 
 /**
- * Tra cứu thông minh Banner phim từ R2 CDN theo slug hoặc URL gốc.
+ * Tra cứu thông minh Banner phim từ R2 CDN theo slug hoặc URL gốc từ manifest cục bộ.
  */
 export function getR2BannerUrl(
   slug?: string | null,
@@ -158,9 +97,4 @@ export function getR2BannerUrl(
     }
   }
   return null;
-}
-
-// Tự động tải ngầm manifest trên Server runtime để làm ấm cache RAM
-if (typeof window === "undefined") {
-  ensureR2ManifestLoaded().catch(() => {});
 }

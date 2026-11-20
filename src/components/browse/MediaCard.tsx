@@ -16,7 +16,6 @@ import { formatEpisodeName, isFullEpisodeLabel } from "@/lib/formatEpisode";
 import {
   toOptimizedCardPosterUrl,
   toFastCdnImageUrl,
-  extractOriginalSourceUrl,
   sanitizeImageUrl,
   formatCountryName,
   COUNTRY_DISPLAY_MAP,
@@ -207,7 +206,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
     // 0. Ảnh đã từng nạp thành công trong phiên (0ms cache hit)
     // 1. TMDb CDN chính chủ siêu nhẹ & cực nhanh (30ms CDN)
     // 2. AniList CDN cho Hoạt hình
-    // 3. Đẩy các nguồn chậm / nặng (phimimg, nguonc, r2-proxy) xuống sau các nguồn CDN
+    // 3. Đẩy các nguồn chậm / nặng (phimimg, nguonc) xuống sau các nguồn CDN
     // 4. Poster dọc (-poster.webp, poster_, /w500)
     // 5. Thumb ngang (-thumb.webp) làm fallback
     return list.sort((a, b) => {
@@ -245,13 +244,12 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
 
   const initialCandidate = imageCandidates[0] || "";
 
-  // Chủ động kích hoạt TMDb fallback khi không có candidate ban đầu HOẶC khi candidate
-  // là nguồn chậm/nặng (phimimg, nguonc, r2-proxy) để nâng cấp ngầm sang TMDb CDN chính hãng siêu nhẹ (~35KB)
+  // Chỉ kích hoạt TMDb fallback khi thực sự thiếu ảnh hoặc là ảnh placeholder mặc định (tiết kiệm Serverless CPU Vercel)
   const [needsFallback, setNeedsFallback] = useState<boolean>(
-    () => !initialCandidate || isSlowProviderSourceUrl(initialCandidate)
+    () => !initialCandidate || initialCandidate.includes("/default-")
   );
 
-  // Chuẩn hóa và tra cứu fallback TMDb dùng chung khi cần
+  // Chuẩn hóa và tra cứu fallback TMDb dùng chung khi cần (chỉ kích hoạt khi thiếu ảnh hoặc ảnh lỗi)
   const { displaySrc: tmdbFallbackSrc, isLoading: isFallbackLoading, triggerFallback } = useMoviePosterFallback({
     slug,
     title,
@@ -260,15 +258,13 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
     type: itemType,
     initialSrc: initialCandidate,
     enabled: needsFallback,
-    upgradePhimimg: true,
+    upgradePhimimg: false,
     tmdbId,
   });
 
   const initialToUse =
     (tmdbFallbackSrc && !isSlowProviderSourceUrl(tmdbFallbackSrc))
       ? tmdbFallbackSrc
-      : (needsFallback && isSlowProviderSourceUrl(initialCandidate))
-      ? "" // Trì hoãn nạp candidate chậm (phimimg/nguonc) để chờ tra cứu TMDb xong trước, chống flash ảnh và chống ghi rác vào R2
       : initialCandidate;
 
   const [currentSrc, setCurrentSrc] = useState<string>(() => initialToUse);
@@ -399,34 +395,10 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
       return;
     }
 
-    // 5. CỨU CÁNH CUỐI CÙNG: Chỉ khi TMDb hoàn toàn không có (hoặc đã fail)
-    // mới thử gọi R2 Proxy qua Vercel cho nguồn phimimg.com / nguonc.com
-    if (
-      currentSrc &&
-      (currentSrc.includes("phimimg.com") || currentSrc.includes("nguonc.com") || currentSrc.includes("/cache/")) &&
-      !currentSrc.includes("/api/media/r2-proxy")
-    ) {
-      const originalSource = extractOriginalSourceUrl(currentSrc);
-      if (originalSource && originalSource !== currentSrc) {
-        const params = new URLSearchParams({ url: originalSource });
-        if (slug) params.set("slug", slug);
-        if (tmdbId) params.set("tmdb_id", String(tmdbId));
-        if (title) params.set("title", title);
-        if (year) params.set("year", String(year));
-        const r2ProxyUrl = `/api/media/r2-proxy?${params.toString()}`;
-        if (!triedUrlsRef.current.has(r2ProxyUrl)) {
-          setCurrentSrc(r2ProxyUrl);
-          setIsImageLoaded(false);
-          setHasError(false);
-          return;
-        }
-      }
-    }
-
-    // 6. Toàn bộ candidates, TMDb, và R2 proxy đều thất bại → Hiện Poster Canvas
+    // 5. Toàn bộ candidates và TMDb đều thất bại → Hiện Poster Canvas
     setHasError(true);
     setIsImageLoaded(true);
-  }, [currentSrc, imageCandidates, tmdbFallbackSrc, isFallbackLoading, needsFallback, triggerFallback, slug, tmdbId, title, year]);
+  }, [currentSrc, imageCandidates, tmdbFallbackSrc, isFallbackLoading, needsFallback, triggerFallback]);
 
   // Trạng thái Trailer & Modal Trailer (Chỉ kích hoạt khi bấm nút xem Trailer)
   const [trailerUrl, setTrailerUrl] = useState<string>(

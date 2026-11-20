@@ -3,7 +3,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import Image, { ImageProps } from "next/image";
 import { useMoviePosterFallback } from "@/hooks/useMoviePosterFallback";
-import { isSlowProviderSourceUrl } from "@/lib/movieMedia";
 
 export interface MoviePosterImageProps extends Omit<ImageProps, "src" | "alt"> {
   src?: string | null;
@@ -35,18 +34,17 @@ export function MoviePosterImage({
   ...rest
 }: MoviePosterImageProps) {
   const rawSrc = src ? String(src).trim() : "";
-  const isTmdb = Boolean(rawSrc && rawSrc.includes("image.tmdb.org"));
-  const isSlow = isSlowProviderSourceUrl(rawSrc);
+  const isBrokenOrEmpty = !rawSrc || rawSrc.includes("/default-");
 
-  const { displaySrc } = useMoviePosterFallback({
+  const { displaySrc, triggerFallback } = useMoviePosterFallback({
     slug,
     title,
     year,
     tmdbId,
     initialSrc: rawSrc,
     preferBackdrop,
-    enabled: isSlow && !isTmdb,
-    upgradePhimimg: true,
+    enabled: isBrokenOrEmpty,
+    upgradePhimimg: false,
   });
 
   const [hasError, setHasError] = useState(false);
@@ -61,18 +59,14 @@ export function MoviePosterImage({
   }, [displaySrc, currentSrc]);
 
   const handleImageError = useCallback(() => {
-    // Chỉ kích hoạt R2 proxy khi TMDb thất bại và ảnh gốc (phimimg/nguonc) bị lỗi/chặn
-    if (
-      currentSrc &&
-      (currentSrc.includes("phimimg.com") || currentSrc.includes("nguonc.com") || currentSrc.includes("/cache/")) &&
-      !currentSrc.includes("/api/media/r2-proxy")
-    ) {
-      const proxyUrl = `/api/media/r2-proxy?url=${encodeURIComponent(currentSrc)}&title=${encodeURIComponent(title || alt || "")}&slug=${encodeURIComponent(slug || "")}`;
-      setCurrentSrc(proxyUrl);
+    // 1. Nếu ảnh lỗi và chưa gọi TMDb fallback, kích hoạt fallback
+    if (!isBrokenOrEmpty && displaySrc === rawSrc) {
+      triggerFallback();
       return;
     }
+
     setHasError(true);
-  }, [currentSrc, title, alt, slug]);
+  }, [isBrokenOrEmpty, displaySrc, rawSrc, triggerFallback]);
 
   const finalSrc = hasError || !currentSrc ? fallbackSrc : currentSrc;
 

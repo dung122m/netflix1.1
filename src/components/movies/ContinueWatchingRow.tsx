@@ -22,7 +22,6 @@ import {
   pickBestMovieThumb,
   toOptimizedCardPosterUrl,
   toFastCdnImageUrl,
-  extractOriginalSourceUrl,
 } from "@/lib/movieMedia";
 import { formatEpisodeName, isFullEpisodeLabel } from "@/lib/formatEpisode";
 import { CarouselNavButton } from "@/components/ui/CarouselNavButton";
@@ -32,13 +31,46 @@ import { useMoviePosterFallback, isPhimimgSourceUrl } from "@/hooks/useMoviePost
 
 export const MAX_CONTINUE_WATCHING_DISPLAY = 15;
 
-const continueWatchingThumbCache = new Map<string, string>();
+const CW_THUMB_KEY = "nfx_cw_thumb_cache_v2";
+function initContinueWatchingThumbCache(): Map<string, string> {
+  const map = new Map<string, string>();
+  if (typeof window === "undefined") return map;
+  try {
+    const raw = localStorage.getItem(CW_THUMB_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (typeof parsed === "object" && parsed !== null) {
+        for (const [k, v] of Object.entries(parsed)) {
+          if (typeof v === "string" && v) map.set(k, v);
+        }
+      }
+    }
+  } catch {}
+  return map;
+}
 
-// Persist loaded poster URLs trong sessionStorage để reload cùng session không bị fade-in lại
-const SESSION_KEY = "nfx_cw_loaded_posters";
+const continueWatchingThumbCache = initContinueWatchingThumbCache();
+
+function persistContinueWatchingThumb(slug: string, url: string) {
+  if (typeof window === "undefined" || !slug || !url) return;
+  try {
+    const raw = localStorage.getItem(CW_THUMB_KEY);
+    const obj: Record<string, string> = raw ? JSON.parse(raw) : {};
+    obj[slug] = url;
+    const keys = Object.keys(obj);
+    if (keys.length > 200) delete obj[keys[0]];
+    localStorage.setItem(CW_THUMB_KEY, JSON.stringify(obj));
+  } catch {}
+}
+
+// Persist loaded poster URLs trong localStorage để reload trang hiển thị ngay 0ms không bị chớp trắng
+const SESSION_KEY = "nfx_cw_loaded_posters_v2";
 function buildLoadedPostersCache(): Set<string> {
   try {
-    const raw = typeof window !== "undefined" ? sessionStorage.getItem(SESSION_KEY) : null;
+    const raw =
+      typeof window !== "undefined"
+        ? localStorage.getItem(SESSION_KEY) || sessionStorage.getItem(SESSION_KEY)
+        : null;
     if (raw) return new Set<string>(JSON.parse(raw) as string[]);
   } catch {}
   return new Set<string>();
@@ -46,12 +78,12 @@ function buildLoadedPostersCache(): Set<string> {
 
 function persistLoadedPoster(url: string) {
   try {
-    const raw = sessionStorage.getItem(SESSION_KEY);
+    const raw = localStorage.getItem(SESSION_KEY) || sessionStorage.getItem(SESSION_KEY);
     const arr: string[] = raw ? (JSON.parse(raw) as string[]) : [];
     if (!arr.includes(url)) {
       arr.push(url);
-      if (arr.length > 200) arr.splice(0, arr.length - 200);
-      sessionStorage.setItem(SESSION_KEY, JSON.stringify(arr));
+      if (arr.length > 300) arr.splice(0, arr.length - 300);
+      localStorage.setItem(SESSION_KEY, JSON.stringify(arr));
     }
   } catch {}
 }
@@ -78,20 +110,20 @@ function getInitialPoster(item: WatchHistoryItem): string {
   }
   // 1. Ưu tiên TMDb poster CDN nếu đã có sẵn
   if (item.poster && item.poster.includes("image.tmdb.org")) {
-    return toOptimizedCardPosterUrl(item.poster);
+    return toFastCdnImageUrl(toOptimizedCardPosterUrl(item.poster));
   }
   if (item.thumb && item.thumb.includes("image.tmdb.org")) {
-    return toOptimizedCardPosterUrl(item.thumb);
+    return toFastCdnImageUrl(toOptimizedCardPosterUrl(item.thumb));
   }
   // 2. Chọn poster dọc tối ưu nhất
   const bestPoster = pickBestMoviePoster({ poster_url: item.poster, thumb_url: item.thumb }, "");
   if (bestPoster && !bestPoster.includes("/default-")) {
-    return toOptimizedCardPosterUrl(bestPoster);
+    return toFastCdnImageUrl(toOptimizedCardPosterUrl(bestPoster));
   }
   // 3. Dự phòng thumb ngang nếu chưa có poster
   const bestThumb = pickBestMovieThumb({ poster_url: item.poster, thumb_url: item.thumb }, "");
   if (bestThumb && !bestThumb.includes("/default-")) {
-    return toOptimizedCardPosterUrl(bestThumb);
+    return toFastCdnImageUrl(toOptimizedCardPosterUrl(bestThumb));
   }
   return "";
 }
@@ -109,12 +141,17 @@ function ContinueWatchingCard({ item, index = 0, onRemove }: ContinueWatchingCar
     upgradePhimimg: true,
   });
 
-  const targetInitialSrc = displaySrc || (needsFallback && isPhimimgSourceUrl(initialPoster) ? "" : initialPoster);
-  const [imgSrc, setImgSrc] = useState<string>(targetInitialSrc);
+  const safeDisplaySrc = toFastCdnImageUrl(displaySrc);
+  const targetInitialSrc = safeDisplaySrc || initialPoster;
+  const [imgSrc, setImgSrc] = useState<string>(() => targetInitialSrc);
   const [isLoaded, setIsLoaded] = useState<boolean>(() => {
     return Boolean(
       targetInitialSrc &&
-      (loadedPostersCache.has(targetInitialSrc) || (item.slug && continueWatchingThumbCache.has(item.slug)))
+      !targetInitialSrc.includes("/default-") &&
+      (loadedPostersCache.has(targetInitialSrc) ||
+        (item.slug && continueWatchingThumbCache.has(item.slug)) ||
+        targetInitialSrc.includes("image.tmdb.org") ||
+        targetInitialSrc.includes("/cache/"))
     );
   });
   const imgRef = useRef<HTMLImageElement | null>(null);
@@ -126,19 +163,20 @@ function ContinueWatchingCard({ item, index = 0, onRemove }: ContinueWatchingCar
       if (actualSrc) {
         loadedPostersCache.add(actualSrc);
         persistLoadedPoster(actualSrc);
-        if (item.slug) continueWatchingThumbCache.set(item.slug, actualSrc);
+        if (item.slug) {
+          continueWatchingThumbCache.set(item.slug, actualSrc);
+          persistContinueWatchingThumb(item.slug, actualSrc);
+        }
       }
       setIsLoaded(true);
     }
   }, [imgSrc, item.slug]);
 
   useEffect(() => {
-    const safeDisplaySrc = toFastCdnImageUrl(displaySrc);
-    if (safeDisplaySrc && safeDisplaySrc !== imgSrc) {
-      setImgSrc(safeDisplaySrc);
-      if (loadedPostersCache.has(safeDisplaySrc)) {
-        setIsLoaded(true);
-      }
+    const safeDisplay = toFastCdnImageUrl(displaySrc);
+    if (safeDisplay && safeDisplay !== imgSrc) {
+      setImgSrc(safeDisplay);
+      setIsLoaded(true);
       // Nâng cấp poster vĩnh viễn trong localStorage nếu tìm thấy link TMDb CDN chính hãng
       if (displaySrc.includes("image.tmdb.org")) {
         updateWatchHistoryPoster(item.slug, displaySrc);
@@ -167,20 +205,8 @@ function ContinueWatchingCard({ item, index = 0, onRemove }: ContinueWatchingCar
     }
     triggerFallback();
 
-    // 3. Cứu cánh cuối cùng: Thử qua Cloudflare R2 proxy nếu là link phimimg / R2 cache bị lỗi hoặc chưa tồn tại
-    if (
-      imgSrc &&
-      (imgSrc.includes("phimimg.com") || imgSrc.includes("/cache/")) &&
-      !imgSrc.includes("/api/media/r2-proxy")
-    ) {
-      const originalSource = extractOriginalSourceUrl(imgSrc);
-      const r2ProxyUrl = `/api/media/r2-proxy?url=${encodeURIComponent(originalSource || imgSrc)}&slug=${encodeURIComponent(item.slug || "")}&title=${encodeURIComponent(item.title || "")}`;
-      setImgSrc(r2ProxyUrl);
-      return;
-    }
-
     setIsLoaded(true);
-  }, [imgSrc, item.thumb, item.slug, item.title, displaySrc, triggerFallback]);
+  }, [imgSrc, item.thumb, displaySrc, triggerFallback]);
 
   const href = item.episodeSlug
     ? `/movies/${item.slug}?ep=${item.episodeSlug}`
@@ -226,7 +252,7 @@ function ContinueWatchingCard({ item, index = 0, onRemove }: ContinueWatchingCar
               ref={checkImageComplete}
               src={toFastCdnImageUrl(imgSrc)}
               alt={item.title}
-              className={`relative z-10 w-full h-full object-cover transition-opacity duration-200 ease-out group-hover:scale-105 ${
+              className={`relative z-10 w-full h-full object-cover group-hover:scale-105 transition-all duration-300 ${
                 isLoaded ? "opacity-100" : "opacity-0"
               }`}
               decoding="async"
@@ -236,7 +262,10 @@ function ContinueWatchingCard({ item, index = 0, onRemove }: ContinueWatchingCar
                 if (safeLoaded) {
                   loadedPostersCache.add(safeLoaded);
                   persistLoadedPoster(safeLoaded);
-                  if (item.slug) continueWatchingThumbCache.set(item.slug, safeLoaded);
+                  if (item.slug) {
+                    continueWatchingThumbCache.set(item.slug, safeLoaded);
+                    persistContinueWatchingThumb(item.slug, safeLoaded);
+                  }
                 }
                 setIsLoaded(true);
               }}
@@ -351,7 +380,11 @@ function getServerSnapshot(): WatchHistoryItem[] {
   return emptyArray;
 }
 
-function ContinueWatchingRowInner() {
+export interface ContinueWatchingRowProps {
+  className?: string;
+}
+
+function ContinueWatchingRowInner({ className }: ContinueWatchingRowProps = {}) {
   const allItems = useSyncExternalStore(
     subscribeWatchHistory,
     getWatchHistorySnapshot,
@@ -399,7 +432,7 @@ function ContinueWatchingRowInner() {
   }
 
   return (
-    <section className="relative z-10 w-full select-none animate-in fade-in duration-300">
+    <section className={`px-4 md:px-8 my-5 sm:my-7 relative z-30 w-full select-none ${className || ""}`}>
       <SectionHeader
         variant="compact"
         title="Tiếp tục xem"
@@ -432,19 +465,6 @@ function ContinueWatchingRowInner() {
           topOffsetClass="top-[50%]"
         />
 
-        {/* MOBILE SUBTLE GRADIENT FADE AFFORDANCE */}
-        {canScrollLeft && (
-          <div
-            className="sm:hidden absolute left-0 top-3 bottom-3 w-6 bg-gradient-to-r from-black via-black/60 to-transparent pointer-events-none z-20 transition-opacity duration-200"
-            aria-hidden="true"
-          />
-        )}
-        {canScrollRight && (
-          <div
-            className="sm:hidden absolute right-0 top-3 bottom-3 w-8 bg-gradient-to-l from-black via-black/60 to-transparent pointer-events-none z-20 transition-opacity duration-200"
-            aria-hidden="true"
-          />
-        )}
 
         {/* DANH SÁCH THẺ PHIM ĐÃ XEM */}
         <div
