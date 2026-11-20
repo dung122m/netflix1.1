@@ -8,6 +8,7 @@ import { cacheService } from "@/lib/cache";
  * Tăng từ 1h → 24h: Trang diễn viên không thay đổi theo giờ, giảm ISR cold start 90%+.
  * Ngăn chặn crawler bot kích hoạt lại SSR và giảm 90%+ Redis DB3 commands.
  */
+export const dynamic = "force-static";
 export const revalidate = 86400;
 export const dynamicParams = true;
 
