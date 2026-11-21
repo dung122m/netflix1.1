@@ -88,7 +88,7 @@ function FormResultPill({ result, size = "md" }: { result: "W" | "D" | "L"; size
     return (
       <span
         title="Thắng"
-        className={`${dim} rounded-full bg-emerald-500/20 text-emerald-400 font-sans font-black flex items-center justify-center shrink-0 border border-emerald-500/30 shadow-sm`}
+        className={`${dim} rounded-full bg-emerald-500/20 text-emerald-400 font-sans font-black flex items-center justify-center shrink-0 shadow-sm`}
       >
         T
       </span>
@@ -98,7 +98,7 @@ function FormResultPill({ result, size = "md" }: { result: "W" | "D" | "L"; size
     return (
       <span
         title="Hòa"
-        className={`${dim} rounded-full bg-amber-500/20 text-amber-400 font-sans font-black flex items-center justify-center shrink-0 border border-amber-500/30 shadow-sm`}
+        className={`${dim} rounded-full bg-amber-500/20 text-amber-400 font-sans font-black flex items-center justify-center shrink-0 shadow-sm`}
       >
         H
       </span>
@@ -107,7 +107,7 @@ function FormResultPill({ result, size = "md" }: { result: "W" | "D" | "L"; size
   return (
     <span
       title="Thua"
-      className={`${dim} rounded-full bg-rose-500/20 text-rose-400 font-sans font-black flex items-center justify-center shrink-0 border border-rose-500/30 shadow-sm`}
+      className={`${dim} rounded-full bg-rose-500/20 text-rose-400 font-sans font-black flex items-center justify-center shrink-0 shadow-sm`}
     >
       B
     </span>
@@ -238,7 +238,7 @@ function HeadToHeadCard({
           Lịch sử đối đầu trực tiếp
         </h4>
         {headToHead.summary && (
-          <span className="text-[11px] font-bold text-amber-300 bg-amber-400/10 border border-amber-400/20 px-2.5 py-0.5 rounded-full font-sans tabular-nums">
+          <span className="text-[11px] font-bold text-amber-300 bg-amber-400/10 px-2.5 py-0.5 rounded-full font-sans tabular-nums">
             {formatH2HSummary(headToHead.summary)}
           </span>
         )}
@@ -288,7 +288,7 @@ function HeadToHeadCard({
                 </div>
 
                 {/* 3. TỶ SỐ TRUNG TÂM */}
-                <div className="shrink-0 px-2.5 py-0.5 rounded-lg bg-zinc-900 border border-white/5 font-sans tabular-nums font-black text-xs text-white shadow-inner">
+                <div className="shrink-0 px-2.5 py-0.5 rounded-lg bg-zinc-900 font-sans tabular-nums font-black text-xs text-white shadow-inner">
                   {hTeam.score} : {aTeam.score}
                 </div>
 

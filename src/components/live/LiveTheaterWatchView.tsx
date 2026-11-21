@@ -163,7 +163,7 @@ export function LiveTheaterWatchView({
           >
             <ArrowLeftRight className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
             <span>Đổi trận</span>
-            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-rose-500/15 text-rose-300 border border-rose-500/20 font-sans tabular-nums text-[10px] font-bold shrink-0">
+            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-white/10 text-zinc-300 font-sans tabular-nums text-[10px] font-bold shrink-0">
               {filteredMatches.length > 0 && (
                 <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse shrink-0" />
               )}

@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import {
-  Activity,
   BarChart2,
   Users,
   AlertCircle,
@@ -487,8 +486,7 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
         onClick={() => setIsOpen(!isOpen)}
         className="flex items-center justify-between px-3 py-2.5 sm:px-4 sm:py-3 cursor-pointer hover:bg-white/[0.03] transition-colors select-none gap-2"
       >
-        <div className="flex items-center gap-2 sm:gap-2.5 min-w-0 flex-1">
-          <Activity className="w-4 h-4 text-netflix-red shrink-0" />
+        <div className="flex items-center gap-2 min-w-0 flex-1">
           <div className="min-w-0 flex items-center gap-1.5 sm:gap-2 flex-wrap">
             <h3 className="text-xs sm:text-sm font-black text-white tracking-tight truncate max-w-[170px] min-[400px]:max-w-[240px] sm:max-w-none leading-snug">
               {displayTitle}

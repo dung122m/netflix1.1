@@ -344,12 +344,10 @@ function MatchCardInner({ match, isSelected, onSelect, score, compact }: MatchCa
         }}
         className={`group relative rounded-xl cursor-pointer transition-all duration-150 p-2 sm:p-2.5 flex flex-col gap-1.5 overflow-hidden outline-none select-none scroll-mt-12 ${
           isSelected
-            ? "bg-gradient-to-r from-netflix-red/10 via-zinc-900/95 to-zinc-900/95 ring-1 ring-inset ring-netflix-red/75 shadow-md shadow-black/50"
-            : featured.isFeatured
-            ? "bg-gradient-to-r from-netflix-red/15 via-zinc-900/90 to-zinc-900/95 ring-1 ring-inset ring-netflix-red/35 shadow-sm shadow-netflix-red/10"
+            ? "bg-zinc-850 ring-1 ring-inset ring-white/30 shadow-md shadow-black/50"
             : isConfirmedLive
-            ? "bg-zinc-900/80 hover:bg-zinc-800/80 shadow-sm"
-            : "bg-zinc-900/55 hover:bg-zinc-800/75 shadow-sm"
+            ? "bg-zinc-900/80 hover:bg-zinc-800/80 shadow-sm border border-white/[0.04]"
+            : "bg-zinc-900/55 hover:bg-zinc-800/75 shadow-sm border border-white/[0.03]"
         }`}
       >
         {/* DÒNG 1: HEADER MINI */}
@@ -413,14 +411,13 @@ function MatchCardInner({ match, isSelected, onSelect, score, compact }: MatchCa
                 </span>
               )
             )}
-            {/* Huy hiệu Tâm điểm: Red Brand Capsule */}
-            {featured.isFeatured && (
+            {/* Nhãn Tâm điểm tinh tế */}
+            {featured.isFeatured && !isSelected && (
               <span
-                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-netflix-red text-white text-[9px] font-bold tracking-wide shrink-0 shadow-sm select-none"
+                className="text-[9.5px] font-bold text-rose-400 shrink-0 select-none font-sans"
                 aria-label={featured.badgeLabel || "Trận cầu tâm điểm"}
               >
-                <Flame size={9} className="text-white fill-white shrink-0" />
-                {!isSelected && <span>{featured.badgeLabel || "Tâm điểm"}</span>}
+                {featured.badgeLabel || "Tâm điểm"}
               </span>
             )}
 
@@ -560,30 +557,14 @@ function MatchCardInner({ match, isSelected, onSelect, score, compact }: MatchCa
           onSelect(match);
         }
       }}
-      className={`group relative rounded-2xl cursor-pointer transition-all duration-300 flex flex-col justify-between overflow-hidden outline-none select-none ${
+      className={`group relative rounded-2xl cursor-pointer transition-all duration-200 flex flex-col justify-between overflow-hidden outline-none select-none ${
         isSelected
-          ? "bg-gradient-to-b from-zinc-900 via-zinc-900/95 to-zinc-950 ring-2 ring-netflix-red shadow-2xl shadow-black/80"
-          : featured.isFeatured
-          ? "bg-gradient-to-b from-zinc-850/95 via-zinc-900/95 to-zinc-950 ring-1 ring-netflix-red/40 hover:ring-netflix-red/60 shadow-xl shadow-black/60 shadow-netflix-red/10"
+          ? "bg-zinc-850 ring-1 ring-white/30 shadow-2xl shadow-black/80"
           : isConfirmedLive
-          ? "bg-zinc-900/80 hover:bg-zinc-850/90 shadow-md shadow-black/30"
-          : "bg-zinc-900/60 hover:bg-zinc-850/80 shadow-sm"
+          ? "bg-zinc-900/80 hover:bg-zinc-850/90 shadow-md shadow-black/30 border border-white/[0.04]"
+          : "bg-zinc-900/60 hover:bg-zinc-850/80 shadow-sm border border-white/[0.03]"
       }`}
     >
-      {/* Top Laser Rim: Hiển thị khi được chọn HOẶC khi là Trận tâm điểm */}
-      <div
-        className={`absolute top-0 inset-x-0 h-[2.5px] pointer-events-none transition-all duration-300 ${
-          isSelected
-            ? "bg-gradient-to-r from-transparent via-netflix-red to-transparent opacity-100"
-            : featured.isFeatured
-            ? "bg-gradient-to-r from-transparent via-netflix-red/90 to-transparent opacity-100"
-            : "opacity-0"
-        }`}
-      />
-      {featured.isFeatured && (
-        <div className="absolute -top-12 inset-x-0 h-28 bg-gradient-to-b from-netflix-red/[0.08] to-transparent pointer-events-none blur-xl" />
-      )}
-
       <div className="p-3 sm:p-3.5 flex flex-col justify-between flex-1 gap-2 sm:gap-2.5">
         {/* 1. HEADER: GIẢI ĐẤU & HUY HIỆU TINH GỌN (KHÔNG VIỀN HỘP THÔ CỨNG) */}
         <div className="flex items-center justify-between gap-1.5 pb-2 border-b border-white/[0.06] text-xs">
@@ -598,14 +579,13 @@ function MatchCardInner({ match, isSelected, onSelect, score, compact }: MatchCa
 
           {/* Góc phải Header: Huy hiệu Tâm điểm & Đang xem (Gọn gàng, sạch sẽ) */}
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-            {/* Huy hiệu Tâm điểm: Red Brand Capsule nổi bật cao cấp */}
-            {featured.isFeatured && (
+            {/* Huy hiệu Tâm điểm: Tinh gọn, không viền đỏ chói mắt */}
+            {featured.isFeatured && !isSelected && (
               <span
-                className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-netflix-red text-white text-[10px] sm:text-[10.5px] font-bold tracking-wide shadow-md shadow-red-950/60 shrink-0 select-none"
+                className="text-[10px] sm:text-[10.5px] font-bold text-rose-400 shrink-0 select-none font-sans"
                 aria-label={featured.badgeLabel || "Trận cầu tâm điểm"}
               >
-                <Flame size={11} className="text-white fill-white shrink-0" />
-                {!isSelected && <span>{featured.badgeLabel || "Tâm điểm"}</span>}
+                {featured.badgeLabel || "Tâm điểm"}
               </span>
             )}
 
@@ -836,11 +816,7 @@ function MatchCardInner({ match, isSelected, onSelect, score, compact }: MatchCa
               </span>
             ) : (
               <div
-                className={`w-6 h-6 rounded-full flex items-center justify-center transition-all shadow-sm ${
-                  featured.isFeatured
-                    ? "bg-netflix-red text-white shadow-md shadow-red-950/50 group-hover:scale-110"
-                    : "bg-white/[0.06] group-hover:bg-netflix-red text-zinc-400 group-hover:text-white"
-                }`}
+                className="w-6 h-6 rounded-full flex items-center justify-center transition-all bg-white/[0.06] group-hover:bg-white/[0.12] text-zinc-400 group-hover:text-white"
               >
                 <Play className="w-2.5 h-2.5 fill-current ml-0.5" />
               </div>

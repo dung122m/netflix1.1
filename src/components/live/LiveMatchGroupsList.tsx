@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Clock, Radio, Search } from "lucide-react";
+import { Search } from "lucide-react";
 import type { FootballMatch } from "@/services/live/football/service";
 import type { LiveMatchScore } from "@/services/live/football-score/types";
 import { LeagueStandings } from "./LeagueStandings";
@@ -50,17 +50,17 @@ export function LiveMatchGroupsList({
 
   return (
     <div className="space-y-6">
-      {/* NHÓM 🔴 ĐANG PHÁT TRỰC TIẾP */}
+      {/* NHÓM ĐANG PHÁT TRỰC TIẾP */}
       {liveMatchesList.length > 0 && (
         <div className="space-y-3">
           <div className="flex items-center justify-between px-1">
             <div className="flex items-center gap-2">
-              <Radio className="w-4 h-4 text-netflix-red shrink-0" />
+              <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse shrink-0" />
               <h2 className="text-base sm:text-lg font-bold tracking-tight text-white">
                 Đang phát trực tiếp
               </h2>
             </div>
-            <span className="text-xs font-semibold tabular-nums px-2.5 py-0.5 rounded-full bg-netflix-red/15 text-netflix-red">
+            <span className="text-xs font-medium font-sans tabular-nums px-2 py-0.5 rounded-full bg-white/5 text-zinc-400">
               {liveMatchesList.length} trận
             </span>
           </div>
@@ -79,17 +79,14 @@ export function LiveMatchGroupsList({
         </div>
       )}
 
-      {/* NHÓM 🕐 SẮP DIỄN RA */}
+      {/* NHÓM SẮP DIỄN RA */}
       {upcomingMatchesList.length > 0 && (
         <div className="space-y-3">
           <div className="flex items-center justify-between px-1">
-            <div className="flex items-center gap-2">
-              <Clock className="w-4 h-4 text-zinc-400 shrink-0" />
-              <h2 className="text-base sm:text-lg font-bold tracking-tight text-zinc-200">
-                Sắp diễn ra
-              </h2>
-            </div>
-            <span className="text-xs font-semibold tabular-nums px-2.5 py-0.5 rounded-full bg-white/10 text-zinc-300">
+            <h2 className="text-base sm:text-lg font-bold tracking-tight text-zinc-300">
+              Sắp diễn ra
+            </h2>
+            <span className="text-xs font-medium font-sans tabular-nums px-2 py-0.5 rounded-full bg-white/5 text-zinc-400">
               {upcomingMatchesList.length} trận
             </span>
           </div>

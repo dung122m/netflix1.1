@@ -180,16 +180,16 @@ export function LiveHubClient({ footballData, tvData: initialTvData, initialScor
               onClick={() => handleTabChange("sports")}
               className={`flex items-center justify-center gap-1.5 px-3.5 py-1.5 min-h-[38px] sm:min-h-[36px] rounded-lg text-xs font-semibold transition cursor-pointer outline-none shrink-0 whitespace-nowrap ${
                 activeTab === "sports"
-                  ? "bg-netflix-red text-white font-bold shadow-md shadow-black/40"
+                  ? "bg-white/15 text-white font-bold shadow-sm"
                   : "text-zinc-400 hover:text-white hover:bg-white/5"
               }`}
             >
               <span>Thể thao</span>
               <span
-                className={`text-[11px] px-1.5 py-0.5 rounded-full font-medium ${
+                className={`text-[11px] px-1.5 py-0.5 rounded-full font-medium font-sans tabular-nums ${
                   activeTab === "sports"
-                    ? "bg-black/25 text-white"
-                    : "bg-black/40 text-zinc-400"
+                    ? "bg-white/10 text-white"
+                    : "bg-white/5 text-zinc-400"
                 }`}
               >
                 {sportsMatchesCount}
@@ -203,15 +203,15 @@ export function LiveHubClient({ footballData, tvData: initialTvData, initialScor
               onClick={() => handleTabChange("tv")}
               className={`flex items-center justify-center gap-1.5 px-3.5 py-1.5 min-h-[38px] sm:min-h-[36px] rounded-lg text-xs font-semibold transition cursor-pointer outline-none shrink-0 whitespace-nowrap ${
                 activeTab === "tv"
-                  ? "bg-netflix-red text-white font-bold shadow-md shadow-black/40"
+                  ? "bg-white/15 text-white font-bold shadow-sm"
                   : "text-zinc-400 hover:text-white hover:bg-white/5"
               }`}
             >
               <span>Truyền hình</span>
               <span
-                className={`text-[11px] px-1.5 py-0.5 rounded-full font-medium ${
+                className={`text-[11px] px-1.5 py-0.5 rounded-full font-medium font-sans tabular-nums ${
                   activeTab === "tv"
-                    ? "bg-black/25 text-white"
+                    ? "bg-white/10 text-white"
                     : "bg-white/5 text-zinc-400"
                 }`}
               >

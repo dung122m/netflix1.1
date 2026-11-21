@@ -72,7 +72,7 @@ export function LiveFilterCommandBar({
               onClick={() => onStatusChange("all")}
               className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition cursor-pointer min-h-[36px] ${
                 activeSection !== "standings" && selectedStatus === "all"
-                  ? "bg-netflix-red text-white font-bold shadow-sm"
+                  ? "bg-white/15 text-white font-bold shadow-sm"
                   : "text-zinc-400 hover:text-white hover:bg-white/5"
               }`}
             >
@@ -80,7 +80,7 @@ export function LiveFilterCommandBar({
               <span
                 className={`tabular-nums text-[11px] ${
                   activeSection !== "standings" && selectedStatus === "all"
-                    ? "opacity-80 font-normal"
+                    ? "opacity-90 font-normal"
                     : "opacity-60"
                 }`}
               >
@@ -94,14 +94,14 @@ export function LiveFilterCommandBar({
                 onClick={() => onStatusChange("live")}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition cursor-pointer min-h-[36px] ${
                   activeSection !== "standings" && selectedStatus === "live"
-                    ? "bg-netflix-red text-white font-bold shadow-md shadow-black/50"
+                    ? "bg-white/15 text-white font-bold shadow-sm"
                     : "text-zinc-300 hover:text-white hover:bg-white/5"
                 }`}
               >
                 <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse shrink-0" />
                 <span className="min-[380px]:hidden">Live</span>
                 <span className="hidden min-[380px]:inline">Đang diễn ra</span>
-                <span className="opacity-80 tabular-nums text-[11px] font-normal">
+                <span className="opacity-90 tabular-nums text-[11px] font-normal">
                   ({counts.live})
                 </span>
               </button>
@@ -113,13 +113,13 @@ export function LiveFilterCommandBar({
                 onClick={() => onStatusChange("upcoming")}
                 className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition cursor-pointer min-h-[36px] ${
                   activeSection !== "standings" && selectedStatus === "upcoming"
-                    ? "bg-netflix-red text-white font-bold shadow-sm"
+                    ? "bg-white/15 text-white font-bold shadow-sm"
                     : "text-zinc-400 hover:text-white hover:bg-white/5"
                 }`}
               >
                 <span className="min-[380px]:hidden">Sắp đá</span>
                 <span className="hidden min-[380px]:inline">Sắp diễn ra</span>
-                <span className="opacity-80 tabular-nums text-[11px] font-normal">
+                <span className="opacity-90 tabular-nums text-[11px] font-normal">
                   ({counts.upcoming})
                 </span>
               </button>
@@ -131,13 +131,13 @@ export function LiveFilterCommandBar({
                 onClick={() => onStatusChange("finished")}
                 className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition cursor-pointer min-h-[36px] ${
                   activeSection !== "standings" && selectedStatus === "finished"
-                    ? "bg-netflix-red text-white font-bold shadow-sm"
+                    ? "bg-white/15 text-white font-bold shadow-sm"
                     : "text-zinc-400 hover:text-white hover:bg-white/5"
                 }`}
               >
                 <span className="min-[380px]:hidden">Xong</span>
                 <span className="hidden min-[380px]:inline">Đã kết thúc</span>
-                <span className="opacity-80 tabular-nums text-[11px] font-normal">
+                <span className="opacity-90 tabular-nums text-[11px] font-normal">
                   ({counts.finished})
                 </span>
               </button>
@@ -148,22 +148,15 @@ export function LiveFilterCommandBar({
               onClick={onFeaturedToggle}
               aria-pressed={onlyFeatured}
               aria-label="Chỉ hiện các trận cầu tâm điểm / đại chiến hấp dẫn nhất"
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition cursor-pointer min-h-[36px] ${
+              className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition cursor-pointer min-h-[36px] ${
                 activeSection !== "standings" && onlyFeatured
-                  ? "bg-netflix-red text-white shadow-md shadow-black/50 font-bold"
+                  ? "bg-white/15 text-white font-bold shadow-sm"
                   : "text-zinc-400 hover:text-white hover:bg-white/5"
               }`}
             >
-              <Flame
-                className={`w-3.5 h-3.5 shrink-0 ${
-                  onlyFeatured
-                    ? "text-amber-200 fill-amber-300"
-                    : "text-amber-400 fill-amber-400/20"
-                }`}
-              />
               <span>Tâm điểm</span>
               {counts.featured > 0 && (
-                <span className="opacity-80 tabular-nums text-[11px] font-normal">
+                <span className="opacity-90 tabular-nums text-[11px] font-normal">
                   ({counts.featured})
                 </span>
               )}
@@ -174,19 +167,12 @@ export function LiveFilterCommandBar({
             <button
               type="button"
               onClick={onToggleStandings}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition cursor-pointer min-h-[36px] ${
+              className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition cursor-pointer min-h-[36px] ${
                 activeSection === "standings"
-                  ? "bg-netflix-red text-white font-bold shadow-sm"
+                  ? "bg-white/15 text-white font-bold shadow-sm"
                   : "text-zinc-400 hover:text-white hover:bg-white/5"
               }`}
             >
-              <Trophy
-                className={`w-3.5 h-3.5 shrink-0 ${
-                  activeSection === "standings"
-                    ? "text-amber-200"
-                    : "text-amber-400"
-                }`}
-              />
               <span>Bảng xếp hạng</span>
             </button>
           </div>
