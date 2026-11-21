@@ -661,7 +661,7 @@ function LivePlayerInner({
           }`}
         >
           {isAtLiveEdge ? (
-            <Tooltip content="Đang phát trực tiếp (Bấm để đồng bộ)" side="bottom">
+            <Tooltip content="Đang phát trực tiếp (Bấm để đồng bộ)" side="bottom" align="start">
               <button
                 type="button"
                 onClick={(e) => {
@@ -678,7 +678,7 @@ function LivePlayerInner({
               </button>
             </Tooltip>
           ) : (
-            <Tooltip content="Quay về phát trực tiếp" side="bottom">
+            <Tooltip content="Quay về phát trực tiếp" side="bottom" align="start">
               <button
                 type="button"
                 onClick={(e) => {

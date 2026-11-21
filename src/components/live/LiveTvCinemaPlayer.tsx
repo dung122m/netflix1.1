@@ -280,7 +280,7 @@ export function LiveTvCinemaPlayer({
           }`}
         >
           {isAtLiveEdge ? (
-            <Tooltip content="Đang phát trực tiếp (Bấm để đồng bộ)" side="bottom">
+            <Tooltip content="Đang phát trực tiếp (Bấm để đồng bộ)" side="bottom" align="start">
               <button
                 type="button"
                 onClick={(e) => {
@@ -302,6 +302,7 @@ export function LiveTvCinemaPlayer({
                   : "Bấm để quay về Live Edge"
               }
               side="bottom"
+              align="start"
             >
               <button
                 type="button"

@@ -35,7 +35,31 @@ export function Tooltip({
 }: TooltipProps) {
   const [isOpen, setIsOpen] = useState(false);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const [effectiveAlign, setEffectiveAlign] = useState<TooltipAlign>(align);
   const tooltipId = useId();
+
+  useEffect(() => {
+    setEffectiveAlign(align);
+  }, [align]);
+
+  const updateAlignment = useCallback(() => {
+    if (align !== "center") {
+      setEffectiveAlign(align);
+      return;
+    }
+    if (!wrapperRef.current || typeof window === "undefined") return;
+    try {
+      const rect = wrapperRef.current.getBoundingClientRect();
+      if (rect.left < 140) {
+        setEffectiveAlign("start");
+      } else if (window.innerWidth - rect.right < 140) {
+        setEffectiveAlign("end");
+      } else {
+        setEffectiveAlign("center");
+      }
+    } catch {}
+  }, [align]);
 
   const clearTimer = useCallback(() => {
     if (timerRef.current) {
@@ -47,10 +71,11 @@ export function Tooltip({
   const handleMouseEnter = useCallback(() => {
     if (disabled || !content) return;
     clearTimer();
+    updateAlignment();
     timerRef.current = setTimeout(() => {
       setIsOpen(true);
     }, delayMs);
-  }, [disabled, content, clearTimer, delayMs]);
+  }, [disabled, content, clearTimer, delayMs, updateAlignment]);
 
   const handleMouseLeave = useCallback(() => {
     clearTimer();
@@ -60,8 +85,9 @@ export function Tooltip({
   const handleFocus = useCallback(() => {
     if (disabled || !content) return;
     clearTimer();
+    updateAlignment();
     setIsOpen(true);
-  }, [disabled, content, clearTimer]);
+  }, [disabled, content, clearTimer, updateAlignment]);
 
   const handleBlur = useCallback(() => {
     clearTimer();
@@ -89,10 +115,10 @@ export function Tooltip({
   let arrowClass = "";
 
   if (side === "top") {
-    if (align === "start") {
+    if (effectiveAlign === "start") {
       positionClass = "bottom-full mb-2 left-0";
       arrowClass = "-bottom-1 left-[18px] -translate-x-1/2";
-    } else if (align === "end") {
+    } else if (effectiveAlign === "end") {
       positionClass = "bottom-full mb-2 right-0";
       arrowClass = "-bottom-1 right-[18px] translate-x-1/2";
     } else {
@@ -101,10 +127,10 @@ export function Tooltip({
     }
     arrowClass += " border-b border-r";
   } else if (side === "bottom") {
-    if (align === "start") {
+    if (effectiveAlign === "start") {
       positionClass = "top-full mt-2 left-0";
       arrowClass = "-top-1 left-[18px] -translate-x-1/2";
-    } else if (align === "end") {
+    } else if (effectiveAlign === "end") {
       positionClass = "top-full mt-2 right-0";
       arrowClass = "-top-1 right-[18px] translate-x-1/2";
     } else {
@@ -124,6 +150,7 @@ export function Tooltip({
 
   return (
     <div
+      ref={wrapperRef}
       className={`${hasExplicitPosition ? "" : "relative "}inline-flex items-center justify-center ${wrapperClassName}`}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
