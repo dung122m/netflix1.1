@@ -5,7 +5,9 @@ import {
   calculateMatchCenterPollInterval,
   shouldRefreshOnTabFocus,
   shouldSkipDuplicateRequest,
+  mergeNormalizedSummaries,
 } from "@/services/live/football-score/matchCenterRealtime";
+import { parseRawSummary } from "@/services/live/football-score/service";
 
 describe("Nanaflix /live - Match Center Realtime Polling & Deduplication", () => {
   it("1. Tính toán chu kỳ polling thích ứng chính xác theo trạng thái trận đấu", () => {
@@ -158,5 +160,107 @@ describe("Nanaflix /live - Match Center Realtime Polling & Deduplication", () =>
     assert.ok(liveStaleUntil > liveExpireAt, "staleUntil phải sau expireAt khi có live");
     assert.equal(liveStaleUntil - liveExpireAt, 45_000, "Khoảng stale phải đúng 45s");
     assert.equal(liveStaleUntil - baseNow, 60_000, "Tổng thời gian từ fetch tới hết stale là 60s");
+  });
+
+  it("5. parseRawSummary & mergeNormalizedSummaries chuẩn hóa và bảo toàn recentForm, shootout, gameInfo", () => {
+    const rawMock = {
+      header: {
+        competitions: [
+          {
+            competitors: [
+              { id: "100", homeAway: "home", team: { displayName: "Manchester City", abbreviation: "MCI" }, score: "2" },
+              { id: "200", homeAway: "away", team: { displayName: "Fulham", abbreviation: "FUL" }, score: "1" },
+            ],
+            status: { type: { name: "STATUS_SECOND_HALF", state: "in" }, displayClock: "75'" },
+          },
+        ],
+      },
+      gameInfo: {
+        venue: { fullName: "Etihad Stadium", address: { city: "Manchester", country: "England" } },
+        attendance: 53400,
+        officials: [{ displayName: "Michael Oliver", position: { name: "Referee" } }],
+      },
+      lastFiveGames: [
+        {
+          team: { id: "100" },
+          events: [
+            {
+              id: "ev-1",
+              gameDate: "2026-10-24T15:00Z",
+              score: "3-1",
+              gameResult: "W",
+              atVs: "vs",
+              opponent: { displayName: "Arsenal" },
+              leagueName: "Premier League",
+            },
+          ],
+        },
+        {
+          team: { id: "200" },
+          events: [
+            {
+              id: "ev-2",
+              gameDate: "2026-10-24T15:00Z",
+              score: "1-2",
+              gameResult: "L",
+              atVs: "@",
+              opponent: { displayName: "Chelsea" },
+              leagueName: "Premier League",
+            },
+          ],
+        },
+      ],
+      shootout: [
+        {
+          id: "100",
+          team: "Manchester City",
+          shots: [
+            { id: "s-1", shotNumber: 1, player: "Haaland", didScore: true },
+            { id: "s-2", shotNumber: 2, player: "De Bruyne", didScore: false },
+          ],
+        },
+        {
+          id: "200",
+          team: "Fulham",
+          shots: [
+            { id: "s-3", shotNumber: 1, player: "Jimenez", didScore: true },
+          ],
+        },
+      ],
+    };
+
+    const parsed = parseRawSummary("eng.1", "test-event-1", rawMock);
+    assert.ok(parsed);
+    assert.equal(parsed.gameInfo?.venue?.name, "Etihad Stadium");
+    assert.equal(parsed.gameInfo?.attendance, 53400);
+    assert.equal(parsed.gameInfo?.referee, "Michael Oliver");
+
+    assert.ok(parsed.recentForm?.home);
+    assert.equal(parsed.recentForm.home.length, 1);
+    assert.equal(parsed.recentForm.home[0].result, "W");
+    assert.equal(parsed.recentForm.home[0].score, "3-1");
+    assert.equal(parsed.recentForm.home[0].homeAway, "home");
+
+    assert.ok(parsed.recentForm?.away);
+    assert.equal(parsed.recentForm.away.length, 1);
+    assert.equal(parsed.recentForm.away[0].result, "L");
+    assert.equal(parsed.recentForm.away[0].homeAway, "away");
+
+    assert.ok(parsed.shootout);
+    assert.equal(parsed.shootout.length, 2);
+    assert.equal(parsed.shootout[0].score, 1);
+    assert.equal(parsed.shootout[0].shots[0].didScore, true);
+    assert.equal(parsed.shootout[0].shots[1].didScore, false);
+
+    // Kiểm tra mergeNormalizedSummaries bảo toàn
+    const incomingWithoutShootout = {
+      ...parsed,
+      shootout: undefined,
+      recentForm: undefined,
+    };
+    const merged = mergeNormalizedSummaries(parsed, incomingWithoutShootout);
+    assert.ok(merged.shootout, "Phải bảo toàn shootout khi incoming thiếu");
+    assert.ok(merged.recentForm, "Phải bảo toàn recentForm khi incoming thiếu");
+    assert.equal(merged.gameInfo?.venue?.name, "Etihad Stadium");
   });
 });

@@ -15,6 +15,9 @@ import {
   Tv,
   Zap,
   Clock,
+  TrendingUp,
+  MapPin,
+  Shield,
 } from "lucide-react";
 import { NormalizedMatchSummary, MatchStatItem, LiveMatchScore } from "@/services/live/football-score/types";
 import {
@@ -34,6 +37,8 @@ import { TacticalLineup } from "./TacticalLineup";
 import { DualTeamPitch } from "./DualTeamPitch";
 import { CountryFlag } from "./CountryFlag";
 import { Tooltip } from "@/components/ui/Tooltip";
+import { MatchRecentForm } from "./MatchRecentForm";
+import { MatchShootoutTracker } from "./MatchShootoutTracker";
 
 
 export interface MatchCenterScoreProp {
@@ -69,7 +74,7 @@ interface MatchCenterProps {
   initialScore?: MatchCenterScoreProp | null;
 }
 
-type TabType = "lineups" | "stats";
+type TabType = "lineups" | "stats" | "form";
 
 export const MatchCenter: React.FC<MatchCenterProps> = ({
   leagueSlug,
@@ -641,9 +646,59 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
                 </div>
               )}
 
-              {/* F. KHI CÓ DỮ LIỆU SUMMARY: HIỂN THỊ THANH 5 TAB CUỘN NGANG VÀ CHI TIẾT */}
+              {/* F. KHI CÓ DỮ LIỆU SUMMARY: HIỂN THỊ METADATA BAR, SHOOTOUT VÀ THANH TAB */}
               {summary && (
                 <div className="space-y-3.5 pt-1">
+                  {/* BẢNG THEO DÕI LOẠT SÚT LUÂN LƯU 11M (KHI CÓ LOẠT PENALTY) */}
+                  {summary.shootout && summary.shootout.length > 0 && (
+                    <MatchShootoutTracker
+                      shootout={summary.shootout}
+                      homeTeam={summary.homeTeam}
+                      awayTeam={summary.awayTeam}
+                    />
+                  )}
+
+                  {/* DẢI THÔNG TIN SÂN VẬN ĐỘNG, KHÁN GIẢ & TRỌNG TÀI (GAME INFO METADATA STRIP) */}
+                  {summary.gameInfo &&
+                    (summary.gameInfo.venue?.name ||
+                      summary.gameInfo.referee ||
+                      (summary.gameInfo.attendance && summary.gameInfo.attendance > 0)) && (
+                      <div className="flex items-center gap-2 sm:gap-3 py-1.5 px-3 rounded-xl bg-white/[0.03] text-[11px] sm:text-xs text-zinc-300 font-sans flex-wrap">
+                        {summary.gameInfo.venue?.name && (
+                          <div
+                            className="flex items-center gap-1.5 min-w-0"
+                            title={`Sân vận động: ${summary.gameInfo.venue.name}`}
+                          >
+                            <MapPin className="w-3.5 h-3.5 text-rose-400 shrink-0" />
+                            <span className="font-semibold truncate max-w-[170px] sm:max-w-none text-zinc-200">
+                              {summary.gameInfo.venue.name}
+                              {summary.gameInfo.venue.city ? `, ${summary.gameInfo.venue.city}` : ""}
+                            </span>
+                          </div>
+                        )}
+
+                        {summary.gameInfo.attendance && summary.gameInfo.attendance > 0 && (
+                          <div className="flex items-center gap-1.5 shrink-0 text-zinc-400">
+                            <span className="hidden sm:inline text-zinc-600">•</span>
+                            <Users className="w-3.5 h-3.5 text-sky-400 shrink-0" />
+                            <span className="tabular-nums font-medium text-zinc-300">
+                              {summary.gameInfo.attendance.toLocaleString("vi-VN")} khán giả
+                            </span>
+                          </div>
+                        )}
+
+                        {summary.gameInfo.referee && (
+                          <div className="flex items-center gap-1.5 shrink-0 text-zinc-400">
+                            <span className="hidden sm:inline text-zinc-600">•</span>
+                            <Shield className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                            <span className="font-medium text-zinc-300">
+                              Trọng tài: <span className="text-white font-semibold">{summary.gameInfo.referee}</span>
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
                   {/* B. THANH ĐIỀU HƯỚNG TAB CHỨC NĂNG (SCROLLABLE PILLS) */}
                   <div
                     role="tablist"
@@ -654,6 +709,7 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
                     {[
                       { id: "lineups", label: "Đội hình", icon: Users },
                       { id: "stats", label: "Thống kê", icon: BarChart2 },
+                      { id: "form", label: "Phong độ", icon: TrendingUp },
                     ].map((tab) => {
                       const Icon = tab.icon;
                       const isActive = activeTab === tab.id;
@@ -814,6 +870,15 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
                     <p className="text-xs text-zinc-500 py-8 text-center">Chưa có số liệu thống kê trận đấu</p>
                   )}
                 </div>
+              )}
+
+              {/* TAB 3: PHONG ĐỘ 5 TRẬN GẦN NHẤT & LỊCH SỬ ĐỐI ĐẦU */}
+              {activeTab === "form" && (
+                <MatchRecentForm
+                  homeTeam={summary.homeTeam}
+                  awayTeam={summary.awayTeam}
+                  recentForm={summary.recentForm}
+                />
               )}
             </div>
           </div>

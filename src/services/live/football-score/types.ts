@@ -160,6 +160,35 @@ export interface MatchGameInfo {
   referee?: string;
 }
 
+export interface TeamPastGameItem {
+  id: string;
+  date: string;
+  score: string;
+  result: "W" | "D" | "L";
+  homeAway: "home" | "away";
+  opponent: {
+    id?: string;
+    name: string;
+    displayName: string;
+    logo?: string;
+  };
+  competitionName?: string;
+}
+
+export interface MatchShootoutShot {
+  id: string;
+  shotNumber: number;
+  playerName: string;
+  didScore: boolean;
+}
+
+export interface MatchShootoutTeam {
+  teamId: string;
+  teamName: string;
+  shots: MatchShootoutShot[];
+  score: number;
+}
+
 export interface NormalizedMatchSummary {
   eventId: string;
   leagueSlug: string;
@@ -182,6 +211,11 @@ export interface NormalizedMatchSummary {
   };
   gameInfo: MatchGameInfo;
   commentary: MatchCommentaryItem[];
+  recentForm?: {
+    home?: TeamPastGameItem[];
+    away?: TeamPastGameItem[];
+  };
+  shootout?: MatchShootoutTeam[];
   updatedAt: string;
 }
 

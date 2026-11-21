@@ -9,6 +9,9 @@ import {
   PlayerMatchStat,
   MatchCommentaryItem,
   MatchGameInfo,
+  TeamPastGameItem,
+  MatchShootoutShot,
+  MatchShootoutTeam,
   NormalizedLeagueStandings,
   StandingGroup,
   StandingEntry,
@@ -19,6 +22,7 @@ import {
 } from "./types";
 import { cacheService } from "@/lib/cache";
 import { mergeNormalizedSummaries } from "./matchCenterRealtime";
+import { toDarkModeLogoUrl } from "../football-logo/service";
 
 export const VERIFIED_SCOREBOARD_LEAGUES = [
   "eng.1", // Premier League
@@ -1164,6 +1168,75 @@ export function parseRawSummary(
       }
     }
 
+    // 6. Phong độ 5 trận gần nhất (Recent Form)
+    let recentForm: { home?: TeamPastGameItem[]; away?: TeamPastGameItem[] } | undefined = undefined;
+    if (Array.isArray(raw.lastFiveGames) && raw.lastFiveGames.length > 0) {
+      const parseFormEvents = (eventsList: any[] = []): TeamPastGameItem[] => {
+        const list: TeamPastGameItem[] = [];
+        for (const ev of eventsList) {
+          if (!ev) continue;
+          const resRaw = String(ev.gameResult || "").toUpperCase();
+          const result: "W" | "D" | "L" = resRaw === "W" || resRaw === "D" || resRaw === "L" ? resRaw : "D";
+          const opponentRaw = ev.opponent || {};
+          const oppLogo =
+            ev.opponentLogo ||
+            (Array.isArray(opponentRaw.logos) && opponentRaw.logos[0]?.href) ||
+            opponentRaw.logo ||
+            "";
+
+          list.push({
+            id: String(ev.id || `${list.length}-${Math.random().toString(36).slice(2, 6)}`),
+            date: String(ev.gameDate || ""),
+            score: String(ev.score || `${ev.homeTeamScore ?? 0}-${ev.awayTeamScore ?? 0}`),
+            result,
+            homeAway: ev.atVs === "@" ? "away" : "home",
+            opponent: {
+              id: opponentRaw.id ? String(opponentRaw.id) : undefined,
+              name: String(opponentRaw.displayName || opponentRaw.name || "Đối thủ"),
+              displayName: String(opponentRaw.displayName || opponentRaw.name || "Đối thủ"),
+              logo: oppLogo ? toDarkModeLogoUrl(oppLogo) : undefined,
+            },
+            competitionName: ev.leagueName || ev.leagueAbbreviation || ev.competitionName,
+          });
+        }
+        return list;
+      };
+
+      const homeFormRaw =
+        raw.lastFiveGames.find((g: any) => String(g.team?.id) === homeTeam.id || g.displayOrder === 1) ||
+        raw.lastFiveGames[0];
+      const awayFormRaw =
+        raw.lastFiveGames.find((g: any) => String(g.team?.id) === awayTeam.id || g.displayOrder === 2) ||
+        raw.lastFiveGames[1];
+
+      recentForm = {
+        home: homeFormRaw ? parseFormEvents(homeFormRaw.events) : undefined,
+        away: awayFormRaw ? parseFormEvents(awayFormRaw.events) : undefined,
+      };
+    }
+
+    // 7. Loạt sút luân lưu 11m (Penalty Shootout Tracker)
+    let shootout: MatchShootoutTeam[] | undefined = undefined;
+    if (Array.isArray(raw.shootout) && raw.shootout.length > 0) {
+      shootout = raw.shootout.map((st: any) => {
+        const shots: MatchShootoutShot[] = Array.isArray(st.shots)
+          ? st.shots.map((sh: any) => ({
+              id: String(sh.id || `${sh.shotNumber}-${sh.playerId || Math.random().toString(36).slice(2, 6)}`),
+              shotNumber: typeof sh.shotNumber === "number" ? sh.shotNumber : 1,
+              playerName: String(sh.player || "Cầu thủ"),
+              didScore: Boolean(sh.didScore),
+            }))
+          : [];
+        const score = shots.filter((s) => s.didScore).length;
+        return {
+          teamId: String(st.id || ""),
+          teamName: String(st.team || ""),
+          shots,
+          score,
+        };
+      });
+    }
+
     return {
       eventId,
       leagueSlug,
@@ -1186,6 +1259,8 @@ export function parseRawSummary(
       },
       gameInfo,
       commentary,
+      recentForm,
+      shootout,
       updatedAt: new Date().toISOString(),
     };
   } catch {
