@@ -442,6 +442,11 @@ export function proxy(req: NextRequest) {
     response.headers.set("CDN-Cache-Control", "no-store");
     response.headers.set("Vercel-CDN-Cache-Control", "no-store");
     response.headers.set("Cloudflare-CDN-Cache-Control", "no-store");
+  } else if (pathname === "/browse" && method === "GET") {
+    response.headers.set("Cache-Control", "public, s-maxage=1800, stale-while-revalidate=3600");
+    response.headers.set("CDN-Cache-Control", "public, s-maxage=1800, stale-while-revalidate=3600");
+    response.headers.set("Vercel-CDN-Cache-Control", "max-age=1800, stale-while-revalidate=3600");
+    response.headers.set("Cloudflare-CDN-Cache-Control", "public, max-age=1800, stale-while-revalidate=3600");
   }
 
   // 6. Phòng vệ Cloudflare: Nếu request mang header rsc: 1 nhưng không có query param _rsc,

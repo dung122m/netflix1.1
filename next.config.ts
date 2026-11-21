@@ -192,6 +192,18 @@ const nextConfig: NextConfig = {
             key: "Cache-Control",
             value: "public, s-maxage=1800, stale-while-revalidate=3600",
           },
+          {
+            key: "CDN-Cache-Control",
+            value: "public, s-maxage=1800, stale-while-revalidate=3600",
+          },
+          {
+            key: "Vercel-CDN-Cache-Control",
+            value: "max-age=1800, stale-while-revalidate=3600",
+          },
+          {
+            key: "Cloudflare-CDN-Cache-Control",
+            value: "public, max-age=1800, stale-while-revalidate=3600",
+          },
         ],
       },
       {
