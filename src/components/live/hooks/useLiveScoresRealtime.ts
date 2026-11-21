@@ -5,6 +5,11 @@ import type { FootballMatch } from "@/services/live/football/service";
 import type { LiveMatchScore } from "@/services/live/football-score/types";
 import { shouldRefreshOnTabFocus } from "@/services/live/football-score/matchCenterRealtime";
 import { isVerifiedScoreboardMatch } from "@/services/live/football-score/canonicalLeagues";
+import {
+  fetchDirectScoreboardEvents,
+  extractActiveLeagueSlugs,
+} from "@/services/live/football-score/espnDirectClient";
+import { buildScoresMap } from "@/services/live/football-score/matcher";
 
 export interface UseLiveScoresRealtimeOptions {
   initialMatches: FootballMatch[];
@@ -211,7 +216,33 @@ export function useLiveScoresRealtime({
       if (isScoresFetchingRef.current) return;
       isScoresFetchingRef.current = true;
       try {
-        const timeoutSignal = AbortSignal.timeout(6000);
+        // 1. Thử gọi trực tiếp ESPN CDN từ Client Browser (0ms CPU Vercel, bảo vệ 100% quota 4 giờ)
+        const activeSlugs = extractActiveLeagueSlugs(liveMatches);
+        if (activeSlugs.length > 0) {
+          const directEvents = await fetchDirectScoreboardEvents(activeSlugs);
+          if (directEvents.length > 0 && liveMatches.length > 0) {
+            const directScores = buildScoresMap(liveMatches, directEvents);
+            if (isEffectActive && Object.keys(directScores).length > 0) {
+              lastFetchedScoresTimeRef.current = Date.now();
+              setScoresMap((prev) => {
+                const next = {
+                  ...prev,
+                  ...directScores,
+                };
+                if (typeof window !== "undefined") {
+                  try {
+                    sessionStorage.setItem("nanaflix_live_scores_cache", JSON.stringify(next));
+                  } catch {}
+                }
+                return next;
+              });
+              return;
+            }
+          }
+        }
+
+        // 2. Fallback: Nếu mạng client chặn ESPN CDN thì mới gọi về Vercel API nội bộ
+        const timeoutSignal = AbortSignal.timeout(5000);
         const signal =
           typeof AbortSignal.any === "function"
             ? AbortSignal.any([abortController.signal, timeoutSignal])

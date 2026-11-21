@@ -23,6 +23,7 @@ import {
   shouldSkipDuplicateRequest,
   mergeNormalizedSummaries,
 } from "@/services/live/football-score/matchCenterRealtime";
+import { fetchDirectMatchSummary } from "@/services/live/football-score/espnDirectClient";
 import {
   resolveCanonicalTournament,
   resolveTournamentLogo,
@@ -167,41 +168,21 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
     abortControllerRef.current = controller;
 
     try {
-      // Giữ URL sạch để Cloudflare Edge Cache (4s) có thể phục vụ hàng ngàn người xem siêu tốc (<10ms)
-      // mà không làm tăng hạn mức Redis hay gây tải cho Server
-      const url = `/api/live-football/summary?league=${encodeURIComponent(leagueSlug)}&event=${encodeURIComponent(eventId)}`;
-      const timeoutSignal = AbortSignal.timeout(4500);
-      const signal = typeof AbortSignal.any === "function"
-        ? AbortSignal.any([controller.signal, timeoutSignal])
-        : controller.signal;
-
-      const res = await fetch(url, {
-        signal,
-        headers: { Accept: "application/json" },
-      });
-
-      if (!res.ok) {
-        if (res.status === 404) {
-          // Trận đấu chưa có dữ liệu chi tiết API -> chỉ xóa summary nếu trước đó chưa có dữ liệu
-          if (!summaryRef.current) {
-            setSummary(null);
-            setError(null);
-          }
-          return;
+      // 1. Gọi trực tiếp ESPN CDN từ Client Browser (0ms CPU Vercel, bảo vệ 100% hạn mức 4 giờ)
+      const directData = await fetchDirectMatchSummary(leagueSlug, eventId);
+      if (!directData) {
+        if (!summaryRef.current) {
+          setSummary(null);
+          setError(null);
         }
-        throw new Error("Không thể tải thông tin trận đấu lúc này.");
-      }
-
-      const json = await res.json();
-      if (!json.status || !json.data) {
-        throw new Error(json.error || "Dữ liệu trận đấu không khả dụng.");
+        return;
       }
 
       setSummary((prev) => {
-        if (!prev || prev.eventId !== json.data.eventId) {
-          return json.data;
+        if (!prev || prev.eventId !== directData.eventId) {
+          return directData;
         }
-        return mergeNormalizedSummaries(prev, json.data);
+        return mergeNormalizedSummaries(prev, directData);
       });
       lastFetchedKeyRef.current = currentKey;
       lastFetchedTimeRef.current = Date.now();
