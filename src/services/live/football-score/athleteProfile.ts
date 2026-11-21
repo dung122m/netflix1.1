@@ -1,6 +1,7 @@
 import { AthleteProfile } from "./types";
 import { cacheService } from "@/lib/cache";
 import { getR2AssetUrl } from "@/lib/r2";
+import { optimizeEspnHeadshotUrl } from "./service";
 
 type PlayerCatalogItem = {
   id?: string;
@@ -153,7 +154,7 @@ async function fetchEspnCoreAthlete(athleteId: string): Promise<Partial<AthleteP
       height: sanitizeString(d.displayHeight),
       weight: sanitizeString(d.displayWeight),
       birthPlace,
-      photoUrl: safeHeadshot,
+      photoUrl: optimizeEspnHeadshotUrl(safeHeadshot),
       photoSource: safeHeadshot ? "espn" : undefined,
     };
   } catch {

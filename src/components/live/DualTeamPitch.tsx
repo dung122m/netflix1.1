@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useMemo, useEffect, useCallback } from "react";
-import { ArrowDownLeft } from "lucide-react";
+import { ArrowDownLeft, User, CircleDot } from "lucide-react";
 import { MatchRosterPlayer, MatchKeyEvent } from "@/services/live/football-score/types";
 import { SoccerBallIcon } from "./MatchTimelineSidebar";
 import { getShortDisplayName } from "./lineup/tacticalMath";
@@ -46,6 +46,8 @@ export const DualTeamPitch: React.FC<DualTeamPitchProps> = ({
     isHome: boolean;
   } | null>(null);
   const [mobileTeamTab, setMobileTeamTab] = useState<"home" | "away">("home");
+  const [pitchDisplayMode, setPitchDisplayMode] = useState<"photo" | "number">("photo");
+  const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
 
   // Đóng modal khi nhấn Escape
   useEffect(() => {
@@ -133,9 +135,36 @@ export const DualTeamPitch: React.FC<DualTeamPitchProps> = ({
             </div>
           </div>
 
-          {/* Ngăn cách tinh tế giữa 2 đội */}
-          <div className="px-3 shrink-0 flex items-center justify-center">
-            <span className="w-1.5 h-1.5 rounded-full bg-zinc-700" />
+          {/* Nút chuyển đổi kiểu hiển thị: Khuôn mặt / Số áo */}
+          <div className="px-2 shrink-0 flex items-center justify-center">
+            <div className="flex items-center gap-0.5 p-0.5 rounded-xl bg-zinc-800/90 shadow-sm border border-white/5">
+              <button
+                type="button"
+                onClick={() => setPitchDisplayMode("photo")}
+                aria-label="Hiển thị khuôn mặt cầu thủ"
+                className={`flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10.5px] font-bold transition-all cursor-pointer ${
+                  pitchDisplayMode === "photo"
+                    ? "bg-white/20 text-white shadow-sm font-black"
+                    : "text-zinc-400 hover:text-white"
+                }`}
+              >
+                <User className="w-3 h-3" />
+                <span>Mặt</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setPitchDisplayMode("number")}
+                aria-label="Hiển thị số áo tròn"
+                className={`flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10.5px] font-bold transition-all cursor-pointer ${
+                  pitchDisplayMode === "number"
+                    ? "bg-white/20 text-white shadow-sm font-black"
+                    : "text-zinc-400 hover:text-white"
+                }`}
+              >
+                <CircleDot className="w-3 h-3" />
+                <span>Số áo</span>
+              </button>
+            </div>
           </div>
 
           {/* Đội khách (Phải) */}
@@ -239,8 +268,9 @@ export const DualTeamPitch: React.FC<DualTeamPitchProps> = ({
                     }`}
                   >
                     <div className="relative">
+                      {/* Vòng tròn đại diện cầu thủ: Ảnh khuôn mặt hoặc số áo */}
                       <div
-                        className={`w-7 h-7 sm:w-8 sm:h-8 md:w-9 md:h-9 rounded-full flex items-center justify-center font-sans font-black tabular-nums text-[11px] sm:text-xs md:text-[13px] shadow-[0_2px_6px_rgba(0,0,0,0.5)] transition-all ${
+                        className={`w-7 h-7 sm:w-8 sm:h-8 md:w-9 md:h-9 rounded-full flex items-center justify-center font-sans font-black tabular-nums text-[11px] sm:text-xs md:text-[13px] shadow-[0_2px_6px_rgba(0,0,0,0.5)] transition-all overflow-hidden ${
                           isGK
                             ? "bg-[#d97706] text-zinc-950"
                             : isHome
@@ -248,8 +278,34 @@ export const DualTeamPitch: React.FC<DualTeamPitchProps> = ({
                               : "bg-[#0284c7] text-white"
                         } ${isSelected ? "scale-110 ring-2 ring-white ring-offset-2 ring-offset-zinc-950" : ""}`}
                       >
-                        {player.jersey || (isGK ? "1" : "-")}
+                        {pitchDisplayMode === "photo" && player.photoUrl && !imageErrors[player.id] ? (
+                          /* eslint-disable-next-line @next/next/no-img-element */
+                          <img
+                            src={player.photoUrl}
+                            alt={player.displayName}
+                            loading="lazy"
+                            onError={() => setImageErrors((prev) => ({ ...prev, [player.id]: true }))}
+                            className="w-full h-full object-cover object-top"
+                          />
+                        ) : (
+                          <span>{player.jersey || (isGK ? "1" : "-")}</span>
+                        )}
                       </div>
+
+                      {/* Huy hiệu số áo mini ở góc khi đang xem ảnh mặt */}
+                      {pitchDisplayMode === "photo" && player.photoUrl && !imageErrors[player.id] && player.jersey && (
+                        <span
+                          className={`absolute -bottom-1 -right-1 font-sans tabular-nums text-[7.5px] sm:text-[8px] font-black px-1 rounded-full shadow-sm leading-none border border-black/40 z-20 ${
+                            isGK
+                              ? "bg-[#d97706] text-zinc-950"
+                              : isHome
+                                ? "bg-[#dc2626] text-white"
+                                : "bg-[#0284c7] text-white"
+                          }`}
+                        >
+                          {player.jersey}
+                        </span>
+                      )}
 
                       {isCaptain && !isSubbedOut && (
                         <span

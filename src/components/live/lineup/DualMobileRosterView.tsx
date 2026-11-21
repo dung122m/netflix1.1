@@ -31,6 +31,7 @@ export function DualMobileRosterView({
   onChangeTab,
   getPlayerEventBadges,
 }: DualMobileRosterViewProps) {
+  const [imageErrors, setImageErrors] = React.useState<Record<string, boolean>>({});
   const isCurrentHome = mobileTeamTab === "home";
   const currentTeam = isCurrentHome ? homeTeam : awayTeam;
   const currentStarters = isCurrentHome ? homeStarters : awayStarters;
@@ -102,17 +103,28 @@ export function DualMobileRosterView({
                 className="flex items-center justify-between gap-2.5 px-2.5 py-2 rounded-xl bg-white/[0.02] select-none pointer-events-none cursor-default"
               >
                 <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                  <span
-                    className={`w-7 h-7 rounded-full flex items-center justify-center font-sans font-black tabular-nums text-xs shrink-0 shadow-sm ${
-                      isGK
-                        ? "bg-amber-500/20 text-amber-300"
-                        : isCurrentHome
-                          ? "bg-rose-500/20 text-rose-300"
-                          : "bg-sky-500/20 text-sky-300"
-                    }`}
-                  >
-                    {player.jersey || (isGK ? "1" : "-")}
-                  </span>
+                  {player.photoUrl && !imageErrors[player.id] ? (
+                    /* eslint-disable-next-line @next/next/no-img-element */
+                    <img
+                      src={player.photoUrl}
+                      alt=""
+                      loading="lazy"
+                      onError={() => setImageErrors((prev) => ({ ...prev, [player.id]: true }))}
+                      className="w-7 h-7 rounded-full object-cover object-top shrink-0 shadow-sm bg-zinc-800"
+                    />
+                  ) : (
+                    <span
+                      className={`w-7 h-7 rounded-full flex items-center justify-center font-sans font-black tabular-nums text-xs shrink-0 shadow-sm ${
+                        isGK
+                          ? "bg-amber-500/20 text-amber-300"
+                          : isCurrentHome
+                            ? "bg-rose-500/20 text-rose-300"
+                            : "bg-sky-500/20 text-sky-300"
+                      }`}
+                    >
+                      {player.jersey || (isGK ? "1" : "-")}
+                    </span>
+                  )}
 
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1.5 flex-wrap">
@@ -183,9 +195,20 @@ export function DualMobileRosterView({
                   className="flex items-center justify-between gap-2.5 px-2.5 py-2 rounded-xl bg-white/[0.02] select-none pointer-events-none cursor-default"
                 >
                   <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                    <span className="w-7 h-7 rounded-full bg-zinc-800 text-zinc-300 flex items-center justify-center font-sans font-bold tabular-nums text-xs shrink-0 shadow-sm">
-                      {player.jersey || "-"}
-                    </span>
+                    {player.photoUrl && !imageErrors[player.id] ? (
+                      /* eslint-disable-next-line @next/next/no-img-element */
+                      <img
+                        src={player.photoUrl}
+                        alt=""
+                        loading="lazy"
+                        onError={() => setImageErrors((prev) => ({ ...prev, [player.id]: true }))}
+                        className="w-7 h-7 rounded-full object-cover object-top shrink-0 shadow-sm bg-zinc-800"
+                      />
+                    ) : (
+                      <span className="w-7 h-7 rounded-full bg-zinc-800 text-zinc-300 flex items-center justify-center font-sans font-bold tabular-nums text-xs shrink-0 shadow-sm">
+                        {player.jersey || "-"}
+                      </span>
+                    )}
 
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-1.5 flex-wrap">

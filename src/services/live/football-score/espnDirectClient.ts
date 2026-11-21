@@ -9,9 +9,8 @@
  * 4. Tự động fallback về Vercel API nội bộ nếu mạng client bị lỗi.
  */
 
-import { NormalizedMatchSummary, LiveMatchScore, LiveScoreboardEvent } from "./types";
+import { NormalizedMatchSummary, LiveScoreboardEvent } from "./types";
 import { parseRawSummary } from "./service";
-import { buildScoresMap } from "./matcher";
 import { LEAGUE_CANONICAL_MAP, resolveCanonicalTournament } from "./canonicalLeagues";
 
 const ESPN_CDN_API_URL = "https://site.api.espn.com";

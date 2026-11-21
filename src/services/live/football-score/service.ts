@@ -806,6 +806,21 @@ export const footballScoreService = {
 };
 
 /**
+ * Tối ưu URL ảnh đại diện cầu thủ ESPN qua bộ nén CDN Combiner (96x96, crop vuông, ~10KB thay vì 260KB)
+ */
+export function optimizeEspnHeadshotUrl(url?: string, size = 96): string | undefined {
+  if (!url || typeof url !== "string") return undefined;
+  const trimmed = url.trim();
+  if (!trimmed) return undefined;
+  if (trimmed.includes("combiner/i?img=")) return trimmed;
+  if (trimmed.includes("a.espncdn.com/i/headshots/")) {
+    const path = trimmed.replace(/^https?:\/\/a\.espncdn\.com/, "");
+    return `https://a.espncdn.com/combiner/i?img=${path}&w=${size}&h=${size}&scale=crop&cquality=80&location=origin&transparent=true`;
+  }
+  return trimmed;
+}
+
+/**
  * Chuẩn hóa raw JSON từ upstream ESPN/worldcup26.ir thành cấu trúc NormalizedMatchSummary an toàn
  */
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -1036,7 +1051,8 @@ export function parseRawSummary(
       const bench: MatchRosterPlayer[] = [];
 
       for (const p of rosterList) {
-        const photoUrl = typeof p.athlete?.headshot?.href === "string" ? p.athlete.headshot.href : undefined;
+        const rawPhoto = typeof p.athlete?.headshot?.href === "string" ? p.athlete.headshot.href : undefined;
+        const photoUrl = optimizeEspnHeadshotUrl(rawPhoto);
         const jerseyImageUrl =
           Array.isArray(p.athlete?.jerseyImages)
             ? p.athlete.jerseyImages.find((j: any) => j.rel?.includes("dark") || j.rel?.includes("default"))?.href ||
