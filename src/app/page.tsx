@@ -319,10 +319,19 @@ export default async function HomePage() {
     getTopTrendingCommunitySupabase(10, "total").catch(() => []),
   ]);
 
-  const movies = response?.items || [];
-  const totalItems = response?.pagination?.totalItems || movies.length;
+  const rawMovies = response?.items || [];
+  // Fallback an toàn: nếu response.items bị rỗng vì bất kỳ lý do gì, dùng weekTrending hoặc communityTrending
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const trendingWeekRaw: any[] = weekTrending || [];
+  const movies =
+    rawMovies.length > 0
+      ? rawMovies
+      : trendingWeekRaw.length > 0
+        ? trendingWeekRaw
+        : Array.isArray(communityTrending) && communityTrending.length > 0
+          ? communityTrending
+          : [];
+  const totalItems = response?.pagination?.totalItems || movies.length;
 
   // Ưu tiên tuyệt đối Top phim thịnh hành TMDB cho Hero Banner
   const validTrendingMovies = trendingWeekRaw.filter(

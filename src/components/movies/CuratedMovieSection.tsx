@@ -6,10 +6,10 @@ import {
   ChevronRight,
   Film,
   Loader2,
+  RotateCcw,
 } from "lucide-react";
 import { MediaCard } from "@/components/browse/MediaCard";
 import { normalizeMovie } from "@/lib/movieMedia";
-import { movieApi } from "@/services/movies/service";
 import { ScrollFadeContainer } from "@/components/ui/ScrollFadeContainer";
 import { CarouselNavButton } from "@/components/ui/CarouselNavButton";
 import { MovieCardSkeleton } from "@/components/ui/MovieCardSkeleton";
@@ -23,11 +23,6 @@ interface CuratedTabConfig {
   label: string;
   tag: string;
   subtitle: string;
-  fetchParams: {
-    sort?: "views" | "rating" | "latest" | "year";
-    type?: string;
-    limit?: number;
-  };
   viewAllHref: string;
 }
 
@@ -37,7 +32,6 @@ const CURATED_TABS: CuratedTabConfig[] = [
     label: "Thịnh Hành",
     tag: "Xem nhiều nhất",
     subtitle: "Phim được khán giả xem nhiều nhất hôm nay",
-    fetchParams: { sort: "views", limit: 12 },
     viewAllHref: "/browse?sort=views",
   },
   {
@@ -45,7 +39,6 @@ const CURATED_TABS: CuratedTabConfig[] = [
     label: "Đánh Giá Cao",
     tag: "Đánh giá cao nhất",
     subtitle: "Tuyển chọn phim đạt điểm đánh giá cao từ khán giả và giới phê bình",
-    fetchParams: { sort: "rating", limit: 12 },
     viewAllHref: "/browse?sort=rating",
   },
   {
@@ -53,7 +46,6 @@ const CURATED_TABS: CuratedTabConfig[] = [
     label: "Chiếu Rạp",
     tag: "Phim chiếu rạp",
     subtitle: "Phim từng công chiếu tại các cụm rạp",
-    fetchParams: { type: "phim-chieu-rap", limit: 12 },
     viewAllHref: "/browse?type=phim-chieu-rap",
   },
   {
@@ -61,10 +53,12 @@ const CURATED_TABS: CuratedTabConfig[] = [
     label: "Mới Cập Nhật",
     tag: "Mới lên sóng",
     subtitle: "Phim và tập phim mới cập nhật gần đây",
-    fetchParams: { sort: "latest", limit: 12 },
     viewAllHref: "/browse?sort=latest",
   },
 ];
+
+const LOCAL_STORAGE_KEY = "nanaflix_curated_movies_v2";
+const STORAGE_TTL_MS = 2 * 60 * 60 * 1000; // 2 giờ trong localStorage
 
 interface CuratedMovieSectionProps {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -102,17 +96,51 @@ export const CuratedMovieSection: React.FC<CuratedMovieSectionProps> = ({
   const [loading, setLoading] = useState(false);
   const [isPending, startTransition] = useTransition();
 
-  // Cache đệm trong component để chuyển tab tức thì 0ms
+  // Cache đệm trong RAM component để chuyển tab tức thì 0ms
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const cacheRef = useRef<Record<string, any[]>>({
     trending: initialBatch,
   });
 
-  // Tự động đồng bộ và nạp phim cho tab trending khi prop initialMovies có dữ liệu (chống mất dữ liệu khi hydration / reload)
+  // Lưu trữ an toàn vào localStorage
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const saveToStorage = useCallback((tab: CuratedTabKey, data: any[]) => {
+    if (!Array.isArray(data) || data.length === 0) return;
+    try {
+      const raw = localStorage.getItem(LOCAL_STORAGE_KEY);
+      const prev = raw ? JSON.parse(raw) : {};
+      localStorage.setItem(
+        LOCAL_STORAGE_KEY,
+        JSON.stringify({
+          ...prev,
+          [tab]: data,
+          [`${tab}_ts`]: Date.now(),
+        })
+      );
+    } catch { }
+  }, []);
+
+  // Đọc từ localStorage
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const loadFromStorage = useCallback((tab: CuratedTabKey): any[] | null => {
+    try {
+      const raw = localStorage.getItem(LOCAL_STORAGE_KEY);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      const ts = parsed[`${tab}_ts`];
+      if (ts && Date.now() - ts < STORAGE_TTL_MS && Array.isArray(parsed[tab]) && parsed[tab].length > 0) {
+        return parsed[tab];
+      }
+    } catch { }
+    return null;
+  }, []);
+
+  // 1. Tự động đồng bộ khi SSR prop initialMovies có dữ liệu
   useEffect(() => {
     if (Array.isArray(initialMovies) && initialMovies.length > 0) {
       const batch = initialMovies.slice(0, 12);
       cacheRef.current.trending = batch;
+      saveToStorage("trending", batch);
       setTabMovies((prev) => {
         if (!prev.trending || prev.trending.length === 0) {
           return { ...prev, trending: batch };
@@ -120,33 +148,122 @@ export const CuratedMovieSection: React.FC<CuratedMovieSectionProps> = ({
         return prev;
       });
     }
-  }, [initialMovies]);
+  }, [initialMovies, saveToStorage]);
 
-  // Fallback an toàn: Nếu tab hiện tại (mặc định là trending) bị rỗng thì tự động fetch lại
+  // 2. Tự phục hồi ngay khi mount nếu tab trending bị rỗng (đọc localStorage trước, rồi fetch API)
   useEffect(() => {
-    if ((tabMovies[activeTab] || []).length === 0 && !loading) {
-      const targetConfig = CURATED_TABS.find((t) => t.id === activeTab);
-      if (targetConfig) {
-        setLoading(true);
-        movieApi.getMovies({
-          ...targetConfig.fetchParams,
-          page: 1,
-        })
-          .then((res) => {
-            const items = (res?.items || []).slice(0, 12);
-            if (items.length > 0) {
-              cacheRef.current[activeTab] = items;
-              setTabMovies((prev) => ({
-                ...prev,
-                [activeTab]: items,
-              }));
-            }
-          })
-          .catch((err) => console.error(`Lỗi tự phục hồi tab ${activeTab}:`, err))
-          .finally(() => setLoading(false));
+    let isMounted = true;
+    if ((tabMovies.trending || []).length === 0) {
+      // Thử đọc từ localStorage ngay lập tức (0ms)
+      const stored = loadFromStorage("trending");
+      if (stored && stored.length > 0) {
+        cacheRef.current.trending = stored;
+        setTabMovies((prev) => ({ ...prev, trending: stored }));
+        return;
       }
+
+      // Fetch qua API route nội bộ an toàn (Node runtime, có Edge Cache)
+      setLoading(true);
+      fetch("/api/movies/curated?tab=trending&limit=12")
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data) => {
+          if (!isMounted) return;
+          const items = Array.isArray(data?.items) ? data.items.slice(0, 12) : [];
+          if (items.length > 0) {
+            cacheRef.current.trending = items;
+            saveToStorage("trending", items);
+            setTabMovies((prev) => ({ ...prev, trending: items }));
+          }
+        })
+        .catch((err) => console.warn("[CuratedSection] Khôi phục tab trending thất bại:", err))
+        .finally(() => {
+          if (isMounted) setLoading(false);
+        });
     }
-  }, [activeTab, tabMovies, loading]);
+
+    return () => {
+      isMounted = false;
+    };
+  }, [tabMovies.trending, loadFromStorage, saveToStorage]);
+
+  // 3. Hàm chuyển tab thông minh với 2 tầng cache (RAM 0ms -> localStorage 0ms -> API fetch)
+  const handleSelectTab = useCallback(
+    async (tabId: CuratedTabKey) => {
+      if (tabId === activeTab) return;
+
+      // Tầng 1: RAM cache tức thì (0ms)
+      if (cacheRef.current[tabId] && cacheRef.current[tabId].length > 0) {
+        startTransition(() => {
+          setActiveTab(tabId);
+          setTabMovies((prev) => ({
+            ...prev,
+            [tabId]: cacheRef.current[tabId],
+          }));
+        });
+        return;
+      }
+
+      // Tầng 2: localStorage tức thì (0ms)
+      const stored = loadFromStorage(tabId);
+      if (stored && stored.length > 0) {
+        cacheRef.current[tabId] = stored;
+        startTransition(() => {
+          setActiveTab(tabId);
+          setTabMovies((prev) => ({
+            ...prev,
+            [tabId]: stored,
+          }));
+        });
+        return;
+      }
+
+      // Tầng 3: Fetch API nội bộ (chạy trên server, có CDN Edge Cache)
+      setActiveTab(tabId);
+      setLoading(true);
+
+      try {
+        const res = await fetch(`/api/movies/curated?tab=${tabId}&limit=12`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        const items = Array.isArray(data?.items) ? data.items.slice(0, 12) : [];
+
+        if (items.length > 0) {
+          cacheRef.current[tabId] = items;
+          saveToStorage(tabId, items);
+          startTransition(() => {
+            setTabMovies((prev) => ({
+              ...prev,
+              [tabId]: items,
+            }));
+          });
+        }
+      } catch (err) {
+        console.warn(`[CuratedSection] Lỗi khi tải tab ${tabId}:`, err);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [activeTab, loadFromStorage, saveToStorage]
+  );
+
+  const handleRetry = useCallback(() => {
+    setLoading(true);
+    fetch(`/api/movies/curated?tab=${activeTab}&limit=12`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        const items = Array.isArray(data?.items) ? data.items.slice(0, 12) : [];
+        if (items.length > 0) {
+          cacheRef.current[activeTab] = items;
+          saveToStorage(activeTab, items);
+          setTabMovies((prev) => ({
+            ...prev,
+            [activeTab]: items,
+          }));
+        }
+      })
+      .catch((err) => console.warn(`[CuratedSection] Retry tab ${activeTab} error:`, err))
+      .finally(() => setLoading(false));
+  }, [activeTab, saveToStorage]);
 
   const currentTabConfig =
     CURATED_TABS.find((t) => t.id === activeTab) || CURATED_TABS[0];
@@ -176,53 +293,6 @@ export const CuratedMovieSection: React.FC<CuratedMovieSectionProps> = ({
     cardSelector: ".snap-start",
     boundaryThreshold: 8,
   });
-
-  const handleSelectTab = useCallback(
-    async (tabId: CuratedTabKey) => {
-      if (tabId === activeTab) return;
-
-      const targetConfig = CURATED_TABS.find((t) => t.id === tabId);
-      if (!targetConfig) return;
-
-      // 1. Nếu đã có dữ liệu trong cache -> hiển thị tức thì (0ms)
-      if (cacheRef.current[tabId] && cacheRef.current[tabId].length > 0) {
-        startTransition(() => {
-          setActiveTab(tabId);
-          setTabMovies((prev) => ({
-            ...prev,
-            [tabId]: cacheRef.current[tabId],
-          }));
-        });
-        return;
-      }
-
-      // 2. Nếu chưa có -> fetch ngầm với UI tối ưu
-      setActiveTab(tabId);
-      setLoading(true);
-
-      try {
-        const res = await movieApi.getMovies({
-          ...targetConfig.fetchParams,
-          page: 1,
-        });
-
-        const items = (res?.items || []).slice(0, 12);
-        cacheRef.current[tabId] = items;
-
-        startTransition(() => {
-          setTabMovies((prev) => ({
-            ...prev,
-            [tabId]: items,
-          }));
-        });
-      } catch (err) {
-        console.error(`Lỗi khi tải tab ${tabId}:`, err);
-      } finally {
-        setLoading(false);
-      }
-    },
-    [activeTab]
-  );
 
   return (
     <section
@@ -355,14 +425,23 @@ export const CuratedMovieSection: React.FC<CuratedMovieSectionProps> = ({
             ))}
           </div>
         ) : (
-          <div className="py-12 text-center rounded-2xl bg-zinc-900/50 p-6">
-            <Film className="w-10 h-10 text-zinc-600 mx-auto mb-2" />
+          <div className="py-10 text-center rounded-2xl bg-zinc-900/40 border border-white/[0.04] p-6 flex flex-col items-center justify-center gap-3">
+            <Film className="w-9 h-9 text-zinc-500" />
             <p className="text-zinc-400 text-sm">
-              Đang cập nhật danh sách phim {currentTabConfig.label}...
+              Đang tải danh sách phim {currentTabConfig.label}...
             </p>
+            <button
+              type="button"
+              onClick={handleRetry}
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-white text-xs font-semibold transition active:scale-95 cursor-pointer"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span>Tải lại</span>
+            </button>
           </div>
         )}
       </div>
     </section>
   );
 };
+export default CuratedMovieSection;
