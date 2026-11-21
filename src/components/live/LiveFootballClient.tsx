@@ -109,7 +109,7 @@ export function LiveFootballClient({
     [selectedMatch?.id],
   );
 
-  // Tra cứu tỷ số và định danh sự kiện livescore cho trận đang chọn (hỗ trợ fallback nếu ID bị đổi đuôi thời gian)
+  // Tra cứu tỷ số và định danh sự kiện livescore cho trận đang chọn (hỗ trợ fallback nếu ID bị đổi đuôi thời gian hoặc tìm theo cặp đội)
   const currentMatchScore = useMemo(() => {
     if (!selectedMatch) return null;
     if (scoresMap[selectedMatch.id]) return scoresMap[selectedMatch.id];
@@ -119,8 +119,24 @@ export function LiveFootballClient({
       const matchedKey = Object.keys(scoresMap).find((k) => k.startsWith(baseId));
       if (matchedKey) return scoresMap[matchedKey];
     }
+    // Fallback: Tìm theo cặp tên hai đội để đảm bảo không bao giờ bị mất liên kết tỷ số khi reload
+    const s1 = selectedMatch.team1?.toLowerCase().trim();
+    const s2 = selectedMatch.team2?.toLowerCase().trim();
+    if (s1 && s2) {
+      for (const [id, score] of Object.entries(scoresMap)) {
+        if (!score) continue;
+        const target = liveMatches.find((m) => m.id === id);
+        if (
+          target &&
+          target.team1?.toLowerCase().trim() === s1 &&
+          target.team2?.toLowerCase().trim() === s2
+        ) {
+          return score;
+        }
+      }
+    }
     return null;
-  }, [selectedMatch, scoresMap]);
+  }, [selectedMatch, scoresMap, liveMatches]);
 
   // Tên giải đấu chuẩn hóa của trận đang chọn cho thanh điều hướng
   const selectedMatchTournament = useMemo(() => {

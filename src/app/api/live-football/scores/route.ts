@@ -29,11 +29,11 @@ export async function GET(req: NextRequest) {
   if (lastScoresCache && now < lastScoresCache.expireAt) {
     const cacheControl = lastScoresCache.hasLive
       ? "public, max-age=15, s-maxage=25, stale-while-revalidate=15"
-      : "public, max-age=60, s-maxage=120, stale-while-revalidate=240";
-    const cdnControl = lastScoresCache.hasLive ? "public, max-age=25" : "public, max-age=120";
+      : "public, max-age=30, s-maxage=30, stale-while-revalidate=60";
+    const cdnControl = lastScoresCache.hasLive ? "public, max-age=25" : "public, max-age=30";
     const vercelCdnControl = lastScoresCache.hasLive
       ? "max-age=25, stale-while-revalidate=15"
-      : "max-age=120, stale-while-revalidate=240";
+      : "max-age=30, stale-while-revalidate=60";
 
     return NextResponse.json(
       {
@@ -107,11 +107,11 @@ export async function GET(req: NextRequest) {
     );
     const cacheControl = hasLive
       ? "public, max-age=15, s-maxage=25, stale-while-revalidate=15"
-      : "public, max-age=60, s-maxage=120, stale-while-revalidate=240";
-    const cdnControl = hasLive ? "public, max-age=25" : "public, max-age=120";
+      : "public, max-age=30, s-maxage=30, stale-while-revalidate=60";
+    const cdnControl = hasLive ? "public, max-age=25" : "public, max-age=30";
     const vercelCdnControl = hasLive
       ? "max-age=25, stale-while-revalidate=15"
-      : "max-age=120, stale-while-revalidate=240";
+      : "max-age=30, stale-while-revalidate=60";
 
     const responseData = {
       scores,
@@ -123,7 +123,7 @@ export async function GET(req: NextRequest) {
     lastScoresCache = {
       data: responseData,
       hasLive,
-      expireAt: now + (hasLive ? 25_000 : 90_000),
+      expireAt: now + (hasLive ? 25_000 : 30_000),
     };
 
     const responseHeaders: Record<string, string> = {

@@ -226,24 +226,23 @@ export function useLiveScoresRealtime({
 
     // Khi có trận giải lớn đang Live:
     // - Bình thường ngoài danh sách: 30s.
-    // - Khi đang mở Player xem trận đấu (isTheaterMode): giãn ra 60s để nhường ưu tiên cho MatchCenter (15s).
-    // Khi hôm nay có trận giải lớn nhưng CHƯA ĐÁ / ĐÃ XONG: ngủ đông thông minh 5 phút (300,000ms).
+    // - Khi đang mở Player xem trận đấu (isTheaterMode): 45s để nhường ưu tiên cho MatchCenter (15s).
+    // Khi hôm nay có trận giải lớn nhưng CHƯA ĐÁ / ĐÃ XONG: polling 60s để nhận diện ngay khi bóng lăn.
     // Khi hôm nay HOÀN TOÀN KHÔNG CÓ trận giải lớn nào (chỉ có tennis, bóng rổ, giải phong trào...): TẮT HẲN polling (null) để tiết kiệm 100% tài nguyên!
-    const livePollInterval = isTheaterMode ? 60_000 : 30_000;
+    const livePollInterval = isTheaterMode ? 45_000 : 30_000;
     const pollIntervalMs = hasActiveScoreboardMatches
       ? livePollInterval
       : hasScoreboardMatchesToday
-        ? 300_000
+        ? 60_000
         : null;
 
+    const isFirstMount = lastFetchedScoresTimeRef.current === 0;
     const isReturningFromInactive = !wasActiveScoresRef.current;
     wasActiveScoresRef.current = true;
 
-    // Chỉ fetch ngay khi vào/quay lại tab nếu hôm nay thực sự có trận thuộc các giải lớn
-    if (isReturningFromInactive && hasScoreboardMatchesToday) {
+    // Luôn fetch ngay khi component mount lần đầu HOẶC khi tab quay lại từ inactive (nếu hôm nay có trận giải lớn)
+    if ((isFirstMount || isReturningFromInactive) && hasScoreboardMatchesToday) {
       fetchScores();
-    } else if (lastFetchedScoresTimeRef.current === 0) {
-      lastFetchedScoresTimeRef.current = Date.now();
     }
 
     let interval: NodeJS.Timeout | null = null;
