@@ -284,6 +284,7 @@ export function proxy(req: NextRequest) {
   // Vì người dùng không cần SEO tự nhiên và /browse có hàng ngàn tổ hợp query làm hao tốn Serverless / Redis
   const isSearchBot = /googlebot|bingbot|yandex|baiduspider|duckduckbot|slurp|crawler|spider/i.test(userAgent);
   if (isSearchBot && pathname.startsWith("/browse")) {
+    console.warn(`[BROWSE_BLOCKED_BOT] ip=${clientIp} ua="${userAgent.slice(0, 100)}" url="${pathname}${req.nextUrl.search}"`);
     return new NextResponse("Forbidden - Bot crawling on browse filters is disallowed", {
       status: 403,
       headers: {
@@ -291,6 +292,10 @@ export function proxy(req: NextRequest) {
         "X-Request-Id": requestId,
       },
     });
+  }
+
+  if (pathname.startsWith("/browse")) {
+    console.info(`[BROWSE_ACCESS] ip=${clientIp} ua="${userAgent.slice(0, 100)}" url="${pathname}${req.nextUrl.search}"`);
   }
 
   // 4. Kiểm tra bảo vệ Origin (Chống bypass Cloudflare qua *.vercel.app)
