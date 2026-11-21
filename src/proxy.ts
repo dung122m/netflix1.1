@@ -298,6 +298,7 @@ export function proxy(req: NextRequest) {
     console.info(`[BROWSE_ACCESS] ip=${clientIp} ua="${userAgent.slice(0, 100)}" url="${pathname}${req.nextUrl.search}"`);
   }
 
+
   // 4. Kiểm tra bảo vệ Origin (Chống bypass Cloudflare qua *.vercel.app)
   const originBlock = checkOriginProtection(req);
   if (originBlock) {
