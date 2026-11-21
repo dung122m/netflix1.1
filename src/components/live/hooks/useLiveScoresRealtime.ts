@@ -128,6 +128,18 @@ export function useLiveScoresRealtime({
           initialMap[m.id] = m.score;
         }
       }
+      // Khôi phục tức thì từ sessionStorage (0ms) để hiển thị ngay khi F5 reload mà không cần chờ mạng
+      if (typeof window !== "undefined") {
+        try {
+          const saved = sessionStorage.getItem("nanaflix_live_scores_cache");
+          if (saved) {
+            const parsed = JSON.parse(saved);
+            if (parsed && typeof parsed === "object") {
+              Object.assign(initialMap, parsed);
+            }
+          }
+        } catch {}
+      }
       return initialMap;
     },
   );
@@ -212,10 +224,18 @@ export function useLiveScoresRealtime({
         if (!res.ok) return;
         const json = await res.json();
         if (isEffectActive && json.status && json.data?.scores) {
-          setScoresMap((prev) => ({
-            ...prev,
-            ...json.data.scores,
-          }));
+          setScoresMap((prev) => {
+            const next = {
+              ...prev,
+              ...json.data.scores,
+            };
+            if (typeof window !== "undefined") {
+              try {
+                sessionStorage.setItem("nanaflix_live_scores_cache", JSON.stringify(next));
+              } catch {}
+            }
+            return next;
+          });
         }
       } catch {
         // Giữ nguyên dữ liệu cũ nếu fetch thất bại hoặc bị hủy

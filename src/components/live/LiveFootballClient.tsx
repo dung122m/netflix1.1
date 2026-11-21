@@ -85,7 +85,20 @@ export function LiveFootballClient({
     "matches" | "match-center" | "standings"
   >("matches");
   const [sidePanelTab, setSidePanelTab] = useState<"timeline" | "matches">("matches");
-  const [matchSummary, setMatchSummary] = useState<NormalizedMatchSummary | null>(null);
+  const [matchSummary, setMatchSummary] = useState<NormalizedMatchSummary | null>(() => {
+    if (typeof window !== "undefined" && initialMatch?.id) {
+      try {
+        const saved = sessionStorage.getItem(`nanaflix_summary_${initialMatch.id}`);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (parsed && typeof parsed === "object") {
+            return parsed;
+          }
+        }
+      } catch {}
+    }
+    return null;
+  });
   const [isSummaryLoading, setIsSummaryLoading] = useState<boolean>(false);
   const matchSummaryMemoryRef = useRef<Map<string, NormalizedMatchSummary>>(new Map());
 
@@ -102,6 +115,11 @@ export function LiveFootballClient({
 
         if (selectedMatch?.id) {
           matchSummaryMemoryRef.current.set(selectedMatch.id, merged);
+          if (typeof window !== "undefined") {
+            try {
+              sessionStorage.setItem(`nanaflix_summary_${selectedMatch.id}`, JSON.stringify(merged));
+            } catch {}
+          }
         }
         return merged;
       });
@@ -161,9 +179,17 @@ export function LiveFootballClient({
   useEffect(() => {
     if (selectedMatch?.id !== lastMatchIdRef.current) {
       lastMatchIdRef.current = selectedMatch?.id || null;
-      const cached = selectedMatch?.id
+      let cached = selectedMatch?.id
         ? matchSummaryMemoryRef.current.get(selectedMatch.id)
         : null;
+      if (!cached && typeof window !== "undefined" && selectedMatch?.id) {
+        try {
+          const saved = sessionStorage.getItem(`nanaflix_summary_${selectedMatch.id}`);
+          if (saved) {
+            cached = JSON.parse(saved);
+          }
+        } catch {}
+      }
       if (cached) {
         setMatchSummary(cached);
         setIsSummaryLoading(false);
