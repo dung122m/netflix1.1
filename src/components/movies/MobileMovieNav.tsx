@@ -46,7 +46,14 @@ export function MobileMovieNav({ isSeries = true }: MobileMovieNavProps) {
       if (isClickScrollingRef.current) return;
 
       const isPlayerSticky = typeof document !== "undefined" && document.documentElement.dataset.playerSticky === "true";
-      const triggerOffset = isPlayerSticky ? 360 : 130; // Pixel threshold dưới sticky bar
+      const navbarHeight = typeof window !== "undefined"
+        ? (parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--navbar-height")) || 56)
+        : 56;
+      const stickyPlayerHeight = 32 + Math.min(window.innerWidth * 0.5625, window.innerHeight * 0.38);
+      const navHeight = 46;
+      const triggerOffset = isPlayerSticky
+        ? (navbarHeight + stickyPlayerHeight + navHeight + 10)
+        : (navbarHeight + navHeight + 15);
 
       // Sắp xếp các section theo vị trí top thực tế trên viewport
       const foundSections = sections
@@ -87,7 +94,14 @@ export function MobileMovieNav({ isSeries = true }: MobileMovieNavProps) {
       const isPlayerSticky =
         typeof document !== "undefined" &&
         document.documentElement.dataset.playerSticky === "true";
-      const navOffset = isPlayerSticky ? 320 : 115;
+      const navbarHeight = typeof window !== "undefined"
+        ? (parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--navbar-height")) || 56)
+        : 56;
+      const stickyPlayerHeight = 32 + Math.min(window.innerWidth * 0.5625, window.innerHeight * 0.38);
+      const navHeight = 46;
+      const navOffset = isPlayerSticky
+        ? (navbarHeight + stickyPlayerHeight + navHeight)
+        : (navbarHeight + navHeight);
       const targetY = element.getBoundingClientRect().top + window.scrollY - navOffset;
       window.scrollTo({
         top: Math.max(0, targetY),
@@ -104,7 +118,7 @@ export function MobileMovieNav({ isSeries = true }: MobileMovieNavProps) {
     <div
       role="tablist"
       aria-label="Điều hướng nhanh nội dung phim"
-      className="mobile-movie-nav-sticky lg:hidden sticky top-[52px] sm:top-[56px] z-30 -mx-2 sm:-mx-4 px-2 sm:px-4 py-2 bg-zinc-950/95 backdrop-blur-xl border-t border-white/[0.06] shadow-[0_8px_24px_rgba(0,0,0,0.65)] transition-all mb-3 sm:mb-4"
+      className="mobile-movie-nav-sticky lg:hidden sticky top-[calc(var(--navbar-height,56px)-1px)] z-30 -mx-2 sm:-mx-4 px-2 sm:px-4 py-2 bg-zinc-950/95 backdrop-blur-xl border-t border-white/[0.06] shadow-[0_8px_24px_rgba(0,0,0,0.65)] transition-all mb-3 sm:mb-4"
     >
       <div className="flex items-center justify-between gap-1.5 sm:gap-2 overflow-x-auto scrollbar-none">
         {sections.map(({ id, label, icon: Icon }) => {

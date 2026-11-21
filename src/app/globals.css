@@ -79,6 +79,7 @@
   --accent-glow: rgba(229, 9, 20, 0.40);
   --accent-border: rgba(229, 9, 20, 0.55);
   --radius: 0.625rem;
+  --navbar-height: calc(56px + env(safe-area-inset-top, 0px));
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
   --sidebar-primary: oklch(0.205 0 0);
@@ -672,13 +673,14 @@
 
 /* Điều chỉnh vị trí sticky của MobileMovieNav khi CinemaPlayer đang sticky trên mobile */
 [data-player-sticky="true"] .mobile-movie-nav-sticky {
-  top: calc(83px + min(56.25vw, 38dvh));
+  top: calc(var(--navbar-height, 56px) + 32px + min(56.25vw, 38dvh) - 1px) !important;
 }
 
-@media (min-width: 640px) {
-  [data-player-sticky="true"] .mobile-movie-nav-sticky {
-    top: calc(87px + min(56.25vw, 38dvh));
-  }
+[data-player-sticky="true"] #section-episodes,
+[data-player-sticky="true"] #section-info,
+[data-player-sticky="true"] #section-reviews,
+[data-player-sticky="true"] #section-recommendations {
+  scroll-margin-top: calc(var(--navbar-height, 56px) + 32px + min(56.25vw, 38dvh) + 48px);
 }
 
 @keyframes cinematic-shimmer {

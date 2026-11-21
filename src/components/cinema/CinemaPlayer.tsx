@@ -298,6 +298,14 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
     resolvedM3u8 && (!useIframeFallback || isEmbedBroken),
   );
 
+  const hasStream = Boolean(
+    resolvedM3u8 ||
+    activeSrc ||
+    m3u8Link ||
+    videoLink ||
+    embedSrc
+  );
+
   useWatchTimeHeartbeat({
     userId: user?.uid,
     isNativeVideo,
@@ -317,6 +325,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
     videoRef,
     isNativeVideo,
     isPlaying,
+    hasStream,
     activeSrc,
     m3u8Link,
     showHud,
@@ -522,7 +531,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
   return (
     <>
       {/* Sentinel for sticky intersection */}
-      <div ref={sentinelRef} className="w-full h-1 pointer-events-none" />
+      <div ref={sentinelRef} className="w-full h-px pointer-events-none" />
 
       {/* STICKY PLACEHOLDER */}
       {isMobileStickyActive && (
@@ -539,7 +548,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
           isFullscreen
             ? "fixed inset-0 z-[80] w-full h-full max-w-none p-0 m-0 bg-black flex flex-col justify-center overflow-hidden"
             : isMobileStickyActive
-            ? "fixed top-[51px] sm:top-[55px] left-0 right-0 z-40 shadow-2xl border-b border-white/[0.08] bg-black md:relative md:top-auto"
+            ? "fixed top-[var(--navbar-height)] left-0 right-0 z-40 shadow-2xl border-b border-white/[0.08] bg-black md:relative md:top-auto"
             : "relative z-20 bg-transparent"
         } ${
           isTheaterMode && !isFullscreen

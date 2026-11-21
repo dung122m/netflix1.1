@@ -8,7 +8,8 @@ interface UseCinemaFullscreenAndOrientationOptions {
   videoRef: React.RefObject<HTMLVideoElement | null>;
   isNativeVideo: boolean;
   isPlaying: boolean;
-  activeSrc: string;
+  hasStream?: boolean;
+  activeSrc?: string;
   m3u8Link?: string;
   showHud: (icon?: React.ReactNode, text?: string) => void;
   resetControlsTimeout: () => void;
@@ -19,13 +20,26 @@ export function useCinemaFullscreenAndOrientation({
   videoRef,
   isNativeVideo,
   isPlaying: _isPlaying,
+  hasStream = false,
   activeSrc,
   m3u8Link,
   showHud,
   resetControlsTimeout,
 }: UseCinemaFullscreenAndOrientationOptions) {
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
+  const [isMobile, setIsMobile] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    const isMobileUA =
+      /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+        navigator.userAgent,
+      );
+    const hasTouch =
+      isMobileUA ||
+      window.matchMedia?.("(pointer: coarse)").matches ||
+      "ontouchstart" in window ||
+      navigator.maxTouchPoints > 0;
+    return Boolean(hasTouch && window.innerWidth < 1024);
+  });
   const [isScrolledPast, setIsScrolledPast] = useState(false);
   const sentinelRef = useRef<HTMLDivElement>(null);
 
@@ -251,41 +265,95 @@ export function useCinemaFullscreenAndOrientation({
       const hasTouch =
         isMobileUA ||
         (typeof window !== "undefined" &&
-          window.matchMedia &&
-          window.matchMedia("(pointer: coarse)").matches) ||
+          window.matchMedia?.("(pointer: coarse)").matches) ||
         (typeof window !== "undefined" && "ontouchstart" in window) ||
-        (typeof navigator !== "undefined" && navigator.maxTouchPoints > 0) ||
-        (typeof window !== "undefined" && window.innerWidth < 768);
-      setIsMobile(Boolean(hasTouch));
+        (typeof navigator !== "undefined" && navigator.maxTouchPoints > 0);
+      setIsMobile(Boolean(hasTouch && window.innerWidth < 1024));
     };
+
     checkMobile();
     window.addEventListener("resize", checkMobile);
     window.addEventListener("orientationchange", checkMobile);
 
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        setIsScrolledPast(
-          !entry.isIntersecting && entry.boundingClientRect.top < 0,
-        );
-      },
-      { threshold: 0, rootMargin: "-20px 0px 0px 0px" },
-    );
-
-    if (sentinelRef.current) observer.observe(sentinelRef.current);
-
     return () => {
       window.removeEventListener("resize", checkMobile);
       window.removeEventListener("orientationchange", checkMobile);
-      observer.disconnect();
     };
   }, []);
 
+  // Sticky detection: Sử dụng scroll listener kết hợp IntersectionObserver với hysteresis để chạy 100% mượt và chuẩn xác
+  useEffect(() => {
+    if (!isMobile) {
+      setIsScrolledPast(false);
+      return;
+    }
+
+    let rafId: number | null = null;
+    const evaluateScroll = () => {
+      const sentinel = sentinelRef.current;
+      if (!sentinel) return;
+
+      const rect = sentinel.getBoundingClientRect();
+      const navbarHeight =
+        (typeof window !== "undefined" &&
+          parseFloat(
+            getComputedStyle(document.documentElement).getPropertyValue(
+              "--navbar-height",
+            ),
+          )) ||
+        56;
+
+      // Hysteresis chống chớp giật:
+      // - Khi chưa sticky: Kích hoạt khi đỉnh player trôi qua mép dưới navbar - 25px
+      // - Khi đang sticky: Trả về bình thường khi vị trí gốc tụt xuống dưới mép navbar + 15px
+      setIsScrolledPast((prev) => {
+        if (!prev) {
+          return rect.top <= navbarHeight - 25;
+        } else {
+          return rect.top < navbarHeight + 15;
+        }
+      });
+    };
+
+    const handleScroll = () => {
+      if (rafId !== null) return;
+      rafId = requestAnimationFrame(() => {
+        rafId = null;
+        evaluateScroll();
+      });
+    };
+
+    const observer =
+      typeof IntersectionObserver !== "undefined"
+        ? new IntersectionObserver(
+            () => {
+              evaluateScroll();
+            },
+            { threshold: [0, 1] },
+          )
+        : null;
+
+    if (sentinelRef.current && observer) {
+      observer.observe(sentinelRef.current);
+    }
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    evaluateScroll();
+
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      if (rafId !== null) cancelAnimationFrame(rafId);
+      if (observer) observer.disconnect();
+    };
+  }, [isMobile]);
+
   // Sticky player trên mobile: Giữ cố định khi cuộn qua video mà không phụ thuộc vào trạng thái pause/play
+  const canBeSticky = Boolean(hasStream || activeSrc || m3u8Link);
   const isMobileStickyActive =
     isMobile &&
     isScrolledPast &&
     !isFullscreen &&
-    Boolean(activeSrc || m3u8Link);
+    canBeSticky;
 
   // Đồng bộ cờ playerSticky lên DOM để MobileMovieNav và layout mobile điều chỉnh tọa độ sticky
   useEffect(() => {
