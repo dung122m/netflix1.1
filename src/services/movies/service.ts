@@ -562,9 +562,12 @@ async function executeGetMovies(params: MovieFilterParams, cacheKey: string) {
   const isSearch = Boolean(params.keyword?.trim());
   const limit = params.limit && params.limit > 0 ? params.limit : 24;
   const parsedSort = parseSortMode(params.sort);
+  const requestedPage = params.page && params.page >= 1 ? Math.floor(params.page) : 1;
   const metaKey = buildQueryMetaKey(params);
   let cachedMeta = queryMetadataCache.get(metaKey);
-  if (!cachedMeta) {
+  // Chỉ đọc querymeta từ Redis khi requestedPage > 1 và RAM chưa có cache.
+  // Trang 1 (chiếm đa số lưu lượng) không cần đọc querymeta vì tự probe/fetch và lưu lại querymeta.
+  if (!cachedMeta && requestedPage > 1) {
     try {
       const redisMeta = await cacheService.get<QueryPaginationMeta>("querymeta:" + metaKey);
       if (redisMeta) {
@@ -579,7 +582,6 @@ async function executeGetMovies(params: MovieFilterParams, cacheKey: string) {
       : new Map<number, Set<string>>();
 
   const isNguonCAvailable = isNguonCSupportedForParams(params, isSearch);
-  const requestedPage = params.page && params.page >= 1 ? Math.floor(params.page) : 1;
 
   let countApi1 = cachedMeta?.countApi1 || 0;
   let countApi2 = cachedMeta?.countApi2 || 0;

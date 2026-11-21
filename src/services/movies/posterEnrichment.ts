@@ -93,11 +93,16 @@ async function fastBatchEnrichFromCache(movieList: any[]): Promise<void> {
   }
 
   if (keys.length > 0) {
+    let timer: NodeJS.Timeout | null = null;
     try {
+      const timeoutPromise = new Promise<null[]>((resolve) => {
+        timer = setTimeout(() => resolve(new Array(keys.length).fill(null)), 120);
+      });
+
       const results = await Promise.race([
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         cacheService.mget<any>(keys),
-        new Promise<null[]>((resolve) => setTimeout(() => resolve(new Array(keys.length).fill(null)), 120)),
+        timeoutPromise,
       ]);
 
       if (Array.isArray(results)) {
@@ -114,35 +119,11 @@ async function fastBatchEnrichFromCache(movieList: any[]): Promise<void> {
           }
         }
       }
-    } catch { }
-  }
-
-  // Với các phim còn lại có sẵn tmdb.id: Fetch trực tiếp endpoint TMDB bằng 1 request với timeout 500ms
-  const uncachedTmdb = movieList.filter(
-    (item) => item?.tmdb?.id && !String(item.poster_url || "").includes("image.tmdb.org")
-  );
-  if (uncachedTmdb.length > 0) {
-    try {
-      await Promise.race([
-        Promise.all(
-          uncachedTmdb.slice(0, 16).map(async (item) => {
-            try {
-              const cleanType = item.tmdb.type === "tv" || item.tmdb.type === "series" ? "tv" : "movie";
-              let imgs = await getTmdbMediaImagesById(item.tmdb.id, cleanType);
-              if (!imgs?.posterUrl) {
-                const altType = cleanType === "tv" ? "movie" : "tv";
-                imgs = await getTmdbMediaImagesById(item.tmdb.id, altType);
-              }
-              if (imgs?.posterUrl) {
-                item.poster_url = imgs.posterUrl;
-                if (imgs.backdropUrl) item.thumb_url = imgs.backdropUrl;
-              }
-            } catch { }
-          })
-        ),
-        new Promise((resolve) => setTimeout(resolve, 500)),
-      ]);
-    } catch { }
+    } catch { } finally {
+      if (timer !== null) {
+        clearTimeout(timer);
+      }
+    }
   }
 }
 
