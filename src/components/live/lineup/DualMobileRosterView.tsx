@@ -31,7 +31,6 @@ export function DualMobileRosterView({
   onChangeTab,
   getPlayerEventBadges,
 }: DualMobileRosterViewProps) {
-  const [imageErrors, setImageErrors] = React.useState<Record<string, boolean>>({});
   const isCurrentHome = mobileTeamTab === "home";
   const currentTeam = isCurrentHome ? homeTeam : awayTeam;
   const currentStarters = isCurrentHome ? homeStarters : awayStarters;

@@ -25,7 +25,6 @@ export function DualBenchColumn({
   onSelectPlayer,
   getPlayerEventBadges,
 }: DualBenchColumnProps) {
-  const [imageErrors, setImageErrors] = React.useState<Record<string, boolean>>({});
   const keyPrefix = isHome ? "hb" : "ab";
   const dotClass = isHome ? "bg-[#dc2626]" : "bg-[#0284c7]";
   const selectedBgClass = isHome ? "bg-rose-500/20 text-white" : "bg-sky-500/20 text-white";
