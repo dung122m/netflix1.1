@@ -7,7 +7,6 @@ import {
   MatchStatItem,
 } from "@/services/live/football-score/types";
 import { Activity, Clock, ArrowLeftRight, MessageSquare, RotateCw } from "lucide-react";
-import { Tooltip } from "@/components/ui/Tooltip";
 
 export interface MatchTimelineSidebarProps {
   events?: MatchKeyEvent[];
@@ -485,37 +484,33 @@ export const MatchTimelineSidebar: React.FC<MatchTimelineSidebarProps> = ({
 
       {/* 2. HEADER ĐIỀU HƯỚNG & BỘ LỌC (PHẲNG, RÕ RÀNG, DỄ CHUYỂN ĐỔI) */}
       <div className="flex items-center justify-between px-1 shrink-0 gap-1.5 pt-0.5">
-        {/* Nút lọc Chế độ xem: Sự kiện chính (chuẩn 100%) vs Tất cả */}
+        {/* Nút lọc Chế độ xem: Sự kiện chính vs Tất cả */}
         <div className="flex items-center gap-1 bg-white/5 p-0.5 rounded-lg shrink-0">
-          <Tooltip content="Chỉ hiển thị các sự kiện chính: Bàn thắng, Thẻ, Thay người chuẩn xác 100%" side="top">
+          <button
+            type="button"
+            onClick={() => setViewMode("events")}
+            className={`px-2 py-1 rounded-md text-[11px] font-bold transition flex items-center gap-1 cursor-pointer ${
+              viewMode === "events"
+                ? "bg-netflix-red text-white shadow-sm"
+                : "text-zinc-400 hover:text-white"
+            }`}
+          >
+            <span>Sự kiện ({events.length})</span>
+          </button>
+
+          {commentary.length > 0 && (
             <button
               type="button"
-              onClick={() => setViewMode("events")}
+              onClick={() => setViewMode("all")}
               className={`px-2 py-1 rounded-md text-[11px] font-bold transition flex items-center gap-1 cursor-pointer ${
-                viewMode === "events"
+                viewMode === "all"
                   ? "bg-netflix-red text-white shadow-sm"
                   : "text-zinc-400 hover:text-white"
               }`}
             >
-              <span>Sự kiện ({events.length})</span>
+              <MessageSquare className="w-3 h-3" />
+              <span>Tất cả</span>
             </button>
-          </Tooltip>
-
-          {commentary.length > 0 && (
-            <Tooltip content="Xem đầy đủ dòng bình luận tường thuật kèm sự kiện" side="top">
-              <button
-                type="button"
-                onClick={() => setViewMode("all")}
-                className={`px-2 py-1 rounded-md text-[11px] font-bold transition flex items-center gap-1 cursor-pointer ${
-                  viewMode === "all"
-                    ? "bg-netflix-red text-white shadow-sm"
-                    : "text-zinc-400 hover:text-white"
-                }`}
-              >
-                <MessageSquare className="w-3 h-3" />
-                <span>Tất cả</span>
-              </button>
-            </Tooltip>
           )}
 
           {loading && hasData && (
@@ -527,23 +522,22 @@ export const MatchTimelineSidebar: React.FC<MatchTimelineSidebarProps> = ({
 
         {/* Nút làm mới diễn biến tức thì + Thứ tự Mới nhất / Cũ nhất */}
         <div className="flex items-center gap-1.5 shrink-0">
-          <Tooltip content="Làm mới diễn biến ngay lập tức" side="top">
-            <button
-              type="button"
-              onClick={handleManualRefresh}
-              disabled={isManualRefreshing || loading}
-              className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white transition cursor-pointer disabled:opacity-50"
-              aria-label="Làm mới diễn biến"
-            >
-              <RotateCw
-                className={`w-3 h-3 ${
-                  isManualRefreshing || (loading && hasData)
-                    ? "animate-spin text-netflix-red"
-                    : ""
-                }`}
-              />
-            </button>
-          </Tooltip>
+          <button
+            type="button"
+            onClick={handleManualRefresh}
+            disabled={isManualRefreshing || loading}
+            title="Làm mới diễn biến"
+            className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white transition cursor-pointer disabled:opacity-50"
+            aria-label="Làm mới diễn biến"
+          >
+            <RotateCw
+              className={`w-3 h-3 ${
+                isManualRefreshing || (loading && hasData)
+                  ? "animate-spin text-netflix-red"
+                  : ""
+              }`}
+            />
+          </button>
 
           <div className="flex items-center gap-0.5 bg-white/5 p-0.5 rounded-lg shrink-0">
             <button
