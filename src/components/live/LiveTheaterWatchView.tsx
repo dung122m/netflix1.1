@@ -132,19 +132,20 @@ export function LiveTheaterWatchView({
       <div
         id="live-player-header"
         ref={playerHeaderRef}
-        className="flex items-center justify-between gap-2.5 px-1 py-1 text-xs"
+        className="flex items-center justify-between gap-2 px-1 py-1 text-xs"
       >
         <button
           type="button"
           onClick={onClosePlayer}
-          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-zinc-200 hover:text-white text-xs font-bold transition cursor-pointer shrink-0 active:scale-95 shadow-sm"
+          aria-label="Quay lại danh sách trận đấu"
+          className="inline-flex items-center gap-1.5 px-2 sm:px-2.5 py-1.5 rounded-xl bg-zinc-800/80 hover:bg-zinc-700/80 text-zinc-300 hover:text-white text-xs font-semibold border border-white/5 transition cursor-pointer shrink-0 active:scale-95 shadow-sm"
         >
-          <ArrowLeft className="w-3.5 h-3.5" />
-          <span>Danh sách</span>
+          <ArrowLeft className="w-3.5 h-3.5 shrink-0" />
+          <span className="hidden sm:inline">Danh sách</span>
         </button>
 
-        <div className="flex items-center gap-2 min-w-0 flex-1 justify-start overflow-hidden px-1">
-          <span className="text-zinc-600 text-xs shrink-0 select-none">/</span>
+        <div className="flex items-center gap-1.5 min-w-0 flex-1 justify-start overflow-hidden px-1">
+          <span className="text-zinc-600 text-xs shrink-0 select-none hidden sm:inline">/</span>
           <div className="flex items-center gap-1.5 min-w-0 truncate">
             <span className="font-bold text-white text-xs sm:text-sm truncate">
               {selectedMatchTournament}
@@ -153,16 +154,19 @@ export function LiveTheaterWatchView({
         </div>
 
         <div className="flex items-center gap-1.5 shrink-0">
-          {/* NÚT ĐỔI TRẬN NHỎ GỌN TRÊN MOBILE: ĐẶT CÙNG HÀNG ĐIỀU HƯỚNG BREADCRUMB GỌN GÀNG, HỢP LÝ */}
+          {/* NÚT ĐỔI TRẬN TRÊN MOBILE: THIẾT KẾ DARK GLASS HÒA NHẬP, KHÔNG CHÓI LẠC QUẺ */}
           <button
             type="button"
             onClick={() => setIsMobileSheetOpen(true)}
             aria-label={`Đổi trận (${filteredMatches.length} trận khả dụng)`}
-            className="lg:hidden inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-netflix-red hover:brightness-110 active:brightness-95 text-white font-bold text-xs shadow-sm transition cursor-pointer active:scale-95"
+            className="lg:hidden inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-zinc-800/90 hover:bg-zinc-700/90 active:bg-zinc-800 text-zinc-200 hover:text-white font-medium text-xs border border-white/10 shadow-sm transition cursor-pointer active:scale-95"
           >
-            <ArrowLeftRight className="w-3.5 h-3.5 shrink-0" />
+            <ArrowLeftRight className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
             <span>Đổi trận</span>
-            <span className="bg-black/35 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full shrink-0 tabular-nums">
+            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-rose-500/15 text-rose-300 border border-rose-500/20 font-sans tabular-nums text-[10px] font-bold shrink-0">
+              {filteredMatches.length > 0 && (
+                <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse shrink-0" />
+              )}
               {filteredMatches.length}
             </span>
           </button>

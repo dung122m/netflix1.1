@@ -77,7 +77,7 @@ export function LiveMobileMatchSheet({
               <h3 className="text-sm font-black text-white truncate">
                 Đổi trận
               </h3>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/10 text-zinc-300 shrink-0">
+              <span className="text-[10px] font-bold font-sans tabular-nums px-2 py-0.5 rounded-full bg-white/10 text-zinc-300 shrink-0">
                 {filteredMatches.length}
               </span>
             </div>
