@@ -113,20 +113,8 @@ export async function fetchDirectMatchSummary(
       }
     }
   } catch {
-    // Nếu mạng trực tiếp gặp sự cố, tự động thử fallback về Vercel proxy nội bộ
+    // Trực tiếp từ ESPN CDN nếu offline/lỗi: trả về null an toàn, không đánh thức Vercel Serverless
   }
-
-  try {
-    const fallbackUrl = `/api/live-football/summary?league=${encodeURIComponent(cleanLeague)}&event=${encodeURIComponent(cleanEvent)}`;
-    const res = await fetch(fallbackUrl, {
-      signal: AbortSignal.timeout(4000),
-      headers: { Accept: "application/json" },
-    });
-    if (res.ok) {
-      const json = await res.json();
-      if (json.status && json.data) return json.data;
-    }
-  } catch {}
 
   return null;
 }

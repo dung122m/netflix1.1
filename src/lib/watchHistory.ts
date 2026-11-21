@@ -564,9 +564,9 @@ export const saveWatchProgress = (
     );
     window.dispatchEvent(new CustomEvent("watch-history-updated"));
 
-    // Tự động đồng bộ số phút lên Cloud nếu đã đăng nhập Google (debounce 45s + dirty check)
+    // Tự động đồng bộ số phút lên Cloud nếu đã đăng nhập Google (debounce 150s + dirty check khi đang xem liên tục, gửi ngay khi pause/ended)
     if (auth?.currentUser) {
-      syncHandler?.saveItem(auth.currentUser.uid, targetItem, 45000, { force: forceSync, isEnded });
+      syncHandler?.saveItem(auth.currentUser.uid, targetItem, 150000, { force: forceSync, isEnded });
     }
   } catch (error) {
     console.error("Lỗi lưu tiến trình xem:", error);

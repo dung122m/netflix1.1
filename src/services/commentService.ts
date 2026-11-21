@@ -229,7 +229,7 @@ export function subscribeMovieComments(
   const handleVisibilityOrFocus = () => {
     if (isUnsubscribed) return;
     if (typeof document !== "undefined" && !document.hidden) {
-      if (Date.now() - lastFetchTime > 15000) {
+      if (Date.now() - lastFetchTime > 90000) {
         lastFetchTime = Date.now();
         fetchSupabase(false);
       }

@@ -214,9 +214,10 @@ export function useLiveScoresRealtime({
     const fetchScores = async () => {
       if (typeof document !== "undefined" && document.hidden) return;
       if (isScoresFetchingRef.current) return;
+      if (!liveMatches || liveMatches.length === 0) return;
       isScoresFetchingRef.current = true;
       try {
-        // 1. Thử gọi trực tiếp ESPN CDN từ Client Browser (0ms CPU Vercel, bảo vệ 100% quota 4 giờ)
+        // 1. Gọi trực tiếp ESPN CDN từ Client Browser (0ms CPU Vercel, bảo vệ 100% quota 4 giờ)
         const activeSlugs = extractActiveLeagueSlugs(liveMatches);
         if (activeSlugs.length > 0) {
           const directEvents = await fetchDirectScoreboardEvents(activeSlugs);
@@ -240,34 +241,7 @@ export function useLiveScoresRealtime({
             }
           }
         }
-
-        // 2. Fallback: Nếu mạng client chặn ESPN CDN thì mới gọi về Vercel API nội bộ
-        const timeoutSignal = AbortSignal.timeout(5000);
-        const signal =
-          typeof AbortSignal.any === "function"
-            ? AbortSignal.any([abortController.signal, timeoutSignal])
-            : abortController.signal;
-
-        const res = await fetch("/api/live-football/scores", {
-          signal,
-        });
         lastFetchedScoresTimeRef.current = Date.now();
-        if (!res.ok) return;
-        const json = await res.json();
-        if (isEffectActive && json.status && json.data?.scores) {
-          setScoresMap((prev) => {
-            const next = {
-              ...prev,
-              ...json.data.scores,
-            };
-            if (typeof window !== "undefined") {
-              try {
-                sessionStorage.setItem("nanaflix_live_scores_cache", JSON.stringify(next));
-              } catch {}
-            }
-            return next;
-          });
-        }
       } catch {
         // Giữ nguyên dữ liệu cũ nếu fetch thất bại hoặc bị hủy
       } finally {

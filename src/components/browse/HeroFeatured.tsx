@@ -27,6 +27,7 @@ const HeroFeaturedInner: React.FC<{ movies?: HeroMovie[] }> = ({
   useEffect(() => {
     let isCancelled = false;
 
+    let isFresh = false;
     // 1. Thử đọc nhanh từ localStorage (0ms) nếu TmdbTopTrending hoặc phiên trước đã lưu
     try {
       const rawCache = localStorage.getItem("nanaflix_tmdb_ranking_cache_v8");
@@ -44,28 +45,33 @@ const HeroFeaturedInner: React.FC<{ movies?: HeroMovie[] }> = ({
             }
             return prev;
           });
+          if (parsed?.timestamp && Date.now() - parsed.timestamp < 30 * 60 * 1000) {
+            isFresh = true;
+          }
         }
       }
     } catch { }
 
-    // 2. Fetch SWR /api/trending-tmdb?type=week&limit=8 để cập nhật danh sách phim mới nhất
-    const fetchTrendingHero = async () => {
-      try {
-        const res = await fetch("/api/trending-tmdb?type=week&limit=8");
-        if (!res.ok) return;
-        const data = await res.json();
-        if (isCancelled) return;
-        if (Array.isArray(data?.items) && data.items.length >= 3) {
-          const trendingList = data.items.slice(0, 8).map((m: HeroMovie) => ({
-            ...m,
-            isTrending: true,
-          }));
-          setHeroMovies(trendingList);
-        }
-      } catch { }
-    };
+    // 2. Fetch SWR /api/trending-tmdb?type=week&limit=20 (dùng chung URL với TmdbTopTrending để tối đa hóa Edge CDN Cache)
+    if (!isFresh) {
+      const fetchTrendingHero = async () => {
+        try {
+          const res = await fetch("/api/trending-tmdb?type=week&limit=20");
+          if (!res.ok) return;
+          const data = await res.json();
+          if (isCancelled) return;
+          if (Array.isArray(data?.items) && data.items.length >= 3) {
+            const trendingList = data.items.slice(0, 8).map((m: HeroMovie) => ({
+              ...m,
+              isTrending: true,
+            }));
+            setHeroMovies(trendingList);
+          }
+        } catch { }
+      };
 
-    fetchTrendingHero();
+      fetchTrendingHero();
+    }
 
     // 3. Lắng nghe event khi TmdbTopTrending cập nhật dữ liệu
     const handleTrendingUpdated = (e: Event) => {
