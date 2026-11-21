@@ -9,8 +9,8 @@ import { findHistoricalArtist, ensureHistoricalArtistsLoaded, getR2ActorAvatarUr
 import { movieApi, parseSortMode } from "@/services/movies/service";
 import { executeSmartSearch } from "@/services/movies/smartSearchService";
 
-/** Cache danh mục phim 3 phút trên Vercel Edge CDN để giảm tải CPU Serverless tối đa */
-export const revalidate = 180;
+/** Cache danh mục phim 30 phút trên Vercel Edge CDN để giảm tải tối đa CPU Serverless và triệt tiêu Redis calls */
+export const revalidate = 1800;
 import {
   resolveActorMovies,
   queryMoviesByActor,
@@ -33,7 +33,6 @@ import {
   isRawId,
   extractMovieModifiedTime,
   } from "@/lib/movieMedia";
-import { enrichMovieListPosters } from "@/services/movies/posterEnrichment";
 
 function getActorInitials(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
@@ -576,18 +575,6 @@ export default async function BrowsePage({
     // Đảm bảo số lượng phim tròn hàng trên lưới 6 cột (12 hoặc 18 phim), tuyệt đối không bị khuyết ô trống
     const count = Math.floor(rawFallback.length / 6) * 6;
     fallbackMovies = rawFallback.slice(0, count >= 12 ? Math.min(count, 18) : 12);
-  }
-
-  // NÂNG CẤP TOÀN BỘ POSTER SANG TMDB CDN SIÊU TỐC (BUDGET 0ms: CHỈ ĐỌC TỪ CACHE CÓ SẴN, KHÔNG GỌI MẠNG SSR ĐỂ TIẾT KIỆM ACTIVE CPU)
-  const posterTasks: Promise<void>[] = [];
-  if (movies.length > 0) {
-    posterTasks.push(enrichMovieListPosters(movies, { budgetMs: 0, stripProxyUrls: true }));
-  }
-  if (fallbackMovies.length > 0) {
-    posterTasks.push(enrichMovieListPosters(fallbackMovies, { budgetMs: 0, stripProxyUrls: true }));
-  }
-  if (posterTasks.length > 0) {
-    await Promise.allSettled(posterTasks);
   }
 
   let title = "Kho Phim";

@@ -888,10 +888,10 @@ async function executeGetMovies(params: MovieFilterParams, cacheKey: string) {
   // SERVER-SIDE POSTER ENRICHMENT (Mặc định 0ms đọc RAM, không block SSR để giảm thiểu Active CPU):
   const enrichBudgetMs = params.posterEnrichmentBudgetMs ?? 0;
   if (enrichBudgetMs > 0) {
-    await enrichMovieListPosters(finalItems, { budgetMs: enrichBudgetMs });
+    await enrichMovieListPosters(finalItems, { budgetMs: enrichBudgetMs, stripProxyUrls: true });
   } else {
     // Hoàn tất định dạng poster trong RAM (0ms)
-    await enrichMovieListPosters(finalItems, { budgetMs: 0 });
+    await enrichMovieListPosters(finalItems, { budgetMs: 0, stripProxyUrls: true });
   }
 
   const payload = {
@@ -1062,8 +1062,8 @@ export const movieApi = {
           // Nạp ngay vào L1 RAM cache để các request kế tiếp trên instance này lấy trong 0ms (0 Redis GETs)
           moviesMemoryCache.set(cacheKey, {
             data: res,
-            expireAt: now + 300 * 1000,
-            staleUntil: now + 1800 * 1000,
+            expireAt: now + 900 * 1000,
+            staleUntil: now + 3600 * 1000,
           });
         } else {
           res = await executeGetMovies(params, cacheKey);
