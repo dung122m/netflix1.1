@@ -234,8 +234,10 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
       return;
     }
 
-    // Khi mở bảng: polling 15s (trận Live). Khi đóng bảng (isOpen = false): giãn ra 60s để tiết kiệm tối đa CPU/Invocations
-    const pollInterval = calculateMatchCenterPollInterval(summary?.status, isLive, isOpen);
+    // Khi mở bảng: polling 15s (trận Live). Khi đóng bảng (isOpen = false): giãn ra 60s để tiết kiệm tối đa tài nguyên.
+    // Nếu hideScoreboard = true (chế độ Theater Mode), luôn coi là mở vì thanh timeline cột phải đang theo dõi.
+    const effectiveIsOpen = hideScoreboard ? true : isOpen;
+    const pollInterval = calculateMatchCenterPollInterval(summary?.status, isLive, effectiveIsOpen);
 
     const intervalId = setInterval(() => {
       if (typeof document !== "undefined" && document.hidden) {
@@ -252,14 +254,20 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
       }
     };
 
+    const handleManualRefresh = () => {
+      fetchSummary(true, false);
+    };
+
     document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("nanaflix-refresh-match-summary", handleManualRefresh);
 
     return () => {
       clearInterval(intervalId);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("nanaflix-refresh-match-summary", handleManualRefresh);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, leagueSlug, eventId, summary?.status, isLive]);
+  }, [isOpen, hideScoreboard, leagueSlug, eventId, summary?.status, isLive]);
 
   const homeDisplayName = summary?.homeTeam?.displayName || summary?.homeTeam?.name || team1 || "";
   const awayDisplayName = summary?.awayTeam?.displayName || summary?.awayTeam?.name || team2 || "";

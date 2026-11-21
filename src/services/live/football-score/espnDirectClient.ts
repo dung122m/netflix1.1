@@ -99,10 +99,16 @@ export async function fetchDirectMatchSummary(
   if (!cleanLeague || !cleanEvent) return null;
 
   try {
-    const url = `${ESPN_CDN_API_URL}/apis/site/v2/sports/soccer/${encodeURIComponent(cleanLeague)}/summary?event=${encodeURIComponent(cleanEvent)}`;
+    const cacheBuster = `_t=${Date.now()}`;
+    const url = `${ESPN_CDN_API_URL}/apis/site/v2/sports/soccer/${encodeURIComponent(cleanLeague)}/summary?event=${encodeURIComponent(cleanEvent)}&${cacheBuster}`;
     const res = await fetch(url, {
-      signal: AbortSignal.timeout(5000),
-      headers: { Accept: "application/json" },
+      signal: AbortSignal.timeout(6000),
+      headers: {
+        Accept: "application/json",
+        "Cache-Control": "no-cache",
+        Pragma: "no-cache",
+      },
+      cache: "no-store",
     });
 
     if (res.ok) {
@@ -130,10 +136,16 @@ export async function fetchDirectScoreboardEvents(
   const uniqueSlugs = Array.from(new Set(leagueSlugs));
   const fetchPromises = uniqueSlugs.map(async (slug) => {
     try {
-      const url = `${ESPN_CDN_API_URL}/apis/site/v2/sports/soccer/${encodeURIComponent(slug)}/scoreboard`;
+      const cacheBuster = `_t=${Date.now()}`;
+      const url = `${ESPN_CDN_API_URL}/apis/site/v2/sports/soccer/${encodeURIComponent(slug)}/scoreboard?${cacheBuster}`;
       const res = await fetch(url, {
-        signal: AbortSignal.timeout(5000),
-        headers: { Accept: "application/json" },
+        signal: AbortSignal.timeout(6000),
+        headers: {
+          Accept: "application/json",
+          "Cache-Control": "no-cache",
+          Pragma: "no-cache",
+        },
+        cache: "no-store",
       });
       if (!res.ok) return [];
       const data = await res.json();

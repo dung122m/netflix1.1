@@ -10,7 +10,7 @@ import {
 } from "./types";
 
 export const MATCH_CENTER_INTERVALS = {
-  LIVE_MS: 25_000,        // 25s khi trận đang diễn ra (chuẩn ngành FotMob/Flashscore, giảm 40% CPU Vercel)
+  LIVE_MS: 15_000,        // 15s khi trận đang diễn ra (gọi trực tiếp ESPN CDN 0ms Vercel CPU, cập nhật diễn biến nhanh nhạy)
   FINISHED_MS: 120_000,   // 120s khi trận đã kết thúc (giảm tải)
   SCHEDULED_MS: 30_000,   // 30s khi trận sắp diễn ra
   CLOSED_MS: 60_000,      // 60s khi bảng MatchCenter đóng (tiết kiệm tài nguyên)

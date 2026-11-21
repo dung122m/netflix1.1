@@ -9,15 +9,15 @@ import {
 
 describe("Nanaflix /live - Match Center Realtime Polling & Deduplication", () => {
   it("1. Tính toán chu kỳ polling thích ứng chính xác theo trạng thái trận đấu", () => {
-    assert.equal(MATCH_CENTER_INTERVALS.LIVE_MS, 25_000);
+    assert.equal(MATCH_CENTER_INTERVALS.LIVE_MS, 15_000);
     assert.equal(MATCH_CENTER_INTERVALS.FINISHED_MS, 120_000);
     assert.equal(MATCH_CENTER_INTERVALS.SCHEDULED_MS, 30_000);
     assert.equal(MATCH_CENTER_INTERVALS.CLOSED_MS, 60_000);
 
-    // Trận đang diễn ra (isLive = true hoặc status = 'live') -> 25 giây (chuẩn FotMob, tiết kiệm tối đa Vercel CPU)
-    assert.equal(calculateMatchCenterPollInterval("live", false), 25_000);
-    assert.equal(calculateMatchCenterPollInterval("in_progress", true), 25_000);
-    assert.equal(calculateMatchCenterPollInterval(undefined, true), 25_000);
+    // Trận đang diễn ra (isLive = true hoặc status = 'live') -> 15 giây (cập nhật diễn biến nhanh nhạy, 0ms CPU Vercel)
+    assert.equal(calculateMatchCenterPollInterval("live", false), 15_000);
+    assert.equal(calculateMatchCenterPollInterval("in_progress", true), 15_000);
+    assert.equal(calculateMatchCenterPollInterval(undefined, true), 15_000);
 
     // Bảng MatchCenter đóng (isOpen = false) -> 60 giây (tiết kiệm tài nguyên)
     assert.equal(calculateMatchCenterPollInterval("live", true, false), 60_000);
