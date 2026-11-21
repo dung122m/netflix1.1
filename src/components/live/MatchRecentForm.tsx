@@ -28,6 +28,58 @@ function formatGameDate(isoStr?: string): string {
   }
 }
 
+function formatH2HDate(isoStr?: string): string {
+  if (!isoStr) return "";
+  try {
+    const d = new Date(isoStr);
+    if (isNaN(d.getTime())) return "";
+    const day = String(d.getDate()).padStart(2, "0");
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const year = d.getFullYear();
+    return `${day}/${month}/${year}`;
+  } catch {
+    return "";
+  }
+}
+
+function cleanCompetitionName(name?: string): string {
+  if (!name) return "";
+  // 1. Loại bỏ tiền tố mùa giải (vd: "2025-26 ", "2023-2024 ", "2023 ")
+  let clean = name.replace(/^(\d{4}(?:-\d{2,4})?)\s+/i, "").trim();
+
+  // 2. Dịch và chuẩn hóa tên giải đấu sang tiếng Việt ngắn gọn, không bị tràn hay cắt chữ
+  const lower = clean.toLowerCase();
+  if (lower.includes("bundesliga")) return "Bundesliga";
+  if (lower.includes("dfb-pokal") || lower.includes("dfb pokal")) return "Cúp QG Đức";
+  if (lower.includes("premier league") || lower.includes("epl")) return "Ngoại Hạng Anh";
+  if (lower.includes("laliga") || lower.includes("la liga")) return "La Liga";
+  if (lower.includes("serie a")) return "Serie A";
+  if (lower.includes("ligue 1")) return "Ligue 1";
+  if (lower.includes("champions league")) return "Cúp C1";
+  if (lower.includes("europa league")) return "Cúp C2";
+  if (lower.includes("conference league")) return "Cúp C3";
+  if (lower.includes("club friendly") || lower.includes("friendly")) return "Giao hữu";
+  if (lower.includes("fa cup")) return "Cúp FA";
+  if (lower.includes("carabao cup") || lower.includes("efl cup") || lower.includes("league cup")) return "Cúp Liên đoàn";
+  if (lower.includes("copa del rey")) return "Cúp Nhà vua";
+  if (lower.includes("coppa italia")) return "Cúp QG Ý";
+
+  // Loại bỏ các từ dư thừa như "German ", "English ", "Spanish ", "Italian ", "French "
+  clean = clean
+    .replace(/\b(German|English|Spanish|Italian|French)\s+/gi, "")
+    .trim();
+
+  return clean;
+}
+
+function formatH2HSummary(summary?: string): string {
+  if (!summary) return "";
+  let s = summary.trim();
+  s = s.replace(/leads series/i, "dẫn");
+  s = s.replace(/^series\s+tied/i, "Hòa đối đầu");
+  return s;
+}
+
 function FormResultPill({ result, size = "md" }: { result: "W" | "D" | "L"; size?: "sm" | "md" }) {
   const isSm = size === "sm";
   const dim = isSm ? "w-4 h-4 text-[9px]" : "w-5 h-5 text-[10px]";
@@ -189,8 +241,8 @@ function HeadToHeadCard({
           </h4>
         </div>
         {headToHead.summary && (
-          <span className="text-[11px] font-bold text-amber-300 bg-amber-400/10 border border-amber-400/20 px-2.5 py-0.5 rounded-full font-sans">
-            {headToHead.summary}
+          <span className="text-[11px] font-bold text-amber-300 bg-amber-400/10 border border-amber-400/20 px-2.5 py-0.5 rounded-full font-sans tabular-nums">
+            {formatH2HSummary(headToHead.summary)}
           </span>
         )}
       </div>
@@ -213,14 +265,14 @@ function HeadToHeadCard({
                 key={ev.id}
                 className="flex items-center justify-between gap-2 sm:gap-3 px-3 py-2 rounded-xl bg-white/[0.02] hover:bg-white/[0.04] transition text-xs font-sans"
               >
-                {/* 1. NGÀY & GIẢI ĐẤU */}
-                <div className="flex flex-col min-w-[65px] sm:min-w-[80px] text-zinc-400 shrink-0">
+                {/* 1. NGÀY & GIẢI ĐẤU (RÕ RÀNG, CHUẨN XÁC, KHÔNG CẮT CHỮ BỊ DẤU 3 CHẤM) */}
+                <div className="flex flex-col min-w-[76px] sm:min-w-[90px] text-zinc-400 shrink-0">
                   <span className="tabular-nums text-[11px] font-bold text-zinc-300">
-                    {formatGameDate(ev.date)}
+                    {formatH2HDate(ev.date) || formatGameDate(ev.date)}
                   </span>
                   {ev.competitionName && (
-                    <span className="text-[9.5px] text-zinc-500 truncate max-w-[75px]">
-                      {ev.competitionName}
+                    <span className="text-[10px] text-zinc-400 font-medium truncate max-w-[100px] sm:max-w-[150px]">
+                      {cleanCompetitionName(ev.competitionName)}
                     </span>
                   )}
                 </div>
