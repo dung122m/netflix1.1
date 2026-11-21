@@ -30,9 +30,8 @@ export function getR2AssetUrl(key: string): string | null {
 }
 
 /**
- * Tra cứu logo đội thể thao dùng Convention-based URL trực tiếp:
- * https://media.nanaflix.asia/teams/{sport}/{slug}.webp
- * Không phụ thuộc manifest mạng hay fetch runtime.
+ * Tra cứu thông minh logo đội thể thao từ Cloudflare R2 Manifest (0ms O(1)).
+ * Hỗ trợ mọi môn (basketball, football, esports...), tự động thử cả dạng kebab-case lẫn collapsed.
  */
 export function getR2TeamLogoUrl(
   teamName?: string | null,
@@ -52,20 +51,38 @@ export function getR2TeamLogoUrl(
   const tokens = clean.split(/\s+/).filter(Boolean);
   if (tokens.length === 0) return null;
 
-  const slug = tokens.join("-");
-  const sportCategory =
-    sport === "basketball"
-      ? "basketball"
-      : sport === "esports"
-      ? "esports"
-      : "football";
+  const collapsed = tokens.join("");
+  const kebab = tokens.join("-");
 
-  const publicBase =
-    (typeof process !== "undefined" &&
-      (process.env.NEXT_PUBLIC_R2_PUBLIC_URL || process.env.R2_PUBLIC_URL)) ||
-    "https://media.nanaflix.asia";
-  const cleanBase = publicBase.replace(/\/+$/, "");
-  return `${cleanBase}/teams/${sportCategory}/${slug}.webp`;
+  const categories =
+    sport === "basketball"
+      ? ["teams/basketball", "teams/football", "teams/esports"]
+      : sport === "esports"
+      ? ["teams/esports", "teams/football", "teams/basketball"]
+      : ["teams/football", "teams/basketball", "teams/esports"];
+
+  for (const cat of categories) {
+    const match =
+      getR2AssetUrl(`${cat}/${kebab}.webp`) ||
+      getR2AssetUrl(`${cat}/${collapsed}.webp`) ||
+      getR2AssetUrl(`${cat}/${kebab}.png`) ||
+      getR2AssetUrl(`${cat}/${collapsed}.png`);
+    if (match) return match;
+  }
+
+  if (tokens.length > 1) {
+    const lastWord = tokens[tokens.length - 1];
+    if (lastWord.length >= 4) {
+      for (const cat of categories) {
+        const match =
+          getR2AssetUrl(`${cat}/${lastWord}.webp`) ||
+          getR2AssetUrl(`${cat}/${lastWord}.png`);
+        if (match) return match;
+      }
+    }
+  }
+
+  return null;
 }
 
 /**

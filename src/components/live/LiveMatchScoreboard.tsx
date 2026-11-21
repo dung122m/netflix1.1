@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo, useCallback } from "react";
-import { Clock, Mic, Trophy } from "lucide-react";
+import { Clock, Mic, Trophy, MapPin, Users } from "lucide-react";
 import type { FootballMatch, StreamServer } from "@/services/liveFootballService";
 import type {
   LiveMatchScore,
@@ -479,6 +479,44 @@ export function LiveMatchScoreboard({
                   </div>
                 </div>
               )}
+              {/* DẢI THÔNG TIN SÂN VẬN ĐỘNG, TRỌNG TÀI & KHÁN GIẢ (METADATA STRIP) */}
+              {(() => {
+                const effectiveVenue = venueName || summary?.gameInfo?.venue?.name;
+                const effectiveReferee = refereeName || summary?.gameInfo?.referee;
+                const attendance = summary?.gameInfo?.attendance;
+
+                if (!effectiveVenue && !effectiveReferee && (!attendance || attendance <= 0)) {
+                  return null;
+                }
+
+                return (
+                  <div className="flex items-center justify-center gap-x-3 gap-y-1 text-[10px] sm:text-[11px] text-zinc-400 font-sans pt-1.5 border-t border-white/[0.04] mt-1.5 flex-wrap">
+                    {effectiveVenue && (
+                      <span className="inline-flex items-center gap-1 truncate max-w-[200px] sm:max-w-[280px]">
+                        <MapPin className="w-3 h-3 text-rose-400/80 shrink-0" />
+                        <span className="truncate text-zinc-300 font-medium">{effectiveVenue}</span>
+                      </span>
+                    )}
+                    {effectiveReferee && (
+                      <span className="inline-flex items-center gap-1">
+                        {effectiveVenue && <span className="text-zinc-600 hidden sm:inline">•</span>}
+                        <span className="text-zinc-400">
+                          Trọng tài: <strong className="text-zinc-200 font-semibold">{effectiveReferee}</strong>
+                        </span>
+                      </span>
+                    )}
+                    {attendance && attendance > 0 && (
+                      <span className="inline-flex items-center gap-1">
+                        <span className="text-zinc-600 hidden sm:inline">•</span>
+                        <Users className="w-3 h-3 text-sky-400/80 shrink-0" />
+                        <span className="font-sans tabular-nums text-zinc-300">
+                          {attendance.toLocaleString("vi-VN")} CĐV
+                        </span>
+                      </span>
+                    )}
+                  </div>
+                );
+              })()}
             </div>
           );
         })()

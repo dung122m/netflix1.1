@@ -10,6 +10,10 @@ import {
   MatchCommentaryItem,
   MatchGameInfo,
   TeamPastGameItem,
+  MatchH2HEvent,
+  MatchHeadToHead,
+  MatchLeaderAthlete,
+  MatchLeadersGroup,
   MatchShootoutShot,
   MatchShootoutTeam,
   NormalizedLeagueStandings,
@@ -1237,6 +1241,116 @@ export function parseRawSummary(
       });
     }
 
+    // 8. Lịch sử đối đầu trực tiếp giữa 2 đội (Head-to-Head - seasonseries)
+    let headToHead: MatchHeadToHead | undefined = undefined;
+    const h2hRaw = Array.isArray(raw.seasonseries)
+      ? raw.seasonseries.find((s: any) => s.type === "head-to-head") || raw.seasonseries[0]
+      : undefined;
+
+    if (h2hRaw && Array.isArray(h2hRaw.events) && h2hRaw.events.length > 0) {
+      const h2hEvents: MatchH2HEvent[] = [];
+      for (const ev of h2hRaw.events) {
+        if (!ev || !Array.isArray(ev.competitors) || ev.competitors.length < 2) continue;
+        const hComp = ev.competitors.find((c: any) => c.homeAway === "home") || ev.competitors[0];
+        const aComp = ev.competitors.find((c: any) => c.homeAway === "away") || ev.competitors[1];
+
+        const hTeam = hComp.team || {};
+        const aTeam = aComp.team || {};
+
+        const hLogo = hTeam.logo || (Array.isArray(hTeam.logos) && hTeam.logos[0]?.href);
+        const aLogo = aTeam.logo || (Array.isArray(aTeam.logos) && aTeam.logos[0]?.href);
+
+        h2hEvents.push({
+          id: String(ev.id || `${h2hEvents.length}-${Math.random().toString(36).slice(2, 6)}`),
+          date: String(ev.date || ""),
+          competitionName: ev.competitionName || ev.roundName,
+          homeTeam: {
+            id: hTeam.id ? String(hTeam.id) : undefined,
+            name: String(hTeam.displayName || hTeam.name || "Đội nhà"),
+            displayName: String(hTeam.displayName || hTeam.name || "Đội nhà"),
+            logo: hLogo ? toDarkModeLogoUrl(hLogo) : undefined,
+            score: String(hComp.score ?? "0"),
+            winner: Boolean(hComp.winner),
+          },
+          awayTeam: {
+            id: aTeam.id ? String(aTeam.id) : undefined,
+            name: String(aTeam.displayName || aTeam.name || "Đội khách"),
+            displayName: String(aTeam.displayName || aTeam.name || "Đội khách"),
+            logo: aLogo ? toDarkModeLogoUrl(aLogo) : undefined,
+            score: String(aComp.score ?? "0"),
+            winner: Boolean(aComp.winner),
+          },
+        });
+      }
+
+      if (h2hEvents.length > 0) {
+        headToHead = {
+          summary: h2hRaw.summary || h2hRaw.shortSummary,
+          seriesScore: h2hRaw.seriesScore,
+          events: h2hEvents,
+        };
+      }
+    }
+
+    // 9. Cầu thủ nổi bật trận đấu (Match Leaders)
+    let leaders: MatchLeadersGroup[] | undefined = undefined;
+    if (Array.isArray(raw.leaders) && raw.leaders.length > 0) {
+      const CATEGORY_TRANSLATIONS: Record<string, string> = {
+        totalshots: "Dứt điểm",
+        shots: "Dứt điểm",
+        accuratepasses: "Chuyền chính xác",
+        passes: "Chuyền bóng",
+        defensiveinterventions: "Phòng ngự / Tranh chấp",
+        interventions: "Đánh chặn",
+        saves: "Cứu thua",
+      };
+
+      const groups: MatchLeadersGroup[] = [];
+      for (const grp of raw.leaders) {
+        if (!grp || !Array.isArray(grp.leaders) || grp.leaders.length === 0) continue;
+        const teamDisplayName = grp.team?.displayName || grp.team?.name || "";
+        const teamLogo = grp.team?.logo || (Array.isArray(grp.team?.logos) && grp.team?.logos[0]?.href);
+
+        const leaderItems: MatchLeaderAthlete[] = [];
+        for (const cat of grp.leaders) {
+          const firstLeader = cat.leaders?.[0];
+          if (!firstLeader || !firstLeader.athlete) continue;
+          const athlete = firstLeader.athlete;
+          const catKey = (cat.name || "").toLowerCase().replace(/[^a-z]/g, "");
+          const viCategory = CATEGORY_TRANSLATIONS[catKey] || cat.displayName || "Nổi bật";
+
+          const mainStatVal = firstLeader.mainStat?.value || firstLeader.displayValue || String(firstLeader.value || "");
+          const mainStatLabel = firstLeader.mainStat?.label || cat.displayName || "";
+          const subText = firstLeader.summary || "";
+
+          leaderItems.push({
+            id: String(athlete.id || leaderItems.length),
+            name: athlete.displayName || athlete.fullName || "Cầu thủ",
+            jersey: athlete.jersey,
+            position: athlete.position?.abbreviation || athlete.position?.name,
+            teamName: teamDisplayName,
+            teamLogo: teamLogo ? toDarkModeLogoUrl(teamLogo) : undefined,
+            categoryName: viCategory,
+            statValue: mainStatVal,
+            statLabel: mainStatLabel,
+            subText,
+          });
+        }
+
+        if (leaderItems.length > 0) {
+          groups.push({
+            teamName: teamDisplayName,
+            teamLogo: teamLogo ? toDarkModeLogoUrl(teamLogo) : undefined,
+            leaders: leaderItems,
+          });
+        }
+      }
+
+      if (groups.length > 0) {
+        leaders = groups;
+      }
+    }
+
     return {
       eventId,
       leagueSlug,
@@ -1261,6 +1375,8 @@ export function parseRawSummary(
       commentary,
       recentForm,
       shootout,
+      headToHead,
+      leaders,
       updatedAt: new Date().toISOString(),
     };
   } catch {

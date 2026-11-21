@@ -1,8 +1,8 @@
 "use client";
 
-import React from "react";
-import { MatchSummaryTeam, TeamPastGameItem } from "@/services/live/football-score/types";
-import { TrendingUp } from "lucide-react";
+import React, { useState } from "react";
+import { MatchSummaryTeam, TeamPastGameItem, MatchHeadToHead } from "@/services/live/football-score/types";
+import { TrendingUp, Trophy } from "lucide-react";
 import { toDarkModeLogoUrl } from "@/services/live/football-logo/service";
 
 interface MatchRecentFormProps {
@@ -12,6 +12,7 @@ interface MatchRecentFormProps {
     home?: TeamPastGameItem[];
     away?: TeamPastGameItem[];
   };
+  headToHead?: MatchHeadToHead;
 }
 
 function formatGameDate(isoStr?: string): string {
@@ -170,16 +171,113 @@ function TeamFormCard({
   );
 }
 
-export function MatchRecentForm({ homeTeam, awayTeam, recentForm }: MatchRecentFormProps) {
+function HeadToHeadCard({
+  headToHead,
+}: {
+  headToHead: MatchHeadToHead;
+}) {
+  const events = headToHead.events || [];
+
+  return (
+    <div className="rounded-2xl bg-zinc-950/70 p-3.5 sm:p-4 space-y-3.5 border border-white/[0.05] shadow-md">
+      {/* HEADER: TỔNG QUAN TỶ SỐ ĐỐI ĐẦU */}
+      <div className="flex items-center justify-between pb-2 border-b border-white/[0.06] gap-2 flex-wrap">
+        <div className="flex items-center gap-2">
+          <Trophy className="w-4 h-4 text-amber-400 shrink-0" />
+          <h4 className="text-xs sm:text-sm font-black text-white font-sans">
+            Lịch sử đối đầu trực tiếp
+          </h4>
+        </div>
+        {headToHead.summary && (
+          <span className="text-[11px] font-bold text-amber-300 bg-amber-400/10 border border-amber-400/20 px-2.5 py-0.5 rounded-full font-sans">
+            {headToHead.summary}
+          </span>
+        )}
+      </div>
+
+      {/* DANH SÁCH CÁC TRẬN ĐỐI ĐẦU TRỰC TIẾP */}
+      {events.length === 0 ? (
+        <p className="text-xs text-zinc-500 py-6 text-center font-sans">
+          Chưa có dữ liệu đối đầu trước đây
+        </p>
+      ) : (
+        <div className="space-y-1.5">
+          {events.map((ev) => {
+            const hTeam = ev.homeTeam;
+            const aTeam = ev.awayTeam;
+            const hLogo = hTeam.logo ? toDarkModeLogoUrl(hTeam.logo) : "";
+            const aLogo = aTeam.logo ? toDarkModeLogoUrl(aTeam.logo) : "";
+
+            return (
+              <div
+                key={ev.id}
+                className="flex items-center justify-between gap-2 sm:gap-3 px-3 py-2 rounded-xl bg-white/[0.02] hover:bg-white/[0.04] transition text-xs font-sans"
+              >
+                {/* 1. NGÀY & GIẢI ĐẤU */}
+                <div className="flex flex-col min-w-[65px] sm:min-w-[80px] text-zinc-400 shrink-0">
+                  <span className="tabular-nums text-[11px] font-bold text-zinc-300">
+                    {formatGameDate(ev.date)}
+                  </span>
+                  {ev.competitionName && (
+                    <span className="text-[9.5px] text-zinc-500 truncate max-w-[75px]">
+                      {ev.competitionName}
+                    </span>
+                  )}
+                </div>
+
+                {/* 2. ĐỘI NHÀ */}
+                <div className="flex items-center justify-end gap-2 flex-1 min-w-0 text-right">
+                  <span className={`text-xs truncate ${hTeam.winner ? "font-bold text-white" : "font-medium text-zinc-300"}`}>
+                    {hTeam.displayName || hTeam.name}
+                  </span>
+                  {hLogo ? (
+                    /* eslint-disable-next-line @next/next/no-img-element */
+                    <img src={hLogo} alt="" loading="lazy" className="w-4 h-4 object-contain shrink-0" />
+                  ) : (
+                    <span className="w-4 h-4 rounded-full bg-zinc-800 shrink-0" />
+                  )}
+                </div>
+
+                {/* 3. TỶ SỐ TRUNG TÂM */}
+                <div className="shrink-0 px-2.5 py-0.5 rounded-lg bg-zinc-900 border border-white/5 font-sans tabular-nums font-black text-xs text-white shadow-inner">
+                  {hTeam.score} : {aTeam.score}
+                </div>
+
+                {/* 4. ĐỘI KHÁCH */}
+                <div className="flex items-center justify-start gap-2 flex-1 min-w-0 text-left">
+                  {aLogo ? (
+                    /* eslint-disable-next-line @next/next/no-img-element */
+                    <img src={aLogo} alt="" loading="lazy" className="w-4 h-4 object-contain shrink-0" />
+                  ) : (
+                    <span className="w-4 h-4 rounded-full bg-zinc-800 shrink-0" />
+                  )}
+                  <span className={`text-xs truncate ${aTeam.winner ? "font-bold text-white" : "font-medium text-zinc-300"}`}>
+                    {aTeam.displayName || aTeam.name}
+                  </span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+export function MatchRecentForm({ homeTeam, awayTeam, recentForm, headToHead }: MatchRecentFormProps) {
   const homeGames = recentForm?.home || [];
   const awayGames = recentForm?.away || [];
+  const hasRecent = homeGames.length > 0 || awayGames.length > 0;
+  const hasH2H = Boolean(headToHead && headToHead.events && headToHead.events.length > 0);
 
-  if (homeGames.length === 0 && awayGames.length === 0) {
+  const [formSubTab, setFormSubTab] = useState<"recent" | "h2h">(() => (hasRecent ? "recent" : "h2h"));
+
+  if (!hasRecent && !hasH2H) {
     return (
       <div className="py-12 flex flex-col items-center justify-center gap-2.5 text-zinc-500 text-center">
         <TrendingUp className="w-7 h-7 text-zinc-600" />
         <p className="text-xs sm:text-sm font-semibold text-zinc-400">
-          Chưa có dữ liệu phong độ gần đây của hai đội
+          Chưa có dữ liệu phong độ và đối đầu của hai đội
         </p>
         <p className="text-[11px] text-zinc-500">
           Dữ liệu kết quả 5 trận gần nhất sẽ tự động hiển thị khi ban tổ chức cập nhật.
@@ -189,12 +287,49 @@ export function MatchRecentForm({ homeTeam, awayTeam, recentForm }: MatchRecentF
   }
 
   return (
-    <div className="space-y-4 max-w-4xl mx-auto pt-1">
-      {/* 2 CỘT PHONG ĐỘ CÂN ĐỐI CHO 2 ĐỘI */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-        <TeamFormCard team={homeTeam} games={homeGames} isHome={true} />
-        <TeamFormCard team={awayTeam} games={awayGames} isHome={false} />
-      </div>
+    <div className="space-y-3.5 max-w-4xl mx-auto pt-1">
+      {/* NÚT CHUYỂN ĐỔI TAB CON: 5 TRẬN GẦN NHẤT vs ĐỐI ĐẦU TRỰC TIẾP */}
+      {hasRecent && hasH2H && (
+        <div className="flex items-center justify-center pb-1">
+          <div className="inline-flex items-center gap-1 p-1 rounded-xl bg-zinc-900/90 border border-white/5 shadow-sm">
+            <button
+              type="button"
+              onClick={() => setFormSubTab("recent")}
+              className={`px-3 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
+                formSubTab === "recent"
+                  ? "bg-white/15 text-white shadow-sm"
+                  : "text-zinc-400 hover:text-white"
+              }`}
+            >
+              5 trận gần nhất
+            </button>
+            <button
+              type="button"
+              onClick={() => setFormSubTab("h2h")}
+              className={`px-3 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
+                formSubTab === "h2h"
+                  ? "bg-white/15 text-white shadow-sm"
+                  : "text-zinc-400 hover:text-white"
+              }`}
+            >
+              Lịch sử đối đầu
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* NỘI DUNG 1: 5 TRẬN GẦN NHẤT */}
+      {(formSubTab === "recent" || !hasH2H) && hasRecent && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+          <TeamFormCard team={homeTeam} games={homeGames} isHome={true} />
+          <TeamFormCard team={awayTeam} games={awayGames} isHome={false} />
+        </div>
+      )}
+
+      {/* NỘI DUNG 2: ĐỐI ĐẦU TRỰC TIẾP (H2H) */}
+      {(formSubTab === "h2h" || !hasRecent) && headToHead && (
+        <HeadToHeadCard headToHead={headToHead} />
+      )}
     </div>
   );
 }

@@ -175,6 +175,53 @@ export interface TeamPastGameItem {
   competitionName?: string;
 }
 
+export interface MatchH2HEvent {
+  id: string;
+  date: string;
+  competitionName?: string;
+  homeTeam: {
+    id?: string;
+    name: string;
+    displayName: string;
+    logo?: string;
+    score: string;
+    winner?: boolean;
+  };
+  awayTeam: {
+    id?: string;
+    name: string;
+    displayName: string;
+    logo?: string;
+    score: string;
+    winner?: boolean;
+  };
+}
+
+export interface MatchHeadToHead {
+  summary?: string;
+  seriesScore?: string;
+  events: MatchH2HEvent[];
+}
+
+export interface MatchLeaderAthlete {
+  id: string;
+  name: string;
+  jersey?: string;
+  position?: string;
+  teamName?: string;
+  teamLogo?: string;
+  categoryName: string;
+  statValue: string;
+  statLabel: string;
+  subText?: string;
+}
+
+export interface MatchLeadersGroup {
+  teamName: string;
+  teamLogo?: string;
+  leaders: MatchLeaderAthlete[];
+}
+
 export interface MatchShootoutShot {
   id: string;
   shotNumber: number;
@@ -216,6 +263,8 @@ export interface NormalizedMatchSummary {
     away?: TeamPastGameItem[];
   };
   shootout?: MatchShootoutTeam[];
+  headToHead?: MatchHeadToHead;
+  leaders?: MatchLeadersGroup[];
   updatedAt: string;
 }
 

@@ -38,6 +38,7 @@ import { DualTeamPitch } from "./DualTeamPitch";
 import { CountryFlag } from "./CountryFlag";
 import { Tooltip } from "@/components/ui/Tooltip";
 import { MatchRecentForm } from "./MatchRecentForm";
+import { MatchLeadersCard } from "./MatchLeadersCard";
 import { MatchShootoutTracker } from "./MatchShootoutTracker";
 
 
@@ -869,6 +870,13 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
                   ) : (
                     <p className="text-xs text-zinc-500 py-8 text-center">Chưa có số liệu thống kê trận đấu</p>
                   )}
+
+                  {/* CẦU THỦ NỔI BẬT TRẬN ĐẤU (MATCH LEADERS) */}
+                  {summary.leaders && summary.leaders.length > 0 && (
+                    <div className="pt-2">
+                      <MatchLeadersCard leaders={summary.leaders} />
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -878,6 +886,7 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
                   homeTeam={summary.homeTeam}
                   awayTeam={summary.awayTeam}
                   recentForm={summary.recentForm}
+                  headToHead={summary.headToHead}
                 />
               )}
             </div>

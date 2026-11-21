@@ -200,6 +200,8 @@ export function mergeNormalizedSummaries(
     gameInfo: incoming.gameInfo?.venue?.name ? incoming.gameInfo : (existing.gameInfo || incoming.gameInfo),
     recentForm: incoming.recentForm || existing.recentForm,
     shootout: incoming.shootout || existing.shootout,
+    headToHead: incoming.headToHead || existing.headToHead,
+    leaders: incoming.leaders && incoming.leaders.length > 0 ? incoming.leaders : existing.leaders,
     displayClock,
     statusText,
     updatedAt: incoming.updatedAt || new Date().toISOString(),
