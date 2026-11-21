@@ -90,6 +90,7 @@ export const CuratedMovieSection: React.FC<CuratedMovieSectionProps> = ({
       setSelectedSlug(activeSlug || propSelectedSlug || null);
     }
   }, [activeSlug, propSelectedSlug]);
+
   const initialBatch = (initialMovies || []).slice(0, 12);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [tabMovies, setTabMovies] = useState<Record<CuratedTabKey, any[]>>({
@@ -106,6 +107,46 @@ export const CuratedMovieSection: React.FC<CuratedMovieSectionProps> = ({
   const cacheRef = useRef<Record<string, any[]>>({
     trending: initialBatch,
   });
+
+  // Tự động đồng bộ và nạp phim cho tab trending khi prop initialMovies có dữ liệu (chống mất dữ liệu khi hydration / reload)
+  useEffect(() => {
+    if (Array.isArray(initialMovies) && initialMovies.length > 0) {
+      const batch = initialMovies.slice(0, 12);
+      cacheRef.current.trending = batch;
+      setTabMovies((prev) => {
+        if (!prev.trending || prev.trending.length === 0) {
+          return { ...prev, trending: batch };
+        }
+        return prev;
+      });
+    }
+  }, [initialMovies]);
+
+  // Fallback an toàn: Nếu tab hiện tại (mặc định là trending) bị rỗng thì tự động fetch lại
+  useEffect(() => {
+    if ((tabMovies[activeTab] || []).length === 0 && !loading) {
+      const targetConfig = CURATED_TABS.find((t) => t.id === activeTab);
+      if (targetConfig) {
+        setLoading(true);
+        movieApi.getMovies({
+          ...targetConfig.fetchParams,
+          page: 1,
+        })
+          .then((res) => {
+            const items = (res?.items || []).slice(0, 12);
+            if (items.length > 0) {
+              cacheRef.current[activeTab] = items;
+              setTabMovies((prev) => ({
+                ...prev,
+                [activeTab]: items,
+              }));
+            }
+          })
+          .catch((err) => console.error(`Lỗi tự phục hồi tab ${activeTab}:`, err))
+          .finally(() => setLoading(false));
+      }
+    }
+  }, [activeTab, tabMovies, loading]);
 
   const currentTabConfig =
     CURATED_TABS.find((t) => t.id === activeTab) || CURATED_TABS[0];
