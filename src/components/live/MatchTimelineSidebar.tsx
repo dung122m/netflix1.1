@@ -369,9 +369,9 @@ export const MatchTimelineSidebar: React.FC<MatchTimelineSidebarProps> = ({
           {/* Thanh tỉ lệ kiểm soát bóng kèm Tên & Logo hai đội */}
           {possessionStat && (
             <div className="space-y-1">
-              <div className="flex items-center justify-between text-[11px] font-sans">
+              <div className="grid grid-cols-[1fr_auto_1fr] items-center text-[11px] font-sans">
                 {/* Đội nhà (Màu đỏ) */}
-                <div className="flex items-center gap-1.5 min-w-0 max-w-[42%]">
+                <div className="flex items-center gap-1.5 min-w-0 justify-start">
                   {homeTeamLogo && (
                     /* eslint-disable-next-line @next/next/no-img-element */
                     <img
@@ -394,12 +394,13 @@ export const MatchTimelineSidebar: React.FC<MatchTimelineSidebarProps> = ({
                   </span>
                 </div>
 
-                <span className="text-[11px] text-zinc-400 font-medium shrink-0 px-1">
+                {/* Nhãn Kiểm soát căn giữa tuyệt đối */}
+                <span className="text-[10.5px] text-zinc-400 font-medium shrink-0 px-2 text-center">
                   Kiểm soát
                 </span>
 
                 {/* Đội khách (Màu xanh) */}
-                <div className="flex items-center justify-end gap-1.5 min-w-0 max-w-[42%]">
+                <div className="flex items-center justify-end gap-1.5 min-w-0">
                   <span className="font-black text-sky-400 tabular-nums shrink-0 mr-0.5">
                     {possessionStat.awayValue}%
                   </span>
