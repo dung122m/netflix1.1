@@ -14,7 +14,7 @@ import { ForYouPersonalizedRow } from "@/components/movies/ForYouPersonalizedRow
 import { getR2BannerUrl } from "@/lib/r2";
 
 export const dynamic = "force-static";
-export const revalidate = 7200; // ISR 2 giờ cho trang chủ landing page (giảm tải CPU Vercel thêm 4x)
+export const revalidate = 300; // ISR 5 phút (đảm bảo cập nhật nhanh và không kẹt cache cũ)
 
 // ==========================================
 // METADATA
@@ -395,7 +395,8 @@ export default async function HomePage() {
 
         {/* 7. TAB TUYỂN CHỌN PHIM ĐA NĂNG TRÊN TRANG CHỦ */}
         <CuratedMovieSection
-          initialMovies={movies}
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          initialMovies={movies.slice(0, 12).map((m: any) => ({ ...m }))}
           initialTotalItems={totalItems}
         />
       </div>

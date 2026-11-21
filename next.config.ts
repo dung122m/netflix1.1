@@ -125,12 +125,12 @@ const nextConfig: NextConfig = {
         ],
       },
       {
-        // Edge / CDN caching cho trang chủ landing page (/)
+        // Edge / CDN caching cho trang chủ landing page (/): Để Next.js ISR tự điều phối, tránh Cloudflare đóng băng HTML
         source: "/",
         headers: [
           {
             key: "Cache-Control",
-            value: "public, s-maxage=1800, stale-while-revalidate=3600",
+            value: "public, max-age=0, must-revalidate",
           },
         ],
       },
