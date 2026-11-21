@@ -488,39 +488,29 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
         className="flex items-center justify-between px-3 py-2.5 sm:px-4 sm:py-3 cursor-pointer hover:bg-white/[0.03] transition-colors select-none gap-2"
       >
         <div className="flex items-center gap-2 sm:gap-2.5 min-w-0 flex-1">
-          <div className="p-1.5 rounded-xl bg-netflix-red/15 text-netflix-red shrink-0">
-            {summary ? <Activity className="w-4 h-4" /> : <Radio className="w-4 h-4 text-netflix-red" />}
-          </div>
+          <Activity className="w-4 h-4 text-netflix-red shrink-0" />
           <div className="min-w-0 flex items-center gap-1.5 sm:gap-2 flex-wrap">
             <h3 className="text-xs sm:text-sm font-black text-white tracking-tight truncate max-w-[170px] min-[400px]:max-w-[240px] sm:max-w-none leading-snug">
               {displayTitle}
             </h3>
             {canonicalLeague && canonicalLeague !== "Giải Đấu Khác" && (
-              <span className="px-1.5 py-0.5 rounded-md text-[9.5px] sm:text-[10px] font-bold bg-white/10 text-zinc-300 shrink-0 flex items-center gap-1.5">
-                {resolveTournamentLogo(canonicalLeague, sport) ? (
-                  /* eslint-disable-next-line @next/next/no-img-element */
-                  <img
-                    src={toDarkModeLogoUrl(resolveTournamentLogo(canonicalLeague, sport))}
-                    alt=""
-                    className="w-3.5 h-3.5 object-contain shrink-0"
-                    loading="lazy"
-                  />
-                ) : (
-                  <Trophy className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                )}
-                <span className="truncate max-w-[110px] sm:max-w-none">{canonicalLeague}</span>
-              </span>
+              <>
+                <span className="text-zinc-600 text-xs shrink-0 select-none hidden sm:inline">•</span>
+                <span className="text-xs font-medium text-zinc-400 truncate max-w-[140px] sm:max-w-none">
+                  {canonicalLeague}
+                </span>
+              </>
             )}
             {(isLive || effectiveStatus === "live") && (
-              <span className="flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-red-600/20 text-red-400 animate-pulse shrink-0">
-                <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
+              <span className="flex items-center gap-1 text-[10px] font-bold text-red-400 shrink-0">
+                <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
                 <span>Trực tiếp</span>
               </span>
             )}
           </div>
         </div>
 
-        <div className="flex items-center gap-1.5 shrink-0">
+        <div className="flex items-center gap-2 shrink-0">
           {isOpen && (
             <Tooltip content="Làm mới dữ liệu" side="top">
               <button
@@ -531,7 +521,7 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
                 }}
                 disabled={loading || isRefreshing}
                 aria-label="Làm mới dữ liệu trận đấu"
-                className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-zinc-300 hover:text-white transition disabled:opacity-50 cursor-pointer"
+                className="p-1 text-zinc-400 hover:text-white transition disabled:opacity-50 cursor-pointer"
               >
                 <RefreshCw
                   className={`w-3.5 h-3.5 ${
@@ -542,8 +532,8 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
             </Tooltip>
           )}
 
-          <div className="p-1.5 rounded-lg bg-white/5 text-zinc-400">
-            {isOpen ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+          <div className="p-1 text-zinc-400">
+            {isOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
           </div>
         </div>
       </div>
@@ -659,60 +649,42 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
                     />
                   )}
 
-                  {/* DẢI THÔNG TIN SÂN VẬN ĐỘNG, KHÁN GIẢ & TRỌNG TÀI (GAME INFO METADATA STRIP) */}
-                  {summary.gameInfo &&
+                  {/* DẢI THÔNG TIN SÂN VẬN ĐỘNG (CHỈ HIỂN THỊ DẠNG TEXT PHẲNG KHI CHƯA CÓ SCOREBOARD TRÊN PLAYER) */}
+                  {summary.gameInfo && !hideScoreboard &&
                     (summary.gameInfo.venue?.name ||
                       summary.gameInfo.referee ||
                       (summary.gameInfo.attendance && summary.gameInfo.attendance > 0)) && (
-                      <div className="flex items-center gap-2 sm:gap-3 py-1.5 px-3 rounded-xl bg-white/[0.03] text-[11px] sm:text-xs text-zinc-300 font-sans flex-wrap">
+                      <div className="flex items-center gap-2 sm:gap-3 py-1 text-[11px] sm:text-xs text-zinc-400 font-sans flex-wrap">
                         {summary.gameInfo.venue?.name && (
-                          <div
-                            className="flex items-center gap-1.5 min-w-0"
-                            title={`Sân vận động: ${summary.gameInfo.venue.name}`}
-                          >
-                            <MapPin className="w-3.5 h-3.5 text-rose-400 shrink-0" />
-                            <span className="font-semibold truncate max-w-[170px] sm:max-w-none text-zinc-200">
-                              {summary.gameInfo.venue.name}
-                              {summary.gameInfo.venue.city ? `, ${summary.gameInfo.venue.city}` : ""}
-                            </span>
-                          </div>
+                          <span className="text-zinc-300 font-medium">
+                            {summary.gameInfo.venue.name}
+                            {summary.gameInfo.venue.city ? `, ${summary.gameInfo.venue.city}` : ""}
+                          </span>
                         )}
-
-                        {summary.gameInfo.attendance && summary.gameInfo.attendance > 0 && (
-                          <div className="flex items-center gap-1.5 shrink-0 text-zinc-400">
-                            <span className="hidden sm:inline text-zinc-600">•</span>
-                            <Users className="w-3.5 h-3.5 text-sky-400 shrink-0" />
-                            <span className="tabular-nums font-medium text-zinc-300">
-                              {summary.gameInfo.attendance.toLocaleString("vi-VN")} khán giả
-                            </span>
-                          </div>
-                        )}
-
                         {summary.gameInfo.referee && (
-                          <div className="flex items-center gap-1.5 shrink-0 text-zinc-400">
-                            <span className="hidden sm:inline text-zinc-600">•</span>
-                            <Shield className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                            <span className="font-medium text-zinc-300">
-                              Trọng tài: <span className="text-white font-semibold">{summary.gameInfo.referee}</span>
-                            </span>
-                          </div>
+                          <span>
+                            • Trọng tài: <strong className="text-zinc-200 font-semibold">{summary.gameInfo.referee}</strong>
+                          </span>
+                        )}
+                        {summary.gameInfo.attendance && summary.gameInfo.attendance > 0 && (
+                          <span className="tabular-nums">
+                            • {summary.gameInfo.attendance.toLocaleString("vi-VN")} CĐV
+                          </span>
                         )}
                       </div>
                     )}
 
-                  {/* B. THANH ĐIỀU HƯỚNG TAB CHỨC NĂNG (SCROLLABLE PILLS) */}
+                  {/* B. THANH ĐIỀU HƯỚNG TAB CHỨC NĂNG (APPLE TV+ STYLE CLEAN FLAT TABS) */}
                   <div
                     role="tablist"
                     aria-label="Điều hướng thông tin trận đấu"
-                    className="flex items-center gap-1.5 overflow-x-auto scrollbar-none py-1 select-none -mx-1 px-1 sm:mx-0 sm:px-0"
-                    style={{ WebkitOverflowScrolling: "touch" }}
+                    className="flex items-center gap-6 border-b border-white/[0.08] select-none text-xs font-semibold px-0.5"
                   >
                     {[
-                      { id: "lineups", label: "Đội hình", icon: Users },
-                      { id: "stats", label: "Thống kê", icon: BarChart2 },
-                      { id: "form", label: "Phong độ", icon: TrendingUp },
+                      { id: "lineups", label: "Đội hình" },
+                      { id: "stats", label: "Thống kê" },
+                      { id: "form", label: "Phong độ" },
                     ].map((tab) => {
-                      const Icon = tab.icon;
                       const isActive = activeTab === tab.id;
                       return (
                         <button
@@ -724,14 +696,13 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
                           tabIndex={0}
                           type="button"
                           onClick={() => setActiveTab(tab.id as TabType)}
-                          className={`flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all shrink-0 whitespace-nowrap cursor-pointer outline-none focus-visible:bg-white/10 min-h-[40px] sm:min-h-[44px] ${
+                          className={`pb-2.5 pt-1 font-bold text-xs transition-colors cursor-pointer border-b-2 -mb-px outline-none ${
                             isActive
-                              ? "bg-gradient-to-r from-netflix-red to-netflix-red/85 text-white shadow-md shadow-black/50 font-black scale-[1.02]"
-                              : "text-zinc-400 hover:text-white hover:bg-white/5 bg-zinc-900/70"
+                              ? "border-white text-white font-bold"
+                              : "border-transparent text-zinc-400 hover:text-zinc-200"
                           }`}
                         >
-                          <Icon className="w-3.5 h-3.5 shrink-0" />
-                          <span className="whitespace-nowrap">{tab.label}</span>
+                          {tab.label}
                         </button>
                       );
                     })}

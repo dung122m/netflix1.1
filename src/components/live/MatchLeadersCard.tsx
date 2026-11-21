@@ -28,10 +28,10 @@ function getCategoryIcon(catName: string) {
 
 function AthleteLeaderItem({ leader }: { leader: MatchLeaderAthlete }) {
   return (
-    <div className="flex items-center justify-between gap-3 p-2.5 rounded-xl bg-white/[0.02] hover:bg-white/[0.05] transition font-sans text-xs">
+    <div className="flex items-center justify-between gap-3 py-2 border-b border-white/[0.04] last:border-b-0 font-sans text-xs">
       {/* CỘT TRÁI: SỐ ÁO + TÊN CẦU THỦ + VỊ TRÍ */}
       <div className="flex items-center gap-2.5 min-w-0 flex-1">
-        <span className="w-6 h-6 rounded-lg bg-white/10 text-zinc-200 font-sans font-bold tabular-nums text-xs flex items-center justify-center shrink-0 shadow-sm">
+        <span className="w-5 h-5 rounded bg-white/10 text-zinc-200 font-sans font-bold tabular-nums text-xs flex items-center justify-center shrink-0">
           {leader.jersey || "-"}
         </span>
 
@@ -41,8 +41,8 @@ function AthleteLeaderItem({ leader }: { leader: MatchLeaderAthlete }) {
               {leader.name}
             </span>
             {leader.position && (
-              <span className="text-[10px] font-semibold text-zinc-400 bg-white/5 px-1.5 py-0.2 rounded shrink-0">
-                {leader.position}
+              <span className="text-[10px] text-zinc-400 font-medium shrink-0">
+                ({leader.position})
               </span>
             )}
           </div>
@@ -73,16 +73,13 @@ export function MatchLeadersCard({ leaders }: MatchLeadersCardProps) {
   if (!leaders || leaders.length === 0) return null;
 
   return (
-    <div className="rounded-2xl bg-zinc-950/70 p-3.5 sm:p-4 space-y-3.5 border border-white/[0.05] shadow-md">
+    <div className="space-y-3.5 pt-2">
       {/* HEADER: CẦU THỦ NỔI BẬT TRẬN ĐẤU */}
       <div className="flex items-center justify-between pb-2 border-b border-white/[0.06] gap-2">
-        <div className="flex items-center gap-2 min-w-0">
-          <Award className="w-4 h-4 text-amber-400 shrink-0" />
-          <h4 className="text-xs sm:text-sm font-black text-white truncate font-sans">
-            Cầu thủ nổi bật trận đấu (Leaders)
-          </h4>
-        </div>
-        <span className="text-[10px] text-zinc-400 font-sans font-medium shrink-0">
+        <h4 className="text-xs sm:text-sm font-bold text-white truncate font-sans">
+          Cầu thủ nổi bật (Leaders)
+        </h4>
+        <span className="text-[10px] text-zinc-500 font-sans font-medium shrink-0">
           Theo ESPN Sports
         </span>
       </div>

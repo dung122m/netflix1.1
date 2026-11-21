@@ -128,7 +128,7 @@ function TeamFormCard({
   const losses = games.filter((g) => g.result === "L").length;
 
   return (
-    <div className="rounded-2xl bg-zinc-950/70 p-3.5 sm:p-4 space-y-3 border border-white/[0.05] shadow-md">
+    <div className="space-y-3">
       {/* HEADER: TÊN ĐỘI & 5 CHẤM KẾT QUẢ GỌN GÀNG */}
       <div className="flex items-center justify-between pb-2 border-b border-white/[0.06] gap-2">
         <div className="flex flex-col min-w-0">
@@ -231,15 +231,12 @@ function HeadToHeadCard({
   const events = headToHead.events || [];
 
   return (
-    <div className="rounded-2xl bg-zinc-950/70 p-3.5 sm:p-4 space-y-3.5 border border-white/[0.05] shadow-md">
+    <div className="space-y-3.5">
       {/* HEADER: TỔNG QUAN TỶ SỐ ĐỐI ĐẦU */}
       <div className="flex items-center justify-between pb-2 border-b border-white/[0.06] gap-2 flex-wrap">
-        <div className="flex items-center gap-2">
-          <Trophy className="w-4 h-4 text-amber-400 shrink-0" />
-          <h4 className="text-xs sm:text-sm font-black text-white font-sans">
-            Lịch sử đối đầu trực tiếp
-          </h4>
-        </div>
+        <h4 className="text-xs sm:text-sm font-black text-white font-sans">
+          Lịch sử đối đầu trực tiếp
+        </h4>
         {headToHead.summary && (
           <span className="text-[11px] font-bold text-amber-300 bg-amber-400/10 border border-amber-400/20 px-2.5 py-0.5 rounded-full font-sans tabular-nums">
             {formatH2HSummary(headToHead.summary)}
@@ -342,31 +339,29 @@ export function MatchRecentForm({ homeTeam, awayTeam, recentForm, headToHead }: 
     <div className="space-y-3.5 max-w-4xl mx-auto pt-1">
       {/* NÚT CHUYỂN ĐỔI TAB CON: 5 TRẬN GẦN NHẤT vs ĐỐI ĐẦU TRỰC TIẾP */}
       {hasRecent && hasH2H && (
-        <div className="flex items-center justify-center pb-1">
-          <div className="inline-flex items-center gap-1 p-1 rounded-xl bg-zinc-900/90 border border-white/5 shadow-sm">
-            <button
-              type="button"
-              onClick={() => setFormSubTab("recent")}
-              className={`px-3 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
-                formSubTab === "recent"
-                  ? "bg-white/15 text-white shadow-sm"
-                  : "text-zinc-400 hover:text-white"
-              }`}
-            >
-              5 trận gần nhất
-            </button>
-            <button
-              type="button"
-              onClick={() => setFormSubTab("h2h")}
-              className={`px-3 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
-                formSubTab === "h2h"
-                  ? "bg-white/15 text-white shadow-sm"
-                  : "text-zinc-400 hover:text-white"
-              }`}
-            >
-              Lịch sử đối đầu
-            </button>
-          </div>
+        <div className="flex items-center gap-5 pb-1 border-b border-white/[0.06]">
+          <button
+            type="button"
+            onClick={() => setFormSubTab("recent")}
+            className={`text-xs font-bold transition cursor-pointer pb-1.5 border-b-2 -mb-px ${
+              formSubTab === "recent"
+                ? "border-white text-white font-bold"
+                : "border-transparent text-zinc-400 hover:text-zinc-200"
+            }`}
+          >
+            5 trận gần nhất
+          </button>
+          <button
+            type="button"
+            onClick={() => setFormSubTab("h2h")}
+            className={`text-xs font-bold transition cursor-pointer pb-1.5 border-b-2 -mb-px ${
+              formSubTab === "h2h"
+                ? "border-white text-white font-bold"
+                : "border-transparent text-zinc-400 hover:text-zinc-200"
+            }`}
+          >
+            Lịch sử đối đầu
+          </button>
         </div>
       )}
 

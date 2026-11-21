@@ -109,55 +109,47 @@ export const DualTeamPitch: React.FC<DualTeamPitchProps> = ({
 
       {/* 2. BỐ CỤC SA BÀN SÂN CỎ TOÀN CẢNH TRÊN DESKTOP (HORIZONTAL PITCH) */}
       <div className="hidden md:block space-y-3.5">
-        {/* 1. THANH TIÊU ĐỀ BROADCAST: TÊN 2 ĐỘI, SƠ ĐỒ CHIẾN THUẬT & SỐ CẦU THỦ XUẤT PHÁT */}
-        <div className="flex items-center justify-between px-3.5 py-2.5 rounded-2xl bg-zinc-900/60 shadow-sm">
+        {/* 1. THANH TIÊU ĐỀ BROADCAST: TÊN 2 ĐỘI & SƠ ĐỒ (PHẲNG, KHÔNG HỘP LỒNG NHAU) */}
+        <div className="flex items-center justify-between py-1 px-1 text-xs select-none">
           {/* Đội nhà (Trái) */}
           <div className="flex items-center gap-2 min-w-0 flex-1">
-            <span className="w-2.5 h-2.5 rounded-full bg-[#dc2626] shrink-0" />
-            <div className="min-w-0">
-              <div className="flex items-center gap-1.5 flex-wrap">
-                <span className="text-white font-bold text-xs sm:text-sm truncate font-sans">
-                  {homeTeam.displayName}
-                </span>
-                {homeTeam.formation && (
-                  <span className="font-sans tabular-nums text-[10px] font-bold bg-rose-500/15 text-rose-300 px-1.5 py-0.5 rounded shrink-0">
-                    {homeTeam.formation}
-                  </span>
-                )}
-              </div>
-              {homeTeam.coach && (
-                <div className="flex items-center gap-1 text-[10px] text-zinc-400 font-sans mt-0.5">
-                  <span className="truncate max-w-[130px] sm:max-w-[200px]">HLV: {homeTeam.coach}</span>
-                </div>
-              )}
-            </div>
+            <span className="w-2 h-2 rounded-full bg-[#dc2626] shrink-0" />
+            <span className="text-white font-bold text-xs sm:text-sm truncate font-sans">
+              {homeTeam.displayName}
+            </span>
+            {homeTeam.formation && (
+              <span className="font-sans tabular-nums text-[11px] font-medium text-zinc-400 shrink-0">
+                ({homeTeam.formation})
+              </span>
+            )}
+            {homeTeam.coach && (
+              <span className="text-[10px] text-zinc-500 font-sans hidden lg:inline truncate">
+                • HLV: {homeTeam.coach}
+              </span>
+            )}
           </div>
 
           {/* Ngăn cách tinh tế giữa 2 đội */}
           <div className="px-3 shrink-0 flex items-center justify-center">
-            <span className="w-1.5 h-1.5 rounded-full bg-zinc-700" />
+            <span className="w-1 h-1 rounded-full bg-zinc-700" />
           </div>
 
           {/* Đội khách (Phải) */}
           <div className="flex items-center gap-2 min-w-0 flex-1 justify-end text-right">
-            <div className="min-w-0">
-              <div className="flex items-center gap-1.5 justify-end flex-wrap">
-                {awayTeam.formation && (
-                  <span className="font-sans tabular-nums text-[10px] font-bold bg-sky-500/15 text-sky-300 px-1.5 py-0.5 rounded shrink-0">
-                    {awayTeam.formation}
-                  </span>
-                )}
-                <span className="text-white font-bold text-xs sm:text-sm truncate font-sans">
-                  {awayTeam.displayName}
-                </span>
-              </div>
-              {awayTeam.coach && (
-                <div className="flex items-center justify-end gap-1 text-[10px] text-zinc-400 font-sans mt-0.5">
-                  <span className="truncate max-w-[130px] sm:max-w-[200px]">HLV: {awayTeam.coach}</span>
-                </div>
-              )}
-            </div>
-            <span className="w-2.5 h-2.5 rounded-full bg-[#0284c7] shrink-0" />
+            {awayTeam.coach && (
+              <span className="text-[10px] text-zinc-500 font-sans hidden lg:inline truncate">
+                HLV: {awayTeam.coach} •
+              </span>
+            )}
+            {awayTeam.formation && (
+              <span className="font-sans tabular-nums text-[11px] font-medium text-zinc-400 shrink-0">
+                ({awayTeam.formation})
+              </span>
+            )}
+            <span className="text-white font-bold text-xs sm:text-sm truncate font-sans">
+              {awayTeam.displayName}
+            </span>
+            <span className="w-2 h-2 rounded-full bg-[#0284c7] shrink-0" />
           </div>
         </div>
 
