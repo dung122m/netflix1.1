@@ -8,12 +8,33 @@ import {
 
 export const runtime = "nodejs";
 
-export async function GET(request: NextRequest) {
-  const rateLimit = await enforceRateLimit(request, RATE_LIMIT_PRESETS.FOOTBALL_POLLING);
-  if (!rateLimit.allowed) {
-    return buildRateLimitResponse(rateLimit);
-  }
+function buildHeaders(isLive: boolean, isFinished: boolean): Record<string, string> {
+  const cacheControlHeader = isLive
+    ? "public, max-age=10, s-maxage=15, stale-while-revalidate=15"
+    : isFinished
+      ? "public, s-maxage=300, stale-while-revalidate=600, max-age=300"
+      : "public, s-maxage=60, stale-while-revalidate=120, max-age=60";
 
+  const cdnCacheControl = isLive
+    ? "public, max-age=15"
+    : isFinished
+      ? "public, max-age=300"
+      : "public, max-age=60";
+
+  const vercelCdnCacheControl = isLive
+    ? "max-age=15, stale-while-revalidate=15"
+    : isFinished
+      ? "max-age=300, stale-while-revalidate=600"
+      : "max-age=60, stale-while-revalidate=120";
+
+  return {
+    "Cache-Control": cacheControlHeader,
+    "CDN-Cache-Control": cdnCacheControl,
+    "Vercel-CDN-Cache-Control": vercelCdnCacheControl,
+  };
+}
+
+export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const league = searchParams.get("league")?.trim() || "";
@@ -52,7 +73,28 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // 4. Lấy dữ liệu summary từ service (có cache và in-flight deduplication)
+    // 4. Short-circuit RAM Cache: Trả lời 0ms CPU, 0 Redis calls khi có sẵn trong RAM
+    const peeked = footballScoreService.peekSummary(league, event);
+    if (peeked) {
+      return NextResponse.json(
+        {
+          status: true,
+          data: peeked,
+          cached: true,
+        },
+        {
+          headers: buildHeaders(peeked.status === "live", peeked.status === "finished"),
+        },
+      );
+    }
+
+    // 5. Chỉ khi RAM miss mới cần rate-limit trước khi gọi upstream/Redis
+    const rateLimit = await enforceRateLimit(request, RATE_LIMIT_PRESETS.FOOTBALL_POLLING);
+    if (!rateLimit.allowed) {
+      return buildRateLimitResponse(rateLimit);
+    }
+
+    // 6. Lấy dữ liệu summary từ service (có cache Redis và in-flight deduplication)
     const { data, cached } = await footballScoreService.getMatchSummary(league, event);
 
     if (!data) {
@@ -65,32 +107,6 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // 5. Cấu hình Cache-Control tối ưu kết hợp Vercel Edge CDN & Browser
-    const isLive = data.status === "live";
-    const cacheControlHeader = isLive
-      ? "public, max-age=10, s-maxage=15, stale-while-revalidate=15"
-      : data.status === "finished"
-        ? "public, s-maxage=300, stale-while-revalidate=600, max-age=300"
-        : "public, s-maxage=30, stale-while-revalidate=60, max-age=30";
-
-    const cdnCacheControl = isLive
-      ? "public, max-age=15"
-      : data.status === "finished"
-        ? "public, max-age=300"
-        : "public, max-age=30";
-
-    const vercelCdnCacheControl = isLive
-      ? "max-age=15, stale-while-revalidate=15"
-      : data.status === "finished"
-        ? "max-age=300, stale-while-revalidate=600"
-        : "max-age=30, stale-while-revalidate=60";
-
-    const responseHeaders: Record<string, string> = {
-      "Cache-Control": cacheControlHeader,
-      "CDN-Cache-Control": cdnCacheControl,
-      "Vercel-CDN-Cache-Control": vercelCdnCacheControl,
-    };
-
     return NextResponse.json(
       {
         status: true,
@@ -98,7 +114,7 @@ export async function GET(request: NextRequest) {
         cached,
       },
       {
-        headers: responseHeaders,
+        headers: buildHeaders(data.status === "live", data.status === "finished"),
       },
     );
   } catch {

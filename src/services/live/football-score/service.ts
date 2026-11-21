@@ -407,6 +407,24 @@ export const footballScoreService = {
   },
 
   /**
+   * Kiểm tra nhanh bộ nhớ RAM (0ms CPU, 0 network/Redis calls)
+   */
+  peekSummary: (
+    leagueSlug: string,
+    eventId: string,
+  ): NormalizedMatchSummary | null => {
+    const cleanLeague = (leagueSlug || "").trim();
+    const cleanEventId = (eventId || "").trim();
+    if (!cleanLeague || !cleanEventId) return null;
+    const cacheKey = `${cleanLeague}:${cleanEventId}`;
+    const cachedEntry = summaryMemoryCache.get(cacheKey);
+    if (cachedEntry && cachedEntry.expireAt > Date.now()) {
+      return cachedEntry.data;
+    }
+    return null;
+  },
+
+  /**
    * Lấy chi tiết trận đấu (Match Center Summary) theo leagueSlug và eventId
    * Hỗ trợ bộ nhớ đệm server (30s live, 5m FT), in-flight deduplication và timeout an toàn
    */
