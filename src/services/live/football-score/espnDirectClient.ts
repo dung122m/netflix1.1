@@ -103,12 +103,7 @@ export async function fetchDirectMatchSummary(
     const url = `${ESPN_CDN_API_URL}/apis/site/v2/sports/soccer/${encodeURIComponent(cleanLeague)}/summary?event=${encodeURIComponent(cleanEvent)}&${cacheBuster}`;
     const res = await fetch(url, {
       signal: AbortSignal.timeout(6000),
-      headers: {
-        Accept: "application/json",
-        "Cache-Control": "no-cache",
-        Pragma: "no-cache",
-      },
-      cache: "no-store",
+      headers: { Accept: "application/json" },
     });
 
     if (res.ok) {
@@ -140,12 +135,7 @@ export async function fetchDirectScoreboardEvents(
       const url = `${ESPN_CDN_API_URL}/apis/site/v2/sports/soccer/${encodeURIComponent(slug)}/scoreboard?${cacheBuster}`;
       const res = await fetch(url, {
         signal: AbortSignal.timeout(6000),
-        headers: {
-          Accept: "application/json",
-          "Cache-Control": "no-cache",
-          Pragma: "no-cache",
-        },
-        cache: "no-store",
+        headers: { Accept: "application/json" },
       });
       if (!res.ok) return [];
       const data = await res.json();
