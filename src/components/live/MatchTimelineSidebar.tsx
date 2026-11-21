@@ -369,9 +369,9 @@ export const MatchTimelineSidebar: React.FC<MatchTimelineSidebarProps> = ({
           {/* Thanh tỉ lệ kiểm soát bóng kèm Tên & Logo hai đội */}
           {possessionStat && (
             <div className="space-y-1">
-              <div className="grid grid-cols-[1fr_auto_1fr] items-center text-[11px] font-sans">
+              <div className="grid grid-cols-[1fr_auto_1fr] items-center text-[11px] font-sans leading-4 select-none">
                 {/* Đội nhà (Màu đỏ) */}
-                <div className="flex items-center gap-1.5 min-w-0 justify-start">
+                <div className="flex items-center gap-1.5 min-w-0 justify-start leading-4">
                   {homeTeamLogo && (
                     /* eslint-disable-next-line @next/next/no-img-element */
                     <img
@@ -384,28 +384,28 @@ export const MatchTimelineSidebar: React.FC<MatchTimelineSidebarProps> = ({
                     />
                   )}
                   <span
-                    className="font-bold text-rose-400 truncate text-[11px]"
+                    className="font-bold text-rose-400 truncate text-[11px] leading-4"
                     title={homeTeamName}
                   >
                     {homeTeamName}
                   </span>
-                  <span className="font-black text-rose-400 tabular-nums shrink-0 ml-0.5">
+                  <span className="font-black text-rose-400 tabular-nums shrink-0 text-[11px] leading-4">
                     {possessionStat.homeValue}%
                   </span>
                 </div>
 
-                {/* Nhãn Kiểm soát căn giữa tuyệt đối */}
-                <span className="text-[10.5px] text-zinc-400 font-medium shrink-0 px-2 text-center">
+                {/* Nhãn Kiểm soát căn giữa tuyệt đối, cùng font-size và line-height để khóa chặt baseline ngang */}
+                <span className="text-[11px] leading-4 text-zinc-400 font-medium shrink-0 px-2 text-center">
                   Kiểm soát
                 </span>
 
                 {/* Đội khách (Màu xanh) */}
-                <div className="flex items-center justify-end gap-1.5 min-w-0">
-                  <span className="font-black text-sky-400 tabular-nums shrink-0 mr-0.5">
+                <div className="flex items-center justify-end gap-1.5 min-w-0 leading-4">
+                  <span className="font-black text-sky-400 tabular-nums shrink-0 text-[11px] leading-4">
                     {possessionStat.awayValue}%
                   </span>
                   <span
-                    className="font-bold text-sky-400 truncate text-[11px] text-right"
+                    className="font-bold text-sky-400 truncate text-[11px] leading-4 text-right"
                     title={awayTeamName}
                   >
                     {awayTeamName}
@@ -440,8 +440,8 @@ export const MatchTimelineSidebar: React.FC<MatchTimelineSidebarProps> = ({
           <div className="grid grid-cols-3 gap-1 pt-0.5 text-center text-[10.5px] font-sans">
             {shotsStat && (
               <div className="bg-white/[0.02] py-1 px-1 rounded-lg">
-                <span className="text-zinc-500 text-[9.5px] block font-medium">Tổng sút</span>
-                <span className="font-bold tabular-nums">
+                <span className="text-zinc-500 text-[9.5px] block font-medium leading-tight">Tổng sút</span>
+                <span className="font-bold tabular-nums leading-4 block">
                   <span className="text-rose-400">{shotsStat.homeValue}</span>
                   <span className="text-zinc-600 font-normal mx-1">-</span>
                   <span className="text-sky-400">{shotsStat.awayValue}</span>
@@ -450,8 +450,8 @@ export const MatchTimelineSidebar: React.FC<MatchTimelineSidebarProps> = ({
             )}
             {onTargetStat && (
               <div className="bg-white/[0.02] py-1 px-1 rounded-lg">
-                <span className="text-zinc-500 text-[9.5px] block font-medium">Trúng đích</span>
-                <span className="font-bold tabular-nums">
+                <span className="text-zinc-500 text-[9.5px] block font-medium leading-tight">Trúng đích</span>
+                <span className="font-bold tabular-nums leading-4 block">
                   <span className="text-rose-400">{onTargetStat.homeValue}</span>
                   <span className="text-zinc-600 font-normal mx-1">-</span>
                   <span className="text-sky-400">{onTargetStat.awayValue}</span>
@@ -460,8 +460,8 @@ export const MatchTimelineSidebar: React.FC<MatchTimelineSidebarProps> = ({
             )}
             {cornersStat && (
               <div className="bg-white/[0.02] py-1 px-1 rounded-lg">
-                <span className="text-zinc-500 text-[9.5px] block font-medium">Phạt góc</span>
-                <span className="font-bold tabular-nums">
+                <span className="text-zinc-500 text-[9.5px] block font-medium leading-tight">Phạt góc</span>
+                <span className="font-bold tabular-nums leading-4 block">
                   <span className="text-rose-400">{cornersStat.homeValue}</span>
                   <span className="text-zinc-600 font-normal mx-1">-</span>
                   <span className="text-sky-400">{cornersStat.awayValue}</span>
