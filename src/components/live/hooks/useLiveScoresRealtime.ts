@@ -80,9 +80,10 @@ export function useLiveScoresRealtime({
     const isReturningFromInactive = !wasActiveMatchesRef.current;
     wasActiveMatchesRef.current = true;
 
+    // Nếu đã có danh sách trận từ SSR, không cần fetch lại sau 5s; chỉ fetch nếu danh sách rỗng hoặc sau 5 phút
     const initialDelay = setTimeout(
       refreshMatches,
-      isReturningFromInactive ? 5000 : 30_000,
+      initialMatches.length === 0 ? 3000 : 5 * 60 * 1000,
     );
     const interval = setInterval(() => {
       if (typeof document !== "undefined" && document.hidden) return;

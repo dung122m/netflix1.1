@@ -1,4 +1,45 @@
 import { LiveMatchScore } from "./types";
+import {
+  EPL_TEAMS,
+  LALIGA_TEAMS,
+  SERIE_A_TEAMS,
+  BUNDESLIGA_TEAMS,
+  LIGUE_1_TEAMS,
+} from "@/data/live/leagueClubs";
+
+function normalizeClubForLeagueCheck(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/[đĐ]/g, "d")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]/g, "");
+}
+
+const EPL_SET = new Set(EPL_TEAMS.map(normalizeClubForLeagueCheck));
+const LALIGA_SET = new Set(LALIGA_TEAMS.map(normalizeClubForLeagueCheck));
+const SERIE_A_SET = new Set(SERIE_A_TEAMS.map(normalizeClubForLeagueCheck));
+const BUNDESLIGA_SET = new Set(BUNDESLIGA_TEAMS.map(normalizeClubForLeagueCheck));
+const LIGUE_1_SET = new Set(LIGUE_1_TEAMS.map(normalizeClubForLeagueCheck));
+
+/**
+ * Suy luận giải đấu dựa trên danh tính 2 câu lạc bộ thuộc cùng một giải quốc nội hàng đầu
+ * (Giải quyết triệt để vấn đề M3U gắn nhãn "Giải Đấu Khác" cho các trận đấu lớn)
+ */
+export function inferLeagueFromClubPairs(team1?: string, team2?: string): string | null {
+  if (!team1 || !team2) return null;
+  const k1 = normalizeClubForLeagueCheck(team1);
+  const k2 = normalizeClubForLeagueCheck(team2);
+  if (!k1 || !k2) return null;
+
+  if (EPL_SET.has(k1) && EPL_SET.has(k2)) return "Ngoại Hạng Anh";
+  if (LALIGA_SET.has(k1) && LALIGA_SET.has(k2)) return "La Liga";
+  if (SERIE_A_SET.has(k1) && SERIE_A_SET.has(k2)) return "Serie A";
+  if (BUNDESLIGA_SET.has(k1) && BUNDESLIGA_SET.has(k2)) return "Bundesliga";
+  if (LIGUE_1_SET.has(k1) && LIGUE_1_SET.has(k2)) return "Ligue 1";
+
+  return null;
+}
 
 /**
  * Bảng ánh xạ chính thức từ leagueSlug (ESPN / Livescore) sang Tên giải đấu chuẩn hóa (Tiếng Việt/Quốc Tế)
@@ -338,7 +379,7 @@ export function resolveCanonicalTournament(params: {
 
   // 3. TẦNG 3: Chuẩn hóa từ chuỗi tournament hiện có (nếu hợp lệ và không phải nhãn playlist rác)
   const cleanRaw = sanitizeRawTournamentName(tournament);
-  if (cleanRaw && !isNonLeagueLabel(cleanRaw)) {
+  if (cleanRaw && !isNonLeagueLabel(cleanRaw) && !isGenericSportTournament(cleanRaw)) {
     if (isLikelyFootball && /bóng\s*rổ|basketball|\bnba\b|\bvba\b|\bpba\b|\bkbl\b/i.test(cleanRaw)) {
       // Trận bóng đá không bao giờ nhận nhãn giải bóng rổ do lỗi metadata
     } else {
@@ -349,6 +390,14 @@ export function resolveCanonicalTournament(params: {
       if (/ligue\s*1/i.test(cleanRaw)) return "Ligue 1";
       if (/v[-_ ]?league/i.test(cleanRaw)) return "V-League";
       return cleanRaw;
+    }
+  }
+
+  // 3.5. TẦNG 3.5: Suy luận giải đấu dựa trên danh tính 2 câu lạc bộ cùng giải đấu lớn (khi M3U để "Giải Đấu Khác")
+  if (isLikelyFootball && params.team1 && params.team2) {
+    const inferred = inferLeagueFromClubPairs(params.team1, params.team2);
+    if (inferred) {
+      return inferred;
     }
   }
 

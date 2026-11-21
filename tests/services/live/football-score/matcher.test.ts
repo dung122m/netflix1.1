@@ -997,6 +997,19 @@ describe("LiveScore Football Matcher & Enrichment Test Suite", () => {
       true,
     );
 
+    // Suy luận giải đấu từ 2 CLB cùng giải quốc nội hàng đầu (Manchester City vs Fulham)
+    assert.strictEqual(
+      isVerifiedScoreboardMatch({
+        title: "Manchester City vs Fulham",
+        tournament: "Giải Đấu Khác",
+        team1: "Manchester City",
+        team2: "Fulham",
+        sport: "football",
+      }),
+      true,
+      "Manchester City vs Fulham phải được nhận diện là verified scoreboard match",
+    );
+
     // Các bộ môn khác hoặc giải đấu không có trên ESPN Scoreboard
     assert.strictEqual(
       isVerifiedScoreboardMatch({ tournament: "Quần Vợt", sport: "tennis" }),

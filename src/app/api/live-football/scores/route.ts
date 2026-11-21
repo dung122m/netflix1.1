@@ -24,11 +24,7 @@ let lastScoresCache: {
 } | null = null;
 
 export async function GET(req: NextRequest) {
-  const rateLimit = await enforceRateLimit(req, RATE_LIMIT_PRESETS.FOOTBALL_POLLING);
-  if (!rateLimit.allowed) {
-    return buildRateLimitResponse(rateLimit);
-  }
-
+  // 1. Kiểm tra nhanh bộ nhớ RAM (0ms CPU, 0 Redis calls)
   const now = Date.now();
   if (lastScoresCache && now < lastScoresCache.expireAt) {
     const cacheControl = lastScoresCache.hasLive
@@ -52,6 +48,12 @@ export async function GET(req: NextRequest) {
         },
       }
     );
+  }
+
+  // 2. Rate limit chỉ áp dụng khi cache RAM đã hết hạn (tiết kiệm 90% Redis quota)
+  const rateLimit = await enforceRateLimit(req, RATE_LIMIT_PRESETS.FOOTBALL_POLLING);
+  if (!rateLimit.allowed) {
+    return buildRateLimitResponse(rateLimit);
   }
 
   try {
@@ -99,7 +101,10 @@ export async function GET(req: NextRequest) {
       scores = buildScoresMap(matches, events);
     }
 
-    const hasLive = events.some((e) => e.status === "live");
+    // Chỉ coi là live khi có trận đấu THỰC SỰ đang phát trên Nanaflix đang diễn ra
+    const hasLive = Object.values(scores).some(
+      (s: unknown) => (s as { status?: string })?.status === "live"
+    );
     const cacheControl = hasLive
       ? "public, max-age=15, s-maxage=25, stale-while-revalidate=15"
       : "public, max-age=60, s-maxage=120, stale-while-revalidate=240";
