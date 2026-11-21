@@ -10,19 +10,19 @@ export const runtime = "nodejs";
 
 function buildHeaders(isLive: boolean, isFinished: boolean): Record<string, string> {
   const cacheControlHeader = isLive
-    ? "public, max-age=10, s-maxage=15, stale-while-revalidate=15"
+    ? "public, max-age=15, s-maxage=25, stale-while-revalidate=25"
     : isFinished
       ? "public, s-maxage=300, stale-while-revalidate=600, max-age=300"
       : "public, s-maxage=60, stale-while-revalidate=120, max-age=60";
 
   const cdnCacheControl = isLive
-    ? "public, max-age=15"
+    ? "public, max-age=25"
     : isFinished
       ? "public, max-age=300"
       : "public, max-age=60";
 
   const vercelCdnCacheControl = isLive
-    ? "max-age=15, stale-while-revalidate=15"
+    ? "max-age=25, stale-while-revalidate=25"
     : isFinished
       ? "max-age=300, stale-while-revalidate=600"
       : "max-age=60, stale-while-revalidate=120";

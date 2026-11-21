@@ -246,10 +246,10 @@ export function useLiveScoresRealtime({
 
     // Khi có trận giải lớn đang Live:
     // - Bình thường ngoài danh sách: 30s.
-    // - Khi đang mở Player xem trận đấu (isTheaterMode): 45s để nhường ưu tiên cho MatchCenter (15s).
+    // - Khi đang mở Player xem trận đấu (isTheaterMode): giãn ra 90s vì trận đang xem đã được MatchCenter cập nhật riêng, tiết kiệm tối đa CPU Vercel.
     // Khi hôm nay có trận giải lớn nhưng CHƯA ĐÁ / ĐÃ XONG: polling 60s để nhận diện ngay khi bóng lăn.
-    // Khi hôm nay HOÀN TOÀN KHÔNG CÓ trận giải lớn nào (chỉ có tennis, bóng rổ, giải phong trào...): TẮT HẲN polling (null) để tiết kiệm 100% tài nguyên!
-    const livePollInterval = isTheaterMode ? 45_000 : 30_000;
+    // Khi hôm nay HOÀN TOÀN KHÔNG CÓ trận giải lớn nào: TẮT HẲN polling (null).
+    const livePollInterval = isTheaterMode ? 90_000 : 30_000;
     const pollIntervalMs = hasActiveScoreboardMatches
       ? livePollInterval
       : hasScoreboardMatchesToday
