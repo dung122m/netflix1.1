@@ -564,18 +564,7 @@ async function executeGetMovies(params: MovieFilterParams, cacheKey: string) {
   const parsedSort = parseSortMode(params.sort);
   const requestedPage = params.page && params.page >= 1 ? Math.floor(params.page) : 1;
   const metaKey = buildQueryMetaKey(params);
-  let cachedMeta = queryMetadataCache.get(metaKey);
-  // Chỉ đọc querymeta từ Redis khi requestedPage > 1 và RAM chưa có cache.
-  // Trang 1 (chiếm đa số lưu lượng) không cần đọc querymeta vì tự probe/fetch và lưu lại querymeta.
-  if (!cachedMeta && requestedPage > 1) {
-    try {
-      const redisMeta = await cacheService.get<QueryPaginationMeta>("querymeta:" + metaKey);
-      if (redisMeta) {
-        cachedMeta = redisMeta;
-        queryMetadataCache.set(metaKey, redisMeta);
-      }
-    } catch { }
-  }
+  const cachedMeta = queryMetadataCache.get(metaKey);
   const seenSlugsByPage =
     cachedMeta && Date.now() - (cachedMeta.updatedAt || 0) < 300_000 && cachedMeta.seenSlugsByPage
       ? cachedMeta.seenSlugsByPage
@@ -940,19 +929,6 @@ async function executeGetMovies(params: MovieFilterParams, cacheKey: string) {
     updatedAt: Date.now(),
   };
   queryMetadataCache.set(metaKey, metaPayload);
-  cacheService
-    .set(
-      "querymeta:" + metaKey,
-      {
-        countApi1: metaPayload.countApi1,
-        countApi2: metaPayload.countApi2,
-        totalItems: metaPayload.totalItems,
-        totalPages: metaPayload.totalPages,
-        updatedAt: metaPayload.updatedAt,
-      },
-      86400
-    )
-    .catch(() => { });
 
   moviesMemoryCache.set(cacheKey, {
     data: payload,
@@ -1073,7 +1049,7 @@ export const movieApi = {
             res.items.length > 0 &&
             !degradedMoviePayloads.has(res)
           ) {
-            cacheService.set(kvKey, res, ttlSeconds).catch(() => { });
+            await cacheService.set(kvKey, res, ttlSeconds).catch(() => { });
           }
         }
         return sanitizeMovieImages(res);
