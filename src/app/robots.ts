@@ -8,7 +8,7 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: "*",
         allow: "/",
-        disallow: ["/admin/", "/api/"],
+        disallow: ["/admin/", "/api/", "/browse"],
       },
       {
         // Chặn hoàn toàn các AI bot cào dữ liệu huấn luyện và crawler hung hãn không đem lại traffic tìm kiếm

@@ -280,6 +280,19 @@ export function proxy(req: NextRequest) {
     }
   }
 
+  // 3.2 Chặn tuyệt đối mọi bot tìm kiếm / crawler cào vào trang duyệt phim & bộ lọc (/browse)
+  // Vì người dùng không cần SEO tự nhiên và /browse có hàng ngàn tổ hợp query làm hao tốn Serverless / Redis
+  const isSearchBot = /googlebot|bingbot|yandex|baiduspider|duckduckbot|slurp|crawler|spider/i.test(userAgent);
+  if (isSearchBot && pathname.startsWith("/browse")) {
+    return new NextResponse("Forbidden - Bot crawling on browse filters is disallowed", {
+      status: 403,
+      headers: {
+        "X-Content-Type-Options": "nosniff",
+        "X-Request-Id": requestId,
+      },
+    });
+  }
+
   // 4. Kiểm tra bảo vệ Origin (Chống bypass Cloudflare qua *.vercel.app)
   const originBlock = checkOriginProtection(req);
   if (originBlock) {
@@ -368,7 +381,6 @@ export function proxy(req: NextRequest) {
   }
 
   // 4.3 Giới hạn tần suất Edge đa tầng (Multi-tier Edge Rate Limiting - 0 Redis commands)
-  const isSearchBot = /googlebot|bingbot|duckduckbot/i.test(userAgent);
   if (!isSearchBot) {
     const matchedTier = EDGE_TIER_RULES.find((tier) => pathname.startsWith(tier.prefix));
     if (matchedTier) {
