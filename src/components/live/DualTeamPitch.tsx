@@ -46,7 +46,7 @@ export const DualTeamPitch: React.FC<DualTeamPitchProps> = ({
     isHome: boolean;
   } | null>(null);
   const [mobileTeamTab, setMobileTeamTab] = useState<"home" | "away">("home");
-  const [pitchDisplayMode, setPitchDisplayMode] = useState<"photo" | "number">("photo");
+  const [pitchDisplayMode, setPitchDisplayMode] = useState<"photo" | "number">("number");
   const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
 
   // Đóng modal khi nhấn Escape

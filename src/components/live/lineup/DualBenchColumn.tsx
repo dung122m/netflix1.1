@@ -66,21 +66,10 @@ export function DualBenchColumn({
                     : "bg-white/[0.02] hover:bg-white/[0.05] text-zinc-300"
                 }`}
               >
-                {/* Cột 1: Ảnh đại diện hoặc số áo */}
-                {p.photoUrl && !imageErrors[p.id] ? (
-                  /* eslint-disable-next-line @next/next/no-img-element */
-                  <img
-                    src={p.photoUrl}
-                    alt=""
-                    loading="lazy"
-                    onError={() => setImageErrors((prev) => ({ ...prev, [p.id]: true }))}
-                    className="w-6 h-6 rounded-full object-cover object-top shrink-0 shadow-sm mr-2 bg-zinc-800"
-                  />
-                ) : (
-                  <span className={`w-6 h-6 rounded-lg ${jerseyClass} flex items-center justify-center font-sans font-bold tabular-nums text-xs shrink-0 mr-2`}>
-                    {p.jersey || "-"}
-                  </span>
-                )}
+                {/* Cột 1: Số áo cố định w-6 đồng bộ 100% */}
+                <span className={`w-6 h-6 rounded-lg ${jerseyClass} flex items-center justify-center font-sans font-bold tabular-nums text-xs shrink-0 mr-2 shadow-sm`}>
+                  {p.jersey || "-"}
+                </span>
 
                 {/* Cột 2: Tên & Vị trí flex-1 */}
                 <div className="min-w-0 flex-1 pr-2 truncate">
