@@ -13,7 +13,7 @@ import { getActorSynonyms } from "@/services/actor/actorAliasResolver";
 import { findHistoricalArtist } from "@/data/history/historicalArtistsBirthdays";
 import { searchTmdbPerson } from "@/services/tmdbService";
 import { pickBestMoviePoster, MovieLike } from "@/lib/movieMedia";
-import { normalizeForMatch } from "@/lib/stringUtils";
+import { normalizeForMatch, slugify } from "@/lib/stringUtils";
 import { cacheService } from "@/lib/cache";
 import {
   enforceRateLimit,
@@ -62,7 +62,7 @@ export async function GET(req: NextRequest) {
     }
 
     // 1. Kiểm tra L1 In-memory & L2 Upstash Redis qua cacheService (chỉ dùng cache khi có ít nhất 1 kết quả)
-    const cacheKey = `search:suggest:v2:${normKw}`;
+    const cacheKey = `search:suggest:v4:${normKw}`;
     const cached = await cacheService.get<{ items: unknown[] }>(cacheKey);
     if (cached && Array.isArray(cached.items) && cached.items.length > 0) {
       return NextResponse.json(cached);
@@ -96,8 +96,8 @@ export async function GET(req: NextRequest) {
       shouldCheckActor
         ? Promise.race([
           resolveActorMovies(keyword),
-          new Promise<{ isActor: boolean; actorName: string; titles: string[]; aliases: string[]; country?: string; source: "none" }>((resolve) =>
-            setTimeout(() => resolve({ isActor: false, actorName: "", titles: [], aliases: [], source: "none" }), 800)
+          new Promise<Awaited<ReturnType<typeof resolveActorMovies>>>((resolve) =>
+            setTimeout(() => resolve({ isActor: false, actorName: "", aliases: [], source: "none" }), 1800)
           ),
         ]).catch(() => null)
         : Promise.resolve(null),
@@ -209,48 +209,54 @@ export async function GET(req: NextRequest) {
       const actorDisplayName = toVietnameseTitleCase(matchedActorName);
       const targetCountry = matchedActorCountry;
 
-      // Tra cứu nhanh TMDB person để lấy ID và ảnh chân dung diễn viên (budget 450ms)
-      const personCandidates = [
-        actorDisplayName,
-        syn.englishName,
-        syn.canonicalName,
-        keyword,
-        syn.slug ? syn.slug.replace(/-/g, " ") : "",
-      ].filter((s): s is string => Boolean(s && s.trim().length >= 2));
+      // 1. Ưu tiên trực tiếp dữ liệu chuẩn từ actorRes (0ms)
+      matchedTmdbPersonId = actorRes.tmdbPersonId;
+      let actorPoster = actorRes.avatarUrl;
 
-      let tmdbPerson: { id: number; name: string; profile_path?: string | null } | null = null;
-      try {
-        for (const cand of personCandidates.slice(0, 3)) {
+      // 2. Chỉ fallback tra cứu thêm nếu chưa có TMDb Person ID
+      if (!matchedTmdbPersonId) {
+        const personCandidates = [
+          actorDisplayName,
+          syn.englishName,
+          syn.canonicalName,
+          keyword,
+          syn.slug ? syn.slug.replace(/-/g, " ") : "",
+        ].filter((s): s is string => Boolean(s && s.trim().length >= 2));
+
+        for (const cand of personCandidates.slice(0, 2)) {
           const found = await Promise.race([
             searchTmdbPerson(cand),
-            new Promise<null>((resolve) => setTimeout(() => resolve(null), 450)),
-          ]);
-          if (found && (found.profile_path || !tmdbPerson)) {
-            tmdbPerson = found;
-            if (found.profile_path) break;
+            new Promise<null>((resolve) => setTimeout(() => resolve(null), 350)),
+          ]).catch(() => null);
+          if (found?.id) {
+            matchedTmdbPersonId = found.id;
+            if (found.profile_path && !actorPoster) {
+              actorPoster = found.profile_path.startsWith("http")
+                ? found.profile_path
+                : `https://image.tmdb.org/t/p/w500${found.profile_path.startsWith("/") ? "" : "/"}${found.profile_path}`;
+            }
+            break;
           }
         }
-      } catch { }
-
-      if (tmdbPerson?.id) {
-        matchedTmdbPersonId = tmdbPerson.id;
       }
 
-      const candidateSlug = (syn.isMatched && syn.slug) ? syn.slug : (tmdbPerson?.name || actorDisplayName);
-      const cleanSlugPart = candidateSlug
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/^-+|-+$/g, "");
+      const cleanPosterUrl = (url?: string | null) => {
+        if (!url) return "/default-hero.jpg";
+        if (url.includes("image.tmdb.org/t/p/w500https://image.tmdb.org/t/p/w500")) {
+          return url.replace("image.tmdb.org/t/p/w500https://image.tmdb.org/t/p/w500", "image.tmdb.org/t/p/w500");
+        }
+        if (url.startsWith("http")) return url;
+        return `https://image.tmdb.org/t/p/w500${url.startsWith("/") ? "" : "/"}${url}`;
+      };
 
-      const destinationSlug = tmdbPerson?.id
-        ? `dien-vien/${tmdbPerson.id}-${cleanSlugPart}`
+      const candidateSlug = (syn.isMatched && syn.slug) ? syn.slug : actorDisplayName;
+      const cleanSlugPart = slugify(candidateSlug);
+
+      const destinationSlug = matchedTmdbPersonId
+        ? `dien-vien/${matchedTmdbPersonId}-${cleanSlugPart}`
         : cleanSlugPart
           ? `dien-vien/${cleanSlugPart}`
           : `browse?actor=${encodeURIComponent(actorDisplayName)}`;
-
-      const actorPoster =
-        tmdbPerson?.profile_path ||
-        "/default-hero.jpg";
 
       const displayTitle = (syn.englishName && syn.englishName !== actorDisplayName)
         ? `Diễn viên: ${actorDisplayName} (${syn.englishName})`
@@ -259,7 +265,7 @@ export async function GET(req: NextRequest) {
       const actorItem = {
         slug: destinationSlug,
         title: displayTitle,
-        poster: actorPoster,
+        poster: cleanPosterUrl(actorPoster),
         year: targetCountry,
         quality: "Hồ Sơ",
         category: "Diễn Viên",

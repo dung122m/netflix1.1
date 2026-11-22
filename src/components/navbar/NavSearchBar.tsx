@@ -155,10 +155,10 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(
         >
           <form
             onSubmit={handleSearchSubmit}
-            className={`flex items-center transition-all duration-300 rounded-full ${
+            className={`flex items-center transition-[width,background-color,border-color,box-shadow] duration-300 ease-out rounded-full ${
               isSearchOpen
-                ? "w-[240px] lg:w-[270px] xl:w-[300px] border border-white/35 bg-black/90 px-3 py-1.5 backdrop-blur-md shadow-lg"
-                : "w-9 border-transparent px-1 py-1"
+                ? "w-[260px] lg:w-[300px] xl:w-[340px] border border-white/30 bg-black/90 px-3 py-1.5 backdrop-blur-md shadow-lg"
+                : "w-9 border border-transparent bg-transparent px-1 py-1"
             }`}
           >
             <Tooltip
@@ -182,19 +182,23 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(
               </button>
             </Tooltip>
 
-            <input
-              ref={inputRef}
-              type="text"
-              placeholder="Tìm phim trên Nanaflix..."
-              onChange={handleInputChange}
-              onKeyDown={handleInputKeyDown}
-              onFocus={() => setShowDropdown(true)}
-              className={`bg-transparent text-white text-base sm:text-sm outline-none transition-opacity duration-300 ${
+            <div
+              className={`flex-1 min-w-0 overflow-hidden transition-all duration-300 ${
                 isSearchOpen
-                  ? "flex-1 min-w-0 ml-2 pr-1 opacity-100 placeholder:text-zinc-400"
-                  : "w-0 opacity-0 pointer-events-none"
+                  ? "opacity-100 ml-2 pointer-events-auto"
+                  : "opacity-0 w-0 pointer-events-none"
               }`}
-            />
+            >
+              <input
+                ref={inputRef}
+                type="text"
+                placeholder="Tìm phim trên Nanaflix..."
+                onChange={handleInputChange}
+                onKeyDown={handleInputKeyDown}
+                onFocus={() => setShowDropdown(true)}
+                className="w-full bg-transparent text-white text-base sm:text-sm outline-none placeholder:text-zinc-400"
+              />
+            </div>
 
             {isSearchOpen && (
               <div className="flex items-center gap-1 flex-shrink-0">

@@ -46,7 +46,7 @@ export function SearchDropdownPanel({
   const isMobile = variant === "mobile";
   const containerClass = isMobile
     ? "fixed top-[52px] sm:top-[56px] inset-x-2 w-auto max-w-lg mx-auto bg-zinc-900/98 backdrop-blur-2xl rounded-2xl p-3 shadow-[0_24px_60px_rgba(0,0,0,0.95),0_0_20px_rgba(0,0,0,0.8)] border border-white/[0.14] ring-1 ring-white/10 z-50 max-h-[calc(100dvh-64px)] sm:max-h-[calc(100dvh-72px)] overflow-y-auto overscroll-contain transform-gpu will-change-[transform,opacity]"
-    : "absolute top-full mt-2 right-0 w-[380px] bg-zinc-900/98 backdrop-blur-2xl rounded-xl shadow-[0_24px_60px_rgba(0,0,0,0.95),0_0_25px_rgba(0,0,0,0.8)] border border-white/[0.14] ring-1 ring-white/10 p-2.5 z-50 animate-in fade-in zoom-in-95 duration-150 transform-gpu will-change-[transform,opacity]";
+    : "absolute top-full mt-2 right-0 w-[360px] lg:w-[380px] bg-zinc-900/98 backdrop-blur-2xl rounded-xl shadow-[0_24px_60px_rgba(0,0,0,0.95),0_0_25px_rgba(0,0,0,0.8)] border border-white/[0.14] ring-1 ring-white/10 p-2.5 z-50 animate-in fade-in duration-200 transform-gpu will-change-[transform,opacity]";
 
   return (
     <div className={containerClass}>
@@ -240,13 +240,55 @@ export function SearchDropdownPanel({
       ) : hasSearchText ? (
         <div className="py-2.5 px-1 space-y-2">
           {queryText.trim().length < 2 ? (
-            <p className="text-xs text-zinc-400 text-center py-2">
-              Nhập từ 2 ký tự trở lên để xem gợi ý phim...
-            </p>
+            recentSearches.length > 0 ? (
+              <div>
+                <div className="flex items-center justify-between text-[11px] font-semibold text-zinc-400 px-2 py-1 mb-1 border-b border-white/[0.08]">
+                  <span className="flex items-center gap-1.5 text-xs">
+                    <History size={12} className="text-netflix-red" />
+                    Tìm kiếm gần đây
+                  </span>
+                </div>
+                <div className="flex flex-col gap-0.5 mt-1">
+                  {recentSearches
+                    .filter((s) => s.toLowerCase().includes(queryText.trim().toLowerCase()))
+                    .slice(0, 4)
+                    .map((kw, idx) => (
+                      <div
+                        key={kw}
+                        onClick={() => onRecentClick(kw)}
+                        className={`flex items-center justify-between px-2.5 py-1.5 rounded-lg transition cursor-pointer group ${
+                          selectedSuggestionIndex === idx
+                            ? "bg-zinc-800 text-white"
+                            : "hover:bg-zinc-850 text-zinc-300 hover:text-white"
+                        }`}
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <History size={13} className="text-zinc-500 group-hover:text-netflix-red transition flex-none" />
+                          <span className="text-xs transition truncate">{kw}</span>
+                        </div>
+                        <Tooltip content="Xóa từ khóa này" side="left">
+                          <button
+                            type="button"
+                            onClick={(e) => onRemoveRecent(kw, e)}
+                            aria-label="Xóa từ khóa này"
+                            className="p-1 text-zinc-500 hover:text-white rounded transition cursor-pointer hover:bg-white/10"
+                          >
+                            <X size={12} />
+                          </button>
+                        </Tooltip>
+                      </div>
+                    ))}
+                </div>
+              </div>
+            ) : (
+              <p className="text-xs text-zinc-400 text-center py-2">
+                Nhập từ 2 ký tự trở lên để xem gợi ý phim...
+              </p>
+            )
           ) : (
             <>
               <p className="text-xs text-zinc-400 px-2">
-                Không có gợi ý nhanh phù hợp
+                Không tìm thấy phim hoặc nghệ sĩ phù hợp
               </p>
               <button
                 type="button"

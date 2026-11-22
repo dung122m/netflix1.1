@@ -109,22 +109,17 @@ export function useNavSearch({
         }
         const data = await res.json();
         const items = data.items || [];
-        clientSuggestCache.set(normKey, items);
+        if (items.length > 0) {
+          clientSuggestCache.set(normKey, items);
+        }
 
-        const isFocused =
-          typeof document !== "undefined" &&
-          (document.activeElement === inputRef.current ||
-            document.activeElement === mobileInputRef.current);
         const currentInputVal = (
           inputRef.current?.value ||
           mobileInputRef.current?.value ||
           ""
         ).trim();
 
-        if (
-          isFocused &&
-          currentInputVal.toLowerCase() === trimmed.toLowerCase()
-        ) {
+        if (currentInputVal.toLowerCase() === trimmed.toLowerCase()) {
           setSuggestions(items);
           setShowDropdown(true);
         }
@@ -132,8 +127,7 @@ export function useNavSearch({
         if (err instanceof Error && err.name === "AbortError") {
           return;
         }
-        console.error("Lỗi gợi ý tìm kiếm:", err);
-        setSuggestions([]);
+        console.warn("[search-suggest] Lỗi gợi ý tìm kiếm:", err);
       } finally {
         if (abortControllerRef.current === controller) {
           abortControllerRef.current = null;
@@ -185,19 +179,23 @@ export function useNavSearch({
       );
       if (!insideDesktopSearch && !insideMobileSearch) {
         setShowDropdown(false);
-        setIsSearchExpanded(false);
+        if (pathname !== "/browse" && !urlKeyword) {
+          setIsSearchExpanded(false);
+        }
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [setIsSearchExpanded]);
+  }, [setIsSearchExpanded, pathname, urlKeyword]);
 
   // Global hotkey Ctrl+K, / to open search, and Escape to close
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape" && isSearchExpandedRef.current) {
         setShowDropdown(false);
-        setIsSearchExpanded(false);
+        if (pathname !== "/browse" && !urlKeyword) {
+          setIsSearchExpanded(false);
+        }
         inputRef.current?.blur();
         mobileInputRef.current?.blur();
         return;
@@ -217,7 +215,7 @@ export function useNavSearch({
         e.preventDefault();
         onOpenMobileSearchRef.current?.();
         setIsSearchExpanded(true);
-        setTimeout(() => {
+        requestAnimationFrame(() => {
           if (typeof window !== "undefined" && window.innerWidth < 768) {
             mobileInputRef.current?.focus();
             mobileInputRef.current?.select();
@@ -225,22 +223,25 @@ export function useNavSearch({
             inputRef.current?.focus();
             inputRef.current?.select();
           }
-        }, 50);
+        });
+        setTimeout(() => {
+          setShowDropdown(true);
+        }, 120);
       }
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [setIsSearchExpanded]);
+  }, [setIsSearchExpanded, pathname, urlKeyword]);
 
   // Close dropdown and abort pending fetches on route or search params change
   useEffect(() => {
     abortPendingSearch();
     setShowDropdown(false);
-    if (pathname !== "/browse") {
+    if (pathname !== "/browse" && !urlKeyword) {
       setIsSearchExpanded(false);
     }
-  }, [pathname, searchParams, abortPendingSearch, setIsSearchExpanded]);
+  }, [pathname, searchParams, abortPendingSearch, setIsSearchExpanded, urlKeyword]);
 
   const saveRecentSearch = useCallback((kw: string) => {
     const clean = kw.trim();
@@ -319,17 +320,23 @@ export function useNavSearch({
       if (!isSearchExpanded) {
         onOpenMobileSearch?.();
         setIsSearchExpanded(true);
-        setShowDropdown(true);
-        setTimeout(() => {
+        requestAnimationFrame(() => {
           if (typeof window !== "undefined" && window.innerWidth < 768) {
             mobileInputRef.current?.focus();
           } else {
             inputRef.current?.focus();
           }
-        }, 100);
+        });
+        setTimeout(() => {
+          setShowDropdown(true);
+        }, 120);
       } else {
-        setIsSearchExpanded(false);
-        setShowDropdown(false);
+        if (typeof window !== "undefined" && window.innerWidth < 768) {
+          mobileInputRef.current?.focus();
+        } else {
+          inputRef.current?.focus();
+        }
+        setShowDropdown(true);
       }
     },
     [isSearchExpanded, onOpenMobileSearch, setIsSearchExpanded],
