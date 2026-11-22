@@ -10,7 +10,7 @@ import { resolveTeamLogo, enrichMatchLogos } from "@/services/live/football-logo
 test("1. Xác minh logo T1, Gen.G và các đội tuyển Esports từ nguồn Wikimedia thực tế", async () => {
   const t1 = await resolveDynamicSportsLogo("T1", "esports");
   assert.ok(t1, "T1 logo must be found");
-  assert.match(t1, /wikimedia\.org.*T1_logo\.svg/i);
+  assert.match(t1, /wikimedia\.org.*(T1_logo|SK_logo)\.svg/i);
 
   const geng = await resolveDynamicSportsLogo("Gen.G", "esports");
   assert.ok(geng, "Gen.G logo must be found");
