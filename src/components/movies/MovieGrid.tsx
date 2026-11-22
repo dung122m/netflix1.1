@@ -28,10 +28,18 @@ const MovieGridInner = ({ movies, columnsClassName }: MovieGridProps) => {
     });
   }, [movies]);
 
+  const isFirstMount = useRef(true);
+
   // Reset batch & tắt dimming khi danh sách phim thay đổi (đổi trang, filter)
+  // Chỉ cuộn lên đầu KHI TRANG MỚI ĐÃ TẢI XONG (không bao giờ giật lên đầu của trang cũ trước)
   useEffect(() => {
     setVisibleCount(INITIAL_BATCH);
     setIsDimmed(false);
+    if (isFirstMount.current) {
+      isFirstMount.current = false;
+      return;
+    }
+    window.scrollTo(0, 0);
   }, [movies]);
 
   // Lắng nghe sự kiện loading toàn trang hoặc filter để làm mờ nhẹ lưới phim tức thì

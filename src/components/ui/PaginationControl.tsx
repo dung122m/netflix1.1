@@ -35,7 +35,6 @@ const PaginationControlInner: React.FC<PaginationControlProps> = ({
   const handlePageClick = (pageNumber: number) => {
     if (onPageChange) {
       onPageChange(pageNumber);
-      window.scrollTo(0, 0);
     }
   };
 
@@ -82,11 +81,10 @@ const PaginationControlInner: React.FC<PaginationControlProps> = ({
 
     const validPage = Math.min(Math.max(1, pageNum), safeTotalPages);
     setIsJumpOpen(false);
-    window.scrollTo(0, 0);
     if (onPageChange) {
       onPageChange(validPage);
     } else {
-      router.push(buildPageUrl(validPage));
+      router.push(buildPageUrl(validPage), { scroll: false });
     }
   };
 
@@ -116,7 +114,7 @@ const PaginationControlInner: React.FC<PaginationControlProps> = ({
         <Link
           href={buildPageUrl(prevPage)}
           prefetch={false}
-          onClick={() => window.scrollTo(0, 0)}
+          scroll={false}
           tabIndex={safeCurrentPage <= 1 ? -1 : 0}
           className={`px-3.5 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm rounded-xl font-semibold transition touch-target min-h-[40px] flex items-center justify-center outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-105 cursor-pointer ${
             safeCurrentPage <= 1
@@ -166,7 +164,7 @@ const PaginationControlInner: React.FC<PaginationControlProps> = ({
               key={index}
               href={buildPageUrl(pageNum)}
               prefetch={false}
-              onClick={() => window.scrollTo(0, 0)}
+              scroll={false}
               className={`w-9 h-9 sm:w-10 sm:h-10 text-xs sm:text-sm flex items-center justify-center rounded-lg font-semibold transition-all outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-110 cursor-pointer ${
                 isActive
                   ? "bg-netflix-red text-white shadow-sm font-bold"
@@ -257,7 +255,7 @@ const PaginationControlInner: React.FC<PaginationControlProps> = ({
         <Link
           href={buildPageUrl(nextPage)}
           prefetch={false}
-          onClick={() => window.scrollTo(0, 0)}
+          scroll={false}
           tabIndex={safeCurrentPage >= safeTotalPages ? -1 : 0}
           className={`px-3.5 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm rounded-xl font-semibold transition touch-target min-h-[40px] flex items-center justify-center outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-105 cursor-pointer ${
             safeCurrentPage >= safeTotalPages
