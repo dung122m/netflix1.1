@@ -476,6 +476,9 @@ export default async function BrowsePage({
     });
 
     movies = smartSearchRes.items;
+    if (movies.length > 0) {
+      await enrichMovieListPosters(movies, { budgetMs: 1500, stripProxyUrls: true });
+    }
     upstreamMovies = movies;
     totalPages = smartSearchRes.totalPages;
     totalItems = smartSearchRes.totalItems;

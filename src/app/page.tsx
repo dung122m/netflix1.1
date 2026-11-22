@@ -310,7 +310,7 @@ export default async function HomePage() {
       page: 1,
       limit: 24,
       sort: "views",
-      posterEnrichmentBudgetMs: 0,
+      posterEnrichmentBudgetMs: 1500,
     }),
     Promise.race([
       getTmdbRankedMovies("week", 20).catch(() => []),

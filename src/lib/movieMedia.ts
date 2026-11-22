@@ -373,6 +373,35 @@ export function pickBestMoviePoster(movie: MovieLike, fallback = "/default-poste
     ? `https://image.tmdb.org/t/p/w500${rawMovie.poster_path}`
     : null;
 
+  // Thu thập TẤT CẢ các URL ảnh tiềm năng từ mọi thuộc tính
+  const allCandidates = [
+    tmdbPoster,
+    rawMovie.poster_url,
+    rawMovie.posterUrl,
+    rawMovie.poster_url_webp,
+    movie.poster_url,
+    movie.posterUrl,
+    rawMovie.thumb_url,
+    rawMovie.thumbUrl,
+    rawMovie.thumb_url_webp,
+    movie.thumb_url,
+    movie.thumbUrl,
+    movie.imageUrl,
+  ]
+    .filter((value): value is string => typeof value === "string" && value.length > 0)
+    .map(sanitizeImageUrl)
+    .filter((url) => Boolean(url) && !url.endsWith("/null") && !url.endsWith("/undefined"));
+
+  if (allCandidates.length === 0) return fallback;
+
+  // 1. NẤC 1: ƯU TIÊN TUYỆT ĐỐI TMDb CDN chính hãng (image.tmdb.org)
+  // Bất kể nó nằm ở poster_url, posterUrl, poster_path hay thumb_url!
+  for (const c of allCandidates) {
+    if (c.includes("image.tmdb.org")) {
+      return c;
+    }
+  }
+
   // NguonC: thumb_url_webp là ảnh dọc 2:3 WebP nhẹ (20-40KB), poster_url là backdrop ngang 16:9
   const primary = isNguonC
     ? rawMovie.thumb_url_webp || rawMovie.thumb_url || rawMovie.thumbUrl || movie.thumb_url || movie.thumbUrl
@@ -382,29 +411,20 @@ export function pickBestMoviePoster(movie: MovieLike, fallback = "/default-poste
     ? rawMovie.poster_url_webp || rawMovie.poster_url || rawMovie.posterUrl || movie.poster_url || movie.posterUrl
     : rawMovie.thumb_url_webp || rawMovie.thumb_url || rawMovie.thumbUrl || movie.thumb_url || movie.thumbUrl;
 
-  const candidates = [tmdbPoster, primary, secondary, movie.imageUrl]
+  const fallbackCandidates = [primary, secondary, movie.imageUrl]
     .filter((value): value is string => typeof value === "string" && value.length > 0)
     .map(sanitizeImageUrl)
     .filter((url) => Boolean(url) && !url.endsWith("/null") && !url.endsWith("/undefined"));
 
-  if (candidates.length === 0) return fallback;
-
-  // 1. Ưu tiên tuyệt đối TMDb CDN chính hãng (image.tmdb.org)
-  for (const c of candidates) {
-    if (c.includes("image.tmdb.org")) {
-      return c;
-    }
-  }
-
-  // 2. Ưu tiên biến thể WebP chuẩn dọc 2:3 từ nguồn phim (siêu nhẹ 20-40KB)
-  for (const c of candidates) {
+  // 2. NẤC 2: Ưu tiên biến thể WebP chuẩn dọc 2:3 từ nguồn phim (siêu nhẹ 20-40KB)
+  for (const c of fallbackCandidates) {
     if (c.toLowerCase().includes(".webp")) {
       return c;
     }
   }
 
   // 3. Fallback về ứng viên đầu tiên hợp lệ
-  return candidates[0] || fallback || "";
+  return fallbackCandidates[0] || allCandidates[0] || fallback || "";
 }
 
 export function pickBestMovieThumb(movie: MovieLike, fallback = "/default-hero.svg"): string {

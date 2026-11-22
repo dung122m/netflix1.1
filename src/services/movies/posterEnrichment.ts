@@ -222,25 +222,17 @@ export async function enrichMovieListPosters(movieList: any[], options: PosterEn
 
       // Phim có nguồn gốc Việt Nam ưu tiên tên Việt và áp expectedCountry = "VN".
       // Phim quốc tế (Anime, US/UK, K-drama, C-drama) ưu tiên origin_name để tìm chuẩn xác trên TMDb quốc tế.
-      const primaryCandidates = isVietnameseCountry
-        ? Array.from(
-          new Set(
-            [
-              item.name,
-              item.slug ? String(item.slug).replace(/-/g, " ") : null,
-              item.origin_name && item.origin_name !== item.name ? item.origin_name : null,
-            ].filter(Boolean) as string[]
-          )
-        ).slice(0, 2)
-        : Array.from(
-          new Set(
-            [
-              item.origin_name && item.origin_name !== item.name ? item.origin_name : null,
-              item.name,
-              item.slug ? String(item.slug).replace(/-/g, " ") : null,
-            ].filter(Boolean) as string[]
-          )
-        ).slice(0, 2);
+      const rawCandidates = isVietnameseCountry
+        ? [item.name, item.origin_name, item.slug ? String(item.slug).replace(/-/g, " ") : null]
+        : [item.origin_name, item.name, item.slug ? String(item.slug).replace(/-/g, " ") : null];
+
+      const primaryCandidates = Array.from(
+        new Set(
+          rawCandidates
+            .filter((s): s is string => typeof s === "string" && s.trim().length >= 2)
+            .map((s) => s.trim())
+        )
+      ).slice(0, 3);
 
       let foundPoster = false;
       for (const query of primaryCandidates) {
@@ -256,9 +248,13 @@ export async function enrichMovieListPosters(movieList: any[], options: PosterEn
           if (res?.posterUrl) {
             if (posterNonTmdb) {
               item.poster_url = res.posterUrl;
+              item.posterUrl = res.posterUrl;
+              item.poster_url_webp = res.posterUrl;
             }
             if (shouldUpgradeThumbUrl(item.thumb_url)) {
               item.thumb_url = res.backdropUrl || res.posterUrl;
+              item.thumbUrl = res.backdropUrl || res.posterUrl;
+              item.thumb_url_webp = res.backdropUrl || res.posterUrl;
             }
             foundPoster = true;
             break;

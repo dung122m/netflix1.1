@@ -226,34 +226,60 @@ export async function getTmdbPosterUrl(
 
 const TMDB_TITLE_POSTER_CACHE = new Map<string, { posterUrl: string | null; backdropUrl: string | null; expireAt: number }>();
 
+const NOISE_TAGS_REGEX = /\s*\[(?:Vietsub|Thuyết Minh|Lồng Tiếng|Full HD|HD|Cam|Bản Đẹp|Trailer|Raw)[^\]]*\]|\s*\((?:Vietsub|Thuyết Minh|Lồng Tiếng|Full HD|HD|Cam|Bản Đẹp|Trailer|Raw)[^)]*\)/gi;
+const SEASON_TAGS_REGEX = /\s*\((?:Phần|Season|SS|Part)\s*\d+[^)]*\)|\s*(?:Phần|Season|SS|Part)\s*\d+/gi;
+const YEAR_PARENS_REGEX = /\s*\((?:19\d{2}|20\d{2})\)|\s*\[(?:19\d{2}|20\d{2})\]/g;
+const EPISODE_TAGS_REGEX = /\s*-\s*Tập\s*\d+|\s*Tập\s*\d+|\s*-\s*Bản Full/gi;
+
 function extractTitleVariants(text: string): string[] {
   if (!text) return [];
   const res: string[] = [];
   const add = (s: string) => {
-    const trimmed = (s || "").trim();
-    if (trimmed.length >= 2 && !res.includes(trimmed)) res.push(trimmed);
+    const trimmed = (s || "").trim().replace(/\s+/g, " ");
+    if (
+      trimmed.length >= 2 &&
+      !/^\d+$/.test(trimmed) &&
+      !/^(thuyet minh|vietsub|long tieng|ban dep|full hd|trailer)$/i.test(trimmed) &&
+      !res.includes(trimmed)
+    ) {
+      res.push(trimmed);
+    }
   };
-  add(text);
 
-  const noSeason = text
-    .replace(/\((?:Phần|Season|SS|Part)\s*\d+[^)]*\)/gi, "")
-    .replace(/(?:Phần|Season|SS|Part)\s*\d+/gi, "")
-    .replace(/\[[^\]]*\]/g, "")
+  const cleaned = text
+    .replace(NOISE_TAGS_REGEX, "")
+    .replace(SEASON_TAGS_REGEX, "")
+    .replace(YEAR_PARENS_REGEX, "")
+    .replace(EPISODE_TAGS_REGEX, "")
     .trim();
-  add(noSeason);
 
+  add(cleaned);
+
+  // Tên phụ trong ngoặc đơn (thường là tên tiếng Anh hoặc tên gốc của phim)
   const matches = text.match(/\(([^)]+)\)/g);
   if (matches) {
     for (const m of matches) {
       const inside = m.slice(1, -1).trim();
-      if (!/^(Phần|Season|SS|Part)\s*\d+/i.test(inside)) {
-        add(inside);
-      }
+      add(inside);
     }
   }
 
-  const noParens = text.replace(/\([^)]*\)/g, "").trim();
+  // Tách theo dấu gạch chéo `/` (e.g. "Bok-soo's Back / My Strange Hero")
+  if (cleaned.includes("/")) {
+    const parts = cleaned.split("/").map((p) => p.trim()).filter(Boolean);
+    for (const p of parts) add(p);
+  }
+
+  // Tách theo dấu hai chấm `:` nếu có phụ đề dài
+  if (cleaned.includes(":")) {
+    const parts = cleaned.split(":").map((p) => p.trim()).filter(Boolean);
+    if (parts[0] && parts[0].length >= 3) add(parts[0]);
+    if (parts[1] && parts[1].length >= 3) add(parts[1]);
+  }
+
+  const noParens = cleaned.replace(/\([^)]*\)/g, "").trim();
   add(noParens);
+  add(text);
 
   return res;
 }
@@ -287,6 +313,7 @@ function pickBestTmdbCandidate(
     let score = 0;
     const itemType = r.media_type || (r.first_air_date ? "tv" : "movie");
     if (itemType === targetType) score += 60;
+    else score += 30; // Nhiều phim bộ/anime bị gán nhầm loại, cho 30 điểm thay vì 0
 
     // Title similarity scoring
     const titleCandidates = [r.title, r.name, r.original_title, r.original_name]
@@ -297,9 +324,9 @@ function pickBestTmdbCandidate(
       for (const candTitle of titleCandidates) {
         const normCand = normalizeForMatch(candTitle);
         if (normCand === normQuery) {
-          bestTitleSim = Math.max(bestTitleSim, 100);
+          bestTitleSim = Math.max(bestTitleSim, 120);
         } else if (normCand && (normCand.includes(normQuery) || normQuery.includes(normCand))) {
-          bestTitleSim = Math.max(bestTitleSim, 60);
+          bestTitleSim = Math.max(bestTitleSim, 70);
         }
       }
     }
@@ -317,15 +344,12 @@ function pickBestTmdbCandidate(
           score += 20;
         } else if (bestTitleSim >= 100) {
           // Tên phim khớp chính xác nhưng năm upload nguồn lệch năm công chiếu
-          score -= 20;
+          score -= 10;
         } else if (diff > 3) {
-          score -= 100;
+          score -= 60;
         }
       }
     } else if (parsedYear && !relDate) {
-      // If a specific year was requested but candidate has NO release date at all,
-      // it cannot be verified against the requested year.
-      // Penalize heavily for unverified stubs with 0 votes to prevent poster hijacking!
       if ((r.vote_count || 0) < 2) {
         score -= 220;
       } else {
@@ -334,7 +358,6 @@ function pickBestTmdbCandidate(
     }
 
     if ((r.vote_count || 0) === 0 && (!r.overview || typeof r.overview !== "string" || r.overview.trim().length === 0)) {
-      // Zero-vote stub without description
       score -= 50;
     }
 
@@ -343,7 +366,6 @@ function pickBestTmdbCandidate(
     score += Math.min(20, (r.popularity || 0) / 10);
 
     // Strict country / language protection:
-    // If the movie is known to be Vietnamese:
     if (isVietnamese) {
       const origLang = (r.original_language || "").toLowerCase();
       const originCountries: string[] = Array.isArray(r.origin_country)
@@ -354,7 +376,6 @@ function pickBestTmdbCandidate(
       if (isCandidateVietnamese) {
         score += 80;
       } else if (bestTitleSim < 80) {
-        // Chỉ trừ điểm nếu tên phim không trùng khớp cao (chống hijack poster cho phim Việt)
         score -= 250;
       }
     }
@@ -364,8 +385,7 @@ function pickBestTmdbCandidate(
 
   scored.sort((a, b) => b.score - a.score);
   const best = scored[0];
-  // Minimum quality threshold: require score >= 60 to prevent junk/stub matches
-  if (!best || best.score < 60) {
+  if (!best || best.score < 50) {
     return null;
   }
   return best.item;
@@ -387,7 +407,6 @@ export async function searchTmdbPosterByTitle(
   if (cleanQuery.length < 2) return { posterUrl: null, backdropUrl: null };
 
   const cleanType = normalizeTmdbLookupMediaType(type);
-  const searchYear = year && /^\d{4}$/.test(String(year).trim()) && cleanType === "movie" ? `&year=${String(year).trim()}` : "";
   const cacheKey = `v3:${cleanQuery}|${year || ""}|${cleanType}|${expectedCountry || ""}`.toLowerCase();
   const cleanQueryNorm = cleanQuery.toLowerCase().replace(/[^a-z0-9]/g, "_").slice(0, 48);
   const redisKey = `tmdb:poster:v3:${cleanQueryNorm}:${year || ""}:${cleanType}:${expectedCountry || ""}`;
@@ -417,7 +436,7 @@ export async function searchTmdbPosterByTitle(
     return awaitWithAbort(existingFlight, externalSignal, { posterUrl: null, backdropUrl: null });
   }
 
-  const variants = extractTitleVariants(cleanQuery).slice(0, 3);
+  const variants = extractTitleVariants(cleanQuery).slice(0, 4);
   const candidateOptions: TmdbCandidateOptions = {
     originalQuery: cleanQuery,
     expectedCountry,
@@ -447,16 +466,16 @@ export async function searchTmdbPosterByTitle(
           }
         } catch {}
 
-        // 2. Fallback localized theo type cho 2 biến thể đầu tiên
+        // 2. Fallback search/multi với language=vi-VN (cho phim có bản dịch tiếng Việt)
         if (i < 2 && !externalSignal?.aborted) {
           try {
-            const endpointType = `/search/${cleanType}?query=${encodeURIComponent(v)}${searchYear}&language=vi-VN`;
-            const dataType = await fetchTmdbEndpoint(endpointType, 86400, externalSignal);
-            const bestType = pickBestTmdbCandidate(dataType?.results, cleanType, year, candidateOptions);
-            if (bestType?.poster_path) {
+            const endpointMultiVi = `/search/multi?query=${encodeURIComponent(v)}&language=vi-VN&include_adult=false`;
+            const dataMultiVi = await fetchTmdbEndpoint(endpointMultiVi, 86400, externalSignal);
+            const bestMultiVi = pickBestTmdbCandidate(dataMultiVi?.results, cleanType, year, candidateOptions);
+            if (bestMultiVi?.poster_path) {
               result = {
-                posterUrl: `https://image.tmdb.org/t/p/w500${bestType.poster_path}`,
-                backdropUrl: bestType.backdrop_path ? `https://image.tmdb.org/t/p/w1280${bestType.backdrop_path}` : null,
+                posterUrl: `https://image.tmdb.org/t/p/w500${bestMultiVi.poster_path}`,
+                backdropUrl: bestMultiVi.backdrop_path ? `https://image.tmdb.org/t/p/w1280${bestMultiVi.backdrop_path}` : null,
               };
               break;
             }

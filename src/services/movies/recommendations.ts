@@ -3,6 +3,7 @@ import { movieApi, DEFAULT_GENRES, DEFAULT_COUNTRIES } from "@/services/movies/s
 import { matchesActorAlias } from "@/lib/actorAlias";
 import { queryMoviesByActor } from "@/services/aiActorService";
 import { getTmdbMovieRecommendations, getDirectorFilmographyFromTmdb } from "@/services/tmdbService";
+import { enrichMovieListPosters } from "@/services/movies/posterEnrichment";
 import { cacheService } from "@/lib/cache";
 
 export interface TaxonomyRef {
@@ -502,6 +503,11 @@ export async function computeMovieRecommendations(body: any): Promise<Recommenda
       .filter((it) => it._hasDirectorMatch)
       .sort((a, b) => Number(b.year || 0) - Number(a.year || 0))
       .slice(0, 24);
+
+    const toEnrich = Array.from(new Set([...allMovies, ...genreMovies, ...countryMovies]));
+    if (toEnrich.length > 0) {
+      await enrichMovieListPosters(toEnrich, { budgetMs: 1200, stripProxyUrls: true });
+    }
 
     return {
       success: true,
