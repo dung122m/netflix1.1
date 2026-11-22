@@ -132,21 +132,22 @@ export function useLiveScoresRealtime({
           initialMap[m.id] = m.score;
         }
       }
-      // Khôi phục tức thì từ sessionStorage (0ms) để hiển thị ngay khi F5 reload mà không cần chờ mạng
-      if (typeof window !== "undefined") {
-        try {
-          const saved = sessionStorage.getItem("nanaflix_live_scores_cache");
-          if (saved) {
-            const parsed = JSON.parse(saved);
-            if (parsed && typeof parsed === "object") {
-              Object.assign(initialMap, parsed);
-            }
-          }
-        } catch {}
-      }
       return initialMap;
     },
   );
+
+  // Khôi phục an toàn từ sessionStorage sau khi component đã mount (tránh hydration mismatch giữa server và client)
+  useEffect(() => {
+    try {
+      const saved = sessionStorage.getItem("nanaflix_live_scores_cache");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && typeof parsed === "object") {
+          setScoresMap((prev) => ({ ...parsed, ...prev }));
+        }
+      }
+    } catch {}
+  }, []);
 
   // Đồng hồ cập nhật sau mount phục vụ phân loại cửa sổ thời gian trước kickoff
   const [now, setNow] = useState<number>(0);

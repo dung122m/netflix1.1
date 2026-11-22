@@ -85,20 +85,8 @@ export function LiveFootballClient({
     "matches" | "match-center" | "standings"
   >("matches");
   const [sidePanelTab, setSidePanelTab] = useState<"timeline" | "matches">("matches");
-  const [matchSummary, setMatchSummary] = useState<NormalizedMatchSummary | null>(() => {
-    if (typeof window !== "undefined" && initialMatch?.id) {
-      try {
-        const saved = sessionStorage.getItem(`nanaflix_summary_${initialMatch.id}`);
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          if (parsed && typeof parsed === "object") {
-            return parsed;
-          }
-        }
-      } catch {}
-    }
-    return null;
-  });
+  // Khởi tạo null ban đầu để đảm bảo SSR và Client Hydration đồng nhất 100% (tránh Hydration failed)
+  const [matchSummary, setMatchSummary] = useState<NormalizedMatchSummary | null>(null);
   const [isSummaryLoading, setIsSummaryLoading] = useState<boolean>(false);
   const matchSummaryMemoryRef = useRef<Map<string, NormalizedMatchSummary>>(new Map());
 

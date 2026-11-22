@@ -165,6 +165,7 @@ export function Tooltip({
         id={tooltipId}
         role="tooltip"
         aria-hidden={!isOpen}
+        suppressHydrationWarning
         className={`pointer-events-none select-none absolute z-50 whitespace-nowrap px-2.5 py-1 rounded-lg bg-zinc-900/95 backdrop-blur-md text-zinc-100 text-[11px] font-medium tracking-normal  shadow-[0_8px_20px_rgba(0,0,0,0.85)] transition-all duration-150 ease-out hidden sm:flex items-center gap-1.5 ${positionClass} ${
           isOpen
             ? "opacity-100 scale-100 translate-y-0"
