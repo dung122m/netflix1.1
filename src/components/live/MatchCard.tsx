@@ -206,25 +206,31 @@ function MatchTimeBadge({
 
   if (compact) {
     return (
-      <>
+      <div className="inline-flex items-center gap-1.5 leading-none">
         {timeInfo.state === "live" && displayMin && (
-          <span className="text-[10px] font-bold text-rose-400 leading-none">{displayMin}</span>
+          <span className="text-[10px] font-bold text-rose-400 leading-none inline-flex items-center">{displayMin}</span>
         )}
         {timeInfo.state === "ht" && (
-          <span className="text-[10px] font-bold text-amber-400 leading-none">HT</span>
+          <span className="text-[10px] font-bold text-amber-400 leading-none inline-flex items-center">HT</span>
         )}
         {timeInfo.state === "ft" && (
-          <span className="text-[10px] text-zinc-400 font-semibold leading-none">FT</span>
+          <span className="text-[10px] text-zinc-400 font-semibold leading-none inline-flex items-center">FT</span>
         )}
         {timeInfo.state === "special" && (
-          <span className="text-[10px] font-bold text-amber-400 leading-none">{timeInfo.clockBadge}</span>
+          <span className="text-[10px] font-bold text-amber-400 leading-none inline-flex items-center">{timeInfo.clockBadge}</span>
         )}
         {kickoffTime && (
-          <span className={`tabular-nums ${timeInfo.state === "upcoming" ? "font-sans text-xs font-semibold text-zinc-300" : "text-[10px] font-sans text-zinc-400"}`}>
+          <span
+            className={`tabular-nums leading-none inline-flex items-center ${
+              timeInfo.state === "upcoming"
+                ? "font-sans text-[11px] font-semibold text-zinc-300"
+                : "text-[10px] font-sans text-zinc-400"
+            }`}
+          >
             {kickoffTime}
           </span>
         )}
-      </>
+      </div>
     );
   }
 
@@ -436,18 +442,18 @@ function MatchCardInner({ match, isSelected, onSelect, score, compact }: MatchCa
         }`}
       >
         {/* DÒNG 1: HEADER MINI */}
-        <div className="flex items-center justify-between text-[10.5px] text-zinc-400 gap-1.5 pb-1">
-          <span className="truncate font-medium min-w-0 flex-1">
+        <div className="flex items-center justify-between text-[10.5px] text-zinc-400 gap-1.5 pb-1 leading-none">
+          <span className="truncate font-medium min-w-0 flex-1 leading-none">
             <span className="truncate">{tournamentName}</span>
           </span>
 
-          <div className="flex items-center gap-1.5 shrink-0 font-sans tabular-nums">
+          <div className="flex items-center gap-1.5 shrink-0 font-sans tabular-nums leading-none">
             <MatchTimeBadge timeInfo={timeInfo} kickoffTime={kickoffTime} compact />
 
             {/* Nhãn Tâm điểm */}
             {featured.isFeatured && !isSelected && (
               <span
-                className="text-[9.5px] font-bold text-rose-400 shrink-0 select-none font-sans"
+                className="text-[10px] font-bold text-rose-400 shrink-0 select-none font-sans leading-none inline-flex items-center"
                 aria-label={featured.badgeLabel || "Trận cầu tâm điểm"}
               >
                 {featured.badgeLabel || "Tâm điểm"}
@@ -456,7 +462,7 @@ function MatchCardInner({ match, isSelected, onSelect, score, compact }: MatchCa
 
             {/* Huy hiệu Đang xem */}
             {isSelected && (
-              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-white/[0.08] backdrop-blur-md text-[9.5px] font-medium text-zinc-200 shadow-sm shrink-0">
+              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-white/[0.08] backdrop-blur-md text-[9.5px] font-medium text-zinc-200 shadow-sm shrink-0 leading-none">
                 <PlayingEqualizer className="h-2.5 !px-0" barColor="bg-netflix-red" />
                 <span>Đang xem</span>
               </span>
