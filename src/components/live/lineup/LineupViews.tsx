@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useMemo } from "react";
-import { Shield, Users, ArrowUpRight, ArrowDownLeft } from "lucide-react";
+import { Shield, Users, ArrowUp, ArrowDown, ArrowUpRight } from "lucide-react";
 import { MatchRosterPlayer } from "@/services/live/football-score/types";
 import { SoccerBallIcon } from "../MatchTimelineSidebar";
 import {
@@ -215,7 +215,7 @@ export function TeamPitchColumn({
                         aria-label={`Rời sân: ${player.subClock || ""}`}
                         className="absolute -top-0.5 -right-0.5 w-3 h-3 min-[360px]:w-3.5 min-[360px]:h-3.5 rounded-full bg-red-600 text-white flex items-center justify-center shadow-md z-30"
                       >
-                        <ArrowDownLeft className="w-2 h-2 min-[360px]:w-2.5 min-[360px]:h-2.5 stroke-[2.5]" />
+                        <ArrowDown className="w-2 h-2 min-[360px]:w-2.5 min-[360px]:h-2.5 stroke-[3]" />
                       </span>
                     )}
                     {!isMatchScheduled && player.subbedIn && !player.subbedOut && (
@@ -223,7 +223,7 @@ export function TeamPitchColumn({
                         aria-label={`Vào sân: ${player.subClock || ""}`}
                         className="absolute -top-0.5 -right-0.5 w-3 h-3 min-[360px]:w-3.5 min-[360px]:h-3.5 rounded-full bg-emerald-600 text-white flex items-center justify-center shadow-md z-30"
                       >
-                        <ArrowUpRight className="w-2 h-2 min-[360px]:w-2.5 min-[360px]:h-2.5 stroke-[2.5]" />
+                        <ArrowUp className="w-2 h-2 min-[360px]:w-2.5 min-[360px]:h-2.5 stroke-[3]" />
                       </span>
                     )}
                   </div>
@@ -446,7 +446,7 @@ export function TeamListColumn({
               <div className="flex items-center gap-2 shrink-0">
                 {!isMatchScheduled && p.subbedOut && (
                   <span className="text-xs text-red-400 font-bold flex items-center gap-1 bg-red-500/10 px-1.5 py-0.5 rounded">
-                    <ArrowDownLeft className="w-3 h-3" />
+                    <ArrowDown className="w-3 h-3 stroke-[2.5]" />
                     <span>{p.subClock || "Ra sân"}</span>
                   </span>
                 )}
@@ -748,7 +748,7 @@ export function DualMobileRosterView({
                   {eventsInfo.redCards > 0 && <RedCardIcon className="w-2.5 h-3.5" />}
                   {player.subbedOut && (
                     <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-red-500/15 text-red-400 text-[9.5px] font-bold font-sans">
-                      <ArrowDownLeft className="w-2.5 h-2.5 stroke-[2.5]" />
+                      <ArrowDown className="w-2.5 h-2.5 stroke-[2.5]" />
                       <span>{player.subClock ? `${player.subClock}'` : "Ra sân"}</span>
                     </span>
                   )}

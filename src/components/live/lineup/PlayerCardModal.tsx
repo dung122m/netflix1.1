@@ -32,7 +32,7 @@ import {
 export function YellowCardIcon({ className = "w-2.5 h-3.5" }: { className?: string }) {
   return (
     <span
-      className={`rounded-[1.5px] bg-amber-400 shadow-sm inline-block shrink-0 ${className}`}
+      className={`rounded-[2px] bg-gradient-to-br from-amber-300 via-amber-400 to-amber-500 ring-1 ring-black/75 shadow-[0_1px_3px_rgba(0,0,0,0.7)] inline-block shrink-0 ${className}`}
       aria-label="Thẻ vàng"
     />
   );
@@ -41,7 +41,7 @@ export function YellowCardIcon({ className = "w-2.5 h-3.5" }: { className?: stri
 export function RedCardIcon({ className = "w-2.5 h-3.5" }: { className?: string }) {
   return (
     <span
-      className={`rounded-[1.5px] bg-red-600 shadow-sm inline-block shrink-0 ${className}`}
+      className={`rounded-[2px] bg-gradient-to-br from-rose-500 via-red-600 to-rose-700 ring-1 ring-black/75 shadow-[0_1px_3px_rgba(0,0,0,0.7)] inline-block shrink-0 ${className}`}
       aria-label="Thẻ đỏ"
     />
   );

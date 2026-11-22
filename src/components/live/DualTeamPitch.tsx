@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useMemo, useEffect, useCallback } from "react";
-import { ArrowDownLeft } from "lucide-react";
+import { ArrowDown } from "lucide-react";
 import { MatchRosterPlayer, MatchKeyEvent } from "@/services/live/football-score/types";
 import { SoccerBallIcon } from "./MatchTimelineSidebar";
 import {
@@ -237,50 +237,74 @@ export const DualTeamPitch: React.FC<DualTeamPitchProps> = ({
                             : isHome
                               ? "bg-[#dc2626] text-white"
                               : "bg-[#0284c7] text-white"
-                        } ${isSelected ? "scale-110 ring-2 ring-white ring-offset-2 ring-offset-zinc-950" : ""}`}
+                        } ${isSelected ? "scale-110 ring-2 ring-white ring-offset-2 ring-offset-zinc-950" : ""} ${
+                          isSubbedOut ? "opacity-75 saturate-75" : ""
+                        }`}
                       >
                         <span>{player.jersey || (isGK ? "1" : "-")}</span>
                       </div>
 
+                      {/* Huy hiệu Đội trưởng (chỉ hiện khi chưa rời sân) */}
                       {isCaptain && !isSubbedOut && (
                         <span
-                          className="absolute -top-1.5 -left-1.5 w-3.5 h-3.5 rounded-full bg-amber-400 text-zinc-950 font-black text-[8px] flex items-center justify-center shadow-sm z-20"
+                          className="absolute -top-1.5 -left-1.5 w-4 h-4 sm:w-4.5 sm:h-4.5 rounded-full bg-amber-400 text-zinc-950 font-black text-[9px] flex items-center justify-center shadow-md ring-1.5 ring-zinc-950 z-20"
                           aria-label="Đội trưởng"
+                          title="Đội trưởng"
                         >
                           C
                         </span>
                       )}
 
+                      {/* Huy hiệu Lúc ra sân: Mũi tên đỏ chúc xuống chuẩn đồ họa bóng đá */}
                       {isSubbedOut && (
                         <span
-                          className="absolute -top-1.5 -left-1.5 w-3.5 h-3.5 rounded-full bg-red-600 text-white flex items-center justify-center shadow-sm z-20"
+                          className="absolute -top-1.5 -left-1.5 w-4 h-4 sm:w-4.5 sm:h-4.5 rounded-full bg-gradient-to-br from-rose-500 to-red-600 text-white flex items-center justify-center shadow-[0_2px_5px_rgba(0,0,0,0.8)] ring-1.5 ring-zinc-950 z-20"
                           aria-label="Đã rời sân"
+                          title="Đã rời sân"
                         >
-                          <ArrowDownLeft className="w-2 h-2 stroke-[2.5]" />
+                          <ArrowDown className="w-2.5 h-2.5 sm:w-3 sm:h-3 stroke-[3]" />
                         </span>
                       )}
 
+                      {/* Huy hiệu Quả bóng: Viền tròn sắc nét, nổi bật trên mọi màu áo */}
                       {goals > 0 && (
                         <span
-                          className="absolute -top-1 -right-1 flex items-center z-20 drop-shadow-[0_2px_4px_rgba(0,0,0,0.85)]"
+                          className="absolute -top-1.5 -right-1.5 flex items-center z-20"
                           aria-label={`${goals} bàn thắng`}
+                          title={`${goals} bàn thắng`}
                         >
-                          <SoccerBallIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                          <span className="w-4 h-4 sm:w-4.5 sm:h-4.5 rounded-full bg-zinc-950 ring-1.5 ring-zinc-950 shadow-[0_2px_6px_rgba(0,0,0,0.85)] flex items-center justify-center p-0.5">
+                            <SoccerBallIcon className="w-full h-full" />
+                          </span>
                           {goals > 1 && (
-                            <span className="ml-0.5 -mt-1 px-1 rounded-full bg-amber-400 text-zinc-950 text-[8px] font-black font-sans tabular-nums leading-tight shadow-sm">
+                            <span className="-ml-1 -mt-2 px-1 py-0.2 rounded-full bg-amber-400 text-zinc-950 text-[8px] font-black font-sans tabular-nums leading-none shadow-sm ring-1 ring-zinc-950">
                               {goals}
                             </span>
                           )}
                         </span>
                       )}
 
+                      {/* Huy hiệu Thẻ: Thẻ vàng / đỏ vát góc 3D chuẩn trọng tài, nghiêng nhẹ */}
                       {redCards > 0 ? (
-                        <span className="absolute -bottom-1 -right-1 shadow-sm z-20">
-                          <RedCardIcon className="w-2 h-3" />
+                        <span
+                          className="absolute -bottom-1 -right-1.5 z-20 filter drop-shadow-[0_2px_4px_rgba(0,0,0,0.85)] rotate-12"
+                          aria-label="Thẻ đỏ"
+                          title="Thẻ đỏ"
+                        >
+                          <RedCardIcon className="w-2.5 h-3.5 sm:w-3 sm:h-4" />
                         </span>
                       ) : yellowCards > 0 ? (
-                        <span className="absolute -bottom-1 -right-1 shadow-sm z-20">
-                          <YellowCardIcon className="w-2 h-3" />
+                        <span
+                          className="absolute -bottom-1 -right-1.5 z-20 filter drop-shadow-[0_2px_4px_rgba(0,0,0,0.85)] rotate-12 flex items-center"
+                          aria-label={yellowCards > 1 ? "2 Thẻ vàng" : "Thẻ vàng"}
+                          title={yellowCards > 1 ? "2 Thẻ vàng" : "Thẻ vàng"}
+                        >
+                          <YellowCardIcon className="w-2.5 h-3.5 sm:w-3 sm:h-4" />
+                          {yellowCards > 1 && (
+                            <span className="-ml-1.5 -mt-0.5">
+                              <YellowCardIcon className="w-2.5 h-3.5 sm:w-3 sm:h-4 opacity-90" />
+                            </span>
+                          )}
                         </span>
                       ) : null}
                     </div>
@@ -289,7 +313,9 @@ export const DualTeamPitch: React.FC<DualTeamPitchProps> = ({
                       className={`mt-1 font-sans text-[9.5px] sm:text-[10px] md:text-[10.5px] font-semibold text-center leading-tight truncate max-w-[66px] sm:max-w-[80px] transition ${
                         isSelected
                           ? "bg-amber-400 text-zinc-950 font-bold px-1.5 py-0.5 rounded shadow-sm"
-                          : "text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)] group-hover:text-amber-200"
+                          : isSubbedOut
+                            ? "text-zinc-400 drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]"
+                            : "text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)] group-hover:text-amber-200"
                       }`}
                     >
                       {shortName}
