@@ -89,6 +89,7 @@ import {
 } from "@/services/aiActorService";
 import { getHistoricalArtistBySlug } from "@/data/history/historicalArtistsBirthdays";
 import { normalizeForMatch, cleanCountryName, isAsianScript } from "@/lib/stringUtils";
+import { normalizeSinoVietnameseVariants } from "@/services/tmdb/personService";
 import {
   searchTmdbPerson,
   getTmdbPersonDetail,
@@ -354,6 +355,9 @@ const resolveActorProfile = cache(async (slug: string): Promise<ResolvedActorPro
     };
   } else if (!tmdbPersonId && rawName) {
     actorRes = await resolveActorMovies(rawName, { skipAiFallback: true });
+    if (actorRes?.tmdbPersonId) {
+      tmdbPersonId = actorRes.tmdbPersonId;
+    }
   }
 
   let canonicalName =
@@ -379,6 +383,7 @@ const resolveActorProfile = cache(async (slug: string): Promise<ResolvedActorPro
   const isDetailMatchingExpectedArtist = (detail: any) => {
     if (!detail?.name) return false;
     const normDetailName = normalizeForMatch(detail.name);
+    const sinoDetailName = normalizeSinoVietnameseVariants(normDetailName);
     const candidateNames = [
       canonicalName,
       historicalItem?.name,
@@ -391,13 +396,31 @@ const resolveActorProfile = cache(async (slug: string): Promise<ResolvedActorPro
       .filter((n): n is string => Boolean(n))
       .map(normalizeForMatch);
 
-    if (candidateNames.some((c) => c === normDetailName || c.includes(normDetailName) || normDetailName.includes(c))) {
+    if (
+      candidateNames.some(
+        (c) =>
+          c === normDetailName ||
+          c.includes(normDetailName) ||
+          normDetailName.includes(c) ||
+          normalizeSinoVietnameseVariants(c) === sinoDetailName
+      )
+    ) {
       return true;
     }
 
     if (Array.isArray(detail.also_known_as)) {
       const akaList = detail.also_known_as.map((a: string) => normalizeForMatch(a));
-      if (candidateNames.some((c) => akaList.some((aka: string) => aka === c || aka.includes(c) || c.includes(aka)))) {
+      if (
+        candidateNames.some((c) =>
+          akaList.some(
+            (aka: string) =>
+              aka === c ||
+              aka.includes(c) ||
+              c.includes(aka) ||
+              normalizeSinoVietnameseVariants(c) === normalizeSinoVietnameseVariants(aka)
+          )
+        )
+      ) {
         return true;
       }
     }

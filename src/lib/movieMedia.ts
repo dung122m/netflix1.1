@@ -158,23 +158,27 @@ export function evaluateSearchRelevance(
   const escapedNormKw = normKw.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   const escapedRawKw = rawKw.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
+  const userHasDiacritics = /[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/i.test(query);
+
   // 1. EXACT FULL MATCH
   const slugKw = normKw.replace(/\s+/g, "-");
   if (rawTitle === rawKw || rawOrig === rawKw || slug === slugKw) {
     return { score: 100, matchType: "title" };
   }
-  if (normTitle === normKw || normOrig === normKw || normSlug === normKw) {
+  if (!userHasDiacritics && (normTitle === normKw || normOrig === normKw || normSlug === normKw)) {
     return { score: 95, matchType: "title" };
   }
 
   // 2. STARTS WITH FULL PHRASE
   const startsWithRawRegex = new RegExp(`^${escapedRawKw}(?:$|\\s)`, "i");
-  const startsWithNormRegex = new RegExp(`^${escapedNormKw}(?:$|\\s)`, "i");
   if (startsWithRawRegex.test(rawTitle) || startsWithRawRegex.test(rawOrig)) {
     return { score: 90, matchType: "title" };
   }
-  if (startsWithNormRegex.test(normTitle) || startsWithNormRegex.test(normOrig) || startsWithNormRegex.test(normSlug)) {
-    return { score: 85, matchType: "title" };
+  if (!userHasDiacritics) {
+    const startsWithNormRegex = new RegExp(`^${escapedNormKw}(?:$|\\s)`, "i");
+    if (startsWithNormRegex.test(normTitle) || startsWithNormRegex.test(normOrig) || startsWithNormRegex.test(normSlug)) {
+      return { score: 85, matchType: "title" };
+    }
   }
 
   // 3. CONTAINS FULL PHRASE
@@ -183,12 +187,13 @@ export function evaluateSearchRelevance(
   if (containsRawRegex.test(rawTitle) || containsRawRegex.test(rawOrig)) {
     return { score: 85, matchType: "title" };
   }
-  if (containsNormRegex.test(normTitle) || containsNormRegex.test(normOrig) || containsNormRegex.test(normSlug)) {
-    return { score: 80, matchType: "title" };
+  if (!userHasDiacritics) {
+    if (containsNormRegex.test(normTitle) || containsNormRegex.test(normOrig) || containsNormRegex.test(normSlug)) {
+      return { score: 80, matchType: "title" };
+    }
   }
 
   // 4. DIACRITIC-AWARE MULTI-WORD / SINGLE-WORD MATCHING
-  const userHasDiacritics = /[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/i.test(query);
   const kwWords = rawKw.split(/\s+/).filter((w) => w.length > 0);
 
   if (userHasDiacritics) {

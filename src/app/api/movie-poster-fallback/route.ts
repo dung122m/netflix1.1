@@ -40,16 +40,8 @@ async function queryTmdbPoster(
   }
   const cleanType = type === "tv" || type === "series" ? "tv" : "movie";
   let res = await searchTmdbPosterByTitle(query, year, cleanType, undefined, expectedCountry);
-  if (!res?.posterUrl && !res?.backdropUrl) {
-    const altType = cleanType === "tv" ? "movie" : "tv";
-    res = await searchTmdbPosterByTitle(query, year, altType, undefined, expectedCountry);
-  }
   if (!res?.posterUrl && !res?.backdropUrl && year) {
     res = await searchTmdbPosterByTitle(query, undefined, cleanType, undefined, expectedCountry);
-    if (!res?.posterUrl && !res?.backdropUrl) {
-      const altType = cleanType === "tv" ? "movie" : "tv";
-      res = await searchTmdbPosterByTitle(query, undefined, altType, undefined, expectedCountry);
-    }
   }
   return res;
 }
@@ -139,16 +131,24 @@ async function resolvePosterFromUpstream(
 
   // 2. Tra cứu theo tên phim / origin_name / slug
   if (!result) {
-    const queryOrder = isVietnamese
-      ? ([title, slug ? slug.replace(/-/g, " ") : null, origin_name && origin_name !== title ? origin_name : null].filter(Boolean) as string[])
-      : ([origin_name && origin_name !== title ? origin_name : null, title, slug ? slug.replace(/-/g, " ") : null].filter(Boolean) as string[]);
+    const queries = new Set<string>();
+    // Luôn ưu tiên origin_name trước nếu có (cực kỳ hiệu quả cho phim Châu Á, Anime / Hoạt hình trên TMDb)
+    if (origin_name && origin_name !== title && origin_name.length >= 2) {
+      queries.add(origin_name);
+    }
+    if (title && title.length >= 2) {
+      queries.add(title);
+    }
+    if (slug) {
+      queries.add(slug.replace(/-/g, " "));
+    }
 
-    const candidateLookups = queryOrder.map((q) =>
+    const candidateLookups = Array.from(queries).slice(0, 3).map((q) =>
       queryTmdbPoster(q, year, type, undefined).catch(() => null)
     );
     const candidateResults = await Promise.race([
       Promise.all(candidateLookups),
-      new Promise<never[]>((resolve) => setTimeout(() => resolve([]), 1500)),
+      new Promise<never[]>((resolve) => setTimeout(() => resolve([]), 3500)),
     ]);
     result = candidateResults.find((r) => r && (r.posterUrl || r.backdropUrl)) || null;
   }
@@ -246,8 +246,8 @@ async function resolvePosterFromUpstream(
   // Lưu vào L1 RAM
   setBoundedMap(posterMemoryCache, keys.cacheKey, cacheEntry);
 
-  // Lưu vào L2 Upstash Redis DB 3 (TTL: 14 ngày nếu có ảnh, 24h nếu miss)
-  const redisTtlSeconds = hasPoster ? 14 * 86400 : 86400;
+  // Lưu vào L2 Upstash Redis DB 3 (TTL: 14 ngày nếu có ảnh, 60 giây nếu miss/timeout để cho phép retry nhanh)
+  const redisTtlSeconds = hasPoster ? 14 * 86400 : 60;
   cacheService.set(keys.redisPosterKey, cacheEntry, redisTtlSeconds).catch(() => {});
   if (keys.slugCleanKey && keys.slugCleanKey !== keys.redisPosterKey) {
     cacheService.set(keys.slugCleanKey, cacheEntry, redisTtlSeconds).catch(() => {});

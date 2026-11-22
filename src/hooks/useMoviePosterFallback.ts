@@ -8,7 +8,7 @@ import { toOptimizedCardPosterUrl, isSlowProviderSourceUrl } from "@/lib/movieMe
 // =========================================================================
 // Tránh việc nhiều card cùng 1 phim (hoặc khi reload trang) gọi API nhiều lần
 const POSTER_CACHE_KEY = "nfx_poster_fallback_cache_v3";
-const TRIED_FAILURES_KEY = "nfx_poster_fallback_failures_v3";
+const TRIED_FAILURES_KEY = "nfx_poster_fallback_failures_v4";
 
 function initPersistentPosterCache(): Map<string, string> {
   const map = new Map<string, string>();
@@ -33,7 +33,7 @@ function initPersistentFailures(): Set<string> {
   const set = new Set<string>();
   if (typeof window === "undefined") return set;
   try {
-    const raw = sessionStorage.getItem(TRIED_FAILURES_KEY) || localStorage.getItem(TRIED_FAILURES_KEY);
+    const raw = sessionStorage.getItem(TRIED_FAILURES_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed)) {

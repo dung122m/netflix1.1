@@ -33,6 +33,7 @@ import {
   isRawId,
   extractMovieModifiedTime,
   } from "@/lib/movieMedia";
+import { slugify } from "@/lib/stringUtils";
 import { enrichMovieListPosters } from "@/services/movies/posterEnrichment";
 
 function getActorInitials(name: string): string {
@@ -434,9 +435,10 @@ export default async function BrowsePage({
   // Explicit actor routes are intentional. Keyword searches always go through the title search first.
   const targetActorQuery = actorParam ? actorParam.trim() : undefined;
   const actorSynonyms = targetActorQuery ? getActorSynonyms(targetActorQuery) : null;
+  const historicalArtist = targetActorQuery ? (findHistoricalArtist(targetActorQuery) || findHistoricalArtist(cleanActorQuery(targetActorQuery))) : undefined;
   const actorRes = targetActorQuery
     ? actorSynonyms?.isMatched
-      ? { actorName: actorSynonyms.canonicalName, country: actorSynonyms.country, aliases: actorSynonyms.variants, isActor: true, source: "preset" as const }
+      ? { actorName: actorSynonyms.canonicalName, country: actorSynonyms.country, aliases: actorSynonyms.variants, isActor: true, tmdbPersonId: historicalArtist?.tmdbPersonId, source: "preset" as const }
       : await resolveActorMovies(targetActorQuery)
     : null;
 
@@ -444,13 +446,15 @@ export default async function BrowsePage({
     const actorSearch = await runActorSearch({ actorResult: actorRes, actorSynonyms, actorParam, category, country, year, type, sort, currentPage, pageLimit: PAGE_LIMIT });
     if (actorSearch) {
       if (actorSearch.movies.length > 0 || (actorParam && Boolean(actorSearch.actor.avatarUrl))) {
-        const actorSlug = (actorSynonyms?.slug || actorSearch.actor.name)
+        const rawActorName = historicalArtist?.name || actorSynonyms?.canonicalName || actorSearch.actor.name;
+        const actorSlug = (historicalArtist?.slug || actorSynonyms?.slug || slugify(rawActorName))
           .toLowerCase()
-          .replace(/[^a-z0-9]+/g, "-")
           .replace(/^-+|-+$/g, "");
+        const personId = actorRes?.tmdbPersonId || historicalArtist?.tmdbPersonId;
+        const actorHref = personId ? `/dien-vien/${personId}-${actorSlug}` : (actorSlug ? `/dien-vien/${actorSlug}` : undefined);
         detectedActor = {
           ...actorSearch.actor,
-          href: actorSlug ? `/dien-vien/${actorSlug}` : undefined,
+          href: actorHref,
         };
       }
       movies = actorSearch.movies;
@@ -556,13 +560,15 @@ export default async function BrowsePage({
           (hasExplicitActorPrefix(keyword) && Boolean(actorSearch.actor.avatarUrl)) ||
           !hasSuitableTitleResults
         ) {
-          const actorSlug = (historicalArtist?.slug || fallbackSynonyms?.slug || actorSearch.actor.name)
+          const rawActorName = historicalArtist?.name || fallbackSynonyms?.canonicalName || actorSearch.actor.name;
+          const actorSlug = (historicalArtist?.slug || fallbackSynonyms?.slug || slugify(rawActorName))
             .toLowerCase()
-            .replace(/[^a-z0-9]+/g, "-")
             .replace(/^-+|-+$/g, "");
+          const personId = fallbackResult?.tmdbPersonId || historicalArtist?.tmdbPersonId;
+          const actorHref = personId ? `/dien-vien/${personId}-${actorSlug}` : (actorSlug ? `/dien-vien/${actorSlug}` : undefined);
           detectedActor = {
             ...actorSearch.actor,
-            href: actorSlug ? `/dien-vien/${actorSlug}` : undefined,
+            href: actorHref,
           };
           movies = actorSearch.movies;
           totalItems = actorSearch.totalItems;

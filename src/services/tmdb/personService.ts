@@ -14,6 +14,16 @@ import { CacheEntry } from "./utils";
 
 const TMDB_IMAGE_BASE = "https://image.tmdb.org/t/p/w500";
 
+export function normalizeSinoVietnameseVariants(str: string): string {
+  if (!str) return "";
+  return str
+    .replace(/\bchau\b/g, "chu")
+    .replace(/\bhuynh\b/g, "hoang")
+    .replace(/\bvu\b/g, "vo")
+    .replace(/\btrieu\b/g, "tieu")
+    .replace(/\bphung\b/g, "phong");
+}
+
 const isAsianScript = (s: string) =>
   /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}\p{Script=Thai}]/u.test(s);
 
@@ -69,12 +79,23 @@ export async function searchTmdbPerson(
             let score = 0;
             const pName = cleanStringForMatch(p.name);
             const pOrig = cleanStringForMatch(p.original_name);
+            const pNameSino = normalizeSinoVietnameseVariants(pName);
 
-            if (targetNamesNormalized.includes(pName) || targetNamesNormalized.includes(pOrig)) {
+            if (
+              targetNamesNormalized.includes(pName) ||
+              targetNamesNormalized.includes(pOrig) ||
+              targetNamesNormalized.some((t) => normalizeSinoVietnameseVariants(t) === pNameSino)
+            ) {
               score += 100;
             } else if (
               Array.isArray(p.also_known_as) &&
-              p.also_known_as.some((aka: string) => targetNamesNormalized.includes(cleanStringForMatch(aka)))
+              p.also_known_as.some((aka: string) => {
+                const akaClean = cleanStringForMatch(aka);
+                return (
+                  targetNamesNormalized.includes(akaClean) ||
+                  targetNamesNormalized.some((t) => normalizeSinoVietnameseVariants(t) === normalizeSinoVietnameseVariants(akaClean))
+                );
+              })
             ) {
               score += 100;
             } else if (
@@ -118,7 +139,9 @@ export async function searchTmdbPerson(
                 id: p.id,
                 name: p.name,
                 original_name: p.original_name,
-                profile_path: p.profile_path ? `${TMDB_IMAGE_BASE}${p.profile_path}` : null,
+                profile_path: p.profile_path
+                  ? (p.profile_path.startsWith("http") ? p.profile_path : `${TMDB_IMAGE_BASE}${p.profile_path}`)
+                  : null,
                 popularity: p.popularity,
                 known_for_department: p.known_for_department,
               };

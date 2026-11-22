@@ -1,6 +1,7 @@
 import { movieApi } from "@/services/movies/service";
 import { generateFastAiChat } from "@/services/aiProviderService";
 import { getActorFilmographyFromTmdb, searchTmdbPerson } from "@/services/tmdbService";
+import { normalizeSinoVietnameseVariants } from "@/services/tmdb/personService";
 import { cacheService } from "@/lib/cache";
 import { normalizeForMatch } from "@/lib/stringUtils";
 import { getHistoricalArtistBySlug } from "@/data/history/historicalArtistsBirthdays";
@@ -86,7 +87,7 @@ export async function resolveActorMovies(
 
   // 1.22 Kiểm tra TIER 2.2: Cache L2 Upstash Redis DB 3 (Aux / Metadata - actor:intent:*)
   const cleanKey = cleanRaw.replace(/[^a-z0-9_]/g, "_").slice(0, 80);
-  const redisActorKey = `actor:intent:${cleanKey}`;
+  const redisActorKey = `actor:intent:v3:${cleanKey}`;
   try {
     const redisCached = await cacheService.get<{
       actorName: string;
@@ -122,13 +123,18 @@ export async function resolveActorMovies(
       const cleanQNorm = normalizeForMatch(keyword);
       const personNameNorm = normalizeForMatch(tmdbPerson.name);
       const personOrigNorm = normalizeForMatch(tmdbPerson.original_name);
+      const sinoQNorm = normalizeSinoVietnameseVariants(cleanQNorm);
+      const sinoPersonName = normalizeSinoVietnameseVariants(personNameNorm);
 
       const qWords = cleanQNorm.split(" ").filter(Boolean);
       const pNameWords = personNameNorm.split(" ").filter(Boolean);
       const pOrigWords = personOrigNorm.split(" ").filter(Boolean);
 
-      // 1. Khớp chính xác tuyệt đối tên (sau khi khử dấu)
-      const isExactMatch = personNameNorm === cleanQNorm || personOrigNorm === cleanQNorm;
+      // 1. Khớp chính xác tuyệt đối tên (sau khi khử dấu hoặc quy đổi âm Hán-Việt)
+      const isExactMatch =
+        personNameNorm === cleanQNorm ||
+        personOrigNorm === cleanQNorm ||
+        sinoPersonName === sinoQNorm;
 
       // 2. Khớp cùng tập hợp từ (ví dụ đảo thứ tự họ tên: "Lam Tan" <-> "Tan Lam" / "Tần Lam")
       const isWordSetMatch =
@@ -171,7 +177,11 @@ export async function resolveActorMovies(
           aliases,
           isActor: true,
           tmdbPersonId: tmdbPerson.id,
-          avatarUrl: tmdbPerson.profile_path ? `https://image.tmdb.org/t/p/w500${tmdbPerson.profile_path}` : undefined,
+          avatarUrl: tmdbPerson.profile_path
+            ? (tmdbPerson.profile_path.startsWith("http")
+                ? tmdbPerson.profile_path
+                : `https://image.tmdb.org/t/p/w500${tmdbPerson.profile_path}`)
+            : undefined,
         };
 
         setBoundedCache(ACTOR_AI_CACHE, cleanRaw, {
@@ -250,29 +260,27 @@ BẮT BUỘC chỉ trả về DUY NHẤT một chuỗi JSON hợp lệ theo đ�
         if (parsed.isActor) {
           const cleanQNorm = normalizeForMatch(keyword);
           const rawAliases = Array.isArray(parsed.aliases) ? parsed.aliases : [];
-          const allCandidateNorms = [
-            parsed.canonicalName,
-            parsed.actorName,
-            ...rawAliases,
-          ]
-            .filter((s): s is string => typeof s === "string" && s.trim().length >= 2)
-            .map(normalizeForMatch);
+          const canonicalNorm = normalizeForMatch(parsed.canonicalName || parsed.actorName || "");
+          const sinoQNorm = normalizeSinoVietnameseVariants(cleanQNorm);
+          const sinoCanonicalNorm = normalizeSinoVietnameseVariants(canonicalNorm);
 
-          // BẮT BUỘC: Từ khóa người dùng tìm kiếm phải khớp chính xác hoặc đảo từ với Tên/Bí danh hợp lệ của nghệ sĩ
-          const hasVerifiedMatch = allCandidateNorms.some((aliasNorm) => {
-            if (!aliasNorm) return false;
-            if (aliasNorm === cleanQNorm) return true;
-            const qWords = cleanQNorm.split(" ").filter(Boolean);
-            const aWords = aliasNorm.split(" ").filter(Boolean);
+          // BẮT BUỘC CHỐNG ẢO GIÁC AI:
+          // Tuyệt đối không tin tưởng aliases do AI tự sinh ra để tự xác thực ảo giác của nó (ví dụ gán Châu Tỉ Lợi vào Chow Yun-fat).
+          // Từ khóa tìm kiếm của người dùng bắt buộc phải khớp trực tiếp với Canonical Name chuẩn (có tính biến thể Hán-Việt)
+          let hasVerifiedMatch = false;
+          if (cleanQNorm === canonicalNorm || sinoQNorm === sinoCanonicalNorm) {
+            hasVerifiedMatch = true;
+          } else {
+            const qWords = cleanQNorm.split(" ").filter((w) => w.length > 1);
+            const cWords = canonicalNorm.split(" ").filter((w) => w.length > 1);
             if (
               qWords.length >= 2 &&
-              aWords.length === qWords.length &&
-              qWords.every((w) => aWords.includes(w))
+              cWords.length >= 2 &&
+              qWords.every((w) => cWords.includes(w))
             ) {
-              return true;
+              hasVerifiedMatch = true;
             }
-            return false;
-          });
+          }
 
           if (!hasVerifiedMatch) {
             // Từ khóa không thực sự là nghệ sĩ này (ảo giác AI hoặc vụ án/nhân vật liên quan) -> Loại bỏ hoàn toàn!
@@ -542,7 +550,7 @@ export async function queryMoviesByActor(
 
   const normalizedVariants = Array.from(new Set(allVariants.map(normalizeForMatch).filter(Boolean)));
   const idPrefix = tmdbPersonId ? `id_${tmdbPersonId}:` : "";
-  const cacheKey = `ACTOR_QUERY_V12:${idPrefix}${matchedSlug || normalizedVariants.sort().join("|")}`;
+  const cacheKey = `ACTOR_QUERY_V13:${idPrefix}${matchedSlug || normalizedVariants.sort().join("|")}`;
   const normSlug = normalizeForMatch(matchedSlug || actorName).replace(/\s+/g, "_") || (tmdbPersonId ? `person_${tmdbPersonId}` : "actor");
 
   // 2. Cơ chế SWR Cache (Stale-While-Revalidate - Phản hồi 0ms tức thì)
@@ -565,7 +573,7 @@ export async function queryMoviesByActor(
 
   // 3. Nếu yêu cầu maxMovies < 150 (ví dụ gợi ý 12 phim), kiểm tra xem cache filmography đầy đủ 150 phim đã có chưa
   if (maxMovies < 150) {
-    const fullKvKey = `actor:filmography_v12:${normSlug}:150`;
+    const fullKvKey = `actor:filmography_v13:${normSlug}:150`;
     try {
       const fullCached = await cacheService.get<Record<string, unknown>[]>(fullKvKey);
       if (Array.isArray(fullCached) && fullCached.length > 0) {
@@ -576,7 +584,7 @@ export async function queryMoviesByActor(
     }
   }
 
-  const kvKey = `actor:filmography_v12:${normSlug}:${maxMovies}`;
+  const kvKey = `actor:filmography_v13:${normSlug}:${maxMovies}`;
   const res = await cacheService.fetchOrSet(
     kvKey,
     async () => {
