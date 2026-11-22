@@ -73,15 +73,16 @@ export const NumberedRankCard: React.FC<NumberedRankCardProps> = ({
       <Link
         href={`/movies/${slug}`}
         prefetch={false}
-        className={`flex items-start relative block cursor-pointer group-hover:scale-[1.025] group-hover:-translate-y-1 transition-all duration-300 ease-out focus-visible:outline-none focus-visible:ring-2 rounded-xl`}
+        className="flex items-start relative block cursor-pointer group-hover:scale-[1.025] group-hover:-translate-y-1 transition-all duration-300 ease-out focus-visible:outline-none focus-visible:ring-2 rounded-xl"
       >
         {/* SỐ THỨ TỰ BẢNG XẾP HẠNG (RANK) */}
         <div
           aria-hidden="true"
-          className={`flex items-end ${rank >= 10
-            ? MOVIE_CARD_TOKENS.ranked.numberColDouble
-            : MOVIE_CARD_TOKENS.ranked.numberCol
-            } relative z-0 pointer-events-none select-none shrink-0 overflow-visible`}
+          className={`flex items-end ${
+            rank >= 10
+              ? MOVIE_CARD_TOKENS.ranked.numberColDouble
+              : MOVIE_CARD_TOKENS.ranked.numberCol
+          } relative z-0 pointer-events-none select-none shrink-0 overflow-visible`}
         >
           {rank >= 10 ? (
             <span
@@ -118,46 +119,34 @@ export const NumberedRankCard: React.FC<NumberedRankCardProps> = ({
           <div
             className={`relative w-full aspect-[2/3] ${MOVIE_CARD_TOKENS.ranked.radius} overflow-hidden bg-zinc-950 bg-gradient-to-br from-zinc-800/70 via-zinc-900 to-zinc-950 transition-all duration-300 ${ringClasses}`}
           >
-            {initialPoster ? (
-              <MoviePosterImage
-                src={initialPoster}
-                alt={title}
-                title={title}
-                origin_name={origin_name}
-                slug={slug}
-                year={year}
-                type={type}
-                tmdbId={tmdbId}
-                fill
-                unoptimized
-                priority={priority}
-                decoding="async"
-                sizes="(max-width: 640px) 160px, (max-width: 768px) 200px, 240px"
-                className="object-cover group-hover:scale-105 transition-transform duration-500"
-                loading={priority ? "eager" : "lazy"}
-                quality={85}
-              />
-            ) : (
-              <div className="absolute inset-0 z-0 flex flex-col items-center justify-center p-3 bg-gradient-to-br from-zinc-900 via-zinc-950 to-black select-none overflow-hidden">
-                <div className="relative z-[1] inline-flex items-center gap-2 select-none poster-placeholder-logo">
-                  <div className="w-5.5 h-4 rounded-[4px] bg-[#EA1D24] flex items-center justify-center shadow-md">
-                    <svg viewBox="0 0 24 24" className="w-2.5 h-2.5 fill-[#FFF200]" aria-hidden="true">
-                      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-                    </svg>
-                  </div>
-                  <span className="text-white font-extrabold text-xs sm:text-sm tracking-tight drop-shadow-sm">Nanaflix</span>
-                </div>
-              </div>
-            )}
+            <MoviePosterImage
+              src={initialPoster || "/default-poster.jpg"}
+              alt={title}
+              title={title}
+              origin_name={origin_name}
+              slug={slug}
+              year={year}
+              type={type}
+              tmdbId={tmdbId}
+              fill
+              unoptimized
+              priority={priority}
+              decoding="async"
+              sizes="(max-width: 640px) 160px, (max-width: 768px) 200px, 240px"
+              className="object-cover group-hover:scale-105 transition-transform duration-500"
+              loading={priority ? "eager" : "lazy"}
+              quality={85}
+            />
 
             {/* BADGE ĐẶC BIỆT (CAM / 4K) */}
             {specialBadge && (
               <div className="absolute top-2 right-2 pointer-events-none z-10">
                 <span
-                  className={`px-1.5 py-0.5 rounded text-[10px] font-bold backdrop-blur-md ${specialBadge === "CAM"
-                    ? "bg-amber-950/90 text-amber-300"
-                    : "bg-black/75 text-zinc-100"
-                    }`}
+                  className={`px-1.5 py-0.5 rounded text-[10px] font-bold backdrop-blur-md ${
+                    specialBadge === "CAM"
+                      ? "bg-amber-950/90 text-amber-300"
+                      : "bg-black/75 text-zinc-100"
+                  }`}
                 >
                   {specialBadge}
                 </span>
@@ -188,4 +177,3 @@ export const NumberedRankCard: React.FC<NumberedRankCardProps> = ({
 };
 
 export default NumberedRankCard;
-

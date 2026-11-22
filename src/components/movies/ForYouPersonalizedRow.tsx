@@ -42,218 +42,6 @@ export interface ForYouPersonalizedRowProps {
 const CACHE_KEY_NAME = "nanaflix_foryou_cache_v9";
 const CACHE_TTL = 30 * 60 * 1000; // 30 phút TTL (người dùng quay lại trang chủ không gọi lại API)
 
-// Danh sách fallback catalog phim nổi bật luôn sẵn sàng 0ms không cần API ngoài
-const DEFAULT_CATALOG_FALLBACK: ForYouMovieItem[] = [
-  {
-    slug: "avatar",
-    name: "Avatar",
-    title: "Avatar",
-    origin_name: "Avatar",
-    poster_url: "https://image.tmdb.org/t/p/w500/kyeqWdyUXW608qlYkRqosgbbJyK.jpg",
-    thumb_url: "https://image.tmdb.org/t/p/w780/vL5LR6WdxWPquIkzgSt2Y4WWWaq.jpg",
-    year: 2009,
-    quality: "4K UHD",
-    category: [{ name: "Viễn Tưởng" }],
-    matchPercentage: 98,
-    matchReason: "Tác phẩm viễn tưởng đoạt 3 giải Oscar của James Cameron",
-  },
-  {
-    slug: "interstellar",
-    name: "Hố Đen Tử Thần",
-    title: "Hố Đen Tử Thần",
-    origin_name: "Interstellar",
-    poster_url: "https://image.tmdb.org/t/p/w500/gEU2QniE6E77NI6lCU6MxlNBvIx.jpg",
-    thumb_url: "https://image.tmdb.org/t/p/w780/xJHokMbljvjADYdit5fK5VQsXEG.jpg",
-    year: 2014,
-    quality: "4K UHD",
-    category: [{ name: "Khoa Học" }],
-    matchPercentage: 99,
-    matchReason: "Phim khoa học viễn tưởng kinh điển của Christopher Nolan",
-  },
-  {
-    slug: "parasite",
-    name: "Ký Sinh Trùng",
-    title: "Ký Sinh Trùng",
-    origin_name: "Parasite",
-    poster_url: "https://image.tmdb.org/t/p/w500/7IiTTgloJzvGI1TAYymCfbfl3vT.jpg",
-    thumb_url: "https://image.tmdb.org/t/p/w780/hiKmpnnSantftGFKdEgGdYzXmUC.jpg",
-    year: 2019,
-    quality: "Full HD",
-    category: [{ name: "Tâm Lý" }],
-    matchPercentage: 97,
-    matchReason: "Tác phẩm đoạt 4 giải Oscar của đạo diễn Bong Joon-ho",
-  },
-  {
-    slug: "train-to-busan",
-    name: "Chuyến Tàu Sinh Tử",
-    title: "Chuyến Tàu Sinh Tử",
-    origin_name: "Train to Busan",
-    poster_url: "https://image.tmdb.org/t/p/w500/vVdVfP9Q3wSkn9p8qZ6fC6Wz8iV.jpg",
-    thumb_url: "https://image.tmdb.org/t/p/w780/77SQqLpW399v3yQ9J6q4yJ6vA0B.jpg",
-    year: 2016,
-    quality: "Full HD",
-    category: [{ name: "Kinh Dị" }],
-    matchPercentage: 96,
-    matchReason: "Phim kinh dị sinh tồn ăn khách của Hàn Quốc",
-  },
-  {
-    slug: "diep-van",
-    name: "Diệp Vấn",
-    title: "Diệp Vấn",
-    origin_name: "Ip Man",
-    poster_url: "https://image.tmdb.org/t/p/w500/f2178ad87d967d7199587a82ec1396a8.jpg",
-    thumb_url: "https://image.tmdb.org/t/p/w780/f2178ad87d967d7199587a82ec1396a8.jpg",
-    year: 2008,
-    quality: "Full HD",
-    category: [{ name: "Võ Thuật" }],
-    matchPercentage: 98,
-    matchReason: "Tác phẩm võ thuật Vịnh Xuân Quyền kinh điển của Chân Tử Đan",
-  },
-  {
-    slug: "the-dark-knight",
-    name: "Kỵ Sĩ Bóng Đêm",
-    title: "Kỵ Sĩ Bóng Đêm",
-    origin_name: "The Dark Knight",
-    poster_url: "https://image.tmdb.org/t/p/w500/qJ2tW6WMUDux911r6m7haRef0WH.jpg",
-    thumb_url: "https://image.tmdb.org/t/p/w780/nMKdUUepR0i5zn0y1T4CsSB5chy.jpg",
-    year: 2008,
-    quality: "4K UHD",
-    category: [{ name: "Hành Động" }],
-    matchPercentage: 99,
-    matchReason: "Phim siêu anh hùng kinh điển nằm trong Top IMDb 250",
-  },
-  {
-    slug: "spirited-away",
-    name: "Vùng Đất Linh Hồn",
-    title: "Vùng Đất Linh Hồn",
-    origin_name: "Spirited Away",
-    poster_url: "https://image.tmdb.org/t/p/w500/393DYSB09pSj4pk9z06pfsu4Pqu.jpg",
-    thumb_url: "https://image.tmdb.org/t/p/w780/Ab8mkHmkYADjU7wQiOkia9BzGvS.jpg",
-    year: 2001,
-    quality: "Full HD",
-    category: [{ name: "Hoạt Hình" }],
-    matchPercentage: 97,
-    matchReason: "Phim hoạt hình Ghibli đoạt giải Oscar của Hayao Miyazaki",
-  },
-  {
-    slug: "kung-fu-hustle",
-    name: "Tuyệt Đỉnh Kungfu",
-    title: "Tuyệt Đỉnh Kungfu",
-    origin_name: "Kung Fu Hustle",
-    poster_url: "https://image.tmdb.org/t/p/w500/wUzkb4097fM0V69w1jP3qV2G3oK.jpg",
-    thumb_url: "https://image.tmdb.org/t/p/w780/1kDYF4295gS9R279F89k8pP4z2m.jpg",
-    year: 2004,
-    quality: "Full HD",
-    category: [{ name: "Hài Hước" }],
-    matchPercentage: 96,
-    matchReason: "Phim hài hành động đặc sắc của Châu Tinh Trì",
-  },
-  {
-    slug: "oppenheimer",
-    name: "Oppenheimer",
-    title: "Oppenheimer",
-    origin_name: "Oppenheimer",
-    poster_url: "https://image.tmdb.org/t/p/w500/8Gxv8gSFCU0XGDykEGv7zR1n2ua.jpg",
-    thumb_url: "https://image.tmdb.org/t/p/w780/fm6KqXpk3M2HVveHwCrBSSBaO0V.jpg",
-    year: 2023,
-    quality: "4K UHD",
-    category: [{ name: "Lịch Sử" }],
-    matchPercentage: 98,
-    matchReason: "Phim tiểu sử lịch sử đoạt 7 giải Oscar của Christopher Nolan",
-  },
-  {
-    slug: "john-wick-chapter-4",
-    name: "Sát Thủ John Wick 4",
-    title: "Sát Thủ John Wick 4",
-    origin_name: "John Wick: Chapter 4",
-    poster_url: "https://image.tmdb.org/t/p/w500/vZloFAK7NKnMGKEslUsZevaRAVm.jpg",
-    thumb_url: "https://image.tmdb.org/t/p/w780/h8gHn0OzBoaefW0z1tGl4grio0z.jpg",
-    year: 2023,
-    quality: "4K UHD",
-    category: [{ name: "Hành Động" }],
-    matchPercentage: 99,
-    matchReason: "Phim hành động kịch tính với các cảnh đấu võ cận chiến",
-  },
-  {
-    slug: "your-name",
-    name: "Tên Cậu Là Gì?",
-    title: "Tên Cậu Là Gì?",
-    origin_name: "Your Name",
-    poster_url: "https://image.tmdb.org/t/p/w500/q719jXXEzOoYaps6qFsxWa93bu.jpg",
-    thumb_url: "https://image.tmdb.org/t/p/w780/dIWwZW7dJJ1q49RJvT6NWPaevFl.jpg",
-    year: 2016,
-    quality: "Full HD",
-    category: [{ name: "Hoạt Hình" }],
-    matchPercentage: 97,
-    matchReason: "Phim hoạt hình anime nổi tiếng của đạo diễn Makoto Shinkai",
-  },
-  {
-    slug: "top-gun-maverick",
-    name: "Phi Công Siêu Đẳng: Maverick",
-    title: "Phi Công Siêu Đẳng: Maverick",
-    origin_name: "Top Gun: Maverick",
-    poster_url: "https://image.tmdb.org/t/p/w500/62HCnUTziyWcpDaBO2i1DX17ljH.jpg",
-    thumb_url: "https://image.tmdb.org/t/p/w780/odJ4hx6g6vBt4lBWKFD1tI8WS4x.jpg",
-    year: 2022,
-    quality: "4K UHD",
-    category: [{ name: "Hành Động" }],
-    matchPercentage: 98,
-    matchReason: "Phim hành động không chiến đoạt giải Oscar với Tom Cruise",
-  },
-  {
-    slug: "avengers-endgame",
-    name: "Avengers: Hồi Kết",
-    title: "Avengers: Hồi Kết",
-    origin_name: "Avengers: Endgame",
-    poster_url: "https://image.tmdb.org/t/p/w500/or06FN3Dka5tukK1e9sl16pB3iy.jpg",
-    thumb_url: "https://image.tmdb.org/t/p/w780/7RyHsO4yDXtBv1zUU3mTpHeQ0d5.jpg",
-    year: 2019,
-    quality: "4K UHD",
-    category: [{ name: "Hành Động" }],
-    matchPercentage: 99,
-    matchReason: "Phần phim khép lại kỷ nguyên Infinity Saga của Marvel",
-  },
-  {
-    slug: "spider-man-across-the-spider-verse",
-    name: "Người Nhện: Du Hành Vũ Trụ Nhện",
-    title: "Người Nhện: Du Hành Vũ Trụ Nhện",
-    origin_name: "Spider-Man: Across the Spider-Verse",
-    poster_url: "https://image.tmdb.org/t/p/w500/8Vt6mWEReuy4Of61Lnj5Xj704m8.jpg",
-    thumb_url: "https://image.tmdb.org/t/p/w780/4HodYYKEIsGOdinkGi2Ucz6X9i0.jpg",
-    year: 2023,
-    quality: "4K UHD",
-    category: [{ name: "Hoạt Hình" }],
-    matchPercentage: 98,
-    matchReason: "Phim hoạt hình đoạt nhiều giải thưởng với phong cách hình ảnh đột phá",
-  },
-  {
-    slug: "squid-game",
-    name: "Trò Chơi Con Mực",
-    title: "Trò Chơi Con Mực",
-    origin_name: "Squid Game",
-    poster_url: "https://image.tmdb.org/t/p/w500/dDlG1TzUgtcTqSkgGptH5K98aXl.jpg",
-    thumb_url: "https://image.tmdb.org/t/p/w780/oaGvjB0DvdurWhfPtF7AuMi32bm.jpg",
-    year: 2021,
-    quality: "4K UHD",
-    category: [{ name: "Tâm Lý" }],
-    matchPercentage: 96,
-    matchReason: "Phim bộ kinh dị sinh tồn ăn khách toàn cầu của Hàn Quốc",
-  },
-  {
-    slug: "one-piece-film-red",
-    name: "One Piece Film: Red",
-    title: "One Piece Film: Red",
-    origin_name: "One Piece Film: Red",
-    poster_url: "https://image.tmdb.org/t/p/w500/ogDXpT9O8Z8z5V4k0fHw7R0gH8C.jpg",
-    thumb_url: "https://image.tmdb.org/t/p/w780/7k2a2L1Y5vV9Vb3h7Y5X1b3h7Y5.jpg",
-    year: 2022,
-    quality: "Full HD",
-    category: [{ name: "Hoạt Hình" }],
-    matchPercentage: 97,
-    matchReason: "Phim hoạt hình chiếu rạp ăn khách thuộc thương hiệu One Piece",
-  },
-];
-
 // Hàm tính điểm hợp gu ổn định (deterministic) dựa trên slug để tránh lệch SSR/Hydration
 function getDeterministicMatchPercentage(key: string): number {
   if (!key) return 96;
@@ -355,13 +143,12 @@ function ForYouPersonalizedRowInner({ fallbackMovies }: ForYouPersonalizedRowPro
   const { user } = useAuth();
   const [profile, setProfile] = useState<UserProfile | null>(null);
 
-  // Nguồn fallback ưu tiên 2: Catalog từ prop có sẵn
+  // Nguồn fallback: Catalog từ prop có sẵn (do Server Component truyền vào từ real DB/API)
   const catalogFallback = useMemo(() => {
-    const mapped = mapToForYouItems(fallbackMovies || []);
-    return mapped.length >= 12 ? mapped : DEFAULT_CATALOG_FALLBACK;
+    return mapToForYouItems(fallbackMovies || []);
   }, [fallbackMovies]);
 
-  // Khởi tạo ngay lập tức không để trống: ưu tiên catalog fallback hoặc default
+  // Khởi tạo ngay lập tức không để trống: ưu tiên catalog fallback
   const [movies, setMovies] = useState<ForYouMovieItem[]>(() => {
     return catalogFallback.slice(0, 16);
   });
@@ -601,6 +388,10 @@ function ForYouPersonalizedRowInner({ fallbackMovies }: ForYouPersonalizedRowPro
       return { norm, bestThumb };
     });
   }, [movies]);
+
+  if (!loading && movies.length === 0) {
+    return null;
+  }
 
   return (
     <section className="relative select-none">

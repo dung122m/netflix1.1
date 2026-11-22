@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { searchTmdbPosterByTitle, getTmdbMediaImagesById } from "@/services/tmdbService";
-import { cacheService } from "@/lib/cache";
 
 export const runtime = "nodejs";
 
