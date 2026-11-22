@@ -105,8 +105,8 @@ const MovieGridInner = ({ movies, columnsClassName }: MovieGridProps) => {
         className={`grid ${
           columnsClassName ||
           "grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3 sm:gap-4 md:gap-4 lg:gap-5 xl:gap-5"
-        } transition-all duration-300 ${
-          isDimmed ? "opacity-35 blur-[0.6px] scale-[0.995] pointer-events-none select-none" : "opacity-100 blur-0 scale-100"
+        } transition-opacity duration-200 ${
+          isDimmed ? "opacity-40 pointer-events-none select-none" : "opacity-100"
         }`}
       >
         {visibleMovies.map(({ norm, bestThumb }, index) => {
