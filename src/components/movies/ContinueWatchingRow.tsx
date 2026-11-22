@@ -285,7 +285,7 @@ function ContinueWatchingCard({ item, index = 0, onRemove }: ContinueWatchingCar
               ref={checkImageComplete}
               src={toFastCdnImageUrl(imgSrc)}
               alt={item.title}
-              className={`relative z-10 w-full h-full object-cover group-hover:scale-105 transition-opacity duration-300 ${
+              className={`relative z-10 w-full h-full object-cover group-hover:scale-105 transition-[transform,opacity] duration-300 ease-out ${
                 isFallbackLoading && isBlockedByIsp ? "opacity-0" : "opacity-100"
               }`}
               decoding={index < 4 ? "sync" : "async"}
@@ -312,7 +312,7 @@ function ContinueWatchingCard({ item, index = 0, onRemove }: ContinueWatchingCar
 
           {/* NÚT PLAY TRUNG TÂM KHI HOVER */}
           <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-20">
-            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-black/60 backdrop-blur-md border border-white/20 text-white flex items-center justify-center shadow-xl transform group-hover:scale-110 transition-transform">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-black/85 border border-white/20 text-white flex items-center justify-center shadow-xl transform group-hover:scale-110 transition-transform">
               <Play className="w-4 h-4 fill-white ml-0.5 text-white" />
             </div>
           </div>
@@ -322,7 +322,7 @@ function ContinueWatchingCard({ item, index = 0, onRemove }: ContinueWatchingCar
             type="button"
             onClick={(e) => onRemove(e, item.slug)}
             aria-label="Xoá khỏi danh sách tiếp tục xem"
-            className="absolute top-2 right-2 p-1.5 rounded-full bg-black/60 text-zinc-400 hover:text-white hover:bg-red-600/90 backdrop-blur-md transition-all duration-200 z-30 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 cursor-pointer active:scale-90 shadow-md"
+            className="absolute top-2 right-2 p-1.5 rounded-full bg-black/85 text-zinc-400 hover:text-white hover:bg-red-600/90 transition-all duration-200 z-30 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 cursor-pointer active:scale-90 shadow-md"
           >
             <X className="w-3 h-3" />
           </button>

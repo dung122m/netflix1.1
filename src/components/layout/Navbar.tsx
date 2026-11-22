@@ -111,7 +111,7 @@ const NavbarInner: React.FC = () => {
       window.removeEventListener("resize", updateHeight);
       window.removeEventListener("orientationchange", updateHeight);
     };
-  }, [showBackground, isMobileMenuOpen]);
+  }, []);
 
   // Handle background transition on scroll
   useEffect(() => {

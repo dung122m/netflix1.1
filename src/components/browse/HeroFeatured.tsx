@@ -104,18 +104,18 @@ const HeroFeaturedInner: React.FC<{ movies?: HeroMovie[] }> = ({
     Record<string, boolean>
   >({});
 
-  // Preload backdrop images của tất cả slides để khi chuyển slide, ảnh luôn có sẵn tức thì trong browser cache
+  // Preload backdrop images: Chỉ đón đầu 1 slide kế tiếp để tiết kiệm băng thông và giải phóng CPU lúc nạp trang
   useEffect(() => {
     if (typeof window === "undefined" || !slides.length) return;
-    slides.forEach((slide) => {
-      if (!slide) return;
-      const slideMeta = computeHeroMovieMeta(slide, slide.slug, {}, {});
-      if (slideMeta.heroImageSrc && slideMeta.heroImageSrc !== "/default-hero.jpg") {
-        const img = new window.Image();
-        img.src = slideMeta.heroImageSrc;
-      }
-    });
-  }, [slides]);
+    const nextIdx = (index + 1) % slides.length;
+    const nextSlide = slides[nextIdx];
+    if (!nextSlide) return;
+    const slideMeta = computeHeroMovieMeta(nextSlide, nextSlide.slug, {}, {});
+    if (slideMeta.heroImageSrc && slideMeta.heroImageSrc !== "/default-hero.jpg") {
+      const img = new window.Image();
+      img.src = slideMeta.heroImageSrc;
+    }
+  }, [slides, index]);
 
   useEffect(() => {
     setIndex((prev) => (prev >= slides.length && slides.length > 0 ? 0 : prev));

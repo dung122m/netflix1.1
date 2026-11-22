@@ -439,7 +439,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
   return (
     <div
       ref={cardContainerRef}
-      className="group/card relative flex flex-col w-full select-none cursor-pointer hover:scale-[1.02] hover:-translate-y-0.5 hover:z-20 transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:transform-none"
+      className="group/card relative flex flex-col w-full select-none cursor-pointer hover:scale-[1.02] hover:-translate-y-0.5 hover:z-20 transition-transform duration-200 ease-out motion-reduce:transform-none [content-visibility:auto] [contain-intrinsic-size:auto_320px]"
     >
       {/* ========================================================================= */}
       {/* 1. KHỐI POSTER NGHỆ THUẬT (2:3 POSTER ARTWORK CANVAS - CLEAN & ELEVATED)   */}
@@ -535,7 +535,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
               decoding={priority ? "sync" : "async"}
               fetchPriority={priority ? "high" : "auto"}
               referrerPolicy="no-referrer"
-              className={`relative z-[1] w-full h-full object-cover object-center brightness-[0.94] group-hover/card:scale-105 group-hover/card:brightness-105 transition-opacity duration-300 ease-out motion-reduce:transform-none ${isImageLoaded ? "opacity-100" : "opacity-0"
+              className={`relative z-[1] w-full h-full object-cover object-center brightness-[0.94] group-hover/card:scale-105 group-hover/card:brightness-105 transition-[transform,opacity] duration-300 ease-out motion-reduce:transform-none ${isImageLoaded ? "opacity-100" : "opacity-0"
                 }`}
               onLoad={(e) => {
                 const target = e.currentTarget;
