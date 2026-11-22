@@ -313,15 +313,23 @@ export const saveWatchHistory = (
         ? existing.title
         : item.title || item.slug;
 
-    // Không để poster bị giáng cấp về ảnh placeholder nếu đã có poster thật
-    const finalPoster =
-      item.poster && !item.poster.includes("default-")
-        ? item.poster
-        : existing?.poster && !existing.poster.includes("default-")
-        ? existing.poster
-        : item.poster || existing?.poster || "/default-poster.jpg";
+    // Ưu tiên poster TMDb CDN chính hãng:
+    // 1. Nếu existing đã có link TMDb, giữ nguyên TMDb và TUYỆT ĐỐI không giáng cấp về link phimimg/nguonc chậm
+    // 2. Nếu item mới có poster thật (khác default-), dùng poster của item mới
+    // 3. Fallback về existing hoặc default-poster
+    let finalPoster = item.poster || existing?.poster || "/default-poster.jpg";
+    if (existing?.poster && existing.poster.includes("image.tmdb.org") && (!item.poster || !item.poster.includes("image.tmdb.org"))) {
+      finalPoster = existing.poster;
+    } else if (item.poster && !item.poster.includes("default-")) {
+      finalPoster = item.poster;
+    } else if (existing?.poster && !existing.poster.includes("default-")) {
+      finalPoster = existing.poster;
+    }
 
-    const finalThumb = item.thumb || existing?.thumb;
+    const finalThumb =
+      existing?.thumb && existing.thumb.includes("image.tmdb.org") && (!item.thumb || !item.thumb.includes("image.tmdb.org"))
+        ? existing.thumb
+        : item.thumb || existing?.thumb;
 
     const isDifferentEpisode = Boolean(
       item.episodeSlug && existing?.episodeSlug && item.episodeSlug !== existing.episodeSlug
@@ -626,11 +634,17 @@ export async function autoHydrateWatchHistory(): Promise<void> {
         updatedItem.title = meta.title;
         changed = true;
       }
-      if (meta.poster && (!item.poster || item.poster.includes("default-"))) {
+      if (meta.poster && meta.poster.includes("image.tmdb.org") && item.poster !== meta.poster) {
+        updatedItem.poster = meta.poster;
+        changed = true;
+      } else if (meta.poster && (!item.poster || item.poster.includes("default-"))) {
         updatedItem.poster = meta.poster;
         changed = true;
       }
-      if (meta.thumb && !item.thumb) {
+      if (meta.thumb && meta.thumb.includes("image.tmdb.org") && item.thumb !== meta.thumb) {
+        updatedItem.thumb = meta.thumb;
+        changed = true;
+      } else if (meta.thumb && !item.thumb) {
         updatedItem.thumb = meta.thumb;
         changed = true;
       }

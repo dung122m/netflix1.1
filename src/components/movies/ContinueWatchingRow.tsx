@@ -27,7 +27,11 @@ import { formatEpisodeName, isFullEpisodeLabel } from "@/lib/formatEpisode";
 import { CarouselNavButton } from "@/components/ui/CarouselNavButton";
 import { useCarouselScroll } from "@/components/ui/useCarouselScroll";
 import { SectionHeader } from "@/components/ui/SectionHeader";
-import { useMoviePosterFallback, isPhimimgSourceUrl } from "@/hooks/useMoviePosterFallback";
+import {
+  useMoviePosterFallback,
+  isPhimimgSourceUrl,
+  GLOBAL_POSTER_CACHE,
+} from "@/hooks/useMoviePosterFallback";
 
 export const MAX_CONTINUE_WATCHING_DISPLAY = 15;
 
@@ -105,22 +109,39 @@ interface ContinueWatchingCardProps {
 }
 
 function getInitialPoster(item: WatchHistoryItem): string {
-  if (item.slug && continueWatchingThumbCache.has(item.slug)) {
-    return toFastCdnImageUrl(continueWatchingThumbCache.get(item.slug)!);
-  }
-  // 1. Ưu tiên TMDb poster CDN nếu đã có sẵn
+  // 1. Ưu tiên TMDb poster CDN nếu đã có sẵn trong item
   if (item.poster && item.poster.includes("image.tmdb.org")) {
     return toFastCdnImageUrl(toOptimizedCardPosterUrl(item.poster));
   }
   if (item.thumb && item.thumb.includes("image.tmdb.org")) {
     return toFastCdnImageUrl(toOptimizedCardPosterUrl(item.thumb));
   }
-  // 2. Chọn poster dọc tối ưu nhất
+
+  // 2. Tra cứu tức thì từ GLOBAL_POSTER_CACHE (0ms RAM/LocalStorage)
+  if (item.slug && GLOBAL_POSTER_CACHE.has(item.slug)) {
+    return toFastCdnImageUrl(toOptimizedCardPosterUrl(GLOBAL_POSTER_CACHE.get(item.slug)!));
+  }
+  const cleanType = item.type || "movie";
+  if (item.tmdbId && GLOBAL_POSTER_CACHE.has(`v3:tmdb:${item.tmdbId}:${cleanType}`)) {
+    return toFastCdnImageUrl(toOptimizedCardPosterUrl(GLOBAL_POSTER_CACHE.get(`v3:tmdb:${item.tmdbId}:${cleanType}`)!));
+  }
+  const legacyKey = `${item.title || ""}_${item.year || ""}`.trim();
+  if (legacyKey && GLOBAL_POSTER_CACHE.has(legacyKey)) {
+    return toFastCdnImageUrl(toOptimizedCardPosterUrl(GLOBAL_POSTER_CACHE.get(legacyKey)!));
+  }
+
+  // 3. Tra cứu từ continueWatchingThumbCache
+  if (item.slug && continueWatchingThumbCache.has(item.slug)) {
+    return toFastCdnImageUrl(continueWatchingThumbCache.get(item.slug)!);
+  }
+
+  // 4. Chọn poster dọc tối ưu nhất
   const bestPoster = pickBestMoviePoster({ poster_url: item.poster, thumb_url: item.thumb }, "");
   if (bestPoster && !bestPoster.includes("/default-")) {
     return toFastCdnImageUrl(toOptimizedCardPosterUrl(bestPoster));
   }
-  // 3. Dự phòng thumb ngang nếu chưa có poster
+
+  // 5. Dự phòng thumb ngang nếu chưa có poster
   const bestThumb = pickBestMovieThumb({ poster_url: item.poster, thumb_url: item.thumb }, "");
   if (bestThumb && !bestThumb.includes("/default-")) {
     return toFastCdnImageUrl(toOptimizedCardPosterUrl(bestThumb));
@@ -130,12 +151,22 @@ function getInitialPoster(item: WatchHistoryItem): string {
 
 function ContinueWatchingCard({ item, index = 0, onRemove }: ContinueWatchingCardProps) {
   const initialPoster = React.useMemo(() => getInitialPoster(item), [item]);
+  const isBlockedByIsp = Boolean(
+    initialPoster &&
+    (initialPoster.includes("phimimg.com") ||
+      initialPoster.includes("img.ophim.cc") ||
+      initialPoster.includes("img.phimapi.com"))
+  );
   const needsFallback =
     !initialPoster || initialPoster.includes("/default-") || isPhimimgSourceUrl(initialPoster);
-  const { displaySrc, triggerFallback } = useMoviePosterFallback({
+
+  const { displaySrc, isLoading: isFallbackLoading, triggerFallback } = useMoviePosterFallback({
     slug: item.slug,
     title: item.title,
+    origin_name: item.origin_name,
     year: item.year,
+    type: item.type,
+    tmdbId: item.tmdbId,
     initialSrc: initialPoster,
     enabled: needsFallback,
     upgradePhimimg: true,
@@ -148,10 +179,7 @@ function ContinueWatchingCard({ item, index = 0, onRemove }: ContinueWatchingCar
     return Boolean(
       targetInitialSrc &&
       !targetInitialSrc.includes("/default-") &&
-      (loadedPostersCache.has(targetInitialSrc) ||
-        (item.slug && continueWatchingThumbCache.has(item.slug)) ||
-        targetInitialSrc.includes("image.tmdb.org") ||
-        targetInitialSrc.includes("/cache/"))
+      (!isBlockedByIsp || targetInitialSrc.includes("image.tmdb.org"))
     );
   });
   const imgRef = useRef<HTMLImageElement | null>(null);
@@ -177,12 +205,18 @@ function ContinueWatchingCard({ item, index = 0, onRemove }: ContinueWatchingCar
     if (safeDisplay && safeDisplay !== imgSrc) {
       setImgSrc(safeDisplay);
       setIsLoaded(true);
-      // Nâng cấp poster vĩnh viễn trong localStorage nếu tìm thấy link TMDb CDN chính hãng
-      if (displaySrc.includes("image.tmdb.org")) {
-        updateWatchHistoryPoster(item.slug, displaySrc);
-      }
     }
-  }, [displaySrc, imgSrc, item.slug]);
+  }, [displaySrc, imgSrc]);
+
+  // Luôn đồng bộ vĩnh viễn poster TMDb vào localStorage watch history để các lần sau tải 0ms
+  useEffect(() => {
+    const bestTmdb =
+      (displaySrc && displaySrc.includes("image.tmdb.org") ? displaySrc : "") ||
+      (initialPoster && initialPoster.includes("image.tmdb.org") ? initialPoster : "");
+    if (bestTmdb && item.slug && item.poster !== bestTmdb) {
+      updateWatchHistoryPoster(item.slug, bestTmdb);
+    }
+  }, [displaySrc, initialPoster, item.slug, item.poster]);
 
   useEffect(() => {
     if (imgRef.current && imgRef.current.complete && imgRef.current.naturalWidth > 0) {
@@ -234,7 +268,7 @@ function ContinueWatchingCard({ item, index = 0, onRemove }: ContinueWatchingCar
             className="absolute inset-0 bg-gradient-to-br from-zinc-900 via-zinc-950 to-black flex flex-col items-center justify-center p-3 text-center select-none overflow-hidden"
             aria-hidden="true"
           >
-            {!isLoaded && (
+            {!isLoaded && isBlockedByIsp && (
               <div
                 className="absolute inset-0 -translate-x-full poster-placeholder-shimmer bg-gradient-to-r from-transparent via-white/[0.05] to-transparent pointer-events-none"
                 aria-hidden="true"
@@ -252,11 +286,12 @@ function ContinueWatchingCard({ item, index = 0, onRemove }: ContinueWatchingCar
               ref={checkImageComplete}
               src={toFastCdnImageUrl(imgSrc)}
               alt={item.title}
-              className={`relative z-10 w-full h-full object-cover group-hover:scale-105 transition-all duration-300 ${
-                isLoaded ? "opacity-100" : "opacity-0"
+              className={`relative z-10 w-full h-full object-cover group-hover:scale-105 transition-opacity duration-300 ${
+                isFallbackLoading && isBlockedByIsp ? "opacity-0" : "opacity-100"
               }`}
-              decoding="async"
+              decoding={index < 4 ? "sync" : "async"}
               loading={index < 8 ? "eager" : "lazy"}
+              fetchPriority={index < 4 ? "high" : "auto"}
               onLoad={() => {
                 const safeLoaded = toFastCdnImageUrl(imgSrc);
                 if (safeLoaded) {

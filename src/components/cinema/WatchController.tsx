@@ -230,6 +230,7 @@ export function WatchController({
       country,
       type,
       actor,
+      tmdbId: tmdbId ?? undefined,
     });
   }, [
     movieSlug,
@@ -244,6 +245,7 @@ export function WatchController({
     country,
     type,
     actor,
+    tmdbId,
   ]);
 
   // Chỉ đồng bộ khi initialEpisodeSlug từ Server hoặc Router Navigation bên ngoài thay đổi
@@ -460,6 +462,7 @@ export function WatchController({
           country,
           type,
           actor,
+          tmdbId: tmdbId ?? undefined,
         });
       }
     },
@@ -478,6 +481,7 @@ export function WatchController({
       country,
       type,
       actor,
+      tmdbId,
       updateUrlQuietly,
     ]
   );
