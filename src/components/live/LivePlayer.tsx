@@ -579,7 +579,7 @@ function LivePlayerInner({
   );
 
   return (
-    <div className="space-y-2.5 sm:space-y-3">
+    <div className="space-y-3.5 sm:space-y-4 md:space-y-5">
       {/* 1. KHUNG PHÁT VIDEO CHÍNH */}
       <div
         ref={containerRef}

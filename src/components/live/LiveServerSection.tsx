@@ -105,7 +105,7 @@ export function LiveServerSection({
   }, [selectedServerIndex, isGridView, checkChipsScroll]);
 
   return (
-    <div className="keep-dark-cinema rounded-2xl sm:rounded-3xl bg-zinc-900/95 p-3 sm:p-4 shadow-xl space-y-2.5 w-full min-w-0">
+    <div className="keep-dark-cinema rounded-2xl sm:rounded-3xl bg-zinc-900/95 p-3.5 sm:p-5 shadow-xl space-y-3 w-full min-w-0">
       <div className="flex items-center justify-between gap-3 pb-2.5">
         <div className="flex items-center gap-2 min-w-0 flex-1">
           <span className="flex items-center gap-1.5 text-zinc-200 font-bold text-xs sm:text-sm">
