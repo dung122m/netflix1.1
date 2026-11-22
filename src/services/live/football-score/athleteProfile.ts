@@ -3,56 +3,6 @@ import { cacheService } from "@/lib/cache";
 import { getR2AssetUrl } from "@/lib/r2";
 import { optimizeEspnHeadshotUrl } from "./service";
 
-type PlayerCatalogItem = {
-  id?: string;
-  name?: string;
-  citizenship?: string;
-  dateOfBirth?: string;
-  r2PhotoUrl?: string;
-  originalPhotoUrl?: string;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  [key: string]: any;
-};
-
-const TOP_PLAYERS_R2_URL =
-  process.env.NEXT_PUBLIC_R2_PUBLIC_URL
-    ? `${process.env.NEXT_PUBLIC_R2_PUBLIC_URL.replace(/\/+$/, "")}/players/data/top-players.json`
-    : "https://media.nanaflix.asia/players/data/top-players.json";
-
-// Lazy-loaded in-memory index cho kho cầu thủ nạp từ Cloudflare R2 CDN (0ms RAM cache sau lần tải đầu, giải phóng 2MB bundle)
-let playerCatalogIndex: Map<string, PlayerCatalogItem> | null = null;
-let inFlightCatalogFetch: Promise<Map<string, PlayerCatalogItem>> | null = null;
-
-async function getPlayerCatalogIndex(): Promise<Map<string, PlayerCatalogItem>> {
-  if (playerCatalogIndex) return playerCatalogIndex;
-  if (inFlightCatalogFetch) return inFlightCatalogFetch;
-
-  inFlightCatalogFetch = (async () => {
-    try {
-      const res = await fetch(TOP_PLAYERS_R2_URL, {
-        headers: { Accept: "application/json" },
-        signal: AbortSignal.timeout(6000),
-      });
-      if (res.ok) {
-        const list = (await res.json()) as PlayerCatalogItem[];
-        const map = new Map<string, PlayerCatalogItem>();
-        for (const p of list) {
-          if (p.id) map.set(p.id, p);
-        }
-        playerCatalogIndex = map;
-        return map;
-      }
-    } catch (err) {
-      console.warn("[AthleteProfile] Fetch top-players from R2 failed:", err instanceof Error ? err.message : err);
-    }
-    return playerCatalogIndex || new Map<string, PlayerCatalogItem>();
-  })().finally(() => {
-    inFlightCatalogFetch = null;
-  });
-
-  return inFlightCatalogFetch;
-}
-
 
 
 /**
@@ -448,37 +398,17 @@ async function fetchAthleteProfileInternal(
       }
     }
 
-    // Bước C: Bổ sung metadata từ kho 4,500 cầu thủ và ảnh CDN Cloudflare R2
-    const catalogIndex = await getPlayerCatalogIndex();
-    const localPlayer = catalogIndex.get(cleanId);
-    const r2Photo = getR2AssetUrl(`players/photos/${cleanId}.png`);
-    if (localPlayer) {
-      if ((!baseProfile.displayName || baseProfile.displayName === "Cầu thủ") && localPlayer.name) {
-        baseProfile.displayName = localPlayer.name;
-      }
-      if (!baseProfile.citizenship && localPlayer.citizenship) {
-        baseProfile.citizenship = localPlayer.citizenship;
-      }
-      if (!baseProfile.dateOfBirth && localPlayer.dateOfBirth) {
-        baseProfile.dateOfBirth = localPlayer.dateOfBirth;
-      }
-    }
-    // Chỉ bổ sung ảnh từ R2 / local player nếu ESPN và Wikimedia chưa có ảnh
+    // Bước C: Bổ sung ảnh CDN Cloudflare R2 nếu ESPN và Wikimedia chưa có ảnh
     if (!baseProfile.photoUrl) {
+      const r2Photo = getR2AssetUrl(`players/photos/${cleanId}.png`);
       if (r2Photo) {
         baseProfile.photoUrl = r2Photo;
-        baseProfile.photoSource = "espn";
-      } else if (localPlayer?.r2PhotoUrl) {
-        baseProfile.photoUrl = localPlayer.r2PhotoUrl;
-        baseProfile.photoSource = "espn";
-      } else if (localPlayer?.originalPhotoUrl) {
-        baseProfile.photoUrl = localPlayer.originalPhotoUrl;
         baseProfile.photoSource = "espn";
       }
     }
 
-    // Nếu không có cả ESPN Bio, ảnh bổ sung lẫn dữ liệu nội bộ (ID không tồn tại), không tạo profile rỗng
-    if (!espnBio && !baseProfile.photoUrl && !localPlayer) {
+    // Nếu không có cả ESPN Bio lẫn ảnh (ID không tồn tại trên hệ thống), không tạo profile rỗng
+    if (!espnBio && !baseProfile.photoUrl) {
       return null;
     }
 

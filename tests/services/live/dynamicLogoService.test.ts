@@ -4,8 +4,9 @@ import {
   resolveDynamicSportsLogo,
   getCachedLogo,
   DYNAMIC_LOGO_CACHE,
-} from "@/services/live/dynamicLogoService";
-import { resolveTeamLogo, enrichMatchLogos } from "@/services/live/football-logo/service";
+  resolveTeamLogo,
+  enrichMatchLogos,
+} from "@/services/live/football-logo/service";
 
 test("1. Xác minh logo T1, Gen.G và các đội tuyển Esports từ nguồn Wikimedia thực tế", async () => {
   const t1 = await resolveDynamicSportsLogo("T1", "esports");
