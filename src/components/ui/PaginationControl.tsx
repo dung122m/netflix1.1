@@ -32,9 +32,22 @@ const PaginationControlInner: React.FC<PaginationControlProps> = ({
     return `?${params.toString()}`;
   };
 
+  const scrollToGrid = () => {
+    if (typeof window !== "undefined" && window.scrollY > 300) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const lenis = (window as unknown as any).__lenis;
+      if (lenis) {
+        lenis.scrollTo(120, { duration: 0.6 });
+      } else {
+        window.scrollTo({ top: 120, behavior: "smooth" });
+      }
+    }
+  };
+
   const handlePageClick = (pageNumber: number) => {
     if (onPageChange) {
       onPageChange(pageNumber);
+      scrollToGrid();
     }
   };
 
@@ -114,6 +127,8 @@ const PaginationControlInner: React.FC<PaginationControlProps> = ({
         <Link
           href={buildPageUrl(prevPage)}
           prefetch={false}
+          scroll={false}
+          onClick={scrollToGrid}
           tabIndex={safeCurrentPage <= 1 ? -1 : 0}
           className={`px-3.5 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm rounded-xl font-semibold transition touch-target min-h-[40px] flex items-center justify-center outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-105 cursor-pointer ${
             safeCurrentPage <= 1
@@ -163,6 +178,8 @@ const PaginationControlInner: React.FC<PaginationControlProps> = ({
               key={index}
               href={buildPageUrl(pageNum)}
               prefetch={false}
+              scroll={false}
+              onClick={scrollToGrid}
               className={`w-9 h-9 sm:w-10 sm:h-10 text-xs sm:text-sm flex items-center justify-center rounded-lg font-semibold transition-all outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-110 cursor-pointer ${
                 isActive
                   ? "bg-netflix-red text-white shadow-sm font-bold"
@@ -253,6 +270,8 @@ const PaginationControlInner: React.FC<PaginationControlProps> = ({
         <Link
           href={buildPageUrl(nextPage)}
           prefetch={false}
+          scroll={false}
+          onClick={scrollToGrid}
           tabIndex={safeCurrentPage >= safeTotalPages ? -1 : 0}
           className={`px-3.5 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm rounded-xl font-semibold transition touch-target min-h-[40px] flex items-center justify-center outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-105 cursor-pointer ${
             safeCurrentPage >= safeTotalPages
