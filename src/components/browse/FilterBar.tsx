@@ -59,18 +59,6 @@ export const FilterBar: React.FC = () => {
   }>({});
   const [pendingGroup, setPendingGroup] = useState<FilterGroup | "all" | null>(null);
 
-  const hadFilterPendingRef = useRef(false);
-  useEffect(() => {
-    if (isPending) {
-      hadFilterPendingRef.current = true;
-    } else if (hadFilterPendingRef.current) {
-      hadFilterPendingRef.current = false;
-      if (typeof window !== "undefined") {
-        window.dispatchEvent(new Event("app:loading-end"));
-      }
-    }
-  }, [isPending]);
-
   // Dismiss on outside click & Escape key
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent | TouchEvent) => {

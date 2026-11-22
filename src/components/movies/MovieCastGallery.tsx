@@ -187,7 +187,6 @@ export const MovieCastGallery: React.FC<MovieCastGalleryProps> = ({
           <Link
             key={actor.id}
             href={actor.href}
-            prefetch={false}
             aria-label={`Xem hồ sơ & phim của ${actor.name}${actor.character ? ` (Vai: ${actor.character})` : ""}`}
             className="group/card flex-none w-[100px] sm:w-[112px] md:w-[120px] transition-all duration-200 cursor-pointer flex flex-col text-left snap-start select-none"
           >

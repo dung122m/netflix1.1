@@ -212,11 +212,7 @@ export default async function ActorDetailPage({ params }: PageProps) {
           .set(`actor:full_page:v4:${slug}`, { wikiProfile, movies }, ACTOR_PAGE_REDIS_TTL_SEC)
           .catch(() => { });
       }
-    } else {
-      await enrichMovieListPosters(movies, { budgetMs: 1500, stripProxyUrls: true });
     }
-  } else if (movies && movies.length > 0) {
-    await enrichMovieListPosters(movies, { budgetMs: 1500, stripProxyUrls: true });
   }
 
   // Nếu không tìm thấy thông tin trên TMDb, Wikipedia và cũng không có phim nào trên hệ thống -> 404 Not Found

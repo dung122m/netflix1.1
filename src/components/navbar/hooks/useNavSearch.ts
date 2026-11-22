@@ -59,20 +59,8 @@ export function useNavSearch({
   const abortControllerRef = useRef<AbortController | null>(null);
   const isSearchExpandedRef = useRef(isSearchExpanded);
   const onOpenMobileSearchRef = useRef(onOpenMobileSearch);
+  const [, startNavTransition] = useTransition();
 
-  const [isNavPending, startNavTransition] = useTransition();
-  const hadPendingNavRef = useRef(false);
-
-  useEffect(() => {
-    if (isNavPending) {
-      hadPendingNavRef.current = true;
-    } else if (hadPendingNavRef.current) {
-      hadPendingNavRef.current = false;
-      if (typeof window !== "undefined") {
-        window.dispatchEvent(new Event("app:loading-end"));
-      }
-    }
-  }, [isNavPending]);
 
   useEffect(() => {
     isSearchExpandedRef.current = isSearchExpanded;

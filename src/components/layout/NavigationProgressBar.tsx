@@ -14,7 +14,8 @@ function NavigationProgressBarInner() {
   const safetyTimerRef = useRef<NodeJS.Timeout | null>(null);
   const isRunningRef = useRef(false);
 
-  const lastPathnameRef = useRef(pathname);
+  const currentUrl = `${pathname}${searchParams?.toString() ? `?${searchParams.toString()}` : ""}`;
+  const lastUrlRef = useRef(currentUrl);
 
   const stopLoading = useCallback(() => {
     if (!isRunningRef.current) return;
@@ -73,17 +74,17 @@ function NavigationProgressBarInner() {
     }, 15000);
   }, [stopLoading]);
 
-  // 1. Theo dõi chuyển trang (Khi URL Pathname thay đổi)
-  // Nhờ loading.tsx ở mọi route, khi pathname đổi là Next.js đã lập tức mount màn hình skeleton mới,
-  // do đó tiến trình kết thúc ngay lúc màn hình mới bắt đầu xuất hiện.
+  // 1. Theo dõi chuyển trang (Khi URL Pathname hoặc Query Params thay đổi)
+  // Khi URL thay đổi là Next.js đã hoàn thành fetch Server Component và mount màn hình mới,
+  // do đó tiến trình kết thúc chính xác ngay lúc màn hình mới xuất hiện.
   useEffect(() => {
-    const isPathChanged = lastPathnameRef.current !== pathname;
-    lastPathnameRef.current = pathname;
+    const isUrlChanged = lastUrlRef.current !== currentUrl;
+    lastUrlRef.current = currentUrl;
 
-    if (isPathChanged && isRunningRef.current) {
+    if (isUrlChanged && isRunningRef.current) {
       stopLoading();
     }
-  }, [pathname, searchParams, stopLoading]);
+  }, [currentUrl, stopLoading]);
 
   // 2. Bắt sự kiện click toàn trang trên thẻ <a> (Link nội bộ) để kích hoạt loading NGAY TỨC THÌ (0ms)
   useEffect(() => {

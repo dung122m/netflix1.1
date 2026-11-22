@@ -32,9 +32,6 @@ const MovieGridInner = ({ movies, columnsClassName }: MovieGridProps) => {
   useEffect(() => {
     setVisibleCount(INITIAL_BATCH);
     setIsDimmed(false);
-    if (typeof window !== "undefined") {
-      window.dispatchEvent(new Event("app:loading-end"));
-    }
   }, [movies]);
 
   // Lắng nghe sự kiện loading toàn trang hoặc filter để làm mờ nhẹ lưới phim tức thì

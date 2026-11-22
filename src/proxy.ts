@@ -105,11 +105,11 @@ function normalizeClientIpSubnet(ip: string): string {
 }
 
 const EDGE_TIER_RULES: EdgeTierRule[] = [
-  { prefix: "/dien-vien/", name: "trang diễn viên", maxRequests: 4, windowMs: 10_000 },
-  { prefix: "/movies/", name: "trang phim", maxRequests: 8, windowMs: 10_000 },
-  { prefix: "/browse", name: "trang khám phá", maxRequests: 10, windowMs: 10_000 },
-  { prefix: "/api/search-suggest", name: "gợi ý tìm kiếm", maxRequests: 12, windowMs: 10_000 },
-  { prefix: "/api/recommendations/for-you", name: "gợi ý phim", maxRequests: 8, windowMs: 10_000 },
+  { prefix: "/dien-vien/", name: "trang diễn viên", maxRequests: 30, windowMs: 10_000 },
+  { prefix: "/movies/", name: "trang phim", maxRequests: 35, windowMs: 10_000 },
+  { prefix: "/browse", name: "trang khám phá", maxRequests: 35, windowMs: 10_000 },
+  { prefix: "/api/search-suggest", name: "gợi ý tìm kiếm", maxRequests: 40, windowMs: 10_000 },
+  { prefix: "/api/recommendations/for-you", name: "gợi ý phim", maxRequests: 25, windowMs: 10_000 },
 ];
 
 // Danh sách các đường dẫn dò quét lỗ hổng phổ biến của botnet
@@ -387,7 +387,15 @@ export function proxy(req: NextRequest) {
   }
 
   // 4.3 Giới hạn tần suất Edge đa tầng (Multi-tier Edge Rate Limiting - 0 Redis commands)
-  if (!isSearchBot) {
+  const isLoopback = req.nextUrl.hostname === "localhost" || req.nextUrl.hostname === "127.0.0.1";
+  const isDev = process.env.NODE_ENV === "development";
+  const isTest = process.env.NODE_ENV === "test" || process.env.APP_ENV === "test";
+  const isPrefetch =
+    req.headers.get("purpose") === "prefetch" ||
+    req.headers.get("next-router-prefetch") === "1" ||
+    req.headers.get("x-nextjs-data") === "1";
+
+  if (!isSearchBot && !isLoopback && !isDev && !isTest && !isPrefetch) {
     const matchedTier = EDGE_TIER_RULES.find((tier) => pathname.startsWith(tier.prefix));
     if (matchedTier) {
       const ipSubnet = normalizeClientIpSubnet(clientIp);

@@ -295,7 +295,6 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
 
   const baseCardRef = useRef<HTMLAnchorElement>(null);
   const [isNavigating, setIsNavigating] = useState(false);
-  const navTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Đồng bộ Watchlist qua 1 shared listener duy nhất
   useEffect(() => {
@@ -306,7 +305,6 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
 
     return () => {
       unsubscribe();
-      if (navTimeoutRef.current) clearTimeout(navTimeoutRef.current);
     };
   }, [slug]);
 
@@ -399,11 +397,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
     if (isNavigating) return;
 
     setIsNavigating(true);
-
-    if (navTimeoutRef.current) clearTimeout(navTimeoutRef.current);
-    navTimeoutRef.current = setTimeout(() => {
-      router.push(targetHref);
-    }, 180);
+    router.push(targetHref);
   };
 
   // Xử lý khi nhấn nút Trailer: Tải trailer theo nhu cầu (nếu chưa có) và mở TrailerModal
