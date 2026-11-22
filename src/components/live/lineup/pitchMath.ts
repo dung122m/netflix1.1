@@ -1,4 +1,8 @@
-import { MatchRosterPlayer } from "@/services/live/football-score/types";
+import { MatchKeyEvent, MatchRosterPlayer } from "@/services/live/football-score/types";
+
+// ============================================================================
+// 1. DATA TYPES & INTERFACES
+// ============================================================================
 
 export interface PositionedPlayer {
   player: MatchRosterPlayer;
@@ -7,6 +11,139 @@ export interface PositionedPlayer {
   roleAbbr: string;
   totalInLine?: number;
 }
+
+export interface TeamInfo {
+  id: string;
+  name: string;
+  displayName: string;
+  logo?: string;
+  formation?: string;
+  coach?: string;
+}
+
+export interface DualPlayerEventSummary {
+  goals: number;
+  goalMinutes: string[];
+  yellowCards: number;
+  redCards: number;
+  subClock?: string;
+}
+
+export interface PositionedDualPlayer {
+  player: MatchRosterPlayer;
+  x: number; // Tọa độ X trên sân ngang (0 - 100%)
+  y: number; // Tọa độ Y trên sân ngang (0 - 100%)
+  roleAbbr: string;
+  isHome: boolean;
+  goals: number;
+  goalMinutes: string[];
+  yellowCards: number;
+  redCards: number;
+  isSubbedOut: boolean;
+  isSubbedIn: boolean;
+  subClock?: string;
+}
+
+// ============================================================================
+// 2. DỊCH THUẬT VỊ TRÍ & CHỈ SỐ THI ĐẤU
+// ============================================================================
+
+/**
+ * Dịch vị trí thi đấu bóng đá sang Tiếng Việt chuẩn xác
+ */
+export function translatePosition(pos?: string): string {
+  if (!pos) return "Cầu thủ";
+  const p = pos.trim().toLowerCase();
+
+  // Thủ môn
+  if (/\b(goalkeeper|gk|g)\b/.test(p)) return "Thủ môn";
+
+  // Hậu vệ
+  if (p.includes("center left defender") || /\bcd-l|cb-l\b/.test(p)) return "Trung vệ lệch trái";
+  if (p.includes("center right defender") || /\bcd-r|cb-r\b/.test(p)) return "Trung vệ lệch phải";
+  if (p.includes("center defender") || p.includes("centre-back") || p.includes("centre back") || /\bcb\b/.test(p)) return "Trung vệ";
+  if (p.includes("left wing back") || /\blwb\b/.test(p)) return "Hậu vệ biên trái";
+  if (p.includes("right wing back") || /\brwb\b/.test(p)) return "Hậu vệ biên phải";
+  if (p.includes("left back") || /\blb\b/.test(p)) return "Hậu vệ cánh trái";
+  if (p.includes("right back") || /\brb\b/.test(p)) return "Hậu vệ cánh phải";
+  if (p.includes("wing back") || /\bwb\b/.test(p)) return "Hậu vệ biên";
+  if (p.includes("defender") || /\bd\b/.test(p)) return "Hậu vệ";
+
+  // Tiền vệ
+  if (p.includes("defensive midfielder") || /\b(dm|cdm)\b/.test(p)) return "Tiền vệ phòng ngự";
+  if (p.includes("attacking midfielder left") || /\bam-l|lam\b/.test(p)) return "Tiền vệ tấn công lệch trái";
+  if (p.includes("attacking midfielder right") || /\bam-r|ram\b/.test(p)) return "Tiền vệ tấn công lệch phải";
+  if (p.includes("attacking midfielder") || /\b(am|cam)\b/.test(p)) return "Tiền vệ tấn công";
+  if (p.includes("center left midfielder") || /\b(cm-l|lcm)\b/.test(p)) return "Tiền vệ lệch trái";
+  if (p.includes("center right midfielder") || /\b(cm-r|rcm)\b/.test(p)) return "Tiền vệ lệch phải";
+  if (p.includes("left midfielder") || /\blm\b/.test(p)) return "Tiền vệ cánh trái";
+  if (p.includes("right midfielder") || /\brm\b/.test(p)) return "Tiền vệ cánh phải";
+  if (p.includes("center midfielder") || p.includes("centre midfielder") || p.includes("central midfielder") || /\bcm\b/.test(p)) return "Tiền vệ trung tâm";
+  if (p.includes("midfielder") || /\bm\b/.test(p)) return "Tiền vệ";
+
+  // Tiền đạo
+  if (p.includes("second striker") || /\bss\b/.test(p)) return "Hộ công";
+  if (p.includes("center left forward") || /\b(cf-l|st-l)\b/.test(p)) return "Tiền đạo trung tâm";
+  if (p.includes("center right forward") || /\b(cf-r|st-r)\b/.test(p)) return "Tiền đạo trung tâm";
+  if (p.includes("center forward") || /\bcf\b/.test(p)) return "Tiền đạo trung tâm";
+  if (p.includes("striker") || /\bst\b/.test(p)) return "Tiền đạo cắm";
+  if (p.includes("left wing") || p.includes("left winger") || /\blw\b/.test(p)) return "Tiền đạo cánh trái";
+  if (p.includes("right wing") || p.includes("right winger") || /\brw\b/.test(p)) return "Tiền đạo cánh phải";
+  if (p.includes("left forward") || /\blf\b/.test(p)) return "Tiền đạo cánh trái";
+  if (p.includes("right forward") || /\brf\b/.test(p)) return "Tiền đạo cánh phải";
+  if (p.includes("forward") || /\bfw|f\b/.test(p)) return "Tiền đạo";
+
+  return pos;
+}
+
+/**
+ * Dịch nhãn thống kê thi đấu của cầu thủ sang Tiếng Việt
+ */
+export function translateStatName(name?: string): string {
+  if (!name) return "";
+  const key = name.trim().toLowerCase();
+
+  const statDict: Record<string, string> = {
+    appearances: "Số trận ra sân",
+    "fouls committed": "Phạm lỗi",
+    "fouls suffered": "Bị phạm lỗi",
+    "own goals": "Phản lưới nhà",
+    "red cards": "Thẻ đỏ",
+    "substitute appearances": "Vào sân dự bị",
+    "yellow cards": "Thẻ vàng",
+    "goals against": "Bàn thua",
+    "shots faced": "Cú sút phải đối mặt",
+    assists: "Kiến tạo",
+    offsides: "Việt vị",
+    "shots on goal": "Sút trúng đích",
+    "shots on target": "Sút trúng đích",
+    "total goals": "Bàn thắng",
+    goals: "Bàn thắng",
+    shots: "Tổng cú sút",
+    "total shots": "Tổng cú sút",
+    passes: "Đường chuyền",
+    "total passes": "Đường chuyền",
+    "pass accuracy": "Chính xác đường chuyền",
+    "passing accuracy": "Chính xác đường chuyền",
+    tackles: "Tranh chấp / Tắc bóng",
+    interceptions: "Cắt bóng",
+    clearances: "Phá bóng",
+    saves: "Cứu thua",
+    "minutes played": "Số phút thi đấu",
+    "key passes": "Đường chuyền quyết định",
+    dribbles: "Rê bóng",
+    "aerial duels won": "Không chiến thành công",
+    crosses: "Tạt bóng",
+    touches: "Chạm bóng",
+    corners: "Phạt góc",
+  };
+
+  return statDict[key] || name;
+}
+
+// ============================================================================
+// 3. TOÁN HỌC TỌA ĐỘ VỊ TRÍ CHIẾN THUẬT (TACTICAL COORDINATES)
+// ============================================================================
 
 /**
  * Rút gọn tên vị trí thành mã viết tắt 2-3 ký tự dễ đọc trên sân
@@ -23,8 +160,8 @@ export function getPositionAbbreviation(pos: string): string {
   if (p.includes("defender") || /\b(df|d)\b/.test(p)) return "DF";
 
   if (p.includes("defensive midfielder") || /\b(dm|cdm)\b/.test(p)) return "DM";
-  if (p.includes("attacking midfielder left") || /\b(am-l|lam)\b/.test(p)) return "AM-L";
-  if (p.includes("attacking midfielder right") || /\b(am-r|ram)\b/.test(p)) return "AM-R";
+  if (p.includes("attacking midfielder left") || /\bam-l|lam\b/.test(p)) return "AM-L";
+  if (p.includes("attacking midfielder right") || /\bam-r|ram\b/.test(p)) return "AM-R";
   if (p.includes("attacking midfielder") || /\b(am|cam)\b/.test(p)) return "AM";
   if (p.includes("center left midfielder") || /\b(cm-l|lcm)\b/.test(p)) return "CM-L";
   if (p.includes("center right midfielder") || /\b(cm-r|rcm)\b/.test(p)) return "CM-R";
@@ -33,7 +170,6 @@ export function getPositionAbbreviation(pos: string): string {
   if (p.includes("center midfielder") || p.includes("centre midfielder") || p.includes("central midfielder") || /\bcm\b/.test(p)) return "CM";
   if (p.includes("midfielder") || /\b(mf|m)\b/.test(p)) return "MF";
 
-  // Tiền đạo trung tâm / Tiền đạo cắm (ưu tiên kiểm tra trước tiền đạo cánh để tránh các biến thể Center Left/Right Forward bị khớp nhầm vào Left/Right Forward)
   if (
     p.includes("center left forward") ||
     p.includes("center right forward") ||
@@ -44,7 +180,6 @@ export function getPositionAbbreviation(pos: string): string {
     return "ST";
   }
 
-  // Tiền đạo cánh
   if (p.includes("left wing") || p.includes("left winger") || /\blw\b/.test(p) || p.includes("left forward") || /\blf\b/.test(p)) return "LW";
   if (p.includes("right wing") || p.includes("right winger") || /\brw\b/.test(p) || p.includes("right forward") || /\brf\b/.test(p)) return "RW";
 
@@ -52,62 +187,52 @@ export function getPositionAbbreviation(pos: string): string {
   return "PL";
 }
 
-/**
- * Suy luận điểm trục ngang dựa trên quy chuẩn vị trí formationPlace của ESPN/Bóng đá quốc tế
- * Khi dữ liệu position chỉ là nhãn chung (Defender, Midfielder)
- */
 function getHorizontalScoreFromFormationPlace(fp: number): number {
   switch (fp) {
-    case 3: // Left Back
-    case 11: // Left Winger / Left Attacking Midfielder
+    case 3:
+    case 11:
       return -2;
-    case 6: // Center Left Back
-    case 4: // Left Pivot / LDM / LM
+    case 6:
+    case 4:
       return -1;
-    case 1: // GK
-    case 10: // CAM / Playmaker trung tâm
-    case 9: // ST / Tiền đạo cắm
+    case 1:
+    case 10:
+    case 9:
       return 0;
-    case 5: // Center Right Back
-    case 8: // Right Pivot / RDM / RM
+    case 5:
+    case 8:
       return 1;
-    case 2: // Right Back
-    case 7: // Right Winger / Right Attacking Midfielder
+    case 2:
+    case 7:
       return 2;
     default:
       return 0;
   }
 }
 
-/**
- * Suy luận điểm độ sâu trục dọc từ formationPlace khi position chỉ là nhãn chung
- */
 function getDepthScoreFromFormationPlace(fp: number): number {
   switch (fp) {
     case 1:
-      return 0; // GK
+      return 0;
     case 2:
     case 3:
     case 5:
     case 6:
-      return 1; // Hàng thủ
+      return 1;
     case 4:
     case 8:
-      return 2.2; // Double pivot / Tuyến tiền vệ phòng ngự
+      return 2.2;
     case 7:
     case 10:
     case 11:
-      return 3.2; // Tuyến tiền vệ tấn công / hộ công / 2 cánh
+      return 3.2;
     case 9:
-      return 4; // Tiền đạo cắm
+      return 4;
     default:
       return 2.5;
   }
 }
 
-/**
- * Tính điểm vị trí theo chiều ngang (Left = âm, Center = 0, Right = dương)
- */
 function getHorizontalScore(p: MatchRosterPlayer): number {
   const pos = (p.position || "").toLowerCase();
   if (
@@ -126,22 +251,17 @@ function getHorizontalScore(p: MatchRosterPlayer): number {
     return 0;
   }
 
-  // Fallback theo quy chuẩn formationPlace nếu tên vị trí chung chung
   if (p.formationPlace) {
     return getHorizontalScoreFromFormationPlace(p.formationPlace);
   }
   return 0;
 }
 
-/**
- * Tính điểm độ sâu vị trí theo trục dọc (Thủ môn: 0, Hậu vệ: 1, Tiền vệ: 2, Tiền đạo: 3-4)
- */
 function getVerticalDepthScore(p: MatchRosterPlayer): number {
   const pos = (p.position || "").toLowerCase();
   if (pos.includes("goalkeeper") || /\b(g|gk)\b/.test(pos) || p.formationPlace === 1) return 0;
   if (pos.includes("defender") || pos.includes("back") || /\b(cb|df|d)\b/.test(pos)) return 1;
 
-  // 1. Tiền đạo cánh / Tiền đạo lệch / Vệ tinh hỗ trợ (CF-L, CF-R, LF, RF, LW, RW, AM-L, AM-R)
   const isWingerOrSideForward =
     pos.includes("wing") ||
     /\b(lw|rw|lf|rf)\b/.test(pos) ||
@@ -151,7 +271,6 @@ function getVerticalDepthScore(p: MatchRosterPlayer): number {
 
   if (isWingerOrSideForward) return 3.6;
 
-  // 2. Tiền đạo trung tâm / cắm (ST, CF trung tâm, F, hoặc formationPlace === 9 chuẩn quốc tế)
   if (
     p.formationPlace === 9 ||
     pos.includes("striker") ||
@@ -163,16 +282,10 @@ function getVerticalDepthScore(p: MatchRosterPlayer): number {
     return 4.2;
   }
 
-  // 3. Tiền vệ tấn công / Hộ công (kiểm tra trước midfielder)
   if (pos.includes("attacking") || /\b(am|cam)\b/.test(pos)) return 3.2;
-
-  // 4. Tiền vệ phòng ngự (kiểm tra trước midfielder)
   if (pos.includes("defensive") || /\b(dm|cdm)\b/.test(pos)) return 2.1;
-
-  // 5. Tiền vệ cánh (LM, RM)
   if (pos.includes("left midfielder") || pos.includes("right midfielder") || /\b(lm|rm)\b/.test(pos)) return 2.8;
 
-  // 6. Tiền vệ trung tâm hoặc chung
   if (pos.includes("midfielder") || /\b(cm|mf|m)\b/.test(pos)) {
     if (p.formationPlace) {
       return getDepthScoreFromFormationPlace(p.formationPlace);
@@ -186,44 +299,34 @@ function getVerticalDepthScore(p: MatchRosterPlayer): number {
   return 2.5;
 }
 
-/**
- * Suy luận mã viết tắt vị trí thông minh từ ngữ cảnh tọa độ trên sân cỏ
- * khi API chỉ trả về nhãn chung chung (DF, MF, PL)
- */
 export function inferContextualRole(
   baseRole: string,
   x: number,
   y: number,
   totalInLine: number
 ): string {
-  // Nếu đã là mã vị trí đặc thù (LB, RB, CB, DM, AM, ST, LW, RW, GK, v.v.) thì giữ nguyên
   if (baseRole !== "DF" && baseRole !== "MF" && baseRole !== "FW" && baseRole !== "PL") {
     return baseRole;
   }
 
-  // Tuyến Hậu vệ (y >= 65 hoặc baseRole là DF)
   if (baseRole === "DF" || (baseRole === "PL" && y >= 65)) {
     if (x <= 25) return "LB";
     if (x >= 75) return "RB";
     return totalInLine >= 4 ? (x < 50 ? "CB-L" : "CB-R") : "CB";
   }
 
-  // Tuyến Tiền vệ (y từ 30 đến 65 hoặc baseRole là MF)
   if (baseRole === "MF" || (baseRole === "PL" && y >= 30 && y < 65)) {
     if (y > 45) {
-      // Tuyến tiền vệ lùi sâu / Pivot phòng ngự
       if (x <= 36) return "DM";
       if (x >= 64) return "DM";
       return totalInLine === 1 ? "DM" : "CM";
     } else {
-      // Tuyến tiền vệ tấn công / Hộ công
       if (x <= 28) return "LW";
       if (x >= 72) return "RW";
       return "AM";
     }
   }
 
-  // Tuyến Tiền đạo dâng cao nhất (y < 30 hoặc baseRole là FW)
   if (baseRole === "FW" || y < 30) {
     if (x <= 28) return "LW";
     if (x >= 72) return "RW";
@@ -233,9 +336,6 @@ export function inferContextualRole(
   return baseRole;
 }
 
-/**
- * Phân bổ tọa độ X đối xứng trên chiều rộng sân cho N cầu thủ trong 1 hàng ngang
- */
 function getLineXCoordinates(count: number): number[] {
   if (count <= 1) return [50];
   if (count === 2) return [34, 66];
@@ -248,16 +348,12 @@ function getLineXCoordinates(count: number): number[] {
   return Array.from({ length: count }, (_, i) => Math.round(margin + i * step));
 }
 
-/**
- * Bố trí 11 cầu thủ lên sân cỏ dựa trên sơ đồ chiến thuật thực tế và vị trí thi đấu
- */
 export function calculateTacticalCoordinates(
   starters: MatchRosterPlayer[],
   formation?: string
 ): PositionedPlayer[] {
   if (!starters || starters.length === 0) return [];
 
-  // 1. Tách thủ môn (Goalkeeper)
   let gkIndex = starters.findIndex((p) => {
     const pos = (p.position || "").toLowerCase();
     return (
@@ -269,7 +365,6 @@ export function calculateTacticalCoordinates(
     );
   });
 
-  // Fallback 1: Tìm theo số áo 1, 13, 12 nếu không mang nhãn tiền đạo/tiền vệ
   if (gkIndex === -1) {
     gkIndex = starters.findIndex((p) => {
       const j = String(p.jersey || "").trim();
@@ -279,7 +374,6 @@ export function calculateTacticalCoordinates(
     });
   }
 
-  // Fallback 2: Tìm cầu thủ tuyến thấp nhất (hậu vệ thấp nhất), tuyệt đối không chọn tiền đạo làm thủ môn
   if (gkIndex === -1) {
     let minDepth = 999;
     let bestIdx = 0;
@@ -295,10 +389,8 @@ export function calculateTacticalCoordinates(
 
   const gk = starters[gkIndex];
   const outfielders = starters.filter((_, idx) => idx !== gkIndex);
-
   const positioned: PositionedPlayer[] = [];
 
-  // Vị trí thủ môn cố định ở cầu môn nhà (dưới đáy sân)
   if (gk) {
     positioned.push({
       player: gk,
@@ -311,7 +403,6 @@ export function calculateTacticalCoordinates(
 
   if (outfielders.length === 0) return positioned;
 
-  // 2. Parse số cầu thủ từng tuyến từ formation (ví dụ "4-3-3" -> [4, 3, 3]; "4-2-3-1" -> [4, 2, 3, 1])
   const parsedLines = (formation || "")
     .split("-")
     .map((n) => parseInt(n.trim(), 10))
@@ -324,7 +415,6 @@ export function calculateTacticalCoordinates(
   let linesOfPlayers: MatchRosterPlayer[][] = [];
 
   if (isMatchingFormation) {
-    // Sắp xếp các cầu thủ tuyến ngoài theo độ sâu từ phòng ngự lên tấn công
     const sortedOutfielders = [...outfielders].sort((a, b) => {
       const depthDiff = getVerticalDepthScore(a) - getVerticalDepthScore(b);
       if (depthDiff !== 0) return depthDiff;
@@ -339,7 +429,6 @@ export function calculateTacticalCoordinates(
       cursor += count;
     }
   } else {
-    // Fallback nếu không có formation hoặc số lượng không chuẩn 10: nhóm theo 3 tuyến (Hậu vệ, Tiền vệ, Tiền đạo)
     const defs: MatchRosterPlayer[] = [];
     const mids: MatchRosterPlayer[] = [];
     const fwds: MatchRosterPlayer[] = [];
@@ -355,18 +444,13 @@ export function calculateTacticalCoordinates(
     if (mids.length > 0) linesOfPlayers.push(mids);
     if (fwds.length > 0) linesOfPlayers.push(fwds);
 
-    // Trường hợp tất cả dồn vào 1 nhóm
     if (linesOfPlayers.length === 0) {
       linesOfPlayers = [outfielders];
     }
   }
 
-  // 3. Tính toán tọa độ (X, Y) cho từng tuyến
   const lineCount = linesOfPlayers.length;
 
-  // Tọa độ Y theo số tuyến:
-  // Hậu vệ: ~72% (gần khung thành nhà)
-  // Tiền đạo cao nhất: ~16% (gần khung thành đối phương)
   const getYCoordinate = (lineIndex: number, total: number) => {
     if (total <= 1) return 46;
     if (total === 2) return [66, 26][lineIndex];
@@ -381,7 +465,6 @@ export function calculateTacticalCoordinates(
   linesOfPlayers.forEach((line, lineIdx) => {
     const y = getYCoordinate(lineIdx, lineCount);
 
-    // Sắp xếp cầu thủ trong tuyến từ Trái sang Phải (Left Back -> Center -> Right Back)
     const sortedLine = [...line].sort((a, b) => {
       const hA = getHorizontalScore(a);
       const hB = getHorizontalScore(b);
@@ -410,13 +493,6 @@ export function calculateTacticalCoordinates(
   return positioned;
 }
 
-/**
- * Trích xuất họ / tên thi đấu gọn gàng theo chuẩn FotMob / Sofascore
- * - Ưu tiên họ/tên thi đấu, loại bỏ tiền tố chữ cái đầu (ví dụ: "H. Çalhanoğlu" -> "Çalhanoğlu", "A. Diouf" -> "Diouf")
- * - Giữ nguyên tên đơn / biệt danh ("Rodri", "Pedri", "Alisson", "Casemiro", "Neymar Jr")
- * - Giữ nguyên họ ghép phổ biến ("van Dijk", "De Bruyne", "Alexander-Arnold")
- * - Tự động bổ sung chữ cái đầu nếu phát hiện 2 cầu thủ trong danh sách trùng họ
- */
 export function getShortDisplayName(
   p: MatchRosterPlayer,
   allPlayers?: MatchRosterPlayer[]
@@ -427,17 +503,14 @@ export function getShortDisplayName(
     const trimmed = (rawName || "").trim();
     if (!trimmed) return "";
 
-    // 1. Kiểm tra tiền tố chữ cái tắt có dấu chấm: "H. Çalhanoğlu", "A. Diouf", "V. van Dijk"
     const dotInitialMatch = trimmed.match(/^[A-Za-zÀ-ỹĐđ]\.\s*(.+)$/);
     if (dotInitialMatch && dotInitialMatch[1]) {
       return dotInitialMatch[1].trim();
     }
 
-    // 2. Tách theo khoảng trắng
     const parts = trimmed.split(/\s+/);
     if (parts.length <= 1) return parts[0] || trimmed;
 
-    // 3. Xử lý các tiền tố họ ghép phổ biến (Dutch, Spanish, French, Italian, Portuguese)
     if (parts.length >= 2) {
       const secondLast = parts[parts.length - 2].toLowerCase();
       const compoundPrefixes = new Set([
@@ -462,14 +535,12 @@ export function getShortDisplayName(
       }
     }
 
-    // 4. Mặc định lấy từ cuối cùng (họ)
     return parts[parts.length - 1];
   };
 
   const candidate = p.shortName || p.displayName || p.name || "";
   const surname = extractSurname(candidate) || extractSurname(p.displayName || "") || candidate;
 
-  // Nếu có danh sách toàn đội, kiểm tra xem có bị trùng họ với cầu thủ khác không
   if (allPlayers && allPlayers.length > 1) {
     const duplicateCount = allPlayers.filter((other) => {
       if (other.id === p.id) return false;
@@ -490,3 +561,126 @@ export function getShortDisplayName(
   return surname;
 }
 
+// ============================================================================
+// 4. TOÁN HỌC SÂN NẰM NGANG 2 ĐỘI (DUAL PITCH COORDINATES)
+// ============================================================================
+
+export function buildPlayerEventsMap(
+  events: MatchKeyEvent[]
+): Map<string, DualPlayerEventSummary> {
+  const map = new Map<string, DualPlayerEventSummary>();
+
+  events.forEach((ev) => {
+    if (!ev) return;
+    const name = (ev.playerName || "").trim().toLowerCase();
+    if (!name) return;
+
+    const current = map.get(name) || {
+      goals: 0,
+      goalMinutes: [],
+      yellowCards: 0,
+      redCards: 0,
+      subClock: undefined,
+    };
+
+    if (ev.type === "goal" && !ev.isOwnGoal) {
+      current.goals += 1;
+      if (ev.clock) current.goalMinutes.push(ev.clock);
+    } else if (ev.type === "yellow-card") {
+      current.yellowCards += 1;
+    } else if (ev.type === "red-card") {
+      current.redCards += 1;
+    } else if (ev.type === "substitution") {
+      current.subClock = ev.clock;
+    }
+    map.set(name, current);
+  });
+
+  return map;
+}
+
+export function getPlayerEventBadges(
+  player: MatchRosterPlayer,
+  playerEventsMap: Map<string, DualPlayerEventSummary>
+): DualPlayerEventSummary {
+  const nameKey = (player.displayName || player.name || "").trim().toLowerCase();
+  const shortKey = (player.shortName || "").trim().toLowerCase();
+  return (
+    playerEventsMap.get(nameKey) ||
+    playerEventsMap.get(shortKey) || {
+      goals: 0,
+      goalMinutes: [],
+      yellowCards: 0,
+      redCards: 0,
+      subClock: player.subClock,
+    }
+  );
+}
+
+export function calculateDualPitchPlayers({
+  homeTeam,
+  awayTeam,
+  homeStarters,
+  awayStarters,
+  playerEventsMap,
+}: {
+  homeTeam: TeamInfo;
+  awayTeam: TeamInfo;
+  homeStarters: MatchRosterPlayer[];
+  awayStarters: MatchRosterPlayer[];
+  playerEventsMap: Map<string, DualPlayerEventSummary>;
+}): PositionedDualPlayer[] {
+  const list: PositionedDualPlayer[] = [];
+
+  const appendTeamPlayers = (
+    starters: MatchRosterPlayer[],
+    formation: string | undefined,
+    isHome: boolean
+  ) => {
+    if (starters.length === 0) return;
+    const coords = calculateTacticalCoordinates(starters, formation);
+
+    coords.forEach(({ player, x, y, roleAbbr }) => {
+      const isGK =
+        roleAbbr === "GK" ||
+        Boolean(player.position && /goalkeeper|gk|thủ môn|thủ thành/i.test(player.position)) ||
+        player.formationPlace === 1;
+
+      let pitchX: number;
+      let pitchY: number;
+
+      if (isGK) {
+        pitchX = isHome ? 7.5 : 92.5;
+        pitchY = 50;
+      } else {
+        pitchY = isHome ? 16 + (x / 100) * 68 : 16 + ((100 - x) / 100) * 68;
+        const normDepth = Math.max(16, Math.min(74, y));
+        pitchX = isHome
+          ? 43.5 - ((normDepth - 16) / 58) * 25.5
+          : 56.5 + ((normDepth - 16) / 58) * 25.5;
+      }
+
+      const eventsInfo = getPlayerEventBadges(player, playerEventsMap);
+
+      list.push({
+        player,
+        x: pitchX,
+        y: pitchY,
+        roleAbbr,
+        isHome,
+        goals: eventsInfo.goals,
+        goalMinutes: eventsInfo.goalMinutes,
+        yellowCards: eventsInfo.yellowCards,
+        redCards: eventsInfo.redCards,
+        isSubbedOut: Boolean(player.subbedOut),
+        isSubbedIn: Boolean(player.subbedIn),
+        subClock: player.subClock || eventsInfo.subClock,
+      });
+    });
+  };
+
+  appendTeamPlayers(homeStarters, homeTeam.formation, true);
+  appendTeamPlayers(awayStarters, awayTeam.formation, false);
+
+  return list;
+}

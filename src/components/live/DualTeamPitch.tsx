@@ -4,17 +4,15 @@ import React, { useState, useMemo, useEffect, useCallback } from "react";
 import { ArrowDownLeft } from "lucide-react";
 import { MatchRosterPlayer, MatchKeyEvent } from "@/services/live/football-score/types";
 import { SoccerBallIcon } from "./MatchTimelineSidebar";
-import { getShortDisplayName } from "./lineup/tacticalMath";
 import {
   TeamInfo,
+  getShortDisplayName,
   buildPlayerEventsMap,
   getPlayerEventBadges,
   calculateDualPitchPlayers,
-} from "./lineup/dualPitchMath";
-import { YellowCardIcon, RedCardIcon } from "./lineup/PitchEventIcons";
-import { DualMobileRosterView } from "./lineup/DualMobileRosterView";
-import { DualBenchColumn } from "./lineup/DualBenchColumn";
-import { PlayerDetailModal } from "./lineup/PlayerDetailModal";
+} from "./lineup/pitchMath";
+import { YellowCardIcon, RedCardIcon, PlayerDetailModal } from "./lineup/PlayerCardModal";
+import { DualMobileRosterView, DualBenchColumn } from "./lineup/LineupViews";
 
 export interface DualTeamPitchProps {
   homeTeam: TeamInfo;
