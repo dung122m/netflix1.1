@@ -10,12 +10,14 @@ import {
   type MutableRefObject,
 } from "react";
 import Hls from "hls.js";
-import { createResilientHls, teardownHlsAndMedia } from "@/lib/player/hlsCoreEngine";
+import {
+  createResilientHls,
+  teardownHlsAndMedia,
+  playWithMutedFallback,
+} from "@/lib/player/hlsCoreEngine";
 import type { FootballMatch, StreamServer } from "@/services/live/football/service";
 import {
-  type LiveStallRecord,
   getForwardBuffer,
-  calculateLiveLatency,
   evaluateLiveMediaErrorRecovery,
 } from "@/services/live/shared/liveBufferHelper";
 import {
@@ -35,12 +37,6 @@ import {
   isIframeStreamUrl,
 } from "@/services/live/football/streamUrlHelper";
 import type { LiveActionFeedback } from "../LiveSeekOverlay";
-
-declare global {
-  interface Window {
-    __liveStalls?: LiveStallRecord[];
-  }
-}
 
 export interface UseLiveFootballHlsOptions {
   match?: FootballMatch;
@@ -91,7 +87,6 @@ export function useLiveFootballHls({
   const fallbackCountRef = useRef<number>(0);
   const watchdogTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const attemptIdRef = useRef<number>(0);
-  const playPromiseRef = useRef<Promise<void> | null>(null);
   const isPlayingRef = useRef<boolean>(false);
   const failedServersRef = useRef<Set<number>>(new Set());
   const failedSourcesByMatchRef = useRef<Record<string, Set<string>>>({});
@@ -253,18 +248,7 @@ export function useLiveFootballHls({
   }, []);
 
   const resetMediaElement = useCallback((video: HTMLVideoElement | null) => {
-    if (!video) return;
-    try {
-      video.pause();
-    } catch {}
-    try {
-      video.removeAttribute("src");
-      video.src = "";
-      if ("srcObject" in video && video.srcObject) {
-        video.srcObject = null;
-      }
-      video.load();
-    } catch {}
+    teardownHlsAndMedia(video, null);
   }, []);
 
   const safePause = useCallback(() => {
@@ -274,22 +258,9 @@ export function useLiveFootballHls({
 
     const video = videoRef.current;
     if (!video) return;
-
-    if (playPromiseRef.current) {
-      playPromiseRef.current
-        .catch(() => {})
-        .finally(() => {
-          if (userPausedRef.current && videoRef.current) {
-            try {
-              videoRef.current.pause();
-            } catch {}
-          }
-        });
-    } else {
-      try {
-        video.pause();
-      } catch {}
-    }
+    try {
+      video.pause();
+    } catch {}
   }, [setIsPlaying, videoRef]);
 
   const safePlay = useCallback(
@@ -307,79 +278,30 @@ export function useLiveFootballHls({
         return;
       }
 
-      const promise = video.play();
-      if (promise !== undefined) {
-        playPromiseRef.current = promise;
-        promise
-          .then(() => {
-            if (
-              expectedAttemptId !== undefined &&
-              expectedAttemptId !== attemptIdRef.current
-            ) {
-              video.pause();
-              return;
-            }
-            if (userPausedRef.current || !isActive) {
-              video.pause();
-              return;
-            }
-            isPlayingRef.current = true;
-            setIsPlaying(true);
+      playWithMutedFallback(
+        video,
+        (playing) => {
+          if (
+            expectedAttemptId !== undefined &&
+            expectedAttemptId !== attemptIdRef.current
+          ) {
+            video.pause();
+            return;
+          }
+          if (userPausedRef.current || !isActive) {
+            video.pause();
+            return;
+          }
+          isPlayingRef.current = playing;
+          setIsPlaying(playing);
+          if (playing) {
             setIsMuted(video.muted || video.volume === 0);
-          })
-          .catch((err: unknown) => {
-            const errName =
-              typeof err === "object" && err !== null && "name" in err
-                ? (err as { name?: string }).name
-                : "";
-
-            if (errName === "AbortError") {
-              return;
-            }
-
-            if (
-              errName === "NotAllowedError" &&
-              !userPausedRef.current &&
-              isActive
-            ) {
-              if (
-                expectedAttemptId !== undefined &&
-                expectedAttemptId !== attemptIdRef.current
-              ) {
-                return;
-              }
-              video.muted = true;
-              setIsMuted(true);
-              const retryPromise = video.play();
-              if (retryPromise !== undefined) {
-                playPromiseRef.current = retryPromise;
-                retryPromise
-                  .then(() => {
-                    if (
-                      expectedAttemptId !== undefined &&
-                      expectedAttemptId !== attemptIdRef.current
-                    ) {
-                      video.pause();
-                      return;
-                    }
-                    if (userPausedRef.current || !isActive) {
-                      video.pause();
-                      return;
-                    }
-                    isPlayingRef.current = true;
-                    setIsPlaying(true);
-                    setIsMuted(true);
-                  })
-                  .catch(() => {});
-              }
-            }
-          })
-          .finally(() => {
-            if (playPromiseRef.current === promise) {
-              playPromiseRef.current = null;
-            }
-          });
-      }
+          }
+        },
+        (muted) => {
+          setIsMuted(muted);
+        },
+      );
     },
     [isActive, setIsMuted, setIsPlaying, videoRef],
   );
@@ -452,10 +374,10 @@ export function useLiveFootballHls({
         const currentFailed =
           failedSourcesByMatchRef.current[activeMatchId] || new Set<string>();
         const nextIndex = findNextFallbackServerIndex(
-          servers,
-          currentFailed,
-          selectedServerIndex,
-        );
+            servers,
+            currentFailed,
+            selectedServerIndex,
+          );
 
         if (nextIndex !== -1) {
           fallbackCountRef.current += 1;
@@ -651,7 +573,17 @@ export function useLiveFootballHls({
 
     scheduleWatchdogCheck(8000);
 
+    let stallNudgeTimer: ReturnType<typeof setTimeout> | null = null;
+    let mediaRecoveryTimer: ReturnType<typeof setTimeout> | null = null;
+    let mediaRecoveryTimestamps: number[] = [];
+    let lastMediaRecoveryAt = 0;
+    let lastMediaErrorCt: number | null = null;
+
     const onPlaybackConfirmed = () => {
+      if (stallNudgeTimer) {
+        clearTimeout(stallNudgeTimer);
+        stallNudgeTimer = null;
+      }
       if (currentAttemptId !== attemptIdRef.current) return;
       if (watchdogTimerRef.current) {
         clearTimeout(watchdogTimerRef.current);
@@ -676,18 +608,48 @@ export function useLiveFootballHls({
       }
     };
 
+    const onWaiting = () => {
+      const v = videoRef.current;
+      if (!v) return;
+
+      if (stallNudgeTimer) clearTimeout(stallNudgeTimer);
+      stallNudgeTimer = setTimeout(() => {
+        const currentV = videoRef.current;
+        if (!currentV || (!currentV.paused && currentV.readyState >= 3)) return;
+        const currentForward = getForwardBuffer(currentV);
+        if (currentForward > 0.1 && currentForward < 30) {
+          currentV.currentTime += 0.1;
+        } else if (
+          hlsRef.current?.liveSyncPosition &&
+          Number.isFinite(hlsRef.current.liveSyncPosition) &&
+          hlsRef.current.liveSyncPosition > 0
+        ) {
+          const liveSync = hlsRef.current.liveSyncPosition;
+          const isOutsideSeekable =
+            currentV.seekable &&
+            currentV.seekable.length > 0 &&
+            currentV.currentTime < currentV.seekable.start(0);
+          const isAheadOfLiveEdge = currentV.currentTime > liveSync + 2;
+
+          if (isOutsideSeekable || isAheadOfLiveEdge) {
+            currentV.currentTime = liveSync;
+            setIsAtLiveEdge(true);
+            setLiveLatency(0);
+            hlsRef.current.startLoad();
+          } else {
+            hlsRef.current.startLoad();
+          }
+        }
+      }, 1800);
+    };
+
     video.addEventListener("playing", onPlaybackConfirmed);
     video.addEventListener("timeupdate", onTimeUpdateCheck);
     video.addEventListener("progress", recordMediaProgress);
+    video.addEventListener("waiting", onWaiting);
 
-    let cleanupDiagnosticListeners = () => {};
     let onNativeLoadedMetadata: (() => void) | null = null;
     let onNativeError: (() => void) | null = null;
-    let stallNudgeTimer: ReturnType<typeof setTimeout> | null = null;
-    let mediaRecoveryTimer: ReturnType<typeof setTimeout> | null = null;
-    let mediaRecoveryTimestamps: number[] = [];
-    let lastMediaRecoveryAt = 0;
-    let lastMediaErrorCt: number | null = null;
 
     if (Hls.isSupported()) {
       const hls = createResilientHls({
@@ -721,142 +683,6 @@ export function useLiveFootballHls({
         }
       });
 
-      let pendingStallSnapshot: {
-        startTime: number;
-        currentTime: number;
-        readyState: number;
-        readyStateText: string;
-        forwardBufferSec: number;
-        liveLatencySec: number | "N/A";
-        seekableStart: number | null;
-        seekableEnd: number | null;
-        level: number;
-        bitrate: string;
-      } | null = null;
-
-      const readyStateMap = [
-        "HAVE_NOTHING",
-        "HAVE_METADATA",
-        "HAVE_CURRENT_DATA",
-        "HAVE_FUTURE_DATA",
-        "HAVE_ENOUGH_DATA",
-      ];
-
-      const onWaiting = () => {
-        const v = videoRef.current;
-        if (!v) return;
-        const now = performance.now();
-        const forwardBuf = getForwardBuffer(v);
-        const latency = calculateLiveLatency(v, hls).latencySec;
-        const sStart =
-          v.seekable && v.seekable.length > 0
-            ? +v.seekable.start(0).toFixed(2)
-            : null;
-        const sEnd =
-          v.seekable && v.seekable.length > 0
-            ? +v.seekable.end(v.seekable.length - 1).toFixed(2)
-            : null;
-        const curLvl = hls.currentLevel;
-        const lvlData = curLvl >= 0 ? hls.levels[curLvl] : null;
-        const bitrate = lvlData
-          ? `${((lvlData.bitrate || 0) / 1000000).toFixed(2)} Mbps`
-          : "Auto";
-
-        pendingStallSnapshot = {
-          startTime: now,
-          currentTime: +v.currentTime.toFixed(2),
-          readyState: v.readyState,
-          readyStateText: readyStateMap[v.readyState] || String(v.readyState),
-          forwardBufferSec: forwardBuf,
-          liveLatencySec: latency,
-          seekableStart: sStart,
-          seekableEnd: sEnd,
-          level: curLvl,
-          bitrate,
-        };
-
-        if (stallNudgeTimer) clearTimeout(stallNudgeTimer);
-        stallNudgeTimer = setTimeout(() => {
-          const currentV = videoRef.current;
-          if (!currentV || (!currentV.paused && currentV.readyState >= 3)) return;
-          const currentForward = getForwardBuffer(currentV);
-          if (currentForward > 0.1 && currentForward < 30) {
-            currentV.currentTime += 0.1;
-          } else if (
-            hls &&
-            hls.liveSyncPosition &&
-            Number.isFinite(hls.liveSyncPosition) &&
-            hls.liveSyncPosition > 0
-          ) {
-            const isOutsideSeekable =
-              currentV.seekable &&
-              currentV.seekable.length > 0 &&
-              currentV.currentTime < currentV.seekable.start(0);
-            const isAheadOfLiveEdge =
-              currentV.currentTime > hls.liveSyncPosition + 2;
-
-            if (isOutsideSeekable || isAheadOfLiveEdge) {
-              currentV.currentTime = hls.liveSyncPosition;
-              setIsAtLiveEdge(true);
-              setLiveLatency(0);
-              hls.startLoad();
-            } else {
-              hls.startLoad();
-            }
-          }
-        }, 1800);
-      };
-
-      const onPlayingDiagnostic = () => {
-        if (stallNudgeTimer) {
-          clearTimeout(stallNudgeTimer);
-          stallNudgeTimer = null;
-        }
-        if (pendingStallSnapshot) {
-          const durationMs = Math.round(
-            performance.now() - pendingStallSnapshot.startTime,
-          );
-          const snap = pendingStallSnapshot;
-          pendingStallSnapshot = null;
-
-          if (durationMs >= 100 && typeof window !== "undefined") {
-            window.__liveStalls = window.__liveStalls || [];
-            const recId = window.__liveStalls.length + 1;
-            const record: LiveStallRecord = {
-              id: recId,
-              timestamp: new Date().toLocaleTimeString(),
-              durationMs,
-              currentTime: snap.currentTime,
-              readyState: snap.readyState,
-              readyStateText: snap.readyStateText,
-              forwardBufferSec: snap.forwardBufferSec,
-              liveLatencySec: snap.liveLatencySec,
-              seekableStart: snap.seekableStart,
-              seekableEnd: snap.seekableEnd,
-              level: snap.level,
-              bitrate: snap.bitrate,
-            };
-
-            window.__liveStalls.push(record);
-            if (window.__liveStalls.length > 20) {
-              window.__liveStalls.shift();
-            }
-          }
-        }
-      };
-
-      video.addEventListener("waiting", onWaiting);
-      video.addEventListener("playing", onPlayingDiagnostic);
-      cleanupDiagnosticListeners = () => {
-        video.removeEventListener("waiting", onWaiting);
-        video.removeEventListener("playing", onPlayingDiagnostic);
-        if (stallNudgeTimer) {
-          clearTimeout(stallNudgeTimer);
-          stallNudgeTimer = null;
-        }
-        pendingStallSnapshot = null;
-      };
-
       hls.on(Hls.Events.ERROR, (_, data) => {
         if (isStoppedRef.current) return;
 
@@ -885,7 +711,7 @@ export function useLiveFootballHls({
 
         if (data.fatal) {
           switch (data.type) {
-            case Hls.ErrorTypes.NETWORK_ERROR:
+            case Hls.ErrorTypes.NETWORK_ERROR: {
               const isOutsideSeekable =
                 videoRef.current &&
                 videoRef.current.seekable &&
@@ -908,15 +734,13 @@ export function useLiveFootballHls({
 
               if (retryCountRef.current < 2) {
                 retryCountRef.current++;
-                console.warn(
-                  `[LivePlayer] Transient network error, recovering with startLoad() (attempt ${retryCountRef.current}/2)...`,
-                );
                 hls.startLoad();
                 return;
               }
 
               executeServerFallbackRef.current("bị gián đoạn kết nối");
               break;
+            }
             case Hls.ErrorTypes.MEDIA_ERROR: {
               const v = videoRef.current;
               const nowMs = Date.now();
@@ -947,9 +771,6 @@ export function useLiveFootballHls({
               lastMediaErrorCt = currentCt;
 
               if (decision.action === "fallback") {
-                console.warn(
-                  "[LivePlayer] Repeated media decode errors, switching to fallback server...",
-                );
                 executeServerFallbackRef.current("luồng phát gặp lỗi giải mã");
                 break;
               }
@@ -970,14 +791,7 @@ export function useLiveFootballHls({
                   } catch {}
                 }
                 if (decision.action === "swap_and_recover") {
-                  console.warn(
-                    "[LivePlayer] Swapping audio codec and recovering media error...",
-                  );
                   hls.swapAudioCodec();
-                } else {
-                  console.warn(
-                    "[LivePlayer] Media error encountered, recovering media error...",
-                  );
                 }
                 if (decision.seekToSec !== null) {
                   const targetSec = decision.seekToSec;
@@ -1043,7 +857,6 @@ export function useLiveFootballHls({
     }
 
     return () => {
-      cleanupDiagnosticListeners();
       if (stallNudgeTimer) {
         clearTimeout(stallNudgeTimer);
         stallNudgeTimer = null;
@@ -1060,6 +873,7 @@ export function useLiveFootballHls({
       video.removeEventListener("playing", onPlaybackConfirmed);
       video.removeEventListener("timeupdate", onTimeUpdateCheck);
       video.removeEventListener("progress", recordMediaProgress);
+      video.removeEventListener("waiting", onWaiting);
       if (onNativeLoadedMetadata) {
         video.removeEventListener("loadedmetadata", onNativeLoadedMetadata);
       }
@@ -1278,4 +1092,3 @@ export function useLiveFootballHls({
     handleSelectServerOption,
   };
 }
-
