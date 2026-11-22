@@ -84,11 +84,14 @@ async function fastBatchEnrichFromCache(movieList: any[]): Promise<void> {
       const key = `tmdb:images:v2:${cleanType}:${item.tmdb.id}`;
       keys.push(key);
       needsLookup.push({ item, key });
-    } else if (item.slug) {
+    }
+    if (item.slug) {
       const cleanKey = String(item.slug).toLowerCase().replace(/[^a-z0-9_]/g, "_").slice(0, 100);
       const key = `tmdb:fallback_poster:v2:${cleanKey}`;
-      keys.push(key);
-      needsLookup.push({ item, key });
+      if (!keys.includes(key)) {
+        keys.push(key);
+        needsLookup.push({ item, key });
+      }
     }
   }
 

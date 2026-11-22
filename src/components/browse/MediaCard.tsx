@@ -298,11 +298,18 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
     tmdbId,
   });
 
+  const isBlockedByIsp = Boolean(
+    initialCandidate &&
+    (initialCandidate.includes("phimimg.com") ||
+      initialCandidate.includes("img.ophim.cc") ||
+      initialCandidate.includes("img.phimapi.com"))
+  );
+
   const initialToUse =
     (tmdbFallbackSrc && !isSlowProviderSourceUrl(tmdbFallbackSrc))
       ? tmdbFallbackSrc
-      : (needsFallback && isSlowProviderSourceUrl(initialCandidate))
-      ? "" // Trì hoãn nạp candidate chậm (phimimg/nguonc) để chờ tra cứu TMDb xong trước, chống flash ảnh và ngăn ISP chặn
+      : (needsFallback && isBlockedByIsp)
+      ? "" // Chỉ trì hoãn nguồn bị nhà mạng VN chặn (phimimg); nguồn NguonC hiển thị ngay lập tức 0ms
       : initialCandidate;
 
   const [currentSrc, setCurrentSrc] = useState<string>(() => initialToUse);
@@ -333,9 +340,16 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
     const fastCandidate = imageCandidates.find(
       (u) => !triedUrlsRef.current.has(u) && !isSlowProviderSourceUrl(u)
     );
+    const nonBlockedCandidate = imageCandidates.find(
+      (u) =>
+        !triedUrlsRef.current.has(u) &&
+        !u.includes("phimimg.com") &&
+        !u.includes("img.ophim.cc") &&
+        !u.includes("img.phimapi.com")
+    );
     const fallbackCandidate = (!needsFallback || !isFallbackLoading)
       ? imageCandidates.find((u) => !triedUrlsRef.current.has(u))
-      : null;
+      : nonBlockedCandidate || null;
     const initial =
       (tmdbFallbackSrc && !isSlowProviderSourceUrl(tmdbFallbackSrc) ? tmdbFallbackSrc : null) ||
       fastCandidate ||

@@ -95,7 +95,7 @@ interface BatchQueueEntry {
 
 const batchQueue: BatchQueueEntry[] = [];
 let batchTimer: ReturnType<typeof setTimeout> | null = null;
-const BATCH_DEBOUNCE_MS = 60;
+const BATCH_DEBOUNCE_MS = 16;
 const MAX_BATCH_SIZE = 28;
 
 function flushBatchQueue() {
@@ -381,22 +381,12 @@ export function useMoviePosterFallback({
 
       const candidate = toOptimizedCardPosterUrl(resolvedRaw);
 
-      // Preload ảnh mới trong RAM trước khi render vào UI để chống chớp trắng
-      const preloader = new window.Image();
-      preloader.src = candidate;
-      preloader.onload = () => {
-        if (!isMountedRef.current) return;
-        persistPosterCacheEntry(cacheKey, candidate);
-        if (legacyKey) persistPosterCacheEntry(legacyKey, candidate);
-        setDisplaySrc(candidate);
-        setIsUpgraded(true);
-        setIsLoading(false);
-      };
-      preloader.onerror = () => {
-        if (!isMountedRef.current) return;
-        persistFailureEntry(cacheKey);
-        setIsLoading(false);
-      };
+      // Gán ngay vào UI để GPU trình duyệt stream giải mã WebP trực tiếp, triệt tiêu độ trễ chờ đợi
+      persistPosterCacheEntry(cacheKey, candidate);
+      if (legacyKey) persistPosterCacheEntry(legacyKey, candidate);
+      setDisplaySrc(candidate);
+      setIsUpgraded(true);
+      setIsLoading(false);
     }).catch(() => {
       GLOBAL_INFLIGHT_PROMISES.delete(cacheKey);
       persistFailureEntry(cacheKey);

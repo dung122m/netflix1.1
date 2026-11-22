@@ -33,6 +33,7 @@ import {
   isRawId,
   extractMovieModifiedTime,
   } from "@/lib/movieMedia";
+import { enrichMovieListPosters } from "@/services/movies/posterEnrichment";
 
 function getActorInitials(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
@@ -575,6 +576,18 @@ export default async function BrowsePage({
     // Đảm bảo số lượng phim tròn hàng trên lưới 6 cột (12 hoặc 18 phim), tuyệt đối không bị khuyết ô trống
     const count = Math.floor(rawFallback.length / 6) * 6;
     fallbackMovies = rawFallback.slice(0, count >= 12 ? Math.min(count, 18) : 12);
+  }
+
+  // TẦNG 1: NẠP SẴN POSTER TMDB TRONG RAM/REDIS VÀO HTML BAN ĐẦU (0ms, 1 LỆNH MGET DUY NHẤT)
+  const posterTasks: Promise<void>[] = [];
+  if (movies.length > 0) {
+    posterTasks.push(enrichMovieListPosters(movies, { budgetMs: 0, stripProxyUrls: true }));
+  }
+  if (fallbackMovies.length > 0) {
+    posterTasks.push(enrichMovieListPosters(fallbackMovies, { budgetMs: 0, stripProxyUrls: true }));
+  }
+  if (posterTasks.length > 0) {
+    await Promise.allSettled(posterTasks);
   }
 
   let title = "Kho Phim";

@@ -248,6 +248,10 @@ async function resolvePosterFromUpstream(
   if (keys.slugCleanKey && keys.slugCleanKey !== keys.redisPosterKey) {
     cacheService.set(keys.slugCleanKey, cacheEntry, redisTtlSeconds).catch(() => {});
   }
+  if (keys.tmdbId) {
+    const tmdbDirectKey = `tmdb:images:v2:${keys.type}:${keys.tmdbId}`;
+    cacheService.set(tmdbDirectKey, cacheEntry, redisTtlSeconds).catch(() => {});
+  }
 
   return { posterUrl: finalPosterUrl, backdropUrl: finalBackdropUrl };
 }
