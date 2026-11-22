@@ -1,7 +1,17 @@
 "use client";
 
 import React, { useState, useEffect, useMemo, useRef } from "react";
-import { ChevronDown, ChevronUp, X } from "lucide-react";
+import Link from "next/link";
+import {
+  ChevronDown,
+  ChevronUp,
+  X,
+  Search,
+  Check,
+  Play,
+  ChevronRight,
+  Target,
+} from "lucide-react";
 import {
   getWatchedEpisodes,
   extractEpisodeNumber,
@@ -22,11 +32,8 @@ import {
 } from "@/lib/watchHistory";
 import WatchlistButton from "@/components/movies/WatchlistButton";
 import AddToCollectionButton from "@/components/Collections/AddToCollectionButton";
-
-import { EpisodeSearchBar } from "./EpisodeSearchBar";
-import { EpisodeChunkSelector } from "./EpisodeChunkSelector";
-import { EpisodeGridItem } from "./EpisodeGridItem";
-import { EpisodeSingleSearchResult } from "./EpisodeSingleSearchResult";
+import { ScrollablePillsRow } from "@/components/ui/ScrollablePillsRow";
+import { Tooltip } from "@/components/ui/Tooltip";
 
 const CHUNK_SIZE = 25;
 
@@ -40,6 +47,11 @@ interface EpisodeListProps {
   movieYear?: number | string;
   movieQuality?: string;
   movieCategory?: string;
+}
+
+interface EpisodeChunkItem {
+  index: number;
+  label: string;
 }
 
 /**
@@ -70,6 +82,414 @@ function getFormattedEpisodeLabel(
   return short;
 }
 
+/**
+ * Helper tính toán trạng thái xem / tiến độ cho 1 tập phim (tránh lặp code 2 lần)
+ */
+function getEpisodeWatchStatus(
+  tapSlug: string,
+  tapName: string,
+  fallbackNum: number | null,
+  episodesProgress: Record<string, EpisodeProgressData>,
+  watchedList: string[],
+  watchedEpisodeNums: Set<number>,
+  isActive: boolean
+) {
+  const tapNum =
+    extractEpisodeNumber(tapSlug) ??
+    extractEpisodeNumber(tapName) ??
+    fallbackNum;
+
+  const matchingProg =
+    (tapSlug ? episodesProgress[tapSlug] : undefined) ||
+    (tapNum !== null
+      ? Object.entries(episodesProgress).find(([k, d]) => {
+          const n =
+            extractEpisodeNumber(k) ??
+            extractEpisodeNumber(d?.episodeName);
+          return n === tapNum;
+        })?.[1]
+      : undefined);
+
+  const progressSeconds = matchingProg?.progressSeconds || 0;
+  const durationSeconds = matchingProg?.durationSeconds || 0;
+  const hasValidDuration = durationSeconds > 0 && Number.isFinite(durationSeconds);
+
+  const isCompleted = Boolean(
+    matchingProg?.isCompleted ||
+      (hasValidDuration && progressSeconds / durationSeconds >= 0.9)
+  );
+
+  const isPartiallyWatchedProg = Boolean(
+    !isCompleted &&
+      hasValidDuration &&
+      progressSeconds >= 10 &&
+      progressSeconds / durationSeconds < 0.9
+  );
+
+  const isDirectlyWatched = Boolean(
+    tapSlug &&
+      (watchedList.includes(tapSlug) ||
+        (tapNum !== null && watchedEpisodeNums.has(tapNum)))
+  );
+
+  const isWatched = Boolean(
+    !isPartiallyWatchedProg && (isCompleted || isDirectlyWatched)
+  );
+
+  const isPartiallyWatched =
+    !isActive &&
+    !isWatched &&
+    (isPartiallyWatchedProg || (!hasValidDuration && progressSeconds >= 10));
+
+  const progressPercent = isPartiallyWatched
+    ? durationSeconds > 0
+      ? Math.min(95, Math.max(8, Math.round((progressSeconds / durationSeconds) * 100)))
+      : 35
+    : 0;
+
+  return {
+    tapNum,
+    isWatched,
+    isPartiallyWatched,
+    progressPercent,
+    progressSeconds,
+    durationSeconds,
+  };
+}
+
+// =========================================================================
+// SUBCOMPONENT: KHỐI CHỌN DẢI TẬP PHIM (1 - 25, 26 - 50...)
+// =========================================================================
+function EpisodeChunkSelectorInline({
+  chunks,
+  activeChunk,
+  onSelectChunk,
+  initialChunk,
+  activeEpisodeIndex,
+  currentEpisodeName,
+  chunkSize = 25,
+}: {
+  chunks: EpisodeChunkItem[];
+  activeChunk: number;
+  onSelectChunk: (index: number) => void;
+  initialChunk: number;
+  activeEpisodeIndex: number;
+  currentEpisodeName?: string;
+  chunkSize?: number;
+}) {
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!isDropdownOpen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setIsDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [isDropdownOpen]);
+
+  if (chunks.length <= 1) return null;
+
+  if (chunks.length > 4) {
+    return (
+      <div className="flex items-center justify-between gap-1.5 p-1 rounded-lg bg-zinc-900/80">
+        <div className="relative flex-1 min-w-0" ref={dropdownRef}>
+          <button
+            type="button"
+            onClick={() => setIsDropdownOpen((prev) => !prev)}
+            aria-haspopup="listbox"
+            aria-expanded={isDropdownOpen}
+            aria-label="Chọn dải tập phim"
+            className="w-full flex items-center justify-between gap-2 bg-zinc-800/80 hover:bg-zinc-800 text-white text-xs font-bold py-2 sm:py-1.5 min-h-[36px] sm:min-h-[30px] pl-2.5 pr-2 rounded-md transition cursor-pointer text-left select-none"
+          >
+            <div className="flex items-center gap-1.5 min-w-0 truncate">
+              <span className="text-zinc-400 font-normal">Dải tập:</span>
+              <span className="text-white truncate">
+                {chunks[activeChunk]?.label || chunks[0]?.label}
+              </span>
+            </div>
+            <ChevronDown
+              className={`w-3.5 h-3.5 text-zinc-400 transition-transform duration-200 shrink-0 ${
+                isDropdownOpen ? "rotate-180" : ""
+              }`}
+            />
+          </button>
+
+          {isDropdownOpen && (
+            <div
+              role="listbox"
+              className="absolute left-0 right-0 top-full mt-1.5 z-50 max-h-56 overflow-y-auto rounded-lg bg-zinc-900/95 border border-white/10 p-1 shadow-2xl backdrop-blur-xl custom-scrollbar animate-in fade-in zoom-in-95 duration-150"
+            >
+              {chunks.map((chunk) => {
+                const isSelected = chunk.index === activeChunk;
+                const isCurrentPlayingChunk = chunk.index === initialChunk;
+                return (
+                  <button
+                    key={chunk.index}
+                    role="option"
+                    aria-selected={isSelected}
+                    onClick={() => {
+                      onSelectChunk(chunk.index);
+                      setIsDropdownOpen(false);
+                    }}
+                    className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-md text-xs font-medium transition cursor-pointer text-left ${
+                      isSelected
+                        ? "bg-netflix-red text-white font-bold shadow-sm"
+                        : "text-zinc-300 hover:bg-white/10 hover:text-white"
+                    }`}
+                  >
+                    <span>{chunk.label}</span>
+                    {isCurrentPlayingChunk && (
+                      <span className="text-[10px] font-normal px-1 rounded bg-white/20 text-white shrink-0 ml-1">
+                        Đang phát
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {initialChunk !== activeChunk && activeEpisodeIndex >= 0 && (
+          <Tooltip content={`Về dải đang phát: ${chunks[initialChunk]?.label || ""}`}>
+            <button
+              type="button"
+              onClick={() => onSelectChunk(initialChunk)}
+              aria-label="Về dải tập đang phát"
+              className="flex items-center justify-center w-8 h-8 sm:w-7 sm:h-7 rounded-md bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white transition cursor-pointer shrink-0"
+            >
+              <Target className="w-3.5 h-3.5" />
+            </button>
+          </Tooltip>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex items-center justify-between gap-1.5">
+      <ScrollablePillsRow className="flex-1 min-w-0">
+        {chunks.map((chunk) => {
+          const isSelected = chunk.index === activeChunk;
+          const isCurrentPlayingChunk = chunk.index === initialChunk;
+          return (
+            <button
+              key={chunk.index}
+              role="tab"
+              aria-selected={isSelected}
+              onClick={() => onSelectChunk(chunk.index)}
+              className={`flex-shrink-0 px-2.5 py-1 rounded-md text-xs font-semibold transition cursor-pointer ${
+                isSelected
+                  ? "bg-white text-zinc-950 font-bold shadow-sm"
+                  : "bg-zinc-900/80 text-zinc-400 hover:bg-zinc-800 hover:text-white"
+              }`}
+            >
+              <span>{chunk.label}</span>
+              {isCurrentPlayingChunk && (
+                <span className="ml-1 inline-block w-1.5 h-1.5 rounded-full bg-emerald-400" />
+              )}
+            </button>
+          );
+        })}
+      </ScrollablePillsRow>
+    </div>
+  );
+}
+
+// =========================================================================
+// SUBCOMPONENT: THẺ TẬP PHIM ĐƠN TRONG LƯỚI
+// =========================================================================
+function EpisodeGridItemInline({
+  tapSlug,
+  displayLabel,
+  itemTitle,
+  isActive,
+  isWatched,
+  isPartiallyWatched,
+  progressPercent,
+  isHiddenOnMobile,
+  isSingleEpisode,
+  isFewEpisodes,
+  activeItemRef,
+  onSelect,
+}: {
+  tapSlug: string;
+  displayLabel: string;
+  itemTitle: string;
+  isActive: boolean;
+  isWatched: boolean;
+  isPartiallyWatched: boolean;
+  progressPercent: number;
+  isHiddenOnMobile: boolean;
+  isSingleEpisode: boolean;
+  isFewEpisodes: boolean;
+  activeItemRef?: React.Ref<HTMLAnchorElement> | null;
+  onSelect?: (slug: string) => void;
+}) {
+  const handleClick = (e: React.MouseEvent) => {
+    if (onSelect) {
+      e.preventDefault();
+      onSelect(tapSlug);
+    }
+  };
+
+  return (
+    <Link
+      ref={activeItemRef}
+      href={`?ep=${tapSlug}`}
+      prefetch={false}
+      scroll={false}
+      tabIndex={0}
+      aria-current={isActive ? "page" : undefined}
+      aria-label={itemTitle}
+      onClick={handleClick}
+      className={`relative flex items-center justify-center text-center transition-all duration-200 group rounded-xl cursor-pointer select-none outline-none overflow-hidden focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950 focus-visible:scale-[1.02] focus-visible:z-20 ${
+        isHiddenOnMobile ? "max-lg:hidden" : ""
+      } ${
+        isSingleEpisode
+          ? "py-2 px-3 min-h-[38px] text-xs sm:text-sm font-bold"
+          : isFewEpisodes
+          ? "py-2 px-1.5 sm:px-2.5 min-h-[38px] text-xs sm:text-[13px] font-bold"
+          : "p-2 min-h-[38px] text-xs sm:text-sm font-bold"
+      } ${
+        isActive
+          ? "bg-netflix-red text-white shadow-lg shadow-netflix-red/30 scale-[1.02] z-10"
+          : isWatched
+          ? "bg-zinc-900/60 text-zinc-400 hover:bg-zinc-800/90 hover:text-white"
+          : "bg-zinc-900/90 text-zinc-200 hover:bg-zinc-800 hover:text-white"
+      }`}
+    >
+      <span className="truncate tracking-tight">{displayLabel}</span>
+
+      {isWatched && !isActive && (
+        <span
+          className="absolute top-1 right-1 flex items-center justify-center w-3 h-3 rounded-full bg-emerald-500/20 text-emerald-400"
+          aria-hidden="true"
+        >
+          <Check className="w-2 h-2" />
+        </span>
+      )}
+
+      {isPartiallyWatched && (
+        <div
+          className="absolute bottom-0 left-0 right-0 h-1 bg-zinc-800 overflow-hidden"
+          aria-hidden="true"
+        >
+          <div
+            className="h-full bg-netflix-red rounded-r-full transition-all duration-300"
+            style={{ width: `${progressPercent}%` }}
+          />
+        </div>
+      )}
+    </Link>
+  );
+}
+
+// =========================================================================
+// SUBCOMPONENT: KẾT QUẢ TÌM KIẾM 1 TẬP DUY NHẤT
+// =========================================================================
+function EpisodeSingleSearchResultInline({
+  tapSlug,
+  tapName,
+  isActive,
+  isWatched,
+  movieTitle,
+  episodeIndex,
+  totalEpisodes,
+  chunk,
+  onSelect,
+  onJumpToChunk,
+}: {
+  tapSlug: string;
+  tapName: string;
+  isActive: boolean;
+  isWatched: boolean;
+  movieTitle: string;
+  episodeIndex: number;
+  totalEpisodes: number;
+  chunk?: { index: number; label: string } | null;
+  onSelect?: (slug: string) => void;
+  onJumpToChunk?: (chunkIndex: number) => void;
+}) {
+  return (
+    <div className="p-3.5 my-1 rounded-2xl bg-gradient-to-br from-zinc-900/95 via-zinc-950 to-black shadow-xl space-y-3 animate-in fade-in zoom-in-95 duration-200">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3 min-w-0">
+          <div
+            className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 font-bold text-sm ${
+              isActive
+                ? "bg-gradient-to-br from-netflix-red to-netflix-red/80 text-white shadow-md shadow-black/50"
+                : "bg-white/10 text-white"
+            }`}
+          >
+            {isActive ? (
+              <span className="flex items-end gap-[2px] h-3.5" aria-hidden="true">
+                <span className="w-[2px] bg-white rounded-full animate-pulse h-2" />
+                <span className="w-[2px] bg-white rounded-full animate-pulse h-3.5" />
+                <span className="w-[2px] bg-white rounded-full animate-pulse h-2" />
+              </span>
+            ) : (
+              <Play className="w-4 h-4 fill-white text-white ml-0.5" />
+            )}
+          </div>
+
+          <div className="min-w-0">
+            <h4 className="text-sm font-bold text-white truncate flex items-center gap-2">
+              <span>{formatEpisodeName(tapName)}</span>
+              {isActive && (
+                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-netflix-red/25 text-white shrink-0">
+                  Đang phát
+                </span>
+              )}
+              {!isActive && isWatched && (
+                <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center gap-1 shrink-0">
+                  <Check className="w-2.5 h-2.5" /> Đã xem
+                </span>
+              )}
+            </h4>
+            <p className="text-[11px] text-zinc-400 truncate">
+              {movieTitle} • Vị trí: Tập {episodeIndex >= 0 ? episodeIndex + 1 : 1} / {totalEpisodes}
+            </p>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => onSelect?.(tapSlug)}
+          className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1 cursor-pointer shrink-0 shadow-sm ${
+            isActive
+              ? "bg-white/10 text-zinc-300 hover:bg-white/15"
+              : "bg-netflix-red text-white hover:bg-netflix-red/90"
+          }`}
+        >
+          <span>{isActive ? "Đang xem" : "Xem tập này"}</span>
+          <ChevronRight className="w-3.5 h-3.5" />
+        </button>
+      </div>
+
+      {chunk && (
+        <div className="pt-2 border-t border-white/5 flex items-center justify-between text-xs text-zinc-400">
+          <span>Thuộc dải: <strong className="text-zinc-200">{chunk.label}</strong></span>
+          <button
+            type="button"
+            onClick={() => onJumpToChunk?.(chunk.index)}
+            className="text-netflix-red hover:underline font-semibold cursor-pointer"
+          >
+            Mở cả dải tập này
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// =========================================================================
+// COMPONENT CHÍNH: EPISODE LIST
+// =========================================================================
 export const EpisodeList: React.FC<EpisodeListProps> = React.memo(
   function EpisodeList({
     movieSlug,
@@ -101,7 +521,6 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(
     >({});
     const [searchQuery, setSearchQuery] = useState("");
 
-    // Tìm tập phim đang phát chuẩn xác bằng findEpisodeMatch
     const currentActiveEpisode = useMemo(() => {
       return (
         episodes.find((tap) => tap.slug === activeEpisodeSlug) ||
@@ -109,7 +528,6 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(
       );
     }, [episodes, activeEpisodeSlug]);
 
-    // Tìm index của tập đang phát để tự động nhảy đúng tab dải tập
     const activeEpisodeIndex = useMemo(() => {
       if (!currentActiveEpisode) return -1;
       return episodes.findIndex((tap) => tap.slug === currentActiveEpisode.slug);
@@ -125,12 +543,10 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(
     const [activeChunk, setActiveChunk] = useState<number>(initialChunk);
     const [isMobileExpanded, setIsMobileExpanded] = useState<boolean>(false);
 
-    // Tự động thu gọn danh sách tập trên mobile khi đổi dải tập
     useEffect(() => {
       setIsMobileExpanded(false);
     }, [activeChunk]);
 
-    // Cập nhật tab khi activeEpisodeSlug hoặc danh sách tập thay đổi
     useEffect(() => {
       if (activeEpisodeIndex >= 0) {
         setActiveChunk(Math.floor(activeEpisodeIndex / CHUNK_SIZE));
@@ -139,7 +555,6 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(
       }
     }, [activeEpisodeIndex, episodes]);
 
-    // Tự động cuộn đến tập phim đang phát khi active episode thay đổi
     const activeItemRef = useRef<HTMLAnchorElement | null>(null);
     const isInitialMount = useRef(true);
     useEffect(() => {
@@ -163,7 +578,6 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(
       }
     }, [activeEpisodeSlug]);
 
-    // Đồng bộ danh sách tập đã xem & tiến độ
     useEffect(() => {
       if (!movieSlug) return;
 
@@ -198,7 +612,7 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(
       );
       window.addEventListener(
         "nanaflix-watch-progress-updated",
-        handleWatchedUpdated
+        refreshData
       );
       window.addEventListener("storage", handleStorageChange);
 
@@ -209,7 +623,7 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(
         );
         window.removeEventListener(
           "nanaflix-watch-progress-updated",
-          handleWatchedUpdated
+          refreshData
         );
         window.removeEventListener("storage", handleStorageChange);
       };
@@ -217,140 +631,107 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(
 
     const watchedEpisodeNums = useMemo(() => {
       const set = new Set<number>();
-      for (const ep of watchedList) {
-        const num = extractEpisodeNumber(ep);
-        if (num !== null) {
-          const prog = Object.entries(episodesProgress).find(([k, d]) => {
-            const n =
-              extractEpisodeNumber(k) ?? extractEpisodeNumber(d?.episodeName);
-            return n === num;
-          })?.[1];
-          if (
-            prog?.durationSeconds &&
-            prog.durationSeconds > 0 &&
-            !prog.isCompleted &&
-            prog.progressSeconds / prog.durationSeconds < 0.9
-          ) {
-            continue;
-          }
-          set.add(num);
-        }
-      }
-      for (const [epSlug, epData] of Object.entries(episodesProgress)) {
-        if (
-          epData?.isCompleted ||
-          (epData?.durationSeconds &&
-            epData.durationSeconds > 0 &&
-            epData.progressSeconds / epData.durationSeconds >= 0.9)
-        ) {
-          const num =
-            extractEpisodeNumber(epSlug) ??
-            extractEpisodeNumber(epData?.episodeName);
-          if (num !== null) set.add(num);
-        }
+      for (const epSlug of watchedList) {
+        const num = extractEpisodeNumber(epSlug);
+        if (num !== null) set.add(num);
       }
       return set;
-    }, [watchedList, episodesProgress]);
+    }, [watchedList]);
 
-    // Tạo các dải tập chuẩn xác
-    const totalChunks = Math.ceil(episodes.length / CHUNK_SIZE);
     const chunks = useMemo(() => {
-      if (totalChunks <= 1) return [];
-      return Array.from({ length: totalChunks }, (_, i) => {
-        const startIdx = i * CHUNK_SIZE;
-        const endIdx = Math.min((i + 1) * CHUNK_SIZE - 1, episodes.length - 1);
-        const startEp = episodes[startIdx];
-        const endEp = episodes[endIdx];
+      if (episodes.length <= CHUNK_SIZE) return [];
+      const chunkList: EpisodeChunkItem[] = [];
+      const totalChunks = Math.ceil(episodes.length / CHUNK_SIZE);
+      for (let i = 0; i < totalChunks; i++) {
+        const start = i * CHUNK_SIZE + 1;
+        const end = Math.min((i + 1) * CHUNK_SIZE, episodes.length);
+        chunkList.push({
+          index: i,
+          label: `${start} - ${end}`,
+        });
+      }
+      return chunkList;
+    }, [episodes.length]);
 
-        const startShort = startEp?.name
-          ? getShortEpisodeLabel(startEp.name)
-          : String(startIdx + 1);
-        const endShort = endEp?.name
-          ? getShortEpisodeLabel(endEp.name)
-          : String(endIdx + 1);
-
-        const label =
-          startShort === endShort
-            ? `Tập ${startShort}`
-            : `Tập ${startShort} - ${endShort}`;
-        return { index: i, label };
-      });
-    }, [totalChunks, episodes]);
-
-    // Lọc danh sách tập hiển thị thông minh
     const displayEpisodes = useMemo(() => {
       const q = searchQuery.trim().toLowerCase();
       if (!q) {
-        if (chunks.length <= 1) return episodes;
-        const startIdx = activeChunk * CHUNK_SIZE;
-        return episodes.slice(startIdx, startIdx + CHUNK_SIZE);
+        if (chunks.length === 0) return episodes;
+        const start = activeChunk * CHUNK_SIZE;
+        return episodes.slice(start, start + CHUNK_SIZE);
       }
 
-      const isNumeric = /^\d+$/.test(q);
-      const searchNum = isNumeric ? parseInt(q, 10) : null;
+      const qNum = extractEpisodeNumber(q);
+      const isPureNumeric = /^\d+$/.test(q);
 
-      const filtered = episodes.filter((tap, idx) => {
-        const epSlug = (tap.slug || "").toLowerCase();
-        const epName = (tap.name || "").toLowerCase();
+      return episodes.filter((tap, idx) => {
+        const tapName = (tap.name || "").toLowerCase();
+        const tapSlug = (tap.slug || "").toLowerCase();
 
-        if (searchNum !== null) {
-          const epNum =
+        if (tapName.includes(q) || tapSlug.includes(q)) return true;
+
+        if (qNum !== null) {
+          const tapNum =
             extractEpisodeNumber(tap.slug) ??
             extractEpisodeNumber(tap.name) ??
-            idx + 1;
-          if (epNum === searchNum) return true;
+            (idx + 1);
+
+          if (tapNum === qNum) return true;
+
+          if (isPureNumeric && !isFewEpisodes) {
+            const shortLabel = getShortEpisodeLabel(tap.name, String(idx + 1));
+            if (shortLabel === q) return true;
+          }
         }
-
-        const shortLabel = getShortEpisodeLabel(tap.name, String(idx + 1)).toLowerCase();
-        if (shortLabel === q) return true;
-
-        return epSlug.includes(q) || epName.includes(q);
+        return false;
       });
+    }, [episodes, searchQuery, chunks.length, activeChunk]);
 
-      return filtered;
-    }, [episodes, searchQuery, activeChunk, chunks.length]);
-
-    const isSearching = Boolean(searchQuery.trim());
+    const isSearching = searchQuery.trim().length > 0;
     const isFewEpisodes = episodes.length <= 12;
 
     const gridClasses = useMemo(() => {
-      if (isSearching) {
-        if (displayEpisodes.length <= 4) {
-          return "grid grid-cols-2 min-[380px]:grid-cols-4 gap-2";
-        }
-        return "grid grid-cols-3 min-[380px]:grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-2";
+      if (episodes.length === 1) return "grid grid-cols-1 gap-2";
+      if (isFewEpisodes) {
+        return "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-2 xl:grid-cols-3 gap-2";
       }
-
-      if (episodes.length === 1) return "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2";
-      if (episodes.length === 2) return "grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 gap-2 sm:gap-2.5";
-      if (episodes.length <= 4) return "grid grid-cols-2 min-[380px]:grid-cols-4 gap-2 sm:gap-2.5";
-      if (episodes.length <= 8) return "grid grid-cols-3 min-[380px]:grid-cols-4 gap-2 sm:gap-2.5";
-      if (episodes.length <= 12) return "grid grid-cols-3 min-[380px]:grid-cols-4 min-[460px]:grid-cols-5 sm:grid-cols-4 md:grid-cols-5 gap-1.5 sm:gap-2";
-      return "grid grid-cols-5 min-[380px]:grid-cols-6 sm:grid-cols-6 gap-1.5 sm:gap-2";
-    }, [episodes.length, isSearching, displayEpisodes.length]);
-
-    if (!episodes || episodes.length === 0) {
-      return (
-        <div className="rounded-2xl bg-zinc-950/60 p-4 text-center text-sm text-zinc-400">
-          Chưa có danh sách tập phim
-        </div>
-      );
-    }
+      return "grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-4 xl:grid-cols-5 gap-1.5 sm:gap-2";
+    }, [episodes.length, isFewEpisodes]);
 
     return (
       <div className="flex flex-col h-full min-h-0 space-y-2">
         {/* 1. KHUNG ĐIỀU KHIỂN CỐ ĐỊNH (SEARCH + TẬP ĐANG CHỌN + DẢI TẬP) */}
         <div className="flex-shrink-0 space-y-1.5">
-          <EpisodeSearchBar
-            searchQuery={searchQuery}
-            onSearchChange={setSearchQuery}
-            onClear={() => setSearchQuery("")}
-            resultCount={displayEpisodes.length}
-            isSearching={isSearching}
-            totalEpisodes={episodes.length}
-          />
+          {/* Ô TÌM NHANH SỐ TẬP NẾU TRÊN 12 TẬP */}
+          {episodes.length > 12 && (
+            <div className="space-y-1.5">
+              <div className="relative group">
+                <Search
+                  className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-400 group-focus-within:text-netflix-red transition-colors"
+                  aria-hidden="true"
+                />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Tìm nhanh số tập (vd: 1, 59, 199)..."
+                  aria-label="Tìm nhanh số tập"
+                  className="w-full pl-8 pr-8 py-2 sm:py-1.5 rounded-lg bg-zinc-900/90 text-base sm:text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-netflix-red/70 focus:bg-zinc-900/95 focus:ring-1 focus:ring-netflix-red/30 transition shadow-inner"
+                />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery("")}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-zinc-400 hover:text-white"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
 
-          {/* THANH ĐIỀU KHIỂN LƯU TẬP PHIM ĐANG CHỌN (CHỈ HIỂN THỊ TRÊN DESKTOP SIDEBAR ĐỂ TRÁNH RỐI TRÊN MOBILE) */}
+          {/* THANH ĐIỀU KHIỂN LƯU TẬP PHIM ĐANG CHỌN */}
           {!isSearching &&
             currentActiveEpisode?.slug &&
             episodes.length > 1 &&
@@ -414,7 +795,7 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(
 
           {/* DẢI TABS PHÂN NHÓM TẬP */}
           {!isSearching && (
-            <EpisodeChunkSelector
+            <EpisodeChunkSelectorInline
               chunks={chunks}
               activeChunk={activeChunk}
               onSelectChunk={setActiveChunk}
@@ -436,56 +817,26 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(
             const isActive = Boolean(
               activeEpisodeSlug && activeEpisodeSlug === singleTap.slug
             );
-            const singleEpProg = singleTap.slug
-              ? episodesProgress[singleTap.slug]
-              : undefined;
-            const singleNum =
-              extractEpisodeNumber(singleTap.slug) ??
-              extractEpisodeNumber(singleTap.name);
-            const singleMatchingProg =
-              singleEpProg ||
-              (singleNum !== null
-                ? Object.entries(episodesProgress).find(([k, d]) => {
-                    const n =
-                      extractEpisodeNumber(k) ??
-                      extractEpisodeNumber(d?.episodeName);
-                    return n === singleNum;
-                  })?.[1]
-                : undefined);
-
-            const singleProgSec = singleMatchingProg?.progressSeconds || 0;
-            const singleDurSec = singleMatchingProg?.durationSeconds || 0;
-            const hasValidDur = singleDurSec > 0 && Number.isFinite(singleDurSec);
-
-            const isSingleCompletedFromProg = Boolean(
-              singleMatchingProg?.isCompleted ||
-                (hasValidDur && singleProgSec / singleDurSec >= 0.9)
-            );
-            const isSinglePartiallyWatched = Boolean(
-              !isSingleCompletedFromProg &&
-                hasValidDur &&
-                singleProgSec >= 10 &&
-                singleProgSec / singleDurSec < 0.9
-            );
-            const isDirectlyWatched = Boolean(
-              singleTap.slug &&
-                (watchedList.includes(singleTap.slug) ||
-                  (singleNum !== null && watchedEpisodeNums.has(singleNum)))
-            );
-            const isWatched = Boolean(
-              !isSinglePartiallyWatched &&
-                (isSingleCompletedFromProg || isDirectlyWatched)
-            );
             const epIndex = episodes.findIndex((e) => e.slug === singleTap.slug);
+            const fallbackNum = epIndex >= 0 ? epIndex + 1 : null;
+            const status = getEpisodeWatchStatus(
+              tapSlug,
+              tapName,
+              fallbackNum,
+              episodesProgress,
+              watchedList,
+              watchedEpisodeNums,
+              isActive
+            );
             const chunkIdx = epIndex >= 0 ? Math.floor(epIndex / CHUNK_SIZE) : -1;
             const chunkObj = chunkIdx >= 0 ? chunks[chunkIdx] : null;
 
             return (
-              <EpisodeSingleSearchResult
+              <EpisodeSingleSearchResultInline
                 tapSlug={tapSlug}
                 tapName={tapName}
                 isActive={isActive}
-                isWatched={isWatched}
+                isWatched={status.isWatched}
                 movieTitle={movieTitle}
                 episodeIndex={epIndex}
                 totalEpisodes={episodes.length}
@@ -512,91 +863,30 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(
                         ? currentActiveEpisode.slug === tap.slug
                         : activeEpisodeSlug && activeEpisodeSlug === tap.slug
                     );
-                    const trueEpIndex = episodes.findIndex(
-                      (e) => e.slug === tap.slug
-                    );
-                    const fallbackNum =
-                      trueEpIndex >= 0 ? trueEpIndex + 1 : null;
-                    const tapNum =
-                      extractEpisodeNumber(tap.slug) ??
-                      extractEpisodeNumber(tap.name) ??
-                      fallbackNum;
-
-                    const matchingProg =
-                      (tap.slug ? episodesProgress[tap.slug] : undefined) ||
-                      (tapNum !== null
-                        ? Object.entries(episodesProgress).find(([k, d]) => {
-                            const n =
-                              extractEpisodeNumber(k) ??
-                              extractEpisodeNumber(d?.episodeName);
-                            return n === tapNum;
-                          })?.[1]
-                        : undefined);
-
-                    const progressSeconds = matchingProg?.progressSeconds || 0;
-                    const durationSeconds = matchingProg?.durationSeconds || 0;
-                    const hasValidDuration =
-                      durationSeconds > 0 && Number.isFinite(durationSeconds);
-
-                    const isCompletedFromProg = Boolean(
-                      matchingProg?.isCompleted ||
-                        (hasValidDuration &&
-                          progressSeconds / durationSeconds >= 0.9)
-                    );
-
-                    const isPartiallyWatchedProg = Boolean(
-                      !isCompletedFromProg &&
-                        hasValidDuration &&
-                        progressSeconds >= 10 &&
-                        progressSeconds / durationSeconds < 0.9
-                    );
-
-                    const isDirectlyWatched = Boolean(
-                      tap.slug &&
-                        (watchedList.includes(tap.slug) ||
-                          (tapNum !== null && watchedEpisodeNums.has(tapNum)))
-                    );
-
-                    const isWatched = Boolean(
-                      !isPartiallyWatchedProg &&
-                        (isCompletedFromProg || isDirectlyWatched)
+                    const trueEpIndex = episodes.findIndex((e) => e.slug === tap.slug);
+                    const fallbackNum = trueEpIndex >= 0 ? trueEpIndex + 1 : null;
+                    const status = getEpisodeWatchStatus(
+                      tapSlug,
+                      tapName,
+                      fallbackNum,
+                      episodesProgress,
+                      watchedList,
+                      watchedEpisodeNums,
+                      isActive
                     );
 
                     const displayLabel = isSearching
                       ? formatEpisodeName(tapName, `Tập ${tapIdx + 1}`)
-                      : getFormattedEpisodeLabel(
-                          tapName,
-                          tapIdx + 1,
-                          isFewEpisodes
-                        );
-
-                    const isPartiallyWatched =
-                      !isActive &&
-                      !isWatched &&
-                      (isPartiallyWatchedProg ||
-                        (!hasValidDuration && progressSeconds >= 10));
-                    const progressPercent = isPartiallyWatched
-                      ? durationSeconds > 0
-                        ? Math.min(
-                            95,
-                            Math.max(
-                              8,
-                              Math.round(
-                                (progressSeconds / durationSeconds) * 100
-                              )
-                            )
-                          )
-                        : 35
-                      : 0;
+                      : getFormattedEpisodeLabel(tapName, tapIdx + 1, isFewEpisodes);
 
                     const formatSec = (s: number) => {
                       const m = Math.floor(s / 60);
                       const sec = (s % 60).toString().padStart(2, "0");
                       return `${m}:${sec}`;
                     };
-                    const itemTitle = isPartiallyWatched
-                      ? `${tapName} • Đang xem dở (${formatSec(progressSeconds)}${
-                          durationSeconds > 0 ? ` / ${formatSec(durationSeconds)}` : ""
+                    const itemTitle = status.isPartiallyWatched
+                      ? `${tapName} • Đang xem dở (${formatSec(status.progressSeconds)}${
+                          status.durationSeconds > 0 ? ` / ${formatSec(status.durationSeconds)}` : ""
                         })`
                       : tapName;
 
@@ -608,16 +898,15 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(
                       !isActive;
 
                     return (
-                      <EpisodeGridItem
+                      <EpisodeGridItemInline
                         key={`${tapSlug}-${tapIdx}`}
                         tapSlug={tapSlug}
-                        tapName={tapName}
                         displayLabel={displayLabel}
                         itemTitle={itemTitle}
                         isActive={isActive}
-                        isWatched={isWatched}
-                        isPartiallyWatched={isPartiallyWatched}
-                        progressPercent={progressPercent}
+                        isWatched={status.isWatched}
+                        isPartiallyWatched={status.isPartiallyWatched}
+                        progressPercent={status.progressPercent}
                         isHiddenOnMobile={isHiddenOnMobile}
                         isSingleEpisode={episodes.length === 1}
                         isFewEpisodes={isFewEpisodes}
