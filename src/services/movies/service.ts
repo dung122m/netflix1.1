@@ -680,7 +680,7 @@ async function executeGetMovies(params: MovieFilterParams, cacheKey: string) {
     totalItemsCount = cachedMeta.totalItems;
   }
 
-  let maxTotalPages = Math.max(1, Math.ceil(totalItemsCount / limit));
+  const maxTotalPages = Math.max(1, Math.ceil(totalItemsCount / limit));
 
   // Khử trùng lặp giữa các trang (cross-page deduplication): loại bỏ phim đã xuất hiện ở các trang trước (< requestedPage)
   // Tận dụng phần dư NguonC đã fetch sẵn trong bộ nhớ nếu có (0 extra HTTP calls)

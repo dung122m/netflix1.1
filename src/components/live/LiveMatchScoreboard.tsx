@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo, useCallback } from "react";
-import { Clock, Trophy, MapPin, Users } from "lucide-react";
+import { Clock, MapPin, Users } from "lucide-react";
 import type { FootballMatch, StreamServer } from "@/services/live/football/service";
 import type {
   LiveMatchScore,
@@ -9,15 +9,12 @@ import type {
 } from "@/services/live/football-score/types";
 import type { GroupedGoalScorer } from "@/services/live/football-score/goalScorersParser";
 import type { resolveMatchTimeInfo } from "@/services/live/football-score/liveStatus";
-import { resolveCanonicalTournament } from "@/services/live/football-score/canonicalLeagues";
-import { parseServerDisplayLabel } from "@/services/live/shared/serverSelectionHelper";
 import {
   getTeamAsset,
   getTeamInitials,
   resolveEsportsTeam,
 } from "@/data/live/teamAssets";
 import { toDarkModeLogoUrl } from "@/services/live/football-logo/service";
-import { Tooltip } from "@/components/ui/Tooltip";
 import { CountryFlag } from "./CountryFlag";
 import { FotmobSoccerBallIcon } from "./icons/FotmobPitchIcons";
 
@@ -54,7 +51,7 @@ export interface LiveMatchScoreboardProps {
 export function LiveMatchScoreboard({
   match,
   title,
-  blv,
+  blv: _blv,
   time,
   team1,
   team2,
@@ -72,9 +69,9 @@ export function LiveMatchScoreboard({
   refereeName,
   homeGoalScorers,
   awayGoalScorers,
-  currentServer,
-  currentAvailableIdx,
-  selectedServerIndex,
+  currentServer: _currentServer,
+  currentAvailableIdx: _currentAvailableIdx,
+  selectedServerIndex: _selectedServerIndex,
 }: LiveMatchScoreboardProps) {
   const [homeTriedAsset, setHomeTriedAsset] = useState(false);
   const [homeFailed, setHomeFailed] = useState(false);
@@ -112,7 +109,7 @@ export function LiveMatchScoreboard({
   const assetHome = espHome?.logo || homeAsset?.logo || null;
   const rawHome =
     (Boolean(summary?.homeTeam?.logo) &&
-    !summary?.homeTeam?.logo?.includes("tinhlagi.pro/logo.jpg")
+      !summary?.homeTeam?.logo?.includes("tinhlagi.pro/logo.jpg")
       ? summary?.homeTeam?.logo
       : null) ||
     (Boolean(homeLogo) && !homeLogo?.includes("tinhlagi.pro/logo.jpg")
@@ -141,7 +138,7 @@ export function LiveMatchScoreboard({
   const assetAway = espAway?.logo || awayAsset?.logo || null;
   const rawAway =
     (Boolean(summary?.awayTeam?.logo) &&
-    !summary?.awayTeam?.logo?.includes("tinhlagi.pro/logo.jpg")
+      !summary?.awayTeam?.logo?.includes("tinhlagi.pro/logo.jpg")
       ? summary?.awayTeam?.logo
       : null) ||
     (Boolean(awayLogo) && !awayLogo?.includes("tinhlagi.pro/logo.jpg")
@@ -168,12 +165,12 @@ export function LiveMatchScoreboard({
   }, [rawAway, awayTriedAsset, assetAway]);
 
   return (
-    <div className="relative rounded-2xl sm:rounded-3xl bg-zinc-950/90 backdrop-blur-xl px-4 py-3.5 sm:px-6 sm:py-5 md:px-8 md:py-6 shadow-2xl shadow-black/80 overflow-hidden w-full min-w-0">
+    <div className="relative rounded-2xl sm:rounded-3xl bg-zinc-950/90 backdrop-blur-xl px-3 py-2 sm:px-5 sm:py-2.5 md:px-6 md:py-3 shadow-2xl shadow-black/80 overflow-hidden w-full min-w-0">
       {isEvent ||
-      !team1 ||
-      !team2 ||
-      team1.trim().toLowerCase() === team2.trim().toLowerCase() ? (
-        <div className="relative z-10 w-full flex flex-col items-center justify-center text-center py-2.5">
+        !team1 ||
+        !team2 ||
+        team1.trim().toLowerCase() === team2.trim().toLowerCase() ? (
+        <div className="relative z-10 w-full flex flex-col items-center justify-center text-center py-2">
           <div className="flex items-center gap-2">
             <span className="text-[11px] font-semibold text-rose-300 bg-rose-500/15 px-3 py-1 rounded-full">
               Kênh / Sự kiện
@@ -185,23 +182,12 @@ export function LiveMatchScoreboard({
               </span>
             )}
           </div>
-          <h2 className="mt-2 text-base sm:text-xl md:text-2xl font-black text-white tracking-tight">
+          <h2 className="mt-1.5 text-base sm:text-xl md:text-2xl font-black text-white tracking-tight">
             {title}
           </h2>
         </div>
       ) : (
         (() => {
-          const displayTournament = resolveCanonicalTournament({
-            tournament: match?.tournament,
-            title: title || match?.title,
-            sport: match?.sport,
-            team1: match?.team1,
-            team2: match?.team2,
-            category: match?.category,
-            gender: match?.gender,
-            score: currentScore,
-          });
-
           // Phân tích số bàn thắng từ danh sách người ghi bàn đã parse
           const parsedHomeGoals = homeGoalScorers.reduce((acc, g) => acc + (g.times?.length || 1), 0);
           const parsedAwayGoals = awayGoalScorers.reduce((acc, g) => acc + (g.times?.length || 1), 0);
@@ -240,46 +226,8 @@ export function LiveMatchScoreboard({
           const hasGoalScorers =
             homeGoalScorers.length > 0 || awayGoalScorers.length > 0;
 
-          const blvLabel = (() => {
-            if (currentServer) {
-              const displayLabel = parseServerDisplayLabel(
-                currentServer,
-                currentAvailableIdx !== -1
-                  ? currentAvailableIdx
-                  : selectedServerIndex,
-              );
-              if (displayLabel) {
-                const parts = displayLabel.split(/[·•\-|–—]/);
-                const firstPart = parts[0]?.trim();
-                if (firstPart && !/^Nguồn\s+\d+$/i.test(firstPart)) {
-                  return firstPart;
-                }
-              }
-            }
-            const raw = (blv || match?.blv || "").replace(
-              /^(?:blv|bình luận viên)\s+/i,
-              "",
-            );
-            const parts = raw
-              .split(",")
-              .map((p) => p.trim())
-              .filter(Boolean);
-            if (parts.length === 0) return "BLV Trực Tiếp";
-            return `BLV ${parts[0]}`;
-          })();
-
           return (
-            <div className="relative z-10 flex flex-col gap-2 sm:gap-3 md:gap-3.5 w-full min-w-0">
-              {/* HÀNG TRÊN: GIẢI ĐẤU (CĂN GIỮA THOÁNG ĐÃNG, KHÔNG LÀM HẸP KHÔNG GIAN 2 ĐỘI) */}
-              {displayTournament && (
-                <div className="flex items-center justify-center gap-1.5 pb-0.5 select-none text-center">
-                  <span className="inline-flex items-center gap-1.5 text-zinc-400 text-xs sm:text-[13px] font-semibold">
-                    <Trophy className="w-3.5 h-3.5 shrink-0 text-amber-400" />
-                    <span>{displayTournament}</span>
-                  </span>
-                </div>
-              )}
-
+            <div className="relative z-10 flex flex-col gap-1.5 sm:gap-2 w-full min-w-0">
               {/* HÀNG CHÍNH: BẢNG TỶ SỐ CHUẨN TRUYỀN HÌNH - ĐỐI XỨNG CÂN ĐỐI TUYỆT ĐỐI 50/50 */}
               <div className="flex items-center justify-between w-full min-w-0">
                 {/* ĐỘI NHÀ (CỘT TRÁI - 50% CHIỀU RỘNG TRỪ PHẦN TỶ SỐ) */}
@@ -291,7 +239,7 @@ export function LiveMatchScoreboard({
                     {homeDisplayName}
                   </span>
 
-                  <div className="w-9 h-9 sm:w-11 sm:h-11 md:w-12 md:h-12 lg:w-14 lg:h-14 flex items-center justify-center shrink-0">
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 md:w-11 md:h-11 lg:w-12 lg:h-12 flex items-center justify-center shrink-0">
                     {homeFlagEmoji ? (
                       <CountryFlag
                         emoji={homeFlagEmoji}
@@ -308,7 +256,7 @@ export function LiveMatchScoreboard({
                         referrerPolicy="no-referrer"
                       />
                     ) : (
-                      <span className="w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-zinc-800 text-zinc-300 flex items-center justify-center text-xs sm:text-sm font-bold select-none">
+                      <span className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-zinc-800 text-zinc-300 flex items-center justify-center text-xs sm:text-sm font-bold select-none">
                         {getTeamInitials(team1)}
                       </span>
                     )}
@@ -318,7 +266,7 @@ export function LiveMatchScoreboard({
                 {/* TỶ SỐ / VS: CHÍNH GIỮA TUYỆT ĐỐI (50.0%) */}
                 <div className="shrink-0 flex flex-col items-center justify-center min-w-[76px] sm:min-w-[100px] md:min-w-[120px] select-none px-1 sm:px-2">
                   {hasScore ? (
-                    <div className="flex items-center justify-center gap-1.5 sm:gap-2 font-sans text-2xl sm:text-4xl md:text-5xl font-black text-white tracking-wider tabular-nums leading-none drop-shadow-sm">
+                    <div className="flex items-center justify-center gap-1.5 sm:gap-2 font-sans text-2xl sm:text-3xl md:text-4xl font-black text-white tracking-wider tabular-nums leading-none drop-shadow-sm">
                       <span>{homeScoreVal}</span>
                       <span className="text-zinc-600 font-light select-none px-0.5">
                         :
@@ -331,7 +279,7 @@ export function LiveMatchScoreboard({
                     </span>
                   )}
 
-                  <div className="mt-2 sm:mt-2.5 flex items-center justify-center gap-1.5 text-center leading-none">
+                  <div className="mt-1 sm:mt-1.5 flex items-center justify-center gap-1.5 text-center leading-none">
                     {timeInfo.state === "live" ? (
                       <>
                         <span className="inline-flex items-center gap-1.5 text-[11px] sm:text-xs font-bold text-emerald-400">
@@ -380,8 +328,8 @@ export function LiveMatchScoreboard({
                 </div>
 
                 {/* ĐỘI KHÁCH (CỘT PHẢI - 50% CHIỀU RỘNG TRỪ PHẦN TỶ SỐ) */}
-                <div className="flex-1 min-w-0 flex items-center justify-start gap-2.5 sm:gap-3.5 md:gap-4 pl-3 sm:pl-4 md:pl-6 text-left">
-                  <div className="w-9 h-9 sm:w-11 sm:h-11 md:w-12 md:h-12 lg:w-14 lg:h-14 flex items-center justify-center shrink-0">
+                <div className="flex-1 min-w-0 flex items-center justify-start gap-2 sm:gap-3 md:gap-4 pl-3 sm:pl-4 md:pl-6 text-left">
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 md:w-11 md:h-11 lg:w-12 lg:h-12 flex items-center justify-center shrink-0">
                     {awayFlagEmoji ? (
                       <CountryFlag
                         emoji={awayFlagEmoji}
@@ -398,7 +346,7 @@ export function LiveMatchScoreboard({
                         referrerPolicy="no-referrer"
                       />
                     ) : (
-                      <span className="w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-zinc-800 text-zinc-300 flex items-center justify-center text-xs sm:text-sm font-bold select-none">
+                      <span className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-zinc-800 text-zinc-300 flex items-center justify-center text-xs sm:text-sm font-bold select-none">
                         {getTeamInitials(team2)}
                       </span>
                     )}
@@ -415,13 +363,13 @@ export function LiveMatchScoreboard({
 
               {/* DẢI NGƯỜI GHI BÀN - ĐỐI XỨNG CÂN ĐỐI TUYỆT ĐỐI */}
               {hasGoalScorers && (
-                <div className="flex items-center justify-between w-full min-w-0 pt-2 sm:pt-2.5 text-[10.5px] sm:text-xs text-zinc-300">
+                <div className="flex items-center justify-between w-full min-w-0 pt-1 sm:pt-1.5 text-[10.5px] sm:text-xs text-zinc-300">
                   <div className="flex-1 min-w-0 flex items-center justify-end pr-3 sm:pr-4 md:pr-6 text-right">
-                    <div className="flex flex-wrap items-center justify-end gap-x-3 gap-y-1 min-w-0">
+                    <div className="flex flex-wrap items-center justify-end gap-x-2.5 sm:gap-x-3 gap-y-0.5 min-w-0">
                       {homeGoalScorers.map((scorer, idx) => (
                         <span
                           key={`h-${idx}`}
-                          className="inline-flex items-center gap-1.5 text-zinc-200"
+                          className="inline-flex items-center gap-1 text-zinc-200"
                         >
                           <FotmobSoccerBallIcon className="w-2.5 h-2.5 sm:w-3 sm:h-3 shrink-0 opacity-80" />
                           <span
@@ -449,11 +397,11 @@ export function LiveMatchScoreboard({
                   </div>
 
                   <div className="flex-1 min-w-0 flex items-center justify-start pl-3 sm:pl-4 md:pl-6 text-left">
-                    <div className="flex flex-wrap items-center justify-start gap-x-3 gap-y-1 min-w-0">
+                    <div className="flex flex-wrap items-center justify-start gap-x-2.5 sm:gap-x-3 gap-y-0.5 min-w-0">
                       {awayGoalScorers.map((scorer, idx) => (
                         <span
                           key={`a-${idx}`}
-                          className="inline-flex items-center gap-1.5 text-zinc-200"
+                          className="inline-flex items-center gap-1 text-zinc-200"
                         >
                           <FotmobSoccerBallIcon className="w-2.5 h-2.5 sm:w-3 sm:h-3 shrink-0 opacity-80" />
                           <span
@@ -483,10 +431,10 @@ export function LiveMatchScoreboard({
                 }
 
                 return (
-                  <div className="flex items-center justify-center gap-x-4 gap-y-1.5 text-[10.5px] sm:text-[11.5px] text-zinc-400 font-sans pt-2 sm:pt-2.5 border-t border-white/[0.04] mt-1 sm:mt-1.5 flex-wrap">
+                  <div className="flex items-center justify-center gap-x-3.5 gap-y-1 text-[10px] sm:text-[11px] text-zinc-400 font-sans pt-1 sm:pt-1.5 flex-wrap">
                     {effectiveVenue && (
-                      <span className="inline-flex items-center gap-1.5 truncate max-w-[220px] sm:max-w-[320px]">
-                        <MapPin className="w-3.5 h-3.5 text-rose-400/80 shrink-0" />
+                      <span className="inline-flex items-center gap-1 truncate max-w-[220px] sm:max-w-[320px]">
+                        <MapPin className="w-3 h-3 text-rose-400/80 shrink-0" />
                         <span className="truncate text-zinc-300 font-medium">{effectiveVenue}</span>
                       </span>
                     )}
@@ -501,7 +449,7 @@ export function LiveMatchScoreboard({
                     {attendance && attendance > 0 && (
                       <span className="inline-flex items-center gap-1">
                         <span className="text-zinc-600 hidden sm:inline">•</span>
-                        <Users className="w-3.5 h-3.5 text-sky-400/80 shrink-0" />
+                        <Users className="w-3 h-3 text-sky-400/80 shrink-0" />
                         <span className="font-sans tabular-nums text-zinc-300">
                           {attendance.toLocaleString("vi-VN")} CĐV
                         </span>

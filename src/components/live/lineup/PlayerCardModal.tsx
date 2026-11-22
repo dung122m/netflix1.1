@@ -21,11 +21,6 @@ import {
   FotmobSoccerBallIcon,
   FotmobYellowCardIcon,
   FotmobRedCardIcon,
-  FotmobCaptainBadge,
-  FotmobSubOutIcon,
-  FotmobSubSwapIcon,
-  FotmobAssistIcon,
-  FotmobStarIcon,
 } from "../icons/FotmobPitchIcons";
 import { BaseModal } from "@/components/ui/BaseModal";
 import {

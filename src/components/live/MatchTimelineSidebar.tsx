@@ -6,7 +6,7 @@ import {
   MatchCommentaryItem,
   MatchStatItem,
 } from "@/services/live/football-score/types";
-import { Activity, Clock, ArrowLeftRight, MessageSquare, RotateCw } from "lucide-react";
+import { Activity, Clock, MessageSquare, RotateCw } from "lucide-react";
 
 import {
   FotmobSoccerBallIcon,

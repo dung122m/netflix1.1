@@ -10,7 +10,6 @@ import {
   FotmobRedCardIcon,
   FotmobCaptainBadge,
   FotmobSubInIcon,
-  FotmobSubOutIcon,
 } from "../icons/FotmobPitchIcons";
 import {
   calculateTacticalCoordinates,
@@ -526,8 +525,8 @@ export interface FotmobSubstitutesSectionProps {
 }
 
 export function FotmobSubstitutesSection({
-  homeTeam,
-  awayTeam,
+  homeTeam: _homeTeam,
+  awayTeam: _awayTeam,
   homeBench = [],
   awayBench = [],
   selectedPlayerId,
@@ -731,12 +730,12 @@ export function FotmobSubstitutesSection({
 }
 
 export function DualBenchColumn({
-  teamName,
-  bench,
-  isHome,
-  selectedPlayerId,
-  onSelectPlayer,
-  getPlayerEventBadges,
+  teamName: _teamName,
+  bench: _bench,
+  isHome: _isHome,
+  selectedPlayerId: _selectedPlayerId,
+  onSelectPlayer: _onSelectPlayer,
+  getPlayerEventBadges: _getPlayerEventBadges,
 }: {
   teamName: string;
   bench: MatchRosterPlayer[];

@@ -14,7 +14,10 @@ export function FotmobSoccerBallIcon({ className = "w-3.5 h-3.5" }: { className?
     <svg
       aria-hidden="true"
       viewBox="0 0 14 14"
+      width="14"
+      height="14"
       className={`${className} shrink-0 inline-block drop-shadow-[0_1px_3px_rgba(0,0,0,0.85)]`}
+      style={{ width: "14px", height: "14px", minWidth: "14px", minHeight: "14px" }}
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
     >
@@ -38,13 +41,17 @@ export function FotmobSoccerBallIcon({ className = "w-3.5 h-3.5" }: { className?
 /**
  * FotMob Official Yellow Card (SVG 60)
  * Realistic rounded card with authentic yellow color (#fece2f).
+ * Explicit dimensions and bounding to prevent accidental oversized stretching.
  */
 export function FotmobYellowCardIcon({ className = "w-2.5 h-3.5" }: { className?: string }) {
   return (
     <svg
       aria-hidden="true"
       viewBox="0 0 14 14"
-      className={`${className} shrink-0 inline-block drop-shadow-[0_1px_3px_rgba(0,0,0,0.85)]`}
+      width="10"
+      height="14"
+      className={`${className} max-w-[10px] max-h-[14px] shrink-0 inline-block drop-shadow-[0_1px_3px_rgba(0,0,0,0.85)]`}
+      style={{ width: "10px", height: "14px", minWidth: "10px", minHeight: "14px" }}
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
     >
@@ -59,13 +66,17 @@ export function FotmobYellowCardIcon({ className = "w-2.5 h-3.5" }: { className?
 /**
  * FotMob Official Red Card
  * Matching rounded card geometry with red color (#e03a3e).
+ * Explicit dimensions and bounding to prevent accidental oversized stretching.
  */
 export function FotmobRedCardIcon({ className = "w-2.5 h-3.5" }: { className?: string }) {
   return (
     <svg
       aria-hidden="true"
       viewBox="0 0 14 14"
-      className={`${className} shrink-0 inline-block drop-shadow-[0_1px_3px_rgba(0,0,0,0.85)]`}
+      width="10"
+      height="14"
+      className={`${className} max-w-[10px] max-h-[14px] shrink-0 inline-block drop-shadow-[0_1px_3px_rgba(0,0,0,0.85)]`}
+      style={{ width: "10px", height: "14px", minWidth: "10px", minHeight: "14px" }}
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
     >
@@ -86,7 +97,10 @@ export function FotmobCaptainBadge({ className = "w-3.5 h-3.5" }: { className?: 
     <svg
       aria-hidden="true"
       viewBox="0 0 15 15"
+      width="15"
+      height="15"
       className={`${className} shrink-0 inline-block drop-shadow-sm`}
+      style={{ width: "15px", height: "15px", minWidth: "15px", minHeight: "15px" }}
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
     >
