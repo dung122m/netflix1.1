@@ -1615,7 +1615,7 @@ export function normalizeMovie(m: any): NormalizedMovie {
   const hasTrailer = Boolean(
     trailer_url || isTrailerOnly || m?.hasTrailer || (typeof trailer_url === "string" && trailer_url.length > 0)
   );
-  const tmdbId = m?.tmdb?.id || m?.movie?.tmdb?.id || undefined;
+  const tmdbId = m?.tmdb?.id || m?.movie?.tmdb?.id || m?.tmdbId || undefined;
   const rawTmdbType = m?.tmdb?.type || m?.movie?.tmdb?.type;
   const isSeries =
     rawTmdbType === "tv" ||

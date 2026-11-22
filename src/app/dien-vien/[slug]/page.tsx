@@ -100,6 +100,7 @@ import { ActorAvatar } from "@/components/actors/ActorAvatar";
 import { FavoriteActorButton } from "@/components/actors/FavoriteActorButton";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { CountryBadge } from "@/components/ui/CountryBadge";
+import { enrichMovieListPosters } from "@/services/movies/posterEnrichment";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -573,7 +574,7 @@ export default async function ActorDetailPage({ params }: PageProps) {
   if (!cachedPage || cachedPage.expireAt <= now || !Array.isArray(movies) || movies.length === 0) {
     try {
       const redisFull = await cacheService.get<{ wikiProfile: ActorProfile | null; movies: unknown[] }>(
-        `actor:full_page:v1:${slug}`
+        `actor:full_page:v2:${slug}`
       );
       if (redisFull && Array.isArray(redisFull.movies) && redisFull.movies.length > 0) {
         wikiProfile = redisFull.wikiProfile;
@@ -584,11 +585,16 @@ export default async function ActorDetailPage({ params }: PageProps) {
     if (!movies || movies.length === 0) {
       [wikiProfile, movies] = await Promise.all([wikiProfilePromise, moviesPromise]);
       if (movies && movies.length > 0) {
+        await enrichMovieListPosters(movies, { budgetMs: 0, stripProxyUrls: true });
         cacheService
-          .set(`actor:full_page:v1:${slug}`, { wikiProfile, movies }, ACTOR_PAGE_REDIS_TTL_SEC)
+          .set(`actor:full_page:v2:${slug}`, { wikiProfile, movies }, ACTOR_PAGE_REDIS_TTL_SEC)
           .catch(() => {});
       }
+    } else {
+      await enrichMovieListPosters(movies, { budgetMs: 0, stripProxyUrls: true });
     }
+  } else if (movies && movies.length > 0) {
+    await enrichMovieListPosters(movies, { budgetMs: 0, stripProxyUrls: true });
   }
 
   // Nếu không tìm thấy thông tin trên TMDb, Wikipedia và cũng không có phim nào trên hệ thống -> 404 Not Found
