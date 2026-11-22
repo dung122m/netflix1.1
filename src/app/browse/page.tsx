@@ -318,7 +318,7 @@ async function runActorSearch(options: ActorSearchOptions) {
   const totalPages = Math.max(1, Math.ceil(totalItems / pageLimit));
   const startIndex = (currentPage - 1) * pageLimit;
   const histArtist = findHistoricalArtist(canonicalName) || (actorParam ? findHistoricalArtist(actorParam) : undefined);
-  const bestAvatar = histArtist?.avatarUrl || (actorSynonyms?.slug ? getR2ActorAvatarUrl(actorSynonyms.slug) : undefined);
+  const bestAvatar = histArtist?.avatarUrl || (actorSynonyms?.slug ? getR2ActorAvatarUrl(actorSynonyms.slug) : undefined) || (actorResult as any)?.avatarUrl;
   return {
     actor: {
       name: histArtist?.name || canonicalName,
@@ -551,7 +551,11 @@ export default async function BrowsePage({
         pageLimit: PAGE_LIMIT,
       });
       if (actorSearch) {
-        if (actorSearch.movies.length > 0 || (hasExplicitActorPrefix(keyword) && Boolean(actorSearch.actor.avatarUrl))) {
+        if (
+          actorSearch.movies.length > 0 ||
+          (hasExplicitActorPrefix(keyword) && Boolean(actorSearch.actor.avatarUrl)) ||
+          !hasSuitableTitleResults
+        ) {
           const actorSlug = (historicalArtist?.slug || fallbackSynonyms?.slug || actorSearch.actor.name)
             .toLowerCase()
             .replace(/[^a-z0-9]+/g, "-")

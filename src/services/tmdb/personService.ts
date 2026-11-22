@@ -241,7 +241,7 @@ export async function getTmdbPersonMovieCredits(personId: number): Promise<TmdbM
     return cached.data;
   }
 
-  const kvKey = `tmdb:person_credits_v1:${personId}`;
+  const kvKey = `tmdb:person_credits_v2:${personId}`;
   return await cacheService.fetchOrSet<TmdbMovieCredit[]>(
     kvKey,
     async () => {
@@ -252,14 +252,30 @@ export async function getTmdbPersonMovieCredits(personId: number): Promise<TmdbM
 
       const task = (async () => {
         try {
-          const data = await fetchTmdbEndpoint(`/person/${personId}/combined_credits?language=vi-VN`);
+          const [dataVi, dataEn] = await Promise.all([
+            fetchTmdbEndpoint(`/person/${personId}/combined_credits?language=vi-VN`),
+            fetchTmdbEndpoint(`/person/${personId}/combined_credits?language=en-US`),
+          ]);
 
-          const rawCast = Array.isArray(data?.cast) ? data.cast : [];
-          const rawCrew = Array.isArray(data?.crew) ? data.crew : [];
+          const rawCastVi = Array.isArray(dataVi?.cast) ? dataVi.cast : [];
+          const rawCrewVi = Array.isArray(dataVi?.crew) ? dataVi.crew : [];
+          const rawCastEn = Array.isArray(dataEn?.cast) ? dataEn.cast : [];
+          const rawCrewEn = Array.isArray(dataEn?.crew) ? dataEn.crew : [];
+
+          // Xây dựng bản đồ tiêu đề tiếng Anh / quốc tế để đối chiếu chính xác với trường origin_name của PhimAPI & NguonC
+          const enMap = new Map<number, { title: string; overview?: string }>();
+          for (const m of [...rawCastEn, ...rawCrewEn]) {
+            if (m?.id && (m.title || m.name)) {
+              enMap.set(m.id, {
+                title: m.title || m.name || "",
+                overview: m.overview || "",
+              });
+            }
+          }
 
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const directingCrew = rawCrew.filter((c: any) => c.department === "Directing");
-          const combined = [...rawCast, ...directingCrew];
+          const directingCrew = rawCrewVi.filter((c: any) => c.department === "Directing");
+          const combined = [...rawCastVi, ...directingCrew];
           const uniqueMap = new Map<number, TmdbMovieCredit>();
           const currentYear = new Date().getFullYear();
 
@@ -301,10 +317,14 @@ export async function getTmdbPersonMovieCredits(personId: number): Promise<TmdbM
               continue;
             }
 
+            const enInfo = enMap.get(m.id);
+            const englishTitle = enInfo?.title || "";
+
             uniqueMap.set(m.id, {
               id: m.id,
-              title: m.title || m.name || m.original_name || m.original_title || "",
+              title: m.title || m.name || m.original_name || m.original_title || englishTitle || "",
               original_title: m.original_title || m.original_name || m.title || m.name || "",
+              english_title: englishTitle || undefined,
               release_date: releaseDate,
               vote_average: Number(m.vote_average || 0),
               vote_count: Number(m.vote_count || 0),
@@ -314,6 +334,7 @@ export async function getTmdbPersonMovieCredits(personId: number): Promise<TmdbM
               media_type: m.media_type || (m.first_air_date ? "tv" : "movie"),
               genre_ids: Array.isArray(m.genre_ids) ? m.genre_ids : (genreIds.length > 0 ? genreIds : undefined),
               original_language: m.original_language || undefined,
+              overview: m.overview || enInfo?.overview || "",
             });
           }
 
@@ -357,7 +378,7 @@ export async function getActorFilmographyFromTmdb(
   const cleanKey = cleanStringForMatch(actorQuery) || cleanStringForMatch(canonicalName);
   if (!cleanKey && !tmdbPersonId) return [];
 
-  const cacheKey = `TMDB_ACTOR_FLOW_V8:${tmdbPersonId || cleanKey}`;
+  const cacheKey = `TMDB_ACTOR_FLOW_V9:${tmdbPersonId || cleanKey}`;
   const now = Date.now();
   const cached = TMDB_ACTOR_MOVIES_CACHE.get(cacheKey);
 
@@ -373,7 +394,7 @@ export async function getActorFilmographyFromTmdb(
     }
   }
 
-  const kvKey = `tmdb:actor_flow_v1:${tmdbPersonId || cleanKey}:${maxMovies}`;
+  const kvKey = `tmdb:actor_flow_v2:${tmdbPersonId || cleanKey}:${maxMovies}`;
   return await cacheService.fetchOrSet(
     kvKey,
     async () => {

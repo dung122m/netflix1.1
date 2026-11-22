@@ -37,6 +37,7 @@ export async function resolveActorMovies(
   titles?: string[];
   isActor: boolean;
   tmdbPersonId?: number;
+  avatarUrl?: string;
   source: "preset" | "ai" | "cache" | "none" | "tmdb";
 }> {
   if (!keyword || keyword.trim().length < 2) {
@@ -170,6 +171,7 @@ export async function resolveActorMovies(
           aliases,
           isActor: true,
           tmdbPersonId: tmdbPerson.id,
+          avatarUrl: tmdbPerson.profile_path ? `https://image.tmdb.org/t/p/w500${tmdbPerson.profile_path}` : undefined,
         };
 
         setBoundedCache(ACTOR_AI_CACHE, cleanRaw, {
@@ -184,6 +186,7 @@ export async function resolveActorMovies(
           aliases,
           isActor: true,
           tmdbPersonId: tmdbPerson.id,
+          avatarUrl: tmdbEntry.avatarUrl,
           source: "tmdb",
         };
       }
@@ -539,7 +542,7 @@ export async function queryMoviesByActor(
 
   const normalizedVariants = Array.from(new Set(allVariants.map(normalizeForMatch).filter(Boolean)));
   const idPrefix = tmdbPersonId ? `id_${tmdbPersonId}:` : "";
-  const cacheKey = `ACTOR_QUERY_V11:${idPrefix}${matchedSlug || normalizedVariants.sort().join("|")}`;
+  const cacheKey = `ACTOR_QUERY_V12:${idPrefix}${matchedSlug || normalizedVariants.sort().join("|")}`;
   const normSlug = normalizeForMatch(matchedSlug || actorName).replace(/\s+/g, "_") || (tmdbPersonId ? `person_${tmdbPersonId}` : "actor");
 
   // 2. Cơ chế SWR Cache (Stale-While-Revalidate - Phản hồi 0ms tức thì)
@@ -562,7 +565,7 @@ export async function queryMoviesByActor(
 
   // 3. Nếu yêu cầu maxMovies < 150 (ví dụ gợi ý 12 phim), kiểm tra xem cache filmography đầy đủ 150 phim đã có chưa
   if (maxMovies < 150) {
-    const fullKvKey = `actor:filmography_v11:${normSlug}:150`;
+    const fullKvKey = `actor:filmography_v12:${normSlug}:150`;
     try {
       const fullCached = await cacheService.get<Record<string, unknown>[]>(fullKvKey);
       if (Array.isArray(fullCached) && fullCached.length > 0) {
@@ -573,7 +576,7 @@ export async function queryMoviesByActor(
     }
   }
 
-  const kvKey = `actor:filmography_v11:${normSlug}:${maxMovies}`;
+  const kvKey = `actor:filmography_v12:${normSlug}:${maxMovies}`;
   const res = await cacheService.fetchOrSet(
     kvKey,
     async () => {

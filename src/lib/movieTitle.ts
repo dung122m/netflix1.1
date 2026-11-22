@@ -80,7 +80,8 @@ export function checkCandidateTitleMatch(
   cleanVi: string,
   tmdbYear: number | undefined,
   rawCreditTitle: string,
-  rawCreditOrig: string
+  rawCreditOrig: string,
+  cleanEn?: string
 ): boolean {
   const cOrig = normalizeForMatch(candOrig);
   const cName = normalizeForMatch(candName);
@@ -91,7 +92,8 @@ export function checkCandidateTitleMatch(
   // 1. Khớp tuyệt đối qua tiêu đề đã chuẩn hóa
   if (
     (cleanOrig && (cOrig === cleanOrig || cName === cleanOrig)) ||
-    (cleanVi && (cName === cleanVi || cOrig === cleanVi))
+    (cleanVi && (cName === cleanVi || cOrig === cleanVi)) ||
+    (cleanEn && (cOrig === cleanEn || cName === cleanEn))
   ) {
     return true;
   }
@@ -99,12 +101,14 @@ export function checkCandidateTitleMatch(
   // 2. Khớp qua Title Core (nếu chỉ khác số thứ tự phần phim / định dạng dấu :)
   const coreOrig = normalizeTitleCore(cleanOrig);
   const coreVi = normalizeTitleCore(cleanVi);
+  const coreEn = cleanEn ? normalizeTitleCore(cleanEn) : "";
   const cNameCore = normalizeTitleCore(cName);
   const cOrigCore = normalizeTitleCore(cOrig);
 
   const isCoreMatch =
     (coreOrig && (cOrigCore === coreOrig || cNameCore === coreOrig)) ||
-    (coreVi && (cNameCore === coreVi || cOrigCore === coreVi));
+    (coreVi && (cNameCore === coreVi || cOrigCore === coreVi)) ||
+    (coreEn && (cOrigCore === coreEn || cNameCore === coreEn));
 
   if (isCoreMatch) {
     const partTmdb = extractPartNumber(rawCreditTitle) ?? extractPartNumber(rawCreditOrig);
@@ -118,7 +122,10 @@ export function checkCandidateTitleMatch(
   }
 
   // 3. Khớp substring an toàn cho tiêu đề dài (>= 6 ký tự) và không mâu thuẫn số phần
-  if (cleanOrig.length >= 6 && (cOrig.includes(cleanOrig) || cleanOrig.includes(cOrig))) {
+  if (
+    (cleanOrig.length >= 6 && (cOrig.includes(cleanOrig) || cleanOrig.includes(cOrig))) ||
+    (cleanEn && cleanEn.length >= 6 && (cOrig.includes(cleanEn) || cleanEn.includes(cOrig)))
+  ) {
     const partTmdb = extractPartNumber(rawCreditTitle) ?? extractPartNumber(rawCreditOrig);
     const partCandidate = extractPartNumber(candName) ?? extractPartNumber(candOrig);
     if (partTmdb !== null && partCandidate !== null && partTmdb !== partCandidate) {

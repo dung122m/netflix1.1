@@ -292,6 +292,9 @@ export function useNavSearch({
         setIsSearchExpanded(false);
       }
       saveRecentSearch(kw);
+      if (pathname === "/browse" && urlKeyword.toLowerCase() === kw.toLowerCase()) {
+        return;
+      }
       triggerNavigationLoading();
       router.push(`/browse?keyword=${encodeURIComponent(kw)}`);
     },
@@ -299,6 +302,8 @@ export function useNavSearch({
       abortPendingSearch,
       saveRecentSearch,
       setIsSearchExpanded,
+      pathname,
+      urlKeyword,
       triggerNavigationLoading,
       router,
     ],
@@ -425,6 +430,9 @@ export function useNavSearch({
       }
 
       saveRecentSearch(currentKeyword);
+      if (pathname === "/browse" && urlKeyword.toLowerCase() === currentKeyword.toLowerCase()) {
+        return;
+      }
       triggerNavigationLoading();
       router.push(`/browse?keyword=${encodeURIComponent(currentKeyword)}`);
     },
@@ -433,6 +441,8 @@ export function useNavSearch({
       queryText,
       setIsSearchExpanded,
       saveRecentSearch,
+      pathname,
+      urlKeyword,
       triggerNavigationLoading,
       router,
     ],

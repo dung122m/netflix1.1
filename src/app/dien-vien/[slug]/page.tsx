@@ -574,7 +574,7 @@ export default async function ActorDetailPage({ params }: PageProps) {
   if (!cachedPage || cachedPage.expireAt <= now || !Array.isArray(movies) || movies.length === 0) {
     try {
       const redisFull = await cacheService.get<{ wikiProfile: ActorProfile | null; movies: unknown[] }>(
-        `actor:full_page:v2:${slug}`
+        `actor:full_page:v3:${slug}`
       );
       if (redisFull && Array.isArray(redisFull.movies) && redisFull.movies.length > 0) {
         wikiProfile = redisFull.wikiProfile;
@@ -587,7 +587,7 @@ export default async function ActorDetailPage({ params }: PageProps) {
       if (movies && movies.length > 0) {
         await enrichMovieListPosters(movies, { budgetMs: 0, stripProxyUrls: true });
         cacheService
-          .set(`actor:full_page:v2:${slug}`, { wikiProfile, movies }, ACTOR_PAGE_REDIS_TTL_SEC)
+          .set(`actor:full_page:v3:${slug}`, { wikiProfile, movies }, ACTOR_PAGE_REDIS_TTL_SEC)
           .catch(() => {});
       }
     } else {

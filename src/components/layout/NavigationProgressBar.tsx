@@ -28,6 +28,11 @@ function NavigationProgressBarInner() {
     isRunningRef.current = false;
     setProgress(100);
 
+    // Báo hiệu loading kết thúc cho các component khác (như MovieGrid)
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new Event("app:loading-end"));
+    }
+
     if (finishTimerRef.current) clearTimeout(finishTimerRef.current);
     finishTimerRef.current = setTimeout(() => {
       setLoading(false);
@@ -65,10 +70,10 @@ function NavigationProgressBarInner() {
       });
     }, 120);
 
-    // Timeout an toàn 9s tự tắt nếu mạng lag hoặc chuyển trang bị hủy
+    // Timeout an toàn 4s tự tắt nếu mạng lag hoặc chuyển trang bị hủy
     safetyTimerRef.current = setTimeout(() => {
       stopLoading();
-    }, 9000);
+    }, 4000);
   }, [stopLoading]);
 
   // 1. Theo dõi thay đổi URL (Pathname hoặc Query Params) -> Kết thúc loading

@@ -141,17 +141,47 @@ export async function matchTmdbMoviesWithSources(
       const tmdbYear = credit.release_date ? parseInt(credit.release_date.slice(0, 4), 10) : undefined;
       const cleanOrig = cleanStringForMatch(credit.original_title);
       const cleanVi = cleanStringForMatch(credit.title);
+      const cleanEn = cleanStringForMatch(credit.english_title || "");
 
       const isLatinOriginal =
         credit.original_title && /^[A-Za-z0-9\s\-':,.]+$/.test(credit.original_title);
 
+      const isAsianTitle = (s?: string) =>
+        Boolean(s && /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}\p{Script=Thai}]/u.test(s));
+
       const cleanOrigTitle = credit.original_title ? credit.original_title.replace(/[:\-']/g, " ").replace(/\s+/g, " ").trim() : "";
       const cleanViTitle = credit.title ? credit.title.replace(/[:\-']/g, " ").replace(/\s+/g, " ").trim() : "";
+      const cleanEnTitle = credit.english_title ? credit.english_title.replace(/[:\-']/g, " ").replace(/\s+/g, " ").trim() : "";
 
-      const primarySearchKw = isLatinOriginal ? cleanOrigTitle : (cleanViTitle || cleanOrigTitle);
-      const secondarySearchKw = isLatinOriginal ? cleanViTitle : cleanOrigTitle;
+      const searchKeywords: string[] = [];
+      const addSearchKw = (kw: string) => {
+        const t = kw.trim();
+        if (t.length >= 2 && !searchKeywords.includes(t)) {
+          searchKeywords.push(t);
+        }
+      };
 
-      if ((!primarySearchKw || primarySearchKw.length < 2) && (!secondarySearchKw || secondarySearchKw.length < 2)) {
+      // 1. Tiêu đề tiếng Việt Latinh (không phải chữ Hán/Hàn/Nhật)
+      if (cleanViTitle && !isAsianTitle(cleanViTitle)) {
+        addSearchKw(cleanViTitle);
+      }
+      // 2. Tiêu đề tiếng Anh / quốc tế (cực kỳ hiệu quả cho phim châu Á đối chiếu origin_name của PhimAPI & NguonC)
+      if (cleanEnTitle) {
+        addSearchKw(cleanEnTitle);
+      }
+      // 3. Tiêu đề gốc Latinh
+      if (isLatinOriginal && cleanOrigTitle) {
+        addSearchKw(cleanOrigTitle);
+      }
+      // 4. Tiêu đề gốc châu Á
+      if (cleanViTitle && isAsianTitle(cleanViTitle)) {
+        addSearchKw(cleanViTitle);
+      }
+      if (cleanOrigTitle && !isLatinOriginal) {
+        addSearchKw(cleanOrigTitle);
+      }
+
+      if (searchKeywords.length === 0) {
         TMDB_SINGLE_MOVIE_MATCH_CACHE.set(credit.id, { movie: null, expireAt: now + 12 * 3600 * 1000 });
         return;
       }
@@ -194,7 +224,8 @@ export async function matchTmdbMoviesWithSources(
               cleanVi,
               tmdbYear,
               credit.title,
-              credit.original_title
+              credit.original_title,
+              cleanEn
             );
 
             if (isMatch) {
@@ -221,7 +252,8 @@ export async function matchTmdbMoviesWithSources(
                 cleanVi,
                 tmdbYear,
                 credit.title,
-                credit.original_title
+                credit.original_title,
+                cleanEn
               );
 
               if (isMatch) {
@@ -244,11 +276,11 @@ export async function matchTmdbMoviesWithSources(
         let probePromise = inFlightSourceProbes.get(credit.id);
         if (!probePromise) {
           probePromise = (async () => {
-            let res = await trySearchAndMatch(primarySearchKw);
-            if (!res && secondarySearchKw && secondarySearchKw !== primarySearchKw) {
-              res = await trySearchAndMatch(secondarySearchKw);
+            for (const kw of searchKeywords.slice(0, 3)) {
+              const res = await trySearchAndMatch(kw);
+              if (res) return res;
             }
-            return res;
+            return null;
           })().finally(() => {
             inFlightSourceProbes.delete(credit.id);
           });

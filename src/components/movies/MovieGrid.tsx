@@ -36,13 +36,27 @@ const MovieGridInner = ({ movies, columnsClassName }: MovieGridProps) => {
 
   // Lắng nghe sự kiện loading toàn trang hoặc filter để làm mờ nhẹ lưới phim tức thì
   useEffect(() => {
-    const handleStart = () => setIsDimmed(true);
-    const handleEnd = () => setIsDimmed(false);
+    let safetyTimer: NodeJS.Timeout | null = null;
+
+    const handleStart = () => {
+      setIsDimmed(true);
+      if (safetyTimer) clearTimeout(safetyTimer);
+      // Timeout an toàn 3500ms tự tắt dimming nếu navigation bị no-op hoặc mạng chậm
+      safetyTimer = setTimeout(() => {
+        setIsDimmed(false);
+      }, 3500);
+    };
+
+    const handleEnd = () => {
+      if (safetyTimer) clearTimeout(safetyTimer);
+      setIsDimmed(false);
+    };
 
     window.addEventListener("app:loading-start", handleStart);
     window.addEventListener("app:loading-end", handleEnd);
 
     return () => {
+      if (safetyTimer) clearTimeout(safetyTimer);
       window.removeEventListener("app:loading-start", handleStart);
       window.removeEventListener("app:loading-end", handleEnd);
     };

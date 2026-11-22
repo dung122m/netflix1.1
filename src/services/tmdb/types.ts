@@ -27,6 +27,7 @@ export interface TmdbMovieCredit {
   id: number; // tmdb_id
   title: string;
   original_title: string;
+  english_title?: string;
   release_date?: string;
   vote_average?: number;
   vote_count?: number;
