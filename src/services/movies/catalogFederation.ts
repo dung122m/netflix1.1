@@ -9,8 +9,10 @@ import {
   getCanonicalCountrySlug,
   extractMovieDirectors,
   extractMovieActors,
+  extractMovieRatingScore,
+  extractMovieModifiedTime,
 } from "@/lib/movieMedia";
-import { MovieFilterParams, parseSortMode } from "./filterTypes";
+import { MovieFilterParams, ParsedSortMode, parseSortMode } from "./filterTypes";
 
 export const API_NGUONC = process.env.NEXT_PUBLIC_API_URL || "https://phim.nguonc.com/api";
 export const API_PHIMAPI = process.env.NEXT_PUBLIC_API_URL_2 || "https://phimapi.com";
@@ -58,6 +60,75 @@ export function getNguonCQueryMetaKey(params: MovieFilterParams, isSearch: boole
     return `search:${params.keyword.trim().toLowerCase()}`;
   }
   return `filter:${params.type || ""}:${params.category || ""}:${params.country || ""}:${params.year || ""}`;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function sortMovieCandidates<T extends Record<string, any>>(
+  candidates: T[],
+  parsedSort: ParsedSortMode,
+  isSearch: boolean = false
+): T[] {
+  if (isSearch) {
+    candidates.sort((a, b) => (Number(b.relevanceScore) || 0) - (Number(a.relevanceScore) || 0));
+  } else if (parsedSort.field === "rating") {
+    candidates.sort((a, b) => {
+      const { rating: rateA, voteCount: vcA } = extractMovieRatingScore(a);
+      const { rating: rateB, voteCount: vcB } = extractMovieRatingScore(b);
+
+      if (parsedSort.direction === "asc") {
+        if (rateA !== rateB) return rateA - rateB;
+        if (vcA !== vcB) return vcA - vcB;
+        const yearA = Number(a.year || 0);
+        const yearB = Number(b.year || 0);
+        if (yearA !== yearB) return yearA - yearB;
+      } else {
+        if (rateB !== rateA) return rateB - rateA;
+        if (vcB !== vcA) return vcB - vcA;
+        const yearA = Number(a.year || 0);
+        const yearB = Number(b.year || 0);
+        if (yearB !== yearA) return yearB - yearA;
+      }
+      return String(a.name || "").localeCompare(String(b.name || ""));
+    });
+  } else if (parsedSort.field === "year") {
+    candidates.sort((a, b) => {
+      const yearA = Number(a.year || 0);
+      const yearB = Number(b.year || 0);
+      if (yearB !== yearA) {
+        return parsedSort.direction === "asc" ? yearA - yearB : yearB - yearA;
+      }
+      return parsedSort.direction === "asc"
+        ? extractMovieModifiedTime(a) - extractMovieModifiedTime(b)
+        : extractMovieModifiedTime(b) - extractMovieModifiedTime(a);
+    });
+  } else if (parsedSort.field === "view") {
+    candidates.sort((a, b) => {
+      const vA = Number(a.view || a.tmdb?.vote_count || 0);
+      const vB = Number(b.view || b.tmdb?.vote_count || 0);
+      if (vB !== vA) {
+        return parsedSort.direction === "asc" ? vA - vB : vB - vA;
+      }
+      return parsedSort.direction === "asc"
+        ? extractMovieModifiedTime(a) - extractMovieModifiedTime(b)
+        : extractMovieModifiedTime(b) - extractMovieModifiedTime(a);
+    });
+  } else {
+    // "modified.time" ("latest" desc hoặc "oldest" asc)
+    candidates.sort((a, b) => {
+      const timeA = extractMovieModifiedTime(a);
+      const timeB = extractMovieModifiedTime(b);
+      if (timeB !== timeA) {
+        return parsedSort.direction === "asc" ? timeA - timeB : timeB - timeA;
+      }
+      const yearA = Number(a.year || 0);
+      const yearB = Number(b.year || 0);
+      if (yearB !== yearA) {
+        return parsedSort.direction === "asc" ? yearA - yearB : yearB - yearA;
+      }
+      return String(a.name || "").localeCompare(String(b.name || ""));
+    });
+  }
+  return candidates;
 }
 
 export interface SourcePageAllocation {

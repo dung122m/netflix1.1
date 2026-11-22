@@ -53,6 +53,13 @@ describe("Nanaflix — Rating Audit & Sorting Test Suite", () => {
       new Date("2026-09-01T00:00:00.000Z").getTime()
     );
 
+    // Space-separated format common in MySQL/WebKit
+    const spaceSeparatedItem = { modified: { time: "2026-11-19 05:54:53" } };
+    assert.equal(
+      extractMovieModifiedTime(spaceSeparatedItem),
+      new Date("2026-11-19T05:54:53").getTime()
+    );
+
     // Invalid & missing timestamps return 0 (no fake time created)
     assert.equal(extractMovieModifiedTime({}), 0);
     assert.equal(extractMovieModifiedTime(null), 0);
@@ -128,6 +135,26 @@ describe("Nanaflix — Rating Audit & Sorting Test Suite", () => {
           assert.ok(
             itemTime <= previousTime,
             `Modified timestamp at [${i}] (${new Date(itemTime).toISOString()}) must be <= previous item (${new Date(previousTime).toISOString()})`
+          );
+        }
+        previousTime = itemTime;
+      }
+    }
+  });
+
+  it("6. movieApi.getMovies with limit: 24 (triggering multi-source top-up) maintains strictly monotonic sort order", async () => {
+    // Calling phim-le page 1 with limit 24 exercises the multi-source top-up logic
+    const res = await movieApi.getMovies({ type: "phim-le", page: 1, limit: 24, skipKvCache: true });
+    assert.equal(res.items.length, 24, "Must return exactly 24 items");
+
+    let previousTime: number | null = null;
+    for (let i = 0; i < res.items.length; i++) {
+      const itemTime = extractMovieModifiedTime(res.items[i]);
+      if (itemTime > 0) {
+        if (previousTime !== null) {
+          assert.ok(
+            itemTime <= previousTime,
+            `Top-up movie at [${i}] (${res.items[i].name}, ${new Date(itemTime).toISOString()}) must be <= previous item (${res.items[i - 1].name}, ${new Date(previousTime).toISOString()})`
           );
         }
         previousTime = itemTime;

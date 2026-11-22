@@ -61,6 +61,7 @@ import {
   isNguonCSupportedForParams,
   applyMovieFilters,
   fetchSourceData,
+  sortMovieCandidates,
 } from "./catalogFederation";
 
 // Public re-exports for complete backward compatibility across all modules and tests
@@ -646,64 +647,9 @@ async function executeGetMovies(params: MovieFilterParams, cacheKey: string) {
     candidates = scored.filter((m) => (hasStrong ? m.relevanceScore >= 40 : m.relevanceScore > 0));
 
     // Với tìm kiếm, sắp xếp ưu tiên phim có điểm liên quan (relevance) cao nhất
-    candidates.sort((a, b) => (b.relevanceScore || 0) - (a.relevanceScore || 0));
-  } else if (parsedSort.field === "rating") {
-    candidates.sort((a, b) => {
-      const { rating: rateA, voteCount: vcA } = extractMovieRatingScore(a);
-      const { rating: rateB, voteCount: vcB } = extractMovieRatingScore(b);
-
-      if (parsedSort.direction === "asc") {
-        if (rateA !== rateB) return rateA - rateB;
-        if (vcA !== vcB) return vcA - vcB;
-        const yearA = Number(a.year || 0);
-        const yearB = Number(b.year || 0);
-        if (yearA !== yearB) return yearA - yearB;
-      } else {
-        if (rateB !== rateA) return rateB - rateA;
-        if (vcB !== vcA) return vcB - vcA;
-        const yearA = Number(a.year || 0);
-        const yearB = Number(b.year || 0);
-        if (yearB !== yearA) return yearB - yearA;
-      }
-      return String(a.name || "").localeCompare(String(b.name || ""));
-    });
-  } else if (parsedSort.field === "year") {
-    candidates.sort((a, b) => {
-      const yearA = Number(a.year || 0);
-      const yearB = Number(b.year || 0);
-      if (yearB !== yearA) {
-        return parsedSort.direction === "asc" ? yearA - yearB : yearB - yearA;
-      }
-      return parsedSort.direction === "asc"
-        ? extractMovieModifiedTime(a) - extractMovieModifiedTime(b)
-        : extractMovieModifiedTime(b) - extractMovieModifiedTime(a);
-    });
-  } else if (parsedSort.field === "view") {
-    candidates.sort((a, b) => {
-      const vA = Number(a.view || a.tmdb?.vote_count || 0);
-      const vB = Number(b.view || b.tmdb?.vote_count || 0);
-      if (vB !== vA) {
-        return parsedSort.direction === "asc" ? vA - vB : vB - vA;
-      }
-      return parsedSort.direction === "asc"
-        ? extractMovieModifiedTime(a) - extractMovieModifiedTime(b)
-        : extractMovieModifiedTime(b) - extractMovieModifiedTime(a);
-    });
+    sortMovieCandidates(candidates, parsedSort, true);
   } else {
-    // "modified.time" ("latest" desc hoặc "oldest" asc)
-    candidates.sort((a, b) => {
-      const timeA = extractMovieModifiedTime(a);
-      const timeB = extractMovieModifiedTime(b);
-      if (timeB !== timeA) {
-        return parsedSort.direction === "asc" ? timeA - timeB : timeB - timeA;
-      }
-      const yearA = Number(a.year || 0);
-      const yearB = Number(b.year || 0);
-      if (yearB !== yearA) {
-        return parsedSort.direction === "asc" ? yearA - yearB : yearB - yearA;
-      }
-      return String(a.name || "").localeCompare(String(b.name || ""));
-    });
+    sortMovieCandidates(candidates, parsedSort, false);
   }
 
   // ============================================================
@@ -789,6 +735,7 @@ async function executeGetMovies(params: MovieFilterParams, cacheKey: string) {
       for (const itm of finalItems) {
         for (const k of extractMovieIdentityKeys(itm)) existingKeys.add(k);
       }
+      let hasNewTopUpItems = false;
       const appendUniqueFiltered = (items: unknown[]) => {
         if (!Array.isArray(items) || items.length === 0) return;
         let filtered = applyMovieFilters(
@@ -808,10 +755,9 @@ async function executeGetMovies(params: MovieFilterParams, cacheKey: string) {
           });
         }
         for (const item of filtered) {
-          if (finalItems.length >= limit) break;
           for (const k of extractMovieIdentityKeys(item)) existingKeys.add(k);
           candidates.push(item);
-          finalItems.push(item);
+          hasNewTopUpItems = true;
         }
       };
 
@@ -829,7 +775,7 @@ async function executeGetMovies(params: MovieFilterParams, cacheKey: string) {
           ? resNguonC.overflowItems.length
           : 0);
 
-      while (finalItems.length < limit && topUpAttempts < 4) {
+      while (candidates.length < limit && topUpAttempts < 4) {
         topUpAttempts++;
         const hasMoreA = (nextTopUpPageA - 1) * 16 < (countApi1 || totalItemsCount);
         const hasMoreB = isNguonCAvailable && nextTopUpOffsetB < (countApi2 || totalItemsCount);
@@ -854,16 +800,22 @@ async function executeGetMovies(params: MovieFilterParams, cacheKey: string) {
         }
 
         const settled = await Promise.allSettled(fetchPromises);
-        const initialCount = finalItems.length;
+        const countBefore = candidates.length;
         for (const res of settled) {
           if (res.status === "fulfilled" && res.value?.items?.length) {
             appendUniqueFiltered(res.value.items);
           }
         }
-        if (finalItems.length === initialCount && !hasMoreA && !hasMoreB) {
+        if (candidates.length === countBefore && !hasMoreA && !hasMoreB) {
           break;
         }
       }
+
+      // Khi có phim bù đắp mới, tái sắp xếp candidates theo đúng chuẩn sort ban đầu trước khi cắt slice(0, limit)
+      if (hasNewTopUpItems) {
+        sortMovieCandidates(candidates, parsedSort, isSearch);
+      }
+      finalItems = candidates.slice(0, limit);
 
       // 3. Nếu đã quét hết tất cả nguồn còn lại mà vẫn không đủ phim để sang trang sau:
       // Nghĩa là thực tế catalog không còn phim nào nữa!
@@ -901,6 +853,7 @@ async function executeGetMovies(params: MovieFilterParams, cacheKey: string) {
           params
         );
         if (fallbackCombined.length > 0) {
+          sortMovieCandidates(fallbackCombined, parsedSort, isSearch);
           finalItems = fallbackCombined.slice(0, limit);
         }
       } catch { }

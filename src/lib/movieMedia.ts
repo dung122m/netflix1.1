@@ -62,8 +62,11 @@ export function extractMovieModifiedTime(m: any): number {
     m.updated_at ??
     m.created ??
     m.created_at;
-  if (!rawTime || typeof rawTime !== 'string') return 0;
-  const parsed = new Date(rawTime).getTime();
+  if (!rawTime) return 0;
+  if (typeof rawTime === "number") return rawTime;
+  if (typeof rawTime !== 'string') return 0;
+  const normalized = rawTime.trim().replace(/^(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2})/, "$1T$2");
+  const parsed = new Date(normalized).getTime();
   return Number.isNaN(parsed) ? 0 : parsed;
 }
 

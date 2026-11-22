@@ -159,7 +159,7 @@ export function useNavSearch({
       if (stored) {
         setRecentSearches(JSON.parse(stored));
       }
-    } catch {}
+    } catch { }
   }, []);
 
   useEffect(() => () => abortPendingSearch(), [abortPendingSearch]);
@@ -254,7 +254,7 @@ export function useNavSearch({
         localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(updated));
         return updated;
       });
-    } catch {}
+    } catch { }
   }, []);
 
   const removeRecentSearch = useCallback(
@@ -266,7 +266,7 @@ export function useNavSearch({
           localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(updated));
           return updated;
         });
-      } catch {}
+      } catch { }
     },
     [],
   );
@@ -276,7 +276,7 @@ export function useNavSearch({
     try {
       setRecentSearches([]);
       localStorage.removeItem(RECENT_SEARCHES_KEY);
-    } catch {}
+    } catch { }
   }, []);
 
   const handleRecentClick = useCallback(
