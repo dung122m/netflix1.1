@@ -15,6 +15,12 @@ import {
   buildTvCandidateUrls,
 } from "@/services/live/tv/streamUrlHelper";
 import type { LiveActionFeedback } from "../LiveSeekOverlay";
+import {
+  createResilientHls,
+  playWithMutedFallback,
+  teardownHlsAndMedia,
+  measureLiveEdgeDrift,
+} from "@/lib/player/hlsCoreEngine";
 
 export interface UseLiveTvHlsOptions {
   videoRef: RefObject<HTMLVideoElement | null>;
@@ -40,6 +46,7 @@ export interface UseLiveTvHlsOptions {
 /**
  * Manages HLS playback lifecycle, candidate/proxy fallback,
  * tab visibility teardown, latency tracking, live-edge jump, and play/pause for Live TV.
+ * Powered by unified hlsCoreEngine.
  */
 export function useLiveTvHls({
   videoRef,
@@ -69,20 +76,15 @@ export function useLiveTvHls({
   const [isAtLiveEdge, setIsAtLiveEdge] = useState<boolean>(true);
   const [liveLatency, setLiveLatency] = useState<number>(0);
 
-  // Xử lý khi tab thay đổi (isActive true/false) hoặc minimize tab - Cleanup triệt để tránh rò rỉ RAM
+  // Xử lý khi tab thay đổi (isActive true/false) hoặc minimize tab
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
 
     if (!isActive) {
-      video.pause();
-      video.removeAttribute("src");
-      video.load();
+      teardownHlsAndMedia(video, hlsRef.current);
+      hlsRef.current = null;
       setIsPlaying(false);
-      if (hlsRef.current) {
-        hlsRef.current.destroy();
-        hlsRef.current = null;
-      }
       lastLoadedUrlRef.current = "";
       if (
         typeof document !== "undefined" &&
@@ -94,7 +96,7 @@ export function useLiveTvHls({
     }
   }, [isActive, setIsPip, setIsPlaying, videoRef]);
 
-  // Bắt sự kiện timeupdate để phát hiện độ trễ so với Live Edge (throttle 1s + bỏ qua nếu giá trị không đổi)
+  // Bắt sự kiện timeupdate để phát hiện độ trễ so với Live Edge
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
@@ -106,23 +108,9 @@ export function useLiveTvHls({
       if (now - lastLatencySyncAt < 1000) return;
       lastLatencySyncAt = now;
 
-      const hls = hlsRef.current;
-      if (
-        hls &&
-        hls.liveSyncPosition &&
-        Number.isFinite(hls.liveSyncPosition)
-      ) {
-        const drift = Math.max(
-          0,
-          Math.round(hls.liveSyncPosition - video.currentTime),
-        );
-        const atEdge = drift <= 4;
-        setLiveLatency((prev) => (prev === drift ? prev : drift));
-        setIsAtLiveEdge((prev) => (prev === atEdge ? prev : atEdge));
-      } else {
-        setIsAtLiveEdge((prev) => (prev ? prev : true));
-        setLiveLatency((prev) => (prev === 0 ? prev : 0));
-      }
+      const { drift, isAtLiveEdge: atEdge } = measureLiveEdgeDrift(video, hlsRef.current);
+      setLiveLatency((prev) => (prev === drift ? prev : drift));
+      setIsAtLiveEdge((prev) => (prev === atEdge ? prev : atEdge));
     };
 
     const handleSeeked = () => {
@@ -138,7 +126,7 @@ export function useLiveTvHls({
     };
   }, [videoRef]);
 
-  // Khởi tạo luồng phát HLS với Resilient Fallback Engine + Session ID Guard + Clean Teardown
+  // Khởi tạo luồng phát HLS với Resilient Fallback Engine
   useEffect(() => {
     const video = videoRef.current;
     if (!video || !selectedTvChannel?.url || !isActive) return;
@@ -157,21 +145,8 @@ export function useLiveTvHls({
         clearTimeout(loadTimeoutRef.current);
         loadTimeoutRef.current = null;
       }
-      if (hlsRef.current) {
-        try {
-          hlsRef.current.stopLoad();
-          hlsRef.current.detachMedia();
-          hlsRef.current.destroy();
-        } catch {}
-        hlsRef.current = null;
-      }
-      if (videoRef.current) {
-        try {
-          videoRef.current.pause();
-          videoRef.current.removeAttribute("src");
-          videoRef.current.load();
-        } catch {}
-      }
+      teardownHlsAndMedia(videoRef.current, hlsRef.current);
+      hlsRef.current = null;
     };
 
     const tryNextCandidate = (reason: string) => {
@@ -200,37 +175,17 @@ export function useLiveTvHls({
       lastLoadedUrlRef.current = sourceUrl;
 
       if (Hls.isSupported()) {
-        const hls = new Hls({
-          enableWorker: true,
-          lowLatencyMode: true,
-          liveSyncDurationCount: 3,
-          liveMaxLatencyDurationCount: 5,
-          maxLiveSyncPlaybackRate: 1.08,
-          backBufferLength: 15,
+        const hls = createResilientHls({
+          mode: "live",
+          lowLatency: true,
           maxBufferLength: 12,
           maxMaxBufferLength: 20,
-          maxBufferSize: 15 * 1000 * 1000,
-          abrEwmaDefaultEstimate: 5_000_000,
-          capLevelToPlayerSize: false,
-          startLevel: -1,
-          manifestLoadingTimeOut: 4000,
-          levelLoadingTimeOut: 4000,
-          fragLoadingTimeOut: 4500,
-          fragLoadingMaxRetry: 2,
-          levelLoadingMaxRetry: 2,
-          manifestLoadingMaxRetry: 2,
-          fragLoadingMaxRetryTimeout: 1000,
-          levelLoadingMaxRetryTimeout: 1000,
-          xhrSetup: (xhr) => {
-            xhr.withCredentials = false;
-          },
         });
 
         hlsRef.current = hls;
         hls.loadSource(sourceUrl);
         hls.attachMedia(video);
 
-        // Đặt timeout 7 giây cho mỗi lần thử nguồn
         loadTimeoutRef.current = setTimeout(() => {
           if (
             playbackSessionIdRef.current !== sessionId ||
@@ -254,26 +209,15 @@ export function useLiveTvHls({
           video.muted = userMutedRef.current;
 
           if (isActive && !userPausedRef.current) {
-            video
-              .play()
-              .then(() => {
-                if (playbackSessionIdRef.current !== sessionId) return;
-                setIsPlaying(true);
-                setIsMuted(video.muted || video.volume === 0);
-              })
-              .catch(() => {
-                if (playbackSessionIdRef.current !== sessionId) return;
-                video.muted = true;
-                setIsMuted(true);
-                video
-                  .play()
-                  .then(() => {
-                    if (playbackSessionIdRef.current !== sessionId) return;
-                    setIsPlaying(true);
-                    setIsMuted(true);
-                  })
-                  .catch(() => {});
-              });
+            playWithMutedFallback(
+              video,
+              (playing) => {
+                if (playbackSessionIdRef.current === sessionId) setIsPlaying(playing);
+              },
+              (muted) => {
+                if (playbackSessionIdRef.current === sessionId) setIsMuted(muted);
+              }
+            );
           }
         });
 
@@ -336,13 +280,7 @@ export function useLiveTvHls({
           setIsLoading(false);
           setHasError(false);
           if (isActive && !userPausedRef.current) {
-            video
-              .play()
-              .then(() => {
-                if (playbackSessionIdRef.current !== sessionId) return;
-                setIsPlaying(true);
-              })
-              .catch(() => {});
+            playWithMutedFallback(video, setIsPlaying, setIsMuted);
           }
         });
 

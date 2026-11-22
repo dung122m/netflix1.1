@@ -10,6 +10,7 @@ import {
   type MutableRefObject,
 } from "react";
 import Hls from "hls.js";
+import { createResilientHls, teardownHlsAndMedia } from "@/lib/player/hlsCoreEngine";
 import type { FootballMatch, StreamServer } from "@/services/liveFootballService";
 import {
   type LiveStallRecord,
@@ -247,14 +248,8 @@ export function useLiveFootballHls({
     : "";
 
   const destroyHlsInstance = useCallback(() => {
-    if (hlsRef.current) {
-      try {
-        hlsRef.current.stopLoad();
-        hlsRef.current.detachMedia();
-        hlsRef.current.destroy();
-      } catch {}
-      hlsRef.current = null;
-    }
+    teardownHlsAndMedia(null, hlsRef.current);
+    hlsRef.current = null;
   }, []);
 
   const resetMediaElement = useCallback((video: HTMLVideoElement | null) => {
@@ -695,32 +690,12 @@ export function useLiveFootballHls({
     let lastMediaErrorCt: number | null = null;
 
     if (Hls.isSupported()) {
-      const hls = new Hls({
-        enableWorker: true,
-        lowLatencyMode: false,
-        liveSyncDurationCount: 2,
-        liveMaxLatencyDurationCount: Infinity,
-        maxLiveSyncPlaybackRate: 1.0,
-        backBufferLength: 60,
+      const hls = createResilientHls({
+        mode: "live",
+        lowLatency: false,
         maxBufferLength: 12,
         maxMaxBufferLength: 20,
         maxBufferSize: 20 * 1000 * 1000,
-        maxBufferHole: 0.5,
-        highBufferWatchdogPeriod: 2,
-        nudgeOffset: 0.1,
-        nudgeMaxRetry: 5,
-        abrEwmaDefaultEstimate: 1_000_000,
-        capLevelToPlayerSize: true,
-        startLevel: -1,
-        manifestLoadingTimeOut: 5000,
-        manifestLoadingMaxRetry: 2,
-        manifestLoadingRetryDelay: 800,
-        levelLoadingTimeOut: 5000,
-        levelLoadingMaxRetry: 2,
-        levelLoadingRetryDelay: 800,
-        fragLoadingTimeOut: 8000,
-        fragLoadingMaxRetry: 3,
-        fragLoadingRetryDelay: 800,
       });
 
       hlsRef.current = hls;

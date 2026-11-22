@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { searchTmdbPosterByTitle, getTmdbMediaImagesById } from "@/services/tmdbService";
+import { cacheService } from "@/lib/cache";
 
 export const runtime = "nodejs";
 
@@ -82,7 +83,7 @@ async function resolvePoster(keys: ParsedItemKeys): Promise<{ posterUrl: string 
     try {
       const direct = await getTmdbMediaImagesById(tmdbId, type);
       if (direct?.posterUrl || direct?.backdropUrl) return direct;
-    } catch {}
+    } catch { }
   }
 
   const cleanType = type === "tv" || type === "series" ? "tv" : "movie";
@@ -92,7 +93,7 @@ async function resolvePoster(keys: ParsedItemKeys): Promise<{ posterUrl: string 
     try {
       const res = await searchTmdbPosterByTitle(q, year || undefined, cleanType);
       if (res?.posterUrl || res?.backdropUrl) return res;
-    } catch {}
+    } catch { }
   }
 
   return { posterUrl: null, backdropUrl: null };

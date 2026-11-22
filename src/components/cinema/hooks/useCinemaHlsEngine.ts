@@ -25,11 +25,13 @@ import {
   m3u8ManifestCache,
 } from "@/components/cinema/cinemaStreamHelpers";
 
-export interface QualityLevelItem {
-  id: number;
-  label: string;
-  height: number;
-}
+import {
+  createResilientHls,
+  playWithMutedFallback as corePlayWithMutedFallback,
+  type QualityLevelItem,
+} from "@/lib/player/hlsCoreEngine";
+
+export type { QualityLevelItem };
 
 interface UseCinemaHlsEngineOptions {
   videoRef: React.RefObject<HTMLVideoElement | null>;
@@ -87,21 +89,7 @@ function playWithMutedFallback(
   setIsPlaying: React.Dispatch<React.SetStateAction<boolean>>,
   setIsMuted: React.Dispatch<React.SetStateAction<boolean>>,
 ) {
-  const playPromise = video.play();
-  if (playPromise !== undefined) {
-    playPromise
-      .then(() => {
-        setIsPlaying(true);
-      })
-      .catch(() => {
-        video.muted = true;
-        setIsMuted(true);
-        video
-          .play()
-          .then(() => setIsPlaying(true))
-          .catch(() => setIsPlaying(false));
-      });
-  }
+  corePlayWithMutedFallback(video, setIsPlaying, setIsMuted);
 }
 
 export function useCinemaHlsEngine({
@@ -343,24 +331,9 @@ export function useCinemaHlsEngine({
     let networkRetryTimeout: NodeJS.Timeout | null = null;
 
     if (Hls.isSupported()) {
-      const hls = new Hls({
-        enableWorker: true,
-        lowLatencyMode: false,
-        capLevelToPlayerSize: true,
-        maxBufferSize: 25 * 1000 * 1000,
-        maxBufferLength: 20,
-        maxMaxBufferLength: 40,
-        backBufferLength: 20,
+      const hls = createResilientHls({
+        mode: "vod",
         startPosition: targetProgress > 0 ? targetProgress : -1,
-        startLevel: -1,
-        autoStartLoad: true,
-        abrEwmaDefaultEstimate: 1000000,
-        fragLoadingTimeOut: 15000,
-        fragLoadingMaxRetry: 4,
-        fragLoadingRetryDelay: 1000,
-        fragLoadingMaxRetryTimeout: 20000,
-        manifestLoadingTimeOut: 10000,
-        levelLoadingTimeOut: 10000,
       });
       hlsRef.current = hls;
       hls.loadSource(resolvedM3u8);
