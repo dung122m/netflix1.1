@@ -16,10 +16,8 @@ import { formatEpisodeName, isFullEpisodeLabel } from "@/lib/formatEpisode";
 import {
   toOptimizedCardPosterUrl,
   toFastCdnImageUrl,
-  sanitizeImageUrl,
   formatCountryName,
   COUNTRY_DISPLAY_MAP,
-  isSlowProviderSourceUrl,
 } from "@/lib/movieMedia";
 const TrailerModal = dynamic(
   () => import("@/components/modals/TrailerModal").then((m) => m.TrailerModal),
@@ -147,7 +145,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
     setShowCollectionModal(true);
   }, [user]);
 
-  // Danh sách ảnh ứng viên cho Poster đứng 2:3 theo thứ tự ưu tiên: TMDb CDN -> Poster dọc -> Thumb gốc
+  // Danh sách ảnh ứng viên cho Poster đứng 2:3 theo thứ tự ưu tiên: TMDb CDN -> Poster dọc WebP -> Thumb gốc
   const imageCandidates = React.useMemo(() => {
     const list: string[] = [];
     const addUrl = (u?: string) => {
@@ -162,16 +160,6 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
       ) {
         list.push(clean);
       }
-      const raw = toFastCdnImageUrl(sanitizeImageUrl(u));
-      if (
-        raw &&
-        !list.includes(raw) &&
-        !raw.includes("/undefined") &&
-        !raw.includes("/null") &&
-        !raw.startsWith("/default-")
-      ) {
-        list.push(raw);
-      }
     };
 
     // 0. Nếu bộ nhớ RAM GLOBAL_POSTER_CACHE đã có link TMDb từ phiên này -> Gắn ngay lên đầu
@@ -184,33 +172,23 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
       addUrl(cachedTmdb);
     }
 
-    // 1. Ưu tiên poster dọc chuẩn: nếu có -thumb.webp, suy ra -poster.webp trước
+    // 1. Poster dọc chuẩn (ưu tiên -poster.webp nếu có -thumb.webp)
     if (posterUrl && posterUrl.includes("-thumb.webp")) {
       addUrl(posterUrl.replace("-thumb.webp", "-poster.webp"));
     }
     addUrl(posterUrl);
-    if (posterUrl && posterUrl.includes("-poster.webp")) {
-      addUrl(posterUrl.replace("-poster.webp", "-thumb.webp"));
-    }
 
-    // 2. Thêm imageUrl và thumbUrl làm phương án dự phòng
+    // 2. Thêm thumbUrl và imageUrl làm phương án dự phòng
     if (thumbUrl && thumbUrl.includes("-thumb.webp")) {
       addUrl(thumbUrl.replace("-thumb.webp", "-poster.webp"));
     }
-    addUrl(imageUrl);
     addUrl(thumbUrl);
-    if (thumbUrl && thumbUrl.includes("-poster.webp")) {
-      addUrl(thumbUrl.replace("-poster.webp", "-thumb.webp"));
-    }
+    addUrl(imageUrl);
 
     // Sắp xếp ưu tiên:
     // 0. Ảnh đã từng nạp thành công trong phiên (0ms cache hit)
-    // 1. TMDb CDN chính chủ siêu nhẹ & cực nhanh (30ms CDN)
-    // 2. AniList CDN cho Hoạt hình
-    // 3. Nguồn không bị chặn mạng (NguonC, R2) ưu tiên tuyệt đối trước nguồn bị chặn (phimimg)
-    // 4. Đẩy các nguồn chậm / nặng xuống sau các nguồn CDN
-    // 5. Poster dọc (-poster.webp, poster_, /w500)
-    // 6. Thumb ngang (-thumb.webp) làm fallback
+    // 1. TMDb CDN chính chủ siêu nhẹ & cực nhanh (image.tmdb.org)
+    // 2. Biến thể WebP chuẩn nhẹ
     return list.sort((a, b) => {
       const aLoaded = GLOBAL_LOADED_IMAGES.has(a);
       const bLoaded = GLOBAL_LOADED_IMAGES.has(b);
@@ -222,20 +200,10 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
       if (aTmdb && !bTmdb) return -1;
       if (!aTmdb && bTmdb) return 1;
 
-      const aBlocked = a.includes("phimimg.com") || a.includes("img.ophim.cc") || a.includes("img.phimapi.com");
-      const bBlocked = b.includes("phimimg.com") || b.includes("img.ophim.cc") || b.includes("img.phimapi.com");
-      if (!aBlocked && bBlocked) return -1;
-      if (aBlocked && !bBlocked) return 1;
-
-      const aSlow = isSlowProviderSourceUrl(a);
-      const bSlow = isSlowProviderSourceUrl(b);
-      if (!aSlow && bSlow) return -1;
-      if (aSlow && !bSlow) return 1;
-
-      const aPoster = a.includes("-poster") || a.includes("poster_") || a.includes("/w500");
-      const bPoster = b.includes("-poster") || b.includes("poster_") || b.includes("/w500");
-      if (aPoster && !bPoster) return -1;
-      if (!aPoster && bPoster) return 1;
+      const aWebp = a.includes(".webp");
+      const bWebp = b.includes(".webp");
+      if (aWebp && !bWebp) return -1;
+      if (!aWebp && bWebp) return 1;
 
       return 0;
     });
@@ -272,13 +240,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
   // Đồng bộ khi card được tái sử dụng cho phim khác hoặc khi danh sách ứng viên thay đổi
   useEffect(() => {
     triedUrlsRef.current.clear();
-    const candidate = imageCandidates.find(
-      (u) =>
-        !triedUrlsRef.current.has(u) &&
-        !u.includes("phimimg.com") &&
-        !u.includes("img.ophim.cc") &&
-        !u.includes("img.phimapi.com")
-    ) || imageCandidates[0] || "";
+    const candidate = imageCandidates.find((u) => !triedUrlsRef.current.has(u)) || "";
 
     if (candidate) {
       setHasError(false);
@@ -308,14 +270,8 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
       GLOBAL_LOADED_IMAGES.delete(currentSrc);
     }
 
-    // Thử ứng viên kế tiếp trong danh sách candidates (chỉ thử nguồn không bị chặn)
-    const nextCandidate = imageCandidates.find(
-      (url) =>
-        !triedUrlsRef.current.has(url) &&
-        !url.includes("phimimg.com") &&
-        !url.includes("img.ophim.cc") &&
-        !url.includes("img.phimapi.com")
-    );
+    // Thử ứng viên kế tiếp trong danh sách candidates
+    const nextCandidate = imageCandidates.find((url) => !triedUrlsRef.current.has(url));
     if (nextCandidate) {
       setCurrentSrc(nextCandidate);
       setIsImageLoaded(GLOBAL_LOADED_IMAGES.has(nextCandidate));

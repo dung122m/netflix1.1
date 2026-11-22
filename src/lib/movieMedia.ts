@@ -366,21 +366,21 @@ export function pickBestMoviePoster(movie: MovieLike, fallback = "/default-poste
   const rawMovie = (movie as any)?.movie || movie;
   const isNguonC = isNguonCSource(movie);
 
-  // Thêm trực tiếp poster TMDb chính hãng nếu có sẵn tmdb.poster_path
+  // 0. Thêm trực tiếp poster TMDb chính hãng nếu có sẵn tmdb.poster_path
   const tmdbPoster = rawMovie.tmdb?.poster_path
     ? `https://image.tmdb.org/t/p/w500${rawMovie.tmdb.poster_path}`
     : rawMovie.poster_path
     ? `https://image.tmdb.org/t/p/w500${rawMovie.poster_path}`
     : null;
 
-  // NguonC đảo ngược trường: thumb_url là poster dọc (2:3), poster_url là backdrop ngang (16:9)
+  // NguonC: thumb_url_webp là ảnh dọc 2:3 WebP nhẹ (20-40KB), poster_url là backdrop ngang 16:9
   const primary = isNguonC
-    ? rawMovie.thumb_url || rawMovie.thumbUrl || movie.thumb_url || movie.thumbUrl
-    : rawMovie.poster_url || rawMovie.posterUrl || movie.poster_url || movie.posterUrl;
+    ? rawMovie.thumb_url_webp || rawMovie.thumb_url || rawMovie.thumbUrl || movie.thumb_url || movie.thumbUrl
+    : rawMovie.poster_url_webp || rawMovie.poster_url || rawMovie.posterUrl || movie.poster_url || movie.posterUrl;
 
   const secondary = isNguonC
-    ? rawMovie.poster_url || rawMovie.posterUrl || movie.poster_url || movie.posterUrl
-    : rawMovie.thumb_url || rawMovie.thumbUrl || movie.thumb_url || movie.thumbUrl;
+    ? rawMovie.poster_url_webp || rawMovie.poster_url || rawMovie.posterUrl || movie.poster_url || movie.posterUrl
+    : rawMovie.thumb_url_webp || rawMovie.thumb_url || rawMovie.thumbUrl || movie.thumb_url || movie.thumbUrl;
 
   const candidates = [tmdbPoster, primary, secondary, movie.imageUrl]
     .filter((value): value is string => typeof value === "string" && value.length > 0)
@@ -396,40 +396,15 @@ export function pickBestMoviePoster(movie: MovieLike, fallback = "/default-poste
     }
   }
 
-  // 2. Ưu tiên bất kỳ CDN / nguồn ảnh nào KHÔNG PHẢI phimimg.com (như NguonC, Amazon, v.v.)
+  // 2. Ưu tiên biến thể WebP chuẩn dọc 2:3 từ nguồn phim (siêu nhẹ 20-40KB)
   for (const c of candidates) {
-    if (!c.includes("phimimg.com")) {
-      const l = c.toLowerCase();
-      if (
-        l.includes("-poster") ||
-        l.includes("poster_") ||
-        l.includes("/poster") ||
-        l.includes("/post/") ||
-        l.includes("/w500") ||
-        l.includes("/w300") ||
-        l.includes("_ux")
-      ) {
-        return c;
-      }
-    }
-  }
-  for (const c of candidates) {
-    if (!c.includes("phimimg.com")) {
+    if (c.toLowerCase().includes(".webp")) {
       return c;
     }
   }
 
-  // 3. Nguồn phimimg.com: Ưu tiên poster dọc (-poster.webp) nếu có
-  for (const c of candidates) {
-    if (c.toLowerCase().includes("-poster")) {
-      return c;
-    }
-  }
-  if (candidates.length > 0) {
-    return candidates[0];
-  }
-
-  return fallback || "";
+  // 3. Fallback về ứng viên đầu tiên hợp lệ
+  return candidates[0] || fallback || "";
 }
 
 export function pickBestMovieThumb(movie: MovieLike, fallback = "/default-hero.svg"): string {
