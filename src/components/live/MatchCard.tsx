@@ -657,19 +657,11 @@ function MatchCardInner({ match, isSelected, onSelect, score, compact }: MatchCa
               </div>
 
               {/* Khu vực Thời gian bên dưới: cố định min-h, thẳng hàng với dòng tên đội bóng */}
-              <div className="min-h-[34px] sm:min-h-[36px] flex flex-col items-center justify-start mt-1 gap-1">
-                {/* 1. Dòng trạng thái (Số phút live / Trực tiếp / HT / FT / Special) */}
-                {timeInfo.state === "live" ? (
-                  formatDisplayMinute(timeInfo.clockBadge) ? (
-                    <span className="font-sans tabular-nums text-xs font-bold text-rose-400 leading-none">
-                      {formatDisplayMinute(timeInfo.clockBadge)}
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center gap-1 font-sans text-[11px] font-bold text-rose-400 leading-none">
-                      <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse shrink-0" />
-                      <span>Trực tiếp</span>
-                    </span>
-                  )
+              <div className="min-h-[34px] sm:min-h-[36px] flex flex-col items-center justify-start mt-1">
+                {timeInfo.state === "live" && formatDisplayMinute(timeInfo.clockBadge) ? (
+                  <span className="font-sans tabular-nums text-xs font-bold text-rose-400 leading-none">
+                    {formatDisplayMinute(timeInfo.clockBadge)}
+                  </span>
                 ) : timeInfo.state === "ht" ? (
                   <span className="font-sans tabular-nums text-xs font-bold text-amber-400 leading-none">
                     HT
@@ -682,13 +674,12 @@ function MatchCardInner({ match, isSelected, onSelect, score, compact }: MatchCa
                   <span className="font-sans tabular-nums text-xs font-bold text-amber-400 leading-none">
                     {timeInfo.clockBadge}
                   </span>
-                ) : null}
-
-                {/* 2. Dòng giờ bắt đầu thi đấu: Typography thuần khiết (KHÔNG BAO GIỜ bọc viền hay pill) */}
-                {kickoffTime && (
-                  <span className="font-sans tabular-nums text-xs font-medium text-zinc-400 leading-none">
-                    {kickoffTime}
-                  </span>
+                ) : (
+                  kickoffTime && (
+                    <span className="font-sans tabular-nums text-xs font-medium text-zinc-400 leading-none">
+                      {kickoffTime}
+                    </span>
+                  )
                 )}
               </div>
             </div>
