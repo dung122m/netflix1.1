@@ -94,13 +94,13 @@ export function BaseModal({
       aria-modal="true"
       aria-label={typeof title === "string" ? title : ariaLabel || "Hộp thoại"}
       onClick={handleBackdropClick}
-      className="fixed inset-0 z-[9999] bg-black/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-5 md:p-6 overflow-y-auto overscroll-contain animate-in fade-in duration-200"
+      className="fixed inset-0 z-[9999] bg-black/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-5 md:p-6 overflow-y-auto overscroll-contain animate-in fade-in duration-200 ease-out"
     >
       {/* THẺ MODAL CHUẨN ĐIỆN ẢNH (LAYERED DARK SURFACE - BORDER IS EXCEPTION) */}
       <div
         ref={cardRef}
         onClick={(e) => e.stopPropagation()}
-        className={`relative w-full ${SIZE_CLASSES[size]} rounded-2xl sm:rounded-3xl bg-zinc-950/98 shadow-[0_25px_60px_rgba(0,0,0,0.9)] backdrop-blur-2xl flex flex-col max-h-[92vh] overflow-hidden animate-in zoom-in-95 duration-200 select-text ${className}`}
+        className={`relative w-full ${SIZE_CLASSES[size]} rounded-2xl sm:rounded-3xl bg-zinc-950/98 shadow-[0_25px_60px_rgba(0,0,0,0.9)] backdrop-blur-2xl flex flex-col max-h-[92vh] overflow-hidden animate-in fade-in zoom-in-95 duration-250 ease-[cubic-bezier(0.16,1,0.3,1)] select-text ${className}`}
       >
         {/* NÚT ĐÓNG GÓC PHẢI */}
         {showCloseButton && (

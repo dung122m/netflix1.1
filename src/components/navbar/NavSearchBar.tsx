@@ -58,7 +58,7 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(
         {isSearchOpen && (
           <div
             ref={mobileSearchRef}
-            className="md:hidden absolute inset-0 bg-black/98 px-2.5 sm:px-4 py-2 flex items-center gap-2 z-50 animate-in fade-in duration-150 border-b border-white/[0.08] shadow-2xl"
+            className="md:hidden absolute inset-0 bg-black/98 backdrop-blur-2xl px-2.5 sm:px-4 py-2 flex items-center gap-2 z-50 animate-in fade-in slide-in-from-top-2 duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] border-b border-white/[0.08] shadow-2xl"
           >
             <button
               type="button"
@@ -155,10 +155,10 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(
         >
           <form
             onSubmit={handleSearchSubmit}
-            className={`flex items-center transition-[width,background-color,border-color,box-shadow] duration-300 ease-out rounded-full ${
+            className={`relative flex items-center h-9 sm:h-9.5 rounded-full transition-[width,background-color,border-color,box-shadow] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${
               isSearchOpen
-                ? "w-[260px] lg:w-[300px] xl:w-[340px] border border-white/30 bg-black/90 px-3 py-1.5 backdrop-blur-md shadow-lg"
-                : "w-9 border border-transparent bg-transparent px-1 py-1"
+                ? "w-[270px] lg:w-[310px] xl:w-[350px] border border-white/25 bg-black/95 shadow-[0_4px_24px_rgba(0,0,0,0.7)] backdrop-blur-md"
+                : "w-9 border border-transparent bg-transparent shadow-none"
             }`}
           >
             <Tooltip
@@ -176,17 +176,17 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(
                     ? "Tìm kiếm phim"
                     : "Mở thanh tìm kiếm"
                 }
-                className="text-zinc-300 hover:text-white transition flex-shrink-0 cursor-pointer p-1 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black"
+                className="w-9 h-9 flex items-center justify-center text-zinc-300 hover:text-white transition-colors shrink-0 cursor-pointer rounded-full outline-none focus-visible:ring-2 focus-visible:ring-netflix-red"
               >
                 <Search size={17} />
               </button>
             </Tooltip>
 
             <div
-              className={`flex-1 min-w-0 overflow-hidden transition-all duration-300 ${
+              className={`flex-1 min-w-0 h-full flex items-center overflow-hidden transition-opacity duration-200 ${
                 isSearchOpen
-                  ? "opacity-100 ml-2 pointer-events-auto"
-                  : "opacity-0 w-0 pointer-events-none"
+                  ? "opacity-100 pointer-events-auto pr-1"
+                  : "opacity-0 pointer-events-none w-0"
               }`}
             >
               <input
@@ -196,12 +196,12 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(
                 onChange={handleInputChange}
                 onKeyDown={handleInputKeyDown}
                 onFocus={() => setShowDropdown(true)}
-                className="w-full bg-transparent text-white text-base sm:text-sm outline-none placeholder:text-zinc-400"
+                className="w-full bg-transparent text-white text-sm outline-none placeholder:text-zinc-400 py-1"
               />
             </div>
 
             {isSearchOpen && (
-              <div className="flex items-center gap-1 flex-shrink-0">
+              <div className="flex items-center gap-1 pr-2.5 shrink-0 animate-in fade-in duration-150">
                 {isSearching && (
                   <Loader2 size={14} className="animate-spin text-netflix-red" />
                 )}
@@ -211,7 +211,7 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(
                       type="button"
                       onClick={clearSearch}
                       aria-label="Xóa nội dung tìm kiếm"
-                      className="p-1 text-zinc-400 hover:text-white transition flex-shrink-0 cursor-pointer rounded-full hover:bg-white/10"
+                      className="p-1 text-zinc-400 hover:text-white transition-colors shrink-0 cursor-pointer rounded-full hover:bg-white/10"
                     >
                       <X size={15} />
                     </button>

@@ -3,17 +3,17 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 
 /**
- * Easing: ease-out cubic — bắt đầu nhanh, decelerate cuối — cảm giác responsive, tự nhiên
+ * Easing: Quartic ease-out — mượt mà, đầm tay, giảm tốc tự nhiên chuẩn Netflix / Apple TV
  */
-function easeInOutCubic(t: number): number {
-  return 1 - Math.pow(1 - t, 3);
+function easeOutQuart(t: number): number {
+  return 1 - Math.pow(1 - t, 4);
 }
 
 /**
  * Custom smooth scroll bằng RAF — không phụ thuộc browser native smooth scroll
  * Kiểm soát hoàn toàn duration và easing, nhất quán trên mọi browser/OS
  */
-function smoothScrollTo(el: HTMLElement, targetLeft: number, duration = 300): void {
+function smoothScrollTo(el: HTMLElement, targetLeft: number, duration = 460): void {
   const startLeft = el.scrollLeft;
   const distance = targetLeft - startLeft;
   if (Math.abs(distance) < 1) return;
@@ -27,7 +27,7 @@ function smoothScrollTo(el: HTMLElement, targetLeft: number, duration = 300): vo
   function step(now: number) {
     const elapsed = now - startTime;
     const progress = Math.min(elapsed / duration, 1);
-    const eased = easeInOutCubic(progress);
+    const eased = easeOutQuart(progress);
     el.scrollLeft = startLeft + distance * eased;
 
     if (progress < 1) {
@@ -262,7 +262,7 @@ export function useCarouselScroll<T extends HTMLElement = HTMLDivElement>(
       targetScroll = Math.max(0, Math.min(maxScroll, Math.round(targetScroll)));
 
       // Custom smooth scroll — ease-out cubic 300ms, không phụ thuộc browser native
-      smoothScrollTo(el, targetScroll, 300);
+      smoothScrollTo(el, targetScroll, 460);
 
       // Tự động kiểm tra cập nhật lại trạng thái mũi tên
       setTimeout(checkScroll, 350);

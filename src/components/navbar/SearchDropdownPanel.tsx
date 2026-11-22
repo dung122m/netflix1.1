@@ -45,8 +45,8 @@ export function SearchDropdownPanel({
 }: SearchDropdownPanelProps) {
   const isMobile = variant === "mobile";
   const containerClass = isMobile
-    ? "fixed top-[52px] sm:top-[56px] inset-x-2 w-auto max-w-lg mx-auto bg-zinc-900/98 backdrop-blur-2xl rounded-2xl p-3 shadow-[0_24px_60px_rgba(0,0,0,0.95),0_0_20px_rgba(0,0,0,0.8)] border border-white/[0.14] ring-1 ring-white/10 z-50 max-h-[calc(100dvh-64px)] sm:max-h-[calc(100dvh-72px)] overflow-y-auto overscroll-contain transform-gpu will-change-[transform,opacity]"
-    : "absolute top-full mt-2 right-0 w-[360px] lg:w-[380px] bg-zinc-900/98 backdrop-blur-2xl rounded-xl shadow-[0_24px_60px_rgba(0,0,0,0.95),0_0_25px_rgba(0,0,0,0.8)] border border-white/[0.14] ring-1 ring-white/10 p-2.5 z-50 animate-in fade-in duration-200 transform-gpu will-change-[transform,opacity]";
+    ? "fixed top-[52px] sm:top-[56px] inset-x-2 w-auto max-w-lg mx-auto bg-zinc-900/98 backdrop-blur-2xl rounded-2xl p-3 shadow-[0_24px_60px_rgba(0,0,0,0.95),0_0_20px_rgba(0,0,0,0.8)] border border-white/[0.14] ring-1 ring-white/10 z-50 max-h-[calc(100dvh-64px)] sm:max-h-[calc(100dvh-72px)] overflow-y-auto overscroll-contain transform-gpu will-change-[transform,opacity] animate-in fade-in slide-in-from-top-2 duration-200 ease-[cubic-bezier(0.16,1,0.3,1)]"
+    : "absolute top-full mt-2 right-0 w-[360px] lg:w-[380px] bg-zinc-900/98 backdrop-blur-2xl rounded-xl shadow-[0_24px_60px_rgba(0,0,0,0.95),0_0_25px_rgba(0,0,0,0.8)] border border-white/[0.14] ring-1 ring-white/10 p-2.5 z-50 animate-in fade-in slide-in-from-top-2 duration-250 ease-[cubic-bezier(0.16,1,0.3,1)] transform-gpu will-change-[transform,opacity]";
 
   return (
     <div className={containerClass}>
