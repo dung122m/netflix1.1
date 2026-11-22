@@ -582,11 +582,18 @@ export function DualBenchColumn({
 
                 <div className="w-12 shrink-0 flex items-center justify-center gap-1.5">
                   {eventsInfo.goals > 0 && (
-                    <span aria-label={`${eventsInfo.goals} Bàn thắng`} className="inline-flex items-center gap-0.5">
-                      <SoccerBallIcon className="w-3.5 h-3.5 shrink-0" />
-                      {eventsInfo.goals > 1 && (
-                        <span className="text-[10px] font-black text-amber-400 font-sans tabular-nums">
-                          {eventsInfo.goals}
+                    <span
+                      aria-label={`${eventsInfo.goals} Bàn thắng`}
+                      className="inline-flex items-center -space-x-1"
+                    >
+                      {Array.from({ length: Math.min(eventsInfo.goals, 3) }).map((_, idx) => (
+                        <span key={idx} style={{ zIndex: 10 + idx }} className="shrink-0">
+                          <SoccerBallIcon className="w-3.5 h-3.5 drop-shadow-sm" />
+                        </span>
+                      ))}
+                      {eventsInfo.goals > 3 && (
+                        <span className="text-[9px] font-black text-amber-400 font-sans tabular-nums pl-0.5">
+                          +{eventsInfo.goals - 3}
                         </span>
                       )}
                     </span>

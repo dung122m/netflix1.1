@@ -266,26 +266,27 @@ export const DualTeamPitch: React.FC<DualTeamPitchProps> = ({
                         </span>
                       )}
 
-                      {/* Huy hiệu Quả bóng: Viền tròn sắc nét, hiển thị gọn gàng chuyên nghiệp */}
-                      {goals === 1 && (
+                      {/* Huy hiệu Quả bóng: Chuẩn FotMob - hiện các quả bóng xếp chồng lớp (overlapping) khi ghi nhiều bàn */}
+                      {goals > 0 && (
                         <span
-                          className="absolute -top-1.5 -right-1.5 w-4 h-4 sm:w-4.5 sm:h-4.5 rounded-full shadow-[0_2px_6px_rgba(0,0,0,0.85)] flex items-center justify-center z-20"
-                          aria-label="1 bàn thắng"
-                          title="1 bàn thắng"
-                        >
-                          <SoccerBallIcon className="w-full h-full" />
-                        </span>
-                      )}
-                      {goals > 1 && (
-                        <span
-                          className="absolute -top-2 -right-2.5 inline-flex items-center gap-0.5 px-1 py-0.5 rounded-full bg-zinc-950/95 ring-1 ring-white/20 shadow-[0_2px_6px_rgba(0,0,0,0.85)] z-20"
+                          className="absolute -top-1.5 -right-1.5 flex items-center -space-x-1 sm:-space-x-1.5 z-20"
                           aria-label={`${goals} bàn thắng`}
                           title={`${goals} bàn thắng`}
                         >
-                          <SoccerBallIcon className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0" />
-                          <span className="text-[9px] sm:text-[10px] font-black font-sans tabular-nums text-amber-400 leading-none pr-0.5">
-                            {goals}
-                          </span>
+                          {Array.from({ length: Math.min(goals, 3) }).map((_, idx) => (
+                            <span
+                              key={idx}
+                              className="w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full shadow-[0_2px_5px_rgba(0,0,0,0.9)] flex items-center justify-center shrink-0"
+                              style={{ zIndex: 10 + idx }}
+                            >
+                              <SoccerBallIcon className="w-full h-full" />
+                            </span>
+                          ))}
+                          {goals > 3 && (
+                            <span className="text-[9px] font-black text-amber-400 font-sans tabular-nums pl-0.5 z-30 drop-shadow">
+                              +{goals - 3}
+                            </span>
+                          )}
                         </span>
                       )}
 
