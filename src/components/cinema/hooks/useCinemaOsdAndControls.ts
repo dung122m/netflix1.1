@@ -51,8 +51,6 @@ export function useCinemaOsdAndControls({
   const lastControlsShownTimeRef = useRef<number>(0);
   const desktopFeedbackTimerRef = useRef<NodeJS.Timeout | null>(null);
   const controlsTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const volumeOsdTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const hudTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     return () => {
@@ -63,14 +61,6 @@ export function useCinemaOsdAndControls({
       if (desktopFeedbackTimerRef.current) {
         clearTimeout(desktopFeedbackTimerRef.current);
         desktopFeedbackTimerRef.current = null;
-      }
-      if (volumeOsdTimerRef.current) {
-        clearTimeout(volumeOsdTimerRef.current);
-        volumeOsdTimerRef.current = null;
-      }
-      if (hudTimerRef.current) {
-        clearTimeout(hudTimerRef.current);
-        hudTimerRef.current = null;
       }
     };
   }, []);
@@ -83,10 +73,9 @@ export function useCinemaOsdAndControls({
     desktopFeedbackRef.current = desktopFeedback;
   }, [desktopFeedback]);
 
-  // Premium Volume OSD & General HUD (YouTube Top Pill Style)
-  const [volumeOsd, setVolumeOsd] = useState<VolumeOsdState | null>(null);
-  const [hudNotification, setHudNotification] =
-    useState<HudNotificationState | null>(null);
+  // Volume OSD and General HUD pills are permanently disabled across the project to maintain clean video playback
+  const volumeOsd: VolumeOsdState | null = null;
+  const hudNotification: HudNotificationState | null = null;
 
   const triggerDesktopFeedback = useCallback(
     (
@@ -94,12 +83,6 @@ export function useCinemaOsdAndControls({
       text?: string,
       seconds?: number,
     ) => {
-      if (volumeOsdTimerRef.current) {
-        clearTimeout(volumeOsdTimerRef.current);
-        volumeOsdTimerRef.current = null;
-      }
-      setVolumeOsd((prev) => (prev ? { ...prev, visible: false } : null));
-
       if (desktopFeedbackTimerRef.current) {
         clearTimeout(desktopFeedbackTimerRef.current);
       }
@@ -132,60 +115,11 @@ export function useCinemaOsdAndControls({
   );
 
   const triggerVolumeOsd = useCallback(
-    (newVol: number, muted: boolean) => {
-      // Khi chỉnh âm lượng, ẩn feedback tua/play/pause để tránh chồng lấn
-      if (desktopFeedbackTimerRef.current) {
-        clearTimeout(desktopFeedbackTimerRef.current);
-        desktopFeedbackTimerRef.current = null;
-      }
-      setDesktopFeedback(null);
-
-      // Reset chu kỳ seek indicator khi volume OSD hiển thị đè lên
-      const s = pendingKeyboardSeekRef.current;
-      if (s.resetTimer) {
-        clearTimeout(s.resetTimer);
-        s.resetTimer = null;
-      }
-      s.state = createInitialKeyboardSeekState();
-
-      if (hudTimerRef.current) {
-        clearTimeout(hudTimerRef.current);
-        hudTimerRef.current = null;
-      }
-      setHudNotification(null);
-
-      setVolumeOsd({
-        volume: newVol,
-        isMuted: muted,
-        visible: true,
-      });
-
-      if (volumeOsdTimerRef.current) {
-        clearTimeout(volumeOsdTimerRef.current);
-      }
-      volumeOsdTimerRef.current = setTimeout(() => {
-        setVolumeOsd((prev) => (prev ? { ...prev, visible: false } : null));
-        volumeOsdTimerRef.current = null;
-      }, 1200);
-    },
-    [pendingKeyboardSeekRef],
+    (_newVol: number, _muted: boolean) => {},
+    [],
   );
 
-  const showHud = useCallback((icon?: React.ReactNode, text?: string) => {
-    if (!text && !icon) return;
-    if (hudTimerRef.current) {
-      clearTimeout(hudTimerRef.current);
-    }
-    setHudNotification({
-      icon: icon || null,
-      text: text || "",
-      id: Date.now(),
-    });
-    hudTimerRef.current = setTimeout(() => {
-      setHudNotification(null);
-      hudTimerRef.current = null;
-    }, 1200);
-  }, []);
+  const showHud = useCallback((_icon?: React.ReactNode, _text?: string) => {}, []);
 
   const clearControlsTimer = useCallback(() => {
     if (controlsTimerRef.current) {

@@ -84,7 +84,7 @@ export const CinemaNativeVideoStage: React.FC<CinemaNativeVideoStageProps> = ({
   isAdTransitioning,
   desktopFeedback,
   volumeOsd: _volumeOsd,
-  hudNotification,
+  hudNotification: _hudNotification,
   isBuffering,
   isMuted,
   volume,
@@ -129,9 +129,8 @@ export const CinemaNativeVideoStage: React.FC<CinemaNativeVideoStageProps> = ({
 }) => {
   return (
     <div
-      className={`w-full h-full relative touch-manipulation select-none ${
-        isFullscreen && isPlaying && !showControls ? "cursor-none" : "cursor-pointer"
-      }`}
+      className={`w-full h-full relative touch-manipulation select-none ${isFullscreen && isPlaying && !showControls ? "cursor-none" : "cursor-pointer"
+        }`}
       onDoubleClick={onDoubleClick}
       onClick={onClick}
       onMouseMove={onMouseMove}
@@ -139,13 +138,12 @@ export const CinemaNativeVideoStage: React.FC<CinemaNativeVideoStageProps> = ({
     >
       <video
         ref={videoRef}
-        className={`w-full h-full bg-black transition-transform duration-200 ${
-          videoFit === "cover"
-            ? "object-cover"
-            : videoFit === "fill"
+        className={`w-full h-full bg-black transition-transform duration-200 ${videoFit === "cover"
+          ? "object-cover"
+          : videoFit === "fill"
             ? "object-fill"
             : "object-contain"
-        }`}
+          }`}
         style={{
           transform: videoFit === "zoom" ? "scale(1.18)" : "none",
         }}
@@ -205,25 +203,6 @@ export const CinemaNativeVideoStage: React.FC<CinemaNativeVideoStageProps> = ({
         </div>
       )}
 
-      {/* GENERAL HUD PILL (SPEED, QUALITY, PIP, EPISODE) */}
-      {hudNotification && (
-        <div
-          role="status"
-          aria-live="polite"
-          className={`absolute left-1/2 -translate-x-1/2 z-40 pointer-events-none max-w-[calc(100%-24px)] sm:max-w-[calc(100%-32px)] transition-all duration-200 animate-in fade-in slide-in-from-top-3 motion-reduce:animate-none ${
-            showControls
-              ? "top-11 min-[380px]:top-12 sm:top-14"
-              : "top-3.5 sm:top-7"
-          }`}
-        >
-          <div className="flex items-center gap-2 sm:gap-2.5 px-3 py-1 sm:px-4 sm:py-2 rounded-full bg-zinc-950/90 backdrop-blur-2xl text-white text-[11px] sm:text-[13px] font-semibold tracking-tight shadow-[0_12px_36px_rgba(0,0,0,0.85)] whitespace-nowrap">
-            {hudNotification.icon}
-            <span className="truncate max-w-[220px] sm:max-w-none">
-              {hudNotification.text}
-            </span>
-          </div>
-        </div>
-      )}
 
       {/* ISOLATED NATIVE CONTROLS OVERLAY (NETFLIX & YOUTUBE STYLE) */}
       <PlayerNativeControls
@@ -329,102 +308,100 @@ export const CinemaIframeOrFallbackStage: React.FC<
   onPlayFallbackTrailer,
   onRestoreNativeHls,
 }) => {
-  if (activeSrc) {
-    return (
-      <>
-        <iframe
-          key={`iframe_${activeEpisodeSlug || "ep"}_${currentServerIndex ?? 0}_${activeSrc}`}
-          ref={iframeRef}
-          src={activeSrc}
-          className="w-full h-full absolute inset-0 border-0"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
-          allowFullScreen
-          referrerPolicy="strict-origin-when-cross-origin"
-          title={
-            !isPlayingTrailer && videoLink
-              ? `Đang phát ${activeEpisodeName || "phim"}`
-              : `Trailer: ${title}`
-          }
-        />
-        {(isPlayingTrailer || (!videoLink && trailerEmbedSrc)) && (
-          <div
-            className={`absolute top-3 left-3 z-20 pointer-events-none inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-netflix-red/90 text-white text-xs font-bold shadow-lg backdrop-blur-md transition-opacity duration-300 ${
-              showControls || !isPlaying ? "opacity-100" : "opacity-0"
-            }`}
-          >
-            <span className="w-2 h-2 rounded-full bg-white" />
-            <span>Đang phát Trailer</span>
-          </div>
-        )}
-        {m3u8Link && useIframeFallback && (
-          <button
-            type="button"
-            onClick={onRestoreNativeHls}
-            className={`absolute top-3 right-3 z-20 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-600/90 hover:bg-emerald-600 text-white text-xs font-bold shadow-lg backdrop-blur-md transition-opacity duration-300 cursor-pointer ${
-              showControls || !isPlaying
+    if (activeSrc) {
+      return (
+        <>
+          <iframe
+            key={`iframe_${activeEpisodeSlug || "ep"}_${currentServerIndex ?? 0}_${activeSrc}`}
+            ref={iframeRef}
+            src={activeSrc}
+            className="w-full h-full absolute inset-0 border-0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+            allowFullScreen
+            referrerPolicy="strict-origin-when-cross-origin"
+            title={
+              !isPlayingTrailer && videoLink
+                ? `Đang phát ${activeEpisodeName || "phim"}`
+                : `Trailer: ${title}`
+            }
+          />
+          {(isPlayingTrailer || (!videoLink && trailerEmbedSrc)) && (
+            <div
+              className={`absolute top-3 left-3 z-20 pointer-events-none inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-netflix-red/90 text-white text-xs font-bold shadow-lg backdrop-blur-md transition-opacity duration-300 ${showControls || !isPlaying ? "opacity-100" : "opacity-0"
+                }`}
+            >
+              <span className="w-2 h-2 rounded-full bg-white" />
+              <span>Đang phát Trailer</span>
+            </div>
+          )}
+          {m3u8Link && useIframeFallback && (
+            <button
+              type="button"
+              onClick={onRestoreNativeHls}
+              className={`absolute top-3 right-3 z-20 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-600/90 hover:bg-emerald-600 text-white text-xs font-bold shadow-lg backdrop-blur-md transition-opacity duration-300 cursor-pointer ${showControls || !isPlaying
                 ? "opacity-100"
                 : "opacity-0 pointer-events-none"
-            }`}
-          >
-            <Zap className="w-3.5 h-3.5 fill-white" />
-            <span>Đổi sang Native HLS</span>
-          </button>
-        )}
-      </>
-    );
-  }
+                }`}
+            >
+              <Zap className="w-3.5 h-3.5 fill-white" />
+              <span>Đổi sang Native HLS</span>
+            </button>
+          )}
+        </>
+      );
+    }
 
-  return (
-    <div className="w-full h-full flex flex-col items-center justify-center relative">
-      <Image
-        src={toFastCdnImageUrl(toOptimizedCardBackdropUrl(posterUrl, 640) || posterUrl)}
-        alt={title}
-        fill
-        unoptimized
-        quality={80}
-        className="object-cover opacity-35"
-        sizes="100vw"
-      />
-      <div className="absolute inset-0 bg-black/55" />
-      <div className="relative z-10 text-center px-6 flex flex-col items-center">
-        {isConnectingStream ? (
-          <>
-            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full border-2 border-white/10 border-t-netflix-red animate-spin mb-3" />
-            <p className="text-white text-base md:text-xl font-semibold">
-              Đang kết nối luồng phát...
-            </p>
-            <p className="text-zinc-400 mt-1.5 text-xs md:text-sm">
-              Trình phát đang tải video
-            </p>
-          </>
-        ) : (
-          <>
-            <p className="text-white text-lg md:text-2xl font-semibold">
-              {isTrailerOnly
-                ? "Phim sắp chiếu"
-                : "Nguồn phát tạm thời chưa sẵn sàng"}
-            </p>
-            <p className="text-zinc-400 mt-2 text-sm md:text-base max-w-md">
-              {isTrailerOnly
-                ? "Hiện chưa có tập phát chính thức. Vui lòng quay lại sau."
-                : "Máy chủ tạm thời chưa phản hồi luồng phát. Vui lòng thử lại sau hoặc chuyển sang tập khác."}
-            </p>
-            {canPlayFallbackTrailer && onPlayFallbackTrailer && (
-              <button
-                type="button"
-                onClick={onPlayFallbackTrailer}
-                className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-netflix-red hover:bg-rose-700 text-white text-xs sm:text-sm font-bold shadow-lg transition active:scale-95 cursor-pointer"
-              >
-                <Play className="w-4 h-4 fill-white" />
-                <span>Xem Trailer</span>
-              </button>
-            )}
-          </>
-        )}
+    return (
+      <div className="w-full h-full flex flex-col items-center justify-center relative">
+        <Image
+          src={toFastCdnImageUrl(toOptimizedCardBackdropUrl(posterUrl, 640) || posterUrl)}
+          alt={title}
+          fill
+          unoptimized
+          quality={80}
+          className="object-cover opacity-35"
+          sizes="100vw"
+        />
+        <div className="absolute inset-0 bg-black/55" />
+        <div className="relative z-10 text-center px-6 flex flex-col items-center">
+          {isConnectingStream ? (
+            <>
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full border-2 border-white/10 border-t-netflix-red animate-spin mb-3" />
+              <p className="text-white text-base md:text-xl font-semibold">
+                Đang kết nối luồng phát...
+              </p>
+              <p className="text-zinc-400 mt-1.5 text-xs md:text-sm">
+                Trình phát đang tải video
+              </p>
+            </>
+          ) : (
+            <>
+              <p className="text-white text-lg md:text-2xl font-semibold">
+                {isTrailerOnly
+                  ? "Phim sắp chiếu"
+                  : "Nguồn phát tạm thời chưa sẵn sàng"}
+              </p>
+              <p className="text-zinc-400 mt-2 text-sm md:text-base max-w-md">
+                {isTrailerOnly
+                  ? "Hiện chưa có tập phát chính thức. Vui lòng quay lại sau."
+                  : "Máy chủ tạm thời chưa phản hồi luồng phát. Vui lòng thử lại sau hoặc chuyển sang tập khác."}
+              </p>
+              {canPlayFallbackTrailer && onPlayFallbackTrailer && (
+                <button
+                  type="button"
+                  onClick={onPlayFallbackTrailer}
+                  className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-netflix-red hover:bg-rose-700 text-white text-xs sm:text-sm font-bold shadow-lg transition active:scale-95 cursor-pointer"
+                >
+                  <Play className="w-4 h-4 fill-white" />
+                  <span>Xem Trailer</span>
+                </button>
+              )}
+            </>
+          )}
+        </div>
       </div>
-    </div>
-  );
-};
+    );
+  };
 
 export const CinemaFullscreenStyles: React.FC = () => (
   <style>{`

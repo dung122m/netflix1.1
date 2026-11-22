@@ -28,7 +28,6 @@ import {
 import type { TvChannel } from "@/services/live/tv/service";
 import type { VolumeOsdState } from "./hooks/useMediaVolume";
 import { PlayingEqualizer } from "./PlayingEqualizer";
-import { VolumeOsdPill } from "./VolumeOsdPill";
 import { LiveShortcutPopover } from "./LiveShortcutPopover";
 import { Tooltip } from "@/components/ui/Tooltip";
 import { ChannelSourceSwitcher } from "./ChannelSourceSwitcher";
@@ -103,7 +102,7 @@ export function LiveTvCinemaPlayer({
   onCopy,
   isMuted,
   volume,
-  volumeOsd,
+  volumeOsd: _volumeOsd,
   onVolumeChange,
   onToggleMute,
   onUnmuteSound,
@@ -202,11 +201,10 @@ export function LiveTvCinemaPlayer({
               type="button"
               onClick={onToggleChannelRail}
               aria-label={showChannelRail ? "Đóng danh sách kênh" : "Mở danh sách kênh"}
-              className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[10.5px] sm:text-xs font-bold transition cursor-pointer ${
-                showChannelRail
-                  ? "bg-netflix-red text-white shadow-md shadow-black/50"
-                  : "bg-white/10 hover:bg-white/20 text-zinc-300 hover:text-white"
-              }`}
+              className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[10.5px] sm:text-xs font-bold transition cursor-pointer ${showChannelRail
+                ? "bg-netflix-red text-white shadow-md shadow-black/50"
+                : "bg-white/10 hover:bg-white/20 text-zinc-300 hover:text-white"
+                }`}
             >
               <Tv className="w-3 h-3 text-white" />
               <span className="hidden sm:inline">Danh sách kênh</span>
@@ -258,11 +256,10 @@ export function LiveTvCinemaPlayer({
           setShowControls(false);
         }}
         onDoubleClick={onToggleFullscreen}
-        className={`relative w-full mx-auto bg-black transition-all duration-300 group select-none  outline-none focus:outline-none focus-visible:outline-none contain-paint isolate ${
-          isFullscreen
-            ? "fixed inset-0 z-50 w-full h-full max-w-none max-h-none rounded-none aspect-auto -none shadow-none p-0 m-0 overflow-hidden flex flex-col justify-center"
-            : "aspect-video lg:max-h-[calc(100dvh-172px)] lg:max-w-[calc((100dvh-172px)*16/9)] rounded-2xl sm:rounded-3xl overflow-hidden  shadow-2xl"
-        } ${isFullscreen && isPlaying && !showControls ? "cursor-none" : "cursor-default"}`}
+        className={`relative w-full mx-auto bg-black transition-all duration-300 group select-none  outline-none focus:outline-none focus-visible:outline-none contain-paint isolate ${isFullscreen
+          ? "fixed inset-0 z-50 w-full h-full max-w-none max-h-none rounded-none aspect-auto -none shadow-none p-0 m-0 overflow-hidden flex flex-col justify-center"
+          : "aspect-video lg:max-h-[calc(100dvh-172px)] lg:max-w-[calc((100dvh-172px)*16/9)] rounded-2xl sm:rounded-3xl overflow-hidden  shadow-2xl"
+          } ${isFullscreen && isPlaying && !showControls ? "cursor-none" : "cursor-default"}`}
       >
         <video
           ref={videoRef}
@@ -275,9 +272,8 @@ export function LiveTvCinemaPlayer({
 
         {/* HUY HIỆU SIGNAL & LIVE TRÊN TRÁI: BẤM ĐỂ QUAY VỀ LIVE EDGE */}
         <div
-          className={`absolute top-3 left-3 sm:top-4 sm:left-4 flex items-center gap-2 z-20 transition-opacity duration-300 ${
-            showControls ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
-          }`}
+          className={`absolute top-3 left-3 sm:top-4 sm:left-4 flex items-center gap-2 z-20 transition-opacity duration-300 ${showControls ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+            }`}
         >
           {isAtLiveEdge ? (
             <Tooltip content="Đang phát trực tiếp (Bấm để đồng bộ)" side="bottom" align="start">
@@ -328,9 +324,8 @@ export function LiveTvCinemaPlayer({
         {/* NÚT BẬT TIẾNG KHI ĐANG MUTE GÓC TRÊN PHẢI (ẨN KHI KHÔNG TƯƠNG TÁC) */}
         {isPlaying && isMuted && !isLoading && !hasError && (
           <div
-            className={`absolute top-3 right-3 sm:top-4 sm:right-4 z-30 transition-opacity duration-300 ${
-              showControls ? "opacity-100" : "opacity-0 pointer-events-none"
-            }`}
+            className={`absolute top-3 right-3 sm:top-4 sm:right-4 z-30 transition-opacity duration-300 ${showControls ? "opacity-100" : "opacity-0 pointer-events-none"
+              }`}
           >
             <button
               type="button"
@@ -345,9 +340,6 @@ export function LiveTvCinemaPlayer({
             </button>
           </div>
         )}
-
-        {/* PREMIUM YOUTUBE TOP PILL VOLUME OSD (ĐỒNG BỘ 100% VỚI MOVIE PLAYER) */}
-        <VolumeOsdPill volumeOsd={volumeOsd} />
 
         {/* ACTION FEEDBACK OVERLAY (PLAY, PAUSE, CHANNEL SWITCH & CINEMA SEEK HUD) */}
         <LiveSeekOverlay actionFeedback={actionFeedback} />
@@ -394,9 +386,8 @@ export function LiveTvCinemaPlayer({
         {/* 2. CENTER PLAYBACK CONTROLS CHO MOBILE (GỌN GÀNG, DUY NHẤT 1 NÚT PLAY/PAUSE, LUÔN HIỂN THỊ KHI TRÌNH ĐIỀU KHIỂN BẬT) */}
         {showControls && !isLoading && !hasError && (
           <div
-            className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center justify-center pointer-events-none z-20 ${
-              hasTouch ? "flex" : "hidden"
-            }`}
+            className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center justify-center pointer-events-none z-20 ${hasTouch ? "flex" : "hidden"
+              }`}
           >
             <button
               type="button"
@@ -422,11 +413,10 @@ export function LiveTvCinemaPlayer({
         <div
           data-live-controls
           onClick={(e) => e.stopPropagation()}
-          className={`absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/95 via-black/70 to-transparent p-2.5 sm:p-4 pt-6 sm:pt-8 flex items-center justify-between gap-1 sm:gap-2 z-30 transition-opacity duration-300 text-white select-none ${
-            showControls
-              ? "opacity-100 pointer-events-auto"
-              : "opacity-0 pointer-events-none"
-          }`}
+          className={`absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/95 via-black/70 to-transparent p-2.5 sm:p-4 pt-6 sm:pt-8 flex items-center justify-between gap-1 sm:gap-2 z-30 transition-opacity duration-300 text-white select-none ${showControls
+            ? "opacity-100 pointer-events-auto"
+            : "opacity-0 pointer-events-none"
+            }`}
           style={{
             paddingBottom: isFullscreen ? "max(0.75rem, env(safe-area-inset-bottom, 0.75rem))" : undefined,
             paddingLeft: isFullscreen ? "max(0.75rem, env(safe-area-inset-left, 0.75rem))" : undefined,
@@ -556,11 +546,10 @@ export function LiveTvCinemaPlayer({
                   data-player-control="true"
                   onClick={onTogglePip}
                   aria-label="Xem thu nhỏ góc màn hình"
-                  className={`w-9 h-9 sm:w-10 sm:h-10 hidden sm:flex rounded-full items-center justify-center transition-all duration-200 active:scale-90 cursor-pointer shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-white/40 ${
-                    isPip
-                      ? "bg-netflix-red text-white"
-                      : "text-zinc-300 hover:text-white hover:bg-white/15"
-                  }`}
+                  className={`w-9 h-9 sm:w-10 sm:h-10 hidden sm:flex rounded-full items-center justify-center transition-all duration-200 active:scale-90 cursor-pointer shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-white/40 ${isPip
+                    ? "bg-netflix-red text-white"
+                    : "text-zinc-300 hover:text-white hover:bg-white/15"
+                    }`}
                 >
                   <YouTubeMiniplayerIcon className="w-5 h-5" />
                 </button>

@@ -26,30 +26,16 @@ export function useMediaVolume({
   const userMutedRef = useRef<boolean>(false);
   const volumeRef = useRef<number>(defaultVolume);
 
-  const [volumeOsd, setVolumeOsd] = useState<VolumeOsdState | null>(null);
-  const volumeOsdTimerRef = useRef<NodeJS.Timeout | null>(null);
+  // Volume OSD pill is permanently disabled across the project to maintain clean video playback
+  const volumeOsd: VolumeOsdState | null = null;
 
   // Cập nhật volumeRef đồng bộ
   useEffect(() => {
     volumeRef.current = volume;
   }, [volume]);
 
-  // Kích hoạt OSD hiển thị âm lượng với debounce timeout 1500ms
-  const triggerVolumeOsd = useCallback((newVol: number, muted: boolean) => {
-    if (volumeOsdTimerRef.current) {
-      clearTimeout(volumeOsdTimerRef.current);
-      volumeOsdTimerRef.current = null;
-    }
-    setVolumeOsd({
-      volume: newVol,
-      isMuted: muted,
-      visible: true,
-    });
-    volumeOsdTimerRef.current = setTimeout(() => {
-      setVolumeOsd((prev) => (prev ? { ...prev, visible: false } : null));
-      volumeOsdTimerRef.current = null;
-    }, 1500);
-  }, []);
+  // triggerVolumeOsd kept as stable no-op callback
+  const triggerVolumeOsd = useCallback((_newVol: number, _muted: boolean) => {}, []);
 
   // Khôi phục volume đã lưu từ localStorage khi khởi tạo
   useEffect(() => {

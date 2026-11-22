@@ -20,7 +20,6 @@ import { useControlsAutoHide } from "./hooks/useControlsAutoHide";
 import { useDvrSeek } from "./hooks/useDvrSeek";
 import { useLivePlayerShortcuts } from "./hooks/useLivePlayerShortcuts";
 import { useLiveFootballHls } from "./hooks/useLiveFootballHls";
-import { VolumeOsdPill } from "./VolumeOsdPill";
 import { LiveSeekOverlay, type LiveActionFeedback } from "./LiveSeekOverlay";
 import { LiveSourceDrawer } from "./LiveSourceDrawer";
 import { LiveMatchScoreboard } from "./LiveMatchScoreboard";
@@ -120,8 +119,8 @@ function LivePlayerInner({
   const isFinished = displayStatus.statusType === "finished";
   const specialStatusLabel =
     displayStatus.statusType === "postponed" ||
-    displayStatus.statusType === "canceled" ||
-    displayStatus.statusType === "suspended"
+      displayStatus.statusType === "canceled" ||
+      displayStatus.statusType === "suspended"
       ? displayStatus.badgeLabel
       : null;
 
@@ -212,7 +211,7 @@ function LivePlayerInner({
     setIsMuted,
     volumeRef,
     userMutedRef,
-    volumeOsd,
+    volumeOsd: _volumeOsd,
     handleVolumeChange,
     triggerVolumeOsd,
   } = useMediaVolume({ videoRef });
@@ -486,7 +485,7 @@ function LivePlayerInner({
     triggerVolumeOsd(targetVol, false);
     try {
       localStorage.setItem("nanaflix_live_volume", String(targetVol));
-    } catch {}
+    } catch { }
   }, [
     volume,
     isActive,
@@ -609,11 +608,10 @@ function LivePlayerInner({
           setShowControls(false);
         }}
         onDoubleClick={toggleFullscreen}
-        className={`relative w-full mx-auto bg-black transition-all duration-300 group select-none outline-none focus:outline-none focus-visible:outline-none contain-paint isolate ${
-          isFullscreen
-            ? "fixed inset-0 z-50 w-full h-full max-w-none max-h-none rounded-none aspect-auto -none shadow-none p-0 m-0 overflow-hidden flex flex-col justify-center"
-            : "aspect-video lg:max-h-[calc(100dvh-210px)] lg:max-w-[calc((100dvh-210px)*16/9)] rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl"
-        } ${isFullscreen && isPlaying && !showControls ? "cursor-none" : "cursor-default"}`}
+        className={`relative w-full mx-auto bg-black transition-all duration-300 group select-none outline-none focus:outline-none focus-visible:outline-none contain-paint isolate ${isFullscreen
+          ? "fixed inset-0 z-50 w-full h-full max-w-none max-h-none rounded-none aspect-auto -none shadow-none p-0 m-0 overflow-hidden flex flex-col justify-center"
+          : "aspect-video lg:max-h-[calc(100dvh-210px)] lg:max-w-[calc((100dvh-210px)*16/9)] rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl"
+          } ${isFullscreen && isPlaying && !showControls ? "cursor-none" : "cursor-default"}`}
       >
         {isIframe ? (
           <iframe
@@ -648,7 +646,7 @@ function LivePlayerInner({
                     "nanaflix_live_volume",
                     String(v.volume),
                   );
-                } catch {}
+                } catch { }
               }
             }}
           />
@@ -656,9 +654,8 @@ function LivePlayerInner({
 
         {/* HUY HIỆU SIGNAL & LIVE TRÊN TRÁI */}
         <div
-          className={`absolute top-3 left-3 sm:top-4 sm:left-4 flex items-center gap-2 z-20 transition-opacity duration-300 ${
-            showControls ? "opacity-100" : "opacity-0 pointer-events-none"
-          }`}
+          className={`absolute top-3 left-3 sm:top-4 sm:left-4 flex items-center gap-2 z-20 transition-opacity duration-300 ${showControls ? "opacity-100" : "opacity-0 pointer-events-none"
+            }`}
         >
           {isAtLiveEdge ? (
             <Tooltip content="Đang phát trực tiếp (Bấm để đồng bộ)" side="bottom" align="start">
@@ -696,8 +693,6 @@ function LivePlayerInner({
         </div>
 
         {!useMobilePortal && sourceDrawerMarkup}
-
-        <VolumeOsdPill volumeOsd={volumeOsd} />
 
         <LiveSeekOverlay actionFeedback={actionFeedback} />
 
@@ -775,11 +770,11 @@ function LivePlayerInner({
           currentServerName={
             currentServer
               ? parseServerDisplayLabel(
-                  currentServer,
-                  currentAvailableIdx !== -1
-                    ? currentAvailableIdx
-                    : selectedServerIndex,
-                )
+                currentServer,
+                currentAvailableIdx !== -1
+                  ? currentAvailableIdx
+                  : selectedServerIndex,
+              )
               : "Chọn nguồn"
           }
           currentAvailableIndex={
