@@ -207,19 +207,18 @@ export const FilterDropdownMenu: React.FC<FilterDropdownMenuProps> = React.memo(
                 </button>
               )}
             </div>
-            <button
-              type="button"
-              onClick={() => updateQueryParam("year", "")}
-              className={`w-full mb-2 flex items-center justify-between px-3 py-2 rounded-xl text-xs sm:text-sm font-medium transition cursor-pointer text-left ${
-                !currentYear
-                  ? "bg-white/10 text-white font-bold"
-                  : "text-zinc-300 hover:bg-zinc-800/80 hover:text-white"
-              }`}
-            >
-              <span>Tất cả các năm</span>
-              {!currentYear && <Check className="w-3.5 h-3.5 text-netflix-red" />}
-            </button>
-            <div className="max-h-60 overflow-y-auto grid grid-cols-3 min-[360px]:grid-cols-4 gap-1.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none]">
+            <div className="max-h-60 overflow-y-auto grid grid-cols-4 gap-1.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none]">
+              <button
+                type="button"
+                onClick={() => updateQueryParam("year", "")}
+                className={`py-1.5 min-h-[34px] px-1 text-center rounded-xl text-xs font-medium transition cursor-pointer ${
+                  !currentYear
+                    ? "bg-netflix-red text-white font-bold shadow-md shadow-black/50"
+                    : "text-zinc-300 hover:bg-zinc-800 hover:text-white bg-zinc-900/60"
+                }`}
+              >
+                Tất cả
+              </button>
               {filters.years.map((y) => {
                 const isSelected = currentYear === y;
                 return (
@@ -227,7 +226,7 @@ export const FilterDropdownMenu: React.FC<FilterDropdownMenuProps> = React.memo(
                     key={y}
                     type="button"
                     onClick={() => updateQueryParam("year", y)}
-                    className={`py-2 min-h-[38px] px-1 text-center rounded-xl text-xs sm:text-sm font-medium transition cursor-pointer ${
+                    className={`py-1.5 min-h-[34px] px-1 text-center rounded-xl text-xs font-medium transition cursor-pointer ${
                       isSelected
                         ? "bg-netflix-red text-white font-bold shadow-md shadow-black/50"
                         : "text-zinc-300 hover:bg-zinc-800 hover:text-white bg-zinc-900/60"

@@ -384,17 +384,17 @@ export const FilterBar: React.FC = () => {
   return (
     <div ref={containerRef} className="w-full relative z-40 select-none">
       {/* 1A. MOBILE COMPACT TRIGGER BAR (< 640px) */}
-      <div className="sm:hidden relative w-full rounded-2xl bg-zinc-900/75 backdrop-blur-md p-2 shadow-md shadow-black/40 flex items-center justify-between gap-2">
+      <div className="sm:hidden relative w-full flex items-center justify-between gap-2">
         <button
           type="button"
           onClick={openMobileDrawer}
-          className="flex-1 h-10 px-3.5 rounded-xl bg-zinc-800/80 hover:bg-zinc-700/80 text-white flex items-center justify-between gap-2 shadow-sm active:scale-[0.98] transition cursor-pointer"
+          className="flex-1 h-9 px-3 rounded-xl bg-zinc-900/80 hover:bg-zinc-850 text-white flex items-center justify-between gap-2 border border-white/[0.08] active:scale-[0.98] transition cursor-pointer shadow-sm"
         >
           <div className="flex items-center gap-2 min-w-0">
-            <SlidersHorizontal className="w-4 h-4 text-netflix-red shrink-0" />
-            <span className="font-bold text-xs truncate">Bộ lọc & Phân loại</span>
+            <SlidersHorizontal className="w-3.5 h-3.5 text-netflix-red shrink-0" />
+            <span className="font-semibold text-xs text-zinc-200 truncate">Bộ lọc & Phân loại</span>
             {activeFiltersCount > 0 && (
-              <span className="px-1.5 py-0.5 rounded-full bg-netflix-red text-white text-[10px] font-black shrink-0">
+              <span className="px-1.5 py-0.5 rounded-full bg-netflix-red text-white text-[10px] font-bold shrink-0">
                 {activeFiltersCount}
               </span>
             )}
@@ -408,7 +408,7 @@ export const FilterBar: React.FC = () => {
               type="button"
               onClick={handleClearAll}
               aria-label="Xóa tất cả bộ lọc"
-              className="h-10 w-10 rounded-xl bg-netflix-red/10 hover:bg-netflix-red/20 text-netflix-red flex items-center justify-center shrink-0 active:scale-95 transition cursor-pointer"
+              className="h-9 w-9 rounded-xl bg-zinc-900/80 hover:bg-netflix-red/15 text-netflix-red flex items-center justify-center shrink-0 border border-white/[0.08] active:scale-95 transition cursor-pointer"
             >
             {isPending && pendingGroup === "all" ? (
               <Loader2 className="w-3.5 h-3.5 text-netflix-red animate-spin" />

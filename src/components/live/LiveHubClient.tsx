@@ -166,19 +166,19 @@ export function LiveHubClient({ footballData, tvData: initialTvData, initialScor
     >
       {/* 1. NANAFLIX LIVE STUDIO COMMAND BAR (Cụm 2 nút Thể thao / Truyền hình tinh gọn) */}
       {!isSportsCinema || isTvCinema ? (
-        <header className="flex items-center justify-start py-1.5 sm:py-2">
-          {/* CỤM CHUYỂN ĐỔI TAB (THỂ THAO / TRUYỀN HÌNH) */}
+        <header className="flex items-center justify-start py-1 sm:py-2">
+          {/* CỤM CHUYỂN ĐỔI TAB (THỂ THAO / TRUYỀN HÌNH) - Dàn đều 2 cột cân đối 100% trên mobile */}
           <div
             role="tablist"
             aria-label="Lựa chọn luồng trực tiếp"
-            className="flex items-center gap-1 p-1 rounded-xl bg-zinc-900/90 shrink-0"
+            className="grid grid-cols-2 w-full sm:w-auto sm:flex items-center gap-1 p-1 rounded-xl bg-zinc-900/90 shrink-0 shadow-sm"
           >
             <button
               type="button"
               role="tab"
               aria-selected={activeTab === "sports"}
               onClick={() => handleTabChange("sports")}
-              className={`flex items-center justify-center gap-1.5 px-3.5 py-1.5 min-h-[38px] sm:min-h-[36px] rounded-lg text-xs font-semibold transition cursor-pointer outline-none shrink-0 whitespace-nowrap ${
+              className={`flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3.5 py-1.5 min-h-[36px] rounded-lg text-xs font-semibold transition cursor-pointer outline-none shrink-0 whitespace-nowrap ${
                 activeTab === "sports"
                   ? "bg-white/15 text-white font-bold shadow-sm"
                   : "text-zinc-400 hover:text-white hover:bg-white/5"
@@ -201,7 +201,7 @@ export function LiveHubClient({ footballData, tvData: initialTvData, initialScor
               role="tab"
               aria-selected={activeTab === "tv"}
               onClick={() => handleTabChange("tv")}
-              className={`flex items-center justify-center gap-1.5 px-3.5 py-1.5 min-h-[38px] sm:min-h-[36px] rounded-lg text-xs font-semibold transition cursor-pointer outline-none shrink-0 whitespace-nowrap ${
+              className={`flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3.5 py-1.5 min-h-[36px] rounded-lg text-xs font-semibold transition cursor-pointer outline-none shrink-0 whitespace-nowrap ${
                 activeTab === "tv"
                   ? "bg-white/15 text-white font-bold shadow-sm"
                   : "text-zinc-400 hover:text-white hover:bg-white/5"

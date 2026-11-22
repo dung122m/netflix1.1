@@ -5,7 +5,6 @@ import { createPortal } from "react-dom";
 import {
   SlidersHorizontal,
   X,
-  Check,
 } from "lucide-react";
 import {
   MOVIE_TYPES,
@@ -281,7 +280,7 @@ export const FilterMobileDrawer: React.FC<FilterMobileDrawerProps> = React.memo(
             </div>
 
             {/* NHÓM 5: NĂM PHÁT HÀNH */}
-            <div className="space-y-2.5">
+            <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold text-zinc-400 flex items-center">
                   <span>Năm phát hành</span>
@@ -297,30 +296,28 @@ export const FilterMobileDrawer: React.FC<FilterMobileDrawerProps> = React.memo(
                 )}
               </div>
 
-              <button
-                type="button"
-                onClick={() => setDraftYear("")}
-                className={`w-full py-2.5 px-3 rounded-xl text-xs font-bold transition active:scale-[0.98] cursor-pointer flex items-center justify-between ${
-                  !draftYear
-                    ? "bg-netflix-red text-white font-bold shadow-md shadow-black/50"
-                    : "bg-zinc-900/90 text-zinc-300 hover:bg-zinc-800"
-                }`}
-              >
-                <span>Tất cả các năm</span>
-                {!draftYear && <Check className="w-3.5 h-3.5 text-white" />}
-              </button>
-
-              <div className="grid grid-cols-3 min-[360px]:grid-cols-4 gap-1.5">
-                {filters.years.slice(0, 24).map((y) => {
+              <div className="grid grid-cols-4 gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setDraftYear("")}
+                  className={`py-1.5 min-h-[34px] px-1 text-center rounded-xl text-xs font-semibold transition active:scale-95 cursor-pointer ${
+                    !draftYear
+                      ? "bg-netflix-red text-white font-bold shadow-sm"
+                      : "bg-zinc-900/90 text-zinc-300 hover:bg-zinc-800"
+                  }`}
+                >
+                  Tất cả
+                </button>
+                {filters.years.slice(0, 23).map((y) => {
                   const isSelected = draftYear === y;
                   return (
                     <button
                       key={y}
                       type="button"
                       onClick={() => setDraftYear(isSelected ? "" : y)}
-                      className={`py-2 min-h-[38px] px-1 text-center rounded-xl text-xs sm:text-sm font-semibold tabular-nums transition active:scale-95 cursor-pointer ${
+                      className={`py-1.5 min-h-[34px] px-1 text-center rounded-xl text-xs font-semibold tabular-nums transition active:scale-95 cursor-pointer ${
                         isSelected
-                          ? "bg-netflix-red text-white font-bold shadow-md shadow-black/50"
+                          ? "bg-netflix-red text-white font-bold shadow-sm"
                           : "bg-zinc-900/90 text-zinc-300 hover:bg-zinc-800"
                       }`}
                     >

@@ -1,8 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Flame, RotateCcw, Search, Trophy, X } from "lucide-react";
-import { Tooltip } from "@/components/ui/Tooltip";
+import { RotateCcw, Search, X } from "lucide-react";
 import type { MatchStatusFilter } from "./hooks/useLiveFootballFilters";
 
 export interface LiveFilterCounts {
@@ -50,27 +49,25 @@ export function LiveFilterCommandBar({
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
 
   return (
-    <div className="relative z-30 space-y-2 sm:space-y-3 pt-1 pb-2">
+    <div className="relative z-30 space-y-2 sm:space-y-3 pt-0.5 pb-1 sm:pb-2">
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-2.5 sm:gap-3">
         <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto scrollbar-none py-0.5 touch-pan-x touch-pan-y shrink-0 max-w-full order-2 lg:order-1">
-          {!isMobileSearchOpen && !searchQuery && (
-            <Tooltip content="Tìm kiếm trận đấu" side="bottom">
+          <div className="flex items-center gap-1 p-1 rounded-xl bg-zinc-900/90 shrink-0 shadow-sm">
+            {!isMobileSearchOpen && !searchQuery && (
               <button
                 type="button"
                 onClick={() => setIsMobileSearchOpen(true)}
                 aria-label="Tìm kiếm trận đấu"
-                className="lg:hidden flex items-center justify-center w-9 h-9 min-h-[36px] sm:min-h-[38px] rounded-xl bg-zinc-900/90 text-zinc-400 hover:text-white shrink-0 transition"
+                className="lg:hidden flex items-center justify-center w-8 h-8 rounded-lg text-zinc-400 hover:text-white hover:bg-white/5 shrink-0 transition cursor-pointer"
               >
                 <Search className="w-3.5 h-3.5" />
               </button>
-            </Tooltip>
-          )}
+            )}
 
-          <div className="flex items-center gap-1 p-0.5 rounded-xl bg-zinc-900/90 shrink-0 shadow-sm">
             <button
               type="button"
               onClick={() => onStatusChange("all")}
-              className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition cursor-pointer min-h-[36px] ${
+              className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition cursor-pointer min-h-[34px] sm:min-h-[36px] ${
                 activeSection !== "standings" && selectedStatus === "all"
                   ? "bg-white/15 text-white font-bold shadow-sm"
                   : "text-zinc-400 hover:text-white hover:bg-white/5"

@@ -288,7 +288,7 @@ function HeadToHeadCard({
                 </div>
 
                 {/* 3. TỶ SỐ TRUNG TÂM */}
-                <div className="shrink-0 px-2.5 py-0.5 rounded-lg bg-zinc-900 font-sans tabular-nums font-black text-xs text-white shadow-inner">
+                <div className="shrink-0 px-2 font-sans tabular-nums font-black text-xs text-white">
                   {hTeam.score} : {aTeam.score}
                 </div>
 

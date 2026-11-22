@@ -250,13 +250,13 @@ export function LiveMatchScoreboard({
             <div className="relative z-10 flex flex-col gap-1.5 sm:gap-2 w-full min-w-0">
               {/* HÀNG TRÊN (MOBILE): GIẢI ĐẤU & BLV RÚT GỌN */}
               <div className="flex md:hidden items-center justify-between gap-2 pb-1 min-w-0">
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/[0.04] text-zinc-300 text-[10.5px] font-semibold truncate max-w-[180px] min-w-0">
+                <span className="inline-flex items-center gap-1.5 text-zinc-300 text-[10.5px] font-semibold truncate max-w-[180px] min-w-0">
                   <Trophy className="w-3 h-3 shrink-0 text-amber-400" />
                   <span className="truncate">{displayTournament}</span>
                 </span>
 
                 {(blv || match?.blv || currentServer) && (
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-rose-500/10 text-rose-300 text-[10px] font-semibold truncate max-w-[150px] min-w-0">
+                  <span className="inline-flex items-center gap-1.5 text-rose-300 text-[10px] font-semibold truncate max-w-[150px] min-w-0">
                     <Mic className="w-3 h-3 shrink-0" />
                     <span className="truncate">{blvLabel}</span>
                   </span>
@@ -270,7 +270,7 @@ export function LiveMatchScoreboard({
                     content={`${displayTournament}${venueName ? ` • Sân: ${venueName}` : ""}${refereeName ? ` • Trọng tài: ${refereeName}` : ""}`}
                     side="top"
                   >
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/[0.04] hover:bg-white/[0.08] text-zinc-300 text-xs font-semibold truncate max-w-[190px] lg:max-w-[240px] transition">
+                    <span className="inline-flex items-center gap-1.5 text-zinc-300 text-xs font-semibold truncate max-w-[190px] lg:max-w-[240px] transition">
                       <Trophy className="w-3.5 h-3.5 shrink-0 text-amber-400" />
                       <span className="truncate">{displayTournament}</span>
                     </span>
@@ -288,11 +288,11 @@ export function LiveMatchScoreboard({
                       {homeDisplayName}
                     </span>
 
-                    <div className="w-8 h-8 sm:w-9 sm:h-9 md:w-10 md:h-10 rounded-xl bg-white/[0.06] p-1.5 flex items-center justify-center shadow-md shrink-0 relative overflow-hidden">
+                    <div className="w-8 h-8 sm:w-9 sm:h-9 md:w-10 md:h-10 flex items-center justify-center shrink-0">
                       {homeFlagEmoji ? (
                         <CountryFlag
                           emoji={homeFlagEmoji}
-                          className="w-6 h-6 relative z-10"
+                          className="w-6 h-6 sm:w-7 sm:h-7"
                         />
                       ) : homeLogoSrc ? (
                         /* eslint-disable-next-line @next/next/no-img-element */
@@ -300,22 +300,22 @@ export function LiveMatchScoreboard({
                           key={homeLogoSrc}
                           src={homeLogoSrc}
                           alt={homeDisplayName}
-                          className="w-full h-full object-contain filter drop-shadow relative z-10"
+                          className="w-full h-full object-contain filter drop-shadow select-none"
                           onError={handleHomeImgError}
                           referrerPolicy="no-referrer"
                         />
                       ) : (
-                        <span className="text-[11px] font-black text-rose-400">
+                        <span className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-zinc-800 text-zinc-300 flex items-center justify-center text-xs font-bold select-none">
                           {getTeamInitials(team1)}
                         </span>
                       )}
                     </div>
                   </div>
 
-                  {/* TỶ SỐ / VS */}
-                  <div className="flex flex-col items-center justify-center px-3 sm:px-4 py-1.5 rounded-xl sm:rounded-2xl bg-white/[0.05] shadow-inner shrink-0 min-w-[70px] sm:min-w-[84px]">
+                  {/* TỶ SỐ / VS: TYPOGRAPHY THUẦN KHIẾT (KHÔNG HỘP / VIỀN LỒNG NHAU) */}
+                  <div className="flex flex-col items-center justify-center shrink-0 min-w-[70px] sm:min-w-[84px] select-none">
                     {hasScore ? (
-                      <div className="flex items-center justify-center gap-1.5 font-sans text-xl sm:text-2xl md:text-3xl font-black text-white tracking-wider tabular-nums leading-none">
+                      <div className="flex items-center justify-center gap-1.5 font-sans text-2xl sm:text-3xl md:text-4xl font-black text-white tracking-wider tabular-nums leading-none drop-shadow-sm">
                         <span>{homeScoreVal}</span>
                         <span className="text-zinc-500 font-light select-none">
                           :
@@ -323,20 +323,20 @@ export function LiveMatchScoreboard({
                         <span>{awayScoreVal}</span>
                       </div>
                     ) : (
-                      <span className="text-xs sm:text-sm font-black uppercase tracking-[0.2em] text-zinc-400 leading-none select-none">
+                      <span className="text-xs sm:text-sm font-bold uppercase tracking-wider text-zinc-400 leading-none select-none">
                         VS
                       </span>
                     )}
 
-                    <div className="mt-1 flex items-center justify-center gap-1.5 text-center leading-none">
+                    <div className="mt-1.5 flex items-center justify-center gap-1.5 text-center leading-none">
                       {timeInfo.state === "live" ? (
                         <>
-                          <span className="inline-flex items-center gap-1 text-[10px] sm:text-[11px] font-bold text-emerald-400">
+                          <span className="inline-flex items-center gap-1.5 text-[11px] sm:text-xs font-bold text-emerald-400">
                             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
                             <span>{timeInfo.clockBadge}</span>
                           </span>
                           {kickoffTime && (
-                            <span className="text-zinc-500 text-[10px] sm:text-[10.5px] font-sans tabular-nums hidden sm:inline">
+                            <span className="text-zinc-400 text-[10px] sm:text-[11px] font-sans tabular-nums hidden sm:inline">
                               • {kickoffTime}
                             </span>
                           )}
@@ -369,7 +369,7 @@ export function LiveMatchScoreboard({
                         currentScore?.statusDetail &&
                         currentScore.statusDetail !== currentScore.displayClock &&
                         currentScore.statusDetail !== "In Progress" && (
-                          <span className="text-[8.5px] text-amber-300 font-semibold hidden sm:inline-block">
+                          <span className="text-[9px] text-amber-300/90 font-medium hidden sm:inline-block">
                             • {currentScore.statusDetail}
                           </span>
                         )}
@@ -378,11 +378,11 @@ export function LiveMatchScoreboard({
 
                   {/* ĐỘI KHÁCH */}
                   <div className="flex items-center justify-start gap-2 sm:gap-3 min-w-0 flex-1 text-left">
-                    <div className="w-8 h-8 sm:w-9 sm:h-9 md:w-10 md:h-10 rounded-xl bg-white/[0.06] p-1.5 flex items-center justify-center shadow-md shrink-0 relative overflow-hidden">
+                    <div className="w-8 h-8 sm:w-9 sm:h-9 md:w-10 md:h-10 flex items-center justify-center shrink-0">
                       {awayFlagEmoji ? (
                         <CountryFlag
                           emoji={awayFlagEmoji}
-                          className="w-6 h-6 relative z-10"
+                          className="w-6 h-6 sm:w-7 sm:h-7"
                         />
                       ) : awayLogoSrc ? (
                         /* eslint-disable-next-line @next/next/no-img-element */
@@ -390,12 +390,12 @@ export function LiveMatchScoreboard({
                           key={awayLogoSrc}
                           src={awayLogoSrc}
                           alt={awayDisplayName}
-                          className="w-full h-full object-contain filter drop-shadow relative z-10"
+                          className="w-full h-full object-contain filter drop-shadow select-none"
                           onError={handleAwayImgError}
                           referrerPolicy="no-referrer"
                         />
                       ) : (
-                        <span className="text-[11px] font-black text-sky-400">
+                        <span className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-zinc-800 text-zinc-300 flex items-center justify-center text-xs font-bold select-none">
                           {getTeamInitials(team2)}
                         </span>
                       )}
@@ -414,7 +414,7 @@ export function LiveMatchScoreboard({
                 <div className="hidden md:flex items-center gap-2 shrink-0">
                   {(blv || match?.blv || currentServer) && (
                     <Tooltip content={`BLV: ${blvLabel}`} side="top">
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-500/10 hover:bg-rose-500/15 text-rose-300 text-xs font-semibold truncate max-w-[170px] lg:max-w-[220px] transition">
+                      <span className="inline-flex items-center gap-1.5 text-rose-300 text-xs font-semibold truncate max-w-[170px] lg:max-w-[220px] transition">
                         <Mic className="w-3.5 h-3.5 shrink-0" />
                         <span className="truncate">{blvLabel}</span>
                       </span>

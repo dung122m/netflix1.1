@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useMemo, useEffect, useCallback } from "react";
-import { Play, Flame, Mic, Radio, Trophy } from "lucide-react";
+import { Play, Mic, Radio, Trophy } from "lucide-react";
 import { PlayingEqualizer } from "./PlayingEqualizer";
 import { FootballMatch } from "@/services/liveFootballService";
 import { LiveMatchScore } from "@/services/live/football-score/types";
@@ -50,7 +50,7 @@ function TeamLogoFallback({
   }
 
   return (
-    <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-full flex items-center justify-center font-bold select-none bg-zinc-800/80 text-zinc-300 shrink-0">
+    <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-full flex items-center justify-center font-bold select-none bg-zinc-800/90 text-zinc-300 shrink-0 shadow-sm">
       <span className="text-xs sm:text-sm tracking-tight font-semibold">
         {displayInitials}
       </span>
@@ -633,7 +633,7 @@ function MatchCardInner({ match, isSelected, onSelect, score, compact }: MatchCa
               {/* Khu vực Tên đội: cố định min-height 2 dòng để dù 1 dòng hay 2 dòng thì baseline vẫn thẳng tắp */}
               <div className="min-h-[34px] sm:min-h-[36px] flex items-start justify-center mt-1.5 w-full">
                 <span
-                  className={`text-xs sm:text-[13px] line-clamp-2 leading-tight transition-colors text-center max-w-[110px] sm:max-w-[130px] md:max-w-[150px] ${
+                  className={`text-xs sm:text-[13px] line-clamp-2 leading-tight transition-colors text-center max-w-[125px] sm:max-w-[140px] md:max-w-[160px] ${
                     isSelected
                       ? "text-white font-black"
                       : featured.isFeatured
@@ -656,8 +656,8 @@ function MatchCardInner({ match, isSelected, onSelect, score, compact }: MatchCa
                     {currentScore?.team1Score} - {currentScore?.team2Score}
                   </span>
                 ) : (
-                  <span className={`font-sans tabular-nums text-xs sm:text-sm font-semibold tracking-wider select-none ${
-                    featured.isFeatured ? "text-zinc-300 font-bold" : "text-zinc-400"
+                  <span className={`font-sans tabular-nums text-sm sm:text-base font-bold tracking-widest select-none ${
+                    featured.isFeatured ? "text-zinc-200 font-extrabold" : "text-zinc-400"
                   }`}>
                     VS
                   </span>
@@ -665,37 +665,54 @@ function MatchCardInner({ match, isSelected, onSelect, score, compact }: MatchCa
               </div>
 
               {/* Khu vực Thời gian bên dưới: cố định min-h, thẳng hàng với dòng tên đội bóng */}
-              <div className="min-h-[34px] sm:min-h-[36px] flex flex-col items-center justify-start mt-1.5 gap-1">
-                {/* Phút thi đấu hoặc trạng thái hiệp (chỉ hiển thị khi có phút cụ thể hoặc HT/FT) */}
-                {timeInfo.state === "live" && timeInfo.clockBadge && timeInfo.clockBadge !== "LIVE" ? (
-                  <span className="font-sans tabular-nums text-[11px] sm:text-xs font-bold text-rose-400 leading-none">
-                    {formatDisplayMinute(timeInfo.clockBadge)}
-                  </span>
-                ) : timeInfo.state === "ht" ? (
-                  <span className="font-sans tabular-nums text-[11px] sm:text-xs font-bold text-amber-400 leading-none">
-                    HT
-                  </span>
-                ) : timeInfo.state === "ft" ? (
-                  <span className="font-sans tabular-nums text-[11px] sm:text-xs font-semibold text-zinc-400 leading-none">
-                    FT
-                  </span>
-                ) : timeInfo.state === "special" ? (
-                  <span className="font-sans tabular-nums text-[11px] font-bold text-amber-400 leading-none">
-                    {timeInfo.clockBadge}
-                  </span>
-                ) : null}
-
-                {/* Giờ bắt đầu */}
-                {kickoffTime && (
-                  <span
-                    className={`font-sans tabular-nums text-[11px] sm:text-xs leading-none ${
-                      featured.isFeatured
-                        ? "font-semibold text-zinc-100 bg-white/[0.08] border border-white/10 px-2.5 py-0.5 rounded-full shadow-sm"
-                        : "font-medium text-zinc-400"
-                    }`}
-                  >
-                    {kickoffTime}
-                  </span>
+              <div className="min-h-[34px] sm:min-h-[36px] flex flex-col items-center justify-start mt-1 gap-1">
+                {/* 1. Trận có tỉ số và đang thi đấu / kết thúc: Chỉ hiển thị Phút hoặc HT/FT (Typography thuần khiết) */}
+                {shouldShowScore ? (
+                  timeInfo.state === "live" ? (
+                    formatDisplayMinute(timeInfo.clockBadge) ? (
+                      <span className="font-sans tabular-nums text-xs font-bold text-rose-400 leading-none">
+                        {formatDisplayMinute(timeInfo.clockBadge)}
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 font-sans text-[11px] font-bold text-rose-400 leading-none">
+                        <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse shrink-0" />
+                        <span>Trực tiếp</span>
+                      </span>
+                    )
+                  ) : timeInfo.state === "ht" ? (
+                    <span className="font-sans tabular-nums text-xs font-bold text-amber-400 leading-none">
+                      HT
+                    </span>
+                  ) : timeInfo.state === "ft" ? (
+                    <span className="font-sans tabular-nums text-xs font-semibold text-zinc-400 leading-none">
+                      FT
+                    </span>
+                  ) : timeInfo.state === "special" ? (
+                    <span className="font-sans tabular-nums text-xs font-bold text-amber-400 leading-none">
+                      {timeInfo.clockBadge}
+                    </span>
+                  ) : (
+                    kickoffTime && (
+                      <span className="font-sans tabular-nums text-xs font-medium text-zinc-400 leading-none">
+                        {kickoffTime}
+                      </span>
+                    )
+                  )
+                ) : (
+                  /* 2. Trận chưa đá (Upcoming) hoặc không có tỉ số trực tiếp: Hiển thị Giờ đá (Tuyệt đối không bọc viền/pill) */
+                  <>
+                    {timeInfo.state === "live" && (
+                      <span className="inline-flex items-center gap-1 font-sans text-[11px] font-bold text-rose-400 leading-none">
+                        <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse shrink-0" />
+                        <span>Trực tiếp</span>
+                      </span>
+                    )}
+                    {kickoffTime && (
+                      <span className="font-sans tabular-nums text-xs font-medium text-zinc-400 leading-none">
+                        {kickoffTime}
+                      </span>
+                    )}
+                  </>
                 )}
               </div>
             </div>
@@ -729,7 +746,7 @@ function MatchCardInner({ match, isSelected, onSelect, score, compact }: MatchCa
               {/* Khu vực Tên đội: cố định min-height 2 dòng */}
               <div className="min-h-[34px] sm:min-h-[36px] flex items-start justify-center mt-1.5 w-full">
                 <span
-                  className={`text-xs sm:text-[13px] line-clamp-2 leading-tight transition-colors text-center max-w-[110px] sm:max-w-[130px] md:max-w-[150px] ${
+                  className={`text-xs sm:text-[13px] line-clamp-2 leading-tight transition-colors text-center max-w-[125px] sm:max-w-[140px] md:max-w-[160px] ${
                     isSelected
                       ? "text-white font-black"
                       : featured.isFeatured

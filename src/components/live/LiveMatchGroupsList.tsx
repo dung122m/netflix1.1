@@ -49,18 +49,18 @@ export function LiveMatchGroupsList({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* NHÓM ĐANG PHÁT TRỰC TIẾP */}
       {liveMatchesList.length > 0 && (
-        <div className="space-y-3">
+        <div className="space-y-2 sm:space-y-3">
           <div className="flex items-center justify-between px-1">
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse shrink-0" />
-              <h2 className="text-base sm:text-lg font-bold tracking-tight text-white">
+              <h2 className="text-sm sm:text-base font-bold tracking-tight text-white">
                 Đang phát trực tiếp
               </h2>
             </div>
-            <span className="text-xs font-medium font-sans tabular-nums px-2 py-0.5 rounded-full bg-white/5 text-zinc-400">
+            <span className="text-[11px] sm:text-xs font-medium font-sans tabular-nums px-2 py-0.5 rounded-full bg-white/5 text-zinc-400">
               {liveMatchesList.length} trận
             </span>
           </div>
@@ -81,12 +81,12 @@ export function LiveMatchGroupsList({
 
       {/* NHÓM SẮP DIỄN RA */}
       {upcomingMatchesList.length > 0 && (
-        <div className="space-y-3">
+        <div className="space-y-2 sm:space-y-3">
           <div className="flex items-center justify-between px-1">
-            <h2 className="text-base sm:text-lg font-bold tracking-tight text-zinc-300">
+            <h2 className="text-sm sm:text-base font-bold tracking-tight text-zinc-300">
               Sắp diễn ra
             </h2>
-            <span className="text-xs font-medium font-sans tabular-nums px-2 py-0.5 rounded-full bg-white/5 text-zinc-400">
+            <span className="text-[11px] sm:text-xs font-medium font-sans tabular-nums px-2 py-0.5 rounded-full bg-white/5 text-zinc-400">
               {upcomingMatchesList.length} trận
             </span>
           </div>

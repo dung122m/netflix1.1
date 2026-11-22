@@ -637,7 +637,7 @@ export default async function BrowsePage({
       {/* TRỤC CĂN CHỈNH NỘI DUNG CHÍNH (MAX-WIDTH 1440PX ĐỒNG BỘ THẲNG HÀNG 100%) */}
       <div className="w-full max-w-[1440px] mx-auto px-4 md:px-8">
         {/* BỘ LỌC PHIM CHI TIẾT */}
-        <div className="pt-20 sm:pt-24">
+        <div className="pt-16 sm:pt-24">
           <FilterBarClient />
         </div>
 

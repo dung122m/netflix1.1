@@ -366,68 +366,58 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
             </h4>
           </div>
 
-          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-zinc-800/90 p-1.5 flex items-center justify-center shadow-md relative overflow-hidden shrink-0">
+          <div className="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center shrink-0">
             {!espHome && homeAsset?.isCountry && homeAsset?.emoji ? (
-              <CountryFlag emoji={homeAsset.emoji} className="w-6 h-6 sm:w-7 sm:h-7 relative z-10" />
+              <CountryFlag emoji={homeAsset.emoji} className="w-7 h-7 sm:w-8 sm:h-8" />
             ) : homeLogoSrc ? (
               /* eslint-disable-next-line @next/next/no-img-element */
               <img
                 src={homeLogoSrc}
                 alt={homeDisplayName}
-                className="w-full h-full object-contain filter drop-shadow relative z-10"
+                className="w-full h-full object-contain filter drop-shadow select-none"
                 onError={() => setHomeImgFailed(true)}
                 referrerPolicy="no-referrer"
               />
             ) : (
-              <div className="flex items-center justify-center w-full h-full bg-rose-500/10 rounded-lg">
-                <span className="text-xs sm:text-sm font-black text-rose-400">
-                  {getTeamInitials(homeDisplayName)}
-                </span>
+              <div className="flex items-center justify-center w-8 h-8 rounded-full bg-zinc-800 text-zinc-300 font-bold text-xs select-none">
+                {getTeamInitials(homeDisplayName)}
               </div>
             )}
           </div>
         </div>
 
         {/* Cụm Tỷ số / VS trung tâm */}
-        <div className="flex flex-col items-center px-2 sm:px-4 shrink-0">
+        <div className="flex flex-col items-center px-2 sm:px-4 shrink-0 select-none">
           {hasValidScore ? (
-            <div className="flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-1 sm:py-1.5 rounded-xl bg-black/60 shadow-inner">
-              <span className="text-xl sm:text-2xl md:text-3xl font-sans font-black tabular-nums text-white tracking-wider">
-                {effectiveHomeScore}
-              </span>
-              <span className="text-sm sm:text-base font-bold text-zinc-500 select-none">-</span>
-              <span className="text-xl sm:text-2xl md:text-3xl font-sans font-black tabular-nums text-white tracking-wider">
-                {effectiveAwayScore}
-              </span>
+            <div className="flex items-center gap-2 sm:gap-2.5 font-sans font-black tabular-nums text-white text-2xl sm:text-3xl md:text-4xl tracking-wider leading-none">
+              <span>{effectiveHomeScore}</span>
+              <span className="text-zinc-500 font-light select-none">-</span>
+              <span>{effectiveAwayScore}</span>
             </div>
           ) : (
-            <div className="px-3 py-1 rounded-xl bg-zinc-900/90 shadow-sm">
-              <span className="text-xs sm:text-sm font-black text-zinc-300 select-none">
-                VS
-              </span>
-            </div>
+            <span className="text-xs sm:text-sm font-bold uppercase tracking-wider text-zinc-400 select-none">
+              VS
+            </span>
           )}
 
-          {/* Badge trạng thái / thời gian */}
-          <span
-            className={`mt-1.5 inline-flex items-center gap-1.5 text-[10px] sm:text-xs font-bold px-2.5 py-0.5 rounded-full tracking-wide whitespace-nowrap ${
-              isLive || effectiveStatus === "live"
-                ? "bg-red-950/60 text-red-400 shadow-sm"
-                : effectiveStatus === "finished"
-                  ? "bg-zinc-900 text-zinc-300"
-                  : "bg-zinc-900 text-sky-400"
-            }`}
-          >
+          {/* Trạng thái / thời gian */}
+          <div className="mt-1.5 inline-flex items-center gap-1.5 text-[11px] sm:text-xs font-semibold whitespace-nowrap">
             {(isLive || effectiveStatus === "live") && (
               <span className="relative flex h-1.5 w-1.5 rounded-full bg-red-500 animate-pulse shrink-0" />
             )}
-            <span>
+            <span
+              className={
+                isLive || effectiveStatus === "live"
+                  ? "text-red-400 font-bold"
+                  : "text-zinc-400"
+              }
+            >
               {isLive || effectiveStatus === "live" ? (
                 effectiveClock || "Trực tiếp"
               ) : effectiveStatus === "finished" ? (
                 "Hết giờ"
               ) : time && time !== "Trực tiếp" ? (
-                <span className="inline-flex items-center gap-1 font-sans tabular-nums">
+                <span className="inline-flex items-center gap-1 font-sans tabular-nums text-zinc-400">
                   <Clock className="w-3 h-3 shrink-0" />
                   <span>{time}</span>
                 </span>
@@ -435,28 +425,26 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
                 "Sắp diễn ra"
               )}
             </span>
-          </span>
+          </div>
         </div>
 
         {/* Đội khách: Logo + Tên (căn trái) */}
         <div className="flex items-center justify-start gap-2 sm:gap-3.5 min-w-0">
-          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-zinc-800/90 p-1.5 flex items-center justify-center shadow-md relative overflow-hidden shrink-0">
+          <div className="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center shrink-0">
             {!espAway && awayAsset?.isCountry && awayAsset?.emoji ? (
-              <CountryFlag emoji={awayAsset.emoji} className="w-6 h-6 sm:w-7 sm:h-7 relative z-10" />
+              <CountryFlag emoji={awayAsset.emoji} className="w-7 h-7 sm:w-8 sm:h-8" />
             ) : awayLogoSrc ? (
               /* eslint-disable-next-line @next/next/no-img-element */
               <img
                 src={awayLogoSrc}
                 alt={awayDisplayName}
-                className="w-full h-full object-contain filter drop-shadow relative z-10"
+                className="w-full h-full object-contain filter drop-shadow select-none"
                 onError={() => setAwayImgFailed(true)}
                 referrerPolicy="no-referrer"
               />
             ) : (
-              <div className="flex items-center justify-center w-full h-full bg-sky-500/10 rounded-lg">
-                <span className="text-xs sm:text-sm font-black text-sky-400">
-                  {getTeamInitials(awayDisplayName)}
-                </span>
+              <div className="flex items-center justify-center w-8 h-8 rounded-full bg-zinc-800 text-zinc-300 font-bold text-xs select-none">
+                {getTeamInitials(awayDisplayName)}
               </div>
             )}
           </div>
