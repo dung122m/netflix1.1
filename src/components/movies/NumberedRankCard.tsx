@@ -69,7 +69,7 @@ export const NumberedRankCard: React.FC<NumberedRankCardProps> = ({
   }, [quality]);
 
   return (
-    <div className="flex-none relative snap-start group select-none [content-visibility:auto] [contain-intrinsic-size:auto_260px]">
+    <div className="flex-none relative snap-start group select-none">
       <Link
         href={`/movies/${slug}`}
         prefetch={false}

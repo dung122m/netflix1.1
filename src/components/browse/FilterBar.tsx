@@ -421,7 +421,7 @@ export const FilterBar: React.FC = () => {
       </div>
 
       {/* 1B. CINEMATIC DOCK CONTAINER (DESKTOP >= 640px) */}
-      <div className="hidden sm:flex relative w-full rounded-2xl bg-zinc-900/60 backdrop-blur-md p-2 sm:p-2.5 shadow-lg shadow-black/40 items-center gap-2 sm:gap-3">
+      <div className="hidden sm:flex relative w-full rounded-2xl bg-zinc-900/95 p-2 sm:p-2.5 shadow-lg shadow-black/40 items-center gap-2 sm:gap-3">
         {/* LEFT LABEL: ICON + TEXT (DESKTOP / TABLET) */}
         <div className="flex-none hidden sm:flex items-center gap-2 pl-2 pr-2.5 border-r border-white/10 text-white font-bold text-xs sm:text-sm tracking-tight">
           <SlidersHorizontal className="w-4 h-4 text-netflix-red flex-none" />

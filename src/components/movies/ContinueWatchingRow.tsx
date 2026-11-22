@@ -288,7 +288,7 @@ function ContinueWatchingCard({ item, index = 0, onRemove }: ContinueWatchingCar
               className={`relative z-10 w-full h-full object-cover group-hover:scale-105 transition-[transform,opacity] duration-300 ease-out ${
                 isFallbackLoading && isBlockedByIsp ? "opacity-0" : "opacity-100"
               }`}
-              decoding={index < 4 ? "sync" : "async"}
+              decoding="async"
               loading={index < 8 ? "eager" : "lazy"}
               fetchPriority={index < 4 ? "high" : "auto"}
               onLoad={() => {

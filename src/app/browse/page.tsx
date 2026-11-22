@@ -683,7 +683,7 @@ export default async function BrowsePage({
         <div className="relative z-10 pt-2 sm:pt-4">
           {detectedActor ? (
             /* KHỐI HỒ SƠ NGHỆ SĨ DUY NHẤT (GỘP TIÊU ĐỀ + PROFILE CARD CHUẨN APPLE TV+, TRIỆT TIÊU 100% TRÙNG LẶP TEXT) */
-            <div className="mb-7 p-4 sm:p-5 rounded-2xl bg-zinc-900/60 border border-white/[0.08] backdrop-blur-md shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4 animate-in fade-in duration-300 mt-4">
+            <div className="mb-7 p-4 sm:p-5 rounded-2xl bg-zinc-900/95 border border-white/[0.08] shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4 animate-in fade-in duration-200 mt-4">
               <div className="flex items-center gap-4 min-w-0">
                 {detectedActor.avatarUrl ? (
                   <div className="relative w-14 h-14 sm:w-16 sm:h-16 rounded-full overflow-hidden border border-white/10 flex-none shadow-lg">
@@ -772,7 +772,7 @@ export default async function BrowsePage({
                 )}
               </div>
               <div className="flex items-center gap-3 flex-wrap">
-                <div className="inline-flex items-center gap-2 rounded-xl bg-white/5 px-3 py-1.5 text-xs md:text-sm text-zinc-200 backdrop-blur-sm shadow-sm">
+                <div className="inline-flex items-center gap-2 rounded-xl bg-white/10 px-3 py-1.5 text-xs md:text-sm text-zinc-200 shadow-sm">
                   <Film className="w-3.5 h-3.5 text-netflix-red" />
                   <span>{totalItems.toLocaleString("vi-VN")} phim</span>
                   <span className="text-white/40">•</span>
@@ -797,7 +797,7 @@ export default async function BrowsePage({
           </>
         ) : (
           <div className="py-12 space-y-10">
-            <div className="max-w-xl mx-auto rounded-2xl bg-zinc-900/40 border border-white/[0.06] p-6 md:p-8 text-center backdrop-blur-md shadow-2xl">
+            <div className="max-w-xl mx-auto rounded-2xl bg-zinc-900/90 border border-white/[0.06] p-6 md:p-8 text-center shadow-2xl">
               <Film className="w-12 h-12 text-zinc-500 mx-auto mb-3" />
               <h3 className="text-lg md:text-xl font-bold text-white">
                 {detectedActor
