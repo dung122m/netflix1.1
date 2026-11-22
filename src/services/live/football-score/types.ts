@@ -78,7 +78,7 @@ export interface MatchStatItem {
 
 export interface MatchKeyEvent {
   id: string;
-  type: "goal" | "yellow-card" | "red-card" | "substitution" | "other";
+  type: "goal" | "yellow-card" | "red-card" | "substitution" | "missed-penalty" | "other";
   typeText: string;
   text: string;
   clock: string;

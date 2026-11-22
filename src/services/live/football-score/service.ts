@@ -961,7 +961,15 @@ export function parseRawSummary(
         let eventType: MatchKeyEvent["type"] = "other";
 
         // Nhận diện theo typeId/typeRaw
-        if (typeId === "70" || typeRaw.toLowerCase().includes("goal") || ev.scoringPlay === true) {
+        const isMissedPenalty =
+          typeId === "111" ||
+          typeRaw.toLowerCase().includes("penalty miss") ||
+          typeRaw.toLowerCase().includes("missed penalty") ||
+          Boolean(ev.text && /(?:penalty missed|missed penalty|penalty.*(?:saved|hits the post|missed)|hỏng phạt đền|trượt pen|hỏng 11m)/i.test(ev.text));
+
+        if (isMissedPenalty) {
+          eventType = "missed-penalty";
+        } else if (typeId === "70" || typeRaw.toLowerCase().includes("goal") || ev.scoringPlay === true) {
           eventType = "goal";
         } else if (typeId === "94" || typeRaw.toLowerCase().includes("yellow")) {
           eventType = "yellow-card";

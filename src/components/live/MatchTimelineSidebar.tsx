@@ -24,6 +24,7 @@ export interface MatchTimelineSidebarProps {
 
 /**
  * Icon Quả bóng đá chuẩn quốc tế (FIFA / Adidas Telstar classic geometry)
+ * Đảm bảo hình cầu trắng tròn trịa, tương phản hoàn hảo trên nền tối (#09090b / #121214) và trên sân cỏ
  */
 export function SoccerBallIcon({ className = "w-4 h-4" }: { className?: string }) {
   return (
@@ -33,19 +34,66 @@ export function SoccerBallIcon({ className = "w-4 h-4" }: { className?: string }
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
     >
-      <circle cx="12" cy="12" r="10" fill="#FFFFFF" stroke="#09090b" strokeWidth="1.2" />
-      <polygon points="12,8 15.3,10.4 14.1,14.2 9.9,14.2 8.7,10.4" fill="#09090b" />
-      <line x1="12" y1="8" x2="12" y2="2" stroke="#09090b" strokeWidth="1.2" />
-      <line x1="15.3" y1="10.4" x2="21" y2="8.5" stroke="#09090b" strokeWidth="1.2" />
-      <line x1="14.1" y1="14.2" x2="17.6" y2="19.7" stroke="#09090b" strokeWidth="1.2" />
-      <line x1="9.9" y1="14.2" x2="6.4" y2="19.7" stroke="#09090b" strokeWidth="1.2" />
-      <line x1="8.7" y1="10.4" x2="3" y2="8.5" stroke="#09090b" strokeWidth="1.2" />
-      <path d="M10 2.2C10.6 2.06 11.3 2 12 2c.7 0 1.4.06 2 .2l-.8 2.3h-2.4L10 2.2z" fill="#09090b" />
-      <path d="M21 8.5c.5.9.8 1.9.9 3l-2.4.4-.9-2.1 2.4-1.3z" fill="#09090b" />
-      <path d="M17.6 19.7c-.8.6-1.7 1.1-2.7 1.4l-.5-2.4 2-1.2 1.2 2.2z" fill="#09090b" />
-      <path d="M6.4 19.7c.8.6 1.7 1.1 2.7 1.4l.5-2.4-2-1.2-1.2 2.2z" fill="#09090b" />
-      <path d="M3 8.5c-.5.9-.8 1.9-.9 3l2.4.4.9-2.1L3 8.5z" fill="#09090b" />
+      {/* Vỏ bóng da trắng tròn trịa, viền sắc nét không bị vỡ góc trên dark mode */}
+      <circle cx="12" cy="12" r="9.5" fill="#FFFFFF" stroke="#0F172A" strokeWidth="1.2" />
+      {/* Ngũ giác trung tâm (Pentagon Telstar kinh điển) */}
+      <polygon
+        points="12,7.2 15.6,9.8 14.2,14.2 9.8,14.2 8.4,9.8"
+        fill="#0F172A"
+        stroke="#0F172A"
+        strokeWidth="0.8"
+        strokeLinejoin="round"
+      />
+      {/* 5 đường may đối xứng tỏa đều ra mép bóng */}
+      <line x1="12" y1="7.2" x2="12" y2="2.5" stroke="#0F172A" strokeWidth="1.2" strokeLinecap="round" />
+      <line x1="15.6" y1="9.8" x2="21" y2="8.2" stroke="#0F172A" strokeWidth="1.2" strokeLinecap="round" />
+      <line x1="14.2" y1="14.2" x2="17.6" y2="20.2" stroke="#0F172A" strokeWidth="1.2" strokeLinecap="round" />
+      <line x1="9.8" y1="14.2" x2="6.4" y2="20.2" stroke="#0F172A" strokeWidth="1.2" strokeLinecap="round" />
+      <line x1="8.4" y1="9.8" x2="3" y2="8.2" stroke="#0F172A" strokeWidth="1.2" strokeLinecap="round" />
     </svg>
+  );
+}
+
+/**
+ * Icon Hỏng phạt đền (Missed Penalty) chuẩn truyền hình thể thao quốc tế
+ * Biểu tượng quả bóng kết hợp dấu X đỏ gạch chéo nhận diện tức thì
+ */
+export function MissedPenaltyIcon({ className = "w-4 h-4" }: { className?: string }) {
+  return (
+    <span className={`${className} shrink-0 relative inline-flex items-center justify-center`}>
+      <svg
+        viewBox="0 0 24 24"
+        className="w-full h-full shrink-0 drop-shadow-sm opacity-85"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <circle cx="12" cy="12" r="9.5" fill="#E2E8F0" stroke="#475569" strokeWidth="1.2" />
+        <polygon
+          points="12,7.2 15.6,9.8 14.2,14.2 9.8,14.2 8.4,9.8"
+          fill="#475569"
+          stroke="#475569"
+          strokeWidth="0.8"
+          strokeLinejoin="round"
+        />
+        <line x1="12" y1="7.2" x2="12" y2="2.5" stroke="#475569" strokeWidth="1.1" strokeLinecap="round" />
+        <line x1="15.6" y1="9.8" x2="21" y2="8.2" stroke="#475569" strokeWidth="1.1" strokeLinecap="round" />
+        <line x1="14.2" y1="14.2" x2="17.6" y2="20.2" stroke="#475569" strokeWidth="1.1" strokeLinecap="round" />
+        <line x1="9.8" y1="14.2" x2="6.4" y2="20.2" stroke="#475569" strokeWidth="1.1" strokeLinecap="round" />
+        <line x1="8.4" y1="9.8" x2="3" y2="8.2" stroke="#475569" strokeWidth="1.1" strokeLinecap="round" />
+      </svg>
+      {/* Dấu X đỏ sắc nét nổi bật đè lên bóng */}
+      <svg
+        viewBox="0 0 24 24"
+        className="w-full h-full absolute inset-0 pointer-events-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)]"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <line x1="4.5" y1="4.5" x2="19.5" y2="19.5" stroke="#EF4444" strokeWidth="3.2" strokeLinecap="round" />
+        <line x1="19.5" y1="4.5" x2="4.5" y2="19.5" stroke="#EF4444" strokeWidth="3.2" strokeLinecap="round" />
+        <line x1="5.5" y1="5.5" x2="18.5" y2="18.5" stroke="#FFFFFF" strokeWidth="1.2" strokeLinecap="round" />
+        <line x1="18.5" y1="5.5" x2="5.5" y2="18.5" stroke="#FFFFFF" strokeWidth="1.2" strokeLinecap="round" />
+      </svg>
+    </span>
   );
 }
 
@@ -76,7 +124,7 @@ interface StreamItem {
   orderIndex: number;
   timeDisplay: string;
   isKeyEvent: boolean;
-  type?: "goal" | "yellow-card" | "red-card" | "substitution" | "commentary" | "other";
+  type?: "goal" | "yellow-card" | "red-card" | "substitution" | "missed-penalty" | "commentary" | "other";
   title?: string;
   subtitle?: string;
   text: string;
@@ -179,6 +227,9 @@ export const MatchTimelineSidebar: React.FC<MatchTimelineSidebarProps> = ({
 
       if (ev.type === "goal") {
         title = ev.playerName ? `Bàn thắng: ${ev.playerName}` : "BÀN THẮNG";
+      } else if (ev.type === "missed-penalty") {
+        title = ev.playerName ? `Hỏng phạt đền: ${ev.playerName}` : "HỎNG PHẠT ĐỀN";
+        subtitle = "Penalty Missed";
       } else if (ev.type === "yellow-card") {
         title = ev.playerName ? `${ev.playerName}` : "Thẻ vàng";
         subtitle = "Thẻ vàng";
@@ -257,9 +308,13 @@ export const MatchTimelineSidebar: React.FC<MatchTimelineSidebarProps> = ({
           const hasSubKeyword = /substitution|replaces|thay người|subbed/i.test(lower);
           const hasPlayer = matchesPlayerName(lower, ev.subInPlayer) || matchesPlayerName(lower, ev.subOutPlayer);
           if (hasSubKeyword && hasPlayer) return ev;
+        } else if (ev.type === "missed-penalty") {
+          const hasMissedPenKeyword = /penalty missed|missed penalty|penalty.*(?:saved|hits the post|missed)|hỏng phạt đền|trượt pen|hỏng 11m/i.test(lower);
+          const hasPlayer = matchesPlayerName(lower, ev.playerName);
+          if (hasMissedPenKeyword && (hasPlayer || !ev.playerName)) return ev;
         } else if (ev.type === "goal") {
           const hasGoalKeyword = /\b(goal|bàn thắng|scores|scored)\b/i.test(lower);
-          const isNotSaved = !/saved|attempt saved|missed|blocked|disallowed|var/i.test(lower);
+          const isNotSaved = !/saved|attempt saved|missed|blocked|disallowed|var|penalty missed|missed penalty/i.test(lower);
           const hasPlayer = matchesPlayerName(lower, ev.playerName);
           if (hasGoalKeyword && isNotSaved && hasPlayer) return ev;
         }
@@ -293,6 +348,30 @@ export const MatchTimelineSidebar: React.FC<MatchTimelineSidebarProps> = ({
         };
       }
 
+      // Nhận diện dòng bình luận sút hỏng penalty trực tiếp từ text nếu không map được event
+      const isMissedPenCommentary = /penalty missed|missed penalty|penalty.*(?:saved|hits the post|missed)|hỏng phạt đền|trượt pen|hỏng 11m/i.test(c.text || "");
+      if (isMissedPenCommentary) {
+        // Đánh dấu event missed-penalty nếu có cùng khoảng thời gian để tránh bị lặp ở khối fallback
+        for (const ev of events) {
+          if (ev.type === "missed-penalty") {
+            const evTimeNum = parseMinuteNumber(ev.clock);
+            if (Math.abs(evTimeNum - cTimeNum) <= 100 || Math.abs(evTimeNum - cTimeNum) <= 1) {
+              const evKey = ev.id || `${ev.type}-${ev.clock}-${ev.playerName || ""}`;
+              matchedEventKeys.add(evKey);
+            }
+          }
+        }
+        return {
+          id: `c-${idx}`,
+          minuteNum: cTimeNum,
+          orderIndex: typeof c.sequence === "number" ? c.sequence : idx,
+          timeDisplay: formatEventMinute(c.time),
+          isKeyEvent: true,
+          type: "missed-penalty",
+          text: c.text || "",
+        };
+      }
+
       return {
         id: `c-${idx}`,
         minuteNum: cTimeNum,
@@ -316,6 +395,9 @@ export const MatchTimelineSidebar: React.FC<MatchTimelineSidebarProps> = ({
         let subtitle = "";
         if (ev.type === "goal") {
           title = ev.playerName ? `Bàn thắng: ${ev.playerName}` : "BÀN THẮNG";
+        } else if (ev.type === "missed-penalty") {
+          title = ev.playerName ? `Hỏng phạt đền: ${ev.playerName}` : "HỎNG PHẠT ĐỀN";
+          subtitle = "Penalty Missed";
         } else if (ev.type === "yellow-card") {
           title = `${ev.playerName || "Cầu thủ"}`;
           subtitle = "Thẻ vàng";
@@ -585,8 +667,13 @@ export const MatchTimelineSidebar: React.FC<MatchTimelineSidebarProps> = ({
               return (
                 <div
                   key={item.id}
-                  className={`flex items-start gap-2.5 py-2.5 px-2 hover:bg-white/[0.02] transition text-xs ${item.type === "goal" ? "bg-rose-500/[0.04]" : ""
-                    }`}
+                  className={`flex items-start gap-2.5 py-2.5 px-2 hover:bg-white/[0.02] transition text-xs ${
+                    item.type === "goal"
+                      ? "bg-rose-500/[0.04]"
+                      : item.type === "missed-penalty"
+                        ? "bg-rose-500/[0.06]"
+                        : ""
+                  }`}
                 >
                   {/* Phút */}
                   <span className="w-8 shrink-0 text-right font-sans font-black tabular-nums text-amber-400 pt-0.5">
@@ -596,6 +683,7 @@ export const MatchTimelineSidebar: React.FC<MatchTimelineSidebarProps> = ({
                   {/* Icon sự kiện (phẳng, không có viền hộp) */}
                   <div className="w-4 h-4 shrink-0 flex items-center justify-center pt-0.5">
                     {item.type === "goal" && <SoccerBallIcon className="w-4 h-4" />}
+                    {item.type === "missed-penalty" && <MissedPenaltyIcon className="w-4 h-4" />}
                     {item.type === "yellow-card" && (
                       <span className="w-2.5 h-3.5 rounded-[1px] bg-amber-400 shadow-sm inline-block" />
                     )}
@@ -632,13 +720,15 @@ export const MatchTimelineSidebar: React.FC<MatchTimelineSidebarProps> = ({
                       <p
                         className={`text-xs font-sans leading-relaxed ${item.type === "goal"
                           ? "font-bold text-white"
-                          : item.type === "yellow-card"
-                            ? "text-amber-200/90"
-                            : item.type === "red-card"
-                              ? "text-rose-300 font-bold"
-                              : item.type === "substitution"
-                                ? "text-sky-200/90"
-                                : "text-zinc-200"
+                          : item.type === "missed-penalty"
+                            ? "text-rose-200/90 font-medium"
+                            : item.type === "yellow-card"
+                              ? "text-amber-200/90"
+                              : item.type === "red-card"
+                                ? "text-rose-300 font-bold"
+                                : item.type === "substitution"
+                                  ? "text-sky-200/90"
+                                  : "text-zinc-200"
                           }`}
                       >
                         {item.text}
