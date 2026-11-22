@@ -130,8 +130,11 @@ export default function RootLayout({
           content="width=device-width, initial-scale=1, maximum-scale=5, viewport-fit=cover"
         />
 
-        {/* Preconnect tối ưu cho ảnh TMDb / trailer / stream */}
+        {/* Preconnect tối ưu cho ảnh TMDb / Cloudflare R2 / trailer / stream */}
+        <link rel="preconnect" href="https://image.tmdb.org" crossOrigin="anonymous" />
+        <link rel="preconnect" href="https://media.nanaflix.asia" crossOrigin="anonymous" />
         <link rel="dns-prefetch" href="https://image.tmdb.org" />
+        <link rel="dns-prefetch" href="https://media.nanaflix.asia" />
         <link rel="dns-prefetch" href="https://m.media-amazon.com" />
         <link rel="dns-prefetch" href="https://images-na.ssl-images-amazon.com" />
         <link rel="dns-prefetch" href="https://i.ytimg.com" />
