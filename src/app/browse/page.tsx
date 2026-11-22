@@ -5,7 +5,7 @@ import { FilterBarClient } from "@/components/browse/FilterBarClient";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { Film, Flame, ChevronRight } from "lucide-react";
-import { findHistoricalArtist, ensureHistoricalArtistsLoaded, getR2ActorAvatarUrl } from "@/data/history/historicalArtistsBirthdays";
+import { findHistoricalArtist } from "@/data/history/historicalArtistsBirthdays";
 import { movieApi, parseSortMode } from "@/services/movies/service";
 import { executeSmartSearch } from "@/services/movies/smartSearchService";
 
@@ -320,7 +320,7 @@ async function runActorSearch(options: ActorSearchOptions) {
   const totalPages = Math.max(1, Math.ceil(totalItems / pageLimit));
   const startIndex = (currentPage - 1) * pageLimit;
   const histArtist = findHistoricalArtist(canonicalName) || (actorParam ? findHistoricalArtist(actorParam) : undefined);
-  const bestAvatar = histArtist?.avatarUrl || (actorSynonyms?.slug ? getR2ActorAvatarUrl(actorSynonyms.slug) : undefined) || (actorResult as any)?.avatarUrl;
+  const bestAvatar = (actorResult as any)?.avatarUrl || histArtist?.avatarUrl;
   const displayActorName = toVietnameseTitleCase(histArtist?.name || canonicalName);
   return {
     actor: {
@@ -426,13 +426,6 @@ export default async function BrowsePage({
   // =========================================================================
   // 1. TÁCH BIỆT RÕ RÀNG: TÌM KIẾM THEO DIỄN VIÊN VS TÌM KIẾM THEO TÊN PHIM
   // =========================================================================
-  // Nạp sẵn catalog nghệ sĩ từ Cloudflare R2 / RAM (0ms nếu đã có trong RAM, trần tối đa 350ms chống nghẽn)
-  if (actorParam || keyword) {
-    await Promise.race([
-      ensureHistoricalArtistsLoaded(),
-      new Promise((resolve) => setTimeout(resolve, 350)),
-    ]);
-  }
 
   // Explicit actor routes are intentional. Keyword searches always go through the title search first.
   const targetActorQuery = actorParam ? actorParam.trim() : undefined;

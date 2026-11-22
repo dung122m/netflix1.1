@@ -47,7 +47,7 @@ export async function getTmdbRankedMovies(
           type === "top_rated"
             ? executeImdbTop250Query(cacheKey, limit, concurrency)
             : executeTmdbRankingQuery(type, cacheKey, limit, concurrency);
-        queryFn.catch(() => {});
+        queryFn.catch(() => { });
       }, 100);
       return cached.data.slice(0, limit);
     }
@@ -164,13 +164,44 @@ export async function executeImdbTop250Query(
     const seenSlugs = new Set<string>();
     const seenTmdbIds = new Set<number>();
     const seenImdbIds = new Set<string>();
+    // Dynamic Top Rated query từ TMDb Discover (lọc vote_count >= 10,000, sắp xếp theo vote_average giảm dần)
+    const [page1Data, page2Data] = await Promise.all([
+      fetchTmdbEndpoint(
+        `/discover/movie?sort_by=vote_average.desc&vote_count.gte=10000&language=vi-VN&page=1`,
+        86400 * 7
+      ),
+      fetchTmdbEndpoint(
+        `/discover/movie?sort_by=vote_average.desc&vote_count.gte=10000&language=vi-VN&page=2`,
+        86400 * 7
+      ),
+    ]);
 
     let currentIndex = 0;
     const batchSize = 15;
+    const rawMovies = [
+      ...(Array.isArray(page1Data?.results) ? page1Data.results : []),
+      ...(Array.isArray(page2Data?.results) ? page2Data.results : []),
+    ];
 
     async function processBatch(startIndex: number, count: number): Promise<any[]> {
       const batch = IMDB_TOP_250_SNAPSHOT.slice(startIndex, startIndex + count);
       if (batch.length === 0) return [];
+      const validCredits: (TmdbMovieCredit & { imdbRank: number })[] = rawMovies.map((movie: any, idx: number) => ({
+        id: movie.id,
+        imdbRank: idx + 1,
+        title: movie.title || movie.name || "",
+        original_title: movie.original_title || movie.original_name || "",
+        release_date: movie.release_date || "",
+        vote_average: Number(movie.vote_average || 0),
+        vote_count: Number(movie.vote_count || 0),
+        popularity: Number(movie.popularity || 0),
+        poster_path: movie.poster_path || null,
+        backdrop_path: movie.backdrop_path || null,
+        overview: movie.overview || "",
+        media_type: "movie",
+        genre_ids: Array.isArray(movie.genre_ids) ? movie.genre_ids : undefined,
+        original_language: movie.original_language || undefined,
+      }));
 
       // 1. Resolve TMDB Movie IDs từ IMDb ID (cache 7 ngày)
       const resolvedList = await runWithConcurrencyLimit(batch, concurrency, async (item) => {
@@ -200,236 +231,258 @@ export async function executeImdbTop250Query(
         };
         return credit;
       });
+      // 2. Đối chiếu với PhimAPI & NguonC
+      const matchedList = await matchTmdbMoviesWithSources(validCredits, validCredits.length, concurrency);
 
       const validCredits = resolvedList.filter(
         (c): c is TmdbMovieCredit & { imdbRank: number; imdbId: string } => Boolean(c)
       );
       if (validCredits.length === 0) return [];
-
-      // Bảo toàn thứ tự rank IMDb tăng dần
-      validCredits.sort((a, b) => a.imdbRank - b.imdbRank);
-
-      // 2. Đối chiếu với PhimAPI & NguonC
-      const matchedList = await matchTmdbMoviesWithSources(validCredits, validCredits.length, concurrency);
-
       const matchedMap = new Map<string, any>();
       for (const m of matchedList) {
         if (m?.tmdb?.id) matchedMap.set(`tmdb_${m.tmdb.id}`, m);
-        if (m?.imdb?.id) matchedMap.set(`imdb_${m.imdb.id}`, m);
         if (m?.slug) matchedMap.set(`slug_${m.slug}`, m);
       }
 
-      const orderedBatchResults: any[] = [];
+      // Bảo toàn thứ tự rank IMDb tăng dần
+      validCredits.sort((a, b) => a.imdbRank - b.imdbRank);
+      const seenSlugs = new Set<string>();
+      const seenTmdbIds = new Set<number>();
+      const finalResults: any[] = [];
+
+      // 2. Đối chiếu với PhimAPI & NguonC
+      const matchedList = await matchTmdbMoviesWithSources(validCredits, validCredits.length, concurrency);
       for (const credit of validCredits) {
         const match =
-          matchedMap.get(`imdb_${credit.imdbId}`) ||
           matchedMap.get(`tmdb_${credit.id}`) ||
-          matchedList.find(
-            (m) => m?.id === credit.id || String(m?.tmdb?.id) === String(credit.id)
-          );
+          matchedList.find((m) => m?.id === credit.id || String(m?.tmdb?.id) === String(credit.id));
 
-        if (
-          match &&
-          !seenSlugs.has(match.slug) &&
-          !seenTmdbIds.has(credit.id) &&
-          !seenImdbIds.has(credit.imdbId)
-        ) {
-          seenSlugs.add(match.slug);
-          seenTmdbIds.add(credit.id);
-          seenImdbIds.add(credit.imdbId);
-          orderedBatchResults.push({
-            ...match,
-            imdb_rank: credit.imdbRank,
-            imdb_id: credit.imdbId,
-          });
-        }
-      }
-
-      return orderedBatchResults;
-    }
-
-    // NHÓM 1: Lấy 10 phim khả dụng đầu tiên có rank IMDb cao nhất
-    while (group1.length < targetGroup1 && currentIndex < IMDB_TOP_250_SNAPSHOT.length) {
-      const matched = await processBatch(currentIndex, batchSize);
-      for (const movie of matched) {
-        if (group1.length >= targetGroup1) break;
-        group1.push(movie);
-      }
-      currentIndex += batchSize;
-    }
-
-    // NHÓM 2: Tiếp tục duyệt từ vị trí đang dừng để lấy 10 phim khả dụng tiếp theo
-    while (group2.length < targetGroup2 && currentIndex < IMDB_TOP_250_SNAPSHOT.length) {
-      const matched = await processBatch(currentIndex, batchSize);
-      for (const movie of matched) {
-        if (group2.length >= targetGroup2) break;
-        group2.push(movie);
-      }
-      currentIndex += batchSize;
-    }
-
-    const finalResults = [...group1, ...group2];
-
-    const now = Date.now();
-    TMDB_TRENDING_MOVIES_CACHE.set(cacheKey, {
-      data: finalResults,
-      expireAt: now + 24 * 3600 * 1000, // 24h tươi
-      staleUntil: now + 48 * 3600 * 1000, // 48h stale
-    });
-
-    return finalResults;
-  } catch (err) {
-    console.warn("[IMDb Top 250 Query] Error fetching ranking:", err);
-    return [];
-  }
-}
-
-/**
- * 11. TRA CỨU TMDB ID TỪ TIÊU ĐỀ PHIM (SEARCH MEDIA MULTI)
- * Dùng cho Nana AI khi phân tích câu hỏi "Phim giống [Tựa Phim]"
- */
-const TMDB_MEDIA_SEARCH_CACHE = new Map<string, { data: { id: number; type: "movie" | "tv"; title: string } | null; expireAt: number }>();
-
-export async function searchTmdbMedia(title: string): Promise<{ id: number; type: "movie" | "tv"; title: string } | null> {
-  const cleanTitle = title.trim();
-  if (!cleanTitle || cleanTitle.length < 2) return null;
-
-  const cacheKey = cleanStringForMatch(cleanTitle);
-  const now = Date.now();
-  const memHit = TMDB_MEDIA_SEARCH_CACHE.get(cacheKey);
-  if (memHit && memHit.expireAt > now) {
-    return memHit.data;
-  }
-
-  const kvKey = `tmdb:media_search:v1:${cacheKey}`;
-  const result = await cacheService.fetchOrSet<{ id: number; type: "movie" | "tv"; title: string } | null>(
-    kvKey,
-    async () => {
-      try {
-        let data = await fetchTmdbEndpoint(
-          `/search/multi?query=${encodeURIComponent(cleanTitle)}&language=vi-VN&include_adult=false`
-        );
-        let results = Array.isArray(data?.results) ? data.results : [];
-        if (results.length === 0) {
-          data = await fetchTmdbEndpoint(
-            `/search/multi?query=${encodeURIComponent(cleanTitle)}&include_adult=false`
-          );
-          results = Array.isArray(data?.results) ? data.results : [];
-        }
-
-        const best = results.find((r: any) => r && (r.media_type === "movie" || r.media_type === "tv") && r.id);
-        if (best) {
-          return {
-            id: Number(best.id),
-            type: best.media_type === "tv" ? "tv" : "movie",
-            title: best.title || best.name || cleanTitle,
-          };
-        }
-        return null;
-      } catch (err) {
-        console.warn(`[TMDB] Error searching media for "${cleanTitle}":`, err);
-        return null;
-      }
-    },
-    14 * 86400 // 14 ngày
-  );
-
-  TMDB_MEDIA_SEARCH_CACHE.set(cacheKey, {
-    data: result,
-    expireAt: now + 24 * 3600 * 1000,
-  });
-
-  return result;
-}
-
-/**
- * 12. DISCOVERY NANA AI THEO CHỦ ĐỀ / KEYWORDS QUA TMDB GRAPH
- * Khám phá candidate từ TMDB rồi đối chiếu sang catalog Nanaflix
- */
-const TMDB_CONCEPT_CACHE = new Map<string, { data: any[]; expireAt: number }>();
-
-export async function discoverTmdbConceptMovies(
-  keywords: string[],
-  limit = 10,
-  excludeSlugs: string[] = []
-): Promise<any[]> {
-  if (!keywords || keywords.length === 0) return [];
-
-  const cleanKeywords = keywords
-    .map((k) => (k || "").trim())
-    .filter((k) => k.length >= 2)
-    .slice(0, 3);
-  if (cleanKeywords.length === 0) return [];
-
-  const cacheKey = cleanKeywords.map(cleanStringForMatch).join("_");
-  const now = Date.now();
-  const memHit = TMDB_CONCEPT_CACHE.get(cacheKey);
-  if (memHit && memHit.expireAt > now) {
-    const exSet = new Set(excludeSlugs.map((s) => s.toLowerCase()));
-    return memHit.data.filter((m: any) => m?.slug && !exSet.has(m.slug.toLowerCase())).slice(0, limit);
-  }
-
-  const kvKey = `tmdb:concept:v1:${cacheKey}`;
-  const matchedMovies = await cacheService.fetchOrSet<any[]>(
-    kvKey,
-    async () => {
-      try {
-        const searchTasks = cleanKeywords.map((kw) =>
-          fetchTmdbEndpoint(
-            `/search/multi?query=${encodeURIComponent(kw)}&language=vi-VN&include_adult=false`
-          )
-            .then((d) => (Array.isArray(d?.results) ? d.results : []))
-            .catch(() => [])
-        );
-
-        const resultsNested = await Promise.all(searchTasks);
-        const seenIds = new Set<number>();
-        const credits: TmdbMovieCredit[] = [];
-
-        for (const list of resultsNested) {
-          for (const m of list) {
-            if (!m || !m.id || seenIds.has(m.id)) continue;
-            if (m.media_type !== "movie" && m.media_type !== "tv") continue;
-            seenIds.add(m.id);
-
-            credits.push({
-              id: Number(m.id),
-              title: m.title || m.name || "",
-              original_title: m.original_title || m.original_name || m.title || m.name || "",
-              release_date: m.release_date || m.first_air_date || "",
-              vote_average: Number(m.vote_average || 0),
-              vote_count: Number(m.vote_count || 0),
-              popularity: Number(m.popularity || 0),
-              poster_path: m.poster_path || null,
-              backdrop_path: m.backdrop_path || null,
-              overview: m.overview || "",
-              media_type: m.media_type,
-              genre_ids: Array.isArray(m.genre_ids) ? m.genre_ids : undefined,
-              original_language: m.original_language || undefined,
+        const matchedMap = new Map<string, any>();
+        for (const m of matchedList) {
+          if (m?.tmdb?.id) matchedMap.set(`tmdb_${m.tmdb.id}`, m);
+          if (m?.imdb?.id) matchedMap.set(`imdb_${m.imdb.id}`, m);
+          if (m?.slug) matchedMap.set(`slug_${m.slug}`, m);
+          if (match && !seenSlugs.has(match.slug) && !seenTmdbIds.has(credit.id)) {
+            seenSlugs.add(match.slug);
+            seenTmdbIds.add(credit.id);
+            finalResults.push({
+              ...match,
+              imdb_rank: credit.imdbRank,
             });
-
-            if (credits.length >= 20) break;
+            if (finalResults.length >= targetTotal) break;
           }
-          if (credits.length >= 20) break;
+
+          const orderedBatchResults: any[] = [];
+          for (const credit of validCredits) {
+            const match =
+              matchedMap.get(`imdb_${credit.imdbId}`) ||
+              matchedMap.get(`tmdb_${credit.id}`) ||
+              matchedList.find(
+                (m) => m?.id === credit.id || String(m?.tmdb?.id) === String(credit.id)
+              );
+
+            if (
+              match &&
+              !seenSlugs.has(match.slug) &&
+              !seenTmdbIds.has(credit.id) &&
+              !seenImdbIds.has(credit.imdbId)
+            ) {
+              seenSlugs.add(match.slug);
+              seenTmdbIds.add(credit.id);
+              seenImdbIds.add(credit.imdbId);
+              orderedBatchResults.push({
+                ...match,
+                imdb_rank: credit.imdbRank,
+                imdb_id: credit.imdbId,
+              });
+            }
+          }
+
+          return orderedBatchResults;
         }
 
-        if (credits.length === 0) return [];
+        // NHÓM 1: Lấy 10 phim khả dụng đầu tiên có rank IMDb cao nhất
+        while (group1.length < targetGroup1 && currentIndex < IMDB_TOP_250_SNAPSHOT.length) {
+          const matched = await processBatch(currentIndex, batchSize);
+          for (const movie of matched) {
+            if (group1.length >= targetGroup1) break;
+            group1.push(movie);
+          }
+          currentIndex += batchSize;
+        }
 
-        const matched = await matchTmdbMoviesWithSources(credits, Math.min(credits.length, 16), 8);
-        return matched || [];
+        // NHÓM 2: Tiếp tục duyệt từ vị trí đang dừng để lấy 10 phim khả dụng tiếp theo
+        while (group2.length < targetGroup2 && currentIndex < IMDB_TOP_250_SNAPSHOT.length) {
+          const matched = await processBatch(currentIndex, batchSize);
+          for (const movie of matched) {
+            if (group2.length >= targetGroup2) break;
+            group2.push(movie);
+          }
+          currentIndex += batchSize;
+        }
+
+        const finalResults = [...group1, ...group2];
+
+        const now = Date.now();
+        TMDB_TRENDING_MOVIES_CACHE.set(cacheKey, {
+          data: finalResults,
+          expireAt: now + 24 * 3600 * 1000, // 24h tươi
+          staleUntil: now + 48 * 3600 * 1000, // 48h stale
+        });
+
+        return finalResults;
       } catch (err) {
-        console.warn(`[TMDB] Error discovering concept for "${keywords.join(', ')}":`, err);
+        console.warn("[IMDb Top 250 Query] Error fetching ranking:", err);
         return [];
       }
-    },
-    7 * 86400 // 7 ngày
-  );
+    }
 
-  TMDB_CONCEPT_CACHE.set(cacheKey, {
-    data: matchedMovies || [],
-    expireAt: now + 24 * 3600 * 1000,
-  });
+    /**
+     * 11. TRA CỨU TMDB ID TỪ TIÊU ĐỀ PHIM (SEARCH MEDIA MULTI)
+     * Dùng cho Nana AI khi phân tích câu hỏi "Phim giống [Tựa Phim]"
+     */
+    const TMDB_MEDIA_SEARCH_CACHE = new Map<string, { data: { id: number; type: "movie" | "tv"; title: string } | null; expireAt: number }>();
 
-  const exSet = new Set(excludeSlugs.map((s) => s.toLowerCase()));
-  return (matchedMovies || []).filter((m: any) => m?.slug && !exSet.has(m.slug.toLowerCase())).slice(0, limit);
-}
+    export async function searchTmdbMedia(title: string): Promise<{ id: number; type: "movie" | "tv"; title: string } | null> {
+      const cleanTitle = title.trim();
+      if (!cleanTitle || cleanTitle.length < 2) return null;
+
+      const cacheKey = cleanStringForMatch(cleanTitle);
+      const now = Date.now();
+      const memHit = TMDB_MEDIA_SEARCH_CACHE.get(cacheKey);
+      if (memHit && memHit.expireAt > now) {
+        return memHit.data;
+      }
+
+      const kvKey = `tmdb:media_search:v1:${cacheKey}`;
+      const result = await cacheService.fetchOrSet<{ id: number; type: "movie" | "tv"; title: string } | null>(
+        kvKey,
+        async () => {
+          try {
+            let data = await fetchTmdbEndpoint(
+              `/search/multi?query=${encodeURIComponent(cleanTitle)}&language=vi-VN&include_adult=false`
+            );
+            let results = Array.isArray(data?.results) ? data.results : [];
+            if (results.length === 0) {
+              data = await fetchTmdbEndpoint(
+                `/search/multi?query=${encodeURIComponent(cleanTitle)}&include_adult=false`
+              );
+              results = Array.isArray(data?.results) ? data.results : [];
+            }
+
+            const best = results.find((r: any) => r && (r.media_type === "movie" || r.media_type === "tv") && r.id);
+            if (best) {
+              return {
+                id: Number(best.id),
+                type: best.media_type === "tv" ? "tv" : "movie",
+                title: best.title || best.name || cleanTitle,
+              };
+            }
+            return null;
+          } catch (err) {
+            console.warn(`[TMDB] Error searching media for "${cleanTitle}":`, err);
+            return null;
+          }
+        },
+        14 * 86400 // 14 ngày
+      );
+
+      TMDB_MEDIA_SEARCH_CACHE.set(cacheKey, {
+        data: result,
+        expireAt: now + 24 * 3600 * 1000,
+      });
+
+      return result;
+    }
+
+    /**
+     * 12. DISCOVERY NANA AI THEO CHỦ ĐỀ / KEYWORDS QUA TMDB GRAPH
+     * Khám phá candidate từ TMDB rồi đối chiếu sang catalog Nanaflix
+     */
+    const TMDB_CONCEPT_CACHE = new Map<string, { data: any[]; expireAt: number }>();
+
+    export async function discoverTmdbConceptMovies(
+      keywords: string[],
+      limit = 10,
+      excludeSlugs: string[] = []
+    ): Promise<any[]> {
+      if (!keywords || keywords.length === 0) return [];
+
+      const cleanKeywords = keywords
+        .map((k) => (k || "").trim())
+        .filter((k) => k.length >= 2)
+        .slice(0, 3);
+      if (cleanKeywords.length === 0) return [];
+
+      const cacheKey = cleanKeywords.map(cleanStringForMatch).join("_");
+      const now = Date.now();
+      const memHit = TMDB_CONCEPT_CACHE.get(cacheKey);
+      if (memHit && memHit.expireAt > now) {
+        const exSet = new Set(excludeSlugs.map((s) => s.toLowerCase()));
+        return memHit.data.filter((m: any) => m?.slug && !exSet.has(m.slug.toLowerCase())).slice(0, limit);
+      }
+
+      const kvKey = `tmdb:concept:v1:${cacheKey}`;
+      const matchedMovies = await cacheService.fetchOrSet<any[]>(
+        kvKey,
+        async () => {
+          try {
+            const searchTasks = cleanKeywords.map((kw) =>
+              fetchTmdbEndpoint(
+                `/search/multi?query=${encodeURIComponent(kw)}&language=vi-VN&include_adult=false`
+              )
+                .then((d) => (Array.isArray(d?.results) ? d.results : []))
+                .catch(() => [])
+            );
+
+            const resultsNested = await Promise.all(searchTasks);
+            const seenIds = new Set<number>();
+            const credits: TmdbMovieCredit[] = [];
+
+            for (const list of resultsNested) {
+              for (const m of list) {
+                if (!m || !m.id || seenIds.has(m.id)) continue;
+                if (m.media_type !== "movie" && m.media_type !== "tv") continue;
+                seenIds.add(m.id);
+
+                credits.push({
+                  id: Number(m.id),
+                  title: m.title || m.name || "",
+                  original_title: m.original_title || m.original_name || m.title || m.name || "",
+                  release_date: m.release_date || m.first_air_date || "",
+                  vote_average: Number(m.vote_average || 0),
+                  vote_count: Number(m.vote_count || 0),
+                  popularity: Number(m.popularity || 0),
+                  poster_path: m.poster_path || null,
+                  backdrop_path: m.backdrop_path || null,
+                  overview: m.overview || "",
+                  media_type: m.media_type,
+                  genre_ids: Array.isArray(m.genre_ids) ? m.genre_ids : undefined,
+                  original_language: m.original_language || undefined,
+                });
+
+                if (credits.length >= 20) break;
+              }
+              if (credits.length >= 20) break;
+            }
+
+            if (credits.length === 0) return [];
+
+            const matched = await matchTmdbMoviesWithSources(credits, Math.min(credits.length, 16), 8);
+            return matched || [];
+          } catch (err) {
+            console.warn(`[TMDB] Error discovering concept for "${keywords.join(', ')}":`, err);
+            return [];
+          }
+        },
+        7 * 86400 // 7 ngày
+      );
+
+      TMDB_CONCEPT_CACHE.set(cacheKey, {
+        data: matchedMovies || [],
+        expireAt: now + 24 * 3600 * 1000,
+      });
+
+      const exSet = new Set(excludeSlugs.map((s) => s.toLowerCase()));
+      return (matchedMovies || []).filter((m: any) => m?.slug && !exSet.has(m.slug.toLowerCase())).slice(0, limit);
+    }

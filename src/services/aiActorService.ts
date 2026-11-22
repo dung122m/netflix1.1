@@ -97,7 +97,7 @@ export async function resolveActorMovies(
 
   // 1.22 Kiểm tra TIER 2.2: Cache L2 Upstash Redis DB 3 (Aux / Metadata - actor:intent:*)
   const cleanKey = cleanRaw.replace(/[^a-z0-9_]/g, "_").slice(0, 80);
-  const redisActorKey = `actor:intent:v4:${cleanKey}`;
+  const redisActorKey = `actor:intent:v6:${cleanKey}`;
   try {
     const redisCached = await cacheService.get<{
       actorName: string;
@@ -158,7 +158,18 @@ export async function resolveActorMovies(
         return r1 === r2;
       })();
 
-      if (isExactMatch || isWordSetMatch || isFuzzyMatch) {
+      const akaList = Array.isArray(tmdbPerson.also_known_as)
+        ? tmdbPerson.also_known_as.map((a: string) => normalizeForMatch(a))
+        : [];
+
+      const isAkaMatch = akaList.some(
+        (aka) =>
+          aka === cleanQNorm ||
+          normalizeSinoVietnameseVariants(aka) === sinoQNorm ||
+          (qWords.length >= 2 && qWords.every((w) => aka.split(" ").includes(w)))
+      );
+
+      if (isExactMatch || isWordSetMatch || isFuzzyMatch || isAkaMatch) {
         const hasVietnameseMarks = (s: string) =>
           /[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/i.test(s);
 

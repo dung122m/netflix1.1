@@ -1,12 +1,9 @@
 /**
- * HISTORICAL ARTISTS BIRTHDAYS & MEMORIAL DATA
- * Phục vụ lịch Việt Nam, ngày sinh nghệ sĩ và sự kiện lịch sử.
- * Dữ liệu tĩnh gốc được nhập trực tiếp tại build-time từ local JSON (0ms latency, không fetch mạng):
- * src/data/history/historicalArtistsData.json
+ * HISTORICAL ARTISTS BIRTHDAYS & METADATA INTERFACE
+ * Kiến trúc phân giải động: Thay thế việc tải file cứng 683KB bằng On-Demand TMDb & Wikipedia API.
  */
 
 import { getActorSynonyms } from "@/services/actor/actorAliasResolver";
-import historicalArtistsRaw from "./historicalArtistsData.json";
 
 export interface HistoricalArtistBirthday {
   slug: string;
@@ -30,7 +27,7 @@ export interface HistoricalArtistBirthday {
   featured?: boolean;
 }
 
-// In-Memory Index (L1 RAM 0ms, nạp sẵn ngay khi import module)
+// In-Memory Index (L1 RAM động, khởi tạo rỗng và tự động nạp theo nhu cầu)
 export let HISTORICAL_ARTISTS_BIRTHDAYS: HistoricalArtistBirthday[] = [];
 const slugMap = new Map<string, HistoricalArtistBirthday>();
 const aliasMap = new Map<string, HistoricalArtistBirthday>();
@@ -78,13 +75,8 @@ export function initializeIndex(artists: HistoricalArtistBirthday[]) {
   }
 }
 
-// Khởi tạo index đồng bộ ngay lập tức từ dữ liệu tĩnh cục bộ
-if (Array.isArray(historicalArtistsRaw)) {
-  initializeIndex(historicalArtistsRaw as unknown as HistoricalArtistBirthday[]);
-}
-
 /**
- * Đảm bảo kho dữ liệu đã nạp (trả về trực tiếp RAM index 0ms, không tốn network)
+ * Đảm bảo kho dữ liệu đã nạp (trả về trực tiếp RAM index 0ms)
  */
 export async function ensureHistoricalArtistsLoaded(): Promise<HistoricalArtistBirthday[]> {
   return HISTORICAL_ARTISTS_BIRTHDAYS;
@@ -93,7 +85,7 @@ export async function ensureHistoricalArtistsLoaded(): Promise<HistoricalArtistB
 export const getHistoricalArtistsList = () => HISTORICAL_ARTISTS_BIRTHDAYS;
 
 /**
- * Tra cứu nghệ sĩ theo slug (0ms RAM cache, fallback Golden Actors)
+ * Tra cứu nghệ sĩ theo slug (0ms RAM cache, fallback dynamic synonyms)
  */
 export function getHistoricalArtistBySlug(slug?: string): HistoricalArtistBirthday | undefined {
   if (!slug) return undefined;
@@ -117,7 +109,7 @@ export function getHistoricalArtistBySlug(slug?: string): HistoricalArtistBirthd
   });
   if (found) return found;
 
-  // 3. Tra cứu qua bảng từ điển Golden Actors nếu chưa có trong catalog
+  // 3. Tra cứu qua bảng từ điển actorSynonyms nếu có
   const syn = getActorSynonyms(slug);
   if (syn.isMatched) {
     return {
@@ -126,7 +118,6 @@ export function getHistoricalArtistBySlug(slug?: string): HistoricalArtistBirthd
       englishName: syn.englishName,
       country: syn.country,
       aliases: syn.variants,
-      avatarUrl: getR2ActorAvatarUrl(syn.slug),
     };
   }
   return undefined;
@@ -168,7 +159,7 @@ export function findHistoricalArtist(nameOrQuery?: string): HistoricalArtistBirt
   });
   if (found) return found;
 
-  // 4. Tra cứu qua bảng từ điển Golden Actors nếu chưa có trong catalog
+  // 4. Tra cứu qua bảng từ điển actorSynonyms nếu có
   const syn = getActorSynonyms(nameOrQuery);
   if (syn.isMatched) {
     return {
@@ -177,15 +168,14 @@ export function findHistoricalArtist(nameOrQuery?: string): HistoricalArtistBirt
       englishName: syn.englishName,
       country: syn.country,
       aliases: syn.variants,
-      avatarUrl: getR2ActorAvatarUrl(syn.slug),
     };
   }
   return undefined;
 }
 
 /**
- * Lấy URL ảnh đại diện diễn viên từ Cloudflare R2 (0ms latency, không phụ thuộc TMDB)
+ * Không còn sử dụng ảnh tĩnh R2 cố định, chuyển sang fallback an toàn
  */
-export function getR2ActorAvatarUrl(slug: string): string {
-  return `https://media.nanaflix.asia/actors/photos/${slug.toLowerCase().trim()}.jpg`;
+export function getR2ActorAvatarUrl(_slug: string): string {
+  return "";
 }

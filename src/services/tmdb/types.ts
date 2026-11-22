@@ -9,6 +9,7 @@ export interface TmdbPerson {
   profile_path?: string | null;
   popularity: number;
   known_for_department?: string;
+  also_known_as?: string[];
 }
 
 export interface TmdbPersonDetail extends TmdbPerson {

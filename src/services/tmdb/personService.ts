@@ -53,7 +53,7 @@ export async function searchTmdbPerson(
     return cached.data;
   }
 
-  const kvKey = `tmdb:person:${cleanStringForMatch(trimmed)}_${cleanStringForMatch(canonicalName)}`;
+  const kvKey = `tmdb:person_v3:${cleanStringForMatch(trimmed)}_${cleanStringForMatch(canonicalName)}`;
   return await cacheService.fetchOrSet(
     kvKey,
     async () => {
@@ -144,12 +144,24 @@ export async function searchTmdbPerson(
                   : null,
                 popularity: p.popularity,
                 known_for_department: p.known_for_department,
+                also_known_as: Array.isArray(p.also_known_as) ? p.also_known_as : undefined,
               };
             }
           }
         };
 
         evaluateCandidates(results);
+
+        if (!bestPerson && results.length > 0 && results[0]?.id) {
+          const topCandidate = results[0];
+          try {
+            const detail = await getTmdbPersonDetail(topCandidate.id);
+            if (detail && Array.isArray(detail.also_known_as)) {
+              topCandidate.also_known_as = detail.also_known_as;
+              evaluateCandidates([topCandidate]);
+            }
+          } catch {}
+        }
 
         if (!bestPerson) {
           data = await fetchTmdbEndpoint(
@@ -158,6 +170,17 @@ export async function searchTmdbPerson(
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           results = (data?.results || []) as any[];
           evaluateCandidates(results);
+
+          if (!bestPerson && results.length > 0 && results[0]?.id) {
+            const topCandidate = results[0];
+            try {
+              const detail = await getTmdbPersonDetail(topCandidate.id);
+              if (detail && Array.isArray(detail.also_known_as)) {
+                topCandidate.also_known_as = detail.also_known_as;
+                evaluateCandidates([topCandidate]);
+              }
+            } catch {}
+          }
         }
 
         if (bestPerson && highestScore >= 120) {
