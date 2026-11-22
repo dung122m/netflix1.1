@@ -10,9 +10,11 @@ import { formatTimeAgo } from "./myListFormatters";
 
 function HistoryCardItem({
   item,
+  index = 0,
   onRemove,
 }: {
   item: WatchHistoryItem;
+  index?: number;
   onRemove: (slug: string) => void;
 }) {
   const progressPercent =
@@ -37,6 +39,7 @@ function HistoryCardItem({
       episodeSlug={item.episodeSlug}
       episodeName={item.episodeName}
       progressPercent={progressPercent}
+      priority={index < 12}
       onRemove={(e) => {
         e.preventDefault();
         e.stopPropagation();
@@ -88,6 +91,7 @@ export function MyListHistoryTab({
           <HistoryCardItem
             key={`${item.slug}_${item.episodeSlug || ""}_${index}`}
             item={item}
+            index={index}
             onRemove={onRemove}
           />
         ))}

@@ -55,7 +55,7 @@ export function MyListWatchlistTab({ watchlist, onRemove }: MyListWatchlistTabPr
             episodeSlug={item.episodeSlug}
             episodeName={item.episodeName}
             seasonName={item.seasonName}
-            priority={index < 6}
+            priority={index < 10}
             onRemove={(e) => onRemove(e, item.slug, item.title)}
             removeTooltip="Xóa khỏi danh sách yêu thích"
           />

@@ -311,7 +311,7 @@ export function CollectionClientView({
                     genre={item.category || ""}
                     year={item.year}
                     quality={item.quality}
-                    priority={index < 6}
+                    priority={index < 10}
                     itemType={item.itemType}
                     seriesSlug={item.seriesSlug}
                     seriesTitle={item.seriesTitle}

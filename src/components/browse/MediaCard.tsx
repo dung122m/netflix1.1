@@ -176,8 +176,9 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
 
     // 0. Nếu bộ nhớ RAM GLOBAL_POSTER_CACHE đã có link TMDb từ phiên này -> Gắn ngay lên đầu
     const cachedTmdb =
-      (tmdbId && GLOBAL_POSTER_CACHE.get(`tmdb:${tmdbId}`)) ||
       (slug && GLOBAL_POSTER_CACHE.get(slug)) ||
+      (tmdbId && GLOBAL_POSTER_CACHE.get(`v3:tmdb:${tmdbId}:${itemType || "movie"}`)) ||
+      (tmdbId && GLOBAL_POSTER_CACHE.get(`tmdb:${tmdbId}`)) ||
       GLOBAL_POSTER_CACHE.get(`${title || ""}_${year || ""}`.trim());
     if (cachedTmdb) {
       addUrl(cachedTmdb);
@@ -206,9 +207,10 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
     // 0. Ảnh đã từng nạp thành công trong phiên (0ms cache hit)
     // 1. TMDb CDN chính chủ siêu nhẹ & cực nhanh (30ms CDN)
     // 2. AniList CDN cho Hoạt hình
-    // 3. Đẩy các nguồn chậm / nặng (phimimg, nguonc) xuống sau các nguồn CDN
-    // 4. Poster dọc (-poster.webp, poster_, /w500)
-    // 5. Thumb ngang (-thumb.webp) làm fallback
+    // 3. Nguồn không bị chặn mạng (NguonC, R2) ưu tiên tuyệt đối trước nguồn bị chặn (phimimg)
+    // 4. Đẩy các nguồn chậm / nặng xuống sau các nguồn CDN
+    // 5. Poster dọc (-poster.webp, poster_, /w500)
+    // 6. Thumb ngang (-thumb.webp) làm fallback
     return list.sort((a, b) => {
       const aLoaded = GLOBAL_LOADED_IMAGES.has(a);
       const bLoaded = GLOBAL_LOADED_IMAGES.has(b);
@@ -225,6 +227,11 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
       if (aAni && !bAni) return -1;
       if (!aAni && bAni) return 1;
 
+      const aBlocked = a.includes("phimimg.com") || a.includes("img.ophim.cc") || a.includes("img.phimapi.com");
+      const bBlocked = b.includes("phimimg.com") || b.includes("img.ophim.cc") || b.includes("img.phimapi.com");
+      if (!aBlocked && bBlocked) return -1;
+      if (aBlocked && !bBlocked) return 1;
+
       const aSlow = isSlowProviderSourceUrl(a);
       const bSlow = isSlowProviderSourceUrl(b);
       if (!aSlow && bSlow) return -1;
@@ -237,7 +244,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
 
       return 0;
     });
-  }, [posterUrl, imageUrl, thumbUrl, slug, title, tmdbId, year]);
+  }, [posterUrl, imageUrl, thumbUrl, slug, title, tmdbId, year, itemType]);
 
   const triedUrlsRef = useRef<Set<string>>(new Set());
   const imgRef = useRef<HTMLImageElement | null>(null);
@@ -399,15 +406,23 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
     }
 
     // TMDb fallback hoàn tất nhưng không có ảnh trên TMDb:
-    // BÂY GIỜ MỚI CHO PHÉP fallback xuống các candidate từ phimimg/nguonc!
+    // BÂY GIỜ MỚI CHO PHÉP fallback xuống các candidate từ NguonC (hoặc nguồn không bị chặn)!
     if (!currentSrc || triedUrlsRef.current.has(currentSrc)) {
-      const nextCandidate = imageCandidates.find((u) => !triedUrlsRef.current.has(u));
-      if (nextCandidate) {
+      const nonBlockedCandidate = imageCandidates.find(
+        (u) =>
+          !triedUrlsRef.current.has(u) &&
+          !u.includes("phimimg.com") &&
+          !u.includes("img.ophim.cc") &&
+          !u.includes("img.phimapi.com")
+      );
+      if (nonBlockedCandidate) {
         setHasError(false);
-        setCurrentSrc(nextCandidate);
-        setIsImageLoaded(GLOBAL_LOADED_IMAGES.has(nextCandidate));
+        setCurrentSrc(nonBlockedCandidate);
+        setIsImageLoaded(GLOBAL_LOADED_IMAGES.has(nonBlockedCandidate));
         return;
       }
+      // Nếu chỉ còn các nguồn bị chặn ISP ở VN (phimimg), không nạp trực tiếp để tránh treo trình duyệt.
+      // Kích hoạt ngay Poster Canvas typography ở 0ms:
       setHasError(true);
       setIsImageLoaded(true);
     }
@@ -419,9 +434,13 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
       GLOBAL_LOADED_IMAGES.delete(currentSrc);
     }
 
-    // 1. Thử ứng viên kế tiếp trong danh sách candidates
+    // 1. Thử ứng viên kế tiếp trong danh sách candidates (chỉ thử nguồn không bị chặn)
     const nextCandidate = imageCandidates.find(
-      (url) => !triedUrlsRef.current.has(url)
+      (url) =>
+        !triedUrlsRef.current.has(url) &&
+        !url.includes("phimimg.com") &&
+        !url.includes("img.ophim.cc") &&
+        !url.includes("img.phimapi.com")
     );
     if (nextCandidate) {
       setCurrentSrc(nextCandidate);
@@ -651,33 +670,56 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
           className={`block absolute inset-0 z-0 outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-inset rounded-xl ${isNavigating ? "movie-card-navigating" : ""
             }`}
         >
-          {/* LỚP NỀN POSTER: SKELETON KHI CHỜ LOAD ẢNH VÀ DEFAULT LOGO KHI KHÔNG CÓ ẢNH */}
+          {/* LỚP NỀN POSTER: DYNAMIC TYPOGRAPHY POSTER CANVAS & SKELETON */}
           <div
-            className="absolute inset-0 z-0 flex flex-col items-center justify-center p-3 bg-gradient-to-br from-zinc-900 via-zinc-950 to-black select-none overflow-hidden"
+            className="absolute inset-0 z-0 flex flex-col items-center justify-between p-3.5 bg-gradient-to-b from-zinc-850 via-zinc-900 to-zinc-950 select-none overflow-hidden text-center"
             aria-hidden="true"
           >
-            {/* Hiệu ứng tia sáng quét nhẹ (Shimmer sheen) khi đang chờ tải ảnh (không hiện logo) */}
-            {!isImageLoaded && !hasError && (
-              <div
-                className="absolute inset-0 -translate-x-full poster-placeholder-shimmer bg-gradient-to-r from-transparent via-white/[0.06] to-transparent pointer-events-none"
-                aria-hidden="true"
-              />
-            )}
-
-            {/* CHỈ HIỆN LOGO NANAFLIX KHI PHIM HOÀN TOÀN KHÔNG CÓ ẢNH HOẶC LỖI TẢI (hasError hoặc !currentSrc) */}
-            {(hasError || !currentSrc) && (
-              <div className="relative z-[1] inline-flex items-center gap-2 select-none poster-placeholder-logo">
-                <div className="w-5.5 h-4 rounded-[4px] bg-[#EA1D24] flex items-center justify-center shadow-md">
+            {/* 1. Header: Logo Nanaflix nhỏ tinh tế */}
+            <div className="w-full flex items-center justify-center pt-1">
+              <div className="inline-flex items-center gap-1.5 poster-placeholder-logo opacity-80">
+                <div className="w-4.5 h-3.5 rounded-[3px] bg-[#EA1D24] flex items-center justify-center shadow-sm">
                   <svg
                     viewBox="0 0 24 24"
-                    className="w-2.5 h-2.5 text-[#FFF200] fill-current"
+                    className="w-2 h-2 text-[#FFF200] fill-current"
                     aria-hidden="true"
                   >
                     <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
                   </svg>
                 </div>
-                <span className="text-white font-extrabold text-xs sm:text-sm tracking-tight drop-shadow-sm">Nanaflix</span>
+                <span className="text-white font-black text-[11px] tracking-tight drop-shadow-sm">Nanaflix</span>
               </div>
+            </div>
+
+            {/* 2. Body: Tên phim nổi bật (Typography Poster) */}
+            <div className="w-full my-auto px-1 flex flex-col items-center justify-center">
+              <span className="text-white/95 font-bold text-xs sm:text-[13px] leading-snug line-clamp-3 text-center drop-shadow">
+                {title}
+              </span>
+              {origin_name && origin_name !== title && (
+                <span className="text-zinc-500 text-[10px] italic line-clamp-1 mt-1 font-medium">
+                  {origin_name}
+                </span>
+              )}
+            </div>
+
+            {/* 3. Footer: Năm & Thể loại */}
+            <div className="w-full flex items-center justify-center gap-1.5 text-[10px] text-zinc-400 pb-1 font-sans tabular-nums">
+              {year && <span>{year}</span>}
+              {genre && (
+                <>
+                  <span className="text-zinc-600">•</span>
+                  <span className="truncate max-w-[80px]">{genre}</span>
+                </>
+              )}
+            </div>
+
+            {/* Shimmer sheen khi đang chờ tải ảnh */}
+            {!isImageLoaded && !hasError && (
+              <div
+                className="absolute inset-0 -translate-x-full poster-placeholder-shimmer bg-gradient-to-r from-transparent via-white/[0.06] to-transparent pointer-events-none"
+                aria-hidden="true"
+              />
             )}
           </div>
 
