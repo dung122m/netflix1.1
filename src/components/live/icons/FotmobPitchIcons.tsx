@@ -121,6 +121,31 @@ export function FotmobSubOutIcon({ className = "w-3 h-3" }: { className?: string
 }
 
 /**
+ * FotMob Official Sub In Icon
+ * Green circular badge with white arrow pointing right (as seen in FotMob Substitutes).
+ */
+export function FotmobSubInIcon({ className = "w-3.5 h-3.5" }: { className?: string }) {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 16 16"
+      className={`${className} shrink-0 inline-block drop-shadow-sm`}
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <circle cx="8" cy="8" r="7.5" fill="#16a34a" />
+      <path
+        d="M6.5 4.5L10 8L6.5 11.5M9.5 8H4"
+        stroke="#ffffff"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+/**
  * FotMob Official Substitution Exchange Badge (SVG 18)
  * Dual curved arrows (green in, red out) in a circular badge.
  */

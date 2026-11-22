@@ -44,10 +44,8 @@ function formatH2HDate(isoStr?: string): string {
 
 function cleanCompetitionName(name?: string): string {
   if (!name) return "";
-  // 1. Loại bỏ tiền tố mùa giải (vd: "2025-26 ", "2023-2024 ", "2023 ")
   let clean = name.replace(/^(\d{4}(?:-\d{2,4})?)\s+/i, "").trim();
 
-  // 2. Dịch và chuẩn hóa tên giải đấu sang tiếng Việt ngắn gọn, không bị tràn hay cắt chữ
   const lower = clean.toLowerCase();
   if (lower.includes("bundesliga")) return "Bundesliga";
   if (lower.includes("dfb-pokal") || lower.includes("dfb pokal")) return "Cúp QG Đức";
@@ -64,7 +62,6 @@ function cleanCompetitionName(name?: string): string {
   if (lower.includes("copa del rey")) return "Cúp Nhà vua";
   if (lower.includes("coppa italia")) return "Cúp QG Ý";
 
-  // Loại bỏ các từ dư thừa như "German ", "English ", "Spanish ", "Italian ", "French "
   clean = clean
     .replace(/\b(German|English|Spanish|Italian|French)\s+/gi, "")
     .trim();
@@ -80,149 +77,111 @@ function formatH2HSummary(summary?: string): string {
   return s;
 }
 
-function FormResultPill({ result, size = "md" }: { result: "W" | "D" | "L"; size?: "sm" | "md" }) {
-  const isSm = size === "sm";
-  const dim = isSm ? "w-4 h-4 text-[9px]" : "w-5 h-5 text-[10px]";
-
-  if (result === "W") {
-    return (
-      <span
-        title="Thắng"
-        className={`${dim} rounded-full bg-emerald-500/20 text-emerald-400 font-sans font-black flex items-center justify-center shrink-0 shadow-sm`}
-      >
-        T
-      </span>
-    );
-  }
-  if (result === "D") {
-    return (
-      <span
-        title="Hòa"
-        className={`${dim} rounded-full bg-amber-500/20 text-amber-400 font-sans font-black flex items-center justify-center shrink-0 shadow-sm`}
-      >
-        H
-      </span>
-    );
-  }
-  return (
-    <span
-      title="Thua"
-      className={`${dim} rounded-full bg-rose-500/20 text-rose-400 font-sans font-black flex items-center justify-center shrink-0 shadow-sm`}
-    >
-      B
-    </span>
-  );
-}
-
-function TeamFormCard({
-  team,
-  games,
-  isHome,
+/**
+ * FotMob Authentic Form Match Row
+ * [Home Team (right-aligned)] [Score Pill with Underline] [Away Team (left-aligned)]
+ */
+function FotmobFormMatchRow({
+  game,
+  trackedTeam,
 }: {
-  team: MatchSummaryTeam;
-  games: TeamPastGameItem[];
-  isHome: boolean;
+  game: TeamPastGameItem;
+  trackedTeam: MatchSummaryTeam;
 }) {
-  const wins = games.filter((g) => g.result === "W").length;
-  const draws = games.filter((g) => g.result === "D").length;
-  const losses = games.filter((g) => g.result === "L").length;
+  const isWin = game.result === "W";
+  const isLoss = game.result === "L";
+  const isTrackedHome = game.homeAway === "home";
+
+  // Phân tích điểm số từ chuỗi (vd "2-1", "3 - 0", "0:5")
+  const scoreMatch = game.score.match(/(\d+)\s*[-:]\s*(\d+)/);
+  const n1 = scoreMatch ? parseInt(scoreMatch[1], 10) : 0;
+  const n2 = scoreMatch ? parseInt(scoreMatch[2], 10) : 0;
+
+  const higher = Math.max(n1, n2);
+  const lower = Math.min(n1, n2);
+
+  let homeScore: number;
+  let awayScore: number;
+
+  if (isWin) {
+    homeScore = isTrackedHome ? higher : lower;
+    awayScore = isTrackedHome ? lower : higher;
+  } else if (isLoss) {
+    homeScore = isTrackedHome ? lower : higher;
+    awayScore = isTrackedHome ? higher : lower;
+  } else {
+    homeScore = n1;
+    awayScore = n2;
+  }
+
+  const trackedName = trackedTeam.displayName || trackedTeam.name;
+  const opponentName = game.opponent?.displayName || game.opponent?.name || "Đối thủ";
+
+  const homeTeamName = isTrackedHome ? trackedName : opponentName;
+  const awayTeamName = isTrackedHome ? opponentName : trackedName;
+
+  const pillBg = isWin
+    ? "bg-[#16a34a] hover:bg-[#15803d]"
+    : isLoss
+      ? "bg-[#dc2626] hover:bg-[#b91c1c]"
+      : "bg-[#d97706] hover:bg-[#b45309]";
+
+  const underlineColor = isWin
+    ? "bg-emerald-400"
+    : isLoss
+      ? "bg-rose-400"
+      : "bg-amber-400";
 
   return (
-    <div className="space-y-3">
-      {/* HEADER: TÊN ĐỘI & 5 CHẤM KẾT QUẢ GỌN GÀNG */}
-      <div className="flex items-center justify-between pb-2 border-b border-white/[0.06] gap-2">
-        <div className="flex flex-col min-w-0">
-          <div className="flex items-center gap-2">
-            <span
-              className={`w-2 h-2 rounded-full shrink-0 ${isHome ? "bg-[#dc2626]" : "bg-[#0284c7]"}`}
-            />
-            <h4 className="text-xs sm:text-sm font-black text-white truncate font-sans">
-              {team.displayName || team.name}
-            </h4>
-          </div>
-          <span className="text-[10.5px] text-zinc-400 font-sans font-medium mt-0.5 pl-4">
-            {wins} thắng • {draws} hòa • {losses} thua
-          </span>
-        </div>
+    <div className="flex items-center justify-between py-2 px-1 text-xs sm:text-[13px] font-sans group">
+      {/* ĐỘI NHÀ (Căn phải) */}
+      <span
+        title={homeTeamName}
+        className={`text-right truncate flex-1 font-medium transition-colors pr-2 sm:pr-3 ${
+          isTrackedHome
+            ? "text-white font-semibold group-hover:text-amber-200"
+            : "text-zinc-300 group-hover:text-zinc-100"
+        }`}
+      >
+        {homeTeamName}
+      </span>
 
-        {/* 5 CHẤM PHONG ĐỘ (T, B, H...) */}
-        <div className="flex items-center gap-1 shrink-0">
-          {games.map((g) => (
-            <FormResultPill key={`pill-${g.id}`} result={g.result} />
-          ))}
+      {/* SCORE PILL VÀ GẠCH CHÂN CHUẨN FOTMOB */}
+      <div className="flex flex-col items-center shrink-0 w-16 sm:w-20">
+        <span
+          className={`font-sans tabular-nums font-black text-xs sm:text-[12.5px] px-2.5 py-0.5 rounded text-white shadow-sm transition-transform group-hover:scale-105 ${pillBg}`}
+        >
+          {homeScore} - {awayScore}
+        </span>
+        {/* Vạch gạch chân chỉ báo đội đang theo dõi chuẩn FotMob */}
+        <div className="w-full flex mt-1 px-1">
+          <div className={`w-1/2 flex items-center justify-center ${isTrackedHome ? "opacity-100" : "opacity-0"}`}>
+            <span className={`w-3.5 h-0.5 rounded-full ${underlineColor}`} />
+          </div>
+          <div className={`w-1/2 flex items-center justify-center ${!isTrackedHome ? "opacity-100" : "opacity-0"}`}>
+            <span className={`w-3.5 h-0.5 rounded-full ${underlineColor}`} />
+          </div>
         </div>
       </div>
 
-      {/* DANH SÁCH 5 TRẬN ĐẤU (THIẾT KẾ PHẲNG, TINH GỌN, KHÔNG RỐI MẮT) */}
-      {games.length === 0 ? (
-        <p className="text-xs text-zinc-500 py-6 text-center font-sans">
-          Chưa có dữ liệu phong độ gần đây
-        </p>
-      ) : (
-        <div className="space-y-1">
-          {games.map((g) => {
-            const oppLogo = g.opponent?.logo ? toDarkModeLogoUrl(g.opponent.logo) : "";
-            const isWin = g.result === "W";
-            const isLoss = g.result === "L";
-
-            return (
-              <div
-                key={g.id}
-                className="flex items-center justify-between gap-3 px-2.5 py-2 rounded-xl bg-white/[0.02] hover:bg-white/[0.04] transition text-xs font-sans"
-              >
-                {/* 1. NGÀY & ĐỊA ĐIỂM (NHÀ / KHÁCH) */}
-                <div className="flex items-center gap-1.5 shrink-0 min-w-[76px] text-zinc-400">
-                  <span className="tabular-nums text-[11px] font-bold text-zinc-300">
-                    {formatGameDate(g.date)}
-                  </span>
-                  <span className="text-zinc-600 text-[10px]">•</span>
-                  <span className="text-[10px] font-medium text-zinc-400">
-                    {g.homeAway === "home" ? "Sân nhà" : "Sân khách"}
-                  </span>
-                </div>
-
-                {/* 2. ĐỐI THỦ (LOGO + TÊN TRỰC QUAN) */}
-                <div className="flex items-center gap-2 min-w-0 flex-1">
-                  {oppLogo ? (
-                    /* eslint-disable-next-line @next/next/no-img-element */
-                    <img
-                      src={oppLogo}
-                      alt=""
-                      loading="lazy"
-                      className="w-4 h-4 object-contain shrink-0"
-                    />
-                  ) : (
-                    <span className="w-4 h-4 rounded-full bg-zinc-800 shrink-0" />
-                  )}
-                  <span className="text-zinc-200 font-semibold text-xs truncate">
-                    {g.opponent?.displayName || g.opponent?.name || "Đối thủ"}
-                  </span>
-                </div>
-
-                {/* 3. TỈ SỐ & KẾT QUẢ GỌN GÀNG */}
-                <div className="flex items-center gap-2 shrink-0">
-                  <span
-                    className={`font-sans tabular-nums font-black text-xs px-2 py-0.5 rounded-md ${
-                      isWin
-                        ? "bg-emerald-500/15 text-emerald-400"
-                        : isLoss
-                          ? "bg-rose-500/15 text-rose-400"
-                          : "bg-amber-500/15 text-amber-400"
-                    }`}
-                  >
-                    {g.score}
-                  </span>
-                  <FormResultPill result={g.result} size="sm" />
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
+      {/* ĐỘI KHÁCH (Căn trái) */}
+      <span
+        title={awayTeamName}
+        className={`text-left truncate flex-1 font-medium transition-colors pl-2 sm:pl-3 ${
+          !isTrackedHome
+            ? "text-white font-semibold group-hover:text-amber-200"
+            : "text-zinc-300 group-hover:text-zinc-100"
+        }`}
+      >
+        {awayTeamName}
+      </span>
     </div>
   );
 }
 
+/**
+ * FotMob Authentic Head-to-Head Section
+ */
 function HeadToHeadCard({
   headToHead,
 }: {
@@ -231,10 +190,10 @@ function HeadToHeadCard({
   const events = headToHead.events || [];
 
   return (
-    <div className="space-y-3.5">
+    <div className="rounded-2xl bg-zinc-950/70 border border-white/[0.06] p-3.5 sm:p-5 shadow-sm space-y-3">
       {/* HEADER: TỔNG QUAN TỶ SỐ ĐỐI ĐẦU */}
       <div className="flex items-center justify-between pb-2 border-b border-white/[0.06] gap-2 flex-wrap">
-        <h4 className="text-xs sm:text-sm font-black text-white font-sans">
+        <h4 className="text-xs sm:text-sm font-bold text-white font-sans">
           Lịch sử đối đầu trực tiếp
         </h4>
         {headToHead.summary && (
@@ -250,7 +209,7 @@ function HeadToHeadCard({
           Chưa có dữ liệu đối đầu trước đây
         </p>
       ) : (
-        <div className="space-y-1.5">
+        <div className="space-y-0.5">
           {events.map((ev) => {
             const hTeam = ev.homeTeam;
             const aTeam = ev.awayTeam;
@@ -260,47 +219,47 @@ function HeadToHeadCard({
             return (
               <div
                 key={ev.id}
-                className="flex items-center justify-between gap-2 sm:gap-3 px-3 py-2 rounded-xl bg-white/[0.02] hover:bg-white/[0.04] transition text-xs font-sans"
+                className="flex items-center justify-between gap-2 sm:gap-3 py-2 px-2.5 sm:px-3 border-b border-white/[0.04] hover:bg-white/[0.02] transition rounded-lg text-xs font-sans group"
               >
-                {/* 1. NGÀY & GIẢI ĐẤU (RÕ RÀNG, CHUẨN XÁC, KHÔNG CẮT CHỮ BỊ DẤU 3 CHẤM) */}
-                <div className="flex flex-col min-w-[76px] sm:min-w-[90px] text-zinc-400 shrink-0">
-                  <span className="tabular-nums text-[11px] font-bold text-zinc-300">
+                {/* 1. NGÀY & GIẢI ĐẤU */}
+                <div className="flex flex-col min-w-[70px] sm:min-w-[85px] text-zinc-400 shrink-0">
+                  <span className="tabular-nums text-[11px] font-semibold text-zinc-300">
                     {formatH2HDate(ev.date) || formatGameDate(ev.date)}
                   </span>
                   {ev.competitionName && (
-                    <span className="text-[10px] text-zinc-400 font-medium truncate max-w-[100px] sm:max-w-[150px]">
+                    <span className="text-[10px] text-zinc-500 font-medium truncate max-w-[90px] sm:max-w-[130px]">
                       {cleanCompetitionName(ev.competitionName)}
                     </span>
                   )}
                 </div>
 
                 {/* 2. ĐỘI NHÀ */}
-                <div className="flex items-center justify-end gap-2 flex-1 min-w-0 text-right">
-                  <span className={`text-xs truncate ${hTeam.winner ? "font-bold text-white" : "font-medium text-zinc-300"}`}>
+                <div className="flex items-center justify-end gap-1.5 sm:gap-2 flex-1 min-w-0 text-right">
+                  <span className={`text-xs truncate ${hTeam.winner ? "font-bold text-white" : "font-medium text-zinc-300 group-hover:text-white"}`}>
                     {hTeam.displayName || hTeam.name}
                   </span>
                   {hLogo ? (
                     /* eslint-disable-next-line @next/next/no-img-element */
                     <img src={hLogo} alt="" loading="lazy" className="w-4 h-4 object-contain shrink-0" />
                   ) : (
-                    <span className="w-4 h-4 rounded-full bg-zinc-800 shrink-0" />
+                    <span className="w-3.5 h-3.5 rounded-full bg-zinc-800 shrink-0" />
                   )}
                 </div>
 
                 {/* 3. TỶ SỐ TRUNG TÂM */}
-                <div className="shrink-0 px-2 font-sans tabular-nums font-black text-xs text-white">
-                  {hTeam.score} : {aTeam.score}
+                <div className="shrink-0 font-sans tabular-nums font-black text-xs text-white bg-zinc-800/80 px-2 py-0.5 rounded shadow-sm min-w-[42px] text-center mx-1">
+                  {hTeam.score} - {aTeam.score}
                 </div>
 
                 {/* 4. ĐỘI KHÁCH */}
-                <div className="flex items-center justify-start gap-2 flex-1 min-w-0 text-left">
+                <div className="flex items-center justify-start gap-1.5 sm:gap-2 flex-1 min-w-0 text-left">
                   {aLogo ? (
                     /* eslint-disable-next-line @next/next/no-img-element */
                     <img src={aLogo} alt="" loading="lazy" className="w-4 h-4 object-contain shrink-0" />
                   ) : (
-                    <span className="w-4 h-4 rounded-full bg-zinc-800 shrink-0" />
+                    <span className="w-3.5 h-3.5 rounded-full bg-zinc-800 shrink-0" />
                   )}
-                  <span className={`text-xs truncate ${aTeam.winner ? "font-bold text-white" : "font-medium text-zinc-300"}`}>
+                  <span className={`text-xs truncate ${aTeam.winner ? "font-bold text-white" : "font-medium text-zinc-300 group-hover:text-white"}`}>
                     {aTeam.displayName || aTeam.name}
                   </span>
                 </div>
@@ -365,11 +324,41 @@ export function MatchRecentForm({ homeTeam, awayTeam, recentForm, headToHead }: 
         </div>
       )}
 
-      {/* NỘI DUNG 1: 5 TRẬN GẦN NHẤT */}
+      {/* NỘI DUNG 1: 5 TRẬN GẦN NHẤT - CHUẨN FORM FOTMOB (IMAGE 8) */}
       {(formSubTab === "recent" || !hasH2H) && hasRecent && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-          <TeamFormCard team={homeTeam} games={homeGames} isHome={true} />
-          <TeamFormCard team={awayTeam} games={awayGames} isHome={false} />
+        <div className="rounded-2xl bg-zinc-950/70 border border-white/[0.06] p-3.5 sm:p-5 shadow-sm space-y-3">
+          {/* TIÊU ĐỀ SECTION CHÍNH GIỮA CHUẨN FOTMOB */}
+          <h3 className="text-center font-sans font-bold text-sm sm:text-base text-white tracking-wide">
+            Team form
+          </h3>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 md:divide-x md:divide-white/[0.06] gap-x-6">
+            {/* Cột trái: Đội nhà */}
+            <div className="space-y-1">
+              {homeGames.length > 0 ? (
+                homeGames.map((g) => (
+                  <FotmobFormMatchRow key={g.id} game={g} trackedTeam={homeTeam} />
+                ))
+              ) : (
+                <p className="text-center py-6 text-xs text-zinc-500 font-sans">
+                  Chưa có dữ liệu phong độ
+                </p>
+              )}
+            </div>
+
+            {/* Cột phải: Đội khách */}
+            <div className="space-y-1 md:pl-6 pt-3 md:pt-0">
+              {awayGames.length > 0 ? (
+                awayGames.map((g) => (
+                  <FotmobFormMatchRow key={g.id} game={g} trackedTeam={awayTeam} />
+                ))
+              ) : (
+                <p className="text-center py-6 text-xs text-zinc-500 font-sans">
+                  Chưa có dữ liệu phong độ
+                </p>
+              )}
+            </div>
+          </div>
         </div>
       )}
 

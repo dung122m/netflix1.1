@@ -1,10 +1,17 @@
 "use client";
 
-import React, { useMemo } from "react";
-import { Shield, Users, ArrowUp, ArrowDown, ArrowUpRight } from "lucide-react";
+import React, { useMemo, useState } from "react";
+import { Shield, Users, ArrowUp, ArrowDown, ArrowUpRight, ChevronDown } from "lucide-react";
 import { MatchRosterPlayer } from "@/services/live/football-score/types";
 import { SoccerBallIcon } from "../MatchTimelineSidebar";
-import { FotmobCaptainBadge } from "../icons/FotmobPitchIcons";
+import {
+  FotmobSoccerBallIcon,
+  FotmobYellowCardIcon,
+  FotmobRedCardIcon,
+  FotmobCaptainBadge,
+  FotmobSubInIcon,
+  FotmobSubOutIcon,
+} from "../icons/FotmobPitchIcons";
 import {
   calculateTacticalCoordinates,
   getShortDisplayName,
@@ -505,16 +512,222 @@ export function TeamListColumn({
 }
 
 // ============================================================================
-// 3. DUAL BENCH COLUMN (DESKTOP SIDE-BY-SIDE BENCH LIST)
+// 3. FOTMOB SUBSTITUTES & BENCH SECTION (AUTHENTIC BORDERLESS 2-COLUMN DESIGN)
 // ============================================================================
 
-interface DualBenchColumnProps {
-  teamName: string;
-  bench: MatchRosterPlayer[];
-  isHome: boolean;
+export interface FotmobSubstitutesSectionProps {
+  homeTeam: TeamInfo;
+  awayTeam: TeamInfo;
+  homeBench: MatchRosterPlayer[];
+  awayBench: MatchRosterPlayer[];
   selectedPlayerId?: string;
   onSelectPlayer: (player: MatchRosterPlayer, isHome: boolean) => void;
   getPlayerEventBadges: (player: MatchRosterPlayer) => DualPlayerEventSummary;
+}
+
+export function FotmobSubstitutesSection({
+  homeTeam,
+  awayTeam,
+  homeBench = [],
+  awayBench = [],
+  selectedPlayerId,
+  onSelectPlayer,
+  getPlayerEventBadges,
+}: FotmobSubstitutesSectionProps) {
+  // Tách riêng cầu thủ đã vào sân thay người (Substitutes) và cầu thủ còn trên ghế dự bị (Unused Bench)
+  const homeSubbedIn = useMemo(
+    () => homeBench.filter((p) => Boolean(p.subbedIn || p.subClock)),
+    [homeBench]
+  );
+  const awaySubbedIn = useMemo(
+    () => awayBench.filter((p) => Boolean(p.subbedIn || p.subClock)),
+    [awayBench]
+  );
+
+  const homeUnused = useMemo(
+    () => homeBench.filter((p) => !p.subbedIn && !p.subClock),
+    [homeBench]
+  );
+  const awayUnused = useMemo(
+    () => awayBench.filter((p) => !p.subbedIn && !p.subClock),
+    [awayBench]
+  );
+
+  const hasSubbedInPlayers = homeSubbedIn.length > 0 || awaySubbedIn.length > 0;
+  const totalUnused = homeUnused.length + awayUnused.length;
+
+  // Nếu chưa có ai vào sân thay người (vd trận chưa diễn ra hoặc hiệp 1 chưa thay ai), mặc định mở danh sách dự bị
+  const [showUnused, setShowUnused] = useState<boolean>(!hasSubbedInPlayers);
+
+  // Render một hàng cầu thủ chuẩn phong cách FotMob (ảnh/số áo bên trái, tên & vị trí, phút + mũi tên xanh lá bên phải)
+  const renderPlayerRow = (
+    player: MatchRosterPlayer,
+    isHome: boolean,
+    isSubIn: boolean
+  ) => {
+    const isSelected = selectedPlayerId === player.id;
+    const eventsInfo = getPlayerEventBadges(player);
+    const isCaptain = Boolean(player.captain);
+
+    return (
+      <button
+        key={`${isHome ? "h" : "a"}-${player.id}`}
+        type="button"
+        onClick={() => onSelectPlayer(player, isHome)}
+        className={`w-full flex items-center justify-between py-2 px-2.5 sm:px-3 border-b border-white/[0.04] transition-colors text-left cursor-pointer group ${
+          isSelected
+            ? "bg-white/[0.08]"
+            : "hover:bg-white/[0.03]"
+        }`}
+      >
+        {/* CỘT TRÁI: SỐ ÁO/AVATAR, TÊN VÀ VỊ TRÍ */}
+        <div className="flex items-center gap-2 sm:gap-2.5 min-w-0 flex-1 pr-2">
+          {/* Avatar hoặc vòng tròn số áo gọn gàng */}
+          <div
+            className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center font-sans font-bold tabular-nums text-xs shrink-0 shadow-sm transition-all ${
+              isHome
+                ? "bg-rose-500/20 text-rose-300 ring-1 ring-rose-500/30"
+                : "bg-sky-500/20 text-sky-300 ring-1 ring-sky-500/30"
+            }`}
+          >
+            <span>{player.jersey || "-"}</span>
+          </div>
+
+          {/* Tên cầu thủ (In đậm trắng) & Vị trí (Xám nhạt phía dưới) */}
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className="text-xs sm:text-sm font-bold text-white group-hover:text-amber-300 transition-colors truncate font-sans">
+                {player.displayName || player.name}
+              </span>
+              {isCaptain && (
+                <FotmobCaptainBadge className="w-3.5 h-3.5 shrink-0" />
+              )}
+            </div>
+            <span className="text-[10.5px] sm:text-[11px] text-zinc-400 font-sans block truncate leading-tight mt-0.5">
+              {translatePosition(player.position)}
+            </span>
+          </div>
+        </div>
+
+        {/* CỘT PHẢI: BÀN THẮNG, THẺ PHẠT, PHÚT VÀO SÂN & MŨI TÊN XANH CHUẨN FOTMOB */}
+        <div className="flex items-center gap-2 shrink-0">
+          {/* Huy hiệu Bàn thắng (quà bóng FotMob) */}
+          {eventsInfo.goals > 0 && (
+            <span
+              className="inline-flex items-center -space-x-1 shrink-0"
+              title={`${eventsInfo.goals} bàn thắng`}
+            >
+              {Array.from({ length: Math.min(eventsInfo.goals, 3) }).map((_, idx) => (
+                <span key={idx} style={{ zIndex: 10 + idx }} className="shrink-0">
+                  <FotmobSoccerBallIcon className="w-3.5 h-3.5" />
+                </span>
+              ))}
+              {eventsInfo.goals > 3 && (
+                <span className="text-[9px] font-black text-amber-400 font-sans tabular-nums pl-0.5">
+                  +{eventsInfo.goals - 3}
+                </span>
+              )}
+            </span>
+          )}
+
+          {/* Thẻ phạt */}
+          {eventsInfo.yellowCards > 0 && (
+            <FotmobYellowCardIcon className="w-2.5 h-3.5 shrink-0" />
+          )}
+          {eventsInfo.redCards > 0 && (
+            <FotmobRedCardIcon className="w-2.5 h-3.5 shrink-0" />
+          )}
+
+          {/* Phút vào sân và mũi tên xanh lá chuẩn FotMob */}
+          {isSubIn && (
+            <div className="flex items-center gap-1.5 shrink-0">
+              {player.subClock && (
+                <span className="text-xs sm:text-[13px] font-sans tabular-nums font-bold text-emerald-400">
+                  {player.subClock}&apos;
+                </span>
+              )}
+              <FotmobSubInIcon className="w-4 h-4" />
+            </div>
+          )}
+        </div>
+      </button>
+    );
+  };
+
+  return (
+    <div className="rounded-2xl bg-zinc-950/70 border border-white/[0.06] p-3.5 sm:p-5 shadow-sm space-y-3">
+      {/* TIÊU ĐỀ SECTION CHÍNH GIỮA CHUẨN FOTMOB */}
+      <h3 className="text-center font-sans font-bold text-sm sm:text-base text-white tracking-wide">
+        Substitutes
+      </h3>
+
+      {/* DANH SÁCH CẦU THỦ THAY NGƯỜI (2 CỘT: ĐỘI NHÀ & ĐỘI KHÁCH) */}
+      {hasSubbedInPlayers ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 md:divide-x md:divide-white/[0.06] gap-x-6">
+          {/* Cột trái: Đội nhà */}
+          <div className="space-y-0.5">
+            {homeSubbedIn.length > 0 ? (
+              homeSubbedIn.map((p) => renderPlayerRow(p, true, true))
+            ) : (
+              <p className="text-center py-4 text-xs text-zinc-500 font-sans">
+                Chưa có thay người
+              </p>
+            )}
+          </div>
+
+          {/* Cột phải: Đội khách */}
+          <div className="space-y-0.5 md:pl-6 pt-2 md:pt-0">
+            {awaySubbedIn.length > 0 ? (
+              awaySubbedIn.map((p) => renderPlayerRow(p, false, true))
+            ) : (
+              <p className="text-center py-4 text-xs text-zinc-500 font-sans">
+                Chưa có thay người
+              </p>
+            )}
+          </div>
+        </div>
+      ) : null}
+
+      {/* NÚT THU GỌN / MỞ RỘNG DANH SÁCH DỰ BỊ CHƯA VÀO SÂN (BENCH / UNUSED PLAYERS) */}
+      {hasSubbedInPlayers && totalUnused > 0 && (
+        <div className="pt-2">
+          <button
+            type="button"
+            onClick={() => setShowUnused(!showUnused)}
+            className="w-full flex items-center justify-center gap-1.5 py-2.5 text-xs font-semibold text-zinc-400 hover:text-white transition cursor-pointer select-none group border-t border-white/[0.04]"
+          >
+            <span>Bench / Injured and suspended players</span>
+            <ChevronDown
+              className={`w-3.5 h-3.5 transition-transform duration-200 ${
+                showUnused ? "rotate-180 text-white" : "text-zinc-500 group-hover:text-white"
+              }`}
+            />
+          </button>
+        </div>
+      )}
+
+      {/* DANH SÁCH CẦU THỦ TRÊN BĂNG GHẾ DỰ BỊ */}
+      {showUnused && totalUnused > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-2 md:divide-x md:divide-white/[0.06] gap-x-6 pt-1">
+          {/* Đội nhà */}
+          <div className="space-y-0.5">
+            {homeUnused.map((p) => renderPlayerRow(p, true, false))}
+          </div>
+
+          {/* Đội khách */}
+          <div className="space-y-0.5 md:pl-6 pt-2 md:pt-0">
+            {awayUnused.map((p) => renderPlayerRow(p, false, false))}
+          </div>
+        </div>
+      )}
+
+      {!hasSubbedInPlayers && totalUnused === 0 && (
+        <p className="text-center py-6 text-xs text-zinc-500 font-sans">
+          Chưa có danh sách đăng ký dự bị
+        </p>
+      )}
+    </div>
+  );
 }
 
 export function DualBenchColumn({
@@ -524,100 +737,15 @@ export function DualBenchColumn({
   selectedPlayerId,
   onSelectPlayer,
   getPlayerEventBadges,
-}: DualBenchColumnProps) {
-  const keyPrefix = isHome ? "hb" : "ab";
-  const dotClass = isHome ? "bg-[#dc2626]" : "bg-[#0284c7]";
-  const selectedBgClass = isHome ? "bg-rose-500/20 text-white" : "bg-sky-500/20 text-white";
-  const jerseyClass = isHome
-    ? "bg-rose-500/15 text-rose-300"
-    : "bg-sky-500/15 text-sky-300";
-
-  return (
-    <div className="rounded-2xl bg-zinc-950/80 p-3 sm:p-3.5 flex flex-col justify-between overflow-hidden shadow-sm">
-      <div className="flex items-center justify-between pb-2.5 shrink-0">
-        <div className="flex items-center gap-2 min-w-0">
-          <span className={`w-2 h-2 rounded-full ${dotClass} shrink-0`} />
-          <h5 className="text-xs font-semibold text-white truncate font-sans">
-            Dự bị: {teamName}
-          </h5>
-        </div>
-        <span className="text-xs font-sans tabular-nums font-bold text-zinc-400 shrink-0">
-          ({bench.length})
-        </span>
-      </div>
-
-      {bench.length === 0 ? (
-        <p className="text-xs text-zinc-500 py-8 text-center font-sans">Chưa có danh sách dự bị</p>
-      ) : (
-        <div className="space-y-1 sm:overflow-y-auto sm:max-h-[320px] pr-1 scrollbar-thin">
-          {bench.map((p) => {
-            const eventsInfo = getPlayerEventBadges(p);
-            const isSelected = selectedPlayerId === p.id;
-            const isCaptain = Boolean(p.captain);
-            return (
-              <button
-                key={`${keyPrefix}-${p.id}`}
-                type="button"
-                onClick={() => onSelectPlayer(p, isHome)}
-                className={`w-full flex items-center px-2 py-1.5 rounded-xl transition text-left cursor-pointer group ${
-                  isSelected
-                    ? selectedBgClass
-                    : "bg-white/[0.02] hover:bg-white/[0.05] text-zinc-300"
-                }`}
-              >
-                <span className={`w-6 h-6 rounded-lg ${jerseyClass} flex items-center justify-center font-sans font-bold tabular-nums text-xs shrink-0 mr-2 shadow-sm`}>
-                  {p.jersey || "-"}
-                </span>
-
-                <div className="min-w-0 flex-1 pr-2 truncate">
-                  <p className="text-xs font-semibold text-zinc-200 group-hover:text-white truncate font-sans leading-snug flex items-center">
-                    <span className="truncate">{p.displayName || p.name}</span>
-                    {isCaptain && (
-                      <FotmobCaptainBadge className="w-3 h-3 ml-1" />
-                    )}
-                  </p>
-                  <p className="text-[10px] text-zinc-400 truncate font-sans leading-snug">
-                    {translatePosition(p.position)}
-                  </p>
-                </div>
-
-                <div className="w-12 shrink-0 flex items-center justify-center gap-1.5">
-                  {eventsInfo.goals > 0 && (
-                    <span
-                      aria-label={`${eventsInfo.goals} Bàn thắng`}
-                      className="inline-flex items-center -space-x-1"
-                    >
-                      {Array.from({ length: Math.min(eventsInfo.goals, 3) }).map((_, idx) => (
-                        <span key={idx} style={{ zIndex: 10 + idx }} className="shrink-0">
-                          <SoccerBallIcon className="w-3.5 h-3.5 drop-shadow-sm" />
-                        </span>
-                      ))}
-                      {eventsInfo.goals > 3 && (
-                        <span className="text-[9px] font-black text-amber-400 font-sans tabular-nums pl-0.5">
-                          +{eventsInfo.goals - 3}
-                        </span>
-                      )}
-                    </span>
-                  )}
-                  {eventsInfo.yellowCards > 0 && <YellowCardIcon className="shrink-0" />}
-                  {eventsInfo.redCards > 0 && <RedCardIcon className="shrink-0" />}
-                </div>
-
-                <div className="w-20 shrink-0 flex items-center justify-end">
-                  {p.subbedIn && (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 font-sans text-[10px] font-bold shrink-0">
-                      <ArrowUpRight className="w-3 h-3 text-emerald-400 stroke-[2.5]" />
-                      <span>Vào sân</span>
-                    </span>
-                  )}
-                </div>
-              </button>
-            );
-          })}
-        </div>
-      )}
-    </div>
-  );
+}: {
+  teamName: string;
+  bench: MatchRosterPlayer[];
+  isHome: boolean;
+  selectedPlayerId?: string;
+  onSelectPlayer: (player: MatchRosterPlayer, isHome: boolean) => void;
+  getPlayerEventBadges: (player: MatchRosterPlayer) => DualPlayerEventSummary;
+}) {
+  return null;
 }
 
 // ============================================================================
@@ -788,7 +916,7 @@ export function DualMobileRosterView({
               return (
                 <div
                   key={`m-bench-${player.id}`}
-                  className="flex items-center justify-between gap-2.5 px-2.5 py-2 rounded-xl bg-white/[0.02] select-none pointer-events-none cursor-default"
+                  className="flex items-center justify-between gap-2.5 py-2 px-1 border-b border-white/[0.04] select-none pointer-events-none cursor-default"
                 >
                   <div className="flex items-center gap-2.5 min-w-0 flex-1">
                     <span className="w-7 h-7 rounded-full bg-zinc-800 text-zinc-300 flex items-center justify-center font-sans font-bold tabular-nums text-xs shrink-0 shadow-sm">
@@ -801,7 +929,7 @@ export function DualMobileRosterView({
                           {player.displayName || player.name}
                         </span>
                         {player.captain && (
-                          <span className="text-[9px] font-bold text-amber-400">(C)</span>
+                          <FotmobCaptainBadge className="w-3.5 h-3.5" />
                         )}
                       </div>
                       <span className="text-[10px] text-zinc-400 font-sans block truncate">
@@ -810,19 +938,23 @@ export function DualMobileRosterView({
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-1.5 shrink-0">
+                  <div className="flex items-center gap-2 shrink-0">
                     {eventsInfo.goals > 0 && (
-                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-amber-400/15 text-amber-300 text-[10px] font-bold font-sans">
-                        <SoccerBallIcon className="w-3 h-3" />
+                      <span className="inline-flex items-center gap-0.5 text-xs">
+                        <FotmobSoccerBallIcon className="w-3.5 h-3.5" />
                       </span>
                     )}
-                    {eventsInfo.yellowCards > 0 && <YellowCardIcon className="w-2.5 h-3.5" />}
-                    {eventsInfo.redCards > 0 && <RedCardIcon className="w-2.5 h-3.5" />}
+                    {eventsInfo.yellowCards > 0 && <FotmobYellowCardIcon className="w-2.5 h-3.5" />}
+                    {eventsInfo.redCards > 0 && <FotmobRedCardIcon className="w-2.5 h-3.5" />}
                     {player.subbedIn && (
-                      <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-emerald-500/15 text-emerald-400 text-[9.5px] font-bold font-sans">
-                        <ArrowUpRight className="w-2.5 h-2.5 stroke-[2.5]" />
-                        <span>Vào sân {player.subClock ? `(${player.subClock}')` : ""}</span>
-                      </span>
+                      <div className="flex items-center gap-1 shrink-0">
+                        {player.subClock && (
+                          <span className="text-[11px] font-sans tabular-nums font-bold text-emerald-400">
+                            {player.subClock}&apos;
+                          </span>
+                        )}
+                        <FotmobSubInIcon className="w-3.5 h-3.5" />
+                      </div>
                     )}
                   </div>
                 </div>

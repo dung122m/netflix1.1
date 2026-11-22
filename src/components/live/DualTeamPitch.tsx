@@ -17,7 +17,7 @@ import {
   calculateDualPitchPlayers,
 } from "./lineup/pitchMath";
 import { PlayerDetailModal } from "./lineup/PlayerCardModal";
-import { DualMobileRosterView, DualBenchColumn } from "./lineup/LineupViews";
+import { DualMobileRosterView, FotmobSubstitutesSection } from "./lineup/LineupViews";
 
 export interface DualTeamPitchProps {
   homeTeam: TeamInfo;
@@ -350,25 +350,16 @@ export const DualTeamPitch: React.FC<DualTeamPitchProps> = ({
           </div>
         )}
 
-        {/* 3. DANH SÁCH CẦU THỦ DỰ BỊ PHÍA DƯỚI SA BÀN */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
-          <DualBenchColumn
-            teamName={homeTeam.displayName}
-            bench={homeBench}
-            isHome={true}
-            selectedPlayerId={selectedPlayer?.player.id}
-            onSelectPlayer={handlePlayerClick}
-            getPlayerEventBadges={resolvePlayerEventBadges}
-          />
-          <DualBenchColumn
-            teamName={awayTeam.displayName}
-            bench={awayBench}
-            isHome={false}
-            selectedPlayerId={selectedPlayer?.player.id}
-            onSelectPlayer={handlePlayerClick}
-            getPlayerEventBadges={resolvePlayerEventBadges}
-          />
-        </div>
+        {/* 3. DANH SÁCH CẦU THỦ THAY NGƯỜI & DỰ BỊ CHUẨN FOTMOB */}
+        <FotmobSubstitutesSection
+          homeTeam={homeTeam}
+          awayTeam={awayTeam}
+          homeBench={homeBench}
+          awayBench={awayBench}
+          selectedPlayerId={selectedPlayer?.player.id}
+          onSelectPlayer={handlePlayerClick}
+          getPlayerEventBadges={resolvePlayerEventBadges}
+        />
       </div>
 
       {/* 4. MODAL THÔNG TIN CẦU THỦ ĐẲNG CẤP STUDIO THỂ THAO */}
