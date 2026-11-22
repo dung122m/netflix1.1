@@ -4,7 +4,7 @@ import { getActorFilmographyFromTmdb, searchTmdbPerson } from "@/services/tmdbSe
 import { normalizeSinoVietnameseVariants } from "@/services/tmdb/personService";
 import { cacheService } from "@/lib/cache";
 import { normalizeForMatch } from "@/lib/stringUtils";
-import { getHistoricalArtistBySlug } from "@/data/history/historicalArtistsBirthdays";
+import { getHistoricalArtistBySlug, findHistoricalArtist } from "@/data/history/historicalArtistsBirthdays";
 
 
 export type { EnhancedActorProfile, ActorProfile } from "@/types/actor";
@@ -87,7 +87,7 @@ export async function resolveActorMovies(
 
   // 1.22 Kiểm tra TIER 2.2: Cache L2 Upstash Redis DB 3 (Aux / Metadata - actor:intent:*)
   const cleanKey = cleanRaw.replace(/[^a-z0-9_]/g, "_").slice(0, 80);
-  const redisActorKey = `actor:intent:v3:${cleanKey}`;
+  const redisActorKey = `actor:intent:v4:${cleanKey}`;
   try {
     const redisCached = await cacheService.get<{
       actorName: string;
@@ -540,6 +540,15 @@ export async function queryMoviesByActor(
     country = synonymRes.country;
   }
 
+  // Tự động phân giải tmdbPersonId từ catalog lịch sử nếu chưa được truyền từ trên xuống
+  let effectiveTmdbPersonId = tmdbPersonId;
+  if (!effectiveTmdbPersonId) {
+    const hist = findHistoricalArtist(actorName) || (matchedSlug ? getHistoricalArtistBySlug(matchedSlug) : undefined);
+    if (hist?.tmdbPersonId) {
+      effectiveTmdbPersonId = hist.tmdbPersonId;
+    }
+  }
+
   const allVariants = Array.from(
     new Set(
       [actorName, ...aliases, ...extraVariants]
@@ -549,9 +558,9 @@ export async function queryMoviesByActor(
   );
 
   const normalizedVariants = Array.from(new Set(allVariants.map(normalizeForMatch).filter(Boolean)));
-  const idPrefix = tmdbPersonId ? `id_${tmdbPersonId}:` : "";
-  const cacheKey = `ACTOR_QUERY_V13:${idPrefix}${matchedSlug || normalizedVariants.sort().join("|")}`;
-  const normSlug = normalizeForMatch(matchedSlug || actorName).replace(/\s+/g, "_") || (tmdbPersonId ? `person_${tmdbPersonId}` : "actor");
+  const idPrefix = effectiveTmdbPersonId ? `id_${effectiveTmdbPersonId}:` : "";
+  const cacheKey = `ACTOR_QUERY_V14:${idPrefix}${matchedSlug || normalizedVariants.sort().join("|")}`;
+  const normSlug = normalizeForMatch(matchedSlug || actorName).replace(/\s+/g, "_") || (effectiveTmdbPersonId ? `person_${effectiveTmdbPersonId}` : "actor");
 
   // 2. Cơ chế SWR Cache (Stale-While-Revalidate - Phản hồi 0ms tức thì)
   const cached = ACTOR_FILM_CACHE.get(cacheKey);
@@ -564,7 +573,7 @@ export async function queryMoviesByActor(
       // Dữ liệu cũ còn hạn dùng tạm -> trả về ngay lập tức 0ms và tự động revalidate ngầm (nếu chưa có in-flight task)
       if (!inFlightActorFilmQueries.has(cacheKey)) {
         setTimeout(() => {
-          executeActorFilmQuery(actorName, allVariants, matchedSlug, synonymRes, maxMovies, cacheKey, tmdbPersonId).catch(() => {});
+          executeActorFilmQuery(actorName, allVariants, matchedSlug, synonymRes, maxMovies, cacheKey, effectiveTmdbPersonId).catch(() => {});
         }, 100);
       }
       return cached.items.slice(0, maxMovies);
@@ -573,7 +582,7 @@ export async function queryMoviesByActor(
 
   // 3. Nếu yêu cầu maxMovies < 150 (ví dụ gợi ý 12 phim), kiểm tra xem cache filmography đầy đủ 150 phim đã có chưa
   if (maxMovies < 150) {
-    const fullKvKey = `actor:filmography_v13:${normSlug}:150`;
+    const fullKvKey = `actor:filmography_v14:${normSlug}:150`;
     try {
       const fullCached = await cacheService.get<Record<string, unknown>[]>(fullKvKey);
       if (Array.isArray(fullCached) && fullCached.length > 0) {
@@ -584,15 +593,26 @@ export async function queryMoviesByActor(
     }
   }
 
-  const kvKey = `actor:filmography_v13:${normSlug}:${maxMovies}`;
+  const kvKey = `actor:filmography_v14:${normSlug}:${maxMovies}`;
   const res = await cacheService.fetchOrSet(
     kvKey,
     async () => {
-      const items = await executeActorFilmQuery(actorName, allVariants, matchedSlug, synonymRes, maxMovies, cacheKey, tmdbPersonId);
+      const items = await executeActorFilmQuery(actorName, allVariants, matchedSlug, synonymRes, maxMovies, cacheKey, effectiveTmdbPersonId);
       return Array.isArray(items) ? items.map(slimActorMovieItem).filter(Boolean) : [];
     },
     3 * 86400 // Giảm từ 14 ngày xuống 3 ngày để bảo vệ 250 MB RAM của DB3
   );
+
+  // Chống nhiễm bẩn mảng rỗng: nếu cache trước đó lưu [] rỗng, tự động fetch lại trực tiếp
+  if (!res || res.length === 0) {
+    const freshItems = await executeActorFilmQuery(actorName, allVariants, matchedSlug, synonymRes, maxMovies, cacheKey, effectiveTmdbPersonId);
+    if (freshItems && freshItems.length > 0) {
+      const enriched = freshItems.map(slimActorMovieItem).filter(Boolean);
+      cacheService.set(kvKey, enriched, 3 * 86400).catch(() => {});
+      return enriched;
+    }
+  }
+
   return res || [];
 }
 

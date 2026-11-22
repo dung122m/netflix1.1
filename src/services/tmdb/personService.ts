@@ -401,7 +401,7 @@ export async function getActorFilmographyFromTmdb(
   const cleanKey = cleanStringForMatch(actorQuery) || cleanStringForMatch(canonicalName);
   if (!cleanKey && !tmdbPersonId) return [];
 
-  const cacheKey = `TMDB_ACTOR_FLOW_V9:${tmdbPersonId || cleanKey}`;
+  const cacheKey = `TMDB_ACTOR_FLOW_V10:${tmdbPersonId || cleanKey}`;
   const now = Date.now();
   const cached = TMDB_ACTOR_MOVIES_CACHE.get(cacheKey);
 
@@ -417,14 +417,25 @@ export async function getActorFilmographyFromTmdb(
     }
   }
 
-  const kvKey = `tmdb:actor_flow_v2:${tmdbPersonId || cleanKey}:${maxMovies}`;
-  return await cacheService.fetchOrSet(
+  const kvKey = `tmdb:actor_flow_v3:${tmdbPersonId || cleanKey}:${maxMovies}`;
+  const res = await cacheService.fetchOrSet(
     kvKey,
     async () => {
       return await executeTmdbActorFlow(actorQuery, canonicalName, aliases, cacheKey, maxMovies, concurrency, tmdbPersonId);
     },
     7 * 86400
   );
+
+  // Chống nhiễm bẩn mảng rỗng: nếu cache trước đó lưu [] rỗng do mạng gián đoạn, tự động fetch lại trực tiếp
+  if (!res || res.length === 0) {
+    const fresh = await executeTmdbActorFlow(actorQuery, canonicalName, aliases, cacheKey, maxMovies, concurrency, tmdbPersonId);
+    if (fresh && fresh.length > 0) {
+      cacheService.set(kvKey, fresh, 7 * 86400).catch(() => {});
+      return fresh;
+    }
+  }
+
+  return res || [];
 }
 
 async function executeTmdbActorFlow(
@@ -443,8 +454,11 @@ async function executeTmdbActorFlow(
     let personName = canonicalName || actorQuery;
 
     if (!personId) {
-      const { getHistoricalArtistBySlug } = await import("@/data/history/historicalArtistsBirthdays");
-      const historicalArtist = getHistoricalArtistBySlug(actorQuery) || (canonicalName ? getHistoricalArtistBySlug(canonicalName) : undefined);
+      const { findHistoricalArtist, getHistoricalArtistBySlug } = await import("@/data/history/historicalArtistsBirthdays");
+      const historicalArtist =
+        findHistoricalArtist(actorQuery) ||
+        (canonicalName ? findHistoricalArtist(canonicalName) : undefined) ||
+        getHistoricalArtistBySlug(actorQuery);
       if (historicalArtist?.tmdbPersonId) {
         personId = historicalArtist.tmdbPersonId;
         personName = historicalArtist.name;

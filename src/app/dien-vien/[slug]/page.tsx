@@ -42,6 +42,7 @@ export async function generateStaticParams() {
     "andy-lau",
     "jackie-chan",
     // Trung Quốc đại lục
+    "pham-bang-bang",
     "duong-mich",
     "trieu-le-dinh",
     "dilraba-dilmurat",
@@ -50,6 +51,8 @@ export async function generateStaticParams() {
     "vuong-nhat-bo",
     "nguyen-kinh-thien",
     "ly-hien",
+    "chu-ti-loi",
+    "billy-chow-bei-lei",
     // Hàn Quốc
     "lee-min-ho",
     "park-seo-joon",
@@ -319,10 +322,12 @@ const resolveActorProfile = cache(async (slug: string): Promise<ResolvedActorPro
     }
   }
 
+  const { personId: explicitPersonId, rawName } = parseActorIdentifier(slug);
+
   // 1. Kiểm tra L2 Redis DB 3 (Aux) để tận dụng cache phân tán giữa các Serverless instances
   try {
-    const redisCached = await cacheService.get<ResolvedActorProfile>(`actor:profile:v1:${slug}`);
-    if (redisCached && redisCached.canonicalName) {
+    const redisCached = await cacheService.get<ResolvedActorProfile>(`actor:profile:v2:${slug}`);
+    if (redisCached && redisCached.canonicalName && (redisCached.tmdbPersonId || explicitPersonId)) {
       if (ACTOR_PROFILE_RAM_CACHE.size >= MAX_ACTOR_PAGE_RAM_ENTRIES) {
         const oldest = ACTOR_PROFILE_RAM_CACHE.keys().next().value;
         if (oldest) ACTOR_PROFILE_RAM_CACHE.delete(oldest);
@@ -334,8 +339,6 @@ const resolveActorProfile = cache(async (slug: string): Promise<ResolvedActorPro
       return redisCached;
     }
   } catch { }
-
-  const { personId: explicitPersonId, rawName } = parseActorIdentifier(slug);
 
   // 1. Phân giải danh tính nghệ sĩ On-Demand
   const historicalItem = getHistoricalArtistBySlug(slug) || (rawName ? getHistoricalArtistBySlug(rawName) : undefined);
@@ -526,7 +529,7 @@ const resolveActorProfile = cache(async (slug: string): Promise<ResolvedActorPro
     expireAt: Date.now() + 7200000,
   });
 
-  cacheService.set(`actor:profile:v1:${slug}`, resolved, ACTOR_PAGE_REDIS_TTL_SEC).catch(() => { });
+  cacheService.set(`actor:profile:v2:${slug}`, resolved, ACTOR_PAGE_REDIS_TTL_SEC).catch(() => { });
 
   return resolved;
 });
@@ -597,7 +600,7 @@ export default async function ActorDetailPage({ params }: PageProps) {
   if (!cachedPage || cachedPage.expireAt <= now || !Array.isArray(movies) || movies.length === 0) {
     try {
       const redisFull = await cacheService.get<{ wikiProfile: ActorProfile | null; movies: unknown[] }>(
-        `actor:full_page:v3:${slug}`
+        `actor:full_page:v4:${slug}`
       );
       if (redisFull && Array.isArray(redisFull.movies) && redisFull.movies.length > 0) {
         wikiProfile = redisFull.wikiProfile;
@@ -610,7 +613,7 @@ export default async function ActorDetailPage({ params }: PageProps) {
       if (movies && movies.length > 0) {
         await enrichMovieListPosters(movies, { budgetMs: 1500, stripProxyUrls: true });
         cacheService
-          .set(`actor:full_page:v3:${slug}`, { wikiProfile, movies }, ACTOR_PAGE_REDIS_TTL_SEC)
+          .set(`actor:full_page:v4:${slug}`, { wikiProfile, movies }, ACTOR_PAGE_REDIS_TTL_SEC)
           .catch(() => { });
       }
     } else {
