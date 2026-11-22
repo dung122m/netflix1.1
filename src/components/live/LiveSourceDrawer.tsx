@@ -2,7 +2,7 @@
 
 import React, { type RefObject } from "react";
 import { AlertCircle, Check, Mic, RotateCcw, X } from "lucide-react";
-import type { StreamServer } from "@/services/liveFootballService";
+import type { StreamServer } from "@/services/live/football/service";
 import {
   getSourceQuality,
   parseServerDisplayLabel,

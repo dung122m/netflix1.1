@@ -3,7 +3,7 @@
 import React, { useState, useMemo, useEffect, useCallback } from "react";
 import { Play, Mic, Radio, Trophy } from "lucide-react";
 import { PlayingEqualizer } from "./PlayingEqualizer";
-import { FootballMatch } from "@/services/liveFootballService";
+import { FootballMatch } from "@/services/live/football/service";
 import { LiveMatchScore } from "@/services/live/football-score/types";
 import {
   getTeamAsset,

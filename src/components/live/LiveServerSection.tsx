@@ -12,7 +12,7 @@ import {
   LayoutGrid,
   Radio,
 } from "lucide-react";
-import type { StreamServer } from "@/services/liveFootballService";
+import type { StreamServer } from "@/services/live/football/service";
 import {
   getSourceQuality,
   parseServerDisplayLabel,

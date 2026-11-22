@@ -11,7 +11,7 @@ import {
 } from "react";
 import Hls from "hls.js";
 import { createResilientHls, teardownHlsAndMedia } from "@/lib/player/hlsCoreEngine";
-import type { FootballMatch, StreamServer } from "@/services/liveFootballService";
+import type { FootballMatch, StreamServer } from "@/services/live/football/service";
 import {
   type LiveStallRecord,
   getForwardBuffer,

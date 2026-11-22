@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { liveFootballService } from "@/services/liveFootballService";
+import { liveFootballService } from "@/services/live/football/service";
 import {
   enforceRateLimit,
   buildRateLimitResponse,

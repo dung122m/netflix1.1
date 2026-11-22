@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { Clock, Mic, Trophy, MapPin, Users } from "lucide-react";
-import type { FootballMatch, StreamServer } from "@/services/liveFootballService";
+import type { FootballMatch, StreamServer } from "@/services/live/football/service";
 import type {
   LiveMatchScore,
   NormalizedMatchSummary,

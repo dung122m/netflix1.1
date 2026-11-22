@@ -3,8 +3,8 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import { RefreshCw } from "lucide-react";
-import { LiveFootballData, LiveMatchScore, evaluateEventLifecycle } from "@/services/liveFootballService";
-import { LiveTvData } from "@/services/liveTvService";
+import { LiveFootballData, LiveMatchScore, evaluateEventLifecycle } from "@/services/live/football/service";
+import { LiveTvData } from "@/services/live/tv/service";
 import { LiveFootballClient } from "./LiveFootballClient";
 import { LiveTvClient } from "./LiveTvClient";
 import { LiveTvSkeleton } from "./LiveTvSkeleton";

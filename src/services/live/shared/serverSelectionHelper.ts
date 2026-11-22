@@ -1,4 +1,4 @@
-import { StreamServer } from "@/services/liveFootballService";
+import { StreamServer } from "@/services/live/football/service";
 import { toCanonicalSourceUrl, extractStreamHost } from "./streamUrlHelper";
 
 /**

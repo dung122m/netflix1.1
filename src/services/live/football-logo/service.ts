@@ -117,7 +117,10 @@ export async function resolveTeamLogo(teamName: string, sport?: string): Promise
   const esp = resolveEsportsTeam(teamName);
   if (esp?.logo) {
     const key = normalizeTeamKey(teamName);
-    if (key) STATIC_CLUB_LOGOS[key] = esp.logo;
+    if (key) {
+      STATIC_CLUB_LOGOS[key] = esp.logo;
+      setCachedLogo(`${sport || "all"}:${key}`, esp.logo);
+    }
     return esp.logo;
   }
   if (!teamName) return "";
@@ -125,12 +128,16 @@ export async function resolveTeamLogo(teamName: string, sport?: string): Promise
   if (!key) return "";
 
   // 1. Kiểm tra cache RAM đã phân giải trước đó (0ms)
-  if (STATIC_CLUB_LOGOS[key]) return STATIC_CLUB_LOGOS[key];
+  if (STATIC_CLUB_LOGOS[key]) {
+    setCachedLogo(`${sport || "all"}:${key}`, STATIC_CLUB_LOGOS[key]);
+    return STATIC_CLUB_LOGOS[key];
+  }
 
   // 2. Tra cứu curated TeamAsset từ teamAssets.ts (0ms O(1))
   const asset = getTeamAsset(teamName, sport);
   if (asset && asset.logo) {
     STATIC_CLUB_LOGOS[key] = asset.logo;
+    setCachedLogo(`${sport || "all"}:${key}`, asset.logo);
     return asset.logo;
   }
 
@@ -138,6 +145,7 @@ export async function resolveTeamLogo(teamName: string, sport?: string): Promise
   const r2Logo = getR2TeamLogoUrl(teamName, sport);
   if (r2Logo) {
     STATIC_CLUB_LOGOS[key] = r2Logo;
+    setCachedLogo(`${sport || "all"}:${key}`, r2Logo);
     return r2Logo;
   }
 
@@ -151,6 +159,7 @@ export async function resolveTeamLogo(teamName: string, sport?: string): Promise
   if (s === "basketball" || s === "esports" || s === "tennis") {
     const dynamicLogo = await resolveDynamicSportsLogo(teamName, sport);
     LOGO_CACHE.set(key, dynamicLogo);
+    setCachedLogo(`${sport || "all"}:${key}`, dynamicLogo);
     return dynamicLogo;
   }
 
