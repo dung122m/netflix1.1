@@ -172,8 +172,17 @@ export async function getTmdbMediaImagesById(
         data = await fetchTmdbEndpoint(`/${cleanType}/${cleanId}`, 86400, externalSignal);
       }
 
-      // Lưu ý: Tuyệt đối KHÔNG fallback sang altType (movie <-> tv) bằng cùng số ID.
-      // TMDB movie và tv ID là 2 không gian số nguyên hoàn toàn độc lập, tráo ID sẽ làm sai lệch dữ liệu phim.
+      // 3. Nếu không tìm thấy theo cleanType (404), thử qua altType (movie <-> tv) đề phòng dữ liệu phân loại nhầm
+      if (!data?.id && !externalSignal?.aborted) {
+        const altType = cleanType === "tv" ? "movie" : "tv";
+        let altData = await fetchTmdbEndpoint(`/${altType}/${cleanId}?language=vi-VN`, 86400, externalSignal);
+        if (!altData?.poster_path && altData?.id && !externalSignal?.aborted) {
+          altData = await fetchTmdbEndpoint(`/${altType}/${cleanId}`, 86400, externalSignal);
+        }
+        if (altData?.poster_path && altData?.id) {
+          data = altData;
+        }
+      }
 
       const posterUrl = data?.poster_path
         ? `https://image.tmdb.org/t/p/w500${data.poster_path}`

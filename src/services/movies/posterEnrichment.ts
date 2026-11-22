@@ -1,6 +1,5 @@
 import { isBrokenImageUrl, isSlowProviderSourceUrl } from "@/lib/movieMedia";
 import { getTmdbMediaImagesById, searchTmdbPosterByTitle } from "@/services/tmdbService";
-import { searchAniListPoster } from "@/services/aniListService";
 import { cacheService } from "@/lib/cache";
 
 export interface PosterEnrichmentOptions {
@@ -273,24 +272,6 @@ export async function enrichMovieListPosters(movieList: any[], options: PosterEn
         } catch { }
       }
 
-      // 3. AniList fallback for animation titles when TMDB did not match
-      if (!foundPoster && posterNonTmdb && !signal.aborted && isAnimeOrAnimationItem(item)) {
-        try {
-          const aniRes = await searchAniListPoster(
-            item.name,
-            item.origin_name,
-            item.alternative_names,
-            signal
-          );
-          if (aniRes?.posterUrl) {
-            item.poster_url = aniRes.posterUrl;
-            if (shouldUpgradeThumbUrl(item.thumb_url)) {
-              item.thumb_url = aniRes.backdropUrl || aniRes.posterUrl;
-            }
-            foundPoster = true;
-          }
-        } catch { }
-      }
 
       if (!foundPoster) {
         finalizeFallback(item);

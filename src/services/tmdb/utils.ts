@@ -25,9 +25,7 @@ export function normalizeTmdbLookupMediaType(type?: string): "tv" | "movie" {
     clean === "series" ||
     clean === "phim-bo" ||
     clean === "tv-shows" ||
-    clean === "tvshows" ||
-    clean === "hoathinh" ||
-    clean === "hoat-hinh"
+    clean === "tvshows"
   ) {
     return "tv";
   }

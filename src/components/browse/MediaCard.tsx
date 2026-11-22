@@ -222,11 +222,6 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
       if (aTmdb && !bTmdb) return -1;
       if (!aTmdb && bTmdb) return 1;
 
-      const aAni = a.includes("anilist.co");
-      const bAni = b.includes("anilist.co");
-      if (aAni && !bAni) return -1;
-      if (!aAni && bAni) return 1;
-
       const aBlocked = a.includes("phimimg.com") || a.includes("img.ophim.cc") || a.includes("img.phimapi.com");
       const bBlocked = b.includes("phimimg.com") || b.includes("img.ophim.cc") || b.includes("img.phimapi.com");
       if (!aBlocked && bBlocked) return -1;

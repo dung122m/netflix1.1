@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { movieApi } from "@/services/movies/service";
 import { getTmdbPosterUrl, searchTmdbPosterByTitle, getTmdbMediaImagesById } from "@/services/tmdbService";
-import { searchAniListPoster } from "@/services/aniListService";
 import { cacheService } from "@/lib/cache";
 import {
   enforceRateLimit,
@@ -218,15 +217,6 @@ async function resolvePosterFromUpstream(
     } catch {}
   }
 
-  // 5. Dự phòng cho Hoạt hình / Anime / Donghua qua AniList GraphQL
-  if (!result && (title || origin_name)) {
-    try {
-      const aniRes = await searchAniListPoster(title, origin_name);
-      if (aniRes?.posterUrl || aniRes?.backdropUrl) {
-        result = aniRes;
-      }
-    } catch {}
-  }
 
   const finalPosterUrl = result?.posterUrl || null;
   const finalBackdropUrl = result?.backdropUrl || null;

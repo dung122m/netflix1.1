@@ -546,13 +546,6 @@ export function pickBestMoviePoster(movie: MovieLike, fallback = "/default-poste
     }
   }
 
-  // 1.1 Ưu tiên AniList CDN chính hãng cho Anime/Hoạt hình (s4.anilist.co)
-  for (const c of candidates) {
-    if (c.includes("anilist.co")) {
-      return c;
-    }
-  }
-
   // 2. Ưu tiên bất kỳ CDN / nguồn ảnh nào KHÔNG PHẢI phimimg.com (như NguonC, Amazon, v.v.)
   for (const c of candidates) {
     if (!c.includes("phimimg.com")) {
@@ -792,7 +785,6 @@ export function isSlowProviderSourceUrl(url?: string | null): boolean {
   // Các CDN chính hãng siêu nhanh & nhẹ -> Không phải nguồn chậm
   if (
     trimmed.includes("image.tmdb.org") ||
-    trimmed.includes("anilist.co") ||
     trimmed.includes("media-amazon.com")
   ) {
     return false;
@@ -1046,6 +1038,7 @@ export interface NormalizedMovie {
   posterUrl: string;
   thumbUrl: string;
   tmdbId?: string | number;
+  itemType?: "movie" | "series";
   year: string;
   time?: string;
   quality: string;
@@ -1623,6 +1616,18 @@ export function normalizeMovie(m: any): NormalizedMovie {
     trailer_url || isTrailerOnly || m?.hasTrailer || (typeof trailer_url === "string" && trailer_url.length > 0)
   );
   const tmdbId = m?.tmdb?.id || m?.movie?.tmdb?.id || undefined;
+  const rawTmdbType = m?.tmdb?.type || m?.movie?.tmdb?.type;
+  const isSeries =
+    rawTmdbType === "tv" ||
+    m?.type === "series" ||
+    m?.type === "tvshows" ||
+    m?.type_name === "Phim Bộ" ||
+    Number(m?.total_episodes) > 1 ||
+    Number(m?.episode_total) > 1 ||
+    (Array.isArray(m?.episodes?.[0]?.server_data) && m.episodes[0].server_data.length > 1);
+
+  const itemType: "movie" | "series" =
+    rawTmdbType === "movie" ? "movie" : rawTmdbType === "tv" ? "series" : isSeries ? "series" : "movie";
 
   return {
     slug: m?.slug || "",
@@ -1632,6 +1637,7 @@ export function normalizeMovie(m: any): NormalizedMovie {
     posterUrl,
     thumbUrl,
     tmdbId,
+    itemType,
     year,
     time,
     quality,

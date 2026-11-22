@@ -119,6 +119,7 @@ const MovieGridInner = ({ movies, columnsClassName }: MovieGridProps) => {
               director={norm.director}
               country={norm.country}
               type_name={norm.type_name}
+              itemType={norm.itemType}
               hasTrailer={norm.hasTrailer}
               trailer_url={norm.trailer_url}
               isTrailerOnly={norm.isTrailerOnly}
