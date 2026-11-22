@@ -1,4 +1,3 @@
-import { sanitizeSafeText } from "@/lib/security";
 import { MovieCollection, CollectionMovieItem } from "@/types/collection";
 import {
   getUserCollectionsSupabase,
@@ -8,237 +7,44 @@ import { isSupabaseConfigured } from "@/lib/supabase";
 import { auth } from "@/lib/firebase";
 import { movieApi } from "./movies/service";
 import { normalizeMovie } from "@/lib/movieMedia";
+import {
+  LOCAL_COLLECTIONS_KEY_PREFIX,
+  MAX_SYNC_ATTEMPTS,
+  PENDING_SYNC_KEY_PREFIX,
+  normalizeCollection,
+  getPendingSync,
+  addPendingSync,
+  removePendingSync,
+  clearPendingSync,
+  getTombstones,
+  addTombstone,
+  clearTombstone,
+  mergeCollections,
+  sanitizeAndDeduplicateMovies,
+  type PendingSyncItem,
+  type SanitizedMovieItem,
+} from "./collections/collectionSyncManager";
+import {
+  SMART_COLLECTIONS,
+  getSmartCollectionsList,
+  type SmartCollectionConfig,
+} from "@/data/collections/smartCollections";
 
-const LOCAL_COLLECTIONS_KEY_PREFIX = "nanaflix_collections_";
-const TOMBSTONE_KEY_PREFIX = "nanaflix_col_tombstones_";
-const PENDING_SYNC_KEY_PREFIX = "nanaflix_col_pending_sync_";
-const TOMBSTONE_TTL_MS = 10 * 60 * 1000; // 10 phút
-const MAX_SYNC_ATTEMPTS = 5;
-
-/**
- * Chuẩn hóa đối tượng bộ sưu tập từ bất kỳ nguồn nào (Database snake_case hoặc Frontend camelCase)
- */
-export function normalizeCollection(raw: unknown): MovieCollection | null {
-  if (!raw || typeof raw !== "object") return null;
-  const d = raw as Record<string, unknown>;
-
-  const id = String(d.id || "").trim();
-  if (!id) return null;
-
-  const userId = String(d.userId || d.user_id || "").trim();
-  const creatorName = String(d.creatorName || d.user_name || "Thành viên Nanaflix").trim();
-  const creatorPhoto = d.creatorPhoto
-    ? String(d.creatorPhoto)
-    : (d.user_avatar ? String(d.user_avatar) : undefined);
-  const name = String(d.name || "").trim();
-  if (!name) return null;
-
-  const description = d.description ? String(d.description).trim() : "";
-  const isPublic = Boolean(d.isPublic ?? d.is_public ?? true);
-
-  const movies: CollectionMovieItem[] = [];
-  if (Array.isArray(d.movies)) {
-    for (const item of d.movies) {
-      if (item && typeof item === "object") {
-        const m = item as Record<string, unknown>;
-        const slug = String(m.slug || "").trim();
-        const title = String(m.title || "").trim();
-        if (slug && title) {
-          const rawItemType = m.itemType && ["movie", "series", "episode"].includes(String(m.itemType))
-            ? (String(m.itemType) as "movie" | "series" | "episode")
-            : (slug.includes("__ep__") ? "episode" : undefined);
-          const rawSeriesSlug = m.seriesSlug
-            ? String(m.seriesSlug).trim()
-            : (slug.includes("__ep__") ? slug.split("__ep__")[0] : undefined);
-          const rawSeriesTitle = m.seriesTitle ? String(m.seriesTitle).trim() : undefined;
-          const rawEpisodeSlug = m.episodeSlug
-            ? String(m.episodeSlug).trim()
-            : (slug.includes("__ep__") ? slug.split("__ep__")[1] : undefined);
-          const rawEpisodeName = m.episodeName ? String(m.episodeName).trim() : undefined;
-          const rawSeasonName = m.seasonName ? String(m.seasonName).trim() : undefined;
-
-          movies.push({
-            slug,
-            title,
-            poster: String(m.poster || m.poster_url || m.thumb_url || "/default-poster.jpg"),
-            year: m.year !== undefined ? String(m.year) : undefined,
-            quality: m.quality ? String(m.quality) : undefined,
-            category: m.category ? String(m.category) : undefined,
-            addedAt: Number(m.addedAt || m.added_at) || Date.now(),
-            itemType: rawItemType,
-            seriesSlug: rawSeriesSlug,
-            seriesTitle: rawSeriesTitle,
-            episodeSlug: rawEpisodeSlug,
-            episodeName: rawEpisodeName,
-            seasonName: rawSeasonName,
-          });
-        }
-      }
-    }
-  }
-
-  const now = Date.now();
-  const createdAt = Number(d.createdAt ?? d.created_at) || now;
-  const updatedAt = Number(d.updatedAt ?? d.updated_at) || createdAt;
-
-  const coverUrl = d.coverUrl ? String(d.coverUrl) : (d.cover_url ? String(d.cover_url) : undefined);
-  const colorGradient = d.colorGradient ? String(d.colorGradient) : (d.color_gradient ? String(d.color_gradient) : undefined);
-
-  return {
-    id,
-    userId,
-    creatorName: creatorName || "Thành viên Nanaflix",
-    creatorPhoto,
-    name,
-    description,
-    isPublic,
-    coverUrl,
-    colorGradient,
-    movies,
-    createdAt,
-    updatedAt,
-  };
-}
-
-export interface PendingSyncItem {
-  collectionId: string;
-  attempts: number;
-  lastAttempt: number;
-}
-
-export function getPendingSync(userId: string): Record<string, PendingSyncItem> {
-  if (typeof window === "undefined" || !userId) return {};
-  try {
-    const raw = localStorage.getItem(`${PENDING_SYNC_KEY_PREFIX}${userId}`);
-    if (!raw) return {};
-    const parsed = JSON.parse(raw);
-    if (!parsed || typeof parsed !== "object") return {};
-    return parsed as Record<string, PendingSyncItem>;
-  } catch {
-    return {};
-  }
-}
-
-export function addPendingSync(userId: string, collectionId: string): void {
-  if (typeof window === "undefined" || !userId || !collectionId) return;
-  try {
-    const current = getPendingSync(userId);
-    const existing = current[collectionId];
-    current[collectionId] = {
-      collectionId,
-      attempts: existing ? existing.attempts : 0,
-      lastAttempt: Date.now(),
-    };
-    localStorage.setItem(`${PENDING_SYNC_KEY_PREFIX}${userId}`, JSON.stringify(current));
-  } catch {}
-}
-
-export function removePendingSync(userId: string, collectionId: string): void {
-  if (typeof window === "undefined" || !userId || !collectionId) return;
-  try {
-    const current = getPendingSync(userId);
-    if (current[collectionId]) {
-      delete current[collectionId];
-      localStorage.setItem(`${PENDING_SYNC_KEY_PREFIX}${userId}`, JSON.stringify(current));
-    }
-  } catch {}
-}
-
-export function clearPendingSync(userId: string): void {
-  if (typeof window === "undefined" || !userId) return;
-  try {
-    localStorage.removeItem(`${PENDING_SYNC_KEY_PREFIX}${userId}`);
-  } catch {}
-}
-
-export function getTombstones(userId: string): Record<string, number> {
-  if (typeof window === "undefined" || !userId) return {};
-  try {
-    const raw = localStorage.getItem(`${TOMBSTONE_KEY_PREFIX}${userId}`);
-    if (!raw) return {};
-    const parsed = JSON.parse(raw);
-    const now = Date.now();
-    const valid: Record<string, number> = {};
-    for (const [id, ts] of Object.entries(parsed)) {
-      if (typeof ts === "number" && now - ts < TOMBSTONE_TTL_MS) {
-        valid[id] = ts;
-      }
-    }
-    return valid;
-  } catch {
-    return {};
-  }
-}
-
-export function addTombstone(userId: string, collectionId: string): void {
-  if (typeof window === "undefined" || !userId || !collectionId) return;
-  try {
-    const current = getTombstones(userId);
-    current[collectionId] = Date.now();
-    localStorage.setItem(`${TOMBSTONE_KEY_PREFIX}${userId}`, JSON.stringify(current));
-  } catch {}
-}
-
-export function clearTombstone(userId: string, collectionId: string): void {
-  if (typeof window === "undefined" || !userId || !collectionId) return;
-  try {
-    const current = getTombstones(userId);
-    if (current[collectionId]) {
-      delete current[collectionId];
-      localStorage.setItem(`${TOMBSTONE_KEY_PREFIX}${userId}`, JSON.stringify(current));
-    }
-  } catch {}
-}
-
-/**
- * Thuật toán Smart Merge: Hợp nhất danh sách giữa LocalStorage và Server
- * - Ưu tiên bản ghi có `updatedAt` lớn hơn khi cả hai nguồn đều có ID
- * - Giữ các bản ghi cục bộ mới tạo mà server chưa kịp có
- * - Tôn trọng tombstone để tránh hồi sinh bản ghi đã bị xóa
- */
-export function mergeCollections(
-  localList: MovieCollection[],
-  serverList: MovieCollection[],
-  userId: string,
-  tombstones: Record<string, number> = {}
-): MovieCollection[] {
-  const collectionMap = new Map<string, MovieCollection>();
-
-  // 1. Nạp server list trước (đã lọc tombstone)
-  for (const rawServer of serverList) {
-    const s = normalizeCollection(rawServer);
-    if (!s) continue;
-    if (tombstones[s.id]) continue;
-    collectionMap.set(s.id, s);
-  }
-
-  // 2. Xét local list
-  for (const rawLocal of localList) {
-    const l = normalizeCollection(rawLocal);
-    if (!l) continue;
-    if (tombstones[l.id]) continue;
-
-    const existingServer = collectionMap.get(l.id);
-    if (!existingServer) {
-      // Local có nhưng server chưa có: giữ lại nếu thuộc về user này
-      if (!userId || l.userId === userId || !l.userId) {
-        collectionMap.set(l.id, l);
-      }
-    } else {
-      // Cả 2 đều có: so sánh updatedAt
-      if (l.updatedAt > existingServer.updatedAt) {
-        collectionMap.set(l.id, l);
-      } else {
-        collectionMap.set(l.id, existingServer);
-      }
-    }
-  }
-
-  // Sắp xếp theo updatedAt giảm dần (mới nhất lên đầu)
-  return Array.from(collectionMap.values()).sort(
-    (a, b) => (b.updatedAt || b.createdAt || 0) - (a.updatedAt || a.createdAt || 0)
-  );
-}
+export {
+  normalizeCollection,
+  getPendingSync,
+  addPendingSync,
+  removePendingSync,
+  clearPendingSync,
+  getTombstones,
+  addTombstone,
+  clearTombstone,
+  mergeCollections,
+  sanitizeAndDeduplicateMovies,
+  SMART_COLLECTIONS,
+  getSmartCollectionsList,
+};
+export type { PendingSyncItem, SanitizedMovieItem, SmartCollectionConfig };
 
 async function getAuthHeaders(): Promise<HeadersInit> {
   const headers: Record<string, string> = {
@@ -295,7 +101,6 @@ export function saveLocalCollections(userId: string, items: MovieCollection[]): 
 
 /**
  * Lưu bộ sưu tập qua Server API
- * Trả về true nếu server xác nhận thành công (status 200..299)
  */
 export async function syncCollectionToServer(collection: MovieCollection): Promise<boolean> {
   try {
@@ -317,23 +122,16 @@ export async function syncCollectionToServer(collection: MovieCollection): Promi
 const activeSyncPromises = new Map<string, Promise<void>>();
 
 /**
- * Tiến trình đồng bộ lại các bản ghi đang chờ (Pending Sync) lên Server:
- * - Chống chạy đồng thời nhiều worker cho cùng 1 user (activeSyncPromises Lock)
- * - Kiểm tra danh tính user trước khi gửi (không sync lẫn lộn tài khoản khi chuyển user/logout)
- * - Tôn trọng Tombstone (không sync dữ liệu đã bị xóa)
- * - Exponential backoff và giới hạn số lần thử (tối đa MAX_SYNC_ATTEMPTS)
- * - Chỉ xóa khỏi hàng đợi khi Server xác nhận HTTP 200/201 hợp lệ
+ * Tiến trình đồng bộ lại các bản ghi đang chờ (Pending Sync) lên Server
  */
 export async function processPendingSync(userId: string): Promise<void> {
   if (typeof window === "undefined" || !userId) return;
 
-  // Bảo vệ cô lập dữ liệu theo tài khoản: Nếu user hiện tại không khớp userId, dừng ngay
   const currentUid = auth?.currentUser?.uid;
   if (currentUid && currentUid !== userId) {
     return;
   }
 
-  // Khóa lock chống chạy đồng thời
   const existingPromise = activeSyncPromises.get(userId);
   if (existingPromise) {
     return existingPromise;
@@ -350,19 +148,16 @@ export async function processPendingSync(userId: string): Promise<void> {
       const now = Date.now();
 
       for (const colId of pendingIds) {
-        // Kiểm tra an toàn trước mỗi item
         const activeUid = auth?.currentUser?.uid;
         if (activeUid && activeUid !== userId) {
           break;
         }
 
-        // 1. Tôn trọng Tombstone
         if (tombstones[colId]) {
           removePendingSync(userId, colId);
           continue;
         }
 
-        // 2. Kiểm tra bản ghi trong LocalStorage
         const col = localCols.find((c) => c.id === colId);
         if (!col) {
           removePendingSync(userId, colId);
@@ -372,19 +167,16 @@ export async function processPendingSync(userId: string): Promise<void> {
         const item = pendingMap[colId];
         if (!item) continue;
 
-        // 3. Giới hạn retry
         if (item.attempts >= MAX_SYNC_ATTEMPTS) {
           removePendingSync(userId, colId);
           continue;
         }
 
-        // 4. Exponential backoff (1s, 2s, 4s, 8s, 16s, max 30s)
         const backoffMs = Math.min(1000 * Math.pow(2, item.attempts), 30000);
         if (item.attempts > 0 && now - item.lastAttempt < backoffMs) {
           continue;
         }
 
-        // 5. Thử đồng bộ lên server
         const success = await syncCollectionToServer(col);
         if (success) {
           removePendingSync(userId, colId);
@@ -409,7 +201,6 @@ export async function processPendingSync(userId: string): Promise<void> {
   return syncPromise;
 }
 
-// Tự động kích hoạt khi mạng phục hồi
 if (typeof window !== "undefined") {
   window.addEventListener("online", () => {
     const currentUid = auth?.currentUser?.uid;
@@ -439,8 +230,7 @@ async function deleteCollectionFromServer(collectionId: string): Promise<boolean
 }
 
 /**
- * Lấy danh sách bộ sưu tập của người dùng (Server API + Supabase PostgreSQL + LocalStorage Cache)
- * Áp dụng Smart Merge, không bao giờ để response rỗng hoặc lỗi tạm thời xóa trắng LocalStorage
+ * Lấy danh sách bộ sưu tập của người dùng
  */
 export async function getUserCollections(userId: string): Promise<MovieCollection[]> {
   if (!userId) return [];
@@ -466,7 +256,6 @@ export async function getUserCollections(userId: string): Promise<MovieCollectio
           isReliableServerResponse = true;
         }
       } else if (res.status === 401 || res.status === 403) {
-        // Token hết hạn hoặc không có quyền: Tuyệt đối không fallback public và không coi là mảng rỗng
         console.warn(`[Collections] API trả về ${res.status}, bảo vệ an toàn LocalStorage.`);
       }
     }
@@ -474,7 +263,6 @@ export async function getUserCollections(userId: string): Promise<MovieCollectio
     console.warn("Lỗi fetch /api/user/collections:", err);
   }
 
-  // Supabase fallback CHỈ ĐƯỢC CHẠY khi chưa có serverItems và có thể xác thực
   if (!isReliableServerResponse && isSupabaseConfigured()) {
     try {
       const supaResult = await getUserCollectionsSupabase(userId);
@@ -489,11 +277,7 @@ export async function getUserCollections(userId: string): Promise<MovieCollectio
     }
   }
 
-  // BẢO VỆ TUYỆT ĐỐI LOCALSTORAGE:
-  // Chỉ khi server phản hồi thành công và tin cậy (isReliableServerResponse === true)
-  // và xác nhận danh sách của chính tài khoản đã xác thực:
   if (isReliableServerResponse && serverItems !== null) {
-    // Đảm bảo tại thời điểm lưu, user hiện tại vẫn khớp userId (chống race condition khi đổi tài khoản)
     const activeUid = auth?.currentUser?.uid;
     if (!activeUid || activeUid === userId) {
       const merged = mergeCollections(localList, serverItems, userId, tombstones);
@@ -505,8 +289,6 @@ export async function getUserCollections(userId: string): Promise<MovieCollectio
     }
   }
 
-  // Trường hợp mạng lỗi, timeout, 401/403 hoặc token chưa khôi phục:
-  // Giữ nguyên dữ liệu LocalStorage an toàn 100%, không ghi đè rỗng
   if (typeof window !== "undefined") {
     processPendingSync(userId).catch(() => {});
   }
@@ -527,21 +309,18 @@ export function subscribeUserCollections(
 
   let isSubscribed = true;
 
-  // 1. Trả ngay dữ liệu local trước để không bị trễ giao diện (0ms)
   const initialLocal = getLocalCollections(userId);
   callback(initialLocal);
 
-  // 2. Fetch mới nhất từ Server API / Supabase và Smart Merge
   getUserCollections(userId)
     .then((items) => {
-      if (!isSubscribed) return; // Đã unsubscribe hoặc đổi user, hủy callback
+      if (!isSubscribed) return;
       const activeUid = auth?.currentUser?.uid;
-      if (activeUid && activeUid !== userId) return; // Chống race condition khi đổi user
+      if (activeUid && activeUid !== userId) return;
       callback(items);
     })
     .catch(() => {});
 
-  // 3. Lắng nghe cập nhật local từ cùng tab hoặc các tab khác
   const handleLocalUpdate = (e: Event) => {
     if (!isSubscribed) return;
     const customEvent = e as CustomEvent<{ userId: string; items: MovieCollection[] }>;
@@ -574,7 +353,7 @@ export function subscribeUserCollections(
 }
 
 /**
- * Tạo bộ sưu tập mới (Lưu ngay vào LocalStorage và đồng bộ qua Server API)
+ * Tạo bộ sưu tập mới
  */
 export async function createCollection(
   userId: string,
@@ -607,15 +386,12 @@ export async function createCollection(
       updatedAt: now,
     };
 
-    // Đảm bảo id mới không bị vướng tombstone
     clearTombstone(userId, collectionId);
 
-    // 1. Luôn lưu vào LocalStorage trước để đảm bảo tính năng phản hồi 0ms
     const currentLocal = getLocalCollections(userId);
     const updatedLocal = [collectionData, ...currentLocal.filter((c) => c.id !== collectionData.id)];
     saveLocalCollections(userId, updatedLocal);
 
-    // 2. Đưa vào pending queue và đồng bộ qua Server API
     addPendingSync(userId, collectionId);
     syncCollectionToServer(collectionData)
       .then((success) => {
@@ -647,23 +423,19 @@ export async function deleteCollection(
   const snapshot = currentLocal.find((c) => c.id === collectionId);
   const updatedLocal = currentLocal.filter((c) => c.id !== collectionId);
 
-  // 1. Optimistic update: Xóa khỏi LocalStorage và hủy pending sync
   saveLocalCollections(userId, updatedLocal);
   removePendingSync(userId, collectionId);
 
   try {
-    // 2. Xóa qua Server API
     const serverOk = await deleteCollectionFromServer(collectionId);
     if (!serverOk) {
       throw new Error("Server xóa thất bại hoặc lỗi mạng");
     }
 
-    // 3. Server xác nhận thành công -> Lưu tombstone để tránh server cache cũ làm hồi sinh
     addTombstone(userId, collectionId);
     return true;
   } catch (err) {
     console.warn("Lỗi xóa bộ sưu tập, tiến hành rollback:", err);
-    // 4. Rollback: Khôi phục lại bản ghi cục bộ và xóa tombstone
     clearTombstone(userId, collectionId);
     if (snapshot) {
       const restored = [snapshot, ...getLocalCollections(userId).filter((c) => c.id !== collectionId)];
@@ -690,7 +462,6 @@ export async function addMovieToCollection(
       addedAt: now,
     };
 
-    // 1. Cập nhật LocalStorage trước (0ms)
     const currentLocal = getLocalCollections(userId);
     let targetCol = currentLocal.find((c) => c.id === collectionId);
     let updatedMovies: CollectionMovieItem[] = [];
@@ -698,7 +469,7 @@ export async function addMovieToCollection(
     if (targetCol) {
       const existingMovies = Array.isArray(targetCol.movies) ? targetCol.movies : [];
       if (existingMovies.some((m) => m.slug === movie.slug)) {
-        return true; // Phim đã có trong bộ sưu tập
+        return true;
       }
       updatedMovies = [newItem, ...existingMovies];
       targetCol = {
@@ -711,7 +482,6 @@ export async function addMovieToCollection(
         currentLocal.map((c) => (c.id === collectionId ? targetCol! : c))
       );
 
-      // 2. Đưa vào pending queue và đồng bộ qua Server API
       addPendingSync(userId, collectionId);
       syncCollectionToServer(targetCol)
         .then((success) => {
@@ -742,7 +512,6 @@ export async function removeMovieFromCollection(
   try {
     const now = Date.now();
 
-    // 1. Cập nhật LocalStorage (0ms)
     const currentLocal = getLocalCollections(userId);
     const targetCol = currentLocal.find((c) => c.id === collectionId);
     if (targetCol) {
@@ -757,7 +526,6 @@ export async function removeMovieFromCollection(
         currentLocal.map((c) => (c.id === collectionId ? updatedCol : c))
       );
 
-      // 2. Đưa vào pending queue và đồng bộ qua Server API
       addPendingSync(userId, collectionId);
       syncCollectionToServer(updatedCol)
         .then((success) => {
@@ -788,7 +556,6 @@ export async function toggleCollectionPrivacy(
   try {
     const now = Date.now();
 
-    // 1. Cập nhật LocalStorage
     const currentLocal = getLocalCollections(userId);
     const targetCol = currentLocal.find((c) => c.id === collectionId);
     if (targetCol) {
@@ -802,7 +569,6 @@ export async function toggleCollectionPrivacy(
         currentLocal.map((c) => (c.id === collectionId ? updatedCol : c))
       );
 
-      // 2. Đưa vào pending queue và đồng bộ qua Server API
       addPendingSync(userId, collectionId);
       syncCollectionToServer(updatedCol)
         .then((success) => {
@@ -820,98 +586,8 @@ export async function toggleCollectionPrivacy(
   }
 }
 
-export interface SmartCollectionConfig {
-  id: string;
-  name: string;
-  description: string;
-  emoji: string;
-  badge: string;
-  query: {
-    category?: string;
-    country?: string;
-    type?: string;
-    sort?: "views" | "rating" | "latest";
-    limit?: number;
-    page?: number;
-  };
-}
-
-export const SMART_COLLECTIONS: SmartCollectionConfig[] = [
-  {
-    id: "weekend-picks",
-    name: "🔥 Xem Cuối Tuần",
-    description: "Tuyển chọn các siêu phẩm giải trí và bom tấn điện ảnh hấp dẫn nhất cho những ngày nghỉ trọn vẹn.",
-    emoji: "🔥",
-    badge: "Cuối Tuần",
-    query: { sort: "views", limit: 24, page: 1 },
-  },
-  {
-    id: "martial-arts-legends",
-    name: "🥋 Võ Thuật & Hành Động",
-    description: "Những pha hành động nghẹt thở, kungfu kinh điển và các màn đọ sức đỉnh cao của điện ảnh châu Á và thế giới.",
-    emoji: "🥋",
-    badge: "Hành Động",
-    query: { category: "vo-thuat", sort: "views", limit: 24, page: 1 },
-  },
-  {
-    id: "deep-drama",
-    name: "🎭 Tâm Lý Đáng Xem",
-    description: "Những tác phẩm chính kịch sâu sắc, chạm đến tầng sâu cảm xúc và suy ngẫm của người xem.",
-    emoji: "🎭",
-    badge: "Tâm Lý",
-    query: { category: "tam-ly", sort: "rating", limit: 24, page: 1 },
-  },
-  {
-    id: "k-drama-wave",
-    name: "🇰🇷 Làn Sóng K-Drama",
-    description: "Những bộ phim truyền hình Hàn Quốc đình đám với dàn diễn viên xuất sắc và kịch bản cuốn hút.",
-    emoji: "🇰🇷",
-    badge: "K-Drama",
-    query: { country: "han-quoc", type: "phim-bo", sort: "views", limit: 24, page: 1 },
-  },
-  {
-    id: "most-watched",
-    name: "⭐ Phim Được Xem Nhiều Nhất",
-    description: "Bảng xếp hạng những bộ phim được cộng đồng người xem Nanaflix đón nhận và theo dõi nhiều nhất.",
-    emoji: "⭐",
-    badge: "Top Views",
-    query: { sort: "views", limit: 24, page: 1 },
-  },
-  {
-    id: "cinema-blockbusters",
-    name: "🎬 Phim Điện Ảnh Nổi Bật",
-    description: "Tuyển tập những siêu phẩm chiếu rạp chất lượng cao với kỹ xảo và âm thanh đỉnh cao.",
-    emoji: "🎬",
-    badge: "Chiếu Rạp",
-    query: { type: "phim-le", sort: "rating", limit: 24, page: 1 },
-  },
-  {
-    id: "sci-fi-mysteries",
-    name: "🔮 Khoa Học & Viễn Tưởng",
-    description: "Khám phá những chiều không gian bí ẩn, tương lai công nghệ và những giả thuyết khoa học kỳ vĩ.",
-    emoji: "🔮",
-    badge: "Viễn Tưởng",
-    query: { category: "vien-tuong", sort: "views", limit: 24, page: 1 },
-  },
-  {
-    id: "anime-hits",
-    name: "🌸 Anime & Hoạt Hình Hot",
-    description: "Thế giới anime Nhật Bản và phim hoạt hình đặc sắc với hình ảnh tuyệt mỹ và cốt truyện lay động.",
-    emoji: "🌸",
-    badge: "Anime",
-    query: { type: "hoat-hinh", sort: "views", limit: 24, page: 1 },
-  },
-];
-
 /**
- * Lấy danh sách tóm tắt tất cả các Tuyển tập thông minh (Smart Collections)
- */
-export function getSmartCollectionsList(): SmartCollectionConfig[] {
-  return SMART_COLLECTIONS;
-}
-
-/**
- * Lấy bộ sưu tập công khai theo ID để bất kỳ ai có link đều xem được (Bao gồm Smart Collections)
+ * Lấy bộ sưu tập công khai theo ID để bất kỳ ai có link đều xem được
  */
 export async function getPublicCollection(
   collectionId: string,
@@ -919,7 +595,6 @@ export async function getPublicCollection(
 ): Promise<MovieCollection | null> {
   if (!collectionId) return null;
 
-  // 1. Kiểm tra nếu là Tuyển tập thông minh (Smart Collection) được định nghĩa sẵn
   const smartConfig = SMART_COLLECTIONS.find((s) => s.id === collectionId);
   if (smartConfig) {
     try {
@@ -955,7 +630,6 @@ export async function getPublicCollection(
     }
   }
 
-  // 2. Server: Truy vấn trực tiếp Supabase Admin theo ID kết hợp Redis Cache (Triệt tiêu HTTP Loopback & Full Table Scan)
   if (typeof window === "undefined") {
     try {
       const { cacheService } = await import("@/lib/cache");
@@ -979,7 +653,6 @@ export async function getPublicCollection(
           const isPublic = Boolean(data.is_public ?? true);
           const ownerId = String(data.user_id || "");
 
-          // BẢO MẬT: Chỉ trả về bộ sưu tập nếu is_public === true HOẶC user_id === userId (người sở hữu)
           if (isPublic || (userId && ownerId === userId)) {
             const formatted: MovieCollection = {
               id: String(data.id),
@@ -994,7 +667,6 @@ export async function getPublicCollection(
               updatedAt: Number(data.updated_at) || Date.now(),
             };
 
-            // Chỉ lưu vào Redis cache khi bộ sưu tập là công khai
             if (isPublic) {
               await cacheService.set(`collection:public:${collectionId}`, formatted, 180).catch(() => false);
             }
@@ -1007,7 +679,6 @@ export async function getPublicCollection(
     }
   }
 
-  // 2b. Client: Gọi API nội bộ theo ID
   if (typeof window !== "undefined") {
     try {
       const res = await fetch(`/api/user/collections?id=${encodeURIComponent(collectionId)}`);
@@ -1036,7 +707,6 @@ export async function getPublicCollection(
     } catch {}
   }
 
-  // 3. Fallback: Nếu người dùng đang mở bộ sưu tập của chính mình trên trình duyệt này
   if (typeof window !== "undefined") {
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
@@ -1099,7 +769,6 @@ export function subscribeAllPublicCollections(
     document.addEventListener("visibilitychange", handleVisibilityChange);
   }
 
-  // Polling dự phòng 5 phút (300,000ms) - tránh gọi dồn dập làm hao tốn CPU Vercel
   const interval = setInterval(() => {
     if (!isUnsubscribed && typeof document !== "undefined" && !document.hidden) {
       fetchCollections();
@@ -1117,7 +786,7 @@ export function subscribeAllPublicCollections(
 }
 
 /**
- * Xóa bộ sưu tập công khai (Dành cho Quản trị viên khi phát hiện nội dung spam/vi phạm)
+ * Xóa bộ sưu tập công khai (Dành cho Quản trị viên)
  */
 export async function deletePublicCollectionAdmin(collectionId: string): Promise<boolean> {
   if (!collectionId) return false;
@@ -1127,86 +796,4 @@ export async function deletePublicCollectionAdmin(collectionId: string): Promise
     console.error("Lỗi xóa public_collection:", err);
     return false;
   }
-}
-
-export interface SanitizedMovieItem {
-  slug: string;
-  title: string;
-  poster: string;
-  year?: string;
-  quality?: string;
-  category?: string;
-  addedAt: number;
-  itemType?: "movie" | "series" | "episode";
-  seriesSlug?: string;
-  seriesTitle?: string;
-  episodeSlug?: string;
-  episodeName?: string;
-  seasonName?: string;
-}
-
-/**
- * Chuẩn hóa và loại bỏ phim trùng slug ở cấp độ Server / Service
- * - Chuẩn hóa slug (trim, case-insensitive khi kiểm tra trùng)
- * - Bảo tồn thứ tự phim xuất hiện ban đầu
- * - Giữ trọn vẹn metadata hợp lệ (poster, year, quality, category, addedAt, itemType, seriesSlug, episodeSlug...)
- * - Loại bỏ các item rỗng hoặc thiếu slug/title
- */
-export function sanitizeAndDeduplicateMovies(rawMovies: unknown): SanitizedMovieItem[] {
-  if (!Array.isArray(rawMovies)) return [];
-
-  const seenSlugs = new Set<string>();
-  const sanitized: SanitizedMovieItem[] = [];
-
-  for (const item of rawMovies) {
-    if (!item || typeof item !== "object") continue;
-    const m = item as Record<string, unknown>;
-
-    const slug = String(m.slug || "").trim();
-    const title = String(m.title || "").trim();
-    if (!slug || !title) continue;
-
-    const normalizedKey = slug.toLowerCase();
-    if (seenSlugs.has(normalizedKey)) {
-      continue; // Đã có trong danh sách, bỏ qua để chống trùng
-    }
-    seenSlugs.add(normalizedKey);
-
-    const poster = String(m.poster || m.posterUrl || m.poster_url || m.thumb_url || "/default-poster.jpg").trim();
-    const year = m.year !== undefined && m.year !== null ? String(m.year).trim() : undefined;
-    const quality = m.quality ? String(m.quality).trim() : undefined;
-    const category = m.category ? String(m.category).trim() : undefined;
-    const addedAt = Number(m.addedAt ?? m.added_at) || Date.now();
-
-    const itemType = m.itemType && ["movie", "series", "episode"].includes(String(m.itemType))
-      ? (String(m.itemType) as "movie" | "series" | "episode")
-      : (slug.includes("__ep__") ? "episode" : undefined);
-    const seriesSlug = m.seriesSlug
-      ? String(m.seriesSlug).trim()
-      : (slug.includes("__ep__") ? slug.split("__ep__")[0] : undefined);
-    const seriesTitle = m.seriesTitle ? sanitizeSafeText(String(m.seriesTitle), 200) : undefined;
-    const episodeSlug = m.episodeSlug
-      ? String(m.episodeSlug).trim()
-      : (slug.includes("__ep__") ? slug.split("__ep__")[1] : undefined);
-    const episodeName = m.episodeName ? sanitizeSafeText(String(m.episodeName), 100) : undefined;
-    const seasonName = m.seasonName ? sanitizeSafeText(String(m.seasonName), 100) : undefined;
-
-    sanitized.push({
-      slug,
-      title: sanitizeSafeText(title, 200),
-      poster,
-      year: year || undefined,
-      quality: quality || undefined,
-      category: category || undefined,
-      addedAt,
-      itemType,
-      seriesSlug,
-      seriesTitle,
-      episodeSlug,
-      episodeName,
-      seasonName,
-    });
-  }
-
-  return sanitized;
 }
