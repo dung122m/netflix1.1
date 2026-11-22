@@ -718,8 +718,17 @@ async function executeGetMovies(params: MovieFilterParams, cacheKey: string) {
     }
 
     if (priorSeen.size > 0) {
+      const originalCandidates = [...candidates];
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       candidates = candidates.filter((m: any) => !isMovieInSeenSet(m, priorSeen));
+      // Nếu lọc trùng lặp liên trang khiến trang bị hụt dưới limit (đặc biệt ở các trang sau),
+      // bù đắp lại từ danh sách gốc để đảm bảo trang luôn có đủ phim hiển thị trọn vẹn
+      if (candidates.length < limit && originalCandidates.length > candidates.length) {
+        const remainingNeeded = limit - candidates.length;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const fallbackItems = originalCandidates.filter((m: any) => isMovieInSeenSet(m, priorSeen));
+        candidates.push(...fallbackItems.slice(0, remainingNeeded));
+      }
     }
   }
 
@@ -817,10 +826,9 @@ async function executeGetMovies(params: MovieFilterParams, cacheKey: string) {
       }
       finalItems = candidates.slice(0, limit);
 
-      // 3. Nếu đã quét hết tất cả nguồn còn lại mà vẫn không đủ phim để sang trang sau:
-      // Nghĩa là thực tế catalog không còn phim nào nữa!
-      // Clamp maxTotalPages = requestedPage để triệt tiêu vĩnh viễn trang sau khuyết/rỗng (phantom next page)
-      if (finalItems.length < limit && requestedPage < maxTotalPages) {
+      // Chỉ clamp maxTotalPages khi thực tế catalog đã hết phim thật sự (totalItemsCount <= requestedPage * limit),
+      // TUYỆT ĐỐI không được clamp nếu nguồn thực tế (countApi1/countApi2) có hàng nghìn phim.
+      if (finalItems.length < limit && requestedPage < maxTotalPages && totalItemsCount <= requestedPage * limit) {
         maxTotalPages = requestedPage;
         totalItemsCount = (requestedPage - 1) * limit + finalItems.length;
       }
@@ -927,7 +935,7 @@ async function executeGetMovies(params: MovieFilterParams, cacheKey: string) {
 
 export function buildMovieCacheKey(params: MovieFilterParams): string {
   return JSON.stringify({
-    v: 19,
+    v: 21,
     category: params.category || "",
     country: params.country || "",
     year: params.year || "",

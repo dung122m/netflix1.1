@@ -3,7 +3,7 @@
 import React, { useState, useRef, useEffect, useTransition, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowRight, X, Loader2 } from "lucide-react";
+import { ArrowRight, X } from "lucide-react";
 
 interface PaginationControlProps {
   currentPage: number;
@@ -21,7 +21,6 @@ const PaginationControlInner: React.FC<PaginationControlProps> = ({
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
-  const [pendingPage, setPendingPage] = useState<number | null>(null);
   const [isJumpOpen, setIsJumpOpen] = useState(false);
   const [targetPageInput, setTargetPageInput] = useState<string>("");
   const popoverRef = useRef<HTMLDivElement>(null);
@@ -42,11 +41,6 @@ const PaginationControlInner: React.FC<PaginationControlProps> = ({
     return `${pathname}?${params.toString()}`;
   };
 
-  // Reset pending state khi URL searchParams đã cập nhật thành công (trang mới đã render)
-  useEffect(() => {
-    setPendingPage(null);
-  }, [searchParams]);
-
   const handlePageClick = (e: React.MouseEvent, pageNumber: number) => {
     // Nếu có modifier key (Ctrl, Cmd, Shift, Alt) hoặc click chuột giữa -> để browser mở tab mới theo href
     if (e.button !== 0 || e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) {
@@ -58,11 +52,6 @@ const PaginationControlInner: React.FC<PaginationControlProps> = ({
     if (onPageChange) {
       onPageChange(pageNumber);
       return;
-    }
-
-    setPendingPage(pageNumber);
-    if (typeof window !== "undefined") {
-      window.dispatchEvent(new Event("app:loading-start"));
     }
 
     startTransition(() => {
@@ -111,10 +100,6 @@ const PaginationControlInner: React.FC<PaginationControlProps> = ({
     if (onPageChange) {
       onPageChange(validPage);
     } else {
-      setPendingPage(validPage);
-      if (typeof window !== "undefined") {
-        window.dispatchEvent(new Event("app:loading-start"));
-      }
       startTransition(() => {
         router.push(buildPageUrl(validPage), { scroll: false });
       });
@@ -151,17 +136,13 @@ const PaginationControlInner: React.FC<PaginationControlProps> = ({
           scroll={false}
           tabIndex={safeCurrentPage <= 1 ? -1 : 0}
           className={`px-3.5 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm rounded-xl font-semibold transition touch-target min-h-[40px] flex items-center justify-center outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-105 cursor-pointer ${
-            safeCurrentPage <= 1 || (isPending && pendingPage === prevPage)
+            safeCurrentPage <= 1
               ? "bg-zinc-900 text-zinc-600 pointer-events-none cursor-not-allowed opacity-50"
               : "bg-zinc-800 text-white hover:bg-zinc-700 active:scale-95"
           }`}
           aria-label="Trang trước"
         >
-          {isPending && pendingPage === prevPage ? (
-            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-          ) : (
-            "« Trước"
-          )}
+          « Trước
         </Link>
       )}
 
@@ -179,7 +160,6 @@ const PaginationControlInner: React.FC<PaginationControlProps> = ({
           }
           const pageNum = p as number;
           const isActive = safeCurrentPage === pageNum;
-          const isButtonPending = isPending && pendingPage === pageNum;
 
           if (onPageChange) {
             return (
@@ -208,16 +188,10 @@ const PaginationControlInner: React.FC<PaginationControlProps> = ({
               className={`w-9 h-9 sm:w-10 sm:h-10 text-xs sm:text-sm flex items-center justify-center rounded-lg font-semibold transition-all outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-110 cursor-pointer ${
                 isActive
                   ? "bg-netflix-red text-white shadow-sm font-bold"
-                  : isButtonPending
-                  ? "bg-netflix-red/30 text-white animate-pulse"
                   : "bg-zinc-800 text-zinc-300 hover:bg-zinc-700 hover:text-white"
               }`}
             >
-              {isButtonPending ? (
-                <Loader2 className="w-3.5 h-3.5 animate-spin text-white" />
-              ) : (
-                p
-              )}
+              {p}
             </Link>
           );
         })}
@@ -305,17 +279,13 @@ const PaginationControlInner: React.FC<PaginationControlProps> = ({
           scroll={false}
           tabIndex={safeCurrentPage >= safeTotalPages ? -1 : 0}
           className={`px-3.5 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm rounded-xl font-semibold transition touch-target min-h-[40px] flex items-center justify-center outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-105 cursor-pointer ${
-            safeCurrentPage >= safeTotalPages || (isPending && pendingPage === nextPage)
+            safeCurrentPage >= safeTotalPages
               ? "bg-zinc-900 text-zinc-600 pointer-events-none cursor-not-allowed opacity-50"
               : "bg-zinc-800 text-white hover:bg-zinc-700 active:scale-95"
           }`}
           aria-label="Trang tiếp"
         >
-          {isPending && pendingPage === nextPage ? (
-            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-          ) : (
-            "Tiếp »"
-          )}
+          Tiếp »
         </Link>
       )}
     </div>

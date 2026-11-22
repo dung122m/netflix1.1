@@ -3,7 +3,6 @@
 import React, { useState, useEffect, useLayoutEffect, useRef, useMemo } from "react";
 import { MediaCard } from "@/components/browse/MediaCard";
 import { normalizeMovie } from "@/lib/movieMedia";
-import { Loader2 } from "lucide-react";
 
 const useIsomorphicLayoutEffect = typeof window !== "undefined" ? useLayoutEffect : useEffect;
 
@@ -18,7 +17,6 @@ const BATCH_SIZE = 24;
 
 const MovieGridInner = ({ movies, columnsClassName }: MovieGridProps) => {
   const [visibleCount, setVisibleCount] = useState(INITIAL_BATCH);
-  const [isDimmed, setIsDimmed] = useState(false);
   const sentinelRef = useRef<HTMLDivElement>(null);
 
   // Memoize danh sách phim đã chuẩn hóa để giữ nguyên tham chiếu props của MediaCard
@@ -32,47 +30,17 @@ const MovieGridInner = ({ movies, columnsClassName }: MovieGridProps) => {
 
   const isFirstMount = useRef(true);
 
-  // Reset batch & tắt dimming khi danh sách phim thay đổi (đổi trang, filter)
+  // Reset batch khi danh sách phim thay đổi (đổi trang, filter)
   // useIsomorphicLayoutEffect kích hoạt đồng bộ NGAY TRƯỚC KHI BROWSER VẼ (Paint)
-  // đảm bảo khi trang mới xuất hiện, viewport đã ở vị trí đầu trang (0, 0) tức thì,
-  // tuyệt đối không có 1 frame nào hiển thị ở cuối trang hoặc giật từ trang cũ
+  // đảm bảo khi trang mới xuất hiện, viewport đã ở vị trí đầu trang (0, 0) tức thì
   useIsomorphicLayoutEffect(() => {
     setVisibleCount(INITIAL_BATCH);
-    setIsDimmed(false);
     if (isFirstMount.current) {
       isFirstMount.current = false;
       return;
     }
     window.scrollTo(0, 0);
   }, [movies]);
-
-  // Lắng nghe sự kiện loading toàn trang hoặc filter để làm mờ nhẹ lưới phim tức thì
-  useEffect(() => {
-    let safetyTimer: NodeJS.Timeout | null = null;
-
-    const handleStart = () => {
-      setIsDimmed(true);
-      if (safetyTimer) clearTimeout(safetyTimer);
-      // Timeout an toàn 8000ms tự tắt dimming nếu navigation bị no-op hoặc mạng chậm
-      safetyTimer = setTimeout(() => {
-        setIsDimmed(false);
-      }, 8000);
-    };
-
-    const handleEnd = () => {
-      if (safetyTimer) clearTimeout(safetyTimer);
-      setIsDimmed(false);
-    };
-
-    window.addEventListener("app:loading-start", handleStart);
-    window.addEventListener("app:loading-end", handleEnd);
-
-    return () => {
-      if (safetyTimer) clearTimeout(safetyTimer);
-      window.removeEventListener("app:loading-start", handleStart);
-      window.removeEventListener("app:loading-end", handleEnd);
-    };
-  }, []);
 
   // Observer đón đầu khi cuộn gần cuối danh sách để mount batch tiếp theo
   useEffect(() => {
@@ -102,23 +70,11 @@ const MovieGridInner = ({ movies, columnsClassName }: MovieGridProps) => {
 
   return (
     <div className="relative movie-grid-container py-1 sm:py-2 md:py-3 px-0 space-y-6 overflow-visible">
-      {/* FLOATING LOADING BADGE KHI ĐANG LỌC PHIM */}
-      {isDimmed && (
-        <div className="absolute inset-0 z-30 flex items-center justify-center pointer-events-none">
-          <div className="sticky top-1/2 -translate-y-1/2 flex items-center gap-2.5 px-4 py-2.5 rounded-full bg-zinc-950/95 shadow-2xl backdrop-blur-xl text-white text-xs font-bold animate-in fade-in zoom-in-95 duration-150">
-            <Loader2 className="w-4 h-4 text-netflix-red animate-spin flex-none" />
-            <span>Đang cập nhật danh sách phim...</span>
-          </div>
-        </div>
-      )}
-
       {/* LƯỚI PHIM CHÍNH: 2 cột mobile, 3 cột tablet, 4 cột laptop, 6 CỘT CÂN BẰNG TRÊN DESKTOP (24 PHIM = 4 HÀNG FULL) */}
       <div
         className={`grid ${
           columnsClassName ||
           "grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3 sm:gap-4 md:gap-4 lg:gap-5 xl:gap-5"
-        } transition-opacity duration-200 ${
-          isDimmed ? "opacity-40 pointer-events-none select-none" : "opacity-100"
         }`}
       >
         {visibleMovies.map(({ norm, bestThumb }, index) => {
