@@ -399,9 +399,24 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
       tmdbFallbackSrc !== currentSrc &&
       !triedUrlsRef.current.has(tmdbFallbackSrc)
     ) {
-      setHasError(false);
-      setCurrentSrc(tmdbFallbackSrc);
-      setIsImageLoaded(GLOBAL_LOADED_IMAGES.has(tmdbFallbackSrc));
+      if (typeof window !== "undefined") {
+        // Tải ngầm ảnh TMDb vào cache trình duyệt; khi ảnh sẵn sàng mới hoán đổi để triệt tiêu hiện tượng giật/chớp hình
+        const preloader = new window.Image();
+        preloader.src = tmdbFallbackSrc;
+        preloader.onload = () => {
+          setHasError(false);
+          setCurrentSrc(tmdbFallbackSrc);
+          GLOBAL_LOADED_IMAGES.add(tmdbFallbackSrc);
+          setIsImageLoaded(true);
+        };
+        preloader.onerror = () => {
+          triedUrlsRef.current.add(tmdbFallbackSrc);
+        };
+      } else {
+        setHasError(false);
+        setCurrentSrc(tmdbFallbackSrc);
+        setIsImageLoaded(GLOBAL_LOADED_IMAGES.has(tmdbFallbackSrc));
+      }
       return;
     }
 
