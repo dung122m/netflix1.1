@@ -141,6 +141,7 @@ export interface MatchRosterPlayer {
   photoUrl?: string;
   jerseyImageUrl?: string;
   captain?: boolean;
+  rating?: string | number;
   stats?: PlayerMatchStat[];
 }
 

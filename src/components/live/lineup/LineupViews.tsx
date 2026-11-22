@@ -749,6 +749,7 @@ interface DualMobileRosterViewProps {
   mobileTeamTab: "home" | "away";
   onChangeTab: (tab: "home" | "away") => void;
   getPlayerEventBadges: (player: MatchRosterPlayer) => DualPlayerEventSummary;
+  onSelectPlayer?: (player: MatchRosterPlayer, isHome: boolean) => void;
 }
 
 export function DualMobileRosterView({
@@ -761,6 +762,7 @@ export function DualMobileRosterView({
   mobileTeamTab,
   onChangeTab,
   getPlayerEventBadges,
+  onSelectPlayer,
 }: DualMobileRosterViewProps) {
   const isCurrentHome = mobileTeamTab === "home";
   const currentTeam = isCurrentHome ? homeTeam : awayTeam;
@@ -828,7 +830,8 @@ export function DualMobileRosterView({
             return (
               <div
                 key={`m-starter-${player.id}`}
-                className="flex items-center justify-between gap-2.5 px-2.5 py-2 rounded-xl bg-white/[0.02] select-none pointer-events-none cursor-default"
+                onClick={() => onSelectPlayer?.(player, isCurrentHome)}
+                className="flex items-center justify-between gap-2.5 px-2.5 py-2 rounded-xl bg-white/[0.02] hover:bg-white/[0.06] active:bg-white/[0.1] transition cursor-pointer select-none"
               >
                 <div className="flex items-center gap-2.5 min-w-0 flex-1">
                   <span
@@ -903,7 +906,8 @@ export function DualMobileRosterView({
               return (
                 <div
                   key={`m-bench-${player.id}`}
-                  className="flex items-center justify-between gap-2.5 py-2 px-1 border-b border-white/[0.04] select-none pointer-events-none cursor-default"
+                  onClick={() => onSelectPlayer?.(player, isCurrentHome)}
+                  className="flex items-center justify-between gap-2.5 py-2 px-1 border-b border-white/[0.04] hover:bg-white/[0.04] active:bg-white/[0.08] transition cursor-pointer select-none rounded-lg"
                 >
                   <div className="flex items-center gap-2.5 min-w-0 flex-1">
                     <span className="w-7 h-7 rounded-full bg-zinc-800 text-zinc-300 flex items-center justify-center font-sans font-bold tabular-nums text-xs shrink-0 shadow-sm">

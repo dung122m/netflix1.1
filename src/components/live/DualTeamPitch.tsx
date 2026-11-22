@@ -83,10 +83,6 @@ export const DualTeamPitch: React.FC<DualTeamPitchProps> = ({
   );
 
   const handlePlayerClick = (p: MatchRosterPlayer, isHome: boolean) => {
-    // Không mở modal trên điện thoại theo yêu cầu người dùng
-    if (typeof window !== "undefined" && window.innerWidth < 768) {
-      return;
-    }
     if (selectedPlayer?.player.id === p.id) {
       setSelectedPlayer(null);
     } else {
@@ -97,7 +93,7 @@ export const DualTeamPitch: React.FC<DualTeamPitchProps> = ({
 
   return (
     <div className="w-full space-y-3.5">
-      {/* 1. CHẾ ĐỘ HIỂN THỊ DANH SÁCH TRÊN ĐIỆN THOẠI (MOBILE LIST VIEW - KHÔNG MODAL, KHÔNG CLICK) */}
+      {/* 1. CHẾ ĐỘ HIỂN THỊ DANH SÁCH TRÊN ĐIỆN THOẠI (MOBILE LIST VIEW) */}
       <DualMobileRosterView
         homeTeam={homeTeam}
         awayTeam={awayTeam}
@@ -108,6 +104,7 @@ export const DualTeamPitch: React.FC<DualTeamPitchProps> = ({
         mobileTeamTab={mobileTeamTab}
         onChangeTab={setMobileTeamTab}
         getPlayerEventBadges={resolvePlayerEventBadges}
+        onSelectPlayer={handlePlayerClick}
       />
 
       {/* 2. BỐ CỤC SA BÀN SÂN CỎ TOÀN CẢNH TRÊN DESKTOP (HORIZONTAL PITCH) */}
@@ -362,17 +359,20 @@ export const DualTeamPitch: React.FC<DualTeamPitchProps> = ({
         />
       </div>
 
-      {/* 4. MODAL THÔNG TIN CẦU THỦ ĐẲNG CẤP STUDIO THỂ THAO */}
+      {/* 4. MODAL THÔNG TIN CẦU THỦ CHUẨN FOTMOB */}
       {selectedPlayer && (
         <PlayerDetailModal
           key={selectedPlayer.player.id}
           player={selectedPlayer.player}
           isHome={selectedPlayer.isHome}
           teamName={selectedPlayer.isHome ? homeTeam.displayName : awayTeam.displayName}
+          teamLogo={selectedPlayer.isHome ? homeTeam.logo : awayTeam.logo}
           onClose={() => setSelectedPlayer(null)}
           eventsInfo={resolvePlayerEventBadges(selectedPlayer.player)}
           matchClock={matchClock}
           matchStatus={matchStatus}
+          allPlayers={selectedPlayer.isHome ? [...homeStarters, ...homeBench] : [...awayStarters, ...awayBench]}
+          onNavigatePlayer={(nextPlayer) => setSelectedPlayer({ player: nextPlayer, isHome: selectedPlayer.isHome })}
         />
       )}
     </div>
