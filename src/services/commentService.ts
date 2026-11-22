@@ -84,6 +84,102 @@ function saveLocalUserComments(userId: string, items: MovieComment[]): void {
 }
 
 /**
+ * Hợp nhất danh sách bình luận/phản hồi từ Supabase với bộ nhớ đệm cục bộ
+ * - Bảo toàn các cập nhật tức thì (optimistic reactions, edited content)
+ * - Giữ lại các bình luận mới tạo (< 15s) chưa kịp đồng bộ từ server
+ * - Loại bỏ triệt để các bình luận đã bị đánh dấu xóa (Tombstone)
+ */
+function mergeCommentCollection(
+  remoteItems: MovieComment[],
+  cachedItems: MovieComment[],
+  sortBy: "pinned-desc" | "created-asc" = "pinned-desc",
+  movieSlugFilter?: string
+): MovieComment[] {
+  const validRemote = remoteItems
+    .filter((c) => !isCommentDeleted(c.id))
+    .filter((c) => !movieSlugFilter || !c.movieSlug || c.movieSlug === movieSlugFilter);
+
+  const existingCache = (cachedItems || []).filter((c) => !isCommentDeleted(c.id));
+  const localMap = new Map<string, MovieComment>();
+  existingCache.forEach((item) => localMap.set(item.id, item));
+
+  const now = Date.now();
+  const merged = validRemote.map((remoteItem) => {
+    const localItem = localMap.get(remoteItem.id);
+    if (!localItem) return remoteItem;
+
+    const isLocalNewer =
+      (localItem.updatedAt || 0) > (remoteItem.updatedAt || 0) &&
+      now - (Number(localItem.updatedAt) || 0) < 30000;
+
+    let mergedReactions: Record<string, CommentReactionType>;
+    let likedByList: string[];
+    let calculatedLikes: number;
+
+    if (isLocalNewer && localItem.reactions !== undefined) {
+      mergedReactions = { ...localItem.reactions };
+      likedByList = Array.isArray(localItem.likedBy) ? [...localItem.likedBy] : Object.keys(mergedReactions);
+      calculatedLikes = localItem.likes !== undefined ? localItem.likes : Object.keys(mergedReactions).length;
+    } else {
+      mergedReactions = { ...(remoteItem.reactions || {}) };
+      const likedBySet = new Set<string>([
+        ...(Array.isArray(remoteItem.likedBy) ? remoteItem.likedBy : []),
+        ...Object.keys(mergedReactions),
+      ]);
+      likedByList = Array.from(likedBySet);
+      calculatedLikes = Math.max(remoteItem.likes || 0, likedByList.length);
+    }
+
+    const tally: Partial<Record<CommentReactionType, number>> = {};
+    Object.values(mergedReactions).forEach((t) => {
+      tally[t] = (tally[t] || 0) + 1;
+    });
+
+    return {
+      ...remoteItem,
+      ...(isLocalNewer
+        ? {
+            content: localItem.content,
+            rating: localItem.rating,
+            isSpoiler: localItem.isSpoiler,
+            episodeSlug: localItem.episodeSlug,
+            episodeName: localItem.episodeName,
+            updatedAt: localItem.updatedAt,
+          }
+        : {}),
+      reactions: mergedReactions,
+      reactionCounts: tally,
+      likedBy: likedByList,
+      likes: calculatedLikes,
+      isPinned: localItem.isPinned !== undefined ? localItem.isPinned : remoteItem.isPinned,
+    };
+  });
+
+  existingCache.forEach((localItem) => {
+    if (
+      !isCommentDeleted(localItem.id) &&
+      !merged.some((m) => m.id === localItem.id) &&
+      now - (Number(localItem.createdAt) || 0) < 15000
+    ) {
+      merged.push(localItem);
+    }
+  });
+
+  merged.sort((a, b) => {
+    if (sortBy === "pinned-desc") {
+      const isPinnedA = Boolean(a.isPinned);
+      const isPinnedB = Boolean(b.isPinned);
+      if (isPinnedA && !isPinnedB) return -1;
+      if (!isPinnedA && isPinnedB) return 1;
+      return (Number(b.createdAt) || 0) - (Number(a.createdAt) || 0);
+    }
+    return (Number(a.createdAt) || 0) - (Number(b.createdAt) || 0);
+  });
+
+  return merged;
+}
+
+/**
  * Đăng ký lắng nghe bình luận theo thời gian thực (Supabase PostgreSQL + 0ms Optimistic UI)
  */
 export function subscribeMovieComments(
@@ -111,91 +207,12 @@ export function subscribeMovieComments(
   }
 
   const handleNewData = (items: MovieComment[]) => {
-    const validItems = items
-      .filter((c) => !isCommentDeleted(c.id))
-      .filter((c) => !c.movieSlug || c.movieSlug === movieSlug);
-
-    const existingCache = (movieCommentsMemoryCache[movieSlug] || []).filter((c) => !isCommentDeleted(c.id));
-    const localMap = new Map<string, MovieComment>();
-    existingCache.forEach((item) => localMap.set(item.id, item));
-
-    const mergedItems = validItems.map((remoteItem) => {
-      const localItem = localMap.get(remoteItem.id);
-      if (!localItem) return remoteItem;
-
-      // Kiểm tra xem local item có bản cập nhật mới hơn remote không
-      const nowTime = Date.now();
-      const isLocalNewer =
-        (localItem.updatedAt || 0) > (remoteItem.updatedAt || 0) &&
-        nowTime - (Number(localItem.updatedAt) || 0) < 30000;
-
-      let mergedReactions: Record<string, CommentReactionType>;
-      let likedByList: string[];
-      let calculatedLikes: number;
-
-      if (isLocalNewer && localItem.reactions !== undefined) {
-        // Bản cập nhật cục bộ mới hơn (ví dụ vừa thả cảm xúc / gỡ cảm xúc), ưu tiên dữ liệu cục bộ
-        mergedReactions = { ...localItem.reactions };
-        likedByList = Array.isArray(localItem.likedBy) ? [...localItem.likedBy] : Object.keys(mergedReactions);
-        calculatedLikes = localItem.likes !== undefined ? localItem.likes : Object.keys(mergedReactions).length;
-      } else {
-        mergedReactions = {
-          ...(remoteItem.reactions || {}),
-        };
-        const likedBySet = new Set<string>([
-          ...(Array.isArray(remoteItem.likedBy) ? remoteItem.likedBy : []),
-          ...Object.keys(mergedReactions),
-        ]);
-        likedByList = Array.from(likedBySet);
-        calculatedLikes = Math.max(remoteItem.likes || 0, likedByList.length);
-      }
-
-      const tally: Partial<Record<CommentReactionType, number>> = {};
-      Object.values(mergedReactions).forEach((t) => {
-        tally[t] = (tally[t] || 0) + 1;
-      });
-
-      return {
-        ...remoteItem,
-        ...(isLocalNewer
-          ? {
-              content: localItem.content,
-              rating: localItem.rating,
-              isSpoiler: localItem.isSpoiler,
-              episodeSlug: localItem.episodeSlug,
-              episodeName: localItem.episodeName,
-              updatedAt: localItem.updatedAt,
-            }
-          : {}),
-        reactions: mergedReactions,
-        reactionCounts: tally,
-        likedBy: likedByList,
-        likes: calculatedLikes,
-        isPinned: localItem.isPinned !== undefined ? localItem.isPinned : remoteItem.isPinned,
-      };
-    });
-
-    // Giữ lại các comment vừa tạo cục bộ (< 15 giây) mà Supabase chưa kịp trả về trong request này
-    // TUYỆT ĐỐI KHÔNG giữ lại comment đã bị xóa
-    const now = Date.now();
-    existingCache.forEach((localItem) => {
-      if (
-        !isCommentDeleted(localItem.id) &&
-        !mergedItems.some((m) => m.id === localItem.id) &&
-        now - (Number(localItem.createdAt) || 0) < 15000
-      ) {
-        mergedItems.push(localItem);
-      }
-    });
-
-    mergedItems.sort((a, b) => {
-      const isPinnedA = Boolean(a.isPinned);
-      const isPinnedB = Boolean(b.isPinned);
-      if (isPinnedA && !isPinnedB) return -1;
-      if (!isPinnedA && isPinnedB) return 1;
-      return (Number(b.createdAt) || 0) - (Number(a.createdAt) || 0);
-    });
-
+    const mergedItems = mergeCommentCollection(
+      items,
+      movieCommentsMemoryCache[movieSlug] || [],
+      "pinned-desc",
+      movieSlug
+    );
     movieCommentsMemoryCache[movieSlug] = mergedItems;
     saveLocalMovieComments(movieSlug, mergedItems);
     onUpdate(mergedItems);
@@ -353,68 +370,11 @@ export function subscribeCommentReplies(
   let isUnsubscribed = false;
 
   const handleNewReplies = (items: MovieComment[]) => {
-    const validItems = items.filter((r) => !isCommentDeleted(r.id));
-    const existingReplies = (replyCommentsMemoryCache[parentId] || []).filter((r) => !isCommentDeleted(r.id));
-    const localMap = new Map<string, MovieComment>();
-    existingReplies.forEach((r) => localMap.set(r.id, r));
-
-    const merged = validItems.map((remoteItem) => {
-      const localItem = localMap.get(remoteItem.id);
-      if (!localItem) return remoteItem;
-
-      const nowTime = Date.now();
-      const isLocalNewer =
-        (localItem.updatedAt || 0) > (remoteItem.updatedAt || 0) &&
-        nowTime - (Number(localItem.updatedAt) || 0) < 30000;
-
-      let mergedReactions: Record<string, CommentReactionType>;
-      let likedByList: string[];
-      let calculatedLikes: number;
-
-      if (isLocalNewer && localItem.reactions !== undefined) {
-        mergedReactions = { ...localItem.reactions };
-        likedByList = Array.isArray(localItem.likedBy) ? [...localItem.likedBy] : Object.keys(mergedReactions);
-        calculatedLikes = localItem.likes !== undefined ? localItem.likes : Object.keys(mergedReactions).length;
-      } else {
-        mergedReactions = {
-          ...(remoteItem.reactions || {}),
-        };
-        const likedBySet = new Set<string>([
-          ...(Array.isArray(remoteItem.likedBy) ? remoteItem.likedBy : []),
-          ...Object.keys(mergedReactions),
-        ]);
-        likedByList = Array.from(likedBySet);
-        calculatedLikes = Math.max(remoteItem.likes || 0, likedByList.length);
-      }
-
-      const tally: Partial<Record<CommentReactionType, number>> = {};
-      Object.values(mergedReactions).forEach((t) => {
-        tally[t] = (tally[t] || 0) + 1;
-      });
-
-      return {
-        ...remoteItem,
-        reactions: mergedReactions,
-        reactionCounts: tally,
-        likedBy: likedByList,
-        likes: calculatedLikes,
-      };
-    });
-
-    // Giữ lại các reply tạo cục bộ (< 15 giây) mà Supabase chưa kịp trả về
-    // Tuyệt đối không giữ lại reply đã bị xóa
-    const now = Date.now();
-    existingReplies.forEach((localItem) => {
-      if (
-        !isCommentDeleted(localItem.id) &&
-        !merged.some((m) => m.id === localItem.id) &&
-        now - (Number(localItem.createdAt) || 0) < 15000
-      ) {
-        merged.push(localItem);
-      }
-    });
-
-    merged.sort((a, b) => (Number(a.createdAt) || 0) - (Number(b.createdAt) || 0));
+    const merged = mergeCommentCollection(
+      items,
+      replyCommentsMemoryCache[parentId] || [],
+      "created-asc"
+    );
     replyCommentsMemoryCache[parentId] = merged;
     onUpdate(merged);
   };

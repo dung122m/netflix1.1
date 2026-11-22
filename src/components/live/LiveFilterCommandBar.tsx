@@ -1,8 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Flame, RotateCcw, Search, Trophy, X } from "lucide-react";
-import { Tooltip } from "@/components/ui/Tooltip";
+import { RotateCcw, Search, X } from "lucide-react";
 import type { MatchStatusFilter } from "./hooks/useLiveFootballFilters";
 
 export interface LiveFilterCounts {

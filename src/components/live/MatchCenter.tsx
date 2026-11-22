@@ -2,8 +2,6 @@
 
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import {
-  BarChart2,
-  Users,
   AlertCircle,
   RefreshCw,
   ChevronDown,
@@ -14,9 +12,6 @@ import {
   Tv,
   Zap,
   Clock,
-  TrendingUp,
-  MapPin,
-  Shield,
 } from "lucide-react";
 import { NormalizedMatchSummary, MatchStatItem, LiveMatchScore } from "@/services/live/football-score/types";
 import {
@@ -28,7 +23,6 @@ import {
 import { fetchDirectMatchSummary } from "@/services/live/football-score/espnDirectClient";
 import {
   resolveCanonicalTournament,
-  resolveTournamentLogo,
 } from "@/services/live/football-score/canonicalLeagues";
 import { getTeamAsset, getTeamInitials, resolveEsportsTeam } from "@/data/live/teamAssets";
 import { toDarkModeLogoUrl } from "@/services/live/football-logo/service";

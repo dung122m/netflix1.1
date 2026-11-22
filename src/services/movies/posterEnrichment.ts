@@ -9,19 +9,6 @@ export interface PosterEnrichmentOptions {
   stripProxyUrls?: boolean;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function isAnimeOrAnimationItem(item: any): boolean {
-  return (
-    item.type === "hoathinh" ||
-    item.type === "hoat-hinh" ||
-    Boolean(
-      item.category?.some(
-        (c: { slug?: string; name?: string }) =>
-          c.slug === "hoat-hinh" || c.name?.toLowerCase().includes("hoạt hình")
-      )
-    )
-  );
-}
 
 function shouldUpgradeThumbUrl(thumbUrl: unknown): boolean {
   if (!thumbUrl || typeof thumbUrl !== "string") return true;

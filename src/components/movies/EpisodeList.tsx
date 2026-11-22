@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo, useRef } from "react";
+import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import Link from "next/link";
 import {
   ChevronDown,
@@ -37,7 +37,7 @@ import { Tooltip } from "@/components/ui/Tooltip";
 
 const CHUNK_SIZE = 25;
 
-interface EpisodeListProps {
+export interface EpisodeListProps {
   movieSlug: string;
   episodes?: EpisodeItem[];
   activeEpisodeSlug?: string;
@@ -54,11 +54,6 @@ interface EpisodeChunkItem {
   label: string;
 }
 
-/**
- * Định dạng nhãn hiển thị tập phim thông minh và thẩm mỹ:
- * - Khi phim ít tập (<= 12 tập): Hiện đầy đủ "Tập 01", "Tập 02" hoặc "Bản Full"
- * - Khi phim nhiều tập (> 12 tập): Hiện số rút gọn để hiển thị dạng lưới gọn gàng
- */
 function getFormattedEpisodeLabel(
   rawName?: string,
   fallbackIndex = 1,
@@ -73,18 +68,13 @@ function getFormattedEpisodeLabel(
 
   if (isFew) {
     const trimmed = (rawName || "").trim();
-    if (/^tập\s+/i.test(trimmed)) {
-      return trimmed;
-    }
+    if (/^tập\s+/i.test(trimmed)) return trimmed;
     return `Tập ${short}`;
   }
 
   return short;
 }
 
-/**
- * Helper tính toán trạng thái xem / tiến độ cho 1 tập phim (tránh lặp code 2 lần)
- */
 function getEpisodeWatchStatus(
   tapSlug: string,
   tapName: string,
@@ -157,25 +147,77 @@ function getEpisodeWatchStatus(
   };
 }
 
-// =========================================================================
-// SUBCOMPONENT: KHỐI CHỌN DẢI TẬP PHIM (1 - 25, 26 - 50...)
-// =========================================================================
+function formatDuration(s: number): string {
+  const m = Math.floor(s / 60);
+  const sec = (s % 60).toString().padStart(2, "0");
+  return `${m}:${sec}`;
+}
+
+/** Hook quản lý tiến độ xem của các tập */
+function useEpisodeWatchData(movieSlug: string) {
+  const [watchedList, setWatchedList] = useState<string[]>([]);
+  const [episodesProgress, setEpisodesProgress] = useState<Record<string, EpisodeProgressData>>({});
+
+  useEffect(() => {
+    if (!movieSlug) return;
+
+    const refreshData = () => {
+      setWatchedList(getWatchedEpisodes(movieSlug));
+      setEpisodesProgress(getMovieEpisodesProgress(movieSlug));
+    };
+
+    refreshData();
+
+    const handleWatchedUpdated = (e: Event) => {
+      const detail = (e as CustomEvent)?.detail;
+      if (!detail || detail.movieSlug === movieSlug) refreshData();
+    };
+
+    const handleStorageChange = (e: StorageEvent) => {
+      if (
+        e.key === `nanaflix_watched_episodes_${movieSlug}` ||
+        e.key === "nanaflix_history_v1"
+      ) {
+        refreshData();
+      }
+    };
+
+    window.addEventListener("nanaflix-watched-episodes-updated", handleWatchedUpdated);
+    window.addEventListener("nanaflix-watch-progress-updated", refreshData);
+    window.addEventListener("storage", handleStorageChange);
+
+    return () => {
+      window.removeEventListener("nanaflix-watched-episodes-updated", handleWatchedUpdated);
+      window.removeEventListener("nanaflix-watch-progress-updated", refreshData);
+      window.removeEventListener("storage", handleStorageChange);
+    };
+  }, [movieSlug]);
+
+  const watchedEpisodeNums = useMemo(() => {
+    const set = new Set<number>();
+    for (const epSlug of watchedList) {
+      const num = extractEpisodeNumber(epSlug);
+      if (num !== null) set.add(num);
+    }
+    return set;
+  }, [watchedList]);
+
+  return { watchedList, episodesProgress, watchedEpisodeNums };
+}
+
+/** Subcomponent: Chọn dải tập */
 function EpisodeChunkSelectorInline({
   chunks,
   activeChunk,
   onSelectChunk,
   initialChunk,
   activeEpisodeIndex,
-  currentEpisodeName,
-  chunkSize = 25,
 }: {
   chunks: EpisodeChunkItem[];
   activeChunk: number;
   onSelectChunk: (index: number) => void;
   initialChunk: number;
   activeEpisodeIndex: number;
-  currentEpisodeName?: string;
-  chunkSize?: number;
 }) {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement | null>(null);
@@ -300,9 +342,7 @@ function EpisodeChunkSelectorInline({
   );
 }
 
-// =========================================================================
-// SUBCOMPONENT: THẺ TẬP PHIM ĐƠN TRONG LƯỚI
-// =========================================================================
+/** Subcomponent: Thẻ tập đơn trong lưới */
 function EpisodeGridItemInline({
   tapSlug,
   displayLabel,
@@ -389,9 +429,7 @@ function EpisodeGridItemInline({
   );
 }
 
-// =========================================================================
-// SUBCOMPONENT: KẾT QUẢ TÌM KIẾM 1 TẬP DUY NHẤT
-// =========================================================================
+/** Subcomponent: Kết quả tìm kiếm 1 tập */
 function EpisodeSingleSearchResultInline({
   tapSlug,
   tapName,
@@ -487,9 +525,6 @@ function EpisodeSingleSearchResultInline({
   );
 }
 
-// =========================================================================
-// COMPONENT CHÍNH: EPISODE LIST
-// =========================================================================
 export const EpisodeList: React.FC<EpisodeListProps> = React.memo(
   function EpisodeList({
     movieSlug,
@@ -504,21 +539,16 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(
   }) {
     const watchContext = useWatchController();
     const episodes = watchContext?.episodes ?? propEpisodes;
-    const activeEpisodeSlug =
-      watchContext?.activeEpisodeSlug ?? propActiveEpisodeSlug;
+    const activeEpisodeSlug = watchContext?.activeEpisodeSlug ?? propActiveEpisodeSlug;
     const switchEpisode = watchContext?.switchEpisode ?? onSelectEpisode;
 
     const movieTitle = watchContext?.movieTitle || propMovieTitle || movieSlug;
-    const moviePoster =
-      watchContext?.posterUrl || propMoviePoster || "/default-poster.jpg";
+    const moviePoster = watchContext?.posterUrl || propMoviePoster || "/default-poster.jpg";
     const movieYear = watchContext?.year || propMovieYear;
     const movieQuality = watchContext?.quality || propMovieQuality;
     const movieCategory = watchContext?.category || propMovieCategory;
 
-    const [watchedList, setWatchedList] = useState<string[]>([]);
-    const [episodesProgress, setEpisodesProgress] = useState<
-      Record<string, EpisodeProgressData>
-    >({});
+    const { watchedList, episodesProgress, watchedEpisodeNums } = useEpisodeWatchData(movieSlug);
     const [searchQuery, setSearchQuery] = useState("");
 
     const currentActiveEpisode = useMemo(() => {
@@ -534,10 +564,7 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(
     }, [episodes, currentActiveEpisode]);
 
     const initialChunk = useMemo(() => {
-      if (activeEpisodeIndex >= 0) {
-        return Math.floor(activeEpisodeIndex / CHUNK_SIZE);
-      }
-      return 0;
+      return activeEpisodeIndex >= 0 ? Math.floor(activeEpisodeIndex / CHUNK_SIZE) : 0;
     }, [activeEpisodeIndex]);
 
     const [activeChunk, setActiveChunk] = useState<number>(initialChunk);
@@ -564,8 +591,7 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(
       }
       if (activeEpisodeSlug && activeItemRef.current) {
         const scrollTimer = setTimeout(() => {
-          const scrollParent =
-            activeItemRef.current?.closest(".overflow-y-auto");
+          const scrollParent = activeItemRef.current?.closest(".overflow-y-auto");
           if (scrollParent) {
             activeItemRef.current?.scrollIntoView({
               behavior: "smooth",
@@ -578,66 +604,6 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(
       }
     }, [activeEpisodeSlug]);
 
-    useEffect(() => {
-      if (!movieSlug) return;
-
-      const refreshData = () => {
-        const watched = getWatchedEpisodes(movieSlug);
-        setWatchedList(watched);
-        const progMap = getMovieEpisodesProgress(movieSlug);
-        setEpisodesProgress(progMap);
-      };
-
-      refreshData();
-
-      const handleWatchedUpdated = (e: Event) => {
-        const detail = (e as CustomEvent)?.detail;
-        if (!detail || detail.movieSlug === movieSlug) {
-          refreshData();
-        }
-      };
-
-      const handleStorageChange = (e: StorageEvent) => {
-        if (
-          e.key === `nanaflix_watched_episodes_${movieSlug}` ||
-          e.key === "nanaflix_history_v1"
-        ) {
-          refreshData();
-        }
-      };
-
-      window.addEventListener(
-        "nanaflix-watched-episodes-updated",
-        handleWatchedUpdated
-      );
-      window.addEventListener(
-        "nanaflix-watch-progress-updated",
-        refreshData
-      );
-      window.addEventListener("storage", handleStorageChange);
-
-      return () => {
-        window.removeEventListener(
-          "nanaflix-watched-episodes-updated",
-          handleWatchedUpdated
-        );
-        window.removeEventListener(
-          "nanaflix-watch-progress-updated",
-          refreshData
-        );
-        window.removeEventListener("storage", handleStorageChange);
-      };
-    }, [movieSlug]);
-
-    const watchedEpisodeNums = useMemo(() => {
-      const set = new Set<number>();
-      for (const epSlug of watchedList) {
-        const num = extractEpisodeNumber(epSlug);
-        if (num !== null) set.add(num);
-      }
-      return set;
-    }, [watchedList]);
-
     const chunks = useMemo(() => {
       if (episodes.length <= CHUNK_SIZE) return [];
       const chunkList: EpisodeChunkItem[] = [];
@@ -645,13 +611,12 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(
       for (let i = 0; i < totalChunks; i++) {
         const start = i * CHUNK_SIZE + 1;
         const end = Math.min((i + 1) * CHUNK_SIZE, episodes.length);
-        chunkList.push({
-          index: i,
-          label: `${start} - ${end}`,
-        });
+        chunkList.push({ index: i, label: `${start} - ${end}` });
       }
       return chunkList;
     }, [episodes.length]);
+
+    const isFewEpisodes = episodes.length <= 12;
 
     const displayEpisodes = useMemo(() => {
       const q = searchQuery.trim().toLowerCase();
@@ -685,10 +650,9 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(
         }
         return false;
       });
-    }, [episodes, searchQuery, chunks.length, activeChunk]);
+    }, [episodes, searchQuery, chunks.length, activeChunk, isFewEpisodes]);
 
     const isSearching = searchQuery.trim().length > 0;
-    const isFewEpisodes = episodes.length <= 12;
 
     const gridClasses = useMemo(() => {
       if (episodes.length === 1) return "grid grid-cols-1 gap-2";
@@ -698,11 +662,14 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(
       return "grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-4 xl:grid-cols-5 gap-1.5 sm:gap-2";
     }, [episodes.length, isFewEpisodes]);
 
+    const handleSelect = useCallback((slug: string) => {
+      switchEpisode?.(slug);
+    }, [switchEpisode]);
+
     return (
       <div className="flex flex-col h-full min-h-0 space-y-2">
-        {/* 1. KHUNG ĐIỀU KHIỂN CỐ ĐỊNH (SEARCH + TẬP ĐANG CHỌN + DẢI TẬP) */}
+        {/* THANH ĐIỀU KHIỂN CỐ ĐỊNH */}
         <div className="flex-shrink-0 space-y-1.5">
-          {/* Ô TÌM NHANH SỐ TẬP NẾU TRÊN 12 TẬP */}
           {episodes.length > 12 && (
             <div className="space-y-1.5">
               <div className="relative group">
@@ -731,7 +698,6 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(
             </div>
           )}
 
-          {/* THANH ĐIỀU KHIỂN LƯU TẬP PHIM ĐANG CHỌN */}
           {!isSearching &&
             currentActiveEpisode?.slug &&
             episodes.length > 1 &&
@@ -793,7 +759,6 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(
               </div>
             )}
 
-          {/* DẢI TABS PHÂN NHÓM TẬP */}
           {!isSearching && (
             <EpisodeChunkSelectorInline
               chunks={chunks}
@@ -801,15 +766,12 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(
               onSelectChunk={setActiveChunk}
               initialChunk={initialChunk}
               activeEpisodeIndex={activeEpisodeIndex}
-              currentEpisodeName={currentActiveEpisode?.name}
-              chunkSize={CHUNK_SIZE}
             />
           )}
         </div>
 
-        {/* 2. KHUNG CUỘN DANH SÁCH TẬP PHIM */}
+        {/* KHUNG CUỘN DANH SÁCH TẬP */}
         <div className="flex-1 min-h-0 max-lg:overflow-y-visible lg:overflow-y-auto overscroll-auto overflow-x-hidden px-1.5 custom-scrollbar">
-          {/* TRƯỜNG HỢP TÌM KIẾM CHỈ RA 1 TẬP DUY NHẤT */}
           {isSearching && displayEpisodes.length === 1 && (() => {
             const singleTap = displayEpisodes[0];
             const tapSlug = singleTap.slug || `ep-1`;
@@ -841,7 +803,7 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(
                 episodeIndex={epIndex}
                 totalEpisodes={episodes.length}
                 chunk={chunkObj}
-                onSelect={(slug) => switchEpisode?.(slug)}
+                onSelect={handleSelect}
                 onJumpToChunk={(cIdx) => {
                   setActiveChunk(cIdx);
                   setSearchQuery("");
@@ -850,7 +812,6 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(
             );
           })()}
 
-          {/* LƯỚI TẬP PHIM */}
           {displayEpisodes.length > 0 ? (
             (!isSearching || displayEpisodes.length > 1) && (
               <>
@@ -879,14 +840,9 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(
                       ? formatEpisodeName(tapName, `Tập ${tapIdx + 1}`)
                       : getFormattedEpisodeLabel(tapName, tapIdx + 1, isFewEpisodes);
 
-                    const formatSec = (s: number) => {
-                      const m = Math.floor(s / 60);
-                      const sec = (s % 60).toString().padStart(2, "0");
-                      return `${m}:${sec}`;
-                    };
                     const itemTitle = status.isPartiallyWatched
-                      ? `${tapName} • Đang xem dở (${formatSec(status.progressSeconds)}${
-                          status.durationSeconds > 0 ? ` / ${formatSec(status.durationSeconds)}` : ""
+                      ? `${tapName} • Đang xem dở (${formatDuration(status.progressSeconds)}${
+                          status.durationSeconds > 0 ? ` / ${formatDuration(status.durationSeconds)}` : ""
                         })`
                       : tapName;
 
@@ -911,13 +867,12 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(
                         isSingleEpisode={episodes.length === 1}
                         isFewEpisodes={isFewEpisodes}
                         activeItemRef={isActive ? activeItemRef : null}
-                        onSelect={(slug) => switchEpisode?.(slug)}
+                        onSelect={handleSelect}
                       />
                     );
                   })}
                 </div>
 
-                {/* Nút Xem thêm / Thu gọn tập phim trên mobile */}
                 {!isSearching && displayEpisodes.length > 16 && (
                   <div className="mt-2.5 px-1 text-center lg:hidden">
                     <button

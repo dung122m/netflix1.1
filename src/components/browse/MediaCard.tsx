@@ -315,12 +315,6 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
       : initialCandidate;
 
   const [currentSrc, setCurrentSrc] = useState<string>(() => initialToUse);
-  const isBlockedByIsp = Boolean(
-    currentSrc &&
-    (currentSrc.includes("phimimg.com") ||
-      currentSrc.includes("img.ophim.cc") ||
-      currentSrc.includes("img.phimapi.com"))
-  );
   const [isImageLoaded, setIsImageLoaded] = useState<boolean>(() => {
     return Boolean(
       (initialCandidate && GLOBAL_LOADED_IMAGES.has(initialCandidate)) ||

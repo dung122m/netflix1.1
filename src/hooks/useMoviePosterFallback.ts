@@ -46,8 +46,14 @@ function initPersistentFailures(): Set<string> {
   return set;
 }
 
+interface PosterFallbackData {
+  posterUrl: string | null;
+  backdropUrl: string | null;
+  unattempted?: boolean;
+}
+
 export const GLOBAL_POSTER_CACHE = initPersistentPosterCache();
-const GLOBAL_INFLIGHT_PROMISES = new Map<string, Promise<{ posterUrl: string | null; backdropUrl: string | null } | null>>();
+const GLOBAL_INFLIGHT_PROMISES = new Map<string, Promise<PosterFallbackData | null>>();
 export const GLOBAL_TRIED_FAILURES = initPersistentFailures();
 
 export function persistPosterCacheEntry(key: string, url: string) {
@@ -90,7 +96,7 @@ interface BatchQueueEntry {
     slug?: string;
     type?: string;
   };
-  resolve: (res: { posterUrl: string | null; backdropUrl: string | null } | null) => void;
+  resolve: (res: PosterFallbackData | null) => void;
 }
 
 const batchQueue: BatchQueueEntry[] = [];
@@ -134,7 +140,7 @@ function flushBatchQueue() {
             e.resolve({ posterUrl: m.posterUrl || null, backdropUrl: m.backdropUrl || null });
           } else {
             // Không nhận được phản hồi cho key này (chưa được xử lý): không đánh dấu failure vĩnh viễn
-            e.resolve({ posterUrl: null, backdropUrl: null, unattempted: true } as any);
+            e.resolve({ posterUrl: null, backdropUrl: null, unattempted: true });
           }
         }
       });
@@ -154,7 +160,7 @@ function enqueueBatchLookup(
     slug?: string;
     type?: string;
   }
-): Promise<{ posterUrl: string | null; backdropUrl: string | null } | null> {
+): Promise<PosterFallbackData | null> {
   return new Promise((resolve) => {
     batchQueue.push({ cacheKey, payload, resolve });
     if (batchQueue.length >= MAX_BATCH_SIZE) {
@@ -374,7 +380,7 @@ export function useMoviePosterFallback({
         : (data?.posterUrl || data?.backdropUrl);
 
       // Nếu chưa được server xử lý, tắt loading và không ghi nhận failure vĩnh viễn
-      if ((data as any)?.unattempted) {
+      if (data?.unattempted) {
         setIsLoading(false);
         return;
       }

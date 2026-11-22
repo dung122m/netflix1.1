@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { MatchSummaryTeam, TeamPastGameItem, MatchHeadToHead } from "@/services/live/football-score/types";
-import { TrendingUp, Trophy } from "lucide-react";
+import { TrendingUp } from "lucide-react";
 import { toDarkModeLogoUrl } from "@/services/live/football-logo/service";
 
 interface MatchRecentFormProps {
