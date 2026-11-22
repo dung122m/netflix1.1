@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback, useTransition } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { useDebounce } from "@/hooks/useDebounce";
 
@@ -59,6 +59,20 @@ export function useNavSearch({
   const abortControllerRef = useRef<AbortController | null>(null);
   const isSearchExpandedRef = useRef(isSearchExpanded);
   const onOpenMobileSearchRef = useRef(onOpenMobileSearch);
+
+  const [isNavPending, startNavTransition] = useTransition();
+  const hadPendingNavRef = useRef(false);
+
+  useEffect(() => {
+    if (isNavPending) {
+      hadPendingNavRef.current = true;
+    } else if (hadPendingNavRef.current) {
+      hadPendingNavRef.current = false;
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new Event("app:loading-end"));
+      }
+    }
+  }, [isNavPending]);
 
   useEffect(() => {
     isSearchExpandedRef.current = isSearchExpanded;
@@ -296,7 +310,9 @@ export function useNavSearch({
         return;
       }
       triggerNavigationLoading();
-      router.push(`/browse?keyword=${encodeURIComponent(kw)}`);
+      startNavTransition(() => {
+        router.push(`/browse?keyword=${encodeURIComponent(kw)}`);
+      });
     },
     [
       abortPendingSearch,
@@ -306,6 +322,7 @@ export function useNavSearch({
       urlKeyword,
       triggerNavigationLoading,
       router,
+      startNavTransition,
     ],
   );
 
@@ -359,10 +376,12 @@ export function useNavSearch({
         params.delete("page");
         const query = params.toString();
         triggerNavigationLoading();
-        router.push(query ? `/browse?${query}` : "/browse");
+        startNavTransition(() => {
+          router.push(query ? `/browse?${query}` : "/browse");
+        });
       }
     },
-    [abortPendingSearch, pathname, searchParams, triggerNavigationLoading, router],
+    [abortPendingSearch, pathname, searchParams, triggerNavigationLoading, router, startNavTransition],
   );
 
   const handleInputChange = useCallback(
@@ -434,7 +453,9 @@ export function useNavSearch({
         return;
       }
       triggerNavigationLoading();
-      router.push(`/browse?keyword=${encodeURIComponent(currentKeyword)}`);
+      startNavTransition(() => {
+        router.push(`/browse?keyword=${encodeURIComponent(currentKeyword)}`);
+      });
     },
     [
       abortPendingSearch,
@@ -445,6 +466,7 @@ export function useNavSearch({
       urlKeyword,
       triggerNavigationLoading,
       router,
+      startNavTransition,
     ],
   );
 
@@ -484,7 +506,9 @@ export function useNavSearch({
           inputRef.current?.blur();
           mobileInputRef.current?.blur();
           triggerNavigationLoading();
-          router.push(resolveSuggestionHref(selected.slug));
+          startNavTransition(() => {
+            router.push(resolveSuggestionHref(selected.slug));
+          });
           return;
         }
         if (

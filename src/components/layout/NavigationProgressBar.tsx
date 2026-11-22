@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useRef, useTransition, Suspense, useCallback } from "react";
+import React, { useEffect, useState, useRef, useCallback, Suspense } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 
 function NavigationProgressBarInner() {
@@ -8,14 +8,18 @@ function NavigationProgressBarInner() {
   const searchParams = useSearchParams();
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [, startTransition] = useTransition();
 
   const progressTimerRef = useRef<NodeJS.Timeout | null>(null);
   const finishTimerRef = useRef<NodeJS.Timeout | null>(null);
   const safetyTimerRef = useRef<NodeJS.Timeout | null>(null);
   const isRunningRef = useRef(false);
 
+  const lastPathnameRef = useRef(pathname);
+
   const stopLoading = useCallback(() => {
+    if (!isRunningRef.current) return;
+    isRunningRef.current = false;
+
     if (progressTimerRef.current) {
       clearInterval(progressTimerRef.current);
       progressTimerRef.current = null;
@@ -25,13 +29,7 @@ function NavigationProgressBarInner() {
       safetyTimerRef.current = null;
     }
 
-    isRunningRef.current = false;
     setProgress(100);
-
-    // Báo hiệu loading kết thúc cho các component khác (như MovieGrid)
-    if (typeof window !== "undefined") {
-      window.dispatchEvent(new Event("app:loading-end"));
-    }
 
     if (finishTimerRef.current) clearTimeout(finishTimerRef.current);
     finishTimerRef.current = setTimeout(() => {
@@ -41,9 +39,6 @@ function NavigationProgressBarInner() {
   }, []);
 
   const startLoading = useCallback(() => {
-    if (isRunningRef.current) return;
-    isRunningRef.current = true;
-
     if (finishTimerRef.current) {
       clearTimeout(finishTimerRef.current);
       finishTimerRef.current = null;
@@ -57,38 +52,44 @@ function NavigationProgressBarInner() {
       safetyTimerRef.current = null;
     }
 
+    isRunningRef.current = true;
     setLoading(true);
-    setProgress(15);
+    setProgress(18);
 
-    // Tăng dần tiến trình giả lập mượt mà: 15% -> 45% -> 75% -> 88%
-    let current = 15;
+    // Tăng dần tiến trình giả lập mượt mà: 18% -> 48% -> 72% -> 88%
+    let current = 18;
     progressTimerRef.current = setInterval(() => {
-      current += (90 - current) * 0.18;
+      current += (90 - current) * 0.16;
       setProgress((prev) => {
-        if (prev >= 92) return prev;
-        return Math.min(current, 92);
+        if (prev >= 90) return prev;
+        return Math.min(current, 90);
       });
-    }, 120);
+    }, 100);
 
-    // Timeout an toàn 4s tự tắt nếu mạng lag hoặc chuyển trang bị hủy
+    // Timeout an toàn 15s tự tắt nếu mạng đứt hoặc navigation bị hủy
+    // KHÔNG dùng 4s vì SSR / TMDb / Wikipedia cold start có thể cần 3.5 - 5s
     safetyTimerRef.current = setTimeout(() => {
       stopLoading();
-    }, 4000);
+    }, 15000);
   }, [stopLoading]);
 
-  // 1. Theo dõi thay đổi URL (Pathname hoặc Query Params) -> Kết thúc loading
-  const searchStr = searchParams ? searchParams.toString() : "";
+  // 1. Theo dõi chuyển trang (Khi URL Pathname thay đổi)
+  // Nhờ loading.tsx ở mọi route, khi pathname đổi là Next.js đã lập tức mount màn hình skeleton mới,
+  // do đó tiến trình kết thúc ngay lúc màn hình mới bắt đầu xuất hiện.
   useEffect(() => {
-    startTransition(() => {
+    const isPathChanged = lastPathnameRef.current !== pathname;
+    lastPathnameRef.current = pathname;
+
+    if (isPathChanged && isRunningRef.current) {
       stopLoading();
-    });
-  }, [pathname, searchStr, stopLoading]);
+    }
+  }, [pathname, searchParams, stopLoading]);
 
   // 2. Bắt sự kiện click toàn trang trên thẻ <a> (Link nội bộ) để kích hoạt loading NGAY TỨC THÌ (0ms)
   useEffect(() => {
     const handleDocumentClick = (e: MouseEvent) => {
       // Bỏ qua click chuột giữa, chuột phải hoặc phím tắt mở tab mới
-      if (e.button !== 0 || e.ctrlKey || e.metaKey || e.altKey || e.shiftKey || e.defaultPrevented) {
+      if (e.button !== 0 || e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) {
         return;
       }
 
