@@ -166,7 +166,10 @@ export function useNavSearch({
     if (urlKeyword && typeof window !== "undefined" && window.innerWidth >= 768) {
       setIsSearchExpanded(true);
     }
-  }, [urlKeyword, setIsSearchExpanded]);
+    if (urlKeyword.trim()) {
+      debouncedFetchSuggestions(urlKeyword.trim());
+    }
+  }, [urlKeyword, setIsSearchExpanded, debouncedFetchSuggestions]);
 
   // Close dropdown and collapse search on click outside
   useEffect(() => {
@@ -407,6 +410,32 @@ export function useNavSearch({
     [debouncedFetchSuggestions, abortPendingSearch],
   );
 
+  const handleInputFocus = useCallback(() => {
+    setShowDropdown(true);
+    const val = (
+      inputRef.current?.value ||
+      mobileInputRef.current?.value ||
+      queryText ||
+      ""
+    ).trim();
+
+    if (val.length >= 2) {
+      const normKey = val.toLowerCase();
+      if (clientSuggestCache.has(normKey)) {
+        const cached = clientSuggestCache.get(normKey)!;
+        if (cached && cached.length > 0) {
+          setSuggestions(cached);
+          setIsSearching(false);
+          return;
+        }
+      }
+      if (suggestions.length === 0 && !isSearching) {
+        setIsSearching(true);
+        debouncedFetchSuggestions(val);
+      }
+    }
+  }, [queryText, suggestions.length, isSearching, debouncedFetchSuggestions]);
+
   const handleSearchSubmit = useCallback(
     (e?: React.FormEvent | React.MouseEvent | React.KeyboardEvent) => {
       e?.preventDefault();
@@ -606,6 +635,7 @@ export function useNavSearch({
     searchContainerRef,
     mobileSearchRef,
     handleInputChange,
+    handleInputFocus,
     handleInputKeyDown,
     handleSearchSubmit,
     handleRecentClick,

@@ -63,12 +63,32 @@ export async function resolveActorMovies(
   // 1.1 Tra cứu trực tiếp Bảng Quy Đổi Đồng Nghĩa (Mapping Table / Synonym Dictionary) (0ms)
   const synonymRes = getActorSynonyms(keyword);
   if (synonymRes.isMatched) {
+    let tmdbPersonId: number | undefined;
+    let avatarUrl: string | undefined;
+    try {
+      const tmdbPerson = await searchTmdbPerson(
+        synonymRes.englishName || synonymRes.canonicalName,
+        synonymRes.canonicalName,
+        synonymRes.variants
+      );
+      if (tmdbPerson?.id) {
+        tmdbPersonId = tmdbPerson.id;
+        avatarUrl = tmdbPerson.profile_path
+          ? (tmdbPerson.profile_path.startsWith("http")
+              ? tmdbPerson.profile_path
+              : `https://image.tmdb.org/t/p/w500${tmdbPerson.profile_path}`)
+          : undefined;
+      }
+    } catch {}
+
     return {
       actorName: synonymRes.canonicalName,
       englishName: synonymRes.englishName,
       country: synonymRes.country,
       aliases: synonymRes.variants,
       isActor: true,
+      tmdbPersonId,
+      avatarUrl,
       source: "preset",
     };
   }

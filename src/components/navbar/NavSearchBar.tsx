@@ -27,7 +27,6 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(
       suggestions,
       isSearching,
       showDropdown,
-      setShowDropdown,
       selectedSuggestionIndex,
       recentSearches,
       inputRef,
@@ -35,6 +34,7 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(
       searchContainerRef,
       mobileSearchRef,
       handleInputChange,
+      handleInputFocus,
       handleInputKeyDown,
       handleSearchSubmit,
       handleRecentClick,
@@ -95,7 +95,7 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(
                 placeholder="Tìm phim, diễn viên, anime..."
                 onChange={handleInputChange}
                 onKeyDown={handleInputKeyDown}
-                onFocus={() => setShowDropdown(true)}
+                onFocus={handleInputFocus}
                 className="w-full bg-transparent text-white text-base sm:text-sm outline-none placeholder:text-zinc-400 min-w-0"
               />
 
@@ -195,7 +195,7 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(
                 placeholder="Tìm phim trên Nanaflix..."
                 onChange={handleInputChange}
                 onKeyDown={handleInputKeyDown}
-                onFocus={() => setShowDropdown(true)}
+                onFocus={handleInputFocus}
                 className="w-full bg-transparent text-white text-sm outline-none placeholder:text-zinc-400 py-1"
               />
             </div>

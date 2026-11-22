@@ -6,6 +6,7 @@ import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { Film, Flame, ChevronRight } from "lucide-react";
 import { findHistoricalArtist } from "@/data/history/historicalArtistsBirthdays";
+import { searchTmdbPerson } from "@/services/tmdb/personService";
 import { movieApi, parseSortMode } from "@/services/movies/service";
 import { executeSmartSearch } from "@/services/movies/smartSearchService";
 
@@ -320,7 +321,23 @@ async function runActorSearch(options: ActorSearchOptions) {
   const totalPages = Math.max(1, Math.ceil(totalItems / pageLimit));
   const startIndex = (currentPage - 1) * pageLimit;
   const histArtist = findHistoricalArtist(canonicalName) || (actorParam ? findHistoricalArtist(actorParam) : undefined);
-  const bestAvatar = (actorResult as any)?.avatarUrl || histArtist?.avatarUrl;
+  let bestAvatar = (actorResult as any)?.avatarUrl || histArtist?.avatarUrl;
+  let resolvedPersonId = (actorResult as any)?.tmdbPersonId || histArtist?.tmdbPersonId;
+
+  if (!bestAvatar || !resolvedPersonId) {
+    try {
+      const p = await searchTmdbPerson(canonicalName, actorSynonyms?.englishName, actorAliases);
+      if (p?.profile_path && !bestAvatar) {
+        bestAvatar = p.profile_path.startsWith("http")
+          ? p.profile_path
+          : `https://image.tmdb.org/t/p/w500${p.profile_path}`;
+      }
+      if (p?.id && !resolvedPersonId) {
+        resolvedPersonId = p.id;
+      }
+    } catch {}
+  }
+
   const displayActorName = toVietnameseTitleCase(histArtist?.name || canonicalName);
   return {
     actor: {
@@ -328,6 +345,7 @@ async function runActorSearch(options: ActorSearchOptions) {
       englishName: histArtist?.englishName || actorSynonyms?.englishName,
       country: histArtist?.country || actorCountry,
       avatarUrl: bestAvatar,
+      tmdbPersonId: resolvedPersonId,
     },
     movies: filteredActorMovies.slice(startIndex, startIndex + pageLimit).map((m: any) => ({ ...m, isActorFilmography: true })),
     totalItems,
@@ -445,7 +463,7 @@ export default async function BrowsePage({
         const actorSlug = (historicalArtist?.slug || (actorSynonyms?.isMatched ? actorSynonyms.slug : "") || slugify(rawActorName))
           .toLowerCase()
           .replace(/^-+|-+$/g, "");
-        const personId = actorRes?.tmdbPersonId || historicalArtist?.tmdbPersonId;
+        const personId = actorSearch.actor.tmdbPersonId || actorRes?.tmdbPersonId || historicalArtist?.tmdbPersonId;
         const actorHref = personId ? `/dien-vien/${personId}-${actorSlug}` : (actorSlug ? `/dien-vien/${actorSlug}` : undefined);
         detectedActor = {
           ...actorSearch.actor,
@@ -562,7 +580,7 @@ export default async function BrowsePage({
           const actorSlug = (historicalArtist?.slug || (fallbackSynonyms?.isMatched ? fallbackSynonyms.slug : "") || slugify(rawActorName))
             .toLowerCase()
             .replace(/^-+|-+$/g, "");
-          const personId = fallbackResult?.tmdbPersonId || historicalArtist?.tmdbPersonId;
+          const personId = actorSearch.actor.tmdbPersonId || fallbackResult?.tmdbPersonId || historicalArtist?.tmdbPersonId;
           const actorHref = personId ? `/dien-vien/${personId}-${actorSlug}` : (actorSlug ? `/dien-vien/${actorSlug}` : undefined);
           detectedActor = {
             ...actorSearch.actor,
