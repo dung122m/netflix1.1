@@ -202,15 +202,36 @@ export function LiveMatchScoreboard({
             score: currentScore,
           });
 
-          const homeScoreVal =
-            currentScore?.team1Score ?? summary?.homeTeam?.score;
-          const awayScoreVal =
-            currentScore?.team2Score ?? summary?.awayTeam?.score;
+          // Phân tích số bàn thắng từ danh sách người ghi bàn đã parse
+          const parsedHomeGoals = homeGoalScorers.reduce((acc, g) => acc + (g.times?.length || 1), 0);
+          const parsedAwayGoals = awayGoalScorers.reduce((acc, g) => acc + (g.times?.length || 1), 0);
+
+          const sHome = summary?.homeTeam?.score;
+          const sAway = summary?.awayTeam?.score;
+          const cHome = currentScore?.team1Score;
+          const cAway = currentScore?.team2Score;
+
+          // Luôn lấy tỷ số cao nhất/mới nhất giữa summary, currentScore và số bàn thắng đã ghi nhận từ sự kiện
+          // Khắc phục triệt để lỗi tỷ số nhảy chậm hơn người ghi bàn
+          const homeScoreVal = Math.max(
+            typeof sHome === "number" && !isNaN(sHome) ? sHome : 0,
+            typeof cHome === "number" && !isNaN(cHome) ? cHome : 0,
+            parsedHomeGoals
+          );
+
+          const awayScoreVal = Math.max(
+            typeof sAway === "number" && !isNaN(sAway) ? sAway : 0,
+            typeof cAway === "number" && !isNaN(cAway) ? cAway : 0,
+            parsedAwayGoals
+          );
+
           const hasScore =
             (timeInfo.state === "live" ||
               timeInfo.state === "ht" ||
               timeInfo.state === "ft" ||
-              isFinished) &&
+              isFinished ||
+              homeScoreVal > 0 ||
+              awayScoreVal > 0) &&
             typeof homeScoreVal === "number" &&
             typeof awayScoreVal === "number" &&
             !isNaN(homeScoreVal) &&
@@ -259,10 +280,10 @@ export function LiveMatchScoreboard({
                 </div>
               )}
 
-              {/* HÀNG CHÍNH: BẢNG TỶ SỐ CHUẨN TRUYỀN HÌNH - KHÔNG GIAN RỘNG RÃI CHO 2 ĐỘI */}
-              <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 sm:gap-4 md:gap-6 w-full min-w-0">
-                {/* ĐỘI NHÀ */}
-                <div className="flex items-center justify-end gap-2 sm:gap-3.5 md:gap-4 min-w-0 text-right">
+              {/* HÀNG CHÍNH: BẢNG TỶ SỐ CHUẨN TRUYỀN HÌNH - ĐỐI XỨNG CÂN ĐỐI TUYỆT ĐỐI 50/50 */}
+              <div className="flex items-center justify-between w-full min-w-0">
+                {/* ĐỘI NHÀ (CỘT TRÁI - 50% CHIỀU RỘNG TRỪ PHẦN TỶ SỐ) */}
+                <div className="flex-1 min-w-0 flex items-center justify-end gap-2 sm:gap-3 md:gap-4 pr-3 sm:pr-4 md:pr-6 text-right">
                   <span
                     className="text-xs sm:text-base md:text-lg lg:text-xl font-black text-white tracking-tight truncate block"
                     title={homeDisplayName}
@@ -294,8 +315,8 @@ export function LiveMatchScoreboard({
                   </div>
                 </div>
 
-                {/* TỶ SỐ / VS: TYPOGRAPHY THUẦN KHIẾT THOÁNG ĐÃNG CHÍNH GIỮA TUYỆT ĐỐI */}
-                <div className="flex flex-col items-center justify-center shrink-0 min-w-[76px] sm:min-w-[100px] md:min-w-[120px] select-none px-1 sm:px-3">
+                {/* TỶ SỐ / VS: CHÍNH GIỮA TUYỆT ĐỐI (50.0%) */}
+                <div className="shrink-0 flex flex-col items-center justify-center min-w-[76px] sm:min-w-[100px] md:min-w-[120px] select-none px-1 sm:px-2">
                   {hasScore ? (
                     <div className="flex items-center justify-center gap-1.5 sm:gap-2 font-sans text-2xl sm:text-4xl md:text-5xl font-black text-white tracking-wider tabular-nums leading-none drop-shadow-sm">
                       <span>{homeScoreVal}</span>
@@ -358,8 +379,8 @@ export function LiveMatchScoreboard({
                   </div>
                 </div>
 
-                {/* ĐỘI KHÁCH */}
-                <div className="flex items-center justify-start gap-2.5 sm:gap-3.5 md:gap-4 min-w-0 text-left">
+                {/* ĐỘI KHÁCH (CỘT PHẢI - 50% CHIỀU RỘNG TRỪ PHẦN TỶ SỐ) */}
+                <div className="flex-1 min-w-0 flex items-center justify-start gap-2.5 sm:gap-3.5 md:gap-4 pl-3 sm:pl-4 md:pl-6 text-left">
                   <div className="w-9 h-9 sm:w-11 sm:h-11 md:w-12 md:h-12 lg:w-14 lg:h-14 flex items-center justify-center shrink-0">
                     {awayFlagEmoji ? (
                       <CountryFlag
@@ -392,19 +413,19 @@ export function LiveMatchScoreboard({
                 </div>
               </div>
 
-              {/* DẢI NGƯỜI GHI BÀN - CÓ ICON BÓNG FOTMOB RÕ RÀNG */}
+              {/* DẢI NGƯỜI GHI BÀN - ĐỐI XỨNG CÂN ĐỐI TUYỆT ĐỐI */}
               {hasGoalScorers && (
-                <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 sm:gap-4 md:gap-6 w-full min-w-0 pt-2 sm:pt-2.5 text-[10.5px] sm:text-xs text-zinc-300">
-                  <div className="flex items-center justify-end min-w-0 text-right">
+                <div className="flex items-center justify-between w-full min-w-0 pt-2 sm:pt-2.5 text-[10.5px] sm:text-xs text-zinc-300">
+                  <div className="flex-1 min-w-0 flex items-center justify-end pr-3 sm:pr-4 md:pr-6 text-right">
                     <div className="flex flex-wrap items-center justify-end gap-x-3 gap-y-1 min-w-0">
                       {homeGoalScorers.map((scorer, idx) => (
                         <span
                           key={`h-${idx}`}
-                          className="inline-flex items-center gap-1 text-zinc-200"
+                          className="inline-flex items-center gap-1.5 text-zinc-200"
                         >
                           <FotmobSoccerBallIcon className="w-2.5 h-2.5 sm:w-3 sm:h-3 shrink-0 opacity-80" />
                           <span
-                            className="font-medium text-white truncate max-w-[110px] sm:max-w-[160px]"
+                            className="font-medium text-white truncate max-w-[120px] sm:max-w-[180px]"
                             title={scorer.playerName}
                           >
                             {scorer.playerName}
@@ -427,16 +448,16 @@ export function LiveMatchScoreboard({
                     )}
                   </div>
 
-                  <div className="flex items-center justify-start min-w-0 text-left">
+                  <div className="flex-1 min-w-0 flex items-center justify-start pl-3 sm:pl-4 md:pl-6 text-left">
                     <div className="flex flex-wrap items-center justify-start gap-x-3 gap-y-1 min-w-0">
                       {awayGoalScorers.map((scorer, idx) => (
                         <span
                           key={`a-${idx}`}
-                          className="inline-flex items-center gap-1 text-zinc-200"
+                          className="inline-flex items-center gap-1.5 text-zinc-200"
                         >
                           <FotmobSoccerBallIcon className="w-2.5 h-2.5 sm:w-3 sm:h-3 shrink-0 opacity-80" />
                           <span
-                            className="font-medium text-white truncate max-w-[110px] sm:max-w-[160px]"
+                            className="font-medium text-white truncate max-w-[120px] sm:max-w-[180px]"
                             title={scorer.playerName}
                           >
                             {scorer.playerName}
