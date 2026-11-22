@@ -17,7 +17,16 @@ import {
   User,
 } from "lucide-react";
 import { AthleteProfile, MatchRosterPlayer } from "@/services/live/football-score/types";
-import { SoccerBallIcon } from "../MatchTimelineSidebar";
+import {
+  FotmobSoccerBallIcon,
+  FotmobYellowCardIcon,
+  FotmobRedCardIcon,
+  FotmobCaptainBadge,
+  FotmobSubOutIcon,
+  FotmobSubSwapIcon,
+  FotmobAssistIcon,
+  FotmobStarIcon,
+} from "../icons/FotmobPitchIcons";
 import { BaseModal } from "@/components/ui/BaseModal";
 import {
   DualPlayerEventSummary,
@@ -26,25 +35,19 @@ import {
 } from "./pitchMath";
 
 // ============================================================================
-// 1. EVENT BADGES (YELLOW & RED CARDS)
+// 1. EVENT BADGES (OFFICIAL FOTMOB ICONS)
 // ============================================================================
 
+export function SoccerBallIcon({ className = "w-3.5 h-3.5" }: { className?: string }) {
+  return <FotmobSoccerBallIcon className={className} />;
+}
+
 export function YellowCardIcon({ className = "w-2.5 h-3.5" }: { className?: string }) {
-  return (
-    <span
-      className={`rounded-[2px] bg-gradient-to-br from-amber-300 via-amber-400 to-amber-500 ring-1 ring-black/75 shadow-[0_1px_3px_rgba(0,0,0,0.7)] inline-block shrink-0 ${className}`}
-      aria-label="Thẻ vàng"
-    />
-  );
+  return <FotmobYellowCardIcon className={className} />;
 }
 
 export function RedCardIcon({ className = "w-2.5 h-3.5" }: { className?: string }) {
-  return (
-    <span
-      className={`rounded-[2px] bg-gradient-to-br from-rose-500 via-red-600 to-rose-700 ring-1 ring-black/75 shadow-[0_1px_3px_rgba(0,0,0,0.7)] inline-block shrink-0 ${className}`}
-      aria-label="Thẻ đỏ"
-    />
-  );
+  return <FotmobRedCardIcon className={className} />;
 }
 
 // ============================================================================

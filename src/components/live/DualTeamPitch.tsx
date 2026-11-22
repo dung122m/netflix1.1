@@ -1,9 +1,14 @@
 "use client";
 
 import React, { useState, useMemo, useEffect, useCallback } from "react";
-import { ArrowDown } from "lucide-react";
 import { MatchRosterPlayer, MatchKeyEvent } from "@/services/live/football-score/types";
-import { SoccerBallIcon } from "./MatchTimelineSidebar";
+import {
+  FotmobSoccerBallIcon,
+  FotmobYellowCardIcon,
+  FotmobRedCardIcon,
+  FotmobCaptainBadge,
+  FotmobSubOutIcon,
+} from "./icons/FotmobPitchIcons";
 import {
   TeamInfo,
   getShortDisplayName,
@@ -11,7 +16,7 @@ import {
   getPlayerEventBadges,
   calculateDualPitchPlayers,
 } from "./lineup/pitchMath";
-import { YellowCardIcon, RedCardIcon, PlayerDetailModal } from "./lineup/PlayerCardModal";
+import { PlayerDetailModal } from "./lineup/PlayerCardModal";
 import { DualMobileRosterView, DualBenchColumn } from "./lineup/LineupViews";
 
 export interface DualTeamPitchProps {
@@ -233,21 +238,19 @@ export const DualTeamPitch: React.FC<DualTeamPitchProps> = ({
                         <span>{player.jersey || (isGK ? "1" : "-")}</span>
                       </div>
 
-                      {/* Huy hiệu Lúc ra sân: Mũi tên đỏ và phút thay ra trên đỉnh đầu chuẩn FotMob */}
+                      {/* Huy hiệu Lúc ra sân: Mũi tên đỏ và phút thay ra trên góc trái chuẩn FotMob */}
                       {isSubbedOut && (
                         <span
-                          className="absolute -top-3.5 left-1/2 -translate-x-1/2 flex items-center gap-0.5 z-20 whitespace-nowrap"
+                          className="absolute -top-3.5 -left-1 flex flex-col items-center z-20 pointer-events-none select-none"
                           aria-label={player.subClock ? `Rời sân phút ${player.subClock}` : "Đã rời sân"}
                           title={player.subClock ? `Rời sân phút ${player.subClock}` : "Đã rời sân"}
                         >
                           {player.subClock && (
-                            <span className="text-[8.5px] sm:text-[9px] font-sans font-bold tabular-nums text-zinc-300 drop-shadow">
+                            <span className="text-[8px] sm:text-[8.5px] font-sans font-bold tabular-nums text-zinc-200 leading-none drop-shadow mb-0.5">
                               {player.subClock}&apos;
                             </span>
                           )}
-                          <span className="w-3.5 h-3.5 rounded-full bg-rose-600 text-white flex items-center justify-center shadow-md ring-1 ring-zinc-950">
-                            <ArrowDown className="w-2 h-2 stroke-[3]" />
-                          </span>
+                          <FotmobSubOutIcon className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
                         </span>
                       )}
 
@@ -258,7 +261,7 @@ export const DualTeamPitch: React.FC<DualTeamPitchProps> = ({
                           aria-label="Thẻ đỏ"
                           title="Thẻ đỏ"
                         >
-                          <RedCardIcon className="w-2.5 h-3.5 sm:w-3 sm:h-4" />
+                          <FotmobRedCardIcon className="w-2.5 h-3.5 sm:w-3 sm:h-4" />
                         </span>
                       ) : yellowCards > 0 ? (
                         <span
@@ -266,10 +269,10 @@ export const DualTeamPitch: React.FC<DualTeamPitchProps> = ({
                           aria-label={yellowCards > 1 ? "2 Thẻ vàng" : "Thẻ vàng"}
                           title={yellowCards > 1 ? "2 Thẻ vàng" : "Thẻ vàng"}
                         >
-                          <YellowCardIcon className="w-2.5 h-3.5 sm:w-3 sm:h-4" />
+                          <FotmobYellowCardIcon className="w-2.5 h-3.5 sm:w-3 sm:h-4" />
                           {yellowCards > 1 && (
                             <span className="-ml-1.5 -mt-0.5">
-                              <YellowCardIcon className="w-2.5 h-3.5 sm:w-3 sm:h-4 opacity-90" />
+                              <FotmobYellowCardIcon className="w-2.5 h-3.5 sm:w-3 sm:h-4 opacity-90" />
                             </span>
                           )}
                         </span>
@@ -278,7 +281,7 @@ export const DualTeamPitch: React.FC<DualTeamPitchProps> = ({
                       {/* Huy hiệu Quả bóng: Chuẩn FotMob - hiện các quả bóng xếp chồng lớp ở góc dưới bên phải */}
                       {goals > 0 && (
                         <span
-                          className="absolute -bottom-1 -right-2 flex items-center -space-x-1 sm:-space-x-1.5 z-20"
+                          className="absolute -bottom-1 -right-2 flex items-center -space-x-1 sm:-space-x-1.5 z-20 pointer-events-none select-none"
                           aria-label={`${goals} bàn thắng`}
                           title={`${goals} bàn thắng`}
                         >
@@ -288,7 +291,7 @@ export const DualTeamPitch: React.FC<DualTeamPitchProps> = ({
                               className="w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full shadow-[0_2px_5px_rgba(0,0,0,0.9)] flex items-center justify-center shrink-0"
                               style={{ zIndex: 10 + idx }}
                             >
-                              <SoccerBallIcon className="w-full h-full" />
+                              <FotmobSoccerBallIcon className="w-full h-full" />
                             </span>
                           ))}
                           {goals > 3 && (
@@ -302,7 +305,7 @@ export const DualTeamPitch: React.FC<DualTeamPitchProps> = ({
 
                     {/* Tên cầu thủ & Biểu tượng Đội trưởng (C) chuẩn FotMob */}
                     <div
-                      className={`mt-1 font-sans text-[9.5px] sm:text-[10px] md:text-[10.5px] font-semibold text-center leading-tight truncate max-w-[70px] sm:max-w-[84px] transition flex items-center justify-center gap-1 ${
+                      className={`mt-1 font-sans text-[9.5px] sm:text-[10px] md:text-[10.5px] font-semibold text-center leading-tight truncate max-w-[72px] sm:max-w-[88px] transition flex items-center justify-center gap-1 ${
                         isSelected
                           ? "bg-amber-400 text-zinc-950 font-bold px-1.5 py-0.5 rounded shadow-sm"
                           : isSubbedOut
@@ -311,9 +314,7 @@ export const DualTeamPitch: React.FC<DualTeamPitchProps> = ({
                       }`}
                     >
                       {isCaptain && !isSubbedOut && (
-                        <span className="w-3.5 h-3.5 rounded-full bg-zinc-700/90 text-amber-300 ring-1 ring-white/20 font-black text-[8px] flex items-center justify-center shrink-0">
-                          C
-                        </span>
+                        <FotmobCaptainBadge className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0" />
                       )}
                       <span className="truncate">{shortName}</span>
                     </div>

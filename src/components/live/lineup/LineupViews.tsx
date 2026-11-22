@@ -4,6 +4,7 @@ import React, { useMemo } from "react";
 import { Shield, Users, ArrowUp, ArrowDown, ArrowUpRight } from "lucide-react";
 import { MatchRosterPlayer } from "@/services/live/football-score/types";
 import { SoccerBallIcon } from "../MatchTimelineSidebar";
+import { FotmobCaptainBadge } from "../icons/FotmobPitchIcons";
 import {
   calculateTacticalCoordinates,
   getShortDisplayName,
@@ -569,10 +570,10 @@ export function DualBenchColumn({
                 </span>
 
                 <div className="min-w-0 flex-1 pr-2 truncate">
-                  <p className="text-xs font-semibold text-zinc-200 group-hover:text-white truncate font-sans leading-snug">
-                    {p.displayName || p.name}
+                  <p className="text-xs font-semibold text-zinc-200 group-hover:text-white truncate font-sans leading-snug flex items-center">
+                    <span className="truncate">{p.displayName || p.name}</span>
                     {isCaptain && (
-                      <span className="text-[10px] font-bold text-amber-400 ml-1">(C)</span>
+                      <FotmobCaptainBadge className="w-3 h-3 ml-1" />
                     )}
                   </p>
                   <p className="text-[10px] text-zinc-400 truncate font-sans leading-snug">
@@ -733,12 +734,7 @@ export function DualMobileRosterView({
                         {player.displayName || player.name}
                       </span>
                       {player.captain && (
-                        <span
-                          className="w-3.5 h-3.5 rounded-full bg-amber-400 text-zinc-950 font-black text-[8px] flex items-center justify-center shrink-0"
-                          aria-label="Đội trưởng"
-                        >
-                          C
-                        </span>
+                        <FotmobCaptainBadge className="w-3.5 h-3.5" />
                       )}
                     </div>
                     <span className="text-[10px] text-zinc-400 font-sans block truncate">
