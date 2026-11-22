@@ -738,7 +738,7 @@ async function executeGetMovies(params: MovieFilterParams, cacheKey: string) {
     totalItemsCount = cachedMeta.totalItems;
   }
 
-  const maxTotalPages = Math.max(1, Math.ceil(totalItemsCount / limit));
+  let maxTotalPages = Math.max(1, Math.ceil(totalItemsCount / limit));
 
   // Khử trùng lặp giữa các trang (cross-page deduplication): loại bỏ phim đã xuất hiện ở các trang trước (< requestedPage)
   const priorSeen = new Set<string>();
@@ -786,9 +786,12 @@ async function executeGetMovies(params: MovieFilterParams, cacheKey: string) {
       for (const c of candidates) {
         for (const k of extractMovieIdentityKeys(c)) existingKeys.add(k);
       }
+      for (const itm of finalItems) {
+        for (const k of extractMovieIdentityKeys(itm)) existingKeys.add(k);
+      }
       const appendUniqueFiltered = (items: unknown[]) => {
         if (!Array.isArray(items) || items.length === 0) return;
-        const filtered = applyMovieFilters(
+        let filtered = applyMovieFilters(
           (items as Record<string, unknown>[]).filter(
             (item) =>
               item?.slug &&
@@ -797,6 +800,13 @@ async function executeGetMovies(params: MovieFilterParams, cacheKey: string) {
           ),
           params
         );
+        if (isSearch && params.keyword) {
+          const kw = params.keyword.trim();
+          filtered = filtered.filter((item) => {
+            const rel = evaluateSearchRelevance(item, kw);
+            return rel.score >= 40;
+          });
+        }
         for (const item of filtered) {
           if (finalItems.length >= limit) break;
           for (const k of extractMovieIdentityKeys(item)) existingKeys.add(k);
@@ -810,34 +820,57 @@ async function executeGetMovies(params: MovieFilterParams, cacheKey: string) {
         appendUniqueFiltered(resNguonC.overflowItems);
       }
 
-      // 2. Bù đắp liên tục từ nguồn còn phim tiếp theo offset hiện tại (tránh nhảy trang gây trùng lặp)
+      // 2. Bù đắp đa nguồn (cả PhimAPI và NguonC)
       let topUpAttempts = 0;
+      let nextTopUpPageA = Math.floor(alloc.aOffset / Math.max(1, alloc.aLimit || 16)) + 2;
       let nextTopUpOffsetB =
         (alloc.bLimit > 0 ? alloc.bOffset + alloc.bLimit : 0) +
         (resNguonC && "overflowItems" in resNguonC && Array.isArray(resNguonC.overflowItems)
           ? resNguonC.overflowItems.length
           : 0);
 
-      while (finalItems.length < limit && topUpAttempts < 3) {
+      while (finalItems.length < limit && topUpAttempts < 4) {
         topUpAttempts++;
-        if (isNguonCAvailable && nextTopUpOffsetB < (countApi2 || totalItemsCount)) {
-          const extraRes = await fetchSourceData(
-            API_NGUONC,
-            params,
-            isSearch,
-            undefined,
-            10,
-            nextTopUpOffsetB
-          );
-          nextTopUpOffsetB += 10;
-          if (extraRes?.items?.length) {
-            appendUniqueFiltered(extraRes.items);
-          } else {
-            break;
-          }
-        } else {
+        const hasMoreA = (nextTopUpPageA - 1) * 16 < (countApi1 || totalItemsCount);
+        const hasMoreB = isNguonCAvailable && nextTopUpOffsetB < (countApi2 || totalItemsCount);
+
+        if (!hasMoreA && !hasMoreB) {
           break;
         }
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const fetchPromises: Promise<any>[] = [];
+        if (hasMoreA) {
+          fetchPromises.push(
+            fetchSourceData(API_PHIMAPI, params, isSearch, nextTopUpPageA, 16)
+          );
+          nextTopUpPageA++;
+        }
+        if (hasMoreB) {
+          fetchPromises.push(
+            fetchSourceData(API_NGUONC, params, isSearch, undefined, 10, nextTopUpOffsetB)
+          );
+          nextTopUpOffsetB += 10;
+        }
+
+        const settled = await Promise.allSettled(fetchPromises);
+        const initialCount = finalItems.length;
+        for (const res of settled) {
+          if (res.status === "fulfilled" && res.value?.items?.length) {
+            appendUniqueFiltered(res.value.items);
+          }
+        }
+        if (finalItems.length === initialCount && !hasMoreA && !hasMoreB) {
+          break;
+        }
+      }
+
+      // 3. Nếu đã quét hết tất cả nguồn còn lại mà vẫn không đủ phim để sang trang sau:
+      // Nghĩa là thực tế catalog không còn phim nào nữa!
+      // Clamp maxTotalPages = requestedPage để triệt tiêu vĩnh viễn trang sau khuyết/rỗng (phantom next page)
+      if (finalItems.length < limit && requestedPage < maxTotalPages) {
+        maxTotalPages = requestedPage;
+        totalItemsCount = (requestedPage - 1) * limit + finalItems.length;
       }
     } catch { }
   }
@@ -941,7 +974,7 @@ async function executeGetMovies(params: MovieFilterParams, cacheKey: string) {
 
 export function buildMovieCacheKey(params: MovieFilterParams): string {
   return JSON.stringify({
-    v: 18,
+    v: 19,
     category: params.category || "",
     country: params.country || "",
     year: params.year || "",

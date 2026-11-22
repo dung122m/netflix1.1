@@ -101,7 +101,7 @@ export async function executeSmartSearch(
   }
 
   const normQuery = normalizeForMatch(rawQuery);
-  const cacheKey = `search:smart:v3:${normQuery}:${page}:${limit}:${params.category || ""}:${params.country || ""}:${params.year || ""}:${params.type || ""}:${sort}`;
+  const cacheKey = `search:smart:v4:${normQuery}:${page}:${limit}:${params.category || ""}:${params.country || ""}:${params.year || ""}:${params.type || ""}:${sort}`;
 
   // Kiểm tra L1 In-Memory Cache (0ms)
   const now = Date.now();

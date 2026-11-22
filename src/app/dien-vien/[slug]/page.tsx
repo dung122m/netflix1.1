@@ -332,7 +332,7 @@ const resolveActorProfile = cache(async (slug: string): Promise<ResolvedActorPro
       });
       return redisCached;
     }
-  } catch {}
+  } catch { }
 
   const { personId: explicitPersonId, rawName } = parseActorIdentifier(slug);
 
@@ -503,7 +503,7 @@ const resolveActorProfile = cache(async (slug: string): Promise<ResolvedActorPro
     expireAt: Date.now() + 7200000,
   });
 
-  cacheService.set(`actor:profile:v1:${slug}`, resolved, ACTOR_PAGE_REDIS_TTL_SEC).catch(() => {});
+  cacheService.set(`actor:profile:v1:${slug}`, resolved, ACTOR_PAGE_REDIS_TTL_SEC).catch(() => { });
 
   return resolved;
 });
@@ -559,12 +559,12 @@ export default async function ActorDetailPage({ params }: PageProps) {
   const wikiProfilePromise = (needsWiki && canonicalName) ? fetchActorProfile(canonicalName) : Promise.resolve(null);
   const moviesPromise = canonicalName
     ? queryMoviesByActor(
-        canonicalName,
-        actorAliases,
-        historicalItem?.country || actorRes?.country || actorSynonyms?.country || "",
-        150,
-        profile.tmdbPersonId
-      )
+      canonicalName,
+      actorAliases,
+      historicalItem?.country || actorRes?.country || actorSynonyms?.country || "",
+      150,
+      profile.tmdbPersonId
+    )
     : Promise.resolve([]);
 
   let wikiProfile = (cachedPage?.movies && cachedPage.movies.length > 0) ? cachedPage.wikiProfile : null;
@@ -580,21 +580,21 @@ export default async function ActorDetailPage({ params }: PageProps) {
         wikiProfile = redisFull.wikiProfile;
         movies = redisFull.movies;
       }
-    } catch {}
+    } catch { }
 
     if (!movies || movies.length === 0) {
       [wikiProfile, movies] = await Promise.all([wikiProfilePromise, moviesPromise]);
       if (movies && movies.length > 0) {
-        await enrichMovieListPosters(movies, { budgetMs: 0, stripProxyUrls: true });
+        await enrichMovieListPosters(movies, { budgetMs: 1500, stripProxyUrls: true });
         cacheService
           .set(`actor:full_page:v3:${slug}`, { wikiProfile, movies }, ACTOR_PAGE_REDIS_TTL_SEC)
-          .catch(() => {});
+          .catch(() => { });
       }
     } else {
-      await enrichMovieListPosters(movies, { budgetMs: 0, stripProxyUrls: true });
+      await enrichMovieListPosters(movies, { budgetMs: 1500, stripProxyUrls: true });
     }
   } else if (movies && movies.length > 0) {
-    await enrichMovieListPosters(movies, { budgetMs: 0, stripProxyUrls: true });
+    await enrichMovieListPosters(movies, { budgetMs: 1500, stripProxyUrls: true });
   }
 
   // Nếu không tìm thấy thông tin trên TMDb, Wikipedia và cũng không có phim nào trên hệ thống -> 404 Not Found
@@ -680,8 +680,8 @@ export default async function ActorDetailPage({ params }: PageProps) {
     (tmdbDetail?.known_for_department === "Acting"
       ? "Diễn viên điện ảnh"
       : tmdbDetail?.known_for_department === "Directing"
-      ? "Đạo diễn điện ảnh"
-      : "Nghệ sĩ điện ảnh");
+        ? "Đạo diễn điện ảnh"
+        : "Nghệ sĩ điện ảnh");
   const wikiUrl = historicalItem?.wikiUrl || wikiProfile?.wikiUrl;
 
   // Trích xuất thể loại tiêu biểu và thời kỳ hoạt động từ dữ liệu phim CÓ SẴN trong props (0ms, tuyệt đối không query DB)
@@ -729,7 +729,7 @@ export default async function ActorDetailPage({ params }: PageProps) {
       <div className="fixed top-0 left-1/2 -translate-x-1/2 w-full max-w-[1800px] h-[550px] bg-[radial-gradient(ellipse_80%_60%_at_50%_0%,rgba(var(--accent-rgb),0.15),rgba(0,0,0,0))] pointer-events-none -z-10" />
 
       <main className="flex-1 pt-20 sm:pt-28 pb-16 sm:pb-24 px-4 sm:px-6 md:px-10 lg:px-12 max-w-[1800px] mx-auto w-full space-y-8 sm:space-y-16">
-        
+
         {/* ============================================================ */}
         {/* BREADCRUMB & BACK BUTTON DÙNG CHUNG */}
         {/* ============================================================ */}
@@ -744,7 +744,7 @@ export default async function ActorDetailPage({ params }: PageProps) {
         {/* ============================================================ */}
         <section className="relative">
           <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6 sm:gap-8 md:gap-10">
-            
+
             {/* 1. PORTRAIT IMAGE */}
             <div className="relative w-36 h-48 sm:w-44 sm:h-60 md:w-52 md:h-72 rounded-2xl overflow-hidden bg-zinc-900 shadow-2xl ring-1 ring-white/10 shrink-0 group">
               <ActorAvatar
@@ -759,7 +759,7 @@ export default async function ActorDetailPage({ params }: PageProps) {
 
             {/* 2. ACTOR MAIN DETAILS */}
             <div className="flex-1 space-y-4 text-center sm:text-left min-w-0 w-full">
-              
+
               {/* COUNTRY & ROLES BADGES */}
               <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
                 {country && (

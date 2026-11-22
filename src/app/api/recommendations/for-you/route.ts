@@ -628,9 +628,9 @@ async function generateForYouRecommendations(input: RecommendationInput): Promis
       }
     }
 
-    // Nạp sẵn poster TMDb từ RAM/Redis cache vào danh sách gợi ý (0ms)
+    // Nạp sẵn poster TMDb từ RAM/Redis cache vào danh sách gợi ý
     if (selectedFinalMovies.length > 0) {
-      await enrichMovieListPosters(selectedFinalMovies, { budgetMs: 0, stripProxyUrls: true });
+      await enrichMovieListPosters(selectedFinalMovies, { budgetMs: 1500, stripProxyUrls: true });
     }
 
     // 8. LƯU VÀO CACHE VỚI TTL 2 GIỜ (7200s) CHỈ KHI ĐẠT ĐỦ >= 14 PHIM

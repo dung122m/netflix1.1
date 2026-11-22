@@ -269,7 +269,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
           observer.disconnect();
         }
       },
-      { rootMargin: "400px 0px" }
+      { rootMargin: "400px 400px" }
     );
 
     observer.observe(el);
@@ -745,7 +745,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
               decoding={priority ? "sync" : "async"}
               fetchPriority={priority ? "high" : "auto"}
               referrerPolicy="no-referrer"
-              className={`relative z-[1] w-full h-full object-cover object-center brightness-[0.94] group-hover/card:scale-105 group-hover/card:brightness-105 transition-opacity duration-300 ease-out motion-reduce:transform-none ${isFallbackLoading && isBlockedByIsp ? "opacity-0" : "opacity-100"
+              className={`relative z-[1] w-full h-full object-cover object-center brightness-[0.94] group-hover/card:scale-105 group-hover/card:brightness-105 transition-opacity duration-300 ease-out motion-reduce:transform-none ${isImageLoaded ? "opacity-100" : "opacity-0"
                 }`}
               onLoad={(e) => {
                 const target = e.currentTarget;

@@ -23,6 +23,9 @@ export interface ForYouMovieItem {
   origin_name?: string;
   poster_url: string;
   thumb_url?: string;
+  tmdbId?: string | number;
+  tmdb?: { id?: string | number; type?: string; vote_average?: number; vote_count?: number };
+  itemType?: "movie" | "series";
   year?: number | string;
   quality?: string;
   category?: { name: string }[];
@@ -277,6 +280,9 @@ function mapToForYouItems(rawItems: any[]): ForYouMovieItem[] {
         origin_name: m.origin_name || "",
         poster_url: m.poster_url || m.posterUrl || m.thumb_url || m.thumbUrl || "/default-poster.jpg",
         thumb_url: m.thumb_url || m.thumbUrl || m.poster_url || "/default-hero.jpg",
+        tmdbId: m.tmdbId || m.tmdb?.id || m.movie?.tmdb?.id,
+        tmdb: m.tmdb || m.movie?.tmdb,
+        itemType: m.itemType || (m.type === "series" || m.type === "hoathinh" || m.type === "tvshows" ? "series" : m.type === "single" ? "movie" : undefined),
         year: m.year,
         quality: m.quality || "Full HD",
         category: Array.isArray(m.category)
