@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState } from "react";
-import { RotateCcw, Search, X } from "lucide-react";
+import { Flame, RotateCcw, Search, Trophy, X } from "lucide-react";
+import { Tooltip } from "@/components/ui/Tooltip";
 import type { MatchStatusFilter } from "./hooks/useLiveFootballFilters";
 
 export interface LiveFilterCounts {
@@ -67,19 +68,17 @@ export function LiveFilterCommandBar({
             <button
               type="button"
               onClick={() => onStatusChange("all")}
-              className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition cursor-pointer min-h-[34px] sm:min-h-[36px] ${
-                activeSection !== "standings" && selectedStatus === "all"
-                  ? "bg-white/15 text-white font-bold shadow-sm"
-                  : "text-zinc-400 hover:text-white hover:bg-white/5"
-              }`}
+              className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition cursor-pointer min-h-[34px] sm:min-h-[36px] ${activeSection !== "standings" && selectedStatus === "all"
+                ? "bg-white/15 text-white font-bold shadow-sm"
+                : "text-zinc-400 hover:text-white hover:bg-white/5"
+                }`}
             >
               <span>Tất cả</span>
               <span
-                className={`tabular-nums text-[11px] ${
-                  activeSection !== "standings" && selectedStatus === "all"
-                    ? "opacity-90 font-normal"
-                    : "opacity-60"
-                }`}
+                className={`tabular-nums text-[11px] ${activeSection !== "standings" && selectedStatus === "all"
+                  ? "opacity-90 font-normal"
+                  : "opacity-60"
+                  }`}
               >
                 ({counts.total})
               </span>
@@ -89,11 +88,10 @@ export function LiveFilterCommandBar({
               <button
                 type="button"
                 onClick={() => onStatusChange("live")}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition cursor-pointer min-h-[36px] ${
-                  activeSection !== "standings" && selectedStatus === "live"
-                    ? "bg-white/15 text-white font-bold shadow-sm"
-                    : "text-zinc-300 hover:text-white hover:bg-white/5"
-                }`}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition cursor-pointer min-h-[36px] ${activeSection !== "standings" && selectedStatus === "live"
+                  ? "bg-white/15 text-white font-bold shadow-sm"
+                  : "text-zinc-300 hover:text-white hover:bg-white/5"
+                  }`}
               >
                 <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse shrink-0" />
                 <span className="min-[380px]:hidden">Live</span>
@@ -108,11 +106,10 @@ export function LiveFilterCommandBar({
               <button
                 type="button"
                 onClick={() => onStatusChange("upcoming")}
-                className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition cursor-pointer min-h-[36px] ${
-                  activeSection !== "standings" && selectedStatus === "upcoming"
-                    ? "bg-white/15 text-white font-bold shadow-sm"
-                    : "text-zinc-400 hover:text-white hover:bg-white/5"
-                }`}
+                className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition cursor-pointer min-h-[36px] ${activeSection !== "standings" && selectedStatus === "upcoming"
+                  ? "bg-white/15 text-white font-bold shadow-sm"
+                  : "text-zinc-400 hover:text-white hover:bg-white/5"
+                  }`}
               >
                 <span className="min-[380px]:hidden">Sắp đá</span>
                 <span className="hidden min-[380px]:inline">Sắp diễn ra</span>
@@ -126,11 +123,10 @@ export function LiveFilterCommandBar({
               <button
                 type="button"
                 onClick={() => onStatusChange("finished")}
-                className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition cursor-pointer min-h-[36px] ${
-                  activeSection !== "standings" && selectedStatus === "finished"
-                    ? "bg-white/15 text-white font-bold shadow-sm"
-                    : "text-zinc-400 hover:text-white hover:bg-white/5"
-                }`}
+                className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition cursor-pointer min-h-[36px] ${activeSection !== "standings" && selectedStatus === "finished"
+                  ? "bg-white/15 text-white font-bold shadow-sm"
+                  : "text-zinc-400 hover:text-white hover:bg-white/5"
+                  }`}
               >
                 <span className="min-[380px]:hidden">Xong</span>
                 <span className="hidden min-[380px]:inline">Đã kết thúc</span>
@@ -145,11 +141,10 @@ export function LiveFilterCommandBar({
               onClick={onFeaturedToggle}
               aria-pressed={onlyFeatured}
               aria-label="Chỉ hiện các trận cầu tâm điểm / đại chiến hấp dẫn nhất"
-              className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition cursor-pointer min-h-[36px] ${
-                activeSection !== "standings" && onlyFeatured
-                  ? "bg-white/15 text-white font-bold shadow-sm"
-                  : "text-zinc-400 hover:text-white hover:bg-white/5"
-              }`}
+              className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition cursor-pointer min-h-[36px] ${activeSection !== "standings" && onlyFeatured
+                ? "bg-white/15 text-white font-bold shadow-sm"
+                : "text-zinc-400 hover:text-white hover:bg-white/5"
+                }`}
             >
               <span>Tâm điểm</span>
               {counts.featured > 0 && (
@@ -164,11 +159,10 @@ export function LiveFilterCommandBar({
             <button
               type="button"
               onClick={onToggleStandings}
-              className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition cursor-pointer min-h-[36px] ${
-                activeSection === "standings"
-                  ? "bg-white/15 text-white font-bold shadow-sm"
-                  : "text-zinc-400 hover:text-white hover:bg-white/5"
-              }`}
+              className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition cursor-pointer min-h-[36px] ${activeSection === "standings"
+                ? "bg-white/15 text-white font-bold shadow-sm"
+                : "text-zinc-400 hover:text-white hover:bg-white/5"
+                }`}
             >
               <span>Bảng xếp hạng</span>
             </button>
