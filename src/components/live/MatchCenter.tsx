@@ -68,7 +68,7 @@ interface MatchCenterProps {
   initialScore?: MatchCenterScoreProp | null;
 }
 
-type TabType = "lineups" | "stats" | "form";
+type TabType = "lineups" | "stats" | "form" | "h2h";
 
 export const MatchCenter: React.FC<MatchCenterProps> = ({
   leagueSlug,
@@ -658,12 +658,13 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
                   <div
                     role="tablist"
                     aria-label="Điều hướng thông tin trận đấu"
-                    className="flex items-center gap-6 border-b border-white/[0.08] select-none text-xs font-semibold px-0.5"
+                    className="flex items-center gap-6 border-b border-white/[0.08] select-none text-xs font-semibold px-0.5 overflow-x-auto scrollbar-none"
                   >
                     {[
                       { id: "lineups", label: "Đội hình" },
                       { id: "stats", label: "Thống kê" },
-                      { id: "form", label: "Phong độ" },
+                      { id: "form", label: "5 trận gần nhất" },
+                      { id: "h2h", label: "Thành tích đối đầu" },
                     ].map((tab) => {
                       const isActive = activeTab === tab.id;
                       return (
@@ -676,7 +677,7 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
                           tabIndex={0}
                           type="button"
                           onClick={() => setActiveTab(tab.id as TabType)}
-                          className={`pb-2.5 pt-1 font-bold text-xs transition-colors cursor-pointer border-b-2 -mb-px outline-none ${
+                          className={`pb-2.5 pt-1 font-bold text-xs transition-colors cursor-pointer border-b-2 -mb-px outline-none whitespace-nowrap ${
                             isActive
                               ? "border-white text-white font-bold"
                               : "border-transparent text-zinc-400 hover:text-zinc-200"
@@ -737,7 +738,7 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
                   {/* TIÊU ĐỀ 2 ĐỘI CÂN ĐỐI (TRÁNH CHÈN CHỮ VÀ LỆCH HÀNG TRÊN MOBILE) */}
                   <div className="flex items-center justify-between text-xs pb-2.5 border-b border-white/[0.06] px-1">
                     <div className="flex items-center gap-2 min-w-0 flex-1">
-                      <span className="w-2.5 h-2.5 rounded-full bg-netflix-red shrink-0" />
+                      <span className="w-2.5 h-2.5 rounded-full bg-rose-500 shrink-0" />
                       <span className="font-black text-white text-xs sm:text-sm truncate">
                         {summary.homeTeam.displayName}
                       </span>
@@ -751,7 +752,7 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
                       <span className="font-black text-white text-xs sm:text-sm truncate">
                         {summary.awayTeam.displayName}
                       </span>
-                      <span className="w-2.5 h-2.5 rounded-full bg-sky-500 shrink-0" />
+                      <span className="w-2.5 h-2.5 rounded-full bg-sky-400 shrink-0" />
                     </div>
                   </div>
 
@@ -780,11 +781,11 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
                               </div>
                               <div className="flex h-2.5 rounded-full overflow-hidden bg-white/5 gap-1 shadow-inner">
                                 <div
-                                  className="bg-netflix-red rounded-l-full transition-all duration-500"
+                                  className="bg-rose-500 rounded-l-full transition-all duration-500"
                                   style={{ width: `${homePct}%` }}
                                 />
                                 <div
-                                  className="bg-sky-500 rounded-r-full transition-all duration-500"
+                                  className="bg-sky-400 rounded-r-full transition-all duration-500"
                                   style={{ width: `${awayPct}%` }}
                                 />
                               </div>
@@ -798,7 +799,7 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
                             className="flex items-center justify-between py-1.5 text-xs sm:text-sm hover:bg-white/[0.02] transition px-2 rounded-lg"
                           >
                             <div className="flex items-center gap-2 min-w-[50px] justify-start font-sans font-bold tabular-nums text-white">
-                              {homeLeading && <span className="w-1 h-3.5 bg-netflix-red rounded-full shrink-0" />}
+                              {homeLeading && <span className="w-1 h-3.5 bg-rose-500 rounded-full shrink-0" />}
                               <span className={homeLeading ? "text-white text-sm" : "text-zinc-400"}>
                                 {stat.homeValue}
                               </span>
@@ -811,7 +812,7 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
                                 {stat.awayValue}
                               </span>
                               {!homeLeading && homeNum !== awayNum && (
-                                <span className="w-1 h-3.5 bg-sky-500 rounded-full shrink-0" />
+                                <span className="w-1 h-3.5 bg-sky-400 rounded-full shrink-0" />
                               )}
                             </div>
                           </div>
@@ -831,13 +832,25 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
                 </div>
               )}
 
-              {/* TAB 3: PHONG ĐỘ 5 TRẬN GẦN NHẤT & LỊCH SỬ ĐỐI ĐẦU */}
+              {/* TAB 3: 5 TRẬN GẦN NHẤT */}
               {activeTab === "form" && (
                 <MatchRecentForm
                   homeTeam={summary.homeTeam}
                   awayTeam={summary.awayTeam}
                   recentForm={summary.recentForm}
                   headToHead={summary.headToHead}
+                  mode="recent"
+                />
+              )}
+
+              {/* TAB 4: THÀNH TÍCH ĐỐI ĐẦU */}
+              {activeTab === "h2h" && (
+                <MatchRecentForm
+                  homeTeam={summary.homeTeam}
+                  awayTeam={summary.awayTeam}
+                  recentForm={summary.recentForm}
+                  headToHead={summary.headToHead}
+                  mode="h2h"
                 />
               )}
             </div>

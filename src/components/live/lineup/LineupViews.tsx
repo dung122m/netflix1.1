@@ -86,8 +86,8 @@ export function TeamPitchColumn({
         {showHeader && (
           <div className="flex items-center justify-between px-3.5 py-2 bg-zinc-900/90 gap-2">
             <div className="flex items-center gap-2 min-w-0">
-              <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${isHome ? "bg-netflix-red shadow-sm shadow-red-500/50" : "bg-sky-400 shadow-sm shadow-sky-500/50"}`} />
-              <Shield className={`w-4 h-4 shrink-0 ${isHome ? "text-netflix-red" : "text-sky-400"}`} />
+              <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${isHome ? "bg-rose-500 shadow-sm shadow-rose-500/50" : "bg-sky-400 shadow-sm shadow-sky-500/50"}`} />
+              <Shield className={`w-4 h-4 shrink-0 ${isHome ? "text-rose-500" : "text-sky-400"}`} />
               <span className="text-xs sm:text-sm font-black text-white truncate">
                 {team.displayName}
               </span>

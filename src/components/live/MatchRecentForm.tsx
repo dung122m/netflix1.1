@@ -13,6 +13,7 @@ interface MatchRecentFormProps {
     away?: TeamPastGameItem[];
   };
   headToHead?: MatchHeadToHead;
+  mode?: "all" | "recent" | "h2h";
 }
 
 function formatGameDate(isoStr?: string): string {
@@ -272,13 +273,53 @@ function HeadToHeadCard({
   );
 }
 
-export function MatchRecentForm({ homeTeam, awayTeam, recentForm, headToHead }: MatchRecentFormProps) {
+export function MatchRecentForm({
+  homeTeam,
+  awayTeam,
+  recentForm,
+  headToHead,
+  mode = "all",
+}: MatchRecentFormProps) {
   const homeGames = recentForm?.home || [];
   const awayGames = recentForm?.away || [];
   const hasRecent = homeGames.length > 0 || awayGames.length > 0;
   const hasH2H = Boolean(headToHead && headToHead.events && headToHead.events.length > 0);
 
-  const [formSubTab, setFormSubTab] = useState<"recent" | "h2h">(() => (hasRecent ? "recent" : "h2h"));
+  const [formSubTab, setFormSubTab] = useState<"recent" | "h2h">(() => {
+    if (mode === "recent") return "recent";
+    if (mode === "h2h") return "h2h";
+    return hasRecent ? "recent" : "h2h";
+  });
+
+  const effectiveView = mode === "all" ? formSubTab : mode;
+
+  if (effectiveView === "recent" && !hasRecent) {
+    return (
+      <div className="py-12 flex flex-col items-center justify-center gap-2.5 text-zinc-500 text-center">
+        <TrendingUp className="w-7 h-7 text-zinc-600" />
+        <p className="text-xs sm:text-sm font-semibold text-zinc-400">
+          Chưa có dữ liệu 5 trận gần nhất
+        </p>
+        <p className="text-[11px] text-zinc-500">
+          Dữ liệu kết quả các trận gần nhất sẽ tự động hiển thị khi ban tổ chức cập nhật.
+        </p>
+      </div>
+    );
+  }
+
+  if (effectiveView === "h2h" && !hasH2H) {
+    return (
+      <div className="py-12 flex flex-col items-center justify-center gap-2.5 text-zinc-500 text-center">
+        <TrendingUp className="w-7 h-7 text-zinc-600" />
+        <p className="text-xs sm:text-sm font-semibold text-zinc-400">
+          Chưa có dữ liệu thành tích đối đầu
+        </p>
+        <p className="text-[11px] text-zinc-500">
+          Dữ liệu các trận đối đầu trực tiếp sẽ tự động hiển thị khi có thông tin.
+        </p>
+      </div>
+    );
+  }
 
   if (!hasRecent && !hasH2H) {
     return (
@@ -296,8 +337,8 @@ export function MatchRecentForm({ homeTeam, awayTeam, recentForm, headToHead }: 
 
   return (
     <div className="space-y-3.5 max-w-4xl mx-auto pt-1">
-      {/* NÚT CHUYỂN ĐỔI TAB CON: 5 TRẬN GẦN NHẤT vs ĐỐI ĐẦU TRỰC TIẾP */}
-      {hasRecent && hasH2H && (
+      {/* NÚT CHUYỂN ĐỔI TAB CON (CHỈ HIỂN THỊ KHI mode === "all") */}
+      {mode === "all" && hasRecent && hasH2H && (
         <div className="flex items-center gap-5 pb-1 border-b border-white/[0.06]">
           <button
             type="button"
@@ -319,13 +360,13 @@ export function MatchRecentForm({ homeTeam, awayTeam, recentForm, headToHead }: 
                 : "border-transparent text-zinc-400 hover:text-zinc-200"
             }`}
           >
-            Lịch sử đối đầu
+            Thành tích đối đầu
           </button>
         </div>
       )}
 
-      {/* NỘI DUNG 1: 5 TRẬN GẦN NHẤT - CHUẨN FORM FOTMOB (IMAGE 8) */}
-      {(formSubTab === "recent" || !hasH2H) && hasRecent && (
+      {/* NỘI DUNG 1: 5 TRẬN GẦN NHẤT - CHUẨN FORM FOTMOB */}
+      {effectiveView === "recent" && hasRecent && (
         <div className="rounded-2xl bg-zinc-950/70 border border-white/[0.06] p-3.5 sm:p-5 shadow-sm space-y-3">
           {/* TIÊU ĐỀ SECTION CHÍNH GIỮA CHUẨN FOTMOB */}
           <h3 className="text-center font-sans font-bold text-sm sm:text-base text-white tracking-wide">
@@ -363,7 +404,7 @@ export function MatchRecentForm({ homeTeam, awayTeam, recentForm, headToHead }: 
       )}
 
       {/* NỘI DUNG 2: ĐỐI ĐẦU TRỰC TIẾP (H2H) */}
-      {(formSubTab === "h2h" || !hasRecent) && headToHead && (
+      {effectiveView === "h2h" && headToHead && (
         <HeadToHeadCard headToHead={headToHead} />
       )}
     </div>
