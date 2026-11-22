@@ -28,13 +28,13 @@ export interface QueryPaginationMeta {
   totalItems: number;
   totalPages: number;
   updatedAt: number;
-  seenSlugsByPage?: Map<number, Set<string>>;
 }
 
 export const queryMetadataCache = new Map<string, QueryPaginationMeta>();
 
 export function buildQueryMetaKey(params: MovieFilterParams): string {
   return JSON.stringify({
+    v: 22,
     category: params.category || "",
     country: params.country || "",
     year: params.year || "",
