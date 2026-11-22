@@ -24,8 +24,7 @@ import {
   toFastCdnImageUrl,
 } from "@/lib/movieMedia";
 import { formatEpisodeName, isFullEpisodeLabel } from "@/lib/formatEpisode";
-import { CarouselNavButton } from "@/components/ui/CarouselNavButton";
-import { useCarouselScroll } from "@/components/ui/useCarouselScroll";
+import { CarouselContainer } from "@/components/ui/CarouselContainer";
 import { SectionHeader } from "@/components/ui/SectionHeader";
 import {
   useMoviePosterFallback,
@@ -432,19 +431,6 @@ function ContinueWatchingRowInner({ className }: ContinueWatchingRowProps = {}) 
   );
   const totalCount = allItems.length;
 
-  const {
-    scrollRef: rowRef,
-    canScrollLeft,
-    canScrollRight,
-    checkScroll,
-    handleScroll,
-  } = useCarouselScroll<HTMLDivElement>({
-    resetTrigger: displayItems,
-    watchTrigger: displayItems,
-    cardSelector: ".snap-start",
-    boundaryThreshold: 8,
-  });
-
   useEffect(() => {
     // Chạy bù đắp metadata ngầm sau 2s delay, không block tải trang
     const timer = setTimeout(() => {
@@ -482,36 +468,20 @@ function ContinueWatchingRowInner({ className }: ContinueWatchingRowProps = {}) 
       />
 
       {/* KHUNG CAROUSEL CÓ NÚT ĐIỀU HƯỚNG TRÁI/PHẢI CHUẨN NETFLIX */}
-      <div className="relative group/row">
-        {/* NÚT CUỘN TRÁI / PHẢI: FLOATING GLASS CHUẨN ĐỒNG BỘ */}
-        <CarouselNavButton
-          direction="left"
-          onClick={() => handleScroll("left")}
-          visible={canScrollLeft}
-          ariaLabel="Cuộn danh sách đang xem sang trái"
-          topOffsetClass="top-[50%]"
-        />
-
-        <CarouselNavButton
-          direction="right"
-          onClick={() => handleScroll("right")}
-          visible={canScrollRight}
-          ariaLabel="Cuộn danh sách đang xem sang phải"
-          topOffsetClass="top-[50%]"
-        />
-
-
-        {/* DANH SÁCH THẺ PHIM ĐÃ XEM */}
-        <div
-          ref={rowRef}
-          onScroll={checkScroll}
-          className="flex gap-3 sm:gap-4 overflow-x-auto px-3 sm:px-4 scroll-pl-3 sm:scroll-pl-4 py-3 sm:py-3.5 scrollbar-none snap-x snap-mandatory md:snap-proximity scroll-smooth [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
-        >
-          {displayItems.map((item, idx) => (
-            <ContinueWatchingCard key={item.slug} item={item} index={idx} onRemove={handleRemove} />
-          ))}
-        </div>
-      </div>
+      <CarouselContainer
+        resetTrigger={displayItems}
+        watchTrigger={displayItems}
+        cardSelector=".snap-start"
+        boundaryThreshold={8}
+        navOffsetClass="top-[50%]"
+        leftAriaLabel="Cuộn danh sách đang xem sang trái"
+        rightAriaLabel="Cuộn danh sách đang xem sang phải"
+        className="gap-3 sm:gap-4 px-3 sm:px-4 scroll-pl-3 sm:scroll-pl-4 py-3 sm:py-3.5"
+      >
+        {displayItems.map((item, idx) => (
+          <ContinueWatchingCard key={item.slug} item={item} index={idx} onRemove={handleRemove} />
+        ))}
+      </CarouselContainer>
     </section>
   );
 }

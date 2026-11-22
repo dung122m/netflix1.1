@@ -11,9 +11,8 @@ import {
 import { MediaCard } from "@/components/browse/MediaCard";
 import { normalizeMovie } from "@/lib/movieMedia";
 import { ScrollFadeContainer } from "@/components/ui/ScrollFadeContainer";
-import { CarouselNavButton } from "@/components/ui/CarouselNavButton";
+import { CarouselContainer } from "@/components/ui/CarouselContainer";
 import { MovieCardSkeleton } from "@/components/ui/MovieCardSkeleton";
-import { useCarouselScroll } from "@/components/ui/useCarouselScroll";
 import { SectionHeader } from "@/components/ui/SectionHeader";
 
 export type CuratedTabKey = "trending" | "rating" | "theaters" | "latest";
@@ -281,19 +280,6 @@ export const CuratedMovieSection: React.FC<CuratedMovieSectionProps> = ({
     });
   }, [currentMovies]);
 
-  const {
-    scrollRef: scrollContainerRef,
-    canScrollLeft,
-    canScrollRight,
-    checkScroll,
-    handleScroll,
-  } = useCarouselScroll<HTMLDivElement>({
-    resetTrigger: activeTab,
-    watchTrigger: currentMovies,
-    cardSelector: ".snap-start",
-    boundaryThreshold: 8,
-  });
-
   return (
     <section
       className="relative select-none w-full"
@@ -351,97 +337,82 @@ export const CuratedMovieSection: React.FC<CuratedMovieSectionProps> = ({
       </ScrollFadeContainer>
 
       {/* HORIZONTAL CAROUSEL */}
-      <div className="relative group/row">
-        {/* NÚT CUỘN TRÁI / PHẢI: FLOATING GLASS CHUẨN ĐỒNG BỘ */}
-        <CarouselNavButton
-          direction="left"
-          onClick={() => handleScroll("left")}
-          visible={canScrollLeft}
-          ariaLabel="Cuộn sang trái"
-          topOffsetClass="top-[38%]"
-        />
-
-        <CarouselNavButton
-          direction="right"
-          onClick={() => handleScroll("right")}
-          visible={canScrollRight}
-          ariaLabel="Cuộn sang phải"
-          topOffsetClass="top-[38%]"
-        />
-
-        {/* TRACK CUỘN NGANG HOẶC SKELETON LOADING (CÓ KHOẢNG ĐỆM TRÊN/DƯỚI/TRÁI/PHẢI CHỐNG OVERFLOW CLIPPING) */}
-        {loading ? (
-          <div className="flex items-center gap-3 sm:gap-4 md:gap-5 overflow-hidden px-3 sm:px-4 py-3.5 sm:py-4">
-            {Array.from({ length: 7 }).map((_, idx) => (
-              <div
-                key={idx}
-                className="flex-none w-[140px] sm:w-[175px] md:w-[190px]"
-              >
-                <MovieCardSkeleton aspect="poster" rounded="xl" />
-              </div>
-            ))}
-          </div>
-        ) : normalizedMovies.length > 0 ? (
-          <div
-            ref={scrollContainerRef}
-            onScroll={checkScroll}
-            className="flex items-start gap-3 sm:gap-4 md:gap-5 overflow-x-auto overflow-y-hidden px-3 sm:px-4 scroll-pl-3 sm:scroll-pl-4 py-3.5 sm:py-4 scrollbar-none snap-x snap-mandatory md:snap-proximity scroll-smooth [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
-          >
-            {normalizedMovies.map(({ norm, bestThumb }, idx) => (
-              <div
-                key={norm.slug || idx}
-                className="flex-none w-[140px] sm:w-[175px] md:w-[190px] snap-start select-none"
-              >
-                <MediaCard
-                  slug={norm.slug}
-                  title={norm.title}
-                  origin_name={norm.origin_name}
-                  imageUrl={bestThumb}
-                  posterUrl={norm.posterUrl}
-                  thumbUrl={norm.thumbUrl}
-                  tmdbId={norm.tmdbId}
-                  genre={norm.genre}
-                  description={norm.description}
-                  time={norm.time}
-                  year={norm.year}
-                  rating={norm.score}
-                  quality={norm.quality}
-                  lang={norm.lang}
-                  chieurap={norm.chieurap}
-                  sub_docquyen={norm.sub_docquyen}
-                  actor={norm.actor}
-                  director={norm.director}
-                  country={norm.country}
-                  type_name={norm.type_name}
-                  itemType={norm.itemType}
-                  hasTrailer={norm.hasTrailer}
-                  trailer_url={norm.trailer_url}
-                  isTrailerOnly={norm.isTrailerOnly}
-                  matchSnippet={norm.matchSnippet}
-                  matchType={norm.matchType}
-                  priority={idx < 6}
-                  isActive={selectedSlug === norm.slug}
-                />
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="py-10 text-center rounded-2xl bg-zinc-900/40 border border-white/[0.04] p-6 flex flex-col items-center justify-center gap-3">
-            <Film className="w-9 h-9 text-zinc-500" />
-            <p className="text-zinc-400 text-sm">
-              Đang tải danh sách phim {currentTabConfig.label}...
-            </p>
-            <button
-              type="button"
-              onClick={handleRetry}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-white text-xs font-semibold transition active:scale-95 cursor-pointer"
+      {loading ? (
+        <div className="flex items-center gap-3 sm:gap-4 md:gap-5 overflow-hidden px-3 sm:px-4 py-3.5 sm:py-4">
+          {Array.from({ length: 7 }).map((_, idx) => (
+            <div
+              key={idx}
+              className="flex-none w-[140px] sm:w-[175px] md:w-[190px]"
             >
-              <RotateCcw className="w-3.5 h-3.5" />
-              <span>Tải lại</span>
-            </button>
-          </div>
-        )}
-      </div>
+              <MovieCardSkeleton aspect="poster" rounded="xl" />
+            </div>
+          ))}
+        </div>
+      ) : normalizedMovies.length > 0 ? (
+        <CarouselContainer
+          resetTrigger={activeTab}
+          watchTrigger={currentMovies}
+          cardSelector=".snap-start"
+          boundaryThreshold={8}
+          navOffsetClass="top-[38%]"
+          leftAriaLabel="Cuộn sang trái"
+          rightAriaLabel="Cuộn sang phải"
+          className="items-start gap-3 sm:gap-4 md:gap-5 px-3 sm:px-4 scroll-pl-3 sm:scroll-pl-4 py-3.5 sm:py-4"
+        >
+          {normalizedMovies.map(({ norm, bestThumb }, idx) => (
+            <div
+              key={norm.slug || idx}
+              className="flex-none w-[140px] sm:w-[175px] md:w-[190px] snap-start select-none"
+            >
+              <MediaCard
+                slug={norm.slug}
+                title={norm.title}
+                origin_name={norm.origin_name}
+                imageUrl={bestThumb}
+                posterUrl={norm.posterUrl}
+                thumbUrl={norm.thumbUrl}
+                tmdbId={norm.tmdbId}
+                genre={norm.genre}
+                description={norm.description}
+                time={norm.time}
+                year={norm.year}
+                rating={norm.score}
+                quality={norm.quality}
+                lang={norm.lang}
+                chieurap={norm.chieurap}
+                sub_docquyen={norm.sub_docquyen}
+                actor={norm.actor}
+                director={norm.director}
+                country={norm.country}
+                type_name={norm.type_name}
+                itemType={norm.itemType}
+                hasTrailer={norm.hasTrailer}
+                trailer_url={norm.trailer_url}
+                isTrailerOnly={norm.isTrailerOnly}
+                matchSnippet={norm.matchSnippet}
+                matchType={norm.matchType}
+                priority={idx < 6}
+                isActive={selectedSlug === norm.slug}
+              />
+            </div>
+          ))}
+        </CarouselContainer>
+      ) : (
+        <div className="py-10 text-center rounded-2xl bg-zinc-900/40 border border-white/[0.04] p-6 flex flex-col items-center justify-center gap-3">
+          <Film className="w-9 h-9 text-zinc-500" />
+          <p className="text-zinc-400 text-sm">
+            Đang tải danh sách phim {currentTabConfig.label}...
+          </p>
+          <button
+            type="button"
+            onClick={handleRetry}
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-white text-xs font-semibold transition active:scale-95 cursor-pointer"
+          >
+            <RotateCcw className="w-3.5 h-3.5" />
+            <span>Tải lại</span>
+          </button>
+        </div>
+      )}
     </section>
   );
 };

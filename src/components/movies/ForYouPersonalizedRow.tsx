@@ -12,8 +12,7 @@ import { getWatchHistory } from "@/lib/watchHistory";
 import { normalizeMovie, formatGenreName } from "@/lib/movieMedia";
 import MediaCard from "@/components/browse/MediaCard";
 import { Tooltip } from "@/components/ui/Tooltip";
-import { CarouselNavButton } from "@/components/ui/CarouselNavButton";
-import { useCarouselScroll } from "@/components/ui/useCarouselScroll";
+import { CarouselContainer } from "@/components/ui/CarouselContainer";
 import { MovieCardSkeleton } from "@/components/ui/MovieCardSkeleton";
 
 export interface ForYouMovieItem {
@@ -366,19 +365,6 @@ function ForYouPersonalizedRowInner({ fallbackMovies }: ForYouPersonalizedRowPro
     fetchRecommendations(true, next);
   };
 
-  const {
-    scrollRef: scrollContainerRef,
-    canScrollLeft,
-    canScrollRight,
-    checkScroll,
-    handleScroll,
-  } = useCarouselScroll<HTMLDivElement>({
-    resetTrigger: movies,
-    watchTrigger: movies,
-    cardSelector: ".snap-start",
-    boundaryThreshold: 8,
-  });
-
   const displayName = profile?.displayName || user?.displayName || "Bạn";
 
   const normalizedMovies = useMemo(() => {
@@ -418,29 +404,16 @@ function ForYouPersonalizedRowInner({ fallbackMovies }: ForYouPersonalizedRowPro
       />
 
       {/* KHUNG CAROUSEL CÓ NÚT ĐIỀU HƯỚNG TRÁI/PHẢI PHỦ MÉP CHUẨN NETFLIX */}
-      <div className="relative group/row">
-        {/* NÚT CUỘN TRÁI / PHẢI: FLOATING GLASS PILL */}
-        <CarouselNavButton
-          direction="left"
-          onClick={() => handleScroll("left")}
-          visible={canScrollLeft}
-          topOffsetClass="top-[38%]"
-        />
-        <CarouselNavButton
-          direction="right"
-          onClick={() => handleScroll("right")}
-          visible={canScrollRight}
-          topOffsetClass="top-[38%]"
-        />
-
-        {/* HORIZONTAL CAROUSEL */}
-        <div
-          ref={scrollContainerRef}
-          onScroll={checkScroll}
-          className={`flex items-start gap-3.5 sm:gap-5 overflow-x-auto overflow-y-hidden px-3 sm:px-4 scroll-pl-3 sm:scroll-pl-4 py-3.5 sm:py-4 scrollbar-none snap-x snap-mandatory md:snap-proximity scroll-smooth transition-opacity duration-500 ${
-            isUpdating ? "opacity-75" : "opacity-100"
-          } [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]`}
-        >
+      <CarouselContainer
+        resetTrigger={movies}
+        watchTrigger={movies}
+        cardSelector=".snap-start"
+        boundaryThreshold={8}
+        navOffsetClass="top-[38%]"
+        className={`items-start gap-3.5 sm:gap-5 px-3 sm:px-4 scroll-pl-3 sm:scroll-pl-4 py-3.5 sm:py-4 transition-opacity duration-500 ${
+          isUpdating ? "opacity-75" : "opacity-100"
+        }`}
+      >
         {loading && movies.length === 0
           ? Array.from({ length: 6 }).map((_, idx) => (
               <div
@@ -486,8 +459,7 @@ function ForYouPersonalizedRowInner({ fallbackMovies }: ForYouPersonalizedRowPro
                 />
               </div>
             ))}
-        </div>
-      </div>
+      </CarouselContainer>
     </section>
   );
 }

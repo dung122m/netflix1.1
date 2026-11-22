@@ -1,13 +1,12 @@
 "use client";
 
-import React, { useState, useMemo, useRef, useEffect, useCallback } from "react";
+import React, { useState, useMemo, useRef, useEffect } from "react";
 import {
   Shuffle,
   ChevronDown,
   ChevronUp,
-  ChevronLeft,
-  ChevronRight,
 } from "lucide-react";
+import { ScrollFadeContainer } from "@/components/ui/ScrollFadeContainer";
 import { extractMovieRatingScore } from "@/lib/movieMedia";
 import { toast } from "@/components/ui/Toast";
 import { Tooltip } from "@/components/ui/Tooltip";
@@ -280,75 +279,6 @@ export function RecommendationTabs({
     }, 450);
   };
 
-  const tabsRef = useRef<HTMLDivElement>(null);
-  const [canScrollLeft, setCanScrollLeft] = useState(false);
-  const [canScrollRight, setCanScrollRight] = useState(false);
-  const isDragging = useRef(false);
-  const startX = useRef(0);
-  const scrollLeftStart = useRef(0);
-
-  const checkScroll = useCallback(() => {
-    const el = tabsRef.current;
-    if (!el) return;
-    setCanScrollLeft(el.scrollLeft > 4);
-    setCanScrollRight(el.scrollLeft < el.scrollWidth - el.clientWidth - 4);
-  }, []);
-
-  useEffect(() => {
-    checkScroll();
-    const el = tabsRef.current;
-    if (el) {
-      el.addEventListener("scroll", checkScroll, { passive: true });
-      window.addEventListener("resize", checkScroll);
-      return () => {
-        el.removeEventListener("scroll", checkScroll);
-        window.removeEventListener("resize", checkScroll);
-      };
-    }
-  }, [checkScroll, currentTabMovies]);
-
-  const scrollTabs = (direction: "left" | "right") => {
-    if (!tabsRef.current) return;
-    const amount = direction === "left" ? -160 : 160;
-    tabsRef.current.scrollBy({ left: amount, behavior: "smooth" });
-  };
-
-  const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
-    const el = tabsRef.current;
-    if (!el) return;
-    if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
-      const canScrollLeftMore = e.deltaY < 0 && el.scrollLeft > 0;
-      const canScrollRightMore =
-        e.deltaY > 0 && el.scrollLeft + el.clientWidth < el.scrollWidth - 1;
-      if (canScrollLeftMore || canScrollRightMore) {
-        el.scrollLeft += e.deltaY * 0.8;
-        checkScroll();
-      }
-    }
-  };
-
-  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (e.pointerType !== "mouse") return;
-    isDragging.current = true;
-    startX.current = e.pageX - (tabsRef.current?.offsetLeft || 0);
-    scrollLeftStart.current = tabsRef.current?.scrollLeft || 0;
-  };
-
-  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (e.pointerType !== "mouse" || !isDragging.current || !tabsRef.current) {
-      return;
-    }
-    e.preventDefault();
-    const x = e.pageX - (tabsRef.current.offsetLeft || 0);
-    const walk = (x - startX.current) * 1.2;
-    tabsRef.current.scrollLeft = scrollLeftStart.current - walk;
-    checkScroll();
-  };
-
-  const handlePointerUp = () => {
-    isDragging.current = false;
-  };
-
   return (
     <div
       className={`w-full max-w-full min-w-0 overflow-hidden ${
@@ -356,75 +286,41 @@ export function RecommendationTabs({
       }`}
     >
       {/* 1. THANH TABS ĐỀ XUẤT THÔNG MINH */}
-      <div className="relative border-b border-white/[0.08] pb-2 w-full min-w-0 group/rec-tabs">
+      <div className="relative border-b border-white/[0.08] pb-2 w-full min-w-0">
         <div className="flex items-center gap-1.5 w-full min-w-0">
-          <div className="relative flex-1 min-w-0 overflow-hidden">
-            {canScrollLeft && (
-              <div className="hidden md:flex absolute left-0 top-0 bottom-0 z-20 items-center pr-2 pl-0.5 pointer-events-none opacity-0 group-hover/rec-tabs:opacity-100 transition-opacity duration-200">
-                <div className="absolute inset-0 bg-gradient-to-r from-zinc-950 via-zinc-950/80 to-transparent pointer-events-none" />
+          <ScrollFadeContainer
+            className="flex-1 min-w-0"
+            scrollClassName="gap-1.5 py-0.5 px-0.5"
+            activeChildTrigger={activeTab}
+          >
+            {tabsList.map((t) => {
+              const isActive = activeTab === t.key;
+              return (
                 <button
+                  key={t.key}
                   type="button"
-                  onClick={() => scrollTabs("left")}
-                  aria-label="Cuộn sang trái"
-                  className="relative z-10 pointer-events-auto h-6 w-6 rounded-full bg-zinc-900/95 hover:bg-zinc-800 text-zinc-200 hover:text-white shadow-md flex items-center justify-center transition active:scale-95 cursor-pointer backdrop-blur-md"
+                  onClick={() => {
+                    setActiveTab(t.key);
+                    setVisibleLimit(12);
+                  }}
+                  className={`flex items-center gap-1.5 ${
+                    variant === "sidebar"
+                      ? "px-2.5 py-1 rounded-full text-[11px]"
+                      : "px-3 py-1.5 rounded-xl text-xs"
+                  } font-bold transition-all whitespace-nowrap cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-netflix-red shrink-0 ${
+                    isActive
+                      ? "bg-netflix-red text-white shadow-sm"
+                      : "bg-zinc-900/90 text-zinc-300 hover:text-white hover:bg-zinc-800"
+                  }`}
                 >
-                  <ChevronLeft className="w-3.5 h-3.5" />
+                  <span>{t.label}</span>
+                  <span className="font-sans tabular-nums text-[11px] opacity-85">
+                    ({t.count})
+                  </span>
                 </button>
-              </div>
-            )}
-
-            {canScrollRight && (
-              <div className="hidden md:flex absolute right-0 top-0 bottom-0 z-20 items-center pl-2 pr-0.5 pointer-events-none opacity-0 group-hover/rec-tabs:opacity-100 transition-opacity duration-200">
-                <div className="absolute inset-0 bg-gradient-to-l from-zinc-950 via-zinc-950/80 to-transparent pointer-events-none opacity-100" />
-                <button
-                  type="button"
-                  onClick={() => scrollTabs("right")}
-                  aria-label="Cuộn sang phải"
-                  className="relative z-10 pointer-events-auto h-6 w-6 rounded-full bg-zinc-900/95 hover:bg-zinc-800 text-zinc-200 hover:text-white shadow-md flex items-center justify-center transition active:scale-95 cursor-pointer backdrop-blur-md"
-                >
-                  <ChevronRight className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            )}
-
-            <div
-              ref={tabsRef}
-              onWheel={handleWheel}
-              onPointerDown={handlePointerDown}
-              onPointerMove={handlePointerMove}
-              onPointerUp={handlePointerUp}
-              onPointerLeave={handlePointerUp}
-              className="flex items-center gap-1.5 overflow-x-auto py-0.5 px-0.5 scrollbar-none [&::-webkit-scrollbar]:hidden w-full cursor-grab active:cursor-grabbing select-none scroll-smooth"
-            >
-              {tabsList.map((t) => {
-                const isActive = activeTab === t.key;
-                return (
-                  <button
-                    key={t.key}
-                    type="button"
-                    onClick={() => {
-                      setActiveTab(t.key);
-                      setVisibleLimit(12);
-                    }}
-                    className={`flex items-center gap-1.5 ${
-                      variant === "sidebar"
-                        ? "px-2.5 py-1 rounded-full text-[11px]"
-                        : "px-3 py-1.5 rounded-xl text-xs"
-                    } font-bold transition-all whitespace-nowrap cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-netflix-red shrink-0 ${
-                      isActive
-                        ? "bg-netflix-red text-white shadow-sm"
-                        : "bg-zinc-900/90 text-zinc-300 hover:text-white hover:bg-zinc-800"
-                    }`}
-                  >
-                    <span>{t.label}</span>
-                    <span className="font-sans tabular-nums text-[11px] opacity-85">
-                      ({t.count})
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
+              );
+            })}
+          </ScrollFadeContainer>
 
           {/* NÚT SHUFFLE */}
           <div className="flex items-center gap-1 flex-shrink-0">

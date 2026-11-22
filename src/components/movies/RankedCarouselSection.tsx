@@ -2,9 +2,8 @@
 
 import React from "react";
 import { SectionHeader } from "@/components/ui/SectionHeader";
-import { CarouselNavButton } from "@/components/ui/CarouselNavButton";
+import { CarouselContainer } from "@/components/ui/CarouselContainer";
 import { NumberedRankCard } from "@/components/movies/NumberedRankCard";
-import { useCarouselScroll } from "@/components/ui/useCarouselScroll";
 import { MOVIE_CARD_TOKENS } from "@/lib/cardDimensions";
 import { MovieCardSkeleton } from "@/components/ui/MovieCardSkeleton";
 
@@ -57,19 +56,6 @@ export const RankedCarouselSection: React.FC<RankedCarouselSectionProps> = React
     ariaLabel = "Bảng xếp hạng phim",
     resetTrigger,
   }) {
-    const {
-      scrollRef,
-      canScrollLeft,
-      canScrollRight,
-      checkScroll,
-      handleScroll,
-    } = useCarouselScroll<HTMLDivElement>({
-      resetTrigger,
-      watchTrigger: items,
-      cardSelector: ".snap-start",
-      boundaryThreshold: 8,
-    });
-
     return (
       <section
         className="relative select-none"
@@ -86,83 +72,65 @@ export const RankedCarouselSection: React.FC<RankedCarouselSectionProps> = React
         />
 
         {/* HORIZONTAL SCROLL CAROUSEL */}
-        <div className="relative group/row">
-          {/* NÚT CUỘN TRÁI / PHẢI: FLOATING GLASS CHUẨN ĐỒNG BỘ */}
-          <CarouselNavButton
-            direction="left"
-            onClick={() => handleScroll("left")}
-            visible={canScrollLeft}
-            ariaLabel={`Cuộn ${title} sang trái`}
-            topOffsetClass="top-[40%]"
-          />
-
-          <CarouselNavButton
-            direction="right"
-            onClick={() => handleScroll("right")}
-            visible={canScrollRight}
-            ariaLabel={`Cuộn ${title} sang phải`}
-            topOffsetClass="top-[40%]"
-          />
-
-          {/* CAROUSEL TRACK */}
-
-          <div
-            ref={scrollRef}
-            onScroll={checkScroll}
-            className="flex items-center gap-2 sm:gap-3.5 md:gap-4 overflow-x-auto overflow-y-hidden px-3 sm:px-6 scroll-pl-3 sm:scroll-pl-6 py-4 sm:py-5 scrollbar-none snap-x snap-mandatory md:snap-proximity scroll-smooth"
-            style={{
-              scrollbarWidth: "none",
-              msOverflowStyle: "none",
-              opacity: isFading ? 0.4 : 1,
-              transition: "opacity 0.15s cubic-bezier(0.4, 0, 0.2, 1)",
-            }}
-          >
-            {loading && items.length === 0 ? (
-              Array.from({ length: 6 }).map((_, idx) => (
-                <div
-                  key={idx}
-                  className="flex-none flex items-start"
-                >
-                  <div className={`${MOVIE_CARD_TOKENS.ranked.numberCol} shrink-0`} />
-                  <div className={`${MOVIE_CARD_TOKENS.ranked.posterWidth} shrink-0`}>
-                    <MovieCardSkeleton aspect="poster" rounded="xl" />
-                  </div>
+        <CarouselContainer
+          resetTrigger={resetTrigger}
+          watchTrigger={items}
+          cardSelector=".snap-start"
+          boundaryThreshold={8}
+          navOffsetClass="top-[40%]"
+          leftAriaLabel={`Cuộn ${title} sang trái`}
+          rightAriaLabel={`Cuộn ${title} sang phải`}
+          className="items-center gap-2 sm:gap-3.5 md:gap-4 px-3 sm:px-6 scroll-pl-3 sm:scroll-pl-6 py-4 sm:py-5"
+          style={{
+            opacity: isFading ? 0.4 : 1,
+            transition: "opacity 0.15s cubic-bezier(0.4, 0, 0.2, 1)",
+          }}
+        >
+          {loading && items.length === 0 ? (
+            Array.from({ length: 6 }).map((_, idx) => (
+              <div
+                key={idx}
+                className="flex-none flex items-start"
+              >
+                <div className={`${MOVIE_CARD_TOKENS.ranked.numberCol} shrink-0`} />
+                <div className={`${MOVIE_CARD_TOKENS.ranked.posterWidth} shrink-0`}>
+                  <MovieCardSkeleton aspect="poster" rounded="xl" />
                 </div>
-              ))
-            ) : items.length === 0 ? (
-              <div className="w-full py-12 flex flex-col items-center justify-center text-center px-4">
-                {emptyIcon}
-                <p className="text-sm font-medium text-zinc-400">
-                  {emptyMessage}
-                </p>
-                {emptySubmessage && (
-                  <p className="text-xs text-zinc-600 mt-1">
-                    {emptySubmessage}
-                  </p>
-                )}
               </div>
-            ) : (
-              items.map((movie, index) => (
-                <NumberedRankCard
-                  key={movie.slug || `ranked-card-${index}`}
-                  rank={index + 1}
-                  slug={movie.slug}
-                  title={movie.title}
-                  origin_name={movie.origin_name}
-                  poster_url={movie.poster_url}
-                  thumb_url={movie.thumb_url}
-                  year={movie.year}
-                  quality={movie.quality}
-                  secondaryTag={movie.secondaryTag}
-                  priority={index < 5}
-                  theme={theme}
-                  type={movie.type}
-                  tmdbId={movie.tmdbId}
-                />
-              ))
-            )}
-          </div>
-        </div>
+            ))
+          ) : items.length === 0 ? (
+            <div className="w-full py-12 flex flex-col items-center justify-center text-center px-4">
+              {emptyIcon}
+              <p className="text-sm font-medium text-zinc-400">
+                {emptyMessage}
+              </p>
+              {emptySubmessage && (
+                <p className="text-xs text-zinc-600 mt-1">
+                  {emptySubmessage}
+                </p>
+              )}
+            </div>
+          ) : (
+            items.map((movie, index) => (
+              <NumberedRankCard
+                key={movie.slug || `ranked-card-${index}`}
+                rank={index + 1}
+                slug={movie.slug}
+                title={movie.title}
+                origin_name={movie.origin_name}
+                poster_url={movie.poster_url}
+                thumb_url={movie.thumb_url}
+                year={movie.year}
+                quality={movie.quality}
+                secondaryTag={movie.secondaryTag}
+                priority={index < 5}
+                theme={theme}
+                type={movie.type}
+                tmdbId={movie.tmdbId}
+              />
+            ))
+          )}
+        </CarouselContainer>
       </section>
     );
   }
