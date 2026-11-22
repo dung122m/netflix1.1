@@ -665,24 +665,12 @@ export function FotmobSubstitutesSection({
         <div className="grid grid-cols-1 md:grid-cols-2 md:divide-x md:divide-white/[0.06] gap-x-6">
           {/* Cột trái: Đội nhà */}
           <div className="space-y-0.5">
-            {homeSubbedIn.length > 0 ? (
-              homeSubbedIn.map((p) => renderPlayerRow(p, true, true))
-            ) : (
-              <p className="text-center py-4 text-xs text-zinc-500 font-sans">
-                Chưa có thay người
-              </p>
-            )}
+            {homeSubbedIn.map((p) => renderPlayerRow(p, true, true))}
           </div>
 
           {/* Cột phải: Đội khách */}
           <div className="space-y-0.5 md:pl-6 pt-2 md:pt-0">
-            {awaySubbedIn.length > 0 ? (
-              awaySubbedIn.map((p) => renderPlayerRow(p, false, true))
-            ) : (
-              <p className="text-center py-4 text-xs text-zinc-500 font-sans">
-                Chưa có thay người
-              </p>
-            )}
+            {awaySubbedIn.map((p) => renderPlayerRow(p, false, true))}
           </div>
         </div>
       ) : null}

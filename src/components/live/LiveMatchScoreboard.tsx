@@ -347,27 +347,36 @@ export function LiveMatchScoreboard({
                     </div>
                   </div>
 
-                  {/* TỶ SỐ / VS: CHÍNH GIỮA (2 - 0 ▪ VÀ PHÚT 22:59 XANH LÁ) */}
-                  <div className="shrink-0 flex flex-col items-center justify-center min-w-[76px] sm:min-w-[100px] md:min-w-[120px] select-none px-1 sm:px-2">
+                  {/* TỶ SỐ / VS: CHÍNH GIỮA (ĐỐI XỨNG CÂN BẰNG TUYỆT ĐỐI QUANH DẤU -) */}
+                  <div className="shrink-0 flex flex-col items-center justify-center min-w-[90px] sm:min-w-[110px] md:min-w-[130px] select-none px-1 sm:px-2">
                     {hasScore ? (
-                      <div className="flex items-center justify-center gap-1 sm:gap-1.5 font-sans text-2xl sm:text-3xl md:text-4xl font-bold text-white tracking-wide tabular-nums leading-none">
-                        {homeRedCards > 0 && (
-                          <span
-                            title={`${homeRedCards} thẻ đỏ`}
-                            className="w-1.5 h-2.5 sm:w-2 sm:h-3 rounded-[1px] bg-[#e03a3e] shrink-0 inline-block drop-shadow-sm mr-1"
-                          />
-                        )}
-                        <span>{homeScoreVal}</span>
-                        <span className="text-zinc-400 font-light select-none px-0.5 sm:px-1">
+                      <div className="flex items-center justify-center w-full font-sans text-2xl sm:text-3xl md:text-4xl font-bold text-white tabular-nums leading-none">
+                        {/* Điểm đội nhà + thẻ đỏ (Căn phải sát dấu -) */}
+                        <div className="flex-1 min-w-[38px] sm:min-w-[46px] flex items-center justify-end gap-1.5">
+                          {homeRedCards > 0 && (
+                            <span
+                              title={`${homeRedCards} thẻ đỏ`}
+                              className="w-1.5 h-2.5 sm:w-2 sm:h-3 rounded-[1px] bg-[#e03a3e] shrink-0 inline-block drop-shadow-sm"
+                            />
+                          )}
+                          <span>{homeScoreVal}</span>
+                        </div>
+
+                        {/* Dấu gạch ngang: NẰM CHÍNH GIỮA 50.0% */}
+                        <span className="shrink-0 text-zinc-400 font-light select-none px-1.5 sm:px-2 text-center">
                           -
                         </span>
-                        <span>{awayScoreVal}</span>
-                        {awayRedCards > 0 && (
-                          <span
-                            title={`${awayRedCards} thẻ đỏ`}
-                            className="w-1.5 h-2.5 sm:w-2 sm:h-3 rounded-[1px] bg-[#e03a3e] shrink-0 inline-block drop-shadow-sm ml-1"
-                          />
-                        )}
+
+                        {/* Điểm đội khách + thẻ đỏ (Căn trái sát dấu -) */}
+                        <div className="flex-1 min-w-[38px] sm:min-w-[46px] flex items-center justify-start gap-1.5">
+                          <span>{awayScoreVal}</span>
+                          {awayRedCards > 0 && (
+                            <span
+                              title={`${awayRedCards} thẻ đỏ`}
+                              className="w-1.5 h-2.5 sm:w-2 sm:h-3 rounded-[1px] bg-[#e03a3e] shrink-0 inline-block drop-shadow-sm"
+                            />
+                          )}
+                        </div>
                       </div>
                     ) : (
                       <span className="text-xs sm:text-base md:text-lg font-bold uppercase tracking-widest text-zinc-400 leading-none select-none">
@@ -375,30 +384,30 @@ export function LiveMatchScoreboard({
                       </span>
                     )}
 
-                    {/* DÒNG PHÚT/TRẠNG THÁI MÀU XANH LÁ CHUẨN MẪU */}
-                    <div className="mt-1 sm:mt-1.5 text-center leading-none">
+                    {/* DÒNG PHÚT/TRẠNG THÁI: NẰM CHÍNH GIỮA 50.0% THẲNG HÀNG DƯỚI DẤU - */}
+                    <div className="mt-1 sm:mt-1.5 flex items-center justify-center text-center w-full leading-none">
                       {timeInfo.state === "live" ? (
-                        <span className="text-xs sm:text-[13px] font-bold text-emerald-400 font-sans tabular-nums">
+                        <span className="text-xs sm:text-[13px] font-bold text-emerald-400 font-sans tabular-nums text-center">
                           {timeInfo.clockBadge}
                         </span>
                       ) : timeInfo.state === "ht" ? (
-                        <span className="text-xs sm:text-[13px] font-bold text-amber-300 font-sans">
+                        <span className="text-xs sm:text-[13px] font-bold text-amber-300 font-sans text-center">
                           HT
                         </span>
                       ) : timeInfo.state === "ft" ? (
-                        <span className="text-xs sm:text-[13px] font-bold text-zinc-400 font-sans">
+                        <span className="text-xs sm:text-[13px] font-bold text-zinc-400 font-sans text-center">
                           FT
                         </span>
                       ) : timeInfo.state === "upcoming" ? (
-                        <span className="text-xs sm:text-[13px] font-semibold text-zinc-400 font-sans tabular-nums">
+                        <span className="text-xs sm:text-[13px] font-semibold text-zinc-400 font-sans tabular-nums text-center">
                           {kickoffTime || "Sắp đá"}
                         </span>
                       ) : timeInfo.state === "special" ? (
-                        <span className="text-xs sm:text-[13px] font-bold text-amber-300 font-sans">
+                        <span className="text-xs sm:text-[13px] font-bold text-amber-300 font-sans text-center">
                           {timeInfo.clockBadge}
                         </span>
                       ) : (
-                        <span className="text-xs sm:text-[13px] font-semibold text-zinc-400 font-sans tabular-nums">
+                        <span className="text-xs sm:text-[13px] font-semibold text-zinc-400 font-sans tabular-nums text-center">
                           {kickoffTime || ""}
                         </span>
                       )}
