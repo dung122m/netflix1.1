@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useCallback, useTransition } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { useDebounce } from "@/hooks/useDebounce";
 
@@ -59,7 +59,6 @@ export function useNavSearch({
   const abortControllerRef = useRef<AbortController | null>(null);
   const isSearchExpandedRef = useRef(isSearchExpanded);
   const onOpenMobileSearchRef = useRef(onOpenMobileSearch);
-  const [, startNavTransition] = useTransition();
 
 
   useEffect(() => {
@@ -298,9 +297,7 @@ export function useNavSearch({
         return;
       }
       triggerNavigationLoading();
-      startNavTransition(() => {
-        router.push(`/browse?keyword=${encodeURIComponent(kw)}`);
-      });
+      router.push(`/browse?keyword=${encodeURIComponent(kw)}`);
     },
     [
       abortPendingSearch,
@@ -310,7 +307,6 @@ export function useNavSearch({
       urlKeyword,
       triggerNavigationLoading,
       router,
-      startNavTransition,
     ],
   );
 
@@ -364,12 +360,10 @@ export function useNavSearch({
         params.delete("page");
         const query = params.toString();
         triggerNavigationLoading();
-        startNavTransition(() => {
-          router.push(query ? `/browse?${query}` : "/browse");
-        });
+        router.push(query ? `/browse?${query}` : "/browse");
       }
     },
-    [abortPendingSearch, pathname, searchParams, triggerNavigationLoading, router, startNavTransition],
+    [abortPendingSearch, pathname, searchParams, triggerNavigationLoading, router],
   );
 
   const handleInputChange = useCallback(
@@ -441,9 +435,7 @@ export function useNavSearch({
         return;
       }
       triggerNavigationLoading();
-      startNavTransition(() => {
-        router.push(`/browse?keyword=${encodeURIComponent(currentKeyword)}`);
-      });
+      router.push(`/browse?keyword=${encodeURIComponent(currentKeyword)}`);
     },
     [
       abortPendingSearch,
@@ -454,7 +446,6 @@ export function useNavSearch({
       urlKeyword,
       triggerNavigationLoading,
       router,
-      startNavTransition,
     ],
   );
 
@@ -494,9 +485,7 @@ export function useNavSearch({
           inputRef.current?.blur();
           mobileInputRef.current?.blur();
           triggerNavigationLoading();
-          startNavTransition(() => {
-            router.push(resolveSuggestionHref(selected.slug));
-          });
+          router.push(resolveSuggestionHref(selected.slug));
           return;
         }
         if (
