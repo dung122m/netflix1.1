@@ -736,7 +736,7 @@ export interface PlayerDetailModalProps {
 export function PlayerDetailModal({
   player,
   isHome: _isHome,
-  teamName,
+  teamName: _teamName,
   teamLogo,
   onClose,
   eventsInfo,
@@ -829,39 +829,6 @@ export function PlayerDetailModal({
     if (player.subbedIn) return 8 + ((parseInt(player.id.slice(-2), 16) || 4) % 10);
     return 0;
   }, [player.stats, player.starter, player.subbedIn, player.id]);
-
-  // Highlight message
-  const highlightMessage = useMemo(() => {
-    if (eventsInfo.goals >= 2) {
-      return `Đã ghi ${eventsInfo.goals} bàn thắng (${eventsInfo.goalMinutes.map((m) => m + "'").join(", ")})`;
-    }
-    if (eventsInfo.goals === 1) {
-      return `Đã ghi bàn thắng mở tỉ số (${eventsInfo.goalMinutes[0] || ""} phút)`;
-    }
-    const shots = extractStatNumber(player.stats, ["shots", "sút"]);
-    if (shots && shots >= 3) {
-      return `Thực hiện nhiều cú dứt điểm nhất trận (${shots})`;
-    }
-    if (eventsInfo.redCards > 0) {
-      return "Nhận thẻ đỏ trực tiếp rời sân";
-    }
-    if (eventsInfo.yellowCards > 0) {
-      return "Nhận thẻ vàng cảnh cáo trong trận";
-    }
-    const chances = extractStatNumber(player.stats, ["chances created", "cơ hội"]);
-    if (chances && chances >= 2) {
-      return `Tạo ra ${chances} cơ hội nguy hiểm`;
-    }
-    const isGK = posAbbr === "GK";
-    if (isGK) {
-      const saves = extractStatNumber(player.stats, ["saves", "cứu thua"]) || 3;
-      return `Có ${saves} pha cản phá cứu thua cho đội nhà`;
-    }
-    if (player.starter) {
-      return `Đá chính ở vị trí ${translatePosition(player.position)} cho ${teamName}`;
-    }
-    return `Cầu thủ thuộc danh sách thi đấu của ${teamName}`;
-  }, [eventsInfo, player.stats, posAbbr, player.position, player.starter, teamName]);
 
   // Top stats mapping
   const goalsVal = eventsInfo.goals || extractStatNumber(player.stats, ["goals", "bàn thắng"]) || 0;
@@ -964,7 +931,7 @@ export function PlayerDetailModal({
           <div className="grid grid-cols-3 gap-6 sm:gap-10 text-center mt-2 pt-1 font-sans">
             <div>
               <p className="text-white font-bold text-xs sm:text-sm">{posAbbr}</p>
-              <p className="text-[11px] text-zinc-400 font-medium">Position</p>
+              <p className="text-[11px] text-zinc-400 font-medium">Vị trí</p>
             </div>
             <div>
               <p className="text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 truncate max-w-[110px]">
@@ -974,32 +941,22 @@ export function PlayerDetailModal({
                 ) : (
                   <span className="w-2 h-2 rounded-full bg-rose-500 shrink-0" />
                 )}
-                <span className="truncate">{countryName || "Unknown"}</span>
+                <span className="truncate">{countryName || "Chưa rõ"}</span>
               </p>
-              <p className="text-[11px] text-zinc-400 font-medium">Country</p>
+              <p className="text-[11px] text-zinc-400 font-medium">Quốc gia</p>
             </div>
             <div>
               <p className="text-white font-bold text-xs sm:text-sm tabular-nums">
                 {playerAge ? playerAge : "-"}
               </p>
-              <p className="text-[11px] text-zinc-400 font-medium">Age</p>
+              <p className="text-[11px] text-zinc-400 font-medium">Tuổi</p>
             </div>
           </div>
         </div>
       </div>
 
-      {/* 2. BODY CONTENT (HIGHLIGHTS + TWO COLUMNS) */}
+      {/* 2. BODY CONTENT (TWO COLUMNS: HEATMAP & STATS) */}
       <div className="p-4 sm:p-5 space-y-4">
-        {/* Highlights Banner */}
-        <div className="bg-[#132418] border border-emerald-500/20 rounded-2xl p-3 sm:p-3.5 space-y-1">
-          <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/20 px-2 py-0.5 rounded-md uppercase tracking-wider inline-block font-sans">
-            Highlights
-          </span>
-          <p className="text-xs sm:text-sm font-semibold text-white font-sans">
-            {highlightMessage}
-          </p>
-        </div>
-
         {/* 2-Column Grid: Left (Heatmap & Shot map) | Right (Top stats) */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
           {/* CỘT TRÁI: HEATMAP & SHOT MAP */}
@@ -1007,9 +964,9 @@ export function PlayerDetailModal({
             {/* Heatmap Card */}
             <div className="space-y-1.5">
               <div className="flex items-center justify-between text-xs sm:text-sm font-bold text-white px-0.5 font-sans">
-                <span>Heatmap</span>
+                <span>Bản đồ nhiệt</span>
                 <span className="text-xs font-semibold text-zinc-400 tabular-nums">
-                  Touches {touches}
+                  Chạm bóng: {touches}
                 </span>
               </div>
 
@@ -1022,7 +979,7 @@ export function PlayerDetailModal({
             {/* Shot map Card */}
             <div className="space-y-1.5">
               <div className="text-xs sm:text-sm font-bold text-white px-0.5 font-sans">
-                Shot map
+                Vị trí dứt điểm
               </div>
 
               {/* Shot map Pitch SVG */}
@@ -1035,22 +992,22 @@ export function PlayerDetailModal({
           {/* CỘT PHẢI: TOP STATS */}
           <div className="space-y-2">
             <h4 className="text-xs sm:text-sm font-bold text-white px-0.5 font-sans">
-              Top stats
+              Thống kê nổi bật
             </h4>
 
             <div className="space-y-0.5 font-sans text-xs sm:text-[13px]">
               {[
-                { label: "Goals", value: goalsVal },
-                { label: "Assists", value: assistsVal },
-                { label: "Expected goals (xG)", value: xGVal },
-                { label: "Expected goals on target (xGOT)", value: xGOTVal },
+                { label: "Bàn thắng", value: goalsVal },
+                { label: "Kiến tạo", value: assistsVal },
+                { label: "Bàn thắng kỳ vọng (xG)", value: xGVal },
+                { label: "Kỳ vọng trúng đích (xGOT)", value: xGOTVal },
                 { label: "xG + xA", value: xGPlusXA },
-                { label: "Accurate passes", value: accuratePasses },
-                { label: "Chances created", value: chancesCreated },
-                { label: "Shots on target", value: shotsOnTarget },
-                { label: "Shots off target", value: shotsOffTarget },
-                { label: "Shot accuracy", value: shotAccuracy },
-                { label: "Defensive contributions", value: defContributions },
+                { label: "Chuyền chính xác", value: accuratePasses },
+                { label: "Tạo cơ hội", value: chancesCreated },
+                { label: "Sút trúng đích", value: shotsOnTarget },
+                { label: "Sút ra ngoài", value: shotsOffTarget },
+                { label: "Tỷ lệ sút chính xác", value: shotAccuracy },
+                { label: "Đóng góp phòng ngự", value: defContributions },
               ].map((item, idx) => (
                 <div
                   key={idx}
@@ -1065,7 +1022,7 @@ export function PlayerDetailModal({
             {/* Extra Attack Category */}
             <div className="pt-2">
               <span className="text-xs sm:text-sm font-bold text-white block pb-1">
-                Attack
+                Tấn công
               </span>
             </div>
           </div>
@@ -1075,7 +1032,7 @@ export function PlayerDetailModal({
         <div className="border-t border-white/[0.08] pt-3.5 mt-2 flex items-center justify-between px-1">
           <div className="flex items-center gap-2 text-zinc-300 hover:text-white transition text-xs sm:text-sm font-semibold select-none cursor-pointer">
             <User className="w-4 h-4 text-zinc-400" />
-            <span>Player profile</span>
+            <span>Hồ sơ cầu thủ</span>
           </div>
 
           <button
@@ -1083,7 +1040,7 @@ export function PlayerDetailModal({
             onClick={onClose}
             className="text-emerald-400 hover:text-emerald-300 font-bold text-xs sm:text-sm transition cursor-pointer select-none font-sans px-2 py-1"
           >
-            Done
+            Xong
           </button>
         </div>
       </div>

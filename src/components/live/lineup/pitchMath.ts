@@ -58,6 +58,9 @@ export function translatePosition(pos?: string): string {
   // Thủ môn
   if (/\b(goalkeeper|gk|g)\b/.test(p)) return "Thủ môn";
 
+  // Dự bị
+  if (p.includes("substitute") || p === "sub") return "Dự bị";
+
   // Hậu vệ
   if (p.includes("center left defender") || /\bcd-l|cb-l\b/.test(p)) return "Trung vệ lệch trái";
   if (p.includes("center right defender") || /\bcd-r|cb-r\b/.test(p)) return "Trung vệ lệch phải";

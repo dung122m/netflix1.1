@@ -368,9 +368,9 @@ export function MatchRecentForm({
       {/* NỘI DUNG 1: 5 TRẬN GẦN NHẤT - CHUẨN FORM FOTMOB */}
       {effectiveView === "recent" && hasRecent && (
         <div className="rounded-2xl bg-zinc-950/70 border border-white/[0.06] p-3.5 sm:p-5 shadow-sm space-y-3">
-          {/* TIÊU ĐỀ SECTION CHÍNH GIỮA CHUẨN FOTMOB */}
+          {/* TIÊU ĐỀ SECTION CHÍNH GIỮA */}
           <h3 className="text-center font-sans font-bold text-sm sm:text-base text-white tracking-wide">
-            Team form
+            Phong độ gần đây
           </h3>
 
           <div className="grid grid-cols-1 md:grid-cols-2 md:divide-x md:divide-white/[0.06] gap-x-6">

@@ -655,9 +655,9 @@ export function FotmobSubstitutesSection({
 
   return (
     <div className="rounded-2xl bg-zinc-950/70 border border-white/[0.06] p-3.5 sm:p-5 shadow-sm space-y-3">
-      {/* TIÊU ĐỀ SECTION CHÍNH GIỮA CHUẨN FOTMOB */}
+      {/* TIÊU ĐỀ SECTION CHÍNH GIỮA */}
       <h3 className="text-center font-sans font-bold text-sm sm:text-base text-white tracking-wide">
-        Substitutes
+        Thay người
       </h3>
 
       {/* DANH SÁCH CẦU THỦ THAY NGƯỜI (2 CỘT: ĐỘI NHÀ & ĐỘI KHÁCH) */}
@@ -683,7 +683,7 @@ export function FotmobSubstitutesSection({
             onClick={() => setShowUnused(!showUnused)}
             className="w-full flex items-center justify-center gap-1.5 py-2.5 text-xs font-semibold text-zinc-400 hover:text-white transition cursor-pointer select-none group border-t border-white/[0.04]"
           >
-            <span>Bench / Injured and suspended players</span>
+            <span>Dự bị & Cầu thủ vắng mặt</span>
             <ChevronDown
               className={`w-3.5 h-3.5 transition-transform duration-200 ${
                 showUnused ? "rotate-180 text-white" : "text-zinc-500 group-hover:text-white"
