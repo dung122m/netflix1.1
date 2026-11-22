@@ -10,36 +10,6 @@ import { UserNotification } from "@/types/notification";
 // 1. HỒ SƠ NGƯỜI DÙNG (PROFILES)
 // ============================================================================
 
-export async function upsertUserProfileSupabase(profile: Partial<UserProfile> & { uid: string }): Promise<void> {
-  if (!profile.uid) return;
-  try {
-    const { auth } = await import("@/lib/firebase");
-    const token = await auth?.currentUser?.getIdToken().catch(() => null);
-    if (token) {
-      const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
-      await fetch(`${baseUrl}/api/user/profile`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          displayName: profile.displayName,
-          photoURL: profile.photoURL,
-          customAvatar: profile.customAvatar,
-          bio: profile.bio,
-          favoriteGenres: profile.favoriteGenres,
-          badges: profile.badges,
-          watchTimeMinutes: profile.watchTimeMinutes,
-          playerSettings: profile.playerSettings,
-        }),
-      });
-    }
-  } catch (err) {
-    console.warn("Lỗi lưu user profile qua API:", err);
-  }
-}
-
 // In-memory micro-cache for user profiles (TTL 5 phút) để triệt tiêu request trùng lặp khi điều hướng trang
 const PROFILE_CACHE_TTL_MS = 5 * 60 * 1000;
 const profileMemoryCache = new Map<string, { data: UserProfile; expiry: number }>();
@@ -360,84 +330,6 @@ export async function getCommentRepliesSupabase(parentId: string): Promise<Movie
   return [];
 }
 
-export async function postCommentSupabase(
-  comment: Omit<MovieComment, "id" | "createdAt" | "updatedAt" | "likes" | "likedBy"> & {
-    likes?: number;
-    likedBy?: string[];
-  }
-): Promise<string> {
-  const id = `cmt_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
-  try {
-    const { auth } = await import("@/lib/firebase");
-    const token = await auth?.currentUser?.getIdToken().catch(() => null);
-    const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
-    const res = await fetch(`${baseUrl}/api/comments`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
-      body: JSON.stringify({
-        movieSlug: comment.movieSlug,
-        movieTitle: comment.movieTitle || "",
-        rating: comment.rating ?? 0,
-        content: comment.content,
-        isSpoiler: Boolean(comment.isSpoiler),
-        episodeSlug: comment.episodeSlug,
-        episodeName: comment.episodeName,
-        parentId: comment.parentId,
-        parentOwnerId: comment.parentOwnerId,
-        replyToUserId: comment.replyToUserId,
-        replyToUserName: comment.replyToUserName,
-      }),
-    });
-    if (res.ok) {
-      const data = await res.json();
-      if (data.id) return data.id;
-    }
-  } catch (err) {
-    console.warn("Lỗi postComment qua API:", err);
-  }
-  return id;
-}
-
-export async function updateCommentSupabase(
-  commentId: string,
-  data: Partial<{
-    rating: number;
-    content: string;
-    episode_slug: string | null;
-    episode_name: string | null;
-    is_spoiler: boolean;
-  }>
-): Promise<void> {
-  if (!commentId) return;
-  try {
-    const { auth } = await import("@/lib/firebase");
-    const token = await auth?.currentUser?.getIdToken().catch(() => null);
-    if (token) {
-      const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
-      await fetch(`${baseUrl}/api/comments`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          commentId,
-          rating: data.rating,
-          content: data.content,
-          isSpoiler: data.is_spoiler,
-          episodeSlug: data.episode_slug,
-          episodeName: data.episode_name,
-        }),
-      });
-    }
-  } catch (err) {
-    console.warn("Lỗi update comment qua API:", err);
-  }
-}
-
 export async function getAllCommentsSupabase(): Promise<MovieComment[]> {
   try {
     const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
@@ -482,46 +374,6 @@ export async function togglePinCommentSupabase(commentId: string, isPinned: bool
     }
   } catch (err) {
     console.warn("Lỗi togglePinComment qua API:", err);
-  }
-}
-
-export async function setCommentReactionSupabase(
-  commentId: string,
-  userId: string,
-  reactionType: string | null
-): Promise<void> {
-  if (!commentId || !userId) return;
-  try {
-    const { auth } = await import("@/lib/firebase");
-    const token = await auth?.currentUser?.getIdToken().catch(() => null);
-    const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
-    await fetch(`${baseUrl}/api/comments`, {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
-      body: JSON.stringify({ commentId, userId, reactionType, action: "reaction" }),
-    });
-  } catch (err) {
-    console.warn("Lỗi setCommentReaction qua API:", err);
-  }
-}
-
-export async function deleteCommentSupabase(commentId: string): Promise<void> {
-  if (!commentId) return;
-  try {
-    const { auth } = await import("@/lib/firebase");
-    const token = await auth?.currentUser?.getIdToken().catch(() => null);
-    if (token) {
-      const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
-      await fetch(`${baseUrl}/api/comments?commentId=${encodeURIComponent(commentId)}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
-      });
-    }
-  } catch (err) {
-    console.warn("Lỗi deleteComment qua API:", err);
   }
 }
 
@@ -571,27 +423,6 @@ export async function unflagCommentSupabase(commentId: string): Promise<void> {
 // 3. LỊCH SỬ XEM & DANH SÁCH YÊU THÍCH (HISTORY & WATCHLIST)
 // ============================================================================
 
-export async function syncWatchHistorySupabase(userId: string, items: WatchHistoryItem[]): Promise<void> {
-  if (!userId || !items.length) return;
-  try {
-    const { auth } = await import("@/lib/firebase");
-    const token = await auth?.currentUser?.getIdToken().catch(() => null);
-    if (token) {
-      const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
-      await fetch(`${baseUrl}/api/user/history`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ items }),
-      });
-    }
-  } catch (err) {
-    console.warn("Lỗi sync watch history qua API:", err);
-  }
-}
-
 export async function getWatchHistorySupabase(userId: string): Promise<WatchHistoryItem[]> {
   if (!userId) return [];
   try {
@@ -614,27 +445,6 @@ export async function getWatchHistorySupabase(userId: string): Promise<WatchHist
     console.warn("Lỗi lấy watch history qua API:", err);
   }
   return [];
-}
-
-export async function syncWatchlistSupabase(userId: string, items: WatchlistItem[]): Promise<void> {
-  if (!userId || !items.length) return;
-  try {
-    const { auth } = await import("@/lib/firebase");
-    const token = await auth?.currentUser?.getIdToken().catch(() => null);
-    if (token) {
-      const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
-      await fetch(`${baseUrl}/api/user/watchlist`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ items }),
-      });
-    }
-  } catch (err) {
-    console.warn("Lỗi sync watchlist qua API:", err);
-  }
 }
 
 export async function getWatchlistSupabase(userId: string): Promise<WatchlistItem[]> {
@@ -722,44 +532,6 @@ export async function getUserCollectionsSupabase(userId: string): Promise<Supaba
   }
 }
 
-export async function saveCollectionSupabase(col: MovieCollection): Promise<void> {
-  if (!col.id || !col.userId) return;
-  try {
-    const { auth } = await import("@/lib/firebase");
-    const token = await auth?.currentUser?.getIdToken().catch(() => null);
-    if (token) {
-      const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
-      await fetch(`${baseUrl}/api/user/collections`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(col),
-      });
-    }
-  } catch (err) {
-    console.warn("Lỗi lưu collection qua API:", err);
-  }
-}
-
-export async function deleteCollectionSupabase(id: string): Promise<void> {
-  if (!id) return;
-  try {
-    const { auth } = await import("@/lib/firebase");
-    const token = await auth?.currentUser?.getIdToken().catch(() => null);
-    if (token) {
-      const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
-      await fetch(`${baseUrl}/api/user/collections?id=${encodeURIComponent(id)}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
-      });
-    }
-  } catch (err) {
-    console.warn("Lỗi xóa collection qua API:", err);
-  }
-}
-
 export async function getPublicCollectionsSupabase(): Promise<MovieCollection[]> {
   try {
     const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
@@ -811,38 +583,6 @@ export async function getUserNotificationsSupabase(userId: string): Promise<User
     console.warn("Lỗi lấy thông báo qua API:", err);
   }
   return [];
-}
-
-export async function createNotificationSupabase(notif: UserNotification & { userId: string }): Promise<void> {
-  if (!notif.userId) return;
-  try {
-    const { auth } = await import("@/lib/firebase");
-    const token = await auth?.currentUser?.getIdToken().catch(() => null);
-    if (token) {
-      const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
-      await fetch(`${baseUrl}/api/notifications`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          userId: notif.userId,
-          notifId: notif.id,
-          type: notif.type,
-          title: notif.title,
-          message: notif.message,
-          link: notif.link,
-          movieSlug: notif.movieSlug,
-          commentId: notif.commentId,
-          replierName: notif.replierName,
-          replierAvatar: notif.replierAvatar || notif.image,
-        }),
-      });
-    }
-  } catch (err) {
-    console.warn("Lỗi tạo thông báo qua API:", err);
-  }
 }
 
 export async function markNotificationAsReadSupabase(userId: string, notifId: string): Promise<void> {
@@ -901,74 +641,6 @@ export async function deleteNotificationSupabase(userId: string, notifId: string
     }
   } catch (err) {
     console.warn("Lỗi delete notification qua API:", err);
-  }
-}
-
-export async function removeWatchHistoryItemSupabase(userId: string, slug: string): Promise<void> {
-  if (!userId || !slug) return;
-  try {
-    const { auth } = await import("@/lib/firebase");
-    const token = await auth?.currentUser?.getIdToken().catch(() => null);
-    if (token) {
-      const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
-      await fetch(`${baseUrl}/api/user/history?slug=${encodeURIComponent(slug)}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
-      });
-    }
-  } catch (err) {
-    console.warn("Lỗi xóa watch history item qua API:", err);
-  }
-}
-
-export async function clearAllWatchHistorySupabase(userId: string): Promise<void> {
-  if (!userId) return;
-  try {
-    const { auth } = await import("@/lib/firebase");
-    const token = await auth?.currentUser?.getIdToken().catch(() => null);
-    if (token) {
-      const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
-      await fetch(`${baseUrl}/api/user/history?all=true`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
-      });
-    }
-  } catch (err) {
-    console.warn("Lỗi xóa all watch history qua API:", err);
-  }
-}
-
-export async function removeWatchlistItemSupabase(userId: string, slug: string): Promise<void> {
-  if (!userId || !slug) return;
-  try {
-    const { auth } = await import("@/lib/firebase");
-    const token = await auth?.currentUser?.getIdToken().catch(() => null);
-    if (token) {
-      const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
-      await fetch(`${baseUrl}/api/user/watchlist?slug=${encodeURIComponent(slug)}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
-      });
-    }
-  } catch (err) {
-    console.warn("Lỗi xóa watchlist item qua API:", err);
-  }
-}
-
-export async function clearAllWatchlistSupabase(userId: string): Promise<void> {
-  if (!userId) return;
-  try {
-    const { auth } = await import("@/lib/firebase");
-    const token = await auth?.currentUser?.getIdToken().catch(() => null);
-    if (token) {
-      const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
-      await fetch(`${baseUrl}/api/user/watchlist?all=true`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
-      });
-    }
-  } catch (err) {
-    console.warn("Lỗi xóa all watchlist qua API:", err);
   }
 }
 
@@ -1089,83 +761,6 @@ export async function uploadCollectionCoverSupabase(
     return null;
   }
 }
-
-// ============================================================================
-// 6. POSTGRES FULL-TEXT SEARCH (RPC)
-// ============================================================================
-
-export async function searchCommentsFtsSupabase(searchTerm: string): Promise<MovieComment[]> {
-  if (!supabase || !searchTerm.trim()) return [];
-  try {
-    const { data, error } = await supabase.rpc("search_comments_fts", {
-      search_term: searchTerm.trim(),
-    });
-
-    if (error || !data) return [];
-    return (data as Record<string, unknown>[]).map((d) => {
-      const { likedBy, reactions } = parseReactionsAndLikedBy(d.liked_by);
-      return {
-        id: String(d.id),
-        movieSlug: String(d.movie_slug || ""),
-        movieTitle: String(d.movie_title || ""),
-        userId: String(d.user_id || ""),
-        userName: String(d.user_name || "Thành viên"),
-        userAvatar: String(d.user_avatar || ""),
-        userEmail: d.user_email ? String(d.user_email) : undefined,
-        rating: (() => {
-          const num = Number(d.rating);
-          return !isNaN(num) && num >= 1 && num <= 5 ? Math.round(num) : 0;
-        })(),
-        content: String(d.content || ""),
-        episodeSlug: d.episode_slug ? String(d.episode_slug) : undefined,
-        episodeName: d.episode_name ? String(d.episode_name) : undefined,
-        parentId: d.parent_id ? String(d.parent_id) : undefined,
-        parentOwnerId: d.parent_owner_id ? String(d.parent_owner_id) : undefined,
-        replyToUserId: d.reply_to_user_id ? String(d.reply_to_user_id) : undefined,
-        replyToUserName: d.reply_to_user_name ? String(d.reply_to_user_name) : undefined,
-        isSpoiler: Boolean(d.is_spoiler),
-        likes: Math.max(Number(d.likes) || 0, likedBy.length),
-        likedBy,
-        reactions,
-        isFlagged: Boolean(d.is_flagged),
-        flagReason: d.flag_reason ? String(d.flag_reason) : undefined,
-        isApproved: d.is_approved !== false,
-        isPinned: Boolean(d.is_pinned),
-        createdAt: Number(d.created_at) || Date.now(),
-        updatedAt: Number(d.updated_at) || Date.now(),
-      };
-    });
-  } catch {
-    return [];
-  }
-}
-
-export async function searchCollectionsFtsSupabase(searchTerm: string): Promise<MovieCollection[]> {
-  if (!supabase || !searchTerm.trim()) return [];
-  try {
-    const { data, error } = await supabase.rpc("search_collections_fts", {
-      search_term: searchTerm.trim(),
-    });
-
-    if (error || !data) return [];
-    return (data as Record<string, unknown>[]).map((d) => ({
-      id: String(d.id),
-      userId: String(d.user_id),
-      creatorName: String(d.user_name || "Thành viên Nanaflix"),
-      creatorPhoto: d.user_avatar ? String(d.user_avatar) : undefined,
-      name: String(d.name || ""),
-      description: String(d.description || ""),
-      isPublic: Boolean(d.is_public),
-      movies: Array.isArray(d.movies) ? (d.movies as MovieCollection["movies"]) : [],
-      createdAt: Number(d.created_at) || Date.now(),
-      updatedAt: Number(d.updated_at) || Date.now(),
-    }));
-  } catch {
-    return [];
-  }
-}
-
-
 
 export type { MovieViewStatItem } from "./communityWatchService";
 
