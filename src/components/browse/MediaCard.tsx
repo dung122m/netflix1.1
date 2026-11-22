@@ -36,7 +36,7 @@ const AuthModal = dynamic(
   { ssr: false }
 );
 import { Tooltip } from "@/components/ui/Tooltip";
-import { useMoviePosterFallback, GLOBAL_POSTER_CACHE } from "@/hooks/useMoviePosterFallback";
+import { GLOBAL_POSTER_CACHE } from "@/hooks/useMoviePosterFallback";
 
 // Bộ nhớ đệm client (giữ nguyên cho các component khác như HeroFeatured)
 import { clientSynopsisCache } from "@/services/synopsisService";
@@ -247,74 +247,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
 
   const initialCandidate = imageCandidates[0] || "";
 
-  // Lazy prefetch zone: Chỉ kích hoạt tra cứu khi card cách tầm mắt 400px hoặc khi có priority
-  const [isInView, setIsInView] = useState<boolean>(() => priority || false);
-
-  const isSlow = Boolean(initialCandidate && isSlowProviderSourceUrl(initialCandidate));
-  const isMissing = !initialCandidate || initialCandidate.includes("/default-");
-  const shouldUpgrade = isMissing || isSlow;
-
-  useEffect(() => {
-    if (isInView || priority) return;
-    const el = cardContainerRef.current;
-    if (!el || typeof IntersectionObserver === "undefined") {
-      setIsInView(true);
-      return;
-    }
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0]?.isIntersecting) {
-          setIsInView(true);
-          observer.disconnect();
-        }
-      },
-      { rootMargin: "400px 400px" }
-    );
-
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [isInView, priority]);
-
-  // Kích hoạt TMDb fallback khi card vào tầm đón đầu và cần nâng cấp ảnh
-  const [needsFallback, setNeedsFallback] = useState<boolean>(
-    () => isInView && shouldUpgrade
-  );
-
-  useEffect(() => {
-    if (isInView && shouldUpgrade && !needsFallback) {
-      setNeedsFallback(true);
-    }
-  }, [isInView, shouldUpgrade, needsFallback]);
-
-  // Chuẩn hóa và tra cứu fallback TMDb gom batch qua hook
-  const { displaySrc: tmdbFallbackSrc, isLoading: isFallbackLoading, triggerFallback } = useMoviePosterFallback({
-    slug,
-    title,
-    origin_name,
-    year,
-    type: itemType,
-    initialSrc: initialCandidate,
-    enabled: needsFallback,
-    upgradePhimimg: true,
-    tmdbId,
-  });
-
-  const isInitialCandidateBlocked = Boolean(
-    initialCandidate &&
-    (initialCandidate.includes("phimimg.com") ||
-      initialCandidate.includes("img.ophim.cc") ||
-      initialCandidate.includes("img.phimapi.com"))
-  );
-
-  const initialToUse =
-    (tmdbFallbackSrc && !isSlowProviderSourceUrl(tmdbFallbackSrc))
-      ? tmdbFallbackSrc
-      : (needsFallback && isInitialCandidateBlocked)
-      ? "" // Chỉ trì hoãn nguồn bị nhà mạng VN chặn (phimimg); nguồn NguonC hiển thị ngay lập tức 0ms
-      : initialCandidate;
-
-  const [currentSrc, setCurrentSrc] = useState<string>(() => initialToUse);
+  const [currentSrc, setCurrentSrc] = useState<string>(() => initialCandidate);
   const [isImageLoaded, setIsImageLoaded] = useState<boolean>(() => {
     return Boolean(
       (initialCandidate && GLOBAL_LOADED_IMAGES.has(initialCandidate)) ||
@@ -339,39 +272,29 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
   // Đồng bộ khi card được tái sử dụng cho phim khác hoặc khi danh sách ứng viên thay đổi
   useEffect(() => {
     triedUrlsRef.current.clear();
-    const fastCandidate = imageCandidates.find(
-      (u) => !triedUrlsRef.current.has(u) && !isSlowProviderSourceUrl(u)
-    );
-    const nonBlockedCandidate = imageCandidates.find(
+    const candidate = imageCandidates.find(
       (u) =>
         !triedUrlsRef.current.has(u) &&
         !u.includes("phimimg.com") &&
         !u.includes("img.ophim.cc") &&
         !u.includes("img.phimapi.com")
-    );
-    const fallbackCandidate = (!needsFallback || !isFallbackLoading)
-      ? imageCandidates.find((u) => !triedUrlsRef.current.has(u))
-      : nonBlockedCandidate || null;
-    const initial =
-      (tmdbFallbackSrc && !isSlowProviderSourceUrl(tmdbFallbackSrc) ? tmdbFallbackSrc : null) ||
-      fastCandidate ||
-      fallbackCandidate ||
-      "";
-    if (initial) {
+    ) || imageCandidates[0] || "";
+
+    if (candidate) {
       setHasError(false);
-      setCurrentSrc(initial);
+      setCurrentSrc(candidate);
       setIsImageLoaded(
         Boolean(
-          GLOBAL_LOADED_IMAGES.has(initial) ||
+          GLOBAL_LOADED_IMAGES.has(candidate) ||
           (imgRef.current && imgRef.current.complete && imgRef.current.naturalWidth > 0)
         )
       );
     } else {
       setCurrentSrc("");
-      setHasError(false);
-      setIsImageLoaded(false);
+      setHasError(true);
+      setIsImageLoaded(true);
     }
-  }, [slug, imageCandidates, tmdbFallbackSrc, needsFallback, isFallbackLoading]);
+  }, [slug, imageCandidates]);
 
   useEffect(() => {
     if (imgRef.current && imgRef.current.complete && imgRef.current.naturalWidth > 0) {
@@ -379,66 +302,13 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
     }
   }, [currentSrc]);
 
-  // Khi hook useMoviePosterFallback tìm thấy ảnh TMDb hoặc hoàn tất tra cứu:
-  useEffect(() => {
-    if (!needsFallback || isFallbackLoading) return;
-
-    if (
-      tmdbFallbackSrc &&
-      tmdbFallbackSrc !== currentSrc &&
-      !triedUrlsRef.current.has(tmdbFallbackSrc)
-    ) {
-      if (typeof window !== "undefined") {
-        // Tải ngầm ảnh TMDb vào cache trình duyệt; khi ảnh sẵn sàng mới hoán đổi để triệt tiêu hiện tượng giật/chớp hình
-        const preloader = new window.Image();
-        preloader.src = tmdbFallbackSrc;
-        preloader.onload = () => {
-          setHasError(false);
-          setCurrentSrc(tmdbFallbackSrc);
-          GLOBAL_LOADED_IMAGES.add(tmdbFallbackSrc);
-          setIsImageLoaded(true);
-        };
-        preloader.onerror = () => {
-          triedUrlsRef.current.add(tmdbFallbackSrc);
-        };
-      } else {
-        setHasError(false);
-        setCurrentSrc(tmdbFallbackSrc);
-        setIsImageLoaded(GLOBAL_LOADED_IMAGES.has(tmdbFallbackSrc));
-      }
-      return;
-    }
-
-    // TMDb fallback hoàn tất nhưng không có ảnh trên TMDb:
-    // BÂY GIỜ MỚI CHO PHÉP fallback xuống các candidate từ NguonC (hoặc nguồn không bị chặn)!
-    if (!currentSrc || triedUrlsRef.current.has(currentSrc)) {
-      const nonBlockedCandidate = imageCandidates.find(
-        (u) =>
-          !triedUrlsRef.current.has(u) &&
-          !u.includes("phimimg.com") &&
-          !u.includes("img.ophim.cc") &&
-          !u.includes("img.phimapi.com")
-      );
-      if (nonBlockedCandidate) {
-        setHasError(false);
-        setCurrentSrc(nonBlockedCandidate);
-        setIsImageLoaded(GLOBAL_LOADED_IMAGES.has(nonBlockedCandidate));
-        return;
-      }
-      // Nếu chỉ còn các nguồn bị chặn ISP ở VN (phimimg), không nạp trực tiếp để tránh treo trình duyệt.
-      // Kích hoạt ngay Poster Canvas typography ở 0ms:
-      setHasError(true);
-      setIsImageLoaded(true);
-    }
-  }, [needsFallback, isFallbackLoading, tmdbFallbackSrc, currentSrc, imageCandidates]);
-
   const handleImageError = useCallback(() => {
     if (currentSrc) {
       triedUrlsRef.current.add(currentSrc);
       GLOBAL_LOADED_IMAGES.delete(currentSrc);
     }
 
-    // 1. Thử ứng viên kế tiếp trong danh sách candidates (chỉ thử nguồn không bị chặn)
+    // Thử ứng viên kế tiếp trong danh sách candidates (chỉ thử nguồn không bị chặn)
     const nextCandidate = imageCandidates.find(
       (url) =>
         !triedUrlsRef.current.has(url) &&
@@ -452,34 +322,10 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
       return;
     }
 
-    // 2. ƯU TIÊN TUYỆT ĐỐI TMDB FALLBACK (30ms CDN, ~35KB WebP, 0ms Serverless CPU):
-    if (tmdbFallbackSrc && tmdbFallbackSrc !== currentSrc && !triedUrlsRef.current.has(tmdbFallbackSrc)) {
-      setCurrentSrc(tmdbFallbackSrc);
-      setIsImageLoaded(GLOBAL_LOADED_IMAGES.has(tmdbFallbackSrc));
-      setHasError(false);
-      return;
-    }
-
-    // 3. Kích hoạt gọi TMDb fallback nếu chưa kích hoạt
-    if (!needsFallback) {
-      setNeedsFallback(true);
-      triggerFallback();
-      setIsImageLoaded(false);
-      setHasError(false);
-      return;
-    }
-
-    // 4. TMDb đang tải ngầm → giữ skeleton shimmer chờ
-    if (isFallbackLoading) {
-      setIsImageLoaded(false);
-      setHasError(false);
-      return;
-    }
-
-    // 5. Toàn bộ candidates và TMDb đều thất bại → Hiện Poster Canvas
+    // Toàn bộ candidates đều thất bại → Hiện Poster Canvas typography (0 black hole)
     setHasError(true);
     setIsImageLoaded(true);
-  }, [currentSrc, imageCandidates, tmdbFallbackSrc, isFallbackLoading, needsFallback, triggerFallback]);
+  }, [currentSrc, imageCandidates]);
 
   // Trạng thái Trailer & Modal Trailer (Chỉ kích hoạt khi bấm nút xem Trailer)
   const [trailerUrl, setTrailerUrl] = useState<string>(

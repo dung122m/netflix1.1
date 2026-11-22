@@ -61,17 +61,8 @@ export function MoviePosterImage({
 
   useEffect(() => {
     if (displaySrc && displaySrc !== currentSrc) {
-      if (typeof window !== "undefined") {
-        const preloader = new window.Image();
-        preloader.src = displaySrc;
-        preloader.onload = () => {
-          setCurrentSrc(displaySrc);
-          setHasError(false);
-        };
-      } else {
-        setCurrentSrc(displaySrc);
-        setHasError(false);
-      }
+      setCurrentSrc(displaySrc);
+      setHasError(false);
     }
   }, [displaySrc, currentSrc]);
 

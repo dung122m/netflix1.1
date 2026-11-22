@@ -203,17 +203,8 @@ function ContinueWatchingCard({ item, index = 0, onRemove }: ContinueWatchingCar
   useEffect(() => {
     const safeDisplay = toFastCdnImageUrl(displaySrc);
     if (safeDisplay && safeDisplay !== imgSrc) {
-      if (typeof window !== "undefined") {
-        const preloader = new window.Image();
-        preloader.src = safeDisplay;
-        preloader.onload = () => {
-          setImgSrc(safeDisplay);
-          setIsLoaded(true);
-        };
-      } else {
-        setImgSrc(safeDisplay);
-        setIsLoaded(true);
-      }
+      setImgSrc(safeDisplay);
+      setIsLoaded(true);
     }
   }, [displaySrc, imgSrc]);
 

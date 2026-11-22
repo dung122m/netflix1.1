@@ -366,6 +366,13 @@ export function pickBestMoviePoster(movie: MovieLike, fallback = "/default-poste
   const rawMovie = (movie as any)?.movie || movie;
   const isNguonC = isNguonCSource(movie);
 
+  // Thêm trực tiếp poster TMDb chính hãng nếu có sẵn tmdb.poster_path
+  const tmdbPoster = rawMovie.tmdb?.poster_path
+    ? `https://image.tmdb.org/t/p/w500${rawMovie.tmdb.poster_path}`
+    : rawMovie.poster_path
+    ? `https://image.tmdb.org/t/p/w500${rawMovie.poster_path}`
+    : null;
+
   // NguonC đảo ngược trường: thumb_url là poster dọc (2:3), poster_url là backdrop ngang (16:9)
   const primary = isNguonC
     ? rawMovie.thumb_url || rawMovie.thumbUrl || movie.thumb_url || movie.thumbUrl
@@ -375,7 +382,7 @@ export function pickBestMoviePoster(movie: MovieLike, fallback = "/default-poste
     ? rawMovie.poster_url || rawMovie.posterUrl || movie.poster_url || movie.posterUrl
     : rawMovie.thumb_url || rawMovie.thumbUrl || movie.thumb_url || movie.thumbUrl;
 
-  const candidates = [primary, secondary, movie.imageUrl]
+  const candidates = [tmdbPoster, primary, secondary, movie.imageUrl]
     .filter((value): value is string => typeof value === "string" && value.length > 0)
     .map(sanitizeImageUrl)
     .filter((url) => Boolean(url) && !url.endsWith("/null") && !url.endsWith("/undefined"));
@@ -431,6 +438,13 @@ export function pickBestMovieThumb(movie: MovieLike, fallback = "/default-hero.s
   const rawMovie = (movie as any)?.movie || movie;
   const isNguonC = isNguonCSource(movie);
 
+  // Thêm trực tiếp backdrop TMDb chính hãng nếu có sẵn tmdb.backdrop_path
+  const tmdbBackdrop = rawMovie.tmdb?.backdrop_path
+    ? `https://image.tmdb.org/t/p/w780${rawMovie.tmdb.backdrop_path}`
+    : rawMovie.backdrop_path
+    ? `https://image.tmdb.org/t/p/w780${rawMovie.backdrop_path}`
+    : null;
+
   // NguonC đảo ngược trường: poster_url là backdrop ngang (16:9), thumb_url là poster dọc (2:3)
   const primary = isNguonC
     ? rawMovie.poster_url || rawMovie.posterUrl || movie.poster_url || movie.posterUrl
@@ -440,7 +454,7 @@ export function pickBestMovieThumb(movie: MovieLike, fallback = "/default-hero.s
     ? rawMovie.thumb_url || rawMovie.thumbUrl || movie.thumb_url || movie.thumbUrl
     : rawMovie.poster_url || rawMovie.posterUrl || movie.poster_url || movie.posterUrl;
 
-  const candidates = [primary, secondary, movie.imageUrl]
+  const candidates = [tmdbBackdrop, primary, secondary, movie.imageUrl]
     .filter((value): value is string => typeof value === "string" && value.length > 0)
     .map(sanitizeImageUrl)
     .filter((url) => Boolean(url) && !url.endsWith("/null") && !url.endsWith("/undefined"));
