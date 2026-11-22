@@ -31,15 +31,18 @@ const MovieGridInner = ({ movies, columnsClassName }: MovieGridProps) => {
   const isFirstMount = useRef(true);
 
   // Reset batch khi danh sách phim thay đổi (đổi trang, filter)
-  // useIsomorphicLayoutEffect kích hoạt đồng bộ NGAY TRƯỚC KHI BROWSER VẼ (Paint)
-  // đảm bảo khi trang mới xuất hiện, viewport đã ở vị trí đầu trang (0, 0) tức thì
-  useIsomorphicLayoutEffect(() => {
+  // Đảm bảo khi trang mới xuất hiện, viewport ở vị trí đầu trang (0, 0) tức thì
+  useEffect(() => {
     setVisibleCount(INITIAL_BATCH);
     if (isFirstMount.current) {
       isFirstMount.current = false;
       return;
     }
-    window.scrollTo(0, 0);
+    window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+    const timer = setTimeout(() => {
+      window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+    }, 0);
+    return () => clearTimeout(timer);
   }, [movies]);
 
   // Observer đón đầu khi cuộn gần cuối danh sách để mount batch tiếp theo

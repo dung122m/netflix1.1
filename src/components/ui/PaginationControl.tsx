@@ -33,6 +33,22 @@ const PaginationControlInner: React.FC<PaginationControlProps> = ({
       ? Math.floor(currentPage)
       : 1;
 
+  const isFirstMount = useRef(true);
+
+  // Khi trang mới (safeCurrentPage) đã tải và render xong:
+  // Lập tức đưa khung nhìn lên đầu trang tức thì (0ms instant)
+  useEffect(() => {
+    if (isFirstMount.current) {
+      isFirstMount.current = false;
+      return;
+    }
+    window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+    const timer = setTimeout(() => {
+      window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [safeCurrentPage]);
+
   // Xây dựng URL giữ nguyên 100% search params hiện tại cho mode Link
   const buildPageUrl = (pageNumber: number) => {
     const pathname = typeof window !== "undefined" ? window.location.pathname : "/browse";
@@ -51,6 +67,7 @@ const PaginationControlInner: React.FC<PaginationControlProps> = ({
 
     if (onPageChange) {
       onPageChange(pageNumber);
+      window.scrollTo({ top: 0, left: 0, behavior: "instant" });
       return;
     }
 
