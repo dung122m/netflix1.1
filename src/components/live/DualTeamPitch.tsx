@@ -273,7 +273,7 @@ export const DualTeamPitch: React.FC<DualTeamPitchProps> = ({
                           aria-label={`${goals} bàn thắng`}
                           title={`${goals} bàn thắng`}
                         >
-                          <span className="w-4 h-4 sm:w-4.5 sm:h-4.5 rounded-full bg-zinc-950 ring-1.5 ring-zinc-950 shadow-[0_2px_6px_rgba(0,0,0,0.85)] flex items-center justify-center p-0.5">
+                          <span className="w-4 h-4 sm:w-4.5 sm:h-4.5 rounded-full shadow-[0_2px_6px_rgba(0,0,0,0.85)] flex items-center justify-center">
                             <SoccerBallIcon className="w-full h-full" />
                           </span>
                           {goals > 1 && (
