@@ -162,7 +162,7 @@ export async function resolveActorMovies(
         const hasVietnameseMarks = (s: string) =>
           /[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/i.test(s);
 
-        // 1. Kiểm tra bảng đồng nghĩa trước tiên (ưu tiên tên Hán-Việt chuẩn xác như Chu Tỉ Lợi, Châu Tinh Trì...)
+        // 1. Kiểm tra bảng đồng nghĩa trước tiên (ưu tiên tên chuẩn nếu đã có trong hệ thống)
         const synFromKeyword = getActorSynonyms(keyword);
         const synFromName = tmdbPerson.name ? getActorSynonyms(tmdbPerson.name) : null;
         const resolvedSyn = synFromKeyword.isMatched ? synFromKeyword : (synFromName?.isMatched ? synFromName : null);
@@ -174,9 +174,9 @@ export async function resolveActorMovies(
           actorName = resolvedSyn.canonicalName;
           englishName = resolvedSyn.englishName || (tmdbPerson.name !== resolvedSyn.canonicalName ? tmdbPerson.name : undefined);
         } else if (tmdbPerson.name && hasVietnameseMarks(tmdbPerson.name)) {
-          // TMDb đã lưu tên tiếng Việt chuẩn mực (vd: "Chu Tỉ Lợi")
+          // TMDb đã lưu tên tiếng Việt chuẩn mực (vd: "Chu Tỉ Lợi", "Châu Tinh Trì"...)
           actorName = toVietnameseTitleCase(tmdbPerson.name);
-          if (tmdbPerson.original_name && tmdbPerson.original_name !== tmdbPerson.name && !hasVietnameseMarks(tmdbPerson.original_name)) {
+          if (tmdbPerson.original_name && tmdbPerson.original_name !== tmdbPerson.name && !hasVietnameseMarks(tmdbPerson.original_name) && !isAsianScript(tmdbPerson.original_name)) {
             englishName = toVietnameseTitleCase(tmdbPerson.original_name);
           }
         } else if (hasVietnameseMarks(keyword)) {

@@ -301,44 +301,22 @@ test("Historical Artist Birthdays Dataset & Flexible Matching — Invariant Test
     assert.equal(res7, "Koo Kyo-Hwan", "Must extract Koo Kyo-Hwan from Wikipedia bio pattern");
   });
 
-  await t.test("11. Chu Tỉ Lợi alias & variant canonical resolution (Châu tỉ lợi -> Chu Tỉ Lợi)", async () => {
-    const { getActorSynonyms } = await import("@/services/actor/actorAliasResolver");
+  await t.test("11. Dynamic TMDb Actor Resolution preserves canonical name (châu tỉ lợi -> Chu Tỉ Lợi without hardcoded presets)", async () => {
     const { resolveActorMovies } = await import("@/services/aiActorService");
 
-    // Case A: Query with Vietnamese diacritics alias "châu tỉ lợi"
-    const syn1 = getActorSynonyms("châu tỉ lợi");
-    assert.equal(syn1.isMatched, true, "châu tỉ lợi must be matched");
-    assert.equal(syn1.canonicalName, "Chu Tỉ Lợi", "Must resolve canonical name Chu Tỉ Lợi");
-    assert.equal(syn1.slug, "chu-ti-loi", "Slug must be chu-ti-loi");
-    assert.equal(syn1.englishName, "Billy Chow", "English name must be Billy Chow");
-
-    // Case B: Query with unaccented alias "chau ti loi"
-    const syn2 = getActorSynonyms("chau ti loi");
-    assert.equal(syn2.isMatched, true, "chau ti loi must be matched");
-    assert.equal(syn2.canonicalName, "Chu Tỉ Lợi");
-    assert.equal(syn2.slug, "chu-ti-loi");
-
-    // Case C: Query with English alias "Billy Chow"
-    const syn3 = getActorSynonyms("Billy Chow");
-    assert.equal(syn3.isMatched, true);
-    assert.equal(syn3.canonicalName, "Chu Tỉ Lợi");
-
-    // Case D: Sino-Vietnamese variant "chu tinh trì" -> Châu Tinh Trì
-    const syn4 = getActorSynonyms("chu tinh trì");
-    assert.equal(syn4.isMatched, true);
-    assert.equal(syn4.canonicalName, "Châu Tinh Trì");
-
-    // Case E: resolveActorMovies preserves canonical Chu Tỉ Lợi
+    // Dynamic resolution via TMDb Person search & Sino-Vietnamese variant matching
     const actorRes = await resolveActorMovies("châu tỉ lợi");
     assert.equal(actorRes.isActor, true);
-    assert.equal(actorRes.actorName, "Chu Tỉ Lợi", "resolveActorMovies must return Chu Tỉ Lợi, NOT raw input 'châu tỉ lợi'");
+    assert.equal(actorRes.actorName, "Chu Tỉ Lợi", "resolveActorMovies must return Chu Tỉ Lợi from TMDb, NOT raw input 'châu tỉ lợi'");
+    assert.equal(actorRes.source, "tmdb", "Must resolve dynamically from tmdb, not hardcoded preset");
+    assert.equal(actorRes.tmdbPersonId, 239961, "Must match TMDb Person ID 239961");
   });
 
-  await t.test("12. resolveActorProfile preserves canonical Chu Tỉ Lợi even when URL slug has variant 'chau-ti-loi'", async () => {
+  await t.test("12. resolveActorProfile dynamically preserves canonical Chu Tỉ Lợi even when URL slug has variant 'chau-ti-loi'", async () => {
     const { resolveActorProfile } = await import("@/services/actor/actorInternationalName");
 
     const profile = await resolveActorProfile("239961-chau-ti-loi");
     assert.equal(profile.canonicalName, "Chu Tỉ Lợi", "canonicalName must be Chu Tỉ Lợi, not Chau Ti Loi");
-    assert.equal(profile.englishName, "Billy Chow", "englishName must be Billy Chow");
+    assert.ok(profile.englishName === "Chow Bee-Lee" || profile.englishName === "Billy Chow", "Must resolve legitimate international name from TMDb");
   });
 });

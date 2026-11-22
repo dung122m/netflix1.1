@@ -51,8 +51,6 @@ export async function generateStaticParams() {
     "vuong-nhat-bo",
     "nguyen-kinh-thien",
     "ly-hien",
-    "chu-ti-loi",
-    "billy-chow-bei-lei",
     // Hàn Quốc
     "lee-min-ho",
     "park-seo-joon",
