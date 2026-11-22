@@ -19,6 +19,7 @@ import {
   hasExplicitActorPrefix,
   isAmbiguousShortActorKeyword,
   cleanActorQuery,
+  toVietnameseTitleCase,
 } from "@/services/aiActorService";
 import { PaginationControl } from "@/components/ui/PaginationControl";
 import { getPaginationPages } from "@/lib/pagination";
@@ -198,7 +199,7 @@ async function runActorSearch(options: ActorSearchOptions) {
 
   const canonicalName = actorResult.isActor
     ? actorResult.actorName
-    : (actorSynonyms?.canonicalName || actorParam || "");
+    : ((actorSynonyms?.isMatched ? actorSynonyms.canonicalName : "") || actorParam || "");
   if (!canonicalName) return null;
 
   const actorAliases = Array.from(new Set([
@@ -320,9 +321,10 @@ async function runActorSearch(options: ActorSearchOptions) {
   const startIndex = (currentPage - 1) * pageLimit;
   const histArtist = findHistoricalArtist(canonicalName) || (actorParam ? findHistoricalArtist(actorParam) : undefined);
   const bestAvatar = histArtist?.avatarUrl || (actorSynonyms?.slug ? getR2ActorAvatarUrl(actorSynonyms.slug) : undefined) || (actorResult as any)?.avatarUrl;
+  const displayActorName = toVietnameseTitleCase(histArtist?.name || canonicalName);
   return {
     actor: {
-      name: histArtist?.name || canonicalName,
+      name: displayActorName,
       englishName: histArtist?.englishName || actorSynonyms?.englishName,
       country: histArtist?.country || actorCountry,
       avatarUrl: bestAvatar,
@@ -446,8 +448,8 @@ export default async function BrowsePage({
     const actorSearch = await runActorSearch({ actorResult: actorRes, actorSynonyms, actorParam, category, country, year, type, sort, currentPage, pageLimit: PAGE_LIMIT });
     if (actorSearch) {
       if (actorSearch.movies.length > 0 || (actorParam && Boolean(actorSearch.actor.avatarUrl))) {
-        const rawActorName = historicalArtist?.name || actorSynonyms?.canonicalName || actorSearch.actor.name;
-        const actorSlug = (historicalArtist?.slug || actorSynonyms?.slug || slugify(rawActorName))
+        const rawActorName = historicalArtist?.name || (actorSynonyms?.isMatched ? actorSynonyms.canonicalName : "") || actorSearch.actor.name;
+        const actorSlug = (historicalArtist?.slug || (actorSynonyms?.isMatched ? actorSynonyms.slug : "") || slugify(rawActorName))
           .toLowerCase()
           .replace(/^-+|-+$/g, "");
         const personId = actorRes?.tmdbPersonId || historicalArtist?.tmdbPersonId;
@@ -563,8 +565,8 @@ export default async function BrowsePage({
           (hasExplicitActorPrefix(keyword) && Boolean(actorSearch.actor.avatarUrl)) ||
           !hasSuitableTitleResults
         ) {
-          const rawActorName = historicalArtist?.name || fallbackSynonyms?.canonicalName || actorSearch.actor.name;
-          const actorSlug = (historicalArtist?.slug || fallbackSynonyms?.slug || slugify(rawActorName))
+          const rawActorName = historicalArtist?.name || (fallbackSynonyms?.isMatched ? fallbackSynonyms.canonicalName : "") || actorSearch.actor.name;
+          const actorSlug = (historicalArtist?.slug || (fallbackSynonyms?.isMatched ? fallbackSynonyms.slug : "") || slugify(rawActorName))
             .toLowerCase()
             .replace(/^-+|-+$/g, "");
           const personId = fallbackResult?.tmdbPersonId || historicalArtist?.tmdbPersonId;

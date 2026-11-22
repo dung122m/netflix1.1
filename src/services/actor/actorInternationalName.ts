@@ -97,6 +97,9 @@ export interface ResolvedActorProfile {
   isCachedNotFound?: boolean;
 }
 
+const hasVietnameseDiacritics = (str: string) =>
+  /[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/i.test(str);
+
 /**
  * Trích xuất tên quốc tế / phiên âm chuẩn mực (International Name / Romanization)
  * - Ưu tiên 1: Tên quốc tế chính thức từ TMDb tmdbDetail.english_name hoặc tmdbDetail.name (nếu là chữ Latin)
@@ -237,7 +240,9 @@ export const resolveActorProfile = cache(async (slug: string): Promise<ResolvedA
 
   // 1. Phân giải danh tính nghệ sĩ On-Demand
   const historicalItem = getHistoricalArtistBySlug(slug) || (rawName ? getHistoricalArtistBySlug(rawName) : undefined);
-  const actorSynonyms = getActorSynonyms(rawName) || getActorSynonyms(slug);
+  const rawSyn = rawName ? getActorSynonyms(rawName) : null;
+  const slugSyn = slug ? getActorSynonyms(slug) : null;
+  const actorSynonyms = (rawSyn?.isMatched ? rawSyn : null) || (slugSyn?.isMatched ? slugSyn : null);
 
   let tmdbPersonId = explicitPersonId || historicalItem?.tmdbPersonId;
 
@@ -260,7 +265,7 @@ export const resolveActorProfile = cache(async (slug: string): Promise<ResolvedA
 
   let canonicalName =
     historicalItem?.name ||
-    actorSynonyms?.canonicalName ||
+    (actorSynonyms?.isMatched ? actorSynonyms.canonicalName : "") ||
     (actorRes?.isActor && actorRes.actorName ? toVietnameseTitleCase(actorRes.actorName) : "") ||
     toVietnameseTitleCase(rawName);
 
@@ -330,8 +335,12 @@ export const resolveActorProfile = cache(async (slug: string): Promise<ResolvedA
       const detailCandidate = await getTmdbPersonDetail(tmdbPersonId);
       if (detailCandidate && isDetailMatchingExpectedArtist(detailCandidate)) {
         tmdbDetail = detailCandidate;
-        if (!historicalItem?.name && !actorSynonyms?.canonicalName && detailCandidate.name) {
-          canonicalName = toVietnameseTitleCase(detailCandidate.name);
+        const candidateHasVietnamese = hasVietnameseDiacritics(detailCandidate.name || "");
+        const currentHasVietnamese = hasVietnameseDiacritics(canonicalName);
+        if (!historicalItem?.name && detailCandidate.name) {
+          if (candidateHasVietnamese || !currentHasVietnamese) {
+            canonicalName = toVietnameseTitleCase(detailCandidate.name);
+          }
         }
       } else {
         // ID bị sai lệch hoặc không khớp người thật -> vô hiệu hóa ID để tìm kiếm lại theo tên chuẩn
@@ -350,8 +359,12 @@ export const resolveActorProfile = cache(async (slug: string): Promise<ResolvedA
         const detailCandidate = await getTmdbPersonDetail(matchedPerson.id);
         if (detailCandidate) {
           tmdbDetail = detailCandidate;
-          if (!historicalItem?.name && !actorSynonyms?.canonicalName && detailCandidate.name) {
-            canonicalName = toVietnameseTitleCase(detailCandidate.name);
+          const candidateHasVietnamese = hasVietnameseDiacritics(detailCandidate.name || "");
+          const currentHasVietnamese = hasVietnameseDiacritics(canonicalName);
+          if (!historicalItem?.name && detailCandidate.name) {
+            if (candidateHasVietnamese || !currentHasVietnamese) {
+              canonicalName = toVietnameseTitleCase(detailCandidate.name);
+            }
           }
         }
       }

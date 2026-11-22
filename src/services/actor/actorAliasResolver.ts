@@ -1,4 +1,5 @@
 import { normalizeForMatch, normalizeVietnameseVowels } from "@/lib/stringUtils";
+import { normalizeSinoVietnameseVariants } from "@/services/tmdb/personService";
 import {
   type ActorProfile,
   GOLDEN_ACTOR_INDEX,
@@ -145,8 +146,13 @@ export function getActorSynonyms(query: string): ActorSynonymResult {
     ACTOR_CANONICAL_MAP[cleanedActorQVowel];
 
   if (!canonicalDirect) {
+    const sinoNormQ = normalizeSinoVietnameseVariants(normalizedQuery);
     for (const [key, target] of Object.entries(ACTOR_CANONICAL_MAP)) {
-      if (normalizeVietnameseVowels(key) === vowelNormQuery || normalizeVietnameseVowels(key) === cleanedActorQVowel) {
+      if (
+        normalizeVietnameseVowels(key) === vowelNormQuery ||
+        normalizeVietnameseVowels(key) === cleanedActorQVowel ||
+        (Boolean(sinoNormQ) && normalizeSinoVietnameseVariants(normalizeForMatch(key)) === sinoNormQ)
+      ) {
         canonicalDirect = target;
         break;
       }
@@ -204,13 +210,15 @@ export function getActorSynonyms(query: string): ActorSynonymResult {
   }
 
   // 2. Đối chiếu qua ACTOR_SLUG_MAP
+  const sinoNormQ = normalizeSinoVietnameseVariants(normalizedQuery);
   for (const [slug, aliases] of Object.entries(ACTOR_SLUG_MAP)) {
     const normSlug = normalizeForMatch(slug.replace(/-/g, " "));
     const vowelSlug = normalizeVietnameseVowels(slug.replace(/-/g, " "));
     const isSlugMatch =
       normalizedQuery === normSlug ||
       cleanRaw === slug ||
-      vowelNormQuery === vowelSlug;
+      vowelNormQuery === vowelSlug ||
+      (Boolean(sinoNormQ) && normalizeSinoVietnameseVariants(normSlug) === sinoNormQ);
     const isAliasMatch = aliases.some((a) => {
       const normA = normalizeForMatch(a);
       const vowelA = normalizeVietnameseVowels(a);
@@ -218,7 +226,8 @@ export function getActorSynonyms(query: string): ActorSynonymResult {
         normA === normalizedQuery ||
         cleanRaw === a.toLowerCase() ||
         vowelA === vowelNormQuery ||
-        vowelA === cleanedActorQVowel
+        vowelA === cleanedActorQVowel ||
+        (Boolean(sinoNormQ) && normalizeSinoVietnameseVariants(normA) === sinoNormQ)
       );
     });
 
@@ -227,7 +236,8 @@ export function getActorSynonyms(query: string): ActorSynonymResult {
         (p) =>
           normalizeForMatch(p.name) === normalizedQuery ||
           p.aliases.some((pa) => normalizeForMatch(pa) === normalizedQuery) ||
-          normalizeForMatch(p.name) === normSlug
+          normalizeForMatch(p.name) === normSlug ||
+          (Boolean(sinoNormQ) && normalizeSinoVietnameseVariants(normalizeForMatch(p.name)) === sinoNormQ)
       );
 
       const allVariants = Array.from(
@@ -274,6 +284,7 @@ export function getActorSynonyms(query: string): ActorSynonymResult {
     const isMatch =
       normPName === normalizedQuery ||
       vowelPName === vowelNormQuery ||
+      (Boolean(sinoNormQ) && normalizeSinoVietnameseVariants(normPName) === sinoNormQ) ||
       preset.aliases.some((a) => {
         const normA = normalizeForMatch(a);
         const vowelA = normalizeVietnameseVowels(a);
@@ -281,7 +292,8 @@ export function getActorSynonyms(query: string): ActorSynonymResult {
           normA === normalizedQuery ||
           cleanRaw === a.toLowerCase() ||
           vowelA === vowelNormQuery ||
-          vowelA === cleanedActorQVowel
+          vowelA === cleanedActorQVowel ||
+          (Boolean(sinoNormQ) && normalizeSinoVietnameseVariants(normA) === sinoNormQ)
         );
       });
     if (isMatch) {
@@ -306,7 +318,7 @@ export function getActorSynonyms(query: string): ActorSynonymResult {
   return {
     isMatched: false,
     slug: "",
-    canonicalName: query.trim(),
+    canonicalName: "",
     variants: [query.trim().toLowerCase(), normalizedQuery].filter(Boolean),
   };
 }

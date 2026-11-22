@@ -87,7 +87,8 @@ import {
   queryMoviesByActor,
   toVietnameseTitleCase,
 } from "@/services/aiActorService";
-import { cleanCountryName, isAsianScript } from "@/lib/stringUtils";
+import { cleanCountryName, isAsianScript, normalizeForMatch } from "@/lib/stringUtils";
+import { normalizeSinoVietnameseVariants } from "@/services/tmdb/personService";
 import {
   parseActorIdentifier,
   calculateAge,
@@ -173,7 +174,7 @@ export default async function ActorDetailPage({ params }: PageProps) {
     tmdbDetail,
   } = profile;
 
-  const canonicalName = toVietnameseTitleCase(rawCanonical || profile.rawName);
+  let canonicalName = toVietnameseTitleCase(rawCanonical || profile.rawName);
 
   // 3. Tra cứu thông tin bổ trợ từ Wikipedia và Danh sách phim
   // Chỉ gọi Wikipedia khi TMDb thiếu tiểu sử hoặc thiếu ảnh (tiết kiệm 100% lệnh Redis wiki:* cho các diễn viên TMDB đầy đủ)
@@ -212,6 +213,18 @@ export default async function ActorDetailPage({ params }: PageProps) {
           .set(`actor:full_page:v4:${slug}`, { wikiProfile, movies }, ACTOR_PAGE_REDIS_TTL_SEC)
           .catch(() => { });
       }
+    }
+  }
+
+  const hasVietnameseMarks = (s: string) =>
+    /[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/i.test(s);
+  if (wikiProfile?.title && hasVietnameseMarks(wikiProfile.title)) {
+    const normWikiTitle = normalizeForMatch(wikiProfile.title);
+    const normCurrent = normalizeForMatch(canonicalName);
+    const sinoWiki = normalizeSinoVietnameseVariants(normWikiTitle);
+    const sinoCurrent = normalizeSinoVietnameseVariants(normCurrent);
+    if (normWikiTitle === normCurrent || sinoWiki === sinoCurrent) {
+      canonicalName = toVietnameseTitleCase(wikiProfile.title);
     }
   }
 

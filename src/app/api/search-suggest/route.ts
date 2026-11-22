@@ -7,6 +7,7 @@ import {
   queryMoviesByActor,
   isAmbiguousShortActorKeyword,
   hasExplicitActorPrefix,
+  toVietnameseTitleCase,
 } from "@/services/aiActorService";
 import { getActorSynonyms } from "@/services/actor/actorAliasResolver";
 import { findHistoricalArtist } from "@/data/history/historicalArtistsBirthdays";
@@ -205,7 +206,7 @@ export async function GET(req: NextRequest) {
       matchedActorAliases = syn.variants || (actorRes && "aliases" in actorRes && Array.isArray(actorRes.aliases) ? actorRes.aliases : []);
       matchedActorCountry = actorRes.country || syn.country || "Điện Ảnh";
 
-      const actorDisplayName = matchedActorName;
+      const actorDisplayName = toVietnameseTitleCase(matchedActorName);
       const targetCountry = matchedActorCountry;
 
       // Tra cứu nhanh TMDB person để lấy ID và ảnh chân dung diễn viên (budget 450ms)
@@ -235,7 +236,8 @@ export async function GET(req: NextRequest) {
         matchedTmdbPersonId = tmdbPerson.id;
       }
 
-      const cleanSlugPart = (syn.slug || tmdbPerson?.name || actorDisplayName)
+      const candidateSlug = (syn.isMatched && syn.slug) ? syn.slug : (tmdbPerson?.name || actorDisplayName);
+      const cleanSlugPart = candidateSlug
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, "-")
         .replace(/^-+|-+$/g, "");
@@ -250,9 +252,13 @@ export async function GET(req: NextRequest) {
         tmdbPerson?.profile_path ||
         "/default-hero.jpg";
 
+      const displayTitle = (syn.englishName && syn.englishName !== actorDisplayName)
+        ? `Diễn viên: ${actorDisplayName} (${syn.englishName})`
+        : `Diễn viên: ${actorDisplayName}`;
+
       const actorItem = {
         slug: destinationSlug,
-        title: `Diễn viên: ${actorDisplayName}`,
+        title: displayTitle,
         poster: actorPoster,
         year: targetCountry,
         quality: "Hồ Sơ",

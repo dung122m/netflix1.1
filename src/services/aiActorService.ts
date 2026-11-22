@@ -9,6 +9,7 @@ import {
   hasExplicitActorPrefix,
   isAmbiguousShortActorKeyword,
   cleanActorQuery,
+  toVietnameseTitleCase,
   type ActorSynonymResult,
   getActorSynonyms,
   ACTOR_AI_CACHE,
@@ -160,17 +161,34 @@ export async function resolveActorMovies(
       if (isExactMatch || isWordSetMatch || isFuzzyMatch) {
         const hasVietnameseMarks = (s: string) =>
           /[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/i.test(s);
-        let actorName = tmdbPerson.name || keyword;
+
+        // 1. Kiểm tra bảng đồng nghĩa trước tiên (ưu tiên tên Hán-Việt chuẩn xác như Chu Tỉ Lợi, Châu Tinh Trì...)
+        const synFromKeyword = getActorSynonyms(keyword);
+        const synFromName = tmdbPerson.name ? getActorSynonyms(tmdbPerson.name) : null;
+        const resolvedSyn = synFromKeyword.isMatched ? synFromKeyword : (synFromName?.isMatched ? synFromName : null);
+
+        let actorName = "";
         let englishName: string | undefined = undefined;
 
-        if (hasVietnameseMarks(keyword)) {
-          actorName = keyword;
+        if (resolvedSyn) {
+          actorName = resolvedSyn.canonicalName;
+          englishName = resolvedSyn.englishName || (tmdbPerson.name !== resolvedSyn.canonicalName ? tmdbPerson.name : undefined);
+        } else if (tmdbPerson.name && hasVietnameseMarks(tmdbPerson.name)) {
+          // TMDb đã lưu tên tiếng Việt chuẩn mực (vd: "Chu Tỉ Lợi")
+          actorName = toVietnameseTitleCase(tmdbPerson.name);
+          if (tmdbPerson.original_name && tmdbPerson.original_name !== tmdbPerson.name && !hasVietnameseMarks(tmdbPerson.original_name)) {
+            englishName = toVietnameseTitleCase(tmdbPerson.original_name);
+          }
+        } else if (hasVietnameseMarks(keyword)) {
+          actorName = toVietnameseTitleCase(keyword);
           if (tmdbPerson.name && tmdbPerson.name !== keyword) {
             englishName = tmdbPerson.name;
           }
         } else if (tmdbPerson.original_name && hasVietnameseMarks(tmdbPerson.original_name)) {
-          actorName = tmdbPerson.original_name;
+          actorName = toVietnameseTitleCase(tmdbPerson.original_name);
           englishName = tmdbPerson.name;
+        } else {
+          actorName = tmdbPerson.name ? toVietnameseTitleCase(tmdbPerson.name) : toVietnameseTitleCase(keyword);
         }
 
         const aliases = Array.from(
