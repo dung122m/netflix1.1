@@ -200,20 +200,7 @@
     scroll-padding-top: 5rem;
     overflow-x: clip;
     scrollbar-gutter: stable;
-  }
-
-  /* Lenis Smooth Scroll Engine Optimizations */
-  html.lenis, html.lenis body {
-    height: auto;
-  }
-  .lenis.lenis-smooth {
     scroll-behavior: auto !important;
-  }
-  .lenis.lenis-smooth [data-lenis-prevent] {
-    overscroll-behavior: contain;
-  }
-  .lenis.lenis-stopped {
-    overflow: hidden;
   }
 
   ::selection {
@@ -461,10 +448,10 @@
   }
 }
 
-/* Smooth momentum scroll trên iOS */
+/* Momentum scroll trên iOS */
 .scroll-momentum {
   -webkit-overflow-scrolling: touch;
-  scroll-behavior: smooth;
+  scroll-behavior: auto;
 }
 
 /* Tránh text bị chọn khi swipe trên mobile */
