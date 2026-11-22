@@ -101,8 +101,12 @@ async function fastBatchEnrichFromCache(movieList: any[]): Promise<void> {
             const { item } = needsLookup[i];
             if (hit.posterUrl) {
               item.poster_url = hit.posterUrl;
+              item.posterUrl = hit.posterUrl;
+              if (item.poster_url_webp) item.poster_url_webp = hit.posterUrl;
               if (hit.backdropUrl) {
                 item.thumb_url = hit.backdropUrl;
+                item.thumbUrl = hit.backdropUrl;
+                if (item.thumb_url_webp) item.thumb_url_webp = hit.backdropUrl;
               }
             }
           }
@@ -172,8 +176,12 @@ export async function enrichMovieListPosters(movieList: any[], options: PosterEn
           const imgs = await getTmdbMediaImagesById(item.tmdb.id, tmdbLookupType, signal);
           if (imgs.posterUrl) {
             item.poster_url = imgs.posterUrl;
+            item.posterUrl = imgs.posterUrl;
+            if (item.poster_url_webp) item.poster_url_webp = imgs.posterUrl;
             if (shouldUpgradeThumbUrl(item.thumb_url)) {
               item.thumb_url = imgs.backdropUrl || imgs.posterUrl;
+              item.thumbUrl = imgs.backdropUrl || imgs.posterUrl;
+              if (item.thumb_url_webp) item.thumb_url_webp = imgs.backdropUrl || imgs.posterUrl;
             }
             settledItems.add(item);
             return;

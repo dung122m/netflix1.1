@@ -490,7 +490,7 @@ export default async function BrowsePage({
       limit: PAGE_LIMIT,
       type,
       sort: effectiveSort,
-      posterEnrichmentBudgetMs: 0,
+      posterEnrichmentBudgetMs: 1500,
     });
 
     upstreamMovies = response?.items || [];
@@ -588,13 +588,13 @@ export default async function BrowsePage({
     fallbackMovies = rawFallback.slice(0, count >= 12 ? Math.min(count, 18) : 12);
   }
 
-  // TẦNG 1: NẠP SẴN POSTER TMDB TRONG RAM/REDIS VÀO HTML BAN ĐẦU (1 LỆNH MGET DUY NHẤT, CAP 300MS)
+  // TẦNG 1: NẠP SẴN POSTER TMDB TRONG RAM/REDIS VÀO HTML BAN ĐẦU (1 LỆNH MGET DUY NHẤT, CAP 1500MS)
   const posterTasks: Promise<void>[] = [];
   if (movies.length > 0) {
-    posterTasks.push(enrichMovieListPosters(movies, { budgetMs: 300, stripProxyUrls: true }));
+    posterTasks.push(enrichMovieListPosters(movies, { budgetMs: 1500, stripProxyUrls: true }));
   }
   if (fallbackMovies.length > 0) {
-    posterTasks.push(enrichMovieListPosters(fallbackMovies, { budgetMs: 300, stripProxyUrls: true }));
+    posterTasks.push(enrichMovieListPosters(fallbackMovies, { budgetMs: 1500, stripProxyUrls: true }));
   }
   if (posterTasks.length > 0) {
     await Promise.allSettled(posterTasks);
