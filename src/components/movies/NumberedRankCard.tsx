@@ -142,10 +142,10 @@ export const NumberedRankCard: React.FC<NumberedRankCardProps> = ({
             {specialBadge && (
               <div className="absolute top-2 right-2 pointer-events-none z-10">
                 <span
-                  className={`px-1.5 py-0.5 rounded text-[10px] font-bold backdrop-blur-md ${
+                  className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
                     specialBadge === "CAM"
                       ? "bg-amber-950/90 text-amber-300"
-                      : "bg-black/75 text-zinc-100"
+                      : "bg-black/85 text-zinc-100"
                   }`}
                 >
                   {specialBadge}

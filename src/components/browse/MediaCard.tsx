@@ -559,7 +559,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
             <span
               className={`inline-flex items-center px-1.5 py-0.5 rounded-[4px] text-[10px] font-extrabold uppercase tracking-wider shadow select-none ${displayQualityBadge === "CAM"
                 ? "bg-amber-500 text-black font-black"
-                : "bg-black/80 backdrop-blur-md text-zinc-100"
+                : "bg-black/90 text-zinc-100"
                 }`}
             >
               {displayQualityBadge}
@@ -585,7 +585,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
                 type="button"
                 onClick={onRemove}
                 aria-label={removeTooltip || `Xóa ${title}`}
-                className="w-7 h-7 rounded-full bg-black/75 hover:bg-netflix-red hover:text-white text-zinc-300 backdrop-blur-md flex items-center justify-center shadow-lg transition-transform transition-colors duration-200 hover:scale-110 active:scale-90 cursor-pointer"
+                className="w-7 h-7 rounded-full bg-black/85 hover:bg-netflix-red hover:text-white text-zinc-300 flex items-center justify-center shadow-lg transition-transform transition-colors duration-200 hover:scale-110 active:scale-90 cursor-pointer"
               >
                 <X className="w-3.5 h-3.5" />
               </button>
@@ -595,7 +595,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
 
         {/* THANH TIẾN ĐỘ XEM THEO THEME DƯỚI ĐÁY POSTER */}
         {typeof progressPercent === "number" && progressPercent >= 0 && (
-          <div className="absolute bottom-0 left-0 right-0 h-[3.5px] bg-white/20 backdrop-blur-sm z-10 overflow-hidden">
+          <div className="absolute bottom-0 left-0 right-0 h-[3.5px] bg-white/20 z-10 overflow-hidden">
             <div
               className="h-full bg-netflix-red rounded-r-full transition-[width] duration-500"
               style={{ width: `${Math.min(100, Math.max(0, progressPercent))}%` }}
@@ -613,7 +613,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
               type="button"
               onClick={handleOpenCollectionModal}
               aria-label={`Thêm phim ${title} vào bộ sưu tập`}
-              className="w-7 h-7 rounded-full flex items-center justify-center transition-transform transition-colors duration-150 hover:scale-110 active:scale-95 cursor-pointer shadow-md shadow-black/50 backdrop-blur-md outline-none focus-visible:ring-2 focus-visible:ring-amber-400 bg-black/75 hover:bg-amber-400 text-amber-400 hover:text-black"
+              className="w-7 h-7 rounded-full flex items-center justify-center transition-transform transition-colors duration-150 hover:scale-110 active:scale-95 cursor-pointer shadow-md shadow-black/50 outline-none focus-visible:ring-2 focus-visible:ring-amber-400 bg-black/85 hover:bg-amber-400 text-amber-400 hover:text-black"
             >
               <FolderPlus className="w-3.5 h-3.5 transition-colors" />
             </button>
@@ -625,9 +625,9 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
               type="button"
               onClick={handleToggleList}
               aria-label={inList ? `Bỏ lưu phim ${title}` : `Lưu phim ${title} vào danh sách`}
-              className={`w-7 h-7 rounded-full flex items-center justify-center transition-transform transition-colors duration-150 hover:scale-110 active:scale-95 cursor-pointer shadow-md shadow-black/50 backdrop-blur-md outline-none focus-visible:ring-2 focus-visible:ring-netflix-red ${inList
+              className={`w-7 h-7 rounded-full flex items-center justify-center transition-transform transition-colors duration-150 hover:scale-110 active:scale-95 cursor-pointer shadow-md shadow-black/50 outline-none focus-visible:ring-2 focus-visible:ring-netflix-red ${inList
                 ? "bg-netflix-red text-white hover:brightness-110"
-                : "bg-black/75 hover:bg-netflix-red hover:text-white text-white"
+                : "bg-black/85 hover:bg-netflix-red hover:text-white text-white"
                 }`}
             >
               {inList ? <Check className="w-3.5 h-3.5 stroke-[2.5]" /> : <Bookmark className="w-3.5 h-3.5 transition-colors" />}
@@ -644,7 +644,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
                 onClick={handleTrailerClick}
                 disabled={isLoadingTrailer}
                 aria-label={`Xem Trailer phim ${title}`}
-                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-black/75 hover:bg-white hover:text-zinc-950 text-white text-[11px] font-bold transition-transform transition-colors duration-150 hover:scale-105 active:scale-95 cursor-pointer shadow-md shadow-black/50 backdrop-blur-md outline-none focus-visible:ring-2 focus-visible:ring-white"
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-black/85 hover:bg-white hover:text-zinc-950 text-white text-[11px] font-bold transition-transform transition-colors duration-150 hover:scale-105 active:scale-95 cursor-pointer shadow-md shadow-black/50 outline-none focus-visible:ring-2 focus-visible:ring-white"
               >
                 <Film className="w-3 h-3 text-current" />
                 <span>{isLoadingTrailer ? "..." : "Trailer"}</span>

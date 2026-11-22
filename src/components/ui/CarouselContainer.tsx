@@ -85,7 +85,7 @@ export function CarouselContainer({
       <div
         ref={scrollRef}
         onScroll={handleCombinedScroll}
-        className={`flex overflow-x-auto overflow-y-hidden scrollbar-none snap-x snap-mandatory md:snap-proximity scroll-smooth [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] ${className}`}
+        className={`flex overflow-x-auto overflow-y-hidden scrollbar-none snap-x snap-mandatory md:snap-proximity [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] ${className}`}
         style={{
           scrollbarWidth: "none",
           msOverflowStyle: "none",
