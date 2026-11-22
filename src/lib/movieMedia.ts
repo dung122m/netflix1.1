@@ -482,7 +482,7 @@ export function sanitizeImageUrl(url: string): string {
 
   // Tối ưu ảnh NguonC: Nhận diện mã hash TMDb (kể cả có subfolder /movie-slug/ và tiền tố poster_/backdrop_)
   const tmdbHashMatch = clean.match(
-    /https?:\/\/(?:phim\.nguonc\.com\/public\/images\/Film)(?:\/[^/]+)*\/(?:poster_|backdrop_)?([a-zA-Z0-9]{22,35}\.(?:jpg|jpeg|png|webp))$/i
+    /https?:\/\/(?:phim\.nguonc\.com\/public\/images\/Film|img\.nguonc\.com\/images)(?:\/[^/]+)*\/(?:poster_|backdrop_)?([a-zA-Z0-9]{22,35}\.(?:jpg|jpeg|png|webp))$/i
   );
   if (tmdbHashMatch && !tmdbHashMatch[1].includes("-")) {
     clean = `https://image.tmdb.org/t/p/w500/${tmdbHashMatch[1]}`;

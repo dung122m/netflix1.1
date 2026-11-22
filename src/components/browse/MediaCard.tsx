@@ -241,15 +241,51 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
 
   const triedUrlsRef = useRef<Set<string>>(new Set());
   const imgRef = useRef<HTMLImageElement | null>(null);
+  const cardContainerRef = useRef<HTMLDivElement>(null);
 
   const initialCandidate = imageCandidates[0] || "";
 
-  // Chỉ kích hoạt TMDb fallback khi thực sự thiếu ảnh hoặc là ảnh placeholder mặc định (tiết kiệm Serverless CPU Vercel)
+  // Lazy prefetch zone: Chỉ kích hoạt tra cứu khi card cách tầm mắt 400px hoặc khi có priority
+  const [isInView, setIsInView] = useState<boolean>(() => priority || false);
+
+  const isSlow = Boolean(initialCandidate && isSlowProviderSourceUrl(initialCandidate));
+  const isMissing = !initialCandidate || initialCandidate.includes("/default-");
+  const shouldUpgrade = isMissing || isSlow;
+
+  useEffect(() => {
+    if (isInView || priority) return;
+    const el = cardContainerRef.current;
+    if (!el || typeof IntersectionObserver === "undefined") {
+      setIsInView(true);
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          setIsInView(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: "400px 0px" }
+    );
+
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [isInView, priority]);
+
+  // Kích hoạt TMDb fallback khi card vào tầm đón đầu và cần nâng cấp ảnh
   const [needsFallback, setNeedsFallback] = useState<boolean>(
-    () => !initialCandidate || initialCandidate.includes("/default-")
+    () => isInView && shouldUpgrade
   );
 
-  // Chuẩn hóa và tra cứu fallback TMDb dùng chung khi cần (chỉ kích hoạt khi thiếu ảnh hoặc ảnh lỗi)
+  useEffect(() => {
+    if (isInView && shouldUpgrade && !needsFallback) {
+      setNeedsFallback(true);
+    }
+  }, [isInView, shouldUpgrade, needsFallback]);
+
+  // Chuẩn hóa và tra cứu fallback TMDb gom batch qua hook
   const { displaySrc: tmdbFallbackSrc, isLoading: isFallbackLoading, triggerFallback } = useMoviePosterFallback({
     slug,
     title,
@@ -258,13 +294,15 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
     type: itemType,
     initialSrc: initialCandidate,
     enabled: needsFallback,
-    upgradePhimimg: false,
+    upgradePhimimg: true,
     tmdbId,
   });
 
   const initialToUse =
     (tmdbFallbackSrc && !isSlowProviderSourceUrl(tmdbFallbackSrc))
       ? tmdbFallbackSrc
+      : (needsFallback && isSlowProviderSourceUrl(initialCandidate))
+      ? "" // Trì hoãn nạp candidate chậm (phimimg/nguonc) để chờ tra cứu TMDb xong trước, chống flash ảnh và ngăn ISP chặn
       : initialCandidate;
 
   const [currentSrc, setCurrentSrc] = useState<string>(() => initialToUse);
@@ -561,6 +599,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
 
   return (
     <div
+      ref={cardContainerRef}
       className="group/card relative flex flex-col w-full select-none cursor-pointer hover:scale-[1.02] hover:-translate-y-0.5 hover:z-20 transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:transform-none"
     >
       {/* ========================================================================= */}

@@ -58,7 +58,7 @@ export function persistPosterCacheEntry(key: string, url: string) {
     const obj: Record<string, string> = raw ? JSON.parse(raw) : {};
     obj[key] = url;
     const keys = Object.keys(obj);
-    if (keys.length > 300) delete obj[keys[0]];
+    if (keys.length > 500) delete obj[keys[0]];
     localStorage.setItem(POSTER_CACHE_KEY, JSON.stringify(obj));
   } catch {}
 }
@@ -71,45 +71,96 @@ export function persistFailureEntry(key: string) {
     const arr: string[] = raw ? JSON.parse(raw) : [];
     if (!arr.includes(key)) {
       arr.push(key);
-      if (arr.length > 300) arr.shift();
+      if (arr.length > 500) arr.shift();
       sessionStorage.setItem(TRIED_FAILURES_KEY, JSON.stringify(arr));
     }
   } catch {}
 }
 
 // =========================================================================
-// 2. CONCURRENCY LIMITER (Giới hạn tối đa 4 request đồng thời)
+// 2. DEBOUNCED BATCH QUEUE (Gom 24 request thành 1 request POST duy nhất)
 // =========================================================================
-let activeRequests = 0;
-const MAX_CONCURRENT = 4;
-const requestQueue: Array<() => void> = [];
-
-function dequeue() {
-  if (activeRequests < MAX_CONCURRENT && requestQueue.length > 0) {
-    const next = requestQueue.shift();
-    if (next) {
-      activeRequests++;
-      next();
-    }
-  }
+interface BatchQueueEntry {
+  cacheKey: string;
+  payload: {
+    tmdbId?: string | number;
+    title?: string;
+    origin_name?: string;
+    year?: string | number;
+    slug?: string;
+    type?: string;
+  };
+  resolve: (res: { posterUrl: string | null; backdropUrl: string | null } | null) => void;
 }
 
-function enqueue<T>(fn: () => Promise<T>): Promise<T> {
-  return new Promise<T>((resolve, reject) => {
-    const run = () => {
-      fn()
-        .then(resolve)
-        .catch(reject)
-        .finally(() => {
-          activeRequests--;
-          dequeue();
-        });
-    };
-    if (activeRequests < MAX_CONCURRENT) {
-      activeRequests++;
-      run();
-    } else {
-      requestQueue.push(run);
+const batchQueue: BatchQueueEntry[] = [];
+let batchTimer: ReturnType<typeof setTimeout> | null = null;
+const BATCH_DEBOUNCE_MS = 60;
+const MAX_BATCH_SIZE = 28;
+
+function flushBatchQueue() {
+  if (batchQueue.length === 0) return;
+  const currentBatch = batchQueue.splice(0, MAX_BATCH_SIZE);
+  batchTimer = null;
+
+  const items = currentBatch.map((entry) => ({
+    ...entry.payload,
+  }));
+
+  fetch("/api/movie-poster-fallback", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ items }),
+  })
+    .then(async (res) => {
+      if (!res.ok) {
+        currentBatch.forEach((e) => e.resolve(null));
+        return;
+      }
+      const data = await res.json();
+      const results = (data?.results || {}) as Record<string, { posterUrl?: string | null; backdropUrl?: string | null }>;
+      currentBatch.forEach((e) => {
+        const hit = results[e.cacheKey];
+        if (hit) {
+          e.resolve({ posterUrl: hit.posterUrl || null, backdropUrl: hit.backdropUrl || null });
+        } else {
+          const matchingKey = Object.keys(results).find(
+            (k) =>
+              (e.payload.slug && k.includes(e.payload.slug.toLowerCase())) ||
+              (e.payload.tmdbId && k.includes(String(e.payload.tmdbId)))
+          );
+          if (matchingKey && results[matchingKey]) {
+            const m = results[matchingKey];
+            e.resolve({ posterUrl: m.posterUrl || null, backdropUrl: m.backdropUrl || null });
+          } else {
+            e.resolve(null);
+          }
+        }
+      });
+    })
+    .catch(() => {
+      currentBatch.forEach((e) => e.resolve(null));
+    });
+}
+
+function enqueueBatchLookup(
+  cacheKey: string,
+  payload: {
+    tmdbId?: string | number;
+    title?: string;
+    origin_name?: string;
+    year?: string | number;
+    slug?: string;
+    type?: string;
+  }
+): Promise<{ posterUrl: string | null; backdropUrl: string | null } | null> {
+  return new Promise((resolve) => {
+    batchQueue.push({ cacheKey, payload, resolve });
+    if (batchQueue.length >= MAX_BATCH_SIZE) {
+      if (batchTimer) clearTimeout(batchTimer);
+      flushBatchQueue();
+    } else if (!batchTimer) {
+      batchTimer = setTimeout(flushBatchQueue, BATCH_DEBOUNCE_MS);
     }
   });
 }
@@ -146,12 +197,11 @@ export interface UseMoviePosterFallbackOptions {
 }
 
 /**
- * Hook dùng chung cho Watchlist, Lịch sử xem và Bộ sưu tập:
- * - Bảo toàn 100% ảnh gốc hiển thị ngay tức thì (0ms, không nhấp nháy, không trắng ảnh).
- * - KHÔNG gọi đón đầu hàng loạt khi mount nếu ảnh gốc hợp lệ.
- * - Chỉ tra cứu qua /api/movie-poster-fallback khi ảnh gốc thực sự lỗi hoặc được gọi qua triggerFallback().
- * - Chỉ thay ảnh khi đã preload thành công ảnh TMDb/AniList mới.
- * - Nếu không tìm thấy hoặc lỗi, GIỮ NGUYÊN ảnh gốc ban đầu.
+ * Hook nâng cấp Poster sang TMDb CDN chính hãng:
+ * - Bảo toàn 100% ảnh gốc hiển thị tức thì nếu là TMDb / AniList CDN.
+ * - Sử dụng Debounced Batch Queue: gom toàn bộ thẻ trên trang thành 1 request POST duy nhất (tiết kiệm 95% CPU Vercel & Redis).
+ * - Lưu vĩnh viễn vào LocalStorage: lần sau mở lại đọc 0ms trong RAM/LocalStorage.
+ * - Tuyệt đối không ghi rác vào Cloudflare R2 bucket (0đ R2).
  */
 export function useMoviePosterFallback({
   slug,
@@ -162,7 +212,7 @@ export function useMoviePosterFallback({
   initialSrc,
   preferBackdrop = false,
   enabled = true,
-  upgradePhimimg = false,
+  upgradePhimimg = true,
   tmdbId,
 }: UseMoviePosterFallbackOptions): {
   displaySrc: string;
@@ -175,33 +225,44 @@ export function useMoviePosterFallback({
     setManuallyTriggered(true);
   }, []);
 
-  const cacheKey = tmdbId ? `tmdb:${tmdbId}` : slug || `${title || ""}_${year || ""}`.trim();
+  const cleanTmdbId = tmdbId ? String(tmdbId).trim() : "";
+  const cleanType = type || "movie";
+  const cacheKey = cleanTmdbId
+    ? `v3:tmdb:${cleanTmdbId}:${cleanType}`
+    : `v3:${slug || title || ""}|${origin_name || ""}|${year || ""}|${cleanType}`.toLowerCase();
+
+  const legacyKey = slug || cleanTmdbId || `${title || ""}_${year || ""}`.trim();
   const safeInitial = initialSrc && typeof initialSrc === "string" ? initialSrc.trim() : "";
 
-  // 1. Kiểm tra cache hit ngay từ đầu
+  // 1. Kiểm tra cache hit ngay từ đầu (0ms)
   const [displaySrc, setDisplaySrc] = useState<string>(() => {
     if (cacheKey && GLOBAL_POSTER_CACHE.has(cacheKey)) {
       return GLOBAL_POSTER_CACHE.get(cacheKey)!;
+    }
+    if (legacyKey && GLOBAL_POSTER_CACHE.has(legacyKey)) {
+      return GLOBAL_POSTER_CACHE.get(legacyKey)!;
     }
     return safeInitial;
   });
 
   const [isUpgraded, setIsUpgraded] = useState<boolean>(() => {
-    if (cacheKey && GLOBAL_POSTER_CACHE.has(cacheKey)) {
-      return true;
-    }
+    if (cacheKey && GLOBAL_POSTER_CACHE.has(cacheKey)) return true;
+    if (legacyKey && GLOBAL_POSTER_CACHE.has(legacyKey)) return true;
     return Boolean(safeInitial && safeInitial.includes("image.tmdb.org"));
   });
 
   const [isLoading, setIsLoading] = useState<boolean>(() => {
-    const isCached = Boolean(cacheKey && GLOBAL_POSTER_CACHE.has(cacheKey));
+    const isCached = Boolean(
+      (cacheKey && GLOBAL_POSTER_CACHE.has(cacheKey)) ||
+      (legacyKey && GLOBAL_POSTER_CACHE.has(legacyKey))
+    );
     const shouldLoadForSrc =
       isPosterEmptyOrBroken(safeInitial) || (upgradePhimimg && isPhimimgSourceUrl(safeInitial));
     const shouldLoadEagerly =
       enabled &&
       !isCached &&
       shouldLoadForSrc &&
-      Boolean(slug || title) &&
+      Boolean(slug || title || tmdbId) &&
       !GLOBAL_TRIED_FAILURES.has(cacheKey);
     return shouldLoadEagerly;
   });
@@ -221,6 +282,10 @@ export function useMoviePosterFallback({
         setDisplaySrc(GLOBAL_POSTER_CACHE.get(cacheKey)!);
         setIsUpgraded(true);
         setIsLoading(false);
+      } else if (legacyKey && GLOBAL_POSTER_CACHE.has(legacyKey)) {
+        setDisplaySrc(GLOBAL_POSTER_CACHE.get(legacyKey)!);
+        setIsUpgraded(true);
+        setIsLoading(false);
       } else {
         setDisplaySrc(safeInitial);
         const shouldLoadForSrc =
@@ -228,23 +293,21 @@ export function useMoviePosterFallback({
         const shouldLoad =
           (enabled || manuallyTriggered) &&
           (manuallyTriggered || shouldLoadForSrc) &&
-          Boolean(slug || title) &&
+          Boolean(slug || title || tmdbId) &&
           !GLOBAL_TRIED_FAILURES.has(cacheKey);
         setIsLoading(shouldLoad);
       }
     }
-  }, [safeInitial, cacheKey, isUpgraded, displaySrc, slug, title, enabled, manuallyTriggered, upgradePhimimg]);
+  }, [safeInitial, cacheKey, legacyKey, isUpgraded, displaySrc, slug, title, tmdbId, enabled, manuallyTriggered, upgradePhimimg]);
 
   useEffect(() => {
-    // Chỉ chạy khi được phép hoặc khi được kích hoạt thủ công do ảnh lỗi
     const isAllowedToFetch = enabled || manuallyTriggered;
     if (!isAllowedToFetch) {
       setIsLoading(false);
       return;
     }
 
-    // Nếu không có thông tin tìm kiếm hoặc đã là TMDb/AniList thì bỏ qua
-    if (!cacheKey || (!slug && !title)) {
+    if (!cacheKey || (!slug && !title && !tmdbId)) {
       setIsLoading(false);
       return;
     }
@@ -260,16 +323,22 @@ export function useMoviePosterFallback({
       return;
     }
 
+    if (legacyKey && GLOBAL_POSTER_CACHE.has(legacyKey)) {
+      const cachedUrl = GLOBAL_POSTER_CACHE.get(legacyKey)!;
+      if (cachedUrl !== displaySrc) {
+        setDisplaySrc(cachedUrl);
+        setIsUpgraded(true);
+      }
+      setIsLoading(false);
+      return;
+    }
+
     // Nếu đã thử và thất bại trước đó trong phiên này, không spam API lại
     if (GLOBAL_TRIED_FAILURES.has(cacheKey)) {
       setIsLoading(false);
       return;
     }
 
-    // Chỉ gọi tra cứu khi:
-    // a) Được kích hoạt thủ công do ảnh lỗi (manuallyTriggered === true), HOẶC
-    // b) Ảnh ban đầu thực sự rỗng / placeholder mặc định khi enabled=true, HOẶC
-    // c) upgradePhimimg=true và ảnh hiện tại vẫn đến từ phimimg.com
     const needsLookup =
       manuallyTriggered ||
       (enabled &&
@@ -283,23 +352,13 @@ export function useMoviePosterFallback({
 
     let inFlight = GLOBAL_INFLIGHT_PROMISES.get(cacheKey);
     if (!inFlight) {
-      const params = new URLSearchParams();
-      if (tmdbId) params.set("tmdb_id", String(tmdbId));
-      if (title) params.set("title", title);
-      if (origin_name) params.set("origin_name", origin_name);
-      if (year) params.set("year", String(year));
-      if (slug) params.set("slug", slug);
-      if (type) params.set("type", type);
-      params.set("v", "2");
-
-      inFlight = enqueue(async () => {
-        try {
-          const res = await fetch(`/api/movie-poster-fallback?${params.toString()}`);
-          if (!res.ok) return null;
-          return await res.json();
-        } catch {
-          return null;
-        }
+      inFlight = enqueueBatchLookup(cacheKey, {
+        tmdbId,
+        title,
+        origin_name,
+        year,
+        slug,
+        type,
       });
       GLOBAL_INFLIGHT_PROMISES.set(cacheKey, inFlight);
     }
@@ -313,7 +372,7 @@ export function useMoviePosterFallback({
         ? (data?.backdropUrl || data?.posterUrl)
         : (data?.posterUrl || data?.backdropUrl);
 
-      // Nếu không tìm thấy ảnh thay thế hoặc ảnh vẫn là nguồn chậm (phimimg/nguonc) -> GIỮ NGUYÊN ẢNH GỐC
+      // Nếu không tìm thấy ảnh thay thế hoặc ảnh vẫn là nguồn chậm (phimimg/nguonc)
       if (!resolvedRaw || typeof resolvedRaw !== "string" || isSlowProviderSourceUrl(resolvedRaw)) {
         persistFailureEntry(cacheKey);
         setIsLoading(false);
@@ -328,12 +387,12 @@ export function useMoviePosterFallback({
       preloader.onload = () => {
         if (!isMountedRef.current) return;
         persistPosterCacheEntry(cacheKey, candidate);
+        if (legacyKey) persistPosterCacheEntry(legacyKey, candidate);
         setDisplaySrc(candidate);
         setIsUpgraded(true);
         setIsLoading(false);
       };
       preloader.onerror = () => {
-        // Ảnh mới bị lỗi mạng/404 -> Giữ nguyên ảnh gốc, không làm hỏng giao diện
         if (!isMountedRef.current) return;
         persistFailureEntry(cacheKey);
         setIsLoading(false);
@@ -345,7 +404,7 @@ export function useMoviePosterFallback({
         setIsLoading(false);
       }
     });
-  }, [cacheKey, slug, title, origin_name, year, type, displaySrc, preferBackdrop, enabled, manuallyTriggered, upgradePhimimg, tmdbId]);
+  }, [cacheKey, legacyKey, slug, title, origin_name, year, type, displaySrc, preferBackdrop, enabled, manuallyTriggered, upgradePhimimg, tmdbId]);
 
   return { displaySrc, isUpgraded, isLoading, triggerFallback };
 }

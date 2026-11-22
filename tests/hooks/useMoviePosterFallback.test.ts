@@ -1,7 +1,7 @@
 import test, { describe } from "node:test";
 import assert from "node:assert/strict";
 import { isPosterEmptyOrBroken, isPhimimgOrEmpty } from "@/hooks/useMoviePosterFallback";
-import { GET } from "@/app/api/movie-poster-fallback/route";
+import { GET, POST } from "@/app/api/movie-poster-fallback/route";
 import { NextRequest } from "next/server";
 
 describe("Batch 2: Movie Poster Fallback Optimization Tests", () => {
@@ -73,6 +73,53 @@ describe("Batch 2: Movie Poster Fallback Optimization Tests", () => {
       assert.equal(dataL1.source, "l1-cache");
       assert.ok(resL1.headers.get("Cache-Control")?.includes("public"));
       assert.ok(resL1.headers.get("CDN-Cache-Control")?.includes("public"));
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  test("5. /api/movie-poster-fallback POST batch endpoint resolves multiple items in 1 request", async () => {
+    // Missing body -> 400
+    const reqEmpty = new NextRequest("http://localhost:3000/api/movie-poster-fallback", {
+      method: "POST",
+      body: JSON.stringify({ items: [] }),
+    });
+    const resEmpty = await POST(reqEmpty);
+    assert.equal(resEmpty.status, 400);
+
+    const originalFetch = globalThis.fetch;
+    try {
+      globalThis.fetch = async () => {
+        return new Response(
+          JSON.stringify({
+            results: [
+              {
+                poster_path: "/batch_poster_1.jpg",
+                backdrop_path: "/batch_backdrop_1.jpg",
+                vote_count: 300,
+                popularity: 12.0,
+              },
+            ],
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } }
+        );
+      };
+
+      const req = new NextRequest("http://localhost:3000/api/movie-poster-fallback", {
+        method: "POST",
+        body: JSON.stringify({
+          items: [
+            { slug: "batch-movie-1", title: "Batch Movie 1", year: 2024 },
+            { slug: "batch-movie-2", title: "Batch Movie 2", year: 2024 },
+          ],
+        }),
+      });
+      const res = await POST(req);
+      assert.equal(res.status, 200);
+      const data = await res.json();
+      assert.equal(data.status, true);
+      assert.ok(data.results, "Batch response must have results map");
+      assert.ok(Object.keys(data.results).length > 0, "Results map must contain resolved items");
     } finally {
       globalThis.fetch = originalFetch;
     }

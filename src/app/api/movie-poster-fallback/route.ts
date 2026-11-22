@@ -41,100 +41,80 @@ async function queryTmdbPoster(
   return searchTmdbPosterByTitle(query, year, "movie", undefined, expectedCountry);
 }
 
-export async function GET(req: NextRequest) {
-  const rateLimit = await enforceRateLimit(req, RATE_LIMIT_PRESETS.POSTER_FALLBACK_IN_MEMORY);
-  if (!rateLimit.allowed) {
-    return buildRateLimitResponse(rateLimit);
-  }
+export interface FallbackItemParams {
+  tmdbId?: string | number;
+  title?: string;
+  origin_name?: string;
+  year?: string | number;
+  slug?: string;
+  type?: string;
+}
 
-  const { searchParams } = req.nextUrl;
-  const tmdbId = searchParams.get("tmdb_id")?.trim() || searchParams.get("tmdbId")?.trim() || "";
-  const title = searchParams.get("title")?.trim() || "";
-  const origin_name = searchParams.get("origin_name")?.trim() || "";
-  const year = searchParams.get("year")?.trim() || "";
-  const slug = searchParams.get("slug")?.trim() || "";
-  const type = searchParams.get("type")?.trim() || "movie";
+export interface ParsedItemKeys {
+  cacheKey: string;
+  redisPosterKey: string;
+  slugCleanKey: string;
+  tmdbId: string;
+  title: string;
+  origin_name: string;
+  year: string;
+  slug: string;
+  type: string;
+}
 
-  if (!title && !origin_name && !slug && !tmdbId) {
-    return NextResponse.json({ status: false, error: "Missing query parameters" }, { status: 400 });
-  }
+export function parseItemKeys(params: FallbackItemParams): ParsedItemKeys {
+  const tmdbId = params.tmdbId ? String(params.tmdbId).trim() : "";
+  const title = params.title?.trim() || "";
+  const origin_name = params.origin_name?.trim() || "";
+  const year = params.year ? String(params.year).trim() : "";
+  const slug = params.slug?.trim() || "";
+  const type = params.type?.trim() || "movie";
 
   const cacheKey = tmdbId
     ? `v3:tmdb:${tmdbId}:${type}`
     : `v3:${slug || title}|${origin_name}|${year}|${type}`.toLowerCase();
-  const now = Date.now();
-
-  // 1. Kiểm tra L1 RAM cache
-  const cached = posterMemoryCache.get(cacheKey);
-  if (cached && cached.expireAt > now) {
-    const hasPoster = Boolean(cached.posterUrl || cached.backdropUrl);
-    return NextResponse.json(
-      {
-        status: true,
-        posterUrl: cached.posterUrl,
-        backdropUrl: cached.backdropUrl,
-        source: "l1-cache",
-      },
-      {
-        headers: {
-          "Cache-Control": hasPoster
-            ? "public, max-age=86400, s-maxage=604800, stale-while-revalidate=86400"
-            : "public, max-age=3600, s-maxage=86400",
-          "CDN-Cache-Control": hasPoster
-            ? "public, max-age=604800, stale-while-revalidate=86400"
-            : "public, max-age=86400",
-          "Vercel-CDN-Cache-Control": hasPoster
-            ? "public, max-age=604800, stale-while-revalidate=86400"
-            : "public, max-age=86400",
-        },
-      }
-    );
-  }
-
-  // 1.5 Kiểm tra L2 Upstash Redis Cache (DB 3: Aux / TMDb - tmdb:fallback_poster:v2:*)
   const cleanKey = cacheKey.replace(/[^a-z0-9_]/g, "_").slice(0, 100);
   const redisPosterKey = `tmdb:fallback_poster:v2:${cleanKey}`;
-  try {
-    const redisCached = await cacheService.get<PosterCacheEntry>(redisPosterKey);
-    if (redisCached) {
-      setBoundedMap(posterMemoryCache, cacheKey, {
-        posterUrl: redisCached.posterUrl,
-        backdropUrl: redisCached.backdropUrl,
-        expireAt: now + MEMORY_TTL,
-      });
-      const hasPoster = Boolean(redisCached.posterUrl || redisCached.backdropUrl);
-      return NextResponse.json(
-        {
-          status: true,
-          posterUrl: redisCached.posterUrl,
-          backdropUrl: redisCached.backdropUrl,
-          source: "l2-redis",
-        },
-        {
-          headers: {
-            "Cache-Control": hasPoster
-              ? "public, max-age=86400, s-maxage=604800, stale-while-revalidate=86400"
-              : "public, max-age=3600, s-maxage=86400",
-            "CDN-Cache-Control": hasPoster
-              ? "public, max-age=604800, stale-while-revalidate=86400"
-              : "public, max-age=86400",
-            "Vercel-CDN-Cache-Control": hasPoster
-              ? "public, max-age=604800, stale-while-revalidate=86400"
-              : "public, max-age=86400",
-          },
-        }
-      );
-    }
-  } catch {}
+  const slugCleanKey = slug
+    ? `tmdb:fallback_poster:v2:${slug.toLowerCase().replace(/[^a-z0-9_]/g, "_").slice(0, 100)}`
+    : "";
 
-  // 2. Tra cứu fallback trực tiếp nếu cả RAM và Redis đều chưa có
+  return {
+    cacheKey,
+    redisPosterKey,
+    slugCleanKey,
+    tmdbId,
+    title,
+    origin_name,
+    year,
+    slug,
+    type,
+  };
+}
+
+const CACHE_HEADERS_HIT = {
+  "Cache-Control": "public, max-age=86400, s-maxage=604800, stale-while-revalidate=86400",
+  "CDN-Cache-Control": "public, max-age=604800, stale-while-revalidate=86400",
+  "Vercel-CDN-Cache-Control": "public, max-age=604800, stale-while-revalidate=86400",
+};
+
+const CACHE_HEADERS_MISS = {
+  "Cache-Control": "public, max-age=3600, s-maxage=86400",
+  "CDN-Cache-Control": "public, max-age=86400",
+  "Vercel-CDN-Cache-Control": "public, max-age=86400",
+};
+
+async function resolvePosterFromUpstream(
+  keys: ParsedItemKeys
+): Promise<{ posterUrl: string | null; backdropUrl: string | null }> {
+  const { tmdbId, title, origin_name, year, slug, type } = keys;
   let result: { posterUrl: string | null; backdropUrl: string | null } | null = null;
 
   const isVietnamese =
     /[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/i.test(title || "") ||
     /[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/i.test(origin_name || "");
 
-  // 1.8 Tra cứu trực tiếp theo TMDB ID nếu có (siêu nhanh ~20ms, chính xác 100%, không cần search text)
+  // 1. Tra cứu trực tiếp theo TMDB ID nếu có (siêu nhanh ~20ms, chính xác 100%)
   if (tmdbId) {
     try {
       const direct = await getTmdbMediaImagesById(tmdbId, type);
@@ -144,16 +124,12 @@ export async function GET(req: NextRequest) {
     } catch {}
   }
 
+  // 2. Tra cứu theo tên phim / origin_name / slug
   if (!result) {
-    // Đối với phim Việt Nam: Luôn ưu tiên tên tiếng Việt và slug trước,
-    // tuyệt đối không ưu tiên origin_name dịch nghĩa tiếng Anh (vd: "Hamlet" cho "Xóm Nhỏ")
     const queryOrder = isVietnamese
       ? ([title, slug ? slug.replace(/-/g, " ") : null, origin_name && origin_name !== title ? origin_name : null].filter(Boolean) as string[])
       : ([origin_name && origin_name !== title ? origin_name : null, title, slug ? slug.replace(/-/g, " ") : null].filter(Boolean) as string[]);
 
-    // Tra cứu song song toàn bộ ứng viên (thay vì lặp tuần tự gây trễ 3-4s)
-    // Lưu ý: Không ép expectedCountry = "VN" vì hầu hết phim nước ngoài (Thái, Hàn, Trung, Mỹ)
-    // đều có tựa đề tiếng Việt có dấu, việc ép "VN" sẽ loại bỏ 100% phim quốc tế trên TMDb!
     const candidateLookups = queryOrder.map((q) =>
       queryTmdbPoster(q, year, undefined).catch(() => null)
     );
@@ -164,13 +140,12 @@ export async function GET(req: NextRequest) {
     result = candidateResults.find((r) => r && (r.posterUrl || r.backdropUrl)) || null;
   }
 
-  // 4. Fallback tra cứu chi tiết phim từ slug: Tận dụng tmdb.id và origin_name của phim
+  // 3. Fallback tra cứu chi tiết phim từ slug: Tận dụng tmdb.id và origin_name
   if (!result && slug) {
     try {
       const detail = await movieApi.getMovieDetail(slug);
       if (detail?.movie) {
         const m = detail.movie;
-        // 4a. Nếu upstream có gắn tmdb.id, lấy trực tiếp ảnh TMDb chuẩn xác 100%
         if (m.tmdb?.id) {
           const tmdbType = m.tmdb.type || (m.type === "series" ? "tv" : "movie");
           let tmdbPoster = await getTmdbPosterUrl(m.tmdb.id, tmdbType);
@@ -186,7 +161,6 @@ export async function GET(req: NextRequest) {
           }
         }
 
-        // 4b. Tìm theo tên phim hoặc tên gốc quốc tế của phim
         if (!result) {
           const altName = isVietnamese
             ? (m.name || (m.slug ? m.slug.replace(/-/g, " ") : null))
@@ -208,6 +182,7 @@ export async function GET(req: NextRequest) {
     } catch {}
   }
 
+  // 4. Fallback searchMovies
   if (!result && title) {
     try {
       const searchRes = await movieApi.searchMovies(title, 2);
@@ -243,7 +218,7 @@ export async function GET(req: NextRequest) {
     } catch {}
   }
 
-  // TẦNG 2: Dự phòng cho Hoạt hình / Anime / Donghua qua AniList GraphQL
+  // 5. Dự phòng cho Hoạt hình / Anime / Donghua qua AniList GraphQL
   if (!result && (title || origin_name)) {
     try {
       const aniRes = await searchAniListPoster(title, origin_name);
@@ -256,6 +231,7 @@ export async function GET(req: NextRequest) {
   const finalPosterUrl = result?.posterUrl || null;
   const finalBackdropUrl = result?.backdropUrl || null;
   const hasPoster = Boolean(finalPosterUrl || finalBackdropUrl);
+  const now = Date.now();
 
   const cacheEntry: PosterCacheEntry = {
     posterUrl: finalPosterUrl,
@@ -263,32 +239,207 @@ export async function GET(req: NextRequest) {
     expireAt: now + MEMORY_TTL,
   };
 
-  // Lưu vào bounded L1 RAM
-  setBoundedMap(posterMemoryCache, cacheKey, cacheEntry);
+  // Lưu vào L1 RAM
+  setBoundedMap(posterMemoryCache, keys.cacheKey, cacheEntry);
 
-  // Lưu vào L2 Upstash Redis DB 3 (Aux / TMDb - tmdb:fallback_poster:*)
-  // TTL: 14 ngày nếu có ảnh, 24 giờ nếu không tìm thấy
+  // Lưu vào L2 Upstash Redis DB 3 (TTL: 14 ngày nếu có ảnh, 24h nếu miss)
   const redisTtlSeconds = hasPoster ? 14 * 86400 : 86400;
-  cacheService.set(redisPosterKey, cacheEntry, redisTtlSeconds).catch(() => {});
+  cacheService.set(keys.redisPosterKey, cacheEntry, redisTtlSeconds).catch(() => {});
+  if (keys.slugCleanKey && keys.slugCleanKey !== keys.redisPosterKey) {
+    cacheService.set(keys.slugCleanKey, cacheEntry, redisTtlSeconds).catch(() => {});
+  }
+
+  return { posterUrl: finalPosterUrl, backdropUrl: finalBackdropUrl };
+}
+
+/**
+ * GET: Tra cứu 1 phim đơn lẻ (hỗ trợ tương thích ngược toàn diện).
+ */
+export async function GET(req: NextRequest) {
+  const rateLimit = await enforceRateLimit(req, RATE_LIMIT_PRESETS.POSTER_FALLBACK_IN_MEMORY);
+  if (!rateLimit.allowed) {
+    return buildRateLimitResponse(rateLimit);
+  }
+
+  const { searchParams } = req.nextUrl;
+  const tmdbId = searchParams.get("tmdb_id")?.trim() || searchParams.get("tmdbId")?.trim() || "";
+  const title = searchParams.get("title")?.trim() || "";
+  const origin_name = searchParams.get("origin_name")?.trim() || "";
+  const year = searchParams.get("year")?.trim() || "";
+  const slug = searchParams.get("slug")?.trim() || "";
+  const type = searchParams.get("type")?.trim() || "movie";
+
+  if (!title && !origin_name && !slug && !tmdbId) {
+    return NextResponse.json({ status: false, error: "Missing query parameters" }, { status: 400 });
+  }
+
+  const keys = parseItemKeys({ tmdbId, title, origin_name, year, slug, type });
+  const now = Date.now();
+
+  // 1. Kiểm tra L1 RAM cache
+  const cached = posterMemoryCache.get(keys.cacheKey);
+  if (cached && cached.expireAt > now) {
+    const hasPoster = Boolean(cached.posterUrl || cached.backdropUrl);
+    return NextResponse.json(
+      {
+        status: true,
+        posterUrl: cached.posterUrl,
+        backdropUrl: cached.backdropUrl,
+        source: "l1-cache",
+      },
+      { headers: hasPoster ? CACHE_HEADERS_HIT : CACHE_HEADERS_MISS }
+    );
+  }
+
+  // 2. Kiểm tra L2 Upstash Redis
+  try {
+    const redisCached = await cacheService.get<PosterCacheEntry>(keys.redisPosterKey);
+    if (redisCached) {
+      setBoundedMap(posterMemoryCache, keys.cacheKey, {
+        posterUrl: redisCached.posterUrl,
+        backdropUrl: redisCached.backdropUrl,
+        expireAt: now + MEMORY_TTL,
+      });
+      const hasPoster = Boolean(redisCached.posterUrl || redisCached.backdropUrl);
+      return NextResponse.json(
+        {
+          status: true,
+          posterUrl: redisCached.posterUrl,
+          backdropUrl: redisCached.backdropUrl,
+          source: "l2-redis",
+        },
+        { headers: hasPoster ? CACHE_HEADERS_HIT : CACHE_HEADERS_MISS }
+      );
+    }
+  } catch {}
+
+  // 3. Tra cứu trực tiếp từ upstream TMDb / AniList
+  const resolved = await resolvePosterFromUpstream(keys);
+  const hasPoster = Boolean(resolved.posterUrl || resolved.backdropUrl);
+
   return NextResponse.json(
     {
       status: true,
-      posterUrl: finalPosterUrl,
-      backdropUrl: finalBackdropUrl,
+      posterUrl: resolved.posterUrl,
+      backdropUrl: resolved.backdropUrl,
       source: "tmdb",
     },
-    {
-      headers: {
-        "Cache-Control": hasPoster
-          ? "public, max-age=86400, s-maxage=604800, stale-while-revalidate=86400"
-          : "public, max-age=3600, s-maxage=86400",
-        "CDN-Cache-Control": hasPoster
-          ? "public, max-age=604800, stale-while-revalidate=86400"
-          : "public, max-age=86400",
-        "Vercel-CDN-Cache-Control": hasPoster
-          ? "public, max-age=604800, stale-while-revalidate=86400"
-          : "public, max-age=86400",
-      },
+    { headers: hasPoster ? CACHE_HEADERS_HIT : CACHE_HEADERS_MISS }
+  );
+}
+
+/**
+ * POST: Gom Batch Tra Cứu Toàn Bộ Phim Trong 1 Request Duy Nhất
+ * - Tiết kiệm 95% Vercel Serverless Function Invocations (1 call thay vì 24 calls).
+ * - Dùng 1 lệnh `cacheService.mget` duy nhất thay vì hàng chục lệnh Redis riêng lẻ.
+ * - Tuyệt đối không upload ảnh vào R2 Bucket.
+ */
+export async function POST(req: NextRequest) {
+  const rateLimit = await enforceRateLimit(req, RATE_LIMIT_PRESETS.POSTER_FALLBACK_IN_MEMORY);
+  if (!rateLimit.allowed) {
+    return buildRateLimitResponse(rateLimit);
+  }
+
+  let body: { items?: FallbackItemParams[] } | null = null;
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ status: false, error: "Invalid JSON body" }, { status: 400 });
+  }
+
+  const rawItems = Array.isArray(body?.items) ? body.items : [];
+  if (rawItems.length === 0) {
+    return NextResponse.json({ status: false, error: "No items provided" }, { status: 400 });
+  }
+
+  // Giới hạn tối đa 32 phim / batch để đảm bảo hoàn thành nhanh gọn trong 2-3s
+  const items = rawItems.slice(0, 32);
+  const now = Date.now();
+  const results: Record<string, { posterUrl: string | null; backdropUrl: string | null; source: string }> = {};
+
+  const redisLookupList: Array<{ item: FallbackItemParams; keys: ParsedItemKeys }> = [];
+  const redisKeys: string[] = [];
+
+  // TẦNG 1: L1 RAM Cache O(1)
+  for (const it of items) {
+    const keys = parseItemKeys(it);
+    const cached = posterMemoryCache.get(keys.cacheKey);
+    if (cached && cached.expireAt > now) {
+      results[keys.cacheKey] = {
+        posterUrl: cached.posterUrl,
+        backdropUrl: cached.backdropUrl,
+        source: "l1-cache",
+      };
+    } else {
+      redisLookupList.push({ item: it, keys });
+      if (!redisKeys.includes(keys.redisPosterKey)) {
+        redisKeys.push(keys.redisPosterKey);
+      }
     }
+  }
+
+  // TẦNG 2: 1 Lệnh Redis `mget` Duy Nhất Cho Toàn Bộ Phim Còn Lại
+  const pendingUpstreamList: Array<{ item: FallbackItemParams; keys: ParsedItemKeys }> = [];
+
+  if (redisLookupList.length > 0 && redisKeys.length > 0) {
+    try {
+      const redisHits = await Promise.race([
+        cacheService.mget<PosterCacheEntry>(redisKeys),
+        new Promise<null[]>((resolve) => setTimeout(() => resolve(new Array(redisKeys.length).fill(null)), 250)),
+      ]);
+
+      const redisHitMap = new Map<string, PosterCacheEntry>();
+      if (Array.isArray(redisHits)) {
+        for (let i = 0; i < redisKeys.length; i++) {
+          const val = redisHits[i];
+          if (val && typeof val === "object") {
+            redisHitMap.set(redisKeys[i], val);
+          }
+        }
+      }
+
+      for (const entry of redisLookupList) {
+        const hit = redisHitMap.get(entry.keys.redisPosterKey);
+        if (hit) {
+          setBoundedMap(posterMemoryCache, entry.keys.cacheKey, {
+            posterUrl: hit.posterUrl,
+            backdropUrl: hit.backdropUrl,
+            expireAt: now + MEMORY_TTL,
+          });
+          results[entry.keys.cacheKey] = {
+            posterUrl: hit.posterUrl,
+            backdropUrl: hit.backdropUrl,
+            source: "l2-redis",
+          };
+        } else {
+          pendingUpstreamList.push(entry);
+        }
+      }
+    } catch {
+      pendingUpstreamList.push(...redisLookupList);
+    }
+  }
+
+  // TẦNG 3: Tra cứu trực tiếp Upstream TMDb / AniList cho các phim còn thiếu (giới hạn tối đa 6 phim song song)
+  if (pendingUpstreamList.length > 0) {
+    const toResolve = pendingUpstreamList.slice(0, 6);
+    await Promise.allSettled(
+      toResolve.map(async ({ keys }) => {
+        const resolved = await resolvePosterFromUpstream(keys);
+        results[keys.cacheKey] = {
+          posterUrl: resolved.posterUrl,
+          backdropUrl: resolved.backdropUrl,
+          source: "tmdb",
+        };
+      })
+    );
+  }
+
+  return NextResponse.json(
+    {
+      status: true,
+      results,
+    },
+    { headers: CACHE_HEADERS_HIT }
   );
 }

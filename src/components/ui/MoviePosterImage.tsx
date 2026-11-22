@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import Image, { ImageProps } from "next/image";
 import { useMoviePosterFallback } from "@/hooks/useMoviePosterFallback";
+import { isSlowProviderSourceUrl } from "@/lib/movieMedia";
 
 export interface MoviePosterImageProps extends Omit<ImageProps, "src" | "alt"> {
   src?: string | null;
@@ -35,6 +36,7 @@ export function MoviePosterImage({
 }: MoviePosterImageProps) {
   const rawSrc = src ? String(src).trim() : "";
   const isBrokenOrEmpty = !rawSrc || rawSrc.includes("/default-");
+  const isSlow = isSlowProviderSourceUrl(rawSrc);
 
   const { displaySrc, triggerFallback } = useMoviePosterFallback({
     slug,
@@ -43,8 +45,8 @@ export function MoviePosterImage({
     tmdbId,
     initialSrc: rawSrc,
     preferBackdrop,
-    enabled: isBrokenOrEmpty,
-    upgradePhimimg: false,
+    enabled: isBrokenOrEmpty || isSlow,
+    upgradePhimimg: true,
   });
 
   const [hasError, setHasError] = useState(false);
