@@ -18,6 +18,8 @@ export interface NumberedRankCardProps {
   secondaryTag?: string;
   priority?: boolean;
   theme?: "red" | "amber";
+  type?: string;
+  tmdbId?: string | number;
 }
 
 export const NumberedRankCard: React.FC<NumberedRankCardProps> = ({
@@ -32,6 +34,8 @@ export const NumberedRankCard: React.FC<NumberedRankCardProps> = ({
   secondaryTag,
   priority = false,
   theme: _theme = "red",
+  type,
+  tmdbId,
 }) => {
   const initialPoster = React.useMemo(() => {
     const best = pickBestMoviePoster(
@@ -119,8 +123,11 @@ export const NumberedRankCard: React.FC<NumberedRankCardProps> = ({
                 src={initialPoster}
                 alt={title}
                 title={title}
+                origin_name={origin_name}
                 slug={slug}
                 year={year}
+                type={type}
+                tmdbId={tmdbId}
                 fill
                 unoptimized
                 priority={priority}

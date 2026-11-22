@@ -10,7 +10,9 @@ export interface MoviePosterImageProps extends Omit<ImageProps, "src" | "alt"> {
   alt: string;
   slug?: string;
   title?: string;
+  origin_name?: string;
   year?: string | number;
+  type?: string;
   tmdbId?: string | number;
   preferBackdrop?: boolean;
   fallbackSrc?: string;
@@ -27,7 +29,9 @@ export function MoviePosterImage({
   alt,
   slug,
   title,
+  origin_name,
   year,
+  type,
   tmdbId,
   preferBackdrop = false,
   fallbackSrc = "/default-poster.jpg",
@@ -41,7 +45,9 @@ export function MoviePosterImage({
   const { displaySrc, triggerFallback } = useMoviePosterFallback({
     slug,
     title,
+    origin_name,
     year,
+    type,
     tmdbId,
     initialSrc: rawSrc,
     preferBackdrop,

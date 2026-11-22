@@ -17,6 +17,8 @@ export interface RankedMovieData {
   year?: string | number;
   quality?: string;
   secondaryTag?: string;
+  type?: string;
+  tmdbId?: string | number;
 }
 
 export interface RankedCarouselSectionProps {
@@ -154,6 +156,8 @@ export const RankedCarouselSection: React.FC<RankedCarouselSectionProps> = React
                   secondaryTag={movie.secondaryTag}
                   priority={index < 5}
                   theme={theme}
+                  type={movie.type}
+                  tmdbId={movie.tmdbId}
                 />
               ))
             )}

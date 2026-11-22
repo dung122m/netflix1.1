@@ -57,8 +57,11 @@ export const RecommendedMovieCard = React.memo(function RecommendedMovieCard({
             src={rawThumb}
             alt={title}
             title={title}
+            origin_name={item.origin_name}
             slug={item.slug}
             year={year}
+            type={item.type}
+            tmdbId={item.tmdbId}
             preferBackdrop={true}
             fallbackSrc="/default-hero.jpg"
             fill

@@ -298,7 +298,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
     tmdbId,
   });
 
-  const isBlockedByIsp = Boolean(
+  const isInitialCandidateBlocked = Boolean(
     initialCandidate &&
     (initialCandidate.includes("phimimg.com") ||
       initialCandidate.includes("img.ophim.cc") ||
@@ -308,11 +308,17 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
   const initialToUse =
     (tmdbFallbackSrc && !isSlowProviderSourceUrl(tmdbFallbackSrc))
       ? tmdbFallbackSrc
-      : (needsFallback && isBlockedByIsp)
+      : (needsFallback && isInitialCandidateBlocked)
       ? "" // Chỉ trì hoãn nguồn bị nhà mạng VN chặn (phimimg); nguồn NguonC hiển thị ngay lập tức 0ms
       : initialCandidate;
 
   const [currentSrc, setCurrentSrc] = useState<string>(() => initialToUse);
+  const isBlockedByIsp = Boolean(
+    currentSrc &&
+    (currentSrc.includes("phimimg.com") ||
+      currentSrc.includes("img.ophim.cc") ||
+      currentSrc.includes("img.phimapi.com"))
+  );
   const [isImageLoaded, setIsImageLoaded] = useState<boolean>(() => {
     return Boolean(
       (initialCandidate && GLOBAL_LOADED_IMAGES.has(initialCandidate)) ||
@@ -687,7 +693,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
               decoding={priority ? "sync" : "async"}
               fetchPriority={priority ? "high" : "auto"}
               referrerPolicy="no-referrer"
-              className={`relative z-[1] w-full h-full object-cover object-center brightness-[0.94] group-hover/card:scale-105 group-hover/card:brightness-105 transition-opacity duration-300 ease-out motion-reduce:transform-none ${isFallbackLoading && isSlowProviderSourceUrl(currentSrc) ? "opacity-0" : "opacity-100"
+              className={`relative z-[1] w-full h-full object-cover object-center brightness-[0.94] group-hover/card:scale-105 group-hover/card:brightness-105 transition-opacity duration-300 ease-out motion-reduce:transform-none ${isFallbackLoading && isBlockedByIsp ? "opacity-0" : "opacity-100"
                 }`}
               onLoad={(e) => {
                 const target = e.currentTarget;
