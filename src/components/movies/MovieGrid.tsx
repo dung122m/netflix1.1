@@ -1,9 +1,11 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useMemo } from "react";
+import React, { useState, useEffect, useLayoutEffect, useRef, useMemo } from "react";
 import { MediaCard } from "@/components/browse/MediaCard";
 import { normalizeMovie } from "@/lib/movieMedia";
 import { Loader2 } from "lucide-react";
+
+const useIsomorphicLayoutEffect = typeof window !== "undefined" ? useLayoutEffect : useEffect;
 
 interface MovieGridProps {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -31,8 +33,10 @@ const MovieGridInner = ({ movies, columnsClassName }: MovieGridProps) => {
   const isFirstMount = useRef(true);
 
   // Reset batch & tắt dimming khi danh sách phim thay đổi (đổi trang, filter)
-  // Chỉ cuộn lên đầu KHI TRANG MỚI ĐÃ TẢI XONG (không bao giờ giật lên đầu của trang cũ trước)
-  useEffect(() => {
+  // useIsomorphicLayoutEffect kích hoạt đồng bộ NGAY TRƯỚC KHI BROWSER VẼ (Paint)
+  // đảm bảo khi trang mới xuất hiện, viewport đã ở vị trí đầu trang (0, 0) tức thì,
+  // tuyệt đối không có 1 frame nào hiển thị ở cuối trang hoặc giật từ trang cũ
+  useIsomorphicLayoutEffect(() => {
     setVisibleCount(INITIAL_BATCH);
     setIsDimmed(false);
     if (isFirstMount.current) {
