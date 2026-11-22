@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   X,
   Calendar,
@@ -14,7 +14,7 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
-import { AthleteProfile, MatchRosterPlayer, PlayerMatchStat } from "@/services/live/football-score/types";
+import { AthleteProfile, MatchRosterPlayer } from "@/services/live/football-score/types";
 import {
   FotmobSoccerBallIcon,
   FotmobYellowCardIcon,
@@ -487,37 +487,8 @@ export function InlinePlayerDetailCard({
 }
 
 // ============================================================================
-// 5. PLAYER DETAIL MODAL (AUTHENTIC FOTMOB PLAYER CARD)
+// 5. PLAYER DETAIL MODAL (AUTHENTIC ZERO-MOCK REAL DATA ONLY)
 // ============================================================================
-
-function extractStatNumber(stats: PlayerMatchStat[] | undefined, keywords: string[]): number | null {
-  if (!stats || !stats.length) return null;
-  for (const st of stats) {
-    const name = (st.name || "").toLowerCase();
-    const disp = (st.displayName || "").toLowerCase();
-    for (const kw of keywords) {
-      if (name.includes(kw) || disp.includes(kw)) {
-        const val = parseFloat(String(st.value).replace(/[^0-9.]/g, ""));
-        if (!isNaN(val)) return val;
-      }
-    }
-  }
-  return null;
-}
-
-function extractStatString(stats: PlayerMatchStat[] | undefined, keywords: string[]): string | null {
-  if (!stats || !stats.length) return null;
-  for (const st of stats) {
-    const name = (st.name || "").toLowerCase();
-    const disp = (st.displayName || "").toLowerCase();
-    for (const kw of keywords) {
-      if (name.includes(kw) || disp.includes(kw)) {
-        return String(st.value);
-      }
-    }
-  }
-  return null;
-}
 
 function getFotmobPositionAbbr(pos?: string): string {
   if (!pos) return "MID";
@@ -540,185 +511,7 @@ function getFotmobPositionAbbr(pos?: string): string {
   return pos.slice(0, 3).toUpperCase();
 }
 
-function FotmobHeatmapSvg({
-  player,
-  posAbbr,
-}: {
-  player: MatchRosterPlayer;
-  posAbbr: string;
-}) {
-  const isST = posAbbr === "ST" || posAbbr === "CF";
-  const isWinger = posAbbr === "LW" || posAbbr === "RW" || posAbbr === "LM" || posAbbr === "RM";
-  const isMid = posAbbr === "CM" || posAbbr === "CAM" || posAbbr === "CDM";
-  const isDef = posAbbr === "CB" || posAbbr === "LB" || posAbbr === "RB";
-  const isGK = posAbbr === "GK";
 
-  const cleanId = String(player.id).replace(/[^a-zA-Z0-9_-]/g, "");
-  const gradId = `heat-grad-${cleanId}`;
-  const filterId = `heat-blur-${cleanId}`;
-
-  return (
-    <svg viewBox="0 0 240 150" className="w-full h-full" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <defs>
-        <radialGradient id={`${gradId}-hot`} cx="50%" cy="50%" r="50%">
-          <stop offset="0%" stopColor="#f59e0b" stopOpacity="0.95" />
-          <stop offset="35%" stopColor="#22c55e" stopOpacity="0.8" />
-          <stop offset="85%" stopColor="#10b981" stopOpacity="0.25" />
-          <stop offset="100%" stopColor="#10b981" stopOpacity="0" />
-        </radialGradient>
-        <radialGradient id={`${gradId}-med`} cx="50%" cy="50%" r="50%">
-          <stop offset="0%" stopColor="#22c55e" stopOpacity="0.85" />
-          <stop offset="50%" stopColor="#10b981" stopOpacity="0.55" />
-          <stop offset="100%" stopColor="#059669" stopOpacity="0" />
-        </radialGradient>
-        <radialGradient id={`${gradId}-soft`} cx="50%" cy="50%" r="50%">
-          <stop offset="0%" stopColor="#10b981" stopOpacity="0.7" />
-          <stop offset="60%" stopColor="#047857" stopOpacity="0.35" />
-          <stop offset="100%" stopColor="#064e3b" stopOpacity="0" />
-        </radialGradient>
-        <filter id={filterId} x="-30%" y="-30%" width="160%" height="160%">
-          <feGaussianBlur stdDeviation="7" />
-        </filter>
-      </defs>
-
-      {/* Pitch background */}
-      <rect width="240" height="150" fill="#181a19" />
-
-      {/* Pitch markings */}
-      <rect x="10" y="8" width="220" height="134" stroke="rgba(255,255,255,0.14)" strokeWidth="0.8" rx="2" />
-      <line x1="120" y1="8" x2="120" y2="142" stroke="rgba(255,255,255,0.14)" strokeWidth="0.8" />
-      <circle cx="120" cy="75" r="22" stroke="rgba(255,255,255,0.14)" strokeWidth="0.8" />
-      <circle cx="120" cy="75" r="1.5" fill="rgba(255,255,255,0.3)" />
-
-      {/* Left box */}
-      <rect x="10" y="34" width="34" height="82" stroke="rgba(255,255,255,0.14)" strokeWidth="0.8" />
-      <rect x="10" y="52" width="12" height="46" stroke="rgba(255,255,255,0.14)" strokeWidth="0.8" />
-      <path d="M 44 62 A 16 16 0 0 1 44 88" stroke="rgba(255,255,255,0.14)" strokeWidth="0.8" />
-
-      {/* Right box */}
-      <rect x="196" y="34" width="34" height="82" stroke="rgba(255,255,255,0.14)" strokeWidth="0.8" />
-      <rect x="218" y="52" width="12" height="46" stroke="rgba(255,255,255,0.14)" strokeWidth="0.8" />
-      <path d="M 196 62 A 16 16 0 0 0 196 88" stroke="rgba(255,255,255,0.14)" strokeWidth="0.8" />
-
-      {/* Attack direction indicator »» at top */}
-      <g opacity="0.6">
-        <path d="M 112 18 L 117 22 L 112 26" stroke="#ffffff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-        <path d="M 119 18 L 124 22 L 119 26" stroke="#ffffff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-        <path d="M 126 18 L 131 22 L 126 26" stroke="#ffffff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-      </g>
-
-      {/* Heat blobs according to role */}
-      <g filter={`url(#${filterId})`}>
-        {isST && (
-          <>
-            <circle cx="190" cy="72" r="24" fill={`url(#${gradId}-hot)`} />
-            <circle cx="175" cy="45" r="18" fill={`url(#${gradId}-med)`} />
-            <circle cx="100" cy="85" r="15" fill={`url(#${gradId}-soft)`} />
-            <circle cx="45" cy="90" r="12" fill={`url(#${gradId}-soft)`} />
-          </>
-        )}
-        {isWinger && (
-          <>
-            <circle cx="180" cy="35" r="22" fill={`url(#${gradId}-hot)`} />
-            <circle cx="140" cy="30" r="18" fill={`url(#${gradId}-med)`} />
-            <circle cx="95" cy="38" r="15" fill={`url(#${gradId}-soft)`} />
-            <circle cx="185" cy="65" r="16" fill={`url(#${gradId}-med)`} />
-          </>
-        )}
-        {isMid && (
-          <>
-            <circle cx="130" cy="75" r="24" fill={`url(#${gradId}-hot)`} />
-            <circle cx="105" cy="55" r="20" fill={`url(#${gradId}-med)`} />
-            <circle cx="160" cy="80" r="18" fill={`url(#${gradId}-med)`} />
-            <circle cx="75" cy="75" r="14" fill={`url(#${gradId}-soft)`} />
-          </>
-        )}
-        {isDef && (
-          <>
-            <circle cx="65" cy="75" r="24" fill={`url(#${gradId}-hot)`} />
-            <circle cx="50" cy="45" r="18" fill={`url(#${gradId}-med)`} />
-            <circle cx="50" cy="105" r="18" fill={`url(#${gradId}-med)`} />
-            <circle cx="95" cy="75" r="16" fill={`url(#${gradId}-soft)`} />
-          </>
-        )}
-        {isGK && (
-          <>
-            <circle cx="20" cy="75" r="20" fill={`url(#${gradId}-hot)`} />
-            <circle cx="28" cy="75" r="16" fill={`url(#${gradId}-med)`} />
-          </>
-        )}
-        {!isST && !isWinger && !isMid && !isDef && !isGK && (
-          <>
-            <circle cx="150" cy="75" r="22" fill={`url(#${gradId}-hot)`} />
-            <circle cx="110" cy="60" r="16" fill={`url(#${gradId}-med)`} />
-          </>
-        )}
-      </g>
-    </svg>
-  );
-}
-
-function FotmobShotMapSvg({
-  goals,
-  shotsTotal,
-}: {
-  goals: number;
-  shotsTotal: number;
-}) {
-  const hasShots = shotsTotal > 0 || goals > 0;
-
-  return (
-    <svg viewBox="0 0 240 150" className="w-full h-full" fill="none" xmlns="http://www.w3.org/2000/svg">
-      {/* Pitch background */}
-      <rect width="240" height="150" fill="#181a19" />
-
-      {/* Goal Area Zoomed: Goal Line at top (y=20), Goal net at (88, 10, 64, 10) */}
-      <line x1="20" y1="20" x2="220" y2="20" stroke="rgba(255,255,255,0.15)" strokeWidth="0.8" />
-
-      {/* Goal frame */}
-      <rect x="88" y="10" width="64" height="10" stroke="rgba(255,255,255,0.4)" strokeWidth="1.2" fill="rgba(255,255,255,0.04)" />
-
-      {/* 6-yard box */}
-      <rect x="72" y="20" width="96" height="34" stroke="rgba(255,255,255,0.15)" strokeWidth="0.8" />
-
-      {/* Penalty box */}
-      <rect x="42" y="20" width="156" height="88" stroke="rgba(255,255,255,0.15)" strokeWidth="0.8" />
-
-      {/* Penalty spot */}
-      <circle cx="120" cy="76" r="1.5" fill="rgba(255,255,255,0.4)" />
-
-      {/* Penalty arc */}
-      <path d="M 98 108 A 28 28 0 0 0 142 108" stroke="rgba(255,255,255,0.15)" strokeWidth="0.8" />
-
-      {/* Shot visualization */}
-      {hasShots ? (
-        <>
-          {/* Goal shot: Red line from near penalty spot to goal corner */}
-          <line x1="120" y1="84" x2="98" y2="20" stroke="#ef4444" strokeWidth="1.8" strokeLinecap="round" />
-          <circle cx="98" cy="20" r="3" fill="#ef4444" />
-
-          {/* Soccer ball icon at shot location */}
-          <circle cx="120" cy="84" r="7" fill="#181a19" stroke="#ef4444" strokeWidth="1.6" />
-          <circle cx="120" cy="84" r="3.5" fill="#ffffff" />
-
-          {/* Secondary shot if multiple */}
-          {shotsTotal > 1 && (
-            <>
-              <line x1="140" y1="65" x2="135" y2="20" stroke="#38bdf8" strokeWidth="1.4" strokeDasharray="2 2" strokeLinecap="round" />
-              <circle cx="135" cy="20" r="2.5" fill="#38bdf8" />
-              <circle cx="140" cy="65" r="5" fill="#181a19" stroke="#38bdf8" strokeWidth="1.2" />
-              <circle cx="140" cy="65" r="2.5" fill="#ffffff" />
-            </>
-          )}
-        </>
-      ) : (
-        <text x="120" y="80" textAnchor="middle" fill="#71717a" fontSize="11" fontFamily="sans-serif">
-         
-        </text>
-      )}
-    </svg>
-  );
-}
 
 export interface PlayerDetailModalProps {
   player: MatchRosterPlayer;
@@ -736,7 +529,7 @@ export interface PlayerDetailModalProps {
 export function PlayerDetailModal({
   player,
   isHome: _isHome,
-  teamName: _teamName,
+  teamName,
   teamLogo,
   onClose,
   eventsInfo,
@@ -803,61 +596,36 @@ export function PlayerDetailModal({
       ? new Date().getFullYear() - new Date(currentProfile.dateOfBirth).getFullYear()
       : null;
 
-  // Rating calculation (e.g. 8.8, 7.5)
-  const ratingScore = useMemo(() => {
-    if (player.rating) {
-      const num = parseFloat(String(player.rating));
-      if (!isNaN(num)) return num.toFixed(1);
-    }
-    if (!player.starter && !player.subbedIn) return null;
-    let base = 6.6;
-    base += (eventsInfo.goals || 0) * 1.1;
-    const assists = extractStatNumber(player.stats, ["assists", "kiến tạo"]) || 0;
-    base += assists * 0.7;
-    const shots = extractStatNumber(player.stats, ["shots", "sút"]) || eventsInfo.goals || 0;
-    base += Math.min(shots * 0.15, 0.6);
-    if (eventsInfo.yellowCards > 0) base -= 0.4;
-    if (eventsInfo.redCards > 0) base -= 1.5;
-    return Math.min(Math.max(base, 5.0), 9.9).toFixed(1);
-  }, [player.rating, player.starter, player.subbedIn, player.stats, eventsInfo]);
+  const posTitle = translatePosition(player.position);
 
-  // Touch count
-  const touches = useMemo(() => {
-    const statTouches = extractStatNumber(player.stats, ["touches", "chạm bóng"]);
-    if (statTouches) return statTouches;
-    if (player.starter) return 24 + ((parseInt(player.id.slice(-2), 16) || 12) % 20);
-    if (player.subbedIn) return 8 + ((parseInt(player.id.slice(-2), 16) || 4) % 10);
-    return 0;
-  }, [player.stats, player.starter, player.subbedIn, player.id]);
+  const hasEvents =
+    eventsInfo.goals > 0 ||
+    eventsInfo.yellowCards > 0 ||
+    eventsInfo.redCards > 0 ||
+    player.subbedIn ||
+    player.subbedOut;
 
-  // Top stats mapping
-  const goalsVal = eventsInfo.goals || extractStatNumber(player.stats, ["goals", "bàn thắng"]) || 0;
-  const assistsVal = extractStatNumber(player.stats, ["assists", "kiến tạo"]) || 0;
-  const rawXG = extractStatNumber(player.stats, ["xg", "expected goals"]);
-  const xGVal = rawXG !== null ? rawXG.toFixed(2) : goalsVal > 0 ? (goalsVal * 0.45 + 0.28).toFixed(2) : "0.00";
-  const xGOTVal = goalsVal > 0 ? (goalsVal * 0.52 + 0.20).toFixed(2) : "0.00";
-  const xGPlusXA = (parseFloat(xGVal) + assistsVal * 0.25).toFixed(2);
-  const accuratePasses = extractStatString(player.stats, ["accurate passes", "passes", "chuyền"]) || (player.starter ? "24/28 (86%)" : "6/8 (75%)");
-  const chancesCreated = extractStatNumber(player.stats, ["chances created", "cơ hội"]) || 0;
-  const rawShots = extractStatNumber(player.stats, ["shots", "sút"]);
-  const shotsTotal = rawShots !== null ? rawShots : Math.max(goalsVal, 1);
-  const shotsOnTarget = extractStatNumber(player.stats, ["shots on target", "sút trúng đích"]) || goalsVal;
-  const shotsOffTarget = Math.max(0, shotsTotal - shotsOnTarget);
-  const shotAccuracy = shotsTotal > 0 ? `${shotsOnTarget}/${shotsTotal} (${Math.round((shotsOnTarget / shotsTotal) * 100)}%)` : "0%";
-  const defContributions = extractStatNumber(player.stats, ["tackles", "interceptions", "tắc bóng", "cắt bóng"]) || (posAbbr === "CB" || posAbbr === "LB" || posAbbr === "RB" ? 4 : 1);
+  const hasProfileBio = Boolean(
+    currentProfile &&
+      (currentProfile.height ||
+        currentProfile.weight ||
+        currentProfile.dateOfBirth ||
+        currentProfile.birthPlace ||
+        currentProfile.citizenship)
+  );
 
   return (
     <BaseModal
       isOpen={true}
       onClose={onClose}
-      size="2xl"
+      size="lg"
       bodyClassName="!p-0 !max-h-[90vh] overflow-y-auto scrollbar-thin bg-[#121212]"
       showCloseButton={false}
       className="!bg-[#121212] !rounded-3xl border border-white/[0.08] shadow-2xl"
     >
-      {/* 1. HEADER SECTION (BACKGROUND DARK GREEN GRADIENT) */}
+      {/* 1. HEADER SECTION (FOTMOB STYLE HEADER) */}
       <div className="bg-gradient-to-b from-[#112a1a] via-[#101b13] to-[#121212] px-4 pt-4 pb-3.5 relative">
-        {/* Navigation Previous / Next */}
+        {/* Điều hướng Trước / Sau */}
         <div className="flex items-center justify-between">
           <button
             type="button"
@@ -888,13 +656,13 @@ export function PlayerDetailModal({
           </button>
         </div>
 
-        {/* Center: Avatar, Rating Badge, Team Crest, Name, Subinfo */}
+        {/* Center: Avatar, Team Crest, Name, 3 Columns Info */}
         <div className="flex flex-col items-center -mt-3">
           <div className="relative">
-            {/* Rating pill top right */}
-            {ratingScore && (
+            {/* Điểm rating chỉ hiện nếu có từ nguồn thật */}
+            {player.rating && (
               <span className="absolute -top-1.5 -right-2.5 z-10 bg-emerald-500 text-zinc-950 font-black text-xs font-sans tabular-nums px-2 py-0.5 rounded-full shadow-md">
-                {ratingScore}
+                {player.rating}
               </span>
             )}
 
@@ -922,24 +690,26 @@ export function PlayerDetailModal({
             )}
           </div>
 
-          {/* Player Name */}
+          {/* Tên cầu thủ */}
           <h3 className="font-sans font-black text-base sm:text-lg text-white mt-2 text-center tracking-tight">
             {player.displayName}
           </h3>
 
-          {/* 3 Columns: Position, Country, Age */}
+          {/* 3 Cột: Vị trí, Quốc gia, Tuổi */}
           <div className="grid grid-cols-3 gap-6 sm:gap-10 text-center mt-2 pt-1 font-sans">
             <div>
-              <p className="text-white font-bold text-xs sm:text-sm">{posAbbr}</p>
+              <p className="text-white font-bold text-xs sm:text-sm" title={posTitle}>
+                {posAbbr}
+              </p>
               <p className="text-[11px] text-zinc-400 font-medium">Vị trí</p>
             </div>
             <div>
-              <p className="text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 truncate max-w-[110px]">
+              <p className="text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 truncate max-w-[120px]">
                 {currentProfile?.flagUrl ? (
                   /* eslint-disable-next-line @next/next/no-img-element */
                   <img src={currentProfile.flagUrl} alt="" className="w-3.5 h-2.5 object-cover rounded-xs shrink-0" />
                 ) : (
-                  <span className="w-2 h-2 rounded-full bg-rose-500 shrink-0" />
+                  <span className="w-2 h-2 rounded-full bg-zinc-500 shrink-0" />
                 )}
                 <span className="truncate">{countryName || "Chưa rõ"}</span>
               </p>
@@ -955,90 +725,195 @@ export function PlayerDetailModal({
         </div>
       </div>
 
-      {/* 2. BODY CONTENT (TWO COLUMNS: HEATMAP & STATS) */}
-      <div className="p-4 sm:p-5 space-y-4">
-        {/* 2-Column Grid: Left (Heatmap & Shot map) | Right (Top stats) */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
-          {/* CỘT TRÁI: HEATMAP & SHOT MAP */}
-          <div className="space-y-4">
-            {/* Heatmap Card */}
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between text-xs sm:text-sm font-bold text-white px-0.5 font-sans">
-                <span>Bản đồ nhiệt</span>
-                <span className="text-xs font-semibold text-zinc-400 tabular-nums">
-                  Chạm bóng: {touches}
-                </span>
-              </div>
-
-              {/* Heatmap Pitch SVG */}
-              <div className="w-full aspect-[16/10] bg-[#1a1c1b] rounded-2xl border border-white/[0.08] relative overflow-hidden">
-                <FotmobHeatmapSvg player={player} posAbbr={posAbbr} />
-              </div>
-            </div>
-
-            {/* Shot map Card */}
-            <div className="space-y-1.5">
-              <div className="text-xs sm:text-sm font-bold text-white px-0.5 font-sans">
-                Vị trí dứt điểm
-              </div>
-
-              {/* Shot map Pitch SVG */}
-              <div className="w-full aspect-[16/10] bg-[#1a1c1b] rounded-2xl border border-white/[0.08] relative overflow-hidden">
-                <FotmobShotMapSvg goals={goalsVal} shotsTotal={shotsTotal} />
-              </div>
-            </div>
+      {/* 2. NỘI DUNG (DỮ LIỆU THẬT 100% TỪ ESPN & TRẬN ĐẤU) */}
+      <div className="p-4 sm:p-5 space-y-3.5">
+        {/* KHỐI 1: DIỄN BIẾN TRONG TRẬN ĐẤU */}
+        <div className="rounded-2xl bg-white/[0.03] border border-white/[0.06] p-3.5 sm:p-4 space-y-2.5">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-white font-sans flex items-center gap-1.5">
+              <span>Diễn biến trong trận</span>
+            </span>
+            <span
+              className={`text-[11px] font-sans font-bold px-2.5 py-0.5 rounded-full ${
+                player.starter
+                  ? "bg-emerald-500/15 text-emerald-400"
+                  : player.subbedIn
+                    ? "bg-sky-500/15 text-sky-400"
+                    : "bg-zinc-800 text-zinc-400"
+              }`}
+            >
+              {player.starter
+                ? "Đá chính"
+                : player.subbedIn
+                  ? `Vào sân ${player.subClock ? `(${player.subClock}')` : ""}`
+                  : "Dự bị"}
+            </span>
           </div>
 
-          {/* CỘT PHẢI: TOP STATS */}
-          <div className="space-y-2">
-            <h4 className="text-xs sm:text-sm font-bold text-white px-0.5 font-sans">
-              Thống kê nổi bật
-            </h4>
+          <div className="space-y-1.5 text-xs sm:text-[13px] font-sans">
+            {/* Vào sân / Rời sân */}
+            {player.subbedOut && (
+              <div className="flex items-center justify-between py-1 px-1 border-b border-white/[0.04]">
+                <span className="text-zinc-400">Rời sân</span>
+                <span className="text-amber-300 font-bold tabular-nums">
+                  {player.subClock ? `Phút ${player.subClock}'` : "Đã thay ra"}
+                </span>
+              </div>
+            )}
 
-            <div className="space-y-0.5 font-sans text-xs sm:text-[13px]">
-              {[
-                { label: "Bàn thắng", value: goalsVal },
-                { label: "Kiến tạo", value: assistsVal },
-                { label: "Bàn thắng kỳ vọng (xG)", value: xGVal },
-                { label: "Kỳ vọng trúng đích (xGOT)", value: xGOTVal },
-                { label: "xG + xA", value: xGPlusXA },
-                { label: "Chuyền chính xác", value: accuratePasses },
-                { label: "Tạo cơ hội", value: chancesCreated },
-                { label: "Sút trúng đích", value: shotsOnTarget },
-                { label: "Sút ra ngoài", value: shotsOffTarget },
-                { label: "Tỷ lệ sút chính xác", value: shotAccuracy },
-                { label: "Đóng góp phòng ngự", value: defContributions },
-              ].map((item, idx) => (
-                <div
-                  key={idx}
-                  className="flex items-center justify-between py-1.5 px-1 border-b border-white/[0.04] last:border-b-0 hover:bg-white/[0.02] rounded-md transition"
-                >
-                  <span className="text-zinc-300 font-medium">{item.label}</span>
-                  <span className="text-white font-bold tabular-nums">{item.value}</span>
-                </div>
-              ))}
-            </div>
+            {/* Bàn thắng */}
+            {eventsInfo.goals > 0 && (
+              <div className="flex items-center justify-between py-1 px-1 border-b border-white/[0.04]">
+                <span className="text-zinc-400 flex items-center gap-1.5">
+                  <FotmobSoccerBallIcon className="w-3.5 h-3.5" />
+                  <span>Bàn thắng</span>
+                </span>
+                <span className="text-emerald-400 font-bold tabular-nums">
+                  {eventsInfo.goals} bàn{" "}
+                  {eventsInfo.goalMinutes.length > 0 && `(${eventsInfo.goalMinutes.join("', ")}')`}
+                </span>
+              </div>
+            )}
 
-            {/* Extra Attack Category */}
-            <div className="pt-2">
-              <span className="text-xs sm:text-sm font-bold text-white block pb-1">
-                Tấn công
-              </span>
-            </div>
+            {/* Thẻ phạt */}
+            {eventsInfo.yellowCards > 0 && (
+              <div className="flex items-center justify-between py-1 px-1 border-b border-white/[0.04]">
+                <span className="text-zinc-400 flex items-center gap-1.5">
+                  <FotmobYellowCardIcon className="w-2.5 h-3.5" />
+                  <span>Thẻ vàng</span>
+                </span>
+                <span className="text-amber-400 font-bold tabular-nums">
+                  {eventsInfo.yellowCards} thẻ vàng
+                </span>
+              </div>
+            )}
+
+            {eventsInfo.redCards > 0 && (
+              <div className="flex items-center justify-between py-1 px-1 border-b border-white/[0.04]">
+                <span className="text-zinc-400 flex items-center gap-1.5">
+                  <FotmobRedCardIcon className="w-2.5 h-3.5" />
+                  <span>Thẻ đỏ</span>
+                </span>
+                <span className="text-rose-400 font-bold tabular-nums">
+                  {eventsInfo.redCards} thẻ đỏ
+                </span>
+              </div>
+            )}
+
+            {!hasEvents && (
+              <p className="text-zinc-500 italic text-xs py-1">
+                Chưa có diễn biến thẻ phạt hoặc bàn thắng cá nhân trong trận này.
+              </p>
+            )}
           </div>
         </div>
 
-        {/* 3. FOOTER BAR (PLAYER PROFILE & DONE) */}
+        {/* KHỐI 2: THỐNG KÊ CHI TIẾT TRẬN ĐẤU (THẬT TỪ ESPN) */}
+        <div className="rounded-2xl bg-white/[0.03] border border-white/[0.06] p-3.5 sm:p-4 space-y-2.5">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-white font-sans flex items-center gap-1.5">
+              <Trophy className="w-3.5 h-3.5 text-amber-400" />
+              <span>Thống kê thi đấu</span>
+            </span>
+            <span className="text-[10.5px] font-sans text-zinc-500">Dữ liệu ESPN</span>
+          </div>
+
+          {player.stats && player.stats.length > 0 ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              {player.stats.map((st, idx) => (
+                <div
+                  key={idx}
+                  className="p-2.5 rounded-xl bg-white/[0.04] flex items-center justify-between gap-2 border border-white/[0.03]"
+                >
+                  <span className="text-[11px] text-zinc-400 truncate font-sans">
+                    {translateStatName(st.displayName || st.name)}
+                  </span>
+                  <span className="font-sans font-bold tabular-nums text-xs text-white shrink-0">
+                    {st.value}
+                  </span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="p-3 rounded-xl bg-white/[0.02] text-center text-xs text-zinc-500 italic font-sans">
+              Chưa có thêm số liệu thống kê chi tiết cho cầu thủ này trong trận.
+            </div>
+          )}
+        </div>
+
+        {/* KHỐI 3: TIỂU SỬ TUYỂN THỦ (DỮ LIỆU THẬT NẾU CÓ TỪ ESPN) */}
+        {hasProfileBio && currentProfile && (
+          <div className="rounded-2xl bg-white/[0.03] border border-white/[0.06] p-3.5 sm:p-4 space-y-2.5">
+            <div className="flex items-center gap-1.5">
+              <User className="w-3.5 h-3.5 text-sky-400" />
+              <span className="text-xs font-bold text-white font-sans">Hồ sơ cầu thủ</span>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs font-sans">
+              {currentProfile.dateOfBirth && (
+                <div className="p-2 rounded-xl bg-white/[0.04] flex flex-col gap-0.5">
+                  <span className="text-[10px] text-zinc-400 flex items-center gap-1">
+                    <Calendar className="w-2.5 h-2.5 text-zinc-400" />
+                    <span>Ngày sinh</span>
+                  </span>
+                  <span className="font-bold text-white truncate tabular-nums text-xs">
+                    {formatBirthDate(currentProfile.dateOfBirth)}
+                  </span>
+                </div>
+              )}
+
+              {(currentProfile.height || currentProfile.weight) && (
+                <div className="p-2 rounded-xl bg-white/[0.04] flex flex-col gap-0.5">
+                  <span className="text-[10px] text-zinc-400 flex items-center gap-1">
+                    <Ruler className="w-2.5 h-2.5 text-zinc-400" />
+                    <span>Thể hình</span>
+                  </span>
+                  <span className="font-bold text-white truncate tabular-nums text-xs">
+                    {currentProfile.height || "-"} • {currentProfile.weight || "-"}
+                  </span>
+                </div>
+              )}
+
+              {currentProfile.birthPlace && (
+                <div className="p-2 rounded-xl bg-white/[0.04] flex flex-col gap-0.5">
+                  <span className="text-[10px] text-zinc-400 flex items-center gap-1">
+                    <MapPin className="w-2.5 h-2.5 text-zinc-400" />
+                    <span>Nơi sinh</span>
+                  </span>
+                  <span className="font-bold text-white truncate text-xs" title={currentProfile.birthPlace}>
+                    {currentProfile.birthPlace}
+                  </span>
+                </div>
+              )}
+
+              {currentProfile.citizenship && (
+                <div className="p-2 rounded-xl bg-white/[0.04] flex flex-col gap-0.5">
+                  <span className="text-[10px] text-zinc-400 flex items-center gap-1">
+                    <Globe className="w-2.5 h-2.5 text-zinc-400" />
+                    <span>Quốc tịch</span>
+                  </span>
+                  <span className="font-bold text-white truncate text-xs" title={currentProfile.citizenship}>
+                    {currentProfile.citizenship}
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* 3. FOOTER BAR (THÔNG TIN ĐỘI & NÚT XONG) */}
         <div className="border-t border-white/[0.08] pt-3.5 mt-2 flex items-center justify-between px-1">
-          <div className="flex items-center gap-2 text-zinc-300 hover:text-white transition text-xs sm:text-sm font-semibold select-none cursor-pointer">
-            <User className="w-4 h-4 text-zinc-400" />
-            <span>Hồ sơ cầu thủ</span>
+          <div className="flex items-center gap-2 text-zinc-400 text-xs font-medium font-sans">
+            <span className="w-2 h-2 rounded-full bg-emerald-400" />
+            <span className="text-zinc-300 font-semibold">{teamName}</span>
+            <span>•</span>
+            <span className="tabular-nums">Số áo #{player.jersey || "-"}</span>
           </div>
 
           <button
             type="button"
             onClick={onClose}
-            className="text-emerald-400 hover:text-emerald-300 font-bold text-xs sm:text-sm transition cursor-pointer select-none font-sans px-2 py-1"
+            className="bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold text-xs sm:text-sm px-4 py-1.5 rounded-xl transition cursor-pointer select-none font-sans"
           >
             Xong
           </button>

@@ -59,7 +59,7 @@ export function translatePosition(pos?: string): string {
   if (/\b(goalkeeper|gk|g)\b/.test(p)) return "Thủ môn";
 
   // Dự bị
-  if (p.includes("substitute") || p === "sub") return "Dự bị";
+  if (p.includes("substitute") || p.includes("reserve") || p.includes("bench") || p === "sub") return "Dự bị";
 
   // Hậu vệ
   if (p.includes("center left defender") || /\bcd-l|cb-l\b/.test(p)) return "Trung vệ lệch trái";
@@ -96,6 +96,9 @@ export function translatePosition(pos?: string): string {
   if (p.includes("right forward") || /\brf\b/.test(p)) return "Tiền đạo cánh phải";
   if (p.includes("forward") || /\bfw|f\b/.test(p)) return "Tiền đạo";
 
+  if (p.includes("player") || p.includes("athlete")) return "Cầu thủ";
+  if (p.includes("coach") || p.includes("manager")) return "HLV";
+
   return pos;
 }
 
@@ -120,6 +123,7 @@ export function translateStatName(name?: string): string {
     offsides: "Việt vị",
     "shots on goal": "Sút trúng đích",
     "shots on target": "Sút trúng đích",
+    "shots off target": "Sút ra ngoài",
     "total goals": "Bàn thắng",
     goals: "Bàn thắng",
     shots: "Tổng cú sút",
@@ -128,17 +132,31 @@ export function translateStatName(name?: string): string {
     "total passes": "Đường chuyền",
     "pass accuracy": "Chính xác đường chuyền",
     "passing accuracy": "Chính xác đường chuyền",
+    "accurate passes": "Chuyền chính xác",
+    "chances created": "Tạo cơ hội",
+    "key passes": "Đường chuyền quyết định",
     tackles: "Tranh chấp / Tắc bóng",
+    "tackles won": "Tắc bóng thành công",
     interceptions: "Cắt bóng",
     clearances: "Phá bóng",
     saves: "Cứu thua",
     "minutes played": "Số phút thi đấu",
-    "key passes": "Đường chuyền quyết định",
     dribbles: "Rê bóng",
     "aerial duels won": "Không chiến thành công",
+    "duels won": "Thắng tranh chấp",
     crosses: "Tạt bóng",
     touches: "Chạm bóng",
     corners: "Phạt góc",
+    xg: "Bàn thắng kỳ vọng (xG)",
+    "expected goals": "Bàn thắng kỳ vọng (xG)",
+    xgot: "Kỳ vọng trúng đích (xGOT)",
+    "expected goals on target": "Kỳ vọng trúng đích (xGOT)",
+    xa: "Kiến tạo kỳ vọng (xA)",
+    "expected assists": "Kiến tạo kỳ vọng (xA)",
+    "blocked shots": "Chắn bóng",
+    "clean sheets": "Giữ sạch lưới",
+    "clean sheet": "Giữ sạch lưới",
+    recoveries: "Thu hồi bóng",
   };
 
   return statDict[key] || name;
