@@ -36,7 +36,7 @@ export interface ForYouPersonalizedRowProps {
   fallbackMovies?: any[];
 }
 
-const CACHE_KEY_NAME = "nanaflix_foryou_cache_v8";
+const CACHE_KEY_NAME = "nanaflix_foryou_cache_v9";
 const CACHE_TTL = 30 * 60 * 1000; // 30 phút TTL (người dùng quay lại trang chủ không gọi lại API)
 
 // Danh sách fallback catalog phim nổi bật luôn sẵn sàng 0ms không cần API ngoài

@@ -212,7 +212,7 @@ export async function enrichMovieListPosters(movieList: any[], options: PosterEn
         return;
       }
 
-      const isVietnamese =
+      const isVietnameseCountry =
         Boolean(item.countries?.some((c: string) => c.toLowerCase().includes("viet"))) ||
         Boolean(
           Array.isArray(item.country) &&
@@ -223,12 +223,11 @@ export async function enrichMovieListPosters(movieList: any[], options: PosterEn
             }
             return String(c).toLowerCase().includes("viet");
           })
-        ) ||
-        /[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/i.test(item.name || "");
+        );
 
-      // For Vietnamese content, ALWAYS prioritize item.name over translated origin_name
-      // to avoid generic translated words (e.g. "Hamlet" for "Xóm Nhỏ") hijacking posters with foreign movies.
-      const primaryCandidates = isVietnamese
+      // Phim có nguồn gốc Việt Nam ưu tiên tên Việt và áp expectedCountry = "VN".
+      // Phim quốc tế (Anime, US/UK, K-drama, C-drama) ưu tiên origin_name để tìm chuẩn xác trên TMDb quốc tế.
+      const primaryCandidates = isVietnameseCountry
         ? Array.from(
           new Set(
             [
@@ -257,7 +256,7 @@ export async function enrichMovieListPosters(movieList: any[], options: PosterEn
             item.year,
             item.type,
             signal,
-            isVietnamese ? "VN" : undefined
+            isVietnameseCountry ? "VN" : undefined
           );
           if (res?.posterUrl) {
             if (posterNonTmdb) {

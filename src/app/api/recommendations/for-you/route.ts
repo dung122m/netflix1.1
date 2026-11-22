@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { normalizeMovie, formatGenreName } from "@/lib/movieMedia";
 import { movieApi } from "@/services/movies/service";
 import { cacheService } from "@/lib/cache";
+import { enrichMovieListPosters } from "@/services/movies/posterEnrichment";
 import {
   enforceRateLimit,
   buildRateLimitResponse,
@@ -76,7 +77,7 @@ async function generateForYouRecommendations(input: RecommendationInput): Promis
     }
 
     const pageOffset = (seed % 4) + 1;
-    const kvForYouKey = `foryou:taste:${tasteHash}:p${pageOffset}`;
+    const kvForYouKey = `foryou:taste:v9:${tasteHash}:p${pageOffset}`;
 
     // 0. Thử lấy từ L1 In-Memory RAM Cache (0ms, 0 Redis calls, 0 CPU)
     const l1Cached = FOR_YOU_L1_CACHE.get(kvForYouKey);
@@ -562,6 +563,8 @@ async function generateForYouRecommendations(input: RecommendationInput): Promis
         origin_name: picked.norm.origin_name,
         poster_url: picked.norm.posterUrl || picked.norm.imageUrl || "/default-poster.jpg",
         thumb_url: picked.norm.thumbUrl || picked.norm.posterUrl || "/default-hero.jpg",
+        tmdbId: picked.norm.tmdbId,
+        itemType: picked.norm.itemType,
         year: picked.norm.year,
         quality: picked.norm.quality || "Full HD",
         category: [{ name: picked.displayGenreName }],
@@ -597,6 +600,8 @@ async function generateForYouRecommendations(input: RecommendationInput): Promis
               origin_name: norm.origin_name,
               poster_url: norm.posterUrl || norm.imageUrl || "/default-poster.jpg",
               thumb_url: norm.thumbUrl || norm.posterUrl || "/default-hero.jpg",
+              tmdbId: norm.tmdbId,
+              itemType: norm.itemType,
               year: norm.year,
               quality: norm.quality || "Full HD",
               category: [{ name: formatGenreName(norm.genre) || norm.type_name || "Đề Xuất" }],
@@ -621,6 +626,11 @@ async function generateForYouRecommendations(input: RecommendationInput): Promis
       } else if (topGenre) {
         matchContext = `Phim ${topGenre.name} hợp gu bạn`;
       }
+    }
+
+    // Nạp sẵn poster TMDb từ RAM/Redis cache vào danh sách gợi ý (0ms)
+    if (selectedFinalMovies.length > 0) {
+      await enrichMovieListPosters(selectedFinalMovies, { budgetMs: 0, stripProxyUrls: true });
     }
 
     // 8. LƯU VÀO CACHE VỚI TTL 2 GIỜ (7200s) CHỈ KHI ĐẠT ĐỦ >= 14 PHIM

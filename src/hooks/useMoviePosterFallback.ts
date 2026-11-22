@@ -7,8 +7,8 @@ import { toOptimizedCardPosterUrl, isSlowProviderSourceUrl } from "@/lib/movieMe
 // 1. PERSISTENT GLOBAL CACHE & DEDUPLICATION (Lưu vào localStorage/sessionStorage)
 // =========================================================================
 // Tránh việc nhiều card cùng 1 phim (hoặc khi reload trang) gọi API nhiều lần
-const POSTER_CACHE_KEY = "nfx_poster_fallback_cache_v2";
-const TRIED_FAILURES_KEY = "nfx_poster_fallback_failures_v2";
+const POSTER_CACHE_KEY = "nfx_poster_fallback_cache_v3";
+const TRIED_FAILURES_KEY = "nfx_poster_fallback_failures_v3";
 
 function initPersistentPosterCache(): Map<string, string> {
   const map = new Map<string, string>();
@@ -133,7 +133,8 @@ function flushBatchQueue() {
             const m = results[matchingKey];
             e.resolve({ posterUrl: m.posterUrl || null, backdropUrl: m.backdropUrl || null });
           } else {
-            e.resolve(null);
+            // Không nhận được phản hồi cho key này (chưa được xử lý): không đánh dấu failure vĩnh viễn
+            e.resolve({ posterUrl: null, backdropUrl: null, unattempted: true } as any);
           }
         }
       });
@@ -371,6 +372,12 @@ export function useMoviePosterFallback({
       const resolvedRaw = preferBackdrop
         ? (data?.backdropUrl || data?.posterUrl)
         : (data?.posterUrl || data?.backdropUrl);
+
+      // Nếu chưa được server xử lý, tắt loading và không ghi nhận failure vĩnh viễn
+      if ((data as any)?.unattempted) {
+        setIsLoading(false);
+        return;
+      }
 
       // Nếu không tìm thấy ảnh thay thế hoặc ảnh vẫn là nguồn chậm (phimimg/nguonc)
       if (!resolvedRaw || typeof resolvedRaw !== "string" || isSlowProviderSourceUrl(resolvedRaw)) {

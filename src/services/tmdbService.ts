@@ -288,6 +288,23 @@ function pickBestTmdbCandidate(
     const itemType = r.media_type || (r.first_air_date ? "tv" : "movie");
     if (itemType === targetType) score += 60;
 
+    // Title similarity scoring
+    const titleCandidates = [r.title, r.name, r.original_title, r.original_name]
+      .filter((t): t is string => typeof t === "string" && t.trim().length > 0);
+
+    let bestTitleSim = 0;
+    if (normQuery) {
+      for (const candTitle of titleCandidates) {
+        const normCand = normalizeForMatch(candTitle);
+        if (normCand === normQuery) {
+          bestTitleSim = Math.max(bestTitleSim, 100);
+        } else if (normCand && (normCand.includes(normQuery) || normQuery.includes(normCand))) {
+          bestTitleSim = Math.max(bestTitleSim, 60);
+        }
+      }
+    }
+    score += bestTitleSim;
+
     const relDate = r.release_date || r.first_air_date || "";
     if (parsedYear && relDate) {
       const itemYear = parseInt(relDate.slice(0, 4), 10);
@@ -295,7 +312,15 @@ function pickBestTmdbCandidate(
         const diff = Math.abs(itemYear - parsedYear);
         if (diff === 0) score += 80;
         else if (diff === 1) score += 40;
-        else if (diff > 3) score -= 100;
+        else if (itemType === "tv" && parsedYear >= itemYear) {
+          // TV Series: Các season sau chiếu nhiều năm sau Season 1 (first_air_date)
+          score += 20;
+        } else if (bestTitleSim >= 100) {
+          // Tên phim khớp chính xác nhưng năm upload nguồn lệch năm công chiếu
+          score -= 20;
+        } else if (diff > 3) {
+          score -= 100;
+        }
       }
     } else if (parsedYear && !relDate) {
       // If a specific year was requested but candidate has NO release date at all,
@@ -316,23 +341,6 @@ function pickBestTmdbCandidate(
     if (r.poster_path) score += 30;
     score += Math.min(40, Math.log10((r.vote_count || 0) + 1) * 10);
     score += Math.min(20, (r.popularity || 0) / 10);
-
-    // Title similarity scoring
-    const titleCandidates = [r.title, r.name, r.original_title, r.original_name]
-      .filter((t): t is string => typeof t === "string" && t.trim().length > 0);
-
-    let bestTitleSim = 0;
-    if (normQuery) {
-      for (const candTitle of titleCandidates) {
-        const normCand = normalizeForMatch(candTitle);
-        if (normCand === normQuery) {
-          bestTitleSim = Math.max(bestTitleSim, 100);
-        } else if (normCand && (normCand.includes(normQuery) || normQuery.includes(normCand))) {
-          bestTitleSim = Math.max(bestTitleSim, 60);
-        }
-      }
-    }
-    score += bestTitleSim;
 
     // Strict country / language protection:
     // If the movie is known to be Vietnamese:
@@ -379,7 +387,7 @@ export async function searchTmdbPosterByTitle(
   if (cleanQuery.length < 2) return { posterUrl: null, backdropUrl: null };
 
   const cleanType = normalizeTmdbLookupMediaType(type);
-  const searchYear = year && /^\d{4}$/.test(String(year).trim()) ? `&year=${String(year).trim()}` : "";
+  const searchYear = year && /^\d{4}$/.test(String(year).trim()) && cleanType === "movie" ? `&year=${String(year).trim()}` : "";
   const cacheKey = `v3:${cleanQuery}|${year || ""}|${cleanType}|${expectedCountry || ""}`.toLowerCase();
   const cleanQueryNorm = cleanQuery.toLowerCase().replace(/[^a-z0-9]/g, "_").slice(0, 48);
   const redisKey = `tmdb:poster:v3:${cleanQueryNorm}:${year || ""}:${cleanType}:${expectedCountry || ""}`;

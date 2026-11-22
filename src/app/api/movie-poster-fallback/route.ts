@@ -32,12 +32,26 @@ function setBoundedMap<K, V>(map: Map<K, V>, key: K, value: V, maxSize = 2000): 
 async function queryTmdbPoster(
   query: string,
   year?: string,
+  type?: string,
   expectedCountry?: string
 ): Promise<{ posterUrl: string | null; backdropUrl: string | null }> {
   if (!query || query.trim().length < 2) {
     return { posterUrl: null, backdropUrl: null };
   }
-  return searchTmdbPosterByTitle(query, year, "movie", undefined, expectedCountry);
+  const cleanType = type === "tv" || type === "series" ? "tv" : "movie";
+  let res = await searchTmdbPosterByTitle(query, year, cleanType, undefined, expectedCountry);
+  if (!res?.posterUrl && !res?.backdropUrl) {
+    const altType = cleanType === "tv" ? "movie" : "tv";
+    res = await searchTmdbPosterByTitle(query, year, altType, undefined, expectedCountry);
+  }
+  if (!res?.posterUrl && !res?.backdropUrl && year) {
+    res = await searchTmdbPosterByTitle(query, undefined, cleanType, undefined, expectedCountry);
+    if (!res?.posterUrl && !res?.backdropUrl) {
+      const altType = cleanType === "tv" ? "movie" : "tv";
+      res = await searchTmdbPosterByTitle(query, undefined, altType, undefined, expectedCountry);
+    }
+  }
+  return res;
 }
 
 export interface FallbackItemParams {
@@ -130,7 +144,7 @@ async function resolvePosterFromUpstream(
       : ([origin_name && origin_name !== title ? origin_name : null, title, slug ? slug.replace(/-/g, " ") : null].filter(Boolean) as string[]);
 
     const candidateLookups = queryOrder.map((q) =>
-      queryTmdbPoster(q, year, undefined).catch(() => null)
+      queryTmdbPoster(q, year, type, undefined).catch(() => null)
     );
     const candidateResults = await Promise.race([
       Promise.all(candidateLookups),
@@ -414,9 +428,9 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // TẦNG 3: Tra cứu trực tiếp Upstream TMDb / AniList cho các phim còn thiếu (giới hạn tối đa 6 phim song song)
+  // TẦNG 3: Tra cứu trực tiếp Upstream TMDb cho các phim còn thiếu (xử lý toàn bộ batch song song)
   if (pendingUpstreamList.length > 0) {
-    const toResolve = pendingUpstreamList.slice(0, 6);
+    const toResolve = pendingUpstreamList.slice(0, 24);
     await Promise.allSettled(
       toResolve.map(async ({ keys }) => {
         const resolved = await resolvePosterFromUpstream(keys);
