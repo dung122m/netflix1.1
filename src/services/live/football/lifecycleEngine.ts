@@ -11,7 +11,7 @@
  * 4. Ngăn chặn hiện tượng zombie stream kéo ngược trận đã FT thành LIVE.
  */
 
-import { LiveMatchScore } from "@/services/live/football-score/types";
+import { LiveMatchScore } from "./types";
 
 // =========================================================================
 // 1. ĐỊNH NGHĨA TRẠNG THÁI ĐỘC LẬP (DISCRETE STATUS TYPES)

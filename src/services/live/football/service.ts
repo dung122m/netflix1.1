@@ -2,14 +2,14 @@ import { unstable_cache } from "next/cache";
 import {
   enrichMatchLogosSync,
   triggerBackgroundLogoEnrichment,
-} from "@/services/live/football-logo/service";
+} from "./footballLogoService";
 import { cacheService } from "@/lib/cache";
 import { isBlockedStreamUrl } from "@/services/live/shared/streamHealth";
 import { resolveEsportsTeam } from "@/data/live/teamAssets";
-import { LiveMatchScore } from "@/services/live/football-score/types";
-import { footballScoreService } from "@/services/live/football-score/service";
-import { matchFixtureToScore } from "@/services/live/football-score/matcher";
-import { resolveCanonicalTournament } from "@/services/live/football-score/canonicalLeagues";
+import { LiveMatchScore } from "./types";
+import { footballScoreService } from "./footballScoreService";
+import { matchFixtureToScore } from "./matcher";
+import { resolveCanonicalTournament } from "./canonicalLeagues";
 import {
   NATIONAL_TEAM_CANONICAL_MAP,
   NATIONAL_TEAM_CANONICAL_KEYS,
@@ -374,13 +374,13 @@ import {
   isSingleTeamMatching,
   areMatchTimesCompatible,
   areMatchFixturesMatching,
-} from "@/lib/sports/matchMatcher";
+} from "./matchMatcher";
 import {
   detectTournament,
   getSportLabel,
   extractSportAndGender,
   extractSportAndCategory,
-} from "@/lib/sports/tournamentDetector";
+} from "./tournamentDetector";
 
 export {
   normalizeClubKey,
