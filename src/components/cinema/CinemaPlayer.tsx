@@ -535,7 +535,11 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
 
       {/* STICKY PLACEHOLDER */}
       {isMobileStickyActive && (
-        <div className="w-full aspect-video md:hidden" aria-hidden="true" />
+        <div
+          className="w-full aspect-video md:hidden"
+          style={{ height: "var(--sticky-player-height, calc(32px + 56.25vw))" }}
+          aria-hidden="true"
+        />
       )}
 
       {/* KHUNG PHÁT VIDEO CHÍNH */}

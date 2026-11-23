@@ -355,17 +355,52 @@ export function useCinemaFullscreenAndOrientation({
     !isFullscreen &&
     canBeSticky;
 
-  // Đồng bộ cờ playerSticky lên DOM để MobileMovieNav và layout mobile điều chỉnh tọa độ sticky
+  // Đồng bộ cờ playerSticky và đo lường chính xác chiều cao sticky player lên DOM
   useEffect(() => {
-    if (isMobileStickyActive) {
-      document.documentElement.dataset.playerSticky = "true";
-    } else {
+    if (!isMobileStickyActive) {
       delete document.documentElement.dataset.playerSticky;
+      document.documentElement.style.removeProperty("--sticky-player-height");
+      return;
     }
+
+    document.documentElement.dataset.playerSticky = "true";
+
+    const updateStickyHeight = () => {
+      const container = containerRef.current;
+      if (!container) return;
+      const height = container.offsetHeight || container.getBoundingClientRect().height;
+      if (height > 0) {
+        document.documentElement.style.setProperty(
+          "--sticky-player-height",
+          `${Math.round(height)}px`
+        );
+      }
+    };
+
+    updateStickyHeight();
+
+    // Đồng bộ theo ResizeObserver để bắt kịp mọi thay đổi kích thước tức thì (xoay màn hình, safe-area...)
+    let resizeObserver: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== "undefined" && containerRef.current) {
+      resizeObserver = new ResizeObserver(() => {
+        updateStickyHeight();
+      });
+      resizeObserver.observe(containerRef.current);
+    }
+
+    window.addEventListener("resize", updateStickyHeight, { passive: true });
+    window.addEventListener("orientationchange", updateStickyHeight, { passive: true });
+
     return () => {
       delete document.documentElement.dataset.playerSticky;
+      document.documentElement.style.removeProperty("--sticky-player-height");
+      if (resizeObserver) {
+        resizeObserver.disconnect();
+      }
+      window.removeEventListener("resize", updateStickyHeight);
+      window.removeEventListener("orientationchange", updateStickyHeight);
     };
-  }, [isMobileStickyActive]);
+  }, [isMobileStickyActive, containerRef]);
 
   const scrollToPlayer = useCallback(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });
