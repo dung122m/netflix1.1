@@ -55,7 +55,7 @@ const NumberedRankCardInner: React.FC<NumberedRankCardProps> = ({
   }, [poster_url, thumb_url, title, origin_name, slug]);
 
   const ringClasses =
-    "group-hover:ring-2 group-hover:ring-netflix-red group-hover:ring-inset group-hover:shadow-[0_14px_32px_rgba(0,0,0,0.85)] focus-visible:ring-netflix-red";
+    "group-hover:shadow-[0_14px_32px_rgba(0,0,0,0.85)] focus-visible:ring-2 focus-visible:ring-netflix-red/70";
 
   const titleHoverColor = "group-hover:text-netflix-red";
 

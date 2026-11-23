@@ -443,7 +443,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
       {/* 1. KHỐI POSTER NGHỆ THUẬT (2:3 POSTER ARTWORK CANVAS - CLEAN & ELEVATED)   */}
       {/* ========================================================================= */}
       <div
-        className={`relative aspect-[2/3] w-full rounded-xl overflow-hidden bg-zinc-950 bg-gradient-to-br from-zinc-800/70 via-zinc-900 to-zinc-950 transition-shadow duration-200 ease-out focus-within:ring-2 focus-within:ring-white ${isCardActive
+        className={`relative aspect-[2/3] w-full rounded-xl overflow-hidden bg-zinc-950 bg-gradient-to-br from-zinc-800/70 via-zinc-900 to-zinc-950 transition-shadow duration-200 ease-out ${isCardActive
           ? "shadow-[inset_0_0_0_2px_#22c55e]"
           : "group-hover/card:shadow-xl group-hover/card:shadow-black/70"
           }`}
@@ -462,7 +462,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
           onClick={handleCardClick}
           tabIndex={0}
           aria-label={`Xem phim ${title}`}
-          className={`block absolute inset-0 z-0 outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-inset rounded-xl ${isNavigating ? "movie-card-navigating" : ""
+          className={`block absolute inset-0 z-0 outline-none focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-inset rounded-xl ${isNavigating ? "movie-card-navigating" : ""
             }`}
         >
           {/* LỚP NỀN POSTER: DYNAMIC TYPOGRAPHY POSTER CANVAS & SKELETON */}

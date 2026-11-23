@@ -132,10 +132,10 @@ export function MyListCollectionsTab({
                   className="group/card relative flex flex-col w-full select-none cursor-pointer hover:scale-[1.02] hover:-translate-y-0.5 hover:z-20 transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:transform-none"
                 >
                   {/* KHỐI POSTER DỌC 2:3 CHO BỘ SƯU TẬP (CHUẨN ĐỒNG BỘ TRANG CHỦ) */}
-                  <div className="relative aspect-[2/3] w-full rounded-xl overflow-hidden bg-zinc-950 bg-gradient-to-br from-zinc-800/70 via-zinc-900 to-zinc-950 group-hover/card:ring-2 group-hover/card:ring-netflix-red group-hover/card:ring-inset group-hover/card:shadow-[0_12px_28px_rgba(0,0,0,0.85)] transition-all duration-300">
+                  <div className="relative aspect-[2/3] w-full rounded-xl overflow-hidden bg-zinc-950 bg-gradient-to-br from-zinc-800/70 via-zinc-900 to-zinc-950 group-hover/card:shadow-[0_12px_28px_rgba(0,0,0,0.85)] transition-all duration-300">
                     <Link
                       href={`/collection/${col.id}`}
-                      className="block absolute inset-0 z-0 outline-none focus-visible:ring-2 focus-visible:ring-white rounded-xl"
+                      className="block absolute inset-0 z-0 outline-none focus-visible:ring-2 focus-visible:ring-white/40 rounded-xl"
                       aria-label={`Xem bộ sưu tập ${col.name}`}
                     >
                       {previewPosters.length >= 4 ? (
