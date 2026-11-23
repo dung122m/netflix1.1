@@ -15,7 +15,6 @@ import {
 } from "@/lib/adBoundaryDetector";
 import {
   evaluateHlsError,
-  findNextBufferedGapJump,
 } from "@/lib/playbackStallController";
 import {
   endAdTransition,
@@ -555,28 +554,9 @@ export function useCinemaHlsEngine({
             if (v && !v.paused && !v.ended) {
               setIsBuffering(true);
               isStalledRef.current = true;
-              if (stallRecoveryTimeoutRef.current) {
-                clearTimeout(stallRecoveryTimeoutRef.current);
+              if (!stallRecoveryTimeoutRef.current) {
+                v.dispatchEvent(new Event("waiting"));
               }
-              stallRecoveryTimeoutRef.current = setTimeout(() => {
-                const curV = videoRef.current;
-                if (
-                  curV &&
-                  isStalledRef.current &&
-                  !curV.paused &&
-                  !curV.ended
-                ) {
-                  const gapJump = findNextBufferedGapJump(curV.buffered, curV.currentTime, 8);
-                  if (gapJump.shouldJump && gapJump.jumpTarget > 0) {
-                    const dur = latestEffectiveDurationRef.current();
-                    curV.currentTime = Math.min(
-                      gapJump.jumpTarget,
-                      dur > 0 ? dur : gapJump.jumpTarget,
-                    );
-                  }
-                  curV.play().catch(() => {});
-                }
-              }, 2000);
             }
           }
           // Bỏ qua các lỗi non-fatal khác để Hls.js tự retry theo cơ chế nội bộ

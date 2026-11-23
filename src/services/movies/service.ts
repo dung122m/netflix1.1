@@ -671,7 +671,7 @@ async function executeGetMovies(params: MovieFilterParams, cacheKey: string) {
 
 export function buildMovieCacheKey(params: MovieFilterParams): string {
   return JSON.stringify({
-    v: 23,
+    v: 24,
     category: params.category || "",
     country: params.country || "",
     year: params.year || "",

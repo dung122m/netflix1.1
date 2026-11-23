@@ -222,8 +222,13 @@ export function findNextBufferedGapJump(
 
 /**
  * Kiểm soát số lần retry stall recovery để tránh vòng lặp vô hạn hoặc spam play().
+ * Tăng lên 5 lần thử với bước nhảy tăng tiến (progressive nudge deltas: 0.4s -> 1.5s -> 3.0s -> 4.5s -> 6.0s)
+ * để vượt qua các khoảng hở âm thanh / dropout rỗng (3s đến 6s) từ upstream mà không bao giờ bị đơ vô hạn.
  */
-export const MAX_STALL_RECOVERY_ATTEMPTS = 2;
+export const MAX_STALL_RECOVERY_ATTEMPTS = 5;
+
+export const PROGRESSIVE_STALL_NUDGES: readonly number[] = [0.4, 1.5, 3.0, 4.5, 6.0];
+export const STALL_RETRY_DELAYS: readonly number[] = [1000, 1000, 1200, 1200, 1500];
 
 export function evaluateStallRecoveryAttempt(
   currentAttempts: number,
@@ -239,8 +244,9 @@ export function evaluateStallRecoveryAttempt(
   shouldKeepBuffering: boolean;
   shouldJumpGap?: boolean;
   gapJumpTarget?: number;
+  retryDelayMs?: number;
 } {
-  // 1. Kiểm tra nếu có khoảng đệm rời rạc (buffer hole do mất audio segment thượng nguồn như tại 22:28 và 35:22)
+  // 1. Kiểm tra nếu có khoảng đệm rời rạc (buffer hole rõ ràng giữa 2 ranges do browser ghi nhận)
   const gapJump = findNextBufferedGapJump(buffered, currentTime, 8);
   if (gapJump.shouldJump && gapJump.jumpTarget > 0) {
     return {
@@ -251,20 +257,28 @@ export function evaluateStallRecoveryAttempt(
       shouldKeepBuffering: true,
       shouldJumpGap: true,
       gapJumpTarget: gapJump.jumpTarget,
+      retryDelayMs: 600,
     };
   }
 
   if (currentAttempts < maxAttempts) {
-    // Nếu có buffer phía trước nhưng playhead bị kẹt ở micro-gap (0.05s đến 0.5s)
-    // HOẶC nếu attempt >= 1 mà bị đứng hình hoàn toàn, chủ động nhích nhẹ playhead (+0.3s) để vượt qua bad frame
-    const shouldNudge = (bufAhead > 0.05 && bufAhead < 0.5) || currentAttempts >= 1;
-    const nudgeDelta = bufAhead > 0.05 && bufAhead < 0.5 ? 0.1 : 0.3;
+    // Nếu có buffer phía trước nhưng playhead kẹt ở micro-gap nhỏ (0.05s đến 0.5s):
+    // Nhích nhẹ 0.15s ở attempt 0 để không lãng phí khung hình
+    const isMicroGap = bufAhead > 0.05 && bufAhead < 0.5;
+    const nudgeDelta =
+      isMicroGap && currentAttempts === 0
+        ? 0.15
+        : (PROGRESSIVE_STALL_NUDGES[currentAttempts] ?? 3.0);
+
+    const retryDelayMs = STALL_RETRY_DELAYS[currentAttempts] ?? 1200;
+
     return {
       canRetry: true,
       shouldRequestPlay: true,
-      shouldNudge,
-      nudgeDelta: shouldNudge ? nudgeDelta : 0,
+      shouldNudge: true,
+      nudgeDelta,
       shouldKeepBuffering: true,
+      retryDelayMs,
     };
   }
 
@@ -276,5 +290,6 @@ export function evaluateStallRecoveryAttempt(
     nudgeDelta: 0,
     // Nếu buffer rỗng hẳn thì vẫn để buffering chờ mạng, nếu có buffer thì tắt spinner tránh treo vĩnh viễn
     shouldKeepBuffering: bufAhead < 0.5,
+    retryDelayMs: 0,
   };
 }

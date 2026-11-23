@@ -203,10 +203,16 @@ export function useCinemaVideoEvents({
       }
     };
 
-    const scheduleStallRecovery = () => {
+    const scheduleStallRecovery = (delayMs?: number) => {
       if (stallRecoveryTimeoutRef.current) {
         clearTimeout(stallRecoveryTimeoutRef.current);
       }
+      const waitTime =
+        typeof delayMs === "number" && delayMs > 0
+          ? delayMs
+          : stallRecoveryCountRef.current === 0
+            ? 1000
+            : 800;
       stallRecoveryTimeoutRef.current = setTimeout(() => {
         const v = videoRef.current;
         if (!v || v.paused || v.ended) {
@@ -237,18 +243,18 @@ export function useCinemaVideoEvents({
             } else if (recovery.shouldNudge && recovery.nudgeDelta > 0) {
               v.currentTime = Math.min(
                 v.currentTime + recovery.nudgeDelta,
-                dur > 0 ? dur : v.currentTime + 1,
+                dur > 0 ? dur : v.currentTime + recovery.nudgeDelta,
               );
             }
             if (recovery.shouldRequestPlay) {
               v.play().catch(() => {});
             }
-            scheduleStallRecovery();
+            scheduleStallRecovery(recovery.retryDelayMs);
           } else {
             isStalledRef.current = false;
           }
         }
-      }, 2000);
+      }, waitTime);
     };
 
     const checkBufferRecovery = () => {

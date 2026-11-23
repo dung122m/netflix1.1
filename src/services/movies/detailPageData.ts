@@ -755,7 +755,7 @@ async function getCachedMovieDetailPageData(
   if (!cleanSlug) return null;
   const epKey = options.ep ? String(options.ep).trim() : "";
   const serverKey = options.server ? String(options.server).trim() : "";
-  const cacheKey = `movie:detail:page:v1:${cleanSlug}:${epKey}:${serverKey}`;
+  const cacheKey = `movie:detail:page:v2:${cleanSlug}:${epKey}:${serverKey}`;
 
   // 1. L1 RAM Cache (0ms)
   const now = Date.now();

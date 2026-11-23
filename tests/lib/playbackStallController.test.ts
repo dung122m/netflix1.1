@@ -197,11 +197,38 @@ describe("playbackStallController — TC-PLAYBACK-STABILITY-03", () => {
       const result = evaluateStallRecoveryAttempt(0, 0.2, MAX_STALL_RECOVERY_ATTEMPTS);
       assert.strictEqual(result.canRetry, true);
       assert.strictEqual(result.shouldNudge, true);
-      assert.strictEqual(result.nudgeDelta, 0.1);
+      assert.strictEqual(result.nudgeDelta, 0.15);
     });
 
-    test("stops retry loop when max attempts reached to avoid crashing media engine", () => {
-      const result = evaluateStallRecoveryAttempt(2, 3.0, MAX_STALL_RECOVERY_ATTEMPTS);
+    test("executes progressive leaps across attempts to bridge multi-second dropouts", () => {
+      // Attempt 0: initial forward step
+      const att0 = evaluateStallRecoveryAttempt(0, 0, MAX_STALL_RECOVERY_ATTEMPTS);
+      assert.strictEqual(att0.canRetry, true);
+      assert.strictEqual(att0.nudgeDelta, 0.4);
+
+      // Attempt 1: leap +1.5s
+      const att1 = evaluateStallRecoveryAttempt(1, 0, MAX_STALL_RECOVERY_ATTEMPTS);
+      assert.strictEqual(att1.canRetry, true);
+      assert.strictEqual(att1.nudgeDelta, 1.5);
+
+      // Attempt 2: leap +3.0s
+      const att2 = evaluateStallRecoveryAttempt(2, 0, MAX_STALL_RECOVERY_ATTEMPTS);
+      assert.strictEqual(att2.canRetry, true);
+      assert.strictEqual(att2.nudgeDelta, 3.0);
+
+      // Attempt 3: leap +4.5s (bridges the 5.88s audio dropout at 22:28!)
+      const att3 = evaluateStallRecoveryAttempt(3, 0, MAX_STALL_RECOVERY_ATTEMPTS);
+      assert.strictEqual(att3.canRetry, true);
+      assert.strictEqual(att3.nudgeDelta, 4.5);
+
+      // Attempt 4: leap +6.0s
+      const att4 = evaluateStallRecoveryAttempt(4, 0, MAX_STALL_RECOVERY_ATTEMPTS);
+      assert.strictEqual(att4.canRetry, true);
+      assert.strictEqual(att4.nudgeDelta, 6.0);
+    });
+
+    test("stops retry loop when max attempts (5) reached to avoid crashing media engine", () => {
+      const result = evaluateStallRecoveryAttempt(5, 3.0, MAX_STALL_RECOVERY_ATTEMPTS);
       assert.strictEqual(result.canRetry, false);
       assert.strictEqual(result.shouldRequestPlay, false);
       assert.strictEqual(result.shouldNudge, false);
@@ -209,7 +236,7 @@ describe("playbackStallController — TC-PLAYBACK-STABILITY-03", () => {
     });
 
     test("keeps buffering spinner if buffer is completely empty even after max attempts", () => {
-      const result = evaluateStallRecoveryAttempt(2, 0.1, MAX_STALL_RECOVERY_ATTEMPTS);
+      const result = evaluateStallRecoveryAttempt(5, 0.1, MAX_STALL_RECOVERY_ATTEMPTS);
       assert.strictEqual(result.canRetry, false);
       assert.strictEqual(result.shouldRequestPlay, false);
       assert.strictEqual(result.shouldKeepBuffering, true, "Keeps spinner because network is still starved");

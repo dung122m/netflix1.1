@@ -1,6 +1,6 @@
 import { isBrokenImageUrl, isSlowProviderSourceUrl } from "@/lib/movieMedia";
 import { getTmdbMediaImagesById, searchTmdbPosterByTitle } from "@/services/tmdbService";
-import { isCorruptedTmdbId } from "@/services/tmdb/tmdbSanityGuard";
+import { isCorruptedTmdbId, isTmdbPayloadMatchingMovie } from "@/services/tmdb/tmdbSanityGuard";
 import { cacheService } from "@/lib/cache";
 
 export interface PosterEnrichmentOptions {
@@ -72,7 +72,7 @@ async function fastBatchEnrichFromCache(movieList: any[]): Promise<void> {
         continue;
       }
       const cleanType = item.tmdb.type === "tv" || item.tmdb.type === "series" ? "tv" : "movie";
-      const key = `tmdb:images:v2:${cleanType}:${item.tmdb.id}`;
+      const key = `tmdb:images:v3:${cleanType}:${item.tmdb.id}`;
       keys.push(key);
       needsLookup.push({ item, key });
     }
@@ -104,6 +104,20 @@ async function fastBatchEnrichFromCache(movieList: any[]): Promise<void> {
           const hit = results[i];
           if (hit && typeof hit === "object") {
             const { item } = needsLookup[i];
+            if (hit.releaseDate || hit.title || hit.originalTitle) {
+              const matches = isTmdbPayloadMatchingMovie(
+                {
+                  release_date: hit.releaseDate,
+                  title: hit.title,
+                  original_title: hit.originalTitle,
+                },
+                item
+              );
+              if (!matches) {
+                item.tmdb = undefined;
+                continue;
+              }
+            }
             if (hit.posterUrl) {
               item.poster_url = hit.posterUrl;
               item.posterUrl = hit.posterUrl;

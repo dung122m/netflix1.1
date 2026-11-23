@@ -205,8 +205,8 @@ export async function getTmdbMediaImagesById(
     }
   }
 
-  const cacheKey = `v4:${cleanType}:${cleanId}`;
-  const redisKey = `tmdb:images:v2:${cleanType}:${cleanId}`;
+  const cacheKey = `v5:${cleanType}:${cleanId}`;
+  const redisKey = `tmdb:images:v3:${cleanType}:${cleanId}`;
 
   const now = Date.now();
   const memoryHit = TMDB_MEDIA_IMAGES_CACHE.get(cacheKey);
@@ -215,8 +215,30 @@ export async function getTmdbMediaImagesById(
   }
 
   try {
-    const redisHit = await cacheService.get<{ posterUrl: string | null; backdropUrl: string | null }>(redisKey);
+    const redisHit = await cacheService.get<{
+      posterUrl: string | null;
+      backdropUrl: string | null;
+      title?: string | null;
+      originalTitle?: string | null;
+      releaseDate?: string | null;
+    }>(redisKey);
     if (redisHit && typeof redisHit === "object") {
+      if (expectedMovie && (redisHit.title || redisHit.releaseDate)) {
+        const matches = isTmdbPayloadMatchingMovie(
+          {
+            title: redisHit.title || undefined,
+            original_title: redisHit.originalTitle || undefined,
+            release_date: redisHit.releaseDate || undefined,
+          },
+          expectedMovie
+        );
+        if (!matches) {
+          console.warn(
+            `[TMDB Sanity Guard] Cached image mismatch for tmdbId ${cleanId} on "${expectedMovie.name || expectedMovie.title}" (${expectedMovie.year})`
+          );
+          return { posterUrl: null, backdropUrl: null };
+        }
+      }
       setBoundedMap(TMDB_MEDIA_IMAGES_CACHE, cacheKey, {
         posterUrl: redisHit.posterUrl ?? null,
         backdropUrl: redisHit.backdropUrl ?? null,
@@ -277,7 +299,19 @@ export async function getTmdbMediaImagesById(
           expireAt: Date.now() + (posterUrl ? 24 * 3600 * 1000 : 120 * 1000),
         });
         const redisTtl = posterUrl ? 30 * 86400 : 3600;
-        cacheService.set(redisKey, { posterUrl, backdropUrl }, redisTtl).catch(() => {});
+        cacheService
+          .set(
+            redisKey,
+            {
+              posterUrl,
+              backdropUrl,
+              title: data?.title || data?.name || null,
+              originalTitle: data?.original_title || data?.original_name || null,
+              releaseDate: data?.release_date || data?.first_air_date || null,
+            },
+            redisTtl
+          )
+          .catch(() => {});
       }
 
       return { posterUrl, backdropUrl };
@@ -890,7 +924,7 @@ export async function getTmdbMovieCredits(
     return memHit.data;
   }
 
-  const kvKey = `tmdb:credits:v2:${cleanType}:${cleanId}`;
+  const kvKey = `tmdb:credits:v3:${cleanType}:${cleanId}`;
   const castList = await cacheService.fetchOrSet<TmdbCastMember[]>(
     kvKey,
     async () => {
