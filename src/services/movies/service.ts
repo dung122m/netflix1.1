@@ -47,15 +47,8 @@ import {
   getEpisodeStream as baseGetEpisodeStream,
 } from "./episodeProcessing";
 
-// 3. Multi-source pagination, allocation, and filter execution
+// 3. Multi-source pagination and filter execution
 import {
-  QueryPaginationMeta,
-  getNguonCGenreSlug,
-  getNguonCCountrySlug,
-  getNguonCQueryMetaKey,
-  SourcePageAllocation,
-  calculateSourcePageAllocation,
-  isMovieOfType,
   isNguonCSupportedForParams,
   applyMovieFilters,
   fetchSourceData,
@@ -74,8 +67,6 @@ export type {
   CompactServerItem,
   MovieDetailV3Payload,
   EpisodeStreamResult,
-  SourcePageAllocation,
-  QueryPaginationMeta,
 };
 export {
   parseSortMode,
@@ -87,13 +78,8 @@ export {
   sanitizeMovieDetailEpisodes,
   toCompactDetailPayload,
   unpackDetailPayload,
-  isMovieOfType,
   isNguonCSupportedForParams,
   applyMovieFilters,
-  calculateSourcePageAllocation,
-  getNguonCGenreSlug,
-  getNguonCCountrySlug,
-  getNguonCQueryMetaKey,
   deduplicateMovieItems,
   extractMovieIdentityKeys,
   isMovieInSeenSet,

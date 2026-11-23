@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { movieApi, deduplicateServerEpisodes, buildMovieCacheKey, calculateSourcePageAllocation } from "@/services/movies/service";
+import { movieApi, deduplicateServerEpisodes, buildMovieCacheKey } from "@/services/movies/service";
 import { fetchSourceData, API_NGUONC } from "@/services/movies/catalogFederation";
 import { deduplicateMovieItems } from "@/lib/movieMedia";
 import { formatCountryName, extractMovieCountry, normalizeMovie } from "@/lib/movieMedia";
@@ -595,26 +595,19 @@ describe("Nanaflix Movie Browse Pagination & Filter Service", () => {
     assert.equal(meta, "2026 • Hành Động", "Không được in lặp '2026 • Hành Động • Hành Động'");
   });
 
-  // Z1. calculateSourcePageAllocation guarantees seamless non-overlapping continuity
-  it("Z1. calculateSourcePageAllocation guarantees seamless non-overlapping continuity across exhaust boundaries", () => {
-    const totalA = 3640;
-    const totalB = 7161;
-    const limit = 24;
+  // Z1. Catalog browsing continuity: Authoritative PhimAPI provides full pages without duplicates
+  it("Z1. Catalog browsing continuity: Authoritative PhimAPI provides full pages without duplicates", async () => {
+    const [page1, page2] = await Promise.all([
+      movieApi.getMovies({ type: "phim-bo", page: 1, limit: 24, skipKvCache: true }),
+      movieApi.getMovies({ type: "phim-bo", page: 2, limit: 24, skipKvCache: true }),
+    ]);
 
-    let prevBEnd = 0;
-    let prevAEnd = 0;
-    for (let p = 1; p <= 299; p++) {
-      const alloc = calculateSourcePageAllocation(p, limit, totalA, totalB, true);
-      assert.equal(alloc.aLimit + alloc.bLimit, limit, `Page ${p} total limit must equal ${limit}`);
-      if (alloc.aLimit > 0) {
-        assert.equal(alloc.aOffset, prevAEnd, `Discontinuity in A at page ${p}`);
-        prevAEnd = alloc.aOffset + alloc.aLimit;
-      }
-      if (alloc.bLimit > 0) {
-        assert.equal(alloc.bOffset, prevBEnd, `Discontinuity in B at page ${p}`);
-        prevBEnd = alloc.bOffset + alloc.bLimit;
-      }
-    }
+    assert.equal(page1.items.length, 24, "Page 1 must return 24 items");
+    assert.equal(page2.items.length, 24, "Page 2 must return 24 items");
+
+    const p1Slugs = new Set(page1.items.map((m: any) => m.slug));
+    const duplicates = page2.items.filter((m: any) => p1Slugs.has(m.slug));
+    assert.equal(duplicates.length, 0, "Zero duplicates across pages");
   });
 
   // Z2. Deep pagination (hoat-hinh at page 297 & 298) returns full 24-item pages with zero cross-page duplicates

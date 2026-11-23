@@ -21,30 +21,6 @@ export const PHIMAPI_TIMEOUT_MS = 6000;
 export const PHIMAPI_SEARCH_TIMEOUT_MS = 4000;
 export const NGUONC_TIMEOUT_MS = 7500;
 
-export interface QueryPaginationMeta {
-  countApi1: number;
-  countApi2: number;
-  countApi3?: number;
-  totalItems: number;
-  totalPages: number;
-  updatedAt: number;
-}
-
-export const queryMetadataCache = new Map<string, QueryPaginationMeta>();
-
-export function buildQueryMetaKey(params: MovieFilterParams): string {
-  return JSON.stringify({
-    v: 23,
-    category: params.category || "",
-    country: params.country || "",
-    year: params.year || "",
-    keyword: params.keyword?.trim() || "",
-    limit: params.limit || 24,
-    type: params.type || "",
-    sort: params.sort || "latest",
-  });
-}
-
 export function getNguonCGenreSlug(slug?: string): string {
   if (!slug) return "";
   return NGUONC_GENRE_MAP[slug] || slug;
@@ -129,139 +105,6 @@ export function sortMovieCandidates<T extends Record<string, any>>(
     });
   }
   return candidates;
-}
-
-export interface SourcePageAllocation {
-  aOffset: number;
-  aLimit: number;
-  bOffset: number;
-  bLimit: number;
-}
-
-export function calculateSourcePageAllocation(
-  page: number,
-  limit: number,
-  totalA: number,
-  totalB: number,
-  isBAvailable: boolean
-): SourcePageAllocation {
-  if (!isBAvailable) {
-    return {
-      aOffset: (page - 1) * limit,
-      aLimit: limit,
-      bOffset: 0,
-      bLimit: 0,
-    };
-  }
-
-  const defaultALimit = Math.max(1, Math.round((limit * 2) / 3)); // 16
-  const defaultBLimit = Math.max(0, limit - defaultALimit); // 8
-
-  // Nếu chưa có thông tin về tổng số items (trang 1 lần đầu), mặc định phân bổ 16 : 8
-  if (totalA <= 0 && totalB <= 0) {
-    return {
-      aOffset: (page - 1) * defaultALimit,
-      aLimit: defaultALimit,
-      bOffset: (page - 1) * defaultBLimit,
-      bLimit: defaultBLimit,
-    };
-  }
-
-  // Nếu PhimAPI chắc chắn không có phim nào cho query này
-  if (totalA <= 0 && totalB > 0) {
-    return {
-      aOffset: 0,
-      aLimit: 0,
-      bOffset: (page - 1) * limit,
-      bLimit: limit,
-    };
-  }
-
-  // Nếu NguonC chắc chắn không có phim nào cho query này
-  if (totalB <= 0 && totalA > 0) {
-    return {
-      aOffset: (page - 1) * limit,
-      aLimit: limit,
-      bOffset: 0,
-      bLimit: 0,
-    };
-  }
-
-  // PhimAPI capacity
-  const pAFull = Math.floor(totalA / defaultALimit);
-  const pARem = totalA % defaultALimit;
-  const pAExhaust = pARem > 0 ? pAFull + 1 : pAFull;
-
-  // NguonC capacity
-  const pBFull = Math.floor(totalB / defaultBLimit);
-  const pBRem = totalB % defaultBLimit;
-  const pBExhaust = pBRem > 0 ? pBFull + 1 : pBFull;
-
-  // Case 1: Source A runs out earlier than Source B (e.g. hoat-hinh, phim-bo, phim-le)
-  if (pAExhaust <= pBExhaust) {
-    if (page < pAExhaust) {
-      return {
-        aOffset: (page - 1) * defaultALimit,
-        aLimit: defaultALimit,
-        bOffset: (page - 1) * defaultBLimit,
-        bLimit: defaultBLimit,
-      };
-    } else if (page === pAExhaust) {
-      const aTake = pARem > 0 ? pARem : defaultALimit;
-      const bTake = limit - aTake;
-      return {
-        aOffset: (page - 1) * defaultALimit,
-        aLimit: aTake,
-        bOffset: (page - 1) * defaultBLimit,
-        bLimit: bTake,
-      };
-    } else {
-      const bConsumedAtExhaust =
-        pARem > 0
-          ? (pAExhaust - 1) * defaultBLimit + (limit - pARem)
-          : pAExhaust * defaultBLimit;
-      const pagesAfterExhaust = page - pAExhaust - 1;
-      const bOffset = bConsumedAtExhaust + pagesAfterExhaust * limit;
-      return {
-        aOffset: totalA,
-        aLimit: 0,
-        bOffset,
-        bLimit: limit,
-      };
-    }
-  }
-
-  // Case 2: Source B runs out earlier than Source A (e.g. tv-shows)
-  if (page < pBExhaust) {
-    return {
-      aOffset: (page - 1) * defaultALimit,
-      aLimit: defaultALimit,
-      bOffset: (page - 1) * defaultBLimit,
-      bLimit: defaultBLimit,
-    };
-  } else if (page === pBExhaust) {
-    const bTake = pBRem > 0 ? pBRem : defaultBLimit;
-    const aTake = limit - bTake;
-    return {
-      aOffset: (page - 1) * defaultALimit,
-      aLimit: aTake,
-      bOffset: (page - 1) * defaultBLimit,
-      bLimit: bTake,
-    };
-  } else {
-    const aConsumedAtExhaust =
-      pBRem > 0
-        ? (pBExhaust - 1) * defaultALimit + (limit - pBRem)
-        : pBExhaust * defaultALimit;
-    const pagesAfterExhaust = page - pBExhaust - 1;
-    const aOffset = aConsumedAtExhaust + pagesAfterExhaust * limit;
-    return {
-      aOffset,
-      aLimit: limit,
-      bOffset: totalB,
-      bLimit: 0,
-    };
-  }
 }
 
 // In-flight deduplication để tránh gọi lặp cùng 1 trang NguonC
@@ -524,8 +367,7 @@ export async function fetchSourceData(
   params: MovieFilterParams,
   isSearch: boolean,
   pageOverride?: number,
-  limitOverride?: number,
-  offsetOverride?: number
+  limitOverride?: number
 ) {
   try {
     const page = pageOverride || params.page || 1;
@@ -543,12 +385,7 @@ export async function fetchSourceData(
     }
 
     const urlParams = new URLSearchParams();
-    if (offsetOverride !== undefined && fetchLimit > 0) {
-      const pPage = Math.floor(offsetOverride / fetchLimit) + 1;
-      urlParams.set("page", String(pPage));
-    } else {
-      urlParams.set("page", String(page));
-    }
+    urlParams.set("page", String(page));
     urlParams.set("limit", String(fetchLimit));
 
     if (params.category) urlParams.set("category", params.category);
@@ -641,7 +478,7 @@ export async function fetchSourceData(
           "https://phimimg.com/";
         const items = json.data?.items || json.items || [];
 
-        let mappedItems = items.map(
+        const mappedItems = items.map(
           (item: {
             thumb_url?: string;
             poster_url?: string;
@@ -687,13 +524,6 @@ export async function fetchSourceData(
           },
         );
 
-        if (offsetOverride !== undefined && fetchLimit > 0) {
-          const pPage = Math.floor(offsetOverride / fetchLimit) + 1;
-          const chunkStartOffset = (pPage - 1) * fetchLimit;
-          const rawSliceStart = Math.max(0, offsetOverride - chunkStartOffset);
-          mappedItems = mappedItems.slice(rawSliceStart, rawSliceStart + fetchLimit);
-        }
-
         const totalItems =
           json.data?.params?.pagination?.totalItems ||
           json.pagination?.totalItems ||
@@ -718,7 +548,7 @@ export async function fetchSourceData(
     }
 
     // NguonC Offset-Aligned Fetching
-    const offsetStart = offsetOverride !== undefined ? Math.max(0, offsetOverride) : (page - 1) * fetchLimit;
+    const offsetStart = (page - 1) * fetchLimit;
     const offsetEnd = offsetStart + fetchLimit;
     const startNguonCPage = Math.floor(offsetStart / 10) + 1;
     const endNguonCPage = Math.ceil(offsetEnd / 10);
