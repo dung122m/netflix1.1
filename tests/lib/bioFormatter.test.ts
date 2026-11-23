@@ -108,4 +108,19 @@ describe("BioFormatter & Dangling Heading Detection", () => {
 
     assert.strictEqual(selected, richWikipedia);
   });
+
+  it("TC11: Should prefer comprehensive Wikipedia extract over short 2-sentence TMDb biography stub", () => {
+    const tmdbShortStub =
+      "Xa Thi Mạn là một nữ diễn viên truyền hình – diễn viên điện ảnh, người dẫn chương trình kiêm ca sĩ nổi tiếng người Hồng Kông. Cô từng là diễn viên độc quyền của hãng TVB và được báo giới ca ngợi là Nhất Tỷ của màn ảnh TVB một thời.";
+    const richWikipedia =
+      "Xa Thi Mạn (sinh ngày 28 tháng 5 năm 1975) là một nữ diễn viên người Hồng Kông. Cô từng là diễn viên độc quyền của hãng TVB.\n\nTiểu sử và sự nghiệp:\n\nXa Thi Mạn mồ côi cha từ nhỏ, sau khi tốt nghiệp tại Thụy Sĩ cô đạt Á hậu Hồng Kông 1997 và gia nhập TVB.\n\nĐời tư:\n\nCô là thành viên của nhóm Thất tỷ muội nổi tiếng.";
+
+    const selected = selectBestBiography({
+      historicalBio: null,
+      wikiExtract: richWikipedia,
+      tmdbBio: tmdbShortStub,
+    });
+
+    assert.strictEqual(selected, richWikipedia);
+  });
 });

@@ -231,8 +231,8 @@ async function fetchSummary(
     }
 
     if (isPersonSignal(desc, extract) || (!isNonPersonEntity(desc, extract) && (desc || data.thumbnail))) {
-      // Nếu đoạn tóm tắt ngắn (dưới 350 ký tự), lấy thêm bài viết chi tiết
-      if (extract.length < 350) {
+      // Lấy thêm bài viết chi tiết từ Wikipedia khi đoạn tóm tắt chưa đủ dài hoặc chưa có đề mục nội dung
+      if (extract.length < 3000 || !extract.includes("\n\n")) {
         const extended = await fetchExtendedWikiExtract(data.title || title, lang);
         if (extended && extended.length > extract.length) {
           extract = extended;
@@ -272,7 +272,7 @@ export async function fetchActorProfile(
 
   // 2. Kiểm tra L2 Upstash Redis Cache (1 GET)
   const normKey = cleanName.toLowerCase().replace(/\s+/g, "_");
-  const kvKey = `wiki:actor:${normKey}`;
+  const kvKey = `wiki:actor:v2:${normKey}`;
   try {
     const redisCached = await cacheService.get<ActorProfile | { _isNull: boolean }>(kvKey);
     if (redisCached) {

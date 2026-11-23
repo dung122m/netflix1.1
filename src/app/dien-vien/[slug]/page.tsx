@@ -175,9 +175,11 @@ export default async function ActorDetailPage({ params }: PageProps) {
   let canonicalName = toVietnameseTitleCase(rawCanonical || profile.rawName);
 
   // 3. Tra cứu thông tin bổ trợ từ Wikipedia và Danh sách phim
-  // Chỉ gọi Wikipedia khi TMDb thiếu tiểu sử hoặc thiếu ảnh (tiết kiệm 100% lệnh Redis wiki:* cho các diễn viên TMDB đầy đủ)
-  const needsWiki = !historicalItem?.bio && (!tmdbDetail?.biography || !tmdbDetail?.profile_path);
-  const wikiProfilePromise = (needsWiki && canonicalName) ? fetchActorProfile(canonicalName) : Promise.resolve(null);
+  // Luôn truy vấn Wikipedia song song với danh sách phim để đảm bảo tiểu sử đầy đủ, phong phú
+  // (Wikipedia cung cấp các cột mốc sự nghiệp, giải thưởng và đời tư chi tiết hơn nhiều so với tóm tắt 1-2 câu của TMDb)
+  const wikiProfilePromise = canonicalName
+    ? fetchActorProfile(canonicalName, actorAliases)
+    : Promise.resolve(null);
   const moviesPromise = canonicalName
     ? queryMoviesByActor(
       canonicalName,
@@ -195,7 +197,7 @@ export default async function ActorDetailPage({ params }: PageProps) {
   if (!cachedPage || cachedPage.expireAt <= now || !Array.isArray(movies) || movies.length === 0) {
     try {
       const redisFull = await cacheService.get<{ wikiProfile: ActorProfile | null; movies: unknown[] }>(
-        `actor:full_page:v4:${slug}`
+        `actor:full_page:v5:${slug}`
       );
       if (redisFull && Array.isArray(redisFull.movies) && redisFull.movies.length > 0) {
         wikiProfile = redisFull.wikiProfile;
@@ -208,7 +210,7 @@ export default async function ActorDetailPage({ params }: PageProps) {
       if (movies && movies.length > 0) {
         await enrichMovieListPosters(movies, { budgetMs: 1500, stripProxyUrls: true });
         cacheService
-          .set(`actor:full_page:v4:${slug}`, { wikiProfile, movies }, ACTOR_PAGE_REDIS_TTL_SEC)
+          .set(`actor:full_page:v5:${slug}`, { wikiProfile, movies }, ACTOR_PAGE_REDIS_TTL_SEC)
           .catch(() => { });
       }
     }

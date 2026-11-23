@@ -3,6 +3,7 @@ import { findHistoricalArtist } from "@/data/history/historicalArtistsBirthdays"
 import { getActorMatchTerms } from "@/lib/actorAlias";
 import { fetchActorProfile, cleanBioExtract } from "@/services/wikipediaService";
 import { searchTmdbPerson, getTmdbPersonDetail } from "@/services/tmdbService";
+import { selectBestBiography } from "@/services/actor/bioFormatter";
 import { cacheService } from "@/lib/cache";
 import { normalizeForMatch } from "@/lib/stringUtils";
 import {
@@ -56,7 +57,7 @@ export async function GET(request: NextRequest) {
 
   const cleanName = name.trim();
   const normKey = normalizeForMatch(cleanName);
-  const cacheKey = `actor:bio:v5:${normKey}`;
+  const cacheKey = `actor:bio:v6:${normKey}`;
 
   // 1. Kiểm tra L1 / L2 Cache
   try {
@@ -116,12 +117,14 @@ export async function GET(request: NextRequest) {
       wikiProfile?.thumbnail;
 
     // 6. Trích xuất và làm sạch tiểu sử tốt nhất
-    const rawBio =
-      catalogItem?.bio ||
-      wikiProfile?.extract ||
-      tmdbDetail?.biography;
+    const bestBio = selectBestBiography({
+      historicalBio: catalogItem?.bio,
+      wikiExtract: wikiProfile?.extract,
+      tmdbBio: tmdbDetail?.biography,
+      wikiDescription: wikiProfile?.description,
+    });
 
-    const cleanedExtract = rawBio ? cleanBioExtract(rawBio) : undefined;
+    const cleanedExtract = bestBio ? cleanBioExtract(bestBio) : undefined;
 
     // 7. Trích xuất metadata bổ trợ
     const birthday = catalogItem?.birthday || tmdbDetail?.birthday || undefined;
