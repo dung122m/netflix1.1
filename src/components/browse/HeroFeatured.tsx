@@ -52,8 +52,8 @@ const HeroFeaturedInner: React.FC<{ movies?: HeroMovie[] }> = ({
       }
     } catch { }
 
-    // 2. Fetch SWR /api/trending-tmdb?type=week&limit=20 (dùng chung URL với TmdbTopTrending để tối đa hóa Edge CDN Cache)
-    if (!isFresh) {
+    // 2. Fetch SWR /api/trending-tmdb?type=week&limit=20 (Chỉ cần thiết khi Server chưa có đủ 3 phim)
+    if (!isFresh && initialMovies.length < 3) {
       const fetchTrendingHero = async () => {
         try {
           const res = await fetch("/api/trending-tmdb?type=week&limit=20");
@@ -90,7 +90,7 @@ const HeroFeaturedInner: React.FC<{ movies?: HeroMovie[] }> = ({
       isCancelled = true;
       window.removeEventListener("nanaflix_tmdb_trending_updated", handleTrendingUpdated);
     };
-  }, []);
+  }, [initialMovies.length]);
 
   const slides = useMemo(() => (heroMovies || []).slice(0, 8), [heroMovies]);
   const [index, setIndex] = useState(0);

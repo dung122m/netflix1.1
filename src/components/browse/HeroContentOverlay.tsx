@@ -271,14 +271,14 @@ export function HeroContentOverlay({
                 )}
               </div>
 
-              {/* THANH TIẾN TRÌNH AUTO-SLIDE (DESKTOP ONLY) */}
+              {/* THANH TIẾN TRÌNH AUTO-SLIDE (DESKTOP ONLY - GPU COMPOSITED SCALE-X, 0 LAYOUT REFLOW) */}
               {slides.length > 1 && (
                 <div className="hidden sm:block pt-3 max-w-sm w-full">
                   <div className="h-1 w-full overflow-hidden rounded-full bg-white/15">
                     <motion.div
                       key={`progress-${index}-${paused ? "pause" : "play"}-${isTrailerDuration ? "trailer" : "normal"}`}
-                      initial={{ width: "0%" }}
-                      animate={{ width: paused ? "0%" : "100%" }}
+                      initial={{ scaleX: 0 }}
+                      animate={{ scaleX: paused ? 0 : 1 }}
                       transition={
                         paused
                           ? { duration: 0 }
@@ -290,7 +290,8 @@ export function HeroContentOverlay({
                               ease: "linear",
                             }
                       }
-                      className="h-full rounded-full bg-netflix-red"
+                      style={{ transformOrigin: "left" }}
+                      className="h-full w-full rounded-full bg-netflix-red origin-left transform-gpu"
                     />
                   </div>
                 </div>

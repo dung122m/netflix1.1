@@ -22,7 +22,7 @@ export interface NumberedRankCardProps {
   tmdbId?: string | number;
 }
 
-export const NumberedRankCard: React.FC<NumberedRankCardProps> = ({
+const NumberedRankCardInner: React.FC<NumberedRankCardProps> = ({
   rank,
   slug,
   title,
@@ -176,4 +176,5 @@ export const NumberedRankCard: React.FC<NumberedRankCardProps> = ({
   );
 };
 
+export const NumberedRankCard = React.memo(NumberedRankCardInner);
 export default NumberedRankCard;

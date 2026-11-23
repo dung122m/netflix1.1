@@ -364,11 +364,21 @@
 }
 
 /* ============================================================ */
-/* PERFORMANCE OPTIMIZATIONS: FOOTER CONTENT-VISIBILITY         */
+/* PERFORMANCE OPTIMIZATIONS: CONTENT-VISIBILITY & GPU LAYERS   */
 /* ============================================================ */
 .cv-auto-footer {
   content-visibility: auto;
   contain-intrinsic-size: 0 400px;
+}
+
+.cv-auto-section {
+  content-visibility: auto;
+  contain-intrinsic-size: 0 340px;
+}
+
+.cv-auto-card {
+  content-visibility: auto;
+  contain-intrinsic-size: 0 280px;
 }
 
 /* ============================================================ */

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { toOptimizedCardPosterUrl, isSlowProviderSourceUrl } from "@/lib/movieMedia";
 
 // =========================================================================
@@ -145,9 +145,14 @@ export function useMoviePosterFallback({
   }, [cacheKey, legacyKey, safeInitial]);
 
   const [displaySrc, setDisplaySrc] = useState<string>(resolveCurrent);
+  const prevResolvedRef = useRef(displaySrc);
 
   useEffect(() => {
-    setDisplaySrc(resolveCurrent());
+    const next = resolveCurrent();
+    if (prevResolvedRef.current !== next) {
+      prevResolvedRef.current = next;
+      setDisplaySrc(next);
+    }
   }, [resolveCurrent]);
 
   const triggerFallback = useCallback(() => {

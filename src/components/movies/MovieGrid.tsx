@@ -80,36 +80,37 @@ const MovieGridInner = ({ movies, columnsClassName }: MovieGridProps) => {
       >
         {visibleMovies.map(({ norm, bestThumb }, index) => {
           return (
-            <MediaCard
-              key={norm.slug || index}
-              slug={norm.slug}
-              title={norm.title}
-              origin_name={norm.origin_name}
-              imageUrl={bestThumb}
-              posterUrl={norm.posterUrl}
-              thumbUrl={norm.thumbUrl}
-              tmdbId={norm.tmdbId}
-              genre={norm.genre}
-              description={norm.description}
-              time={norm.time}
-              year={norm.year}
-              rating={norm.score}
-              quality={norm.quality}
-              lang={norm.lang}
-              chieurap={norm.chieurap}
-              sub_docquyen={norm.sub_docquyen}
-              actor={norm.actor}
-              director={norm.director}
-              country={norm.country}
-              type_name={norm.type_name}
-              itemType={norm.itemType}
-              hasTrailer={norm.hasTrailer}
-              trailer_url={norm.trailer_url}
-              isTrailerOnly={norm.isTrailerOnly}
-              matchSnippet={norm.matchSnippet}
-              matchType={norm.matchType}
-              priority={index < 6}
-            />
+            <div key={norm.slug || index} className="cv-auto-card w-full">
+              <MediaCard
+                slug={norm.slug}
+                title={norm.title}
+                origin_name={norm.origin_name}
+                imageUrl={bestThumb}
+                posterUrl={norm.posterUrl}
+                thumbUrl={norm.thumbUrl}
+                tmdbId={norm.tmdbId}
+                genre={norm.genre}
+                description={norm.description}
+                time={norm.time}
+                year={norm.year}
+                rating={norm.score}
+                quality={norm.quality}
+                lang={norm.lang}
+                chieurap={norm.chieurap}
+                sub_docquyen={norm.sub_docquyen}
+                actor={norm.actor}
+                director={norm.director}
+                country={norm.country}
+                type_name={norm.type_name}
+                itemType={norm.itemType}
+                hasTrailer={norm.hasTrailer}
+                trailer_url={norm.trailer_url}
+                isTrailerOnly={norm.isTrailerOnly}
+                matchSnippet={norm.matchSnippet}
+                matchType={norm.matchType}
+                priority={index < 6}
+              />
+            </div>
           );
         })}
       </div>

@@ -387,18 +387,26 @@ export default async function HomePage() {
 
       <div className="px-4 md:px-8 relative z-10 space-y-8 sm:space-y-12">
         {/* 5. HÀNG PHIM DÀNH RIÊNG CHO BẠN (AI PERSONALIZED RECOMMENDATIONS) */}
-        <ForYouPersonalizedRow fallbackMovies={movies} />
+        <div className="cv-auto-section">
+          <ForYouPersonalizedRow fallbackMovies={movies} />
+        </div>
 
         {/* 6. BẢNG XẾP HẠNG PHIM THỊNH HÀNH & TOP 10 CỘNG ĐỒNG */}
-        <TmdbTopTrending initialItems={trendingWeekRaw} />
-        <CommunityTopTrending initialItems={communityTrending} />
+        <div className="cv-auto-section">
+          <TmdbTopTrending initialItems={trendingWeekRaw} />
+        </div>
+        <div className="cv-auto-section">
+          <CommunityTopTrending initialItems={communityTrending} />
+        </div>
 
         {/* 7. TAB TUYỂN CHỌN PHIM ĐA NĂNG TRÊN TRANG CHỦ */}
-        <CuratedMovieSection
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          initialMovies={movies.slice(0, 12).map((m: any) => ({ ...m }))}
-          initialTotalItems={totalItems}
-        />
+        <div className="cv-auto-section">
+          <CuratedMovieSection
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            initialMovies={movies.slice(0, 12).map((m: any) => ({ ...m }))}
+            initialTotalItems={totalItems}
+          />
+        </div>
       </div>
       <Footer />
     </div>

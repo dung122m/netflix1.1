@@ -33,7 +33,6 @@ const AuthModal = dynamic(
   () => import("@/components/modals/AuthModal").then((m) => m.AuthModal),
   { ssr: false }
 );
-import { Tooltip } from "@/components/ui/Tooltip";
 import { GLOBAL_POSTER_CACHE } from "@/hooks/useMoviePosterFallback";
 
 // Bộ nhớ đệm client (giữ nguyên cho các component khác như HeroFeatured)
@@ -238,7 +237,12 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
   }, [currentSrc]);
 
   // Đồng bộ khi card được tái sử dụng cho phim khác hoặc khi danh sách ứng viên thay đổi
+  const prevSlugRef = useRef(slug);
   useEffect(() => {
+    // Bỏ qua lần nạp đầu nếu slug không đổi và ảnh khởi tạo đã có sẵn để tránh double re-render 60 cards
+    if (prevSlugRef.current === slug && currentSrc) return;
+    prevSlugRef.current = slug;
+
     triedUrlsRef.current.clear();
     const candidate = imageCandidates.find((u) => !triedUrlsRef.current.has(u)) || "";
 
@@ -256,13 +260,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
       setHasError(true);
       setIsImageLoaded(true);
     }
-  }, [slug, imageCandidates]);
-
-  useEffect(() => {
-    if (imgRef.current && imgRef.current.complete && imgRef.current.naturalWidth > 0) {
-      setIsImageLoaded(true);
-    }
-  }, [currentSrc]);
+  }, [slug, imageCandidates, currentSrc]);
 
   const handleImageError = useCallback(() => {
     if (currentSrc) {
@@ -439,7 +437,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
   return (
     <div
       ref={cardContainerRef}
-      className="group/card relative flex flex-col w-full select-none cursor-pointer hover:-translate-y-1 hover:z-20 transition-transform duration-200 ease-out will-change-transform motion-reduce:transform-none"
+      className="group/card relative flex flex-col w-full select-none cursor-pointer hover:-translate-y-1 hover:z-20 transition-transform duration-200 ease-out motion-reduce:transform-none"
     >
       {/* ========================================================================= */}
       {/* 1. KHỐI POSTER NGHỆ THUẬT (2:3 POSTER ARTWORK CANVAS - CLEAN & ELEVATED)   */}
@@ -532,7 +530,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
               decoding="async"
               fetchPriority={priority ? "high" : "auto"}
               referrerPolicy="no-referrer"
-              className={`relative z-[1] w-full h-full object-cover object-center brightness-[0.96] group-hover/card:scale-105 transition-transform duration-300 ease-out will-change-transform motion-reduce:transform-none ${isImageLoaded ? "opacity-100" : "opacity-0"
+              className={`relative z-[1] w-full h-full object-cover object-center brightness-[0.96] group-hover/card:scale-105 transition-transform duration-300 ease-out motion-reduce:transform-none ${isImageLoaded ? "opacity-100" : "opacity-0"
                 }`}
               onLoad={(e) => {
                 const target = e.currentTarget;
@@ -577,16 +575,15 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
         {/* NÚT XOÁ (NẾU ĐƯỢC TRUYỀN onRemove) */}
         {onRemove && (
           <div className="absolute top-2 right-2 z-20 pointer-events-auto">
-            <Tooltip content={removeTooltip || "Xóa"} side="top" align="end">
-              <button
-                type="button"
-                onClick={onRemove}
-                aria-label={removeTooltip || `Xóa ${title}`}
-                className="w-7 h-7 rounded-full bg-black/85 hover:bg-netflix-red hover:text-white text-zinc-300 flex items-center justify-center shadow-lg transition-transform transition-colors duration-200 hover:scale-110 active:scale-90 cursor-pointer"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            </Tooltip>
+            <button
+              type="button"
+              onClick={onRemove}
+              title={removeTooltip || "Xóa"}
+              aria-label={removeTooltip || `Xóa ${title}`}
+              className="w-7 h-7 rounded-full bg-black/85 hover:bg-netflix-red hover:text-white text-zinc-300 flex items-center justify-center shadow-lg transition-transform transition-colors duration-200 hover:scale-110 active:scale-90 cursor-pointer"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
           </div>
         )}
 
@@ -600,53 +597,48 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
           </div>
         )}
 
-
-
-        {/* CỤM NÚT HÀNH ĐỘNG KHI HOVER TRÊN DESKTOP (GÓC DƯỚI PHẢI, KÈM CUSTOM GLASS TOOLTIP HƯỚNG LÊN) */}
+        {/* CỤM NÚT HÀNH ĐỘNG KHI HOVER TRÊN DESKTOP (GÓC DƯỚI PHẢI) */}
         <div className="absolute bottom-2.5 right-2.5 z-20 pointer-events-auto opacity-0 group-hover/card:opacity-100 focus-within:opacity-100 transition-opacity duration-200 hidden sm:flex items-center gap-1.5">
           {/* Nút Bộ sưu tập */}
-          <Tooltip content="Thêm vào bộ sưu tập" side="top" align="end">
-            <button
-              type="button"
-              onClick={handleOpenCollectionModal}
-              aria-label={`Thêm phim ${title} vào bộ sưu tập`}
-              className="w-7 h-7 rounded-full flex items-center justify-center transition-transform transition-colors duration-150 hover:scale-110 active:scale-95 cursor-pointer shadow-md shadow-black/50 outline-none focus-visible:ring-2 focus-visible:ring-amber-400 bg-black/85 hover:bg-amber-400 text-amber-400 hover:text-black"
-            >
-              <FolderPlus className="w-3.5 h-3.5 transition-colors" />
-            </button>
-          </Tooltip>
+          <button
+            type="button"
+            onClick={handleOpenCollectionModal}
+            title="Thêm vào bộ sưu tập"
+            aria-label={`Thêm phim ${title} vào bộ sưu tập`}
+            className="w-7 h-7 rounded-full flex items-center justify-center transition-transform transition-colors duration-150 hover:scale-110 active:scale-95 cursor-pointer shadow-md shadow-black/50 outline-none focus-visible:ring-2 focus-visible:ring-amber-400 bg-black/85 hover:bg-amber-400 text-amber-400 hover:text-black"
+          >
+            <FolderPlus className="w-3.5 h-3.5 transition-colors" />
+          </button>
 
           {/* Nút Watchlist */}
-          <Tooltip content={inList ? "Xóa khỏi danh sách" : "Lưu vào danh sách"} side="top" align="end">
-            <button
-              type="button"
-              onClick={handleToggleList}
-              aria-label={inList ? `Bỏ lưu phim ${title}` : `Lưu phim ${title} vào danh sách`}
-              className={`w-7 h-7 rounded-full flex items-center justify-center transition-transform transition-colors duration-150 hover:scale-110 active:scale-95 cursor-pointer shadow-md shadow-black/50 outline-none focus-visible:ring-2 focus-visible:ring-netflix-red ${inList
-                ? "bg-netflix-red text-white hover:brightness-110"
-                : "bg-black/85 hover:bg-netflix-red hover:text-white text-white"
-                }`}
-            >
-              {inList ? <Check className="w-3.5 h-3.5 stroke-[2.5]" /> : <Bookmark className="w-3.5 h-3.5 transition-colors" />}
-            </button>
-          </Tooltip>
+          <button
+            type="button"
+            onClick={handleToggleList}
+            title={inList ? "Xóa khỏi danh sách" : "Lưu vào danh sách"}
+            aria-label={inList ? `Bỏ lưu phim ${title}` : `Lưu phim ${title} vào danh sách`}
+            className={`w-7 h-7 rounded-full flex items-center justify-center transition-transform transition-colors duration-150 hover:scale-110 active:scale-95 cursor-pointer shadow-md shadow-black/50 outline-none focus-visible:ring-2 focus-visible:ring-netflix-red ${inList
+              ? "bg-netflix-red text-white hover:brightness-110"
+              : "bg-black/85 hover:bg-netflix-red hover:text-white text-white"
+              }`}
+          >
+            {inList ? <Check className="w-3.5 h-3.5 stroke-[2.5]" /> : <Bookmark className="w-3.5 h-3.5 transition-colors" />}
+          </button>
         </div>
 
         {/* NÚT TRAILER KÍNH MỜ GÓC DƯỚI TRÁI KHI HOVER (CHỈ HIỆN KHI CÓ TRAILER) */}
         {(trailerUrl || hasTrailerState || isTrailerOnly) && (
           <div className="absolute bottom-2.5 left-2.5 z-20 pointer-events-auto opacity-0 group-hover/card:opacity-100 focus-within:opacity-100 transition-opacity duration-200 hidden sm:flex">
-            <Tooltip content="Xem Trailer chính thức" side="top" align="start">
-              <button
-                type="button"
-                onClick={handleTrailerClick}
-                disabled={isLoadingTrailer}
-                aria-label={`Xem Trailer phim ${title}`}
-                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-black/85 hover:bg-white hover:text-zinc-950 text-white text-[11px] font-bold transition-transform transition-colors duration-150 hover:scale-105 active:scale-95 cursor-pointer shadow-md shadow-black/50 outline-none focus-visible:ring-2 focus-visible:ring-white"
-              >
-                <Film className="w-3 h-3 text-current" />
-                <span>{isLoadingTrailer ? "..." : "Trailer"}</span>
-              </button>
-            </Tooltip>
+            <button
+              type="button"
+              onClick={handleTrailerClick}
+              disabled={isLoadingTrailer}
+              title="Xem Trailer chính thức"
+              aria-label={`Xem Trailer phim ${title}`}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-black/85 hover:bg-white hover:text-zinc-950 text-white text-[11px] font-bold transition-transform transition-colors duration-150 hover:scale-105 active:scale-95 cursor-pointer shadow-md shadow-black/50 outline-none focus-visible:ring-2 focus-visible:ring-white"
+            >
+              <Film className="w-3 h-3 text-current" />
+              <span>{isLoadingTrailer ? "..." : "Trailer"}</span>
+            </button>
           </div>
         )}
       </div>
