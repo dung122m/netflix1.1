@@ -274,6 +274,11 @@ interface NguonCPageResponse {
 const inFlightNguonC = new Map<string, Promise<NguonCPageResponse | null>>();
 const nguonCQueryMetaCache = new Map<string, { totalItems: number; totalPages: number; timestamp: number }>();
 
+export function _clearNguonCMetaCacheForTesting() {
+  nguonCQueryMetaCache.clear();
+  inFlightNguonC.clear();
+}
+
 export function isMovieOfType(item: Record<string, unknown>, type: string): boolean {
   if (!type) return true;
   const rawType = String(item.type || "").toLowerCase().trim();

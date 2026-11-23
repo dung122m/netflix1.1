@@ -50,101 +50,101 @@ export function MovieSynopsisAndFactsSection({
         uniqueAltNames.length > 0 ||
         formattedModified ||
         castSlot) && (
-        <div className="mt-5 rounded-2xl bg-zinc-900/40 p-4 sm:p-5 space-y-3.5 text-xs sm:text-sm">
-          {/* THỂ LOẠI */}
-          {categoryList.length > 0 && (
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-zinc-400 font-medium min-w-[75px] flex-shrink-0 text-xs">
-                Thể loại:
-              </span>
-              <div className="flex flex-wrap gap-1.5">
-                {categoryList.map((cat, idx) => (
-                  <Link
-                    key={cat.slug || idx}
-                    prefetch={false}
-                    href={
-                      cat.slug
-                        ? `/browse?category=${cat.slug}`
-                        : `/browse?keyword=${encodeURIComponent(cat.name)}`
-                    }
-                    className="inline-flex items-center px-2.5 py-1 rounded-lg bg-white/[0.06] hover:bg-white/[0.12] text-zinc-200 hover:text-white text-xs font-medium transition cursor-pointer"
-                  >
-                    {cat.name}
-                  </Link>
-                ))}
+          <div className="mt-5 rounded-2xl bg-zinc-900/40 p-4 sm:p-5 space-y-3.5 text-xs sm:text-sm">
+            {/* THỂ LOẠI */}
+            {categoryList.length > 0 && (
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-zinc-400 font-medium min-w-[75px] flex-shrink-0 text-xs">
+                  Thể loại:
+                </span>
+                <div className="flex flex-wrap gap-1.5">
+                  {categoryList.map((cat, idx) => (
+                    <Link
+                      key={cat.slug || idx}
+                      prefetch={false}
+                      href={
+                        cat.slug
+                          ? `/browse?category=${cat.slug}`
+                          : `/browse?keyword=${encodeURIComponent(cat.name)}`
+                      }
+                      className="inline-flex items-center px-2.5 py-1 rounded-lg bg-white/[0.06] hover:bg-white/[0.12] text-zinc-200 hover:text-white text-xs font-medium transition cursor-pointer"
+                    >
+                      {cat.name}
+                    </Link>
+                  ))}
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {/* QUỐC GIA */}
-          {countryList.length > 0 && (
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-zinc-400 font-medium min-w-[75px] flex-shrink-0 text-xs">
-                Quốc gia:
-              </span>
-              <div className="flex flex-wrap gap-1.5">
-                {countryList.map((cnt, idx) => (
-                  <Link
-                    key={cnt.slug || idx}
-                    prefetch={false}
-                    href={
-                      cnt.slug
-                        ? `/browse?country=${cnt.slug}`
-                        : `/browse?keyword=${encodeURIComponent(cnt.name)}`
-                    }
-                    className="inline-flex items-center px-2.5 py-1 rounded-lg bg-white/[0.06] hover:bg-white/[0.12] text-zinc-200 hover:text-white text-xs font-medium transition cursor-pointer"
-                  >
-                    {cnt.name}
-                  </Link>
-                ))}
+            {/* QUỐC GIA */}
+            {countryList.length > 0 && (
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-zinc-400 font-medium min-w-[75px] flex-shrink-0 text-xs">
+                  Quốc gia:
+                </span>
+                <div className="flex flex-wrap gap-1.5">
+                  {countryList.map((cnt, idx) => (
+                    <Link
+                      key={cnt.slug || idx}
+                      prefetch={false}
+                      href={
+                        cnt.slug
+                          ? `/browse?country=${cnt.slug}`
+                          : `/browse?keyword=${encodeURIComponent(cnt.name)}`
+                      }
+                      className="inline-flex items-center px-2.5 py-1 rounded-lg bg-white/[0.06] hover:bg-white/[0.12] text-zinc-200 hover:text-white text-xs font-medium transition cursor-pointer"
+                    >
+                      {cnt.name}
+                    </Link>
+                  ))}
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {/* ĐẠO DIỄN */}
-          {directorList.length > 0 && (
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-zinc-400 font-medium min-w-[75px] flex-shrink-0 text-xs">
-                Đạo diễn:
-              </span>
-              <div className="flex flex-wrap gap-1.5">
-                {directorList.slice(0, 4).map((d, idx) => (
-                  <ActorChipClient key={idx} name={d} isDirector={true} />
-                ))}
+            {/* ĐẠO DIỄN */}
+            {directorList.length > 0 && (
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-zinc-400 font-medium min-w-[75px] flex-shrink-0 text-xs">
+                  Đạo diễn:
+                </span>
+                <div className="flex flex-wrap gap-1.5">
+                  {directorList.slice(0, 4).map((d, idx) => (
+                    <ActorChipClient key={idx} name={d} isDirector={true} />
+                  ))}
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {/* TÊN GỌI KHÁC (ĐÃ LỌC TRÙNG VÀ BỎ TÊN GỐC ĐÃ HIỂN THỊ) */}
-          {uniqueAltNames.length > 0 && (
-            <div className="flex flex-wrap items-baseline gap-2 pt-2.5 border-t border-white/[0.04]">
-              <span className="text-zinc-500 font-medium min-w-[75px] flex-shrink-0 text-xs">
-                Tên gọi khác:
-              </span>
-              <span className="text-zinc-300 font-normal leading-relaxed text-xs">
-                {uniqueAltNames.slice(0, 3).join(" • ")}
-                {uniqueAltNames.length > 3 && (
-                  <span className="text-zinc-500 text-[11px] ml-1.5 font-normal">
-                    (+{uniqueAltNames.length - 3} tên khác)
-                  </span>
-                )}
-              </span>
-            </div>
-          )}
+            {/* TÊN GỌI KHÁC (ĐÃ LỌC TRÙNG VÀ BỎ TÊN GỐC ĐÃ HIỂN THỊ) */}
+            {uniqueAltNames.length > 0 && (
+              <div className="flex flex-wrap items-baseline gap-2 pt-2.5 border-t border-white/[0.04]">
+                <span className="text-zinc-500 font-medium min-w-[75px] flex-shrink-0 text-xs">
+                  Tên gọi khác:
+                </span>
+                <span className="text-zinc-300 font-normal leading-relaxed text-xs">
+                  {uniqueAltNames.slice(0, 3).join(" • ")}
+                  {uniqueAltNames.length > 3 && (
+                    <span className="text-zinc-500 text-[11px] ml-1.5 font-normal">
+                      (+{uniqueAltNames.length - 3} tên khác)
+                    </span>
+                  )}
+                </span>
+              </div>
+            )}
 
-          {/* THỜI GIAN CẬP NHẬT GẦN NHẤT */}
-          {formattedModified && (
-            <div className="text-[11px] text-zinc-500">
-              Cập nhật gần nhất: {formattedModified}
-            </div>
-          )}
+            {/* THỜI GIAN CẬP NHẬT GẦN NHẤT */}
+            {formattedModified && (
+              <div className="text-[11px] text-zinc-500">
+                Cập nhật gần nhất: {formattedModified}
+              </div>
+            )}
 
-          {/* DIỄN VIÊN & VAI DIỄN */}
-          {castSlot && (
-            <div className="pt-3 border-t border-white/[0.04]">{castSlot}</div>
-          )}
-        </div>
-      )}
+            {/* DIỄN VIÊN & VAI DIỄN */}
+            {castSlot && (
+              <div className="pt-3 border-t border-white/[0.04]">{castSlot}</div>
+            )}
+          </div>
+        )}
     </div>
   );
 }

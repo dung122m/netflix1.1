@@ -9,6 +9,7 @@ import {
   _setMockRedisClientForTesting,
   _resetRedisClientsForTesting,
 } from "@/lib/cache";
+import { _clearNguonCMetaCacheForTesting } from "@/services/movies/catalogFederation";
 
 describe("Browse & Catalog Pagination Integrity (Regression Suite)", () => {
   const originalFetch = globalThis.fetch;
@@ -17,6 +18,7 @@ describe("Browse & Catalog Pagination Integrity (Regression Suite)", () => {
     globalThis.fetch = originalFetch;
     _resetRedisClientsForTesting();
     cacheService.clearL1();
+    _clearNguonCMetaCacheForTesting();
   });
 
   it("normalizeMovie and buildMovieDescriptionFallback handle string director/country/category without crashing (page=774 bug)", () => {

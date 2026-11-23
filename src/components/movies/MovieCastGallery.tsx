@@ -35,7 +35,7 @@ export const MovieCastGallery: React.FC<MovieCastGalleryProps> = ({
   fallbackActors = [],
   isLoading = false,
 }) => {
-  
+
 
   // Chuẩn hóa danh sách diễn viên hiển thị: ưu tiên cast TMDB (có ID), nếu không có thì dùng fallbackActors (chỉ có tên)
   const displayItems = useMemo<ProcessedCastItem[]>(() => {
@@ -44,9 +44,9 @@ export const MovieCastGallery: React.FC<MovieCastGalleryProps> = ({
         const isAsian = isAsianScript(c.name);
         const latinOriginal =
           c.original_name &&
-          !isAsianScript(c.original_name) &&
-          /[a-zA-Z]/.test(c.original_name) &&
-          !/[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/i.test(c.original_name)
+            !isAsianScript(c.original_name) &&
+            /[a-zA-Z]/.test(c.original_name) &&
+            !/[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/i.test(c.original_name)
             ? toVietnameseTitleCase(c.original_name)
             : undefined;
 
@@ -59,8 +59,8 @@ export const MovieCastGallery: React.FC<MovieCastGalleryProps> = ({
           isAsian && latinOriginal
             ? `${toVietnameseTitleCase(c.name)} (${latinOriginal})`
             : asianOriginal
-            ? `${toVietnameseTitleCase(c.name)} (${asianOriginal})`
-            : toVietnameseTitleCase(c.name);
+              ? `${toVietnameseTitleCase(c.name)} (${asianOriginal})`
+              : toVietnameseTitleCase(c.name);
 
         const slug = toActorSlug(c.name);
         const href =

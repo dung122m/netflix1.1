@@ -54,7 +54,7 @@ export const TmdbAudienceReviews: React.FC<TmdbAudienceReviewsProps> = React.mem
             return;
           }
         }
-      } catch {}
+      } catch { }
 
       setLoading(true);
 
@@ -67,7 +67,7 @@ export const TmdbAudienceReviews: React.FC<TmdbAudienceReviewsProps> = React.mem
           setReviews(items);
           try {
             sessionStorage.setItem(cacheKey, JSON.stringify(items));
-          } catch {}
+          } catch { }
         })
         .catch(() => {
           if (isMounted) setReviews([]);
@@ -239,9 +239,8 @@ export const TmdbAudienceReviews: React.FC<TmdbAudienceReviewsProps> = React.mem
 
                   {/* Review Content */}
                   <p
-                    className={`text-xs sm:text-sm text-zinc-300 leading-relaxed break-words whitespace-pre-line ${
-                      isExpanded ? "" : "line-clamp-4"
-                    }`}
+                    className={`text-xs sm:text-sm text-zinc-300 leading-relaxed break-words whitespace-pre-line ${isExpanded ? "" : "line-clamp-4"
+                      }`}
                   >
                     {currentContent}
                   </p>
