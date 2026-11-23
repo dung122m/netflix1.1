@@ -315,7 +315,9 @@ export async function GET(request: NextRequest) {
           "Content-Type": "application/vnd.apple.mpegurl",
           "Access-Control-Allow-Origin": "*",
           "Access-Control-Allow-Methods": "GET, OPTIONS",
-          "Cache-Control": "no-cache, no-store, must-revalidate",
+          "Cache-Control": "public, max-age=1, s-maxage=2, stale-while-revalidate=4",
+          "CDN-Cache-Control": "public, s-maxage=2, stale-while-revalidate=4",
+          "Vercel-CDN-Cache-Control": "public, s-maxage=2, stale-while-revalidate=4",
         },
       });
     }

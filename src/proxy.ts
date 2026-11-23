@@ -240,6 +240,19 @@ export function proxy(req: NextRequest) {
     });
   }
 
+  // 1.1 Khai tử endpoint cũ /api/img-thumb trực tiếp tại Edge (410 Gone)
+  if (pathname.startsWith("/api/img-thumb")) {
+    return new NextResponse("Endpoint retired", {
+      status: 410,
+      headers: {
+        "Content-Type": "text/plain; charset=utf-8",
+        "Cache-Control": "public, max-age=31536000, s-maxage=31536000, immutable",
+        "X-Content-Type-Options": "nosniff",
+        "X-Request-Id": requestId,
+      },
+    });
+  }
+
   // 2. Chặn các đường dẫn dò quét nhạy cảm
   for (const pattern of BLOCKED_PATH_PATTERNS) {
     if (pattern.test(pathname)) {
@@ -248,6 +261,7 @@ export function proxy(req: NextRequest) {
         headers: {
           "X-Content-Type-Options": "nosniff",
           "X-Request-Id": requestId,
+          "Cache-Control": "public, max-age=86400, s-maxage=604800, stale-while-revalidate=86400",
         },
       });
     }
@@ -262,6 +276,7 @@ export function proxy(req: NextRequest) {
         headers: {
           "X-Content-Type-Options": "nosniff",
           "X-Request-Id": requestId,
+          "Cache-Control": "public, max-age=86400, s-maxage=604800, stale-while-revalidate=86400",
         },
       });
     }
@@ -275,6 +290,7 @@ export function proxy(req: NextRequest) {
         headers: {
           "X-Content-Type-Options": "nosniff",
           "X-Request-Id": requestId,
+          "Cache-Control": "public, max-age=86400, s-maxage=604800, stale-while-revalidate=86400",
         },
       });
     }

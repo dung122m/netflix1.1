@@ -250,7 +250,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
             const parsed = parseFloat(tVal);
             if (!isNaN(parsed) && parsed > 0) return parsed;
           }
-        } catch {}
+        } catch { }
       }
     }
     const currentMovieSlug = watchContext?.movieSlug || propMovieSlug;
@@ -553,19 +553,17 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
             ? { top: "calc(var(--navbar-height, 56px) - 1px)" }
             : undefined
         }
-        className={`w-full mx-auto transition-all duration-300 outline-none focus:outline-none focus-visible:outline-none ${
-          isFullscreen
-            ? "fixed inset-0 z-[80] w-full h-full max-w-none p-0 m-0 bg-black flex flex-col justify-center overflow-hidden"
-            : isMobileStickyActive
+        className={`w-full mx-auto transition-all duration-300 outline-none focus:outline-none focus-visible:outline-none ${isFullscreen
+          ? "fixed inset-0 z-[80] w-full h-full max-w-none p-0 m-0 bg-black flex flex-col justify-center overflow-hidden"
+          : isMobileStickyActive
             ? "fixed top-[calc(var(--navbar-height,56px)-1px)] cinema-player-sticky-mobile left-0 right-0 z-40 shadow-2xl border-b border-white/[0.08] bg-black md:relative md:top-auto"
             : "relative z-20 bg-transparent"
-        } ${
-          isTheaterMode && !isFullscreen
+          } ${isTheaterMode && !isFullscreen
             ? "max-w-none px-0 sm:px-0"
             : isFullscreen
-            ? ""
-            : "max-w-7xl"
-        }`}
+              ? ""
+              : "max-w-7xl"
+          }`}
       >
         {isMobileStickyActive && (
           <div className="md:hidden bg-gradient-to-r from-zinc-950 via-zinc-900 to-black px-3 h-8 flex items-center justify-between border-b border-white/[0.08] text-xs">
@@ -592,15 +590,14 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
         <div className="ambient-cinema-glow opacity-80" aria-hidden="true" />
 
         <div
-          className={`cinema-video-wrapper w-full bg-zinc-950 relative overflow-hidden transition-all duration-300 z-10 mx-auto select-none group ${
-            isFullscreen
-              ? "w-full h-full max-h-dvh rounded-none border-none shadow-none aspect-auto"
-              : isMobileStickyActive
+          className={`cinema-video-wrapper w-full bg-zinc-950 relative overflow-hidden transition-all duration-300 z-10 mx-auto select-none group ${isFullscreen
+            ? "w-full h-full max-h-dvh rounded-none border-none shadow-none aspect-auto"
+            : isMobileStickyActive
               ? "aspect-video rounded-none max-h-[38dvh] shadow-2xl"
               : isTheaterMode
-              ? "aspect-video w-full rounded-xl sm:rounded-2xl md:rounded-3xl shadow-[0_30px_90px_rgba(0,0,0,0.85)] max-h-[calc(100dvh-185px)]"
-              : "aspect-video rounded-xl sm:rounded-2xl md:rounded-3xl shadow-[0_25px_70px_rgba(0,0,0,0.55)] max-md:landscape:rounded-none max-md:landscape:border-none"
-          }`}
+                ? "aspect-video w-full rounded-xl sm:rounded-2xl md:rounded-3xl shadow-[0_30px_90px_rgba(0,0,0,0.85)] max-h-[calc(100dvh-185px)]"
+                : "aspect-video rounded-xl sm:rounded-2xl md:rounded-3xl shadow-[0_25px_70px_rgba(0,0,0,0.55)] max-md:landscape:rounded-none max-md:landscape:border-none"
+            }`}
         >
           {isNativeVideo ? (
             <CinemaNativeVideoStage
@@ -699,7 +696,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
               canPlayFallbackTrailer={Boolean(fallbackTrailerEmbedSrc)}
               isPlayingTrailer={Boolean(
                 (!videoLink && trailerEmbedSrc) ||
-                  (forceTrailerFallback && fallbackTrailerEmbedSrc),
+                (forceTrailerFallback && fallbackTrailerEmbedSrc),
               )}
               onPlayFallbackTrailer={() => setForceTrailerFallback(true)}
               onRestoreNativeHls={() => setUseIframeFallback(false)}

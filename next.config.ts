@@ -125,12 +125,20 @@ const nextConfig: NextConfig = {
         ],
       },
       {
-        // Edge / CDN caching cho trang chủ landing page (/): Để Next.js ISR tự điều phối, tránh Cloudflare đóng băng HTML
+        // Edge / CDN caching cho trang chủ landing page (/): Đồng bộ với revalidate = 300 (5 phút ISR), giải phóng Fast Origin Transfer và CPU
         source: "/",
         headers: [
           {
             key: "Cache-Control",
-            value: "public, max-age=0, must-revalidate",
+            value: "public, s-maxage=300, stale-while-revalidate=600",
+          },
+          {
+            key: "CDN-Cache-Control",
+            value: "public, s-maxage=300, stale-while-revalidate=600",
+          },
+          {
+            key: "Vercel-CDN-Cache-Control",
+            value: "public, s-maxage=300, stale-while-revalidate=600",
           },
         ],
       },
@@ -141,24 +149,6 @@ const nextConfig: NextConfig = {
           {
             key: "Cache-Control",
             value: "public, s-maxage=300, stale-while-revalidate=600",
-          },
-        ],
-      },
-      {
-        // Edge / CDN caching tối đa cho ảnh qua R2 proxy (/api/media/r2-proxy)
-        source: "/api/media/r2-proxy",
-        headers: [
-          {
-            key: "Cache-Control",
-            value: "public, max-age=31536000, s-maxage=31536000, immutable",
-          },
-          {
-            key: "CDN-Cache-Control",
-            value: "public, max-age=31536000, immutable",
-          },
-          {
-            key: "Vercel-CDN-Cache-Control",
-            value: "max-age=31536000, immutable",
           },
         ],
       },
@@ -334,6 +324,17 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+  serverExternalPackages: ["@aws-sdk/client-s3"],
+  outputFileTracingExcludes: {
+    "*": [
+      "node_modules/@swc/core-win32-x64-msvc",
+      "node_modules/@swc/core",
+      "node_modules/@esbuild",
+      "node_modules/playwright",
+      "node_modules/playwright-core",
+      "node_modules/@playwright",
+    ],
+  },
   experimental: {
     staleTimes: {
       dynamic: 180, // Giữ trang động trong Router Cache client 3 phút (chuyển tab 0ms)
@@ -344,7 +345,8 @@ const nextConfig: NextConfig = {
       "framer-motion",
       "clsx",
       "tailwind-merge",
-      "@google/genai",
+      "@upstash/redis",
+      "@supabase/supabase-js",
     ],
     optimizeServerReact: true,  // Server Components: loại bỏ re-render thừa trên server
   },

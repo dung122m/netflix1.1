@@ -51,14 +51,20 @@ export async function GET(req: NextRequest) {
     // Giới hạn độ dài keyword tối đa 100 ký tự (chống chuỗi quá dài gây treo CPU)
     const keyword = rawKeyword.slice(0, 100);
 
-    // Không tạo cache riêng cho search < 2 ký tự
+    // Trả về mảng rỗng nhưng cache trên Edge để chống bot spam từ khóa rỗng/1 ký tự
+    const emptyEdgeHeaders = {
+      "Cache-Control": "public, max-age=3600, s-maxage=86400, stale-while-revalidate=86400",
+      "CDN-Cache-Control": "public, s-maxage=86400",
+      "Vercel-CDN-Cache-Control": "public, s-maxage=86400",
+    };
+
     if (!keyword || keyword.length < 2) {
-      return NextResponse.json({ items: [] });
+      return NextResponse.json({ items: [] }, { headers: emptyEdgeHeaders });
     }
 
     const normKw = normalizeForMatch(keyword);
     if (!normKw || normKw.length < 2) {
-      return NextResponse.json({ items: [] });
+      return NextResponse.json({ items: [] }, { headers: emptyEdgeHeaders });
     }
 
     // 1. Kiểm tra L1 In-memory & L2 Upstash Redis qua cacheService (chỉ dùng cache khi có ít nhất 1 kết quả)
