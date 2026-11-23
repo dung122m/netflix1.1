@@ -6,8 +6,8 @@ import {
   shouldRefreshOnTabFocus,
   shouldSkipDuplicateRequest,
   mergeNormalizedSummaries,
-} from "@/services/live/football-score/matchCenterRealtime";
-import { parseRawSummary } from "@/services/live/football-score/service";
+} from "@/services/live/football/matchCenterRealtime";
+import { parseRawSummary } from "@/services/live/football";
 
 describe("Nanaflix /live - Match Center Realtime Polling & Deduplication", () => {
   it("1. Tính toán chu kỳ polling thích ứng chính xác theo trạng thái trận đấu", () => {

@@ -6,8 +6,8 @@ import {
   isTeamIdentityMatch,
   STATIC_CLUB_LOGOS,
   LOGO_CACHE,
-} from "@/services/live/football-logo/service";
-import { parseRawSummary } from "@/services/live/football-score/service";
+} from "@/services/live/football";
+import { parseRawSummary } from "@/services/live/football";
 
 describe("Nanaflix /live - Team Logo Normalization & Identity Verification", () => {
   // 1. normalizeTeamKey("Manchester City") và normalizeTeamKey("Manchester United") không bị gộp thành cùng key

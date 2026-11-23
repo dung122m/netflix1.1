@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import {
   evaluateEventLifecycle,
 } from "@/services/live/football/lifecycleEngine";
-import { LiveMatchScore } from "@/services/live/football-score/types";
+import { LiveMatchScore } from "@/services/live/football/types";
 
 describe("Adaptive Hybrid Event Lifecycle Engine — 15 Regression Scenarios", () => {
   const baseNow = new Date("2026-11-06T12:00:00Z").getTime();

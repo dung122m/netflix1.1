@@ -6,8 +6,8 @@ import {
   resolveMatchDisplayStatus,
   formatMatchMinute,
   resolveMatchTimeInfo,
-} from "@/services/live/football-score/liveStatus";
-import { LiveMatchScore } from "@/services/live/football-score/types";
+} from "@/services/live/football/liveStatus";
+import { LiveMatchScore } from "@/services/live/football/types";
 
 describe("Nanaflix /live - Kiểm soát nhãn 'Đang phát trực tiếp'", () => {
   // 1. Phải có giờ kickoff hợp lệ: Parse timestamp chính xác, UTC và múi giờ Asia/Ho_Chi_Minh

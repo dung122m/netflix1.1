@@ -10,7 +10,7 @@ import {
   normalizeAndMergeStreams,
   RawStreamItem,
 } from "@/services/live/football/service";
-import { enrichMatchLogosSync } from "@/services/live/football-logo/service";
+import { enrichMatchLogosSync } from "@/services/live/football";
 
 describe("Esports Match Deduplication & Team Logo Resolution Test Suite", () => {
   // =========================================================================

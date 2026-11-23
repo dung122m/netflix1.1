@@ -8,7 +8,7 @@ import {
   FootballMatch,
   LiveFootballData,
 } from "@/services/live/football/service";
-import { LiveMatchScore } from "@/services/live/football-score/types";
+import { LiveMatchScore } from "@/services/live/football/types";
 
 describe("Nanaflix Live Football — Stale Matches Fix Verification Suite", () => {
   const baseNow = new Date("2026-11-06T14:15:00Z").getTime(); // 21:15 giờ VN

@@ -139,6 +139,8 @@ export function getRedisInstance(): Redis | null {
 // 3. TYPES & PRESETS
 // ============================================================================
 
+export type RateLimitStrategy = "sliding-window" | "fixed-window" | "in-memory-only";
+
 export interface RateLimitConfig {
   namespace: string;
   maxRequests: number;
@@ -146,7 +148,7 @@ export interface RateLimitConfig {
   failClosed?: boolean; // True for mutations/AI/upload/admin: reject if Redis fails
   timeoutMs?: number;
   fallbackMaxRequests?: number;
-  strategy?: "sliding-window" | "fixed-window" | "in-memory-only";
+  strategy?: RateLimitStrategy;
 }
 
 export interface RateLimitResult {
@@ -160,224 +162,54 @@ export interface RateLimitResult {
   headers: Record<string, string>;
 }
 
+const preset = (
+  namespace: string,
+  maxRequests: number,
+  windowSeconds = 60,
+  strategy: RateLimitStrategy = "fixed-window",
+  failClosed = false,
+  fallbackMaxRequests?: number
+): RateLimitConfig => ({
+  namespace,
+  maxRequests,
+  windowSeconds,
+  strategy,
+  failClosed,
+  ...(fallbackMaxRequests !== undefined ? { fallbackMaxRequests } : {}),
+});
+
 export const RATE_LIMIT_PRESETS = {
-  PUBLIC_READ: {
-    namespace: "public-read",
-    maxRequests: 120,
-    windowSeconds: 60,
-    failClosed: false,
-    strategy: "fixed-window",
-  },
-  POSTER_FALLBACK: {
-    namespace: "poster-fallback",
-    maxRequests: 300,
-    windowSeconds: 60,
-    failClosed: false,
-    strategy: "fixed-window",
-  },
-  USER_READ: {
-    namespace: "user-read",
-    maxRequests: 180,
-    windowSeconds: 60,
-    failClosed: false,
-    strategy: "in-memory-only",
-  },
-  SEARCH: {
-    namespace: "search",
-    maxRequests: 30,
-    windowSeconds: 60,
-    failClosed: false,
-    strategy: "fixed-window",
-  },
-  COMMENTS_READ: {
-    namespace: "comments-read",
-    maxRequests: 60,
-    windowSeconds: 60,
-    failClosed: false,
-    strategy: "fixed-window",
-  },
-  COMMENT_CREATE: {
-    namespace: "comment-create",
-    maxRequests: 5,
-    windowSeconds: 600, // 5 requests / 10 mins / user
-    failClosed: true,
-    strategy: "sliding-window",
-  },
-  COMMENT_MUTATION: {
-    namespace: "comments-mutation",
-    maxRequests: 30,
-    windowSeconds: 60, // 30 requests / 1 min / user
-    failClosed: true,
-    strategy: "sliding-window",
-  },
-  COMMENT_DELETE: {
-    namespace: "comments-delete",
-    maxRequests: 20,
-    windowSeconds: 600, // 20 requests / 10 mins / user
-    failClosed: true,
-    strategy: "sliding-window",
-  },
-  AI_REQUEST: {
-    namespace: "ai-request",
-    maxRequests: 10,
-    windowSeconds: 600, // 10 requests / 10 mins / user
-    failClosed: true,
-    strategy: "sliding-window",
-  },
-  UPLOAD: {
-    namespace: "upload",
-    maxRequests: 10,
-    windowSeconds: 600, // 10 requests / 10 mins / user
-    failClosed: true,
-    strategy: "sliding-window",
-  },
-  USER_MUTATION: {
-    namespace: "user-mutation",
-    maxRequests: 30,
-    windowSeconds: 600, // 30 requests / 10 mins / user
-    failClosed: true,
-    strategy: "sliding-window",
-  },
-  AUTH_SENSITIVE: {
-    namespace: "auth-sensitive",
-    maxRequests: 10,
-    windowSeconds: 900, // 10 requests / 15 mins / IP
-    failClosed: true,
-    strategy: "sliding-window",
-  },
-  AUTH_ACCOUNT: {
-    namespace: "auth-account",
-    maxRequests: 5,
-    windowSeconds: 300, // 5 requests / 5 mins / target account
-    failClosed: true,
-    strategy: "sliding-window",
-  },
-  AUTH_VERIFY: {
-    namespace: "auth-verify",
-    maxRequests: 60,
-    windowSeconds: 60, // 60 token verifications / 1 min / IP
-    failClosed: true,
-    strategy: "sliding-window",
-  },
-  ADMIN_MUTATION: {
-    namespace: "admin-mutation",
-    maxRequests: 30,
-    windowSeconds: 600, // 30 requests / 10 mins / admin
-    failClosed: true,
-    strategy: "sliding-window",
-  },
-  HLS_PLAYLIST: {
-    namespace: "stream-playlist",
-    maxRequests: 180,
-    windowSeconds: 60, // 180 requests / 60s per IP (allows manifest polling & adaptive bitrate switching)
-    failClosed: false,
-    strategy: "in-memory-only",
-  },
-  HLS_SEGMENT: {
-    namespace: "stream-segment",
-    maxRequests: 1200,
-    windowSeconds: 60, // 1200 requests / 60s per IP (high throughput for 1080p/4K segments + burst buffer)
-    failClosed: false,
-    strategy: "in-memory-only",
-  },
-  STREAM_PROXY: {
-    namespace: "stream-proxy",
-    maxRequests: 300,
-    windowSeconds: 60, // 300 requests / 60s per IP (fallback media proxy)
-    failClosed: false,
-    strategy: "in-memory-only",
-  },
-  RECOMMENDATIONS: {
-    namespace: "recommendations",
-    maxRequests: 30,
-    windowSeconds: 60, // 30 requests / 60s per IP (heavy parallel compute)
-    failClosed: false,
-    strategy: "in-memory-only",
-  },
-  TRANSLATION: {
-    namespace: "translation",
-    maxRequests: 30,
-    windowSeconds: 60, // 30 requests / 60s per IP (outbound translation API)
-    failClosed: false,
-    strategy: "in-memory-only",
-  },
-  ANALYTICS_TRACK: {
-    namespace: "analytics-track",
-    maxRequests: 60,
-    windowSeconds: 60,
-    failClosed: false,
-    strategy: "in-memory-only",
-  },
-  FOOTBALL_POLLING: {
-    namespace: "football-polling",
-    maxRequests: 60,
-    windowSeconds: 60,
-    failClosed: false,
-    strategy: "in-memory-only",
-  },
-  PUBLIC_IN_MEMORY_READ: {
-    namespace: "public-in-memory-read",
-    maxRequests: 120,
-    windowSeconds: 60,
-    failClosed: false,
-    strategy: "in-memory-only",
-  },
-  SEARCH_IN_MEMORY: {
-    namespace: "search-in-memory",
-    maxRequests: 60,
-    windowSeconds: 60,
-    failClosed: false,
-    strategy: "in-memory-only",
-  },
-  POSTER_FALLBACK_IN_MEMORY: {
-    namespace: "poster-fallback-in-memory",
-    maxRequests: 300,
-    windowSeconds: 60,
-    failClosed: false,
-    strategy: "in-memory-only",
-  },
-  COMMENTS_READ_IN_MEMORY: {
-    namespace: "comments-read-in-memory",
-    maxRequests: 60,
-    windowSeconds: 60,
-    failClosed: false,
-    strategy: "in-memory-only",
-  },
-  RECOMMENDATIONS_IN_MEMORY: {
-    namespace: "recommendations-in-memory",
-    maxRequests: 30,
-    windowSeconds: 60,
-    failClosed: false,
-    strategy: "in-memory-only",
-  },
-  USER_WATCH_TIME_IN_MEMORY: {
-    namespace: "user-watch-time-in-memory",
-    maxRequests: 120,
-    windowSeconds: 60,
-    failClosed: false,
-    strategy: "in-memory-only",
-  },
-  COMMENT_REACTION_IN_MEMORY: {
-    namespace: "comment-reaction-in-memory",
-    maxRequests: 60,
-    windowSeconds: 60,
-    failClosed: false,
-    strategy: "in-memory-only",
-  },
-  USER_HISTORY_IN_MEMORY: {
-    namespace: "user-history-in-memory",
-    maxRequests: 120,
-    windowSeconds: 60,
-    failClosed: false,
-    strategy: "in-memory-only",
-  },
-  USER_WATCHLIST_IN_MEMORY: {
-    namespace: "user-watchlist-in-memory",
-    maxRequests: 60,
-    windowSeconds: 60,
-    failClosed: false,
-    strategy: "in-memory-only",
-  },
+  PUBLIC_READ: preset("public-read", 120, 60, "fixed-window"),
+  POSTER_FALLBACK: preset("poster-fallback", 300, 60, "fixed-window"),
+  USER_READ: preset("user-read", 180, 60, "in-memory-only"),
+  SEARCH: preset("search", 30, 60, "fixed-window"),
+  COMMENTS_READ: preset("comments-read", 60, 60, "fixed-window"),
+  COMMENT_CREATE: preset("comment-create", 5, 600, "sliding-window", true),
+  COMMENT_MUTATION: preset("comments-mutation", 30, 60, "sliding-window", true),
+  COMMENT_DELETE: preset("comments-delete", 20, 600, "sliding-window", true),
+  AI_REQUEST: preset("ai-request", 10, 600, "sliding-window", true),
+  UPLOAD: preset("upload", 10, 600, "sliding-window", true),
+  USER_MUTATION: preset("user-mutation", 30, 600, "sliding-window", true),
+  AUTH_SENSITIVE: preset("auth-sensitive", 10, 900, "sliding-window", true),
+  AUTH_ACCOUNT: preset("auth-account", 5, 300, "sliding-window", true),
+  AUTH_VERIFY: preset("auth-verify", 60, 60, "sliding-window", true),
+  ADMIN_MUTATION: preset("admin-mutation", 30, 600, "sliding-window", true),
+  HLS_PLAYLIST: preset("stream-playlist", 180, 60, "in-memory-only"),
+  HLS_SEGMENT: preset("stream-segment", 1200, 60, "in-memory-only"),
+  STREAM_PROXY: preset("stream-proxy", 300, 60, "in-memory-only"),
+  RECOMMENDATIONS: preset("recommendations", 30, 60, "in-memory-only"),
+  TRANSLATION: preset("translation", 30, 60, "in-memory-only"),
+  ANALYTICS_TRACK: preset("analytics-track", 60, 60, "in-memory-only"),
+  FOOTBALL_POLLING: preset("football-polling", 60, 60, "in-memory-only"),
+  PUBLIC_IN_MEMORY_READ: preset("public-in-memory-read", 120, 60, "in-memory-only"),
+  SEARCH_IN_MEMORY: preset("search-in-memory", 60, 60, "in-memory-only"),
+  POSTER_FALLBACK_IN_MEMORY: preset("poster-fallback-in-memory", 300, 60, "in-memory-only"),
+  COMMENTS_READ_IN_MEMORY: preset("comments-read-in-memory", 60, 60, "in-memory-only"),
+  RECOMMENDATIONS_IN_MEMORY: preset("recommendations-in-memory", 30, 60, "in-memory-only"),
+  USER_WATCH_TIME_IN_MEMORY: preset("user-watch-time-in-memory", 120, 60, "in-memory-only"),
+  COMMENT_REACTION_IN_MEMORY: preset("comment-reaction-in-memory", 60, 60, "in-memory-only"),
+  USER_HISTORY_IN_MEMORY: preset("user-history-in-memory", 120, 60, "in-memory-only"),
+  USER_WATCHLIST_IN_MEMORY: preset("user-watchlist-in-memory", 60, 60, "in-memory-only"),
 } as const;
 
 /**

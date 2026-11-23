@@ -1,8 +1,8 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { isFeaturedMatch } from "@/services/live/football/featuredMatch";
-import { resolveMatchDisplayStatus } from "@/services/live/football-score/liveStatus";
-import { LiveMatchScore } from "@/services/live/football-score/types";
+import { resolveMatchDisplayStatus } from "@/services/live/football/liveStatus";
+import { LiveMatchScore } from "@/services/live/football/types";
 import { FootballMatch } from "@/services/live/football/service";
 
 describe("Live Hub — Visual Hierarchy Verification: Tâm Điểm & Đang Xem", () => {

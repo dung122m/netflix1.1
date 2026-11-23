@@ -4,7 +4,7 @@ import {
   getAthleteProfile,
   clearAthleteProfileCache,
   isPermittedOpenLicense,
-} from "@/services/live/football-score/athleteProfile";
+} from "@/services/live/football/athleteProfile";
 
 describe("Athlete Profile Service & Security Audit", () => {
   it("rejects invalid athlete IDs gracefully and prevents injection", async () => {

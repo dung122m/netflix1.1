@@ -22,7 +22,7 @@ import {
   sanitizeCommentatorName,
   isOffensiveCommentatorName,
 } from "@/services/live/football/service";
-import { resolveCanonicalTournament, isGenericSportTournament } from "@/services/live/football-score/canonicalLeagues";
+import { resolveCanonicalTournament, isGenericSportTournament } from "@/services/live/football/canonicalLeagues";
 import { getTeamAsset, TOTAL_MAPPED_TEAMS } from "@/data/live/teamAssets";
 
 describe("Nanaflix Live Match Status & Timeline System", () => {

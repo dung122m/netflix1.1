@@ -1,6 +1,6 @@
 import { describe, it, beforeEach } from "node:test";
 import assert from "node:assert/strict";
-import { footballScoreService } from "@/services/live/football-score/service";
+import { footballScoreService } from "@/services/live/football";
 
 describe("Nanaflix /live - P3: Bảng xếp hạng bóng đá (Standings)", () => {
   beforeEach(() => {

@@ -5,16 +5,16 @@ import {
   matchFixtureToScore,
   buildScoresMap,
   cleanRawTeamString,
-} from "@/services/live/football-score/matcher";
-import { LiveScoreboardEvent, LiveMatchScore } from "@/services/live/football-score/types";
-import { footballScoreService, VERIFIED_SCOREBOARD_LEAGUES } from "@/services/live/football-score/service";
+} from "@/services/live/football/matcher";
+import { LiveScoreboardEvent, LiveMatchScore } from "@/services/live/football/types";
+import { footballScoreService, VERIFIED_SCOREBOARD_LEAGUES } from "@/services/live/football";
 import {
   resolveCanonicalTournament,
   LEAGUE_CANONICAL_MAP,
   isVerifiedScoreboardMatch,
   VERIFIED_SCOREBOARD_TOURNAMENT_NAMES,
-} from "@/services/live/football-score/canonicalLeagues";
-import { resolveMatchDisplayStatus, formatKickoffTime } from "@/services/live/football-score/liveStatus";
+} from "@/services/live/football/canonicalLeagues";
+import { resolveMatchDisplayStatus, formatKickoffTime } from "@/services/live/football/liveStatus";
 import { normalizeAndMergeStreams, RawStreamItem } from "@/services/live/football/service";
 
 describe("LiveScore Football Matcher & Enrichment Test Suite", () => {

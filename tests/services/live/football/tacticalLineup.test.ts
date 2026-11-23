@@ -9,8 +9,8 @@ import {
   translatePosition,
   translateStatName,
 } from "@/components/live/TacticalLineup";
-import { MatchRosterPlayer } from "@/services/live/football-score/types";
-import { parseRawSummary } from "@/services/live/football-score/service";
+import { MatchRosterPlayer } from "@/services/live/football/types";
+import { parseRawSummary } from "@/services/live/football";
 
 function createMockPlayer(
   id: string,

@@ -1,7 +1,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { parseGoalScorers } from "@/components/live/LivePlayer";
-import { MatchKeyEvent } from "@/services/live/football-score/types";
+import { MatchKeyEvent } from "@/services/live/football/types";
 
 describe("Goal Scorers Parsing & Layout Safeguard Tests", () => {
   it("1. Correctly groups multiple goals by the same player in chronological order", () => {

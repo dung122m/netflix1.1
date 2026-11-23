@@ -6,8 +6,8 @@ import {
   parseFixtureStatus,
   normalizeFixtures,
   filterFixturesByDate,
-} from "@/services/live/football-score/service";
-import { NormalizedFixtureItem } from "@/services/live/football-score/types";
+} from "@/services/live/football";
+import { NormalizedFixtureItem } from "@/services/live/football/types";
 
 describe("Nanaflix /live - P4: Lịch thi đấu & Kết quả bóng đá (Fixtures & Results)", () => {
   beforeEach(() => {
