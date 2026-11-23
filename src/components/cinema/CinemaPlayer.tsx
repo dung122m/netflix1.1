@@ -548,11 +548,16 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
         tabIndex={0}
         onMouseMove={handleMouseMove}
         onMouseLeave={handleMouseLeave}
+        style={
+          isMobileStickyActive
+            ? { top: "calc(var(--navbar-height, 56px) - 1px)" }
+            : undefined
+        }
         className={`w-full mx-auto transition-all duration-300 outline-none focus:outline-none focus-visible:outline-none ${
           isFullscreen
             ? "fixed inset-0 z-[80] w-full h-full max-w-none p-0 m-0 bg-black flex flex-col justify-center overflow-hidden"
             : isMobileStickyActive
-            ? "fixed top-[var(--navbar-height)] left-0 right-0 z-40 shadow-2xl border-b border-white/[0.08] bg-black md:relative md:top-auto"
+            ? "fixed top-[calc(var(--navbar-height,56px)-1px)] cinema-player-sticky-mobile left-0 right-0 z-40 shadow-2xl border-b border-white/[0.08] bg-black md:relative md:top-auto"
             : "relative z-20 bg-transparent"
         } ${
           isTheaterMode && !isFullscreen

@@ -685,7 +685,11 @@
   }
 }
 
-/* Điều chỉnh vị trí sticky của MobileMovieNav khi CinemaPlayer đang sticky trên mobile */
+/* Điều chỉnh vị trí sticky của CinemaPlayer và MobileMovieNav trên mobile */
+[data-player-sticky="true"] .cinema-player-sticky-mobile {
+  top: calc(var(--navbar-height, 56px) - 1px) !important;
+}
+
 [data-player-sticky="true"] .mobile-movie-nav-sticky {
   top: calc(var(--navbar-height, 56px) + 56.25vw + 31px) !important;
   top: calc(var(--navbar-height, 56px) + var(--sticky-player-height, calc(56.25vw + 32px)) - 1px) !important;

@@ -94,9 +94,9 @@ const NavbarInner: React.FC = () => {
     if (!el) return;
 
     const updateHeight = () => {
-      const h = el.offsetHeight;
+      const h = el.offsetHeight || el.getBoundingClientRect().height;
       if (h > 0) {
-        document.documentElement.style.setProperty("--navbar-height", `${h}px`);
+        document.documentElement.style.setProperty("--navbar-height", `${Math.round(h)}px`);
       }
     };
 
@@ -175,13 +175,13 @@ const NavbarInner: React.FC = () => {
   return (
     <nav
       ref={navRef}
-      className={`nanaflix-navbar fixed top-0 left-0 right-0 w-full z-50 pt-[env(safe-area-inset-top,0px)] transition-[background-color,box-shadow,padding-top,padding-bottom] duration-300 ${
+      className={`nanaflix-navbar fixed top-0 left-0 right-0 w-full z-50 pt-[env(safe-area-inset-top,0px)] transition-[background-color,box-shadow] duration-200 ${
         showBackground || isMobileMenuOpen
-          ? "bg-zinc-950/95 backdrop-blur-md shadow-lg shadow-black/60 py-1.5 sm:py-2"
-          : "bg-black/80 backdrop-blur-md sm:bg-gradient-to-b sm:from-black/90 sm:via-black/50 sm:to-transparent py-1.5 sm:py-2.5"
+          ? "bg-zinc-950/98 backdrop-blur-md shadow-lg shadow-black/60 border-b border-white/[0.06]"
+          : "bg-black/80 backdrop-blur-md sm:bg-gradient-to-b sm:from-black/90 sm:via-black/50 sm:to-transparent"
       }`}
     >
-      <div className="flex items-center justify-between px-4 sm:px-6 md:px-8 lg:px-8 max-w-[1700px] mx-auto gap-2 sm:gap-4 relative z-10 w-full min-h-[44px] sm:min-h-[48px]">
+      <div className="flex items-center justify-between px-4 sm:px-6 md:px-8 lg:px-8 max-w-[1700px] mx-auto gap-2 sm:gap-4 relative z-10 w-full h-14 sm:h-16">
         {/* LOGO & DESKTOP NAV */}
         <div className="flex items-center gap-3 sm:gap-6 lg:gap-7 flex-shrink-0 min-w-0">
           <Link
