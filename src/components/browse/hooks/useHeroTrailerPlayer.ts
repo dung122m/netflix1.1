@@ -122,6 +122,18 @@ export function useHeroTrailerPlayer({
     return () => observer.disconnect();
   }, [heroRef]);
 
+  // Tạm dừng phát video ngay lập tức khi người dùng cuộn khỏi Hero hoặc ẩn tab để giải phóng GPU/CPU
+  useEffect(() => {
+    if (!isHeroVisible || !isDocumentVisible) {
+      try {
+        heroIframeRef.current?.contentWindow?.postMessage(
+          JSON.stringify({ event: "command", func: "pauseVideo", args: "" }),
+          "*",
+        );
+      } catch {}
+    }
+  }, [isHeroVisible, isDocumentVisible]);
+
   const goPrev = useCallback(() => {
     isUserActionRef.current = true;
     slideStartTimeRef.current = Date.now();
@@ -277,7 +289,7 @@ export function useHeroTrailerPlayer({
         failedTrailerMapRef.current[targetSlug] = true;
         setFailedTrailerMap((prev) => ({ ...prev, [targetSlug]: true }));
       }
-    }, 2000);
+    }, 3500);
 
     return () => {
       if (trailerTimerRef.current) {

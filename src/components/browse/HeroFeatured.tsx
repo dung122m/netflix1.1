@@ -239,21 +239,19 @@ const HeroFeaturedInner: React.FC<{ movies?: HeroMovie[] }> = ({
 
   const slideVariants = reduceMotion
     ? {
-      enter: { opacity: 0, x: 0, scale: 1 },
-      center: { opacity: 1, x: 0, scale: 1 },
-      exit: { opacity: 0, x: 0, scale: 1 },
+      enter: { opacity: 0 },
+      center: { opacity: 1 },
+      exit: { opacity: 0 },
     }
     : {
       enter: (dir: number) => ({
-        x: dir > 0 ? 120 : -120,
+        x: dir > 0 ? 40 : -40,
         opacity: 0,
-        scale: 1.05,
       }),
-      center: { x: 0, opacity: 1, scale: 1 },
+      center: { x: 0, opacity: 1 },
       exit: (dir: number) => ({
-        x: dir > 0 ? -110 : 110,
+        x: dir > 0 ? -40 : 40,
         opacity: 0,
-        scale: 1.05,
       }),
     };
 
@@ -301,11 +299,10 @@ const HeroFeaturedInner: React.FC<{ movies?: HeroMovie[] }> = ({
             animate="center"
             exit="exit"
             transition={{
-              x: { type: "spring", stiffness: 115, damping: 22, mass: 0.75 },
-              opacity: { duration: 0.45, ease: "easeOut" },
-              scale: { duration: 0.75, ease: "easeOut" },
+              x: { duration: 0.45, ease: [0.25, 1, 0.5, 1] },
+              opacity: { duration: 0.4, ease: "easeInOut" },
             }}
-            className="absolute inset-0 will-change-transform select-none bg-zinc-950"
+            className="absolute inset-0 select-none bg-zinc-950 transform-gpu will-change-[transform,opacity]"
           >
             <Image
               src={meta.heroImageSrc}
@@ -330,8 +327,9 @@ const HeroFeaturedInner: React.FC<{ movies?: HeroMovie[] }> = ({
         </AnimatePresence>
       </div>
 
-      {/* 1.1 TRAILER CHẠY NỀN TRÊN DESKTOP */}
+      {/* 1.1 TRAILER CHẠY NỀN TRÊN DESKTOP (Chỉ nạp khi Hero đang nằm trong khung nhìn) */}
       {isDesktop &&
+        isHeroVisible &&
         activeTrailerEmbedUrl &&
         !failedTrailerMap[currentSlug || ""] && (
           <div

@@ -5,8 +5,6 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import {
   Check,
-  ChevronLeft,
-  ChevronRight,
   Flame,
   Info,
   Play,
@@ -15,6 +13,7 @@ import {
   Volume2,
   VolumeX,
 } from "lucide-react";
+import { CarouselNavButton } from "@/components/ui/CarouselNavButton";
 import TrailerModal from "@/components/modals/TrailerModal";
 import {
   AUTO_SLIDE_NORMAL_MS,
@@ -87,9 +86,9 @@ export function HeroContentOverlay({
       {/* NỘI DUNG CHÍNH (TYPOGRAPHY, BADGES & CTA BUTTONS) */}
       <motion.div
         key={`content-${index}`}
-        initial={index === 0 ? false : { opacity: 0, y: 22 }}
+        initial={index === 0 ? false : { opacity: 0, y: 6 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.45, ease: "easeOut" }}
+        transition={{ duration: 0.35, ease: "easeOut" }}
         className="relative z-10 flex h-full items-end"
       >
         <div className="w-full px-4 sm:px-8 md:px-16 pb-8 sm:pb-16 md:pb-20">
@@ -301,25 +300,25 @@ export function HeroContentOverlay({
         </div>
       </motion.div>
 
-      {/* NÚT ĐIỀU HƯỚNG & DOTS */}
+      {/* NÚT ĐIỀU HƯỚNG & DOTS (Đồng bộ chuẩn CarouselNavButton với các hàng phim bên dưới) */}
       {slides.length > 1 && (
         <>
-          <button
-            type="button"
+          <CarouselNavButton
+            direction="left"
             onClick={onGoPrev}
-            aria-label="Banner trước"
-            className="hidden sm:flex absolute left-4 md:left-8 top-1/2 z-20 -translate-y-1/2 rounded-full bg-black/60 hover:bg-netflix-red hover:border-netflix-red p-3.5 text-white backdrop-blur-xl transition-all duration-300 shadow-2xl hover:scale-110 active:scale-95 items-center justify-center cursor-pointer focus-visible:ring-2 focus-visible:ring-white focus-visible:outline-none opacity-0 group-hover/hero:opacity-100"
-          >
-            <ChevronLeft size={22} />
-          </button>
-          <button
-            type="button"
+            ariaLabel="Banner trước"
+            topOffsetClass="top-1/2"
+            className="left-4 md:left-8 z-20"
+            visible={true}
+          />
+          <CarouselNavButton
+            direction="right"
             onClick={onGoNext}
-            aria-label="Banner tiếp theo"
-            className="hidden sm:flex absolute right-4 md:right-8 top-1/2 z-20 -translate-y-1/2 rounded-full bg-black/60 hover:bg-netflix-red hover:border-netflix-red p-3.5 text-white backdrop-blur-xl transition-all duration-300 shadow-2xl hover:scale-110 active:scale-95 items-center justify-center cursor-pointer focus-visible:ring-2 focus-visible:ring-white focus-visible:outline-none opacity-0 group-hover/hero:opacity-100"
-          >
-            <ChevronRight size={22} />
-          </button>
+            ariaLabel="Banner tiếp theo"
+            topOffsetClass="top-1/2"
+            className="right-4 md:right-8 z-20"
+            visible={true}
+          />
 
           <div className="absolute bottom-2 sm:bottom-4 left-1/2 z-20 flex -translate-x-1/2 items-center gap-1 sm:gap-1.5">
             {slides.map((_, i) => (
