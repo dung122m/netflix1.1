@@ -6,9 +6,11 @@ import {
   evaluateTimeUpdatePlayback,
   evaluateHlsError,
   evaluateStallRecoveryAttempt,
+  findNextBufferedGapJump,
   MIN_PLAYHEAD_ADVANCE_DELTA,
   MAX_STALL_RECOVERY_ATTEMPTS,
   PlayheadState,
+  TimeRangesLike,
 } from "@/lib/playbackStallController";
 
 describe("playbackStallController — TC-PLAYBACK-STABILITY-03", () => {
@@ -211,6 +213,48 @@ describe("playbackStallController — TC-PLAYBACK-STABILITY-03", () => {
       assert.strictEqual(result.canRetry, false);
       assert.strictEqual(result.shouldRequestPlay, false);
       assert.strictEqual(result.shouldKeepBuffering, true, "Keeps spinner because network is still starved");
+    });
+
+    test("detects buffer hole and jumps gap (e.g., audio dropout at 22:28 / 1348.8s to 1354.7s)", () => {
+      const mockBuffered: TimeRangesLike = {
+        length: 2,
+        start(i: number) {
+          return i === 0 ? 0 : 1354.7;
+        },
+        end(i: number) {
+          return i === 0 ? 1348.82 : 1370.0;
+        },
+      };
+
+      const gapJump = findNextBufferedGapJump(mockBuffered, 1348.82, 8);
+      assert.strictEqual(gapJump.shouldJump, true);
+      assert.strictEqual(gapJump.jumpTarget, 1354.8);
+
+      const recovery = evaluateStallRecoveryAttempt(
+        0,
+        0, // bufAhead = 0 at the end of range 0
+        MAX_STALL_RECOVERY_ATTEMPTS,
+        mockBuffered,
+        1348.82
+      );
+      assert.strictEqual(recovery.canRetry, true);
+      assert.strictEqual(recovery.shouldJumpGap, true);
+      assert.strictEqual(recovery.gapJumpTarget, 1354.8);
+    });
+
+    test("does not jump gap if next buffered range is too far (> maxGapSeconds)", () => {
+      const mockBuffered: TimeRangesLike = {
+        length: 2,
+        start(i: number) {
+          return i === 0 ? 0 : 1400.0; // Gap 51s > 8s
+        },
+        end(i: number) {
+          return i === 0 ? 1348.82 : 1420.0;
+        },
+      };
+
+      const gapJump = findNextBufferedGapJump(mockBuffered, 1348.82, 8);
+      assert.strictEqual(gapJump.shouldJump, false);
     });
   });
 });

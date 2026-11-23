@@ -17,6 +17,7 @@ import {
   evaluateBufferProgress,
   evaluateStallRecoveryAttempt,
   evaluateTimeUpdatePlayback,
+  MAX_STALL_RECOVERY_ATTEMPTS,
 } from "@/lib/playbackStallController";
 import {
   endAdTransition,
@@ -218,14 +219,22 @@ export function useCinemaVideoEvents({
           const recovery = evaluateStallRecoveryAttempt(
             stallRecoveryCountRef.current,
             bufAhead,
+            MAX_STALL_RECOVERY_ATTEMPTS,
+            v.buffered,
+            v.currentTime,
           );
           stallRecoveryCountRef.current += 1;
           isBufferingRef.current = recovery.shouldKeepBuffering;
           setIsBuffering(recovery.shouldKeepBuffering);
 
           if (recovery.canRetry) {
-            if (recovery.shouldNudge) {
-              const dur = getEffectiveDuration();
+            const dur = getEffectiveDuration();
+            if (recovery.shouldJumpGap && recovery.gapJumpTarget && recovery.gapJumpTarget > 0) {
+              v.currentTime = Math.min(
+                recovery.gapJumpTarget,
+                dur > 0 ? dur : recovery.gapJumpTarget,
+              );
+            } else if (recovery.shouldNudge && recovery.nudgeDelta > 0) {
               v.currentTime = Math.min(
                 v.currentTime + recovery.nudgeDelta,
                 dur > 0 ? dur : v.currentTime + 1,
@@ -239,7 +248,7 @@ export function useCinemaVideoEvents({
             isStalledRef.current = false;
           }
         }
-      }, 3500);
+      }, 2000);
     };
 
     const checkBufferRecovery = () => {

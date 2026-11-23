@@ -56,6 +56,10 @@ export function createResilientHlsConfig(options: HlsCoreConfigOptions): Partial
     maxBufferLength: options.maxBufferLength ?? 30,
     maxMaxBufferLength: options.maxMaxBufferLength ?? 60,
     maxBufferSize: options.maxBufferSize ?? 60 * 1000 * 1000,
+    maxBufferHole: 8, // Cho phép Hls.js tự động nhảy qua các khoảng khuyết đệm / audio dropout lên đến 8 giây
+    highBufferWatchdogPeriod: 2, // Giám sát kẹt buffer khi phía trước đã có đệm
+    nudgeOffset: 0.2, // Bước nhảy khi bị kẹt buffer
+    nudgeMaxRetry: 6, // Cho phép thử nhảy tối đa 6 lần
     startLevel: -1,
     startPosition: options.startPosition && options.startPosition > 0 ? options.startPosition : -1,
     fragLoadingTimeOut: 20000,

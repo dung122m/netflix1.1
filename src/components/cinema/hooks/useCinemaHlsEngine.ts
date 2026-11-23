@@ -13,7 +13,10 @@ import {
   type AdBoundary,
   type FragmentLike,
 } from "@/lib/adBoundaryDetector";
-import { evaluateHlsError } from "@/lib/playbackStallController";
+import {
+  evaluateHlsError,
+  findNextBufferedGapJump,
+} from "@/lib/playbackStallController";
 import {
   endAdTransition,
   startAdTransition,
@@ -563,9 +566,17 @@ export function useCinemaHlsEngine({
                   !curV.paused &&
                   !curV.ended
                 ) {
+                  const gapJump = findNextBufferedGapJump(curV.buffered, curV.currentTime, 8);
+                  if (gapJump.shouldJump && gapJump.jumpTarget > 0) {
+                    const dur = latestEffectiveDurationRef.current();
+                    curV.currentTime = Math.min(
+                      gapJump.jumpTarget,
+                      dur > 0 ? dur : gapJump.jumpTarget,
+                    );
+                  }
                   curV.play().catch(() => {});
                 }
-              }, 3500);
+              }, 2000);
             }
           }
           // Bỏ qua các lỗi non-fatal khác để Hls.js tự retry theo cơ chế nội bộ

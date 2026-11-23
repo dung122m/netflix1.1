@@ -177,6 +177,49 @@ export function evaluateHlsError(data: {
   };
 }
 
+export interface TimeRangesLike {
+  length: number;
+  start(index: number): number;
+  end(index: number): number;
+}
+
+/**
+ * Phát hiện khoảng hở đệm phía trước playhead (buffer hole do mất audio/video packets ở nguồn phát)
+ * và trả về vị trí cần nhảy để tiếp tục phát mượt mà không bị treo spinner.
+ */
+export function findNextBufferedGapJump(
+  buffered?: TimeRangesLike | null,
+  currentTime?: number,
+  maxGapSeconds: number = 8
+): { shouldJump: boolean; jumpTarget: number } {
+  if (!buffered || buffered.length < 2 || typeof currentTime !== "number" || !isFinite(currentTime)) {
+    return { shouldJump: false, jumpTarget: 0 };
+  }
+
+  for (let i = 0; i < buffered.length; i++) {
+    const rangeStart = buffered.start(i);
+    const rangeEnd = buffered.end(i);
+
+    // Nếu playhead kẹt gần điểm kết thúc của range này (trong vòng 0.6s)
+    if (currentTime >= rangeStart - 0.2 && currentTime <= rangeEnd + 0.6) {
+      // Kiểm tra có range buffer kế tiếp không
+      if (i + 1 < buffered.length) {
+        const nextRangeStart = buffered.start(i + 1);
+        const gap = nextRangeStart - rangeEnd;
+        if (gap > 0 && gap <= maxGapSeconds) {
+          return {
+            shouldJump: true,
+            jumpTarget: Math.round((nextRangeStart + 0.1) * 1000) / 1000,
+          };
+        }
+      }
+      break;
+    }
+  }
+
+  return { shouldJump: false, jumpTarget: 0 };
+}
+
 /**
  * Kiểm soát số lần retry stall recovery để tránh vòng lặp vô hạn hoặc spam play().
  */
@@ -185,22 +228,42 @@ export const MAX_STALL_RECOVERY_ATTEMPTS = 2;
 export function evaluateStallRecoveryAttempt(
   currentAttempts: number,
   bufAhead: number,
-  maxAttempts: number = MAX_STALL_RECOVERY_ATTEMPTS
+  maxAttempts: number = MAX_STALL_RECOVERY_ATTEMPTS,
+  buffered?: TimeRangesLike | null,
+  currentTime?: number
 ): {
   canRetry: boolean;
   shouldRequestPlay: boolean;
   shouldNudge: boolean;
   nudgeDelta: number;
   shouldKeepBuffering: boolean;
+  shouldJumpGap?: boolean;
+  gapJumpTarget?: number;
 } {
+  // 1. Kiểm tra nếu có khoảng đệm rời rạc (buffer hole do mất audio segment thượng nguồn như tại 22:28 và 35:22)
+  const gapJump = findNextBufferedGapJump(buffered, currentTime, 8);
+  if (gapJump.shouldJump && gapJump.jumpTarget > 0) {
+    return {
+      canRetry: true,
+      shouldRequestPlay: true,
+      shouldNudge: true,
+      nudgeDelta: 0,
+      shouldKeepBuffering: true,
+      shouldJumpGap: true,
+      gapJumpTarget: gapJump.jumpTarget,
+    };
+  }
+
   if (currentAttempts < maxAttempts) {
     // Nếu có buffer phía trước nhưng playhead bị kẹt ở micro-gap (0.05s đến 0.5s)
-    const shouldNudge = bufAhead > 0.05 && bufAhead < 0.5;
+    // HOẶC nếu attempt >= 1 mà bị đứng hình hoàn toàn, chủ động nhích nhẹ playhead (+0.3s) để vượt qua bad frame
+    const shouldNudge = (bufAhead > 0.05 && bufAhead < 0.5) || currentAttempts >= 1;
+    const nudgeDelta = bufAhead > 0.05 && bufAhead < 0.5 ? 0.1 : 0.3;
     return {
       canRetry: true,
       shouldRequestPlay: true,
       shouldNudge,
-      nudgeDelta: shouldNudge ? 0.1 : 0,
+      nudgeDelta: shouldNudge ? nudgeDelta : 0,
       shouldKeepBuffering: true,
     };
   }
