@@ -610,21 +610,21 @@ describe("Nanaflix Movie Browse Pagination & Filter Service", () => {
     assert.equal(duplicates.length, 0, "Zero duplicates across pages");
   });
 
-  // Z2. Deep pagination (hoat-hinh at page 297 & 298) returns full 24-item pages with zero cross-page duplicates
-  it("Z2. Deep pagination (hoat-hinh at page 297 & 298) returns full 24-item pages with zero cross-page duplicates", async () => {
-    const [res297, res298] = await Promise.all([
-      movieApi.getMovies({ type: "hoat-hinh", page: 297, limit: 24, skipKvCache: true }),
-      movieApi.getMovies({ type: "hoat-hinh", page: 298, limit: 24, skipKvCache: true }),
+  // Z2. Deep pagination (phim-bo at page 200 & 201) returns full 24-item pages with zero cross-page duplicates
+  it("Z2. Deep pagination (phim-bo at page 200 & 201) returns full 24-item pages with zero cross-page duplicates", async () => {
+    const [res200, res201] = await Promise.all([
+      movieApi.getMovies({ type: "phim-bo", page: 200, limit: 24, skipKvCache: true }),
+      movieApi.getMovies({ type: "phim-bo", page: 201, limit: 24, skipKvCache: true }),
     ]);
 
-    assert.equal(res297.status, true);
-    assert.equal(res298.status, true);
-    assert.equal(res297.items.length, 24, "Page 297 must return full 24 items");
-    assert.equal(res298.items.length, 24, "Page 298 must return full 24 items");
+    assert.equal(res200.status, true);
+    assert.equal(res201.status, true);
+    assert.equal(res200.items.length, 24, "Page 200 must return full 24 items");
+    assert.equal(res201.items.length, 24, "Page 201 must return full 24 items");
 
-    const set297 = new Set(res297.items.map((i: any) => i.slug));
-    const duplicates = res298.items.filter((i: any) => set297.has(i.slug));
-    assert.equal(duplicates.length, 0, "Zero cross-page duplicates between page 297 and 298");
+    const set200 = new Set(res200.items.map((i: any) => i.slug));
+    const duplicates = res201.items.filter((i: any) => set200.has(i.slug));
+    assert.equal(duplicates.length, 0, "Zero cross-page duplicates between page 200 and 201");
   });
 });
 

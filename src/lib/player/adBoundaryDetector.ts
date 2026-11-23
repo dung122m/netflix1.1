@@ -162,17 +162,17 @@ export function detectAdBoundaries(fragments: FragmentLike[]): AdBoundary[] {
 }
 
 /**
- * Hằng số offset an toàn khi seek vượt qua khối quảng cáo (500ms).
+ * Hằng số offset an toàn khi seek vượt qua khối quảng cáo (1.0s).
  * Đảm bảo playhead rơi dứt khoát vào segment phim sạch, triệt tiêu 100%
- * việc dính audio packet dư thừa hoặc frame cuối của segment quảng cáo (ví dụ đuôi "9922.com").
+ * việc dính audio packet dư thừa hoặc frame cuối của segment quảng cáo (ví dụ đuôi 1s của banner/sponsor).
  */
-export const SAFE_AD_SKIP_OFFSET = 0.35;
+export const SAFE_AD_SKIP_OFFSET = 1.0;
 
 /**
  * Tính toán mốc seek an toàn vượt qua khối quảng cáo:
  * - Điểm mốc ranh giới: nếu khối quảng cáo có `nextStart` (start timestamp chính xác của segment phim liền sau),
  *   lấy `Math.max(matchedAd.nextStart, matchedAd.end)`. Ngược lại lấy `adEnd`.
- * - Luôn cộng thêm `effectiveOffset` (mặc định SAFE_AD_SKIP_OFFSET = 0.35s) để playhead rơi an toàn vào luồng phim sạch,
+ * - Luôn cộng thêm `effectiveOffset` (mặc định SAFE_AD_SKIP_OFFSET = 1.0s) để playhead rơi an toàn vào luồng phim sạch,
  *   triệt tiêu hoàn toàn sai số IEEE-754 và độ trễ PTS âm thanh / audio packet dư thừa của segment quảng cáo liền trước.
  * - Xử lý trường hợp có nhiều khối quảng cáo liên tiếp (chaining).
  * - Giới hạn maxDuration: không vượt quá (maxDuration - 0.5s).

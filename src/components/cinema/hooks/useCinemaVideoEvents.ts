@@ -179,7 +179,7 @@ export function useCinemaVideoEvents({
 
       const currentCt = v.currentTime;
       const isStillInAd = adBoundariesRef.current.some(
-        (b) => currentCt >= b.start && currentCt < (b.nextStart ?? b.end),
+        (b) => currentCt >= b.start && currentCt < (b.nextStart ?? b.end) + 0.6,
       );
       // Playhead phải thực sự đạt tới hoặc vượt qua targetSeek (không trừ 0.15s để triệt tiêu việc un-mute sớm dính audio quảng cáo)
       const isPastTarget = currentCt >= adSkip.targetSeek;
@@ -514,7 +514,7 @@ export function useCinemaVideoEvents({
         } else if (!automatedAdSkipRef.current?.active && !video.seeking) {
           // Fallback an toàn: Nếu playhead đang nằm bên trong một ad boundary mà chưa thoát ra ngoài
           const inAd = adBoundariesRef.current.find(
-            (b) => ct >= b.start && ct < (b.nextStart ?? b.end) - 0.25,
+            (b) => ct >= b.start && ct < (b.nextStart ?? b.end),
           );
           if (inAd) {
             const adKey = `${inAd.start}_${inAd.end}`;
@@ -567,7 +567,7 @@ export function useCinemaVideoEvents({
                     nextUpcomingAd.nextStart ?? nextUpcomingAd.end;
                   if (
                     curCt >= nextUpcomingAd.start - leadThreshold &&
-                    curCt < nextAdEnd - 0.25
+                    curCt < nextAdEnd
                   ) {
                     adPreTriggerRef.current.rVfcId = null;
                     triggerAdSkip(targetSeek, adDuration, adKey);
@@ -607,7 +607,7 @@ export function useCinemaVideoEvents({
                       nextUpcomingAd.nextStart ?? nextUpcomingAd.end;
                     if (
                       curV.currentTime >= nextUpcomingAd.start - 0.35 &&
-                      curV.currentTime < nextAdEnd - 0.25
+                      curV.currentTime < nextAdEnd
                     ) {
                       triggerAdSkip(targetSeek, adDuration, adKey);
                     }
