@@ -20,8 +20,13 @@ import {
   searchTmdbTrailerByTitle,
   getTmdbMediaImagesById,
   searchTmdbPosterByTitle,
+  getTmdbBasicMetadata,
 } from "@/services/tmdbService";
-import { isCorruptedTmdbId, sanitizeMovieAltNames } from "@/services/tmdb/tmdbSanityGuard";
+import {
+  isCorruptedTmdbId,
+  isTmdbPayloadMatchingMovie,
+  sanitizeMovieAltNames,
+} from "@/services/tmdb/tmdbSanityGuard";
 
 export interface NamedSlugItem {
   name: string;
@@ -296,10 +301,22 @@ export async function resolveTmdbFallbackMedia(movie: MovieDetailRecord) {
   const tmdbType =
     movie.tmdb?.type || (movie.type === "series" || movie.type === "phim-bo" ? "tv" : "movie");
 
-  if (tmdbId && isCorruptedTmdbId(tmdbId, movie)) {
-    delete movie.tmdb;
-    delete movie.imdb;
-    tmdbId = undefined;
+  if (tmdbId) {
+    if (isCorruptedTmdbId(tmdbId, movie)) {
+      delete movie.tmdb;
+      delete movie.imdb;
+      tmdbId = undefined;
+    } else {
+      const meta = await getTmdbBasicMetadata(tmdbId, tmdbType);
+      if (meta && !isTmdbPayloadMatchingMovie(meta, movie)) {
+        console.warn(
+          `[TMDB Sanity Guard] Discarding mismatched tmdb.id ${tmdbId} from "${movie.name}" (${movie.year})`
+        );
+        delete movie.tmdb;
+        delete movie.imdb;
+        tmdbId = undefined;
+      }
+    }
   }
 
   let effectivePosterUrl = pickBestMoviePoster(movie, "/default-poster.jpg");
@@ -480,9 +497,17 @@ async function buildMovieDetailPageDataInternal(
   }
 
   const movie = data.movie as MovieDetailRecord;
-  if (movie.tmdb?.id && isCorruptedTmdbId(movie.tmdb.id, movie)) {
-    delete movie.tmdb;
-    delete movie.imdb;
+  if (movie.tmdb?.id) {
+    if (isCorruptedTmdbId(movie.tmdb.id, movie)) {
+      delete movie.tmdb;
+      delete movie.imdb;
+    } else {
+      const meta = await getTmdbBasicMetadata(movie.tmdb.id, movie.tmdb.type || movie.type);
+      if (meta && !isTmdbPayloadMatchingMovie(meta, movie)) {
+        delete movie.tmdb;
+        delete movie.imdb;
+      }
+    }
   }
   const episodes = data.episodes as RawEpisodeServer[] | undefined;
   const title = movie.name || movie.title || "Phim";

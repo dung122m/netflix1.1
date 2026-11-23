@@ -18,6 +18,7 @@ import {
   isTmdbPayloadMatchingMovie,
   sanitizeMovieAltNames,
   type MovieIdentity,
+  type TmdbMetadataPayload,
 } from "./tmdb/tmdbSanityGuard";
 import {
   runWithConcurrencyLimit,
@@ -98,6 +99,49 @@ const inFlightTmdbIdImages = new Map<
   Promise<{ posterUrl: string | null; backdropUrl: string | null }>
 >();
 
+const TMDB_META_CACHE = new Map<string, { data: TmdbMetadataPayload; expireAt: number }>();
+
+export async function getTmdbBasicMetadata(
+  tmdbId: string | number | undefined | null,
+  type: string = "movie",
+  externalSignal?: AbortSignal
+): Promise<TmdbMetadataPayload | null> {
+  if (!tmdbId || externalSignal?.aborted) return null;
+  const cleanId = String(tmdbId).trim();
+  if (!cleanId || !/^\d+$/.test(cleanId) || cleanId === "0") return null;
+
+  const cleanType = normalizeTmdbLookupMediaType(type);
+  const cacheKey = `meta:${cleanType}:${cleanId}`;
+
+  const memoryHit = TMDB_META_CACHE.get(cacheKey);
+  if (memoryHit && memoryHit.expireAt > Date.now()) {
+    return memoryHit.data;
+  }
+
+  try {
+    const data = await fetchTmdbEndpoint(`/${cleanType}/${cleanId}`, 86400 * 30, externalSignal);
+    if (data?.id) {
+      const meta: TmdbMetadataPayload = {
+        id: data.id,
+        title: data.title,
+        name: data.name,
+        original_title: data.original_title,
+        original_name: data.original_name,
+        release_date: data.release_date,
+        first_air_date: data.first_air_date,
+      };
+      setBoundedMap(TMDB_META_CACHE, cacheKey, {
+        data: meta,
+        expireAt: Date.now() + 24 * 3600 * 1000,
+      });
+      return meta;
+    }
+  } catch {
+    // Graceful fallback nếu TMDb lỗi
+  }
+  return null;
+}
+
 function combineTimeoutSignal(timeoutMs: number, externalSignal?: AbortSignal): AbortSignal {
   const timeoutSignal = AbortSignal.timeout(timeoutMs);
   return externalSignal ? AbortSignal.any([timeoutSignal, externalSignal]) : timeoutSignal;
@@ -149,6 +193,18 @@ export async function getTmdbMediaImagesById(
   }
 
   const cleanType = normalizeTmdbLookupMediaType(type);
+
+  // Xác thực ngữ nghĩa nếu truyền expectedMovie: đối chiếu chéo metadata TMDb thực tế
+  if (expectedMovie) {
+    const meta = await getTmdbBasicMetadata(cleanId, cleanType, externalSignal);
+    if (meta && !isTmdbPayloadMatchingMovie(meta, expectedMovie)) {
+      console.warn(
+        `[TMDB Sanity Guard] Rejected mismatched tmdbId ${cleanId} for "${expectedMovie.name || expectedMovie.title}" (${expectedMovie.year}) -> TMDb title: "${meta.title || meta.name}", release_date: "${meta.release_date || meta.first_air_date}"`
+      );
+      return { posterUrl: null, backdropUrl: null };
+    }
+  }
+
   const cacheKey = `v4:${cleanType}:${cleanId}`;
   const redisKey = `tmdb:images:v2:${cleanType}:${cleanId}`;
 
@@ -814,6 +870,18 @@ export async function getTmdbMovieCredits(
 
   const cleanType =
     type === "tv" || type === "series" || type === "phim-bo" || type === "tvshows" ? "tv" : "movie";
+
+  // Xác thực ngữ nghĩa đối chiếu chéo metadata thực tế từ TMDb nếu truyền expectedMovie
+  if (expectedMovie) {
+    const meta = await getTmdbBasicMetadata(cleanId, cleanType);
+    if (meta && !isTmdbPayloadMatchingMovie(meta, expectedMovie)) {
+      console.warn(
+        `[TMDB Sanity Guard] Rejected credits for mismatched tmdbId ${cleanId} on "${expectedMovie.name || expectedMovie.title}" (${expectedMovie.year})`
+      );
+      return [];
+    }
+  }
+
   const cacheKey = `${cleanType}:${cleanId}`;
   const now = Date.now();
 

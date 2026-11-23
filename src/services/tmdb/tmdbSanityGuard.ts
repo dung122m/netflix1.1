@@ -2,12 +2,14 @@
  * TMDb Sanity Guard
  *
  * Chống nhiễm độc dữ liệu TMDb / IMDb từ các nguồn upstream (PhimAPI, NguonC):
- * 1. Phát hiện và loại bỏ các mã TMDb ID gán nhầm hàng loạt từ nguồn phát (vd: ID 1126166 Flight Risk gán nhầm cho 19 phim Việt Nam kinh điển).
- * 2. Xác thực đối chiếu năm phát hành và tiêu đề giữa phim thực tế và bản ghi TMDb (ngăn chặn chênh lệch > 2 năm không trùng tên).
- * 3. Làm sạch danh sách Tên gọi khác (alternative_names) bị nhiễm độc nhãn phim ngoại.
+ * 1. Kiểm tra tính hợp lệ cơ bản của định dạng TMDb ID (phải là chuỗi số nguyên dương).
+ * 2. Xác thực đối chiếu ngữ nghĩa (Semantic Validation) chênh lệch năm phát hành và độ tương đồng tiêu đề giữa phim thực tế và bản ghi trả về từ TMDb.
+ * 3. Làm sạch danh sách Tên gọi khác (alternative_names) dựa trên đối chiếu danh tính và từ tố (token overlap), loại bỏ triệt để các nhãn ngoại lai bị nhiễm độc.
+ *
+ * TUYỆT ĐỐI KHÔNG HARDCODE MÃ PHIM HOẶC TIÊU ĐỀ PHIM.
  */
 
-import { normalizeForMatch, normalizeVietnameseVowels } from "@/lib/stringUtils";
+import { normalizeVietnameseVowels } from "@/lib/stringUtils";
 
 export interface MovieIdentity {
   name?: string;
@@ -16,6 +18,7 @@ export interface MovieIdentity {
   title?: string;
   slug?: string;
   year?: string | number;
+  country?: unknown;
 }
 
 export interface TmdbMetadataPayload {
@@ -29,41 +32,18 @@ export interface TmdbMetadataPayload {
 }
 
 /**
- * Kiểm tra xem TMDb ID từ nguồn phát có phải là ID rác / gán nhầm hàng loạt không.
+ * Kiểm tra xem TMDb ID có phải là định dạng hợp lệ (số nguyên dương) hay không.
+ * Thuần túy kiểm tra cấu trúc dữ liệu, không hardcode bất kỳ ID nào.
  */
 export function isCorruptedTmdbId(
   tmdbId: string | number | undefined | null,
-  movie: MovieIdentity
+  _movie?: MovieIdentity
 ): boolean {
-  if (!tmdbId) return false;
+  if (!tmdbId) return true;
   const idStr = String(tmdbId).trim();
-  if (!idStr || idStr === "0" || idStr === "null" || idStr === "undefined") return true;
-
-  const rawName = (movie.name || movie.title || "").trim().toLowerCase();
-  const rawOrigin = (movie.origin_name || movie.original_name || "").trim().toLowerCase();
-  const rawSlug = (movie.slug || "").trim().toLowerCase();
-  const combined = `${rawName} ${rawOrigin} ${rawSlug}`;
-
-  // 1. ID 1126166 là "Flight Risk" (Cuộc Đào Tẩu Trên Không - 2025, Mark Wahlberg).
-  // PhimAPI đã gán nhầm ID này cho 19 phim điện ảnh kinh điển Việt Nam (Cánh Đồng Hoang 1979, Nơi Bình Yên Chim Hót 1986, Mùa Gió Chướng 1978, v.v.).
-  if (idStr === "1126166") {
-    const isActuallyFlightRisk =
-      combined.includes("flight risk") ||
-      combined.includes("cuoc dao tau tren khong") ||
-      combined.includes("cuộc đào tẩu trên không");
-    if (!isActuallyFlightRisk) return true;
+  if (!idStr || idStr === "0" || idStr === "null" || idStr === "undefined" || !/^\d+$/.test(idStr)) {
+    return true;
   }
-
-  // 2. ID 893030 là "Những Đứa Trẻ Trong Sương" (2022).
-  // PhimAPI gán nhầm cho phim "Bình Minh Đỏ" (2022).
-  if (idStr === "893030") {
-    const isActuallyChildrenOfTheMist =
-      combined.includes("nhung dua tre trong suong") ||
-      combined.includes("những đứa trẻ trong sương") ||
-      combined.includes("children of the mist");
-    if (!isActuallyChildrenOfTheMist) return true;
-  }
-
   return false;
 }
 
@@ -110,8 +90,10 @@ function checkTitlesOverlap(movieTitles: string[], tmdbTitles: string[]): boolea
 
 /**
  * Đối chiếu chéo bản ghi trả về từ TMDb với danh tính bộ phim Nanaflix.
+ * Thuần túy kiểm tra chênh lệch năm phát hành và so khớp chuỗi tiêu đề.
  * Từ chối nếu:
  * - Chênh lệch năm > 2 năm VÀ tiêu đề không có bất kỳ từ khóa tương đồng nào.
+ * - Hoặc tiêu đề hoàn toàn không liên quan dù không xác định được năm.
  */
 export function isTmdbPayloadMatchingMovie(
   tmdbData: TmdbMetadataPayload | null | undefined,
@@ -145,29 +127,40 @@ export function isTmdbPayloadMatchingMovie(
   // Nếu cả 2 năm đều xác định được:
   if (!isNaN(movieYear) && !isNaN(tmdbYear)) {
     const diff = Math.abs(movieYear - tmdbYear);
-    // Khi lệch nhau > 2 năm (như Cánh Đồng Hoang 1979 vs Flight Risk 2025 lệch 46 năm)
+    // Khi lệch nhau > 2 năm (như phim năm 1979 vs bản ghi TMDb năm 2025 lệch 46 năm)
     // bắt buộc phải có tên khớp, nếu không khớp chắc chắn là gán nhầm!
     if (diff > 2 && !hasOverlap) {
       return false;
     }
-    // Nếu chênh lệch năm <= 2 năm, đây là bản ghi hợp lệ từ cùng thời kỳ
-    return true;
   }
 
-  // Nếu không xác định được năm (hoặc 1 bên thiếu năm):
-  // Nếu có trùng khớp tiêu đề -> chấp nhận
-  if (hasOverlap) return true;
+  // Nếu tiêu đề hoàn toàn không có sự tương đồng:
+  if (!hasOverlap) {
+    // 1. Cả hai bên đều có tiêu đề tiếng Việt nhưng không có từ tố nào trùng nhau
+    // (như "Bình Minh Đỏ" bị gán nhầm sang "Những Đứa Trẻ Trong Sương" cùng năm 2022)
+    const hasVietnameseMovieTitle = movieTitles.some((t) => VIETNAMESE_DIACRITICS_REGEX.test(t));
+    const hasVietnameseTmdbTitle = tmdbTitles.some((t) => VIETNAMESE_DIACRITICS_REGEX.test(t));
+    if (hasVietnameseMovieTitle && hasVietnameseTmdbTitle) {
+      return false;
+    }
 
-  // Nếu cả năm không có và tiêu đề hoàn toàn không liên quan -> từ chối
-  if (tmdbTitles.length > 0 && movieTitles.length > 0) {
-    return false;
+    // 2. Nếu không xác định được năm (hoặc chênh lệch năm) và tiêu đề hoàn toàn không liên quan
+    if (isNaN(movieYear) || isNaN(tmdbYear)) {
+      if (tmdbTitles.length > 0 && movieTitles.length > 0) {
+        return false;
+      }
+    }
   }
 
   return true;
 }
 
+const VIETNAMESE_DIACRITICS_REGEX =
+  /[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/i;
+
 /**
- * Loại bỏ các tên gọi khác bị nhiễm độc từ upstream scraper.
+ * Loại bỏ các tên gọi khác bị nhiễm độc từ upstream scraper dựa trên đối chiếu danh tính.
+ * Thuần túy dùng thuật toán so khớp từ tố và nguồn gốc xuất xứ, KHÔNG hardcode tên phim.
  */
 export function sanitizeMovieAltNames(
   altNames: string[] | string | undefined | null,
@@ -178,20 +171,78 @@ export function sanitizeMovieAltNames(
     ? altNames
     : String(altNames).split(",").map((s) => s.trim()).filter(Boolean);
 
-  const rawName = (movie.name || movie.title || "").trim().toLowerCase();
-  const rawOrigin = (movie.origin_name || movie.original_name || "").trim().toLowerCase();
-  const isFlightRisk =
-    rawName.includes("flight risk") ||
-    rawOrigin.includes("flight risk") ||
-    rawName.includes("cuoc dao tau tren khong");
+  const movieTitles = [
+    movie.name,
+    movie.origin_name,
+    movie.original_name,
+    movie.title,
+    movie.slug ? movie.slug.replace(/-/g, " ") : "",
+  ].filter((t): t is string => Boolean(t && t.trim().length >= 2));
+
+  // Tập hợp các từ đơn chuẩn hóa từ danh tính của bộ phim
+  const identityTokens = new Set<string>();
+  for (const t of movieTitles) {
+    const tokens = extractTokens(t);
+    for (const tok of tokens) {
+      identityTokens.add(tok);
+    }
+  }
+
+  // Kiểm tra xem phim có phải là phim nội địa Việt Nam không
+  const countryStr = typeof movie.country === "string"
+    ? movie.country
+    : Array.isArray(movie.country)
+      ? movie.country
+          .map((c) => {
+            if (c && typeof c === "object") {
+              const obj = c as Record<string, unknown>;
+              return String(obj.name || obj.slug || "");
+            }
+            return String(c || "");
+          })
+          .join(" ")
+      : "";
+
+  const hasVietnamCountry = /vi[eêệ]t\s*nam/i.test(countryStr) || /viet-?nam/i.test(countryStr);
+
+  // Phim nội địa Việt Nam:
+  // 1. Quốc gia là Việt Nam
+  // 2. Hoặc nếu chưa có dữ liệu quốc gia: không có tên gốc nước ngoài và tiêu đề chứa ký tự tiếng Việt
+  const isDomesticVietnameseMovie = hasVietnamCountry || Boolean(
+    !movie.country &&
+    !movie.origin_name &&
+    (VIETNAMESE_DIACRITICS_REGEX.test(movie.name || "") || VIETNAMESE_DIACRITICS_REGEX.test(movie.title || ""))
+  );
 
   return list.filter((alt) => {
     if (!alt || typeof alt !== "string") return false;
-    const clean = alt.trim().toLowerCase();
-    // Loại bỏ nhãn của Flight Risk gán nhầm vào phim Việt Nam
-    if (!isFlightRisk && (clean === "flight risk" || clean === "vol à haut risque" || clean === "插翅难飞")) {
+    const clean = alt.trim();
+    if (clean.length < 2) return false;
+
+    // 1. Nếu tên gọi khác trùng khớp hoặc là chuỗi con của bất kỳ tiêu đề gốc nào -> chấp nhận
+    for (const t of movieTitles) {
+      const normT = normalizeVietnameseVowels(t);
+      const normAlt = normalizeVietnameseVowels(clean);
+      if (normT === normAlt || normT.includes(normAlt) || normAlt.includes(normT)) {
+        return true;
+      }
+    }
+
+    // 2. Kiểm tra token overlap
+    const altTokens = extractTokens(clean);
+    const hasCommonToken = altTokens.some((tok) => identityTokens.has(tok));
+    if (hasCommonToken) {
+      return true;
+    }
+
+    // 3. Với phim nội địa Việt Nam:
+    // Nếu một tên gọi khác hoàn toàn không có bất kỳ từ tố nào liên quan đến tên tiếng Việt hoặc tên gốc
+    // (ví dụ: các nhãn phim ngoại hoàn toàn xa lạ do nguồn phát gán nhầm từ bản ghi TMDb lỗi)
+    // -> Loại bỏ để bảo toàn độ chính xác cho phim
+    if (isDomesticVietnameseMovie && !hasCommonToken) {
       return false;
     }
+
     return true;
   });
 }

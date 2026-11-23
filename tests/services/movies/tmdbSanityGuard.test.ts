@@ -10,34 +10,24 @@ import { buildMovieDetailPageData } from "@/services/movies/detailPageData";
 
 describe("TMDb Sanity Guard & Anti-Corruption Suite", () => {
   describe("1. isCorruptedTmdbId Detection", () => {
-    it("Rejects corrupted TMDb ID 1126166 for classic Vietnamese movies", () => {
-      const canhDongHoang = { name: "Cánh Đồng Hoang", year: 1979, slug: "canh-dong-hoang" };
-      const noiBinhYen = { name: "Nơi Bình Yên Chim Hót", year: 1986, slug: "noi-binh-yen-chim-hot" };
-      const muaGioChuong = { name: "Mùa Gió Chướng", year: 1978, slug: "mua-gio-chuong" };
-      const honDat = { name: "Hòn Đất Và Biển", year: 1983, slug: "hon-dat-va-bien" };
-
-      assert.strictEqual(isCorruptedTmdbId("1126166", canhDongHoang), true);
-      assert.strictEqual(isCorruptedTmdbId("1126166", noiBinhYen), true);
-      assert.strictEqual(isCorruptedTmdbId("1126166", muaGioChuong), true);
-      assert.strictEqual(isCorruptedTmdbId("1126166", honDat), true);
+    it("Rejects corrupted / invalid TMDb ID values structurally without hardcoding", () => {
+      assert.strictEqual(isCorruptedTmdbId(null), true);
+      assert.strictEqual(isCorruptedTmdbId(undefined), true);
+      assert.strictEqual(isCorruptedTmdbId(""), true);
+      assert.strictEqual(isCorruptedTmdbId("   "), true);
+      assert.strictEqual(isCorruptedTmdbId("0"), true);
+      assert.strictEqual(isCorruptedTmdbId("null"), true);
+      assert.strictEqual(isCorruptedTmdbId("undefined"), true);
+      assert.strictEqual(isCorruptedTmdbId("abc"), true);
+      assert.strictEqual(isCorruptedTmdbId("tt10078772"), true);
+      assert.strictEqual(isCorruptedTmdbId("-50"), true);
     });
 
-    it("Allows TMDb ID 1126166 for the real Flight Risk movie", () => {
-      const realFlightRisk = {
-        name: "Cuộc Đào Tẩu Trên Không",
-        origin_name: "Flight Risk",
-        year: 2025,
-        slug: "cuoc-dao-tau-tren-khong",
-      };
-      assert.strictEqual(isCorruptedTmdbId("1126166", realFlightRisk), false);
-    });
-
-    it("Rejects corrupted TMDb ID 893030 for Bình Minh Đỏ but allows for Những Đứa Trẻ Trong Sương", () => {
-      const binhMinhDo = { name: "Bình Minh Đỏ", year: 2022, slug: "binh-minh-do-2022" };
-      const nhungDuaTre = { name: "Những Đứa Trẻ Trong Sương", year: 2022, slug: "nhung-dua-tre-trong-suong" };
-
-      assert.strictEqual(isCorruptedTmdbId("893030", binhMinhDo), true);
-      assert.strictEqual(isCorruptedTmdbId("893030", nhungDuaTre), false);
+    it("Accepts valid numeric TMDb ID format", () => {
+      assert.strictEqual(isCorruptedTmdbId("1126166"), false);
+      assert.strictEqual(isCorruptedTmdbId("893030"), false);
+      assert.strictEqual(isCorruptedTmdbId("272846"), false);
+      assert.strictEqual(isCorruptedTmdbId(1126166), false);
     });
   });
 
@@ -52,6 +42,18 @@ describe("TMDb Sanity Guard & Anti-Corruption Suite", () => {
       };
 
       assert.strictEqual(isTmdbPayloadMatchingMovie(bogusTmdbPayload, movie), false);
+    });
+
+    it("Rejects payload when titles are completely mismatched even if year is the same", () => {
+      const binhMinhDo = { name: "Bình Minh Đỏ", year: 2022, slug: "binh-minh-do-2022" };
+      const nhungDuaTreTmdb = {
+        id: 893030,
+        title: "Những Đứa Trẻ Trong Sương",
+        original_title: "Children of the Mist",
+        release_date: "2022-09-08",
+      };
+
+      assert.strictEqual(isTmdbPayloadMatchingMovie(nhungDuaTreTmdb, binhMinhDo), false);
     });
 
     it("Accepts payload when title matches even if year is close", () => {
@@ -86,7 +88,12 @@ describe("TMDb Sanity Guard & Anti-Corruption Suite", () => {
 
   describe("3. sanitizeMovieAltNames", () => {
     it("Strips Flight Risk polluted names from Vietnamese movies", () => {
-      const movie = { name: "Cánh Đồng Hoang", year: 1979 };
+      const movie = {
+        name: "Cánh Đồng Hoang",
+        origin_name: "The Wild Field",
+        year: 1979,
+        country: "Việt Nam",
+      };
       const rawAlt = ["插翅难飞", "Vol à Haut Risque", "Flight Risk", "The Wild Field"];
       const cleaned = sanitizeMovieAltNames(rawAlt, movie);
 
