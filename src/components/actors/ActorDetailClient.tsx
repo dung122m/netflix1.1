@@ -4,13 +4,10 @@ import React, { useState, useMemo } from "react";
 import Link from "next/link";
 import {
   Film,
-  Tv,
-  Clapperboard,
   BookOpen,
   ChevronDown,
   ChevronUp,
   ExternalLink,
-  Layers,
 } from "lucide-react";
 import { MovieGrid } from "@/components/movies/MovieGrid";
 import { PaginationControl } from "@/components/ui/PaginationControl";
@@ -358,17 +355,16 @@ export const ActorDetailClient: React.FC<ActorDetailClientProps> = ({
               {/* TABS LỌC LOẠI PHIM (NẾU CÓ CẢ 2 LOẠI) */}
               {(singleMovies.length > 0 || seriesMovies.length > 0) && (
                 <SegmentedTabs<"all" | "single" | "series">
-                  variant="contained"
+                  variant="pills"
                   size="sm"
                   tabs={[
-                    { id: "all", label: "Tất cả", count: movies.length, icon: Layers },
+                    { id: "all", label: "Tất cả", count: movies.length },
                     ...(singleMovies.length > 0
                       ? [
                           {
                             id: "single" as const,
                             label: "Phim lẻ",
                             count: singleMovies.length,
-                            icon: Clapperboard,
                           },
                         ]
                       : []),
@@ -378,7 +374,6 @@ export const ActorDetailClient: React.FC<ActorDetailClientProps> = ({
                             id: "series" as const,
                             label: "Phim bộ",
                             count: seriesMovies.length,
-                            icon: Tv,
                           },
                         ]
                       : []),

@@ -3,14 +3,11 @@
 import React, { useEffect, useState, useRef, useCallback, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { DEFAULT_GENRES, DEFAULT_COUNTRIES } from "@/data/movies/taxonomy";
-import { Tooltip } from "@/components/ui/Tooltip";
 import { getCanonicalGenreSlug, getCanonicalCountrySlug, isRawId } from "@/lib/movieMedia";
 import { useBodyScrollLock } from "@/lib/scrollLock";
 import {
   ChevronDown,
-  RotateCcw,
   Loader2,
-  SlidersHorizontal,
 } from "lucide-react";
 
 import {
@@ -388,10 +385,9 @@ export const FilterBar: React.FC = () => {
         <button
           type="button"
           onClick={openMobileDrawer}
-          className="flex-1 h-9 px-3 rounded-xl bg-zinc-900/80 hover:bg-zinc-850 text-white flex items-center justify-between gap-2 border border-white/[0.08] active:scale-[0.98] transition cursor-pointer shadow-sm"
+          className="flex-1 h-10 px-3.5 rounded-xl bg-zinc-900 hover:bg-zinc-850 text-white flex items-center justify-between gap-2 active:scale-[0.98] transition cursor-pointer"
         >
           <div className="flex items-center gap-2 min-w-0">
-            <SlidersHorizontal className="w-3.5 h-3.5 text-netflix-red shrink-0" />
             <span className="font-semibold text-xs text-zinc-200 truncate">Bộ lọc & Phân loại</span>
             {activeFiltersCount > 0 && (
               <span className="px-1.5 py-0.5 rounded-full bg-netflix-red text-white text-[10px] font-bold shrink-0">
@@ -403,196 +399,171 @@ export const FilterBar: React.FC = () => {
         </button>
 
         {hasAnyFilter && (
-          <Tooltip content="Xóa tất cả bộ lọc" side="bottom">
-            <button
-              type="button"
-              onClick={handleClearAll}
-              aria-label="Xóa tất cả bộ lọc"
-              className="h-9 w-9 rounded-xl bg-zinc-900/80 hover:bg-netflix-red/15 text-netflix-red flex items-center justify-center shrink-0 border border-white/[0.08] active:scale-95 transition cursor-pointer"
-            >
+          <button
+            type="button"
+            onClick={handleClearAll}
+            aria-label="Xóa tất cả bộ lọc"
+            className="h-10 px-3 rounded-xl bg-zinc-900 hover:bg-netflix-red/15 text-netflix-red text-xs font-semibold flex items-center justify-center shrink-0 active:scale-95 transition cursor-pointer"
+          >
             {isPending && pendingGroup === "all" ? (
               <Loader2 className="w-3.5 h-3.5 text-netflix-red animate-spin" />
             ) : (
-              <RotateCcw className="w-3.5 h-3.5 text-netflix-red" />
+              <span>Đặt lại</span>
             )}
-            </button>
-          </Tooltip>
+          </button>
         )}
       </div>
 
-      {/* 1B. CINEMATIC DOCK CONTAINER (DESKTOP >= 640px) */}
-      <div className="hidden sm:flex relative w-full rounded-2xl bg-zinc-900/95 p-2 sm:p-2.5 shadow-lg shadow-black/40 items-center gap-2 sm:gap-3">
-        {/* LEFT LABEL: ICON + TEXT (DESKTOP / TABLET) */}
-        <div className="flex-none hidden sm:flex items-center gap-2 pl-2 pr-2.5 border-r border-white/10 text-white font-bold text-xs sm:text-sm tracking-tight">
-          <SlidersHorizontal className="w-4 h-4 text-netflix-red flex-none" />
-          <span className="whitespace-nowrap">Bộ lọc nhanh</span>
-        </div>
-
-        {/* SCROLLABLE FILTER BUTTONS WRAPPER */}
-        <div className="relative flex-1 min-w-0 overflow-hidden">
-
-
-          <div
-            ref={scrollContainerRef}
-            className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto sm:overflow-visible [scrollbar-width:none] [&::-webkit-scrollbar]:hidden py-0.5 flex-nowrap sm:flex-wrap"
+      {/* 1B. CLEAN DESKTOP FILTER BAR (DESKTOP >= 640px) - ZERO NESTED DOCK CONTAINER */}
+      <div className="hidden sm:flex items-center justify-between gap-3 w-full">
+        {/* FILTER BUTTONS ROW */}
+        <div ref={scrollContainerRef} className="flex items-center gap-2 flex-wrap min-w-0">
+          {/* DROPDOWN 1: LOẠI PHIM */}
+          <button
+            ref={(el) => {
+              buttonRefs.current["type"] = el;
+            }}
+            type="button"
+            onClick={() => toggleDropdown("type")}
+            aria-expanded={activeDropdown === "type"}
+            aria-haspopup="listbox"
+            aria-label="Lọc theo loại phim"
+            className={`h-10 px-4 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-150 flex items-center gap-2 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black shrink-0 ${
+              currentType
+                ? "bg-netflix-red text-white shadow-md shadow-black/50"
+                : activeDropdown === "type"
+                ? "bg-zinc-800 text-white"
+                : "bg-zinc-900/90 text-zinc-300 hover:bg-zinc-800 hover:text-white"
+            }`}
           >
-            {/* MOBILE ONLY COMPACT LABEL */}
-            <div className="sm:hidden flex-none flex items-center gap-1.5 pl-1 pr-2 border-r border-white/[0.08] text-white font-bold text-xs">
-              <SlidersHorizontal className="w-3.5 h-3.5 text-netflix-red flex-none" />
-              <span className="whitespace-nowrap">Bộ lọc</span>
-            </div>
-
-            {/* DROPDOWN 1: LOẠI PHIM */}
-            <button
-              ref={(el) => {
-                buttonRefs.current["type"] = el;
-              }}
-              type="button"
-              onClick={() => toggleDropdown("type")}
-              aria-expanded={activeDropdown === "type"}
-              aria-haspopup="listbox"
-              aria-label="Lọc theo loại phim"
-              className={`h-10 px-3.5 sm:px-4 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-150 flex items-center gap-2 cursor-pointer shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black flex-none ${
-                currentType
-                  ? "bg-netflix-red/25 text-white shadow-md shadow-black/50"
-                  : activeDropdown === "type"
-                  ? "bg-zinc-800 text-white shadow-md shadow-black/40"
-                  : "bg-white/[0.05] text-zinc-300 hover:bg-white/[0.1] hover:text-white"
-              }`}
-            >
-              <span className="truncate max-w-[110px] sm:max-w-none">
-                {currentType ? activeTypeName : "Loại phim"}
-              </span>
-              {isPending && pendingGroup === "type" ? (
-                <Loader2 className="w-3.5 h-3.5 text-netflix-red animate-spin flex-none" />
-              ) : (
-                <ChevronDown
-                  className={`w-3.5 h-3.5 text-zinc-400 transition-transform duration-200 flex-none ${
-                    activeDropdown === "type" ? "rotate-180 text-white" : "rotate-0"
-                  }`}
-                />
-              )}
-            </button>
-
-            {/* DROPDOWN 2: THỂ LOẠI */}
-            <button
-              ref={(el) => {
-                buttonRefs.current["genre"] = el;
-              }}
-              type="button"
-              onClick={() => toggleDropdown("genre")}
-              aria-expanded={activeDropdown === "genre"}
-              aria-haspopup="listbox"
-              aria-label="Lọc theo thể loại phim"
-              className={`h-10 px-3.5 sm:px-4 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-150 flex items-center gap-2 cursor-pointer shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black flex-none ${
-                currentCategory
-                  ? "bg-netflix-red/25 text-white shadow-md shadow-black/50"
-                  : activeDropdown === "genre"
-                  ? "bg-zinc-800 text-white shadow-md shadow-black/40"
-                  : "bg-white/[0.05] text-zinc-300 hover:bg-white/[0.1] hover:text-white"
-              }`}
-            >
-              <span className="truncate max-w-[110px] sm:max-w-none">
-                {currentCategory ? activeCategoryName : "Thể loại"}
-              </span>
-              {isPending && pendingGroup === "genre" ? (
-                <Loader2 className="w-3.5 h-3.5 text-netflix-red animate-spin flex-none" />
-              ) : (
-                <ChevronDown
-                  className={`w-3.5 h-3.5 text-zinc-400 transition-transform duration-200 flex-none ${
-                    activeDropdown === "genre" ? "rotate-180 text-white" : "rotate-0"
-                  }`}
-                />
-              )}
-            </button>
-
-            {/* DROPDOWN 3: QUỐC GIA */}
-            <button
-              ref={(el) => {
-                buttonRefs.current["country"] = el;
-              }}
-              type="button"
-              onClick={() => toggleDropdown("country")}
-              aria-expanded={activeDropdown === "country"}
-              aria-haspopup="listbox"
-              aria-label="Lọc theo quốc gia sản xuất"
-              className={`h-10 px-3.5 sm:px-4 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-150 flex items-center gap-2 cursor-pointer shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black flex-none ${
-                currentCountry
-                  ? "bg-netflix-red/25 text-white shadow-md shadow-black/50"
-                  : activeDropdown === "country"
-                  ? "bg-zinc-800 text-white shadow-md shadow-black/40"
-                  : "bg-white/[0.05] text-zinc-300 hover:bg-white/[0.1] hover:text-white"
-              }`}
-            >
-              <span className="truncate max-w-[110px] sm:max-w-none">
-                {currentCountry ? activeCountryName : "Quốc gia"}
-              </span>
-              {isPending && pendingGroup === "country" ? (
-                <Loader2 className="w-3.5 h-3.5 text-netflix-red animate-spin flex-none" />
-              ) : (
-                <ChevronDown
-                  className={`w-3.5 h-3.5 text-zinc-400 transition-transform duration-200 flex-none ${
-                    activeDropdown === "country" ? "rotate-180 text-white" : "rotate-0"
-                  }`}
-                />
-              )}
-            </button>
-
-            {/* DROPDOWN 4: NĂM PHÁT HÀNH */}
-            <button
-              ref={(el) => {
-                buttonRefs.current["year"] = el;
-              }}
-              type="button"
-              onClick={() => toggleDropdown("year")}
-              aria-expanded={activeDropdown === "year"}
-              aria-haspopup="listbox"
-              aria-label="Lọc theo năm phát hành"
-              className={`h-10 px-3.5 sm:px-4 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-150 flex items-center gap-2 cursor-pointer shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black flex-none ${
-                currentYear
-                  ? "bg-netflix-red/25 text-white shadow-md shadow-black/50"
-                  : activeDropdown === "year"
-                  ? "bg-zinc-800 text-white shadow-md shadow-black/40"
-                  : "bg-white/[0.05] text-zinc-300 hover:bg-white/[0.1] hover:text-white"
-              }`}
-            >
-              <span className="truncate max-w-[110px] sm:max-w-none">
-                {currentYear ? currentYear : "Năm"}
-              </span>
-              {isPending && pendingGroup === "year" ? (
-                <Loader2 className="w-3.5 h-3.5 text-netflix-red animate-spin flex-none" />
-              ) : (
-                <ChevronDown
-                  className={`w-3.5 h-3.5 text-zinc-400 transition-transform duration-200 flex-none ${
-                    activeDropdown === "year" ? "rotate-180 text-white" : "rotate-0"
-                  }`}
-                />
-              )}
-            </button>
-
-            {/* XÓA NHANH TOÀN BỘ BỘ LỌC KHI CÓ FILTER */}
-            {hasAnyFilter && (
-              <Tooltip content="Xóa tất cả các bộ lọc hiện tại" side="bottom">
-                <button
-                  type="button"
-                  onClick={handleClearAll}
-                  aria-label="Xóa tất cả các bộ lọc hiện tại"
-                  className="h-10 px-3 sm:px-3.5 rounded-xl bg-netflix-red/10 text-netflix-red hover:text-white hover:bg-netflix-red/25 text-xs sm:text-sm font-semibold transition-all duration-150 flex items-center gap-1.5 cursor-pointer shadow-sm flex-none outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black active:scale-95"
-                >
-                {isPending && pendingGroup === "all" ? (
-                  <Loader2 className="w-3.5 h-3.5 text-netflix-red animate-spin flex-none" />
-                ) : (
-                  <RotateCcw className="w-3.5 h-3.5 text-netflix-red flex-none" />
-                )}
-                <span className="hidden sm:inline">Đặt lại</span>
-                </button>
-              </Tooltip>
+            <span className="truncate">
+              {currentType ? activeTypeName : "Loại phim"}
+            </span>
+            {isPending && pendingGroup === "type" ? (
+              <Loader2 className="w-3.5 h-3.5 text-white animate-spin shrink-0" />
+            ) : (
+              <ChevronDown
+                className={`w-3.5 h-3.5 text-zinc-400 transition-transform duration-200 shrink-0 ${
+                  activeDropdown === "type" ? "rotate-180 text-white" : "rotate-0"
+                }`}
+              />
             )}
-          </div>
+          </button>
+
+          {/* DROPDOWN 2: THỂ LOẠI */}
+          <button
+            ref={(el) => {
+              buttonRefs.current["genre"] = el;
+            }}
+            type="button"
+            onClick={() => toggleDropdown("genre")}
+            aria-expanded={activeDropdown === "genre"}
+            aria-haspopup="listbox"
+            aria-label="Lọc theo thể loại phim"
+            className={`h-10 px-4 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-150 flex items-center gap-2 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black shrink-0 ${
+              currentCategory
+                ? "bg-netflix-red text-white shadow-md shadow-black/50"
+                : activeDropdown === "genre"
+                ? "bg-zinc-800 text-white"
+                : "bg-zinc-900/90 text-zinc-300 hover:bg-zinc-800 hover:text-white"
+            }`}
+          >
+            <span className="truncate">
+              {currentCategory ? activeCategoryName : "Thể loại"}
+            </span>
+            {isPending && pendingGroup === "genre" ? (
+              <Loader2 className="w-3.5 h-3.5 text-white animate-spin shrink-0" />
+            ) : (
+              <ChevronDown
+                className={`w-3.5 h-3.5 text-zinc-400 transition-transform duration-200 shrink-0 ${
+                  activeDropdown === "genre" ? "rotate-180 text-white" : "rotate-0"
+                }`}
+              />
+            )}
+          </button>
+
+          {/* DROPDOWN 3: QUỐC GIA */}
+          <button
+            ref={(el) => {
+              buttonRefs.current["country"] = el;
+            }}
+            type="button"
+            onClick={() => toggleDropdown("country")}
+            aria-expanded={activeDropdown === "country"}
+            aria-haspopup="listbox"
+            aria-label="Lọc theo quốc gia sản xuất"
+            className={`h-10 px-4 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-150 flex items-center gap-2 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black shrink-0 ${
+              currentCountry
+                ? "bg-netflix-red text-white shadow-md shadow-black/50"
+                : activeDropdown === "country"
+                ? "bg-zinc-800 text-white"
+                : "bg-zinc-900/90 text-zinc-300 hover:bg-zinc-800 hover:text-white"
+            }`}
+          >
+            <span className="truncate">
+              {currentCountry ? activeCountryName : "Quốc gia"}
+            </span>
+            {isPending && pendingGroup === "country" ? (
+              <Loader2 className="w-3.5 h-3.5 text-white animate-spin shrink-0" />
+            ) : (
+              <ChevronDown
+                className={`w-3.5 h-3.5 text-zinc-400 transition-transform duration-200 shrink-0 ${
+                  activeDropdown === "country" ? "rotate-180 text-white" : "rotate-0"
+                }`}
+              />
+            )}
+          </button>
+
+          {/* DROPDOWN 4: NĂM PHÁT HÀNH */}
+          <button
+            ref={(el) => {
+              buttonRefs.current["year"] = el;
+            }}
+            type="button"
+            onClick={() => toggleDropdown("year")}
+            aria-expanded={activeDropdown === "year"}
+            aria-haspopup="listbox"
+            aria-label="Lọc theo năm phát hành"
+            className={`h-10 px-4 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-150 flex items-center gap-2 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black shrink-0 ${
+              currentYear
+                ? "bg-netflix-red text-white shadow-md shadow-black/50"
+                : activeDropdown === "year"
+                ? "bg-zinc-800 text-white"
+                : "bg-zinc-900/90 text-zinc-300 hover:bg-zinc-800 hover:text-white"
+            }`}
+          >
+            <span className="truncate">
+              {currentYear ? currentYear : "Năm"}
+            </span>
+            {isPending && pendingGroup === "year" ? (
+              <Loader2 className="w-3.5 h-3.5 text-white animate-spin shrink-0" />
+            ) : (
+              <ChevronDown
+                className={`w-3.5 h-3.5 text-zinc-400 transition-transform duration-200 shrink-0 ${
+                  activeDropdown === "year" ? "rotate-180 text-white" : "rotate-0"
+                }`}
+              />
+            )}
+          </button>
+
+          {/* XÓA BỘ LỌC KHI CÓ BỘ LỌC ĐANG CHỌN */}
+          {hasAnyFilter && (
+            <button
+              type="button"
+              onClick={handleClearAll}
+              aria-label="Xóa tất cả các bộ lọc hiện tại"
+              className="h-10 px-3.5 rounded-xl text-zinc-400 hover:text-netflix-red hover:bg-zinc-900 text-xs sm:text-sm font-semibold transition-all duration-150 flex items-center gap-1.5 cursor-pointer shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-netflix-red active:scale-95"
+            >
+              {isPending && pendingGroup === "all" ? (
+                <Loader2 className="w-3.5 h-3.5 text-netflix-red animate-spin shrink-0" />
+              ) : null}
+              <span>Đặt lại</span>
+            </button>
+          )}
         </div>
 
-        {/* DROPDOWN 5: SẮP XẾP CHUẨN HÓA DÙNG CHUNG TOÀN HỆ THỐNG (ĐẶT NGOÀI CONTAINER OVERFLOW ĐỂ KHÔNG BỊ CLIP POPUP) */}
-        <div className="sm:ml-auto sm:pl-3 sm:border-l sm:border-white/10 flex items-center flex-none relative z-50">
+        {/* DROPDOWN SẮP XẾP */}
+        <div className="ml-auto flex items-center shrink-0 relative z-50">
           <SortDropdown
             value={currentSort}
             onChange={(s) => updateQueryParam("sort", s)}

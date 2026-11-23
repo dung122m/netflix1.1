@@ -6,7 +6,14 @@ export default function BrowseLoading() {
     <div className="bg-black min-h-dvh text-white pb-20 animate-pulse">
       {/* FILTER BAR / GENRE CHIPS SKELETON */}
       <div className="px-4 md:px-8 pt-16 sm:pt-24 space-y-4">
-        <div className="h-12 w-full max-w-4xl bg-zinc-900/80 rounded-2xl" />
+        {/* FILTER BAR SKELETON */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="h-10 w-28 bg-zinc-900/80 rounded-xl" />
+          <div className="h-10 w-28 bg-zinc-900/80 rounded-xl" />
+          <div className="h-10 w-28 bg-zinc-900/80 rounded-xl" />
+          <div className="h-10 w-24 bg-zinc-900/80 rounded-xl" />
+          <div className="ml-auto h-10 w-36 bg-zinc-900/80 rounded-xl hidden sm:block" />
+        </div>
 
         {/* HEADER SKELETON */}
         <div className="flex justify-between items-center py-4">

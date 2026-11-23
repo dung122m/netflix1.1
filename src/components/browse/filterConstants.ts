@@ -11,8 +11,8 @@ export interface SortOptionItem {
   label: string;
   shortLabel?: string;
   value: string;
-  icon: LucideIcon;
-  color: string;
+  icon?: LucideIcon;
+  color?: string;
 }
 
 export const MOVIE_TYPES: MovieTypeOption[] = [

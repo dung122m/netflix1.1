@@ -1,13 +1,12 @@
 "use client";
 
 import React, { useState, useRef, useEffect, useCallback } from "react";
-import { Check, ChevronDown, LucideIcon, ArrowUpDown, Loader2 } from "lucide-react";
+import { Check, ChevronDown, Loader2 } from "lucide-react";
 
 export interface SortOption<T extends string = string> {
   value: T;
   label: string;
   shortLabel?: string;
-  icon?: LucideIcon;
   color?: string;
 }
 
@@ -131,12 +130,10 @@ export function SortDropdown<T extends string = string>({
     [onChange, updateIsOpen]
   );
 
-  const SelectedIcon = selectedOption?.icon || ArrowUpDown;
-
   const sizeButtonClasses =
     size === "md"
       ? "h-10 px-3.5 sm:px-4 rounded-xl text-xs sm:text-sm font-semibold"
-      : "px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl text-xs font-bold";
+      : "px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl text-xs font-semibold";
 
   return (
     <div ref={containerRef} className={`relative inline-block text-left ${className}`}>
@@ -147,27 +144,20 @@ export function SortDropdown<T extends string = string>({
         aria-haspopup="listbox"
         aria-expanded={isOpen}
         aria-label={`${labelPrefix}: ${selectedOption?.label || "Mặc định"}`}
-        className={`inline-flex items-center gap-2 transition-all duration-200 cursor-pointer shadow-md shadow-black/40 active:scale-95 select-none outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black ${sizeButtonClasses} ${
+        className={`inline-flex items-center gap-2 transition-all duration-150 cursor-pointer select-none outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black ${sizeButtonClasses} ${
           isCustomSort
-            ? "bg-white/[0.12] text-white ring-1 ring-white/10"
+            ? "bg-zinc-800 text-white font-bold"
             : isOpen
             ? "bg-zinc-800 text-white"
-            : "bg-zinc-900/90 hover:bg-zinc-800 text-zinc-200 hover:text-white"
+            : "bg-zinc-900/90 hover:bg-zinc-800 text-zinc-300 hover:text-white"
         } ${buttonClassName}`}
       >
-        <SelectedIcon
-          className={`w-3.5 h-3.5 shrink-0 ${
-            isCustomSort
-              ? "text-netflix-red"
-              : selectedOption?.color || "text-zinc-400"
-          }`}
-        />
         {labelPrefix && (
           <span className="text-zinc-400 font-normal hidden min-[480px]:inline">
             {labelPrefix}:
           </span>
         )}
-        <span className="text-white font-bold whitespace-nowrap">
+        <span className="text-white font-semibold whitespace-nowrap">
           {selectedOption?.shortLabel || selectedOption?.label}
         </span>
         {isPending ? (
@@ -186,7 +176,7 @@ export function SortDropdown<T extends string = string>({
         <div
           role="listbox"
           tabIndex={-1}
-          className={`absolute top-full mt-1.5 z-50 w-56 sm:w-60 max-w-[calc(100vw-1.5rem)] rounded-2xl bg-zinc-950/98 p-1.5 shadow-[0_20px_50px_rgba(0,0,0,0.9)] backdrop-blur-xl ring-1 ring-white/10 animate-in fade-in zoom-in-95 duration-150 ${
+          className={`absolute top-full mt-1.5 z-50 w-56 sm:w-60 max-w-[calc(100vw-1.5rem)] rounded-2xl bg-zinc-950 p-1.5 shadow-[0_20px_50px_rgba(0,0,0,0.9)] border border-white/[0.08] backdrop-blur-xl animate-in fade-in zoom-in-95 duration-150 ${
             computedAlign === "right" ? "right-0" : "left-0"
           }`}
         >
@@ -197,7 +187,6 @@ export function SortDropdown<T extends string = string>({
           <div className="space-y-0.5">
             {options.map((option) => {
               const isSelected = option.value === value;
-              const OptionIcon = option.icon || ArrowUpDown;
 
               return (
                 <button
@@ -208,18 +197,11 @@ export function SortDropdown<T extends string = string>({
                   onClick={() => handleSelect(option.value)}
                   className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs sm:text-sm font-medium transition-colors cursor-pointer text-left select-none ${
                     isSelected
-                      ? "bg-netflix-red text-white font-bold shadow-md shadow-black/50"
+                      ? "bg-netflix-red text-white font-bold"
                       : "text-zinc-300 hover:bg-zinc-800/80 hover:text-white"
                   }`}
                 >
-                  <div className="flex items-center gap-2.5 truncate">
-                    <OptionIcon
-                      className={`w-4 h-4 shrink-0 ${
-                        isSelected ? "text-white" : option.color || "text-zinc-400"
-                      }`}
-                    />
-                    <span className="truncate">{option.label}</span>
-                  </div>
+                  <span className="truncate">{option.label}</span>
 
                   {isSelected && (
                     <Check className="w-3.5 h-3.5 text-white shrink-0 ml-2" />

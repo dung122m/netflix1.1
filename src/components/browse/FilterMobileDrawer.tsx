@@ -3,7 +3,6 @@
 import React from "react";
 import { createPortal } from "react-dom";
 import {
-  SlidersHorizontal,
   X,
 } from "lucide-react";
 import {
@@ -72,9 +71,8 @@ export const FilterMobileDrawer: React.FC<FilterMobileDrawerProps> = React.memo(
           <div className="w-12 h-1.5 rounded-full bg-zinc-700/80 mx-auto my-2.5 shrink-0" />
 
           {/* Tiêu đề Bottom Sheet */}
-          <div className="px-4 py-2 border-b border-white/[0.08] flex items-center justify-between shrink-0">
+          <div className="px-4 py-2.5 border-b border-white/[0.08] flex items-center justify-between shrink-0">
             <div className="flex items-center gap-2">
-              <SlidersHorizontal className="w-4 h-4 text-netflix-red shrink-0" />
               <h3 className="text-base font-bold text-white">Bộ Lọc Phim</h3>
               {draftActiveCount > 0 && (
                 <span className="px-2 py-0.5 rounded-full bg-netflix-red/20 text-netflix-red text-xs font-bold tabular-nums">
@@ -115,19 +113,17 @@ export const FilterMobileDrawer: React.FC<FilterMobileDrawerProps> = React.memo(
               <div className="grid grid-cols-2 gap-2">
                 {SORT_OPTIONS.map((opt) => {
                   const isSelected = (!draftSort && opt.value === "latest") || draftSort === opt.value;
-                  const Icon = opt.icon;
                   return (
                     <button
                       key={opt.value}
                       type="button"
                       onClick={() => setDraftSort(opt.value)}
-                      className={`py-2 px-3 rounded-xl text-xs font-semibold flex items-center gap-2 transition active:scale-95 cursor-pointer text-left ${
+                      className={`py-2 px-3 rounded-xl text-xs font-semibold transition active:scale-95 cursor-pointer text-center ${
                         isSelected
-                          ? "bg-netflix-red text-white font-bold shadow-md shadow-black/50 ring-1 ring-inset ring-netflix-red"
+                          ? "bg-netflix-red text-white font-bold shadow-md shadow-black/50"
                           : "bg-zinc-900/90 text-zinc-300 hover:bg-zinc-800"
                       }`}
                     >
-                      <Icon className={`w-3.5 h-3.5 shrink-0 ${isSelected ? "text-white" : opt.color}`} />
                       <span className="truncate">{opt.label}</span>
                     </button>
                   );
