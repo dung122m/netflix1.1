@@ -6,21 +6,16 @@ import {
   Film,
   Compass,
   Tv,
-  Layers,
-  Database,
-  Cpu,
   ShieldCheck,
   Play,
   MonitorSmartphone,
   Flame,
-  CheckCircle,
   Mail,
   MessageSquare,
   AlertTriangle,
   Send,
   Clock,
   ExternalLink,
-  Milestone,
 } from "lucide-react";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
@@ -75,60 +70,6 @@ const PILLARS = [
   },
 ];
 
-const TECH_SPECS = [
-  {
-    title: "Trải Nghiệm & Giao Diện Hiện Đại",
-    icon: Layers,
-    items: [
-      { name: "Next.js 16 (App Router)", desc: "Kiến trúc Server Components & Streaming SSR tối ưu hóa tốc độ tải trang ban đầu" },
-      { name: "React 19 & TypeScript", desc: "Mã nguồn chặt chẽ, type-safe toàn diện và tối ưu hóa bộ nhớ trình duyệt" },
-      { name: "Cinematic Dark Theme", desc: "Tương phản thị giác cao cấp, hạn chế mỏi mắt khi xem phim trong không gian tối" },
-      { name: "Progressive Web App (PWA)", desc: "Hỗ trợ cài đặt trực tiếp lên iPhone/Android với trải nghiệm toàn màn hình như app gốc" },
-    ],
-  },
-  {
-    title: "Dữ Liệu & Hạ Tầng Phân Tán",
-    icon: Database,
-    items: [
-      { name: "Supabase (PostgreSQL)", desc: "Quản lý hồ sơ tài khoản, danh sách phim yêu thích & phân quyền dữ liệu RLS nghiêm ngặt" },
-      { name: "Upstash Redis L2 Cache", desc: "Bộ đệm phân tán toàn cầu, phản hồi truy vấn siêu nhanh và giảm tải máy chủ gốc" },
-      { name: "Local-First Architecture", desc: "Lưu trữ cục bộ thông minh, giữ cấu hình phát và lịch sử xem ngay cả khi mạng chập chờn" },
-      { name: "Global CDN Edge", desc: "Phân phối hình ảnh, poster và tài nguyên tĩnh từ các node máy chủ gần người dùng nhất" },
-    ],
-  },
-  {
-    title: "Trình Phát & Trí Tuệ Nhân Tạo",
-    icon: Cpu,
-    items: [
-      { name: "HLS.js Video Streaming Engine", desc: "Bộ giải mã luồng video thích ứng bitrate tự động theo thời gian thực" },
-      { name: "Multi-Model AI Orchestrator", desc: "Kết hợp linh hoạt Google Gemini, Groq & Mistral cho tốc độ suy luận nhanh chóng" },
-      { name: "TMDB Data Normalization", desc: "Đồng bộ và chuẩn hóa thông tin phim, danh sách diễn viên, đạo diễn chuẩn quốc tế" },
-      { name: "Realtime Device Handoff", desc: "Truyền tiếp phiên xem dở giữa các thiết bị với độ trễ cực thấp" },
-    ],
-  },
-];
-
-const ROADMAP_STEPS = [
-  {
-    phase: "Giai đoạn 1",
-    title: "Nền Tảng Cốt Lõi",
-    status: "Đã hoàn thành",
-    desc: "Xây dựng trình phát HLS chuẩn rạp, kho phim đa dạng, danh mục phân loại chi tiết và giao diện tối giản chuẩn điện ảnh.",
-  },
-  {
-    phase: "Giai đoạn 2",
-    title: "Đồng Bộ & Trợ Lý AI",
-    status: "Đã hoàn thành",
-    desc: "Ra mắt tính năng đồng bộ tiến trình đa thiết bị, Taste Profile cá nhân hóa, hệ thống gợi ý thông minh và tìm kiếm ngữ nghĩa tự nhiên.",
-  },
-  {
-    phase: "Giai đoạn 3",
-    title: "Trải Nghiệm Trực Tiếp & Cộng Đồng",
-    status: "Đang phát triển",
-    desc: "Hoàn thiện kênh Live truyền hình, trực tiếp thể thao với bảng xếp hạng, lịch thi đấu và bình luận thảo luận cộng đồng văn minh.",
-  },
-];
-
 export default function AboutPage() {
   return (
     <div className="min-h-dvh bg-[#050505] text-zinc-100 flex flex-col selection:bg-netflix-red selection:text-white font-sans antialiased overflow-x-clip">
@@ -154,44 +95,21 @@ export default function AboutPage() {
           }
           subtitle="Không gian xem phim trực tuyến không quảng cáo che màn hình, tối ưu tốc độ phản hồi và tự động ghi nhớ chính xác thời gian xem dở trên mọi thiết bị."
           actions={
-            <div className="space-y-6 w-full">
-              {/* Quick Metrics Bar */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 max-w-3xl mx-auto">
-                <div className="p-4 rounded-2xl bg-zinc-900/55 text-center space-y-1">
-                  <div className="text-xl sm:text-2xl font-bold text-white tabular-nums">0 Giây</div>
-                  <div className="text-xs text-zinc-400">Quảng cáo che màn hình</div>
-                </div>
-                <div className="p-4 rounded-2xl bg-zinc-900/55 text-center space-y-1">
-                  <div className="text-xl sm:text-2xl font-bold text-white">Adaptive</div>
-                  <div className="text-xs text-zinc-400">Tự động Full HD / 4K</div>
-                </div>
-                <div className="p-4 rounded-2xl bg-zinc-900/55 text-center space-y-1">
-                  <div className="text-xl sm:text-2xl font-bold text-white">Realtime</div>
-                  <div className="text-xs text-zinc-400">Đồng bộ đa thiết bị</div>
-                </div>
-                <div className="p-4 rounded-2xl bg-zinc-900/55 text-center space-y-1">
-                  <div className="text-xl sm:text-2xl font-bold text-white tabular-nums">100% Free</div>
-                  <div className="text-xs text-zinc-400">Phi lợi nhuận vì đam mê</div>
-                </div>
-              </div>
-
-              {/* Call to Actions */}
-              <div className="flex items-center justify-center gap-4 flex-wrap">
-                <Link
-                  href="/"
-                  className="inline-flex items-center gap-2 px-7 py-3.5 rounded-xl bg-netflix-red hover:brightness-110 active:brightness-95 text-white font-bold text-sm transition-all shadow-md shadow-black/50 hover:scale-[1.02] active:scale-95"
-                >
-                  <Play size={16} className="fill-current" />
-                  <span>Xem Phim Ngay</span>
-                </Link>
-                <a
-                  href="#contact"
-                  className="inline-flex items-center gap-2 px-6 py-3.5 rounded-xl bg-white/[0.07] hover:bg-white/[0.13] text-zinc-200 font-semibold text-sm transition-all active:scale-95"
-                >
-                  <MessageSquare size={16} />
-                  <span>Trợ Giúp & Báo Lỗi</span>
-                </a>
-              </div>
+            <div className="flex items-center justify-center gap-4 flex-wrap pt-2">
+              <Link
+                href="/"
+                className="inline-flex items-center gap-2 px-7 py-3.5 rounded-xl bg-netflix-red hover:brightness-110 active:brightness-95 text-white font-bold text-sm transition-all shadow-md shadow-black/50 hover:scale-[1.02] active:scale-95"
+              >
+                <Play size={16} className="fill-current" />
+                <span>Xem Phim Ngay</span>
+              </Link>
+              <a
+                href="#contact"
+                className="inline-flex items-center gap-2 px-6 py-3.5 rounded-xl bg-white/[0.07] hover:bg-white/[0.13] text-zinc-200 font-semibold text-sm transition-all active:scale-95"
+              >
+                <MessageSquare size={16} />
+                <span>Trợ Giúp & Báo Lỗi</span>
+              </a>
             </div>
           }
         />
@@ -302,92 +220,7 @@ export default function AboutPage() {
           </div>
         </section>
 
-        {/* ================= 4. TECH STACK & ARCHITECTURE ================= */}
-        <section className="space-y-8">
-          <div className="text-center space-y-2.5 max-w-2xl mx-auto">
-            <div className="inline-flex items-center gap-1.5 text-xs font-semibold text-netflix-red">
-              <Database size={14} />
-              <span>Kiến trúc nền tảng</span>
-            </div>
-            <h2 className="text-2xl sm:text-4xl font-black text-white tracking-tight">
-              Công Nghệ & Kiến Trúc Hệ Thống
-            </h2>
-            <p className="text-xs sm:text-sm text-zinc-400">
-              Ứng dụng các công nghệ web hiện đại nhất hiện nay nhằm mang lại tốc độ phản hồi sub-millisecond.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-            {TECH_SPECS.map((spec, idx) => {
-              const Icon = spec.icon;
-              return (
-                <div
-                  key={idx}
-                  className="p-6 sm:p-7 rounded-2xl bg-zinc-900/55 space-y-5"
-                >
-                  <div className="flex items-center gap-3 pb-3 border-b border-white/[0.08]">
-                    <div className="p-2 rounded-xl bg-netflix-red/10 text-netflix-red">
-                      <Icon size={18} />
-                    </div>
-                    <h3 className="font-bold text-white text-sm">{spec.title}</h3>
-                  </div>
-
-                  <div className="space-y-4">
-                    {spec.items.map((item, i) => (
-                      <div key={i} className="space-y-1">
-                        <div className="text-xs font-bold text-zinc-200 flex items-center gap-1.5">
-                          <CheckCircle size={12} className="text-netflix-red shrink-0" />
-                          <span>{item.name}</span>
-                        </div>
-                        <div className="text-[11px] text-zinc-400 pl-4 leading-relaxed">{item.desc}</div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </section>
-
-        {/* ================= 5. ROADMAP & EVOLUTION ================= */}
-        <section className="space-y-8">
-          <div className="text-center space-y-2.5 max-w-2xl mx-auto">
-            <div className="inline-flex items-center gap-1.5 text-xs font-semibold text-amber-400">
-              <Milestone size={14} />
-              <span>Hành trình phát triển</span>
-            </div>
-            <h2 className="text-2xl sm:text-4xl font-black text-white tracking-tight">
-              Lộ Trình & Tầm Nhìn Dự Án
-            </h2>
-            <p className="text-xs sm:text-sm text-zinc-400">
-              Nanaflix liên tục được tinh chỉnh và nâng cấp tính năng định kỳ hàng tuần.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-            {ROADMAP_STEPS.map((step, idx) => (
-              <div
-                key={idx}
-                className="p-6 rounded-2xl bg-zinc-900/55 space-y-3"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-sans tabular-nums font-bold text-zinc-400">{step.phase}</span>
-                  <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full ${
-                    step.status === "Đã hoàn thành" 
-                      ? "bg-emerald-500/10 text-emerald-400 "
-                      : "bg-amber-500/10 text-amber-400 "
-                  }`}>
-                    {step.status}
-                  </span>
-                </div>
-                <h3 className="text-base font-bold text-white">{step.title}</h3>
-                <p className="text-xs text-zinc-400 leading-relaxed">{step.desc}</p>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* ================= 6. HELP & ISSUE REPORTING CENTER (SECTION #CONTACT) ================= */}
+        {/* ================= 4. HELP & ISSUE REPORTING CENTER (SECTION #CONTACT) ================= */}
         <section id="contact" className="scroll-mt-28 space-y-8">
           <div className="py-8 sm:py-12 space-y-8 border-t border-white/[0.08]">
             <div className="text-center space-y-3 max-w-2xl mx-auto">

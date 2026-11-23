@@ -2,7 +2,6 @@
 
 import React from "react";
 import {
-  Tag,
   Send,
   AlertTriangle,
   Loader2,
@@ -100,7 +99,7 @@ export const CommentReviewForm: React.FC<CommentReviewFormProps> = ({
               {effectiveDisplayName}
             </span>
             <span className="text-[11px] text-zinc-500">
-              {myExistingReview ? "Chỉnh sửa đánh giá của bạn" : "Đóng góp cảm nghĩ và chấm điểm"}
+              {myExistingReview ? "Chỉnh sửa đánh giá của bạn" : "Đánh giá & chia sẻ cảm nhận"}
             </span>
           </div>
         </div>
@@ -127,7 +126,11 @@ export const CommentReviewForm: React.FC<CommentReviewFormProps> = ({
               setIsSpoiler(true);
             }
           }}
-          placeholder="Chia sẻ cảm nghĩ của bạn về bộ phim... (Vui lòng không tiết lộ trước nội dung)"
+          placeholder={
+            scopeEpisode === "episode" && currentEpisodeName
+              ? `Viết cảm nhận của bạn về ${currentEpisodeName}...`
+              : "Viết cảm nhận của bạn về bộ phim..."
+          }
           rows={3}
           className="w-full min-h-[96px] bg-black/60 rounded-xl px-4 py-3 text-base sm:text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-netflix-red focus:ring-1 focus:ring-netflix-red/30 resize-none transition-all"
           maxLength={1000}
@@ -139,8 +142,7 @@ export const CommentReviewForm: React.FC<CommentReviewFormProps> = ({
 
       {/* Quick Tag chips */}
       <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none flex-nowrap sm:flex-wrap pt-1 pb-1 -mx-1 px-1">
-        <span className="text-[11px] text-zinc-500 mr-1 flex items-center gap-1 shrink-0 whitespace-nowrap">
-          <Tag className="w-3 h-3 text-zinc-400 shrink-0" />
+        <span className="text-[11px] text-zinc-500 mr-1 shrink-0 whitespace-nowrap">
           Gợi ý nhanh:
         </span>
         {QUICK_TAGS.map((tag) => (

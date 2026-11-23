@@ -2,25 +2,6 @@
 
 import React from "react";
 import Link from "next/link";
-import {
-  Home,
-  Tv,
-  Film,
-  Info,
-  Flame,
-  Bookmark,
-  Shield,
-  HelpCircle,
-  Radio,
-  Clapperboard,
-  Smartphone,
-  ShieldCheck,
-  Compass,
-  Layers,
-  Scale,
-  Users,
-  History,
-} from "lucide-react";
 import { NanaflixBrandLogo } from "@/components/layout/NetflixLogo";
 import { Tooltip } from "@/components/ui/Tooltip";
 
@@ -35,43 +16,28 @@ export const Footer: React.FC = () => {
         <div className="hidden sm:grid grid-cols-2 md:grid-cols-4 gap-x-5 sm:gap-x-8 lg:gap-x-10 xl:gap-x-14 2xl:gap-x-16 gap-y-7 sm:gap-y-10 pt-1">
           {/* CỘT 1: THẾ GIỚI ĐIỆN ẢNH */}
           <div className="space-y-3 sm:space-y-4">
-            <h4 className="text-white font-semibold text-sm flex items-center gap-2">
-              <span className="w-4 h-4 flex items-center justify-center shrink-0">
-                <Film className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-netflix-red" />
-              </span>
-              <span>Điện Ảnh</span>
+            <h4 className="text-white font-semibold text-sm">
+              Điện Ảnh
             </h4>
-            <ul className="space-y-2.5 text-xs text-zinc-300 font-normal">
+            <ul className="space-y-2.5 text-xs text-zinc-400 font-normal">
               <li>
-                <Link href="/" prefetch={false} className="hover:text-white transition-colors flex items-center gap-2 group">
-                  <span className="w-4 h-4 flex items-center justify-center shrink-0">
-                    <Home size={13} className="text-zinc-400 group-hover:text-netflix-red transition-colors" />
-                  </span>
-                  <span className="truncate">Trang chủ</span>
+                <Link href="/" prefetch={false} className="hover:text-white transition-colors block truncate">
+                  Trang chủ
                 </Link>
               </li>
               <li>
-                <Link href="/browse?type=phim-bo" prefetch={false} className="hover:text-white transition-colors flex items-center gap-2 group">
-                  <span className="w-4 h-4 flex items-center justify-center shrink-0">
-                    <Tv size={13} className="text-zinc-400 group-hover:text-netflix-red transition-colors" />
-                  </span>
-                  <span className="truncate">Phim bộ mới</span>
+                <Link href="/browse?type=phim-bo" prefetch={false} className="hover:text-white transition-colors block truncate">
+                  Phim bộ mới
                 </Link>
               </li>
               <li>
-                <Link href="/browse?type=phim-le" prefetch={false} className="hover:text-white transition-colors flex items-center gap-2 group">
-                  <span className="w-4 h-4 flex items-center justify-center shrink-0">
-                    <Film size={13} className="text-zinc-400 group-hover:text-netflix-red transition-colors" />
-                  </span>
-                  <span className="truncate">Phim lẻ đặc sắc</span>
+                <Link href="/browse?type=phim-le" prefetch={false} className="hover:text-white transition-colors block truncate">
+                  Phim lẻ đặc sắc
                 </Link>
               </li>
               <li>
-                <Link href="/browse?type=phim-chieu-rap" prefetch={false} className="hover:text-white transition-colors flex items-center gap-2 group">
-                  <span className="w-4 h-4 flex items-center justify-center shrink-0">
-                    <Clapperboard size={13} className="text-zinc-400 group-hover:text-netflix-red transition-colors" />
-                  </span>
-                  <span className="truncate">Phim chiếu rạp</span>
+                <Link href="/browse?type=phim-chieu-rap" prefetch={false} className="hover:text-white transition-colors block truncate">
+                  Phim chiếu rạp
                 </Link>
               </li>
             </ul>
@@ -79,59 +45,38 @@ export const Footer: React.FC = () => {
 
           {/* CỘT 2: TRỰC TIẾP & LIVE */}
           <div className="space-y-3 sm:space-y-4">
-            <h4 className="text-white font-semibold text-sm flex items-center gap-2">
-              <span className="w-4 h-4 flex items-center justify-center shrink-0">
-                <Flame className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-netflix-red" />
-              </span>
-              <span>Trực Tiếp</span>
+            <h4 className="text-white font-semibold text-sm">
+              Trực Tiếp
             </h4>
-            <ul className="space-y-2.5 text-xs text-zinc-300 font-normal">
+            <ul className="space-y-2.5 text-xs text-zinc-400 font-normal">
               <li>
-                <Link href="/live?tab=football" prefetch={false} className="hover:text-white transition-colors flex items-center gap-2 group">
-                  <span className="w-4 h-4 flex items-center justify-center shrink-0">
-                    <Flame size={13} className="text-zinc-400 group-hover:text-netflix-red transition-colors" />
-                  </span>
-                  <span className="truncate text-zinc-200 font-medium">Bóng đá trực tiếp</span>
+                <Link href="/live?tab=football" prefetch={false} className="hover:text-white transition-colors block truncate text-zinc-300 font-medium">
+                  Bóng đá trực tiếp
                 </Link>
               </li>
               <li>
-                <Link href="/live?tab=tv" prefetch={false} className="hover:text-white transition-colors flex items-center gap-2 group">
-                  <span className="w-4 h-4 flex items-center justify-center shrink-0">
-                    <Tv size={13} className="text-zinc-400 group-hover:text-netflix-red transition-colors" />
-                  </span>
-                  <span className="truncate">Kênh Live TV</span>
+                <Link href="/live?tab=tv" prefetch={false} className="hover:text-white transition-colors block truncate">
+                  Kênh Live TV
                 </Link>
               </li>
               <li>
-                <Link href="/browse?type=tv-shows" prefetch={false} className="hover:text-white transition-colors flex items-center gap-2 group">
-                  <span className="w-4 h-4 flex items-center justify-center shrink-0">
-                    <Radio size={13} className="text-zinc-400 group-hover:text-netflix-red transition-colors" />
-                  </span>
-                  <span className="truncate">Gameshow & TV</span>
+                <Link href="/browse?type=tv-shows" prefetch={false} className="hover:text-white transition-colors block truncate">
+                  Gameshow & TV
                 </Link>
               </li>
               <li>
-                <Link href="/browse?type=hoat-hinh" prefetch={false} className="hover:text-white transition-colors flex items-center gap-2 group">
-                  <span className="w-4 h-4 flex items-center justify-center shrink-0">
-                    <Tv size={13} className="text-zinc-400 group-hover:text-netflix-red transition-colors" />
-                  </span>
-                  <span className="truncate">Hoạt hình Anime</span>
+                <Link href="/browse?type=hoat-hinh" prefetch={false} className="hover:text-white transition-colors block truncate">
+                  Hoạt hình Anime
                 </Link>
               </li>
               <li>
-                <Link href="/my-list" prefetch={false} className="hover:text-white transition-colors flex items-center gap-2 group">
-                  <span className="w-4 h-4 flex items-center justify-center shrink-0">
-                    <Bookmark size={13} className="text-zinc-400 group-hover:text-netflix-red transition-colors" />
-                  </span>
-                  <span className="truncate">Danh sách của tôi</span>
+                <Link href="/my-list" prefetch={false} className="hover:text-white transition-colors block truncate">
+                  Danh sách của tôi
                 </Link>
               </li>
               <li>
-                <Link href="/my-list?tab=history" prefetch={false} className="hover:text-white transition-colors flex items-center gap-2 group">
-                  <span className="w-4 h-4 flex items-center justify-center shrink-0">
-                    <History size={13} className="text-zinc-400 group-hover:text-netflix-red transition-colors" />
-                  </span>
-                  <span className="truncate">Lịch sử xem phim</span>
+                <Link href="/my-list?tab=history" prefetch={false} className="hover:text-white transition-colors block truncate">
+                  Lịch sử xem phim
                 </Link>
               </li>
             </ul>
@@ -139,47 +84,32 @@ export const Footer: React.FC = () => {
 
           {/* CỘT 3: TÍNH NĂNG & TIỆN ÍCH */}
           <div className="space-y-3 sm:space-y-4">
-            <h4 className="text-white font-semibold text-sm flex items-center gap-2">
-              <span className="w-4 h-4 flex items-center justify-center shrink-0">
-                <Compass className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-400" />
-              </span>
-              <span>Khám Phá</span>
+            <h4 className="text-white font-semibold text-sm">
+              Khám Phá
             </h4>
-            <ul className="space-y-2.5 text-xs text-zinc-300 font-normal">
+            <ul className="space-y-2.5 text-xs text-zinc-400 font-normal">
               <li>
                 <button
                   type="button"
                   onClick={() => window.dispatchEvent(new CustomEvent("open-pwa-install"))}
-                  className="hover:text-emerald-300 transition-colors flex items-center gap-2 cursor-pointer text-left w-full group"
+                  className="hover:text-emerald-300 transition-colors block truncate cursor-pointer text-left w-full font-medium"
                 >
-                  <span className="w-4 h-4 flex items-center justify-center shrink-0">
-                    <Smartphone size={13} className="text-zinc-400 group-hover:text-netflix-red transition-colors" />
-                  </span>
-                  <span className="truncate  font-medium">Cài app (PWA)</span>
+                  Cài app (PWA)
                 </button>
               </li>
               <li>
-                <Link href="/collection" prefetch={false} className="hover:text-white transition-colors flex items-center gap-2 group">
-                  <span className="w-4 h-4 flex items-center justify-center shrink-0">
-                    <Layers size={13} className="text-zinc-400 group-hover:text-amber-400 transition-colors" />
-                  </span>
-                  <span className="truncate">Bộ sưu tập phim</span>
+                <Link href="/collection" prefetch={false} className="hover:text-white transition-colors block truncate">
+                  Bộ sưu tập phim
                 </Link>
               </li>
               <li>
-                <Link href="/browse" prefetch={false} className="hover:text-white transition-colors flex items-center gap-2 group">
-                  <span className="w-4 h-4 flex items-center justify-center shrink-0">
-                    <Compass size={13} className="text-zinc-400 group-hover:text-amber-400 transition-colors" />
-                  </span>
-                  <span className="truncate">Bộ lọc phim</span>
+                <Link href="/browse" prefetch={false} className="hover:text-white transition-colors block truncate">
+                  Bộ lọc phim
                 </Link>
               </li>
               <li>
-                <Link href="/browse?sort=view" prefetch={false} className="hover:text-white transition-colors flex items-center gap-2 group">
-                  <span className="w-4 h-4 flex items-center justify-center shrink-0">
-                    <Flame size={13} className="text-zinc-400 group-hover:text-amber-400 transition-colors" />
-                  </span>
-                  <span className="truncate">Bảng xếp hạng Top</span>
+                <Link href="/browse?sort=view" prefetch={false} className="hover:text-white transition-colors block truncate">
+                  Bảng xếp hạng Top
                 </Link>
               </li>
             </ul>
@@ -187,66 +117,48 @@ export const Footer: React.FC = () => {
 
           {/* CỘT 4: GIỚI THIỆU & PHÁP LÝ */}
           <div className="space-y-3 sm:space-y-4">
-            <h4 className="text-white font-semibold text-sm flex items-center gap-2">
-              <span className="w-4 h-4 flex items-center justify-center shrink-0">
-                <Shield className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-netflix-red" />
-              </span>
-              <span>Thông Tin</span>
+            <h4 className="text-white font-semibold text-sm">
+              Thông Tin
             </h4>
-            <ul className="space-y-2.5 text-xs text-zinc-300 font-normal">
+            <ul className="space-y-2.5 text-xs text-zinc-400 font-normal">
               <li>
                 <Link
                   href="/about"
-                  className="hover:text-white transition-colors flex items-center gap-2 group"
+                  className="hover:text-white transition-colors block truncate text-zinc-300 font-medium"
                 >
-                  <span className="w-4 h-4 flex items-center justify-center shrink-0">
-                    <Info size={13} className="text-zinc-400 group-hover:text-netflix-red transition-colors" />
-                  </span>
-                  <span className="truncate text-zinc-200 font-medium">Giới thiệu Nanaflix</span>
+                  Giới thiệu Nanaflix
                 </Link>
               </li>
               <li>
                 <Link
                   href="/faq"
-                  className="hover:text-white transition-colors flex items-center gap-2 group"
+                  className="hover:text-white transition-colors block truncate"
                 >
-                  <span className="w-4 h-4 flex items-center justify-center shrink-0">
-                    <HelpCircle size={13} className="text-zinc-400 group-hover:text-netflix-red transition-colors" />
-                  </span>
-                  <span className="truncate">Hỏi & Đáp (FAQ)</span>
+                  Hỏi & Đáp (FAQ)
                 </Link>
               </li>
               <li>
                 <Link
                   href="/privacy"
-                  className="hover:text-white transition-colors flex items-center gap-2 group"
+                  className="hover:text-white transition-colors block truncate"
                 >
-                  <span className="w-4 h-4 flex items-center justify-center shrink-0">
-                    <ShieldCheck size={13} className="text-zinc-400 group-hover:text-netflix-red transition-colors" />
-                  </span>
-                  <span className="truncate">Bảo mật & Riêng tư</span>
+                  Bảo mật & Riêng tư
                 </Link>
               </li>
               <li>
                 <Link
                   href="/terms"
-                  className="hover:text-white transition-colors flex items-center gap-2 group"
+                  className="hover:text-white transition-colors block truncate"
                 >
-                  <span className="w-4 h-4 flex items-center justify-center shrink-0">
-                    <Scale size={13} className="text-zinc-400 group-hover:text-netflix-red transition-colors" />
-                  </span>
-                  <span className="truncate">Điều khoản & DMCA</span>
+                  Điều khoản & DMCA
                 </Link>
               </li>
               <li>
                 <Link
                   href="/about#contact"
-                  className="hover:text-white transition-colors flex items-center gap-2 group"
+                  className="hover:text-white transition-colors block truncate"
                 >
-                  <span className="w-4 h-4 flex items-center justify-center shrink-0">
-                    <Users size={13} className="text-zinc-400 group-hover:text-netflix-red transition-colors" />
-                  </span>
-                  <span className="truncate">Trợ giúp & Báo lỗi</span>
+                  Trợ giúp & Báo lỗi
                 </Link>
               </li>
             </ul>
@@ -260,58 +172,40 @@ export const Footer: React.FC = () => {
           <div className="grid grid-cols-2 gap-x-5 gap-y-3 text-xs">
             <Link
               href="/about"
-              className="text-zinc-300 hover:text-white active:text-netflix-red transition-colors flex items-center gap-2 py-1 min-w-0"
+              className="text-zinc-400 hover:text-white active:text-netflix-red transition-colors block truncate py-1 min-w-0"
             >
-              <span className="w-4 h-4 flex items-center justify-center shrink-0">
-                <Info size={13} className="text-zinc-500" />
-              </span>
-              <span className="truncate">Giới thiệu Nanaflix</span>
+              Giới thiệu Nanaflix
             </Link>
             <Link
               href="/faq"
-              className="text-zinc-300 hover:text-white active:text-netflix-red transition-colors flex items-center gap-2 py-1 min-w-0"
+              className="text-zinc-400 hover:text-white active:text-netflix-red transition-colors block truncate py-1 min-w-0"
             >
-              <span className="w-4 h-4 flex items-center justify-center shrink-0">
-                <HelpCircle size={13} className="text-zinc-500" />
-              </span>
-              <span className="truncate">Hỏi & Đáp (FAQ)</span>
+              Hỏi & Đáp (FAQ)
             </Link>
             <Link
               href="/privacy"
-              className="text-zinc-300 hover:text-white active:text-netflix-red transition-colors flex items-center gap-2 py-1 min-w-0"
+              className="text-zinc-400 hover:text-white active:text-netflix-red transition-colors block truncate py-1 min-w-0"
             >
-              <span className="w-4 h-4 flex items-center justify-center shrink-0">
-                <ShieldCheck size={13} className="text-zinc-500" />
-              </span>
-              <span className="truncate">Bảo mật & Riêng tư</span>
+              Bảo mật & Riêng tư
             </Link>
             <Link
               href="/terms"
-              className="text-zinc-300 hover:text-white active:text-netflix-red transition-colors flex items-center gap-2 py-1 min-w-0"
+              className="text-zinc-400 hover:text-white active:text-netflix-red transition-colors block truncate py-1 min-w-0"
             >
-              <span className="w-4 h-4 flex items-center justify-center shrink-0">
-                <Scale size={13} className="text-zinc-500" />
-              </span>
-              <span className="truncate">Điều khoản & DMCA</span>
+              Điều khoản & DMCA
             </Link>
             <Link
               href="/collection"
-              className="text-zinc-300 hover:text-white active:text-amber-400 transition-colors flex items-center gap-2 py-1 min-w-0"
+              className="text-zinc-400 hover:text-white active:text-amber-400 transition-colors block truncate py-1 min-w-0"
             >
-              <span className="w-4 h-4 flex items-center justify-center shrink-0">
-                <Layers size={13} className="text-zinc-500" />
-              </span>
-              <span className="truncate">Bộ sưu tập phim</span>
+              Bộ sưu tập phim
             </Link>
             <button
               type="button"
               onClick={() => window.dispatchEvent(new CustomEvent("open-pwa-install"))}
-              className="text-emerald-400/95 hover:text-emerald-300 active:text-emerald-200 transition-colors flex items-center gap-2 py-1 cursor-pointer text-left min-w-0"
+              className="text-emerald-400/95 hover:text-emerald-300 active:text-emerald-200 transition-colors block truncate py-1 cursor-pointer text-left min-w-0 font-medium"
             >
-              <span className="w-4 h-4 flex items-center justify-center shrink-0">
-                <Smartphone size={13} className="text-emerald-400" />
-              </span>
-              <span className="truncate font-medium">Cài ứng dụng (PWA)</span>
+              Cài ứng dụng (PWA)
             </button>
           </div>
         </div>
