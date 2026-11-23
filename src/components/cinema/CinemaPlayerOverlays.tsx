@@ -344,7 +344,7 @@ export const CinemaIframeOrFallbackStage: React.FC<
                 }`}
             >
               <Zap className="w-3.5 h-3.5 fill-white" />
-              <span>Đổi sang Native HLS</span>
+              <span>Đổi nguồn phát</span>
             </button>
           )}
         </>

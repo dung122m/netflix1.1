@@ -245,7 +245,6 @@ function TmdbTopTrendingInner({
   };
 
   const currentConfig = TAB_CONFIG[activeTab];
-  const IconComponent = currentConfig.icon;
 
   const rankedItems: RankedMovieData[] = useMemo(() => {
     return items.map((movie, index) => {
@@ -286,8 +285,6 @@ function TmdbTopTrendingInner({
   return (
     <RankedCarouselSection
       title={currentConfig.title}
-      icon={<IconComponent className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />}
-      iconBadge
       subtitle={currentConfig.subtitle}
       theme="amber"
       ariaLabel="Bảng xếp hạng TMDB"

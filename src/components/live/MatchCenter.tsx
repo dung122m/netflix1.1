@@ -7,10 +7,6 @@ import {
   ChevronDown,
   ChevronUp,
   Radio,
-  Trophy,
-  Mic,
-  Tv,
-  Zap,
   Clock,
 } from "lucide-react";
 import { NormalizedMatchSummary, MatchStatItem, LiveMatchScore } from "@/services/live/football-score/types";
@@ -558,44 +554,40 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
                   <div className="grid grid-cols-2 gap-2 text-xs">
                     {/* Giải đấu */}
                     <div className="rounded-xl bg-white/[0.03] p-2.5 sm:p-3 flex flex-col gap-1 min-w-0">
-                      <span className="text-[11px] font-medium text-zinc-400 flex items-center gap-1.5">
-                        <Trophy className="w-3 h-3 text-amber-400 shrink-0" />
-                        <span>Giải đấu</span>
+                      <span className="text-[11px] font-medium text-zinc-400">
+                        Giải đấu
                       </span>
-                      <span className="font-bold text-white text-[11px] sm:text-xs line-clamp-2 break-words leading-tight">
+                      <span className="font-semibold text-white text-[11px] sm:text-xs line-clamp-2 break-words leading-tight">
                         {canonicalLeague || tournament || "Giải Đấu Khác"}
                       </span>
                     </div>
 
                     {/* Bình luận viên */}
                     <div className="rounded-xl bg-white/[0.03] p-2.5 sm:p-3 flex flex-col gap-1 min-w-0">
-                      <span className="text-[11px] font-medium text-zinc-400 flex items-center gap-1.5">
-                        <Mic className="w-3 h-3 text-rose-400 shrink-0" />
-                        <span>Bình luận</span>
+                      <span className="text-[11px] font-medium text-zinc-400">
+                        Bình luận
                       </span>
-                      <span className="font-bold text-white text-[11px] sm:text-xs line-clamp-2 break-words leading-tight">
+                      <span className="font-semibold text-white text-[11px] sm:text-xs line-clamp-2 break-words leading-tight">
                         {blv || "BLV Tiếng Việt"}
                       </span>
                     </div>
 
                     {/* Kênh phát */}
                     <div className="rounded-xl bg-white/[0.03] p-2.5 sm:p-3 flex flex-col gap-1 min-w-0">
-                      <span className="text-[11px] font-medium text-zinc-400 flex items-center gap-1.5">
-                        <Tv className="w-3 h-3 text-sky-400 shrink-0" />
-                        <span>Kênh tiếp sóng</span>
+                      <span className="text-[11px] font-medium text-zinc-400">
+                        Kênh tiếp sóng
                       </span>
-                      <span className="font-bold text-white text-[11px] sm:text-xs line-clamp-2 break-words leading-tight">
+                      <span className="font-semibold text-white text-[11px] sm:text-xs line-clamp-2 break-words leading-tight">
                         {group || "Kênh Thể Thao"}
                       </span>
                     </div>
 
                     {/* Tín hiệu & Luồng */}
                     <div className="rounded-xl bg-white/[0.03] p-2.5 sm:p-3 flex flex-col gap-1 min-w-0">
-                      <span className="text-[11px] font-medium text-zinc-400 flex items-center gap-1.5">
-                        <Zap className="w-3 h-3 text-emerald-400 shrink-0" />
-                        <span>Chất lượng</span>
+                      <span className="text-[11px] font-medium text-zinc-400">
+                        Chất lượng
                       </span>
-                      <span className="font-bold text-emerald-400 text-[11px] sm:text-xs line-clamp-2 break-words leading-tight tabular-nums">
+                      <span className="font-semibold text-zinc-200 text-[11px] sm:text-xs line-clamp-2 break-words leading-tight tabular-nums">
                         {quality || "HD Sắc Nét"} {serversCount ? `(${serversCount} nguồn)` : ""}
                       </span>
                     </div>

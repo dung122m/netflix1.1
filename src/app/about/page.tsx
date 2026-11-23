@@ -30,43 +30,39 @@ export const metadata: Metadata = {
 const PILLARS = [
   {
     number: "01",
-    title: "Trình Phát Chuẩn Rạp Chiếu",
-    subtitle: "HLS Adaptive Streaming & Auto-Fallback",
+    title: "Trình Phát Ổn Định & Tự Động Dự Phòng",
+    subtitle: "Truyền phát mượt mà, tự chuyển máy chủ",
     description:
-      "Hệ thống phát video phân giải cao tự động cân bằng bitrate theo băng thông mạng. Hỗ trợ đầy đủ Theater Mode, tua phím tắt tốc độ cao, ghi nhớ âm lượng và tự động chuyển đổi máy chủ dự phòng khi gặp sự cố nghẽn mạng.",
-    badge: "HLS Full HD",
+      "Video tự động cân đối độ phân giải theo tốc độ mạng. Hỗ trợ phím tắt, ghi nhớ âm lượng và chuyển máy chủ dự phòng ngay khi mạng gặp sự cố.",
+    badge: "Full HD",
     icon: Tv,
-    iconColor: "text-red-400",
   },
   {
     number: "02",
     title: "Tiếp Tục Xem Đa Thiết Bị",
-    subtitle: "Realtime Progress Sync & Cloud Handoff",
+    subtitle: "Đồng bộ tiến trình xem trên mọi thiết bị",
     description:
-      "Xem dở bộ phim trên máy tính làm việc ban ngày, tối về mở điện thoại là tiếp tục đúng từng giây và tập phim đang dừng. Cơ chế đồng bộ đám mây Supabase tức thì giúp trải nghiệm liền mạch không ngắt quãng.",
+      "Tự động lưu lại chính xác số phút và tập phim bạn đang xem dở, dễ dàng tiếp tục xem tiếp trên điện thoại, máy tính bảng hoặc máy tính.",
     badge: "Tự động đồng bộ",
     icon: MonitorSmartphone,
-    iconColor: "text-amber-400",
   },
   {
     number: "03",
-    title: "Đề Xuất Phù Hợp Gu Xem",
-    subtitle: "Taste Profile & Content Discovery",
+    title: "Đề Xuất Phim Theo Gu",
+    subtitle: "Gợi ý phim đúng sở thích cá nhân",
     description:
-      "Hệ thống gợi ý phim dựa trên lịch sử xem, tự động đề xuất các bộ phim tương đồng theo diễn viên, đạo diễn và thể loại bạn quan tâm.",
+      "Hệ thống gợi ý các tác phẩm tương đồng dựa trên diễn viên, đạo diễn và các thể loại bạn thường xuyên theo dõi.",
     badge: "Gợi ý theo gu",
     icon: Compass,
-    iconColor: "text-purple-400",
   },
   {
     number: "04",
     title: "Không Gian Sạch & Tôn Trọng Người Xem",
-    subtitle: "Zero Spam, Zero Popups, Pure Cinema",
+    subtitle: "Không pop-up, không quảng cáo che mắt",
     description:
-      "Tuyệt đối nói không với các loại banner cờ bạc, pop-up nhảy tab khó chịu hay quảng cáo chèn ngang cao trào phim. Mọi chi tiết giao diện được thiết kế tối giản, êm mắt để bạn tập trung trọn vẹn vào cảm xúc điện ảnh.",
-    badge: "100% Giao diện sạch",
+      "Nói không với các loại banner cờ bạc, pop-up nhảy tab hay quảng cáo chen ngang. Giao diện tối giản để bạn trọn vẹn tập trung vào phim.",
+    badge: "Giao diện sạch",
     icon: ShieldCheck,
-    iconColor: "text-emerald-400",
   },
 ];
 
@@ -173,15 +169,14 @@ export default function AboutPage() {
         {/* ================= 3. 4 CORE PILLARS ================= */}
         <section className="space-y-8">
           <div className="text-center space-y-2.5 max-w-2xl mx-auto">
-            <div className="inline-flex items-center gap-1.5 text-xs font-semibold text-netflix-red">
-              <Tv size={14} />
-              <span>Tính năng nổi bật</span>
+            <div className="text-xs font-semibold text-netflix-red uppercase tracking-wider">
+              Trải nghiệm cốt lõi
             </div>
             <h2 className="text-2xl sm:text-4xl font-black text-white tracking-tight">
-              4 Giá Trị Cốt Lõi Tạo Nên Sự Khác Biệt
+              Trải Nghiệm Xem Phim Tại Nanaflix
             </h2>
             <p className="text-xs sm:text-sm text-zinc-400">
-              Từng dòng code và quyết định thiết kế đều hướng tới mục tiêu tối đa hóa trải nghiệm giải trí của bạn.
+              Mọi chi tiết đều hướng tới sự thoải mái và liền mạch khi bạn thưởng thức từng thước phim.
             </p>
           </div>
 
@@ -195,12 +190,10 @@ export default function AboutPage() {
                 >
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
-                      <div
-                        className={`w-11 h-11 rounded-2xl bg-white/[0.05] ${p.iconColor} flex items-center justify-center group-hover:scale-105 transition-transform`}
-                      >
-                        <Icon size={20} />
+                      <div className="w-10 h-10 rounded-xl bg-white/[0.05] text-zinc-300 flex items-center justify-center">
+                        <Icon size={18} />
                       </div>
-                      <span className="text-xs font-medium px-3 py-1 rounded-full bg-white/[0.05] text-zinc-300 font-sans tabular-nums">
+                      <span className="text-xs font-medium px-3 py-1 rounded-full bg-white/[0.05] text-zinc-400 font-sans tabular-nums">
                         {p.badge}
                       </span>
                     </div>
@@ -224,9 +217,8 @@ export default function AboutPage() {
         <section id="contact" className="scroll-mt-28 space-y-8">
           <div className="py-8 sm:py-12 space-y-8 border-t border-white/[0.08]">
             <div className="text-center space-y-3 max-w-2xl mx-auto">
-              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-rose-500/10 text-rose-400 text-xs font-semibold">
-                <MessageSquare size={14} />
-                <span>Trung tâm trợ giúp & báo lỗi kỹ thuật</span>
+              <div className="inline-flex items-center px-3 py-1 rounded-full bg-white/[0.05] text-zinc-300 text-xs font-semibold">
+                <span>Hỗ trợ & Báo lỗi</span>
               </div>
               <h2 className="text-2xl sm:text-4xl font-black text-white tracking-tight">
                 Bạn Gặp Sự Cố Hoặc Cần Hỗ Trợ?

@@ -4,7 +4,7 @@ import { MovieGrid } from "@/components/movies/MovieGrid";
 import { FilterBarClient } from "@/components/browse/FilterBarClient";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
-import { Film, Flame, ChevronRight } from "lucide-react";
+import { Film, ChevronRight } from "lucide-react";
 import { findHistoricalArtist } from "@/data/history/historicalArtistsBirthdays";
 import { searchTmdbPerson } from "@/services/tmdb/personService";
 import { movieApi, parseSortMode } from "@/services/movies/service";
@@ -823,8 +823,7 @@ export default async function BrowsePage({
 
             {fallbackMovies.length > 0 && (
               <div className="mt-12">
-                <div className="flex items-center gap-2 mb-5">
-                  <Flame className="w-5 h-5 text-netflix-red shrink-0" />
+                <div className="mb-5">
                   <h3 className="text-xl md:text-2xl font-extrabold text-white">
                     Phim Thịnh Hành
                   </h3>

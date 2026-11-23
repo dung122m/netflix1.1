@@ -11,8 +11,6 @@ import {
   ChevronUp,
   ExternalLink,
   Layers,
-  Music,
-  Trophy,
 } from "lucide-react";
 import { MovieGrid } from "@/components/movies/MovieGrid";
 import { PaginationControl } from "@/components/ui/PaginationControl";
@@ -33,16 +31,6 @@ import { getPaginationPages } from "@/lib/pagination";
 const PAGE_SIZE = 24;
 
 import { parseBioContent } from "@/lib/bioFormatter";
-
-function getSectionIcon(heading?: string) {
-  if (!heading) return BookOpen;
-  const lower = heading.toLowerCase();
-  if (lower.includes("âm nhạc") || lower.includes("ca hát")) return Music;
-  if (lower.includes("điện ảnh") || lower.includes("diễn xuất") || lower.includes("phim") || lower.includes("filmography")) return Clapperboard;
-  if (lower.includes("thành tựu") || lower.includes("giải thưởng") || lower.includes("awards")) return Trophy;
-  if (lower.includes("đời tư") || lower.includes("thời thơ ấu") || lower.includes("tiểu sử") || lower.includes("personal") || lower.includes("life")) return BookOpen;
-  return BookOpen;
-}
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function getMovieRating(movie: any): number {
@@ -290,15 +278,11 @@ export const ActorDetailClient: React.FC<ActorDetailClientProps> = ({
 
               {/* STRUCTURED SUB-SECTIONS */}
               {sections.map((sec, sIdx) => {
-                const SecIcon = getSectionIcon(sec.heading);
                 return (
-                  <div key={sIdx} className="space-y-3">
+                  <div key={sIdx} className="space-y-2.5">
                     {sec.heading && (
-                      <div className="flex items-center gap-2 pt-3 sm:pt-4 border-t border-white/[0.06]">
-                        <span className="w-5 h-5 rounded-md bg-amber-500/10 text-amber-400 flex items-center justify-center flex-shrink-0">
-                          <SecIcon className="w-3 h-3" />
-                        </span>
-                        <h3 className="text-sm font-bold text-amber-300/90">
+                      <div className="pt-3 sm:pt-4 border-t border-white/[0.06]">
+                        <h3 className="text-sm font-bold text-zinc-200">
                           {sec.heading}
                         </h3>
                       </div>

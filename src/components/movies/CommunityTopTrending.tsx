@@ -3,7 +3,6 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import {
   Flame,
-  TrendingUp,
 } from "lucide-react";
 import { MovieViewStatItem } from "@/services/supabaseService";
 import { formatGenreName } from "@/lib/movieMedia";
@@ -199,8 +198,6 @@ function CommunityTopTrendingInner({
   return (
     <RankedCarouselSection
       title="Khán Giả Xem Nhiều Nhất"
-      icon={<TrendingUp className="w-4 h-4" />}
-      iconBadge
       subtitle="Bảng xếp hạng phim thịnh hành được cộng đồng khán giả xem nhiều nhất"
       theme="red"
       ariaLabel="Bảng xếp hạng cộng đồng"

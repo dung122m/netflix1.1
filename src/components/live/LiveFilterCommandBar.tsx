@@ -93,7 +93,7 @@ export function LiveFilterCommandBar({
                   }`}
               >
                 <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse shrink-0" />
-                <span className="min-[380px]:hidden">Live</span>
+                <span className="min-[380px]:hidden">Trực tiếp</span>
                 <span className="hidden min-[380px]:inline">Đang diễn ra</span>
                 <span className="opacity-90 tabular-nums text-[11px] font-normal">
                   ({counts.live})
@@ -110,7 +110,7 @@ export function LiveFilterCommandBar({
                   : "text-zinc-400 hover:text-white hover:bg-white/5"
                   }`}
               >
-                <span className="min-[380px]:hidden">Sắp đá</span>
+                <span className="min-[380px]:hidden">Sắp đấu</span>
                 <span className="hidden min-[380px]:inline">Sắp diễn ra</span>
                 <span className="opacity-90 tabular-nums text-[11px] font-normal">
                   ({counts.upcoming})
@@ -127,7 +127,7 @@ export function LiveFilterCommandBar({
                   : "text-zinc-400 hover:text-white hover:bg-white/5"
                   }`}
               >
-                <span className="min-[380px]:hidden">Xong</span>
+                <span className="min-[380px]:hidden">Đã xong</span>
                 <span className="hidden min-[380px]:inline">Đã kết thúc</span>
                 <span className="opacity-90 tabular-nums text-[11px] font-normal">
                   ({counts.finished})
