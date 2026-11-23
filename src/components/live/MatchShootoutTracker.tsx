@@ -2,7 +2,7 @@
 
 import React from "react";
 import { MatchShootoutTeam, MatchSummaryTeam } from "@/services/live/football-score/types";
-import { Check, X, ShieldAlert } from "lucide-react";
+import { Check, X } from "lucide-react";
 
 interface MatchShootoutTrackerProps {
   shootout: MatchShootoutTeam[];
@@ -27,12 +27,9 @@ export function MatchShootoutTracker({
     <div className="rounded-2xl bg-zinc-950/80 p-3.5 sm:p-4 border border-rose-500/20 shadow-lg space-y-3">
       {/* Tiêu đề & Tỷ số luân lưu */}
       <div className="flex items-center justify-between border-b border-white/[0.06] pb-2.5">
-        <div className="flex items-center gap-2">
-          <ShieldAlert className="w-4 h-4 text-rose-400" />
-          <h4 className="text-xs sm:text-sm font-black text-white font-sans uppercase tracking-wider">
-            Loạt sút luân lưu 11m
-          </h4>
-        </div>
+        <h4 className="text-xs sm:text-sm font-black text-white font-sans uppercase tracking-wider">
+          Loạt sút luân lưu 11m
+        </h4>
 
         {team1 && team2 && (
           <div className="flex items-center gap-2 font-sans font-black tabular-nums text-sm sm:text-base text-white">

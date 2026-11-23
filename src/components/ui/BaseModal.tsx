@@ -42,7 +42,7 @@ export function BaseModal({
   onClose,
   title,
   subtitle,
-  icon,
+  icon: _icon,
   children,
   size = "md",
   className = "",
@@ -115,19 +115,14 @@ export function BaseModal({
         )}
 
         {/* HEADER MODAL */}
-        {(title || icon) && (
+        {title && (
           <div
-            className={`px-5 sm:px-7 pt-5 sm:pt-6 pb-4 border-b border-white/[0.06] flex items-start gap-3 sm:gap-3.5 pr-14 ${headerClassName}`}
+            className={`px-5 sm:px-7 pt-5 sm:pt-6 pb-4 border-b border-white/[0.06] flex items-start pr-14 ${headerClassName}`}
           >
-            {icon && (
-              <div className="shrink-0 mt-0.5 text-netflix-red">{icon}</div>
-            )}
             <div className="min-w-0 flex-1">
-              {title && (
-                <h3 className="text-base sm:text-lg md:text-xl font-black text-white tracking-tight leading-snug truncate">
-                  {title}
-                </h3>
-              )}
+              <h3 className="text-base sm:text-lg md:text-xl font-black text-white tracking-tight leading-snug truncate">
+                {title}
+              </h3>
               {subtitle && (
                 <p className="text-xs sm:text-sm text-zinc-400 font-normal leading-relaxed mt-0.5">
                   {subtitle}

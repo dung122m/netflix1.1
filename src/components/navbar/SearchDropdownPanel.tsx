@@ -45,8 +45,8 @@ export function SearchDropdownPanel({
 }: SearchDropdownPanelProps) {
   const isMobile = variant === "mobile";
   const containerClass = isMobile
-    ? "fixed top-[52px] sm:top-[56px] inset-x-2 w-auto max-w-lg mx-auto bg-zinc-900/98 backdrop-blur-2xl rounded-2xl p-3 shadow-[0_24px_60px_rgba(0,0,0,0.95),0_0_20px_rgba(0,0,0,0.8)] border border-white/[0.14] ring-1 ring-white/10 z-50 max-h-[calc(100dvh-64px)] sm:max-h-[calc(100dvh-72px)] overflow-y-auto overscroll-contain transform-gpu will-change-[transform,opacity] animate-in fade-in slide-in-from-top-2 duration-200 ease-[cubic-bezier(0.16,1,0.3,1)]"
-    : "absolute top-full mt-2 right-0 w-[360px] lg:w-[380px] bg-zinc-900/98 backdrop-blur-2xl rounded-xl shadow-[0_24px_60px_rgba(0,0,0,0.95),0_0_25px_rgba(0,0,0,0.8)] border border-white/[0.14] ring-1 ring-white/10 p-2.5 z-50 animate-in fade-in slide-in-from-top-2 duration-250 ease-[cubic-bezier(0.16,1,0.3,1)] transform-gpu will-change-[transform,opacity]";
+    ? "fixed top-[52px] sm:top-[56px] inset-x-2 w-auto max-w-lg mx-auto bg-zinc-900/98 backdrop-blur-2xl rounded-2xl p-3 shadow-[0_24px_60px_rgba(0,0,0,0.95),0_0_20px_rgba(0,0,0,0.8)] border border-white/10 z-50 max-h-[calc(100dvh-64px)] sm:max-h-[calc(100dvh-72px)] overflow-y-auto overscroll-contain transform-gpu will-change-[transform,opacity] animate-in fade-in slide-in-from-top-2 duration-200 ease-[cubic-bezier(0.16,1,0.3,1)]"
+    : "absolute top-full mt-2 right-0 w-[360px] lg:w-[380px] bg-zinc-900/98 backdrop-blur-2xl rounded-xl shadow-[0_24px_60px_rgba(0,0,0,0.95),0_0_25px_rgba(0,0,0,0.8)] border border-white/10 p-2.5 z-50 animate-in fade-in slide-in-from-top-2 duration-250 ease-[cubic-bezier(0.16,1,0.3,1)] transform-gpu will-change-[transform,opacity]";
 
   return (
     <div className={containerClass}>
@@ -125,7 +125,7 @@ export function SearchDropdownPanel({
             <button
               type="button"
               onClick={onSubmitSearch}
-              className="w-full flex items-center justify-between gap-2.5 px-3.5 py-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] active:bg-white/[0.12] border border-white/[0.08] text-zinc-300 hover:text-white transition group cursor-pointer text-left"
+              className="w-full flex items-center justify-between gap-2.5 px-3.5 py-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] active:bg-white/[0.12] text-zinc-300 hover:text-white transition group cursor-pointer text-left"
             >
               <div className="flex items-center gap-2.5 min-w-0">
                 <Search size={14} className="text-zinc-400 group-hover:text-white shrink-0 transition-colors" />
@@ -133,7 +133,7 @@ export function SearchDropdownPanel({
                   Tìm kiếm <strong className="text-white font-medium">&quot;{queryText}&quot;</strong> trong toàn bộ kho phim
                 </span>
               </div>
-              <kbd className="hidden sm:inline-flex items-center text-[10px] text-zinc-500 group-hover:text-zinc-300 border border-white/10 bg-white/[0.04] rounded px-1.5 py-0.5 font-sans shrink-0">
+              <kbd className="hidden sm:inline-flex items-center text-[10px] text-zinc-400 group-hover:text-zinc-200 bg-white/[0.06] rounded px-1.5 py-0.5 font-sans tabular-nums shrink-0">
                 ↵ Enter
               </kbd>
             </button>
@@ -223,7 +223,7 @@ export function SearchDropdownPanel({
             <button
               type="button"
               onClick={onSubmitSearch}
-              className="w-full flex items-center justify-between gap-2.5 px-3.5 py-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] active:bg-white/[0.12] border border-white/[0.08] text-zinc-300 hover:text-white transition group cursor-pointer text-left"
+              className="w-full flex items-center justify-between gap-2.5 px-3.5 py-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] active:bg-white/[0.12] text-zinc-300 hover:text-white transition group cursor-pointer text-left"
             >
               <div className="flex items-center gap-2.5 min-w-0">
                 <Search size={14} className="text-zinc-400 group-hover:text-white shrink-0 transition-colors" />
@@ -231,7 +231,7 @@ export function SearchDropdownPanel({
                   Tìm kiếm <strong className="text-white font-medium">&quot;{queryText}&quot;</strong> trong toàn bộ kho phim
                 </span>
               </div>
-              <kbd className="hidden sm:inline-flex items-center text-[10px] text-zinc-500 group-hover:text-zinc-300 border border-white/10 bg-white/[0.04] rounded px-1.5 py-0.5 font-sans shrink-0">
+              <kbd className="hidden sm:inline-flex items-center text-[10px] text-zinc-400 group-hover:text-zinc-200 bg-white/[0.06] rounded px-1.5 py-0.5 font-sans tabular-nums shrink-0">
                 ↵ Enter
               </kbd>
             </button>
@@ -293,7 +293,7 @@ export function SearchDropdownPanel({
               <button
                 type="button"
                 onClick={onSubmitSearch}
-                className="w-full flex items-center justify-between gap-2.5 px-3.5 py-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] active:bg-white/[0.12] border border-white/[0.08] text-zinc-300 hover:text-white transition group cursor-pointer text-left"
+                className="w-full flex items-center justify-between gap-2.5 px-3.5 py-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] active:bg-white/[0.12] text-zinc-300 hover:text-white transition group cursor-pointer text-left"
               >
                 <div className="flex items-center gap-2.5 min-w-0">
                   <Search size={14} className="text-zinc-400 group-hover:text-white shrink-0 transition-colors" />
@@ -301,7 +301,7 @@ export function SearchDropdownPanel({
                     Tìm kiếm <strong className="text-white font-medium">&quot;{queryText}&quot;</strong> trong toàn bộ kho phim
                   </span>
                 </div>
-                <kbd className="hidden sm:inline-flex items-center text-[10px] text-zinc-500 group-hover:text-zinc-300 border border-white/10 bg-white/[0.04] rounded px-1.5 py-0.5 font-sans shrink-0">
+                <kbd className="hidden sm:inline-flex items-center text-[10px] text-zinc-400 group-hover:text-zinc-200 bg-white/[0.06] rounded px-1.5 py-0.5 font-sans tabular-nums shrink-0">
                   ↵ Enter
                 </kbd>
               </button>

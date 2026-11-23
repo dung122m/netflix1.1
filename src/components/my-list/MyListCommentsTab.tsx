@@ -54,9 +54,8 @@ export function MyListCommentsTab({
   return (
     <div className="rounded-2xl bg-gradient-to-b from-zinc-900/40 to-transparent p-4 sm:p-6 space-y-4">
       <div className="flex items-center justify-between pb-3">
-        <h3 className="text-base font-bold text-white flex items-center gap-2">
-          <MessageSquare className="w-4 h-4 text-netflix-red" />
-          <span>Tất cả nhận xét & đánh giá ({userComments.length})</span>
+        <h3 className="text-base font-bold text-white">
+          Tất cả nhận xét & đánh giá ({userComments.length})
         </h3>
       </div>
 
@@ -201,7 +200,7 @@ export function MyListCommentsTab({
           <button
             type="button"
             onClick={() => setVisibleCount((prev) => prev + 8)}
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-zinc-300 hover:text-white bg-zinc-800/80 hover:bg-zinc-700/80 border border-white/5 hover:border-white/10 transition-all duration-200 cursor-pointer shadow-sm hover:shadow tabular-nums"
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-zinc-300 hover:text-white bg-zinc-800/90 hover:bg-zinc-700/90 transition-all duration-200 cursor-pointer shadow-sm hover:shadow tabular-nums"
           >
             <span>Xem thêm nhận xét</span>
             <span className="text-zinc-500 font-normal">

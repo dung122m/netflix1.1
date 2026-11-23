@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import {
-  MessageSquareQuote,
   Star,
   ExternalLink,
   User,
@@ -154,7 +153,6 @@ export const TmdbAudienceReviews: React.FC<TmdbAudienceReviewsProps> = React.mem
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 pb-5 sm:pb-6 border-b border-white/[0.08]">
             <div>
               <h3 className="text-lg sm:text-xl md:text-2xl font-extrabold text-white flex items-center gap-2 sm:gap-2.5 flex-wrap">
-                <MessageSquareQuote className="w-5 h-5 sm:w-6 sm:h-6 text-amber-400 flex-shrink-0" />
                 <span>Khán giả quốc tế nói gì?</span>
                 <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400">
                   {displayReviews.length}

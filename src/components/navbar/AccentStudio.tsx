@@ -134,14 +134,12 @@ export const AccentStudio: React.FC<AccentStudioProps> = ({ className = "" }) =>
           {/* HEADER */}
           <div className="flex items-center justify-between pb-3 mb-3 border-b border-white/[0.08]">
             <div className="flex items-center gap-2.5">
-              <div
-                className="w-7 h-7 rounded-xl flex items-center justify-center text-white shadow-md transition-all duration-300 flex-shrink-0"
+              <span
+                className="w-3 h-3 rounded-full shadow-md transition-all duration-300 shrink-0"
                 style={{
                   backgroundColor: currentAccent.color,
                 }}
-              >
-                <Palette className="w-3.5 h-3.5" />
-              </div>
+              />
               <div>
                 <h3 className="text-white font-black text-sm tracking-tight flex items-center gap-1.5">
                   <span>Accent Studio</span>

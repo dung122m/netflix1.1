@@ -105,7 +105,7 @@ export const CommentReviewForm: React.FC<CommentReviewFormProps> = ({
         </div>
 
         {/* Star Rating Interactive */}
-        <div className="bg-black/40 px-3.5 py-1.5 rounded-xl inline-flex items-center border border-white/[0.04] self-start sm:self-auto">
+        <div className="bg-black/40 px-3.5 py-1.5 rounded-xl inline-flex items-center self-start sm:self-auto">
           <StarRating
             value={rating}
             onChange={setRating}

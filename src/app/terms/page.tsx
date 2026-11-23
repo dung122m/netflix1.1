@@ -2,7 +2,6 @@ import React from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import {
-  FileText,
   ShieldAlert,
   Scale,
   Copyright,
@@ -163,9 +162,8 @@ export default function TermsPage() {
         {/* ================= 2. 4 CORE PILLARS ================= */}
         <section className="space-y-6">
           <div className="text-center sm:text-left">
-            <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight flex items-center justify-center sm:justify-start gap-2.5">
-              <FileText className="w-5 h-5 sm:w-6 sm:h-6 text-netflix-red" />
-              <span>4 Nguyên Tắc Cốt Lõi Tại Nanaflix</span>
+            <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">
+              4 Nguyên Tắc Cốt Lõi Tại Nanaflix
             </h2>
             <p className="text-xs sm:text-sm text-zinc-400 mt-1">
               Khung quy chuẩn xác định cách thức vận hành và phạm vi trách nhiệm của hệ thống.
@@ -205,9 +203,8 @@ export default function TermsPage() {
         {/* ================= 3. DETAILED LEGAL ARTICLES ================= */}
         <section className="space-y-6">
           <div className="text-center sm:text-left">
-            <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight flex items-center justify-center sm:justify-start gap-2.5">
-              <ShieldCheck className="w-5 h-5 sm:w-6 sm:h-6 text-amber-400" />
-              <span>Nội Dung Chi Tiết & Phạm Vi Miễn Trừ Pháp Lý</span>
+            <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">
+              Nội Dung Chi Tiết & Phạm Vi Miễn Trừ Pháp Lý
             </h2>
             <p className="text-xs sm:text-sm text-zinc-400 mt-1">
               Hiểu rõ quyền lợi và nghĩa vụ của bạn khi tham gia trải nghiệm trên hệ thống.
@@ -270,9 +267,8 @@ export default function TermsPage() {
           {/* DMCA CONTACT BOX */}
           <div className="p-6 sm:p-8 rounded-2xl sm:rounded-3xl bg-zinc-900/70 shadow-xl flex flex-col md:flex-row items-center justify-between gap-6">
             <div className="space-y-2 text-center md:text-left">
-              <div className="flex items-center justify-center md:justify-start gap-2 text-red-400 font-semibold text-xs">
-                <Mail className="w-4 h-4" />
-                <span>Hộp thư hỗ trợ bản quyền & pháp lý</span>
+              <div className="text-red-400 font-semibold text-xs">
+                Hộp thư hỗ trợ bản quyền & pháp lý
               </div>
               <h3 className="text-xl sm:text-2xl font-black text-white">
                 Gửi Thông Báo DMCA Tới Quản Trị Viên

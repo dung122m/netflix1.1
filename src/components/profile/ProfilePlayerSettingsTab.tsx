@@ -2,11 +2,6 @@
 
 import React from "react";
 import {
-  Sliders,
-  Play,
-  Tv,
-  Moon,
-  Subtitles,
   RotateCcw,
   Save,
   Loader2,
@@ -32,9 +27,8 @@ export const ProfilePlayerSettingsTab: React.FC<ProfilePlayerSettingsTabProps> =
     return (
       <form onSubmit={handleSavePlayerSettings} className="space-y-6">
         <div className="p-4 rounded-2xl bg-white/[0.03] space-y-1">
-          <h4 className="text-sm font-bold text-white flex items-center gap-2">
-            <Sliders className="w-4 h-4 text-netflix-red shrink-0" />
-            <span>Cài đặt trình phát</span>
+          <h4 className="text-sm font-bold text-white">
+            Cài đặt trình phát
           </h4>
           <p className="text-xs text-zinc-400 leading-relaxed">
             Các tùy chọn dưới đây được tự động lưu vào tài khoản và đồng bộ trên các thiết bị của bạn.
@@ -45,9 +39,8 @@ export const ProfilePlayerSettingsTab: React.FC<ProfilePlayerSettingsTabProps> =
           {/* TỰ ĐỘNG CHUYỂN TẬP */}
           <div className="flex items-center justify-between p-4 rounded-2xl bg-zinc-900/60 hover:bg-zinc-900/80 transition gap-4">
             <div className="space-y-1 flex-1 min-w-0 pr-2">
-              <div className="text-sm font-bold text-white flex items-center gap-2">
-                <Play className="w-4 h-4 text-netflix-red shrink-0" />
-                <span>Tự động phát tập tiếp theo</span>
+              <div className="text-sm font-bold text-white">
+                Tự động phát tập tiếp theo
               </div>
               <p className="text-xs text-zinc-400 leading-normal">
                 Khi xem xong một tập phim bộ, trình phát sẽ tự động chuyển sang tập kế tiếp.
@@ -69,9 +62,8 @@ export const ProfilePlayerSettingsTab: React.FC<ProfilePlayerSettingsTabProps> =
           {/* MẶC ĐỊNH MỞ RẠP PHIM */}
           <div className="flex items-center justify-between p-4 rounded-2xl bg-zinc-900/60 hover:bg-zinc-900/80 transition gap-4">
             <div className="space-y-1 flex-1 min-w-0 pr-2">
-              <div className="text-sm font-bold text-white flex items-center gap-2">
-                <Tv className="w-4 h-4 text-zinc-300 shrink-0" />
-                <span>Mặc định mở chế độ Rạp phim</span>
+              <div className="text-sm font-bold text-white">
+                Mặc định mở chế độ Rạp phim
               </div>
               <p className="text-xs text-zinc-400 leading-normal">
                 Mở rộng khung phát video toàn màn hình trình duyệt khi bắt đầu xem.
@@ -93,9 +85,8 @@ export const ProfilePlayerSettingsTab: React.FC<ProfilePlayerSettingsTabProps> =
           {/* MẶC ĐỊNH TẮT ĐÈN */}
           <div className="flex items-center justify-between p-4 rounded-2xl bg-zinc-900/60 hover:bg-zinc-900/80 transition gap-4">
             <div className="space-y-1 flex-1 min-w-0 pr-2">
-              <div className="text-sm font-bold text-white flex items-center gap-2">
-                <Moon className="w-4 h-4 text-zinc-300 shrink-0" />
-                <span>Mặc định làm tối xung quanh</span>
+              <div className="text-sm font-bold text-white">
+                Mặc định làm tối xung quanh
               </div>
               <p className="text-xs text-zinc-400 leading-normal">
                 Làm tối các phần giao diện xung quanh trình phát để hạn chế phân tâm.
@@ -117,9 +108,8 @@ export const ProfilePlayerSettingsTab: React.FC<ProfilePlayerSettingsTabProps> =
           {/* TỰ ĐỘNG BẬT PHỤ ĐỀ */}
           <div className="flex items-center justify-between p-4 rounded-2xl bg-zinc-900/60 hover:bg-zinc-900/80 transition gap-4">
             <div className="space-y-1 flex-1 min-w-0 pr-2">
-              <div className="text-sm font-bold text-white flex items-center gap-2">
-                <Subtitles className="w-4 h-4 text-zinc-300 shrink-0" />
-                <span>Tự động bật phụ đề</span>
+              <div className="text-sm font-bold text-white">
+                Tự động bật phụ đề
               </div>
               <p className="text-xs text-zinc-400 leading-normal">
                 Ưu tiên hiển thị phụ đề Tiếng Việt khi video có sẵn track phụ đề.
@@ -142,9 +132,8 @@ export const ProfilePlayerSettingsTab: React.FC<ProfilePlayerSettingsTabProps> =
           <div className="p-4 rounded-2xl bg-zinc-900/60 space-y-3">
             <div className="flex items-center justify-between">
               <div>
-                <h5 className="text-sm font-bold text-white flex items-center gap-2">
-                  <Play className="w-4 h-4 text-zinc-300 shrink-0" />
-                  <span>Tốc độ phát mặc định</span>
+                <h5 className="text-sm font-bold text-white">
+                  Tốc độ phát mặc định
                 </h5>
                 <p className="text-xs text-zinc-400">Tốc độ phát bắt đầu khi mở video</p>
               </div>

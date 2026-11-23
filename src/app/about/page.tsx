@@ -190,9 +190,7 @@ export default function AboutPage() {
                 >
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
-                      <div className="w-10 h-10 rounded-xl bg-white/[0.05] text-zinc-300 flex items-center justify-center">
-                        <Icon size={18} />
-                      </div>
+                      <Icon size={20} className="text-zinc-300" />
                       <span className="text-xs font-medium px-3 py-1 rounded-full bg-white/[0.05] text-zinc-400 font-sans tabular-nums">
                         {p.badge}
                       </span>
@@ -232,9 +230,7 @@ export default function AboutPage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
               {/* Channel 1: Báo lỗi phim & phát video */}
               <div className="p-6 rounded-2xl bg-zinc-900/55 hover:bg-zinc-900/80 transition-colors space-y-4">
-                <div className="w-10 h-10 rounded-xl bg-red-500/10 text-red-400 flex items-center justify-center">
-                  <AlertTriangle size={20} />
-                </div>
+                <AlertTriangle size={20} className="text-red-400" />
                 <div className="space-y-1">
                   <h3 className="text-sm font-bold text-white">Báo Lỗi Phim & Máy Chủ</h3>
                   <p className="text-xs text-zinc-400 leading-relaxed">
@@ -252,9 +248,7 @@ export default function AboutPage() {
 
               {/* Channel 2: Góp ý tính năng & Yêu cầu phim */}
               <div className="p-6 rounded-2xl bg-zinc-900/55 hover:bg-zinc-900/80 transition-colors space-y-4">
-                <div className="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-400 flex items-center justify-center">
-                  <Film size={20} />
-                </div>
+                <Film size={20} className="text-purple-400" />
                 <div className="space-y-1">
                   <h3 className="text-sm font-bold text-white">Yêu Cầu Phim & Tính Năng</h3>
                   <p className="text-xs text-zinc-400 leading-relaxed">
@@ -272,9 +266,7 @@ export default function AboutPage() {
 
               {/* Channel 3: Hỗ trợ tài khoản & Bản quyền */}
               <div className="p-6 rounded-2xl bg-zinc-900/55 hover:bg-zinc-900/80 transition-colors space-y-4">
-                <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center">
-                  <ShieldCheck size={20} />
-                </div>
+                <ShieldCheck size={20} className="text-emerald-400" />
                 <div className="space-y-1">
                   <h3 className="text-sm font-bold text-white">Tài Khoản & Bản Quyền DMCA</h3>
                   <p className="text-xs text-zinc-400 leading-relaxed">

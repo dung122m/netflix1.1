@@ -15,8 +15,8 @@ export interface SectionHeaderProps {
 export function SectionHeader({
   title,
   subtitle,
-  icon,
-  iconBadge = false,
+  icon: _icon,
+  iconBadge: _iconBadge = false,
   trailingBadge,
   actions,
   className = "",
@@ -28,11 +28,6 @@ export function SectionHeader({
     return (
       <div className={`flex items-center justify-between mb-3 px-0 ${className}`}>
         <div className="flex items-center gap-2 min-w-0">
-          {icon && (
-            <span className={`inline-flex items-center justify-center shrink-0 ${iconBadge ? "text-netflix-red" : "text-zinc-300"}`}>
-              {icon}
-            </span>
-          )}
           <h2 className="text-base sm:text-lg font-bold text-white tracking-tight truncate flex items-center gap-2">
             <span>{title}</span>
             {trailingBadge}
@@ -49,15 +44,6 @@ export function SectionHeader({
     >
       <div className="min-w-0">
         <h2 className="text-xl sm:text-2xl md:text-[26px] font-black tracking-tight text-white flex items-center gap-2.5 flex-wrap sm:flex-nowrap">
-          {icon && (
-            <span
-              className={`inline-flex items-center justify-center shrink-0 ${
-                iconBadge ? "text-netflix-red" : "text-zinc-300"
-              }`}
-            >
-              {icon}
-            </span>
-          )}
           <span className="truncate">{title}</span>
           {trailingBadge}
         </h2>

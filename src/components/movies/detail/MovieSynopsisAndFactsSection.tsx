@@ -1,6 +1,5 @@
 import React from "react";
 import Link from "next/link";
-import { Clock } from "lucide-react";
 import { MovieSynopsis } from "@/components/movies/MovieSynopsis";
 import { ActorChipClient } from "@/components/actors/ActorChipClient";
 import { NamedSlugItem } from "@/services/movies/detailPageData";
@@ -135,9 +134,8 @@ export function MovieSynopsisAndFactsSection({
 
           {/* THỜI GIAN CẬP NHẬT GẦN NHẤT */}
           {formattedModified && (
-            <div className="flex items-center gap-1.5 text-[11px] text-zinc-500">
-              <Clock className="w-3.5 h-3.5 text-zinc-500 flex-shrink-0" />
-              <span>Cập nhật gần nhất: {formattedModified}</span>
+            <div className="text-[11px] text-zinc-500">
+              Cập nhật gần nhất: {formattedModified}
             </div>
           )}
 

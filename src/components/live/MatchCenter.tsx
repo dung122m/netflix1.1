@@ -595,9 +595,7 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
 
                   {/* Thông báo tiếp sóng */}
                   <div className="rounded-xl bg-zinc-900/60 px-3 py-2.5 sm:p-3 flex items-center gap-2.5 text-xs text-zinc-400">
-                    <div className="p-1.5 rounded-lg bg-white/5 text-zinc-300 shrink-0">
-                      <Radio className="w-3.5 h-3.5 text-netflix-red animate-pulse" />
-                    </div>
+                    <Radio className="w-3.5 h-3.5 text-netflix-red animate-pulse shrink-0" />
                     <div className="min-w-0 flex-1 text-[11px] sm:text-xs leading-relaxed text-zinc-300">
                       <span className="font-bold text-white">Đang tiếp sóng</span>
                       <span className="text-zinc-400 ml-1.5 hidden sm:inline">•</span>

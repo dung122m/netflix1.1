@@ -26,37 +26,37 @@ export function getActorInitials(name?: string | null): string {
 const GRADIENT_THEMES = [
   {
     bg: "from-zinc-900 via-zinc-900 to-zinc-950",
-    badge: "bg-white/[0.08] text-zinc-200 border border-white/[0.08]",
+    badge: "bg-white/[0.08] text-zinc-200",
     accent: "text-zinc-300",
     ring: "ring-white/10",
   },
   {
     bg: "from-[#1a1a1a] via-zinc-900 to-zinc-950",
-    badge: "bg-white/[0.08] text-zinc-200 border border-white/[0.08]",
+    badge: "bg-white/[0.08] text-zinc-200",
     accent: "text-zinc-300",
     ring: "ring-white/10",
   },
   {
     bg: "from-stone-900 via-zinc-900 to-zinc-950",
-    badge: "bg-white/[0.08] text-zinc-200 border border-white/[0.08]",
+    badge: "bg-white/[0.08] text-zinc-200",
     accent: "text-zinc-300",
     ring: "ring-white/10",
   },
   {
     bg: "from-neutral-900 via-zinc-900 to-zinc-950",
-    badge: "bg-white/[0.08] text-zinc-200 border border-white/[0.08]",
+    badge: "bg-white/[0.08] text-zinc-200",
     accent: "text-zinc-300",
     ring: "ring-white/10",
   },
   {
     bg: "from-[#161616] via-zinc-900 to-zinc-950",
-    badge: "bg-white/[0.08] text-zinc-200 border border-white/[0.08]",
+    badge: "bg-white/[0.08] text-zinc-200",
     accent: "text-zinc-300",
     ring: "ring-white/10",
   },
   {
     bg: "from-zinc-800/80 via-zinc-900 to-zinc-950",
-    badge: "bg-white/[0.08] text-zinc-200 border border-white/[0.08]",
+    badge: "bg-white/[0.08] text-zinc-200",
     accent: "text-zinc-300",
     ring: "ring-white/10",
   },
@@ -135,13 +135,11 @@ export const ActorAvatar: React.FC<ActorAvatarProps> = ({
   if (shape === "circle") {
     return (
       <div
-        className={`w-full h-full rounded-full bg-gradient-to-br ${theme.bg} flex items-center justify-center p-1 select-none ${className}`}
+        className={`w-full h-full rounded-full bg-gradient-to-br ${theme.bg} flex items-center justify-center font-black tracking-tight text-zinc-200 select-none ${className}`}
       >
-        <div className={`w-full h-full rounded-full ${theme.badge} flex items-center justify-center font-black tracking-tight`}>
-          <span className="text-xs sm:text-sm">
-            {initials || <User className="w-4 h-4" />}
-          </span>
-        </div>
+        <span className="text-xs sm:text-sm">
+          {initials || <User className="w-4 h-4" />}
+        </span>
       </div>
     );
   }
@@ -175,8 +173,7 @@ export const ActorAvatar: React.FC<ActorAvatarProps> = ({
           <span>{initials || <User className="w-5 h-5" />}</span>
         </div>
 
-        <div className="flex items-center gap-1 text-[10px] sm:text-[11px] font-semibold text-zinc-400 group-hover:text-zinc-200 transition-colors">
-          <User className="w-3 h-3 text-zinc-500" />
+        <div className="text-[10px] sm:text-[11px] font-semibold text-zinc-400 group-hover:text-zinc-200 transition-colors">
           <span>Nghệ sĩ</span>
         </div>
       </div>

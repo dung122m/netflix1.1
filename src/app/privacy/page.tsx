@@ -5,11 +5,9 @@ import {
   ShieldCheck,
   Lock,
   EyeOff,
-  Database,
   KeyRound,
   Trash2,
   CheckCircle2,
-  FileText,
   Mail,
   Scale,
 } from "lucide-react";
@@ -193,14 +191,9 @@ export default function PrivacyPage() {
 
         {/* ================= 3. DETAILED DATA RETENTION & BREAKDOWN ================= */}
         <section className="p-6 sm:p-10 rounded-3xl bg-zinc-900/50 space-y-6">
-          <div className="flex items-center gap-3 pb-4 border-b border-white/[0.08]">
-            <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-400">
-              <Database size={20} />
-            </div>
-            <div>
-              <h2 className="text-xl font-bold text-white">Chúng Tôi Thu Thập Dữ Liệu Nào & Sử Dụng Ra Sao?</h2>
-              <p className="text-xs text-zinc-400 mt-0.5">Mọi dữ liệu đều được phân loại mục đích rõ ràng và quản lý vòng đời nghiêm ngặt.</p>
-            </div>
+          <div className="pb-4 border-b border-white/[0.08]">
+            <h2 className="text-xl font-bold text-white">Chúng Tôi Thu Thập Dữ Liệu Nào & Sử Dụng Ra Sao?</h2>
+            <p className="text-xs text-zinc-400 mt-0.5">Mọi dữ liệu đều được phân loại mục đích rõ ràng và quản lý vòng đời nghiêm ngặt.</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-2">
@@ -240,9 +233,8 @@ export default function PrivacyPage() {
         {/* ================= 4. LEGAL & TECHNICAL ARTICLES ================= */}
         <section className="space-y-6">
           <div className="text-left space-y-1">
-            <h2 className="text-xl font-bold text-white flex items-center gap-2">
-              <FileText size={18} className="text-emerald-400" />
-              <span>Các Điều Khoản Bảo Mật Chi Tiết</span>
+            <h2 className="text-xl font-bold text-white">
+              Các Điều Khoản Bảo Mật Chi Tiết
             </h2>
             <p className="text-xs text-zinc-400">Quy định cụ thể về trách nhiệm và quyền lợi của người dùng trên hệ thống.</p>
           </div>

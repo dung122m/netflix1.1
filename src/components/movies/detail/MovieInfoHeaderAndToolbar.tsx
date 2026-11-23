@@ -161,7 +161,7 @@ export function MovieInfoHeaderAndToolbar({
             <TrailerModal
               trailerUrl={effectiveTrailerUrl}
               title={title}
-              triggerClassName="w-full sm:w-auto min-h-[40px] sm:min-h-[38px] inline-flex items-center justify-center gap-1.5 rounded-xl bg-zinc-900/80 text-zinc-200 hover:bg-white/10 hover:text-white border border-white/[0.08] px-2.5 sm:px-3.5 py-2 sm:py-1.5 text-xs sm:text-sm font-medium shadow-sm transition-all active:scale-95 cursor-pointer flex-shrink-0 whitespace-nowrap"
+              triggerClassName="w-full sm:w-auto min-h-[40px] sm:min-h-[38px] inline-flex items-center justify-center gap-1.5 rounded-xl bg-zinc-900 text-zinc-200 hover:bg-zinc-800 hover:text-white px-2.5 sm:px-3.5 py-2 sm:py-1.5 text-xs sm:text-sm font-medium transition-all active:scale-95 cursor-pointer flex-shrink-0 whitespace-nowrap"
             />
           )}
 

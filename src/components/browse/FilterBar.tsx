@@ -122,7 +122,7 @@ export const FilterBar: React.FC = () => {
   // Query parameter updating helper with immediate transition & loading events
   const updateQueryParam = useCallback((key: string, value: string) => {
     const groupKey = (key === "type" ? "type" : key === "category" ? "genre" : key === "country" ? "country" : key === "year" ? "year" : key === "sort" ? "sort" : null) as FilterGroup | null;
-    
+
     const params = new URLSearchParams(latestParamsRef.current.toString());
     const currentValue = params.get(key) || "";
     const isTogglingOff = !value || currentValue === value;
@@ -428,13 +428,12 @@ export const FilterBar: React.FC = () => {
             aria-expanded={activeDropdown === "type"}
             aria-haspopup="listbox"
             aria-label="Lọc theo loại phim"
-            className={`h-10 px-4 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-150 flex items-center gap-2 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black shrink-0 ${
-              currentType
-                ? "bg-netflix-red text-white shadow-md shadow-black/50"
-                : activeDropdown === "type"
+            className={`h-10 px-4 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-150 flex items-center gap-2 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black shrink-0 ${currentType
+              ? "bg-netflix-red text-white shadow-md shadow-black/50"
+              : activeDropdown === "type"
                 ? "bg-zinc-800 text-white"
                 : "bg-zinc-900/90 text-zinc-300 hover:bg-zinc-800 hover:text-white"
-            }`}
+              }`}
           >
             <span className="truncate">
               {currentType ? activeTypeName : "Loại phim"}
@@ -443,9 +442,8 @@ export const FilterBar: React.FC = () => {
               <Loader2 className="w-3.5 h-3.5 text-white animate-spin shrink-0" />
             ) : (
               <ChevronDown
-                className={`w-3.5 h-3.5 text-zinc-400 transition-transform duration-200 shrink-0 ${
-                  activeDropdown === "type" ? "rotate-180 text-white" : "rotate-0"
-                }`}
+                className={`w-3.5 h-3.5 text-zinc-400 transition-transform duration-200 shrink-0 ${activeDropdown === "type" ? "rotate-180 text-white" : "rotate-0"
+                  }`}
               />
             )}
           </button>
@@ -460,13 +458,12 @@ export const FilterBar: React.FC = () => {
             aria-expanded={activeDropdown === "genre"}
             aria-haspopup="listbox"
             aria-label="Lọc theo thể loại phim"
-            className={`h-10 px-4 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-150 flex items-center gap-2 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black shrink-0 ${
-              currentCategory
-                ? "bg-netflix-red text-white shadow-md shadow-black/50"
-                : activeDropdown === "genre"
+            className={`h-10 px-4 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-150 flex items-center gap-2 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black shrink-0 ${currentCategory
+              ? "bg-netflix-red text-white shadow-md shadow-black/50"
+              : activeDropdown === "genre"
                 ? "bg-zinc-800 text-white"
                 : "bg-zinc-900/90 text-zinc-300 hover:bg-zinc-800 hover:text-white"
-            }`}
+              }`}
           >
             <span className="truncate">
               {currentCategory ? activeCategoryName : "Thể loại"}
@@ -475,9 +472,8 @@ export const FilterBar: React.FC = () => {
               <Loader2 className="w-3.5 h-3.5 text-white animate-spin shrink-0" />
             ) : (
               <ChevronDown
-                className={`w-3.5 h-3.5 text-zinc-400 transition-transform duration-200 shrink-0 ${
-                  activeDropdown === "genre" ? "rotate-180 text-white" : "rotate-0"
-                }`}
+                className={`w-3.5 h-3.5 text-zinc-400 transition-transform duration-200 shrink-0 ${activeDropdown === "genre" ? "rotate-180 text-white" : "rotate-0"
+                  }`}
               />
             )}
           </button>
@@ -492,13 +488,12 @@ export const FilterBar: React.FC = () => {
             aria-expanded={activeDropdown === "country"}
             aria-haspopup="listbox"
             aria-label="Lọc theo quốc gia sản xuất"
-            className={`h-10 px-4 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-150 flex items-center gap-2 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black shrink-0 ${
-              currentCountry
-                ? "bg-netflix-red text-white shadow-md shadow-black/50"
-                : activeDropdown === "country"
+            className={`h-10 px-4 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-150 flex items-center gap-2 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black shrink-0 ${currentCountry
+              ? "bg-netflix-red text-white shadow-md shadow-black/50"
+              : activeDropdown === "country"
                 ? "bg-zinc-800 text-white"
                 : "bg-zinc-900/90 text-zinc-300 hover:bg-zinc-800 hover:text-white"
-            }`}
+              }`}
           >
             <span className="truncate">
               {currentCountry ? activeCountryName : "Quốc gia"}
@@ -507,9 +502,8 @@ export const FilterBar: React.FC = () => {
               <Loader2 className="w-3.5 h-3.5 text-white animate-spin shrink-0" />
             ) : (
               <ChevronDown
-                className={`w-3.5 h-3.5 text-zinc-400 transition-transform duration-200 shrink-0 ${
-                  activeDropdown === "country" ? "rotate-180 text-white" : "rotate-0"
-                }`}
+                className={`w-3.5 h-3.5 text-zinc-400 transition-transform duration-200 shrink-0 ${activeDropdown === "country" ? "rotate-180 text-white" : "rotate-0"
+                  }`}
               />
             )}
           </button>
@@ -524,13 +518,12 @@ export const FilterBar: React.FC = () => {
             aria-expanded={activeDropdown === "year"}
             aria-haspopup="listbox"
             aria-label="Lọc theo năm phát hành"
-            className={`h-10 px-4 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-150 flex items-center gap-2 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black shrink-0 ${
-              currentYear
-                ? "bg-netflix-red text-white shadow-md shadow-black/50"
-                : activeDropdown === "year"
+            className={`h-10 px-4 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-150 flex items-center gap-2 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black shrink-0 ${currentYear
+              ? "bg-netflix-red text-white shadow-md shadow-black/50"
+              : activeDropdown === "year"
                 ? "bg-zinc-800 text-white"
                 : "bg-zinc-900/90 text-zinc-300 hover:bg-zinc-800 hover:text-white"
-            }`}
+              }`}
           >
             <span className="truncate">
               {currentYear ? currentYear : "Năm"}
@@ -539,9 +532,8 @@ export const FilterBar: React.FC = () => {
               <Loader2 className="w-3.5 h-3.5 text-white animate-spin shrink-0" />
             ) : (
               <ChevronDown
-                className={`w-3.5 h-3.5 text-zinc-400 transition-transform duration-200 shrink-0 ${
-                  activeDropdown === "year" ? "rotate-180 text-white" : "rotate-0"
-                }`}
+                className={`w-3.5 h-3.5 text-zinc-400 transition-transform duration-200 shrink-0 ${activeDropdown === "year" ? "rotate-180 text-white" : "rotate-0"
+                  }`}
               />
             )}
           </button>

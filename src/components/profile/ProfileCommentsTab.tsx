@@ -35,9 +35,8 @@ export const ProfileCommentsTab: React.FC<ProfileCommentsTabProps> = React.memo(
     return (
       <div className="space-y-4">
         <div className="flex items-center justify-between pb-2 border-b border-white/[0.08]">
-          <h3 className="text-sm font-bold text-white flex items-center gap-2">
-            <MessageSquare className="w-4 h-4 text-emerald-400" />
-            <span>Nhận xét & Đánh giá của bạn ({userComments.length})</span>
+          <h3 className="text-sm font-bold text-white">
+            Nhận xét & Đánh giá của bạn ({userComments.length})
           </h3>
         </div>
 
@@ -197,7 +196,7 @@ export const ProfileCommentsTab: React.FC<ProfileCommentsTabProps> = React.memo(
                 <button
                   type="button"
                   onClick={() => setVisibleCount((prev) => prev + 8)}
-                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-zinc-300 hover:text-white bg-zinc-800/80 hover:bg-zinc-700/80 border border-white/5 hover:border-white/10 transition-all duration-200 cursor-pointer shadow-sm hover:shadow tabular-nums"
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-zinc-300 hover:text-white bg-zinc-800/90 hover:bg-zinc-700/90 transition-all duration-200 cursor-pointer shadow-sm hover:shadow tabular-nums"
                 >
                   <span>Xem thêm nhận xét</span>
                   <span className="text-zinc-500 font-normal">

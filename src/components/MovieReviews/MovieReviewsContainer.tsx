@@ -40,14 +40,9 @@ export const MovieReviewsContainer: React.FC<MovieReviewsContainerProps> = ({
       {/* Header Bar with Tabs */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 sm:pb-6 border-b border-white/[0.08]">
         <div>
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-netflix-red/10 flex items-center justify-center text-netflix-red">
-              <MessageSquare className="w-4 h-4" />
-            </div>
-            <h2 className="text-xl sm:text-2xl font-extrabold text-white tracking-tight">
-              Đánh Giá &amp; Bình Luận
-            </h2>
-          </div>
+          <h2 className="text-xl sm:text-2xl font-extrabold text-white tracking-tight">
+            Đánh Giá &amp; Bình Luận
+          </h2>
           <p className="text-xs sm:text-sm text-zinc-400 mt-1">
             Góc nhìn, chấm điểm và thảo luận cảm nhận về &quot;{movieTitle}&quot;
           </p>

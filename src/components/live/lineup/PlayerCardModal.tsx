@@ -3,14 +3,8 @@
 import React, { useEffect, useState } from "react";
 import {
   X,
-  Calendar,
-  Ruler,
-  MapPin,
-  Globe,
-  Trophy,
   ArrowDownLeft,
   ArrowUpRight,
-  User,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
@@ -379,9 +373,8 @@ export function InlinePlayerDetailCard({
 
       <div className="space-y-3 pt-2">
         <div className="space-y-1.5">
-          <span className="text-[10px] uppercase font-bold text-zinc-400 font-sans tracking-wider flex items-center gap-1">
-            <User className="w-3 h-3 text-sky-400" />
-            <span>Tiểu sử tuyển thủ</span>
+          <span className="text-[10px] uppercase font-bold text-zinc-400 font-sans tracking-wider">
+            Tiểu sử tuyển thủ
           </span>
 
           {loadingProfile ? (
@@ -397,11 +390,9 @@ export function InlinePlayerDetailCard({
                 <div className="p-2 rounded-xl bg-white/[0.04] flex flex-col gap-0.5">
                   <span className="text-[9.5px] text-zinc-400">Quốc tịch</span>
                   <div className="flex items-center gap-1 font-bold text-white truncate text-[11px]">
-                    {currentProfile.flagUrl ? (
+                    {currentProfile.flagUrl && (
                       /* eslint-disable-next-line @next/next/no-img-element */
                       <img src={currentProfile.flagUrl} alt={currentProfile.citizenship} className="w-3.5 h-2.5 object-cover rounded-xs shrink-0" />
-                    ) : (
-                      <Globe className="w-3 h-3 text-zinc-400 shrink-0" />
                     )}
                     <span className="truncate">{currentProfile.citizenship}</span>
                   </div>
@@ -410,10 +401,7 @@ export function InlinePlayerDetailCard({
 
               {currentProfile.dateOfBirth && (
                 <div className="p-2 rounded-xl bg-white/[0.04] flex flex-col gap-0.5">
-                  <span className="text-[9.5px] text-zinc-400 flex items-center gap-1">
-                    <Calendar className="w-2.5 h-2.5 text-zinc-400" />
-                    <span>Ngày sinh</span>
-                  </span>
+                  <span className="text-[9.5px] text-zinc-400">Ngày sinh</span>
                   <span className="font-bold text-white truncate tabular-nums text-[11px]">
                     {formatBirthDate(currentProfile.dateOfBirth)}
                     {currentProfile.age ? ` (${currentProfile.age}t)` : ""}
@@ -423,10 +411,7 @@ export function InlinePlayerDetailCard({
 
               {(currentProfile.height || currentProfile.weight) && (
                 <div className="p-2 rounded-xl bg-white/[0.04] flex flex-col gap-0.5">
-                  <span className="text-[9.5px] text-zinc-400 flex items-center gap-1">
-                    <Ruler className="w-2.5 h-2.5 text-zinc-400" />
-                    <span>Thể hình</span>
-                  </span>
+                  <span className="text-[9.5px] text-zinc-400">Thể hình</span>
                   <span className="font-bold text-white truncate tabular-nums text-[11px]">
                     {currentProfile.height || "-"} • {currentProfile.weight || "-"}
                   </span>
@@ -435,10 +420,7 @@ export function InlinePlayerDetailCard({
 
               {currentProfile.birthPlace && (
                 <div className="p-2 rounded-xl bg-white/[0.04] flex flex-col gap-0.5">
-                  <span className="text-[9.5px] text-zinc-400 flex items-center gap-1">
-                    <MapPin className="w-2.5 h-2.5 text-zinc-400" />
-                    <span>Nơi sinh</span>
-                  </span>
+                  <span className="text-[9.5px] text-zinc-400">Nơi sinh</span>
                   <span className="font-bold text-white truncate text-[11px]">
                     {currentProfile.birthPlace}
                   </span>
@@ -452,9 +434,8 @@ export function InlinePlayerDetailCard({
 
         <div className="space-y-1.5">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] uppercase font-bold text-zinc-400 font-sans tracking-wider flex items-center gap-1">
-              <Trophy className="w-3 h-3 text-amber-400" />
-              <span>Thống kê thi đấu</span>
+            <span className="text-[10px] uppercase font-bold text-zinc-400 font-sans tracking-wider">
+              Thống kê thi đấu
             </span>
             <span className="text-[10px] font-sans text-zinc-500">Dữ liệu ESPN</span>
           </div>
@@ -728,7 +709,7 @@ export function PlayerDetailModal({
       {/* 2. NỘI DUNG (DỮ LIỆU THẬT 100% TỪ ESPN & TRẬN ĐẤU) */}
       <div className="p-4 sm:p-5 space-y-3.5">
         {/* KHỐI 1: DIỄN BIẾN TRONG TRẬN ĐẤU */}
-        <div className="rounded-2xl bg-white/[0.03] border border-white/[0.06] p-3.5 sm:p-4 space-y-2.5">
+        <div className="rounded-2xl bg-white/[0.03] p-3.5 sm:p-4 space-y-2.5">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-white font-sans flex items-center gap-1.5">
               <span>Diễn biến trong trận</span>
@@ -809,11 +790,10 @@ export function PlayerDetailModal({
         </div>
 
         {/* KHỐI 2: THỐNG KÊ CHI TIẾT TRẬN ĐẤU (THẬT TỪ ESPN) */}
-        <div className="rounded-2xl bg-white/[0.03] border border-white/[0.06] p-3.5 sm:p-4 space-y-2.5">
+        <div className="rounded-2xl bg-white/[0.03] p-3.5 sm:p-4 space-y-2.5">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-white font-sans flex items-center gap-1.5">
-              <Trophy className="w-3.5 h-3.5 text-amber-400" />
-              <span>Thống kê thi đấu</span>
+            <span className="text-xs font-bold text-white font-sans">
+              Thống kê thi đấu
             </span>
             <span className="text-[10.5px] font-sans text-zinc-500">Dữ liệu ESPN</span>
           </div>
@@ -823,7 +803,7 @@ export function PlayerDetailModal({
               {player.stats.map((st, idx) => (
                 <div
                   key={idx}
-                  className="p-2.5 rounded-xl bg-white/[0.04] flex items-center justify-between gap-2 border border-white/[0.03]"
+                  className="p-2.5 rounded-xl bg-white/[0.04] flex items-center justify-between gap-2"
                 >
                   <span className="text-[11px] text-zinc-400 truncate font-sans">
                     {translateStatName(st.displayName || st.name)}
@@ -843,18 +823,14 @@ export function PlayerDetailModal({
 
         {/* KHỐI 3: TIỂU SỬ TUYỂN THỦ (DỮ LIỆU THẬT NẾU CÓ TỪ ESPN) */}
         {hasProfileBio && currentProfile && (
-          <div className="rounded-2xl bg-white/[0.03] border border-white/[0.06] p-3.5 sm:p-4 space-y-2.5">
-            <div className="flex items-center gap-1.5">
-              <User className="w-3.5 h-3.5 text-sky-400" />
-              <span className="text-xs font-bold text-white font-sans">Hồ sơ cầu thủ</span>
-            </div>
+          <div className="rounded-2xl bg-white/[0.03] p-3.5 sm:p-4 space-y-2.5">
+            <span className="text-xs font-bold text-white font-sans">Hồ sơ cầu thủ</span>
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs font-sans">
               {currentProfile.dateOfBirth && (
                 <div className="p-2 rounded-xl bg-white/[0.04] flex flex-col gap-0.5">
-                  <span className="text-[10px] text-zinc-400 flex items-center gap-1">
-                    <Calendar className="w-2.5 h-2.5 text-zinc-400" />
-                    <span>Ngày sinh</span>
+                  <span className="text-[10px] text-zinc-400">
+                    Ngày sinh
                   </span>
                   <span className="font-bold text-white truncate tabular-nums text-xs">
                     {formatBirthDate(currentProfile.dateOfBirth)}
@@ -864,9 +840,8 @@ export function PlayerDetailModal({
 
               {(currentProfile.height || currentProfile.weight) && (
                 <div className="p-2 rounded-xl bg-white/[0.04] flex flex-col gap-0.5">
-                  <span className="text-[10px] text-zinc-400 flex items-center gap-1">
-                    <Ruler className="w-2.5 h-2.5 text-zinc-400" />
-                    <span>Thể hình</span>
+                  <span className="text-[10px] text-zinc-400">
+                    Thể hình
                   </span>
                   <span className="font-bold text-white truncate tabular-nums text-xs">
                     {currentProfile.height || "-"} • {currentProfile.weight || "-"}
@@ -876,9 +851,8 @@ export function PlayerDetailModal({
 
               {currentProfile.birthPlace && (
                 <div className="p-2 rounded-xl bg-white/[0.04] flex flex-col gap-0.5">
-                  <span className="text-[10px] text-zinc-400 flex items-center gap-1">
-                    <MapPin className="w-2.5 h-2.5 text-zinc-400" />
-                    <span>Nơi sinh</span>
+                  <span className="text-[10px] text-zinc-400">
+                    Nơi sinh
                   </span>
                   <span className="font-bold text-white truncate text-xs" title={currentProfile.birthPlace}>
                     {currentProfile.birthPlace}
@@ -888,9 +862,8 @@ export function PlayerDetailModal({
 
               {currentProfile.citizenship && (
                 <div className="p-2 rounded-xl bg-white/[0.04] flex flex-col gap-0.5">
-                  <span className="text-[10px] text-zinc-400 flex items-center gap-1">
-                    <Globe className="w-2.5 h-2.5 text-zinc-400" />
-                    <span>Quốc tịch</span>
+                  <span className="text-[10px] text-zinc-400">
+                    Quốc tịch
                   </span>
                   <span className="font-bold text-white truncate text-xs" title={currentProfile.citizenship}>
                     {currentProfile.citizenship}

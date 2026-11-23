@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { ChevronDown, ChevronUp, BookOpen } from "lucide-react";
+import { ChevronDown, ChevronUp } from "lucide-react";
 import { cleanHtmlText } from "@/lib/cleanHtml";
 
 interface MovieSynopsisProps {
@@ -16,10 +16,7 @@ export function MovieSynopsis({ synopsis: rawSynopsis, originName: _originName }
 
   return (
     <section className="relative w-full" aria-labelledby="synopsis-heading">
-      <div className="flex items-center gap-2.5 mb-3 min-w-0">
-        <span className="flex items-center justify-center w-6 h-6 rounded-lg bg-netflix-red/15 text-netflix-red shrink-0">
-          <BookOpen className="w-3.5 h-3.5" aria-hidden="true" />
-        </span>
+      <div className="mb-2.5 min-w-0">
         <h2
           id="synopsis-heading"
           className="text-base sm:text-lg font-bold text-white tracking-wide truncate"

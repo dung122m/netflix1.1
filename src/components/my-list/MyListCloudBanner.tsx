@@ -47,9 +47,7 @@ export function MyListCloudBanner({
         </div>
       ) : (
         <div className="flex items-center gap-3 min-w-0 flex-1">
-          <div className="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center text-zinc-300 flex-shrink-0">
-            <FolderHeart className="w-4 h-4 text-netflix-red" />
-          </div>
+          <FolderHeart className="w-5 h-5 text-netflix-red shrink-0" />
           <div className="min-w-0 flex-1">
             <p className="text-xs font-bold text-white truncate">
               Đồng bộ dữ liệu xem phim

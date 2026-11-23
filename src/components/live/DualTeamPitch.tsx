@@ -326,7 +326,7 @@ export const DualTeamPitch: React.FC<DualTeamPitchProps> = ({
         {(homeTeam.coach || awayTeam.coach) && (
           <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-zinc-900/60 border border-white/[0.04] text-xs select-none">
             <div className="flex items-center gap-2 min-w-0 flex-1">
-              <span className="w-5 h-5 rounded-full bg-zinc-800 text-zinc-300 border border-white/10 flex items-center justify-center text-[10px] font-bold shrink-0">
+              <span className="w-5 h-5 rounded-full bg-zinc-800 text-zinc-300 flex items-center justify-center text-[10px] font-bold shrink-0">
                 {homeTeam.coach ? homeTeam.coach.charAt(0) : "H"}
               </span>
               <span className="text-zinc-300 font-medium text-[11px] sm:text-xs truncate font-sans">
@@ -340,7 +340,7 @@ export const DualTeamPitch: React.FC<DualTeamPitchProps> = ({
               <span className="text-zinc-300 font-medium text-[11px] sm:text-xs truncate font-sans">
                 {awayTeam.coach || "Đang cập nhật"}
               </span>
-              <span className="w-5 h-5 rounded-full bg-zinc-800 text-zinc-300 border border-white/10 flex items-center justify-center text-[10px] font-bold shrink-0">
+              <span className="w-5 h-5 rounded-full bg-zinc-800 text-zinc-300 flex items-center justify-center text-[10px] font-bold shrink-0">
                 {awayTeam.coach ? awayTeam.coach.charAt(0) : "A"}
               </span>
             </div>

@@ -2,7 +2,6 @@
 
 import React, { useMemo } from "react";
 import Link from "next/link";
-import { Users } from "lucide-react";
 import { CarouselContainer } from "@/components/ui/CarouselContainer";
 import type { TmdbCastMember } from "@/services/tmdbService";
 import { ActorAvatar } from "@/components/actors/ActorAvatar";
@@ -133,22 +132,16 @@ export const MovieCastGallery: React.FC<MovieCastGalleryProps> = ({
       <div className="space-y-3 select-none">
         {/* SECTION HEADER */}
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="flex items-center justify-center w-5 h-5 rounded-md bg-rose-500/10 text-rose-400">
-              <Users className="w-3.5 h-3.5" />
-            </span>
-            <h3 className="text-sm font-bold text-zinc-100">
-              Diễn viên & Vai diễn
-            </h3>
-          </div>
+          <h3 className="text-sm font-bold text-zinc-100">
+            Diễn viên & Vai diễn
+          </h3>
           <span className="text-[11px] text-zinc-500 font-medium">
             Đang cập nhật
           </span>
         </div>
 
         {/* REFINED PLACEHOLDER */}
-        <div className="flex items-center gap-3 py-3 px-4 rounded-xl bg-zinc-900/40 border border-zinc-800/40 text-xs text-zinc-400">
-          <Users className="w-4 h-4 text-zinc-500 shrink-0" />
+        <div className="py-3 px-4 rounded-xl bg-zinc-900/40 text-xs text-zinc-400">
           <span>Thông tin dàn diễn viên đang được cập nhật từ nhà phát hành.</span>
         </div>
       </div>
@@ -159,14 +152,9 @@ export const MovieCastGallery: React.FC<MovieCastGalleryProps> = ({
     <div className="space-y-3 select-none">
       {/* SECTION HEADER */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <span className="flex items-center justify-center w-5 h-5 rounded-md bg-rose-500/10 text-rose-400">
-            <Users className="w-3.5 h-3.5" />
-          </span>
-          <h3 className="text-sm font-bold text-zinc-100">
-            Diễn viên & Vai diễn
-          </h3>
-        </div>
+        <h3 className="text-sm font-bold text-zinc-100">
+          Diễn viên & Vai diễn
+        </h3>
         <span className="text-[11px] text-zinc-400 font-medium">
           {displayItems.length} diễn viên
         </span>

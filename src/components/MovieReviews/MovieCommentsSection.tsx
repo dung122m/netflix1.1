@@ -567,7 +567,6 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 pb-5 sm:pb-6 border-b border-white/[0.08]">
           <div>
             <h3 className="text-lg sm:text-xl md:text-2xl font-extrabold text-white flex items-center gap-2 sm:gap-2.5 flex-wrap">
-              <MessageSquare className="w-5 h-5 sm:w-6 sm:h-6 text-red-500 flex-shrink-0" />
               <span>Đánh Giá &amp; Bình Luận Cộng Đồng</span>
               <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-red-500/10 text-red-400">
                 {sortedComments.length}
@@ -652,9 +651,7 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
           /* Login Banner */
           <div className="relative overflow-hidden bg-zinc-900/60 rounded-xl sm:rounded-2xl p-4 sm:p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-3 sm:gap-4 text-center sm:text-left w-full sm:w-auto">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-white/[0.05] flex items-center justify-center text-zinc-300 shrink-0">
-                <LogIn className="w-5 h-5 sm:w-6 sm:h-6" />
-              </div>
+              <LogIn className="w-6 h-6 text-netflix-red shrink-0" />
               <div className="flex-1 min-w-0">
                 <h4 className="font-bold text-white text-sm sm:text-base">
                   Đăng nhập để bình luận và chấm điểm phim
@@ -759,7 +756,7 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
                 <button
                   type="button"
                   onClick={() => setVisibleCommentsCount((prev) => prev + 10)}
-                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-zinc-900/90 hover:bg-zinc-800 text-xs sm:text-sm font-semibold text-white transition-all shadow-md active:scale-95 cursor-pointer border border-white/5"
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-zinc-900/90 hover:bg-zinc-800 text-xs sm:text-sm font-semibold text-white transition-all shadow-md active:scale-95 cursor-pointer"
                 >
                   <span>
                     Xem thêm {Math.min(10, sortedComments.length - visibleCommentsCount)} bình luận

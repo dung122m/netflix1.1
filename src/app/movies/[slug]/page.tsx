@@ -1,6 +1,5 @@
 import { Suspense } from "react";
 import Link from "next/link";
-import { Film } from "lucide-react";
 import { movieApi } from "@/services/movies/service";
 
 /**
@@ -330,9 +329,8 @@ export default async function MovieDetail({
                     {!isSingleEpisode && (
                       <div className="pt-3 border-t border-white/[0.08] space-y-3">
                         <div className="flex items-center justify-between pb-1">
-                          <h3 className="text-base font-bold flex items-center gap-2 text-white">
-                            <Film className="w-4 h-4 text-red-500 shrink-0" />
-                            <span>Danh sách tập</span>
+                          <h3 className="text-base font-bold text-white">
+                            Danh sách tập
                           </h3>
                           <EpisodeCountBadge
                             initialCount={serverData.length}

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useMemo, useState } from "react";
-import { Shield, Users, ArrowUp, ArrowDown, ArrowUpRight, ChevronDown } from "lucide-react";
+import { ArrowUp, ArrowDown, ArrowUpRight, ChevronDown } from "lucide-react";
 import { MatchRosterPlayer } from "@/services/live/football-score/types";
 import { SoccerBallIcon } from "../MatchTimelineSidebar";
 import {
@@ -87,7 +87,6 @@ export function TeamPitchColumn({
           <div className="flex items-center justify-between px-3.5 py-2 bg-zinc-900/90 gap-2">
             <div className="flex items-center gap-2 min-w-0">
               <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${isHome ? "bg-rose-500 shadow-sm shadow-rose-500/50" : "bg-sky-400 shadow-sm shadow-sky-500/50"}`} />
-              <Shield className={`w-4 h-4 shrink-0 ${isHome ? "text-rose-500" : "text-sky-400"}`} />
               <span className="text-xs sm:text-sm font-black text-white truncate">
                 {team.displayName}
               </span>
@@ -284,7 +283,6 @@ export function TeamPitchColumn({
         <div className="rounded-2xl bg-zinc-900/60 p-3 sm:p-4 space-y-3">
           <div className="flex items-center justify-between pb-2.5">
             <div className="flex items-center gap-2 min-w-0">
-              <Users className="w-4 h-4 text-zinc-300 shrink-0" />
               <h5 className="text-xs sm:text-sm font-bold text-white whitespace-nowrap truncate">
                 Cầu thủ dự bị ({bench.length})
               </h5>
@@ -405,7 +403,7 @@ export function TeamListColumn({
     <div className="rounded-2xl bg-zinc-900/50 p-4 space-y-3">
       <div className="flex items-center justify-between pb-2">
         <div className="flex items-center gap-2">
-          <Shield className={`w-4 h-4 ${isHome ? "text-netflix-red" : "text-sky-400"}`} />
+          <div className={`w-2 h-2 rounded-full shrink-0 ${isHome ? "bg-netflix-red" : "bg-sky-400"}`} />
           <h5 className="text-xs sm:text-sm font-black text-white truncate">
             {team.displayName}
           </h5>

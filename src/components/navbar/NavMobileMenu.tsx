@@ -229,9 +229,7 @@ export const NavMobileMenu: React.FC<NavMobileMenuProps> = React.memo(function N
             }}
             className="flex items-center gap-2.5 p-2.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-white transition text-left active:scale-[0.98] cursor-pointer"
           >
-            <div className="w-8 h-8 rounded-lg bg-emerald-500/25 text-emerald-400 flex items-center justify-center shrink-0">
-              <Smartphone size={16} />
-            </div>
+            <Smartphone size={18} className="text-emerald-400 shrink-0" />
             <div className="min-w-0 flex-1">
               <div className="text-xs font-bold text-emerald-300 truncate">Cài đặt App</div>
               <div className="text-[10px] text-zinc-400 truncate">Mobile & PC</div>
@@ -245,9 +243,7 @@ export const NavMobileMenu: React.FC<NavMobileMenuProps> = React.memo(function N
             onClick={onClose}
             className="flex items-center gap-2.5 p-2.5 rounded-xl bg-zinc-900/90 hover:bg-zinc-800 text-white transition text-left active:scale-[0.98]"
           >
-            <div className="w-8 h-8 rounded-lg bg-netflix-red/20 text-netflix-red flex items-center justify-center shrink-0">
-              <History size={16} />
-            </div>
+            <History size={18} className="text-netflix-red shrink-0" />
             <div className="min-w-0 flex-1">
               <div className="text-xs font-bold text-zinc-200 truncate">Lịch sử xem</div>
               <div className="text-[10px] text-zinc-400 truncate">Phim đã xem gần đây</div>

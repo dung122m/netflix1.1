@@ -106,7 +106,7 @@ export function CountryBadge({
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/[0.08] border border-white/5 text-xs font-medium text-zinc-300 flex-none select-none",
+        "inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/[0.08] text-xs font-medium text-zinc-300 flex-none select-none",
         className
       )}
     >

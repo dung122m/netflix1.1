@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { ArrowLeftRight, Clock, Search, X } from "lucide-react";
+import { Clock, Search, X } from "lucide-react";
 import { FootballMatch } from "@/services/live/football/service";
 import { LiveMatchScore } from "@/services/live/football-score/types";
 import { MatchCard } from "./MatchCard";
@@ -73,7 +73,6 @@ export function LiveMobileMatchSheet({
           {/* Tiêu đề & nút đóng */}
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 min-w-0">
-              <ArrowLeftRight className="w-4 h-4 text-netflix-red shrink-0" />
               <h3 className="text-sm font-black text-white truncate">
                 Đổi trận
               </h3>

@@ -4,7 +4,6 @@ import React, { useState, useMemo } from "react";
 import Link from "next/link";
 import {
   Film,
-  BookOpen,
   ChevronDown,
   ChevronUp,
   ExternalLink,
@@ -222,18 +221,13 @@ export const ActorDetailClient: React.FC<ActorDetailClientProps> = ({
         <section className="relative overflow-hidden rounded-2xl sm:rounded-3xl bg-zinc-900/60 shadow-2xl p-5 sm:p-7 md:p-8">
           {/* HEADER BAR */}
           <div className="relative z-10 flex flex-wrap items-center justify-between gap-3 border-b border-white/[0.08] pb-4 mb-5 sm:mb-6">
-            <div className="flex items-center gap-2.5 sm:gap-3">
-              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-amber-500/12 flex items-center justify-center text-amber-400 flex-shrink-0">
-                <BookOpen className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
-              </div>
-              <div>
-                <h2 className="text-base sm:text-lg font-black text-white tracking-tight flex items-center gap-2">
-                  <span>Tiểu Sử & Dấu Ấn Nghệ Thuật</span>
-                </h2>
-                <p className="text-[11px] sm:text-xs text-zinc-400 font-normal">
-                  Hành trình cống hiến và các cột mốc sự nghiệp của {actorName}
-                </p>
-              </div>
+            <div>
+              <h2 className="text-base sm:text-lg font-black text-white tracking-tight">
+                Tiểu Sử & Dấu Ấn Nghệ Thuật
+              </h2>
+              <p className="text-[11px] sm:text-xs text-zinc-400 font-normal">
+                Hành trình cống hiến và các cột mốc sự nghiệp của {actorName}
+              </p>
             </div>
 
             <div className="flex items-center gap-2">
@@ -257,11 +251,10 @@ export const ActorDetailClient: React.FC<ActorDetailClientProps> = ({
 
           {/* MAIN CONTENT WRAPPER (WITH COLLAPSIBLE OVERLAY) */}
           <div
-            className={`relative transition-all duration-500 ease-in-out ${
-              !isBioExpanded && isBioLong
-                ? "max-h-[260px] sm:max-h-[300px] overflow-hidden"
-                : "max-h-none"
-            }`}
+            className={`relative transition-all duration-500 ease-in-out ${!isBioExpanded && isBioLong
+              ? "max-h-[260px] sm:max-h-[300px] overflow-hidden"
+              : "max-h-none"
+              }`}
           >
             <div className="space-y-4 sm:space-y-5 text-zinc-300 text-xs sm:text-sm leading-relaxed font-normal">
               {/* LEAD INTRO PARAGRAPH */}
@@ -340,9 +333,8 @@ export const ActorDetailClient: React.FC<ActorDetailClientProps> = ({
       <section id="actor-filmography-heading" className="space-y-6 scroll-mt-24">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-white/[0.08] pb-4">
           <div className="space-y-1">
-            <h2 className="text-lg sm:text-2xl font-black text-white tracking-tight flex items-center gap-2.5">
-              <Film className="w-5 h-5 sm:w-6 sm:h-6 text-netflix-red" />
-              <span>Tuyển Tập Phim Của {actorName}</span>
+            <h2 className="text-lg sm:text-2xl font-black text-white tracking-tight">
+              Tuyển Tập Phim Của {actorName}
             </h2>
             <p className="text-xs sm:text-sm text-zinc-400">
               Tuyển tập {displayedMovies.length} bộ phim đặc sắc {totalPages > 1 ? `• Trang ${safeCurrentPage} / ${totalPages}` : ""}
@@ -361,21 +353,21 @@ export const ActorDetailClient: React.FC<ActorDetailClientProps> = ({
                     { id: "all", label: "Tất cả", count: movies.length },
                     ...(singleMovies.length > 0
                       ? [
-                          {
-                            id: "single" as const,
-                            label: "Phim lẻ",
-                            count: singleMovies.length,
-                          },
-                        ]
+                        {
+                          id: "single" as const,
+                          label: "Phim lẻ",
+                          count: singleMovies.length,
+                        },
+                      ]
                       : []),
                     ...(seriesMovies.length > 0
                       ? [
-                          {
-                            id: "series" as const,
-                            label: "Phim bộ",
-                            count: seriesMovies.length,
-                          },
-                        ]
+                        {
+                          id: "series" as const,
+                          label: "Phim bộ",
+                          count: seriesMovies.length,
+                        },
+                      ]
                       : []),
                   ]}
                   activeTab={activeTab}
@@ -411,9 +403,7 @@ export const ActorDetailClient: React.FC<ActorDetailClientProps> = ({
           </>
         ) : (
           <div className="py-16 px-6 rounded-3xl bg-zinc-900/60 shadow-xl text-center max-w-xl mx-auto space-y-4">
-            <div className="w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-400 flex items-center justify-center mx-auto">
-              <Film className="w-6 h-6" />
-            </div>
+            <Film className="w-8 h-8 text-zinc-600 mx-auto" />
             <div className="space-y-1">
               <h3 className="text-base font-bold text-white">
                 Chưa có phim của {actorName}

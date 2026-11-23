@@ -609,9 +609,7 @@ export const MatchTimelineSidebar: React.FC<MatchTimelineSidebarProps> = ({
       {/* 3. DANH SÁCH DIỄN BIẾN PHẲNG (TUYỆT ĐỐI KHÔNG DÙNG THẺ HỘP LỒNG NHAU) */}
       {displayedList.length === 0 ? (
         <div className="flex-1 flex flex-col items-center justify-center p-6 text-center text-zinc-500 space-y-2">
-          <div className="w-10 h-10 rounded-2xl bg-white/[0.03] flex items-center justify-center text-zinc-400">
-            <Clock className="w-5 h-5 stroke-[1.5]" />
-          </div>
+          <Clock className="w-8 h-8 text-zinc-600 stroke-[1.5]" />
           <p className="text-xs font-bold text-zinc-300 font-sans">
             Chưa có diễn biến
           </p>
