@@ -126,7 +126,13 @@ export function useMoviePosterFallback({
   isLoading: boolean;
   triggerFallback: () => void;
 } {
-  const cleanTmdbId = tmdbId ? String(tmdbId).trim() : "";
+  const rawTmdbId = tmdbId ? String(tmdbId).trim() : "";
+  const isCorrupted =
+    (rawTmdbId === "1126166" || rawTmdbId === "893030") &&
+    !String(title || slug || origin_name || "").toLowerCase().includes("flight risk") &&
+    !String(title || slug || origin_name || "").toLowerCase().includes("cuoc dao tau tren khong") &&
+    !String(title || slug || origin_name || "").toLowerCase().includes("nhung dua tre trong suong");
+  const cleanTmdbId = isCorrupted ? "" : rawTmdbId;
   const cleanType = type || "movie";
   const cacheKey = cleanTmdbId
     ? `v3:tmdb:${cleanTmdbId}:${cleanType}`

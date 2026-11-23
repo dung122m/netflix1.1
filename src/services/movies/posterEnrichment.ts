@@ -1,5 +1,6 @@
 import { isBrokenImageUrl, isSlowProviderSourceUrl } from "@/lib/movieMedia";
 import { getTmdbMediaImagesById, searchTmdbPosterByTitle } from "@/services/tmdbService";
+import { isCorruptedTmdbId } from "@/services/tmdb/tmdbSanityGuard";
 import { cacheService } from "@/lib/cache";
 
 export interface PosterEnrichmentOptions {
@@ -66,6 +67,10 @@ async function fastBatchEnrichFromCache(movieList: any[]): Promise<void> {
     if (item.poster_url && String(item.poster_url).includes("image.tmdb.org")) continue;
 
     if (item.tmdb?.id) {
+      if (isCorruptedTmdbId(item.tmdb.id, item)) {
+        item.tmdb = undefined;
+        continue;
+      }
       const cleanType = item.tmdb.type === "tv" || item.tmdb.type === "series" ? "tv" : "movie";
       const key = `tmdb:images:v2:${cleanType}:${item.tmdb.id}`;
       keys.push(key);
@@ -171,22 +176,28 @@ export async function enrichMovieListPosters(movieList: any[], options: PosterEn
 
       // 1. Direct TMDB ID lookup (returns both poster + backdrop in 1 roundtrip when uncached)
       if (item.tmdb?.id) {
-        try {
-          const tmdbLookupType = item.tmdb.type || item.type;
-          const imgs = await getTmdbMediaImagesById(item.tmdb.id, tmdbLookupType, signal);
-          if (imgs.posterUrl) {
-            item.poster_url = imgs.posterUrl;
-            item.posterUrl = imgs.posterUrl;
-            if (item.poster_url_webp) item.poster_url_webp = imgs.posterUrl;
-            if (shouldUpgradeThumbUrl(item.thumb_url)) {
-              item.thumb_url = imgs.backdropUrl || imgs.posterUrl;
-              item.thumbUrl = imgs.backdropUrl || imgs.posterUrl;
-              if (item.thumb_url_webp) item.thumb_url_webp = imgs.backdropUrl || imgs.posterUrl;
+        if (isCorruptedTmdbId(item.tmdb.id, item)) {
+          item.tmdb = undefined;
+        } else {
+          try {
+            const tmdbLookupType = item.tmdb.type || item.type;
+            const imgs = await getTmdbMediaImagesById(item.tmdb.id, tmdbLookupType, signal, item);
+            if (imgs.posterUrl) {
+              item.poster_url = imgs.posterUrl;
+              item.posterUrl = imgs.posterUrl;
+              if (item.poster_url_webp) item.poster_url_webp = imgs.posterUrl;
+              if (shouldUpgradeThumbUrl(item.thumb_url)) {
+                item.thumb_url = imgs.backdropUrl || imgs.posterUrl;
+                item.thumbUrl = imgs.backdropUrl || imgs.posterUrl;
+                if (item.thumb_url_webp) item.thumb_url_webp = imgs.backdropUrl || imgs.posterUrl;
+              }
+              settledItems.add(item);
+              return;
+            } else {
+              item.tmdb = undefined;
             }
-            settledItems.add(item);
-            return;
-          }
-        } catch { }
+          } catch { }
+        }
       }
 
       if (signal.aborted) {

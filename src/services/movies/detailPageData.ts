@@ -21,6 +21,7 @@ import {
   getTmdbMediaImagesById,
   searchTmdbPosterByTitle,
 } from "@/services/tmdbService";
+import { isCorruptedTmdbId, sanitizeMovieAltNames } from "@/services/tmdb/tmdbSanityGuard";
 
 export interface NamedSlugItem {
   name: string;
@@ -285,13 +286,21 @@ export function extractPeopleAndTaxonomies(movie: MovieDetailRecord) {
         : []
   ).filter((n) => n.toLowerCase() !== (movie.name || "").toLowerCase());
 
-  return { actorList, directorList, categoryList, countryList, altNames };
+  const sanitizedAltNames = sanitizeMovieAltNames(altNames, movie);
+
+  return { actorList, directorList, categoryList, countryList, altNames: sanitizedAltNames };
 }
 
 export async function resolveTmdbFallbackMedia(movie: MovieDetailRecord) {
-  const tmdbId = movie.tmdb?.id || movie.imdb?.id;
+  let tmdbId = movie.tmdb?.id || movie.imdb?.id;
   const tmdbType =
     movie.tmdb?.type || (movie.type === "series" || movie.type === "phim-bo" ? "tv" : "movie");
+
+  if (tmdbId && isCorruptedTmdbId(tmdbId, movie)) {
+    delete movie.tmdb;
+    delete movie.imdb;
+    tmdbId = undefined;
+  }
 
   let effectivePosterUrl = pickBestMoviePoster(movie, "/default-poster.jpg");
   let effectiveThumbUrl = pickBestMovieThumb(movie, "/default-hero.jpg");
@@ -471,6 +480,10 @@ async function buildMovieDetailPageDataInternal(
   }
 
   const movie = data.movie as MovieDetailRecord;
+  if (movie.tmdb?.id && isCorruptedTmdbId(movie.tmdb.id, movie)) {
+    delete movie.tmdb;
+    delete movie.imdb;
+  }
   const episodes = data.episodes as RawEpisodeServer[] | undefined;
   const title = movie.name || movie.title || "Phim";
 

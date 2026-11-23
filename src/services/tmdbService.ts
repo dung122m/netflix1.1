@@ -14,16 +14,25 @@ export { extractPartNumber, normalizeTitleCore, ROMAN_NUMERALS, checkCandidateTi
 import type { TmdbPerson, TmdbPersonDetail, TmdbMovieCredit, MatchTmdbOptions } from "./tmdb/types";
 import { setBoundedMap, normalizeTmdbLookupMediaType, type CacheEntry } from "./tmdb/utils";
 import {
+  isCorruptedTmdbId,
+  isTmdbPayloadMatchingMovie,
+  sanitizeMovieAltNames,
+  type MovieIdentity,
+} from "./tmdb/tmdbSanityGuard";
+import {
   runWithConcurrencyLimit,
   matchTmdbMoviesWithSources,
   clearTmdbSingleMatchCache,
   TMDB_SINGLE_MOVIE_MATCH_CACHE,
 } from "./tmdb/movieMatcher";
 
-export type { TmdbPerson, TmdbPersonDetail, TmdbMovieCredit, MatchTmdbOptions, CacheEntry };
+export type { TmdbPerson, TmdbPersonDetail, TmdbMovieCredit, MatchTmdbOptions, CacheEntry, MovieIdentity };
 export {
   setBoundedMap,
   normalizeTmdbLookupMediaType,
+  isCorruptedTmdbId,
+  isTmdbPayloadMatchingMovie,
+  sanitizeMovieAltNames,
   runWithConcurrencyLimit,
   matchTmdbMoviesWithSources,
   clearTmdbSingleMatchCache,
@@ -125,11 +134,17 @@ function awaitWithAbort<T>(promise: Promise<T>, signal?: AbortSignal, fallback?:
 export async function getTmdbMediaImagesById(
   tmdbId: string | number | undefined | null,
   type: string = "movie",
-  externalSignal?: AbortSignal
+  externalSignal?: AbortSignal,
+  expectedMovie?: MovieIdentity
 ): Promise<{ posterUrl: string | null; backdropUrl: string | null }> {
   if (!tmdbId || externalSignal?.aborted) return { posterUrl: null, backdropUrl: null };
   const cleanId = String(tmdbId).trim();
   if (!cleanId || cleanId === "0" || cleanId === "null" || cleanId === "undefined") {
+    return { posterUrl: null, backdropUrl: null };
+  }
+
+  // Chống nhiễm độc TMDb ID rác từ upstream (vd: Flight Risk 1126166 gán nhầm cho phim Việt Nam)
+  if (expectedMovie && isCorruptedTmdbId(cleanId, expectedMovie)) {
     return { posterUrl: null, backdropUrl: null };
   }
 
@@ -182,6 +197,14 @@ export async function getTmdbMediaImagesById(
         if (altData?.poster_path && altData?.id) {
           data = altData;
         }
+      }
+
+      // Xác thực đối chiếu metadata TMDb trả về với danh tính bộ phim yêu cầu
+      if (expectedMovie && data && !isTmdbPayloadMatchingMovie(data, expectedMovie)) {
+        console.warn(
+          `[TMDB Sanity Guard] Rejected mismatched tmdbId ${cleanId} for "${expectedMovie.name || expectedMovie.title}" (${expectedMovie.year}) -> TMDb title: "${data.title || data.name}", release_date: "${data.release_date || data.first_air_date}"`
+        );
+        return { posterUrl: null, backdropUrl: null };
       }
 
       const posterUrl = data?.poster_path
@@ -777,11 +800,17 @@ export interface TmdbCastMember {
 
 export async function getTmdbMovieCredits(
   tmdbId: string | number | undefined | null,
-  type: string = "movie"
+  type: string = "movie",
+  expectedMovie?: MovieIdentity
 ): Promise<TmdbCastMember[]> {
   if (!tmdbId) return [];
   const cleanId = String(tmdbId).trim();
   if (!cleanId || cleanId === "0" || cleanId === "null" || cleanId === "undefined") return [];
+
+  // Chống nhiễm độc TMDb ID rác từ upstream (vd: Flight Risk 1126166 gán nhầm cho phim Việt Nam)
+  if (expectedMovie && isCorruptedTmdbId(cleanId, expectedMovie)) {
+    return [];
+  }
 
   const cleanType =
     type === "tv" || type === "series" || type === "phim-bo" || type === "tvshows" ? "tv" : "movie";

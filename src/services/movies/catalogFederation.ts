@@ -12,6 +12,7 @@ import {
   extractMovieRatingScore,
   extractMovieModifiedTime,
 } from "@/lib/movieMedia";
+import { isCorruptedTmdbId } from "@/services/tmdb/tmdbSanityGuard";
 import { MovieFilterParams, ParsedSortMode, parseSortMode } from "./filterTypes";
 
 export const API_NGUONC = process.env.NEXT_PUBLIC_API_URL || "https://phim.nguonc.com/api";
@@ -514,10 +515,16 @@ export async function fetchSourceData(
             const formattedThumb = formatImg(rawThumb);
             const formattedPoster = formatImg(rawPoster);
 
+            const cleanTmdb =
+              item.tmdb && typeof item.tmdb === "object" && "id" in item.tmdb && isCorruptedTmdbId((item.tmdb as { id?: string | number }).id, item)
+                ? undefined
+                : item.tmdb;
+
             return {
               ...item,
               source: "phimapi",
               sources: ["phimapi"],
+              ...(cleanTmdb !== undefined ? { tmdb: cleanTmdb } : { tmdb: undefined }),
               thumb_url: formattedThumb || formattedPoster,
               poster_url: formattedPoster || formattedThumb,
             };

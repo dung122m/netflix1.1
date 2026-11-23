@@ -70,13 +70,15 @@ async function MovieCastSectionAsync({
   tmdbId,
   tmdbType,
   actorList,
+  movie,
 }: {
   tmdbId?: string | number | null;
   tmdbType?: string;
   actorList: string[];
+  movie?: { name?: string; origin_name?: string; title?: string; year?: string | number; slug?: string };
 }) {
   const cast = tmdbId
-    ? await getTmdbMovieCredits(tmdbId, tmdbType).catch(() => [])
+    ? await getTmdbMovieCredits(tmdbId, tmdbType, movie).catch(() => [])
     : [];
   return <MovieCastGallery cast={cast} fallbackActors={actorList} />;
 }
@@ -155,6 +157,7 @@ export default async function MovieDetail({
         tmdbId={tmdbId}
         tmdbType={tmdbType}
         actorList={actorList}
+        movie={movie}
       />
     </Suspense>
   );

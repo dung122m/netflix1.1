@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { searchTmdbPosterByTitle, getTmdbMediaImagesById } from "@/services/tmdbService";
+import { searchTmdbPosterByTitle, getTmdbMediaImagesById, isCorruptedTmdbId } from "@/services/tmdbService";
 
 export const runtime = "nodejs";
 
@@ -79,10 +79,13 @@ async function resolvePoster(keys: ParsedItemKeys): Promise<{ posterUrl: string 
   const { tmdbId, title, origin_name, year, slug, type } = keys;
 
   if (tmdbId) {
-    try {
-      const direct = await getTmdbMediaImagesById(tmdbId, type);
-      if (direct?.posterUrl || direct?.backdropUrl) return direct;
-    } catch { }
+    const movieIdentity = { name: title, origin_name, year, slug };
+    if (!isCorruptedTmdbId(tmdbId, movieIdentity)) {
+      try {
+        const direct = await getTmdbMediaImagesById(tmdbId, type, undefined, movieIdentity);
+        if (direct?.posterUrl || direct?.backdropUrl) return direct;
+      } catch { }
+    }
   }
 
   const cleanType = type === "tv" || type === "series" ? "tv" : "movie";
