@@ -112,7 +112,7 @@ export function MobileMovieNav({ isSeries = true }: MobileMovieNavProps) {
       // Trên mobile (< 1024px), khi nhảy tới bất kỳ section nội dung nào bên dưới, player chắc chắn sẽ ở trạng thái sticky
       const willBeSticky = isPlayerSticky || window.innerWidth < 1024;
       const navOffset = willBeSticky
-        ? (navbarHeight + stickyPlayerHeight + navHeight)
+        ? (navbarHeight + stickyPlayerHeight + navHeight - 2)
         : (navbarHeight + navHeight);
       const targetY = element.getBoundingClientRect().top + window.scrollY - navOffset;
       window.scrollTo({
@@ -130,7 +130,7 @@ export function MobileMovieNav({ isSeries = true }: MobileMovieNavProps) {
     <div
       role="tablist"
       aria-label="Điều hướng nhanh nội dung phim"
-      className="mobile-movie-nav-sticky lg:hidden sticky top-[calc(var(--navbar-height,56px)-1px)] z-30 -mx-2 sm:-mx-4 px-2 sm:px-4 py-2 bg-zinc-950/95 backdrop-blur-xl border-t border-b border-white/[0.06] shadow-[0_8px_24px_rgba(0,0,0,0.65)] transition-[background-color,border-color,box-shadow] duration-200 mb-3 sm:mb-4"
+      className="mobile-movie-nav-sticky lg:hidden sticky top-[calc(var(--navbar-height,56px)-1px)] z-30 -mx-2 sm:-mx-4 px-2 sm:px-4 py-2 bg-zinc-950 backdrop-blur-xl border-t border-b border-white/[0.06] shadow-[0_8px_24px_rgba(0,0,0,0.65)] transition-[background-color,border-color,box-shadow] duration-200 mb-3 sm:mb-4"
     >
       <div className="flex items-center justify-between gap-1.5 sm:gap-2 overflow-x-auto scrollbar-none">
         {sections.map(({ id, label, icon: Icon }) => {

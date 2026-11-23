@@ -1030,8 +1030,9 @@
 }
 
 [data-player-sticky="true"] .mobile-movie-nav-sticky {
-  top: calc(var(--navbar-height, 56px) + 56.25vw + 31px) !important;
-  top: calc(var(--navbar-height, 56px) + var(--sticky-player-height, calc(56.25vw + 32px)) - 1px) !important;
+  top: calc(var(--navbar-height, 56px) + 56.25vw + 30px) !important;
+  top: calc(var(--navbar-height, 56px) + var(--sticky-player-height, calc(56.25vw + 32px)) - 2px) !important;
+  border-top-color: transparent !important;
 }
 
 [data-player-sticky="true"] #section-episodes,
@@ -1039,7 +1040,7 @@
 [data-player-sticky="true"] #section-reviews,
 [data-player-sticky="true"] #section-recommendations {
   scroll-margin-top: calc(var(--navbar-height, 56px) + 56.25vw + 80px);
-  scroll-margin-top: calc(var(--navbar-height, 56px) + var(--sticky-player-height, calc(56.25vw + 32px)) + 48px);
+  scroll-margin-top: calc(var(--navbar-height, 56px) + var(--sticky-player-height, calc(56.25vw + 32px)) + 46px);
 }
 
 @keyframes cinematic-shimmer {

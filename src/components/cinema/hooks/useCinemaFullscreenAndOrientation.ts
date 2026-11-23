@@ -368,11 +368,12 @@ export function useCinemaFullscreenAndOrientation({
     const updateStickyHeight = () => {
       const container = containerRef.current;
       if (!container) return;
-      const height = container.offsetHeight || container.getBoundingClientRect().height;
+      const rect = container.getBoundingClientRect();
+      const height = rect.height || container.offsetHeight;
       if (height > 0) {
         document.documentElement.style.setProperty(
           "--sticky-player-height",
-          `${Math.round(height)}px`
+          `${Math.floor(height)}px`
         );
       }
     };
