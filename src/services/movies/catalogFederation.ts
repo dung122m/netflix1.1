@@ -34,7 +34,7 @@ export const queryMetadataCache = new Map<string, QueryPaginationMeta>();
 
 export function buildQueryMetaKey(params: MovieFilterParams): string {
   return JSON.stringify({
-    v: 22,
+    v: 23,
     category: params.category || "",
     country: params.country || "",
     year: params.year || "",
