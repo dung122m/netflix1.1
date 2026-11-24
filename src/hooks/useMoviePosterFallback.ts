@@ -93,6 +93,161 @@ export function isPhimimgSourceUrl(url?: string | null): boolean {
   return isSlowProviderSourceUrl(url);
 }
 
+// =========================================================================
+// 3. AN TOÀN TUYỆT ĐỐI: BATCH FALLBACK QUEUE (TỐI ĐA 1 REQUEST / MÀN HÌNH)
+// =========================================================================
+export interface FallbackBatchItem {
+  slug?: string;
+  title?: string;
+  origin_name?: string;
+  year?: string | number;
+  type?: string;
+  tmdbId?: string | number;
+}
+
+// Module-level guard: Một slug chỉ được phép gửi fallback tối đa 1 LẦN DUY NHẤT trong toàn bộ phiên
+const TRIED_SLUGS_IN_SESSION = new Set<string>();
+
+const batchQueue: FallbackBatchItem[] = [];
+const batchCallbacks = new Map<string, Set<(url: string) => void>>();
+const inFlightKeys = new Set<string>();
+let batchTimer: NodeJS.Timeout | null = null;
+
+function getItemKey(item: FallbackBatchItem): string {
+  const cleanTmdbId = item.tmdbId ? String(item.tmdbId).trim() : "";
+  const cleanType = item.type || "movie";
+  return cleanTmdbId
+    ? `v3:tmdb:${cleanTmdbId}:${cleanType}`
+    : `v3:${item.slug || item.title || ""}|${item.origin_name || ""}|${item.year || ""}|${cleanType}`.toLowerCase();
+}
+
+function processBatchQueue() {
+  if (batchQueue.length === 0) return;
+  const itemsToProcess = batchQueue.splice(0, 24);
+  const itemsForFetch = itemsToProcess.filter((it) => {
+    const key = getItemKey(it);
+    return !inFlightKeys.has(key) && !GLOBAL_TRIED_FAILURES.has(key);
+  });
+
+  if (itemsForFetch.length === 0) return;
+
+  itemsForFetch.forEach((it) => inFlightKeys.add(getItemKey(it)));
+
+  fetch("/api/movie-poster-fallback", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ items: itemsForFetch }),
+  })
+    .then((res) => (res.ok ? res.json() : null))
+    .then((data) => {
+      const results = data?.results as Record<
+        string,
+        { posterUrl?: string | null; backdropUrl?: string | null }
+      > | undefined;
+
+      if (!results || typeof results !== "object") {
+        itemsForFetch.forEach((it) => {
+          persistFailureEntry(getItemKey(it));
+          if (it.slug) persistFailureEntry(it.slug);
+        });
+        return;
+      }
+
+      for (const it of itemsForFetch) {
+        const key = getItemKey(it);
+        const legacyKey = it.slug || `${it.title || ""}_${it.year || ""}`.trim();
+        const hit = results[key];
+        const posterUrl = hit?.posterUrl;
+
+        if (posterUrl && typeof posterUrl === "string" && posterUrl.includes("image.tmdb.org")) {
+          persistPosterCacheEntry(key, posterUrl);
+          if (it.slug) persistPosterCacheEntry(it.slug, posterUrl);
+          if (legacyKey) persistPosterCacheEntry(legacyKey, posterUrl);
+
+          const cbs = batchCallbacks.get(key);
+          if (cbs) {
+            cbs.forEach((cb) => cb(posterUrl));
+          }
+          if (it.slug && it.slug !== key) {
+            const slugCbs = batchCallbacks.get(it.slug);
+            if (slugCbs) slugCbs.forEach((cb) => cb(posterUrl));
+          }
+        } else {
+          persistFailureEntry(key);
+          if (it.slug) persistFailureEntry(it.slug);
+        }
+      }
+    })
+    .catch(() => {
+      // Khi có lỗi mạng, đánh dấu toàn bộ items trong mẻ này là đã thử để TUYỆT ĐỐI KHÔNG GỌI LẠI TRONG VÒNG LẶP
+      itemsForFetch.forEach((it) => {
+        persistFailureEntry(getItemKey(it));
+        if (it.slug) persistFailureEntry(it.slug);
+      });
+    })
+    .finally(() => {
+      itemsForFetch.forEach((it) => inFlightKeys.delete(getItemKey(it)));
+      if (batchQueue.length > 0) {
+        batchTimer = setTimeout(processBatchQueue, 500);
+      }
+    });
+}
+
+export function enqueuePosterBatchFallback(
+  item: FallbackBatchItem,
+  onResolved: (url: string) => void
+): void {
+  if (typeof window === "undefined" || !item) return;
+
+  const key = getItemKey(item);
+  const legacyKey = item.slug || `${item.title || ""}_${item.year || ""}`.trim();
+
+  // 1. Kiểm tra RAM cache trước (0ms)
+  if (GLOBAL_POSTER_CACHE.has(key)) {
+    onResolved(GLOBAL_POSTER_CACHE.get(key)!);
+    return;
+  }
+  if (legacyKey && GLOBAL_POSTER_CACHE.has(legacyKey)) {
+    onResolved(GLOBAL_POSTER_CACHE.get(legacyKey)!);
+    return;
+  }
+
+  // 2. Chốt chặn chống lặp vô tận: Nếu đã từng thử trong phiên này hoặc trong sessionStorage thì BỎ QUA NGAY
+  if (
+    (item.slug && TRIED_SLUGS_IN_SESSION.has(item.slug)) ||
+    GLOBAL_TRIED_FAILURES.has(key) ||
+    (item.slug && GLOBAL_TRIED_FAILURES.has(item.slug))
+  ) {
+    return;
+  }
+
+  // Đánh dấu đã tiếp nhận để không bao giờ cho phép re-render của component en-queue lần 2
+  if (item.slug) {
+    TRIED_SLUGS_IN_SESSION.add(item.slug);
+  }
+
+  // 3. Đăng ký listener
+  if (!batchCallbacks.has(key)) {
+    batchCallbacks.set(key, new Set());
+  }
+  batchCallbacks.get(key)!.add(onResolved);
+
+  if (item.slug) {
+    if (!batchCallbacks.has(item.slug)) {
+      batchCallbacks.set(item.slug, new Set());
+    }
+    batchCallbacks.get(item.slug)!.add(onResolved);
+  }
+
+  // 4. Đưa vào hàng đợi batch (debounce 250ms để gom toàn bộ các thẻ phim trên màn hình vào đúng 1 request)
+  if (!batchQueue.some((q) => getItemKey(q) === key)) {
+    batchQueue.push(item);
+  }
+
+  if (batchTimer) clearTimeout(batchTimer);
+  batchTimer = setTimeout(processBatchQueue, 250);
+}
+
 export interface UseMoviePosterFallbackOptions {
   slug?: string;
   title?: string;
