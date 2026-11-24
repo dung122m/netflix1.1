@@ -112,13 +112,13 @@ export const NavMobileMenu: React.FC<NavMobileMenuProps> = React.memo(function N
     <>
       {/* BACKDROP: Phủ toàn bộ màn hình phía dưới Navbar, trên page content nhưng dưới menu */}
       <div
-        className="fixed inset-0 top-[52px] sm:top-[60px] bg-black/70 backdrop-blur-sm z-40 overscroll-none touch-none lg:hidden animate-in fade-in duration-150"
+        className="fixed inset-0 top-[52px] sm:top-[60px] bg-black/75 z-40 overscroll-none touch-none lg:hidden animate-in fade-in duration-150 transform-gpu"
         onClick={onClose}
         aria-hidden="true"
       />
       <div
         data-mobile-menu
-        className="relative w-full z-50 lg:hidden bg-black/98 backdrop-blur-2xl px-3.5 py-3 animate-in slide-in-from-top duration-200 overflow-y-auto shadow-2xl overscroll-contain max-h-[calc(100dvh-3.5rem-env(safe-area-inset-bottom,0px))] pb-20"
+        className="relative w-full z-50 lg:hidden bg-zinc-950 border-b border-white/[0.08] px-3.5 py-3 animate-in slide-in-from-top duration-200 transform-gpu will-change-transform overflow-y-auto shadow-2xl overscroll-contain max-h-[calc(100dvh-3.5rem-env(safe-area-inset-bottom,0px))] pb-20 scroll-momentum"
         style={{ WebkitOverflowScrolling: "touch" }}
       >
       <div className="flex flex-col gap-2.5">

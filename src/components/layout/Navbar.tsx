@@ -20,6 +20,7 @@ import { NanaflixBrandLogo } from "@/components/layout/NetflixLogo";
 import { NavSearchBar } from "@/components/navbar/NavSearchBar";
 import { NavUserMenu } from "@/components/navbar/NavUserMenu";
 import { AccentStudio } from "@/components/navbar/AccentStudio";
+import { NavMobileMenu } from "@/components/navbar/NavMobileMenu";
 import { useAuth } from "@/context/AuthContext";
 import { subscribeUserNotifications } from "@/services/notificationService";
 
@@ -34,11 +35,6 @@ const NavNotifications = dynamic(
       />
     ),
   }
-);
-
-const NavMobileMenu = dynamic(
-  () => import("@/components/navbar/NavMobileMenu").then((m) => m.NavMobileMenu),
-  { ssr: false }
 );
 
 const AuthModal = dynamic(

@@ -2,6 +2,7 @@
 
 import React from "react";
 import { createPortal } from "react-dom";
+import { useBodyScrollLock } from "@/lib/scrollLock";
 import {
   X,
 } from "lucide-react";
@@ -49,13 +50,15 @@ export const FilterMobileDrawer: React.FC<FilterMobileDrawerProps> = React.memo(
     onApply,
     draftActiveCount,
   }) {
+    useBodyScrollLock(isOpen);
+
     if (!isOpen || typeof document === "undefined") return null;
 
     return createPortal(
       <div className="fixed inset-0 z-[100000] sm:hidden select-none">
         {/* Lớp nền mờ tối (Backdrop Overlay) */}
         <div
-          className="fixed inset-0 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200 cursor-pointer"
+          className="fixed inset-0 bg-black/75 animate-in fade-in duration-200 transform-gpu cursor-pointer"
           onClick={onClose}
           aria-hidden="true"
         />
@@ -65,7 +68,7 @@ export const FilterMobileDrawer: React.FC<FilterMobileDrawerProps> = React.memo(
           role="dialog"
           aria-modal="true"
           aria-label="Bảng điều khiển bộ lọc phim"
-          className="fixed inset-x-0 bottom-0 z-[100001] max-h-[85dvh] flex flex-col rounded-t-3xl bg-zinc-950 border-t border-white/[0.08] shadow-[0_-16px_50px_rgba(0,0,0,0.95)] animate-in slide-in-from-bottom duration-200"
+          className="fixed inset-x-0 bottom-0 z-[100001] max-h-[85dvh] flex flex-col rounded-t-3xl bg-zinc-950 border-t border-white/[0.08] shadow-[0_-16px_50px_rgba(0,0,0,0.95)] animate-in slide-in-from-bottom duration-200 transform-gpu will-change-transform"
         >
           {/* Thanh nắm kéo (Grab Handle) */}
           <div className="w-12 h-1.5 rounded-full bg-zinc-700/80 mx-auto my-2.5 shrink-0" />
@@ -91,7 +94,10 @@ export const FilterMobileDrawer: React.FC<FilterMobileDrawerProps> = React.memo(
           </div>
 
           {/* Danh sách các nhóm bộ lọc có thể cuộn */}
-          <div className="flex-1 min-h-0 overflow-y-auto px-4 py-3 space-y-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden overscroll-contain">
+          <div
+            className="flex-1 min-h-0 overflow-y-auto px-4 py-3 space-y-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden overscroll-contain scroll-momentum"
+            style={{ WebkitOverflowScrolling: "touch" }}
+          >
             {/* NHÓM 1: SẮP XẾP (PHƯƠNG ÁN 1: TINH GỌN 4 TIÊU CHÍ) */}
             <div className="space-y-2.5">
               <div className="flex items-center justify-between">

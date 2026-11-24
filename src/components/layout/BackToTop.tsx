@@ -31,7 +31,7 @@ export function BackToTop() {
   if (!visible) return null;
 
   return (
-    <div className="fixed bottom-[calc(4.5rem+env(safe-area-inset-bottom,0px))] right-4 sm:bottom-24 sm:right-6 lg:bottom-8 lg:right-6 z-40 pointer-events-auto">
+    <div className="fixed bottom-[calc(4.5rem+env(safe-area-inset-bottom,0px))] right-4 sm:bottom-24 sm:right-6 lg:bottom-8 lg:right-6 z-30 pointer-events-auto">
       <Tooltip content="Cuộn lên đầu trang" side="left">
         <button
           type="button"

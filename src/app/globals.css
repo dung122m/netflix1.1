@@ -194,15 +194,21 @@
     overflow-x: clip;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    text-rendering: optimizeLegibility;
+    touch-action: manipulation;
+    -webkit-overflow-scrolling: touch;
   }
 
   html {
     @apply font-sans;
     scroll-padding-top: 5rem;
-    overflow-x: clip;
-    scrollbar-gutter: stable;
     scroll-behavior: auto !important;
+    touch-action: manipulation;
+  }
+
+  @media (min-width: 768px) {
+    html {
+      scrollbar-gutter: stable;
+    }
   }
 
   ::selection {
