@@ -90,19 +90,26 @@ async function resolvePoster(keys: ParsedItemKeys): Promise<{ posterUrl: string 
   }
 
   const cleanType = type === "tv" || type === "series" ? "tv" : "movie";
-  const isVietnamese =
-    /[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/i.test(title || "") ||
-    /[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/i.test(origin_name || "");
+  const isDomesticVietnamese =
+    /[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/i.test(origin_name || "") &&
+    Boolean(origin_name && origin_name.trim().length >= 2);
 
-  const queries = isVietnamese
+  // Phim quốc tế ưu tiên origin_name (Hoppers, Godzilla, Attack on Titan...) để tìm chuẩn xác trên TMDb
+  const queries = isDomesticVietnamese
     ? [title, slug?.replace(/-/g, " ")]
     : [origin_name, title, slug?.replace(/-/g, " ")];
 
-  const validQueries = queries.filter((q): q is string => Boolean(q && q.length >= 2));
+  const validQueries = queries.filter((q): q is string => Boolean(q && q.trim().length >= 2));
 
   for (const q of validQueries) {
     try {
-      const res = await searchTmdbPosterByTitle(q, year || undefined, cleanType, undefined, isVietnamese ? "VN" : undefined);
+      const res = await searchTmdbPosterByTitle(
+        q,
+        year || undefined,
+        cleanType,
+        undefined,
+        isDomesticVietnamese ? "VN" : undefined
+      );
       if (res?.posterUrl || res?.backdropUrl) return res;
     } catch { }
   }

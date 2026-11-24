@@ -399,6 +399,7 @@ function extractTitleVariants(text: string): string[] {
 
 interface TmdbCandidateOptions {
   originalQuery?: string;
+  currentVariant?: string;
   expectedCountry?: string;
   isVietnamese?: boolean;
 }
@@ -417,6 +418,8 @@ function pickBestTmdbCandidate(
   const parsedYear = targetYear ? parseInt(String(targetYear).trim(), 10) : null;
   const originalQuery = options?.originalQuery?.trim().toLowerCase() || "";
   const normQuery = normalizeForMatch(originalQuery);
+  const currentVariant = options?.currentVariant?.trim().toLowerCase() || "";
+  const normVariant = normalizeForMatch(currentVariant);
   const isVietnamese = options?.isVietnamese ?? (
     options?.expectedCountry === "VN" ||
     (options?.expectedCountry ? options.expectedCountry.toLowerCase().includes("viet") : false)
@@ -439,12 +442,16 @@ function pickBestTmdbCandidate(
       .filter((t): t is string => typeof t === "string" && t.trim().length > 0);
 
     let bestTitleSim = 0;
-    if (normQuery) {
+    if (normQuery || normVariant) {
       for (const candTitle of titleCandidates) {
         const normCand = normalizeForMatch(candTitle);
-        if (normCand === normQuery) {
+        if (normCand && (normCand === normQuery || (normVariant && normCand === normVariant))) {
           bestTitleSim = Math.max(bestTitleSim, 120);
-        } else if (normCand && (normCand.includes(normQuery) || normQuery.includes(normCand))) {
+        } else if (
+          normCand &&
+          ((normQuery && (normCand.includes(normQuery) || normQuery.includes(normCand))) ||
+            (normVariant && (normCand.includes(normVariant) || normVariant.includes(normCand))))
+        ) {
           bestTitleSim = Math.max(bestTitleSim, 70);
         }
       }
@@ -571,11 +578,15 @@ export async function searchTmdbPosterByTitle(
       for (let i = 0; i < variants.length; i++) {
         if (externalSignal?.aborted) break;
         const v = variants[i];
+        const candidateOptionsForVariant: TmdbCandidateOptions = {
+          ...candidateOptions,
+          currentVariant: v,
+        };
         // 1. Thử search/multi (bao quát cả movie và tv series/anime, match cả tên gốc và tên tiếng Việt)
         try {
           const endpointMulti = `/search/multi?query=${encodeURIComponent(v)}&include_adult=false`;
           const dataMulti = await fetchTmdbEndpoint(endpointMulti, 86400, externalSignal);
-          const bestMulti = pickBestTmdbCandidate(dataMulti?.results, cleanType, year, candidateOptions);
+          const bestMulti = pickBestTmdbCandidate(dataMulti?.results, cleanType, year, candidateOptionsForVariant);
           if (bestMulti?.poster_path) {
             result = {
               posterUrl: `https://image.tmdb.org/t/p/w500${bestMulti.poster_path}`,
@@ -590,7 +601,7 @@ export async function searchTmdbPosterByTitle(
           try {
             const endpointMultiVi = `/search/multi?query=${encodeURIComponent(v)}&language=vi-VN&include_adult=false`;
             const dataMultiVi = await fetchTmdbEndpoint(endpointMultiVi, 86400, externalSignal);
-            const bestMultiVi = pickBestTmdbCandidate(dataMultiVi?.results, cleanType, year, candidateOptions);
+            const bestMultiVi = pickBestTmdbCandidate(dataMultiVi?.results, cleanType, year, candidateOptionsForVariant);
             if (bestMultiVi?.poster_path) {
               result = {
                 posterUrl: `https://image.tmdb.org/t/p/w500${bestMultiVi.poster_path}`,

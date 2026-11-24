@@ -104,6 +104,55 @@ describe("TMDb Sanity Guard & Anti-Corruption Suite", () => {
       assert.strictEqual(isTmdbPayloadMatchingMovie(realTmdbPayload, movie), true);
     });
 
+    it("Accepts foreign movies with Vietnamese translated titles matching international TMDb entries", () => {
+      // 1. Colossal (Cô Gái Và Gã Khổng Lồ)
+      const colossal = {
+        name: "Cô Gái Và Gã Khổng Lồ",
+        origin_name: "Colossal",
+        year: 2017,
+        country: "Âu Mỹ",
+        slug: "co-gai-va-ga-khong-lo",
+      };
+      const tmdbColossal = {
+        id: 339967,
+        title: "Colossal",
+        original_title: "Colossal",
+        release_date: "2017-04-06",
+      };
+      assert.strictEqual(isTmdbPayloadMatchingMovie(tmdbColossal, colossal), true);
+
+      // 2. High Heat (Tức Giận Tột Cùng)
+      const highHeat = {
+        name: "Tức Giận Tột Cùng",
+        origin_name: "High Heat",
+        year: 2022,
+        country: "Âu Mỹ",
+        slug: "tuc-gian-tot-cung",
+      };
+      const tmdbHighHeat = {
+        id: 1015963,
+        title: "High Heat",
+        original_title: "High Heat",
+        release_date: "2022-12-16",
+      };
+      assert.strictEqual(isTmdbPayloadMatchingMovie(tmdbHighHeat, highHeat), true);
+
+      // 3. Hoppers (Hoppers: Cú Nhảy Kỳ Diệu)
+      const hoppers = {
+        name: "Hoppers: Cú Nhảy Kỳ Diệu",
+        origin_name: "Hoppers",
+        year: 2026,
+        slug: "hoppers-cu-nhay-ky-dieu",
+      };
+      const tmdbHoppers = {
+        id: 111111,
+        title: "Hoppers",
+        original_title: "Hoppers",
+        release_date: "2026-03-06",
+      };
+      assert.strictEqual(isTmdbPayloadMatchingMovie(tmdbHoppers, hoppers), true);
+    });
+
     it("Accepts legitimate title variations (sequel numbers, roman numerals, vowel variants) within same year", () => {
       // 1. Lật Mặt 5: 48h vs Lật Mặt: 48H
       const latMat5 = { name: "Lật Mặt 5: 48h", year: 2021 };

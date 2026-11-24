@@ -123,10 +123,23 @@ export function isTmdbPayloadMatchingMovie(
           .join(" ")
       : "";
 
-  const isDomesticVietnameseMovie =
+  const isExplicitVietnameseCountry =
     /vi[eêệ]t\s*nam/i.test(countryStr) ||
-    /viet-?nam/i.test(countryStr) ||
-    VIETNAMESE_DIACRITICS_REGEX.test(movie.name || "");
+    /viet-?nam/i.test(countryStr);
+
+  const hasForeignCountry =
+    Boolean(countryStr) &&
+    !isExplicitVietnameseCountry &&
+    /(âu\s*mỹ|hàn\s*quốc|nhật\s*bản|trung\s*quốc|thái\s*lan|đài\s*loan|hồng\s*kông|ấn\s*độ|anh|pháp|đức|ý|nga|tây\s*ban\s*nha|mỹ|korea|japan|china|thailand|us|uk)/i.test(countryStr);
+
+  // Phim chỉ được coi là nội địa Việt Nam khi:
+  // 1. Metadata quốc gia chỉ rõ là Việt Nam.
+  // 2. Hoặc khi không có thông tin quốc gia nước ngoài VÀ tên gốc (origin_name) chứa ký tự tiếng Việt có dấu.
+  // TUYỆT ĐỐI không coi phim là nội địa Việt Nam nếu origin_name là tên quốc tế/Latinh hoặc quốc gia là nước ngoài,
+  // bởi vì 95% phim ngoại chiếu trên Nanaflix đều được đặt tên hiển thị (movie.name) bằng tiếng Việt!
+  const isDomesticVietnameseMovie =
+    isExplicitVietnameseCountry ||
+    (!hasForeignCountry && Boolean(movie.origin_name && VIETNAMESE_DIACRITICS_REGEX.test(movie.origin_name)));
 
   // Thu thập danh sách tiêu đề chính thống của phim Nanaflix
   const primaryMovieTitles = [
