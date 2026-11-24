@@ -91,13 +91,11 @@ async function resolvePoster(keys: ParsedItemKeys): Promise<{ posterUrl: string 
 
   const cleanType = type === "tv" || type === "series" ? "tv" : "movie";
   const isDomesticVietnamese =
-    /[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/i.test(origin_name || "") &&
-    Boolean(origin_name && origin_name.trim().length >= 2);
+    /[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/i.test(title || "");
 
-  // Phim quốc tế ưu tiên origin_name (Hoppers, Godzilla, Attack on Titan...) để tìm chuẩn xác trên TMDb
-  const queries = isDomesticVietnamese
-    ? [title, slug?.replace(/-/g, " ")]
-    : [origin_name, title, slug?.replace(/-/g, " ")];
+  // Đầy đủ cả origin_name và title: TMDb lưu nhiều phim Việt Nam bằng tên tiếng Anh
+  // (Betting with Ghost, The 4 Rascals, Wharf of Widows...) nhưng có original_language = "vi".
+  const queries = [origin_name, title, slug?.replace(/-/g, " ")];
 
   const validQueries = queries.filter((q): q is string => Boolean(q && q.trim().length >= 2));
 

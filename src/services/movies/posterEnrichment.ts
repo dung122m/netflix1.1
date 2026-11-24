@@ -247,24 +247,10 @@ export async function enrichMovieListPosters(movieList: any[], options: PosterEn
         ) ||
         (typeof item.country === "string" && item.country.toLowerCase().includes("viet"));
 
-      // Với phim nội địa Việt Nam: Chỉ tìm kiếm bằng tên tiếng Việt hoặc slug;
-      // Tuyệt đối không tìm bằng origin_name nếu origin_name là từ tiếng Anh/nước ngoài không liên quan (như 'Hamlet')
-      const cleanOrigin = typeof item.origin_name === "string" ? item.origin_name.trim() : "";
-      const normOrigin = normalizeForMatch(cleanOrigin);
-      const normName = normalizeForMatch(item.name || "");
-      const normSlug = normalizeForMatch((item.slug || "").replace(/-/g, " "));
-
-      const isOriginRelatedToVietnamese =
-        cleanOrigin.length >= 2 &&
-        (normOrigin === normName ||
-          normOrigin === normSlug ||
-          (normOrigin.length >= 3 && normName.length >= 3 && (normName.includes(normOrigin) || normOrigin.includes(normName))) ||
-          /[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/i.test(cleanOrigin));
-
-      // Phim nội địa Việt Nam: ưu tiên tên tiếng Việt, loại bỏ origin_name rác ngoại lai.
-      // Phim quốc tế (Anime, US/UK, K-drama, C-drama): ưu tiên origin_name để đối soát chuẩn xác trên TMDb quốc tế.
+      // Đầy đủ cả origin_name và name: TMDb lưu nhiều phim Việt Nam bằng tên tiếng Anh (Betting with Ghost, The 4 Rascals, Wharf of Widows...)
+      // nhưng có original_language = "vi". Cơ chế chấm điểm trong tmdbService sẽ tự động nhận diện và bảo vệ.
       const rawCandidates = isVietnameseCountry
-        ? [item.name, item.slug ? String(item.slug).replace(/-/g, " ") : null, isOriginRelatedToVietnamese ? item.origin_name : null]
+        ? [item.origin_name, item.name, item.slug ? String(item.slug).replace(/-/g, " ") : null]
         : [item.origin_name, item.name, item.slug ? String(item.slug).replace(/-/g, " ") : null];
 
       const primaryCandidates = Array.from(

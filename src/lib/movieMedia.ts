@@ -642,9 +642,6 @@ export function toFastCdnImageUrl(url: string): string {
   if (!url || typeof url !== "string") return "";
   const clean = url.trim();
   if (!clean) return "";
-  if (isSlowProviderSourceUrl(clean)) {
-    return "";
-  }
   return clean;
 }
 
