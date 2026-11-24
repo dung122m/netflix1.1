@@ -242,7 +242,7 @@ export const saveEpisodeProgress = (
             updatedAt: now,
             watchedEpisodes: getWatchedEpisodes(movieSlug),
           };
-          syncHandler.saveItem(auth.currentUser.uid, updatedItem, 2000, { force: true });
+          syncHandler.saveItem(auth.currentUser.uid, updatedItem, 30000);
         }
       }
     }
@@ -379,7 +379,7 @@ export const saveWatchHistory = (
 
     // Tự động đẩy lên Cloud nếu người dùng đã đăng nhập Google (đã lưu trực tiếp vào watch_history)
     if (auth?.currentUser) {
-      syncHandler?.saveItem(auth.currentUser.uid, newItem, 2000, { force: true });
+      syncHandler?.saveItem(auth.currentUser.uid, newItem, 30000);
     } else {
       // Dành riêng cho khách vãng lai (Guest): Ghi nhận lượt xem qua anonymousId để phục vụ Trending cộng đồng
       try {
@@ -403,7 +403,7 @@ export const saveWatchHistory = (
             }
             // Nếu sau khi chờ authStateReady phát hiện đã đăng nhập -> chuyển sang syncHandler, không gọi record-view
             if (userId) {
-              syncHandler?.saveItem(userId, newItem, 2000, { force: true });
+              syncHandler?.saveItem(userId, newItem, 30000);
               return;
             }
 

@@ -47,14 +47,24 @@ async function getAuthHeaders(): Promise<HeadersInit> {
   return headers;
 }
 
+const lastHistorySyncMap = new Map<string, number>();
+const HISTORY_SYNC_THROTTLE_MS = 5 * 60 * 1000; // Tối thiểu 5 phút giữa các lần GET /api/user/history tự động theo từng user
+
 /**
  * Đồng bộ hai chiều giữa LocalStorage và Supabase Cloud qua Server API
  * Trả về danh sách đã hợp nhất mới nhất
  */
 export async function syncWatchHistoryWithCloud(
   userId: string,
+  force = false,
 ): Promise<WatchHistoryItem[]> {
   if (!userId) return getWatchHistory();
+
+  const now = Date.now();
+  const lastSync = lastHistorySyncMap.get(userId) || 0;
+  if (!force && lastSync > 0 && now - lastSync < HISTORY_SYNC_THROTTLE_MS) {
+    return getWatchHistory();
+  }
 
   try {
     const headers = await getAuthHeaders();
@@ -68,6 +78,7 @@ export async function syncWatchHistoryWithCloud(
     });
 
     if (res.ok) {
+      lastHistorySyncMap.set(userId, Date.now());
       const json = await res.json();
       if (json.success && Array.isArray(json.items)) {
         if (json.items.length > 0) {
@@ -90,9 +101,9 @@ export async function syncWatchHistoryWithCloud(
 }
 
 /**
- * Lưu 1 mục lịch sử xem lên Cloud qua Server API (Debounced 45s + Dirty check)
- * - Tối ưu debounce lên 45000ms đối với tiến trình liên tục, tiết kiệm 70% request Vercel
- * - Dirty check: chỉ gửi Cloud update nếu progressSeconds thay đổi >= 10s hoặc đổi tập/buộc lưu (force)
+ * Lưu 1 mục lịch sử xem lên Cloud qua Server API (Debounced 60s-120s + Dirty check)
+ * - Tối ưu debounce đối với tiến trình liên tục, tiết kiệm 85%+ request Vercel
+ * - Chỉ gửi Cloud update ngay nếu kết thúc phim, đổi tập, hoặc force cách lần trước >= 45s
  */
 export function saveWatchItemToCloudDebounced(
   userId: string,
@@ -107,8 +118,9 @@ export function saveWatchItemToCloudDebounced(
   const lastSynced = lastSyncedCloudState.get(key);
 
   const isEpisodeChanged = Boolean(lastSynced && item.episodeSlug && lastSynced.episodeSlug !== item.episodeSlug);
-  const isProgressSignificant = !lastSynced || Math.abs(currentProgress - lastSynced.progressSeconds) >= 10;
-  const shouldSync = options?.force || isEpisodeChanged || isProgressSignificant;
+  const isProgressSignificant = !lastSynced || Math.abs(currentProgress - lastSynced.progressSeconds) >= 15;
+  const now = Date.now();
+  const timeSinceLastSync = lastSynced ? now - lastSynced.syncedAt : Infinity;
 
   // Cơ chế chống trùng lặp (dedupe): bỏ qua request đồng bộ nếu vị trí thời gian xem (currentTime)
   // chênh lệch dưới 5 giây so với lần sync thành công gần nhất (trừ sự kiện Ended hết tập hoặc đổi tập)
@@ -121,13 +133,13 @@ export function saveWatchItemToCloudDebounced(
   // Luôn cập nhật thông tin mới nhất vào hàng đợi pending
   pendingCloudSaveItems.set(key, item);
 
-  // Nếu không phải force và tiến trình chưa thay đổi đáng kể (< 10s) trên cùng 1 tập -> bỏ qua
-  if (!shouldSync) {
-    return;
-  }
+  // Chỉ gửi Cloud ngay lập tức nếu:
+  // 1. Phim/tập đã kết thúc (isEnded = true)
+  // 2. Chuyển sang tập mới (isEpisodeChanged = true)
+  // 3. Được yêu cầu force VÀ đã qua tối thiểu 45 giây kể từ lần sync Cloud gần nhất
+  const shouldImmediateSync = options?.isEnded || isEpisodeChanged || (options?.force && timeSinceLastSync >= 45000);
 
-  // Nếu là sự kiện quan trọng (pause, ended, đổi tập, khởi tạo), gửi ngay lập tức
-  if (options?.force) {
+  if (shouldImmediateSync) {
     if (cloudSaveTimers.has(key)) {
       clearTimeout(cloudSaveTimers.get(key));
       cloudSaveTimers.delete(key);
@@ -166,11 +178,17 @@ export function saveWatchItemToCloudDebounced(
     return;
   }
 
-  // Nếu đã có timer 15s đang chạy, giữ nguyên timer để không bị reset vô hạn khi xem phim liên tục
+  // Nếu không phải immediate sync, và tiến trình chưa thay đổi đáng kể và không đổi tập -> bỏ qua
+  if (!isProgressSignificant && !isEpisodeChanged && !options?.force) {
+    return;
+  }
+
+  // Nếu đã có timer đang chạy, giữ nguyên timer để không bị reset vô hạn khi xem phim liên tục
   if (cloudSaveTimers.has(key)) {
     return;
   }
 
+  const effectiveDelay = Math.max(delayMs, 60000); // Tối thiểu 60 giây debounce khi xem
   const timer = setTimeout(async () => {
     cloudSaveTimers.delete(key);
     const targetItem = pendingCloudSaveItems.get(key) || item;
@@ -201,7 +219,7 @@ export function saveWatchItemToCloudDebounced(
     } catch (err) {
       console.warn("Lỗi saveWatchItemToCloudDebounced:", err);
     }
-  }, delayMs);
+  }, effectiveDelay);
 
   cloudSaveTimers.set(key, timer);
 }
@@ -421,5 +439,11 @@ registerWatchlistSyncHandler({
   saveItem: saveWatchlistItemToCloud,
   removeItem: removeWatchlistItemFromCloud,
 });
+
+export function _resetCloudSyncStateForTest(): void {
+  lastHistorySyncMap.clear();
+  lastSyncedCloudState.clear();
+  pendingCloudSaveItems.clear();
+}
 
 

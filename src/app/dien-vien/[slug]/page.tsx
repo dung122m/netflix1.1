@@ -121,7 +121,8 @@ interface PageProps {
 interface ActorPageRamCacheEntry {
   profile: ResolvedActorProfile | null;
   wikiProfile: ActorProfile | null;
-  movies: unknown[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  movies: any[];
   isNotFound?: boolean;
   expireAt: number;
 }
@@ -150,6 +151,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 export default async function ActorDetailPage({ params }: PageProps) {
   const { slug } = await params;
   const now = Date.now();
+
+  // 1. Kiểm tra L1 In-Memory RAM Cache (0ms, 0 Redis commands)
   const cachedPage = ACTOR_PAGE_RAM_CACHE.get(slug);
   if (cachedPage && cachedPage.expireAt > now) {
     if (cachedPage.isNotFound) {
@@ -157,9 +160,98 @@ export default async function ActorDetailPage({ params }: PageProps) {
     }
   }
 
-  const profile = await resolveActorProfile(slug);
-  if (profile.isCachedNotFound) {
-    notFound();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let profile: ResolvedActorProfile | null = (cachedPage?.profile as ResolvedActorProfile) || null;
+  let wikiProfile: ActorProfile | null = cachedPage?.wikiProfile || null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let movies: any[] = (cachedPage?.movies as any[]) ?? [];
+
+  // 2. Kiểm tra L2 Redis Cache nếu chưa có trong RAM
+  if (!profile || !movies || movies.length === 0) {
+    try {
+      const redisFull = await cacheService.get<{
+        profile: ResolvedActorProfile;
+        wikiProfile: ActorProfile | null;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        movies: any[];
+      }>(`actor:full_page:v6:${slug}`);
+
+      if (redisFull && redisFull.profile && Array.isArray(redisFull.movies) && redisFull.movies.length > 0) {
+        profile = redisFull.profile;
+        wikiProfile = redisFull.wikiProfile;
+        movies = redisFull.movies;
+
+        if (ACTOR_PAGE_RAM_CACHE.size >= MAX_ACTOR_PAGE_RAM_ENTRIES) {
+          const oldest = ACTOR_PAGE_RAM_CACHE.keys().next().value;
+          if (oldest) ACTOR_PAGE_RAM_CACHE.delete(oldest);
+        }
+        ACTOR_PAGE_RAM_CACHE.set(slug, {
+          profile,
+          wikiProfile,
+          movies,
+          expireAt: now + 7200000, // 2h RAM cache
+        });
+      }
+    } catch {}
+  }
+
+  // 3. Cache Miss: Chỉ thực thi resolve và query khi thực sự chưa có cache!
+  if (!profile || !movies || movies.length === 0) {
+    profile = await resolveActorProfile(slug);
+    if (profile.isCachedNotFound) {
+      if (ACTOR_PAGE_RAM_CACHE.size >= MAX_ACTOR_PAGE_RAM_ENTRIES) {
+        const oldest = ACTOR_PAGE_RAM_CACHE.keys().next().value;
+        if (oldest) ACTOR_PAGE_RAM_CACHE.delete(oldest);
+      }
+      ACTOR_PAGE_RAM_CACHE.set(slug, {
+        profile: null,
+        wikiProfile: null,
+        movies: [],
+        isNotFound: true,
+        expireAt: now + 3600000,
+      });
+      notFound();
+    }
+
+    const rawCanonical = profile.canonicalName;
+    const actorAliases = profile.actorAliases;
+    const canonicalName = toVietnameseTitleCase(rawCanonical || profile.rawName);
+
+    // Bắt đầu promise Wikipedia & phim CHỈ KHI cache miss
+    const [fetchedWiki, fetchedMovies] = await Promise.all([
+      canonicalName ? fetchActorProfile(canonicalName, actorAliases) : Promise.resolve(null),
+      canonicalName
+        ? queryMoviesByActor(
+            canonicalName,
+            actorAliases,
+            profile.historicalItem?.country || profile.actorRes?.country || profile.actorSynonyms?.country || "",
+            150,
+            profile.tmdbPersonId
+          )
+        : Promise.resolve([]),
+    ]);
+
+    wikiProfile = fetchedWiki;
+    movies = fetchedMovies || [];
+
+    if (movies && movies.length > 0) {
+      // Giảm budget xuống 300ms để tiết kiệm tối đa CPU Serverless
+      await enrichMovieListPosters(movies, { budgetMs: 300, stripProxyUrls: true });
+      cacheService
+        .set(`actor:full_page:v6:${slug}`, { profile, wikiProfile, movies }, ACTOR_PAGE_REDIS_TTL_SEC)
+        .catch(() => {});
+
+      if (ACTOR_PAGE_RAM_CACHE.size >= MAX_ACTOR_PAGE_RAM_ENTRIES) {
+        const oldest = ACTOR_PAGE_RAM_CACHE.keys().next().value;
+        if (oldest) ACTOR_PAGE_RAM_CACHE.delete(oldest);
+      }
+      ACTOR_PAGE_RAM_CACHE.set(slug, {
+        profile,
+        wikiProfile,
+        movies,
+        expireAt: now + 7200000,
+      });
+    }
   }
 
   const {
@@ -173,48 +265,6 @@ export default async function ActorDetailPage({ params }: PageProps) {
   } = profile;
 
   let canonicalName = toVietnameseTitleCase(rawCanonical || profile.rawName);
-
-  // 3. Tra cứu thông tin bổ trợ từ Wikipedia và Danh sách phim
-  // Luôn truy vấn Wikipedia song song với danh sách phim để đảm bảo tiểu sử đầy đủ, phong phú
-  // (Wikipedia cung cấp các cột mốc sự nghiệp, giải thưởng và đời tư chi tiết hơn nhiều so với tóm tắt 1-2 câu của TMDb)
-  const wikiProfilePromise = canonicalName
-    ? fetchActorProfile(canonicalName, actorAliases)
-    : Promise.resolve(null);
-  const moviesPromise = canonicalName
-    ? queryMoviesByActor(
-      canonicalName,
-      actorAliases,
-      historicalItem?.country || actorRes?.country || actorSynonyms?.country || "",
-      150,
-      profile.tmdbPersonId
-    )
-    : Promise.resolve([]);
-
-  let wikiProfile = (cachedPage?.movies && cachedPage.movies.length > 0) ? cachedPage.wikiProfile : null;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let movies: any[] = (cachedPage?.movies as any[]) ?? [];
-
-  if (!cachedPage || cachedPage.expireAt <= now || !Array.isArray(movies) || movies.length === 0) {
-    try {
-      const redisFull = await cacheService.get<{ wikiProfile: ActorProfile | null; movies: unknown[] }>(
-        `actor:full_page:v5:${slug}`
-      );
-      if (redisFull && Array.isArray(redisFull.movies) && redisFull.movies.length > 0) {
-        wikiProfile = redisFull.wikiProfile;
-        movies = redisFull.movies;
-      }
-    } catch { }
-
-    if (!movies || movies.length === 0) {
-      [wikiProfile, movies] = await Promise.all([wikiProfilePromise, moviesPromise]);
-      if (movies && movies.length > 0) {
-        await enrichMovieListPosters(movies, { budgetMs: 1500, stripProxyUrls: true });
-        cacheService
-          .set(`actor:full_page:v5:${slug}`, { wikiProfile, movies }, ACTOR_PAGE_REDIS_TTL_SEC)
-          .catch(() => { });
-      }
-    }
-  }
 
   const hasVietnameseMarks = (s: string) =>
     /[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/i.test(s);
@@ -242,19 +292,6 @@ export default async function ActorDetailPage({ params }: PageProps) {
       expireAt: Date.now() + 3600000, // 1h negative RAM cache
     });
     notFound();
-  }
-
-  if (movies && movies.length > 0) {
-    if (ACTOR_PAGE_RAM_CACHE.size >= MAX_ACTOR_PAGE_RAM_ENTRIES) {
-      const oldest = ACTOR_PAGE_RAM_CACHE.keys().next().value;
-      if (oldest) ACTOR_PAGE_RAM_CACHE.delete(oldest);
-    }
-    ACTOR_PAGE_RAM_CACHE.set(slug, {
-      profile,
-      wikiProfile,
-      movies,
-      expireAt: Date.now() + 7200000, // 2h RAM cache
-    });
   }
 
   const rawCountry =

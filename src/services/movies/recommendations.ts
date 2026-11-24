@@ -506,7 +506,7 @@ export async function computeMovieRecommendations(body: any): Promise<Recommenda
 
     const toEnrich = Array.from(new Set([...allMovies, ...genreMovies, ...countryMovies]));
     if (toEnrich.length > 0) {
-      await enrichMovieListPosters(toEnrich, { budgetMs: 1200, stripProxyUrls: true });
+      await enrichMovieListPosters(toEnrich, { budgetMs: 400, stripProxyUrls: true });
     }
 
     return {

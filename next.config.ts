@@ -162,6 +162,18 @@ const nextConfig: NextConfig = {
             key: "Cache-Control",
             value: "public, s-maxage=3600, stale-while-revalidate=86400",
           },
+          {
+            key: "CDN-Cache-Control",
+            value: "public, s-maxage=3600, stale-while-revalidate=86400",
+          },
+          {
+            key: "Vercel-CDN-Cache-Control",
+            value: "public, s-maxage=3600, stale-while-revalidate=86400",
+          },
+          {
+            key: "Cloudflare-CDN-Cache-Control",
+            value: "public, max-age=3600, stale-while-revalidate=86400",
+          },
         ],
       },
       {
@@ -170,7 +182,19 @@ const nextConfig: NextConfig = {
         headers: [
           {
             key: "Cache-Control",
-            value: "public, s-maxage=86400, stale-while-revalidate=86400",
+            value: "public, s-maxage=86400, stale-while-revalidate=604800",
+          },
+          {
+            key: "CDN-Cache-Control",
+            value: "public, s-maxage=86400, stale-while-revalidate=604800",
+          },
+          {
+            key: "Vercel-CDN-Cache-Control",
+            value: "public, s-maxage=86400, stale-while-revalidate=604800",
+          },
+          {
+            key: "Cloudflare-CDN-Cache-Control",
+            value: "public, max-age=86400, stale-while-revalidate=604800",
           },
         ],
       },
@@ -188,7 +212,7 @@ const nextConfig: NextConfig = {
           },
           {
             key: "Vercel-CDN-Cache-Control",
-            value: "max-age=1800, stale-while-revalidate=3600",
+            value: "public, s-maxage=1800, stale-while-revalidate=3600",
           },
           {
             key: "Cloudflare-CDN-Cache-Control",
