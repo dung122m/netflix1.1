@@ -88,6 +88,9 @@ function checkTitlesOverlap(movieTitles: string[], tmdbTitles: string[]): boolea
   return false;
 }
 
+const VIETNAMESE_DIACRITICS_REGEX =
+  /[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/i;
+
 /**
  * Đối chiếu chéo bản ghi trả về từ TMDb với danh tính bộ phim Nanaflix.
  * Thuần túy kiểm tra chênh lệch năm phát hành và so khớp chuỗi tiêu đề.
@@ -105,13 +108,55 @@ export function isTmdbPayloadMatchingMovie(
   const tmdbDate = tmdbData.release_date || tmdbData.first_air_date || "";
   const tmdbYear = tmdbDate ? parseInt(tmdbDate.slice(0, 4), 10) : NaN;
 
-  // Thu thập danh sách tiêu đề của phim Nanaflix
-  const movieTitles = [
+  // Xác định xem phim có nguồn gốc Việt Nam không
+  const countryStr = typeof movie.country === "string"
+    ? movie.country
+    : Array.isArray(movie.country)
+      ? movie.country
+          .map((c) => {
+            if (c && typeof c === "object") {
+              const obj = c as Record<string, unknown>;
+              return String(obj.name || obj.slug || "");
+            }
+            return String(c || "");
+          })
+          .join(" ")
+      : "";
+
+  const isDomesticVietnameseMovie =
+    /vi[eêệ]t\s*nam/i.test(countryStr) ||
+    /viet-?nam/i.test(countryStr) ||
+    VIETNAMESE_DIACRITICS_REGEX.test(movie.name || "");
+
+  // Thu thập danh sách tiêu đề chính thống của phim Nanaflix
+  const primaryMovieTitles = [
     movie.name,
-    movie.origin_name,
-    movie.original_name,
     movie.title,
     movie.slug ? movie.slug.replace(/-/g, " ") : "",
+  ].filter((t): t is string => Boolean(t && t.trim().length >= 2));
+
+  // Với phim nội địa Việt Nam, tuyệt đối không cho phép origin_name ngoại lai (do scraper dịch tự động như 'Hamlet')
+  // đại diện cho bộ phim nếu không có bất kỳ từ tố nào liên quan đến tên tiếng Việt hoặc chứa ký tự tiếng Việt.
+  const validOriginName =
+    movie.origin_name &&
+    (!isDomesticVietnameseMovie ||
+      checkTitlesOverlap(primaryMovieTitles, [movie.origin_name]) ||
+      VIETNAMESE_DIACRITICS_REGEX.test(movie.origin_name))
+      ? movie.origin_name
+      : undefined;
+
+  const validOriginalName =
+    movie.original_name &&
+    (!isDomesticVietnameseMovie ||
+      checkTitlesOverlap(primaryMovieTitles, [movie.original_name]) ||
+      VIETNAMESE_DIACRITICS_REGEX.test(movie.original_name))
+      ? movie.original_name
+      : undefined;
+
+  const movieTitles = [
+    ...primaryMovieTitles,
+    validOriginName,
+    validOriginalName,
   ].filter((t): t is string => Boolean(t && t.trim().length >= 2));
 
   // Thu thập danh sách tiêu đề trả về từ TMDb
@@ -123,6 +168,16 @@ export function isTmdbPayloadMatchingMovie(
   ].filter((t): t is string => Boolean(t && t.trim().length >= 2));
 
   const hasOverlap = checkTitlesOverlap(movieTitles, tmdbTitles);
+
+  // Nếu là phim nội địa Việt Nam: bắt buộc TMDb payload phải có sự tương đồng với tên chính thống tiếng Việt
+  // hoặc bản thân TMDb payload phải có tiêu đề tiếng Việt. Tuyệt đối không cho phim thuần Anh/nước ngoài gán vào!
+  if (isDomesticVietnameseMovie) {
+    const hasPrimaryOverlap = checkTitlesOverlap(primaryMovieTitles, tmdbTitles);
+    const hasVietnameseTmdb = tmdbTitles.some((t) => VIETNAMESE_DIACRITICS_REGEX.test(t));
+    if (!hasPrimaryOverlap && !hasVietnameseTmdb) {
+      return false;
+    }
+  }
 
   // Nếu cả 2 năm đều xác định được:
   if (!isNaN(movieYear) && !isNaN(tmdbYear)) {
@@ -154,9 +209,6 @@ export function isTmdbPayloadMatchingMovie(
 
   return true;
 }
-
-const VIETNAMESE_DIACRITICS_REGEX =
-  /[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/i;
 
 /**
  * Loại bỏ các tên gọi khác bị nhiễm độc từ upstream scraper dựa trên đối chiếu danh tính.

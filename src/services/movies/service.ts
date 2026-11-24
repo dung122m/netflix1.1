@@ -669,9 +669,11 @@ async function executeGetMovies(params: MovieFilterParams, cacheKey: string) {
   return payload;
 }
 
+export const MOVIE_CACHE_VERSION = 25;
+
 export function buildMovieCacheKey(params: MovieFilterParams): string {
   return JSON.stringify({
-    v: 25,
+    v: MOVIE_CACHE_VERSION,
     category: params.category || "",
     country: params.country || "",
     year: params.year || "",

@@ -89,11 +89,19 @@ async function resolvePoster(keys: ParsedItemKeys): Promise<{ posterUrl: string 
   }
 
   const cleanType = type === "tv" || type === "series" ? "tv" : "movie";
-  const queries = [origin_name, title, slug?.replace(/-/g, " ")].filter((q): q is string => Boolean(q && q.length >= 2));
+  const isVietnamese =
+    /[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/i.test(title || "") ||
+    /[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/i.test(origin_name || "");
 
-  for (const q of queries) {
+  const queries = isVietnamese
+    ? [title, slug?.replace(/-/g, " ")]
+    : [origin_name, title, slug?.replace(/-/g, " ")];
+
+  const validQueries = queries.filter((q): q is string => Boolean(q && q.length >= 2));
+
+  for (const q of validQueries) {
     try {
-      const res = await searchTmdbPosterByTitle(q, year || undefined, cleanType);
+      const res = await searchTmdbPosterByTitle(q, year || undefined, cleanType, undefined, isVietnamese ? "VN" : undefined);
       if (res?.posterUrl || res?.backdropUrl) return res;
     } catch { }
   }

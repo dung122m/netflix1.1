@@ -424,6 +424,12 @@ function pickBestTmdbCandidate(
 
   const scored = valid.map((r) => {
     let score = 0;
+    const origLang = (r.original_language || "").toLowerCase();
+    const originCountries: string[] = Array.isArray(r.origin_country)
+      ? r.origin_country.map((c: string) => String(c).toUpperCase())
+      : [];
+    const isCandidateVietnamese = origLang === "vi" || originCountries.includes("VN");
+
     const itemType = r.media_type || (r.first_air_date ? "tv" : "movie");
     if (itemType === targetType) score += 60;
     else score += 30; // Nhiều phim bộ/anime bị gán nhầm loại, cho 30 điểm thay vì 0
@@ -463,7 +469,10 @@ function pickBestTmdbCandidate(
         }
       }
     } else if (parsedYear && !relDate) {
-      if ((r.vote_count || 0) < 2) {
+      if (bestTitleSim >= 100 && isCandidateVietnamese) {
+        // Phim Việt Nam khớp tên chính xác nhưng TMDb chưa điền release_date/first_air_date
+        score -= 20;
+      } else if ((r.vote_count || 0) < 2) {
         score -= 220;
       } else {
         score -= 60;
@@ -471,7 +480,9 @@ function pickBestTmdbCandidate(
     }
 
     if ((r.vote_count || 0) === 0 && (!r.overview || typeof r.overview !== "string" || r.overview.trim().length === 0)) {
-      score -= 50;
+      if (!(bestTitleSim >= 100 && isCandidateVietnamese)) {
+        score -= 50;
+      }
     }
 
     if (r.poster_path) score += 30;
@@ -480,16 +491,11 @@ function pickBestTmdbCandidate(
 
     // Strict country / language protection:
     if (isVietnamese) {
-      const origLang = (r.original_language || "").toLowerCase();
-      const originCountries: string[] = Array.isArray(r.origin_country)
-        ? r.origin_country.map((c: string) => String(c).toUpperCase())
-        : [];
-
-      const isCandidateVietnamese = origLang === "vi" || originCountries.includes("VN");
       if (isCandidateVietnamese) {
         score += 80;
-      } else if (bestTitleSim < 80) {
-        score -= 250;
+      } else {
+        // TUYỆT ĐỐI không cho phép phim nước ngoài ghép vào phim Việt Nam
+        score -= 300;
       }
     }
 

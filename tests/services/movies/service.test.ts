@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { movieApi, deduplicateServerEpisodes, buildMovieCacheKey } from "@/services/movies/service";
+import { movieApi, deduplicateServerEpisodes, buildMovieCacheKey, MOVIE_CACHE_VERSION } from "@/services/movies/service";
 import { fetchSourceData, API_NGUONC } from "@/services/movies/catalogFederation";
 import { deduplicateMovieItems } from "@/lib/movieMedia";
 import { formatCountryName, extractMovieCountry, normalizeMovie } from "@/lib/movieMedia";
@@ -325,8 +325,8 @@ describe("Nanaflix Movie Browse Pagination & Filter Service", () => {
     );
   });
 
-  // W. Cache key generation produces correct version 24 and includes all filter fields
-  it("W. buildMovieCacheKey generates version 24 with normalized filter parameters", () => {
+  // W. Cache key generation produces correct version and includes all filter fields
+  it("W. buildMovieCacheKey generates version with normalized filter parameters", () => {
     const key = buildMovieCacheKey({
       type: "phim-le",
       category: "hanh-dong",
@@ -337,7 +337,7 @@ describe("Nanaflix Movie Browse Pagination & Filter Service", () => {
       sort: "rating",
     });
     const parsed = JSON.parse(key);
-    assert.equal(parsed.v, 24, "Cache key version must be 24");
+    assert.equal(parsed.v, MOVIE_CACHE_VERSION, `Cache key version must be ${MOVIE_CACHE_VERSION}`);
     assert.equal(parsed.type, "phim-le");
     assert.equal(parsed.category, "hanh-dong");
     assert.equal(parsed.country, "han-quoc");

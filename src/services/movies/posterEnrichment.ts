@@ -1,4 +1,5 @@
 import { isBrokenImageUrl, isSlowProviderSourceUrl } from "@/lib/movieMedia";
+import { normalizeForMatch } from "@/lib/stringUtils";
 import { getTmdbMediaImagesById, searchTmdbPosterByTitle } from "@/services/tmdbService";
 import { isCorruptedTmdbId, isTmdbPayloadMatchingMovie } from "@/services/tmdb/tmdbSanityGuard";
 import { cacheService } from "@/lib/cache";
@@ -243,12 +244,27 @@ export async function enrichMovieListPosters(movieList: any[], options: PosterEn
             }
             return String(c).toLowerCase().includes("viet");
           })
-        );
+        ) ||
+        /[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/i.test(item.name || "");
+
+      // Với phim Việt Nam: Chỉ tìm kiếm bằng tên tiếng Việt hoặc slug;
+      // Tuyệt đối không tìm bằng origin_name nếu origin_name là từ tiếng Anh/nước ngoài không liên quan (như 'Hamlet')
+      const cleanOrigin = typeof item.origin_name === "string" ? item.origin_name.trim() : "";
+      const normOrigin = normalizeForMatch(cleanOrigin);
+      const normName = normalizeForMatch(item.name || "");
+      const normSlug = normalizeForMatch((item.slug || "").replace(/-/g, " "));
+
+      const isOriginRelatedToVietnamese =
+        cleanOrigin.length >= 2 &&
+        (normOrigin === normName ||
+          normOrigin === normSlug ||
+          (normOrigin.length >= 3 && normName.length >= 3 && (normName.includes(normOrigin) || normOrigin.includes(normName))) ||
+          /[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/i.test(cleanOrigin));
 
       // Phim có nguồn gốc Việt Nam ưu tiên tên Việt và áp expectedCountry = "VN".
       // Phim quốc tế (Anime, US/UK, K-drama, C-drama) ưu tiên origin_name để tìm chuẩn xác trên TMDb quốc tế.
       const rawCandidates = isVietnameseCountry
-        ? [item.name, item.origin_name, item.slug ? String(item.slug).replace(/-/g, " ") : null]
+        ? [item.name, item.slug ? String(item.slug).replace(/-/g, " ") : null, isOriginRelatedToVietnamese ? item.origin_name : null]
         : [item.origin_name, item.name, item.slug ? String(item.slug).replace(/-/g, " ") : null];
 
       const primaryCandidates = Array.from(

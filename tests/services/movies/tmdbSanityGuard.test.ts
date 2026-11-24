@@ -5,7 +5,7 @@ import {
   isTmdbPayloadMatchingMovie,
   sanitizeMovieAltNames,
 } from "@/services/tmdb/tmdbSanityGuard";
-import { getTmdbMediaImagesById, getTmdbMovieCredits } from "@/services/tmdbService";
+import { getTmdbMediaImagesById, getTmdbMovieCredits, searchTmdbPosterByTitle } from "@/services/tmdbService";
 import { buildMovieDetailPageData } from "@/services/movies/detailPageData";
 
 describe("TMDb Sanity Guard & Anti-Corruption Suite", () => {
@@ -54,6 +54,42 @@ describe("TMDb Sanity Guard & Anti-Corruption Suite", () => {
       };
 
       assert.strictEqual(isTmdbPayloadMatchingMovie(nhungDuaTreTmdb, binhMinhDo), false);
+    });
+
+    it("Rejects foreign candidate (Hamlet) from matching Vietnamese movie (Xóm Nhỏ) despite origin_name translation", () => {
+      const xomNho = {
+        name: "Xóm Nhỏ",
+        origin_name: "Hamlet",
+        year: 2026,
+        country: "Việt Nam",
+        slug: "xom-nho",
+      };
+      const foreignHamlet = {
+        id: 843342,
+        title: "Hamlet",
+        original_title: "Hamlet",
+        release_date: "2026-02-06",
+      };
+
+      assert.strictEqual(isTmdbPayloadMatchingMovie(foreignHamlet, xomNho), false);
+    });
+
+    it("Accepts authentic Vietnamese candidate (Xóm nhỏ) matching Vietnamese movie even with missing air date", () => {
+      const xomNho = {
+        name: "Xóm Nhỏ",
+        origin_name: "Hamlet",
+        year: 2026,
+        country: "Việt Nam",
+        slug: "xom-nho",
+      };
+      const authenticXomNhoTmdb = {
+        id: 339621,
+        title: "Xóm nhỏ",
+        original_title: "Xóm nhỏ",
+        first_air_date: "",
+      };
+
+      assert.strictEqual(isTmdbPayloadMatchingMovie(authenticXomNhoTmdb, xomNho), true);
     });
 
     it("Accepts payload when title matches even if year is close", () => {
@@ -144,6 +180,20 @@ describe("TMDb Sanity Guard & Anti-Corruption Suite", () => {
 
       // Verify tmdbId is NOT 1126166
       assert.notStrictEqual(String(pageData.tmdbId), "1126166", "tmdbId must not be 1126166");
+    });
+
+    it("searchTmdbPosterByTitle for Xóm Nhỏ matches authentic Vietnamese TMDb record and never matches Hamlet", async () => {
+      const res = await searchTmdbPosterByTitle("Xóm Nhỏ", 2026, "tv", undefined, "VN");
+      assert.ok(res, "Result must exist");
+      assert.strictEqual(
+        res.posterUrl?.includes("7azHIOSrxo0VC5wYiwtGOnVehsH"),
+        false,
+        "Must NOT match Riz Ahmed's Hamlet"
+      );
+      assert.ok(
+        res.posterUrl?.includes("bA5NTUg4c1G7xi256yzBcQJaHgD"),
+        "Must match authentic Xóm Nhỏ poster (bA5NTUg4c1G7xi256yzBcQJaHgD)"
+      );
     });
   });
 });
