@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Be_Vietnam_Pro } from "next/font/google";
+import Script from "next/script";
 import "./globals.css";
 import { ACCENT_PRESETS, ACCENT_COOKIE_KEY } from "@/lib/accentStudio";
 import SmoothScroll from "@/components/layout/SmoothScroll";
@@ -98,6 +99,8 @@ export const metadata: Metadata = {
     },
   },
 };
+
+const GA_MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA_ID || "G-2WN3BJRR5L";
 
 export default function RootLayout({
   children,
@@ -253,6 +256,28 @@ export default function RootLayout({
         className="min-h-dvh flex flex-col bg-black text-white"
         suppressHydrationWarning
       >
+        {GA_MEASUREMENT_ID && (
+          <>
+            <Script
+              strategy="afterInteractive"
+              src={`https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`}
+            />
+            <Script
+              id="google-analytics"
+              strategy="afterInteractive"
+              dangerouslySetInnerHTML={{
+                __html: `
+                  window.dataLayer = window.dataLayer || [];
+                  function gtag(){dataLayer.push(arguments);}
+                  gtag('js', new Date());
+                  gtag('config', '${GA_MEASUREMENT_ID}', {
+                    page_path: window.location.pathname,
+                  });
+                `,
+              }}
+            />
+          </>
+        )}
         <AuthProvider>
 
           {/* Thanh chỉ báo tải trang toàn cục mượt mà (Top Progress Bar) */}

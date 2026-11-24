@@ -74,12 +74,12 @@ const nextConfig: NextConfig = {
             value: [
               "default-src 'self'",
               process.env.NODE_ENV === "development"
-                ? "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://apis.google.com https://www.gstatic.com https://*.firebaseapp.com https://va.vercel-scripts.com https://*.vercel-insights.com"
-                : "script-src 'self' 'unsafe-inline' https://apis.google.com https://www.gstatic.com https://*.firebaseapp.com https://va.vercel-scripts.com https://*.vercel-insights.com",
+                ? "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://apis.google.com https://www.gstatic.com https://*.firebaseapp.com https://va.vercel-scripts.com https://*.vercel-insights.com https://www.googletagmanager.com"
+                : "script-src 'self' 'unsafe-inline' https://apis.google.com https://www.gstatic.com https://*.firebaseapp.com https://va.vercel-scripts.com https://*.vercel-insights.com https://www.googletagmanager.com",
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
               "img-src 'self' data: blob: https:",
               "font-src 'self' data: https://fonts.gstatic.com",
-              "connect-src 'self' data: blob: https://*.supabase.co wss://*.supabase.co https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://*.googleapis.com https://*.firebaseio.com https://*.firebaseapp.com https://api.themoviedb.org https://phimapi.com https://phim.nguonc.com https://vi.wikipedia.org https://en.wikipedia.org https://va.vercel-scripts.com https://vortex.data.vercel-scripts.com https://vitals.vercel-insights.com https://*.vercel-insights.com https://*.upstash.io https:",
+              "connect-src 'self' data: blob: https://*.supabase.co wss://*.supabase.co https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://*.googleapis.com https://*.firebaseio.com https://*.firebaseapp.com https://api.themoviedb.org https://phimapi.com https://phim.nguonc.com https://vi.wikipedia.org https://en.wikipedia.org https://va.vercel-scripts.com https://vortex.data.vercel-scripts.com https://vitals.vercel-insights.com https://*.vercel-insights.com https://*.upstash.io https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com https:",
               "media-src 'self' data: blob: https:",
               "frame-src 'self' https://*.firebaseapp.com https://accounts.google.com https://www.youtube.com https://www.youtube-nocookie.com https://*.streamc.xyz https://streamc.xyz https://player.phimapi.com",
               "worker-src 'self' blob:",
