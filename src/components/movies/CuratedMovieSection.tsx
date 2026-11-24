@@ -56,7 +56,7 @@ const CURATED_TABS: CuratedTabConfig[] = [
   },
 ];
 
-const LOCAL_STORAGE_KEY = "nanaflix_curated_movies_v3";
+const LOCAL_STORAGE_KEY = "nanaflix_curated_movies_v4";
 const STORAGE_TTL_MS = 2 * 60 * 60 * 1000; // 2 giờ trong localStorage
 
 interface CuratedMovieSectionProps {
@@ -128,7 +128,16 @@ export const CuratedMovieSection: React.FC<CuratedMovieSectionProps> = ({
       const parsed = JSON.parse(raw);
       const ts = parsed[`${tab}_ts`];
       if (ts && Date.now() - ts < STORAGE_TTL_MS && Array.isArray(parsed[tab]) && parsed[tab].length > 0) {
-        return parsed[tab];
+        return parsed[tab].map((m: any) => {
+          if (m?.slug === "xom-nho" && (m.poster_url?.includes("7azHIOSrxo0VC5wYiwtGOnVehsH") || m.posterUrl?.includes("7azHIOSrxo0VC5wYiwtGOnVehsH"))) {
+            return {
+              ...m,
+              poster_url: "https://image.tmdb.org/t/p/w500/bA5NTUg4c1G7xi256yzBcQJaHgD.jpg",
+              posterUrl: "https://image.tmdb.org/t/p/w500/bA5NTUg4c1G7xi256yzBcQJaHgD.jpg",
+            };
+          }
+          return m;
+        });
       }
     } catch { }
     return null;
@@ -137,7 +146,16 @@ export const CuratedMovieSection: React.FC<CuratedMovieSectionProps> = ({
   // 1. Tự động đồng bộ khi SSR prop initialMovies có dữ liệu mới từ Server
   useEffect(() => {
     if (Array.isArray(initialMovies) && initialMovies.length > 0) {
-      const batch = initialMovies.slice(0, 12);
+      const batch = initialMovies.slice(0, 12).map((m: any) => {
+        if (m?.slug === "xom-nho" && (m.poster_url?.includes("7azHIOSrxo0VC5wYiwtGOnVehsH") || m.posterUrl?.includes("7azHIOSrxo0VC5wYiwtGOnVehsH"))) {
+          return {
+            ...m,
+            poster_url: "https://image.tmdb.org/t/p/w500/bA5NTUg4c1G7xi256yzBcQJaHgD.jpg",
+            posterUrl: "https://image.tmdb.org/t/p/w500/bA5NTUg4c1G7xi256yzBcQJaHgD.jpg",
+          };
+        }
+        return m;
+      });
       cacheRef.current.trending = batch;
       saveToStorage("trending", batch);
       setTabMovies((prev) => ({ ...prev, trending: batch }));

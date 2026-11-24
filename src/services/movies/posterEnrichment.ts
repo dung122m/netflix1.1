@@ -120,6 +120,9 @@ async function fastBatchEnrichFromCache(movieList: any[]): Promise<void> {
               }
             }
             if (hit.posterUrl) {
+              if (item.slug === "xom-nho" && hit.posterUrl.includes("7azHIOSrxo0VC5wYiwtGOnVehsH")) {
+                continue;
+              }
               item.poster_url = hit.posterUrl;
               item.posterUrl = hit.posterUrl;
               if (item.poster_url_webp) item.poster_url_webp = hit.posterUrl;
@@ -233,7 +236,9 @@ export async function enrichMovieListPosters(movieList: any[], options: PosterEn
         return;
       }
 
+      const hasVietnameseName = /[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/i.test(item.name || "");
       const isVietnameseCountry =
+        hasVietnameseName ||
         Boolean(item.countries?.some((c: string) => String(c).toLowerCase().includes("viet"))) ||
         Boolean(
           Array.isArray(item.country) &&
@@ -247,10 +252,10 @@ export async function enrichMovieListPosters(movieList: any[], options: PosterEn
         ) ||
         (typeof item.country === "string" && item.country.toLowerCase().includes("viet"));
 
-      // Đầy đủ cả origin_name và name: TMDb lưu nhiều phim Việt Nam bằng tên tiếng Anh (Betting with Ghost, The 4 Rascals, Wharf of Widows...)
-      // nhưng có original_language = "vi". Cơ chế chấm điểm trong tmdbService sẽ tự động nhận diện và bảo vệ.
+      // Phim có tên tiếng Việt / Việt Nam: Luôn ưu tiên tên tiếng Việt lên đầu để tránh trường hợp origin_name bị scraper dịch tự động (như Xóm Nhỏ -> Hamlet).
+      // Phim quốc tế: Ưu tiên origin_name để tìm chuẩn xác trên TMDb quốc tế.
       const rawCandidates = isVietnameseCountry
-        ? [item.origin_name, item.name, item.slug ? String(item.slug).replace(/-/g, " ") : null]
+        ? [item.name, item.slug ? String(item.slug).replace(/-/g, " ") : null, item.origin_name]
         : [item.origin_name, item.name, item.slug ? String(item.slug).replace(/-/g, " ") : null];
 
       const primaryCandidates = Array.from(
@@ -273,6 +278,9 @@ export async function enrichMovieListPosters(movieList: any[], options: PosterEn
             isVietnameseCountry ? "VN" : undefined
           );
           if (res?.posterUrl) {
+            if (item.slug === "xom-nho" && res.posterUrl.includes("7azHIOSrxo0VC5wYiwtGOnVehsH")) {
+              continue;
+            }
             if (posterNonTmdb) {
               item.poster_url = res.posterUrl;
               item.posterUrl = res.posterUrl;
