@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Home, Compass, Tv, Bookmark, User } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { subscribeUserProfile, getCachedUserProfile } from "@/services/userService";
@@ -10,6 +10,7 @@ import { UserProfile } from "@/types/user";
 import { UserAvatar } from "@/components/ui/UserAvatar";
 
 export function BottomNav() {
+  const router = useRouter();
   const pathname = usePathname();
   const [isMounted, setIsMounted] = useState(false);
   const { user, cachedUser } = useAuth();
@@ -96,6 +97,8 @@ export function BottomNav() {
         <Link
           href="/"
           prefetch={false}
+          onPointerEnter={() => { try { router.prefetch("/"); } catch {} }}
+          onTouchStart={() => { try { router.prefetch("/"); } catch {} }}
           onClick={handleNavClick}
           aria-current={isHome ? "page" : undefined}
           className={`flex flex-col items-center justify-center h-full transition-all duration-200 active:scale-95 cursor-pointer outline-none focus-visible:text-white rounded-lg ${
@@ -115,6 +118,8 @@ export function BottomNav() {
         <Link
           href="/browse"
           prefetch={false}
+          onPointerEnter={() => { try { router.prefetch("/browse"); } catch {} }}
+          onTouchStart={() => { try { router.prefetch("/browse"); } catch {} }}
           onClick={handleNavClick}
           aria-current={isBrowse ? "page" : undefined}
           className={`flex flex-col items-center justify-center h-full transition-all duration-200 active:scale-95 cursor-pointer outline-none focus-visible:text-white rounded-lg ${
@@ -134,6 +139,8 @@ export function BottomNav() {
         <Link
           href="/live"
           prefetch={false}
+          onPointerEnter={() => { try { router.prefetch("/live"); } catch {} }}
+          onTouchStart={() => { try { router.prefetch("/live"); } catch {} }}
           onClick={handleNavClick}
           aria-current={isLive ? "page" : undefined}
           className={`flex flex-col items-center justify-center h-full transition-all duration-200 active:scale-95 cursor-pointer outline-none focus-visible:text-white rounded-lg ${
@@ -151,6 +158,8 @@ export function BottomNav() {
         <Link
           href="/my-list"
           prefetch={false}
+          onPointerEnter={() => { try { router.prefetch("/my-list"); } catch {} }}
+          onTouchStart={() => { try { router.prefetch("/my-list"); } catch {} }}
           onClick={handleNavClick}
           aria-current={isMyList ? "page" : undefined}
           className={`flex flex-col items-center justify-center h-full transition-all duration-200 active:scale-95 cursor-pointer outline-none focus-visible:text-white rounded-lg ${
@@ -171,6 +180,8 @@ export function BottomNav() {
           <Link
             href="/profile"
             prefetch={false}
+            onPointerEnter={() => { try { router.prefetch("/profile"); } catch {} }}
+            onTouchStart={() => { try { router.prefetch("/profile"); } catch {} }}
             onClick={handleNavClick}
             aria-current={isProfile ? "page" : undefined}
             className={`flex flex-col items-center justify-center h-full transition-all duration-200 active:scale-95 cursor-pointer outline-none focus-visible:text-white rounded-lg ${

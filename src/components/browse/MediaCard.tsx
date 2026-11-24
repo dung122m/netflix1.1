@@ -434,9 +434,22 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
     return "";
   })();
 
+  // Intent-based prefetch: Nạp trước trang xem phim khi người dùng rê chuột (desktop) hoặc chạm tay (mobile)
+  const hasPrefetchedRef = useRef(false);
+  const handleIntentPrefetch = useCallback(() => {
+    if (hasPrefetchedRef.current || !targetHref) return;
+    hasPrefetchedRef.current = true;
+    try {
+      router.prefetch(targetHref);
+    } catch {}
+  }, [router, targetHref]);
+
   return (
     <div
       ref={cardContainerRef}
+      onPointerEnter={handleIntentPrefetch}
+      onTouchStart={handleIntentPrefetch}
+      onFocus={handleIntentPrefetch}
       className="group/card relative flex flex-col w-full select-none cursor-pointer hover:-translate-y-1 hover:z-20 transition-transform duration-200 ease-out motion-reduce:transform-none"
     >
       {/* ========================================================================= */}

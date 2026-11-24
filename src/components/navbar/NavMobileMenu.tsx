@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   User,
   MessageSquare,
@@ -53,6 +54,7 @@ export const NavMobileMenu: React.FC<NavMobileMenuProps> = React.memo(function N
   navLinks,
   isLinkActive,
 }) {
+  const router = useRouter();
   const { user, cachedUser, loading, logout } = useAuth();
   const currentUser = user || cachedUser;
   const activeUid = user?.uid || cachedUser?.uid;
@@ -262,6 +264,11 @@ export const NavMobileMenu: React.FC<NavMobileMenuProps> = React.memo(function N
                 key={link.name}
                 href={link.href}
                 prefetch={false}
+                onTouchStart={() => {
+                  try {
+                    router.prefetch(link.href);
+                  } catch {}
+                }}
                 onClick={onClose}
                 className={`text-xs font-semibold py-2.5 px-3 transition-all flex items-center gap-2 rounded-xl min-w-0 ${active
                     ? "text-white font-bold bg-netflix-red/30 shadow-sm"

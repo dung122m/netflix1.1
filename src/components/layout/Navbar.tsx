@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useRef, Suspense } from "react";
 import Link from "next/link";
-import { useSearchParams, usePathname } from "next/navigation";
+import { useSearchParams, usePathname, useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import {
   Menu,
@@ -56,6 +56,7 @@ const NAV_LINKS = [
 ];
 
 const NavbarInner: React.FC = () => {
+  const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const currentType = searchParams.get("type");
@@ -200,6 +201,16 @@ const NavbarInner: React.FC = () => {
                   key={link.name}
                   href={link.href}
                   prefetch={false}
+                  onPointerEnter={() => {
+                    try {
+                      router.prefetch(link.href);
+                    } catch {}
+                  }}
+                  onTouchStart={() => {
+                    try {
+                      router.prefetch(link.href);
+                    } catch {}
+                  }}
                   aria-current={active ? "page" : undefined}
                   className={`transition-all relative py-1 flex items-center gap-1.5 whitespace-nowrap flex-shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black rounded-md ${
                     active
