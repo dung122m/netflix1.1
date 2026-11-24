@@ -254,26 +254,12 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
           (imgRef.current && imgRef.current.complete && imgRef.current.naturalWidth > 0)
         )
       );
-
-      // Nếu ảnh hiện tại chưa phải TMDb CDN: Kích hoạt batch fallback ngầm để nâng cấp tối đa sang TMDb
-      // Được bảo vệ bởi TRIED_SLUGS_IN_SESSION (chỉ chạy 1 lần/phiên) và debounce 500ms
-      if (!candidate.includes("image.tmdb.org")) {
-        enqueuePosterBatchFallback(
-          { slug, title, origin_name, year, tmdbId, type: itemType },
-          (resolvedUrl) => {
-            if (resolvedUrl && resolvedUrl.includes("image.tmdb.org")) {
-              setCurrentSrc(resolvedUrl);
-              setHasError(false);
-            }
-          }
-        );
-      }
     } else {
       setCurrentSrc("");
       setHasError(false);
       setIsImageLoaded(true);
 
-      // Kích hoạt batch fallback ngầm (chỉ chạy tối đa 1 lần duy nhất cho mỗi slug)
+      // Kích hoạt batch fallback ngầm (chỉ chạy tối đa 1 lần duy nhất cho mỗi slug khi không có ảnh nào)
       enqueuePosterBatchFallback(
         { slug, title, origin_name, year, tmdbId, type: itemType },
         (resolvedUrl) => {
@@ -303,7 +289,18 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
     // Toàn bộ candidates đều thất bại → Hiện Poster Canvas typography (0 black hole)
     setHasError(true);
     setIsImageLoaded(true);
-  }, [currentSrc, imageCandidates]);
+
+    // Kích hoạt fallback ngầm nếu toàn bộ candidates đều thất bại
+    enqueuePosterBatchFallback(
+      { slug, title, origin_name, year, tmdbId, type: itemType },
+      (resolvedUrl) => {
+        if (resolvedUrl && resolvedUrl.includes("image.tmdb.org")) {
+          setCurrentSrc(resolvedUrl);
+          setHasError(false);
+        }
+      }
+    );
+  }, [currentSrc, imageCandidates, slug, title, origin_name, year, tmdbId, itemType]);
 
   // Trạng thái Trailer & Modal Trailer (Chỉ kích hoạt khi bấm nút xem Trailer)
   const [trailerUrl, setTrailerUrl] = useState<string>(
