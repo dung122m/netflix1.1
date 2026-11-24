@@ -25,3 +25,10 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - **NO DIRECT `phimimg.com` HOẶC `nguonc.com` TRÊN CLIENT:** Nguồn `phimimg.com` bị chặn ISP VN, còn `nguonc.com` (`img.nguonc.com`) có dung lượng ảnh gốc rất nặng (350KB-1MB+ không nén) gây nghẽn băng thông mobile. TUYỆT ĐỐI không nạp ảnh trực tiếp từ `phimimg.com` và `nguonc.com` lên thẻ `<img>` phía client; luôn chủ động nâng cấp poster sang TMDb CDN chính hãng (`image.tmdb.org`) hoặc bọc qua proxy CDN `/api/media/r2-proxy`.
 - **Card Fallback:** In `MediaCard` and card components, never render empty black skeleton holes; keep the Dynamic Typography Poster Canvas rendered so title, year, and genre remain visible while loading or on error.
 - **Vercel & Cloudflare R2 Optimization:** Prioritize Edge/ISR caching, avoid redundant client-side fetch/probe loops or unnecessary R2 uploads.
+
+## Debugging & Code Modification Discipline (STRICT)
+- **Root-Cause First:** Never patch symptoms at the UI component layer. Always trace data flow: Upstream API -> Server Services -> Cache (Redis/RAM) -> SSR -> Client Hook -> UI. Fix the root cause at the single source of truth.
+- **Zero-Hardcode Invariant:** Absolutely forbidden to hardcode movie slugs (`if (item.slug === "...")`), IDs, or image hashes to patch an edge case. All solutions MUST be 100% generic semantic validations that work across 10,000+ movies.
+- **Anti-Flickering & No Hot-Swapping:** Never hot-swap an already visible, valid image (`setCurrentSrc`) on the client. Upgrading to high-res TMDb WebP MUST happen server-side during SSR/ISR. Client fallback is strictly reserved for missing images (`!candidate`) or actual loading errors (`onError`).
+- **Cache Invalidation Discipline:** Always bump cache version keys (Redis `v3`, LocalStorage `v5`) when changing matching algorithms or data schemas so old contaminated cache never pollutes new logic.
+- **Diff Inspection:** Always inspect `git diff` before committing to ensure zero hardcodes, no side-effect re-render loops, and minimal, cohesive changes.
