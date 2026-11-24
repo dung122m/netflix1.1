@@ -1,6 +1,8 @@
+import { Suspense } from "react";
 import type { Metadata } from "next";
 import { Be_Vietnam_Pro } from "next/font/google";
 import Script from "next/script";
+import { GoogleAnalyticsTracker } from "@/components/analytics/GoogleAnalyticsTracker";
 import "./globals.css";
 import { ACCENT_PRESETS, ACCENT_COOKIE_KEY } from "@/lib/accentStudio";
 import SmoothScroll from "@/components/layout/SmoothScroll";
@@ -276,6 +278,9 @@ export default function RootLayout({
                 `,
               }}
             />
+            <Suspense fallback={null}>
+              <GoogleAnalyticsTracker gaId={GA_MEASUREMENT_ID} />
+            </Suspense>
           </>
         )}
         <AuthProvider>
