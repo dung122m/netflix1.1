@@ -56,9 +56,9 @@ export function parseItemKeys(params: FallbackItemParams): ParsedItemKeys {
     ? `v3:tmdb:${tmdbId}:${type}`
     : `v3:${slug || title}|${origin_name}|${year}|${type}`.toLowerCase();
   const cleanKey = cacheKey.replace(/[^a-z0-9_]/g, "_").slice(0, 100);
-  const redisPosterKey = `tmdb:fallback_poster:v2:${cleanKey}`;
+  const redisPosterKey = `tmdb:fallback_poster:v3:${cleanKey}`;
   const slugCleanKey = slug
-    ? `tmdb:fallback_poster:v2:${slug.toLowerCase().replace(/[^a-z0-9_]/g, "_").slice(0, 100)}`
+    ? `tmdb:fallback_poster:v3:${slug.toLowerCase().replace(/[^a-z0-9_]/g, "_").slice(0, 100)}`
     : "";
 
   return { cacheKey, redisPosterKey, slugCleanKey, tmdbId, title, origin_name, year, slug, type };
@@ -93,9 +93,11 @@ async function resolvePoster(keys: ParsedItemKeys): Promise<{ posterUrl: string 
   const isDomesticVietnamese =
     /[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/i.test(title || "");
 
-  // Đầy đủ cả origin_name và title: TMDb lưu nhiều phim Việt Nam bằng tên tiếng Anh
-  // (Betting with Ghost, The 4 Rascals, Wharf of Widows...) nhưng có original_language = "vi".
-  const queries = [origin_name, title, slug?.replace(/-/g, " ")];
+  // Phim có tên tiếng Việt: Luôn ưu tiên tên tiếng Việt lên đầu để tránh trường hợp origin_name bị scraper dịch tự động (như Xóm Nhỏ -> Hamlet).
+  // Phim quốc tế: Ưu tiên origin_name để tìm chuẩn xác trên TMDb quốc tế.
+  const queries = isDomesticVietnamese
+    ? [title, slug?.replace(/-/g, " "), origin_name]
+    : [origin_name, title, slug?.replace(/-/g, " ")];
 
   const validQueries = queries.filter((q): q is string => Boolean(q && q.trim().length >= 2));
 

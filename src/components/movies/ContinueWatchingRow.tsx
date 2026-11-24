@@ -108,16 +108,6 @@ interface ContinueWatchingCardProps {
 }
 
 function getInitialPoster(item: WatchHistoryItem): string {
-  // Lọc sạch poster ngoại lai Hamlet (7azHIOSrxo0VC5wYiwtGOnVehsH) bị lưu nhầm trong lịch sử xem của Xóm Nhỏ
-  if (item.slug === "xom-nho") {
-    if (item.poster && item.poster.includes("7azHIOSrxo0VC5wYiwtGOnVehsH")) {
-      item.poster = "https://image.tmdb.org/t/p/w500/bA5NTUg4c1G7xi256yzBcQJaHgD.jpg";
-    }
-    if (item.thumb && item.thumb.includes("7azHIOSrxo0VC5wYiwtGOnVehsH")) {
-      item.thumb = "https://image.tmdb.org/t/p/w500/bA5NTUg4c1G7xi256yzBcQJaHgD.jpg";
-    }
-  }
-
   // 1. Ưu tiên TMDb poster CDN nếu đã có sẵn trong item
   if (item.poster && item.poster.includes("image.tmdb.org")) {
     return toFastCdnImageUrl(toOptimizedCardPosterUrl(item.poster));

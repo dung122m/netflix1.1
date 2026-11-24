@@ -132,15 +132,6 @@ export function isTmdbPayloadMatchingMovie(
     !isExplicitVietnameseCountry &&
     /(âu\s*mỹ|hàn\s*quốc|nhật\s*bản|trung\s*quốc|thái\s*lan|đài\s*loan|hồng\s*kông|ấn\s*độ|anh|pháp|đức|ý|nga|tây\s*ban\s*nha|mỹ|korea|japan|china|thailand|us|uk)/i.test(countryStr);
 
-  // Phim chỉ được coi là nội địa Việt Nam khi:
-  // 1. Metadata quốc gia chỉ rõ là Việt Nam.
-  // 2. Hoặc khi không có thông tin quốc gia nước ngoài VÀ tên gốc (origin_name) chứa ký tự tiếng Việt có dấu.
-  // TUYỆT ĐỐI không coi phim là nội địa Việt Nam nếu origin_name là tên quốc tế/Latinh hoặc quốc gia là nước ngoài,
-  // bởi vì 95% phim ngoại chiếu trên Nanaflix đều được đặt tên hiển thị (movie.name) bằng tiếng Việt!
-  const isDomesticVietnameseMovie =
-    isExplicitVietnameseCountry ||
-    (!hasForeignCountry && Boolean(movie.origin_name && VIETNAMESE_DIACRITICS_REGEX.test(movie.origin_name)));
-
   // Thu thập danh sách tiêu đề chính thống của phim Nanaflix
   const primaryMovieTitles = [
     movie.name,
@@ -148,13 +139,29 @@ export function isTmdbPayloadMatchingMovie(
     movie.slug ? movie.slug.replace(/-/g, " ") : "",
   ].filter((t): t is string => Boolean(t && t.trim().length >= 2));
 
+  const hasVietnameseName = Boolean(movie.name && VIETNAMESE_DIACRITICS_REGEX.test(movie.name));
+  const hasVietnameseOriginName = Boolean(movie.origin_name && VIETNAMESE_DIACRITICS_REGEX.test(movie.origin_name));
+
+  // Phim nội địa Việt Nam:
+  // 1. Metadata quốc gia chỉ rõ là Việt Nam.
+  // 2. Hoặc khi không có thông tin quốc gia nước ngoài VÀ:
+  //    - Tên gốc (origin_name) chứa ký tự tiếng Việt có dấu.
+  //    - HOẶC tên phim chính thống có dấu tiếng Việt nhưng origin_name không có bất kỳ từ tố nào liên quan đến tên phim
+  //      (dấu hiệu đặc trưng khi upstream scraper dịch máy tự động như "Xóm Nhỏ" -> "Hamlet").
+  const isDomesticVietnameseMovie =
+    isExplicitVietnameseCountry ||
+    (!hasForeignCountry && (
+      hasVietnameseOriginName ||
+      (hasVietnameseName && Boolean(movie.origin_name && !checkTitlesOverlap(primaryMovieTitles, [movie.origin_name])))
+    ));
+
   // Với phim nội địa Việt Nam, tuyệt đối không cho phép origin_name ngoại lai (do scraper dịch tự động như 'Hamlet')
   // đại diện cho bộ phim nếu không có bất kỳ từ tố nào liên quan đến tên tiếng Việt hoặc chứa ký tự tiếng Việt.
   const validOriginName =
     movie.origin_name &&
     (!isDomesticVietnameseMovie ||
       checkTitlesOverlap(primaryMovieTitles, [movie.origin_name]) ||
-      VIETNAMESE_DIACRITICS_REGEX.test(movie.origin_name))
+      hasVietnameseOriginName)
       ? movie.origin_name
       : undefined;
 

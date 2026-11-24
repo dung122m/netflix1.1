@@ -517,7 +517,15 @@ function pickBestTmdbCandidate(
   return best.item;
 }
 
-const inFlightTmdbTitlePoster = new Map<string, Promise<{ posterUrl: string | null; backdropUrl: string | null }>>();
+export interface TmdbTitlePosterResult {
+  posterUrl: string | null;
+  backdropUrl: string | null;
+  title?: string;
+  originalTitle?: string;
+  releaseDate?: string;
+}
+
+const inFlightTmdbTitlePoster = new Map<string, Promise<TmdbTitlePosterResult>>();
 
 export async function searchTmdbPosterByTitle(
   query: string,
@@ -525,7 +533,7 @@ export async function searchTmdbPosterByTitle(
   type: string = "movie",
   externalSignal?: AbortSignal,
   expectedCountry?: string
-): Promise<{ posterUrl: string | null; backdropUrl: string | null }> {
+): Promise<TmdbTitlePosterResult> {
   if (!query || typeof query !== "string" || externalSignal?.aborted) {
     return { posterUrl: null, backdropUrl: null };
   }
@@ -568,8 +576,8 @@ export async function searchTmdbPosterByTitle(
     expectedCountry,
   };
 
-  const task = (async (): Promise<{ posterUrl: string | null; backdropUrl: string | null }> => {
-    let result: { posterUrl: string | null; backdropUrl: string | null } = {
+  const task = (async (): Promise<TmdbTitlePosterResult> => {
+    let result: TmdbTitlePosterResult = {
       posterUrl: null,
       backdropUrl: null,
     };
@@ -591,6 +599,9 @@ export async function searchTmdbPosterByTitle(
             result = {
               posterUrl: `https://image.tmdb.org/t/p/w500${bestMulti.poster_path}`,
               backdropUrl: bestMulti.backdrop_path ? `https://image.tmdb.org/t/p/w1280${bestMulti.backdrop_path}` : null,
+              title: bestMulti.title || bestMulti.name,
+              originalTitle: bestMulti.original_title || bestMulti.original_name,
+              releaseDate: bestMulti.release_date || bestMulti.first_air_date,
             };
             break;
           }
@@ -606,6 +617,9 @@ export async function searchTmdbPosterByTitle(
               result = {
                 posterUrl: `https://image.tmdb.org/t/p/w500${bestMultiVi.poster_path}`,
                 backdropUrl: bestMultiVi.backdrop_path ? `https://image.tmdb.org/t/p/w1280${bestMultiVi.backdrop_path}` : null,
+                title: bestMultiVi.title || bestMultiVi.name,
+                originalTitle: bestMultiVi.original_title || bestMultiVi.original_name,
+                releaseDate: bestMultiVi.release_date || bestMultiVi.first_air_date,
               };
               break;
             }

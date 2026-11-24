@@ -79,7 +79,7 @@ async function fastBatchEnrichFromCache(movieList: any[]): Promise<void> {
     }
     if (item.slug) {
       const cleanKey = String(item.slug).toLowerCase().replace(/[^a-z0-9_]/g, "_").slice(0, 100);
-      const key = `tmdb:fallback_poster:v2:${cleanKey}`;
+      const key = `tmdb:fallback_poster:v3:${cleanKey}`;
       if (!keys.includes(key)) {
         keys.push(key);
         needsLookup.push({ item, key });
@@ -120,9 +120,6 @@ async function fastBatchEnrichFromCache(movieList: any[]): Promise<void> {
               }
             }
             if (hit.posterUrl) {
-              if (item.slug === "xom-nho" && hit.posterUrl.includes("7azHIOSrxo0VC5wYiwtGOnVehsH")) {
-                continue;
-              }
               item.poster_url = hit.posterUrl;
               item.posterUrl = hit.posterUrl;
               if (item.poster_url_webp) item.poster_url_webp = hit.posterUrl;
@@ -278,9 +275,6 @@ export async function enrichMovieListPosters(movieList: any[], options: PosterEn
             isVietnameseCountry ? "VN" : undefined
           );
           if (res?.posterUrl) {
-            if (item.slug === "xom-nho" && res.posterUrl.includes("7azHIOSrxo0VC5wYiwtGOnVehsH")) {
-              continue;
-            }
             if (posterNonTmdb) {
               item.poster_url = res.posterUrl;
               item.posterUrl = res.posterUrl;
@@ -295,10 +289,13 @@ export async function enrichMovieListPosters(movieList: any[], options: PosterEn
               const cleanKey = String(item.slug).toLowerCase().replace(/[^a-z0-9_]/g, "_").slice(0, 100);
               cacheService
                 .set(
-                  `tmdb:fallback_poster:v2:${cleanKey}`,
+                  `tmdb:fallback_poster:v3:${cleanKey}`,
                   {
                     posterUrl: res.posterUrl,
                     backdropUrl: res.backdropUrl,
+                    title: res.title || item.name,
+                    originalTitle: res.originalTitle || item.origin_name,
+                    releaseDate: res.releaseDate || (item.year ? String(item.year) : undefined),
                   },
                   30 * 86400
                 )

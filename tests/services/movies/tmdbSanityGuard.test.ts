@@ -72,14 +72,22 @@ describe("TMDb Sanity Guard & Anti-Corruption Suite", () => {
       };
 
       assert.strictEqual(isTmdbPayloadMatchingMovie(foreignHamlet, xomNho), false);
+
+      // Xác minh tuyệt đối an toàn ngay cả khi danh sách phim thiếu trường country (undefined)
+      const xomNhoNoCountry = {
+        name: "Xóm Nhỏ",
+        origin_name: "Hamlet",
+        year: 2026,
+        slug: "xom-nho",
+      };
+      assert.strictEqual(isTmdbPayloadMatchingMovie(foreignHamlet, xomNhoNoCountry), false);
     });
 
-    it("Accepts authentic Vietnamese candidate (Xóm nhỏ) matching Vietnamese movie even with missing air date", () => {
+    it("Accepts authentic Vietnamese candidate (Xóm nhỏ) matching Vietnamese movie even with missing air date and missing country", () => {
       const xomNho = {
         name: "Xóm Nhỏ",
         origin_name: "Hamlet",
         year: 2026,
-        country: "Việt Nam",
         slug: "xom-nho",
       };
       const authenticXomNhoTmdb = {

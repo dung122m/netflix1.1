@@ -149,8 +149,6 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
     const list: string[] = [];
     const addUrl = (u?: string) => {
       if (!u || typeof u !== "string" || !u.trim()) return;
-      // Tuyệt đối không cho phép poster ngoại lai Hamlet (7azHIOSrxo0VC5wYiwtGOnVehsH) gán vào Xóm Nhỏ
-      if (slug === "xom-nho" && u.includes("7azHIOSrxo0VC5wYiwtGOnVehsH")) return;
       const clean = toFastCdnImageUrl(toOptimizedCardPosterUrl(u));
       if (
         clean &&
@@ -162,11 +160,6 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
         list.push(clean);
       }
     };
-
-    // Poster chính hãng cho Xóm Nhỏ
-    if (slug === "xom-nho") {
-      addUrl("https://image.tmdb.org/t/p/w500/bA5NTUg4c1G7xi256yzBcQJaHgD.jpg");
-    }
 
     // 0. Nếu bộ nhớ RAM GLOBAL_POSTER_CACHE đã có link TMDb từ phiên này -> Gắn ngay lên đầu
     const cachedTmdb =

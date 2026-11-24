@@ -6,14 +6,11 @@ import { toOptimizedCardPosterUrl, isSlowProviderSourceUrl } from "@/lib/movieMe
 // =========================================================================
 // 1. PERSISTENT GLOBAL CACHE & DEDUPLICATION (Lưu vào localStorage/sessionStorage)
 // =========================================================================
-const POSTER_CACHE_KEY = "nfx_poster_fallback_cache_v4";
-const TRIED_FAILURES_KEY = "nfx_poster_fallback_failures_v4";
+const POSTER_CACHE_KEY = "nfx_poster_fallback_cache_v5";
+const TRIED_FAILURES_KEY = "nfx_poster_fallback_failures_v5";
 
 function initPersistentPosterCache(): Map<string, string> {
   const map = new Map<string, string>();
-  // Gắn sẵn poster chuẩn chính hãng cho Xóm Nhỏ, xóa vĩnh viễn tàn dư Hamlet
-  map.set("xom-nho", "https://image.tmdb.org/t/p/w500/bA5NTUg4c1G7xi256yzBcQJaHgD.jpg");
-
   if (typeof window === "undefined") return map;
   try {
     const raw = localStorage.getItem(POSTER_CACHE_KEY);
@@ -22,9 +19,6 @@ function initPersistentPosterCache(): Map<string, string> {
       if (typeof parsed === "object" && parsed !== null) {
         for (const [k, v] of Object.entries(parsed)) {
           if (typeof v === "string" && v) {
-            if (k === "xom-nho" || v.includes("7azHIOSrxo0VC5wYiwtGOnVehsH")) {
-              continue;
-            }
             map.set(k, v);
           }
         }
