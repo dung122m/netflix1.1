@@ -395,6 +395,9 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
     if (isNavigating) return;
 
     setIsNavigating(true);
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new Event("app:loading-start"));
+    }
     router.push(targetHref);
   };
 

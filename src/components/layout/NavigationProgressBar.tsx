@@ -86,15 +86,59 @@ function NavigationProgressBarInner() {
     }
   }, [currentUrl, stopLoading]);
 
-  // 2. Lắng nghe custom events cho các luồng điều hướng chủ động
+  // 2. Bắt sự kiện click toàn trang trên thẻ <a> (Link nội bộ, Tab, Menu, Thẻ phim) để kích hoạt loading NGAY TỨC THÌ (0ms)
   useEffect(() => {
+    const handleDocumentClick = (e: MouseEvent) => {
+      // Bỏ qua click chuột giữa, chuột phải hoặc phím tắt mở tab mới
+      if (e.button !== 0 || e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) {
+        return;
+      }
+
+      const target = (e.target as HTMLElement)?.closest("a");
+      if (!target) return;
+
+      const href = target.getAttribute("href");
+      const targetAttr = target.getAttribute("target");
+
+      // Bỏ qua nếu mở tab mới hoặc link ngoài
+      if (targetAttr === "_blank" || !href) return;
+      if (
+        href.startsWith("#") ||
+        href.startsWith("javascript:") ||
+        href.startsWith("mailto:") ||
+        href.startsWith("tel:")
+      ) {
+        return;
+      }
+
+      try {
+        const url = new URL(href, window.location.href);
+        if (url.origin !== window.location.origin) return;
+
+        // Nếu click vào chính URL hiện tại (bao gồm cả query) thì bỏ qua
+        const currentFullUrl = `${window.location.pathname}${window.location.search}`;
+        const targetFullUrl = `${url.pathname}${url.search}`;
+        if (targetFullUrl === currentFullUrl) return;
+
+        startLoading();
+      } catch {}
+    };
+
+    const handlePopState = () => {
+      startLoading();
+    };
+
     const handleCustomStart = () => startLoading();
     const handleCustomEnd = () => stopLoading();
 
+    document.addEventListener("click", handleDocumentClick, { capture: true, passive: true });
+    window.addEventListener("popstate", handlePopState);
     window.addEventListener("app:loading-start", handleCustomStart);
     window.addEventListener("app:loading-end", handleCustomEnd);
 
     return () => {
+      document.removeEventListener("click", handleDocumentClick, { capture: true });
+      window.removeEventListener("popstate", handlePopState);
       window.removeEventListener("app:loading-start", handleCustomStart);
       window.removeEventListener("app:loading-end", handleCustomEnd);
     };
