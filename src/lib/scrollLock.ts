@@ -2,35 +2,24 @@ import { useEffect } from "react";
 
 let lockCount = 0;
 let originalBodyOverflow = "";
-let originalHtmlOverflow = "";
-let originalHtmlOverscroll = "";
 let originalBodyOverscroll = "";
 
 /**
  * Khóa cuộn trang web (body scroll) với cơ chế Reference Counting và bảo toàn scroll position.
  * Tận dụng `scrollbar-gutter: stable` trong CSS để chống triệt để mọi hiện tượng Layout Shift & giật ngang Navbar.
- * An toàn với SSR, React Strict Mode, và hỗ trợ đa tầng Nested Modals.
+ * Chỉ tác động lên body để tránh làm gián đoạn viewport của root documentElement trên thiết bị di động.
  */
 export function lockBodyScroll(): void {
   if (typeof window === "undefined" || typeof document === "undefined") return;
 
   lockCount++;
   if (lockCount === 1) {
-    const docEl = document.documentElement;
     const body = document.body;
-
-    originalHtmlOverflow = docEl.style.overflow;
-    originalHtmlOverscroll = docEl.style.overscrollBehavior;
 
     originalBodyOverflow = body.style.overflow;
     originalBodyOverscroll = body.style.overscrollBehavior;
 
-    // Khóa cuộn ở cấp HTML & Body
-    // Không can thiệp paddingRight thủ công và không dùng position: fixed
-    // để tránh làm lệch tâm layout (đã được scrollbar-gutter: stable bảo vệ)
-    docEl.style.overflow = "hidden";
-    docEl.style.overscrollBehavior = "none";
-
+    // Khóa cuộn ở cấp Body mà không làm xáo trộn root documentElement viewport
     body.style.overflow = "hidden";
     body.style.overscrollBehavior = "none";
   }
@@ -44,11 +33,7 @@ export function unlockBodyScroll(): void {
 
   lockCount = Math.max(0, lockCount - 1);
   if (lockCount === 0) {
-    const docEl = document.documentElement;
     const body = document.body;
-
-    docEl.style.overflow = originalHtmlOverflow;
-    docEl.style.overscrollBehavior = originalHtmlOverscroll;
 
     body.style.overflow = originalBodyOverflow;
     body.style.overscrollBehavior = originalBodyOverscroll;

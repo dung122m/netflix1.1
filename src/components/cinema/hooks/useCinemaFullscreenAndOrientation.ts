@@ -289,12 +289,9 @@ export function useCinemaFullscreenAndOrientation({
     }
 
     let rafId: number | null = null;
-    const evaluateScroll = () => {
-      const sentinel = sentinelRef.current;
-      if (!sentinel) return;
-
-      const rect = sentinel.getBoundingClientRect();
-      const navbarHeight =
+    let cachedNavbarHeight = 56;
+    const updateNavbarHeight = () => {
+      cachedNavbarHeight =
         (typeof window !== "undefined" &&
           parseFloat(
             getComputedStyle(document.documentElement).getPropertyValue(
@@ -302,6 +299,15 @@ export function useCinemaFullscreenAndOrientation({
             ),
           )) ||
         56;
+    };
+    updateNavbarHeight();
+
+    const evaluateScroll = () => {
+      const sentinel = sentinelRef.current;
+      if (!sentinel) return;
+
+      const rect = sentinel.getBoundingClientRect();
+      const navbarHeight = cachedNavbarHeight;
 
       // Hysteresis chống chớp giật:
       // - Khi chưa sticky: Kích hoạt khi đỉnh player trôi qua mép dưới navbar - 25px
@@ -338,10 +344,12 @@ export function useCinemaFullscreenAndOrientation({
     }
 
     window.addEventListener("scroll", handleScroll, { passive: true });
+    window.addEventListener("resize", updateNavbarHeight, { passive: true });
     evaluateScroll();
 
     return () => {
       window.removeEventListener("scroll", handleScroll);
+      window.removeEventListener("resize", updateNavbarHeight);
       if (rafId !== null) cancelAnimationFrame(rafId);
       if (observer) observer.disconnect();
     };

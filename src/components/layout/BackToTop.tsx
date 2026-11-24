@@ -9,7 +9,11 @@ export function BackToTop() {
 
   useEffect(() => {
     let lastState = false;
-    const handleScroll = () => {
+    let rafId: number | null = null;
+    let isScheduled = false;
+
+    const evaluateScroll = () => {
+      isScheduled = false;
       const isVisible = window.scrollY > 400;
       if (isVisible !== lastState) {
         lastState = isVisible;
@@ -17,8 +21,17 @@ export function BackToTop() {
       }
     };
 
+    const handleScroll = () => {
+      if (isScheduled) return;
+      isScheduled = true;
+      rafId = requestAnimationFrame(evaluateScroll);
+    };
+
     window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      if (rafId !== null) cancelAnimationFrame(rafId);
+    };
   }, []);
 
   const scrollToTop = () => {

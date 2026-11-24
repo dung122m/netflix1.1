@@ -384,11 +384,6 @@
   contain-intrinsic-size: 0 340px;
 }
 
-.cv-auto-card {
-  content-visibility: auto;
-  contain-intrinsic-size: 0 280px;
-}
-
 /* ============================================================ */
 /* MOBILE-FIRST RESPONSIVE UTILITIES                            */
 /* ============================================================ */

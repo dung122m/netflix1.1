@@ -194,10 +194,10 @@ export default function RootLayout({
                       });
                     });
                     observer.observe(document.documentElement, { attributes: true, subtree: true, attributeFilter: extAttrs });
-                    // Tự động ngắt kết nối sau khi React hoàn tất hydrate (3.5s) để giải phóng tài nguyên CPU/RAM
+                    // Tự động ngắt kết nối sau khi React hoàn tất hydrate (1.2s) để giải phóng tài nguyên CPU/RAM
                     setTimeout(function() {
                       observer.disconnect();
-                    }, 3500);
+                    }, 1200);
                   }
                 } catch(e) {}
 

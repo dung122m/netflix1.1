@@ -42,49 +42,62 @@ export function MobileMovieNav({ isSeries = true }: MobileMovieNavProps) {
   ], [isSeries]);
 
   useEffect(() => {
-    const handleScroll = () => {
+    if (typeof window === "undefined") return;
+
+    const sectionElements = sections
+      .map((sec) => document.getElementById(sec.id))
+      .filter((el): el is HTMLElement => el !== null);
+
+    if (sectionElements.length === 0) return;
+
+    let rafId: number | null = null;
+    let isScheduled = false;
+
+    // Cache offset để không gọi getComputedStyle trên luồng scroll
+    let cachedTriggerOffset = 180;
+    const updateCachedOffset = () => {
+      const isPlayerSticky = document.documentElement.dataset.playerSticky === "true";
+      const navHeight = 56;
+      const stickyPlayerHeight = 32 + Math.min(window.innerWidth * 0.5625, window.innerHeight * 0.38);
+      cachedTriggerOffset = isPlayerSticky
+        ? (navHeight + stickyPlayerHeight + 46 + 10)
+        : (navHeight + 46 + 15);
+    };
+    updateCachedOffset();
+
+    const evaluateActiveSection = () => {
+      isScheduled = false;
       if (isClickScrollingRef.current) return;
 
-      const isPlayerSticky = typeof document !== "undefined" && document.documentElement.dataset.playerSticky === "true";
-      const navbarHeight = typeof window !== "undefined"
-        ? (parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--navbar-height")) || 56)
-        : 56;
-      const cssStickyPlayerH = typeof window !== "undefined"
-        ? parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--sticky-player-height"))
-        : 0;
-      const stickyPlayerHeight = (cssStickyPlayerH > 0)
-        ? cssStickyPlayerH
-        : (32 + Math.min(window.innerWidth * 0.5625, window.innerHeight * 0.38));
-      const navHeight = 46;
-      const triggerOffset = isPlayerSticky
-        ? (navbarHeight + stickyPlayerHeight + navHeight + 10)
-        : (navbarHeight + navHeight + 15);
+      const offset = cachedTriggerOffset;
+      let currentActive = sections[0].id;
 
-      // Sắp xếp các section theo vị trí top thực tế trên viewport
-      const foundSections = sections
-        .map((sec) => {
-          const el = document.getElementById(sec.id);
-          return el ? { id: sec.id, top: el.getBoundingClientRect().top } : null;
-        })
-        .filter((item): item is { id: string; top: number } => item !== null)
-        .sort((a, b) => a.top - b.top);
-
-      if (foundSections.length === 0) return;
-
-      // Tìm section cuối cùng đã vượt qua triggerOffset (đang hiển thị trong tầm nhìn)
-      const pastTrigger = foundSections.filter((item) => item.top <= triggerOffset);
-      if (pastTrigger.length > 0) {
-        setActiveSection(pastTrigger[pastTrigger.length - 1].id);
-      } else {
-        setActiveSection(foundSections[0].id);
+      for (let i = 0; i < sectionElements.length; i++) {
+        const el = sectionElements[i];
+        if (el.getBoundingClientRect().top <= offset) {
+          currentActive = el.id;
+        } else {
+          break;
+        }
       }
+
+      setActiveSection((prev) => (prev !== currentActive ? currentActive : prev));
+    };
+
+    const handleScroll = () => {
+      if (isClickScrollingRef.current || isScheduled) return;
+      isScheduled = true;
+      rafId = requestAnimationFrame(evaluateActiveSection);
     };
 
     window.addEventListener("scroll", handleScroll, { passive: true });
-    handleScroll();
+    window.addEventListener("resize", updateCachedOffset, { passive: true });
+    evaluateActiveSection();
 
     return () => {
       window.removeEventListener("scroll", handleScroll);
+      window.removeEventListener("resize", updateCachedOffset);
+      if (rafId !== null) cancelAnimationFrame(rafId);
       if (clickTimeoutRef.current) clearTimeout(clickTimeoutRef.current);
     };
   }, [sections]);
@@ -99,21 +112,11 @@ export function MobileMovieNav({ isSeries = true }: MobileMovieNavProps) {
       const isPlayerSticky =
         typeof document !== "undefined" &&
         document.documentElement.dataset.playerSticky === "true";
-      const navbarHeight = typeof window !== "undefined"
-        ? (parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--navbar-height")) || 56)
-        : 56;
-      const cssStickyPlayerH = typeof window !== "undefined"
-        ? parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--sticky-player-height"))
-        : 0;
-      const stickyPlayerHeight = (cssStickyPlayerH > 0)
-        ? cssStickyPlayerH
-        : (32 + Math.min(window.innerWidth * 0.5625, window.innerHeight * 0.38));
-      const navHeight = 46;
-      // Trên mobile (< 1024px), khi nhảy tới bất kỳ section nội dung nào bên dưới, player chắc chắn sẽ ở trạng thái sticky
+      const stickyPlayerHeight = 32 + Math.min(window.innerWidth * 0.5625, window.innerHeight * 0.38);
       const willBeSticky = isPlayerSticky || window.innerWidth < 1024;
       const navOffset = willBeSticky
-        ? (navbarHeight + stickyPlayerHeight + navHeight - 2)
-        : (navbarHeight + navHeight);
+        ? (56 + stickyPlayerHeight + 44)
+        : (56 + 46);
       const targetY = element.getBoundingClientRect().top + window.scrollY - navOffset;
       window.scrollTo({
         top: Math.max(0, targetY),

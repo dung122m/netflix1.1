@@ -449,9 +449,9 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
           }`}
         data-card-active={isCardActive ? "true" : undefined}
       >
-        {/* LỚP DỊU MÉP TRONG (LÀM MỀM POSTER NỀN SÁNG TRÊN DARK MODE MÀ KHÔNG CẦN VIỀN) */}
+        {/* LỚP DỊU MÉP TRONG (LÀM MỀM POSTER NỀN SÁNG TRÊN DARK MODE MÀ KHÔNG TỐN GPU) */}
         <div
-          className="pointer-events-none absolute inset-0 z-[3] rounded-xl shadow-[inset_0_0_24px_rgba(0,0,0,0.22)]"
+          className="pointer-events-none absolute inset-0 z-[3] rounded-xl ring-1 ring-inset ring-black/25"
           aria-hidden="true"
         />
         {/* LIÊN KẾT CHÍNH PHỦ TOÀN BỘ POSTER (A11Y + KEYBOARD FOCUS + CLICK MỞ PHIM) */}

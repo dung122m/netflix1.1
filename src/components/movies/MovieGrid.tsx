@@ -80,7 +80,7 @@ const MovieGridInner = ({ movies, columnsClassName }: MovieGridProps) => {
       >
         {visibleMovies.map(({ norm, bestThumb }, index) => {
           return (
-            <div key={norm.slug || index} className="cv-auto-card w-full">
+            <div key={norm.slug || index} className="w-full">
               <MediaCard
                 slug={norm.slug}
                 title={norm.title}
