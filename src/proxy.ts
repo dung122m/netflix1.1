@@ -105,11 +105,11 @@ function normalizeClientIpSubnet(ip: string): string {
 }
 
 const EDGE_TIER_RULES: EdgeTierRule[] = [
-  { prefix: "/dien-vien/", name: "trang diễn viên", maxRequests: 30, windowMs: 10_000 },
-  { prefix: "/movies/", name: "trang phim", maxRequests: 35, windowMs: 10_000 },
-  { prefix: "/browse", name: "trang khám phá", maxRequests: 35, windowMs: 10_000 },
-  { prefix: "/api/search-suggest", name: "gợi ý tìm kiếm", maxRequests: 40, windowMs: 10_000 },
-  { prefix: "/api/recommendations/for-you", name: "gợi ý phim", maxRequests: 25, windowMs: 10_000 },
+  { prefix: "/dien-vien/", name: "trang diễn viên", maxRequests: 60, windowMs: 10_000 },
+  { prefix: "/movies/", name: "trang phim", maxRequests: 60, windowMs: 10_000 },
+  { prefix: "/browse", name: "trang khám phá", maxRequests: 60, windowMs: 10_000 },
+  { prefix: "/api/search-suggest", name: "gợi ý tìm kiếm", maxRequests: 60, windowMs: 10_000 },
+  { prefix: "/api/recommendations/for-you", name: "gợi ý phim", maxRequests: 40, windowMs: 10_000 },
 ];
 
 // Danh sách các đường dẫn dò quét lỗ hổng phổ biến của botnet
@@ -409,7 +409,8 @@ export function proxy(req: NextRequest) {
   const isPrefetch =
     req.headers.get("purpose") === "prefetch" ||
     req.headers.get("next-router-prefetch") === "1" ||
-    req.headers.get("x-nextjs-data") === "1";
+    req.headers.get("x-nextjs-data") === "1" ||
+    req.nextUrl.searchParams.has("_rsc");
 
   if (!isSearchBot && !isLoopback && !isDev && !isTest && !isPrefetch) {
     const matchedTier = EDGE_TIER_RULES.find((tier) => pathname.startsWith(tier.prefix));

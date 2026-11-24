@@ -262,59 +262,6 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
     }
   }, [slug, imageCandidates, currentSrc]);
 
-  // Tự động nâng cấp poster sang TMDb CDN trong background nếu thẻ hiện tại chưa có ảnh TMDb
-  useEffect(() => {
-    if (!slug && !title && !tmdbId) return;
-    if (currentSrc && currentSrc.includes("image.tmdb.org")) return;
-
-    // Kiểm tra cache trước
-    const cachedTmdb =
-      (slug && GLOBAL_POSTER_CACHE.get(slug)) ||
-      (tmdbId && GLOBAL_POSTER_CACHE.get(`v3:tmdb:${tmdbId}:${itemType || "movie"}`)) ||
-      (tmdbId && GLOBAL_POSTER_CACHE.get(`tmdb:${tmdbId}`));
-    if (cachedTmdb && cachedTmdb.includes("image.tmdb.org")) {
-      setCurrentSrc(cachedTmdb);
-      setHasError(false);
-      return;
-    }
-
-    let isMounted = true;
-    const controller = new AbortController();
-
-    const fetchUpgrade = async () => {
-      try {
-        const params = new URLSearchParams();
-        if (slug) params.set("slug", slug);
-        if (title) params.set("title", title);
-        if (origin_name) params.set("origin_name", origin_name);
-        if (year) params.set("year", String(year));
-        if (itemType) params.set("type", itemType);
-        if (tmdbId) params.set("tmdbId", String(tmdbId));
-
-        const res = await fetch(`/api/movie-poster-fallback?${params.toString()}`, {
-          signal: controller.signal,
-        });
-        if (!res.ok) return;
-        const data = await res.json();
-        if (isMounted && data?.posterUrl && typeof data.posterUrl === "string") {
-          if (slug) persistPosterCacheEntry(slug, data.posterUrl);
-          setCurrentSrc(data.posterUrl);
-          setHasError(false);
-        }
-      } catch {
-        // Bỏ qua lỗi mạng hoặc abort
-      }
-    };
-
-    const timer = setTimeout(fetchUpgrade, 120);
-
-    return () => {
-      isMounted = false;
-      clearTimeout(timer);
-      controller.abort();
-    };
-  }, [slug, title, origin_name, year, itemType, tmdbId, currentSrc]);
-
   const handleImageError = useCallback(() => {
     if (currentSrc) {
       triedUrlsRef.current.add(currentSrc);
@@ -524,7 +471,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
         <Link
           ref={baseCardRef}
           href={targetHref}
-          prefetch={priority ? true : undefined}
+          prefetch={false}
           onClick={handleCardClick}
           tabIndex={0}
           aria-label={`Xem phim ${title}`}
@@ -590,7 +537,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
           {currentSrc && !hasError && (
             /* eslint-disable-next-line @next/next/no-img-element */
             <img
-              key={currentSrc}
+              key={slug}
               ref={checkImageComplete}
               src={currentSrc}
               alt={title}
