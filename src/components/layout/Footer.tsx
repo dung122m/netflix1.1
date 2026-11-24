@@ -216,28 +216,12 @@ export const Footer: React.FC = () => {
         </div>
 
         {/* ============================================================ */}
-        {/* 3. TUYÊN BỐ MIỄN TRỪ TRÁCH NHIỆM PHI THƯƠNG MẠI (DISCLAIMER) */}
+        {/* 3. BRANDING & CREATOR CARD */}
         {/* ============================================================ */}
-        <div className="border-t border-white/[0.06] pt-4 text-center sm:text-left">
-          <p className="text-[11px] text-zinc-500 leading-relaxed max-w-4xl mx-auto sm:mx-0">
-            Tuyên bố miễn trừ trách nhiệm: Nanaflix là nền tảng xem phim phi thương mại nhằm mục đích giải trí và học tập. Toàn bộ nội dung video được nhúng và tổng hợp tự động từ các nguồn chia sẻ công khai trên internet. Nanaflix không lưu trữ bất kỳ tệp tin phương tiện nào trên máy chủ của mình.
-          </p>
-        </div>
-
-        {/* ============================================================ */}
-        {/* 4. BRANDING & CREATOR CARD (DŨNG TRẦN) */}
-        {/* ============================================================ */}
-        <div className="border-t border-white/[0.06] pt-4 sm:pt-6 flex flex-col md:flex-row items-center justify-between gap-3 sm:gap-6 text-center sm:text-left">
-          <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4">
-            <Link href="/" prefetch={false} className="hover:opacity-90 transition inline-flex items-center">
-              <NanaflixBrandLogo />
-            </Link>
-            <span className="text-[11px] sm:text-xs text-zinc-500 sm:border-l sm:border-white/15 sm:pl-3 tracking-tight sm:tracking-normal">
-              <span className="whitespace-nowrap">Xem phim trực tuyến</span>
-              {" • "}
-              <span className="whitespace-nowrap">Không quảng cáo che màn hình</span>
-            </span>
-          </div>
+        <div className="border-t border-white/[0.06] pt-6 flex flex-col md:flex-row items-center justify-between gap-4 text-center sm:text-left">
+          <Link href="/" prefetch={false} className="hover:opacity-90 transition inline-flex items-center">
+            <NanaflixBrandLogo />
+          </Link>
 
           <Link
             href="/about"
