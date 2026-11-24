@@ -148,7 +148,7 @@ export default function RootLayout({
         <link rel="dns-prefetch" href="https://vip.opstream16.com" />
         <link rel="dns-prefetch" href="https://embed.streamc.xyz" />
 
-        {/* Khởi tạo Dark Mode & Khử các attribute do browser extension tự tiêm vào (bts_skin_checked, etc.) */}
+        {/* Khởi tạo Dark Mode & Theme Accent (0ms FOUC) */}
         <script
           dangerouslySetInnerHTML={{
             __html: `
@@ -170,83 +170,6 @@ export default function RootLayout({
                       localStorage.setItem('${ACCENT_COOKIE_KEY}', savedTheme);
                       document.cookie = '${ACCENT_COOKIE_KEY}=' + encodeURIComponent(savedTheme) + '; path=/; max-age=31536000; SameSite=Lax';
                     } catch(e) {}
-                  }
-                } catch(e) {}
-
-                // Gỡ bỏ các thuộc tính do Chrome Extension (Baidu, Translators, Skins) tiêm vào DOM trước khi React hydrate
-                try {
-                  var extAttrs = ['bts_skin_checked', 'bis_skin_checked', 'cz-shortcut-listen', 'data-gr-ext-installed', 'data-adblockkey'];
-                  var cleanExtAttrs = function() {
-                    extAttrs.forEach(function(attr) {
-                      var els = document.querySelectorAll('[' + attr + ']');
-                      for (var i = 0; i < els.length; i++) {
-                        els[i].removeAttribute(attr);
-                      }
-                    });
-                  };
-                  cleanExtAttrs();
-                  if (typeof MutationObserver !== 'undefined') {
-                    var observer = new MutationObserver(function(mutations) {
-                      mutations.forEach(function(mutation) {
-                        if (mutation.type === 'attributes' && extAttrs.indexOf(mutation.attributeName) !== -1) {
-                          mutation.target.removeAttribute(mutation.attributeName);
-                        }
-                      });
-                    });
-                    observer.observe(document.documentElement, { attributes: true, subtree: true, attributeFilter: extAttrs });
-                    // Tự động ngắt kết nối sau khi React hoàn tất hydrate (1.2s) để giải phóng tài nguyên CPU/RAM
-                    setTimeout(function() {
-                      observer.disconnect();
-                    }, 1200);
-                  }
-                } catch(e) {}
-
-                // Ngăn chặn các lỗi Unhandled Rejection do browser extensions tự tiêm vào (e.g. Coco, Media Downloader, M_ID)
-                try {
-                  var isExtErr = function(err, reason) {
-                    var str = '' + (err && (err.stack || err.message) || '') + ' ' + (reason && (reason.stack || reason.message) || reason || '');
-                    return str.indexOf('chrome-extension://') !== -1 ||
-                           str.indexOf('moz-extension://') !== -1 ||
-                           str.indexOf('safari-extension://') !== -1 ||
-                           str.indexOf('M_ID') !== -1;
-                  };
-
-                  window.addEventListener('unhandledrejection', function(event) {
-                    if (isExtErr(event.reason, event.reason)) {
-                      event.preventDefault();
-                      event.stopImmediatePropagation();
-                    }
-                  }, true);
-
-                  window.addEventListener('error', function(event) {
-                    if (isExtErr(event.error, event.message) || (event.filename && event.filename.indexOf('-extension://') !== -1)) {
-                      event.preventDefault();
-                      event.stopImmediatePropagation();
-                    }
-                  }, true);
-                } catch(e) {}
-
-                // Tự động gỡ Service Worker & CacheStorage cũ trên localhost nếu từng bị cache chunk dev
-                try {
-                  var h = window.location && window.location.hostname;
-                  if ((h === 'localhost' || h === '127.0.0.1' || h === '[::1]') && 'serviceWorker' in navigator) {
-                    navigator.serviceWorker.getRegistrations().then(function(regs) {
-                      if (!regs || regs.length === 0) return;
-                      return Promise.all(regs.map(function(r) { return r.unregister(); })).then(function() {
-                        if ('caches' in window) {
-                          return caches.keys().then(function(keys) {
-                            return Promise.all(keys.map(function(k) { return caches.delete(k); }));
-                          });
-                        }
-                      }).then(function() {
-                        try {
-                          if (!sessionStorage.getItem('__nana_sw_cleaned')) {
-                            sessionStorage.setItem('__nana_sw_cleaned', '1');
-                            window.location.reload();
-                          }
-                        } catch(err) {}
-                      });
-                    }).catch(function() {});
                   }
                 } catch(e) {}
               })();

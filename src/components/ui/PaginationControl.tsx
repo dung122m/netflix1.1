@@ -33,22 +33,6 @@ const PaginationControlInner: React.FC<PaginationControlProps> = ({
       ? Math.floor(currentPage)
       : 1;
 
-  const isFirstMount = useRef(true);
-
-  // Khi trang mới (safeCurrentPage) đã tải và render xong:
-  // Lập tức đưa khung nhìn lên đầu trang tức thì (0ms instant)
-  useEffect(() => {
-    if (isFirstMount.current) {
-      isFirstMount.current = false;
-      return;
-    }
-    window.scrollTo({ top: 0, left: 0, behavior: "instant" });
-    const timer = setTimeout(() => {
-      window.scrollTo({ top: 0, left: 0, behavior: "instant" });
-    }, 0);
-    return () => clearTimeout(timer);
-  }, [safeCurrentPage]);
-
   // Xây dựng URL giữ nguyên 100% search params hiện tại cho mode Link
   const buildPageUrl = (pageNumber: number) => {
     const pathname = typeof window !== "undefined" ? window.location.pathname : "/browse";
@@ -62,18 +46,20 @@ const PaginationControlInner: React.FC<PaginationControlProps> = ({
     if (e.button !== 0 || e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) {
       return;
     }
-    e.preventDefault();
-    if (pageNumber === safeCurrentPage || isPending) return;
-
-    if (onPageChange) {
-      onPageChange(pageNumber);
-      window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+    if (pageNumber === safeCurrentPage || isPending) {
+      e.preventDefault();
       return;
     }
 
-    startTransition(() => {
-      router.push(buildPageUrl(pageNumber), { scroll: false });
-    });
+    if (onPageChange) {
+      e.preventDefault();
+      onPageChange(pageNumber);
+      return;
+    }
+
+    // Với mode Link thông thường: Không chặn preventDefault để Next.js Link điều hướng tự nhiên
+    // Sau khi trang đích tải và mount xong, Next.js tự động đưa khung nhìn lên đầu trang đích (0, 0),
+    // hoàn toàn không bị cuộn giật ở trang hiện tại trước khi chuyển.
   };
 
   // Tự động focus ô nhập khi mở popover
@@ -118,7 +104,7 @@ const PaginationControlInner: React.FC<PaginationControlProps> = ({
       onPageChange(validPage);
     } else {
       startTransition(() => {
-        router.push(buildPageUrl(validPage), { scroll: false });
+        router.push(buildPageUrl(validPage));
       });
     }
   };
@@ -150,7 +136,6 @@ const PaginationControlInner: React.FC<PaginationControlProps> = ({
           href={buildPageUrl(prevPage)}
           onClick={(e) => handlePageClick(e, prevPage)}
           prefetch={false}
-          scroll={false}
           tabIndex={safeCurrentPage <= 1 ? -1 : 0}
           className={`px-3.5 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm rounded-xl font-semibold transition touch-target min-h-[40px] flex items-center justify-center outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-105 cursor-pointer ${
             safeCurrentPage <= 1
@@ -201,7 +186,6 @@ const PaginationControlInner: React.FC<PaginationControlProps> = ({
               href={buildPageUrl(pageNum)}
               onClick={(e) => handlePageClick(e, pageNum)}
               prefetch={false}
-              scroll={false}
               className={`w-9 h-9 sm:w-10 sm:h-10 text-xs sm:text-sm flex items-center justify-center rounded-lg font-semibold transition-all outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-110 cursor-pointer ${
                 isActive
                   ? "bg-netflix-red text-white shadow-sm font-bold"
@@ -293,7 +277,6 @@ const PaginationControlInner: React.FC<PaginationControlProps> = ({
           href={buildPageUrl(nextPage)}
           onClick={(e) => handlePageClick(e, nextPage)}
           prefetch={false}
-          scroll={false}
           tabIndex={safeCurrentPage >= safeTotalPages ? -1 : 0}
           className={`px-3.5 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm rounded-xl font-semibold transition touch-target min-h-[40px] flex items-center justify-center outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-105 cursor-pointer ${
             safeCurrentPage >= safeTotalPages

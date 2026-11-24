@@ -478,58 +478,60 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
           className={`block absolute inset-0 z-0 outline-none focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-inset rounded-xl ${isNavigating ? "movie-card-navigating" : ""
             }`}
         >
-          {/* LỚP NỀN POSTER: DYNAMIC TYPOGRAPHY POSTER CANVAS & SKELETON */}
-          <div
-            className="absolute inset-0 z-0 flex flex-col items-center justify-between p-3.5 bg-gradient-to-b from-zinc-850 via-zinc-900 to-zinc-950 select-none overflow-hidden text-center"
-            aria-hidden="true"
-          >
-            {/* 1. Header: Logo Nanaflix nhỏ tinh tế */}
-            <div className="w-full flex items-center justify-center pt-1">
-              <div className="inline-flex items-center gap-1.5 poster-placeholder-logo opacity-80">
-                <div className="w-4.5 h-3.5 rounded-[3px] bg-[#EA1D24] flex items-center justify-center shadow-sm">
-                  <svg
-                    viewBox="0 0 24 24"
-                    className="w-2 h-2 text-[#FFF200] fill-current"
-                    aria-hidden="true"
-                  >
-                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-                  </svg>
+          {/* LỚP NỀN POSTER: DYNAMIC TYPOGRAPHY POSTER CANVAS & SKELETON (CHỈ RENDER KHI CHƯA NẠP XONG ẢNH HOẶC LỖI) */}
+          {(!isImageLoaded || hasError) && (
+            <div
+              className="absolute inset-0 z-0 flex flex-col items-center justify-between p-3.5 bg-gradient-to-b from-zinc-850 via-zinc-900 to-zinc-950 select-none overflow-hidden text-center"
+              aria-hidden="true"
+            >
+              {/* 1. Header: Logo Nanaflix nhỏ tinh tế */}
+              <div className="w-full flex items-center justify-center pt-1">
+                <div className="inline-flex items-center gap-1.5 poster-placeholder-logo opacity-80">
+                  <div className="w-4.5 h-3.5 rounded-[3px] bg-[#EA1D24] flex items-center justify-center shadow-sm">
+                    <svg
+                      viewBox="0 0 24 24"
+                      className="w-2 h-2 text-[#FFF200] fill-current"
+                      aria-hidden="true"
+                    >
+                      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                    </svg>
+                  </div>
+                  <span className="text-white font-black text-[11px] tracking-tight drop-shadow-sm">Nanaflix</span>
                 </div>
-                <span className="text-white font-black text-[11px] tracking-tight drop-shadow-sm">Nanaflix</span>
               </div>
-            </div>
 
-            {/* 2. Body: Tên phim nổi bật (Typography Poster) */}
-            <div className="w-full my-auto px-1 flex flex-col items-center justify-center">
-              <span className="text-white/95 font-bold text-xs sm:text-[13px] leading-snug line-clamp-3 text-center drop-shadow">
-                {title}
-              </span>
-              {origin_name && origin_name !== title && (
-                <span className="text-zinc-500 text-[10px] italic line-clamp-1 mt-1 font-medium">
-                  {origin_name}
+              {/* 2. Body: Tên phim nổi bật (Typography Poster) */}
+              <div className="w-full my-auto px-1 flex flex-col items-center justify-center">
+                <span className="text-white/95 font-bold text-xs sm:text-[13px] leading-snug line-clamp-3 text-center drop-shadow">
+                  {title}
                 </span>
+                {origin_name && origin_name !== title && (
+                  <span className="text-zinc-500 text-[10px] italic line-clamp-1 mt-1 font-medium">
+                    {origin_name}
+                  </span>
+                )}
+              </div>
+
+              {/* 3. Footer: Năm & Thể loại */}
+              <div className="w-full flex items-center justify-center gap-1.5 text-[10px] text-zinc-400 pb-1 font-sans tabular-nums">
+                {year && <span>{year}</span>}
+                {genre && (
+                  <>
+                    <span className="text-zinc-600">•</span>
+                    <span className="truncate max-w-[80px]">{genre}</span>
+                  </>
+                )}
+              </div>
+
+              {/* Shimmer sheen khi đang chờ tải ảnh */}
+              {!isImageLoaded && !hasError && (
+                <div
+                  className="absolute inset-0 -translate-x-full poster-placeholder-shimmer bg-gradient-to-r from-transparent via-white/[0.06] to-transparent pointer-events-none"
+                  aria-hidden="true"
+                />
               )}
             </div>
-
-            {/* 3. Footer: Năm & Thể loại */}
-            <div className="w-full flex items-center justify-center gap-1.5 text-[10px] text-zinc-400 pb-1 font-sans tabular-nums">
-              {year && <span>{year}</span>}
-              {genre && (
-                <>
-                  <span className="text-zinc-600">•</span>
-                  <span className="truncate max-w-[80px]">{genre}</span>
-                </>
-              )}
-            </div>
-
-            {/* Shimmer sheen khi đang chờ tải ảnh */}
-            {!isImageLoaded && !hasError && (
-              <div
-                className="absolute inset-0 -translate-x-full poster-placeholder-shimmer bg-gradient-to-r from-transparent via-white/[0.06] to-transparent pointer-events-none"
-                aria-hidden="true"
-              />
-            )}
-          </div>
+          )}
 
           {/* THẺ ẢNH CHÍNH PHỦ LÊN TRÊN CANVAS NỀN */}
           {currentSrc && !hasError && (

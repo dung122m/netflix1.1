@@ -43,7 +43,7 @@ export const FilterDropdownMenu: React.FC<FilterDropdownMenuProps> = React.memo(
       >
         {/* POPUP 1: LOẠI PHIM */}
         {activeDropdown === "type" && (
-          <div className="w-56 sm:w-60 rounded-2xl bg-zinc-950/98 p-2.5 shadow-[0_20px_50px_rgba(0,0,0,0.9)] backdrop-blur-xl animate-in fade-in zoom-in-95 duration-150">
+          <div className="w-56 sm:w-60 rounded-2xl bg-zinc-950 border border-white/[0.08] p-2.5 shadow-[0_20px_50px_rgba(0,0,0,0.9)] animate-in fade-in zoom-in-95 duration-150">
             <div className="px-2 py-1 text-[11px] font-semibold text-zinc-400 border-b border-white/[0.08] mb-2 flex items-center justify-between">
               <span>Chọn loại phim</span>
               {currentType && (
@@ -93,7 +93,7 @@ export const FilterDropdownMenu: React.FC<FilterDropdownMenuProps> = React.memo(
 
         {/* POPUP 2: THỂ LOẠI */}
         {activeDropdown === "genre" && (
-          <div className="w-[calc(100vw-2rem)] sm:w-80 md:w-96 rounded-2xl bg-zinc-950/98 p-3 shadow-[0_20px_50px_rgba(0,0,0,0.9)] backdrop-blur-xl animate-in fade-in zoom-in-95 duration-150">
+          <div className="w-[calc(100vw-2rem)] sm:w-80 md:w-96 rounded-2xl bg-zinc-950 border border-white/[0.08] p-3 shadow-[0_20px_50px_rgba(0,0,0,0.9)] animate-in fade-in zoom-in-95 duration-150">
             <div className="px-2 py-1 text-[11px] font-semibold text-zinc-400 border-b border-white/[0.08] mb-2 flex items-center justify-between">
               <span>Chọn thể loại</span>
               {currentCategory && (
@@ -144,7 +144,7 @@ export const FilterDropdownMenu: React.FC<FilterDropdownMenuProps> = React.memo(
 
         {/* POPUP 3: QUỐC GIA */}
         {activeDropdown === "country" && (
-          <div className="w-[calc(100vw-2rem)] sm:w-80 rounded-2xl bg-zinc-950/98 p-3 shadow-[0_20px_50px_rgba(0,0,0,0.9)] backdrop-blur-xl animate-in fade-in zoom-in-95 duration-150">
+          <div className="w-[calc(100vw-2rem)] sm:w-80 rounded-2xl bg-zinc-950 border border-white/[0.08] p-3 shadow-[0_20px_50px_rgba(0,0,0,0.9)] animate-in fade-in zoom-in-95 duration-150">
             <div className="px-2 py-1 text-[11px] font-semibold text-zinc-400 border-b border-white/[0.08] mb-2 flex items-center justify-between">
               <span>Chọn quốc gia</span>
               {currentCountry && (
@@ -194,7 +194,7 @@ export const FilterDropdownMenu: React.FC<FilterDropdownMenuProps> = React.memo(
 
         {/* POPUP 4: NĂM PHÁT HÀNH */}
         {activeDropdown === "year" && (
-          <div className="w-[calc(100vw-2rem)] sm:w-80 rounded-2xl bg-zinc-950/98 p-3 shadow-[0_20px_50px_rgba(0,0,0,0.9)] backdrop-blur-xl animate-in fade-in zoom-in-95 duration-150">
+          <div className="w-[calc(100vw-2rem)] sm:w-80 rounded-2xl bg-zinc-950 border border-white/[0.08] p-3 shadow-[0_20px_50px_rgba(0,0,0,0.9)] animate-in fade-in zoom-in-95 duration-150">
             <div className="px-2 py-1 text-[11px] font-semibold text-zinc-400 border-b border-white/[0.08] mb-2 flex items-center justify-between">
               <span>Chọn năm phát hành</span>
               {currentYear && (

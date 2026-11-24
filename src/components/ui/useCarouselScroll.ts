@@ -127,32 +127,20 @@ export function useCarouselScroll<T extends HTMLElement = HTMLDivElement>(
     checkScroll();
   }, [watchTrigger, checkScroll]);
 
-  // 3. Toàn diện Observer: ResizeObserver, MutationObserver & Scroll Event
+  // 3. Tối ưu theo dõi kích thước và sự kiện cuộn nhẹ nhàng (chuẩn Netflix / Apple TV)
   useEffect(() => {
     const el = scrollRef.current;
     if (!el) return;
 
-    // Promote scroll container lên GPU layer để scroll paint mượt hơn
-    el.style.willChange = "scroll-position";
-
     checkScroll();
 
-    // ResizeObserver: Bắt kịp thay đổi kích thước màn hình / container
+    // ResizeObserver: Bắt kịp thay đổi kích thước màn hình / container khi thay đổi layout
     let resizeObserver: ResizeObserver | null = null;
     if (typeof ResizeObserver !== "undefined") {
       resizeObserver = new ResizeObserver(() => {
         checkScroll();
       });
       resizeObserver.observe(el);
-    }
-
-    // MutationObserver: Tự động cập nhật nút mũi tên khi phim tải xong / DOM thay đổi
-    let mutationObserver: MutationObserver | null = null;
-    if (typeof MutationObserver !== "undefined") {
-      mutationObserver = new MutationObserver(() => {
-        checkScroll();
-      });
-      mutationObserver.observe(el, { childList: true, subtree: false });
     }
 
     // Lắng nghe sự kiện scroll của người dùng
@@ -162,25 +150,14 @@ export function useCarouselScroll<T extends HTMLElement = HTMLDivElement>(
 
     el.addEventListener("scroll", onScroll, { passive: true });
     el.addEventListener("scrollend", checkScroll, { passive: true });
-    window.addEventListener("resize", checkScroll, { passive: true });
-
-    // Kiểm tra định kỳ sau khi ảnh và fonts định hình layout
-    const t1 = setTimeout(checkScroll, 80);
-    const t2 = setTimeout(checkScroll, 250);
-    const t3 = setTimeout(checkScroll, 700);
 
     return () => {
       if (rafRef.current !== null) {
         cancelAnimationFrame(rafRef.current);
       }
       if (resizeObserver) resizeObserver.disconnect();
-      if (mutationObserver) mutationObserver.disconnect();
       el.removeEventListener("scroll", onScroll);
       el.removeEventListener("scrollend", checkScroll);
-      window.removeEventListener("resize", checkScroll);
-      clearTimeout(t1);
-      clearTimeout(t2);
-      clearTimeout(t3);
     };
   }, [checkScroll]);
 

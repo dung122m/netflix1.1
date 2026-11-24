@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useRef, Suspense } from "react";
+import React, { useState, useEffect, useCallback, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams, usePathname, useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
@@ -83,33 +83,6 @@ const NavbarInner: React.FC = () => {
     return () => unsub();
   }, [user?.uid]);
 
-  const navRef = useRef<HTMLElement>(null);
-
-  // Đo lường và đồng bộ biến CSS --navbar-height toàn cục chuẩn từng pixel trên mọi thiết bị
-  useEffect(() => {
-    const el = navRef.current;
-    if (!el) return;
-
-    const updateHeight = () => {
-      const h = el.offsetHeight || el.getBoundingClientRect().height;
-      if (h > 0) {
-        document.documentElement.style.setProperty("--navbar-height", `${Math.round(h)}px`);
-      }
-    };
-
-    updateHeight();
-    const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(updateHeight) : null;
-    if (ro) ro.observe(el);
-    window.addEventListener("resize", updateHeight, { passive: true });
-    window.addEventListener("orientationchange", updateHeight, { passive: true });
-
-    return () => {
-      if (ro) ro.disconnect();
-      window.removeEventListener("resize", updateHeight);
-      window.removeEventListener("orientationchange", updateHeight);
-    };
-  }, []);
-
   // Handle background transition on scroll
   useEffect(() => {
     let prevScrolled = false;
@@ -171,7 +144,6 @@ const NavbarInner: React.FC = () => {
 
   return (
     <nav
-      ref={navRef}
       className={`nanaflix-navbar fixed top-0 left-0 right-0 w-full z-50 pt-[env(safe-area-inset-top,0px)] transition-[background-color,box-shadow] duration-200 ${
         isMobileMenuOpen
           ? "bg-zinc-950 shadow-2xl border-b border-white/[0.06]"

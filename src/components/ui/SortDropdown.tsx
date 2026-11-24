@@ -176,7 +176,7 @@ export function SortDropdown<T extends string = string>({
         <div
           role="listbox"
           tabIndex={-1}
-          className={`absolute top-full mt-1.5 z-50 w-56 sm:w-60 max-w-[calc(100vw-1.5rem)] rounded-2xl bg-zinc-950 p-1.5 shadow-[0_20px_50px_rgba(0,0,0,0.9)] border border-white/[0.08] backdrop-blur-xl animate-in fade-in zoom-in-95 duration-150 ${
+          className={`absolute top-full mt-1.5 z-50 w-56 sm:w-60 max-w-[calc(100vw-1.5rem)] rounded-2xl bg-zinc-950 p-1.5 shadow-[0_20px_50px_rgba(0,0,0,0.9)] border border-white/[0.08] animate-in fade-in zoom-in-95 duration-150 ${
             computedAlign === "right" ? "right-0" : "left-0"
           }`}
         >
