@@ -56,7 +56,7 @@ const CURATED_TABS: CuratedTabConfig[] = [
   },
 ];
 
-const LOCAL_STORAGE_KEY = "nanaflix_curated_movies_v2";
+const LOCAL_STORAGE_KEY = "nanaflix_curated_movies_v3";
 const STORAGE_TTL_MS = 2 * 60 * 60 * 1000; // 2 giờ trong localStorage
 
 interface CuratedMovieSectionProps {
@@ -134,18 +134,13 @@ export const CuratedMovieSection: React.FC<CuratedMovieSectionProps> = ({
     return null;
   }, []);
 
-  // 1. Tự động đồng bộ khi SSR prop initialMovies có dữ liệu
+  // 1. Tự động đồng bộ khi SSR prop initialMovies có dữ liệu mới từ Server
   useEffect(() => {
     if (Array.isArray(initialMovies) && initialMovies.length > 0) {
       const batch = initialMovies.slice(0, 12);
       cacheRef.current.trending = batch;
       saveToStorage("trending", batch);
-      setTabMovies((prev) => {
-        if (!prev.trending || prev.trending.length === 0) {
-          return { ...prev, trending: batch };
-        }
-        return prev;
-      });
+      setTabMovies((prev) => ({ ...prev, trending: batch }));
     }
   }, [initialMovies, saveToStorage]);
 
