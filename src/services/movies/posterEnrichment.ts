@@ -305,7 +305,8 @@ export async function enrichMovieListPosters(movieList: any[], options: PosterEn
       work,
       new Promise<void>((resolve) => {
         budgetTimer = setTimeout(() => {
-          controller.abort(new DOMException(`Poster enrichment budget (${budgetMs}ms) exceeded`, "AbortError"));
+          // Cho phép SSR trả kết quả sớm để giữ TTFB siêu tốc,
+          // KHÔNG abort controller để các tác vụ tìm ảnh TMDb chạy ngầm tiếp tục hoàn tất và lưu vào Redis.
           resolve();
         }, budgetMs);
       }),
@@ -316,9 +317,9 @@ export async function enrichMovieListPosters(movieList: any[], options: PosterEn
     }
   }
 
-  // Ensure any items still mid-flight at budget expiration strip legacy proxy URLs before rendering.
-  if (signal.aborted) {
-    for (const item of movieList) {
+  // Với các phim chưa kịp có kết quả tại thời điểm hết budget SSR, áp dụng fallback an toàn cho lần render này
+  for (const item of movieList) {
+    if (item && !settledItems.has(item)) {
       finalizeFallback(item);
     }
   }

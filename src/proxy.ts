@@ -484,19 +484,20 @@ export function proxy(req: NextRequest) {
     response.headers.set("CDN-Cache-Control", "no-store");
     response.headers.set("Vercel-CDN-Cache-Control", "no-store");
     response.headers.set("Cloudflare-CDN-Cache-Control", "no-store");
-  } else if (pathname === "/browse" && method === "GET") {
+  } else if ((pathname === "/browse" || pathname.startsWith("/movies/")) && method === "GET") {
     response.headers.set("Cache-Control", "public, s-maxage=1800, stale-while-revalidate=3600");
     response.headers.set("CDN-Cache-Control", "public, s-maxage=1800, stale-while-revalidate=3600");
     response.headers.set("Vercel-CDN-Cache-Control", "max-age=1800, stale-while-revalidate=3600");
     response.headers.set("Cloudflare-CDN-Cache-Control", "public, max-age=1800, stale-while-revalidate=3600");
+    response.headers.append("Vary", "RSC, Next-Router-State-Tree, Next-Url");
   }
 
-  // 6. Phòng vệ Cloudflare: Nếu request mang header rsc: 1 nhưng không có query param _rsc,
-  // chỉ hướng dẫn Cloudflare không cache đè text/x-component lên URL HTML sạch.
-  // Vercel Edge CDN vẫn cache và xử lý độc lập an toàn thông qua Vary: RSC.
+  // 6. Nếu request mang header rsc: 1 nhưng không có query param _rsc (soft navigation không qua prefetch),
+  // gắn private để Cloudflare không cache đè text/x-component lên URL HTML sạch của người dùng gõ trực tiếp.
+  // Khi prefetch được bật, Next.js luôn gắn ?_rsc=... vào URL nên Cloudflare Edge cache riêng biệt 100% trong 20ms.
   const isHeaderOnlyRsc = req.headers.get("rsc") === "1" && !req.nextUrl.searchParams.has("_rsc");
   if (isHeaderOnlyRsc) {
-    response.headers.set("Cloudflare-CDN-Cache-Control", "no-store");
+    response.headers.set("Cloudflare-CDN-Cache-Control", "private, no-cache");
   }
 
   return response;

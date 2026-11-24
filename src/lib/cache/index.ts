@@ -445,8 +445,10 @@ export const cacheService: CacheService = {
     });
 
     // 2. Kiểm tra Circuit Breaker cho cả DB 1, DB 2 & DB 3: Chống cháy quota khi có bot quét bão dữ liệu
+    // Dữ liệu cốt lõi (catalog phim, chi tiết phim, poster TMDb) luôn được ưu tiên lưu bền vững vào Redis
+    const isCoreCatalogKey = key.startsWith("movie:") || key.startsWith("tmdb:");
     const purpose = getRedisPurposeForKey(key);
-    if (shouldShieldRedisWrite(purpose, now)) {
+    if (!isCoreCatalogKey && shouldShieldRedisWrite(purpose, now)) {
       if (process.env.NODE_ENV !== "production") {
         console.warn(`[WRITE_SHIELD:${purpose}] Quota Circuit Breaker activated (${writeBurstCounters[purpose].count}/min). Saved key="${key}" to L1 RAM only.`);
       }
@@ -502,8 +504,9 @@ export const cacheService: CacheService = {
       });
 
       // 2. Queue in corresponding Redis pipeline (with per-DB write burst shield)
+      const isCoreCatalogKey = key.startsWith("movie:") || key.startsWith("tmdb:");
       const purpose = getRedisPurposeForKey(key);
-      if (shouldShieldRedisWrite(purpose, now)) {
+      if (!isCoreCatalogKey && shouldShieldRedisWrite(purpose, now)) {
         continue; // Lưu an toàn trong L1 RAM, bỏ qua queue pipeline khi vượt ngưỡng ghi
       }
       if (purpose === "aux") {

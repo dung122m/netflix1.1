@@ -33,7 +33,7 @@ const AuthModal = dynamic(
   () => import("@/components/modals/AuthModal").then((m) => m.AuthModal),
   { ssr: false }
 );
-import { GLOBAL_POSTER_CACHE } from "@/hooks/useMoviePosterFallback";
+import { GLOBAL_POSTER_CACHE, persistPosterCacheEntry } from "@/hooks/useMoviePosterFallback";
 
 // Bộ nhớ đệm client (giữ nguyên cho các component khác như HeroFeatured)
 import { clientSynopsisCache } from "@/services/synopsisService";
@@ -262,6 +262,59 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
     }
   }, [slug, imageCandidates, currentSrc]);
 
+  // Tự động nâng cấp poster sang TMDb CDN trong background nếu thẻ hiện tại chưa có ảnh TMDb
+  useEffect(() => {
+    if (!slug && !title && !tmdbId) return;
+    if (currentSrc && currentSrc.includes("image.tmdb.org")) return;
+
+    // Kiểm tra cache trước
+    const cachedTmdb =
+      (slug && GLOBAL_POSTER_CACHE.get(slug)) ||
+      (tmdbId && GLOBAL_POSTER_CACHE.get(`v3:tmdb:${tmdbId}:${itemType || "movie"}`)) ||
+      (tmdbId && GLOBAL_POSTER_CACHE.get(`tmdb:${tmdbId}`));
+    if (cachedTmdb && cachedTmdb.includes("image.tmdb.org")) {
+      setCurrentSrc(cachedTmdb);
+      setHasError(false);
+      return;
+    }
+
+    let isMounted = true;
+    const controller = new AbortController();
+
+    const fetchUpgrade = async () => {
+      try {
+        const params = new URLSearchParams();
+        if (slug) params.set("slug", slug);
+        if (title) params.set("title", title);
+        if (origin_name) params.set("origin_name", origin_name);
+        if (year) params.set("year", String(year));
+        if (itemType) params.set("type", itemType);
+        if (tmdbId) params.set("tmdbId", String(tmdbId));
+
+        const res = await fetch(`/api/movie-poster-fallback?${params.toString()}`, {
+          signal: controller.signal,
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (isMounted && data?.posterUrl && typeof data.posterUrl === "string") {
+          if (slug) persistPosterCacheEntry(slug, data.posterUrl);
+          setCurrentSrc(data.posterUrl);
+          setHasError(false);
+        }
+      } catch {
+        // Bỏ qua lỗi mạng hoặc abort
+      }
+    };
+
+    const timer = setTimeout(fetchUpgrade, 120);
+
+    return () => {
+      isMounted = false;
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [slug, title, origin_name, year, itemType, tmdbId, currentSrc]);
+
   const handleImageError = useCallback(() => {
     if (currentSrc) {
       triedUrlsRef.current.add(currentSrc);
@@ -471,7 +524,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
         <Link
           ref={baseCardRef}
           href={targetHref}
-          prefetch={false}
+          prefetch={priority ? true : undefined}
           onClick={handleCardClick}
           tabIndex={0}
           aria-label={`Xem phim ${title}`}
@@ -545,13 +598,15 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
               decoding="async"
               fetchPriority={priority ? "high" : "auto"}
               referrerPolicy="no-referrer"
-              className={`relative z-[1] w-full h-full object-cover object-center brightness-[0.96] group-hover/card:scale-105 transition-transform duration-300 ease-out motion-reduce:transform-none ${isImageLoaded ? "opacity-100" : "opacity-0"
-                }`}
+              className="relative z-[1] w-full h-full object-cover object-center brightness-[0.96] group-hover/card:scale-105 transition-transform duration-300 ease-out motion-reduce:transform-none"
               onLoad={(e) => {
                 const target = e.currentTarget;
                 const loadedSrc = target.currentSrc || target.src || currentSrc;
                 if (loadedSrc) {
                   GLOBAL_LOADED_IMAGES.add(loadedSrc);
+                  if (loadedSrc.includes("image.tmdb.org") && slug) {
+                    persistPosterCacheEntry(slug, loadedSrc);
+                  }
                 }
                 if (currentSrc) {
                   GLOBAL_LOADED_IMAGES.add(currentSrc);
