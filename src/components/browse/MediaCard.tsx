@@ -254,6 +254,20 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
           (imgRef.current && imgRef.current.complete && imgRef.current.naturalWidth > 0)
         )
       );
+
+      // Nếu ảnh hiện tại chưa phải TMDb CDN: Kích hoạt batch fallback ngầm để nâng cấp tối đa sang TMDb
+      // Được bảo vệ bởi TRIED_SLUGS_IN_SESSION (chỉ chạy 1 lần/phiên) và debounce 500ms
+      if (!candidate.includes("image.tmdb.org")) {
+        enqueuePosterBatchFallback(
+          { slug, title, origin_name, year, tmdbId, type: itemType },
+          (resolvedUrl) => {
+            if (resolvedUrl && resolvedUrl.includes("image.tmdb.org")) {
+              setCurrentSrc(resolvedUrl);
+              setHasError(false);
+            }
+          }
+        );
+      }
     } else {
       setCurrentSrc("");
       setHasError(false);
