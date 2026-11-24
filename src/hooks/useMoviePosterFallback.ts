@@ -93,139 +93,6 @@ export function isPhimimgSourceUrl(url?: string | null): boolean {
   return isSlowProviderSourceUrl(url);
 }
 
-// =========================================================================
-// 3. CLIENT BATCH FALLBACK QUEUE (Gom 1 request POST duy nhất cho cả trang)
-// =========================================================================
-export interface FallbackBatchItem {
-  slug?: string;
-  title?: string;
-  origin_name?: string;
-  year?: string | number;
-  type?: string;
-  tmdbId?: string | number;
-}
-
-const batchQueue: FallbackBatchItem[] = [];
-const batchCallbacks = new Map<string, Set<(url: string) => void>>();
-const inFlightKeys = new Set<string>();
-let batchTimer: NodeJS.Timeout | null = null;
-
-function getItemKey(item: FallbackBatchItem): string {
-  const cleanTmdbId = item.tmdbId ? String(item.tmdbId).trim() : "";
-  const cleanType = item.type || "movie";
-  return cleanTmdbId
-    ? `v3:tmdb:${cleanTmdbId}:${cleanType}`
-    : `v3:${item.slug || item.title || ""}|${item.origin_name || ""}|${item.year || ""}|${cleanType}`.toLowerCase();
-}
-
-function processBatchQueue() {
-  if (batchQueue.length === 0) return;
-  const itemsToProcess = batchQueue.splice(0, 32);
-  const itemsForFetch = itemsToProcess.filter((it) => {
-    const key = getItemKey(it);
-    return !inFlightKeys.has(key) && !GLOBAL_TRIED_FAILURES.has(key);
-  });
-
-  if (itemsForFetch.length === 0) return;
-
-  itemsForFetch.forEach((it) => inFlightKeys.add(getItemKey(it)));
-
-  fetch("/api/movie-poster-fallback", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ items: itemsForFetch }),
-  })
-    .then((res) => (res.ok ? res.json() : null))
-    .then((data) => {
-      const results = data?.results as Record<
-        string,
-        { posterUrl?: string | null; backdropUrl?: string | null }
-      > | undefined;
-
-      if (!results || typeof results !== "object") return;
-
-      for (const it of itemsForFetch) {
-        const key = getItemKey(it);
-        const legacyKey = it.slug || `${it.title || ""}_${it.year || ""}`.trim();
-        const hit = results[key];
-        const posterUrl = hit?.posterUrl;
-
-        if (posterUrl && typeof posterUrl === "string" && posterUrl.includes("image.tmdb.org")) {
-          persistPosterCacheEntry(key, posterUrl);
-          if (it.slug) persistPosterCacheEntry(it.slug, posterUrl);
-          if (legacyKey) persistPosterCacheEntry(legacyKey, posterUrl);
-
-          const cbs = batchCallbacks.get(key);
-          if (cbs) {
-            cbs.forEach((cb) => cb(posterUrl));
-          }
-          if (it.slug && it.slug !== key) {
-            const slugCbs = batchCallbacks.get(it.slug);
-            if (slugCbs) slugCbs.forEach((cb) => cb(posterUrl));
-          }
-        } else {
-          persistFailureEntry(key);
-          if (it.slug) persistFailureEntry(it.slug);
-        }
-      }
-    })
-    .catch(() => {
-      // Graceful fallback nếu mạng gián đoạn
-    })
-    .finally(() => {
-      itemsForFetch.forEach((it) => inFlightKeys.delete(getItemKey(it)));
-      if (batchQueue.length > 0) {
-        batchTimer = setTimeout(processBatchQueue, 200);
-      }
-    });
-}
-
-export function enqueuePosterBatchFallback(
-  item: FallbackBatchItem,
-  onResolved: (url: string) => void
-): void {
-  if (typeof window === "undefined" || !item) return;
-
-  const key = getItemKey(item);
-  const legacyKey = item.slug || `${item.title || ""}_${item.year || ""}`.trim();
-
-  // 1. Kiểm tra RAM cache trước
-  if (GLOBAL_POSTER_CACHE.has(key)) {
-    onResolved(GLOBAL_POSTER_CACHE.get(key)!);
-    return;
-  }
-  if (legacyKey && GLOBAL_POSTER_CACHE.has(legacyKey)) {
-    onResolved(GLOBAL_POSTER_CACHE.get(legacyKey)!);
-    return;
-  }
-
-  // 2. Nếu đã từng thử và không có trên TMDb thì không gọi lại
-  if (GLOBAL_TRIED_FAILURES.has(key) || (item.slug && GLOBAL_TRIED_FAILURES.has(item.slug))) {
-    return;
-  }
-
-  // 3. Đăng ký listener
-  if (!batchCallbacks.has(key)) {
-    batchCallbacks.set(key, new Set());
-  }
-  batchCallbacks.get(key)!.add(onResolved);
-
-  if (item.slug) {
-    if (!batchCallbacks.has(item.slug)) {
-      batchCallbacks.set(item.slug, new Set());
-    }
-    batchCallbacks.get(item.slug)!.add(onResolved);
-  }
-
-  // 4. Đưa vào hàng đợi batch (debounce 150ms để gom toàn bộ cards trên màn hình)
-  if (!batchQueue.some((q) => getItemKey(q) === key)) {
-    batchQueue.push(item);
-  }
-
-  if (batchTimer) clearTimeout(batchTimer);
-  batchTimer = setTimeout(processBatchQueue, 150);
-}
-
 export interface UseMoviePosterFallbackOptions {
   slug?: string;
   title?: string;
@@ -241,9 +108,8 @@ export interface UseMoviePosterFallbackOptions {
 
 /**
  * Hook phân giải poster siêu tốc:
- * - Ưu tiên 100% TMDb CDN từ GLOBAL_POSTER_CACHE (0ms).
- * - Nếu chưa có, gom batch 1 request POST duy nhất cho toàn bộ màn hình,
- *   tuyệt đối không bắn lẻ từng request, triệt tiêu bão CPU trên Vercel.
+ * - Thuần túy đọc bộ nhớ RAM/localStorage ở 0ms.
+ * - Tuyệt đối không gửi network request ở client để chống bão CPU và rate limit Cloudflare.
  */
 export function useMoviePosterFallback({
   slug,
@@ -295,20 +161,7 @@ export function useMoviePosterFallback({
       prevResolvedRef.current = next;
       setDisplaySrc(next);
     }
-
-    // Nếu chưa có ảnh TMDb CDN chuẩn, kích hoạt batch fallback ngầm (0ms block)
-    if (!next || !next.includes("image.tmdb.org")) {
-      enqueuePosterBatchFallback(
-        { slug, title, origin_name, year, type, tmdbId: cleanTmdbId },
-        (resolvedUrl) => {
-          if (resolvedUrl && resolvedUrl.includes("image.tmdb.org")) {
-            prevResolvedRef.current = resolvedUrl;
-            setDisplaySrc(resolvedUrl);
-          }
-        }
-      );
-    }
-  }, [resolveCurrent, slug, title, origin_name, year, type, cleanTmdbId]);
+  }, [resolveCurrent]);
 
   const triggerFallback = useCallback(() => {
     if (cacheKey) persistFailureEntry(cacheKey);

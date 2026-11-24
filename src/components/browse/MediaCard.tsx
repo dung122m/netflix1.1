@@ -33,7 +33,7 @@ const AuthModal = dynamic(
   () => import("@/components/modals/AuthModal").then((m) => m.AuthModal),
   { ssr: false }
 );
-import { GLOBAL_POSTER_CACHE, persistPosterCacheEntry, enqueuePosterBatchFallback } from "@/hooks/useMoviePosterFallback";
+import { GLOBAL_POSTER_CACHE, persistPosterCacheEntry } from "@/hooks/useMoviePosterFallback";
 
 // Bộ nhớ đệm client (giữ nguyên cho các component khác như HeroFeatured)
 import { clientSynopsisCache } from "@/services/synopsisService";
@@ -237,10 +237,9 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
   }, [currentSrc]);
 
   // Đồng bộ khi card được tái sử dụng cho phim khác hoặc khi danh sách ứng viên thay đổi
-  const prevSlugRef = useRef(slug);
+  const prevSlugRef = useRef<string | null>(null);
   useEffect(() => {
-    // Bỏ qua lần nạp đầu nếu slug không đổi và ảnh khởi tạo đã có sẵn để tránh double re-render 60 cards
-    if (prevSlugRef.current === slug && currentSrc) return;
+    if (prevSlugRef.current === slug) return;
     prevSlugRef.current = slug;
 
     triedUrlsRef.current.clear();
@@ -257,21 +256,10 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
       );
     } else {
       setCurrentSrc("");
-      setHasError(false); // Giữ Canvas hiển thị chuẩn, không coi là fatal error
+      setHasError(false);
       setIsImageLoaded(true);
-
-      // Kích hoạt batch fallback ngầm (gom 1 request POST chung cho toàn màn hình)
-      enqueuePosterBatchFallback(
-        { slug, title, origin_name, year, tmdbId, type: itemType },
-        (resolvedUrl) => {
-          if (resolvedUrl && resolvedUrl.includes("image.tmdb.org")) {
-            setCurrentSrc(resolvedUrl);
-            setHasError(false);
-          }
-        }
-      );
     }
-  }, [slug, imageCandidates, currentSrc, title, origin_name, year, tmdbId, itemType]);
+  }, [slug, imageCandidates]);
 
   const handleImageError = useCallback(() => {
     if (currentSrc) {
