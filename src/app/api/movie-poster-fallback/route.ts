@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { searchTmdbPosterByTitle, getTmdbMediaImagesById, isCorruptedTmdbId } from "@/services/tmdbService";
+import { cacheService } from "@/lib/cache";
 
 export const runtime = "nodejs";
 
@@ -184,6 +185,25 @@ export async function POST(req: NextRequest) {
         backdropUrl: resolved.backdropUrl,
         expireAt: now + MEMORY_TTL,
       });
+
+      if (resolved.posterUrl) {
+        cacheService
+          .set(
+            keys.redisPosterKey,
+            { posterUrl: resolved.posterUrl, backdropUrl: resolved.backdropUrl },
+            30 * 86400
+          )
+          .catch(() => {});
+        if (keys.slugCleanKey) {
+          cacheService
+            .set(
+              keys.slugCleanKey,
+              { posterUrl: resolved.posterUrl, backdropUrl: resolved.backdropUrl },
+              30 * 86400
+            )
+            .catch(() => {});
+        }
+      }
 
       results[keys.cacheKey] = {
         posterUrl: resolved.posterUrl,

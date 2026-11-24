@@ -767,6 +767,9 @@ export const movieApi = {
         }
 
         if (res) {
+          if (Array.isArray(res.items) && res.items.length > 0) {
+            await enrichMovieListPosters(res.items, { budgetMs: 0, stripProxyUrls: true }).catch(() => {});
+          }
           // Nạp ngay vào L1 RAM cache để các request kế tiếp trên instance này lấy trong 0ms (0 Redis GETs)
           moviesMemoryCache.set(cacheKey, {
             data: res,

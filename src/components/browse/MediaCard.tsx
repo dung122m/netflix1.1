@@ -33,7 +33,7 @@ const AuthModal = dynamic(
   () => import("@/components/modals/AuthModal").then((m) => m.AuthModal),
   { ssr: false }
 );
-import { GLOBAL_POSTER_CACHE, persistPosterCacheEntry } from "@/hooks/useMoviePosterFallback";
+import { GLOBAL_POSTER_CACHE, persistPosterCacheEntry, enqueuePosterBatchFallback } from "@/hooks/useMoviePosterFallback";
 
 // Bộ nhớ đệm client (giữ nguyên cho các component khác như HeroFeatured)
 import { clientSynopsisCache } from "@/services/synopsisService";
@@ -257,10 +257,21 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
       );
     } else {
       setCurrentSrc("");
-      setHasError(true);
+      setHasError(false); // Giữ Canvas hiển thị chuẩn, không coi là fatal error
       setIsImageLoaded(true);
+
+      // Kích hoạt batch fallback ngầm (gom 1 request POST chung cho toàn màn hình)
+      enqueuePosterBatchFallback(
+        { slug, title, origin_name, year, tmdbId, type: itemType },
+        (resolvedUrl) => {
+          if (resolvedUrl && resolvedUrl.includes("image.tmdb.org")) {
+            setCurrentSrc(resolvedUrl);
+            setHasError(false);
+          }
+        }
+      );
     }
-  }, [slug, imageCandidates, currentSrc]);
+  }, [slug, imageCandidates, currentSrc, title, origin_name, year, tmdbId, itemType]);
 
   const handleImageError = useCallback(() => {
     if (currentSrc) {

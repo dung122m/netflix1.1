@@ -615,15 +615,36 @@ export function extractOriginalSourceUrl(url: string): string {
   return clean;
 }
 
+export function isClientSafeCdnImageUrl(url?: string | null): boolean {
+  if (!url || typeof url !== "string") return false;
+  const clean = url.trim().toLowerCase();
+  if (!clean || clean === "null" || clean === "undefined" || clean.startsWith("/default-")) {
+    return false;
+  }
+  if (isSlowProviderSourceUrl(clean)) {
+    return false;
+  }
+  return (
+    clean.includes("image.tmdb.org") ||
+    clean.includes("media.nanaflix.asia") ||
+    clean.includes("media-amazon.com") ||
+    clean.startsWith("/images/")
+  );
+}
+
 /**
  * Trả thẳng URL trực tiếp:
- * - Ưu tiên 100% TMDb CDN (image.tmdb.org).
- * - Nếu không có thì trả về URL gốc từ NguonC/Phimimg để trình duyệt tự tải trực tiếp (không tạo proxy route trên Vercel).
+ * - Ưu tiên 100% TMDb CDN (image.tmdb.org) và Cloudflare R2 (media.nanaflix.asia).
+ * - CẤM TUYỆT ĐỐI nạp trực tiếp nguồn phimimg/nguonc lên thẻ <img> phía client
+ *   để tuân thủ nghiêm ngặt quy tắc Media, Image CDN & Cost Guard (AGENTS.md).
  */
 export function toFastCdnImageUrl(url: string): string {
   if (!url || typeof url !== "string") return "";
   const clean = url.trim();
   if (!clean) return "";
+  if (isSlowProviderSourceUrl(clean)) {
+    return "";
+  }
   return clean;
 }
 

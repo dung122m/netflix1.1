@@ -297,6 +297,19 @@ export async function enrichMovieListPosters(movieList: any[], options: PosterEn
               item.thumbUrl = res.backdropUrl || res.posterUrl;
               item.thumb_url_webp = res.backdropUrl || res.posterUrl;
             }
+            if (item.slug) {
+              const cleanKey = String(item.slug).toLowerCase().replace(/[^a-z0-9_]/g, "_").slice(0, 100);
+              cacheService
+                .set(
+                  `tmdb:fallback_poster:v2:${cleanKey}`,
+                  {
+                    posterUrl: res.posterUrl,
+                    backdropUrl: res.backdropUrl,
+                  },
+                  30 * 86400
+                )
+                .catch(() => {});
+            }
             foundPoster = true;
             break;
           }
