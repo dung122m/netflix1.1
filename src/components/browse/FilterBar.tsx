@@ -4,7 +4,6 @@ import React, { useEffect, useState, useRef, useCallback, useTransition } from "
 import { useRouter, useSearchParams } from "next/navigation";
 import { DEFAULT_GENRES, DEFAULT_COUNTRIES } from "@/data/movies/taxonomy";
 import { getCanonicalGenreSlug, getCanonicalCountrySlug, isRawId } from "@/lib/movieMedia";
-import { useBodyScrollLock } from "@/lib/scrollLock";
 import {
   ChevronDown,
   Loader2,
@@ -56,8 +55,10 @@ export const FilterBar: React.FC = () => {
   }>({});
   const [pendingGroup, setPendingGroup] = useState<FilterGroup | "all" | null>(null);
 
-  // Dismiss on outside click & Escape key
+  // Dismiss desktop dropdown on outside click & Escape key (only listen when open)
   useEffect(() => {
+    if (!activeDropdown) return;
+
     const handleClickOutside = (e: MouseEvent | TouchEvent) => {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
         setActiveDropdown(null);
@@ -71,7 +72,7 @@ export const FilterBar: React.FC = () => {
     };
 
     document.addEventListener("mousedown", handleClickOutside);
-    document.addEventListener("touchstart", handleClickOutside);
+    document.addEventListener("touchstart", handleClickOutside, { passive: true });
     document.addEventListener("keydown", handleKeyDown);
 
     return () => {
@@ -79,7 +80,7 @@ export const FilterBar: React.FC = () => {
       document.removeEventListener("touchstart", handleClickOutside);
       document.removeEventListener("keydown", handleKeyDown);
     };
-  }, []);
+  }, [activeDropdown]);
 
   // Client-mount guard for createPortal
   const [isMounted, setIsMounted] = useState(false);
@@ -233,8 +234,9 @@ export const FilterBar: React.FC = () => {
   const hasAnyFilter = activeFiltersCount > 0;
 
   // Mobile Filter Drawer State & Draft (< 640px)
+  // Scroll lock is managed exclusively inside FilterMobileDrawer via useBodyScrollLock(isOpen)
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
-  useBodyScrollLock(isMobileDrawerOpen);
+  const closeMobileDrawer = useCallback(() => setIsMobileDrawerOpen(false), []);
   const [draftType, setDraftType] = useState(currentType);
   const [draftCategory, setDraftCategory] = useState(currentCategory);
   const [draftCountry, setDraftCountry] = useState(currentCountry);
@@ -301,16 +303,6 @@ export const FilterBar: React.FC = () => {
     Boolean(draftYear),
     Boolean(draftSort && draftSort !== "latest"),
   ].filter(Boolean).length;
-
-  useEffect(() => {
-    if (isMobileDrawerOpen) {
-      const originalOverflow = document.body.style.overflow;
-      document.body.style.overflow = "hidden";
-      return () => {
-        document.body.style.overflow = originalOverflow;
-      };
-    }
-  }, [isMobileDrawerOpen]);
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const buttonRefs = useRef<{ [key in FilterGroup]?: HTMLButtonElement | null }>({});
@@ -585,7 +577,7 @@ export const FilterBar: React.FC = () => {
       {/* 3. MOBILE FILTER DRAWER */}
       <FilterMobileDrawer
         isOpen={isMobileDrawerOpen && isMounted}
-        onClose={() => setIsMobileDrawerOpen(false)}
+        onClose={closeMobileDrawer}
         filters={filters}
         draftType={draftType}
         setDraftType={setDraftType}

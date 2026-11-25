@@ -55,10 +55,10 @@ export const FilterMobileDrawer: React.FC<FilterMobileDrawerProps> = React.memo(
     if (!isOpen || typeof document === "undefined") return null;
 
     return createPortal(
-      <div className="fixed inset-0 z-[100000] sm:hidden select-none">
+      <div className="fixed inset-0 z-[100000] sm:hidden flex flex-col justify-end select-none">
         {/* Lớp nền mờ tối (Backdrop Overlay) */}
         <div
-          className="fixed inset-0 bg-black/75 animate-in fade-in duration-200 transform-gpu cursor-pointer"
+          className="absolute inset-0 bg-black/75 touch-none animate-in fade-in duration-150 cursor-pointer"
           onClick={onClose}
           aria-hidden="true"
         />
@@ -68,7 +68,7 @@ export const FilterMobileDrawer: React.FC<FilterMobileDrawerProps> = React.memo(
           role="dialog"
           aria-modal="true"
           aria-label="Bảng điều khiển bộ lọc phim"
-          className="fixed inset-x-0 bottom-0 z-[100001] max-h-[85dvh] flex flex-col rounded-t-3xl bg-zinc-950 border-t border-white/[0.08] shadow-[0_-16px_50px_rgba(0,0,0,0.95)] animate-in slide-in-from-bottom duration-200 transform-gpu will-change-transform"
+          className="relative z-10 w-full max-h-[85dvh] flex flex-col rounded-t-3xl bg-zinc-950 border-t border-white/[0.08] shadow-[0_-16px_50px_rgba(0,0,0,0.95)] animate-in slide-in-from-bottom duration-200 overscroll-contain"
         >
           {/* Thanh nắm kéo (Grab Handle) */}
           <div className="w-12 h-1.5 rounded-full bg-zinc-700/80 mx-auto my-2.5 shrink-0" />
@@ -94,10 +94,7 @@ export const FilterMobileDrawer: React.FC<FilterMobileDrawerProps> = React.memo(
           </div>
 
           {/* Danh sách các nhóm bộ lọc có thể cuộn */}
-          <div
-            className="flex-1 min-h-0 overflow-y-auto px-4 py-3 space-y-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden overscroll-contain scroll-momentum"
-            style={{ WebkitOverflowScrolling: "touch" }}
-          >
+          <div className="flex-1 min-h-0 overflow-y-auto px-4 py-3 space-y-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden overscroll-contain touch-pan-y">
             {/* NHÓM 1: SẮP XẾP (PHƯƠNG ÁN 1: TINH GỌN 4 TIÊU CHÍ) */}
             <div className="space-y-2.5">
               <div className="flex items-center justify-between">
@@ -332,7 +329,7 @@ export const FilterMobileDrawer: React.FC<FilterMobileDrawerProps> = React.memo(
           </div>
 
           {/* Chân Bottom Sheet dính cố định */}
-          <div className="px-4 py-3 border-t border-white/[0.08] bg-zinc-950/98 backdrop-blur-md flex items-center gap-3 shrink-0 pb-[max(0.75rem,calc(env(safe-area-inset-bottom,0px)+12px))] shadow-[0_-8px_20px_rgba(0,0,0,0.6)]">
+          <div className="px-4 py-3 border-t border-white/[0.08] bg-zinc-950 flex items-center gap-3 shrink-0 pb-[max(0.75rem,calc(env(safe-area-inset-bottom,0px)+12px))] shadow-[0_-8px_20px_rgba(0,0,0,0.6)]">
             <button
               type="button"
               onClick={onReset}
