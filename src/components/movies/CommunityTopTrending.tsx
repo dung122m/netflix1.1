@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef, useMemo } from "react";
 import {
   Flame,
 } from "lucide-react";
-import { MovieViewStatItem } from "@/services/supabaseService";
+import type { MovieViewStatItem } from "@/services/supabaseService";
 import { formatGenreName } from "@/lib/movieMedia";
 import { RankedCarouselSection, RankedMovieData } from "@/components/movies/RankedCarouselSection";
 

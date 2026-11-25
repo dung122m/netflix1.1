@@ -160,7 +160,6 @@ export default async function ActorDetailPage({ params }: PageProps) {
     }
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let profile: ResolvedActorProfile | null = (cachedPage?.profile as ResolvedActorProfile) || null;
   let wikiProfile: ActorProfile | null = cachedPage?.wikiProfile || null;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

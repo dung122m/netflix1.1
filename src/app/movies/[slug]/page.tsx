@@ -212,7 +212,7 @@ export default async function MovieDetail({
         isSeries={isSeries}
         isTrailerOnly={isTrailerOnly}
       >
-        <div className="max-w-[1700px] mx-auto px-2 sm:px-4 md:px-6 lg:px-8 pt-[var(--navbar-height,56px)]">
+        <main className="max-w-[1700px] mx-auto px-2 sm:px-4 md:px-6 lg:px-8 pt-[var(--navbar-height,56px)]">
           {/* BREADCRUMB (Desktop / Tablet only so Mobile opens video-first like YouTube) */}
           <div className="hidden sm:flex py-2 px-0 items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-zinc-500 overflow-hidden">
             <Link href="/" prefetch={false} className="hover:text-zinc-300 transition">
@@ -452,7 +452,7 @@ export default async function MovieDetail({
               }
             />
           </div>
-        </div>
+        </main>
       </WatchController>
 
       <Footer />

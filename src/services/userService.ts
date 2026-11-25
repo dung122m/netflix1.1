@@ -117,7 +117,7 @@ import {
   invalidateUserProfileCache,
   setProfileMemoryCache,
 } from "./supabaseService";
-import { isSupabaseConfigured } from "@/lib/supabase";
+import { isSupabaseConfigured } from "@/lib/supabaseConfig";
 
 const PROFILE_CACHE_PREFIX = "nanaflix_user_profile_";
 

@@ -105,7 +105,7 @@ export const RankedCarouselSection: React.FC<RankedCarouselSectionProps> = React
                 {emptyMessage}
               </p>
               {emptySubmessage && (
-                <p className="text-xs text-zinc-600 mt-1">
+                <p className="text-xs text-zinc-400 mt-1">
                   {emptySubmessage}
                 </p>
               )}

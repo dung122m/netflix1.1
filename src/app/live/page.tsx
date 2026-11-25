@@ -47,9 +47,11 @@ export default function LivePage() {
   return (
     <div className="page-cinema-container min-h-dvh w-full max-w-full overflow-x-clip">
       <Navbar />
-      <Suspense fallback={<LiveHubSkeleton />}>
-        <LiveContent />
-      </Suspense>
+      <main className="w-full">
+        <Suspense fallback={<LiveHubSkeleton />}>
+          <LiveContent />
+        </Suspense>
+      </main>
       <Footer />
     </div>
   );

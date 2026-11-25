@@ -39,6 +39,10 @@ export function useLiveScoresRealtime({
   const isMatchesFetchingRef = useRef(false);
   const wasActiveMatchesRef = useRef(isActive);
   const lastFetchedMatchesTimeRef = useRef<number>(Date.now());
+  const initialMatchesCountRef = useRef(initialMatches.length);
+  initialMatchesCountRef.current = initialMatches.length;
+  const liveMatchesRef = useRef(liveMatches);
+  liveMatchesRef.current = liveMatches;
 
   // Tự động làm mới danh sách trận đấu mỗi 3 phút
   useEffect(() => {
@@ -87,7 +91,7 @@ export function useLiveScoresRealtime({
     // Nếu đã có danh sách trận từ SSR, không cần fetch lại sau 5s; chỉ fetch nếu danh sách rỗng hoặc sau 5 phút
     const initialDelay = setTimeout(
       refreshMatches,
-      initialMatches.length === 0 ? 3000 : 5 * 60 * 1000,
+      initialMatchesCountRef.current === 0 ? 3000 : 5 * 60 * 1000,
     );
     const interval = setInterval(() => {
       if (typeof document !== "undefined" && document.hidden) return;
@@ -214,15 +218,16 @@ export function useLiveScoresRealtime({
     const fetchScores = async () => {
       if (typeof document !== "undefined" && document.hidden) return;
       if (isScoresFetchingRef.current) return;
-      if (!liveMatches || liveMatches.length === 0) return;
+      const currentMatches = liveMatchesRef.current;
+      if (!currentMatches || currentMatches.length === 0) return;
       isScoresFetchingRef.current = true;
       try {
         // 1. Gọi trực tiếp ESPN CDN từ Client Browser (0ms CPU Vercel, bảo vệ 100% quota 4 giờ)
-        const activeSlugs = extractActiveLeagueSlugs(liveMatches);
+        const activeSlugs = extractActiveLeagueSlugs(currentMatches);
         if (activeSlugs.length > 0) {
           const directEvents = await fetchDirectScoreboardEvents(activeSlugs);
-          if (directEvents.length > 0 && liveMatches.length > 0) {
-            const directScores = buildScoresMap(liveMatches, directEvents);
+          if (directEvents.length > 0 && currentMatches.length > 0) {
+            const directScores = buildScoresMap(currentMatches, directEvents);
             if (isEffectActive && Object.keys(directScores).length > 0) {
               lastFetchedScoresTimeRef.current = Date.now();
               setScoresMap((prev) => {

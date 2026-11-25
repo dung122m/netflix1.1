@@ -7,13 +7,46 @@ import React, {
   useState,
   useCallback,
 } from "react";
-import {
-  User,
-  signInWithPopup,
-  signOut,
-  onAuthStateChanged,
-} from "firebase/auth";
-import { auth, googleProvider, isFirebaseConfigured } from "@/lib/firebase";
+import type { User } from "firebase/auth";
+import { isFirebaseConfigured } from "@/lib/firebaseConfig";
+
+type LoadedFirebaseAuth = {
+  auth: import("firebase/auth").Auth | null;
+  googleProvider: import("firebase/auth").GoogleAuthProvider;
+  signInWithPopup: typeof import("firebase/auth").signInWithPopup;
+  signOut: typeof import("firebase/auth").signOut;
+  onAuthStateChanged: typeof import("firebase/auth").onAuthStateChanged;
+};
+
+let firebaseAuthPromise: Promise<LoadedFirebaseAuth> | null = null;
+
+function loadFirebaseAuth(): Promise<LoadedFirebaseAuth> {
+  if (!firebaseAuthPromise) {
+    firebaseAuthPromise = Promise.all([
+      import("@/lib/firebase"),
+      import("firebase/auth"),
+    ]).then(([fb, authMod]) => ({
+      auth: fb.auth,
+      googleProvider: fb.googleProvider,
+      signInWithPopup: authMod.signInWithPopup,
+      signOut: authMod.signOut,
+      onAuthStateChanged: authMod.onAuthStateChanged,
+    }));
+  }
+  return firebaseAuthPromise;
+}
+
+function hasAuthSessionHint(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    if (localStorage.getItem(CACHED_AUTH_USER_KEY)) return true;
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith("firebase:authUser:")) return true;
+    }
+  } catch {}
+  return false;
+}
 import {
   syncWatchHistoryWithCloud,
   syncWatchlistWithCloud,
@@ -103,83 +136,117 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   }, [user]);
 
   useEffect(() => {
-    if (!auth) {
+    if (!isConfigured) {
       setLoading(false);
       return;
     }
 
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-      setUser(currentUser);
-      if (currentUser) {
-        const cached: CachedAuthUser = {
-          uid: currentUser.uid,
-          email: currentUser.email,
-          displayName: currentUser.displayName,
-          photoURL: currentUser.photoURL,
-        };
-        setCachedUser(cached);
-        setCachedAuthUser(cached);
-      } else {
-        setCachedUser(null);
-        setCachedAuthUser(null);
-      }
-      setLoading(false);
+    let cancelled = false;
+    let unsubscribe: (() => void) | undefined;
 
-      if (currentUser) {
-        try {
-          const PROFILE_SYNC_COOLDOWN_MS = 30 * 60 * 1000;
-          const DATA_SYNC_COOLDOWN_MS = 10 * 60 * 1000; // 10 phút cooldown cho lịch sử xem & watchlist để giảm 80% Serverless calls
-          let shouldSyncProfile = true;
-          let shouldSyncData = true;
-
-          try {
-            const syncKey = `nanaflix_profile_synced_${currentUser.uid}`;
-            const lastSync = Number(sessionStorage.getItem(syncKey) || "0");
-            const hasLocalProfile = Boolean(localStorage.getItem(`nanaflix_user_profile_${currentUser.uid}`));
-            if (hasLocalProfile && lastSync > 0 && Date.now() - lastSync < PROFILE_SYNC_COOLDOWN_MS) {
-              shouldSyncProfile = false;
-            }
-
-            const dataSyncKey = `nanaflix_data_synced_${currentUser.uid}`;
-            const lastDataSync = Number(sessionStorage.getItem(dataSyncKey) || "0");
-            if (lastDataSync > 0 && Date.now() - lastDataSync < DATA_SYNC_COOLDOWN_MS) {
-              shouldSyncData = false;
-            }
-          } catch {}
-
-          const tasks: Promise<unknown>[] = [];
-          if (shouldSyncData) {
-            tasks.push(
-              syncWatchHistoryWithCloud(currentUser.uid),
-              syncWatchlistWithCloud(currentUser.uid)
-            );
-            try {
-              sessionStorage.setItem(`nanaflix_data_synced_${currentUser.uid}`, String(Date.now()));
-            } catch {}
-          }
-
-          if (shouldSyncProfile) {
-            tasks.push(
-              recordUserProfile(currentUser).then(() => {
-                try {
-                  sessionStorage.setItem(`nanaflix_profile_synced_${currentUser.uid}`, String(Date.now()));
-                } catch {}
-              })
-            );
-          }
-
-          await Promise.race([
-            Promise.all(tasks),
-            new Promise((resolve) => setTimeout(resolve, 3000)),
-          ]);
-        } catch (err) {
-          console.warn("Lỗi tự động sync khi đăng nhập:", err);
+    const initAuthListener = async () => {
+      try {
+        const { auth, onAuthStateChanged } = await loadFirebaseAuth();
+        if (cancelled || !auth) {
+          if (!cancelled) setLoading(false);
+          return;
         }
-      }
-    });
 
-    return () => unsubscribe();
-  }, []);
+        unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+          if (cancelled) return;
+          setUser(currentUser);
+          if (currentUser) {
+            const cached: CachedAuthUser = {
+              uid: currentUser.uid,
+              email: currentUser.email,
+              displayName: currentUser.displayName,
+              photoURL: currentUser.photoURL,
+            };
+            setCachedUser(cached);
+            setCachedAuthUser(cached);
+          } else {
+            setCachedUser(null);
+            setCachedAuthUser(null);
+          }
+          setLoading(false);
+
+          if (currentUser) {
+            try {
+              const PROFILE_SYNC_COOLDOWN_MS = 30 * 60 * 1000;
+              const DATA_SYNC_COOLDOWN_MS = 10 * 60 * 1000; // 10 phút cooldown cho lịch sử xem & watchlist để giảm 80% Serverless calls
+              let shouldSyncProfile = true;
+              let shouldSyncData = true;
+
+              try {
+                const syncKey = `nanaflix_profile_synced_${currentUser.uid}`;
+                const lastSync = Number(sessionStorage.getItem(syncKey) || "0");
+                const hasLocalProfile = Boolean(localStorage.getItem(`nanaflix_user_profile_${currentUser.uid}`));
+                if (hasLocalProfile && lastSync > 0 && Date.now() - lastSync < PROFILE_SYNC_COOLDOWN_MS) {
+                  shouldSyncProfile = false;
+                }
+
+                const dataSyncKey = `nanaflix_data_synced_${currentUser.uid}`;
+                const lastDataSync = Number(sessionStorage.getItem(dataSyncKey) || "0");
+                if (lastDataSync > 0 && Date.now() - lastDataSync < DATA_SYNC_COOLDOWN_MS) {
+                  shouldSyncData = false;
+                }
+              } catch {}
+
+              const tasks: Promise<unknown>[] = [];
+              if (shouldSyncData) {
+                tasks.push(
+                  syncWatchHistoryWithCloud(currentUser.uid),
+                  syncWatchlistWithCloud(currentUser.uid)
+                );
+                try {
+                  sessionStorage.setItem(`nanaflix_data_synced_${currentUser.uid}`, String(Date.now()));
+                } catch {}
+              }
+
+              if (shouldSyncProfile) {
+                tasks.push(
+                  recordUserProfile(currentUser).then(() => {
+                    try {
+                      sessionStorage.setItem(`nanaflix_profile_synced_${currentUser.uid}`, String(Date.now()));
+                    } catch {}
+                  })
+                );
+              }
+
+              await Promise.race([
+                Promise.all(tasks),
+                new Promise((resolve) => setTimeout(resolve, 3000)),
+              ]);
+            } catch (err) {
+              console.warn("Lỗi tự động sync khi đăng nhập:", err);
+            }
+          }
+        });
+      } catch {
+        if (!cancelled) setLoading(false);
+      }
+    };
+
+    if (hasAuthSessionHint()) {
+      void initAuthListener();
+      return () => {
+        cancelled = true;
+        unsubscribe?.();
+      };
+    }
+
+    // Khách vãng lai: bỏ trạng thái loading ngay và trì hoãn nạp SDK Firebase Auth để không chặn TBT/main-thread lúc đầu
+    setLoading(false);
+    const timerHandle = setTimeout(() => {
+      if (!cancelled) void initAuthListener();
+    }, 3500);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timerHandle);
+      unsubscribe?.();
+    };
+  }, [isConfigured]);
 
   // Tự động đồng bộ lịch sử xem khi quay lại tab (Visibility Change Sync)
   useEffect(() => {
@@ -211,7 +278,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     success: boolean;
     error?: string;
   }> => {
-    if (!isConfigured || !auth) {
+    if (!isConfigured) {
       return {
         success: false,
         error:
@@ -220,6 +287,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     }
 
     try {
+      const { auth, googleProvider, signInWithPopup } = await loadFirebaseAuth();
+      if (!auth) {
+        return {
+          success: false,
+          error:
+            "Chưa cấu hình Firebase API Keys trong .env.local. Vui lòng thêm khóa cấu hình để bắt đầu.",
+        };
+      }
       const res = await signInWithPopup(auth, googleProvider);
       if (res.user) {
         setUser(res.user);
@@ -250,8 +325,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   }, [isConfigured]);
 
   const logout = useCallback(async (): Promise<void> => {
-    if (!auth) return;
     try {
+      const { auth, signOut } = await loadFirebaseAuth();
+      if (!auth) return;
       await signOut(auth);
       setUser(null);
       setCachedUser(null);

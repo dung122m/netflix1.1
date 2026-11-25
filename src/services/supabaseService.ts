@@ -1,4 +1,3 @@
-import { supabase } from "@/lib/supabase";
 import { MovieComment, CommentReactionType } from "@/types/comment";
 import { UserProfile } from "@/types/user";
 import { WatchHistoryItem } from "@/lib/watchHistory";
@@ -680,6 +679,7 @@ export async function uploadAvatarSupabase(
   }
 
   // 2. Dự phòng trực tiếp Supabase Storage nếu không có mạng API
+  const { supabase } = await import("@/lib/supabase");
   if (!supabase) return null;
   try {
     const fileName = `${userId}_${Date.now()}.${fileExt}`;
@@ -737,6 +737,7 @@ export async function uploadCollectionCoverSupabase(
   }
 
   // 2. Dự phòng trực tiếp Supabase Storage
+  const { supabase } = await import("@/lib/supabase");
   if (!supabase) return null;
   try {
     const fileName = `${userId}_${Date.now()}.${fileExt}`;

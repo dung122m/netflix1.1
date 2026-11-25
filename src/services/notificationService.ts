@@ -5,7 +5,10 @@ import {
   markAllNotificationsAsReadSupabase,
   deleteNotificationSupabase,
 } from "./supabaseService";
-import { isSupabaseConfigured, supabase } from "@/lib/supabase";
+import { isSupabaseConfigured } from "@/lib/supabaseConfig";
+import type { SupabaseClient } from "@supabase/supabase-js";
+
+let cachedRealtimeSupabase: SupabaseClient | null = null;
 
 /**
  * Lấy mốc thời gian đã đọc hết thông báo từ LocalStorage
@@ -205,10 +208,16 @@ function fetchSingletonNotifications(userId: string): Promise<UserNotification[]
   return promise;
 }
 
-function setupSingletonRealtime(userId: string) {
-  if (!supabase || !activeSingleton || activeSingleton.userId !== userId) return;
+async function setupSingletonRealtime(userId: string) {
+  if (!activeSingleton || activeSingleton.userId !== userId) return;
 
   try {
+    const { supabase } = await import("@/lib/supabase");
+    cachedRealtimeSupabase = supabase;
+    if (!supabase || !activeSingleton || activeSingleton.userId !== userId || activeSingleton.listeners.size === 0) {
+      return;
+    }
+
     const channelName = `realtime_notifs_${userId}`;
     const newChannel = supabase.channel(channelName);
     newChannel
@@ -238,9 +247,9 @@ function teardownSingleton(singleton: NotificationSingleton) {
     clearTimeout(singleton.cleanupTimer);
     singleton.cleanupTimer = null;
   }
-  if (singleton.realtimeChannel && supabase) {
+  if (singleton.realtimeChannel && cachedRealtimeSupabase) {
     try {
-      supabase.removeChannel(singleton.realtimeChannel);
+      cachedRealtimeSupabase.removeChannel(singleton.realtimeChannel);
     } catch {}
     singleton.realtimeChannel = null;
   }

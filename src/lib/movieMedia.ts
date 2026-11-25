@@ -587,7 +587,7 @@ export function toOptimizedCardPosterUrl(url: string, _targetWidth: number = 320
   }
 
   if (clean.includes("image.tmdb.org/t/p/")) {
-    clean = clean.replace(/\/t\/p\/(w1280|original|w780)\//, "/t/p/w500/");
+    clean = clean.replace(/\/t\/p\/(w1280|original|w780|w500)\//, "/t/p/w342/");
     return clean;
   }
 

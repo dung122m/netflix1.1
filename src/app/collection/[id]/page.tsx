@@ -68,11 +68,13 @@ export default async function CollectionDetailPage({
     <div className="page-cinema-container min-h-dvh flex flex-col justify-between bg-black text-white w-full max-w-full overflow-x-clip">
       <div>
         <Navbar />
-        <CollectionClientView
-          id={id}
-          userId={userId}
-          initialData={collection}
-        />
+        <main className="w-full">
+          <CollectionClientView
+            id={id}
+            userId={userId}
+            initialData={collection}
+          />
+        </main>
       </div>
       <Footer />
     </div>

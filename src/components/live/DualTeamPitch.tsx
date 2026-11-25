@@ -114,7 +114,8 @@ export const DualTeamPitch: React.FC<DualTeamPitchProps> = ({
           {/* Đội nhà (Trái) */}
           <div className="flex items-center gap-2 min-w-0 flex-1">
             {homeTeam.logo ? (
-              <img src={homeTeam.logo} alt="" className="w-4 h-4 sm:w-5 sm:h-5 object-contain shrink-0" />
+              /* eslint-disable-next-line @next/next/no-img-element */
+              <img src={homeTeam.logo} alt="" decoding="async" className="w-4 h-4 sm:w-5 sm:h-5 object-contain shrink-0" />
             ) : (
               <span className="w-2.5 h-2.5 rounded-full bg-[#dc2626] shrink-0" />
             )}
@@ -144,7 +145,8 @@ export const DualTeamPitch: React.FC<DualTeamPitchProps> = ({
               {awayTeam.displayName}
             </span>
             {awayTeam.logo ? (
-              <img src={awayTeam.logo} alt="" className="w-4 h-4 sm:w-5 sm:h-5 object-contain shrink-0" />
+              /* eslint-disable-next-line @next/next/no-img-element */
+              <img src={awayTeam.logo} alt="" decoding="async" className="w-4 h-4 sm:w-5 sm:h-5 object-contain shrink-0" />
             ) : (
               <span className="w-2.5 h-2.5 rounded-full bg-[#0284c7] shrink-0" />
             )}

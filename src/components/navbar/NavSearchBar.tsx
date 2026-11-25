@@ -91,7 +91,10 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(
 
               <input
                 ref={mobileInputRef}
+                id="nav-search-input-mobile"
+                name="q"
                 type="text"
+                aria-label="Tìm phim, diễn viên, anime"
                 placeholder="Tìm phim, diễn viên, anime..."
                 onChange={handleInputChange}
                 onKeyDown={handleInputKeyDown}
@@ -191,7 +194,10 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(
             >
               <input
                 ref={inputRef}
+                id="nav-search-input"
+                name="q"
                 type="text"
+                aria-label="Tìm phim trên Nanaflix"
                 placeholder="Tìm phim trên Nanaflix..."
                 onChange={handleInputChange}
                 onKeyDown={handleInputKeyDown}

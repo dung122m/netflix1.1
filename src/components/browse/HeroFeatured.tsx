@@ -309,6 +309,7 @@ const HeroFeaturedInner: React.FC<{ movies?: HeroMovie[] }> = ({
               alt={meta.title}
               fill
               priority={index === 0}
+              fetchPriority={index === 0 ? "high" : "auto"}
               decoding="async"
               quality={80}
               unoptimized

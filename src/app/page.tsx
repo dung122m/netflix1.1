@@ -8,7 +8,7 @@ import { movieApi } from "@/services/movies/service";
 import { getTmdbRankedMovies, getTmdbBackdropUrl } from "@/services/tmdbService";
 import { getTopTrendingCommunitySupabase } from "@/services/communityWatchService";
 import { CuratedMovieSection } from "@/components/movies/CuratedMovieSection";
-import { TmdbTopTrending } from "@/components/movies/TmdbTopTrending";
+import { TmdbTopTrending, type TmdbTrendingMovieItem } from "@/components/movies/TmdbTopTrending";
 import { CommunityTopTrending } from "@/components/movies/CommunityTopTrending";
 import { ForYouPersonalizedRow } from "@/components/movies/ForYouPersonalizedRow";
 import { getR2BannerUrl } from "@/lib/r2";
@@ -302,6 +302,73 @@ function selectFeaturedMovies(pool: AnyMovie[], count: number = 7): AnyMovie[] {
   return selected;
 }
 
+/**
+ * Rút gọn dữ liệu phim trước khi serialize sang Client Component để giảm kích thước HTML/RSC payload & CPU Vercel.
+ */
+function pruneTaxonomyList(raw: unknown): Array<{ name: string; slug?: string }> | undefined {
+  if (!Array.isArray(raw)) return undefined;
+  return raw
+    .map((item) => {
+      if (typeof item === "string") return { name: item };
+      if (item && typeof item === "object" && "name" in item) {
+        const typed = item as { name?: unknown; slug?: unknown };
+        if (typeof typed.name === "string" && typed.name) {
+          return typed.slug && typeof typed.slug === "string"
+            ? { name: typed.name, slug: typed.slug }
+            : { name: typed.name };
+        }
+      }
+      return null;
+    })
+    .filter((v): v is { name: string; slug?: string } => v !== null);
+}
+
+function pruneMovieForClient(movie: AnyMovie, includeHeroFields = false): AnyMovie {
+  if (!movie || typeof movie !== "object") return movie;
+  const pruned: AnyMovie = {
+    _id: movie._id,
+    slug: movie.slug,
+    name: movie.name,
+    title: movie.title,
+    origin_name: movie.origin_name,
+    poster_url: movie.poster_url,
+    thumb_url: movie.thumb_url,
+    imageUrl: movie.imageUrl,
+    year: movie.year,
+    quality: movie.quality,
+    lang: movie.lang,
+    time: movie.time,
+    type: movie.type,
+    itemType: movie.itemType,
+    episode_current: movie.episode_current,
+    episode_total: movie.episode_total,
+    tmdb: movie.tmdb,
+    score: movie.score,
+    category: pruneTaxonomyList(movie.category),
+    country: pruneTaxonomyList(movie.country),
+  };
+
+  if (includeHeroFields) {
+    pruned.backdrop_url = movie.backdrop_url;
+    pruned.backdropUrl = movie.backdropUrl;
+    pruned.banner_url = movie.banner_url;
+    pruned.bannerUrl = movie.bannerUrl;
+    pruned.backdrop_path = movie.backdrop_path;
+    pruned.backdropPath = movie.backdropPath;
+    pruned.status = movie.status;
+    pruned.trailer_url = movie.trailer_url;
+    pruned.isTrending = movie.isTrending;
+    if (typeof movie.content === "string" && movie.content) {
+      pruned.content = movie.content.slice(0, 420);
+    }
+    if (typeof movie.description === "string" && movie.description) {
+      pruned.description = movie.description.slice(0, 420);
+    }
+  }
+
+  return pruned;
+}
+
 // ==========================================
 export default async function HomePage() {
   // TRANG CHỦ THUẦN TÚY (LANDING PAGE) — giới hạn timeout SSR để không bao giờ kẹt loading.tsx
@@ -370,44 +437,57 @@ export default async function HomePage() {
     setCachedResolvedHero(heroMovies, isTrendingHero);
   }
 
+  const compactHeroMovies = heroMovies.map((m) => pruneMovieForClient(m, true));
+  const compactTrendingWeek: TmdbTrendingMovieItem[] = trendingWeekRaw.map((m) => {
+    const pruned = pruneMovieForClient(m);
+    return {
+      ...pruned,
+      name: String(pruned.name || pruned.title || ""),
+      slug: String(pruned.slug || ""),
+    } as TmdbTrendingMovieItem;
+  });
+  const compactCuratedMovies = movies.slice(0, 12).map((m: AnyMovie) => pruneMovieForClient(m));
+  const compactFallbackMovies = movies.slice(0, 24).map((m: AnyMovie) => pruneMovieForClient(m));
+
   return (
     <div className="page-cinema-container min-h-dvh pb-0 w-full max-w-full overflow-x-clip">
       <Navbar />
 
-      {/* 1. HERO SPOTLIGHT BANNER */}
-      <HeroFeatured movies={heroMovies} />
+      <main className="w-full">
+        {/* 1. HERO SPOTLIGHT BANNER */}
+        <HeroFeatured movies={compactHeroMovies} />
 
-      {/* 2. TIẾP TỤC XEM: Hiển thị ngay sau Hero khi có lịch sử */}
-      <ContinueWatchingRow />
+        {/* 2. TIẾP TỤC XEM: Hiển thị ngay sau Hero khi có lịch sử */}
+        <ContinueWatchingRow />
 
-      {/* 3. KHÁM PHÁ THEO THỂ LOẠI (Điều hướng chủ đích sang Browse) */}
-      <div className="px-4 md:px-8 mb-8 sm:mb-10 relative z-30 w-full min-w-0 max-w-full overflow-hidden">
-        <HomeGenreExploreBar />
-      </div>
-
-      <div className="px-4 md:px-8 relative z-10 space-y-8 sm:space-y-12">
-        {/* 5. HÀNG PHIM DÀNH RIÊNG CHO BẠN (AI PERSONALIZED RECOMMENDATIONS) */}
-        <div className="cv-auto-section">
-          <ForYouPersonalizedRow fallbackMovies={movies} />
+        {/* 3. KHÁM PHÁ THEO THỂ LOẠI (Điều hướng chủ đích sang Browse) */}
+        <div className="px-4 md:px-8 mb-8 sm:mb-10 relative z-30 w-full min-w-0 max-w-full overflow-hidden">
+          <HomeGenreExploreBar />
         </div>
 
-        {/* 6. BẢNG XẾP HẠNG PHIM THỊNH HÀNH & TOP 10 CỘNG ĐỒNG */}
-        <div className="cv-auto-section">
-          <TmdbTopTrending initialItems={trendingWeekRaw} />
-        </div>
-        <div className="cv-auto-section">
-          <CommunityTopTrending initialItems={communityTrending} />
-        </div>
+        <div className="px-4 md:px-8 relative z-10 space-y-8 sm:space-y-12">
+          {/* 5. HÀNG PHIM DÀNH RIÊNG CHO BẠN (AI PERSONALIZED RECOMMENDATIONS) */}
+          <div className="cv-auto-section">
+            <ForYouPersonalizedRow fallbackMovies={compactFallbackMovies} />
+          </div>
 
-        {/* 7. TAB TUYỂN CHỌN PHIM ĐA NĂNG TRÊN TRANG CHỦ */}
-        <div className="cv-auto-section">
-          <CuratedMovieSection
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            initialMovies={movies.slice(0, 12).map((m: any) => ({ ...m }))}
-            initialTotalItems={totalItems}
-          />
+          {/* 6. BẢNG XẾP HẠNG PHIM THỊNH HÀNH & TOP 10 CỘNG ĐỒNG */}
+          <div className="cv-auto-section">
+            <TmdbTopTrending initialItems={compactTrendingWeek} />
+          </div>
+          <div className="cv-auto-section">
+            <CommunityTopTrending initialItems={communityTrending} />
+          </div>
+
+          {/* 7. TAB TUYỂN CHỌN PHIM ĐA NĂNG TRÊN TRANG CHỦ */}
+          <div className="cv-auto-section">
+            <CuratedMovieSection
+              initialMovies={compactCuratedMovies}
+              initialTotalItems={totalItems}
+            />
+          </div>
         </div>
-      </div>
+      </main>
       <Footer />
     </div>
   );
