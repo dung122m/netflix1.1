@@ -123,12 +123,14 @@ export function getOfficialChannelLogo(name: string): string {
   return "";
 }
 
+const TV_CHANNELS_CACHE_KEY = "tv:channels:list:v2";
+
 let inFlightFetch: Promise<LiveTvData> | null = null;
 
 export const liveTvService = {
   getTvChannels: async (): Promise<LiveTvData> => {
     return cacheService.fetchOrSet<LiveTvData>(
-      "tv:channels:list",
+      TV_CHANNELS_CACHE_KEY,
       async () => liveTvService.fetchAndCacheTvChannels(),
       300
     );
@@ -139,7 +141,7 @@ export const liveTvService = {
     inFlightFetch = liveTvService.fetchAndCacheTvChannels();
     try {
       const fresh = await inFlightFetch;
-      await cacheService.set("tv:channels:list", fresh, 300);
+      await cacheService.set(TV_CHANNELS_CACHE_KEY, fresh, 300);
     } catch {
       // Keep serving the last good snapshot when a source is unavailable.
     } finally {
@@ -332,12 +334,12 @@ export const liveTvService = {
             finalUrl.includes("fnxhd") ||
             finalUrl.includes("epzhd");
 
-          // Ưu tiên logo CDN chính thức từ Cloudflare R2 nếu có. Nếu không, giữ nguyên logo gốc từ nguồn phát
+          // Ưu tiên logo CDN chính thức từ Cloudflare R2 nếu có; nếu không có logo gốc hợp lệ thì để rỗng để TvChannelLogo render badge chữ (tránh request 404)
           const officialLogo = getOfficialChannelLogo(rawName);
           if (officialLogo) {
             logo = officialLogo;
-          } else if (!logo || !logo.startsWith("http")) {
-            logo = "/default-tv-logo.png";
+          } else if (!logo || !/^https?:\/\//i.test(logo)) {
+            logo = "";
           }
 
           // Giữ nguyên 100% logo gốc từ nguồn cho tất cả các kênh khác

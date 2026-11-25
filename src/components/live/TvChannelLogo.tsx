@@ -35,19 +35,20 @@ export function TvChannelLogo({
   logo,
   name,
 }: TvChannelLogoProps) {
-  const [error, setError] = useState(false);
+  const [failedLogo, setFailedLogo] = useState<string | null>(null);
+  const validLogo = logo && logo !== "/default-tv-logo.png" ? logo : "";
 
-  // Nếu có logo URL và chưa bị lỗi → hiển thị ảnh trực tiếp từ nguồn
-  if (logo && !error) {
+  // Nếu có logo URL hợp lệ và chưa bị lỗi → hiển thị ảnh trực tiếp từ nguồn
+  if (validLogo && failedLogo !== validLogo) {
     return (
       // eslint-disable-next-line @next/next/no-img-element
       <img
-        src={logo}
+        src={validLogo}
         alt={name}
         className="w-full h-full object-contain filter drop-shadow-md transition-transform duration-200 group-hover:scale-105"
         loading="lazy"
         decoding="async"
-        onError={() => setError(true)}
+        onError={() => setFailedLogo(validLogo)}
       />
     );
   }

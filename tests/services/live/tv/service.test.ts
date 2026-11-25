@@ -29,7 +29,9 @@ describe("Live TV Service & Stream URL Candidate Guards", () => {
       );
 
       assert.equal(tokenlessFpt.length, 0);
-      assert.ok(data.channels.some((ch) => ch.name === "Live Test Channel"));
+      const liveTest = data.channels.find((ch) => ch.name === "Live Test Channel");
+      assert.ok(liveTest);
+      assert.equal(liveTest.logo, "");
       assert.equal(
         data.channels.some((ch) => ch.name === "Dead FPTPlay 53"),
         false,
